@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+# =============================================================================
+#  dev-diag — one single report, to copy and paste as is.
+#
+#      dev-diag            prints the report
+#      dev-diag > /tmp/d   to send it
+#
+#  Gathers everything needed to understand a breakdown WITHOUT access to the
+#  machine: service states, the tunnel's real identity, DNS matching, listening
+#  ports, latest errors. No secret is ever displayed.
+# =============================================================================
+set -uo pipefail
+
+[[ -r /etc/dev-stack.public.env ]] && source /etc/dev-stack.public.env
+DEV_DOMAIN="${DEV_DOMAIN:-}"
+CONF="${DEV_STACK_CONF:-/etc/dev-stack.projects.conf}"
+PROJECTS_DIR="${PROJECTS_DIR:-$HOME/projects}"
+# This machine's services, as it declares them. With no profile written, we look
+# at the units this stack knows how to lay down — those that do not exist report
+# "missing", and that is already information.
+SERVICE_UNITS=""
+for d in ${STACK_SERVICES:-}; do SERVICE_UNITS+="${d##*:} "; done
+SERVICE_UNITS="${SERVICE_UNITS:-cloudflared mysql mariadb} dev-shots"
+TUNNEL="${STACK_TUNNEL:-}"
+
+h() { printf '\n──── %s %s\n' "$1" "$(printf '─%.0s' $(seq 1 $((60 - ${#1}))))"; }
+q() { "$@" 2>&1 | head -"${LIMIT:-12}"; }
+
+echo "dev-diag · $(date '+%F %T') · $(hostname) · $(. /etc/os-release && echo "$PRETTY_NAME")"
+echo "uptime $(uptime -p 2>/dev/null | sed 's/^up //') · $(nproc) cores · RAM $(free -g | awk '/^Mem:/{print $3"/"$2" GB"}')"
+
+h "SERVICES"
+for u in $SERVICE_UNITS; do
+  printf '  %-14s %s\n' "$u" "$(systemctl is-active "$u" 2>/dev/null || echo missing)"
+done
+
+h "TUNNEL — real identity"
+tid=""
+if [[ "$TUNNEL" == none ]]; then
+  echo "  no tunnel on this machine — projects are reached on their port"
+fi
+cred=""
+[[ "$TUNNEL" != none ]] && cred="$(ls /etc/cloudflared/*.json 2>/dev/null | head -1)"
+if [[ -n "$cred" ]]; then
+  tid="$(jq -r '.TunnelID // "?"' "$cred" 2>/dev/null)"
+  echo "  file         : $cred"
+  echo "  TunnelID     : $tid"
+elif [[ "$TUNNEL" != none ]]; then
+  echo "  NO credentials file in /etc/cloudflared/"
+fi
+if [[ "$TUNNEL" != none ]]; then
+  echo "  config.yml   : $(grep -c 'hostname:' /etc/cloudflared/config.yml 2>/dev/null || echo 0) routes"
+  grep -E '^tunnel:' /etc/cloudflared/config.yml 2>/dev/null | sed 's/^/  /'
+  echo "  active connections to the Cloudflare network:"
+  LIMIT=15 q cloudflared tunnel info "$tid" 2>/dev/null | sed 's/^/    /' \
+    || echo "    (cloudflared tunnel info unavailable)"
+fi
+
+h "DNS — what the world sees"
+if [[ -n "$tid" ]]; then
+  echo "  expected: ${tid}.cfargotunnel.com"
+  while IFS='|' read -r n d r p host port sub cmd; do
+    # The port may carry a scheme ("https:5180"): here we only want the number.
+    port="${port##*:}"
+    [[ -z "$n" || "$n" == \#* || "$sub" == "-" || -z "$sub" ]] && continue
+    got="$(dig +short CNAME "${sub}.${DEV_DOMAIN}" 2>/dev/null | sed 's/\.$//')"
+    [[ -z "$got" ]] && got="$(dig +short "${sub}.${DEV_DOMAIN}" 2>/dev/null | head -1) (A, via proxy)"
+    if [[ "$got" == "${tid}.cfargotunnel.com" ]]; then
+      printf '  %-24s OK\n' "$sub"
+    else
+      printf '  %-24s ≠ %s\n' "$sub" "${got:-no answer}"
+    fi
+  done < "$CONF"
+fi
+
+h "LISTENING PORTS"
+# Do not filter on IPv4 alone: a dev server listening only on [::1] is
+# unreachable for the tunnel, and that is precisely what we want to see.
+q ss -ltnp 2>/dev/null | awk 'NR==1 || /LISTEN/' | head -25
+
+h "EXPECTED PROJECTS vs REALITY"
+while IFS='|' read -r n d r p host port sub cmd; do
+  port="${port##*:}"
+  [[ -z "$n" || "$n" == \#* ]] && continue
+  listening=$(ss -ltn "sport = :$port" 2>/dev/null | grep -c "$port")
+  win=$(tmux list-windows -t dev -F '#W' 2>/dev/null | grep -cx "$n")
+  printf '  %-20s port %-6s listening:%s  tmux window:%s  folder:%s\n' \
+    "$n" "$port" "$((listening>0))" "$((win>0))" \
+    "$([[ -d "$PROJECTS_DIR/$d" ]] && echo yes || echo NO)"
+done < "$CONF"
+
+h "ENVIRONMENT FILES"
+while IFS='|' read -r n d r p host port sub cmd; do
+  port="${port##*:}"
+  [[ -z "$n" || "$n" == \#* || "$p" == service ]] && continue
+  wd="$PROJECTS_DIR/$d"
+  [[ -d "$wd" ]] || continue
+  if [[ -f "$wd/.env.local" ]]; then
+    printf '  %-20s .env.local present (%s lines)\n' "$n" "$(wc -l <"$wd/.env.local")"
+  elif [[ -f "$wd/.env.1password.tpl" || -f "$wd/package.json" ]]; then
+    printf '  %-20s .env.local MISSING → dev env %s\n' "$n" "$n"
+  fi
+done < "$CONF"
+
+h "LOCAL ORIGIN TEST"
+while IFS='|' read -r n d r p host port sub cmd; do
+  [[ -z "$n" || "$n" == \#* || "$sub" == "-" || -z "$sub" ]] && continue
+  # Testing an origin that only speaks TLS over http returns a flat failure, which
+  # would be confused with a dead server. The scheme from projects.conf wins.
+  scheme=http
+  [[ "$port" == *:* ]] && scheme="${port%%:*}"
+  port="${port##*:}"
+  code="$(curl -sk -o /dev/null -w '%{http_code}' --max-time 4 \
+    -H "Host: ${host}:${port}" "${scheme}://${host}:${port}/" 2>/dev/null)"
+  printf '  %-24s %s://%s:%s → %s\n' "$sub" "$scheme" "$host" "$port" "${code:-unreachable}"
+done < "$CONF"
+
+if [[ "$TUNNEL" != none ]]; then
+  h "CLOUDFLARED — last 25 lines"
+  LIMIT=25 q journalctl -u cloudflared -n 25 --no-pager -o cat | sed 's/^/  /'
+fi
+
+h "TMUX"
+q tmux list-sessions
+q tmux list-windows -t dev
+
+h "TOOLS"
+for c in node bun pnpm java git gh op neonctl claude codex dev dev-tui shot; do
+  printf '  %-10s %s\n' "$c" "$(command -v "$c" >/dev/null && echo "$($c --version 2>/dev/null | head -1 || echo present)" || echo MISSING)"
+done
+
+h "LATEST PROVISIONING ERRORS"
+LIMIT=20 q grep -E '^E:|error|Error|✗' /var/log/dev-stack.log | tail -20 | sed 's/^/  /'
+
+echo
+echo "── end of report ──"

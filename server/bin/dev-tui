@@ -1,0 +1,981 @@
+#!/usr/bin/env python3
+"""
+dev-tui — full-screen dashboard of the development server.
+
+A single view: the project list on the left, the machine state on the right,
+refreshed every second. Everything is driven from the keyboard — start, stop,
+open a shell or a Claude Code instance in a project.
+
+Launched by `dev tui`. Depends only on the standard library: no pip, no package
+to maintain.
+
+Keys
+  up down / j k  navigate            s   start            x   stop
+  enter          open a shell        r   restart          A   start all
+  c              Claude Code         o   Codex            X   stop all
+  l              view the logs       y   show the URL     g   git pull + install
+  b              switch branch       /   filter           q   quit
+"""
+
+import curses
+import locale
+import os
+import shutil
+import signal
+import socket
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+CONF = os.environ.get("DEV_STACK_CONF", "/etc/dev-stack.projects.conf")
+SESSION = "dev"
+HOME = Path(os.path.expanduser("~"))
+PROJECTS_DIR = Path(os.environ.get("PROJECTS_DIR", HOME / "projects"))
+DEV_DOMAIN = os.environ.get("DEV_DOMAIN", "")
+# The name the machine goes by, and what it runs. Both come from its profile:
+# this file does not know what a Cloudflare tunnel is, only that there is a
+# service named "Tunnel" — or that there is none.
+STACK_NAME = os.environ.get("STACK_NAME", "") or socket.gethostname().split(".")[0]
+STACK_SERVICES = os.environ.get("STACK_SERVICES", "")
+LOGDIR = HOME / ".dev-stack" / "logs"
+
+REFRESH = 1.0          # seconds between two refreshes
+CPU_HISTORY = 60       # points kept for the sparkline
+
+# curses encodes what it is given according to the process locale. An SSH session
+# often arrives with no LANG: in the "C" locale, the slightest non-ASCII
+# character breaks the display. So we adopt the environment's locale, and fall
+# back to ASCII characters when it is not UTF-8.
+try:
+    locale.setlocale(locale.LC_ALL, "")
+except locale.Error:
+    pass
+UTF8 = (locale.getpreferredencoding(False) or "").lower().replace("-", "") == "utf8"
+
+if UTF8:
+    SPARK = " ▁▂▃▄▅▆▇█"
+    BAR_FULL, BAR_EMPTY, RULE, DOT_ON, DOT_OFF = "█", "·", "─", "●", "○"
+else:
+    SPARK = " .:-=+*#"
+    BAR_FULL, BAR_EMPTY, RULE, DOT_ON, DOT_OFF = "#", ".", "-", "*", "o"
+
+
+# --------------------------------------------------------------------------- #
+#  Model
+# --------------------------------------------------------------------------- #
+
+class Project:
+    __slots__ = ("name", "dir", "repo", "pkg", "host", "port", "sub", "cmd",
+                 "state", "branch", "uptime", "ram")
+
+    def __init__(self, row):
+        (self.name, self.dir, self.repo, self.pkg,
+         self.host, self.port, self.sub, self.cmd) = row
+        # The port may carry a scheme ("https:5180"): only the number counts.
+        bare = self.port.rsplit(":", 1)[-1]
+        self.port = int(bare) if bare.isdigit() else 0
+        self.state = "?"
+        self.branch = ""
+        self.uptime = 0
+        self.ram = 0
+
+    @property
+    def is_service(self):
+        return self.pkg == "service"
+
+    @property
+    def url(self):
+        if self.sub == "-" or not DEV_DOMAIN:
+            return ""
+        return f"https://{self.sub}.{DEV_DOMAIN}"
+
+    @property
+    def local_addr(self):
+        """What you type from the server, or through the SSH tunnel."""
+        if not self.port:
+            return "—"
+        return f"{self.host}:{self.port}"
+
+    @property
+    def public_addr(self):
+        """What you type from anywhere. The domain being common to all of them,
+        only the subdomain distinguishes: showing it in full would eat the width
+        without teaching anything."""
+        return self.sub if self.sub and self.sub != "-" else "—"
+
+    @property
+    def workdir(self):
+        return PROJECTS_DIR / self.dir
+
+    @property
+    def root(self):
+        """The repository root — that is what holds the branch.
+
+        Several projects share a repository (an API and its front end): their
+        `dir` points at a subfolder, never at the git.
+        """
+        return PROJECTS_DIR / self.dir.split("/")[0]
+
+
+def load_projects():
+    out = []
+    try:
+        for line in Path(CONF).read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split("|")
+            if len(parts) == 8:
+                out.append(Project(parts))
+    except OSError:
+        pass
+    return out
+
+
+# --------------------------------------------------------------------------- #
+#  System probes — everything comes from /proc, no dependency
+# --------------------------------------------------------------------------- #
+
+def sh(cmd, timeout=4):
+    try:
+        return subprocess.run(cmd, shell=True, capture_output=True,
+                              text=True, timeout=timeout).stdout.strip()
+    except Exception:
+        return ""
+
+
+def human_duration(seconds):
+    """A duration you read at a glance, not a useless precision."""
+    if seconds <= 0:
+        return "—"
+    if seconds < 60:
+        return f"{seconds} s"
+    minutes = seconds // 60
+    if minutes < 60:
+        return f"{minutes} min"
+    hours, minutes = divmod(minutes, 60)
+    if hours < 24:
+        return f"{hours} h {minutes:02d}"
+    days, hours = divmod(hours, 24)
+    return f"{days} d {hours} h"
+
+
+def window_uptimes():
+    """How long each window has been running, in seconds.
+
+    The pane PID is that of the shell created by `dev up`: its age is therefore
+    exactly the project's. One call to tmux and one to ps, rather than one each
+    per project — this function is refreshed in a loop.
+    """
+    listing = sh("tmux list-panes -a -F '#{window_name} #{pane_pid}'")
+    pairs = []
+    for line in listing.splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[1].isdigit():
+            pairs.append((parts[0], parts[1]))
+    if not pairs:
+        return {}
+
+    ages = sh("ps -o pid=,etimes= -p " + ",".join(pid for _, pid in pairs))
+    by_pid = {}
+    for line in ages.splitlines():
+        bits = line.split()
+        if len(bits) == 2 and bits[0].isdigit() and bits[1].isdigit():
+            by_pid[bits[0]] = int(bits[1])
+
+    return {name: by_pid[pid] for name, pid in pairs if pid in by_pid}
+
+
+def port_owners():
+    """The PID holding each listening port.
+
+    That is what lets us date a service started outside `dev` — by an IDE run
+    configuration, for instance: it has no tmux window, so nothing else says how
+    long it has been running.
+    """
+    owners = {}
+    for line in sh("ss -lntp").splitlines():
+        if "pid=" not in line:
+            continue
+        local = line.split()[3] if len(line.split()) > 3 else ""
+        port = local.rsplit(":", 1)[-1]
+        pid = line.split("pid=", 1)[1].split(",", 1)[0]
+        if port.isdigit() and pid.isdigit():
+            owners.setdefault(int(port), pid)
+    return owners
+
+
+def process_age(pid):
+    out = sh(f"ps -o etimes= -p {pid}").strip()
+    return int(out) if out.isdigit() else 0
+
+
+def project_memory():
+    """Each project's memory: the process tree of its tmux window.
+
+    A dev environment grows silently — a Gradle daemon, a Vite watcher — and it
+    is always when the machine saturates that you go looking for which one.
+    """
+    panes = {}
+    for line in sh("tmux list-panes -a -F '#{window_name} #{pane_pid}'").splitlines():
+        bits = line.split()
+        if len(bits) == 2 and bits[1].isdigit():
+            panes[bits[0]] = bits[1]
+    if not panes:
+        return {}
+
+    kids, rss = {}, {}
+    for line in sh("ps -eo pid=,ppid=,rss=").splitlines():
+        bits = line.split()
+        if len(bits) == 3 and bits[0].isdigit():
+            rss[bits[0]] = int(bits[2])
+            kids.setdefault(bits[1], []).append(bits[0])
+
+    out = {}
+    for name, root in panes.items():
+        total, queue = 0, [root]
+        while queue:
+            cur = queue.pop()
+            total += rss.get(cur, 0)
+            queue.extend(kids.get(cur, ()))
+        out[name] = total // 1024
+    return out
+
+
+def tmux_windows():
+    out = sh(f"tmux list-windows -t {SESSION} -F '#W' 2>/dev/null")
+    return set(out.splitlines()) if out else set()
+
+
+def port_open(host, port):
+    """Does the port answer? We try EVERY address of the name.
+
+    `create_connection` stops at the first one that fails when given a name: a
+    dev server listening only on IPv4 behind a name resolved to IPv6 first looked
+    dead. And 0.25 s is not always enough on a loaded machine — a project mid
+    build stayed "starting" indefinitely.
+    """
+    if not port:
+        return False
+    try:
+        infos = socket.getaddrinfo(host, int(port), type=socket.SOCK_STREAM)
+    except OSError:
+        return False
+    for family, kind, proto, _canon, addr in infos:
+        try:
+            with socket.socket(family, kind, proto) as sock:
+                sock.settimeout(0.6)
+                if sock.connect_ex(addr) == 0:
+                    return True
+        except OSError:
+            continue
+    return False
+
+
+# What, in a log, says a startup is OVER — not that it is grinding along.
+# Nothing generic here: a healthy Grails log spews ERROR lines continuously, and
+# taking those for a failure would show "failed" on a perfectly alive service. So
+# we only keep terminal conditions.
+FAILED_MARKERS = (
+    "EADDRINUSE",
+    "address already in use",
+    "BUILD FAILED",
+    "FAILURE: Build failed",
+    "Web server failed to start",
+    "command not found",
+    "Cannot find module",
+    "exited with code",
+)
+
+
+def log_says_failed(name):
+    """Has the startup IN PROGRESS failed?
+
+    `dev up` puts a marker in the log. Without it we would re-read the previous
+    shutdown — which ends with "exited with code 130" — and every subsequent
+    startup would look like a failure until the port opened.
+    """
+    log = LOGDIR / f"{name}.log"
+    try:
+        with open(log, "rb") as fh:
+            fh.seek(0, os.SEEK_END)
+            fh.seek(max(0, fh.tell() - 200_000))
+            text = fh.read().decode("utf-8", "replace")
+    except OSError:
+        return False
+    marker = text.rfind("=== dev up ")
+    if marker != -1:
+        text = text[marker:]
+    lowered = text.lower()
+    return any(m.lower() in lowered for m in FAILED_MARKERS)
+
+
+class CpuMeter:
+    def __init__(self):
+        self.prev = self._read()
+        self.history = [0.0] * CPU_HISTORY
+
+    @staticmethod
+    def _read():
+        with open("/proc/stat") as f:
+            parts = [int(x) for x in f.readline().split()[1:]]
+        idle = parts[3] + parts[4]
+        return sum(parts), idle
+
+    def sample(self):
+        total, idle = self._read()
+        dt, di = total - self.prev[0], idle - self.prev[1]
+        self.prev = (total, idle)
+        pct = 100.0 * (dt - di) / dt if dt > 0 else 0.0
+        self.history = self.history[1:] + [pct]
+        return pct
+
+
+def meminfo():
+    info = {}
+    with open("/proc/meminfo") as f:
+        for line in f:
+            k, _, v = line.partition(":")
+            info[k] = int(v.split()[0]) * 1024
+    total = info.get("MemTotal", 0)
+    avail = info.get("MemAvailable", 0)
+    sw_t = info.get("SwapTotal", 0)
+    sw_f = info.get("SwapFree", 0)
+    return total, total - avail, sw_t, sw_t - sw_f
+
+
+def top_memory(n=6):
+    out = sh("ps -eo rss=,comm=,args= --sort=-rss | head -%d" % n)
+    rows = []
+    for line in out.splitlines():
+        try:
+            rss, comm, args = line.strip().split(None, 2)
+        except ValueError:
+            continue
+        label = comm
+        # A bare "java" or "bun" teaches nothing: we look for the project the
+        # process belongs to.
+        for part in args.split():
+            if str(PROJECTS_DIR) in part:
+                tail = part.split(str(PROJECTS_DIR) + "/")[-1].split("/")[0]
+                label = f"{comm} · {tail}"
+                break
+        rows.append((int(rss) * 1024, label))
+    return rows
+
+
+def services():
+    """What the machine declares it runs, under the name it gives them.
+
+    With no profile — a stack installed before these settings existed — we fall
+    back on the units this stack knows how to lay down, accepting both names of
+    the database engine: it is called mysql or mariadb depending on the
+    distribution.
+
+    A missing unit is not a stopped service: it does not exist, and a machine
+    with no tunnel must not show a broken tunnel. `LoadState` is what separates
+    them — `is-active` answers "inactive" for both.
+    """
+    if STACK_SERVICES.strip():
+        pairs = [(d[2], d[1].lower())
+                 for d in (x.split(":") for x in STACK_SERVICES.split())
+                 if len(d) == 3]
+    else:
+        pairs = [("cloudflared", "tunnel"), ("mysql", "database"),
+                 ("mariadb", "database")]
+    pairs.append(("dev-shots", "shots"))
+
+    # A single call: systemctl costs some twenty milliseconds, and the dashboard
+    # refreshes every second.
+    raw = sh("systemctl show --property=Id --property=LoadState "
+             "--property=ActiveState " + " ".join(u for u, _ in pairs))
+    states = {}
+    block = {}
+    for line in raw.splitlines() + [""]:
+        if line.strip():
+            key, _, value = line.partition("=")
+            block[key] = value
+        elif block:
+            if block.get("LoadState") == "loaded":
+                states[block.get("Id", "").removesuffix(".service")] = \
+                    block.get("ActiveState")
+            block = {}
+
+    out = {}
+    for unit, label in pairs:
+        if unit not in states:
+            continue
+        out[label] = out.get(label, False) or states[unit] == "active"
+    return out
+
+
+def human(n):
+    for unit in ("B", "kB", "MB", "GB", "TB"):
+        if n < 1024:
+            return f"{n:.0f} {unit}"
+        n /= 1024
+    return f"{n:.1f} PB"
+
+
+# --------------------------------------------------------------------------- #
+#  Actions
+# --------------------------------------------------------------------------- #
+
+def dev(*args):
+    subprocess.run(["dev", *args], capture_output=True, text=True)
+
+
+def run_foreground(stdscr, command, workdir, banner=""):
+    """Leaves the display, runs the command IN THIS TERMINAL, then comes back.
+
+    That is the behaviour everyone expects: you open a shell or an agent, you
+    type `exit` (or Ctrl-D), and the dashboard reappears. No knowledge of tmux is
+    needed, and it is impossible to get stuck anywhere.
+    """
+    curses.def_prog_mode()          # remembers the display state
+    curses.endwin()                 # hands the terminal to the launched program
+
+    # Ctrl-C goes to the WHOLE process group, not just the child: without this
+    # bracket, interrupting a `tail -f` also killed this dashboard — and, over
+    # ssh, the terminal tab with it. We ignore it for the duration of the
+    # command; the child receives it normally.
+    previous = signal.signal(signal.SIGINT, signal.SIG_IGN)
+    try:
+        if banner:
+            print(f"\n\033[36m{banner}\033[0m\n", flush=True)
+        # SIG_IGN is INHERITED by the launched process: without restoring it
+        # there, `tail -f` ignored Ctrl-C just as much as we did, and there was
+        # no way left to get back to the dashboard.
+        subprocess.call(command, cwd=str(workdir), shell=isinstance(command, str),
+                        preexec_fn=lambda: signal.signal(signal.SIGINT, signal.SIG_DFL))
+    except Exception as exc:                      # noqa: BLE001
+        print(f"\n\033[31m{exc}\033[0m")
+    finally:
+        signal.signal(signal.SIGINT, previous)
+    print("\n\033[2mBack to the dashboard…\033[0m", flush=True)
+    time.sleep(0.4)
+    curses.reset_prog_mode()        # resumes the display where it was
+    stdscr.redrawwin()
+    stdscr.refresh()
+
+
+# --------------------------------------------------------------------------- #
+#  Rendering
+# --------------------------------------------------------------------------- #
+
+C = {}
+
+
+def init_colors():
+    curses.start_color()
+    curses.use_default_colors()
+    pairs = {
+        "dim": (curses.COLOR_WHITE, -1),
+        "ok": (curses.COLOR_GREEN, -1),
+        "warn": (curses.COLOR_YELLOW, -1),
+        "bad": (curses.COLOR_RED, -1),
+        "accent": (curses.COLOR_CYAN, -1),
+    }
+    for i, (name, (fg, bg)) in enumerate(pairs.items(), start=1):
+        curses.init_pair(i, fg, bg)
+        C[name] = curses.color_pair(i)
+    C["dim"] |= curses.A_DIM
+    C["title"] = C["accent"] | curses.A_BOLD
+
+
+def put(win, y, x, text, attr=0, maxw=None):
+    h, w = win.getmaxyx()
+    if y >= h or x >= w:
+        return
+    room = (maxw if maxw is not None else w - x) - 1
+    if room <= 0:
+        return
+    try:
+        win.addstr(y, x, text[:room], attr)
+    except curses.error:
+        pass
+
+
+def sparkline(values, width):
+    if not values:
+        return ""
+    vals = values[-width:]
+    return "".join(SPARK[min(len(SPARK) - 1, int(v / 100 * (len(SPARK) - 1)))]
+                   for v in vals)
+
+
+def bar(pct, width):
+    filled = int(round(pct / 100 * width))
+    return BAR_FULL * filled + BAR_EMPTY * (width - filled)
+
+
+class Tui:
+    def __init__(self, stdscr):
+        self.scr = stdscr
+        self.projects = load_projects()
+        self.sel = 0
+        self.offset = 0
+        self.uptime = ""
+        self.filter = ""
+        self.message = ""
+        self.message_until = 0
+        self.cpu = CpuMeter()
+        self.cpu_pct = 0.0
+        self.windows = set()
+        self.svc = {}
+        self.top = []
+        self.last_slow = 0
+
+    # -- data ------------------------------------------------------------- #
+    def visible(self):
+        if not self.filter:
+            return self.projects
+        f = self.filter.lower()
+        return [p for p in self.projects if f in p.name.lower()]
+
+    def current(self):
+        vis = self.visible()
+        return vis[self.sel] if vis and 0 <= self.sel < len(vis) else None
+
+    def refresh_data(self):
+        self.cpu_pct = self.cpu.sample()
+        self.windows = tmux_windows()
+        ages = window_uptimes()
+        owners = None
+        for p in self.projects:
+            up = port_open(p.host, p.port)
+            running = p.name in self.windows
+
+            if p.is_service:
+                p.state = "service" if up else "down"
+            elif not running:
+                # The port answers with no tmux window: the service was started
+                # some other way — an IDE run configuration, most often. It is
+                # running, but `dev` has no grip on it.
+                p.state = "external" if up else "stopped"
+            elif up:
+                p.state = "online"
+            elif log_says_failed(p.name):
+                p.state = "failed"
+            else:
+                p.state = "starting"
+
+            if running:
+                p.uptime = ages.get(p.name, 0)
+            elif p.state in ("external", "service") and p.port:
+                # A single read of ss, and only if a project needs it.
+                if owners is None:
+                    owners = port_owners()
+                pid = owners.get(p.port)
+                p.uptime = process_age(pid) if pid else 0
+            else:
+                p.uptime = 0
+        now = time.time()
+        if now - self.last_slow > 4:      # costly probes, less often
+            seen = {}
+            for p in self.projects:
+                root = str(p.root)
+                if root not in seen:
+                    seen[root] = sh(f"git -C {root} rev-parse --abbrev-ref HEAD")
+                p.branch = seen[root]
+            mem = project_memory()
+            for p in self.projects:
+                p.ram = mem.get(p.name, 0)
+            self.svc = services()
+            self.top = top_memory()
+            self.uptime = sh("uptime -p").replace("up ", "") or "—"
+            self.last_slow = now
+
+    def notify(self, text, seconds=4):
+        self.message = text
+        self.message_until = time.time() + seconds
+
+    # -- drawing ----------------------------------------------------------- #
+    def draw(self):
+        self.scr.erase()
+        h, w = self.scr.getmaxyx()
+        # Under 96 columns, a side panel would crush both: we then show only the
+        # projects, and the statistics move to the footer.
+        narrow = w < 96
+        right_w = 0 if narrow else (42 if w >= 120 else 34)
+        left_w = w - right_w - 1 if not narrow else w - 1
+
+        self.draw_header(w)
+        self.draw_projects(3, 0, h - 5, left_w)
+        if not narrow:
+            self.draw_stats(3, left_w + 2, h - 5, right_w - 1)
+        else:
+            put(self.scr, h - 3, 1,
+                f"cpu {self.cpu_pct:.0f}%  ram {human(meminfo()[1])}/{human(meminfo()[0])}"
+                f"  ({w} columns — widen the window for the detail panel)",
+                C["dim"], maxw=w - 2)
+        self.draw_footer(h, w)
+        self.scr.noutrefresh()
+        curses.doupdate()
+
+    def draw_header(self, w):
+        host = socket.gethostname()
+        up = self.uptime or "—"
+        put(self.scr, 0, 0, f" {STACK_NAME} · {host}", C["title"])
+        put(self.scr, 0, max(0, w - len(up) - 12), f"up for {up}", C["dim"])
+        put(self.scr, 1, 0, RULE * (w - 1), C["dim"])
+
+    def columns(self, width):
+        """The columns that fit, in decreasing order of importance.
+
+        The branch goes first when the window narrows: it can also be read with
+        `dev branch`, whereas the two addresses are the whole point of this table
+        — one to reach the service from the server, the other to open it in a
+        browser.
+        """
+        base = [("PROJECT", 19), ("STATE", 11), ("UPTIME", 9),
+                ("RAM", 8), ("BRANCH", 15), ("LOCAL", 21)]
+
+        # We sacrifice in this order when space runs short: the branch can also
+        # be read with `dev branch`, the duration is a comfort, but the two
+        # addresses are the reason the table exists.
+        for droppable in ("BRANCH", "UPTIME", "RAM"):
+            if width >= sum(size for _, size in base) + 12:
+                break
+            base = [c for c in base if c[0] != droppable]
+
+        fixed = sum(size for _, size in base)
+        rest = width - fixed - 2
+        if rest >= 8:
+            # The domain is common to all of them: recalling it once in the
+            # header beats repeating it on every row.
+            title = "PUBLIC"
+            if DEV_DOMAIN and rest >= len(DEV_DOMAIN) + 12:
+                title = f"PUBLIC (*.{DEV_DOMAIN})"
+            base.append((title, rest))
+        return base
+
+    def draw_projects(self, top, left, height, width):
+        vis = self.visible()
+        rows = max(1, height - 2)
+        # Scrolling: the selection always stays inside the visible window, even
+        # with more projects than available lines.
+        self.sel = max(0, min(self.sel, len(vis) - 1)) if vis else 0
+        if self.sel < self.offset:
+            self.offset = self.sel
+        elif self.sel >= self.offset + rows:
+            self.offset = self.sel - rows + 1
+        self.offset = max(0, min(self.offset, max(0, len(vis) - rows)))
+
+        cols = self.columns(width)
+        header = "".join(f"{title:<{size}}" for title, size in cols)[:max(0, width - 2)]
+        if len(vis) > rows:
+            header += f"  [{self.offset + 1}–{min(self.offset + rows, len(vis))}/{len(vis)}]"
+        put(self.scr, top, left + 1, header, C["dim"])
+
+        for i, p in enumerate(vis[self.offset:self.offset + rows]):
+            y = top + 1 + i
+            sel = (self.offset + i == self.sel)
+            attr = curses.A_REVERSE if sel else 0
+            put(self.scr, y, left, " " * width, attr)
+            # Each column is bounded to its width: without maxw, a long value
+            # overflows onto the right panel and the screen becomes unreadable.
+            x = left + 1
+            widths = dict(cols)
+            put(self.scr, y, x, p.name, attr | curses.A_BOLD, maxw=widths["PROJECT"] - 1)
+            x += widths["PROJECT"]
+
+            state_attr = {
+                "online": C["ok"], "service": C["ok"], "external": C["ok"],
+                "starting": C["warn"], "stopped": C["dim"], "down": C["bad"],
+                "failed": C["bad"],
+            }.get(p.state, C["dim"])
+            put(self.scr, y, x, p.state, attr | state_attr, maxw=widths["STATE"] - 1)
+            x += widths["STATE"]
+
+            if "UPTIME" in widths:
+                since = human_duration(p.uptime) if p.uptime else "—"
+                put(self.scr, y, x, since, attr | C["dim"], maxw=widths["UPTIME"] - 1)
+                x += widths["UPTIME"]
+
+            if "RAM" in widths:
+                # Past a gigabyte the unit changes: that is where it matters.
+                if p.ram >= 1024:
+                    ram = f"{p.ram / 1024:.1f} GB"
+                elif p.ram:
+                    ram = f"{p.ram} MB"
+                else:
+                    ram = "—"
+                shade = C["warn"] if p.ram >= 2048 else C["dim"]
+                put(self.scr, y, x, ram, attr | shade, maxw=widths["RAM"] - 1)
+                x += widths["RAM"]
+
+            if "BRANCH" in widths:
+                put(self.scr, y, x, p.branch or "—", attr | C["dim"],
+                    maxw=widths["BRANCH"] - 1)
+                x += widths["BRANCH"]
+
+            put(self.scr, y, x, p.local_addr, attr | C["dim"], maxw=widths["LOCAL"] - 1)
+            x += widths["LOCAL"]
+
+            if any(t.startswith("PUBLIC") for t, _ in cols):
+                # A public address only means something if the project answers.
+                shade = C["accent"] if p.state in ("online", "service") else C["dim"]
+                put(self.scr, y, x, p.public_addr, attr | shade,
+                    maxw=max(0, left + width - x - 1))
+
+        cur = self.current()
+        if cur:
+            y = top + height - 1
+            put(self.scr, y - 1, left + 1, RULE * (width - 2), C["dim"])
+            put(self.scr, y, left + 1, f"{cur.workdir}", C["dim"], maxw=width - 2)
+
+    def draw_stats(self, top, left, height, width):
+        y = top
+        put(self.scr, y, left, "MACHINE", C["dim"]); y += 1
+
+        # CPU
+        cpu_attr = C["bad"] if self.cpu_pct > 85 else C["warn"] if self.cpu_pct > 60 else C["ok"]
+        put(self.scr, y, left, f"cpu   {self.cpu_pct:5.1f} %", cpu_attr)
+        put(self.scr, y, left + 16, bar(self.cpu_pct, width - 18), cpu_attr)
+        y += 1
+        put(self.scr, y, left + 6, sparkline(self.cpu.history, width - 8), C["dim"])
+        y += 1
+
+        # RAM
+        total, used, sw_t, sw_u = meminfo()
+        pct = 100 * used / total if total else 0
+        mem_attr = C["bad"] if pct > 90 else C["warn"] if pct > 75 else C["ok"]
+        put(self.scr, y, left, f"ram   {human(used)} / {human(total)}", mem_attr)
+        y += 1
+        put(self.scr, y, left + 6, bar(pct, width - 8), mem_attr)
+        y += 1
+        if sw_t:
+            sp = 100 * sw_u / sw_t
+            put(self.scr, y, left, f"swap  {human(sw_u)}",
+                C["warn"] if sp > 25 else C["dim"])
+            y += 1
+
+        # Disk
+        du = shutil.disk_usage("/")
+        dpct = 100 * du.used / du.total
+        put(self.scr, y, left, f"disk  {human(du.used)} / {human(du.total)}",
+            C["bad"] if dpct > 90 else C["dim"])
+        y += 1
+        try:
+            load = open("/proc/loadavg").read().split()[:3]
+            put(self.scr, y, left, "load  " + " ".join(load), C["dim"])
+        except OSError:
+            pass
+        y += 2
+
+        # Services
+        put(self.scr, y, left, "SERVICES", C["dim"]); y += 1
+        for label, up in self.svc.items():
+            put(self.scr, y, left, (DOT_ON + " " if up else DOT_OFF + " ") + label,
+                C["ok"] if up else C["bad"])
+            y += 1
+        y += 1
+
+        # Memory per process
+        if y < top + height - 3:
+            put(self.scr, y, left, "MEMORY PER PROCESS", C["dim"]); y += 1
+            for rss, label in self.top:
+                if y >= top + height - 1:
+                    break
+                put(self.scr, y, left, f"{human(rss):>9}  {label}",
+                    C["dim"], maxw=width)
+                y += 1
+
+    def draw_footer(self, h, w):
+        put(self.scr, h - 2, 0, RULE * (w - 1), C["dim"])
+        if self.message and time.time() < self.message_until:
+            put(self.scr, h - 1, 1, self.message, C["accent"])
+            return
+        keys = ("up/down navigate   s start   x stop   r restart   "
+                "enter shell   c claude   l logs   b branch   y url   g sync   q quit")
+        if self.filter:
+            keys = f'filter "{self.filter}" — Esc to clear'
+        put(self.scr, h - 1, 1, keys, C["dim"], maxw=w - 2)
+
+    # -- input ------------------------------------------------------------- #
+    def handle(self, ch):
+        vis = self.visible()
+        p = self.current()
+
+        if ch in (ord("q"), 27) and not self.filter:
+            return False
+        if ch == 27 and self.filter:
+            self.filter = ""; self.sel = 0; return True
+        if ch in (curses.KEY_DOWN, ord("j")):
+            self.sel = min(self.sel + 1, max(0, len(vis) - 1))
+        elif ch in (curses.KEY_UP, ord("k")):
+            self.sel = max(0, self.sel - 1)
+        elif ch == ord("/"):
+            self.prompt_filter()
+        elif p is None:
+            return True
+        elif ch == ord("s"):
+            self.notify(f"starting {p.name}…")
+            self.draw(); dev("up", p.name); self.notify(f"{p.name} started")
+        elif ch == ord("x"):
+            dev("down", p.name); self.notify(f"{p.name} stopped")
+        elif ch == ord("r"):
+            self.notify(f"restarting {p.name}…")
+            self.draw(); dev("restart", p.name); self.notify(f"{p.name} restarted")
+        elif ch == ord("A"):
+            if not self.confirm("start ALL projects?"):
+                return True
+            self.notify("starting every project…")
+            self.draw(); dev("up", "all"); self.notify("everything is started")
+        elif ch == ord("X"):
+            if not self.confirm("stop ALL projects?"):
+                return True
+            dev("down", "all"); self.notify("everything is stopped")
+        elif ch in (curses.KEY_ENTER, 10, 13):
+            run_foreground(self.scr, os.environ.get("SHELL", "/bin/sh"), p.workdir,
+                           f"Shell in {p.name} — type \"exit\" to come back")
+        elif ch == ord("c"):
+            run_foreground(self.scr, "claude", p.workdir,
+                           f"Claude Code in {p.name} — quit it to come back")
+        elif ch == ord("o"):
+            run_foreground(self.scr, "codex", p.workdir,
+                           f"Codex in {p.name} — quit it to come back")
+        elif ch == ord("l"):
+            log = LOGDIR / f"{p.name}.log"
+            if log.exists():
+                run_foreground(self.scr, f"tail -f {log}", p.workdir,
+                               "Ctrl-C to come back to the dashboard")
+            else:
+                self.notify(f"no log for {p.name} — never started?")
+        elif ch == ord("b"):
+            self.switch_branch(p)
+        elif ch == ord("y"):
+            self.notify(p.url or "this project is not published", 8)
+        elif ch == ord("g"):
+            self.notify(f"git pull + install on {p.name}…")
+            self.draw(); dev("sync", p.name); self.notify(f"{p.name} up to date")
+        return True
+
+    def prompt(self, label, width=40):
+        """Asks for input on the last line, and returns it.
+
+        The main loop reads non-blocking; `getstr` would therefore hand control
+        back at once, without reading anything — the prompt appeared and
+        disappeared, and no input was possible.
+        """
+        curses.echo(); curses.curs_set(1)
+        self.scr.nodelay(False)
+        h, w = self.scr.getmaxyx()
+        put(self.scr, h - 1, 1, " " * (w - 2))
+        put(self.scr, h - 1, 1, label, C["accent"])
+        self.scr.refresh()
+        try:
+            answer = self.scr.getstr(h - 1, 1 + len(label), width).decode().strip()
+        except Exception:
+            answer = ""
+        finally:
+            self.scr.nodelay(True)
+            curses.noecho()
+            curses.curs_set(0)
+        return answer
+
+    def confirm(self, question):
+        """Guardrail for the actions that touch every project at once.
+
+        A single stray character was enough to stop everything — and nothing told
+        it apart from a breakdown, since the servers vanished without a word. A
+        confirmation costs one keystroke and removes the whole class.
+        """
+        answer = self.prompt(f"{question} [y/N] ", width=3)
+        return answer.lower() in ("y", "yes")
+
+    def switch_branch(self, p):
+        """Switches the project's REPOSITORY to another branch, or creates it.
+
+        The repository is shared by several projects (an API and its front end):
+        so we announce what will have to restart, rather than leaving servers
+        running on code that is no longer theirs.
+        """
+        current = p.branch or "?"
+        target = self.prompt(f"branch for {p.root.name} (current: {current}): ")
+        if not target or target == current:
+            return
+        if sh(f"git -C {p.root} status --porcelain"):
+            self.notify(f"{p.root.name} has uncommitted changes — nothing was touched", 6)
+            return
+
+        self.notify(f"switching {p.root.name} to {target}…")
+        self.draw()
+        out = subprocess.run(["dev", "branch", p.name, target],
+                             capture_output=True, text=True)
+        if out.returncode != 0:
+            self.notify((out.stderr or out.stdout).strip().splitlines()[-1][:90], 8)
+            return
+
+        concerned = [q.name for q in self.projects
+                     if q.root == p.root and q.name in self.windows]
+        if concerned:
+            self.notify(f"{p.root.name} on {target} — to restart: {' '.join(concerned)}", 8)
+        else:
+            self.notify(f"{p.root.name} on {target}", 5)
+
+    def prompt_filter(self):
+        self.filter = self.prompt("filter: ", width=30)
+        self.sel = 0
+
+
+def main(stdscr):
+    curses.curs_set(0)
+    init_colors()
+    stdscr.nodelay(True)
+
+    # Without keypad, an escape sequence arrives byte by byte and EVERY letter it
+    # contains is taken for a command. The answers the terminal sends on opening
+    # (attributes, colours) thus triggered "start all" and "stop all" without
+    # anyone touching the keyboard.
+    stdscr.keypad(True)
+
+    # Those answers arrive in the first moments: we throw them away.
+    time.sleep(0.25)
+    curses.flushinp()
+
+    # Ctrl-C must never kill the dashboard: over ssh, the terminal tab would go
+    # with it. We quit with `q`. Commands launched in the foreground restore the
+    # normal behaviour for themselves, so that Ctrl-C there does interrupt what
+    # you are looking at — a `tail -f`, typically.
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+    tui = Tui(stdscr)
+    last = 0.0
+    while True:
+        now = time.time()
+        if now - last >= REFRESH:
+            tui.refresh_data()
+            tui.draw()
+            last = now
+        ch = stdscr.getch()
+        if ch == curses.KEY_RESIZE:
+            # Terminal resized: curses keeps the old size until told otherwise,
+            # and the screen stays cut crooked.
+            curses.update_lines_cols()
+            stdscr.clear()
+            tui.draw()
+        elif ch != -1:
+            if not tui.handle(ch):
+                return None
+            tui.draw()
+        else:
+            time.sleep(0.05)
+
+
+if __name__ == "__main__":
+    try:
+        curses.wrapper(main)
+    except KeyboardInterrupt:
+        pass
+    except Exception:
+        # curses is already closed by wrapper(): the terminal is handed back, so
+        # the traceback is readable instead of vanishing with the alternate
+        # screen.
+        import traceback
+        print("dev-tui stopped on an error:\n", file=sys.stderr)
+        traceback.print_exc()
+        print("\nReport it, or run \"dev status\" in the meantime.", file=sys.stderr)
+        sys.exit(1)

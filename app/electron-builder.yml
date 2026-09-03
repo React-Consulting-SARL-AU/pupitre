@@ -1,0 +1,62 @@
+appId: dev.pupitre.app
+# One word, no space and no accent, and this is not a style choice: Chromium
+# registers a Mach service named after CFBundleName, and a Mach service name
+# accepts neither. A name containing one traps the app at startup on an
+# EXC_BREAKPOINT, without a word on the output or in the logs. Staying on one
+# word means the bundle, the Dock, the Finder and the menu bar all carry the same
+# name, with no fallback name.
+productName: Pupitre
+copyright: Copyright © 2026 Jordan Monier
+
+directories:
+  buildResources: build
+  output: dist
+
+files:
+  - "!src/**"
+  - "!electron.vite.config.{js,ts,mjs,cjs,d.ts}"
+  - "!{.gitignore,bun.lock,package-lock.json,pnpm-lock.yaml,biome.jsonc}"
+  - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
+  - "!**/*.tsbuildinfo"
+  - "!README.md"
+  - "!scripts/**"
+
+# node-pty ships a native binary, and a .node cannot be loaded from an asar
+# archive. Without this the app starts and no terminal ever opens.
+asarUnpack:
+  - "**/node_modules/node-pty/**"
+
+mac:
+  category: public.app-category.developer-tools
+  icon: build/icon.icns
+  # Both architectures: an Intel Mac is still a Mac, and cross-building the other
+  # one costs nothing here.
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+
+dmg:
+  title: Pupitre
+  contents:
+    - x: 140
+      y: 190
+      type: file
+    - x: 400
+      y: 190
+      type: link
+      path: /Applications
+
+linux:
+  category: Development
+  icon: build/icon.png
+  target:
+    - AppImage
+    - deb
+
+win:
+  # No .ico in the repository: electron-builder derives one from build/icon.png.
+  icon: build/icon.png
+  target:
+    - nsis

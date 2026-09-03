@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# =============================================================================
+#  shot — drops an image into the gallery and prints its public URL.
+#
+#      shot capture.png               drop an existing file
+#      shot https://example.dev       capture the page (headless browser)
+#      shot file.png nice-name.png    drop it under a chosen name
+#      shot --mobile https://…        at 390×844 rather than 1440×900
+#      shot --size 1024x768 https://… at the size you want
+#      shot --wait 3000 https://…     give the page N ms more
+#      shot --list                    the last 20, newest first
+#
+#  Designed to be called by an agent: the LAST line printed is always the URL,
+#  ready to paste into a conversation. The local path of the file goes to the
+#  error output, for whoever wants to read it back.
+#
+#  @SHOTS_DIR@ and @SHOTS_BASE_URL@ are substituted at install time by
+#  bootstrap.sh.
+# =============================================================================
+set -uo pipefail
+
+SHOTS="@SHOTS_DIR@"
+BASE="@SHOTS_BASE_URL@"
+
+size="1440,900"
+wait_ms=8000
+mobile=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --list)
+      find "$SHOTS" -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -20 | cut -d' ' -f2-
+      exit 0 ;;
+    -m|--mobile) mobile=1; size="390,844"; shift ;;
+    -s|--size)   size="${2/x/,}"; shift 2 ;;
+    -w|--wait)   wait_ms=$(( 8000 + ${2:-0} )); shift 2 ;;
+    -h|--help)   sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -*)          echo "unknown option: $1" >&2; exit 1 ;;
+    *)           break ;;
+  esac
+done
+
+if [[ $# -lt 1 ]]; then
+  echo "usage: shot [--mobile|--size WxH] [--wait ms] <file|url> [name]" >&2
+  exit 1
+fi
+
+day="$(date +%Y-%m-%d)"
+mkdir -p "$SHOTS/$day" || { echo "gallery folder unreachable: $SHOTS" >&2; exit 1; }
+
+src="$1"
+name="${2:-}"
+
+if [[ "$src" == http://* || "$src" == https://* ]]; then
+  browser="$(command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+  if [[ -z "$browser" ]]; then
+    echo "no headless browser installed — shot <file> is still available" >&2
+    exit 1
+  fi
+  slug="$(sed -E 's#https?://##; s#[^a-zA-Z0-9]+#-#g; s#^-+|-+$##g' <<<"$src" | cut -c1-60)"
+  out="$SHOTS/$day/${name:-$slug-$(date +%H%M%S)}.png"
+  agent=()
+  (( mobile )) && agent=(--user-agent="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1")
+  # --no-sandbox: required for a Chrome launched by an unprivileged user on a
+  # server without user namespaces.
+  if ! "$browser" --headless=new --no-sandbox --disable-dev-shm-usage --disable-gpu \
+       --hide-scrollbars --virtual-time-budget="$wait_ms" --window-size="$size" \
+       "${agent[@]}" --screenshot="$out" "$src" >/dev/null 2>&1; then
+    echo "could not capture: $src" >&2
+    exit 1
+  fi
+else
+  if [[ ! -f "$src" ]]; then
+    echo "file not found: $src" >&2
+    exit 1
+  fi
+  out="$SHOTS/$day/${name:-$(date +%H%M%S)-$(basename "$src")}"
+  cp "$src" "$out" || exit 1
+fi
+
+chmod 644 "$out"
+echo "file: $out" >&2
+echo "$BASE/$day/$(basename "$out")"

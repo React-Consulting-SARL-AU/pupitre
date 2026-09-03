@@ -1,0 +1,33 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="body" x1="512" y1="100" x2="512" y2="924" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#251e18"/>
+      <stop offset="1" stop-color="#0c0a08"/>
+    </linearGradient>
+    <linearGradient id="fire" x1="292" y1="352" x2="470" y2="672" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffa070"/>
+      <stop offset="1" stop-color="#ff5f1e"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="512" y1="100" x2="512" y2="440" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.15"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="400" cy="512" r="330" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff7033" stop-opacity="0.26"/>
+      <stop offset="1" stop-color="#ff7033" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#body)"/>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#rim)"/>
+  <rect x="108.5" y="108.5" width="807" height="807" rx="177" fill="none" stroke="#544539" stroke-width="3"/>
+
+  <circle cx="400" cy="512" r="330" fill="url(#halo)"/>
+
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="84">
+    <path d="M 292 352 L 452 512 L 292 672" stroke="url(#fire)"/>
+    <path d="M 590 428 L 736 428" stroke="#e4dcd4"/>
+    <path d="M 590 596 L 700 596" stroke="#7d7168"/>
+  </g>
+  <circle cx="590" cy="596" r="0" fill="none"/>
+</svg>

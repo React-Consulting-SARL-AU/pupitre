@@ -1,0 +1,14 @@
+# Secrets — must never leave your machine other than over SSH.
+mac/secrets.env
+mac/secrets.env.pulled
+*.env.local
+
+# Database dumps: heavy, and full of real data. They live in db/ on your own
+# machine and are pushed to the server by rsync — never versioned.
+db/*.sql
+db/*.sql.gz
+
+# Artefacts
+__pycache__/
+*.pyc
+.DS_Store
