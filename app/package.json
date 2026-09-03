@@ -5,6 +5,7 @@
   "main": "out/main/index.js",
   "type": "module",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "tsc --noEmit && electron-vite build",

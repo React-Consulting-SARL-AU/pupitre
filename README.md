@@ -146,4 +146,4 @@ pupitre/
 
 ## License
 
-No license file yet — ask before reusing.
+[MIT](LICENSE). Use it, fork it, ship it — a mention is appreciated, not required.
