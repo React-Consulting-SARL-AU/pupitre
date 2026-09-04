@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test"
+import { RESTRICTED_COMMANDS } from "../agent-protocol"
 import { buildContractSchema, CONTRACT_DEFINITIONS } from "./index"
 
 const EXPECTED = [
@@ -9,6 +10,7 @@ const EXPECTED = [
   "Response",
   "ProtocolError",
   "ErrorCode",
+  "RestrictedCommands",
   "HelloParams",
   "HelloResult",
   "PingParams",
@@ -48,6 +50,13 @@ describe("buildContractSchema", () => {
       expect(schema.$defs[name]).toBeDefined()
       expect(schema.$defs[name]?.$id).toBeUndefined()
     }
+  })
+
+  it("exports the restricted commands as a string enum", () => {
+    expect(schema.$defs.RestrictedCommands).toEqual({
+      type: "string",
+      enum: [...RESTRICTED_COMMANDS],
+    })
   })
 
   it("references shared definitions instead of inlining them", () => {

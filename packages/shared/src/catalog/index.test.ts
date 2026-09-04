@@ -21,6 +21,25 @@ const secretField = {
   generate: true,
 }
 
+const booleanField = {
+  key: "always_on",
+  kind: "boolean",
+  label: "Always on",
+  help: "Run as a systemd service",
+  required: false,
+  default: false,
+}
+
+const listField = {
+  key: "providers",
+  kind: "list",
+  label: "Model providers",
+  required: true,
+  items: "secret",
+  min: 1,
+  max: 8,
+}
+
 const manifest = {
   id: "db.postgres",
   category: "database",
@@ -39,6 +58,17 @@ const manifest = {
 describe("ManifestSchema", () => {
   it("accepts a module manifest", () => {
     expect(ManifestSchema.safeParse(manifest).success).toBe(true)
+  })
+
+  it("accepts a manifest with a boolean field and a list of secrets", () => {
+    expect(
+      ManifestSchema.safeParse({
+        ...manifest,
+        id: "ai.hermes",
+        category: "ai",
+        fields: [listField, booleanField],
+      }).success
+    ).toBe(true)
   })
 
   it("rejects an unknown category, a bad id and a missing resource", () => {
@@ -97,6 +127,38 @@ describe("FieldSchema", () => {
     ).toBe(true)
   })
 
+  it("accepts boolean and list fields", () => {
+    expect(FieldSchema.safeParse(booleanField).success).toBe(true)
+    expect(FieldSchema.safeParse(listField).success).toBe(true)
+    expect(
+      FieldSchema.safeParse({
+        key: "extensions",
+        kind: "list",
+        label: "Extensions",
+        required: false,
+        items: "text",
+      }).success
+    ).toBe(true)
+  })
+
+  it("rejects a list without items and a boolean with a non-boolean default", () => {
+    const { items: _items, ...listWithoutItems } = listField
+
+    expect(FieldSchema.safeParse(listWithoutItems).success).toBe(false)
+    expect(
+      FieldSchema.safeParse({ ...listField, items: "number" }).success
+    ).toBe(false)
+    expect(
+      FieldSchema.safeParse({ ...booleanField, default: "yes" }).success
+    ).toBe(false)
+    expect(
+      FieldSchema.safeParse({ ...booleanField, required: true }).success
+    ).toBe(false)
+    expect(
+      FieldSchema.safeParse({ key: "x", kind: "boolean", label: "X" }).success
+    ).toBe(false)
+  })
+
   it("rejects a secret with a default and a version without options", () => {
     expect(
       FieldSchema.safeParse({ ...secretField, default: "hunter2" }).success
@@ -110,7 +172,7 @@ describe("FieldSchema", () => {
       }).success
     ).toBe(false)
     expect(
-      FieldSchema.safeParse({ key: "x", kind: "boolean", label: "X" }).success
+      FieldSchema.safeParse({ key: "x", kind: "toggle", label: "X" }).success
     ).toBe(false)
   })
 })
