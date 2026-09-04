@@ -300,6 +300,23 @@ export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
   _max?: Prisma.NestedJsonNullableFilter<$PrismaModel>
 }
 
+export type EnumAlertKindFilter<$PrismaModel = never> = {
+  equals?: $Enums.AlertKind | Prisma.EnumAlertKindFieldRefInput<$PrismaModel>
+  in?: $Enums.AlertKind[] | Prisma.ListEnumAlertKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AlertKind[] | Prisma.ListEnumAlertKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAlertKindFilter<$PrismaModel> | $Enums.AlertKind
+}
+
+export type EnumAlertKindWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AlertKind | Prisma.EnumAlertKindFieldRefInput<$PrismaModel>
+  in?: $Enums.AlertKind[] | Prisma.ListEnumAlertKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AlertKind[] | Prisma.ListEnumAlertKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAlertKindWithAggregatesFilter<$PrismaModel> | $Enums.AlertKind
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAlertKindFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAlertKindFilter<$PrismaModel>
+}
+
 export type EnumBillingIntervalFilter<$PrismaModel = never> = {
   equals?: $Enums.BillingInterval | Prisma.EnumBillingIntervalFieldRefInput<$PrismaModel>
   in?: $Enums.BillingInterval[] | Prisma.ListEnumBillingIntervalFieldRefInput<$PrismaModel>
@@ -587,6 +604,23 @@ export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
   gt?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
   gte?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
   not?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | Prisma.JsonNullValueFilter
+}
+
+export type NestedEnumAlertKindFilter<$PrismaModel = never> = {
+  equals?: $Enums.AlertKind | Prisma.EnumAlertKindFieldRefInput<$PrismaModel>
+  in?: $Enums.AlertKind[] | Prisma.ListEnumAlertKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AlertKind[] | Prisma.ListEnumAlertKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAlertKindFilter<$PrismaModel> | $Enums.AlertKind
+}
+
+export type NestedEnumAlertKindWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AlertKind | Prisma.EnumAlertKindFieldRefInput<$PrismaModel>
+  in?: $Enums.AlertKind[] | Prisma.ListEnumAlertKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AlertKind[] | Prisma.ListEnumAlertKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAlertKindWithAggregatesFilter<$PrismaModel> | $Enums.AlertKind
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAlertKindFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAlertKindFilter<$PrismaModel>
 }
 
 export type NestedEnumBillingIntervalFilter<$PrismaModel = never> = {

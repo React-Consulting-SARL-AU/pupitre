@@ -8,6 +8,7 @@ import { meRoutes } from "./me"
 import { orgsRoutes } from "./orgs"
 import { releasesRoutes } from "./releases"
 import { serversRoutes } from "./servers"
+import { statusRoutes } from "./status"
 import { webhooksRoutes } from "./webhooks"
 
 export function hiddenRoutes<Routes extends AnyElysia>(routes: Routes) {
@@ -23,6 +24,7 @@ const adminRoutes = hiddenRoutes(
 export const routes = new Elysia({ name: "routes" })
   .use(authPlugin)
   .use(healthRoutes)
+  .use(statusRoutes)
   .use(meRoutes)
   .use(devicesRoutes)
   .use(serversRoutes)
