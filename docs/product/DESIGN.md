@@ -121,10 +121,11 @@ Une échelle de gris neutres, sans teinte. Quatre niveaux de surface pour l'él�
 
 Le catalogue, l'écran Services et les cartes de projet montrent **le vrai logo** de chaque service, en SVG, dans ses couleurs d'origine : PostgreSQL, MySQL, MongoDB, Redis, Node.js, Bun, Python, Java, Go, Docker, GitHub, 1Password, Cloudflare, JetBrains, VS Code, Zed, Claude, Codex, Neon, Caddy. C'est ce qui rend une liste de vingt-six modules lisible en un coup d'œil, et ce qui donne à l'interface sa chaleur sans trahir la monochromie du reste.
 
-- **Où ils vivent** : `packages/design/src/logos/<id>.svg`, un fichier par module du catalogue, nommé par l'identifiant du module (`db.postgres` → `db-postgres.svg`). Un composant `ServiceLogo` par surface les rend à taille fixe (16, 20, 24, 32 px), avec un `title` accessible.
+- **Où ils vivent** : `packages/design/src/logos/<id>.svg`, un fichier par module du catalogue, nommé par l'identifiant du module (`db.postgres` → `db-postgres.svg`). Ce sont des **fragments inline**, sans déclaration de namespace : ils sont destinés à être insérés dans le document, jamais chargés par un `<img>`. Un composant `ServiceLogo` par surface les rend à taille fixe (16, 20, 24, 32 px), avec un `title` accessible.
 - **Provenance** : Simple Icons quand la marque y est (CC0), sinon le kit de marque officiel de l'éditeur. Un fichier `packages/design/src/logos/NOTICE.md` liste pour chaque logo sa source, sa licence et la date. Usage nominatif : on nomme un logiciel qu'on installe, ce qui est licite ; on ne s'en sert jamais pour suggérer un partenariat.
 - **Traitement** : le logo garde ses couleurs, sans filtre ni teinte, posé sur une pastille `surface` aux coins `sm`. Un logo monochrome par nature (GitHub, Zed) prend `ink` et suit donc le thème. Aucun logo n'est déformé, recadré ni recoloré.
 - **Interdits** : un logo comme icône d'action, dans un bouton, ou en fond. Un logo de marque qui n'est pas un module du catalogue.
+- **Sans logo licite, pas de logo inventé.** Six modules MVP retombent sur une icône Lucide : `core.system`, `core.hardening`, `exposure.ssh`, `ai.codex`, `ai.hermes`, `editor.vscode`, faute de source redistribuable. `ServiceLogo` doit rendre cette retombée aussi soignée que les autres.
 
 ## Palette ANSI du terminal
 

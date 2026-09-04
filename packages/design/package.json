@@ -4,10 +4,11 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./tokens": "./src/tokens.ts",
-    "./tokens.css": "./src/tokens.css",
+    "./ansi": "./src/ansi.ts",
+    "./logos": "./src/logos/index.ts",
     "./tailwind.css": "./src/tailwind.css",
-    "./ansi": "./src/ansi.ts"
+    "./tokens": "./src/tokens.ts",
+    "./tokens.css": "./src/tokens.css"
   },
   "scripts": {
     "lint": "ultracite check",
@@ -15,9 +16,13 @@
     "check:types": "tsgo --noEmit",
     "test": "bun test"
   },
+  "dependencies": {
+    "@pupitre/shared": "workspace:*"
+  },
   "devDependencies": {
     "@types/bun": "^1.4.0",
     "@typescript/native-preview": "^7.0.0-dev.20260707.2",
+    "simple-icons": "^16.29.0",
     "typescript": "^6.0.3",
     "ultracite": "7.8.3"
   }

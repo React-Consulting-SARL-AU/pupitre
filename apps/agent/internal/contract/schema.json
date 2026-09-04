@@ -297,11 +297,7 @@
           "type": "string"
         },
         "arch": {
-          "type": "string",
-          "enum": [
-            "amd64",
-            "arm64"
-          ]
+          "type": "string"
         },
         "ram_mb": {
           "type": "integer",
@@ -366,7 +362,25 @@
                 "blocked"
               ]
             },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "bare",
+                "managed",
+                "occupied",
+                "incompatible"
+              ]
+            },
+            "up_to_date": {
+              "type": "boolean"
+            },
             "reasons": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "fixes": {
               "type": "array",
               "items": {
                 "type": "string"
@@ -375,7 +389,9 @@
           },
           "required": [
             "level",
-            "reasons"
+            "kind",
+            "reasons",
+            "fixes"
           ]
         }
       },

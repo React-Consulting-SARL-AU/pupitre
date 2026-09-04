@@ -47,6 +47,34 @@ func TestRealRunPassesEnvDirAndStdin(t *testing.T) {
 	}
 }
 
+// A dump weighs more than the machine's memory: it reaches the client through the file, never through a buffer.
+func TestRealRunStreamsStdinFromAFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "dump.sql")
+	if err := os.WriteFile(path, []byte("-- des lignes de dump\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := Real{}.Run(Command{Argv: []string{"cat"}, StdinPath: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.TrimSpace(out.Stdout) != "-- des lignes de dump" {
+		t.Fatalf("unexpected output %q", out.Stdout)
+	}
+
+	if _, err := (Real{}).Run(Command{Argv: []string{"cat"}, StdinPath: path + ".absent"}); err == nil {
+		t.Fatal("a missing file must fail before the command runs")
+	}
+}
+
+func TestDescribeShowsTheRedirectedFile(t *testing.T) {
+	got := Describe(Command{User: "dev", Argv: []string{"mysql", "shop"}, StdinPath: "/home/dev/dumps/shop.sql"})
+	if got != "(dev) mysql shop < /home/dev/dumps/shop.sql" {
+		t.Fatalf("Describe = %q", got)
+	}
+}
+
 func TestRealWriteFileIsAtomicAndKeepsMode(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "env")

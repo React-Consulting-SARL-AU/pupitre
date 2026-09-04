@@ -158,3 +158,24 @@ Critères d'acceptation.
 1. Aucune ombre ni rayon en dur : tout vient des tokens.
 2. Les captures des deux thèmes montrent des cartes posées, des coins arrondis et les logos en couleurs (APP-17 fournit le harnais).
 
+### INF-10 — Flux secret sur l'entrée standard
+Lot 0 · dépend de APP-02 · `apps/agent`, `apps/desktop`
+
+But. Le flux secret passe par l'entrée standard, comme le contrat révisé le fixe, et non par un descripteur 3 que `ssh` ne transmet pas.
+Périmètre. Côté agent : `internal/protocol/server.go` et `internal/modules/commands.go` lisent la ligne de secrets sur l'entrée standard, juste après la requête, au lieu du descripteur dédié ; les transcriptions de test suivent. Côté app : `src/main/agent-client.ts` écrit la ligne de secrets sur l'entrée standard du canal au lieu de `fd 3`, et `sshSpawn` cesse d'ouvrir un quatrième descripteur ; l'agent factice des fixtures suit.
+Hors périmètre. Toute autre commande.
+Critères d'acceptation.
+1. Une transcription qui envoie `install` avec `secrets_stdin: true` puis sa ligne de secrets fonctionne de bout en bout, agent et client.
+2. Aucun secret n'apparaît dans un événement, un rapport ou un journal : test explicite des deux côtés.
+3. `grep -rn "fd 3\|stdio\[3\]" apps/desktop/src apps/agent` ne renvoie plus rien.
+
+### INF-11 — Contrat : le verdict de la sonde
+Lot 0 · dépend de AGT-02 · `packages/shared`, `docs/contracts/agent-protocol.md`
+
+But. `ProbeResult` décrit le verdict que la sonde produit et que l'écran d'inspection affiche.
+Périmètre. Ajouter au schéma `verdict` : `kind` (`bare` | `managed` | `occupied` | `incompatible`), `fixes[]` à côté de `reasons[]`, et `up_to_date` quand `kind` vaut `managed`. Élargir `arch` à une chaîne libre avec les valeurs connues documentées : une machine `incompatible` par son architecture doit pouvoir se décrire. Décider si `disk_free_gb` reste un nombre unique (le plus petit entre la racine et le dossier des projets, ce que fait AGT-02) ou devient deux champs, et l'écrire. Régénérer `schema.json`, retirer les exceptions posées par AGT-02 dans `assertContractJSON`, retirer la ligne de blocage.
+Hors périmètre. La sonde elle-même, déjà livrée.
+Critères d'acceptation.
+1. Les deux sondes valident contre le schéma sans exception, avec `kind`, `fixes` et `up_to_date`.
+2. Une machine `i686` est descriptible et rendue `incompatible`.
+

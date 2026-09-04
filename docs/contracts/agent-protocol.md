@@ -35,6 +35,20 @@ Le canal est une session SSH ouverte par l'app avec la clé du client, qui lance
 | Commande | Paramètres | Résultat |
 | --- | --- | --- |
 | `probe` | — | le rapport de sonde : `os`, `version`, `arch`, `ram_mb`, `disk_free_gb`, `sudo`, `ports[]`, `docker`, `panel`, `agent_version`, `installed_modules[]`, `verdict` |
+
+`arch` est une chaîne libre, l'architecture brute rapportée par la machine (`uname -m` normalisé) : `amd64` et `arm64` sont les valeurs connues et prises en charge, mais le champ doit aussi pouvoir porter une architecture non supportée comme `i686`, celle-là même que le verdict `incompatible` sert à signaler.
+
+`disk_free_gb` est un nombre unique : le plus petit entre l'espace libre à la racine et celui du dossier des projets. Le dossier des projets vit souvent sur son propre volume, et c'est celui des deux qui manquera en premier ; rapporter deux nombres n'aiderait pas à décider si la machine convient.
+
+`verdict` décrit ce qu'installer sur cette machine impliquerait :
+
+| Champ | Type | Description |
+| --- | --- | --- |
+| `level` | `"ready" \| "warning" \| "blocked"` | la gravité |
+| `kind` | `"bare" \| "managed" \| "occupied" \| "incompatible"` | le genre de machine |
+| `up_to_date` | `boolean`, optionnel | présent seulement quand `kind` vaut `managed` : l'agent installé est-il à la version courante |
+| `reasons[]` | `string[]` | ce qui a été observé |
+| `fixes[]` | `string[]` | comment y remédier, un fix par raison quand `kind` vaut `incompatible` ou `occupied` ; vide sur une machine `bare` ou un agent `managed` à jour |
 | `catalog` | — | `{ modules: Manifest[], presets: Preset[] }` d'après [service-catalog.md](./service-catalog.md) |
 | `install` | `{ modules[], config: Record<moduleId, values>, secrets_stdin: true }` | événements `step` `{ module, step, status: "start" \| "ok" \| "skip" \| "fail", ms, replay? }` puis `{ failed[], warned[], report_path }`. Les secrets sont lus sur un flux séparé, jamais dans `params` |
 | `uninstall` | `{ modules[] }` | événements `step`, puis `{ failed[] }` |
@@ -105,7 +119,9 @@ Le canal est une session SSH ouverte par l'app avec la clé du client, qui lance
 
 ## Le flux secret
 
-Une commande qui porte un secret (`install`, `secrets.set`) annonce `secrets_stdin: true`. L'app écrit ensuite les secrets en JSON sur une ligne du flux secret, l'agent les consomme sans les journaliser ni les renvoyer. Aucun secret n'apparaît dans `params`, dans un événement ou dans un rapport.
+Une commande qui porte un secret (`install`, `secrets.set`) annonce `secrets_stdin: true`. L'app écrit alors **la ligne suivante de l'entrée standard** avec les secrets en JSON, immédiatement après la requête ; l'agent la consomme avant d'appeler le handler, sans la journaliser ni la renvoyer. Aucun secret n'apparaît dans `params`, dans un événement ou dans un rapport.
+
+C'est bien l'entrée standard et non un descripteur séparé : `ssh` ne transmet que les descripteurs 0, 1 et 2, si bien qu'un `fd 3` ouvert par l'app n'atteindrait jamais l'agent. Comme les requêtes sont sérialisées, la ligne qui suit une requête à `secrets_stdin: true` est sans ambiguïté sa ligne de secrets.
 
 Pour `install`, la ligne a la forme de `params.config`, groupée par identifiant de module, une valeur par champ `secret` du manifeste (schéma `InstallSecrets`) :
 

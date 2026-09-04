@@ -40,10 +40,15 @@ func Version(ctx sys.Context, pkg string) (string, error) {
 
 func Update(ctx sys.Context) error {
 	return ctx.Once(updateOnce, func() error {
-		_, err := sys.Exec(ctx, command("update", "-qq"))
-
-		return err
+		return Refresh(ctx)
 	})
+}
+
+// A module that has just added a repository reads the lists again, even when another module already updated them.
+func Refresh(ctx sys.Context) error {
+	_, err := sys.Exec(ctx, command("update", "-qq"))
+
+	return err
 }
 
 func Install(ctx sys.Context, pkgs ...string) error {

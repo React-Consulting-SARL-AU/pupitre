@@ -11,6 +11,7 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/probe"
 	"pupitre.studio/agent/internal/protocol"
 )
 
@@ -53,6 +54,36 @@ func runInstall(engine *modules.Engine, args []string, stderr io.Writer) int {
 	}
 
 	return printSummary(stderr, result)
+}
+
+// --script hands probe.sh to the app, which sends it to a bare machine before any binary exists there.
+func runProbe(options probe.Options, args []string, stdout, stderr io.Writer) int {
+	for _, arg := range args {
+		switch {
+		case arg == "--script":
+			fmt.Fprint(stdout, probe.Script)
+			return 0
+		case strings.HasPrefix(arg, "--projects="):
+			options.ProjectsDir = strings.TrimPrefix(arg, "--projects=")
+		default:
+			fmt.Fprintf(stderr, "argument inconnu : %s\n", arg)
+			usage(stderr)
+			return 2
+		}
+	}
+
+	raw, err := probe.Run(options).JSON()
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 1
+	}
+
+	if _, err := stdout.Write(raw); err != nil {
+		fmt.Fprintln(stderr, err)
+		return 1
+	}
+
+	return 0
 }
 
 func runReport(engine *modules.Engine, stdout, stderr io.Writer) int {

@@ -71,8 +71,10 @@ func TestValidateAgainstDefinitions(t *testing.T) {
 		{"oneOf success", "Response", `{"id":1,"ok":true,"result":{}}`, ""},
 		{"oneOf failure with ref", "Response", `{"id":1,"ok":false,"error":{"code":"busy","message":"x"}}`, ""},
 		{"oneOf ref rejects code", "Response", `{"id":1,"ok":false,"error":{"code":"nope","message":"x"}}`, "/error/code"},
-		{"nullable", "ProbeResult", `{"os":"ubuntu","version":"24.04","arch":"amd64","ram_mb":4096,"disk_free_gb":10.5,"sudo":true,"ports":[],"docker":false,"panel":null,"agent_version":null,"installed_modules":[],"verdict":{"level":"ready","reasons":[]}}`, ""},
-		{"number rejects string", "ProbeResult", `{"os":"ubuntu","version":"24.04","arch":"amd64","ram_mb":4096,"disk_free_gb":"10","sudo":true,"ports":[],"docker":false,"panel":null,"agent_version":null,"installed_modules":[],"verdict":{"level":"ready","reasons":[]}}`, "/disk_free_gb"},
+		{"nullable", "ProbeResult", `{"os":"ubuntu","version":"24.04","arch":"amd64","ram_mb":4096,"disk_free_gb":10.5,"sudo":true,"ports":[],"docker":false,"panel":null,"agent_version":null,"installed_modules":[],"verdict":{"level":"ready","kind":"bare","reasons":[],"fixes":[]}}`, ""},
+		{"number rejects string", "ProbeResult", `{"os":"ubuntu","version":"24.04","arch":"amd64","ram_mb":4096,"disk_free_gb":"10","sudo":true,"ports":[],"docker":false,"panel":null,"agent_version":null,"installed_modules":[],"verdict":{"level":"ready","kind":"bare","reasons":[],"fixes":[]}}`, "/disk_free_gb"},
+		{"arch describes an unsupported machine", "ProbeResult", `{"os":"debian","version":"12","arch":"i686","ram_mb":4096,"disk_free_gb":10.5,"sudo":true,"ports":[],"docker":false,"panel":null,"agent_version":null,"installed_modules":[],"verdict":{"level":"blocked","kind":"incompatible","reasons":["i686"],"fixes":["choisis amd64 ou arm64"]}}`, ""},
+		{"managed carries up_to_date", "ProbeResult", `{"os":"ubuntu","version":"24.04","arch":"amd64","ram_mb":4096,"disk_free_gb":10.5,"sudo":true,"ports":[],"docker":false,"panel":null,"agent_version":"0.2.0","installed_modules":[],"verdict":{"level":"ready","kind":"managed","up_to_date":true,"reasons":[],"fixes":[]}}`, ""},
 	}
 
 	for _, tc := range cases {
