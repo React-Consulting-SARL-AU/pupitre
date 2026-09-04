@@ -1,6 +1,9 @@
 import type { ConnectionState } from "@shared/contract";
 import { useState } from "react";
 import { Logo } from "./Logo";
+import { Button } from "./ui/button";
+import { Label } from "./ui/label";
+import { StatusDot } from "./ui/status-dot";
 
 /**
  * What shows when the connection does not answer.
@@ -46,11 +49,9 @@ export function ConnectionSetup({
       <div className="w-full max-w-xl">
         <div className="flex items-center gap-2.5">
           <Logo size={26} />
-          <p className="font-mono text-[11px] text-accent uppercase tracking-[0.13em]">
-            Connection
-          </p>
+          <Label>Connection</Label>
         </div>
-        <h1 className="mt-3 font-semibold text-2xl tracking-tight">
+        <h1 className="mt-3 font-semibold text-2xl text-ink tracking-tight">
           {hostMissing
             ? "This computer is not set up yet"
             : "The server is not answering"}
@@ -63,10 +64,10 @@ export function ConnectionSetup({
 
         {hostMissing ? (
           <div className="mt-4">
-            <p className="mb-1.5 font-mono text-[10px] text-ink-4 uppercase tracking-[0.08em]">
-              To add to ~/.ssh/config
+            <p className="mb-1.5">
+              <Label>To add to ~/.ssh/config</Label>
             </p>
-            <pre className="overflow-x-auto rounded-lg border border-line bg-surface px-3 py-2.5 font-mono text-[11px] text-ink-2">
+            <pre className="overflow-x-auto rounded-md border border-line bg-sunken px-3 py-2.5 font-data text-[11px] text-ink-2">
               {`Host ${connection.host}
   HostName 203.0.113.10        # your server's address
   User dev
@@ -75,24 +76,30 @@ export function ConnectionSetup({
   ControlPath ~/.ssh/cm-%r@%h:%p
   ControlPersist 10m`}
             </pre>
-            <p className="mt-1.5 text-[12px] text-ink-4">
+            <p className="mt-1.5 text-[12px] text-ink-3">
               The last three lines keep the connection open: without them every
               poll reopens a tunnel and the interface drags.
             </p>
           </div>
         ) : null}
 
-        <div className="mt-6 divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+        <div className="mt-6 divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
           {connection.diagnostics.map((d) => (
             <div className="flex gap-3 px-4 py-3" key={d.step}>
-              <span
-                className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${d.ok ? "bg-ok" : "bg-danger"}`}
-              />
+              <span className="mt-1 shrink-0">
+                <StatusDot
+                  label={d.ok ? "passed" : "failed"}
+                  shape={d.ok ? "filled" : "struck"}
+                  tone={d.ok ? "ok" : "danger"}
+                />
+              </span>
               <div className="min-w-0">
-                <p className="font-medium">{d.title}</p>
-                <p className="font-mono text-[11px] text-ink-4">{d.detail}</p>
+                <p className="font-medium text-ink">{d.title}</p>
+                <p className="font-data text-[11px] text-ink-3">{d.detail}</p>
                 {d.ok ? null : (
-                  <p className="mt-1 text-[12px] text-accent-strong">{d.fix}</p>
+                  <p className="mt-1 font-medium text-[12px] text-ink">
+                    {d.fix}
+                  </p>
                 )}
               </div>
             </div>
@@ -100,34 +107,19 @@ export function ConnectionSetup({
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-3">
-          <button
-            className="clickable rounded-lg bg-accent px-4 py-2 font-semibold text-[13px] text-base transition-soft hover:bg-accent-strong"
-            onClick={onRetry}
-            type="button"
-          >
+          <Button onClick={onRetry} variant="inverse">
             Retry
-          </button>
-          <button
-            className="clickable rounded-lg border border-line-strong px-4 py-2 text-[13px] transition-soft hover:border-accent"
-            onClick={onSettings}
-            type="button"
-          >
-            Switch server
-          </button>
+          </Button>
+          <Button onClick={onSettings}>Switch server</Button>
           {hostMissing ? (
-            <button
-              className="clickable rounded-lg border border-line-strong px-4 py-2 text-[13px] transition-soft hover:border-accent disabled:opacity-50"
-              disabled={busy}
-              onClick={install}
-              type="button"
-            >
+            <Button loading={busy} onClick={install}>
               {busy ? "Configuring…" : "Run the stack script"}
-            </button>
+            </Button>
           ) : null}
         </div>
 
         {installLog ? (
-          <pre className="mt-4 max-h-56 overflow-auto rounded-lg border border-line bg-sunken p-3 font-mono text-[11px] text-ink-3">
+          <pre className="mt-4 max-h-56 overflow-auto rounded-md border border-line bg-sunken p-3 font-data text-[11px] text-ink-2">
             {installLog}
           </pre>
         ) : null}

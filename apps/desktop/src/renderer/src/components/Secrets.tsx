@@ -1,15 +1,11 @@
 import type { Secret } from "@shared/contract";
-import {
-  Check,
-  Eye,
-  KeyRound,
-  Loader2,
-  Lock,
-  RotateCw,
-  ShieldCheck,
-  TriangleAlert,
-} from "lucide-react";
-import { useEffect, useState } from "react";
+import { Check, Eye, Lock, RotateCw, ShieldCheck } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Button } from "./ui/button";
+import { Callout } from "./ui/callout";
+import { fieldControlClass } from "./ui/field";
+import { PageHeader } from "./ui/page-header";
+import { StatusDot } from "./ui/status-dot";
 
 /**
  * The state of the server's secrets — never their value.
@@ -24,6 +20,17 @@ import { useEffect, useState } from "react";
  * or a password manager here would be wrong on the next machine — and has no way
  * of knowing anyway.
  */
+
+/** What can be said about a value without saying the value. */
+function describe(secret: Secret): string {
+  if (!secret.set) {
+    return "no value";
+  }
+  if (secret.sensitive) {
+    return `${secret.length} characters · value hidden`;
+  }
+  return secret.preview;
+}
 
 function Row({
   secret,
@@ -50,37 +57,35 @@ function Row({
     <div className="border-line border-b last:border-b-0">
       <div className="flex items-center gap-3 px-4 py-2.5">
         {secret.sensitive ? (
-          <Lock className="shrink-0 text-ink-4" size={13} />
+          <Lock className="shrink-0 text-ink-3" size={13} strokeWidth={1.5} />
         ) : (
-          <Eye className="shrink-0 text-ink-4" size={13} />
+          <Eye className="shrink-0 text-ink-3" size={13} strokeWidth={1.5} />
         )}
 
         <div className="min-w-0 flex-1">
-          <p className="truncate font-mono text-[12px]">{secret.key}</p>
-          <p className="truncate font-mono text-[10px] text-ink-4">
-            {secret.set
-              ? secret.sensitive
-                ? `${secret.length} characters · value hidden`
-                : secret.preview
-              : "no value"}
+          <p className="truncate font-data text-[12px] text-ink">
+            {secret.key}
+          </p>
+          <p className="truncate font-data text-[10px] text-ink-3">
+            {describe(secret)}
           </p>
         </div>
 
         <span
-          className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] ${
-            secret.set ? "bg-ok/12 text-ok" : "bg-warn/12 text-warn"
-          }`}
+          className="flex shrink-0 items-center gap-1.5 rounded-sm border border-line-strong px-1.5 py-0.5 font-data text-[10px] text-ink-2"
+          data-state={secret.set ? "set" : "missing"}
         >
+          <StatusDot
+            shape={secret.set ? "filled" : "empty"}
+            size={9}
+            tone={secret.set ? "ok" : "warn"}
+          />
           {secret.set ? "in place" : "missing"}
         </span>
 
-        <button
-          className="shrink-0 rounded-md border border-line px-2 py-1 text-[11px] text-ink-3 transition-soft hover:border-accent hover:text-accent-strong"
-          onClick={onOpen}
-          type="button"
-        >
+        <Button onClick={onOpen} size="sm">
           {open ? "Cancel" : "Replace"}
-        </button>
+        </Button>
       </div>
 
       {open ? (
@@ -94,25 +99,22 @@ function Row({
           <input
             autoComplete="off"
             autoFocus
-            className="min-w-0 flex-1 rounded-md border border-line-strong bg-base px-2.5 py-1.5 font-mono text-[12px] outline-none focus:border-accent"
+            className={`min-w-0 flex-1 ${fieldControlClass}`}
             onChange={(e) => setValue(e.target.value)}
             placeholder={`new value for ${secret.key}`}
             spellCheck={false}
             type="password"
             value={value}
           />
-          <button
-            className="flex shrink-0 items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 font-medium text-[12px] text-base transition-soft hover:bg-accent-strong disabled:opacity-40"
-            disabled={value.length === 0 || busy}
-            type="submit"
+          <Button
+            disabled={value.length === 0}
+            icon={Check}
+            loading={busy}
+            submit
+            variant="inverse"
           >
-            {busy ? (
-              <Loader2 className="animate-spin" size={13} />
-            ) : (
-              <Check size={13} />
-            )}
             Save
-          </button>
+          </Button>
         </form>
       ) : null}
     </div>
@@ -126,13 +128,13 @@ export function Secrets() {
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     setList(await window.pupitre.secrets());
-  }
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   async function save(key: string, value: string) {
     setBusy(key);
@@ -155,50 +157,37 @@ export function Secrets() {
   return (
     <div className="h-full overflow-y-auto px-6 py-6">
       <div className="mx-auto max-w-2xl">
-        <div className="flex items-start gap-3">
-          <KeyRound className="mt-1 shrink-0 text-accent" size={18} />
-          <div className="min-w-0">
-            <h1 className="font-semibold text-xl tracking-tight">Secrets</h1>
-            <p className="mt-1 text-ink-3 leading-relaxed">
-              The environment keys the server keeps for its services — it alone
-              knows which ones and where. The app only sees their state: a
-              replaced value goes out through the standard input of a dedicated
-              ssh, never through a command line, and does not come back.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          description="The environment keys the server keeps for its services — it alone knows which ones and where. The app only sees their state: a replaced value goes out through the standard input of a dedicated ssh, never through a command line, and does not come back."
+          eyebrow="Server"
+          title="Secrets"
+        />
 
         <div className="mt-4 flex items-center gap-3">
-          <span className="flex items-center gap-1.5 font-mono text-[11px] text-ink-4">
-            <ShieldCheck size={13} />
+          <span className="flex items-center gap-1.5 font-data text-[11px] text-ink-3">
+            <ShieldCheck size={13} strokeWidth={1.5} />
             {list
               ? `${list.length - missing} of ${list.length} in place`
               : "reading…"}
           </span>
-          <button
-            className="ml-auto flex items-center gap-1.5 rounded-md border border-line px-2.5 py-1 text-[11px] text-ink-3 transition-soft hover:border-accent hover:text-accent-strong"
-            onClick={load}
-            type="button"
-          >
-            <RotateCw size={12} />
+          <Button className="ml-auto" icon={RotateCw} onClick={load} size="sm">
             Reload
-          </button>
+          </Button>
         </div>
 
         {error ? (
-          <p className="mt-3 flex items-start gap-2 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 font-mono text-[11px] text-danger">
-            <TriangleAlert className="mt-px shrink-0" size={13} />
-            {error}
-          </p>
+          <div className="mt-3">
+            <Callout tone="danger">{error}</Callout>
+          </div>
         ) : null}
 
         {note ? (
-          <pre className="mt-3 whitespace-pre-wrap rounded-lg border border-line bg-surface px-3 py-2 font-mono text-[11px] text-ink-2">
+          <pre className="mt-3 whitespace-pre-wrap rounded-sm border border-line bg-surface px-3 py-2 font-data text-[11px] text-ink-2">
             {note}
           </pre>
         ) : null}
 
-        <div className="mt-4 overflow-hidden rounded-xl border border-line bg-surface">
+        <div className="mt-4 overflow-hidden rounded-md border border-line bg-surface">
           {list ? (
             list.map((secret) => (
               <Row
@@ -213,7 +202,10 @@ export function Secrets() {
               />
             ))
           ) : (
-            <p className="px-4 py-6 text-center text-ink-4">reading…</p>
+            <p className="flex items-center justify-center gap-2 px-4 py-6 text-ink-3">
+              <StatusDot shape="breathing" size={11} />
+              reading the keys the server keeps…
+            </p>
           )}
         </div>
       </div>

@@ -5,7 +5,9 @@ import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
+    // The design tokens ship as TypeScript: Electron cannot require them at
+    // runtime, so they are bundled in rather than externalised.
+    plugins: [externalizeDepsPlugin({ exclude: ["@pupitre/design"] })],
     resolve: {
       alias: {
         "@shared": resolve("src/shared"),

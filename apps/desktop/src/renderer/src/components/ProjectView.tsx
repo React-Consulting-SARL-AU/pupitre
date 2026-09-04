@@ -7,7 +7,6 @@ import type {
 } from "@shared/contract";
 import type { ServerProfile } from "@shared/profile";
 import {
-  AlertTriangle,
   Check,
   Copy,
   ExternalLink,
@@ -36,6 +35,11 @@ import { fieldsFrom, ProjectForm } from "./ProjectForm";
 import { RepoState } from "./Repos";
 import { StatusPill } from "./StatusPill";
 import { TerminalTabs } from "./TerminalTabs";
+import { Button } from "./ui/button";
+import { Callout } from "./ui/callout";
+import { fieldControlClass } from "./ui/field";
+import { IconButton } from "./ui/icon-button";
+import { Label } from "./ui/label";
 
 type Tab = "overview" | "logs" | "diff" | TerminalKind;
 
@@ -83,12 +87,10 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-line bg-surface p-4">
-      <div className="flex items-center gap-2 text-ink-4">
-        <Icon size={13} strokeWidth={2} />
-        <span className="font-mono text-[10px] uppercase tracking-[0.09em]">
-          {label}
-        </span>
+    <div className="rounded-md border border-line bg-surface p-4">
+      <div className="flex items-center gap-2 text-ink-3">
+        <Icon size={13} strokeWidth={1.5} />
+        <Label>{label}</Label>
       </div>
       <div className="mt-2.5">{children}</div>
     </div>
@@ -152,6 +154,7 @@ export function ProjectView({
   const refreshGit = useAppState((s) => s.refreshGit);
   const pull = useAppState((s) => s.pull);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: projectTabs is read once, on arrival — see the note at the end of the effect
   useEffect(() => {
     setBranches(null);
     // The tab this project was last read on, not "overview": that is the whole
@@ -178,7 +181,6 @@ export function ProjectView({
     // projectTabs is deliberately absent: this restores on arriving at a
     // project, and re-running it every time a tab is remembered would drag the
     // view back to where it was.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.name, hasRegistry, refreshGit]);
 
   useEffect(() => {
@@ -256,7 +258,7 @@ export function ProjectView({
     <div className="flex h-full flex-col">
       <header className="shrink-0 border-line border-b px-6 pt-5 pb-0">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="font-semibold text-lg tracking-tight">
+          <h1 className="font-semibold text-ink text-lg tracking-tight">
             {project.name}
           </h1>
           <StatusPill state={project.state} />
@@ -267,12 +269,12 @@ export function ProjectView({
           */}
           {status?.repo ? (
             <button
-              className="flex items-center gap-1.5 rounded-full border border-line px-2 py-0.5 font-mono text-[10px] text-ink-3 transition-soft hover:border-accent hover:text-accent-strong"
+              className="flex items-center gap-1.5 rounded-sm border border-line px-2 py-0.5 font-data text-[10px] text-ink-3 tabular-nums transition-soft hover:border-line-strong hover:text-ink"
               onClick={() => setTab("diff")}
               title="See the changed files"
               type="button"
             >
-              <GitBranch size={10} />
+              <GitBranch size={10} strokeWidth={1.5} />
               <span className="max-w-[14rem] truncate">{status.current}</span>
               {status.changed > 0 ? (
                 <span className="text-warn">
@@ -282,41 +284,41 @@ export function ProjectView({
                 <span className="text-ok">clean</span>
               )}
               {status.behind > 0 ? (
-                <span className="text-accent-strong">↓{status.behind}</span>
+                <span className="font-semibold text-ink">↓{status.behind}</span>
               ) : null}
               {status.ahead > 0 ? (
-                <span className="text-ink-4">↑{status.ahead}</span>
+                <span className="text-ink-3">↑{status.ahead}</span>
               ) : null}
             </button>
           ) : null}
 
           <div className="ml-auto flex flex-wrap items-center gap-1.5">
-            <Action
+            <Button
               disabled={busy}
               icon={running ? RotateCw : Play}
               onClick={() => onAct(running ? "restart" : "up", project.name)}
-              primary
+              variant="inverse"
             >
               {running ? "Restart" : "Start"}
-            </Action>
+            </Button>
             {running ? (
-              <Action
+              <Button
                 disabled={busy}
                 icon={Square}
                 onClick={() => onAct("down", project.name)}
               >
                 Stop
-              </Action>
+              </Button>
             ) : null}
             {profile?.editor ? (
-              <Action
+              <Button
                 icon={FolderCode}
                 onClick={() => window.pupitre.openEditor(project.dir)}
               >
                 {profile.editorName}
-              </Action>
+              </Button>
             ) : null}
-            <Action
+            <Button
               disabled={!registration}
               icon={Settings2}
               onClick={() => {
@@ -325,7 +327,7 @@ export function ProjectView({
               }}
             >
               Configure
-            </Action>
+            </Button>
           </div>
         </div>
 
@@ -358,7 +360,7 @@ export function ProjectView({
             >
               Diff
               {status && status.changed > 0 ? (
-                <span className="rounded-full bg-sunken px-1.5 font-mono text-[10px] text-ink-4">
+                <span className="rounded-sm bg-sunken px-1.5 font-data text-[10px] text-ink-3 tabular-nums">
                   {status.changed}
                 </span>
               ) : null}
@@ -375,7 +377,7 @@ export function ProjectView({
               >
                 {KIND_LABEL[kind] ?? kind}
                 {sessions.length > 1 ? (
-                  <span className="rounded-full bg-sunken px-1.5 font-mono text-[10px] text-ink-4">
+                  <span className="rounded-sm bg-sunken px-1.5 font-data text-[10px] text-ink-3 tabular-nums">
                     {sessions.length}
                   </span>
                 ) : null}
@@ -431,38 +433,39 @@ export function ProjectView({
                 {project.url ? (
                   <div className="flex items-center gap-2">
                     <button
-                      className="min-w-0 flex-1 truncate text-left font-mono text-[12px] text-accent-strong hover:underline"
+                      className="min-w-0 flex-1 truncate text-left font-data text-[12px] text-ink hover:underline"
                       onClick={() => window.pupitre.openUrl(project.url)}
                       type="button"
                     >
                       {project.url.replace("https://", "")}
                     </button>
-                    <button
-                      aria-label="Copy the address"
-                      className="shrink-0 rounded-md border border-line p-1.5 text-ink-4 transition-soft hover:border-accent hover:text-accent-strong"
+                    <IconButton
+                      icon={copied ? Check : Copy}
+                      label={copied ? "Address copied" : "Copy the address"}
                       onClick={copyUrl}
-                      type="button"
-                    >
-                      {copied ? <Check size={13} /> : <Copy size={13} />}
-                    </button>
+                    />
                   </div>
                 ) : (
                   <span className="text-ink-4">Not published</span>
                 )}
-                <p className="mt-2 font-mono text-[11px] text-ink-4">
+                <p className="mt-2 font-data text-[11px] text-ink-3">
                   local · {project.host}:{project.port}
                 </p>
               </Panel>
 
               <Panel icon={GitBranch} label="Branch">
                 {branches && !branches.repo ? (
-                  <div className="flex items-start gap-2 text-ink-4">
-                    <GitBranchPlus className="mt-px shrink-0" size={13} />
+                  <div className="flex items-start gap-2 text-ink-3">
+                    <GitBranchPlus
+                      className="mt-px shrink-0"
+                      size={13}
+                      strokeWidth={1.5}
+                    />
                     <div className="min-w-0">
-                      <p className="text-[12px] text-ink-3">
+                      <p className="text-[12px] text-ink-2">
                         No git repository
                       </p>
-                      <p className="mt-0.5 font-mono text-[11px]">
+                      <p className="mt-0.5 font-data text-[11px]">
                         {project.dir} is not versioned
                       </p>
                     </div>
@@ -470,7 +473,7 @@ export function ProjectView({
                 ) : (
                   <>
                     <select
-                      className="w-full rounded-md border border-line bg-base px-2.5 py-1.5 font-mono text-[12px] outline-none focus:border-accent disabled:opacity-50"
+                      className={fieldControlClass}
                       disabled={switching || !branches}
                       onChange={(e) => switchBranch(e.target.value)}
                       value={branches?.current ?? ""}
@@ -484,12 +487,13 @@ export function ProjectView({
                       ))}
                     </select>
                     {branches?.dirty ? (
-                      <p className="mt-2 flex items-center gap-1.5 text-[11px] text-warn">
-                        <AlertTriangle size={12} />
-                        uncommitted changes — the switch will be refused
-                      </p>
+                      <div className="mt-2">
+                        <Callout tone="warn">
+                          uncommitted changes — the switch will be refused
+                        </Callout>
+                      </div>
                     ) : (
-                      <p className="mt-2 truncate font-mono text-[11px] text-ink-4">
+                      <p className="mt-2 truncate font-data text-[11px] text-ink-3">
                         {branches?.root} · {branches?.local.length ?? 0} local
                       </p>
                     )}
@@ -506,10 +510,10 @@ export function ProjectView({
               </Panel>
 
               <Panel icon={Timer} label="Activity">
-                <p className="font-semibold text-lg tabular-nums">
+                <p className="font-semibold text-ink text-lg tabular-nums">
                   {project.uptime || "—"}
                 </p>
-                <p className="font-mono text-[11px] text-ink-4">
+                <p className="font-data text-[11px] text-ink-3">
                   {running ? "running" : "stopped"}
                 </p>
               </Panel>
@@ -521,22 +525,20 @@ export function ProjectView({
               */}
               {registration ? (
                 <Panel icon={Terminal} label="Commands">
-                  <p className="font-mono text-[10px] text-ink-4 uppercase tracking-[0.08em]">
-                    start
-                  </p>
-                  <p className="break-all font-mono text-[11px] text-ink-2">
+                  <Label>start</Label>
+                  <p className="break-all font-data text-[11px] text-ink-2">
                     {registration.command || "—"}
                   </p>
-                  <p className="mt-2 font-mono text-[10px] text-ink-4 uppercase tracking-[0.08em]">
-                    install
+                  <p className="mt-2 text-ink-3">
+                    <Label>install</Label>
                     {registration.install &&
                     registration.install !== "-" ? null : (
-                      <span className="ml-1 normal-case tracking-normal">
+                      <span className="ml-1 font-data text-[10px]">
                         (derived from {registration.package_manager})
                       </span>
                     )}
                   </p>
-                  <p className="break-all font-mono text-[11px] text-ink-2">
+                  <p className="break-all font-data text-[11px] text-ink-2">
                     {registration.install_effective || "—"}
                   </p>
                 </Panel>
@@ -548,20 +550,20 @@ export function ProjectView({
                 >
                   {memory(project.ram_mb)}
                 </p>
-                <p className="truncate font-mono text-[11px] text-ink-4">
+                <p className="truncate font-data text-[11px] text-ink-3">
                   {project.dir}
                 </p>
               </Panel>
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
-              <Action icon={SquareTerminal} onClick={() => setTab("shell")}>
+              <Button icon={SquareTerminal} onClick={() => setTab("shell")}>
                 Open a terminal
-              </Action>
+              </Button>
               {hasLogs ? (
-                <Action icon={ScrollText} onClick={() => setTab("logs")}>
+                <Button icon={ScrollText} onClick={() => setTab("logs")}>
                   View the log
-                </Action>
+                </Button>
               ) : null}
             </div>
           </div>
@@ -584,45 +586,15 @@ function TabButton({
 }) {
   return (
     <button
-      className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-[12px] transition-colors ${
+      className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-[12px] transition-soft ${
         active
-          ? "border-accent font-medium text-accent-strong"
+          ? "border-ink font-medium text-ink"
           : "border-transparent text-ink-3 hover:text-ink"
       }`}
       onClick={onClick}
       type="button"
     >
-      {Icon ? <Icon size={13} /> : null}
-      {children}
-    </button>
-  );
-}
-
-function Action({
-  children,
-  onClick,
-  disabled,
-  icon: Icon,
-  primary,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  disabled?: boolean;
-  icon: IconComponent;
-  primary?: boolean;
-}) {
-  return (
-    <button
-      className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] transition-soft disabled:opacity-40 ${
-        primary
-          ? "bg-accent font-medium text-base hover:bg-accent-strong"
-          : "border border-line-strong hover:border-accent hover:text-accent-strong"
-      }`}
-      disabled={disabled}
-      onClick={onClick}
-      type="button"
-    >
-      <Icon size={13} strokeWidth={2} />
+      {Icon ? <Icon size={13} strokeWidth={1.5} /> : null}
       {children}
     </button>
   );

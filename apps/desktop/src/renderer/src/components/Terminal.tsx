@@ -47,6 +47,7 @@ export function Terminal({ id, kind, project }: Props) {
   return (
     <div className="relative h-full w-full bg-surface" ref={frame}>
       {/* biome-ignore lint/a11y/noStaticElementInteractions: xterm handles keyboard and focus itself */}
+      {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: same reason — the mouse-down only hands focus back to the terminal */}
       <div
         className="h-full w-full cursor-text px-2 py-1"
         onMouseDown={() => focus(id)}
