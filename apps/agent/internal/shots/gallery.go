@@ -38,7 +38,7 @@ var mediaTypes = map[string]string{
 	".svg":  "image/svg+xml",
 }
 
-// The media types the contract knows; an empty answer means the file is not a capture.
+// Empty for anything the gallery does not consider a capture.
 func MediaType(name string) string {
 	return mediaTypes[strings.ToLower(path.Ext(name))]
 }
