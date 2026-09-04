@@ -48,7 +48,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-03 | Serveurs, clés par appareil, config SSH propre à l'app | fait | `feat/APP-03-servers-keys` | fusionnée |
 | APP-04 | Écran d'inspection | fait | `feat/APP-04-inspection` | fusionnée |
 | APP-05 | Catalogue et configuration des services | fait | `feat/APP-05-catalog` | fusionnée |
-| APP-06 | Installation en direct et rapport | à faire | | |
+| APP-06 | Installation en direct et rapport | en revue | `feat/APP-06-install` | |
 | APP-07 | Durcissement et bascule root → dev | à faire | | |
 | APP-08 | Premier projet | à faire | | |
 | APP-09 | Tableau de bord et projets sur le nouveau protocole | à faire | | |

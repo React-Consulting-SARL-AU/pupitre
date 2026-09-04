@@ -1,0 +1,15 @@
+# Un module tombe, les autres continuent, puis on le rejoue seul.
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","protocol":1}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","ping","snapshot","report","install"]}}
+> {"id":2,"cmd":"install","params":{"modules":["core.system","db.mysql","runtime.node"],"config":{"core.system":{},"db.mysql":{},"runtime.node":{}},"secrets_stdin":false}}
+< {"id":2,"event":"step","module":"core.system","step":"paquets","status":"start","ms":0}
+< {"id":2,"event":"step","module":"core.system","step":"paquets","status":"ok","ms":12400}
+< {"id":2,"event":"step","module":"db.mysql","step":"apt","status":"start","ms":0}
+< {"id":2,"event":"step","module":"db.mysql","step":"apt","status":"fail","ms":9100,"replay":"pupitred install db.mysql"}
+< {"id":2,"event":"step","module":"runtime.node","step":"mise","status":"start","ms":0}
+< {"id":2,"event":"step","module":"runtime.node","step":"mise","status":"ok","ms":31000}
+< {"id":2,"ok":true,"result":{"failed":["db.mysql"],"warned":["core.system"],"report_path":"/var/lib/pupitre/report.json"}}
+> {"id":3,"cmd":"install","params":{"modules":["db.mysql"],"config":{"db.mysql":{}},"secrets_stdin":false}}
+< {"id":3,"event":"step","module":"db.mysql","step":"apt","status":"start","ms":0}
+< {"id":3,"event":"step","module":"db.mysql","step":"apt","status":"ok","ms":8300}
+< {"id":3,"ok":true,"result":{"failed":[],"warned":[],"report_path":"/var/lib/pupitre/report.json"}}

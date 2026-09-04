@@ -60,6 +60,26 @@ export async function catalogOf(
 }
 
 /**
+ * The module names this server's agent stands behind, for whoever has to check
+ * that what the interface asked for exists.
+ */
+export async function declaredModules(
+  serverId: string
+): Promise<AgentResponse<string[]>> {
+  const cached = declared.get(serverId);
+
+  if (cached) {
+    return { ok: true, result: cached.modules.map((module) => module.id) };
+  }
+
+  const answer = await catalogOf(serverId);
+
+  return answer.ok
+    ? { ok: true, result: answer.result.modules.map((module) => module.id) }
+    : answer;
+}
+
+/**
  * A field the manifest declared as a secret, and nothing else.
  *
  * The renderer names a module and a key; both are checked against the catalogue
