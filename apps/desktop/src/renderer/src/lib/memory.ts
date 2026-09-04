@@ -27,6 +27,8 @@ export interface Navigation {
   tabs?: Record<string, string>;
   /** "system", "light" or "dark". Validated on read: last run wrote it. */
   theme?: string;
+  /** "system", "en" or "fr". Validated on read: last run wrote it. */
+  locale?: string;
 }
 
 export function readNavigation(): Navigation {
