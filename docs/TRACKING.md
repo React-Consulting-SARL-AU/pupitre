@@ -9,7 +9,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-01 | Monorepo Bun + Turbo | fait | `feat/INF-01-monorepo` | fusionnée f8d075a |
 | INF-02 | Fermeture du dépôt | fait | `feat/INF-02-closed-source` | fusionnée |
 | INF-03 | Workspaces et packages vides | fait | `feat/INF-03-workspaces` | fusionnée |
-| INF-04 | Contrats initiaux | en revue | `feat/INF-04-contracts` | |
+| INF-04 | Contrats initiaux | fait | `feat/INF-04-contracts` | fusionnée |
 | INF-05 | CI GitHub Actions | fait | `ci/INF-05-github-actions` | fusionnée |
 | INF-06 | Skills et outillage agent | à faire | | |
 
