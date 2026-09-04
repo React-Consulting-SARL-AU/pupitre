@@ -1,0 +1,71 @@
+# Une machine sans éditeur : les trois backends distants se posent, puis le rejeu ne touche à rien.
+@user dev
+@file /proc/meminfo MemTotal:\t8388608\tkB
+@answer data.services.jetbrains.com {"IIU":[{"version":"2026.2.2","build":"262.12345.67","downloads":{"linux":{"link":"https://download.jetbrains.com/idea/idea-2026.2.2.tar.gz"},"linuxARM64":{"link":"https://download.jetbrains.com/idea/idea-2026.2.2-aarch64.tar.gz"}}}]}
+@answer update.code.visualstudio.com/api/update {"name":"1.136.1","version":"a44adf7f53e00964ab890f9f8758a334f1fc15bc","productVersion":"1.136.1"}
+@answer url_effective https://github.com/zed-industries/zed/releases/download/v1.18.1/zed-remote-server-linux-x86_64.gz
+@archive /tmp/pupitre-jetbrains-idea.tar.gz build.txt bin/remote-dev-server.sh
+@archive /tmp/pupitre-code-server.tar.gz bin/code-server product.json
+@archive /tmp/pupitre-code-cli.tar.gz code
+> {"id":0,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+> {"id":1,"cmd":"install","params":{"secrets_stdin":false,"modules":["editor.jetbrains","editor.vscode","editor.zed"],"config":{"editor.jetbrains":{"ide":"idea","version":"latest"},"editor.vscode":{"extensions":["esbenp.prettier-vscode"],"tunnel":true},"editor.zed":{"version":"latest"}}}}
+> {"id":2,"cmd":"install","params":{"secrets_stdin":false,"modules":["editor.jetbrains","editor.vscode","editor.zed"],"config":{"editor.jetbrains":{"ide":"idea","version":"latest"},"editor.vscode":{"extensions":["esbenp.prettier-vscode"],"tunnel":true},"editor.zed":{"version":"latest"}}}}
+< {"id":0,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","ping","report","uninstall","upgrade"]}}
+< {"event":"step","id":1,"module":"core.system","ms":0,"status":"start","step":"install-package"}
+< {"event":"step","id":1,"module":"core.system","ms":0,"status":"ok","step":"install-package"}
+< {"event":"step","id":1,"module":"core.system","ms":0,"status":"start","step":"write-config"}
+< {"event":"step","id":1,"module":"core.system","ms":0,"status":"ok","step":"write-config"}
+< {"event":"step","id":1,"module":"editor.jetbrains","ms":0,"status":"start","step":"install-backend"}
+< {"event":"step","id":1,"module":"editor.jetbrains","ms":0,"status":"ok","step":"install-backend"}
+< {"event":"step","id":1,"module":"editor.jetbrains","ms":0,"status":"start","step":"write-vmoptions"}
+< {"event":"step","id":1,"module":"editor.jetbrains","ms":0,"status":"ok","step":"write-vmoptions"}
+< {"event":"step","id":1,"module":"editor.jetbrains","ms":0,"status":"start","step":"mark-backend"}
+< {"event":"step","id":1,"module":"editor.jetbrains","ms":0,"status":"ok","step":"mark-backend"}
+< {"event":"step","id":1,"module":"editor.vscode","ms":0,"status":"start","step":"install-cli"}
+< {"event":"step","id":1,"module":"editor.vscode","ms":0,"status":"ok","step":"install-cli"}
+< {"event":"step","id":1,"module":"editor.vscode","ms":0,"status":"start","step":"install-server"}
+< {"event":"step","id":1,"module":"editor.vscode","ms":0,"status":"ok","step":"install-server"}
+< {"event":"step","id":1,"module":"editor.vscode","ms":0,"status":"start","step":"link-server"}
+< {"event":"step","id":1,"module":"editor.vscode","ms":0,"status":"ok","step":"link-server"}
+< {"event":"step","id":1,"module":"editor.vscode","ms":0,"status":"start","step":"record-release"}
+< {"event":"step","id":1,"module":"editor.vscode","ms":0,"status":"ok","step":"record-release"}
+< {"event":"step","id":1,"module":"editor.vscode","ms":0,"status":"start","step":"install-extensions"}
+< {"event":"step","id":1,"module":"editor.vscode","ms":0,"status":"ok","step":"install-extensions"}
+< {"event":"step","id":1,"module":"editor.vscode","ms":0,"status":"start","step":"write-tunnel-service"}
+< {"event":"step","id":1,"module":"editor.vscode","ms":0,"status":"ok","step":"write-tunnel-service"}
+< {"event":"step","id":1,"module":"editor.vscode","ms":0,"status":"start","step":"enable-tunnel-service"}
+< {"event":"step","id":1,"module":"editor.vscode","ms":0,"status":"ok","step":"enable-tunnel-service"}
+< {"event":"step","id":1,"module":"editor.zed","ms":0,"status":"start","step":"install-remote-server"}
+< {"event":"step","id":1,"module":"editor.zed","ms":0,"status":"ok","step":"install-remote-server"}
+< {"event":"step","id":1,"module":"editor.zed","ms":0,"status":"start","step":"record-release"}
+< {"event":"step","id":1,"module":"editor.zed","ms":0,"status":"ok","step":"record-release"}
+< {"id":1,"ok":true,"result":{"failed":[],"warned":["editor.vscode : le tunnel VS Code attend une authentification une fois : sudo -u dev /usr/local/bin/code tunnel user login"],"report_path":"%REPORT_PATH%"}}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"install-package"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"skip","step":"install-package"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"write-config"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"skip","step":"write-config"}
+< {"event":"step","id":2,"module":"editor.jetbrains","ms":0,"status":"start","step":"install-backend"}
+< {"event":"step","id":2,"module":"editor.jetbrains","ms":0,"status":"skip","step":"install-backend"}
+< {"event":"step","id":2,"module":"editor.jetbrains","ms":0,"status":"start","step":"write-vmoptions"}
+< {"event":"step","id":2,"module":"editor.jetbrains","ms":0,"status":"skip","step":"write-vmoptions"}
+< {"event":"step","id":2,"module":"editor.jetbrains","ms":0,"status":"start","step":"mark-backend"}
+< {"event":"step","id":2,"module":"editor.jetbrains","ms":0,"status":"skip","step":"mark-backend"}
+< {"event":"step","id":2,"module":"editor.vscode","ms":0,"status":"start","step":"install-cli"}
+< {"event":"step","id":2,"module":"editor.vscode","ms":0,"status":"skip","step":"install-cli"}
+< {"event":"step","id":2,"module":"editor.vscode","ms":0,"status":"start","step":"install-server"}
+< {"event":"step","id":2,"module":"editor.vscode","ms":0,"status":"skip","step":"install-server"}
+< {"event":"step","id":2,"module":"editor.vscode","ms":0,"status":"start","step":"link-server"}
+< {"event":"step","id":2,"module":"editor.vscode","ms":0,"status":"skip","step":"link-server"}
+< {"event":"step","id":2,"module":"editor.vscode","ms":0,"status":"start","step":"record-release"}
+< {"event":"step","id":2,"module":"editor.vscode","ms":0,"status":"skip","step":"record-release"}
+< {"event":"step","id":2,"module":"editor.vscode","ms":0,"status":"start","step":"install-extensions"}
+< {"event":"step","id":2,"module":"editor.vscode","ms":0,"status":"skip","step":"install-extensions"}
+< {"event":"step","id":2,"module":"editor.vscode","ms":0,"status":"start","step":"write-tunnel-service"}
+< {"event":"step","id":2,"module":"editor.vscode","ms":0,"status":"skip","step":"write-tunnel-service"}
+< {"event":"step","id":2,"module":"editor.vscode","ms":0,"status":"start","step":"enable-tunnel-service"}
+< {"event":"step","id":2,"module":"editor.vscode","ms":0,"status":"skip","step":"enable-tunnel-service"}
+< {"event":"step","id":2,"module":"editor.zed","ms":0,"status":"start","step":"install-remote-server"}
+< {"event":"step","id":2,"module":"editor.zed","ms":0,"status":"skip","step":"install-remote-server"}
+< {"event":"step","id":2,"module":"editor.zed","ms":0,"status":"start","step":"record-release"}
+< {"event":"step","id":2,"module":"editor.zed","ms":0,"status":"skip","step":"record-release"}
+< {"id":2,"ok":true,"result":{"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}
