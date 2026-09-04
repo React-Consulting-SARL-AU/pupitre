@@ -59,6 +59,13 @@ export const InstallParamsSchema = z.strictObject({
 
 export type InstallParams = z.infer<typeof InstallParamsSchema>
 
+export const InstallSecretsSchema = z.record(
+  z.string(),
+  z.record(z.string(), z.string())
+)
+
+export type InstallSecrets = z.infer<typeof InstallSecretsSchema>
+
 export const InstallResultSchema = z.object({
   failed: z.array(z.string()),
   warned: z.array(z.string()),

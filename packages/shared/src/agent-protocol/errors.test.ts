@@ -15,6 +15,7 @@ describe("ProtocolErrorCodeSchema", () => {
       "entitlement_required",
       "project_not_found",
       "module_failed",
+      "no_report",
       "bad_signature",
     ]) {
       expect(PROTOCOL_ERROR_CODES as readonly string[]).toContain(code)

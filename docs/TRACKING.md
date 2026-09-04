@@ -13,7 +13,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-05 | CI GitHub Actions | fait | `ci/INF-05-github-actions` | fusionnée |
 | INF-06 | Skills et outillage agent | fait | `chore/INF-06-skills` | fusionnée |
 | INF-07 | Contrat : champs booléens et listes dans le catalogue | fait | `feat/INF-07-catalog-fields` | fusionnée |
-| INF-08 | Contrat : flux secret d'`install`, presets dans le schéma, code `no_report` | à faire | | |
+| INF-08 | Contrat : flux secret d'`install`, presets dans le schéma, code `no_report` | fait | `feat/INF-08-install-contract` | fusionnée |
 
 ## Agent serveur — `AGT`
 
@@ -82,7 +82,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | --- | --- | --- | --- | --- |
 | MKT-01 | Socle Astro, tokens, i18n, layout | fait | `feat/MKT-01-astro-base` | fusionnée |
 | MKT-02 | Accueil | fait | `feat/MKT-02-home` | fusionnée |
-| MKT-03 | Tarifs | à faire | | |
+| MKT-03 | Tarifs | fait | `feat/MKT-03-pricing` | fusionnée |
 | MKT-04 | Téléchargement | à faire | | |
 | MKT-05 | Documentation publique | à faire | | |
 | MKT-06 | Blog et changelog | à faire | | |
@@ -96,6 +96,3 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
-| 2026-09-04 | AGT-03 | Le contrat ne fixe pas la forme de la ligne du flux secret pour `install`. AGT-03 a retenu `{ "<module id>": { "<clé>": "<valeur>" } }`, miroir de `params.config` ; à confirmer dans `agent-protocol.md` (et dans `packages/shared` si un schéma doit l'encadrer). Non bloquant. | propriétaire, tâche de contrat |
-| 2026-09-04 | AGT-03 | `schema.json` porte les ids de presets et de modules, pas le contenu des presets (`PRESETS` de `packages/shared/src/catalog`). AGT-03 en garde une copie Go dans `internal/contract/presets.go`, validée contre le schéma ; l'export pourrait porter les presets pour supprimer la copie. Non bloquant. | propriétaire, tâche de contrat |
-| 2026-09-04 | AGT-03 | Aucun code d'erreur du contrat ne dit « pas encore de rapport » pour `report` avant toute installation ; AGT-03 répond `bad_request` avec un `fix`. Non bloquant. | propriétaire, tâche de contrat |

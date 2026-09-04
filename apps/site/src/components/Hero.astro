@@ -1,9 +1,8 @@
 ---
 import { homeContent } from "../content/site/home"
 import { localeFromPath, localizePath, translator } from "../lib/i18n"
+import { CONSOLE_URL } from "../lib/urls"
 import DownloadButton from "./DownloadButton.astro"
-
-const CONSOLE_URL = "https://app.pupitre.sh/"
 
 const locale = localeFromPath(Astro.url.pathname)
 const t = translator(locale)

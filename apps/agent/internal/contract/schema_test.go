@@ -34,10 +34,10 @@ func TestSchemaDeclaresTheContract(t *testing.T) {
 	for _, name := range []string{
 		"Request", "Event", "LogEvent", "StepEvent", "Response", "ProtocolError", "ErrorCode", "RestrictedCommands",
 		"HelloParams", "HelloResult", "PingResult", "ProbeResult", "CatalogResult",
-		"InstallParams", "InstallResult", "SnapshotResult", "StatusResult",
+		"InstallParams", "InstallSecrets", "InstallResult", "SnapshotResult", "StatusResult",
 		"ProjectUpParams", "ProjectAddParams", "AgentOpenParams", "SecretsSetParams",
 		"DbDumpParams", "AgentUpgradeParams", "DoctorResult", "DiagResult",
-		"Manifest", "Field", "Preset",
+		"Manifest", "Field", "Preset", "Presets",
 	} {
 		if _, ok := doc.Defs[name]; !ok {
 			t.Errorf("missing definition %q", name)
@@ -70,7 +70,7 @@ func TestErrorCodesAreStable(t *testing.T) {
 
 	for _, code := range []string{
 		"hello_required", "protocol_mismatch", "bad_request", "unknown_command",
-		"entitlement_required", "project_not_found", "module_failed", "bad_signature",
+		"entitlement_required", "project_not_found", "module_failed", "no_report", "bad_signature",
 	} {
 		if !present[code] {
 			t.Errorf("missing error code %q", code)

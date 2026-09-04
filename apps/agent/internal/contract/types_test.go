@@ -126,9 +126,27 @@ func TestStepEventValidatesOnceWrappedByTheProtocol(t *testing.T) {
 	}
 }
 
-func TestPresetsMatchTheSchema(t *testing.T) {
-	seen := map[string]bool{}
+func TestPresetsComeFromTheSchema(t *testing.T) {
+	var exported struct {
+		Const []Preset `json:"const"`
+	}
+	if err := json.Unmarshal(mustDefinition(t, "Presets"), &exported); err != nil {
+		t.Fatalf("decode Presets: %v", err)
+	}
 
+	if len(exported.Const) == 0 {
+		t.Fatal("schema.json exports no preset content")
+	}
+
+	if !reflect.DeepEqual(Presets, exported.Const) {
+		t.Fatalf("Presets = %+v, schema.json says %+v", Presets, exported.Const)
+	}
+
+	if err := ValidateValue("Presets", Presets); err != nil {
+		t.Fatal(err)
+	}
+
+	seen := map[string]bool{}
 	for _, preset := range Presets {
 		if err := ValidateValue("Preset", preset); err != nil {
 			t.Errorf("preset %s: %v", preset.ID, err)

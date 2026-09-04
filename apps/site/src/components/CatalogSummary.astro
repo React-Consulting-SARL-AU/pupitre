@@ -1,0 +1,45 @@
+---
+import { CATALOG } from "../content/site/catalog"
+import { pricingContent } from "../content/site/pricing"
+import { fill, localeFromPath, localizePath } from "../lib/i18n"
+
+const locale = localeFromPath(Astro.url.pathname)
+const { catalog } = pricingContent(locale)
+
+const groups = CATALOG.map((group) => {
+  const available = group.entries.filter(
+    (entry) => entry.availability === "mvp"
+  )
+
+  return {
+    id: group.id,
+    label: group.label[locale],
+    names: available.map((entry) => entry.name[locale]).join(", "),
+    available: fill(catalog.available, { count: available.length }),
+    soon: group.entries.length - available.length,
+  }
+})
+---
+
+<ul
+  class="grid gap-x-10 gap-y-8 border-line border-t pt-8 sm:grid-cols-2 md:grid-cols-4"
+>
+  {
+    groups.map((group) => (
+      <li data-category={group.id}>
+        <h3 class="heading-4">{group.label}</h3>
+        <p class="mt-1 text-ink-2 tabular-nums">
+          {group.available}
+          {group.soon > 0 && ` · ${fill(catalog.soon, { count: group.soon })}`}
+        </p>
+        <p class="mt-2 text-ink-3">{group.names}</p>
+      </li>
+    ))
+  }
+</ul>
+<a
+  href={`${localizePath("/", locale)}#catalog`}
+  class="mt-10 inline-block py-2 font-medium text-ink underline underline-offset-4"
+>
+  {catalog.link}
+</a>

@@ -12,7 +12,8 @@ import {
   ProtocolErrorCodeSchema,
   ProtocolErrorSchema,
 } from "../agent-protocol/errors"
-import { FieldSchema, ManifestSchema, PresetSchema } from "../catalog"
+import { InstallSecretsSchema } from "../agent-protocol/install"
+import { FieldSchema, ManifestSchema, PRESETS, PresetSchema } from "../catalog"
 
 export const CONTRACT_ID = "https://pupitre.sh/contracts/agent/schema.json"
 
@@ -58,9 +59,18 @@ export const CONTRACT_DEFINITIONS: Readonly<Record<string, z.ZodType>> = {
   ErrorCode: ProtocolErrorCodeSchema,
   RestrictedCommands: z.enum(RESTRICTED_COMMANDS),
   ...commandDefinitions(),
+  InstallSecrets: InstallSecretsSchema,
   Manifest: ManifestSchema,
   Field: FieldSchema,
   Preset: PresetSchema,
+}
+
+export const CONTRACT_CONSTANTS: Readonly<Record<string, JsonObject>> = {
+  Presets: {
+    type: "array",
+    items: { $ref: "#/$defs/Preset" },
+    const: PRESETS,
+  },
 }
 
 function stripDocumentKeys(schema: JsonObject): JsonObject {
@@ -87,6 +97,10 @@ export function buildContractSchema(): ContractSchema {
 
   for (const name of Object.keys(CONTRACT_DEFINITIONS)) {
     $defs[name] = stripDocumentKeys(schemas[name] as JsonObject)
+  }
+
+  for (const [name, definition] of Object.entries(CONTRACT_CONSTANTS)) {
+    $defs[name] = definition
   }
 
   return {

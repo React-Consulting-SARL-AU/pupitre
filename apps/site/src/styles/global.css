@@ -146,3 +146,11 @@
     transform: none;
   }
 }
+
+@utility figure {
+  font-family: var(--font-display);
+  font-weight: var(--font-display-weight);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
