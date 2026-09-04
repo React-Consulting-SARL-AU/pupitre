@@ -10,7 +10,8 @@ interface TPattern {
 const PATTERNS: TPattern[] = [
   {
     kind: "private key",
-    regex: /^\s*-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----/,
+    regex: /-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----/,
+    keyMaterial: true,
   },
   {
     kind: "Stripe secret key",

@@ -74,11 +74,11 @@ Tests. Un test Bun sur `assert-package-boundaries.ts` avec des fixtures.
 ### INF-02 — Fermeture du dépôt
 Lot 0 · aucune dépendance · racine
 
-But. Le dépôt cesse d'être un projet open source.
-Périmètre. `LICENSE` remplacé par une notice propriétaire (« Tous droits réservés », usage soumis au contrat de licence), suppression des mentions « MIT », « open source », « fork it » dans `README.md`, `app/README.md`, `server/README.md`, `app/package.json`. `README.md` racine réécrit : ce qu'est le dépôt, comment démarrer, renvoi vers `docs/`.
+But. Le dépôt cesse d'être un projet ouvert.
+Périmètre. `LICENSE` remplacé par une notice propriétaire (« Tous droits réservés », usage soumis au contrat de licence), suppression des mentions de l'ancienne licence permissive et des invitations à forker dans `README.md`, `app/README.md`, `server/README.md`, `app/package.json`. `README.md` racine réécrit : ce qu'est le dépôt, comment démarrer, renvoi vers `docs/`.
 Hors périmètre. Le contrat de licence utilisateur final (rédigé hors dépôt).
 Critères d'acceptation.
-1. `grep -ri "MIT\|open source" --exclude-dir=node_modules` ne renvoie rien hors `docs/decisions/0001-closed-source.md`.
+1. Une recherche insensible à la casse du nom de l'ancienne licence et de l'expression « code ouvert » en anglais, hors `node_modules`, ne renvoie que les fichiers de `docs/decisions/`.
 2. Le propriétaire a vérifié que le dépôt distant est privé.
 
 ### INF-03 — Workspaces et packages vides
