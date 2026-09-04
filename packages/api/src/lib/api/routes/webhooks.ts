@@ -1,10 +1,11 @@
+import { resolveLocale } from "@pupitre/shared/i18n"
 import { Elysia } from "elysia"
 import {
   handleStripeWebhook,
   StripeEventMalformedError,
   StripeSignatureInvalidError,
 } from "../../billing/webhook"
-import { resolveLocale, translate } from "../../i18n"
+import { translate } from "../../i18n"
 import { apiError } from "../errors"
 import { errorResponse } from "../openapi-models"
 import { stripeWebhookAck, stripeWebhookBody } from "./webhook-schemas"

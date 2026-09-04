@@ -1,6 +1,7 @@
+import type { Locale } from "@pupitre/shared/i18n"
 import { ValueErrorType } from "@sinclair/typebox/errors"
 import type { ValidationError } from "elysia"
-import { type Locale, type MessageKey, translate } from "../i18n"
+import { type MessageKey, translate } from "../i18n"
 
 interface ValidationDetail {
   message: string

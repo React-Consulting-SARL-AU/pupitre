@@ -1,9 +1,14 @@
+import { LOCALES } from "@pupitre/shared/i18n"
 import { ORG_ROLES } from "@pupitre/shared/permissions"
 import { t } from "elysia"
 import { dateTime } from "../openapi-models"
 import { serverStatusSchema } from "./servers/schemas"
 
 export const ME_ENTITLEMENTS = ["none", "valid", "grace", "suspended"] as const
+
+export const localeSchema = t.UnionEnum([...LOCALES])
+
+export const localeInputBody = t.Object({ locale: localeSchema })
 
 const organizationSummary = {
   id: t.String(),
@@ -18,6 +23,7 @@ export const meSchema = t.Object(
       email: t.String(),
       name: t.String(),
       image: t.Nullable(t.String()),
+      locale: localeSchema,
       created_at: dateTime,
     }),
     organizations: t.Array(

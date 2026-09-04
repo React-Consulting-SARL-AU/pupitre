@@ -60,6 +60,7 @@ model User {
   banReason        String?
   banExpires       DateTime?
   twoFactorEnabled Boolean?  @default(false)
+  locale           String    @default("fr")
 
   sessions        Session[]
   accounts        Account[]

@@ -1,3 +1,4 @@
+import { type Locale, resolveLocale } from "@pupitre/shared/i18n"
 import { Elysia, t } from "elysia"
 import {
   addDevice,
@@ -9,7 +10,7 @@ import {
   PublicKeyMalformedError,
   PublicKeyNotEd25519Error,
 } from "../../devices/public-keys"
-import { type Locale, resolveLocale, translate } from "../../i18n"
+import { translate } from "../../i18n"
 import { type ApiErrorPayload, apiError } from "../errors"
 import { dataResponse, errorResponse } from "../openapi-models"
 import { requireAuth } from "../plugins/guards"

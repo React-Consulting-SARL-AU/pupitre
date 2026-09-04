@@ -1,5 +1,6 @@
+import { type Locale, resolveLocale } from "@pupitre/shared/i18n"
 import { Elysia, t } from "elysia"
-import { type Locale, resolveLocale, translate } from "../../../i18n"
+import { translate } from "../../../i18n"
 import { AlreadyMemberError } from "../../../orgs/members"
 import {
   assignServer,

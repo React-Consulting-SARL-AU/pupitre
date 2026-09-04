@@ -1,4 +1,4 @@
-import type { Locale } from "../lib/i18n"
+import type { Locale } from "@pupitre/shared/i18n"
 import { bootApiTestServer, TEST_BASE_URL } from "./index"
 
 export interface TestResponse<T> {
