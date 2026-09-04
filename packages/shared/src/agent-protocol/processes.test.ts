@@ -6,8 +6,13 @@ import {
   ProcessKillParamsSchema,
   SessionsCleanResultSchema,
   SessionsListResultSchema,
+  SHOT_CHUNK_BYTES,
+  SHOT_MAX_BYTES,
+  ShotEventSchema,
   ShotsCleanResultSchema,
   ShotsListResultSchema,
+  ShotsReadParamsSchema,
+  ShotsReadResultSchema,
   ShotsUrlResultSchema,
 } from "./processes"
 
@@ -106,5 +111,50 @@ describe("shots", () => {
     expect(
       ShotsListResultSchema.safeParse({ shots: [{ name: "a.png" }] }).success
     ).toBe(false)
+  })
+})
+
+describe("shots.read", () => {
+  const result = {
+    path: "2026-09-04/login.png",
+    media_type: "image/png",
+    size_bytes: 98_304,
+    sha256: "a".repeat(64),
+    chunks: 2,
+  }
+
+  it("accepts the acknowledgement of a read and its chunks", () => {
+    expect(ShotsReadParamsSchema.safeParse({ path: "a/b.png" }).success).toBe(
+      true
+    )
+    expect(ShotsReadResultSchema.safeParse(result).success).toBe(true)
+    expect(
+      ShotEventSchema.safeParse({
+        id: 21,
+        event: "shot",
+        seq: 0,
+        bytes: "iVBORw0KGgo=",
+      }).success
+    ).toBe(true)
+  })
+
+  it("rejects a media type outside the gallery, a bad digest and a capture beyond the cap", () => {
+    expect(
+      ShotsReadResultSchema.safeParse({ ...result, media_type: "text/plain" })
+        .success
+    ).toBe(false)
+    expect(
+      ShotsReadResultSchema.safeParse({ ...result, sha256: "NOTHEX" }).success
+    ).toBe(false)
+    expect(
+      ShotsReadResultSchema.safeParse({
+        ...result,
+        size_bytes: SHOT_MAX_BYTES + 1,
+      }).success
+    ).toBe(false)
+  })
+
+  it("keeps the chunk cut on a multiple of three so base64 pads only the last one", () => {
+    expect(SHOT_CHUNK_BYTES % 3).toBe(0)
   })
 })

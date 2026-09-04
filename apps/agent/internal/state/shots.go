@@ -1,13 +1,20 @@
 package state
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/protocol"
+	"pupitre.studio/agent/internal/shots"
 	"pupitre.studio/agent/internal/sys"
+	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/user"
 )
 
@@ -112,4 +119,76 @@ func (r *Reader) gallery() []shot {
 	sort.Slice(found, func(i, j int) bool { return found[i].when.After(found[j].when) })
 
 	return found
+}
+
+const (
+	ShotChunkBytes = 48 * 1024
+	ShotMaxBytes   = 16 << 20
+)
+
+type ShotFile struct {
+	Path      string
+	MediaType string
+	SizeBytes int64
+	Digest    string
+	Bytes     []byte
+}
+
+// A capture travels by the protocol channel, so nothing has to be exposed to reach it: the SSH session that already carries the commands carries the image too.
+func (r *Reader) ReadShot(relative string) (ShotFile, error) {
+	listed, found := r.shot(relative)
+	if !found {
+		return ShotFile{}, protocol.NewError(contract.ErrorBadRequest, "capture inconnue : "+relative).
+			WithFix("Appelle shots.list et reprends le path d'une de ses entrées, tel quel.")
+	}
+
+	mediaType := shots.MediaType(listed.Name)
+	if mediaType == "" {
+		return ShotFile{}, protocol.NewError(contract.ErrorBadRequest, "ce fichier n'est pas une image : "+relative).
+			WithFix("La galerie ne rend que png, jpeg, gif, webp, avif et svg.")
+	}
+
+	if listed.SizeBytes > ShotMaxBytes {
+		return ShotFile{}, protocol.NewError(contract.ErrorBadRequest,
+			fmt.Sprintf("capture trop lourde : %d octets pour un maximum de %d", listed.SizeBytes, ShotMaxBytes)).
+			WithFix("Ouvre la galerie sur le serveur pour cette capture, ou reprends-en une plus légère.")
+	}
+
+	content, err := file.Read(r.ctx(), r.options.Shots.Dir+"/"+listed.Path)
+	if err != nil {
+		return ShotFile{}, protocol.NewError(contract.ErrorBadRequest, "capture illisible : "+relative)
+	}
+
+	digest := sha256.Sum256(content)
+
+	return ShotFile{
+		Path:      listed.Path,
+		MediaType: mediaType,
+		SizeBytes: int64(len(content)),
+		Digest:    hex.EncodeToString(digest[:]),
+		Bytes:     content,
+	}, nil
+}
+
+// Cut on a multiple of three so base64 pads only the last chunk: each line decodes alone, and their concatenation decodes too.
+func ChunkShot(content []byte) []string {
+	chunks := make([]string, 0, len(content)/ShotChunkBytes+1)
+
+	for start := 0; start < len(content); start += ShotChunkBytes {
+		end := min(start+ShotChunkBytes, len(content))
+		chunks = append(chunks, base64.StdEncoding.EncodeToString(content[start:end]))
+	}
+
+	return chunks
+}
+
+// The listing is the only door: a capture is readable because shots.list names it, never because a path points at it.
+func (r *Reader) shot(relative string) (contract.Shot, bool) {
+	for _, listed := range r.Shots() {
+		if listed.Path == relative {
+			return listed, true
+		}
+	}
+
+	return contract.Shot{}, false
 }
