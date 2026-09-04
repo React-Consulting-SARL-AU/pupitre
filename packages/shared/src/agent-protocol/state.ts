@@ -47,6 +47,7 @@ export const PROJECT_STATES = [
   "starting",
   "failed",
   "stopped",
+  "down",
   "external",
   "service",
 ] as const

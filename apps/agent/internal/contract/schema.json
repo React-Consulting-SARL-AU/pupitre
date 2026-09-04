@@ -1196,6 +1196,7 @@
             "starting",
             "failed",
             "stopped",
+            "down",
             "external",
             "service"
           ]
@@ -1295,6 +1296,7 @@
             "starting",
             "failed",
             "stopped",
+            "down",
             "external",
             "service"
           ]
@@ -1321,6 +1323,7 @@
                   "starting",
                   "failed",
                   "stopped",
+                  "down",
                   "external",
                   "service"
                 ]
@@ -1374,6 +1377,7 @@
             "starting",
             "failed",
             "stopped",
+            "down",
             "external",
             "service"
           ]
@@ -1400,6 +1404,7 @@
                   "starting",
                   "failed",
                   "stopped",
+                  "down",
                   "external",
                   "service"
                 ]
@@ -1453,6 +1458,7 @@
             "starting",
             "failed",
             "stopped",
+            "down",
             "external",
             "service"
           ]
@@ -1479,6 +1485,7 @@
                   "starting",
                   "failed",
                   "stopped",
+                  "down",
                   "external",
                   "service"
                 ]
@@ -1566,6 +1573,7 @@
             "starting",
             "failed",
             "stopped",
+            "down",
             "external",
             "service"
           ]
@@ -1983,6 +1991,7 @@
             "starting",
             "failed",
             "stopped",
+            "down",
             "external",
             "service"
           ]

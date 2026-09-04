@@ -32,7 +32,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-08 | Modules éditeurs distants | à faire | | |
 | AGT-09 | Modules exposition et outils | à faire | | |
 | AGT-10 | Registre des projets et pilotage | fait | `feat/AGT-10-registry` | fusionnée |
-| AGT-11 | Sessions, processus, captures, secrets, bases | à faire | | |
+| AGT-11 | Sessions, processus, captures, secrets, bases | en revue | `feat/AGT-11-sessions` | |
 | AGT-12 | Shell de l'app et autocomplétion | à faire | | |
 | AGT-13 | Mise à jour de l'agent | à faire | | |
 | AGT-14 | Droit d'usage, enrôlement, heartbeat | à faire | | |
@@ -104,4 +104,3 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
-| 2026-09-04 | AGT-10 | L'énoncé et `docs/plans/desktop-and-agent.md` citent un état de projet `down` ; `packages/shared/src/agent-protocol/state.ts` n'en déclare que six (`online`, `starting`, `failed`, `stopped`, `external`, `service`) et le schéma refuse le septième. Une ligne `service` dont le port ne répond pas est rendue `stopped`. | propriétaire |

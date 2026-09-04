@@ -4,7 +4,7 @@
 > {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
 > {"id":2,"cmd":"project.logs","params":{"name":"web","lines":2,"follow":true}}
 > {"id":3,"cmd":"project.url","params":{"name":"web"}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","ping","project.add","project.down","project.install","project.list","project.logs","project.remove","project.restart","project.up","project.url","report","service.status","snapshot","status","uninstall","upgrade"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","diag","doctor","hello","install","ping","process.kill","processes.list","project.add","project.branches","project.checkout","project.diff","project.down","project.git_status","project.install","project.list","project.logs","project.remove","project.restart","project.sync","project.up","project.url","project.working_tree","reboot","report","service.status","sessions.clean","sessions.list","shots.clean","shots.list","shots.url","snapshot","status","uninstall","upgrade"]}}
 < {"event":"log","id":2,"line":"VITE v7.1.0 ready in 412 ms"}
 < {"event":"log","id":2,"line":"➜ Local: http://127.0.0.1:3000/"}
 < {"id":2,"ok":true,"result":{"lines":[]}}

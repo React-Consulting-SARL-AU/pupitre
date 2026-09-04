@@ -30,6 +30,34 @@ type urlResult struct {
 	URL string `json:"url"`
 }
 
+type doneResult struct {
+	Done bool `json:"done"`
+}
+
+type sessionsResult struct {
+	Sessions []contract.Session `json:"sessions"`
+}
+
+type killedResult struct {
+	Killed int `json:"killed"`
+}
+
+type processesResult struct {
+	Processes []contract.Process `json:"processes"`
+}
+
+type shotsResult struct {
+	Shots []contract.Shot `json:"shots"`
+}
+
+type removedResult struct {
+	Removed int `json:"removed"`
+}
+
+type doctorResult struct {
+	Checks []contract.DoctorCheck `json:"checks"`
+}
+
 func RegisterCommands(server *protocol.Server, reader *Reader) {
 	server.Register("snapshot", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
 		return reader.Snapshot(), nil
@@ -134,6 +162,96 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 
 		return urlResult{URL: address}, nil
 	}))
+
+	server.Register("project.sync", named(func(name string) (any, error) { return reader.Sync(name) }))
+	server.Register("project.branches", named(func(name string) (any, error) { return reader.Branches(name) }))
+	server.Register("project.git_status", named(func(name string) (any, error) { return reader.GitStatus(name) }))
+	server.Register("project.working_tree", named(func(name string) (any, error) { return reader.WorkingTree(name) }))
+
+	server.Register("project.checkout", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			Name   string `json:"name"`
+			Branch string `json:"branch"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		branch, err := reader.Checkout(params.Name, params.Branch)
+		if err != nil {
+			return nil, err
+		}
+
+		return contract.ProjectCheckout{Branch: branch}, nil
+	})
+
+	server.Register("project.diff", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			Name string `json:"name"`
+			Path string `json:"path"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		return reader.Diff(params.Name, params.Path)
+	})
+
+	server.Register("sessions.list", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
+		return sessionsResult{Sessions: reader.Sessions()}, nil
+	})
+
+	server.Register("sessions.clean", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
+		return killedResult{Killed: reader.CleanSessions()}, nil
+	})
+
+	server.Register("processes.list", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
+		return processesResult{Processes: reader.Processes()}, nil
+	})
+
+	server.Register("process.kill", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			PID   int  `json:"pid"`
+			Force bool `json:"force"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := reader.Kill(params.PID, params.Force); err != nil {
+			return nil, err
+		}
+
+		return doneResult{Done: true}, nil
+	})
+
+	server.Register("shots.list", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
+		return shotsResult{Shots: reader.Shots()}, nil
+	})
+
+	server.Register("shots.url", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
+		return urlResult{URL: reader.ShotsURL()}, nil
+	})
+
+	server.Register("shots.clean", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
+		return removedResult{Removed: reader.CleanShots()}, nil
+	})
+
+	server.Register("reboot", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
+		if err := reader.Reboot(); err != nil {
+			return nil, err
+		}
+
+		return doneResult{Done: true}, nil
+	})
+
+	server.Register("doctor", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
+		return doctorResult{Checks: reader.Doctor()}, nil
+	})
+
+	server.Register("diag", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
+		return reader.Diag(), nil
+	})
 }
 
 func named(run func(string) (any, error)) protocol.Handler {
