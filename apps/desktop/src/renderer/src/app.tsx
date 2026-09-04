@@ -9,6 +9,7 @@ import { ServicesScreen } from "./components/services/services-screen";
 import { SettingsScreen } from "./components/settings/settings-screen";
 import { AppSidebar } from "./components/shell/app-sidebar";
 import { ServerUnreadyScreen } from "./components/shell/server-unready-screen";
+import { ShotsScreen } from "./components/shots/shots-screen";
 import { TerminalTabs } from "./components/terminals/terminal-tabs";
 import { EmptyState } from "./components/ui/empty-state";
 import { ErrorNotice } from "./components/ui/error-notice";
@@ -253,6 +254,12 @@ export function App() {
                 processes={processes}
                 sessions={snapshot.sessions}
               />
+            </div>
+          ) : null}
+
+          {view === "shots" ? (
+            <div className="absolute inset-0">
+              <ShotsScreen serverId={serverId} />
             </div>
           ) : null}
 

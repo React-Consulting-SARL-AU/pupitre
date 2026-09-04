@@ -12,6 +12,7 @@ import type { AgentState, Terminal } from "@shared/terminals";
 import {
   Activity,
   Boxes,
+  Images,
   KeyRound,
   LayoutDashboard,
   Plus,
@@ -111,6 +112,13 @@ export function AppSidebar({
           onClick={() => onView("activity")}
         >
           Processus et sessions
+        </SidebarEntry>
+        <SidebarEntry
+          active={view === "shots"}
+          bullet={<Images size={14} strokeWidth={1.5} />}
+          onClick={() => onView("shots")}
+        >
+          Galerie
         </SidebarEntry>
         <SidebarEntry
           active={view === "secrets"}

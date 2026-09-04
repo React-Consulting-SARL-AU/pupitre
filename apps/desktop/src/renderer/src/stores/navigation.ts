@@ -17,6 +17,7 @@ export const VIEWS = [
   "project",
   "services",
   "activity",
+  "shots",
   "secrets",
   "terminals",
   "settings",
