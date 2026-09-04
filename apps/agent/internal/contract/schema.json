@@ -115,6 +115,33 @@
         "ms"
       ]
     },
+    "SecretEvent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "event": {
+          "type": "string",
+          "const": "secret"
+        },
+        "key": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "event",
+        "key",
+        "value"
+      ]
+    },
     "Response": {
       "oneOf": [
         {
@@ -1021,6 +1048,36 @@
         "id",
         "name",
         "state"
+      ]
+    },
+    "ServiceSecretParams": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "key": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        }
+      },
+      "required": [
+        "id",
+        "key"
+      ],
+      "additionalProperties": false
+    },
+    "ServiceSecretResult": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        }
+      },
+      "required": [
+        "key"
       ]
     },
     "CompletionsParams": {
