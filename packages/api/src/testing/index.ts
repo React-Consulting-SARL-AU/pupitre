@@ -5,8 +5,7 @@ import {
   createAuth,
   type EmailMessage,
 } from "@pupitre/auth/server"
-import type { PrismaClient } from "@pupitre/db/client"
-import { app } from "../server"
+import { type ApiPrisma, configureApi, handleApiRequest } from "../server"
 import { bootTestDatabase } from "./database"
 
 export const TEST_BASE_URL = "http://localhost:3000"
@@ -24,7 +23,7 @@ export type TestFetch = (
 
 export interface ApiTestServer {
   auth: Auth
-  prisma: PrismaClient
+  prisma: ApiPrisma
   fetch: TestFetch
   sentEmails: EmailMessage[]
   reset: () => Promise<void>
@@ -58,7 +57,7 @@ function createTestFetch(auth: Auth): TestFetch {
     }
 
     if (pathname.startsWith("/api/v1")) {
-      return Promise.resolve(app.handle(request))
+      return handleApiRequest(request)
     }
 
     return Promise.resolve(new Response("Not Found", { status: 404 }))
@@ -77,10 +76,14 @@ async function boot(): Promise<ApiTestServer> {
       return Promise.resolve()
     },
   })
+  // The Bun and Cloudflare generated clients only differ by the `$transaction` overloads.
+  const prisma = database.prisma as unknown as ApiPrisma
+
+  configureApi({ prisma, auth })
 
   return {
     auth,
-    prisma: database.prisma,
+    prisma,
     fetch: createTestFetch(auth),
     sentEmails,
     reset: async () => {
