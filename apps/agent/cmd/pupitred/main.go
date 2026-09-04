@@ -7,6 +7,7 @@ import (
 
 	"pupitre.sh/agent/internal/entitlement"
 	"pupitre.sh/agent/internal/modules"
+	"pupitre.sh/agent/internal/modules/core"
 	"pupitre.sh/agent/internal/protocol"
 	"pupitre.sh/agent/internal/sys"
 )
@@ -57,6 +58,7 @@ func newServer(engine *modules.Engine) *protocol.Server {
 		Entitlement:  entitlement.Current(),
 	})
 	modules.RegisterCommands(server, engine)
+	core.RegisterCommands(server, engine)
 
 	return server
 }

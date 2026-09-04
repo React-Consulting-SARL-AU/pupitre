@@ -18,6 +18,17 @@ func Installed(ctx sys.Context, pkg string) bool {
 	return err == nil && strings.Contains(out.Stdout, "install ok installed")
 }
 
+func Missing(ctx sys.Context, pkgs ...string) []string {
+	var missing []string
+	for _, pkg := range pkgs {
+		if !Installed(ctx, pkg) {
+			missing = append(missing, pkg)
+		}
+	}
+
+	return missing
+}
+
 func Version(ctx sys.Context, pkg string) (string, error) {
 	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"dpkg-query", "-W", "-f=${Version}", pkg}})
 	if err != nil {
@@ -41,6 +52,16 @@ func Install(ctx sys.Context, pkgs ...string) error {
 	}
 
 	_, err := sys.Exec(ctx, command("install", append([]string{"-y", "-qq"}, pkgs...)...))
+
+	return err
+}
+
+func Fix(ctx sys.Context) error {
+	if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"dpkg", "--configure", "-a"}}); err != nil {
+		return err
+	}
+
+	_, err := sys.Exec(ctx, command("install", "-f", "-y", "-qq"))
 
 	return err
 }

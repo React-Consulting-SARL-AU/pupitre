@@ -27,7 +27,7 @@ func RegisterCommands(server *protocol.Server, engine *Engine) {
 			return nil, err
 		}
 
-		return engine.Install(Request{Modules: params.Modules, Config: params.Config, Secrets: secrets, Persist: true}, emitter(ctx))
+		return engine.Install(Request{Modules: params.Modules, Config: params.Config, Secrets: secrets, Persist: true}, Emitter(ctx))
 	})
 
 	server.Register("uninstall", func(ctx *protocol.Context, raw json.RawMessage) (any, error) {
@@ -38,7 +38,7 @@ func RegisterCommands(server *protocol.Server, engine *Engine) {
 			return nil, protocol.NewError(contract.ErrorBadRequest, "paramètres illisibles : "+err.Error())
 		}
 
-		return engine.Uninstall(params.Modules, emitter(ctx))
+		return engine.Uninstall(params.Modules, Emitter(ctx))
 	})
 
 	server.Register("upgrade", func(ctx *protocol.Context, raw json.RawMessage) (any, error) {
@@ -49,7 +49,7 @@ func RegisterCommands(server *protocol.Server, engine *Engine) {
 			return nil, protocol.NewError(contract.ErrorBadRequest, "paramètres illisibles : "+err.Error())
 		}
 
-		return engine.Upgrade(Request{Modules: params.Modules}, emitter(ctx))
+		return engine.Upgrade(Request{Modules: params.Modules}, Emitter(ctx))
 	})
 
 	server.Register("report", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
@@ -72,7 +72,7 @@ func decodeSecrets(raw json.RawMessage, expected bool) (map[string]map[string]st
 	return secrets, nil
 }
 
-func emitter(ctx *protocol.Context) Sink {
+func Emitter(ctx *protocol.Context) Sink {
 	return func(event contract.StepEvent) {
 		fields := map[string]any{"module": event.Module, "step": event.Step, "status": string(event.Status), "ms": event.Ms}
 		if event.Replay != "" {

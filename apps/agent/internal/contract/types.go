@@ -32,6 +32,7 @@ const (
 	FieldSelect  = "select"
 	FieldSecret  = "secret"
 	FieldVersion = "version"
+	FieldBoolean = "boolean"
 )
 
 type Field struct {

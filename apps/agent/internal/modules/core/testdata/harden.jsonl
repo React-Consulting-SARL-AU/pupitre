@@ -1,0 +1,67 @@
+# Install both core modules, then harden: root closes; a second harden rewrites nothing.
+@file /root/.ssh/authorized_keys ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILykUfO8a7qKBQHbW/KSfnaTtl1nAJxVpOzifJBri1Hl jordan@laptop
+@unit apt-daily.timer active
+@unit apt-daily-upgrade.timer active
+@unit ssh active
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+> {"id":2,"cmd":"install","params":{"secrets_stdin":false,"modules":["core.system","core.hardening"],"config":{"core.system":{"git_name":"Jordan Monier","git_email":"jordan@example.org"},"core.hardening":{"ssh_443":true}}}}
+> {"id":3,"cmd":"harden","params":{"user":"dev"}}
+> {"id":4,"cmd":"harden","params":{"user":"dev"}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","harden","hello","install","ping","report","uninstall","upgrade"]}}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"repair-dpkg"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"skip","step":"repair-dpkg"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"install-packages"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"install-packages"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"create-swap"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"create-swap"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"enable-memory-guard"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"enable-memory-guard"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"configure-unattended-upgrades"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"configure-unattended-upgrades"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"enable-unattended-upgrades"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"skip","step":"enable-unattended-upgrades"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"raise-system-limits"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"raise-system-limits"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"set-timezone"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"set-timezone"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"create-user"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"create-user"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"grant-sudo"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"grant-sudo"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"prepare-home"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"prepare-home"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"seed-authorized-keys"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"seed-authorized-keys"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"create-projects-dir"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"create-projects-dir"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"set-git-identity"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"set-git-identity"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"write-zshrc"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"write-zshrc"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"write-tmux-conf"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"write-tmux-conf"}
+< {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"start","step":"install-packages"}
+< {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"ok","step":"install-packages"}
+< {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"start","step":"configure-firewall"}
+< {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"ok","step":"configure-firewall"}
+< {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"start","step":"write-fail2ban-jail"}
+< {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"ok","step":"write-fail2ban-jail"}
+< {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"start","step":"enable-fail2ban"}
+< {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"ok","step":"enable-fail2ban"}
+< {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"start","step":"prepare-sshd-fragment"}
+< {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"ok","step":"prepare-sshd-fragment"}
+< {"id":2,"ok":true,"result":{"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}
+< {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"start","step":"check-authorized-keys"}
+< {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"ok","step":"check-authorized-keys"}
+< {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"start","step":"write-sshd-fragment"}
+< {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"ok","step":"write-sshd-fragment"}
+< {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"start","step":"validate-sshd-config"}
+< {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"ok","step":"validate-sshd-config"}
+< {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"start","step":"reload-sshd"}
+< {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"ok","step":"reload-sshd"}
+< {"id":3,"ok":true,"result":{"root_closed":true,"next_user":"dev"}}
+< {"event":"step","id":4,"module":"core.hardening","ms":0,"status":"start","step":"check-authorized-keys"}
+< {"event":"step","id":4,"module":"core.hardening","ms":0,"status":"ok","step":"check-authorized-keys"}
+< {"event":"step","id":4,"module":"core.hardening","ms":0,"status":"start","step":"write-sshd-fragment"}
+< {"event":"step","id":4,"module":"core.hardening","ms":0,"status":"skip","step":"write-sshd-fragment"}
+< {"id":4,"ok":true,"result":{"root_closed":true,"next_user":"dev"}}

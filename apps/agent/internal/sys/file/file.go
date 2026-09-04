@@ -69,3 +69,75 @@ func Remove(ctx sys.Context, path string) (bool, error) {
 
 	return true, ctx.Sys().Remove(path)
 }
+
+func EnsureBlock(ctx sys.Context, path, name string, content []byte) (bool, error) {
+	current, err := ctx.Sys().ReadFile(path)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return false, err
+	}
+
+	updated := withBlock(string(current), blockStart(name), blockEnd(name), string(content))
+	if updated == string(current) {
+		return false, nil
+	}
+
+	ctx.Logf("write block %s in %s", name, path)
+
+	return true, ctx.Sys().WriteFile(path, []byte(updated), 0o644)
+}
+
+func HasBlock(ctx sys.Context, path, name string) bool {
+	current, err := ctx.Sys().ReadFile(path)
+
+	return err == nil && strings.Contains(string(current), blockStart(name)+"\n") && strings.Contains(string(current), blockEnd(name)+"\n")
+}
+
+func RemoveBlock(ctx sys.Context, path, name string) (bool, error) {
+	current, err := ctx.Sys().ReadFile(path)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	start, end := blockStart(name)+"\n", blockEnd(name)+"\n"
+	from := strings.Index(string(current), start)
+	to := strings.Index(string(current), end)
+	if from < 0 || to < from {
+		return false, nil
+	}
+
+	ctx.Logf("remove block %s from %s", name, path)
+	updated := string(current[:from]) + string(current[to+len(end):])
+
+	return true, ctx.Sys().WriteFile(path, []byte(updated), 0o644)
+}
+
+func blockStart(name string) string {
+	return "# >>> pupitre " + name + " >>>"
+}
+
+func blockEnd(name string) string {
+	return "# <<< pupitre " + name + " <<<"
+}
+
+func withBlock(current, start, end, content string) string {
+	if !strings.HasSuffix(content, "\n") {
+		content += "\n"
+	}
+	block := start + "\n" + content + end + "\n"
+
+	from := strings.Index(current, start+"\n")
+	to := strings.Index(current, end+"\n")
+	if from >= 0 && to > from {
+		return current[:from] + block + current[to+len(end)+1:]
+	}
+
+	if current != "" && !strings.HasSuffix(current, "\n") {
+		current += "\n"
+	}
+
+	return current + block
+}

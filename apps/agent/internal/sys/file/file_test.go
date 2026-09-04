@@ -86,3 +86,60 @@ func TestChown(t *testing.T) {
 		t.Fatal("chown of an absent file must fail")
 	}
 }
+
+func TestEnsureBlockAppendsThenReplaces(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Files["/home/dev/.zshrc"] = []byte("alias ll='ls -l'")
+	ctx := modtest.NewContext(t, fake, modtest.Options{})
+	path := "/home/dev/.zshrc"
+
+	changed, err := file.EnsureBlock(ctx, path, "core.system", []byte("export A=1"))
+	if err != nil || !changed {
+		t.Fatalf("EnsureBlock = %v, %v", changed, err)
+	}
+
+	want := "alias ll='ls -l'\n# >>> pupitre core.system >>>\nexport A=1\n# <<< pupitre core.system <<<\n"
+	if string(fake.Files[path]) != want || !file.HasBlock(ctx, path, "core.system") {
+		t.Fatalf("content = %q", fake.Files[path])
+	}
+
+	changed, err = file.EnsureBlock(ctx, path, "core.system", []byte("export A=1\n"))
+	if err != nil || changed {
+		t.Fatalf("second EnsureBlock = %v, %v", changed, err)
+	}
+
+	fake.Files[path] = append(fake.Files[path], []byte("alias gs='git status'\n")...)
+	changed, err = file.EnsureBlock(ctx, path, "core.system", []byte("export A=2"))
+	if err != nil || !changed {
+		t.Fatalf("third EnsureBlock = %v, %v", changed, err)
+	}
+
+	want = "alias ll='ls -l'\n# >>> pupitre core.system >>>\nexport A=2\n# <<< pupitre core.system <<<\nalias gs='git status'\n"
+	if string(fake.Files[path]) != want {
+		t.Fatalf("content = %q", fake.Files[path])
+	}
+
+	if file.HasBlock(ctx, "/absent", "core.system") {
+		t.Fatal("HasBlock on an absent file")
+	}
+}
+
+func TestRemoveBlock(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Files["/home/dev/.zshrc"] = []byte("alias a=1\n# >>> pupitre core.system >>>\nexport A=1\n# <<< pupitre core.system <<<\nalias b=2\n")
+	ctx := modtest.NewContext(t, fake, modtest.Options{})
+
+	removed, err := file.RemoveBlock(ctx, "/home/dev/.zshrc", "core.system")
+	if err != nil || !removed || string(fake.Files["/home/dev/.zshrc"]) != "alias a=1\nalias b=2\n" {
+		t.Fatalf("RemoveBlock = %v, %v, %q", removed, err, fake.Files["/home/dev/.zshrc"])
+	}
+
+	removed, err = file.RemoveBlock(ctx, "/home/dev/.zshrc", "core.system")
+	if err != nil || removed {
+		t.Fatalf("second RemoveBlock = %v, %v", removed, err)
+	}
+
+	if removed, err := file.RemoveBlock(ctx, "/absent", "core.system"); err != nil || removed {
+		t.Fatalf("absent RemoveBlock = %v, %v", removed, err)
+	}
+}

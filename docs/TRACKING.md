@@ -22,7 +22,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-01 | Squelette, protocole, `hello` et `ping` | fait | `feat/AGT-01-protocol` | fusionnée |
 | AGT-02 | Sonde sh et sonde Go | à faire | | |
 | AGT-03 | Moteur de modules et rapport | fait | `feat/AGT-03-module-engine` | fusionnée |
-| AGT-04 | Modules socle et durcissement | à faire | | |
+| AGT-04 | Modules socle et durcissement | en revue | `feat/AGT-04-core-modules` | |
 | AGT-05 | Modules runtimes | à faire | | |
 | AGT-06 | Modules bases de données | à faire | | |
 | AGT-07 | Modules agents IA et navigateur | à faire | | |
@@ -99,3 +99,4 @@ Une ligne par blocage, supprimée quand il est levé.
 | 2026-09-04 | AGT-03 | Le contrat ne fixe pas la forme de la ligne du flux secret pour `install`. AGT-03 a retenu `{ "<module id>": { "<clé>": "<valeur>" } }`, miroir de `params.config` ; à confirmer dans `agent-protocol.md` (et dans `packages/shared` si un schéma doit l'encadrer). Non bloquant. | propriétaire, tâche de contrat |
 | 2026-09-04 | AGT-03 | `schema.json` porte les ids de presets et de modules, pas le contenu des presets (`PRESETS` de `packages/shared/src/catalog`). AGT-03 en garde une copie Go dans `internal/contract/presets.go`, validée contre le schéma ; l'export pourrait porter les presets pour supprimer la copie. Non bloquant. | propriétaire, tâche de contrat |
 | 2026-09-04 | AGT-03 | Aucun code d'erreur du contrat ne dit « pas encore de rapport » pour `report` avant toute installation ; AGT-03 répond `bad_request` avec un `fix`. Non bloquant. | propriétaire, tâche de contrat |
+| 2026-09-04 | AGT-04 | Ni le catalogue ni `agent-protocol.md` ne disent qui dépose la première clé dans `/home/dev/.ssh/authorized_keys` avant `harden` (critère 1 : `ssh dev@staging` fonctionne après `install core.*`). AGT-04 fait copier par `core.system` (étape `seed-authorized-keys`) les clés non restreintes de `/root/.ssh/authorized_keys`, celles par lesquelles l'app est arrivée ; à confirmer dans `service-catalog.md` ou `security.md`, ou à remplacer par un champ `list` de clés. Non bloquant. | propriétaire, tâche de contrat |
