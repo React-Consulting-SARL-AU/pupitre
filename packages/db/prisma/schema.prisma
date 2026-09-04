@@ -192,31 +192,32 @@ model Device {
 }
 
 model Server {
-  id                    String       @id @default(cuid())
+  id                    String         @id @default(cuid())
   organizationId        String
-  organization          Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization          Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   name                  String
   host                  String?
-  port                  Int          @default(22)
-  sshUser               String       @default("dev")
+  port                  Int            @default(22)
+  sshUser               String         @default("dev")
   hostFingerprint       String?
   arch                  String
   agentVersion          String?
   targetVersion         String?
-  serverTokenHash       String?      @unique
-  enrollmentTokenHash   String?      @unique
+  serverTokenHash       String?        @unique
+  enrollmentTokenHash   String?        @unique
   enrollmentExpiresAt   DateTime?
   entitlementValidUntil DateTime?
   decommissionAt        DateTime?
-  status                ServerStatus @default(enrolling)
+  status                ServerStatus   @default(enrolling)
+  channel               ReleaseChannel @default(stable)
   deviceId              String?
-  device                Device?      @relation("ServerEnrollingDevice", fields: [deviceId], references: [id], onDelete: SetNull)
+  device                Device?        @relation("ServerEnrollingDevice", fields: [deviceId], references: [id], onDelete: SetNull)
   assignedUserId        String?
-  assignedUser          User?        @relation("ServerAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  assignedUser          User?          @relation("ServerAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
   lastHeartbeatAt       DateTime?
   metrics               Json?
-  createdAt             DateTime     @default(now())
-  updatedAt             DateTime     @updatedAt
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
 
   @@index([organizationId])
   @@index([assignedUserId])
@@ -241,12 +242,12 @@ model Subscription {
 }
 
 model OrganizationBilling {
-  organizationId   String           @id
-  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  stripeCustomerId String           @unique
-  defaultInterval  BillingInterval  @default(month)
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  organizationId   String          @id
+  organization     Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stripeCustomerId String          @unique
+  defaultInterval  BillingInterval @default(month)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 }
 
 model Release {

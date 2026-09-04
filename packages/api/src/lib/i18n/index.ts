@@ -30,10 +30,31 @@ const FR = {
   device_exists_fix:
     "Utilisez l'appareil déjà enregistré, ou ajoutez-en un avec une autre clé.",
   server_not_found: "Ce serveur n'existe pas.",
+  release_not_found: "Cette version de l'agent n'existe pas.",
+  release_not_found_fix:
+    "Demandez la dernière version publiée : GET /releases/agent/latest.",
+  release_conflict:
+    "La version {version} ({arch}) est déjà publiée avec une autre empreinte.",
+  release_conflict_fix:
+    "Publiez un nouveau numéro de version : une version déjà publiée n'est jamais réécrite.",
+  release_url_signed:
+    "Redirection vers le binaire signé sur R2, valable {seconds} secondes.",
+  release_url_local:
+    "Le stockage R2 n'est pas configuré : cette URL est locale et ne télécharge rien.",
   seat_quota_reached:
     "Votre abonnement couvre {quota} serveurs, ils sont tous utilisés.",
   seat_quota_reached_fix:
-    "Ajoutez un siège depuis la facturation, ou supprimez un serveur.",
+    "Ajoutez un siège dans le portail de facturation Stripe (POST /orgs/{organization}/portal), ou supprimez un serveur.",
+  seat_quota_development_fix:
+    "Aucun abonnement actif : le développement ouvre {quota} serveurs. Souscrivez depuis la facturation pour en ajouter.",
+  organization_not_found: "Cette organisation n'existe pas.",
+  billing_customer_missing:
+    "Cette organisation n'a pas encore de client Stripe.",
+  billing_customer_missing_fix:
+    "Passez d'abord par le checkout : POST /orgs/{organization}/checkout.",
+  stripe_signature_invalid: "Signature Stripe invalide.",
+  stripe_signature_invalid_fix:
+    "Signez le corps brut avec le secret du webhook, dans les cinq minutes.",
   enrollment_unknown: "Ce jeton d'enrôlement n'existe pas.",
   enrollment_used: "Ce jeton d'enrôlement a déjà été échangé.",
   enrollment_expired: "Ce jeton d'enrôlement a expiré.",
@@ -96,9 +117,30 @@ const EN: Record<MessageKey, string> = {
   device_exists_fix:
     "Use the device already registered, or add one with another key.",
   server_not_found: "This server does not exist.",
+  release_not_found: "This agent version does not exist.",
+  release_not_found_fix:
+    "Ask for the latest published version: GET /releases/agent/latest.",
+  release_conflict:
+    "Version {version} ({arch}) is already published with another fingerprint.",
+  release_conflict_fix:
+    "Publish a new version number: a published version is never rewritten.",
+  release_url_signed:
+    "Redirecting to the signed binary on R2, valid for {seconds} seconds.",
+  release_url_local:
+    "R2 storage is not configured: this URL is local and downloads nothing.",
   seat_quota_reached:
     "Your subscription covers {quota} servers, and they are all in use.",
-  seat_quota_reached_fix: "Add a seat from billing, or delete a server.",
+  seat_quota_reached_fix:
+    "Add a seat in the Stripe billing portal (POST /orgs/{organization}/portal), or delete a server.",
+  seat_quota_development_fix:
+    "No active subscription: development opens {quota} servers. Subscribe from billing to add more.",
+  organization_not_found: "This organization does not exist.",
+  billing_customer_missing: "This organization has no Stripe customer yet.",
+  billing_customer_missing_fix:
+    "Go through checkout first: POST /orgs/{organization}/checkout.",
+  stripe_signature_invalid: "Invalid Stripe signature.",
+  stripe_signature_invalid_fix:
+    "Sign the raw body with the webhook secret, within five minutes.",
   enrollment_unknown: "This enrollment token does not exist.",
   enrollment_used: "This enrollment token was already exchanged.",
   enrollment_expired: "This enrollment token expired.",

@@ -355,10 +355,6 @@ export type ReleaseMinOrderByAggregateInput = {
   publishedAt?: Prisma.SortOrder
 }
 
-export type EnumReleaseChannelFieldUpdateOperationsInput = {
-  set?: $Enums.ReleaseChannel
-}
-
 
 
 export type ReleaseSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{

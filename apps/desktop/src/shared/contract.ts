@@ -42,13 +42,28 @@ export type Project = {
   ram_mb: number;
 };
 
+/**
+ * Who owns the configuration that reaches this machine.
+ *
+ * "app": the address, the port, the account and the key belong to the app,
+ * written into its own SSH file. "system": the host is a block of the user's
+ * own ~/.ssh/config, and the app writes nothing at all for it.
+ */
+export type ServerOrigin = "app" | "system";
+
 export type Server = {
   id: string;
   name: string;
-  /** An alias from ~/.ssh/config, or user@machine. */
+  /** An address for an app server, a ~/.ssh/config alias for a system one. */
   host: string;
-  /** A key specific to this server; otherwise the agent handles it. */
-  key?: string;
+  port: number;
+  /** The remote account. Empty on a system host: its own block says which. */
+  user: string;
+  origin: ServerOrigin;
+  /** The private key in the app's folder. Absent on a system host. */
+  keyPath?: string;
+  /** The host key recorded on first contact. Absent: never contacted yet. */
+  hostFingerprint?: string;
   /**
    * How that particular machine is driven: its command, its logs, its editor.
    * Absent on older configurations, filled in on read.

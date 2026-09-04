@@ -1,7 +1,11 @@
-import type { Server, ServerStatus } from "@pupitre/db/cloudflare/client"
+import type { Server } from "@pupitre/db/cloudflare/client"
 import { getPrisma } from "../api/prisma"
+import {
+  type EntitlementState,
+  entitlementForServer,
+} from "../billing/entitlement"
+import { resolveTargetVersion } from "../releases/releases"
 import { authorizedKeysForServer } from "./authorized-keys"
-import { ENTITLEMENT_TTL_MS } from "./enrollment"
 import {
   appendSample,
   type MetricSample,
@@ -9,7 +13,7 @@ import {
   toStoredMetrics,
 } from "./metrics"
 
-export type AgentEntitlement = "valid" | "grace" | "suspended"
+export type AgentEntitlement = EntitlementState
 
 export interface AgentState {
   entitlement: AgentEntitlement
@@ -30,31 +34,26 @@ export interface HeartbeatInput {
   agent_version?: string
 }
 
-// PLT-07 replaces this with the subscription mirror; until then every enrolled server is entitled.
-function entitlementOf(status: ServerStatus): AgentEntitlement {
-  if (status === "suspended") {
-    return "suspended"
-  }
-
-  return status === "grace" ? "grace" : "valid"
-}
-
 export async function readAgentState(server: Server): Promise<AgentState> {
   const prisma = getPrisma()
-  const validUntil = new Date(Date.now() + ENTITLEMENT_TTL_MS)
+  const entitlement = await entitlementForServer(server)
+  const targetVersion = await resolveTargetVersion(server)
   const [authorizedKeys] = await Promise.all([
     authorizedKeysForServer(prisma, server.id),
     prisma.server.update({
       where: { id: server.id },
-      data: { entitlementValidUntil: validUntil },
+      data: {
+        entitlementValidUntil: entitlement.valid_until,
+        targetVersion,
+      },
     }),
   ])
 
   return {
-    entitlement: entitlementOf(server.status),
-    valid_until: validUntil,
+    entitlement: entitlement.state,
+    valid_until: entitlement.valid_until,
     authorized_keys: authorizedKeys,
-    target_version: server.targetVersion,
+    target_version: targetVersion,
     hostname: server.host ?? server.name,
     module_params: {},
   }

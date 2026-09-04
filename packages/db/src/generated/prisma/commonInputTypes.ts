@@ -206,6 +206,13 @@ export type EnumServerStatusFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumServerStatusFilter<$PrismaModel> | $Enums.ServerStatus
 }
 
+export type EnumReleaseChannelFilter<$PrismaModel = never> = {
+  equals?: $Enums.ReleaseChannel | Prisma.EnumReleaseChannelFieldRefInput<$PrismaModel>
+  in?: $Enums.ReleaseChannel[] | Prisma.ListEnumReleaseChannelFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ReleaseChannel[] | Prisma.ListEnumReleaseChannelFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumReleaseChannelFilter<$PrismaModel> | $Enums.ReleaseChannel
+}
+
 export type JsonNullableFilter<$PrismaModel = never> =
 | Prisma.PatchUndefined<
     Prisma.Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
@@ -256,6 +263,16 @@ export type EnumServerStatusWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumServerStatusFilter<$PrismaModel>
 }
 
+export type EnumReleaseChannelWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.ReleaseChannel | Prisma.EnumReleaseChannelFieldRefInput<$PrismaModel>
+  in?: $Enums.ReleaseChannel[] | Prisma.ListEnumReleaseChannelFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ReleaseChannel[] | Prisma.ListEnumReleaseChannelFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumReleaseChannelWithAggregatesFilter<$PrismaModel> | $Enums.ReleaseChannel
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumReleaseChannelFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumReleaseChannelFilter<$PrismaModel>
+}
+
 export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
 | Prisma.PatchUndefined<
     Prisma.Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
@@ -298,23 +315,6 @@ export type EnumBillingIntervalWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumBillingIntervalFilter<$PrismaModel>
   _max?: Prisma.NestedEnumBillingIntervalFilter<$PrismaModel>
-}
-
-export type EnumReleaseChannelFilter<$PrismaModel = never> = {
-  equals?: $Enums.ReleaseChannel | Prisma.EnumReleaseChannelFieldRefInput<$PrismaModel>
-  in?: $Enums.ReleaseChannel[] | Prisma.ListEnumReleaseChannelFieldRefInput<$PrismaModel>
-  notIn?: $Enums.ReleaseChannel[] | Prisma.ListEnumReleaseChannelFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumReleaseChannelFilter<$PrismaModel> | $Enums.ReleaseChannel
-}
-
-export type EnumReleaseChannelWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.ReleaseChannel | Prisma.EnumReleaseChannelFieldRefInput<$PrismaModel>
-  in?: $Enums.ReleaseChannel[] | Prisma.ListEnumReleaseChannelFieldRefInput<$PrismaModel>
-  notIn?: $Enums.ReleaseChannel[] | Prisma.ListEnumReleaseChannelFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumReleaseChannelWithAggregatesFilter<$PrismaModel> | $Enums.ReleaseChannel
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumReleaseChannelFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumReleaseChannelFilter<$PrismaModel>
 }
 
 export type NestedStringFilter<$PrismaModel = never> = {
@@ -511,6 +511,13 @@ export type NestedEnumServerStatusFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumServerStatusFilter<$PrismaModel> | $Enums.ServerStatus
 }
 
+export type NestedEnumReleaseChannelFilter<$PrismaModel = never> = {
+  equals?: $Enums.ReleaseChannel | Prisma.EnumReleaseChannelFieldRefInput<$PrismaModel>
+  in?: $Enums.ReleaseChannel[] | Prisma.ListEnumReleaseChannelFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ReleaseChannel[] | Prisma.ListEnumReleaseChannelFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumReleaseChannelFilter<$PrismaModel> | $Enums.ReleaseChannel
+}
+
 export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
   equals?: number | Prisma.IntFieldRefInput<$PrismaModel>
   in?: number[] | Prisma.ListIntFieldRefInput<$PrismaModel>
@@ -546,6 +553,16 @@ export type NestedEnumServerStatusWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumServerStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumServerStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumReleaseChannelWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.ReleaseChannel | Prisma.EnumReleaseChannelFieldRefInput<$PrismaModel>
+  in?: $Enums.ReleaseChannel[] | Prisma.ListEnumReleaseChannelFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ReleaseChannel[] | Prisma.ListEnumReleaseChannelFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumReleaseChannelWithAggregatesFilter<$PrismaModel> | $Enums.ReleaseChannel
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumReleaseChannelFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumReleaseChannelFilter<$PrismaModel>
 }
 
 export type NestedJsonNullableFilter<$PrismaModel = never> =
@@ -587,23 +604,6 @@ export type NestedEnumBillingIntervalWithAggregatesFilter<$PrismaModel = never> 
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumBillingIntervalFilter<$PrismaModel>
   _max?: Prisma.NestedEnumBillingIntervalFilter<$PrismaModel>
-}
-
-export type NestedEnumReleaseChannelFilter<$PrismaModel = never> = {
-  equals?: $Enums.ReleaseChannel | Prisma.EnumReleaseChannelFieldRefInput<$PrismaModel>
-  in?: $Enums.ReleaseChannel[] | Prisma.ListEnumReleaseChannelFieldRefInput<$PrismaModel>
-  notIn?: $Enums.ReleaseChannel[] | Prisma.ListEnumReleaseChannelFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumReleaseChannelFilter<$PrismaModel> | $Enums.ReleaseChannel
-}
-
-export type NestedEnumReleaseChannelWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.ReleaseChannel | Prisma.EnumReleaseChannelFieldRefInput<$PrismaModel>
-  in?: $Enums.ReleaseChannel[] | Prisma.ListEnumReleaseChannelFieldRefInput<$PrismaModel>
-  notIn?: $Enums.ReleaseChannel[] | Prisma.ListEnumReleaseChannelFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumReleaseChannelWithAggregatesFilter<$PrismaModel> | $Enums.ReleaseChannel
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumReleaseChannelFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumReleaseChannelFilter<$PrismaModel>
 }
 
 

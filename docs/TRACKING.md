@@ -45,7 +45,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | --- | --- | --- | --- | --- |
 | APP-01 | Design monochrome et thèmes | fait | `feat/APP-01-monochrome` | fusionnée |
 | APP-02 | Client du protocole agent sur SSH | fait | `feat/APP-02-agent-client` | fusionnée |
-| APP-03 | Serveurs, clés par appareil, config SSH propre à l'app | à faire | | |
+| APP-03 | Serveurs, clés par appareil, config SSH propre à l'app | fait | `feat/APP-03-servers-keys` | fusionnée |
 | APP-04 | Écran d'inspection | à faire | | |
 | APP-05 | Catalogue et configuration des services | à faire | | |
 | APP-06 | Installation en direct et rapport | à faire | | |
@@ -62,6 +62,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-17 | Harnais Playwright pour Electron | à faire | | |
 | APP-18 | Fond natif de la fenêtre selon le thème | à faire | | |
 | APP-19 | Appliquer le design accueillant à l'app | à faire | | |
+| APP-20 | L'app parle deux langues | à faire | | |
 
 ## Plateforme — `PLT`
 
@@ -72,8 +73,8 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-03 | Elysia : socle, guards, erreurs, harnais de test | fait | `feat/PLT-03-elysia-base` | fusionnée |
 | PLT-04 | Routes `me`, `devices` | fait | `feat/PLT-04-me-devices` | fusionnée |
 | PLT-05 | Enrôlement, jetons d'agent, `agent/state`, heartbeat | fait | `feat/PLT-05-enrollment` | fusionnée |
-| PLT-06 | Distribution des binaires signés (R2) | à faire | | |
-| PLT-07 | Stripe Managed Payments : checkout, portail, webhooks, réconciliation | à faire | | |
+| PLT-06 | Distribution des binaires signés (R2) | fait | `feat/PLT-06-releases` | fusionnée |
+| PLT-07 | Stripe Managed Payments : checkout, portail, webhooks, réconciliation | fait | `feat/PLT-07-stripe` | fusionnée |
 | PLT-08 | Console : shell, connexion, serveurs, appareils | à faire | | |
 | PLT-09 | Console : abonnement, téléchargements, profil | à faire | | |
 | PLT-10 | Organisations : membres, invitations, attribution, audit | à faire | | |

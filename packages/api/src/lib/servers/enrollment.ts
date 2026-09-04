@@ -1,7 +1,16 @@
-import type { ServerStatus } from "@pupitre/db/cloudflare/client"
 import { getPrisma, withOrganization } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
+import { entitlementWindow } from "../billing/entitlement"
+import {
+  countSeatedServers,
+  type SeatQuotaSource,
+  seatQuotaFor,
+} from "../billing/seats"
 import { fingerprintOfPublicKey } from "../devices/public-keys"
+import {
+  type EnrollmentRelease,
+  releaseForEnrollment,
+} from "../releases/releases"
 import {
   generateEnrollmentToken,
   generateServerToken,
@@ -11,36 +20,19 @@ import {
 
 export const ENROLLMENT_TTL_MS = 3_600_000
 
-export const ENTITLEMENT_TTL_MS = 86_400_000
-
 export const DEFAULT_SSH_PORT = 22
 
 export const DEFAULT_SSH_USER = "dev"
 
-export const DEV_SEAT_QUOTA = 2
-
-// PLT-06 publishes the signed binaries; until then the app pushes the agent it already carries.
-export const STUB_RELEASE = {
-  version: "0.0.0-dev",
-  url: "",
-  sha256: "",
-  signature: "",
-} as const
-
-const SEATED_STATUSES: ServerStatus[] = [
-  "enrolling",
-  "active",
-  "grace",
-  "suspended",
-]
-
 export class SeatQuotaReachedError extends Error {
   readonly quota: number
+  readonly source: SeatQuotaSource
 
-  constructor(quota: number) {
+  constructor(quota: number, source: SeatQuotaSource) {
     super(`the organization already uses its ${quota} seats`)
     this.name = "SeatQuotaReachedError"
     this.quota = quota
+    this.source = source
   }
 }
 
@@ -89,7 +81,7 @@ export interface EnrollInput {
 export interface EnrollResult {
   server_id: string
   enrollment_token: string
-  release: typeof STUB_RELEASE
+  release: EnrollmentRelease
 }
 
 export interface ExchangeInput {
@@ -97,17 +89,6 @@ export interface ExchangeInput {
   host_public_key: string
   agent_version: string
   arch: string
-}
-
-async function seatQuota(
-  prisma: ReturnType<typeof withOrganization>
-): Promise<number> {
-  const subscription = await prisma.subscription.findFirst({
-    orderBy: { createdAt: "desc" },
-    select: { quantity: true },
-  })
-
-  return subscription?.quantity ?? DEV_SEAT_QUOTA
 }
 
 export async function enrollServer(
@@ -124,16 +105,17 @@ export async function enrollServer(
     throw new EnrollmentDeviceUnknownError()
   }
 
-  const [quota, seated] = await Promise.all([
-    seatQuota(prisma),
-    prisma.server.count({ where: { status: { in: SEATED_STATUSES } } }),
+  const [{ quota, source }, seated] = await Promise.all([
+    seatQuotaFor(prisma),
+    countSeatedServers(prisma),
   ])
 
   if (seated >= quota) {
-    throw new SeatQuotaReachedError(quota)
+    throw new SeatQuotaReachedError(quota, source)
   }
 
   const enrollmentToken = generateEnrollmentToken()
+  const release = await releaseForEnrollment(input.probe.arch)
   const host = input.host.trim()
   const server = await prisma.server.create({
     data: {
@@ -145,7 +127,7 @@ export async function enrollServer(
       arch: input.probe.arch,
       hostFingerprint: input.fingerprint ?? null,
       status: "enrolling",
-      targetVersion: STUB_RELEASE.version,
+      targetVersion: release.version,
       deviceId: device.id,
       assignedUserId: actor.userId,
       enrollmentTokenHash: await hashEnrollmentToken(enrollmentToken),
@@ -165,7 +147,7 @@ export async function enrollServer(
   return {
     server_id: server.id,
     enrollment_token: enrollmentToken,
-    release: STUB_RELEASE,
+    release,
   }
 }
 
@@ -202,7 +184,7 @@ export async function exchangeEnrollmentToken(
       agentVersion: input.agent_version,
       hostFingerprint,
       serverTokenHash: await hashServerToken(serverToken),
-      entitlementValidUntil: new Date(Date.now() + ENTITLEMENT_TTL_MS),
+      entitlementValidUntil: entitlementWindow(),
     },
   })
 

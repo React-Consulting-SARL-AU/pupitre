@@ -294,6 +294,16 @@ Critères d'acceptation.
 
 ## Lot 3 — Compte et serveurs distants
 
+### APP-20 — L'app parle deux langues
+Lot 2 · dépend de APP-03 · `apps/desktop`
+
+But. L'app cesse d'être bilingue par accident : APP-01 a laissé les écrans hérités en anglais et APP-03 a écrit les nouveaux en français.
+Périmètre. Un dictionnaire typé par langue sur le modèle de `apps/site/src/content/ui/`, anglais par défaut et français, la langue suivant celle du système avec un réglage manuel dans les préférences, et toutes les chaînes existantes déplacées dans les dictionnaires. Les messages et les remèdes que l'agent renvoie ne sont **pas** traduits par l'app : ils viennent déjà localisés du serveur.
+Hors périmètre. Le contenu des écrans, qui ne change pas.
+Critères d'acceptation.
+1. Aucune chaîne visible en dur dans `apps/desktop/src/renderer` : un script le vérifie et tourne au lint du workspace.
+2. Les deux langues ont les mêmes clés, vérifié par un test.
+
 ### APP-17 — Harnais Playwright pour Electron
 Lot 2 · dépend de APP-01 · `apps/desktop`
 

@@ -29,7 +29,7 @@ Guards Elysia dans `packages/api/src/lib/api/plugins/` : `authPlugin` (résout s
 
 | Méthode | Route | Corps | Réponse |
 | --- | --- | --- | --- |
-| POST | `/servers/enroll` | `{ device_id, host, port?, ssh_user?, fingerprint?, probe }` | `{ server_id, enrollment_token, release: { version, url, sha256, signature } }`. Le serveur naît `enrolling`, attribué à l'appelant ; le jeton d'enrôlement vaut une heure et n'est stocké que haché. Refusé si le quota de sièges est atteint (`seat_quota_reached`, 403) |
+| POST | `/servers/enroll` | `{ device_id, host, port?, ssh_user?, fingerprint?, probe }` | `{ server_id, enrollment_token, release: { version, url, sha256, signature, channel } }`. `release` est la dernière version `stable` de l'architecture sondée, ou la dernière `beta` si aucune `stable` n'existe — `channel` le dit. Le serveur naît `enrolling`, attribué à l'appelant ; le jeton d'enrôlement vaut une heure et n'est stocké que haché. Refusé si le quota de sièges est atteint (`seat_quota_reached`, 403). Le quota est la quantité de l'abonnement `active`, `trialing` ou `past_due` de l'organisation ; sans abonnement, deux serveurs de développement, et le `fix` le dit |
 | GET | `/servers` | — | `{ data: Server[] }` de l'organisation active. `stale` est calculé : aucun heartbeat depuis 24 h. Il ne change ni le statut ni le droit d'usage |
 | GET | `/servers/:id` | — | `{ data: Server }` avec `metrics` des 7 derniers jours et `events` |
 | POST | `/servers/:id/assign` | `{ user_id }` ou `{ invite_email }` | `Server`. Rôle `admin` |
@@ -42,16 +42,18 @@ Guards Elysia dans `packages/api/src/lib/api/plugins/` : `authPlugin` (résout s
 | Méthode | Route | Corps | Réponse |
 | --- | --- | --- | --- |
 | POST | `/agent/exchange` | `{ enrollment_token, host_public_key, agent_version, arch }` | `{ server_token }`. Le jeton d'enrôlement est brûlé |
-| GET | `/agent/state` | — | `{ entitlement: "valid" \| "grace" \| "suspended", valid_until, authorized_keys[], target_version, hostname, module_params }` |
+| GET | `/agent/state` | — | `{ entitlement: "valid" \| "grace" \| "suspended", valid_until, authorized_keys[], target_version, hostname, module_params }`. `target_version` est la dernière version publiée du canal du serveur (`Server.channel`, `stable` par défaut ; un serveur `beta` voit aussi les versions `stable`) pour son architecture, jamais plus ancienne que celle qu'il porte déjà |
 | POST | `/agent/heartbeat` | `{ disk, ram, load, sessions[], stack_version, modules[], agent_version? }` | 204. L'échantillon rejoint `Server.metrics`, fenêtre glissante de 7 jours |
-| GET | `/agent/release/:version` | — | redirection signée vers R2 pour l'architecture du serveur |
+| GET | `/agent/release/:version` | — | 303 vers une URL R2 signée, valable 5 minutes, pour l'architecture du serveur. `release_not_found` (404) si la version n'existe pas pour cette architecture |
 
 ### Releases, côté appareil
 
 | Méthode | Route | Auth | Réponse |
 | --- | --- | --- | --- |
-| GET | `/releases/agent/:version?arch=` | bearer d'appareil | redirection signée vers R2 : l'app télécharge le binaire de l'agent pour le pousser elle-même sur le serveur |
-| GET | `/releases/agent/latest?channel=stable` | bearer d'appareil | `{ version, sha256, signature }` de la dernière version du canal |
+| GET | `/releases/agent/:version?arch=` | bearer d'appareil | 303 vers une URL R2 signée, valable 5 minutes : l'app télécharge le binaire de l'agent pour le pousser elle-même sur le serveur. `arch` vaut `amd64` par défaut |
+| GET | `/releases/agent/latest?channel=stable&arch=` | bearer d'appareil | `{ version, arch, sha256, signature }` de la dernière version du canal. `channel` vaut `stable` et `arch` vaut `amd64` par défaut ; `release_not_found` (404) si le canal est vide |
+
+Les deux redirections portent l'en-tête `x-pupitre-release-storage` : `r2` quand le bucket est configuré, `local` quand il ne l'est pas (développement). Dans ce dernier cas le corps de la redirection dit que l'URL est locale et ne télécharge rien.
 
 ### Organisation
 
@@ -70,14 +72,16 @@ Guards Elysia dans `packages/api/src/lib/api/plugins/` : `authPlugin` (résout s
 | --- | --- | --- | --- |
 | GET | `/admin/servers` | platform_admin | tous les serveurs, filtrables |
 | POST | `/admin/servers/:id/suspend` | platform_admin | `{ reason }` |
-| GET | `/admin/releases` · POST | platform_admin | publier une version de l'agent : `{ version, arch, sha256, signature, r2_key, channel: "beta" }` |
-| POST | `/admin/releases/:version/promote` | platform_admin | `{ channel: "stable" }` : la version devient cible en `stable` dans `/agent/state` |
+| POST | `/admin/releases` | platform_admin | publier une version de l'agent : `{ version, arch, sha256, signature, r2_key, channel? }`, `channel` valant `beta` par défaut. `version` est du semver, `sha256` 64 caractères hexadécimaux, `signature` une signature Ed25519 en base64 (88 caractères) : sinon `validation` (422). Réponse `{ data: Release }`, idempotente sur `(version, arch)` : 201 à la création, 200 si la ligne existe déjà à l'identique, `conflict` (409) si elle existe avec une autre empreinte |
+| POST | `/admin/releases/:version/promote` | platform_admin | `{ channel: "stable" }` : toutes les architectures de la version passent dans le canal et la version devient cible dans `/agent/state`. Réponse `{ data: Release[] }` ; `release_not_found` (404) si la version n'existe pas |
 
 ### Webhooks
 
 | Route | Événements |
 | --- | --- |
-| POST `/webhooks/stripe` | `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`. Signature vérifiée, idempotent par `event.id`, rejouable |
+| POST `/webhooks/stripe` | `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`. Aucun guard de session : la signature `t=…,v1=…` est vérifiée en HMAC-SHA256 sur le corps brut, avec une tolérance de cinq minutes. Idempotent par `event.id` (table `StripeEvent`) : un événement rejoué n'a aucun effet. Réponse `{ received, handled, duplicate }` ; signature absente, invalide ou hors tolérance : `stripe_signature_invalid` (400) |
+
+`invoice.payment_failed` met les serveurs de l'organisation en `grace` pour sept jours, puis `suspended` quand la tolérance expire (`ReconcileSeats`). `customer.subscription.deleted` les met en `grace` jusqu'à la fin de la période payée. Un abonnement qui redevient `active` ou `trialing` ramène les serveurs en `grace` vers `active`. `/agent/state` lit ce droit d'usage.
 
 ## Modèle de données
 
@@ -86,7 +90,7 @@ Tables Better Auth (générées) : `user`, `session`, `account`, `verification`,
 | Table | Champs |
 | --- | --- |
 | `Device` | `id`, `userId`, `name`, `publicKey`, `fingerprint`, `lastUsedAt`, `createdAt` |
-| `Server` | `id`, `organizationId`, `name`, `host`, `port` (22), `sshUser` (`dev`), `hostFingerprint`, `arch`, `agentVersion`, `targetVersion`, `serverTokenHash`, `enrollmentTokenHash`, `enrollmentExpiresAt`, `entitlementValidUntil`, `decommissionAt`, `status` (`enrolling`, `active`, `grace`, `suspended`, `revoked`), `deviceId?` (l'appareil qui a enrôlé), `assignedUserId?`, `lastHeartbeatAt`, `metrics` (json, 7 jours), `createdAt` |
+| `Server` | `id`, `organizationId`, `name`, `host`, `port` (22), `sshUser` (`dev`), `hostFingerprint`, `arch`, `agentVersion`, `targetVersion`, `serverTokenHash`, `enrollmentTokenHash`, `enrollmentExpiresAt`, `entitlementValidUntil`, `decommissionAt`, `status` (`enrolling`, `active`, `grace`, `suspended`, `revoked`), `channel` (`stable`, `beta`), `deviceId?` (l'appareil qui a enrôlé), `assignedUserId?`, `lastHeartbeatAt`, `metrics` (json, 7 jours), `createdAt` |
 | `Subscription` | `id`, `organizationId`, `stripeSubscriptionId`, `product`, `quantity`, `status`, `currentPeriodEnd` |
 | `OrganizationBilling` | `organizationId`, `stripeCustomerId`, `defaultInterval` |
 | `Release` | `version`, `arch`, `sha256`, `signature`, `r2Key`, `publishedAt`, `channel` (`stable`, `beta`) |

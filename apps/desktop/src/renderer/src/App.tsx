@@ -1,5 +1,5 @@
 import { SquareTerminal, X } from "lucide-react";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { ConnectionSetup } from "./components/ConnectionSetup";
 import { Dashboard } from "./components/Dashboard";
 import { ProjectView } from "./components/ProjectView";
@@ -110,6 +110,13 @@ export function App() {
     return () => clearInterval(round);
   }, [projectsKnown, refreshGit]);
 
+  // The servers screen writes through its own store: the app state re-reads
+  // what the main process kept, then re-checks the connection it just changed.
+  const serversChanged = useCallback(() => {
+    loadServers();
+    checkConnection();
+  }, [loadServers, checkConnection]);
+
   const project = selectedProject(snapshot, selection);
   const activeServer = servers?.servers.find((s) => s.id === servers.active);
   const serverTerminals = terminals.filter((t) => t.project === null);
@@ -219,7 +226,7 @@ export function App() {
               <Settings
                 capabilities={capabilities}
                 config={servers}
-                onSave={state.saveServers}
+                onChanged={serversChanged}
               />
             </div>
           ) : null}
