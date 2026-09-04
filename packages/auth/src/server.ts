@@ -1,3 +1,4 @@
+import { passkey } from "@better-auth/passkey"
 import { PrismaNeon } from "@prisma/adapter-neon"
 import { PrismaClient } from "@pupitre/db/cloudflare/client"
 import { PLATFORM_ADMIN_ROLE } from "@pupitre/shared/permissions"
@@ -10,6 +11,7 @@ import {
   magicLink,
   openAPI,
   organization,
+  twoFactor,
 } from "better-auth/plugins"
 import { tanstackStartCookies } from "better-auth/tanstack-start"
 import { ac, platformAc, platformRoles, roles } from "./access-control"
@@ -23,11 +25,13 @@ import {
   type AuthEnv,
   consoleUrl,
   isLocalhostUrl,
+  passkeyRpId,
   readAuthEnv,
   trustedOrigins,
 } from "./env"
 import { ensurePersonalOrganization } from "./personal-organization"
 import type { AuthPrisma } from "./prisma"
+import { twoFactorChallenge } from "./two-factor-policy"
 
 export type {
   AuthEmailRenderer,
@@ -48,6 +52,9 @@ const INVITATION_EXPIRES_IN = 7 * DAY_SECONDS
 const MAGIC_LINK_EXPIRES_IN = 15 * 60
 const DEVICE_CODE_EXPIRES_IN = "30m"
 const DEVICE_POLL_INTERVAL = "5s"
+
+export const RELYING_PARTY_NAME = "Pupitre"
+export const BACKUP_CODE_COUNT = 10
 
 export const DEVICE_VERIFICATION_PATH = "/auth/device"
 export const INVITATION_PATH = "/auth/invitation"
@@ -190,6 +197,8 @@ export function createAuth({
           )
         },
       }),
+      // Avant `bearer`, qui sinon délivrerait un jeton pour la session que le code n'a pas encore gardée.
+      twoFactorChallenge(consoleUrl(env)),
       deviceAuthorization({
         expiresIn: DEVICE_CODE_EXPIRES_IN,
         interval: DEVICE_POLL_INTERVAL,
@@ -219,6 +228,18 @@ export function createAuth({
         roles: platformRoles,
         adminRoles: [PLATFORM_ADMIN_ROLE],
         defaultRole: DEFAULT_USER_ROLE,
+      }),
+      passkey({
+        rpID: passkeyRpId(env),
+        rpName: RELYING_PARTY_NAME,
+        origin: trustedOrigins(env),
+      }),
+      twoFactor({
+        issuer: RELYING_PARTY_NAME,
+        // Nobody here has a password, so the second factor is managed from a
+        // live session instead of being re-proven by one.
+        allowPasswordless: true,
+        backupCodeOptions: { amount: BACKUP_CODE_COUNT },
       }),
       openAPI(),
       tanstackStartCookies(),

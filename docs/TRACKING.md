@@ -20,7 +20,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-13 | Le quota gratuit vit dans le contrat partagé | fait | `main` | constante unique dans `@pupitre/shared/plans` |
 | INF-14 | La langue de l'utilisateur est enregistrée | à faire | | |
 | INF-15 | Contrat : détecter le gestionnaire d'un dépôt | à faire | | |
-| INF-16 | Contrat : le chemin absolu d'un projet | à faire | | |
+| INF-16 | Contrat : le chemin absolu d'un projet | fait | `feat/INF-16-project-path` | fusionnée |
 | INF-11 | Contrat : le verdict de la sonde | fait | `feat/INF-11-probe-contract` | fusionnée |
 
 ## Agent serveur — `AGT`
@@ -43,6 +43,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-14 | Droit d'usage, enrôlement, heartbeat | à faire | | |
 | AGT-15 | Obfuscation et distribution | à faire | | |
 | AGT-16 | Validateur : messages d'erreur déterministes | à faire | | |
+| AGT-17 | La racine rendue par `project.git_status` reste dans la racine des projets | à faire | | |
 
 ## App desktop — `APP`
 
@@ -85,7 +86,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-10 | Organisations : membres, invitations, attribution, audit | fait | `feat/PLT-10-teams` | fusionnée |
 | PLT-11 | Emails transactionnels | fait | `feat/PLT-11-emails` | fusionnée |
 | PLT-12 | Alertes et page de statut | fait | `feat/PLT-12-alerts` | fusionnée |
-| PLT-13 | Passkeys et MFA | à faire | | |
+| PLT-13 | Passkeys et MFA | fait | `feat/PLT-13-passkeys` | fusionnée |
 | PLT-14 | Déploiement Cloudflare Builds, staging et production | à faire | | |
 | PLT-15 | Workflows Cloudflare : déclencheurs des tâches longues | en revue | `feat/PLT-15-workflows` | |
 | PLT-16 | Harnais Playwright pour la console | à faire | | |

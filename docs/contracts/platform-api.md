@@ -10,8 +10,12 @@ Elysia, montée sur `/api/v1` dans `packages/api/src/server.ts`. Trois consommat
 | App desktop | `Authorization: Bearer <session token>` obtenu par le device flow | `deviceAuthorization`, `bearer` |
 | Agent | `Authorization: Bearer <server token>` | aucun : jeton propre, haché en base, vérifié par le guard `requireServer` |
 | Support | session d'un utilisateur au rôle `platform_admin` | `admin` |
+| Console, sans lien magique | clé d'accès WebAuthn | `passkey` |
+| Console, second facteur | code TOTP ou code de récupération | `twoFactor` |
 
 Guards Elysia dans `packages/api/src/lib/api/plugins/` : `authPlugin` (résout session, utilisateur, organisation active, rôle), `requireOrg`, `requireRole("admin")`, `requireServer`, `requirePlatformAdmin`.
+
+Une clé d'accès enregistrée ouvre la session seule : le relying party est le domaine enregistrable de `BETTER_AUTH_URL` (`pupitre.studio` en production, `localhost` en développement) et les origines de confiance sont celles de la console. Le second facteur, quand il est activé, est exigé après le lien magique et après la connexion sociale, jamais après une clé d'accès, qui est déjà un second facteur : la vérification renvoie sur `/auth/two-factor`, où un code TOTP ou l'un des dix codes de récupération — à usage unique — ouvre la session. L'app desktop passe par le device flow et ne porte aucun de ces deux plugins.
 
 ## Routes
 
@@ -91,7 +95,7 @@ Les deux redirections portent l'en-tête `x-pupitre-release-storage` : `r2` quan
 
 ## Modèle de données
 
-Tables Better Auth (générées) : `user`, `session`, `account`, `verification`, `organization`, `member`, `invitation`, `deviceCode`, plus celles des plugins activés.
+Tables Better Auth (générées) : `user` (avec `twoFactorEnabled`), `session`, `account`, `verification`, `organization`, `member`, `invitation`, `deviceCode`, `passkey`, `twoFactor`, plus celles des plugins activés.
 
 | Table | Champs |
 | --- | --- |

@@ -340,3 +340,14 @@ Lot 4 · dépend de APP-13 · `apps/desktop`, `.github`
 
 Périmètre. Signature Windows via Azure Trusted Signing, OpenSSH de Windows sans `ControlMaster`, node-pty avec ConPTY, chemins de clés, AppImage et `.deb`, tests du parcours d'onboarding sur les trois OS.
 Critères d'acceptation. Le parcours APP-03 à APP-08 passe sur Windows 11 et Ubuntu 24.04 desktop.
+
+### AGT-17 — La racine d'un dépôt reste dans la racine des projets
+Lot 1 · dépend de INF-16 · `apps/agent`
+
+But. `project.git_status` ne peut pas désigner un dossier hors de la racine des projets.
+Périmètre. Si `/home/dev` est lui-même un dépôt git, `rev-parse --show-toplevel` remonte au-dessus de la racine des projets et `root` sort du domaine que l'agent est censé exposer. Le contenir, en tenant compte du fait que git résout les liens symboliques : un clamp naïf casse dès que la racine en contient un, ce qui a fait renoncer INF-16. Trouver la forme qui tient les deux.
+Hors périmètre. `Project.path`, déjà contenu par INF-16.
+Critères d'acceptation.
+1. Un dépôt git qui englobe la racine des projets ne fait sortir aucun chemin rendu.
+2. Une racine des projets atteinte par un lien symbolique continue de marcher, prouvé par un test.
+

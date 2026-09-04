@@ -39,6 +39,7 @@ const service = {
 const project = {
   name: "flymate-api",
   dir: "flymate/api",
+  path: "/home/dev/projects/flymate/api",
   repo: "git@github.com:acme/flymate.git",
   pkgmgr: "bun",
   host: "127.0.0.1",
@@ -117,6 +118,15 @@ describe("MachineSchema, ServiceSchema, ProjectSchema, SessionSchema", () => {
     )
     expect(
       SessionSchema.safeParse({ ...session, kind: "cursor" }).success
+    ).toBe(false)
+  })
+
+  it("requires an absolute path on a project", () => {
+    const { path: _path, ...withoutPath } = project
+
+    expect(ProjectSchema.safeParse(withoutPath).success).toBe(false)
+    expect(
+      ProjectSchema.safeParse({ ...project, path: "flymate/api" }).success
     ).toBe(false)
   })
 })

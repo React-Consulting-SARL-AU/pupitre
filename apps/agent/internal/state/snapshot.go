@@ -102,7 +102,7 @@ func (r *Reader) list(collected tmux.Collection, table processTable) []contract.
 
 	projects := make([]contract.Project, 0, len(file.Projects))
 	for _, declared := range file.Projects {
-		project := declared.Contract()
+		project := declared.Contract(r.options.Paths.Resolved().Projects)
 		project.State = tmux.State(ctx, r.options.Tmux, project, collected)
 		project.URL = url(declared, domain)
 		project.Branch = r.branch(branches, declared)
