@@ -7,6 +7,7 @@ import (
 	"math"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -46,6 +47,101 @@ type schema struct {
 	Pattern              string             `json:"pattern"`
 	MinItems             *int               `json:"minItems"`
 	MaxItems             *int               `json:"maxItems"`
+
+	propertyOrder []string
+}
+
+func (s *schema) UnmarshalJSON(data []byte) error {
+	type alias schema
+
+	var raw alias
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	*s = schema(raw)
+
+	order, err := propertyKeyOrder(data)
+	if err != nil {
+		return err
+	}
+
+	s.propertyOrder = order
+
+	return nil
+}
+
+func propertyKeyOrder(data []byte) ([]string, error) {
+	var envelope struct {
+		Properties json.RawMessage `json:"properties"`
+	}
+
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return nil, err
+	}
+
+	if len(envelope.Properties) == 0 {
+		return nil, nil
+	}
+
+	decoder := json.NewDecoder(bytes.NewReader(envelope.Properties))
+
+	open, err := decoder.Token()
+	if err != nil {
+		return nil, err
+	}
+
+	if delim, ok := open.(json.Delim); !ok || delim != '{' {
+		return nil, nil
+	}
+
+	var order []string
+
+	for decoder.More() {
+		key, err := decoder.Token()
+		if err != nil {
+			return nil, err
+		}
+
+		order = append(order, key.(string))
+
+		if err := skipValue(decoder); err != nil {
+			return nil, err
+		}
+	}
+
+	return order, nil
+}
+
+func skipValue(decoder *json.Decoder) error {
+	token, err := decoder.Token()
+	if err != nil {
+		return err
+	}
+
+	delim, ok := token.(json.Delim)
+	if !ok || (delim != '{' && delim != '[') {
+		return nil
+	}
+
+	depth := 1
+
+	for depth > 0 {
+		inner, err := decoder.Token()
+		if err != nil {
+			return err
+		}
+
+		if d, ok := inner.(json.Delim); ok {
+			if d == '{' || d == '[' {
+				depth++
+			} else {
+				depth--
+			}
+		}
+	}
+
+	return nil
 }
 
 type typeSet []string
@@ -159,7 +255,7 @@ func validate(s *schema, value any, path string) error {
 	}
 
 	if len(s.Type) > 0 && !matchesAnyType(s.Type, value) {
-		return &ValidationError{Path: path, Reason: "doit être de type " + strings.Join(s.Type, " ou "), typeMismatch: true}
+		return &ValidationError{Path: path, Reason: "doit être " + frenchType(s.Type), typeMismatch: true}
 	}
 
 	if s.Const != nil {
@@ -198,6 +294,37 @@ func validate(s *schema, value any, path string) error {
 	}
 
 	return nil
+}
+
+func frenchType(types []string) string {
+	names := make([]string, len(types))
+
+	for i, t := range types {
+		names[i] = frenchTypeName(t)
+	}
+
+	return strings.Join(names, " ou ")
+}
+
+func frenchTypeName(t string) string {
+	switch t {
+	case "object":
+		return "un objet"
+	case "array":
+		return "un tableau"
+	case "string":
+		return "une chaîne"
+	case "boolean":
+		return "un booléen"
+	case "number":
+		return "un nombre"
+	case "integer":
+		return "un entier"
+	case "null":
+		return "nul"
+	}
+
+	return t
 }
 
 func matchesAnyType(types []string, value any) bool {
@@ -296,25 +423,66 @@ func checkAnyOf(branches []*schema, value any, path string) error {
 
 func checkOneOf(branches []*schema, value any, path string) error {
 	var failures []error
+	var discriminated []error
 	matches := 0
 
 	for _, branch := range branches {
-		if err := validate(branch, value, path); err != nil {
-			failures = append(failures, err)
+		err := validate(branch, value, path)
+		if err == nil {
+			matches++
 			continue
 		}
 
-		matches++
+		failures = append(failures, err)
+
+		if discriminatorMatches(branch, value) {
+			discriminated = append(discriminated, err)
+		}
 	}
 
 	switch matches {
 	case 1:
 		return nil
 	case 0:
+		if len(discriminated) > 0 {
+			return mostRelevant(discriminated)
+		}
+
 		return mostRelevant(failures)
 	default:
 		return &ValidationError{Path: path, Reason: "correspond à plusieurs variantes (oneOf)"}
 	}
+}
+
+// A discriminated oneOf carries a const field per branch; the branch whose const
+// matches the value names the real mistake, whatever its path length.
+func discriminatorMatches(s *schema, value any) bool {
+	object, ok := value.(map[string]any)
+	if !ok {
+		return false
+	}
+
+	matched := false
+
+	for key, property := range s.Properties {
+		if property == nil || property.Const == nil {
+			continue
+		}
+
+		actual, present := object[key]
+		if !present {
+			return false
+		}
+
+		expected, err := Decode(property.Const)
+		if err != nil || !reflect.DeepEqual(expected, actual) {
+			return false
+		}
+
+		matched = true
+	}
+
+	return matched
 }
 
 // The branch that got past its type check usually names the real mistake.
@@ -342,7 +510,8 @@ func validateObject(s *schema, object map[string]any, path string) error {
 		}
 	}
 
-	for key, value := range object {
+	for _, key := range orderedKeys(s, object) {
+		value := object[key]
 		child := childPath(path, key)
 
 		if s.PropertyNames != nil {
@@ -375,6 +544,30 @@ func validateObject(s *schema, object map[string]any, path string) error {
 	}
 
 	return nil
+}
+
+func orderedKeys(s *schema, object map[string]any) []string {
+	ordered := make([]string, 0, len(object))
+	seen := make(map[string]bool, len(object))
+
+	for _, key := range s.propertyOrder {
+		if _, present := object[key]; present {
+			ordered = append(ordered, key)
+			seen[key] = true
+		}
+	}
+
+	rest := make([]string, 0, len(object))
+
+	for key := range object {
+		if !seen[key] {
+			rest = append(rest, key)
+		}
+	}
+
+	sort.Strings(rest)
+
+	return append(ordered, rest...)
 }
 
 func validateArray(s *schema, items []any, path string) error {
