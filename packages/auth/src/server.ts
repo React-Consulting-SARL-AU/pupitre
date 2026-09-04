@@ -197,6 +197,10 @@ export function createAuth({
           )
         },
       }),
+      // Before `bearer`: it exposes `set-auth-token` from whatever session
+      // cookie the response carries, so the challenge has to drop that session
+      // first or the token would hand out a session the code never guarded.
+      twoFactorChallenge(consoleUrl(env)),
       deviceAuthorization({
         expiresIn: DEVICE_CODE_EXPIRES_IN,
         interval: DEVICE_POLL_INTERVAL,
@@ -239,7 +243,6 @@ export function createAuth({
         allowPasswordless: true,
         backupCodeOptions: { amount: BACKUP_CODE_COUNT },
       }),
-      twoFactorChallenge(consoleUrl(env)),
       openAPI(),
       tanstackStartCookies(),
     ],
