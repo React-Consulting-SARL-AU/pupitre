@@ -14,6 +14,7 @@ import { destroy } from "../lib/terminals";
 export const VIEWS = [
   "dashboard",
   "project",
+  "services",
   "activity",
   "secrets",
   "terminals",

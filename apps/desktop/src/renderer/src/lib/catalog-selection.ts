@@ -17,6 +17,15 @@ import {
 
 export type Selection = readonly string[];
 
+/**
+ * The modules the server already runs.
+ *
+ * They are what makes the catalogue usable a second time: a module added after
+ * the fact must not drag its already-satisfied requirements into the install,
+ * and one that is already there is not a choice to make.
+ */
+export type Installed = readonly string[];
+
 export interface FieldGroup {
   module: Manifest;
   fields: readonly Field[];
@@ -53,8 +62,13 @@ function ordered(
   return modules.filter((m) => wanted.has(m.id)).map((m) => m.id);
 }
 
-export function mandatory(modules: readonly Manifest[]): string[] {
-  return modules.filter((m) => m.mandatory).map((m) => m.id);
+export function mandatory(
+  modules: readonly Manifest[],
+  installed: Installed = []
+): string[] {
+  return modules
+    .filter((m) => m.mandatory && !installed.includes(m.id))
+    .map((m) => m.id);
 }
 
 export function byCategory(modules: readonly Manifest[]): CategoryGroup[] {
@@ -67,32 +81,34 @@ export function byCategory(modules: readonly Manifest[]): CategoryGroup[] {
 function withRequirements(
   known: Map<string, Manifest>,
   chosen: Set<string>,
-  id: string
+  id: string,
+  installed: Installed
 ): void {
-  if (chosen.has(id)) {
+  if (chosen.has(id) || installed.includes(id)) {
     return;
   }
 
   chosen.add(id);
 
   for (const required of known.get(id)?.requires ?? []) {
-    withRequirements(known, chosen, required);
+    withRequirements(known, chosen, required, installed);
   }
 }
 
 export function select(
   modules: readonly Manifest[],
   selected: Selection,
-  id: string
+  id: string,
+  installed: Installed = []
 ): string[] {
   const known = index(modules);
 
-  if (!known.has(id) || blocked(modules, selected, null).has(id)) {
+  if (!known.has(id) || blocked(modules, selected, null, installed).has(id)) {
     return [...selected];
   }
 
   const chosen = new Set(selected);
-  withRequirements(known, chosen, id);
+  withRequirements(known, chosen, id, installed);
 
   return ordered(modules, chosen);
 }
@@ -138,23 +154,25 @@ export function deselect(
 export function toggle(
   modules: readonly Manifest[],
   selected: Selection,
-  id: string
+  id: string,
+  installed: Installed = []
 ): string[] {
   return selected.includes(id)
     ? deselect(modules, selected, id)
-    : select(modules, selected, id);
+    : select(modules, selected, id, installed);
 }
 
 export function fromPreset(
   modules: readonly Manifest[],
-  preset: Preset
+  preset: Preset,
+  installed: Installed = []
 ): string[] {
   const known = index(modules);
   const chosen = new Set<string>();
 
   for (const id of [...mandatory(modules), ...preset.modules]) {
     if (known.has(id)) {
-      withRequirements(known, chosen, id);
+      withRequirements(known, chosen, id, installed);
     }
   }
 
@@ -162,13 +180,15 @@ export function fromPreset(
 }
 
 /**
- * Why a module cannot be chosen right now, in the words the reader needs: the
- * module it collides with, or the architecture the probe measured.
+ * Why a module cannot be chosen right now, in the words the reader needs: it is
+ * already there, it collides with another, or the architecture the probe
+ * measured has nothing to run it.
  */
 export function blocked(
   modules: readonly Manifest[],
   selected: Selection,
-  probe: ProbeResult | null
+  probe: ProbeResult | null,
+  installed: Installed = []
 ): Map<string, string> {
   const known = index(modules);
   const chosen = new Set(selected);
@@ -176,6 +196,11 @@ export function blocked(
 
   for (const module of modules) {
     if (chosen.has(module.id)) {
+      continue;
+    }
+
+    if (installed.includes(module.id)) {
+      why.set(module.id, "Déjà installé sur ce serveur.");
       continue;
     }
 
