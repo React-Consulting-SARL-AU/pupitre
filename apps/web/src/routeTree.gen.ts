@@ -15,6 +15,7 @@ import { Route as DownloadRouteImport } from './routes/download'
 import { Route as StatusRouteImport } from './routes/status'
 import { Route as AuthDeviceRouteImport } from './routes/auth/device'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
+import { Route as AuthTwoFactorRouteImport } from './routes/auth/two-factor'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardAuditRouteImport } from './routes/dashboard/audit'
 import { Route as DashboardBillingRouteImport } from './routes/dashboard/billing'
@@ -54,6 +55,11 @@ const AuthDeviceRoute = AuthDeviceRouteImport.update({
 const AuthSignInRoute = AuthSignInRouteImport.update({
   id: '/auth/sign-in',
   path: '/auth/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthTwoFactorRoute = AuthTwoFactorRouteImport.update({
+  id: '/auth/two-factor',
+  path: '/auth/two-factor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
@@ -114,6 +120,7 @@ export interface FileRoutesByFullPath {
   '/status': typeof StatusRoute
   '/auth/device': typeof AuthDeviceRoute
   '/auth/sign-in': typeof AuthSignInRoute
+  '/auth/two-factor': typeof AuthTwoFactorRoute
   '/dashboard/audit': typeof DashboardAuditRoute
   '/dashboard/billing': typeof DashboardBillingRoute
   '/dashboard/devices': typeof DashboardDevicesRoute
@@ -131,6 +138,7 @@ export interface FileRoutesByTo {
   '/status': typeof StatusRoute
   '/auth/device': typeof AuthDeviceRoute
   '/auth/sign-in': typeof AuthSignInRoute
+  '/auth/two-factor': typeof AuthTwoFactorRoute
   '/dashboard/audit': typeof DashboardAuditRoute
   '/dashboard/billing': typeof DashboardBillingRoute
   '/dashboard/devices': typeof DashboardDevicesRoute
@@ -150,6 +158,7 @@ export interface FileRoutesById {
   '/status': typeof StatusRoute
   '/auth/device': typeof AuthDeviceRoute
   '/auth/sign-in': typeof AuthSignInRoute
+  '/auth/two-factor': typeof AuthTwoFactorRoute
   '/dashboard/audit': typeof DashboardAuditRoute
   '/dashboard/billing': typeof DashboardBillingRoute
   '/dashboard/devices': typeof DashboardDevicesRoute
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
     | '/status'
     | '/auth/device'
     | '/auth/sign-in'
+    | '/auth/two-factor'
     | '/dashboard/audit'
     | '/dashboard/billing'
     | '/dashboard/devices'
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/status'
     | '/auth/device'
     | '/auth/sign-in'
+    | '/auth/two-factor'
     | '/dashboard/audit'
     | '/dashboard/billing'
     | '/dashboard/devices'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/status'
     | '/auth/device'
     | '/auth/sign-in'
+    | '/auth/two-factor'
     | '/dashboard/audit'
     | '/dashboard/billing'
     | '/dashboard/devices'
@@ -224,6 +236,7 @@ export interface RootRouteChildren {
   StatusRoute: typeof StatusRoute
   AuthDeviceRoute: typeof AuthDeviceRoute
   AuthSignInRoute: typeof AuthSignInRoute
+  AuthTwoFactorRoute: typeof AuthTwoFactorRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   AuthInvitationIdRoute: typeof AuthInvitationIdRoute
 }
@@ -270,6 +283,13 @@ declare module '@tanstack/react-router' {
       path: '/auth/sign-in'
       fullPath: '/auth/sign-in'
       preLoaderRoute: typeof AuthSignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/two-factor': {
+      id: '/auth/two-factor'
+      path: '/auth/two-factor'
+      fullPath: '/auth/two-factor'
+      preLoaderRoute: typeof AuthTwoFactorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard/': {
@@ -378,6 +398,7 @@ const rootRouteChildren: RootRouteChildren = {
   StatusRoute: StatusRoute,
   AuthDeviceRoute: AuthDeviceRoute,
   AuthSignInRoute: AuthSignInRoute,
+  AuthTwoFactorRoute: AuthTwoFactorRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   AuthInvitationIdRoute: AuthInvitationIdRoute,
 }

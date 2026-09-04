@@ -11,7 +11,7 @@ export const Route = createFileRoute("/auth/sign-in")({
 function SignInPage() {
   return (
     <AuthCard
-      description="Un lien de connexion, ou votre compte GitHub. Aucun mot de passe à retenir."
+      description="Une clé d'accès, un lien de connexion, ou votre compte GitHub. Aucun mot de passe à retenir."
       title="Connexion"
     >
       <SignInForm />

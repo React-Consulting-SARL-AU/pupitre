@@ -9,6 +9,7 @@ export interface AuthEnv {
 export type EnvSource = Record<string, string | undefined>
 
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"])
+const IPV4_HOST_RE = /^\d{1,3}(?:\.\d{1,3}){3}$/
 
 function optionalVariable(source: EnvSource, name: string): string | undefined {
   const value = source[name]?.trim()
@@ -56,4 +57,21 @@ export function trustedOrigins(env: AuthEnv): string[] {
   }
 
   return [...new Set(origins)]
+}
+
+/**
+ * The relying party is the registrable domain, not the console host: a passkey
+ * registered on `app.pupitre.studio` keeps working if the console ever moves to
+ * another subdomain of `pupitre.studio`.
+ */
+export function passkeyRpId(env: AuthEnv): string {
+  const { hostname } = new URL(env.BETTER_AUTH_URL)
+
+  if (LOOPBACK_HOSTS.has(hostname) || IPV4_HOST_RE.test(hostname)) {
+    return hostname
+  }
+
+  const labels = hostname.split(".")
+
+  return labels.length > 2 ? labels.slice(-2).join(".") : hostname
 }
