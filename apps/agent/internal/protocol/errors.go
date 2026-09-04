@@ -6,6 +6,7 @@ type Error struct {
 	Code    contract.ErrorCode `json:"code"`
 	Message string             `json:"message"`
 	Fix     string             `json:"fix,omitempty"`
+	Remedy  *contract.Remedy   `json:"remedy,omitempty"`
 }
 
 func NewError(code contract.ErrorCode, message string) *Error {
@@ -14,6 +15,12 @@ func NewError(code contract.ErrorCode, message string) *Error {
 
 func (e *Error) WithFix(fix string) *Error {
 	e.Fix = fix
+
+	return e
+}
+
+func (e *Error) WithRemedy(remedy *contract.Remedy) *Error {
+	e.Remedy = remedy
 
 	return e
 }

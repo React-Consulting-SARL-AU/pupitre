@@ -33,14 +33,18 @@ func (r *Reader) gitCommand(dir string, argv []string) sys.Command {
 		User: owner,
 		Dir:  dir,
 		Argv: append([]string{"git", "-C", dir}, argv...),
-		Env: []string{
-			"HOME=" + user.Home(owner),
-			"LC_ALL=C",
-			// A repository whose remote asks for a password would hang for ever behind a protocol call.
-			"GIT_TERMINAL_PROMPT=0",
-			"GIT_SSH_COMMAND=ssh -o BatchMode=yes",
-			"GIT_OPTIONAL_LOCKS=0",
-		},
+		Env:  gitEnv(owner),
+	}
+}
+
+func gitEnv(owner string) []string {
+	return []string{
+		"HOME=" + user.Home(owner),
+		"LC_ALL=C",
+		// A repository whose remote asks for a password would hang for ever behind a protocol call.
+		"GIT_TERMINAL_PROMPT=0",
+		"GIT_SSH_COMMAND=ssh -o BatchMode=yes",
+		"GIT_OPTIONAL_LOCKS=0",
 	}
 }
 

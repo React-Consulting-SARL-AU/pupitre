@@ -44,6 +44,7 @@ type Options struct {
 	Tmux         tmux.Options
 	Follow       FollowOptions
 	Shots        ShotOptions
+	Detect       DetectOptions
 	Self         func() int
 	Sleep        func(time.Duration)
 }
@@ -64,6 +65,7 @@ func New(options Options) *Reader {
 	}
 	options.Tmux = options.Tmux.Resolved()
 	options.Shots = options.Shots.resolved(options.Tmux.User)
+	options.Detect = options.Detect.resolved(options.Tmux.User)
 	if options.Self == nil {
 		options.Self = os.Getpid
 	}
