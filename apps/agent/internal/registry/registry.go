@@ -378,14 +378,27 @@ func (f *File) checkUnique(project Project) error {
 		case existing.Name == project.Name:
 			return bad(project.Name+" est déjà déclaré", "Retire-le avec project.remove, ou choisis un autre nom.")
 		case existing.Port == project.Port:
-			return bad(fmt.Sprintf("le port %d est déjà pris par %s", project.Port, existing.Name),
-				fmt.Sprintf("Donne un autre port à %s, par exemple %d.", project.Name, f.FreePort(project.Port, nil)))
+			return f.portTaken(project, existing)
 		case project.Sub() != "" && existing.Sub() == project.Sub():
 			return bad("le sous-domaine "+project.Sub()+" est déjà pris par "+existing.Name, "Choisis un autre sous-domaine.")
 		}
 	}
 
 	return nil
+}
+
+// The free port travels twice: in the sentence a human reads, and in the remedy the app applies without parsing it.
+func (f *File) portTaken(project, existing Project) error {
+	free := f.FreePort(project.Port, nil)
+
+	failure := protocol.NewError(contract.ErrorBadRequest, fmt.Sprintf("le port %d est déjà pris par %s", project.Port, existing.Name)).
+		WithFix(fmt.Sprintf("Donne un autre port à %s, par exemple %d.", project.Name, free))
+
+	if free == 0 {
+		return failure
+	}
+
+	return failure.WithRemedy(contract.PortTaken(free))
 }
 
 func NotFound(name string) error {

@@ -3,6 +3,7 @@ package modtest
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -19,6 +20,11 @@ import (
 
 const Secret = "s3cret-de-test"
 
+var eventDefinitions = map[string]string{
+	"step": "StepEvent",
+	"shot": "ShotEvent",
+}
+
 var resultDefinitions = map[string]string{
 	"probe":     "ProbeResult",
 	"catalog":   "CatalogResult",
@@ -33,9 +39,11 @@ var resultDefinitions = map[string]string{
 	"snapshot":        "SnapshotResult",
 	"status":          "StatusResult",
 	"service.status":  "ServiceStatusResult",
+	"service.secret":  "ServiceSecretResult",
 	"completions":     "CompletionsResult",
 	"project.list":    "ProjectListResult",
 	"project.add":     "ProjectAddResult",
+	"project.detect":  "ProjectDetectResult",
 	"project.remove":  "ProjectRemoveResult",
 	"project.up":      "ProjectUpResult",
 	"project.down":    "ProjectDownResult",
@@ -57,6 +65,7 @@ var resultDefinitions = map[string]string{
 	"process.kill":         "ProcessKillResult",
 	"shots.list":           "ShotsListResult",
 	"shots.url":            "ShotsUrlResult",
+	"shots.read":           "ShotsReadResult",
 	"shots.clean":          "ShotsCleanResult",
 	"reboot":               "RebootResult",
 	"doctor":               "DoctorResult",
@@ -269,8 +278,8 @@ func assertContractLine(t *testing.T, line string, commands map[int64]string) {
 
 	if event, isEvent := object["event"]; isEvent {
 		definition := "Event"
-		if event == "step" {
-			definition = "StepEvent"
+		if named, known := eventDefinitions[fmt.Sprint(event)]; known {
+			definition = named
 		}
 
 		if err := contract.Validate(definition, object); err != nil {

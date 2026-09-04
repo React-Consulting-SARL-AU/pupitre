@@ -8,7 +8,7 @@ import {
 } from "@playwright/test";
 import { ANSWERS, SERVERS } from "./fixtures";
 
-const ENTRY = "out/main/index.js";
+const ENTRY = "out/main/index.cjs";
 const WIDTH = 1280;
 const HEIGHT = 840;
 

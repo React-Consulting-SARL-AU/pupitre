@@ -5,6 +5,9 @@ import {
   DiagResultSchema,
   DoctorResultSchema,
   DoneResultSchema,
+  EnrollParamsSchema,
+  EnrollResultSchema,
+  EnrollSecretsSchema,
   KeysListResultSchema,
 } from "./system"
 
@@ -29,7 +32,7 @@ describe("keys", () => {
 })
 
 describe("agent.upgrade", () => {
-  it("requires a signature", () => {
+  it("takes a version alone: the fingerprint comes from the platform", () => {
     expect(
       AgentUpgradeParamsSchema.safeParse({
         version: "0.4.0",
@@ -37,10 +40,23 @@ describe("agent.upgrade", () => {
       }).success
     ).toBe(true)
     expect(
-      AgentUpgradeParamsSchema.safeParse({ signature: "base64…" }).success
+      AgentUpgradeParamsSchema.safeParse({ version: "0.4.0" }).success
+    ).toBe(true)
+    expect(AgentUpgradeParamsSchema.safeParse({}).success).toBe(true)
+  })
+
+  it("carries the owner's explicit downgrade", () => {
+    expect(
+      AgentUpgradeParamsSchema.safeParse({
+        version: "0.3.1",
+        allow_downgrade: true,
+      }).success
     ).toBe(true)
     expect(
-      AgentUpgradeParamsSchema.safeParse({ version: "0.4.0" }).success
+      AgentUpgradeParamsSchema.safeParse({
+        version: "0.3.1",
+        allow_downgrade: "oui",
+      }).success
     ).toBe(false)
   })
 
@@ -87,5 +103,67 @@ describe("doctor, diag, done", () => {
       DoctorResultSchema.safeParse({ checks: [{ name: "ssh" }] }).success
     ).toBe(false)
     expect(DoneResultSchema.safeParse({ done: false }).success).toBe(false)
+  })
+})
+
+describe("enroll", () => {
+  it("names the platform in params and never the token", () => {
+    expect(
+      EnrollParamsSchema.safeParse({
+        platform_url: "https://app.pupitre.studio/api/v1",
+        secrets_stdin: true,
+      }).success
+    ).toBe(true)
+    expect(
+      EnrollParamsSchema.safeParse({
+        platform_url: "https://app.pupitre.studio/api/v1",
+        secrets_stdin: true,
+        enrollment_token: "enr_secret",
+      }).success
+    ).toBe(false)
+    expect(
+      EnrollParamsSchema.safeParse({
+        platform_url: "https://app.pupitre.studio/api/v1",
+      }).success
+    ).toBe(false)
+    expect(
+      EnrollParamsSchema.safeParse({
+        platform_url: "app.pupitre.studio",
+        secrets_stdin: true,
+      }).success
+    ).toBe(false)
+  })
+
+  it("carries the token alone on the secret line", () => {
+    expect(
+      EnrollSecretsSchema.safeParse({ enrollment_token: "enr_secret" }).success
+    ).toBe(true)
+    expect(
+      EnrollSecretsSchema.safeParse({ enrollment_token: "" }).success
+    ).toBe(false)
+    expect(
+      EnrollSecretsSchema.safeParse({
+        enrollment_token: "enr_secret",
+        platform_url: "https://app.pupitre.studio/api/v1",
+      }).success
+    ).toBe(false)
+  })
+
+  it("answers with the entitlement the platform granted", () => {
+    expect(
+      EnrollResultSchema.safeParse({
+        enrolled: true,
+        entitlement: "valid",
+        synced_at: "2026-09-05T10:00:00Z",
+      }).success
+    ).toBe(true)
+    expect(
+      EnrollResultSchema.safeParse({ enrolled: true, entitlement: "valid" })
+        .success
+    ).toBe(true)
+    expect(
+      EnrollResultSchema.safeParse({ enrolled: false, entitlement: "valid" })
+        .success
+    ).toBe(false)
   })
 })

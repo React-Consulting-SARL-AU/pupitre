@@ -42,10 +42,23 @@ func TestRestrictedCommandsMatchTheContract(t *testing.T) {
 	}
 }
 
-func TestUnenrolledCommandsAreASubsetOfTheRestrictedOnes(t *testing.T) {
+// Everything an unenrolled binary opens is also open in restricted mode, except the one command that ends the unenrolled state.
+func TestUnenrolledCommandsAreTheRestrictedOnesPlusEnrol(t *testing.T) {
 	for _, cmd := range UnenrolledCommands {
+		if cmd == "enroll" {
+			continue
+		}
+
 		if !AllowedInRestrictedMode(cmd) {
 			t.Errorf("%s ouvert sans jeton mais fermé en mode restreint", cmd)
 		}
+	}
+
+	if !AllowedWithoutEnrolment("enroll") {
+		t.Error("un binaire sans jeton ne peut pas s'enrôler")
+	}
+
+	if AllowedWithoutEnrolment("install") || AllowedWithoutEnrolment("snapshot") {
+		t.Error("un binaire sans jeton ouvre plus que son enrôlement")
 	}
 }

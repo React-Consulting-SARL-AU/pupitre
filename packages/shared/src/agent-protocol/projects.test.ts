@@ -5,6 +5,8 @@ import {
   ProjectBranchesResultSchema,
   ProjectCheckoutParamsSchema,
   ProjectDebugResultSchema,
+  ProjectDetectParamsSchema,
+  ProjectDetectResultSchema,
   ProjectDiffParamsSchema,
   ProjectDiffResultSchema,
   ProjectEnvParamsSchema,
@@ -244,6 +246,46 @@ describe("project params with options", () => {
     ).toBe(false)
     expect(
       ProjectDiffParamsSchema.safeParse({ name: "flymate-api" }).success
+    ).toBe(false)
+  })
+})
+
+describe("ProjectDetectParamsSchema", () => {
+  it("takes a repository or a folder, one of the two", () => {
+    expect(
+      ProjectDetectParamsSchema.safeParse({
+        repo: "https://github.com/acme/flymate.git",
+      }).success
+    ).toBe(true)
+    expect(
+      ProjectDetectParamsSchema.safeParse({ dir: "flymate/api" }).success
+    ).toBe(true)
+    expect(
+      ProjectDetectParamsSchema.safeParse({ repo: "x", dir: "y" }).success
+    ).toBe(false)
+    expect(ProjectDetectParamsSchema.safeParse({}).success).toBe(false)
+  })
+})
+
+describe("ProjectDetectResultSchema", () => {
+  it("proposes a package manager, a start command and a port", () => {
+    expect(
+      ProjectDetectResultSchema.safeParse({
+        pkgmgr: "bun",
+        install: "bun install",
+        cmd: "bun run dev --port 3000",
+        port_hint: 3000,
+      }).success
+    ).toBe(true)
+  })
+
+  it("keeps everything but the package manager optional", () => {
+    expect(
+      ProjectDetectResultSchema.safeParse({ pkgmgr: "none" }).success
+    ).toBe(true)
+    expect(ProjectDetectResultSchema.safeParse({}).success).toBe(false)
+    expect(
+      ProjectDetectResultSchema.safeParse({ pkgmgr: "cargo" }).success
     ).toBe(false)
   })
 })

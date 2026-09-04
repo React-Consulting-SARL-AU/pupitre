@@ -21,6 +21,8 @@ import {
   SessionsListResultSchema,
   ShotsCleanResultSchema,
   ShotsListResultSchema,
+  ShotsReadParamsSchema,
+  ShotsReadResultSchema,
   ShotsUrlResultSchema,
 } from "./processes"
 import {
@@ -31,6 +33,8 @@ import {
   ProjectCheckoutParamsSchema,
   ProjectCheckoutResultSchema,
   ProjectDebugResultSchema,
+  ProjectDetectParamsSchema,
+  ProjectDetectResultSchema,
   ProjectDiffParamsSchema,
   ProjectDiffResultSchema,
   ProjectEnvParamsSchema,
@@ -56,6 +60,8 @@ import {
   SecretsStatusResultSchema,
   SecretsSyncParamsSchema,
   SecretsSyncResultSchema,
+  ServiceSecretParamsSchema,
+  ServiceSecretResultSchema,
   TunnelStatusResultSchema,
 } from "./secrets"
 import {
@@ -78,6 +84,8 @@ import {
   DiagResultSchema,
   DoctorResultSchema,
   DoneResultSchema,
+  EnrollParamsSchema,
+  EnrollResultSchema,
   KeysListResultSchema,
 } from "./system"
 
@@ -97,6 +105,10 @@ export const COMMANDS = {
     params: ServiceStatusParamsSchema,
     result: ServiceStatusResultSchema,
   },
+  "service.secret": {
+    params: ServiceSecretParamsSchema,
+    result: ServiceSecretResultSchema,
+  },
   completions: {
     params: CompletionsParamsSchema,
     result: CompletionsResultSchema,
@@ -108,6 +120,10 @@ export const COMMANDS = {
   "project.add": {
     params: ProjectAddParamsSchema,
     result: ProjectAddResultSchema,
+  },
+  "project.detect": {
+    params: ProjectDetectParamsSchema,
+    result: ProjectDetectResultSchema,
   },
   "project.remove": {
     params: ProjectParamsSchema,
@@ -185,6 +201,10 @@ export const COMMANDS = {
   "process.kill": { params: ProcessKillParamsSchema, result: DoneResultSchema },
   "shots.list": { params: EmptyParamsSchema, result: ShotsListResultSchema },
   "shots.url": { params: EmptyParamsSchema, result: ShotsUrlResultSchema },
+  "shots.read": {
+    params: ShotsReadParamsSchema,
+    result: ShotsReadResultSchema,
+  },
   "shots.clean": { params: EmptyParamsSchema, result: ShotsCleanResultSchema },
   "secrets.status": {
     params: EmptyParamsSchema,
@@ -211,6 +231,7 @@ export const COMMANDS = {
     params: EmptyParamsSchema,
     result: TunnelStatusResultSchema,
   },
+  enroll: { params: EnrollParamsSchema, result: EnrollResultSchema },
   "keys.list": { params: EmptyParamsSchema, result: KeysListResultSchema },
   "keys.sync": { params: EmptyParamsSchema, result: KeysListResultSchema },
   "agent.upgrade": {

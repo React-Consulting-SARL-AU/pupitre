@@ -3,6 +3,7 @@ import {
   PROTOCOL_ERROR_CODES,
   ProtocolErrorCodeSchema,
   ProtocolErrorSchema,
+  RemedySchema,
 } from "./errors"
 
 describe("ProtocolErrorCodeSchema", () => {
@@ -17,6 +18,7 @@ describe("ProtocolErrorCodeSchema", () => {
       "module_failed",
       "no_report",
       "bad_signature",
+      "downgrade_refused",
     ]) {
       expect(PROTOCOL_ERROR_CODES as readonly string[]).toContain(code)
       expect(ProtocolErrorCodeSchema.safeParse(code).success).toBe(true)
@@ -51,5 +53,38 @@ describe("ProtocolErrorSchema", () => {
     expect(ProtocolErrorSchema.safeParse({ code: "bad_request" }).success).toBe(
       false
     )
+  })
+})
+
+describe("RemedySchema", () => {
+  it("carries a free port as a number, not as a sentence", () => {
+    const parsed = RemedySchema.safeParse({
+      code: "port_taken",
+      port_free: 3001,
+    })
+
+    expect(parsed.success).toBe(true)
+    expect(parsed.data).toEqual({ code: "port_taken", port_free: 3001 })
+  })
+
+  it("rejects a port written as text, and an unknown remedy", () => {
+    expect(
+      RemedySchema.safeParse({ code: "port_taken", port_free: "3001" }).success
+    ).toBe(false)
+    expect(
+      RemedySchema.safeParse({ code: "name_taken", port_free: 3001 }).success
+    ).toBe(false)
+  })
+
+  it("rides on the error beside its fix", () => {
+    const parsed = ProtocolErrorSchema.safeParse({
+      code: "bad_request",
+      message: "le port 3000 est déjà pris par web",
+      fix: "Donne un autre port à api, par exemple 3001.",
+      remedy: { code: "port_taken", port_free: 3001 },
+    })
+
+    expect(parsed.success).toBe(true)
+    expect(parsed.data?.remedy).toEqual({ code: "port_taken", port_free: 3001 })
   })
 })

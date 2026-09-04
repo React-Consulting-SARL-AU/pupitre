@@ -1,0 +1,14 @@
+# Une capture par le canal : ses octets sur des événements dédiés, un accusé qui dit quoi vérifier, et le refus de tout ce que la galerie ne liste pas.
+@file /home/dev/shots/2026-09-04/login.png pupitre
+@file /etc/pupitre/env PUPITRE_DOMAIN=flymate.dev
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+> {"id":2,"cmd":"shots.read","params":{"path":"2026-09-04/login.png"}}
+> {"id":3,"cmd":"shots.read","params":{"path":"../../etc/pupitre/env"}}
+> {"id":4,"cmd":"shots.read","params":{"path":"/etc/pupitre/env"}}
+> {"id":5,"cmd":"shots.read","params":{"path":"2026-09-04/absente.png"}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["agent.open","catalog","completions","diag","doctor","hello","install","ping","process.kill","processes.list","project.add","project.branches","project.checkout","project.detect","project.diff","project.down","project.git_status","project.install","project.list","project.logs","project.remove","project.restart","project.sync","project.up","project.url","project.working_tree","reboot","report","service.secret","service.status","sessions.clean","sessions.list","shots.clean","shots.list","shots.read","shots.url","snapshot","status","uninstall","upgrade"]}}
+< {"id":2,"event":"shot","seq":0,"bytes":"cHVwaXRyZQo="}
+< {"id":2,"ok":true,"result":{"path":"2026-09-04/login.png","media_type":"image/png","size_bytes":8,"sha256":"95247fef48fedb8e805f20ac7e5ed59911368ee10e7596f8a6201b9e1613dc57","chunks":1}}
+< {"id":3,"ok":false,"error":{"code":"bad_request","message":"capture inconnue : ../../etc/pupitre/env","fix":"Appelle shots.list et reprends le path d'une de ses entrées, tel quel."}}
+< {"id":4,"ok":false,"error":{"code":"bad_request","message":"capture inconnue : /etc/pupitre/env","fix":"Appelle shots.list et reprends le path d'une de ses entrées, tel quel."}}
+< {"id":5,"ok":false,"error":{"code":"bad_request","message":"capture inconnue : 2026-09-04/absente.png","fix":"Appelle shots.list et reprends le path d'une de ses entrées, tel quel."}}

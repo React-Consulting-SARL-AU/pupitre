@@ -33,14 +33,18 @@ func (r *Reader) gitCommand(dir string, argv []string) sys.Command {
 		User: owner,
 		Dir:  dir,
 		Argv: append([]string{"git", "-C", dir}, argv...),
-		Env: []string{
-			"HOME=" + user.Home(owner),
-			"LC_ALL=C",
-			// A repository whose remote asks for a password would hang for ever behind a protocol call.
-			"GIT_TERMINAL_PROMPT=0",
-			"GIT_SSH_COMMAND=ssh -o BatchMode=yes",
-			"GIT_OPTIONAL_LOCKS=0",
-		},
+		Env:  gitEnv(owner),
+	}
+}
+
+func gitEnv(owner string) []string {
+	return []string{
+		"HOME=" + user.Home(owner),
+		"LC_ALL=C",
+		// A repository whose remote asks for a password would hang for ever behind a protocol call.
+		"GIT_TERMINAL_PROMPT=0",
+		"GIT_SSH_COMMAND=ssh -o BatchMode=yes",
+		"GIT_OPTIONAL_LOCKS=0",
 	}
 }
 
@@ -75,12 +79,38 @@ func (r *Reader) top(name string) (registry.Project, string, error) {
 		return project, "", err
 	}
 
-	top, err := r.git(root, "rev-parse", "--show-toplevel")
-	if err != nil || top == "" {
+	physical, cdup, err := r.toplevel(root)
+	if err != nil || physical == "" {
+		return project, "", nil
+	}
+
+	if cdup == "" {
+		return project, root, nil
+	}
+
+	top := registry.Under(r.options.Paths.Resolved().Projects, project.Root()+"/"+cdup)
+	if top == "" {
+		return project, "", nil
+	}
+
+	// git names a folder by its physical path, the registry by its declared one: the two are never compared, git itself says whether the name we kept leads to the repository it named.
+	if confirmed, _, err := r.toplevel(top); err != nil || confirmed != physical {
 		return project, "", nil
 	}
 
 	return project, top, nil
+}
+
+// The root of the working tree and the climb that leads there from dir, in one call: the first is git's own path, the second is what lets us name that root without leaving the projects root.
+func (r *Reader) toplevel(dir string) (string, string, error) {
+	out, err := r.git(dir, "rev-parse", "--show-toplevel", "--show-cdup")
+	if err != nil {
+		return "", "", err
+	}
+
+	top, cdup, _ := strings.Cut(out, "\n")
+
+	return strings.TrimSpace(top), strings.TrimSpace(cdup), nil
 }
 
 func (r *Reader) Branches(name string) (contract.ProjectBranches, error) {

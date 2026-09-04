@@ -360,3 +360,43 @@ Hors périmètre. Le site, qui charge ses polices autrement.
 Critères d'acceptation.
 1. Un titre s'affiche dans Bricolage Grotesque sur une machine qui ne l'a pas installée, sans aucune requête réseau.
 
+### APP-22 — L'écran Services révèle une vraie valeur
+Lot 2 · dépend de APP-11, INF-17 · `apps/desktop`
+
+But. Révéler un identifiant montre le secret, pas le nom de sa variable.
+Périmètre. INF-17 a livré `service.secret { id, key }` : la valeur ne revient pas dans le résultat mais sur un événement `secret` dédié, précisément pour qu'elle ne traverse pas le corrélateur générique requête/réponse. L'écran Services doit changer de source : intercepter cet événement dans la couche qui lit le flux SSH, **avant** le pont IPC générique, et remettre la valeur au renderer par le canal dédié qu'APP-11 a déjà bâti pour ses identifiants. L'accusé sans valeur résout la promesse.
+Hors périmètre. La commande et l'agent, livrés par INF-17.
+Critères d'acceptation.
+1. Révéler le mot de passe de MySQL affiche la valeur réelle du serveur.
+2. La valeur n'apparaît dans aucun journal ni aucun fichier persisté par l'app, prouvé comme APP-11 l'a prouvé pour les libellés.
+
+### APP-23 — La galerie affiche vraiment les captures
+Lot 2 · dépend de APP-10, INF-20 · `apps/desktop`
+
+But. Une capture s'affiche dans l'app, sans ouvrir de navigateur.
+Périmètre. INF-20 a livré `shots.read { path }` : le contenu revient par des événements `shot` en base64, découpés en morceaux bornés pour ne pas engorger le canal, suivis d'un accusé portant `chunks` et `sha256`. La galerie doit changer de source : appeler `shots.read` avec le chemin que `shots.list` a rendu, accumuler les morceaux dans l'ordre de leur `seq`, vérifier le compte et l'empreinte de l'accusé, puis construire un blob avec le `media_type`. Le pont IPC doit faire remonter l'événement `shot` au renderer, comme il le fait déjà pour `secret`.
+Hors périmètre. La commande et l'agent, livrés par INF-20.
+Critères d'acceptation.
+1. Une capture s'affiche dans la galerie de l'app, sans navigateur.
+2. Une empreinte qui ne correspond pas fait échouer l'affichage plutôt que de montrer une image tronquée.
+
+### APP-24 — L'app se fie à la plateforme pour la signature
+Lot 2 · dépend de APP-12, INF-18 · `apps/desktop`
+
+But. Une mise à jour part même quand la release embarquée n'a pas de signature.
+Périmètre. INF-18 a rendu `signature` facultative dans `agent.upgrade` : l'agent lit désormais l'empreinte et la signature sur la route de métadonnées de la plateforme, qui fait foi quand elle répond. `runAgentUpgrade` refuse pourtant encore de démarrer quand la release portée par l'app n'en a pas, et le bandeau reste désactivé sans raison. Lever ce refus, garder la signature embarquée comme secours quand la plateforme est muette, et ajuster ce que le bandeau dit.
+Hors périmètre. L'agent et la route, livrés par INF-18.
+Critères d'acceptation.
+1. Une release embarquée sans signature n'empêche plus la mise à jour quand la plateforme répond.
+2. Plateforme muette et release sans signature : le bandeau explique, il ne prétend pas pouvoir.
+
+### APP-25 — L'app lit le port libre dans le remède, pas dans la phrase
+Lot 2 · dépend de INF-15 · `apps/desktop`
+
+But. L'app cesse d'extraire un entier d'une phrase française.
+Périmètre. INF-15 a ajouté `remedy` aux erreurs du protocole, avec aujourd'hui un seul membre : `{ code: "port_taken", port_free }`. `portFromFix` dans `lib/project-draft.ts` lit pourtant toujours le nombre dans le texte du `fix`. Basculer sur le champ structuré et retirer la lecture par expression régulière. Ajouter aussi `project.detect` à `LONG_COMMANDS` d'`agent-client.ts` : elle clone un dépôt et tombe sinon sur le délai standard.
+Hors périmètre. La commande et l'agent, livrés par INF-15.
+Critères d'acceptation.
+1. Un port déjà pris propose le port libre sans qu'aucune expression régulière ne lise une phrase.
+2. Une détection qui clone un dépôt lent n'est plus coupée par le délai standard.
+

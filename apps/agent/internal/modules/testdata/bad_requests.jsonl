@@ -2,7 +2,7 @@
 < {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","ping","report","uninstall","upgrade"]}}
 > {"id":2,"cmd":"install","params":{"modules":["tool.demo"],"config":{},"secrets_stdin":true}}
 $ {"password":"s3cret-de-test"}
-< {"id":2,"ok":false,"error":{"code":"bad_request","message":"flux secret invalide : /password : doit être de type object","fix":"Écris les secrets groupés par identifiant de module, comme config : {\"<module id>\": {\"<clé>\": \"<valeur>\"}}."}}
+< {"id":2,"ok":false,"error":{"code":"bad_request","message":"flux secret invalide : /password : doit être un objet","fix":"Écris les secrets groupés par identifiant de module, comme config : {\"<module id>\": {\"<clé>\": \"<valeur>\"}}."}}
 > {"id":3,"cmd":"install","params":{"modules":["db.nope"],"config":{},"secrets_stdin":false}}
 < {"id":3,"ok":false,"error":{"code":"module_not_found","message":"module inconnu : db.nope","fix":"Demande catalog pour la liste des modules de cet agent."}}
 > {"id":4,"cmd":"install","params":{"modules":["tool.demo","tool.rival"],"config":{},"secrets_stdin":false}}
@@ -17,7 +17,7 @@ $ {"password":"s3cret-de-test"}
 < {"id":8,"ok":false,"error":{"code":"no_report","message":"aucun rapport : aucune installation n'a encore eu lieu sur ce serveur","fix":"Lance install depuis l'app, ou sudo pupitred install sur le serveur."}}
 > {"id":9,"cmd":"install","params":{"modules":["tool.demo"],"config":{},"secrets_stdin":true}}
 $ {"tool.demo":{"password":42}}
-< {"id":9,"ok":false,"error":{"code":"bad_request","message":"flux secret invalide : /tool.demo/password : doit être de type string","fix":"Écris les secrets groupés par identifiant de module, comme config : {\"<module id>\": {\"<clé>\": \"<valeur>\"}}."}}
+< {"id":9,"ok":false,"error":{"code":"bad_request","message":"flux secret invalide : /tool.demo/password : doit être une chaîne","fix":"Écris les secrets groupés par identifiant de module, comme config : {\"<module id>\": {\"<clé>\": \"<valeur>\"}}."}}
 > {"id":10,"cmd":"install","params":{"modules":["tool.demo"],"config":{},"secrets_stdin":true}}
 $ {"tool.demo":["s3cret-de-test"]}
-< {"id":10,"ok":false,"error":{"code":"bad_request","message":"flux secret invalide : /tool.demo : doit être de type object","fix":"Écris les secrets groupés par identifiant de module, comme config : {\"<module id>\": {\"<clé>\": \"<valeur>\"}}."}}
+< {"id":10,"ok":false,"error":{"code":"bad_request","message":"flux secret invalide : /tool.demo : doit être un objet","fix":"Écris les secrets groupés par identifiant de module, comme config : {\"<module id>\": {\"<clé>\": \"<valeur>\"}}."}}

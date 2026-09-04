@@ -30,6 +30,10 @@ type urlResult struct {
 	URL string `json:"url"`
 }
 
+type secretResult struct {
+	Key string `json:"key"`
+}
+
 type doneResult struct {
 	Done bool `json:"done"`
 }
@@ -53,6 +57,14 @@ type processesResult struct {
 
 type shotsResult struct {
 	Shots []contract.Shot `json:"shots"`
+}
+
+type shotReadResult struct {
+	Path      string `json:"path"`
+	MediaType string `json:"media_type"`
+	SizeBytes int64  `json:"size_bytes"`
+	SHA256    string `json:"sha256"`
+	Chunks    int    `json:"chunks"`
 }
 
 type removedResult struct {
@@ -81,6 +93,25 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 		}
 
 		return reader.ServiceStatus(params.ID)
+	})
+
+	server.Register("service.secret", func(ctx *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			ID  string `json:"id"`
+			Key string `json:"key"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		value, err := reader.ServiceSecret(params.ID, params.Key)
+		if err != nil {
+			return nil, err
+		}
+
+		ctx.Emit("secret", map[string]any{"key": params.Key, "value": value})
+
+		return secretResult{Key: params.Key}, nil
 	})
 
 	server.Register("completions", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
@@ -119,6 +150,18 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 			Host: params.Host, Port: params.Port, Subdomain: params.Subdomain,
 			Cmd: params.Cmd, Install: params.Install,
 		})
+	})
+
+	server.Register("project.detect", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			Repo string `json:"repo"`
+			Dir  string `json:"dir"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		return reader.Detect(params.Repo, params.Dir)
 	})
 
 	server.Register("project.remove", named(func(name string) (any, error) {
@@ -264,6 +307,33 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 
 	server.Register("shots.url", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
 		return urlResult{URL: reader.ShotsURL()}, nil
+	})
+
+	server.Register("shots.read", func(ctx *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			Path string `json:"path"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		shot, err := reader.ReadShot(params.Path)
+		if err != nil {
+			return nil, err
+		}
+
+		chunks := ChunkShot(shot.Bytes)
+		for seq, encoded := range chunks {
+			ctx.Emit("shot", map[string]any{"seq": seq, "bytes": encoded})
+		}
+
+		return shotReadResult{
+			Path:      shot.Path,
+			MediaType: shot.MediaType,
+			SizeBytes: shot.SizeBytes,
+			SHA256:    shot.Digest,
+			Chunks:    len(chunks),
+		}, nil
 	})
 
 	server.Register("shots.clean", func(_ *protocol.Context, _ json.RawMessage) (any, error) {

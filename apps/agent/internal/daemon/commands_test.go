@@ -28,23 +28,31 @@ func (b *bench) options() daemon.Options {
 		Platform:     platform.Client{BaseURL: b.server.URL},
 		Entitlement:  entitlement.New(entitlement.Options{Sys: b.fake, Now: now}),
 		AgentVersion: "1.2.3",
+		Arch:         "amd64",
+		LogPath:      b.logPath,
 	}
 }
 
 func serve(t *testing.T, b *bench, granted contract.Entitlement, requests ...string) []response {
 	t.Helper()
 
-	server := protocol.NewServer(protocol.Options{AgentVersion: "1.2.3", Entitlement: entitlement.Fixed(granted)})
-	daemon.RegisterCommands(server, b.options())
+	return session(t, b, entitlement.Fixed(granted), requests...)
+}
 
-	var out strings.Builder
-	lines := append([]string{`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}`}, requests...)
-	if err := server.Serve(strings.NewReader(strings.Join(lines, "\n")+"\n"), &out); err != nil {
-		t.Fatalf("Serve: %v", err)
-	}
+// The same session, with the entitlement the machine itself resolves: that is what tells an unenrolled binary apart.
+func serveResolved(t *testing.T, b *bench, requests ...string) []response {
+	t.Helper()
+
+	resolver := entitlement.New(entitlement.Options{Sys: b.fake, Now: func() time.Time { return b.now }})
+
+	return session(t, b, resolver.State, requests...)
+}
+
+func session(t *testing.T, b *bench, granted func() entitlement.State, requests ...string) []response {
+	t.Helper()
 
 	var answers []response
-	for _, line := range strings.Split(strings.TrimSpace(out.String()), "\n") {
+	for _, line := range spoken(t, b, granted, requests...) {
 		var answer response
 		if err := json.Unmarshal([]byte(line), &answer); err != nil {
 			t.Fatalf("réponse illisible %q : %v", line, err)
@@ -54,6 +62,30 @@ func serve(t *testing.T, b *bench, granted contract.Entitlement, requests ...str
 	}
 
 	return answers[1:]
+}
+
+// Everything the agent writes back, envelopes and events alike, as raw lines.
+func serveLines(t *testing.T, b *bench, requests ...string) []string {
+	t.Helper()
+
+	resolver := entitlement.New(entitlement.Options{Sys: b.fake, Now: func() time.Time { return b.now }})
+
+	return spoken(t, b, resolver.State, requests...)
+}
+
+func spoken(t *testing.T, b *bench, granted func() entitlement.State, requests ...string) []string {
+	t.Helper()
+
+	server := protocol.NewServer(protocol.Options{AgentVersion: "1.2.3", Entitlement: granted})
+	daemon.RegisterCommands(server, b.options())
+
+	var out strings.Builder
+	lines := append([]string{`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}`}, requests...)
+	if err := server.Serve(strings.NewReader(strings.Join(lines, "\n")+"\n"), &out); err != nil {
+		t.Fatalf("Serve: %v", err)
+	}
+
+	return strings.Split(strings.TrimSpace(out.String()), "\n")
 }
 
 func assertKeysResult(t *testing.T, answer response, fingerprints int) {
@@ -156,6 +188,144 @@ func TestTheKeysCommandsCloseInRestrictedMode(t *testing.T) {
 	) {
 		if answer.OK || answer.Error.Code != contract.ErrorEntitlementRequired {
 			t.Errorf("réponse = %+v", answer)
+		}
+	}
+}
+
+const enrollmentToken = "enr-jeton-tres-secret"
+
+func enrollRequests(b *bench) []string {
+	return []string{
+		`{"id":2,"cmd":"enroll","params":{"platform_url":"` + b.server.URL + `","secrets_stdin":true}}`,
+		`{"enrollment_token":"` + enrollmentToken + `"}`,
+	}
+}
+
+// The app hands the token on the secret line, the agent trades it, and nothing of it stays anywhere it could be read.
+func TestEnrollTradesTheTokenTakenFromTheSecretLine(t *testing.T) {
+	b := newBench(t, false)
+	b.platform.allow(laptop)
+
+	answers := serveResolved(t, b, enrollRequests(b)...)
+	if len(answers) != 1 {
+		t.Fatalf("%d réponse(s)", len(answers))
+	}
+
+	answer := answers[0]
+	if !answer.OK {
+		t.Fatalf("refus : %v", answer.Error)
+	}
+
+	if err := contract.Validate("EnrollResult", decode(t, answer.Result)); err != nil {
+		t.Fatalf("résultat hors contrat : %v", err)
+	}
+
+	var result struct {
+		Enrolled    bool   `json:"enrolled"`
+		Entitlement string `json:"entitlement"`
+		SyncedAt    string `json:"synced_at"`
+	}
+	json.Unmarshal(answer.Result, &result)
+
+	if !result.Enrolled || result.Entitlement != string(contract.EntitlementValid) || result.SyncedAt == "" {
+		t.Fatalf("résultat = %+v", result)
+	}
+
+	if len(b.platform.traded) != 1 || b.platform.traded[0].Token != enrollmentToken {
+		t.Fatalf("échangé %+v", b.platform.traded)
+	}
+
+	if b.platform.traded[0].HostPublicKey != hostKey || b.platform.traded[0].Arch != "amd64" {
+		t.Fatalf("échangé %+v", b.platform.traded[0])
+	}
+
+	token, err := platform.LoadToken(b.fake, platform.DefaultTokenPath)
+	if err != nil || token != "jeton-de-serveur" {
+		t.Fatalf("jeton = %q, err = %v", token, err)
+	}
+
+	if !strings.Contains(b.authorized(), laptop) {
+		t.Fatalf("le premier état n'a pas été lu :\n%s", b.authorized())
+	}
+}
+
+// Criterion of the task: neither the journal nor a line the agent writes back carries the enrolment token.
+func TestEnrollNeverWritesTheTokenDownAnywhere(t *testing.T) {
+	b := newBench(t, false)
+
+	written := serveLines(t, b, enrollRequests(b)...)
+
+	for _, line := range written {
+		if strings.Contains(line, enrollmentToken) {
+			t.Fatalf("le jeton sort de l'agent : %s", line)
+		}
+	}
+
+	if journal := b.journal(); strings.Contains(journal, enrollmentToken) {
+		t.Fatalf("le jeton est dans le journal :\n%s", journal)
+	}
+
+	if !strings.Contains(b.journal(), "serveur enrôlé") {
+		t.Fatalf("l'enrôlement n'est pas journalisé :\n%s", b.journal())
+	}
+}
+
+// A platform that echoes the token back in its refusal: the message the app displays says [secret], and so does the journal.
+func TestARefusalThatCarriesTheTokenIsRedacted(t *testing.T) {
+	b := newBench(t, false)
+	b.platform.echoRefusals()
+
+	answer := serveResolved(t, b, enrollRequests(b)...)[0]
+	if answer.OK {
+		t.Fatal("un jeton refusé a enrôlé le serveur")
+	}
+
+	if answer.Error.Code != contract.ErrorEntitlementRequired {
+		t.Fatalf("erreur = %+v", answer.Error)
+	}
+
+	if strings.Contains(answer.Error.Message, enrollmentToken) {
+		t.Fatalf("le jeton est dans le refus : %s", answer.Error.Message)
+	}
+
+	if !strings.Contains(answer.Error.Message, "[secret]") {
+		t.Fatalf("le refus ne masque rien : %s", answer.Error.Message)
+	}
+
+	if platform.Enrolled(b.fake, platform.DefaultTokenPath) {
+		t.Fatal("un échange refusé a écrit un jeton de serveur")
+	}
+}
+
+// The one command a binary without a server token opens beyond hello, ping and diag.
+func TestOnlyEnrollOpensOnABinaryWithoutAServerToken(t *testing.T) {
+	b := newBench(t, false)
+
+	refused := serveResolved(t, b, `{"id":2,"cmd":"keys.sync","params":{}}`)[0]
+	if refused.OK || refused.Error.Code != contract.ErrorEntitlementRequired {
+		t.Fatalf("keys.sync = %+v", refused)
+	}
+
+	if answer := serveResolved(t, b, enrollRequests(b)...)[0]; !answer.OK {
+		t.Fatalf("enroll refusé sur un binaire non enrôlé : %v", answer.Error)
+	}
+}
+
+func TestEnrollRefusesASecretLineThatIsNotOne(t *testing.T) {
+	for _, line := range []string{`{"platform_url":"https://app.pupitre.studio/api/v1"}`, `{"enrollment_token":""}`} {
+		b := newBench(t, false)
+
+		answer := serveResolved(t, b,
+			`{"id":2,"cmd":"enroll","params":{"platform_url":"`+b.server.URL+`","secrets_stdin":true}}`,
+			line,
+		)[0]
+
+		if answer.OK || answer.Error.Code != contract.ErrorBadRequest || answer.Error.Fix == "" {
+			t.Fatalf("ligne %s : réponse = %+v", line, answer)
+		}
+
+		if len(b.platform.traded) != 0 {
+			t.Fatalf("ligne %s : un échange a eu lieu", line)
 		}
 	}
 }

@@ -1,7 +1,7 @@
 > {"id":1,"cmd":"hello","params":{"protocol":1}}
 < {"id":1,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/app_version : champ requis"}}
 > {"id":2,"cmd":"hello","params":{"app_version":"0.2.0","protocol":"1"}}
-< {"id":2,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/protocol : doit être de type integer"}}
+< {"id":2,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/protocol : doit être un entier"}}
 > {"id":3,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1,"extra":true}}
 < {"id":3,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/extra : champ inconnu"}}
 > {"id":4,"cmd":"hello"}

@@ -18,14 +18,24 @@ interface Exchange {
   repeat: boolean;
   hang: boolean;
   die: boolean;
+  enrol: boolean;
 }
+
+const ANY = "*";
+
+/**
+ * The host key this fake server declares. A transcript that enrols trades it
+ * against a server token, exactly as `pupitred` does with the one on its disk.
+ */
+const HOST_PUBLIC_KEY =
+  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINPmg2sJ7wUW1eUeGGiuIYbYVWH8ihu5xMt/M39EO4Bd root@vps";
 
 const OUT = 1;
 const TRACE = 2;
 
 function parse(path: string): Exchange[] {
   const exchanges: Exchange[] = [];
-  const flags = { repeat: false, hang: false, die: false };
+  const flags = { repeat: false, hang: false, die: false, enrol: false };
 
   for (const raw of readFileSync(path, "utf8").split("\n")) {
     const line = raw.trimEnd();
@@ -34,8 +44,13 @@ function parse(path: string): Exchange[] {
       continue;
     }
 
-    if (line === "@repeat" || line === "@hang" || line === "@die") {
-      flags[line.slice(1) as "repeat" | "hang" | "die"] = true;
+    if (
+      line === "@repeat" ||
+      line === "@hang" ||
+      line === "@die" ||
+      line === "@enrol"
+    ) {
+      flags[line.slice(1) as keyof typeof flags] = true;
       continue;
     }
 
@@ -56,6 +71,7 @@ function parse(path: string): Exchange[] {
       flags.repeat = false;
       flags.hang = false;
       flags.die = false;
+      flags.enrol = false;
       continue;
     }
 
@@ -143,8 +159,74 @@ function stable(value: unknown): unknown {
   return sorted;
 }
 
+/** `"*"` in a transcript stands for a value the test cannot know beforehand. */
+function matches(expected: unknown, got: unknown): boolean {
+  if (expected === ANY) {
+    return true;
+  }
+
+  if (expected === null || typeof expected !== "object") {
+    return expected === got;
+  }
+
+  if (Array.isArray(expected)) {
+    return (
+      Array.isArray(got) &&
+      expected.length === got.length &&
+      expected.every((value, index) => matches(value, got[index]))
+    );
+  }
+
+  const wanted = expected as Record<string, unknown>;
+  const seen = (got ?? {}) as Record<string, unknown>;
+
+  return (
+    got !== null &&
+    typeof got === "object" &&
+    Object.keys(wanted).length === Object.keys(seen).length &&
+    Object.keys(wanted).every((key) => matches(wanted[key], seen[key]))
+  );
+}
+
 function same(expected: Record<string, unknown>, got: unknown): boolean {
-  return JSON.stringify(stable(expected)) === JSON.stringify(stable(got ?? {}));
+  return matches(stable(expected), stable(got ?? {}));
+}
+
+/**
+ * The one thing this fake really does: trade the enrolment token it was handed
+ * on the secret line against a server token, at the platform `params` names.
+ *
+ * It is what makes an enrolment test end to end rather than a transcript: the
+ * token has to be the live one the platform granted, and the platform has to
+ * burn it.
+ */
+async function trade(
+  platformUrl: string,
+  secret: string,
+  version: string
+): Promise<string | null> {
+  const { enrollment_token } = JSON.parse(secret) as {
+    enrollment_token: string;
+  };
+
+  const answer = await fetch(`${platformUrl}/agent/exchange`, {
+    body: JSON.stringify({
+      agent_version: version,
+      arch: "amd64",
+      enrollment_token,
+      host_public_key: HOST_PUBLIC_KEY,
+    }),
+    headers: { "content-type": "application/json" },
+    method: "POST",
+  });
+
+  if (!answer.ok) {
+    return null;
+  }
+
+  const { server_token } = (await answer.json()) as { server_token: string };
+
+  return server_token || null;
 }
 
 function main(): void {
@@ -154,6 +236,7 @@ function main(): void {
   let cursor = 0;
   let lastId = -1;
   let buffer = "";
+  let traded = "";
 
   const handle = async (line: string): Promise<void> => {
     const request = JSON.parse(line) as {
@@ -196,13 +279,34 @@ function main(): void {
       return;
     }
 
+    let secret: string | null = null;
+
     if (exchange.secret !== null) {
-      const sent = await nextLine();
-      if (sent !== exchange.secret) {
-        fail(request.id, "bad_request", `flux secret inattendu : ${sent}`);
+      secret = await nextLine();
+      if (exchange.secret !== ANY && secret !== exchange.secret) {
+        fail(request.id, "bad_request", `flux secret inattendu : ${secret}`);
 
         return;
       }
+    }
+
+    if (exchange.enrol) {
+      const platformUrl = String(
+        (request.params as { platform_url?: unknown }).platform_url ?? ""
+      );
+      const serverToken = await trade(
+        platformUrl,
+        secret ?? "{}",
+        "0.0.0-test"
+      );
+
+      if (!serverToken) {
+        fail(request.id, "internal", "la plateforme a refusé le jeton");
+
+        return;
+      }
+
+      traded = serverToken;
     }
 
     if (!exchange.repeat) {
@@ -210,7 +314,9 @@ function main(): void {
     }
 
     for (const reply of exchange.replies) {
-      const value = JSON.parse(reply) as Record<string, unknown>;
+      const value = JSON.parse(
+        reply.replaceAll("$server_token", traded)
+      ) as Record<string, unknown>;
       value.id = request.id;
       say(JSON.stringify(value));
     }
