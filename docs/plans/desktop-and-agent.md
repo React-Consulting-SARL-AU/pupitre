@@ -360,3 +360,13 @@ Hors périmètre. Le site, qui charge ses polices autrement.
 Critères d'acceptation.
 1. Un titre s'affiche dans Bricolage Grotesque sur une machine qui ne l'a pas installée, sans aucune requête réseau.
 
+### APP-22 — L'écran Services révèle une vraie valeur
+Lot 2 · dépend de APP-11, INF-17 · `apps/desktop`
+
+But. Révéler un identifiant montre le secret, pas le nom de sa variable.
+Périmètre. INF-17 a livré `service.secret { id, key }` : la valeur ne revient pas dans le résultat mais sur un événement `secret` dédié, précisément pour qu'elle ne traverse pas le corrélateur générique requête/réponse. L'écran Services doit changer de source : intercepter cet événement dans la couche qui lit le flux SSH, **avant** le pont IPC générique, et remettre la valeur au renderer par le canal dédié qu'APP-11 a déjà bâti pour ses identifiants. L'accusé sans valeur résout la promesse.
+Hors périmètre. La commande et l'agent, livrés par INF-17.
+Critères d'acceptation.
+1. Révéler le mot de passe de MySQL affiche la valeur réelle du serveur.
+2. La valeur n'apparaît dans aucun journal ni aucun fichier persisté par l'app, prouvé comme APP-11 l'a prouvé pour les libellés.
+
