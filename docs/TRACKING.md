@@ -23,7 +23,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-17 | Contrat : lire la valeur d'un identifiant de service | fait | `feat/INF-17-secret-value` | fusionnée |
 | INF-18 | Contrat : la plateforme publie l'empreinte et refuse le retour en arrière | à faire | | |
 | INF-19 | Contrat : `/status` dit depuis quand il sait | fait | `feat/INF-19-status-freshness` | fusionnée |
-| INF-20 | Contrat : une adresse par capture | en revue | `feat/INF-20-shot-url` | `shots.read` rend le contenu sur des événements `shot`, pas d'adresse ni d'écoute |
+| INF-20 | Contrat : le contenu d'une capture | fait | `feat/INF-20-shot-url` | fusionnée |
 | INF-21 | Contrat : l'app remet le jeton d'enrôlement à l'agent | à faire | | |
 | INF-16 | Contrat : le chemin absolu d'un projet | fait | `feat/INF-16-project-path` | fusionnée |
 | INF-11 | Contrat : le verdict de la sonde | fait | `feat/INF-11-probe-contract` | fusionnée |
