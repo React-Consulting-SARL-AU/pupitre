@@ -23,7 +23,8 @@ export type KeysListResult = z.infer<typeof KeysListResultSchema>
 
 export const AgentUpgradeParamsSchema = z.strictObject({
   version: z.string().min(1).optional(),
-  signature: z.string().min(1),
+  signature: z.string().min(1).optional(),
+  allow_downgrade: z.boolean().optional(),
 })
 
 export type AgentUpgradeParams = z.infer<typeof AgentUpgradeParamsSchema>

@@ -38,8 +38,15 @@ type Options struct {
 }
 
 type Request struct {
-	Version   string
-	Signature string
+	Version        string
+	Signature      string
+	AllowDowngrade bool
+}
+
+// What the agent verifies against, once the platform has said it: the expected fingerprint and the signature that binds it to a version and an architecture.
+type published struct {
+	Fingerprint string
+	Signature   []byte
 }
 
 type Result struct {
@@ -64,11 +71,6 @@ func (u *Upgrader) Upgrade(request Request) (Result, error) {
 		return Result{}, unverifiable(err)
 	}
 
-	signature, err := DecodeSignature(request.Signature)
-	if err != nil {
-		return Result{}, unverifiable(err)
-	}
-
 	token, err := platform.LoadToken(u.options.Sys, u.options.TokenPath)
 	if err != nil {
 		return Result{}, protocol.NewError(contract.ErrorBadRequest, err.Error()).
@@ -78,7 +80,18 @@ func (u *Upgrader) Upgrade(request Request) (Result, error) {
 	client := u.options.Platform
 	client.Token = token
 
-	version, err := u.resolve(client, request.Version)
+	state, stateErr := client.State()
+
+	version, err := u.resolve(request.Version, state, stateErr)
+	if err != nil {
+		return Result{}, err
+	}
+
+	if err := u.holdTheFloor(ctx, request, version, state, stateErr); err != nil {
+		return Result{}, err
+	}
+
+	release, err := u.published(ctx, client, version, request.Signature)
 	if err != nil {
 		return Result{}, err
 	}
@@ -91,11 +104,73 @@ func (u *Upgrader) Upgrade(request Request) (Result, error) {
 	fingerprint := Fingerprint(binary)
 	ctx.Logf("version %s téléchargée, %d octets, empreinte %s", version, len(binary), fingerprint)
 
-	if !Verify(key, version, u.arch(), fingerprint, signature) {
+	if release.Fingerprint != "" && release.Fingerprint != fingerprint {
+		return Result{}, corrupted(version, release.Fingerprint, fingerprint)
+	}
+
+	if !Verify(key, version, u.arch(), fingerprint, release.Signature) {
 		return Result{}, badSignature(version)
 	}
 
 	return u.install(ctx, version, binary)
+}
+
+// The platform's own word beats what the caller hands over; the parameter is the way back for an agent whose platform is out of reach.
+func (u *Upgrader) published(ctx sys.Context, client platform.Client, version, offered string) (published, error) {
+	info, err := client.ReleaseMetadata(version)
+	if err == nil {
+		signature, decodeErr := DecodeSignature(info.Signature)
+		if decodeErr != nil {
+			return published{}, unverifiable(decodeErr)
+		}
+
+		return published{Fingerprint: info.SHA256, Signature: signature}, nil
+	}
+
+	if offered == "" {
+		return published{}, metadataFailed(version, err)
+	}
+
+	ctx.Logf("empreinte de la version %s illisible (%s), signature des paramètres retenue", version, err)
+
+	signature, decodeErr := DecodeSignature(offered)
+	if decodeErr != nil {
+		return published{}, unverifiable(decodeErr)
+	}
+
+	return published{Signature: signature}, nil
+}
+
+// A signature never expires, so nothing but this refusal stops an old and faulty version from being installed again.
+func (u *Upgrader) holdTheFloor(ctx sys.Context, request Request, version string, state platform.State, stateErr error) error {
+	floor := u.floor(state, stateErr)
+
+	if floor == "" || !Older(version, floor) {
+		return nil
+	}
+
+	if request.AllowDowngrade {
+		ctx.Logf("plancher %s levé à la demande du propriétaire pour installer %s", floor, version)
+
+		return nil
+	}
+
+	return refusedDowngrade(version, floor)
+}
+
+// The running version is known without asking anyone, which is what makes it the floor that holds when the platform is out of reach; what the platform remembers can only raise it.
+func (u *Upgrader) floor(state platform.State, stateErr error) string {
+	floor := u.options.Version
+
+	if stateErr != nil || state.MinimumVersion == "" {
+		return floor
+	}
+
+	if floor == "" || Older(floor, state.MinimumVersion) {
+		return state.MinimumVersion
+	}
+
+	return floor
 }
 
 // Nothing has touched the disk before this point: a binary that failed verification is never written anywhere.
@@ -207,22 +282,21 @@ func (u *Upgrader) hello(ctx sys.Context) (string, error) {
 	return answer.Result.AgentVersion, nil
 }
 
-func (u *Upgrader) resolve(client platform.Client, wanted string) (string, error) {
+func (u *Upgrader) resolve(wanted string, state platform.State, stateErr error) (string, error) {
 	if wanted != "" {
 		return wanted, nil
 	}
 
-	version, err := client.TargetVersion()
-	if err != nil {
-		return "", stateFailed(err)
+	if stateErr != nil {
+		return "", stateFailed(stateErr)
 	}
 
-	if version == "" {
+	if state.TargetVersion == "" {
 		return "", protocol.NewError(contract.ErrorBadRequest, "la plateforme n'annonce aucune version cible pour ce serveur").
 			WithFix("Passe la version à installer dans les paramètres de agent.upgrade.")
 	}
 
-	return version, nil
+	return state.TargetVersion, nil
 }
 
 func (u *Upgrader) publicKey() (ed25519.PublicKey, error) {

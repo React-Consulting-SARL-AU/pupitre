@@ -21,6 +21,7 @@ export interface AgentState {
   valid_until: Date
   authorized_keys: string[]
   target_version: string | null
+  minimum_version: string | null
   hostname: string
   module_params: Record<string, unknown>
 }
@@ -56,6 +57,7 @@ export async function readAgentState(input: Server): Promise<AgentState> {
     valid_until: entitlement.valid_until,
     authorized_keys: authorizedKeys,
     target_version: targetVersion,
+    minimum_version: server.agentVersion,
     hostname: server.host ?? server.name,
     module_params: {},
   }

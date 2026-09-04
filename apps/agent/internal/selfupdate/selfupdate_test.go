@@ -3,6 +3,7 @@ package selfupdate_test
 import (
 	"crypto/ed25519"
 	"encoding/base64"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -19,6 +20,7 @@ const (
 	binaryPath   = "/usr/local/bin/pupitred"
 	tokenPath    = "/etc/pupitre/server.token"
 	unit         = "pupitred"
+	olderAgent   = "0.9.0"
 	currentAgent = "1.0.0"
 	nextAgent    = "1.1.0"
 	arch         = "amd64"
@@ -29,13 +31,21 @@ var (
 	newBinary = []byte("\x7fELF nouvel agent")
 )
 
+// A fake platform that answers the three calls an upgrade makes: the state of the server, the metadata of a version, and the binary itself.
 type bench struct {
-	fake      *modtest.FakeSys
-	options   selfupdate.Options
-	signature string
-	served    []byte
-	status    int
-	requested []string
+	fake           *modtest.FakeSys
+	options        selfupdate.Options
+	private        ed25519.PrivateKey
+	signature      string
+	signedVersion  string
+	announced      string
+	served         []byte
+	status         int
+	metadataStatus int
+	stateStatus    int
+	target         string
+	minimum        string
+	requested      []string
 }
 
 func newBench(t *testing.T) *bench {
@@ -52,19 +62,17 @@ func newBench(t *testing.T) *bench {
 	fake.Units[unit] = modtest.UnitActive
 	fake.Replies[binaryPath+" serve"] = hello(true, nextAgent, "")
 
-	b := &bench{fake: fake, served: newBinary, status: http.StatusOK}
+	b := &bench{
+		fake:           fake,
+		private:        private,
+		served:         newBinary,
+		status:         http.StatusOK,
+		metadataStatus: http.StatusOK,
+		stateStatus:    http.StatusOK,
+		target:         nextAgent,
+	}
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		b.requested = append(b.requested, r.URL.Path)
-
-		if b.status != http.StatusOK {
-			w.WriteHeader(b.status)
-
-			return
-		}
-
-		w.Write(b.served)
-	}))
+	server := httptest.NewServer(http.HandlerFunc(b.answer))
 	t.Cleanup(server.Close)
 
 	b.signature = sign(private, nextAgent, arch, selfupdate.Fingerprint(newBinary))
@@ -82,10 +90,75 @@ func newBench(t *testing.T) *bench {
 	return b
 }
 
+func (b *bench) answer(w http.ResponseWriter, r *http.Request) {
+	b.requested = append(b.requested, r.URL.Path)
+
+	switch {
+	case r.URL.Path == "/agent/state":
+		if b.stateStatus != http.StatusOK {
+			w.WriteHeader(b.stateStatus)
+
+			return
+		}
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"target_version":  b.target,
+			"minimum_version": b.minimum,
+		})
+	case strings.HasSuffix(r.URL.Path, "/metadata"):
+		if b.metadataStatus != http.StatusOK {
+			w.WriteHeader(b.metadataStatus)
+
+			return
+		}
+
+		version := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/agent/release/"), "/metadata")
+
+		json.NewEncoder(w).Encode(map[string]string{
+			"version":   version,
+			"arch":      arch,
+			"sha256":    b.fingerprint(),
+			"signature": b.signatureFor(version),
+			"channel":   "stable",
+		})
+	default:
+		if b.status != http.StatusOK {
+			w.WriteHeader(b.status)
+
+			return
+		}
+
+		w.Write(b.served)
+	}
+}
+
+func (b *bench) fingerprint() string {
+	if b.announced != "" {
+		return b.announced
+	}
+
+	return selfupdate.Fingerprint(b.served)
+}
+
+func (b *bench) signatureFor(version string) string {
+	if b.signedVersion != "" {
+		version = b.signedVersion
+	}
+
+	return sign(b.private, version, arch, selfupdate.Fingerprint(newBinary))
+}
+
+// The default gesture: a version and nothing else, the platform says the rest.
 func (b *bench) upgrade(t *testing.T, version string) (selfupdate.Result, error) {
 	t.Helper()
 
-	return selfupdate.New(b.options).Upgrade(selfupdate.Request{Version: version, Signature: b.signature})
+	return selfupdate.New(b.options).Upgrade(selfupdate.Request{Version: version})
+}
+
+func (b *bench) upgradeWith(t *testing.T, request selfupdate.Request) (selfupdate.Result, error) {
+	t.Helper()
+
+	return selfupdate.New(b.options).Upgrade(request)
 }
 
 func sign(private ed25519.PrivateKey, version, architecture, fingerprint string) string {
@@ -138,7 +211,7 @@ func TestUpgradeRefusesABinaryWhoseSignatureDoesNotMatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("clé de test : %v", err)
 	}
-	b.signature = sign(other, nextAgent, arch, selfupdate.Fingerprint(newBinary))
+	b.private = other
 
 	before := snapshot(b.fake)
 
@@ -167,6 +240,7 @@ func TestUpgradeRefusesABinaryThatDoesNotMatchItsFingerprint(t *testing.T) {
 // The same publisher, the same binary, another version: a signature that travels with the wrong version is worth nothing.
 func TestUpgradeRefusesASignatureIssuedForAnotherVersion(t *testing.T) {
 	b := newBench(t)
+	b.signedVersion = nextAgent
 
 	before := snapshot(b.fake)
 
@@ -287,6 +361,7 @@ func TestUpgradeSkipsTheRestartWhenTheUnitIsAbsent(t *testing.T) {
 func TestUpgradeRefusesAVersionThePlatformDoesNotPublish(t *testing.T) {
 	b := newBench(t)
 	b.status = http.StatusNotFound
+	b.metadataStatus = http.StatusNotFound
 
 	before := snapshot(b.fake)
 
@@ -319,20 +394,6 @@ func TestUpgradeRefusesWithoutAServerToken(t *testing.T) {
 func TestUpgradeWithoutAVersionTakesTheTargetOfThePlatform(t *testing.T) {
 	b := newBench(t)
 
-	state := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		b.requested = append(b.requested, r.URL.Path)
-
-		if r.URL.Path == "/agent/state" {
-			w.Write([]byte(`{"target_version":"` + nextAgent + `"}`))
-
-			return
-		}
-
-		w.Write(newBinary)
-	}))
-	defer state.Close()
-	b.options.Platform = platform.Client{BaseURL: state.URL}
-
 	result, err := b.upgrade(t, "")
 	if err != nil {
 		t.Fatalf("Upgrade: %v", err)
@@ -342,9 +403,145 @@ func TestUpgradeWithoutAVersionTakesTheTargetOfThePlatform(t *testing.T) {
 		t.Fatalf("résultat = %+v", result)
 	}
 
-	if len(b.requested) != 2 || b.requested[1] != "/agent/release/"+nextAgent {
+	if len(b.requested) != 3 || b.requested[0] != "/agent/state" || b.requested[2] != "/agent/release/"+nextAgent {
 		t.Fatalf("appels : %v", b.requested)
 	}
+}
+
+// The whole point: the app hands over a version, nothing else, and the platform's own answer carries the fingerprint and the signature.
+func TestUpgradeTakesTheFingerprintFromThePlatformWithoutASignatureParameter(t *testing.T) {
+	b := newBench(t)
+
+	result, err := b.upgrade(t, nextAgent)
+	if err != nil {
+		t.Fatalf("Upgrade: %v", err)
+	}
+
+	if result.Version != nextAgent || string(b.fake.Files[binaryPath]) != string(newBinary) {
+		t.Fatalf("résultat = %+v, binaire = %q", result, b.fake.Files[binaryPath])
+	}
+
+	if !contains(b.requested, "/agent/release/"+nextAgent+"/metadata") {
+		t.Fatalf("la métadonnée de la plateforme n'a pas été lue : %v", b.requested)
+	}
+}
+
+func TestUpgradeRefusesABinaryWhoseFingerprintIsNotTheAnnouncedOne(t *testing.T) {
+	b := newBench(t)
+	b.announced = strings.Repeat("a", 64)
+
+	before := snapshot(b.fake)
+
+	_, err := b.upgrade(t, nextAgent)
+	if code := codeOf(t, err); code != contract.ErrorBadSignature {
+		t.Fatalf("code = %s, erreur = %v", code, err)
+	}
+
+	assertUntouched(t, b, before)
+}
+
+// A signature stays valid forever, so nothing but the floor stops an old and faulty version from coming back.
+func TestUpgradeRefusesAVersionOlderThanTheRunningOne(t *testing.T) {
+	b := newBench(t)
+
+	before := snapshot(b.fake)
+
+	_, err := b.upgrade(t, olderAgent)
+	if code := codeOf(t, err); code != contract.ErrorDowngradeRefused {
+		t.Fatalf("code = %s, erreur = %v", code, err)
+	}
+
+	if contains(b.requested, "/agent/release/"+olderAgent) {
+		t.Fatalf("le binaire a été téléchargé malgré le refus : %v", b.requested)
+	}
+
+	assertUntouched(t, b, before)
+}
+
+func TestUpgradeRefusesAVersionBelowTheFloorThePlatformRemembers(t *testing.T) {
+	b := newBench(t)
+	b.minimum = "1.2.0"
+
+	before := snapshot(b.fake)
+
+	_, err := b.upgrade(t, nextAgent)
+	if code := codeOf(t, err); code != contract.ErrorDowngradeRefused {
+		t.Fatalf("code = %s, erreur = %v", code, err)
+	}
+
+	failure, _ := err.(*protocol.Error)
+	if failure.Fix == "" || !strings.Contains(failure.Fix, "allow_downgrade") {
+		t.Fatalf("le refus ne dit pas comment passer outre : %+v", failure)
+	}
+
+	assertUntouched(t, b, before)
+}
+
+// The owner asked for it in so many words; the signature is still checked.
+func TestUpgradeInstallsAnOlderVersionWhenTheOwnerAllowsIt(t *testing.T) {
+	b := newBench(t)
+
+	_, err := b.upgradeWith(t, selfupdate.Request{Version: olderAgent, AllowDowngrade: true})
+	if err != nil {
+		t.Fatalf("Upgrade: %v", err)
+	}
+
+	if string(b.fake.Files[binaryPath]) != string(newBinary) {
+		t.Fatalf("binaire en place : %q", b.fake.Files[binaryPath])
+	}
+}
+
+func TestUpgradeRefusesADowngradeEvenWhenThePlatformIsSilent(t *testing.T) {
+	b := newBench(t)
+	b.stateStatus = http.StatusInternalServerError
+
+	before := snapshot(b.fake)
+
+	_, err := b.upgrade(t, olderAgent)
+	if code := codeOf(t, err); code != contract.ErrorDowngradeRefused {
+		t.Fatalf("code = %s, erreur = %v", code, err)
+	}
+
+	assertUntouched(t, b, before)
+}
+
+// A platform out of reach must not leave the agent stuck on a broken version: the signature of the parameters is the way back.
+func TestUpgradeFallsBackOnTheSignatureOfTheParametersWhenTheMetadataIsUnreachable(t *testing.T) {
+	b := newBench(t)
+	b.metadataStatus = http.StatusInternalServerError
+
+	result, err := b.upgradeWith(t, selfupdate.Request{Version: nextAgent, Signature: b.signature})
+	if err != nil {
+		t.Fatalf("Upgrade: %v", err)
+	}
+
+	if result.Version != nextAgent || string(b.fake.Files[binaryPath]) != string(newBinary) {
+		t.Fatalf("résultat = %+v, binaire = %q", result, b.fake.Files[binaryPath])
+	}
+}
+
+func TestUpgradeRefusesWhenNeitherThePlatformNorTheCallerHasASignature(t *testing.T) {
+	b := newBench(t)
+	b.metadataStatus = http.StatusInternalServerError
+
+	before := snapshot(b.fake)
+
+	_, err := b.upgrade(t, nextAgent)
+	if code := codeOf(t, err); code != contract.ErrorInternal {
+		t.Fatalf("code = %s, erreur = %v", code, err)
+	}
+
+	assertUntouched(t, b, before)
+}
+
+func contains(values []string, wanted string) bool {
+	for _, value := range values {
+		if value == wanted {
+			return true
+		}
+	}
+
+	return false
 }
 
 func snapshot(fake *modtest.FakeSys) map[string]string {

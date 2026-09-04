@@ -133,7 +133,7 @@ Le chemin absolu vit sur le projet, pas sur la machine : `status`, `project.list
 | --- | --- |
 | `keys.list` | — : les clés du bloc balisé |
 | `keys.sync` | — : force une lecture de `/api/v1/agent/state` |
-| `agent.upgrade` | `{ version?, signature }` : télécharge, vérifie, remplace, redémarre |
+| `agent.upgrade` | `{ version?, signature?, allow_downgrade? }` : télécharge, vérifie, remplace, redémarre |
 | `reboot` | — |
 | `doctor` | — : diagnostic court |
 | `diag` | — : rapport complet à coller dans un ticket |
@@ -217,7 +217,7 @@ Le principe est celui du flux secret d'entrée, dans l'autre sens : à l'entrée
 
 ## Ce que la signature d'une mise à jour couvre
 
-`agent.upgrade` reçoit `signature`, une signature **Ed25519 encodée en base64**. Elle porte sur ce message exact, terminé par un saut de ligne :
+La signature est **Ed25519, encodée en base64**. Elle porte sur ce message exact, terminé par un saut de ligne :
 
 ```
 pupitred\n<version>\n<architecture>\n<empreinte SHA-256 en hexadécimal minuscule>\n
@@ -227,7 +227,19 @@ L'empreinte est celle du binaire téléchargé, calculée par l'agent lui-même 
 
 La clé publique correspondante est **embarquée dans le binaire à l'édition de liens**. Un agent construit sans clé refuse toute mise à jour : c'est le défaut sûr, et c'est voulu. Rien n'est écrit sur le disque avant que la vérification ne réussisse.
 
+**L'empreinte et la signature viennent de la plateforme, pas de l'app.** L'agent lit `GET /api/v1/agent/release/:version/metadata` avec son jeton de serveur ; il en tire l'empreinte attendue et la signature, refuse un binaire dont l'empreinte diffère de celle annoncée, puis vérifie la signature. `signature` reste dans les paramètres comme secours, pour un agent dont la plateforme est injoignable ou trop ancienne pour servir cette route : quand la plateforme répond, c'est elle qui fait foi et le paramètre est ignoré. Une mise à jour sans paramètre `signature` est donc le cas normal.
+
 Ce format est la référence commune de la chaîne de publication (AGT-15), de l'agent (AGT-13) et de l'app (APP-12). Le changer casse les trois à la fois.
+
+## Le plancher de version
+
+Une signature ne périme jamais : le binaire vulnérable d'hier reste signé demain. Sans garde-fou, qui tient le canal peut donc réinstaller une version ancienne et connue faillible. L'agent refuse de descendre.
+
+**Le plancher est la plus haute de deux versions** : celle que l'agent exécute au moment de la demande, et `minimum_version` que `/api/v1/agent/state` annonce pour ce serveur. Une version strictement inférieure au plancher est refusée avec `downgrade_refused`, avant tout téléchargement.
+
+La version courante est le plancher qui compte, parce que l'agent la connaît sans rien demander : elle tient quand la plateforme est injoignable, c'est-à-dire précisément quand un canal hostile a le plus de latitude. `minimum_version` est la mémoire de la plateforme — la dernière version qu'elle a vue tourner sur ce serveur — et sert le cas où le binaire a été remplacé sans l'accord de l'agent : celui qui redémarre en 0.9.0 se voit rappeler qu'on l'a connu en 1.4.0. Quand la plateforme ne répond pas, le plancher se réduit à la version courante, et la mise à jour vers l'avant reste possible : un agent périmé doit rester réparable.
+
+`allow_downgrade: true` lève le plancher, et rien d'autre : la signature, l'empreinte, la version et l'architecture sont vérifiées comme toujours. C'est un geste explicite du propriétaire, que l'app ne compose pas seule ; le refus qui le précède porte le `fix` qui le nomme.
 
 ## Versionnage
 

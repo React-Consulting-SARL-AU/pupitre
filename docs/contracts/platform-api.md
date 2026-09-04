@@ -53,9 +53,12 @@ Une clé d'accès enregistrée ouvre la session seule : le relying party est le 
 | Méthode | Route | Corps | Réponse |
 | --- | --- | --- | --- |
 | POST | `/agent/exchange` | `{ enrollment_token, host_public_key, agent_version, arch }` | `{ server_token }`. Le jeton d'enrôlement est brûlé |
-| GET | `/agent/state` | — | `{ entitlement: "valid" \| "grace" \| "suspended", valid_until, authorized_keys[], target_version, hostname, module_params }`. `target_version` est la dernière version publiée du canal du serveur (`Server.channel`, `stable` par défaut ; un serveur `beta` voit aussi les versions `stable`) pour son architecture, jamais plus ancienne que celle qu'il porte déjà |
+| GET | `/agent/state` | — | `{ entitlement: "valid" \| "grace" \| "suspended", valid_until, authorized_keys[], target_version, minimum_version, hostname, module_params }`. `target_version` est la dernière version publiée du canal du serveur (`Server.channel`, `stable` par défaut ; un serveur `beta` voit aussi les versions `stable`) pour son architecture, jamais plus ancienne que celle qu'il porte déjà. `minimum_version` est le plancher que la plateforme retient pour ce serveur : la dernière version d'agent qu'elle l'a vu exécuter, `null` tant qu'elle n'en a vu aucune |
 | POST | `/agent/heartbeat` | `{ disk, ram, load, sessions[], stack_version, modules[], agent_version? }` | 204. L'échantillon rejoint `Server.metrics`, fenêtre glissante de 7 jours |
 | GET | `/agent/release/:version` | — | 303 vers une URL R2 signée, valable 5 minutes, pour l'architecture du serveur. `release_not_found` (404) si la version n'existe pas pour cette architecture |
+| GET | `/agent/release/:version/metadata` | — | `{ version, arch, sha256, signature, channel }` pour l'architecture du serveur : l'empreinte attendue et la signature Ed25519 de cette version, telles que la chaîne de publication les a déposées. `release_not_found` (404) si la version n'existe pas pour cette architecture |
+
+L'agent lit la métadonnée avant de télécharger : il y prend l'empreinte et la signature au lieu de les recevoir de l'app, et le plancher de `/agent/state` lui dit s'il a le droit d'installer cette version. Un refus coûte alors un appel, pas un binaire.
 
 `stack_version` porte la version de l'agent lui-même, la même valeur qu'`agent_version`. Le nom vient de la stack bash d'origine, où les deux différaient ; il n'y a plus qu'un binaire.
 
