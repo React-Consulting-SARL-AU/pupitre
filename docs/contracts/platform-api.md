@@ -46,6 +46,13 @@ Guards Elysia dans `packages/api/src/lib/api/plugins/` : `authPlugin` (résout s
 | POST | `/agent/heartbeat` | `{ disk, ram, load, sessions[], stack_version, modules[] }` | 204 |
 | GET | `/agent/release/:version` | — | redirection signée vers R2 pour l'architecture du serveur |
 
+### Releases, côté appareil
+
+| Méthode | Route | Auth | Réponse |
+| --- | --- | --- | --- |
+| GET | `/releases/agent/:version?arch=` | bearer d'appareil | redirection signée vers R2 : l'app télécharge le binaire de l'agent pour le pousser elle-même sur le serveur |
+| GET | `/releases/agent/latest?channel=stable` | bearer d'appareil | `{ version, sha256, signature }` de la dernière version du canal |
+
 ### Organisation
 
 | Méthode | Route | Rôle | Réponse |
@@ -63,7 +70,8 @@ Guards Elysia dans `packages/api/src/lib/api/plugins/` : `authPlugin` (résout s
 | --- | --- | --- | --- |
 | GET | `/admin/servers` | platform_admin | tous les serveurs, filtrables |
 | POST | `/admin/servers/:id/suspend` | platform_admin | `{ reason }` |
-| GET | `/admin/releases` · POST | platform_admin | publier une version de l'agent : `{ version, arch, sha256, signature, r2_key }` |
+| GET | `/admin/releases` · POST | platform_admin | publier une version de l'agent : `{ version, arch, sha256, signature, r2_key, channel: "beta" }` |
+| POST | `/admin/releases/:version/promote` | platform_admin | `{ channel: "stable" }` : la version devient cible en `stable` dans `/agent/state` |
 
 ### Webhooks
 

@@ -114,7 +114,7 @@ Critères d'acceptation.
 Lot 0 · dépend de INF-03 · `.claude/`
 
 But. Ce que les agents réutilisent d'une tâche à l'autre.
-Périmètre. `.claude/skills/elysia-api-routes` (structure des routes, `requireOrg`, `hasPermission`, `serializeData`), `.claude/skills/agent-modules` (écrire un module Go idempotent, le tester sur le staging), `.claude/skills/desktop-screens` (un écran de l'app : store, IPC, composant, test), `.claude/skills/release` (tag, builds, notarisation, publication), `.claude/launch.json` (`site`, `web`, `desktop`), `.claude/settings.json` (permissions `bun run *`, `bun test *`, `go test *`).
+Périmètre. `.claude/skills/elysia-api-routes` (structure des routes, guards `requireOrg`, `requireRole`, `requireServer`, `requirePlatformAdmin`, `serializeData`), `.claude/skills/agent-modules` (écrire un module Go idempotent, le tester sur le staging), `.claude/skills/desktop-screens` (un écran de l'app : store, IPC, composant, test), `.claude/skills/release` (tag, builds, notarisation, publication), `.claude/launch.json` (`site`, `web`, `desktop`), `.claude/settings.json` (permissions `bun run *`, `bun test *`, `go test *`).
 Critères d'acceptation.
 1. Chaque skill a un frontmatter `name` et `description` et cite les fichiers qu'il gouverne.
 
