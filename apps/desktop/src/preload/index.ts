@@ -438,11 +438,7 @@ const api = {
 
   openUrl: (url: string): Promise<void> => ipcRenderer.invoke("open-url", url),
 
-  /**
-   * Everything a terminal line completes with, in one command of the protocol:
-   * the grammar, the projects of the registry, and the entries of one folder
-   * under the projects root. The app guesses nothing and lists nothing.
-   */
+  /** The grammar, the projects and one folder, in one command of the protocol. */
   completions: (
     serverId: string,
     path?: string
@@ -454,13 +450,7 @@ const api = {
     keystrokesReceived: number;
   }> => ipcRenderer.invoke("terminal-diagnostics"),
 
-  /**
-   * A session on the server, of the kind the tab carries.
-   *
-   * The renderer names a server, a kind and a project; what runs on the other
-   * side is the main process's business — the login shell for a terminal, and
-   * for an agent the command `agent.open` answered.
-   */
+  /** The renderer names a kind and a project; the command is decided over there. */
   openTerminal: (
     id: string,
     serverId: string,
@@ -508,13 +498,7 @@ const api = {
     return () => ipcRenderer.removeListener("terminal-exit", listener);
   },
 
-  /**
-   * Signing an agent in, without leaving the tab.
-   *
-   * The address never crosses this bridge: the main process saw the session
-   * print it and holds it. This side says which session is waiting and where
-   * on screen the page goes, and gets back the host it is about to show.
-   */
+  /** The address never crosses: this side names a session and a rectangle. */
   onTerminalLink: (callback: (link: TerminalLink) => void): (() => void) => {
     const listener = (_e: unknown, link: TerminalLink) => callback(link);
     ipcRenderer.on("terminal-link", listener);

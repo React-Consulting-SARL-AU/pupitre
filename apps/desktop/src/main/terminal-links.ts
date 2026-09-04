@@ -1,16 +1,4 @@
-/**
- * The login addresses an agent prints, and the code its provider hands back.
- *
- * Claude Code, Codex and Hermes all sign in the same way: they print an address
- * and wait for what comes back from it. Opening that address in the system
- * browser means leaving the app and carrying a code across two windows, so the
- * app opens it itself — and for that it has to recognise one in a stream that
- * is otherwise drawing an interface.
- *
- * Only the hosts of the providers below are ever opened. A machine can print
- * whatever it likes; what the app turns into a button is a short, closed list.
- */
-
+// A machine can print any address; only these hosts ever become a button.
 const LOGIN_HOSTS = [
   "claude.ai",
   "anthropic.com",
@@ -26,13 +14,7 @@ const TRAILING = /[.,;:!?]+$/;
 const FIRST_PRINTABLE = 32;
 const DELETE = 127;
 
-/**
- * The stream without its escape sequences.
- *
- * Every control character becomes a space, which is enough: a sequence always
- * opens with one, so an address followed by a colour reset ends at the space
- * that replaced its escape rather than swallowing `[0m`.
- */
+/** A sequence opens with a control character, so a space there ends the match. */
 function printable(text: string): string {
   let clean = "";
 
@@ -59,12 +41,7 @@ function fromKnownHost(raw: string): { url: string; host: string } | null {
   }
 }
 
-/**
- * The last login address of a chunk of output, if it carries one.
- *
- * The last rather than the first: an agent that reprints its address after a
- * failed attempt means the newest one is the live one.
- */
+/** The last one, not the first: a reprinted address is the live one. */
 export function loginAddress(
   text: string
 ): { url: string; host: string } | null {
@@ -81,17 +58,7 @@ export function loginAddress(
   return found;
 }
 
-/**
- * The code a provider sends back at the end of the round trip.
- *
- * It travels in the address of the page the browser is sent to, whether that
- * page can be reached from this computer or not: the app reads the address and
- * stops there, so a redirection to a port of the server is never opened.
- *
- * A short value is not one: the address that opens the round trip carries a
- * `code=true` of its own, and taking it for the answer would close the page
- * before the reader had signed in.
- */
+/** The opening address carries a `code=true` of its own, which is not an answer. */
 const SHORTEST_CODE = 8;
 
 export function authorizationCode(raw: string): string | null {

@@ -11,14 +11,6 @@ import { authorizationCode, loginAddress } from "../terminal-links";
 import { type TerminalDeps, terminalCommand } from "../terminal-run";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 
-/**
- * What a tab runs on the other side, replayed against the fake agent.
- *
- * A shell is the app's own command; an agent tab is the agent's, and the app
- * only ever asks for it. What these pin down is that nothing else — no name the
- * renderer invented, no kind the protocol does not know — becomes a session.
- */
-
 const SERVER = "srv-1";
 
 let fake: FakeAgent | null = null;

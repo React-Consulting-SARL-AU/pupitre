@@ -283,13 +283,7 @@ function pathBase(
   return cut === -1 ? "" : token.slice(0, cut + 1);
 }
 
-/**
- * The folder to ask the agent for, relative to the root of the projects.
- *
- * `completions` reads under that root and nowhere else, so a shell sitting
- * elsewhere on the machine simply gets no path completion — which is better
- * than the app opening a second door to list a folder itself.
- */
+/** `completions` reads under the projects root: elsewhere, no path is offered. */
 export function underRoot(
   root: string,
   dir: string,
@@ -356,13 +350,7 @@ function loadCatalog(): void {
   });
 }
 
-/**
- * A line the reader ran, kept for the next one.
- *
- * The history is the app's own: the shell announces where a command starts and
- * where it is submitted (OSC 133), so what was typed here is known without
- * opening a second connection to read a file of the machine.
- */
+/** OSC 133 says where a command starts and ends: the app needs no history file. */
 function rememberCommand(line: string): void {
   const command = line.trim();
 
@@ -491,12 +479,7 @@ function cursorPosition(xterm: XTerm): Cursor | null {
   };
 }
 
-/**
- * Asks the agent for one folder, once, a moment after the typing settles.
- *
- * The answer is filed under the folder that was asked for, so walking back up a
- * path costs nothing, and a folder already read is never asked for twice.
- */
+/** Filed under the folder asked for: walking back up a path costs nothing. */
 function requestPaths(id: string, item: Tracked, asked: string): void {
   if (item.paths.has(asked) || !serverId) {
     return;

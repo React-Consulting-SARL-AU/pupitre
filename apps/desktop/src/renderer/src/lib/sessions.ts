@@ -1,19 +1,8 @@
 import type { Session } from "@pupitre/shared/agent-protocol/state";
 import type { Terminal } from "@shared/terminals";
 
-/**
- * Which background sessions the app still has a tab on.
- *
- * An agent runs in a session of the server, and closing its tab only detaches
- * from it: that is what makes an agent survive a restart of the app, and what
- * makes a machine end up carrying agents nobody is talking to. The rest — the
- * ones with no tab — are the sessions left lying around.
- *
- * A session is named by its kind and its project, and the agent opens at most
- * one per pair: `agent.open` reattaches rather than starting a second. Shells
- * are not in the count — the app opens those itself, and closing the tab ends
- * them.
- */
+// A session is named by kind and project: `agent.open` reattaches to that pair
+// rather than opening a second. A shell dies with its tab and is not counted.
 
 function key(kind: string, project: string): string {
   return `${kind}:${project}`;

@@ -3,11 +3,6 @@ import type { Shot } from "@pupitre/shared/agent-protocol/processes";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ShotRow } from "../shots/shot-row";
 
-/**
- * A capture, as the gallery lists it: its name, its folder and its weight, all
- * of them read off what the agent answered and none of them computed here.
- */
-
 const SHOT: Shot = {
   created_at: "2026-09-04T10:00:00Z",
   name: "accueil.png",

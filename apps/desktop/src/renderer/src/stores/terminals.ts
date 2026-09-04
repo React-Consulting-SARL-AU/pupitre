@@ -2,15 +2,6 @@ import type { AgentError } from "@shared/agent";
 import type { TerminalKind, ViewBounds } from "@shared/terminals";
 import { create } from "zustand";
 
-/**
- * What became of each session the app asked for.
- *
- * A tab is not a session: the tab exists the moment it is clicked, the session
- * only once the server has answered. A shell answers at once; an agent goes
- * through `agent.open`, which can refuse — and a refusal is shown in the tab,
- * with the remedy the agent gave, rather than as a terminal that dies silently.
- */
-
 export type SessionState =
   | { status: "opening" }
   | { status: "open"; session: string | null }
@@ -52,10 +43,7 @@ export const useTerminals = create<TerminalsStore>((set, get) => ({
   login: null,
   sessions: {},
 
-  /**
-   * The session opens once, whatever React does with the component: a tab that
-   * mounts twice must not start two sessions on the machine.
-   */
+  // A tab that mounts twice must not start two sessions on the machine.
   async start(id, serverId, kind, project) {
     if (get().sessions[id]) {
       return;

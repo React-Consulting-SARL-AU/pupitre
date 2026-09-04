@@ -3,14 +3,6 @@ import type { Session } from "@pupitre/shared/agent-protocol/state";
 import type { Terminal } from "@shared/terminals";
 import { attachedSessions, isAttached } from "../sessions";
 
-/**
- * Which sessions of the server still have a tab, and which ones are strays.
- *
- * The pair kind + project is the name of a session: the agent reattaches to the
- * one that exists rather than opening a second, so two tabs of the same kind on
- * the same project are one session.
- */
-
 const TABS: Terminal[] = [
   {
     dir: null,

@@ -1,14 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { insideFrame, readBounds } from "../view-bounds";
 
-/**
- * The rectangle the renderer measured, read as a suggestion.
- *
- * The page of a provider is laid over a tab, and the tab is drawn by the
- * renderer: the rectangle comes from there. It is checked and bounded here, so
- * a page can never be pushed off the window or shrunk to a sliver.
- */
-
 const FRAME = { height: 800, width: 1200 };
 
 describe("readBounds", () => {

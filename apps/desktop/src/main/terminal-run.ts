@@ -5,15 +5,6 @@ import type { TerminalKind } from "@shared/terminals";
 import { TERMINAL_KINDS } from "@shared/terminals";
 import type { AgentClient } from "./agent-client";
 
-/**
- * What a terminal of the app runs on the other side, and who decides it.
- *
- * A shell is the app's own business: it logs in and moves to the folder the
- * agent named for the project. An agent tab is not — Claude, Codex and Hermes
- * are attached to a session the agent owns, so the command comes from
- * `agent.open` and the app never writes one of its own.
- */
-
 export interface TerminalDeps {
   client: Pick<AgentClient, "request">;
   knows: (serverId: string) => boolean;
@@ -54,13 +45,7 @@ function loginShell(dir: string | null): TerminalCommand {
   return { command: `${cd}exec $SHELL -l`, kind: "shell", session: null };
 }
 
-/**
- * The remote command of a terminal, or the refusal that explains itself.
- *
- * The renderer names a server, a kind and a project; a project the agent has
- * not declared goes nowhere, and a folder that is not an absolute path it gave
- * is dropped rather than quoted into a command.
- */
+/** A project the agent has not declared goes nowhere, and neither does its folder. */
 export async function terminalCommand(
   serverId: unknown,
   kind: unknown,

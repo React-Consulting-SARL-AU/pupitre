@@ -1,14 +1,7 @@
 import { Button } from "@renderer/components/ui/button";
 import { LogIn, X } from "lucide-react";
 
-/**
- * The bar that turns an agent's login address into a page of this tab.
- *
- * The address itself stays in the main process; what is shown here is the host
- * it leads to, so the reader knows where the page comes from before it opens.
- * The code the provider hands back is typed into the session by the app: the
- * round trip never leaves the window.
- */
+/** The host is shown, not the address: the reader sees where the page leads. */
 export function TerminalLoginBar({
   host,
   open,

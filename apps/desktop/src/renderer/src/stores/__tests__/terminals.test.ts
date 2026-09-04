@@ -2,14 +2,6 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
 import { useTerminals } from "../terminals";
 
-/**
- * What the tab knows of its session, and of the connection it is waiting on.
- *
- * The store keeps the envelope the main process answered: a refusal stays a
- * refusal, with the remedy the agent wrote, and the address of a login never
- * enters here — only the host it leads to.
- */
-
 const SERVER = "srv-1";
 
 beforeEach(() => {

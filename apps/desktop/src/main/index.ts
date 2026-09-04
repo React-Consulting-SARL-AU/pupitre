@@ -219,14 +219,6 @@ function size(value: unknown, fallback: number): number {
   return typeof value === "number" && value > 1 ? Math.floor(value) : fallback;
 }
 
-/**
- * What a terminal runs is decided here, never in the renderer.
- *
- * A shell gets the app's own login command, in the folder the agent named for
- * the project. An agent tab gets the command `agent.open` answers, and nothing
- * else: the app does not know how Claude, Codex or Hermes are started on that
- * machine, and has no business guessing.
- */
 function registerTerminalChannels(): void {
   ipcMain.handle("terminal-diagnostics", () => terminalDiagnostics());
 
@@ -307,13 +299,7 @@ function registerTerminalChannels(): void {
   });
 }
 
-/**
- * The provider's page, in the tab that is waiting for it.
- *
- * The renderer names a session and hands the rectangle it just measured; the
- * address is the one that session printed, held here. What comes back from the
- * round trip is typed into the terminal as if it had been pasted.
- */
+/** The renderer names a session and a rectangle; the address is the one it printed. */
 function registerLoginChannels(): void {
   ipcMain.handle("login-open", (event, id: unknown, box: unknown): boolean => {
     const bounds = readBounds(box);

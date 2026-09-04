@@ -80,13 +80,7 @@ export interface OpenTerminal {
   rows: number;
 }
 
-/**
- * Reads the stream for a login address and tells the renderer when one appears.
- *
- * The address itself stays here: what crosses the bridge is its host, and the
- * renderer asks to open "the address this session is waiting on" rather than
- * naming one of its own.
- */
+/** The address stays here: only its host crosses the bridge. */
 function noteLogin(id: string, session: Session, recipient: WebContents): void {
   const found = loginAddress(session.tail);
 

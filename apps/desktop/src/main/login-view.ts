@@ -3,18 +3,6 @@ import { type BrowserWindow, WebContentsView } from "electron";
 import { authorizationCode } from "./terminal-links";
 import { insideFrame } from "./view-bounds";
 
-/**
- * The provider's page, inside the tab that asked for it.
- *
- * Signing an agent in used to mean leaving the app: the address opened in the
- * system browser, and the code came back by hand. It is a view of the window
- * here, laid over the terminal, and the app reads the code off the address the
- * provider redirects to — the round trip never leaves the tab.
- *
- * The view is a page of the internet and is treated as one: its own session, no
- * preload, no integration, and nothing of the app reachable from it.
- */
-
 interface Live {
   view: WebContentsView;
   window: BrowserWindow;
@@ -39,14 +27,7 @@ export function closeLogin(): void {
   view.webContents.close();
 }
 
-/**
- * Opens the address the terminal is waiting on, and watches where it goes.
- *
- * Every step of the round trip is examined rather than followed blindly: the
- * moment one carries a code, it is handed to the session that asked and the
- * view closes. A provider that redirects to a port of the server — unreachable
- * from this computer — is answered before the page is even fetched.
- */
+/** A redirection to a port of the server is read, never followed. */
 export function openLogin(options: {
   window: BrowserWindow;
   terminalId: string;
@@ -57,6 +38,7 @@ export function openLogin(options: {
 }): void {
   closeLogin();
 
+  // A page of the internet, treated as one: its own session, no preload, no bridge.
   const view = new WebContentsView({
     webPreferences: {
       contextIsolation: true,

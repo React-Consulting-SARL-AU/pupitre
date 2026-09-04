@@ -1,13 +1,6 @@
 import type { ViewBounds } from "@shared/terminals";
 
-/**
- * Where a view of the window may sit.
- *
- * The renderer measures a rectangle and hands it over; it is a page of the
- * interface, so it is read as a suggestion — rounded, kept inside the window,
- * and never allowed to be a sliver nobody could find or close.
- */
-
+/** Small enough to sit in a tab, large enough to be found and closed. */
 const MINIMUM = 40;
 
 export function readBounds(value: unknown): ViewBounds | null {

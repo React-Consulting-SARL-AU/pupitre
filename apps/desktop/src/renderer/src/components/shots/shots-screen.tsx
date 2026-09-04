@@ -10,13 +10,7 @@ import { ExternalLink, Image as ImageIcon, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { ShotRow } from "./shot-row";
 
-/**
- * The captures the agents left behind.
- *
- * The images stay on the server: what the app shows is what `shots.list` says
- * of them, and the gallery the server serves is opened at its own address. The
- * one action that changes anything is emptying the folder.
- */
+/** The images stay on the server: the app lists them and opens its gallery. */
 export function ShotsScreen({ serverId }: { serverId: string }) {
   const state = useShots((s) => s.state);
   const problem = useShots((s) => s.problem);

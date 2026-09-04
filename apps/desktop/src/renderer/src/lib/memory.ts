@@ -58,13 +58,7 @@ export function writeNavigation(patch: Navigation): void {
 
 const HISTORY_KEY = "pupitre.history.v1";
 
-/**
- * The lines run in the app's own terminals, one list per server.
- *
- * They are the app's history, not the machine's: the shell says where a command
- * starts and where it is submitted, which is enough to complete the next one
- * without opening a second connection to read a file of the server.
- */
+/** The lines run in the app's own terminals, one list per server. */
 function readAllHistory(): Record<string, string[]> {
   try {
     const raw = window.localStorage.getItem(HISTORY_KEY);

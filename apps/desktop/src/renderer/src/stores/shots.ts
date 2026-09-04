@@ -7,15 +7,6 @@ import type {
 import type { AgentError, AgentResponse } from "@shared/agent";
 import { create } from "zustand";
 
-/**
- * The captures the agents left on the server.
- *
- * A browsing agent takes screenshots as it works, and they pile up in a folder
- * nobody opens. The app lists what is there, opens the gallery the server
- * serves, and empties it on demand — it never copies an image over: the file
- * belongs to the machine that made it.
- */
-
 export type ShotsState =
   | { status: "idle" }
   | { status: "loading"; serverId: string }
@@ -85,10 +76,7 @@ export const useShots = create<ShotsStore>((set, get) => ({
     }
   },
 
-  /**
-   * The gallery is a page of the server, opened in the system browser: it is
-   * neither the app's nor an agent's login, and the address is the agent's own.
-   */
+  // The address is the server's own: the app never builds one.
   async openGallery(serverId) {
     const answer = await call<ShotsUrlResult>(serverId, "shots.url");
 

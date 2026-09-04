@@ -3,13 +3,6 @@ import type { CommandName } from "@pupitre/shared/agent-protocol";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
 import { useShots } from "../shots";
 
-/**
- * The gallery, read from the three commands the protocol has for it.
- *
- * Nothing here holds an image: the store keeps what the server said of each
- * file, and the address of the gallery only once the server has given it.
- */
-
 const SERVER = "srv-1";
 
 const SHOTS = [

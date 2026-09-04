@@ -2,13 +2,7 @@ import type { Shot } from "@pupitre/shared/agent-protocol/processes";
 import { since, weight } from "@renderer/lib/format";
 import { Image as ImageIcon } from "lucide-react";
 
-/**
- * One capture, as the server describes it.
- *
- * The image itself is never brought over: it weighs what it weighs and it lives
- * on the machine that took it. What is shown here is enough to decide whether
- * to open the gallery or to empty it.
- */
+/** One capture, as the server describes it: the image is never brought over. */
 export function ShotRow({ shot }: { shot: Shot }) {
   const taken = Date.parse(shot.created_at);
 
