@@ -81,7 +81,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-08 | Console : shell, connexion, serveurs, appareils | fait | `feat/PLT-08-console` | fusionnée |
 | PLT-09 | Console : abonnement, téléchargements, profil | fait | `feat/PLT-09-billing-console` | fusionnée |
 | PLT-10 | Organisations : membres, invitations, attribution, audit | fait | `feat/PLT-10-teams` | fusionnée |
-| PLT-11 | Emails transactionnels | fait | `feat/PLT-11-emails` | fusionnée |
+| PLT-11 | Emails transactionnels | à faire | | |
 | PLT-12 | Alertes et page de statut | à faire | | |
 | PLT-13 | Passkeys et MFA | à faire | | |
 | PLT-14 | Déploiement Cloudflare Builds, staging et production | à faire | | |
