@@ -29,7 +29,7 @@ describe("keys", () => {
 })
 
 describe("agent.upgrade", () => {
-  it("requires a signature", () => {
+  it("takes a version alone: the fingerprint comes from the platform", () => {
     expect(
       AgentUpgradeParamsSchema.safeParse({
         version: "0.4.0",
@@ -37,10 +37,23 @@ describe("agent.upgrade", () => {
       }).success
     ).toBe(true)
     expect(
-      AgentUpgradeParamsSchema.safeParse({ signature: "base64…" }).success
+      AgentUpgradeParamsSchema.safeParse({ version: "0.4.0" }).success
+    ).toBe(true)
+    expect(AgentUpgradeParamsSchema.safeParse({}).success).toBe(true)
+  })
+
+  it("carries the owner's explicit downgrade", () => {
+    expect(
+      AgentUpgradeParamsSchema.safeParse({
+        version: "0.3.1",
+        allow_downgrade: true,
+      }).success
     ).toBe(true)
     expect(
-      AgentUpgradeParamsSchema.safeParse({ version: "0.4.0" }).success
+      AgentUpgradeParamsSchema.safeParse({
+        version: "0.3.1",
+        allow_downgrade: "oui",
+      }).success
     ).toBe(false)
   })
 

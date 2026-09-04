@@ -13,6 +13,7 @@ export const PROTOCOL_ERROR_CODES = [
   "service_not_found",
   "secrets_required",
   "bad_signature",
+  "downgrade_refused",
   "busy",
   "internal",
 ] as const

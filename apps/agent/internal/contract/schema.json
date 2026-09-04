@@ -221,6 +221,7 @@
         "service_not_found",
         "secrets_required",
         "bad_signature",
+        "downgrade_refused",
         "busy",
         "internal"
       ]
@@ -2830,11 +2831,11 @@
         "signature": {
           "type": "string",
           "minLength": 1
+        },
+        "allow_downgrade": {
+          "type": "boolean"
         }
       },
-      "required": [
-        "signature"
-      ],
       "additionalProperties": false
     },
     "AgentUpgradeResult": {
