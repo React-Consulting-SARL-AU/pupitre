@@ -1,4 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
+import { STATUS_STALE_AFTER_MS } from "@pupitre/shared/status"
+import { readServiceStatus } from "../../lib/status/status"
 import { type ApiTestServer, bootApiTestServer, resetDb } from "../../testing"
 import {
   createOrganizationWithMembers,
@@ -16,6 +18,8 @@ interface StatusBody {
       published_at: string
     } | null
     active_servers: number
+    last_observation_at: string | null
+    freshness: string
     checked_at: string
   }
 }
@@ -26,6 +30,23 @@ let harness: ApiTestServer
 
 function statusRequest() {
   return apiRequest<StatusBody>("/status")
+}
+
+async function activeServerLastSeen(lastHeartbeatAt: Date | null) {
+  const { organization } = await createOrganizationWithMembers({
+    roles: ["owner"],
+  })
+  const { server } = await createServer({
+    organizationId: organization.id,
+    name: "vps-du-client",
+  })
+
+  await harness.prisma.server.update({
+    where: { id: server.id },
+    data: { lastHeartbeatAt },
+  })
+
+  return { organization, server }
 }
 
 describe("GET /status", () => {
@@ -113,7 +134,79 @@ describe("GET /status", () => {
       "api",
       "checked_at",
       "database",
+      "freshness",
+      "last_observation_at",
       "latest_release",
     ])
+  })
+})
+
+describe("GET /status — la fraîcheur", () => {
+  beforeAll(async () => {
+    harness = await bootApiTestServer()
+  })
+
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it("ne prétend rien savoir quand aucun serveur n'a jamais parlé", async () => {
+    const response = await statusRequest()
+
+    expect(response.json.data.freshness).toBe("unknown")
+    expect(response.json.data.last_observation_at).toBeNull()
+  })
+
+  it("dit fraîche une observation plus jeune que le seuil", async () => {
+    const now = new Date("2026-09-04T12:00:00.000Z")
+
+    await activeServerLastSeen(new Date(now.getTime() - STATUS_STALE_AFTER_MS))
+
+    const status = await readServiceStatus(now)
+
+    expect(status.freshness).toBe("fresh")
+  })
+
+  it("dit périmée une observation plus vieille que le seuil", async () => {
+    const now = new Date("2026-09-04T12:00:00.000Z")
+    const lastSeen = new Date(now.getTime() - STATUS_STALE_AFTER_MS - 60_000)
+
+    await activeServerLastSeen(lastSeen)
+
+    const status = await readServiceStatus(now)
+
+    expect(status.freshness).toBe("stale")
+    expect(status.last_observation_at?.toISOString()).toBe(
+      lastSeen.toISOString()
+    )
+  })
+
+  it("garde le heartbeat le plus récent de la flotte", async () => {
+    const now = new Date("2026-09-04T12:00:00.000Z")
+    const recent = new Date(now.getTime() - 60_000)
+
+    await activeServerLastSeen(new Date(now.getTime() - 7_200_000))
+    await activeServerLastSeen(recent)
+
+    const status = await readServiceStatus(now)
+
+    expect(status.freshness).toBe("fresh")
+    expect(status.last_observation_at?.toISOString()).toBe(recent.toISOString())
+  })
+
+  it("ne dit rien du serveur qui a produit l'observation", async () => {
+    const now = new Date("2026-09-04T12:00:00.000Z")
+    const { organization, server } = await activeServerLastSeen(
+      new Date(now.getTime() - 60_000)
+    )
+    const response = await statusRequest()
+    const body = JSON.stringify(response.json)
+
+    expect(response.json.data.last_observation_at).not.toBeNull()
+    expect(body).not.toContain(server.id)
+    expect(body).not.toContain(server.name)
+    expect(body).not.toContain(organization.id)
+    expect(body).not.toContain(organization.name)
+    expect(body).not.toContain(organization.slug)
   })
 })
