@@ -17,6 +17,7 @@ const (
 	DefaultTokenPath = "/etc/pupitre/server.token"
 	DefaultMaxBytes  = 128 << 20
 	DefaultTimeout   = 5 * time.Minute
+	maxRedirects     = 5
 )
 
 type Client struct {
@@ -114,11 +115,25 @@ func (c Client) get(path string) ([]byte, error) {
 }
 
 func (c Client) client() *http.Client {
+	client := &http.Client{Timeout: DefaultTimeout}
 	if c.HTTP != nil {
-		return c.HTTP
+		copied := *c.HTTP
+		client = &copied
+	}
+	client.CheckRedirect = dropToken
+
+	return client
+}
+
+// The server token stops at the platform: what the redirect points at is a storage URL already signed for this download.
+func dropToken(request *http.Request, via []*http.Request) error {
+	if len(via) >= maxRedirects {
+		return errors.New("trop de redirections")
 	}
 
-	return &http.Client{Timeout: DefaultTimeout}
+	request.Header.Del("Authorization")
+
+	return nil
 }
 
 func (c Client) maxBytes() int64 {
