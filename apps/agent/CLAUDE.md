@@ -29,6 +29,7 @@ internal/modules/        interface Module ; un dossier par module : core/, runti
 internal/registry/       projets, projects.conf
 internal/tmux/           session, fenêtres, logs
 internal/platform/       client HTTPS de la plateforme
+internal/selfupdate/     agent.upgrade : téléchargement, signature, remplacement, retour arrière
 internal/entitlement/    droit d'usage, cache, mode restreint
 internal/keys/           bloc balisé d'authorized_keys, écriture atomique
 internal/sys/            apt, systemd, fichiers, utilisateurs

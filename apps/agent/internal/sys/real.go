@@ -2,6 +2,7 @@ package sys
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io/fs"
 	"os"
@@ -19,7 +20,14 @@ func (Real) Run(cmd Command) (Output, error) {
 		return Output{}, errors.New("commande vide")
 	}
 
-	process := exec.Command(cmd.Argv[0], cmd.Argv[1:]...)
+	ctx := context.Background()
+	if cmd.Timeout > 0 {
+		limited, cancel := context.WithTimeout(ctx, cmd.Timeout)
+		defer cancel()
+		ctx = limited
+	}
+
+	process := exec.CommandContext(ctx, cmd.Argv[0], cmd.Argv[1:]...)
 	process.Env = append(os.Environ(), cmd.Env...)
 	process.Dir = cmd.Dir
 	if len(cmd.Stdin) > 0 {
