@@ -354,6 +354,7 @@ export const TOOL_LEGACY: Manifest = {
 const PRESETS: Preset[] = [
   {
     id: "web-js",
+    name: "Web JavaScript",
     modules: [
       "core.system",
       "core.hardening",
@@ -364,6 +365,7 @@ const PRESETS: Preset[] = [
   },
   {
     id: "full",
+    name: "Tout le catalogue",
     modules: [
       "core.system",
       "core.hardening",
@@ -377,7 +379,11 @@ const PRESETS: Preset[] = [
       "exposure.cloudflare",
     ],
   },
-  { id: "minimal", modules: ["core.system", "core.hardening"] },
+  {
+    id: "minimal",
+    name: "Minimal",
+    modules: ["core.system", "core.hardening"],
+  },
 ];
 
 export const CATALOG: CatalogResult = {

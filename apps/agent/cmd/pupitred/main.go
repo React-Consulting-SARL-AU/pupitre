@@ -22,8 +22,6 @@ import (
 
 var version = "dev"
 
-const secretsDescriptor = 3
-
 var newSys = func() sys.Sys { return sys.Real{} }
 
 func main() {
@@ -41,7 +39,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stdout, "pupitred "+version)
 		return 0
 	case "serve":
-		if err := newServer(newEngine()).Serve(stdin, stdout, secretStream()); err != nil {
+		if err := newServer(newEngine()).Serve(stdin, stdout); err != nil {
 			fmt.Fprintln(stderr, err)
 			return 1
 		}
@@ -107,17 +105,4 @@ func pathFromEnv(name, fallback string) string {
 	}
 
 	return fallback
-}
-
-func secretStream() io.Reader {
-	file := os.NewFile(secretsDescriptor, "secrets")
-	if file == nil {
-		return nil
-	}
-
-	if _, err := file.Stat(); err != nil {
-		return nil
-	}
-
-	return file
 }

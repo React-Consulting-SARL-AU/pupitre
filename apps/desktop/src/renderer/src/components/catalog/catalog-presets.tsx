@@ -2,19 +2,7 @@ import type { Preset } from "@pupitre/shared/catalog";
 import { Layers } from "lucide-react";
 import { Label } from "../ui/label";
 
-/**
- * The three shortcuts, ahead of the twenty-odd modules.
- *
- * A preset is a list of ids and nothing more, so the app translates the three
- * the contract names and shows any other by its own identifier — a newer agent
- * may declare one this build has never seen.
- */
-const NAMES: Record<string, string> = {
-  "web-js": "Web JavaScript",
-  full: "Tout le catalogue",
-  minimal: "Minimal",
-};
-
+/** The three shortcuts, ahead of the twenty-odd modules. */
 export function CatalogPresets({
   presets,
   onPick,
@@ -41,7 +29,7 @@ export function CatalogPresets({
           >
             <span className="flex items-center gap-2 font-medium text-ink">
               <Layers className="text-ink-3" size={13} strokeWidth={1.5} />
-              {NAMES[preset.id] ?? preset.id}
+              {preset.name}
             </span>
             <span className="font-data text-[11px] text-ink-3 tabular-nums">
               {preset.modules.length} modules

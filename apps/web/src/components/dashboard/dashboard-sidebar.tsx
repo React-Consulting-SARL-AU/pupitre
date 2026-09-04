@@ -1,28 +1,51 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
-import { Laptop, LogOut, Server } from "lucide-react"
+import {
+  CreditCard,
+  Download,
+  Laptop,
+  LogOut,
+  Server,
+  SlidersHorizontal,
+} from "lucide-react"
 import { OrganizationSwitcher } from "@/components/dashboard/organization-switcher"
 import { SidebarLink } from "@/components/dashboard/sidebar-link"
 import { ThemeToggle } from "@/components/dashboard/theme-toggle"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
+import { usePermission } from "@/hooks/use-permission"
 import { authClient } from "@/lib/auth/client"
 import { ENTITLEMENT_LABELS } from "@/lib/domain/server-status"
 
-const GROUPS = [
-  {
-    label: "Organisation",
-    links: [{ to: "/dashboard/servers", label: "Serveurs", icon: Server }],
-  },
-  {
-    label: "Mon compte",
-    links: [{ to: "/dashboard/devices", label: "Appareils", icon: Laptop }],
-  },
+const ORGANIZATION_LINKS = [
+  { to: "/dashboard/servers", label: "Serveurs", icon: Server },
+]
+
+const BILLING_LINK = {
+  to: "/dashboard/billing",
+  label: "Facturation",
+  icon: CreditCard,
+}
+
+const ACCOUNT_LINKS = [
+  { to: "/dashboard/devices", label: "Appareils", icon: Laptop },
+  { to: "/download", label: "Télécharger l'app", icon: Download },
+  { to: "/dashboard/settings", label: "Préférences", icon: SlidersHorizontal },
 ]
 
 export function DashboardSidebar() {
   const { user, entitlement } = useDashboardContext()
+  const canManageBilling = usePermission("billing:manage")
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const groups = [
+    {
+      label: "Organisation",
+      links: canManageBilling
+        ? [...ORGANIZATION_LINKS, BILLING_LINK]
+        : ORGANIZATION_LINKS,
+    },
+    { label: "Mon compte", links: ACCOUNT_LINKS },
+  ]
 
   async function signOut() {
     await authClient().signOut()
@@ -44,7 +67,7 @@ export function DashboardSidebar() {
       <OrganizationSwitcher />
 
       <nav className="flex flex-col gap-6">
-        {GROUPS.map((group) => (
+        {groups.map((group) => (
           <div key={group.label}>
             <p className="px-2 pb-2 text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
               {group.label}

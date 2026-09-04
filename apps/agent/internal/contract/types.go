@@ -132,6 +132,7 @@ func (m Manifest) MarshalJSON() ([]byte, error) {
 
 type Preset struct {
 	ID        string   `json:"id"`
+	Name      string   `json:"name"`
 	Modules   []string `json:"modules"`
 	ChooseOne []string `json:"choose_one,omitempty"`
 }

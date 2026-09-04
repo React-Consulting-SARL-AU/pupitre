@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -25,8 +24,6 @@ var fixedNow = func() time.Time {
 type fixture struct {
 	entitlement contract.Entitlement
 	input       []string
-	secrets     []string
-	hasSecrets  bool
 	expected    []string
 }
 
@@ -45,11 +42,8 @@ func parseFixture(t *testing.T, path string) fixture {
 		case line == "" || strings.HasPrefix(line, "#"):
 		case strings.HasPrefix(line, "@entitlement "):
 			parsed.entitlement = contract.Entitlement(strings.TrimPrefix(line, "@entitlement "))
-		case strings.HasPrefix(line, "> "):
-			parsed.input = append(parsed.input, strings.TrimPrefix(line, "> "))
-		case strings.HasPrefix(line, "$ "):
-			parsed.secrets = append(parsed.secrets, strings.TrimPrefix(line, "$ "))
-			parsed.hasSecrets = true
+		case strings.HasPrefix(line, "> "), strings.HasPrefix(line, "$ "):
+			parsed.input = append(parsed.input, line[2:])
 		case strings.HasPrefix(line, "< "):
 			parsed.expected = append(parsed.expected, strings.TrimPrefix(line, "< "))
 		default:
@@ -123,15 +117,10 @@ func TestFixtures(t *testing.T) {
 func runFixture(t *testing.T, f fixture) {
 	t.Helper()
 
-	var secrets io.Reader
-	if f.hasSecrets {
-		secrets = strings.NewReader(strings.Join(f.secrets, "\n") + "\n")
-	}
-
 	var out bytes.Buffer
 	input := strings.NewReader(strings.Join(f.input, "\n") + "\n")
 
-	if err := newTestServer(f.entitlement).Serve(input, &out, secrets); err != nil {
+	if err := newTestServer(f.entitlement).Serve(input, &out); err != nil {
 		t.Fatalf("serve: %v", err)
 	}
 
@@ -172,7 +161,7 @@ func TestHelloResultMatchesTheContract(t *testing.T) {
 	var out bytes.Buffer
 	input := strings.NewReader(`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}` + "\n" + `{"id":2,"cmd":"ping"}` + "\n")
 
-	if err := newTestServer(contract.EntitlementDev).Serve(input, &out, nil); err != nil {
+	if err := newTestServer(contract.EntitlementDev).Serve(input, &out); err != nil {
 		t.Fatal(err)
 	}
 
@@ -186,11 +175,32 @@ func TestHelloResultMatchesTheContract(t *testing.T) {
 	}
 }
 
+func TestTheSecretLineReachesTheHandlerAndNothingElse(t *testing.T) {
+	var out bytes.Buffer
+	input := strings.NewReader(strings.Join([]string{
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}`,
+		`{"id":2,"cmd":"secrets.set","params":{"key":"API_KEY","secrets_stdin":true}}`,
+		`{"API_KEY":"s3cret-de-test"}`,
+	}, "\n") + "\n")
+
+	if err := newTestServer(contract.EntitlementDev).Serve(input, &out); err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(out.String(), `"keys":["API_KEY"]`) {
+		t.Fatalf("the handler never saw the secret line:\n%s", out.String())
+	}
+
+	if strings.Contains(out.String(), "s3cret-de-test") {
+		t.Fatalf("the secret reached the output:\n%s", out.String())
+	}
+}
+
 func TestServeSurvivesInvalidInputAndReturnsNilAtEOF(t *testing.T) {
 	var out bytes.Buffer
 	input := strings.NewReader("\x00\xff\n\n   \n{\"id\":1,\"cmd\":\"hello\",\"params\":{\"app_version\":\"0.2.0\",\"protocol\":1}}")
 
-	if err := newTestServer(contract.EntitlementDev).Serve(input, &out, nil); err != nil {
+	if err := newTestServer(contract.EntitlementDev).Serve(input, &out); err != nil {
 		t.Fatalf("serve: %v", err)
 	}
 
