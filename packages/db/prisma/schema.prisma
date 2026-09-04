@@ -39,20 +39,21 @@ enum AlertKind {
   entitlement_grace
 }
 
-// user…deviceCode come from `@better-auth/cli generate` (magicLink, organization, deviceAuthorization, bearer, admin): regenerate, do not hand-edit.
+// user…twoFactor come from `@better-auth/cli generate` (magicLink, organization, deviceAuthorization, bearer, admin, passkey, twoFactor): regenerate, do not hand-edit.
 
 model User {
-  id            String    @id
-  name          String
-  email         String
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  role          String?
-  banned        Boolean?  @default(false)
-  banReason     String?
-  banExpires    DateTime?
+  id               String    @id
+  name             String
+  email            String
+  emailVerified    Boolean   @default(false)
+  image            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  role             String?
+  banned           Boolean?  @default(false)
+  banReason        String?
+  banExpires       DateTime?
+  twoFactorEnabled Boolean?  @default(false)
 
   sessions        Session[]
   accounts        Account[]
@@ -61,6 +62,8 @@ model User {
   devices         Device[]
   assignedServers Server[]     @relation("ServerAssignedUser")
   events          Event[]      @relation("EventActor")
+  passkeys        Passkey[]
+  twoFactors      TwoFactor[]
 
   @@unique([email])
   @@map("user")
@@ -181,6 +184,40 @@ model DeviceCode {
   @@index([deviceCode])
   @@index([userCode])
   @@map("deviceCode")
+}
+
+model Passkey {
+  id           String    @id
+  name         String?
+  publicKey    String
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialID String
+  counter      Int
+  deviceType   String
+  backedUp     Boolean
+  transports   String?
+  createdAt    DateTime? @default(now())
+  aaguid       String?
+
+  @@index([userId])
+  @@index([credentialID])
+  @@map("passkey")
+}
+
+model TwoFactor {
+  id                      String    @id
+  secret                  String
+  backupCodes             String
+  userId                  String
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verified                Boolean?  @default(true)
+  failedVerificationCount Int?      @default(0)
+  lockedUntil             DateTime?
+
+  @@index([secret])
+  @@index([userId])
+  @@map("twoFactor")
 }
 
 model Device {

@@ -1,4 +1,7 @@
 {
+  "env": {
+    "IMPECCABLE_CONTEXT_DIR": "docs/product"
+  },
   "permissions": {
     "allow": [
       "Bash(bun run:*)",

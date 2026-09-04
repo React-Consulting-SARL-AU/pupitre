@@ -12,6 +12,12 @@ const env = {
 
 const prisma = {} as AuthPrisma
 
+function passkeyOptionsOf(auth: ReturnType<typeof createAuth>) {
+  const plugin = auth.options.plugins?.find((entry) => entry.id === "passkey")
+
+  return (plugin as { options: { rpID: string } }).options
+}
+
 describe("createAuth", () => {
   it("mounts the expected plugins", () => {
     const auth = createAuth({ prisma, env })
@@ -19,10 +25,13 @@ describe("createAuth", () => {
 
     expect(ids).toEqual([
       "magic-link",
+      "two-factor-challenge",
       "device-authorization",
       "bearer",
       "organization",
       "admin",
+      "passkey",
+      "two-factor",
       "open-api",
       "tanstack-start-cookies",
     ])
@@ -77,6 +86,20 @@ describe("createAuth", () => {
       "https://staging-app.pupitre.studio",
       "https://console.pupitre.studio",
     ])
+  })
+
+  it("derives the relying party from the auth URL", () => {
+    const local = createAuth({ prisma, env })
+
+    expect(local.options.plugins?.find((p) => p.id === "passkey")).toBeDefined()
+
+    const hosted = createAuth({
+      prisma,
+      env: { ...env, BETTER_AUTH_URL: "https://app.pupitre.studio" },
+    })
+
+    expect(passkeyOptionsOf(hosted).rpID).toBe("pupitre.studio")
+    expect(passkeyOptionsOf(local).rpID).toBe("localhost")
   })
 
   it("enables GitHub only when both credentials are present", () => {

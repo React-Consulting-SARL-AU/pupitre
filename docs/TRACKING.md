@@ -17,7 +17,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-09 | Design : ombres, rayons, espace, logos de services | fait | `feat/INF-09-design-tokens` | fusionnée |
 | INF-10 | Flux secret sur l'entrée standard | fait | `feat/INF-10-secret-stream` | fusionnée |
 | INF-12 | Contrat : les releases de l'app | à faire | | |
-| INF-13 | Le quota gratuit vit dans le contrat partagé | à faire | | |
+| INF-13 | Le quota gratuit vit dans le contrat partagé | fait | `main` | constante unique dans `@pupitre/shared/plans` |
 | INF-14 | La langue de l'utilisateur est enregistrée | à faire | | |
 | INF-15 | Contrat : détecter le gestionnaire d'un dépôt | à faire | | |
 | INF-16 | Contrat : le chemin absolu d'un projet | en revue | `feat/INF-16-project-path` | |
@@ -85,7 +85,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-10 | Organisations : membres, invitations, attribution, audit | fait | `feat/PLT-10-teams` | fusionnée |
 | PLT-11 | Emails transactionnels | fait | `feat/PLT-11-emails` | fusionnée |
 | PLT-12 | Alertes et page de statut | fait | `feat/PLT-12-alerts` | fusionnée |
-| PLT-13 | Passkeys et MFA | à faire | | |
+| PLT-13 | Passkeys et MFA | fait | `feat/PLT-13-passkeys` | fusionnée |
 | PLT-14 | Déploiement Cloudflare Builds, staging et production | à faire | | |
 | PLT-15 | Workflows Cloudflare : déclencheurs des tâches longues | à faire | | |
 | PLT-16 | Harnais Playwright pour la console | à faire | | |
@@ -110,6 +110,5 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
-| 2026-09-04 | AGT-09 | Le préréglage `full` du contrat liste `exposure.cloudflare` **et** `exposure.ssh`, or les deux manifestes se déclarent en conflit comme la tâche le demande : `install` du préréglage complet est refusé en `bad_request`. À trancher : retirer `exposure.ssh` de `full`, ou donner à ce préréglage un `choose_one` comme `minimal` en a un pour les agents. | propriétaire |
 | 2026-09-04 | AGT-09 | Le contrat fixe la forme de la ligne secrète d'`install` (`InstallSecrets`) mais pas celle de `secrets.set` : l'agent lit `{"<clé>": "<valeur>"}`, la forme du test du protocole. À trancher : l'écrire dans `agent-protocol.md` et lui donner un schéma. | propriétaire |
 | 2026-09-04 | AGT-08 | Le contrat donne un champ `version` aux éditeurs, mais aucune liste fermée d'options ne tient : le serveur distant de Zed doit correspondre exactement à la version du client, et un backend JetBrains à la version du Gateway. Les deux modules livrent donc `version` en `text` (défaut `latest`) au lieu du genre `version`. À trancher : ouvrir le genre `version` à une saisie libre, ou laisser `text`. | propriétaire |
