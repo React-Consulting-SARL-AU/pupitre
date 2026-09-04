@@ -1,8 +1,14 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
+import { FreshnessNotice } from "@/components/status/freshness-notice"
 import { StatusDot } from "@/components/ui/status-dot"
 import { statusQueryOptions } from "@/lib/api/queries"
 import type { StatusLook } from "@/lib/domain/server-status"
+import {
+  activeServersLabel,
+  activeServersValue,
+  observationLabel,
+} from "@/lib/domain/service-status"
 import { formatDateTime } from "@/lib/utils/format"
 
 export const Route = createFileRoute("/status")({
@@ -78,6 +84,13 @@ function StatusPage() {
         ) : null}
 
         {status.data ? (
+          <FreshnessNotice
+            freshness={status.data.freshness}
+            lastObservationAt={status.data.last_observation_at}
+          />
+        ) : null}
+
+        {status.data ? (
           <div className="rounded-md bg-surface shadow-raised">
             <ul>
               <Row label="API" look={healthLook(status.data.api)} />
@@ -96,9 +109,19 @@ function StatusPage() {
               />
             </ul>
             <div className="flex items-baseline justify-between gap-4 border-line border-t px-4 py-3">
-              <span className="text-[13px] text-ink-2">Serveurs actifs</span>
-              <span className="font-data text-[14px] text-ink tabular-nums">
-                {status.data.active_servers}
+              <span className="text-[13px] text-ink-2">
+                {activeServersLabel(status.data.freshness)}
+              </span>
+              <span
+                className={`font-data text-[14px] tabular-nums ${
+                  status.data.freshness === "fresh" ? "text-ink" : "text-ink-3"
+                }`}
+                data-testid="active-servers"
+              >
+                {activeServersValue(
+                  status.data.freshness,
+                  status.data.active_servers
+                )}
               </span>
             </div>
           </div>
@@ -106,7 +129,10 @@ function StatusPage() {
 
         <footer className="pt-gutter text-[12px] text-ink-3">
           {status.data
-            ? `Relevé le ${formatDateTime(status.data.checked_at)}. `
+            ? `Relevé le ${formatDateTime(status.data.checked_at)}. ${observationLabel(
+                status.data.freshness,
+                status.data.last_observation_at
+              )} `
             : ""}
           Ce compteur est agrégé : il ne dit rien d'aucun client.
         </footer>

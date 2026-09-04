@@ -1,4 +1,5 @@
 import type { ReleaseChannel } from "@pupitre/db/cloudflare/client"
+import { type StatusFreshness, statusFreshness } from "@pupitre/shared/status"
 import { getPrisma } from "../api/prisma"
 import { compareVersions } from "../releases/semver"
 
@@ -15,6 +16,8 @@ export interface ServiceStatus {
   database: ServiceHealth
   latest_release: PublishedRelease | null
   active_servers: number
+  last_observation_at: Date | null
+  freshness: StatusFreshness
   checked_at: Date
 }
 
@@ -52,19 +55,27 @@ export async function readServiceStatus(
   const prisma = getPrisma()
 
   try {
-    const [activeServers, releases] = await Promise.all([
+    const [activeServers, releases, lastObservation] = await Promise.all([
       prisma.server.count({ where: { status: "active" } }),
       prisma.release.findMany({
         where: { channel: "stable" },
         select: { version: true, channel: true, publishedAt: true },
       }),
+      prisma.server.aggregate({
+        where: { status: "active" },
+        _max: { lastHeartbeatAt: true },
+      }),
     ])
+
+    const lastObservationAt = lastObservation._max.lastHeartbeatAt ?? null
 
     return {
       api: "ok",
       database: "ok",
       latest_release: newest(releases),
       active_servers: activeServers,
+      last_observation_at: lastObservationAt,
+      freshness: statusFreshness(lastObservationAt, now),
       checked_at: now,
     }
   } catch (error) {
@@ -75,6 +86,8 @@ export async function readServiceStatus(
       database: "down",
       latest_release: null,
       active_servers: 0,
+      last_observation_at: null,
+      freshness: "unknown",
       checked_at: now,
     }
   }

@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"pupitre.studio/agent/internal/daemon"
 	"pupitre.studio/agent/internal/devcli"
 	"pupitre.studio/agent/internal/entitlement"
 	"pupitre.studio/agent/internal/modules"
@@ -50,6 +51,10 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 			return 1
 		}
 		return 0
+	case "daemon":
+		return runDaemon(newDaemon(newEngine()), stderr)
+	case "enroll":
+		return runEnroll(newDaemon(newEngine()), stdin, stderr)
 	case "install":
 		return runInstall(newEngine(), args[1:], stderr)
 	case "report":
@@ -69,13 +74,13 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 }
 
 func usage(stderr io.Writer) {
-	fmt.Fprintln(stderr, "usage: pupitred <serve|install [--only=id,id] [--skip=id,id]|probe [--script] [--projects=DIR]|report|dev|shot|gallery|version>")
+	fmt.Fprintln(stderr, "usage: pupitred <serve|daemon|enroll|install [--only=id,id] [--skip=id,id]|probe [--script] [--projects=DIR]|report|dev|shot|gallery|version>")
 }
 
 func newServer(engine *modules.Engine) *protocol.Server {
 	server := protocol.NewServer(protocol.Options{
 		AgentVersion: version,
-		Entitlement:  entitlement.Current(),
+		Entitlement:  newResolver(engine).State,
 	})
 	modules.RegisterCommands(server, engine)
 	core.RegisterCommands(server, engine)
@@ -84,6 +89,7 @@ func newServer(engine *modules.Engine) *protocol.Server {
 	tool.RegisterCommands(server, engine)
 	probe.RegisterCommands(server, probeOptions(engine))
 	selfupdate.RegisterCommands(server, upgradeOptions(engine))
+	daemon.RegisterCommands(server, daemonOptions(engine))
 	state.RegisterCommands(server, state.FromEngine(engine, stateOptions()).WithJournal(engine.LogPath))
 
 	return server
@@ -92,6 +98,34 @@ func newServer(engine *modules.Engine) *protocol.Server {
 // The pause between the C-c and the kill leaves a dev server the time to close its port; nothing else waits.
 func stateOptions() state.Options {
 	return state.Options{Tmux: tmux.Options{Grace: 400 * time.Millisecond}}
+}
+
+func newDaemon(engine *modules.Engine) *daemon.Daemon {
+	options := daemonOptions(engine)
+	options.Reader = state.FromEngine(engine, stateOptions()).WithJournal(engine.LogPath)
+
+	return daemon.New(options)
+}
+
+func daemonOptions(engine *modules.Engine) daemon.Options {
+	return daemon.Options{
+		Sys:          engine.Sys,
+		Entitlement:  newResolver(engine),
+		AgentVersion: version,
+		TokenPath:    pathFromEnv("PUPITRE_TOKEN_PATH", platform.DefaultTokenPath),
+		KeysPath:     pathFromEnv("PUPITRE_KEYS_PATH", daemon.DefaultKeysPath),
+		HostKeyPath:  pathFromEnv("PUPITRE_HOST_KEY_PATH", daemon.DefaultHostKeyPath),
+		LogPath:      engine.LogPath,
+		Platform:     platform.Client{BaseURL: os.Getenv("PUPITRE_PLATFORM_URL")},
+	}
+}
+
+func newResolver(engine *modules.Engine) *entitlement.Resolver {
+	return entitlement.New(entitlement.Options{
+		Sys:       engine.Sys,
+		CachePath: pathFromEnv("PUPITRE_ENTITLEMENT_PATH", entitlement.DefaultCachePath),
+		TokenPath: pathFromEnv("PUPITRE_TOKEN_PATH", platform.DefaultTokenPath),
+	})
 }
 
 func upgradeOptions(engine *modules.Engine) selfupdate.Options {
@@ -110,15 +144,17 @@ func probeOptions(engine *modules.Engine) probe.Options {
 }
 
 func newEngine() *modules.Engine {
-	return &modules.Engine{
+	engine := &modules.Engine{
 		Registry:     modules.Default(),
 		Sys:          newSys(),
-		Entitlement:  entitlement.Current,
 		AgentVersion: version,
 		ReportPath:   pathFromEnv("PUPITRE_REPORT_PATH", modules.DefaultReportPath),
 		LogPath:      pathFromEnv("PUPITRE_LOG_PATH", modules.DefaultLogPath),
 		InstallPath:  pathFromEnv("PUPITRE_INSTALL_PATH", modules.DefaultInstallPath),
 	}
+	engine.Entitlement = newResolver(engine).Current
+
+	return engine
 }
 
 func pathFromEnv(name, fallback string) string {

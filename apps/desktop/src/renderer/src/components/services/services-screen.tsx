@@ -4,6 +4,8 @@ import { Button } from "@renderer/components/ui/button";
 import { EmptyState } from "@renderer/components/ui/empty-state";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { PageHeader } from "@renderer/components/ui/page-header";
+import { ModuleUpgradePanel } from "@renderer/components/updates/module-upgrade-panel";
+import { useAgentUpdate } from "@renderer/stores/agent-update";
 import { useCatalog } from "@renderer/stores/catalog";
 import { useServices } from "@renderer/stores/services";
 import { useTunnel } from "@renderer/stores/tunnel";
@@ -47,6 +49,7 @@ export function ServicesScreen({
   const loadCatalog = useCatalog((state) => state.load);
 
   const tunnel = useTunnel();
+  const update = useAgentUpdate();
   const closePanel = useServices((state) => state.close);
 
   const installed = services.map((service) => service.id);
@@ -76,6 +79,14 @@ export function ServicesScreen({
 
   function manifestsOf(): Manifest[] {
     return modules().filter((manifest) => installed.includes(manifest.id));
+  }
+
+  function nameOf(moduleId: string): string {
+    return (
+      services.find((service) => service.id === moduleId)?.name ??
+      modules().find((manifest) => manifest.id === moduleId)?.name ??
+      moduleId
+    );
   }
 
   async function back(): Promise<void> {
@@ -166,6 +177,16 @@ export function ServicesScreen({
             ))}
           </ul>
         )}
+
+        {services.length > 0 ? (
+          <ModuleUpgradePanel
+            modules={installed}
+            nameOf={nameOf}
+            onUpgrade={() => update.upgradeModules(serverId, installed)}
+            state={update.modules}
+            steps={update.steps}
+          />
+        ) : null}
 
         {tunnel.tunnel.status === "ready" ? (
           <ServicesTunnel

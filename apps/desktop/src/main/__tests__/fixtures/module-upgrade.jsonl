@@ -1,0 +1,7 @@
+# upgrade rejoue les étapes des modules déjà posés, et rend le même rapport qu'une installation.
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","protocol":1}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.3.0","protocol":1,"entitlement":"dev","capabilities":["hello","upgrade"]}}
+> {"id":2,"cmd":"upgrade","params":{"modules":["runtime.node","db.postgres"]}}
+< {"id":2,"event":"step","module":"runtime.node","step":"dépôt nodesource","status":"ok","ms":1200}
+< {"id":2,"event":"step","module":"db.postgres","step":"paquet postgresql","status":"fail","ms":3400,"replay":"pupitred install --only=db.postgres"}
+< {"id":2,"ok":true,"result":{"failed":["db.postgres"],"warned":["runtime.node"],"report_path":"/var/log/pupitre/upgrade-20260904.json"}}

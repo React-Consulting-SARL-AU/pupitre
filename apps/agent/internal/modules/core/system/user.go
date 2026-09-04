@@ -6,11 +6,13 @@ import (
 	"io/fs"
 	"strings"
 
+	"pupitre.studio/agent/internal/daemon"
 	"pupitre.studio/agent/internal/devcli"
 	"pupitre.studio/agent/internal/keys"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/sys/systemd"
 	"pupitre.studio/agent/internal/sys/user"
 )
 
@@ -217,6 +219,37 @@ func linked(ctx *modules.Context) bool {
 	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"readlink", devcli.Link}})
 
 	return err == nil && strings.TrimSpace(out.Stdout) == devcli.Binary
+}
+
+// The agent's own service: without it nobody reads the platform, and the keys of the console never reach this machine.
+func installAgentUnit(ctx *modules.Context) error {
+	return ctx.Step("install-agent-unit", func() (modules.Outcome, error) {
+		if file.Same(ctx, daemon.UnitPath, []byte(daemon.UnitFile)) && systemd.Active(ctx, daemon.Unit) {
+			return modules.Skipped, nil
+		}
+
+		if err := systemd.WriteUnit(ctx, daemon.Unit, []byte(daemon.UnitFile)); err != nil {
+			return modules.Failed, err
+		}
+
+		return modules.Done, systemd.Enable(ctx, daemon.Unit)
+	})
+}
+
+func removeAgentUnit(ctx *modules.Context) error {
+	return ctx.Step("remove-agent-unit", func() (modules.Outcome, error) {
+		if !file.Exists(ctx, daemon.UnitPath) {
+			return modules.Skipped, nil
+		}
+
+		if err := systemd.Disable(ctx, daemon.Unit); err != nil {
+			ctx.Warn("unité " + daemon.Unit + " non arrêtée : " + err.Error())
+		}
+
+		_, err := file.Remove(ctx, daemon.UnitPath)
+
+		return modules.Done, err
+	})
 }
 
 func writeTmuxConf(ctx *modules.Context) error {

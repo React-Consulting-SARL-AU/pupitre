@@ -34,7 +34,7 @@ Une clé d'accès enregistrée ouvre la session seule : le relying party est le 
 
 | Méthode | Route | Corps | Réponse |
 | --- | --- | --- | --- |
-| GET | `/status` | — | `{ data: { api, database, latest_release, active_servers, checked_at } }`. Aucun guard : la route répond sans session. `api` et `database` valent `ok` ou `down`, `latest_release` est la dernière version publiée sur le canal `stable` (`{ version, channel, published_at }`) ou `null`, `active_servers` est le nombre total de serveurs au statut `active`. Rien d'autre ne sort : ni identifiant, ni nom d'organisation, ni nom de machine, ni adresse |
+| GET | `/status` | — | `{ data: { api, database, latest_release, active_servers, last_observation_at, freshness, checked_at } }`. Aucun guard : la route répond sans session. `api` et `database` valent `ok` ou `down`, `latest_release` est la dernière version publiée sur le canal `stable` (`{ version, channel, published_at }`) ou `null`, `active_servers` est le nombre total de serveurs au statut `active`. `checked_at` est l'instant du calcul, `last_observation_at` la date du heartbeat le plus récent reçu de toute la flotte, ou `null` si la plateforme n'en a aucun, et `freshness` le verdict de la plateforme sur cette date, contre sa propre horloge : `fresh`, `stale` au-delà de `STATUS_STALE_AFTER_MS` (quinze minutes, `@pupitre/shared/status`), `unknown` sans observation. Une donnée `stale` ou `unknown` interdit d'afficher un état rassurant. Rien d'autre ne sort : ni identifiant, ni nom d'organisation, ni nom de machine, ni adresse ; `last_observation_at` est un maximum agrégé, il ne désigne aucun serveur |
 
 ### Serveurs
 
@@ -56,6 +56,8 @@ Une clé d'accès enregistrée ouvre la session seule : le relying party est le 
 | GET | `/agent/state` | — | `{ entitlement: "valid" \| "grace" \| "suspended", valid_until, authorized_keys[], target_version, hostname, module_params }`. `target_version` est la dernière version publiée du canal du serveur (`Server.channel`, `stable` par défaut ; un serveur `beta` voit aussi les versions `stable`) pour son architecture, jamais plus ancienne que celle qu'il porte déjà |
 | POST | `/agent/heartbeat` | `{ disk, ram, load, sessions[], stack_version, modules[], agent_version? }` | 204. L'échantillon rejoint `Server.metrics`, fenêtre glissante de 7 jours |
 | GET | `/agent/release/:version` | — | 303 vers une URL R2 signée, valable 5 minutes, pour l'architecture du serveur. `release_not_found` (404) si la version n'existe pas pour cette architecture |
+
+`stack_version` porte la version de l'agent lui-même, la même valeur qu'`agent_version`. Le nom vient de la stack bash d'origine, où les deux différaient ; il n'y a plus qu'un binaire.
 
 ### Releases, côté appareil
 

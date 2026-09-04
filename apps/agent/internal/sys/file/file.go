@@ -75,6 +75,10 @@ func Remove(ctx sys.Context, path string) (bool, error) {
 }
 
 func EnsureBlock(ctx sys.Context, path, name string, content []byte) (bool, error) {
+	return EnsureBlockMode(ctx, path, name, content, 0o644)
+}
+
+func EnsureBlockMode(ctx sys.Context, path, name string, content []byte, mode fs.FileMode) (bool, error) {
 	current, err := ctx.Sys().ReadFile(path)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return false, err
@@ -87,7 +91,23 @@ func EnsureBlock(ctx sys.Context, path, name string, content []byte) (bool, erro
 
 	ctx.Logf("write block %s in %s", name, path)
 
-	return true, ctx.Sys().WriteFile(path, []byte(updated), 0o644)
+	return true, ctx.Sys().WriteFile(path, []byte(updated), mode)
+}
+
+func ReadBlock(ctx sys.Context, path, name string) ([]byte, bool) {
+	current, err := ctx.Sys().ReadFile(path)
+	if err != nil {
+		return nil, false
+	}
+
+	start, end := blockStart(name)+"\n", blockEnd(name)+"\n"
+	from := strings.Index(string(current), start)
+	to := strings.Index(string(current), end)
+	if from < 0 || to < from {
+		return nil, false
+	}
+
+	return current[from+len(start) : to], true
 }
 
 func HasBlock(ctx sys.Context, path, name string) bool {

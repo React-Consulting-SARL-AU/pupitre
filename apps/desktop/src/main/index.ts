@@ -1,6 +1,6 @@
 import { join } from "node:path";
-import { DARK, LIGHT } from "@pupitre/design/tokens";
 import type { AgentResponse } from "@shared/agent";
+import { windowBackground } from "@shared/appearance";
 import type {
   HostKeyDecision,
   ServerAdded,
@@ -18,6 +18,8 @@ import {
 } from "electron";
 import { registerAccount } from "./account";
 import { agentClient, registerAgentChannels } from "./agent";
+import { registerAgentUpdate } from "./agent-update";
+import { registerAppearance } from "./appearance";
 import { registerCatalog } from "./catalog";
 import { completions } from "./completion";
 import { registerHarden } from "./harden";
@@ -76,12 +78,12 @@ function settle(config: ServersConfig): ServersConfig {
 /**
  * What the native window paints before the page does, and while it resizes.
  *
- * The main process has no stylesheet, so the value comes from the design tokens
- * as data. It follows the system: the theme forced in the settings lives in the
- * renderer, and this colour is only ever seen at the edges.
+ * At creation the choice is still in the renderer, which remembers it, so the
+ * window opens on whatever `nativeTheme` says and the renderer corrects it over
+ * `appearance:set` before the first paint.
  */
-function windowBackground(): string {
-  return nativeTheme.shouldUseDarkColors ? DARK.base : LIGHT.base;
+function nativeBackground(): string {
+  return windowBackground(nativeTheme.shouldUseDarkColors ? "dark" : "light");
 }
 
 function createWindow(): void {
@@ -92,7 +94,7 @@ function createWindow(): void {
     minHeight: 560,
     show: false,
     titleBarStyle: "hiddenInset",
-    backgroundColor: windowBackground(),
+    backgroundColor: nativeBackground(),
     icon: new URL("../../build/icon.png", import.meta.url).pathname,
     webPreferences: {
       preload: new URL("../preload/index.mjs", import.meta.url).pathname,
@@ -105,7 +107,7 @@ function createWindow(): void {
   window.on("ready-to-show", () => window?.show());
 
   nativeTheme.on("updated", () =>
-    window?.setBackgroundColor(windowBackground())
+    window?.setBackgroundColor(nativeBackground())
   );
 
   window.webContents.setWindowOpenHandler(({ url }) => {
@@ -342,6 +344,8 @@ function registerLoginChannels(): void {
 function registerChannels(): void {
   registerAccount();
   registerAgentChannels();
+  registerAgentUpdate();
+  registerAppearance(() => window);
   registerInspection();
   registerCatalog();
   registerInstall();
