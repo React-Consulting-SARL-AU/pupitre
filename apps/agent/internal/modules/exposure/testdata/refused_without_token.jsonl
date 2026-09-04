@@ -1,0 +1,17 @@
+# Sans jeton, cloudflared s'installe et c'est la configuration qui refuse ; tunnel.sync le dit en bad_request.
+@file /etc/pupitre/projects.conf web|flymate/apps/web|-|bun|web.localhost|3000|app|bun run dev
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+> {"id":2,"cmd":"install","params":{"secrets_stdin":false,"modules":["exposure.cloudflare"],"config":{"exposure.cloudflare":{"account_id":"acc-1234","zone_id":"zone-1234","zone_name":"flymate.dev","domain":"flymate.dev"}}}}
+> {"id":3,"cmd":"tunnel.sync"}
+> {"id":4,"cmd":"project.url","params":{"name":"web"}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["agent.open","catalog","diag","doctor","hello","install","ping","process.kill","processes.list","project.add","project.branches","project.checkout","project.diff","project.down","project.git_status","project.install","project.list","project.logs","project.remove","project.restart","project.sync","project.up","project.url","project.working_tree","reboot","report","service.status","sessions.clean","sessions.list","shots.clean","shots.list","shots.url","snapshot","status","tunnel.restart","tunnel.status","tunnel.sync","uninstall","upgrade"]}}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"install-package"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"install-package"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"write-config"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"write-config"}
+< {"event":"step","id":2,"module":"exposure.cloudflare","ms":0,"status":"start","step":"install-cloudflared"}
+< {"event":"step","id":2,"module":"exposure.cloudflare","ms":0,"status":"ok","step":"install-cloudflared"}
+< {"event":"step","id":2,"module":"exposure.cloudflare","ms":0,"replay":"sudo pupitred install --only=exposure.cloudflare","status":"fail","step":"configure"}
+< {"id":2,"ok":true,"result":{"failed":["exposure.cloudflare · configure : bad_request: exposure.cloudflare : Jeton d'API — champ requis manquant · rejeu : sudo pupitred install --only=exposure.cloudflare"],"warned":[],"report_path":"%REPORT_PATH%"}}
+< {"id":3,"ok":false,"error":{"code":"bad_request","message":"exposure.cloudflare : Jeton d'API — champ requis manquant","fix":"Renseigne Jeton d'API dans la configuration de Cloudflare Tunnel, puis relance l'installation."}}
+< {"id":4,"ok":true,"result":{"url":"http://web.localhost:3000"}}

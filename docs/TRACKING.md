@@ -32,7 +32,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-06 | Modules bases de données | fait | `feat/AGT-06-databases` | fusionnée |
 | AGT-07 | Modules agents IA et navigateur | fait | `feat/AGT-07-ai-modules` | fusionnée |
 | AGT-08 | Modules éditeurs distants | fait | `feat/AGT-08-editors` | fusionnée |
-| AGT-09 | Modules exposition et outils | à faire | | |
+| AGT-09 | Modules exposition et outils | en revue | `feat/AGT-09-exposure` | |
 | AGT-10 | Registre des projets et pilotage | fait | `feat/AGT-10-registry` | fusionnée |
 | AGT-11 | Sessions, processus, captures, secrets, bases | fait | `feat/AGT-11-sessions` | fusionnée |
 | AGT-12 | Shell de l'app et autocomplétion | à faire | | |
@@ -107,4 +107,6 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
+| 2026-09-04 | AGT-09 | Le préréglage `full` du contrat liste `exposure.cloudflare` **et** `exposure.ssh`, or les deux manifestes se déclarent en conflit comme la tâche le demande : `install` du préréglage complet est refusé en `bad_request`. À trancher : retirer `exposure.ssh` de `full`, ou donner à ce préréglage un `choose_one` comme `minimal` en a un pour les agents. | propriétaire |
+| 2026-09-04 | AGT-09 | Le contrat fixe la forme de la ligne secrète d'`install` (`InstallSecrets`) mais pas celle de `secrets.set` : l'agent lit `{"<clé>": "<valeur>"}`, la forme du test du protocole. À trancher : l'écrire dans `agent-protocol.md` et lui donner un schéma. | propriétaire |
 | 2026-09-04 | AGT-08 | Le contrat donne un champ `version` aux éditeurs, mais aucune liste fermée d'options ne tient : le serveur distant de Zed doit correspondre exactement à la version du client, et un backend JetBrains à la version du Gateway. Les deux modules livrent donc `version` en `text` (défaut `latest`) au lieu du genre `version`. À trancher : ouvrir le genre `version` à une saisie libre, ou laisser `text`. | propriétaire |

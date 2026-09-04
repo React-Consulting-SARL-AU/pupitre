@@ -12,7 +12,9 @@ import (
 	"pupitre.studio/agent/internal/modules/core"
 	"pupitre.studio/agent/internal/modules/db"
 	_ "pupitre.studio/agent/internal/modules/editor"
+	"pupitre.studio/agent/internal/modules/exposure"
 	_ "pupitre.studio/agent/internal/modules/runtime"
+	"pupitre.studio/agent/internal/modules/tool"
 	"pupitre.studio/agent/internal/probe"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/shots"
@@ -73,6 +75,8 @@ func newServer(engine *modules.Engine) *protocol.Server {
 	modules.RegisterCommands(server, engine)
 	core.RegisterCommands(server, engine)
 	db.RegisterCommands(server, engine)
+	exposure.RegisterCommands(server, engine)
+	tool.RegisterCommands(server, engine)
 	probe.RegisterCommands(server, probeOptions(engine))
 	state.RegisterCommands(server, state.FromEngine(engine, stateOptions()).WithJournal(engine.LogPath))
 

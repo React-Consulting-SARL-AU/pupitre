@@ -178,3 +178,40 @@ describe("command line", () => {
     expect(result.stderr.toString()).toContain("private key")
   })
 })
+
+describe("test fixtures", () => {
+  test("lets a test file hold a credential-shaped fixture", () => {
+    const line = `const TOKEN = "6d1f0c2b9a4e8f7c5b3a1d0e9f8c7b6a"`
+
+    expect(findSecrets(line, "src/emails/redaction.test.ts")).toEqual([])
+    expect(findSecrets(line, "src/emails/redaction.ts")).not.toEqual([])
+  })
+
+  test("still refuses a real provider key inside a test", () => {
+    const line = `const key = "${["sk", "live", "51H8kQ2eZvKYlo2CxxxxxxxxxxxA"].join("_")}"`
+
+    expect(
+      findSecrets(line, "src/billing/stripe.test.ts").length
+    ).toBeGreaterThan(0)
+  })
+})
+
+describe("go and data fixtures", () => {
+  const line = ["postgres://app:", "h7Kd2m9Qp4Rx", "@127.0.0.1:5432/shop"].join(
+    ""
+  )
+
+  test("lets a Go test hold a fixture connection string", () => {
+    expect(findSecrets(line, "internal/tool/module_test.go")).toEqual([])
+  })
+
+  test("lets a transcript under testdata hold one", () => {
+    expect(findSecrets(line, "internal/tool/testdata/secrets.jsonl")).toEqual(
+      []
+    )
+  })
+
+  test("still refuses one in ordinary Go source", () => {
+    expect(findSecrets(line, "internal/tool/module.go")).not.toEqual([])
+  })
+})
