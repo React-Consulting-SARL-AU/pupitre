@@ -52,8 +52,16 @@ export function ServicesScreen({
   const installed = services.map((service) => service.id);
   const key = installed.join(" ");
 
+  // The add flow loads the catalogue itself, and a catalogue already read for
+  // this machine and these modules is the same answer twice.
   useEffect(() => {
-    if (view.kind === "add") {
+    const state = useCatalog.getState();
+    const read =
+      state.catalog.status === "ready" &&
+      state.catalog.serverId === serverId &&
+      state.installed.join(" ") === key;
+
+    if (view.kind === "add" || read) {
       return;
     }
 
