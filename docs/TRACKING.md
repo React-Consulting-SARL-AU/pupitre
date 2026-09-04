@@ -68,7 +68,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-13 | Build macOS signé, notarisé, bytecode, auto-update | en revue | `feat/APP-13-builds` | |
 | APP-14 | Compte : device flow, appareils, enrôlement | à faire | | |
 | APP-15 | Serveurs distants et organisations | à faire | | |
-| APP-16 | Builds Windows et Linux | à faire | | |
+| APP-16 | Builds Windows et Linux | en revue | `feat/APP-13-builds` | |
 | APP-17 | Harnais Playwright pour Electron | fait | `feat/APP-17-electron-e2e` | fusionnée |
 | APP-18 | Fond natif de la fenêtre selon le thème | fait | `feat/APP-18-window-and-font` | fusionnée |
 | APP-19 | Appliquer le design accueillant à l'app | fait | `feat/APP-19-warm-design` | fusionnée |

@@ -35,11 +35,22 @@ bun run build          # type-check + bundle, no packaging
 bun run build:mac      # .dmg for arm64 and x64
 bun run build:linux    # AppImage + .deb
 bun run build:win      # NSIS installer
+bun run release        # the above for this OS, signed, then published
 ```
 
 Each platform has to be built on itself: electron-builder can package for
 several architectures of the same OS, but the native module has to be compiled by
-the target platform.
+the target platform. `.github/workflows/release.yml` therefore runs one job per
+OS on a tag; the runbook is in [`docs/monorepo.md`](../../docs/monorepo.md).
+
+The main process is compiled to V8 bytecode, which needs the Electron binary at
+build time — the one the section above puts back. The preload is not: Electron
+loads it in the renderer, whose V8 refuses cache data produced by the Node
+isolate that compiled it, and the window then opens without its bridge.
+
+Signing is driven entirely by the environment. With no certificate in reach,
+electron-builder says so and produces an unsigned artefact, which is what a
+build on your own machine wants.
 
 ## Tests
 

@@ -26,6 +26,7 @@ import { registerHarden } from "./harden";
 import { registerInspection } from "./inspection";
 import { registerInstall } from "./install";
 import { closeLogin, moveLogin, openLogin } from "./login-view";
+import { current, windowChrome } from "./platform";
 import { registerProjects } from "./projects";
 import { declaresProject, forgetProjects, projectFolder } from "./projects-run";
 import { registerSecrets } from "./secrets";
@@ -105,7 +106,7 @@ function createWindow(): void {
     minWidth: 940,
     minHeight: 560,
     show: false,
-    titleBarStyle: "hiddenInset",
+    ...windowChrome(current()),
     backgroundColor: nativeBackground(),
     icon: beside("../../build/icon.png"),
     webPreferences: {

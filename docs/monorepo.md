@@ -14,7 +14,7 @@ Même outillage que React-Box, mêmes versions quand elles sont compatibles : ce
 | Prisma 7 | schéma et migrations | client généré committé, empreinte `packages/db/src/generated/.prisma-inputs.sha256` vérifiée au lint par `scripts/check-prisma-client-freshness.ts` ; `db:migrate` et `db:migrate:reset` exigent `PUPITRE_ALLOW_MIGRATE_ON=staging` ou `local` |
 | Wrangler 4 | Workers, Pages, R2, secrets | `secrets.required` déclarés dans `wrangler.jsonc`, vérifiés avant déploiement |
 | Go 1.25+ | l'agent | `gofmt`, `go vet`, `go test`, `garble` en release. Installé par Homebrew sur la machine du propriétaire |
-| electron-vite, electron-builder | l'app desktop | bytecode du main et du preload, notarisation |
+| electron-vite, electron-builder | l'app desktop | bytecode du processus principal, fusibles, signature et notarisation ; un runner par système |
 
 ## Développement local
 
@@ -96,7 +96,17 @@ Les trois `latest*.yml` sont ce que lit `electron-updater` : ils sont produits p
 3. **Azure Trusted Signing.** Créer un compte de signature (région proche, par exemple *West Europe*), y créer une identité validée puis un profil de certificat. La validation d'identité d'une organisation prend quelques jours et demande des justificatifs ; un profil *Public Trust* est ce qu'il faut pour que Windows ne prévienne pas. Créer ensuite une application Entra ID, lui donner un secret client, et lui attribuer le rôle *Trusted Signing Certificate Profile Signer* sur le compte.
 4. **Le jeton de mise à jour.** Le jeton fin décrit ci-dessus, sur le seul dépôt `pupitre`, en lecture des contenus.
 5. **Les secrets du dépôt.** GitHub → *Settings* → *Secrets and variables* → *Actions*, les neuf noms du tableau ci-dessus. Rien de tout cela n'entre dans le dépôt sous aucune forme.
-6. **Aligner `electron-builder.yml`.** `win.azureSignOptions` porte `publisherName`, `endpoint`, `codeSigningAccountName` et `certificateProfileName` : ce sont les noms lus dans le portail Azure, et `publisherName` doit être **exactement** le sujet du certificat émis. Tant qu'ils ne sont pas connus, le bloc reste commenté et le build Windows sort non signé.
+6. **Aligner `electron-builder.yml`.** Les quatre valeurs de la signature Windows se lisent dans le portail Azure et ne s'inventent pas ; une fois connues, ajouter sous `win:` :
+
+   ```yaml
+   azureSignOptions:
+     publisherName: <le sujet exact du certificat émis>
+     endpoint: https://weu.codesigning.azure.net
+     codeSigningAccountName: pupitre-signing
+     certificateProfileName: pupitre
+   ```
+
+   `endpoint` dépend de la région du compte de signature. Tant que ce bloc n'existe pas, le build Windows va au bout et sort **non signé** : Windows affiche alors un avertissement SmartScreen au premier lancement.
 7. **Publier.** `git tag v0.2.0 && git push origin v0.2.0`. Le workflow construit les trois systèmes, signe, notarise, et pousse les artefacts sur une release GitHub.
 8. **Vérifier.** Sur un Mac qui n'a jamais vu le certificat : télécharger le `.dmg`, l'ouvrir, l'app démarre sans avertissement Gatekeeper. `spctl --assess --type execute -vv /Applications/Pupitre.app` répond `accepted, source=Notarized Developer ID`.
 
@@ -105,6 +115,18 @@ Les trois `latest*.yml` sont ce que lit `electron-updater` : ils sont produits p
 `electron-vite build` compile le processus principal en bytecode V8 ; `electron-builder --publish always` empaquette, retourne les fusibles (`onlyLoadAppFromAsar`, validation d'intégrité de l'asar, `runAsNode` coupé), signe, notarise sur macOS, puis téléverse. Un build sans identité de signature ne s'arrête pas : electron-builder le dit et produit un artefact non signé — c'est ce qui rend `bun --cwd=apps/desktop run build:mac` utilisable sur la machine du propriétaire.
 
 Un retour arrière se fait en publiant la version précédente : `electron-updater` ne redescend pas de version, il faut donc republier au-dessus. Une release retirée de GitHub disparaît du flux, mais n'annule pas ce qui est déjà installé.
+
+### Ce qui se construit où
+
+Un module natif ne se compile pas pour un autre système : `node-pty` impose un runner par OS, et c'est la raison de la matrice `macos-15`, `windows-2025`, `ubuntu-24.04` du workflow. Depuis un Mac, `bun --cwd=apps/desktop run build:linux` s'arrête sur `node-gyp does not support cross-compiling native modules` — ce n'est pas une erreur de configuration.
+
+| Système | Ce qui sort | Ce qui le signe |
+| --- | --- | --- |
+| macOS | `.dmg` arm64 et x64 | certificat Developer ID, puis notarisation |
+| Windows | installateur NSIS de l'architecture du runner | Azure Trusted Signing, si le bloc existe |
+| Linux | AppImage et `.deb` de l'architecture du runner | rien : Linux ne signe pas les applications |
+
+Le `.deb` s'appelle `pupitre` et non `@pupitre/desktop` : le nom du workspace porte une barre oblique, que dpkg refuse. L'exécutable Linux s'appelle `pupitre` pour la même raison, et `pupitre.desktop` s'aligne dessus pour que l'environnement de bureau relie la fenêtre à son lanceur.
 
 ### Ce que la mise à jour ne couvre pas
 

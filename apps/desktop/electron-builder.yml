@@ -95,12 +95,34 @@ dmg:
 linux:
   category: Development
   icon: build/icon.png
+  # Without this the binary is named after the package — "@pupitredesktop" —
+  # which AppImage refuses outright, and which no desktop entry can point at.
+  executableName: pupitre
+  synopsis: Pilote un serveur de développement distant
+  description: >-
+    Pupitre installe un serveur de développement sur une machine nue, puis en
+    montre les projets, les services, les journaux et les terminaux.
+  # Required by dpkg, and electron-builder refuses to build a .deb without it.
+  maintainer: Jordan Monier <no-reply@pupitre.studio>
   target:
     - AppImage
     - deb
+  # The window carries no title bar of its own; a desktop environment ties it
+  # back to its launcher entry by WM_CLASS, which Electron takes from
+  # `desktopName` in package.json. This makes the installed file agree with it.
+  syncDesktopName: true
+
+deb:
+  # Both default to the workspace name, "@pupitre/desktop", whose slash turns the
+  # artefact into a folder that does not exist and stops the build.
+  packageName: pupitre
+  artifactName: pupitre_${version}_${arch}.${ext}
 
 win:
   # No .ico in the repository: electron-builder derives one from build/icon.png.
   icon: build/icon.png
   target:
     - nsis
+  # Signing is Azure Trusted Signing, whose four names are read in the portal:
+  # `azureSignOptions` is added here once they exist, and the credentials come
+  # from the environment. See the runbook in docs/monorepo.md.
