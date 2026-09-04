@@ -1,13 +1,10 @@
-export const DESKTOP_SYSTEMS = ["macos", "windows", "linux"] as const
-
-export type DesktopSystem = (typeof DESKTOP_SYSTEMS)[number]
+import { DESKTOP_SYSTEMS, type DesktopSystem } from "@pupitre/shared/releases"
 
 export interface DesktopTarget {
   os: DesktopSystem
   label: string
   requirement: string
   format: string
-  fileName: (version: string) => string
 }
 
 const TARGETS: Record<DesktopSystem, DesktopTarget> = {
@@ -16,21 +13,18 @@ const TARGETS: Record<DesktopSystem, DesktopTarget> = {
     label: "macOS",
     requirement: "macOS 13 ou plus récent",
     format: "Image disque signée et notarisée",
-    fileName: (version) => `Pupitre-${version}.dmg`,
   },
   windows: {
     os: "windows",
     label: "Windows",
     requirement: "Windows 11",
     format: "Installateur signé",
-    fileName: (version) => `Pupitre-Setup-${version}.exe`,
   },
   linux: {
     os: "linux",
     label: "Linux",
     requirement: "Ubuntu 22.04 ou plus récent",
     format: "AppImage",
-    fileName: (version) => `Pupitre-${version}.AppImage`,
   },
 }
 
@@ -49,8 +43,6 @@ const WINDOWS_RE = /windows nt/i
 const LINUX_RE = /linux|x11/i
 const MOBILE_RE = /android|iphone|ipad|ipod/i
 
-const TRAILING_SLASHES_RE = /\/+$/
-
 export function detectOs(userAgent: string): DesktopSystem | null {
   if (MOBILE_RE.test(userAgent)) {
     return null
@@ -67,23 +59,33 @@ export function detectOs(userAgent: string): DesktopSystem | null {
   return LINUX_RE.test(userAgent) ? "linux" : null
 }
 
+export interface PublishedBuild {
+  os: string
+  arch: string | null
+  url: string
+}
+
+export interface PublishedAppRelease {
+  version: string
+  notes: string
+  builds: PublishedBuild[]
+}
+
 export interface DownloadOffer extends DesktopTarget {
   url: string | null
+  arch: string | null
 }
 
 export function downloadOffers(
-  version: string | null,
-  baseUrl: string | null
+  release: PublishedAppRelease | null
 ): DownloadOffer[] {
   return DESKTOP_SYSTEMS.map((os) => {
-    const target = TARGETS[os]
-    const publishable = version !== null && baseUrl !== null
+    const build = release?.builds.find((candidate) => candidate.os === os)
 
     return {
-      ...target,
-      url: publishable
-        ? `${baseUrl.replace(TRAILING_SLASHES_RE, "")}/${target.fileName(version)}`
-        : null,
+      ...TARGETS[os],
+      url: build?.url ?? null,
+      arch: build?.arch ?? null,
     }
   })
 }

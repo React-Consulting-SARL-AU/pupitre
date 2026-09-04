@@ -27,6 +27,12 @@ enum ReleaseChannel {
   beta
 }
 
+enum DesktopOs {
+  macos
+  windows
+  linux
+}
+
 enum BillingInterval {
   month
   year
@@ -334,6 +340,21 @@ model Release {
   publishedAt DateTime       @default(now())
 
   @@id([version, arch])
+  @@index([channel, publishedAt])
+}
+
+model AppRelease {
+  version     String
+  os          DesktopOs
+  arch        String?
+  url         String
+  sha256      String
+  signature   String?
+  notes       String
+  channel     ReleaseChannel @default(beta)
+  publishedAt DateTime       @default(now())
+
+  @@id([version, os])
   @@index([channel, publishedAt])
 }
 

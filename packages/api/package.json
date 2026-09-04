@@ -4,8 +4,11 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./alerts/evaluate": "./src/lib/alerts/alerts.ts",
+    "./billing/reconcile": "./src/lib/billing/reconcile.ts",
     "./client": "./src/client.ts",
     "./server": "./src/server.ts",
+    "./servers/expire": "./src/lib/servers/expire.ts",
     "./testing": "./src/testing/index.ts",
     "./testing/billing": "./src/testing/billing.ts",
     "./testing/factories": "./src/testing/factories.ts"

@@ -32,6 +32,7 @@ var resultDefinitions = map[string]string{
 	"snapshot":        "SnapshotResult",
 	"status":          "StatusResult",
 	"service.status":  "ServiceStatusResult",
+	"completions":     "CompletionsResult",
 	"project.list":    "ProjectListResult",
 	"project.add":     "ProjectAddResult",
 	"project.remove":  "ProjectRemoveResult",

@@ -10,9 +10,9 @@ import (
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/devcli"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/probe"
-	"pupitre.studio/agent/internal/protocol"
 )
 
 func runInstall(engine *modules.Engine, args []string, stderr io.Writer) int {
@@ -50,7 +50,7 @@ func runInstall(engine *modules.Engine, args []string, stderr io.Writer) int {
 
 	result, err := engine.Install(request, printStep(stderr))
 	if err != nil {
-		return printFailure(stderr, err)
+		return devcli.PrintFailure(stderr, err)
 	}
 
 	return printSummary(stderr, result)
@@ -89,7 +89,7 @@ func runProbe(options probe.Options, args []string, stdout, stderr io.Writer) in
 func runReport(engine *modules.Engine, stdout, stderr io.Writer) int {
 	report, err := engine.Report()
 	if err != nil {
-		return printFailure(stderr, err)
+		return devcli.PrintFailure(stderr, err)
 	}
 
 	encoder := json.NewEncoder(stdout)
@@ -150,21 +150,6 @@ func printSummary(stderr io.Writer, result contract.InstallResult) int {
 		fmt.Fprintf(stderr, "  ✗ %s\n", failure)
 	}
 	fmt.Fprintf(stderr, "Rapport : %s\n", result.ReportPath)
-
-	return 1
-}
-
-func printFailure(stderr io.Writer, err error) int {
-	var failure *protocol.Error
-	if errors.As(err, &failure) {
-		fmt.Fprintf(stderr, "%s : %s\n", failure.Code, failure.Message)
-		if failure.Fix != "" {
-			fmt.Fprintf(stderr, "  %s\n", failure.Fix)
-		}
-		return 1
-	}
-
-	fmt.Fprintln(stderr, err)
 
 	return 1
 }

@@ -17,6 +17,7 @@ export const API_ERROR_CODES = [
   "entitlement_required",
   "server_suspended",
   "release_not_found",
+  "app_release_not_found",
   "stripe_signature_invalid",
   "internal",
 ] as const

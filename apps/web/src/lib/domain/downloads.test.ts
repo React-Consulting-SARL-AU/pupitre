@@ -3,6 +3,7 @@ import {
   APP_REQUIREMENTS,
   detectOs,
   downloadOffers,
+  type PublishedAppRelease,
   SERVER_REQUIREMENTS,
 } from "@/lib/domain/downloads"
 
@@ -11,7 +12,17 @@ const WINDOWS = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 const LINUX = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:129.0) Gecko/20100101"
 const ANDROID = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36"
 
-const BASE = "https://downloads.pupitre.test/v1.4.0"
+const BASE = "https://downloads.pupitre.test/1.4.0"
+
+const RELEASE: PublishedAppRelease = {
+  version: "1.4.0",
+  notes: "Première version signée.",
+  builds: [
+    { os: "macos", arch: "arm64", url: `${BASE}/Pupitre-1.4.0.dmg` },
+    { os: "windows", arch: null, url: `${BASE}/Pupitre-Setup-1.4.0.exe` },
+    { os: "linux", arch: "amd64", url: `${BASE}/Pupitre-1.4.0.AppImage` },
+  ],
+}
 
 describe("detectOs", () => {
   it("recognises the three desktop systems", () => {
@@ -28,7 +39,7 @@ describe("detectOs", () => {
 
 describe("downloadOffers", () => {
   it("lists the three systems even when nothing is published", () => {
-    const offers = downloadOffers(null, BASE)
+    const offers = downloadOffers(null)
 
     expect(offers.map((offer) => offer.os)).toEqual([
       "macos",
@@ -38,19 +49,27 @@ describe("downloadOffers", () => {
     expect(offers.every((offer) => offer.url === null)).toBe(true)
   })
 
-  it("has no link without a publication base, even with a version", () => {
-    expect(downloadOffers("1.4.0", null).every((o) => o.url === null)).toBe(
-      true
-    )
-  })
-
-  it("builds one link per system from the published version", () => {
-    const offers = downloadOffers("1.4.0", `${BASE}/`)
+  it("takes one link per system from the published release", () => {
+    const offers = downloadOffers(RELEASE)
 
     expect(offers.map((offer) => offer.url)).toEqual([
       `${BASE}/Pupitre-1.4.0.dmg`,
       `${BASE}/Pupitre-Setup-1.4.0.exe`,
       `${BASE}/Pupitre-1.4.0.AppImage`,
+    ])
+    expect(offers.map((offer) => offer.arch)).toEqual(["arm64", null, "amd64"])
+  })
+
+  it("leaves a system without a build without a link", () => {
+    const offers = downloadOffers({
+      ...RELEASE,
+      builds: RELEASE.builds.filter((build) => build.os === "macos"),
+    })
+
+    expect(offers.map((offer) => offer.url !== null)).toEqual([
+      true,
+      false,
+      false,
     ])
   })
 })

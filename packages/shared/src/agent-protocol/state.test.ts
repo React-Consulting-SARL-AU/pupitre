@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test"
 import {
+  CompletionsParamsSchema,
   CompletionsResultSchema,
   MachineSchema,
   ProjectSchema,
@@ -39,6 +40,7 @@ const service = {
 const project = {
   name: "flymate-api",
   dir: "flymate/api",
+  path: "/home/dev/projects/flymate/api",
   repo: "git@github.com:acme/flymate.git",
   pkgmgr: "bun",
   host: "127.0.0.1",
@@ -119,6 +121,15 @@ describe("MachineSchema, ServiceSchema, ProjectSchema, SessionSchema", () => {
       SessionSchema.safeParse({ ...session, kind: "cursor" }).success
     ).toBe(false)
   })
+
+  it("requires an absolute path on a project", () => {
+    const { path: _path, ...withoutPath } = project
+
+    expect(ProjectSchema.safeParse(withoutPath).success).toBe(false)
+    expect(
+      ProjectSchema.safeParse({ ...project, path: "flymate/api" }).success
+    ).toBe(false)
+  })
 })
 
 describe("StatusResultSchema", () => {
@@ -155,24 +166,47 @@ describe("ServiceStatusParamsSchema and ServiceStatusResultSchema", () => {
   })
 })
 
-describe("CompletionsResultSchema", () => {
-  it("accepts the grammar of the admin command", () => {
+describe("CompletionsParamsSchema", () => {
+  it("accepts a folder to list, and none", () => {
+    expect(CompletionsParamsSchema.safeParse({}).success).toBe(true)
     expect(
-      CompletionsResultSchema.safeParse({
-        command: "dev",
-        sub: [
-          { name: "up", help: "start a project", args: [["$project", "all"]] },
-        ],
-      }).success
+      CompletionsParamsSchema.safeParse({ path: "flymate/api" }).success
     ).toBe(true)
+  })
+
+  it("rejects an unknown key", () => {
+    expect(CompletionsParamsSchema.safeParse({ dir: "flymate" }).success).toBe(
+      false
+    )
+  })
+})
+
+describe("CompletionsResultSchema", () => {
+  const completions = {
+    command: "dev",
+    sub: [{ name: "up", help: "start a project", args: [["$project", "all"]] }],
+    projects: ["flymate-api"],
+    root: "/home/dev/projects",
+    path: "",
+    paths: ["flymate/", "README.md"],
+  }
+
+  it("accepts the grammar, the projects and the paths", () => {
+    expect(CompletionsResultSchema.safeParse(completions).success).toBe(true)
   })
 
   it("rejects a sub-command without args", () => {
     expect(
       CompletionsResultSchema.safeParse({
-        command: "dev",
+        ...completions,
         sub: [{ name: "up", help: "start a project" }],
       }).success
     ).toBe(false)
+  })
+
+  it("rejects a grammar without its projects", () => {
+    const { projects: _projects, ...rest } = completions
+
+    expect(CompletionsResultSchema.safeParse(rest).success).toBe(false)
   })
 })

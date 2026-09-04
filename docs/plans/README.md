@@ -224,3 +224,14 @@ Hors périmètre. Les écrans, qui sauront s'en servir.
 Critères d'acceptation.
 1. Un projet non versionné ouvre dans l'éditeur distant et son terminal démarre au bon endroit.
 
+### INF-17 — Contrat : lire la valeur d'un identifiant de service
+Lot 0 · dépend de APP-11 · `packages/shared`, `apps/agent`
+
+But. L'écran Services révèle une vraie valeur, pas le nom d'une clé.
+Périmètre. Aucune commande du protocole ne rend la valeur d'un identifiant : `service.status` répond « libellé → nom de clé d'environnement » et `db.url` compose une URL sans mot de passe. L'app masque donc, révèle et copie le nom d'une clé. Ajouter une commande qui lit une clé de `/etc/pupitre/env` pour un module donné, avec la même prudence que le flux d'installation : la valeur ne traverse pas le pont IPC générique, elle ne va dans aucun journal, elle n'est jamais persistée. Refuser toute clé qui n'appartient pas au module demandé.
+Hors périmètre. L'écran, livré par APP-11, qui n'aura qu'à changer de source.
+Critères d'acceptation.
+1. Révéler le mot de passe de MySQL affiche la valeur réelle du serveur.
+2. Demander une clé qui n'appartient pas au module est refusé, prouvé par un test.
+3. La valeur n'apparaît dans aucun journal de l'agent ni de l'app.
+

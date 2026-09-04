@@ -13,6 +13,7 @@ export type AuditAction =
   | "member.invited"
   | "release.published"
   | "release.promoted"
+  | "app_release.published"
   | "subscription.created"
   | "subscription.updated"
   | "subscription.canceled"
@@ -21,6 +22,7 @@ export type AuditTargetType =
   | "device"
   | "server"
   | "release"
+  | "app_release"
   | "subscription"
   | "invitation"
 

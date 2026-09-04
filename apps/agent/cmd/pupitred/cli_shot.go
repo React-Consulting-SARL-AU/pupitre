@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"pupitre.studio/agent/internal/devcli"
 	"pupitre.studio/agent/internal/shots"
 	"pupitre.studio/agent/internal/state"
 )
@@ -18,10 +19,14 @@ La dernière ligne écrite est toujours l'URL de la capture, prête à coller ;
 le chemin local part sur la sortie d'erreur.
 `
 
-// Installed as a symlink named shot, the agent answers to that name: the capture command is the binary itself, never a script laid on the client's disk.
+// Installed as symlinks named shot and dev, the agent answers to those names: the driving commands are the binary itself, never a script laid on the client's disk.
 func arguments(argv []string) []string {
-	if len(argv) > 0 && filepath.Base(argv[0]) == shots.Command {
-		return append([]string{shots.Command}, argv[1:]...)
+	if len(argv) == 0 {
+		return nil
+	}
+
+	if name := filepath.Base(argv[0]); name == shots.Command || name == devcli.Command {
+		return append([]string{name}, argv[1:]...)
 	}
 
 	return argv[1:]

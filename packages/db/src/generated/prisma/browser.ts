@@ -103,6 +103,11 @@ export type OrganizationBilling = Prisma.OrganizationBillingModel
  */
 export type Release = Prisma.ReleaseModel
 /**
+ * Model AppRelease
+ * 
+ */
+export type AppRelease = Prisma.AppReleaseModel
+/**
  * Model Event
  * 
  */

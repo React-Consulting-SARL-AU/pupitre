@@ -45,7 +45,7 @@ Le compte est optionnel. Sans, l'app fonctionne avec un droit d'usage de dévelo
 
 `apps/agent` produit `pupitred`, un binaire Go statique pour `linux/amd64` et `linux/arm64`, installé en `/usr/local/bin/pupitred`, avec `/etc/pupitre/` en 0600 root et une unité systemd. Il contient la sonde, les modules du catalogue, le registre des projets, le pilotage de tmux, les commandes de l'app, la synchronisation des clés, le heartbeat et sa propre mise à jour.
 
-Deux interfaces : le protocole JSON sur SSH pour l'app (un processus `pupitred serve` par session), et l'API de la plateforme en HTTPS sortant pour le droit d'usage, les clés et les mises à jour. Le durcissement ferme root en dernier, après avoir vérifié que `dev` accepte une clé.
+Deux interfaces : le protocole JSON sur SSH pour l'app (un processus `pupitred serve` par session), et l'API de la plateforme en HTTPS sortant pour le droit d'usage, les clés et les mises à jour. La sous-commande `pupitred dev` — aussi appelable `dev`, un lien vers le binaire — donne les mêmes commandes à un humain dans un terminal SSH : elle passe par les mêmes gestionnaires, avec les mêmes refus. Le durcissement ferme root en dernier, après avoir vérifié que `dev` accepte une clé.
 
 La stack bash sous `server/` est la spécification des modules : ordre des étapes, pièges d'apt, rapport de fin, commandes de pilotage. Elle disparaît module par module.
 

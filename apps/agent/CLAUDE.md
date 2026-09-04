@@ -22,7 +22,8 @@ Go 1.25, bibliothèque standard d'abord. Binaire statique (`CGO_ENABLED=0`), `-t
 
 ```
 cmd/pupitred/            main.go : serve · install · probe · upgrade · dev · version
-internal/protocol/       enveloppe, dispatch, événements, flux secret
+internal/protocol/       enveloppe, dispatch, événements, flux secret, appel direct d'une commande
+internal/devcli/         grammaire et rendu de pupitred dev, la même que completions rend
 internal/probe/          probe.sh (sh POSIX, embarqué) et la sonde Go
 internal/modules/        interface Module ; un dossier par module : core/, runtime/, db/, ai/, editor/, exposure/, tool/
 internal/registry/       projets, projects.conf

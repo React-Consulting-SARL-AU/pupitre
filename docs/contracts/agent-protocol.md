@@ -63,7 +63,26 @@ Le canal est une session SSH ouverte par l'app avec la clé du client, qui lance
 | `snapshot` | `{ machine, services[], projects[], sessions[], entitlement }` en un appel. C'est ce que le tableau de bord lit toutes les 3 secondes |
 | `status` | `{ services[], projects[] }` allégé |
 | `service.status` `{ id }` | état, version, port, identifiants (masqués), unité systemd |
-| `completions` | la grammaire des commandes, pour l'autocomplétion du terminal |
+| `completions` `{ path? }` | de quoi compléter une ligne de terminal : `{ command, sub[], projects[], root, path, paths[] }` |
+
+`completions` répond en une fois aux trois questions d'une autocomplétion, pour que l'app n'ait rien à deviner :
+
+| Champ | Type | Description |
+| --- | --- | --- |
+| `command` | `string` | le nom sous lequel les commandes de pilotage s'appellent sur ce serveur : `dev`, c'est-à-dire `pupitred dev` |
+| `sub[]` | `{ name, help, args }` | la grammaire : un verbe, son aide, et une liste de valeurs par position d'argument. `$project` est un joker que l'app remplace par `projects[]` |
+| `projects[]` | `string[]` | les projets réels du registre, dans son ordre |
+| `root` | `string` | la racine des projets, le seul dossier que `completions` lit |
+| `path` | `string` | le dossier effectivement listé, relatif à `root` ; vide pour la racine |
+| `paths[]` | `string[]` | les entrées de ce dossier, relatives à lui, les dossiers avec une barre oblique finale |
+
+`path` est relatif à `root` : un chemin absolu ou un `..` qui sort de la racine renvoie `bad_request`. Un dossier absent renvoie `paths: []` et non une erreur — une complétion ne fait pas échouer une frappe.
+
+Un `Project` porte deux chemins. `dir` est le dossier déclaré dans le registre, relatif à la racine des projets du serveur, et c'est lui que `project.add` prend en paramètre. `path` est ce même dossier en absolu, résolu par l'agent : `/home/dev/projects/flymate/api`. C'est `path` qu'on ouvre dans l'éditeur distant et où l'on démarre un terminal.
+
+Le chemin absolu vit sur le projet, pas sur la machine : `status`, `project.list` et `project.add` rendent des projets sans rendre de `machine`, et l'app n'aurait pas de racine à recoller. Elle ne concatène donc jamais rien — la racine des projets n'est pas dans le contrat, c'est un détail du serveur.
+
+`path` est toujours présent et toujours dans la racine des projets, versionné ou non : l'agent le résout puis vérifie la contenance, et une ligne de registre qui viserait ailleurs n'est pas un projet — elle ne sort pas de `project.list`. Quand le projet est un dépôt git, `path` est cohérent avec le `root` que rend `project.git_status` : ce dernier est la racine que git déclare, qui vaut `path` ou l'un de ses parents à l'intérieur de la racine des projets, jamais au-dessus.
 
 ### Projets
 
@@ -131,6 +150,14 @@ Pour `install`, la ligne a la forme de `params.config`, groupée par identifiant
 
 Un module absent de la ligne n'a aucun secret. Une ligne absente, illisible ou qui ne respecte pas cette forme renvoie `bad_request` avec le `fix` qui montre la forme attendue, avant toute installation ; la requête suivante reste lue comme une requête.
 
+Pour `secrets.set`, la ligne est un objet plat d'une seule entrée, dont la clé est exactement le `key` de la requête (schéma `SecretsSetSecrets`) :
+
+```jsonc
+{ "OPENAI_API_KEY": "sk-…" }
+```
+
+Une valeur vide vaut une valeur absente : l'agent refuse en `bad_request` plutôt que d'écrire un secret vide.
+
 Un champ `list` d'`items: "secret"` — `ai.hermes.providers`, par exemple — se transmet avec des clés indicées, une par valeur, dans l'ordre de la liste :
 
 ```jsonc
@@ -144,3 +171,7 @@ Un champ `list` d'`items: "secret"` — `ai.hermes.providers`, par exemple — s
 ## Mode restreint
 
 Sans droit d'usage valide depuis sept jours, `hello` renvoie `entitlement: "restricted"` et seules `hello`, `ping`, `snapshot`, `status`, `diag` et `agent.upgrade` répondent ; les autres renvoient `entitlement_required` avec le lien vers la console.
+
+## Le tunnel local d'un port n'est pas du protocole
+
+`tunnel.*` désigne le tunnel Cloudflare que l'agent gère sur le serveur. Amener un port du serveur sur le laptop est autre chose, et cela reste l'affaire de l'app : elle ouvre un `ssh -L` sur son propre canal, avec sa configuration SSH et sa clé. L'agent n'y participe pas, et c'est voulu — un tunnel local ne demande rien au serveur qu'une session SSH ne fasse déjà, et lui donner une commande de protocole reviendrait à faire décider au serveur d'une écoute sur la machine du client.

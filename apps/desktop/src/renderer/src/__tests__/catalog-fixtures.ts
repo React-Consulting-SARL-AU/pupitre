@@ -201,6 +201,33 @@ export const DB_MYSQL: Manifest = {
   since: "0.1.0",
 };
 
+/**
+ * A database the presets never mention: what a reader adds to a server that is
+ * already running, long after the onboarding.
+ */
+export const DB_MONGODB: Manifest = {
+  id: "db.mongodb",
+  category: "database",
+  name: "MongoDB 8",
+  summary: "Local seulement, utilisateur applicatif, import de mongodump.",
+  requires: ["core.system"],
+  conflicts: [],
+  resources: { ram_mb: 512, disk_mb: 700 },
+  arch: [...BOTH],
+  fields: [
+    {
+      key: "app_password",
+      kind: "secret",
+      label: "Mot de passe applicatif",
+      required: true,
+      generate: true,
+    },
+  ],
+  provides: ["db:mongodb"],
+  mandatory: false,
+  since: "0.1.0",
+};
+
 export const EDITOR_JETBRAINS: Manifest = {
   id: "editor.jetbrains",
   category: "editor",

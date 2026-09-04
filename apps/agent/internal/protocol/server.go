@@ -59,6 +59,59 @@ func (s *Server) Capabilities() []string {
 	return capabilities
 }
 
+// One command, without a session: this is the door pupitred dev enters by, so a
+// human on a terminal runs the very handler the app reaches over SSH, with the
+// same validation and the same refusals.
+func (s *Server) Call(cmd string, params any, emit func(event string, fields map[string]any)) (any, error) {
+	handler, known := s.handlers[cmd]
+	if !known {
+		return nil, unknownCommand(cmd)
+	}
+
+	if s.options.Entitlement == contract.EntitlementRestricted && !entitlement.AllowedInRestrictedMode(cmd) {
+		return nil, EntitlementRequired()
+	}
+
+	if params == nil {
+		params = map[string]any{}
+	}
+
+	raw, err := json.Marshal(params)
+	if err != nil {
+		return nil, badRequest("paramètres illisibles : " + err.Error())
+	}
+
+	value, err := contract.Decode(raw)
+	if err != nil {
+		return nil, badRequest("paramètres illisibles : " + err.Error())
+	}
+
+	if err := contract.Validate(contract.ParamsDefinition(cmd), value); err != nil {
+		return nil, badRequest("paramètres invalides : params" + err.Error())
+	}
+
+	result, failure := call(handler, &Context{sink: sink(emit)}, raw)
+	if failure != nil {
+		return nil, failure
+	}
+
+	return result, nil
+}
+
+func sink(emit func(event string, fields map[string]any)) func(map[string]any) {
+	if emit == nil {
+		return nil
+	}
+
+	return func(line map[string]any) {
+		event, _ := line["event"].(string)
+		delete(line, "event")
+		delete(line, "id")
+
+		emit(event, line)
+	}
+}
+
 func (s *Server) Serve(in io.Reader, out io.Writer) error {
 	current := &session{server: s, out: out, lastID: -1, in: bufio.NewReader(in)}
 
@@ -153,7 +206,7 @@ func (s *session) dispatch(id int64, cmd string, params any, line []byte) (any, 
 		return nil, badRequest("paramètres invalides : params" + err.Error())
 	}
 
-	ctx := &Context{ID: id, session: s}
+	ctx := &Context{ID: id, session: s, sink: func(line map[string]any) { s.write(line) }}
 
 	if wantsSecrets(params) {
 		secrets, err := s.readSecrets()

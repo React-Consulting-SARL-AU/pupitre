@@ -306,6 +306,7 @@ var PackageManagers = []string{"bun", "pnpm", "npm", "gradle", "uv", "service", 
 type Project struct {
 	Name      string       `json:"name"`
 	Dir       string       `json:"dir"`
+	Path      string       `json:"path"`
 	Repo      string       `json:"repo,omitempty"`
 	PkgMgr    string       `json:"pkgmgr"`
 	Host      string       `json:"host"`
@@ -452,6 +453,21 @@ type ProjectSync struct {
 	Pulled    bool         `json:"pulled"`
 	Installed bool         `json:"installed"`
 	State     ProjectState `json:"state"`
+}
+
+type SubCommand struct {
+	Name string     `json:"name"`
+	Help string     `json:"help"`
+	Args [][]string `json:"args"`
+}
+
+type Completions struct {
+	Command  string       `json:"command"`
+	Sub      []SubCommand `json:"sub"`
+	Projects []string     `json:"projects"`
+	Root     string       `json:"root"`
+	Path     string       `json:"path"`
+	Paths    []string     `json:"paths"`
 }
 
 type DoctorCheck struct {
