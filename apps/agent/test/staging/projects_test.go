@@ -98,6 +98,10 @@ func TestAViteProjectGoesFromAddedToOnlineAndBack(t *testing.T) {
 	if declared.State != contract.ProjectStopped || declared.Install != "bun install" {
 		t.Fatalf("unexpected registration: %+v", declared)
 	}
+	// The fixture declares no repository: an unversioned project carries its folder like any other.
+	if declared.Path != "/home/dev/projects/"+viteProject {
+		t.Fatalf("unexpected path: %+v", declared)
+	}
 
 	agent(t, host, request{Cmd: "project.install", Params: map[string]any{"name": viteProject}})
 
@@ -110,8 +114,8 @@ func TestAViteProjectGoesFromAddedToOnlineAndBack(t *testing.T) {
 	}
 
 	current := projectIn(t, snapshotOf(t, host), viteProject)
-	if current.Port != vitePort || current.URL == "" {
-		t.Fatalf("the snapshot must show the port and the address: %+v", current)
+	if current.Port != vitePort || current.URL == "" || current.Path != declared.Path {
+		t.Fatalf("the snapshot must show the port, the address and the folder: %+v", current)
 	}
 
 	logs := decode[struct {

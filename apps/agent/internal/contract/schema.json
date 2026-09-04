@@ -1190,6 +1190,10 @@
         "install": {
           "type": "string"
         },
+        "path": {
+          "type": "string",
+          "pattern": "^\\/"
+        },
         "state": {
           "type": "string",
           "enum": [
@@ -1231,6 +1235,7 @@
         "host",
         "port",
         "cmd",
+        "path",
         "state"
       ]
     },
