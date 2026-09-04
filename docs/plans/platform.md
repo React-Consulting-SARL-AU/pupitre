@@ -114,6 +114,15 @@ Critères d'acceptation.
 2. Un serveur passe de `enrolling` à `active` dans la liste sans rechargement (polling 5 s).
 Tests. Playwright : connexion, liste, fiche, révocation d'un appareil.
 
+### PLT-16 — Harnais Playwright pour la console
+Lot 3 · dépend de PLT-08 · `apps/web`
+
+But. `apps/web` a le `test:e2e` que son guide annonce déjà.
+Périmètre. `@playwright/test`, un dossier `e2e/`, et un scénario qui couvre la connexion par lien magique, le device flow et la liste des serveurs, contre une branche Neon éphémère ou le harnais PGlite servi en local. Étape CI non bloquante tant que le rendu n'est pas stable.
+Hors périmètre. Les écrans, déjà livrés.
+Critères d'acceptation.
+1. `bun --cwd=apps/web run test:e2e` passe en local et échoue si une route de connexion casse.
+
 ### PLT-09 — Console : abonnement, téléchargements, profil
 Lot 3 · dépend de PLT-07, PLT-08 · `apps/web`
 

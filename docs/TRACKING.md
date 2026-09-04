@@ -75,7 +75,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-05 | Enrôlement, jetons d'agent, `agent/state`, heartbeat | fait | `feat/PLT-05-enrollment` | fusionnée |
 | PLT-06 | Distribution des binaires signés (R2) | fait | `feat/PLT-06-releases` | fusionnée |
 | PLT-07 | Stripe Managed Payments : checkout, portail, webhooks, réconciliation | fait | `feat/PLT-07-stripe` | fusionnée |
-| PLT-08 | Console : shell, connexion, serveurs, appareils | à faire | | |
+| PLT-08 | Console : shell, connexion, serveurs, appareils | fait | `feat/PLT-08-console` | fusionnée |
 | PLT-09 | Console : abonnement, téléchargements, profil | à faire | | |
 | PLT-10 | Organisations : membres, invitations, attribution, audit | à faire | | |
 | PLT-11 | Emails transactionnels | à faire | | |
@@ -83,6 +83,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-13 | Passkeys et MFA | à faire | | |
 | PLT-14 | Déploiement Cloudflare Builds, staging et production | à faire | | |
 | PLT-15 | Workflows Cloudflare : déclencheurs des tâches longues | à faire | | |
+| PLT-16 | Harnais Playwright pour la console | à faire | | |
 
 ## Site marketing — `MKT`
 
