@@ -133,7 +133,9 @@ export function embedAgent({
   const manifest: AgentManifest = {
     binaries,
     built_at: now().toISOString(),
-    ...(release ? { notes: release.notes ?? [], version: release.version } : {}),
+    ...(release
+      ? { notes: release.notes ?? [], version: release.version }
+      : {}),
   };
 
   writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`);

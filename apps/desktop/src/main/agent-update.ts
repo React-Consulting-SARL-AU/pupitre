@@ -50,10 +50,7 @@ function known(serverId: unknown): string | null {
   return typeof serverId === "string" && byId(serverId) ? serverId : null;
 }
 
-function relay(
-  sender: WebContents,
-  token: unknown
-): (event: Event) => void {
+function relay(sender: WebContents, token: unknown): (event: Event) => void {
   return (event) => {
     if (typeof token === "string" && !sender.isDestroyed()) {
       sender.send("agent-update:event", { token, event });

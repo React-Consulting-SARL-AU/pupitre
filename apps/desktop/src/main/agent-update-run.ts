@@ -67,7 +67,10 @@ export async function machineFacts(
   return probe.ok
     ? {
         ok: true,
-        result: { arch: probe.result.arch, version: probe.result.agent_version },
+        result: {
+          arch: probe.result.arch,
+          version: probe.result.agent_version,
+        },
       }
     : probe;
 }

@@ -48,6 +48,10 @@ function answerFromFixtures(app: ElectronApplication): Promise<void> {
       ok: true,
       result: { fingerprint: "SHA256:pupitre-e2e", status: "trusted" },
     }));
+    answer("agent-update:state", () => ({
+      ok: true,
+      result: { carried: null, installed: "0.1.0", order: "same" },
+    }));
     answer("agent:call", (_serverId: unknown, cmd: unknown) => {
       const result = fixtures.answers[String(cmd)];
 

@@ -14,9 +14,11 @@ import { TerminalTabs } from "./components/terminals/terminal-tabs";
 import { EmptyState } from "./components/ui/empty-state";
 import { ErrorNotice } from "./components/ui/error-notice";
 import { IconButton } from "./components/ui/icon-button";
+import { AgentUpdateBanner } from "./components/updates/agent-update-banner";
 import { noteProjects, noteServer } from "./lib/completion";
 import { attachedSessions } from "./lib/sessions";
 import { shellScreen } from "./lib/shell-screen";
+import { announces, useAgentUpdate } from "./stores/agent-update";
 import { useNavigation } from "./stores/navigation";
 import { useOnboarding } from "./stores/onboarding";
 import { useSecrets } from "./stores/secrets";
@@ -46,6 +48,7 @@ export function App() {
   const store = useSnapshot();
 
   const secrets = useSecrets();
+  const update = useAgentUpdate();
   const [openSecret, setOpenSecret] = useState<string | null>(null);
 
   const server = config?.servers.find((s) => s.id === config.active) ?? null;
@@ -119,6 +122,22 @@ export function App() {
     settle(names);
   }, [projects, settle]);
 
+  const readUpdate = update.read;
+  const forgetUpdate = update.forget;
+
+  // The comparison is worth one call per server, not one per poll: what the app
+  // carries does not change while it runs, and what the server runs only
+  // changes when the update below has just replaced it.
+  useEffect(() => {
+    if (!serverId) {
+      forgetUpdate();
+
+      return;
+    }
+
+    readUpdate(serverId);
+  }, [serverId, readUpdate, forgetUpdate]);
+
   const view = navigation.view;
   const readSecrets = secrets.read;
 
@@ -191,6 +210,18 @@ export function App() {
 
       <div className="flex min-w-0 flex-col">
         <div className="draggable h-10 shrink-0 border-line border-b bg-base" />
+
+        {announces(update.state, update.hidden) ? (
+          <div className="clickable shrink-0 px-4 pt-2">
+            <AgentUpdateBanner
+              journal={update.journal}
+              onHide={update.hide}
+              onUpgrade={() => update.upgradeAgent(serverId)}
+              state={update.state}
+              upgrade={update.upgrade}
+            />
+          </div>
+        ) : null}
 
         {problem ? (
           <div className="clickable shrink-0 px-4 py-2">
