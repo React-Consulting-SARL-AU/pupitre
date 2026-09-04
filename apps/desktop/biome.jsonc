@@ -12,6 +12,17 @@
   },
   "overrides": [
     {
+      // A file mode is read with a mask: "&" is the only way to check 0600.
+      "includes": ["src/**/__tests__/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noBitwiseOperators": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": ["src/**"],
       "linter": {
         "rules": {
