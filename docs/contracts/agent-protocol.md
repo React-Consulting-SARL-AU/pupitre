@@ -184,7 +184,11 @@ Ce format est la référence commune de la chaîne de publication (AGT-15), de l
 
 ## Mode restreint
 
-Sans droit d'usage valide depuis sept jours, `hello` renvoie `entitlement: "restricted"` et seules `hello`, `ping`, `snapshot`, `status`, `diag` et `agent.upgrade` répondent ; les autres renvoient `entitlement_required` avec le lien vers la console.
+Il y a deux situations, et elles n'ouvrent pas les mêmes commandes.
+
+**Un serveur enrôlé qui a perdu la plateforme.** Sans droit d'usage valide depuis sept jours, `hello` renvoie `entitlement: "restricted"` et six commandes répondent : `hello`, `ping`, `snapshot`, `status`, `diag` et `agent.upgrade`. Le client garde ainsi la vue de sa machine et le moyen de réparer un agent périmé. Les autres renvoient `entitlement_required` avec le lien vers la console. Rien de ce qui tourne ne s'arrête : tmux, les projets et les services continuent.
+
+**Un binaire sans jeton de serveur**, copié sur une autre machine, n'ouvre que `hello`, `ping` et `diag`. Il n'a aucun serveur à décrire et rien à mettre à jour : pas de jeton, donc pas de fonctions.
 
 ## Le tunnel local d'un port n'est pas du protocole
 
