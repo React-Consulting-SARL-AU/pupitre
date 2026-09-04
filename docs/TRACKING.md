@@ -22,7 +22,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-15 | Contrat : détecter le gestionnaire d'un dépôt | à faire | | |
 | INF-17 | Contrat : lire la valeur d'un identifiant de service | à faire | | |
 | INF-18 | Contrat : la plateforme publie l'empreinte et refuse le retour en arrière | à faire | | |
-| INF-19 | Contrat : `/status` dit depuis quand il sait | à faire | | |
+| INF-19 | Contrat : `/status` dit depuis quand il sait | en cours | `feat/INF-19-status-freshness` | |
 | INF-20 | Contrat : une adresse par capture | à faire | | |
 | INF-16 | Contrat : le chemin absolu d'un projet | fait | `feat/INF-16-project-path` | fusionnée |
 | INF-11 | Contrat : le verdict de la sonde | fait | `feat/INF-11-probe-contract` | fusionnée |

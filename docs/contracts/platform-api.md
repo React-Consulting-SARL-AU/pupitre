@@ -34,7 +34,7 @@ Une clé d'accès enregistrée ouvre la session seule : le relying party est le 
 
 | Méthode | Route | Corps | Réponse |
 | --- | --- | --- | --- |
-| GET | `/status` | — | `{ data: { api, database, latest_release, active_servers, checked_at } }`. Aucun guard : la route répond sans session. `api` et `database` valent `ok` ou `down`, `latest_release` est la dernière version publiée sur le canal `stable` (`{ version, channel, published_at }`) ou `null`, `active_servers` est le nombre total de serveurs au statut `active`. Rien d'autre ne sort : ni identifiant, ni nom d'organisation, ni nom de machine, ni adresse |
+| GET | `/status` | — | `{ data: { api, database, latest_release, active_servers, last_observation_at, freshness, checked_at } }`. Aucun guard : la route répond sans session. `api` et `database` valent `ok` ou `down`, `latest_release` est la dernière version publiée sur le canal `stable` (`{ version, channel, published_at }`) ou `null`, `active_servers` est le nombre total de serveurs au statut `active`. `checked_at` est l'instant du calcul, `last_observation_at` la date du heartbeat le plus récent reçu de toute la flotte, ou `null` si la plateforme n'en a aucun, et `freshness` le verdict de la plateforme sur cette date, contre sa propre horloge : `fresh`, `stale` au-delà de `STATUS_STALE_AFTER_MS` (quinze minutes, `@pupitre/shared/status`), `unknown` sans observation. Une donnée `stale` ou `unknown` interdit d'afficher un état rassurant. Rien d'autre ne sort : ni identifiant, ni nom d'organisation, ni nom de machine, ni adresse ; `last_observation_at` est un maximum agrégé, il ne désigne aucun serveur |
 
 ### Serveurs
 
