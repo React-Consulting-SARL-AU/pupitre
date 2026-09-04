@@ -263,16 +263,31 @@ describe("presets", () => {
     ])
   })
 
+  it("carry their own name, so the app translates nothing", () => {
+    expect(PRESETS.map((preset) => preset.name)).toEqual([
+      "Web JavaScript",
+      "Tout le catalogue",
+      "Minimal",
+    ])
+    expect(
+      PresetSchema.safeParse({ id: "full", name: "", modules: [] }).success
+    ).toBe(false)
+  })
+
   it("validate through PresetSchema", () => {
     for (const preset of PRESETS) {
       expect(PresetSchema.safeParse(preset).success).toBe(true)
     }
     expect(
-      PresetSchema.safeParse({ id: "web-js", modules: ["core.unknown"] })
+      PresetSchema.safeParse({
+        id: "web-js",
+        name: "Web JavaScript",
+        modules: ["core.unknown"],
+      }).success
+    ).toBe(false)
+    expect(
+      PresetSchema.safeParse({ id: "custom", name: "Sur mesure", modules: [] })
         .success
     ).toBe(false)
-    expect(PresetSchema.safeParse({ id: "custom", modules: [] }).success).toBe(
-      false
-    )
   })
 })

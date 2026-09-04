@@ -80,6 +80,7 @@ describe("préréglages", () => {
   it("part du préréglage et complète ses dépendances", () => {
     const preset = CATALOG.presets.find((p) => p.id === "web-js") ?? {
       id: "web-js" as const,
+      name: "Web JavaScript",
       modules: [],
     };
 

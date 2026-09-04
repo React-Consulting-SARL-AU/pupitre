@@ -3171,6 +3171,10 @@
             "minimal"
           ]
         },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
         "modules": {
           "type": "array",
           "items": {
@@ -3243,6 +3247,7 @@
       },
       "required": [
         "id",
+        "name",
         "modules"
       ]
     },
@@ -3254,6 +3259,7 @@
       "const": [
         {
           "id": "web-js",
+          "name": "Web JavaScript",
           "modules": [
             "core.system",
             "core.hardening",
@@ -3267,6 +3273,7 @@
         },
         {
           "id": "full",
+          "name": "Tout le catalogue",
           "modules": [
             "core.system",
             "core.hardening",
@@ -3291,6 +3298,7 @@
         },
         {
           "id": "minimal",
+          "name": "Minimal",
           "modules": [
             "core.system",
             "core.hardening"

@@ -32,7 +32,7 @@ type Field =
   | { key: string; kind: "list"; label: string; help?: string; required: boolean; items: "text" | "secret"; min?: number; max?: number }  // une liste de valeurs du même genre
 ```
 
-Un `preset` est une liste d'ids : `web-js`, `full`, `minimal`.
+Un `preset` porte un `id`, un `name` affichable et sa liste de modules : l'app montre le nom que l'agent donne, sans table de traduction.
 
 ## Étapes
 
@@ -103,11 +103,11 @@ Visual Studio n'a pas de backend Linux : l'app le dit et renvoie vers `editor.vs
 
 ## Préréglages
 
-| Preset | Modules |
-| --- | --- |
-| `web-js` | `core.*`, `runtime.node`, `db.mysql`, `ai.claude`, `ai.browser`, `editor.vscode`, `exposure.ssh` |
-| `full` | tout ce qui est marqué MVP |
-| `minimal` | `core.*`, un agent au choix |
+| Preset | Nom | Modules |
+| --- | --- | --- |
+| `web-js` | Web JavaScript | `core.*`, `runtime.node`, `db.mysql`, `ai.claude`, `ai.browser`, `editor.vscode`, `exposure.ssh` |
+| `full` | Tout le catalogue | tout ce qui est marqué MVP |
+| `minimal` | Minimal | `core.*`, un agent au choix |
 
 ## Source des étapes
 

@@ -59,15 +59,11 @@ func (s *Server) Capabilities() []string {
 	return capabilities
 }
 
-func (s *Server) Serve(in io.Reader, out io.Writer, secrets io.Reader) error {
-	current := &session{server: s, out: out, lastID: -1}
-	if secrets != nil {
-		current.secrets = bufio.NewReader(secrets)
-	}
+func (s *Server) Serve(in io.Reader, out io.Writer) error {
+	current := &session{server: s, out: out, lastID: -1, in: bufio.NewReader(in)}
 
-	reader := bufio.NewReader(in)
 	for {
-		line, err := reader.ReadBytes('\n')
+		line, err := current.nextLine()
 
 		if len(bytes.TrimSpace(line)) > 0 {
 			if handleErr := current.handle(line); handleErr != nil {
@@ -75,22 +71,25 @@ func (s *Server) Serve(in io.Reader, out io.Writer, secrets io.Reader) error {
 			}
 		}
 
+		if err == nil || current.pushback != nil {
+			continue
+		}
+
 		if err == io.EOF {
 			return nil
 		}
 
-		if err != nil {
-			return err
-		}
+		return err
 	}
 }
 
 type session struct {
-	server  *Server
-	out     io.Writer
-	secrets *bufio.Reader
-	lastID  int64
-	greeted bool
+	server   *Server
+	out      io.Writer
+	in       *bufio.Reader
+	pushback []byte
+	lastID   int64
+	greeted  bool
 
 	writeMu  sync.Mutex
 	writeErr error
@@ -186,24 +185,49 @@ func call(handler Handler, ctx *Context, params json.RawMessage) (result any, fa
 	return nil, internalError(err.Error())
 }
 
+// The line that follows a request carrying secrets_stdin, on the very stream the
+// request came in on: ssh forwards descriptors 0, 1 and 2 and nothing else.
 func (s *session) readSecrets() (json.RawMessage, *Error) {
-	if s.secrets == nil {
-		return nil, badRequest("secrets_stdin demandé mais aucun flux secret ouvert").
-			WithFix("Ouvre le descripteur 3 avant de lancer pupitred serve et écris-y les secrets en JSON sur une ligne.")
+	for {
+		raw, err := s.nextLine()
+		line := bytes.TrimSpace(raw)
+
+		if len(line) > 0 {
+			return s.decodeSecretLine(line)
+		}
+
+		if err != nil {
+			return nil, missingSecrets("l'entrée standard s'est fermée après la requête")
+		}
+	}
+}
+
+// A request in place of the secret line is handed back to the loop rather than
+// eaten: a client that forgot its secrets still gets an answer to what follows.
+func (s *session) decodeSecretLine(line []byte) (json.RawMessage, *Error) {
+	value, err := contract.Decode(line)
+	if _, isObject := value.(map[string]any); err != nil || !isObject {
+		return nil, badRequest("ligne de secrets illisible : un objet JSON sur une ligne est attendu").WithFix(secretsFix)
 	}
 
-	line, err := s.secrets.ReadBytes('\n')
-	line = bytes.TrimSpace(line)
-	if len(line) == 0 && err != nil {
-		return nil, badRequest("flux secret fermé avant l'envoi des secrets")
-	}
+	if contract.Validate("Request", value) == nil {
+		s.pushback = line
 
-	value, decodeErr := contract.Decode(line)
-	if _, isObject := value.(map[string]any); decodeErr != nil || !isObject {
-		return nil, badRequest("flux secret illisible : un objet JSON sur une ligne est attendu")
+		return nil, missingSecrets("la ligne suivante est une requête")
 	}
 
 	return json.RawMessage(line), nil
+}
+
+func (s *session) nextLine() ([]byte, error) {
+	if s.pushback != nil {
+		line := s.pushback
+		s.pushback = nil
+
+		return line, nil
+	}
+
+	return s.in.ReadBytes('\n')
 }
 
 func (s *session) fail(id int64, failure *Error) {

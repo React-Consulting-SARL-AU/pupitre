@@ -81,7 +81,7 @@ function checked(
   }
 
   // A secret never crosses the bridge: the flows that carry one send it from the
-  // main process, on the channel's own descriptor.
+  // main process, on the line that follows the request.
   if ((parsed.data as { secrets_stdin?: unknown }).secrets_stdin === true) {
     return refuse(
       "bad_request",

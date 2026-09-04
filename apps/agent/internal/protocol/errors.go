@@ -26,6 +26,12 @@ func badRequest(message string) *Error {
 	return NewError(contract.ErrorBadRequest, message)
 }
 
+const secretsFix = `Écris les secrets en JSON sur une seule ligne de l'entrée standard, juste après la requête : {"<clé>":"<valeur>"}.`
+
+func missingSecrets(cause string) *Error {
+	return badRequest("ligne de secrets absente : " + cause).WithFix(secretsFix)
+}
+
 func helloRequired() *Error {
 	return NewError(contract.ErrorHelloRequired, "hello attendu avant toute commande").
 		WithFix("Envoie hello {app_version, protocol} en premier.")
