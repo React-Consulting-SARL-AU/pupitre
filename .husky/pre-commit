@@ -22,7 +22,7 @@ if ! tr '\n' '\0' < "$SECRET_SCAN_LIST" | xargs -0 bun scripts/assert-no-secrets
   exit 1
 fi
 
-grep -E '\.([cm]?[jt]sx?|jsonc?|css)$' "$SECRET_SCAN_LIST" > "$STAGED_LIST"
+grep -E '\.([cm]?[jt]sx?|jsonc?|css)$' "$SECRET_SCAN_LIST" > "$STAGED_LIST" || true
 
 if [ ! -s "$STAGED_LIST" ]; then
   echo "No lintable staged files"
