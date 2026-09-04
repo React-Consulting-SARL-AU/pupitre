@@ -58,6 +58,16 @@ export type Invitation = Prisma.InvitationModel
  */
 export type DeviceCode = Prisma.DeviceCodeModel
 /**
+ * Model Passkey
+ * 
+ */
+export type Passkey = Prisma.PasskeyModel
+/**
+ * Model TwoFactor
+ * 
+ */
+export type TwoFactor = Prisma.TwoFactorModel
+/**
  * Model Device
  * 
  */

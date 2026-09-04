@@ -922,14 +922,6 @@ export type ServerUncheckedUpdateManyWithoutDeviceNestedInput = {
   deleteMany?: Prisma.ServerScalarWhereInput | Prisma.ServerScalarWhereInput[]
 }
 
-export type IntFieldUpdateOperationsInput = {
-  set?: number
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type EnumServerStatusFieldUpdateOperationsInput = {
   set?: $Enums.ServerStatus
 }
