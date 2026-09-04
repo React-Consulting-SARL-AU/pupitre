@@ -44,7 +44,7 @@ Chaque module implémente `Check`, `Install`, `Configure`, `Upgrade`, `Uninstall
 
 | Id | Fait | Champs |
 | --- | --- | --- |
-| `core.system` | paquets de base, fuseau, mises à jour de sécurité automatiques sans redémarrage, swap dimensionné, garde-fou mémoire (`systemd-oomd` ou `earlyoom`), utilisateur `dev` avec sudo, tmux, zsh avec les marqueurs de prompt (OSC 133) lus par l'app, identité git | `timezone`, `git_name`, `git_email`, `projects_dir` |
+| `core.system` | paquets de base, fuseau, mises à jour de sécurité automatiques sans redémarrage, swap dimensionné, garde-fou mémoire (`systemd-oomd` ou `earlyoom`), utilisateur `dev` avec sudo, dont `authorized_keys` reçoit les clés non restreintes de root pour qu'une clé l'ouvre avant le durcissement, tmux, zsh avec les marqueurs de prompt (OSC 133) lus par l'app, identité git | `timezone`, `git_name`, `git_email`, `projects_dir` |
 | `core.hardening` | ufw sur SSH seul (22, et 443 en option), fail2ban, root fermé et mots de passe désactivés **après** vérification qu'une clé ouvre `dev`, `AllowUsers dev`, `ClientAlive` | `ssh_443` (boolean) |
 
 ### Runtimes

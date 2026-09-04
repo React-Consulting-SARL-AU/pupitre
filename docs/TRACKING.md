@@ -22,7 +22,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-01 | Squelette, protocole, `hello` et `ping` | fait | `feat/AGT-01-protocol` | fusionnée |
 | AGT-02 | Sonde sh et sonde Go | à faire | | |
 | AGT-03 | Moteur de modules et rapport | fait | `feat/AGT-03-module-engine` | fusionnée |
-| AGT-04 | Modules socle et durcissement | en revue | `feat/AGT-04-core-modules` | |
+| AGT-04 | Modules socle et durcissement | fait | `feat/AGT-04-core-modules` | fusionnée |
 | AGT-05 | Modules runtimes | à faire | | |
 | AGT-06 | Modules bases de données | à faire | | |
 | AGT-07 | Modules agents IA et navigateur | à faire | | |
