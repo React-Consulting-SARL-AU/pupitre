@@ -23,7 +23,7 @@ TanStack Start (React 19) sur Cloudflare Workers via le plugin Vite · TS strict
 src/routes/      api/v1/$ · api/auth/$ · auth/ (sign-in, device, invitation) · dashboard/ · admin/ (platform_admin) · download
 src/components/  ui/ (Base UI + shadcn, 1 composant/fichier) · dashboard/ · admin/ · auth/
 src/lib/         api/ (client Eden) · auth/ · query/ · schemas/ (Zod) · domain/ · config/
-src/workflows/   étapes de ReconcileSeats · DecommissionServer · ExpireEnrollments, cron triggers, déclencheur interne
+src/workflows/   étapes de ReconcileSeats · DecommissionServer · ExpireEnrollments · EvaluateAlerts · SuspendExpiredGrace, cron triggers, déclencheur interne
 src/worker.ts    sert /api/v1 et /internal/workflows, porte les classes Workflow et le handler cron, délègue le reste à Start
 packages/api/    app Elysia, client Eden, harnais de test — skill `elysia-api-routes`
 packages/auth/   createAuth, plugins, clients web et desktop
