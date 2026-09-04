@@ -31,7 +31,7 @@ func runEnroll(agent *daemon.Daemon, stdin io.Reader, stderr io.Writer) int {
 		return 2
 	}
 
-	if err := agent.Enroll(token); err != nil {
+	if err := agent.Enroll(token, ""); err != nil {
 		fmt.Fprintln(stderr, err)
 		return 1
 	}

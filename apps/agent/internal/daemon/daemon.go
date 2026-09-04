@@ -97,7 +97,12 @@ func New(options Options) *Daemon {
 
 // One read of /agent/state: it renews the cached entitlement and brings the marked block of authorized_keys in line with the console.
 func (d *Daemon) Sync() (Sync, error) {
-	client, err := d.client()
+	return d.SyncAt("")
+}
+
+// The same read, against the platform the caller names: an enrolment reads the state of the platform it just traded with.
+func (d *Daemon) SyncAt(platformURL string) (Sync, error) {
+	client, err := d.client(platformURL)
 	if err != nil {
 		return Sync{}, err
 	}
@@ -135,7 +140,7 @@ func (d *Daemon) Sync() (Sync, error) {
 }
 
 func (d *Daemon) Beat() error {
-	client, err := d.client()
+	client, err := d.client("")
 	if err != nil {
 		return err
 	}
@@ -175,34 +180,61 @@ func (d *Daemon) sample() platform.Heartbeat {
 }
 
 // The enrolment token buys a server token and nothing else; it is read from the standard input and never lands on the disk.
-func (d *Daemon) Enroll(token string) error {
+func (d *Daemon) Enroll(token, platformURL string) error {
 	token = strings.TrimSpace(token)
 	if token == "" {
 		return errors.New("jeton d'enrôlement vide")
 	}
+
+	journal := d.enrolment(token)
 
 	hostKey, err := d.hostPublicKey()
 	if err != nil {
 		return err
 	}
 
-	serverToken, err := d.options.Platform.Exchange(platform.Enrollment{
+	serverToken, err := d.platform(platformURL).Exchange(platform.Enrollment{
 		Token:         token,
 		HostPublicKey: hostKey,
 		AgentVersion:  d.options.AgentVersion,
 		Arch:          d.options.Arch,
 	})
 	if err != nil {
-		return err
+		return redacted{message: journal.Redact(err.Error()), cause: err}
 	}
 
 	if err := platform.SaveToken(d.options.Sys, d.options.TokenPath, serverToken); err != nil {
 		return err
 	}
 
-	d.journal.Logf("serveur enrôlé, jeton écrit dans %s", d.options.TokenPath)
+	journal.Logf("serveur enrôlé, jeton écrit dans %s", d.options.TokenPath)
 
 	return nil
+}
+
+// A platform that echoes the enrolment token back would otherwise put it in the refusal the app displays and logs.
+type redacted struct {
+	message string
+	cause   error
+}
+
+func (r redacted) Error() string {
+	return r.message
+}
+
+func (r redacted) Unwrap() error {
+	return r.cause
+}
+
+// A journal that knows the token, so a platform that echoes it back writes [secret] rather than the token itself.
+func (d *Daemon) enrolment(token string) *modules.Context {
+	return modules.NewContext(modules.ContextOptions{
+		Sys:      d.options.Sys,
+		Now:      d.options.Now,
+		Manifest: contract.Manifest{ID: "pupitred"},
+		Secrets:  map[string]string{"enrollment_token": token},
+		LogPath:  d.options.LogPath,
+	})
 }
 
 // The app pins this key the moment it enrols: what it sees on its own ssh connection has to be what the server declared.
@@ -228,16 +260,25 @@ func (d *Daemon) SyncedAt() time.Time {
 	return d.options.Entitlement.SyncedAt()
 }
 
-func (d *Daemon) client() (platform.Client, error) {
+func (d *Daemon) client(platformURL string) (platform.Client, error) {
 	token, err := platform.LoadToken(d.options.Sys, d.options.TokenPath)
 	if err != nil {
 		return platform.Client{}, err
 	}
 
-	client := d.options.Platform
+	client := d.platform(platformURL)
 	client.Token = token
 
 	return client, nil
+}
+
+func (d *Daemon) platform(platformURL string) platform.Client {
+	client := d.options.Platform
+	if platformURL != "" {
+		client.BaseURL = platformURL
+	}
+
+	return client
 }
 
 func percent(used, total float64) float64 {
