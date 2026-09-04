@@ -38,7 +38,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-09 | Modules exposition et outils | fait | `feat/AGT-09-exposure` | fusionnée |
 | AGT-10 | Registre des projets et pilotage | fait | `feat/AGT-10-registry` | fusionnée |
 | AGT-11 | Sessions, processus, captures, secrets, bases | fait | `feat/AGT-11-sessions` | fusionnée |
-| AGT-12 | Shell de l'app et autocomplétion | à faire | | |
+| AGT-12 | Shell de l'app et autocomplétion | en cours | `feat/AGT-12-shell` | |
 | AGT-13 | Mise à jour de l'agent | à faire | | |
 | AGT-14 | Droit d'usage, enrôlement, heartbeat | à faire | | |
 | AGT-15 | Obfuscation et distribution | à faire | | |
@@ -110,6 +110,7 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
+| 2026-09-04 | AGT-12 | `completions` existait dans le contrat en grammaire seule (`{ command, sub[] }`), sans les projets ni les chemins que la tâche demande, et sans paramètre pour désigner un dossier. La tâche autorisant l'ajout, le contrat a été complété ici : paramètre `path`, champs `projects[]`, `root`, `path`, `paths[]`. À valider, ou à reprendre en tâche de contrat si la forme ne convient pas. | propriétaire |
 | 2026-09-04 | AGT-09 | Le préréglage `full` du contrat liste `exposure.cloudflare` **et** `exposure.ssh`, or les deux manifestes se déclarent en conflit comme la tâche le demande : `install` du préréglage complet est refusé en `bad_request`. À trancher : retirer `exposure.ssh` de `full`, ou donner à ce préréglage un `choose_one` comme `minimal` en a un pour les agents. | propriétaire |
 | 2026-09-04 | AGT-09 | Le contrat fixe la forme de la ligne secrète d'`install` (`InstallSecrets`) mais pas celle de `secrets.set` : l'agent lit `{"<clé>": "<valeur>"}`, la forme du test du protocole. À trancher : l'écrire dans `agent-protocol.md` et lui donner un schéma. | propriétaire |
 | 2026-09-04 | AGT-08 | Le contrat donne un champ `version` aux éditeurs, mais aucune liste fermée d'options ne tient : le serveur distant de Zed doit correspondre exactement à la version du client, et un backend JetBrains à la version du Gateway. Les deux modules livrent donc `version` en `text` (défaut `latest`) au lieu du genre `version`. À trancher : ouvrir le genre `version` à une saisie libre, ou laisser `text`. | propriétaire |

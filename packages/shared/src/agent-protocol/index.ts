@@ -65,6 +65,7 @@ import {
   PingResultSchema,
 } from "./session"
 import {
+  CompletionsParamsSchema,
   CompletionsResultSchema,
   ServiceStatusParamsSchema,
   ServiceStatusResultSchema,
@@ -96,7 +97,10 @@ export const COMMANDS = {
     params: ServiceStatusParamsSchema,
     result: ServiceStatusResultSchema,
   },
-  completions: { params: EmptyParamsSchema, result: CompletionsResultSchema },
+  completions: {
+    params: CompletionsParamsSchema,
+    result: CompletionsResultSchema,
+  },
   "project.list": {
     params: EmptyParamsSchema,
     result: ProjectListResultSchema,
