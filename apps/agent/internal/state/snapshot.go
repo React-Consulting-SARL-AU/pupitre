@@ -10,11 +10,14 @@ import (
 
 // The machine, the services and the projects in one round trip: two calls a second over SSH would cost twice one, for the same information.
 func (r *Reader) Snapshot() contract.Snapshot {
+	table := r.processes()
+	collected := r.collect()
+
 	return contract.Snapshot{
 		Machine:     Machine(r.ctx(), r.options.AgentVersion),
 		Services:    r.services(false),
-		Projects:    r.projects(),
-		Sessions:    []contract.Session{},
+		Projects:    r.list(collected, table),
+		Sessions:    r.sessions(table, collected.Panes()),
 		Entitlement: r.entitlement(),
 	}
 }
@@ -82,10 +85,18 @@ func (r *Reader) services(withCredentials bool) []contract.ServiceStatus {
 	return services
 }
 
+func (r *Reader) collect() tmux.Collection {
+	return tmux.Collect(r.ctx(), r.options.Tmux)
+}
+
 func (r *Reader) projects() []contract.Project {
+	return r.list(r.collect(), r.processes())
+}
+
+func (r *Reader) list(collected tmux.Collection, table processTable) []contract.Project {
 	ctx := r.ctx()
 	file := r.registry()
-	collected := tmux.Collect(ctx, r.options.Tmux)
+	memory := table.ram(collected.Panes())
 	domain := r.domain()
 	branches := map[string]string{}
 
@@ -96,6 +107,7 @@ func (r *Reader) projects() []contract.Project {
 		project.URL = url(declared, domain)
 		project.Branch = r.branch(branches, declared)
 		project.PID = collected.PID(declared.Name)
+		project.RAMMB = memory[declared.Name]
 		project.UptimeS = collected.Seconds(declared.Name)
 
 		projects = append(projects, project)

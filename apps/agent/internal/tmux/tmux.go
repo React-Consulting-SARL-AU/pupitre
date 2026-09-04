@@ -101,6 +101,20 @@ func (c Collection) Seconds(project string) int {
 	return c.Uptime[c.Windows[project]]
 }
 
+// The panes read the other way round: a process knows the pid it descends from, never the window's name.
+func (c Collection) Panes() map[int]string {
+	panes := make(map[int]string, len(c.Windows))
+	for name, pid := range c.Windows {
+		panes[pid] = name
+	}
+
+	return panes
+}
+
+func Windows(ctx sys.Context, options Options) map[string]int {
+	return windows(ctx, options.Resolved())
+}
+
 func windows(ctx sys.Context, options Options) map[string]int {
 	open := map[string]int{}
 
@@ -268,12 +282,13 @@ func Failed(ctx sys.Context, options Options, project string) bool {
 func State(ctx sys.Context, options Options, project contract.Project, collected Collection) contract.ProjectState {
 	up := collected.PortUp(project.Port)
 
+	// A service row is systemd's business: down says its port does not answer, where stopped would say we stopped it.
 	if project.PkgMgr == "service" {
 		if up {
 			return contract.ProjectService
 		}
 
-		return contract.ProjectStopped
+		return contract.ProjectDown
 	}
 
 	if !collected.Running(project.Name) {

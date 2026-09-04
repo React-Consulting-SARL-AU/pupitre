@@ -266,6 +266,7 @@ const (
 	ProjectStarting ProjectState = "starting"
 	ProjectFailed   ProjectState = "failed"
 	ProjectStopped  ProjectState = "stopped"
+	ProjectDown     ProjectState = "down"
 	ProjectExternal ProjectState = "external"
 	ProjectService  ProjectState = "service"
 )
@@ -275,6 +276,7 @@ var ProjectStates = []ProjectState{
 	ProjectStarting,
 	ProjectFailed,
 	ProjectStopped,
+	ProjectDown,
 	ProjectExternal,
 	ProjectService,
 }
@@ -347,4 +349,99 @@ type Snapshot struct {
 type Status struct {
 	Services []ServiceStatus `json:"services"`
 	Projects []Project       `json:"projects"`
+}
+
+type Process struct {
+	PID     int     `json:"pid"`
+	CPU     float64 `json:"cpu"`
+	RAMMB   int     `json:"ram_mb"`
+	Command string  `json:"command"`
+	Project string  `json:"project"`
+}
+
+type Shot struct {
+	Name      string `json:"name"`
+	Path      string `json:"path"`
+	SizeBytes int64  `json:"size_bytes"`
+	CreatedAt string `json:"created_at"`
+}
+
+type ProjectBranches struct {
+	Repo    bool     `json:"repo"`
+	Root    string   `json:"root"`
+	Current string   `json:"current"`
+	Dirty   bool     `json:"dirty"`
+	Local   []string `json:"local"`
+	Remote  []string `json:"remote"`
+}
+
+type ProjectCheckout struct {
+	Branch string `json:"branch"`
+}
+
+type ProjectGitStatus struct {
+	Repo     bool   `json:"repo"`
+	Root     string `json:"root"`
+	Current  string `json:"current"`
+	Upstream string `json:"upstream"`
+	Behind   int    `json:"behind"`
+	Ahead    int    `json:"ahead"`
+	Dirty    bool   `json:"dirty"`
+	Changed  int    `json:"changed"`
+	Last     int    `json:"last"`
+	Subject  string `json:"subject"`
+	Problem  string `json:"problem"`
+}
+
+type FileStage string
+
+const (
+	StageStaged    FileStage = "staged"
+	StageUnstaged  FileStage = "unstaged"
+	StageUntracked FileStage = "untracked"
+)
+
+type FileChange struct {
+	Path    string    `json:"path"`
+	Code    string    `json:"code"`
+	Stage   FileStage `json:"stage"`
+	Added   int       `json:"added"`
+	Removed int       `json:"removed"`
+	Binary  bool      `json:"binary"`
+	From    string    `json:"from,omitempty"`
+}
+
+type ProjectWorkingTree struct {
+	Repo     bool         `json:"repo"`
+	Root     string       `json:"root"`
+	Branch   string       `json:"branch"`
+	Upstream string       `json:"upstream"`
+	Ahead    int          `json:"ahead"`
+	Behind   int          `json:"behind"`
+	Files    []FileChange `json:"files"`
+}
+
+type ProjectDiff struct {
+	Path    string `json:"path"`
+	Patch   string `json:"patch"`
+	Binary  bool   `json:"binary"`
+	Problem string `json:"problem"`
+}
+
+type ProjectSync struct {
+	Pulled    bool         `json:"pulled"`
+	Installed bool         `json:"installed"`
+	State     ProjectState `json:"state"`
+}
+
+type DoctorCheck struct {
+	Name    string `json:"name"`
+	OK      bool   `json:"ok"`
+	Message string `json:"message,omitempty"`
+	Fix     string `json:"fix,omitempty"`
+}
+
+type Diag struct {
+	GeneratedAt string `json:"generated_at"`
+	Report      string `json:"report"`
 }

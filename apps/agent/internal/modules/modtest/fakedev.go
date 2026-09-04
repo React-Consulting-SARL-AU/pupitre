@@ -120,19 +120,164 @@ func (f *FakeSys) ps(args []string) (sys.Output, error) {
 		return sys.Output{Stdout: seeded}, nil
 	}
 
+	columns, wanted := parsePS(args)
+
 	var out strings.Builder
-	for _, pid := range strings.Split(args[len(args)-1], ",") {
-		parsed, err := strconv.Atoi(pid)
-		if err != nil {
+	for _, proc := range f.processes() {
+		if wanted != nil && !wanted[proc.PID] {
 			continue
 		}
 
-		if seconds, alive := f.Uptimes[parsed]; alive {
-			fmt.Fprintf(&out, "%d %d\n", parsed, seconds)
-		}
+		fmt.Fprintln(&out, strings.Join(render(proc, columns), " "))
 	}
 
 	return sys.Output{Stdout: out.String()}, nil
+}
+
+// The panes opened by the fake tmux are processes too: a transcript that never spawns one still sees its window in ps.
+func (f *FakeSys) processes() []Proc {
+	rows := make([]Proc, 0, len(f.Procs)+len(f.Uptimes))
+	for _, proc := range f.Procs {
+		rows = append(rows, proc)
+	}
+
+	for pid, seconds := range f.Uptimes {
+		if _, declared := f.Procs[pid]; declared {
+			continue
+		}
+
+		rows = append(rows, Proc{PID: pid, PPID: 1, Etimes: seconds, User: "dev", Comm: "zsh", Args: "/bin/zsh"})
+	}
+
+	sort.Slice(rows, func(i, j int) bool { return rows[i].PID < rows[j].PID })
+
+	return rows
+}
+
+func parsePS(args []string) (columns []string, wanted map[int]bool) {
+	for i := 0; i < len(args); i++ {
+		switch {
+		case args[i] == "-p" && i+1 < len(args):
+			wanted = map[int]bool{}
+			for _, pid := range strings.Split(args[i+1], ",") {
+				wanted[atoi(pid)] = true
+			}
+			i++
+		case strings.HasSuffix(args[i], "o") && strings.HasPrefix(args[i], "-") && i+1 < len(args):
+			for _, column := range strings.Split(args[i+1], ",") {
+				if name := strings.TrimSuffix(column, "="); name != "" {
+					columns = append(columns, name)
+				}
+			}
+			i++
+		}
+	}
+
+	return columns, wanted
+}
+
+func render(proc Proc, columns []string) []string {
+	values := make([]string, 0, len(columns))
+	for _, column := range columns {
+		switch column {
+		case "pid":
+			values = append(values, strconv.Itoa(proc.PID))
+		case "ppid":
+			values = append(values, strconv.Itoa(proc.PPID))
+		case "rss":
+			values = append(values, strconv.Itoa(proc.RSS))
+		case "etimes":
+			values = append(values, strconv.Itoa(proc.Etimes))
+		case "pcpu":
+			values = append(values, strconv.FormatFloat(proc.CPU, 'f', 1, 64))
+		case "user":
+			values = append(values, proc.User)
+		case "comm":
+			values = append(values, proc.Comm)
+		case "args":
+			values = append(values, proc.Args)
+		}
+	}
+
+	return values
+}
+
+// Only the shape shot --list uses: the files under a root, newest time first, one line each.
+func (f *FakeSys) find(args []string) (sys.Output, error) {
+	if seeded, ok := f.Replies["find"]; ok {
+		return sys.Output{Stdout: seeded}, nil
+	}
+
+	root := args[0]
+
+	paths := make([]string, 0, len(f.Files))
+	for path := range f.Files {
+		if strings.HasPrefix(path, strings.TrimSuffix(root, "/")+"/") {
+			paths = append(paths, path)
+		}
+	}
+	sort.Strings(paths)
+
+	var out strings.Builder
+	for _, path := range paths {
+		when := f.Times[path]
+		if when.IsZero() {
+			when = f.Now
+		}
+
+		fmt.Fprintf(&out, "%d\t%d\t%s\n", when.Unix(), len(f.Files[path]), path)
+	}
+
+	return sys.Output{Stdout: out.String()}, nil
+}
+
+func (f *FakeSys) kill(args []string) (sys.Output, error) {
+	signal, pid := "-TERM", 0
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "-") {
+			signal = arg
+			continue
+		}
+
+		pid = atoi(arg)
+	}
+
+	if _, running := f.Procs[pid]; !running {
+		return f.fail("kill", "kill: ("+strconv.Itoa(pid)+") - No such process")
+	}
+
+	if signal == "-0" {
+		return sys.Output{}, nil
+	}
+
+	f.Signals = append(f.Signals, signal+" "+strconv.Itoa(pid))
+	f.mutate("kill " + signal + " " + strconv.Itoa(pid))
+
+	// A process that ignores SIGTERM is the whole point of force: it must still be there when the grace period is over.
+	if signal == "-TERM" && f.Stubborn[pid] {
+		return sys.Output{}, nil
+	}
+
+	delete(f.Procs, pid)
+
+	return sys.Output{}, nil
+}
+
+func base(path string) string {
+	if at := strings.LastIndex(path, "/"); at >= 0 {
+		return path[at+1:]
+	}
+
+	return path
+}
+
+func field(line string, index int) string {
+	fields := strings.Fields(line)
+	if index >= len(fields) {
+		return ""
+	}
+
+	return fields[index]
 }
 
 func (f *FakeSys) tee(args []string, stdin []byte) (sys.Output, error) {
