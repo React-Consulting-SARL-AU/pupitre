@@ -2,7 +2,11 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { CATALOG } from "../../__tests__/catalog-fixtures";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
 import { useCatalog } from "../catalog";
-import { forgetOnboarding, useOnboarding } from "../onboarding";
+import {
+  forgetOnboarding,
+  ONBOARDING_STEPS,
+  useOnboarding,
+} from "../onboarding";
 
 function catalogue(): void {
   useCatalog.setState({
@@ -33,6 +37,20 @@ describe("l'ordre de l'onboarding", () => {
     store.goTo("harden");
 
     expect(useOnboarding.getState().step).toBe("harden");
+  });
+
+  it("place le premier projet entre le durcissement et l'écran de fin", () => {
+    expect(ONBOARDING_STEPS.slice(-3)).toEqual(["harden", "project", "done"]);
+  });
+
+  it("saute le premier projet et termine quand même l'onboarding", () => {
+    const store = useOnboarding.getState();
+
+    store.begin("srv-1");
+    store.goTo("project");
+    store.goTo("done");
+
+    expect(useOnboarding.getState().step).toBe("done");
   });
 
   it("revient en arrière tant que rien n'est installé", () => {

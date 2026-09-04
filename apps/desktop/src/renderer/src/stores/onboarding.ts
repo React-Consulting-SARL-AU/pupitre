@@ -21,6 +21,7 @@ export const ONBOARDING_STEPS = [
   "config",
   "install",
   "harden",
+  "project",
   "done",
 ] as const;
 

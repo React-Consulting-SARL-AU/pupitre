@@ -2,11 +2,14 @@ import type { ModuleConfig } from "@pupitre/shared/agent-protocol/install";
 import { ArrowLeft, X } from "lucide-react";
 import { useEffect } from "react";
 import { useCatalog } from "../../stores/catalog";
+import { hasCloudflare } from "../../stores/first-project";
 import { useHarden } from "../../stores/harden";
+import { probeOf } from "../../stores/inspection";
 import { useInstall } from "../../stores/install";
 import { useOnboarding } from "../../stores/onboarding";
 import { useServers } from "../../stores/servers";
 import { CatalogScreen } from "../catalog/catalog-screen";
+import { FirstProjectScreen } from "../first-project/first-project-screen";
 import { InstallScreen } from "../install/install-screen";
 import { Button } from "../ui/button";
 import { OnboardingAgentScreen } from "./onboarding-agent-screen";
@@ -37,6 +40,9 @@ export function OnboardingFlow() {
   const canGoBack = useOnboarding((state) => state.canGoBack);
   const close = useOnboarding((state) => state.close);
 
+  const install = useInstall((state) => state.install);
+  const requested = useInstall((state) => state.requested);
+
   const config = useServers((state) => state.config);
   const loadServers = useServers((state) => state.load);
   const rename = useServers((state) => state.rename);
@@ -48,6 +54,12 @@ export function OnboardingFlow() {
   const server = config?.servers.find((candidate) => candidate.id === serverId);
   const outcome = useHarden((state) =>
     state.harden.status === "done" ? state.harden.outcome : null
+  );
+
+  const cloudflare = hasCloudflare(
+    probeOf(serverId)?.installed_modules ?? [],
+    requested.modules,
+    install.status === "done" ? install.result.failed : []
   );
 
   function configOf(moduleId: string): ModuleConfig {
@@ -149,7 +161,19 @@ export function OnboardingFlow() {
     if (step === "harden") {
       return (
         <OnboardingHardenScreen
-          onContinue={() => goTo("done")}
+          onContinue={() => goTo("project")}
+          serverId={serverId}
+          serverName={server.name}
+        />
+      );
+    }
+
+    if (step === "project") {
+      return (
+        <FirstProjectScreen
+          cloudflare={cloudflare}
+          onFinish={() => goTo("done")}
+          onSkip={() => goTo("done")}
           serverId={serverId}
           serverName={server.name}
         />

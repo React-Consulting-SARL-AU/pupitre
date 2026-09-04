@@ -5,6 +5,8 @@ interface TPattern {
   regex: RegExp
   entropy?: boolean
   keyMaterial?: boolean
+  /** Recognised by shape alone, not by a provider's signature. */
+  shape?: boolean
 }
 
 const PATTERNS: TPattern[] = [
@@ -33,6 +35,7 @@ const PATTERNS: TPattern[] = [
     kind: "database URL with password",
     regex:
       /\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis):\/\/[^:\s/]+:([^@\s]{8,})@/,
+    shape: true,
   },
   {
     kind: "credential assigned in source",
@@ -79,10 +82,18 @@ function matches(pattern: TPattern, line: string, nextLine: string): boolean {
   return pattern.entropy ? looksRandom(match[1] ?? "") : true
 }
 
+const FIXTURE_FILE_RE =
+  /(?:\.test\.[cm]?[jt]sx?|_test\.go|\/(?:__tests__|testing|tests?|testdata|fixtures)\/)/
+
 export function findSecrets(content: string, file: string): TSecretFinding[] {
   if (content.includes("\0")) {
     return []
   }
+
+  // A test needs a credential-shaped fixture. The patterns that recognise a real
+  // provider's key by its prefix still apply there; only the shape-based guesses
+  // are lifted, since every fake password would otherwise be a finding.
+  const fixture = FIXTURE_FILE_RE.test(file)
 
   const findings: TSecretFinding[] = []
 
@@ -90,6 +101,10 @@ export function findSecrets(content: string, file: string): TSecretFinding[] {
 
   lines.forEach((line, index) => {
     for (const pattern of PATTERNS) {
+      if (fixture && (pattern.entropy || pattern.shape)) {
+        continue
+      }
+
       if (matches(pattern, line, lines[index + 1] ?? "")) {
         findings.push({ file, line: index + 1, kind: pattern.kind })
       }
