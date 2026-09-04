@@ -28,6 +28,8 @@ type Field =
   | { key: string; kind: "text" | "number" | "select"; label: string; help?: string; required: boolean; default?: unknown; options?: string[] }
   | { key: string; kind: "secret"; label: string; help?: string; required: boolean; generate?: boolean }  // generate: proposé généré, jamais affiché
   | { key: string; kind: "version"; label: string; options: string[]; default: string }
+  | { key: string; kind: "boolean"; label: string; help?: string; required: false; default: boolean }  // une case à cocher, jamais requise
+  | { key: string; kind: "list"; label: string; help?: string; required: boolean; items: "text" | "secret"; min?: number; max?: number }  // une liste de valeurs du même genre
 ```
 
 Un `preset` est une liste d'ids : `web-js`, `full`, `minimal`.
@@ -43,13 +45,13 @@ Chaque module implémente `Check`, `Install`, `Configure`, `Upgrade`, `Uninstall
 | Id | Fait | Champs |
 | --- | --- | --- |
 | `core.system` | paquets de base, fuseau, mises à jour de sécurité automatiques sans redémarrage, swap dimensionné, garde-fou mémoire (`systemd-oomd` ou `earlyoom`), utilisateur `dev` avec sudo, tmux, zsh avec les marqueurs de prompt (OSC 133) lus par l'app, identité git | `timezone`, `git_name`, `git_email`, `projects_dir` |
-| `core.hardening` | ufw sur SSH seul (22, et 443 en option), fail2ban, root fermé et mots de passe désactivés **après** vérification qu'une clé ouvre `dev`, `AllowUsers dev`, `ClientAlive` | `ssh_443: boolean` |
+| `core.hardening` | ufw sur SSH seul (22, et 443 en option), fail2ban, root fermé et mots de passe désactivés **après** vérification qu'une clé ouvre `dev`, `AllowUsers dev`, `ClientAlive` | `ssh_443` (boolean) |
 
 ### Runtimes
 
 | Id | Fait | Champs | MVP |
 | --- | --- | --- | --- |
-| `runtime.node` | mise ; Node, Bun, pnpm aux versions choisies ; activés dans tous les shells y compris non interactifs | `node_version`, `bun: boolean`, `pnpm: boolean` | oui |
+| `runtime.node` | mise ; Node, Bun, pnpm aux versions choisies ; activés dans tous les shells y compris non interactifs | `node_version`, `bun` (boolean), `pnpm` (boolean) | oui |
 | `runtime.java` | Temurin via mise, daemon Gradle dimensionné pour la RAM | `java_version` | oui |
 | `runtime.python` | uv et une version Python ; base des agents en Python | `python_version` | oui |
 | `runtime.go`, `runtime.php`, `runtime.ruby` | via mise | version | après |
@@ -70,7 +72,7 @@ Chaque module implémente `Check`, `Install`, `Configure`, `Upgrade`, `Uninstall
 | --- | --- | --- | --- |
 | `ai.claude` | Claude Code, connexion par l'URL affichée dans le terminal de l'app, contexte du projet, skills Pupitre (capture, branche, PR, ship) | — | oui |
 | `ai.codex` | Codex, idem | — | oui |
-| `ai.hermes` | Hermes Agent (Nous Research) via Python, configuration des fournisseurs de modèles, service systemd si toujours actif | `providers[]` (secrets), `always_on: boolean` | oui |
+| `ai.hermes` | Hermes Agent (Nous Research) via Python, configuration des fournisseurs de modèles, service systemd si toujours actif | `providers` (list de secrets), `always_on` (boolean) | oui |
 | `ai.browser` | Chrome headless, dépendances Playwright, commande de capture qui range les images dans la galerie | — | oui |
 
 ### Éditeurs distants
@@ -78,7 +80,7 @@ Chaque module implémente `Check`, `Install`, `Configure`, `Upgrade`, `Uninstall
 | Id | Fait | Champs | MVP |
 | --- | --- | --- | --- |
 | `editor.jetbrains` | backend de développement distant préinstallé dans le cache attendu par JetBrains Gateway, JVM et mémoire dimensionnées ; l'app ouvre par le lien Gateway ; licence du client | `ide: idea \| webstorm \| pycharm \| phpstorm \| goland`, `version` | oui |
-| `editor.vscode` | CLI `code` et serveur distant préinstallés pour que la première connexion Remote SSH soit immédiate, extensions de base, Remote Tunnel en option ; même mécanisme pour Cursor et Windsurf | `extensions[]`, `tunnel: boolean` | oui |
+| `editor.vscode` | CLI `code` et serveur distant préinstallés pour que la première connexion Remote SSH soit immédiate, extensions de base, Remote Tunnel en option ; même mécanisme pour Cursor et Windsurf | `extensions` (list de text), `tunnel` (boolean) | oui |
 | `editor.zed` | serveur distant Zed préinstallé pour la version du client ; ouverture par `zed://ssh` | `version` | oui |
 
 Visual Studio n'a pas de backend Linux : l'app le dit et renvoie vers `editor.vscode`.

@@ -1,18 +1,35 @@
 package entitlement
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
+
+	"pupitre.sh/agent/internal/contract"
 )
 
 func TestRestrictedCommandsMatchTheContract(t *testing.T) {
-	want := []string{"hello", "ping", "snapshot", "status", "diag", "agent.upgrade"}
-
-	if !reflect.DeepEqual(RestrictedCommands, want) {
-		t.Fatalf("RestrictedCommands = %v, want %v", RestrictedCommands, want)
+	raw, ok := contract.Definition("RestrictedCommands")
+	if !ok {
+		t.Fatal("schema.json has no RestrictedCommands definition")
 	}
 
-	for _, cmd := range want {
+	var definition struct {
+		Enum []string `json:"enum"`
+	}
+	if err := json.Unmarshal(raw, &definition); err != nil {
+		t.Fatalf("decode RestrictedCommands: %v", err)
+	}
+
+	if len(definition.Enum) == 0 {
+		t.Fatal("RestrictedCommands enum is empty")
+	}
+
+	if !reflect.DeepEqual(RestrictedCommands, definition.Enum) {
+		t.Fatalf("RestrictedCommands = %v, schema says %v", RestrictedCommands, definition.Enum)
+	}
+
+	for _, cmd := range definition.Enum {
 		if !AllowedInRestrictedMode(cmd) {
 			t.Errorf("%s should be allowed in restricted mode", cmd)
 		}

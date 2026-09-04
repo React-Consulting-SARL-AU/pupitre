@@ -98,10 +98,32 @@ export const VersionFieldSchema = FieldBaseSchema.extend({
 
 export type VersionField = z.infer<typeof VersionFieldSchema>
 
+export const BooleanFieldSchema = FieldBaseSchema.extend({
+  kind: z.literal("boolean"),
+  required: z.literal(false),
+  default: z.boolean(),
+}).strict()
+
+export type BooleanField = z.infer<typeof BooleanFieldSchema>
+
+export const LIST_ITEM_KINDS = ["text", "secret"] as const
+
+export const ListFieldSchema = FieldBaseSchema.extend({
+  kind: z.literal("list"),
+  required: z.boolean(),
+  items: z.enum(LIST_ITEM_KINDS),
+  min: z.int().nonnegative().optional(),
+  max: z.int().nonnegative().optional(),
+}).strict()
+
+export type ListField = z.infer<typeof ListFieldSchema>
+
 export const FieldSchema = z.discriminatedUnion("kind", [
   InputFieldSchema,
   SecretFieldSchema,
   VersionFieldSchema,
+  BooleanFieldSchema,
+  ListFieldSchema,
 ])
 
 export type Field = z.infer<typeof FieldSchema>
