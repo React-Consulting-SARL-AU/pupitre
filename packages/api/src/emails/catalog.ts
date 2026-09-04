@@ -1,0 +1,104 @@
+import type { Locale } from "../lib/i18n"
+import { consoleUrl } from "./config"
+import {
+  type RenderedEmail,
+  renderDeviceAddedEmail,
+  renderEntitlementGraceEmail,
+  renderInvitationEmail,
+  renderMagicLinkEmail,
+  renderServerAssignedEmail,
+  renderServerDecommissionEmail,
+  renderServerEnrolledEmail,
+  renderServerSuspendedEmail,
+} from "./render"
+import { EMAIL_TEMPLATE_IDS, type EmailTemplateId } from "./templates/ids"
+
+export const SAMPLE = {
+  consoleUrl: consoleUrl(),
+  magicLinkUrl: `${consoleUrl()}/api/auth/magic-link/verify?token=8f3c1d94a0b74e2f&callbackURL=%2Fdashboard`,
+  invitationUrl: `${consoleUrl()}/auth/invitation/inv_7a1c2e`,
+  organizationName: "Atelier Ferrand",
+  inviterEmail: "camille@atelier-ferrand.fr",
+  serverName: "vps-paris-01",
+  address: "dev@203.0.113.24:22",
+  agentVersion: "1.4.0",
+  arch: "amd64",
+  hostFingerprint: "SHA256:9zXk2Qm4pR7vN1sT6yB0cL3hJ8aF5dE2wU9iO4gK7xM",
+  deviceName: "MacBook Pro",
+  deviceFingerprint: "SHA256:3aQ7pL0mV2xR9tK5wY8bN1cJ6hD4fS0uE7gZ2iO5nT8",
+  addedAt: new Date("2026-09-04T09:12:00Z"),
+  deadline: new Date("2026-09-11T00:00:00Z"),
+  serverCount: 3,
+} as const
+
+export interface EmailPreview {
+  id: EmailTemplateId
+  render: (locale: Locale) => Promise<RenderedEmail>
+}
+
+const RENDERERS: Record<
+  EmailTemplateId,
+  (locale: Locale) => Promise<RenderedEmail>
+> = {
+  magic_link: (locale) =>
+    renderMagicLinkEmail({ locale, url: SAMPLE.magicLinkUrl }),
+  invitation: (locale) =>
+    renderInvitationEmail({
+      locale,
+      url: SAMPLE.invitationUrl,
+      organizationName: SAMPLE.organizationName,
+      inviterEmail: SAMPLE.inviterEmail,
+    }),
+  server_enrolled: (locale) =>
+    renderServerEnrolledEmail({
+      locale,
+      serverName: SAMPLE.serverName,
+      address: SAMPLE.address,
+      agentVersion: SAMPLE.agentVersion,
+      arch: SAMPLE.arch,
+      hostFingerprint: SAMPLE.hostFingerprint,
+    }),
+  server_assigned: (locale) =>
+    renderServerAssignedEmail({
+      locale,
+      serverName: SAMPLE.serverName,
+      address: SAMPLE.address,
+      organizationName: SAMPLE.organizationName,
+    }),
+  device_added: (locale) =>
+    renderDeviceAddedEmail({
+      locale,
+      deviceName: SAMPLE.deviceName,
+      fingerprint: SAMPLE.deviceFingerprint,
+      addedAt: SAMPLE.addedAt,
+    }),
+  entitlement_grace: (locale) =>
+    renderEntitlementGraceEmail({
+      locale,
+      organizationName: SAMPLE.organizationName,
+      deadline: SAMPLE.deadline,
+      serverCount: SAMPLE.serverCount,
+    }),
+  server_suspended: (locale) =>
+    renderServerSuspendedEmail({
+      locale,
+      organizationName: SAMPLE.organizationName,
+      serverCount: SAMPLE.serverCount,
+    }),
+  server_decommission: (locale) =>
+    renderServerDecommissionEmail({
+      locale,
+      serverName: SAMPLE.serverName,
+      organizationName: SAMPLE.organizationName,
+      deadline: SAMPLE.deadline,
+    }),
+}
+
+export const EMAIL_PREVIEWS: EmailPreview[] = EMAIL_TEMPLATE_IDS.map((id) => ({
+  id,
+  render: RENDERERS[id],
+}))
+
+export function previewOf(id: EmailTemplateId): EmailPreview {
+  return { id, render: RENDERERS[id] }
+}

@@ -2,30 +2,17 @@ export interface EmailMessage {
   to: string
   subject: string
   text: string
+  html?: string
 }
 
 export type SendEmail = (message: EmailMessage) => Promise<void>
 
 export type EmailLogger = (line: string) => void
 
-const TOKEN_QUERY_RE = /([?&]token=)[^&\s]+/g
-
-export function redactTokens(text: string): string {
-  return text.replace(TOKEN_QUERY_RE, "$1[redacted]")
-}
-
-export function magicLinkEmail(to: string, url: string): EmailMessage {
-  return {
-    to,
-    subject: "Votre lien de connexion Pupitre",
-    text: [
-      "Connectez-vous à Pupitre en ouvrant ce lien :",
-      "",
-      url,
-      "",
-      "Il expire dans 15 minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.",
-    ].join("\n"),
-  }
+export interface MagicLinkEmailInput {
+  to: string
+  url: string
+  acceptLanguage: string | null
 }
 
 export interface InvitationEmailInput {
@@ -33,22 +20,32 @@ export interface InvitationEmailInput {
   url: string
   organizationName: string
   inviterEmail: string
+  acceptLanguage: string | null
 }
 
-export function invitationEmail(input: InvitationEmailInput): EmailMessage {
-  return {
-    to: input.to,
-    subject: `Invitation à rejoindre ${input.organizationName} sur Pupitre`,
-    text: [
-      `${input.inviterEmail} vous invite à rejoindre l'organisation ${input.organizationName} sur Pupitre.`,
-      "",
-      "Acceptez l'invitation en ouvrant ce lien :",
-      "",
-      input.url,
-      "",
-      "Elle expire dans 7 jours.",
-    ].join("\n"),
+/**
+ * The templates live in `packages/api/src/emails`, which already depends on
+ * this package: they reach Better Auth through this port rather than the other
+ * way round, and `packages/api/src/server.ts` fills it in.
+ */
+export interface AuthEmailRenderer {
+  magicLink(input: MagicLinkEmailInput): Promise<EmailMessage>
+  invitation(input: InvitationEmailInput): Promise<EmailMessage>
+}
+
+export class AuthEmailsNotConfiguredError extends Error {
+  constructor() {
+    super(
+      "no auth email renderer: import @pupitre/api/server before serving auth requests"
+    )
+    this.name = "AuthEmailsNotConfiguredError"
   }
+}
+
+const TOKEN_QUERY_RE = /([?&]token=)[^&\s"'<>]+/g
+
+export function redactTokens(text: string): string {
+  return text.replace(TOKEN_QUERY_RE, "$1[redacted]")
 }
 
 export function createLoggingSendEmail(
@@ -56,9 +53,38 @@ export function createLoggingSendEmail(
 ): SendEmail {
   return (message) => {
     log(
-      `[auth email] to=${message.to} subject="${message.subject}"\n${redactTokens(message.text)}`
+      `[auth email] to=${message.to} subject="${redactTokens(message.subject)}"\n${redactTokens(message.text)}`
     )
 
     return Promise.resolve()
   }
+}
+
+let renderer: AuthEmailRenderer | null = null
+
+let configuredSender: SendEmail | null = null
+
+export interface AuthEmailsConfig {
+  renderer: AuthEmailRenderer
+  sendEmail?: SendEmail
+}
+
+export function configureAuthEmails(config: AuthEmailsConfig): void {
+  renderer = config.renderer
+
+  if (config.sendEmail) {
+    configuredSender = config.sendEmail
+  }
+}
+
+export function authEmailRenderer(): AuthEmailRenderer {
+  if (!renderer) {
+    throw new AuthEmailsNotConfiguredError()
+  }
+
+  return renderer
+}
+
+export function configuredSendEmail(): SendEmail | null {
+  return configuredSender
 }

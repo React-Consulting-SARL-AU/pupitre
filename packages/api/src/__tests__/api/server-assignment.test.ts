@@ -104,9 +104,9 @@ describe("POST /servers/:id/assign", () => {
       ED25519_KEY,
     ])
 
-    const notice = testServer.sentEmails.find(
-      (mail) => mail.to === member.user.email
-    )
+    const notice = testServer.sentEmails
+      .filter((mail) => mail.to === member.user.email)
+      .at(-1)
 
     expect(notice?.subject).toContain(server.name)
     expect(notice?.text).toContain(server.name)

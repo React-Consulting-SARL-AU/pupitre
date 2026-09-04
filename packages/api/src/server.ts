@@ -1,6 +1,9 @@
 import { openapi } from "@elysiajs/openapi"
+import { configureAuthEmails } from "@pupitre/auth/emails"
 import { type Auth, CLIENT_IP_HEADER } from "@pupitre/auth/server"
 import { type AnyElysia, Elysia, ValidationError } from "elysia"
+import { authEmails } from "./emails/renderer"
+import { createEmailSender } from "./emails/send"
 import { apiError, createErrorRef } from "./lib/api/errors"
 import { configureAuth } from "./lib/api/plugins/auth"
 import { type ApiPrisma, configurePrisma } from "./lib/api/prisma"
@@ -14,6 +17,10 @@ import { describeValidationError } from "./lib/api/validation-errors"
 import { resolveLocale, translate } from "./lib/i18n"
 
 export type { ApiPrisma } from "./lib/api/prisma"
+
+// The Better Auth handler is served from its own route, which never imports
+// this module's exports: the port has to be filled at import time.
+configureAuthEmails({ renderer: authEmails, sendEmail: createEmailSender() })
 
 export interface ApiRuntime {
   prisma: ApiPrisma

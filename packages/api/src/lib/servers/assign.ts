@@ -1,7 +1,7 @@
 import type { Server } from "@pupitre/db/cloudflare/client"
+import { sendServerAssignedEmail } from "../../emails/notifications"
 import { getPrisma, withOrganization } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
-import { sendServerAssignedEmail } from "../emails/assignment"
 import { createInvitation, findMemberUserIdByEmail } from "../orgs/members"
 
 export interface Actor {
@@ -79,7 +79,11 @@ async function assignToUser(
     { assigned_user_id: userId }
   )
 
-  await sendServerAssignedEmail({ userId, server: assigned })
+  await sendServerAssignedEmail({
+    userId,
+    server: assigned,
+    acceptLanguage: actor.headers.get("accept-language"),
+  })
 
   return assigned
 }

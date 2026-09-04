@@ -66,7 +66,10 @@ export const agentExchangeRoutes = new Elysia({
   "/agent/exchange",
   async ({ body, request, set }) => {
     try {
-      return await exchangeEnrollmentToken(body)
+      return await exchangeEnrollmentToken(
+        body,
+        request.headers.get("accept-language")
+      )
     } catch (error) {
       const refusal = refusalFor(error, resolveLocale(request.headers))
 
