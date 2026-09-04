@@ -40,7 +40,7 @@ Le canal est une session SSH ouverte par l'app avec la clé du client, qui lance
 | `uninstall` | `{ modules[] }` | événements `step`, puis `{ failed[] }` |
 | `harden` | `{ user: "dev" }` | événements `step`, puis `{ root_closed: boolean, next_user, reason? }`. Ne ferme root que si une clé ouvre `dev` |
 | `upgrade` | `{ modules?: string[] }` | idem `install`, sur les modules déjà présents |
-| `report` | — | le dernier rapport d'installation |
+| `report` | — | le dernier rapport d'installation ; `no_report` tant qu'aucune installation n'a eu lieu sur ce serveur |
 
 ### État
 
@@ -105,7 +105,15 @@ Le canal est une session SSH ouverte par l'app avec la clé du client, qui lance
 
 ## Le flux secret
 
-Une commande qui porte un secret (`install`, `secrets.set`) annonce `secrets_stdin: true`. L'app écrit ensuite les secrets en JSON sur une ligne, l'agent les consomme sans les journaliser ni les renvoyer. Aucun secret n'apparaît dans `params`, dans un événement ou dans un rapport.
+Une commande qui porte un secret (`install`, `secrets.set`) annonce `secrets_stdin: true`. L'app écrit ensuite les secrets en JSON sur une ligne du flux secret, l'agent les consomme sans les journaliser ni les renvoyer. Aucun secret n'apparaît dans `params`, dans un événement ou dans un rapport.
+
+Pour `install`, la ligne a la forme de `params.config`, groupée par identifiant de module, une valeur par champ `secret` du manifeste (schéma `InstallSecrets`) :
+
+```jsonc
+{ "db.postgres": { "app_password": "…", "remote_password": "…" }, "tool.github": { "token": "…" } }
+```
+
+Un module absent de la ligne n'a aucun secret. Une ligne qui ne respecte pas cette forme renvoie `bad_request` avant toute installation.
 
 ## Versionnage
 

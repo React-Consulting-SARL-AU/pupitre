@@ -6,6 +6,7 @@ import {
   InstallParamsSchema,
   InstallReportSchema,
   InstallResultSchema,
+  InstallSecretsSchema,
   ProbeResultSchema,
   UninstallParamsSchema,
   UpgradeParamsSchema,
@@ -76,6 +77,28 @@ describe("InstallParamsSchema", () => {
       InstallParamsSchema.safeParse({ modules: "db.postgres", config: {} })
         .success
     ).toBe(false)
+  })
+})
+
+describe("InstallSecretsSchema", () => {
+  it("mirrors config: values grouped by module id", () => {
+    expect(
+      InstallSecretsSchema.safeParse({
+        "db.postgres": { app_password: "hunter2", remote_password: "s3cret" },
+        "tool.github": {},
+      }).success
+    ).toBe(true)
+    expect(InstallSecretsSchema.safeParse({}).success).toBe(true)
+  })
+
+  it("rejects a flat line, a non-string value and a non-object", () => {
+    expect(
+      InstallSecretsSchema.safeParse({ app_password: "hunter2" }).success
+    ).toBe(false)
+    expect(
+      InstallSecretsSchema.safeParse({ "db.postgres": { port: 5432 } }).success
+    ).toBe(false)
+    expect(InstallSecretsSchema.safeParse(["hunter2"]).success).toBe(false)
   })
 })
 

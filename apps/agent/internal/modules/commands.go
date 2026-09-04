@@ -57,16 +57,23 @@ func RegisterCommands(server *protocol.Server, engine *Engine) {
 	})
 }
 
-// The install secret line is {"<module id>": {"<field key>": "<value>"}}, mirroring params.config.
 func decodeSecrets(raw json.RawMessage, expected bool) (map[string]map[string]string, error) {
 	if !expected || len(raw) == 0 {
 		return map[string]map[string]string{}, nil
 	}
 
+	value, err := contract.Decode(raw)
+	if err == nil {
+		err = contract.Validate("InstallSecrets", value)
+	}
+	if err != nil {
+		return nil, protocol.NewError(contract.ErrorBadRequest, "flux secret invalide : "+err.Error()).
+			WithFix(`Écris les secrets groupés par identifiant de module, comme config : {"<module id>": {"<clé>": "<valeur>"}}.`)
+	}
+
 	var secrets map[string]map[string]string
 	if err := json.Unmarshal(raw, &secrets); err != nil {
-		return nil, protocol.NewError(contract.ErrorBadRequest, "flux secret illisible : un objet {module: {clé: valeur}} est attendu").
-			WithFix("Écris les secrets groupés par identifiant de module, comme config.")
+		return nil, protocol.NewError(contract.ErrorInternal, "flux secret validé mais illisible : "+err.Error())
 	}
 
 	return secrets, nil
