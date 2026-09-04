@@ -34,7 +34,7 @@ const COPY_ATTR_RE = new RegExp(
 const JSX_TEXT_RE =
   /(?<![=<>/])>\s*([^<>{}()\n;=]*?[A-Za-z][^<>{}()\n;=]*?)\s*</g;
 
-const JSX_TEXT_ALLOW = new Set(["px", "px."]);
+const JSX_TEXT_ALLOW = new Set(["px", "px.", "Claude", "Codex", "Pupitre"]);
 
 const SOURCE_FILE = /\.tsx?$/;
 

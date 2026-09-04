@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { useState } from "react";
 import { Button, type ButtonIcon, type ButtonVariant } from "./button";
 
@@ -31,6 +32,8 @@ export function ConfirmButton({
   disabled?: boolean;
   className?: string;
 }) {
+  const t = useTranslations();
+
   const [asking, setAsking] = useState(false);
 
   if (!asking) {
@@ -64,7 +67,7 @@ export function ConfirmButton({
         {confirmLabel}
       </Button>
       <Button onClick={() => setAsking(false)} size="sm" variant="discreet">
-        Annuler
+        {t("common.cancel")}
       </Button>
     </span>
   );

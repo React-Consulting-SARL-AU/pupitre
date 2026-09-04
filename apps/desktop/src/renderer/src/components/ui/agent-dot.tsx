@@ -1,3 +1,5 @@
+import type { DictionaryKey } from "@renderer/i18n/en";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AgentState } from "@shared/terminals";
 import { StatusDot, type StatusShape, type StatusTone } from "./status-dot";
 
@@ -10,21 +12,21 @@ import { StatusDot, type StatusShape, type StatusTone } from "./status-dot";
  */
 const APPEARANCE: Record<
   AgentState,
-  { shape: StatusShape; tone: StatusTone; title: string }
+  { shape: StatusShape; tone: StatusTone; title: DictionaryKey }
 > = {
-  working: { shape: "breathing", title: "au travail", tone: "neutral" },
+  working: { shape: "breathing", title: "ui.agent.working", tone: "neutral" },
   attention: {
     shape: "ringed",
-    title: "attend votre réponse",
+    title: "ui.agent.attention",
     tone: "warn",
   },
-  idle: { shape: "filled", title: "au repos", tone: "neutral" },
+  idle: { shape: "filled", title: "ui.agent.idle", tone: "neutral" },
   asleep: {
     shape: "empty",
-    title: "au repos depuis un moment",
+    title: "ui.agent.asleep",
     tone: "neutral",
   },
-  finished: { shape: "struck", title: "session terminée", tone: "neutral" },
+  finished: { shape: "struck", title: "ui.agent.finished", tone: "neutral" },
 };
 
 export function AgentDot({
@@ -34,10 +36,13 @@ export function AgentDot({
   state: AgentState | null | undefined;
   size?: number;
 }) {
+  const t = useTranslations();
+
   if (!state) {
     return null;
   }
+
   const { shape, tone, title } = APPEARANCE[state];
 
-  return <StatusDot label={title} shape={shape} size={size} tone={tone} />;
+  return <StatusDot label={t(title)} shape={shape} size={size} tone={tone} />;
 }

@@ -38,17 +38,37 @@ export function fill(
   });
 }
 
-export type Translate = (
-  key: DictionaryKey,
-  values?: Record<string, string | number>
-) => string;
+type Values = Record<string, string | number>;
+
+export interface Translate {
+  (key: DictionaryKey, values?: Values): string;
+  /**
+   * Picks `<key>.one` or `<key>.other` by the locale's own rule and fills
+   * `{count}`. French counts 0 and 1 as singular, English only 1.
+   */
+  plural(key: string, count: number, values?: Values): string;
+}
+
+function pluralForm(locale: Locale, count: number): "one" | "other" {
+  const singular = locale === "fr" ? count <= 1 : count === 1;
+
+  return singular ? "one" : "other";
+}
 
 export function translator(locale: Locale): Translate {
   const dictionary = DICTIONARIES[locale];
 
-  return (key, values) => {
+  const translate = ((key: DictionaryKey, values?: Values): string => {
     const template = dictionary[key];
 
     return values ? fill(template, values) : template;
+  }) as Translate;
+
+  translate.plural = (key, count, values) => {
+    const form = pluralForm(locale, count);
+
+    return translate(`${key}.${form}` as DictionaryKey, { count, ...values });
   };
+
+  return translate;
 }

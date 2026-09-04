@@ -6,17 +6,18 @@ import type {
   StatusShape,
   StatusTone,
 } from "@renderer/components/ui/status-dot";
+import type { DictionaryKey } from "@renderer/i18n/en";
 
 /**
  * What each state of the protocol looks like, and what it is called here.
  *
  * The shape carries the meaning and the tone only confirms it, so the screen
- * survives being read in pure greys. The words are the app's — the agent sends
- * an identifier, not a sentence.
+ * survives being read in pure greys. The label is a dictionary key — the agent
+ * sends an identifier, not a sentence, and the word is the app's to translate.
  */
 
 export interface StateLook {
-  label: string;
+  label: DictionaryKey;
   shape: StatusShape;
   tone: StatusTone;
   frame: string;
@@ -27,43 +28,43 @@ const NEUTRAL_FRAME = "border-line-strong";
 export const PROJECT_LOOK: Record<ProjectState, StateLook> = {
   down: {
     frame: "border-danger/40",
-    label: "tombé",
+    label: "state.project.down",
     shape: "struck",
     tone: "danger",
   },
   external: {
     frame: "border-ok/40",
-    label: "externe",
+    label: "state.project.external",
     shape: "filled",
     tone: "ok",
   },
   failed: {
     frame: "border-danger/40",
-    label: "en échec",
+    label: "state.project.failed",
     shape: "struck",
     tone: "danger",
   },
   online: {
     frame: "border-ok/40",
-    label: "en ligne",
+    label: "state.project.online",
     shape: "filled",
     tone: "ok",
   },
   service: {
     frame: "border-ok/40",
-    label: "service",
+    label: "state.project.service",
     shape: "filled",
     tone: "ok",
   },
   starting: {
     frame: "border-warn/40",
-    label: "démarre",
+    label: "state.project.starting",
     shape: "breathing",
     tone: "warn",
   },
   stopped: {
     frame: NEUTRAL_FRAME,
-    label: "arrêté",
+    label: "state.project.stopped",
     shape: "empty",
     tone: "neutral",
   },
@@ -72,25 +73,25 @@ export const PROJECT_LOOK: Record<ProjectState, StateLook> = {
 export const SERVICE_LOOK: Record<ServiceState, StateLook> = {
   failed: {
     frame: "border-danger/40",
-    label: "en échec",
+    label: "state.service.failed",
     shape: "struck",
     tone: "danger",
   },
   running: {
     frame: "border-ok/40",
-    label: "actif",
+    label: "state.service.running",
     shape: "filled",
     tone: "ok",
   },
   stopped: {
     frame: NEUTRAL_FRAME,
-    label: "arrêté",
+    label: "state.service.stopped",
     shape: "empty",
     tone: "neutral",
   },
   unknown: {
     frame: NEUTRAL_FRAME,
-    label: "inconnu",
+    label: "state.service.unknown",
     shape: "empty",
     tone: "neutral",
   },

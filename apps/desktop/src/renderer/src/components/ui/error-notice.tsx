@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AgentError } from "@shared/agent";
 import { RotateCw } from "lucide-react";
 import { Button } from "./button";
@@ -13,18 +14,20 @@ import { Callout } from "./callout";
 export function ErrorNotice({
   error,
   onRetry,
-  retryLabel = "Réessayer",
+  retryLabel,
 }: {
   error: AgentError;
   onRetry?: () => void;
   retryLabel?: string;
 }) {
+  const t = useTranslations();
+
   return (
     <Callout
       action={
         onRetry ? (
           <Button icon={RotateCw} onClick={onRetry} size="sm">
-            {retryLabel}
+            {retryLabel ?? t("common.retry")}
           </Button>
         ) : null
       }

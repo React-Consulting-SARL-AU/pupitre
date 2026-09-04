@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 import { IconButton } from "./icon-button";
@@ -20,6 +21,8 @@ export function CopyField({
   value: string;
   help?: string;
 }) {
+  const t = useTranslations();
+
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -42,7 +45,7 @@ export function CopyField({
         </code>
         <IconButton
           icon={copied ? Check : Copy}
-          label={copied ? "Copié" : `Copier — ${label}`}
+          label={copied ? t("common.copied") : t("common.copy", { label })}
           onClick={copy}
           variant="discreet"
         />

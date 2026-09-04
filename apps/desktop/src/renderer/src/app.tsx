@@ -15,6 +15,7 @@ import { EmptyState } from "./components/ui/empty-state";
 import { ErrorNotice } from "./components/ui/error-notice";
 import { IconButton } from "./components/ui/icon-button";
 import { AgentUpdateBanner } from "./components/updates/agent-update-banner";
+import { useTranslations } from "./i18n/use-translations";
 import { noteProjects, noteServer } from "./lib/completion";
 import { attachedSessions } from "./lib/sessions";
 import { shellScreen } from "./lib/shell-screen";
@@ -33,6 +34,8 @@ const POLL_MS = 3000;
 const POLL_PROCESSES_MS = 8000;
 
 export function App() {
+  const t = useTranslations();
+
   const onboarding = useOnboarding((s) => s.step);
   const openOnboarding = useOnboarding((s) => s.open);
   const beginOnboarding = useOnboarding((s) => s.begin);
@@ -229,7 +232,7 @@ export function App() {
             <div className="mt-1 flex justify-end">
               <IconButton
                 icon={X}
-                label="Masquer"
+                label={t("common.hide")}
                 onClick={() => store.announce(null)}
                 size={12}
                 variant="discreet"
@@ -334,9 +337,9 @@ export function App() {
             <div className="absolute inset-0">
               {serverTerminals.length === 0 ? (
                 <EmptyState
-                  detail="Ouvrez-en un depuis la barre latérale."
+                  detail={t("app.terminals.empty.detail")}
                   icon={SquareTerminal}
-                  title="Aucun terminal ouvert"
+                  title={t("app.terminals.empty.title")}
                 />
               ) : (
                 <TerminalTabs
