@@ -32,7 +32,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-08 | Modules éditeurs distants | à faire | | |
 | AGT-09 | Modules exposition et outils | à faire | | |
 | AGT-10 | Registre des projets et pilotage | fait | `feat/AGT-10-registry` | fusionnée |
-| AGT-11 | Sessions, processus, captures, secrets, bases | en revue | `feat/AGT-11-sessions` | |
+| AGT-11 | Sessions, processus, captures, secrets, bases | fait | `feat/AGT-11-sessions` | fusionnée |
 | AGT-12 | Shell de l'app et autocomplétion | à faire | | |
 | AGT-13 | Mise à jour de l'agent | à faire | | |
 | AGT-14 | Droit d'usage, enrôlement, heartbeat | à faire | | |

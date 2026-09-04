@@ -107,7 +107,7 @@ Tests. `test/staging/db_test.go` par moteur.
 ### AGT-07 — Modules agents IA et navigateur
 Lot 1 · dépend de AGT-05 · `apps/agent`
 
-Périmètre. `ai.claude`, `ai.codex`, `ai.hermes` (Hermes Agent de Nous Research, via Python, fournisseurs en secrets, service systemd optionnel), `ai.browser` (Chrome headless, dépendances Playwright, commande `shot` et galerie d'après `server/bin/shot.in` et `dev-shots-server`). Skills Pupitre déposés dans le dossier attendu par chaque agent (`server/agents/` comme spécification). Commande `agent.open`.
+Périmètre. Ajouter `ide` à `SESSION_KINDS` de `packages/shared/src/agent-protocol` (un backend JetBrains est aujourd'hui rendu `shell`), régénérer le schéma. `ai.claude`, `ai.codex`, `ai.hermes` (Hermes Agent de Nous Research, via Python, fournisseurs en secrets, service systemd optionnel), `ai.browser` (Chrome headless, dépendances Playwright, commande `shot` et galerie d'après `server/bin/shot.in` et `dev-shots-server`). Skills Pupitre déposés dans le dossier attendu par chaque agent (`server/agents/` comme spécification). Commande `agent.open`.
 Critères d'acceptation.
 1. `claude --version`, `codex --version`, `hermes --version` répondent pour `dev`.
 2. `shot https://example.org` produit une image visible par `shots.list`.
