@@ -29,6 +29,11 @@ import type {
   AgentUpgradeResult,
   DoneResult,
 } from "@pupitre/shared/agent-protocol/system";
+import type {
+  AccountResponse,
+  AccountState,
+  SignInProgress,
+} from "@shared/account";
 import type { AgentResponse } from "@shared/agent";
 import type { AgentUpdateState } from "@shared/agent-update";
 import type { Appearance } from "@shared/appearance";
@@ -82,6 +87,44 @@ function streamedUpdate<T>(
 }
 
 const api = {
+  /**
+   * The account, without its token.
+   *
+   * The bearer session lives in the operating system's keychain, read by the
+   * main process at the moment of a call. What crosses here is who is signed
+   * in, which device this computer is, and whether Pupitre may work.
+   */
+  account: (): Promise<AccountState> => ipcRenderer.invoke("account:state"),
+  refreshAccount: (): Promise<AccountState> =>
+    ipcRenderer.invoke("account:refresh"),
+  signOut: (): Promise<AccountState> => ipcRenderer.invoke("account:sign-out"),
+
+  /**
+   * The device flow: a code to read out, a browser that opens on it, and the
+   * wait until someone approves it in the console.
+   */
+  signIn: (
+    onProgress: (progress: SignInProgress) => void
+  ): Promise<AccountResponse<AccountState>> => {
+    const token = crypto.randomUUID();
+    const listener = (
+      _e: unknown,
+      payload: { token: string; progress: SignInProgress }
+    ) => {
+      if (payload.token === token) {
+        onProgress(payload.progress);
+      }
+    };
+
+    ipcRenderer.on("account:sign-in-progress", listener);
+
+    return ipcRenderer
+      .invoke("account:sign-in", token)
+      .finally(() =>
+        ipcRenderer.removeListener("account:sign-in-progress", listener)
+      );
+  },
+
   /**
    * The agent protocol, as it stands: a command of `COMMANDS`, its parameters,
    * and the envelope the agent answered. The main process validates both before

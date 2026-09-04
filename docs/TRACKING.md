@@ -66,7 +66,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-11 | Services au quotidien | fait | `feat/APP-11-services` | fusionnée |
 | APP-12 | Mise à jour de l'agent depuis l'app | fait | `feat/APP-12-agent-update` | fusionnée |
 | APP-13 | Build macOS signé, notarisé, bytecode, auto-update | à faire | | |
-| APP-14 | Compte : device flow, appareils, enrôlement | à faire | | |
+| APP-14 | Compte : device flow, appareils, enrôlement | en revue | `feat/APP-14-account` | |
 | APP-15 | Serveurs distants et organisations | à faire | | |
 | APP-16 | Builds Windows et Linux | à faire | | |
 | APP-17 | Harnais Playwright pour Electron | fait | `feat/APP-17-electron-e2e` | fusionnée |

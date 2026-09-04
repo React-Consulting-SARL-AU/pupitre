@@ -1,13 +1,15 @@
+import { AccountPanel } from "@renderer/components/account/account-panel";
 import { ServersPanel } from "@renderer/components/servers/servers-panel";
 import { PageHeader } from "@renderer/components/ui/page-header";
-import { Palette, Server as ServerIcon } from "lucide-react";
+import { Palette, Server as ServerIcon, UserRound } from "lucide-react";
 import { useState } from "react";
 import { SettingsAppearance } from "./settings-appearance";
 
-type Section = "servers" | "appearance";
+type Section = "servers" | "account" | "appearance";
 
 const SECTIONS: { id: Section; label: string; icon: typeof ServerIcon }[] = [
   { icon: ServerIcon, id: "servers", label: "Serveurs" },
+  { icon: UserRound, id: "account", label: "Compte" },
   { icon: Palette, id: "appearance", label: "Apparence" },
 ];
 
@@ -36,6 +38,8 @@ export function SettingsScreen({ onChanged }: { onChanged: () => void }) {
             </button>
           ))}
         </div>
+
+        {section === "account" ? <AccountPanel /> : null}
 
         {section === "appearance" ? <SettingsAppearance /> : null}
 
