@@ -1,10 +1,19 @@
 import type { ProjectGitStatusResult } from "@pupitre/shared/agent-protocol/projects";
 import type { Project } from "@pupitre/shared/agent-protocol/state";
 import { Button } from "@renderer/components/ui/button";
+import { ServiceLogo } from "@renderer/components/ui/service-logo";
 import { StatePill } from "@renderer/components/ui/state-pill";
+import { runtimeModuleOf } from "@renderer/lib/modules";
 import { isRunning, PROJECT_LOOK } from "@renderer/lib/project-state";
 import type { ProjectAction } from "@renderer/stores/snapshot";
-import { GitBranch, Play, RefreshCw, RotateCw, Square } from "lucide-react";
+import {
+  GitBranch,
+  Package,
+  Play,
+  RefreshCw,
+  RotateCw,
+  Square,
+} from "lucide-react";
 import type { ReactNode } from "react";
 
 /**
@@ -39,9 +48,15 @@ export function ProjectHeader({
   const running = isRunning(project.state);
 
   return (
-    <header className="shrink-0 border-line border-b px-6 pt-5 pb-0">
+    <header className="shrink-0 border-line border-b bg-surface px-8 pt-6 pb-0">
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="font-semibold text-ink text-lg tracking-tight">
+        <ServiceLogo
+          fallback={Package}
+          moduleId={runtimeModuleOf(project.pkgmgr)}
+          name={project.pkgmgr}
+          size={20}
+        />
+        <h1 className="font-bold font-display text-ink text-xl tracking-tight">
           {project.name}
         </h1>
         <StatePill look={PROJECT_LOOK[project.state]} name={project.state} />

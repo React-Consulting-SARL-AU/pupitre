@@ -35,7 +35,7 @@ export function SecretsRow({
 
   return (
     <div className="border-line border-b last:border-b-0">
-      <div className="flex items-center gap-3 px-4 py-2.5">
+      <div className="flex items-center gap-3 px-4 py-3">
         <Lock className="shrink-0 text-ink-3" size={13} strokeWidth={1.5} />
 
         <p className="min-w-0 flex-1 truncate font-data text-[12px] text-ink">
@@ -63,7 +63,7 @@ export function SecretsRow({
 
       {open ? (
         <form
-          className="flex items-center gap-2 border-line border-t bg-sunken px-4 py-2.5"
+          className="flex items-center gap-2 border-line border-t bg-sunken px-4 py-3"
           onSubmit={(event) => {
             event.preventDefault();
             onSave(value);

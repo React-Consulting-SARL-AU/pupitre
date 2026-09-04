@@ -43,7 +43,7 @@ export function OnboardingInspectionScreen({
       : null;
 
   return (
-    <section className="flex flex-col gap-8">
+    <section className="flex flex-col gap-section">
       <PageHeader
         description="Ce que la machine est, avant d'y toucher."
         eyebrow="Inspection"

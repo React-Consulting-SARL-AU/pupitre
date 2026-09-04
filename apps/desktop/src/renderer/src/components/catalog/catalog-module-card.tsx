@@ -26,7 +26,7 @@ export function CatalogModuleCard({
 
   return (
     <li
-      className={`elevation-raised flex gap-3 rounded-md border bg-surface p-3 transition-soft ${
+      className={`elevation-raised flex gap-3 rounded-md border bg-surface p-4 transition-soft ${
         selected ? "border-line-strong" : "border-line"
       } ${unreachable ? "opacity-55" : ""}`}
       data-blocked={unreachable ? "true" : "false"}

@@ -10,8 +10,8 @@ export function InstallLog({ lines }: { lines: readonly string[] }) {
   }
 
   return (
-    <details className="rounded-md border border-line bg-surface">
-      <summary className="clickable cursor-pointer px-4 py-2.5 text-ink-2 transition-soft hover:text-ink">
+    <details className="elevation-raised overflow-hidden rounded-md border border-line bg-surface">
+      <summary className="clickable cursor-pointer px-4 py-3 text-ink-2 transition-soft hover:text-ink">
         Journal — {lines.length} lignes
       </summary>
 

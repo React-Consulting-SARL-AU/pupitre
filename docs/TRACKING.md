@@ -68,7 +68,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-16 | Builds Windows et Linux | à faire | | |
 | APP-17 | Harnais Playwright pour Electron | à faire | | |
 | APP-18 | Fond natif de la fenêtre selon le thème | à faire | | |
-| APP-19 | Appliquer le design accueillant à l'app | à faire | | |
+| APP-19 | Appliquer le design accueillant à l'app | en revue | `feat/APP-19-warm-design` | |
 | APP-20 | L'app parle deux langues | à faire | | |
 
 ## Plateforme — `PLT`

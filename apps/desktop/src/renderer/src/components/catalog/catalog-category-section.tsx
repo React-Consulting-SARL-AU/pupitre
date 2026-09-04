@@ -33,7 +33,7 @@ export function CatalogCategorySection({
     <section className="flex flex-col gap-3" data-category={category}>
       <Label>{NAMES[category] ?? category}</Label>
 
-      <ul className="grid gap-3 lg:grid-cols-2">
+      <ul className="grid gap-gutter lg:grid-cols-2">
         {modules.map((module) => (
           <CatalogModuleCard
             key={module.id}

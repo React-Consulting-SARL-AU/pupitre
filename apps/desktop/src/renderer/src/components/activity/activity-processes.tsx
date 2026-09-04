@@ -33,7 +33,7 @@ export function ActivityProcesses({
     <div className="divide-y divide-line">
       {processes.map((process) => (
         <div
-          className="group flex items-center gap-3 px-4 py-2.5"
+          className="group flex items-center gap-3 px-4 py-3"
           key={process.pid}
         >
           <div className="min-w-0 flex-1">
@@ -49,7 +49,7 @@ export function ActivityProcesses({
             </div>
             <div className="mt-1.5 h-[3px] overflow-hidden rounded-full bg-sunken">
               <div
-                className="h-full rounded-full bg-ink-3 transition-[width] duration-500 ease-out"
+                className="h-full rounded-full bg-ink-3 transition-size"
                 style={{ width: `${Math.max(2, (process.cpu / peak) * 100)}%` }}
               />
             </div>

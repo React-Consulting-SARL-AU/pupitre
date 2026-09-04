@@ -63,7 +63,7 @@ export function ServicePanel({
 
   if (detail.status === "failed") {
     return (
-      <section className="flex flex-col gap-6">
+      <section className="flex flex-col gap-gutter">
         <ErrorNotice
           error={detail.error}
           onRetry={() => open(serverId, moduleId)}
@@ -89,7 +89,7 @@ export function ServicePanel({
   const isDatabase = databaseEngineOf(moduleId) !== null;
 
   return (
-    <section className="flex flex-col gap-8">
+    <section className="flex flex-col gap-section">
       <ServicePanelHeader
         detail={detail.detail}
         onBack={onBack}

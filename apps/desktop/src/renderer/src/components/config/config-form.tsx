@@ -29,8 +29,8 @@ export function ConfigForm({
   handlersFor?: (moduleId: string) => FieldHandlers;
 }) {
   return (
-    <div className="flex flex-col gap-5">
-      <section className="elevation-raised flex flex-col gap-4 rounded-md border border-line bg-surface p-5">
+    <div className="flex flex-col gap-gutter">
+      <section className="elevation-raised flex flex-col gap-gutter rounded-md border border-line bg-surface p-5">
         <header className="min-w-0">
           <h2 className="font-medium text-ink">Cette machine</h2>
           <p className="text-[11px] text-ink-3">

@@ -24,7 +24,7 @@ export function OnboardingHardenOutcome({
   const closed = outcome.harden.root_closed;
 
   return (
-    <section className="flex flex-col gap-5">
+    <section className="flex flex-col gap-gutter">
       {closed ? (
         <div className="elevation-raised flex items-start gap-3 rounded-md border border-line bg-surface px-4 py-4">
           <span className="translate-y-1">

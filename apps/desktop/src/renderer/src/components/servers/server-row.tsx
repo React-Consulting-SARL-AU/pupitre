@@ -111,7 +111,7 @@ export function ServerRow({
       ) : null}
 
       {confirming ? (
-        <div className="mt-5 animate-[fade-in_160ms_ease-out] rounded-sm border border-danger/40 bg-danger/10 p-3 pl-7">
+        <div className="fade-in mt-5 rounded-sm border border-danger/40 bg-danger/10 p-3 pl-7">
           <p className="text-ink leading-relaxed">
             Supprimer {server.name} ?{" "}
             {server.origin === "app"

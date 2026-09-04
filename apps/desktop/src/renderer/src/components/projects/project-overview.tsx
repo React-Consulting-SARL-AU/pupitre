@@ -58,8 +58,8 @@ export function ProjectOverview({
   }
 
   return (
-    <div className="h-full overflow-y-auto px-6 py-5">
-      <div className="grid gap-3 md:grid-cols-2">
+    <div className="h-full overflow-y-auto px-8 py-6">
+      <div className="grid gap-gutter md:grid-cols-2">
         <ProjectPanel icon={ExternalLink} label="Adresse publique">
           {project.url ? (
             <div className="flex items-center gap-2">

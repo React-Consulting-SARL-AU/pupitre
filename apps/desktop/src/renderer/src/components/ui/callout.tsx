@@ -34,14 +34,14 @@ export function Callout({
 
   return (
     <div
-      className={`flex items-start gap-2 rounded-md border px-3 py-2 text-[11px] ${look.frame}`}
+      className={`elevation-raised flex items-start gap-2.5 rounded-md border px-3.5 py-3 text-[11px] ${look.frame}`}
       data-tone={tone}
     >
       <Icon className="mt-px shrink-0" size={13} strokeWidth={1.5} />
       <div className="min-w-0 flex-1">
-        <p className="break-words">{children}</p>
+        <p className="break-words leading-relaxed">{children}</p>
         {fix ? (
-          <code className="mt-1 block font-data text-ink-3">{fix}</code>
+          <code className="mt-1.5 block font-data text-ink-3">{fix}</code>
         ) : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
