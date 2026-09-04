@@ -20,7 +20,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-13 | Le quota gratuit vit dans le contrat partagé | fait | `main` | constante unique dans `@pupitre/shared/plans` |
 | INF-14 | La langue de l'utilisateur est enregistrée | à faire | | |
 | INF-15 | Contrat : détecter le gestionnaire d'un dépôt | à faire | | |
-| INF-16 | Contrat : le chemin absolu d'un projet | en revue | `feat/INF-16-project-path` | |
+| INF-16 | Contrat : le chemin absolu d'un projet | fait | `feat/INF-16-project-path` | fusionnée |
 | INF-11 | Contrat : le verdict de la sonde | fait | `feat/INF-11-probe-contract` | fusionnée |
 
 ## Agent serveur — `AGT`
@@ -43,6 +43,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-14 | Droit d'usage, enrôlement, heartbeat | à faire | | |
 | AGT-15 | Obfuscation et distribution | à faire | | |
 | AGT-16 | Validateur : messages d'erreur déterministes | à faire | | |
+| AGT-17 | La racine rendue par `project.git_status` reste dans la racine des projets | à faire | | |
 
 ## App desktop — `APP`
 
