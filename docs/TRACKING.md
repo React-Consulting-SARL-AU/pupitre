@@ -18,7 +18,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 
 | ID | Tâche | Statut | Branche | PR |
 | --- | --- | --- | --- | --- |
-| AGT-01 | Squelette, protocole, `hello` et `ping` | en revue | `feat/AGT-01-protocol` | |
+| AGT-01 | Squelette, protocole, `hello` et `ping` | fait | `feat/AGT-01-protocol` | fusionnée |
 | AGT-02 | Sonde sh et sonde Go | à faire | | |
 | AGT-03 | Moteur de modules et rapport | à faire | | |
 | AGT-04 | Modules socle et durcissement | à faire | | |
