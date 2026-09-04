@@ -3,6 +3,7 @@
 interface CloudflareEnv {
   ASSETS: Fetcher
   DECOMMISSION_SERVER: Workflow
+  EVALUATE_ALERTS: Workflow
   EXPIRE_ENROLLMENTS: Workflow
   RECONCILE_SEATS: Workflow
   BETTER_AUTH_SECRET?: string
