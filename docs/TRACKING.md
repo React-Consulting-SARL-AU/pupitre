@@ -33,6 +33,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-13 | Mise à jour de l'agent | à faire | | |
 | AGT-14 | Droit d'usage, enrôlement, heartbeat | à faire | | |
 | AGT-15 | Obfuscation et distribution | à faire | | |
+| AGT-16 | Validateur : messages d'erreur déterministes | à faire | | |
 
 ## App desktop — `APP`
 

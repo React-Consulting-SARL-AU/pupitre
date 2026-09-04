@@ -181,6 +181,15 @@ Critères d'acceptation.
 1. `strings pupitred | grep -c pupitre` est proche de zéro sur le build de release.
 2. Un binaire publié est téléchargeable par l'app avec un jeton d'appareil et pas sans.
 
+### AGT-16 — Validateur : messages d'erreur déterministes
+Lot 1 · dépend de AGT-01 · `apps/agent/internal/contract`
+
+But. Le message renvoyé pour une valeur rejetée par un `oneOf` discriminé est toujours le même.
+Périmètre. Dans `validate.go`, choisir la branche dont le discriminateur `const` correspond avant de départager par longueur de chemin, et itérer les propriétés dans l'ordre du schéma plutôt que celui d'une map. Tests qui fixent le message attendu pour `Field` (`boolean` avec `default: "yes"` → `/default : doit être un booléen`).
+Hors périmètre. Nouveaux mots-clés JSON Schema.
+Critères d'acceptation.
+1. `go test -count=20 ./internal/contract` passe avec des assertions sur le message, pas seulement sur accepte/rejette.
+
 ## Lot 2 — L'app
 
 ### APP-01 — Design monochrome et thèmes
