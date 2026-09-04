@@ -2,13 +2,17 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/entitlement"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/platform"
 	"pupitre.studio/agent/internal/probe"
 	"pupitre.studio/agent/internal/sys"
 )
@@ -30,8 +34,29 @@ func setupCLI(t *testing.T) (*modtest.FakeSys, string) {
 	t.Setenv("PUPITRE_REPORT_PATH", filepath.Join(dir, "report.json"))
 	t.Setenv("PUPITRE_LOG_PATH", filepath.Join(dir, "pupitre.log"))
 	t.Setenv("PUPITRE_INSTALL_PATH", filepath.Join(dir, "install.json"))
+	enrol(t, fake)
 
 	return fake, dir
+}
+
+// A server as it stands just after its enrolment: a server token, and a platform read that is still fresh.
+func enrol(t *testing.T, fake *modtest.FakeSys) {
+	t.Helper()
+
+	now := time.Now()
+	cache, err := json.Marshal(entitlement.Cache{State: "valid", ValidUntil: now.Add(24 * time.Hour), CheckedAt: now})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fake.Files[platform.DefaultTokenPath] = []byte("jeton-de-serveur\n")
+	fake.Files[entitlement.DefaultCachePath] = cache
+}
+
+// The same binary, on a server it was never enrolled on.
+func unenrol(fake *modtest.FakeSys) {
+	delete(fake.Files, platform.DefaultTokenPath)
+	delete(fake.Files, entitlement.DefaultCachePath)
 }
 
 func runCLI(t *testing.T, args ...string) (int, string, string) {

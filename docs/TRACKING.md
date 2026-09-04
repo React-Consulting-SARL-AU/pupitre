@@ -44,7 +44,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-11 | Sessions, processus, captures, secrets, bases | fait | `feat/AGT-11-sessions` | fusionnée |
 | AGT-12 | Shell de l'app et autocomplétion | fait | `feat/AGT-12-shell` | fusionnée |
 | AGT-13 | Mise à jour de l'agent | fait | `feat/AGT-13-self-update` | fusionnée |
-| AGT-14 | Droit d'usage, enrôlement, heartbeat | à faire | | |
+| AGT-14 | Droit d'usage, enrôlement, heartbeat | fait | `feat/AGT-14-entitlement` | fusionnée |
 | AGT-15 | Obfuscation et distribution | à faire | | |
 | AGT-16 | Validateur : messages d'erreur déterministes | à faire | | |
 | AGT-17 | La racine rendue par `project.git_status` reste dans la racine des projets | à faire | | |
@@ -70,9 +70,9 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-15 | Serveurs distants et organisations | à faire | | |
 | APP-16 | Builds Windows et Linux | à faire | | |
 | APP-17 | Harnais Playwright pour Electron | fait | `feat/APP-17-electron-e2e` | fusionnée |
-| APP-18 | Fond natif de la fenêtre selon le thème | à faire | | |
+| APP-18 | Fond natif de la fenêtre selon le thème | en revue | `feat/APP-18-window-and-font` | |
 | APP-19 | Appliquer le design accueillant à l'app | fait | `feat/APP-19-warm-design` | fusionnée |
-| APP-21 | Embarquer la police d'affichage dans l'app | à faire | | |
+| APP-21 | Embarquer la police d'affichage dans l'app | en revue | `feat/APP-18-window-and-font` | |
 | APP-20 | L'app parle deux langues | à faire | | |
 
 ## Plateforme — `PLT`
@@ -94,7 +94,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-13 | Passkeys et MFA | fait | `feat/PLT-13-passkeys` | fusionnée |
 | PLT-14 | Déploiement Cloudflare Builds, staging et production | en revue | `feat/PLT-14-deploy` | fusion en attente de PLT-18 : mêmes fichiers |
 | PLT-15 | Workflows Cloudflare : déclencheurs des tâches longues | fait | `feat/PLT-15-workflows` | fusionnée |
-| PLT-19 | Déclencheur planifié pour la fin de tolérance | à faire | | |
+| PLT-19 | Déclencheur planifié pour la fin de tolérance | fait | `feat/PLT-19-grace-cron` | fusionnée |
 | PLT-17 | Le workflow d'évaluation des alertes | fait | `feat/PLT-17-alerts-workflow` | fusionnée |
 | PLT-16 | Harnais Playwright pour la console | fait | `feat/PLT-16-e2e` | fusionnée |
 | PLT-18 | Managed Payments : vendeur Stripe, un produit, deux prix | en revue | `main` | |
@@ -120,5 +120,3 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
-| 2026-09-04 | APP-12 | L'app n'a pas encore de session d'appareil : elle ne peut pas appeler `GET /releases/agent/latest?channel=&arch=` pour obtenir la version publiée, ses notes et sa signature. APP-12 les prend donc dans la release embarquée à la construction — `embedAgent` lit `apps/agent/dist/release.json` (`{ version, notes[], signatures: { arch } }`) et les recopie dans le manifeste des binaires. **Rien ne l'écrit aujourd'hui** : `bun --cwd=apps/agent run release` (AGT-15) doit le produire, sinon l'app porte un agent qu'elle sait pousser sur une machine nue mais pas proposer en mise à jour, et le bandeau le dit. À rebrancher sur la plateforme quand le lot 3 apporte le compte. | propriétaire |
-| 2026-09-05 | INF-14 | La migration `add_user_locale` a été appliquée sur la branche staging de Neon sous l'horodatage que Prisma avait généré (`20260904212042_add_user_locale`), puis son dossier a été renommé en `20260905000000_add_user_locale` pour rester le dernier par ordre alphabétique. La colonne est en place, mais `_prisma_migrations` garde l'ancien nom : **le prochain `db:migrate` sur staging échouera**. Staging est vide (0 utilisateur, 0 organisation, 0 serveur). Remède au choix : renommer la ligne (`update _prisma_migrations set migration_name = '20260905000000_add_user_locale' where migration_name = '20260904212042_add_user_locale'`) ou réinitialiser staging. Les deux écritures m'ont été refusées : elles touchent ta base réelle. Production n'est pas concernée, elle recevra la migration sous son nom de dépôt. | propriétaire |

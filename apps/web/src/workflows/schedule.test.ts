@@ -16,6 +16,7 @@ function envRecording(started: string[]): CloudflareEnv {
     DECOMMISSION_SERVER: workflow("decommission-server"),
     RECONCILE_SEATS: workflow("reconcile-seats"),
     EVALUATE_ALERTS: workflow("evaluate-alerts"),
+    SUSPEND_EXPIRED_GRACE: workflow("suspend-expired-grace"),
   } as unknown as CloudflareEnv
 }
 
@@ -40,8 +41,13 @@ describe("les cron triggers", () => {
 
     await runScheduledWorkflow("20 3 * * *", env)
     await runScheduledWorkflow("40 3 * * *", env)
+    await runScheduledWorkflow("7 4 * * *", env)
 
-    expect(started).toEqual(["decommission-server", "reconcile-seats"])
+    expect(started).toEqual([
+      "decommission-server",
+      "reconcile-seats",
+      "suspend-expired-grace",
+    ])
   })
 
   it("démarre l'évaluation des alertes toutes les cinq minutes", async () => {

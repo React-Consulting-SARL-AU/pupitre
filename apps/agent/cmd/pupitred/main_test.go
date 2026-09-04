@@ -6,10 +6,17 @@ import (
 	"testing"
 
 	"pupitre.studio/agent/internal/contract"
-	"pupitre.studio/agent/internal/entitlement"
 )
 
 func serveLines(t *testing.T, lines ...string) []string {
+	t.Helper()
+
+	setupCLI(t)
+
+	return serveOn(t, lines...)
+}
+
+func serveOn(t *testing.T, lines ...string) []string {
 	t.Helper()
 
 	var out bytes.Buffer
@@ -67,7 +74,7 @@ func TestServeNegotiatesHelloThenAnswersPing(t *testing.T) {
 		t.Fatalf("hello result violates HelloResult: %v", err)
 	}
 
-	if result["agent_version"] != version || result["entitlement"] != string(entitlement.Current()) {
+	if result["agent_version"] != version || result["entitlement"] != string(buildEntitlement) {
 		t.Fatalf("unexpected hello result: %v", result)
 	}
 
