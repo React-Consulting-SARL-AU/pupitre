@@ -1,9 +1,6 @@
 import { Field, fieldControlClass } from "@renderer/components/ui/field";
-import {
-  THEME_PREFERENCES,
-  type ThemePreference,
-  useTheme,
-} from "@renderer/stores/theme";
+import { useTheme } from "@renderer/stores/theme";
+import { THEME_PREFERENCES, type ThemePreference } from "@shared/appearance";
 
 const THEME_LABEL: Record<ThemePreference, string> = {
   dark: "Sombre",

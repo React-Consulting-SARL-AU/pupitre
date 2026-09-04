@@ -1,9 +1,9 @@
+import type { ResolvedTheme } from "@shared/appearance";
 import type { TerminalKind } from "@shared/terminals";
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { attach, recompute, TERMINAL_FONT } from "./completion";
 import {
-  type ResolvedTheme,
   readTokens,
   type TerminalTheme,
   terminalTheme,

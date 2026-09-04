@@ -1,6 +1,5 @@
 import { ANSI_DARK, ANSI_LIGHT, type AnsiPalette } from "@pupitre/design/ansi";
-
-export type ResolvedTheme = "light" | "dark";
+import type { ResolvedTheme } from "@shared/appearance";
 
 export type TerminalTheme = AnsiPalette & {
   background: string;
