@@ -17,7 +17,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-09 | Design : ombres, rayons, espace, logos de services | fait | `feat/INF-09-design-tokens` | fusionnée |
 | INF-10 | Flux secret sur l'entrée standard | fait | `feat/INF-10-secret-stream` | fusionnée |
 | INF-12 | Contrat : les releases de l'app | à faire | | |
-| INF-13 | Le quota gratuit vit dans le contrat partagé | à faire | | |
+| INF-13 | Le quota gratuit vit dans le contrat partagé | fait | `main` | constante unique dans `@pupitre/shared/plans` |
 | INF-14 | La langue de l'utilisateur est enregistrée | à faire | | |
 | INF-15 | Contrat : détecter le gestionnaire d'un dépôt | à faire | | |
 | INF-16 | Contrat : le chemin absolu d'un projet | à faire | | |

@@ -3,6 +3,7 @@ import {
   ANNUAL_FREE_MONTHS,
   BILLING_INTERVALS,
   BillingIntervalSchema,
+  FREE_SEAT_QUOTA,
   getPlan,
   PLANS,
   PlanIdSchema,
@@ -55,5 +56,11 @@ describe("plans", () => {
 
   it("throws on an unknown plan", () => {
     expect(() => getPlan("free" as never)).toThrow("Unknown plan: free")
+  })
+})
+
+describe("FREE_SEAT_QUOTA", () => {
+  it("offers two servers before any subscription", () => {
+    expect(FREE_SEAT_QUOTA).toBe(2)
   })
 })

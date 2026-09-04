@@ -1,3 +1,4 @@
+import { FREE_SEAT_QUOTA } from "@pupitre/shared/plans"
 import { useQuery } from "@tanstack/react-query"
 import { Lock } from "lucide-react"
 import { CheckoutForm } from "@/components/dashboard/checkout-form"
@@ -12,7 +13,7 @@ import {
   serversQueryOptions,
   subscriptionQueryOptions,
 } from "@/lib/api/queries"
-import { FREE_SEAT_QUOTA, seatBalance } from "@/lib/domain/billing"
+import { seatBalance } from "@/lib/domain/billing"
 
 const SEATED_STATUSES = new Set(["enrolling", "active", "grace", "suspended"])
 
