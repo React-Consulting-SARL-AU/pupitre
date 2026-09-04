@@ -21,10 +21,10 @@ export type HardenUpdate =
  * account the app connects with from now on, or nothing when it did not change:
  * a refused hardening leaves root open, and the app stays where it was.
  */
-export type HardenOutcome = {
+export interface HardenOutcome {
   harden: HardenResult;
   user: string | null;
   reconnected: boolean;
   /** Why the reconnection on the new account did not happen. */
   error?: AgentError;
-};
+}

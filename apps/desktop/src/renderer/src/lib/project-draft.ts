@@ -17,6 +17,24 @@ const GIT_SCHEMES = ["http://", "https://", "ssh://", "git://"];
 
 const SCP_LIKE = /^[^/\s]+@[^/\s]+:/;
 
+const TRAILING_SLASHES = /\/+$/;
+
+const LEADING_SLASHES = /^\/+/;
+
+const PATH_SEPARATOR = /[/:]/;
+
+const GIT_SUFFIX = /\.git$/i;
+
+const NOT_NAME = /[^a-z0-9._-]+/g;
+
+const DOUBLE_DASH = /-{2,}/g;
+
+const LEADING_NOISE = /^[^a-z0-9]+/;
+
+const TRAILING_NOISE = /[-._]+$/;
+
+const DIGITS = /\d+/g;
+
 export function isGitSource(value: string): boolean {
   const trimmed = value.trim();
 
@@ -35,21 +53,21 @@ export function isGitSource(value: string): boolean {
  * disappearing, so two different repositories never collapse into one name.
  */
 export function nameFromSource(value: string): string {
-  const trimmed = value.trim().replace(/\/+$/, "");
+  const trimmed = value.trim().replace(TRAILING_SLASHES, "");
 
   if (trimmed.length === 0) {
     return "";
   }
 
-  const segment = trimmed.split(/[/:]/).at(-1) ?? "";
-  const stem = segment.replace(/\.git$/i, "");
+  const segment = trimmed.split(PATH_SEPARATOR).at(-1) ?? "";
+  const stem = segment.replace(GIT_SUFFIX, "");
 
   return stem
     .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, "-")
-    .replace(/-{2,}/g, "-")
-    .replace(/^[^a-z0-9]+/, "")
-    .replace(/[-._]+$/, "");
+    .replace(NOT_NAME, "-")
+    .replace(DOUBLE_DASH, "-")
+    .replace(LEADING_NOISE, "")
+    .replace(TRAILING_NOISE, "");
 }
 
 /** A folder path the registry accepts: relative to the projects root, no "..". */
@@ -58,7 +76,10 @@ export function folderFromSource(value: string, name: string): string {
     return name;
   }
 
-  const cleaned = value.trim().replace(/^\/+/, "").replace(/\/+$/, "");
+  const cleaned = value
+    .trim()
+    .replace(LEADING_SLASHES, "")
+    .replace(TRAILING_SLASHES, "");
 
   return cleaned.length > 0 && !cleaned.includes("..") ? cleaned : name;
 }
@@ -87,7 +108,7 @@ export function portFromFix(fix: string | undefined): number | null {
     return null;
   }
 
-  const numbers = fix.match(/\d+/g) ?? [];
+  const numbers = fix.match(DIGITS) ?? [];
 
   for (const raw of [...numbers].reverse()) {
     const port = Number(raw);

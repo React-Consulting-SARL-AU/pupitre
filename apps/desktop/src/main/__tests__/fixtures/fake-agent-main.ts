@@ -10,7 +10,7 @@ import { readFileSync, writeSync } from "node:fs";
  * client looks like from the other side.
  */
 
-type Exchange = {
+interface Exchange {
   cmd: string;
   params: Record<string, unknown>;
   secret: string | null;
@@ -18,7 +18,7 @@ type Exchange = {
   repeat: boolean;
   hang: boolean;
   die: boolean;
-};
+}
 
 const OUT = 1;
 const TRACE = 2;

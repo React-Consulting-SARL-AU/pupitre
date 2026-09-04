@@ -1,4 +1,4 @@
-import type { Server } from "@shared/contract";
+import type { Server } from "@shared/servers";
 import { Button } from "../ui/button";
 import { CopyField } from "../ui/copy-field";
 

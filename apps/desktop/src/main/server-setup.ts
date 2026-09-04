@@ -1,5 +1,4 @@
-import type { Server } from "@shared/contract";
-import type { KeyChoice, ServerDraft } from "@shared/servers";
+import type { KeyChoice, Server, ServerDraft } from "@shared/servers";
 import { forgetHostKey } from "./host-keys";
 import {
   copyIdCommand,
@@ -36,12 +35,12 @@ export class SetupError extends Error {
   }
 }
 
-export type ServerCreation = {
+export interface ServerCreation {
   server: Server;
   servers: Server[];
   publicKey: string | null;
   copyId: string | null;
-};
+}
 
 function refuse(condition: boolean, message: string, fix: string): void {
   if (!condition) {

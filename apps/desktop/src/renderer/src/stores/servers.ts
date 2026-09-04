@@ -1,6 +1,11 @@
 import type { AgentError } from "@shared/agent";
-import type { Server, ServersConfig } from "@shared/contract";
-import type { HostKeyAction, ServerAdded, ServerDraft } from "@shared/servers";
+import type {
+  HostKeyAction,
+  Server,
+  ServerAdded,
+  ServerDraft,
+  ServersConfig,
+} from "@shared/servers";
 import { create } from "zustand";
 
 /**
@@ -36,7 +41,7 @@ export type HostKeyState =
       actions: HostKeyAction[];
     };
 
-type ServersStore = {
+interface ServersStore {
   status: "idle" | "loading" | "ready";
   config: ServersConfig | null;
   addition: Addition;
@@ -54,7 +59,7 @@ type ServersStore = {
   checkHostKey: (id: string) => Promise<void>;
   trustReinstalled: (id: string) => Promise<void>;
   dismissHostKey: () => void;
-};
+}
 
 function added(result: ServerAdded): Addition {
   return {

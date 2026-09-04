@@ -18,9 +18,9 @@ export type InstallUpdate =
  * and where it landed. The checksum is the server's own, read back after the
  * write.
  */
-export type AgentDelivery = {
+export interface AgentDelivery {
   arch: string;
   sha256: string;
   bytes: number;
   path: string;
-};
+}

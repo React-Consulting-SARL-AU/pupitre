@@ -1,14 +1,16 @@
-import { ipcMain } from "electron";
+import { editorById, remoteEditorUrl } from "@shared/editors";
+import { ipcMain, shell } from "electron";
 import { agentClient } from "./agent";
 import {
+  actOnProject,
   addProject,
-  installProject,
+  checkoutProject,
+  diffProject,
   listProjects,
+  onProject,
+  type PlainProjectCommand,
   type ProjectDeps,
   projectLogs,
-  projectUrl,
-  startProject,
-  syncProject,
 } from "./projects-run";
 import { byId } from "./servers";
 
@@ -18,6 +20,17 @@ import { byId } from "./servers";
  * `projects-run.ts` knows nothing of Electron so it can be replayed against the
  * fake agent; what belongs here is the channel and the configuration it reads.
  */
+
+const PLAIN: readonly PlainProjectCommand[] = [
+  "project.install",
+  "project.sync",
+  "project.url",
+  "project.branches",
+  "project.git_status",
+  "project.working_tree",
+  "project.remove",
+];
+
 export function registerProjects(): void {
   const deps: ProjectDeps = {
     client: agentClient,
@@ -32,22 +45,61 @@ export function registerProjects(): void {
     addProject(serverId, params, deps)
   );
 
-  ipcMain.handle("project:sync", (_event, serverId: unknown, name: unknown) =>
-    syncProject(serverId, name, deps)
+  ipcMain.handle(
+    "project:on",
+    (_event, cmd: unknown, serverId: unknown, name: unknown) =>
+      PLAIN.includes(cmd as PlainProjectCommand)
+        ? onProject(cmd as PlainProjectCommand, serverId, name, deps)
+        : Promise.resolve({
+            error: {
+              code: "unknown_command" as const,
+              message: `Commande de projet inconnue : ${String(cmd)}.`,
+            },
+            ok: false as const,
+          })
   );
 
   ipcMain.handle(
-    "project:install",
-    (_event, serverId: unknown, name: unknown) =>
-      installProject(serverId, name, deps)
+    "project:act",
+    (_event, action: unknown, serverId: unknown, name: unknown) =>
+      actOnProject(action, serverId, name, deps)
   );
 
-  ipcMain.handle("project:up", (_event, serverId: unknown, name: unknown) =>
-    startProject(serverId, name, deps)
+  ipcMain.handle(
+    "project:checkout",
+    (_event, serverId: unknown, name: unknown, branch: unknown) =>
+      checkoutProject(serverId, name, branch, deps)
   );
 
-  ipcMain.handle("project:url", (_event, serverId: unknown, name: unknown) =>
-    projectUrl(serverId, name, deps)
+  ipcMain.handle(
+    "project:diff",
+    (_event, serverId: unknown, name: unknown, path: unknown) =>
+      diffProject(serverId, name, path, deps)
+  );
+
+  /**
+   * The folder opens in an editor of this computer, never of the server.
+   *
+   * The absolute path is the one the agent gave for that project's repository;
+   * the address, the port and the account come from the app's own server list.
+   * Neither is a string the renderer chose.
+   */
+  ipcMain.handle(
+    "project:editor",
+    (_event, serverId: unknown, editorId: unknown, path: unknown) => {
+      const server = typeof serverId === "string" ? byId(serverId) : null;
+      const editor = typeof editorId === "string" ? editorById(editorId) : null;
+
+      if (!(server && editor && typeof path === "string")) {
+        return;
+      }
+
+      const url = remoteEditorUrl(editor, server, path);
+
+      if (url) {
+        shell.openExternal(url);
+      }
+    }
   );
 
   ipcMain.handle(

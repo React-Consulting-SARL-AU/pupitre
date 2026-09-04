@@ -1,17 +1,18 @@
-import type { Candidate, Catalog } from "@shared/contract";
+import type { CompletionsResult } from "@pupitre/shared/agent-protocol/state";
+import type { Candidate } from "@shared/completion";
 import type { IMarker, Terminal as XTerm } from "@xterm/xterm";
 import { useSyncExternalStore } from "react";
 
 export const TERMINAL_FONT = '"JetBrains Mono", ui-monospace, Menlo, monospace';
 
-export type Cursor = {
+export interface Cursor {
   x: number;
   y: number;
   width: number;
   height: number;
-};
+}
 
-export type CompletionState = {
+export interface CompletionState {
   line: string;
   token: string;
   candidates: Candidate[];
@@ -22,7 +23,7 @@ export type CompletionState = {
   cursor: Cursor | null;
   /** True after Escape: nothing shows until the line changes. */
   closed: boolean;
-};
+}
 
 export const NOTHING: CompletionState = {
   line: "",
@@ -34,12 +35,12 @@ export const NOTHING: CompletionState = {
   closed: false,
 };
 
-type Sources = {
-  catalog: Catalog | null;
+interface Sources {
+  catalog: CompletionsResult | null;
   projects: string[];
   history: string[];
   paths: string[];
-};
+}
 
 const PATH_COMMANDS = new Set([
   "cd",
@@ -62,6 +63,8 @@ const PATH_COMMANDS = new Set([
 ]);
 
 const SEPARATORS = /\s*(?:\|\||&&|\||;)\s*/;
+const SPACES = /\s+/;
+const TRAILING_SPACE = /\s$/;
 const MAXIMUM = 10;
 
 /**
@@ -76,8 +79,8 @@ export function split(line: string): {
   position: number;
 } {
   const segment = line.split(SEPARATORS).at(-1) ?? "";
-  const tokens = segment.split(/\s+/).filter(Boolean);
-  const fresh = segment.length === 0 || /\s$/.test(segment);
+  const tokens = segment.split(SPACES).filter(Boolean);
+  const fresh = segment.length === 0 || TRAILING_SPACE.test(segment);
 
   return {
     tokens,
@@ -86,13 +89,127 @@ export function split(line: string): {
   };
 }
 
+type Offer = (candidate: Candidate) => void;
+
+interface Line {
+  tokens: string[];
+  token: string;
+  position: number;
+}
+
+/** The first word of the line: the agent's command, or one already typed. */
+function proposeCommands(where: Line, sources: Sources, add: Offer): void {
+  const { token } = where;
+
+  if (token.length === 0) {
+    return;
+  }
+
+  if (sources.catalog?.command.startsWith(token)) {
+    add({
+      help: "la commande de l'agent",
+      kind: "command",
+      text: sources.catalog.command,
+    });
+  }
+
+  for (const entry of sources.history) {
+    const first = entry.split(SPACES)[0];
+
+    if (first?.startsWith(token)) {
+      add({ kind: "command", text: first });
+    }
+  }
+}
+
+/** The values one argument accepts, the projects among them. */
+function proposeValues(
+  values: readonly string[],
+  token: string,
+  sources: Sources,
+  add: Offer
+): void {
+  for (const value of values) {
+    if (value !== "$project") {
+      if (value.startsWith(token)) {
+        add({ kind: "argument", text: value });
+      }
+
+      continue;
+    }
+
+    for (const project of sources.projects) {
+      if (project.startsWith(token)) {
+        add({ help: "projet", kind: "argument", text: project });
+      }
+    }
+  }
+}
+
+/** What the agent's own grammar allows at this position, and nothing else. */
+function proposeGrammar(where: Line, sources: Sources, add: Offer): void {
+  const grammar = sources.catalog;
+  const { tokens, token, position } = where;
+
+  if (!grammar || tokens[0] !== grammar.command) {
+    return;
+  }
+
+  if (position === 1) {
+    for (const sub of grammar.sub) {
+      if (sub.name.startsWith(token)) {
+        add({ help: sub.help, kind: "argument", text: sub.name });
+      }
+    }
+
+    return;
+  }
+
+  const sub = grammar.sub.find((candidate) => candidate.name === tokens[1]);
+
+  proposeValues(sub?.args[position - 2] ?? [], token, sources, add);
+}
+
+function proposePaths(where: Line, sources: Sources, add: Offer): void {
+  const { tokens, token, position } = where;
+  const command = tokens[0] ?? "";
+  const wanted = token.includes("/") || PATH_COMMANDS.has(command);
+
+  if (position === 0 || !wanted) {
+    return;
+  }
+
+  for (const path of sources.paths) {
+    if (path.startsWith(token)) {
+      add({ kind: "path", text: path });
+    }
+  }
+}
+
+/** The rest of the most recent entry that starts like the line, plus its twins. */
+function proposeHistory(line: string, sources: Sources, add: Offer): string {
+  let ghost = "";
+
+  for (const entry of sources.history) {
+    if (entry.startsWith(line) && entry.length > line.length) {
+      if (ghost.length === 0) {
+        ghost = entry.slice(line.length);
+      }
+
+      add({ kind: "history", text: entry });
+    }
+  }
+
+  return ghost;
+}
+
 /**
  * The candidates for a line, from what we know.
  *
- * The server grammar first — it is the most reliable — then paths when the
- * command takes them, then history. An empty line offers nothing: we do not want
- * a list opening at every prompt and stealing the arrow keys from the shell's
- * own history.
+ * The agent's grammar first — it is the most reliable — then paths when the
+ * command takes them, then history. An empty line offers nothing: we do not
+ * want a list opening at every prompt and stealing the arrow keys from the
+ * shell's own history.
  */
 export function propose(
   line: string,
@@ -102,76 +219,32 @@ export function propose(
     return { candidates: [], ghost: "" };
   }
 
-  const { tokens, token, position } = split(line);
+  const where = split(line);
   const seen = new Set<string>();
   const candidates: Candidate[] = [];
-  const add = (c: Candidate) => {
-    const key = `${c.kind}:${c.text}`;
-    if (c.text !== token && !seen.has(key) && candidates.length < MAXIMUM) {
+
+  const add: Offer = (candidate) => {
+    const key = `${candidate.kind}:${candidate.text}`;
+
+    if (
+      candidate.text !== where.token &&
+      !seen.has(key) &&
+      candidates.length < MAXIMUM
+    ) {
       seen.add(key);
-      candidates.push(c);
+      candidates.push(candidate);
     }
   };
 
-  const command = tokens[0] ?? "";
-  const grammar = sources.catalog;
-
-  if (position === 0) {
-    if (token.length > 0) {
-      if (grammar?.command.startsWith(token)) {
-        add({
-          text: grammar.command,
-          kind: "command",
-          help: "the server command",
-        });
-      }
-      for (const entry of sources.history) {
-        const first = entry.split(/\s+/)[0];
-        if (first?.startsWith(token)) {
-          add({ text: first, kind: "command" });
-        }
-      }
-    }
-  } else if (grammar && command === grammar.command) {
-    if (position === 1) {
-      for (const sub of grammar.sub) {
-        if (sub.name.startsWith(token)) {
-          add({ text: sub.name, kind: "argument", help: sub.help });
-        }
-      }
-    } else {
-      const sub = grammar.sub.find((s) => s.name === tokens[1]);
-      for (const value of sub?.args[position - 2] ?? []) {
-        if (value === "$project") {
-          for (const project of sources.projects) {
-            if (project.startsWith(token)) {
-              add({ text: project, kind: "argument", help: "project" });
-            }
-          }
-        } else if (value.startsWith(token)) {
-          add({ text: value, kind: "argument" });
-        }
-      }
-    }
+  if (where.position === 0) {
+    proposeCommands(where, sources, add);
+  } else {
+    proposeGrammar(where, sources, add);
   }
 
-  if (position > 0 && (token.includes("/") || PATH_COMMANDS.has(command))) {
-    for (const path of sources.paths) {
-      if (path.startsWith(token)) {
-        add({ text: path, kind: "path" });
-      }
-    }
-  }
+  proposePaths(where, sources, add);
 
-  let ghost = "";
-  for (const entry of sources.history) {
-    if (entry.startsWith(line) && entry.length > line.length) {
-      if (ghost.length === 0) {
-        ghost = entry.slice(line.length);
-      }
-      add({ text: entry, kind: "history" });
-    }
-  }
+  const ghost = proposeHistory(line, sources, add);
 
   return { candidates, ghost };
 }
@@ -208,7 +281,7 @@ function pathBase(
   return cut === -1 ? "" : token.slice(0, cut + 1);
 }
 
-type Tracked = {
+interface Tracked {
   xterm: XTerm;
   marker: IMarker | null;
   column: number;
@@ -218,13 +291,14 @@ type Tracked = {
   closedFor: string | null;
   paths: Map<string, string[]>;
   timer: ReturnType<typeof setTimeout> | null;
-};
+}
 
 const tracked = new Map<string, Tracked>();
 const subscribers = new Map<string, Set<() => void>>();
 
-let catalog: Catalog | null = null;
-let catalogRequest: Promise<Catalog | null> | null = null;
+let catalog: CompletionsResult | null = null;
+let catalogRequest: Promise<CompletionsResult | null> | null = null;
+let serverId: string | null = null;
 let history: string[] = [];
 let historyReadAt = 0;
 let projects: string[] = [];
@@ -232,11 +306,13 @@ let projects: string[] = [];
 const HISTORY_MS = 3000;
 
 function loadCatalog(): void {
-  if (catalogRequest) {
+  if (catalogRequest || !serverId) {
     return;
   }
-  catalogRequest = window.pupitre.completionCatalog().then((read) => {
+
+  catalogRequest = window.pupitre.completionCatalog(serverId).then((read) => {
     catalog = read;
+
     return read;
   });
 }
@@ -250,8 +326,16 @@ async function rereadHistory(force: boolean): Promise<void> {
 }
 
 /** The projects the server announced: the app is what holds them. */
-export function noteProjects(names: string[]): void {
-  projects = names;
+export function noteProjects(names: readonly string[]): void {
+  projects = [...names];
+}
+
+/** The server every source is read from. Another one, and they all go stale. */
+export function noteServer(id: string | null): void {
+  if (id !== serverId) {
+    serverId = id;
+    forgetSources();
+  }
 }
 
 /** On switching to another server: its grammar and history no longer apply. */

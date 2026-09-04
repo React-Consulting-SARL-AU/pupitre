@@ -18,11 +18,11 @@ export const PHASE_DOING: Record<PhaseId, string> = {
   up: "L'agent lance la commande de démarrage dans sa session.",
 };
 
-export type PhaseLook = {
+export interface PhaseLook {
   shape: StatusShape;
   tone: StatusTone;
   label: string;
-};
+}
 
 /**
  * Five fates, five outlines. The tone only confirms what the shape already

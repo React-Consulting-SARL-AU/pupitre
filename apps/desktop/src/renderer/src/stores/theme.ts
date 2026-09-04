@@ -53,11 +53,11 @@ function paint(preference: ThemePreference, resolved: ResolvedTheme): void {
   repaintTerminals(resolved);
 }
 
-type ThemeStore = {
+interface ThemeStore {
   preference: ThemePreference;
   resolved: ResolvedTheme;
   setPreference: (preference: ThemePreference) => void;
-};
+}
 
 const remembered = readNavigation().theme;
 const initial: ThemePreference = isThemePreference(remembered)

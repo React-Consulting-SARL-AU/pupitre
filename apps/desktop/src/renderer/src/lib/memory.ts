@@ -13,7 +13,7 @@
  */
 const KEY = "pupitre.navigation.v1";
 
-export type Navigation = {
+export interface Navigation {
   /** The last view, so a relaunch lands where you left off. */
   view?: string;
   /** The last selected project. */
@@ -27,7 +27,7 @@ export type Navigation = {
   tabs?: Record<string, string>;
   /** "system", "light" or "dark". Validated on read: last run wrote it. */
   theme?: string;
-};
+}
 
 export function readNavigation(): Navigation {
   try {

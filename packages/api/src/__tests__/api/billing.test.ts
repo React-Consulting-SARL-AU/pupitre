@@ -1,8 +1,8 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
+import { FREE_SEAT_QUOTA } from "@pupitre/shared/plans"
 import { COUNTRY_HEADER, currencyForCountry } from "../../lib/billing/config"
 import type { FakeBilling } from "../../lib/billing/fake"
 import { reconcileSeats } from "../../lib/billing/reconcile"
-import { DEV_SEAT_QUOTA } from "../../lib/billing/seats"
 import { bootApiTestServer, resetDb } from "../../testing"
 import {
   postStripeWebhook,
@@ -248,7 +248,7 @@ describe("facturation d'une organisation", () => {
     const device = await addDevice(owner, "poste")
     const deviceId = device.json.data.id
 
-    for (let index = 0; index < DEV_SEAT_QUOTA; index += 1) {
+    for (let index = 0; index < FREE_SEAT_QUOTA; index += 1) {
       const accepted = await enroll(owner, deviceId, `dev-${index}.example.net`)
 
       expect(accepted.status).toBe(201)

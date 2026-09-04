@@ -215,3 +215,12 @@ Critères d'acceptation.
 1. Un dépôt Vite public est détecté en `bun` avec sa commande de démarrage.
 2. L'app ne lit plus de port dans une chaîne de texte.
 
+### INF-16 — Contrat : le chemin absolu d'un projet
+Lot 0 · dépend de APP-09 · `packages/shared`, `apps/agent`
+
+But. L'app connaît le dossier d'un projet sans passer par git.
+Périmètre. `Project` gagne un chemin absolu, ou `Machine` la racine des projets — choisir l'un des deux et l'écrire dans `agent-protocol.md`. Aujourd'hui le seul chemin absolu vient de `project.git_status`, si bien que les boutons d'ouverture dans l'éditeur distant et le changement de dossier d'un terminal n'existent que pour un projet versionné.
+Hors périmètre. Les écrans, qui sauront s'en servir.
+Critères d'acceptation.
+1. Un projet non versionné ouvre dans l'éditeur distant et son terminal démarre au bon endroit.
+

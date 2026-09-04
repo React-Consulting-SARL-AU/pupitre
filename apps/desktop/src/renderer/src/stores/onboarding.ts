@@ -36,11 +36,11 @@ export type DeliveryState =
   | { status: "sent"; delivery: AgentDelivery }
   | { status: "failed"; error: AgentError };
 
-type Saved = {
+interface Saved {
   serverId: string | null;
   step: OnboardingStep;
   installed: boolean;
-};
+}
 
 const KEY = "pupitre.onboarding";
 
@@ -96,7 +96,7 @@ export function forgetOnboarding(): void {
   keep(null);
 }
 
-type OnboardingStore = {
+interface OnboardingStore {
   step: OnboardingView;
   serverId: string | null;
   installed: boolean;
@@ -116,7 +116,7 @@ type OnboardingStore = {
   close: () => void;
   resume: () => void;
   reset: () => void;
-};
+}
 
 function rank(step: OnboardingStep): number {
   return ONBOARDING_STEPS.indexOf(step);

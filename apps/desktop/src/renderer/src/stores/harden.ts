@@ -19,13 +19,13 @@ export type HardenState =
   | { status: "done"; serverId: string; outcome: HardenOutcome }
   | { status: "failed"; serverId: string; error: AgentError };
 
-type HardenStore = {
+interface HardenStore {
   harden: HardenState;
   steps: StepEntry[];
 
   start: (serverId: string) => Promise<void>;
   reset: () => void;
-};
+}
 
 function stepOf(update: HardenUpdate): StepEntry | null {
   if (update.kind !== "event" || update.event.event !== "step") {
