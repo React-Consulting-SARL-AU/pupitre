@@ -6,9 +6,9 @@ import {
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Server } from "@shared/servers";
+import { current, multiplexes, type Platform } from "./platform";
 
 /**
  * The SSH configuration the app owns, and only that one.
@@ -29,6 +29,7 @@ const DIR_MODE = 0o700;
 const FILE_MODE = 0o600;
 const HOST_LINE = /^\s*Host\s+(.+)$/i;
 const SPACES = /\s+/;
+const WHITESPACE = /\s/;
 
 const HEADER = `# Written by Pupitre. Your own ~/.ssh/config is never touched.
 # Passed to ssh with -F: nothing here leaks into your system configuration.
@@ -82,12 +83,22 @@ export function controlPath(paths: SshPaths, server: Server): string {
     .digest("hex")
     .slice(0, SOCKET_PRINT);
 
-  const root = process.platform === "win32" ? tmpdir() : "/tmp";
-
-  return join(root, `pupitre-${print}`);
+  return join("/tmp", `pupitre-${print}`);
 }
 
-function block(server: Server, paths: SshPaths): string {
+/**
+ * A path as an argument of the configuration file.
+ *
+ * "Application Support" on macOS and "C:\Users\Jean Dupont" on Windows both
+ * carry a space, and ssh reads a bare argument up to the first one, then calls
+ * the rest garbage and refuses the whole file. Quotes are what its parser
+ * accepts, and only where they are needed, so a plain path stays plain.
+ */
+function argument(value: string): string {
+  return WHITESPACE.test(value) ? `"${value}"` : value;
+}
+
+function block(server: Server, paths: SshPaths, platform: Platform): string {
   const lines = [
     `Host ${alias(server)}`,
     `  HostName ${server.host}`,
@@ -96,18 +107,24 @@ function block(server: Server, paths: SshPaths): string {
   ];
 
   if (server.keyPath) {
-    lines.push(`  IdentityFile ${server.keyPath}`);
+    lines.push(`  IdentityFile ${argument(server.keyPath)}`);
   }
 
   lines.push(
     "  IdentitiesOnly yes",
-    `  UserKnownHostsFile ${paths.knownHostsPath}`,
-    `  StrictHostKeyChecking ${server.hostFingerprint ? "yes" : "accept-new"}`,
-    "  ControlMaster auto",
-    `  ControlPath ${controlPath(paths, server)}`,
-    "  ControlPersist 10m",
-    "  ServerAliveInterval 30"
+    `  UserKnownHostsFile ${argument(paths.knownHostsPath)}`,
+    `  StrictHostKeyChecking ${server.hostFingerprint ? "yes" : "accept-new"}`
   );
+
+  if (multiplexes(platform)) {
+    lines.push(
+      "  ControlMaster auto",
+      `  ControlPath ${argument(controlPath(paths, server))}`,
+      "  ControlPersist 10m"
+    );
+  }
+
+  lines.push("  ServerAliveInterval 30");
 
   return `${lines.join("\n")}\n`;
 }
@@ -116,10 +133,14 @@ function block(server: Server, paths: SshPaths): string {
  * A host taken from the system configuration gets no block: the app promised to
  * write nothing for it, and a block of ours would quietly override it.
  */
-export function renderSshConfig(servers: Server[], paths: SshPaths): string {
+export function renderSshConfig(
+  servers: Server[],
+  paths: SshPaths,
+  platform: Platform = current()
+): string {
   const blocks = servers
     .filter((server) => server.origin === "app")
-    .map((server) => block(server, paths));
+    .map((server) => block(server, paths, platform));
 
   return `${HEADER}${blocks.join("\n")}`;
 }

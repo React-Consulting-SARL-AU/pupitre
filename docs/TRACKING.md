@@ -48,7 +48,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-14 | Droit d'usage, enrôlement, heartbeat | fait | `feat/AGT-14-entitlement` | fusionnée |
 | AGT-15 | Obfuscation et distribution | fait | `feat/AGT-15-release` | fusionnée |
 | AGT-16 | Validateur : messages d'erreur déterministes | fait | `feat/AGT-16-validator` | fusionnée |
-| AGT-17 | La racine rendue par `project.git_status` reste dans la racine des projets | à faire | | |
+| AGT-17 | La racine rendue par `project.git_status` reste dans la racine des projets | fait | `feat/AGT-17-git-root` | fusionnée |
 
 ## App desktop — `APP`
 
@@ -66,10 +66,10 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-10 | Terminaux, agents, galerie | fait | `feat/APP-10-terminals` | fusionnée |
 | APP-11 | Services au quotidien | fait | `feat/APP-11-services` | fusionnée |
 | APP-12 | Mise à jour de l'agent depuis l'app | fait | `feat/APP-12-agent-update` | fusionnée |
-| APP-13 | Build macOS signé, notarisé, bytecode, auto-update | à faire | | |
+| APP-13 | Build macOS signé, notarisé, bytecode, auto-update | fait | `feat/APP-13-builds` | fusionnée |
 | APP-14 | Compte : device flow, appareils, enrôlement | fait | `feat/APP-14-account` | fusionnée |
 | APP-15 | Serveurs distants et organisations | à faire | | |
-| APP-16 | Builds Windows et Linux | à faire | | |
+| APP-16 | Builds Windows et Linux | fait | `feat/APP-13-builds` | fusionnée |
 | APP-17 | Harnais Playwright pour Electron | fait | `feat/APP-17-electron-e2e` | fusionnée |
 | APP-18 | Fond natif de la fenêtre selon le thème | fait | `feat/APP-18-window-and-font` | fusionnée |
 | APP-19 | Appliquer le design accueillant à l'app | fait | `feat/APP-19-warm-design` | fusionnée |
@@ -122,4 +122,5 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
+| 2026-09-05 | APP-13 | Le preload ne peut pas être compilé en bytecode : Electron le charge dans le processus de rendu, dont le V8 refuse les données de cache produites par l'isolat Node du compilateur, et la fenêtre s'ouvre alors sans son pont — constaté par Playwright. Le processus principal, lui, l'est, et c'est là que vivent la logique et le jeton de mise à jour. Rien à décider dans l'immédiat : c'est une limite d'Electron, consignée pour qu'on ne la redécouvre pas. | pour information |
 | 2026-09-05 | APP-14 · AGT-15 | La clé publique qui vérifie une release doit être **la même** dans l'agent (`selfupdate.releasePublicKey`, injectée au build) et dans l'app (`AGENT_RELEASE_PUBLIC_KEY`, vide aujourd'hui). Elle est dérivée d'une clé privée que le propriétaire garde hors ligne. Décider : une seule clé publique de release, stable dans le temps, embarquée aux deux endroits et documentée dans le runbook. Sans elle, la vérification est en place mais rien ne la nourrit. | propriétaire |
