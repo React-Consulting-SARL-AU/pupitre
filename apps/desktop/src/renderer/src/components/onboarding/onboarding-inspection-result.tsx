@@ -22,7 +22,7 @@ export function OnboardingInspectionResult({
   ].join(" · ");
 
   return (
-    <section className="flex flex-col gap-8">
+    <section className="flex flex-col gap-section">
       <PageHeader
         description={
           <span className="font-data text-ink-3 tabular-nums">{machine}</span>

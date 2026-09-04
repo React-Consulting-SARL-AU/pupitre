@@ -169,7 +169,7 @@ export function ProjectScreen({
       </ProjectHeader>
 
       {store.problem ? (
-        <div className="px-6 pt-3">
+        <div className="px-8 pt-4">
           <ErrorNotice error={store.problem} />
         </div>
       ) : null}

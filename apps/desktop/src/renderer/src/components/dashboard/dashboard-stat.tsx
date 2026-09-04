@@ -6,7 +6,7 @@ function Gauge({ share, alert }: { share: number; alert: boolean }) {
   return (
     <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-sunken">
       <div
-        className={`h-full rounded-full transition-[width] duration-500 ease-out ${alert ? "bg-warn" : "bg-ink-3"}`}
+        className={`h-full rounded-full transition-size ${alert ? "bg-warn" : "bg-ink-3"}`}
         style={{ width: `${Math.min(100, Math.max(2, share * 100))}%` }}
       />
     </div>
@@ -30,7 +30,7 @@ export function DashboardStat({
   icon: ComponentType<{ size?: number; strokeWidth?: number }>;
 }) {
   return (
-    <div className="elevation-raised rounded-md bg-surface p-4 transition-soft">
+    <div className="elevation-raised rounded-md border border-line bg-surface p-4 transition-soft">
       <p className="flex items-center gap-1.5 text-ink-3">
         <Icon size={12} strokeWidth={1.5} />
         <Label>{title}</Label>

@@ -36,7 +36,7 @@ export function CatalogChoice({
   onPreset?: (presetId: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-section">
       <CatalogPresets onPick={onPreset} presets={catalog.presets} />
 
       <CatalogResources

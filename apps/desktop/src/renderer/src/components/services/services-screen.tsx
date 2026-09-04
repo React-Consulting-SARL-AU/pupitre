@@ -117,7 +117,7 @@ export function ServicesScreen({
 
   return (
     <div className="h-full overflow-y-auto px-8 py-6">
-      <section className="flex flex-col gap-8">
+      <section className="flex flex-col gap-section">
         <PageHeader
           actions={
             <Button
@@ -154,7 +154,7 @@ export function ServicesScreen({
             title="Aucun service"
           />
         ) : (
-          <ul className="elevation-raised divide-y divide-line rounded-md border border-line bg-surface">
+          <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
             {services.map((service) => (
               <ServiceRow
                 key={service.id}

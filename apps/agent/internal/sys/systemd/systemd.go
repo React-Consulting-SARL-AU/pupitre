@@ -33,6 +33,12 @@ func Reload(ctx sys.Context, unit string) error {
 	return err
 }
 
+func Loaded(ctx sys.Context, unit string) bool {
+	out, err := ctx.Sys().Run(systemctl("show", "-p", "LoadState", "--value", unit))
+
+	return err == nil && strings.TrimSpace(out.Stdout) == "loaded"
+}
+
 func Active(ctx sys.Context, unit string) bool {
 	out, err := ctx.Sys().Run(systemctl("is-active", unit))
 

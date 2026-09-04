@@ -11,7 +11,7 @@ export function FirstProjectJournal({ lines }: { lines: readonly string[] }) {
   }
 
   return (
-    <section className="rounded-md border border-line bg-surface">
+    <section className="elevation-raised overflow-hidden rounded-md border border-line bg-surface">
       <header className="flex items-center justify-between px-4 py-2.5">
         <span className="label text-ink-3">Journal du projet</span>
         <span className="font-data text-[11px] text-ink-4">

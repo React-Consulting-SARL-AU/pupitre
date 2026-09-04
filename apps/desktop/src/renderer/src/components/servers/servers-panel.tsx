@@ -79,7 +79,7 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
   const justAdded = addition.status === "added" ? addition : null;
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-section">
       {refused ? (
         <HostKeyAlert
           busy={trusting}
@@ -127,7 +127,7 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
             />
           </div>
         ) : (
-          <div className="mt-5 flex flex-col gap-5">
+          <div className="mt-5 flex flex-col gap-gutter">
             {servers.map((server) => (
               <div className="flex flex-col gap-3" key={server.id}>
                 <OnboardingEntry server={server} />

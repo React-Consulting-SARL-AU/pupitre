@@ -46,7 +46,7 @@ export function ActivitySessions({
 
   return (
     <div>
-      <div className="flex items-center justify-between border-line border-b px-4 py-2">
+      <div className="flex items-center justify-between border-line border-b px-4 py-2.5">
         <span className="font-data text-[11px] text-ink-3">
           {plural(sessions.length, "session")} ·{" "}
           <span className={total > HEAVY_TOTAL_MB ? "text-warn" : ""}>
@@ -73,7 +73,7 @@ export function ActivitySessions({
 
             return (
               <div
-                className="flex items-center gap-3 px-4 py-2.5"
+                className="flex items-center gap-3 px-4 py-3"
                 key={session.pid}
               >
                 <Icon

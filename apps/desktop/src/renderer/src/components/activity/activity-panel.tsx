@@ -29,7 +29,7 @@ export function ActivityPanel({
   onCleanSessions: () => void;
 }) {
   return (
-    <div className="h-full overflow-y-auto px-6 py-5">
+    <div className="h-full overflow-y-auto px-8 py-6">
       <div className="mx-auto flex max-w-3xl flex-col gap-8">
         <PageHeader
           description="Ce qui pèse sur la machine, et ce qui continue quand vous fermez la fenêtre."
@@ -42,7 +42,7 @@ export function ActivityPanel({
             <Activity size={12} strokeWidth={1.5} />
             <Label>Ce qui pèse</Label>
           </h2>
-          <div className="overflow-hidden rounded-md border border-line bg-surface">
+          <div className="elevation-raised overflow-hidden rounded-md border border-line bg-surface">
             <ActivityProcesses onStop={onStopProcess} processes={processes} />
           </div>
         </section>
@@ -52,7 +52,7 @@ export function ActivityPanel({
             <Sparkles size={12} strokeWidth={1.5} />
             <Label>Sessions en arrière-plan</Label>
           </h2>
-          <div className="overflow-hidden rounded-md border border-line bg-surface">
+          <div className="elevation-raised overflow-hidden rounded-md border border-line bg-surface">
             <ActivitySessions
               attached={attached}
               onClean={onCleanSessions}

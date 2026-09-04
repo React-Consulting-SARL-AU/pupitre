@@ -16,8 +16,10 @@ import (
 	"pupitre.studio/agent/internal/modules/exposure"
 	_ "pupitre.studio/agent/internal/modules/runtime"
 	"pupitre.studio/agent/internal/modules/tool"
+	"pupitre.studio/agent/internal/platform"
 	"pupitre.studio/agent/internal/probe"
 	"pupitre.studio/agent/internal/protocol"
+	"pupitre.studio/agent/internal/selfupdate"
 	"pupitre.studio/agent/internal/shots"
 	"pupitre.studio/agent/internal/state"
 	"pupitre.studio/agent/internal/sys"
@@ -81,6 +83,7 @@ func newServer(engine *modules.Engine) *protocol.Server {
 	exposure.RegisterCommands(server, engine)
 	tool.RegisterCommands(server, engine)
 	probe.RegisterCommands(server, probeOptions(engine))
+	selfupdate.RegisterCommands(server, upgradeOptions(engine))
 	state.RegisterCommands(server, state.FromEngine(engine, stateOptions()).WithJournal(engine.LogPath))
 
 	return server
@@ -89,6 +92,17 @@ func newServer(engine *modules.Engine) *protocol.Server {
 // The pause between the C-c and the kill leaves a dev server the time to close its port; nothing else waits.
 func stateOptions() state.Options {
 	return state.Options{Tmux: tmux.Options{Grace: 400 * time.Millisecond}}
+}
+
+func upgradeOptions(engine *modules.Engine) selfupdate.Options {
+	return selfupdate.Options{
+		Sys:        engine.Sys,
+		Version:    version,
+		BinaryPath: pathFromEnv("PUPITRE_BINARY_PATH", selfupdate.DefaultBinaryPath),
+		TokenPath:  pathFromEnv("PUPITRE_TOKEN_PATH", platform.DefaultTokenPath),
+		LogPath:    engine.LogPath,
+		Platform:   platform.Client{BaseURL: os.Getenv("PUPITRE_PLATFORM_URL")},
+	}
 }
 
 func probeOptions(engine *modules.Engine) probe.Options {

@@ -28,10 +28,10 @@ export function DashboardServices({
   }
 
   return (
-    <div className="grid gap-2 sm:grid-cols-2">
+    <div className="grid gap-gutter sm:grid-cols-2">
       {services.map((service) => (
         <div
-          className="flex items-center gap-3 rounded-md border border-line bg-surface px-3 py-2.5"
+          className="elevation-raised flex items-center gap-3 rounded-md border border-line bg-surface p-3"
           key={service.id}
         >
           <ServiceLogo moduleId={service.id} name={service.name} size={20} />
