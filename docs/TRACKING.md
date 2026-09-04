@@ -66,7 +66,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-11 | Services au quotidien | fait | `feat/APP-11-services` | fusionnée |
 | APP-12 | Mise à jour de l'agent depuis l'app | à faire | | |
 | APP-13 | Build macOS signé, notarisé, bytecode, auto-update | à faire | | |
-| APP-14 | Compte : device flow, appareils, enrôlement | à faire | | |
+| APP-14 | Compte : device flow, appareils, enrôlement | en revue | `feat/APP-14-account` | |
 | APP-15 | Serveurs distants et organisations | à faire | | |
 | APP-16 | Builds Windows et Linux | à faire | | |
 | APP-17 | Harnais Playwright pour Electron | fait | `feat/APP-17-electron-e2e` | fusionnée |
@@ -120,4 +120,6 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
+| 2026-09-05 | APP-14 | Le protocole agent n'a aucun moyen de remettre le jeton d'enrôlement à `pupitred` : ni commande (`enroll`), ni paramètre d'`install`. L'app enrôle le serveur auprès de la plateforme et garde le jeton dans son processus principal, mais l'agent ne peut pas l'échanger contre son jeton de serveur, donc le serveur reste `enrolling` et n'envoie aucun heartbeat. Décision attendue : une commande de contrat qui porte `{ enrollment_token, platform_url }`, à ajouter dans `packages/shared/src/agent-protocol` et dans `docs/contracts/agent-protocol.md` avant AGT-14. | propriétaire |
+| 2026-09-05 | APP-14 | La clé publique Ed25519 qui valide les binaires de l'agent n'existe pas encore (AGT-15, INF-05). `AGENT_RELEASE_PUBLIC_KEY` est vide dans `apps/desktop/src/main/agent-release.ts` : un build de production refuse donc tout binaire téléchargé depuis la plateforme. La vérification et ses tests sont en place ; il ne manque que la valeur, à poser au moment où la CI de l'agent commence à signer. | propriétaire |
 | 2026-09-05 | INF-14 | La migration `add_user_locale` a été appliquée sur la branche staging de Neon sous l'horodatage que Prisma avait généré (`20260904212042_add_user_locale`), puis son dossier a été renommé en `20260905000000_add_user_locale` pour rester le dernier par ordre alphabétique. La colonne est en place, mais `_prisma_migrations` garde l'ancien nom : **le prochain `db:migrate` sur staging échouera**. Staging est vide (0 utilisateur, 0 organisation, 0 serveur). Remède au choix : renommer la ligne (`update _prisma_migrations set migration_name = '20260905000000_add_user_locale' where migration_name = '20260904212042_add_user_locale'`) ou réinitialiser staging. Les deux écritures m'ont été refusées : elles touchent ta base réelle. Production n'est pas concernée, elle recevra la migration sous son nom de dépôt. | propriétaire |
