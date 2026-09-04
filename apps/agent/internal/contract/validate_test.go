@@ -151,7 +151,7 @@ func TestResponseOneOfMessageIsExact(t *testing.T) {
 		t.Fatal("expected an error, got nil")
 	}
 
-	if got, want := err.Error(), "/error/code : doit être l'une des valeurs hello_required, protocol_mismatch, bad_request, unknown_command, entitlement_required, project_not_found, module_not_found, module_failed, no_report, service_not_found, secrets_required, bad_signature, busy, internal"; got != want {
+	if got, want := err.Error(), "/error/code : doit être l'une des valeurs hello_required, protocol_mismatch, bad_request, unknown_command, entitlement_required, project_not_found, module_not_found, module_failed, no_report, service_not_found, secrets_required, bad_signature, downgrade_refused, busy, internal"; got != want {
 		t.Fatalf("message = %q, want %q", got, want)
 	}
 }
