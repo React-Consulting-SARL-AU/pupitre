@@ -1,6 +1,6 @@
+import type { Locale } from "@pupitre/shared/i18n"
 import { render, toPlainText } from "@react-email/components"
 import type { ReactElement } from "react"
-import type { Locale } from "../lib/i18n"
 import { consolePath } from "./config"
 import { formatDate, formatDateTime } from "./format"
 import { type EmailMessageKey, type EmailParams, translateEmail } from "./i18n"

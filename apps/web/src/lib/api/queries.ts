@@ -1,4 +1,5 @@
 import { ApiError, unwrap } from "@pupitre/api/client"
+import type { Locale } from "@pupitre/shared/i18n"
 import type { OrgRole } from "@pupitre/shared/permissions"
 import { queryOptions } from "@tanstack/react-query"
 import { api } from "@/lib/api/client"
@@ -39,6 +40,14 @@ export function meQueryOptions() {
     queryKey: queryKeys.me,
     queryFn: async () => unwrap(await api().api.v1.me.get()),
   })
+}
+
+export function updateLocale(locale: Locale): Promise<void> {
+  return api()
+    .api.v1.me.patch({ locale })
+    .then((response) => {
+      unwrap(response)
+    })
 }
 
 export function serversQueryOptions() {

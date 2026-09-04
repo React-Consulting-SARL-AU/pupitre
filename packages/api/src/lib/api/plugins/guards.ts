@@ -1,15 +1,11 @@
 import type { ApiErrorCode } from "@pupitre/shared/api/errors"
+import { resolveLocale } from "@pupitre/shared/i18n"
 import {
   hasPermission as hasRolePermission,
   type OrgRole,
 } from "@pupitre/shared/permissions"
 import { Elysia, status } from "elysia"
-import {
-  type MessageKey,
-  type MessageParams,
-  resolveLocale,
-  translate,
-} from "../../i18n"
+import { type MessageKey, type MessageParams, translate } from "../../i18n"
 import { findServerByToken } from "../../servers/servers"
 import { apiError } from "../errors"
 import { bearerTokenOf, resolveAuthContext } from "./auth"

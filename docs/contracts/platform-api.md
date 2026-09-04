@@ -23,7 +23,8 @@ Une clé d'accès enregistrée ouvre la session seule : le relying party est le 
 
 | Méthode | Route | Corps | Réponse |
 | --- | --- | --- | --- |
-| GET | `/me` | — | `{ user, organizations[], active_organization, role, entitlement }`. `entitlement` vaut `none` sans organisation active, sinon le droit d'usage de l'organisation : `valid`, `grace` ou `suspended` |
+| GET | `/me` | — | `{ user, organizations[], active_organization, role, entitlement }`. `user.locale` vaut `fr` ou `en`. `entitlement` vaut `none` sans organisation active, sinon le droit d'usage de l'organisation : `valid`, `grace` ou `suspended` |
+| PATCH | `/me` | `{ locale }` (`fr` ou `en`) | le même corps que `GET /me`. La langue enregistrée décide de celle des emails, y compris ceux qu'une tâche planifiée envoie sans en-tête `Accept-Language` à lire |
 | GET | `/me/devices` | — | `{ data: Device[] }` |
 | POST | `/me/devices` | `{ name, public_key }` | `{ data: Device }`. La clé est poussée sur tous les serveurs que l'utilisateur peut ouvrir |
 | DELETE | `/me/devices/:id` | — | 204. Retirée des serveurs en moins d'une minute |
@@ -105,7 +106,7 @@ Les deux redirections portent l'en-tête `x-pupitre-release-storage` : `r2` quan
 
 ## Modèle de données
 
-Tables Better Auth (générées) : `user` (avec `twoFactorEnabled`), `session`, `account`, `verification`, `organization`, `member`, `invitation`, `deviceCode`, `passkey`, `twoFactor`, plus celles des plugins activés.
+Tables Better Auth (générées) : `user` (avec `twoFactorEnabled` et `locale`, `fr` par défaut, posée à l'inscription depuis `Accept-Language`), `session`, `account`, `verification`, `organization`, `member`, `invitation`, `deviceCode`, `passkey`, `twoFactor`, plus celles des plugins activés.
 
 | Table | Champs |
 | --- | --- |

@@ -1,6 +1,7 @@
 import { passkey } from "@better-auth/passkey"
 import { PrismaNeon } from "@prisma/adapter-neon"
 import { PrismaClient } from "@pupitre/db/cloudflare/client"
+import { DEFAULT_LOCALE, LOCALES, localeOf } from "@pupitre/shared/i18n"
 import { PLATFORM_ADMIN_ROLE } from "@pupitre/shared/permissions"
 import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
@@ -138,7 +139,17 @@ export function createAuth({
       updateAge: SESSION_UPDATE_AGE,
     },
     rateLimit: { enabled: true },
-    user: { deleteUser: { enabled: true } },
+    user: {
+      deleteUser: { enabled: true },
+      additionalFields: {
+        locale: {
+          type: [...LOCALES],
+          required: false,
+          defaultValue: DEFAULT_LOCALE,
+          input: false,
+        },
+      },
+    },
     advanced: {
       ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
       useSecureCookies: secureCookies,
@@ -151,6 +162,13 @@ export function createAuth({
     databaseHooks: {
       user: {
         create: {
+          before: (user, context) =>
+            Promise.resolve({
+              data: {
+                ...user,
+                locale: localeOf(acceptLanguageOf(context)),
+              },
+            }),
           after: async (user) => {
             await ensurePersonalOrganization(prisma, user)
           },

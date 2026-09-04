@@ -1,5 +1,5 @@
 import type { Device, Server } from "@pupitre/db/cloudflare/client"
-import { type Locale, localeOf } from "../lib/i18n"
+import { type Locale, localeOf } from "@pupitre/shared/i18n"
 import { deliver } from "./deliver"
 import {
   billingRecipients,
@@ -26,29 +26,42 @@ export interface Addressed {
   acceptLanguage?: string | null
 }
 
+type RenderFor = (locale: Locale) => Promise<RenderedEmail>
+
 function addressOf(server: Server): string {
   return server.host
     ? `${server.sshUser}@${server.host}:${server.port}`
     : server.name
 }
 
+/**
+ * Each recipient is written to in the language they registered; a scheduled
+ * task has no request header to read, so this is the only thing that decides.
+ */
 async function deliverTo(
   recipients: Recipient[],
-  rendered: RenderedEmail
+  input: Addressed,
+  render: RenderFor
 ): Promise<boolean> {
+  const fallback = localeOf(input.acceptLanguage)
+  const byLocale = new Map<Locale, RenderedEmail>()
   let delivered = false
 
   for (const recipient of recipients) {
+    const locale = recipient.locale ?? fallback
+    let rendered = byLocale.get(locale)
+
+    if (!rendered) {
+      rendered = await render(locale)
+      byLocale.set(locale, rendered)
+    }
+
     const sent = await deliver({ to: recipient.email, ...rendered })
 
     delivered = delivered || sent
   }
 
   return delivered
-}
-
-function localeFrom(input: Addressed): Locale {
-  return localeOf(input.acceptLanguage)
 }
 
 export interface ServerEnrolledInput extends Addressed {
@@ -65,10 +78,9 @@ export async function sendServerEnrolledEmail({
     return
   }
 
-  await deliverTo(
-    [recipient],
-    await renderServerEnrolledEmail({
-      locale: localeFrom(input),
+  await deliverTo([recipient], input, (locale) =>
+    renderServerEnrolledEmail({
+      locale,
       serverName: server.name,
       address: addressOf(server),
       agentVersion: server.agentVersion ?? "—",
@@ -97,10 +109,9 @@ export async function sendServerAssignedEmail({
     return
   }
 
-  await deliverTo(
-    [recipient],
-    await renderServerAssignedEmail({
-      locale: localeFrom(input),
+  await deliverTo([recipient], input, (locale) =>
+    renderServerAssignedEmail({
+      locale,
       serverName: server.name,
       address: addressOf(server),
       organizationName: organization,
@@ -124,10 +135,9 @@ export async function sendDeviceAddedEmail({
     return
   }
 
-  await deliverTo(
-    [recipient],
-    await renderDeviceAddedEmail({
-      locale: localeFrom(input),
+  await deliverTo([recipient], input, (locale) =>
+    renderDeviceAddedEmail({
+      locale,
       deviceName: device.name,
       fingerprint: device.fingerprint,
       addedAt: device.createdAt,
@@ -156,10 +166,9 @@ export async function sendEntitlementGraceEmail({
     organizationName(organizationId),
   ])
 
-  await deliverTo(
-    recipients,
-    await renderEntitlementGraceEmail({
-      locale: localeFrom(input),
+  await deliverTo(recipients, input, (locale) =>
+    renderEntitlementGraceEmail({
+      locale,
       organizationName: organization,
       deadline,
       serverCount,
@@ -186,10 +195,9 @@ export async function sendServerSuspendedEmail({
     organizationName(organizationId),
   ])
 
-  await deliverTo(
-    recipients,
-    await renderServerSuspendedEmail({
-      locale: localeFrom(input),
+  await deliverTo(recipients, input, (locale) =>
+    renderServerSuspendedEmail({
+      locale,
       organizationName: organization,
       serverCount,
     })
@@ -215,10 +223,9 @@ export async function sendServerDecommissionEmail({
     return
   }
 
-  await deliverTo(
-    [recipient],
-    await renderServerDecommissionEmail({
-      locale: localeFrom(input),
+  await deliverTo([recipient], input, (locale) =>
+    renderServerDecommissionEmail({
+      locale,
       serverName: server.name,
       organizationName: organization,
       deadline,
@@ -236,10 +243,9 @@ export async function sendServerUnreachableEmail({
   lastSeenAt,
   ...input
 }: ServerUnreachableInput): Promise<boolean> {
-  return await deliverTo(
-    await serverRecipients(server),
-    await renderAlertServerUnreachableEmail({
-      locale: localeFrom(input),
+  return await deliverTo(await serverRecipients(server), input, (locale) =>
+    renderAlertServerUnreachableEmail({
+      locale,
       serverName: server.name,
       address: addressOf(server),
       lastSeenAt,
@@ -257,10 +263,9 @@ export async function sendDiskHighEmail({
   disk,
   ...input
 }: DiskHighInput): Promise<boolean> {
-  return await deliverTo(
-    await serverRecipients(server),
-    await renderAlertDiskHighEmail({
-      locale: localeFrom(input),
+  return await deliverTo(await serverRecipients(server), input, (locale) =>
+    renderAlertDiskHighEmail({
+      locale,
       serverName: server.name,
       address: addressOf(server),
       disk,
@@ -278,10 +283,9 @@ export async function sendAgentOutdatedEmail({
   latestVersion,
   ...input
 }: AgentOutdatedInput): Promise<boolean> {
-  return await deliverTo(
-    await serverRecipients(server),
-    await renderAlertAgentOutdatedEmail({
-      locale: localeFrom(input),
+  return await deliverTo(await serverRecipients(server), input, (locale) =>
+    renderAlertAgentOutdatedEmail({
+      locale,
       serverName: server.name,
       agentVersion: server.agentVersion ?? "—",
       latestVersion,
@@ -304,10 +308,9 @@ export async function sendServerGraceEmail({
     organizationName(server.organizationId),
   ])
 
-  return await deliverTo(
-    recipients,
-    await renderAlertEntitlementGraceEmail({
-      locale: localeFrom(input),
+  return await deliverTo(recipients, input, (locale) =>
+    renderAlertEntitlementGraceEmail({
+      locale,
       serverName: server.name,
       organizationName: organization,
       deadline,

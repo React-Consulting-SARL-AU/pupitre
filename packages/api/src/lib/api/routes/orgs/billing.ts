@@ -1,3 +1,4 @@
+import { type Locale, resolveLocale } from "@pupitre/shared/i18n"
 import { Elysia, t } from "elysia"
 import {
   BillingCustomerMissingError,
@@ -6,7 +7,7 @@ import {
 } from "../../../billing/checkout"
 import { currencyOfRequest } from "../../../billing/config"
 import { readSubscription } from "../../../billing/subscription"
-import { type Locale, resolveLocale, translate } from "../../../i18n"
+import { translate } from "../../../i18n"
 import { type ApiErrorPayload, apiError } from "../../errors"
 import { errorResponse } from "../../openapi-models"
 import { requireRole } from "../../plugins/guards"

@@ -1,6 +1,7 @@
 import { openapi } from "@elysiajs/openapi"
 import { configureAuthEmails } from "@pupitre/auth/emails"
 import { type Auth, CLIENT_IP_HEADER } from "@pupitre/auth/server"
+import { resolveLocale } from "@pupitre/shared/i18n"
 import { type AnyElysia, Elysia, ValidationError } from "elysia"
 import { authEmails } from "./emails/renderer"
 import { createEmailSender } from "./emails/send"
@@ -14,7 +15,7 @@ import {
 } from "./lib/api/rate-limit"
 import { routes } from "./lib/api/routes"
 import { describeValidationError } from "./lib/api/validation-errors"
-import { resolveLocale, translate } from "./lib/i18n"
+import { translate } from "./lib/i18n"
 
 export type { ApiPrisma } from "./lib/api/prisma"
 

@@ -1,3 +1,4 @@
+import { LocaleToggle } from "@/components/dashboard/locale-toggle"
 import { ThemeToggle } from "@/components/dashboard/theme-toggle"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -23,11 +24,12 @@ export function AppearanceCard() {
           <div>
             <p className="text-[13px] text-ink">Langue</p>
             <p className="text-[13px] text-ink-2">
-              La console est en français. L'anglais suivra la traduction du
-              site.
+              La langue de vos emails, y compris ceux qu'une tâche planifiée
+              envoie. La console est en français ; l'anglais suivra la
+              traduction du site.
             </p>
           </div>
-          <span className="text-[13px] text-ink-3">Français</span>
+          <LocaleToggle />
         </div>
       </CardBody>
     </Card>
