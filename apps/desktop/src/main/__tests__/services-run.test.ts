@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import type { CommandName } from "@pupitre/shared/agent-protocol";
 import type { AgentResponse } from "@shared/agent";
-import { CONNECTION_LABEL } from "@shared/services";
+import {
+  CONNECTION_LABEL,
+  carriesCredential,
+  databaseEngineOf,
+} from "@shared/services";
 import {
   credentialValue,
   forgetCredentials,
@@ -187,5 +191,20 @@ describe("un identifiant révélé", () => {
       console.log = kept.log;
       console.warn = kept.warn;
     }
+  });
+});
+
+describe("ce qui ne passe pas par le pont générique", () => {
+  it("nomme les commandes qui répondent avec un identifiant", () => {
+    expect(carriesCredential("service.status")).toBe(true);
+    expect(carriesCredential("db.url")).toBe(true);
+    expect(carriesCredential("snapshot")).toBe(false);
+  });
+
+  it("lit le moteur dans l'identifiant du module, sans table de l'app", () => {
+    expect(databaseEngineOf("db.mongodb")).toBe("mongodb");
+    expect(databaseEngineOf("db.postgres")).toBe("postgres");
+    expect(databaseEngineOf("db.redis")).toBeNull();
+    expect(databaseEngineOf("runtime.node")).toBeNull();
   });
 });
