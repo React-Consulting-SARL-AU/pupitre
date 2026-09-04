@@ -1,3 +1,5 @@
+export const API_PREFIX = "/api/v1"
+
 const DEV_ORIGIN = "http://localhost:3000"
 
 export function appOrigin(): string {
