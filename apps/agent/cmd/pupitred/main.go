@@ -11,6 +11,7 @@ import (
 	_ "pupitre.studio/agent/internal/modules/ai"
 	"pupitre.studio/agent/internal/modules/core"
 	"pupitre.studio/agent/internal/modules/db"
+	_ "pupitre.studio/agent/internal/modules/editor"
 	_ "pupitre.studio/agent/internal/modules/runtime"
 	"pupitre.studio/agent/internal/probe"
 	"pupitre.studio/agent/internal/protocol"

@@ -30,11 +30,11 @@ Guards Elysia dans `packages/api/src/lib/api/plugins/` : `authPlugin` (résout s
 | Méthode | Route | Corps | Réponse |
 | --- | --- | --- | --- |
 | POST | `/servers/enroll` | `{ device_id, host, port?, ssh_user?, fingerprint?, probe }` | `{ server_id, enrollment_token, release: { version, url, sha256, signature, channel } }`. `release` est la dernière version `stable` de l'architecture sondée, ou la dernière `beta` si aucune `stable` n'existe — `channel` le dit. Le serveur naît `enrolling`, attribué à l'appelant ; le jeton d'enrôlement vaut une heure et n'est stocké que haché. Refusé si le quota de sièges est atteint (`seat_quota_reached`, 403). Le quota est la quantité de l'abonnement `active`, `trialing` ou `past_due` de l'organisation ; sans abonnement, deux serveurs de développement, et le `fix` le dit |
-| GET | `/servers` | — | `{ data: Server[] }` de l'organisation active. `stale` est calculé : aucun heartbeat depuis 24 h. Il ne change ni le statut ni le droit d'usage. `usage` porte le dernier échantillon de `metrics` (`at`, `disk`, `ram`, `load`) ou `null` |
-| GET | `/servers/:id` | — | `{ data: Server }` avec `metrics` des 7 derniers jours et `events` |
-| POST | `/servers/:id/assign` | `{ user_id }` ou `{ invite_email }` | `Server`. Rôle `admin` |
-| POST | `/servers/:id/unassign` | — | `Server`. Clés retirées |
-| POST | `/servers/:id/revoke-device` | `{ device_id }` | 204 |
+| GET | `/servers` | — | `{ data: Server[] }` de l'organisation active — un `member` ne voit que les serveurs qui lui sont attribués, `admin` et `owner` les voient tous. `stale` est calculé : aucun heartbeat depuis 24 h. Il ne change ni le statut ni le droit d'usage. `usage` porte le dernier échantillon de `metrics` (`at`, `disk`, `ram`, `load`) ou `null` |
+| GET | `/servers/:id` | — | `{ data: Server }` avec `metrics` des 7 derniers jours et `events`. `not_found` (404) pour un `member` à qui ce serveur n'est pas attribué |
+| POST | `/servers/:id/assign` | `{ user_id }` ou `{ invite_email }` | `{ data: Server }`. Rôle `admin`. `user_id` doit être membre de l'organisation, sinon `not_found` (404) avec un `fix`. `invite_email` déjà membre attribue directement ; sinon l'invitation part et le serveur porte `pending_assignment_email` jusqu'à l'acceptation, qui l'attribue et pousse ses clés |
+| POST | `/servers/:id/unassign` | — | `{ data: Server }`. Clés retirées, attribution en attente effacée |
+| POST | `/servers/:id/revoke-device` | `{ device_id }` | 204. Cet appareil ne reçoit plus ce serveur ; les autres appareils de la personne restent |
 | DELETE | `/servers/:id` | — | 204. Rôle `admin`. Le serveur passe `revoked`, l'attribution et les clés tombent tout de suite, `DecommissionServer` est programmé à sept jours |
 
 ### Agent
@@ -59,9 +59,9 @@ Les deux redirections portent l'en-tête `x-pupitre-release-storage` : `r2` quan
 
 | Méthode | Route | Rôle | Réponse |
 | --- | --- | --- | --- |
-| GET | `/orgs/:id/members` | member | membres et invitations en attente (données Better Auth) |
-| POST | `/orgs/:id/invitations` | admin | `{ email, role }` |
-| GET | `/orgs/:id/events` | admin | audit paginé |
+| GET | `/orgs/:id/members` | member | `{ data: { members[], invitations[] } }` : les membres avec leur email et leur rôle, les invitations `pending` (tables Better Auth) |
+| POST | `/orgs/:id/invitations` | admin | `{ email, role }` → `{ data: Invitation }` (201). L'email d'invitation part par Better Auth ; `conflict` (409) si la personne est déjà membre |
+| GET | `/orgs/:id/events` | admin | audit paginé : `?limit=&offset=&action=` → `{ data: Event[], total }`, du plus récent au plus ancien, chaque ligne portant `actor_user_id` et `actor_email` |
 | GET | `/orgs/:id/subscription` | owner | miroir Stripe : produit, quantité, statut, fin de période |
 | POST | `/orgs/:id/checkout` | owner | `{ quantity, interval }` → `{ url }` Stripe Checkout (Managed Payments) |
 | POST | `/orgs/:id/portal` | owner | `{ url }` portail client Stripe |
@@ -90,10 +90,11 @@ Tables Better Auth (générées) : `user`, `session`, `account`, `verification`,
 | Table | Champs |
 | --- | --- |
 | `Device` | `id`, `userId`, `name`, `publicKey`, `fingerprint`, `lastUsedAt`, `createdAt` |
-| `Server` | `id`, `organizationId`, `name`, `host`, `port` (22), `sshUser` (`dev`), `hostFingerprint`, `arch`, `agentVersion`, `targetVersion`, `serverTokenHash`, `enrollmentTokenHash`, `enrollmentExpiresAt`, `entitlementValidUntil`, `decommissionAt`, `status` (`enrolling`, `active`, `grace`, `suspended`, `revoked`), `channel` (`stable`, `beta`), `deviceId?` (l'appareil qui a enrôlé), `assignedUserId?`, `lastHeartbeatAt`, `metrics` (json, 7 jours), `createdAt` |
+| `Server` | `id`, `organizationId`, `name`, `host`, `port` (22), `sshUser` (`dev`), `hostFingerprint`, `arch`, `agentVersion`, `targetVersion`, `serverTokenHash`, `enrollmentTokenHash`, `enrollmentExpiresAt`, `entitlementValidUntil`, `decommissionAt`, `status` (`enrolling`, `active`, `grace`, `suspended`, `revoked`), `channel` (`stable`, `beta`), `deviceId?` (l'appareil qui a enrôlé), `assignedUserId?`, `pendingAssignmentEmail?` (attribution en attente d'une invitation), `lastHeartbeatAt`, `metrics` (json, 7 jours), `createdAt` |
 | `Subscription` | `id`, `organizationId`, `stripeSubscriptionId`, `product`, `quantity`, `status`, `currentPeriodEnd` |
 | `OrganizationBilling` | `organizationId`, `stripeCustomerId`, `defaultInterval` |
 | `Release` | `version`, `arch`, `sha256`, `signature`, `r2Key`, `publishedAt`, `channel` (`stable`, `beta`) |
+| `ServerRevokedDevice` | `serverId`, `deviceId`, `revokedByUserId?`, `revokedAt` — clé primaire `(serverId, deviceId)`. La clé de cet appareil est retirée de ce serveur, sans toucher aux autres |
 | `Event` | `id`, `organizationId?`, `actorUserId?`, `action`, `targetType`, `targetId`, `payload`, `createdAt` |
 | `StripeEvent` | `id` (Stripe), `type`, `processedAt` |
 

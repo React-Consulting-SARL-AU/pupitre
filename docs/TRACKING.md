@@ -31,7 +31,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-05 | Modules runtimes | fait | `feat/AGT-05-runtimes` | fusionnée |
 | AGT-06 | Modules bases de données | fait | `feat/AGT-06-databases` | fusionnée |
 | AGT-07 | Modules agents IA et navigateur | fait | `feat/AGT-07-ai-modules` | fusionnée |
-| AGT-08 | Modules éditeurs distants | à faire | | |
+| AGT-08 | Modules éditeurs distants | fait | `feat/AGT-08-editors` | fusionnée |
 | AGT-09 | Modules exposition et outils | à faire | | |
 | AGT-10 | Registre des projets et pilotage | fait | `feat/AGT-10-registry` | fusionnée |
 | AGT-11 | Sessions, processus, captures, secrets, bases | fait | `feat/AGT-11-sessions` | fusionnée |
@@ -79,7 +79,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-07 | Stripe Managed Payments : checkout, portail, webhooks, réconciliation | fait | `feat/PLT-07-stripe` | fusionnée |
 | PLT-08 | Console : shell, connexion, serveurs, appareils | fait | `feat/PLT-08-console` | fusionnée |
 | PLT-09 | Console : abonnement, téléchargements, profil | fait | `feat/PLT-09-billing-console` | fusionnée |
-| PLT-10 | Organisations : membres, invitations, attribution, audit | à faire | | |
+| PLT-10 | Organisations : membres, invitations, attribution, audit | fait | `feat/PLT-10-teams` | fusionnée |
 | PLT-11 | Emails transactionnels | à faire | | |
 | PLT-12 | Alertes et page de statut | à faire | | |
 | PLT-13 | Passkeys et MFA | à faire | | |
@@ -107,3 +107,4 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
+| 2026-09-04 | AGT-08 | Le contrat donne un champ `version` aux éditeurs, mais aucune liste fermée d'options ne tient : le serveur distant de Zed doit correspondre exactement à la version du client, et un backend JetBrains à la version du Gateway. Les deux modules livrent donc `version` en `text` (défaut `latest`) au lieu du genre `version`. À trancher : ouvrir le genre `version` à une saisie libre, ou laisser `text`. | propriétaire |

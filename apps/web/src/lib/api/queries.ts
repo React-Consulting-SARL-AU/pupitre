@@ -1,4 +1,5 @@
 import { ApiError, unwrap } from "@pupitre/api/client"
+import type { OrgRole } from "@pupitre/shared/permissions"
 import { queryOptions } from "@tanstack/react-query"
 import { api } from "@/lib/api/client"
 import type { BillingIntervalName } from "@/lib/domain/billing"
@@ -14,6 +15,9 @@ export const queryKeys = {
   devices: ["devices"] as const,
   subscription: (organizationId: string) =>
     ["subscription", organizationId] as const,
+  members: (organizationId: string) => ["members", organizationId] as const,
+  events: (organizationId: string, page: EventPageQuery) =>
+    ["events", organizationId, page] as const,
   latestRelease: ["releases", "latest"] as const,
 }
 
@@ -118,4 +122,86 @@ export function latestReleaseQueryOptions() {
     },
     retry: false,
   })
+}
+
+export function membersQueryOptions(organizationId: string) {
+  return queryOptions({
+    queryKey: queryKeys.members(organizationId),
+    queryFn: async () =>
+      unwrap(await api().api.v1.orgs({ id: organizationId }).members.get())
+        .data,
+  })
+}
+
+export interface InvitationInput {
+  email: string
+  role: OrgRole
+}
+
+export function inviteMember(
+  organizationId: string,
+  input: InvitationInput
+): Promise<void> {
+  return api()
+    .api.v1.orgs({ id: organizationId })
+    .invitations.post(input)
+    .then((response) => {
+      unwrap(response)
+    })
+}
+
+export interface EventPageQuery {
+  limit: number
+  offset: number
+  action?: string
+}
+
+export function eventsQueryOptions(
+  organizationId: string,
+  page: EventPageQuery
+) {
+  return queryOptions({
+    queryKey: queryKeys.events(organizationId, page),
+    queryFn: async () =>
+      unwrap(
+        await api()
+          .api.v1.orgs({ id: organizationId })
+          .events.get({ query: page })
+      ),
+  })
+}
+
+export type AssignServerInput = { user_id: string } | { invite_email: string }
+
+export function assignServer(
+  serverId: string,
+  input: AssignServerInput
+): Promise<void> {
+  return api()
+    .api.v1.servers({ id: serverId })
+    .assign.post(input)
+    .then((response) => {
+      unwrap(response)
+    })
+}
+
+export function unassignServer(serverId: string): Promise<void> {
+  return api()
+    .api.v1.servers({ id: serverId })
+    .unassign.post()
+    .then((response) => {
+      unwrap(response)
+    })
+}
+
+export function revokeServerDevice(
+  serverId: string,
+  deviceId: string
+): Promise<void> {
+  return api()
+    .api.v1.servers({ id: serverId })
+    ["revoke-device"].post({ device_id: deviceId })
+    .then((response) => {
+      unwrap(response)
+    })
 }

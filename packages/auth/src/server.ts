@@ -52,6 +52,12 @@ export interface CreateAuthOptions {
   sendEmail?: SendEmail
 }
 
+const senders = new WeakMap<object, SendEmail>()
+
+export function sendEmailFor(instance: Auth): SendEmail {
+  return senders.get(instance) ?? createLoggingSendEmail()
+}
+
 function githubProvider(env: AuthEnv) {
   if (!(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET)) {
     return {}
@@ -80,7 +86,7 @@ export function createAuth({
   const secureCookies = !isLocalhostUrl(env.BETTER_AUTH_URL)
   const invitationBaseUrl = `${consoleUrl(env)}${INVITATION_PATH}`
 
-  return betterAuth({
+  const instance = betterAuth({
     baseURL: env.BETTER_AUTH_URL,
     secret: env.BETTER_AUTH_SECRET,
     trustedOrigins: trustedOrigins(env),
@@ -175,6 +181,10 @@ export function createAuth({
       tanstackStartCookies(),
     ],
   })
+
+  senders.set(instance, sendEmail)
+
+  return instance
 }
 
 export type Auth = ReturnType<typeof createAuth>

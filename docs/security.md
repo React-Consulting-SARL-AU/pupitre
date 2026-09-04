@@ -48,6 +48,7 @@ Un client est root sur son serveur : il peut copier tout fichier qui s'y trouve,
 - Better Auth : cookies `Secure`, `HttpOnly`, `SameSite=Lax` ; bearer pour l'app ; limitation des tentatives ; sessions de 60 jours renouvelées par jour ; `admin` réservé au rôle `platform_admin`.
 - Webhooks Stripe vérifiés par signature, idempotents par identifiant d'événement, rejouables.
 - Audit de chaque action d'administration : acteur, action, cible, date.
+- **Les clés autorisées d'un serveur dérivent du membre qui lui est attribué, et de son adhésion.** Retirer quelqu'un de l'organisation retire ses clés de tous les serveurs, sans qu'un administrateur ait à y penser. C'est vérifié par un test.
 - Suspension automatique d'un serveur sur signalement d'abus : clés retirées, droit d'usage suspendu, email au propriétaire de l'organisation.
 - Dépendances : alertes de sécurité GitHub bloquantes en CI ; mise à jour de Better Auth dans la journée d'une faille publiée.
 

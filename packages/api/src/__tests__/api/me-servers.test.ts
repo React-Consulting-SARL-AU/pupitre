@@ -164,6 +164,19 @@ describe("authorizedKeysForServer", () => {
     const session = await createSession({ userId: user.id })
     const first = await createOrganizationWithMembers({ roles: ["owner"] })
     const second = await createOrganizationWithMembers({ roles: ["owner"] })
+
+    for (const { organization } of [first, second]) {
+      await prisma.member.create({
+        data: {
+          id: crypto.randomUUID(),
+          organizationId: organization.id,
+          userId: user.id,
+          role: "member",
+          createdAt: new Date(),
+        },
+      })
+    }
+
     const servers = await Promise.all([
       createServer({
         organizationId: first.organization.id,

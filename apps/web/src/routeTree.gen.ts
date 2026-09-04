@@ -15,8 +15,10 @@ import { Route as DownloadRouteImport } from './routes/download'
 import { Route as AuthDeviceRouteImport } from './routes/auth/device'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as DashboardAuditRouteImport } from './routes/dashboard/audit'
 import { Route as DashboardBillingRouteImport } from './routes/dashboard/billing'
 import { Route as DashboardDevicesRouteImport } from './routes/dashboard/devices'
+import { Route as DashboardMembersRouteImport } from './routes/dashboard/members'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthInvitationIdRouteImport } from './routes/auth/invitation.$id'
@@ -53,6 +55,11 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardAuditRoute = DashboardAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardBillingRoute = DashboardBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
@@ -61,6 +68,11 @@ const DashboardBillingRoute = DashboardBillingRouteImport.update({
 const DashboardDevicesRoute = DashboardDevicesRouteImport.update({
   id: '/devices',
   path: '/devices',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardMembersRoute = DashboardMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
@@ -95,8 +107,10 @@ export interface FileRoutesByFullPath {
   '/download': typeof DownloadRoute
   '/auth/device': typeof AuthDeviceRoute
   '/auth/sign-in': typeof AuthSignInRoute
+  '/dashboard/audit': typeof DashboardAuditRoute
   '/dashboard/billing': typeof DashboardBillingRoute
   '/dashboard/devices': typeof DashboardDevicesRoute
+  '/dashboard/members': typeof DashboardMembersRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -109,8 +123,10 @@ export interface FileRoutesByTo {
   '/download': typeof DownloadRoute
   '/auth/device': typeof AuthDeviceRoute
   '/auth/sign-in': typeof AuthSignInRoute
+  '/dashboard/audit': typeof DashboardAuditRoute
   '/dashboard/billing': typeof DashboardBillingRoute
   '/dashboard/devices': typeof DashboardDevicesRoute
+  '/dashboard/members': typeof DashboardMembersRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -125,8 +141,10 @@ export interface FileRoutesById {
   '/download': typeof DownloadRoute
   '/auth/device': typeof AuthDeviceRoute
   '/auth/sign-in': typeof AuthSignInRoute
+  '/dashboard/audit': typeof DashboardAuditRoute
   '/dashboard/billing': typeof DashboardBillingRoute
   '/dashboard/devices': typeof DashboardDevicesRoute
+  '/dashboard/members': typeof DashboardMembersRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -142,8 +160,10 @@ export interface FileRouteTypes {
     | '/download'
     | '/auth/device'
     | '/auth/sign-in'
+    | '/dashboard/audit'
     | '/dashboard/billing'
     | '/dashboard/devices'
+    | '/dashboard/members'
     | '/dashboard/settings'
     | '/dashboard/'
     | '/api/auth/$'
@@ -156,8 +176,10 @@ export interface FileRouteTypes {
     | '/download'
     | '/auth/device'
     | '/auth/sign-in'
+    | '/dashboard/audit'
     | '/dashboard/billing'
     | '/dashboard/devices'
+    | '/dashboard/members'
     | '/dashboard/settings'
     | '/dashboard'
     | '/api/auth/$'
@@ -171,8 +193,10 @@ export interface FileRouteTypes {
     | '/download'
     | '/auth/device'
     | '/auth/sign-in'
+    | '/dashboard/audit'
     | '/dashboard/billing'
     | '/dashboard/devices'
+    | '/dashboard/members'
     | '/dashboard/settings'
     | '/dashboard/'
     | '/api/auth/$'
@@ -235,6 +259,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/audit': {
+      id: '/dashboard/audit'
+      path: '/audit'
+      fullPath: '/dashboard/audit'
+      preLoaderRoute: typeof DashboardAuditRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/billing': {
       id: '/dashboard/billing'
       path: '/billing'
@@ -247,6 +278,13 @@ declare module '@tanstack/react-router' {
       path: '/devices'
       fullPath: '/dashboard/devices'
       preLoaderRoute: typeof DashboardDevicesRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/members': {
+      id: '/dashboard/members'
+      path: '/members'
+      fullPath: '/dashboard/members'
+      preLoaderRoute: typeof DashboardMembersRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/settings': {
@@ -288,8 +326,10 @@ declare module '@tanstack/react-router' {
 }
 
 interface DashboardRouteChildren {
+  DashboardAuditRoute: typeof DashboardAuditRoute
   DashboardBillingRoute: typeof DashboardBillingRoute
   DashboardDevicesRoute: typeof DashboardDevicesRoute
+  DashboardMembersRoute: typeof DashboardMembersRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardServersIdRoute: typeof DashboardServersIdRoute
@@ -297,8 +337,10 @@ interface DashboardRouteChildren {
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardAuditRoute: DashboardAuditRoute,
   DashboardBillingRoute: DashboardBillingRoute,
   DashboardDevicesRoute: DashboardDevicesRoute,
+  DashboardMembersRoute: DashboardMembersRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardServersIdRoute: DashboardServersIdRoute,

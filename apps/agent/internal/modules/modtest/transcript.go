@@ -159,6 +159,9 @@ func (f *transcript) directive(t *testing.T, path, line string) {
 		// " :: " when the fragment itself holds spaces, which is how one tells two git subcommands apart.
 		fragment, answer := cutAnswer(rest)
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Answer(fragment, unescape(answer)+"\n") })
+	case "archive":
+		archive, entries, _ := strings.Cut(rest, " ")
+		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Archives[archive] = strings.Fields(entries) })
 	case "dir":
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Dirs[rest] = true })
 	case "process":

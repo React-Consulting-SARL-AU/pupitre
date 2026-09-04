@@ -77,6 +77,38 @@ export async function fill(input: Element, value: string): Promise<void> {
   })
 }
 
+export async function choose(element: Element, value: string): Promise<void> {
+  const setter = Object.getOwnPropertyDescriptor(
+    HTMLSelectElement.prototype,
+    "value"
+  )?.set
+
+  await act(async () => {
+    setter?.call(element, value)
+    element.dispatchEvent(new Event("change", { bubbles: true }))
+    await Promise.resolve()
+  })
+}
+
+export async function waitUntilStored(
+  check: () => Promise<boolean>,
+  timeoutMs = 10_000
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+
+  while (Date.now() < deadline) {
+    if (await check()) {
+      return
+    }
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, POLL_MS))
+    })
+  }
+
+  throw new Error("condition not met before the deadline")
+}
+
 export function trigger(container: HTMLElement, label: string): HTMLElement {
   const found = [...document.querySelectorAll("button")].find((button) =>
     (button.textContent ?? "").includes(label)
