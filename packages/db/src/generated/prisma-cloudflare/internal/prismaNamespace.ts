@@ -1727,6 +1727,7 @@ export const ServerScalarFieldEnum = {
   entitlementValidUntil: 'entitlementValidUntil',
   decommissionAt: 'decommissionAt',
   status: 'status',
+  channel: 'channel',
   deviceId: 'deviceId',
   assignedUserId: 'assignedUserId',
   lastHeartbeatAt: 'lastHeartbeatAt',
@@ -1911,6 +1912,20 @@ export type ListEnumServerStatusFieldRefInput<$PrismaModel> = FieldRefInputType<
 
 
 /**
+ * Reference to a field of type 'ReleaseChannel'
+ */
+export type EnumReleaseChannelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ReleaseChannel'>
+    
+
+
+/**
+ * Reference to a field of type 'ReleaseChannel[]'
+ */
+export type ListEnumReleaseChannelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ReleaseChannel[]'>
+    
+
+
+/**
  * Reference to a field of type 'Json'
  */
 export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
@@ -1935,20 +1950,6 @@ export type EnumBillingIntervalFieldRefInput<$PrismaModel> = FieldRefInputType<$
  * Reference to a field of type 'BillingInterval[]'
  */
 export type ListEnumBillingIntervalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BillingInterval[]'>
-    
-
-
-/**
- * Reference to a field of type 'ReleaseChannel'
- */
-export type EnumReleaseChannelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ReleaseChannel'>
-    
-
-
-/**
- * Reference to a field of type 'ReleaseChannel[]'
- */
-export type ListEnumReleaseChannelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ReleaseChannel[]'>
     
 
 
