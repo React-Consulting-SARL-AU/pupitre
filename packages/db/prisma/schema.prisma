@@ -14,7 +14,259 @@ datasource db {
   provider = "postgresql"
 }
 
-model Ping {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
+enum ServerStatus {
+  enrolling
+  active
+  grace
+  suspended
+  revoked
+}
+
+enum ReleaseChannel {
+  stable
+  beta
+}
+
+enum BillingInterval {
+  month
+  year
+}
+
+// user…deviceCode come from `@better-auth/cli generate` (magicLink, organization, deviceAuthorization, bearer, admin): regenerate, do not hand-edit.
+
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  role          String?
+  banned        Boolean?  @default(false)
+  banReason     String?
+  banExpires    DateTime?
+
+  sessions        Session[]
+  accounts        Account[]
+  members         Member[]
+  invitations     Invitation[]
+  devices         Device[]
+  assignedServers Server[]     @relation("ServerAssignedUser")
+  events          Event[]      @relation("EventActor")
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id                   String   @id
+  expiresAt            DateTime
+  token                String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  ipAddress            String?
+  userAgent            String?
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeOrganizationId String?
+  impersonatedBy       String?
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+model Organization {
+  id        String   @id
+  name      String
+  slug      String
+  logo      String?
+  createdAt DateTime
+  metadata  String?
+
+  members       Member[]
+  invitations   Invitation[]
+  servers       Server[]
+  subscriptions Subscription[]
+  billing       OrganizationBilling?
+  events        Event[]
+
+  @@unique([slug])
+  @@map("organization")
+}
+
+model Member {
+  id             String       @id
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           String       @default("member")
+  createdAt      DateTime
+
+  @@index([organizationId])
+  @@index([userId])
+  @@map("member")
+}
+
+model Invitation {
+  id             String       @id
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email          String
+  role           String?
+  status         String       @default("pending")
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+  inviterId      String
+  user           User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
+  @@map("invitation")
+}
+
+model DeviceCode {
+  id              String    @id
+  deviceCode      String
+  userCode        String
+  userId          String?
+  expiresAt       DateTime
+  status          String
+  lastPolledAt    DateTime?
+  pollingInterval Int?
+  clientId        String?
+  scope           String?
+
+  @@index([deviceCode])
+  @@index([userCode])
+  @@map("deviceCode")
+}
+
+model Device {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  publicKey   String
+  fingerprint String    @unique
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model Server {
+  id              String        @id @default(cuid())
+  organizationId  String
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name            String
+  hostFingerprint String?
+  arch            String
+  agentVersion    String?
+  serverTokenHash String?       @unique
+  status          ServerStatus  @default(enrolling)
+  assignedUserId  String?
+  assignedUser    User?         @relation("ServerAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  lastHeartbeatAt DateTime?
+  metrics         Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([organizationId])
+  @@index([assignedUserId])
+  @@index([status])
+}
+
+model Subscription {
+  id                   String       @id @default(cuid())
+  organizationId       String
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stripeSubscriptionId String       @unique
+  product              String
+  quantity             Int
+  status               String
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  @@index([organizationId])
+}
+
+model OrganizationBilling {
+  organizationId   String           @id
+  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stripeCustomerId String           @unique
+  defaultInterval  BillingInterval  @default(month)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+}
+
+model Release {
+  version     String
+  arch        String
+  sha256      String
+  signature   String
+  r2Key       String
+  channel     ReleaseChannel @default(beta)
+  publishedAt DateTime       @default(now())
+
+  @@id([version, arch])
+  @@index([channel, publishedAt])
+}
+
+model Event {
+  id             String        @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  actorUserId    String?
+  actorUser      User?         @relation("EventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  action         String
+  targetType     String
+  targetId       String
+  payload        Json?
+  createdAt      DateTime      @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([actorUserId])
+  @@index([targetType, targetId])
+}
+
+model StripeEvent {
+  id          String   @id
+  type        String
+  processedAt DateTime @default(now())
 }

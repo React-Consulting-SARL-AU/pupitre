@@ -52,10 +52,15 @@
       "passThroughEnv": ["DATABASE_URL"]
     },
     "db:migrate": {
-      "cache": false
+      "cache": false,
+      "passThroughEnv": ["PUPITRE_ALLOW_MIGRATE_ON"]
     },
     "db:migrate:deploy": {
       "cache": false
+    },
+    "db:migrate:reset": {
+      "cache": false,
+      "passThroughEnv": ["PUPITRE_ALLOW_MIGRATE_ON"]
     },
     "db:studio": {
       "cache": false,

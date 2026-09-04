@@ -10,13 +10,15 @@
     "./browser": "./src/generated/prisma/browser.ts",
     "./cloudflare/client": "./src/generated/prisma-cloudflare/client.ts",
     "./cloudflare/enums": "./src/generated/prisma-cloudflare/enums.ts",
-    "./cloudflare/models": "./src/generated/prisma-cloudflare/models.ts"
+    "./cloudflare/models": "./src/generated/prisma-cloudflare/models.ts",
+    "./latest-migration": "./src/latest-migration.ts"
   },
   "scripts": {
     "build": "bun run db:generate",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate": "sh -c 'bun scripts/guard-migration-target.ts && prisma migrate dev \"$@\"' --",
+    "db:migrate:deploy": "sh -c 'bun scripts/require-migrate-database-url.ts && prisma migrate deploy'",
+    "db:migrate:reset": "sh -c 'bun scripts/guard-migration-target.ts && prisma migrate reset \"$@\"' --",
     "db:studio": "prisma studio",
     "lint": "ultracite check",
     "lint:fix": "ultracite fix",

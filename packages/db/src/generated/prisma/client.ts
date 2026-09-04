@@ -31,8 +31,8 @@ export * from "./enums"
  * const prisma = new PrismaClient({
  *   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL })
  * })
- * // Fetch zero or more Pings
- * const pings = await prisma.ping.findMany()
+ * // Fetch zero or more Users
+ * const users = await prisma.user.findMany()
  * ```
  * 
  * Read more in our [docs](https://pris.ly/d/client).
@@ -42,7 +42,77 @@ export type PrismaClient<LogOpts extends Prisma.LogLevel = never, OmitOpts exten
 export { Prisma }
 
 /**
- * Model Ping
+ * Model User
  * 
  */
-export type Ping = Prisma.PingModel
+export type User = Prisma.UserModel
+/**
+ * Model Session
+ * 
+ */
+export type Session = Prisma.SessionModel
+/**
+ * Model Account
+ * 
+ */
+export type Account = Prisma.AccountModel
+/**
+ * Model Verification
+ * 
+ */
+export type Verification = Prisma.VerificationModel
+/**
+ * Model Organization
+ * 
+ */
+export type Organization = Prisma.OrganizationModel
+/**
+ * Model Member
+ * 
+ */
+export type Member = Prisma.MemberModel
+/**
+ * Model Invitation
+ * 
+ */
+export type Invitation = Prisma.InvitationModel
+/**
+ * Model DeviceCode
+ * 
+ */
+export type DeviceCode = Prisma.DeviceCodeModel
+/**
+ * Model Device
+ * 
+ */
+export type Device = Prisma.DeviceModel
+/**
+ * Model Server
+ * 
+ */
+export type Server = Prisma.ServerModel
+/**
+ * Model Subscription
+ * 
+ */
+export type Subscription = Prisma.SubscriptionModel
+/**
+ * Model OrganizationBilling
+ * 
+ */
+export type OrganizationBilling = Prisma.OrganizationBillingModel
+/**
+ * Model Release
+ * 
+ */
+export type Release = Prisma.ReleaseModel
+/**
+ * Model Event
+ * 
+ */
+export type Event = Prisma.EventModel
+/**
+ * Model StripeEvent
+ * 
+ */
+export type StripeEvent = Prisma.StripeEventModel
