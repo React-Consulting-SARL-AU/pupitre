@@ -1,6 +1,7 @@
 import { AgentDot } from "@renderer/components/ui/agent-dot";
 import { fieldControlClass } from "@renderer/components/ui/field";
 import { IconButton } from "@renderer/components/ui/icon-button";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type {
   AgentState,
   Terminal as TerminalInfo,
@@ -39,6 +40,8 @@ export function TerminalTabs({
   onClose: (id: string) => void;
   onRename: (id: string, title: string) => void;
 }) {
+  const t = useTranslations();
+
   const [renaming, setRenaming] = useState<string | null>(null);
   const field = useRef<HTMLInputElement | null>(null);
 
@@ -83,7 +86,7 @@ export function TerminalTabs({
                 className="flex max-w-[11rem] items-center gap-1.5"
                 onClick={() => onActivate(session.id)}
                 onDoubleClick={() => setRenaming(session.id)}
-                title="Double-cliquez pour renommer"
+                title={t("terminals.renameHint")}
                 type="button"
               >
                 <AgentDot state={states[session.id]} />
@@ -92,7 +95,7 @@ export function TerminalTabs({
               <IconButton
                 className="opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
                 icon={X}
-                label={`Fermer ${session.title}`}
+                label={t("terminals.close", { title: session.title })}
                 onClick={() => onClose(session.id)}
                 size={11}
                 variant="danger"
@@ -103,7 +106,7 @@ export function TerminalTabs({
 
         <IconButton
           icon={Plus}
-          label="Nouvelle session"
+          label={t("terminals.newSession")}
           onClick={onNew}
           variant="discreet"
         />

@@ -1,6 +1,7 @@
 import type { Process } from "@pupitre/shared/agent-protocol/processes";
 import { EmptyState } from "@renderer/components/ui/empty-state";
 import { IconButton } from "@renderer/components/ui/icon-button";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { memory } from "@renderer/lib/format";
 import { X } from "lucide-react";
 
@@ -23,8 +24,10 @@ export function ActivityProcesses({
   processes: readonly Process[];
   onStop: (pid: number, what: string) => void;
 }) {
+  const t = useTranslations();
+
   if (processes.length === 0) {
-    return <EmptyState title="Aucun processus notable" />;
+    return <EmptyState title={t("activity.processes.empty")} />;
   }
 
   const peak = Math.max(...processes.map((p) => p.cpu), 1);
@@ -71,7 +74,10 @@ export function ActivityProcesses({
           <IconButton
             className="opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
             icon={X}
-            label={`Arrêter ${process.command} (pid ${process.pid})`}
+            label={t("activity.process.stop", {
+              command: process.command,
+              pid: process.pid,
+            })}
             onClick={() => onStop(process.pid, process.command)}
             variant="danger"
           />

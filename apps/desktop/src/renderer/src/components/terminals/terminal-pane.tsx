@@ -1,6 +1,8 @@
 import "@xterm/xterm/css/xterm.css";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
+import type { DictionaryKey } from "@renderer/i18n/en";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { fitTerminal, focus, obtain } from "@renderer/lib/terminals";
 import { useServers } from "@renderer/stores/servers";
 import { useTerminals } from "@renderer/stores/terminals";
@@ -17,11 +19,11 @@ interface Props {
   active: boolean;
 }
 
-const OPENING: Record<TerminalKind, string> = {
-  claude: "Claude s'attache à sa session sur le serveur",
-  codex: "Codex s'attache à sa session sur le serveur",
-  hermes: "Hermes s'attache à sa session sur le serveur",
-  shell: "Ouverture d'un shell sur le serveur",
+const OPENING_KEY: Record<TerminalKind, DictionaryKey> = {
+  claude: "terminals.openingClaude",
+  codex: "terminals.openingCodex",
+  hermes: "terminals.openingHermes",
+  shell: "terminals.openingShell",
 };
 
 function boxOf(element: HTMLElement | null): ViewBounds | null {
@@ -48,6 +50,8 @@ function boxOf(element: HTMLElement | null): ViewBounds | null {
  * `display:none`, which would make xterm measure zero rows.
  */
 export function TerminalPane({ id, kind, project, active }: Props) {
+  const t = useTranslations();
+
   const host = useRef<HTMLDivElement | null>(null);
   const stage = useRef<HTMLDivElement | null>(null);
   const serverId = useServers((s) => s.config?.active ?? null);
@@ -140,8 +144,8 @@ export function TerminalPane({ id, kind, project, active }: Props) {
         {session?.status === "opening" ? (
           <div className="absolute inset-x-0 top-0 p-4">
             <WaitingNotice
-              detail={OPENING[kind]}
-              title="Ouverture de la session"
+              detail={t(OPENING_KEY[kind])}
+              title={t("terminals.opening")}
             />
           </div>
         ) : null}

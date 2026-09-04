@@ -3,6 +3,7 @@ import { CatalogScreen } from "@renderer/components/catalog/catalog-screen";
 import { ConfigScreen } from "@renderer/components/config/config-screen";
 import { InstallScreen } from "@renderer/components/install/install-screen";
 import { Button } from "@renderer/components/ui/button";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { carriesSecret } from "@renderer/lib/catalog-selection";
 import { useCatalog } from "@renderer/stores/catalog";
 import { useInstall } from "@renderer/stores/install";
@@ -36,6 +37,8 @@ export function ServicesAddFlow({
   onMachineName?: (name: string) => void;
   onDone: () => void;
 }) {
+  const t = useTranslations();
+
   const [step, setStep] = useState<Step>("catalog");
   const [replaying, setReplaying] = useState<string | null>(null);
 
@@ -80,7 +83,7 @@ export function ServicesAddFlow({
     <section className="flex flex-col gap-gutter">
       <div className="flex justify-end">
         <Button icon={X} onClick={onDone} variant="discreet">
-          Quitter l'ajout
+          {t("services.add.quit")}
         </Button>
       </div>
 
@@ -102,7 +105,9 @@ export function ServicesAddFlow({
           only={replaying ? [replaying] : undefined}
           onMachineName={onMachineName}
           serverName={serverName}
-          submitLabel={replaying ? "Rejouer ce module" : "Ajouter"}
+          submitLabel={
+            replaying ? t("services.add.replay") : t("services.add.submit")
+          }
         />
       ) : null}
 

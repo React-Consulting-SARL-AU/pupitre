@@ -1,4 +1,5 @@
 import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { Resources, ResourceWarning } from "../../lib/catalog-selection";
 import { Callout } from "../ui/callout";
 import { Label } from "../ui/label";
@@ -19,18 +20,22 @@ export function CatalogResources({
   probe: ProbeResult | null;
   warnings: readonly ResourceWarning[];
 }) {
+  const t = useTranslations();
+
   const cells = [
     {
-      label: "Mémoire demandée",
-      asked: `${needs.ram_mb} Mo`,
-      has: probe ? `sur ${probe.ram_mb} Mo` : "machine non mesurée",
+      label: t("catalog.resources.ramLabel"),
+      asked: t("catalog.resources.megabytes", { mb: needs.ram_mb }),
+      has: probe
+        ? t("catalog.resources.ramHas", { mb: probe.ram_mb })
+        : t("catalog.resources.unmeasured"),
     },
     {
-      label: "Disque demandé",
-      asked: `${needs.disk_mb} Mo`,
+      label: t("catalog.resources.diskLabel"),
+      asked: t("catalog.resources.megabytes", { mb: needs.disk_mb }),
       has: probe
-        ? `sur ${probe.disk_free_gb} Go libres`
-        : "machine non mesurée",
+        ? t("catalog.resources.diskHas", { gb: probe.disk_free_gb })
+        : t("catalog.resources.unmeasured"),
     },
   ];
 

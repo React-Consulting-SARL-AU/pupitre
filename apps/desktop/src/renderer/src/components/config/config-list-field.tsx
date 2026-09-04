@@ -1,4 +1,5 @@
 import type { ListField } from "@pupitre/shared/catalog";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { itemKey, type SecretMark } from "@shared/secrets";
 import { Plus, X } from "lucide-react";
 import { Button } from "../ui/button";
@@ -28,6 +29,8 @@ export function ConfigListField({
   onChange?: (next: string[]) => void;
   onSecret?: (key: string, value: string) => void;
 }) {
+  const t = useTranslations();
+
   const least = Math.max(field.min ?? 0, field.required ? 1 : 0);
   const most = field.max ?? Number.POSITIVE_INFINITY;
   const rows = Math.max(values.length, least, 1);
@@ -71,7 +74,10 @@ export function ConfigListField({
             {items.length > least ? (
               <IconButton
                 icon={X}
-                label={`Retirer ${field.label} ${index + 1}`}
+                label={t("config.list.remove", {
+                  label: field.label,
+                  index: index + 1,
+                })}
                 onClick={() =>
                   onChange?.(items.filter((_, at) => at !== index))
                 }
@@ -90,14 +96,14 @@ export function ConfigListField({
             size="sm"
             variant="discreet"
           >
-            Ajouter
+            {t("config.list.add")}
           </Button>
         ) : null}
 
         <span className="font-data text-[10.5px] text-ink-4 tabular-nums">
           {least > 0
-            ? `de ${least} à ${field.max ?? "n"} valeurs`
-            : `jusqu'à ${field.max ?? "n"} valeurs`}
+            ? t("config.list.between", { min: least, max: field.max ?? "n" })
+            : t("config.list.upTo", { max: field.max ?? "n" })}
         </span>
       </div>
     </div>

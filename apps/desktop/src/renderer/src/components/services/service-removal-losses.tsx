@@ -1,5 +1,6 @@
 import { Button } from "@renderer/components/ui/button";
 import { StatusDot } from "@renderer/components/ui/status-dot";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { Trash2 } from "lucide-react";
 
 /**
@@ -20,12 +21,14 @@ export function ServiceRemovalLosses({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const t = useTranslations();
+
   return (
     <section
       className="elevation-raised flex flex-col gap-3 rounded-md border border-danger/40 bg-surface px-4 py-4"
       data-confirm="uninstall"
     >
-      <p className="text-ink">Retirer {name} de ce serveur fait perdre :</p>
+      <p className="text-ink">{t("services.removal.losses.intro", { name })}</p>
 
       <ul className="flex flex-col gap-1.5">
         {losses.map((loss) => (
@@ -39,15 +42,15 @@ export function ServiceRemovalLosses({
       </ul>
 
       <p className="text-[11px] text-ink-3 leading-relaxed">
-        Rien n'est sauvegardé au passage : exportez ce qui compte avant.
+        {t("services.removal.losses.note")}
       </p>
 
       <div className="flex flex-wrap items-center gap-2">
         <Button icon={Trash2} onClick={onConfirm} variant="danger">
-          Retirer définitivement
+          {t("services.removal.losses.confirm")}
         </Button>
         <Button onClick={onCancel} variant="discreet">
-          Annuler
+          {t("common.cancel")}
         </Button>
       </div>
     </section>

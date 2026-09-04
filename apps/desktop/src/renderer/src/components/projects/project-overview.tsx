@@ -2,6 +2,7 @@ import type { Project } from "@pupitre/shared/agent-protocol/state";
 import { ConfirmButton } from "@renderer/components/ui/confirm-button";
 import { IconButton } from "@renderer/components/ui/icon-button";
 import { Label } from "@renderer/components/ui/label";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { memory, uptime } from "@renderer/lib/format";
 import { isRunning } from "@renderer/lib/project-state";
 import type { BranchState, GitState } from "@renderer/stores/project";
@@ -49,6 +50,8 @@ export function ProjectOverview({
   onCheckGit: () => void;
   onRemove: () => void;
 }) {
+  const t = useTranslations();
+
   const [copied, setCopied] = useState(false);
 
   function copyAddress(url: string) {
@@ -60,7 +63,10 @@ export function ProjectOverview({
   return (
     <div className="h-full overflow-y-auto px-8 py-6">
       <div className="grid gap-gutter md:grid-cols-2">
-        <ProjectPanel icon={ExternalLink} label="Adresse publique">
+        <ProjectPanel
+          icon={ExternalLink}
+          label={t("project.overview.publicAddress")}
+        >
           {project.url ? (
             <div className="flex items-center gap-2">
               <button
@@ -72,19 +78,25 @@ export function ProjectOverview({
               </button>
               <IconButton
                 icon={copied ? Check : Copy}
-                label={copied ? "Adresse copiée" : "Copier l'adresse"}
+                label={
+                  copied
+                    ? t("project.overview.addressCopied")
+                    : t("project.overview.copyAddress")
+                }
                 onClick={() => copyAddress(project.url ?? "")}
               />
             </div>
           ) : (
-            <span className="text-ink-4">Non publié</span>
+            <span className="text-ink-4">
+              {t("project.overview.notPublished")}
+            </span>
           )}
           <p className="mt-2 font-data text-[11px] text-ink-3">
-            local · {project.host}:{project.port}
+            {t("project.overview.local")} · {project.host}:{project.port}
           </p>
         </ProjectPanel>
 
-        <ProjectPanel icon={GitBranch} label="Branche">
+        <ProjectPanel icon={GitBranch} label={t("project.overview.branch")}>
           <div className="flex flex-col gap-2.5">
             <ProjectBranches
               folder={project.dir}
@@ -96,30 +108,33 @@ export function ProjectOverview({
           </div>
         </ProjectPanel>
 
-        <ProjectPanel icon={Timer} label="Activité">
+        <ProjectPanel icon={Timer} label={t("project.overview.activity")}>
           <p className="font-semibold text-ink text-lg tabular-nums">
             {uptime(project.uptime_s)}
           </p>
           <p className="font-data text-[11px] text-ink-3">
-            {isRunning(project.state) ? "en cours" : "arrêté"}
+            {isRunning(project.state)
+              ? t("project.overview.running")
+              : t("project.overview.stopped")}
             {project.pid ? ` · pid ${project.pid}` : ""}
           </p>
         </ProjectPanel>
 
-        <ProjectPanel icon={Terminal} label="Commandes">
-          <Label>démarrage</Label>
+        <ProjectPanel icon={Terminal} label={t("project.overview.commands")}>
+          <Label>{t("project.overview.startCmd")}</Label>
           <p className="break-all font-data text-[11px] text-ink-2">
             {project.cmd}
           </p>
           <p className="mt-2">
-            <Label>installation</Label>
+            <Label>{t("project.overview.installCmd")}</Label>
           </p>
           <p className="break-all font-data text-[11px] text-ink-2">
-            {project.install || `dérivée de ${project.pkgmgr}`}
+            {project.install ||
+              t("project.overview.derivedFrom", { pkgmgr: project.pkgmgr })}
           </p>
         </ProjectPanel>
 
-        <ProjectPanel icon={MemoryStick} label="Mémoire">
+        <ProjectPanel icon={MemoryStick} label={t("project.overview.memory")}>
           <p
             className={`font-semibold text-lg tabular-nums ${(project.ram_mb ?? 0) > HEAVY_MB ? "text-warn" : ""}`}
           >
@@ -134,13 +149,13 @@ export function ProjectOverview({
 
       <div className="mt-6 flex justify-end border-line border-t pt-5">
         <ConfirmButton
-          confirmLabel="Retirer"
+          confirmLabel={t("project.overview.remove")}
           icon={Trash2}
           onConfirm={onRemove}
-          question="Le projet quitte le registre ; son dossier reste sur le serveur."
+          question={t("project.overview.removeQuestion")}
           size="sm"
         >
-          Retirer du registre
+          {t("project.overview.removeFromRegistry")}
         </ConfirmButton>
       </div>
     </div>

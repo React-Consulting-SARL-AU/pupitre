@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { ArrowRight, RefreshCw } from "lucide-react";
 import { useEffect } from "react";
 import { useCatalog } from "../../stores/catalog";
@@ -25,6 +26,8 @@ export function CatalogScreen({
   serverName?: string;
   onConfigure?: () => void;
 }) {
+  const t = useTranslations();
+
   const catalog = useCatalog((state) => state.catalog);
   const selected = useCatalog((state) => state.selected);
   const load = useCatalog((state) => state.load);
@@ -39,9 +42,9 @@ export function CatalogScreen({
 
   const header = (
     <PageHeader
-      description="Le catalogue est celui de l'agent de ce serveur : ce qu'il déclare est ce qui s'affiche."
-      eyebrow="Services"
-      title={serverName ?? "Ce serveur"}
+      description={t("catalog.screen.description")}
+      eyebrow={t("catalog.screen.eyebrow")}
+      title={serverName ?? t("catalog.screen.defaultServer")}
     />
   );
 
@@ -52,7 +55,7 @@ export function CatalogScreen({
         <Callout
           action={
             <Button icon={RefreshCw} onClick={() => load(serverId)}>
-              Relancer
+              {t("catalog.screen.reload")}
             </Button>
           }
           fix={catalog.error.fix}
@@ -69,8 +72,8 @@ export function CatalogScreen({
       <section className="flex flex-col gap-section">
         {header}
         <WaitingNotice
-          detail="Modules disponibles, dépendances, conflits, ressources demandées, préréglages."
-          title="Lecture du catalogue"
+          detail={t("catalog.screen.waitingDetail")}
+          title={t("catalog.screen.waitingTitle")}
         />
       </section>
     );
@@ -81,12 +84,12 @@ export function CatalogScreen({
       <PageHeader
         actions={
           <Button icon={ArrowRight} onClick={onConfigure} variant="inverse">
-            Configurer {selected.length} modules
+            {t("catalog.screen.configure", { count: selected.length })}
           </Button>
         }
-        description="Le catalogue est celui de l'agent de ce serveur : ce qu'il déclare est ce qui s'affiche."
-        eyebrow="Services"
-        title={serverName ?? "Ce serveur"}
+        description={t("catalog.screen.description")}
+        eyebrow={t("catalog.screen.eyebrow")}
+        title={serverName ?? t("catalog.screen.defaultServer")}
       />
 
       <CatalogChoice

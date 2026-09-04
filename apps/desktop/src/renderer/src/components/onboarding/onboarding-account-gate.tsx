@@ -1,6 +1,7 @@
 import { AccountSignInCard } from "@renderer/components/account/account-sign-in-card";
 import { AccountUsageNotice } from "@renderer/components/account/account-usage-notice";
 import { PageHeader } from "@renderer/components/ui/page-header";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { useAccount } from "@renderer/stores/account";
 import type { AccountState } from "@shared/account";
 
@@ -18,15 +19,17 @@ export function OnboardingAccountGate({
   account: AccountState;
   serverName?: string;
 }) {
+  const t = useTranslations();
+
   const signIn = useAccount((state) => state.signIn);
   const connect = useAccount((state) => state.connect);
 
   return (
     <section className="flex flex-col gap-section">
       <PageHeader
-        description="L'agent est téléchargé depuis la plateforme, signé, puis poussé sur le serveur. Cette app ne l'embarque plus."
-        eyebrow="Compte"
-        title={serverName ?? "Installer un serveur"}
+        description={t("onboarding.accountGate.description")}
+        eyebrow={t("onboarding.accountGate.eyebrow")}
+        title={serverName ?? t("onboarding.accountGate.title")}
       />
 
       <AccountUsageNotice checkedAt={account.checkedAt} usage={account.usage} />

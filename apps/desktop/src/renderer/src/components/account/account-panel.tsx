@@ -1,4 +1,5 @@
 import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { accountOf, useAccount } from "@renderer/stores/account";
 import { useEffect } from "react";
 import { AccountIdentityCard } from "./account-identity-card";
@@ -13,6 +14,8 @@ import { AccountUsageNotice } from "./account-usage-notice";
  * token: the main process answers with a state, and the state is what is drawn.
  */
 export function AccountPanel() {
+  const t = useTranslations();
+
   const view = useAccount((state) => state.view);
   const signIn = useAccount((state) => state.signIn);
   const read = useAccount((state) => state.read);
@@ -29,8 +32,8 @@ export function AccountPanel() {
   if (!account) {
     return (
       <WaitingNotice
-        detail="Le trousseau de cet ordinateur est interrogé."
-        title="Lecture du compte"
+        detail={t("account.reading.detail")}
+        title={t("account.reading.title")}
       />
     );
   }

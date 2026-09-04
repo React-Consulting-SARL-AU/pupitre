@@ -3,6 +3,7 @@ import type {
   ModuleConfig,
   ModuleReport,
 } from "@pupitre/shared/agent-protocol/install";
+import { translate } from "@renderer/i18n/translate";
 import type { AgentError } from "@shared/agent";
 import type { InstallUpdate } from "@shared/install";
 import { create } from "zustand";
@@ -98,11 +99,11 @@ function stepEvent(
 
 function logLine(update: InstallUpdate): string | null {
   if (update.kind === "sending") {
-    return `pupitred linux-${update.arch} → envoi sur le serveur`;
+    return `pupitred linux-${update.arch} → ${translate()("install.journal.sending")}`;
   }
 
   if (update.kind === "sent") {
-    return `pupitred linux-${update.arch} · ${humanBytes(update.bytes)} · installé`;
+    return `pupitred linux-${update.arch} · ${humanBytes(update.bytes)} · ${translate()("install.journal.installed")}`;
   }
 
   if (update.event.event === "log") {

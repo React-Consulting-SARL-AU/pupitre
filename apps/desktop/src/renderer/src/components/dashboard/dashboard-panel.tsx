@@ -4,7 +4,7 @@ import { Button } from "@renderer/components/ui/button";
 import { ConfirmButton } from "@renderer/components/ui/confirm-button";
 import { Label } from "@renderer/components/ui/label";
 import { PageHeader } from "@renderer/components/ui/page-header";
-import { plural } from "@renderer/lib/format";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { isRunning } from "@renderer/lib/project-state";
 import type { ProjectAction } from "@renderer/stores/snapshot";
 import { Play, Power, Sparkles, Square } from "lucide-react";
@@ -43,6 +43,8 @@ export function DashboardPanel({
   onCleanSessions,
   onReboot,
 }: Props) {
+  const t = useTranslations();
+
   const projects = snapshot.projects;
   const up = projects.filter((project) => isRunning(project.state));
   const broken = projects.filter(
@@ -52,6 +54,16 @@ export function DashboardPanel({
     (total, project) => total + (project.ram_mb ?? 0),
     0
   );
+
+  const projectsLabel = t.plural("dashboard.project", projects.length);
+
+  const description =
+    broken.length > 0
+      ? t("dashboard.panel.summaryBroken", {
+          projects: projectsLabel,
+          broken: t.plural("dashboard.broken", broken.length),
+        })
+      : t("dashboard.panel.summary", { projects: projectsLabel });
 
   return (
     <div className="h-full overflow-y-auto px-8 py-6">
@@ -64,24 +76,24 @@ export function DashboardPanel({
                 icon={Play}
                 onClick={() => onAct("project.up", "all")}
               >
-                Tout démarrer
+                {t("dashboard.panel.startAll")}
               </Button>
               <ConfirmButton
-                confirmLabel="Tout arrêter"
+                confirmLabel={t("dashboard.panel.stopAll")}
                 disabled={busy !== null}
                 icon={Square}
                 onConfirm={() => onAct("project.down", "all")}
-                question="Chaque projet en cours s'arrête."
+                question={t("dashboard.panel.stopAllQuestion")}
               >
-                Tout arrêter
+                {t("dashboard.panel.stopAll")}
               </ConfirmButton>
             </>
           }
-          description={`sur ${plural(projects.length, "projet")}${
-            broken.length > 0 ? ` · ${plural(broken.length, "en échec")}` : ""
-          }`}
+          description={description}
           eyebrow={snapshot.machine.hostname}
-          title={`${plural(up.length, "projet")} en ligne`}
+          title={t("dashboard.panel.title", {
+            projects: t.plural("dashboard.project", up.length),
+          })}
         />
 
         <section className="flex flex-col gap-3">
@@ -98,18 +110,18 @@ export function DashboardPanel({
 
         <section className="flex flex-col gap-3">
           <h2>
-            <Label>Services</Label>
+            <Label>{t("dashboard.panel.services")}</Label>
           </h2>
           <DashboardServices services={snapshot.services} />
         </section>
 
         <section className="flex flex-col gap-3">
           <h2>
-            <Label>Projets</Label>
+            <Label>{t("dashboard.panel.projects")}</Label>
           </h2>
           {projects.length === 0 ? (
             <p className="text-[12px] text-ink-3">
-              Ce serveur n'a encore déclaré aucun projet.
+              {t("dashboard.panel.noProjects")}
             </p>
           ) : (
             <div className="grid gap-gutter md:grid-cols-2">
@@ -129,7 +141,7 @@ export function DashboardPanel({
         <section className="flex flex-col gap-3">
           <h2 className="flex items-center gap-1.5 text-ink-3">
             <Sparkles size={12} strokeWidth={1.5} />
-            <Label>Sessions en arrière-plan</Label>
+            <Label>{t("dashboard.panel.backgroundSessions")}</Label>
           </h2>
           <div className="elevation-raised overflow-hidden rounded-md border border-line bg-surface">
             <ActivitySessions
@@ -147,12 +159,12 @@ export function DashboardPanel({
         */}
         <div className="flex justify-end border-line border-t pt-5">
           <ConfirmButton
-            confirmLabel="Redémarrer"
+            confirmLabel={t("dashboard.panel.reboot")}
             icon={Power}
             onConfirm={onReboot}
-            question="Tout s'arrête ; la machine revient en une minute environ."
+            question={t("dashboard.panel.rebootQuestion")}
           >
-            Redémarrer le serveur
+            {t("dashboard.panel.rebootServer")}
           </ConfirmButton>
         </div>
       </div>

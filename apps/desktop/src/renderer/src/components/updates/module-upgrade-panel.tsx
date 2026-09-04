@@ -3,6 +3,7 @@ import { Button } from "@renderer/components/ui/button";
 import { Callout } from "@renderer/components/ui/callout";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { StatusDot } from "@renderer/components/ui/status-dot";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { ModuleProgress } from "@renderer/lib/module-progress";
 import type { ModulesState } from "@renderer/stores/agent-update";
 import { RefreshCw } from "lucide-react";
@@ -28,6 +29,8 @@ export function ModuleUpgradePanel({
   nameOf: (moduleId: string) => string;
   onUpgrade: () => void;
 }) {
+  const t = useTranslations();
+
   if (modules.length === 0) {
     return null;
   }
@@ -38,10 +41,9 @@ export function ModuleUpgradePanel({
     <section className="flex flex-col gap-gutter" data-module-upgrade>
       <div className="flex flex-wrap items-center justify-between gap-gutter">
         <div className="min-w-0">
-          <p className="font-medium text-ink">Mise à jour des services</p>
+          <p className="font-medium text-ink">{t("updates.modules.title")}</p>
           <p className="mt-0.5 text-ink-3 leading-relaxed">
-            L'agent rejoue les étapes d'installation des {modules.length}{" "}
-            modules qu'il a posés sur cette machine.
+            {t("updates.modules.intro", { count: modules.length })}
           </p>
         </div>
 
@@ -50,7 +52,7 @@ export function ModuleUpgradePanel({
           loading={state.status === "running"}
           onClick={onUpgrade}
         >
-          Tout mettre à jour
+          {t("updates.modules.upgradeAll")}
         </Button>
       </div>
 
@@ -71,7 +73,7 @@ export function ModuleUpgradePanel({
               key={moduleId}
             >
               <StatusDot shape="struck" size={10} tone="danger" />
-              {nameOf(moduleId)} : la mise à jour a échoué.
+              {t("updates.modules.failed", { name: nameOf(moduleId) })}
             </p>
           ))}
 
@@ -82,13 +84,15 @@ export function ModuleUpgradePanel({
               key={moduleId}
             >
               <StatusDot shape="ringed" size={10} tone="warn" />
-              {nameOf(moduleId)} : mis à jour, avec un avertissement.
+              {t("updates.modules.warned", { name: nameOf(moduleId) })}
             </p>
           ))}
 
           <Callout fix={result.report_path}>
-            Mise à jour terminée : {result.failed.length} en échec,{" "}
-            {result.warned.length} avec avertissement.
+            {t("updates.modules.report", {
+              failed: result.failed.length,
+              warned: result.warned.length,
+            })}
           </Callout>
         </div>
       ) : null}

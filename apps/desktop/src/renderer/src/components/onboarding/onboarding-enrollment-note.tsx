@@ -1,4 +1,5 @@
 import { StatusDot } from "@renderer/components/ui/status-dot";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { EnrollmentSummary } from "@shared/account";
 
 /**
@@ -13,6 +14,8 @@ export function OnboardingEnrollmentNote({
 }: {
   enrollment: EnrollmentSummary | null;
 }) {
+  const t = useTranslations();
+
   if (!enrollment) {
     return null;
   }
@@ -26,10 +29,11 @@ export function OnboardingEnrollmentNote({
         <StatusDot shape="filled" size={12} tone="ok" />
       </span>
       <div className="min-w-0">
-        <p className="font-medium text-ink">Serveur enrôlé</p>
+        <p className="font-medium text-ink">
+          {t("onboarding.enrollment.title")}
+        </p>
         <p className="mt-1 text-ink-3 leading-relaxed">
-          Il apparaît dans la console avec son heartbeat dès que l'agent parle à
-          la plateforme.
+          {t("onboarding.enrollment.detail")}
         </p>
         <p className="mt-2 break-all font-data text-[11px] text-ink-4">
           {enrollment.serverId} · pupitred {enrollment.release.version} ·{" "}

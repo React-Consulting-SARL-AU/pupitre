@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { humanMs } from "../../lib/duration";
 import type { ModuleProgress } from "../../stores/install";
 import { ServiceLogo } from "../ui/service-logo";
@@ -19,6 +20,8 @@ export function InstallModuleRow({
   module: ModuleProgress;
   name: string;
 }) {
+  const t = useTranslations();
+
   const look = MODULE_LOOK[module.status];
   const replay = module.steps.find((step) => step.replay)?.replay;
 
@@ -33,7 +36,7 @@ export function InstallModuleRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
           <StatusDot
-            label={`${name} — ${look.label}`}
+            label={`${name} — ${t(look.label)}`}
             shape={look.shape}
             size={10}
             tone={look.tone}

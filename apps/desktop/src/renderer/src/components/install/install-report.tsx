@@ -1,4 +1,5 @@
 import type { InstallResult } from "@pupitre/shared/agent-protocol/install";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { ArrowRight, RotateCcw } from "lucide-react";
 import type { ModuleProgress } from "../../stores/install";
 import { Button } from "../ui/button";
@@ -29,6 +30,8 @@ export function InstallReport({
   onContinue?: () => void;
   replaying?: string | null;
 }) {
+  const t = useTranslations();
+
   function replayOf(moduleId: string): string | undefined {
     return modules
       .find((module) => module.id === moduleId)
@@ -59,7 +62,7 @@ export function InstallReport({
                 loading={replaying === moduleId}
                 onClick={() => onReplay?.(moduleId)}
               >
-                Rejouer
+                {t("install.replay")}
               </Button>
             </li>
           ))}
@@ -75,7 +78,7 @@ export function InstallReport({
               key={moduleId}
             >
               <StatusDot shape="ringed" size={10} tone="warn" />
-              <span>{nameOf(moduleId)} : installé, avec un avertissement.</span>
+              <span>{t("install.warned", { name: nameOf(moduleId) })}</span>
             </li>
           ))}
         </ul>
@@ -88,11 +91,11 @@ export function InstallReport({
 
         {blocking.length === 0 ? (
           <Button icon={ArrowRight} onClick={onContinue} variant="inverse">
-            Continuer
+            {t("install.continue")}
           </Button>
         ) : (
           <p className="text-danger">
-            {blocking.map(nameOf).join(", ")} : la suite en dépend.
+            {t("install.blocking", { names: blocking.map(nameOf).join(", ") })}
           </p>
         )}
       </div>

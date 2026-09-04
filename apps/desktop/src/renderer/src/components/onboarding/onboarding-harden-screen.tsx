@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { RefreshCw } from "lucide-react";
 import { useEffect } from "react";
 import { useHarden } from "../../stores/harden";
@@ -24,6 +25,8 @@ export function OnboardingHardenScreen({
   serverName?: string;
   onContinue?: () => void;
 }) {
+  const t = useTranslations();
+
   const harden = useHarden((state) => state.harden);
   const steps = useHarden((state) => state.steps);
   const start = useHarden((state) => state.start);
@@ -37,23 +40,25 @@ export function OnboardingHardenScreen({
   return (
     <section className="flex flex-col gap-section">
       <PageHeader
-        description="L'agent ouvre le compte dev, vérifie qu'une clé y entre, puis ferme root. L'app suit avec sa propre configuration SSH."
-        eyebrow="Durcissement"
-        title={serverName ?? "Ce serveur"}
+        description={t("onboarding.harden.description")}
+        eyebrow={t("onboarding.harden.eyebrow")}
+        title={serverName ?? t("onboarding.thisServer")}
       />
 
       {harden.status === "running" ? (
         <WaitingNotice
-          detail="Compte dev, clés recopiées, connexion vérifiée, mots de passe et root fermés."
-          note="Root ne sera fermé que si une clé ouvre dev : sinon l'agent s'arrête et le dit."
-          title="Durcissement en cours"
+          detail={t("onboarding.harden.runningDetail")}
+          note={t("onboarding.harden.runningNote")}
+          title={t("onboarding.harden.runningTitle")}
         />
       ) : null}
 
       {harden.status === "switching" ? (
         <WaitingNotice
-          detail={`L'app réécrit sa configuration SSH en User ${harden.user} et rouvre le canal.`}
-          title="Bascule de la connexion"
+          detail={t("onboarding.harden.switchingDetail", {
+            user: harden.user,
+          })}
+          title={t("onboarding.harden.switchingTitle")}
         />
       ) : null}
 
@@ -69,7 +74,7 @@ export function OnboardingHardenScreen({
         <Callout
           action={
             <Button icon={RefreshCw} onClick={() => start(serverId)}>
-              Réessayer
+              {t("common.retry")}
             </Button>
           }
           fix={harden.error.fix}

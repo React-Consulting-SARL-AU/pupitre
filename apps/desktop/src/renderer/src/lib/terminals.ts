@@ -1,3 +1,4 @@
+import { translate } from "@renderer/i18n/translate";
 import type { ResolvedTheme } from "@shared/appearance";
 import type { TerminalKind } from "@shared/terminals";
 import { FitAddon } from "@xterm/addon-fit";
@@ -87,7 +88,9 @@ export function obtain(id: string, kind: TerminalKind): Live {
   const detachExit = window.pupitre.onTerminalExit((payload) => {
     if (payload.id === id) {
       xterm.writeln(
-        `\r\n\x1b[38;5;245m— session terminée (${payload.code}) —\x1b[0m`
+        `\r\n\x1b[38;5;245m— ${translate()("terminals.sessionEnded", {
+          code: payload.code,
+        })} —\x1b[0m`
       );
     }
   });

@@ -2,6 +2,7 @@ import type { TunnelStatusResult } from "@pupitre/shared/agent-protocol/secrets"
 import { Button } from "@renderer/components/ui/button";
 import { Label } from "@renderer/components/ui/label";
 import { StatePill } from "@renderer/components/ui/state-pill";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { StateLook } from "@renderer/lib/project-state";
 import { RefreshCw, RotateCw } from "lucide-react";
 
@@ -15,25 +16,25 @@ import { RefreshCw, RotateCw } from "lucide-react";
 const LOOK: Record<TunnelStatusResult["state"], StateLook> = {
   absent: {
     frame: "border-line-strong",
-    label: "absent",
+    label: "services.tunnel.state.absent",
     shape: "empty",
     tone: "neutral",
   },
   failed: {
     frame: "border-danger/40",
-    label: "en échec",
+    label: "services.tunnel.state.failed",
     shape: "struck",
     tone: "danger",
   },
   running: {
     frame: "border-ok/40",
-    label: "actif",
+    label: "services.tunnel.state.running",
     shape: "filled",
     tone: "ok",
   },
   stopped: {
     frame: "border-line-strong",
-    label: "arrêté",
+    label: "services.tunnel.state.stopped",
     shape: "empty",
     tone: "neutral",
   },
@@ -50,14 +51,13 @@ export function ServicesTunnel({
   onSync: () => void;
   onRestart: () => void;
 }) {
+  const t = useTranslations();
+
   if (!tunnel.installed) {
     return (
       <section className="flex flex-col gap-2" data-tunnel="absent">
-        <Label>Tunnel</Label>
-        <p className="text-[11px] text-ink-3">
-          Aucun module d'exposition sur ce serveur : les projets restent
-          joignables par la session SSH de l'app.
-        </p>
+        <Label>{t("services.tunnel.title")}</Label>
+        <p className="text-[11px] text-ink-3">{t("services.tunnel.absent")}</p>
       </section>
     );
   }
@@ -66,7 +66,7 @@ export function ServicesTunnel({
     <section className="flex flex-col gap-3" data-tunnel={tunnel.state}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="flex items-center gap-3">
-          <Label>Tunnel</Label>
+          <Label>{t("services.tunnel.title")}</Label>
           <StatePill look={LOOK[tunnel.state]} name={tunnel.state} />
         </span>
 
@@ -77,7 +77,7 @@ export function ServicesTunnel({
             onClick={onSync}
             size="sm"
           >
-            Synchroniser les routes
+            {t("services.tunnel.sync")}
           </Button>
           <Button
             icon={RotateCw}
@@ -85,14 +85,14 @@ export function ServicesTunnel({
             onClick={onRestart}
             size="sm"
           >
-            Redémarrer
+            {t("services.tunnel.restart")}
           </Button>
         </span>
       </div>
 
       {tunnel.routes.length === 0 ? (
         <p className="text-[11px] text-ink-3">
-          Aucune route : aucun projet n'a encore de sous-domaine.
+          {t("services.tunnel.noRoutes")}
         </p>
       ) : (
         <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">

@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { RefreshCw } from "lucide-react";
 import { useEffect } from "react";
 import { useInspection } from "../../stores/inspection";
@@ -20,6 +21,8 @@ export function OnboardingInspectionScreen({
   serverName,
   ...actions
 }: { serverId: string; serverName?: string } & InspectionActions) {
+  const t = useTranslations();
+
   const inspection = useInspection((state) => state.inspection);
   const inspect = useInspection((state) => state.inspect);
 
@@ -45,16 +48,16 @@ export function OnboardingInspectionScreen({
   return (
     <section className="flex flex-col gap-section">
       <PageHeader
-        description="Ce que la machine est, avant d'y toucher."
-        eyebrow="Inspection"
-        title={serverName ?? "Ce serveur"}
+        description={t("onboarding.inspection.waitingDescription")}
+        eyebrow={t("onboarding.inspection.eyebrow")}
+        title={serverName ?? t("onboarding.thisServer")}
       />
 
       {failed ? (
         <Callout
           action={
             <Button icon={RefreshCw} onClick={() => inspect(serverId)}>
-              Relancer
+              {t("onboarding.inspection.rerun")}
             </Button>
           }
           fix={failed.fix}
@@ -64,9 +67,9 @@ export function OnboardingInspectionScreen({
         </Callout>
       ) : (
         <WaitingNotice
-          detail="Distribution, architecture, mémoire, disque, ports écoutés, comptes existants, agent déjà installé."
-          note="La sonde est lue depuis l'entrée standard : rien n'est écrit sur le serveur."
-          title="Inspection en cours"
+          detail={t("onboarding.inspection.waitingDetail")}
+          note={t("onboarding.inspection.waitingNote")}
+          title={t("onboarding.inspection.waitingTitle")}
         />
       )}
     </section>

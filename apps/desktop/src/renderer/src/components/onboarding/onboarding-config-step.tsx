@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { useCatalog } from "../../stores/catalog";
 import { ConfigScreen } from "../config/config-screen";
 import { OnboardingReplayNotice } from "./onboarding-replay-notice";
@@ -24,6 +25,8 @@ export function OnboardingConfigStep({
   onInstall: () => void;
   onReplay: (moduleId: string) => void;
 }) {
+  const t = useTranslations();
+
   const modules = useCatalog((state) => state.modules);
 
   function nameOf(moduleId: string): string {
@@ -41,7 +44,7 @@ export function OnboardingConfigStep({
         only={[replaying]}
         onMachineName={onMachineName}
         serverName={serverName}
-        submitLabel="Rejouer ce module"
+        submitLabel={t("onboarding.config.replaySubmit")}
       />
     );
   }

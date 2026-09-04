@@ -1,3 +1,5 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
+
 /**
  * The project's own output, as the agent sends it.
  *
@@ -6,6 +8,8 @@
  * not in the command that started it.
  */
 export function FirstProjectJournal({ lines }: { lines: readonly string[] }) {
+  const t = useTranslations();
+
   if (lines.length === 0) {
     return null;
   }
@@ -13,9 +17,11 @@ export function FirstProjectJournal({ lines }: { lines: readonly string[] }) {
   return (
     <section className="elevation-raised overflow-hidden rounded-md border border-line bg-surface">
       <header className="flex items-center justify-between px-4 py-2.5">
-        <span className="label text-ink-3">Journal du projet</span>
+        <span className="label text-ink-3">
+          {t("firstProject.journal.title")}
+        </span>
         <span className="font-data text-[11px] text-ink-4">
-          {lines.length} lignes
+          {t("firstProject.journal.lines", { count: lines.length })}
         </span>
       </header>
 

@@ -2,6 +2,7 @@ import type { Project } from "@pupitre/shared/agent-protocol/state";
 import { Button } from "@renderer/components/ui/button";
 import { ServiceLogo } from "@renderer/components/ui/service-logo";
 import { StatePill } from "@renderer/components/ui/state-pill";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { memory, uptime } from "@renderer/lib/format";
 import { runtimeModuleOf } from "@renderer/lib/modules";
 import { isRunning, PROJECT_LOOK } from "@renderer/lib/project-state";
@@ -26,6 +27,8 @@ export function DashboardProjectCard({
   onOpen: (name: string) => void;
   onAct: (action: ProjectAction, name: string) => void;
 }) {
+  const t = useTranslations();
+
   const running = isRunning(project.state);
 
   return (
@@ -70,7 +73,7 @@ export function DashboardProjectCard({
           }
           size="sm"
         >
-          {running ? "Redémarrer" : "Démarrer"}
+          {running ? t("dashboard.card.restart") : t("dashboard.card.start")}
         </Button>
         {running ? (
           <Button
@@ -79,7 +82,7 @@ export function DashboardProjectCard({
             onClick={() => onAct("project.down", project.name)}
             size="sm"
           >
-            Arrêter
+            {t("dashboard.card.stop")}
           </Button>
         ) : null}
         {project.url ? (
@@ -88,7 +91,7 @@ export function DashboardProjectCard({
             onClick={() => window.pupitre.openUrl(project.url ?? "")}
             size="sm"
           >
-            Ouvrir
+            {t("dashboard.card.open")}
           </Button>
         ) : null}
       </div>

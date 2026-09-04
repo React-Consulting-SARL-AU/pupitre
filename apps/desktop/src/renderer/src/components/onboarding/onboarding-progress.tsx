@@ -1,17 +1,6 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { ONBOARDING_STEPS, type OnboardingStep } from "../../stores/onboarding";
 import { StatusDot } from "../ui/status-dot";
-
-const TITLES: Record<OnboardingStep, string> = {
-  agent: "Agent",
-  catalog: "Catalogue",
-  config: "Configuration",
-  done: "Prêt",
-  harden: "Durcissement",
-  install: "Installation",
-  inspection: "Inspection",
-  project: "Projet",
-  server: "Serveur",
-};
 
 /**
  * Where the onboarding is, in the order it happens.
@@ -20,6 +9,8 @@ const TITLES: Record<OnboardingStep, string> = {
  * what is still ahead is a hollow circle. The rail reads in pure greys.
  */
 export function OnboardingProgress({ step }: { step: OnboardingStep }) {
+  const t = useTranslations();
+
   const here = ONBOARDING_STEPS.indexOf(step);
 
   return (
@@ -46,7 +37,7 @@ export function OnboardingProgress({ step }: { step: OnboardingStep }) {
             <span
               className={`text-[10.5px] uppercase tracking-[0.08em] ${current ? "text-ink" : "text-ink-4"}`}
             >
-              {TITLES[candidate]}
+              {t(`onboarding.step.${candidate}`)}
             </span>
           </li>
         );

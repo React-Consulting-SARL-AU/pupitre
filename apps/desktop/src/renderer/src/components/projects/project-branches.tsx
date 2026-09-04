@@ -1,6 +1,7 @@
 import { Callout } from "@renderer/components/ui/callout";
 import { fieldControlClass } from "@renderer/components/ui/field";
 import { StatusDot } from "@renderer/components/ui/status-dot";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { BranchState } from "@renderer/stores/project";
 import { GitBranchPlus } from "lucide-react";
 
@@ -22,11 +23,13 @@ export function ProjectBranches({
   switching: boolean;
   onCheckout: (branch: string) => void;
 }) {
+  const t = useTranslations();
+
   if (state.status === "idle" || state.status === "reading") {
     return (
       <p className="flex items-center gap-2 font-data text-[11px] text-ink-3">
         <StatusDot shape="breathing" size={11} />
-        lecture des branches…
+        {t("project.branches.reading")}
       </p>
     );
   }
@@ -46,9 +49,11 @@ export function ProjectBranches({
       <div className="flex items-start gap-2 text-ink-3">
         <GitBranchPlus className="mt-px shrink-0" size={13} strokeWidth={1.5} />
         <div className="min-w-0">
-          <p className="text-[12px] text-ink-2">Aucun dépôt git</p>
+          <p className="text-[12px] text-ink-2">
+            {t("project.branches.noRepoTitle")}
+          </p>
           <p className="mt-0.5 truncate font-data text-[11px]">
-            {folder} n'est pas versionné
+            {t("project.branches.notVersioned", { folder })}
           </p>
         </div>
       </div>
@@ -71,19 +76,19 @@ export function ProjectBranches({
         {all.map((branch) => (
           <option key={branch} value={branch}>
             {branch}
-            {branches.local.includes(branch) ? "" : "  (distante)"}
+            {branches.local.includes(branch)
+              ? ""
+              : t("project.branches.remoteSuffix")}
           </option>
         ))}
       </select>
 
       {branches.dirty ? (
-        <Callout tone="warn">
-          changements non commités — le changement de branche sera refusé
-        </Callout>
+        <Callout tone="warn">{t("project.branches.dirty")}</Callout>
       ) : (
         <p className="truncate font-data text-[11px] text-ink-3">
-          {branches.root} · {branches.local.length} locale
-          {branches.local.length > 1 ? "s" : ""}
+          {branches.root} ·{" "}
+          {t.plural("project.branches.localCount", branches.local.length)}
         </p>
       )}
     </div>

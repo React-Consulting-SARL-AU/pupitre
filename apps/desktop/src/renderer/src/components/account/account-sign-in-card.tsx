@@ -2,6 +2,7 @@ import { Button } from "@renderer/components/ui/button";
 import { Callout } from "@renderer/components/ui/callout";
 import { CopyField } from "@renderer/components/ui/copy-field";
 import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { SignInState } from "@renderer/stores/account";
 import { LogIn, RotateCw } from "lucide-react";
 
@@ -21,14 +22,16 @@ export function AccountSignInCard({
   onConnect: () => void;
   onOpenConsole: () => void;
 }) {
+  const t = useTranslations();
+
   if (signIn.status === "idle") {
     return (
       <div className="flex flex-wrap items-center gap-2">
         <Button icon={LogIn} onClick={onConnect} variant="inverse">
-          Se connecter
+          {t("account.signIn.connect")}
         </Button>
         <Button onClick={onOpenConsole} variant="discreet">
-          Ouvrir la console
+          {t("account.signIn.openConsole")}
         </Button>
       </div>
     );
@@ -39,7 +42,7 @@ export function AccountSignInCard({
       <Callout
         action={
           <Button icon={RotateCw} onClick={onConnect} size="sm">
-            Réessayer
+            {t("common.retry")}
           </Button>
         }
         fix={signIn.error.fix}
@@ -53,8 +56,8 @@ export function AccountSignInCard({
   if (signIn.status === "starting") {
     return (
       <WaitingNotice
-        detail="La plateforme prépare un code pour cet appareil."
-        title="Demande de connexion"
+        detail={t("account.signIn.startingDetail")}
+        title={t("account.signIn.startingTitle")}
       />
     );
   }
@@ -62,20 +65,20 @@ export function AccountSignInCard({
   return (
     <div className="flex flex-col gap-4">
       <WaitingNotice
-        detail={`Approuvez le code dans le navigateur, sur ${consoleUrl}.`}
-        note="Cette fenêtre se met à jour dès que la console a confirmé."
-        title="En attente de votre approbation"
+        detail={t("account.signIn.waitingDetail", { url: consoleUrl })}
+        note={t("account.signIn.waitingNote")}
+        title={t("account.signIn.waitingTitle")}
       />
 
       <CopyField
-        help="Ce code identifie cette demande. Il expire au bout de trente minutes."
-        label="Code à confirmer"
+        help={t("account.signIn.codeHelp")}
+        label={t("account.signIn.codeLabel")}
         value={signIn.userCode}
       />
 
       <div>
         <Button onClick={onOpenConsole} variant="discreet">
-          Rouvrir le navigateur
+          {t("account.signIn.reopenBrowser")}
         </Button>
       </div>
     </div>

@@ -6,6 +6,7 @@ import {
   type ModuleCategory,
   type Preset,
 } from "@pupitre/shared/catalog";
+import { translate } from "@renderer/i18n/translate";
 
 /**
  * What a selection of modules implies, computed from the manifests alone.
@@ -200,14 +201,14 @@ export function blocked(
     }
 
     if (installed.includes(module.id)) {
-      why.set(module.id, "Déjà installé sur ce serveur.");
+      why.set(module.id, translate()("catalog.blocked.installed"));
       continue;
     }
 
     if (probe && !(module.arch as readonly string[]).includes(probe.arch)) {
       why.set(
         module.id,
-        `Ce module n'existe pas pour l'architecture ${probe.arch}.`
+        translate()("catalog.blocked.arch", { arch: probe.arch })
       );
       continue;
     }
@@ -221,7 +222,9 @@ export function blocked(
     if (against) {
       why.set(
         module.id,
-        `En conflit avec « ${known.get(against)?.name ?? against} », déjà sélectionné.`
+        translate()("catalog.blocked.conflict", {
+          name: known.get(against)?.name ?? against,
+        })
       );
     }
   }
@@ -276,14 +279,20 @@ export function resourceWarnings(
   if (asked.ram_mb > probe.ram_mb) {
     warnings.push({
       kind: "ram",
-      message: `Les modules choisis demandent ${asked.ram_mb} Mo de mémoire ; cette machine en a ${probe.ram_mb}.`,
+      message: translate()("catalog.warning.ram", {
+        asked: asked.ram_mb,
+        has: probe.ram_mb,
+      }),
     });
   }
 
   if (asked.disk_mb > probe.disk_free_gb * MB_PER_GB) {
     warnings.push({
       kind: "disk",
-      message: `Les modules choisis demandent ${gigabytes(asked.disk_mb)} Go de disque ; il en reste ${decimal(probe.disk_free_gb)} sur cette machine.`,
+      message: translate()("catalog.warning.disk", {
+        asked: gigabytes(asked.disk_mb),
+        has: decimal(probe.disk_free_gb),
+      }),
     });
   }
 

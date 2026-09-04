@@ -5,6 +5,7 @@ import { EmptyState } from "@renderer/components/ui/empty-state";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { PageHeader } from "@renderer/components/ui/page-header";
 import { ModuleUpgradePanel } from "@renderer/components/updates/module-upgrade-panel";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { useAgentUpdate } from "@renderer/stores/agent-update";
 import { useCatalog } from "@renderer/stores/catalog";
 import { useServices } from "@renderer/stores/services";
@@ -42,6 +43,8 @@ export function ServicesScreen({
   onMachineName?: (name: string) => void;
   onTerminal?: () => void;
 }) {
+  const t = useTranslations();
+
   const [view, setView] = useState<View>({ kind: "list" });
 
   const catalog = useCatalog((state) => state.catalog);
@@ -136,12 +139,12 @@ export function ServicesScreen({
               onClick={() => setView({ kind: "add" })}
               variant="inverse"
             >
-              Ajouter un module
+              {t("services.screen.add")}
             </Button>
           }
-          description="Ce que l'agent a installé sur cette machine, et ce qu'il en dit."
-          eyebrow="Services"
-          title={serverName ?? "Ce serveur"}
+          description={t("services.screen.description")}
+          eyebrow={t("services.screen.eyebrow")}
+          title={serverName ?? t("services.screen.fallbackName")}
         />
 
         {catalog.status === "failed" ? (
@@ -157,12 +160,12 @@ export function ServicesScreen({
           <EmptyState
             action={
               <Button icon={Plus} onClick={() => setView({ kind: "add" })}>
-                Ajouter un module
+                {t("services.screen.add")}
               </Button>
             }
-            detail="L'agent n'a installé aucun module sur cette machine."
+            detail={t("services.screen.emptyDetail")}
             icon={Boxes}
-            title="Aucun service"
+            title={t("services.screen.emptyTitle")}
           />
         ) : (
           <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">

@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { Check, RefreshCw } from "lucide-react";
 import type {
   Draft,
@@ -59,29 +60,31 @@ export function FirstProjectPanel({
   onFinish?: () => void;
   onOpen?: (url: string) => void;
 }) {
+  const t = useTranslations();
+
   return (
     <section className="flex flex-col gap-section">
       <PageHeader
         actions={
           run.status === "done" ? (
             <Button icon={Check} onClick={onFinish} variant="inverse">
-              Terminer
+              {t("firstProject.panel.finish")}
             </Button>
           ) : (
             <Button onClick={onSkip} variant="discreet">
-              Plus tard
+              {t("firstProject.panel.later")}
             </Button>
           )
         }
-        description="Un dépôt à cloner ou un dossier déjà là : l'agent le déclare, l'installe, le démarre et ouvre son journal."
-        eyebrow="Premier projet"
-        title={serverName ?? "Ce serveur"}
+        description={t("firstProject.panel.description")}
+        eyebrow={t("firstProject.panel.eyebrow")}
+        title={serverName ?? t("firstProject.panel.defaultServer")}
       />
 
       {known.status === "loading" ? (
         <WaitingNotice
-          detail="Leurs ports décident de celui que ce projet peut prendre."
-          title="Lecture des projets déjà déclarés"
+          detail={t("firstProject.panel.loadingDetail")}
+          title={t("firstProject.panel.loadingTitle")}
         />
       ) : null}
 
@@ -89,7 +92,7 @@ export function FirstProjectPanel({
         <Callout
           action={
             <Button icon={RefreshCw} onClick={onReload}>
-              Réessayer
+              {t("common.retry")}
             </Button>
           }
           fix={known.error.fix}
@@ -116,7 +119,7 @@ export function FirstProjectPanel({
         <Callout
           action={
             <Button icon={RefreshCw} onClick={onRetry}>
-              Réessayer
+              {t("common.retry")}
             </Button>
           }
           fix={run.error.fix}

@@ -2,6 +2,7 @@ import { InstallProgress } from "@renderer/components/install/install-progress";
 import { Button } from "@renderer/components/ui/button";
 import { Callout } from "@renderer/components/ui/callout";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { ModuleProgress } from "@renderer/lib/module-progress";
 import type { RemovalState } from "@renderer/stores/services";
 import { ArrowLeft } from "lucide-react";
@@ -22,6 +23,8 @@ export function ServiceRemovalOutcome({
   nameOf: (moduleId: string) => string;
   onBack: () => void;
 }) {
+  const t = useTranslations();
+
   if (removal.status === "idle") {
     return null;
   }
@@ -40,20 +43,24 @@ export function ServiceRemovalOutcome({
 
       {removal.status === "done" && failed.length > 0 ? (
         <Callout tone="danger">
-          {failed.map(nameOf).join(", ")} : le serveur n'a pas pu tout retirer.
+          {t("services.removal.outcome.partial", {
+            names: failed.map(nameOf).join(", "),
+          })}
         </Callout>
       ) : null}
 
       {removal.status === "done" && failed.length === 0 ? (
         <Callout tone="info">
-          {nameOf(removal.moduleId)} a été retiré de ce serveur.
+          {t("services.removal.outcome.done", {
+            name: nameOf(removal.moduleId),
+          })}
         </Callout>
       ) : null}
 
       {removal.status === "done" ? (
         <div>
           <Button icon={ArrowLeft} onClick={onBack} variant="inverse">
-            Revenir aux services
+            {t("services.removal.outcome.back")}
           </Button>
         </div>
       ) : null}

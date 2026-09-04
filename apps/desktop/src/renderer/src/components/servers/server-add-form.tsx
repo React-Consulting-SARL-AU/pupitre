@@ -1,3 +1,5 @@
+import type { DictionaryKey } from "@renderer/i18n/en";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AgentError } from "@shared/agent";
 import type { KeyChoice, ServerDraft } from "@shared/servers";
 import { FileKey2, KeyRound, Server as ServerIcon } from "lucide-react";
@@ -12,30 +14,31 @@ type Mode = KeyChoice["mode"];
 
 const DEFAULT_PORT = "22";
 
-const MODES: { mode: Mode; icon: ButtonIcon; title: string; detail: string }[] =
-  [
-    {
-      detail:
-        "Une clé ed25519 propre à cet ordinateur, dans le dossier de l'app. Rien à préparer.",
-      icon: KeyRound,
-      mode: "generate",
-      title: "Générer une clé",
-    },
-    {
-      detail:
-        "Une clé que vous avez déjà. Elle est recopiée dans le dossier de l'app, jamais lue sur place.",
-      icon: FileKey2,
-      mode: "import",
-      title: "Importer une clé",
-    },
-    {
-      detail:
-        "Un hôte déjà décrit dans votre ~/.ssh/config. L'app n'écrit alors rien du tout.",
-      icon: ServerIcon,
-      mode: "system",
-      title: "Utiliser un hôte du système",
-    },
-  ];
+const MODES: {
+  mode: Mode;
+  icon: ButtonIcon;
+  title: DictionaryKey;
+  detail: DictionaryKey;
+}[] = [
+  {
+    detail: "servers.mode.generate.detail",
+    icon: KeyRound,
+    mode: "generate",
+    title: "servers.mode.generate.title",
+  },
+  {
+    detail: "servers.mode.import.detail",
+    icon: FileKey2,
+    mode: "import",
+    title: "servers.mode.import.title",
+  },
+  {
+    detail: "servers.mode.system.detail",
+    icon: ServerIcon,
+    mode: "system",
+    title: "servers.mode.system.title",
+  },
+];
 
 /**
  * Adding a server: an address, a port, an account, and who owns the key.
@@ -55,6 +58,8 @@ export function ServerAddForm({
   onSubmit: (draft: ServerDraft) => void;
   onCancel: () => void;
 }) {
+  const t = useTranslations();
+
   const [mode, setMode] = useState<Mode>("generate");
   const [name, setName] = useState("");
   const [host, setHost] = useState("");
@@ -105,34 +110,36 @@ export function ServerAddForm({
 
   return (
     <div className="elevation-raised rounded-md border border-line bg-surface p-5">
-      <h3 className="font-medium text-ink">Ajouter un serveur</h3>
+      <h3 className="font-medium text-ink">{t("servers.addServer")}</h3>
       <p className="mt-1 text-ink-3 leading-relaxed">
-        L'app écrit sa propre configuration SSH et garde la clé dans son
-        dossier. Votre{" "}
-        <code className="font-data text-ink-2">~/.ssh/config</code> n'est jamais
-        modifié.
+        {t("servers.add.introBefore")}{" "}
+        <code className="font-data text-ink-2">{"~/.ssh/config"}</code>{" "}
+        {t("servers.add.introAfter")}
       </p>
 
       <div className="mt-5 grid gap-5 sm:grid-cols-3">
         {MODES.map((option) => (
           <ModeCard
-            detail={option.detail}
+            detail={t(option.detail)}
             icon={option.icon}
             key={option.mode}
             onPick={() => setMode(option.mode)}
             picked={mode === option.mode}
             recommended={option.mode === "generate"}
-            title={option.title}
+            title={t(option.title)}
           />
         ))}
       </div>
 
       <div className="mt-5 grid gap-5 sm:grid-cols-2">
-        <Field help="Ce que la barre latérale affichera" label="Nom">
+        <Field
+          help={t("servers.add.name.help")}
+          label={t("servers.add.name.label")}
+        >
           <input
             className={fieldControlClass}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Serveur de développement"
+            placeholder={t("servers.add.name.placeholder")}
             value={name}
           />
         </Field>
@@ -141,10 +148,10 @@ export function ServerAddForm({
           <Field
             help={
               hosts.length > 0
-                ? `${hosts.length} hôtes lus dans ~/.ssh/config`
-                : "Aucun hôte dans ~/.ssh/config"
+                ? t.plural("servers.add.hostsRead", hosts.length)
+                : t("servers.add.noHosts")
             }
-            label="Hôte du système"
+            label={t("servers.add.systemHost.label")}
           >
             <select
               className={fieldControlClass}
@@ -159,7 +166,10 @@ export function ServerAddForm({
             </select>
           </Field>
         ) : (
-          <Field help="Une adresse IP ou un nom d'hôte" label="Adresse">
+          <Field
+            help={t("servers.add.address.help")}
+            label={t("servers.field.address")}
+          >
             <input
               className={fieldControlClass}
               onChange={(e) => setHost(e.target.value)}
@@ -171,7 +181,10 @@ export function ServerAddForm({
 
         {mode === "system" ? null : (
           <>
-            <Field help="22 sur un serveur SSH ordinaire" label="Port">
+            <Field
+              help={t("servers.add.port.help")}
+              label={t("servers.add.port.label")}
+            >
               <input
                 className={fieldControlClass}
                 inputMode="numeric"
@@ -182,13 +195,13 @@ export function ServerAddForm({
             </Field>
 
             <Field
-              help="root au premier contact, dev une fois la machine durcie"
-              label="Utilisateur"
+              help={t("servers.add.user.help")}
+              label={t("servers.add.user.label")}
             >
               <input
                 className={fieldControlClass}
                 onChange={(e) => setUser(e.target.value)}
-                placeholder="root"
+                placeholder={t("servers.add.user.placeholder")}
                 value={user}
               />
             </Field>
@@ -198,13 +211,13 @@ export function ServerAddForm({
 
       {mode === "import" ? (
         <div className="mt-5">
-          <Label>Fichier de la clé privée</Label>
+          <Label>{t("servers.add.keyFile.label")}</Label>
           <div className="mt-1.5 flex items-center gap-2">
             <Button icon={FileKey2} onClick={pickFile}>
-              Choisir un fichier…
+              {t("servers.add.pickFile")}
             </Button>
             <span className="min-w-0 truncate font-data text-[11px] text-ink-3">
-              {file || "aucun fichier choisi"}
+              {file || t("servers.add.noFile")}
             </span>
           </div>
         </div>
@@ -225,10 +238,10 @@ export function ServerAddForm({
           onClick={submit}
           variant="inverse"
         >
-          {busy ? "Préparation…" : "Ajouter"}
+          {busy ? t("servers.add.preparing") : t("servers.add.submit")}
         </Button>
         <Button onClick={onCancel} variant="discreet">
-          Annuler
+          {t("common.cancel")}
         </Button>
       </div>
     </div>
@@ -250,6 +263,8 @@ function ModeCard({
   recommended: boolean;
   onPick: () => void;
 }): ReactNode {
+  const t = useTranslations();
+
   return (
     <button
       aria-pressed={picked}
@@ -265,7 +280,7 @@ function ModeCard({
         <Icon size={13} strokeWidth={1.5} />
         {title}
       </span>
-      {recommended ? <Label>Recommandé</Label> : null}
+      {recommended ? <Label>{t("servers.add.recommended")}</Label> : null}
       <span className="text-[11px] text-ink-3 leading-relaxed">{detail}</span>
     </button>
   );

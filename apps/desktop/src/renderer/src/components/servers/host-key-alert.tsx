@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { ShieldAlert } from "lucide-react";
 import type { HostKeyState } from "../../stores/servers";
 import { Button } from "../ui/button";
@@ -24,6 +25,8 @@ export function HostKeyAlert({
   onReinstalled: () => void;
   onCancel: () => void;
 }) {
+  const t = useTranslations();
+
   return (
     <div className="elevation-raised fade-in rounded-md border border-danger/40 bg-danger/10 p-5">
       <div className="flex items-start gap-3">
@@ -35,17 +38,18 @@ export function HostKeyAlert({
 
         <div className="min-w-0 flex-1">
           <h3 className="font-medium text-danger">
-            Connexion refusée à {serverName}
+            {t("servers.hostKey.title", { name: serverName })}
           </h3>
           <p className="mt-1.5 text-ink-2 leading-relaxed">{state.message}</p>
 
           <div className="mt-5 grid gap-5 sm:grid-cols-2">
-            <Fingerprint label="Empreinte attendue" value={state.expected} />
             <Fingerprint
-              label="Empreinte présentée"
-              value={
-                state.observed ?? "aucune : l'empreinte épinglée a disparu"
-              }
+              label={t("servers.hostKey.expected")}
+              value={state.expected}
+            />
+            <Fingerprint
+              label={t("servers.hostKey.observed")}
+              value={state.observed ?? t("servers.hostKey.observedMissing")}
             />
           </div>
 
@@ -55,10 +59,10 @@ export function HostKeyAlert({
 
           <div className="mt-5 flex flex-wrap items-center gap-2">
             <Button loading={busy} onClick={onReinstalled} variant="danger">
-              J'ai réinstallé ce serveur
+              {t("servers.hostKey.reinstalled")}
             </Button>
             <Button onClick={onCancel} variant="discreet">
-              Annuler
+              {t("common.cancel")}
             </Button>
           </div>
         </div>

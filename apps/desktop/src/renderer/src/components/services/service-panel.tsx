@@ -2,6 +2,7 @@ import type { Manifest } from "@pupitre/shared/catalog";
 import { Button } from "@renderer/components/ui/button";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { removalOf } from "@renderer/lib/service-removal";
 import { useServices } from "@renderer/stores/services";
 import { useTunnel } from "@renderer/stores/tunnel";
@@ -39,6 +40,8 @@ export function ServicePanel({
   onBack: () => void;
   onTerminal?: () => void;
 }) {
+  const t = useTranslations();
+
   const store = useServices();
   const tunnel = useTunnel();
 
@@ -70,7 +73,7 @@ export function ServicePanel({
         />
         <div>
           <Button icon={ArrowLeft} onClick={onBack} variant="discreet">
-            Tous les services
+            {t("services.panel.back")}
           </Button>
         </div>
       </section>
@@ -80,8 +83,8 @@ export function ServicePanel({
   if (detail.status !== "ready" || detail.moduleId !== moduleId) {
     return (
       <WaitingNotice
-        detail="État, version, port, unité systemd et identifiants du module."
-        title="Lecture du service"
+        detail={t("services.panel.waitingDetail")}
+        title={t("services.panel.waitingTitle")}
       />
     );
   }

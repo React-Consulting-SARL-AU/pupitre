@@ -1,19 +1,21 @@
 import type { Manifest, ModuleCategory } from "@pupitre/shared/catalog";
+import type { DictionaryKey } from "@renderer/i18n/en";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { Label } from "../ui/label";
 import { CatalogModuleCard } from "./catalog-module-card";
 
 /**
- * The seven categories of the contract, in French. A category the agent sends
- * that is not one of them keeps its own name rather than disappearing.
+ * The seven categories of the contract. A category the agent sends that is not
+ * one of them keeps its own name rather than disappearing.
  */
-const NAMES: Record<string, string> = {
-  core: "Socle",
-  runtime: "Runtimes",
-  database: "Bases de données",
-  ai: "Agents IA",
-  editor: "Éditeurs distants",
-  exposure: "Exposition",
-  tool: "Outils",
+const NAMES: Record<string, DictionaryKey> = {
+  core: "catalog.category.core",
+  runtime: "catalog.category.runtime",
+  database: "catalog.category.database",
+  ai: "catalog.category.ai",
+  editor: "catalog.category.editor",
+  exposure: "catalog.category.exposure",
+  tool: "catalog.category.tool",
 };
 
 export function CatalogCategorySection({
@@ -29,9 +31,13 @@ export function CatalogCategorySection({
   blocked: Map<string, string>;
   onToggle?: (moduleId: string) => void;
 }) {
+  const t = useTranslations();
+
+  const name = NAMES[category];
+
   return (
     <section className="flex flex-col gap-3" data-category={category}>
-      <Label>{NAMES[category] ?? category}</Label>
+      <Label>{name ? t(name) : category}</Label>
 
       <ul className="grid gap-gutter lg:grid-cols-2">
         {modules.map((module) => (

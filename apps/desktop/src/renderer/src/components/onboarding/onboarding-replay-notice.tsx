@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { Callout } from "../ui/callout";
 
 /**
@@ -8,11 +9,11 @@ import { Callout } from "../ui/callout";
  * with an empty password would look like a success.
  */
 export function OnboardingReplayNotice({ moduleName }: { moduleName: string }) {
+  const t = useTranslations();
+
   return (
     <Callout tone="info">
-      {moduleName} portait un secret. L'app ne l'a pas gardé : il est parti sur
-      le flux secret au moment de l'installation, puis oublié. Saisis-le à
-      nouveau, ou fais-en générer un, avant de rejouer le module.
+      {t("onboarding.replay.notice", { name: moduleName })}
     </Callout>
   );
 }

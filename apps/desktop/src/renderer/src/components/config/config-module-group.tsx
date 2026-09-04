@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { SecretMark } from "@shared/secrets";
 import type { FieldGroup } from "../../lib/catalog-selection";
 import { ServiceLogo } from "../ui/service-logo";
@@ -21,6 +22,8 @@ export function ConfigModuleGroup({
   marks?: Record<string, SecretMark>;
   handlers: FieldHandlers;
 }) {
+  const t = useTranslations();
+
   return (
     <section
       className="elevation-raised flex flex-col gap-gutter rounded-md border border-line bg-surface p-5"
@@ -39,7 +42,7 @@ export function ConfigModuleGroup({
       </header>
 
       {group.fields.length === 0 ? (
-        <p className="text-[11px] text-ink-4">Rien à régler pour ce module.</p>
+        <p className="text-[11px] text-ink-4">{t("config.module.nothing")}</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {group.fields.map((field) => (

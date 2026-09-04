@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { accept, TERMINAL_FONT, useCompletion } from "@renderer/lib/completion";
 import type { Candidate, CandidateKind } from "@shared/completion";
 import type { RefObject } from "react";
@@ -25,6 +26,8 @@ interface Props {
  * the keyboard. The terminal does not know a list is open above it.
  */
 export function CompletionList({ id, frame }: Props) {
+  const t = useTranslations();
+
   const state = useCompletion(id);
   const box = frame.current?.getBoundingClientRect();
   if (!(state.cursor && box) || state.closed) {
@@ -78,9 +81,9 @@ export function CompletionList({ id, frame }: Props) {
             ))}
           </ul>
           <div className="flex gap-3 border-line border-t px-3 py-1 font-data text-[10px] text-ink-3">
-            <span>⇥ complete</span>
-            <span>↑↓ choose</span>
-            <span>⎋ close</span>
+            <span>{t("terminals.completeHint")}</span>
+            <span>{t("terminals.chooseHint")}</span>
+            <span>{t("terminals.closeHint")}</span>
           </div>
         </div>
       ) : null}

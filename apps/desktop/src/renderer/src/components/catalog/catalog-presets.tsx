@@ -1,4 +1,5 @@
 import type { Preset } from "@pupitre/shared/catalog";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { Layers } from "lucide-react";
 import { Label } from "../ui/label";
 
@@ -10,13 +11,15 @@ export function CatalogPresets({
   presets: readonly Preset[];
   onPick?: (presetId: string) => void;
 }) {
+  const t = useTranslations();
+
   if (presets.length === 0) {
     return null;
   }
 
   return (
     <section className="flex flex-col gap-3">
-      <Label>Pour commencer</Label>
+      <Label>{t("catalog.presets.title")}</Label>
 
       <div className="grid gap-gutter sm:grid-cols-3">
         {presets.map((preset) => (

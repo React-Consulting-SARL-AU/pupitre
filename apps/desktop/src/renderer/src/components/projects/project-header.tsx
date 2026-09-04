@@ -3,6 +3,7 @@ import type { Project } from "@pupitre/shared/agent-protocol/state";
 import { Button } from "@renderer/components/ui/button";
 import { ServiceLogo } from "@renderer/components/ui/service-logo";
 import { StatePill } from "@renderer/components/ui/state-pill";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { runtimeModuleOf } from "@renderer/lib/modules";
 import { isRunning, PROJECT_LOOK } from "@renderer/lib/project-state";
 import type { ProjectAction } from "@renderer/stores/snapshot";
@@ -45,6 +46,8 @@ export function ProjectHeader({
   /** The tab bar, so the header owns its own bottom edge. */
   children: ReactNode;
 }) {
+  const t = useTranslations();
+
   const running = isRunning(project.state);
 
   return (
@@ -65,17 +68,17 @@ export function ProjectHeader({
           <button
             className="flex items-center gap-1.5 rounded-full border border-line px-2 py-0.5 font-data text-[10px] text-ink-3 tabular-nums transition-soft hover:border-line-strong hover:text-ink"
             onClick={onSeeDiff}
-            title="Voir les fichiers changés"
+            title={t("project.header.seeDiff")}
             type="button"
           >
             <GitBranch size={10} strokeWidth={1.5} />
             <span className="max-w-[14rem] truncate">{git.current}</span>
             {git.changed > 0 ? (
               <span className="text-warn">
-                {git.changed} changement{git.changed > 1 ? "s" : ""}
+                {t.plural("project.change", git.changed)}
               </span>
             ) : (
-              <span className="text-ok">propre</span>
+              <span className="text-ok">{t("project.clean")}</span>
             )}
             {git.behind > 0 ? (
               <span className="font-semibold text-ink">↓{git.behind}</span>
@@ -95,7 +98,7 @@ export function ProjectHeader({
             }
             variant="inverse"
           >
-            {running ? "Redémarrer" : "Démarrer"}
+            {running ? t("project.header.restart") : t("project.header.start")}
           </Button>
           {running ? (
             <Button
@@ -103,16 +106,16 @@ export function ProjectHeader({
               icon={Square}
               onClick={() => onAct("project.down", project.name)}
             >
-              Arrêter
+              {t("project.header.stop")}
             </Button>
           ) : null}
           <Button
             icon={RefreshCw}
             loading={syncing}
             onClick={onSync}
-            title="git pull puis réinstallation des dépendances"
+            title={t("project.header.syncHint")}
           >
-            Synchroniser
+            {t("project.header.sync")}
           </Button>
           {editors}
         </div>

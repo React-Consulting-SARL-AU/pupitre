@@ -1,5 +1,6 @@
 import { Button } from "@renderer/components/ui/button";
 import { Label } from "@renderer/components/ui/label";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { Link2 } from "lucide-react";
 import { ServiceCredentialRow } from "./service-credential-row";
 
@@ -26,10 +27,12 @@ export function ServiceCredentials({
   onCopy: (label: string) => Promise<boolean>;
   onConnectionUrl?: () => void;
 }) {
+  const t = useTranslations();
+
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Label>Identifiants</Label>
+        <Label>{t("services.credentials.title")}</Label>
 
         {database ? (
           <Button
@@ -38,14 +41,14 @@ export function ServiceCredentials({
             onClick={onConnectionUrl}
             size="sm"
           >
-            Demander l'URL de connexion
+            {t("services.credentials.connectionUrl")}
           </Button>
         ) : null}
       </div>
 
       {labels.length === 0 ? (
         <p className="text-[11px] text-ink-3">
-          Ce module ne déclare aucun identifiant.
+          {t("services.credentials.empty")}
         </p>
       ) : (
         <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
@@ -61,9 +64,7 @@ export function ServiceCredentials({
       )}
 
       <p className="text-[11px] text-ink-4 leading-relaxed">
-        Les valeurs restent dans le processus principal : elles ne sont ni
-        enregistrées, ni journalisées, et le presse-papiers est écrit de ce
-        côté-là.
+        {t("services.credentials.note")}
       </p>
     </section>
   );

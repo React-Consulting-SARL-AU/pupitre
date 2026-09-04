@@ -3,6 +3,7 @@ import { Logo } from "@renderer/components/logo";
 import { AgentDot } from "@renderer/components/ui/agent-dot";
 import { IconButton } from "@renderer/components/ui/icon-button";
 import { StatusDot } from "@renderer/components/ui/status-dot";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { memory } from "@renderer/lib/format";
 import { PROJECT_LOOK } from "@renderer/lib/project-state";
 import type { View } from "@renderer/stores/navigation";
@@ -65,6 +66,8 @@ export function AppSidebar({
   onCloseTerminal,
   onNewTerminal,
 }: Props) {
+  const t = useTranslations();
+
   return (
     <nav className="flex h-full flex-col overflow-y-auto border-line border-r bg-surface pb-4">
       <div className="draggable flex h-10 shrink-0 items-center justify-end px-3">
@@ -83,7 +86,7 @@ export function AppSidebar({
         />
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium text-[12px]">
-            {server?.name ?? "Aucun serveur"}
+            {server?.name ?? t("shell.sidebar.noServer")}
           </span>
           <span className="block truncate font-data text-[10px] text-ink-3">
             {server?.host ?? "—"}
@@ -91,48 +94,48 @@ export function AppSidebar({
         </span>
       </button>
 
-      <SidebarGroup title="Serveur">
+      <SidebarGroup title={t("shell.sidebar.server")}>
         <SidebarEntry
           active={view === "dashboard"}
           bullet={<LayoutDashboard size={14} strokeWidth={1.5} />}
           onClick={() => onView("dashboard")}
         >
-          Tableau de bord
+          {t("shell.sidebar.dashboard")}
         </SidebarEntry>
         <SidebarEntry
           active={view === "services"}
           bullet={<Boxes size={14} strokeWidth={1.5} />}
           onClick={() => onView("services")}
         >
-          Services
+          {t("shell.sidebar.services")}
         </SidebarEntry>
         <SidebarEntry
           active={view === "activity"}
           bullet={<Activity size={14} strokeWidth={1.5} />}
           onClick={() => onView("activity")}
         >
-          Processus et sessions
+          {t("shell.sidebar.activity")}
         </SidebarEntry>
         <SidebarEntry
           active={view === "shots"}
           bullet={<Images size={14} strokeWidth={1.5} />}
           onClick={() => onView("shots")}
         >
-          Galerie
+          {t("shell.sidebar.gallery")}
         </SidebarEntry>
         <SidebarEntry
           active={view === "secrets"}
           bullet={<KeyRound size={14} strokeWidth={1.5} />}
           onClick={() => onView("secrets")}
         >
-          Secrets
+          {t("shell.sidebar.secrets")}
         </SidebarEntry>
       </SidebarGroup>
 
-      <SidebarGroup title="Projets">
+      <SidebarGroup title={t("shell.sidebar.projects")}>
         {projects.length === 0 ? (
           <p className="px-3 py-2 text-[11px] text-ink-4 leading-relaxed">
-            Aucun projet déclaré.
+            {t("shell.sidebar.noProjects")}
           </p>
         ) : null}
         {projects.map((project) => (
@@ -150,7 +153,7 @@ export function AppSidebar({
             }
             bullet={
               <StatusDot
-                label={PROJECT_LOOK[project.state].label}
+                label={t(PROJECT_LOOK[project.state].label)}
                 shape={PROJECT_LOOK[project.state].shape}
                 size={9}
                 tone={PROJECT_LOOK[project.state].tone}
@@ -175,13 +178,13 @@ export function AppSidebar({
         action={
           <IconButton
             icon={Plus}
-            label="Ouvrir un terminal sur le serveur"
+            label={t("shell.sidebar.newTerminal")}
             onClick={onNewTerminal}
             size={12}
             variant="discreet"
           />
         }
-        title="Terminaux"
+        title={t("shell.sidebar.terminals")}
       >
         {terminals.map((terminal) => (
           <SidebarEntry
@@ -200,7 +203,9 @@ export function AppSidebar({
               <IconButton
                 className="opacity-0 transition-soft focus-visible:opacity-100 group-hover:opacity-100"
                 icon={X}
-                label={`Fermer ${terminal.title}`}
+                label={t("shell.sidebar.closeTerminal", {
+                  title: terminal.title,
+                })}
                 onClick={() => onCloseTerminal(terminal.id)}
                 size={12}
                 variant="danger"
@@ -218,7 +223,7 @@ export function AppSidebar({
           bullet={<SettingsIcon size={14} strokeWidth={1.5} />}
           onClick={() => onView("settings")}
         >
-          Réglages
+          {t("shell.sidebar.settings")}
         </SidebarEntry>
       </div>
     </nav>

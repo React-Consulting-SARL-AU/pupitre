@@ -1,4 +1,5 @@
 import type { Manifest } from "@pupitre/shared/catalog";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { CheckBox } from "../ui/check-box";
 import { ServiceLogo } from "../ui/service-logo";
 
@@ -21,6 +22,8 @@ export function CatalogModuleCard({
   reason?: string;
   onToggle?: (moduleId: string) => void;
 }) {
+  const t = useTranslations();
+
   const locked = module.mandatory;
   const unreachable = Boolean(reason) && !selected;
 
@@ -68,8 +71,12 @@ export function CatalogModuleCard({
           ) : null}
 
           <span className="flex gap-3 font-data text-[10.5px] text-ink-4 tabular-nums">
-            <span>{module.resources.ram_mb} Mo de mémoire</span>
-            <span>{module.resources.disk_mb} Mo de disque</span>
+            <span>
+              {t("catalog.module.ram", { mb: module.resources.ram_mb })}
+            </span>
+            <span>
+              {t("catalog.module.disk", { mb: module.resources.disk_mb })}
+            </span>
           </span>
         </span>
       </label>
