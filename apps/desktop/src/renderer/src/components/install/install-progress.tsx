@@ -9,7 +9,7 @@ export function InstallProgress({
   nameOf: (moduleId: string) => string;
 }) {
   return (
-    <ul className="elevation-raised divide-y divide-line rounded-md border border-line bg-surface">
+    <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
       {modules.map((module) => (
         <InstallModuleRow
           key={module.id}

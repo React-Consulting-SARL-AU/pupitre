@@ -13,14 +13,14 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <header className="flex flex-wrap items-start justify-between gap-4">
+    <header className="flex flex-wrap items-start justify-between gap-gutter">
       <div className="min-w-0">
         {eyebrow ? <Label>{eyebrow}</Label> : null}
-        <h1 className="font-semibold text-ink text-xl tracking-tight">
+        <h1 className="font-bold font-display text-2xl text-ink leading-tight tracking-tight">
           {title}
         </h1>
         {description ? (
-          <p className="mt-1 text-ink-3 leading-relaxed">{description}</p>
+          <p className="mt-1.5 text-ink-3 leading-relaxed">{description}</p>
         ) : null}
       </div>
       {actions ? (

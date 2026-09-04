@@ -77,7 +77,12 @@
     background-color var(--motion-fast),
     border-color var(--motion-fast),
     color var(--motion-fast),
+    box-shadow var(--motion-fast),
     opacity var(--motion-fast);
+}
+
+@utility transition-size {
+  transition: width var(--motion-soft);
 }
 
 @keyframes fade-in {
@@ -90,6 +95,10 @@
     opacity: 1;
     transform: none;
   }
+}
+
+@utility fade-in {
+  animation: fade-in var(--motion-soft);
 }
 
 @keyframes breathe {

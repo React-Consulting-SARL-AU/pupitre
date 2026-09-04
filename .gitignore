@@ -37,6 +37,11 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# playwright
+.playwright/
+playwright-report/
+test-results/
+
 # tooling session state
 .impeccable/live/
 .shipstudio/

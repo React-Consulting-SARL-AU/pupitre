@@ -42,7 +42,7 @@ export function FirstProjectForm({
 }) {
   return (
     <form
-      className="flex flex-col gap-5 rounded-md border border-line bg-surface p-5"
+      className="elevation-raised flex flex-col gap-gutter rounded-md border border-line bg-surface p-5"
       onSubmit={(event) => {
         event.preventDefault();
         onSubmit();

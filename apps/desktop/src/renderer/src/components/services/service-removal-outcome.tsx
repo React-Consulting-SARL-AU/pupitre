@@ -29,7 +29,7 @@ export function ServiceRemovalOutcome({
   const failed = removal.status === "done" ? removal.failed : [];
 
   return (
-    <section className="flex flex-col gap-4" data-removal={removal.status}>
+    <section className="flex flex-col gap-gutter" data-removal={removal.status}>
       {steps.length > 0 ? (
         <InstallProgress modules={steps} nameOf={nameOf} />
       ) : null}

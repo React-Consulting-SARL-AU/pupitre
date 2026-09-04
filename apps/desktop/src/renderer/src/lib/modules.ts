@@ -1,4 +1,7 @@
-import type { Service } from "@pupitre/shared/agent-protocol/state";
+import type {
+  PackageManager,
+  Service,
+} from "@pupitre/shared/agent-protocol/state";
 import { editorsFor, type RemoteEditor } from "@shared/editors";
 import type { TerminalAgent } from "@shared/terminals";
 
@@ -15,6 +18,21 @@ const AGENT_MODULES: Record<string, TerminalAgent> = {
   "ai.claude": "claude",
   "ai.codex": "codex",
 };
+
+/**
+ * Only the package managers whose runtime a catalogue module actually names.
+ * Lending Bun the Node mark would name the wrong product, so it gets none.
+ */
+const RUNTIME_MODULES: Partial<Record<PackageManager, string>> = {
+  gradle: "runtime.java",
+  npm: "runtime.node",
+  pnpm: "runtime.node",
+  uv: "runtime.python",
+};
+
+export function runtimeModuleOf(pkgmgr: PackageManager): string | null {
+  return RUNTIME_MODULES[pkgmgr] ?? null;
+}
 
 export function installedModules(services: readonly Service[]): string[] {
   return services.map((service) => service.id);

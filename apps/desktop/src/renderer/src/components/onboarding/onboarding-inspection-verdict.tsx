@@ -56,7 +56,7 @@ export function OnboardingInspectionVerdict({ probe }: { probe: ProbeResult }) {
 
   return (
     <article
-      className="elevation-raised flex flex-col gap-5 rounded-md border border-line bg-surface p-5"
+      className="elevation-raised flex flex-col gap-gutter rounded-md border border-line bg-surface p-5"
       data-kind={verdict.kind}
     >
       <header className="flex flex-col gap-1">
@@ -101,7 +101,7 @@ export function OnboardingInspectionVerdict({ probe }: { probe: ProbeResult }) {
       ) : null}
 
       {verdict.fixes.length > 0 ? (
-        <section className="flex flex-col gap-2 rounded-md bg-sunken p-4">
+        <section className="flex flex-col gap-2 rounded-sm bg-sunken p-4">
           <Label>Ce qui lève ces réserves</Label>
           <ul className="flex flex-col gap-2">
             {verdict.fixes.map((fix) => (

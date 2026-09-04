@@ -45,6 +45,8 @@ packages/auth/   createAuth, plugins, clients web et desktop
 
 Intégration Elysia sur le harnais PGlite (`@pupitre/api/testing`) pour auth, guards, enrôlement, webhooks. Playwright dans `e2e/` pour connexion, device flow, serveurs, facturation en mode test. Assertions dans `it()`, pas de `.only` committé.
 
+`test:e2e` sert tout depuis une seule origine locale : `e2e/harness/server.ts` répond aux appels `/api/v1` et `/api/auth` depuis le harnais PGlite et proxie le reste vers le serveur Vite. Aucune base ni aucun service distant.
+
 ## Commandes
 
 ```bash

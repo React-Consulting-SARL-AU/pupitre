@@ -1,5 +1,6 @@
 import { logoFor } from "@pupitre/design/logos";
 import { Box } from "lucide-react";
+import type { ButtonIcon } from "./button";
 
 /**
  * The one splash of colour the system allows, and its fallback.
@@ -17,12 +18,15 @@ export function ServiceLogo({
   moduleId,
   name,
   size = 24,
+  fallback: Fallback = Box,
 }: {
-  moduleId: string;
+  moduleId: string | null;
   name: string;
   size?: 16 | 20 | 24 | 32;
+  /** The glyph that stands in when the module has no logo we may redistribute. */
+  fallback?: ButtonIcon;
 }) {
-  const logo = logoFor(moduleId);
+  const logo = moduleId ? logoFor(moduleId) : null;
   const plate = Math.round(size * 1.5);
   const style = { height: plate, width: plate };
 
@@ -30,11 +34,11 @@ export function ServiceLogo({
     return (
       <span
         className={`${PLATE} text-ink-3`}
-        data-logo-fallback={moduleId}
+        data-logo-fallback={moduleId ?? "none"}
         style={style}
         title={name}
       >
-        <Box size={size * 0.7} strokeWidth={1.5} />
+        <Fallback size={size * 0.7} strokeWidth={1.5} />
       </span>
     );
   }

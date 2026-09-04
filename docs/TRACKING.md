@@ -68,7 +68,8 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-16 | Builds Windows et Linux | à faire | | |
 | APP-17 | Harnais Playwright pour Electron | à faire | | |
 | APP-18 | Fond natif de la fenêtre selon le thème | à faire | | |
-| APP-19 | Appliquer le design accueillant à l'app | à faire | | |
+| APP-19 | Appliquer le design accueillant à l'app | fait | `feat/APP-19-warm-design` | fusionnée |
+| APP-21 | Embarquer la police d'affichage dans l'app | à faire | | |
 | APP-20 | L'app parle deux langues | à faire | | |
 
 ## Plateforme — `PLT`
@@ -91,7 +92,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-14 | Déploiement Cloudflare Builds, staging et production | à faire | | |
 | PLT-15 | Workflows Cloudflare : déclencheurs des tâches longues | fait | `feat/PLT-15-workflows` | fusionnée |
 | PLT-17 | Le workflow d'évaluation des alertes | fait | `feat/PLT-17-alerts-workflow` | fusionnée |
-| PLT-16 | Harnais Playwright pour la console | à faire | | |
+| PLT-16 | Harnais Playwright pour la console | fait | `feat/PLT-16-e2e` | fusionnée |
 
 ## Site marketing — `MKT`
 

@@ -32,7 +32,7 @@ export function DashboardMachine({
   const usedDisk = machine.disk_total_gb - machine.disk_free_gb;
 
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-gutter lg:grid-cols-4">
       <DashboardStat
         alert={free < LOW_RAM_MB}
         detail={`${gigabytes(free)} disponibles`}

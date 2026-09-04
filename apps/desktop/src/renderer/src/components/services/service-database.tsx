@@ -85,7 +85,7 @@ export function ServiceDatabase({
               ) : null}
             </>
           ) : (
-            <div className="rounded-md border border-line bg-surface px-3 py-2.5">
+            <div className="elevation-raised rounded-md border border-line bg-surface p-3">
               <Label>{TITLES[outcome.kind]}</Label>
               {outcome.lines.length === 0 ? (
                 <p className="mt-1 text-[11px] text-ink-3">
