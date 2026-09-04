@@ -9,6 +9,7 @@ export const PROTOCOL_ERROR_CODES = [
   "project_not_found",
   "module_not_found",
   "module_failed",
+  "no_report",
   "service_not_found",
   "secrets_required",
   "bad_signature",

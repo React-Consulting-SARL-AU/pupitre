@@ -1,6 +1,11 @@
 import { describe, expect, it } from "bun:test"
 import { RESTRICTED_COMMANDS } from "../agent-protocol"
-import { buildContractSchema, CONTRACT_DEFINITIONS } from "./index"
+import { PRESETS } from "../catalog"
+import {
+  buildContractSchema,
+  CONTRACT_CONSTANTS,
+  CONTRACT_DEFINITIONS,
+} from "./index"
 
 const EXPECTED = [
   "Request",
@@ -17,6 +22,7 @@ const EXPECTED = [
   "PingResult",
   "ProbeResult",
   "InstallParams",
+  "InstallSecrets",
   "InstallResult",
   "SnapshotResult",
   "ProjectUpParams",
@@ -30,12 +36,18 @@ const EXPECTED = [
   "Manifest",
   "Field",
   "Preset",
+  "Presets",
 ]
 
 describe("CONTRACT_DEFINITIONS", () => {
   it("names the envelope, every params and result, and the catalogue", () => {
+    const names = Object.keys({
+      ...CONTRACT_DEFINITIONS,
+      ...CONTRACT_CONSTANTS,
+    })
+
     for (const name of EXPECTED) {
-      expect(Object.keys(CONTRACT_DEFINITIONS)).toContain(name)
+      expect(names).toContain(name)
     }
   })
 })
@@ -56,6 +68,14 @@ describe("buildContractSchema", () => {
     expect(schema.$defs.RestrictedCommands).toEqual({
       type: "string",
       enum: [...RESTRICTED_COMMANDS],
+    })
+  })
+
+  it("exports the presets with their content as a const", () => {
+    expect(schema.$defs.Presets).toEqual({
+      type: "array",
+      items: { $ref: "#/$defs/Preset" },
+      const: PRESETS,
     })
   })
 

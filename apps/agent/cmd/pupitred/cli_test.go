@@ -59,7 +59,7 @@ func TestReportWithoutInstall(t *testing.T) {
 	setupCLI(t)
 
 	code, stdout, stderr := runCLI(t, "report")
-	if code != 1 || stdout != "" || !strings.Contains(stderr, "bad_request : aucun rapport") {
+	if code != 1 || stdout != "" || !strings.Contains(stderr, "no_report : aucun rapport") {
 		t.Fatalf("code = %d, stdout = %q, stderr = %s", code, stdout, stderr)
 	}
 }

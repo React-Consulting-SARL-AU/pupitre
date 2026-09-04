@@ -6,15 +6,13 @@ import {
   yearlyPriceEur,
 } from "@pupitre/shared/plans"
 import { homeContent } from "../content/site/home"
-import { fill, localeFromPath, localizePath } from "../lib/i18n"
+import { fill, localeFromPath, localizePath, planName } from "../lib/i18n"
 
 const locale = localeFromPath(Astro.url.pathname)
 const { pricing } = homeContent(locale)
 const solo = getPlan("solo")
 const team = getPlan("team")
 const hosted = getPlan("hosted")
-const planName = (plan: typeof solo) =>
-  locale === "fr" ? plan.nameFr : plan.name
 ---
 
 <div class="grid gap-x-16 gap-y-8 md:grid-cols-[auto_1fr] md:items-start">
@@ -26,8 +24,8 @@ const planName = (plan: typeof solo) =>
       {
         fill(pricing.perServer, {
           price: solo.monthlyPriceEur,
-          solo: planName(solo),
-          team: planName(team),
+          solo: planName(solo, locale),
+          team: planName(team, locale),
         })
       }
     </p>
@@ -44,7 +42,7 @@ const planName = (plan: typeof solo) =>
       <li class="py-3 text-ink-3">
         {
           fill(pricing.hosted, {
-            hosted: planName(hosted),
+            hosted: planName(hosted, locale),
             price: hosted.monthlyPriceEur,
           })
         }

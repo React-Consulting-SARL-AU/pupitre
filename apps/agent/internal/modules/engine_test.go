@@ -456,7 +456,7 @@ func TestReportBeforeAnyInstall(t *testing.T) {
 	engine := newEngine(t, modtest.NewFakeSys(), newRegistry(), entitled(contract.EntitlementValid))
 
 	_, err := engine.Report()
-	if protocolCode(t, err) != contract.ErrorBadRequest {
+	if protocolCode(t, err) != contract.ErrorNoReport {
 		t.Fatalf("got %v", err)
 	}
 }
