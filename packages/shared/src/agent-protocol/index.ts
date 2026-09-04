@@ -82,6 +82,8 @@ import {
   DiagResultSchema,
   DoctorResultSchema,
   DoneResultSchema,
+  EnrollParamsSchema,
+  EnrollResultSchema,
   KeysListResultSchema,
 } from "./system"
 
@@ -223,6 +225,7 @@ export const COMMANDS = {
     params: EmptyParamsSchema,
     result: TunnelStatusResultSchema,
   },
+  enroll: { params: EnrollParamsSchema, result: EnrollResultSchema },
   "keys.list": { params: EmptyParamsSchema, result: KeysListResultSchema },
   "keys.sync": { params: EmptyParamsSchema, result: KeysListResultSchema },
   "agent.upgrade": {

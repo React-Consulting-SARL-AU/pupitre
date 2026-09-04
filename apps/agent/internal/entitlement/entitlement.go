@@ -15,8 +15,8 @@ const (
 
 var RestrictedCommands = []string{"hello", "ping", "snapshot", "status", "diag", "agent.upgrade"}
 
-// A binary copied onto a server that was never enrolled has no state to show and no server to upgrade: it says who it is, answers a ping, and hands out a diagnostic.
-var UnenrolledCommands = []string{"hello", "ping", "diag"}
+// A binary copied onto a server that was never enrolled has no state to show and no server to upgrade: it says who it is, answers a ping, hands out a diagnostic, and takes the enrolment that gives it a server.
+var UnenrolledCommands = []string{"hello", "ping", "diag", "enroll"}
 
 type State struct {
 	Entitlement contract.Entitlement

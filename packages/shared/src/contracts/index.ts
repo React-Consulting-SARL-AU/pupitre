@@ -15,6 +15,7 @@ import {
 import { InstallSecretsSchema } from "../agent-protocol/install"
 import { ShotEventSchema } from "../agent-protocol/processes"
 import { SecretEventSchema } from "../agent-protocol/secrets"
+import { EnrollSecretsSchema } from "../agent-protocol/system"
 import { FieldSchema, ManifestSchema, PRESETS, PresetSchema } from "../catalog"
 
 export const CONTRACT_ID = "https://pupitre.studio/contracts/agent/schema.json"
@@ -64,6 +65,7 @@ export const CONTRACT_DEFINITIONS: Readonly<Record<string, z.ZodType>> = {
   RestrictedCommands: z.enum(RESTRICTED_COMMANDS),
   ...commandDefinitions(),
   InstallSecrets: InstallSecretsSchema,
+  EnrollSecrets: EnrollSecretsSchema,
   Manifest: ManifestSchema,
   Field: FieldSchema,
   Preset: PresetSchema,

@@ -6,7 +6,7 @@ import type {
 } from "@pupitre/shared/agent-protocol/install";
 import type { AgentResponse } from "@shared/agent";
 import { app, ipcMain } from "electron";
-import { account } from "./account";
+import { account, agentPlatformUrl } from "./account";
 import { agentClient } from "./agent";
 import {
   type AgentDelivery,
@@ -17,7 +17,12 @@ import { AGENT_RELEASE_PUBLIC_KEY } from "./agent-release";
 import { declaredModules } from "./catalog";
 import { prepareAgent } from "./enrollment-run";
 import { inspect } from "./inspection";
-import { type InstallUpdate, runInstall } from "./install-run";
+import {
+  type EnrollmentGrant,
+  enrolAgent,
+  type InstallUpdate,
+  runInstall,
+} from "./install-run";
 import { takeSecrets } from "./install-secrets";
 import { byId, paths } from "./servers";
 import { sshArgs } from "./ssh-config";
@@ -85,6 +90,12 @@ async function deliver(
     : sent;
 }
 
+function enrollmentGrant(platformServerId: string): EnrollmentGrant | null {
+  const token = account.takeEnrollmentToken(platformServerId);
+
+  return token ? { platformUrl: agentPlatformUrl(), token } : null;
+}
+
 /**
  * The shape of what the renderer said, before anything is done with it. What
  * the names mean is checked further on, against the agent's own catalogue.
@@ -137,7 +148,18 @@ async function sendAgent(
     return probe;
   }
 
-  return await deliver(serverId, probe.result.arch);
+  const sent = await deliver(serverId, probe.result.arch);
+
+  if (!sent.ok) {
+    return sent;
+  }
+
+  const enrolled = await enrolAgent(serverId, sent.result.enrollment, {
+    client: agentClient,
+    enrollment: enrollmentGrant,
+  });
+
+  return enrolled.ok ? sent : enrolled;
 }
 
 export function registerInstall(): void {
@@ -171,6 +193,7 @@ export function registerInstall(): void {
           client: agentClient,
           declared: declaredModules,
           deliver,
+          enrollment: enrollmentGrant,
           probe: inspect,
           secrets: takeSecrets,
         }
