@@ -69,7 +69,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-02 | Better Auth : serveur, plugins, clients | fait | `feat/PLT-02-better-auth` | fusionnée |
 | PLT-03 | Elysia : socle, guards, erreurs, harnais de test | fait | `feat/PLT-03-elysia-base` | fusionnée |
 | PLT-04 | Routes `me`, `devices` | fait | `feat/PLT-04-me-devices` | fusionnée |
-| PLT-05 | Enrôlement, jetons d'agent, `agent/state`, heartbeat | en revue | `feat/PLT-05-enrollment` | |
+| PLT-05 | Enrôlement, jetons d'agent, `agent/state`, heartbeat | fait | `feat/PLT-05-enrollment` | fusionnée |
 | PLT-06 | Distribution des binaires signés (R2) | à faire | | |
 | PLT-07 | Stripe Managed Payments : checkout, portail, webhooks, réconciliation | à faire | | |
 | PLT-08 | Console : shell, connexion, serveurs, appareils | à faire | | |
@@ -79,6 +79,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-12 | Alertes et page de statut | à faire | | |
 | PLT-13 | Passkeys et MFA | à faire | | |
 | PLT-14 | Déploiement Cloudflare Builds, staging et production | à faire | | |
+| PLT-15 | Workflows Cloudflare : déclencheurs des tâches longues | à faire | | |
 
 ## Site marketing — `MKT`
 
