@@ -70,6 +70,11 @@ jobs:
       - name: Generate Prisma client
         run: bun run db:generate
 
+      - name: Apply migrations on an empty database
+        run: bun run db:migrate:deploy
+        env:
+          MIGRATE_DATABASE_URL: ${{ env.DATABASE_URL }}
+
       - name: Lint
         run: bun run lint
 

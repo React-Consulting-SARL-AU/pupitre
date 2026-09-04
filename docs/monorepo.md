@@ -11,7 +11,7 @@ Même outillage que React-Box, mêmes versions quand elles sont compatibles : ce
 | Biome via Ultracite | lint et format | `biome.jsonc` racine étend `ultracite/biome/core`, `semicolons: "asNeeded"`. Même épingle qu'React-Box (`7.8.3`) tant que la mise à niveau n'a pas été faite là-bas |
 | tsgo | typecheck | `@typescript/native-preview`, TypeScript 6 |
 | Husky + commitlint | hooks | pre-commit : `ultracite fix` par workspace sur les fichiers indexés ; pre-push : lint, `check:types`, `test` affectés ; commits conventionnels |
-| Prisma 7 | schéma et migrations | client généré committé ; la vérification de fraîcheur (`scripts/check-prisma-client-freshness.ts`) arrive avec PLT-01 |
+| Prisma 7 | schéma et migrations | client généré committé, empreinte `packages/db/src/generated/.prisma-inputs.sha256` vérifiée au lint par `scripts/check-prisma-client-freshness.ts` ; `db:migrate` et `db:migrate:reset` exigent `PUPITRE_ALLOW_MIGRATE_ON=staging` ou `local` |
 | Wrangler 4 | Workers, Pages, R2, secrets | `secrets.required` déclarés dans `wrangler.jsonc`, vérifiés avant déploiement |
 | Go 1.25+ | l'agent | `gofmt`, `go vet`, `go test`, `garble` en release. Installé par Homebrew sur la machine du propriétaire |
 | electron-vite, electron-builder | l'app desktop | bytecode du main et du preload, notarisation |
@@ -52,14 +52,14 @@ Les PR font tourner les tâches affectées ; `main` fait tout.
 
 | Service | Commande de build | Commande de déploiement |
 | --- | --- | --- |
-| web | `bun install --frozen-lockfile && DATABASE_URL="$MIGRATE_DATABASE_URL" bun --cwd=packages/db run db:migrate:deploy && bun --cwd=apps/web run build:cloudflare` | `bun scripts/check-worker-secrets.ts web && cd apps/web/dist/server && bun x wrangler deploy --config wrangler.json --keep-vars` |
+| web | `bun install --frozen-lockfile && bun --cwd=packages/db run db:migrate:deploy && bun --cwd=apps/web run build:cloudflare` | `bun scripts/check-worker-secrets.ts web && cd apps/web/dist/server && bun x wrangler deploy --config wrangler.json --keep-vars` |
 | site | `bun install --frozen-lockfile && bun --cwd=apps/site run build` | Pages, `apps/site/dist` |
 
 Deux environnements : `staging` (`staging.pupitre.sh`, `staging-app.pupitre.sh`, Stripe en mode test, branche Neon `staging`) et `production` (branche Neon `production`). L'app desktop de développement pointe sur `staging`.
 
 ## Neon
 
-Projet `pupitre` (`royal-morning-15862824`, [console](https://console.neon.tech/app/projects/royal-morning-15862824)), région `aws-eu-central-1`, Postgres 18, créé le 4 septembre 2026. C'est la région sur laquelle le Worker `apps/web` est épinglé (`placement` dans `wrangler.jsonc`). Branche `production` par défaut ; branche `staging` pour le staging et la CI de migration ; les branches de développement se créent depuis `staging` avec `neonctl`. `DATABASE_URL` utilise l'endpoint poolé de la branche visée ; `MIGRATE_DATABASE_URL` l'endpoint direct.
+Projet `pupitre` (`royal-morning-15862824`, [console](https://console.neon.tech/app/projects/royal-morning-15862824)), région `aws-eu-central-1`, Postgres 18, créé le 4 septembre 2026. C'est la région sur laquelle le Worker `apps/web` est épinglé (`placement` dans `wrangler.jsonc`). Branche `production` par défaut ; branche `staging` pour le staging et la CI de migration ; les branches de développement se créent depuis `staging` avec `neonctl`. `DATABASE_URL` utilise l'endpoint poolé de la branche visée ; `MIGRATE_DATABASE_URL` l'endpoint direct (sans `-pooler`), le seul que Prisma Migrate accepte. `db:migrate:deploy` lit `MIGRATE_DATABASE_URL` et refuse de migrer une autre branche que celle de `DATABASE_URL`.
 
 ## Dépendances
 
