@@ -58,7 +58,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-08 | Premier projet | fait | `feat/APP-08-first-project` | fusionnée |
 | APP-09 | Tableau de bord et projets sur le nouveau protocole | fait | `feat/APP-09-dashboard` | fusionnée |
 | APP-10 | Terminaux, agents, galerie | à faire | | |
-| APP-11 | Services au quotidien | à faire | | |
+| APP-11 | Services au quotidien | en cours | `feat/APP-11-services` | |
 | APP-12 | Mise à jour de l'agent depuis l'app | à faire | | |
 | APP-13 | Build macOS signé, notarisé, bytecode, auto-update | à faire | | |
 | APP-14 | Compte : device flow, appareils, enrôlement | à faire | | |
