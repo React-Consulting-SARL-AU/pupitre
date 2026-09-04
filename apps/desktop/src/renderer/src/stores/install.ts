@@ -1,4 +1,3 @@
-import type { StepStatus } from "@pupitre/shared/agent-protocol/envelope";
 import type {
   InstallResult,
   ModuleConfig,
@@ -8,6 +7,16 @@ import type { AgentError } from "@shared/agent";
 import type { InstallUpdate } from "@shared/install";
 import { create } from "zustand";
 import { humanBytes, humanMs } from "../lib/duration";
+import {
+  doneCount,
+  elapsedMs,
+  type ModuleProgress,
+  pending,
+  record,
+  type StepEntry,
+  shaped,
+  stepOf,
+} from "../lib/module-progress";
 
 /**
  * The installation as the screen watches it happen.
@@ -20,21 +29,11 @@ import { humanBytes, humanMs } from "../lib/duration";
  * by the main process.
  */
 
-export interface StepEntry {
-  step: string;
-  status: StepStatus;
-  ms: number;
-  replay?: string;
-}
-
-export type ModuleStatus = "pending" | "running" | "ok" | "skip" | "fail";
-
-export interface ModuleProgress {
-  id: string;
-  status: ModuleStatus;
-  ms: number;
-  steps: StepEntry[];
-}
+export type {
+  ModuleProgress,
+  ModuleStatus,
+  StepEntry,
+} from "../lib/module-progress";
 
 export type InstallState =
   | { status: "idle" }
@@ -77,81 +76,6 @@ interface InstallStore {
 
 const LOG_KEPT = 500;
 
-const TERMINAL: readonly ModuleStatus[] = ["ok", "skip", "fail"];
-
-function pending(modules: readonly string[]): ModuleProgress[] {
-  return modules.map((id) => ({ id, ms: 0, status: "pending", steps: [] }));
-}
-
-/**
- * A module's fate, read off its own steps.
- *
- * One failed step condemns the module however the rest went; a module all of
- * whose steps were skipped had nothing to do. An open `start` means it is still
- * at work.
- */
-function statusOf(steps: readonly StepEntry[]): ModuleStatus {
-  if (steps.length === 0) {
-    return "pending";
-  }
-
-  if (steps.some((entry) => entry.status === "start")) {
-    return "running";
-  }
-
-  if (steps.some((entry) => entry.status === "fail")) {
-    return "fail";
-  }
-
-  return steps.every((entry) => entry.status === "skip") ? "skip" : "ok";
-}
-
-function spent(steps: readonly StepEntry[]): number {
-  return steps
-    .filter((entry) => entry.status !== "start")
-    .reduce((total, entry) => total + entry.ms, 0);
-}
-
-function shaped(id: string, steps: StepEntry[]): ModuleProgress {
-  return { id, ms: spent(steps), status: statusOf(steps), steps };
-}
-
-/**
- * A step closes the one it opened rather than piling up next to it: `start` and
- * `ok` are the same step seen twice, and the list is what the reader counts.
- */
-function withStep(steps: StepEntry[], entry: StepEntry): StepEntry[] {
-  const open = steps.findIndex(
-    (candidate) => candidate.step === entry.step && candidate.status === "start"
-  );
-
-  if (entry.status === "start" || open === -1) {
-    return [...steps, entry];
-  }
-
-  return steps.map((candidate, index) => (index === open ? entry : candidate));
-}
-
-function record(
-  modules: ModuleProgress[],
-  moduleId: string,
-  entry: StepEntry
-): ModuleProgress[] {
-  const known = modules.some((module) => module.id === moduleId);
-  const list = known
-    ? modules
-    : [
-        ...modules,
-        { id: moduleId, ms: 0, status: "pending" as const, steps: [] },
-      ];
-
-  return list.map((module) =>
-    module.id === moduleId
-      ? shaped(moduleId, withStep(module.steps, entry))
-      : module
-  );
-}
-
 function fromReport(reports: readonly ModuleReport[]): ModuleProgress[] {
   return reports.map((report) =>
     shaped(
@@ -169,31 +93,7 @@ function fromReport(reports: readonly ModuleReport[]): ModuleProgress[] {
 function stepEvent(
   update: InstallUpdate
 ): { module: string; entry: StepEntry } | null {
-  if (update.kind !== "event" || update.event.event !== "step") {
-    return null;
-  }
-
-  const raw = update.event as unknown as {
-    module?: unknown;
-    step?: unknown;
-    status?: unknown;
-    ms?: unknown;
-    replay?: unknown;
-  };
-
-  if (typeof raw.module !== "string" || typeof raw.step !== "string") {
-    return null;
-  }
-
-  return {
-    entry: {
-      ms: typeof raw.ms === "number" ? raw.ms : 0,
-      status: raw.status as StepStatus,
-      step: raw.step,
-      ...(typeof raw.replay === "string" ? { replay: raw.replay } : {}),
-    },
-    module: raw.module,
-  };
+  return update.kind === "event" ? stepOf(update.event) : null;
 }
 
 function logLine(update: InstallUpdate): string | null {
@@ -340,15 +240,11 @@ export const useInstall = create<InstallStore>((set, get) => {
     counts() {
       const { modules } = get();
 
-      return {
-        done: modules.filter((module) => TERMINAL.includes(module.status))
-          .length,
-        total: modules.length,
-      };
+      return { done: doneCount(modules), total: modules.length };
     },
 
     elapsed() {
-      return get().modules.reduce((total, module) => total + module.ms, 0);
+      return elapsedMs(get().modules);
     },
 
     failed() {

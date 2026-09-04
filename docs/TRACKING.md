@@ -59,7 +59,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-08 | Premier projet | fait | `feat/APP-08-first-project` | fusionnée |
 | APP-09 | Tableau de bord et projets sur le nouveau protocole | fait | `feat/APP-09-dashboard` | fusionnée |
 | APP-10 | Terminaux, agents, galerie | à faire | | |
-| APP-11 | Services au quotidien | à faire | | |
+| APP-11 | Services au quotidien | en revue | `feat/APP-11-services` | |
 | APP-12 | Mise à jour de l'agent depuis l'app | à faire | | |
 | APP-13 | Build macOS signé, notarisé, bytecode, auto-update | à faire | | |
 | APP-14 | Compte : device flow, appareils, enrôlement | à faire | | |
@@ -113,4 +113,6 @@ Une ligne par blocage, supprimée quand il est levé.
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
 | 2026-09-04 | AGT-09 | Le contrat fixe la forme de la ligne secrète d'`install` (`InstallSecrets`) mais pas celle de `secrets.set` : l'agent lit `{"<clé>": "<valeur>"}`, la forme du test du protocole. À trancher : l'écrire dans `agent-protocol.md` et lui donner un schéma. | propriétaire |
+| 2026-09-04 | APP-11 | L'écran Services doit rendre les identifiants d'un module révélables et copiables, mais aucune commande du protocole n'en donne la valeur : `service.status` renvoie `libellé → clé de /etc/pupitre/env` (c'est ce que les modules Go remplissent), `secrets.status` ne rend que les clés et leur présence, et `db.url` compose une URL sans mot de passe. L'app garde donc dans le processus principal ce que `service.status` et `db.url` renvoient, l'affiche masqué et le révèle une valeur à la fois : ce qui se révèle aujourd'hui est le nom de la clé, pas le secret. À trancher : ajouter une commande qui rend la valeur d'une clé d'environnement, ou entériner que l'app ne montre jamais qu'un nom de clé. | propriétaire |
+| 2026-09-04 | APP-11 | Le périmètre demande « le tunnel vers un port du serveur », que le protocole ne couvre pas : `tunnel.*` pilote le tunnel Cloudflare de l'agent, pas un accès local à un port. L'app ouvre donc elle-même un `ssh -L` avec sa propre configuration SSH (`src/main/port-forward.ts`), ce qu'aucun contrat ne décrit. À trancher : entériner ce tunnel local comme une affaire de l'app, ou lui donner une place dans le protocole. | propriétaire |
 | 2026-09-04 | AGT-08 | Le contrat donne un champ `version` aux éditeurs, mais aucune liste fermée d'options ne tient : le serveur distant de Zed doit correspondre exactement à la version du client, et un backend JetBrains à la version du Gateway. Les deux modules livrent donc `version` en `text` (défaut `latest`) au lieu du genre `version`. À trancher : ouvrir le genre `version` à une saisie libre, ou laisser `text`. | propriétaire |
