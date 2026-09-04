@@ -93,6 +93,11 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 		return f.fail(program, stderr)
 	}
 
+	// A reply keyed by the whole argv wins: some programs answer differently per argument, like df on two paths.
+	if reply, keyed := f.Replies[strings.Join(cmd.Argv, " ")]; keyed {
+		return sys.Output{Stdout: reply}, nil
+	}
+
 	switch program {
 	case "dpkg-query":
 		return f.dpkgQuery(cmd.Argv[1:])

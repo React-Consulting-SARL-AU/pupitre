@@ -20,7 +20,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | ID | Tâche | Statut | Branche | PR |
 | --- | --- | --- | --- | --- |
 | AGT-01 | Squelette, protocole, `hello` et `ping` | fait | `feat/AGT-01-protocol` | fusionnée |
-| AGT-02 | Sonde sh et sonde Go | à faire | | |
+| AGT-02 | Sonde sh et sonde Go | en revue | `feat/AGT-02-probe` | |
 | AGT-03 | Moteur de modules et rapport | fait | `feat/AGT-03-module-engine` | fusionnée |
 | AGT-04 | Modules socle et durcissement | fait | `feat/AGT-04-core-modules` | fusionnée |
 | AGT-05 | Modules runtimes | fait | `feat/AGT-05-runtimes` | fusionnée |
@@ -96,3 +96,4 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
+| 2026-09-04 | AGT-02 | `ProbeResult` de `packages/shared` ne porte que `verdict.level` et `verdict.reasons[]` : ni le genre de verdict (`bare`, `managed`, `occupied`, `incompatible`), ni `fixes[]`, ni « agent à jour », que la tâche et APP-04 demandent. Il contraint aussi `arch` à `amd64`/`arm64`, donc une machine incompatible par son architecture n'est pas descriptible. La sonde émet `kind`, `up_to_date` et `fixes` en plus (le schéma les tolère, `additionalProperties` n'est pas fermé) et l'architecture brute ; le contrat reste inchangé. | propriétaire |
