@@ -1,0 +1,45 @@
+{
+  "name": "pupitre-monorepo",
+  "private": true,
+  "packageManager": "bun@1.3.14",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev --filter=./apps/site --filter=./apps/web",
+    "dev:site": "turbo run dev --filter=./apps/site",
+    "dev:web": "turbo run dev --filter=./apps/web",
+    "dev:desktop": "turbo run dev --filter=./apps/desktop",
+    "build": "turbo run build",
+    "build:agent": "turbo run build --filter=./apps/agent",
+    "lint": "bun scripts/assert-package-boundaries.ts && bun run lint:root && turbo run lint",
+    "lint:root": "ultracite check scripts biome.jsonc commitlint.config.js package.json tsconfig.base.json tsconfig.worker.json turbo.json",
+    "lint:fix": "bun run lint:fix:root && turbo run lint:fix",
+    "lint:fix:root": "ultracite fix scripts biome.jsonc commitlint.config.js package.json tsconfig.base.json tsconfig.worker.json turbo.json",
+    "check:types": "turbo run check:types",
+    "test": "bun run test:root && turbo run test",
+    "test:root": "bun test scripts",
+    "test:affected": "turbo run test --affected",
+    "db:generate": "turbo run db:generate --filter=./packages/db",
+    "db:migrate": "turbo run db:migrate --filter=./packages/db",
+    "db:migrate:deploy": "turbo run db:migrate:deploy --filter=./packages/db",
+    "db:studio": "turbo run db:studio --filter=./packages/db",
+    "prepare": "husky",
+    "commitlint": "commitlint --edit"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.10",
+    "@cloudflare/workers-types": "5.20260708.1",
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
+    "@types/bun": "^1.4.0",
+    "@types/node": "^26.2.0",
+    "@typescript/native-preview": "^7.0.0-dev.20260707.2",
+    "husky": "^9.1.7",
+    "turbo": "^2.10.11",
+    "typescript": "^6.0.3",
+    "ultracite": "7.8.3",
+    "wrangler": "^4.125.0"
+  }
+}

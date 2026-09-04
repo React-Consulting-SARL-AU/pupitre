@@ -1,0 +1,61 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "extends": ["ultracite/biome/core"],
+  "files": {
+    "includes": [
+      "!**/node_modules",
+      "!**/.turbo",
+      "!**/.wrangler",
+      "!**/dist",
+      "!**/.output",
+      "!app",
+      "!server",
+      "!apps/web/src/routeTree.gen.ts",
+      "!packages/db/src/generated"
+    ]
+  },
+  "javascript": {
+    "formatter": {
+      "semicolons": "asNeeded"
+    }
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "useSortedInterfaceMembers": "off"
+      }
+    }
+  },
+  "linter": {
+    "rules": {
+      "complexity": {
+        "noExcessiveCognitiveComplexity": {
+          "level": "warn",
+          "options": { "maxAllowedComplexity": 25 }
+        }
+      },
+      "style": {
+        "noMagicNumbers": "off",
+        "noNestedTernary": "warn"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.test.ts", "**/*.test.tsx", "**/testing/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "useAwait": "off"
+          },
+          "style": {
+            "useConsistentTypeDefinitions": "off"
+          },
+          "complexity": {
+            "noVoid": "off"
+          }
+        }
+      }
+    }
+  ]
+}

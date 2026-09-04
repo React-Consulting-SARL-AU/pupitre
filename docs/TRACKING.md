@@ -6,7 +6,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 
 | ID | Tâche | Statut | Branche | PR |
 | --- | --- | --- | --- | --- |
-| INF-01 | Monorepo Bun + Turbo | à faire | | |
+| INF-01 | Monorepo Bun + Turbo | en revue | `feat/INF-01-monorepo` | |
 | INF-02 | Fermeture du dépôt | à faire | | |
 | INF-03 | Workspaces et packages vides | à faire | | |
 | INF-04 | Contrats initiaux | à faire | | |
