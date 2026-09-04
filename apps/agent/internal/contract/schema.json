@@ -868,6 +868,7 @@
                   "claude",
                   "codex",
                   "hermes",
+                  "ide",
                   "shell"
                 ]
               },
@@ -2084,6 +2085,7 @@
                   "claude",
                   "codex",
                   "hermes",
+                  "ide",
                   "shell"
                 ]
               },

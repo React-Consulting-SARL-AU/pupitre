@@ -8,11 +8,13 @@ import (
 
 	"pupitre.studio/agent/internal/entitlement"
 	"pupitre.studio/agent/internal/modules"
+	_ "pupitre.studio/agent/internal/modules/ai"
 	"pupitre.studio/agent/internal/modules/core"
 	"pupitre.studio/agent/internal/modules/db"
 	_ "pupitre.studio/agent/internal/modules/runtime"
 	"pupitre.studio/agent/internal/probe"
 	"pupitre.studio/agent/internal/protocol"
+	"pupitre.studio/agent/internal/shots"
 	"pupitre.studio/agent/internal/state"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/tmux"
@@ -23,7 +25,7 @@ var version = "dev"
 var newSys = func() sys.Sys { return sys.Real{} }
 
 func main() {
-	os.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
+	os.Exit(run(arguments(os.Args), os.Stdin, os.Stdout, os.Stderr))
 }
 
 func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
@@ -48,6 +50,10 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return runReport(newEngine(), stdout, stderr)
 	case "probe":
 		return runProbe(probeOptions(newEngine()), args[1:], stdout, stderr)
+	case shots.Command:
+		return runShot(state.FromEngine(newEngine(), stateOptions()), args[1:], stdout, stderr)
+	case "gallery":
+		return runGallery(args[1:], stderr)
 	}
 
 	usage(stderr)
@@ -55,7 +61,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 }
 
 func usage(stderr io.Writer) {
-	fmt.Fprintln(stderr, "usage: pupitred <serve|install [--only=id,id] [--skip=id,id]|probe [--script] [--projects=DIR]|report|version>")
+	fmt.Fprintln(stderr, "usage: pupitred <serve|install [--only=id,id] [--skip=id,id]|probe [--script] [--projects=DIR]|report|shot|gallery|version>")
 }
 
 func newServer(engine *modules.Engine) *protocol.Server {

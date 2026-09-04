@@ -33,6 +33,10 @@ const (
 	FieldSecret  = "secret"
 	FieldVersion = "version"
 	FieldBoolean = "boolean"
+	FieldList    = "list"
+
+	ItemsText   = "text"
+	ItemsSecret = "secret"
 )
 
 type Field struct {
@@ -44,6 +48,9 @@ type Field struct {
 	Default  any
 	Options  []string
 	Generate bool
+	Items    string
+	Min      int
+	Max      int
 }
 
 // The schema is a oneOf with additionalProperties:false per kind, so each kind serialises only its own keys.
@@ -62,6 +69,15 @@ func (f Field) MarshalJSON() ([]byte, error) {
 	case FieldVersion:
 		object["options"] = emptyIfNil(f.Options)
 		object["default"] = f.Default
+	case FieldList:
+		object["required"] = f.Required
+		object["items"] = f.Items
+		if f.Min > 0 {
+			object["min"] = f.Min
+		}
+		if f.Max > 0 {
+			object["max"] = f.Max
+		}
 	default:
 		object["required"] = f.Required
 		if f.Default != nil {
@@ -85,6 +101,9 @@ func (f *Field) UnmarshalJSON(data []byte) error {
 		Default  any      `json:"default"`
 		Options  []string `json:"options"`
 		Generate bool     `json:"generate"`
+		Items    string   `json:"items"`
+		Min      int      `json:"min"`
+		Max      int      `json:"max"`
 	}
 
 	if err := json.Unmarshal(data, &object); err != nil {

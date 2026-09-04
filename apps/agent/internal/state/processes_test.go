@@ -61,7 +61,7 @@ func TestSessionsTellTheKindsApartAndIgnoreEverythingElse(t *testing.T) {
 		kinds[session.PID] = session.Kind
 	}
 
-	for pid, want := range map[int]string{5100: "claude", 5200: "codex", 5300: "shell"} {
+	for pid, want := range map[int]string{5100: "claude", 5200: "codex", 5300: "ide"} {
 		if kinds[pid] != want {
 			t.Errorf("pid %d: got kind %q, want %q", pid, kinds[pid], want)
 		}
