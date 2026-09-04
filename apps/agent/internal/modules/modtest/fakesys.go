@@ -32,6 +32,11 @@ type FakeSys struct {
 	Failures  map[string]string
 	Users     map[string]string
 	Tools     map[string]string
+	Sessions  map[string]bool
+	Windows   map[string]int
+	Binds     map[string]int
+	Listen    map[int]bool
+	Uptimes   map[int]int
 	Firewall  Firewall
 	Calls     []sys.Command
 	Mutations []string
@@ -53,6 +58,11 @@ func NewFakeSys() *FakeSys {
 		Failures: map[string]string{},
 		Users:    map[string]string{"root": "/root"},
 		Tools:    map[string]string{},
+		Sessions: map[string]bool{},
+		Windows:  map[string]int{},
+		Binds:    map[string]int{},
+		Listen:   map[int]bool{},
+		Uptimes:  map[int]int{},
 	}
 }
 
@@ -130,6 +140,14 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 		return f.curl(cmd.Argv[1:])
 	case "mise":
 		return f.mise(cmd.Argv[1:])
+	case "tmux":
+		return f.tmux(cmd.Argv[1:])
+	case "ss":
+		return f.ss()
+	case "ps":
+		return f.ps(cmd.Argv[1:])
+	case "tee":
+		return f.tee(cmd.Argv[1:], cmd.Stdin)
 	}
 
 	return sys.Output{Stdout: f.Replies[program]}, nil
