@@ -14,7 +14,7 @@ Même outillage que React-Box, mêmes versions quand elles sont compatibles : ce
 | Prisma 7 | schéma et migrations | client généré committé, empreinte `packages/db/src/generated/.prisma-inputs.sha256` vérifiée au lint par `scripts/check-prisma-client-freshness.ts` ; `db:migrate` et `db:migrate:reset` exigent `PUPITRE_ALLOW_MIGRATE_ON=staging` ou `local` |
 | Wrangler 4 | Workers, Pages, R2, secrets | `secrets.required` déclarés dans `wrangler.jsonc`, vérifiés avant déploiement |
 | Go 1.25+ | l'agent | `gofmt`, `go vet`, `go test`, `garble` en release. Installé par Homebrew sur la machine du propriétaire |
-| electron-vite, electron-builder | l'app desktop | bytecode du main et du preload, notarisation |
+| electron-vite, electron-builder | l'app desktop | bytecode du processus principal, fusibles, signature et notarisation ; un runner par système |
 
 ## Développement local
 
@@ -56,6 +56,108 @@ Les PR font tourner les tâches affectées ; `main` fait tout.
 | site | `bun install --frozen-lockfile && bun --cwd=apps/site run build` | Pages, `apps/site/dist` |
 
 Deux environnements : `staging` (`staging.pupitre.studio`, `staging-app.pupitre.studio`, Stripe en mode test, branche Neon `staging`) et `production` (branche Neon `production`). L'app desktop de développement pointe sur `staging`.
+
+### Le site sur Pages
+
+Projet Pages `pupitre-site`, relié au dépôt, branche de production `main` :
+
+- `main` publie sur `pupitre.studio` ; toute autre branche obtient une URL de prévisualisation, et `staging` est aliasée en `staging.pupitre.studio`.
+- Domaines : `pupitre.studio` en apex, `www.pupitre.studio` redirigé en 301 par `apps/site/public/_redirects`.
+- En-têtes de sécurité et de cache dans `apps/site/public/_headers` : `HSTS`, `CSP`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, et un an d'immuable sur `/_astro/*` et `/og/*`.
+- Variables de build : `PUBLIC_POSTHOG_KEY` et `PUBLIC_POSTHOG_HOST` en production seulement — sans clé, le site ne charge aucun analytics et n'affiche pas de bandeau de consentement.
+- Le garde légal (`apps/site/scripts/legal.ts`) fait échouer le build quand `CF_PAGES_BRANCH` vaut `main` — ou quand `PUPITRE_ENV` vaut `production` — et qu'une page de `src/content/legal/` porte encore un `TODO`. Les pages légales ne se publient donc jamais à l'état de brouillon.
+- La liste des releases de l'app est lue au build depuis `PUBLIC_RELEASES_URL`. Variable absente ou API injoignable n'échoue pas le build : la page de téléchargement part avec `apps/site/src/content/site/releases.ts` et un avertissement de build. En local et en test, la variable n'est pas posée, donc le build ne sort jamais sur le réseau.
+
+## Stripe
+
+Compte unique, Managed Payments activé et CGU acceptées sur [Managed Payments](https://dashboard.stripe.com/settings/managed-payments) : Stripe est vendeur, il calcule et reverse la taxe, gère la fraude, les litiges, les reçus et le support transactionnel. Voir [`decisions/0007`](./decisions/0007-stripe-managed-payments.md).
+
+Un produit et deux prix, créés à l'identique en sandbox et en live :
+
+| | |
+| --- | --- |
+| Produit | `Pupitre Server`, code fiscal `txcd_10103001` (SaaS, business use) |
+| Prix mensuel | 19 $, `tax_behavior` `exclusive` → `STRIPE_PRICE_SERVER_MONTH` |
+| Prix annuel | 190 $, deux mois offerts → `STRIPE_PRICE_SERVER_YEAR` |
+
+Réglages du dashboard : email de support à jour dans [Business details](https://dashboard.stripe.com/settings/business-details) (Stripe y escalade, et sans réponse sous 48 h il rembourse) ; logo, CGU et confidentialité dans [Checkout settings](https://dashboard.stripe.com/settings/checkout) ; portail client limité au moyen de paiement, aux factures et à la résiliation, jamais à la quantité, que `ReconcileSeats` recale sur le nombre de serveurs.
+
+Webhook `https://app.pupitre.studio/api/v1/webhooks/stripe`, un endpoint et un secret par mode, sur les cinq événements de `HANDLED_EVENT_TYPES` : `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`. En local, `stripe listen --forward-to localhost:3000/api/v1/webhooks/stripe`.
+
+## Distribution de l'app desktop
+
+### Les noms exacts
+
+| Ce qui est créé | Où | Nom exact |
+| --- | --- | --- |
+| Identifiant de l'app | `apps/desktop/electron-builder.yml` | `dev.pupitre.app` |
+| Dépôt des releases | GitHub | `jordanmonier/pupitre`, privé |
+| Déclencheur | GitHub Actions `.github/workflows/release.yml` | un tag `v*` |
+| Artefacts macOS | GitHub Releases | `Pupitre-<version>-arm64.dmg`, `Pupitre-<version>.dmg`, `latest-mac.yml` |
+| Artefacts Windows | GitHub Releases | `Pupitre Setup <version>.exe`, `latest.yml` |
+| Artefacts Linux | GitHub Releases | `Pupitre-<version>.AppImage`, `pupitre_<version>_amd64.deb`, `latest-linux.yml` |
+| Certificat macOS | Apple Developer | `Developer ID Application: <société marocaine> (<Team ID>)` |
+| Clé de notarisation | App Store Connect | clé d'API, rôle *Developer*, fichier `AuthKey_<KeyID>.p8` |
+| Signature Windows | Azure Trusted Signing | compte `pupitre-signing`, profil de certificat `pupitre` |
+
+Les trois `latest*.yml` sont ce que lit `electron-updater` : ils sont produits par `electron-builder --publish always` et n'ont pas à être écrits à la main.
+
+### Les secrets du dépôt, par leur nom
+
+| Secret GitHub | Ce que c'est | Comment l'obtenir |
+| --- | --- | --- |
+| `PUPITRE_UPDATE_TOKEN` | jeton d'accès personnel, portée `repo` en lecture seule | GitHub → *Developer settings* → *Fine-grained tokens*, accès au seul dépôt `pupitre`, permission *Contents: read* |
+| `APPLE_CERTIFICATE` | le `.p12` du certificat Developer ID, en base 64 | `base64 -i DeveloperID.p12 \| pbcopy` |
+| `APPLE_CERTIFICATE_PASSWORD` | le mot de passe de ce `.p12` | choisi à l'export depuis Trousseau d'accès |
+| `APPLE_API_KEY_CONTENT` | le `.p8` de la clé de notarisation, en base 64 | `base64 -i AuthKey_<KeyID>.p8 \| pbcopy` |
+| `APPLE_API_KEY_ID` | l'identifiant de la clé | la colonne *Key ID* dans App Store Connect |
+| `APPLE_API_ISSUER` | l'identifiant de l'émetteur | en haut de la page *Keys* d'App Store Connect |
+| `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` | l'application Entra ID qui signe | Azure → *App registrations*, un secret client, puis le rôle *Trusted Signing Certificate Profile Signer* sur le compte de signature |
+
+`PUPITRE_UPDATE_TOKEN` entre dans le binaire de l'app : c'est un jeton de **lecture** sur un dépôt privé, rien d'autre. Il est passé au build par `MAIN_VITE_UPDATE_TOKEN`, se retrouve dans le bytecode du processus principal, et le plugin bytecode le protège pour qu'un `strings` ne le rende pas. Le faire tourner suffit à couper les anciennes versions du flux de mise à jour.
+
+### L'ordre de création, une fois pour toutes
+
+1. **Le compte Apple.** Le compte Apple Developer de la société marocaine existe déjà. Dans le portail, créer un certificat **Developer ID Application** (pas *Mac App Distribution* : la distribution se fait hors App Store), le télécharger, l'installer dans Trousseau d'accès, puis l'exporter en `.p12` avec un mot de passe.
+2. **La clé de notarisation.** App Store Connect → *Users and Access* → *Integrations* → *Keys*, une clé avec le rôle *Developer*. Le `.p8` ne se télécharge **qu'une fois** ; relever l'*Issuer ID* et le *Key ID* sur la même page.
+3. **Azure Trusted Signing.** Créer un compte de signature (région proche, par exemple *West Europe*), y créer une identité validée puis un profil de certificat. La validation d'identité d'une organisation prend quelques jours et demande des justificatifs ; un profil *Public Trust* est ce qu'il faut pour que Windows ne prévienne pas. Créer ensuite une application Entra ID, lui donner un secret client, et lui attribuer le rôle *Trusted Signing Certificate Profile Signer* sur le compte.
+4. **Le jeton de mise à jour.** Le jeton fin décrit ci-dessus, sur le seul dépôt `pupitre`, en lecture des contenus.
+5. **Les secrets du dépôt.** GitHub → *Settings* → *Secrets and variables* → *Actions*, les neuf noms du tableau ci-dessus. Rien de tout cela n'entre dans le dépôt sous aucune forme.
+6. **Aligner `electron-builder.yml`.** Les quatre valeurs de la signature Windows se lisent dans le portail Azure et ne s'inventent pas ; une fois connues, ajouter sous `win:` :
+
+   ```yaml
+   azureSignOptions:
+     publisherName: <le sujet exact du certificat émis>
+     endpoint: https://weu.codesigning.azure.net
+     codeSigningAccountName: pupitre-signing
+     certificateProfileName: pupitre
+   ```
+
+   `endpoint` dépend de la région du compte de signature. Tant que ce bloc n'existe pas, le build Windows va au bout et sort **non signé** : Windows affiche alors un avertissement SmartScreen au premier lancement.
+7. **Publier.** `git tag v0.2.0 && git push origin v0.2.0`. Le workflow construit les trois systèmes, signe, notarise, et pousse les artefacts sur une release GitHub.
+8. **Vérifier.** Sur un Mac qui n'a jamais vu le certificat : télécharger le `.dmg`, l'ouvrir, l'app démarre sans avertissement Gatekeeper. `spctl --assess --type execute -vv /Applications/Pupitre.app` répond `accepted, source=Notarized Developer ID`.
+
+### Ce que fait chaque release
+
+`electron-vite build` compile le processus principal en bytecode V8 ; `electron-builder --publish always` empaquette, retourne les fusibles (`onlyLoadAppFromAsar`, validation d'intégrité de l'asar, `runAsNode` coupé), signe, notarise sur macOS, puis téléverse. Un build sans identité de signature ne s'arrête pas : electron-builder le dit et produit un artefact non signé — c'est ce qui rend `bun --cwd=apps/desktop run build:mac` utilisable sur la machine du propriétaire.
+
+Un retour arrière se fait en publiant la version précédente : `electron-updater` ne redescend pas de version, il faut donc republier au-dessus. Une release retirée de GitHub disparaît du flux, mais n'annule pas ce qui est déjà installé.
+
+### Ce qui se construit où
+
+Un module natif ne se compile pas pour un autre système : `node-pty` impose un runner par OS, et c'est la raison de la matrice `macos-15`, `windows-2025`, `ubuntu-24.04` du workflow. Depuis un Mac, `bun --cwd=apps/desktop run build:linux` s'arrête sur `node-gyp does not support cross-compiling native modules` — ce n'est pas une erreur de configuration.
+
+| Système | Ce qui sort | Ce qui le signe |
+| --- | --- | --- |
+| macOS | `.dmg` arm64 et x64 | certificat Developer ID, puis notarisation |
+| Windows | installateur NSIS de l'architecture du runner | Azure Trusted Signing, si le bloc existe |
+| Linux | AppImage et `.deb` de l'architecture du runner | rien : Linux ne signe pas les applications |
+
+Le `.deb` s'appelle `pupitre` et non `@pupitre/desktop` : le nom du workspace porte une barre oblique, que dpkg refuse. L'exécutable Linux s'appelle `pupitre` pour la même raison, et `pupitre.desktop` s'aligne dessus pour que l'environnement de bureau relie la fenêtre à son lanceur.
+
+### Ce que la mise à jour ne couvre pas
+
+Le `.deb` est installé par apt et mis à jour par apt : l'app n'y touche pas, et le dit. L'AppImage, le `.dmg` et l'installateur Windows se remplacent seuls. Une app construite sans `MAIN_VITE_UPDATE_TOKEN` ne cherche aucune mise à jour, ce qui est le cas de tout build local.
 
 ## Neon
 

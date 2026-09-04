@@ -353,3 +353,126 @@ func TestSyncClonesWhatIsMissingAndPullsWhatIsThere(t *testing.T) {
 		t.Fatalf("the pull rebased the local commit onto the remote: %+v", after)
 	}
 }
+
+func initRepo(t *testing.T, dir string) {
+	t.Helper()
+
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git is not installed")
+	}
+
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	run(t, dir, "git", "init", "--quiet", "--initial-branch=main")
+	write(t, filepath.Join(dir, "README.md"), "flymate\n")
+	run(t, dir, "git", "add", "-A")
+	run(t, dir, "git", "commit", "--quiet", "-m", "premier jet")
+}
+
+func readerAt(t *testing.T, base, projects string) *state.Reader {
+	t.Helper()
+
+	conf := filepath.Join(base, "projects.conf")
+	write(t, conf, "web|web|-|none|127.0.0.1|3000|web|sleep 1\n")
+
+	return state.New(state.Options{
+		Sys:          asMe{},
+		Now:          modtest.NewClock(time.Millisecond).Now,
+		Registry:     modules.NewRegistry(),
+		AgentVersion: "0.0.0-test",
+		Paths:        registry.Paths{Conf: conf, Local: filepath.Join(base, "projects.local.conf"), Projects: projects},
+		Tmux:         tmux.Options{User: "root", LogDir: filepath.Join(base, "logs")},
+		Sleep:        func(time.Duration) {},
+	})
+}
+
+func TestNothingComesOutOfARepositoryThatEnclosesTheProjectsRoot(t *testing.T) {
+	base := t.TempDir()
+	projects := filepath.Join(base, "projects")
+
+	initRepo(t, base)
+	if err := os.MkdirAll(filepath.Join(projects, "web"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	reader := readerAt(t, base, projects)
+
+	status, err := reader.GitStatus("web")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if status.Repo || status.Root != "" {
+		t.Fatalf("the repository is %s, above the projects root: nothing may name it (%+v)", base, status)
+	}
+
+	branches, err := reader.Branches("web")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if branches.Repo || branches.Root != "" {
+		t.Fatalf("unexpected %+v", branches)
+	}
+
+	tree, err := reader.WorkingTree("web")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if tree.Repo || tree.Root != "" {
+		t.Fatalf("unexpected %+v", tree)
+	}
+
+	if _, err := reader.Checkout("web", "main"); err == nil {
+		t.Fatal("a branch of a repository we cannot name must not be switched to")
+	}
+}
+
+func TestTheRootSurvivesAProjectsRootReachedByASymlink(t *testing.T) {
+	base := t.TempDir()
+	projects := filepath.Join(base, "projects")
+
+	initRepo(t, filepath.Join(base, "srv", "web"))
+	if err := os.Symlink(filepath.Join(base, "srv"), projects); err != nil {
+		t.Fatal(err)
+	}
+
+	status, err := readerAt(t, base, projects).GitStatus("web")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// git answers with the physical path, which the symlink makes different from the declared one: the root stays the name the project is known by.
+	if !status.Repo || status.Root != filepath.Join(projects, "web") {
+		t.Fatalf("got root %q, want %q", status.Root, filepath.Join(projects, "web"))
+	}
+
+	if status.Current != "main" {
+		t.Fatalf("unexpected head %+v", status)
+	}
+}
+
+func TestARepositoryAboveTheProjectIsNamedInsideTheProjectsRoot(t *testing.T) {
+	base := t.TempDir()
+	projects := filepath.Join(base, "projects")
+
+	initRepo(t, filepath.Join(base, "srv"))
+	if err := os.MkdirAll(filepath.Join(base, "srv", "web"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(base, "srv"), projects); err != nil {
+		t.Fatal(err)
+	}
+
+	status, err := readerAt(t, base, projects).GitStatus("web")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !status.Repo || status.Root != projects {
+		t.Fatalf("the repository is the projects root itself, reached by a symlink: got %+v", status)
+	}
+}

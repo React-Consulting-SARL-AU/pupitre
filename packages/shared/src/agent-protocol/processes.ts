@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { RequestIdSchema } from "./envelope"
 import { ProjectNameSchema, SessionSchema } from "./state"
 
 export const AGENT_KINDS = ["claude", "codex", "hermes"] as const
@@ -82,3 +83,45 @@ export const ShotsCleanResultSchema = z.object({
 })
 
 export type ShotsCleanResult = z.infer<typeof ShotsCleanResultSchema>
+
+export const SHOT_MEDIA_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/gif",
+  "image/webp",
+  "image/avif",
+  "image/svg+xml",
+] as const
+
+export const ShotMediaTypeSchema = z.enum(SHOT_MEDIA_TYPES)
+
+export type ShotMediaType = z.infer<typeof ShotMediaTypeSchema>
+
+export const SHOT_CHUNK_BYTES = 48 * 1024
+
+export const SHOT_MAX_BYTES = 16 * 1024 * 1024
+
+export const ShotsReadParamsSchema = z.strictObject({
+  path: z.string().min(1),
+})
+
+export type ShotsReadParams = z.infer<typeof ShotsReadParamsSchema>
+
+export const ShotsReadResultSchema = z.object({
+  path: z.string(),
+  media_type: ShotMediaTypeSchema,
+  size_bytes: z.int().nonnegative().max(SHOT_MAX_BYTES),
+  sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  chunks: z.int().nonnegative(),
+})
+
+export type ShotsReadResult = z.infer<typeof ShotsReadResultSchema>
+
+export const ShotEventSchema = z.object({
+  id: RequestIdSchema,
+  event: z.literal("shot"),
+  seq: z.int().nonnegative(),
+  bytes: z.string(),
+})
+
+export type ShotEvent = z.infer<typeof ShotEventSchema>

@@ -370,3 +370,13 @@ Critères d'acceptation.
 1. Révéler le mot de passe de MySQL affiche la valeur réelle du serveur.
 2. La valeur n'apparaît dans aucun journal ni aucun fichier persisté par l'app, prouvé comme APP-11 l'a prouvé pour les libellés.
 
+### APP-23 — La galerie affiche vraiment les captures
+Lot 2 · dépend de APP-10, INF-20 · `apps/desktop`
+
+But. Une capture s'affiche dans l'app, sans ouvrir de navigateur.
+Périmètre. INF-20 a livré `shots.read { path }` : le contenu revient par des événements `shot` en base64, découpés en morceaux bornés pour ne pas engorger le canal, suivis d'un accusé portant `chunks` et `sha256`. La galerie doit changer de source : appeler `shots.read` avec le chemin que `shots.list` a rendu, accumuler les morceaux dans l'ordre de leur `seq`, vérifier le compte et l'empreinte de l'accusé, puis construire un blob avec le `media_type`. Le pont IPC doit faire remonter l'événement `shot` au renderer, comme il le fait déjà pour `secret`.
+Hors périmètre. La commande et l'agent, livrés par INF-20.
+Critères d'acceptation.
+1. Une capture s'affiche dans la galerie de l'app, sans navigateur.
+2. Une empreinte qui ne correspond pas fait échouer l'affichage plutôt que de montrer une image tronquée.
+

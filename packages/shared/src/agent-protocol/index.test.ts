@@ -46,6 +46,7 @@ const CONTRACT_COMMANDS = [
   "process.kill",
   "shots.list",
   "shots.url",
+  "shots.read",
   "shots.clean",
   "secrets.status",
   "secrets.set",
