@@ -1,3 +1,7 @@
+import type { CommandName } from "@pupitre/shared/agent-protocol";
+import type { Event } from "@pupitre/shared/agent-protocol/envelope";
+import type { HelloResult } from "@pupitre/shared/agent-protocol/session";
+import type { AgentResponse } from "@shared/agent";
 import type {
   Action,
   ActionResult,
@@ -27,6 +31,47 @@ import { contextBridge, ipcRenderer } from "electron";
  * action, the main process decides what that becomes.
  */
 const api = {
+  /**
+   * The agent protocol, as it stands: a command of `COMMANDS`, its parameters,
+   * and the envelope the agent answered. The main process validates both before
+   * anything reaches the channel.
+   */
+  agentCall: (
+    serverId: string,
+    cmd: CommandName,
+    params?: unknown
+  ): Promise<AgentResponse<unknown>> =>
+    ipcRenderer.invoke("agent:call", serverId, cmd, params),
+
+  /** The same call, with the events of a long command as they arrive. */
+  agentStream: (
+    serverId: string,
+    cmd: CommandName,
+    params: unknown,
+    onEvent: (event: Event) => void
+  ): Promise<AgentResponse<unknown>> => {
+    const token = crypto.randomUUID();
+    const listener = (
+      _e: unknown,
+      payload: { token: string; event: Event }
+    ) => {
+      if (payload.token === token) {
+        onEvent(payload.event);
+      }
+    };
+
+    ipcRenderer.on("agent:event", listener);
+
+    return ipcRenderer
+      .invoke("agent:stream", token, serverId, cmd, params)
+      .finally(() => ipcRenderer.removeListener("agent:event", listener));
+  },
+
+  agentSession: (serverId: string): Promise<HelloResult | null> =>
+    ipcRenderer.invoke("agent:session", serverId),
+  agentClose: (serverId: string): Promise<void> =>
+    ipcRenderer.invoke("agent:close", serverId),
+
   snapshot: (): Promise<Snapshot | null> => ipcRenderer.invoke("snapshot"),
   capabilities: (): Promise<Capabilities> => ipcRenderer.invoke("capabilities"),
   top: (): Promise<ProcessInfo[]> => ipcRenderer.invoke("top"),
