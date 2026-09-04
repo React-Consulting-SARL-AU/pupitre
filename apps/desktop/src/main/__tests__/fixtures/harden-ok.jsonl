@@ -1,0 +1,10 @@
+# Le durcissement tel qu'il se passe quand une clé ouvre déjà dev.
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","protocol":1}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","ping","install","harden"]}}
+> {"id":2,"cmd":"harden","params":{"user":"dev"}}
+< {"id":2,"event":"step","module":"core.hardening","step":"compte dev","status":"start","ms":0}
+< {"id":2,"event":"step","module":"core.hardening","step":"compte dev","status":"ok","ms":1200}
+< {"id":2,"event":"step","module":"core.hardening","step":"clés recopiées","status":"ok","ms":300}
+< {"id":2,"event":"step","module":"core.hardening","step":"connexion dev vérifiée","status":"ok","ms":800}
+< {"id":2,"event":"step","module":"core.hardening","step":"root fermé","status":"ok","ms":150}
+< {"id":2,"ok":true,"result":{"root_closed":true,"next_user":"dev"}}

@@ -159,6 +159,33 @@ export function pinFingerprint(
   );
 }
 
+const ACCOUNT = /^[a-z_][a-z0-9_-]{0,31}$/;
+
+/**
+ * The account the app connects with, moved to the one the hardening opened.
+ *
+ * The name comes from the agent, so it is checked against what a Unix account
+ * can be called before it becomes a `User` line: the app's SSH configuration is
+ * a file `ssh` reads, and a name with a space in it would be two words there.
+ * A host taken from the system configuration is refused outright — the app owns
+ * no block for it, and promised to write none.
+ */
+export function withAccount(
+  servers: Server[],
+  id: string,
+  user: string
+): Server[] | null {
+  const target = servers.find((server) => server.id === id);
+
+  if (!(target && target.origin === "app" && ACCOUNT.test(user))) {
+    return null;
+  }
+
+  return servers.map((server) =>
+    server.id === id ? { ...server, user } : server
+  );
+}
+
 /** Forgetting a server takes the key the app made for it, and nothing else. */
 export function removeServer(
   servers: Server[],

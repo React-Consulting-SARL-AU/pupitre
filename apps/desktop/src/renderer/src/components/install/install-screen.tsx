@@ -23,10 +23,16 @@ export function InstallScreen({
   serverId,
   serverName,
   onContinue,
+  onReplay,
 }: {
   serverId: string;
   serverName?: string;
   onContinue?: () => void;
+  /**
+   * What a replay means outside this screen. A module that carried a secret
+   * cannot simply run again, and the flow above says what to do about it.
+   */
+  onReplay?: (moduleId: string) => Promise<void>;
 }) {
   const install = useInstall((state) => state.install);
   const modules = useInstall((state) => state.modules);
@@ -71,7 +77,7 @@ export function InstallScreen({
 
   async function replayOne(moduleId: string): Promise<void> {
     setReplaying(moduleId);
-    await replay(serverId, moduleId);
+    await (onReplay ? onReplay(moduleId) : replay(serverId, moduleId));
     setReplaying(null);
   }
 

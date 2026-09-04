@@ -1,0 +1,14 @@
+# Le parcours d'un serveur atteint en root : installation, puis durcissement.
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","protocol":1}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","ping","catalog","install","harden"]}}
+> {"id":2,"cmd":"install","params":{"modules":["core.system","runtime.node","db.postgres"],"config":{"core.system":{"hostname":"staging"},"runtime.node":{"version":"24"},"db.postgres":{"version":"17"}},"secrets_stdin":true}}
+$ {"db.postgres":{"app_password":"s3cret-de-test"}}
+< {"id":2,"event":"step","module":"core.system","step":"paquets","status":"ok","ms":12400}
+< {"id":2,"event":"step","module":"runtime.node","step":"mise","status":"ok","ms":31000}
+< {"id":2,"event":"step","module":"db.postgres","step":"cluster","status":"ok","ms":900}
+< {"id":2,"ok":true,"result":{"failed":[],"warned":[],"report_path":"/var/lib/pupitre/report.json"}}
+> {"id":3,"cmd":"harden","params":{"user":"dev"}}
+< {"id":3,"event":"step","module":"core.hardening","step":"compte dev","status":"ok","ms":1200}
+< {"id":3,"event":"step","module":"core.hardening","step":"connexion dev vérifiée","status":"ok","ms":800}
+< {"id":3,"event":"step","module":"core.hardening","step":"root fermé","status":"ok","ms":150}
+< {"id":3,"ok":true,"result":{"root_closed":true,"next_user":"dev"}}
