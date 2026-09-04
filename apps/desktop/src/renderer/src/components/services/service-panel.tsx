@@ -45,9 +45,14 @@ export function ServicePanel({
   const { open } = store;
   const { readForwards } = tunnel;
 
+  // Leaving the page is enough to drop the values, whichever way it is left.
   useEffect(() => {
     open(serverId, moduleId);
     readForwards(serverId);
+
+    return () => {
+      window.pupitre.forgetCredentials(serverId, moduleId);
+    };
   }, [serverId, moduleId, open, readForwards]);
 
   const { detail, removal, steps, database, busy, problem } = store;
