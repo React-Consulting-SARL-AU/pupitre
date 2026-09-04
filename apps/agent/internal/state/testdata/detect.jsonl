@@ -1,0 +1,13 @@
+# Le gestionnaire et la commande de démarrage d'un dossier déjà présent, sans rien installer.
+# Une détection sans source est refusée par le contrat lui-même.
+@dir /home/dev/projects/flymate
+@file /home/dev/projects/flymate/package.json {"scripts":{"dev":"vite","build":"vite build"}}
+@file /home/dev/projects/flymate/vite.config.ts export\ndefault\n{server:{port:4321}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+> {"id":2,"cmd":"project.detect","params":{"dir":"flymate"}}
+> {"id":3,"cmd":"project.list"}
+> {"id":4,"cmd":"project.detect","params":{}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["agent.open","catalog","completions","diag","doctor","hello","install","ping","process.kill","processes.list","project.add","project.branches","project.checkout","project.detect","project.diff","project.down","project.git_status","project.install","project.list","project.logs","project.remove","project.restart","project.sync","project.up","project.url","project.working_tree","reboot","report","service.secret","service.status","sessions.clean","sessions.list","shots.clean","shots.list","shots.url","snapshot","status","uninstall","upgrade"]}}
+< {"id":2,"ok":true,"result":{"pkgmgr":"bun","install":"bun install","cmd":"bun run dev --port 4321","port_hint":4321}}
+< {"id":3,"ok":true,"result":{"projects":[]}}
+< {"id":4,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/repo : champ requis"}}

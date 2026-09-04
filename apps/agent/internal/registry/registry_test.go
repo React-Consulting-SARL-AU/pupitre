@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
@@ -186,6 +187,9 @@ func TestAddRefusesADuplicatePortWithAFix(t *testing.T) {
 	}
 	if !strings.Contains(failure.Fix, "3001") {
 		t.Fatalf("the fix must propose a free port: %s", failure.Fix)
+	}
+	if failure.Remedy == nil || failure.Remedy.Code != contract.RemedyPortTaken || failure.Remedy.PortFree != 3001 {
+		t.Fatalf("the free port must travel as a number, not only in the sentence: %+v", failure.Remedy)
 	}
 	if _, taken := registry.Load(context(fake), registry.Paths{}).Get("twin"); taken {
 		t.Fatal("a refused project must not be written")

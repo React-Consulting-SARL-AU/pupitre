@@ -18,6 +18,8 @@ import (
 )
 
 const (
+	anywhere = "/"
+
 	cloneTimeout = 2 * time.Minute
 
 	// Long enough that no detection in flight can be swept, short enough that a killed agent leaves nothing for a day.
@@ -110,8 +112,9 @@ func (r *Reader) clone(repo, target string) (sys.Output, error) {
 	owner := r.options.Tmux.Resolved().User
 
 	return r.ctx().Sys().Run(sys.Command{
-		User:    owner,
-		Dir:     user.Home(owner),
+		User: owner,
+		// git creates the leading folders of the target itself, so the only directory these commands need to start in is the one every machine has.
+		Dir:     anywhere,
 		Argv:    []string{"git", "clone", "--depth", "1", "--no-tags", "--quiet", "--", repo, target},
 		Env:     gitEnv(owner),
 		Timeout: cloneTimeout,
@@ -120,7 +123,8 @@ func (r *Reader) clone(repo, target string) (sys.Output, error) {
 
 func (r *Reader) discard(target string) {
 	owner := r.options.Tmux.Resolved().User
-	if _, err := user.Run(r.ctx(), owner, "rm", "-rf", target); err != nil {
+
+	if _, err := user.RunWith(r.ctx(), owner, user.Input{Dir: anywhere}, "rm", "-rf", target); err != nil {
 		r.ctx().Logf("détection : %s n'a pas pu être effacé : %v", target, err)
 	}
 }
@@ -129,7 +133,8 @@ func (r *Reader) discard(target string) {
 func (r *Reader) sweep(cache string) {
 	owner := r.options.Tmux.Resolved().User
 
-	_, _ = user.Run(r.ctx(), owner, "find", cache, "-mindepth", "1", "-maxdepth", "1", "-mmin", staleMinutes, "-exec", "rm", "-rf", "{}", "+")
+	_, _ = user.RunWith(r.ctx(), owner, user.Input{Dir: anywhere},
+		"find", cache, "-mindepth", "1", "-maxdepth", "1", "-mmin", staleMinutes, "-exec", "rm", "-rf", "{}", "+")
 }
 
 func (r *Reader) read(root string) contract.ProjectDetect {
