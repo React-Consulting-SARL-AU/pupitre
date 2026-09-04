@@ -2748,6 +2748,49 @@
         "routes"
       ]
     },
+    "EnrollParams": {
+      "type": "object",
+      "properties": {
+        "platform_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "secrets_stdin": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "required": [
+        "platform_url",
+        "secrets_stdin"
+      ],
+      "additionalProperties": false
+    },
+    "EnrollResult": {
+      "type": "object",
+      "properties": {
+        "enrolled": {
+          "type": "boolean",
+          "const": true
+        },
+        "entitlement": {
+          "type": "string",
+          "enum": [
+            "valid",
+            "grace",
+            "restricted",
+            "dev"
+          ]
+        },
+        "synced_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "enrolled",
+        "entitlement"
+      ]
+    },
     "KeysListParams": {
       "type": "object",
       "properties": {},
@@ -2944,6 +2987,19 @@
           "type": "string"
         }
       }
+    },
+    "EnrollSecrets": {
+      "type": "object",
+      "properties": {
+        "enrollment_token": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "enrollment_token"
+      ],
+      "additionalProperties": false
     },
     "Manifest": {
       "type": "object",

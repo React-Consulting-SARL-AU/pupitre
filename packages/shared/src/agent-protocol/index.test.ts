@@ -57,6 +57,7 @@ const CONTRACT_COMMANDS = [
   "tunnel.status",
   "tunnel.sync",
   "tunnel.restart",
+  "enroll",
   "keys.list",
   "keys.sync",
   "agent.upgrade",

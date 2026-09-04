@@ -130,6 +130,7 @@ Le chemin absolu vit sur le projet, pas sur la machine : `status`, `project.list
 
 | Commande | Paramètres |
 | --- | --- |
+| `enroll` | `{ platform_url, secrets_stdin: true }` : le jeton d'enrôlement est lu sur le flux secret ; l'agent l'échange contre son jeton de serveur, puis lit `/agent/state` une première fois. Résultat `{ enrolled: true, entitlement, synced_at? }` |
 | `keys.list` | — : les clés du bloc balisé |
 | `keys.sync` | — : force une lecture de `/api/v1/agent/state` |
 | `agent.upgrade` | `{ version?, signature }` : télécharge, vérifie, remplace, redémarre |
@@ -158,6 +159,16 @@ Pour `secrets.set`, la ligne est un objet plat d'une seule entrée, dont la clé
 ```
 
 Une valeur vide vaut une valeur absente : l'agent refuse en `bad_request` plutôt que d'écrire un secret vide.
+
+Pour `enroll`, la ligne porte le seul jeton d'enrôlement (schéma `EnrollSecrets`) :
+
+```jsonc
+{ "enrollment_token": "enr_…" }
+```
+
+Le jeton d'enrôlement est un secret comme un autre : il n'entre pas dans `params`, ne paraît dans aucun événement, ne s'écrit dans aucun journal, et ne devient jamais un argument de ligne de commande — un argument serait lisible dans `ps` par quiconque a un compte sur la machine. C'est aussi pourquoi `pupitred enroll` le lit sur son entrée standard : la commande de protocole et la sous-commande empruntent le même chemin. `platform_url` reste dans `params`, car ce n'est pas un secret et c'est ce qu'un journal doit pouvoir dire quand l'échange échoue.
+
+L'agent n'a pas encore de jeton de serveur au moment où il enrôle : `enroll` fait donc partie des commandes qu'un binaire non enrôlé ouvre, et c'est la seule qui change cet état.
 
 Un champ `list` d'`items: "secret"` — `ai.hermes.providers`, par exemple — se transmet avec des clés indicées, une par valeur, dans l'ordre de la liste :
 
@@ -210,7 +221,7 @@ Il y a deux situations, et elles n'ouvrent pas les mêmes commandes.
 
 **Un serveur enrôlé qui a perdu la plateforme.** Sans droit d'usage valide depuis sept jours, `hello` renvoie `entitlement: "restricted"` et six commandes répondent : `hello`, `ping`, `snapshot`, `status`, `diag` et `agent.upgrade`. Le client garde ainsi la vue de sa machine et le moyen de réparer un agent périmé. Les autres renvoient `entitlement_required` avec le lien vers la console. Rien de ce qui tourne ne s'arrête : tmux, les projets et les services continuent.
 
-**Un binaire sans jeton de serveur**, copié sur une autre machine, n'ouvre que `hello`, `ping` et `diag`. Il n'a aucun serveur à décrire et rien à mettre à jour : pas de jeton, donc pas de fonctions.
+**Un binaire sans jeton de serveur**, copié sur une autre machine, n'ouvre que `hello`, `ping`, `diag` et `enroll`. Il n'a aucun serveur à décrire et rien à mettre à jour : pas de jeton, donc pas de fonctions. `enroll` est la porte par laquelle il en obtient un, et elle ne s'ouvre que sur un jeton d'enrôlement que la plateforme a signé pour cet appareil et ce compte.
 
 ## Le tunnel local d'un port n'est pas du protocole
 

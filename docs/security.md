@@ -10,7 +10,7 @@ Un client est root sur son serveur : il peut copier tout fichier qui s'y trouve,
 | --- | --- | --- |
 | Clé privée SSH d'un appareil | dossier de données de l'app, `keys/<serveur>` en 0600 | l'utilisateur, sur cet appareil. Jamais l'API, jamais la console, jamais un email |
 | Jeton de session desktop (bearer) | `safeStorage` : trousseau macOS, DPAPI Windows, libsecret Linux | l'app |
-| Jeton d'enrôlement | mémoire de l'app, une fois, à l'installation | l'app, puis l'agent qui l'échange |
+| Jeton d'enrôlement | mémoire de l'app, une fois, à l'installation ; remis à l'agent par la commande `enroll` du protocole, sur le flux secret | l'app, puis l'agent qui l'échange |
 | Jeton de serveur | `/etc/pupitre/server.token`, 0600 root ; haché en base | l'agent. Ne donne accès qu'à l'état de son propre serveur. Rotation à chaque réinstallation |
 | Jetons Stripe, Neon, R2, clé de signature des binaires | secrets Wrangler et GitHub Actions | l'API, la CI |
 | Secrets du client (mots de passe de bases, jetons Cloudflare, 1Password) | `/etc/pupitre/env`, 0600, sur son serveur | lui seul. Ils ne remontent jamais |
