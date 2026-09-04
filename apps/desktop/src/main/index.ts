@@ -18,6 +18,7 @@ import type {
 } from "@shared/contract";
 import { editorUrl, logPath } from "@shared/profile";
 import { app, BrowserWindow, ipcMain, nativeTheme, shell } from "electron";
+import { agentClient, registerAgentChannels } from "./agent";
 import { catalog, history, paths } from "./completion";
 import { fileDiff, inspect, pull, validPath, workingTree } from "./git";
 import { profile, read, sshHosts, write as writeConfig } from "./servers";
@@ -247,6 +248,8 @@ function createWindow(): void {
 const logStoppers = new Map<string, () => void>();
 
 function registerChannels(): void {
+  registerAgentChannels();
+
   ipcMain.handle("snapshot", () => snapshot());
 
   ipcMain.handle("capabilities", async (): Promise<Capabilities> => {
@@ -530,6 +533,9 @@ function registerChannels(): void {
   ipcMain.handle("ssh-hosts", (): string[] => sshHosts());
   ipcMain.handle("servers-write", (_e, config: ServersConfig) => {
     const clean = writeConfig(config);
+    // The channels were talking to the old servers: they reopen on the new ones
+    // at the next call.
+    agentClient.closeAll();
     // The profile or the machine may have changed: what we knew about it no
     // longer holds, and asking again costs four commands.
     knownCapabilities = null;
@@ -702,6 +708,7 @@ app.on("window-all-closed", () => {
   logStoppers.clear();
   closeAll();
   channel.close();
+  agentClient.closeAll();
   if (process.platform !== "darwin") {
     app.quit();
   }

@@ -41,7 +41,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | ID | Tâche | Statut | Branche | PR |
 | --- | --- | --- | --- | --- |
 | APP-01 | Design monochrome et thèmes | fait | `feat/APP-01-monochrome` | fusionnée |
-| APP-02 | Client du protocole agent sur SSH | à faire | | |
+| APP-02 | Client du protocole agent sur SSH | en revue | `feat/APP-02-agent-client` | |
 | APP-03 | Serveurs, clés par appareil, config SSH propre à l'app | à faire | | |
 | APP-04 | Écran d'inspection | à faire | | |
 | APP-05 | Catalogue et configuration des services | à faire | | |

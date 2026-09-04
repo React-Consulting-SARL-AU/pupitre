@@ -7,7 +7,11 @@ export default defineConfig({
   main: {
     // The design tokens ship as TypeScript: Electron cannot require them at
     // runtime, so they are bundled in rather than externalised.
-    plugins: [externalizeDepsPlugin({ exclude: ["@pupitre/design"] })],
+    plugins: [
+      externalizeDepsPlugin({
+        exclude: ["@pupitre/design", "@pupitre/shared"],
+      }),
+    ],
     resolve: {
       alias: {
         "@shared": resolve("src/shared"),
