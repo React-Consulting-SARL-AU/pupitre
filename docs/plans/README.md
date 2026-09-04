@@ -272,3 +272,13 @@ Critères d'acceptation.
 1. Une capture s'affiche dans la galerie de l'app, sans ouvrir de navigateur.
 2. Rien n'expose les captures à qui n'a pas déjà accès au serveur.
 
+### INF-21 — Contrat : l'app remet le jeton d'enrôlement à l'agent
+Lot 0 · dépend de APP-14, AGT-14 · `packages/shared`, `apps/agent`, `apps/desktop`
+
+But. L'agent reçoit son jeton d'enrôlement par le protocole, au lieu que l'app le garde sans pouvoir le lui donner.
+Périmètre. APP-14 obtient le jeton d'enrôlement de la plateforme et le conserve dans le processus principal, mais rien dans le protocole agent ne le transporte : ni commande `enroll`, ni paramètre d'`install`. AGT-14 lit pourtant le jeton par l'entrée standard de `pupitred enroll`. Donner au protocole une commande d'enrôlement `{ enrollment_token, platform_url }`, sur le flux secret comme les autres porteurs de secret, pour que l'app pilote l'enrôlement de bout en bout. Aligner l'agent factice des fixtures.
+Hors périmètre. L'échange lui-même et le heartbeat, livrés par AGT-14.
+Critères d'acceptation.
+1. L'app enrôle un serveur de bout en bout contre le harnais de l'API, sans passer le jeton par un argument de ligne de commande.
+2. Le jeton d'enrôlement ne paraît dans aucun journal ni aucun `params`.
+
