@@ -9,13 +9,7 @@ export const TWO_FACTOR_CHALLENGE_TTL_SECONDS = 600
 const TWO_FACTOR_COOKIE_NAME = "two_factor"
 const IDENTIFIER_LENGTH = 20
 
-/**
- * The two-factor plugin only challenges its own password sign-ins. Pupitre has
- * no passwords: the factors that prove an email are the magic link and GitHub,
- * so those are the ones a second factor guards. `/passkey/verify-authentication`
- * is deliberately absent — a passkey is already a second factor, and asking for
- * a code after it would only punish the strongest way in.
- */
+/** Le greffon natif ne défend que ses connexions par mot de passe, que Pupitre n'a pas ; une passkey est déjà un second facteur. */
 const CHALLENGED_PATHS = new Set(["/magic-link/verify", "/callback/:id"])
 
 const DEFAULT_REDIRECT = "/dashboard/servers"

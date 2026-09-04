@@ -197,9 +197,7 @@ export function createAuth({
           )
         },
       }),
-      // Before `bearer`: it exposes `set-auth-token` from whatever session
-      // cookie the response carries, so the challenge has to drop that session
-      // first or the token would hand out a session the code never guarded.
+      // Avant `bearer`, qui sinon délivrerait un jeton pour la session que le code n'a pas encore gardée.
       twoFactorChallenge(consoleUrl(env)),
       deviceAuthorization({
         expiresIn: DEVICE_CODE_EXPIRES_IN,
