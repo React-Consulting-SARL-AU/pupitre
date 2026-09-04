@@ -42,7 +42,7 @@ describe("ProtocolErrorSchema", () => {
       ProtocolErrorSchema.safeParse({
         code: "entitlement_required",
         message: "Subscription expired",
-        fix: "https://app.pupitre.sh/billing",
+        fix: "https://app.pupitre.studio/billing",
       }).success
     ).toBe(true)
   })

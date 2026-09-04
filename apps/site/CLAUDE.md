@@ -1,6 +1,6 @@
 # apps/site — Guidelines
 
-`pupitre.sh`, le site. Monorepo → [`../../CLAUDE.md`](../../CLAUDE.md) · plan → [`docs/plans/marketing-site.md`](../../docs/plans/marketing-site.md) · produit et voix → [`PRODUCT.md`](../../docs/product/PRODUCT.md) · design → [`DESIGN.md`](../../docs/product/DESIGN.md).
+`pupitre.studio`, le site. Monorepo → [`../../CLAUDE.md`](../../CLAUDE.md) · plan → [`docs/plans/marketing-site.md`](../../docs/plans/marketing-site.md) · produit et voix → [`PRODUCT.md`](../../docs/product/PRODUCT.md) · design → [`DESIGN.md`](../../docs/product/DESIGN.md).
 
 ## Stack imposée
 

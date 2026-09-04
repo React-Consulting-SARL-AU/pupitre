@@ -14,8 +14,8 @@ Pupitre est un produit **fermé et commercial**. Rien de ce dépôt n'est publi�
 ## Structure
 
 ```txt
-apps/site        Astro — pupitre.sh : marketing, docs publiques, blog, légal, téléchargement
-apps/web         TanStack Start sur Cloudflare Workers — app.pupitre.sh : console, /api/v1 (Elysia), /api/auth (Better Auth)
+apps/site        Astro — pupitre.studio : marketing, docs publiques, blog, légal, téléchargement
+apps/web         TanStack Start sur Cloudflare Workers — app.pupitre.studio : console, /api/v1 (Elysia), /api/auth (Better Auth)
 apps/desktop     Electron — l'app : onboarding d'un VPS, catalogue de services, projets, terminaux, agents
 apps/agent       Go — pupitred, l'agent compilé installé sur le VPS du client
 

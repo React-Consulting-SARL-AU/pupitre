@@ -1,6 +1,6 @@
 import { DEFAULT_LOCALE, LOCALES, localizePath } from "./i18n"
 
-export const SITE_URL = "https://pupitre.sh"
+export const SITE_URL = "https://pupitre.studio"
 
 export interface AlternateLink {
   hreflang: string

@@ -3,9 +3,9 @@ package hardening
 import (
 	"encoding/json"
 
-	"pupitre.sh/agent/internal/contract"
-	"pupitre.sh/agent/internal/modules"
-	"pupitre.sh/agent/internal/protocol"
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/protocol"
 )
 
 func RegisterCommands(server *protocol.Server, engine *modules.Engine) {

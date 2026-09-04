@@ -75,9 +75,9 @@ describe("pricing page", () => {
         (plan) => plan.availability === "available"
       )
 
-      expect(html.match(/href="https:\/\/app\.pupitre\.sh\/"/g)).toHaveLength(
-        available.length
-      )
+      expect(
+        html.match(/href="https:\/\/app\.pupitre\.studio\/"/g)
+      ).toHaveLength(available.length)
       expect(
         html.match(new RegExp(`href="${prefix}/download/"`, "g"))?.length
       ).toBeGreaterThanOrEqual(2)
@@ -139,7 +139,7 @@ describe("pricing page", () => {
       expect(data[0]["@context"]).toBe("https://schema.org")
       expect(data[0]["@type"]).toBe("Product")
       expect(data[0].name).toBe("Pupitre")
-      expect(data[0].url).toBe(`https://pupitre.sh${prefix}/pricing/`)
+      expect(data[0].url).toBe(`https://pupitre.studio${prefix}/pricing/`)
 
       const offers = data[0].offers as Offer[]
       const available = PLANS.filter(
@@ -167,7 +167,7 @@ describe("pricing page", () => {
         expect(offer["@type"]).toBe("Offer")
         expect(offer.priceCurrency).toBe("EUR")
         expect(offer.availability).toBe("https://schema.org/InStock")
-        expect(offer.url).toBe("https://app.pupitre.sh/")
+        expect(offer.url).toBe("https://app.pupitre.studio/")
       }
       expect(JSON.stringify(data[0])).not.toContain("hosted")
     }

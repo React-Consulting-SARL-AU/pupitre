@@ -8,8 +8,8 @@ Pupitre est un monorepo Bun. Trois surfaces et un agent : l'app desktop qui pilo
 | --- | --- | --- |
 | `apps/desktop` | Electron 42, React 19, node-pty, `ssh` système | Onboarding d'un serveur, catalogue de services, projets, terminaux, agents, compte |
 | `apps/agent` | Go, binaire statique, systemd | Sonde, modules d'installation, registre des projets, pilotage tmux, clés, heartbeat, mise à jour |
-| `apps/web` | TanStack Start sur Cloudflare Workers | Console `app.pupitre.sh`, montage de `/api/v1` (Elysia) et `/api/auth` (Better Auth), emails, Workflows |
-| `apps/site` | Astro sur Cloudflare Pages | `pupitre.sh` : marketing, docs publiques, blog, légal, téléchargement |
+| `apps/web` | TanStack Start sur Cloudflare Workers | Console `app.pupitre.studio`, montage de `/api/v1` (Elysia) et `/api/auth` (Better Auth), emails, Workflows |
+| `apps/site` | Astro sur Cloudflare Pages | `pupitre.studio` : marketing, docs publiques, blog, légal, téléchargement |
 | `packages/api` | Elysia + Eden | Contrat `/api/v1`, client typé, harnais de test API/DB |
 | `packages/auth` | Better Auth | `createAuth` et ses plugins, clients web et desktop |
 | `packages/db` | Prisma 7 + Neon | Schéma, migrations, clients Node et Cloudflare |

@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"pupitre.sh/agent/internal/modules"
-	"pupitre.sh/agent/internal/modules/modtest"
-	"pupitre.sh/agent/internal/sys"
+	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/sys"
 )
 
 func init() {

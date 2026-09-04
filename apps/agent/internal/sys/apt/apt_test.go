@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"pupitre.sh/agent/internal/modules/modtest"
-	"pupitre.sh/agent/internal/sys"
-	"pupitre.sh/agent/internal/sys/apt"
+	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/sys"
+	"pupitre.studio/agent/internal/sys/apt"
 )
 
 var lockOptions = []string{"-o", "DPkg::Lock::Timeout=600", "-o", "Dpkg::Use-Pty=0"}

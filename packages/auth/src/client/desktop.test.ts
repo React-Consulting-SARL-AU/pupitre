@@ -28,15 +28,15 @@ function fakeFetch(status: number, payload: unknown, captured: Captured[]) {
 describe("startDeviceFlow", () => {
   it("posts the client id to /api/auth/device/code and returns the codes", async () => {
     const captured: Captured[] = []
-    const started = await startDeviceFlow("https://app.pupitre.sh/", {
+    const started = await startDeviceFlow("https://app.pupitre.studio/", {
       fetch: fakeFetch(
         200,
         {
           device_code: "dc",
           user_code: "ABCD-1234",
-          verification_uri: "https://app.pupitre.sh/auth/device",
+          verification_uri: "https://app.pupitre.studio/auth/device",
           verification_uri_complete:
-            "https://app.pupitre.sh/auth/device?user_code=ABCD-1234",
+            "https://app.pupitre.studio/auth/device?user_code=ABCD-1234",
           expires_in: 1800,
           interval: 5,
         },
@@ -44,7 +44,9 @@ describe("startDeviceFlow", () => {
       ),
     })
 
-    expect(captured[0].url).toBe("https://app.pupitre.sh/api/auth/device/code")
+    expect(captured[0].url).toBe(
+      "https://app.pupitre.studio/api/auth/device/code"
+    )
     expect(captured[0].init?.method).toBe("POST")
     expect(JSON.parse(String(captured[0].init?.body))).toEqual({
       client_id: DESKTOP_CLIENT_ID,
@@ -54,7 +56,7 @@ describe("startDeviceFlow", () => {
   })
 
   it("throws a DeviceFlowError on a refused client", async () => {
-    const promise = startDeviceFlow("https://app.pupitre.sh", {
+    const promise = startDeviceFlow("https://app.pupitre.studio", {
       fetch: fakeFetch(
         400,
         { error: "invalid_client", error_description: "nope" },
@@ -71,15 +73,21 @@ describe("pollDeviceFlow", () => {
   it("sends the device code grant and maps every outcome", async () => {
     const captured: Captured[] = []
 
-    const authorized = await pollDeviceFlow("https://app.pupitre.sh", "dc", {
-      fetch: fakeFetch(
-        200,
-        { access_token: "tok", token_type: "Bearer", expires_in: 10 },
-        captured
-      ),
-    })
+    const authorized = await pollDeviceFlow(
+      "https://app.pupitre.studio",
+      "dc",
+      {
+        fetch: fakeFetch(
+          200,
+          { access_token: "tok", token_type: "Bearer", expires_in: 10 },
+          captured
+        ),
+      }
+    )
 
-    expect(captured[0].url).toBe("https://app.pupitre.sh/api/auth/device/token")
+    expect(captured[0].url).toBe(
+      "https://app.pupitre.studio/api/auth/device/token"
+    )
     expect(JSON.parse(String(captured[0].init?.body))).toEqual({
       grant_type: "urn:ietf:params:oauth:grant-type:device_code",
       device_code: "dc",
@@ -98,14 +106,14 @@ describe("pollDeviceFlow", () => {
       ["access_denied", "denied"],
     ] as const) {
       expect(
-        await pollDeviceFlow("https://app.pupitre.sh", "dc", {
+        await pollDeviceFlow("https://app.pupitre.studio", "dc", {
           fetch: fakeFetch(400, { error, error_description: error }, []),
         })
       ).toEqual({ status })
     }
 
     await expect(
-      pollDeviceFlow("https://app.pupitre.sh", "dc", {
+      pollDeviceFlow("https://app.pupitre.studio", "dc", {
         fetch: fakeFetch(400, { error: "invalid_grant" }, []),
       })
     ).rejects.toMatchObject({ code: "invalid_grant" })
@@ -117,7 +125,7 @@ describe("fetchWithBearer", () => {
     const captured: Captured[] = []
     const request = fetchWithBearer("tok", fakeFetch(200, {}, captured))
 
-    await request("https://app.pupitre.sh/api/v1/me", {
+    await request("https://app.pupitre.studio/api/v1/me", {
       headers: { accept: "application/json" },
     })
 

@@ -1,6 +1,6 @@
 package entitlement
 
-import "pupitre.sh/agent/internal/contract"
+import "pupitre.studio/agent/internal/contract"
 
 var RestrictedCommands = []string{"hello", "ping", "snapshot", "status", "diag", "agent.upgrade"}
 

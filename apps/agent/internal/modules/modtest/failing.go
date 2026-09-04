@@ -3,8 +3,8 @@ package modtest
 import (
 	"errors"
 
-	"pupitre.sh/agent/internal/contract"
-	"pupitre.sh/agent/internal/modules"
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/modules"
 )
 
 type Failing struct {

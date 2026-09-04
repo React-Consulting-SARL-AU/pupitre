@@ -3,12 +3,12 @@ package modtest
 import (
 	"strings"
 
-	"pupitre.sh/agent/internal/contract"
-	"pupitre.sh/agent/internal/modules"
-	"pupitre.sh/agent/internal/sys/apt"
-	"pupitre.sh/agent/internal/sys/env"
-	"pupitre.sh/agent/internal/sys/file"
-	"pupitre.sh/agent/internal/sys/systemd"
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/sys/apt"
+	"pupitre.studio/agent/internal/sys/env"
+	"pupitre.studio/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/sys/systemd"
 )
 
 type Passing struct {

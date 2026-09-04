@@ -3,7 +3,7 @@ package user
 import (
 	"strings"
 
-	"pupitre.sh/agent/internal/sys"
+	"pupitre.studio/agent/internal/sys"
 )
 
 const basePath = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"

@@ -5,11 +5,11 @@ import (
 	"io"
 	"os"
 
-	"pupitre.sh/agent/internal/entitlement"
-	"pupitre.sh/agent/internal/modules"
-	"pupitre.sh/agent/internal/modules/core"
-	"pupitre.sh/agent/internal/protocol"
-	"pupitre.sh/agent/internal/sys"
+	"pupitre.studio/agent/internal/entitlement"
+	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/core"
+	"pupitre.studio/agent/internal/protocol"
+	"pupitre.studio/agent/internal/sys"
 )
 
 var version = "dev"

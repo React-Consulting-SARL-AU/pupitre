@@ -3,8 +3,8 @@ package systemd
 import (
 	"strings"
 
-	"pupitre.sh/agent/internal/contract"
-	"pupitre.sh/agent/internal/sys"
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/sys"
 )
 
 const unitDir = "/etc/systemd/system"

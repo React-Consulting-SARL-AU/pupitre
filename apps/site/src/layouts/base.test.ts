@@ -22,16 +22,16 @@ describe("Base layout", () => {
     )
     expect(html).toContain('<meta name="color-scheme" content="light dark">')
     expect(html).toContain(
-      '<link rel="canonical" href="https://pupitre.sh/pricing/">'
+      '<link rel="canonical" href="https://pupitre.studio/pricing/">'
     )
     expect(html).toContain(
-      '<link rel="alternate" hreflang="en" href="https://pupitre.sh/pricing/">'
+      '<link rel="alternate" hreflang="en" href="https://pupitre.studio/pricing/">'
     )
     expect(html).toContain(
-      '<link rel="alternate" hreflang="fr" href="https://pupitre.sh/fr/pricing/">'
+      '<link rel="alternate" hreflang="fr" href="https://pupitre.studio/fr/pricing/">'
     )
     expect(html).toContain(
-      '<link rel="alternate" hreflang="x-default" href="https://pupitre.sh/pricing/">'
+      '<link rel="alternate" hreflang="x-default" href="https://pupitre.studio/pricing/">'
     )
     expect(html).toContain(
       '<link rel="icon" href="/favicon.svg" type="image/svg+xml">'
@@ -44,7 +44,7 @@ describe("Base layout", () => {
     )
     expect(html).toContain('<meta property="og:type" content="website">')
     expect(html).toContain(
-      '<meta property="og:url" content="https://pupitre.sh/pricing/">'
+      '<meta property="og:url" content="https://pupitre.studio/pricing/">'
     )
     expect(html).toContain('<meta property="og:locale" content="en_US">')
     expect(html).toContain(
@@ -59,7 +59,7 @@ describe("Base layout", () => {
 
     expect(html).toContain('<html lang="fr"')
     expect(html).toContain(
-      '<link rel="canonical" href="https://pupitre.sh/fr/pricing/">'
+      '<link rel="canonical" href="https://pupitre.studio/fr/pricing/">'
     )
     expect(html).toContain('<meta property="og:locale" content="fr_FR">')
     expect(html).toContain(

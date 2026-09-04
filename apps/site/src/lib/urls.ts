@@ -1,1 +1,1 @@
-export const CONSOLE_URL = "https://app.pupitre.sh/"
+export const CONSOLE_URL = "https://app.pupitre.studio/"

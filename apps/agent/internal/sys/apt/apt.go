@@ -3,7 +3,7 @@ package apt
 import (
 	"strings"
 
-	"pupitre.sh/agent/internal/sys"
+	"pupitre.studio/agent/internal/sys"
 )
 
 var options = []string{"-o", "DPkg::Lock::Timeout=600", "-o", "Dpkg::Use-Pty=0"}

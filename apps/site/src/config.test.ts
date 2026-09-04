@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest"
 import config from "../astro.config.mjs"
 
 describe("astro config", () => {
-  it("builds a static site for pupitre.sh", () => {
-    expect(config.site).toBe("https://pupitre.sh")
+  it("builds a static site for pupitre.studio", () => {
+    expect(config.site).toBe("https://pupitre.studio")
     expect(config.output).toBe("static")
   })
 

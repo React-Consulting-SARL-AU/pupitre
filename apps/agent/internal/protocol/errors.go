@@ -1,6 +1,6 @@
 package protocol
 
-import "pupitre.sh/agent/internal/contract"
+import "pupitre.studio/agent/internal/contract"
 
 type Error struct {
 	Code    contract.ErrorCode `json:"code"`
@@ -37,7 +37,7 @@ func unknownCommand(cmd string) *Error {
 
 func EntitlementRequired() *Error {
 	return NewError(contract.ErrorEntitlementRequired, "droit d'usage requis : ce serveur est en mode restreint").
-		WithFix("Ouvre https://app.pupitre.sh pour renouveler le droit d'usage de ce serveur.")
+		WithFix("Ouvre https://app.pupitre.studio pour renouveler le droit d'usage de ce serveur.")
 }
 
 func internalError(cause string) *Error {

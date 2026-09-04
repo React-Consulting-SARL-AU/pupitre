@@ -2,6 +2,6 @@
 
 package entitlement
 
-import "pupitre.sh/agent/internal/contract"
+import "pupitre.studio/agent/internal/contract"
 
 const buildEntitlement = contract.EntitlementDev

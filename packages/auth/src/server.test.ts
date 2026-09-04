@@ -54,8 +54,8 @@ describe("createAuth", () => {
       prisma,
       env: {
         ...env,
-        BETTER_AUTH_URL: "https://staging-app.pupitre.sh",
-        VITE_APP_URL: "https://staging-app.pupitre.sh",
+        BETTER_AUTH_URL: "https://staging-app.pupitre.studio",
+        VITE_APP_URL: "https://staging-app.pupitre.studio",
       },
     })
 
@@ -68,14 +68,14 @@ describe("createAuth", () => {
       prisma,
       env: {
         ...env,
-        BETTER_AUTH_URL: "https://staging-app.pupitre.sh/",
-        VITE_APP_URL: "https://console.pupitre.sh/dashboard",
+        BETTER_AUTH_URL: "https://staging-app.pupitre.studio/",
+        VITE_APP_URL: "https://console.pupitre.studio/dashboard",
       },
     })
 
     expect(auth.options.trustedOrigins).toEqual([
-      "https://staging-app.pupitre.sh",
-      "https://console.pupitre.sh",
+      "https://staging-app.pupitre.studio",
+      "https://console.pupitre.studio",
     ])
   })
 

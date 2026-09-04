@@ -1,3 +1,3 @@
-module pupitre.sh/agent
+module pupitre.studio/agent
 
 go 1.26

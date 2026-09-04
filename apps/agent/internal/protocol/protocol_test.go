@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"pupitre.sh/agent/internal/contract"
+	"pupitre.studio/agent/internal/contract"
 )
 
 const testAgentVersion = "0.0.0-test"

@@ -3,7 +3,7 @@ package modules
 import (
 	"fmt"
 
-	"pupitre.sh/agent/internal/contract"
+	"pupitre.studio/agent/internal/contract"
 )
 
 type Module interface {

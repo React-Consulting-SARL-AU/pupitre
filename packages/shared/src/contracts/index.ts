@@ -15,7 +15,7 @@ import {
 import { InstallSecretsSchema } from "../agent-protocol/install"
 import { FieldSchema, ManifestSchema, PRESETS, PresetSchema } from "../catalog"
 
-export const CONTRACT_ID = "https://pupitre.sh/contracts/agent/schema.json"
+export const CONTRACT_ID = "https://pupitre.studio/contracts/agent/schema.json"
 
 const COMMAND_SEPARATOR_RE = /[._]/
 

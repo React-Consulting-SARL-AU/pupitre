@@ -17,7 +17,7 @@ describe("PlanCard", () => {
     expect(html).toContain(`${yearlyPriceEur(solo)} €`)
     expect(html).toContain(`Up to ${solo.maxServers} servers`)
     expect(html).toContain(
-      '<a href="https://app.pupitre.sh/" class="btn btn-primary">Order</a>'
+      '<a href="https://app.pupitre.studio/" class="btn btn-primary">Order</a>'
     )
     expect(html).not.toContain(">From<")
   })
@@ -32,7 +32,7 @@ describe("PlanCard", () => {
     expect(html).toContain(">Team</h3>")
     expect(html).not.toContain("Up to")
     expect(html).toContain("As many servers as you bring")
-    expect(html).toContain('href="https://app.pupitre.sh/"')
+    expect(html).toContain('href="https://app.pupitre.studio/"')
   })
 
   it("marks Hosted as later, from a monthly price, without a button", async () => {

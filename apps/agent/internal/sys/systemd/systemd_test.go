@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"testing"
 
-	"pupitre.sh/agent/internal/contract"
-	"pupitre.sh/agent/internal/modules/modtest"
-	"pupitre.sh/agent/internal/sys/systemd"
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/sys/systemd"
 )
 
 func TestEnableRestartAndState(t *testing.T) {

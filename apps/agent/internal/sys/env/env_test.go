@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"pupitre.sh/agent/internal/modules/modtest"
-	"pupitre.sh/agent/internal/sys/env"
+	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/sys/env"
 )
 
 const password = "s3cret-de-test"

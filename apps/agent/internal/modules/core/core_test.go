@@ -3,9 +3,9 @@ package core_test
 import (
 	"testing"
 
-	"pupitre.sh/agent/internal/modules"
-	"pupitre.sh/agent/internal/modules/core"
-	"pupitre.sh/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/core"
+	"pupitre.studio/agent/internal/modules/modtest"
 )
 
 func TestTranscripts(t *testing.T) {

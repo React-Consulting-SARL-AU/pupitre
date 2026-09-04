@@ -3,8 +3,8 @@ package file_test
 import (
 	"testing"
 
-	"pupitre.sh/agent/internal/modules/modtest"
-	"pupitre.sh/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/sys/file"
 )
 
 func TestWriteAtomicSameExistsRemove(t *testing.T) {

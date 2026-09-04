@@ -11,11 +11,11 @@ import (
 	"sync"
 	"time"
 
-	"pupitre.sh/agent/internal/contract"
-	"pupitre.sh/agent/internal/entitlement"
-	"pupitre.sh/agent/internal/protocol"
-	"pupitre.sh/agent/internal/sys"
-	"pupitre.sh/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/entitlement"
+	"pupitre.studio/agent/internal/protocol"
+	"pupitre.studio/agent/internal/sys"
+	"pupitre.studio/agent/internal/sys/file"
 )
 
 const (

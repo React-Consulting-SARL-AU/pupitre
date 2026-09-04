@@ -171,7 +171,7 @@ Catalogue : `db.redis`, « local seulement, mot de passe, persistance », champ 
 ```go
 package redis
 
-import "pupitre.sh/agent/internal/contract"
+import "pupitre.studio/agent/internal/contract"
 
 const ID = "db.redis"
 
@@ -204,13 +204,13 @@ import (
 	"fmt"
 	"strings"
 
-	"pupitre.sh/agent/internal/contract"
-	"pupitre.sh/agent/internal/modules"
-	"pupitre.sh/agent/internal/sys/apt"
-	"pupitre.sh/agent/internal/sys/env"
-	"pupitre.sh/agent/internal/sys/file"
-	"pupitre.sh/agent/internal/sys/systemd"
-	"pupitre.sh/agent/internal/sys/user"
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/sys/apt"
+	"pupitre.studio/agent/internal/sys/env"
+	"pupitre.studio/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/sys/systemd"
+	"pupitre.studio/agent/internal/sys/user"
 )
 
 const (
@@ -439,9 +439,9 @@ import (
 	"strings"
 	"testing"
 
-	"pupitre.sh/agent/internal/contract"
-	"pupitre.sh/agent/internal/modules"
-	"pupitre.sh/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/modtest"
 )
 
 const password = "s3cret-de-test"

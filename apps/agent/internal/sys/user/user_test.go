@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"pupitre.sh/agent/internal/modules/modtest"
-	"pupitre.sh/agent/internal/sys/user"
+	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/sys/user"
 )
 
 func TestRunAsDevUsesArgvAndAFullEnvironment(t *testing.T) {

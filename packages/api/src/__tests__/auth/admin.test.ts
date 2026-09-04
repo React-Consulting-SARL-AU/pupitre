@@ -38,7 +38,7 @@ describe("admin plugin", () => {
     await createUser({ email: "someone@test.local" })
 
     const { user } = await createUser({
-      email: "support@pupitre.sh",
+      email: "support@pupitre.studio",
       role: "platform_admin",
     })
     const { headers } = await createSession({ userId: user.id })
@@ -52,7 +52,7 @@ describe("admin plugin", () => {
     expect(listed.json.total).toBe(2)
     expect(listed.json.users.map((row) => row.email).sort()).toEqual([
       "someone@test.local",
-      "support@pupitre.sh",
+      "support@pupitre.studio",
     ])
   })
 })

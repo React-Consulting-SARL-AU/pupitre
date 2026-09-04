@@ -6,11 +6,11 @@ import (
 	"io/fs"
 	"strings"
 
-	"pupitre.sh/agent/internal/keys"
-	"pupitre.sh/agent/internal/modules"
-	"pupitre.sh/agent/internal/sys"
-	"pupitre.sh/agent/internal/sys/file"
-	"pupitre.sh/agent/internal/sys/user"
+	"pupitre.studio/agent/internal/keys"
+	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/sys"
+	"pupitre.studio/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/sys/user"
 )
 
 func setTimezone(ctx *modules.Context) error {

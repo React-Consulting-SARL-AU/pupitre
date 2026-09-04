@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"pupitre.sh/agent/internal/contract"
+	"pupitre.studio/agent/internal/contract"
 )
 
 type Registry struct {

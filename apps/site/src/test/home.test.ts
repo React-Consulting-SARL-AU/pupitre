@@ -23,7 +23,7 @@ describe("home", () => {
       '<a href="/download/" class="btn btn-primary">Download the app</a>'
     )
     expect(html).toContain(
-      '<a href="https://app.pupitre.sh/" class="btn btn-secondary">Order</a>'
+      '<a href="https://app.pupitre.studio/" class="btn btn-secondary">Order</a>'
     )
   })
 
@@ -38,7 +38,7 @@ describe("home", () => {
       '<a href="/fr/download/" class="btn btn-primary">Télécharger l’app</a>'
     )
     expect(html).toContain(
-      '<a href="https://app.pupitre.sh/" class="btn btn-secondary">Commander</a>'
+      '<a href="https://app.pupitre.studio/" class="btn btn-secondary">Commander</a>'
     )
   })
 

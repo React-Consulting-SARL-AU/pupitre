@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"pupitre.sh/agent/internal/sys"
+	"pupitre.studio/agent/internal/sys"
 )
 
 const Path = "/etc/pupitre/env"

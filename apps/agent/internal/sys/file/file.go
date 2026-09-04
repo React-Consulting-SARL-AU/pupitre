@@ -6,7 +6,7 @@ import (
 	"io/fs"
 	"strings"
 
-	"pupitre.sh/agent/internal/sys"
+	"pupitre.studio/agent/internal/sys"
 )
 
 func Read(ctx sys.Context, path string) ([]byte, error) {

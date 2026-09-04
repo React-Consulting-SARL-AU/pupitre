@@ -5,7 +5,7 @@ import (
 	"io/fs"
 	"strings"
 
-	"pupitre.sh/agent/internal/sys"
+	"pupitre.studio/agent/internal/sys"
 )
 
 type UnitState string

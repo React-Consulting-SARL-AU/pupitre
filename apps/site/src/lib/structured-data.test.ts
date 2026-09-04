@@ -31,7 +31,7 @@ describe("softwareApplication", () => {
     expect(data["@type"]).toBe("SoftwareApplication")
     expect(data.name).toBe("Pupitre")
     expect(data.description).toBe("A machine for your agents.")
-    expect(data.url).toBe("https://pupitre.sh/")
+    expect(data.url).toBe("https://pupitre.studio/")
     expect(data.inLanguage).toBe("en")
     expect(data.applicationCategory).toBe("DeveloperApplication")
     expect(data.operatingSystem).toBe("macOS, Windows, Linux")
@@ -39,7 +39,7 @@ describe("softwareApplication", () => {
       "@type": "Offer",
       price: String(getPlan("solo").monthlyPriceEur),
       priceCurrency: "EUR",
-      url: "https://pupitre.sh/pricing/",
+      url: "https://pupitre.studio/pricing/",
     })
   })
 
@@ -50,9 +50,9 @@ describe("softwareApplication", () => {
       description: "Une machine.",
     })
 
-    expect(data.url).toBe("https://pupitre.sh/fr/")
+    expect(data.url).toBe("https://pupitre.studio/fr/")
     expect(data.inLanguage).toBe("fr")
-    expect(data.offers.url).toBe("https://pupitre.sh/fr/pricing/")
+    expect(data.offers.url).toBe("https://pupitre.studio/fr/pricing/")
   })
 })
 
@@ -97,7 +97,7 @@ describe("product", () => {
     expect(data["@type"]).toBe("Product")
     expect(data.name).toBe("Pupitre")
     expect(data.description).toBe("One price per server.")
-    expect(data.url).toBe("https://pupitre.sh/pricing/")
+    expect(data.url).toBe("https://pupitre.studio/pricing/")
     expect(data.brand).toEqual({ "@type": "Brand", name: "Pupitre" })
     expect(data.offers).toHaveLength(available.length * 2)
     expect(data.offers[0]).toEqual({
@@ -105,7 +105,7 @@ describe("product", () => {
       name: "Solo, monthly",
       price: String(getPlan("solo").monthlyPriceEur),
       priceCurrency: "EUR",
-      url: "https://app.pupitre.sh/",
+      url: "https://app.pupitre.studio/",
       availability: "https://schema.org/InStock",
     })
     expect(data.offers[1]).toEqual({
@@ -113,7 +113,7 @@ describe("product", () => {
       name: "Solo, yearly",
       price: String(yearlyPriceEur(getPlan("solo"))),
       priceCurrency: "EUR",
-      url: "https://app.pupitre.sh/",
+      url: "https://app.pupitre.studio/",
       availability: "https://schema.org/InStock",
     })
     expect(data.offers.map((offer) => offer.name)).not.toContain(
@@ -129,7 +129,7 @@ describe("product", () => {
       intervals: { month: "mensuel", year: "annuel" },
     })
 
-    expect(data.url).toBe("https://pupitre.sh/fr/pricing/")
+    expect(data.url).toBe("https://pupitre.studio/fr/pricing/")
     expect(data.offers.map((offer) => offer.name)).toEqual([
       "Solo, mensuel",
       "Solo, annuel",

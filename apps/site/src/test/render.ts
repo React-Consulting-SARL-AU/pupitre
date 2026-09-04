@@ -24,7 +24,7 @@ export async function render(
   const html = await container.renderToString(component, {
     props,
     slots,
-    request: new Request(`https://pupitre.sh${path}`),
+    request: new Request(`https://pupitre.studio${path}`),
   })
 
   return normalize(html)

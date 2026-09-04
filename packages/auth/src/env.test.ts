@@ -26,8 +26,8 @@ describe("isLocalhostUrl", () => {
   it("recognises loopback hosts only", () => {
     expect(isLocalhostUrl("http://localhost:3000")).toBe(true)
     expect(isLocalhostUrl("http://127.0.0.1:3000")).toBe(true)
-    expect(isLocalhostUrl("https://app.pupitre.sh")).toBe(false)
-    expect(isLocalhostUrl("https://localhost.pupitre.sh")).toBe(false)
+    expect(isLocalhostUrl("https://app.pupitre.studio")).toBe(false)
+    expect(isLocalhostUrl("https://localhost.pupitre.studio")).toBe(false)
   })
 })
 

@@ -1,6 +1,6 @@
 package hardening
 
-import "pupitre.sh/agent/internal/contract"
+import "pupitre.studio/agent/internal/contract"
 
 const ID = "core.hardening"
 

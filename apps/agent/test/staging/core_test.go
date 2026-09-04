@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"pupitre.sh/agent/internal/contract"
+	"pupitre.studio/agent/internal/contract"
 )
 
 const authorizedKeys = "/home/dev/.ssh/authorized_keys"
@@ -16,7 +16,7 @@ var coreInstall = request{Cmd: "install", Params: map[string]any{
 	"modules":       []string{"core.system", "core.hardening"},
 	"secrets_stdin": false,
 	"config": map[string]any{
-		"core.system":    map[string]any{"timezone": "Europe/Paris", "git_name": "Pupitre Staging", "git_email": "staging@pupitre.sh"},
+		"core.system":    map[string]any{"timezone": "Europe/Paris", "git_name": "Pupitre Staging", "git_email": "staging@pupitre.studio"},
 		"core.hardening": map[string]any{"ssh_443": false},
 	},
 }}

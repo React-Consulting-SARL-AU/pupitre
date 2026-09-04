@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"pupitre.sh/agent/internal/contract"
+	"pupitre.studio/agent/internal/contract"
 )
 
 func TestRestrictedCommandsMatchTheContract(t *testing.T) {

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://pupitre.sh/contracts/agent/schema.json",
+  "$id": "https://pupitre.studio/contracts/agent/schema.json",
   "title": "Pupitre agent contract",
   "protocol": 1,
   "$defs": {

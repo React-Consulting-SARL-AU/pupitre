@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"pupitre.sh/agent/internal/contract"
-	"pupitre.sh/agent/internal/protocol"
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/protocol"
 )
 
 func (r *Registry) Resolve(ids []string) ([]Module, error) {

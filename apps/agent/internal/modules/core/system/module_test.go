@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"pupitre.sh/agent/internal/contract"
-	"pupitre.sh/agent/internal/modules"
-	"pupitre.sh/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/modtest"
 )
 
 const (

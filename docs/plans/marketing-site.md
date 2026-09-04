@@ -1,6 +1,6 @@
 # Plan — Site marketing
 
-Workspaces : `apps/site`, `packages/design`. Préfixe `MKT`. `pupitre.sh` présente, documente et fait télécharger. Il ne vend pas lui-même : le bouton de commande ouvre la console.
+Workspaces : `apps/site`, `packages/design`. Préfixe `MKT`. `pupitre.studio` présente, documente et fait télécharger. Il ne vend pas lui-même : le bouton de commande ouvre la console.
 
 À lire : [PRODUCT.md](../product/PRODUCT.md) (voix, cibles, prix, anti-références), [DESIGN.md](../product/DESIGN.md), [architecture.md](../architecture.md). Le site peut avancer dès le socle `INF` ; il ne dépend de la plateforme que pour la liste des releases (MKT-04) et du produit que pour les captures réelles.
 
@@ -80,5 +80,5 @@ Critères d'acceptation. Validation des données structurées sans erreur ; un a
 ### MKT-09 — Déploiement Cloudflare Pages
 Lot S · dépend de MKT-01 · `apps/site`, dashboard
 
-Périmètre. Projet Pages relié au dépôt, `staging.pupitre.sh` sur les PR, `pupitre.sh` sur `main`, en-têtes de sécurité (`CSP`, `HSTS`), redirections `www` et `/fr/` trailing.
+Périmètre. Projet Pages relié au dépôt, `staging.pupitre.studio` sur les PR, `pupitre.studio` sur `main`, en-têtes de sécurité (`CSP`, `HSTS`), redirections `www` et `/fr/` trailing.
 Critères d'acceptation. Une PR obtient une URL de prévisualisation ; `main` publie en moins de trois minutes.

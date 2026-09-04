@@ -3,7 +3,7 @@ package modules_test
 import (
 	"testing"
 
-	"pupitre.sh/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/modules/modtest"
 )
 
 func TestFixtures(t *testing.T) {

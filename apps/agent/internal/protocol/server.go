@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"pupitre.sh/agent/internal/contract"
-	"pupitre.sh/agent/internal/entitlement"
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/entitlement"
 )
 
 type Options struct {

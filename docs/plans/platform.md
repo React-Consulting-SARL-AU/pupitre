@@ -123,13 +123,13 @@ Critères d'acceptation. Un nouvel utilisateur va de l'inscription à un serveur
 ### PLT-11 — Emails transactionnels
 Lot 3 · dépend de PLT-02 · `packages/api/src/emails`, Cloudflare Email
 
-Périmètre. Lien magique, invitation, serveur enrôlé, serveur attribué, appareil ajouté, droit d'usage en tolérance, suspension, décommission dans sept jours. React Email, fr et en, thème monochrome, expéditeur `no-reply@pupitre.sh`.
+Périmètre. Lien magique, invitation, serveur enrôlé, serveur attribué, appareil ajouté, droit d'usage en tolérance, suspension, décommission dans sept jours. React Email, fr et en, thème monochrome, expéditeur `no-reply@pupitre.studio`.
 Critères d'acceptation. Chaque email a une prévisualisation dans `bun run dev:email` et un test de rendu.
 
 ### PLT-14 — Déploiement Cloudflare Builds, staging et production
 Lot 3 · dépend de PLT-08 · `apps/web`, dashboards
 
-Périmètre. `wrangler.jsonc` avec `secrets.required`, `scripts/check-worker-secrets.ts`, deux environnements, migrations au build, domaines `staging-app.pupitre.sh` et `app.pupitre.sh`, page de statut minimale `/status` sur les heartbeats, observabilité Workers, Sentry.
+Périmètre. `wrangler.jsonc` avec `secrets.required`, `scripts/check-worker-secrets.ts`, deux environnements, migrations au build, domaines `staging-app.pupitre.studio` et `app.pupitre.studio`, page de statut minimale `/status` sur les heartbeats, observabilité Workers, Sentry.
 Critères d'acceptation. Un push sur `main` déploie le staging ; un tag déploie la production ; un secret manquant refuse le déploiement avec son nom.
 
 **Porte du lot 3** : un inconnu paie en mode test, télécharge, enrôle son VPS et travaille, sans écrire au propriétaire.

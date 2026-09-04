@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"pupitre.sh/agent/internal/contract"
-	"pupitre.sh/agent/internal/entitlement"
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/entitlement"
 )
 
 func serveLines(t *testing.T, lines ...string) []string {

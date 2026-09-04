@@ -5,11 +5,11 @@ import (
 	"strconv"
 	"strings"
 
-	"pupitre.sh/agent/internal/modules"
-	"pupitre.sh/agent/internal/sys"
-	"pupitre.sh/agent/internal/sys/apt"
-	"pupitre.sh/agent/internal/sys/file"
-	"pupitre.sh/agent/internal/sys/systemd"
+	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/sys"
+	"pupitre.studio/agent/internal/sys/apt"
+	"pupitre.studio/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/sys/systemd"
 )
 
 const (
