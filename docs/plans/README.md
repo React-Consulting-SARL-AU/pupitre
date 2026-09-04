@@ -235,3 +235,20 @@ Critères d'acceptation.
 2. Demander une clé qui n'appartient pas au module est refusé, prouvé par un test.
 3. La valeur n'apparaît dans aucun journal de l'agent ni de l'app.
 
+### INF-18 — Contrat : l'empreinte vient de la plateforme, et on ne recule pas
+Lot 0 · dépend de AGT-13 · `packages/shared`, `packages/api`, `apps/agent`
+
+But. L'agent n'a plus besoin qu'on lui tende une signature, et une version périmée ne peut pas être réinstallée.
+
+Périmètre. Aujourd'hui `/agent/release/:version` ne rend que le binaire et `/agent/state` que `target_version` : l'agent se repose sur la `signature` que l'app lui passe en paramètre. C'est vérifiable — la clé publique est embarquée — mais deux choses manquent.
+
+D'abord, la plateforme doit publier elle-même l'empreinte et la signature d'une version, par une route de métadonnées ou par des en-têtes sur le téléchargement, pour qu'un agent puisse se mettre à jour sans dépendre de ce que l'app veut bien lui donner.
+
+Ensuite, **rien n'empêche aujourd'hui de réinstaller une version ancienne et vulnérable** : sa signature reste valide pour toujours. Il faut un garde-fou — un plancher de version que l'agent refuse de franchir vers le bas, sauf demande explicite du propriétaire.
+
+Hors périmètre. La chaîne de publication (AGT-15).
+
+Critères d'acceptation.
+1. L'agent se met à jour avec la seule réponse de la plateforme, sans signature passée en paramètre.
+2. Une tentative d'installer une version antérieure au plancher est refusée, prouvée par un test.
+
