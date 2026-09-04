@@ -84,7 +84,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-10 | Organisations : membres, invitations, attribution, audit | fait | `feat/PLT-10-teams` | fusionnée |
 | PLT-11 | Emails transactionnels | fait | `feat/PLT-11-emails` | fusionnée |
 | PLT-12 | Alertes et page de statut | fait | `feat/PLT-12-alerts` | fusionnée |
-| PLT-13 | Passkeys et MFA | à faire | | |
+| PLT-13 | Passkeys et MFA | en cours | `feat/PLT-13-passkeys` | |
 | PLT-14 | Déploiement Cloudflare Builds, staging et production | à faire | | |
 | PLT-15 | Workflows Cloudflare : déclencheurs des tâches longues | à faire | | |
 | PLT-16 | Harnais Playwright pour la console | à faire | | |
