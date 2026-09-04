@@ -123,6 +123,9 @@ func (f *transcript) directive(t *testing.T, path, line string) {
 	case "reply":
 		program, reply, _ := strings.Cut(rest, " ")
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Replies[program] = unescape(reply) + "\n" })
+	case "answer":
+		fragment, answer, _ := strings.Cut(rest, " ")
+		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Answer(fragment, unescape(answer)+"\n") })
 	case "fail":
 		program, stderr, _ := strings.Cut(rest, " ")
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.FailProgram(program, stderr) })
