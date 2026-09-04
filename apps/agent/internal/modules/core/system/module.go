@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/daemon"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/file"
@@ -57,7 +58,7 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 
 	return modules.Status{
 		Installed:  true,
-		Configured: file.Same(ctx, sudoersPath, []byte(sudoers)) && file.HasBlock(ctx, zshrcPath, ID) && file.HasBlock(ctx, bashrcPath, ID) && linked(ctx),
+		Configured: file.Same(ctx, sudoersPath, []byte(sudoers)) && file.HasBlock(ctx, zshrcPath, ID) && file.HasBlock(ctx, bashrcPath, ID) && linked(ctx) && file.Same(ctx, daemon.UnitPath, []byte(daemon.UnitFile)),
 		Version:    osVersion(ctx),
 	}, nil
 }
@@ -67,7 +68,7 @@ func (Module) Install(ctx *modules.Context) error {
 }
 
 func (Module) Configure(ctx *modules.Context) error {
-	return sequence(ctx, setTimezone, createUser, grantSudo, prepareHome, seedAuthorizedKeys, createProjectsDir, setGitIdentity, writeZshrc, writeBashrc, writeTmuxConf, linkDev)
+	return sequence(ctx, setTimezone, createUser, grantSudo, prepareHome, seedAuthorizedKeys, createProjectsDir, setGitIdentity, writeZshrc, writeBashrc, writeTmuxConf, linkDev, installAgentUnit)
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
@@ -115,6 +116,10 @@ func (Module) Uninstall(ctx *modules.Context) error {
 	}
 
 	if err := unlinkDev(ctx); err != nil {
+		return err
+	}
+
+	if err := removeAgentUnit(ctx); err != nil {
 		return err
 	}
 

@@ -42,8 +42,9 @@ type Options struct {
 
 // The outgoing half of the agent: it pulls what the platform knows and pushes what the machine is, and never listens.
 type Daemon struct {
-	options Options
-	journal sys.Context
+	options    Options
+	journal    sys.Context
+	lastReport string
 }
 
 type Sync struct {

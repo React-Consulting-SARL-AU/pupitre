@@ -57,19 +57,30 @@ func (d *Daemon) beatOnce() {
 // An unenrolled server, a network down, a revoked token: three silences the journal tells apart, and none of them stops anything that runs.
 func (d *Daemon) report(what string, err error) {
 	if errors.Is(err, platform.ErrNoToken) {
-		d.journal.Logf("%s : ce serveur n'est pas enrôlé", what)
+		d.once(what, "ce serveur n'est pas enrôlé")
 
 		return
 	}
 
 	var failure *platform.Error
 	if errors.As(err, &failure) && failure.Unauthorized() {
-		d.journal.Logf("%s : la plateforme refuse le jeton de ce serveur", what)
+		d.once(what, "la plateforme refuse le jeton de ce serveur")
 
 		return
 	}
 
-	d.journal.Logf("%s : %s", what, err)
+	d.once(what, err.Error())
+}
+
+// The same silence repeated every thirty seconds fills a journal for nothing: it is written once, and again when it changes.
+func (d *Daemon) once(what, message string) {
+	line := what + " : " + message
+	if line == d.lastReport {
+		return
+	}
+
+	d.lastReport = line
+	d.journal.Logf("%s", line)
 }
 
 func orNone(version string) string {

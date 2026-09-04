@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/daemon"
 	"pupitre.studio/agent/internal/devcli"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
@@ -374,5 +375,46 @@ func TestDevCommandIsLinkedToTheBinaryAndRemovedOnUninstall(t *testing.T) {
 
 	if strings.Contains(string(fake.Files[bashrcPath]), "pupitre") {
 		t.Error("the bash fragment survives the uninstall")
+	}
+}
+
+// Nothing reads the platform on a server where the service is missing: the module that lays the machine down lays it down too.
+func TestConfigureInstallsAndEnablesTheAgentService(t *testing.T) {
+	fake := bareMachine()
+	ctx := newContext(t, fake)
+
+	run(t, ctx)
+
+	unit := string(fake.Files[daemon.UnitPath])
+	if !strings.Contains(unit, "pupitred daemon") || !strings.Contains(unit, "Restart=always") {
+		t.Fatalf("unité :\n%s", unit)
+	}
+
+	if fake.Units[daemon.Unit] != modtest.UnitActive {
+		t.Fatalf("état de l'unité = %q", fake.Units[daemon.Unit])
+	}
+
+	if statuses(ctx)["install-agent-unit"] != contract.StepOK {
+		t.Fatalf("étapes = %v", statuses(ctx))
+	}
+
+	replayed := newContext(t, fake)
+	run(t, replayed)
+
+	if statuses(replayed)["install-agent-unit"] != contract.StepSkip {
+		t.Fatalf("rejeu = %v", statuses(replayed))
+	}
+}
+
+func TestUninstallTakesTheAgentServiceAway(t *testing.T) {
+	fake := bareMachine()
+	run(t, newContext(t, fake))
+
+	if err := (Module{}).Uninstall(newContext(t, fake)); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, present := fake.Files[daemon.UnitPath]; present {
+		t.Fatal("l'unité est restée en place")
 	}
 }
