@@ -9,6 +9,7 @@ import (
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/core"
 	_ "pupitre.studio/agent/internal/modules/runtime"
+	"pupitre.studio/agent/internal/probe"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/sys"
 )
@@ -43,6 +44,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return runInstall(newEngine(), args[1:], stderr)
 	case "report":
 		return runReport(newEngine(), stdout, stderr)
+	case "probe":
+		return runProbe(probeOptions(newEngine()), args[1:], stdout, stderr)
 	}
 
 	usage(stderr)
@@ -50,7 +53,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 }
 
 func usage(stderr io.Writer) {
-	fmt.Fprintln(stderr, "usage: pupitred <serve|install [--only=id,id] [--skip=id,id]|report|version>")
+	fmt.Fprintln(stderr, "usage: pupitred <serve|install [--only=id,id] [--skip=id,id]|probe [--script] [--projects=DIR]|report|version>")
 }
 
 func newServer(engine *modules.Engine) *protocol.Server {
@@ -60,8 +63,13 @@ func newServer(engine *modules.Engine) *protocol.Server {
 	})
 	modules.RegisterCommands(server, engine)
 	core.RegisterCommands(server, engine)
+	probe.RegisterCommands(server, probeOptions(engine))
 
 	return server
+}
+
+func probeOptions(engine *modules.Engine) probe.Options {
+	return probe.Options{Sys: engine.Sys, Version: engine.AgentVersion}
 }
 
 func newEngine() *modules.Engine {
