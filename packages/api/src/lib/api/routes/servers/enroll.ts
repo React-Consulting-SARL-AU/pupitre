@@ -16,7 +16,11 @@ interface Refusal {
   payload: ApiErrorPayload
 }
 
-function refusalFor(error: unknown, locale: Locale): Refusal | null {
+function refusalFor(
+  error: unknown,
+  locale: Locale,
+  organizationId: string
+): Refusal | null {
   if (error instanceof EnrollmentDeviceUnknownError) {
     return {
       status: 404,
@@ -25,12 +29,21 @@ function refusalFor(error: unknown, locale: Locale): Refusal | null {
   }
 
   if (error instanceof SeatQuotaReachedError) {
+    const fix =
+      error.source === "subscription"
+        ? translate(locale, "seat_quota_reached_fix", {
+            organization: organizationId,
+          })
+        : translate(locale, "seat_quota_development_fix", {
+            quota: error.quota,
+          })
+
     return {
       status: 403,
       payload: apiError(
         "seat_quota_reached",
         translate(locale, "seat_quota_reached", { quota: error.quota }),
-        translate(locale, "seat_quota_reached_fix")
+        fix
       ),
     }
   }
@@ -53,7 +66,11 @@ export const enrollRoutes = new Elysia({ name: "servers-enroll-routes" })
 
         return serializeData(enrolled)
       } catch (error) {
-        const refusal = refusalFor(error, resolveLocale(request.headers))
+        const refusal = refusalFor(
+          error,
+          resolveLocale(request.headers),
+          organizationId
+        )
 
         if (!refusal) {
           throw error

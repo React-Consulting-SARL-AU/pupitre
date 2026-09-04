@@ -9,8 +9,11 @@ export type AuditAction =
   | "server.deleted"
   | "release.published"
   | "release.promoted"
+  | "subscription.created"
+  | "subscription.updated"
+  | "subscription.canceled"
 
-export type AuditTargetType = "device" | "server" | "release"
+export type AuditTargetType = "device" | "server" | "release" | "subscription"
 
 export interface AuditEntry {
   action: AuditAction
