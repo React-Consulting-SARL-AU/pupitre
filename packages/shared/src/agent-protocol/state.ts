@@ -91,7 +91,10 @@ export const ProjectRegistrationSchema = z.object({
 
 export type ProjectRegistration = z.infer<typeof ProjectRegistrationSchema>
 
+export const AbsolutePathSchema = z.string().regex(/^\//)
+
 export const ProjectSchema = ProjectRegistrationSchema.extend({
+  path: AbsolutePathSchema,
   state: ProjectStateSchema,
   url: z.string().optional(),
   branch: z.string().optional(),
