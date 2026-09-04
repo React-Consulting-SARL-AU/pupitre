@@ -107,6 +107,10 @@ func (r *Reader) Context() sys.Context {
 	return r.ctx()
 }
 
+func (r *Reader) Now() func() time.Time {
+	return r.options.Now
+}
+
 func (r *Reader) registry() *registry.File {
 	return registry.Load(r.ctx(), r.options.Paths)
 }

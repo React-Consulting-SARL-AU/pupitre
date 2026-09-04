@@ -196,11 +196,23 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: go install mvdan.cc/garble@latest
 
-      - name: Release build (garble)
+      # A throwaway key proves the release build compiles, obfuscates and stays
+      # verifiable without touching the signing secret: real publication is the
+      # release-agent workflow's job, gated on the release environment.
+      - name: Release build, signing and verification with a throwaway key
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: bun run release
-
-      # AGT-15 / PLT-06: Ed25519 signature and R2 upload of dist/release/* go here.
+        env:
+          PUPITRE_RELEASE_VERSION: 0.0.0-ci
+        run: |
+          set -euo pipefail
+          export PUPITRE_RELEASE_PRIVATE_KEY="$(go run ./tools/release keygen | awk '/^private/{print $2}')"
+          bun run release
+          for binary in dist/release/pupitred-linux-*; do
+            readable=$(strings -a "$binary" | grep -c pupitre || true)
+            echo "$binary : $readable chaînes lisibles"
+            test "$readable" -le 10
+          done
+          go test ./internal/release/... ./tools/release/...
 
       - name: Upload release binaries
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

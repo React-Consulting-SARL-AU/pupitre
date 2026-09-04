@@ -5,9 +5,12 @@ import {
   DbParamsSchema,
   DbShellResultSchema,
   DbUrlResultSchema,
+  SecretEventSchema,
   SecretsSetParamsSchema,
   SecretsStatusResultSchema,
   SecretsSyncParamsSchema,
+  ServiceSecretParamsSchema,
+  ServiceSecretResultSchema,
   TunnelStatusResultSchema,
 } from "./secrets"
 
@@ -42,6 +45,48 @@ describe("secrets", () => {
     expect(
       SecretsSyncParamsSchema.safeParse({ project: "flymate-api" }).success
     ).toBe(true)
+  })
+
+  it("reveal names a module and one of its keys, never a value", () => {
+    expect(
+      ServiceSecretParamsSchema.safeParse({
+        id: "db.mysql",
+        key: "MYSQL_APP_PASSWORD",
+      }).success
+    ).toBe(true)
+    expect(
+      ServiceSecretParamsSchema.safeParse({
+        id: "db.mysql",
+        key: "MYSQL_APP_PASSWORD",
+        value: "hunter2",
+      }).success
+    ).toBe(false)
+    expect(
+      ServiceSecretParamsSchema.safeParse({ key: "MYSQL_APP_PASSWORD" }).success
+    ).toBe(false)
+  })
+
+  it("the ack carries the key alone and the value rides a secret event", () => {
+    expect(
+      ServiceSecretResultSchema.safeParse({ key: "MYSQL_APP_PASSWORD" }).success
+    ).toBe(true)
+
+    expect(
+      SecretEventSchema.safeParse({
+        id: 12,
+        event: "secret",
+        key: "MYSQL_APP_PASSWORD",
+        value: "hunter2",
+      }).success
+    ).toBe(true)
+    expect(
+      SecretEventSchema.safeParse({
+        id: 12,
+        event: "log",
+        key: "MYSQL_APP_PASSWORD",
+        value: "hunter2",
+      }).success
+    ).toBe(false)
   })
 })
 

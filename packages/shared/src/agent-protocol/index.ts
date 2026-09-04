@@ -56,6 +56,8 @@ import {
   SecretsStatusResultSchema,
   SecretsSyncParamsSchema,
   SecretsSyncResultSchema,
+  ServiceSecretParamsSchema,
+  ServiceSecretResultSchema,
   TunnelStatusResultSchema,
 } from "./secrets"
 import {
@@ -96,6 +98,10 @@ export const COMMANDS = {
   "service.status": {
     params: ServiceStatusParamsSchema,
     result: ServiceStatusResultSchema,
+  },
+  "service.secret": {
+    params: ServiceSecretParamsSchema,
+    result: ServiceSecretResultSchema,
   },
   completions: {
     params: CompletionsParamsSchema,

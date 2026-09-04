@@ -20,10 +20,11 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-13 | Le quota gratuit vit dans le contrat partagé | fait | `main` | constante unique dans `@pupitre/shared/plans` |
 | INF-14 | La langue de l'utilisateur est enregistrée | fait | `feat/INF-14-user-locale` | fusionnée |
 | INF-15 | Contrat : détecter le gestionnaire d'un dépôt | à faire | | |
-| INF-17 | Contrat : lire la valeur d'un identifiant de service | à faire | | |
+| INF-17 | Contrat : lire la valeur d'un identifiant de service | fait | `feat/INF-17-secret-value` | fusionnée |
 | INF-18 | Contrat : la plateforme publie l'empreinte et refuse le retour en arrière | à faire | | |
 | INF-19 | Contrat : `/status` dit depuis quand il sait | fait | `feat/INF-19-status-freshness` | fusionnée |
 | INF-20 | Contrat : une adresse par capture | à faire | | |
+| INF-21 | Contrat : l'app remet le jeton d'enrôlement à l'agent | à faire | | |
 | INF-16 | Contrat : le chemin absolu d'un projet | fait | `feat/INF-16-project-path` | fusionnée |
 | INF-11 | Contrat : le verdict de la sonde | fait | `feat/INF-11-probe-contract` | fusionnée |
 
@@ -45,9 +46,9 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-12 | Shell de l'app et autocomplétion | fait | `feat/AGT-12-shell` | fusionnée |
 | AGT-13 | Mise à jour de l'agent | fait | `feat/AGT-13-self-update` | fusionnée |
 | AGT-14 | Droit d'usage, enrôlement, heartbeat | fait | `feat/AGT-14-entitlement` | fusionnée |
-| AGT-15 | Obfuscation et distribution | à faire | | |
-| AGT-16 | Validateur : messages d'erreur déterministes | à faire | | |
-| AGT-17 | La racine rendue par `project.git_status` reste dans la racine des projets | à faire | | |
+| AGT-15 | Obfuscation et distribution | fait | `feat/AGT-15-release` | fusionnée |
+| AGT-16 | Validateur : messages d'erreur déterministes | fait | `feat/AGT-16-validator` | fusionnée |
+| AGT-17 | La racine rendue par `project.git_status` reste dans la racine des projets | fait | `feat/AGT-17-git-root` | fusionnée |
 
 ## App desktop — `APP`
 
@@ -66,13 +67,14 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-11 | Services au quotidien | fait | `feat/APP-11-services` | fusionnée |
 | APP-12 | Mise à jour de l'agent depuis l'app | fait | `feat/APP-12-agent-update` | fusionnée |
 | APP-13 | Build macOS signé, notarisé, bytecode, auto-update | en revue | `feat/APP-13-builds` | |
-| APP-14 | Compte : device flow, appareils, enrôlement | à faire | | |
+| APP-14 | Compte : device flow, appareils, enrôlement | fait | `feat/APP-14-account` | fusionnée |
 | APP-15 | Serveurs distants et organisations | à faire | | |
 | APP-16 | Builds Windows et Linux | en revue | `feat/APP-13-builds` | |
 | APP-17 | Harnais Playwright pour Electron | fait | `feat/APP-17-electron-e2e` | fusionnée |
 | APP-18 | Fond natif de la fenêtre selon le thème | fait | `feat/APP-18-window-and-font` | fusionnée |
 | APP-19 | Appliquer le design accueillant à l'app | fait | `feat/APP-19-warm-design` | fusionnée |
 | APP-21 | Embarquer la police d'affichage dans l'app | fait | `feat/APP-18-window-and-font` | fusionnée |
+| APP-22 | L'écran Services révèle une vraie valeur | à faire | | |
 | APP-20 | L'app parle deux langues | à faire | | |
 
 ## Plateforme — `PLT`
@@ -120,5 +122,4 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
-| 2026-09-05 | APP-13 | Le preload ne peut pas être compilé en bytecode : Electron le charge dans le processus de rendu, dont le V8 refuse les données de cache produites par l'isolat Node du compilateur (`cachedDataRejected`), et la fenêtre s'ouvre alors sans son pont. Le processus principal, lui, l'est — c'est là que vivent la logique et le jeton de mise à jour. `docs/security.md` a été aligné. À rouvrir si une version d'Electron accepte un jour ce cache. | le propriétaire |
-| 2026-09-05 | APP-12 | L'app lit la version publiée, ses notes et sa signature dans la release embarquée à la construction : `embedAgent` attend `apps/agent/dist/release.json` (`{ version, notes[], signatures: { arch } }`). **Rien ne l'écrit aujourd'hui** — c'est à AGT-15, la chaîne de publication, de le produire. Sans lui l'app pousse bien un agent sur une machine nue mais ne peut pas en proposer la mise à jour : le bandeau le dit et son bouton reste désactivé, plutôt que d'envoyer une signature inventée que l'agent refuserait. À vérifier à la fusion d'AGT-15. | AGT-15 |
+| 2026-09-05 | APP-14 · AGT-15 | La clé publique qui vérifie une release doit être **la même** dans l'agent (`selfupdate.releasePublicKey`, injectée au build) et dans l'app (`AGENT_RELEASE_PUBLIC_KEY`, vide aujourd'hui). Elle est dérivée d'une clé privée que le propriétaire garde hors ligne. Décider : une seule clé publique de release, stable dans le temps, embarquée aux deux endroits et documentée dans le runbook. Sans elle, la vérification est en place mais rien ne la nourrit. | propriétaire |

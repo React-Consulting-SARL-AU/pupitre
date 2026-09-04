@@ -17,6 +17,7 @@ Electron 42 · electron-vite (bytecode sur main et preload) · React 19 · Tailw
 - **Un canal par serveur.** `src/main/agent-client.ts` tient une session SSH qui lance `pupitred serve` ; requêtes sérialisées, `id` croissant, second canal pour les commandes longues. Jamais de `ssh` par appel.
 - **La config SSH est celle de l'app** : `userData/ssh/config` passé avec `-F`, clés dans `userData/keys/` en 0600, clé d'hôte épinglée. `~/.ssh/config` de l'utilisateur n'est jamais écrit. Un hôte existant peut être désigné.
 - **Aucun secret dans un store, un log ou une commande.** Les secrets partent par le flux secret du protocole et sont oubliés.
+- **Le compte décide de l'installation.** Le jeton bearer vit dans `safeStorage` et ne traverse jamais le pont ; le serveur est enrôlé auprès de la plateforme, puis le binaire de l'agent est téléchargé depuis elle, somme et signature vérifiées, avant d'être poussé. Sans compte, seul un build de développement installe. `PUPITRE_PLATFORM_URL` désigne une plateforme locale en développement.
 - **Chaque attente dit ce qui se passe, chaque erreur dit le remède.** Le `fix` renvoyé par l'agent est affiché tel quel.
 
 ## Architecture

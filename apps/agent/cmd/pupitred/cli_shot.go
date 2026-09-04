@@ -49,7 +49,7 @@ func runShot(reader *state.Reader, args []string, stdout, stderr io.Writer) int 
 		return 0
 	}
 
-	capture, err := shots.Take(reader.Context(), shots.Options{Base: reader.ShotsURL()}, request)
+	capture, err := shots.Take(reader.Context(), shots.Options{Base: reader.ShotsURL(), Now: reader.Now()}, request)
 	if err != nil {
 		fmt.Fprintln(stderr, err)
 

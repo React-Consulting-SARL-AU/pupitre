@@ -20,6 +20,7 @@ const CONTRACT_COMMANDS = [
   "snapshot",
   "status",
   "service.status",
+  "service.secret",
   "completions",
   "project.list",
   "project.add",

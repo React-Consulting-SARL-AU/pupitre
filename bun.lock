@@ -27,6 +27,7 @@
       "name": "@pupitre/desktop",
       "version": "0.1.0",
       "dependencies": {
+        "@pupitre/auth": "workspace:*",
         "@pupitre/design": "workspace:*",
         "@pupitre/shared": "workspace:*",
         "@xterm/addon-fit": "^0.11.0",
@@ -40,6 +41,7 @@
         "@babel/plugin-transform-arrow-functions": "^8.0.1",
         "@electron/rebuild": "^4.2.0",
         "@playwright/test": "^1.62.1",
+        "@pupitre/api": "workspace:*",
         "@tailwindcss/vite": "^4.3.1",
         "@types/bun": "^1.4.0",
         "@types/node": "^26.2.0",

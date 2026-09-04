@@ -121,6 +121,7 @@ Le chemin absolu vit sur le projet, pas sur la machine : `status`, `project.list
 | --- | --- |
 | `secrets.status` | — : les clés présentes dans `/etc/pupitre/env`, jamais leurs valeurs |
 | `secrets.set` | `{ key }` : valeur lue sur le flux secret |
+| `service.secret` | `{ id, key }` : révèle la valeur d'un identifiant du module `id` ; voir [La valeur d'un identifiant](#la-valeur-dun-identifiant) |
 | `secrets.sync` | `{ project }` |
 | `db.dump` / `db.import` / `db.shell` / `db.url` | `{ engine, name? }` |
 | `tunnel.status` / `tunnel.sync` / `tunnel.restart` | — |
@@ -163,6 +164,27 @@ Un champ `list` d'`items: "secret"` — `ai.hermes.providers`, par exemple — s
 ```jsonc
 { "ai.hermes": { "providers.0": "sk-…", "providers.1": "sk-…" } }
 ```
+
+## La valeur d'un identifiant
+
+`service.status` rend les identifiants d'un service masqués : une table `credentials` qui va d'un libellé au **nom** d'une clé de `/etc/pupitre/env`, jamais à sa valeur. `service.secret { id, key }` révèle la valeur d'une de ces clés, et rien d'autre.
+
+L'agent refuse toute clé qui n'appartient pas au module `id` : la seule liste autorisée est celle des valeurs de la table `credentials` que `service.status` rend pour ce module. Un module ne lit donc jamais le secret d'un autre. Une clé inconnue du module, une clé absente de `/etc/pupitre/env` ou une valeur vide renvoie `bad_request`. Un module inconnu ou non installé renvoie `service_not_found`.
+
+La valeur **ne sort pas dans le résultat**. Elle voyage sur un événement dédié, symétrique du flux secret d'entrée :
+
+```jsonc
+// requête
+{ "id": 14, "cmd": "service.secret", "params": { "id": "db.mysql", "key": "MYSQL_APP_PASSWORD" } }
+
+// événement secret, exactement un, avant la réponse
+{ "id": 14, "event": "secret", "key": "MYSQL_APP_PASSWORD", "value": "…" }
+
+// réponse : un accusé sans valeur
+{ "id": 14, "ok": true, "result": { "key": "MYSQL_APP_PASSWORD" } }
+```
+
+Le principe est celui du flux secret d'entrée, dans l'autre sens : à l'entrée, une valeur ne se met pas dans `params`, qui se journalise et se rejoue ; à la sortie, elle ne se met pas dans `result`, l'unité qu'un enregistreur de requêtes et de réponses capture. L'événement `secret` est la seule ligne qu'un tel enregistreur sait écarter, et c'est par lui que l'app remet la valeur à l'écran sans la faire transiter par son pont IPC générique. L'agent ne l'écrit jamais dans son journal, ne la persiste jamais, ne la renvoie jamais dans `params`, un rapport ou un autre événement.
 
 ## Ce que la signature d'une mise à jour couvre
 

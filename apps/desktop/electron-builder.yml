@@ -24,16 +24,12 @@ files:
 
 # The probe is sent to the server on standard input: it has to stay a readable
 # file outside the asar archive.
+# The agent is not shipped with the app: an enrolled server names its release,
+# the app downloads that binary from the platform, checks its signature and
+# pushes it. Only a development build falls back to the one it built locally.
 extraResources:
   - from: resources/probe.sh
     to: probe.sh
-  # The agent is pushed onto the server over the channel: it has to stay a real
-  # file, executable and outside the asar archive.
-  - from: resources/agent
-    to: agent
-    filter:
-      - "pupitred-linux-*"
-      - manifest.json
 
 # node-pty ships a native binary, and a .node cannot be loaded from an asar
 # archive. Without this the app starts and no terminal ever opens.

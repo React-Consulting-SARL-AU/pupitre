@@ -1,4 +1,5 @@
 import type { Event } from "@pupitre/shared/agent-protocol/envelope";
+import type { EnrollmentSummary } from "./account";
 
 /**
  * What the installation says about itself while it runs.
@@ -23,4 +24,9 @@ export interface AgentDelivery {
   sha256: string;
   bytes: number;
   path: string;
+  /**
+   * The server as the platform now knows it. Null on a development build with
+   * no account, where the binary is the one the app carries.
+   */
+  enrollment?: EnrollmentSummary | null;
 }
