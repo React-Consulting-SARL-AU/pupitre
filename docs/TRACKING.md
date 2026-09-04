@@ -33,7 +33,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-06 | Modules bases de données | fait | `feat/AGT-06-databases` | fusionnée |
 | AGT-07 | Modules agents IA et navigateur | fait | `feat/AGT-07-ai-modules` | fusionnée |
 | AGT-08 | Modules éditeurs distants | fait | `feat/AGT-08-editors` | fusionnée |
-| AGT-09 | Modules exposition et outils | en revue | `feat/AGT-09-exposure` | |
+| AGT-09 | Modules exposition et outils | fait | `feat/AGT-09-exposure` | fusionnée |
 | AGT-10 | Registre des projets et pilotage | fait | `feat/AGT-10-registry` | fusionnée |
 | AGT-11 | Sessions, processus, captures, secrets, bases | fait | `feat/AGT-11-sessions` | fusionnée |
 | AGT-12 | Shell de l'app et autocomplétion | à faire | | |
