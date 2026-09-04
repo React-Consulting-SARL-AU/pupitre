@@ -164,7 +164,7 @@ function stepKey(event: Event): string | null {
   };
 
   return typeof step.module === "string" && typeof step.step === "string"
-    ? `${step.module}${step.step}${String(step.status)}`
+    ? `${step.module} ${step.step} ${String(step.status)}`
     : null;
 }
 
