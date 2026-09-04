@@ -71,6 +71,7 @@ export const InstallParamsSchema = z.strictObject({
 
 export type InstallParams = z.infer<typeof InstallParamsSchema>
 
+/** A `list` field of `items: "secret"` travels under indexed keys: `providers.0`, `providers.1`. */
 export const InstallSecretsSchema = z.record(
   z.string(),
   z.record(z.string(), z.string())

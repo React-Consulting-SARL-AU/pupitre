@@ -1,4 +1,4 @@
-import { createReadStream, readFileSync, writeSync } from "node:fs";
+import { readFileSync, writeSync } from "node:fs";
 
 /**
  * The fake agent: it replays an AGT-01 transcript, and nothing else.
@@ -22,7 +22,6 @@ type Exchange = {
 
 const OUT = 1;
 const TRACE = 2;
-const SECRETS = 3;
 
 function parse(path: string): Exchange[] {
   const exchanges: Exchange[] = [];
@@ -89,37 +88,43 @@ function fail(id: number, code: string, message: string): void {
   say(JSON.stringify({ id, ok: false, error: { code, message } }));
 }
 
-const secrets: string[] = [];
-const waiting: ((line: string) => void)[] = [];
+/**
+ * Requests and secret lines arrive on the same standard input, so the reader
+ * pulls one line at a time: a handler that expects a secret takes the line that
+ * follows its request instead of letting it be read as the next request.
+ */
+const lines: string[] = [];
+let waiting: ((line: string | null) => void) | null = null;
+let ended = false;
 
-function readSecrets(): void {
-  let buffer = "";
-  const stream = createReadStream("", { fd: SECRETS, autoClose: false });
-  stream.setEncoding("utf8");
-  stream.on("error", () => undefined);
-  stream.on("data", (chunk) => {
-    buffer += chunk;
-    let cut = buffer.indexOf("\n");
-    while (cut !== -1) {
-      const line = buffer.slice(0, cut);
-      buffer = buffer.slice(cut + 1);
-      const waiter = waiting.shift();
-      if (waiter) {
-        waiter(line);
-      } else {
-        secrets.push(line);
-      }
-      cut = buffer.indexOf("\n");
-    }
-  });
+function feed(line: string | null): void {
+  if (waiting) {
+    const resolve = waiting;
+    waiting = null;
+    resolve(line);
+
+    return;
+  }
+
+  if (line === null) {
+    ended = true;
+  } else {
+    lines.push(line);
+  }
 }
 
-function nextSecret(): Promise<string> {
-  const ready = secrets.shift();
+function nextLine(): Promise<string | null> {
+  const ready = lines.shift();
+  if (ready !== undefined) {
+    return Promise.resolve(ready);
+  }
+  if (ended) {
+    return Promise.resolve(null);
+  }
 
-  return ready === undefined
-    ? new Promise((resolve) => waiting.push(resolve))
-    : Promise.resolve(ready);
+  return new Promise((resolve) => {
+    waiting = resolve;
+  });
 }
 
 function stable(value: unknown): unknown {
@@ -146,12 +151,9 @@ function main(): void {
   const path = process.argv[2];
   const exchanges = parse(path);
 
-  readSecrets();
-
   let cursor = 0;
   let lastId = -1;
   let buffer = "";
-  let work: Promise<unknown> = Promise.resolve();
 
   const handle = async (line: string): Promise<void> => {
     const request = JSON.parse(line) as {
@@ -195,7 +197,7 @@ function main(): void {
     }
 
     if (exchange.secret !== null) {
-      const sent = await nextSecret();
+      const sent = await nextLine();
       if (sent !== exchange.secret) {
         fail(request.id, "bad_request", `flux secret inattendu : ${sent}`);
 
@@ -218,6 +220,17 @@ function main(): void {
     }
   };
 
+  const pump = async (): Promise<void> => {
+    for (;;) {
+      const line = await nextLine();
+      if (line === null) {
+        return;
+      }
+
+      await handle(line);
+    }
+  };
+
   process.stdin.setEncoding("utf8");
   process.stdin.on("data", (chunk: string) => {
     buffer += chunk;
@@ -226,17 +239,17 @@ function main(): void {
       const line = buffer.slice(0, cut).trim();
       buffer = buffer.slice(cut + 1);
       if (line.length > 0) {
-        work = work.then(() => handle(line));
+        feed(line);
       }
       cut = buffer.indexOf("\n");
     }
   });
-  process.stdin.on("end", () => {
-    work.then(
-      () => process.exit(0),
-      () => process.exit(1)
-    );
-  });
+  process.stdin.on("end", () => feed(null));
+
+  pump().then(
+    () => process.exit(0),
+    () => process.exit(1)
+  );
 }
 
 main();

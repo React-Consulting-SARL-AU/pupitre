@@ -35,7 +35,7 @@ export function fakeAgent(fixtures: string | string[]): FakeAgent {
     spawn: () => {
       const path = paths[Math.min(children.length, paths.length - 1)];
       const child = spawn(process.execPath, [ENTRY, path], {
-        stdio: ["pipe", "pipe", "pipe", "pipe"],
+        stdio: ["pipe", "pipe", "pipe"],
       });
 
       child.stderr?.setEncoding("utf8");

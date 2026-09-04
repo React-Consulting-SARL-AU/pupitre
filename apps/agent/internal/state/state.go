@@ -1,6 +1,7 @@
 package state
 
 import (
+	"os"
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
@@ -42,6 +43,9 @@ type Options struct {
 	Paths        registry.Paths
 	Tmux         tmux.Options
 	Follow       FollowOptions
+	Shots        ShotOptions
+	Self         func() int
+	Sleep        func(time.Duration)
 }
 
 // The reader of the machine's state: the project registry, the tmux session and the installed modules, and nothing that writes on its own.
@@ -59,6 +63,13 @@ func New(options Options) *Reader {
 		options.Tmux.Now = options.Now
 	}
 	options.Tmux = options.Tmux.Resolved()
+	options.Shots = options.Shots.resolved(options.Tmux.User)
+	if options.Self == nil {
+		options.Self = os.Getpid
+	}
+	if options.Sleep == nil {
+		options.Sleep = time.Sleep
+	}
 
 	return &Reader{options: options}
 }
@@ -73,6 +84,14 @@ func (r *Reader) WithJournal(logPath string) *Reader {
 	})
 
 	return r
+}
+
+func (r *Reader) self() int {
+	return r.options.Self()
+}
+
+func (r *Reader) sleep(delay time.Duration) {
+	r.options.Sleep(delay)
 }
 
 func (r *Reader) ctx() sys.Context {

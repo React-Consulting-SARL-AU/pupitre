@@ -160,6 +160,7 @@ export type PresetId = z.infer<typeof PresetIdSchema>
 
 export const PresetSchema = z.object({
   id: PresetIdSchema,
+  name: z.string().min(1),
   modules: z.array(ModuleIdSchema),
   choose_one: z.array(ModuleIdSchema).min(2).optional(),
 })
@@ -169,6 +170,7 @@ export type Preset = z.infer<typeof PresetSchema>
 export const PRESETS: readonly Preset[] = [
   {
     id: "web-js",
+    name: "Web JavaScript",
     modules: [
       "core.system",
       "core.hardening",
@@ -182,10 +184,12 @@ export const PRESETS: readonly Preset[] = [
   },
   {
     id: "full",
+    name: "Tout le catalogue",
     modules: [...MVP_MODULE_IDS],
   },
   {
     id: "minimal",
+    name: "Minimal",
     modules: [...MANDATORY_MODULE_IDS],
     choose_one: ["ai.claude", "ai.codex", "ai.hermes"],
   },

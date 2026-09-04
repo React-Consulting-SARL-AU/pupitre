@@ -3,7 +3,6 @@ package modtest
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -42,6 +41,23 @@ var resultDefinitions = map[string]string{
 	"project.logs":    "ProjectLogsResult",
 	"project.install": "ProjectInstallResult",
 	"project.url":     "ProjectUrlResult",
+
+	"project.sync":         "ProjectSyncResult",
+	"project.branches":     "ProjectBranchesResult",
+	"project.checkout":     "ProjectCheckoutResult",
+	"project.git_status":   "ProjectGitStatusResult",
+	"project.working_tree": "ProjectWorkingTreeResult",
+	"project.diff":         "ProjectDiffResult",
+	"sessions.list":        "SessionsListResult",
+	"sessions.clean":       "SessionsCleanResult",
+	"processes.list":       "ProcessesListResult",
+	"process.kill":         "ProcessKillResult",
+	"shots.list":           "ShotsListResult",
+	"shots.url":            "ShotsUrlResult",
+	"shots.clean":          "ShotsCleanResult",
+	"reboot":               "RebootResult",
+	"doctor":               "DoctorResult",
+	"diag":                 "DiagResult",
 }
 
 type TranscriptOptions struct {
@@ -53,13 +69,11 @@ type transcript struct {
 	entitlement contract.Entitlement
 	prepare     []func(*FakeSys)
 	input       []string
-	secrets     []string
-	hasSecrets  bool
 	expected    []string
 	commands    map[int64]string
 }
 
-// A transcript is a .jsonl of "> request", "$ secret line", "< expected output" and "@directive" lines that seed the fake machine.
+// A transcript is a .jsonl of "> request", "$ secret line on the same standard input", "< expected output" and "@directive" lines that seed the fake machine.
 func RunTranscripts(t *testing.T, glob string, options TranscriptOptions) {
 	t.Helper()
 
@@ -95,8 +109,7 @@ func parseTranscript(t *testing.T, path string) transcript {
 			parsed.input = append(parsed.input, request)
 			parsed.remember(t, request)
 		case strings.HasPrefix(line, "$ "):
-			parsed.secrets = append(parsed.secrets, strings.TrimPrefix(line, "$ "))
-			parsed.hasSecrets = true
+			parsed.input = append(parsed.input, strings.TrimPrefix(line, "$ "))
 		case strings.HasPrefix(line, "< "):
 			parsed.expected = append(parsed.expected, strings.TrimPrefix(line, "< "))
 		default:
@@ -142,8 +155,18 @@ func (f *transcript) directive(t *testing.T, path, line string) {
 		program, reply, _ := strings.Cut(rest, " ")
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Replies[program] = unescape(reply) + "\n" })
 	case "answer":
-		fragment, answer, _ := strings.Cut(rest, " ")
+		// " :: " when the fragment itself holds spaces, which is how one tells two git subcommands apart.
+		fragment, answer := cutAnswer(rest)
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Answer(fragment, unescape(answer)+"\n") })
+	case "dir":
+		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Dirs[rest] = true })
+	case "process":
+		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Spawn(parseProc(fields, rest)) })
+	case "shot":
+		f.prepare = append(f.prepare, func(fake *FakeSys) {
+			fake.Files[fields[2]] = make([]byte, atoi(fields[1]))
+			fake.Times[fields[2]] = time.Unix(int64(atoi(fields[0])), 0)
+		})
 	case "fail":
 		program, stderr, _ := strings.Cut(rest, " ")
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.FailProgram(program, stderr) })
@@ -193,13 +216,8 @@ func runTranscript(t *testing.T, f transcript, options TranscriptOptions) {
 		options.Register(server, engine)
 	}
 
-	var secrets io.Reader
-	if f.hasSecrets {
-		secrets = strings.NewReader(strings.Join(f.secrets, "\n") + "\n")
-	}
-
 	var out bytes.Buffer
-	if err := server.Serve(strings.NewReader(strings.Join(f.input, "\n")+"\n"), &out, secrets); err != nil {
+	if err := server.Serve(strings.NewReader(strings.Join(f.input, "\n")+"\n"), &out); err != nil {
 		t.Fatalf("serve: %v", err)
 	}
 
@@ -286,6 +304,30 @@ func atoi(value string) int {
 	parsed, _ := strconv.Atoi(value)
 
 	return parsed
+}
+
+func cutAnswer(rest string) (fragment, answer string) {
+	if before, after, found := strings.Cut(rest, " :: "); found {
+		return before, after
+	}
+
+	fragment, answer, _ = strings.Cut(rest, " ")
+
+	return fragment, answer
+}
+
+// pid ppid user cpu rss etimes, then the command line.
+func parseProc(fields []string, rest string) Proc {
+	cpu, _ := strconv.ParseFloat(fields[3], 64)
+	args := rest
+	for i := 0; i < 6; i++ {
+		_, args, _ = strings.Cut(strings.TrimLeft(args, " "), " ")
+	}
+
+	return Proc{
+		PID: atoi(fields[0]), PPID: atoi(fields[1]), User: fields[2],
+		CPU: cpu, RSS: atoi(fields[4]), Etimes: atoi(fields[5]), Args: args,
+	}
 }
 
 // A transcript is one line per directive, so a multi-line file or command output arrives escaped.

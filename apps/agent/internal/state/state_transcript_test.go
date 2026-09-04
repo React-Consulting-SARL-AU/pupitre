@@ -16,6 +16,8 @@ func TestTranscripts(t *testing.T) {
 		Register: func(server *protocol.Server, engine *modules.Engine) {
 			state.RegisterCommands(server, state.FromEngine(engine, state.Options{
 				Follow: state.FollowOptions{Limit: -1, Sleep: func(time.Duration) {}},
+				Self:   func() int { return 900 },
+				Sleep:  func(time.Duration) {},
 			}))
 		},
 	})

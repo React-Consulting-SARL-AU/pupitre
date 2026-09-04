@@ -146,6 +146,14 @@ describe("InstallSecretsSchema", () => {
     expect(InstallSecretsSchema.safeParse({}).success).toBe(true)
   })
 
+  it("carries a list of secrets under indexed keys", () => {
+    expect(
+      InstallSecretsSchema.safeParse({
+        "ai.hermes": { "providers.0": "sk-one", "providers.1": "sk-two" },
+      }).success
+    ).toBe(true)
+  })
+
   it("rejects a flat line, a non-string value and a non-object", () => {
     expect(
       InstallSecretsSchema.safeParse({ app_password: "hunter2" }).success
