@@ -351,3 +351,12 @@ Critères d'acceptation.
 1. Un dépôt git qui englobe la racine des projets ne fait sortir aucun chemin rendu.
 2. Une racine des projets atteinte par un lien symbolique continue de marcher, prouvé par un test.
 
+### APP-21 — Embarquer la police d'affichage
+Lot 2 · dépend de APP-19 · `apps/desktop`, `packages/design`
+
+But. Les titres s'affichent dans la police que le design prévoit, sur une machine qui ne l'a pas.
+Périmètre. `font-display` désigne Bricolage Grotesque dans les tokens, et les titres la demandent, mais aucun fichier de fonte n'est embarqué : l'app retombe sur la police système, et le rendu réel ne ressemble donc pas au design. Embarquer les graisses utilisées, en sous-ensemble latin, servies depuis les ressources de l'app et non depuis Internet — l'app doit rester correcte hors ligne. Vérifier la licence de la fonte et la consigner.
+Hors périmètre. Le site, qui charge ses polices autrement.
+Critères d'acceptation.
+1. Un titre s'affiche dans Bricolage Grotesque sur une machine qui ne l'a pas installée, sans aucune requête réseau.
+

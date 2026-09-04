@@ -47,7 +47,7 @@ export function CatalogScreen({
 
   if (catalog.status === "failed" && catalog.serverId === serverId) {
     return (
-      <section className="flex flex-col gap-8">
+      <section className="flex flex-col gap-section">
         {header}
         <Callout
           action={
@@ -66,7 +66,7 @@ export function CatalogScreen({
 
   if (catalog.status !== "ready" || catalog.serverId !== serverId) {
     return (
-      <section className="flex flex-col gap-8">
+      <section className="flex flex-col gap-section">
         {header}
         <WaitingNotice
           detail="Modules disponibles, dépendances, conflits, ressources demandées, préréglages."
@@ -77,7 +77,7 @@ export function CatalogScreen({
   }
 
   return (
-    <section className="flex flex-col gap-8">
+    <section className="flex flex-col gap-section">
       <PageHeader
         actions={
           <Button icon={ArrowRight} onClick={onConfigure} variant="inverse">

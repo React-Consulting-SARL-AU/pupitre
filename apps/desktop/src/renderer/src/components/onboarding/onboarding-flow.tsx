@@ -196,7 +196,7 @@ export function OnboardingFlow() {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-base">
-      <header className="draggable flex shrink-0 flex-wrap items-center justify-between gap-4 border-line border-b bg-surface px-8 py-4">
+      <header className="draggable flex shrink-0 flex-wrap items-center justify-between gap-4 border-line border-b bg-surface px-8 py-5">
         <OnboardingProgress step={step} />
 
         <div className="clickable flex items-center gap-2">

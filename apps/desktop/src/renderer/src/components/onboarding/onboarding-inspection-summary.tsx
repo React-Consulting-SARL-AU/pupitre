@@ -16,7 +16,7 @@ export function OnboardingInspectionSummary({ probe }: { probe: ProbeResult }) {
   ];
 
   return (
-    <dl className="grid grid-cols-2 gap-4 rounded-md bg-sunken p-4">
+    <dl className="grid grid-cols-2 gap-4 rounded-sm bg-sunken p-4">
       {cells.map((cell) => (
         <div className="flex flex-col gap-1" key={cell.label}>
           <dt>

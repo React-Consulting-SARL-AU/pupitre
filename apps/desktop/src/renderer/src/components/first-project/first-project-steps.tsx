@@ -11,7 +11,7 @@ import { PHASE_DOING, PHASE_LOOK, PHASE_TITLES } from "./first-project-phases";
  */
 export function FirstProjectSteps({ phases }: { phases: readonly Phase[] }) {
   return (
-    <ol className="flex flex-col rounded-md border border-line bg-surface">
+    <ol className="elevation-raised flex flex-col overflow-hidden rounded-md border border-line bg-surface">
       {phases.map((phase, index) => {
         const look = PHASE_LOOK[phase.status];
         const detail =

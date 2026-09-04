@@ -21,6 +21,8 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-14 | La langue de l'utilisateur est enregistrée | en revue | `feat/INF-14-user-locale` | |
 | INF-15 | Contrat : détecter le gestionnaire d'un dépôt | à faire | | |
 | INF-17 | Contrat : lire la valeur d'un identifiant de service | à faire | | |
+| INF-18 | Contrat : la plateforme publie l'empreinte et refuse le retour en arrière | à faire | | |
+| INF-19 | Contrat : `/status` dit depuis quand il sait | à faire | | |
 | INF-16 | Contrat : le chemin absolu d'un projet | fait | `feat/INF-16-project-path` | fusionnée |
 | INF-11 | Contrat : le verdict de la sonde | fait | `feat/INF-11-probe-contract` | fusionnée |
 
@@ -40,7 +42,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-10 | Registre des projets et pilotage | fait | `feat/AGT-10-registry` | fusionnée |
 | AGT-11 | Sessions, processus, captures, secrets, bases | fait | `feat/AGT-11-sessions` | fusionnée |
 | AGT-12 | Shell de l'app et autocomplétion | fait | `feat/AGT-12-shell` | fusionnée |
-| AGT-13 | Mise à jour de l'agent | à faire | | |
+| AGT-13 | Mise à jour de l'agent | fait | `feat/AGT-13-self-update` | fusionnée |
 | AGT-14 | Droit d'usage, enrôlement, heartbeat | à faire | | |
 | AGT-15 | Obfuscation et distribution | à faire | | |
 | AGT-16 | Validateur : messages d'erreur déterministes | à faire | | |
@@ -66,9 +68,10 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-14 | Compte : device flow, appareils, enrôlement | à faire | | |
 | APP-15 | Serveurs distants et organisations | à faire | | |
 | APP-16 | Builds Windows et Linux | à faire | | |
-| APP-17 | Harnais Playwright pour Electron | à faire | | |
+| APP-17 | Harnais Playwright pour Electron | en revue | `feat/APP-17-electron-e2e` | |
 | APP-18 | Fond natif de la fenêtre selon le thème | à faire | | |
-| APP-19 | Appliquer le design accueillant à l'app | à faire | | |
+| APP-19 | Appliquer le design accueillant à l'app | fait | `feat/APP-19-warm-design` | fusionnée |
+| APP-21 | Embarquer la police d'affichage dans l'app | à faire | | |
 | APP-20 | L'app parle deux langues | à faire | | |
 
 ## Plateforme — `PLT`
@@ -88,10 +91,13 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-11 | Emails transactionnels | fait | `feat/PLT-11-emails` | fusionnée |
 | PLT-12 | Alertes et page de statut | fait | `feat/PLT-12-alerts` | fusionnée |
 | PLT-13 | Passkeys et MFA | fait | `feat/PLT-13-passkeys` | fusionnée |
-| PLT-14 | Déploiement Cloudflare Builds, staging et production | à faire | | |
+| PLT-14 | Déploiement Cloudflare Builds, staging et production | en revue | `feat/PLT-14-deploy` | fusion en attente de PLT-18 : mêmes fichiers |
 | PLT-15 | Workflows Cloudflare : déclencheurs des tâches longues | fait | `feat/PLT-15-workflows` | fusionnée |
 | PLT-17 | Le workflow d'évaluation des alertes | fait | `feat/PLT-17-alerts-workflow` | fusionnée |
 | PLT-16 | Harnais Playwright pour la console | fait | `feat/PLT-16-e2e` | fusionnée |
+| PLT-18 | Managed Payments : vendeur Stripe, un produit, deux prix | en revue | `main` | |
+
+| MKT-04 | Téléchargement | en revue | `feat/MKT-04-09-site` | |
 
 ## Site marketing — `MKT`
 

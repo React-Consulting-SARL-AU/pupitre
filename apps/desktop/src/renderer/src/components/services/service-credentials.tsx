@@ -48,7 +48,7 @@ export function ServiceCredentials({
           Ce module ne déclare aucun identifiant.
         </p>
       ) : (
-        <ul className="elevation-raised divide-y divide-line rounded-md border border-line bg-surface">
+        <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
           {labels.map((label) => (
             <ServiceCredentialRow
               key={label}

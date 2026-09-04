@@ -36,9 +36,9 @@ export function InstallReport({
   }
 
   return (
-    <section className="flex flex-col gap-5">
+    <section className="flex flex-col gap-gutter">
       {result.failed.length > 0 ? (
-        <ul className="elevation-raised divide-y divide-line rounded-md border border-danger/40 bg-surface">
+        <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-danger/40 bg-surface">
           {result.failed.map((moduleId) => (
             <li
               className="flex flex-wrap items-center gap-3 px-4 py-3"

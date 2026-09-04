@@ -35,7 +35,7 @@ export function OnboardingHardenScreen({
   }, [serverId, start]);
 
   return (
-    <section className="flex flex-col gap-8">
+    <section className="flex flex-col gap-section">
       <PageHeader
         description="L'agent ouvre le compte dev, vérifie qu'une clé y entre, puis ferme root. L'app suit avec sa propre configuration SSH."
         eyebrow="Durcissement"
@@ -58,7 +58,7 @@ export function OnboardingHardenScreen({
       ) : null}
 
       {steps.length > 0 ? (
-        <ul className="elevation-raised divide-y divide-line rounded-md border border-line bg-surface px-4 py-1">
+        <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-line bg-surface px-4 py-1">
           {steps.map((step) => (
             <InstallStepRow key={step.step} step={step} />
           ))}

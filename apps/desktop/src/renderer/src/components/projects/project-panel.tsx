@@ -12,7 +12,7 @@ export function ProjectPanel({
   children: ReactNode;
 }) {
   return (
-    <div className="elevation-raised rounded-md bg-surface p-4">
+    <div className="elevation-raised rounded-md border border-line bg-surface p-4">
       <div className="flex items-center gap-2 text-ink-3">
         <Icon size={13} strokeWidth={1.5} />
         <Label>{label}</Label>

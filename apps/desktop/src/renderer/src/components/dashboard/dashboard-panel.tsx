@@ -51,7 +51,7 @@ export function DashboardPanel({
   );
 
   return (
-    <div className="h-full overflow-y-auto px-6 py-5">
+    <div className="h-full overflow-y-auto px-8 py-6">
       <div className="mx-auto flex max-w-5xl flex-col gap-8">
         <PageHeader
           actions={
@@ -109,7 +109,7 @@ export function DashboardPanel({
               Ce serveur n'a encore déclaré aucun projet.
             </p>
           ) : (
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-gutter md:grid-cols-2">
               {projects.map((project) => (
                 <DashboardProjectCard
                   busy={busy === project.name || busy === "all"}
@@ -128,7 +128,7 @@ export function DashboardPanel({
             <Sparkles size={12} strokeWidth={1.5} />
             <Label>Sessions en arrière-plan</Label>
           </h2>
-          <div className="overflow-hidden rounded-md border border-line bg-surface">
+          <div className="elevation-raised overflow-hidden rounded-md border border-line bg-surface">
             <ActivitySessions
               onClean={onCleanSessions}
               onStop={onStopSession}

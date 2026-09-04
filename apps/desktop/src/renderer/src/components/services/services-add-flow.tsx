@@ -77,7 +77,7 @@ export function ServicesAddFlow({
   }
 
   return (
-    <section className="flex flex-col gap-6">
+    <section className="flex flex-col gap-gutter">
       <div className="flex justify-end">
         <Button icon={X} onClick={onDone} variant="discreet">
           Quitter l'ajout

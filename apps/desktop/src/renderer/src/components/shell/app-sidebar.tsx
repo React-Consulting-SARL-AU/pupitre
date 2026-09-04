@@ -71,7 +71,7 @@ export function AppSidebar({
       </div>
 
       <button
-        className="clickable mx-2 mb-1 flex items-center gap-2 rounded-md border border-line px-3 py-2 text-left transition-soft hover:border-line-strong hover:bg-raised"
+        className="clickable mx-2 mb-1 flex items-center gap-2.5 rounded-md border border-line bg-base px-3 py-2.5 text-left transition-soft hover:border-line-strong hover:bg-raised"
         onClick={() => onView("settings")}
         type="button"
       >
@@ -123,7 +123,7 @@ export function AppSidebar({
 
       <SidebarGroup title="Projets">
         {projects.length === 0 ? (
-          <p className="px-3 py-2 text-[11px] text-ink-4">
+          <p className="px-3 py-2 text-[11px] text-ink-4 leading-relaxed">
             Aucun projet déclaré.
           </p>
         ) : null}
@@ -204,7 +204,7 @@ export function AppSidebar({
         ))}
       </SidebarGroup>
 
-      <div className="mt-auto flex flex-col gap-px px-2 pt-5">
+      <div className="mt-auto flex flex-col gap-0.5 px-2 pt-6">
         <SidebarEntry
           active={view === "settings"}
           bullet={<SettingsIcon size={14} strokeWidth={1.5} />}

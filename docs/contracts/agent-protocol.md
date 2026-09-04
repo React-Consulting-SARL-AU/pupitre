@@ -164,6 +164,20 @@ Un champ `list` d'`items: "secret"` — `ai.hermes.providers`, par exemple — s
 { "ai.hermes": { "providers.0": "sk-…", "providers.1": "sk-…" } }
 ```
 
+## Ce que la signature d'une mise à jour couvre
+
+`agent.upgrade` reçoit `signature`, une signature **Ed25519 encodée en base64**. Elle porte sur ce message exact, terminé par un saut de ligne :
+
+```
+pupitred\n<version>\n<architecture>\n<empreinte SHA-256 en hexadécimal minuscule>\n
+```
+
+L'empreinte est celle du binaire téléchargé, calculée par l'agent lui-même sur les octets qu'il vient de recevoir. Lier ainsi l'empreinte à la version et à l'architecture refuse aussi un binaire authentiquement signé par nous mais publié pour une autre version ou une autre machine.
+
+La clé publique correspondante est **embarquée dans le binaire à l'édition de liens**. Un agent construit sans clé refuse toute mise à jour : c'est le défaut sûr, et c'est voulu. Rien n'est écrit sur le disque avant que la vérification ne réussisse.
+
+Ce format est la référence commune de la chaîne de publication (AGT-15), de l'agent (AGT-13) et de l'app (APP-12). Le changer casse les trois à la fois.
+
 ## Versionnage
 
 `protocol` est un entier. L'agent accepte la version courante et la précédente. L'app refuse un agent trop vieux et propose `agent.upgrade`. Un champ ajouté à un résultat n'incrémente pas la version ; un champ retiré ou renommé, oui.

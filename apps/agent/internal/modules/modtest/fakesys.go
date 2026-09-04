@@ -609,6 +609,12 @@ func (f *FakeSys) systemctl(args []string) (sys.Output, error) {
 	}
 
 	switch action {
+	case "show":
+		if f.Units[unit] == UnitAbsent {
+			return sys.Output{Stdout: "not-found\n"}, nil
+		}
+
+		return sys.Output{Stdout: "loaded\n"}, nil
 	case "daemon-reload", "reboot":
 		f.mutate("systemctl " + action)
 	case "enable", "start":

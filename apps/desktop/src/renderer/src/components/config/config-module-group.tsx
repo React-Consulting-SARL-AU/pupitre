@@ -23,7 +23,7 @@ export function ConfigModuleGroup({
 }) {
   return (
     <section
-      className="elevation-raised flex flex-col gap-4 rounded-md border border-line bg-surface p-5"
+      className="elevation-raised flex flex-col gap-gutter rounded-md border border-line bg-surface p-5"
       data-group={group.module.id}
     >
       <header className="flex items-center gap-3">
