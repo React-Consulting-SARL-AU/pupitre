@@ -5,6 +5,7 @@ import { DashboardPanel } from "./components/dashboard/dashboard-panel";
 import { OnboardingFlow } from "./components/onboarding/onboarding-flow";
 import { ProjectScreen } from "./components/projects/project-screen";
 import { SecretsPanel } from "./components/secrets/secrets-panel";
+import { ServicesScreen } from "./components/services/services-screen";
 import { SettingsScreen } from "./components/settings/settings-screen";
 import { AppSidebar } from "./components/shell/app-sidebar";
 import { ServerUnreadyScreen } from "./components/shell/server-unready-screen";
@@ -207,6 +208,20 @@ export function App() {
                 onRemoved={() => navigation.goTo("dashboard")}
                 project={project}
                 serverId={serverId}
+                services={snapshot.services}
+              />
+            </div>
+          ) : null}
+
+          {view === "services" ? (
+            <div className="absolute inset-0">
+              <ServicesScreen
+                onMachineName={(name) =>
+                  serverId && useServers.getState().rename(serverId, name)
+                }
+                onTerminal={() => navigation.openTerminal(null, "shell")}
+                serverId={serverId}
+                serverName={server?.name}
                 services={snapshot.services}
               />
             </div>
