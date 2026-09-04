@@ -17,25 +17,25 @@ import {
 
 export type Selection = readonly string[];
 
-export type FieldGroup = {
+export interface FieldGroup {
   module: Manifest;
   fields: readonly Field[];
-};
+}
 
-export type CategoryGroup = {
+export interface CategoryGroup {
   category: ModuleCategory;
   modules: readonly Manifest[];
-};
+}
 
-export type Resources = {
+export interface Resources {
   ram_mb: number;
   disk_mb: number;
-};
+}
 
-export type ResourceWarning = {
+export interface ResourceWarning {
   kind: "ram" | "disk";
   message: string;
-};
+}
 
 const MB_PER_GB = 1024;
 

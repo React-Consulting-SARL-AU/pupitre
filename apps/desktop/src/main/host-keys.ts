@@ -1,8 +1,7 @@
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { promisify } from "node:util";
-import type { Server } from "@shared/contract";
-import type { HostKeyAction, HostKeyDecision } from "@shared/servers";
+import type { HostKeyAction, HostKeyDecision, Server } from "@shared/servers";
 import { knownHostsKey, type SshPaths } from "./ssh-config";
 
 /**

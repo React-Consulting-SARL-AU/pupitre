@@ -2,12 +2,12 @@ import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
 import { ArrowRight, Download, RefreshCw, Server } from "lucide-react";
 import { Button } from "../ui/button";
 
-export type InspectionActions = {
+export interface InspectionActions {
   onInstall?: () => void;
   onUpgrade?: () => void;
   onContinue?: () => void;
   onPickAnother?: () => void;
-};
+}
 
 /**
  * What the verdict allows, and nothing else.

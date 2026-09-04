@@ -11,34 +11,23 @@ import type {
   ProjectActionResult,
   ProjectAddParams,
   ProjectAddResult,
+  ProjectBranchesResult,
+  ProjectCheckoutResult,
+  ProjectDiffResult,
+  ProjectGitStatusResult,
   ProjectListResult,
   ProjectLogsResult,
+  ProjectRemoveResult,
   ProjectSyncResult,
   ProjectUrlResult,
+  ProjectWorkingTreeResult,
 } from "@pupitre/shared/agent-protocol/projects";
+import type { SecretsStatusResult } from "@pupitre/shared/agent-protocol/secrets";
 import type { HelloResult } from "@pupitre/shared/agent-protocol/session";
+import type { CompletionsResult } from "@pupitre/shared/agent-protocol/state";
 import type { DoneResult } from "@pupitre/shared/agent-protocol/system";
 import type { AgentResponse } from "@shared/agent";
-import type {
-  Action,
-  ActionResult,
-  AgentState,
-  Branches,
-  Capabilities,
-  Catalog,
-  ConnectionState,
-  FileDiff,
-  GitStatus,
-  LogLine,
-  ProcessInfo,
-  Registration,
-  Secret,
-  ServersConfig,
-  Session,
-  Snapshot,
-  TerminalKind,
-  WorkingTree,
-} from "@shared/contract";
+import type { RemoteEditorId } from "@shared/editors";
 import type { HardenOutcome, HardenUpdate } from "@shared/harden";
 import type { AgentDelivery, InstallUpdate } from "@shared/install";
 import type { SecretMarks } from "@shared/secrets";
@@ -46,15 +35,20 @@ import type {
   HostKeyDecision,
   ServerAdded,
   ServerDraft,
+  ServersConfig,
 } from "@shared/servers";
+import type { AgentState, TerminalKind } from "@shared/terminals";
 import { contextBridge, ipcRenderer } from "electron";
 
 /**
  * The surface exposed to the renderer, and nothing more.
  *
- * No free-form command crosses this bridge: the renderer names a project and an
- * action, the main process decides what that becomes.
+ * No free-form command crosses this bridge: the renderer names a server, a
+ * project and an action, and the main process decides what that becomes.
  */
+
+export type ProjectAction = "project.up" | "project.down" | "project.restart";
+
 const api = {
   /**
    * The agent protocol, as it stands: a command of `COMMANDS`, its parameters,
@@ -215,26 +209,86 @@ const api = {
     params: ProjectAddParams
   ): Promise<AgentResponse<ProjectAddResult>> =>
     ipcRenderer.invoke("project:add", serverId, params),
+  removeProject: (
+    serverId: string,
+    name: string
+  ): Promise<AgentResponse<ProjectRemoveResult>> =>
+    ipcRenderer.invoke("project:on", "project.remove", serverId, name),
   syncProject: (
     serverId: string,
     name: string
   ): Promise<AgentResponse<ProjectSyncResult>> =>
-    ipcRenderer.invoke("project:sync", serverId, name),
+    ipcRenderer.invoke("project:on", "project.sync", serverId, name),
   installProject: (
     serverId: string,
     name: string
   ): Promise<AgentResponse<DoneResult>> =>
-    ipcRenderer.invoke("project:install", serverId, name),
-  startProject: (
-    serverId: string,
-    name: string
-  ): Promise<AgentResponse<ProjectActionResult>> =>
-    ipcRenderer.invoke("project:up", serverId, name),
+    ipcRenderer.invoke("project:on", "project.install", serverId, name),
   projectAddress: (
     serverId: string,
     name: string
   ): Promise<AgentResponse<ProjectUrlResult>> =>
-    ipcRenderer.invoke("project:url", serverId, name),
+    ipcRenderer.invoke("project:on", "project.url", serverId, name),
+  projectBranches: (
+    serverId: string,
+    name: string
+  ): Promise<AgentResponse<ProjectBranchesResult>> =>
+    ipcRenderer.invoke("project:on", "project.branches", serverId, name),
+
+  /**
+   * The gap with the remote repository: it goes out to the network for what is
+   * new, which is why it is asked on opening a project and on demand, never
+   * from a refresh loop.
+   */
+  projectGitStatus: (
+    serverId: string,
+    name: string
+  ): Promise<AgentResponse<ProjectGitStatusResult>> =>
+    ipcRenderer.invoke("project:on", "project.git_status", serverId, name),
+  projectWorkingTree: (
+    serverId: string,
+    name: string
+  ): Promise<AgentResponse<ProjectWorkingTreeResult>> =>
+    ipcRenderer.invoke("project:on", "project.working_tree", serverId, name),
+  projectDiff: (
+    serverId: string,
+    name: string,
+    path: string
+  ): Promise<AgentResponse<ProjectDiffResult>> =>
+    ipcRenderer.invoke("project:diff", serverId, name, path),
+  checkoutProject: (
+    serverId: string,
+    name: string,
+    branch: string
+  ): Promise<AgentResponse<ProjectCheckoutResult>> =>
+    ipcRenderer.invoke("project:checkout", serverId, name, branch),
+
+  /** Start, stop or restart one project — or "all", the agent's own word. */
+  actOnProject: (
+    action: ProjectAction,
+    serverId: string,
+    name: string
+  ): Promise<AgentResponse<ProjectActionResult>> =>
+    ipcRenderer.invoke("project:act", action, serverId, name),
+
+  startProject: (
+    serverId: string,
+    name: string
+  ): Promise<AgentResponse<ProjectActionResult>> =>
+    ipcRenderer.invoke("project:act", "project.up", serverId, name),
+
+  /**
+   * The project's folder, opened in an editor of this computer.
+   *
+   * The renderer names the editor and the server; the absolute path is the one
+   * the agent gave, held by the main process.
+   */
+  openInEditor: (
+    serverId: string,
+    editor: RemoteEditorId,
+    path: string
+  ): Promise<void> =>
+    ipcRenderer.invoke("project:editor", serverId, editor, path),
 
   /** The journal, read once or followed line by line until the project stops. */
   projectJournal: (
@@ -261,6 +315,23 @@ const api = {
       .finally(() => ipcRenderer.removeListener("project:log-line", listener));
   },
 
+  /**
+   * The server's environment keys, and the one way a value reaches them.
+   *
+   * The value crosses once, on its way in, and is written on the protocol's
+   * secret line by the main process. Nothing of it ever comes back.
+   */
+  secretsStatus: (
+    serverId: string
+  ): Promise<AgentResponse<SecretsStatusResult>> =>
+    ipcRenderer.invoke("secrets:status", serverId),
+  setSecret: (
+    serverId: string,
+    key: string,
+    value: string
+  ): Promise<AgentResponse<DoneResult>> =>
+    ipcRenderer.invoke("secrets:set", serverId, key, value),
+
   /** The last report the agent wrote, whatever happened to the channel. */
   installReport: (serverId: string): Promise<AgentResponse<InstallReport>> =>
     ipcRenderer.invoke("install:report", serverId),
@@ -269,60 +340,6 @@ const api = {
     ipcRenderer.invoke("agent:session", serverId),
   agentClose: (serverId: string): Promise<void> =>
     ipcRenderer.invoke("agent:close", serverId),
-
-  snapshot: (): Promise<Snapshot | null> => ipcRenderer.invoke("snapshot"),
-  capabilities: (): Promise<Capabilities> => ipcRenderer.invoke("capabilities"),
-  top: (): Promise<ProcessInfo[]> => ipcRenderer.invoke("top"),
-  terminalDiagnostics: (): Promise<{
-    sessions: number;
-    keystrokesReceived: number;
-  }> => ipcRenderer.invoke("terminal-diagnostics"),
-  sessions: (): Promise<Session[]> => ipcRenderer.invoke("sessions"),
-  stopSession: (pid: number): Promise<ActionResult> =>
-    ipcRenderer.invoke("session-stop", pid),
-  stopProcess: (pid: number): Promise<ActionResult> =>
-    ipcRenderer.invoke("process-stop", pid),
-  rebootServer: (): Promise<ActionResult> =>
-    ipcRenderer.invoke("server-reboot"),
-  cleanSessions: (): Promise<ActionResult> =>
-    ipcRenderer.invoke("sessions-clean"),
-  branches: (project: string): Promise<Branches | null> =>
-    ipcRenderer.invoke("branches", project),
-
-  /**
-   * The gap with the remote repository. "fetch" goes out to the network for what
-   * is new — that is what costs, and that is why it has to be asked for.
-   */
-  gitStatus: (
-    projects: string[] | null,
-    fetch: boolean
-  ): Promise<GitStatus[]> => ipcRenderer.invoke("git-status", projects, fetch),
-  gitPull: (project: string): Promise<ActionResult> =>
-    ipcRenderer.invoke("git-pull", project),
-
-  /**
-   * The working tree, and one file's diff. Both read-only, both local to the
-   * server: nothing here writes to a repository, and nothing goes to the
-   * network.
-   */
-  gitWorkingTree: (project: string): Promise<WorkingTree | null> =>
-    ipcRenderer.invoke("git-worktree", project),
-  gitFileDiff: (
-    project: string,
-    file: string,
-    untracked: boolean
-  ): Promise<FileDiff | null> =>
-    ipcRenderer.invoke("git-file-diff", project, file, untracked),
-
-  projects: (): Promise<Registration[]> => ipcRenderer.invoke("projects"),
-  writeProject: (fields: Record<string, string>): Promise<ActionResult> =>
-    ipcRenderer.invoke("project-write", fields),
-  removeProject: (name: string): Promise<ActionResult> =>
-    ipcRenderer.invoke("project-remove", name),
-
-  secrets: (): Promise<Secret[]> => ipcRenderer.invoke("secrets"),
-  setSecret: (key: string, value: string): Promise<ActionResult> =>
-    ipcRenderer.invoke("secret-set", key, value),
 
   servers: (): Promise<ServersConfig> => ipcRenderer.invoke("servers"),
   sshHosts: (): Promise<string[]> => ipcRenderer.invoke("ssh-hosts"),
@@ -354,48 +371,34 @@ const api = {
     ipcRenderer.invoke("server-host-key", id),
   trustReinstalled: (id: string): Promise<AgentResponse<ServersConfig>> =>
     ipcRenderer.invoke("server-trust-reinstalled", id),
-  diagnose: (): Promise<ConnectionState> => ipcRenderer.invoke("diagnose"),
-  installerPresent: (): Promise<boolean> =>
-    ipcRenderer.invoke("installer-present"),
-  install: (): Promise<{ code: number; output: string }> =>
-    ipcRenderer.invoke("install"),
-
-  action: (action: Action, project: string): Promise<ActionResult> =>
-    ipcRenderer.invoke("action", action, project),
-  switchBranch: (project: string, target: string): Promise<ActionResult> =>
-    ipcRenderer.invoke("branch", project, target),
 
   openUrl: (url: string): Promise<void> => ipcRenderer.invoke("open-url", url),
-  openEditor: (dir: string): Promise<void> =>
-    ipcRenderer.invoke("open-editor", dir),
-
-  followLog: (project: string): void => ipcRenderer.send("log-follow", project),
-  stopLog: (project: string): void => ipcRenderer.send("log-stop", project),
-  onLogLine: (callback: (line: LogLine) => void): (() => void) => {
-    const listener = (_e: unknown, line: LogLine) => callback(line);
-    ipcRenderer.on("log-line", listener);
-    return () => ipcRenderer.removeListener("log-line", listener);
-  },
 
   /**
    * The three sources of terminal autocompletion. The grammar comes from the
-   * server, the history from its shell, the paths from its disk: nothing is
+   * agent, the history from its shell, the paths from its disk: nothing is
    * guessed here.
    */
-  completionCatalog: (): Promise<Catalog | null> =>
-    ipcRenderer.invoke("completion-catalog"),
+  completionCatalog: (serverId: string): Promise<CompletionsResult | null> =>
+    ipcRenderer.invoke("completion-catalog", serverId),
   completionHistory: (): Promise<string[]> =>
     ipcRenderer.invoke("completion-history"),
   completionPaths: (dir: string, token: string): Promise<string[]> =>
     ipcRenderer.invoke("completion-paths", dir, token),
 
+  terminalDiagnostics: (): Promise<{
+    sessions: number;
+    keystrokesReceived: number;
+  }> => ipcRenderer.invoke("terminal-diagnostics"),
   openTerminal: (
     id: string,
+    serverId: string,
     kind: TerminalKind,
     project: string | null,
     cols: number,
     rows: number
-  ): void => ipcRenderer.send("terminal-open", id, kind, project, cols, rows),
+  ): void =>
+    ipcRenderer.send("terminal-open", id, serverId, kind, project, cols, rows),
   writeTerminal: (id: string, data: string): void =>
     ipcRenderer.send("terminal-write", id, data),
   resizeTerminal: (id: string, cols: number, rows: number): void =>

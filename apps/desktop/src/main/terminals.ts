@@ -1,23 +1,10 @@
-import type { AgentState, TerminalKind } from "@shared/contract";
+import type { AgentState, TerminalKind } from "@shared/terminals";
 import type { WebContents } from "electron";
 import * as pty from "node-pty";
 
-import { command, target } from "./ssh";
+import { target } from "./servers";
 
-/**
- * Where the server keeps its projects, as it announced.
- *
- * A constant here would assume every machine is laid out like mine. The server
- * says so in its snapshot; until it has, we open the terminal in the login
- * folder rather than guess.
- */
-let root: string | null = null;
-
-export function setRoot(path: string): void {
-  root = path;
-}
-
-type Session = {
+interface Session {
   proc: pty.IPty;
   kind: TerminalKind;
   project: string | null;
@@ -28,7 +15,7 @@ type Session = {
   /** A bell arrived and you have not answered yet. */
   bell: boolean;
   finished: boolean;
-};
+}
 
 const sessions = new Map<string, Session>();
 
@@ -81,12 +68,12 @@ export function states(): Record<string, AgentState> {
  * without it, the server dashboard and Claude Code refuse to start, for want of
  * a TTY.
  *
- * The folder is quoted for the remote shell, and validated upstream by the
- * caller: nothing coming from the renderer reaches here without having been
- * compared to the project list the server gave.
+ * The folder is absolute and quoted for the remote shell: it is the one the
+ * agent named for that project, never a path the renderer chose. A project the
+ * agent has not placed yet opens in the login folder rather than in a guess.
  */
 function remoteArgs(kind: TerminalKind, dir: string | null): string[] {
-  const cd = dir && root ? `cd '${root}/${dir}' && ` : "";
+  const cd = dir ? `cd '${dir}' && ` : "";
   const base = ["-tt", ...target()];
   switch (kind) {
     case "shell":
@@ -95,8 +82,6 @@ function remoteArgs(kind: TerminalKind, dir: string | null): string[] {
       return [...base, `${cd}exec claude`];
     case "codex":
       return [...base, `${cd}exec codex`];
-    case "tui":
-      return [...base, `exec ${command()} tui`];
     default:
       return base;
   }

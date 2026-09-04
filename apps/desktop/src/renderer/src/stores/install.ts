@@ -20,21 +20,21 @@ import { humanBytes, humanMs } from "../lib/duration";
  * by the main process.
  */
 
-export type StepEntry = {
+export interface StepEntry {
   step: string;
   status: StepStatus;
   ms: number;
   replay?: string;
-};
+}
 
 export type ModuleStatus = "pending" | "running" | "ok" | "skip" | "fail";
 
-export type ModuleProgress = {
+export interface ModuleProgress {
   id: string;
   status: ModuleStatus;
   ms: number;
   steps: StepEntry[];
-};
+}
 
 export type InstallState =
   | { status: "idle" }
@@ -43,12 +43,12 @@ export type InstallState =
   | { status: "done"; serverId: string; result: InstallResult }
   | { status: "failed"; serverId: string; error: AgentError };
 
-type Requested = {
+interface Requested {
   modules: readonly string[];
   config: ModuleConfig;
-};
+}
 
-type InstallStore = {
+interface InstallStore {
   install: InstallState;
   modules: ModuleProgress[];
   log: string[];
@@ -73,7 +73,7 @@ type InstallStore = {
   elapsed: () => number;
   failed: () => readonly string[];
   warned: () => readonly string[];
-};
+}
 
 const LOG_KEPT = 500;
 

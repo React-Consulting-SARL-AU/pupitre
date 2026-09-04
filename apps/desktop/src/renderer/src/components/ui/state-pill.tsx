@@ -1,0 +1,20 @@
+import type { StateLook } from "@renderer/lib/project-state";
+import { StatusDot } from "./status-dot";
+
+/**
+ * A state, read by its shape first.
+ *
+ * Colour alone would exclude those who cannot tell two of them apart, and a
+ * list you scan needs a marker that catches the eye before the word does.
+ */
+export function StatePill({ look, name }: { look: StateLook; name: string }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-data text-[10px] text-ink-2 ${look.frame}`}
+      data-state={name}
+    >
+      <StatusDot shape={look.shape} size={9} tone={look.tone} />
+      {look.label}
+    </span>
+  );
+}

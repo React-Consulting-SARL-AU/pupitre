@@ -6,7 +6,7 @@ import type { AgentSpawn } from "../../agent-client";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ENTRY = join(HERE, "fake-agent-main.ts");
 
-export type FakeAgent = {
+export interface FakeAgent {
   spawn: AgentSpawn;
   /** How many processes were started, and how many are still running. */
   started: () => number;
@@ -14,7 +14,7 @@ export type FakeAgent = {
   /** The `id=… cmd=…` lines the agent saw, in order, all connections mixed. */
   trace: () => string[];
   killAll: () => void;
-};
+}
 
 /**
  * A `pupitred serve` replaced by a Bun process replaying a transcript.

@@ -1,8 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
-import type { Server } from "@shared/contract";
 import type { HardenUpdate } from "@shared/harden";
-import { DEFAULT_PROFILE } from "@shared/profile";
+import type { Server } from "@shared/servers";
 import { type AgentClient, createAgentClient } from "../agent-client";
 import { runHarden } from "../harden-run";
 import { runInstall } from "../install-run";
@@ -49,7 +48,6 @@ function asRoot(): Server {
     name: "Staging",
     origin: "app",
     port: 22,
-    profile: DEFAULT_PROFILE,
     user: "root",
   };
 }

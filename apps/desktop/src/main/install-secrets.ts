@@ -13,11 +13,11 @@ import type { SecretMark, SecretMarks } from "@shared/secrets";
 
 const GENERATED_BYTES = 24;
 
-type Held = {
+interface Held {
   value: string;
   generated: boolean;
   revealed: boolean;
-};
+}
 
 const vaults = new Map<string, Map<string, Held>>();
 

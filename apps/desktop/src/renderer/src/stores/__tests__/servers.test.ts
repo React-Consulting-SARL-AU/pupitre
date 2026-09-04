@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import type { Server } from "@shared/contract";
+import type { Server } from "@shared/servers";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
 import { useServers } from "../servers";
 

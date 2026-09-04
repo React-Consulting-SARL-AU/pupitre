@@ -48,12 +48,12 @@ export class AgentCallError extends Error {
 
 export type SecretPayload = InstallSecrets | Record<string, string>;
 
-export type CallOptions = {
+export interface CallOptions {
   onEvent?: (event: Event) => void;
   /** Written on the line that follows the request, never in `params`, never kept. */
   secrets?: SecretPayload;
   timeoutMs?: number;
-};
+}
 
 /**
  * Two channels per server: the state reads must not wait behind an install.
@@ -65,12 +65,12 @@ export type AgentSpawn = (context: {
   purpose: ChannelPurpose;
 }) => ChildProcess;
 
-export type AgentClientOptions = {
+export interface AgentClientOptions {
   spawn: AgentSpawn;
   appVersion?: string;
   timeouts?: Partial<Record<CommandName, number>>;
   backoff?: { firstMs?: number; maxMs?: number; attempts?: number };
-};
+}
 
 const QUICK_MS = 10_000;
 const STANDARD_MS = 60_000;
@@ -168,13 +168,13 @@ function stepKey(event: Event): string | null {
     : null;
 }
 
-type Pending = {
+interface Pending {
   id: number;
   onEvent?: (event: Event) => void;
   resolve: (value: unknown) => void;
   reject: (error: AgentCallError) => void;
   timer: ReturnType<typeof setTimeout>;
-};
+}
 
 type ResolvedOptions = Required<Omit<AgentClientOptions, "timeouts">> & {
   timeouts: Partial<Record<CommandName, number>>;
@@ -667,12 +667,12 @@ export function createAgentClient(options: AgentClientOptions): AgentClient {
   return new AgentClient(options);
 }
 
-export type SshTarget = {
+export interface SshTarget {
   /** The arguments that name the server: `-F <app config> <alias>`, or a host. */
   args: string[];
   /** The remote command, when the agent does not sit in the PATH. */
   serveCommand?: string;
-};
+}
 
 /**
  * The channel as it opens on a real server: one `ssh`, one `pupitred serve`.

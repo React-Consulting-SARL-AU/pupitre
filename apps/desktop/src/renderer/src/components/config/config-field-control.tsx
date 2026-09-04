@@ -14,20 +14,20 @@ import { ConfigValueControl } from "./config-value-control";
  * new kind's task will come to fill.
  */
 
-export type FieldHandlers = {
+export interface FieldHandlers {
   onValue?: (key: string, value: unknown) => void;
   onSecret?: (key: string, value: string) => void;
   onGenerate?: (key: string) => void;
   onReveal?: (key: string) => Promise<string | null>;
-};
+}
 
-type ControlProps = {
+interface ControlProps {
   moduleId: string;
   field: Field;
   value: unknown;
   marks?: Record<string, SecretMark>;
   handlers: FieldHandlers;
-};
+}
 
 /** A version always has one, a checkbox never; the rest say so themselves. */
 function isRequired(field: Field): boolean {

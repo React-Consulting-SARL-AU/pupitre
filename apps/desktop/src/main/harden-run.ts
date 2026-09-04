@@ -17,7 +17,7 @@ export type { HardenOutcome, HardenUpdate } from "@shared/harden";
  * it was, and the reason travels back exactly as the agent phrased it.
  */
 
-export type HardenDeps = {
+export interface HardenDeps {
   client: Pick<AgentClient, "request">;
   /**
    * Rewrites the app's SSH configuration for this server, and answers the
@@ -27,7 +27,7 @@ export type HardenDeps = {
   switchUser: (serverId: string, user: string) => string | null;
   /** Drops the channels, so the next command opens a session on the new account. */
   close: (serverId: string) => void;
-};
+}
 
 export async function runHarden(
   serverId: string,

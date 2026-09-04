@@ -6,6 +6,10 @@ import type { AgentResponse } from "@shared/agent";
 import type { AgentDelivery } from "@shared/install";
 import { AGENT_MANIFEST, type AgentManifest } from "../../scripts/embed-agent";
 
+const SPACES = /\s+/;
+
+const SHA256 = /^[0-9a-f]{64}$/;
+
 /**
  * The agent, on its way to a machine that has never run it.
  *
@@ -30,13 +34,13 @@ export const AGENT_INSTALL_COMMAND = `set -e; install -m 755 /dev/stdin ${AGENT_
 
 const SEND_TIMEOUT_MS = 180_000;
 
-export type AgentPayload = {
+export interface AgentPayload {
   arch: string;
   path: string;
   sha256: string;
   bytes: number;
   content: Buffer;
-};
+}
 
 export type ShellSpawn = (command: string, args: string[]) => ChildProcess;
 
@@ -113,9 +117,9 @@ function defaultSpawn(command: string, args: string[]): ChildProcess {
 /** The hash `sha256sum` prints, first field of its line. */
 function receivedSum(output: string): string | null {
   for (const line of output.split("\n")) {
-    const found = line.trim().split(/\s+/)[0];
+    const found = line.trim().split(SPACES)[0];
 
-    if (found && /^[0-9a-f]{64}$/.test(found)) {
+    if (found && SHA256.test(found)) {
       return found;
     }
   }

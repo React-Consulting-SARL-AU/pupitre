@@ -33,6 +33,8 @@ const LOG_KEPT = 500;
 
 const TAIL = 200;
 
+const PROJECT_NAME = /^[a-z0-9][a-z0-9._-]*$/;
+
 export const CLOUDFLARE = "exposure.cloudflare";
 
 export const PHASES = ["add", "sources", "install", "up", "logs"] as const;
@@ -57,13 +59,13 @@ export type PhaseId = (typeof PHASES)[number];
 
 export type PhaseStatus = "pending" | "running" | "ok" | "skip" | "fail";
 
-export type Phase = {
+export interface Phase {
   id: PhaseId;
   status: PhaseStatus;
   detail?: string;
-};
+}
 
-export type Draft = {
+export interface Draft {
   source: string;
   name: string;
   dir: string;
@@ -71,15 +73,15 @@ export type Draft = {
   port: number;
   subdomain: string;
   cmd: string;
-};
+}
 
 /** What the reader has taken over, and what still follows the source. */
-type Edited = {
+interface Edited {
   name: boolean;
   port: boolean;
   cmd: boolean;
   subdomain: boolean;
-};
+}
 
 export type KnownState =
   | { status: "idle" }
@@ -106,7 +108,7 @@ export type FirstProjectState =
       error: AgentError;
     };
 
-type FirstProjectStore = {
+interface FirstProjectStore {
   known: KnownState;
   draft: Draft;
   edited: Edited;
@@ -131,7 +133,7 @@ type FirstProjectStore = {
 
   params: () => ProjectAddParams;
   ready: () => boolean;
-};
+}
 
 const EMPTY_DRAFT: Draft = {
   cmd: "",
@@ -587,7 +589,7 @@ export const useFirstProject = create<FirstProjectStore>((set, get) => {
       const { draft } = get();
 
       return (
-        /^[a-z0-9][a-z0-9._-]*$/.test(draft.name) &&
+        PROJECT_NAME.test(draft.name) &&
         draft.dir.length > 0 &&
         draft.cmd.trim().length > 0
       );

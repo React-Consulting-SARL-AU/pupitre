@@ -11,11 +11,11 @@ import type { ProtocolErrorCode } from "@pupitre/shared/agent-protocol/errors";
  */
 export type AgentErrorCode = ProtocolErrorCode | "timeout" | "disconnected";
 
-export type AgentError = {
+export interface AgentError {
   code: AgentErrorCode;
   message: string;
   fix?: string;
-};
+}
 
 export type AgentResponse<T> =
   | { ok: true; result: T }
