@@ -21,6 +21,7 @@ export function DownloadOfferRow({ offer, suggested }: DownloadOfferRowProps) {
         </p>
         <p className="text-[13px] text-ink-3">
           {offer.format} · {offer.requirement}
+          {offer.arch ? ` · ${offer.arch}` : ""}
         </p>
       </div>
 
