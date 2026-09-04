@@ -82,3 +82,23 @@ Lot S · dépend de MKT-01 · `apps/site`, dashboard
 
 Périmètre. Projet Pages relié au dépôt, `staging.pupitre.studio` sur les PR, `pupitre.studio` sur `main`, en-têtes de sécurité (`CSP`, `HSTS`), redirections `www` et `/fr/` trailing.
 Critères d'acceptation. Une PR obtient une URL de prévisualisation ; `main` publie en moins de trois minutes.
+
+### MKT-10 — Refonte du design du site
+Lot S · dépend de MKT-01 · `apps/site`
+
+Périmètre. Reprendre tout le site sur le design **accueillant** de [DESIGN.md](../product/DESIGN.md) : surfaces posées par une ombre douce, coins arrondis, échelle typographique reprise, gouttières et sections qui respirent, en-tête collant, pied de page en trois groupes, thème clair et sombre également soignés. Les primitives vivent dans `src/styles/global.css` en `@utility` sur les tokens de `packages/design` : `shell`, `card`, `card-link`, `eyebrow`, `tag`, `mark-dot`, `prose`, l'échelle `display-1` à `heading-4`. Aucune illustration, aucune icône décorative, aucune couleur en dur ; la couleur ne sert que l'état, et l'accueil tient sans une seule image.
+Critères d'acceptation.
+1. Chaque page du site — accueil, tarifs, téléchargement, doc, blog, changelog, légal, 404 — utilise les mêmes primitives et rend correctement en clair comme en sombre.
+2. L'accueil ne contient ni `<img>`, ni `<picture>`, ni `<svg>` ; test automatique.
+3. Aucune couleur en dur hors `packages/design` ; les tests de rendu ne dépendent pas d'une classe utilitaire précise.
+Tests. Tests de rendu des primitives (`Hero`, `Steps`, `StatusMark`, `Nav`, `Footer`), test « l'accueil tient sans image ».
+
+### MKT-10 — Redirections manquantes vers les tarifs et le téléchargement
+Lot S · dépend de MKT-01 · `apps/site`
+
+But. Une adresse tapée à la main aboutit.
+Le constat. Le site est en `trailingSlash: "always"`. `apps/site/public/_redirects` rattrape `/fr`, `/docs`, `/blog`, `/changelog` et `/legal`, mais **pas** `/pricing` ni `/download` : une adresse tapée sans barre oblique finale rend une page introuvable, sur les deux pages qui mènent à l'achat et au téléchargement.
+Périmètre. Compléter les redirections, et ajouter un test qui échoue si une page de premier niveau n'a pas la sienne, pour que la liste ne se démode plus.
+Critères d'acceptation.
+1. Chaque page de premier niveau répond avec et sans barre oblique finale.
+

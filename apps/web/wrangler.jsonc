@@ -54,13 +54,20 @@
       "7 4 * * *"
     ]
   },
-  "vars": {},
+  // Valeurs locales du développement : staging et production les remplacent.
+  "vars": {
+    "BETTER_AUTH_URL": "http://localhost:3000",
+    "VITE_APP_URL": "http://localhost:3000",
+    "EMAIL_FROM": "no-reply@pupitre.studio"
+  },
   "secrets": {
     "required": [
       "DATABASE_URL",
       "BETTER_AUTH_SECRET",
       "STRIPE_SECRET_KEY",
       "STRIPE_WEBHOOK_SECRET",
+      "STRIPE_PRICE_SERVER_MONTH",
+      "STRIPE_PRICE_SERVER_YEAR",
       "INTERNAL_WORKFLOW_SECRET"
     ]
   }

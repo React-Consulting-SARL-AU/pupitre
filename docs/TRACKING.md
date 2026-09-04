@@ -78,6 +78,8 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-23 | La galerie affiche vraiment les captures | à faire | | |
 | APP-24 | L'app se fie à la plateforme pour la signature | à faire | | |
 | APP-25 | L'app lit le port libre dans le remède, pas dans la phrase | à faire | | |
+| PLT-20 | Le client de base de données ne survit pas à une requête | à faire | | |
+| MKT-10 | Redirections manquantes vers les tarifs et le téléchargement | à faire | | |
 | APP-20 | L'app parle deux langues | fait | `feat/APP-20-i18n` | fusionnée |
 
 ## Plateforme — `PLT`

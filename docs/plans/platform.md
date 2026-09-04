@@ -210,3 +210,20 @@ Hors périmètre. La logique de tolérance, déjà livrée.
 Critères d'acceptation.
 1. Une tolérance expirée suspend les serveurs sans appel manuel, prouvé par un test qui passe par le workflow.
 
+### PLT-20 — Le client de base de données ne survit pas à une requête
+Lot 5 · dépend de PLT-08 · `packages/auth`, `packages/api`, `packages/db`
+
+But. Une requête authentifiée aboutit à chaque fois, pas une sur quatre.
+
+Le constat. Sur `bun run dev`, trois requêtes authentifiées sur quatre se figent et le runtime rend « your Worker's code had hung and would never generate a response ». Le journal donne la cause exacte : « A promise was resolved or rejected from a different request context than the one it was created in ». `getAuth` et `getPrisma` gardent chacun un `PrismaClient` sur l'adaptateur Neon **au niveau du module** ; sa connexion appartient au contexte d'entrée-sortie de la première requête, et un Worker interdit d'en changer. C'est aussi pourquoi `/status` annonce la base « down » alors que `/servers` répond.
+
+Périmètre. Choisir entre un client par requête et le pilote Neon en HTTP, qui est sans état et se partage sans danger. Mesurer avant et après sur une série de requêtes, pas sur une seule. Vérifier que le harnais PGlite des tests n'est pas affecté.
+
+Mesure faite. Sans cache de client, le taux passe de 2 sur 8 à 4 sur 8 : la piste est la bonne mais elle ne suffit pas seule, une autre ressource partagée subsiste.
+
+Hors périmètre. Le comportement en production, non observé — le constat vient de miniflare en local. Le partage d'un client au niveau du module reste un contre-emploi connu du runtime.
+
+Critères d'acceptation.
+1. Vingt requêtes authentifiées consécutives aboutissent toutes.
+2. `/status` rend la base « ok » quand elle répond.
+
