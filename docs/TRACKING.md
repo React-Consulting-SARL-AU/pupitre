@@ -94,7 +94,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-13 | Passkeys et MFA | fait | `feat/PLT-13-passkeys` | fusionnée |
 | PLT-14 | Déploiement Cloudflare Builds, staging et production | en revue | `feat/PLT-14-deploy` | fusion en attente de PLT-18 : mêmes fichiers |
 | PLT-15 | Workflows Cloudflare : déclencheurs des tâches longues | fait | `feat/PLT-15-workflows` | fusionnée |
-| PLT-19 | Déclencheur planifié pour la fin de tolérance | à faire | | |
+| PLT-19 | Déclencheur planifié pour la fin de tolérance | en revue | `feat/PLT-19-grace-cron` | |
 | PLT-17 | Le workflow d'évaluation des alertes | fait | `feat/PLT-17-alerts-workflow` | fusionnée |
 | PLT-16 | Harnais Playwright pour la console | fait | `feat/PLT-16-e2e` | fusionnée |
 | PLT-18 | Managed Payments : vendeur Stripe, un produit, deux prix | en revue | `main` | |

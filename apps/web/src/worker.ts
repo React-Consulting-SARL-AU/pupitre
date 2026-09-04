@@ -15,6 +15,7 @@ import {
 } from "./workflows/internal-trigger"
 import { runReconcileSeats } from "./workflows/reconcile-seats"
 import { runScheduledWorkflow } from "./workflows/schedule"
+import { runSuspendExpiredGrace } from "./workflows/suspend-expired-grace"
 
 type CronEvent = Readonly<WorkflowEvent<unknown>>
 
@@ -41,6 +42,12 @@ export class ReconcileSeats extends WorkflowEntrypoint<CloudflareEnv> {
 export class EvaluateAlerts extends WorkflowEntrypoint<CloudflareEnv> {
   override run(_event: CronEvent, step: WorkflowStep) {
     return runEvaluateAlerts(step)
+  }
+}
+
+export class SuspendExpiredGrace extends WorkflowEntrypoint<CloudflareEnv> {
+  override run(_event: CronEvent, step: WorkflowStep) {
+    return runSuspendExpiredGrace(step)
   }
 }
 

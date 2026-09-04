@@ -27,6 +27,7 @@ function envWithWorkflows(secret?: string): TriggeredEnv {
     DECOMMISSION_SERVER: workflow("decommission-server"),
     RECONCILE_SEATS: workflow("reconcile-seats"),
     EVALUATE_ALERTS: workflow("evaluate-alerts"),
+    SUSPEND_EXPIRED_GRACE: workflow("suspend-expired-grace"),
   } as unknown as CloudflareEnv
 
   return { env, started }

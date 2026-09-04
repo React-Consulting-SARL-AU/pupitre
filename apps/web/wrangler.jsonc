@@ -38,10 +38,21 @@
       "name": "pupitre-evaluate-alerts",
       "binding": "EVALUATE_ALERTS",
       "class_name": "EvaluateAlerts"
+    },
+    {
+      "name": "pupitre-suspend-expired-grace",
+      "binding": "SUSPEND_EXPIRED_GRACE",
+      "class_name": "SuspendExpiredGrace"
     }
   ],
   "triggers": {
-    "crons": ["0 * * * *", "20 3 * * *", "40 3 * * *", "*/5 * * * *"]
+    "crons": [
+      "0 * * * *",
+      "20 3 * * *",
+      "40 3 * * *",
+      "*/5 * * * *",
+      "7 4 * * *"
+    ]
   },
   "vars": {},
   "secrets": {
