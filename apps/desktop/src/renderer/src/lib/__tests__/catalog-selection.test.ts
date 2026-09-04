@@ -180,3 +180,39 @@ describe("carriesSecret", () => {
     expect(node && carriesSecret(node)).toBe(false);
   });
 });
+
+describe("un catalogue ouvert sur un serveur déjà installé", () => {
+  const INSTALLED = ["core.system", "core.hardening", "runtime.node"];
+
+  it("ne repropose pas les modules obligatoires déjà en place", () => {
+    expect(mandatory(CATALOG.modules, INSTALLED)).toEqual([]);
+  });
+
+  it("n'entraîne pas les dépendances que le serveur satisfait déjà", () => {
+    expect(select(CATALOG.modules, [], "db.postgres", INSTALLED)).toEqual([
+      "db.postgres",
+    ]);
+  });
+
+  it("entraîne celles qui manquent encore", () => {
+    expect(select(CATALOG.modules, [], "editor.jetbrains", INSTALLED)).toEqual([
+      "runtime.java",
+      "editor.jetbrains",
+    ]);
+  });
+
+  it("dit d'un module présent qu'il est déjà là, plutôt que de le proposer", () => {
+    expect(
+      blocked(CATALOG.modules, [], null, INSTALLED).get("runtime.node")
+    ).toBe("Déjà installé sur ce serveur.");
+  });
+
+  it("réduit un préréglage à ce qu'il reste à poser", () => {
+    const preset = CATALOG.presets.find((p) => p.id === "web-js");
+
+    expect(preset && fromPreset(CATALOG.modules, preset, INSTALLED)).toEqual([
+      "db.mysql",
+      "editor.vscode",
+    ]);
+  });
+});
