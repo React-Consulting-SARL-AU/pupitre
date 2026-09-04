@@ -182,7 +182,7 @@ func (e *Engine) Uninstall(ids []string, sink Sink) (contract.UninstallResult, e
 func (e *Engine) Report() (contract.Report, error) {
 	raw, err := os.ReadFile(e.reportPath())
 	if errors.Is(err, fs.ErrNotExist) {
-		return contract.Report{}, protocol.NewError(contract.ErrorBadRequest, "aucun rapport : aucune installation n'a encore eu lieu sur ce serveur").
+		return contract.Report{}, protocol.NewError(contract.ErrorNoReport, "aucun rapport : aucune installation n'a encore eu lieu sur ce serveur").
 			WithFix("Lance install depuis l'app, ou sudo pupitred install sur le serveur.")
 	}
 

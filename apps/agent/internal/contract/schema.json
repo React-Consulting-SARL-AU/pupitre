@@ -190,6 +190,7 @@
         "project_not_found",
         "module_not_found",
         "module_failed",
+        "no_report",
         "service_not_found",
         "secrets_required",
         "bad_signature",
@@ -2814,6 +2815,21 @@
         "report"
       ]
     },
+    "InstallSecrets": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "propertyNames": {
+          "type": "string"
+        },
+        "additionalProperties": {
+          "type": "string"
+        }
+      }
+    },
     "Manifest": {
       "type": "object",
       "properties": {
@@ -3203,6 +3219,63 @@
       "required": [
         "id",
         "modules"
+      ]
+    },
+    "Presets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Preset"
+      },
+      "const": [
+        {
+          "id": "web-js",
+          "modules": [
+            "core.system",
+            "core.hardening",
+            "runtime.node",
+            "db.mysql",
+            "ai.claude",
+            "ai.browser",
+            "editor.vscode",
+            "exposure.ssh"
+          ]
+        },
+        {
+          "id": "full",
+          "modules": [
+            "core.system",
+            "core.hardening",
+            "runtime.node",
+            "runtime.java",
+            "runtime.python",
+            "db.mysql",
+            "db.postgres",
+            "db.mongodb",
+            "ai.claude",
+            "ai.codex",
+            "ai.hermes",
+            "ai.browser",
+            "editor.jetbrains",
+            "editor.vscode",
+            "editor.zed",
+            "exposure.cloudflare",
+            "exposure.ssh",
+            "tool.github",
+            "tool.1password"
+          ]
+        },
+        {
+          "id": "minimal",
+          "modules": [
+            "core.system",
+            "core.hardening"
+          ],
+          "choose_one": [
+            "ai.claude",
+            "ai.codex",
+            "ai.hermes"
+          ]
+        }
       ]
     }
   }

@@ -11,6 +11,7 @@ const (
 	ErrorProjectNotFound     ErrorCode = "project_not_found"
 	ErrorModuleNotFound      ErrorCode = "module_not_found"
 	ErrorModuleFailed        ErrorCode = "module_failed"
+	ErrorNoReport            ErrorCode = "no_report"
 	ErrorServiceNotFound     ErrorCode = "service_not_found"
 	ErrorSecretsRequired     ErrorCode = "secrets_required"
 	ErrorBadSignature        ErrorCode = "bad_signature"
@@ -27,6 +28,7 @@ var ErrorCodes = []ErrorCode{
 	ErrorProjectNotFound,
 	ErrorModuleNotFound,
 	ErrorModuleFailed,
+	ErrorNoReport,
 	ErrorServiceNotFound,
 	ErrorSecretsRequired,
 	ErrorBadSignature,
