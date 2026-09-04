@@ -1,0 +1,64 @@
+import { BillingInterval } from "@pupitre/db/cloudflare/enums"
+
+export const BILLING_INTERVALS = [
+  BillingInterval.month,
+  BillingInterval.year,
+] as const
+
+export type BillingIntervalName = (typeof BILLING_INTERVALS)[number]
+
+export const BILLING_CURRENCIES = ["eur", "usd"] as const
+
+export type BillingCurrency = (typeof BILLING_CURRENCIES)[number]
+
+export interface CheckoutSessionInput {
+  organizationId: string
+  customerId: string | null
+  customerEmail: string | null
+  quantity: number
+  interval: BillingIntervalName
+  currency: BillingCurrency
+  successUrl: string
+  cancelUrl: string
+}
+
+export interface PortalSessionInput {
+  customerId: string
+  returnUrl: string
+}
+
+export interface BillingSession {
+  id: string
+  url: string
+}
+
+export interface RemoteSubscription {
+  id: string
+  customer_id: string
+  status: string
+  product: string
+  quantity: number
+  interval: BillingIntervalName | null
+  current_period_end: Date | null
+  organization_id: string | null
+}
+
+export interface BillingProvider {
+  createCheckoutSession(input: CheckoutSessionInput): Promise<BillingSession>
+  createPortalSession(input: PortalSessionInput): Promise<BillingSession>
+  retrieveSubscription(subscriptionId: string): Promise<RemoteSubscription>
+  updateQuantity(
+    subscriptionId: string,
+    quantity: number
+  ): Promise<RemoteSubscription>
+}
+
+export class BillingProviderError extends Error {
+  readonly status: number
+
+  constructor(status: number, message: string) {
+    super(message)
+    this.name = "BillingProviderError"
+    this.status = status
+  }
+}

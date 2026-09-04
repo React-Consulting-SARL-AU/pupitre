@@ -74,7 +74,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-04 | Routes `me`, `devices` | fait | `feat/PLT-04-me-devices` | fusionnée |
 | PLT-05 | Enrôlement, jetons d'agent, `agent/state`, heartbeat | fait | `feat/PLT-05-enrollment` | fusionnée |
 | PLT-06 | Distribution des binaires signés (R2) | fait | `feat/PLT-06-releases` | fusionnée |
-| PLT-07 | Stripe Managed Payments : checkout, portail, webhooks, réconciliation | à faire | | |
+| PLT-07 | Stripe Managed Payments : checkout, portail, webhooks, réconciliation | en revue | `feat/PLT-07-stripe` | |
 | PLT-08 | Console : shell, connexion, serveurs, appareils | à faire | | |
 | PLT-09 | Console : abonnement, téléchargements, profil | à faire | | |
 | PLT-10 | Organisations : membres, invitations, attribution, audit | à faire | | |
