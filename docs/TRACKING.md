@@ -15,6 +15,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-07 | Contrat : champs booléens et listes dans le catalogue | fait | `feat/INF-07-catalog-fields` | fusionnée |
 | INF-08 | Contrat : flux secret d'`install`, presets dans le schéma, code `no_report` | fait | `feat/INF-08-install-contract` | fusionnée |
 | INF-09 | Design : ombres, rayons, espace, logos de services | à faire | | |
+| INF-10 | Flux secret sur l'entrée standard | à faire | | |
 
 ## Agent serveur — `AGT`
 
@@ -42,7 +43,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | ID | Tâche | Statut | Branche | PR |
 | --- | --- | --- | --- | --- |
 | APP-01 | Design monochrome et thèmes | fait | `feat/APP-01-monochrome` | fusionnée |
-| APP-02 | Client du protocole agent sur SSH | en revue | `feat/APP-02-agent-client` | |
+| APP-02 | Client du protocole agent sur SSH | fait | `feat/APP-02-agent-client` | fusionnée |
 | APP-03 | Serveurs, clés par appareil, config SSH propre à l'app | à faire | | |
 | APP-04 | Écran d'inspection | à faire | | |
 | APP-05 | Catalogue et configuration des services | à faire | | |
