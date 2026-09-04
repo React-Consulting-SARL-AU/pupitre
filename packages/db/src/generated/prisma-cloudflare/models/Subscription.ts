@@ -491,14 +491,6 @@ export type SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput = {
   deleteMany?: Prisma.SubscriptionScalarWhereInput | Prisma.SubscriptionScalarWhereInput[]
 }
 
-export type IntFieldUpdateOperationsInput = {
-  set?: number
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type SubscriptionCreateWithoutOrganizationInput = {
   id?: string
   stripeSubscriptionId: string
