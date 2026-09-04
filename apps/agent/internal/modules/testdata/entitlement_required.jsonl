@@ -1,0 +1,15 @@
+@entitlement restricted
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"restricted","capabilities":["catalog","hello","install","ping","report","uninstall","upgrade"]}}
+> {"id":2,"cmd":"install","params":{"modules":["tool.demo"],"config":{},"secrets_stdin":false}}
+< {"id":2,"ok":false,"error":{"code":"entitlement_required","message":"droit d'usage requis : ce serveur est en mode restreint","fix":"Ouvre https://app.pupitre.sh pour renouveler le droit d'usage de ce serveur."}}
+> {"id":3,"cmd":"uninstall","params":{"modules":["tool.demo"]}}
+< {"id":3,"ok":false,"error":{"code":"entitlement_required","message":"droit d'usage requis : ce serveur est en mode restreint","fix":"Ouvre https://app.pupitre.sh pour renouveler le droit d'usage de ce serveur."}}
+> {"id":4,"cmd":"upgrade"}
+< {"id":4,"ok":false,"error":{"code":"entitlement_required","message":"droit d'usage requis : ce serveur est en mode restreint","fix":"Ouvre https://app.pupitre.sh pour renouveler le droit d'usage de ce serveur."}}
+> {"id":5,"cmd":"catalog"}
+< {"id":5,"ok":false,"error":{"code":"entitlement_required","message":"droit d'usage requis : ce serveur est en mode restreint","fix":"Ouvre https://app.pupitre.sh pour renouveler le droit d'usage de ce serveur."}}
+> {"id":6,"cmd":"report"}
+< {"id":6,"ok":false,"error":{"code":"entitlement_required","message":"droit d'usage requis : ce serveur est en mode restreint","fix":"Ouvre https://app.pupitre.sh pour renouveler le droit d'usage de ce serveur."}}
+> {"id":7,"cmd":"ping"}
+< {"id":7,"ok":true,"result":{"ts":"2026-09-04T12:00:00Z"}}

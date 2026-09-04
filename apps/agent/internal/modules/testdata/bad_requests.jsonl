@@ -1,0 +1,17 @@
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","ping","report","uninstall","upgrade"]}}
+> {"id":2,"cmd":"install","params":{"modules":["tool.demo"],"config":{},"secrets_stdin":true}}
+$ {"password":"s3cret-de-test"}
+< {"id":2,"ok":false,"error":{"code":"bad_request","message":"flux secret illisible : un objet {module: {clé: valeur}} est attendu","fix":"Écris les secrets groupés par identifiant de module, comme config."}}
+> {"id":3,"cmd":"install","params":{"modules":["db.nope"],"config":{},"secrets_stdin":false}}
+< {"id":3,"ok":false,"error":{"code":"module_not_found","message":"module inconnu : db.nope","fix":"Demande catalog pour la liste des modules de cet agent."}}
+> {"id":4,"cmd":"install","params":{"modules":["tool.demo","tool.rival"],"config":{},"secrets_stdin":false}}
+< {"id":4,"ok":false,"error":{"code":"bad_request","message":"les modules tool.demo et tool.rival sont en conflit","fix":"Retire l'un des deux de la sélection."}}
+> {"id":5,"cmd":"uninstall","params":{"modules":["db.nope"]}}
+< {"id":5,"ok":false,"error":{"code":"module_not_found","message":"module inconnu : db.nope","fix":"Demande catalog pour la liste des modules de cet agent."}}
+> {"id":6,"cmd":"upgrade","params":{"modules":["db.nope"]}}
+< {"id":6,"ok":false,"error":{"code":"module_not_found","message":"module inconnu : db.nope","fix":"Demande catalog pour la liste des modules de cet agent."}}
+> {"id":7,"cmd":"install","params":{"modules":[],"config":{},"secrets_stdin":false}}
+< {"id":7,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/modules : doit compter au moins 1 élément"}}
+> {"id":8,"cmd":"report"}
+< {"id":8,"ok":false,"error":{"code":"bad_request","message":"aucun rapport : aucune installation n'a encore eu lieu sur ce serveur","fix":"Lance install depuis l'app, ou sudo pupitred install sur le serveur."}}

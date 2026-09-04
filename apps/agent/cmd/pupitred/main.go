@@ -6,42 +6,79 @@ import (
 	"os"
 
 	"pupitre.sh/agent/internal/entitlement"
+	"pupitre.sh/agent/internal/modules"
 	"pupitre.sh/agent/internal/protocol"
+	"pupitre.sh/agent/internal/sys"
 )
 
 var version = "dev"
 
 const secretsDescriptor = 3
 
+var newSys = func() sys.Sys { return sys.Real{} }
+
 func main() {
-	if len(os.Args) < 2 {
-		usage()
-		os.Exit(2)
+	os.Exit(run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr))
+}
+
+func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+	if len(args) < 1 {
+		usage(stderr)
+		return 2
 	}
 
-	switch os.Args[1] {
+	switch args[0] {
 	case "version":
-		fmt.Println("pupitred " + version)
+		fmt.Fprintln(stdout, "pupitred "+version)
+		return 0
 	case "serve":
-		if err := newServer().Serve(os.Stdin, os.Stdout, secretStream()); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
+		if err := newServer(newEngine()).Serve(stdin, stdout, secretStream()); err != nil {
+			fmt.Fprintln(stderr, err)
+			return 1
 		}
-	default:
-		usage()
-		os.Exit(2)
+		return 0
+	case "install":
+		return runInstall(newEngine(), args[1:], stderr)
+	case "report":
+		return runReport(newEngine(), stdout, stderr)
 	}
+
+	usage(stderr)
+	return 2
 }
 
-func usage() {
-	fmt.Fprintln(os.Stderr, "usage: pupitred <serve|version>")
+func usage(stderr io.Writer) {
+	fmt.Fprintln(stderr, "usage: pupitred <serve|install [--only=id,id] [--skip=id,id]|report|version>")
 }
 
-func newServer() *protocol.Server {
-	return protocol.NewServer(protocol.Options{
+func newServer(engine *modules.Engine) *protocol.Server {
+	server := protocol.NewServer(protocol.Options{
 		AgentVersion: version,
 		Entitlement:  entitlement.Current(),
 	})
+	modules.RegisterCommands(server, engine)
+
+	return server
+}
+
+func newEngine() *modules.Engine {
+	return &modules.Engine{
+		Registry:     modules.Default(),
+		Sys:          newSys(),
+		Entitlement:  entitlement.Current,
+		AgentVersion: version,
+		ReportPath:   pathFromEnv("PUPITRE_REPORT_PATH", modules.DefaultReportPath),
+		LogPath:      pathFromEnv("PUPITRE_LOG_PATH", modules.DefaultLogPath),
+		InstallPath:  pathFromEnv("PUPITRE_INSTALL_PATH", modules.DefaultInstallPath),
+	}
+}
+
+func pathFromEnv(name, fallback string) string {
+	if value := os.Getenv(name); value != "" {
+		return value
+	}
+
+	return fallback
 }
 
 func secretStream() io.Reader {

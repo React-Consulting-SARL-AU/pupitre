@@ -35,7 +35,7 @@ func unknownCommand(cmd string) *Error {
 	return NewError(contract.ErrorUnknownCommand, "commande inconnue : "+cmd)
 }
 
-func entitlementRequired() *Error {
+func EntitlementRequired() *Error {
 	return NewError(contract.ErrorEntitlementRequired, "droit d'usage requis : ce serveur est en mode restreint").
 		WithFix("Ouvre https://app.pupitre.sh pour renouveler le droit d'usage de ce serveur.")
 }
