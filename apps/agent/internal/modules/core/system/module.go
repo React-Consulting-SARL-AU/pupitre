@@ -26,6 +26,7 @@ const (
 	passwdPath         = "/etc/passwd"
 	osReleasePath      = "/etc/os-release"
 	zshrcPath          = Home + "/.zshrc"
+	bashrcPath         = Home + "/.bashrc"
 	tmuxPath           = Home + "/.tmux.conf"
 	gitconfigPath      = Home + "/.gitconfig"
 	sshDir             = Home + "/.ssh"
@@ -56,7 +57,7 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 
 	return modules.Status{
 		Installed:  true,
-		Configured: file.Same(ctx, sudoersPath, []byte(sudoers)) && file.HasBlock(ctx, zshrcPath, ID),
+		Configured: file.Same(ctx, sudoersPath, []byte(sudoers)) && file.HasBlock(ctx, zshrcPath, ID) && file.HasBlock(ctx, bashrcPath, ID) && linked(ctx),
 		Version:    osVersion(ctx),
 	}, nil
 }
@@ -66,7 +67,7 @@ func (Module) Install(ctx *modules.Context) error {
 }
 
 func (Module) Configure(ctx *modules.Context) error {
-	return sequence(ctx, setTimezone, createUser, grantSudo, prepareHome, seedAuthorizedKeys, createProjectsDir, setGitIdentity, writeZshrc, writeTmuxConf)
+	return sequence(ctx, setTimezone, createUser, grantSudo, prepareHome, seedAuthorizedKeys, createProjectsDir, setGitIdentity, writeZshrc, writeBashrc, writeTmuxConf, linkDev)
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
@@ -106,6 +107,14 @@ func (Module) Uninstall(ctx *modules.Context) error {
 	}
 
 	if err := removeBlock(ctx, "remove-zshrc-block", zshrcPath); err != nil {
+		return err
+	}
+
+	if err := removeBlock(ctx, "remove-bashrc-block", bashrcPath); err != nil {
+		return err
+	}
+
+	if err := unlinkDev(ctx); err != nil {
 		return err
 	}
 

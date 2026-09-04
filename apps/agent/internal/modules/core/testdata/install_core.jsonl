@@ -39,8 +39,12 @@
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"set-git-identity"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"write-zshrc"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"write-zshrc"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"write-bashrc"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"write-bashrc"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"write-tmux-conf"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"write-tmux-conf"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"link-dev-command"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"link-dev-command"}
 < {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"start","step":"install-packages"}
 < {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"ok","step":"install-packages"}
 < {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"start","step":"configure-firewall"}
@@ -82,8 +86,12 @@
 < {"event":"step","id":3,"module":"core.system","ms":0,"status":"skip","step":"set-git-identity"}
 < {"event":"step","id":3,"module":"core.system","ms":0,"status":"start","step":"write-zshrc"}
 < {"event":"step","id":3,"module":"core.system","ms":0,"status":"skip","step":"write-zshrc"}
+< {"event":"step","id":3,"module":"core.system","ms":0,"status":"start","step":"write-bashrc"}
+< {"event":"step","id":3,"module":"core.system","ms":0,"status":"skip","step":"write-bashrc"}
 < {"event":"step","id":3,"module":"core.system","ms":0,"status":"start","step":"write-tmux-conf"}
 < {"event":"step","id":3,"module":"core.system","ms":0,"status":"skip","step":"write-tmux-conf"}
+< {"event":"step","id":3,"module":"core.system","ms":0,"status":"start","step":"link-dev-command"}
+< {"event":"step","id":3,"module":"core.system","ms":0,"status":"skip","step":"link-dev-command"}
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"start","step":"install-packages"}
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"skip","step":"install-packages"}
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"start","step":"configure-firewall"}
@@ -95,4 +103,4 @@
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"start","step":"prepare-sshd-fragment"}
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"skip","step":"prepare-sshd-fragment"}
 < {"id":3,"ok":true,"result":{"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}
-< {"id":4,"ok":true,"result":{"started_at":"2026-09-04T12:00:00Z","finished_at":"2026-09-04T12:00:00Z","agent_version":"0.0.0-test","modules":[{"id":"core.system","status":"skip","steps":[{"step":"repair-dpkg","status":"skip","ms":0},{"step":"install-packages","status":"skip","ms":0},{"step":"create-swap","status":"skip","ms":0},{"step":"enable-memory-guard","status":"skip","ms":0},{"step":"configure-unattended-upgrades","status":"skip","ms":0},{"step":"enable-unattended-upgrades","status":"skip","ms":0},{"step":"raise-system-limits","status":"skip","ms":0},{"step":"set-timezone","status":"skip","ms":0},{"step":"create-user","status":"skip","ms":0},{"step":"grant-sudo","status":"skip","ms":0},{"step":"prepare-home","status":"skip","ms":0},{"step":"seed-authorized-keys","status":"skip","ms":0},{"step":"create-projects-dir","status":"skip","ms":0},{"step":"set-git-identity","status":"skip","ms":0},{"step":"write-zshrc","status":"skip","ms":0},{"step":"write-tmux-conf","status":"skip","ms":0}]},{"id":"core.hardening","status":"skip","steps":[{"step":"install-packages","status":"skip","ms":0},{"step":"configure-firewall","status":"skip","ms":0},{"step":"write-fail2ban-jail","status":"skip","ms":0},{"step":"enable-fail2ban","status":"skip","ms":0},{"step":"prepare-sshd-fragment","status":"skip","ms":0}]}],"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}
+< {"id":4,"ok":true,"result":{"started_at":"2026-09-04T12:00:00Z","finished_at":"2026-09-04T12:00:00Z","agent_version":"0.0.0-test","modules":[{"id":"core.system","status":"skip","steps":[{"step":"repair-dpkg","status":"skip","ms":0},{"step":"install-packages","status":"skip","ms":0},{"step":"create-swap","status":"skip","ms":0},{"step":"enable-memory-guard","status":"skip","ms":0},{"step":"configure-unattended-upgrades","status":"skip","ms":0},{"step":"enable-unattended-upgrades","status":"skip","ms":0},{"step":"raise-system-limits","status":"skip","ms":0},{"step":"set-timezone","status":"skip","ms":0},{"step":"create-user","status":"skip","ms":0},{"step":"grant-sudo","status":"skip","ms":0},{"step":"prepare-home","status":"skip","ms":0},{"step":"seed-authorized-keys","status":"skip","ms":0},{"step":"create-projects-dir","status":"skip","ms":0},{"step":"set-git-identity","status":"skip","ms":0},{"step":"write-zshrc","status":"skip","ms":0},{"step":"write-bashrc","status":"skip","ms":0},{"step":"write-tmux-conf","status":"skip","ms":0},{"step":"link-dev-command","status":"skip","ms":0}]},{"id":"core.hardening","status":"skip","steps":[{"step":"install-packages","status":"skip","ms":0},{"step":"configure-firewall","status":"skip","ms":0},{"step":"write-fail2ban-jail","status":"skip","ms":0},{"step":"enable-fail2ban","status":"skip","ms":0},{"step":"prepare-sshd-fragment","status":"skip","ms":0}]}],"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}

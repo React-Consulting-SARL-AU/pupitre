@@ -36,9 +36,16 @@ func (e *ExitError) Error() string {
 	return fmt.Sprintf("%s a échoué (code %d) : %s", e.Program, e.Code, lastLines(detail, 3))
 }
 
+// One entry of a folder. A symlink is never a directory here: descending one could walk out of the folder its parent belongs to.
+type Entry struct {
+	Name string
+	Dir  bool
+}
+
 type Sys interface {
 	Run(cmd Command) (Output, error)
 	ReadFile(path string) ([]byte, error)
+	ReadDir(path string) ([]Entry, error)
 	WriteFile(path string, data []byte, mode fs.FileMode) error
 	Remove(path string) error
 	Exists(path string) (bool, error)

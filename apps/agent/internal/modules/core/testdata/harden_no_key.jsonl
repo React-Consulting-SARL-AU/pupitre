@@ -36,8 +36,12 @@
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"set-git-identity"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"write-zshrc"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"write-zshrc"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"write-bashrc"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"write-bashrc"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"write-tmux-conf"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"write-tmux-conf"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"link-dev-command"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"link-dev-command"}
 < {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"start","step":"install-packages"}
 < {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"ok","step":"install-packages"}
 < {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"start","step":"configure-firewall"}

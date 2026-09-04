@@ -19,6 +19,10 @@ func Exists(ctx sys.Context, path string) bool {
 	return err == nil && exists
 }
 
+func List(ctx sys.Context, path string) ([]sys.Entry, error) {
+	return ctx.Sys().ReadDir(path)
+}
+
 func Same(ctx sys.Context, path string, content []byte) bool {
 	current, err := ctx.Sys().ReadFile(path)
 

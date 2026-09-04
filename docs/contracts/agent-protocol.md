@@ -63,7 +63,20 @@ Le canal est une session SSH ouverte par l'app avec la clé du client, qui lance
 | `snapshot` | `{ machine, services[], projects[], sessions[], entitlement }` en un appel. C'est ce que le tableau de bord lit toutes les 3 secondes |
 | `status` | `{ services[], projects[] }` allégé |
 | `service.status` `{ id }` | état, version, port, identifiants (masqués), unité systemd |
-| `completions` | la grammaire des commandes, pour l'autocomplétion du terminal |
+| `completions` `{ path? }` | de quoi compléter une ligne de terminal : `{ command, sub[], projects[], root, path, paths[] }` |
+
+`completions` répond en une fois aux trois questions d'une autocomplétion, pour que l'app n'ait rien à deviner :
+
+| Champ | Type | Description |
+| --- | --- | --- |
+| `command` | `string` | le nom sous lequel les commandes de pilotage s'appellent sur ce serveur : `dev`, c'est-à-dire `pupitred dev` |
+| `sub[]` | `{ name, help, args }` | la grammaire : un verbe, son aide, et une liste de valeurs par position d'argument. `$project` est un joker que l'app remplace par `projects[]` |
+| `projects[]` | `string[]` | les projets réels du registre, dans son ordre |
+| `root` | `string` | la racine des projets, le seul dossier que `completions` lit |
+| `path` | `string` | le dossier effectivement listé, relatif à `root` ; vide pour la racine |
+| `paths[]` | `string[]` | les entrées de ce dossier, relatives à lui, les dossiers avec une barre oblique finale |
+
+`path` est relatif à `root` : un chemin absolu ou un `..` qui sort de la racine renvoie `bad_request`. Un dossier absent renvoie `paths: []` et non une erreur — une complétion ne fait pas échouer une frappe.
 
 Un `Project` porte deux chemins. `dir` est le dossier déclaré dans le registre, relatif à la racine des projets du serveur, et c'est lui que `project.add` prend en paramètre. `path` est ce même dossier en absolu, résolu par l'agent : `/home/dev/projects/flymate/api`. C'est `path` qu'on ouvre dans l'éditeur distant et où l'on démarre un terminal.
 

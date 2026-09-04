@@ -1025,7 +1025,11 @@
     },
     "CompletionsParams": {
       "type": "object",
-      "properties": {},
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
       "additionalProperties": false
     },
     "CompletionsResult": {
@@ -1061,11 +1065,33 @@
               "args"
             ]
           }
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "root": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [
         "command",
-        "sub"
+        "sub",
+        "projects",
+        "root",
+        "path",
+        "paths"
       ]
     },
     "ProjectListParams": {
