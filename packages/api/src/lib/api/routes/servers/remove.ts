@@ -12,7 +12,8 @@ export const serversRemoveRoutes = new Elysia({ name: "servers-remove-routes" })
     async ({ user, organizationId, params, request, set }) => {
       const deleted = await deleteServerForOrganization(
         { userId: user.id, organizationId },
-        params.id
+        params.id,
+        request.headers.get("accept-language")
       )
 
       if (!deleted) {

@@ -78,7 +78,11 @@ export const devicesRoutes = new Elysia({
     "/me/devices",
     async ({ user, body, request, set }) => {
       try {
-        const device = await addDevice(user.id, body)
+        const device = await addDevice(
+          user.id,
+          body,
+          request.headers.get("accept-language")
+        )
 
         set.status = 201
 

@@ -1,3 +1,4 @@
+import { sendServerEnrolledEmail } from "../../emails/notifications"
 import { getPrisma, withOrganization } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { entitlementWindow } from "../billing/entitlement"
@@ -152,7 +153,8 @@ export async function enrollServer(
 }
 
 export async function exchangeEnrollmentToken(
-  input: ExchangeInput
+  input: ExchangeInput,
+  acceptLanguage: string | null = null
 ): Promise<{ server_token: string }> {
   const prisma = getPrisma()
   const enrollmentTokenHash = await hashEnrollmentToken(input.enrollment_token)
@@ -204,6 +206,12 @@ export async function exchangeEnrollmentToken(
       host_fingerprint: hostFingerprint,
     },
   })
+
+  const ready = await prisma.server.findUnique({ where: { id: server.id } })
+
+  if (ready) {
+    await sendServerEnrolledEmail({ server: ready, acceptLanguage })
+  }
 
   return { server_token: serverToken }
 }

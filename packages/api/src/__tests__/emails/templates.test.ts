@@ -3,6 +3,13 @@ import { EMAIL_PREVIEWS, previewOf, SAMPLE } from "../../emails/catalog"
 import { EMAIL_TEMPLATE_IDS } from "../../emails/templates/ids"
 import { LOCALES } from "../../lib/i18n"
 
+function href(url: string): string {
+  return `href="${url.replace(/&/g, "&amp;")}"`
+}
+
+const UNRESOLVED_PLACEHOLDER_RE =
+  /\{(server|organization|inviter|device|deadline|url|count|version|address|fingerprint|date)\}/
+
 describe("le catalogue des gabarits", () => {
   it("porte une prévisualisation par gabarit", () => {
     expect(EMAIL_PREVIEWS.map((preview) => preview.id).sort()).toEqual(
@@ -25,7 +32,8 @@ describe("le rendu de chaque gabarit", () => {
         expect(email.html).toContain("<html")
         expect(email.html).toContain("&gt;_")
         expect(email.text.length).toBeGreaterThan(0)
-        expect(email.html).not.toContain("{")
+        expect(email.html).not.toMatch(UNRESOLVED_PLACEHOLDER_RE)
+        expect(email.text).not.toMatch(UNRESOLVED_PLACEHOLDER_RE)
         expect(email.text).toContain("pupitre.studio")
       })
     }
@@ -36,7 +44,7 @@ describe("les données passent dans le rendu", () => {
   it("le lien magique porte le lien reçu, et lui seul", async () => {
     const email = await previewOf("magic_link").render("fr")
 
-    expect(email.html).toContain(`href="${SAMPLE.magicLinkUrl}"`)
+    expect(email.html).toContain(href(SAMPLE.magicLinkUrl))
     expect(email.text).toContain(SAMPLE.magicLinkUrl)
   })
 
@@ -44,7 +52,7 @@ describe("les données passent dans le rendu", () => {
     const email = await previewOf("invitation").render("fr")
 
     expect(email.subject).toContain(SAMPLE.organizationName)
-    expect(email.html).toContain(`href="${SAMPLE.invitationUrl}"`)
+    expect(email.html).toContain(href(SAMPLE.invitationUrl))
     expect(email.html).toContain(SAMPLE.inviterEmail)
   })
 
@@ -54,7 +62,7 @@ describe("les données passent dans le rendu", () => {
     expect(email.html).toContain(SAMPLE.address)
     expect(email.html).toContain(SAMPLE.agentVersion)
     expect(email.html).toContain(SAMPLE.hostFingerprint)
-    expect(email.html).toContain(`href="${SAMPLE.consoleUrl}/dashboard"`)
+    expect(email.html).toContain(href(`${SAMPLE.consoleUrl}/dashboard`))
   })
 
   it("le serveur attribué nomme le serveur et l'organisation", async () => {
@@ -71,25 +79,21 @@ describe("les données passent dans le rendu", () => {
     expect(email.html).toContain(SAMPLE.deviceName)
     expect(email.html).toContain(SAMPLE.deviceFingerprint)
     expect(email.html).toContain(
-      `href="${SAMPLE.consoleUrl}/dashboard/settings"`
+      href(`${SAMPLE.consoleUrl}/dashboard/settings`)
     )
   })
 
   it("la tolérance porte sa date limite et le lien de facturation", async () => {
     const email = await previewOf("entitlement_grace").render("fr")
 
-    expect(email.html).toContain(
-      `href="${SAMPLE.consoleUrl}/dashboard/billing"`
-    )
+    expect(email.html).toContain(href(`${SAMPLE.consoleUrl}/dashboard/billing`))
     expect(email.html).toContain("2026")
   })
 
   it("la suspension dit le remède", async () => {
     const email = await previewOf("server_suspended").render("fr")
 
-    expect(email.html).toContain(
-      `href="${SAMPLE.consoleUrl}/dashboard/billing"`
-    )
+    expect(email.html).toContain(href(`${SAMPLE.consoleUrl}/dashboard/billing`))
     expect(email.text.length).toBeGreaterThan(80)
   })
 

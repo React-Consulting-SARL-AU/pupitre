@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { createLoggingSendEmail, redactTokens } from "@pupitre/auth/server"
+import { createLoggingSendEmail, redactTokens } from "@pupitre/auth/emails"
 import { renderMagicLinkEmail } from "../../emails/render"
 
 const TOKEN = "b6f1d0c2a9e34f7c8d15e2b0a7c934ff"

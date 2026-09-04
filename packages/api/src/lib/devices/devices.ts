@@ -1,4 +1,5 @@
 import type { Device } from "@pupitre/db/cloudflare/client"
+import { sendDeviceAddedEmail } from "../../emails/notifications"
 import { getPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { readEd25519PublicKey } from "./public-keys"
@@ -49,7 +50,8 @@ export async function listDevices(userId: string): Promise<DeviceView[]> {
 
 export async function addDevice(
   userId: string,
-  input: DeviceInput
+  input: DeviceInput,
+  acceptLanguage: string | null = null
 ): Promise<DeviceView> {
   const { key, fingerprint } = await readEd25519PublicKey(input.public_key)
   const prisma = getPrisma()
@@ -73,6 +75,8 @@ export async function addDevice(
     targetId: device.id,
     payload: { fingerprint, name: device.name },
   })
+
+  await sendDeviceAddedEmail({ userId, device, acceptLanguage })
 
   return toView(device)
 }

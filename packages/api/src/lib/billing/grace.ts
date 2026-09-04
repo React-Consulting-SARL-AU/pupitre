@@ -1,18 +1,28 @@
+import {
+  sendEntitlementGraceEmail,
+  sendServerSuspendedEmail,
+} from "../../emails/notifications"
 import { getPrisma } from "../api/prisma"
 import { entitlementWindow } from "./entitlement"
 
 const GRACEABLE_STATUSES = ["active", "grace"] as const
 
-export function graceOrganizationServers(
+export async function graceOrganizationServers(
   organizationId: string,
   validUntil: Date
 ): Promise<number> {
-  return getPrisma()
-    .server.updateMany({
-      where: { organizationId, status: { in: [...GRACEABLE_STATUSES] } },
-      data: { status: "grace", entitlementValidUntil: validUntil },
-    })
-    .then((result) => result.count)
+  const { count } = await getPrisma().server.updateMany({
+    where: { organizationId, status: { in: [...GRACEABLE_STATUSES] } },
+    data: { status: "grace", entitlementValidUntil: validUntil },
+  })
+
+  await sendEntitlementGraceEmail({
+    organizationId,
+    deadline: validUntil,
+    serverCount: count,
+  })
+
+  return count
 }
 
 export function restoreOrganizationServers(
@@ -37,7 +47,7 @@ export async function suspendExpiredGrace(
       entitlementValidUntil: { lte: now },
     },
     orderBy: { entitlementValidUntil: "asc" },
-    select: { id: true },
+    select: { id: true, organizationId: true },
   })
 
   if (expired.length === 0) {
@@ -51,5 +61,24 @@ export async function suspendExpiredGrace(
     data: { status: "suspended" },
   })
 
+  await announceSuspensions(expired)
+
   return ids
+}
+
+async function announceSuspensions(
+  suspended: { organizationId: string }[]
+): Promise<void> {
+  const counts = new Map<string, number>()
+
+  for (const server of suspended) {
+    counts.set(
+      server.organizationId,
+      (counts.get(server.organizationId) ?? 0) + 1
+    )
+  }
+
+  for (const [organizationId, serverCount] of counts) {
+    await sendServerSuspendedEmail({ organizationId, serverCount })
+  }
 }

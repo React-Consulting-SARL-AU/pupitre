@@ -14,9 +14,9 @@ import {
 import { tanstackStartCookies } from "better-auth/tanstack-start"
 import { ac, platformAc, platformRoles, roles } from "./access-control"
 import {
+  authEmailRenderer,
+  configuredSendEmail,
   createLoggingSendEmail,
-  invitationEmail,
-  magicLinkEmail,
   type SendEmail,
 } from "./emails"
 import {
@@ -29,7 +29,15 @@ import {
 import { ensurePersonalOrganization } from "./personal-organization"
 import type { AuthPrisma } from "./prisma"
 
-export type { EmailMessage, SendEmail } from "./emails"
+export type {
+  AuthEmailRenderer,
+  AuthEmailsConfig,
+  EmailLogger,
+  EmailMessage,
+  InvitationEmailInput,
+  MagicLinkEmailInput,
+  SendEmail,
+} from "./emails"
 export type { AuthEnv } from "./env"
 export type { AuthPrisma } from "./prisma"
 
@@ -55,7 +63,33 @@ export interface CreateAuthOptions {
 const senders = new WeakMap<object, SendEmail>()
 
 export function sendEmailFor(instance: Auth): SendEmail {
-  return senders.get(instance) ?? createLoggingSendEmail()
+  return (
+    senders.get(instance) ?? configuredSendEmail() ?? createLoggingSendEmail()
+  )
+}
+
+function headersOf(value: unknown): Headers | null {
+  return value instanceof Headers ? value : null
+}
+
+/**
+ * Better Auth hands a `Request` to one plugin and its own endpoint context to
+ * the other; both carry the caller's headers, one directly and one behind
+ * `request`.
+ */
+function acceptLanguageOf(source: unknown): string | null {
+  if (!(source && typeof source === "object")) {
+    return null
+  }
+
+  const holder = source as {
+    headers?: unknown
+    request?: { headers?: unknown }
+  }
+  const headers =
+    headersOf(holder.headers) ?? headersOf(holder.request?.headers)
+
+  return headers?.get("accept-language") ?? null
 }
 
 function githubProvider(env: AuthEnv) {
@@ -81,7 +115,7 @@ function activeOrganizationIdOf(session: object): string | null {
 export function createAuth({
   prisma,
   env,
-  sendEmail = createLoggingSendEmail(),
+  sendEmail = configuredSendEmail() ?? createLoggingSendEmail(),
 }: CreateAuthOptions) {
   const secureCookies = !isLocalhostUrl(env.BETTER_AUTH_URL)
   const invitationBaseUrl = `${consoleUrl(env)}${INVITATION_PATH}`
@@ -146,8 +180,15 @@ export function createAuth({
     plugins: [
       magicLink({
         expiresIn: MAGIC_LINK_EXPIRES_IN,
-        sendMagicLink: ({ email, url }) =>
-          sendEmail(magicLinkEmail(email, url)),
+        sendMagicLink: async ({ email, url }, request) => {
+          await sendEmail(
+            await authEmailRenderer().magicLink({
+              to: email,
+              url,
+              acceptLanguage: acceptLanguageOf(request),
+            })
+          )
+        },
       }),
       deviceAuthorization({
         expiresIn: DEVICE_CODE_EXPIRES_IN,
@@ -161,15 +202,17 @@ export function createAuth({
         creatorRole: "owner",
         invitationExpiresIn: INVITATION_EXPIRES_IN,
         cancelPendingInvitationsOnReInvite: true,
-        sendInvitationEmail: (data) =>
-          sendEmail(
-            invitationEmail({
+        sendInvitationEmail: async (data, request) => {
+          await sendEmail(
+            await authEmailRenderer().invitation({
               to: data.email,
               url: `${invitationBaseUrl}/${data.id}`,
               organizationName: data.organization.name,
               inviterEmail: data.inviter.user.email,
+              acceptLanguage: acceptLanguageOf(request),
             })
-          ),
+          )
+        },
       }),
       admin({
         ac: platformAc,

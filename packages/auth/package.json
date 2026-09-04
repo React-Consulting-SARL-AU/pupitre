@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./emails": "./src/emails.ts",
     "./server": "./src/server.ts",
     "./client/web": "./src/client/web.ts",
     "./client/desktop": "./src/client/desktop.ts",

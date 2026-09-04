@@ -195,7 +195,7 @@ const PLACEHOLDER_RE = /\{(\w+)\}/g
 
 export type MessageParams = Record<string, string | number>
 
-function isLocale(value: string): value is Locale {
+export function isLocale(value: string): value is Locale {
   return (LOCALES as readonly string[]).includes(value)
 }
 
@@ -217,9 +217,7 @@ function parseAcceptLanguage(header: string): { locale: Locale; q: number }[] {
     )
 }
 
-export function resolveLocale(headers: Headers): Locale {
-  const header = headers.get("accept-language")
-
+export function localeOf(header: string | null | undefined): Locale {
   if (!header) {
     return DEFAULT_LOCALE
   }
@@ -234,6 +232,10 @@ export function resolveLocale(headers: Headers): Locale {
   }
 
   return best?.locale ?? DEFAULT_LOCALE
+}
+
+export function resolveLocale(headers: Headers): Locale {
+  return localeOf(headers.get("accept-language"))
 }
 
 export function translate(

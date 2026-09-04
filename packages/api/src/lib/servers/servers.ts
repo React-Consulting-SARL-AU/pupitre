@@ -1,5 +1,6 @@
 import type { Server, ServerStatus } from "@pupitre/db/cloudflare/client"
 import type { OrgRole } from "@pupitre/shared/permissions"
+import { sendServerDecommissionEmail } from "../../emails/notifications"
 import { getPrisma, withOrganization } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { metricsOf } from "./agent-state"
@@ -206,7 +207,8 @@ export async function getServerForOrganization(
 
 export async function deleteServerForOrganization(
   actor: { userId: string; organizationId: string },
-  serverId: string
+  serverId: string,
+  acceptLanguage: string | null = null
 ): Promise<boolean> {
   const prisma = withOrganization(getPrisma(), actor.organizationId)
   const server = await prisma.server.findFirst({ where: { id: serverId } })
@@ -214,6 +216,8 @@ export async function deleteServerForOrganization(
   if (!server) {
     return false
   }
+
+  const decommissionAt = decommissionDeadline()
 
   await prisma.server.updateMany({
     where: { id: server.id },
@@ -223,7 +227,7 @@ export async function deleteServerForOrganization(
       pendingAssignmentEmail: null,
       enrollmentTokenHash: null,
       enrollmentExpiresAt: null,
-      decommissionAt: decommissionDeadline(),
+      decommissionAt,
     },
   })
 
@@ -234,6 +238,12 @@ export async function deleteServerForOrganization(
     targetType: "server",
     targetId: server.id,
     payload: { host: server.host, name: server.name },
+  })
+
+  await sendServerDecommissionEmail({
+    server,
+    deadline: decommissionAt,
+    acceptLanguage,
   })
 
   return true
