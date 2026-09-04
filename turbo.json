@@ -36,8 +36,15 @@
       "passThroughEnv": ["DATABASE_URL"],
       "outputs": ["dist/**", ".wrangler/dry-run/**"]
     },
+    "@pupitre/db#build": {
+      "outputs": ["src/generated/**"]
+    },
     "check:types": {
       "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "@pupitre/db#check:types": {
+      "dependsOn": ["build"],
       "outputs": []
     },
     "db:generate": {

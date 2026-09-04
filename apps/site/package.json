@@ -1,0 +1,29 @@
+{
+  "name": "@pupitre/site",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --port 4321",
+    "build": "astro build",
+    "preview": "astro preview --port 4321",
+    "lint": "ultracite check",
+    "lint:fix": "ultracite fix",
+    "check:types": "astro check",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@pupitre/design": "workspace:*",
+    "@pupitre/shared": "workspace:*",
+    "astro": "^5.18.2"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/bun": "^1.4.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3",
+    "ultracite": "7.8.3",
+    "wrangler": "^4.125.0"
+  }
+}

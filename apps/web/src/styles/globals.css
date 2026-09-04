@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@import "@pupitre/design/tailwind.css";
+
+@layer base {
+  html {
+    font-family: var(--font-ui);
+    font-size: var(--font-ui-size);
+    line-height: var(--font-ui-line-height);
+    color: var(--ink);
+    background: var(--base);
+  }
+}

@@ -11,6 +11,8 @@ out/
 *.tsbuildinfo
 
 # generated code and caches
+.astro/
+.tanstack/
 apps/web/.generated/
 packages/api/.cache/
 graphify-out/

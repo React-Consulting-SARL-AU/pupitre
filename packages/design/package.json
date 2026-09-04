@@ -1,0 +1,23 @@
+{
+  "name": "@pupitre/design",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tokens.css": "./src/tokens.css",
+    "./tailwind.css": "./src/tailwind.css",
+    "./ansi": "./src/ansi.ts"
+  },
+  "scripts": {
+    "lint": "ultracite check",
+    "lint:fix": "ultracite fix",
+    "check:types": "tsgo --noEmit",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.0",
+    "@typescript/native-preview": "^7.0.0-dev.20260707.2",
+    "typescript": "^6.0.3",
+    "ultracite": "7.8.3"
+  }
+}

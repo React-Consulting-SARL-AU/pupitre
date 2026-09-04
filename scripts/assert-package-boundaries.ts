@@ -21,7 +21,11 @@ const NODE_PRISMA_ENTRYPOINTS = new Set([
   "@pupitre/db/models",
 ])
 
-const EDGE_SOURCE_ROOTS = ["packages/api/src", "apps/web/src"]
+const EDGE_SOURCE_ROOTS = [
+  "packages/api/src",
+  "packages/auth/src",
+  "apps/web/src",
+]
 
 const AGENT_APP = "agent"
 const API_PACKAGE_DIR = "packages/api/"
