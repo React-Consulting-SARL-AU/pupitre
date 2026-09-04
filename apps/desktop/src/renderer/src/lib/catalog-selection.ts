@@ -309,3 +309,17 @@ export function generatedKeysOf(manifest: Manifest): string[] {
     .filter((field) => field.kind === "secret" && field.generate === true)
     .map((field) => field.key);
 }
+
+/**
+ * A module whose install carried a secret.
+ *
+ * The vault is emptied the moment the secrets leave, so replaying such a module
+ * without asking again would install it with nothing where its password was.
+ */
+export function carriesSecret(manifest: Manifest): boolean {
+  return manifest.fields.some(
+    (field) =>
+      field.kind === "secret" ||
+      (field.kind === "list" && field.items === "secret")
+  );
+}

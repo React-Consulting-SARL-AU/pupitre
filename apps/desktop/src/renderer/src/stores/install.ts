@@ -59,7 +59,12 @@ type InstallStore = {
     modules: readonly string[],
     config: ModuleConfig
   ) => Promise<void>;
-  replay: (serverId: string, moduleId: string) => Promise<void>;
+  /** The configuration is given again when the reader has just retyped it. */
+  replay: (
+    serverId: string,
+    moduleId: string,
+    config?: ModuleConfig
+  ) => Promise<void>;
   /** Reads the report back, which is what a channel that dropped left behind. */
   reload: (serverId: string) => Promise<void>;
   reset: () => void;
@@ -288,7 +293,7 @@ export const useInstall = create<InstallStore>((set, get) => {
       await run(serverId, modules, config);
     },
 
-    async replay(serverId, moduleId) {
+    async replay(serverId, moduleId, config) {
       const { requested } = get();
 
       if (!requested.modules.includes(moduleId)) {
@@ -296,7 +301,7 @@ export const useInstall = create<InstallStore>((set, get) => {
       }
 
       await run(serverId, [moduleId], {
-        [moduleId]: { ...requested.config[moduleId] },
+        [moduleId]: { ...(config?.[moduleId] ?? requested.config[moduleId]) },
       });
     },
 

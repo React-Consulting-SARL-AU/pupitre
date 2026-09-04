@@ -17,6 +17,7 @@ import {
   removeServer,
   type ServerCreation,
   untrustHost,
+  withAccount,
 } from "./server-setup";
 import {
   appSshPaths,
@@ -175,6 +176,25 @@ export function rename(id: string, name: string): Configuration {
         : server
     ),
   });
+}
+
+/**
+ * The account this server is reached with, after the hardening opened another.
+ *
+ * Writing the configuration is what makes the switch real: `save` rewrites the
+ * app's SSH file, so the next `ssh -F` logs in as the account the agent named.
+ */
+export function switchAccount(id: string, user: string): string | null {
+  const config = read();
+  const servers = withAccount(config.servers, id, user);
+
+  if (!servers) {
+    return null;
+  }
+
+  write({ active: config.active, servers });
+
+  return user;
 }
 
 export function activate(id: string): Configuration {

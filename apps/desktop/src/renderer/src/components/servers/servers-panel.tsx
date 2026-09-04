@@ -3,6 +3,7 @@ import type { ServerDraft } from "@shared/servers";
 import { Plus, Server as ServerIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useServers } from "../../stores/servers";
+import { OnboardingEntry } from "../onboarding/onboarding-entry";
 import { Button } from "../ui/button";
 import { EmptyState } from "../ui/empty-state";
 import { Label } from "../ui/label";
@@ -147,16 +148,18 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
         ) : (
           <div className="mt-5 flex flex-col gap-5">
             {servers.map((server) => (
-              <ServerRow
-                active={server.id === active}
-                busy={saving}
-                key={server.id}
-                onActivate={() => run(activate(server.id))}
-                onProfile={(profile) => saveProfile(server.id, profile)}
-                onRemove={() => run(remove(server.id))}
-                onRename={(name) => run(rename(server.id, name))}
-                server={server}
-              />
+              <div className="flex flex-col gap-3" key={server.id}>
+                <OnboardingEntry server={server} />
+                <ServerRow
+                  active={server.id === active}
+                  busy={saving}
+                  onActivate={() => run(activate(server.id))}
+                  onProfile={(profile) => saveProfile(server.id, profile)}
+                  onRemove={() => run(remove(server.id))}
+                  onRename={(name) => run(rename(server.id, name))}
+                  server={server}
+                />
+              </div>
             ))}
           </div>
         )}

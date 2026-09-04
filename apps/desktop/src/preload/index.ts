@@ -29,7 +29,8 @@ import type {
   TerminalKind,
   WorkingTree,
 } from "@shared/contract";
-import type { InstallUpdate } from "@shared/install";
+import type { HardenOutcome, HardenUpdate } from "@shared/harden";
+import type { AgentDelivery, InstallUpdate } from "@shared/install";
 import type { SecretMarks } from "@shared/secrets";
 import type {
   HostKeyDecision,
@@ -151,6 +152,43 @@ const api = {
     return ipcRenderer
       .invoke("install:start", token, serverId, modules, config)
       .finally(() => ipcRenderer.removeListener("install:update", listener));
+  },
+
+  /**
+   * The agent's binary, on its way to a machine that has none.
+   *
+   * It goes before the catalogue rather than with the install: a bare server
+   * has nothing to answer `catalog` with until `pupitred` sits on it.
+   */
+  sendAgent: (serverId: string): Promise<AgentResponse<AgentDelivery>> =>
+    ipcRenderer.invoke("install:agent-send", serverId),
+
+  /**
+   * The hardening, and the switch that follows it.
+   *
+   * The account is not a parameter: the protocol fixes it at `dev`. What comes
+   * back says what the agent did, and whether the app now speaks to the server
+   * as that account.
+   */
+  harden: (
+    serverId: string,
+    onUpdate: (update: HardenUpdate) => void
+  ): Promise<AgentResponse<HardenOutcome>> => {
+    const token = crypto.randomUUID();
+    const listener = (
+      _e: unknown,
+      payload: { token: string; update: HardenUpdate }
+    ) => {
+      if (payload.token === token) {
+        onUpdate(payload.update);
+      }
+    };
+
+    ipcRenderer.on("harden:update", listener);
+
+    return ipcRenderer
+      .invoke("harden:start", token, serverId)
+      .finally(() => ipcRenderer.removeListener("harden:update", listener));
   },
 
   /** The last report the agent wrote, whatever happened to the channel. */

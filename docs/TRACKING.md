@@ -18,6 +18,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-10 | Flux secret sur l'entrée standard | fait | `feat/INF-10-secret-stream` | fusionnée |
 | INF-12 | Contrat : les releases de l'app | à faire | | |
 | INF-13 | Le quota gratuit vit dans le contrat partagé | à faire | | |
+| INF-14 | La langue de l'utilisateur est enregistrée | à faire | | |
 | INF-11 | Contrat : le verdict de la sonde | fait | `feat/INF-11-probe-contract` | fusionnée |
 
 ## Agent serveur — `AGT`
@@ -51,7 +52,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-04 | Écran d'inspection | fait | `feat/APP-04-inspection` | fusionnée |
 | APP-05 | Catalogue et configuration des services | fait | `feat/APP-05-catalog` | fusionnée |
 | APP-06 | Installation en direct et rapport | fait | `feat/APP-06-install` | fusionnée |
-| APP-07 | Durcissement et bascule root → dev | à faire | | |
+| APP-07 | Durcissement et bascule root → dev | fait | `feat/APP-07-harden` | fusionnée |
 | APP-08 | Premier projet | à faire | | |
 | APP-09 | Tableau de bord et projets sur le nouveau protocole | à faire | | |
 | APP-10 | Terminaux, agents, galerie | à faire | | |

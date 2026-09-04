@@ -197,3 +197,11 @@ Périmètre. Déplacer `DEV_SEAT_QUOTA` de `packages/api/src/lib/billing/seats.t
 Critères d'acceptation.
 1. Une seule occurrence du nombre dans le dépôt, hors tests.
 
+### INF-14 — La langue de l'utilisateur est enregistrée
+Lot 0 · dépend de PLT-11 · `packages/db`, `packages/api`
+
+But. Un email déclenché par une tâche planifiée part dans la langue de son destinataire.
+Périmètre. Une colonne `locale` sur `user` (défaut `fr`), posée à l'inscription depuis `Accept-Language` et modifiable dans les préférences de la console. Les emails de tolérance, de suspension et de décommission la lisent au lieu de retomber sur le français.
+Critères d'acceptation.
+1. Un utilisateur dont la langue est `en` reçoit l'email de suspension en anglais, déclenché hors requête.
+

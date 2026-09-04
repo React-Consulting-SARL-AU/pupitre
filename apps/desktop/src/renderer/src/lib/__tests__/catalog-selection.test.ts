@@ -10,6 +10,7 @@ import {
 import {
   blocked,
   byCategory,
+  carriesSecret,
   deselect,
   fieldsOf,
   fromPreset,
@@ -163,5 +164,19 @@ describe("un catalogue plus récent", () => {
       "db.postgres",
       "db.clickhouse",
     ]);
+  });
+});
+
+describe("carriesSecret", () => {
+  it("reconnaît un module dont le manifeste déclare un secret", () => {
+    const postgres = CATALOG.modules.find((m) => m.id === "db.postgres");
+
+    expect(postgres && carriesSecret(postgres)).toBe(true);
+  });
+
+  it("laisse passer un module qui n'en déclare aucun", () => {
+    const node = CATALOG.modules.find((m) => m.id === "runtime.node");
+
+    expect(node && carriesSecret(node)).toBe(false);
   });
 });
