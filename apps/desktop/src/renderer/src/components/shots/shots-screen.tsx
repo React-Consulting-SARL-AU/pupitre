@@ -28,7 +28,7 @@ export function ShotsScreen({ serverId }: { serverId: string }) {
   const total = shots.reduce((sum, shot) => sum + shot.size_bytes, 0);
 
   return (
-    <div className="h-full overflow-y-auto px-6 py-5">
+    <div className="h-full overflow-y-auto px-8 py-6">
       <div className="mx-auto flex max-w-3xl flex-col gap-8">
         <PageHeader
           actions={
@@ -79,7 +79,7 @@ export function ShotsScreen({ serverId }: { serverId: string }) {
               {removed === null ? "" : ` · ${plural(removed, "supprimée")}`}
             </p>
 
-            <div className="overflow-hidden rounded-md border border-line bg-surface">
+            <div className="elevation-raised overflow-hidden rounded-md border border-line bg-surface">
               {shots.length === 0 ? (
                 <EmptyState
                   detail="Un agent qui pilote un navigateur en dépose ici."

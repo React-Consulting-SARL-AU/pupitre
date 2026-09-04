@@ -69,6 +69,7 @@ describe("l'élévation", () => {
   it("pose les cartes du tableau de bord sur le fond", () => {
     const html = renderToStaticMarkup(
       <DashboardPanel
+        attached={[]}
         busy={null}
         onAct={NOOP}
         onCleanSessions={NOOP}
