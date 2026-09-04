@@ -3,3 +3,6 @@ out/
 dist/
 *.tsbuildinfo
 .DS_Store
+
+# The embedded agent comes from apps/agent/dist at build time.
+resources/agent/
