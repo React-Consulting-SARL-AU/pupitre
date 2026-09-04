@@ -2,6 +2,7 @@ package modules
 
 import (
 	"fmt"
+	"strings"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/protocol"
@@ -71,4 +72,25 @@ func Replay(module string) string {
 func NotInstalled(id, name string) error {
 	return protocol.NewError(contract.ErrorServiceNotFound, name+" n'est pas installé sur ce serveur").
 		WithFix("Installe " + id + " depuis le catalogue de l'app.")
+}
+
+// A required field the app never sent: the module refuses to configure rather than leave half a service behind.
+func missingFields(manifest contract.Manifest, missing []string) error {
+	labels := make([]string, 0, len(missing))
+	for _, key := range missing {
+		labels = append(labels, label(manifest, key))
+	}
+
+	return protocol.NewError(contract.ErrorBadRequest, manifest.ID+" : "+strings.Join(labels, ", ")+" — champ requis manquant").
+		WithFix("Renseigne " + strings.Join(labels, ", ") + " dans la configuration de " + manifest.Name + ", puis relance l'installation.")
+}
+
+func label(manifest contract.Manifest, key string) string {
+	for _, field := range manifest.Fields {
+		if field.Key == key && field.Label != "" {
+			return field.Label
+		}
+	}
+
+	return key
 }

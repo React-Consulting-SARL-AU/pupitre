@@ -12,7 +12,7 @@ import (
 	"pupitre.studio/agent/internal/tmux"
 )
 
-const DomainKey = "PUPITRE_DOMAIN"
+const DomainKey = env.DomainKey
 
 type FollowOptions struct {
 	Interval time.Duration

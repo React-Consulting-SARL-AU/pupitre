@@ -1,0 +1,61 @@
+# gh et op s'installent avec leurs jetons, puis le rejeu ne touche à rien.
+@answer hostname :: staging
+@answer gh api user :: flymate
+@answer credential.https://github.com.helper :: !gh auth git-credential
+@answer gh ssh-key list :: staging\tssh-ed25519 AAAA\t2026-09-04
+@file /home/dev/.ssh/id_ed25519 PRIVATE KEY
+@file /home/dev/.ssh/id_ed25519.pub ssh-ed25519 AAAA staging
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+> {"id":2,"cmd":"install","params":{"secrets_stdin":true,"modules":["tool.github","tool.1password"],"config":{}}}
+$ {"tool.github":{"token":"s3cret-de-test"},"tool.1password":{"service_account_token":"s3cret-de-test"}}
+> {"id":3,"cmd":"secrets.status"}
+> {"id":4,"cmd":"install","params":{"secrets_stdin":true,"modules":["tool.github","tool.1password"],"config":{}}}
+$ {"tool.github":{"token":"s3cret-de-test"},"tool.1password":{"service_account_token":"s3cret-de-test"}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","ping","project.env","report","secrets.set","secrets.status","secrets.sync","uninstall","upgrade"]}}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"install-package"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"install-package"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"write-config"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"write-config"}
+< {"event":"step","id":2,"module":"tool.1password","ms":0,"status":"start","step":"install-op"}
+< {"event":"step","id":2,"module":"tool.1password","ms":0,"status":"ok","step":"install-op"}
+< {"event":"step","id":2,"module":"tool.1password","ms":0,"status":"start","step":"store-token"}
+< {"event":"step","id":2,"module":"tool.1password","ms":0,"status":"ok","step":"store-token"}
+< {"event":"step","id":2,"module":"tool.1password","ms":0,"status":"start","step":"verify-service-account"}
+< {"event":"step","id":2,"module":"tool.1password","ms":0,"status":"ok","step":"verify-service-account"}
+< {"event":"step","id":2,"module":"tool.github","ms":0,"status":"start","step":"install-gh"}
+< {"event":"step","id":2,"module":"tool.github","ms":0,"status":"ok","step":"install-gh"}
+< {"event":"step","id":2,"module":"tool.github","ms":0,"status":"start","step":"store-token"}
+< {"event":"step","id":2,"module":"tool.github","ms":0,"status":"ok","step":"store-token"}
+< {"event":"step","id":2,"module":"tool.github","ms":0,"status":"start","step":"authenticate-gh"}
+< {"event":"step","id":2,"module":"tool.github","ms":0,"status":"skip","step":"authenticate-gh"}
+< {"event":"step","id":2,"module":"tool.github","ms":0,"status":"start","step":"setup-git-credentials"}
+< {"event":"step","id":2,"module":"tool.github","ms":0,"status":"skip","step":"setup-git-credentials"}
+< {"event":"step","id":2,"module":"tool.github","ms":0,"status":"start","step":"create-ssh-key"}
+< {"event":"step","id":2,"module":"tool.github","ms":0,"status":"skip","step":"create-ssh-key"}
+< {"event":"step","id":2,"module":"tool.github","ms":0,"status":"start","step":"register-ssh-key"}
+< {"event":"step","id":2,"module":"tool.github","ms":0,"status":"skip","step":"register-ssh-key"}
+< {"id":2,"ok":true,"result":{"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}
+< {"id":3,"ok":true,"result":{"secrets":[{"key":"GITHUB_TOKEN","set":true},{"key":"OP_SERVICE_ACCOUNT_TOKEN","set":true}]}}
+< {"event":"step","id":4,"module":"core.system","ms":0,"status":"start","step":"install-package"}
+< {"event":"step","id":4,"module":"core.system","ms":0,"status":"skip","step":"install-package"}
+< {"event":"step","id":4,"module":"core.system","ms":0,"status":"start","step":"write-config"}
+< {"event":"step","id":4,"module":"core.system","ms":0,"status":"skip","step":"write-config"}
+< {"event":"step","id":4,"module":"tool.1password","ms":0,"status":"start","step":"install-op"}
+< {"event":"step","id":4,"module":"tool.1password","ms":0,"status":"skip","step":"install-op"}
+< {"event":"step","id":4,"module":"tool.1password","ms":0,"status":"start","step":"store-token"}
+< {"event":"step","id":4,"module":"tool.1password","ms":0,"status":"skip","step":"store-token"}
+< {"event":"step","id":4,"module":"tool.1password","ms":0,"status":"start","step":"verify-service-account"}
+< {"event":"step","id":4,"module":"tool.1password","ms":0,"status":"ok","step":"verify-service-account"}
+< {"event":"step","id":4,"module":"tool.github","ms":0,"status":"start","step":"install-gh"}
+< {"event":"step","id":4,"module":"tool.github","ms":0,"status":"skip","step":"install-gh"}
+< {"event":"step","id":4,"module":"tool.github","ms":0,"status":"start","step":"store-token"}
+< {"event":"step","id":4,"module":"tool.github","ms":0,"status":"skip","step":"store-token"}
+< {"event":"step","id":4,"module":"tool.github","ms":0,"status":"start","step":"authenticate-gh"}
+< {"event":"step","id":4,"module":"tool.github","ms":0,"status":"skip","step":"authenticate-gh"}
+< {"event":"step","id":4,"module":"tool.github","ms":0,"status":"start","step":"setup-git-credentials"}
+< {"event":"step","id":4,"module":"tool.github","ms":0,"status":"skip","step":"setup-git-credentials"}
+< {"event":"step","id":4,"module":"tool.github","ms":0,"status":"start","step":"create-ssh-key"}
+< {"event":"step","id":4,"module":"tool.github","ms":0,"status":"skip","step":"create-ssh-key"}
+< {"event":"step","id":4,"module":"tool.github","ms":0,"status":"start","step":"register-ssh-key"}
+< {"event":"step","id":4,"module":"tool.github","ms":0,"status":"skip","step":"register-ssh-key"}
+< {"id":4,"ok":true,"result":{"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}

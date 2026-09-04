@@ -16,34 +16,52 @@ func Home(name string) string {
 	return "/home/" + name
 }
 
+// What a command needs beyond its argv: a directory, a standard input the journal never sees, and the variables the caller adds to the user's own.
+type Input struct {
+	Dir   string
+	Stdin []byte
+	Env   []string
+}
+
 func Run(ctx sys.Context, name string, argv ...string) (string, error) {
-	return RunIn(ctx, name, Home(name), argv...)
+	return RunWith(ctx, name, Input{}, argv...)
 }
 
 func RunIn(ctx sys.Context, name, dir string, argv ...string) (string, error) {
+	return RunWith(ctx, name, Input{Dir: dir}, argv...)
+}
+
+func RunWith(ctx sys.Context, name string, input Input, argv ...string) (string, error) {
 	home := Home(name)
 	if name == "" {
 		name = "root"
 	}
+
+	dir := input.Dir
 	if dir == "" {
 		dir = home
 	}
 
 	out, err := sys.Exec(ctx, sys.Command{
-		User: name,
-		Argv: argv,
-		Dir:  dir,
-		Env: []string{
-			"HOME=" + home,
-			"USER=" + name,
-			"LOGNAME=" + name,
-			"PATH=" + home + "/.local/bin:" + home + "/.local/share/mise/shims:" + home + "/.bun/bin:" + basePath,
-			"MISE_YES=1",
-			"COREPACK_ENABLE_DOWNLOAD_PROMPT=0",
-		},
+		User:  name,
+		Argv:  argv,
+		Dir:   dir,
+		Stdin: input.Stdin,
+		Env:   append(environment(name, home), input.Env...),
 	})
 
 	return out.Stdout, err
+}
+
+func environment(name, home string) []string {
+	return []string{
+		"HOME=" + home,
+		"USER=" + name,
+		"LOGNAME=" + name,
+		"PATH=" + home + "/.local/bin:" + home + "/.local/share/mise/shims:" + home + "/.bun/bin:" + basePath,
+		"MISE_YES=1",
+		"COREPACK_ENABLE_DOWNLOAD_PROMPT=0",
+	}
 }
 
 func Exists(ctx sys.Context, name string) bool {

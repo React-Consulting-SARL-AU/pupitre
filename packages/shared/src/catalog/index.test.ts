@@ -251,7 +251,9 @@ describe("presets", () => {
       "editor.vscode",
       "exposure.ssh",
     ])
-    expect(getPreset("full").modules).toEqual([...MVP_MODULE_IDS])
+    expect(getPreset("full").modules).toEqual(
+      MVP_MODULE_IDS.filter((id) => id !== "exposure.ssh")
+    )
     expect(getPreset("minimal").modules).toEqual([
       "core.system",
       "core.hardening",
@@ -289,5 +291,17 @@ describe("presets", () => {
       PresetSchema.safeParse({ id: "custom", name: "Sur mesure", modules: [] })
         .success
     ).toBe(false)
+  })
+})
+
+describe("PRESETS", () => {
+  it("never puts two conflicting exposure modules in the same preset", () => {
+    for (const preset of PRESETS) {
+      const exposures = preset.modules.filter((id) =>
+        id.startsWith("exposure.")
+      )
+
+      expect(exposures.length).toBeLessThanOrEqual(1)
+    }
   })
 })
