@@ -82,7 +82,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | --- | --- | --- | --- | --- |
 | MKT-01 | Socle Astro, tokens, i18n, layout | fait | `feat/MKT-01-astro-base` | fusionnée |
 | MKT-02 | Accueil | fait | `feat/MKT-02-home` | fusionnée |
-| MKT-03 | Tarifs | à faire | | |
+| MKT-03 | Tarifs | en revue | `feat/MKT-03-pricing` | |
 | MKT-04 | Téléchargement | à faire | | |
 | MKT-05 | Documentation publique | à faire | | |
 | MKT-06 | Blog et changelog | à faire | | |

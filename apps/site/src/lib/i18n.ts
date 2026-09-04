@@ -1,3 +1,4 @@
+import type { Plan } from "@pupitre/shared/plans"
 import { type Dictionary, en } from "../content/ui/en"
 import { fr } from "../content/ui/fr"
 
@@ -41,6 +42,10 @@ export function localizePath(pathname: string, locale: Locale): string {
 
 export function alternateLocale(locale: Locale): Locale {
   return locale === "en" ? "fr" : "en"
+}
+
+export function planName(plan: Plan, locale: Locale): string {
+  return locale === "fr" ? plan.nameFr : plan.name
 }
 
 export function translator(locale: Locale) {
