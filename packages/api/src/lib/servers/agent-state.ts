@@ -1,5 +1,6 @@
 import type { Server, ServerStatus } from "@pupitre/db/cloudflare/client"
 import { getPrisma } from "../api/prisma"
+import { resolveTargetVersion } from "../releases/releases"
 import { authorizedKeysForServer } from "./authorized-keys"
 import { ENTITLEMENT_TTL_MS } from "./enrollment"
 import {
@@ -42,11 +43,12 @@ function entitlementOf(status: ServerStatus): AgentEntitlement {
 export async function readAgentState(server: Server): Promise<AgentState> {
   const prisma = getPrisma()
   const validUntil = new Date(Date.now() + ENTITLEMENT_TTL_MS)
+  const targetVersion = await resolveTargetVersion(server)
   const [authorizedKeys] = await Promise.all([
     authorizedKeysForServer(prisma, server.id),
     prisma.server.update({
       where: { id: server.id },
-      data: { entitlementValidUntil: validUntil },
+      data: { entitlementValidUntil: validUntil, targetVersion },
     }),
   ])
 
@@ -54,7 +56,7 @@ export async function readAgentState(server: Server): Promise<AgentState> {
     entitlement: entitlementOf(server.status),
     valid_until: validUntil,
     authorized_keys: authorizedKeys,
-    target_version: server.targetVersion,
+    target_version: targetVersion,
     hostname: server.host ?? server.name,
     module_params: {},
   }

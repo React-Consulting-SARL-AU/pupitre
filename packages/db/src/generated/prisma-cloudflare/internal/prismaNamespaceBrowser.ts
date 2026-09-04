@@ -231,6 +231,7 @@ export const ServerScalarFieldEnum = {
   entitlementValidUntil: 'entitlementValidUntil',
   decommissionAt: 'decommissionAt',
   status: 'status',
+  channel: 'channel',
   deviceId: 'deviceId',
   assignedUserId: 'assignedUserId',
   lastHeartbeatAt: 'lastHeartbeatAt',

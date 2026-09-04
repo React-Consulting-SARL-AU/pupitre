@@ -1,4 +1,4 @@
-import { ServerStatus } from "@pupitre/db/cloudflare/enums"
+import { ReleaseChannel, ServerStatus } from "@pupitre/db/cloudflare/enums"
 import { ARCHITECTURES } from "@pupitre/shared/catalog"
 import { t } from "elysia"
 import { dateTime } from "../../openapi-models"
@@ -12,6 +12,13 @@ export const SERVER_STATUSES = [
 ] as const
 
 export const serverStatusSchema = t.UnionEnum([...SERVER_STATUSES])
+
+export const RELEASE_CHANNELS = [
+  ReleaseChannel.stable,
+  ReleaseChannel.beta,
+] as const
+
+export const releaseChannelSchema = t.UnionEnum([...RELEASE_CHANNELS])
 
 export const architectureSchema = t.UnionEnum([...ARCHITECTURES])
 
@@ -36,6 +43,7 @@ export const enrollmentSchema = t.Object(
       url: t.String(),
       sha256: t.String(),
       signature: t.String(),
+      channel: releaseChannelSchema,
     }),
   },
   { $id: "ServerEnrollment" }
