@@ -29,6 +29,16 @@ const FR = {
   device_exists: "Cet appareil est déjà enregistré.",
   device_exists_fix:
     "Utilisez l'appareil déjà enregistré, ou ajoutez-en un avec une autre clé.",
+  server_not_found: "Ce serveur n'existe pas.",
+  seat_quota_reached:
+    "Votre abonnement couvre {quota} serveurs, ils sont tous utilisés.",
+  seat_quota_reached_fix:
+    "Ajoutez un siège depuis la facturation, ou supprimez un serveur.",
+  enrollment_unknown: "Ce jeton d'enrôlement n'existe pas.",
+  enrollment_used: "Ce jeton d'enrôlement a déjà été échangé.",
+  enrollment_expired: "Ce jeton d'enrôlement a expiré.",
+  enrollment_restart_fix:
+    "Relancez l'installation depuis l'app pour obtenir un nouveau jeton.",
   internal: "Erreur interne (référence {ref}).",
   rate_limited: "Trop de requêtes.",
   rate_limited_fix: "Réessayez dans {seconds} secondes.",
@@ -85,6 +95,15 @@ const EN: Record<MessageKey, string> = {
   device_exists: "This device is already registered.",
   device_exists_fix:
     "Use the device already registered, or add one with another key.",
+  server_not_found: "This server does not exist.",
+  seat_quota_reached:
+    "Your subscription covers {quota} servers, and they are all in use.",
+  seat_quota_reached_fix: "Add a seat from billing, or delete a server.",
+  enrollment_unknown: "This enrollment token does not exist.",
+  enrollment_used: "This enrollment token was already exchanged.",
+  enrollment_expired: "This enrollment token expired.",
+  enrollment_restart_fix:
+    "Start the installation again from the app to get a new token.",
   internal: "Internal error (reference {ref}).",
   rate_limited: "Too many requests.",
   rate_limited_fix: "Retry in {seconds} seconds.",
