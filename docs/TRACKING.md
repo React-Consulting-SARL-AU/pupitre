@@ -11,7 +11,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-03 | Workspaces et packages vides | fait | `feat/INF-03-workspaces` | fusionnée |
 | INF-04 | Contrats initiaux | à faire | | |
 | INF-05 | CI GitHub Actions | à faire | | |
-| INF-06 | Skills et outillage agent | à faire | | |
+| INF-06 | Skills et outillage agent | en revue | `chore/INF-06-skills` | |
 
 ## Agent serveur — `AGT`
 
