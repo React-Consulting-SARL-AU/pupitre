@@ -20,6 +20,13 @@ export interface ServerForUser {
   key_ready: boolean
 }
 
+export interface ServerUsage {
+  at: string
+  disk: number
+  ram: number
+  load: number
+}
+
 export interface ServerView {
   id: string
   name: string
@@ -35,6 +42,7 @@ export interface ServerView {
   assigned_user_id: string | null
   last_heartbeat_at: Date | null
   entitlement_valid_until: Date | null
+  usage: ServerUsage | null
   created_at: Date
 }
 
@@ -61,6 +69,15 @@ export function isStale(server: Server, now: Date = new Date()): boolean {
   return now.getTime() - last.getTime() > STALE_AFTER_MS
 }
 
+function lastUsage(server: Server): ServerUsage | null {
+  const samples = metricsOf(server)
+  const last = samples.at(-1)
+
+  return last
+    ? { at: last.at, disk: last.disk, ram: last.ram, load: last.load }
+    : null
+}
+
 function toView(server: Server, now: Date): ServerView {
   return {
     id: server.id,
@@ -77,6 +94,7 @@ function toView(server: Server, now: Date): ServerView {
     assigned_user_id: server.assignedUserId,
     last_heartbeat_at: server.lastHeartbeatAt,
     entitlement_valid_until: server.entitlementValidUntil,
+    usage: lastUsage(server),
     created_at: server.createdAt,
   }
 }

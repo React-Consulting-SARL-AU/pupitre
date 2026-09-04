@@ -1,5 +1,9 @@
 import type { CommandName } from "@pupitre/shared/agent-protocol";
 import type { Event } from "@pupitre/shared/agent-protocol/envelope";
+import type {
+  CatalogResult,
+  ProbeResult,
+} from "@pupitre/shared/agent-protocol/install";
 import type { HelloResult } from "@pupitre/shared/agent-protocol/session";
 import type { AgentResponse } from "@shared/agent";
 import type {
@@ -22,6 +26,7 @@ import type {
   TerminalKind,
   WorkingTree,
 } from "@shared/contract";
+import type { SecretMarks } from "@shared/secrets";
 import type {
   HostKeyDecision,
   ServerAdded,
@@ -71,6 +76,47 @@ const api = {
       .invoke("agent:stream", token, serverId, cmd, params)
       .finally(() => ipcRenderer.removeListener("agent:event", listener));
   },
+
+  /**
+   * The probe of a server, whether or not it already runs the agent. Nothing is
+   * written on the machine: the script travels on standard input.
+   */
+  inspect: (serverId: string): Promise<AgentResponse<ProbeResult>> =>
+    ipcRenderer.invoke("inspection:probe", serverId),
+
+  /** The catalogue this server's agent declares. The app holds no list. */
+  catalog: (serverId: string): Promise<AgentResponse<CatalogResult>> =>
+    ipcRenderer.invoke("catalog:list", serverId),
+
+  /**
+   * A secret of the configuration screen, on its way in.
+   *
+   * It goes to the main process and stays there until the install writes it on
+   * the protocol's secret line. What comes back is a mark, never a value.
+   */
+  setInstallSecret: (
+    serverId: string,
+    moduleId: string,
+    key: string,
+    value: string
+  ): Promise<SecretMarks> =>
+    ipcRenderer.invoke("catalog:secret-set", serverId, moduleId, key, value),
+  generateInstallSecret: (
+    serverId: string,
+    moduleId: string,
+    key: string
+  ): Promise<SecretMarks> =>
+    ipcRenderer.invoke("catalog:secret-generate", serverId, moduleId, key),
+
+  /** The one way out, once: a second call answers `null`. */
+  revealInstallSecret: (
+    serverId: string,
+    moduleId: string,
+    key: string
+  ): Promise<{ value: string | null; marks: SecretMarks }> =>
+    ipcRenderer.invoke("catalog:secret-reveal", serverId, moduleId, key),
+  forgetInstallSecrets: (serverId: string): Promise<void> =>
+    ipcRenderer.invoke("catalog:secret-forget", serverId),
 
   agentSession: (serverId: string): Promise<HelloResult | null> =>
     ipcRenderer.invoke("agent:session", serverId),

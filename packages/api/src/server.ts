@@ -37,7 +37,8 @@ function reportInternalError(error: unknown, request: Request): string {
 }
 
 export function createApi<Routes extends AnyElysia>(apiRoutes: Routes) {
-  return new Elysia({ prefix: "/api/v1" })
+  // Workers forbid `new Function`, which Elysia's ahead-of-time compiler uses.
+  return new Elysia({ aot: false, prefix: "/api/v1" })
     .onError(({ code, error, request, set }) => {
       const locale = resolveLocale(request.headers)
 
@@ -49,7 +50,9 @@ export function createApi<Routes extends AnyElysia>(apiRoutes: Routes) {
         return apiError("validation", message, fix)
       }
 
-      if (code === "PARSE") {
+      // Without ahead-of-time compilation Elysia lets the JSON parse error
+      // through as a plain SyntaxError instead of its own PARSE code.
+      if (code === "PARSE" || (error instanceof SyntaxError && request.body)) {
         set.status = 400
 
         return apiError(

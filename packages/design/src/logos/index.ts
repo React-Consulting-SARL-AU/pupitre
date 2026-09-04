@@ -211,6 +211,10 @@ export const EXEMPTIONS: Readonly<Partial<Record<ModuleId, string>>> = {
     "Les marques Microsoft ont été retirées de Simple Icons et le kit Visual Studio Code n'est pas sous licence libre.",
 }
 
-export function logoFor(moduleId: ModuleId): Logo | null {
-  return LOGOS[moduleId] ?? null
+/**
+ * The catalogue is the agent's, not the app's: a module id it has never heard of
+ * is an ordinary answer here, not an error. It simply has no logo.
+ */
+export function logoFor(moduleId: string): Logo | null {
+  return LOGOS[moduleId as ModuleId] ?? null
 }

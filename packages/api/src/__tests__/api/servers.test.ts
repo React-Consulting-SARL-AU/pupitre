@@ -29,6 +29,7 @@ interface ServerBody {
   host_fingerprint: string | null
   assigned_user_id: string | null
   last_heartbeat_at: string | null
+  usage: { at: string; disk: number; ram: number; load: number } | null
   created_at: string
 }
 
@@ -379,6 +380,13 @@ describe("GET /servers/:id", () => {
     expect(response.json.data.host).toBe("vps.test")
     expect(response.json.data.metrics).toHaveLength(1)
     expect(response.json.data.metrics[0].disk).toBe(41)
+    expect(response.json.data.usage).toMatchObject({ disk: 41, ram: 55 })
+
+    const list = await apiRequest<{ data: ServerBody[] }>("/servers", {
+      session: owner,
+    })
+
+    expect(list.json.data[0].usage).toMatchObject({ disk: 41, ram: 55 })
     expect(response.json.data.events.map((event) => event.action)).toContain(
       "server.enrolled"
     )

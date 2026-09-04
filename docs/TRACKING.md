@@ -46,8 +46,8 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-01 | Design monochrome et thèmes | fait | `feat/APP-01-monochrome` | fusionnée |
 | APP-02 | Client du protocole agent sur SSH | fait | `feat/APP-02-agent-client` | fusionnée |
 | APP-03 | Serveurs, clés par appareil, config SSH propre à l'app | fait | `feat/APP-03-servers-keys` | fusionnée |
-| APP-04 | Écran d'inspection | à faire | | |
-| APP-05 | Catalogue et configuration des services | à faire | | |
+| APP-04 | Écran d'inspection | fait | `feat/APP-04-inspection` | fusionnée |
+| APP-05 | Catalogue et configuration des services | fait | `feat/APP-05-catalog` | fusionnée |
 | APP-06 | Installation en direct et rapport | à faire | | |
 | APP-07 | Durcissement et bascule root → dev | à faire | | |
 | APP-08 | Premier projet | à faire | | |
@@ -75,7 +75,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-05 | Enrôlement, jetons d'agent, `agent/state`, heartbeat | fait | `feat/PLT-05-enrollment` | fusionnée |
 | PLT-06 | Distribution des binaires signés (R2) | fait | `feat/PLT-06-releases` | fusionnée |
 | PLT-07 | Stripe Managed Payments : checkout, portail, webhooks, réconciliation | fait | `feat/PLT-07-stripe` | fusionnée |
-| PLT-08 | Console : shell, connexion, serveurs, appareils | à faire | | |
+| PLT-08 | Console : shell, connexion, serveurs, appareils | fait | `feat/PLT-08-console` | fusionnée |
 | PLT-09 | Console : abonnement, téléchargements, profil | à faire | | |
 | PLT-10 | Organisations : membres, invitations, attribution, audit | à faire | | |
 | PLT-11 | Emails transactionnels | à faire | | |
@@ -83,6 +83,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-13 | Passkeys et MFA | à faire | | |
 | PLT-14 | Déploiement Cloudflare Builds, staging et production | à faire | | |
 | PLT-15 | Workflows Cloudflare : déclencheurs des tâches longues | à faire | | |
+| PLT-16 | Harnais Playwright pour la console | à faire | | |
 
 ## Site marketing — `MKT`
 

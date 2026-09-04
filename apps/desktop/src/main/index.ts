@@ -33,8 +33,10 @@ import {
   shell,
 } from "electron";
 import { agentClient, registerAgentChannels } from "./agent";
+import { registerCatalog } from "./catalog";
 import { catalog, history, paths } from "./completion";
 import { fileDiff, inspect, pull, validPath, workingTree } from "./git";
+import { registerInspection } from "./inspection";
 import { SetupError } from "./server-setup";
 import {
   activate as activateServer,
@@ -292,6 +294,8 @@ const logStoppers = new Map<string, () => void>();
 
 function registerChannels(): void {
   registerAgentChannels();
+  registerInspection();
+  registerCatalog();
 
   ipcMain.handle("snapshot", () => snapshot());
 

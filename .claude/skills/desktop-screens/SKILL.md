@@ -65,7 +65,7 @@ composant ──► store Zustand ──► window.pupitre.<méthode>() ──�
 
 ## Exemple complet : l'écran « Inspection » (APP-04)
 
-L'écran envoie `probe` au serveur actif et rend le verdict : `bare`, `managed` (version, mise à jour disponible), `occupied` (ce qui serait touché), `incompatible` (raison, remède). Les boutons dépendent du verdict. Sur un serveur sans agent, `agent-client` joue `probe.sh` en mémoire et renvoie le même `ProbeResult` (AGT-02 garantit l'égalité des deux sondes) : l'écran ne fait pas la différence.
+L'écran envoie `probe` au serveur actif et rend le verdict — `{ level, kind, up_to_date?, reasons, fixes }` — selon son `kind` : `bare`, `managed` (version, mise à jour disponible), `occupied` (ce qui serait touché), `incompatible` (raison, remède). Les boutons dépendent du verdict. Sur un serveur sans agent, `agent-client` joue `probe.sh` en mémoire et renvoie le même `ProbeResult` (AGT-02 garantit l'égalité des deux sondes) : l'écran ne fait pas la différence.
 
 ### Le handler du main — `src/main/inspection.ts`
 
@@ -215,7 +215,7 @@ export function OnboardingInspectionScreen() {
 import type { ProbeResult } from "@pupitre/shared/agent-protocol";
 import { StatusDot } from "@renderer/components/ui/status-dot";
 
-type Verdict = ProbeResult["verdict"];
+type VerdictKind = ProbeResult["verdict"]["kind"];
 
 type VerdictLook = {
   shape: "filled" | "empty" | "struck";
@@ -223,7 +223,7 @@ type VerdictLook = {
   title: string;
 };
 
-const VERDICTS: Record<Verdict, VerdictLook> = {
+const VERDICTS: Record<VerdictKind, VerdictLook> = {
   bare: { shape: "empty", tone: "neutral", title: "Serveur nu" },
   managed: { shape: "filled", tone: "ok", title: "Déjà géré par Pupitre" },
   occupied: { shape: "filled", tone: "warn", title: "Serveur occupé" },
@@ -235,7 +235,7 @@ type Props = {
 };
 
 export function OnboardingInspectionVerdict({ probe }: Props) {
-  const verdict = VERDICTS[probe.verdict];
+  const verdict = VERDICTS[probe.verdict.kind];
 
   return (
     <div className="flex flex-col gap-3 rounded-md border border-line bg-surface p-4">
@@ -247,13 +247,13 @@ export function OnboardingInspectionVerdict({ probe }: Props) {
         ) : null}
       </div>
 
-      {probe.reasons.length > 0 ? (
+      {probe.verdict.reasons.length > 0 ? (
         <ul className="flex flex-col gap-2">
-          {probe.reasons.map((reason, index) => (
+          {probe.verdict.reasons.map((reason, index) => (
             <li key={reason} className="flex flex-col gap-0.5 border-line border-l pl-3">
               <span className="text-ink-2">{reason}</span>
-              {probe.fixes[index] ? (
-                <code className="font-data text-ink-3">{probe.fixes[index]}</code>
+              {probe.verdict.fixes[index] ? (
+                <code className="font-data text-ink-3">{probe.verdict.fixes[index]}</code>
               ) : null}
             </li>
           ))}
@@ -289,9 +289,9 @@ export function OnboardingInspectionActions({ probe }: Props) {
 
   return (
     <div className="flex gap-2">
-      {probe.verdict === "bare" ? install : null}
-      {probe.verdict === "managed" ? upgrade : null}
-      {probe.verdict === "occupied" ? installAnyway : null}
+      {probe.verdict.kind === "bare" ? install : null}
+      {probe.verdict.kind === "managed" ? upgrade : null}
+      {probe.verdict.kind === "occupied" ? installAnyway : null}
       {another}
     </div>
   );
@@ -310,7 +310,7 @@ L'agent factice (APP-02) rejoue une transcription : une ligne de requête attend
 {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","protocol":1}}
 {"id":1,"ok":true,"result":{"agent_version":"0.1.0","protocol":1,"entitlement":"dev","capabilities":["probe"]}}
 {"id":2,"cmd":"probe"}
-{"id":2,"ok":true,"result":{"os":"ubuntu","version":"24.04","arch":"amd64","ram_mb":4096,"disk_free_gb":38,"sudo":true,"ports":[],"docker":false,"panel":null,"agent_version":null,"installed_modules":[],"verdict":"bare","reasons":[],"fixes":[]}}
+{"id":2,"ok":true,"result":{"os":"ubuntu","version":"24.04","arch":"amd64","ram_mb":4096,"disk_free_gb":38,"sudo":true,"ports":[],"docker":false,"panel":null,"agent_version":null,"installed_modules":[],"verdict":{"level":"ready","kind":"bare","reasons":[],"fixes":[]}}}
 ```
 
 ```ts
@@ -324,7 +324,10 @@ describe("probe", () => {
 
     const response = await client.request("staging", "probe");
 
-    expect(response).toMatchObject({ ok: true, result: { verdict: "bare" } });
+    expect(response).toMatchObject({
+      ok: true,
+      result: { verdict: { level: "ready", kind: "bare" } },
+    });
   });
 
   it("transmet l'erreur et son remède sans les toucher", async () => {
@@ -335,9 +338,12 @@ describe("probe", () => {
     expect(response).toMatchObject({
       ok: true,
       result: {
-        verdict: "incompatible",
-        reasons: ["Debian 12 n'est pas pris en charge"],
-        fixes: ["Réinstallez le serveur en Ubuntu 24.04"],
+        verdict: {
+          level: "blocked",
+          kind: "incompatible",
+          reasons: ["Debian 12 n'est pas pris en charge"],
+          fixes: ["Réinstallez le serveur en Ubuntu 24.04"],
+        },
       },
     });
   });
@@ -358,14 +364,19 @@ describe("inspect", () => {
 
   it("garde le verdict tel que l'agent le renvoie", async () => {
     stubPupitre({
-      inspect: async () => ({ ok: true, result: { verdict: "occupied", reasons: ["Docker"], fixes: [] } }),
+      inspect: async () => ({
+        ok: true,
+        result: {
+          verdict: { level: "warning", kind: "occupied", reasons: ["Docker"], fixes: [] },
+        },
+      }),
     });
 
     await useOnboarding.getState().inspect("srv-1");
 
     expect(useOnboarding.getState().inspection).toMatchObject({
       status: "done",
-      probe: { verdict: "occupied", reasons: ["Docker"] },
+      probe: { verdict: { kind: "occupied", reasons: ["Docker"] } },
     });
   });
 

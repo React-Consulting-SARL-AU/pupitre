@@ -56,7 +56,7 @@ describe("GET /me", () => {
     ])
     expect(me.json.active_organization).toMatchObject({ id: organization.id })
     expect(me.json.role).toBe("owner")
-    expect(me.json.entitlement).toBe("none")
+    expect(me.json.entitlement).toBe("valid")
 
     const asOwner = await apiRequest<MeBody>("/me", { session: owner })
 
@@ -78,6 +78,38 @@ describe("GET /me", () => {
     expect(me.status).toBe(200)
     expect(me.json.active_organization).toBeNull()
     expect(me.json.role).toBeNull()
+    expect(me.json.entitlement).toBe("none")
+  })
+
+  it("mirrors the entitlement of the active organization", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { user, organization } = await createUser({
+      email: "grace@test.local",
+    })
+    const session = await createSession({ userId: user.id })
+
+    await prisma.subscription.create({
+      data: {
+        organizationId: organization.id,
+        stripeSubscriptionId: "sub_me_entitlement",
+        product: "prod_server",
+        quantity: 2,
+        status: "past_due",
+      },
+    })
+
+    const inGrace = await apiRequest<MeBody>("/me", { session })
+
+    expect(inGrace.json.entitlement).toBe("grace")
+
+    await prisma.subscription.updateMany({
+      where: { organizationId: organization.id },
+      data: { status: "canceled" },
+    })
+
+    const suspended = await apiRequest<MeBody>("/me", { session })
+
+    expect(suspended.json.entitlement).toBe("suspended")
   })
 
   it("is reachable through the typed Eden client", async () => {
@@ -92,7 +124,7 @@ describe("GET /me", () => {
     const me = unwrap(await client.api.v1.me.get())
 
     expect(me.user.id).toBe(user.id)
-    expect(me.entitlement).toBe("none")
+    expect(me.entitlement).toBe("valid")
 
     const anonymous = createApiClient(TEST_BASE_URL, { fetch: server.fetch })
 

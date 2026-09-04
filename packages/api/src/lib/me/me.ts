@@ -1,6 +1,7 @@
 import type { OrgRole } from "@pupitre/shared/permissions"
 import type { SessionUser } from "../api/plugins/auth"
 import { getPrisma } from "../api/prisma"
+import { entitlementForOrganization } from "../billing/entitlement"
 
 export interface MeInput {
   user: SessionUser
@@ -18,6 +19,9 @@ export async function loadMe({ user, organizationId, role }: MeInput) {
     memberships.find(
       (membership) => membership.organizationId === organizationId
     )?.organization ?? null
+  const entitlement = active
+    ? (await entitlementForOrganization(active.id)).state
+    : ("none" as const)
 
   return {
     user: {
@@ -33,6 +37,6 @@ export async function loadMe({ user, organizationId, role }: MeInput) {
     })),
     active_organization: active,
     role,
-    entitlement: "none" as const,
+    entitlement,
   }
 }
