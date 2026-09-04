@@ -1,0 +1,7 @@
+# Le canal long : l'agent télécharge, vérifie, remplace et redémarre.
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","protocol":1}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.3.0","protocol":1,"entitlement":"restricted","capabilities":["hello","agent.upgrade"]}}
+> {"id":2,"cmd":"agent.upgrade","params":{"version":"0.4.0","signature":"c2lnbmF0dXJlLWVkMjU1MTktZGUtdGVzdA=="}}
+< {"id":2,"event":"log","line":"version 0.4.0 téléchargée, 18432000 octets, empreinte 4c9f2a"}
+< {"id":2,"event":"log","line":"agent 0.4.0 installé, unité pupitred redémarrée"}
+< {"id":2,"ok":true,"result":{"previous_version":"0.3.0","version":"0.4.0","restarting":true}}

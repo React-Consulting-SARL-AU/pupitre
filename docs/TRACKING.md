@@ -22,7 +22,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-15 | Contrat : détecter le gestionnaire d'un dépôt | à faire | | |
 | INF-17 | Contrat : lire la valeur d'un identifiant de service | à faire | | |
 | INF-18 | Contrat : la plateforme publie l'empreinte et refuse le retour en arrière | à faire | | |
-| INF-19 | Contrat : `/status` dit depuis quand il sait | à faire | | |
+| INF-19 | Contrat : `/status` dit depuis quand il sait | fait | `feat/INF-19-status-freshness` | fusionnée |
 | INF-20 | Contrat : une adresse par capture | à faire | | |
 | INF-16 | Contrat : le chemin absolu d'un projet | fait | `feat/INF-16-project-path` | fusionnée |
 | INF-11 | Contrat : le verdict de la sonde | fait | `feat/INF-11-probe-contract` | fusionnée |
@@ -64,15 +64,15 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-09 | Tableau de bord et projets sur le nouveau protocole | fait | `feat/APP-09-dashboard` | fusionnée |
 | APP-10 | Terminaux, agents, galerie | fait | `feat/APP-10-terminals` | fusionnée |
 | APP-11 | Services au quotidien | fait | `feat/APP-11-services` | fusionnée |
-| APP-12 | Mise à jour de l'agent depuis l'app | à faire | | |
+| APP-12 | Mise à jour de l'agent depuis l'app | fait | `feat/APP-12-agent-update` | fusionnée |
 | APP-13 | Build macOS signé, notarisé, bytecode, auto-update | à faire | | |
 | APP-14 | Compte : device flow, appareils, enrôlement | à faire | | |
 | APP-15 | Serveurs distants et organisations | à faire | | |
 | APP-16 | Builds Windows et Linux | à faire | | |
 | APP-17 | Harnais Playwright pour Electron | fait | `feat/APP-17-electron-e2e` | fusionnée |
-| APP-18 | Fond natif de la fenêtre selon le thème | à faire | | |
+| APP-18 | Fond natif de la fenêtre selon le thème | fait | `feat/APP-18-window-and-font` | fusionnée |
 | APP-19 | Appliquer le design accueillant à l'app | fait | `feat/APP-19-warm-design` | fusionnée |
-| APP-21 | Embarquer la police d'affichage dans l'app | à faire | | |
+| APP-21 | Embarquer la police d'affichage dans l'app | fait | `feat/APP-18-window-and-font` | fusionnée |
 | APP-20 | L'app parle deux langues | à faire | | |
 
 ## Plateforme — `PLT`
@@ -120,4 +120,4 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
-| 2026-09-05 | INF-14 | La migration `add_user_locale` a été appliquée sur la branche staging de Neon sous l'horodatage que Prisma avait généré (`20260904212042_add_user_locale`), puis son dossier a été renommé en `20260905000000_add_user_locale` pour rester le dernier par ordre alphabétique. La colonne est en place, mais `_prisma_migrations` garde l'ancien nom : **le prochain `db:migrate` sur staging échouera**. Staging est vide (0 utilisateur, 0 organisation, 0 serveur). Remède au choix : renommer la ligne (`update _prisma_migrations set migration_name = '20260905000000_add_user_locale' where migration_name = '20260904212042_add_user_locale'`) ou réinitialiser staging. Les deux écritures m'ont été refusées : elles touchent ta base réelle. Production n'est pas concernée, elle recevra la migration sous son nom de dépôt. | propriétaire |
+| 2026-09-05 | APP-12 | L'app lit la version publiée, ses notes et sa signature dans la release embarquée à la construction : `embedAgent` attend `apps/agent/dist/release.json` (`{ version, notes[], signatures: { arch } }`). **Rien ne l'écrit aujourd'hui** — c'est à AGT-15, la chaîne de publication, de le produire. Sans lui l'app pousse bien un agent sur une machine nue mais ne peut pas en proposer la mise à jour : le bandeau le dit et son bouton reste désactivé, plutôt que d'envoyer une signature inventée que l'agent refuserait. À vérifier à la fusion d'AGT-15. | AGT-15 |

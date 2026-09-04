@@ -20,7 +20,8 @@
     "./contracts": "./src/contracts/index.ts",
     "./permissions": "./src/permissions/index.ts",
     "./plans": "./src/plans/index.ts",
-    "./releases": "./src/releases/index.ts"
+    "./releases": "./src/releases/index.ts",
+    "./status": "./src/status/index.ts"
   },
   "scripts": {
     "lint": "ultracite check",

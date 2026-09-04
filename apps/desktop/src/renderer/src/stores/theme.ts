@@ -1,29 +1,14 @@
+import {
+  isThemePreference,
+  type ResolvedTheme,
+  resolveTheme,
+  type ThemePreference,
+} from "@shared/appearance";
 import { create } from "zustand";
 import { readNavigation, writeNavigation } from "../lib/memory";
-import type { ResolvedTheme } from "../lib/terminal-theme";
 import { repaintTerminals } from "../lib/terminals";
 
-export type ThemePreference = "system" | "light" | "dark";
-
-export const THEME_PREFERENCES: ThemePreference[] = ["system", "light", "dark"];
-
 const DARK_QUERY = "(prefers-color-scheme: dark)";
-
-export function isThemePreference(
-  value: string | undefined
-): value is ThemePreference {
-  return value !== undefined && (THEME_PREFERENCES as string[]).includes(value);
-}
-
-export function resolveTheme(
-  preference: ThemePreference,
-  systemPrefersDark: boolean
-): ResolvedTheme {
-  if (preference === "system") {
-    return systemPrefersDark ? "dark" : "light";
-  }
-  return preference;
-}
 
 function systemPrefersDark(): boolean {
   try {
@@ -39,7 +24,8 @@ function systemPrefersDark(): boolean {
  * `data-theme` on `<html>` is what the tokens of `@pupitre/design` key off, so
  * setting the attribute repaints the entire interface — no reload, no re-render.
  * The terminal draws on a canvas and knows nothing of CSS, so it is handed the
- * new palette by hand, right after the attribute changes.
+ * new palette by hand; the native window frame has no stylesheet either, so it
+ * is told what the choice resolved to.
  */
 function paint(preference: ThemePreference, resolved: ResolvedTheme): void {
   const root = document.documentElement;
@@ -50,6 +36,7 @@ function paint(preference: ThemePreference, resolved: ResolvedTheme): void {
     root.setAttribute("data-theme", preference);
   }
 
+  window.pupitre?.setAppearance({ preference, resolved });
   repaintTerminals(resolved);
 }
 
