@@ -1,0 +1,399 @@
+# pupitred probe — décrit une machine avant toute installation.
+#
+# Envoyée en mémoire, jamais déposée sur le disque :
+#   ssh <hôte> 'sh -s' < probe.sh
+#
+# sh POSIX, sans jq, sans bash-isme. Ne lit que : aucune écriture, aucune modification.
+# Écrit sur la sortie standard un JSON conforme au schéma Probe du protocole. La sonde Go
+# de internal/probe lit les mêmes fichiers, lance les mêmes commandes et produit le même JSON.
+
+set -u
+
+ROOT=''
+PROJECTS='/home/dev/projects'
+CURRENT=''
+
+while [ $# -gt 0 ]; do
+  case $1 in
+    --root=*) ROOT=${1#--root=} ;;
+    --projects=*) PROJECTS=${1#--projects=} ;;
+    --version=*) CURRENT=${1#--version=} ;;
+    *)
+      printf 'usage: sh probe.sh [--root=DIR] [--projects=DIR] [--version=VERSION]\n' >&2
+      exit 2
+      ;;
+  esac
+  shift
+done
+
+TAB=$(printf '\t')
+
+at() {
+  printf '%s%s' "$ROOT" "$1"
+}
+
+json_string() {
+  printf '"%s"' "$(printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' | tr -d '\001-\037\177')"
+}
+
+json_or_null() {
+  if [ -z "$1" ]; then
+    printf 'null'
+  else
+    json_string "$1"
+  fi
+}
+
+os_field() {
+  release=$(at /etc/os-release)
+  [ -r "$release" ] || return 0
+
+  sed -n "s/^$1=//p" "$release" | head -n 1 | sed -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'\$/\1/"
+}
+
+normalize_arch() {
+  case $1 in
+    x86_64|amd64) printf 'amd64' ;;
+    aarch64|arm64) printf 'arm64' ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
+memory_mb() {
+  total=$(free -b 2>/dev/null | awk '/^Mem:/ { printf "%.0f", $2; exit }')
+
+  if [ -z "$total" ] || [ "$total" = 0 ]; then
+    meminfo=$(at /proc/meminfo)
+    total=''
+    if [ -r "$meminfo" ]; then
+      total=$(awk '/^MemTotal:/ { printf "%.0f", $2 * 1024; exit }' "$meminfo")
+    fi
+  fi
+
+  [ -n "$total" ] || total=0
+
+  awk -v bytes="$total" 'BEGIN { printf "%d", bytes / 1048576 }'
+}
+
+existing_dir() {
+  candidate=$1
+  while [ -n "$candidate" ] && [ "$candidate" != '/' ] && [ "$candidate" != '.' ]; do
+    if [ -d "$candidate" ]; then
+      printf '%s' "$candidate"
+      return 0
+    fi
+    candidate=$(dirname "$candidate")
+  done
+
+  printf '/'
+}
+
+available_bytes() {
+  bytes=$(df -P -B1 "$1" 2>/dev/null | awk 'NR == 2 { printf "%.0f", $4; exit }')
+  [ -n "$bytes" ] || bytes=0
+
+  printf '%s' "$bytes"
+}
+
+# Le dossier des projets vit souvent sur son propre volume : c'est le plus petit des deux qui manquera.
+free_gigabytes() {
+  awk -v first="$1" -v second="$2" 'BEGIN {
+    smallest = (first == 0 ? second : (second == 0 ? first : (first < second ? first : second)))
+    tenths = int(smallest / 1073741824 * 10 + 0.5)
+    printf "%d.%d", int(tenths / 10), tenths % 10
+  }'
+}
+
+listening_ports() {
+  raw=$(ss -ltnp 2>/dev/null)
+
+  if [ -n "$raw" ]; then
+    printf '%s\n' "$raw" | awk '
+      $1 == "LISTEN" && NF >= 4 {
+        count = split($4, parts, ":")
+        port = parts[count]
+        process = ""
+        if (match($0, /\(\("[^"]+"/)) process = substr($0, RSTART + 3, RLENGTH - 4)
+        if (port ~ /^[0-9]+$/ && port + 0 >= 1 && port + 0 <= 65535) print port "\t" process
+      }' | merge_ports
+    return 0
+  fi
+
+  raw=$(netstat -ltnp 2>/dev/null)
+  [ -n "$raw" ] || return 0
+
+  printf '%s\n' "$raw" | awk '
+    ($1 == "tcp" || $1 == "tcp6") && $6 == "LISTEN" {
+      count = split($4, parts, ":")
+      port = parts[count]
+      process = ""
+      if (NF >= 7) {
+        slash = index($7, "/")
+        if (slash > 0) {
+          process = substr($7, slash + 1)
+          sub(/:$/, "", process)
+        }
+      }
+      if (port ~ /^[0-9]+$/ && port + 0 >= 1 && port + 0 <= 65535) print port "\t" process
+    }' | merge_ports
+}
+
+# Le même port apparaît une fois par famille d'adresses ; on garde le nom de processus là où il était lisible.
+merge_ports() {
+  awk -F'\t' '
+    {
+      if (!($1 in process)) {
+        process[$1] = $2
+        order[++count] = $1
+      } else if (process[$1] == "") {
+        process[$1] = $2
+      }
+    }
+    END { for (i = 1; i <= count; i++) print order[i] "\t" process[order[i]] }' | sort -n
+}
+
+docker_present() {
+  for candidate in /usr/bin/docker /usr/local/bin/docker /var/lib/docker /run/docker.sock; do
+    if [ -e "$(at "$candidate")" ]; then
+      printf 'true'
+      return 0
+    fi
+  done
+
+  printf 'false'
+}
+
+panel_name() {
+  if [ -d "$(at /usr/local/cpanel)" ]; then
+    printf 'cPanel'
+  elif [ -d "$(at /usr/local/psa)" ] || [ -d "$(at /opt/psa)" ]; then
+    printf 'Plesk'
+  elif [ -d "$(at /home/clp)" ] || [ -d "$(at /etc/cloudpanel)" ]; then
+    printf 'CloudPanel'
+  elif [ -d "$(at /www/server/panel)" ]; then
+    printf 'aaPanel'
+  fi
+}
+
+agent_version() {
+  binary=$(at /usr/local/bin/pupitred)
+  [ -x "$binary" ] || return 0
+
+  "$binary" version 2>/dev/null | head -n 1 | awk '{ print $NF }'
+}
+
+module_ids() {
+  report=$(at /var/lib/pupitre/report.json)
+  [ -r "$report" ] || return 0
+
+  tr '{},' '\n\n\n' < "$report" | sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'
+}
+
+account_names() {
+  passwd_file=$(at /etc/passwd)
+  [ -r "$passwd_file" ] || return 0
+
+  awk -F: '$1 != "nobody" && $3 + 0 >= 1000 && $3 + 0 < 65000 { print $1 }' "$passwd_file"
+}
+
+can_sudo() {
+  if [ "$(id -u 2>/dev/null)" = 0 ]; then
+    printf 'true'
+    return 0
+  fi
+
+  if sudo -n true >/dev/null 2>&1; then
+    printf 'true'
+    return 0
+  fi
+
+  printf 'false'
+}
+
+OS=$(os_field ID)
+VERSION=$(os_field VERSION_ID)
+ARCH=$(normalize_arch "$(uname -m 2>/dev/null)")
+RAM_MB=$(memory_mb)
+DISK_GB=$(free_gigabytes "$(available_bytes /)" "$(available_bytes "$(existing_dir "$PROJECTS")")")
+SUDO=$(can_sudo)
+PORTS=$(listening_ports)
+DOCKER=$(docker_present)
+PANEL=$(panel_name)
+AGENT=$(agent_version)
+MODULES=$(module_ids)
+ACCOUNTS=$(account_names)
+
+PORTS_JSON=''
+while IFS=$TAB read -r port process; do
+  [ -n "$port" ] || continue
+
+  if [ -n "$process" ]; then
+    entry="{\"port\":$port,\"process\":$(json_string "$process")}"
+  else
+    entry="{\"port\":$port}"
+  fi
+
+  PORTS_JSON="${PORTS_JSON:+$PORTS_JSON,}$entry"
+done <<PORTS_EOF
+$PORTS
+PORTS_EOF
+
+MODULES_JSON=''
+while IFS= read -r id; do
+  [ -n "$id" ] || continue
+  MODULES_JSON="${MODULES_JSON:+$MODULES_JSON,}$(json_string "$id")"
+done <<MODULES_EOF
+$MODULES
+MODULES_EOF
+
+ACCOUNT_LIST=''
+while IFS= read -r name; do
+  [ -n "$name" ] || continue
+  ACCOUNT_LIST="${ACCOUNT_LIST:+$ACCOUNT_LIST, }$name"
+done <<ACCOUNTS_EOF
+$ACCOUNTS
+ACCOUNTS_EOF
+
+REASONS=''
+FIXES=''
+
+add_reason() {
+  REASONS="${REASONS:+$REASONS,}$(json_string "$1")"
+}
+
+add_fix() {
+  FIXES="${FIXES:+$FIXES,}$(json_string "$1")"
+}
+
+trim() {
+  printf '%s' "$1" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+}
+
+label() {
+  trimmed=$(trim "$1")
+  if [ -z "$trimmed" ]; then
+    printf 'inconnue'
+  else
+    printf '%s' "$trimmed"
+  fi
+}
+
+LEVEL='ready'
+KIND='bare'
+UP_TO_DATE=''
+BLOCKED=0
+
+case "$OS $VERSION" in
+  'ubuntu 22.04'|'ubuntu 24.04') ;;
+  *)
+    add_reason "Distribution non prise en charge : $(label "$OS $VERSION"). Pupitre demande Ubuntu 22.04 ou 24.04."
+    add_fix "Réinstalle le serveur depuis une image Ubuntu 24.04 LTS, puis relance l'inspection."
+    BLOCKED=1
+    ;;
+esac
+
+case $ARCH in
+  amd64|arm64) ;;
+  *)
+    add_reason "Architecture non prise en charge : $(label "$ARCH"). Pupitre ne fournit que des binaires amd64 et arm64."
+    add_fix "Choisis un serveur amd64 (x86_64) ou arm64 (aarch64)."
+    BLOCKED=1
+    ;;
+esac
+
+if [ "$RAM_MB" -lt 4096 ]; then
+  add_reason "Mémoire insuffisante : $RAM_MB Mo. Pupitre demande 4096 Mo au minimum."
+  add_fix "Passe le serveur à une offre d'au moins 4 Go de mémoire."
+  BLOCKED=1
+fi
+
+if [ "$SUDO" != true ]; then
+  add_reason "sudo sans mot de passe indisponible pour l'utilisateur courant."
+  add_fix "Connecte-toi en root, ou donne NOPASSWD à ce compte dans /etc/sudoers.d/."
+  BLOCKED=1
+fi
+
+if [ "$BLOCKED" -eq 1 ]; then
+  LEVEL='blocked'
+  KIND='incompatible'
+elif [ -n "$AGENT" ]; then
+  KIND='managed'
+  if [ -z "$CURRENT" ] || [ "$AGENT" = "$CURRENT" ]; then
+    UP_TO_DATE='true'
+    add_reason "Pupitre est déjà installé : agent $AGENT, à jour."
+  else
+    UP_TO_DATE='false'
+    LEVEL='warning'
+    add_reason "Pupitre est déjà installé : agent $AGENT, la version courante est $CURRENT."
+    add_fix "Mets l'agent à jour depuis l'app avant d'installer des services."
+  fi
+else
+  OCCUPIED=0
+
+  if [ "$DOCKER" = true ]; then
+    add_reason "Docker est installé : ses conteneurs, ses réseaux et ses règles de pare-feu resteraient en place."
+    add_fix "Retire Docker pour une machine dédiée, ou installe quand même : Pupitre n'y touchera pas."
+    OCCUPIED=1
+  fi
+
+  if [ -n "$PANEL" ]; then
+    add_reason "Panneau d'hébergement détecté : $PANEL. Il se dispute nginx, les utilisateurs et le pare-feu avec Pupitre."
+    add_fix "Choisis un serveur sans panneau d'hébergement."
+    OCCUPIED=1
+  fi
+
+  WEB=0
+  while IFS=$TAB read -r port process; do
+    case "$port" in
+      80|443) ;;
+      *) continue ;;
+    esac
+
+    if [ -n "$process" ]; then
+      add_reason "Le port $port est déjà écouté par $process."
+    else
+      add_reason "Le port $port est déjà écouté."
+    fi
+    WEB=1
+  done <<WEB_EOF
+$PORTS
+WEB_EOF
+
+  if [ "$WEB" -eq 1 ]; then
+    add_fix "Libère les ports 80 et 443, ou installe quand même : l'exposition par tunnel ne les utilise pas."
+    OCCUPIED=1
+  fi
+
+  if [ -n "$ACCOUNT_LIST" ]; then
+    add_reason "Des comptes non système existent déjà : $ACCOUNT_LIST."
+    add_fix "Vérifie que ces comptes cohabitent avec l'utilisateur dev créé par Pupitre."
+    OCCUPIED=1
+  fi
+
+  if [ "$OCCUPIED" -eq 1 ]; then
+    LEVEL='warning'
+    KIND='occupied'
+  else
+    add_reason "Machine nue : $OS $VERSION $ARCH, $RAM_MB Mo de mémoire, $DISK_GB Go libres."
+  fi
+fi
+
+VERDICT="\"level\":$(json_string "$LEVEL"),\"kind\":$(json_string "$KIND")"
+if [ -n "$UP_TO_DATE" ]; then
+  VERDICT="$VERDICT,\"up_to_date\":$UP_TO_DATE"
+fi
+VERDICT="$VERDICT,\"reasons\":[$REASONS],\"fixes\":[$FIXES]"
+
+printf '{"os":%s,"version":%s,"arch":%s,"ram_mb":%s,"disk_free_gb":%s,"sudo":%s,"ports":[%s],"docker":%s,"panel":%s,"agent_version":%s,"installed_modules":[%s],"verdict":{%s}}\n' \
+  "$(json_string "$OS")" \
+  "$(json_string "$VERSION")" \
+  "$(json_string "$ARCH")" \
+  "$RAM_MB" \
+  "$DISK_GB" \
+  "$SUDO" \
+  "$PORTS_JSON" \
+  "$DOCKER" \
+  "$(json_or_null "$PANEL")" \
+  "$(json_or_null "$AGENT")" \
+  "$MODULES_JSON" \
+  "$VERDICT"

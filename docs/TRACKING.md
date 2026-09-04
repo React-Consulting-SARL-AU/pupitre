@@ -31,7 +31,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-07 | Modules agents IA et navigateur | à faire | | |
 | AGT-08 | Modules éditeurs distants | à faire | | |
 | AGT-09 | Modules exposition et outils | à faire | | |
-| AGT-10 | Registre des projets et pilotage | à faire | | |
+| AGT-10 | Registre des projets et pilotage | fait | `feat/AGT-10-registry` | fusionnée |
 | AGT-11 | Sessions, processus, captures, secrets, bases | à faire | | |
 | AGT-12 | Shell de l'app et autocomplétion | à faire | | |
 | AGT-13 | Mise à jour de l'agent | à faire | | |
@@ -46,7 +46,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-01 | Design monochrome et thèmes | fait | `feat/APP-01-monochrome` | fusionnée |
 | APP-02 | Client du protocole agent sur SSH | fait | `feat/APP-02-agent-client` | fusionnée |
 | APP-03 | Serveurs, clés par appareil, config SSH propre à l'app | fait | `feat/APP-03-servers-keys` | fusionnée |
-| APP-04 | Écran d'inspection | à faire | | |
+| APP-04 | Écran d'inspection | fait | `feat/APP-04-inspection` | fusionnée |
 | APP-05 | Catalogue et configuration des services | à faire | | |
 | APP-06 | Installation en direct et rapport | à faire | | |
 | APP-07 | Durcissement et bascule root → dev | à faire | | |
@@ -104,3 +104,4 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
+| 2026-09-04 | AGT-10 | L'énoncé et `docs/plans/desktop-and-agent.md` citent un état de projet `down` ; `packages/shared/src/agent-protocol/state.ts` n'en déclare que six (`online`, `starting`, `failed`, `stopped`, `external`, `service`) et le schéma refuse le septième. Une ligne `service` dont le port ne répond pas est rendue `stopped`. | propriétaire |

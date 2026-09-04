@@ -258,3 +258,93 @@ func ValidateValue(definition string, value any) error {
 
 	return Validate(definition, decoded)
 }
+
+type ProjectState string
+
+const (
+	ProjectOnline   ProjectState = "online"
+	ProjectStarting ProjectState = "starting"
+	ProjectFailed   ProjectState = "failed"
+	ProjectStopped  ProjectState = "stopped"
+	ProjectExternal ProjectState = "external"
+	ProjectService  ProjectState = "service"
+)
+
+var ProjectStates = []ProjectState{
+	ProjectOnline,
+	ProjectStarting,
+	ProjectFailed,
+	ProjectStopped,
+	ProjectExternal,
+	ProjectService,
+}
+
+var PackageManagers = []string{"bun", "pnpm", "npm", "gradle", "uv", "service", "none"}
+
+type Project struct {
+	Name      string       `json:"name"`
+	Dir       string       `json:"dir"`
+	Repo      string       `json:"repo,omitempty"`
+	PkgMgr    string       `json:"pkgmgr"`
+	Host      string       `json:"host"`
+	Port      int          `json:"port"`
+	Subdomain string       `json:"subdomain,omitempty"`
+	Cmd       string       `json:"cmd"`
+	Install   string       `json:"install,omitempty"`
+	State     ProjectState `json:"state"`
+	URL       string       `json:"url,omitempty"`
+	Branch    string       `json:"branch,omitempty"`
+	PID       int          `json:"pid,omitempty"`
+	RAMMB     int          `json:"ram_mb,omitempty"`
+	UptimeS   int          `json:"uptime_s,omitempty"`
+}
+
+type ProjectStateEntry struct {
+	Name  string       `json:"name"`
+	State ProjectState `json:"state"`
+	Port  int          `json:"port,omitempty"`
+}
+
+type ProjectActionResult struct {
+	State    ProjectState        `json:"state"`
+	Port     int                 `json:"port,omitempty"`
+	Projects []ProjectStateEntry `json:"projects,omitempty"`
+}
+
+type Machine struct {
+	Hostname     string     `json:"hostname"`
+	OS           string     `json:"os"`
+	Version      string     `json:"version"`
+	Arch         string     `json:"arch"`
+	Cores        int        `json:"cores"`
+	UptimeS      int        `json:"uptime_s"`
+	Load         [3]float64 `json:"load"`
+	RAMTotalMB   int        `json:"ram_total_mb"`
+	RAMUsedMB    int        `json:"ram_used_mb"`
+	SwapMB       int        `json:"swap_mb"`
+	DiskTotalGB  float64    `json:"disk_total_gb"`
+	DiskFreeGB   float64    `json:"disk_free_gb"`
+	AgentVersion string     `json:"agent_version"`
+}
+
+type Session struct {
+	PID     int    `json:"pid"`
+	Seconds int    `json:"seconds"`
+	RAMMB   int    `json:"ram_mb"`
+	Kind    string `json:"kind"`
+	Project string `json:"project,omitempty"`
+	Command string `json:"command"`
+}
+
+type Snapshot struct {
+	Machine     Machine         `json:"machine"`
+	Services    []ServiceStatus `json:"services"`
+	Projects    []Project       `json:"projects"`
+	Sessions    []Session       `json:"sessions"`
+	Entitlement Entitlement     `json:"entitlement"`
+}
+
+type Status struct {
+	Services []ServiceStatus `json:"services"`
+	Projects []Project       `json:"projects"`
+}

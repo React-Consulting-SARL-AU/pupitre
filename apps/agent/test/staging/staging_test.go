@@ -77,6 +77,13 @@ func reachable(host string) bool {
 func agent(t *testing.T, host string, requests ...request) []response {
 	t.Helper()
 
+	return succeeded(t, converse(t, host, "", requests...), requests)
+}
+
+// The refusals are part of the contract too: this one hands back what the agent answered, failure included.
+func attempt(t *testing.T, host string, requests ...request) []response {
+	t.Helper()
+
 	return converse(t, host, "", requests...)
 }
 
@@ -91,7 +98,7 @@ func agentWithSecrets(t *testing.T, host, secrets string, requests ...request) [
 	}
 	t.Cleanup(func() { sshCommand(host, "rm", "-f", secretsPath).Run() })
 
-	return converse(t, host, secretsPath, requests...)
+	return succeeded(t, converse(t, host, secretsPath, requests...), requests)
 }
 
 func converse(t *testing.T, host, secrets string, requests ...request) []response {
@@ -156,13 +163,23 @@ func converse(t *testing.T, host, secrets string, requests ...request) []respons
 		t.Fatalf("pupitred serve on %s: %v\n%s", host, err, stderr.String())
 	}
 
-	for i, resp := range responses {
-		if !resp.OK {
-			t.Fatalf("%s failed: %s", all[i].Cmd, resp.Error)
-		}
+	if !responses[0].OK {
+		t.Fatalf("hello failed: %s", responses[0].Error)
 	}
 
 	return responses[1:]
+}
+
+func succeeded(t *testing.T, responses []response, requests []request) []response {
+	t.Helper()
+
+	for i, resp := range responses {
+		if !resp.OK {
+			t.Fatalf("%s failed: %s", requests[i].Cmd, resp.Error)
+		}
+	}
+
+	return responses
 }
 
 func decode[T any](t *testing.T, raw json.RawMessage) T {

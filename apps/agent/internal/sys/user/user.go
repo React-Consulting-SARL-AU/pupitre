@@ -17,15 +17,22 @@ func Home(name string) string {
 }
 
 func Run(ctx sys.Context, name string, argv ...string) (string, error) {
+	return RunIn(ctx, name, Home(name), argv...)
+}
+
+func RunIn(ctx sys.Context, name, dir string, argv ...string) (string, error) {
 	home := Home(name)
 	if name == "" {
 		name = "root"
+	}
+	if dir == "" {
+		dir = home
 	}
 
 	out, err := sys.Exec(ctx, sys.Command{
 		User: name,
 		Argv: argv,
-		Dir:  home,
+		Dir:  dir,
 		Env: []string{
 			"HOME=" + home,
 			"USER=" + name,
