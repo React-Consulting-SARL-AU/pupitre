@@ -147,7 +147,7 @@ func (s *session) dispatch(id int64, cmd string, params any, line []byte) (any, 
 	}
 
 	if s.server.options.Entitlement == contract.EntitlementRestricted && !entitlement.AllowedInRestrictedMode(cmd) {
-		return nil, entitlementRequired()
+		return nil, EntitlementRequired()
 	}
 
 	if err := contract.Validate(contract.ParamsDefinition(cmd), params); err != nil {

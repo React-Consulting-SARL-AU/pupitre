@@ -1,0 +1,324 @@
+package modtest
+
+import (
+	"fmt"
+	"io/fs"
+	"strings"
+
+	"pupitre.sh/agent/internal/sys"
+)
+
+type UnitState string
+
+const (
+	UnitAbsent   UnitState = ""
+	UnitInactive UnitState = "inactive"
+	UnitActive   UnitState = "active"
+	UnitFailed   UnitState = "failed"
+)
+
+type FakeSys struct {
+	Files     map[string][]byte
+	Modes     map[string]fs.FileMode
+	Owners    map[string]string
+	Dirs      map[string]bool
+	Packages  map[string]string
+	Upgrades  map[string]string
+	Units     map[string]UnitState
+	Restarts  map[string]int
+	Replies   map[string]string
+	Failures  map[string]string
+	Users     map[string]string
+	Calls     []sys.Command
+	Mutations []string
+	Updates   int
+}
+
+func NewFakeSys() *FakeSys {
+	return &FakeSys{
+		Files:    map[string][]byte{},
+		Modes:    map[string]fs.FileMode{},
+		Owners:   map[string]string{},
+		Dirs:     map[string]bool{},
+		Packages: map[string]string{},
+		Upgrades: map[string]string{},
+		Units:    map[string]UnitState{},
+		Restarts: map[string]int{},
+		Replies:  map[string]string{},
+		Failures: map[string]string{},
+		Users:    map[string]string{"root": "/root"},
+	}
+}
+
+func (f *FakeSys) FailPackage(pkg, stderr string) {
+	f.Failures["apt:"+pkg] = stderr
+}
+
+func (f *FakeSys) FailProgram(program, stderr string) {
+	f.Failures[program] = stderr
+}
+
+func (f *FakeSys) EnvValue(key string) string {
+	for _, line := range strings.Split(string(f.Files["/etc/pupitre/env"]), "\n") {
+		if name, value, ok := strings.Cut(line, "="); ok && name == key {
+			return value
+		}
+	}
+
+	return ""
+}
+
+func (f *FakeSys) Commands() []string {
+	lines := make([]string, 0, len(f.Calls))
+	for _, call := range f.Calls {
+		lines = append(lines, sys.Describe(call))
+	}
+
+	return lines
+}
+
+func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
+	f.Calls = append(f.Calls, cmd)
+
+	if len(cmd.Argv) == 0 {
+		return sys.Output{}, fmt.Errorf("commande vide")
+	}
+
+	program := cmd.Argv[0]
+	if stderr, failing := f.Failures[program]; failing {
+		return f.fail(program, stderr)
+	}
+
+	switch program {
+	case "dpkg-query":
+		return f.dpkgQuery(cmd.Argv[1:])
+	case "apt-get":
+		return f.aptGet(cmd.Argv[1:])
+	case "systemctl":
+		return f.systemctl(cmd.Argv[1:])
+	case "id":
+		return f.id(cmd.Argv[1:])
+	case "useradd":
+		return f.useradd(cmd.Argv[1:])
+	}
+
+	return sys.Output{Stdout: f.Replies[program]}, nil
+}
+
+func (f *FakeSys) dpkgQuery(args []string) (sys.Output, error) {
+	pkg := args[len(args)-1]
+	version, installed := f.Packages[pkg]
+	if !installed {
+		return f.fail("dpkg-query", "dpkg-query: no packages found matching "+pkg)
+	}
+
+	for _, arg := range args {
+		if strings.Contains(arg, "Version") {
+			return sys.Output{Stdout: version + "\n"}, nil
+		}
+	}
+
+	return sys.Output{Stdout: "install ok installed"}, nil
+}
+
+func (f *FakeSys) aptGet(args []string) (sys.Output, error) {
+	action, packages, onlyUpgrade := parseApt(args)
+
+	switch action {
+	case "update":
+		f.Updates++
+		f.mutate("apt-get update")
+	case "install":
+		for _, pkg := range packages {
+			if stderr, failing := f.Failures["apt:"+pkg]; failing {
+				return f.fail("apt-get", stderr)
+			}
+
+			if onlyUpgrade {
+				if next, ok := f.Upgrades[pkg]; ok {
+					f.Packages[pkg] = next
+					delete(f.Upgrades, pkg)
+					f.mutate("apt-get upgrade " + pkg)
+				}
+				continue
+			}
+
+			if _, present := f.Packages[pkg]; !present {
+				f.Packages[pkg] = "1.0"
+			}
+			f.mutate("apt-get install " + pkg)
+		}
+	case "remove":
+		for _, pkg := range packages {
+			delete(f.Packages, pkg)
+			f.mutate("apt-get remove " + pkg)
+		}
+	default:
+		return f.fail("apt-get", "E: Invalid operation "+action)
+	}
+
+	return sys.Output{}, nil
+}
+
+func parseApt(args []string) (action string, packages []string, onlyUpgrade bool) {
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+
+		switch {
+		case arg == "-o":
+			i++
+		case arg == "--only-upgrade":
+			onlyUpgrade = true
+		case strings.HasPrefix(arg, "-"):
+		case action == "":
+			action = arg
+		default:
+			packages = append(packages, arg)
+		}
+	}
+
+	return action, packages, onlyUpgrade
+}
+
+func (f *FakeSys) systemctl(args []string) (sys.Output, error) {
+	var action, unit string
+	for _, arg := range args {
+		switch {
+		case strings.HasPrefix(arg, "-"):
+		case action == "":
+			action = arg
+		default:
+			unit = arg
+		}
+	}
+
+	switch action {
+	case "daemon-reload":
+		f.mutate("systemctl daemon-reload")
+	case "enable", "start":
+		f.Units[unit] = UnitActive
+		f.mutate("systemctl " + action + " " + unit)
+	case "disable", "stop":
+		if f.Units[unit] != UnitAbsent {
+			f.Units[unit] = UnitInactive
+		}
+		f.mutate("systemctl " + action + " " + unit)
+	case "restart", "reload":
+		if f.Units[unit] == UnitAbsent {
+			return f.fail("systemctl", "Failed to "+action+" "+unit+".service: Unit "+unit+".service not found.")
+		}
+
+		f.Restarts[unit]++
+		f.Units[unit] = UnitActive
+		f.mutate("systemctl " + action + " " + unit)
+	case "is-active":
+		state := f.Units[unit]
+		if state == UnitAbsent {
+			state = UnitInactive
+		}
+
+		if state != UnitActive {
+			return sys.Output{Stdout: string(state) + "\n", Code: 3}, &sys.ExitError{Program: "systemctl", Code: 3}
+		}
+
+		return sys.Output{Stdout: "active\n"}, nil
+	default:
+		return f.fail("systemctl", "Unknown command verb "+action+".")
+	}
+
+	return sys.Output{}, nil
+}
+
+func (f *FakeSys) id(args []string) (sys.Output, error) {
+	name := args[len(args)-1]
+	if _, ok := f.Users[name]; !ok {
+		return f.fail("id", "id: '"+name+"': no such user")
+	}
+
+	return sys.Output{Stdout: name + "\n"}, nil
+}
+
+func (f *FakeSys) useradd(args []string) (sys.Output, error) {
+	name := args[len(args)-1]
+	if _, exists := f.Users[name]; exists {
+		return f.fail("useradd", "useradd: user '"+name+"' already exists")
+	}
+
+	f.Users[name] = "/home/" + name
+	f.mutate("useradd " + name)
+
+	return sys.Output{}, nil
+}
+
+func (f *FakeSys) ReadFile(path string) ([]byte, error) {
+	content, ok := f.Files[path]
+	if !ok {
+		return nil, &fs.PathError{Op: "open", Path: path, Err: fs.ErrNotExist}
+	}
+
+	return append([]byte(nil), content...), nil
+}
+
+func (f *FakeSys) WriteFile(path string, data []byte, mode fs.FileMode) error {
+	f.Files[path] = append([]byte(nil), data...)
+	f.Modes[path] = mode
+	f.mutate("write " + path)
+
+	return nil
+}
+
+func (f *FakeSys) Remove(path string) error {
+	if _, ok := f.Files[path]; !ok {
+		return nil
+	}
+
+	delete(f.Files, path)
+	delete(f.Modes, path)
+	f.mutate("remove " + path)
+
+	return nil
+}
+
+func (f *FakeSys) Exists(path string) (bool, error) {
+	if _, ok := f.Files[path]; ok {
+		return true, nil
+	}
+
+	return f.Dirs[path], nil
+}
+
+func (f *FakeSys) Chown(path, owner, group string) error {
+	if _, ok := f.Files[path]; !ok && !f.Dirs[path] {
+		return &fs.PathError{Op: "chown", Path: path, Err: fs.ErrNotExist}
+	}
+
+	f.Owners[path] = owner + ":" + group
+	f.mutate("chown " + path)
+
+	return nil
+}
+
+func (f *FakeSys) MkdirAll(path string, mode fs.FileMode) error {
+	if f.Dirs[path] {
+		return nil
+	}
+
+	f.Dirs[path] = true
+	f.Modes[path] = mode
+	f.mutate("mkdir " + path)
+
+	return nil
+}
+
+func (f *FakeSys) mutate(description string) {
+	f.Mutations = append(f.Mutations, description)
+}
+
+func (f *FakeSys) fail(program, stderr string) (sys.Output, error) {
+	code := 1
+	if program == "apt-get" {
+		code = 100
+	}
+
+	return sys.Output{Stderr: stderr, Code: code}, &sys.ExitError{Program: program, Code: code, Stderr: stderr}
+}

@@ -20,7 +20,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | --- | --- | --- | --- | --- |
 | AGT-01 | Squelette, protocole, `hello` et `ping` | fait | `feat/AGT-01-protocol` | fusionnée |
 | AGT-02 | Sonde sh et sonde Go | à faire | | |
-| AGT-03 | Moteur de modules et rapport | à faire | | |
+| AGT-03 | Moteur de modules et rapport | en revue | `feat/AGT-03-module-engine` | |
 | AGT-04 | Modules socle et durcissement | à faire | | |
 | AGT-05 | Modules runtimes | à faire | | |
 | AGT-06 | Modules bases de données | à faire | | |
@@ -94,3 +94,6 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
+| 2026-09-04 | AGT-03 | Le contrat ne fixe pas la forme de la ligne du flux secret pour `install`. AGT-03 a retenu `{ "<module id>": { "<clé>": "<valeur>" } }`, miroir de `params.config` ; à confirmer dans `agent-protocol.md` (et dans `packages/shared` si un schéma doit l'encadrer). Non bloquant. | propriétaire, tâche de contrat |
+| 2026-09-04 | AGT-03 | `schema.json` porte les ids de presets et de modules, pas le contenu des presets (`PRESETS` de `packages/shared/src/catalog`). AGT-03 en garde une copie Go dans `internal/contract/presets.go`, validée contre le schéma ; l'export pourrait porter les presets pour supprimer la copie. Non bloquant. | propriétaire, tâche de contrat |
+| 2026-09-04 | AGT-03 | Aucun code d'erreur du contrat ne dit « pas encore de rapport » pour `report` avant toute installation ; AGT-03 répond `bad_request` avec un `fix`. Non bloquant. | propriétaire, tâche de contrat |
