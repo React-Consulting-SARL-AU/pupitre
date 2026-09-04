@@ -91,7 +91,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-14 | Déploiement Cloudflare Builds, staging et production | à faire | | |
 | PLT-15 | Workflows Cloudflare : déclencheurs des tâches longues | fait | `feat/PLT-15-workflows` | fusionnée |
 | PLT-17 | Le workflow d'évaluation des alertes | fait | `feat/PLT-17-alerts-workflow` | fusionnée |
-| PLT-16 | Harnais Playwright pour la console | à faire | | |
+| PLT-16 | Harnais Playwright pour la console | en revue | `feat/PLT-16-e2e` | |
 
 ## Site marketing — `MKT`
 
