@@ -10,7 +10,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-02 | Fermeture du dépôt | fait | `feat/INF-02-closed-source` | fusionnée |
 | INF-03 | Workspaces et packages vides | fait | `feat/INF-03-workspaces` | fusionnée |
 | INF-04 | Contrats initiaux | à faire | | |
-| INF-05 | CI GitHub Actions | en revue | `ci/INF-05-github-actions` | |
+| INF-05 | CI GitHub Actions | fait | `ci/INF-05-github-actions` | fusionnée |
 | INF-06 | Skills et outillage agent | à faire | | |
 
 ## Agent serveur — `AGT`
