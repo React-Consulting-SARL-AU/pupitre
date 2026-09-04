@@ -56,7 +56,14 @@ const canonical = canonicalUrl(pathname)
     <meta name="twitter:card" content="summary" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href={FONTS_HREF} />
+    <link
+      rel="stylesheet"
+      href={FONTS_HREF}
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript><link rel="stylesheet" href={FONTS_HREF} /></noscript>
+    <slot name="head" />
   </head>
   <body class="flex min-h-dvh flex-col bg-base text-ink">
     <a href="#main" class="skip-link">{t("a11y.skip")}</a>
