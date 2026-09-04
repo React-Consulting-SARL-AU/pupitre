@@ -21,7 +21,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-14 | La langue de l'utilisateur est enregistrée | fait | `feat/INF-14-user-locale` | fusionnée |
 | INF-15 | Contrat : détecter le gestionnaire d'un dépôt | à faire | | |
 | INF-17 | Contrat : lire la valeur d'un identifiant de service | fait | `feat/INF-17-secret-value` | fusionnée |
-| INF-18 | Contrat : la plateforme publie l'empreinte et refuse le retour en arrière | à faire | | |
+| INF-18 | Contrat : la plateforme publie l'empreinte et refuse le retour en arrière | en revue | `feat/INF-18-release-floor` | |
 | INF-19 | Contrat : `/status` dit depuis quand il sait | fait | `feat/INF-19-status-freshness` | fusionnée |
 | INF-20 | Contrat : une adresse par capture | à faire | | |
 | INF-21 | Contrat : l'app remet le jeton d'enrôlement à l'agent | à faire | | |
@@ -122,4 +122,5 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
+| 2026-09-05 | APP-12 | INF-18 rend `signature` facultative dans `agent.upgrade` : l'agent lit l'empreinte et la signature sur `/agent/release/:version/metadata`. `runAgentUpgrade` (`apps/desktop/src/main/agent-update-run.ts`) refuse encore de lancer la mise à jour quand la release portée par l'app n'a pas de signature, alors que la plateforme suffit désormais. À lever côté app, avec le geste explicite `allow_downgrade` pour un retour en arrière assumé. | propriétaire |
 | 2026-09-05 | APP-14 · AGT-15 | La clé publique qui vérifie une release doit être **la même** dans l'agent (`selfupdate.releasePublicKey`, injectée au build) et dans l'app (`AGENT_RELEASE_PUBLIC_KEY`, vide aujourd'hui). Elle est dérivée d'une clé privée que le propriétaire garde hors ligne. Décider : une seule clé publique de release, stable dans le temps, embarquée aux deux endroits et documentée dans le runbook. Sans elle, la vérification est en place mais rien ne la nourrit. | propriétaire |
