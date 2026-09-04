@@ -130,11 +130,11 @@ func TestSignRefusesWhatThePlatformWouldRefuseToo(t *testing.T) {
 		channel string
 		binary  []byte
 	}{
-		"version non semver":                     {"v1.4", "amd64", "", []byte("x")},
-		"version vide":                           {"", "amd64", "", []byte("x")},
+		"version non semver": {"v1.4", "amd64", "", []byte("x")},
+		"version vide":       {"", "amd64", "", []byte("x")},
 		"architecture rejetée par la plateforme": {"1.4.2", "riscv64", "", []byte("x")},
-		"canal inconnu":                          {"1.4.2", "amd64", "nightly", []byte("x")},
-		"binaire vide":                           {"1.4.2", "amd64", "", nil},
+		"canal inconnu": {"1.4.2", "amd64", "nightly", []byte("x")},
+		"binaire vide":  {"1.4.2", "amd64", "", nil},
 	}
 
 	for name, tc := range cases {
