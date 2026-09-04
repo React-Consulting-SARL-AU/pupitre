@@ -91,6 +91,7 @@ export function createAuth({
       updateAge: SESSION_UPDATE_AGE,
     },
     rateLimit: { enabled: true },
+    user: { deleteUser: { enabled: true } },
     advanced: {
       ipAddress: { ipAddressHeaders: [CLIENT_IP_HEADER] },
       useSecureCookies: secureCookies,
