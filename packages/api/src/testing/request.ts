@@ -1,3 +1,4 @@
+import type { Locale } from "../lib/i18n"
 import { bootApiTestServer, TEST_BASE_URL } from "./index"
 
 export interface TestResponse<T> {
@@ -6,25 +7,32 @@ export interface TestResponse<T> {
   raw: Response
 }
 
+export interface ApiRequestInit {
+  method?: string
+  body?: unknown
+  headers?: HeadersInit
+  session?: { token: string } | null
+  bearer?: string
+  locale?: Locale
+}
+
 const SESSION_COOKIE_RE = /(?:^|,\s*)[^=,]*session_token=([^;]+)/
 
 async function send<T>(
-  prefix: string,
+  url: string,
   method: string,
-  path: string,
-  body?: unknown,
-  headers?: HeadersInit
+  body: unknown,
+  headers: Headers
 ): Promise<TestResponse<T>> {
   const { fetch } = await bootApiTestServer()
-  const requestHeaders = new Headers(headers)
 
   if (body !== undefined) {
-    requestHeaders.set("content-type", "application/json")
+    headers.set("content-type", "application/json")
   }
 
-  const raw = await fetch(`${TEST_BASE_URL}${prefix}${path}`, {
+  const raw = await fetch(url, {
     method,
-    headers: requestHeaders,
+    headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   const text = await raw.text()
@@ -41,22 +49,41 @@ async function send<T>(
   return { status: raw.status, json: json as T, raw }
 }
 
+export function apiRequest<T = unknown>(
+  path: string,
+  init: ApiRequestInit = {}
+): Promise<TestResponse<T>> {
+  const headers = new Headers(init.headers)
+  const bearer = init.bearer ?? init.session?.token
+
+  if (bearer) {
+    headers.set("authorization", `Bearer ${bearer}`)
+  }
+
+  if (init.locale) {
+    headers.set("accept-language", init.locale)
+  }
+
+  return send<T>(
+    `${TEST_BASE_URL}/api/v1${path}`,
+    init.method ?? (init.body === undefined ? "GET" : "POST"),
+    init.body,
+    headers
+  )
+}
+
 export function authRequest<T = unknown>(
   method: string,
   path: string,
   body?: unknown,
   headers?: HeadersInit
 ): Promise<TestResponse<T>> {
-  return send<T>("/api/auth", method, path, body, headers)
-}
-
-export function apiRequest<T = unknown>(
-  method: string,
-  path: string,
-  body?: unknown,
-  headers?: HeadersInit
-): Promise<TestResponse<T>> {
-  return send<T>("/api/v1", method, path, body, headers)
+  return send<T>(
+    `${TEST_BASE_URL}/api/auth${path}`,
+    method,
+    body,
+    new Headers(headers)
+  )
 }
 
 export function sessionTokenFrom(response: Response): string | null {
