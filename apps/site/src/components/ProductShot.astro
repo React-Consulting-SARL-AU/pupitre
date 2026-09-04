@@ -1,0 +1,49 @@
+---
+interface Props {
+  src: string
+  alt: string
+  width: number
+  height: number
+  sizes?: string
+  priority?: boolean
+}
+
+const LARGEST = 1920
+const WIDTHS = [480, 960, 1440, LARGEST]
+
+const {
+  src,
+  alt,
+  width,
+  height,
+  sizes = "(min-width: 1024px) 960px, 100vw",
+  priority = false,
+} = Astro.props
+
+const srcset = (format: "avif" | "webp"): string =>
+  WIDTHS.map((w) => `${src}-${w}.${format} ${w}w`).join(", ")
+---
+
+<figure class="my-8">
+  <picture>
+    <source type="image/avif" srcset={srcset("avif")} sizes={sizes} />
+    <source type="image/webp" srcset={srcset("webp")} sizes={sizes} />
+    <img
+      src={`${src}-${LARGEST}.webp`}
+      alt={alt}
+      width={width}
+      height={height}
+      loading={priority ? "eager" : "lazy"}
+      decoding="async"
+      fetchpriority={priority ? "high" : undefined}
+      class="h-auto w-full rounded-md border border-line bg-sunken"
+    />
+  </picture>
+  {
+    Astro.slots.has("default") && (
+      <figcaption class="mt-2 text-ink-3">
+        <slot />
+      </figcaption>
+    )
+  }
+</figure>

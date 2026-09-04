@@ -1,0 +1,40 @@
+---
+import { localeFromPath, localizePath, translator } from "../lib/i18n"
+import LocaleSwitch from "./LocaleSwitch.astro"
+
+const locale = localeFromPath(Astro.url.pathname)
+const t = translator(locale)
+const year = new Date().getFullYear()
+
+const links = [
+  { href: "/legal/terms/", label: t("footer.terms") },
+  { href: "/legal/privacy/", label: t("footer.privacy") },
+  { href: "/legal/licence/", label: t("footer.licence") },
+  { href: "/legal/acceptable-use/", label: t("footer.acceptableUse") },
+]
+---
+
+<footer class="border-line border-t">
+  <div
+    class="mx-auto flex max-w-5xl flex-wrap items-center gap-x-8 gap-y-3 px-6 py-6"
+  >
+    <p class="text-ink-3">
+      © {year} {t("site.name")} · {t("footer.company")}
+    </p>
+    <nav aria-label={t("footer.legal")} class="flex flex-wrap gap-x-4">
+      {
+        links.map((link) => (
+          <a
+            href={localizePath(link.href, locale)}
+            class="py-2 text-ink-2 hover:text-ink"
+          >
+            {link.label}
+          </a>
+        ))
+      }
+    </nav>
+    <div class="ms-auto">
+      <LocaleSwitch />
+    </div>
+  </div>
+</footer>

@@ -3,6 +3,12 @@
   "compilerOptions": {
     "types": ["astro/client", "bun"]
   },
-  "include": [".astro/types.d.ts", "src/**/*", "astro.config.mjs"],
+  "include": [
+    ".astro/types.d.ts",
+    "src/**/*",
+    "scripts/**/*",
+    "astro.config.mjs",
+    "vitest.config.ts"
+  ],
   "exclude": ["dist"]
 }

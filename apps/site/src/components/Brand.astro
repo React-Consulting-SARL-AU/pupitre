@@ -1,0 +1,20 @@
+---
+import { localeFromPath, localizePath, translator } from "../lib/i18n"
+
+const locale = localeFromPath(Astro.url.pathname)
+const t = translator(locale)
+---
+
+<a
+  href={localizePath("/", locale)}
+  class="flex items-center gap-2.5 py-1 text-ink"
+>
+  <span
+    aria-hidden="true"
+    class="data grid size-6 place-items-center rounded-md bg-inverse font-medium text-[11px] text-inverse-ink"
+    >&gt;_</span
+  >
+  <span class="font-display font-bold text-[15px] tracking-tight"
+    >{t("site.name")}</span
+  >
+</a>
