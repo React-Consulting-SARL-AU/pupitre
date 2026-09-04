@@ -1,0 +1,386 @@
+package selfupdate_test
+
+import (
+	"crypto/ed25519"
+	"encoding/base64"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/platform"
+	"pupitre.studio/agent/internal/protocol"
+	"pupitre.studio/agent/internal/selfupdate"
+)
+
+const (
+	binaryPath   = "/usr/local/bin/pupitred"
+	tokenPath    = "/etc/pupitre/server.token"
+	unit         = "pupitred"
+	currentAgent = "1.0.0"
+	nextAgent    = "1.1.0"
+	arch         = "amd64"
+)
+
+var (
+	oldBinary = []byte("\x7fELF ancien agent")
+	newBinary = []byte("\x7fELF nouvel agent")
+)
+
+type bench struct {
+	fake      *modtest.FakeSys
+	options   selfupdate.Options
+	signature string
+	served    []byte
+	status    int
+	requested []string
+}
+
+func newBench(t *testing.T) *bench {
+	t.Helper()
+
+	public, private, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("clé de test : %v", err)
+	}
+
+	fake := modtest.NewFakeSys()
+	fake.Files[binaryPath] = append([]byte(nil), oldBinary...)
+	fake.Files[tokenPath] = []byte("jeton-de-serveur\n")
+	fake.Units[unit] = modtest.UnitActive
+	fake.Replies[binaryPath+" serve"] = hello(true, nextAgent, "")
+
+	b := &bench{fake: fake, served: newBinary, status: http.StatusOK}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b.requested = append(b.requested, r.URL.Path)
+
+		if b.status != http.StatusOK {
+			w.WriteHeader(b.status)
+
+			return
+		}
+
+		w.Write(b.served)
+	}))
+	t.Cleanup(server.Close)
+
+	b.signature = sign(private, nextAgent, arch, selfupdate.Fingerprint(newBinary))
+	b.options = selfupdate.Options{
+		Sys:        fake,
+		Version:    currentAgent,
+		Arch:       arch,
+		BinaryPath: binaryPath,
+		TokenPath:  tokenPath,
+		Unit:       unit,
+		Platform:   platform.Client{BaseURL: server.URL},
+		PublicKey:  public,
+	}
+
+	return b
+}
+
+func (b *bench) upgrade(t *testing.T, version string) (selfupdate.Result, error) {
+	t.Helper()
+
+	return selfupdate.New(b.options).Upgrade(selfupdate.Request{Version: version, Signature: b.signature})
+}
+
+func sign(private ed25519.PrivateKey, version, architecture, fingerprint string) string {
+	return base64.StdEncoding.EncodeToString(ed25519.Sign(private, selfupdate.SignedMessage(version, architecture, fingerprint)))
+}
+
+func hello(ok bool, version, code string) string {
+	if ok {
+		return `{"id":1,"ok":true,"result":{"agent_version":"` + version + `","protocol":1,"entitlement":"restricted","capabilities":["hello"]}}` + "\n"
+	}
+
+	return `{"id":1,"ok":false,"error":{"code":"` + code + `","message":"refus de test"}}` + "\n"
+}
+
+func codeOf(t *testing.T, err error) contract.ErrorCode {
+	t.Helper()
+
+	failure, ok := err.(*protocol.Error)
+	if !ok {
+		t.Fatalf("erreur de protocole attendue, reçu %T : %v", err, err)
+	}
+
+	return failure.Code
+}
+
+func TestUpgradeInstallsASignedBinaryAndRestartsTheUnit(t *testing.T) {
+	b := newBench(t)
+
+	result, err := b.upgrade(t, nextAgent)
+	if err != nil {
+		t.Fatalf("Upgrade: %v", err)
+	}
+
+	if result.PreviousVersion != currentAgent || result.Version != nextAgent || !result.Restarting {
+		t.Fatalf("résultat = %+v", result)
+	}
+
+	if string(b.fake.Files[binaryPath]) != string(newBinary) {
+		t.Fatalf("binaire en place : %q", b.fake.Files[binaryPath])
+	}
+
+	if b.fake.Restarts[unit] != 1 {
+		t.Fatalf("redémarrages de %s : %d", unit, b.fake.Restarts[unit])
+	}
+}
+
+func TestUpgradeRefusesABinaryWhoseSignatureDoesNotMatch(t *testing.T) {
+	b := newBench(t)
+	_, other, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatalf("clé de test : %v", err)
+	}
+	b.signature = sign(other, nextAgent, arch, selfupdate.Fingerprint(newBinary))
+
+	before := snapshot(b.fake)
+
+	_, err = b.upgrade(t, nextAgent)
+	if code := codeOf(t, err); code != contract.ErrorBadSignature {
+		t.Fatalf("code = %s, erreur = %v", code, err)
+	}
+
+	assertUntouched(t, b, before)
+}
+
+func TestUpgradeRefusesABinaryThatDoesNotMatchItsFingerprint(t *testing.T) {
+	b := newBench(t)
+	b.served = []byte("\x7fELF un autre binaire")
+
+	before := snapshot(b.fake)
+
+	_, err := b.upgrade(t, nextAgent)
+	if code := codeOf(t, err); code != contract.ErrorBadSignature {
+		t.Fatalf("code = %s, erreur = %v", code, err)
+	}
+
+	assertUntouched(t, b, before)
+}
+
+// The same publisher, the same binary, another version: a signature that travels with the wrong version is worth nothing.
+func TestUpgradeRefusesASignatureIssuedForAnotherVersion(t *testing.T) {
+	b := newBench(t)
+
+	before := snapshot(b.fake)
+
+	_, err := b.upgrade(t, "2.0.0")
+	if code := codeOf(t, err); code != contract.ErrorBadSignature {
+		t.Fatalf("code = %s, erreur = %v", code, err)
+	}
+
+	assertUntouched(t, b, before)
+}
+
+func TestUpgradeRefusesASignatureIssuedForAnotherArchitecture(t *testing.T) {
+	b := newBench(t)
+	b.options.Arch = "arm64"
+
+	before := snapshot(b.fake)
+
+	_, err := b.upgrade(t, nextAgent)
+	if code := codeOf(t, err); code != contract.ErrorBadSignature {
+		t.Fatalf("code = %s, erreur = %v", code, err)
+	}
+
+	assertUntouched(t, b, before)
+}
+
+func TestUpgradeRefusesWithoutAnEmbeddedPublicKey(t *testing.T) {
+	b := newBench(t)
+	b.options.PublicKey = nil
+
+	before := snapshot(b.fake)
+
+	_, err := b.upgrade(t, nextAgent)
+	if code := codeOf(t, err); code != contract.ErrorBadSignature {
+		t.Fatalf("code = %s, erreur = %v", code, err)
+	}
+
+	assertUntouched(t, b, before)
+}
+
+func TestUpgradeRestoresThePreviousBinaryWhenTheNewOneStaysSilent(t *testing.T) {
+	b := newBench(t)
+	b.fake.Replies[binaryPath+" serve"] = ""
+
+	_, err := b.upgrade(t, nextAgent)
+	if code := codeOf(t, err); code != contract.ErrorInternal {
+		t.Fatalf("code = %s, erreur = %v", code, err)
+	}
+
+	if string(b.fake.Files[binaryPath]) != string(oldBinary) {
+		t.Fatalf("binaire en place : %q", b.fake.Files[binaryPath])
+	}
+
+	if b.fake.Restarts[unit] != 2 {
+		t.Fatalf("redémarrages de %s : %d", unit, b.fake.Restarts[unit])
+	}
+
+	if !strings.Contains(err.Error(), currentAgent) {
+		t.Fatalf("l'erreur ne dit pas la version rétablie : %v", err)
+	}
+}
+
+func TestUpgradeRestoresThePreviousBinaryWhenTheNewOneRefusesHello(t *testing.T) {
+	b := newBench(t)
+	b.fake.Replies[binaryPath+" serve"] = hello(false, "", "protocol_mismatch")
+
+	_, err := b.upgrade(t, nextAgent)
+	if code := codeOf(t, err); code != contract.ErrorInternal {
+		t.Fatalf("code = %s, erreur = %v", code, err)
+	}
+
+	if string(b.fake.Files[binaryPath]) != string(oldBinary) {
+		t.Fatalf("binaire en place : %q", b.fake.Files[binaryPath])
+	}
+}
+
+func TestUpgradeRestoresThePreviousBinaryWhenTheNewOneCrashes(t *testing.T) {
+	b := newBench(t)
+	b.fake.FailProgram(binaryPath, "panic: runtime error")
+
+	_, err := b.upgrade(t, nextAgent)
+	if code := codeOf(t, err); code != contract.ErrorInternal {
+		t.Fatalf("code = %s, erreur = %v", code, err)
+	}
+
+	if string(b.fake.Files[binaryPath]) != string(oldBinary) {
+		t.Fatalf("binaire en place : %q", b.fake.Files[binaryPath])
+	}
+}
+
+func TestUpgradeLeavesTheBinaryAloneWhenItIsAlreadyTheVersionAsked(t *testing.T) {
+	b := newBench(t)
+	b.fake.Files[binaryPath] = append([]byte(nil), newBinary...)
+
+	result, err := b.upgrade(t, nextAgent)
+	if err != nil {
+		t.Fatalf("Upgrade: %v", err)
+	}
+
+	if result.Restarting || b.fake.Restarts[unit] != 0 {
+		t.Fatalf("résultat = %+v, redémarrages = %d", result, b.fake.Restarts[unit])
+	}
+}
+
+func TestUpgradeSkipsTheRestartWhenTheUnitIsAbsent(t *testing.T) {
+	b := newBench(t)
+	delete(b.fake.Units, unit)
+
+	result, err := b.upgrade(t, nextAgent)
+	if err != nil {
+		t.Fatalf("Upgrade: %v", err)
+	}
+
+	if result.Restarting || string(b.fake.Files[binaryPath]) != string(newBinary) {
+		t.Fatalf("résultat = %+v", result)
+	}
+}
+
+func TestUpgradeRefusesAVersionThePlatformDoesNotPublish(t *testing.T) {
+	b := newBench(t)
+	b.status = http.StatusNotFound
+
+	before := snapshot(b.fake)
+
+	_, err := b.upgrade(t, "9.9.9")
+	if code := codeOf(t, err); code != contract.ErrorBadRequest {
+		t.Fatalf("code = %s, erreur = %v", code, err)
+	}
+
+	assertUntouched(t, b, before)
+}
+
+func TestUpgradeRefusesWithoutAServerToken(t *testing.T) {
+	b := newBench(t)
+	delete(b.fake.Files, tokenPath)
+
+	before := snapshot(b.fake)
+
+	_, err := b.upgrade(t, nextAgent)
+	if code := codeOf(t, err); code != contract.ErrorBadRequest {
+		t.Fatalf("code = %s, erreur = %v", code, err)
+	}
+
+	if len(b.requested) != 0 {
+		t.Fatalf("la plateforme a été appelée sans jeton : %v", b.requested)
+	}
+
+	assertUntouched(t, b, before)
+}
+
+func TestUpgradeWithoutAVersionTakesTheTargetOfThePlatform(t *testing.T) {
+	b := newBench(t)
+
+	state := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b.requested = append(b.requested, r.URL.Path)
+
+		if r.URL.Path == "/agent/state" {
+			w.Write([]byte(`{"target_version":"` + nextAgent + `"}`))
+
+			return
+		}
+
+		w.Write(newBinary)
+	}))
+	defer state.Close()
+	b.options.Platform = platform.Client{BaseURL: state.URL}
+
+	result, err := b.upgrade(t, "")
+	if err != nil {
+		t.Fatalf("Upgrade: %v", err)
+	}
+
+	if result.Version != nextAgent {
+		t.Fatalf("résultat = %+v", result)
+	}
+
+	if len(b.requested) != 2 || b.requested[1] != "/agent/release/"+nextAgent {
+		t.Fatalf("appels : %v", b.requested)
+	}
+}
+
+func snapshot(fake *modtest.FakeSys) map[string]string {
+	files := make(map[string]string, len(fake.Files))
+	for path, content := range fake.Files {
+		files[path] = string(content)
+	}
+
+	return files
+}
+
+// A refused binary leaves nothing behind: not the file it would have become, not a temporary one, not a restart.
+func assertUntouched(t *testing.T, b *bench, before map[string]string) {
+	t.Helper()
+
+	after := snapshot(b.fake)
+	if len(after) != len(before) {
+		t.Fatalf("fichiers avant %v, après %v", keys(before), keys(after))
+	}
+
+	for path, content := range before {
+		if after[path] != content {
+			t.Fatalf("%s a changé : %q", path, after[path])
+		}
+	}
+
+	if b.fake.Restarts[unit] != 0 {
+		t.Fatalf("redémarrages de %s : %d", unit, b.fake.Restarts[unit])
+	}
+}
+
+func keys(files map[string]string) []string {
+	names := make([]string, 0, len(files))
+	for name := range files {
+		names = append(names, name)
+	}
+
+	return names
+}

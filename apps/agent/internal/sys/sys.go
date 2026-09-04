@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/fs"
 	"strings"
+	"time"
 )
 
 type Command struct {
@@ -13,6 +14,7 @@ type Command struct {
 	Dir       string
 	Stdin     []byte
 	StdinPath string
+	Timeout   time.Duration
 }
 
 type Output struct {
