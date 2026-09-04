@@ -9,6 +9,7 @@ const TITLES: Record<OnboardingStep, string> = {
   harden: "Durcissement",
   install: "Installation",
   inspection: "Inspection",
+  project: "Projet",
   server: "Serveur",
 };
 
