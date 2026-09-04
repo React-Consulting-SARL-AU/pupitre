@@ -22,6 +22,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-15 | Contrat : détecter le gestionnaire d'un dépôt | à faire | | |
 | INF-17 | Contrat : lire la valeur d'un identifiant de service | à faire | | |
 | INF-18 | Contrat : la plateforme publie l'empreinte et refuse le retour en arrière | à faire | | |
+| INF-19 | Contrat : `/status` dit depuis quand il sait | à faire | | |
 | INF-16 | Contrat : le chemin absolu d'un projet | fait | `feat/INF-16-project-path` | fusionnée |
 | INF-11 | Contrat : le verdict de la sonde | fait | `feat/INF-11-probe-contract` | fusionnée |
 
@@ -90,11 +91,13 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-11 | Emails transactionnels | fait | `feat/PLT-11-emails` | fusionnée |
 | PLT-12 | Alertes et page de statut | fait | `feat/PLT-12-alerts` | fusionnée |
 | PLT-13 | Passkeys et MFA | fait | `feat/PLT-13-passkeys` | fusionnée |
-| PLT-14 | Déploiement Cloudflare Builds, staging et production | à faire | | |
+| PLT-14 | Déploiement Cloudflare Builds, staging et production | en revue | `feat/PLT-14-deploy` | fusion en attente de PLT-18 : mêmes fichiers |
 | PLT-15 | Workflows Cloudflare : déclencheurs des tâches longues | fait | `feat/PLT-15-workflows` | fusionnée |
 | PLT-17 | Le workflow d'évaluation des alertes | fait | `feat/PLT-17-alerts-workflow` | fusionnée |
 | PLT-16 | Harnais Playwright pour la console | fait | `feat/PLT-16-e2e` | fusionnée |
 | PLT-18 | Managed Payments : vendeur Stripe, un produit, deux prix | en revue | `main` | |
+
+| MKT-04 | Téléchargement | en revue | `feat/MKT-04-09-site` | |
 
 ## Site marketing — `MKT`
 
