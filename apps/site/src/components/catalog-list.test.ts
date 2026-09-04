@@ -25,7 +25,7 @@ describe("CatalogList", () => {
     expect(html.match(/data-availability="later"/g)).toHaveLength(
       MODULE_IDS.length - MVP_MODULE_IDS.length
     )
-    expect(html).toContain(">Later</span>")
+    expect(html).toContain(">Soon</span>")
     expect(html).toContain(">Required</span>")
   })
 

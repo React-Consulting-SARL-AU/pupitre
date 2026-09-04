@@ -18,8 +18,8 @@ export interface CatalogGroup {
 }
 
 export const AVAILABILITY_LABELS: Record<Availability, Localized> = {
-  mvp: { en: "MVP", fr: "MVP" },
-  later: { en: "Later", fr: "Bientôt" },
+  mvp: { en: "Available", fr: "Disponible" },
+  later: { en: "Soon", fr: "Bientôt" },
 }
 
 export const CATALOG: CatalogGroup[] = [
