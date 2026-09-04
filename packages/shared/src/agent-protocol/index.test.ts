@@ -24,6 +24,7 @@ const CONTRACT_COMMANDS = [
   "completions",
   "project.list",
   "project.add",
+  "project.detect",
   "project.remove",
   "project.up",
   "project.down",

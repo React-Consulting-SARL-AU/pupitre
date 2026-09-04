@@ -133,6 +133,55 @@ func TestAViteProjectGoesFromAddedToOnlineAndBack(t *testing.T) {
 	}
 }
 
+const (
+	detectOrigin = "/home/dev/fixtures/detect.git"
+	detectSeed   = "/home/dev/fixtures/detect-seed"
+	detectCache  = "/home/dev/.cache/pupitre/detect"
+)
+
+// A remote the server itself carries: staging never reaches the Internet, and a bare repository over ssh is a remote like any other.
+func TestDetectReadsARepositoryWithoutInstallingIt(t *testing.T) {
+	host := stagingHost(t)
+	writeViteFixture(t, host)
+
+	ssh(t, host, "rm", "-rf", detectOrigin, detectSeed)
+	ssh(t, host, "install", "-d", "-o", "dev", "-g", "dev", "/home/dev/fixtures", detectSeed)
+	write(t, host, detectSeed+"/package.json", vitePackageJSON)
+	ssh(t, host, "chown", "-R", "dev:dev", detectSeed)
+	t.Cleanup(func() { ssh(t, host, "rm", "-rf", detectOrigin, detectSeed) })
+
+	asDev(t, host, "git init --quiet --bare --initial-branch=main "+detectOrigin)
+	asDev(t, host, "cd "+detectSeed+" && git init --quiet --initial-branch=main && git add -A && "+
+		"git -c user.name=Pupitre -c user.email=test@pupitre.studio commit --quiet -m fixture && "+
+		"git push --quiet "+detectOrigin+" main")
+
+	fromFolder := decode[contract.ProjectDetect](t, agent(t, host,
+		request{Cmd: "project.detect", Params: map[string]any{"dir": viteProject}})[0].Result)
+	if fromFolder.PkgMgr != "bun" || fromFolder.Install != "bun install" || fromFolder.Cmd == "" {
+		t.Fatalf("unexpected detection of a folder: %+v", fromFolder)
+	}
+
+	fromRepo := decode[contract.ProjectDetect](t, agent(t, host,
+		request{Cmd: "project.detect", Params: map[string]any{"repo": detectOrigin}})[0].Result)
+	if fromRepo.PkgMgr != "bun" || fromRepo.Cmd != fromFolder.Cmd {
+		t.Fatalf("a clone and a folder must be read the same: %+v", fromRepo)
+	}
+
+	if left := ssh(t, host, "sh", "-c", "'ls -A "+detectCache+" 2>/dev/null || true'"); strings.TrimSpace(left) != "" {
+		t.Fatalf("the shallow clone must leave nothing behind:\n%s", left)
+	}
+
+	if listed := ssh(t, host, "ls", "-A", "/home/dev/projects"); strings.Contains(listed, "detect") {
+		t.Fatalf("a detection writes nothing in the projects root:\n%s", listed)
+	}
+}
+
+func asDev(t *testing.T, host, script string) {
+	t.Helper()
+
+	ssh(t, host, "su", "dev", "-c", "'"+script+"'")
+}
+
 func waitFor(t *testing.T, host, name string, want contract.ProjectState, limit time.Duration) {
 	t.Helper()
 

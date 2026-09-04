@@ -152,6 +152,18 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 		})
 	})
 
+	server.Register("project.detect", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			Repo string `json:"repo"`
+			Dir  string `json:"dir"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		return reader.Detect(params.Repo, params.Dir)
+	})
+
 	server.Register("project.remove", named(func(name string) (any, error) {
 		removed, err := reader.Remove(name)
 		if err != nil {

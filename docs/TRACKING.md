@@ -19,7 +19,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-12 | Contrat : les releases de l'app | fait | `feat/INF-12-app-releases` | fusionnée |
 | INF-13 | Le quota gratuit vit dans le contrat partagé | fait | `main` | constante unique dans `@pupitre/shared/plans` |
 | INF-14 | La langue de l'utilisateur est enregistrée | fait | `feat/INF-14-user-locale` | fusionnée |
-| INF-15 | Contrat : détecter le gestionnaire d'un dépôt | à faire | | |
+| INF-15 | Contrat : détecter le gestionnaire d'un dépôt | en revue | `feat/INF-15-project-detect` | |
 | INF-17 | Contrat : lire la valeur d'un identifiant de service | fait | `feat/INF-17-secret-value` | fusionnée |
 | INF-18 | Contrat : la plateforme publie l'empreinte et refuse le retour en arrière | fait | `feat/INF-18-release-floor` | fusionnée |
 | INF-19 | Contrat : `/status` dit depuis quand il sait | fait | `feat/INF-19-status-freshness` | fusionnée |

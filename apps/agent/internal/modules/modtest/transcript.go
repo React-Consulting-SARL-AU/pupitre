@@ -43,6 +43,7 @@ var resultDefinitions = map[string]string{
 	"completions":     "CompletionsResult",
 	"project.list":    "ProjectListResult",
 	"project.add":     "ProjectAddResult",
+	"project.detect":  "ProjectDetectResult",
 	"project.remove":  "ProjectRemoveResult",
 	"project.up":      "ProjectUpResult",
 	"project.down":    "ProjectDownResult",

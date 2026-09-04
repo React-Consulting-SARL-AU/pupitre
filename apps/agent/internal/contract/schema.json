@@ -227,6 +227,28 @@
         },
         "fix": {
           "type": "string"
+        },
+        "remedy": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "const": "port_taken"
+                },
+                "port_free": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 65535
+                }
+              },
+              "required": [
+                "code",
+                "port_free"
+              ]
+            }
+          ]
         }
       },
       "required": [
@@ -1349,6 +1371,67 @@
         "cmd",
         "path",
         "state"
+      ]
+    },
+    "ProjectDetectParams": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "repo": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "repo"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "dir": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "dir"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ProjectDetectResult": {
+      "type": "object",
+      "properties": {
+        "pkgmgr": {
+          "type": "string",
+          "enum": [
+            "bun",
+            "pnpm",
+            "npm",
+            "gradle",
+            "uv",
+            "service",
+            "none"
+          ]
+        },
+        "install": {
+          "type": "string"
+        },
+        "cmd": {
+          "type": "string"
+        },
+        "port_hint": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        }
+      },
+      "required": [
+        "pkgmgr"
       ]
     },
     "ProjectRemoveParams": {

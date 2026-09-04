@@ -33,6 +33,8 @@ import {
   ProjectCheckoutParamsSchema,
   ProjectCheckoutResultSchema,
   ProjectDebugResultSchema,
+  ProjectDetectParamsSchema,
+  ProjectDetectResultSchema,
   ProjectDiffParamsSchema,
   ProjectDiffResultSchema,
   ProjectEnvParamsSchema,
@@ -118,6 +120,10 @@ export const COMMANDS = {
   "project.add": {
     params: ProjectAddParamsSchema,
     result: ProjectAddResultSchema,
+  },
+  "project.detect": {
+    params: ProjectDetectParamsSchema,
+    result: ProjectDetectResultSchema,
   },
   "project.remove": {
     params: ProjectParamsSchema,

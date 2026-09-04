@@ -322,6 +322,13 @@ type Project struct {
 	UptimeS   int          `json:"uptime_s,omitempty"`
 }
 
+type ProjectDetect struct {
+	PkgMgr   string `json:"pkgmgr"`
+	Install  string `json:"install,omitempty"`
+	Cmd      string `json:"cmd,omitempty"`
+	PortHint int    `json:"port_hint,omitempty"`
+}
+
 type ProjectStateEntry struct {
 	Name  string       `json:"name"`
 	State ProjectState `json:"state"`
@@ -412,6 +419,18 @@ type ProjectGitStatus struct {
 	Last     int    `json:"last"`
 	Subject  string `json:"subject"`
 	Problem  string `json:"problem"`
+}
+
+const RemedyPortTaken = "port_taken"
+
+// The machine-readable half of a fix: what to do next as a value, so the app never reads a number out of a sentence.
+type Remedy struct {
+	Code     string `json:"code"`
+	PortFree int    `json:"port_free,omitempty"`
+}
+
+func PortTaken(free int) *Remedy {
+	return &Remedy{Code: RemedyPortTaken, PortFree: free}
 }
 
 type FileStage string
