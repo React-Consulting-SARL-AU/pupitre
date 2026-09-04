@@ -15,7 +15,12 @@ const REPO = "https://github.com/moi/vite-starter.git";
 const SHOP = "https://github.com/moi/shop.git";
 
 function project(params: ProjectAddParams) {
-  return { ...params, install: "bun install", state: "stopped" as const };
+  return {
+    ...params,
+    install: "bun install",
+    path: `/home/dev/projects/${params.dir}`,
+    state: "stopped" as const,
+  };
 }
 
 function phase(id: string): string {
@@ -326,6 +331,7 @@ describe("un dossier déjà présent sur le serveur", () => {
                 dir: "apps/api",
                 host: "127.0.0.1",
                 name: "api",
+                path: "/home/dev/projects/apps/api",
                 pkgmgr: "uv",
                 port: 3400,
                 state: "stopped",

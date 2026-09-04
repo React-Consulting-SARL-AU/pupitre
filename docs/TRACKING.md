@@ -20,7 +20,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-13 | Le quota gratuit vit dans le contrat partagé | à faire | | |
 | INF-14 | La langue de l'utilisateur est enregistrée | à faire | | |
 | INF-15 | Contrat : détecter le gestionnaire d'un dépôt | à faire | | |
-| INF-16 | Contrat : le chemin absolu d'un projet | à faire | | |
+| INF-16 | Contrat : le chemin absolu d'un projet | en revue | `feat/INF-16-project-path` | |
 | INF-11 | Contrat : le verdict de la sonde | fait | `feat/INF-11-probe-contract` | fusionnée |
 
 ## Agent serveur — `AGT`
