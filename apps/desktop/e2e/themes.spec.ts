@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { DARK, LIGHT } from "@pupitre/design/tokens";
 import { launchPupitre, type Running } from "./harness/launch";
 
 const HEADING = "1 projet en ligne";
@@ -55,5 +56,27 @@ test.describe("thèmes", () => {
       await dashboardIn(page, "dark");
       await expect(page).toHaveScreenshot("tableau-de-bord-sombre.png");
     });
+  });
+
+  // The colour the window paints on its own, before the page draws and while it
+  // is being resized: on a machine whose system is dark, a forced light theme
+  // used to show dark edges.
+  test("le fond natif de la fenêtre suit le thème forcé", async () => {
+    const { app, page } = running;
+
+    for (const [theme, token] of [
+      ["light", LIGHT.base],
+      ["dark", DARK.base],
+    ] as const) {
+      await dashboardIn(page, theme);
+
+      const frame = await app.evaluate(({ BrowserWindow, nativeTheme }) => ({
+        background: BrowserWindow.getAllWindows()[0]?.getBackgroundColor(),
+        source: nativeTheme.themeSource,
+      }));
+
+      expect(frame.source).toBe(theme);
+      expect(frame.background?.toLowerCase()).toBe(token);
+    }
   });
 });

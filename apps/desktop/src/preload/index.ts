@@ -27,6 +27,7 @@ import type { HelloResult } from "@pupitre/shared/agent-protocol/session";
 import type { CompletionsResult } from "@pupitre/shared/agent-protocol/state";
 import type { DoneResult } from "@pupitre/shared/agent-protocol/system";
 import type { AgentResponse } from "@shared/agent";
+import type { Appearance } from "@shared/appearance";
 import type { RemoteEditorId } from "@shared/editors";
 import type { HardenOutcome, HardenUpdate } from "@shared/harden";
 import type { AgentDelivery, InstallUpdate } from "@shared/install";
@@ -437,6 +438,15 @@ const api = {
     ipcRenderer.invoke("server-trust-reinstalled", id),
 
   openUrl: (url: string): Promise<void> => ipcRenderer.invoke("open-url", url),
+
+  /**
+   * The theme the renderer just resolved, on its way to the native frame.
+   *
+   * Without it the window paints its edges from the system while the settings
+   * force the other theme, and a resize shows the wrong colour.
+   */
+  setAppearance: (appearance: Appearance): void =>
+    ipcRenderer.send("appearance:set", appearance),
 
   /** The grammar, the projects and one folder, in one command of the protocol. */
   completions: (
