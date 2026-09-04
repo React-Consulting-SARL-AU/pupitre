@@ -1,7 +1,9 @@
 import { type AnyElysia, Elysia } from "elysia"
 import { authPlugin } from "../plugins/auth"
+import { adminAppReleasesRoutes } from "./admin/app-releases"
 import { adminReleasesRoutes } from "./admin/releases"
 import { agentRoutes } from "./agent"
+import { appReleasesRoutes } from "./app-releases"
 import { devicesRoutes } from "./devices"
 import { healthRoutes } from "./health"
 import { meRoutes } from "./me"
@@ -16,9 +18,9 @@ export function hiddenRoutes<Routes extends AnyElysia>(routes: Routes) {
 }
 
 const adminRoutes = hiddenRoutes(
-  new Elysia({ name: "admin-routes", prefix: "/admin" }).use(
-    adminReleasesRoutes
-  )
+  new Elysia({ name: "admin-routes", prefix: "/admin" })
+    .use(adminReleasesRoutes)
+    .use(adminAppReleasesRoutes)
 )
 
 export const routes = new Elysia({ name: "routes" })
@@ -31,5 +33,6 @@ export const routes = new Elysia({ name: "routes" })
   .use(orgsRoutes)
   .use(agentRoutes)
   .use(releasesRoutes)
+  .use(appReleasesRoutes)
   .use(webhooksRoutes)
   .use(adminRoutes)
