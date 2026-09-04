@@ -50,7 +50,7 @@ func TestValidateAgainstDefinitions(t *testing.T) {
 		{"hello float protocol", "HelloParams", `{"app_version":"0.2.0","protocol":1.5}`, "/protocol"},
 		{"hello protocol zero", "HelloParams", `{"app_version":"0.2.0","protocol":0}`, "/protocol"},
 		{"hello empty version", "HelloParams", `{"app_version":"","protocol":1}`, "/app_version"},
-		{"hello not an object", "HelloParams", `[1]`, "object"},
+		{"hello not an object", "HelloParams", `[1]`, "objet"},
 		{"ping ok", "PingParams", `{}`, ""},
 		{"ping extra", "PingParams", `{"x":1}`, "/x"},
 		{"enum ok", "DbDumpParams", `{"engine":"postgres"}`, ""},
@@ -117,6 +117,45 @@ func TestFieldDefinitionKnowsBooleanAndList(t *testing.T) {
 	}
 }
 
+func TestFieldOneOfMessagesAreExactAndStable(t *testing.T) {
+	cases := []struct {
+		name  string
+		value string
+		want  string
+	}{
+		{"boolean default wrong type", `{"key":"tunnel","kind":"boolean","label":"Tunnel","required":false,"default":"yes"}`, "/default : doit être un booléen"},
+		{"version missing default", `{"key":"php","kind":"version","label":"PHP","options":["8.3"]}`, "/default : champ requis"},
+		{"list missing items", `{"key":"providers","kind":"list","label":"Providers","required":true}`, "/items : champ requis"},
+		{"secret unknown field", `{"key":"token","kind":"secret","label":"Token","required":true,"default":"x"}`, "/default : champ inconnu"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := Validate("Field", decode(t, tc.value))
+
+			if err == nil {
+				t.Fatalf("expected an error, got nil")
+			}
+
+			if err.Error() != tc.want {
+				t.Fatalf("message = %q, want %q", err.Error(), tc.want)
+			}
+		})
+	}
+}
+
+func TestResponseOneOfMessageIsExact(t *testing.T) {
+	err := Validate("Response", decode(t, `{"id":1,"ok":false,"error":{"code":"nope","message":"x"}}`))
+
+	if err == nil {
+		t.Fatal("expected an error, got nil")
+	}
+
+	if got, want := err.Error(), "/error/code : doit être l'une des valeurs hello_required, protocol_mismatch, bad_request, unknown_command, entitlement_required, project_not_found, module_not_found, module_failed, no_report, service_not_found, secrets_required, bad_signature, busy, internal"; got != want {
+		t.Fatalf("message = %q, want %q", got, want)
+	}
+}
+
 func TestValidateRejectsNonObjectAndBadRefs(t *testing.T) {
 	if err := Validate("HelloParams", decode(t, `[1]`)); err == nil {
 		t.Fatal("array accepted as HelloParams")
@@ -139,7 +178,7 @@ func TestValidateSchemaKeywords(t *testing.T) {
 		wantErr string
 	}{
 		{"type list accepts null", `{"type":["string","null"]}`, `null`, ""},
-		{"type list rejects number", `{"type":["string","null"]}`, `1`, "string"},
+		{"type list rejects number", `{"type":["string","null"]}`, `1`, "chaîne"},
 		{"prefixItems ok", `{"type":"array","prefixItems":[{"type":"number"},{"type":"number"}],"items":false,"minItems":2,"maxItems":2}`, `[0.1,0.2]`, ""},
 		{"prefixItems too many", `{"type":"array","prefixItems":[{"type":"number"}],"items":false,"maxItems":1}`, `[0.1,0.2]`, "1"},
 		{"prefixItems wrong type", `{"type":"array","prefixItems":[{"type":"number"},{"type":"number"}]}`, `[0.1,"x"]`, "/1"},
@@ -150,7 +189,7 @@ func TestValidateSchemaKeywords(t *testing.T) {
 		{"const string", `{"const":"all"}`, `"none"`, "all"},
 		{"propertyNames", `{"type":"object","propertyNames":{"type":"string","pattern":"^[a-z]+$"},"additionalProperties":{}}`, `{"Ab":1}`, "Ab"},
 		{"additionalProperties schema", `{"type":"object","additionalProperties":{"type":"integer"}}`, `{"a":"x"}`, "/a"},
-		{"boolean", `{"type":"boolean"}`, `"true"`, "boolean"},
+		{"boolean", `{"type":"boolean"}`, `"true"`, "booléen"},
 		{"ref", `{"$ref":"#/$defs/ErrorCode"}`, `"busy"`, ""},
 		{"ref rejects", `{"$ref":"#/$defs/ErrorCode"}`, `"nope"`, "busy"},
 		{"empty schema accepts anything", `{}`, `{"a":[1,2,{"b":null}]}`, ""},
