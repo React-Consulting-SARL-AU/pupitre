@@ -65,6 +65,15 @@ Une clé d'accès enregistrée ouvre la session seule : le relying party est le 
 
 Les deux redirections portent l'en-tête `x-pupitre-release-storage` : `r2` quand le bucket est configuré, `local` quand il ne l'est pas (développement). Dans ce dernier cas le corps de la redirection dit que l'URL est locale et ne télécharge rien.
 
+### Releases de l'app desktop
+
+| Méthode | Route | Auth | Réponse |
+| --- | --- | --- | --- |
+| GET | `/releases/app/latest?channel=stable` | session | `{ data: AppRelease }` : la version la plus haute du canal, ses notes et un `build` par système publié. `channel` vaut `stable` par défaut ; un canal `beta` voit aussi les versions `stable`. `app_release_not_found` (404) tant que rien n'est publié — la console dit alors qu'il n'y a rien à télécharger plutôt que d'afficher un lien mort |
+| GET | `/releases/app/:version` | session | `{ data: AppRelease }` pour une version précise, quel que soit son canal ; `app_release_not_found` (404) sinon |
+
+`AppRelease` vaut `{ version, channel, notes, published_at, builds: [{ os, arch, url, sha256, signature }] }`. Les notes appartiennent à la version : la ligne publiée en premier les porte pour toute la version. `url` est publique et durable (GitHub Releases privées ou R2), contrairement aux URL signées de l'agent : l'app desktop n'est pas un binaire poussé sur un serveur, elle se télécharge depuis un navigateur.
+
 ### Organisation
 
 | Méthode | Route | Rôle | Réponse |
@@ -84,6 +93,7 @@ Les deux redirections portent l'en-tête `x-pupitre-release-storage` : `r2` quan
 | POST | `/admin/servers/:id/suspend` | platform_admin | `{ reason }` |
 | POST | `/admin/releases` | platform_admin | publier une version de l'agent : `{ version, arch, sha256, signature, r2_key, channel? }`, `channel` valant `beta` par défaut. `version` est du semver, `sha256` 64 caractères hexadécimaux, `signature` une signature Ed25519 en base64 (88 caractères) : sinon `validation` (422). Réponse `{ data: Release }`, idempotente sur `(version, arch)` : 201 à la création, 200 si la ligne existe déjà à l'identique, `conflict` (409) si elle existe avec une autre empreinte |
 | POST | `/admin/releases/:version/promote` | platform_admin | `{ channel: "stable" }` : toutes les architectures de la version passent dans le canal et la version devient cible dans `/agent/state`. Réponse `{ data: Release[] }` ; `release_not_found` (404) si la version n'existe pas |
+| POST | `/admin/app-releases` | platform_admin | publier une version de l'app pour un système : `{ version, os, arch?, url, sha256, signature?, notes, channel? }`, `channel` valant `beta` par défaut. `os` vaut `macos`, `windows` ou `linux` ; `version` est du semver, `url` une URL absolue, `sha256` 64 caractères hexadécimaux, `notes` non vides : sinon `validation` (422). Réponse `{ data: AppReleaseBuild }`, idempotente sur `(version, os)` : 201 à la création, 200 si la ligne existe déjà à l'identique, `conflict` (409) si elle existe avec une autre empreinte. Appelé par la CI de l'app (APP-13, APP-16) |
 
 ### Webhooks
 
@@ -105,6 +115,7 @@ Tables Better Auth (générées) : `user` (avec `twoFactorEnabled`), `session`, 
 | `Subscription` | `id`, `organizationId`, `stripeSubscriptionId`, `product`, `quantity`, `status`, `currentPeriodEnd` |
 | `OrganizationBilling` | `organizationId`, `stripeCustomerId`, `defaultInterval` |
 | `Release` | `version`, `arch`, `sha256`, `signature`, `r2Key`, `publishedAt`, `channel` (`stable`, `beta`) |
+| `AppRelease` | `version`, `os` (`macos`, `windows`, `linux`), `arch?`, `url`, `sha256`, `signature?`, `notes`, `channel` (`stable`, `beta`), `publishedAt` — clé primaire `(version, os)`. Une ligne par système et par version de l'app desktop, distincte de `Release` qui décrit l'agent par architecture |
 | `ServerRevokedDevice` | `serverId`, `deviceId`, `revokedByUserId?`, `revokedAt` — clé primaire `(serverId, deviceId)`. La clé de cet appareil est retirée de ce serveur, sans toucher aux autres |
 | `Event` | `id`, `organizationId?`, `actorUserId?`, `action`, `targetType`, `targetId`, `payload`, `createdAt` |
 | `StripeEvent` | `id` (Stripe), `type`, `processedAt` |
@@ -129,6 +140,7 @@ Forme unique : `{ error: { code, message, fix? } }`. Codes stables dans `package
 | `seat_quota_reached` | quota de sièges de l'abonnement atteint (403), avec un `fix` vers la facturation |
 | `entitlement_required`, `server_suspended` | droit d'usage absent, serveur suspendu |
 | `release_not_found` | version de l'agent inconnue |
+| `app_release_not_found` | aucune version de l'app publiée dans ce canal, ou version inconnue |
 | `stripe_signature_invalid` | signature de webhook Stripe invalide |
 | `internal` | exception, avec une référence journalisée (500) |
 

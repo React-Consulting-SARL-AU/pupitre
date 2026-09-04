@@ -334,6 +334,23 @@ export type EnumBillingIntervalWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumBillingIntervalFilter<$PrismaModel>
 }
 
+export type EnumDesktopOsFilter<$PrismaModel = never> = {
+  equals?: $Enums.DesktopOs | Prisma.EnumDesktopOsFieldRefInput<$PrismaModel>
+  in?: $Enums.DesktopOs[] | Prisma.ListEnumDesktopOsFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DesktopOs[] | Prisma.ListEnumDesktopOsFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDesktopOsFilter<$PrismaModel> | $Enums.DesktopOs
+}
+
+export type EnumDesktopOsWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.DesktopOs | Prisma.EnumDesktopOsFieldRefInput<$PrismaModel>
+  in?: $Enums.DesktopOs[] | Prisma.ListEnumDesktopOsFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DesktopOs[] | Prisma.ListEnumDesktopOsFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDesktopOsWithAggregatesFilter<$PrismaModel> | $Enums.DesktopOs
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumDesktopOsFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumDesktopOsFilter<$PrismaModel>
+}
+
 export type NestedStringFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel>
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
@@ -638,6 +655,23 @@ export type NestedEnumBillingIntervalWithAggregatesFilter<$PrismaModel = never> 
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumBillingIntervalFilter<$PrismaModel>
   _max?: Prisma.NestedEnumBillingIntervalFilter<$PrismaModel>
+}
+
+export type NestedEnumDesktopOsFilter<$PrismaModel = never> = {
+  equals?: $Enums.DesktopOs | Prisma.EnumDesktopOsFieldRefInput<$PrismaModel>
+  in?: $Enums.DesktopOs[] | Prisma.ListEnumDesktopOsFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DesktopOs[] | Prisma.ListEnumDesktopOsFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDesktopOsFilter<$PrismaModel> | $Enums.DesktopOs
+}
+
+export type NestedEnumDesktopOsWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.DesktopOs | Prisma.EnumDesktopOsFieldRefInput<$PrismaModel>
+  in?: $Enums.DesktopOs[] | Prisma.ListEnumDesktopOsFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DesktopOs[] | Prisma.ListEnumDesktopOsFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDesktopOsWithAggregatesFilter<$PrismaModel> | $Enums.DesktopOs
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumDesktopOsFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumDesktopOsFilter<$PrismaModel>
 }
 
 

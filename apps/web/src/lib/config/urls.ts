@@ -10,10 +10,6 @@ export function appOrigin(): string {
   return import.meta.env.VITE_APP_URL ?? DEV_ORIGIN
 }
 
-export function appDownloadBaseUrl(): string | null {
-  return import.meta.env.VITE_APP_DOWNLOAD_BASE_URL ?? null
-}
-
 export function leaveFor(url: string): void {
   window.location.assign(url)
 }
