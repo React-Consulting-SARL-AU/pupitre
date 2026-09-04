@@ -214,7 +214,7 @@ func (u *Upgrader) resolve(client platform.Client, wanted string) (string, error
 
 	version, err := client.TargetVersion()
 	if err != nil {
-		return "", downloadFailed("cible", err)
+		return "", stateFailed(err)
 	}
 
 	if version == "" {

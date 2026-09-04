@@ -36,6 +36,17 @@ func downloadFailed(version string, cause error) *protocol.Error {
 		WithFix("Vérifie que le serveur joint la plateforme en HTTPS sortant, puis relance la mise à jour.")
 }
 
+func stateFailed(cause error) *protocol.Error {
+	var failure *platform.Error
+	if errors.As(cause, &failure) && failure.Unauthorized() {
+		return protocol.NewError(contract.ErrorEntitlementRequired, "la plateforme refuse le jeton de ce serveur : "+cause.Error()).
+			WithFix("Ouvre https://app.pupitre.studio pour rétablir le droit d'usage de ce serveur.")
+	}
+
+	return protocol.NewError(contract.ErrorInternal, "version cible illisible : "+cause.Error()).
+		WithFix("Passe la version à installer dans les paramètres de agent.upgrade.")
+}
+
 func restartFailed(version string, cause error) *protocol.Error {
 	return protocol.NewError(contract.ErrorInternal,
 		fmt.Sprintf("la version %s n'a pas pu redémarrer : %s", version, cause)).
