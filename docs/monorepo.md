@@ -11,9 +11,9 @@ Même outillage que React-Box, mêmes versions quand elles sont compatibles : ce
 | Biome via Ultracite | lint et format | `biome.jsonc` racine étend `ultracite/biome/core`, `semicolons: "asNeeded"`. Même épingle qu'React-Box (`7.8.3`) tant que la mise à niveau n'a pas été faite là-bas |
 | tsgo | typecheck | `@typescript/native-preview`, TypeScript 6 |
 | Husky + commitlint | hooks | pre-commit : `ultracite fix` par workspace sur les fichiers indexés ; pre-push : lint, `check:types`, `test` affectés ; commits conventionnels |
-| Prisma 7 | schéma et migrations | client généré committé, fraîcheur vérifiée par `scripts/check-prisma-client-freshness.ts` |
+| Prisma 7 | schéma et migrations | client généré committé ; la vérification de fraîcheur (`scripts/check-prisma-client-freshness.ts`) arrive avec PLT-01 |
 | Wrangler 4 | Workers, Pages, R2, secrets | `secrets.required` déclarés dans `wrangler.jsonc`, vérifiés avant déploiement |
-| Go 1.25 | l'agent | `go vet`, `go test`, `garble` en release |
+| Go 1.25+ | l'agent | `gofmt`, `go vet`, `go test`, `garble` en release. Installé par Homebrew sur la machine du propriétaire |
 | electron-vite, electron-builder | l'app desktop | bytecode du main et du preload, notarisation |
 
 ## Développement local
@@ -29,7 +29,7 @@ bun run dev:desktop  # l'app, pointée sur le staging par défaut
 ## Vérifications
 
 ```bash
-bun run lint          # boundaries, fraîcheur Prisma, ultracite, go vet
+bun run lint          # boundaries, ultracite, gofmt et go vet
 bun run check:types
 bun run test
 bun run build
