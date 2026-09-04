@@ -1,0 +1,81 @@
+package daemon
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"pupitre.studio/agent/internal/platform"
+)
+
+// Thirty seconds for the state, five minutes for the heartbeat, and a failure never stops the loop: the platform coming back is exactly what the agent is waiting for.
+func (d *Daemon) Run(ctx context.Context) error {
+	states := time.NewTicker(d.options.StateInterval)
+	defer states.Stop()
+
+	beats := time.NewTicker(d.options.HeartbeatInterval)
+	defer beats.Stop()
+
+	d.journal.Logf("agent %s en veille, plateforme lue toutes les %s", d.options.AgentVersion, d.options.StateInterval)
+
+	d.syncOnce()
+	d.beatOnce()
+
+	for {
+		select {
+		case <-ctx.Done():
+			d.journal.Logf("agent arrêté")
+
+			return nil
+		case <-states.C:
+			d.syncOnce()
+		case <-beats.C:
+			d.beatOnce()
+		}
+	}
+}
+
+func (d *Daemon) syncOnce() {
+	synced, err := d.Sync()
+	if err != nil {
+		d.report("état", err)
+
+		return
+	}
+
+	if synced.KeysChanged {
+		d.journal.Logf("droit d'usage %s, version cible %s", synced.Entitlement, orNone(synced.TargetVersion))
+	}
+}
+
+func (d *Daemon) beatOnce() {
+	if err := d.Beat(); err != nil {
+		d.report("heartbeat", err)
+	}
+}
+
+// An unenrolled server, a network down, a revoked token: three silences the journal tells apart, and none of them stops anything that runs.
+func (d *Daemon) report(what string, err error) {
+	if errors.Is(err, platform.ErrNoToken) {
+		d.journal.Logf("%s : ce serveur n'est pas enrôlé", what)
+
+		return
+	}
+
+	var failure *platform.Error
+	if errors.As(err, &failure) && failure.Unauthorized() {
+		d.journal.Logf("%s : la plateforme refuse le jeton de ce serveur", what)
+
+		return
+	}
+
+	d.journal.Logf("%s : %s", what, err)
+}
+
+func orNone(version string) string {
+	if version == "" {
+		return "aucune"
+	}
+
+	return version
+}

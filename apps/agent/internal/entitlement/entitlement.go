@@ -39,6 +39,11 @@ func (s State) Allows(cmd string) bool {
 	return true
 }
 
+// A fixed entitlement, for the callers that already hold one rather than resolving it from the disk.
+func Fixed(granted contract.Entitlement) func() State {
+	return func() State { return State{Entitlement: granted, Enrolled: true} }
+}
+
 func Current() contract.Entitlement {
 	return buildEntitlement
 }

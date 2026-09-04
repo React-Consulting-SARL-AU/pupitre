@@ -42,7 +42,7 @@ func (s *Server) hello(ctx *Context, raw json.RawMessage) (any, error) {
 	return helloResult{
 		AgentVersion: s.options.AgentVersion,
 		Protocol:     contract.ProtocolVersion,
-		Entitlement:  s.options.Entitlement,
+		Entitlement:  s.Entitlement().Entitlement,
 		Capabilities: s.Capabilities(),
 	}, nil
 }
