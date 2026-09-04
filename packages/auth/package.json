@@ -5,7 +5,9 @@
   "type": "module",
   "exports": {
     "./server": "./src/server.ts",
-    "./client": "./src/client.ts"
+    "./client/web": "./src/client/web.ts",
+    "./client/desktop": "./src/client/desktop.ts",
+    "./testing": "./src/testing/index.ts"
   },
   "scripts": {
     "lint": "ultracite check",
@@ -18,6 +20,7 @@
     "@prisma/adapter-neon": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "@pupitre/db": "workspace:*",
+    "@pupitre/shared": "workspace:*",
     "better-auth": "1.6.23"
   },
   "devDependencies": {
