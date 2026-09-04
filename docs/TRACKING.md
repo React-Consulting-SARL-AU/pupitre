@@ -19,6 +19,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-12 | Contrat : les releases de l'app | à faire | | |
 | INF-13 | Le quota gratuit vit dans le contrat partagé | à faire | | |
 | INF-14 | La langue de l'utilisateur est enregistrée | à faire | | |
+| INF-15 | Contrat : détecter le gestionnaire d'un dépôt | à faire | | |
 | INF-11 | Contrat : le verdict de la sonde | fait | `feat/INF-11-probe-contract` | fusionnée |
 
 ## Agent serveur — `AGT`
@@ -53,7 +54,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-05 | Catalogue et configuration des services | fait | `feat/APP-05-catalog` | fusionnée |
 | APP-06 | Installation en direct et rapport | fait | `feat/APP-06-install` | fusionnée |
 | APP-07 | Durcissement et bascule root → dev | fait | `feat/APP-07-harden` | fusionnée |
-| APP-08 | Premier projet | en revue | `feat/APP-08-first-project` | |
+| APP-08 | Premier projet | fait | `feat/APP-08-first-project` | fusionnée |
 | APP-09 | Tableau de bord et projets sur le nouveau protocole | à faire | | |
 | APP-10 | Terminaux, agents, galerie | à faire | | |
 | APP-11 | Services au quotidien | à faire | | |

@@ -205,3 +205,13 @@ Périmètre. Une colonne `locale` sur `user` (défaut `fr`), posée à l'inscrip
 Critères d'acceptation.
 1. Un utilisateur dont la langue est `en` reçoit l'email de suspension en anglais, déclenché hors requête.
 
+### INF-15 — Contrat : détecter le gestionnaire d'un dépôt
+Lot 0 · dépend de APP-08 · `packages/shared`, `apps/agent`
+
+But. L'app propose le bon gestionnaire de paquets et la bonne commande de démarrage pour un dépôt qu'elle n'a pas encore ajouté.
+Périmètre. Une commande `project.detect` `{ repo?, dir? }` qui, sans rien installer, cline en surface ou lit un dossier existant et renvoie `{ pkgmgr, install?, cmd?, port_hint? }`. Le remède d'un port déjà pris gagne un champ structuré (`{ code: "port_taken", port_free: 3001 }`) au lieu d'obliger l'app à lire un entier dans une phrase.
+Hors périmètre. L'écran, déjà livré et qui saura s'en servir.
+Critères d'acceptation.
+1. Un dépôt Vite public est détecté en `bun` avec sa commande de démarrage.
+2. L'app ne lit plus de port dans une chaîne de texte.
+
