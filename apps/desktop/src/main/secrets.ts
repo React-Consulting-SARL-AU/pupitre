@@ -1,7 +1,4 @@
-import type {
-  SecretsStatusResult,
-  SecretsSyncResult,
-} from "@pupitre/shared/agent-protocol/secrets";
+import type { SecretsStatusResult } from "@pupitre/shared/agent-protocol/secrets";
 import type { DoneResult } from "@pupitre/shared/agent-protocol/system";
 import type { AgentResponse } from "@shared/agent";
 import { ipcMain } from "electron";
@@ -92,27 +89,6 @@ export async function writeSecret(
   );
 }
 
-export async function syncSecrets(
-  serverId: unknown,
-  project: unknown
-): Promise<AgentResponse<SecretsSyncResult>> {
-  if (typeof serverId !== "string" || !byId(serverId)) {
-    return refuse(
-      "Ce serveur n'est plus dans la liste.",
-      "Choisis un serveur dans les réglages."
-    );
-  }
-
-  if (typeof project !== "string") {
-    return refuse(
-      "Aucun projet n'a été désigné.",
-      "Choisis un projet de la liste."
-    );
-  }
-
-  return await agentClient.request(serverId, "secrets.sync", { project });
-}
-
 export function registerSecrets(): void {
   ipcMain.handle("secrets:status", (_event, serverId: unknown) =>
     readSecrets(serverId)
@@ -122,11 +98,5 @@ export function registerSecrets(): void {
     "secrets:set",
     (_event, serverId: unknown, key: unknown, value: unknown) =>
       writeSecret(serverId, key, value)
-  );
-
-  ipcMain.handle(
-    "secrets:sync",
-    (_event, serverId: unknown, project: unknown) =>
-      syncSecrets(serverId, project)
   );
 }

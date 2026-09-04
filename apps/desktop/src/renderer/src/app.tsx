@@ -13,6 +13,7 @@ import { EmptyState } from "./components/ui/empty-state";
 import { ErrorNotice } from "./components/ui/error-notice";
 import { IconButton } from "./components/ui/icon-button";
 import { noteProjects, noteServer } from "./lib/completion";
+import { shellScreen } from "./lib/shell-screen";
 import { useNavigation } from "./stores/navigation";
 import { useOnboarding } from "./stores/onboarding";
 import { useSecrets } from "./stores/secrets";
@@ -86,7 +87,13 @@ export function App() {
   const settle = navigation.settle;
 
   useEffect(() => {
-    const names = projects?.map((project) => project.name) ?? [];
+    // Until the first snapshot lands there is no list to settle against, and
+    // settling against an empty one would drop the project we remembered.
+    if (!projects) {
+      return;
+    }
+
+    const names = projects.map((project) => project.name);
 
     noteProjects(names);
     settle(names);
@@ -106,32 +113,35 @@ export function App() {
     navigation.reset();
   }, [loadServers, navigation.reset]);
 
-  // The onboarding comes first: it is what a server that answers nothing yet
-  // needs, and no dashboard has anything to say about a bare machine.
-  if (onboarding !== "closed") {
+  const shell = shellScreen({
+    answered: snapshot !== null,
+    onboarding,
+    serverId,
+    view,
+  });
+
+  if (shell === "onboarding") {
     return <OnboardingFlow />;
   }
 
-  // A server without an agent and a ready server are two different screens, and
-  // `snapshot` is what tells them apart: it is the first thing the app asks.
-  if (!(serverId && snapshot)) {
-    if (view !== "settings") {
-      return (
-        <ServerUnreadyScreen
-          error={
-            snapshotState.status === "unreachable" ? snapshotState.error : null
-          }
-          onInstall={() =>
-            serverId ? beginOnboarding(serverId) : openOnboarding()
-          }
-          onRetry={() => serverId && read(serverId)}
-          onSettings={() => navigation.goTo("settings")}
-          server={server}
-        />
-      );
-    }
-
+  if (shell === "settings") {
     return <SettingsScreen onChanged={serversChanged} />;
+  }
+
+  if (shell === "unready" || !(serverId && snapshot)) {
+    return (
+      <ServerUnreadyScreen
+        error={
+          snapshotState.status === "unreachable" ? snapshotState.error : null
+        }
+        onInstall={() =>
+          serverId ? beginOnboarding(serverId) : openOnboarding()
+        }
+        onRetry={() => serverId && read(serverId)}
+        onSettings={() => navigation.goTo("settings")}
+        server={server}
+      />
+    );
   }
 
   const project =

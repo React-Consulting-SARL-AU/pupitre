@@ -5,7 +5,7 @@ import { agentsFrom, remoteEditors } from "@renderer/lib/modules";
 import { group, useNavigation } from "@renderer/stores/navigation";
 import { useProject } from "@renderer/stores/project";
 import { useSnapshot } from "@renderer/stores/snapshot";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ProjectBody } from "./project-body";
 import { ProjectDiff } from "./project-diff";
 import { ProjectEditors } from "./project-editors";
@@ -100,8 +100,11 @@ export function ProjectScreen({
 
   const repo =
     store.branches.status === "read" ? store.branches.branches.repo : true;
-  const agents = agentsFrom(services);
-  const tabs = tabsFor({ agents, repo });
+  const agents = agentsFrom(services).join(" ");
+  const tabs = useMemo(
+    () => tabsFor({ agents: agents.split(" ").filter(Boolean), repo }),
+    [agents, repo]
+  );
 
   // A remembered tab the project no longer offers falls back to the overview:
   // an agent uninstalled, a folder that is no longer a repository.

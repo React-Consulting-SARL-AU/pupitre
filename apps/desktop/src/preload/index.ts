@@ -22,10 +22,7 @@ import type {
   ProjectUrlResult,
   ProjectWorkingTreeResult,
 } from "@pupitre/shared/agent-protocol/projects";
-import type {
-  SecretsStatusResult,
-  SecretsSyncResult,
-} from "@pupitre/shared/agent-protocol/secrets";
+import type { SecretsStatusResult } from "@pupitre/shared/agent-protocol/secrets";
 import type { HelloResult } from "@pupitre/shared/agent-protocol/session";
 import type { CompletionsResult } from "@pupitre/shared/agent-protocol/state";
 import type { DoneResult } from "@pupitre/shared/agent-protocol/system";
@@ -334,11 +331,6 @@ const api = {
     value: string
   ): Promise<AgentResponse<DoneResult>> =>
     ipcRenderer.invoke("secrets:set", serverId, key, value),
-  syncSecrets: (
-    serverId: string,
-    project: string
-  ): Promise<AgentResponse<SecretsSyncResult>> =>
-    ipcRenderer.invoke("secrets:sync", serverId, project),
 
   /** The last report the agent wrote, whatever happened to the channel. */
   installReport: (serverId: string): Promise<AgentResponse<InstallReport>> =>
