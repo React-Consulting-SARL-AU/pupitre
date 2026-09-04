@@ -150,6 +150,14 @@ Pour `install`, la ligne a la forme de `params.config`, groupée par identifiant
 
 Un module absent de la ligne n'a aucun secret. Une ligne absente, illisible ou qui ne respecte pas cette forme renvoie `bad_request` avec le `fix` qui montre la forme attendue, avant toute installation ; la requête suivante reste lue comme une requête.
 
+Pour `secrets.set`, la ligne est un objet plat d'une seule entrée, dont la clé est exactement le `key` de la requête (schéma `SecretsSetSecrets`) :
+
+```jsonc
+{ "OPENAI_API_KEY": "sk-…" }
+```
+
+Une valeur vide vaut une valeur absente : l'agent refuse en `bad_request` plutôt que d'écrire un secret vide.
+
 Un champ `list` d'`items: "secret"` — `ai.hermes.providers`, par exemple — se transmet avec des clés indicées, une par valeur, dans l'ordre de la liste :
 
 ```jsonc
