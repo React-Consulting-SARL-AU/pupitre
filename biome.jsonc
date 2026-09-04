@@ -13,7 +13,8 @@
       "!**/out",
       "!server",
       "!apps/web/src/routeTree.gen.ts",
-      "!packages/db/src/generated"
+      "!packages/db/src/generated",
+      "!apps/agent/internal/contract/schema.json"
     ]
   },
   "javascript": {

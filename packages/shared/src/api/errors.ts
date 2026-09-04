@@ -1,6 +1,40 @@
-export const API_ERROR_CODES = [] as const
+import { z } from "zod"
 
-export type ApiErrorCode = (typeof API_ERROR_CODES)[number]
+export const API_ERROR_CODES = [
+  "unauthenticated",
+  "forbidden",
+  "not_found",
+  "validation",
+  "conflict",
+  "rate_limited",
+  "enrollment_used",
+  "enrollment_expired",
+  "seat_quota_reached",
+  "key_not_ed25519",
+  "entitlement_required",
+  "server_suspended",
+  "release_not_found",
+  "stripe_signature_invalid",
+  "internal",
+] as const
+
+export const ApiErrorCodeSchema = z.enum(API_ERROR_CODES)
+
+export type ApiErrorCode = z.infer<typeof ApiErrorCodeSchema>
+
+export const ApiErrorBodySchema = z.object({
+  error: z.object({
+    code: ApiErrorCodeSchema,
+    message: z.string(),
+    fix: z.string().optional(),
+  }),
+})
+
+export type ApiErrorBody = z.infer<typeof ApiErrorBodySchema>
+
+export function isApiErrorBody(value: unknown): value is ApiErrorBody {
+  return ApiErrorBodySchema.safeParse(value).success
+}
 
 export class ApiError extends Error {
   readonly body: unknown
