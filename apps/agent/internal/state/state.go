@@ -102,6 +102,11 @@ func (r *Reader) ctx() sys.Context {
 	return silent{sys: r.options.Sys}
 }
 
+// The shot command runs through the agent's own journal, where every other command already writes.
+func (r *Reader) Context() sys.Context {
+	return r.ctx()
+}
+
 func (r *Reader) registry() *registry.File {
 	return registry.Load(r.ctx(), r.options.Paths)
 }

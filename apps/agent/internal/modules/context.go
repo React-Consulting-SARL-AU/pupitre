@@ -125,6 +125,28 @@ func (c *Context) Secret(key string) string {
 	return c.secrets[key]
 }
 
+// A list field of secrets arrives as one entry per rank, "<clé>.0", "<clé>.1", the secret line being a flat map of strings.
+func (c *Context) SecretList(key string) []string {
+	var values []string
+
+	if single := c.secrets[key]; strings.TrimSpace(single) != "" {
+		values = append(values, single)
+	}
+
+	for rank := 0; ; rank++ {
+		value, listed := c.secrets[key+"."+strconv.Itoa(rank)]
+		if !listed {
+			break
+		}
+
+		if strings.TrimSpace(value) != "" {
+			values = append(values, value)
+		}
+	}
+
+	return values
+}
+
 func (c *Context) Step(name string, fn func() (Outcome, error)) error {
 	started := c.run.now()
 	c.emit(name, contract.StepStart, 0, "")

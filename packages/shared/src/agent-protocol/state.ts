@@ -102,7 +102,13 @@ export const ProjectSchema = ProjectRegistrationSchema.extend({
 
 export type Project = z.infer<typeof ProjectSchema>
 
-export const SESSION_KINDS = ["claude", "codex", "hermes", "shell"] as const
+export const SESSION_KINDS = [
+  "claude",
+  "codex",
+  "hermes",
+  "ide",
+  "shell",
+] as const
 
 export const SessionKindSchema = z.enum(SESSION_KINDS)
 

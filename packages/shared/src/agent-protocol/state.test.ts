@@ -103,6 +103,9 @@ describe("MachineSchema, ServiceSchema, ProjectSchema, SessionSchema", () => {
     expect(ServiceSchema.safeParse(service).success).toBe(true)
     expect(ProjectSchema.safeParse(project).success).toBe(true)
     expect(SessionSchema.safeParse(session).success).toBe(true)
+    expect(SessionSchema.safeParse({ ...session, kind: "ide" }).success).toBe(
+      true
+    )
   })
 
   it("reject a three-value load with a string and an unknown session kind", () => {
@@ -112,9 +115,9 @@ describe("MachineSchema, ServiceSchema, ProjectSchema, SessionSchema", () => {
     expect(ServiceSchema.safeParse({ ...service, state: "on" }).success).toBe(
       false
     )
-    expect(SessionSchema.safeParse({ ...session, kind: "ide" }).success).toBe(
-      false
-    )
+    expect(
+      SessionSchema.safeParse({ ...session, kind: "cursor" }).success
+    ).toBe(false)
   })
 })
 
