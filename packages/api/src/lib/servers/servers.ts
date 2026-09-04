@@ -1,6 +1,7 @@
 import type { Server, ServerStatus } from "@pupitre/db/cloudflare/client"
 import type { OrgRole } from "@pupitre/shared/permissions"
 import { sendServerDecommissionEmail } from "../../emails/notifications"
+import { type AlertView, activeAlertsFor } from "../alerts/alerts"
 import { getPrisma, withOrganization } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { metricsOf } from "./agent-state"
@@ -47,6 +48,7 @@ export interface ServerView {
   last_heartbeat_at: Date | null
   entitlement_valid_until: Date | null
   usage: ServerUsage | null
+  alerts: AlertView[]
   created_at: Date
 }
 
@@ -84,7 +86,8 @@ function lastUsage(server: Server): ServerUsage | null {
 
 export function toServerView(
   server: Server,
-  now: Date = new Date()
+  now: Date = new Date(),
+  alerts: AlertView[] = []
 ): ServerView {
   return {
     id: server.id,
@@ -103,6 +106,7 @@ export function toServerView(
     last_heartbeat_at: server.lastHeartbeatAt,
     entitlement_valid_until: server.entitlementValidUntil,
     usage: lastUsage(server),
+    alerts,
     created_at: server.createdAt,
   }
 }
@@ -164,8 +168,11 @@ export async function listServersForOrganization(
   const visible = seesEveryServer(viewer)
     ? servers
     : servers.filter((server) => server.assignedUserId === viewer.userId)
+  const alerts = await activeAlertsFor(visible.map((server) => server.id))
 
-  return visible.map((server) => toServerView(server, now))
+  return visible.map((server) =>
+    toServerView(server, now, alerts.get(server.id) ?? [])
+  )
 }
 
 export async function getServerForOrganization(
@@ -186,14 +193,17 @@ export async function getServerForOrganization(
     return null
   }
 
-  const events = await prisma.event.findMany({
-    where: { targetType: "server", targetId: server.id },
-    orderBy: { createdAt: "desc" },
-    take: 50,
-  })
+  const [events, alerts] = await Promise.all([
+    prisma.event.findMany({
+      where: { targetType: "server", targetId: server.id },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }),
+    activeAlertsFor([server.id]),
+  ])
 
   return {
-    ...toServerView(server),
+    ...toServerView(server, new Date(), alerts.get(server.id) ?? []),
     metrics: metricsOf(server),
     events: events.map((event) => ({
       id: event.id,

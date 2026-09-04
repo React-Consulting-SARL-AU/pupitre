@@ -20,6 +20,9 @@ export const EMAIL_FR = {
   "label.deadline": "Date limite",
   "label.servers": "Serveurs concernés",
   "label.erased_on": "Effacement",
+  "label.disk": "Disque",
+  "label.last_seen": "Dernier signe de vie",
+  "label.latest_version": "Dernière version publiée",
 
   "magic_link.subject": "Votre lien de connexion Pupitre",
   "magic_link.preview":
@@ -87,6 +90,46 @@ export const EMAIL_FR = {
   "server_suspended.footnote":
     "Le remède : reprenez l'abonnement depuis la facturation. Les serveurs redeviennent actifs à leur prochain contact.",
 
+  "alert_server_unreachable.subject": "{server} ne répond plus",
+  "alert_server_unreachable.preview":
+    "Aucun signe de vie depuis plus de 30 minutes.",
+  "alert_server_unreachable.title": "{server} ne répond plus",
+  "alert_server_unreachable.body":
+    "L'agent de ce serveur n'a rien envoyé depuis plus de 30 minutes. La machine est peut-être éteinte, redémarrée, ou coupée du réseau. Vos données ne sont pas touchées : la plateforme attend simplement son prochain contact.",
+  "alert_server_unreachable.cta": "Ouvrir la console",
+  "alert_server_unreachable.footnote":
+    "Le remède : ouvrez une session SSH sur la machine et vérifiez le service avec systemctl status pupitred. Nous vous écrirons de nouveau si le silence revient après un retour à la normale.",
+
+  "alert_disk_high.subject": "{server} : disque à {disk} %",
+  "alert_disk_high.preview": "Le disque dépasse 90 % de remplissage.",
+  "alert_disk_high.title": "Le disque de {server} se remplit",
+  "alert_disk_high.body":
+    "Le disque de ce serveur est occupé à {disk} %. Au-delà de 95 %, les services s'arrêtent d'écrire et les sessions de vos agents échouent.",
+  "alert_disk_high.cta": "Ouvrir la console",
+  "alert_disk_high.footnote":
+    "Le remède : effacez les journaux et les images inutiles, par exemple avec docker system prune -a, ou agrandissez le volume chez votre hébergeur.",
+
+  "alert_agent_outdated.subject":
+    "L'agent de {server} a deux versions de retard",
+  "alert_agent_outdated.preview":
+    "La version {version} est publiée ; ce serveur est resté en arrière.",
+  "alert_agent_outdated.title": "L'agent de {server} est périmé",
+  "alert_agent_outdated.body":
+    "Ce serveur exécute l'agent {current} alors que {version} est publiée. Deux versions de retard : les correctifs et les nouveaux modules lui manquent.",
+  "alert_agent_outdated.cta": "Ouvrir la console",
+  "alert_agent_outdated.footnote":
+    "Le remède : l'agent se met à jour tout seul à son prochain contact. S'il ne le fait pas, relancez la mise à jour depuis l'app Pupitre.",
+
+  "alert_entitlement_grace.subject": "{server} tourne en tolérance",
+  "alert_entitlement_grace.preview":
+    "Le droit d'usage de ce serveur expire le {deadline}.",
+  "alert_entitlement_grace.title": "{server} est en tolérance",
+  "alert_entitlement_grace.body":
+    "Le paiement de {organization} est en attente. Ce serveur continue de tourner jusqu'au {deadline} ; après cette date, l'agent se met en pause et vos sessions s'arrêtent. La machine et ses données restent intactes.",
+  "alert_entitlement_grace.cta": "Corriger le paiement",
+  "alert_entitlement_grace.footnote":
+    "Le remède : mettez le moyen de paiement à jour depuis la facturation. Le serveur redevient actif à son prochain contact.",
+
   "server_decommission.subject": "{server} sera effacé le {deadline}",
   "server_decommission.preview":
     "Ce serveur quitte Pupitre dans 7 jours. La machine n'est pas touchée.",
@@ -120,6 +163,9 @@ export const EMAIL_EN: Record<EmailMessageKey, string> = {
   "label.deadline": "Deadline",
   "label.servers": "Servers affected",
   "label.erased_on": "Erased on",
+  "label.disk": "Disk",
+  "label.last_seen": "Last sign of life",
+  "label.latest_version": "Latest published version",
 
   "magic_link.subject": "Your Pupitre sign-in link",
   "magic_link.preview":
@@ -185,6 +231,46 @@ export const EMAIL_EN: Record<EmailMessageKey, string> = {
   "server_suspended.cta": "Resume the subscription",
   "server_suspended.footnote":
     "The fix: resume the subscription from billing. The servers turn active again on their next contact.",
+
+  "alert_server_unreachable.subject": "{server} stopped answering",
+  "alert_server_unreachable.preview":
+    "No sign of life for more than 30 minutes.",
+  "alert_server_unreachable.title": "{server} stopped answering",
+  "alert_server_unreachable.body":
+    "This server's agent has sent nothing for more than 30 minutes. The machine may be off, rebooting, or cut from the network. Your data is untouched: the platform is simply waiting for its next contact.",
+  "alert_server_unreachable.cta": "Open the console",
+  "alert_server_unreachable.footnote":
+    "The fix: open an SSH session on the machine and check the service with systemctl status pupitred. We will write again if the silence returns after a return to normal.",
+
+  "alert_disk_high.subject": "{server}: disk at {disk}%",
+  "alert_disk_high.preview": "The disk is more than 90% full.",
+  "alert_disk_high.title": "The disk of {server} is filling up",
+  "alert_disk_high.body":
+    "This server's disk is {disk}% full. Past 95%, services stop writing and your agents' sessions fail.",
+  "alert_disk_high.cta": "Open the console",
+  "alert_disk_high.footnote":
+    "The fix: clear logs and unused images, for instance with docker system prune -a, or grow the volume at your host.",
+
+  "alert_agent_outdated.subject":
+    "The agent on {server} is two versions behind",
+  "alert_agent_outdated.preview":
+    "Version {version} is published; this server stayed behind.",
+  "alert_agent_outdated.title": "The agent on {server} is outdated",
+  "alert_agent_outdated.body":
+    "This server runs agent {current} while {version} is published. Two versions behind: it is missing the fixes and the new modules.",
+  "alert_agent_outdated.cta": "Open the console",
+  "alert_agent_outdated.footnote":
+    "The fix: the agent updates itself on its next contact. If it does not, start the update from the Pupitre app.",
+
+  "alert_entitlement_grace.subject": "{server} is running in grace",
+  "alert_entitlement_grace.preview":
+    "The entitlement of this server expires on {deadline}.",
+  "alert_entitlement_grace.title": "{server} is in grace",
+  "alert_entitlement_grace.body":
+    "The payment for {organization} is pending. This server keeps running until {deadline}; after that date the agent pauses and your sessions stop. The machine and its data stay intact.",
+  "alert_entitlement_grace.cta": "Fix the payment",
+  "alert_entitlement_grace.footnote":
+    "The fix: update the payment method from billing. The server turns active again on its next contact.",
 
   "server_decommission.subject": "{server} will be erased on {deadline}",
   "server_decommission.preview":

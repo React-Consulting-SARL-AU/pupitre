@@ -34,3 +34,13 @@ export const BillingInterval = {
 } as const
 
 export type BillingInterval = (typeof BillingInterval)[keyof typeof BillingInterval]
+
+
+export const AlertKind = {
+  server_unreachable: 'server_unreachable',
+  disk_high: 'disk_high',
+  agent_outdated: 'agent_outdated',
+  entitlement_grace: 'entitlement_grace'
+} as const
+
+export type AlertKind = (typeof AlertKind)[keyof typeof AlertKind]

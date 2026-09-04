@@ -407,6 +407,7 @@ export const ModelName = {
   DeviceCode: 'DeviceCode',
   Device: 'Device',
   Server: 'Server',
+  Alert: 'Alert',
   ServerRevokedDevice: 'ServerRevokedDevice',
   Subscription: 'Subscription',
   OrganizationBilling: 'OrganizationBilling',
@@ -428,7 +429,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "deviceCode" | "device" | "server" | "serverRevokedDevice" | "subscription" | "organizationBilling" | "release" | "event" | "stripeEvent"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "deviceCode" | "device" | "server" | "alert" | "serverRevokedDevice" | "subscription" | "organizationBilling" | "release" | "event" | "stripeEvent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1172,6 +1173,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Alert: {
+      payload: Prisma.$AlertPayload<ExtArgs>
+      fields: Prisma.AlertFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AlertFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AlertPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AlertFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AlertPayload>
+        }
+        findFirst: {
+          args: Prisma.AlertFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AlertPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AlertFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AlertPayload>
+        }
+        findMany: {
+          args: Prisma.AlertFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AlertPayload>[]
+        }
+        create: {
+          args: Prisma.AlertCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AlertPayload>
+        }
+        createMany: {
+          args: Prisma.AlertCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AlertCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AlertPayload>[]
+        }
+        delete: {
+          args: Prisma.AlertDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AlertPayload>
+        }
+        update: {
+          args: Prisma.AlertUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AlertPayload>
+        }
+        deleteMany: {
+          args: Prisma.AlertDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AlertUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AlertUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AlertPayload>[]
+        }
+        upsert: {
+          args: Prisma.AlertUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AlertPayload>
+        }
+        aggregate: {
+          args: Prisma.AlertAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAlert>
+        }
+        groupBy: {
+          args: Prisma.AlertGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AlertGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AlertCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AlertCountAggregateOutputType> | number
+        }
+      }
+    }
     ServerRevokedDevice: {
       payload: Prisma.$ServerRevokedDevicePayload<ExtArgs>
       fields: Prisma.ServerRevokedDeviceFieldRefs
@@ -1815,6 +1890,18 @@ export const ServerScalarFieldEnum = {
 export type ServerScalarFieldEnum = (typeof ServerScalarFieldEnum)[keyof typeof ServerScalarFieldEnum]
 
 
+export const AlertScalarFieldEnum = {
+  id: 'id',
+  serverId: 'serverId',
+  kind: 'kind',
+  firstSeenAt: 'firstSeenAt',
+  notifiedAt: 'notifiedAt',
+  resolvedAt: 'resolvedAt'
+} as const
+
+export type AlertScalarFieldEnum = (typeof AlertScalarFieldEnum)[keyof typeof AlertScalarFieldEnum]
+
+
 export const ServerRevokedDeviceScalarFieldEnum = {
   serverId: 'serverId',
   deviceId: 'deviceId',
@@ -2026,6 +2113,20 @@ export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$Prisma
 
 
 /**
+ * Reference to a field of type 'AlertKind'
+ */
+export type EnumAlertKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AlertKind'>
+    
+
+
+/**
+ * Reference to a field of type 'AlertKind[]'
+ */
+export type ListEnumAlertKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AlertKind[]'>
+    
+
+
+/**
  * Reference to a field of type 'BillingInterval'
  */
 export type EnumBillingIntervalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BillingInterval'>
@@ -2213,6 +2314,7 @@ export type GlobalOmitConfig = {
   deviceCode?: Prisma.DeviceCodeOmit
   device?: Prisma.DeviceOmit
   server?: Prisma.ServerOmit
+  alert?: Prisma.AlertOmit
   serverRevokedDevice?: Prisma.ServerRevokedDeviceOmit
   subscription?: Prisma.SubscriptionOmit
   organizationBilling?: Prisma.OrganizationBillingOmit

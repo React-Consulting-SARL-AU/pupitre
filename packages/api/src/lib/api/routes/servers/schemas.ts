@@ -1,4 +1,8 @@
-import { ReleaseChannel, ServerStatus } from "@pupitre/db/cloudflare/enums"
+import {
+  AlertKind,
+  ReleaseChannel,
+  ServerStatus,
+} from "@pupitre/db/cloudflare/enums"
 import { ARCHITECTURES } from "@pupitre/shared/catalog"
 import { t } from "elysia"
 import { dateTime } from "../../openapi-models"
@@ -59,6 +63,24 @@ export const serverUsageSchema = t.Object(
   { $id: "ServerUsage" }
 )
 
+export const ALERT_KINDS = [
+  AlertKind.server_unreachable,
+  AlertKind.disk_high,
+  AlertKind.agent_outdated,
+  AlertKind.entitlement_grace,
+] as const
+
+export const alertKindSchema = t.UnionEnum([...ALERT_KINDS])
+
+export const alertSchema = t.Object(
+  {
+    kind: alertKindSchema,
+    first_seen_at: dateTime,
+    notified_at: t.Nullable(dateTime),
+  },
+  { $id: "ServerAlert" }
+)
+
 const serverFields = {
   id: t.String(),
   name: t.String(),
@@ -76,6 +98,7 @@ const serverFields = {
   last_heartbeat_at: t.Nullable(dateTime),
   entitlement_valid_until: t.Nullable(dateTime),
   usage: t.Nullable(serverUsageSchema),
+  alerts: t.Array(alertSchema),
   created_at: dateTime,
 }
 

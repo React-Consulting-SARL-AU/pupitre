@@ -61,6 +61,7 @@ export const ModelName = {
   DeviceCode: 'DeviceCode',
   Device: 'Device',
   Server: 'Server',
+  Alert: 'Alert',
   ServerRevokedDevice: 'ServerRevokedDevice',
   Subscription: 'Subscription',
   OrganizationBilling: 'OrganizationBilling',
@@ -243,6 +244,18 @@ export const ServerScalarFieldEnum = {
 } as const
 
 export type ServerScalarFieldEnum = (typeof ServerScalarFieldEnum)[keyof typeof ServerScalarFieldEnum]
+
+
+export const AlertScalarFieldEnum = {
+  id: 'id',
+  serverId: 'serverId',
+  kind: 'kind',
+  firstSeenAt: 'firstSeenAt',
+  notifiedAt: 'notifiedAt',
+  resolvedAt: 'resolvedAt'
+} as const
+
+export type AlertScalarFieldEnum = (typeof AlertScalarFieldEnum)[keyof typeof AlertScalarFieldEnum]
 
 
 export const ServerRevokedDeviceScalarFieldEnum = {

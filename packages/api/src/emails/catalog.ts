@@ -2,6 +2,10 @@ import type { Locale } from "../lib/i18n"
 import { consoleUrl } from "./config"
 import {
   type RenderedEmail,
+  renderAlertAgentOutdatedEmail,
+  renderAlertDiskHighEmail,
+  renderAlertEntitlementGraceEmail,
+  renderAlertServerUnreachableEmail,
   renderDeviceAddedEmail,
   renderEntitlementGraceEmail,
   renderInvitationEmail,
@@ -29,6 +33,9 @@ export const SAMPLE = {
   addedAt: new Date("2026-09-04T09:12:00Z"),
   deadline: new Date("2026-09-11T00:00:00Z"),
   serverCount: 3,
+  lastSeenAt: new Date("2026-09-04T08:41:00Z"),
+  disk: 94,
+  latestVersion: "1.6.0",
 } as const
 
 export interface EmailPreview {
@@ -87,6 +94,34 @@ const RENDERERS: Record<
     }),
   server_decommission: (locale) =>
     renderServerDecommissionEmail({
+      locale,
+      serverName: SAMPLE.serverName,
+      organizationName: SAMPLE.organizationName,
+      deadline: SAMPLE.deadline,
+    }),
+  alert_server_unreachable: (locale) =>
+    renderAlertServerUnreachableEmail({
+      locale,
+      serverName: SAMPLE.serverName,
+      address: SAMPLE.address,
+      lastSeenAt: SAMPLE.lastSeenAt,
+    }),
+  alert_disk_high: (locale) =>
+    renderAlertDiskHighEmail({
+      locale,
+      serverName: SAMPLE.serverName,
+      address: SAMPLE.address,
+      disk: SAMPLE.disk,
+    }),
+  alert_agent_outdated: (locale) =>
+    renderAlertAgentOutdatedEmail({
+      locale,
+      serverName: SAMPLE.serverName,
+      agentVersion: SAMPLE.agentVersion,
+      latestVersion: SAMPLE.latestVersion,
+    }),
+  alert_entitlement_grace: (locale) =>
+    renderAlertEntitlementGraceEmail({
       locale,
       serverName: SAMPLE.serverName,
       organizationName: SAMPLE.organizationName,

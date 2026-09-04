@@ -47,3 +47,24 @@ export async function organizationName(
 
   return organization?.name ?? "Pupitre"
 }
+
+export interface ServerAddressee {
+  assignedUserId: string | null
+  organizationId: string
+}
+
+/**
+ * The person who works on the machine is told first; without one, the owner
+ * who pays for it is.
+ */
+export async function serverRecipients(
+  server: ServerAddressee
+): Promise<Recipient[]> {
+  const assigned = await userRecipient(server.assignedUserId)
+
+  if (assigned) {
+    return [assigned]
+  }
+
+  return await billingRecipients(server.organizationId)
+}
