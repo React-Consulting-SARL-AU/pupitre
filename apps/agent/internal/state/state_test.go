@@ -189,7 +189,7 @@ func TestUpAllLeavesTheServiceRowsToSystemd(t *testing.T) {
 func TestAServiceRowIsSeenThroughItsPort(t *testing.T) {
 	fake, reader := fixture(t)
 
-	if got := projectOf(t, reader.Snapshot().Projects, "shots").State; got != contract.ProjectStopped {
+	if got := projectOf(t, reader.Snapshot().Projects, "shots").State; got != contract.ProjectDown {
 		t.Fatalf("got %s", got)
 	}
 

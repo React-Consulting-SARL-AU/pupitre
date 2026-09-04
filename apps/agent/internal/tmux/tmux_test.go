@@ -132,8 +132,8 @@ func TestAServiceRowIsNeverStarting(t *testing.T) {
 	ctx := newContext(fake)
 	shots := contract.Project{Name: "shots", Port: 8099, PkgMgr: "service"}
 
-	if got := tmux.State(ctx, options, shots, tmux.Collect(ctx, options)); got != contract.ProjectStopped {
-		t.Fatalf("got %s", got)
+	if got := tmux.State(ctx, options, shots, tmux.Collect(ctx, options)); got != contract.ProjectDown {
+		t.Fatalf("a service whose port does not answer is down, not stopped: got %s", got)
 	}
 
 	fake.Listen[8099] = true

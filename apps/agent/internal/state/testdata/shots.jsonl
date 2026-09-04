@@ -1,0 +1,16 @@
+# La galerie : ce qu'elle contient, à quelle adresse elle répond, et ce qu'un ménage retire.
+@file /etc/pupitre/projects.conf shots|.|-|service|127.0.0.1|8099|shots|-|-
+@file /etc/pupitre/env PUPITRE_DOMAIN=flymate.dev
+@shot 1788516000 24000 /home/dev/shots/2026-09-04/login.png
+@shot 1788084000 48000 /home/dev/shots/2026-08-30/dashboard.png
+@shot 1782864000 12000 /home/dev/shots/2026-07-01/premiere-maquette.png
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+> {"id":2,"cmd":"shots.url"}
+> {"id":3,"cmd":"shots.list"}
+> {"id":4,"cmd":"shots.clean"}
+> {"id":5,"cmd":"shots.list"}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","diag","doctor","hello","install","ping","process.kill","processes.list","project.add","project.branches","project.checkout","project.diff","project.down","project.git_status","project.install","project.list","project.logs","project.remove","project.restart","project.sync","project.up","project.url","project.working_tree","reboot","report","service.status","sessions.clean","sessions.list","shots.clean","shots.list","shots.url","snapshot","status","uninstall","upgrade"]}}
+< {"id":2,"ok":true,"result":{"url":"https://shots.flymate.dev"}}
+< {"id":3,"ok":true,"result":{"shots":[{"name":"login.png","path":"2026-09-04/login.png","size_bytes":24000,"created_at":"2026-09-04T10:00:00Z"},{"name":"dashboard.png","path":"2026-08-30/dashboard.png","size_bytes":48000,"created_at":"2026-08-30T10:00:00Z"},{"name":"premiere-maquette.png","path":"2026-07-01/premiere-maquette.png","size_bytes":12000,"created_at":"2026-07-01T00:00:00Z"}]}}
+< {"id":4,"ok":true,"result":{"removed":1}}
+< {"id":5,"ok":true,"result":{"shots":[{"name":"login.png","path":"2026-09-04/login.png","size_bytes":24000,"created_at":"2026-09-04T10:00:00Z"},{"name":"dashboard.png","path":"2026-08-30/dashboard.png","size_bytes":48000,"created_at":"2026-08-30T10:00:00Z"}]}}

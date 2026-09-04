@@ -41,6 +41,23 @@ var resultDefinitions = map[string]string{
 	"project.logs":    "ProjectLogsResult",
 	"project.install": "ProjectInstallResult",
 	"project.url":     "ProjectUrlResult",
+
+	"project.sync":         "ProjectSyncResult",
+	"project.branches":     "ProjectBranchesResult",
+	"project.checkout":     "ProjectCheckoutResult",
+	"project.git_status":   "ProjectGitStatusResult",
+	"project.working_tree": "ProjectWorkingTreeResult",
+	"project.diff":         "ProjectDiffResult",
+	"sessions.list":        "SessionsListResult",
+	"sessions.clean":       "SessionsCleanResult",
+	"processes.list":       "ProcessesListResult",
+	"process.kill":         "ProcessKillResult",
+	"shots.list":           "ShotsListResult",
+	"shots.url":            "ShotsUrlResult",
+	"shots.clean":          "ShotsCleanResult",
+	"reboot":               "RebootResult",
+	"doctor":               "DoctorResult",
+	"diag":                 "DiagResult",
 }
 
 type TranscriptOptions struct {
@@ -138,8 +155,18 @@ func (f *transcript) directive(t *testing.T, path, line string) {
 		program, reply, _ := strings.Cut(rest, " ")
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Replies[program] = unescape(reply) + "\n" })
 	case "answer":
-		fragment, answer, _ := strings.Cut(rest, " ")
+		// " :: " when the fragment itself holds spaces, which is how one tells two git subcommands apart.
+		fragment, answer := cutAnswer(rest)
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Answer(fragment, unescape(answer)+"\n") })
+	case "dir":
+		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Dirs[rest] = true })
+	case "process":
+		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Spawn(parseProc(fields, rest)) })
+	case "shot":
+		f.prepare = append(f.prepare, func(fake *FakeSys) {
+			fake.Files[fields[2]] = make([]byte, atoi(fields[1]))
+			fake.Times[fields[2]] = time.Unix(int64(atoi(fields[0])), 0)
+		})
 	case "fail":
 		program, stderr, _ := strings.Cut(rest, " ")
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.FailProgram(program, stderr) })
@@ -277,6 +304,30 @@ func atoi(value string) int {
 	parsed, _ := strconv.Atoi(value)
 
 	return parsed
+}
+
+func cutAnswer(rest string) (fragment, answer string) {
+	if before, after, found := strings.Cut(rest, " :: "); found {
+		return before, after
+	}
+
+	fragment, answer, _ = strings.Cut(rest, " ")
+
+	return fragment, answer
+}
+
+// pid ppid user cpu rss etimes, then the command line.
+func parseProc(fields []string, rest string) Proc {
+	cpu, _ := strconv.ParseFloat(fields[3], 64)
+	args := rest
+	for i := 0; i < 6; i++ {
+		_, args, _ = strings.Cut(strings.TrimLeft(args, " "), " ")
+	}
+
+	return Proc{
+		PID: atoi(fields[0]), PPID: atoi(fields[1]), User: fields[2],
+		CPU: cpu, RSS: atoi(fields[4]), Etimes: atoi(fields[5]), Args: args,
+	}
 }
 
 // A transcript is one line per directive, so a multi-line file or command output arrives escaped.

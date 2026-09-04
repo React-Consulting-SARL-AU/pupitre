@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"sort"
 	"strings"
+	"time"
 
 	"pupitre.studio/agent/internal/sys"
 )
@@ -38,9 +39,26 @@ type FakeSys struct {
 	Listen    map[int]bool
 	Uptimes   map[int]int
 	Firewall  Firewall
+	Procs     map[int]Proc
+	Stubborn  map[int]bool
+	Times     map[string]time.Time
+	Signals   []string
+	Now       time.Time
 	Calls     []sys.Command
 	Mutations []string
 	Updates   int
+}
+
+// A row of ps, in the units ps prints: RSS in kilobytes, Etimes in seconds.
+type Proc struct {
+	PID    int
+	PPID   int
+	RSS    int
+	CPU    float64
+	Etimes int
+	User   string
+	Comm   string
+	Args   string
 }
 
 func NewFakeSys() *FakeSys {
@@ -63,7 +81,28 @@ func NewFakeSys() *FakeSys {
 		Binds:    map[string]int{},
 		Listen:   map[int]bool{},
 		Uptimes:  map[int]int{},
+		Procs:    map[int]Proc{},
+		Stubborn: map[int]bool{},
+		Times:    map[string]time.Time{},
+		Now:      Epoch,
 	}
+}
+
+func (f *FakeSys) Spawn(proc Proc) {
+	if proc.User == "" {
+		proc.User = "dev"
+	}
+	if proc.Comm == "" {
+		proc.Comm = base(field(proc.Args, 0))
+	}
+
+	f.Procs[proc.PID] = proc
+}
+
+func (f *FakeSys) Alive(pid int) bool {
+	_, running := f.Procs[pid]
+
+	return running
 }
 
 func (f *FakeSys) FailPackage(pkg, stderr string) {
@@ -117,10 +156,15 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 		return sys.Output{Stdout: reply}, nil
 	}
 
-	for fragment, answer := range f.Answers {
-		if strings.Contains(line, fragment) {
-			return sys.Output{Stdout: answer}, nil
+	// The longest matching fragment wins: two answers may both match one command line, and a map iterates in no order.
+	best := ""
+	for fragment := range f.Answers {
+		if strings.Contains(line, fragment) && len(fragment) > len(best) {
+			best = fragment
 		}
+	}
+	if best != "" {
+		return sys.Output{Stdout: f.Answers[best]}, nil
 	}
 
 	switch program {
@@ -148,6 +192,10 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 		return f.ps(cmd.Argv[1:])
 	case "tee":
 		return f.tee(cmd.Argv[1:], cmd.Stdin)
+	case "find":
+		return f.find(cmd.Argv[1:])
+	case "kill":
+		return f.kill(cmd.Argv[1:])
 	}
 
 	return sys.Output{Stdout: f.Replies[program]}, nil
@@ -338,8 +386,8 @@ func (f *FakeSys) systemctl(args []string) (sys.Output, error) {
 	}
 
 	switch action {
-	case "daemon-reload":
-		f.mutate("systemctl daemon-reload")
+	case "daemon-reload", "reboot":
+		f.mutate("systemctl " + action)
 	case "enable", "start":
 		f.Units[unit] = UnitActive
 		f.mutate("systemctl " + action + " " + unit)
@@ -495,6 +543,9 @@ func (f *FakeSys) ReadFile(path string) ([]byte, error) {
 func (f *FakeSys) WriteFile(path string, data []byte, mode fs.FileMode) error {
 	f.Files[path] = append([]byte(nil), data...)
 	f.Modes[path] = mode
+	if _, dated := f.Times[path]; !dated {
+		f.Times[path] = f.Now
+	}
 	f.mutate("write " + path)
 
 	return nil
@@ -507,6 +558,7 @@ func (f *FakeSys) Remove(path string) error {
 
 	delete(f.Files, path)
 	delete(f.Modes, path)
+	delete(f.Times, path)
 	f.mutate("remove " + path)
 
 	return nil
