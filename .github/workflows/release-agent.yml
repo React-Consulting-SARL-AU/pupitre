@@ -1,0 +1,130 @@
+name: Release agent
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version semver à publier, sans le v
+        required: true
+      channel:
+        description: Canal de publication
+        type: choice
+        options: [beta, stable]
+        default: beta
+      promote:
+        description: Promouvoir la version dans le canal stable après la publication
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# Two releases of the same version at once would race for the same R2 object.
+concurrency:
+  group: release-agent-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Construire, signer, publier
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # The signing key and the platform token live in this environment: the owner
+    # gates the run, nothing here reads a secret's value.
+    environment: release
+    env:
+      PUPITRE_RELEASE_CHANNEL: ${{ inputs.channel || 'beta' }}
+      PUPITRE_PLATFORM_URL: ${{ vars.PUPITRE_PLATFORM_URL }}
+      R2_BUCKET: ${{ vars.PUPITRE_R2_BUCKET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/agent/go.mod
+          cache-dependency-path: apps/agent/go.mod
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install garble
+        run: go install mvdan.cc/garble@latest
+
+      # The tag carries the v, the platform stores plain semver.
+      - name: Resolve the published version
+        env:
+          REQUESTED: ${{ inputs.version }}
+        run: echo "PUPITRE_RELEASE_VERSION=${REQUESTED:-${GITHUB_REF_NAME#v}}" >> "$GITHUB_ENV"
+
+      - name: Build and sign
+        working-directory: apps/agent
+        run: bun run release
+        env:
+          PUPITRE_RELEASE_PRIVATE_KEY: ${{ secrets.PUPITRE_RELEASE_PRIVATE_KEY }}
+
+      # A binary that cannot answer hello, or that carries no key, would install
+      # itself on a server and never be replaceable again.
+      - name: Smoke the built binary
+        working-directory: apps/agent
+        run: |
+          set -euo pipefail
+          binary=dist/release/pupitred-linux-amd64
+          test "$($binary version)" = "pupitred $PUPITRE_RELEASE_VERSION"
+          echo '{"id":1,"cmd":"hello","params":{"app_version":"0.0.0","protocol":1}}' | $binary serve | grep -q '"ok":true'
+          grep -qF "$(go run ./tools/release public-key)" "$binary"
+        env:
+          PUPITRE_RELEASE_PRIVATE_KEY: ${{ secrets.PUPITRE_RELEASE_PRIVATE_KEY }}
+
+      - name: Check the obfuscation
+        working-directory: apps/agent
+        run: |
+          set -euo pipefail
+          for binary in dist/release/pupitred-linux-*; do
+            readable=$(strings -a "$binary" | grep -c pupitre || true)
+            echo "$binary : $readable chaînes lisibles"
+            test "$readable" -le 10
+          done
+
+      # R2 first: the platform hands out a signed URL as soon as the row exists,
+      # so the object has to be there before the version is declared.
+      - name: Upload to R2
+        run: |
+          set -euo pipefail
+          for arch in amd64 arm64; do
+            bun x wrangler r2 object put \
+              "$R2_BUCKET/agent/$PUPITRE_RELEASE_VERSION/pupitred-linux-$arch" \
+              --file="apps/agent/dist/release/pupitred-linux-$arch" --remote
+          done
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Declare the version to the platform
+        working-directory: apps/agent
+        run: bun run release:publish
+        env:
+          PUPITRE_ADMIN_TOKEN: ${{ secrets.PUPITRE_ADMIN_TOKEN }}
+
+      - name: Promote to the stable channel
+        if: inputs.promote
+        working-directory: apps/agent
+        run: bun run release:promote
+        env:
+          PUPITRE_ADMIN_TOKEN: ${{ secrets.PUPITRE_ADMIN_TOKEN }}
+          PUPITRE_RELEASE_CHANNEL: stable
+
+      - name: Upload the signed binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: pupitred-${{ env.PUPITRE_RELEASE_VERSION }}
+          path: |
+            apps/agent/dist/release/pupitred-linux-*
+            apps/agent/dist/release/publications.json
+          retention-days: 30
+          if-no-files-found: error
