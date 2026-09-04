@@ -76,7 +76,7 @@ async function resolveMembership(request: Request) {
   if (!auth.organizationId) {
     return refuse(request, {
       status: 403,
-      code: "forbidden",
+      code: "no_active_organization",
       message: "no_active_organization",
       fix: "no_active_organization_fix",
     })
@@ -166,7 +166,7 @@ export const requireServer = new Elysia({ name: "requireServer" }).resolve(
     if (!server) {
       return refuse(request, {
         status: 401,
-        code: "unauthenticated",
+        code: "invalid_server_token",
         message: "server_token_unknown",
       })
     }
@@ -174,7 +174,7 @@ export const requireServer = new Elysia({ name: "requireServer" }).resolve(
     if (server.status === "revoked") {
       return refuse(request, {
         status: 401,
-        code: "unauthenticated",
+        code: "invalid_server_token",
         message: "server_token_revoked",
         fix: "server_token_revoked_fix",
       })

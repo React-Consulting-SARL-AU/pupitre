@@ -119,7 +119,7 @@ describe("guards", () => {
       const response = await call("/org", session.headers)
 
       expect(response.status).toBe(403)
-      expect(response.json.error?.code).toBe("forbidden")
+      expect(response.json.error?.code).toBe("no_active_organization")
       expect(response.json.error?.fix).toBeTruthy()
     })
 
@@ -213,6 +213,7 @@ describe("guards", () => {
       const response = await call("/agent", bearer("pupitre_srv_unknown"))
 
       expect(response.status).toBe(401)
+      expect(response.json.error?.code).toBe("invalid_server_token")
     })
 
     it("refuses a session bearer", async () => {
@@ -232,7 +233,7 @@ describe("guards", () => {
       const response = await call("/agent", bearer(token))
 
       expect(response.status).toBe(401)
-      expect(response.json.error?.code).toBe("unauthenticated")
+      expect(response.json.error?.code).toBe("invalid_server_token")
     })
 
     it("exposes the server for a valid token, including a suspended one", async () => {
