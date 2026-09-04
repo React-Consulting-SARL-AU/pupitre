@@ -55,7 +55,11 @@ Les PR font tourner les tâches affectées ; `main` fait tout.
 | web | `bun install --frozen-lockfile && DATABASE_URL="$MIGRATE_DATABASE_URL" bun --cwd=packages/db run db:migrate:deploy && bun --cwd=apps/web run build:cloudflare` | `bun scripts/check-worker-secrets.ts web && cd apps/web/dist/server && bun x wrangler deploy --config wrangler.json --keep-vars` |
 | site | `bun install --frozen-lockfile && bun --cwd=apps/site run build` | Pages, `apps/site/dist` |
 
-Deux environnements : `staging` (`staging.pupitre.sh`, `staging-app.pupitre.sh`, Stripe en mode test, projet Neon séparé) et `production`. L'app desktop de développement pointe sur `staging`.
+Deux environnements : `staging` (`staging.pupitre.sh`, `staging-app.pupitre.sh`, Stripe en mode test, branche Neon `staging`) et `production` (branche Neon `production`). L'app desktop de développement pointe sur `staging`.
+
+## Neon
+
+Projet `pupitre` (`royal-morning-15862824`, [console](https://console.neon.tech/app/projects/royal-morning-15862824)), région `aws-eu-central-1`, Postgres 18, créé le 4 septembre 2026. C'est la région sur laquelle le Worker `apps/web` est épinglé (`placement` dans `wrangler.jsonc`). Branche `production` par défaut ; branche `staging` pour le staging et la CI de migration ; les branches de développement se créent depuis `staging` avec `neonctl`. `DATABASE_URL` utilise l'endpoint poolé de la branche visée ; `MIGRATE_DATABASE_URL` l'endpoint direct.
 
 ## Dépendances
 
@@ -65,4 +69,4 @@ Les `overrides` du `package.json` racine sont la seule source de vérité de l'a
 
 ## Dashboards externes
 
-Cloudflare Builds, Stripe, Neon, Apple Developer, Azure Trusted Signing, GitHub Releases. Ce document est ce qui les décrit ; rien dans le dépôt ne peut vérifier ce qu'ils exécutent. Quand un tableau ci-dessus change, le dashboard change dans la même passe.
+Cloudflare Builds, Stripe, Neon (projet `pupitre`), Apple Developer, Azure Trusted Signing, GitHub Releases. Ce document est ce qui les décrit ; rien dans le dépôt ne peut vérifier ce qu'ils exécutent. Quand un tableau ci-dessus change, le dashboard change dans la même passe.
