@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/entitlement"
 )
 
 const testAgentVersion = "0.0.0-test"
@@ -54,8 +55,8 @@ func parseFixture(t *testing.T, path string) fixture {
 	return parsed
 }
 
-func newTestServer(entitlement contract.Entitlement) *Server {
-	server := NewServer(Options{AgentVersion: testAgentVersion, Entitlement: entitlement, Now: fixedNow})
+func newTestServer(granted contract.Entitlement) *Server {
+	server := NewServer(Options{AgentVersion: testAgentVersion, Entitlement: entitlement.Fixed(granted), Now: fixedNow})
 
 	server.Register("probe", func(_ *Context, _ json.RawMessage) (any, error) {
 		return nil, NewError(contract.ErrorBusy, "une installation est en cours").WithFix("Attends la fin de l'installation.")
@@ -215,7 +216,7 @@ func TestServeSurvivesInvalidInputAndReturnsNilAtEOF(t *testing.T) {
 }
 
 func TestRegisterRefusesCommandsOutsideTheContract(t *testing.T) {
-	server := NewServer(Options{AgentVersion: testAgentVersion, Entitlement: contract.EntitlementDev})
+	server := NewServer(Options{AgentVersion: testAgentVersion, Entitlement: entitlement.Fixed(contract.EntitlementDev)})
 
 	assertPanics(t, "unknown command", func() {
 		server.Register("nope", func(_ *Context, _ json.RawMessage) (any, error) { return nil, nil })

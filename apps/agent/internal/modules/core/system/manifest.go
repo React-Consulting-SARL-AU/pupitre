@@ -9,7 +9,7 @@ func manifest() contract.Manifest {
 		ID:        ID,
 		Category:  "core",
 		Name:      "Système",
-		Summary:   "Paquets de base, fuseau, mises à jour de sécurité, swap, garde-fou mémoire, utilisateur dev avec sudo, zsh, tmux et identité git.",
+		Summary:   "Paquets de base, fuseau, mises à jour de sécurité, swap, garde-fou mémoire, utilisateur dev avec sudo, zsh, tmux, identité git et service de l'agent.",
 		Requires:  []string{},
 		Conflicts: []string{},
 		Resources: contract.Resources{RAMMB: 256, DiskMB: 1024},

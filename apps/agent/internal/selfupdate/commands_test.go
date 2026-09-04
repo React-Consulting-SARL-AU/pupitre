@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/entitlement"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/selfupdate"
 )
@@ -17,10 +18,10 @@ type response struct {
 	Error  *protocol.Error `json:"error"`
 }
 
-func serve(t *testing.T, b *bench, entitlement contract.Entitlement, requests ...string) []response {
+func serve(t *testing.T, b *bench, granted contract.Entitlement, requests ...string) []response {
 	t.Helper()
 
-	server := protocol.NewServer(protocol.Options{AgentVersion: currentAgent, Entitlement: entitlement})
+	server := protocol.NewServer(protocol.Options{AgentVersion: currentAgent, Entitlement: entitlement.Fixed(granted)})
 	selfupdate.RegisterCommands(server, b.options)
 
 	var out strings.Builder

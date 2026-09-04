@@ -1,6 +1,7 @@
 package platform
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,6 +19,7 @@ const (
 	DefaultMaxBytes  = 128 << 20
 	DefaultTimeout   = 5 * time.Minute
 	maxRedirects     = 5
+	maxDetailBytes   = 8 << 10
 )
 
 type Client struct {
@@ -28,14 +30,20 @@ type Client struct {
 }
 
 type Error struct {
-	Path   string
-	Status int
-	Cause  error
+	Path    string
+	Status  int
+	Code    string
+	Message string
+	Cause   error
 }
 
 func (e *Error) Error() string {
 	if e.Cause != nil {
 		return fmt.Sprintf("%s : %s", e.Path, e.Cause)
+	}
+
+	if e.Message != "" {
+		return fmt.Sprintf("%s : %s (%d)", e.Path, e.Message, e.Status)
 	}
 
 	return fmt.Sprintf("%s : la plateforme a répondu %d", e.Path, e.Status)
@@ -53,42 +61,128 @@ func (e *Error) Unauthorized() bool {
 	return e.Status == http.StatusUnauthorized || e.Status == http.StatusForbidden
 }
 
+// What the platform knows of this server: the entitlement, the keys that open it, the version it should run.
+type State struct {
+	Entitlement    string         `json:"entitlement"`
+	ValidUntil     time.Time      `json:"valid_until"`
+	AuthorizedKeys []string       `json:"authorized_keys"`
+	TargetVersion  string         `json:"target_version"`
+	Hostname       string         `json:"hostname"`
+	ModuleParams   map[string]any `json:"module_params"`
+}
+
+type Enrollment struct {
+	Token         string `json:"enrollment_token"`
+	HostPublicKey string `json:"host_public_key"`
+	AgentVersion  string `json:"agent_version"`
+	Arch          string `json:"arch"`
+}
+
+type Heartbeat struct {
+	Disk         float64  `json:"disk"`
+	RAM          float64  `json:"ram"`
+	Load         float64  `json:"load"`
+	Sessions     []string `json:"sessions"`
+	StackVersion string   `json:"stack_version"`
+	Modules      []string `json:"modules"`
+	AgentVersion string   `json:"agent_version,omitempty"`
+}
+
 // The binary of a version, for the architecture the platform knows this server by.
 func (c Client) Release(version string) ([]byte, error) {
 	return c.get("/agent/release/" + url.PathEscape(version))
 }
 
-func (c Client) TargetVersion() (string, error) {
+func (c Client) State() (State, error) {
 	raw, err := c.get("/agent/state")
+	if err != nil {
+		return State{}, err
+	}
+
+	var state State
+	if err := json.Unmarshal(raw, &state); err != nil {
+		return State{}, &Error{Path: "/agent/state", Cause: errors.New("réponse illisible")}
+	}
+
+	return state, nil
+}
+
+func (c Client) TargetVersion() (string, error) {
+	state, err := c.State()
+
+	return state.TargetVersion, err
+}
+
+// The only call made without a server token: it is the one that hands one out.
+func (c Client) Exchange(enrollment Enrollment) (string, error) {
+	body, err := json.Marshal(enrollment)
+	if err != nil {
+		return "", &Error{Path: "/agent/exchange", Cause: err}
+	}
+
+	raw, err := c.do(http.MethodPost, "/agent/exchange", body, false)
 	if err != nil {
 		return "", err
 	}
 
-	var state struct {
-		TargetVersion string `json:"target_version"`
+	var answer struct {
+		ServerToken string `json:"server_token"`
 	}
-	if err := json.Unmarshal(raw, &state); err != nil {
-		return "", &Error{Path: "/agent/state", Cause: errors.New("réponse illisible")}
+	if err := json.Unmarshal(raw, &answer); err != nil || answer.ServerToken == "" {
+		return "", &Error{Path: "/agent/exchange", Cause: errors.New("réponse sans jeton de serveur")}
 	}
 
-	return state.TargetVersion, nil
+	return answer.ServerToken, nil
+}
+
+func (c Client) Beat(beat Heartbeat) error {
+	if beat.Sessions == nil {
+		beat.Sessions = []string{}
+	}
+	if beat.Modules == nil {
+		beat.Modules = []string{}
+	}
+
+	body, err := json.Marshal(beat)
+	if err != nil {
+		return &Error{Path: "/agent/heartbeat", Cause: err}
+	}
+
+	_, err = c.do(http.MethodPost, "/agent/heartbeat", body, true)
+
+	return err
 }
 
 func (c Client) get(path string) ([]byte, error) {
+	return c.do(http.MethodGet, path, nil, true)
+}
+
+func (c Client) do(method, path string, body []byte, authenticated bool) ([]byte, error) {
 	base, err := c.base()
 	if err != nil {
 		return nil, &Error{Path: path, Cause: err}
 	}
 
-	if c.Token == "" {
+	if authenticated && c.Token == "" {
 		return nil, &Error{Path: path, Cause: errors.New("aucun jeton de serveur")}
 	}
 
-	request, err := http.NewRequest(http.MethodGet, base+path, nil)
+	var payload io.Reader
+	if body != nil {
+		payload = bytes.NewReader(body)
+	}
+
+	request, err := http.NewRequest(method, base+path, payload)
 	if err != nil {
 		return nil, &Error{Path: path, Cause: err}
 	}
-	request.Header.Set("Authorization", "Bearer "+c.Token)
+
+	if authenticated {
+		request.Header.Set("Authorization", "Bearer "+c.Token)
+	}
+	if body != nil {
+		request.Header.Set("Content-Type", "application/json")
+	}
 	request.Header.Set("Accept", "*/*")
 
 	response, err := c.client().Do(request)
@@ -97,21 +191,44 @@ func (c Client) get(path string) ([]byte, error) {
 	}
 	defer response.Body.Close()
 
-	if response.StatusCode != http.StatusOK {
-		return nil, &Error{Path: path, Status: response.StatusCode}
+	if response.StatusCode < 200 || response.StatusCode > 299 {
+		return nil, refusal(path, response)
 	}
 
 	limit := c.maxBytes()
-	body, err := io.ReadAll(io.LimitReader(response.Body, limit+1))
+	answer, err := io.ReadAll(io.LimitReader(response.Body, limit+1))
 	if err != nil {
 		return nil, &Error{Path: path, Cause: err}
 	}
 
-	if int64(len(body)) > limit {
+	if int64(len(answer)) > limit {
 		return nil, &Error{Path: path, Cause: fmt.Errorf("réponse au-delà de %d octets", limit)}
 	}
 
-	return body, nil
+	return answer, nil
+}
+
+// A refusal comes as { error: { code, message, fix? } }; keeping the code is what tells a revoked token apart from a network that flinched.
+func refusal(path string, response *http.Response) *Error {
+	failure := &Error{Path: path, Status: response.StatusCode}
+
+	raw, err := io.ReadAll(io.LimitReader(response.Body, maxDetailBytes))
+	if err != nil {
+		return failure
+	}
+
+	var body struct {
+		Error struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(raw, &body); err == nil {
+		failure.Code = body.Error.Code
+		failure.Message = body.Error.Message
+	}
+
+	return failure
 }
 
 func (c Client) client() *http.Client {

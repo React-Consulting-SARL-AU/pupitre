@@ -16,7 +16,7 @@ import (
 
 type Options struct {
 	AgentVersion string
-	Entitlement  contract.Entitlement
+	Entitlement  func() entitlement.State
 	Now          func() time.Time
 }
 
@@ -49,6 +49,15 @@ func (s *Server) Register(cmd string, handler Handler) {
 	s.handlers[cmd] = handler
 }
 
+// A session is long-lived: the entitlement is asked again for every command, so a platform back after a week reopens the agent without a reconnection.
+func (s *Server) Entitlement() entitlement.State {
+	if s.options.Entitlement == nil {
+		return entitlement.State{Entitlement: contract.EntitlementDev, Enrolled: true}
+	}
+
+	return s.options.Entitlement()
+}
+
 func (s *Server) Capabilities() []string {
 	capabilities := make([]string, 0, len(s.handlers))
 	for cmd := range s.handlers {
@@ -68,7 +77,7 @@ func (s *Server) Call(cmd string, params any, emit func(event string, fields map
 		return nil, unknownCommand(cmd)
 	}
 
-	if s.options.Entitlement == contract.EntitlementRestricted && !entitlement.AllowedInRestrictedMode(cmd) {
+	if !s.Entitlement().Allows(cmd) {
 		return nil, EntitlementRequired()
 	}
 
@@ -198,7 +207,7 @@ func (s *session) dispatch(id int64, cmd string, params any, line []byte) (any, 
 		return nil, unknownCommand(cmd)
 	}
 
-	if s.server.options.Entitlement == contract.EntitlementRestricted && !entitlement.AllowedInRestrictedMode(cmd) {
+	if !s.server.Entitlement().Allows(cmd) {
 		return nil, EntitlementRequired()
 	}
 

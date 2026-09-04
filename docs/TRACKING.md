@@ -44,7 +44,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-11 | Sessions, processus, captures, secrets, bases | fait | `feat/AGT-11-sessions` | fusionnée |
 | AGT-12 | Shell de l'app et autocomplétion | fait | `feat/AGT-12-shell` | fusionnée |
 | AGT-13 | Mise à jour de l'agent | fait | `feat/AGT-13-self-update` | fusionnée |
-| AGT-14 | Droit d'usage, enrôlement, heartbeat | à faire | | |
+| AGT-14 | Droit d'usage, enrôlement, heartbeat | en revue | `feat/AGT-14-entitlement` | |
 | AGT-15 | Obfuscation et distribution | à faire | | |
 | AGT-16 | Validateur : messages d'erreur déterministes | à faire | | |
 | AGT-17 | La racine rendue par `project.git_status` reste dans la racine des projets | à faire | | |
