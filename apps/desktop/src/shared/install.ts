@@ -12,3 +12,15 @@ export type InstallUpdate =
   | { kind: "sending"; arch: string }
   | { kind: "sent"; arch: string; bytes: number }
   | { kind: "event"; event: Event };
+
+/**
+ * What the app put on the machine before speaking to it: the binary, its size,
+ * and where it landed. The checksum is the server's own, read back after the
+ * write.
+ */
+export type AgentDelivery = {
+  arch: string;
+  sha256: string;
+  bytes: number;
+  path: string;
+};

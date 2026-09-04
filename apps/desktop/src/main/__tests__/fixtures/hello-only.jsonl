@@ -1,0 +1,3 @@
+# Une session qui salue et ne répond plus : la reconnexion échoue sur ce serveur.
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","protocol":1}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello"]}}

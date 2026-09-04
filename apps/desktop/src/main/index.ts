@@ -36,6 +36,7 @@ import { agentClient, registerAgentChannels } from "./agent";
 import { registerCatalog } from "./catalog";
 import { catalog, history, paths } from "./completion";
 import { fileDiff, inspect, pull, validPath, workingTree } from "./git";
+import { registerHarden } from "./harden";
 import { registerInspection } from "./inspection";
 import { registerInstall } from "./install";
 import { SetupError } from "./server-setup";
@@ -298,6 +299,7 @@ function registerChannels(): void {
   registerInspection();
   registerCatalog();
   registerInstall();
+  registerHarden();
 
   ipcMain.handle("snapshot", () => snapshot());
 

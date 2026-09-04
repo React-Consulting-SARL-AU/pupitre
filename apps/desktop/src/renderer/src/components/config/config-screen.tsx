@@ -1,4 +1,5 @@
 import { ArrowLeft, Download } from "lucide-react";
+import type { ReactNode } from "react";
 import { useCatalog } from "../../stores/catalog";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
@@ -16,12 +17,20 @@ import { ConfigForm } from "./config-form";
 export function ConfigScreen({
   serverName,
   machineName,
+  notice,
+  only,
+  submitLabel,
   onMachineName,
   onBack,
   onInstall,
 }: {
   serverName?: string;
   machineName: string;
+  /** Said above the questions when something explains why they are asked. */
+  notice?: ReactNode;
+  /** The modules to ask about, when the screen is opened for one of them. */
+  only?: readonly string[];
+  submitLabel?: string;
   onMachineName?: (name: string) => void;
   onBack?: () => void;
   onInstall?: () => void;
@@ -33,6 +42,12 @@ export function ConfigScreen({
   const setSecret = useCatalog((state) => state.setSecret);
   const generate = useCatalog((state) => state.generate);
   const reveal = useCatalog((state) => state.reveal);
+
+  function asked() {
+    return only
+      ? groups().filter((group) => only.includes(group.module.id))
+      : groups();
+  }
 
   function handlersFor(moduleId: string): FieldHandlers {
     return {
@@ -52,11 +67,13 @@ export function ConfigScreen({
       <PageHeader
         actions={
           <>
-            <Button icon={ArrowLeft} onClick={onBack} variant="discreet">
-              Revenir au catalogue
-            </Button>
+            {onBack ? (
+              <Button icon={ArrowLeft} onClick={onBack} variant="discreet">
+                Revenir au catalogue
+              </Button>
+            ) : null}
             <Button icon={Download} onClick={onInstall} variant="inverse">
-              Installer
+              {submitLabel ?? "Installer"}
             </Button>
           </>
         }
@@ -65,6 +82,8 @@ export function ConfigScreen({
         title={serverName ?? "Ce serveur"}
       />
 
+      {notice}
+
       <Callout tone="info">
         Les mots de passe et les jetons ne sont jamais enregistrés par l'app :
         ils partent sur le flux secret au moment de l'installation, puis sont
@@ -72,7 +91,7 @@ export function ConfigScreen({
       </Callout>
 
       <ConfigForm
-        groups={groups()}
+        groups={asked()}
         handlersFor={handlersFor}
         machineName={machineName}
         onMachineName={onMachineName}

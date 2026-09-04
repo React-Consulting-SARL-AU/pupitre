@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { AgentResponse } from "@shared/agent";
+import type { AgentDelivery } from "@shared/install";
 import { AGENT_MANIFEST, type AgentManifest } from "../../scripts/embed-agent";
 
 /**
@@ -14,6 +15,8 @@ import { AGENT_MANIFEST, type AgentManifest } from "../../scripts/embed-agent";
  * wrote. What the app sent and what the server holds are compared before a
  * single `install` is spoken.
  */
+
+export type { AgentDelivery } from "@shared/install";
 
 export const AGENT_REMOTE_PATH = "/usr/local/bin/pupitred";
 
@@ -33,13 +36,6 @@ export type AgentPayload = {
   sha256: string;
   bytes: number;
   content: Buffer;
-};
-
-export type AgentDelivery = {
-  arch: string;
-  sha256: string;
-  bytes: number;
-  path: string;
 };
 
 export type ShellSpawn = (command: string, args: string[]) => ChildProcess;

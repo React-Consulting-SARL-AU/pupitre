@@ -7,7 +7,11 @@ import type {
 import type { AgentResponse } from "@shared/agent";
 import { app, ipcMain } from "electron";
 import { agentClient } from "./agent";
-import { agentPayload, sendAgentBinary } from "./agent-binary";
+import {
+  type AgentDelivery,
+  agentPayload,
+  sendAgentBinary,
+} from "./agent-binary";
 import { declaredModules } from "./catalog";
 import { inspect } from "./inspection";
 import { type InstallUpdate, runInstall } from "./install-run";
@@ -92,6 +96,32 @@ function configOf(value: unknown): ModuleConfig {
   return value && typeof value === "object" ? (value as ModuleConfig) : {};
 }
 
+/**
+ * The binary, put on the machine before anything is asked of it.
+ *
+ * A bare server has no catalogue to answer with, so the send comes first and
+ * the architecture is read from the probe here rather than taken from the
+ * interface: the renderer names a server, and nothing else about the machine.
+ */
+async function sendAgent(
+  serverId: unknown
+): Promise<AgentResponse<AgentDelivery>> {
+  if (typeof serverId !== "string" || !byId(serverId)) {
+    return refuse(
+      "Ce serveur n'est plus dans la liste.",
+      "Choisis un serveur dans les réglages."
+    );
+  }
+
+  const probe = await inspect(serverId);
+
+  if (!probe.ok) {
+    return probe;
+  }
+
+  return await deliver(serverId, probe.result.arch);
+}
+
 export function registerInstall(): void {
   ipcMain.handle(
     "install:start",
@@ -128,6 +158,10 @@ export function registerInstall(): void {
         }
       );
     }
+  );
+
+  ipcMain.handle("install:agent-send", (_event, serverId: unknown) =>
+    sendAgent(serverId)
   );
 
   ipcMain.handle(

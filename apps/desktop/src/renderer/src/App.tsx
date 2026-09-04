@@ -2,6 +2,7 @@ import { SquareTerminal, X } from "lucide-react";
 import { useCallback, useEffect } from "react";
 import { ConnectionSetup } from "./components/ConnectionSetup";
 import { Dashboard } from "./components/Dashboard";
+import { OnboardingFlow } from "./components/onboarding/onboarding-flow";
 import { ProjectView } from "./components/ProjectView";
 import { Secrets } from "./components/Secrets";
 import { Settings } from "./components/Settings";
@@ -11,6 +12,7 @@ import { Callout } from "./components/ui/callout";
 import { EmptyState } from "./components/ui/empty-state";
 import { IconButton } from "./components/ui/icon-button";
 import { noteProjects } from "./lib/completion";
+import { useOnboarding } from "./stores/onboarding";
 import { selectedProject, useAppState } from "./stores/state";
 
 const POLL_MS = 1500;
@@ -27,6 +29,7 @@ const POLL_GIT_MS = 300_000;
 
 export function App() {
   const state = useAppState();
+  const onboarding = useOnboarding((s) => s.step);
   const {
     snapshot,
     capabilities,
@@ -51,6 +54,9 @@ export function App() {
   useEffect(() => {
     loadServers();
     checkConnection();
+    // An onboarding left half-way reopens where it stopped: the machine is in
+    // the state the last step left it in, not the one this launch would guess.
+    useOnboarding.getState().resume();
   }, [loadServers, checkConnection]);
 
   useEffect(
@@ -120,6 +126,12 @@ export function App() {
   const project = selectedProject(snapshot, selection);
   const activeServer = servers?.servers.find((s) => s.id === servers.active);
   const serverTerminals = terminals.filter((t) => t.project === null);
+
+  // The onboarding comes first: it is what a server that answers nothing yet
+  // needs, and the connection wizard has nothing to say about a bare machine.
+  if (onboarding !== "closed") {
+    return <OnboardingFlow />;
+  }
 
   // The settings stay reachable even with no connection: that is often where you
   // go when it does not come up.
