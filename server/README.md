@@ -1,5 +1,7 @@
 # Pupitre — the server (dev-stack)
 
+> LEGACY — cette stack bash est la spécification des modules de l'agent Go (voir [docs/contracts/service-catalog.md](../docs/contracts/service-catalog.md)). Elle n'est plus le chemin d'installation du produit.
+
 Turn a bare Ubuntu into a complete development server, driven from your laptop.
 You open your laptop, your dev servers are already running, your URLs answer, and
 the AI agents work on the machine that has the RAM.
