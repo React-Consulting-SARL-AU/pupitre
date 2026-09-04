@@ -120,7 +120,12 @@ export function TerminalTabs({
               zIndex: session.id === active ? 1 : 0,
             }}
           >
-            <TerminalPane id={session.id} kind={kind} project={project} />
+            <TerminalPane
+              active={session.id === active}
+              id={session.id}
+              kind={kind}
+              project={project}
+            />
           </div>
         ))}
       </div>

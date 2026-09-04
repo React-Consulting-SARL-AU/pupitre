@@ -40,15 +40,18 @@ export interface ProjectDeps {
 }
 
 /**
- * The projects the agent named, and the folder it named for each.
+ * The projects the agent named, and the folders it named for each.
  *
  * `dir` is what the registry holds — relative to a projects root the protocol
- * never states. `root` is the absolute folder git reports, which is the only
- * absolute path the agent gives, and the one an editor or a terminal can be
- * pointed at. It is filled in the day a git command answers for that project.
+ * never states. `path` is that same folder in absolute, resolved by the agent
+ * for every project, versioned or not: it is where a terminal starts and what
+ * an editor is pointed at. `root` is the root git reports, filled in the day a
+ * git command answers, and it is the one the editor prefers on a repository
+ * whose registry folder sits below it.
  */
 interface Declared {
   dir: string;
+  path: string | null;
   root: string | null;
 }
 
@@ -62,9 +65,16 @@ export function forgetProjects(serverId?: string): void {
   }
 }
 
-/** The absolute folder of a project, or nothing while git has not said. */
+/** The absolute folder of a project: git's root, else the one the agent gave. */
 export function projectFolder(serverId: string, name: string): string | null {
-  return declared.get(serverId)?.get(name)?.root ?? null;
+  const held = declared.get(serverId)?.get(name);
+
+  return held?.root ?? held?.path ?? null;
+}
+
+/** Whether this server has declared a project under that name. */
+export function declaresProject(serverId: string, name: string): boolean {
+  return declared.get(serverId)?.has(name) ?? false;
 }
 
 const ABSOLUTE = /^\/[\w.\-/+@]{0,240}$/;
@@ -99,15 +109,20 @@ function known(serverId: unknown, deps: ProjectDeps): string | null {
 
 function remember(
   serverId: string,
-  projects: readonly { name: string; dir: string }[]
+  projects: readonly { name: string; dir: string; path?: string }[]
 ): void {
   const held = declared.get(serverId) ?? new Map<string, Declared>();
 
   for (const project of projects) {
     const known = held.get(project.name);
+    const absolute =
+      typeof project.path === "string" && ABSOLUTE.test(project.path)
+        ? project.path
+        : (known?.path ?? null);
 
     held.set(project.name, {
       dir: project.dir,
+      path: absolute,
       root: known?.root ?? null,
     });
   }

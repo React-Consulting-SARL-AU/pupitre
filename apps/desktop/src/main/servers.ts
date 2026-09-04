@@ -147,9 +147,9 @@ export function byId(id: string): Server | null {
   return read().servers.find((server) => server.id === id) ?? null;
 }
 
-/** The ssh arguments of the active server, for what still opens its own link. */
-export function target(): string[] {
-  const server = active();
+/** The ssh arguments of one server, for what opens its own link: a terminal. */
+export function targetOf(serverId: string): string[] {
+  const server = byId(serverId);
 
   return server ? sshArgs(server, paths()) : [];
 }

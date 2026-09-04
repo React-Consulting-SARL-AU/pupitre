@@ -6,9 +6,16 @@
  */
 
 /** The command-line agents a terminal can carry. */
-export type TerminalAgent = "claude" | "codex";
+export type TerminalAgent = "claude" | "codex" | "hermes";
 
 export type TerminalKind = "shell" | TerminalAgent;
+
+export const TERMINAL_KINDS: readonly TerminalKind[] = [
+  "shell",
+  "claude",
+  "codex",
+  "hermes",
+];
 
 /**
  * What a session is doing, inferred from its stream.
@@ -31,4 +38,29 @@ export interface Terminal {
   title: string;
   project: string | null;
   dir: string | null;
+}
+
+/** What the main process answers once a session is up. */
+export interface TerminalOpened {
+  /** The session the agent named, when the terminal carries an agent. */
+  session: string | null;
+}
+
+/**
+ * A login address an agent printed on its output.
+ *
+ * The address itself stays in the main process: what crosses is the host, so
+ * the reader sees where the button leads before pressing it.
+ */
+export interface TerminalLink {
+  id: string;
+  host: string;
+}
+
+/** Where the in-app browser sits, in the window's own coordinates. */
+export interface ViewBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }

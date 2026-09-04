@@ -15,6 +15,7 @@ export const PROJECT_TABS = [
   "shell",
   "claude",
   "codex",
+  "hermes",
 ] as const;
 
 export type ProjectTab = (typeof PROJECT_TABS)[number];
@@ -23,6 +24,7 @@ export const TERMINAL_TABS: readonly ProjectTab[] = [
   "shell",
   "claude",
   "codex",
+  "hermes",
 ];
 
 export function isTerminalTab(tab: ProjectTab): tab is TerminalKind {
@@ -40,6 +42,7 @@ export const TAB_LABEL: Record<ProjectTab, string> = {
   claude: "Claude",
   codex: "Codex",
   diff: "Diff",
+  hermes: "Hermes",
   logs: "Journal",
   overview: "Vue d'ensemble",
   shell: "Terminal",
@@ -64,7 +67,7 @@ export function tabsFor({
       return repo;
     }
 
-    if (tab === "claude" || tab === "codex") {
+    if (tab === "claude" || tab === "codex" || tab === "hermes") {
       return agents.includes(tab);
     }
 

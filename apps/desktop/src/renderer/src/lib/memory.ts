@@ -55,3 +55,44 @@ export function writeNavigation(patch: Navigation): void {
     // was in before this file existed.
   }
 }
+
+const HISTORY_KEY = "pupitre.history.v1";
+
+/**
+ * The lines run in the app's own terminals, one list per server.
+ *
+ * They are the app's history, not the machine's: the shell says where a command
+ * starts and where it is submitted, which is enough to complete the next one
+ * without opening a second connection to read a file of the server.
+ */
+function readAllHistory(): Record<string, string[]> {
+  try {
+    const raw = window.localStorage.getItem(HISTORY_KEY);
+    const read = raw ? (JSON.parse(raw) as Record<string, string[]>) : {};
+
+    return typeof read === "object" && read !== null ? read : {};
+  } catch {
+    return {};
+  }
+}
+
+export function readHistory(serverId: string): string[] {
+  const kept = readAllHistory()[serverId];
+
+  return Array.isArray(kept)
+    ? kept.filter((entry) => typeof entry === "string")
+    : [];
+}
+
+export function writeHistory(
+  serverId: string,
+  entries: readonly string[]
+): void {
+  try {
+    const all = { ...readAllHistory(), [serverId]: [...entries] };
+
+    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(all));
+  } catch {
+    // Same as the navigation: a convenience, never a reason to fail.
+  }
+}

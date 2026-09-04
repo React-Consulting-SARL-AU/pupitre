@@ -2,7 +2,8 @@ import type { AgentState, TerminalKind } from "@shared/terminals";
 import type { WebContents } from "electron";
 import * as pty from "node-pty";
 
-import { target } from "./servers";
+import { targetOf } from "./servers";
+import { loginAddress } from "./terminal-links";
 
 interface Session {
   proc: pty.IPty;
@@ -15,6 +16,10 @@ interface Session {
   /** A bell arrived and you have not answered yet. */
   bell: boolean;
   finished: boolean;
+  /** The end of the stream, so an address cut between two chunks is still read. */
+  tail: string;
+  /** The login address this session last printed, kept out of the renderer. */
+  login: { url: string; host: string } | null;
 }
 
 const sessions = new Map<string, Session>();
@@ -23,6 +28,9 @@ const STREAM_MS = 1200;
 const ASLEEP_MS = 5 * 60 * 1000;
 /** Below this, it is a keystroke echo or a redraw, not work. */
 const MINIMUM_WORK = 200;
+/** Long enough to hold the longest address an agent prints. */
+const TAIL = 800;
+const BELL = "\u0007";
 
 /**
  * A session's state, without ever reading what it displays.
@@ -45,7 +53,7 @@ function stateOf(session: Session): AgentState {
     return "working";
   }
 
-  const isAgent = session.kind === "claude" || session.kind === "codex";
+  const isAgent = session.kind !== "shell";
   if (isAgent && (session.bell || session.sinceKeystroke > MINIMUM_WORK)) {
     return "attention";
   }
@@ -61,59 +69,72 @@ export function states(): Record<string, AgentState> {
   return all;
 }
 
+export interface OpenTerminal {
+  id: string;
+  serverId: string;
+  kind: TerminalKind;
+  project: string | null;
+  /** The remote command: the app's own for a shell, `agent.open`'s otherwise. */
+  command: string;
+  cols: number;
+  rows: number;
+}
+
 /**
- * The remote command, depending on what we want to open.
+ * Reads the stream for a login address and tells the renderer when one appears.
  *
- * `-tt` forces terminal allocation even when ssh does not deem it necessary:
- * without it, the server dashboard and Claude Code refuse to start, for want of
- * a TTY.
- *
- * The folder is absolute and quoted for the remote shell: it is the one the
- * agent named for that project, never a path the renderer chose. A project the
- * agent has not placed yet opens in the login folder rather than in a guess.
+ * The address itself stays here: what crosses the bridge is its host, and the
+ * renderer asks to open "the address this session is waiting on" rather than
+ * naming one of its own.
  */
-function remoteArgs(kind: TerminalKind, dir: string | null): string[] {
-  const cd = dir ? `cd '${dir}' && ` : "";
-  const base = ["-tt", ...target()];
-  switch (kind) {
-    case "shell":
-      return [...base, `${cd}exec $SHELL -l`];
-    case "claude":
-      return [...base, `${cd}exec claude`];
-    case "codex":
-      return [...base, `${cd}exec codex`];
-    default:
-      return base;
+function noteLogin(id: string, session: Session, recipient: WebContents): void {
+  const found = loginAddress(session.tail);
+
+  if (!found || found.url === session.login?.url) {
+    return;
+  }
+
+  session.login = found;
+
+  if (!recipient.isDestroyed()) {
+    recipient.send("terminal-link", { host: found.host, id });
   }
 }
 
-export function open(
-  id: string,
-  kind: TerminalKind,
-  dir: string | null,
-  project: string | null,
-  cols: number,
-  rows: number,
-  recipient: WebContents
-): void {
+/**
+ * The session, on the app's own SSH configuration.
+ *
+ * `-tt` forces terminal allocation even when ssh does not deem it necessary:
+ * without it, an agent refuses to start, for want of a TTY. The command is a
+ * single argument, and the remote login shell is the only thing to read it.
+ */
+export function open(request: OpenTerminal, recipient: WebContents): void {
+  const { id } = request;
+
   close(id);
 
-  const proc = pty.spawn("ssh", remoteArgs(kind, dir), {
-    name: "xterm-256color",
-    cols,
-    rows,
-    cwd: process.env.HOME,
-    env: process.env as Record<string, string>,
-  });
+  const proc = pty.spawn(
+    "ssh",
+    ["-tt", ...targetOf(request.serverId), request.command],
+    {
+      name: "xterm-256color",
+      cols: request.cols,
+      rows: request.rows,
+      cwd: process.env.HOME,
+      env: process.env as Record<string, string>,
+    }
+  );
 
   proc.onData((data) => {
     const session = sessions.get(id);
     if (session) {
       session.seenAt = Date.now();
       session.sinceKeystroke += data.length;
-      if (data.includes("\u0007")) {
+      session.tail = (session.tail + data).slice(-TAIL);
+      if (data.includes(BELL)) {
         session.bell = true;
       }
+      noteLogin(id, session, recipient);
     }
     if (!recipient.isDestroyed()) {
       recipient.send("terminal-data", { id, data });
@@ -132,14 +153,30 @@ export function open(
 
   sessions.set(id, {
     proc,
-    kind,
-    project,
+    kind: request.kind,
+    project: request.project,
     seenAt: Date.now(),
     sinceKeystroke: 0,
     bell: false,
     finished: false,
+    tail: "",
+    login: null,
   });
   watch(recipient);
+}
+
+/** The address this session is waiting on, for whoever opens it. */
+export function pendingLogin(id: string): { url: string; host: string } | null {
+  return sessions.get(id)?.login ?? null;
+}
+
+/** Once used, an address is spent: a second click would replay a dead round. */
+export function forgetLogin(id: string): void {
+  const session = sessions.get(id);
+
+  if (session) {
+    session.login = null;
+  }
 }
 
 let watcher: NodeJS.Timeout | null = null;

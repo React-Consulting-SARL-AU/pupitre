@@ -14,6 +14,7 @@ import type { TerminalAgent } from "@shared/terminals";
 const AGENT_MODULES: Record<string, TerminalAgent> = {
   "ai.claude": "claude",
   "ai.codex": "codex",
+  "ai.hermes": "hermes",
 };
 
 export function installedModules(services: readonly Service[]): string[] {

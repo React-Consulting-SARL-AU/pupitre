@@ -20,6 +20,7 @@ import { useOnboarding } from "./stores/onboarding";
 import { useSecrets } from "./stores/secrets";
 import { useServers } from "./stores/servers";
 import { snapshotOf, useSnapshot } from "./stores/snapshot";
+import { useTerminals } from "./stores/terminals";
 
 /** The dashboard is the state of the machine: it is worth a beat of its own. */
 const POLL_MS = 3000;
@@ -60,6 +61,22 @@ export function App() {
     () => window.pupitre.onTerminalStates(navigation.noteStates),
     [navigation.noteStates]
   );
+
+  // A session that prints a login address, and the round trip that ends: both
+  // come from the main process, which is the only side that saw the address.
+  useEffect(() => {
+    const link = window.pupitre.onTerminalLink((payload) =>
+      useTerminals.getState().noteLink(payload.id, payload.host)
+    );
+    const closed = window.pupitre.onLoginClosed((id) =>
+      useTerminals.getState().noteLoginClosed(id)
+    );
+
+    return () => {
+      link();
+      closed();
+    };
+  }, []);
 
   const { read, readProcesses, forget } = store;
 
