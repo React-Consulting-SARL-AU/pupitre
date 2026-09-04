@@ -1,15 +1,10 @@
 import { ORG_ROLES } from "@pupitre/shared/permissions"
 import { t } from "elysia"
-import {
-  BILLING_CURRENCIES,
-  BILLING_INTERVALS,
-} from "../../../billing/provider"
+import { BILLING_INTERVALS } from "../../../billing/provider"
 import { EVENTS_MAX_PAGE_SIZE } from "../../../orgs/events"
 import { dateTime } from "../../openapi-models"
 
 export const billingIntervalSchema = t.UnionEnum([...BILLING_INTERVALS])
-
-export const billingCurrencySchema = t.UnionEnum([...BILLING_CURRENCIES])
 
 export const organizationParams = t.Object({ id: t.String() })
 
