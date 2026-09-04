@@ -40,7 +40,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-10 | Registre des projets et pilotage | fait | `feat/AGT-10-registry` | fusionnée |
 | AGT-11 | Sessions, processus, captures, secrets, bases | fait | `feat/AGT-11-sessions` | fusionnée |
 | AGT-12 | Shell de l'app et autocomplétion | fait | `feat/AGT-12-shell` | fusionnée |
-| AGT-13 | Mise à jour de l'agent | à faire | | |
+| AGT-13 | Mise à jour de l'agent | en revue | `feat/AGT-13-self-update` | |
 | AGT-14 | Droit d'usage, enrôlement, heartbeat | à faire | | |
 | AGT-15 | Obfuscation et distribution | à faire | | |
 | AGT-16 | Validateur : messages d'erreur déterministes | à faire | | |
@@ -113,3 +113,5 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
+| 2026-09-04 | AGT-13 | Le contrat dit qu'`agent.upgrade` reçoit `{ version?, signature }` mais ne dit pas ce que la signature couvre. L'agent vérifie une signature Ed25519 sur `pupitred\n<version>\n<arch>\n<sha256 hexadécimal>\n` (`selfupdate.SignedMessage`), ce qui lie l'empreinte à la version et à l'architecture publiées. À fixer dans le contrat avant qu'AGT-15 ne signe et qu'APP-12 ne vérifie. | INF |
+| 2026-09-04 | AGT-13 | Aucune route ne donne à l'agent l'empreinte attendue d'une version : `/agent/state` ne rend que `target_version` et `/agent/release/:version` ne rend que le binaire. L'agent se repose donc sur la signature reçue en paramètre. | INF |
