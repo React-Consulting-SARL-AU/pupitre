@@ -1,0 +1,20 @@
+> {"id":1,"cmd":"hello","params":{"protocol":1}}
+< {"id":1,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/app_version : champ requis"}}
+> {"id":2,"cmd":"hello","params":{"app_version":"0.2.0","protocol":"1"}}
+< {"id":2,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/protocol : doit être de type integer"}}
+> {"id":3,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1,"extra":true}}
+< {"id":3,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/extra : champ inconnu"}}
+> {"id":4,"cmd":"hello"}
+< {"id":4,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/app_version : champ requis"}}
+> {"id":5,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+< {"id":5,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","ping","probe","project.logs","reboot","secrets.set"]}}
+> {"id":6,"cmd":"ping","params":{"x":1}}
+< {"id":6,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/x : champ inconnu"}}
+> {"id":7,"cmd":"project.logs","params":{"name":"Flymate"}}
+< {"id":7,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/name : ne correspond pas au motif ^[a-z0-9][a-z0-9._-]*$"}}
+> {"id":8,"cmd":"project.logs","params":{"name":"flymate-api","lines":0}}
+< {"id":8,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/lines : doit être > 0"}}
+> {"id":9,"cmd":"secrets.set","params":{"key":"api_key","secrets_stdin":true}}
+< {"id":9,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/key : ne correspond pas au motif ^[A-Z][A-Z0-9_]*$"}}
+> {"id":10,"cmd":"ping"}
+< {"id":10,"ok":true,"result":{"ts":"2026-09-04T12:00:00Z"}}

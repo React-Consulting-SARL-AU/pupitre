@@ -2,62 +2,108 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"strings"
 	"testing"
+
+	"pupitre.sh/agent/internal/contract"
+	"pupitre.sh/agent/internal/entitlement"
 )
 
-func TestServeAnswersPing(t *testing.T) {
-	var out bytes.Buffer
+func serveLines(t *testing.T, lines ...string) []string {
+	t.Helper()
 
-	if err := serve(strings.NewReader(`{"id":1,"cmd":"ping"}`+"\n"), &out); err != nil {
+	var out bytes.Buffer
+	if err := newServer().Serve(strings.NewReader(strings.Join(lines, "\n")+"\n"), &out, nil); err != nil {
 		t.Fatalf("serve: %v", err)
 	}
 
-	var res response
-	if err := json.Unmarshal(out.Bytes(), &res); err != nil {
-		t.Fatalf("decode %q: %v", out.String(), err)
+	return strings.Split(strings.TrimSpace(out.String()), "\n")
+}
+
+func decodeResponse(t *testing.T, line string) map[string]any {
+	t.Helper()
+
+	value, err := contract.Decode([]byte(line))
+	if err != nil {
+		t.Fatalf("decode %q: %v", line, err)
 	}
 
-	if res.ID != 1 || !res.OK || res.Error != nil {
-		t.Fatalf("unexpected response: %+v", res)
+	if err := contract.Validate("Response", value); err != nil {
+		t.Fatalf("%q violates Response: %v", line, err)
 	}
 
-	if _, ok := res.Result["ts"].(string); !ok {
-		t.Fatalf("missing ts in %+v", res.Result)
+	return value.(map[string]any)
+}
+
+func errorCode(t *testing.T, line string) string {
+	t.Helper()
+
+	response := decodeResponse(t, line)
+	if response["ok"] != false {
+		t.Fatalf("expected a failure, got %s", line)
+	}
+
+	return response["error"].(map[string]any)["code"].(string)
+}
+
+func TestServeNegotiatesHelloThenAnswersPing(t *testing.T) {
+	lines := serveLines(t,
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}`,
+		`{"id":2,"cmd":"ping"}`,
+		`{"id":3,"cmd":"probe"}`,
+	)
+
+	if len(lines) != 3 {
+		t.Fatalf("got %d lines: %v", len(lines), lines)
+	}
+
+	hello := decodeResponse(t, lines[0])
+	if hello["ok"] != true {
+		t.Fatalf("hello failed: %s", lines[0])
+	}
+
+	result := hello["result"].(map[string]any)
+	if err := contract.Validate("HelloResult", result); err != nil {
+		t.Fatalf("hello result violates HelloResult: %v", err)
+	}
+
+	if result["agent_version"] != version || result["entitlement"] != string(entitlement.Current()) {
+		t.Fatalf("unexpected hello result: %v", result)
+	}
+
+	ping := decodeResponse(t, lines[1])
+	if ping["ok"] != true {
+		t.Fatalf("ping failed: %s", lines[1])
+	}
+
+	if _, ok := ping["result"].(map[string]any)["ts"].(string); !ok {
+		t.Fatalf("ping result lacks ts: %s", lines[1])
+	}
+
+	if code := errorCode(t, lines[2]); code != "unknown_command" {
+		t.Fatalf("probe → %s, want unknown_command", code)
 	}
 }
 
-func TestServeRejectsUnknownCommand(t *testing.T) {
-	var out bytes.Buffer
+func TestServeRequiresHello(t *testing.T) {
+	lines := serveLines(t, `{"id":1,"cmd":"ping"}`)
 
-	if err := serve(strings.NewReader(`{"id":2,"cmd":"reboot"}`+"\n"), &out); err != nil {
-		t.Fatalf("serve: %v", err)
-	}
-
-	var res response
-	if err := json.Unmarshal(out.Bytes(), &res); err != nil {
-		t.Fatalf("decode %q: %v", out.String(), err)
-	}
-
-	if res.ID != 2 || res.OK || res.Error == nil || res.Error.Code != "unknown_command" {
-		t.Fatalf("unexpected response: %+v", res)
+	if code := errorCode(t, lines[0]); code != "hello_required" {
+		t.Fatalf("got %s, want hello_required", code)
 	}
 }
 
-func TestServeRejectsInvalidJSON(t *testing.T) {
-	var out bytes.Buffer
+func TestServeRejectsInvalidJSONAndKeepsGoing(t *testing.T) {
+	lines := serveLines(t,
+		"not json",
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}`,
+	)
 
-	if err := serve(strings.NewReader("not json\n"), &out); err != nil {
-		t.Fatalf("serve: %v", err)
+	if code := errorCode(t, lines[0]); code != "bad_request" {
+		t.Fatalf("got %s, want bad_request", code)
 	}
 
-	var res response
-	if err := json.Unmarshal(out.Bytes(), &res); err != nil {
-		t.Fatalf("decode %q: %v", out.String(), err)
-	}
-
-	if res.OK || res.Error == nil || res.Error.Code != "invalid_request" {
-		t.Fatalf("unexpected response: %+v", res)
+	if decodeResponse(t, lines[1])["ok"] != true {
+		t.Fatalf("hello after a bad line failed: %s", lines[1])
 	}
 }

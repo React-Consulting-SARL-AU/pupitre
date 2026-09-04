@@ -1,0 +1,13 @@
+@entitlement restricted
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"restricted","capabilities":["hello","ping","probe","project.logs","reboot","secrets.set"]}}
+> {"id":2,"cmd":"ping"}
+< {"id":2,"ok":true,"result":{"ts":"2026-09-04T12:00:00Z"}}
+> {"id":3,"cmd":"probe"}
+< {"id":3,"ok":false,"error":{"code":"entitlement_required","message":"droit d'usage requis : ce serveur est en mode restreint","fix":"Ouvre https://app.pupitre.sh pour renouveler le droit d'usage de ce serveur."}}
+> {"id":4,"cmd":"secrets.set","params":{"key":"API_KEY","secrets_stdin":true}}
+< {"id":4,"ok":false,"error":{"code":"entitlement_required","message":"droit d'usage requis : ce serveur est en mode restreint","fix":"Ouvre https://app.pupitre.sh pour renouveler le droit d'usage de ce serveur."}}
+> {"id":5,"cmd":"snapshot"}
+< {"id":5,"ok":false,"error":{"code":"unknown_command","message":"commande inconnue : snapshot"}}
+> {"id":6,"cmd":"ping"}
+< {"id":6,"ok":true,"result":{"ts":"2026-09-04T12:00:00Z"}}

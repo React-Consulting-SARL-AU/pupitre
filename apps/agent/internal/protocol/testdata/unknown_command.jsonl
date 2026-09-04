@@ -1,0 +1,8 @@
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","ping","probe","project.logs","reboot","secrets.set"]}}
+> {"id":2,"cmd":"snapshot"}
+< {"id":2,"ok":false,"error":{"code":"unknown_command","message":"commande inconnue : snapshot"}}
+> {"id":3,"cmd":"nope"}
+< {"id":3,"ok":false,"error":{"code":"unknown_command","message":"commande inconnue : nope"}}
+> {"id":4,"cmd":"ping"}
+< {"id":4,"ok":true,"result":{"ts":"2026-09-04T12:00:00Z"}}
