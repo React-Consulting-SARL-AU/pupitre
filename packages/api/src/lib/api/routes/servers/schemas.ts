@@ -49,6 +49,16 @@ export const enrollmentSchema = t.Object(
   { $id: "ServerEnrollment" }
 )
 
+export const serverUsageSchema = t.Object(
+  {
+    at: dateTime,
+    disk: t.Number(),
+    ram: t.Number(),
+    load: t.Number(),
+  },
+  { $id: "ServerUsage" }
+)
+
 const serverFields = {
   id: t.String(),
   name: t.String(),
@@ -64,6 +74,7 @@ const serverFields = {
   assigned_user_id: t.Nullable(t.String()),
   last_heartbeat_at: t.Nullable(dateTime),
   entitlement_valid_until: t.Nullable(dateTime),
+  usage: t.Nullable(serverUsageSchema),
   created_at: dateTime,
 }
 
