@@ -3,6 +3,7 @@ import { ConfirmButton } from "@renderer/components/ui/confirm-button";
 import { EmptyState } from "@renderer/components/ui/empty-state";
 import { IconButton } from "@renderer/components/ui/icon-button";
 import { memory, plural, uptime } from "@renderer/lib/format";
+import { isAttached } from "@renderer/lib/sessions";
 import { Braces, Sparkles, SquareTerminal, Trash2, X } from "lucide-react";
 
 /**
@@ -27,10 +28,13 @@ const KINDS: Record<Session["kind"], { label: string; icon: typeof Braces }> = {
 
 export function ActivitySessions({
   sessions,
+  attached,
   onStop,
   onClean,
 }: {
   sessions: readonly Session[];
+  /** The sessions the app still has a tab on: the others are the strays. */
+  attached: readonly string[];
   onStop: (pid: number) => void;
   onClean: () => void;
 }) {
@@ -83,6 +87,7 @@ export function ActivitySessions({
                   <p className="font-data text-[10px] text-ink-3">
                     {kind.label} · pid {session.pid} · {uptime(session.seconds)}
                     {session.project ? ` · ${session.project}` : ""}
+                    {isAttached(attached, session) ? " · onglet ouvert" : ""}
                   </p>
                 </div>
 

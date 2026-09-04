@@ -18,6 +18,7 @@ const NOOP = () => undefined;
 function panel(): string {
   return renderToStaticMarkup(
     <DashboardPanel
+      attached={[]}
       busy={null}
       onAct={NOOP}
       onCleanSessions={NOOP}
@@ -77,6 +78,7 @@ describe("le tableau de bord", () => {
   it("n'invente rien pour un serveur sans service ni projet", () => {
     const html = renderToStaticMarkup(
       <DashboardPanel
+        attached={[]}
         busy={null}
         onAct={NOOP}
         onCleanSessions={NOOP}

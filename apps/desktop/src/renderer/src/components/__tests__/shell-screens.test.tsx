@@ -125,6 +125,7 @@ describe("processus et sessions", () => {
   it("rend ce qui pèse et ce qui survit, depuis le snapshot", () => {
     const html = renderToStaticMarkup(
       <ActivityPanel
+        attached={["claude:flymate-api"]}
         onCleanSessions={NOOP}
         onStopProcess={NOOP}
         onStopSession={NOOP}
@@ -138,6 +139,32 @@ describe("processus et sessions", () => {
     expect(html).toContain("2,5 Go");
     expect(html).toContain("idea-backend");
     expect(html).toContain("éditeur distant");
+  });
+
+  it("distingue la session qu'un onglet de l'app tient encore", () => {
+    const attached = renderToStaticMarkup(
+      <ActivityPanel
+        attached={["claude:flymate-api"]}
+        onCleanSessions={NOOP}
+        onStopProcess={NOOP}
+        onStopSession={NOOP}
+        processes={PROCESSES}
+        sessions={SNAPSHOT.sessions}
+      />
+    );
+    const alone = renderToStaticMarkup(
+      <ActivityPanel
+        attached={[]}
+        onCleanSessions={NOOP}
+        onStopProcess={NOOP}
+        onStopSession={NOOP}
+        processes={PROCESSES}
+        sessions={SNAPSHOT.sessions}
+      />
+    );
+
+    expect(attached).toContain("onglet ouvert");
+    expect(alone).not.toContain("onglet ouvert");
   });
 });
 

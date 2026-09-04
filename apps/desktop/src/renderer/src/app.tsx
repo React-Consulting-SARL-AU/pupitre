@@ -15,6 +15,7 @@ import { EmptyState } from "./components/ui/empty-state";
 import { ErrorNotice } from "./components/ui/error-notice";
 import { IconButton } from "./components/ui/icon-button";
 import { noteProjects, noteServer } from "./lib/completion";
+import { attachedSessions } from "./lib/sessions";
 import { shellScreen } from "./lib/shell-screen";
 import { useNavigation } from "./stores/navigation";
 import { useOnboarding } from "./stores/onboarding";
@@ -168,6 +169,7 @@ export function App() {
   const serverTerminals = navigation.terminals.filter(
     (terminal) => terminal.project === null
   );
+  const attached = attachedSessions(navigation.terminals);
 
   return (
     <div className="grid h-full grid-cols-[224px_1fr]">
@@ -209,6 +211,7 @@ export function App() {
           {view === "dashboard" ? (
             <div className="absolute inset-0">
               <DashboardPanel
+                attached={attached}
                 busy={busy}
                 onAct={(action, name) => store.act(action, serverId, name)}
                 onCleanSessions={() => store.cleanSessions(serverId)}
@@ -248,6 +251,7 @@ export function App() {
           {view === "activity" ? (
             <div className="absolute inset-0">
               <ActivityPanel
+                attached={attached}
                 onCleanSessions={() => store.cleanSessions(serverId)}
                 onStopProcess={(pid) => store.stopProcess(serverId, pid)}
                 onStopSession={(pid) => store.stopProcess(serverId, pid)}
