@@ -30,6 +30,10 @@ type urlResult struct {
 	URL string `json:"url"`
 }
 
+type secretResult struct {
+	Key string `json:"key"`
+}
+
 type doneResult struct {
 	Done bool `json:"done"`
 }
@@ -81,6 +85,25 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 		}
 
 		return reader.ServiceStatus(params.ID)
+	})
+
+	server.Register("service.secret", func(ctx *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			ID  string `json:"id"`
+			Key string `json:"key"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		value, err := reader.ServiceSecret(params.ID, params.Key)
+		if err != nil {
+			return nil, err
+		}
+
+		ctx.Emit("secret", map[string]any{"key": params.Key, "value": value})
+
+		return secretResult{Key: params.Key}, nil
 	})
 
 	server.Register("completions", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
