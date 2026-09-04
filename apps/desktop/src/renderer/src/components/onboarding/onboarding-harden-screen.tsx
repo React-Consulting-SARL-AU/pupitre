@@ -58,7 +58,7 @@ export function OnboardingHardenScreen({
       ) : null}
 
       {steps.length > 0 ? (
-        <ul className="elevation-raised divide-y divide-line rounded-md border border-line bg-surface px-4 py-1">
+        <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-line bg-surface px-4 py-1">
           {steps.map((step) => (
             <InstallStepRow key={step.step} step={step} />
           ))}

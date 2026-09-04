@@ -95,7 +95,7 @@ export function ServicesTunnel({
           Aucune route : aucun projet n'a encore de sous-domaine.
         </p>
       ) : (
-        <ul className="elevation-raised divide-y divide-line rounded-md border border-line bg-surface">
+        <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
           {tunnel.routes.map((route) => (
             <li
               className="flex flex-wrap items-center gap-3 px-4 py-3"

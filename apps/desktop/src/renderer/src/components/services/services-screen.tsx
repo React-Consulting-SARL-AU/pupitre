@@ -154,7 +154,7 @@ export function ServicesScreen({
             title="Aucun service"
           />
         ) : (
-          <ul className="elevation-raised divide-y divide-line rounded-md border border-line bg-surface">
+          <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
             {services.map((service) => (
               <ServiceRow
                 key={service.id}
