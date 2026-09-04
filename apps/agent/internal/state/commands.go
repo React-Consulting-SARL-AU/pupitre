@@ -38,6 +38,11 @@ type sessionsResult struct {
 	Sessions []contract.Session `json:"sessions"`
 }
 
+type agentOpenResult struct {
+	Command string `json:"command"`
+	Session string `json:"session"`
+}
+
 type killedResult struct {
 	Killed int `json:"killed"`
 }
@@ -195,6 +200,23 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 		}
 
 		return reader.Diff(params.Name, params.Path)
+	})
+
+	server.Register("agent.open", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			Kind    string `json:"kind"`
+			Project string `json:"project"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		opened, err := reader.OpenAgent(params.Kind, params.Project)
+		if err != nil {
+			return nil, err
+		}
+
+		return agentOpenResult{Command: opened.Command, Session: opened.Session}, nil
 	})
 
 	server.Register("sessions.list", func(_ *protocol.Context, _ json.RawMessage) (any, error) {

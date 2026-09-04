@@ -41,6 +41,7 @@ type FakeSys struct {
 	Firewall  Firewall
 	Procs     map[int]Proc
 	Stubborn  map[int]bool
+	Links     map[string]string
 	Times     map[string]time.Time
 	Signals   []string
 	Now       time.Time
@@ -83,6 +84,7 @@ func NewFakeSys() *FakeSys {
 		Uptimes:  map[int]int{},
 		Procs:    map[int]Proc{},
 		Stubborn: map[int]bool{},
+		Links:    map[string]string{},
 		Times:    map[string]time.Time{},
 		Now:      Epoch,
 	}
@@ -167,7 +169,8 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 		return sys.Output{Stdout: f.Answers[best]}, nil
 	}
 
-	switch program {
+	// A program is recognised by its name, whether the caller gave a path or relied on PATH.
+	switch base(program) {
 	case "dpkg-query":
 		return f.dpkgQuery(cmd.Argv[1:])
 	case "apt-get":
@@ -196,6 +199,14 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 		return f.find(cmd.Argv[1:])
 	case "kill":
 		return f.kill(cmd.Argv[1:])
+	case "ln":
+		return f.ln(cmd.Argv[1:])
+	case "readlink":
+		return f.readlink(cmd.Argv[1:])
+	case "gpg":
+		return f.gpg(cmd.Argv[1:])
+	case "google-chrome-stable", "chromium", "chromium-browser":
+		return f.chrome(cmd.Argv[1:])
 	}
 
 	return sys.Output{Stdout: f.Replies[program]}, nil
@@ -217,6 +228,78 @@ func (f *FakeSys) curl(args []string) (sys.Output, error) {
 	}
 
 	return sys.Output{Stdout: f.Replies["curl"]}, nil
+}
+
+// A symlink is a file holding the path it points at, which is what readlink reads back and what makes the linking step skippable on a replay.
+func (f *FakeSys) ln(args []string) (sys.Output, error) {
+	var words []string
+	for _, arg := range args {
+		if !strings.HasPrefix(arg, "-") {
+			words = append(words, arg)
+		}
+	}
+
+	if len(words) < 2 {
+		return f.fail("ln", "ln: missing file operand")
+	}
+
+	f.Links[words[1]] = words[0]
+	f.mutate("ln " + words[1] + " -> " + words[0])
+
+	return sys.Output{}, nil
+}
+
+func (f *FakeSys) readlink(args []string) (sys.Output, error) {
+	path := args[len(args)-1]
+
+	target, linked := f.Links[path]
+	if !linked {
+		return f.fail("readlink", "")
+	}
+
+	return sys.Output{Stdout: target + "\n"}, nil
+}
+
+// --dearmor turns an armoured key into a keyring file, which is what makes the repository step skippable once it is there.
+func (f *FakeSys) gpg(args []string) (sys.Output, error) {
+	var out, in string
+	for index, arg := range args {
+		switch {
+		case arg == "-o" || arg == "--output":
+			if index+1 < len(args) {
+				out = args[index+1]
+			}
+		case !strings.HasPrefix(arg, "-") && args[index-1] != "-o" && args[index-1] != "--output":
+			in = arg
+		}
+	}
+
+	if out == "" {
+		return f.fail("gpg", "gpg: no output file")
+	}
+
+	content, err := f.ReadFile(in)
+	if err != nil {
+		return f.fail("gpg", "gpg: can't open '"+in+"'")
+	}
+
+	return sys.Output{}, f.WriteFile(out, content, 0o644)
+}
+
+// The headless browser writes the image it was asked for, so a capture is a file the gallery can then list.
+func (f *FakeSys) chrome(args []string) (sys.Output, error) {
+	for _, arg := range args {
+		if target, ok := strings.CutPrefix(arg, "--screenshot="); ok {
+			body := f.Replies["screenshot"]
+			if body == "" {
+				body = "\x89PNG\r\n"
+			}
+
+			return sys.Output{}, f.WriteFile(target, []byte(body), 0o644)
+		}
+	}
+
+	return sys.Output{}, nil
 }
 
 const miseInstalls = "/home/dev/.local/share/mise/installs/"
@@ -289,13 +372,14 @@ func (f *FakeSys) toolList() string {
 }
 
 // mise resolves node@22 to a patch release; the fake keeps the request, which a pinned major still matches.
+// The separator is the last "@" that opens a version rather than a scoped npm package, as in npm:@openai/codex@latest.
 func parseTool(spec string) (tool, version string) {
-	tool, version, found := strings.Cut(spec, "@")
-	if !found || version == "" {
-		version = "latest"
+	at := strings.LastIndex(spec, "@")
+	if at <= 0 || spec[at-1] == '/' || spec[at-1] == ':' || at == len(spec)-1 {
+		return spec, "latest"
 	}
 
-	return tool, version
+	return spec[:at], spec[at+1:]
 }
 
 func (f *FakeSys) dpkgQuery(args []string) (sys.Output, error) {

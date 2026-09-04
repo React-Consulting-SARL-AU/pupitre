@@ -21,6 +21,7 @@ func sampleManifest() Manifest {
 			{Key: "port", Kind: FieldNumber, Label: "Port", Required: false, Default: 6379},
 			{Key: "engine", Kind: FieldSelect, Label: "Moteur", Required: true, Options: []string{"mysql", "mariadb"}, Default: "mysql"},
 			{Key: "version", Kind: FieldVersion, Label: "Version", Options: []string{"7", "8"}, Default: "7"},
+			{Key: "providers", Kind: FieldList, Label: "Fournisseurs", Required: true, Items: ItemsSecret, Min: 1, Max: 6},
 		},
 		Provides:  []string{"db:redis"},
 		Mandatory: false,
@@ -64,6 +65,10 @@ func TestFieldSerialisesOnlyTheKeysOfItsKind(t *testing.T) {
 		t.Error("a secret field must not carry options")
 	}
 
+	if _, ok := fields[4]["default"]; ok {
+		t.Error("a list field must not carry default")
+	}
+
 	var decoded []Field
 	if err := json.Unmarshal(encoded, &decoded); err != nil {
 		t.Fatal(err)
@@ -71,6 +76,10 @@ func TestFieldSerialisesOnlyTheKeysOfItsKind(t *testing.T) {
 
 	if decoded[0].Generate != true || decoded[3].Default != "7" || !reflect.DeepEqual(decoded[2].Options, []string{"mysql", "mariadb"}) {
 		t.Fatalf("round trip lost data: %+v", decoded)
+	}
+
+	if decoded[4].Items != ItemsSecret || decoded[4].Min != 1 || decoded[4].Max != 6 {
+		t.Fatalf("round trip lost the list bounds: %+v", decoded[4])
 	}
 }
 

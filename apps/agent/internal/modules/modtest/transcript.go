@@ -48,6 +48,7 @@ var resultDefinitions = map[string]string{
 	"project.git_status":   "ProjectGitStatusResult",
 	"project.working_tree": "ProjectWorkingTreeResult",
 	"project.diff":         "ProjectDiffResult",
+	"agent.open":           "AgentOpenResult",
 	"sessions.list":        "SessionsListResult",
 	"sessions.clean":       "SessionsCleanResult",
 	"processes.list":       "ProcessesListResult",

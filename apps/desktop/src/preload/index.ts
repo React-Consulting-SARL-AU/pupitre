@@ -2,6 +2,9 @@ import type { CommandName } from "@pupitre/shared/agent-protocol";
 import type { Event } from "@pupitre/shared/agent-protocol/envelope";
 import type {
   CatalogResult,
+  InstallReport,
+  InstallResult,
+  ModuleConfig,
   ProbeResult,
 } from "@pupitre/shared/agent-protocol/install";
 import type { HelloResult } from "@pupitre/shared/agent-protocol/session";
@@ -26,6 +29,7 @@ import type {
   TerminalKind,
   WorkingTree,
 } from "@shared/contract";
+import type { InstallUpdate } from "@shared/install";
 import type { SecretMarks } from "@shared/secrets";
 import type {
   HostKeyDecision,
@@ -117,6 +121,41 @@ const api = {
     ipcRenderer.invoke("catalog:secret-reveal", serverId, moduleId, key),
   forgetInstallSecrets: (serverId: string): Promise<void> =>
     ipcRenderer.invoke("catalog:secret-forget", serverId),
+
+  /**
+   * The installation, from here to the report.
+   *
+   * The renderer names the modules and hands over their plain configuration;
+   * the secrets it typed earlier are taken from the main process's vault at the
+   * moment of the call and written on the protocol's secret line. Nothing of
+   * them comes back through this bridge, not in an update, not in the result.
+   */
+  startInstall: (
+    serverId: string,
+    modules: readonly string[],
+    config: ModuleConfig,
+    onUpdate: (update: InstallUpdate) => void
+  ): Promise<AgentResponse<InstallResult>> => {
+    const token = crypto.randomUUID();
+    const listener = (
+      _e: unknown,
+      payload: { token: string; update: InstallUpdate }
+    ) => {
+      if (payload.token === token) {
+        onUpdate(payload.update);
+      }
+    };
+
+    ipcRenderer.on("install:update", listener);
+
+    return ipcRenderer
+      .invoke("install:start", token, serverId, modules, config)
+      .finally(() => ipcRenderer.removeListener("install:update", listener));
+  },
+
+  /** The last report the agent wrote, whatever happened to the channel. */
+  installReport: (serverId: string): Promise<AgentResponse<InstallReport>> =>
+    ipcRenderer.invoke("install:report", serverId),
 
   agentSession: (serverId: string): Promise<HelloResult | null> =>
     ipcRenderer.invoke("agent:session", serverId),
