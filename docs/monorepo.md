@@ -57,6 +57,33 @@ Les PR font tourner les tâches affectées ; `main` fait tout.
 
 Deux environnements : `staging` (`staging.pupitre.studio`, `staging-app.pupitre.studio`, Stripe en mode test, branche Neon `staging`) et `production` (branche Neon `production`). L'app desktop de développement pointe sur `staging`.
 
+### Le site sur Pages
+
+Projet Pages `pupitre-site`, relié au dépôt, branche de production `main` :
+
+- `main` publie sur `pupitre.studio` ; toute autre branche obtient une URL de prévisualisation, et `staging` est aliasée en `staging.pupitre.studio`.
+- Domaines : `pupitre.studio` en apex, `www.pupitre.studio` redirigé en 301 par `apps/site/public/_redirects`.
+- En-têtes de sécurité et de cache dans `apps/site/public/_headers` : `HSTS`, `CSP`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, et un an d'immuable sur `/_astro/*` et `/og/*`.
+- Variables de build : `PUBLIC_POSTHOG_KEY` et `PUBLIC_POSTHOG_HOST` en production seulement — sans clé, le site ne charge aucun analytics et n'affiche pas de bandeau de consentement.
+- Le garde légal (`apps/site/scripts/legal.ts`) fait échouer le build quand `CF_PAGES_BRANCH` vaut `main` — ou quand `PUPITRE_ENV` vaut `production` — et qu'une page de `src/content/legal/` porte encore un `TODO`. Les pages légales ne se publient donc jamais à l'état de brouillon.
+- La liste des releases de l'app est lue au build depuis `PUBLIC_RELEASES_URL`. Variable absente ou API injoignable n'échoue pas le build : la page de téléchargement part avec `apps/site/src/content/site/releases.ts` et un avertissement de build. En local et en test, la variable n'est pas posée, donc le build ne sort jamais sur le réseau.
+
+## Stripe
+
+Compte unique, Managed Payments activé et CGU acceptées sur [Managed Payments](https://dashboard.stripe.com/settings/managed-payments) : Stripe est vendeur, il calcule et reverse la taxe, gère la fraude, les litiges, les reçus et le support transactionnel. Voir [`decisions/0007`](./decisions/0007-stripe-managed-payments.md).
+
+Un produit et deux prix, créés à l'identique en sandbox et en live :
+
+| | |
+| --- | --- |
+| Produit | `Pupitre Server`, code fiscal `txcd_10103001` (SaaS, business use) |
+| Prix mensuel | 19 $, `tax_behavior` `exclusive` → `STRIPE_PRICE_SERVER_MONTH` |
+| Prix annuel | 190 $, deux mois offerts → `STRIPE_PRICE_SERVER_YEAR` |
+
+Réglages du dashboard : email de support à jour dans [Business details](https://dashboard.stripe.com/settings/business-details) (Stripe y escalade, et sans réponse sous 48 h il rembourse) ; logo, CGU et confidentialité dans [Checkout settings](https://dashboard.stripe.com/settings/checkout) ; portail client limité au moyen de paiement, aux factures et à la résiliation, jamais à la quantité, que `ReconcileSeats` recale sur le nombre de serveurs.
+
+Webhook `https://app.pupitre.studio/api/v1/webhooks/stripe`, un endpoint et un secret par mode, sur les cinq événements de `HANDLED_EVENT_TYPES` : `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`. En local, `stripe listen --forward-to localhost:3000/api/v1/webhooks/stripe`.
+
 ## Distribution de l'app desktop
 
 ### Les noms exacts
