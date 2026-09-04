@@ -55,7 +55,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-06 | Installation en direct et rapport | fait | `feat/APP-06-install` | fusionnée |
 | APP-07 | Durcissement et bascule root → dev | fait | `feat/APP-07-harden` | fusionnée |
 | APP-08 | Premier projet | fait | `feat/APP-08-first-project` | fusionnée |
-| APP-09 | Tableau de bord et projets sur le nouveau protocole | à faire | | |
+| APP-09 | Tableau de bord et projets sur le nouveau protocole | en cours | `feat/APP-09-dashboard` | |
 | APP-10 | Terminaux, agents, galerie | à faire | | |
 | APP-11 | Services au quotidien | à faire | | |
 | APP-12 | Mise à jour de l'agent depuis l'app | à faire | | |
