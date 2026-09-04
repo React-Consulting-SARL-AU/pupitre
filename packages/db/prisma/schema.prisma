@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client"
+  runtime  = "bun"
+  output   = "../src/generated/prisma"
+}
+
+generator cloudflareClient {
+  provider = "prisma-client"
+  runtime  = "cloudflare"
+  output   = "../src/generated/prisma-cloudflare"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Ping {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+}

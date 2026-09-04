@@ -1,0 +1,13 @@
+{
+  "name": "@pupitre/agent",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "bun run build:linux-amd64 && bun run build:linux-arm64",
+    "build:linux-amd64": "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags=\"-s -w\" -o dist/pupitred-linux-amd64 ./cmd/pupitred",
+    "build:linux-arm64": "CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags=\"-s -w\" -o dist/pupitred-linux-arm64 ./cmd/pupitred",
+    "test": "go test ./...",
+    "lint": "test -z \"$(gofmt -l .)\" && go vet ./...",
+    "check:types": "true"
+  }
+}

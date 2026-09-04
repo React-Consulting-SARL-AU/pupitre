@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "extends": ["ultracite/biome/core"],
+  "extends": ["ultracite/biome/core", "ultracite/biome/react"],
   "files": {
     "includes": [
       "!**/node_modules",
@@ -8,7 +8,9 @@
       "!**/.wrangler",
       "!**/dist",
       "!**/.output",
-      "!app",
+      "!**/.astro",
+      "!**/.tanstack",
+      "!**/out",
       "!server",
       "!apps/web/src/routeTree.gen.ts",
       "!packages/db/src/generated"
@@ -41,6 +43,30 @@
     }
   },
   "overrides": [
+    {
+      "includes": ["apps/web/src/routes/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useFilenamingConvention": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.astro"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedImports": "off",
+            "noUnusedVariables": "off"
+          },
+          "style": {
+            "useFilenamingConvention": "off"
+          }
+        }
+      }
+    },
     {
       "includes": ["**/*.test.ts", "**/*.test.tsx", "**/testing/**/*.ts"],
       "linter": {

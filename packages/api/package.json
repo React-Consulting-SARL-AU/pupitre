@@ -1,0 +1,31 @@
+{
+  "name": "@pupitre/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./client": "./src/client.ts",
+    "./server": "./src/server.ts",
+    "./testing": "./src/testing/index.ts"
+  },
+  "scripts": {
+    "lint": "ultracite check",
+    "lint:fix": "ultracite fix",
+    "check:types": "tsgo --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@elysiajs/eden": "^1.4.9",
+    "@pupitre/shared": "workspace:*",
+    "@sinclair/typebox": "^0.34.50",
+    "elysia": "^1.4.29"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260708.1",
+    "@types/bun": "^1.4.0",
+    "@types/node": "^26.2.0",
+    "@typescript/native-preview": "^7.0.0-dev.20260707.2",
+    "typescript": "^6.0.3",
+    "ultracite": "7.8.3"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "name": "@pupitre/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev --port 3000",
+    "build": "vite build",
+    "build:cloudflare": "bun --cwd=../../packages/db run db:generate && bun run build",
+    "preview": "vite preview --port 3000",
+    "cf-typegen": "wrangler types",
+    "lint": "ultracite check",
+    "lint:fix": "ultracite fix",
+    "check:types": "tsgo --noEmit --pretty false",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@pupitre/api": "workspace:*",
+    "@pupitre/auth": "workspace:*",
+    "@pupitre/design": "workspace:*",
+    "@pupitre/shared": "workspace:*",
+    "@tanstack/react-router": "^1.170.32",
+    "@tanstack/react-start": "^1.168.49",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.43.3",
+    "@cloudflare/workers-types": "5.20260708.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/bun": "^1.4.0",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@typescript/native-preview": "^7.0.0-dev.20260707.2",
+    "@vitejs/plugin-react": "^6.1.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3",
+    "ultracite": "7.8.3",
+    "vite": "^8.2.2",
+    "wrangler": "^4.125.0"
+  }
+}
