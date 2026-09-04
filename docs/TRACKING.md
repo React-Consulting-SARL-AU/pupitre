@@ -27,7 +27,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-03 | Moteur de modules et rapport | fait | `feat/AGT-03-module-engine` | fusionnée |
 | AGT-04 | Modules socle et durcissement | fait | `feat/AGT-04-core-modules` | fusionnée |
 | AGT-05 | Modules runtimes | fait | `feat/AGT-05-runtimes` | fusionnée |
-| AGT-06 | Modules bases de données | à faire | | |
+| AGT-06 | Modules bases de données | fait | `feat/AGT-06-databases` | fusionnée |
 | AGT-07 | Modules agents IA et navigateur | à faire | | |
 | AGT-08 | Modules éditeurs distants | à faire | | |
 | AGT-09 | Modules exposition et outils | à faire | | |

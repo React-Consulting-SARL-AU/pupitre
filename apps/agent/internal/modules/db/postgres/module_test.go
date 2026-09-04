@@ -1,0 +1,406 @@
+package postgres
+
+import (
+	"strings"
+	"testing"
+
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/db/dumps"
+	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/sys/env"
+)
+
+const (
+	appPassword    = "s3cret-de-test-app"
+	remotePassword = "s3cret-de-test-remote"
+)
+
+func newContext(t *testing.T, fake *modtest.FakeSys) *modules.Context {
+	t.Helper()
+
+	return modtest.NewContext(t, fake, modtest.Options{
+		Manifest: manifest(),
+		Secrets:  modtest.Secrets{"app_password": appPassword, "remote_password": remotePassword},
+	})
+}
+
+func newFakeSys() *modtest.FakeSys {
+	fake := modtest.NewFakeSys()
+	fake.Files["/proc/meminfo"] = []byte("MemTotal:       4015000 kB\n")
+	fake.Files[osReleasePath] = []byte("ID=ubuntu\nVERSION_CODENAME=noble\n")
+	fake.Answer("FROM pg_roles", "2\n")
+	fake.Answer("FROM pg_extension", "3\n")
+	fake.Answer("FROM pg_database", "1\n")
+
+	return fake
+}
+
+func installedSys(t *testing.T) *modtest.FakeSys {
+	t.Helper()
+
+	fake := newFakeSys()
+	fake.Packages[pkg] = "17.2-1.pgdg24.04+1"
+	fake.Units[unit] = modtest.UnitActive
+	fake.Files[keyringPath] = []byte("-----BEGIN PGP PUBLIC KEY BLOCK-----\n")
+	fake.Files[listPath] = repository("noble")
+	fake.Files[confPath] = renderConfig("980MB")
+	fake.Files[hbaPath] = []byte("local   all             postgres                                peer\n" + hbaLine + "\n")
+	fake.Files[env.Path] = []byte(appPasswordKey + "=" + appPassword + "\n" + remotePasswordKey + "=" + remotePassword + "\n")
+
+	return fake
+}
+
+func install(t *testing.T, ctx *modules.Context) {
+	t.Helper()
+
+	if err := (Module{}).Install(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := (Module{}).Configure(ctx); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func statuses(ctx *modules.Context) map[string]contract.StepStatus {
+	steps := map[string]contract.StepStatus{}
+	for _, event := range ctx.Events() {
+		steps[event.Step] = event.Status
+	}
+
+	return steps
+}
+
+func stdin(fake *modtest.FakeSys) string {
+	var sql string
+	for _, call := range fake.Calls {
+		if len(call.Stdin) > 0 {
+			sql += string(call.Stdin)
+		}
+	}
+
+	return sql
+}
+
+func TestInstallAndConfigureAreIdempotent(t *testing.T) {
+	fake := installedSys(t)
+	ctx := newContext(t, fake)
+
+	install(t, ctx)
+
+	for _, event := range ctx.Events() {
+		if event.Status != contract.StepSkip {
+			t.Errorf("step %s: want skip, got %s", event.Step, event.Status)
+		}
+	}
+
+	if len(fake.Mutations) != 0 {
+		t.Fatalf("a replay must change nothing: %v", fake.Mutations)
+	}
+
+	if fake.Restarts[unit] != 0 {
+		t.Fatalf("postgres restarted %d times on an installed machine", fake.Restarts[unit])
+	}
+}
+
+func TestPostgresListensOnTheLoopbackOnly(t *testing.T) {
+	fake := newFakeSys()
+	fake.Files[hbaPath] = []byte("local   all             postgres                                peer\n")
+	ctx := newContext(t, fake)
+
+	install(t, ctx)
+
+	written := string(fake.Files[confPath])
+	if !strings.Contains(written, "listen_addresses = '127.0.0.1'") {
+		t.Fatalf("%s must bind the loopback:\n%s", confPath, written)
+	}
+
+	if strings.Contains(written, "0.0.0.0") || strings.Contains(written, "'*'") {
+		t.Fatalf("no address but the loopback may appear:\n%s", written)
+	}
+
+	hba := string(fake.Files[hbaPath])
+	if !strings.Contains(hba, "host    all             all             127.0.0.1/32            scram-sha-256") {
+		t.Fatalf("%s must let the loopback in, and only it:\n%s", hbaPath, hba)
+	}
+
+	if !strings.Contains(written, "shared_buffers = 980MB") {
+		t.Fatalf("shared_buffers follows the memory:\n%s", written)
+	}
+}
+
+func TestPostgres17ComesFromItsOwnRepository(t *testing.T) {
+	fake := newFakeSys()
+	ctx := newContext(t, fake)
+
+	install(t, ctx)
+
+	if got := string(fake.Files[listPath]); got != string(repository("noble")) {
+		t.Fatalf("%s = %q", listPath, got)
+	}
+
+	var fetched string
+	for _, call := range fake.Commands() {
+		if strings.HasPrefix(call, "curl") {
+			fetched = call
+		}
+	}
+
+	if !strings.Contains(fetched, keyringPath) || !strings.Contains(fetched, "https://www.postgresql.org/media/keys/") {
+		t.Fatalf("the repository key is fetched over https into the keyring: %q", fetched)
+	}
+
+	if _, installed := fake.Packages[pkg]; !installed {
+		t.Fatalf("%s must be installed: %v", pkg, fake.Packages)
+	}
+}
+
+func TestNoGeneratedPasswordReachesTheJournalOrTheEvents(t *testing.T) {
+	fake := newFakeSys()
+	ctx := newContext(t, fake)
+
+	install(t, ctx)
+
+	for _, line := range ctx.Output() {
+		if strings.Contains(line, appPassword) || strings.Contains(line, remotePassword) {
+			t.Fatalf("secret in the journal: %s", line)
+		}
+	}
+
+	for _, event := range ctx.Events() {
+		if strings.Contains(event.Step+event.Replay, appPassword) || strings.Contains(event.Step+event.Replay, remotePassword) {
+			t.Fatalf("secret in an event: %+v", event)
+		}
+	}
+
+	for _, call := range fake.Commands() {
+		if strings.Contains(call, appPassword) || strings.Contains(call, remotePassword) {
+			t.Fatalf("a password must never reach an argv: %s", call)
+		}
+	}
+
+	if fake.EnvValue(appPasswordKey) != appPassword || fake.EnvValue(remotePasswordKey) != remotePassword {
+		t.Fatalf("both passwords belong in %s: %s", env.Path, fake.Files[env.Path])
+	}
+
+	if strings.Contains(string(fake.Files[confPath]), appPassword) {
+		t.Fatal("the configuration carries no password")
+	}
+}
+
+func TestRolesAreCreatedForTheAppAndForTheLaptop(t *testing.T) {
+	fake := newFakeSys()
+	fake.Answer("FROM pg_roles", "0\n")
+	ctx := newContext(t, fake)
+
+	install(t, ctx)
+
+	sql := stdin(fake)
+	for _, want := range []string{
+		`CREATE ROLE "app" LOGIN CREATEDB`,
+		`CREATE ROLE "dev" LOGIN CREATEDB`,
+		`ALTER ROLE "app" WITH LOGIN CREATEDB PASSWORD '` + appPassword + `'`,
+		`ALTER ROLE "dev" WITH LOGIN CREATEDB PASSWORD '` + remotePassword + `'`,
+	} {
+		if !strings.Contains(sql, want) {
+			t.Errorf("the roles SQL lacks %q:\n%s", want, sql)
+		}
+	}
+
+	if strings.Contains(sql, "SUPERUSER") {
+		t.Fatalf("neither role is a superuser:\n%s", sql)
+	}
+
+	for _, call := range fake.Calls {
+		if len(call.Stdin) > 0 && call.User != "postgres" {
+			t.Fatalf("psql speaks as postgres on the socket, got user %q", call.User)
+		}
+	}
+}
+
+func TestQuotesInAPasswordAreEscapedForPostgres(t *testing.T) {
+	if got := quote("a'b\\c"); got != "a''b\\c" {
+		t.Fatalf("quote = %q", got)
+	}
+}
+
+func TestCommonExtensionsAreInstalledOnce(t *testing.T) {
+	fake := newFakeSys()
+	fake.Answer("FROM pg_extension", "0\n")
+	ctx := newContext(t, fake)
+
+	install(t, ctx)
+
+	joined := strings.Join(fake.Commands(), "\n")
+	for _, extension := range extensions {
+		if !strings.Contains(joined, `CREATE EXTENSION IF NOT EXISTS "`+extension+`"`) {
+			t.Errorf("%s must be created in template1:\n%s", extension, joined)
+		}
+	}
+
+	if statuses(ctx)["install-extensions"] != contract.StepOK {
+		t.Fatalf("events = %+v", ctx.Events())
+	}
+
+	ready := newContext(t, newFakeSys())
+	install(t, ready)
+	if statuses(ready)["install-extensions"] != contract.StepSkip {
+		t.Fatalf("extensions already there are not created again: %+v", ready.Events())
+	}
+}
+
+func TestDumpsLeftBeforeTheInstallAreImportedAndNamedInTheReport(t *testing.T) {
+	fake := newFakeSys()
+	fake.Dirs[dumps.Dir] = true
+	fake.Answer("FROM pg_database", "\n")
+	fake.Replies["find"] = dumps.Dir + "/fulldump_shop_20260101.sql\n" + dumps.Dir + "/intranet.dump\n"
+	ctx := newContext(t, fake)
+
+	install(t, ctx)
+
+	steps := statuses(ctx)
+	if steps["import-shop"] != contract.StepOK || steps["import-intranet"] != contract.StepOK {
+		t.Fatalf("the report must name each imported database: %+v", ctx.Events())
+	}
+
+	joined := strings.Join(fake.Commands(), "\n")
+	for _, want := range []string{
+		"createdb --owner=app shop",
+		"psql -v ON_ERROR_STOP=1 --dbname=shop --file=" + dumps.Dir + "/fulldump_shop_20260101.sql",
+		"pg_restore --no-owner --dbname=intranet " + dumps.Dir + "/intranet.dump",
+	} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("%q missing from:\n%s", want, joined)
+		}
+	}
+}
+
+func TestUrlOpensTheRemoteRoleThroughSshForward(t *testing.T) {
+	ctx := newContext(t, installedSys(t))
+
+	url, err := URL(ctx, "shop")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if url != "postgresql://dev@127.0.0.1:5432/shop" {
+		t.Fatalf("url = %q", url)
+	}
+
+	if strings.Contains(url, appPassword) || strings.Contains(url, remotePassword) {
+		t.Fatal("an url carries no password")
+	}
+
+	empty, err := URL(ctx, "")
+	if err != nil || empty != "postgresql://dev@127.0.0.1:5432/postgres" {
+		t.Fatalf("url without a name = %q, %v", empty, err)
+	}
+
+	if _, err := URL(newContext(t, newFakeSys()), "shop"); err == nil {
+		t.Fatal("an engine that is not installed must say so")
+	}
+}
+
+func TestShellAndDumpStayOnTheSocketAccount(t *testing.T) {
+	fake := installedSys(t)
+	ctx := newContext(t, fake)
+
+	command, err := Shell(ctx, "shop")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if command != "sudo -u postgres psql shop" {
+		t.Fatalf("shell = %q", command)
+	}
+
+	fake.Answer("stat", "8192\n")
+	path, size, err := Dump(ctx, "shop")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if path != dumps.Dir+"/shop_20260904-1200.dump" || size != 8192 {
+		t.Fatalf("dump = %q, %d", path, size)
+	}
+
+	var dumped string
+	for _, call := range fake.Calls {
+		if call.Argv[0] == "pg_dump" {
+			dumped = strings.Join(call.Argv, " ")
+		}
+	}
+
+	for _, want := range []string{"--format=custom", "--file=" + path, "--username=app", "--host=127.0.0.1", "shop"} {
+		if !strings.Contains(dumped, want) {
+			t.Errorf("pg_dump lacks %q: %q", want, dumped)
+		}
+	}
+
+	if strings.Contains(dumped, appPassword) {
+		t.Fatal("the password of a dump goes through the environment, never through an argv")
+	}
+}
+
+func TestFailedStepReportsItsReplayCommand(t *testing.T) {
+	fake := newFakeSys()
+	fake.FailPackage(pkg, "E: Unable to locate package postgresql-17")
+	ctx := newContext(t, fake)
+
+	if err := (Module{}).Install(ctx); err == nil {
+		t.Fatal("expected the install to fail")
+	}
+
+	last := ctx.Events()[len(ctx.Events())-1]
+	if last.Status != contract.StepFail || last.Replay != "sudo pupitred install --only=db.postgres" {
+		t.Fatalf("unexpected event: %+v", last)
+	}
+}
+
+func TestUninstallLeavesTheDataAlone(t *testing.T) {
+	fake := installedSys(t)
+	ctx := newContext(t, fake)
+
+	if err := (Module{}).Uninstall(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, kept := fake.Packages[pkg]; kept {
+		t.Fatal("the package the module installed must go")
+	}
+
+	if _, kept := fake.Files[confPath]; kept {
+		t.Fatal("the configuration the module wrote must go")
+	}
+
+	if fake.EnvValue(appPasswordKey) != "" || fake.EnvValue(remotePasswordKey) != "" {
+		t.Fatalf("the keys of the module must leave %s: %s", env.Path, fake.Files[env.Path])
+	}
+
+	for _, mutation := range fake.Mutations {
+		if strings.Contains(mutation, "/var/lib/postgresql") {
+			t.Fatalf("the client's data is never touched: %s", mutation)
+		}
+	}
+}
+
+func TestStatusNamesTheKeysNotTheSecrets(t *testing.T) {
+	ctx := newContext(t, installedSys(t))
+
+	status, err := (Module{}).Status(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !status.Installed || status.State != contract.ServiceRunning || status.Port != Port || status.Unit != unit {
+		t.Fatalf("status = %+v", status)
+	}
+
+	for _, value := range status.Credentials {
+		if value != appPasswordKey && value != remotePasswordKey {
+			t.Fatalf("credentials must name the keys of %s, got %q", env.Path, value)
+		}
+	}
+}
+
+var _ modules.Module = Module{}

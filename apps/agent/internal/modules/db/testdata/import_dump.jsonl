@@ -1,0 +1,35 @@
+# Un dump déposé dans ~/dumps avant l'installation : il est importé, le rapport le nomme, aucun secret n'apparaît.
+@file /etc/os-release VERSION_CODENAME=noble
+@file /proc/meminfo MemTotal:       4015000 kB
+@file /home/dev/dumps
+@reply find /home/dev/dumps/fulldump_shop_20260101.sql
+@reply mysql 2
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+> {"id":2,"cmd":"install","params":{"secrets_stdin":true,"modules":["db.mysql"],"config":{"db.mysql":{"engine":"mysql"}}}}
+$ {"db.mysql":{"app_password":"s3cret-de-test","remote_password":"s3cret-de-test"}}
+> {"id":3,"cmd":"report"}
+> {"id":4,"cmd":"db.import","params":{"engine":"mysql","name":"shop"}}
+> {"id":5,"cmd":"db.shell","params":{"engine":"mysql","name":"shop"}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","db.dump","db.import","db.shell","db.url","hello","install","ping","report","uninstall","upgrade"]}}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"install-package"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"install-package"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"write-config"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"write-config"}
+< {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"start","step":"install-engine"}
+< {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"ok","step":"install-engine"}
+< {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"start","step":"write-config"}
+< {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"ok","step":"write-config"}
+< {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"start","step":"enable-service"}
+< {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"ok","step":"enable-service"}
+< {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"start","step":"store-passwords"}
+< {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"ok","step":"store-passwords"}
+< {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"start","step":"create-accounts"}
+< {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"ok","step":"create-accounts"}
+< {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"start","step":"import-shop"}
+< {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"ok","step":"import-shop"}
+< {"id":2,"ok":true,"result":{"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}
+< {"id":3,"ok":true,"result":{"started_at":"2026-09-04T12:00:00Z","finished_at":"2026-09-04T12:00:00Z","agent_version":"0.0.0-test","modules":[{"id":"core.system","status":"ok","steps":[{"step":"install-package","status":"ok","ms":0},{"step":"write-config","status":"ok","ms":0}]},{"id":"db.mysql","status":"ok","steps":[{"step":"install-engine","status":"ok","ms":0},{"step":"write-config","status":"ok","ms":0},{"step":"enable-service","status":"ok","ms":0},{"step":"store-passwords","status":"ok","ms":0},{"step":"create-accounts","status":"ok","ms":0},{"step":"import-shop","status":"ok","ms":0}]}],"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}
+< {"event":"step","id":4,"module":"db.mysql","ms":0,"status":"start","step":"import-shop"}
+< {"event":"step","id":4,"module":"db.mysql","ms":0,"status":"ok","step":"import-shop"}
+< {"id":4,"ok":true,"result":{"imported":["shop"]}}
+< {"id":5,"ok":true,"result":{"command":"sudo mysql shop"}}

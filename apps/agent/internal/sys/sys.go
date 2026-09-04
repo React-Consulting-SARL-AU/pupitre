@@ -7,11 +7,12 @@ import (
 )
 
 type Command struct {
-	User  string
-	Argv  []string
-	Env   []string
-	Dir   string
-	Stdin []byte
+	User      string
+	Argv      []string
+	Env       []string
+	Dir       string
+	Stdin     []byte
+	StdinPath string
 }
 
 type Output struct {
@@ -67,6 +68,10 @@ func Exec(ctx Context, cmd Command) (Output, error) {
 
 func Describe(cmd Command) string {
 	text := strings.Join(cmd.Argv, " ")
+	if cmd.StdinPath != "" {
+		text += " < " + cmd.StdinPath
+	}
+
 	if cmd.User != "" && cmd.User != "root" {
 		text = "(" + cmd.User + ") " + text
 	}
