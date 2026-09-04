@@ -4,14 +4,32 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./agent-protocol": "./src/agent-protocol/index.ts",
+    "./agent-protocol/envelope": "./src/agent-protocol/envelope.ts",
+    "./agent-protocol/errors": "./src/agent-protocol/errors.ts",
+    "./agent-protocol/session": "./src/agent-protocol/session.ts",
+    "./agent-protocol/install": "./src/agent-protocol/install.ts",
+    "./agent-protocol/state": "./src/agent-protocol/state.ts",
+    "./agent-protocol/projects": "./src/agent-protocol/projects.ts",
+    "./agent-protocol/processes": "./src/agent-protocol/processes.ts",
+    "./agent-protocol/secrets": "./src/agent-protocol/secrets.ts",
+    "./agent-protocol/system": "./src/agent-protocol/system.ts",
     "./api/errors": "./src/api/errors.ts",
+    "./catalog": "./src/catalog/index.ts",
+    "./contracts": "./src/contracts/index.ts",
+    "./permissions": "./src/permissions/index.ts",
     "./plans": "./src/plans/index.ts"
   },
   "scripts": {
     "lint": "ultracite check",
     "lint:fix": "ultracite fix",
     "check:types": "tsgo --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "contracts:export": "bun scripts/export-contracts.ts",
+    "contracts:check": "bun scripts/export-contracts.ts --check"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/bun": "^1.4.0",
