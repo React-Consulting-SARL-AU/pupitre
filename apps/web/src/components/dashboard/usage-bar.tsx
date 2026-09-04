@@ -44,7 +44,7 @@ export function UsageBar({ label, percent, className }: UsageBarProps) {
           />
         )}
       </span>
-      <span className="w-10 shrink-0 text-right font-data text-[12px] text-ink-2 tabular-nums">
+      <span className="w-11 shrink-0 whitespace-nowrap text-right font-data text-[12px] text-ink-2 tabular-nums">
         {value === null ? "—" : `${Math.round(value)} %`}
       </span>
     </div>

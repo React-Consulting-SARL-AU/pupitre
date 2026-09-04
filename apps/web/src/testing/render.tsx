@@ -43,6 +43,40 @@ export async function render(element: ReactElement): Promise<Rendered> {
   }
 }
 
+const POLL_MS = 20
+
+export async function waitUntil(
+  predicate: () => boolean,
+  timeoutMs = 10_000
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+
+  while (Date.now() < deadline) {
+    if (predicate()) {
+      return
+    }
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, POLL_MS))
+    })
+  }
+
+  throw new Error("condition not met before the deadline")
+}
+
+export async function fill(input: Element, value: string): Promise<void> {
+  const setter = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    "value"
+  )?.set
+
+  await act(async () => {
+    setter?.call(input, value)
+    input.dispatchEvent(new Event("input", { bubbles: true }))
+    await Promise.resolve()
+  })
+}
+
 export function trigger(container: HTMLElement, label: string): HTMLElement {
   const found = [...document.querySelectorAll("button")].find((button) =>
     (button.textContent ?? "").includes(label)
