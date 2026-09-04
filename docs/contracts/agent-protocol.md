@@ -114,6 +114,7 @@ Le chemin absolu vit sur le projet, pas sur la machine : `status`, `project.list
 | `processes.list` | — |
 | `process.kill` | `{ pid, force? }` |
 | `shots.list` / `shots.url` / `shots.clean` | — |
+| `shots.read` | `{ path }` : le contenu d'une capture ; voir [Le contenu d'une capture](#le-contenu-dune-capture) |
 
 ### Secrets, bases, tunnel
 
@@ -185,6 +186,34 @@ La valeur **ne sort pas dans le résultat**. Elle voyage sur un événement déd
 ```
 
 Le principe est celui du flux secret d'entrée, dans l'autre sens : à l'entrée, une valeur ne se met pas dans `params`, qui se journalise et se rejoue ; à la sortie, elle ne se met pas dans `result`, l'unité qu'un enregistreur de requêtes et de réponses capture. L'événement `secret` est la seule ligne qu'un tel enregistreur sait écarter, et c'est par lui que l'app remet la valeur à l'écran sans la faire transiter par son pont IPC générique. L'agent ne l'écrit jamais dans son journal, ne la persiste jamais, ne la renvoie jamais dans `params`, un rapport ou un autre événement.
+
+## Le contenu d'une capture
+
+`shots.list` nomme les captures, `shots.url` donne l'adresse de la galerie servie sur le serveur. Ni l'une ni l'autre ne met une image sous les yeux de l'app : `shots.read { path }` le fait, et il rend le contenu, pas une adresse.
+
+**Pourquoi pas une adresse par capture.** La galerie est un serveur en lecture seule sur `127.0.0.1:8099`, joignable depuis le serveur et de nulle part ailleurs. Une adresse par capture sur cette boucle locale ne serait utilisable par l'app qu'en ouvrant un `ssh -L` — et amener un port du serveur sur le laptop est justement ce que le protocole [laisse à l'app](#le-tunnel-local-dun-port-nest-pas-du-protocole). Une adresse joignable pour de bon voudrait dire la publier, par le tunnel ou par un port : ce serait une écoute de plus, atteignable par qui n'a pas la clé du client, alors que la règle est qu'aucune connexion entrante n'atteint le serveur et que le seul port ouvert est SSH. Une capture montre un écran d'application, souvent une session ouverte : elle mérite exactement la porte des autres commandes, et pas une de plus.
+
+**Ce qui traverse le canal.** Les octets sortent en base64 sur des événements `shot`, comme la valeur d'un identifiant sort sur un événement `secret` : ce qui pèse ou ce qui compromet ne se met pas dans `result`, l'unité qu'un enregistreur de requêtes et de réponses capture entière.
+
+```jsonc
+// requête
+{ "id": 21, "cmd": "shots.read", "params": { "path": "2026-09-04/login.png" } }
+
+// événements shot, un par morceau, dans l'ordre
+{ "id": 21, "event": "shot", "seq": 0, "bytes": "iVBORw0KGgoAAAANSUhEUg…" }
+{ "id": 21, "event": "shot", "seq": 1, "bytes": "…" }
+
+// réponse : de quoi vérifier ce qui vient de passer
+{ "id": 21, "ok": true, "result": { "path": "2026-09-04/login.png", "media_type": "image/png", "size_bytes": 98304, "sha256": "…", "chunks": 2 } }
+```
+
+`path` est celui que `shots.list` rend, repris tel quel. `sha256` est l'empreinte des octets du fichier, en hexadécimal minuscule : l'app recolle les morceaux, compare, et sait sans ambiguïté si l'image est entière. `chunks` dit combien d'événements ont été émis, si bien qu'un flux tronqué se voit à l'accusé.
+
+**Ce qui garde le canal utilisable.** Une capture est découpée en morceaux de 48 Kio, soit une ligne d'environ 64 Kio : le canal reste une suite de lignes bornées, jamais une ligne unique de plusieurs mégaoctets qu'un lecteur à tampon fixe ne saurait pas relire. La coupe tombe sur un multiple de trois, donc base64 ne complète que le dernier morceau : chaque `bytes` se décode seul, et leur concaténation se décode aussi. Au-delà de 16 Mio le fichier est refusé en `bad_request` avant toute lecture, sur la taille que `shots.list` rapporte : une capture ne monopolise pas le canal. Comme toute commande longue, une lecture bloque le canal sur lequel elle passe ; l'app qui lit une galerie pendant qu'elle rafraîchit un tableau de bord ouvre un second canal, exactement comme pour `install`.
+
+**Ce que la commande ouvre, et rien d'autre.** Elle ne lit que ce que `shots.list` nomme : le `path` est cherché dans le listing de la galerie, pas résolu sur le disque. Un chemin absolu, un `..`, un fichier hors de la galerie ou une entrée qui n'est pas un fichier ordinaire n'y figurent pas et renvoient `bad_request`. Les seuls types rendus sont `image/png`, `image/jpeg`, `image/gif`, `image/webp`, `image/avif` et `image/svg+xml` ; tout le reste est refusé. Aucun port n'est ouvert, aucune écoute n'est ajoutée : la commande passe par la session SSH que l'app tient déjà, donc elle ne donne accès à rien de plus qu'un client qui a déjà la clé du serveur.
+
+`shots.url` reste ce qu'il était : l'adresse de la galerie pour un humain qui l'ouvre dans son navigateur, sur le serveur ou par le tunnel s'il l'a exposée. Ce n'est plus ce dont l'app se sert pour montrer une capture.
 
 ## Ce que la signature d'une mise à jour couvre
 
