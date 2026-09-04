@@ -1,5 +1,6 @@
 import { type AnyElysia, Elysia } from "elysia"
 import { authPlugin } from "../plugins/auth"
+import { devicesRoutes } from "./devices"
 import { healthRoutes } from "./health"
 import { meRoutes } from "./me"
 
@@ -15,4 +16,5 @@ export const routes = new Elysia({ name: "routes" })
   .use(authPlugin)
   .use(healthRoutes)
   .use(meRoutes)
+  .use(devicesRoutes)
   .use(adminRoutes)

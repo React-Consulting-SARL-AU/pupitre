@@ -3,6 +3,7 @@ import { z } from "zod"
 export const API_ERROR_CODES = [
   "unauthenticated",
   "forbidden",
+  "no_active_organization",
   "not_found",
   "validation",
   "conflict",
@@ -11,6 +12,8 @@ export const API_ERROR_CODES = [
   "enrollment_expired",
   "seat_quota_reached",
   "key_not_ed25519",
+  "device_exists",
+  "invalid_server_token",
   "entitlement_required",
   "server_suspended",
   "release_not_found",
