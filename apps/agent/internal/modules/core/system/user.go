@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"strings"
 
+	"pupitre.studio/agent/internal/devcli"
 	"pupitre.studio/agent/internal/keys"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/sys"
@@ -174,6 +175,48 @@ func writeZshrc(ctx *modules.Context) error {
 
 		return ensureOwnedBlock(ctx, zshrcPath, zshrcBlock(ctx.String("projects_dir")))
 	})
+}
+
+// The prompt markers for a bash terminal: an app that reads a line being typed needs them wherever the client lands.
+func writeBashrc(ctx *modules.Context) error {
+	return ctx.Step("write-bashrc", func() (modules.Outcome, error) {
+		return ensureOwnedBlock(ctx, bashrcPath, bashrcBlock(ctx.String("projects_dir")))
+	})
+}
+
+// dev is the agent's own binary under another name: ssh serveur dev status drives the machine without the app, and nothing is laid on the client's disk.
+func linkDev(ctx *modules.Context) error {
+	return ctx.Step("link-dev-command", func() (modules.Outcome, error) {
+		if linked(ctx) {
+			return modules.Skipped, nil
+		}
+
+		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"ln", "-sfn", devcli.Binary, devcli.Link}}); err != nil {
+			return modules.Failed, err
+		}
+
+		return modules.Done, nil
+	})
+}
+
+func unlinkDev(ctx *modules.Context) error {
+	return ctx.Step("remove-dev-command", func() (modules.Outcome, error) {
+		if !linked(ctx) {
+			return modules.Skipped, nil
+		}
+
+		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"rm", "-f", devcli.Link}}); err != nil {
+			return modules.Failed, err
+		}
+
+		return modules.Done, nil
+	})
+}
+
+func linked(ctx *modules.Context) bool {
+	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"readlink", devcli.Link}})
+
+	return err == nil && strings.TrimSpace(out.Stdout) == devcli.Binary
 }
 
 func writeTmuxConf(ctx *modules.Context) error {

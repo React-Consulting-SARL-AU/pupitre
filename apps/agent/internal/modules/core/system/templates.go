@@ -50,6 +50,31 @@ add-zsh-hook precmd _pupitre_precmd
 add-zsh-hook preexec _pupitre_preexec
 `
 
+// The same markers for a bash terminal, in bash's own words: PROMPT_COMMAND for the prompt, a DEBUG trap for the command that leaves.
+// The whole block is guarded rather than returning early: .bashrc goes on being read after it.
+const bashrcBlockTemplate = `export PROJECTS_DIR=%s
+[ -x "$HOME/.local/bin/mise" ] && eval "$("$HOME/.local/bin/mise" activate bash)"
+if [[ $- == *i* && -z ${_PUPITRE_INTEGRATION:-} ]]; then
+  _PUPITRE_INTEGRATION=1
+  _pupitre_cwd() { printf '\e]7;file://%%s%%s\a' "${HOSTNAME:-}" "${PWD// /%%20}"; }
+  _pupitre_precmd() {
+    local code=$?
+    printf '\e]133;D;%%s\a' "$code"
+    _pupitre_cwd
+    printf '\e]133;A\a'
+    _pupitre_running=
+    [[ $PS1 == *'\e]133;B'* ]] || PS1="${PS1}\[\e]133;B\a\]"
+  }
+  _pupitre_preexec() {
+    [[ -n ${_pupitre_running:-} || $BASH_COMMAND == _pupitre_precmd* ]] && return
+    _pupitre_running=1
+    printf '\e]133;C\a'
+  }
+  PROMPT_COMMAND="_pupitre_precmd${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+  trap '_pupitre_preexec' DEBUG
+fi
+`
+
 const tmuxConf = `set -g default-terminal "tmux-256color"
 set -ga terminal-overrides ",xterm-256color:Tc,xterm-ghostty:Tc"
 set -g mouse on
@@ -65,6 +90,10 @@ bind r source-file ~/.tmux.conf \; display "tmux reloaded"
 
 func zshrcBlock(projectsDir string) []byte {
 	return []byte(fmt.Sprintf(zshrcBlockTemplate, shellQuote(projectsDir)))
+}
+
+func bashrcBlock(projectsDir string) []byte {
+	return []byte(fmt.Sprintf(bashrcBlockTemplate, shellQuote(projectsDir)))
 }
 
 func gitIdentity(name, email string) []byte {

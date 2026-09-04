@@ -10,6 +10,9 @@ const (
 	// The app replaces it with the projects the same answer carries.
 	ProjectToken = "$project"
 
+	Binary = "/usr/local/bin/pupitred"
+	Link   = "/usr/local/bin/" + Command
+
 	JSONFlag   = "--json"
 	FollowFlag = "-f"
 )
