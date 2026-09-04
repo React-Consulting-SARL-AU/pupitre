@@ -31,7 +31,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-05 | Modules runtimes | fait | `feat/AGT-05-runtimes` | fusionnée |
 | AGT-06 | Modules bases de données | fait | `feat/AGT-06-databases` | fusionnée |
 | AGT-07 | Modules agents IA et navigateur | fait | `feat/AGT-07-ai-modules` | fusionnée |
-| AGT-08 | Modules éditeurs distants | à faire | | |
+| AGT-08 | Modules éditeurs distants | en revue | `feat/AGT-08-editors` | |
 | AGT-09 | Modules exposition et outils | à faire | | |
 | AGT-10 | Registre des projets et pilotage | fait | `feat/AGT-10-registry` | fusionnée |
 | AGT-11 | Sessions, processus, captures, secrets, bases | fait | `feat/AGT-11-sessions` | fusionnée |
@@ -107,3 +107,4 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
+| 2026-09-04 | AGT-08 | Le contrat donne un champ `version` aux éditeurs, mais aucune liste fermée d'options ne tient : le serveur distant de Zed doit correspondre exactement à la version du client, et un backend JetBrains à la version du Gateway. Les deux modules livrent donc `version` en `text` (défaut `latest`) au lieu du genre `version`. À trancher : ouvrir le genre `version` à une saisie libre, ou laisser `text`. | propriétaire |

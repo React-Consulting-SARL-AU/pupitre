@@ -121,6 +121,29 @@ func (c *Context) Bool(key string) bool {
 	return false
 }
 
+// A list field of text arrives as the JSON array of the config line, one value per entry.
+func (c *Context) StringList(key string) []string {
+	switch value := c.Value(key).(type) {
+	case []string:
+		return value
+	case []any:
+		values := make([]string, 0, len(value))
+		for _, entry := range value {
+			values = append(values, fmt.Sprint(entry))
+		}
+
+		return values
+	case string:
+		if strings.TrimSpace(value) == "" {
+			return nil
+		}
+
+		return []string{value}
+	}
+
+	return nil
+}
+
 func (c *Context) Secret(key string) string {
 	return c.secrets[key]
 }

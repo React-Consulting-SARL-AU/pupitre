@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/fs"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,34 +21,36 @@ const (
 )
 
 type FakeSys struct {
-	Files     map[string][]byte
-	Modes     map[string]fs.FileMode
-	Owners    map[string]string
-	Dirs      map[string]bool
-	Packages  map[string]string
-	Upgrades  map[string]string
-	Units     map[string]UnitState
-	Restarts  map[string]int
-	Replies   map[string]string
-	Answers   map[string]string
-	Failures  map[string]string
-	Users     map[string]string
-	Tools     map[string]string
-	Sessions  map[string]bool
-	Windows   map[string]int
-	Binds     map[string]int
-	Listen    map[int]bool
-	Uptimes   map[int]int
-	Firewall  Firewall
-	Procs     map[int]Proc
-	Stubborn  map[int]bool
-	Links     map[string]string
-	Times     map[string]time.Time
-	Signals   []string
-	Now       time.Time
-	Calls     []sys.Command
-	Mutations []string
-	Updates   int
+	Files      map[string][]byte
+	Modes      map[string]fs.FileMode
+	Owners     map[string]string
+	Dirs       map[string]bool
+	Packages   map[string]string
+	Upgrades   map[string]string
+	Units      map[string]UnitState
+	Restarts   map[string]int
+	Replies    map[string]string
+	Answers    map[string]string
+	Failures   map[string]string
+	Users      map[string]string
+	Tools      map[string]string
+	Sessions   map[string]bool
+	Windows    map[string]int
+	Binds      map[string]int
+	Listen     map[int]bool
+	Uptimes    map[int]int
+	Firewall   Firewall
+	Procs      map[int]Proc
+	Stubborn   map[int]bool
+	Links      map[string]string
+	Archives   map[string][]string
+	Extensions map[string]string
+	Times      map[string]time.Time
+	Signals    []string
+	Now        time.Time
+	Calls      []sys.Command
+	Mutations  []string
+	Updates    int
 }
 
 // A row of ps, in the units ps prints: RSS in kilobytes, Etimes in seconds.
@@ -64,29 +67,31 @@ type Proc struct {
 
 func NewFakeSys() *FakeSys {
 	return &FakeSys{
-		Files:    map[string][]byte{},
-		Modes:    map[string]fs.FileMode{},
-		Owners:   map[string]string{},
-		Dirs:     map[string]bool{},
-		Packages: map[string]string{},
-		Upgrades: map[string]string{},
-		Units:    map[string]UnitState{},
-		Restarts: map[string]int{},
-		Replies:  map[string]string{},
-		Answers:  map[string]string{},
-		Failures: map[string]string{},
-		Users:    map[string]string{"root": "/root"},
-		Tools:    map[string]string{},
-		Sessions: map[string]bool{},
-		Windows:  map[string]int{},
-		Binds:    map[string]int{},
-		Listen:   map[int]bool{},
-		Uptimes:  map[int]int{},
-		Procs:    map[int]Proc{},
-		Stubborn: map[int]bool{},
-		Links:    map[string]string{},
-		Times:    map[string]time.Time{},
-		Now:      Epoch,
+		Files:      map[string][]byte{},
+		Modes:      map[string]fs.FileMode{},
+		Owners:     map[string]string{},
+		Dirs:       map[string]bool{},
+		Packages:   map[string]string{},
+		Upgrades:   map[string]string{},
+		Units:      map[string]UnitState{},
+		Restarts:   map[string]int{},
+		Replies:    map[string]string{},
+		Answers:    map[string]string{},
+		Failures:   map[string]string{},
+		Users:      map[string]string{"root": "/root"},
+		Tools:      map[string]string{},
+		Sessions:   map[string]bool{},
+		Windows:    map[string]int{},
+		Binds:      map[string]int{},
+		Listen:     map[int]bool{},
+		Uptimes:    map[int]int{},
+		Procs:      map[int]Proc{},
+		Stubborn:   map[int]bool{},
+		Links:      map[string]string{},
+		Archives:   map[string][]string{},
+		Extensions: map[string]string{},
+		Times:      map[string]time.Time{},
+		Now:        Epoch,
 	}
 }
 
@@ -205,6 +210,16 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 		return f.readlink(cmd.Argv[1:])
 	case "gpg":
 		return f.gpg(cmd.Argv[1:])
+	case "tar":
+		return f.tar(cmd.Argv[1:])
+	case "gunzip":
+		return f.gunzip(cmd.Argv[1:])
+	case "chmod":
+		return f.chmod(cmd.Argv[1:])
+	case "rm":
+		return f.rm(cmd.Argv[1:])
+	case "code-server":
+		return f.codeServer(cmd.Argv[1:])
 	case "google-chrome-stable", "chromium", "chromium-browser":
 		return f.chrome(cmd.Argv[1:])
 	}
@@ -228,6 +243,130 @@ func (f *FakeSys) curl(args []string) (sys.Output, error) {
 	}
 
 	return sys.Output{Stdout: f.Replies["curl"]}, nil
+}
+
+// An extraction leaves a folder behind, and the entries seeded in Archives; without them a step that unpacks an archive could never be skipped on a replay.
+func (f *FakeSys) tar(args []string) (sys.Output, error) {
+	var archive, dest string
+	for index, arg := range args {
+		switch {
+		case arg == "-C" || arg == "--directory":
+			dest = next(args, index)
+		case arg == "-f" || arg == "--file" || (strings.HasPrefix(arg, "-") && !strings.HasPrefix(arg, "--") && strings.HasSuffix(arg, "f")):
+			archive = next(args, index)
+		}
+	}
+
+	if _, err := f.ReadFile(archive); err != nil {
+		return f.fail("tar", "tar: "+archive+": Cannot open: No such file or directory")
+	}
+
+	if dest == "" {
+		return f.fail("tar", "tar: refusing to extract without a destination")
+	}
+
+	if err := f.MkdirAll(dest, 0o755); err != nil {
+		return f.fail("tar", err.Error())
+	}
+
+	for _, entry := range f.Archives[archive] {
+		if err := f.WriteFile(dest+"/"+entry, []byte("extrait de "+archive), 0o755); err != nil {
+			return f.fail("tar", err.Error())
+		}
+	}
+
+	return sys.Output{}, nil
+}
+
+func (f *FakeSys) gunzip(args []string) (sys.Output, error) {
+	path := args[len(args)-1]
+
+	content, err := f.ReadFile(path)
+	if err != nil {
+		return f.fail("gunzip", "gunzip: "+path+": No such file or directory")
+	}
+
+	if err := f.WriteFile(strings.TrimSuffix(path, ".gz"), content, 0o644); err != nil {
+		return f.fail("gunzip", err.Error())
+	}
+
+	return sys.Output{}, f.Remove(path)
+}
+
+func (f *FakeSys) chmod(args []string) (sys.Output, error) {
+	if len(args) < 2 {
+		return f.fail("chmod", "chmod: missing operand")
+	}
+
+	mode, err := strconv.ParseUint(args[0], 8, 32)
+	if err != nil {
+		return f.fail("chmod", "chmod: invalid mode: '"+args[0]+"'")
+	}
+
+	for _, path := range args[1:] {
+		f.Modes[path] = fs.FileMode(mode)
+	}
+
+	return sys.Output{}, nil
+}
+
+func (f *FakeSys) rm(args []string) (sys.Output, error) {
+	for _, path := range args {
+		if strings.HasPrefix(path, "-") {
+			continue
+		}
+
+		for known := range f.Files {
+			if known == path || strings.HasPrefix(known, path+"/") {
+				f.Remove(known)
+			}
+		}
+
+		for known := range f.Dirs {
+			if known == path || strings.HasPrefix(known, path+"/") {
+				delete(f.Dirs, known)
+				f.mutate("remove " + known)
+			}
+		}
+
+		delete(f.Links, path)
+	}
+
+	return sys.Output{}, nil
+}
+
+// The VS Code server CLI keeps the extensions it was given, so a second install of the same list has nothing left to do.
+func (f *FakeSys) codeServer(args []string) (sys.Output, error) {
+	for index, arg := range args {
+		switch arg {
+		case "--list-extensions":
+			names := make([]string, 0, len(f.Extensions))
+			for name := range f.Extensions {
+				names = append(names, name)
+			}
+			sort.Strings(names)
+
+			return sys.Output{Stdout: strings.Join(names, "\n") + "\n"}, nil
+		case "--install-extension":
+			name := next(args, index)
+			f.Extensions[name] = "1.0.0"
+			f.mutate("code --install-extension " + name)
+		case "--uninstall-extension":
+			name := next(args, index)
+			delete(f.Extensions, name)
+			f.mutate("code --uninstall-extension " + name)
+		}
+	}
+
+	return sys.Output{}, nil
+}
+
+func next(args []string, index int) string {
+	if index+1 < len(args) {
+		return args[index+1]
+	}
+
+	return ""
 }
 
 // A symlink is a file holding the path it points at, which is what readlink reads back and what makes the linking step skippable on a replay.
