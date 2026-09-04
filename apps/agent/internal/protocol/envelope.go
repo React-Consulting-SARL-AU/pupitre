@@ -21,9 +21,14 @@ type Context struct {
 	Secrets json.RawMessage
 
 	session *session
+	sink    func(map[string]any)
 }
 
 func (c *Context) Emit(event string, fields map[string]any) {
+	if c.sink == nil {
+		return
+	}
+
 	line := make(map[string]any, len(fields)+2)
 	for key, value := range fields {
 		line[key] = value
@@ -32,5 +37,5 @@ func (c *Context) Emit(event string, fields map[string]any) {
 	line["id"] = c.ID
 	line["event"] = event
 
-	c.session.write(line)
+	c.sink(line)
 }
