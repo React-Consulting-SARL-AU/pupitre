@@ -17,13 +17,13 @@ const PROBE_TIMEOUT_MS = 30_000;
 
 export type ShellSpawn = (command: string, args: string[]) => ChildProcess;
 
-export type ShellProbeOptions = {
+export interface ShellProbeOptions {
   /** What names the server: `-F <app config> <alias>`, or a system host. */
   args: string[];
   script: string;
   spawn?: ShellSpawn;
   timeoutMs?: number;
-};
+}
 
 function defaultSpawn(command: string, args: string[]): ChildProcess {
   return spawnChild(command, args, { stdio: ["pipe", "pipe", "pipe"] });

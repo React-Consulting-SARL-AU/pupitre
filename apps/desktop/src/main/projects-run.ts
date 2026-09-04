@@ -33,11 +33,11 @@ const DEFAULT_LINES = 200;
 
 const BRANCH_OK = /^[\w.\-/]{1,120}$/;
 
-export type ProjectDeps = {
+export interface ProjectDeps {
   client: Pick<AgentClient, "request">;
   /** Whether this identifier still names a server of the app's configuration. */
   knows: (serverId: string) => boolean;
-};
+}
 
 /**
  * The projects the agent named, and the folder it named for each.
@@ -47,7 +47,10 @@ export type ProjectDeps = {
  * absolute path the agent gives, and the one an editor or a terminal can be
  * pointed at. It is filled in the day a git command answers for that project.
  */
-type Declared = { dir: string; root: string | null };
+interface Declared {
+  dir: string;
+  root: string | null;
+}
 
 const declared = new Map<string, Map<string, Declared>>();
 
@@ -209,7 +212,7 @@ export type PlainProjectCommand =
   | "project.working_tree"
   | "project.remove";
 
-type PlainResult = {
+interface PlainResult {
   "project.install": DoneResult;
   "project.sync": ProjectSyncResult;
   "project.url": ProjectUrlResult;
@@ -217,7 +220,7 @@ type PlainResult = {
   "project.git_status": ProjectGitStatusResult;
   "project.working_tree": ProjectWorkingTreeResult;
   "project.remove": ProjectRemoveResult;
-};
+}
 
 /**
  * One project, one command, no parameter but its name.

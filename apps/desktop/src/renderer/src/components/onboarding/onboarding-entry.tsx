@@ -1,4 +1,4 @@
-import type { Server } from "@shared/contract";
+import type { Server } from "@shared/servers";
 import { Download } from "lucide-react";
 import { useEffect, useState } from "react";
 import { probeOf } from "../../stores/inspection";

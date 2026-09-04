@@ -35,7 +35,7 @@ export type CatalogState =
   | { status: "ready"; serverId: string; catalog: CatalogResult }
   | { status: "failed"; serverId: string; error: AgentError };
 
-type CatalogStore = {
+interface CatalogStore {
   catalog: CatalogState;
   selected: readonly string[];
   values: Record<string, Record<string, unknown>>;
@@ -59,7 +59,7 @@ type CatalogStore = {
   warnings: () => ResourceWarning[];
   config: () => ModuleConfig;
   reset: () => void;
-};
+}
 
 const EMPTY: CatalogResult = { modules: [], presets: [] };
 

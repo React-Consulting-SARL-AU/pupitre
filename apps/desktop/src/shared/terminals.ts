@@ -25,10 +25,10 @@ export type AgentState =
   | "asleep"
   | "finished";
 
-export type Terminal = {
+export interface Terminal {
   id: string;
   kind: TerminalKind;
   title: string;
   project: string | null;
   dir: string | null;
-};
+}

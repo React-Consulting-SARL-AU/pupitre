@@ -5,11 +5,11 @@
  * for the single reveal the screen asks for. Everything else — the renderer's
  * store, the logs, the install parameters — sees only these three booleans.
  */
-export type SecretMark = {
+export interface SecretMark {
   filled: boolean;
   generated: boolean;
   revealed: boolean;
-};
+}
 
 export type SecretMarks = Record<string, Record<string, SecretMark>>;
 

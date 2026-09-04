@@ -17,13 +17,13 @@ export type Inspection =
   | { status: "done"; serverId: string; probe: ProbeResult }
   | { status: "failed"; serverId: string; error: AgentError };
 
-type InspectionStore = {
+interface InspectionStore {
   inspection: Inspection;
   probes: Record<string, ProbeResult>;
 
   inspect: (serverId: string) => Promise<void>;
   forget: () => void;
-};
+}
 
 export const useInspection = create<InspectionStore>((set) => ({
   inspection: { status: "idle" },

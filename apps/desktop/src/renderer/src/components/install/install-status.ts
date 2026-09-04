@@ -2,11 +2,11 @@ import type { StepStatus } from "@pupitre/shared/agent-protocol/envelope";
 import type { ModuleStatus } from "../../stores/install";
 import type { StatusShape, StatusTone } from "../ui/status-dot";
 
-export type Look = {
+export interface Look {
   shape: StatusShape;
   tone: StatusTone;
   label: string;
-};
+}
 
 /**
  * Five fates, five outlines. The tone only confirms what the shape already

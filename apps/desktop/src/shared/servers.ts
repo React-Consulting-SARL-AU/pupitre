@@ -19,7 +19,7 @@
  */
 export type ServerOrigin = "app" | "system";
 
-export type Server = {
+export interface Server {
   id: string;
   name: string;
   /** An address for an app server, a ~/.ssh/config alias for a system one. */
@@ -32,14 +32,14 @@ export type Server = {
   keyPath?: string;
   /** The host key recorded on first contact. Absent: never contacted yet. */
   hostFingerprint?: string;
-};
+}
 
-export type ServersConfig = {
+export interface ServersConfig {
   /** The file's shape, so we know what to fill in when re-reading it. */
   version?: number;
   servers: Server[];
   active: string | null;
-};
+}
 
 /**
  * The three ways to give a key, and they differ only in who owns the file.
@@ -53,21 +53,21 @@ export type KeyChoice =
   | { mode: "import"; file: string }
   | { mode: "system"; host: string };
 
-export type ServerDraft = {
+export interface ServerDraft {
   name: string;
   host: string;
   port: number;
   user: string;
   key: KeyChoice;
-};
+}
 
-export type ServerAdded = {
+export interface ServerAdded {
   server: Server;
   config: ServersConfig;
   /** The public half, and only that. Null for a host of the system. */
   publicKey: string | null;
   copyId: string | null;
-};
+}
 
 export type HostKeyAction = "reinstalled" | "cancel";
 

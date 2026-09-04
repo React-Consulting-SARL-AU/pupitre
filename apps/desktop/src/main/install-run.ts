@@ -22,7 +22,7 @@ export type { InstallUpdate } from "@shared/install";
  * empty by the time the first step event comes back.
  */
 
-export type InstallDeps = {
+export interface InstallDeps {
   client: Pick<AgentClient, "request">;
   probe: (serverId: string) => Promise<AgentResponse<ProbeResult>>;
   deliver: (
@@ -39,7 +39,7 @@ export type InstallDeps = {
   declared: (serverId: string) => Promise<AgentResponse<readonly string[]>>;
   /** Reads the vault and empties it: these secrets are used once or lost. */
   secrets: (serverId: string) => InstallSecrets;
-};
+}
 
 /**
  * A server keeps the agent it has, unless it has none or the probe says it has

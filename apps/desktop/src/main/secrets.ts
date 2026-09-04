@@ -18,6 +18,8 @@ import { byId } from "./servers";
 
 const KEY_OK = /^[A-Z][A-Z0-9_]{1,60}$/;
 
+const NEWLINE = /[\r\n]/;
+
 function refuse(message: string, fix: string): AgentResponse<never> {
   return { ok: false, error: { code: "bad_request", fix, message } };
 }
@@ -75,7 +77,7 @@ export async function writeSecret(
 
   // A multi-line value would be truncated at the first line on the server, and
   // the rest would be read as further lines of the environment file.
-  if (typeof value !== "string" || value.length === 0 || /[\r\n]/.test(value)) {
+  if (typeof value !== "string" || value.length === 0 || NEWLINE.test(value)) {
     return refuse(
       "La valeur est vide ou tient sur plusieurs lignes.",
       "Donne une valeur sur une seule ligne."

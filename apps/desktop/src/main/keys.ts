@@ -12,6 +12,8 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import type { Server } from "@shared/servers";
 
+const SPACES = /\s+/;
+
 /**
  * The keys the app owns, one per server, in its own data folder.
  *
@@ -39,10 +41,10 @@ export class KeyError extends Error {
   }
 }
 
-export type KeyPaths = {
+export interface KeyPaths {
   keyPath: string;
   publicKeyPath: string;
-};
+}
 
 export type KeyPair = KeyPaths & {
   publicKey: string;
@@ -118,7 +120,7 @@ export async function generateKey(
 async function publicHalf(keyPath: string): Promise<string> {
   try {
     const { stdout } = await run("ssh-keygen", ["-y", "-f", keyPath]);
-    return stdout.trim().split(/\s+/).slice(0, 2).join(" ");
+    return stdout.trim().split(SPACES).slice(0, 2).join(" ");
   } catch {
     throw new KeyError(
       "Cette clé privée n'a pas pu être lue.",

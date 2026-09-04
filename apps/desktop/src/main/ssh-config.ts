@@ -28,18 +28,19 @@ const SOCKET_PRINT = 12;
 const DIR_MODE = 0o700;
 const FILE_MODE = 0o600;
 const HOST_LINE = /^\s*Host\s+(.+)$/i;
+const SPACES = /\s+/;
 
 const HEADER = `# Written by Pupitre. Your own ~/.ssh/config is never touched.
 # Passed to ssh with -F: nothing here leaks into your system configuration.
 
 `;
 
-export type SshPaths = {
+export interface SshPaths {
   dir: string;
   configPath: string;
   knownHostsPath: string;
   keysDir: string;
-};
+}
 
 export function appSshPaths(userData: string): SshPaths {
   const dir = join(userData, "ssh");
@@ -161,7 +162,7 @@ export function readSystemHosts(file: string): string[] {
         continue;
       }
 
-      for (const name of found[1].trim().split(/\s+/)) {
+      for (const name of found[1].trim().split(SPACES)) {
         const pattern =
           name.includes("*") || name.includes("?") || name.startsWith("!");
         if (!(pattern || hosts.includes(name))) {

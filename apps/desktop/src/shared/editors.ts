@@ -11,12 +11,12 @@ import type { Server } from "./servers";
 
 export type RemoteEditorId = "jetbrains" | "vscode" | "cursor" | "zed";
 
-export type RemoteEditor = {
+export interface RemoteEditor {
   id: RemoteEditorId;
   name: string;
   /** The catalogue module whose presence makes this editor reachable. */
   module: string;
-};
+}
 
 /**
  * `editor.vscode` lays the server VS Code, Cursor and Windsurf all reuse: one

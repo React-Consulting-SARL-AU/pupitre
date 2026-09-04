@@ -9,12 +9,12 @@ import { OnboardingInspectionSummary } from "./onboarding-inspection-summary";
 
 type Kind = ProbeVerdict["kind"];
 
-type Look = {
+interface Look {
   shape: StatusShape;
   tone: StatusTone;
   title: string;
   lead: string;
-};
+}
 
 const LOOK: Record<Kind, Look> = {
   bare: {

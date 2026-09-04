@@ -1,0 +1,276 @@
+import { SquareTerminal, X } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { ActivityPanel } from "./components/activity/activity-panel";
+import { DashboardPanel } from "./components/dashboard/dashboard-panel";
+import { OnboardingFlow } from "./components/onboarding/onboarding-flow";
+import { ProjectScreen } from "./components/projects/project-screen";
+import { SecretsPanel } from "./components/secrets/secrets-panel";
+import { SettingsScreen } from "./components/settings/settings-screen";
+import { AppSidebar } from "./components/shell/app-sidebar";
+import { ServerUnreadyScreen } from "./components/shell/server-unready-screen";
+import { TerminalTabs } from "./components/terminals/terminal-tabs";
+import { EmptyState } from "./components/ui/empty-state";
+import { ErrorNotice } from "./components/ui/error-notice";
+import { IconButton } from "./components/ui/icon-button";
+import { noteProjects, noteServer } from "./lib/completion";
+import { useNavigation } from "./stores/navigation";
+import { useOnboarding } from "./stores/onboarding";
+import { useSecrets } from "./stores/secrets";
+import { useServers } from "./stores/servers";
+import { snapshotOf, useSnapshot } from "./stores/snapshot";
+
+/** The dashboard is the state of the machine: it is worth a beat of its own. */
+const POLL_MS = 3000;
+
+/** A full `ps` is not: it changes more slowly than a project's state. */
+const POLL_PROCESSES_MS = 8000;
+
+export function App() {
+  const onboarding = useOnboarding((s) => s.step);
+  const openOnboarding = useOnboarding((s) => s.open);
+  const beginOnboarding = useOnboarding((s) => s.begin);
+
+  const config = useServers((s) => s.config);
+  const loadServers = useServers((s) => s.load);
+
+  const navigation = useNavigation();
+  const snapshotState = useSnapshot((s) => s.state);
+  const processes = useSnapshot((s) => s.processes);
+  const busy = useSnapshot((s) => s.busy);
+  const problem = useSnapshot((s) => s.problem);
+  const store = useSnapshot();
+
+  const secrets = useSecrets();
+  const [openSecret, setOpenSecret] = useState<string | null>(null);
+
+  const server = config?.servers.find((s) => s.id === config.active) ?? null;
+  const serverId = server?.id ?? null;
+  const snapshot = snapshotOf(snapshotState);
+
+  useEffect(() => {
+    loadServers();
+    // An onboarding left half-way reopens where it stopped: the machine is in
+    // the state the last step left it in, not the one this launch would guess.
+    useOnboarding.getState().resume();
+  }, [loadServers]);
+
+  useEffect(
+    () => window.pupitre.onTerminalStates(navigation.noteStates),
+    [navigation.noteStates]
+  );
+
+  const { read, readProcesses, forget } = store;
+
+  useEffect(() => {
+    noteServer(serverId);
+
+    if (!serverId) {
+      forget();
+
+      return;
+    }
+
+    read(serverId);
+    readProcesses(serverId);
+
+    const state = setInterval(() => read(serverId), POLL_MS);
+    const table = setInterval(() => readProcesses(serverId), POLL_PROCESSES_MS);
+
+    return () => {
+      clearInterval(state);
+      clearInterval(table);
+    };
+  }, [serverId, read, readProcesses, forget]);
+
+  const projects = snapshot?.projects;
+  const settle = navigation.settle;
+
+  useEffect(() => {
+    const names = projects?.map((project) => project.name) ?? [];
+
+    noteProjects(names);
+    settle(names);
+  }, [projects, settle]);
+
+  const view = navigation.view;
+  const readSecrets = secrets.read;
+
+  useEffect(() => {
+    if (serverId && view === "secrets") {
+      readSecrets(serverId);
+    }
+  }, [serverId, view, readSecrets]);
+
+  const serversChanged = useCallback(() => {
+    loadServers();
+    navigation.reset();
+  }, [loadServers, navigation.reset]);
+
+  // The onboarding comes first: it is what a server that answers nothing yet
+  // needs, and no dashboard has anything to say about a bare machine.
+  if (onboarding !== "closed") {
+    return <OnboardingFlow />;
+  }
+
+  // A server without an agent and a ready server are two different screens, and
+  // `snapshot` is what tells them apart: it is the first thing the app asks.
+  if (!(serverId && snapshot)) {
+    if (view !== "settings") {
+      return (
+        <ServerUnreadyScreen
+          error={
+            snapshotState.status === "unreachable" ? snapshotState.error : null
+          }
+          onInstall={() =>
+            serverId ? beginOnboarding(serverId) : openOnboarding()
+          }
+          onRetry={() => serverId && read(serverId)}
+          onSettings={() => navigation.goTo("settings")}
+          server={server}
+        />
+      );
+    }
+
+    return <SettingsScreen onChanged={serversChanged} />;
+  }
+
+  const project =
+    snapshot.projects.find((p) => p.name === navigation.selection) ?? null;
+  const serverTerminals = navigation.terminals.filter(
+    (terminal) => terminal.project === null
+  );
+
+  return (
+    <div className="grid h-full grid-cols-[224px_1fr]">
+      <AppSidebar
+        activeTerminal={navigation.activeTerminal}
+        allTerminals={navigation.terminals}
+        onCloseTerminal={navigation.closeTerminal}
+        onNewTerminal={() => navigation.openTerminal(null, "shell")}
+        onProject={navigation.select}
+        onTerminal={navigation.activateTerminal}
+        onView={navigation.goTo}
+        projects={snapshot.projects}
+        selection={navigation.selection}
+        server={server}
+        states={navigation.terminalStates}
+        terminals={serverTerminals}
+        view={view}
+      />
+
+      <div className="flex min-w-0 flex-col">
+        <div className="draggable h-10 shrink-0 border-line border-b bg-base" />
+
+        {problem ? (
+          <div className="clickable shrink-0 px-4 py-2">
+            <ErrorNotice error={problem} />
+            <div className="mt-1 flex justify-end">
+              <IconButton
+                icon={X}
+                label="Masquer"
+                onClick={() => store.announce(null)}
+                size={12}
+                variant="discreet"
+              />
+            </div>
+          </div>
+        ) : null}
+
+        <div className="relative min-h-0 flex-1">
+          {view === "dashboard" ? (
+            <div className="absolute inset-0">
+              <DashboardPanel
+                busy={busy}
+                onAct={(action, name) => store.act(action, serverId, name)}
+                onCleanSessions={() => store.cleanSessions(serverId)}
+                onOpenProject={navigation.select}
+                onReboot={() => store.reboot(serverId)}
+                onStopSession={(pid) => store.stopProcess(serverId, pid)}
+                snapshot={snapshot}
+              />
+            </div>
+          ) : null}
+
+          {view === "project" && project ? (
+            <div className="absolute inset-0">
+              <ProjectScreen
+                onRemoved={() => navigation.goTo("dashboard")}
+                project={project}
+                serverId={serverId}
+                services={snapshot.services}
+              />
+            </div>
+          ) : null}
+
+          {view === "activity" ? (
+            <div className="absolute inset-0">
+              <ActivityPanel
+                onCleanSessions={() => store.cleanSessions(serverId)}
+                onStopProcess={(pid) => store.stopProcess(serverId, pid)}
+                onStopSession={(pid) => store.stopProcess(serverId, pid)}
+                processes={processes}
+                sessions={snapshot.sessions}
+              />
+            </div>
+          ) : null}
+
+          {view === "secrets" ? (
+            <div className="absolute inset-0">
+              <SecretsPanel
+                onOpen={setOpenSecret}
+                onReload={() => secrets.read(serverId)}
+                onSave={async (key, value) => {
+                  const ok = await secrets.save(serverId, key, value);
+
+                  if (ok) {
+                    setOpenSecret(null);
+                  }
+                }}
+                open={openSecret}
+                problem={secrets.problem}
+                saved={secrets.saved}
+                saving={secrets.saving}
+                state={secrets.state}
+              />
+            </div>
+          ) : null}
+
+          {view === "settings" ? (
+            <div className="absolute inset-0">
+              <SettingsScreen onChanged={serversChanged} />
+            </div>
+          ) : null}
+
+          {/*
+            The server's own terminals — the projects' ones live on their page.
+            Sessions survive unmounting: it is the `lib/terminals` registry that
+            holds them, not React.
+          */}
+          {view === "terminals" ? (
+            <div className="absolute inset-0">
+              {serverTerminals.length === 0 ? (
+                <EmptyState
+                  detail="Ouvrez-en un depuis la barre latérale."
+                  icon={SquareTerminal}
+                  title="Aucun terminal ouvert"
+                />
+              ) : (
+                <TerminalTabs
+                  active={navigation.activeTerminal}
+                  kind="shell"
+                  onActivate={navigation.activateTerminal}
+                  onClose={navigation.closeTerminal}
+                  onNew={() => navigation.openTerminal(null, "shell")}
+                  onRename={navigation.renameTerminal}
+                  project={null}
+                  sessions={serverTerminals}
+                  states={navigation.terminalStates}
+                />
+              )}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}

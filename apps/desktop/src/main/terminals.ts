@@ -4,7 +4,7 @@ import * as pty from "node-pty";
 
 import { target } from "./servers";
 
-type Session = {
+interface Session {
   proc: pty.IPty;
   kind: TerminalKind;
   project: string | null;
@@ -15,7 +15,7 @@ type Session = {
   /** A bell arrived and you have not answered yet. */
   bell: boolean;
   finished: boolean;
-};
+}
 
 const sessions = new Map<string, Session>();
 

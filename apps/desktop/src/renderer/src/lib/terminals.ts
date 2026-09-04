@@ -1,4 +1,4 @@
-import type { TerminalKind } from "@shared/contract";
+import type { TerminalKind } from "@shared/terminals";
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { attach, recompute, TERMINAL_FONT } from "./completion";
@@ -32,12 +32,12 @@ export function repaintTerminals(next: ResolvedTheme): void {
   }
 }
 
-type Live = {
+interface Live {
   host: HTMLDivElement;
   xterm: XTerm;
   fit: FitAddon;
   detach: () => void;
-};
+}
 
 /**
  * Terminals live here, outside React.
@@ -52,6 +52,7 @@ const live = new Map<string, Live>();
 
 export function obtain(
   id: string,
+  serverId: string,
   kind: TerminalKind,
   project: string | null
 ): Live {
@@ -99,7 +100,7 @@ export function obtain(
 
   // The PTY opens at a default size: the host is not in the document yet, so
   // nothing is measurable. The first `fitTerminal` will correct it.
-  window.pupitre.openTerminal(id, kind, project, 80, 24);
+  window.pupitre.openTerminal(id, serverId, kind, project, 80, 24);
 
   const entry: Live = {
     host,

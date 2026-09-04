@@ -15,14 +15,14 @@ import { Field, fieldControlClass } from "../ui/field";
  * manager. Everything proposed here stays editable — the machine decides what
  * it accepts, and says so.
  */
-export type DraftEdits = {
+export interface DraftEdits {
   source: (value: string) => void;
   name: (value: string) => void;
   pkgmgr: (value: PackageManager) => void;
   port: (value: number) => void;
   subdomain: (value: string) => void;
   cmd: (value: string) => void;
-};
+}
 
 export function FirstProjectForm({
   draft,

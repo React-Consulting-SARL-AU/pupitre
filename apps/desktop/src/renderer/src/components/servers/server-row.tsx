@@ -1,5 +1,4 @@
-import type { Server } from "@shared/contract";
-import type { ServerProfile } from "@shared/profile";
+import type { Server } from "@shared/servers";
 import { KeyRound, Trash2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Button } from "../ui/button";
@@ -8,7 +7,6 @@ import { fieldControlClass } from "../ui/field";
 import { IconButton } from "../ui/icon-button";
 import { Label } from "../ui/label";
 import { StatusDot } from "../ui/status-dot";
-import { ServerProfileFields } from "./server-profile";
 
 /**
  * One server, and everything that can be done to it from a list.
@@ -19,19 +17,15 @@ import { ServerProfileFields } from "./server-profile";
 export function ServerRow({
   server,
   active,
-  busy,
   onActivate,
   onRename,
   onRemove,
-  onProfile,
 }: {
   server: Server;
   active: boolean;
-  busy: boolean;
   onActivate: () => void;
   onRename: (name: string) => void;
   onRemove: () => void;
-  onProfile: (profile: ServerProfile) => void;
 }) {
   const [name, setName] = useState(server.name);
   const [confirming, setConfirming] = useState(false);
@@ -115,12 +109,6 @@ export function ServerRow({
           <CopyField label="Clé publique" value={publicKey} />
         </div>
       ) : null}
-
-      <ServerProfileFields
-        busy={busy}
-        onSave={onProfile}
-        profile={server.profile}
-      />
 
       {confirming ? (
         <div className="mt-5 animate-[fade-in_160ms_ease-out] rounded-sm border border-danger/40 bg-danger/10 p-3 pl-7">

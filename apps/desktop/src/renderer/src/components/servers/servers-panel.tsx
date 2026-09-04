@@ -1,4 +1,3 @@
-import type { ServerProfile } from "@shared/profile";
 import type { ServerDraft } from "@shared/servers";
 import { Plus, Server as ServerIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -38,7 +37,6 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
 
   const [adding, setAdding] = useState(false);
   const [trusting, setTrusting] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     load();
@@ -67,23 +65,6 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
       setAdding(false);
       onChanged?.();
     }
-  }
-
-  async function saveProfile(id: string, profile: ServerProfile) {
-    if (!config) {
-      return;
-    }
-
-    setSaving(true);
-    const next = await window.pupitre.saveServers({
-      active: config.active,
-      servers: config.servers.map((server) =>
-        server.id === id ? { ...server, profile } : server
-      ),
-    });
-    useServers.setState({ config: next });
-    setSaving(false);
-    onChanged?.();
   }
 
   async function reinstalled(id: string) {
@@ -152,9 +133,7 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
                 <OnboardingEntry server={server} />
                 <ServerRow
                   active={server.id === active}
-                  busy={saving}
                   onActivate={() => run(activate(server.id))}
-                  onProfile={(profile) => saveProfile(server.id, profile)}
                   onRemove={() => run(remove(server.id))}
                   onRename={(name) => run(rename(server.id, name))}
                   server={server}

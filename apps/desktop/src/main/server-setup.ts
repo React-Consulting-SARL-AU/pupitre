@@ -35,12 +35,12 @@ export class SetupError extends Error {
   }
 }
 
-export type ServerCreation = {
+export interface ServerCreation {
   server: Server;
   servers: Server[];
   publicKey: string | null;
   copyId: string | null;
-};
+}
 
 function refuse(condition: boolean, message: string, fix: string): void {
   if (!condition) {
