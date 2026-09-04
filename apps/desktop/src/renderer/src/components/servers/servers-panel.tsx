@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { ServerDraft } from "@shared/servers";
 import { Plus, Server as ServerIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -20,6 +21,8 @@ import { ServerRow } from "./server-row";
  * nothing works.
  */
 export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
+  const t = useTranslations();
+
   const {
     addition,
     activate,
@@ -93,16 +96,14 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
       <section>
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <div>
-            <Label>Vos serveurs</Label>
+            <Label>{t("servers.panel.heading")}</Label>
             <p className="mt-1 text-ink-3 leading-relaxed">
-              L'app garde une configuration SSH à elle, une clé par serveur dans
-              son dossier, et l'empreinte de chaque machine dès le premier
-              contact.
+              {t("servers.panel.intro")}
             </p>
           </div>
           {servers.length > 0 && !adding ? (
             <Button icon={Plus} onClick={() => setAdding(true)}>
-              Ajouter un serveur
+              {t("servers.addServer")}
             </Button>
           ) : null}
         </div>
@@ -117,13 +118,13 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
                     onClick={() => setAdding(true)}
                     variant="inverse"
                   >
-                    Ajouter un serveur
+                    {t("servers.addServer")}
                   </Button>
                 )
               }
-              detail="Une adresse, un compte, et une clé que l'app génère pour cet ordinateur."
+              detail={t("servers.panel.emptyDetail")}
               icon={ServerIcon}
-              title="Aucun serveur pour l'instant"
+              title={t("servers.panel.emptyTitle")}
             />
           </div>
         ) : (

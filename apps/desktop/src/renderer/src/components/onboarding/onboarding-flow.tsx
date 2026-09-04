@@ -1,4 +1,5 @@
 import type { ModuleConfig } from "@pupitre/shared/agent-protocol/install";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { ArrowLeft, X } from "lucide-react";
 import { useEffect } from "react";
 import { useCatalog } from "../../stores/catalog";
@@ -31,6 +32,8 @@ import { OnboardingServerScreen } from "./onboarding-server-screen";
  * after it.
  */
 export function OnboardingFlow() {
+  const t = useTranslations();
+
   const step = useOnboarding((state) => state.step);
   const serverId = useOnboarding((state) => state.serverId);
   const replaying = useOnboarding((state) => state.replaying);
@@ -202,11 +205,11 @@ export function OnboardingFlow() {
         <div className="clickable flex items-center gap-2">
           {canGoBack() ? (
             <Button icon={ArrowLeft} onClick={back} variant="discreet">
-              Revenir
+              {t("onboarding.flow.back")}
             </Button>
           ) : null}
           <Button icon={X} onClick={close} variant="discreet">
-            Quitter l'assistant
+            {t("onboarding.flow.quit")}
           </Button>
         </div>
       </header>

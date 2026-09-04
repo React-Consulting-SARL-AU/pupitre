@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { Phase } from "../../stores/first-project";
 import { StatusDot } from "../ui/status-dot";
 import { PHASE_DOING, PHASE_LOOK, PHASE_TITLES } from "./first-project-phases";
@@ -10,12 +11,14 @@ import { PHASE_DOING, PHASE_LOOK, PHASE_TITLES } from "./first-project-phases";
  * port, the address.
  */
 export function FirstProjectSteps({ phases }: { phases: readonly Phase[] }) {
+  const t = useTranslations();
+
   return (
     <ol className="elevation-raised flex flex-col overflow-hidden rounded-md border border-line bg-surface">
       {phases.map((phase, index) => {
         const look = PHASE_LOOK[phase.status];
         const detail =
-          phase.status === "running" ? PHASE_DOING[phase.id] : phase.detail;
+          phase.status === "running" ? t(PHASE_DOING[phase.id]) : phase.detail;
 
         return (
           <li
@@ -26,7 +29,7 @@ export function FirstProjectSteps({ phases }: { phases: readonly Phase[] }) {
           >
             <span className="translate-y-1">
               <StatusDot
-                label={look.label}
+                label={t(look.label)}
                 shape={look.shape}
                 tone={look.tone}
               />
@@ -38,7 +41,7 @@ export function FirstProjectSteps({ phases }: { phases: readonly Phase[] }) {
                   phase.status === "pending" ? "text-ink-3" : "text-ink"
                 }
               >
-                {PHASE_TITLES[phase.id]}
+                {t(PHASE_TITLES[phase.id])}
               </p>
               {detail ? (
                 <p className="mt-0.5 font-data text-[11px] text-ink-3 leading-relaxed">
@@ -48,7 +51,7 @@ export function FirstProjectSteps({ phases }: { phases: readonly Phase[] }) {
             </div>
 
             <span className="label shrink-0 translate-y-0.5 text-ink-4">
-              {look.label}
+              {t(look.label)}
             </span>
           </li>
         );

@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { Check } from "lucide-react";
 import { Button } from "../ui/button";
 import { PageHeader } from "../ui/page-header";
@@ -18,17 +19,19 @@ export function OnboardingDoneScreen({
   rootClosed: boolean;
   onClose?: () => void;
 }) {
+  const t = useTranslations();
+
   return (
     <section className="flex flex-col gap-section">
       <PageHeader
         actions={
           <Button icon={Check} onClick={onClose} variant="inverse">
-            Terminer
+            {t("onboarding.finish")}
           </Button>
         }
-        description="Le serveur est installé, et l'app le pilote par son agent."
-        eyebrow="Prêt"
-        title={serverName ?? "Ce serveur"}
+        description={t("onboarding.done.description")}
+        eyebrow={t("onboarding.done.eyebrow")}
+        title={serverName ?? t("onboarding.thisServer")}
       />
 
       <div className="elevation-raised flex items-start gap-3 rounded-md border border-line bg-surface px-4 py-4">
@@ -41,12 +44,13 @@ export function OnboardingDoneScreen({
         </span>
         <div className="min-w-0">
           <p className="font-medium text-ink">
-            Connecté en <code className="font-data">{user}</code>
+            {t("onboarding.done.connectedAs")}{" "}
+            <code className="font-data">{user}</code>
           </p>
           <p className="mt-1 text-ink-3 leading-relaxed">
             {rootClosed
-              ? "Root est fermé : plus personne n'entre sur cette machine avec ce compte."
-              : "Root est resté ouvert : reprends le durcissement quand la raison donnée par l'agent aura disparu."}
+              ? t("onboarding.done.rootClosed")
+              : t("onboarding.done.rootOpen")}
           </p>
         </div>
       </div>

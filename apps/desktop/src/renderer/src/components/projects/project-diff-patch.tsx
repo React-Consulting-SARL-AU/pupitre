@@ -2,6 +2,7 @@ import { Callout } from "@renderer/components/ui/callout";
 import { EmptyState } from "@renderer/components/ui/empty-state";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { StatusDot } from "@renderer/components/ui/status-dot";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { TERMINAL_FONT } from "@renderer/lib/completion";
 import { type PatchRow, parsePatch } from "@renderer/lib/patch";
 import type { DiffState } from "@renderer/stores/project";
@@ -25,12 +26,14 @@ const ROW: Record<
 };
 
 function Rows({ patch, problem }: { patch: string; problem: string }) {
+  const t = useTranslations();
+
   const rows = useMemo(() => parsePatch(patch), [patch]);
 
   if (rows.length === 0) {
     return (
       <p className="p-6 text-center text-[12px] text-ink-3">
-        {problem || "Aucun changement textuel dans ce fichier."}
+        {problem || t("project.diff.noTextChange")}
       </p>
     );
   }
@@ -84,15 +87,17 @@ export function ProjectDiffPatch({
   state: DiffState;
   onRetry: () => void;
 }) {
+  const t = useTranslations();
+
   if (state.status === "idle") {
-    return <EmptyState title="Choisissez un fichier." />;
+    return <EmptyState title={t("project.diff.pickFile")} />;
   }
 
   if (state.status === "reading") {
     return (
       <p className="flex items-center justify-center gap-2 p-6 text-[12px] text-ink-3">
         <StatusDot shape="breathing" size={11} />
-        lecture du diff…
+        {t("project.diff.reading")}
       </p>
     );
   }
@@ -108,7 +113,7 @@ export function ProjectDiffPatch({
   if (state.diff.binary) {
     return (
       <p className="p-6 text-center text-[12px] text-ink-3">
-        Fichier binaire — rien à montrer ligne à ligne.
+        {t("project.diff.binaryFile")}
       </p>
     );
   }

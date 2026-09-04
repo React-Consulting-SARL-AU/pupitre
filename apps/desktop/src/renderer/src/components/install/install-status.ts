@@ -1,11 +1,12 @@
 import type { StepStatus } from "@pupitre/shared/agent-protocol/envelope";
+import type { DictionaryKey } from "@renderer/i18n/en";
 import type { ModuleStatus } from "../../stores/install";
 import type { StatusShape, StatusTone } from "../ui/status-dot";
 
 export interface Look {
   shape: StatusShape;
   tone: StatusTone;
-  label: string;
+  label: DictionaryKey;
 }
 
 /**
@@ -13,16 +14,32 @@ export interface Look {
  * says, so the whole screen survives being read in pure greys.
  */
 export const MODULE_LOOK: Record<ModuleStatus, Look> = {
-  pending: { label: "en attente", shape: "empty", tone: "neutral" },
-  running: { label: "en cours", shape: "breathing", tone: "neutral" },
-  ok: { label: "réussi", shape: "filled", tone: "ok" },
-  skip: { label: "ignoré", shape: "empty", tone: "neutral" },
-  fail: { label: "en échec", shape: "struck", tone: "danger" },
+  pending: {
+    label: "install.moduleStatus.pending",
+    shape: "empty",
+    tone: "neutral",
+  },
+  running: {
+    label: "install.moduleStatus.running",
+    shape: "breathing",
+    tone: "neutral",
+  },
+  ok: { label: "install.moduleStatus.ok", shape: "filled", tone: "ok" },
+  skip: { label: "install.moduleStatus.skip", shape: "empty", tone: "neutral" },
+  fail: {
+    label: "install.moduleStatus.fail",
+    shape: "struck",
+    tone: "danger",
+  },
 };
 
 export const STEP_LOOK: Record<StepStatus, Look> = {
-  start: { label: "en cours", shape: "breathing", tone: "neutral" },
-  ok: { label: "réussie", shape: "filled", tone: "ok" },
-  skip: { label: "ignorée", shape: "empty", tone: "neutral" },
-  fail: { label: "en échec", shape: "struck", tone: "danger" },
+  start: {
+    label: "install.stepStatus.start",
+    shape: "breathing",
+    tone: "neutral",
+  },
+  ok: { label: "install.stepStatus.ok", shape: "filled", tone: "ok" },
+  skip: { label: "install.stepStatus.skip", shape: "empty", tone: "neutral" },
+  fail: { label: "install.stepStatus.fail", shape: "struck", tone: "danger" },
 };

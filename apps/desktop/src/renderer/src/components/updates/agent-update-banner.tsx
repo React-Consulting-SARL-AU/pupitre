@@ -2,6 +2,7 @@ import { InstallLog } from "@renderer/components/install/install-log";
 import { Button } from "@renderer/components/ui/button";
 import { Callout } from "@renderer/components/ui/callout";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { UpdateState, UpgradeState } from "@renderer/stores/agent-update";
 import { ArrowUp } from "lucide-react";
 import { AgentUpdateFrame } from "./agent-update-frame";
@@ -28,6 +29,8 @@ export function AgentUpdateBanner({
   onUpgrade: () => void;
   onHide: () => void;
 }) {
+  const t = useTranslations();
+
   if (state.status !== "ready") {
     return null;
   }
@@ -37,15 +40,15 @@ export function AgentUpdateBanner({
   if (order === "behind") {
     return (
       <AgentUpdateFrame
-        detail={`pupitred ${installed ?? "?"} sur le serveur, ${carried?.version ?? "?"} dans cette app`}
+        detail={t("updates.agent.behindDetail", {
+          installed: installed ?? "?",
+          carried: carried?.version ?? "?",
+        })}
         onHide={onHide}
         order={order}
-        title="Mettez l'app à jour"
+        title={t("updates.agent.behindTitle")}
       >
-        <Callout>
-          Ce serveur est passé à une version que cette app ne connaît pas
-          encore. Tout ce qu'elle sait demander continue de fonctionner.
-        </Callout>
+        <Callout>{t("updates.agent.behindBody")}</Callout>
       </AgentUpdateFrame>
     );
   }
@@ -59,17 +62,13 @@ export function AgentUpdateBanner({
       detail={`pupitred ${installed ?? "?"} → ${carried.version} · ${carried.arch}`}
       onHide={onHide}
       order={order}
-      title="Mise à jour disponible"
+      title={t("updates.agent.aheadTitle")}
     >
       <AgentUpdateNotes notes={carried.notes} />
 
       {carried.signed ? null : (
-        <Callout
-          fix="bun --cwd=apps/agent run release, puis reconstruis l'app."
-          tone="warn"
-        >
-          Cette app ne porte pas la signature de cette version : l'agent
-          refuserait la mise à jour.
+        <Callout fix={t("updates.agent.unsignedFix")} tone="warn">
+          {t("updates.agent.unsignedBody")}
         </Callout>
       )}
 
@@ -79,9 +78,15 @@ export function AgentUpdateBanner({
 
       {upgrade.status === "done" ? (
         <Callout>
-          {`Agent ${upgrade.result.previous_version} remplacé par ${upgrade.result.version}${
-            upgrade.result.restarting ? ", service redémarré." : "."
-          }`}
+          {upgrade.result.restarting
+            ? t("updates.agent.upgradedRestarted", {
+                previous: upgrade.result.previous_version,
+                version: upgrade.result.version,
+              })
+            : t("updates.agent.upgraded", {
+                previous: upgrade.result.previous_version,
+                version: upgrade.result.version,
+              })}
         </Callout>
       ) : null}
 
@@ -95,7 +100,7 @@ export function AgentUpdateBanner({
           onClick={onUpgrade}
           variant="inverse"
         >
-          Mettre l'agent à jour
+          {t("updates.agent.upgradeButton")}
         </Button>
       </div>
     </AgentUpdateFrame>

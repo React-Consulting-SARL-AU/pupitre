@@ -1,13 +1,15 @@
 import type { ProjectState } from "@pupitre/shared/agent-protocol/state";
+import type { DictionaryKey } from "@renderer/i18n/en";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { ExternalLink } from "lucide-react";
 import { Button } from "../ui/button";
 import { StatusDot } from "../ui/status-dot";
 
 const LOOK: Partial<
-  Record<ProjectState, { shape: "filled" | "breathing"; label: string }>
+  Record<ProjectState, { shape: "filled" | "breathing"; label: DictionaryKey }>
 > = {
-  online: { label: "en ligne", shape: "filled" },
-  starting: { label: "démarre", shape: "breathing" },
+  online: { label: "state.project.online", shape: "filled" },
+  starting: { label: "state.project.starting", shape: "breathing" },
 };
 
 /**
@@ -29,14 +31,19 @@ export function FirstProjectOutcome({
   url?: string;
   onOpen?: (url: string) => void;
 }) {
-  const look = LOOK[state] ?? { label: state, shape: "filled" as const };
+  const t = useTranslations();
+
+  const look = LOOK[state] ?? {
+    label: `state.project.${state}` as DictionaryKey,
+    shape: "filled" as const,
+  };
 
   return (
     <div className="elevation-raised flex flex-wrap items-start justify-between gap-4 rounded-md border border-line bg-surface px-4 py-4">
       <div className="flex min-w-0 items-start gap-3">
         <span className="translate-y-1">
           <StatusDot
-            label={look.label}
+            label={t(look.label)}
             shape={look.shape}
             size={12}
             tone={state === "online" ? "ok" : "neutral"}
@@ -45,10 +52,10 @@ export function FirstProjectOutcome({
 
         <div className="min-w-0">
           <p className="font-medium text-ink">
-            <code className="font-data">{name}</code> {look.label}
+            <code className="font-data">{name}</code> {t(look.label)}
           </p>
           <p className="mt-1 font-data text-[11px] text-ink-3">
-            {url ?? "adresse inconnue"}
+            {url ?? t("firstProject.outcome.unknownAddress")}
             {port ? ` · port ${port}` : ""}
           </p>
         </div>
@@ -56,7 +63,7 @@ export function FirstProjectOutcome({
 
       {url ? (
         <Button icon={ExternalLink} onClick={() => onOpen?.(url)}>
-          Ouvrir
+          {t("firstProject.outcome.open")}
         </Button>
       ) : null}
     </div>

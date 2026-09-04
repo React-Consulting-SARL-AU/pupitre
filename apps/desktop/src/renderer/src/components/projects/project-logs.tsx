@@ -1,5 +1,6 @@
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { StatusDot } from "@renderer/components/ui/status-dot";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AgentError } from "@shared/agent";
 import { useEffect, useRef, useState } from "react";
 
@@ -32,6 +33,8 @@ export function ProjectLogs({
   serverId: string;
   project: string;
 }) {
+  const t = useTranslations();
+
   const [lines, setLines] = useState<string[]>([]);
   const [follow, setFollow] = useState(true);
   const [error, setError] = useState<AgentError | null>(null);
@@ -78,7 +81,7 @@ export function ProjectLogs({
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between gap-3 border-line border-b px-4 py-2">
         <span className="font-data text-[11px] text-ink-3">
-          journal de {project}
+          {t("project.logs.journal", { name: project })}
         </span>
         <label className="clickable flex items-center gap-2 font-data text-[10px] text-ink-3">
           <input
@@ -87,7 +90,7 @@ export function ProjectLogs({
             onChange={(event) => setFollow(event.target.checked)}
             type="checkbox"
           />
-          suivre la fin
+          {t("project.logs.follow")}
         </label>
       </div>
 
@@ -116,7 +119,7 @@ export function ProjectLogs({
         {lines.length === 0 && !error ? (
           <span className="flex items-center gap-2 text-ink-3">
             <StatusDot shape="breathing" size={11} />
-            en attente de la première ligne de {project}…
+            {t("project.logs.waiting", { name: project })}
           </span>
         ) : (
           lines.map((line, index) => (

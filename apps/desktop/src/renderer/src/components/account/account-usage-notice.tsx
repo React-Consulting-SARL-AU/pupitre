@@ -3,6 +3,8 @@ import type {
   StatusTone,
 } from "@renderer/components/ui/status-dot";
 import { StatusDot } from "@renderer/components/ui/status-dot";
+import type { Translate } from "@renderer/i18n/i18n";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { since } from "@renderer/lib/format";
 import type { UsageRight } from "@shared/account";
 
@@ -20,50 +22,68 @@ interface Look {
   title: string;
 }
 
-function lookOf(usage: UsageRight): Look {
+function lookOf(usage: UsageRight, t: Translate): Look {
   if (usage.status === "granted") {
     if (usage.source === "development") {
       return {
         shape: "empty",
-        title: "Build de développement",
+        title: t("account.usage.look.development"),
         tone: "neutral",
       };
     }
 
     return usage.source === "platform"
-      ? { shape: "filled", title: "Droit d'usage valide", tone: "ok" }
-      : { shape: "ringed", title: "Droit d'usage en cache", tone: "warn" };
+      ? { shape: "filled", title: t("account.usage.look.valid"), tone: "ok" }
+      : {
+          shape: "ringed",
+          title: t("account.usage.look.cached"),
+          tone: "warn",
+        };
   }
 
   if (usage.status === "suspended") {
-    return { shape: "struck", title: "Droit d'usage suspendu", tone: "danger" };
+    return {
+      shape: "struck",
+      title: t("account.usage.look.suspended"),
+      tone: "danger",
+    };
   }
 
   if (usage.status === "stale") {
-    return { shape: "struck", title: "Droit d'usage expiré", tone: "danger" };
+    return {
+      shape: "struck",
+      title: t("account.usage.look.stale"),
+      tone: "danger",
+    };
   }
 
-  return { shape: "empty", title: "Aucun compte connecté", tone: "warn" };
+  return { shape: "empty", title: t("account.usage.look.none"), tone: "warn" };
 }
 
-function detailOf(usage: UsageRight, checkedAt: string | null): string {
+function detailOf(
+  usage: UsageRight,
+  checkedAt: string | null,
+  t: Translate
+): string {
   if (usage.status === "granted" && usage.source === "development") {
-    return "Sans compte, Pupitre travaille en mode développement. Un build de production demande un compte.";
+    return t("account.usage.development");
   }
 
   if (usage.status === "granted") {
-    return `Vérifié ${since(Date.parse(checkedAt ?? ""))}. Pupitre reste utilisable sept jours sans la plateforme.`;
+    return t("account.usage.checked", {
+      since: since(Date.parse(checkedAt ?? "")),
+    });
   }
 
   if (usage.status === "stale") {
-    return `Dernière réponse de la plateforme ${since(Date.parse(usage.since))}, au-delà des sept jours de tolérance.`;
+    return t("account.usage.stale", { since: since(Date.parse(usage.since)) });
   }
 
   if (usage.status === "suspended") {
-    return "Les serveurs de cette organisation ne peuvent plus être installés ni mis à jour.";
+    return t("account.usage.suspended");
   }
 
-  return "Un build de production refuse d'installer un serveur sans compte.";
+  return t("account.usage.none");
 }
 
 export function AccountUsageNotice({
@@ -73,7 +93,9 @@ export function AccountUsageNotice({
   usage: UsageRight;
   checkedAt: string | null;
 }) {
-  const look = lookOf(usage);
+  const t = useTranslations();
+
+  const look = lookOf(usage, t);
 
   return (
     <div
@@ -86,12 +108,13 @@ export function AccountUsageNotice({
       <div className="min-w-0">
         <p className="font-medium text-ink">{look.title}</p>
         <p className="mt-1 text-[11px] text-ink-3 leading-relaxed">
-          {detailOf(usage, checkedAt)}
+          {detailOf(usage, checkedAt, t)}
         </p>
         {usage.status === "granted" && usage.validUntil ? (
           <p className="mt-1.5 font-data text-[11px] text-ink-4">
-            valable jusqu'au{" "}
-            {new Date(usage.validUntil).toLocaleDateString("fr-FR")}
+            {t("account.usage.validUntil", {
+              date: new Date(usage.validUntil).toLocaleDateString("fr-FR"),
+            })}
           </p>
         ) : null}
       </div>

@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { SecretMarks } from "@shared/secrets";
 import type { FieldGroup } from "../../lib/catalog-selection";
 import { fieldControlClass } from "../ui/field";
@@ -28,14 +29,14 @@ export function ConfigForm({
   onMachineName?: (name: string) => void;
   handlersFor?: (moduleId: string) => FieldHandlers;
 }) {
+  const t = useTranslations();
+
   return (
     <div className="flex flex-col gap-gutter">
       <section className="elevation-raised flex flex-col gap-gutter rounded-md border border-line bg-surface p-5">
         <header className="min-w-0">
-          <h2 className="font-medium text-ink">Cette machine</h2>
-          <p className="text-[11px] text-ink-3">
-            Le nom sous lequel l'app la montrera. Il ne quitte pas ce poste.
-          </p>
+          <h2 className="font-medium text-ink">{t("config.machine.title")}</h2>
+          <p className="text-[11px] text-ink-3">{t("config.machine.help")}</p>
         </header>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -43,9 +44,9 @@ export function ConfigForm({
             className="flex min-w-0 flex-col gap-1.5"
             data-field="machine.name"
           >
-            <Label>Nom de la machine</Label>
+            <Label>{t("config.machine.nameLabel")}</Label>
             <input
-              aria-label="Nom de la machine"
+              aria-label={t("config.machine.nameLabel")}
               className={fieldControlClass}
               name="machine.name"
               onChange={(event) => onMachineName?.(event.target.value)}

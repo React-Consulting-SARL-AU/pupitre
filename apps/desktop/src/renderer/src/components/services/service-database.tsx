@@ -1,6 +1,8 @@
 import { Button } from "@renderer/components/ui/button";
 import { CopyField } from "@renderer/components/ui/copy-field";
 import { Label } from "@renderer/components/ui/label";
+import type { DictionaryKey } from "@renderer/i18n/en";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { humanBytes } from "@renderer/lib/duration";
 import type { DatabaseOutcome } from "@renderer/stores/services";
 import { Download, SquareTerminal, Upload } from "lucide-react";
@@ -13,10 +15,10 @@ import { Download, SquareTerminal, Upload } from "lucide-react";
  * a session and this panel is a page.
  */
 
-const TITLES: Record<DatabaseOutcome["kind"], string> = {
-  dump: "Export écrit sur le serveur",
-  import: "Dumps importés",
-  shell: "Commande à lancer sur le serveur",
+const TITLES: Record<DatabaseOutcome["kind"], DictionaryKey> = {
+  dump: "services.database.outcome.dump",
+  import: "services.database.outcome.import",
+  shell: "services.database.outcome.shell",
 };
 
 export function ServiceDatabase({
@@ -35,9 +37,11 @@ export function ServiceDatabase({
   onImport: () => void;
   onTerminal?: () => void;
 }) {
+  const t = useTranslations();
+
   return (
     <section className="flex flex-col gap-3">
-      <Label>Base de données</Label>
+      <Label>{t("services.database.title")}</Label>
 
       <div className="flex flex-wrap items-center gap-2">
         <Button
@@ -46,7 +50,7 @@ export function ServiceDatabase({
           onClick={onShell}
           size="sm"
         >
-          Ouvrir un shell
+          {t("services.database.shell")}
         </Button>
         <Button
           icon={Download}
@@ -54,7 +58,7 @@ export function ServiceDatabase({
           onClick={onDump}
           size="sm"
         >
-          Exporter
+          {t("services.database.dump")}
         </Button>
         <Button
           icon={Upload}
@@ -62,7 +66,7 @@ export function ServiceDatabase({
           onClick={onImport}
           size="sm"
         >
-          Importer les dumps déposés
+          {t("services.database.import")}
         </Button>
       </div>
 
@@ -70,7 +74,7 @@ export function ServiceDatabase({
         <div className="flex flex-col gap-2" data-outcome={outcome.kind}>
           {outcome.kind === "shell" && outcome.lines[0] ? (
             <>
-              <CopyField label={TITLES.shell} value={outcome.lines[0]} />
+              <CopyField label={t(TITLES.shell)} value={outcome.lines[0]} />
               {onTerminal ? (
                 <div>
                   <Button
@@ -79,17 +83,17 @@ export function ServiceDatabase({
                     size="sm"
                     variant="discreet"
                   >
-                    Ouvrir un terminal sur le serveur
+                    {t("services.database.terminal")}
                   </Button>
                 </div>
               ) : null}
             </>
           ) : (
             <div className="elevation-raised rounded-md border border-line bg-surface p-3">
-              <Label>{TITLES[outcome.kind]}</Label>
+              <Label>{t(TITLES[outcome.kind])}</Label>
               {outcome.lines.length === 0 ? (
                 <p className="mt-1 text-[11px] text-ink-3">
-                  Aucun dump à importer dans le dossier du serveur.
+                  {t("services.database.empty")}
                 </p>
               ) : (
                 <ul className="mt-1 flex flex-col gap-1">

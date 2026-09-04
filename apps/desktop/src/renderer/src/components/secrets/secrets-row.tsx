@@ -2,6 +2,7 @@ import type { SecretStatus } from "@pupitre/shared/agent-protocol/secrets";
 import { Button } from "@renderer/components/ui/button";
 import { fieldControlClass } from "@renderer/components/ui/field";
 import { StatusDot } from "@renderer/components/ui/status-dot";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { Check, Lock } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -25,6 +26,8 @@ export function SecretsRow({
   onOpen: () => void;
   onSave: (value: string) => void;
 }) {
+  const t = useTranslations();
+
   const [value, setValue] = useState("");
 
   useEffect(() => {
@@ -53,11 +56,11 @@ export function SecretsRow({
             size={9}
             tone={secret.set ? "ok" : "warn"}
           />
-          {secret.set ? "en place" : "absente"}
+          {secret.set ? t("secrets.set") : t("secrets.missing")}
         </span>
 
         <Button onClick={onOpen} size="sm">
-          {open ? "Annuler" : "Remplacer"}
+          {open ? t("common.cancel") : t("secrets.replace")}
         </Button>
       </div>
 
@@ -73,7 +76,7 @@ export function SecretsRow({
             autoComplete="off"
             className={`min-w-0 flex-1 ${fieldControlClass}`}
             onChange={(event) => setValue(event.target.value)}
-            placeholder={`nouvelle valeur pour ${secret.key}`}
+            placeholder={t("secrets.newValue", { key: secret.key })}
             spellCheck={false}
             type="password"
             value={value}
@@ -85,7 +88,7 @@ export function SecretsRow({
             submit
             variant="inverse"
           >
-            Enregistrer
+            {t("secrets.save")}
           </Button>
         </form>
       ) : null}

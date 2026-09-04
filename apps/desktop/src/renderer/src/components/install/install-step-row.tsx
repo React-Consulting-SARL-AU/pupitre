@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { humanMs } from "../../lib/duration";
 import type { StepEntry } from "../../stores/install";
 import { StatusDot } from "../ui/status-dot";
@@ -11,6 +12,8 @@ import { STEP_LOOK } from "./install-status";
  * that it has not finished.
  */
 export function InstallStepRow({ step }: { step: StepEntry }) {
+  const t = useTranslations();
+
   const look = STEP_LOOK[step.status];
 
   return (
@@ -21,7 +24,7 @@ export function InstallStepRow({ step }: { step: StepEntry }) {
     >
       <span className="translate-y-px">
         <StatusDot
-          label={`${step.step} — ${look.label}`}
+          label={`${step.step} — ${t(look.label)}`}
           shape={look.shape}
           size={9}
           tone={look.tone}

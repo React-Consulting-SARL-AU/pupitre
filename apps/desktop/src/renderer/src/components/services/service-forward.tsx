@@ -2,6 +2,7 @@ import { Button } from "@renderer/components/ui/button";
 import { CopyField } from "@renderer/components/ui/copy-field";
 import { IconButton } from "@renderer/components/ui/icon-button";
 import { Label } from "@renderer/components/ui/label";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { PortForward } from "@shared/services";
 import { Cable, X } from "lucide-react";
 
@@ -24,6 +25,8 @@ export function ServiceForward({
   onOpen: () => void;
   onClose: (id: string) => void;
 }) {
+  const t = useTranslations();
+
   if (port === undefined) {
     return null;
   }
@@ -33,17 +36,16 @@ export function ServiceForward({
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Label>Tunnel vers ce port</Label>
+        <Label>{t("services.forward.title")}</Label>
 
         <Button icon={Cable} onClick={onOpen} size="sm">
-          Ouvrir un tunnel vers {port}
+          {t("services.forward.open", { port })}
         </Button>
       </div>
 
       {open.length === 0 ? (
         <p className="text-[11px] text-ink-3">
-          Aucun tunnel ouvert. Une fois ouvert, le port {port} du serveur répond
-          sur cette machine.
+          {t("services.forward.empty", { port })}
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
@@ -55,15 +57,17 @@ export function ServiceForward({
             >
               <span className="min-w-0 flex-1">
                 <CopyField
-                  help={`Le port ${forward.remotePort} du serveur, sur cette machine.`}
-                  label="Adresse locale"
+                  help={t("services.forward.help", {
+                    port: forward.remotePort,
+                  })}
+                  label={t("services.forward.address")}
                   value={`127.0.0.1:${forward.localPort}`}
                 />
               </span>
               <span className="pb-6">
                 <IconButton
                   icon={X}
-                  label="Fermer ce tunnel"
+                  label={t("services.forward.close")}
                   onClick={() => onClose(forward.id)}
                   variant="danger"
                 />

@@ -1,5 +1,6 @@
 import { Button } from "@renderer/components/ui/button";
 import { Label } from "@renderer/components/ui/label";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AccountState } from "@shared/account";
 import { LogOut, RotateCw } from "lucide-react";
 
@@ -17,6 +18,8 @@ export function AccountIdentityCard({
   onRefresh: () => void;
   onDisconnect: () => void;
 }) {
+  const t = useTranslations();
+
   const { identity, device } = account;
 
   if (!identity) {
@@ -35,7 +38,7 @@ export function AccountIdentityCard({
 
         <div className="flex shrink-0 items-center gap-2">
           <Button icon={RotateCw} onClick={onRefresh} size="sm">
-            Actualiser
+            {t("account.identity.refresh")}
           </Button>
           <Button
             icon={LogOut}
@@ -43,16 +46,17 @@ export function AccountIdentityCard({
             size="sm"
             variant="danger"
           >
-            Se déconnecter
+            {t("account.identity.disconnect")}
           </Button>
         </div>
       </div>
 
       <div className="grid gap-3 border-line border-t pt-3 sm:grid-cols-2">
         <div className="min-w-0">
-          <Label>Organisation</Label>
+          <Label>{t("account.identity.organization")}</Label>
           <p className="mt-1 truncate text-ink-2">
-            {identity.organization?.name ?? "Aucune organisation active"}
+            {identity.organization?.name ??
+              t("account.identity.noOrganization")}
           </p>
           {identity.role ? (
             <p className="mt-0.5 font-data text-[11px] text-ink-4">
@@ -62,9 +66,9 @@ export function AccountIdentityCard({
         </div>
 
         <div className="min-w-0">
-          <Label>Cet appareil</Label>
+          <Label>{t("account.identity.device")}</Label>
           <p className="mt-1 truncate text-ink-2">
-            {device?.name ?? "Non enregistré"}
+            {device?.name ?? t("account.identity.deviceUnregistered")}
           </p>
           {device ? (
             <p className="mt-0.5 break-all font-data text-[11px] text-ink-4">
@@ -76,8 +80,7 @@ export function AccountIdentityCard({
 
       {account.sealed ? null : (
         <p className="border-line border-t pt-3 text-[11px] text-warn leading-relaxed">
-          Le trousseau de cet ordinateur n'a pas accepté de garder la session :
-          elle sera à refaire au prochain démarrage.
+          {t("account.identity.unsealed")}
         </p>
       )}
     </div>

@@ -1,4 +1,6 @@
 import type { Manifest, ModuleCategory } from "@pupitre/shared/catalog";
+import type { DictionaryKey } from "@renderer/i18n/en";
+import { translate } from "@renderer/i18n/translate";
 import { carriesSecret } from "./catalog-selection";
 
 /**
@@ -28,16 +30,13 @@ export interface RemovalTarget {
   manifest: Manifest | null;
 }
 
-const BY_CATEGORY: Partial<Record<ModuleCategory, string>> = {
-  ai: "L'agent et sa configuration sur cette machine.",
-  database:
-    "Les bases de données de ce moteur, leurs comptes et leurs mots de passe.",
-  editor:
-    "Le backend distant préinstallé : la prochaine connexion le retéléchargera.",
-  exposure: "Le tunnel et les routes des projets exposés par ce module.",
-  runtime:
-    "Les versions posées par ce runtime ; les projets qui s'en servent ne démarreront plus.",
-  tool: "L'outil et le compte enregistré pour lui.",
+const BY_CATEGORY: Partial<Record<ModuleCategory, DictionaryKey>> = {
+  ai: "services.removal.category.ai",
+  database: "services.removal.category.database",
+  editor: "services.removal.category.editor",
+  exposure: "services.removal.category.exposure",
+  runtime: "services.removal.category.runtime",
+  tool: "services.removal.category.tool",
 };
 
 function dependentsOf(id: string, installed: readonly Manifest[]): Manifest[] {
@@ -50,25 +49,27 @@ export function removalOf(
   target: RemovalTarget,
   installed: readonly Manifest[]
 ): Removal {
+  const t = translate();
+
   const { manifest } = target;
   const dependents = dependentsOf(target.id, installed);
-  const losses = [`${target.name} et ce que ce module a posé sur la machine.`];
+  const losses = [t("services.removal.base", { name: target.name })];
 
-  const own = manifest ? BY_CATEGORY[manifest.category] : undefined;
+  const ownKey = manifest ? BY_CATEGORY[manifest.category] : undefined;
 
-  if (own) {
-    losses.push(own);
+  if (ownKey) {
+    losses.push(t(ownKey));
   }
 
   if (manifest && carriesSecret(manifest)) {
-    losses.push(
-      "Les secrets envoyés à l'installation : l'app ne les a plus et ne pourra pas les rendre."
-    );
+    losses.push(t("services.removal.secrets"));
   }
 
   if (dependents.length > 0) {
     losses.push(
-      `${dependents.map((module) => module.name).join(", ")} en dépendent et cesseront de fonctionner.`
+      t("services.removal.dependents", {
+        names: dependents.map((module) => module.name).join(", "),
+      })
     );
   }
 
@@ -77,7 +78,7 @@ export function removalOf(
         allowed: false,
         dependents,
         losses,
-        refusal: "Le catalogue de ce serveur déclare ce module obligatoire.",
+        refusal: t("services.removal.mandatory"),
       }
     : { allowed: true, dependents, losses };
 }

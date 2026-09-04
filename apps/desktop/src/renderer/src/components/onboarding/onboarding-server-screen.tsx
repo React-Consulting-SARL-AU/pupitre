@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { ArrowRight } from "lucide-react";
 import { useEffect } from "react";
 import { useServers } from "../../stores/servers";
@@ -17,6 +18,8 @@ export function OnboardingServerScreen({
 }: {
   onContinue: (serverId: string) => void;
 }) {
+  const t = useTranslations();
+
   const config = useServers((state) => state.config);
   const load = useServers((state) => state.load);
 
@@ -37,12 +40,14 @@ export function OnboardingServerScreen({
             onClick={() => active && onContinue(active)}
             variant="inverse"
           >
-            {server ? `Inspecter ${server.name}` : "Inspecter le serveur"}
+            {server
+              ? t("onboarding.server.inspectNamed", { name: server.name })
+              : t("onboarding.server.inspect")}
           </Button>
         }
-        description="Une adresse, un compte, et une clé que l'app génère pour cet ordinateur. Colle la clé sur le serveur avant de continuer."
-        eyebrow="Serveur"
-        title="La machine à installer"
+        description={t("onboarding.server.description")}
+        eyebrow={t("onboarding.server.eyebrow")}
+        title={t("onboarding.server.title")}
       />
 
       <ServersPanel />

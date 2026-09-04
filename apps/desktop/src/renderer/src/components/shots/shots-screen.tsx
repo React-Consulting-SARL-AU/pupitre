@@ -4,7 +4,8 @@ import { EmptyState } from "@renderer/components/ui/empty-state";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { PageHeader } from "@renderer/components/ui/page-header";
 import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
-import { plural, weight } from "@renderer/lib/format";
+import { useTranslations } from "@renderer/i18n/use-translations";
+import { weight } from "@renderer/lib/format";
 import { useShots } from "@renderer/stores/shots";
 import { ExternalLink, Image as ImageIcon, Trash2 } from "lucide-react";
 import { useEffect } from "react";
@@ -12,6 +13,8 @@ import { ShotRow } from "./shot-row";
 
 /** The images stay on the server: the app lists them and opens its gallery. */
 export function ShotsScreen({ serverId }: { serverId: string }) {
+  const t = useTranslations();
+
   const state = useShots((s) => s.state);
   const problem = useShots((s) => s.problem);
   const cleaning = useShots((s) => s.cleaning);
@@ -38,31 +41,31 @@ export function ShotsScreen({ serverId }: { serverId: string }) {
                 onClick={() => openGallery(serverId)}
                 size="sm"
               >
-                Ouvrir la galerie
+                {t("shots.openGallery")}
               </Button>
               <ConfirmButton
-                confirmLabel="Vider"
+                confirmLabel={t("shots.clearConfirm")}
                 disabled={shots.length === 0}
                 icon={Trash2}
                 onConfirm={() => clean(serverId)}
-                question="Les captures du serveur sont supprimées."
+                question={t("shots.clearQuestion")}
                 size="sm"
               >
-                Vider la galerie
+                {t("shots.clear")}
               </ConfirmButton>
             </>
           }
-          description="Ce que les agents ont capturé en travaillant. Les images restent sur le serveur."
-          eyebrow="Serveur"
-          title="Galerie"
+          description={t("shots.description")}
+          eyebrow={t("shots.eyebrow")}
+          title={t("shots.title")}
         />
 
         {problem ? <ErrorNotice error={problem} /> : null}
 
         {state.status === "loading" ? (
           <WaitingNotice
-            detail="Lecture du dossier des captures"
-            title="Galerie"
+            detail={t("shots.loadingDetail")}
+            title={t("shots.title")}
           />
         ) : null}
 
@@ -74,17 +77,19 @@ export function ShotsScreen({ serverId }: { serverId: string }) {
           <section className="flex flex-col gap-3">
             <p className="font-data text-[11px] text-ink-3">
               {shots.length === 0
-                ? "Aucune capture"
-                : `${plural(shots.length, "capture")} · ${weight(total)}`}
-              {removed === null ? "" : ` · ${plural(removed, "supprimée")}`}
+                ? t("shots.none")
+                : `${t.plural("shots.capture", shots.length)} · ${weight(total)}`}
+              {removed === null
+                ? ""
+                : ` · ${t.plural("shots.removed", removed)}`}
             </p>
 
             <div className="elevation-raised overflow-hidden rounded-md border border-line bg-surface">
               {shots.length === 0 ? (
                 <EmptyState
-                  detail="Un agent qui pilote un navigateur en dépose ici."
+                  detail={t("shots.emptyDetail")}
                   icon={ImageIcon}
-                  title="La galerie est vide"
+                  title={t("shots.emptyTitle")}
                 />
               ) : (
                 <div className="divide-y divide-line">
@@ -97,8 +102,8 @@ export function ShotsScreen({ serverId }: { serverId: string }) {
 
             {cleaning ? (
               <WaitingNotice
-                detail="Suppression des captures du serveur"
-                title="Nettoyage"
+                detail={t("shots.cleaningDetail")}
+                title={t("shots.cleaningTitle")}
               />
             ) : null}
           </section>

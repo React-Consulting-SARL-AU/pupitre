@@ -1,4 +1,5 @@
 import type { FileChange } from "@pupitre/shared/agent-protocol/projects";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { splitPath } from "@renderer/lib/patch";
 import { FilePlus, FileX, Pencil } from "lucide-react";
 import { ProjectDiffCount } from "./project-diff-count";
@@ -12,9 +13,9 @@ import { ProjectDiffCount } from "./project-diff-count";
  */
 
 export const STAGES = {
-  staged: { className: "text-ok", label: "indexés" },
-  unstaged: { className: "text-warn", label: "modifiés" },
-  untracked: { className: "text-ink-2", label: "nouveaux" },
+  staged: { className: "text-ok", label: "project.diff.stage.staged" },
+  unstaged: { className: "text-warn", label: "project.diff.stage.unstaged" },
+  untracked: { className: "text-ink-2", label: "project.diff.stage.untracked" },
 } as const;
 
 const ORDER = ["staged", "unstaged", "untracked"] as const;
@@ -43,6 +44,8 @@ function FileRow({
   active: boolean;
   onSelect: () => void;
 }) {
+  const t = useTranslations();
+
   const { dir, name } = splitPath(change.path);
   const Icon = iconFor(change);
   const stage = STAGES[change.stage];
@@ -78,7 +81,9 @@ function FileRow({
         ) : null}
       </span>
       {change.binary ? (
-        <span className="shrink-0 font-data text-[10px] text-ink-3">bin</span>
+        <span className="shrink-0 font-data text-[10px] text-ink-3">
+          {t("project.diff.binary")}
+        </span>
       ) : (
         <ProjectDiffCount added={change.added} removed={change.removed} />
       )}
@@ -95,6 +100,8 @@ export function ProjectDiffFiles({
   selected: string | null;
   onSelect: (path: string) => void;
 }) {
+  const t = useTranslations();
+
   return (
     <div className="min-h-0 overflow-y-auto border-line border-r">
       {ORDER.map((stage) => {
@@ -109,7 +116,7 @@ export function ProjectDiffFiles({
             <p
               className={`sticky top-0 z-10 border-line border-b bg-base px-3 py-1 font-data text-[10px] uppercase tracking-[0.08em] ${STAGES[stage].className}`}
             >
-              {STAGES[stage].label} · {group.length}
+              {t(STAGES[stage].label)} · {group.length}
             </p>
             {group.map((file) => (
               <FileRow

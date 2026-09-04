@@ -2,7 +2,8 @@ import type { ProjectGitStatusResult } from "@pupitre/shared/agent-protocol/proj
 import { Callout } from "@renderer/components/ui/callout";
 import { IconButton } from "@renderer/components/ui/icon-button";
 import { StatusDot } from "@renderer/components/ui/status-dot";
-import { commits, since } from "@renderer/lib/format";
+import { useTranslations } from "@renderer/i18n/use-translations";
+import { since } from "@renderer/lib/format";
 import type { GitState } from "@renderer/stores/project";
 import { RefreshCw } from "lucide-react";
 
@@ -16,6 +17,8 @@ import { RefreshCw } from "lucide-react";
  */
 
 function Summary({ git }: { git: ProjectGitStatusResult }) {
+  const t = useTranslations();
+
   if (git.problem) {
     return <Callout tone="warn">{git.problem}</Callout>;
   }
@@ -23,7 +26,7 @@ function Summary({ git }: { git: ProjectGitStatusResult }) {
   if (!git.upstream) {
     return (
       <p className="font-data text-[11px] text-ink-3">
-        aucune branche distante suivie
+        {t("project.git.noUpstream")}
       </p>
     );
   }
@@ -33,11 +36,15 @@ function Summary({ git }: { git: ProjectGitStatusResult }) {
       className={`font-data text-[11px] ${git.behind > 0 ? "font-semibold text-ink" : "text-ink-3"}`}
     >
       {git.behind > 0
-        ? `${commits(git.behind)} à récupérer`
-        : `à jour avec ${git.upstream}`}
-      {git.ahead > 0 ? ` · ${commits(git.ahead)} à pousser` : ""}
+        ? t("project.git.behind", {
+            commits: t.plural("project.commit", git.behind),
+          })
+        : t("project.git.upToDate", { upstream: git.upstream })}
+      {git.ahead > 0
+        ? ` · ${t("project.git.ahead", { commits: t.plural("project.commit", git.ahead) })}`
+        : ""}
       {git.changed > 0
-        ? ` · ${git.changed} changement${git.changed > 1 ? "s" : ""} local${git.changed > 1 ? "aux" : ""}`
+        ? ` · ${t.plural("project.localChange", git.changed)}`
         : ""}
     </p>
   );
@@ -50,11 +57,13 @@ export function ProjectGitState({
   state: GitState;
   onCheck: () => void;
 }) {
+  const t = useTranslations();
+
   if (state.status === "idle" || state.status === "reading") {
     return (
       <p className="flex items-center gap-2 font-data text-[11px] text-ink-3">
         <StatusDot shape="breathing" size={11} />
-        interrogation du dépôt distant…
+        {t("project.git.querying")}
       </p>
     );
   }
@@ -70,7 +79,7 @@ export function ProjectGitState({
   if (!state.git.repo) {
     return (
       <p className="font-data text-[11px] text-ink-3">
-        ce dossier n'est pas un dépôt git
+        {t("project.git.notRepo")}
       </p>
     );
   }
@@ -82,17 +91,17 @@ export function ProjectGitState({
           <Summary git={state.git} />
           {state.git.subject ? (
             <p className="mt-1 truncate font-data text-[10px] text-ink-3">
-              dernier : {state.git.subject}
+              {t("project.git.lastCommit", { subject: state.git.subject })}
             </p>
           ) : null}
         </div>
 
         <span className="font-data text-[10px] text-ink-4">
-          lu {since(state.at)}
+          {t("project.git.readAt", { when: since(state.at) })}
         </span>
         <IconButton
           icon={RefreshCw}
-          label="Interroger le dépôt distant"
+          label={t("project.git.queryLabel")}
           onClick={onCheck}
           size={12}
         />

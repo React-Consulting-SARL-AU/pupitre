@@ -1,4 +1,5 @@
 import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { PageHeader } from "../ui/page-header";
 import {
   type InspectionActions,
@@ -14,6 +15,8 @@ export function OnboardingInspectionResult({
   serverName,
   ...actions
 }: { probe: ProbeResult; serverName?: string } & InspectionActions) {
+  const t = useTranslations();
+
   const machine = [
     `${probe.os} ${probe.version}`.trim(),
     probe.arch,
@@ -27,8 +30,8 @@ export function OnboardingInspectionResult({
         description={
           <span className="font-data text-ink-3 tabular-nums">{machine}</span>
         }
-        eyebrow="Inspection"
-        title={serverName ?? "Ce serveur"}
+        eyebrow={t("onboarding.inspection.eyebrow")}
+        title={serverName ?? t("onboarding.thisServer")}
       />
 
       <OnboardingInspectionVerdict probe={probe} />

@@ -2,6 +2,7 @@ import {
   PACKAGE_MANAGERS,
   type PackageManager,
 } from "@pupitre/shared/agent-protocol/state";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { FolderPlus } from "lucide-react";
 import type { Draft } from "../../stores/first-project";
 import { Button } from "../ui/button";
@@ -40,6 +41,8 @@ export function FirstProjectForm({
   edit: DraftEdits;
   onSubmit: () => void;
 }) {
+  const t = useTranslations();
+
   return (
     <form
       className="elevation-raised flex flex-col gap-gutter rounded-md border border-line bg-surface p-5"
@@ -49,26 +52,30 @@ export function FirstProjectForm({
       }}
     >
       <Field
-        help="L'adresse d'un dépôt git, ou le chemin d'un dossier déjà présent sur le serveur."
-        label="Source"
+        help={t("firstProject.form.sourceHelp")}
+        label={t("firstProject.form.sourceLabel")}
       >
         <input
           className={fieldControlClass}
           onChange={(event) => edit.source(event.target.value)}
-          placeholder="https://github.com/moi/mon-site.git"
+          placeholder={t("firstProject.form.sourcePlaceholder")}
           value={draft.source}
         />
       </Field>
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field
-          help={draft.dir ? `Dossier : ${draft.dir}` : "Déduit de la source."}
-          label="Nom"
+          help={
+            draft.dir
+              ? t("firstProject.form.folderHelp", { dir: draft.dir })
+              : t("firstProject.form.nameHelp")
+          }
+          label={t("firstProject.form.nameLabel")}
         >
           <input
             className={fieldControlClass}
             onChange={(event) => edit.name(event.target.value)}
-            placeholder="mon-site"
+            placeholder={t("firstProject.form.namePlaceholder")}
             value={draft.name}
           />
         </Field>
@@ -76,10 +83,10 @@ export function FirstProjectForm({
         <Field
           help={
             detected
-              ? "Détecté : le serveur déclare déjà ce projet."
-              : "Il donne aussi la commande d'installation des dépendances."
+              ? t("firstProject.form.pkgmgrDetected")
+              : t("firstProject.form.pkgmgrHelp")
           }
-          label="Gestionnaire de paquets"
+          label={t("firstProject.form.pkgmgrLabel")}
         >
           <select
             className={fieldControlClass}
@@ -97,8 +104,8 @@ export function FirstProjectForm({
         </Field>
 
         <Field
-          help="Libre d'après les projets que l'agent déclare."
-          label="Port"
+          help={t("firstProject.form.portHelp")}
+          label={t("firstProject.form.portLabel")}
         >
           <input
             className={fieldControlClass}
@@ -111,8 +118,8 @@ export function FirstProjectForm({
 
         {cloudflare ? (
           <Field
-            help="Le tunnel Cloudflare installé publie le projet sous ce nom."
-            label="Sous-domaine"
+            help={t("firstProject.form.subdomainHelp")}
+            label={t("firstProject.form.subdomainLabel")}
           >
             <input
               className={fieldControlClass}
@@ -125,20 +132,20 @@ export function FirstProjectForm({
       </div>
 
       <Field
-        help="Lancée depuis le dossier du projet, dans la session de l'agent."
-        label="Commande de démarrage"
+        help={t("firstProject.form.cmdHelp")}
+        label={t("firstProject.form.cmdLabel")}
       >
         <input
           className={fieldControlClass}
           onChange={(event) => edit.cmd(event.target.value)}
-          placeholder="bun run dev --port 3000"
+          placeholder={t("firstProject.form.cmdPlaceholder")}
           value={draft.cmd}
         />
       </Field>
 
       <div className="flex items-center gap-2">
         <Button disabled={!ready} icon={FolderPlus} submit variant="inverse">
-          Créer le projet
+          {t("firstProject.form.submit")}
         </Button>
       </div>
     </form>

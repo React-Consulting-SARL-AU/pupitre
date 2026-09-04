@@ -7,6 +7,7 @@ import type {
   Project,
   ProjectState,
 } from "@pupitre/shared/agent-protocol/state";
+import { translate } from "@renderer/i18n/translate";
 import type { AgentError, AgentResponse } from "@shared/agent";
 import { create } from "zustand";
 import {
@@ -319,7 +320,11 @@ export const useFirstProject = create<FirstProjectStore>((set, get) => {
     const { source } = get().draft;
 
     if (!isGitSource(source)) {
-      mark("sources", "skip", "le dossier est déjà sur le serveur");
+      mark(
+        "sources",
+        "skip",
+        translate()("firstProject.sources.alreadyPresent")
+      );
 
       return "skipped";
     }
@@ -345,7 +350,11 @@ export const useFirstProject = create<FirstProjectStore>((set, get) => {
     already: boolean
   ): Promise<boolean> {
     if (already) {
-      mark("install", "skip", "faite avec la récupération des sources");
+      mark(
+        "install",
+        "skip",
+        translate()("firstProject.install.doneWithSources")
+      );
 
       return true;
     }
@@ -396,8 +405,11 @@ export const useFirstProject = create<FirstProjectStore>((set, get) => {
       await readLogs(serverId, name);
       fail("up", {
         code: "internal",
-        fix: "Lis le journal ci-dessous, corrige la commande de démarrage, puis réessaie.",
-        message: `${name} ne tourne pas : l'agent le donne ${state}.`,
+        fix: translate()("firstProject.up.notRunningFix"),
+        message: translate()("firstProject.up.notRunningMessage", {
+          name,
+          state,
+        }),
       });
 
       return null;

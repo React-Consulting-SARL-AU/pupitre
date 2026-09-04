@@ -2,7 +2,7 @@ import { EmptyState } from "@renderer/components/ui/empty-state";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { IconButton } from "@renderer/components/ui/icon-button";
 import { StatusDot } from "@renderer/components/ui/status-dot";
-import { plural } from "@renderer/lib/format";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { DiffState, TreeState } from "@renderer/stores/project";
 import { Check, FileDiff, RefreshCw } from "lucide-react";
 import { ProjectDiffCount } from "./project-diff-count";
@@ -32,12 +32,14 @@ export function ProjectDiff({
   onReload: () => void;
   onRetryDiff: () => void;
 }) {
+  const t = useTranslations();
+
   if (tree.status === "idle" || tree.status === "reading") {
     return (
       <div className="grid h-full place-items-center">
         <span className="flex items-center gap-2 text-[12px] text-ink-3">
           <StatusDot shape="breathing" size={11} />
-          lecture de l'arbre de travail…
+          {t("project.diff.readingTree")}
         </span>
       </div>
     );
@@ -54,9 +56,9 @@ export function ProjectDiff({
   if (!tree.tree.repo) {
     return (
       <EmptyState
-        detail="il n'y a rien à comparer"
+        detail={t("project.diff.nothingToCompare")}
         icon={FileDiff}
-        title="Ce projet n'est pas un dépôt git."
+        title={t("project.diff.notRepo")}
       />
     );
   }
@@ -75,34 +77,33 @@ export function ProjectDiff({
     <div className="flex h-full flex-col">
       <div className="flex shrink-0 flex-wrap items-center gap-3 border-line border-b px-4 py-2">
         <span className="font-data text-[11px] text-ink-3">
-          {tree.tree.branch || "tête détachée"}
+          {tree.tree.branch || t("project.diff.detachedHead")}
           {tree.tree.upstream ? (
             <span className="text-ink-3"> → {tree.tree.upstream}</span>
           ) : null}
         </span>
         <span className="font-data text-[11px] text-ink-3">
-          {files.length === 0 ? "propre" : plural(files.length, "fichier")}
+          {files.length === 0
+            ? t("project.clean")
+            : t.plural("project.file", files.length)}
         </span>
         <ProjectDiffCount added={total.added} removed={total.removed} />
         <span
           className="ml-auto font-data text-[10px] text-ink-3"
-          title="Cette vue n'écrit jamais dans le dépôt"
+          title={t("project.diff.readOnlyHint")}
         >
-          lecture seule
+          {t("project.diff.readOnly")}
         </span>
         <IconButton
           icon={RefreshCw}
-          label="Relire l'arbre de travail"
+          label={t("project.diff.reloadTree")}
           onClick={onReload}
           size={12}
         />
       </div>
 
       {files.length === 0 ? (
-        <EmptyState
-          icon={Check}
-          title="Rien n'a changé depuis le dernier commit."
-        />
+        <EmptyState icon={Check} title={t("project.diff.nothingChanged")} />
       ) : (
         <div className="grid min-h-0 flex-1 grid-cols-[minmax(200px,17rem)_1fr]">
           <ProjectDiffFiles

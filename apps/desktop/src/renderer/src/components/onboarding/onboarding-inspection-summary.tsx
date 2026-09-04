@@ -1,4 +1,5 @@
 import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { Label } from "../ui/label";
 
 /**
@@ -8,11 +9,19 @@ import { Label } from "../ui/label";
  * the next screen will weigh services against.
  */
 export function OnboardingInspectionSummary({ probe }: { probe: ProbeResult }) {
+  const t = useTranslations();
+
   const cells = [
-    { label: "Distribution", value: `${probe.os} ${probe.version}`.trim() },
-    { label: "Architecture", value: probe.arch },
-    { label: "Mémoire", value: `${probe.ram_mb} Mo` },
-    { label: "Disque libre", value: `${probe.disk_free_gb} Go` },
+    {
+      label: t("onboarding.summary.distribution"),
+      value: `${probe.os} ${probe.version}`.trim(),
+    },
+    { label: t("onboarding.summary.architecture"), value: probe.arch },
+    { label: t("onboarding.summary.memory"), value: `${probe.ram_mb} Mo` },
+    {
+      label: t("onboarding.summary.diskFree"),
+      value: `${probe.disk_free_gb} Go`,
+    },
   ];
 
   return (

@@ -1,4 +1,5 @@
 import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { ArrowRight, Download, RefreshCw, Server } from "lucide-react";
 import { Button } from "../ui/button";
 
@@ -22,11 +23,13 @@ export function OnboardingInspectionActions({
   onContinue,
   onPickAnother,
 }: { probe: ProbeResult } & InspectionActions) {
+  const t = useTranslations();
+
   const { kind, up_to_date } = probe.verdict;
 
   const another = (
     <Button icon={Server} onClick={onPickAnother} variant="discreet">
-      Choisir un autre serveur
+      {t("onboarding.inspection.pickAnother")}
     </Button>
   );
 
@@ -38,13 +41,13 @@ export function OnboardingInspectionActions({
     <div className="flex flex-wrap items-center gap-2">
       {kind === "bare" ? (
         <Button icon={Download} onClick={onInstall} variant="inverse">
-          Installer
+          {t("onboarding.inspection.install")}
         </Button>
       ) : null}
 
       {kind === "managed" && up_to_date === false ? (
         <Button icon={RefreshCw} onClick={onUpgrade} variant="inverse">
-          Mettre à jour
+          {t("onboarding.inspection.update")}
         </Button>
       ) : null}
 
@@ -54,13 +57,13 @@ export function OnboardingInspectionActions({
           onClick={onContinue}
           variant={up_to_date === false ? "default" : "inverse"}
         >
-          Continuer
+          {t("onboarding.inspection.continue")}
         </Button>
       ) : null}
 
       {kind === "occupied" ? (
         <Button icon={Download} onClick={onInstall}>
-          Installer quand même
+          {t("onboarding.inspection.installAnyway")}
         </Button>
       ) : null}
 

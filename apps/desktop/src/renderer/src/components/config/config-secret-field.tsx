@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { SecretMark } from "@shared/secrets";
 import { Eye, RefreshCw } from "lucide-react";
 import { useState } from "react";
@@ -29,6 +30,8 @@ export function ConfigSecretField({
   onGenerate?: () => void;
   onReveal?: () => Promise<string | null>;
 }) {
+  const t = useTranslations();
+
   const [shown, setShown] = useState<string | null>(null);
   const generated = mark?.generated === true;
   const revealed = mark?.revealed === true;
@@ -42,12 +45,12 @@ export function ConfigSecretField({
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-data text-[11px] text-ink-3">
-            Généré pour cette machine, envoyé à l'installation.
+            {t("config.secret.generated")}
           </span>
 
           {revealed ? null : (
             <Button icon={Eye} onClick={reveal} size="sm">
-              Montrer une fois
+              {t("config.secret.showOnce")}
             </Button>
           )}
 
@@ -57,7 +60,7 @@ export function ConfigSecretField({
             size="sm"
             variant="discreet"
           >
-            Regénérer
+            {t("config.secret.regenerate")}
           </Button>
         </div>
 
@@ -69,7 +72,7 @@ export function ConfigSecretField({
 
         {revealed && !shown ? (
           <span className="text-[11px] text-ink-4">
-            Déjà montré une fois ; il ne sera plus affiché.
+            {t("config.secret.shown")}
           </span>
         ) : null}
       </div>
@@ -84,7 +87,9 @@ export function ConfigSecretField({
         className={fieldControlClass}
         name={name}
         onChange={(event) => onChange?.(event.target.value)}
-        placeholder={mark?.filled ? "Enregistré" : "Collez la valeur"}
+        placeholder={
+          mark?.filled ? t("config.secret.saved") : t("config.secret.paste")
+        }
         required={required}
         spellCheck={false}
         type="password"
@@ -98,7 +103,7 @@ export function ConfigSecretField({
             size="sm"
             variant="discreet"
           >
-            Générer à ma place
+            {t("config.secret.generate")}
           </Button>
         </div>
       ) : null}

@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { Server } from "@shared/servers";
 import { Download } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -14,6 +15,8 @@ import { StatusDot } from "../ui/status-dot";
  * onboarding left half-way is offered back rather than started over.
  */
 export function OnboardingEntry({ server }: { server: Server }) {
+  const t = useTranslations();
+
   const step = useOnboarding((state) => state.step);
   const begin = useOnboarding((state) => state.begin);
   const resume = useOnboarding((state) => state.resume);
@@ -49,12 +52,11 @@ export function OnboardingEntry({ server }: { server: Server }) {
       <div className="min-w-0 flex-1">
         <p className="text-ink">
           {unfinished
-            ? `L'installation de ${server.name} n'est pas terminée.`
-            : `Aucun agent Pupitre connu sur ${server.name}.`}
+            ? t("onboarding.entry.unfinished", { name: server.name })
+            : t("onboarding.entry.noAgent", { name: server.name })}
         </p>
         <p className="mt-0.5 text-[11px] text-ink-3 leading-relaxed">
-          L'assistant inspecte la machine, y pose l'agent, installe les services
-          choisis, puis ferme root.
+          {t("onboarding.entry.detail")}
         </p>
       </div>
       <Button
@@ -62,7 +64,9 @@ export function OnboardingEntry({ server }: { server: Server }) {
         onClick={() => (unfinished ? resume() : begin(server.id))}
         variant="inverse"
       >
-        {unfinished ? "Reprendre l'installation" : "Installer Pupitre"}
+        {unfinished
+          ? t("onboarding.entry.resume")
+          : t("onboarding.entry.install")}
       </Button>
     </div>
   );

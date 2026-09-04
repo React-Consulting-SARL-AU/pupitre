@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { HardenOutcome } from "@shared/harden";
 import { ArrowRight, RefreshCw } from "lucide-react";
 import { Button } from "../ui/button";
@@ -21,6 +22,8 @@ export function OnboardingHardenOutcome({
   onRetry?: () => void;
   onContinue?: () => void;
 }) {
+  const t = useTranslations();
+
   const closed = outcome.harden.root_closed;
 
   return (
@@ -36,14 +39,14 @@ export function OnboardingHardenOutcome({
           </span>
           <div className="min-w-0">
             <p className="font-medium text-ink">
-              Root est fermé sur ce serveur.
+              {t("onboarding.harden.rootClosedTitle")}
             </p>
             <p className="mt-1 text-ink-3 leading-relaxed">
-              L'app s'y connecte maintenant avec le compte{" "}
+              {t("onboarding.harden.connectedPrefix")}{" "}
               <code className="font-data text-ink-2">
                 {outcome.user ?? outcome.harden.next_user}
               </code>
-              , par sa propre configuration SSH.
+              {t("onboarding.harden.connectedSuffix")}
             </p>
           </div>
         </div>
@@ -51,23 +54,22 @@ export function OnboardingHardenOutcome({
         <Callout
           action={
             <Button icon={RefreshCw} onClick={onRetry}>
-              Réessayer
+              {t("common.retry")}
             </Button>
           }
           tone="warn"
         >
-          {outcome.harden.reason ??
-            "L'agent n'a pas fermé root, sans en donner la raison."}
+          {outcome.harden.reason ?? t("onboarding.harden.noReason")}
         </Callout>
       )}
 
       {closed ? null : (
         <p className="text-ink-3 leading-relaxed">
-          Root reste ouvert et rien n'a été changé sur la machine : le compte{" "}
+          {t("onboarding.harden.rootOpenPrefix")}{" "}
           <code className="font-data text-ink-2">
             {outcome.harden.next_user}
           </code>{" "}
-          est celui que l'app continue d'utiliser.
+          {t("onboarding.harden.rootOpenSuffix")}
         </p>
       )}
 
@@ -75,7 +77,7 @@ export function OnboardingHardenOutcome({
         <Callout
           action={
             <Button icon={RefreshCw} onClick={onRetry}>
-              Réessayer
+              {t("common.retry")}
             </Button>
           }
           fix={outcome.error.fix}
@@ -87,7 +89,9 @@ export function OnboardingHardenOutcome({
 
       <div className="flex flex-wrap items-center gap-2">
         <Button icon={ArrowRight} onClick={onContinue} variant="inverse">
-          {closed ? "Terminer" : "Continuer sans fermer root"}
+          {closed
+            ? t("onboarding.finish")
+            : t("onboarding.harden.continueOpen")}
         </Button>
       </div>
     </section>

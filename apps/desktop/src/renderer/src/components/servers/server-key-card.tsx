@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { Server } from "@shared/servers";
 import { Button } from "../ui/button";
 import { CopyField } from "../ui/copy-field";
@@ -20,27 +21,28 @@ export function ServerKeyCard({
   copyId: string | null;
   onDone: () => void;
 }) {
+  const t = useTranslations();
+
   return (
     <div className="elevation-raised fade-in rounded-md border border-line bg-surface p-5">
       <h3 className="font-medium text-ink">
-        {server.name} est prêt à recevoir sa clé
+        {t("servers.key.title", { name: server.name })}
       </h3>
       <p className="mt-1 text-ink-3 leading-relaxed">
-        La clé privée reste dans le dossier de l'app, en 0600. Portez la moitié
-        publique sur le serveur — la commande ci-dessous le fait pour vous.
+        {t("servers.key.intro")}
       </p>
 
       <div className="mt-5 flex flex-col gap-5">
         <CopyField
-          help="À ajouter dans ~/.ssh/authorized_keys du serveur si vous préférez le faire à la main."
-          label="Clé publique"
+          help={t("servers.key.publicHelp")}
+          label={t("servers.field.publicKey")}
           value={publicKey}
         />
 
         {copyId ? (
           <CopyField
-            help="À coller dans un terminal de cet ordinateur. Le mot de passe demandé est celui du serveur."
-            label="Commande à coller"
+            help={t("servers.key.commandHelp")}
+            label={t("servers.key.commandLabel")}
             value={copyId}
           />
         ) : null}
@@ -48,7 +50,7 @@ export function ServerKeyCard({
 
       <div className="mt-5">
         <Button onClick={onDone} variant="inverse">
-          Terminé
+          {t("servers.key.done")}
         </Button>
       </div>
     </div>

@@ -2,6 +2,7 @@ import type { Service } from "@pupitre/shared/agent-protocol/state";
 import { EmptyState } from "@renderer/components/ui/empty-state";
 import { ServiceLogo } from "@renderer/components/ui/service-logo";
 import { StatePill } from "@renderer/components/ui/state-pill";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { SERVICE_LOOK } from "@renderer/lib/project-state";
 import { Boxes } from "lucide-react";
 
@@ -17,12 +18,14 @@ export function DashboardServices({
 }: {
   services: readonly Service[];
 }) {
+  const t = useTranslations();
+
   if (services.length === 0) {
     return (
       <EmptyState
-        detail="L'agent n'a installé aucun module sur cette machine."
+        detail={t("dashboard.services.empty")}
         icon={Boxes}
-        title="Aucun service"
+        title={t("dashboard.services.emptyTitle")}
       />
     );
   }

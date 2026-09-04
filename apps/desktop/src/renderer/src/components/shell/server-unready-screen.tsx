@@ -1,6 +1,7 @@
 import { Logo } from "@renderer/components/logo";
 import { Button } from "@renderer/components/ui/button";
 import { Label } from "@renderer/components/ui/label";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AgentError } from "@shared/agent";
 import type { Server } from "@shared/servers";
 import { RotateCw, Settings as SettingsIcon, Wrench } from "lucide-react";
@@ -26,6 +27,8 @@ export function ServerUnreadyScreen({
   onRetry: () => void;
   onSettings: () => void;
 }) {
+  const t = useTranslations();
+
   const nothingYet = server === null;
 
   return (
@@ -33,19 +36,19 @@ export function ServerUnreadyScreen({
       <div className="w-full max-w-xl">
         <div className="flex items-center gap-2.5">
           <Logo size={26} />
-          <Label>Connexion</Label>
+          <Label>{t("shell.unready.eyebrow")}</Label>
         </div>
 
         <h1 className="mt-3 font-semibold text-2xl text-ink tracking-tight">
           {nothingYet
-            ? "Aucun serveur pour l'instant"
-            : `${server.name} ne répond pas encore`}
+            ? t("shell.unready.noServerTitle")
+            : t("shell.unready.notRespondingTitle", { name: server.name })}
         </h1>
 
         <p className="mt-2 text-ink-3 leading-relaxed">
           {nothingYet
-            ? "L'app parle à votre serveur en SSH, avec une configuration et une clé qui lui sont propres. Votre ~/.ssh/config n'est jamais modifié."
-            : "L'agent n'a pas répondu sur cette machine. S'il n'y est pas encore, l'installation le pose ; sinon, voici ce que la connexion a renvoyé."}
+            ? t("shell.unready.noServerBody")
+            : t("shell.unready.notRespondingBody")}
         </p>
 
         {error ? (
@@ -62,15 +65,17 @@ export function ServerUnreadyScreen({
 
         <div className="mt-6 flex flex-wrap items-center gap-2">
           <Button icon={Wrench} onClick={onInstall} variant="inverse">
-            {nothingYet ? "Ajouter un serveur" : "Installer l'agent"}
+            {nothingYet
+              ? t("shell.unready.addServer")
+              : t("shell.unready.installAgent")}
           </Button>
           {nothingYet ? null : (
             <Button icon={RotateCw} onClick={onRetry}>
-              Réessayer
+              {t("common.retry")}
             </Button>
           )}
           <Button icon={SettingsIcon} onClick={onSettings} variant="discreet">
-            Gérer les serveurs
+            {t("shell.unready.manageServers")}
           </Button>
         </div>
       </div>

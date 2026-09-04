@@ -1,0 +1,44 @@
+export const settings = {
+  en: {
+    "settings.title": "Settings",
+    "settings.section.servers": "Servers",
+    "settings.section.account": "Account",
+    "settings.section.appearance": "Appearance",
+    "settings.appearance.intro":
+      "The interface is monochrome on purpose: no accent colour, and colour only for the state of things. The theme applies at once, terminals included.",
+    "settings.appearance.themeLabel": "Theme",
+    "settings.appearance.currently": "currently shown in {theme}",
+    "settings.theme.system": "Follow the system",
+    "settings.theme.light": "Light",
+    "settings.theme.dark": "Dark",
+    "settings.resolved.light": "light",
+    "settings.resolved.dark": "dark",
+    "settings.language.label": "Language",
+    "settings.language.help":
+      "Interface language. Your system language is used by default.",
+    "settings.language.system": "Follow the system",
+    "settings.language.en": "English",
+    "settings.language.fr": "Français",
+  },
+  fr: {
+    "settings.title": "Réglages",
+    "settings.section.servers": "Serveurs",
+    "settings.section.account": "Compte",
+    "settings.section.appearance": "Apparence",
+    "settings.appearance.intro":
+      "L'interface est monochrome par choix : aucune couleur d'accent, et de la couleur seulement pour l'état des choses. Le thème s'applique aussitôt, terminaux compris.",
+    "settings.appearance.themeLabel": "Thème",
+    "settings.appearance.currently": "actuellement affichée en {theme}",
+    "settings.theme.system": "Suivre le système",
+    "settings.theme.light": "Clair",
+    "settings.theme.dark": "Sombre",
+    "settings.resolved.light": "clair",
+    "settings.resolved.dark": "sombre",
+    "settings.language.label": "Langue",
+    "settings.language.help":
+      "La langue de l'interface. Celle du système est utilisée par défaut.",
+    "settings.language.system": "Suivre le système",
+    "settings.language.en": "English",
+    "settings.language.fr": "Français",
+  },
+} as const;

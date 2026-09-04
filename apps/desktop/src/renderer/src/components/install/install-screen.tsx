@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { humanMs } from "../../lib/duration";
@@ -34,6 +35,8 @@ export function InstallScreen({
    */
   onReplay?: (moduleId: string) => Promise<void>;
 }) {
+  const t = useTranslations();
+
   const install = useInstall((state) => state.install);
   const modules = useInstall((state) => state.modules);
   const log = useInstall((state) => state.log);
@@ -88,11 +91,11 @@ export function InstallScreen({
     <PageHeader
       description={
         total > 0
-          ? `${done} module${done > 1 ? "s" : ""} sur ${total}${spent > 0 ? ` · ${humanMs(spent)}` : ""}`
-          : "Les étapes arrivent de l'agent, au fur et à mesure."
+          ? `${t.plural("install.progress", done, { total })}${spent > 0 ? ` · ${humanMs(spent)}` : ""}`
+          : t("install.streaming")
       }
-      eyebrow="Installation"
-      title={serverName ?? "Ce serveur"}
+      eyebrow={t("install.eyebrow")}
+      title={serverName ?? t("install.thisServer")}
     />
   );
 
@@ -108,7 +111,7 @@ export function InstallScreen({
         <Callout
           action={
             <Button icon={RefreshCw} onClick={() => reload(serverId)}>
-              Relire le rapport
+              {t("install.rereadReport")}
             </Button>
           }
           fix={install.error.fix}

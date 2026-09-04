@@ -2,7 +2,9 @@ import type { Session } from "@pupitre/shared/agent-protocol/state";
 import { ConfirmButton } from "@renderer/components/ui/confirm-button";
 import { EmptyState } from "@renderer/components/ui/empty-state";
 import { IconButton } from "@renderer/components/ui/icon-button";
-import { memory, plural, uptime } from "@renderer/lib/format";
+import type { DictionaryKey } from "@renderer/i18n/en";
+import { useTranslations } from "@renderer/i18n/use-translations";
+import { memory, uptime } from "@renderer/lib/format";
 import { isAttached } from "@renderer/lib/sessions";
 import { Braces, Sparkles, SquareTerminal, Trash2, X } from "lucide-react";
 
@@ -18,12 +20,15 @@ const HEAVY_MB = 1024;
 
 const HEAVY_TOTAL_MB = 2048;
 
-const KINDS: Record<Session["kind"], { label: string; icon: typeof Braces }> = {
-  claude: { icon: Sparkles, label: "agent" },
-  codex: { icon: Sparkles, label: "agent" },
-  hermes: { icon: Sparkles, label: "agent" },
-  ide: { icon: Braces, label: "éditeur distant" },
-  shell: { icon: SquareTerminal, label: "shell" },
+const KINDS: Record<
+  Session["kind"],
+  { label: DictionaryKey; icon: typeof Braces }
+> = {
+  claude: { icon: Sparkles, label: "activity.kind.agent" },
+  codex: { icon: Sparkles, label: "activity.kind.agent" },
+  hermes: { icon: Sparkles, label: "activity.kind.agent" },
+  ide: { icon: Braces, label: "activity.kind.ide" },
+  shell: { icon: SquareTerminal, label: "activity.kind.shell" },
 };
 
 export function ActivitySessions({
@@ -38,8 +43,10 @@ export function ActivitySessions({
   onStop: (pid: number) => void;
   onClean: () => void;
 }) {
+  const t = useTranslations();
+
   if (sessions.length === 0) {
-    return <EmptyState title="Aucune session en arrière-plan" />;
+    return <EmptyState title={t("activity.sessions.empty")} />;
   }
 
   const total = sessions.reduce((sum, session) => sum + session.ram_mb, 0);
@@ -48,19 +55,19 @@ export function ActivitySessions({
     <div>
       <div className="flex items-center justify-between border-line border-b px-4 py-2.5">
         <span className="font-data text-[11px] text-ink-3">
-          {plural(sessions.length, "session")} ·{" "}
+          {t.plural("activity.session", sessions.length)} ·{" "}
           <span className={total > HEAVY_TOTAL_MB ? "text-warn" : ""}>
             {memory(total)}
           </span>
         </span>
         <ConfirmButton
-          confirmLabel="Arrêter"
+          confirmLabel={t("activity.stop")}
           icon={Trash2}
           onConfirm={onClean}
-          question="Les sessions inactives depuis longtemps sont tuées."
+          question={t("activity.clean.question")}
           size="sm"
         >
-          Arrêter celles qui traînent
+          {t("activity.clean.action")}
         </ConfirmButton>
       </div>
 
@@ -85,9 +92,12 @@ export function ActivitySessions({
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[12px]">{session.command}</p>
                   <p className="font-data text-[10px] text-ink-3">
-                    {kind.label} · pid {session.pid} · {uptime(session.seconds)}
+                    {t(kind.label)} · pid {session.pid} ·{" "}
+                    {uptime(session.seconds)}
                     {session.project ? ` · ${session.project}` : ""}
-                    {isAttached(attached, session) ? " · onglet ouvert" : ""}
+                    {isAttached(attached, session)
+                      ? ` · ${t("activity.session.tab")}`
+                      : ""}
                   </p>
                 </div>
 
@@ -101,7 +111,7 @@ export function ActivitySessions({
 
                 <IconButton
                   icon={X}
-                  label={`Arrêter la session ${session.pid}`}
+                  label={t("activity.session.stop", { pid: session.pid })}
                   onClick={() => onStop(session.pid)}
                   variant="danger"
                 />

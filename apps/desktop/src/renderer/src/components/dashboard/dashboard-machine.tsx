@@ -1,4 +1,5 @@
 import type { Machine } from "@pupitre/shared/agent-protocol/state";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { disk, gigabytes, memory, uptime } from "@renderer/lib/format";
 import { Cpu, HardDrive, Layers, MemoryStick } from "lucide-react";
 import { DashboardStat } from "./dashboard-stat";
@@ -26,6 +27,8 @@ export function DashboardMachine({
   projectsRam: number;
   projectCount: number;
 }) {
+  const t = useTranslations();
+
   const free = machine.ram_total_mb - machine.ram_used_mb;
   const load = machine.load[0];
   const perCore = load / machine.cores;
@@ -35,32 +38,37 @@ export function DashboardMachine({
     <div className="grid grid-cols-2 gap-gutter lg:grid-cols-4">
       <DashboardStat
         alert={free < LOW_RAM_MB}
-        detail={`${gigabytes(free)} disponibles`}
+        detail={t("dashboard.machine.memoryDetail", { free: gigabytes(free) })}
         icon={MemoryStick}
         share={machine.ram_used_mb / machine.ram_total_mb}
-        title="Mémoire"
+        title={t("dashboard.machine.memoryTitle")}
         value={`${gigabytes(machine.ram_used_mb)} / ${gigabytes(machine.ram_total_mb)}`}
       />
       <DashboardStat
         alert={perCore > BUSY_LOAD}
-        detail={`${machine.cores} cœurs · en route depuis ${uptime(machine.uptime_s)}`}
+        detail={t("dashboard.machine.loadDetail", {
+          cores: machine.cores,
+          uptime: uptime(machine.uptime_s),
+        })}
         icon={Cpu}
         share={Math.min(1, perCore)}
-        title="Charge"
+        title={t("dashboard.machine.loadTitle")}
         value={load.toFixed(2).replace(".", ",")}
       />
       <DashboardStat
         alert={usedDisk / machine.disk_total_gb > LOW_DISK_SHARE}
-        detail={`${disk(machine.disk_free_gb)} libres`}
+        detail={t("dashboard.machine.diskDetail", {
+          free: disk(machine.disk_free_gb),
+        })}
         icon={HardDrive}
         share={usedDisk / machine.disk_total_gb}
-        title="Disque"
+        title={t("dashboard.machine.diskTitle")}
         value={`${disk(usedDisk)} / ${disk(machine.disk_total_gb)}`}
       />
       <DashboardStat
-        detail={`${projectCount} projet${projectCount > 1 ? "s" : ""} déclaré${projectCount > 1 ? "s" : ""}`}
+        detail={t.plural("dashboard.machine.projectsDeclared", projectCount)}
         icon={Layers}
-        title="Projets"
+        title={t("dashboard.machine.projectsTitle")}
         value={memory(projectsRam)}
       />
     </div>

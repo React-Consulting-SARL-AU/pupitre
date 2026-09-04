@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { ArrowRight, RefreshCw } from "lucide-react";
 import { useEffect } from "react";
 import { humanBytes } from "../../lib/duration";
@@ -25,6 +26,8 @@ export function OnboardingAgentScreen({
   serverName?: string;
   onContinue?: () => void;
 }) {
+  const t = useTranslations();
+
   const delivery = useOnboarding((state) => state.delivery);
   const sendAgent = useOnboarding((state) => state.sendAgent);
   const view = useAccount((state) => state.view);
@@ -46,8 +49,8 @@ export function OnboardingAgentScreen({
   if (!account) {
     return (
       <WaitingNotice
-        detail="Le droit d'usage de cet appareil est vérifié avant tout envoi."
-        title="Lecture du compte"
+        detail={t("onboarding.agent.readingDetail")}
+        title={t("onboarding.agent.readingTitle")}
       />
     );
   }
@@ -62,20 +65,20 @@ export function OnboardingAgentScreen({
         actions={
           delivery.status === "sent" ? (
             <Button icon={ArrowRight} onClick={onContinue} variant="inverse">
-              Lire le catalogue
+              {t("onboarding.agent.readCatalog")}
             </Button>
           ) : null
         }
-        description="Le catalogue des services est celui de l'agent : il part sur le serveur avant qu'on lui demande quoi que ce soit."
-        eyebrow="Agent"
-        title={serverName ?? "Ce serveur"}
+        description={t("onboarding.agent.description")}
+        eyebrow={t("onboarding.agent.eyebrow")}
+        title={serverName ?? t("onboarding.thisServer")}
       />
 
       {delivery.status === "failed" ? (
         <Callout
           action={
             <Button icon={RefreshCw} onClick={sendAgent}>
-              Réessayer
+              {t("common.retry")}
             </Button>
           }
           fix={delivery.error.fix}
@@ -96,7 +99,9 @@ export function OnboardingAgentScreen({
               <StatusDot shape="filled" size={12} tone="ok" />
             </span>
             <div className="min-w-0">
-              <p className="font-medium text-ink">Agent en place</p>
+              <p className="font-medium text-ink">
+                {t("onboarding.agent.inPlace")}
+              </p>
               <p className="mt-1 text-ink-3 leading-relaxed">
                 <code className="font-data">{delivery.delivery.path}</code> ·{" "}
                 linux-{delivery.delivery.arch} ·{" "}
@@ -112,9 +117,9 @@ export function OnboardingAgentScreen({
 
       {delivery.status === "sending" || delivery.status === "idle" ? (
         <WaitingNotice
-          detail="Le serveur est enrôlé, puis le binaire signé part sur le canal SSH déjà ouvert et s'installe dans /usr/local/bin."
-          note="La somme de contrôle de ce que le serveur a reçu est comparée à celle de l'app avant la suite."
-          title="Enrôlement et envoi de l'agent"
+          detail={t("onboarding.agent.sendingDetail")}
+          note={t("onboarding.agent.sendingNote")}
+          title={t("onboarding.agent.sendingTitle")}
         />
       ) : null}
     </section>

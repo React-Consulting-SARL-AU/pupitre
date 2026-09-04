@@ -1,4 +1,5 @@
 import { Button } from "@renderer/components/ui/button";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { Check, Copy, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 
@@ -23,6 +24,8 @@ export function ServiceCredentialRow({
   onReveal: () => Promise<string | null>;
   onCopy: () => Promise<boolean>;
 }) {
+  const t = useTranslations();
+
   const [shown, setShown] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -52,7 +55,7 @@ export function ServiceCredentialRow({
 
       {shown === null ? (
         <Button icon={Eye} onClick={reveal} size="sm">
-          Montrer
+          {t("services.credential.reveal")}
         </Button>
       ) : (
         <Button
@@ -61,12 +64,12 @@ export function ServiceCredentialRow({
           size="sm"
           variant="discreet"
         >
-          Masquer
+          {t("common.hide")}
         </Button>
       )}
 
       <Button icon={copied ? Check : Copy} onClick={copy} size="sm">
-        {copied ? "Copié" : "Copier"}
+        {copied ? t("common.copied") : t("services.credential.copy")}
       </Button>
     </li>
   );

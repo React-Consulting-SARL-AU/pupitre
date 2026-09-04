@@ -1,5 +1,6 @@
 import { IconButton } from "@renderer/components/ui/icon-button";
 import { StatusDot } from "@renderer/components/ui/status-dot";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { VersionOrder } from "@shared/agent-update";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
@@ -21,6 +22,8 @@ export function AgentUpdateFrame({
   children?: ReactNode;
   onHide?: () => void;
 }) {
+  const t = useTranslations();
+
   return (
     <section
       className="elevation-raised flex flex-col gap-3 rounded-md border border-line bg-surface px-4 py-3"
@@ -37,7 +40,7 @@ export function AgentUpdateFrame({
         {onHide ? (
           <IconButton
             icon={X}
-            label="Masquer"
+            label={t("common.hide")}
             onClick={onHide}
             size={12}
             variant="discreet"

@@ -1,6 +1,7 @@
 import { Button } from "@renderer/components/ui/button";
 import { ServiceLogo } from "@renderer/components/ui/service-logo";
 import { StatePill } from "@renderer/components/ui/state-pill";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { SERVICE_LOOK } from "@renderer/lib/project-state";
 import type { ServiceDetail } from "@shared/services";
 import { ArrowLeft, RefreshCw } from "lucide-react";
@@ -18,6 +19,8 @@ export function ServicePanelHeader({
   onBack: () => void;
   onReload: () => void;
 }) {
+  const t = useTranslations();
+
   const facts = [
     detail.version,
     detail.port ? `port ${detail.port}` : null,
@@ -49,10 +52,10 @@ export function ServicePanelHeader({
 
       <div className="flex shrink-0 items-center gap-2">
         <Button icon={RefreshCw} onClick={onReload} variant="discreet">
-          Relire
+          {t("services.panel.reload")}
         </Button>
         <Button icon={ArrowLeft} onClick={onBack} variant="discreet">
-          Tous les services
+          {t("services.panel.back")}
         </Button>
       </div>
     </header>

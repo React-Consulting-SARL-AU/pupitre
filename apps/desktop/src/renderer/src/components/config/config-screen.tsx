@@ -1,3 +1,4 @@
+import { useTranslations } from "@renderer/i18n/use-translations";
 import { ArrowLeft, Download } from "lucide-react";
 import type { ReactNode } from "react";
 import { useCatalog } from "../../stores/catalog";
@@ -35,6 +36,8 @@ export function ConfigScreen({
   onBack?: () => void;
   onInstall?: () => void;
 }) {
+  const t = useTranslations();
+
   const groups = useCatalog((state) => state.groups);
   const values = useCatalog((state) => state.values);
   const secrets = useCatalog((state) => state.secrets);
@@ -69,26 +72,22 @@ export function ConfigScreen({
           <>
             {onBack ? (
               <Button icon={ArrowLeft} onClick={onBack} variant="discreet">
-                Revenir au catalogue
+                {t("config.back")}
               </Button>
             ) : null}
             <Button icon={Download} onClick={onInstall} variant="inverse">
-              {submitLabel ?? "Installer"}
+              {submitLabel ?? t("config.install")}
             </Button>
           </>
         }
-        description="Les questions viennent des manifestes des modules choisis."
-        eyebrow="Configuration"
-        title={serverName ?? "Ce serveur"}
+        description={t("config.description")}
+        eyebrow={t("config.eyebrow")}
+        title={serverName ?? t("config.thisServer")}
       />
 
       {notice}
 
-      <Callout tone="info">
-        Les mots de passe et les jetons ne sont jamais enregistrés par l'app :
-        ils partent sur le flux secret au moment de l'installation, puis sont
-        oubliés.
-      </Callout>
+      <Callout tone="info">{t("config.secretsNotice")}</Callout>
 
       <ConfigForm
         groups={asked()}

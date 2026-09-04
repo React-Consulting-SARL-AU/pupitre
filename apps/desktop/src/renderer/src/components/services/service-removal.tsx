@@ -1,5 +1,6 @@
 import { Button } from "@renderer/components/ui/button";
 import { Callout } from "@renderer/components/ui/callout";
+import { useTranslations } from "@renderer/i18n/use-translations";
 import type { Removal } from "@renderer/lib/service-removal";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -20,6 +21,8 @@ export function ServiceRemoval({
   removal: Removal;
   onRemove: () => void;
 }) {
+  const t = useTranslations();
+
   const [asking, setAsking] = useState(false);
 
   if (!removal.allowed) {
@@ -43,7 +46,7 @@ export function ServiceRemoval({
   return (
     <div>
       <Button icon={Trash2} onClick={() => setAsking(true)} variant="danger">
-        Retirer ce module
+        {t("services.removal.button")}
       </Button>
     </div>
   );
