@@ -1,0 +1,23 @@
+# bun and pnpm unchecked: nothing of theirs is installed and the shell block stays coherent.
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+> {"id":2,"cmd":"install","params":{"secrets_stdin":false,"modules":["runtime.node"],"config":{"runtime.node":{"node_version":"24","bun":false,"pnpm":false}}}}
+> {"id":3,"cmd":"report"}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","ping","report","uninstall","upgrade"]}}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"install-package"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"install-package"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"write-config"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"write-config"}
+< {"event":"step","id":2,"module":"runtime.node","ms":0,"status":"start","step":"install-mise"}
+< {"event":"step","id":2,"module":"runtime.node","ms":0,"status":"ok","step":"install-mise"}
+< {"event":"step","id":2,"module":"runtime.node","ms":0,"status":"start","step":"install-node"}
+< {"event":"step","id":2,"module":"runtime.node","ms":0,"status":"ok","step":"install-node"}
+< {"event":"step","id":2,"module":"runtime.node","ms":0,"status":"start","step":"install-bun"}
+< {"event":"step","id":2,"module":"runtime.node","ms":0,"status":"skip","step":"install-bun"}
+< {"event":"step","id":2,"module":"runtime.node","ms":0,"status":"start","step":"install-pnpm"}
+< {"event":"step","id":2,"module":"runtime.node","ms":0,"status":"skip","step":"install-pnpm"}
+< {"event":"step","id":2,"module":"runtime.node","ms":0,"status":"start","step":"enable-corepack"}
+< {"event":"step","id":2,"module":"runtime.node","ms":0,"status":"skip","step":"enable-corepack"}
+< {"event":"step","id":2,"module":"runtime.node","ms":0,"status":"start","step":"write-shell-env"}
+< {"event":"step","id":2,"module":"runtime.node","ms":0,"status":"ok","step":"write-shell-env"}
+< {"id":2,"ok":true,"result":{"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}
+< {"id":3,"ok":true,"result":{"started_at":"2026-09-04T12:00:00Z","finished_at":"2026-09-04T12:00:00Z","agent_version":"0.0.0-test","modules":[{"id":"core.system","status":"ok","steps":[{"step":"install-package","status":"ok","ms":0},{"step":"write-config","status":"ok","ms":0}]},{"id":"runtime.node","status":"ok","steps":[{"step":"install-mise","status":"ok","ms":0},{"step":"install-node","status":"ok","ms":0},{"step":"install-bun","status":"skip","ms":0},{"step":"install-pnpm","status":"skip","ms":0},{"step":"enable-corepack","status":"skip","ms":0},{"step":"write-shell-env","status":"ok","ms":0}]}],"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}

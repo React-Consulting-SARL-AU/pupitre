@@ -3,6 +3,7 @@ package modtest
 import (
 	"fmt"
 	"io/fs"
+	"sort"
 	"strings"
 
 	"pupitre.studio/agent/internal/sys"
@@ -29,6 +30,7 @@ type FakeSys struct {
 	Replies   map[string]string
 	Failures  map[string]string
 	Users     map[string]string
+	Tools     map[string]string
 	Firewall  Firewall
 	Calls     []sys.Command
 	Mutations []string
@@ -48,6 +50,7 @@ func NewFakeSys() *FakeSys {
 		Replies:  map[string]string{},
 		Failures: map[string]string{},
 		Users:    map[string]string{"root": "/root"},
+		Tools:    map[string]string{},
 	}
 }
 
@@ -103,9 +106,110 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 		return f.useradd(cmd.Argv[1:])
 	case "ufw":
 		return f.ufw(cmd.Argv[1:])
+	case "curl":
+		return f.curl(cmd.Argv[1:])
+	case "mise":
+		return f.mise(cmd.Argv[1:])
 	}
 
 	return sys.Output{Stdout: f.Replies[program]}, nil
+}
+
+// A download to -o leaves a file behind; without it a step that fetches a binary could never be skipped on a replay.
+func (f *FakeSys) curl(args []string) (sys.Output, error) {
+	for i := 0; i < len(args)-1; i++ {
+		if args[i] != "-o" && args[i] != "--output" {
+			continue
+		}
+
+		body := f.Replies["curl"]
+		if body == "" {
+			body = "downloaded\n"
+		}
+
+		return sys.Output{}, f.WriteFile(args[i+1], []byte(body), 0o755)
+	}
+
+	return sys.Output{Stdout: f.Replies["curl"]}, nil
+}
+
+const miseInstalls = "/home/dev/.local/share/mise/installs/"
+
+func (f *FakeSys) mise(args []string) (sys.Output, error) {
+	var words []string
+	for _, arg := range args {
+		if !strings.HasPrefix(arg, "-") {
+			words = append(words, arg)
+		}
+	}
+
+	if len(words) == 0 {
+		return f.fail("mise", "error: a subcommand is required")
+	}
+
+	switch words[0] {
+	case "use":
+		for _, spec := range words[1:] {
+			tool, version := parseTool(spec)
+			f.Tools[tool] = version
+			f.mutate("mise use " + tool + "@" + version)
+		}
+	case "uninstall":
+		for _, spec := range words[1:] {
+			tool, _ := parseTool(spec)
+			delete(f.Tools, tool)
+			f.mutate("mise uninstall " + tool)
+		}
+	case "upgrade":
+		for _, tool := range words[1:] {
+			next, upgradable := f.Upgrades["mise:"+tool]
+			if !upgradable {
+				continue
+			}
+
+			f.Tools[tool] = next
+			delete(f.Upgrades, "mise:"+tool)
+			f.mutate("mise upgrade " + tool)
+		}
+	case "where":
+		version, installed := f.Tools[words[1]]
+		if !installed {
+			return f.fail("mise", "mise "+words[1]+" not installed")
+		}
+
+		return sys.Output{Stdout: miseInstalls + words[1] + "/" + version + "\n"}, nil
+	case "ls", "list":
+		return sys.Output{Stdout: f.toolList()}, nil
+	default:
+		return f.fail("mise", "error: unrecognized subcommand '"+words[0]+"'")
+	}
+
+	return sys.Output{}, nil
+}
+
+func (f *FakeSys) toolList() string {
+	names := make([]string, 0, len(f.Tools))
+	for name := range f.Tools {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	var out strings.Builder
+	for _, name := range names {
+		fmt.Fprintf(&out, "%s  %s  ~/.config/mise/config.toml\n", name, f.Tools[name])
+	}
+
+	return out.String()
+}
+
+// mise resolves node@22 to a patch release; the fake keeps the request, which a pinned major still matches.
+func parseTool(spec string) (tool, version string) {
+	tool, version, found := strings.Cut(spec, "@")
+	if !found || version == "" {
+		version = "latest"
+	}
+
+	return tool, version
 }
 
 func (f *FakeSys) dpkgQuery(args []string) (sys.Output, error) {

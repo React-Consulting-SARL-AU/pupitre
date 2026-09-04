@@ -109,6 +109,8 @@ func (f *transcript) directive(t *testing.T, path, line string) {
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Units[fields[0]] = UnitState(fields[1]) })
 	case "user":
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Users[fields[0]] = "/home/" + fields[0] })
+	case "tool":
+		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Tools[fields[0]] = fields[1] })
 	case "file":
 		filePath, content, _ := strings.Cut(rest, " ")
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Files[filePath] = []byte(content + "\n") })
