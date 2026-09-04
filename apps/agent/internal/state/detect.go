@@ -22,7 +22,6 @@ const (
 
 	cloneTimeout = 2 * time.Minute
 
-	// Long enough that no detection in flight can be swept, short enough that a killed agent leaves nothing for a day.
 	staleMinutes = "+60"
 )
 
