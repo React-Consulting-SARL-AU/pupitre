@@ -50,6 +50,7 @@ But. `pupitred serve` lit des requêtes JSON par ligne et répond selon le proto
 Périmètre. `internal/protocol` : enveloppe, `id`, dispatch par `cmd`, événements, erreurs `{ code, message, fix }`, flux secret sur un descripteur dédié, négociation `hello` avec `protocol` et `capabilities`. `cmd/pupitred` : sous-commandes `serve`, `version`. Validation des paramètres contre `internal/contract/schema.json`.
 Hors périmètre. Toute commande métier.
 Critères d'acceptation.
+0. Les codes d'erreur sont ceux de `@pupitre/shared/agent-protocol/errors` : le squelette d'INF-03 émet `invalid_request`, à remplacer par `bad_request`. `go.mod` passe à `go 1.26` et la CI revient à garble `@latest`.
 1. `hello` avant toute commande ; sinon `hello_required`.
 2. Un `protocol` inconnu renvoie `protocol_mismatch` avec la version attendue.
 3. Une requête malformée renvoie `bad_request` sans tuer le processus.
