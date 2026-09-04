@@ -1,0 +1,14 @@
+# Le même Ubuntu, mais Docker tourne, un site écoute sur 80 et un compte existe déjà.
+@line /etc/os-release ID=ubuntu
+@line /etc/os-release VERSION_ID="24.04"
+@line /etc/passwd root:x:0:0:root:/root:/bin/bash
+@line /etc/passwd alice:x:1001:1001::/home/alice:/bin/zsh
+@file /usr/bin/docker ELF
+@reply uname aarch64
+@reply free               total        used        free\nMem:      8324046848  1073741824  6174015488
+@reply df Filesystem     1B-blocks        Used   Available Capacity Mounted on\n/dev/sda1    84140195840 41051881472 42988314368      49% /
+@reply ss State  Recv-Q Send-Q     Local Address:Port  Peer Address:Port Process\nLISTEN 0      128              0.0.0.0:22         0.0.0.0:*     users:(("sshd",pid=901,fd=3))\nLISTEN 0      511              0.0.0.0:80         0.0.0.0:*     users:(("nginx",pid=1042,fd=6))
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+> {"id":2,"cmd":"probe"}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","ping","probe","report","uninstall","upgrade"]}}
+< {"id":2,"ok":true,"result":{"os":"ubuntu","version":"24.04","arch":"arm64","ram_mb":7938,"disk_free_gb":40.0,"sudo":true,"ports":[{"port":22,"process":"sshd"},{"port":80,"process":"nginx"}],"docker":true,"panel":null,"agent_version":null,"installed_modules":[],"verdict":{"level":"warning","kind":"occupied","reasons":["Docker est installé : ses conteneurs, ses réseaux et ses règles de pare-feu resteraient en place.","Le port 80 est déjà écouté par nginx.","Des comptes non système existent déjà : alice."],"fixes":["Retire Docker pour une machine dédiée, ou installe quand même : Pupitre n'y touchera pas.","Libère les ports 80 et 443, ou installe quand même : l'exposition par tunnel ne les utilise pas.","Vérifie que ces comptes cohabitent avec l'utilisateur dev créé par Pupitre."]}}}

@@ -1,3 +1,4 @@
+import { DARK, LIGHT } from "@pupitre/design/tokens";
 import type {
   Action,
   ActionResult,
@@ -16,7 +17,8 @@ import type {
   WorkingTree,
 } from "@shared/contract";
 import { editorUrl, logPath } from "@shared/profile";
-import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { app, BrowserWindow, ipcMain, nativeTheme, shell } from "electron";
+import { agentClient, registerAgentChannels } from "./agent";
 import { catalog, history, paths } from "./completion";
 import { fileDiff, inspect, pull, validPath, workingTree } from "./git";
 import { profile, read, sshHosts, write as writeConfig } from "./servers";
@@ -193,6 +195,17 @@ async function computeCapabilities(): Promise<Capabilities> {
   return { secrets, registry, sessions, processes, logs, agents };
 }
 
+/**
+ * What the native window paints before the page does, and while it resizes.
+ *
+ * The main process has no stylesheet, so the value comes from the design tokens
+ * as data. It follows the system: the theme forced in the settings lives in the
+ * renderer, and this colour is only ever seen at the edges.
+ */
+function windowBackground(): string {
+  return nativeTheme.shouldUseDarkColors ? DARK.base : LIGHT.base;
+}
+
 function createWindow(): void {
   window = new BrowserWindow({
     width: 1280,
@@ -201,7 +214,7 @@ function createWindow(): void {
     minHeight: 560,
     show: false,
     titleBarStyle: "hiddenInset",
-    backgroundColor: "#100d0b",
+    backgroundColor: windowBackground(),
     icon: new URL("../../build/icon.png", import.meta.url).pathname,
     webPreferences: {
       preload: new URL("../preload/index.mjs", import.meta.url).pathname,
@@ -212,6 +225,10 @@ function createWindow(): void {
   });
 
   window.on("ready-to-show", () => window?.show());
+
+  nativeTheme.on("updated", () =>
+    window?.setBackgroundColor(windowBackground())
+  );
 
   window.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
@@ -231,6 +248,8 @@ function createWindow(): void {
 const logStoppers = new Map<string, () => void>();
 
 function registerChannels(): void {
+  registerAgentChannels();
+
   ipcMain.handle("snapshot", () => snapshot());
 
   ipcMain.handle("capabilities", async (): Promise<Capabilities> => {
@@ -514,6 +533,9 @@ function registerChannels(): void {
   ipcMain.handle("ssh-hosts", (): string[] => sshHosts());
   ipcMain.handle("servers-write", (_e, config: ServersConfig) => {
     const clean = writeConfig(config);
+    // The channels were talking to the old servers: they reopen on the new ones
+    // at the next call.
+    agentClient.closeAll();
     // The profile or the machine may have changed: what we knew about it no
     // longer holds, and asking again costs four commands.
     knownCapabilities = null;
@@ -686,6 +708,7 @@ app.on("window-all-closed", () => {
   logStoppers.clear();
   closeAll();
   channel.close();
+  agentClient.closeAll();
   if (process.platform !== "darwin") {
     app.quit();
   }

@@ -1,6 +1,8 @@
 import { cleanProfile, logPath } from "@shared/profile";
 import { useEffect, useRef, useState } from "react";
 import { useAppState } from "../stores/state";
+import { EmptyState } from "./ui/empty-state";
+import { StatusDot } from "./ui/status-dot";
 
 const MAX_LINES = 3000;
 const ANSI_SEQUENCES = /\[[0-9;?]*[a-zA-Z]/g;
@@ -53,17 +55,13 @@ export function LogPanel({ project }: { project: string | null }) {
   }, [follow]);
 
   if (!project) {
-    return (
-      <div className="grid h-full place-items-center text-ink-4">
-        Select a project
-      </div>
-    );
+    return <EmptyState title="Select a project" />;
   }
 
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-line border-b px-4 py-2">
-        <span className="font-mono text-[11px] text-ink-3">
+        <span className="font-data text-[11px] text-ink-3">
           {logPath(
             cleanProfile(
               servers?.servers.find((s) => s.id === servers.active)?.profile
@@ -71,10 +69,10 @@ export function LogPanel({ project }: { project: string | null }) {
             project
           )}
         </span>
-        <label className="clickable flex items-center gap-2 font-mono text-[10px] text-ink-4">
+        <label className="clickable flex items-center gap-2 font-data text-[10px] text-ink-3">
           <input
             checked={follow}
-            className="accent-accent"
+            className="accent-ink"
             onChange={(e) => setFollow(e.target.checked)}
             type="checkbox"
           />
@@ -83,7 +81,7 @@ export function LogPanel({ project }: { project: string | null }) {
       </div>
 
       <div
-        className="flex-1 overflow-auto px-4 py-3 font-mono text-[11px] text-ink-2 leading-[1.7]"
+        className="flex-1 overflow-auto px-4 py-3 font-data text-[11px] text-ink-2 leading-[1.7]"
         onScroll={(e) => {
           const el = e.currentTarget;
           const atBottom =
@@ -94,13 +92,16 @@ export function LogPanel({ project }: { project: string | null }) {
         }}
       >
         {lines.length === 0 ? (
-          <span className="text-ink-4">Waiting for output…</span>
+          <span className="flex items-center gap-2 text-ink-3">
+            <StatusDot shape="breathing" size={11} />
+            waiting for the first line of {project}…
+          </span>
         ) : (
           lines.map((line, i) => (
             <div
               className={
                 line.startsWith("=== dev")
-                  ? "my-1 border-accent border-l-2 pl-2 text-accent-strong"
+                  ? "my-1 border-line-strong border-l-2 pl-2 font-semibold text-ink"
                   : "whitespace-pre-wrap break-all"
               }
               // biome-ignore lint/suspicious/noArrayIndexKey: a log is a stream, its position IS its identity

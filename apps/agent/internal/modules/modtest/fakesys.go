@@ -101,6 +101,12 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 	}
 
 	line := strings.Join(cmd.Argv, " ")
+
+	// A reply keyed by the whole argv wins: some programs answer differently per argument, like df on two paths.
+	if reply, keyed := f.Replies[line]; keyed {
+		return sys.Output{Stdout: reply}, nil
+	}
+
 	for fragment, answer := range f.Answers {
 		if strings.Contains(line, fragment) {
 			return sys.Output{Stdout: answer}, nil

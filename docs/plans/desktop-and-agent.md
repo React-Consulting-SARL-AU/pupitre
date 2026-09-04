@@ -294,6 +294,23 @@ Critères d'acceptation.
 
 ## Lot 3 — Compte et serveurs distants
 
+### APP-17 — Harnais Playwright pour Electron
+Lot 2 · dépend de APP-01 · `apps/desktop`
+
+But. L'app a un dossier `e2e/` et un scénario qui tourne, pour que les tâches d'écran cessent de prouver leur rendu par des tests unitaires seuls.
+Périmètre. `@playwright/test` avec le lanceur Electron, `e2e/` avec un scénario qui ouvre l'app, force les deux thèmes, capture chacun, et compare aux références. Un script `test:e2e` dans le workspace et une étape optionnelle en CI (non bloquante tant que le rendu n'est pas stable). Documenter la remise en route d'Electron quand `bun install` ne pose pas son binaire (`node node_modules/electron/install.js`).
+Hors périmètre. Les scénarios d'onboarding, qui viennent avec APP-06.
+Critères d'acceptation.
+1. `bun --cwd=apps/desktop run test:e2e` produit deux captures, clair et sombre, et échoue si l'une diffère de sa référence.
+
+### APP-18 — Fond natif de la fenêtre selon le thème choisi
+Lot 2 · dépend de APP-01 · `apps/desktop`
+
+But. Le fond natif de la fenêtre suit le thème forcé dans les réglages, pas seulement celui du système.
+Périmètre. Un canal IPC qui remonte le thème résolu au processus principal, `win.setBackgroundColor` avec les tokens de `@pupitre/design/tokens`, et `nativeTheme.themeSource` aligné.
+Critères d'acceptation.
+1. Thème forcé en clair sur un système sombre : les bords pendant un redimensionnement sont clairs.
+
 ### APP-14 — Compte : device flow, appareils, enrôlement
 Lot 3 · dépend de APP-13, PLT-02, PLT-04, PLT-05 · `apps/desktop`
 

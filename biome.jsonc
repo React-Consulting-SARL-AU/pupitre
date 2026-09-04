@@ -4,6 +4,7 @@
   "files": {
     "includes": [
       "!**/node_modules",
+      "!packages/design/src/logos/*.svg",
       "!**/.turbo",
       "!**/.wrangler",
       "!**/dist",

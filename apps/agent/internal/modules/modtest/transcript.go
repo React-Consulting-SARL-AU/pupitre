@@ -19,6 +19,7 @@ import (
 const Secret = "s3cret-de-test"
 
 var resultDefinitions = map[string]string{
+	"probe":     "ProbeResult",
 	"catalog":   "CatalogResult",
 	"install":   "InstallResult",
 	"uninstall": "UninstallResult",
@@ -113,13 +114,18 @@ func (f *transcript) directive(t *testing.T, path, line string) {
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Tools[fields[0]] = fields[1] })
 	case "file":
 		filePath, content, _ := strings.Cut(rest, " ")
-		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Files[filePath] = []byte(content + "\n") })
+		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Files[filePath] = []byte(unescape(content) + "\n") })
+	case "line":
+		filePath, content, _ := strings.Cut(rest, " ")
+		f.prepare = append(f.prepare, func(fake *FakeSys) {
+			fake.Files[filePath] = append(fake.Files[filePath], []byte(unescape(content)+"\n")...)
+		})
 	case "reply":
 		program, reply, _ := strings.Cut(rest, " ")
-		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Replies[program] = reply + "\n" })
+		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Replies[program] = unescape(reply) + "\n" })
 	case "answer":
 		fragment, answer, _ := strings.Cut(rest, " ")
-		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Answer(fragment, answer+"\n") })
+		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Answer(fragment, unescape(answer)+"\n") })
 	case "fail":
 		program, stderr, _ := strings.Cut(rest, " ")
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.FailProgram(program, stderr) })
@@ -256,4 +262,9 @@ func decodeJSON(t *testing.T, text string) any {
 	}
 
 	return value
+}
+
+// A transcript is one line per directive, so a multi-line file or command output arrives escaped.
+func unescape(value string) string {
+	return strings.NewReplacer(`\n`, "\n", `\t`, "\t").Replace(value)
 }

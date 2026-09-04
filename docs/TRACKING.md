@@ -14,13 +14,16 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-06 | Skills et outillage agent | fait | `chore/INF-06-skills` | fusionnée |
 | INF-07 | Contrat : champs booléens et listes dans le catalogue | fait | `feat/INF-07-catalog-fields` | fusionnée |
 | INF-08 | Contrat : flux secret d'`install`, presets dans le schéma, code `no_report` | fait | `feat/INF-08-install-contract` | fusionnée |
+| INF-09 | Design : ombres, rayons, espace, logos de services | fait | `feat/INF-09-design-tokens` | fusionnée |
+| INF-10 | Flux secret sur l'entrée standard | à faire | | |
+| INF-11 | Contrat : le verdict de la sonde | à faire | | |
 
 ## Agent serveur — `AGT`
 
 | ID | Tâche | Statut | Branche | PR |
 | --- | --- | --- | --- | --- |
 | AGT-01 | Squelette, protocole, `hello` et `ping` | fait | `feat/AGT-01-protocol` | fusionnée |
-| AGT-02 | Sonde sh et sonde Go | à faire | | |
+| AGT-02 | Sonde sh et sonde Go | fait | `feat/AGT-02-probe` | fusionnée |
 | AGT-03 | Moteur de modules et rapport | fait | `feat/AGT-03-module-engine` | fusionnée |
 | AGT-04 | Modules socle et durcissement | fait | `feat/AGT-04-core-modules` | fusionnée |
 | AGT-05 | Modules runtimes | fait | `feat/AGT-05-runtimes` | fusionnée |
@@ -40,8 +43,8 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 
 | ID | Tâche | Statut | Branche | PR |
 | --- | --- | --- | --- | --- |
-| APP-01 | Design monochrome et thèmes | à faire | | |
-| APP-02 | Client du protocole agent sur SSH | à faire | | |
+| APP-01 | Design monochrome et thèmes | fait | `feat/APP-01-monochrome` | fusionnée |
+| APP-02 | Client du protocole agent sur SSH | fait | `feat/APP-02-agent-client` | fusionnée |
 | APP-03 | Serveurs, clés par appareil, config SSH propre à l'app | à faire | | |
 | APP-04 | Écran d'inspection | à faire | | |
 | APP-05 | Catalogue et configuration des services | à faire | | |
@@ -56,6 +59,9 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-14 | Compte : device flow, appareils, enrôlement | à faire | | |
 | APP-15 | Serveurs distants et organisations | à faire | | |
 | APP-16 | Builds Windows et Linux | à faire | | |
+| APP-17 | Harnais Playwright pour Electron | à faire | | |
+| APP-18 | Fond natif de la fenêtre selon le thème | à faire | | |
+| APP-19 | Appliquer le design accueillant à l'app | à faire | | |
 
 ## Plateforme — `PLT`
 
@@ -65,7 +71,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-02 | Better Auth : serveur, plugins, clients | fait | `feat/PLT-02-better-auth` | fusionnée |
 | PLT-03 | Elysia : socle, guards, erreurs, harnais de test | fait | `feat/PLT-03-elysia-base` | fusionnée |
 | PLT-04 | Routes `me`, `devices` | fait | `feat/PLT-04-me-devices` | fusionnée |
-| PLT-05 | Enrôlement, jetons d'agent, `agent/state`, heartbeat | à faire | | |
+| PLT-05 | Enrôlement, jetons d'agent, `agent/state`, heartbeat | fait | `feat/PLT-05-enrollment` | fusionnée |
 | PLT-06 | Distribution des binaires signés (R2) | à faire | | |
 | PLT-07 | Stripe Managed Payments : checkout, portail, webhooks, réconciliation | à faire | | |
 | PLT-08 | Console : shell, connexion, serveurs, appareils | à faire | | |
@@ -75,6 +81,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-12 | Alertes et page de statut | à faire | | |
 | PLT-13 | Passkeys et MFA | à faire | | |
 | PLT-14 | Déploiement Cloudflare Builds, staging et production | à faire | | |
+| PLT-15 | Workflows Cloudflare : déclencheurs des tâches longues | à faire | | |
 
 ## Site marketing — `MKT`
 
@@ -96,3 +103,4 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
+| 2026-09-04 | AGT-02 | `ProbeResult` de `packages/shared` ne porte que `verdict.level` et `verdict.reasons[]` : ni le genre de verdict (`bare`, `managed`, `occupied`, `incompatible`), ni `fixes[]`, ni « agent à jour », que la tâche et APP-04 demandent. Il contraint aussi `arch` à `amd64`/`arm64`, donc une machine incompatible par son architecture n'est pas descriptible. La sonde émet `kind`, `up_to_date` et `fixes` en plus (le schéma les tolère, `additionalProperties` n'est pas fermé) et l'architecture brute ; le contrat reste inchangé. | propriétaire |

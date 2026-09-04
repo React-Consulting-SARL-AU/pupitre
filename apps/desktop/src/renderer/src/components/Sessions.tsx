@@ -1,5 +1,8 @@
 import type { Session } from "@shared/contract";
 import { Braces, Sparkles, Trash2, X } from "lucide-react";
+import { Button } from "./ui/button";
+import { EmptyState } from "./ui/empty-state";
+import { IconButton } from "./ui/icon-button";
 
 function duration(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
@@ -33,28 +36,21 @@ export function Sessions({
   const total = list.reduce((sum, s) => sum + s.ram_mb, 0);
 
   if (list.length === 0) {
-    return (
-      <p className="px-4 py-6 text-center text-ink-4">No background session</p>
-    );
+    return <EmptyState title="No background session" />;
   }
 
   return (
     <div>
       <div className="flex items-center justify-between border-line border-b px-4 py-2">
-        <span className="font-mono text-[11px] text-ink-4">
+        <span className="font-data text-[11px] text-ink-3">
           {list.length} session{list.length > 1 ? "s" : ""} ·{" "}
           <span className={total > 2048 ? "text-warn" : ""}>
             {memory(total)}
           </span>
         </span>
-        <button
-          className="flex items-center gap-1.5 rounded-md border border-line px-2 py-1 text-[11px] text-ink-3 transition-soft hover:border-danger hover:text-danger"
-          onClick={onClean}
-          type="button"
-        >
-          <Trash2 size={12} />
+        <Button icon={Trash2} onClick={onClean} size="sm" variant="danger">
           Stop idle ones
-        </button>
+        </Button>
       </div>
 
       <div className="divide-y divide-line">
@@ -67,35 +63,41 @@ export function Sessions({
               key={session.pid}
             >
               {session.kind === "ide" ? (
-                <Braces className="shrink-0 text-ink-4" size={14} />
+                <Braces
+                  className="shrink-0 text-ink-3"
+                  size={14}
+                  strokeWidth={1.5}
+                />
               ) : (
-                <Sparkles className="shrink-0 text-ink-4" size={14} />
+                <Sparkles
+                  className="shrink-0 text-ink-3"
+                  size={14}
+                  strokeWidth={1.5}
+                />
               )}
 
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[12px]">{session.command}</p>
-                <p className="font-mono text-[10px] text-ink-4">
+                <p className="font-data text-[10px] text-ink-3">
                   {session.kind === "ide" ? "remote IDE" : "agent"} · pid{" "}
                   {session.pid} · {duration(session.seconds)}
                 </p>
               </div>
 
               <span
-                className={`shrink-0 font-mono text-[11px] tabular-nums ${
-                  session.ram_mb > 1024 ? "text-warn" : "text-ink-4"
+                className={`shrink-0 font-data text-[11px] tabular-nums ${
+                  session.ram_mb > 1024 ? "text-warn" : "text-ink-3"
                 }`}
               >
                 {memory(session.ram_mb)}
               </span>
 
-              <button
-                aria-label={`Stop session ${session.pid}`}
-                className="shrink-0 rounded-md border border-line p-1 text-ink-4 transition-soft hover:border-danger hover:text-danger"
+              <IconButton
+                icon={X}
+                label={`Stop session ${session.pid}`}
                 onClick={() => onStop(session.pid)}
-                type="button"
-              >
-                <X size={13} />
-              </button>
+                variant="danger"
+              />
             </div>
           ))}
       </div>

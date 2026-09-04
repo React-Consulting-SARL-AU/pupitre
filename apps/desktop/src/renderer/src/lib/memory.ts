@@ -1,10 +1,11 @@
 /**
  * What the interface remembers between two launches.
  *
- * Only navigation: which server, which project, which tab of which project. No
- * data and no secret — those belong to the server, and re-reading them costs one
- * command. If this file disappears, the app opens on the dashboard and nothing
- * else is lost.
+ * Navigation and the theme: which server, which project, which tab of which
+ * project, and light or dark. No data and no secret — those belong to the
+ * server, and re-reading them costs one command. If this file disappears, the
+ * app opens on the dashboard following the system theme, and nothing else is
+ * lost.
  *
  * Every access is wrapped: `localStorage` throws outright in a few contexts
  * (private windows, site data blocked), and a navigation convenience must never
@@ -24,6 +25,8 @@ export type Navigation = {
    * back to its overview means finding the session again by hand, every time.
    */
   tabs?: Record<string, string>;
+  /** "system", "light" or "dark". Validated on read: last run wrote it. */
+  theme?: string;
 };
 
 export function readNavigation(): Navigation {
@@ -39,9 +42,14 @@ export function readNavigation(): Navigation {
   }
 }
 
-export function writeNavigation(navigation: Navigation): void {
+/**
+ * Merges rather than replaces: navigation and theme are written by two
+ * independent callers, and neither should erase what the other just said.
+ */
+export function writeNavigation(patch: Navigation): void {
   try {
-    window.localStorage.setItem(KEY, JSON.stringify(navigation));
+    const merged = { ...readNavigation(), ...patch };
+    window.localStorage.setItem(KEY, JSON.stringify(merged));
   } catch {
     // Storage unavailable or full: the app simply forgets, which is the state it
     // was in before this file existed.

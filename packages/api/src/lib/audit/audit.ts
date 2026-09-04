@@ -1,9 +1,14 @@
 import type { Prisma } from "@pupitre/db/cloudflare/client"
 import { getPrisma } from "../api/prisma"
 
-export type AuditAction = "device.added" | "device.revoked"
+export type AuditAction =
+  | "device.added"
+  | "device.revoked"
+  | "server.enrolled"
+  | "server.exchanged"
+  | "server.deleted"
 
-export type AuditTargetType = "device"
+export type AuditTargetType = "device" | "server"
 
 export interface AuditEntry {
   action: AuditAction
