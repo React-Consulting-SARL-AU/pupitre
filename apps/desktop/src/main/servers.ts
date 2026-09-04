@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import type { Server, ServersConfig } from "@shared/contract";
@@ -7,76 +7,101 @@ import {
   DEFAULT_PROFILE,
   type ServerProfile,
 } from "@shared/profile";
+import type { HostKeyDecision, ServerDraft } from "@shared/servers";
 import { app } from "electron";
+import { hostKeyDecision, observedFingerprint } from "./host-keys";
+import { readPublicKey } from "./keys";
+import {
+  addServer,
+  pinFingerprint,
+  removeServer,
+  type ServerCreation,
+  untrustHost,
+} from "./server-setup";
+import {
+  appSshPaths,
+  readSystemHosts,
+  type SshPaths,
+  writeSshConfig,
+} from "./ssh-config";
 
 /**
  * The known servers, and which one is active.
  *
  * The file lives in the app's data folder, not in the repository: these are the
- * machines of whoever uses it. A server only carries a name, an SSH target and
- * the way that machine is driven — never a password nor a key, which remain the
- * business of ~/.ssh/config and the agent.
+ * machines of whoever uses it. Every write to it is followed by a rewrite of
+ * the app's SSH configuration, so the two never drift apart — and neither of
+ * them is ever the user's own ~/.ssh.
  */
 type Configuration = Required<Pick<ServersConfig, "servers" | "active">> & {
   version: number;
 };
 
 /**
- * Version 2 adds a per-server profile. An older configuration has none: it is
- * filled in with the defaults, which describe exactly what the app used to do
- * in hard-coded form — so an older file keeps, to the byte, the behaviour it had.
+ * Version 3 makes the app the owner of the connection: a server carries its
+ * address, its port, its account and its key rather than pointing at a block of
+ * the system configuration. An older entry did point at one, so it is read back
+ * as what it was — a system host — and nothing of the user's is touched.
  */
-const VERSION = 2;
+const VERSION = 3;
+const DEFAULT_PORT = 22;
+const NAME_LIMIT = 60;
+const HOST_LIMIT = 120;
 
-function path(): string {
-  return join(app.getPath("userData"), "servers.json");
-}
-
-const DEFAULTS: Configuration = {
-  version: VERSION,
-  servers: [
-    {
-      id: "dev-vps",
-      name: "Development server",
-      host: "dev-vps",
-      profile: DEFAULT_PROFILE,
-    },
-  ],
-  active: "dev-vps",
-};
+const EMPTY: Configuration = { active: null, servers: [], version: VERSION };
 
 let cache: Configuration | null = null;
 
+function userData(): string {
+  return app.getPath("userData");
+}
+
+export function paths(): SshPaths {
+  return appSshPaths(userData());
+}
+
+function path(): string {
+  return join(userData(), "servers.json");
+}
+
+function normaliseServer(raw: Server): Server {
+  const origin = raw.origin === "app" ? "app" : "system";
+  const port =
+    Number.isInteger(raw.port) && raw.port > 0 ? raw.port : DEFAULT_PORT;
+
+  return {
+    host: raw.host.slice(0, HOST_LIMIT),
+    hostFingerprint: raw.hostFingerprint || undefined,
+    id: raw.id,
+    keyPath: origin === "app" ? raw.keyPath : undefined,
+    name: raw.name.slice(0, NAME_LIMIT),
+    origin,
+    port,
+    profile: cleanProfile(raw.profile),
+    user: typeof raw.user === "string" ? raw.user : "",
+  };
+}
+
 function normalise(raw: ServersConfig): Configuration {
   const servers = raw.servers
-    .filter((s) => s.id && s.name && s.host)
-    .map((s) => ({
-      id: s.id,
-      name: s.name.slice(0, 60),
-      host: s.host.slice(0, 120),
-      key: s.key?.slice(0, 300) || undefined,
-      profile: cleanProfile(s.profile),
-    }));
+    .filter((server) => server.id && server.name && server.host)
+    .map(normaliseServer);
 
-  const clean: Configuration = {
-    version: VERSION,
-    servers: servers.length > 0 ? servers : DEFAULTS.servers,
-    active: raw.active,
-  };
-  if (!clean.servers.some((s) => s.id === clean.active)) {
-    clean.active = clean.servers[0].id;
-  }
-  return clean;
+  const active = servers.some((server) => server.id === raw.active)
+    ? raw.active
+    : (servers[0]?.id ?? null);
+
+  return { active, servers, version: VERSION };
 }
 
 export function read(): Configuration {
   if (cache) {
     return cache;
   }
+
   try {
-    const raw = readFileSync(path(), "utf8");
-    const data = JSON.parse(raw) as ServersConfig;
-    if (Array.isArray(data.servers) && data.servers.length > 0) {
+    const data = JSON.parse(readFileSync(path(), "utf8")) as ServersConfig;
+    if (Array.isArray(data.servers)) {
       const clean = normalise(data);
       // An older configuration goes back to disk completed, once: otherwise
       // every launch would complete it in memory, and the day the defaults
@@ -88,63 +113,138 @@ export function read(): Configuration {
       return clean;
     }
   } catch {
-    // First launch, or unreadable file: start from the defaults.
+    // First launch, or unreadable file: no server yet, and the app says so.
   }
-  cache = DEFAULTS;
-  return DEFAULTS;
+
+  cache = EMPTY;
+  return EMPTY;
 }
 
 function save(config: Configuration): void {
   mkdirSync(dirname(path()), { recursive: true });
   writeFileSync(path(), JSON.stringify(config, null, 2), "utf8");
+  writeSshConfig(config.servers, paths());
 }
 
 export function write(config: ServersConfig): Configuration {
   const clean = normalise(config);
+
   save(clean);
   cache = clean;
+
   return clean;
 }
 
-export function active(): Server {
+/** No server yet is a state the app has to show, not one it can guess around. */
+export function active(): Server | null {
   const config = read();
-  return (
-    config.servers.find((s) => s.id === config.active) ?? config.servers[0]
-  );
+
+  return config.servers.find((s) => s.id === config.active) ?? null;
+}
+
+export function byId(id: string): Server | null {
+  return read().servers.find((server) => server.id === id) ?? null;
 }
 
 /** The active server's profile, always complete. */
 export function profile(): ServerProfile {
-  return cleanProfile(active().profile);
+  return cleanProfile(active()?.profile ?? DEFAULT_PROFILE);
+}
+
+export function sshHosts(): string[] {
+  return readSystemHosts(join(homedir(), ".ssh", "config"));
+}
+
+export async function add(draft: ServerDraft): Promise<ServerCreation> {
+  const config = read();
+  const created = await addServer(draft, config.servers, paths());
+
+  write({ active: created.server.id, servers: created.servers });
+
+  return created;
+}
+
+export function rename(id: string, name: string): Configuration {
+  const config = read();
+
+  return write({
+    active: config.active,
+    servers: config.servers.map((server) =>
+      server.id === id
+        ? { ...server, name: name.trim().slice(0, NAME_LIMIT) || server.name }
+        : server
+    ),
+  });
+}
+
+export function activate(id: string): Configuration {
+  const config = read();
+
+  return config.servers.some((server) => server.id === id)
+    ? write({ active: id, servers: config.servers })
+    : config;
+}
+
+export function remove(id: string): Configuration {
+  const config = read();
+  const left = removeServer(config.servers, id, paths());
+
+  return write({
+    active: config.active === id ? (left[0]?.id ?? null) : config.active,
+    servers: left,
+  });
 }
 
 /**
- * The hosts declared in ~/.ssh/config, so they can be offered rather than
- * retyped. Wildcard patterns are dropped: "Host *" is not a machine.
+ * What the app's known_hosts says about a server, compared to what it pinned.
+ *
+ * A first contact is pinned here rather than left to the next connection: the
+ * fingerprint `ssh` has just accepted is the one to compare against from now on.
  */
-export function sshHosts(): string[] {
-  const file = join(homedir(), ".ssh", "config");
-  if (!existsSync(file)) {
-    return [];
+export async function hostKey(id: string): Promise<HostKeyDecision> {
+  const server = byId(id);
+  if (!server || server.origin === "system") {
+    return { status: "first_contact" };
   }
-  try {
-    const lines = readFileSync(file, "utf8").split("\n");
-    const hosts: string[] = [];
-    for (const line of lines) {
-      const found = /^\s*Host\s+(.+)$/i.exec(line);
-      if (!found) {
-        continue;
-      }
-      for (const name of found[1].trim().split(/\s+/)) {
-        if (
-          !(name.includes("*") || name.includes("?") || hosts.includes(name))
-        ) {
-          hosts.push(name);
-        }
-      }
-    }
-    return hosts;
-  } catch {
-    return [];
+
+  const observed = await observedFingerprint(server, paths());
+  const decision = hostKeyDecision(server.hostFingerprint, observed);
+
+  if (decision.status === "first_contact" && observed) {
+    const config = read();
+    write({
+      active: config.active,
+      servers: pinFingerprint(config.servers, id, observed),
+    });
   }
+
+  return decision;
+}
+
+/**
+ * The one way out of a refused connection: the machine was reinstalled, so the
+ * old fingerprint is dropped and the next contact pins whatever answers.
+ */
+export async function trustReinstalled(id: string): Promise<Configuration> {
+  const server = byId(id);
+  if (!server) {
+    return read();
+  }
+
+  await untrustHost(server, paths());
+
+  const config = read();
+
+  return write({
+    active: config.active,
+    servers: config.servers.map((s) =>
+      s.id === id ? { ...s, hostFingerprint: undefined } : s
+    ),
+  });
+}
+
+export function publicKey(id: string): string | null {
+  const server = byId(id);
+
+  return server?.origin === "app" ? readPublicKey(paths().keysDir, id) : null;
 }

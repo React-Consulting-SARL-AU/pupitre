@@ -7,7 +7,8 @@ import type { Event } from "@pupitre/shared/agent-protocol/envelope";
 import type { AgentResponse } from "@shared/agent";
 import { app, ipcMain } from "electron";
 import { createAgentClient, type SshTarget, sshSpawn } from "./agent-client";
-import { active, read } from "./servers";
+import { active, paths, read } from "./servers";
+import { sshArgs } from "./ssh-config";
 
 /**
  * The client bound to this machine's servers.
@@ -20,7 +21,7 @@ function target(serverId: string): SshTarget {
   const config = read();
   const server = config.servers.find((s) => s.id === serverId) ?? active();
 
-  return { host: server.host, key: server.key };
+  return { args: server ? sshArgs(server, paths()) : [] };
 }
 
 export const agentClient = createAgentClient({
