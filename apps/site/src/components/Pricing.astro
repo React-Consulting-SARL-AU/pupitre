@@ -1,0 +1,123 @@
+---
+import {
+  ANNUAL_FREE_MONTHS,
+  getPlan,
+  PLANS,
+  TRIAL_DAYS,
+} from "@pupitre/shared/plans"
+import { pricingContent } from "../content/site/pricing"
+import Base from "../layouts/Base.astro"
+import { fill, localeFromPath, localizePath, translator } from "../lib/i18n"
+import { jsonLd, product } from "../lib/structured-data"
+import BillingToggle from "./BillingToggle.astro"
+import CatalogSummary from "./CatalogSummary.astro"
+import DownloadButton from "./DownloadButton.astro"
+import Feature from "./Feature.astro"
+import PlanCard from "./PlanCard.astro"
+import Section from "./Section.astro"
+
+const locale = localeFromPath(Astro.url.pathname)
+const t = translator(locale)
+const content = pricingContent(locale)
+const solo = getPlan("solo")
+const numbers = {
+  price: solo.monthlyPriceEur,
+  months: ANNUAL_FREE_MONTHS,
+  days: TRIAL_DAYS,
+}
+const description = fill(content.meta.description, numbers)
+const offers = jsonLd(
+  product({
+    locale,
+    name: t("site.name"),
+    description,
+    intervals: { month: content.billing.month, year: content.billing.year },
+  })
+)
+---
+
+<Base title={content.meta.title} description={description}>
+  <Fragment slot="head">
+    <script is:inline type="application/ld+json" set:html={offers} />
+  </Fragment>
+
+  <section
+    class="mx-auto grid max-w-5xl gap-x-16 gap-y-12 px-6 py-20 md:grid-cols-[1fr_auto] md:items-end md:py-32"
+  >
+    <div>
+      <p class="label mb-8 text-ink-3">{content.hero.label}</p>
+      <h1 class="heading-1 max-w-3xl">{content.hero.headline}</h1>
+      <p class="lead mt-6 max-w-2xl text-ink-2">
+        {fill(content.hero.lead, numbers)}
+      </p>
+    </div>
+    <p class="md:text-right">
+      <span class="figure block text-[clamp(72px,48px+4vw,120px)]"
+        >{solo.monthlyPriceEur} €</span
+      >
+      <span class="label mt-3 block text-ink-3">{content.hero.unit}</span>
+    </p>
+  </section>
+
+  <Section
+    id="plans"
+    label={content.plans.label}
+    title={content.plans.title}
+  >
+    <div class="group/plans">
+      <BillingToggle />
+      <div class="mt-10 grid gap-x-10 gap-y-14 md:grid-cols-3">
+        {PLANS.map((plan) => <PlanCard plan={plan} />)}
+      </div>
+      <div
+        class="mt-14 grid gap-x-10 gap-y-6 border-line border-t pt-8 md:grid-cols-[1fr_auto] md:items-center"
+      >
+        <div class="max-w-2xl">
+          <p class="text-ink">{fill(content.plans.trial, numbers)}</p>
+          <p class="mt-2 text-ink-3">{content.plans.sameRate}</p>
+        </div>
+        <DownloadButton
+          href={localizePath("/download/", locale)}
+          label={content.plans.download}
+        />
+      </div>
+    </div>
+  </Section>
+
+  <Section
+    id="stop"
+    label={content.stop.label}
+    title={content.stop.title}
+    lead={content.stop.lead}
+  >
+    <div class="grid gap-x-10 gap-y-12 md:grid-cols-2">
+      <Feature title={content.stop.keep.title} lines={content.stop.keep.lines} />
+      <Feature title={content.stop.lose.title} lines={content.stop.lose.lines} />
+    </div>
+    <p class="mt-12 max-w-2xl text-ink-2">{content.stop.note}</p>
+  </Section>
+
+  <Section
+    id="diy"
+    label={content.diy.label}
+    title={content.diy.title}
+    lead={content.diy.lead}
+  >
+    <div class="grid gap-x-10 gap-y-12 md:grid-cols-2">
+      <Feature
+        title={content.diy.replaces.title}
+        lines={content.diy.replaces.lines}
+      />
+      <Feature title={content.diy.keeps.title} lines={content.diy.keeps.lines} />
+    </div>
+  </Section>
+
+  <Section
+    id="catalog"
+    label={content.catalog.label}
+    title={content.catalog.title}
+    lead={content.catalog.lead}
+  >
+    <CatalogSummary />
+  </Section>
+</Base>

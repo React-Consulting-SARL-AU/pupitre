@@ -1,0 +1,92 @@
+---
+import { type Plan, yearlyPriceEur } from "@pupitre/shared/plans"
+import { pricingContent } from "../content/site/pricing"
+import { fill, localeFromPath, planName } from "../lib/i18n"
+import { CONSOLE_URL } from "../lib/urls"
+
+interface Props {
+  plan: Plan
+}
+
+const { plan } = Astro.props
+const locale = localeFromPath(Astro.url.pathname)
+const { plans } = pricingContent(locale)
+const copy = plans.items[plan.id]
+const later = plan.availability === "later"
+const perServer = plan.billedPer === "server"
+const servers =
+  plan.maxServers === null
+    ? plans.serversUnlimited
+    : fill(plans.serversUpTo, { count: plan.maxServers })
+const lines = perServer ? [servers, ...copy.includes] : copy.includes
+---
+
+<article
+  data-plan={plan.id}
+  data-availability={plan.availability}
+  class:list={[
+    "flex flex-col border-t pt-5",
+    later ? "border-line-strong" : "border-ink",
+  ]}
+>
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <h3 class="heading-3">{planName(plan, locale)}</h3>
+      <p class="label mt-1.5 text-ink-3">{copy.audience}</p>
+    </div>
+    {
+      later && (
+        <span class="label rounded-sm border border-line-strong px-1.5 py-0.5 text-ink-2">
+          {plans.later}
+        </span>
+      )
+    }
+  </div>
+
+  <div class="mt-8 min-h-[4.5rem]">
+    {
+      perServer ? (
+        <>
+          <p
+            data-interval="month"
+            class="group-has-[#billing-year:checked]/plans:hidden"
+          >
+            <span class="figure text-[40px]">{plan.monthlyPriceEur} €</span>
+            <span class="mt-1.5 block text-ink-3">{plans.perServerMonth}</span>
+          </p>
+          <p
+            data-interval="year"
+            class="hidden group-has-[#billing-year:checked]/plans:block"
+          >
+            <span class="figure text-[40px]">{yearlyPriceEur(plan)} €</span>
+            <span class="mt-1.5 block text-ink-3">{plans.perServerYear}</span>
+          </p>
+        </>
+      ) : (
+        <p>
+          {plan.startingAt && (
+            <span class="label mb-1.5 block text-ink-3">{plans.from}</span>
+          )}
+          <span class="figure text-[40px] text-ink-2">
+            {plan.monthlyPriceEur} €
+          </span>
+          <span class="mt-1.5 block text-ink-3">{plans.perMonth}</span>
+        </p>
+      )
+    }
+  </div>
+
+  <ul class="mt-8 flex-1 divide-y divide-line border-line border-y">
+    {lines.map((line) => <li class="py-3 text-ink-2">{line}</li>)}
+  </ul>
+
+  {
+    copy.cta && (
+      <div class="mt-8">
+        <a href={CONSOLE_URL} class="btn btn-primary">
+          {copy.cta}
+        </a>
+      </div>
+    )
+  }
+</article>
