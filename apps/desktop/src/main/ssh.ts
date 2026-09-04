@@ -1,7 +1,10 @@
 import { type ChildProcess, spawn } from "node:child_process";
+import { statSync } from "node:fs";
 import type { ConnectionState, Diagnostic } from "@shared/contract";
 import { logPath } from "@shared/profile";
-import { active, profile } from "./servers";
+import { looksLikeHostKeyChange } from "./host-keys";
+import { active, paths, profile } from "./servers";
+import { alias, sshArgs } from "./ssh-config";
 
 /**
  * The admin command of the active server.
@@ -14,14 +17,24 @@ export function command(): string {
   return profile().command;
 }
 
-/** The ssh arguments of the active server: its host, and its key if it has one. */
+/**
+ * The ssh arguments of the active server.
+ *
+ * A server of the app is reached through the app's own configuration file, by
+ * the alias it holds there; a host taken from the system configuration is
+ * reached by its name, and ssh reads the user's file as it always did.
+ */
 export function target(): string[] {
   const server = active();
-  return server.key ? ["-i", server.key, server.host] : [server.host];
+
+  return server ? sshArgs(server, paths()) : [];
 }
 
+/** What to write when naming the server: the alias, never a bare address. */
 export function activeHost(): string {
-  return active().host;
+  const server = active();
+
+  return server ? alias(server) : "";
 }
 
 /**
@@ -158,44 +171,47 @@ function declaredAgent(
     : undefined;
 }
 
-/**
- * The four checks, in the order they get fixed.
- *
- * Each carries its own remedy: "it does not work" helps nobody, whereas "no key
- * in the agent" is solved in ten seconds. That is exactly the diagnosis that
- * costs the most when it is missing.
- *
- * Nothing here names a particular key manager: depending on the machine, the
- * agent is the system one, a keychain's, or an ssh-agent started by hand. The
- * app does not need to know, and guessing would mislead.
- */
-export async function diagnose(): Promise<ConnectionState> {
-  const diagnostics: Diagnostic[] = [];
+const NOTHING_YET: Diagnostic = {
+  ok: false,
+  step: "host",
+  title: "No server yet",
+  detail: "nothing to connect to",
+  fix: "Add a server in the settings: an address, a port, an account, and a key the app generates for this computer.",
+};
 
-  const host = await once("ssh", ["-G", activeHost()]);
-  const declared = host.code === 0 && /^hostname \S+/m.test(host.output);
-  diagnostics.push({
-    ok: declared,
-    step: "host",
-    title: `Host ${activeHost()} is declared`,
-    detail: declared
-      ? (host.output.match(/^hostname (\S+)/m)?.[1] ?? activeHost())
-      : `no "Host ${activeHost()}" block in ~/.ssh/config`,
-    fix: "Add the host to ~/.ssh/config, or pick another one in the settings.",
-  });
+/** The private key the app made, and the mode SSH refuses to work without. */
+function keyDiagnostic(keyPath: string): Diagnostic {
+  try {
+    const mode = statSync(keyPath).mode.toString(8).slice(-3);
 
-  if (!declared) {
-    return { connected: false, host: activeHost(), diagnostics };
+    return {
+      ok: mode === "600",
+      step: "agent",
+      title: "The key of this computer is in place",
+      detail: `${keyPath} — ${mode}`,
+      fix: `Restore its permissions: "chmod 600 ${keyPath}". SSH refuses a key readable by anyone else.`,
+    };
+  } catch {
+    return {
+      ok: false,
+      step: "agent",
+      title: "The key of this computer is in place",
+      detail: `${keyPath} is missing`,
+      fix: "Remove the server and add it again: the app will generate a new key and show you the line to paste.",
+    };
   }
+}
 
+async function agentDiagnostic(expandedConfig: string): Promise<Diagnostic> {
   const agent = await once(
     "ssh-add",
     ["-l"],
     12_000,
-    declaredAgent(host.output)
+    declaredAgent(expandedConfig)
   );
   const keys = agent.code === 0;
-  diagnostics.push({
+
+  return {
     ok: keys,
     step: "agent",
     title: "The SSH agent answers",
@@ -203,7 +219,92 @@ export async function diagnose(): Promise<ConnectionState> {
       ? `${agent.output.trim().split("\n").length} key(s) available`
       : "no key loaded",
     fix: 'Load your key — "ssh-add ~/.ssh/your-key" — or unlock the keychain holding it.',
+  };
+}
+
+/**
+ * A refused connection says which refusal it is.
+ *
+ * A changed host key and a missing public key both come back as "denied", and
+ * the two are repaired in opposite ways: one by installing a key, the other by
+ * not connecting at all until the machine has been checked.
+ */
+function authDiagnostic(authenticated: boolean, output: string): Diagnostic {
+  if (authenticated) {
+    return {
+      ok: true,
+      step: "authentication",
+      title: "The server accepts the key",
+      detail: "connection established",
+      fix: "",
+    };
+  }
+
+  return looksLikeHostKeyChange(output)
+    ? {
+        ok: false,
+        step: "authentication",
+        title: "The host key of this server has changed",
+        detail:
+          "ssh refused: the machine no longer presents the key that was pinned",
+        fix: "If you have just reinstalled this server, replace the pinned fingerprint from the servers screen. Otherwise do not connect.",
+      }
+    : {
+        ok: false,
+        step: "authentication",
+        title: "The server accepts the key",
+        detail:
+          "the signature failed — the public key may not be installed yet",
+        fix: "Paste the ssh-copy-id line from the servers screen on the machine, then try again.",
+      };
+}
+
+/**
+ * The four checks, in the order they get fixed.
+ *
+ * Each carries its own remedy: "it does not work" helps nobody, whereas "no key
+ * in the agent" is solved in ten seconds. That is exactly the diagnosis that
+ * costs the most when it is missing.
+ *
+ * Which key is checked depends on who owns the connection. A server of the app
+ * has a key of its own, and what can go wrong is the file and its mode; a host
+ * taken from the system configuration is opened by whatever agent that machine
+ * uses, and the app has no business naming one.
+ */
+export async function diagnose(): Promise<ConnectionState> {
+  const server = active();
+  if (!server) {
+    return { connected: false, host: "", diagnostics: [NOTHING_YET] };
+  }
+
+  const name = activeHost();
+  const own = server.origin === "app";
+  const file = own ? ["-F", paths().configPath] : [];
+  const diagnostics: Diagnostic[] = [];
+
+  const host = await once("ssh", [...file, "-G", name]);
+  const declared = host.code === 0 && /^hostname \S+/m.test(host.output);
+  diagnostics.push({
+    ok: declared,
+    step: "host",
+    title: `Host ${name} is declared`,
+    detail: declared
+      ? (host.output.match(/^hostname (\S+)/m)?.[1] ?? name)
+      : `no "Host ${name}" block`,
+    fix: own
+      ? "Remove the server and add it again: its block is missing from the app's own configuration."
+      : `Add a "Host ${name}" block to ~/.ssh/config, or pick another server in the settings.`,
   });
+
+  if (!declared) {
+    return { connected: false, host: name, diagnostics };
+  }
+
+  diagnostics.push(
+    own && server.keyPath
+      ? keyDiagnostic(server.keyPath)
+      : await agentDiagnostic(host.output)
+  );
 
   const auth = await once("ssh", [
     "-o",
@@ -214,17 +315,9 @@ export async function diagnose(): Promise<ConnectionState> {
     "true",
   ]);
   const authenticated = auth.code === 0;
-  diagnostics.push({
-    ok: authenticated,
-    step: "authentication",
-    title: "The server accepts the key",
-    detail: authenticated
-      ? "connection established"
-      : "the signature failed — an authorisation may be pending",
-    fix: `Run "ssh ${activeHost()} true" in a terminal: the first connection often asks for confirmation.`,
-  });
+  diagnostics.push(authDiagnostic(authenticated, auth.output));
 
-  const master = await once("ssh", ["-O", "check", activeHost()], 6000);
+  const master = await once("ssh", [...file, "-O", "check", name], 6000);
   const multiplexed = master.code === 0;
   diagnostics.push({
     ok: multiplexed,
@@ -234,11 +327,7 @@ export async function diagnose(): Promise<ConnectionState> {
     fix: "Harmless: it will open on the first command.",
   });
 
-  return {
-    connected: declared && authenticated,
-    host: activeHost(),
-    diagnostics,
-  };
+  return { connected: declared && authenticated, host: name, diagnostics };
 }
 
 /**

@@ -1,4 +1,6 @@
+import { join } from "node:path";
 import { DARK, LIGHT } from "@pupitre/design/tokens";
+import type { AgentResponse } from "@shared/agent";
 import type {
   Action,
   ActionResult,
@@ -17,11 +19,36 @@ import type {
   WorkingTree,
 } from "@shared/contract";
 import { editorUrl, logPath } from "@shared/profile";
-import { app, BrowserWindow, ipcMain, nativeTheme, shell } from "electron";
+import type {
+  HostKeyDecision,
+  ServerAdded,
+  ServerDraft,
+} from "@shared/servers";
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  nativeTheme,
+  shell,
+} from "electron";
 import { agentClient, registerAgentChannels } from "./agent";
 import { catalog, history, paths } from "./completion";
 import { fileDiff, inspect, pull, validPath, workingTree } from "./git";
-import { profile, read, sshHosts, write as writeConfig } from "./servers";
+import { SetupError } from "./server-setup";
+import {
+  activate as activateServer,
+  add as addServer,
+  hostKey,
+  profile,
+  publicKey,
+  read,
+  remove as removeServer,
+  rename as renameServer,
+  sshHosts,
+  trustReinstalled,
+  write as writeConfig,
+} from "./servers";
 import {
   activeHost,
   channel,
@@ -151,6 +178,22 @@ async function snapshot(): Promise<Snapshot | null> {
  * — never a command that would act in order to find out whether it exists.
  */
 let knownCapabilities: Capabilities | null = null;
+
+/**
+ * What has to be dropped whenever the server list changes.
+ *
+ * The channels were talking to the old servers and reopen on the new ones at
+ * the next call; the capabilities described a machine we may no longer be on,
+ * and asking again costs four commands.
+ */
+function settle(config: ServersConfig): ServersConfig {
+  agentClient.closeAll();
+  knownCapabilities = null;
+  channel.close();
+  closeAll();
+
+  return config;
+}
 
 async function answers(sub: string): Promise<boolean> {
   try {
@@ -531,19 +574,90 @@ function registerChannels(): void {
 
   ipcMain.handle("servers", (): ServersConfig => read());
   ipcMain.handle("ssh-hosts", (): string[] => sshHosts());
-  ipcMain.handle("servers-write", (_e, config: ServersConfig) => {
-    const clean = writeConfig(config);
-    // The channels were talking to the old servers: they reopen on the new ones
-    // at the next call.
-    agentClient.closeAll();
-    // The profile or the machine may have changed: what we knew about it no
-    // longer holds, and asking again costs four commands.
-    knownCapabilities = null;
-    // The channel was talking to the old server: we close it so it reopens on
-    // the new one at the next call.
-    channel.close();
-    closeAll();
-    return clean;
+  ipcMain.handle("servers-write", (_e, config: ServersConfig) =>
+    settle(writeConfig(config))
+  );
+
+  ipcMain.handle(
+    "server-add",
+    async (_e, draft: ServerDraft): Promise<AgentResponse<ServerAdded>> => {
+      try {
+        const created = await addServer(draft);
+
+        return {
+          ok: true,
+          result: {
+            config: settle(read()),
+            copyId: created.copyId,
+            publicKey: created.publicKey,
+            server: created.server,
+          },
+        };
+      } catch (error) {
+        return error instanceof SetupError
+          ? {
+              ok: false,
+              error: {
+                code: "bad_request",
+                fix: error.fix,
+                message: error.message,
+              },
+            }
+          : {
+              ok: false,
+              error: {
+                code: "internal",
+                message: "Ce serveur n'a pas pu être ajouté.",
+                fix: "Réessayez ; si cela recommence, générez la clé plutôt que de l'importer.",
+              },
+            };
+      }
+    }
+  );
+
+  ipcMain.handle("server-rename", (_e, id: string, name: string) =>
+    settle(renameServer(id, name))
+  );
+  ipcMain.handle("server-activate", (_e, id: string) =>
+    settle(activateServer(id))
+  );
+  ipcMain.handle("server-remove", (_e, id: string) => settle(removeServer(id)));
+
+  ipcMain.handle(
+    "server-host-key",
+    async (_e, id: string): Promise<AgentResponse<HostKeyDecision>> => ({
+      ok: true,
+      result: await hostKey(id),
+    })
+  );
+
+  ipcMain.handle(
+    "server-trust-reinstalled",
+    async (_e, id: string): Promise<AgentResponse<ServersConfig>> => ({
+      ok: true,
+      result: settle(await trustReinstalled(id)),
+    })
+  );
+
+  ipcMain.handle("server-public-key", (_e, id: string): string | null =>
+    publicKey(id)
+  );
+
+  /**
+   * The file picker for an imported key.
+   *
+   * The renderer never names a path of its own: it opens this dialog, the user
+   * points at a file, and only then does a path reach the main process.
+   */
+  ipcMain.handle("key-file-pick", async (): Promise<string | null> => {
+    const picked = await dialog.showOpenDialog({
+      buttonLabel: "Importer",
+      defaultPath: join(app.getPath("home"), ".ssh"),
+      properties: ["openFile", "showHiddenFiles"],
+      title: "Choisir une clé privée",
+    });
+
+    return picked.canceled ? null : (picked.filePaths[0] ?? null);
   });
   ipcMain.handle("diagnose", () => diagnose());
   ipcMain.handle("installer-present", () => installerPresent());

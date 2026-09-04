@@ -22,6 +22,11 @@ import type {
   TerminalKind,
   WorkingTree,
 } from "@shared/contract";
+import type {
+  HostKeyDecision,
+  ServerAdded,
+  ServerDraft,
+} from "@shared/servers";
 import { contextBridge, ipcRenderer } from "electron";
 
 /**
@@ -130,6 +135,32 @@ const api = {
   sshHosts: (): Promise<string[]> => ipcRenderer.invoke("ssh-hosts"),
   saveServers: (config: ServersConfig): Promise<ServersConfig> =>
     ipcRenderer.invoke("servers-write", config),
+
+  /**
+   * Adding a server, and everything that follows from it.
+   *
+   * The renderer describes what it wants and gets back the public half plus the
+   * line to paste. No private key crosses this bridge in either direction: a
+   * key to import is designated through the system dialog, and copied into the
+   * app's folder by the main process alone.
+   */
+  addServer: (draft: ServerDraft): Promise<AgentResponse<ServerAdded>> =>
+    ipcRenderer.invoke("server-add", draft),
+  renameServer: (id: string, name: string): Promise<ServersConfig> =>
+    ipcRenderer.invoke("server-rename", id, name),
+  activateServer: (id: string): Promise<ServersConfig> =>
+    ipcRenderer.invoke("server-activate", id),
+  removeServer: (id: string): Promise<ServersConfig> =>
+    ipcRenderer.invoke("server-remove", id),
+  serverPublicKey: (id: string): Promise<string | null> =>
+    ipcRenderer.invoke("server-public-key", id),
+  pickKeyFile: (): Promise<string | null> =>
+    ipcRenderer.invoke("key-file-pick"),
+
+  hostKey: (id: string): Promise<AgentResponse<HostKeyDecision>> =>
+    ipcRenderer.invoke("server-host-key", id),
+  trustReinstalled: (id: string): Promise<AgentResponse<ServersConfig>> =>
+    ipcRenderer.invoke("server-trust-reinstalled", id),
   diagnose: (): Promise<ConnectionState> => ipcRenderer.invoke("diagnose"),
   installerPresent: (): Promise<boolean> =>
     ipcRenderer.invoke("installer-present"),

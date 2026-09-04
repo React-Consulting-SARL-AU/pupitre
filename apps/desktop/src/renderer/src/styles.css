@@ -1,6 +1,14 @@
 @import "tailwindcss";
 @import "@pupitre/design/tailwind.css";
 
+@utility elevation-raised {
+  box-shadow: var(--shadow-raised);
+}
+
+@utility elevation-overlay {
+  box-shadow: var(--shadow-overlay);
+}
+
 @layer base {
   * {
     box-sizing: border-box;
