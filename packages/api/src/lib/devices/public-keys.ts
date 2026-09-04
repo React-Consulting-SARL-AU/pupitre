@@ -113,3 +113,14 @@ export async function readEd25519PublicKey(
 
   return { key, fingerprint: await fingerprintOf(blobOf(key)) }
 }
+
+export async function fingerprintOfPublicKey(input: string): Promise<string> {
+  const [, encoded] = input.trim().split(WHITESPACE_RE)
+  const blob = encoded ? decodeBase64(encoded) : null
+
+  if (!blob) {
+    throw new PublicKeyMalformedError()
+  }
+
+  return await fingerprintOf(blob)
+}

@@ -29,13 +29,13 @@ Guards Elysia dans `packages/api/src/lib/api/plugins/` : `authPlugin` (résout s
 
 | Méthode | Route | Corps | Réponse |
 | --- | --- | --- | --- |
-| POST | `/servers/enroll` | `{ device_id, host, port, fingerprint?, probe }` | `{ server_id, enrollment_token, release: { version, url, sha256, signature } }`. Refusé si le quota de sièges est atteint |
-| GET | `/servers` | — | `{ data: Server[] }` de l'organisation active |
-| GET | `/servers/:id` | — | `Server` avec métriques des 7 derniers jours et événements |
+| POST | `/servers/enroll` | `{ device_id, host, port?, ssh_user?, fingerprint?, probe }` | `{ server_id, enrollment_token, release: { version, url, sha256, signature } }`. Le serveur naît `enrolling`, attribué à l'appelant ; le jeton d'enrôlement vaut une heure et n'est stocké que haché. Refusé si le quota de sièges est atteint (`seat_quota_reached`, 403) |
+| GET | `/servers` | — | `{ data: Server[] }` de l'organisation active. `stale` est calculé : aucun heartbeat depuis 24 h. Il ne change ni le statut ni le droit d'usage |
+| GET | `/servers/:id` | — | `{ data: Server }` avec `metrics` des 7 derniers jours et `events` |
 | POST | `/servers/:id/assign` | `{ user_id }` ou `{ invite_email }` | `Server`. Rôle `admin` |
 | POST | `/servers/:id/unassign` | — | `Server`. Clés retirées |
 | POST | `/servers/:id/revoke-device` | `{ device_id }` | 204 |
-| DELETE | `/servers/:id` | — | 204. Droit d'usage retiré, siège libéré à la fin de période |
+| DELETE | `/servers/:id` | — | 204. Rôle `admin`. Le serveur passe `revoked`, l'attribution et les clés tombent tout de suite, `DecommissionServer` est programmé à sept jours |
 
 ### Agent
 
@@ -43,7 +43,7 @@ Guards Elysia dans `packages/api/src/lib/api/plugins/` : `authPlugin` (résout s
 | --- | --- | --- | --- |
 | POST | `/agent/exchange` | `{ enrollment_token, host_public_key, agent_version, arch }` | `{ server_token }`. Le jeton d'enrôlement est brûlé |
 | GET | `/agent/state` | — | `{ entitlement: "valid" \| "grace" \| "suspended", valid_until, authorized_keys[], target_version, hostname, module_params }` |
-| POST | `/agent/heartbeat` | `{ disk, ram, load, sessions[], stack_version, modules[] }` | 204 |
+| POST | `/agent/heartbeat` | `{ disk, ram, load, sessions[], stack_version, modules[], agent_version? }` | 204. L'échantillon rejoint `Server.metrics`, fenêtre glissante de 7 jours |
 | GET | `/agent/release/:version` | — | redirection signée vers R2 pour l'architecture du serveur |
 
 ### Releases, côté appareil
@@ -86,7 +86,7 @@ Tables Better Auth (générées) : `user`, `session`, `account`, `verification`,
 | Table | Champs |
 | --- | --- |
 | `Device` | `id`, `userId`, `name`, `publicKey`, `fingerprint`, `lastUsedAt`, `createdAt` |
-| `Server` | `id`, `organizationId`, `name`, `hostFingerprint`, `arch`, `agentVersion`, `serverTokenHash`, `status` (`enrolling`, `active`, `grace`, `suspended`, `revoked`), `assignedUserId?`, `lastHeartbeatAt`, `metrics` (json, 7 jours), `createdAt` |
+| `Server` | `id`, `organizationId`, `name`, `host`, `port` (22), `sshUser` (`dev`), `hostFingerprint`, `arch`, `agentVersion`, `targetVersion`, `serverTokenHash`, `enrollmentTokenHash`, `enrollmentExpiresAt`, `entitlementValidUntil`, `decommissionAt`, `status` (`enrolling`, `active`, `grace`, `suspended`, `revoked`), `deviceId?` (l'appareil qui a enrôlé), `assignedUserId?`, `lastHeartbeatAt`, `metrics` (json, 7 jours), `createdAt` |
 | `Subscription` | `id`, `organizationId`, `stripeSubscriptionId`, `product`, `quantity`, `status`, `currentPeriodEnd` |
 | `OrganizationBilling` | `organizationId`, `stripeCustomerId`, `defaultInterval` |
 | `Release` | `version`, `arch`, `sha256`, `signature`, `r2Key`, `publishedAt`, `channel` (`stable`, `beta`) |
@@ -109,8 +109,8 @@ Forme unique : `{ error: { code, message, fix? } }`. Codes stables dans `package
 | `validation` | corps illisible, schéma `t` non respecté, clé publique illisible (400, 422) |
 | `key_not_ed25519` | clé publique d'un autre type que ed25519 (422) |
 | `rate_limited` | dépassement de débit, avec `retry-after` (429) |
-| `enrollment_used`, `enrollment_expired` | jeton d'enrôlement déjà échangé ou expiré |
-| `seat_quota_reached` | quota de sièges de l'abonnement atteint |
+| `enrollment_used`, `enrollment_expired` | jeton d'enrôlement déjà échangé ou expiré (409) |
+| `seat_quota_reached` | quota de sièges de l'abonnement atteint (403), avec un `fix` vers la facturation |
 | `entitlement_required`, `server_suspended` | droit d'usage absent, serveur suspendu |
 | `release_not_found` | version de l'agent inconnue |
 | `stripe_signature_invalid` | signature de webhook Stripe invalide |
