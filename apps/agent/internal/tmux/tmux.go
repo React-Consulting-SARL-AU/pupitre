@@ -215,7 +215,7 @@ func Start(ctx sys.Context, options Options, job Job) error {
 	}
 
 	logPath := options.LogPath(job.Project)
-	if _, err := sys.Exec(ctx, tmux("pipe-pane", "-o", "-t", target(options, job.Project), "cat >> "+logPath)); err != nil {
+	if _, err := sys.Exec(ctx, tmux("pipe-pane", "-o", "-t", Target(options, job.Project), "cat >> "+logPath)); err != nil {
 		return err
 	}
 
@@ -224,7 +224,7 @@ func Start(ctx sys.Context, options Options, job Job) error {
 		return err
 	}
 
-	_, err := sys.Exec(ctx, tmux("send-keys", "-t", target(options, job.Project), job.Cmd, "C-m"))
+	_, err := sys.Exec(ctx, tmux("send-keys", "-t", Target(options, job.Project), job.Cmd, "C-m"))
 
 	return err
 }
@@ -236,7 +236,7 @@ func Stop(ctx sys.Context, options Options, project string) error {
 		return err
 	}
 
-	if _, err := sys.Exec(ctx, tmux("send-keys", "-t", target(options, project), "C-c")); err != nil {
+	if _, err := sys.Exec(ctx, tmux("send-keys", "-t", Target(options, project), "C-c")); err != nil {
 		return err
 	}
 
@@ -244,7 +244,7 @@ func Stop(ctx sys.Context, options Options, project string) error {
 		time.Sleep(options.Grace)
 	}
 
-	_, err := sys.Exec(ctx, tmux("kill-window", "-t", target(options, project)))
+	_, err := sys.Exec(ctx, tmux("kill-window", "-t", Target(options, project)))
 
 	return err
 }
@@ -338,8 +338,9 @@ func tail(text string, lines int) []string {
 	return all
 }
 
-func target(options Options, project string) string {
-	return fmt.Sprintf("%s:%s", options.Session, project)
+// The window of a project, as tmux addresses it.
+func Target(options Options, project string) string {
+	return fmt.Sprintf("%s:%s", options.Resolved().Session, project)
 }
 
 func tmux(args ...string) sys.Command {

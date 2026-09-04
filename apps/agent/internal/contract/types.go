@@ -455,6 +455,21 @@ type ProjectSync struct {
 	State     ProjectState `json:"state"`
 }
 
+type SubCommand struct {
+	Name string     `json:"name"`
+	Help string     `json:"help"`
+	Args [][]string `json:"args"`
+}
+
+type Completions struct {
+	Command  string       `json:"command"`
+	Sub      []SubCommand `json:"sub"`
+	Projects []string     `json:"projects"`
+	Root     string       `json:"root"`
+	Path     string       `json:"path"`
+	Paths    []string     `json:"paths"`
+}
+
 type DoctorCheck struct {
 	Name    string `json:"name"`
 	OK      bool   `json:"ok"`

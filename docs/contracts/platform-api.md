@@ -148,4 +148,4 @@ Forme unique : `{ error: { code, message, fix? } }`. Codes stables dans `package
 
 Cloudflare Workflows dans `apps/web/src/workflows/` : `ReconcileSeats` (quotidien : sièges payés contre serveurs actifs), `DecommissionServer` (sept jours après suppression ou impayé), `ExpireEnrollments` (jetons d'enrôlement non échangés en une heure), `EvaluateAlerts` (toutes les cinq minutes : `evaluateAlerts()` de `packages/api/src/lib/alerts/alerts.ts`).
 
-Les fonctions existent et sont testées ; leur déclencheur planifié est la tâche PLT-15. Sans elle, rien ne les appelle en production : une alerte n'est levée que par un appel explicite à `evaluateServerAlerts` ou `evaluateAlerts`.
+Chacune a son déclencheur planifié dans `apps/web/src/workflows/`, déclaré en Cron Trigger : l'expiration des enrôlements toutes les heures, la décommission et la réconciliation des sièges chaque jour, l'évaluation des alertes toutes les cinq minutes. Une route interne protégée par un secret partagé permet de les déclencher à la demande.

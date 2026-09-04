@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/devcli"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
 )
@@ -300,3 +301,78 @@ func TestUninstallRemovesOnlyWhatTheModuleWrote(t *testing.T) {
 }
 
 var _ modules.Module = Module{}
+
+func TestShellMarkersAreLaidDownForZshAndBash(t *testing.T) {
+	fake := bareMachine()
+	run(t, newContext(t, fake))
+
+	markers := []string{`\e]133;A`, `\e]133;B`, `\e]133;C`, `\e]133;D`, `\e]7;file://`}
+
+	for path, extra := range map[string][]string{
+		zshrcPath:  {`mise" activate zsh`, "add-zsh-hook precmd _pupitre_precmd"},
+		bashrcPath: {`mise" activate bash`, "PROMPT_COMMAND=", "trap '_pupitre_preexec' DEBUG"},
+	} {
+		content := string(fake.Files[path])
+		for _, want := range append(markers, extra...) {
+			if !strings.Contains(content, want) {
+				t.Errorf("%s lacks %q:\n%s", path, want, content)
+			}
+		}
+	}
+
+	if fake.Owners[bashrcPath] != "dev:dev" {
+		t.Errorf(".bashrc owned by %q, want dev:dev", fake.Owners[bashrcPath])
+	}
+}
+
+func TestTwoPassesLeaveASingleShellFragment(t *testing.T) {
+	fake := bareMachine()
+	run(t, newContext(t, fake))
+
+	before := map[string]string{zshrcPath: string(fake.Files[zshrcPath]), bashrcPath: string(fake.Files[bashrcPath])}
+
+	ctx := newContext(t, fake)
+	if err := (Module{}).Configure(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	for path, first := range before {
+		content := string(fake.Files[path])
+
+		if count := strings.Count(content, "# >>> pupitre "+ID+" >>>"); count != 1 {
+			t.Errorf("%s carries %d fragments after two passes:\n%s", path, count, content)
+		}
+
+		if content != first {
+			t.Errorf("%s changed on the second pass:\n%s", path, content)
+		}
+	}
+
+	for _, step := range []string{"write-zshrc", "write-bashrc"} {
+		if status := statuses(ctx)[step]; status != contract.StepSkip {
+			t.Errorf("%s = %s on the second pass, want skip", step, status)
+		}
+	}
+}
+
+func TestDevCommandIsLinkedToTheBinaryAndRemovedOnUninstall(t *testing.T) {
+	fake := bareMachine()
+	run(t, newContext(t, fake))
+
+	if fake.Links[devcli.Link] != devcli.Binary {
+		t.Fatalf("%s points at %q, want %q", devcli.Link, fake.Links[devcli.Link], devcli.Binary)
+	}
+
+	ctx := newContext(t, fake)
+	if err := (Module{}).Uninstall(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, linked := fake.Links[devcli.Link]; linked {
+		t.Error("the link survives the uninstall")
+	}
+
+	if strings.Contains(string(fake.Files[bashrcPath]), "pupitre") {
+		t.Error("the bash fragment survives the uninstall")
+	}
+}

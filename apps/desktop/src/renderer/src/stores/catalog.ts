@@ -13,6 +13,7 @@ import {
   fieldsOf,
   fromPreset,
   generatedKeysOf,
+  type Installed,
   mandatory,
   type ResourceWarning,
   resourceWarnings,
@@ -40,8 +41,10 @@ interface CatalogStore {
   selected: readonly string[];
   values: Record<string, Record<string, unknown>>;
   secrets: SecretMarks;
+  /** What the server already runs, when the screen is opened on top of it. */
+  installed: Installed;
 
-  load: (serverId: string) => Promise<void>;
+  load: (serverId: string, installed?: Installed) => Promise<void>;
   toggle: (moduleId: string) => void;
   usePreset: (presetId: string) => void;
   setValue: (moduleId: string, key: string, value: unknown) => void;
@@ -128,12 +131,13 @@ export const useCatalog = create<CatalogStore>((set, get) => {
 
   return {
     catalog: { status: "idle" },
+    installed: [],
     selected: [],
     values: {},
     secrets: {},
 
-    async load(serverId) {
-      set({ catalog: { serverId, status: "loading" } });
+    async load(serverId, installed = []) {
+      set({ catalog: { serverId, status: "loading" }, installed });
 
       const answer = await window.pupitre.catalog(serverId);
 
@@ -150,7 +154,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
         values: {},
       });
 
-      reselect(mandatory(answer.result.modules));
+      reselect(mandatory(answer.result.modules, installed));
     },
 
     toggle(moduleId) {
@@ -158,7 +162,9 @@ export const useCatalog = create<CatalogStore>((set, get) => {
         return;
       }
 
-      reselect(toggleIn(get().modules(), get().selected, moduleId));
+      reselect(
+        toggleIn(get().modules(), get().selected, moduleId, get().installed)
+      );
     },
 
     usePreset(presetId) {
@@ -167,7 +173,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
       );
 
       if (preset) {
-        reselect(fromPreset(get().modules(), preset));
+        reselect(fromPreset(get().modules(), preset, get().installed));
       }
     },
 
@@ -260,7 +266,8 @@ export const useCatalog = create<CatalogStore>((set, get) => {
       return blocked(
         get().modules(),
         get().selected,
-        probeOf(serverOf(get().catalog))
+        probeOf(serverOf(get().catalog)),
+        get().installed
       );
     },
 
@@ -287,6 +294,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
       pending = Promise.resolve();
       set({
         catalog: { status: "idle" },
+        installed: [],
         secrets: {},
         selected: [],
         values: {},

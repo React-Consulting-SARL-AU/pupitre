@@ -101,6 +101,20 @@ func (Real) ReadFile(path string) ([]byte, error) {
 	return os.ReadFile(path)
 }
 
+func (Real) ReadDir(path string) ([]Entry, error) {
+	read, err := os.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+
+	entries := make([]Entry, 0, len(read))
+	for _, entry := range read {
+		entries = append(entries, Entry{Name: entry.Name(), Dir: entry.IsDir()})
+	}
+
+	return entries, nil
+}
+
 func (Real) WriteFile(path string, data []byte, mode fs.FileMode) error {
 	dir := filepath.Dir(path)
 

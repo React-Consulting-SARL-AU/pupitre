@@ -37,6 +37,7 @@ import type {
   ServerDraft,
   ServersConfig,
 } from "@shared/servers";
+import type { PortForward, ServiceDetail } from "@shared/services";
 import type { AgentState, TerminalKind } from "@shared/terminals";
 import { contextBridge, ipcRenderer } from "electron";
 
@@ -331,6 +332,63 @@ const api = {
     value: string
   ): Promise<AgentResponse<DoneResult>> =>
     ipcRenderer.invoke("secrets:set", serverId, key, value),
+
+  /**
+   * One installed module, as its own agent describes it.
+   *
+   * What comes back names the credentials it holds and nothing more: the values
+   * stay in the main process, which shows one at a time and copies them without
+   * ever handing one to this side.
+   */
+  serviceDetail: (
+    serverId: string,
+    moduleId: string
+  ): Promise<AgentResponse<ServiceDetail>> =>
+    ipcRenderer.invoke("service:detail", serverId, moduleId),
+
+  /** The connection string of a database, filed with the other credentials. */
+  databaseUrl: (
+    serverId: string,
+    moduleId: string,
+    name?: string
+  ): Promise<AgentResponse<{ label: string }>> =>
+    ipcRenderer.invoke("service:db-url", serverId, moduleId, name ?? null),
+
+  /** Shown once, to the reader who asked. Nothing keeps it afterwards. */
+  revealCredential: (
+    serverId: string,
+    moduleId: string,
+    label: string
+  ): Promise<string | null> =>
+    ipcRenderer.invoke("service:credential-reveal", serverId, moduleId, label),
+
+  /** The clipboard is written on the other side: the value never comes here. */
+  copyCredential: (
+    serverId: string,
+    moduleId: string,
+    label: string
+  ): Promise<boolean> =>
+    ipcRenderer.invoke("service:credential-copy", serverId, moduleId, label),
+
+  forgetCredentials: (serverId: string, moduleId?: string): Promise<void> =>
+    ipcRenderer.invoke("service:forget", serverId, moduleId ?? null),
+
+  /**
+   * A port of the server, reachable from this computer while the forward lives.
+   *
+   * The renderer names a port and what it is for; the address, the account and
+   * the key come from the app's own configuration.
+   */
+  openPortForward: (
+    serverId: string,
+    remotePort: number,
+    label: string
+  ): Promise<AgentResponse<PortForward>> =>
+    ipcRenderer.invoke("service:forward-open", serverId, remotePort, label),
+  closePortForward: (id: string): Promise<PortForward[]> =>
+    ipcRenderer.invoke("service:forward-close", id),
+  portForwards: (serverId: string): Promise<PortForward[]> =>
+    ipcRenderer.invoke("service:forwards", serverId),
 
   /** The last report the agent wrote, whatever happened to the channel. */
   installReport: (serverId: string): Promise<AgentResponse<InstallReport>> =>

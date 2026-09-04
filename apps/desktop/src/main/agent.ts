@@ -5,6 +5,7 @@ import {
 } from "@pupitre/shared/agent-protocol";
 import type { Event } from "@pupitre/shared/agent-protocol/envelope";
 import type { AgentResponse } from "@shared/agent";
+import { carriesCredential } from "@shared/services";
 import { app, ipcMain } from "electron";
 import { createAgentClient, type SshTarget, sshSpawn } from "./agent-client";
 import { active, paths, read } from "./servers";
@@ -77,6 +78,16 @@ function checked(
       "bad_request",
       `Paramètres invalides pour ${cmd}.`,
       parsed.error.issues[0]?.message
+    );
+  }
+
+  // A credential is not something a store may hold: those results are read by
+  // the Services channels, which keep the values on this side.
+  if (carriesCredential(cmd)) {
+    return refuse(
+      "bad_request",
+      `${cmd} répond avec un identifiant et ne passe pas par ce pont.`,
+      "Utilise l'écran Services, qui garde la valeur dans le processus principal."
     );
   }
 

@@ -165,9 +165,23 @@ export const SubCommandSchema = z.object({
 
 export type SubCommand = z.infer<typeof SubCommandSchema>
 
+export const CompletionsParamsSchema = z.strictObject({
+  path: z.string().optional(),
+})
+
+export type CompletionsParams = z.infer<typeof CompletionsParamsSchema>
+
+/**
+ * `path` is read under `root`, the projects folder, and never above it. Entries
+ * come back relative to the folder listed, directories with a trailing slash.
+ */
 export const CompletionsResultSchema = z.object({
   command: z.string(),
   sub: z.array(SubCommandSchema),
+  projects: z.array(z.string()),
+  root: z.string(),
+  path: z.string(),
+  paths: z.array(z.string()),
 })
 
 export type CompletionsResult = z.infer<typeof CompletionsResultSchema>

@@ -763,6 +763,54 @@ func (f *FakeSys) ReadFile(path string) ([]byte, error) {
 	return append([]byte(nil), content...), nil
 }
 
+// The fake holds a flat map of paths, so a folder's entries are the names that begin with it and go no deeper.
+func (f *FakeSys) ReadDir(path string) ([]sys.Entry, error) {
+	prefix := strings.TrimSuffix(path, "/") + "/"
+	if known, _ := f.Exists(path); !known && !f.hasChild(prefix) {
+		return nil, &fs.PathError{Op: "open", Path: path, Err: fs.ErrNotExist}
+	}
+
+	seen := map[string]bool{}
+	entries := []sys.Entry{}
+
+	for _, known := range f.paths() {
+		rest, inside := strings.CutPrefix(known, prefix)
+		name, _, deeper := strings.Cut(rest, "/")
+		if !inside || name == "" || seen[name] {
+			continue
+		}
+
+		seen[name] = true
+		entries = append(entries, sys.Entry{Name: name, Dir: deeper || f.Dirs[prefix+name]})
+	}
+
+	sort.Slice(entries, func(a, b int) bool { return entries[a].Name < entries[b].Name })
+
+	return entries, nil
+}
+
+func (f *FakeSys) paths() []string {
+	paths := make([]string, 0, len(f.Files)+len(f.Dirs))
+	for path := range f.Files {
+		paths = append(paths, path)
+	}
+	for path := range f.Dirs {
+		paths = append(paths, path)
+	}
+
+	return paths
+}
+
+func (f *FakeSys) hasChild(prefix string) bool {
+	for _, path := range f.paths() {
+		if strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (f *FakeSys) WriteFile(path string, data []byte, mode fs.FileMode) error {
 	f.Files[path] = append([]byte(nil), data...)
 	f.Modes[path] = mode

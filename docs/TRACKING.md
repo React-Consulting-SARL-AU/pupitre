@@ -20,6 +20,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-13 | Le quota gratuit vit dans le contrat partagé | fait | `main` | constante unique dans `@pupitre/shared/plans` |
 | INF-14 | La langue de l'utilisateur est enregistrée | à faire | | |
 | INF-15 | Contrat : détecter le gestionnaire d'un dépôt | à faire | | |
+| INF-17 | Contrat : lire la valeur d'un identifiant de service | à faire | | |
 | INF-16 | Contrat : le chemin absolu d'un projet | fait | `feat/INF-16-project-path` | fusionnée |
 | INF-11 | Contrat : le verdict de la sonde | fait | `feat/INF-11-probe-contract` | fusionnée |
 
@@ -38,7 +39,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-09 | Modules exposition et outils | fait | `feat/AGT-09-exposure` | fusionnée |
 | AGT-10 | Registre des projets et pilotage | fait | `feat/AGT-10-registry` | fusionnée |
 | AGT-11 | Sessions, processus, captures, secrets, bases | fait | `feat/AGT-11-sessions` | fusionnée |
-| AGT-12 | Shell de l'app et autocomplétion | à faire | | |
+| AGT-12 | Shell de l'app et autocomplétion | en revue | `feat/AGT-12-shell` | |
 | AGT-13 | Mise à jour de l'agent | à faire | | |
 | AGT-14 | Droit d'usage, enrôlement, heartbeat | à faire | | |
 | AGT-15 | Obfuscation et distribution | à faire | | |
@@ -59,7 +60,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-08 | Premier projet | fait | `feat/APP-08-first-project` | fusionnée |
 | APP-09 | Tableau de bord et projets sur le nouveau protocole | fait | `feat/APP-09-dashboard` | fusionnée |
 | APP-10 | Terminaux, agents, galerie | à faire | | |
-| APP-11 | Services au quotidien | à faire | | |
+| APP-11 | Services au quotidien | fait | `feat/APP-11-services` | fusionnée |
 | APP-12 | Mise à jour de l'agent depuis l'app | à faire | | |
 | APP-13 | Build macOS signé, notarisé, bytecode, auto-update | à faire | | |
 | APP-14 | Compte : device flow, appareils, enrôlement | à faire | | |
@@ -88,7 +89,8 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-12 | Alertes et page de statut | fait | `feat/PLT-12-alerts` | fusionnée |
 | PLT-13 | Passkeys et MFA | fait | `feat/PLT-13-passkeys` | fusionnée |
 | PLT-14 | Déploiement Cloudflare Builds, staging et production | à faire | | |
-| PLT-15 | Workflows Cloudflare : déclencheurs des tâches longues | à faire | | |
+| PLT-15 | Workflows Cloudflare : déclencheurs des tâches longues | fait | `feat/PLT-15-workflows` | fusionnée |
+| PLT-17 | Le workflow d'évaluation des alertes | fait | `feat/PLT-17-alerts-workflow` | fusionnée |
 | PLT-16 | Harnais Playwright pour la console | à faire | | |
 
 ## Site marketing — `MKT`
