@@ -38,6 +38,7 @@ import {
   trustReinstalled,
   write as writeConfig,
 } from "./servers";
+import { forgetServiceCredentials, registerServices } from "./services";
 import {
   close,
   closeAll,
@@ -59,6 +60,7 @@ let window: BrowserWindow | null = null;
 function settle(config: ServersConfig): ServersConfig {
   agentClient.closeAll();
   forgetProjects();
+  forgetServiceCredentials();
   closeAll();
 
   return config;
@@ -276,6 +278,7 @@ function registerChannels(): void {
   registerHarden();
   registerProjects();
   registerSecrets();
+  registerServices();
   registerServerChannels();
   registerTerminalChannels();
 
@@ -310,6 +313,7 @@ app.whenReady().then(() => {
 
 app.on("window-all-closed", () => {
   closeAll();
+  forgetServiceCredentials();
   agentClient.closeAll();
   if (process.platform !== "darwin") {
     app.quit();
