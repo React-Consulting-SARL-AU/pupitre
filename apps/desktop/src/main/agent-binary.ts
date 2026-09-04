@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { AgentResponse } from "@shared/agent";
+import type { CarriedAgent } from "@shared/agent-update";
 import type { AgentDelivery } from "@shared/install";
 import { AGENT_MANIFEST, type AgentManifest } from "../../scripts/embed-agent";
 
@@ -71,6 +72,36 @@ export function readAgentManifest(dir: string): AgentManifest | null {
   } catch {
     return null;
   }
+}
+
+/** The agent this app could offer a server of that architecture, if any. */
+export interface CarriedRelease {
+  agent: CarriedAgent;
+  signature: string | null;
+}
+
+export function carriedRelease(
+  dir: string,
+  arch: string
+): CarriedRelease | null {
+  const manifest = readAgentManifest(dir);
+  const entry = manifest?.binaries[arch];
+
+  if (!(manifest?.version && entry)) {
+    return null;
+  }
+
+  const signature = entry.signature ?? null;
+
+  return {
+    agent: {
+      arch,
+      notes: manifest.notes ?? [],
+      signed: signature !== null,
+      version: manifest.version,
+    },
+    signature,
+  };
 }
 
 export function agentPayload(

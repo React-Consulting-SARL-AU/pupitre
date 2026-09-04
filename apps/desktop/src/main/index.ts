@@ -17,6 +17,7 @@ import {
   shell,
 } from "electron";
 import { agentClient, registerAgentChannels } from "./agent";
+import { registerAgentUpdate } from "./agent-update";
 import { registerAppearance } from "./appearance";
 import { registerCatalog } from "./catalog";
 import { completions } from "./completion";
@@ -341,6 +342,7 @@ function registerLoginChannels(): void {
 
 function registerChannels(): void {
   registerAgentChannels();
+  registerAgentUpdate();
   registerAppearance(() => window);
   registerInspection();
   registerCatalog();

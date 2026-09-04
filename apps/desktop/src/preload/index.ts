@@ -25,8 +25,12 @@ import type {
 import type { SecretsStatusResult } from "@pupitre/shared/agent-protocol/secrets";
 import type { HelloResult } from "@pupitre/shared/agent-protocol/session";
 import type { CompletionsResult } from "@pupitre/shared/agent-protocol/state";
-import type { DoneResult } from "@pupitre/shared/agent-protocol/system";
+import type {
+  AgentUpgradeResult,
+  DoneResult,
+} from "@pupitre/shared/agent-protocol/system";
 import type { AgentResponse } from "@shared/agent";
+import type { AgentUpdateState } from "@shared/agent-update";
 import type { Appearance } from "@shared/appearance";
 import type { RemoteEditorId } from "@shared/editors";
 import type { HardenOutcome, HardenUpdate } from "@shared/harden";
@@ -56,6 +60,26 @@ import { contextBridge, ipcRenderer } from "electron";
  */
 
 export type ProjectAction = "project.up" | "project.down" | "project.restart";
+
+/** One update command, its events routed to the caller that started it. */
+function streamedUpdate<T>(
+  channel: string,
+  onEvent: (event: Event) => void,
+  ...args: unknown[]
+): Promise<AgentResponse<T>> {
+  const token = crypto.randomUUID();
+  const listener = (_e: unknown, payload: { token: string; event: Event }) => {
+    if (payload.token === token) {
+      onEvent(payload.event);
+    }
+  };
+
+  ipcRenderer.on("agent-update:event", listener);
+
+  return ipcRenderer
+    .invoke(channel, token, ...args)
+    .finally(() => ipcRenderer.removeListener("agent-update:event", listener));
+}
 
 const api = {
   /**
@@ -400,6 +424,33 @@ const api = {
   /** The last report the agent wrote, whatever happened to the channel. */
   installReport: (serverId: string): Promise<AgentResponse<InstallReport>> =>
     ipcRenderer.invoke("install:report", serverId),
+
+  /**
+   * The agent this app carries against the one the server runs, and the two
+   * gestures that follow from it.
+   *
+   * The version and the signature of an update are not parameters: they belong
+   * to the release embedded in the app, and the main process is the only side
+   * that reads them. This one names a server, and for the modules, names the
+   * agent's own catalogue declared.
+   */
+  agentUpdateState: (
+    serverId: string
+  ): Promise<AgentResponse<AgentUpdateState>> =>
+    ipcRenderer.invoke("agent-update:state", serverId),
+
+  upgradeAgent: (
+    serverId: string,
+    onEvent: (event: Event) => void
+  ): Promise<AgentResponse<AgentUpgradeResult>> =>
+    streamedUpdate("agent-update:agent", onEvent, serverId),
+
+  upgradeModules: (
+    serverId: string,
+    modules: readonly string[],
+    onEvent: (event: Event) => void
+  ): Promise<AgentResponse<InstallResult>> =>
+    streamedUpdate("agent-update:modules", onEvent, serverId, modules),
 
   agentSession: (serverId: string): Promise<HelloResult | null> =>
     ipcRenderer.invoke("agent:session", serverId),
