@@ -1,6 +1,7 @@
 import { z } from "zod"
+import { PortSchema } from "./ports"
 import {
-  PortSchema,
+  PackageManagerSchema,
   ProjectNameSchema,
   ProjectRegistrationSchema,
   ProjectSchema,
@@ -37,6 +38,23 @@ export type ProjectAddParams = z.infer<typeof ProjectAddParamsSchema>
 export const ProjectAddResultSchema = ProjectSchema
 
 export type ProjectAddResult = z.infer<typeof ProjectAddResultSchema>
+
+/** A repository, or a folder relative to the projects root — one of the two, never both. */
+export const ProjectDetectParamsSchema = z.union([
+  z.strictObject({ repo: z.string().min(1) }),
+  z.strictObject({ dir: z.string().min(1) }),
+])
+
+export type ProjectDetectParams = z.infer<typeof ProjectDetectParamsSchema>
+
+export const ProjectDetectResultSchema = z.object({
+  pkgmgr: PackageManagerSchema,
+  install: z.string().optional(),
+  cmd: z.string().optional(),
+  port_hint: PortSchema.optional(),
+})
+
+export type ProjectDetectResult = z.infer<typeof ProjectDetectResultSchema>
 
 export const ProjectRemoveResultSchema = z.object({
   name: ProjectNameSchema,

@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { ArchitectureSchema } from "../catalog"
+import { PortSchema } from "./ports"
 import { EntitlementSchema } from "./session"
 
 export const MachineSchema = z.object({
@@ -74,8 +75,6 @@ export const ProjectNameSchema = z
   .string()
   .min(1)
   .regex(/^[a-z0-9][a-z0-9._-]*$/)
-
-export const PortSchema = z.int().min(1).max(65_535)
 
 export const ProjectRegistrationSchema = z.object({
   name: ProjectNameSchema,
