@@ -1,5 +1,6 @@
 import type { CommandName } from "@pupitre/shared/agent-protocol";
 import type { Event } from "@pupitre/shared/agent-protocol/envelope";
+import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
 import type { HelloResult } from "@pupitre/shared/agent-protocol/session";
 import type { AgentResponse } from "@shared/agent";
 import type {
@@ -71,6 +72,13 @@ const api = {
       .invoke("agent:stream", token, serverId, cmd, params)
       .finally(() => ipcRenderer.removeListener("agent:event", listener));
   },
+
+  /**
+   * The probe of a server, whether or not it already runs the agent. Nothing is
+   * written on the machine: the script travels on standard input.
+   */
+  inspect: (serverId: string): Promise<AgentResponse<ProbeResult>> =>
+    ipcRenderer.invoke("inspection:probe", serverId),
 
   agentSession: (serverId: string): Promise<HelloResult | null> =>
     ipcRenderer.invoke("agent:session", serverId),
