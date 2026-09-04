@@ -42,7 +42,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-11 | Sessions, processus, captures, secrets, bases | fait | `feat/AGT-11-sessions` | fusionnée |
 | AGT-12 | Shell de l'app et autocomplétion | fait | `feat/AGT-12-shell` | fusionnée |
 | AGT-13 | Mise à jour de l'agent | fait | `feat/AGT-13-self-update` | fusionnée |
-| AGT-14 | Droit d'usage, enrôlement, heartbeat | en cours | `feat/AGT-14-entitlement` | |
+| AGT-14 | Droit d'usage, enrôlement, heartbeat | en revue | `feat/AGT-14-entitlement` | |
 | AGT-15 | Obfuscation et distribution | à faire | | |
 | AGT-16 | Validateur : messages d'erreur déterministes | à faire | | |
 | AGT-17 | La racine rendue par `project.git_status` reste dans la racine des projets | à faire | | |
@@ -116,3 +116,5 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
+| 2026-09-04 | AGT-14 | Le contrat ouvre six commandes en mode restreint (`hello`, `ping`, `snapshot`, `status`, `diag`, `agent.upgrade`), le critère 3 du plan n'en veut que trois pour un binaire copié sans jeton. Implémenté au plus près des deux : le mode restreint d'un serveur enrôlé garde les six, un binaire sans jeton n'ouvre que `hello`, `ping` et `diag`, comme le dit `security.md` (« pas de jeton, donc pas de fonctions »). À trancher dans `agent-protocol.md`. | le propriétaire |
+| 2026-09-04 | AGT-14 | `POST /agent/heartbeat` prend `stack_version` sans que le contrat dise ce que c'est. L'agent y met sa propre version, la même que `agent_version`. | le propriétaire |

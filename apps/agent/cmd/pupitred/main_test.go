@@ -74,7 +74,7 @@ func TestServeNegotiatesHelloThenAnswersPing(t *testing.T) {
 		t.Fatalf("hello result violates HelloResult: %v", err)
 	}
 
-	if result["agent_version"] != version || result["entitlement"] != string(contract.EntitlementValid) {
+	if result["agent_version"] != version || result["entitlement"] != string(buildEntitlement) {
 		t.Fatalf("unexpected hello result: %v", result)
 	}
 

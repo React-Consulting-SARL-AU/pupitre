@@ -6,7 +6,12 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"pupitre.studio/agent/internal/contract"
 )
+
+// What an enrolled server, read from the platform an instant ago, answers to hello.
+const buildEntitlement = contract.EntitlementValid
 
 func TestInstallRefusesOnAServerWithoutAToken(t *testing.T) {
 	fake, _ := setupCLI(t)

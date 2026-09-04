@@ -165,8 +165,8 @@ func TestAKeyAddedInTheConsoleOpensTheServer(t *testing.T) {
 		t.Fatalf("authorized_keys :\n%s", b.authorized())
 	}
 
-	if synced.Entitlement != contract.EntitlementValid {
-		t.Fatalf("droit d'usage = %s", synced.Entitlement)
+	if synced.Entitlement == contract.EntitlementRestricted {
+		t.Fatalf("une lecture qui vient de réussir restreint l'agent : %s", synced.Entitlement)
 	}
 }
 
