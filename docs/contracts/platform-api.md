@@ -23,7 +23,8 @@ Une clé d'accès enregistrée ouvre la session seule : le relying party est le 
 
 | Méthode | Route | Corps | Réponse |
 | --- | --- | --- | --- |
-| GET | `/me` | — | `{ user, organizations[], active_organization, role, entitlement }`. `entitlement` vaut `none` sans organisation active, sinon le droit d'usage de l'organisation : `valid`, `grace` ou `suspended` |
+| GET | `/me` | — | `{ user, organizations[], active_organization, role, entitlement }`. `user.locale` vaut `fr` ou `en`. `entitlement` vaut `none` sans organisation active, sinon le droit d'usage de l'organisation : `valid`, `grace` ou `suspended` |
+| PATCH | `/me` | `{ locale }` (`fr` ou `en`) | le même corps que `GET /me`. La langue enregistrée décide de celle des emails, y compris ceux qu'une tâche planifiée envoie sans en-tête `Accept-Language` à lire |
 | GET | `/me/devices` | — | `{ data: Device[] }` |
 | POST | `/me/devices` | `{ name, public_key }` | `{ data: Device }`. La clé est poussée sur tous les serveurs que l'utilisateur peut ouvrir |
 | DELETE | `/me/devices/:id` | — | 204. Retirée des serveurs en moins d'une minute |
@@ -101,11 +102,11 @@ Les deux redirections portent l'en-tête `x-pupitre-release-storage` : `r2` quan
 | --- | --- |
 | POST `/webhooks/stripe` | `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`. Aucun guard de session : la signature `t=…,v1=…` est vérifiée en HMAC-SHA256 sur le corps brut, avec une tolérance de cinq minutes. Idempotent par `event.id` (table `StripeEvent`) : un événement rejoué n'a aucun effet. Réponse `{ received, handled, duplicate }` ; signature absente, invalide ou hors tolérance : `stripe_signature_invalid` (400) |
 
-`invoice.payment_failed` met les serveurs de l'organisation en `grace` pour sept jours, puis `suspended` quand la tolérance expire (`ReconcileSeats`). `customer.subscription.deleted` les met en `grace` jusqu'à la fin de la période payée. Un abonnement qui redevient `active` ou `trialing` ramène les serveurs en `grace` vers `active`. `/agent/state` lit ce droit d'usage.
+`invoice.payment_failed` met les serveurs de l'organisation en `grace` pour sept jours, puis `suspended` quand la tolérance expire (`SuspendExpiredGrace`). `customer.subscription.deleted` les met en `grace` jusqu'à la fin de la période payée. Un abonnement qui redevient `active` ou `trialing` ramène les serveurs en `grace` vers `active`. `/agent/state` lit ce droit d'usage.
 
 ## Modèle de données
 
-Tables Better Auth (générées) : `user` (avec `twoFactorEnabled`), `session`, `account`, `verification`, `organization`, `member`, `invitation`, `deviceCode`, `passkey`, `twoFactor`, plus celles des plugins activés.
+Tables Better Auth (générées) : `user` (avec `twoFactorEnabled` et `locale`, `fr` par défaut, posée à l'inscription depuis `Accept-Language`), `session`, `account`, `verification`, `organization`, `member`, `invitation`, `deviceCode`, `passkey`, `twoFactor`, plus celles des plugins activés.
 
 | Table | Champs |
 | --- | --- |
@@ -146,6 +147,6 @@ Forme unique : `{ error: { code, message, fix? } }`. Codes stables dans `package
 
 ## Tâches longues
 
-Cloudflare Workflows dans `apps/web/src/workflows/` : `ReconcileSeats` (quotidien : sièges payés contre serveurs actifs), `DecommissionServer` (sept jours après suppression ou impayé), `ExpireEnrollments` (jetons d'enrôlement non échangés en une heure), `EvaluateAlerts` (toutes les cinq minutes : `evaluateAlerts()` de `packages/api/src/lib/alerts/alerts.ts`).
+Cloudflare Workflows dans `apps/web/src/workflows/` : `ReconcileSeats` (quotidien : sièges payés contre serveurs actifs), `DecommissionServer` (sept jours après suppression ou impayé), `ExpireEnrollments` (jetons d'enrôlement non échangés en une heure), `EvaluateAlerts` (toutes les cinq minutes : `evaluateAlerts()` de `packages/api/src/lib/alerts/alerts.ts`), `SuspendExpiredGrace` (quotidien : `suspendExpiredGrace()` de `packages/api/src/lib/billing/grace.ts`).
 
-Chacune a son déclencheur planifié dans `apps/web/src/workflows/`, déclaré en Cron Trigger : l'expiration des enrôlements toutes les heures, la décommission et la réconciliation des sièges chaque jour, l'évaluation des alertes toutes les cinq minutes. Une route interne protégée par un secret partagé permet de les déclencher à la demande.
+Chacune a son déclencheur planifié dans `apps/web/src/workflows/`, déclaré en Cron Trigger : l'expiration des enrôlements toutes les heures, la décommission, la réconciliation des sièges et la suspension des tolérances écoulées chaque jour, l'évaluation des alertes toutes les cinq minutes. Une route interne protégée par un secret partagé permet de les déclencher à la demande.

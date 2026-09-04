@@ -16,6 +16,7 @@
     "./agent-protocol/system": "./src/agent-protocol/system.ts",
     "./api/errors": "./src/api/errors.ts",
     "./catalog": "./src/catalog/index.ts",
+    "./i18n": "./src/i18n/locale.ts",
     "./contracts": "./src/contracts/index.ts",
     "./permissions": "./src/permissions/index.ts",
     "./plans": "./src/plans/index.ts",

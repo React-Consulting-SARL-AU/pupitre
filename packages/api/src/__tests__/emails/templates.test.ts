@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test"
+import { LOCALES } from "@pupitre/shared/i18n"
 import { EMAIL_PREVIEWS, previewOf, SAMPLE } from "../../emails/catalog"
 import { EMAIL_TEMPLATE_IDS } from "../../emails/templates/ids"
-import { LOCALES } from "../../lib/i18n"
 
 function href(url: string): string {
   return `href="${url.replace(/&/g, "&amp;")}"`

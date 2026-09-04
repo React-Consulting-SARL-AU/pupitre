@@ -1,9 +1,15 @@
+import { isLocale, type Locale } from "@pupitre/shared/i18n"
 import { getPrisma } from "../lib/api/prisma"
 
 const BILLING_ROLES = ["owner"]
 
 export interface Recipient {
   email: string
+  locale: Locale | null
+}
+
+function knownLocale(value: string): Locale | null {
+  return isLocale(value) ? value : null
 }
 
 export async function userRecipient(
@@ -15,10 +21,14 @@ export async function userRecipient(
 
   const user = await getPrisma().user.findUnique({
     where: { id: userId },
-    select: { email: true },
+    select: { email: true, locale: true },
   })
 
-  return user ? { email: user.email } : null
+  if (!user) {
+    return null
+  }
+
+  return { email: user.email, locale: knownLocale(user.locale) }
 }
 
 /**
@@ -31,10 +41,13 @@ export async function billingRecipients(
   const members = await getPrisma().member.findMany({
     where: { organizationId, role: { in: BILLING_ROLES } },
     orderBy: { createdAt: "asc" },
-    select: { user: { select: { email: true } } },
+    select: { user: { select: { email: true, locale: true } } },
   })
 
-  return members.map((member) => ({ email: member.user.email }))
+  return members.map((member) => ({
+    email: member.user.email,
+    locale: knownLocale(member.user.locale),
+  }))
 }
 
 export async function organizationName(

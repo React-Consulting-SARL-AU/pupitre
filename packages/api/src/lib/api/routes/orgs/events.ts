@@ -1,5 +1,6 @@
+import { resolveLocale } from "@pupitre/shared/i18n"
 import { Elysia } from "elysia"
-import { resolveLocale, translate } from "../../../i18n"
+import { translate } from "../../../i18n"
 import { listEvents } from "../../../orgs/events"
 import { apiError } from "../../errors"
 import { errorResponse, paginatedResponse } from "../../openapi-models"

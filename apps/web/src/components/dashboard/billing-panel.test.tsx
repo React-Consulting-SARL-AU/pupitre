@@ -39,6 +39,7 @@ function panel(organization: DashboardOrganization | null, role: OrgRole) {
             email: "ada@test.local",
             name: "Ada",
             image: null,
+            locale: "fr",
           },
           organizations: [],
           activeOrganization: organization,

@@ -1,4 +1,4 @@
-import type { Locale } from "../lib/i18n"
+import type { Locale } from "@pupitre/shared/i18n"
 
 export const EMAIL_FR = {
   "common.brand": "Pupitre",

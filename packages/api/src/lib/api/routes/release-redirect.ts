@@ -1,5 +1,5 @@
 import type { Release } from "@pupitre/db/cloudflare/client"
-import type { Locale } from "../../i18n"
+import type { Locale } from "@pupitre/shared/i18n"
 import { translate } from "../../i18n"
 import {
   RELEASE_URL_TTL_SECONDS,

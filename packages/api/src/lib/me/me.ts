@@ -1,3 +1,4 @@
+import { type Locale, localeOrDefault } from "@pupitre/shared/i18n"
 import type { OrgRole } from "@pupitre/shared/permissions"
 import type { SessionUser } from "../api/plugins/auth"
 import { getPrisma } from "../api/prisma"
@@ -10,11 +11,20 @@ export interface MeInput {
 }
 
 export async function loadMe({ user, organizationId, role }: MeInput) {
-  const memberships = await getPrisma().member.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: "asc" },
-    include: { organization: { select: { id: true, name: true, slug: true } } },
-  })
+  const prisma = getPrisma()
+  const [memberships, stored] = await Promise.all([
+    prisma.member.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" },
+      include: {
+        organization: { select: { id: true, name: true, slug: true } },
+      },
+    }),
+    prisma.user.findUnique({
+      where: { id: user.id },
+      select: { locale: true },
+    }),
+  ])
   const active =
     memberships.find(
       (membership) => membership.organizationId === organizationId
@@ -29,6 +39,7 @@ export async function loadMe({ user, organizationId, role }: MeInput) {
       email: user.email,
       name: user.name,
       image: user.image ?? null,
+      locale: localeOrDefault(stored?.locale),
       created_at: user.createdAt,
     },
     organizations: memberships.map(({ organization, role: memberRole }) => ({
@@ -39,4 +50,14 @@ export async function loadMe({ user, organizationId, role }: MeInput) {
     role,
     entitlement,
   }
+}
+
+export async function setUserLocale(
+  userId: string,
+  locale: Locale
+): Promise<void> {
+  await getPrisma().user.update({
+    where: { id: userId },
+    data: { locale },
+  })
 }

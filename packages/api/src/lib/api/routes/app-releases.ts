@@ -1,5 +1,6 @@
+import { resolveLocale } from "@pupitre/shared/i18n"
 import { Elysia } from "elysia"
-import { resolveLocale, translate } from "../../i18n"
+import { translate } from "../../i18n"
 import { findAppRelease, latestAppRelease } from "../../releases/app-releases"
 import { apiError } from "../errors"
 import { dataResponse, errorResponse } from "../openapi-models"

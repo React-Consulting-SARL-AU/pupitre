@@ -252,3 +252,23 @@ Critères d'acceptation.
 1. L'agent se met à jour avec la seule réponse de la plateforme, sans signature passée en paramètre.
 2. Une tentative d'installer une version antérieure au plancher est refusée, prouvée par un test.
 
+### INF-19 — Contrat : `/status` dit depuis quand il sait
+Lot 0 · dépend de PLT-12, PLT-14 · `packages/shared`, `packages/api`
+
+But. Un lecteur de la page de statut sait si ce qu'il voit est frais.
+Périmètre. Le plan veut une page de statut alimentée par les heartbeats, mais `platform-api.md` fige la réponse de `/status` sans aucun champ de fraîcheur : rien ne distingue « tout va bien » de « nous n'avons plus de nouvelles depuis une heure ». Ajouter au contrat la date de la dernière observation, et ce que la page affiche quand cette date est vieille.
+Hors périmètre. Les alertes, livrées par PLT-12.
+Critères d'acceptation.
+1. Une page de statut dont les données datent de plus de dix minutes le dit, au lieu d'afficher un état rassurant et périmé.
+2. Le champ ne divulgue ni identifiant de serveur, ni email, ni nom d'organisation.
+
+### INF-20 — Contrat : une adresse par capture
+Lot 0 · dépend de APP-10 · `packages/shared`, `apps/agent`
+
+But. La galerie de l'app montre les captures au lieu d'en lister les noms.
+Périmètre. `shots.list` rend un chemin sur le serveur et `shots.url` une seule adresse pour la galerie entière : aucune commande ne donne accès à une image. L'app liste donc des fichiers et renvoie l'utilisateur vers le navigateur du système, ce qui casse la promesse d'une galerie dans l'app. Donner une adresse par capture, ou une commande qui rend son contenu. Peser les deux : une adresse suppose une exposition, un contenu passe par le canal et pèse lourd pour une image.
+Hors périmètre. L'écran, livré par APP-10, qui n'aura qu'à changer de source.
+Critères d'acceptation.
+1. Une capture s'affiche dans la galerie de l'app, sans ouvrir de navigateur.
+2. Rien n'expose les captures à qui n'a pas déjà accès au serveur.
+

@@ -7,7 +7,7 @@ import type {
   ServerDraft,
   ServersConfig,
 } from "@shared/servers";
-import type { TerminalKind } from "@shared/terminals";
+import type { TerminalOpened } from "@shared/terminals";
 import {
   app,
   BrowserWindow,
@@ -18,12 +18,13 @@ import {
 } from "electron";
 import { agentClient, registerAgentChannels } from "./agent";
 import { registerCatalog } from "./catalog";
-import { catalog, history, paths } from "./completion";
+import { completions } from "./completion";
 import { registerHarden } from "./harden";
 import { registerInspection } from "./inspection";
 import { registerInstall } from "./install";
+import { closeLogin, moveLogin, openLogin } from "./login-view";
 import { registerProjects } from "./projects";
-import { forgetProjects, projectFolder } from "./projects-run";
+import { declaresProject, forgetProjects, projectFolder } from "./projects-run";
 import { registerSecrets } from "./secrets";
 import { SetupError } from "./server-setup";
 import {
@@ -39,14 +40,18 @@ import {
   write as writeConfig,
 } from "./servers";
 import { forgetServiceCredentials, registerServices } from "./services";
+import { terminalCommand } from "./terminal-run";
 import {
   close,
   closeAll,
+  forgetLogin,
   open,
+  pendingLogin,
   resize,
   terminalDiagnostics,
   write,
 } from "./terminals";
+import { readBounds } from "./view-bounds";
 
 let window: BrowserWindow | null = null;
 
@@ -61,6 +66,7 @@ function settle(config: ServersConfig): ServersConfig {
   agentClient.closeAll();
   forgetProjects();
   forgetServiceCredentials();
+  closeLogin();
   closeAll();
 
   return config;
@@ -115,8 +121,6 @@ function createWindow(): void {
     );
   }
 }
-
-const TERMINAL_KINDS: TerminalKind[] = ["shell", "claude", "codex"];
 
 function registerServerChannels(): void {
   ipcMain.handle("servers", (): ServersConfig => read());
@@ -208,12 +212,19 @@ function registerServerChannels(): void {
   });
 }
 
+const DEFAULT_COLS = 100;
+const DEFAULT_ROWS = 30;
+
+function size(value: unknown, fallback: number): number {
+  return typeof value === "number" && value > 1 ? Math.floor(value) : fallback;
+}
+
 function registerTerminalChannels(): void {
   ipcMain.handle("terminal-diagnostics", () => terminalDiagnostics());
 
-  ipcMain.on(
+  ipcMain.handle(
     "terminal-open",
-    (
+    async (
       event,
       id: unknown,
       serverId: unknown,
@@ -221,26 +232,43 @@ function registerTerminalChannels(): void {
       project: unknown,
       cols: unknown,
       rows: unknown
-    ) => {
-      if (
-        typeof id !== "string" ||
-        typeof serverId !== "string" ||
-        !TERMINAL_KINDS.includes(kind as TerminalKind)
-      ) {
-        return;
+    ): Promise<AgentResponse<TerminalOpened>> => {
+      if (typeof id !== "string") {
+        return {
+          error: {
+            code: "bad_request",
+            fix: "Ferme cet onglet et ouvre-en un autre.",
+            message: "Ce terminal n'a pas d'identifiant.",
+          },
+          ok: false,
+        };
       }
 
-      // A terminal without a project targets the login folder; with one, the
-      // folder is the absolute path the agent named for it.
+      const decided = await terminalCommand(serverId, kind, project, {
+        client: agentClient,
+        declares: declaresProject,
+        folder: projectFolder,
+        knows: (candidate) => read().servers.some((s) => s.id === candidate),
+      });
+
+      if (!decided.ok) {
+        return decided;
+      }
+
       open(
-        id,
-        kind as TerminalKind,
-        typeof project === "string" ? projectFolder(serverId, project) : null,
-        typeof project === "string" ? project : null,
-        typeof cols === "number" ? cols : 100,
-        typeof rows === "number" ? rows : 30,
+        {
+          cols: size(cols, DEFAULT_COLS),
+          command: decided.result.command,
+          id,
+          kind: decided.result.kind,
+          project: typeof project === "string" ? project : null,
+          rows: size(rows, DEFAULT_ROWS),
+          serverId: String(serverId),
+        },
         event.sender
       );
+
+      return { ok: true, result: { session: decided.result.session } };
     }
   );
 
@@ -265,9 +293,49 @@ function registerTerminalChannels(): void {
 
   ipcMain.on("terminal-close", (_e, id: unknown) => {
     if (typeof id === "string") {
+      closeLogin();
       close(id);
     }
   });
+}
+
+/** The renderer names a session and a rectangle; the address is the one it printed. */
+function registerLoginChannels(): void {
+  ipcMain.handle("login-open", (event, id: unknown, box: unknown): boolean => {
+    const bounds = readBounds(box);
+    const address = typeof id === "string" ? pendingLogin(id) : null;
+
+    if (!(window && bounds && address && typeof id === "string")) {
+      return false;
+    }
+
+    openLogin({
+      bounds,
+      onClosed: (terminalId) => {
+        forgetLogin(terminalId);
+
+        if (!event.sender.isDestroyed()) {
+          event.sender.send("login-closed", terminalId);
+        }
+      },
+      onCode: (terminalId, code) => write(terminalId, `${code}\r`),
+      terminalId: id,
+      url: address.url,
+      window,
+    });
+
+    return true;
+  });
+
+  ipcMain.on("login-move", (_e, box: unknown) => {
+    const bounds = readBounds(box);
+
+    if (bounds) {
+      moveLogin(bounds);
+    }
+  });
+
+  ipcMain.on("login-close", () => closeLogin());
 }
 
 function registerChannels(): void {
@@ -281,17 +349,10 @@ function registerChannels(): void {
   registerServices();
   registerServerChannels();
   registerTerminalChannels();
+  registerLoginChannels();
 
-  ipcMain.handle("completion-catalog", (_e, serverId: unknown) =>
-    catalog(serverId)
-  );
-  ipcMain.handle("completion-history", () => history());
-  ipcMain.handle(
-    "completion-paths",
-    (_e, dir: unknown, token: unknown): Promise<string[]> =>
-      typeof dir === "string" && typeof token === "string"
-        ? paths(dir, token)
-        : Promise.resolve([])
+  ipcMain.handle("completions", (_e, serverId: unknown, path: unknown) =>
+    completions(serverId, path)
   );
 
   ipcMain.handle("open-url", (_e, url: unknown) => {

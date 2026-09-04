@@ -1,3 +1,4 @@
+import type { Locale } from "@pupitre/shared/i18n"
 import type { OrgRole } from "@pupitre/shared/permissions"
 import { createContext } from "react"
 
@@ -13,6 +14,7 @@ export interface DashboardContextValue {
     email: string
     name: string
     image: string | null
+    locale: Locale
   }
   organizations: (DashboardOrganization & { role: string })[]
   activeOrganization: DashboardOrganization | null

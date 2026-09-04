@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { CompletionsResult } from "@pupitre/shared/agent-protocol/state";
-import { insertion, propose, split } from "../completion";
+import { insertion, propose, split, underRoot } from "../completion";
 
 /**
  * What completion offers, source by source.
@@ -92,6 +92,31 @@ describe("propose", () => {
     const { candidates } = propose("pupitred up flymate-api", SOURCES);
 
     expect(candidates.map((c) => c.text)).not.toContain("flymate-api");
+  });
+});
+
+describe("underRoot", () => {
+  const ROOT = "/home/dev/projects";
+
+  it("rend le dossier demandé relatif à la racine des projets", () => {
+    expect(underRoot(ROOT, "/home/dev/projects/flymate", "api/")).toBe(
+      "flymate/api"
+    );
+  });
+
+  it("rend une chaîne vide pour la racine elle-même", () => {
+    expect(underRoot(ROOT, ROOT, "")).toBe("");
+  });
+
+  it("suit un chemin absolu que le jeton donne", () => {
+    expect(underRoot(ROOT, "/tmp", "/home/dev/projects/atlas/")).toBe("atlas");
+  });
+
+  it("ne demande rien hors de la racine, ni par le dossier ni par un ..", () => {
+    expect(underRoot(ROOT, "/etc", "")).toBeNull();
+    expect(
+      underRoot(ROOT, "/home/dev/projects/flymate", "../../../")
+    ).toBeNull();
   });
 });
 

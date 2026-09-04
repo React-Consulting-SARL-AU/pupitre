@@ -86,12 +86,18 @@ describe("les huit moments envoient leur email", () => {
   })
 
   it("l'appareil ajouté prévient son propriétaire, dans sa langue", async () => {
+    const { prisma } = await bootApiTestServer()
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
     const [owner] = members
 
-    const added = await addDevice(owner, "MacBook", "en")
+    await prisma.user.update({
+      where: { id: owner.user.id },
+      data: { locale: "en" },
+    })
+
+    const added = await addDevice(owner, "MacBook", "fr")
 
     expect(added.status).toBe(201)
 

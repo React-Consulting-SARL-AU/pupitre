@@ -6,7 +6,13 @@ import { createQueryClient } from "@/lib/query/client"
 import { fill, render, trigger } from "@/testing/render"
 
 const CONTEXT = {
-  user: { id: "u1", email: "ada@test.local", name: "Ada", image: null },
+  user: {
+    id: "u1",
+    email: "ada@test.local",
+    name: "Ada",
+    image: null,
+    locale: "fr" as const,
+  },
   organizations: [],
   activeOrganization: null,
   role: "owner" as const,

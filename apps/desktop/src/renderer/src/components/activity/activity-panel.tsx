@@ -15,12 +15,15 @@ import { ActivitySessions } from "./activity-sessions";
 export function ActivityPanel({
   processes,
   sessions,
+  attached,
   onStopProcess,
   onStopSession,
   onCleanSessions,
 }: {
   processes: readonly Process[];
   sessions: readonly Session[];
+  /** The sessions the app still has a tab on. */
+  attached: readonly string[];
   onStopProcess: (pid: number, what: string) => void;
   onStopSession: (pid: number) => void;
   onCleanSessions: () => void;
@@ -51,6 +54,7 @@ export function ActivityPanel({
           </h2>
           <div className="elevation-raised overflow-hidden rounded-md border border-line bg-surface">
             <ActivitySessions
+              attached={attached}
               onClean={onCleanSessions}
               onStop={onStopSession}
               sessions={sessions}

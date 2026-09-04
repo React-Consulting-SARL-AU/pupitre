@@ -4,7 +4,7 @@ import type {
   InvitationEmailInput,
   MagicLinkEmailInput,
 } from "@pupitre/auth/emails"
-import { localeOf } from "../lib/i18n"
+import { localeOf } from "@pupitre/shared/i18n"
 import { renderInvitationEmail, renderMagicLinkEmail } from "./render"
 
 export const authEmails: AuthEmailRenderer = {

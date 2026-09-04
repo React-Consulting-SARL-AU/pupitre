@@ -1,14 +1,42 @@
 import "@xterm/xterm/css/xterm.css";
+import { ErrorNotice } from "@renderer/components/ui/error-notice";
+import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
 import { fitTerminal, focus, obtain } from "@renderer/lib/terminals";
 import { useServers } from "@renderer/stores/servers";
-import type { TerminalKind } from "@shared/terminals";
+import { useTerminals } from "@renderer/stores/terminals";
+import type { TerminalKind, ViewBounds } from "@shared/terminals";
 import { useEffect, useRef } from "react";
 import { CompletionList } from "./completion-list";
+import { TerminalLoginBar } from "./terminal-login-bar";
 
 interface Props {
   id: string;
   kind: TerminalKind;
   project: string | null;
+  /** The tab in front: the only one a page may be laid over. */
+  active: boolean;
+}
+
+const OPENING: Record<TerminalKind, string> = {
+  claude: "Claude s'attache à sa session sur le serveur",
+  codex: "Codex s'attache à sa session sur le serveur",
+  hermes: "Hermes s'attache à sa session sur le serveur",
+  shell: "Ouverture d'un shell sur le serveur",
+};
+
+function boxOf(element: HTMLElement | null): ViewBounds | null {
+  if (!element) {
+    return null;
+  }
+
+  const rect = element.getBoundingClientRect();
+
+  return {
+    height: rect.height,
+    width: rect.width,
+    x: rect.x,
+    y: rect.y,
+  };
 }
 
 /**
@@ -19,10 +47,19 @@ interface Props {
  * without losing a session — and never having to hide a terminal with
  * `display:none`, which would make xterm measure zero rows.
  */
-export function TerminalPane({ id, kind, project }: Props) {
+export function TerminalPane({ id, kind, project, active }: Props) {
   const host = useRef<HTMLDivElement | null>(null);
-  const frame = useRef<HTMLDivElement | null>(null);
+  const stage = useRef<HTMLDivElement | null>(null);
   const serverId = useServers((s) => s.config?.active ?? null);
+
+  const session = useTerminals((s) => s.sessions[id]);
+  const loginHost = useTerminals((s) => s.links[id]);
+  const loginOpen = useTerminals((s) => s.login === id);
+  const start = useTerminals((s) => s.start);
+  const forget = useTerminals((s) => s.forget);
+  const openLogin = useTerminals((s) => s.openLogin);
+  const closeLogin = useTerminals((s) => s.closeLogin);
+  const moveLogin = useTerminals((s) => s.moveLogin);
 
   useEffect(() => {
     const container = host.current;
@@ -30,10 +67,19 @@ export function TerminalPane({ id, kind, project }: Props) {
       return;
     }
 
-    const entry = obtain(id, serverId, kind, project);
+    const entry = obtain(id, kind);
     container.appendChild(entry.host);
+    start(id, serverId, kind, project);
 
-    const observer = new ResizeObserver(() => fitTerminal(id));
+    const observer = new ResizeObserver(() => {
+      fitTerminal(id);
+
+      const bounds = boxOf(stage.current);
+
+      if (bounds) {
+        moveLogin(bounds);
+      }
+    });
     observer.observe(container);
     requestAnimationFrame(() => {
       fitTerminal(id);
@@ -44,18 +90,77 @@ export function TerminalPane({ id, kind, project }: Props) {
       observer.disconnect();
       entry.host.remove();
     };
-  }, [id, serverId, kind, project]);
+  }, [id, serverId, kind, project, start, moveLogin]);
+
+  // A page laid over a tab that is no longer in front would float over another
+  // one: it goes away with the tab, and the button that opened it stays.
+  useEffect(() => {
+    if (!active && loginOpen) {
+      closeLogin();
+    }
+  }, [active, loginOpen, closeLogin]);
+
+  useEffect(
+    () => () => {
+      if (useTerminals.getState().login === id) {
+        useTerminals.getState().closeLogin();
+      }
+    },
+    [id]
+  );
 
   return (
-    <div className="relative h-full w-full bg-surface" ref={frame}>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: xterm handles keyboard and focus itself */}
-      {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: same reason — the mouse-down only hands focus back to the terminal */}
-      <div
-        className="h-full w-full cursor-text px-2 py-1"
-        onMouseDown={() => focus(id)}
-        ref={host}
-      />
-      {kind === "shell" ? <CompletionList frame={frame} id={id} /> : null}
+    <div className="flex h-full w-full flex-col bg-surface">
+      {loginHost ? (
+        <TerminalLoginBar
+          host={loginHost}
+          onClose={closeLogin}
+          onOpen={() => {
+            const bounds = boxOf(stage.current);
+
+            if (bounds) {
+              openLogin(id, bounds);
+            }
+          }}
+          open={loginOpen}
+        />
+      ) : null}
+
+      <div className="relative min-h-0 flex-1" ref={stage}>
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: xterm handles keyboard and focus itself */}
+        {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: same reason — the mouse-down only hands focus back to the terminal */}
+        <div
+          className="h-full w-full cursor-text px-2 py-1"
+          onMouseDown={() => focus(id)}
+          ref={host}
+        />
+
+        {kind === "shell" ? <CompletionList frame={stage} id={id} /> : null}
+
+        {session?.status === "opening" ? (
+          <div className="absolute inset-x-0 top-0 p-4">
+            <WaitingNotice
+              detail={OPENING[kind]}
+              title="Ouverture de la session"
+            />
+          </div>
+        ) : null}
+
+        {session?.status === "failed" ? (
+          <div className="absolute inset-x-0 top-0 p-4">
+            <ErrorNotice
+              error={session.error}
+              onRetry={() => {
+                forget(id);
+
+                if (serverId) {
+                  start(id, serverId, kind, project);
+                }
+              }}
+            />
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

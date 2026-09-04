@@ -189,3 +189,24 @@ Hors périmètre. La logique d'alerte, livrée par PLT-12.
 Critères d'acceptation.
 1. Un serveur injoignable depuis trente minutes déclenche son alerte sans appel manuel, prouvé par un test.
 
+
+### PLT-18 — Managed Payments : vendeur Stripe, un produit, deux prix
+Lot 5 · dépend de PLT-07 · `packages/api`, `packages/shared`, `apps/web`, `apps/site`
+
+But. Ce que PLT-07 a câblé est vendu par Stripe et non par nous, et la tarification cesse d'exister en deux devises.
+Périmètre. `managed_payments[enabled]=true` sur chaque Checkout Session — sans lui, la vente se fait en notre nom et aucune taxe n'est collectée. Suppression de la devise déduite du pays (`cf-ipcountry`, `currencyForCountry`, `BillingCurrency`) : un seul prix par période, en dollars, Adaptive Pricing faisant la conversion. Deux variables au lieu de quatre, `STRIPE_PRICE_SERVER_MONTH` et `STRIPE_PRICE_SERVER_YEAR`, déclarées dans `turbo.json` et dans `secrets.required` de `wrangler.jsonc`, où aucune ne l'était. `monthlyPriceUsd`, `yearlyPriceUsd` et `formatUsd` dans `@pupitre/shared/plans`, seule source du prix affiché par le site et la console. Remplace le double prix euros/dollars de PLT-07.
+Hors périmètre. Le portail client et la réconciliation des sièges, livrés par PLT-07.
+Critères d'acceptation.
+1. Un test sur le provider Stripe prouve que la session porte `managed_payments[enabled]=true`, le prix de l'intervalle demandé, et aucune devise.
+2. Le site et la console n'affichent aucun montant en euros, et aucun littéral de prix hors de `@pupitre/shared/plans`.
+Tests. Test unitaire du provider avec `fetch` doublé ; les tests de rendu du site sur les prix formatés.
+
+### PLT-19 — Déclencheur planifié pour la fin de tolérance
+Lot 3 · dépend de PLT-15 · `apps/web`
+
+But. Un abonnement dont la tolérance expire est suspendu sans qu'on l'appelle à la main.
+Périmètre. `suspendExpiredGrace` existe et est testée, mais aucun cron ne l'appelle : les quatre workflows livrés couvrent l'expiration des enrôlements, la décommission, la réconciliation des sièges et les alertes, pas celui-ci. Ajouter le cinquième, sur le patron exact des autres, avec son test sur le harnais PGlite.
+Hors périmètre. La logique de tolérance, déjà livrée.
+Critères d'acceptation.
+1. Une tolérance expirée suspend les serveurs sans appel manuel, prouvé par un test qui passe par le workflow.
+
