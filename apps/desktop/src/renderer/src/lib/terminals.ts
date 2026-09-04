@@ -2,30 +2,35 @@ import type { TerminalKind } from "@shared/contract";
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { attach, recompute, TERMINAL_FONT } from "./completion";
+import {
+  type ResolvedTheme,
+  readTokens,
+  type TerminalTheme,
+  terminalTheme,
+} from "./terminal-theme";
 
-/** The terminal theme follows the app's, give or take a shade. */
-const THEME = {
-  background: "#171310",
-  foreground: "#f6f2ee",
-  cursor: "#ff6a2b",
-  selectionBackground: "#3d342e",
-  black: "#100d0b",
-  red: "#e8705a",
-  green: "#4fbe85",
-  yellow: "#d9a320",
-  blue: "#7aa2c8",
-  magenta: "#c88ec0",
-  cyan: "#6fb5b0",
-  white: "#cdc3ba",
-  brightBlack: "#6f645d",
-  brightRed: "#ff8a72",
-  brightGreen: "#6fd9a0",
-  brightYellow: "#f0bc3c",
-  brightBlue: "#96bde0",
-  brightMagenta: "#dfa8d7",
-  brightCyan: "#8dd0cb",
-  brightWhite: "#f6f2ee",
-};
+let resolved: ResolvedTheme = "light";
+
+/** Read fresh every time: the tokens move when `data-theme` does. */
+function currentTheme(): TerminalTheme {
+  return terminalTheme(resolved, readTokens(document.documentElement));
+}
+
+/**
+ * Hands the living terminals their new palette.
+ *
+ * xterm draws on a canvas, so no CSS variable reaches it: the theme store calls
+ * this the moment `data-theme` changes, and every open session repaints where it
+ * stands, without losing a line.
+ */
+export function repaintTerminals(next: ResolvedTheme): void {
+  resolved = next;
+  const theme = currentTheme();
+
+  for (const entry of live.values()) {
+    entry.xterm.options.theme = theme;
+  }
+}
 
 type Live = {
   host: HTMLDivElement;
@@ -60,7 +65,7 @@ export function obtain(
   host.style.height = "100%";
 
   const xterm = new XTerm({
-    theme: THEME,
+    theme: currentTheme(),
     fontFamily: TERMINAL_FONT,
     fontSize: 12,
     lineHeight: 1.3,

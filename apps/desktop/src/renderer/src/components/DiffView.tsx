@@ -1,16 +1,18 @@
 import type { FileChange, FileDiff, WorkingTree } from "@shared/contract";
 import {
-  AlertTriangle,
   Check,
   FileDiff as FileDiffIcon,
   FilePlus,
   FileX,
-  Loader2,
   Pencil,
   RefreshCw,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TERMINAL_FONT } from "../lib/completion";
+import { Callout } from "./ui/callout";
+import { EmptyState } from "./ui/empty-state";
+import { IconButton } from "./ui/icon-button";
+import { StatusDot } from "./ui/status-dot";
 
 /**
  * The working tree of a project, and the diff of the file you select.
@@ -25,8 +27,25 @@ import { TERMINAL_FONT } from "../lib/completion";
 const STAGE = {
   staged: { label: "staged", className: "text-ok" },
   unstaged: { label: "changed", className: "text-warn" },
-  untracked: { label: "new", className: "text-accent-strong" },
+  untracked: { label: "new", className: "text-ink-2" },
 } as const;
+
+/**
+ * A patch row reads by its sign first.
+ *
+ * The tint is `ok` or `danger` at a tenth of an opacity — enough to group the
+ * lines at a glance, never enough to be the only thing saying what they are.
+ */
+const ROW: Record<
+  Row["kind"],
+  { sign: string; background: string; text: string }
+> = {
+  add: { sign: "+", background: "bg-ok/10", text: "text-ok" },
+  remove: { sign: "\u2212", background: "bg-danger/10", text: "text-danger" },
+  hunk: { sign: " ", background: "bg-sunken", text: "text-ink-3" },
+  meta: { sign: " ", background: "", text: "text-ink-3" },
+  context: { sign: " ", background: "", text: "text-ink-2" },
+};
 
 /** The icon follows git's letter, not our own reading of it. */
 function iconFor(change: FileChange) {
@@ -126,7 +145,7 @@ function Count({ added, removed }: { added: number; removed: number }) {
     return null;
   }
   return (
-    <span className="shrink-0 font-mono text-[10px] tabular-nums">
+    <span className="shrink-0 font-data text-[10px] tabular-nums">
       {added > 0 ? <span className="text-ok">+{added}</span> : null}
       {added > 0 && removed > 0 ? " " : null}
       {removed > 0 ? <span className="text-danger">−{removed}</span> : null}
@@ -150,7 +169,7 @@ function FileRow({
   return (
     <button
       className={`flex w-full items-center gap-2 border-line border-b px-3 py-1.5 text-left last:border-b-0 ${
-        active ? "bg-accent-veil" : "hover:bg-sunken"
+        active ? "bg-raised" : "hover:bg-sunken"
       }`}
       onClick={onSelect}
       title={`${change.path} · ${change.code.trim() || change.code} · ${stage.label}`}
@@ -162,23 +181,23 @@ function FileRow({
         way round — as the path reads — a deep folder eats the width and every
         row truncates on the one word that tells them apart.
       */}
-      <span className="min-w-0 flex-1 font-mono text-[11px]">
+      <span className="min-w-0 flex-1 font-data text-[11px]">
         <span
-          className={`block truncate ${active ? "text-accent-strong" : "text-ink-2"}`}
+          className={`block truncate ${active ? "text-ink" : "text-ink-2"}`}
         >
           {name}
           {change.from ? (
-            <span className="text-ink-4"> ← {splitPath(change.from).name}</span>
+            <span className="text-ink-3"> ← {splitPath(change.from).name}</span>
           ) : null}
         </span>
         {dir ? (
-          <span className="block truncate text-[10px] text-ink-4">
+          <span className="block truncate text-[10px] text-ink-3">
             {dir.replace(/\/$/, "")}
           </span>
         ) : null}
       </span>
       {change.binary ? (
-        <span className="shrink-0 font-mono text-[10px] text-ink-4">bin</span>
+        <span className="shrink-0 font-data text-[10px] text-ink-3">bin</span>
       ) : (
         <Count added={change.added} removed={change.removed} />
       )}
@@ -191,14 +210,14 @@ function Patch({ diff }: { diff: FileDiff }) {
 
   if (diff.binary) {
     return (
-      <p className="p-6 text-center text-[12px] text-ink-4">
+      <p className="p-6 text-center text-[12px] text-ink-3">
         Binary file — nothing to show line by line.
       </p>
     );
   }
   if (rows.length === 0) {
     return (
-      <p className="p-6 text-center text-[12px] text-ink-4">
+      <p className="p-6 text-center text-[12px] text-ink-3">
         {diff.problem || "No textual change in this file."}
       </p>
     );
@@ -207,10 +226,9 @@ function Patch({ diff }: { diff: FileDiff }) {
   return (
     <div className="min-w-max">
       {diff.problem ? (
-        <p className="flex items-center gap-1.5 border-warn/30 border-b bg-warn/10 px-3 py-1.5 font-mono text-[10px] text-warn">
-          <AlertTriangle size={11} />
-          {diff.problem}
-        </p>
+        <div className="border-line border-b p-2">
+          <Callout tone="warn">{diff.problem}</Callout>
+        </div>
       ) : null}
       <table
         className="w-full border-collapse"
@@ -218,40 +236,23 @@ function Patch({ diff }: { diff: FileDiff }) {
       >
         <tbody>
           {rows.map((row, i) => {
-            const background =
-              row.kind === "add"
-                ? "bg-ok/10"
-                : row.kind === "remove"
-                  ? "bg-danger/10"
-                  : row.kind === "hunk"
-                    ? "bg-sunken"
-                    : "";
-            const text =
-              row.kind === "add"
-                ? "text-ok"
-                : row.kind === "remove"
-                  ? "text-danger"
-                  : row.kind === "hunk" || row.kind === "meta"
-                    ? "text-ink-4"
-                    : "text-ink-2";
-            const sign =
-              row.kind === "add" ? "+" : row.kind === "remove" ? "−" : " ";
+            const look = ROW[row.kind];
 
             return (
               // biome-ignore lint/suspicious/noArrayIndexKey: a patch is a sequence, its position IS its identity
-              <tr className={background} key={i}>
-                <td className="w-10 select-none border-line border-r px-1.5 text-right align-top text-[10px] text-ink-4 tabular-nums">
+              <tr className={look.background} data-kind={row.kind} key={i}>
+                <td className="w-10 select-none border-line border-r px-1.5 text-right align-top text-[10px] text-ink-3 tabular-nums">
                   {row.before ?? ""}
                 </td>
-                <td className="w-10 select-none border-line border-r px-1.5 text-right align-top text-[10px] text-ink-4 tabular-nums">
+                <td className="w-10 select-none border-line border-r px-1.5 text-right align-top text-[10px] text-ink-3 tabular-nums">
                   {row.after ?? ""}
                 </td>
                 <td
-                  className={`select-none pr-1 pl-2 text-center ${text} align-top`}
+                  className={`select-none pr-1 pl-2 text-center ${look.text} align-top`}
                 >
-                  {sign}
+                  {look.sign}
                 </td>
-                <td className={`whitespace-pre pr-4 ${text} align-top`}>
+                <td className={`whitespace-pre pr-4 ${look.text} align-top`}>
                   {row.text || " "}
                 </td>
               </tr>
@@ -261,6 +262,28 @@ function Patch({ diff }: { diff: FileDiff }) {
       </table>
     </div>
   );
+}
+
+/** Waiting, read, or nothing chosen — three states, never a bare spinner. */
+function PatchPane({
+  diff,
+  loading,
+}: {
+  diff: FileDiff | null;
+  loading: boolean;
+}) {
+  if (loading) {
+    return (
+      <p className="flex items-center justify-center gap-2 p-6 text-[12px] text-ink-3">
+        <StatusDot shape="breathing" size={11} />
+        reading the diff…
+      </p>
+    );
+  }
+  if (!diff) {
+    return <EmptyState title="Select a file." />;
+  }
+  return <Patch diff={diff} />;
 }
 
 export function DiffView({
@@ -334,9 +357,9 @@ export function DiffView({
 
   if (loadingTree && !tree) {
     return (
-      <div className="grid h-full place-items-center text-ink-4">
-        <span className="flex items-center gap-2 text-[12px]">
-          <Loader2 className="animate-spin" size={13} />
+      <div className="grid h-full place-items-center">
+        <span className="flex items-center gap-2 text-[12px] text-ink-3">
+          <StatusDot shape="breathing" size={11} />
           reading the working tree…
         </span>
       </div>
@@ -345,15 +368,11 @@ export function DiffView({
 
   if (!tree?.repo) {
     return (
-      <div className="grid h-full place-items-center px-8 text-center text-ink-4">
-        <div>
-          <FileDiffIcon className="mx-auto mb-2" size={18} />
-          <p className="text-[12px]">This project is not a git repository.</p>
-          <p className="mt-1 font-mono text-[11px]">
-            there is nothing to compare
-          </p>
-        </div>
-      </div>
+      <EmptyState
+        detail="there is nothing to compare"
+        icon={FileDiffIcon}
+        title="This project is not a git repository."
+      />
     );
   }
 
@@ -368,44 +387,38 @@ export function DiffView({
   return (
     <div className="flex h-full flex-col">
       <div className="flex shrink-0 flex-wrap items-center gap-3 border-line border-b px-4 py-2">
-        <span className="font-mono text-[11px] text-ink-3">
+        <span className="font-data text-[11px] text-ink-3">
           {tree.branch || "detached"}
           {tree.upstream ? (
-            <span className="text-ink-4"> → {tree.upstream}</span>
+            <span className="text-ink-3"> → {tree.upstream}</span>
           ) : null}
         </span>
-        <span className="font-mono text-[11px] text-ink-4">
+        <span className="font-data text-[11px] text-ink-3">
           {tree.files.length === 0
             ? "clean"
             : `${tree.files.length} file${tree.files.length > 1 ? "s" : ""}`}
         </span>
         <Count added={total.added} removed={total.removed} />
         <span
-          className="ml-auto flex items-center gap-1 font-mono text-[10px] text-ink-4"
+          className="ml-auto flex items-center gap-1 font-data text-[10px] text-ink-3"
           title="This view never writes to the repository"
         >
           read-only
         </span>
-        <button
-          aria-label="Re-read the working tree"
-          className="shrink-0 rounded-md border border-line p-1 text-ink-4 transition-soft hover:border-accent hover:text-accent-strong disabled:opacity-40"
-          disabled={loadingTree}
+        <IconButton
+          icon={RefreshCw}
+          label="Re-read the working tree"
+          loading={loadingTree}
           onClick={load}
-          type="button"
-        >
-          <RefreshCw className={loadingTree ? "animate-spin" : ""} size={12} />
-        </button>
+          size={12}
+        />
       </div>
 
       {tree.files.length === 0 ? (
-        <div className="grid flex-1 place-items-center text-center text-ink-4">
-          <div>
-            <Check className="mx-auto mb-2 text-ok" size={18} />
-            <p className="text-[12px]">
-              Nothing changed since the last commit.
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          icon={Check}
+          title="Nothing changed since the last commit."
+        />
       ) : (
         <div className="grid min-h-0 flex-1 grid-cols-[minmax(200px,17rem)_1fr]">
           <div className="min-h-0 overflow-y-auto border-line border-r">
@@ -417,7 +430,7 @@ export function DiffView({
               return (
                 <div key={stage}>
                   <p
-                    className={`sticky top-0 z-10 border-line border-b bg-base px-3 py-1 font-mono text-[10px] uppercase tracking-[0.08em] ${STAGE[stage].className}`}
+                    className={`sticky top-0 z-10 border-line border-b bg-base px-3 py-1 font-data text-[10px] uppercase tracking-[0.08em] ${STAGE[stage].className}`}
                   >
                     {STAGE[stage].label} · {group.length}
                   </p>
@@ -437,7 +450,7 @@ export function DiffView({
           <div className="flex min-h-0 min-w-0 flex-col">
             {change ? (
               <p className="flex shrink-0 items-center gap-2 border-line border-b px-4 py-1.5">
-                <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-ink-2">
+                <span className="min-w-0 flex-1 truncate font-data text-[11px] text-ink-2">
                   {change.path}
                 </span>
                 {change.binary ? null : (
@@ -446,18 +459,7 @@ export function DiffView({
               </p>
             ) : null}
             <div className="min-h-0 flex-1 overflow-auto" ref={patchPane}>
-              {loadingDiff ? (
-                <p className="flex items-center justify-center gap-2 p-6 text-[12px] text-ink-4">
-                  <Loader2 className="animate-spin" size={13} />
-                  reading the diff…
-                </p>
-              ) : diff ? (
-                <Patch diff={diff} />
-              ) : (
-                <p className="p-6 text-center text-[12px] text-ink-4">
-                  Select a file.
-                </p>
-              )}
+              <PatchPane diff={diff} loading={loadingDiff} />
             </div>
           </div>
         </div>

@@ -15,25 +15,20 @@
       "includes": ["src/**"],
       "linter": {
         "rules": {
-          "a11y": {
-            "noLabelWithoutControl": "off",
-            "noNoninteractiveElementInteractions": "off",
-            "noNoninteractiveElementToInteractiveRole": "off",
-            "useFocusableInteractive": "off",
-            "useSemanticElements": "off"
-          },
-          "correctness": {
-            "useExhaustiveDependencies": "warn"
-          },
           "performance": {
+            // `src/main/terminals.ts` imports node-pty, which has no named export.
             "noNamespaceImport": "off",
+            // The main process parses ssh and git output with one-shot regexes; APP-02 replaces that channel.
             "useTopLevelRegex": "off"
           },
           "style": {
+            // `src/shared/contract.ts` declares the legacy `dev` contract in interfaces; APP-02 takes its types from @pupitre/shared.
             "useConsistentTypeDefinitions": "off",
+            // The screens of `components/` are still PascalCase; APP-09 renames them to {feature}-{context}-{type}.
             "useFilenamingConvention": "off"
           },
           "suspicious": {
+            // Destructive actions still confirm through window.confirm; a real dialog is its own task.
             "noAlert": "off"
           }
         }

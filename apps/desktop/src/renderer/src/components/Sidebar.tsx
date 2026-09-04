@@ -17,16 +17,22 @@ import {
 import { dominantState, type View } from "../stores/state";
 import { AgentDot } from "./AgentDot";
 import { Logo } from "./Logo";
+import { IconButton } from "./ui/icon-button";
+import { Label } from "./ui/label";
+import { StatusDot, type StatusShape, type StatusTone } from "./ui/status-dot";
 
-const DOT: Record<string, string> = {
-  online: "bg-ok",
-  service: "bg-ok",
-  external: "bg-ok",
-  starting: "bg-warn",
-  failed: "bg-danger",
-  down: "bg-danger",
-  stopped: "bg-line-strong",
+/** The same shapes as the pills, small enough to sit in front of a name. */
+const DOT: Record<string, { shape: StatusShape; tone: StatusTone }> = {
+  online: { shape: "filled", tone: "ok" },
+  service: { shape: "filled", tone: "ok" },
+  external: { shape: "filled", tone: "ok" },
+  starting: { shape: "breathing", tone: "warn" },
+  failed: { shape: "struck", tone: "danger" },
+  down: { shape: "struck", tone: "danger" },
+  stopped: { shape: "empty", tone: "neutral" },
 };
+
+const UNKNOWN_DOT = { shape: "empty", tone: "neutral" } as const;
 
 /**
  * Processes from the same repository are grouped together.
@@ -46,8 +52,8 @@ function groupByRepo(projects: Project[]): [string, Project[]][] {
 
 function Heading({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-3 pt-4 pb-1.5 font-mono text-[10px] text-ink-4 uppercase tracking-[0.1em]">
-      {children}
+    <p className="px-3 pt-4 pb-1.5">
+      <Label>{children}</Label>
     </p>
   );
 }
@@ -70,22 +76,24 @@ function Entry({
   indented?: boolean;
 }) {
   return (
-    <button
-      className={`group flex w-full items-center gap-2 rounded-lg py-[7px] pr-3 text-left text-[12px] transition-soft ${
-        indented ? "pl-6" : "pl-3"
-      } ${
-        active
-          ? "bg-accent-veil font-medium text-accent-strong"
-          : "text-ink-2 hover:bg-sunken hover:text-ink"
+    <div
+      className={`group flex w-full items-center gap-2 rounded-sm pr-1.5 transition-soft ${
+        active ? "bg-raised" : "hover:bg-sunken"
       }`}
-      onClick={onClick}
-      type="button"
     >
-      {bullet}
-      <span className="min-w-0 flex-1 truncate">{children}</span>
+      <button
+        className={`flex min-w-0 flex-1 items-center gap-2 py-[7px] pr-1 text-left text-[12px] transition-soft ${
+          indented ? "pl-6" : "pl-3"
+        } ${active ? "font-medium text-ink" : "text-ink-2 group-hover:text-ink"}`}
+        onClick={onClick}
+        type="button"
+      >
+        {bullet}
+        <span className="min-w-0 flex-1 truncate">{children}</span>
+      </button>
       {beforeSuffix}
       {suffix}
-    </button>
+    </div>
   );
 }
 
@@ -133,16 +141,16 @@ export function Sidebar({
       </div>
 
       <button
-        className="clickable mx-2 mb-1 flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-left transition-soft hover:border-accent"
+        className="clickable mx-2 mb-1 flex items-center gap-2 rounded-sm border border-line px-3 py-2 text-left transition-soft hover:border-line-strong hover:bg-surface"
         onClick={() => onView("settings")}
         type="button"
       >
-        <Server className="shrink-0 text-accent" size={15} strokeWidth={2} />
+        <Server className="shrink-0 text-ink-3" size={15} strokeWidth={1.5} />
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium text-[12px]">
             {activeServer?.name ?? "Server"}
           </span>
-          <span className="block truncate font-mono text-[10px] text-ink-4">
+          <span className="block truncate font-data text-[10px] text-ink-3">
             {activeServer?.host ?? "—"}
           </span>
         </span>
@@ -151,7 +159,7 @@ export function Sidebar({
       <div className="px-2">
         <Entry
           active={view === "dashboard"}
-          bullet={<LayoutDashboard size={14} strokeWidth={2} />}
+          bullet={<LayoutDashboard size={14} strokeWidth={1.5} />}
           onClick={() => onView("dashboard")}
         >
           Dashboard
@@ -163,7 +171,7 @@ export function Sidebar({
         {groupByRepo(projects).map(([groupName, members]) => (
           <div key={groupName}>
             {members.length > 1 ? (
-              <p className="truncate px-3 pt-2 pb-0.5 font-mono text-[10px] text-ink-4">
+              <p className="truncate px-3 pt-2 pb-0.5 font-data text-[10px] text-ink-3">
                 {groupName}
               </p>
             ) : null}
@@ -183,8 +191,11 @@ export function Sidebar({
                   />
                 }
                 bullet={
-                  <span
-                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${DOT[project.state] ?? "bg-line-strong"}`}
+                  <StatusDot
+                    label={project.state}
+                    shape={(DOT[project.state] ?? UNKNOWN_DOT).shape}
+                    size={9}
+                    tone={(DOT[project.state] ?? UNKNOWN_DOT).tone}
                   />
                 }
                 indented={members.length > 1}
@@ -192,7 +203,7 @@ export function Sidebar({
                 onClick={() => onProject(project.name)}
                 suffix={
                   project.ram_mb > 0 ? (
-                    <span className="shrink-0 font-mono text-[10px] text-ink-4 tabular-nums">
+                    <span className="shrink-0 font-data text-[10px] text-ink-3 tabular-nums">
                       {project.ram_mb >= 1024
                         ? `${(project.ram_mb / 1024).toFixed(1)}G`
                         : `${project.ram_mb}M`}
@@ -216,40 +227,34 @@ export function Sidebar({
             active={view === "terminals" && activeTerminal === terminal.id}
             beforeSuffix={<AgentDot state={states[terminal.id]} />}
             bullet={
-              <SquareTerminal className="shrink-0" size={13} strokeWidth={2} />
+              <SquareTerminal
+                className="shrink-0"
+                size={13}
+                strokeWidth={1.5}
+              />
             }
             key={terminal.id}
             onClick={() => onTerminal(terminal.id)}
             suffix={
-              <span
-                aria-label={`Close ${terminal.title}`}
-                className="shrink-0 rounded px-1 text-ink-4 opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCloseTerminal(terminal.id);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.stopPropagation();
-                    onCloseTerminal(terminal.id);
-                  }
-                }}
-                role="button"
-                tabIndex={0}
-              >
-                <X size={12} />
-              </span>
+              <IconButton
+                className="opacity-0 transition-soft focus-visible:opacity-100 group-hover:opacity-100"
+                icon={X}
+                label={`Close ${terminal.title}`}
+                onClick={() => onCloseTerminal(terminal.id)}
+                size={12}
+                variant="danger"
+              />
             }
           >
             {terminal.title}
           </Entry>
         ))}
         <button
-          className="mt-0.5 flex items-center gap-2 rounded-lg px-3 py-[7px] text-left text-[12px] text-ink-4 transition-soft hover:bg-sunken hover:text-accent-strong"
+          className="mt-0.5 flex items-center gap-2 rounded-sm px-3 py-[7px] text-left text-[12px] text-ink-3 transition-soft hover:bg-sunken hover:text-ink"
           onClick={onNewTerminal}
           type="button"
         >
-          <Plus size={13} strokeWidth={2} />
+          <Plus size={13} strokeWidth={1.5} />
           New terminal
         </button>
       </div>
@@ -258,7 +263,7 @@ export function Sidebar({
         {capabilities?.secrets ? (
           <Entry
             active={view === "secrets"}
-            bullet={<KeyRound size={14} strokeWidth={2} />}
+            bullet={<KeyRound size={14} strokeWidth={1.5} />}
             onClick={() => onView("secrets")}
           >
             Secrets
@@ -266,7 +271,7 @@ export function Sidebar({
         ) : null}
         <Entry
           active={view === "settings"}
-          bullet={<SettingsIcon size={14} strokeWidth={2} />}
+          bullet={<SettingsIcon size={14} strokeWidth={1.5} />}
           onClick={() => onView("settings")}
         >
           Settings

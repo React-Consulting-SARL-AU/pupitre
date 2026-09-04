@@ -29,6 +29,9 @@ import { Processes } from "./Processes";
 import { CheckButton, Repos } from "./Repos";
 import { Sessions } from "./Sessions";
 import { StatusPill } from "./StatusPill";
+import { Button } from "./ui/button";
+import { Label } from "./ui/label";
+import { PageHeader } from "./ui/page-header";
 
 function gb(mb: number): string {
   return `${(mb / 1024).toFixed(mb >= 10_240 ? 0 : 1)} GB`;
@@ -46,7 +49,7 @@ function Gauge({ share, alert }: { share: number; alert?: boolean }) {
   return (
     <div className="mt-2 h-1 overflow-hidden rounded-full bg-sunken">
       <div
-        className={`h-full rounded-full transition-[width] duration-500 ease-out ${alert ? "bg-warn" : "bg-accent"}`}
+        className={`h-full rounded-full transition-[width] duration-500 ease-out ${alert ? "bg-warn" : "bg-ink-3"}`}
         style={{ width: `${Math.min(100, Math.max(2, share * 100))}%` }}
       />
     </div>
@@ -69,15 +72,15 @@ function Stat({
   icon: typeof Cpu;
 }) {
   return (
-    <div className="rounded-xl border border-line bg-surface p-4 transition-soft hover:border-line-strong">
-      <p className="flex items-center gap-1.5 font-mono text-[10px] text-ink-4 uppercase tracking-[0.09em]">
-        <Icon size={12} strokeWidth={2} />
-        {title}
+    <div className="rounded-md border border-line bg-surface p-4 transition-soft hover:border-line-strong">
+      <p className="flex items-center gap-1.5 text-ink-3">
+        <Icon size={12} strokeWidth={1.5} />
+        <Label>{title}</Label>
       </p>
-      <p className="mt-1.5 font-semibold text-xl tabular-nums tracking-tight">
+      <p className="mt-1.5 font-semibold text-ink text-xl tabular-nums tracking-tight">
         {value}
       </p>
-      <p className="font-mono text-[11px] text-ink-4">{detail}</p>
+      <p className="font-data text-[11px] text-ink-3">{detail}</p>
       {share === undefined ? null : <Gauge alert={alert} share={share} />}
     </div>
   );
@@ -146,35 +149,26 @@ export function Dashboard({
   return (
     <div className="h-full overflow-y-auto px-6 py-5">
       <div className="mx-auto max-w-5xl">
-        <div className="flex items-baseline justify-between gap-4">
-          <div>
-            <h1 className="font-semibold text-xl tracking-tight">
-              {up.length} service{up.length > 1 ? "s" : ""} online
-            </h1>
-            <p className="mt-0.5 text-ink-3">
-              of {projects.length} · server up for {machine.uptime_hours} h
-              {broken.length > 0 ? ` · ${broken.length} failing` : ""}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <button
-              className="flex items-center gap-1.5 rounded-lg border border-line-strong px-3 py-1.5 text-[12px] transition-soft hover:border-accent hover:text-accent-strong"
-              onClick={() => onAll("up")}
-              type="button"
-            >
-              <Play size={13} strokeWidth={2} />
-              Start all
-            </button>
-            <button
-              className="flex items-center gap-1.5 rounded-lg border border-line-strong px-3 py-1.5 text-[12px] transition-soft hover:border-danger hover:text-danger"
-              onClick={() => onAll("down")}
-              type="button"
-            >
-              <Square size={13} strokeWidth={2} />
-              Stop all
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          actions={
+            <>
+              <Button icon={Play} onClick={() => onAll("up")}>
+                Start all
+              </Button>
+              <Button
+                icon={Square}
+                onClick={() => onAll("down")}
+                variant="danger"
+              >
+                Stop all
+              </Button>
+            </>
+          }
+          description={`of ${projects.length} · server up for ${machine.uptime_hours} h${
+            broken.length > 0 ? ` · ${broken.length} failing` : ""
+          }`}
+          title={`${up.length} service${up.length > 1 ? "s" : ""} online`}
+        />
 
         <Repos
           busy={gitBusy}
@@ -222,46 +216,44 @@ export function Dashboard({
         </div>
 
         <div className="mt-6 flex flex-wrap gap-2">
-          <button
-            className="flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 font-semibold text-[12px] text-base transition-soft hover:bg-accent-strong"
+          <Button
+            icon={Server}
             onClick={() => onTerminal(null, "shell")}
-            type="button"
+            variant="inverse"
           >
-            <Server size={13} strokeWidth={2} />
             Terminal on the server
-          </button>
+          </Button>
           {serverAgent ? (
-            <button
-              className="flex items-center gap-1.5 rounded-lg border border-line-strong px-3.5 py-2 text-[12px] transition-soft hover:border-accent hover:text-accent-strong"
+            <Button
+              icon={Sparkles}
               onClick={() => onTerminal(null, serverAgent)}
-              type="button"
             >
-              <Sparkles size={13} strokeWidth={2} />
               {serverAgent === "codex" ? "Codex" : "Claude"} on the server
-            </button>
+            </Button>
           ) : null}
 
           {/*
             Reboot keeps its distance from the rest: it is the only button on
             this page that interrupts everyone, and the only one with no undo.
           */}
-          <button
-            className="ml-auto flex items-center gap-1.5 rounded-lg border border-line px-3.5 py-2 text-[12px] text-ink-4 transition-soft hover:border-danger hover:text-danger"
+          <Button
+            className="ml-auto"
+            icon={Power}
             onClick={onReboot}
             title="Stops every project and reboots the machine"
-            type="button"
+            variant="danger"
           >
-            <Power size={13} strokeWidth={2} />
             Reboot the server
-          </button>
+          </Button>
         </div>
 
         {capabilities?.processes === false ? null : (
           <>
-            <h2 className="mt-8 mb-3 flex items-center gap-1.5 font-mono text-[10px] text-ink-4 uppercase tracking-[0.09em]">
-              <Activity size={12} /> What weighs
+            <h2 className="mt-8 mb-3 flex items-center gap-1.5 text-ink-3">
+              <Activity size={12} strokeWidth={1.5} />
+              <Label>What weighs</Label>
             </h2>
-            <div className="overflow-hidden rounded-xl border border-line bg-surface">
+            <div className="overflow-hidden rounded-md border border-line bg-surface">
               <Processes list={processes} onStop={onStopProcess} />
             </div>
           </>
@@ -269,10 +261,11 @@ export function Dashboard({
 
         {capabilities?.sessions === false ? null : (
           <>
-            <h2 className="mt-8 mb-3 flex items-center gap-1.5 font-mono text-[10px] text-ink-4 uppercase tracking-[0.09em]">
-              <Sparkles size={12} /> Background sessions
+            <h2 className="mt-8 mb-3 flex items-center gap-1.5 text-ink-3">
+              <Sparkles size={12} strokeWidth={1.5} />
+              <Label>Background sessions</Label>
             </h2>
-            <div className="overflow-hidden rounded-xl border border-line bg-surface">
+            <div className="overflow-hidden rounded-md border border-line bg-surface">
               <Sessions
                 list={sessions}
                 onClean={onCleanSessions}
@@ -283,8 +276,8 @@ export function Dashboard({
         )}
 
         <div className="mt-8 mb-3 flex items-center justify-between gap-3">
-          <h2 className="font-mono text-[10px] text-ink-4 uppercase tracking-[0.09em]">
-            Projects
+          <h2>
+            <Label>Projects</Label>
           </h2>
           <CheckButton
             busy={gitBusy}
@@ -338,30 +331,30 @@ function Card({
     project.state === "external";
 
   return (
-    <div className="rounded-xl border border-line bg-surface p-4 transition-soft hover:border-line-strong">
+    <div className="rounded-md border border-line bg-surface p-4 transition-soft hover:border-line-strong">
       <div className="flex items-start justify-between gap-3">
         <button
           className="min-w-0 text-left"
           onClick={() => onSelect(project.name)}
           type="button"
         >
-          <p className="flex items-center gap-2 truncate font-semibold hover:text-accent-strong">
+          <p className="flex items-center gap-2 truncate font-semibold text-ink hover:underline">
             {project.name}
             {status && status.behind > 0 ? (
-              <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-accent-veil px-1.5 py-px font-mono text-[10px] text-accent-strong">
-                <ArrowDownToLine size={10} />
+              <span className="flex shrink-0 items-center gap-0.5 rounded-sm border border-line-strong px-1.5 py-px font-data text-[10px] text-ink-2 tabular-nums">
+                <ArrowDownToLine size={10} strokeWidth={1.5} />
                 {status.behind}
               </span>
             ) : null}
           </p>
-          <p className="mt-0.5 truncate font-mono text-[10px] text-ink-4">
+          <p className="mt-0.5 truncate font-data text-[10px] text-ink-3">
             {project.host}:{project.port}
             {project.branch ? ` · ${project.branch}` : ""}
           </p>
         </button>
         <div className="flex shrink-0 flex-col items-end gap-1">
           <StatusPill state={project.state} />
-          <span className="font-mono text-[10px] text-ink-4 tabular-nums">
+          <span className="font-data text-[10px] text-ink-3 tabular-nums">
             {project.uptime || "—"}
             {project.ram_mb ? ` · ${memory(project.ram_mb)}` : ""}
           </span>
@@ -370,74 +363,59 @@ function Card({
 
       <div className="mt-3 flex flex-wrap gap-1.5">
         {status && status.behind > 0 ? (
-          <Mini
+          <Button
             disabled={busy}
             icon={ArrowDownToLine}
             onClick={() => onPull(project.name)}
+            size="sm"
           >
             Pull
-          </Mini>
+          </Button>
         ) : null}
-        <Mini
+        <Button
           disabled={busy}
           icon={running ? RotateCw : Play}
           onClick={() => onAct(running ? "restart" : "up", project.name)}
+          size="sm"
         >
           {running ? "Restart" : "Start"}
-        </Mini>
+        </Button>
         {running ? (
-          <Mini
+          <Button
             disabled={busy}
             icon={Square}
             onClick={() => onAct("down", project.name)}
+            size="sm"
           >
             Stop
-          </Mini>
+          </Button>
         ) : null}
-        <Mini
+        <Button
           icon={SquareTerminal}
           onClick={() => onTerminal(project.name, "shell")}
+          size="sm"
         >
           Terminal
-        </Mini>
+        </Button>
         {agent ? (
-          <Mini icon={Sparkles} onClick={() => onTerminal(project.name, agent)}>
+          <Button
+            icon={Sparkles}
+            onClick={() => onTerminal(project.name, agent)}
+            size="sm"
+          >
             {agent === "codex" ? "Codex" : "Claude"}
-          </Mini>
+          </Button>
         ) : null}
         {project.url ? (
-          <Mini
+          <Button
             icon={ExternalLink}
             onClick={() => window.pupitre.openUrl(project.url)}
+            size="sm"
           >
             Open
-          </Mini>
+          </Button>
         ) : null}
       </div>
     </div>
-  );
-}
-
-function Mini({
-  children,
-  onClick,
-  disabled,
-  icon: Icon,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  disabled?: boolean;
-  icon: typeof Cpu;
-}) {
-  return (
-    <button
-      className="flex items-center gap-1.5 rounded-md border border-line px-2.5 py-1 text-[11px] text-ink-2 transition-soft hover:border-accent hover:text-accent-strong disabled:opacity-40"
-      disabled={disabled}
-      onClick={onClick}
-      type="button"
-    >
-      <Icon size={12} strokeWidth={2} />
-      {children}
-    </button>
   );
 }

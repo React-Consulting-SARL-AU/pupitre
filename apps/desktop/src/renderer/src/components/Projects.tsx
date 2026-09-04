@@ -1,7 +1,9 @@
 import type { Registration } from "@shared/contract";
 import { Boxes, GitBranch, Plus, RotateCw, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { fieldsFrom, type ProjectFields, ProjectForm } from "./ProjectForm";
+import { Button } from "./ui/button";
+import { IconButton } from "./ui/icon-button";
 
 /**
  * The project registry, seen and edited from the app.
@@ -10,6 +12,17 @@ import { fieldsFrom, type ProjectFields, ProjectForm } from "./ProjectForm";
  * on the next deployment; what is "local" was added on the machine, here or by
  * an agent, and outlives it.
  */
+/** The button says what it does here, and the row says why it cannot. */
+function removeLabel(p: Registration): string {
+  if (p.origin !== "local") {
+    return "Comes from the stack repository — remove its row from projects.conf";
+  }
+  if (p.overrides) {
+    return `Restore the repository version of ${p.name}`;
+  }
+  return `Remove ${p.name} from the registry`;
+}
+
 export function Projects({ command }: { command: string }) {
   const [list, setList] = useState<Registration[] | null>(null);
   // `initial` absent = blank form: that is the component's default.
@@ -21,13 +34,13 @@ export function Projects({ command }: { command: string }) {
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState<string | null>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     setList(await window.pupitre.projects());
-  }
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   async function remove(p: Registration) {
     const question = p.overrides
@@ -47,37 +60,27 @@ export function Projects({ command }: { command: string }) {
     <div>
       <p className="text-ink-3 leading-relaxed">
         The registry that{" "}
-        <code className="font-mono text-ink-2">{command}</code> reads. A project
+        <code className="font-data text-ink-2">{command}</code> reads. A project
         added here is installed and published by the server, the way it knows
         how, and appears right away — and the same thing can be done from a
         terminal, which lets an agent create a project that will show up here
         with nothing more:
       </p>
-      <pre className="mt-2 overflow-x-auto rounded-lg border border-line bg-surface px-3 py-2 font-mono text-[11px] text-ink-3">
+      <pre className="mt-2 overflow-x-auto rounded-md border border-line bg-sunken px-3 py-2 font-data text-[11px] text-ink-2">
         {`echo 'my-site|my-site|https://…|bun|127.0.0.1|4400|my-site|bun run dev' \\\n  | ${command} project add`}
       </pre>
 
       <div className="mt-4 flex items-center gap-2">
-        <span className="flex items-center gap-1.5 font-mono text-[11px] text-ink-4">
-          <Boxes size={13} />
+        <span className="flex items-center gap-1.5 font-data text-[11px] text-ink-3">
+          <Boxes size={13} strokeWidth={1.5} />
           {list ? `${list.length} projects` : "reading…"}
         </span>
-        <button
-          className="ml-auto flex items-center gap-1.5 rounded-md border border-line px-2.5 py-1 text-[11px] text-ink-3 transition-soft hover:border-accent hover:text-accent-strong"
-          onClick={load}
-          type="button"
-        >
-          <RotateCw size={12} />
+        <Button className="ml-auto" icon={RotateCw} onClick={load} size="sm">
           Reload
-        </button>
-        <button
-          className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 font-medium text-[12px] text-base transition-soft hover:bg-accent-strong"
-          onClick={() => setEditing({})}
-          type="button"
-        >
-          <Plus size={13} />
+        </Button>
+        <Button icon={Plus} onClick={() => setEditing({})} variant="inverse">
           Add
-        </button>
+        </Button>
       </div>
 
       {editing ? (
@@ -96,12 +99,12 @@ export function Projects({ command }: { command: string }) {
       ) : null}
 
       {log ? (
-        <pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap rounded-lg border border-line bg-surface px-3 py-2 font-mono text-[11px] text-ink-3">
+        <pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap rounded-md border border-line bg-sunken px-3 py-2 font-data text-[11px] text-ink-2">
           {log}
         </pre>
       ) : null}
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-line bg-surface">
+      <div className="mt-4 overflow-hidden rounded-md border border-line bg-surface">
         {list?.map((p) => (
           <div
             className="flex items-center gap-3 border-line border-b px-4 py-2.5 last:border-b-0"
@@ -109,22 +112,28 @@ export function Projects({ command }: { command: string }) {
           >
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <p className="truncate font-medium text-[12px]">{p.name}</p>
+                <p className="truncate font-medium text-[12px] text-ink">
+                  {p.name}
+                </p>
                 {p.origin === "local" ? (
-                  <span className="rounded-full bg-accent-veil px-1.5 py-px font-mono text-[9px] text-accent-strong uppercase tracking-wide">
+                  <span className="label rounded-sm border border-line-strong px-1.5 py-px text-ink-2">
                     {p.overrides ? "overridden" : "local"}
                   </span>
                 ) : null}
                 {p.repo ? (
-                  <GitBranch className="shrink-0 text-ink-4" size={11} />
+                  <GitBranch
+                    className="shrink-0 text-ink-3"
+                    size={11}
+                    strokeWidth={1.5}
+                  />
                 ) : null}
                 {p.present ? null : (
-                  <span className="font-mono text-[10px] text-warn">
+                  <span className="font-data text-[10px] text-warn">
                     folder missing
                   </span>
                 )}
               </div>
-              <p className="truncate font-mono text-[10px] text-ink-4">
+              <p className="truncate font-data text-[10px] text-ink-3">
                 {p.dir} · {p.package_manager} · {p.host}:{p.port}
                 {p.subdomain === "-" ? "" : ` · ${p.subdomain}`}
               </p>
@@ -133,22 +142,21 @@ export function Projects({ command }: { command: string }) {
                 tool, never what it actually ran — and that is the line you go
                 looking for when an install did not do what you expected.
               */}
-              <p className="truncate font-mono text-[10px] text-ink-4">
-                <span className="text-ink-3">start</span> {p.command || "—"}
+              <p className="truncate font-data text-[10px] text-ink-3">
+                <span className="text-ink-4">start</span> {p.command || "—"}
               </p>
               {p.install_effective ? (
-                <p className="truncate font-mono text-[10px] text-ink-4">
-                  <span className="text-ink-3">install</span>{" "}
+                <p className="truncate font-data text-[10px] text-ink-3">
+                  <span className="text-ink-4">install</span>{" "}
                   {p.install_effective}
                   {p.install && p.install !== "-" ? null : (
-                    <span className="text-ink-4/70"> (derived)</span>
+                    <span className="text-ink-4"> (derived)</span>
                   )}
                 </p>
               ) : null}
             </div>
 
-            <button
-              className="shrink-0 rounded-md border border-line px-2 py-1 text-[11px] text-ink-3 transition-soft hover:border-accent hover:text-accent-strong"
+            <Button
               onClick={() =>
                 setEditing({
                   initial: fieldsFrom(p),
@@ -156,30 +164,17 @@ export function Projects({ command }: { command: string }) {
                   derivedInstall: p.install_effective,
                 })
               }
-              type="button"
+              size="sm"
             >
               Edit
-            </button>
-            <button
-              aria-label={
-                p.overrides && p.origin === "local"
-                  ? `Restore the repository version of ${p.name}`
-                  : `Remove ${p.name}`
-              }
-              className="shrink-0 rounded-md border border-line p-1 text-ink-4 transition-soft hover:border-danger hover:text-danger disabled:opacity-30"
+            </Button>
+            <IconButton
               disabled={p.origin !== "local" || busy}
+              icon={Trash2}
+              label={removeLabel(p)}
               onClick={() => remove(p)}
-              title={
-                p.origin === "local"
-                  ? p.overrides
-                    ? "Restore the repository version"
-                    : "Remove from the registry"
-                  : "Comes from the stack repository — remove its row from projects.conf"
-              }
-              type="button"
-            >
-              <Trash2 size={13} />
-            </button>
+              variant="danger"
+            />
           </div>
         ))}
       </div>

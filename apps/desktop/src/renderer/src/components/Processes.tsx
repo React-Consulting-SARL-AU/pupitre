@@ -1,5 +1,7 @@
 import type { ProcessInfo } from "@shared/contract";
 import { X } from "lucide-react";
+import { EmptyState } from "./ui/empty-state";
+import { IconButton } from "./ui/icon-button";
 
 /**
  * What weighs on the machine, heaviest first.
@@ -16,9 +18,7 @@ export function Processes({
   onStop: (pid: number, what: string) => void;
 }) {
   if (list.length === 0) {
-    return (
-      <p className="px-4 py-6 text-center text-ink-4">No notable process</p>
-    );
+    return <EmptyState title="No notable process" />;
   }
 
   const maxCpu = Math.max(...list.map((p) => p.cpu), 1);
@@ -33,39 +33,37 @@ export function Processes({
                 {p.command}
               </span>
               {p.project ? (
-                <span className="shrink-0 rounded bg-accent-veil px-1.5 py-0.5 font-mono text-[10px] text-accent-strong">
+                <span className="shrink-0 rounded-sm border border-line-strong px-1.5 py-0.5 font-data text-[10px] text-ink-2">
                   {p.project}
                 </span>
               ) : null}
             </div>
             <div className="mt-1 h-[3px] overflow-hidden rounded-full bg-sunken">
               <div
-                className="h-full rounded-full bg-accent transition-[width] duration-500 ease-out"
+                className="h-full rounded-full bg-ink-3 transition-[width] duration-500 ease-out"
                 style={{ width: `${Math.max(2, (p.cpu / maxCpu) * 100)}%` }}
               />
             </div>
           </div>
 
-          <div className="shrink-0 text-right font-mono text-[11px] tabular-nums">
+          <div className="shrink-0 text-right font-data text-[11px] tabular-nums">
             <div className={p.cpu > 50 ? "text-warn" : "text-ink-2"}>
               {p.cpu.toFixed(0)} %
             </div>
-            <div className={p.ram_mb > 2048 ? "text-warn" : "text-ink-4"}>
+            <div className={p.ram_mb > 2048 ? "text-warn" : "text-ink-3"}>
               {p.ram_mb >= 1024
                 ? `${(p.ram_mb / 1024).toFixed(1)} GB`
                 : `${p.ram_mb} MB`}
             </div>
           </div>
 
-          <button
-            aria-label={`Stop ${p.command}`}
-            className="shrink-0 rounded-md border border-line p-1 text-ink-4 opacity-0 transition-soft hover:border-danger hover:text-danger focus-visible:opacity-100 group-hover:opacity-100"
+          <IconButton
+            className="opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
+            icon={X}
+            label={`Stop ${p.command} (pid ${p.pid})`}
             onClick={() => onStop(p.pid, p.command)}
-            title={`Stop ${p.command} (pid ${p.pid})`}
-            type="button"
-          >
-            <X size={13} />
-          </button>
+            variant="danger"
+          />
         </div>
       ))}
     </div>

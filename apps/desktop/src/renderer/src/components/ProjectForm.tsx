@@ -1,7 +1,10 @@
 import type { Registration } from "@shared/contract";
-import { FolderPlus, Loader2, TriangleAlert } from "lucide-react";
+import { FolderPlus } from "lucide-react";
 import { useState } from "react";
 import { useAppState } from "../stores/state";
+import { Button } from "./ui/button";
+import { Callout } from "./ui/callout";
+import { Field, fieldControlClass } from "./ui/field";
 
 /**
  * A registry row, as a form.
@@ -58,29 +61,6 @@ export function fieldsFrom(p: Registration): ProjectFields {
   };
 }
 
-const FIELD =
-  "rounded-md border border-line bg-base px-2.5 py-1.5 font-mono text-[12px] outline-none focus:border-accent";
-
-function Row({
-  label,
-  help,
-  children,
-}: {
-  label: string;
-  help?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="font-mono text-[10px] text-ink-4 uppercase tracking-[0.08em]">
-        {label}
-      </span>
-      {children}
-      {help ? <span className="text-[11px] text-ink-4">{help}</span> : null}
-    </label>
-  );
-}
-
 export function ProjectForm({
   initial = EMPTY,
   origin,
@@ -130,40 +110,40 @@ export function ProjectForm({
 
   return (
     <form
-      className="animate-[fade-in_180ms_ease-out] rounded-xl border border-line-strong bg-surface p-4"
+      className="animate-[fade-in_180ms_ease-out] rounded-md border border-line bg-surface p-4"
       onSubmit={(e) => {
         e.preventDefault();
         save();
       }}
     >
       <div className="grid gap-3 sm:grid-cols-2">
-        <Row help="short, unique identifier" label="Name">
+        <Field help="short, unique identifier" label="Name">
           <input
-            className={FIELD}
+            className={fieldControlClass}
             onChange={(e) => update("name", e.target.value)}
             placeholder="my-site"
             value={fields.name}
           />
-        </Row>
-        <Row help="relative to the projects root" label="Folder">
+        </Field>
+        <Field help="relative to the projects root" label="Folder">
           <input
-            className={FIELD}
+            className={fieldControlClass}
             onChange={(e) => update("dir", e.target.value)}
             placeholder="my-site/apps/web"
             value={fields.dir}
           />
-        </Row>
-        <Row help="empty = plain folder, no clone" label="Git repository">
+        </Field>
+        <Field help="empty = plain folder, no clone" label="Git repository">
           <input
-            className={FIELD}
+            className={fieldControlClass}
             onChange={(e) => update("repo_url", e.target.value)}
             placeholder="https://example.org/me/my-site.git"
             value={fields.repo_url}
           />
-        </Row>
-        <Row label="Package manager">
+        </Field>
+        <Field label="Package manager">
           <select
-            className={FIELD}
+            className={fieldControlClass}
             onChange={(e) =>
               update(
                 "package_manager",
@@ -185,52 +165,52 @@ export function ProjectForm({
           </select>
           {managers.includes(fields.package_manager) ? null : (
             <input
-              className={`${FIELD} mt-1`}
+              className={`${fieldControlClass} mt-1`}
               onChange={(e) => update("package_manager", e.target.value)}
               placeholder="the name the server expects"
               value={fields.package_manager}
             />
           )}
-        </Row>
-        <Row help="127.0.0.1, unless there is a reason" label="Host">
+        </Field>
+        <Field help="127.0.0.1, unless there is a reason" label="Host">
           <input
-            className={FIELD}
+            className={fieldControlClass}
             onChange={(e) => update("host", e.target.value)}
             value={fields.host}
           />
-        </Row>
-        <Row help="unique on the machine" label="Port">
+        </Field>
+        <Field help="unique on the machine" label="Port">
           <input
-            className={FIELD}
+            className={fieldControlClass}
             inputMode="numeric"
             onChange={(e) => update("port", e.target.value)}
             placeholder="4400"
             value={fields.port}
           />
-        </Row>
-        <Row help="empty = not published publicly" label="Subdomain">
+        </Field>
+        <Field help="empty = not published publicly" label="Subdomain">
           <input
-            className={FIELD}
+            className={fieldControlClass}
             onChange={(e) => update("subdomain", e.target.value)}
             placeholder="my-site"
             value={fields.subdomain}
           />
-        </Row>
+        </Field>
       </div>
 
       <div className="mt-3 grid gap-3">
-        <Row
+        <Field
           help="run from the folder to start the project"
           label="Start command"
         >
           <input
-            className={FIELD}
+            className={fieldControlClass}
             onChange={(e) => update("command", e.target.value)}
             placeholder="bun run dev --port 4400"
             value={fields.command}
           />
-        </Row>
-        <Row
+        </Field>
+        <Field
           help={
             derivedInstall
               ? `empty = "${derivedInstall}", derived from the package manager`
@@ -239,58 +219,45 @@ export function ProjectForm({
           label="Install command"
         >
           <input
-            className={FIELD}
+            className={fieldControlClass}
             onChange={(e) => update("install", e.target.value)}
             placeholder={derivedInstall || "bun install"}
             value={fields.install}
           />
-        </Row>
+        </Field>
       </div>
 
       {origin === "stack" ? (
-        <p className="mt-3 flex items-start gap-2 text-[11px] text-ink-4">
-          <TriangleAlert className="mt-px shrink-0 text-warn" size={12} />
-          This row comes from the stack repository. Saving it writes a local
-          version that will override it on this machine — the repository itself
-          does not move.
-        </p>
+        <div className="mt-3">
+          <Callout tone="warn">
+            This row comes from the stack repository. Saving it writes a local
+            version that will override it on this machine — the repository
+            itself does not move.
+          </Callout>
+        </div>
       ) : null}
 
       {error ? (
-        <p className="mt-3 flex items-start gap-2 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 font-mono text-[11px] text-danger">
-          <TriangleAlert className="mt-px shrink-0" size={13} />
-          {error}
-        </p>
+        <div className="mt-3">
+          <Callout tone="danger">{error}</Callout>
+        </div>
       ) : null}
 
       {log && !error ? (
-        <pre className="mt-3 max-h-32 overflow-auto whitespace-pre-wrap rounded-lg border border-line bg-sunken px-3 py-2 font-mono text-[11px] text-ink-3">
+        <pre className="mt-3 max-h-32 overflow-auto whitespace-pre-wrap rounded-md border border-line bg-sunken px-3 py-2 font-data text-[11px] text-ink-2">
           {log}
         </pre>
       ) : null}
 
       <div className="mt-4 flex items-center gap-2">
-        <button
-          className="flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 font-medium text-[12px] text-base transition-soft hover:bg-accent-strong disabled:opacity-40"
-          disabled={busy}
-          type="submit"
-        >
-          {busy ? (
-            <Loader2 className="animate-spin" size={13} />
-          ) : (
-            <FolderPlus size={13} />
-          )}
+        <Button icon={FolderPlus} loading={busy} submit variant="inverse">
           Save
-        </button>
-        <button
-          className="rounded-lg border border-line px-3 py-2 text-[12px] text-ink-3 transition-soft hover:border-line-strong"
-          onClick={onCancel}
-          type="button"
-        >
+        </Button>
+        <Button onClick={onCancel} variant="discreet">
           Cancel
-        </button>
+        </Button>
         {busy ? (
-          <span className="font-mono text-[11px] text-ink-4">
+          <span className="font-data text-[11px] text-ink-3">
             the server is working — this can take a minute
           </span>
         ) : null}
