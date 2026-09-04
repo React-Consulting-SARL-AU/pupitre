@@ -22,15 +22,51 @@ import { ARCHITECTURES } from "@pupitre/shared/catalog";
 
 export const AGENT_MANIFEST = "manifest.json";
 
+export const AGENT_RELEASE = "release.json";
+
 export interface AgentBinaryEntry {
   file: string;
   sha256: string;
   bytes: number;
+  /** Ed25519, base64, over `pupitred\n<version>\n<arch>\n<sha256>\n`. */
+  signature?: string;
 }
 
 export interface AgentManifest {
   built_at: string;
+  version?: string;
+  notes?: string[];
   binaries: Record<string, AgentBinaryEntry>;
+}
+
+/**
+ * What the publication chain leaves next to the binaries.
+ *
+ * A plain `go build` writes none of it, and the app then carries an agent it
+ * can push onto a bare machine but cannot offer as an update: replacing a
+ * running agent is the one gesture that needs a signature, and inventing one
+ * here would only get it refused on the server.
+ */
+export interface AgentRelease {
+  version: string;
+  notes?: string[];
+  signatures?: Record<string, string>;
+}
+
+export function readAgentRelease(dir: string): AgentRelease | null {
+  const path = join(dir, AGENT_RELEASE);
+
+  if (!existsSync(path)) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(readFileSync(path, "utf8")) as AgentRelease;
+
+    return parsed.version ? parsed : null;
+  } catch {
+    return null;
+  }
 }
 
 export interface EmbedOptions {
@@ -55,6 +91,7 @@ export function embedAgent({
 }: EmbedOptions): EmbedResult {
   mkdirSync(to, { recursive: true });
 
+  const release = readAgentRelease(from);
   const binaries: Record<string, AgentBinaryEntry> = {};
   const missing: string[] = [];
 
@@ -72,10 +109,13 @@ export function embedAgent({
     copyFileSync(source, join(to, file));
     chmodSync(join(to, file), 0o755);
 
+    const signature = release?.signatures?.[arch];
+
     binaries[arch] = {
       bytes: content.byteLength,
       file,
       sha256: createHash("sha256").update(content).digest("hex"),
+      ...(signature ? { signature } : {}),
     };
   }
 
@@ -93,6 +133,7 @@ export function embedAgent({
   const manifest: AgentManifest = {
     binaries,
     built_at: now().toISOString(),
+    ...(release ? { notes: release.notes ?? [], version: release.version } : {}),
   };
 
   writeFileSync(path, `${JSON.stringify(manifest, null, 2)}\n`);
