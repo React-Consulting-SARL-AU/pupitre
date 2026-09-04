@@ -5,8 +5,10 @@ import {
   Download,
   Laptop,
   LogOut,
+  ScrollText,
   Server,
   SlidersHorizontal,
+  Users,
 } from "lucide-react"
 import { OrganizationSwitcher } from "@/components/dashboard/organization-switcher"
 import { SidebarLink } from "@/components/dashboard/sidebar-link"
@@ -18,7 +20,14 @@ import { ENTITLEMENT_LABELS } from "@/lib/domain/server-status"
 
 const ORGANIZATION_LINKS = [
   { to: "/dashboard/servers", label: "Serveurs", icon: Server },
+  { to: "/dashboard/members", label: "Membres", icon: Users },
 ]
+
+const AUDIT_LINK = {
+  to: "/dashboard/audit",
+  label: "Journal",
+  icon: ScrollText,
+}
 
 const BILLING_LINK = {
   to: "/dashboard/billing",
@@ -35,14 +44,17 @@ const ACCOUNT_LINKS = [
 export function DashboardSidebar() {
   const { user, entitlement } = useDashboardContext()
   const canManageBilling = usePermission("billing:manage")
+  const canReadAudit = usePermission("audit:view")
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const groups = [
     {
       label: "Organisation",
-      links: canManageBilling
-        ? [...ORGANIZATION_LINKS, BILLING_LINK]
-        : ORGANIZATION_LINKS,
+      links: [
+        ...ORGANIZATION_LINKS,
+        ...(canReadAudit ? [AUDIT_LINK] : []),
+        ...(canManageBilling ? [BILLING_LINK] : []),
+      ],
     },
     { label: "Mon compte", links: ACCOUNT_LINKS },
   ]

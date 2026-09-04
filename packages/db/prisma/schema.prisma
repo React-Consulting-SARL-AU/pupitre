@@ -186,44 +186,60 @@ model Device {
   lastUsedAt  DateTime?
   createdAt   DateTime  @default(now())
 
-  enrolledServers Server[] @relation("ServerEnrollingDevice")
+  enrolledServers   Server[]              @relation("ServerEnrollingDevice")
+  serverRevocations ServerRevokedDevice[]
 
   @@index([userId])
 }
 
 model Server {
-  id                    String         @id @default(cuid())
-  organizationId        String
-  organization          Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  name                  String
-  host                  String?
-  port                  Int            @default(22)
-  sshUser               String         @default("dev")
-  hostFingerprint       String?
-  arch                  String
-  agentVersion          String?
-  targetVersion         String?
-  serverTokenHash       String?        @unique
-  enrollmentTokenHash   String?        @unique
-  enrollmentExpiresAt   DateTime?
-  entitlementValidUntil DateTime?
-  decommissionAt        DateTime?
-  status                ServerStatus   @default(enrolling)
-  channel               ReleaseChannel @default(stable)
-  deviceId              String?
-  device                Device?        @relation("ServerEnrollingDevice", fields: [deviceId], references: [id], onDelete: SetNull)
-  assignedUserId        String?
-  assignedUser          User?          @relation("ServerAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
-  lastHeartbeatAt       DateTime?
-  metrics               Json?
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
+  id                     String                @id @default(cuid())
+  organizationId         String
+  organization           Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name                   String
+  host                   String?
+  port                   Int                   @default(22)
+  sshUser                String                @default("dev")
+  hostFingerprint        String?
+  arch                   String
+  agentVersion           String?
+  targetVersion          String?
+  serverTokenHash        String?               @unique
+  enrollmentTokenHash    String?               @unique
+  enrollmentExpiresAt    DateTime?
+  entitlementValidUntil  DateTime?
+  decommissionAt         DateTime?
+  status                 ServerStatus          @default(enrolling)
+  channel                ReleaseChannel        @default(stable)
+  deviceId               String?
+  device                 Device?               @relation("ServerEnrollingDevice", fields: [deviceId], references: [id], onDelete: SetNull)
+  assignedUserId         String?
+  assignedUser           User?                 @relation("ServerAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  pendingAssignmentEmail String?
+  revokedDevices         ServerRevokedDevice[]
+  lastHeartbeatAt        DateTime?
+  metrics                Json?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
 
   @@index([organizationId])
   @@index([assignedUserId])
   @@index([deviceId])
   @@index([status])
   @@index([decommissionAt])
+  @@index([pendingAssignmentEmail])
+}
+
+model ServerRevokedDevice {
+  serverId        String
+  server          Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  deviceId        String
+  device          Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  revokedByUserId String?
+  revokedAt       DateTime @default(now())
+
+  @@id([serverId, deviceId])
+  @@index([deviceId])
 }
 
 model Subscription {

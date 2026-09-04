@@ -407,6 +407,7 @@ export const ModelName = {
   DeviceCode: 'DeviceCode',
   Device: 'Device',
   Server: 'Server',
+  ServerRevokedDevice: 'ServerRevokedDevice',
   Subscription: 'Subscription',
   OrganizationBilling: 'OrganizationBilling',
   Release: 'Release',
@@ -427,7 +428,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "deviceCode" | "device" | "server" | "subscription" | "organizationBilling" | "release" | "event" | "stripeEvent"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "deviceCode" | "device" | "server" | "serverRevokedDevice" | "subscription" | "organizationBilling" | "release" | "event" | "stripeEvent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1171,6 +1172,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ServerRevokedDevice: {
+      payload: Prisma.$ServerRevokedDevicePayload<ExtArgs>
+      fields: Prisma.ServerRevokedDeviceFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ServerRevokedDeviceFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerRevokedDevicePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ServerRevokedDeviceFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerRevokedDevicePayload>
+        }
+        findFirst: {
+          args: Prisma.ServerRevokedDeviceFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerRevokedDevicePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ServerRevokedDeviceFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerRevokedDevicePayload>
+        }
+        findMany: {
+          args: Prisma.ServerRevokedDeviceFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerRevokedDevicePayload>[]
+        }
+        create: {
+          args: Prisma.ServerRevokedDeviceCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerRevokedDevicePayload>
+        }
+        createMany: {
+          args: Prisma.ServerRevokedDeviceCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ServerRevokedDeviceCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerRevokedDevicePayload>[]
+        }
+        delete: {
+          args: Prisma.ServerRevokedDeviceDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerRevokedDevicePayload>
+        }
+        update: {
+          args: Prisma.ServerRevokedDeviceUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerRevokedDevicePayload>
+        }
+        deleteMany: {
+          args: Prisma.ServerRevokedDeviceDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ServerRevokedDeviceUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ServerRevokedDeviceUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerRevokedDevicePayload>[]
+        }
+        upsert: {
+          args: Prisma.ServerRevokedDeviceUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerRevokedDevicePayload>
+        }
+        aggregate: {
+          args: Prisma.ServerRevokedDeviceAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateServerRevokedDevice>
+        }
+        groupBy: {
+          args: Prisma.ServerRevokedDeviceGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ServerRevokedDeviceGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ServerRevokedDeviceCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ServerRevokedDeviceCountAggregateOutputType> | number
+        }
+      }
+    }
     Subscription: {
       payload: Prisma.$SubscriptionPayload<ExtArgs>
       fields: Prisma.SubscriptionFieldRefs
@@ -1730,6 +1805,7 @@ export const ServerScalarFieldEnum = {
   channel: 'channel',
   deviceId: 'deviceId',
   assignedUserId: 'assignedUserId',
+  pendingAssignmentEmail: 'pendingAssignmentEmail',
   lastHeartbeatAt: 'lastHeartbeatAt',
   metrics: 'metrics',
   createdAt: 'createdAt',
@@ -1737,6 +1813,16 @@ export const ServerScalarFieldEnum = {
 } as const
 
 export type ServerScalarFieldEnum = (typeof ServerScalarFieldEnum)[keyof typeof ServerScalarFieldEnum]
+
+
+export const ServerRevokedDeviceScalarFieldEnum = {
+  serverId: 'serverId',
+  deviceId: 'deviceId',
+  revokedByUserId: 'revokedByUserId',
+  revokedAt: 'revokedAt'
+} as const
+
+export type ServerRevokedDeviceScalarFieldEnum = (typeof ServerRevokedDeviceScalarFieldEnum)[keyof typeof ServerRevokedDeviceScalarFieldEnum]
 
 
 export const SubscriptionScalarFieldEnum = {
@@ -2127,6 +2213,7 @@ export type GlobalOmitConfig = {
   deviceCode?: Prisma.DeviceCodeOmit
   device?: Prisma.DeviceOmit
   server?: Prisma.ServerOmit
+  serverRevokedDevice?: Prisma.ServerRevokedDeviceOmit
   subscription?: Prisma.SubscriptionOmit
   organizationBilling?: Prisma.OrganizationBillingOmit
   release?: Prisma.ReleaseOmit

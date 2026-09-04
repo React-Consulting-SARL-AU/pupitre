@@ -50,7 +50,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-03 | Serveurs, clés par appareil, config SSH propre à l'app | fait | `feat/APP-03-servers-keys` | fusionnée |
 | APP-04 | Écran d'inspection | fait | `feat/APP-04-inspection` | fusionnée |
 | APP-05 | Catalogue et configuration des services | fait | `feat/APP-05-catalog` | fusionnée |
-| APP-06 | Installation en direct et rapport | à faire | | |
+| APP-06 | Installation en direct et rapport | fait | `feat/APP-06-install` | fusionnée |
 | APP-07 | Durcissement et bascule root → dev | à faire | | |
 | APP-08 | Premier projet | à faire | | |
 | APP-09 | Tableau de bord et projets sur le nouveau protocole | à faire | | |
@@ -79,7 +79,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-07 | Stripe Managed Payments : checkout, portail, webhooks, réconciliation | fait | `feat/PLT-07-stripe` | fusionnée |
 | PLT-08 | Console : shell, connexion, serveurs, appareils | fait | `feat/PLT-08-console` | fusionnée |
 | PLT-09 | Console : abonnement, téléchargements, profil | fait | `feat/PLT-09-billing-console` | fusionnée |
-| PLT-10 | Organisations : membres, invitations, attribution, audit | à faire | | |
+| PLT-10 | Organisations : membres, invitations, attribution, audit | fait | `feat/PLT-10-teams` | fusionnée |
 | PLT-11 | Emails transactionnels | à faire | | |
 | PLT-12 | Alertes et page de statut | à faire | | |
 | PLT-13 | Passkeys et MFA | à faire | | |

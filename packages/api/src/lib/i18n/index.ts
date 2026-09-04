@@ -30,6 +30,13 @@ const FR = {
   device_exists_fix:
     "Utilisez l'appareil déjà enregistré, ou ajoutez-en un avec une autre clé.",
   server_not_found: "Ce serveur n'existe pas.",
+  assignee_not_a_member:
+    "Cette personne n'est pas membre de cette organisation.",
+  assignee_not_a_member_fix:
+    "Invitez-la d'abord, ou attribuez le serveur à son adresse email.",
+  already_a_member: "Cette personne est déjà membre de l'organisation.",
+  already_a_member_fix:
+    "Attribuez-lui le serveur directement, sans passer par une invitation.",
   release_not_found: "Cette version de l'agent n'existe pas.",
   release_not_found_fix:
     "Demandez la dernière version publiée : GET /releases/agent/latest.",
@@ -117,6 +124,12 @@ const EN: Record<MessageKey, string> = {
   device_exists_fix:
     "Use the device already registered, or add one with another key.",
   server_not_found: "This server does not exist.",
+  assignee_not_a_member: "This person is not a member of this organization.",
+  assignee_not_a_member_fix:
+    "Invite them first, or assign the server to their email address.",
+  already_a_member: "This person is already a member of the organization.",
+  already_a_member_fix:
+    "Assign the server to them directly, without an invitation.",
   release_not_found: "This agent version does not exist.",
   release_not_found_fix:
     "Ask for the latest published version: GET /releases/agent/latest.",
