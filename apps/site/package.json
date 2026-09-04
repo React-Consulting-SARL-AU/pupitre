@@ -7,10 +7,11 @@
     "dev": "astro dev --port 4321",
     "build": "astro build",
     "preview": "astro preview --port 4321",
-    "lint": "ultracite check",
+    "lint": "ultracite check && bun run check:content",
     "lint:fix": "ultracite fix",
     "check:types": "astro check",
-    "test": "bun test"
+    "check:content": "bun scripts/check-content.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@pupitre/design": "workspace:*",
@@ -24,6 +25,7 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
     "ultracite": "7.8.3",
+    "vitest": "^3.2.7",
     "wrangler": "^4.125.0"
   }
 }

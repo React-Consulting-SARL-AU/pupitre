@@ -4,6 +4,7 @@ import { defineConfig } from "astro/config"
 export default defineConfig({
   site: "https://pupitre.sh",
   output: "static",
+  trailingSlash: "always",
   i18n: {
     defaultLocale: "en",
     locales: ["en", "fr"],

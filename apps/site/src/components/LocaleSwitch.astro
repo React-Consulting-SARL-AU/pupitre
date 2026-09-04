@@ -1,0 +1,23 @@
+---
+import {
+  alternateLocale,
+  localeFromPath,
+  localizePath,
+  translator,
+} from "../lib/i18n"
+
+const pathname = Astro.url.pathname
+const locale = localeFromPath(pathname)
+const target = alternateLocale(locale)
+const t = translator(locale)
+---
+
+<a
+  href={localizePath(pathname, target)}
+  hreflang={target}
+  lang={target}
+  aria-label={t("locale.alternateName")}
+  class="label px-2 py-2 text-ink-2 hover:text-ink"
+>
+  {target.toUpperCase()}
+</a>

@@ -1,0 +1,14 @@
+---
+interface Props {
+  href: string
+  label: string
+  os?: string
+}
+
+const { href, label, os } = Astro.props
+---
+
+<a href={href} class="btn btn-primary">
+  {label}
+  {os && <span class="font-data text-[12px] tabular-nums">{os}</span>}
+</a>

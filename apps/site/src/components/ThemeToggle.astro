@@ -1,0 +1,60 @@
+---
+import { localeFromPath, translator } from "../lib/i18n"
+import { THEMES } from "../lib/theme"
+
+const t = translator(localeFromPath(Astro.url.pathname))
+---
+
+<div
+  role="group"
+  aria-label={t("theme.label")}
+  data-theme-toggle
+  class="inline-flex rounded-md border border-line-strong p-0.5"
+>
+  {
+    THEMES.map((theme) => (
+      <button
+        type="button"
+        data-theme-option={theme}
+        aria-pressed={theme === "system" ? "true" : "false"}
+        class="label rounded-sm px-2.5 py-1.5 text-ink-2 hover:text-ink aria-pressed:bg-inverse aria-pressed:text-inverse-ink"
+      >
+        {t(`theme.${theme}`)}
+      </button>
+    ))
+  }
+</div>
+
+<script>
+  import {
+    applyTheme,
+    parseTheme,
+    themeCookie,
+    themeFromCookie,
+  } from "../lib/theme"
+
+  const options = document.querySelectorAll<HTMLButtonElement>(
+    "[data-theme-option]"
+  )
+
+  function sync(theme: string): void {
+    for (const option of options) {
+      option.setAttribute(
+        "aria-pressed",
+        String(option.dataset.themeOption === theme)
+      )
+    }
+  }
+
+  sync(themeFromCookie(document.cookie))
+
+  for (const option of options) {
+    option.addEventListener("click", () => {
+      const theme = parseTheme(option.dataset.themeOption)
+
+      applyTheme(document.documentElement, theme)
+      document.cookie = themeCookie(theme, location.protocol === "https:")
+      sync(theme)
+    })
+  }
+</script>

@@ -1,7 +1,7 @@
 ---
-import Hero from "../components/Hero.astro"
-import Base from "../layouts/Base.astro"
-import { localeFromPath, translator } from "../lib/i18n"
+import Hero from "../../components/Hero.astro"
+import Base from "../../layouts/Base.astro"
+import { localeFromPath, translator } from "../../lib/i18n"
 
 const t = translator(localeFromPath(Astro.url.pathname))
 ---

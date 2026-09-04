@@ -1,22 +1,69 @@
 ---
 import "../styles/global.css"
+import Footer from "../components/Footer.astro"
+import Nav from "../components/Nav.astro"
+import {
+  alternateLocale,
+  type Locale,
+  localeFromPath,
+  translator,
+} from "../lib/i18n"
+import { alternateLinks, canonicalUrl } from "../lib/seo"
+import { THEME_BOOT_SCRIPT } from "../lib/theme"
 
 interface Props {
   title: string
-  lang?: "en" | "fr"
+  description: string
 }
 
-const { title, lang = "en" } = Astro.props
+const OG_LOCALES: Record<Locale, string> = { en: "en_US", fr: "fr_FR" }
+const FONTS_HREF =
+  "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=JetBrains+Mono:wght@400;500&display=swap"
+
+const { title, description } = Astro.props
+const pathname = Astro.url.pathname
+const locale = localeFromPath(pathname)
+const t = translator(locale)
+const canonical = canonicalUrl(pathname)
 ---
 
 <!doctype html>
-<html lang={lang}>
+<html lang={locale}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script is:inline set:html={THEME_BOOT_SCRIPT} />
     <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="canonical" href={canonical} />
+    {
+      alternateLinks(pathname).map((link) => (
+        <link rel="alternate" hreflang={link.hreflang} href={link.href} />
+      ))
+    }
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={OG_LOCALES[locale]} />
+    <meta
+      property="og:locale:alternate"
+      content={OG_LOCALES[alternateLocale(locale)]}
+    />
+    <meta property="og:site_name" content={t("site.name")} />
+    <meta name="twitter:card" content="summary" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href={FONTS_HREF} />
   </head>
-  <body class="min-h-screen bg-base text-ink">
-    <slot />
+  <body class="flex min-h-dvh flex-col bg-base text-ink">
+    <a href="#main" class="skip-link">{t("a11y.skip")}</a>
+    <Nav />
+    <main id="main" class="flex-1">
+      <slot />
+    </main>
+    <Footer />
   </body>
 </html>

@@ -1,0 +1,53 @@
+---
+import {
+  localeFromPath,
+  localizePath,
+  stripLocale,
+  translator,
+} from "../lib/i18n"
+import Brand from "./Brand.astro"
+import DownloadButton from "./DownloadButton.astro"
+import LocaleSwitch from "./LocaleSwitch.astro"
+import ThemeToggle from "./ThemeToggle.astro"
+
+const pathname = Astro.url.pathname
+const locale = localeFromPath(pathname)
+const t = translator(locale)
+const current = stripLocale(pathname)
+
+const links = [
+  { href: "/docs/", label: t("nav.docs") },
+  { href: "/pricing/", label: t("nav.pricing") },
+  { href: "/download/", label: t("nav.download") },
+  { href: "/blog/", label: t("nav.blog") },
+]
+---
+
+<header class="border-line border-b">
+  <div
+    class="mx-auto flex max-w-5xl flex-wrap items-center gap-x-8 gap-y-2 px-6 py-3"
+  >
+    <Brand />
+    <nav aria-label={t("nav.label")} class="flex flex-wrap items-center gap-x-5">
+      {
+        links.map((link) => (
+          <a
+            href={localizePath(link.href, locale)}
+            aria-current={current.startsWith(link.href) ? "page" : undefined}
+            class="py-2 text-ink-2 hover:text-ink aria-[current=page]:text-ink"
+          >
+            {link.label}
+          </a>
+        ))
+      }
+    </nav>
+    <div class="ms-auto flex flex-wrap items-center gap-x-3 gap-y-2">
+      <ThemeToggle />
+      <LocaleSwitch />
+      <DownloadButton
+        href={localizePath("/download/", locale)}
+        label={t("nav.cta")}
+      />
+    </div>
+  </div>
+</header>

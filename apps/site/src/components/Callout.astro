@@ -1,0 +1,57 @@
+---
+import { localeFromPath, translator } from "../lib/i18n"
+
+type Kind = "info" | "warn" | "danger"
+
+interface Props {
+  kind?: Kind
+  title?: string
+}
+
+const RULE: Record<Kind, string> = {
+  info: "border-l-line-strong",
+  warn: "border-l-warn",
+  danger: "border-l-danger",
+}
+
+const MARK: Record<Kind, "outline" | "filled" | undefined> = {
+  info: undefined,
+  warn: "outline",
+  danger: "filled",
+}
+
+const { kind = "info", title } = Astro.props
+const t = translator(localeFromPath(Astro.url.pathname))
+const heading = title ?? t(`callout.${kind}`)
+const mark = MARK[kind]
+---
+
+<aside
+  role="note"
+  data-kind={kind}
+  class:list={[
+    "my-6 rounded-md border border-line border-l-2 bg-surface px-4 py-3",
+    RULE[kind],
+  ]}
+>
+  <p class="label mb-1 flex items-center gap-2 text-ink-2">
+    {
+      mark && (
+        <span
+          aria-hidden="true"
+          data-mark={mark}
+          class:list={[
+            "data grid size-4 place-items-center rounded-sm border border-ink font-medium text-[10px] leading-none",
+            mark === "filled" && "border-inverse bg-inverse text-inverse-ink",
+          ]}
+        >
+          !
+        </span>
+      )
+    }
+    <span>{heading}</span>
+  </p>
+  <div class="text-ink">
+    <slot />
+  </div>
+</aside>
