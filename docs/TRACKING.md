@@ -61,7 +61,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | ID | Tâche | Statut | Branche | PR |
 | --- | --- | --- | --- | --- |
 | PLT-01 | Schéma Prisma et Neon | fait | `feat/PLT-01-prisma-neon` | fusionnée |
-| PLT-02 | Better Auth : serveur, plugins, clients | à faire | | |
+| PLT-02 | Better Auth : serveur, plugins, clients | en revue | `feat/PLT-02-better-auth` | |
 | PLT-03 | Elysia : socle, guards, erreurs, harnais de test | à faire | | |
 | PLT-04 | Routes `me`, `devices` | à faire | | |
 | PLT-05 | Enrôlement, jetons d'agent, `agent/state`, heartbeat | à faire | | |
