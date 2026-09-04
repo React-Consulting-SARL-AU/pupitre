@@ -22,7 +22,7 @@ export function SettingsScreen({ onChanged }: { onChanged: () => void }) {
         <div className="mt-4 mb-8 flex gap-1 border-line border-b">
           {SECTIONS.map(({ id, label, icon: Icon }) => (
             <button
-              className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-[12px] transition-soft ${
+              className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-[12px] transition-soft ${
                 section === id
                   ? "border-ink font-medium text-ink"
                   : "border-transparent text-ink-3 hover:text-ink"

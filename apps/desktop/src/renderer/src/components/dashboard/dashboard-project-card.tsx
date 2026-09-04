@@ -1,10 +1,12 @@
 import type { Project } from "@pupitre/shared/agent-protocol/state";
 import { Button } from "@renderer/components/ui/button";
+import { ServiceLogo } from "@renderer/components/ui/service-logo";
 import { StatePill } from "@renderer/components/ui/state-pill";
 import { memory, uptime } from "@renderer/lib/format";
+import { runtimeModuleOf } from "@renderer/lib/modules";
 import { isRunning, PROJECT_LOOK } from "@renderer/lib/project-state";
 import type { ProjectAction } from "@renderer/stores/snapshot";
-import { ExternalLink, Play, RotateCw, Square } from "lucide-react";
+import { ExternalLink, Package, Play, RotateCw, Square } from "lucide-react";
 
 /**
  * One project, and the three things you do to it from here.
@@ -29,8 +31,15 @@ export function DashboardProjectCard({
   return (
     <article className="elevation-raised rounded-md border border-line bg-surface p-4 transition-soft">
       <div className="flex items-start justify-between gap-3">
+        <ServiceLogo
+          fallback={Package}
+          moduleId={runtimeModuleOf(project.pkgmgr)}
+          name={project.pkgmgr}
+          size={20}
+        />
+
         <button
-          className="min-w-0 text-left"
+          className="min-w-0 flex-1 text-left"
           onClick={() => onOpen(project.name)}
           type="button"
         >

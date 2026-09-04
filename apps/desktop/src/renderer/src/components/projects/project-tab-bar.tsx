@@ -41,7 +41,7 @@ export function ProjectTabBar({
   states: Record<string, AgentState>;
 }) {
   return (
-    <div className="mt-4 flex gap-1 overflow-x-auto">
+    <div className="mt-5 flex gap-1 overflow-x-auto">
       {tabs.map((tab) => {
         const Icon = ICONS[tab];
         const count = counts[tab] ?? 0;
@@ -49,7 +49,7 @@ export function ProjectTabBar({
 
         return (
           <button
-            className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-[12px] transition-soft ${
+            className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-[12px] transition-soft ${
               tab === active
                 ? "border-ink font-medium text-ink"
                 : "border-transparent text-ink-3 hover:text-ink"
