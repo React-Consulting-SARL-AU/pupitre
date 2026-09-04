@@ -8,7 +8,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Server } from "@shared/contract";
+import type { Server } from "@shared/servers";
 
 /**
  * The SSH configuration the app owns, and only that one.

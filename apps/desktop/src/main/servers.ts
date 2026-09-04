@@ -1,13 +1,12 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import type { Server, ServersConfig } from "@shared/contract";
-import {
-  cleanProfile,
-  DEFAULT_PROFILE,
-  type ServerProfile,
-} from "@shared/profile";
-import type { HostKeyDecision, ServerDraft } from "@shared/servers";
+import type {
+  HostKeyDecision,
+  Server,
+  ServerDraft,
+  ServersConfig,
+} from "@shared/servers";
 import { app } from "electron";
 import { hostKeyDecision, observedFingerprint } from "./host-keys";
 import { readPublicKey } from "./keys";
@@ -20,9 +19,11 @@ import {
   withAccount,
 } from "./server-setup";
 import {
+  alias,
   appSshPaths,
   readSystemHosts,
   type SshPaths,
+  sshArgs,
   writeSshConfig,
 } from "./ssh-config";
 
@@ -78,7 +79,6 @@ function normaliseServer(raw: Server): Server {
     name: raw.name.slice(0, NAME_LIMIT),
     origin,
     port,
-    profile: cleanProfile(raw.profile),
     user: typeof raw.user === "string" ? raw.user : "",
   };
 }
@@ -147,9 +147,18 @@ export function byId(id: string): Server | null {
   return read().servers.find((server) => server.id === id) ?? null;
 }
 
-/** The active server's profile, always complete. */
-export function profile(): ServerProfile {
-  return cleanProfile(active()?.profile ?? DEFAULT_PROFILE);
+/** The ssh arguments of the active server, for what still opens its own link. */
+export function target(): string[] {
+  const server = active();
+
+  return server ? sshArgs(server, paths()) : [];
+}
+
+/** What to write when naming the server: the alias, never a bare address. */
+export function activeHost(): string {
+  const server = active();
+
+  return server ? alias(server) : "";
 }
 
 export function sshHosts(): string[] {

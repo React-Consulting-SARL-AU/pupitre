@@ -1,5 +1,4 @@
-import type { Server } from "@shared/contract";
-import type { KeyChoice, ServerDraft } from "@shared/servers";
+import type { KeyChoice, Server, ServerDraft } from "@shared/servers";
 import { forgetHostKey } from "./host-keys";
 import {
   copyIdCommand,

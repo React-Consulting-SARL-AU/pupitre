@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import type { Server } from "@shared/contract";
+import type { Server } from "@shared/servers";
 import {
   copyIdCommand,
   generateKey,

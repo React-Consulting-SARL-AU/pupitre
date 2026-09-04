@@ -10,7 +10,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import type { Server } from "@shared/contract";
+import type { Server } from "@shared/servers";
 
 /**
  * The keys the app owns, one per server, in its own data folder.

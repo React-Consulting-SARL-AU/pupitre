@@ -1,5 +1,3 @@
-import type { Server, ServersConfig } from "./contract";
-
 /**
  * What the two processes say to each other about servers.
  *
@@ -7,7 +5,41 @@ import type { Server, ServersConfig } from "./contract";
  * one that touches a file, spawns `ssh-keygen` or reads a fingerprint. Nothing
  * here carries a private key: the public half and the line to paste are all the
  * interface ever needs to show.
+ *
+ * These types belong to the app, not to the agent: a server is a machine this
+ * computer knows how to reach, and the agent has never heard of the list.
  */
+
+/**
+ * Who owns the configuration that reaches this machine.
+ *
+ * "app": the address, the port, the account and the key belong to the app,
+ * written into its own SSH file. "system": the host is a block of the user's
+ * own ~/.ssh/config, and the app writes nothing at all for it.
+ */
+export type ServerOrigin = "app" | "system";
+
+export type Server = {
+  id: string;
+  name: string;
+  /** An address for an app server, a ~/.ssh/config alias for a system one. */
+  host: string;
+  port: number;
+  /** The remote account. Empty on a system host: its own block says which. */
+  user: string;
+  origin: ServerOrigin;
+  /** The private key in the app's folder. Absent on a system host. */
+  keyPath?: string;
+  /** The host key recorded on first contact. Absent: never contacted yet. */
+  hostFingerprint?: string;
+};
+
+export type ServersConfig = {
+  /** The file's shape, so we know what to fill in when re-reading it. */
+  version?: number;
+  servers: Server[];
+  active: string | null;
+};
 
 /**
  * The three ways to give a key, and they differ only in who owns the file.
