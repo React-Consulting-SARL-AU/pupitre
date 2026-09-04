@@ -256,10 +256,10 @@ Critères d'acceptation.
 Lot 0 · dépend de PLT-12, PLT-14 · `packages/shared`, `packages/api`
 
 But. Un lecteur de la page de statut sait si ce qu'il voit est frais.
-Périmètre. Le plan veut une page de statut alimentée par les heartbeats, mais `platform-api.md` fige la réponse de `/status` sans aucun champ de fraîcheur : rien ne distingue « tout va bien » de « nous n'avons plus de nouvelles depuis une heure ». Ajouter au contrat la date de la dernière observation, et ce que la page affiche quand cette date est vieille.
+Périmètre. Le plan veut une page de statut alimentée par les heartbeats, mais `platform-api.md` fige la réponse de `/status` sans aucun champ de fraîcheur : rien ne distingue « tout va bien » de « nous n'avons plus de nouvelles depuis une heure ». Ajouter au contrat la date de la dernière observation, et ce que la page affiche quand cette date est vieille. Le seuil est `STATUS_STALE_AFTER_MS` dans `@pupitre/shared/status` : quinze minutes, soit trois cycles de heartbeat, et bien en deçà des trente minutes de l'alerte `server_unreachable`.
 Hors périmètre. Les alertes, livrées par PLT-12.
 Critères d'acceptation.
-1. Une page de statut dont les données datent de plus de dix minutes le dit, au lieu d'afficher un état rassurant et périmé.
+1. Une page de statut dont les données datent de plus de quinze minutes le dit, au lieu d'afficher un état rassurant et périmé.
 2. Le champ ne divulgue ni identifiant de serveur, ni email, ni nom d'organisation.
 
 ### INF-20 — Contrat : une adresse par capture
