@@ -116,6 +116,8 @@ Une échelle de gris neutres, sans teinte. Quatre niveaux de surface pour l'él�
 - **Le diff** marque les lignes par le signe et par un fond `ok` ou `danger` à 10 % d'opacité. Lisible sans la couleur.
 - **Les écrans d'attente disent ce qui se passe** : le module, l'étape, le compteur, la durée. Jamais un spinner seul.
 - **Les erreurs disent le remède** : ce qui a échoué, pourquoi, la commande ou le bouton qui répare.
+- **Une alerte se lit à la forme, et porte son remède.** Point barré pour ce qui est cassé — injoignable, disque plein ; cercle vide pour ce qui va le devenir — agent périmé, droit d'usage en tolérance. Le libellé dit ce qui ne va pas, la ligne en dessous dit quoi faire. Une liste porte un bandeau qui compte les alertes actives et les serveurs touchés ; la fiche porte le détail. Jamais une pastille rouge seule, jamais un compteur sans remède.
+- **La page publique de statut ne parle que du service.** L'API répond-elle, la base répond-elle, quelle version de l'agent est publiée, combien de serveurs sont actifs — un compteur agrégé, et rien qui nomme une organisation, une personne ou une machine. Elle s'ouvre sans session, en une seule carte, sans graphique ni historique.
 
 ## Logos de services
 
