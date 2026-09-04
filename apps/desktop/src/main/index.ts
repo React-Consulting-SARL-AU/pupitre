@@ -16,6 +16,7 @@ import {
   nativeTheme,
   shell,
 } from "electron";
+import { registerAccount } from "./account";
 import { agentClient, registerAgentChannels } from "./agent";
 import { registerCatalog } from "./catalog";
 import { completions } from "./completion";
@@ -339,6 +340,7 @@ function registerLoginChannels(): void {
 }
 
 function registerChannels(): void {
+  registerAccount();
   registerAgentChannels();
   registerInspection();
   registerCatalog();

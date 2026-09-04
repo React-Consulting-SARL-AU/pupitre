@@ -6,13 +6,16 @@ import type {
 } from "@pupitre/shared/agent-protocol/install";
 import type { AgentResponse } from "@shared/agent";
 import { app, ipcMain } from "electron";
+import { account } from "./account";
 import { agentClient } from "./agent";
 import {
   type AgentDelivery,
   agentPayload,
   sendAgentBinary,
 } from "./agent-binary";
+import { AGENT_RELEASE_PUBLIC_KEY } from "./agent-release";
 import { declaredModules } from "./catalog";
+import { prepareAgent } from "./enrollment-run";
 import { inspect } from "./inspection";
 import { type InstallUpdate, runInstall } from "./install-run";
 import { takeSecrets } from "./install-secrets";
@@ -40,12 +43,15 @@ function refuse(message: string, fix: string): AgentResponse<never> {
   return { ok: false, error: { code: "bad_request", fix, message } };
 }
 
+/**
+ * The server is enrolled before its binary leaves: the platform gives it a seat
+ * and names the release to push, and the app checks that release before it
+ * touches the machine.
+ */
 async function deliver(
   serverId: string,
   arch: string
-): Promise<
-  AgentResponse<{ arch: string; bytes: number; path: string; sha256: string }>
-> {
+): Promise<AgentResponse<AgentDelivery>> {
   const server = byId(serverId);
 
   if (!server) {
@@ -55,16 +61,28 @@ async function deliver(
     );
   }
 
-  const payload = agentPayload(agentResourcesDir(), arch);
+  const prepared = await prepareAgent(server, arch, {
+    account,
+    build: app.isPackaged ? "production" : "development",
+    embedded: (wanted) => agentPayload(agentResourcesDir(), wanted),
+    releaseKey: AGENT_RELEASE_PUBLIC_KEY,
+  });
 
-  if (!payload.ok) {
-    return payload;
+  if (!prepared.ok) {
+    return prepared;
   }
 
-  return await sendAgentBinary({
+  const sent = await sendAgentBinary({
     args: sshArgs(server, paths()),
-    payload: payload.result,
+    payload: prepared.result.payload,
   });
+
+  return sent.ok
+    ? {
+        ok: true,
+        result: { ...sent.result, enrollment: prepared.result.enrollment },
+      }
+    : sent;
 }
 
 /**

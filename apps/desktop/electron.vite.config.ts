@@ -58,7 +58,7 @@ export default defineConfig({
       embedProbeScript(),
       embedAgentBinary(),
       externalizeDepsPlugin({
-        exclude: ["@pupitre/design", "@pupitre/shared"],
+        exclude: ["@pupitre/auth", "@pupitre/design", "@pupitre/shared"],
       }),
     ],
     resolve: {
