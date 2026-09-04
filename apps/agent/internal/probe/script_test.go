@@ -159,9 +159,6 @@ func netstatFixture() fixture {
 	return f
 }
 
-// ProbeResult pins arch to amd64 or arm64, so the schema cannot carry the very machine the
-// incompatible verdict exists to describe. Blockage recorded for AGT-02 in docs/TRACKING.md;
-// this assertion fails the day the contract is widened, so the exception cannot outlive it.
 func assertContractJSON(t *testing.T, raw []byte) {
 	t.Helper()
 
@@ -170,18 +167,8 @@ func assertContractJSON(t *testing.T, raw []byte) {
 		t.Fatalf("probe output is not JSON: %v\n%s", err, raw)
 	}
 
-	object, _ := value.(map[string]any)
-	arch, _ := object["arch"].(string)
-	describable := arch == "amd64" || arch == "arm64"
-
-	err = contract.Validate("ProbeResult", value)
-
-	if err != nil && describable {
+	if err := contract.Validate("ProbeResult", value); err != nil {
 		t.Errorf("probe output violates ProbeResult: %v\n%s", err, raw)
-	}
-
-	if err == nil && !describable {
-		t.Errorf("ProbeResult now carries arch %q: lift the AGT-02 blockage in docs/TRACKING.md", arch)
 	}
 }
 

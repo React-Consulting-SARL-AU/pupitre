@@ -16,7 +16,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-08 | Contrat : flux secret d'`install`, presets dans le schéma, code `no_report` | fait | `feat/INF-08-install-contract` | fusionnée |
 | INF-09 | Design : ombres, rayons, espace, logos de services | fait | `feat/INF-09-design-tokens` | fusionnée |
 | INF-10 | Flux secret sur l'entrée standard | à faire | | |
-| INF-11 | Contrat : le verdict de la sonde | à faire | | |
+| INF-11 | Contrat : le verdict de la sonde | en revue | `feat/INF-11-probe-contract` | |
 
 ## Agent serveur — `AGT`
 
@@ -103,4 +103,3 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
-| 2026-09-04 | AGT-02 | `ProbeResult` de `packages/shared` ne porte que `verdict.level` et `verdict.reasons[]` : ni le genre de verdict (`bare`, `managed`, `occupied`, `incompatible`), ni `fixes[]`, ni « agent à jour », que la tâche et APP-04 demandent. Il contraint aussi `arch` à `amd64`/`arm64`, donc une machine incompatible par son architecture n'est pas descriptible. La sonde émet `kind`, `up_to_date` et `fixes` en plus (le schéma les tolère, `additionalProperties` n'est pas fermé) et l'architecture brute ; le contrat reste inchangé. | propriétaire |
