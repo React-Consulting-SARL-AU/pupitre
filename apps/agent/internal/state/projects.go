@@ -56,7 +56,7 @@ func (r *Reader) Remove(name string) (contract.Project, error) {
 		return contract.Project{}, err
 	}
 
-	return removed.Contract(), nil
+	return removed.Contract(r.options.Paths.Resolved().Projects), nil
 }
 
 func (r *Reader) Up(target string) (contract.ProjectActionResult, error) {
