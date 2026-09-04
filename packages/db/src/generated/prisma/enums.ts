@@ -28,6 +28,15 @@ export const ReleaseChannel = {
 export type ReleaseChannel = (typeof ReleaseChannel)[keyof typeof ReleaseChannel]
 
 
+export const DesktopOs = {
+  macos: 'macos',
+  windows: 'windows',
+  linux: 'linux'
+} as const
+
+export type DesktopOs = (typeof DesktopOs)[keyof typeof DesktopOs]
+
+
 export const BillingInterval = {
   month: 'month',
   year: 'year'

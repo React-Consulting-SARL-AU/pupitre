@@ -68,6 +68,7 @@ export const ModelName = {
   Subscription: 'Subscription',
   OrganizationBilling: 'OrganizationBilling',
   Release: 'Release',
+  AppRelease: 'AppRelease',
   Event: 'Event',
   StripeEvent: 'StripeEvent'
 } as const
@@ -338,6 +339,21 @@ export const ReleaseScalarFieldEnum = {
 } as const
 
 export type ReleaseScalarFieldEnum = (typeof ReleaseScalarFieldEnum)[keyof typeof ReleaseScalarFieldEnum]
+
+
+export const AppReleaseScalarFieldEnum = {
+  version: 'version',
+  os: 'os',
+  arch: 'arch',
+  url: 'url',
+  sha256: 'sha256',
+  signature: 'signature',
+  notes: 'notes',
+  channel: 'channel',
+  publishedAt: 'publishedAt'
+} as const
+
+export type AppReleaseScalarFieldEnum = (typeof AppReleaseScalarFieldEnum)[keyof typeof AppReleaseScalarFieldEnum]
 
 
 export const EventScalarFieldEnum = {
