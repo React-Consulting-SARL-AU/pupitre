@@ -17,10 +17,10 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-09 | Design : ombres, rayons, espace, logos de services | fait | `feat/INF-09-design-tokens` | fusionnée |
 | INF-10 | Flux secret sur l'entrée standard | fait | `feat/INF-10-secret-stream` | fusionnée |
 | INF-12 | Contrat : les releases de l'app | à faire | | |
-| INF-13 | Le quota gratuit vit dans le contrat partagé | à faire | | |
+| INF-13 | Le quota gratuit vit dans le contrat partagé | fait | `main` | constante unique dans `@pupitre/shared/plans` |
 | INF-14 | La langue de l'utilisateur est enregistrée | à faire | | |
 | INF-15 | Contrat : détecter le gestionnaire d'un dépôt | à faire | | |
-| INF-16 | Contrat : le chemin absolu d'un projet | à faire | | |
+| INF-16 | Contrat : le chemin absolu d'un projet | fait | `feat/INF-16-project-path` | fusionnée |
 | INF-11 | Contrat : le verdict de la sonde | fait | `feat/INF-11-probe-contract` | fusionnée |
 
 ## Agent serveur — `AGT`
@@ -43,6 +43,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-14 | Droit d'usage, enrôlement, heartbeat | à faire | | |
 | AGT-15 | Obfuscation et distribution | à faire | | |
 | AGT-16 | Validateur : messages d'erreur déterministes | à faire | | |
+| AGT-17 | La racine rendue par `project.git_status` reste dans la racine des projets | à faire | | |
 
 ## App desktop — `APP`
 
@@ -85,9 +86,10 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-10 | Organisations : membres, invitations, attribution, audit | fait | `feat/PLT-10-teams` | fusionnée |
 | PLT-11 | Emails transactionnels | fait | `feat/PLT-11-emails` | fusionnée |
 | PLT-12 | Alertes et page de statut | fait | `feat/PLT-12-alerts` | fusionnée |
-| PLT-13 | Passkeys et MFA | à faire | | |
+| PLT-13 | Passkeys et MFA | fait | `feat/PLT-13-passkeys` | fusionnée |
 | PLT-14 | Déploiement Cloudflare Builds, staging et production | à faire | | |
-| PLT-15 | Workflows Cloudflare : déclencheurs des tâches longues | à faire | | |
+| PLT-15 | Workflows Cloudflare : déclencheurs des tâches longues | fait | `feat/PLT-15-workflows` | fusionnée |
+| PLT-17 | Le workflow d'évaluation des alertes | à faire | | |
 | PLT-16 | Harnais Playwright pour la console | à faire | | |
 
 ## Site marketing — `MKT`
@@ -110,7 +112,6 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
-| 2026-09-04 | AGT-09 | Le préréglage `full` du contrat liste `exposure.cloudflare` **et** `exposure.ssh`, or les deux manifestes se déclarent en conflit comme la tâche le demande : `install` du préréglage complet est refusé en `bad_request`. À trancher : retirer `exposure.ssh` de `full`, ou donner à ce préréglage un `choose_one` comme `minimal` en a un pour les agents. | propriétaire |
 | 2026-09-04 | AGT-09 | Le contrat fixe la forme de la ligne secrète d'`install` (`InstallSecrets`) mais pas celle de `secrets.set` : l'agent lit `{"<clé>": "<valeur>"}`, la forme du test du protocole. À trancher : l'écrire dans `agent-protocol.md` et lui donner un schéma. | propriétaire |
 | 2026-09-04 | APP-11 | L'écran Services doit rendre les identifiants d'un module révélables et copiables, mais aucune commande du protocole n'en donne la valeur : `service.status` renvoie `libellé → clé de /etc/pupitre/env` (c'est ce que les modules Go remplissent), `secrets.status` ne rend que les clés et leur présence, et `db.url` compose une URL sans mot de passe. L'app garde donc dans le processus principal ce que `service.status` et `db.url` renvoient, l'affiche masqué et le révèle une valeur à la fois : ce qui se révèle aujourd'hui est le nom de la clé, pas le secret. À trancher : ajouter une commande qui rend la valeur d'une clé d'environnement, ou entériner que l'app ne montre jamais qu'un nom de clé. | propriétaire |
 | 2026-09-04 | APP-11 | Le périmètre demande « le tunnel vers un port du serveur », que le protocole ne couvre pas : `tunnel.*` pilote le tunnel Cloudflare de l'agent, pas un accès local à un port. L'app ouvre donc elle-même un `ssh -L` avec sa propre configuration SSH (`src/main/port-forward.ts`), ce qu'aucun contrat ne décrit. À trancher : entériner ce tunnel local comme une affaire de l'app, ou lui donner une place dans le protocole. | propriétaire |

@@ -18,13 +18,34 @@
   "observability": {
     "enabled": true
   },
+  "workflows": [
+    {
+      "name": "pupitre-expire-enrollments",
+      "binding": "EXPIRE_ENROLLMENTS",
+      "class_name": "ExpireEnrollments"
+    },
+    {
+      "name": "pupitre-decommission-server",
+      "binding": "DECOMMISSION_SERVER",
+      "class_name": "DecommissionServer"
+    },
+    {
+      "name": "pupitre-reconcile-seats",
+      "binding": "RECONCILE_SEATS",
+      "class_name": "ReconcileSeats"
+    }
+  ],
+  "triggers": {
+    "crons": ["0 * * * *", "20 3 * * *", "40 3 * * *"]
+  },
   "vars": {},
   "secrets": {
     "required": [
       "DATABASE_URL",
       "BETTER_AUTH_SECRET",
       "STRIPE_SECRET_KEY",
-      "STRIPE_WEBHOOK_SECRET"
+      "STRIPE_WEBHOOK_SECRET",
+      "INTERNAL_WORKFLOW_SECRET"
     ]
   }
 }

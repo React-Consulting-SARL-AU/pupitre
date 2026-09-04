@@ -179,3 +179,13 @@ Critères d'acceptation. Une passkey enregistrée connecte sans lien magique ; M
 ### Plus tard
 
 SSO OIDC et SAML (plugin `sso`) quand une organisation le demande ; console de stock netcup pour l'offre hébergée après 100 serveurs payants ([0002](../decisions/0002-byo-server-first.md)).
+
+### PLT-17 — Le workflow d'évaluation des alertes
+Lot 5 · dépend de PLT-12, PLT-15 · `apps/web`
+
+But. Les alertes livrées par PLT-12 sont réellement levées, sans qu'on les appelle à la main.
+Périmètre. Un quatrième workflow `EvaluateAlerts`, toutes les cinq minutes, sur `evaluateAlerts()` — annoncé par `platform-api.md` (« Tâches longues ») mais absent du périmètre de PLT-15, qui a livré les trois autres. Même forme que les siens : entrée dans le registre, cron dans `wrangler.jsonc`, test sur le harnais PGlite qui prouve l'effet en base.
+Hors périmètre. La logique d'alerte, livrée par PLT-12.
+Critères d'acceptation.
+1. Un serveur injoignable depuis trente minutes déclenche son alerte sans appel manuel, prouvé par un test.
+

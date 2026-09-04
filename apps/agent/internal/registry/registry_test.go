@@ -281,6 +281,78 @@ func TestFreePortSkipsTheRegistryAndTheListeningPorts(t *testing.T) {
 	}
 }
 
+func TestPathIsAbsoluteAndInsideTheProjectsRoot(t *testing.T) {
+	_, file := loaded(t)
+
+	for name, want := range map[string]string{
+		"web":   registry.ProjectsDir + "/web",
+		"mail":  registry.ProjectsDir + "/web/apps/mail",
+		"api":   registry.ProjectsDir + "/api-server/server",
+		"shots": registry.ProjectsDir,
+	} {
+		project, ok := file.Get(name)
+		if !ok {
+			t.Fatalf("%s missing from the registry", name)
+		}
+
+		if got := project.Path(registry.ProjectsDir); got != want {
+			t.Fatalf("%s: got path %q, want %q", name, got, want)
+		}
+
+		if got := project.Contract(registry.ProjectsDir).Path; got != want {
+			t.Fatalf("%s: the contract must carry the same path, got %q", name, got)
+		}
+	}
+
+	mail, _ := file.Get("mail")
+	if got := mail.RootPath(registry.ProjectsDir); got != registry.ProjectsDir+"/web" {
+		t.Fatalf("the repository folder of mail is the first segment, got %q", got)
+	}
+}
+
+func TestUnderRefusesWhatLeavesTheRoot(t *testing.T) {
+	root := "/home/dev/projects"
+
+	for relative, want := range map[string]string{
+		"web":              root + "/web",
+		"web/apps/mail":    root + "/web/apps/mail",
+		".":                root,
+		"web/../mail":      root + "/mail",
+		"/etc/shadow":      root + "/etc/shadow",
+		"..":               "",
+		"../../etc":        "",
+		"web/../../../etc": "",
+	} {
+		if got := registry.Under(root, relative); got != want {
+			t.Fatalf("%q: got %q, want %q", relative, got, want)
+		}
+	}
+}
+
+// Une ligne posée à la main dans le registre du dépôt : si son dossier ou son nom vise hors de la racine, ce n'est pas un projet.
+func TestLoadDropsARowThatAimsOutsideTheProjectsRoot(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Files[registry.DefaultConf] = []byte(strings.Join([]string{
+		"web|web|-|bun|127.0.0.1|3000|web|bun run dev",
+		"escapee|../../etc|-|none|127.0.0.1|3001|-|sh",
+		"..|.|-|none|127.0.0.1|3002|-|sh",
+		"deep|web/../../../etc|-|none|127.0.0.1|3003|-|sh",
+	}, "\n"))
+
+	file := registry.Load(context(fake), registry.Paths{})
+
+	if len(file.Projects) != 1 || file.Projects[0].Name != "web" {
+		t.Fatalf("only the contained row is a project: %+v", file.Projects)
+	}
+
+	for _, project := range file.Projects {
+		path := project.Path(registry.ProjectsDir)
+		if !strings.HasPrefix(path, registry.ProjectsDir) {
+			t.Fatalf("%s renders %q, outside %s", project.Name, path, registry.ProjectsDir)
+		}
+	}
+}
+
 func protocolError(t *testing.T, err error) *protocol.Error {
 	t.Helper()
 

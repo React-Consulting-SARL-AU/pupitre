@@ -2,6 +2,7 @@ package registry
 
 import (
 	"fmt"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -60,11 +61,11 @@ func (p Project) Root() string {
 }
 
 func (p Project) Path(projects string) string {
-	return projects + "/" + p.Dir
+	return Under(projects, p.Dir)
 }
 
 func (p Project) RootPath(projects string) string {
-	return projects + "/" + p.Root()
+	return Under(projects, p.Root())
 }
 
 func (p Project) Sub() string {
@@ -106,10 +107,11 @@ func (p Project) Row() string {
 	return strings.Join(columns, "|")
 }
 
-func (p Project) Contract() contract.Project {
+func (p Project) Contract(projects string) contract.Project {
 	return contract.Project{
 		Name:      p.Name,
 		Dir:       p.Dir,
+		Path:      p.Path(projects),
 		Repo:      value(p.Repo),
 		PkgMgr:    p.PkgMgr,
 		Host:      p.Host,
@@ -118,6 +120,18 @@ func (p Project) Contract() contract.Project {
 		Cmd:       p.Cmd,
 		Install:   p.InstallCommand(),
 	}
+}
+
+// Le registre du dépôt est écrit à la main : une ligne qui viserait hors de la racine des projets ne rend aucun chemin plutôt qu'un chemin ailleurs.
+func Under(root, relative string) string {
+	base := path.Clean(root)
+	full := path.Clean(base + "/" + relative)
+
+	if full != base && !strings.HasPrefix(full, base+"/") {
+		return ""
+	}
+
+	return full
 }
 
 type Paths struct {
@@ -161,6 +175,10 @@ func Load(ctx sys.Context, paths Paths) *File {
 		}
 
 		for _, project := range Parse(raw, source.local) {
+			if project.Path(paths.Projects) == "" || project.RootPath(paths.Projects) == "" {
+				continue
+			}
+
 			if at, seen := index[project.Name]; seen {
 				loaded.Projects[at] = project
 				continue

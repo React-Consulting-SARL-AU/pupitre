@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test"
+import { API_PREFIX } from "./lib/config/urls"
 import { getRouter } from "./router"
-import { API_PREFIX } from "./worker"
 
 describe("router", () => {
   it("registers the console routes and leaves /api/v1 to the worker", () => {

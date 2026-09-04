@@ -1,4 +1,4 @@
-import { KeyRound, Mail } from "lucide-react"
+import { Fingerprint, KeyRound, Mail } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { useForm } from "@/hooks/use-form"
 import { useRequestCycle } from "@/hooks/use-request-cycle"
 import { authClient } from "@/lib/auth/client"
+import { leaveFor } from "@/lib/config/urls"
 import { type SignInInput, signInSchema } from "@/lib/schemas/auth"
 
 const CALLBACK_URL = "/dashboard/servers"
@@ -18,7 +19,22 @@ export function SignInForm() {
     defaultValues: { email: "" },
   })
   const magicLink = useRequestCycle()
+  const passkey = useRequestCycle()
   const [sentTo, setSentTo] = useState<string | null>(null)
+
+  function signInWithPasskey() {
+    return passkey.run(async () => {
+      const result = await authClient().signIn.passkey()
+
+      if (result?.error) {
+        throw new Error(
+          "Aucune clé d'accès n'a répondu. Utilisez le lien de connexion."
+        )
+      }
+
+      leaveFor(CALLBACK_URL)
+    })
+  }
 
   const submit = form.handleSubmit((values) =>
     magicLink.run(async () => {
@@ -89,6 +105,18 @@ export function SignInForm() {
       </div>
 
       <Button
+        disabled={passkey.phase === "pending"}
+        onClick={() => {
+          signInWithPasskey()
+        }}
+      >
+        <Fingerprint className="size-4" strokeWidth={1.5} />
+        {passkey.phase === "pending"
+          ? "En attente de votre appareil…"
+          : "Utiliser une clé d'accès"}
+      </Button>
+
+      <Button
         onClick={() => {
           authClient().signIn.social({
             provider: "github",
@@ -99,6 +127,8 @@ export function SignInForm() {
         <KeyRound className="size-4" strokeWidth={1.5} />
         Continuer avec GitHub
       </Button>
+
+      {passkey.error ? <Callout title={passkey.error} tone="danger" /> : null}
     </div>
   )
 }

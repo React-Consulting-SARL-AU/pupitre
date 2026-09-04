@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { isLocalhostUrl, readAuthEnv, trustedOrigins } from "./env"
+import { isLocalhostUrl, passkeyRpId, readAuthEnv, trustedOrigins } from "./env"
 
 describe("readAuthEnv", () => {
   it("requires the secret and the base URL", () => {
@@ -40,5 +40,37 @@ describe("trustedOrigins", () => {
         VITE_APP_URL: "http://localhost:3000/dashboard",
       })
     ).toEqual(["http://localhost:3000"])
+  })
+})
+
+describe("passkeyRpId", () => {
+  it("widens a console subdomain to its registrable domain", () => {
+    expect(
+      passkeyRpId({
+        BETTER_AUTH_SECRET: "s",
+        BETTER_AUTH_URL: "https://app.pupitre.studio",
+      })
+    ).toBe("pupitre.studio")
+    expect(
+      passkeyRpId({
+        BETTER_AUTH_SECRET: "s",
+        BETTER_AUTH_URL: "https://staging-app.pupitre.studio",
+      })
+    ).toBe("pupitre.studio")
+  })
+
+  it("keeps a loopback host as it is", () => {
+    expect(
+      passkeyRpId({
+        BETTER_AUTH_SECRET: "s",
+        BETTER_AUTH_URL: "http://localhost:3000",
+      })
+    ).toBe("localhost")
+    expect(
+      passkeyRpId({
+        BETTER_AUTH_SECRET: "s",
+        BETTER_AUTH_URL: "http://127.0.0.1:3000",
+      })
+    ).toBe("127.0.0.1")
   })
 })

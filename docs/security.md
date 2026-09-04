@@ -46,6 +46,8 @@ Un client est root sur son serveur : il peut copier tout fichier qui s'y trouve,
 ## Plateforme
 
 - Better Auth : cookies `Secure`, `HttpOnly`, `SameSite=Lax` ; bearer pour l'app ; limitation des tentatives ; sessions de 60 jours renouvelées par jour ; `admin` réservé au rôle `platform_admin`.
+- Clés d'accès (WebAuthn) et second facteur (TOTP) : une clé d'accès connecte sans lien magique ; le second facteur, s'il est activé, est exigé après le lien magique et après la connexion sociale, **jamais après une clé d'accès**, qui prouve déjà l'appareil et la personne. Les codes de récupération sont chiffrés en base et chacun ne sert qu'une fois. C'est vérifié par des tests.
+- Le défi du second facteur détruit la session ouverte par le lien magique avant de répondre : aucun jeton bearer ne sort tant que le code n'est pas donné.
 - Webhooks Stripe vérifiés par signature, idempotents par identifiant d'événement, rejouables.
 - Audit de chaque action d'administration : acteur, action, cible, date.
 - **Les clés autorisées d'un serveur dérivent du membre qui lui est attribué, et de son adhésion.** Retirer quelqu'un de l'organisation retire ses clés de tous les serveurs, sans qu'un administrateur ait à y penser. C'est vérifié par un test.

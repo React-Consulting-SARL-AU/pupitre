@@ -12,8 +12,6 @@ export const INTERVAL_LABELS: Record<BillingIntervalName, string> = {
 
 export const SEAT_PRICE_EUR_PER_MONTH = getPlan("team").monthlyPriceEur
 
-export const FREE_SEAT_QUOTA = 2
-
 const BILLED_MONTHS_PER_YEAR = 12 - ANNUAL_FREE_MONTHS
 
 const STATUS_LOOKS: Record<string, StatusLook> = {
