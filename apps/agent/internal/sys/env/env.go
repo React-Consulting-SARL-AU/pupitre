@@ -12,7 +12,12 @@ import (
 	"pupitre.studio/agent/internal/sys"
 )
 
-const Path = "/etc/pupitre/env"
+const (
+	Path = "/etc/pupitre/env"
+
+	// La clé que project.url et la galerie lisent pour savoir si la machine a un domaine public.
+	DomainKey = "PUPITRE_DOMAIN"
+)
 
 var keyPattern = regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)
 
