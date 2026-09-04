@@ -64,15 +64,15 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-09 | Tableau de bord et projets sur le nouveau protocole | fait | `feat/APP-09-dashboard` | fusionnée |
 | APP-10 | Terminaux, agents, galerie | fait | `feat/APP-10-terminals` | fusionnée |
 | APP-11 | Services au quotidien | fait | `feat/APP-11-services` | fusionnée |
-| APP-12 | Mise à jour de l'agent depuis l'app | en revue | `feat/APP-12-agent-update` | |
+| APP-12 | Mise à jour de l'agent depuis l'app | fait | `feat/APP-12-agent-update` | fusionnée |
 | APP-13 | Build macOS signé, notarisé, bytecode, auto-update | à faire | | |
 | APP-14 | Compte : device flow, appareils, enrôlement | à faire | | |
 | APP-15 | Serveurs distants et organisations | à faire | | |
 | APP-16 | Builds Windows et Linux | à faire | | |
 | APP-17 | Harnais Playwright pour Electron | fait | `feat/APP-17-electron-e2e` | fusionnée |
-| APP-18 | Fond natif de la fenêtre selon le thème | en revue | `feat/APP-18-window-and-font` | |
+| APP-18 | Fond natif de la fenêtre selon le thème | fait | `feat/APP-18-window-and-font` | fusionnée |
 | APP-19 | Appliquer le design accueillant à l'app | fait | `feat/APP-19-warm-design` | fusionnée |
-| APP-21 | Embarquer la police d'affichage dans l'app | en revue | `feat/APP-18-window-and-font` | |
+| APP-21 | Embarquer la police d'affichage dans l'app | fait | `feat/APP-18-window-and-font` | fusionnée |
 | APP-20 | L'app parle deux langues | à faire | | |
 
 ## Plateforme — `PLT`
