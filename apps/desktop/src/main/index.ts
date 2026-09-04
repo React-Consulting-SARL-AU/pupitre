@@ -39,6 +39,7 @@ import { fileDiff, inspect, pull, validPath, workingTree } from "./git";
 import { registerHarden } from "./harden";
 import { registerInspection } from "./inspection";
 import { registerInstall } from "./install";
+import { registerProjects } from "./projects";
 import { SetupError } from "./server-setup";
 import {
   activate as activateServer,
@@ -300,6 +301,7 @@ function registerChannels(): void {
   registerCatalog();
   registerInstall();
   registerHarden();
+  registerProjects();
 
   ipcMain.handle("snapshot", () => snapshot());
 

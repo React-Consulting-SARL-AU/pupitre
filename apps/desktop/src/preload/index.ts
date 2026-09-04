@@ -7,7 +7,17 @@ import type {
   ModuleConfig,
   ProbeResult,
 } from "@pupitre/shared/agent-protocol/install";
+import type {
+  ProjectActionResult,
+  ProjectAddParams,
+  ProjectAddResult,
+  ProjectListResult,
+  ProjectLogsResult,
+  ProjectSyncResult,
+  ProjectUrlResult,
+} from "@pupitre/shared/agent-protocol/projects";
 import type { HelloResult } from "@pupitre/shared/agent-protocol/session";
+import type { DoneResult } from "@pupitre/shared/agent-protocol/system";
 import type { AgentResponse } from "@shared/agent";
 import type {
   Action,
@@ -189,6 +199,66 @@ const api = {
     return ipcRenderer
       .invoke("harden:start", token, serverId)
       .finally(() => ipcRenderer.removeListener("harden:update", listener));
+  },
+
+  /**
+   * The projects of a server, and what drives them.
+   *
+   * A project is described once, on the way in; after that the renderer only
+   * ever names it, and the main process checks that name against what the agent
+   * itself declared before it becomes a command.
+   */
+  listProjects: (serverId: string): Promise<AgentResponse<ProjectListResult>> =>
+    ipcRenderer.invoke("project:list", serverId),
+  addProject: (
+    serverId: string,
+    params: ProjectAddParams
+  ): Promise<AgentResponse<ProjectAddResult>> =>
+    ipcRenderer.invoke("project:add", serverId, params),
+  syncProject: (
+    serverId: string,
+    name: string
+  ): Promise<AgentResponse<ProjectSyncResult>> =>
+    ipcRenderer.invoke("project:sync", serverId, name),
+  installProject: (
+    serverId: string,
+    name: string
+  ): Promise<AgentResponse<DoneResult>> =>
+    ipcRenderer.invoke("project:install", serverId, name),
+  startProject: (
+    serverId: string,
+    name: string
+  ): Promise<AgentResponse<ProjectActionResult>> =>
+    ipcRenderer.invoke("project:up", serverId, name),
+  projectAddress: (
+    serverId: string,
+    name: string
+  ): Promise<AgentResponse<ProjectUrlResult>> =>
+    ipcRenderer.invoke("project:url", serverId, name),
+
+  /** The journal, read once or followed line by line until the project stops. */
+  projectJournal: (
+    serverId: string,
+    name: string,
+    lines: number,
+    follow: boolean,
+    onLine: (line: string) => void
+  ): Promise<AgentResponse<ProjectLogsResult>> => {
+    const token = crypto.randomUUID();
+    const listener = (
+      _e: unknown,
+      payload: { token: string; line: string }
+    ) => {
+      if (payload.token === token) {
+        onLine(payload.line);
+      }
+    };
+
+    ipcRenderer.on("project:log-line", listener);
+
+    return ipcRenderer
+      .invoke("project:logs", token, serverId, name, lines, follow)
+      .finally(() => ipcRenderer.removeListener("project:log-line", listener));
   },
 
   /** The last report the agent wrote, whatever happened to the channel. */

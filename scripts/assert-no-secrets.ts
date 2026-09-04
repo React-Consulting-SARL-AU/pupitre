@@ -5,6 +5,8 @@ interface TPattern {
   regex: RegExp
   entropy?: boolean
   keyMaterial?: boolean
+  /** Recognised by shape alone, not by a provider's signature. */
+  shape?: boolean
 }
 
 const PATTERNS: TPattern[] = [
@@ -33,6 +35,7 @@ const PATTERNS: TPattern[] = [
     kind: "database URL with password",
     regex:
       /\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis):\/\/[^:\s/]+:([^@\s]{8,})@/,
+    shape: true,
   },
   {
     kind: "credential assigned in source",
@@ -80,7 +83,7 @@ function matches(pattern: TPattern, line: string, nextLine: string): boolean {
 }
 
 const FIXTURE_FILE_RE =
-  /(?:\.test\.[cm]?[jt]sx?|\/(?:__tests__|testing|test|fixtures)\/)/
+  /(?:\.test\.[cm]?[jt]sx?|_test\.go|\/(?:__tests__|testing|tests?|testdata|fixtures)\/)/
 
 export function findSecrets(content: string, file: string): TSecretFinding[] {
   if (content.includes("\0")) {
@@ -98,7 +101,7 @@ export function findSecrets(content: string, file: string): TSecretFinding[] {
 
   lines.forEach((line, index) => {
     for (const pattern of PATTERNS) {
-      if (fixture && pattern.entropy) {
+      if (fixture && (pattern.entropy || pattern.shape)) {
         continue
       }
 

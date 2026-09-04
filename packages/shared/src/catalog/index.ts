@@ -183,9 +183,11 @@ export const PRESETS: readonly Preset[] = [
     ],
   },
   {
+    // Everything but exposure.ssh: the two exposure modules conflict, and a
+    // preset that cannot be resolved is worse than one that picks a side.
     id: "full",
     name: "Tout le catalogue",
-    modules: [...MVP_MODULE_IDS],
+    modules: MVP_MODULE_IDS.filter((id) => id !== "exposure.ssh"),
   },
   {
     id: "minimal",

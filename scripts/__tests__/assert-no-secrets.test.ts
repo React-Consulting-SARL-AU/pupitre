@@ -195,3 +195,23 @@ describe("test fixtures", () => {
     ).toBeGreaterThan(0)
   })
 })
+
+describe("go and data fixtures", () => {
+  const line = ["postgres://app:", "h7Kd2m9Qp4Rx", "@127.0.0.1:5432/shop"].join(
+    ""
+  )
+
+  test("lets a Go test hold a fixture connection string", () => {
+    expect(findSecrets(line, "internal/tool/module_test.go")).toEqual([])
+  })
+
+  test("lets a transcript under testdata hold one", () => {
+    expect(findSecrets(line, "internal/tool/testdata/secrets.jsonl")).toEqual(
+      []
+    )
+  })
+
+  test("still refuses one in ordinary Go source", () => {
+    expect(findSecrets(line, "internal/tool/module.go")).not.toEqual([])
+  })
+})

@@ -3293,7 +3293,6 @@
             "editor.vscode",
             "editor.zed",
             "exposure.cloudflare",
-            "exposure.ssh",
             "tool.github",
             "tool.1password"
           ]
