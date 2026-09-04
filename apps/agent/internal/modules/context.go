@@ -60,6 +60,10 @@ func (c *Context) Logf(format string, args ...any) {
 	c.run.journal.logf(c.manifest.ID, format, args...)
 }
 
+func (c *Context) Redact(text string) string {
+	return c.run.journal.redact(text)
+}
+
 func (c *Context) Once(key string, fn func() error) error {
 	return c.run.once(key, fn)
 }

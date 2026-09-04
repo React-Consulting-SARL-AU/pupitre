@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -36,6 +38,8 @@ type fakePlatform struct {
 	validUntil time.Time
 	target     string
 	refuse     int
+
+	echo bool
 
 	states int
 	beats  []platform.Heartbeat
@@ -78,6 +82,16 @@ func (p *fakePlatform) serve() *httptest.Server {
 			var enrollment platform.Enrollment
 			json.NewDecoder(r.Body).Decode(&enrollment)
 			p.traded = append(p.traded, enrollment)
+
+			if p.echo {
+				w.WriteHeader(http.StatusUnauthorized)
+				json.NewEncoder(w).Encode(map[string]any{
+					"error": map[string]string{"code": "invalid_enrollment_token", "message": "jeton " + enrollment.Token + " inconnu"},
+				})
+
+				return
+			}
+
 			w.Write([]byte(`{"server_token":"jeton-de-serveur"}`))
 		default:
 			w.WriteHeader(http.StatusNotFound)
@@ -99,6 +113,14 @@ func (p *fakePlatform) suspend(status int) {
 	p.refuse = status
 }
 
+// A platform that hands the token it just received back in its refusal: the worst case the redaction exists for.
+func (p *fakePlatform) echoRefusals() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	p.echo = true
+}
+
 func (p *fakePlatform) count() int {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -111,6 +133,7 @@ type bench struct {
 	platform *fakePlatform
 	server   *httptest.Server
 	now      time.Time
+	logPath  string
 }
 
 func newBench(t *testing.T, enrolled bool) *bench {
@@ -123,7 +146,7 @@ func newBench(t *testing.T, enrolled bool) *bench {
 		fake.Files[platform.DefaultTokenPath] = []byte("jeton-de-serveur\n")
 	}
 
-	b := &bench{fake: fake, platform: newPlatform(), now: noon}
+	b := &bench{fake: fake, platform: newPlatform(), now: noon, logPath: filepath.Join(t.TempDir(), "pupitre.log")}
 	b.server = b.platform.serve()
 	t.Cleanup(b.server.Close)
 
@@ -131,16 +154,16 @@ func newBench(t *testing.T, enrolled bool) *bench {
 }
 
 func (b *bench) agent() *daemon.Daemon {
-	now := func() time.Time { return b.now }
+	return daemon.New(b.options())
+}
 
-	return daemon.New(daemon.Options{
-		Sys:          b.fake,
-		Now:          now,
-		Platform:     platform.Client{BaseURL: b.server.URL},
-		Entitlement:  entitlement.New(entitlement.Options{Sys: b.fake, Now: now}),
-		AgentVersion: "1.2.3",
-		Arch:         "amd64",
-	})
+func (b *bench) journal() string {
+	raw, err := os.ReadFile(b.logPath)
+	if err != nil {
+		return ""
+	}
+
+	return string(raw)
 }
 
 func (b *bench) authorized() string {
@@ -280,7 +303,7 @@ func TestBeatSendsWhatTheMachineIs(t *testing.T) {
 func TestEnrollTradesTheTokenAndWritesTheServerToken(t *testing.T) {
 	b := newBench(t, false)
 
-	if err := b.agent().Enroll(" jeton-d-enrolement \n"); err != nil {
+	if err := b.agent().Enroll(" jeton-d-enrolement \n", ""); err != nil {
 		t.Fatalf("Enroll: %v", err)
 	}
 
@@ -302,12 +325,12 @@ func TestEnrollTradesTheTokenAndWritesTheServerToken(t *testing.T) {
 func TestEnrollRefusesAnEmptyTokenAndAnUnreadableHostKey(t *testing.T) {
 	b := newBench(t, false)
 
-	if err := b.agent().Enroll("  \n"); err == nil {
+	if err := b.agent().Enroll("  \n", ""); err == nil {
 		t.Fatal("un jeton vide a été échangé")
 	}
 
 	delete(b.fake.Files, daemon.DefaultHostKeyPath)
-	if err := b.agent().Enroll("jeton"); err == nil || !strings.Contains(err.Error(), "clé d'hôte") {
+	if err := b.agent().Enroll("jeton", ""); err == nil || !strings.Contains(err.Error(), "clé d'hôte") {
 		t.Fatalf("erreur = %v", err)
 	}
 }

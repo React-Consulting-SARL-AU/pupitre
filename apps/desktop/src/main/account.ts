@@ -31,6 +31,11 @@ export function platformUrl(): string {
   return process.env.PUPITRE_PLATFORM_URL || DEFAULT_PLATFORM_URL;
 }
 
+/** The same platform, as the agent reaches it: the API's own base, not the console's. */
+export function agentPlatformUrl(): string {
+  return new URL("/api/v1", platformUrl()).toString();
+}
+
 /**
  * One ed25519 key for this computer, made once and never leaving it. Only the
  * public half goes up to the platform, which hands it to the agents.

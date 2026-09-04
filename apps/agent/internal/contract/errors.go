@@ -15,6 +15,7 @@ const (
 	ErrorServiceNotFound     ErrorCode = "service_not_found"
 	ErrorSecretsRequired     ErrorCode = "secrets_required"
 	ErrorBadSignature        ErrorCode = "bad_signature"
+	ErrorDowngradeRefused    ErrorCode = "downgrade_refused"
 	ErrorBusy                ErrorCode = "busy"
 	ErrorInternal            ErrorCode = "internal"
 )
@@ -32,6 +33,7 @@ var ErrorCodes = []ErrorCode{
 	ErrorServiceNotFound,
 	ErrorSecretsRequired,
 	ErrorBadSignature,
+	ErrorDowngradeRefused,
 	ErrorBusy,
 	ErrorInternal,
 }

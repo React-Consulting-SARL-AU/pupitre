@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { EntitlementSchema } from "./session"
 
 export const DoneResultSchema = z.object({
   done: z.literal(true),
@@ -23,7 +24,8 @@ export type KeysListResult = z.infer<typeof KeysListResultSchema>
 
 export const AgentUpgradeParamsSchema = z.strictObject({
   version: z.string().min(1).optional(),
-  signature: z.string().min(1),
+  signature: z.string().min(1).optional(),
+  allow_downgrade: z.boolean().optional(),
 })
 
 export type AgentUpgradeParams = z.infer<typeof AgentUpgradeParamsSchema>
@@ -57,3 +59,24 @@ export const DiagResultSchema = z.object({
 })
 
 export type DiagResult = z.infer<typeof DiagResultSchema>
+
+export const EnrollParamsSchema = z.strictObject({
+  platform_url: z.url(),
+  secrets_stdin: z.literal(true),
+})
+
+export type EnrollParams = z.infer<typeof EnrollParamsSchema>
+
+export const EnrollSecretsSchema = z.strictObject({
+  enrollment_token: z.string().min(1),
+})
+
+export type EnrollSecrets = z.infer<typeof EnrollSecretsSchema>
+
+export const EnrollResultSchema = z.object({
+  enrolled: z.literal(true),
+  entitlement: EntitlementSchema,
+  synced_at: z.string().optional(),
+})
+
+export type EnrollResult = z.infer<typeof EnrollResultSchema>

@@ -370,3 +370,23 @@ Critères d'acceptation.
 1. Révéler le mot de passe de MySQL affiche la valeur réelle du serveur.
 2. La valeur n'apparaît dans aucun journal ni aucun fichier persisté par l'app, prouvé comme APP-11 l'a prouvé pour les libellés.
 
+### APP-23 — La galerie affiche vraiment les captures
+Lot 2 · dépend de APP-10, INF-20 · `apps/desktop`
+
+But. Une capture s'affiche dans l'app, sans ouvrir de navigateur.
+Périmètre. INF-20 a livré `shots.read { path }` : le contenu revient par des événements `shot` en base64, découpés en morceaux bornés pour ne pas engorger le canal, suivis d'un accusé portant `chunks` et `sha256`. La galerie doit changer de source : appeler `shots.read` avec le chemin que `shots.list` a rendu, accumuler les morceaux dans l'ordre de leur `seq`, vérifier le compte et l'empreinte de l'accusé, puis construire un blob avec le `media_type`. Le pont IPC doit faire remonter l'événement `shot` au renderer, comme il le fait déjà pour `secret`.
+Hors périmètre. La commande et l'agent, livrés par INF-20.
+Critères d'acceptation.
+1. Une capture s'affiche dans la galerie de l'app, sans navigateur.
+2. Une empreinte qui ne correspond pas fait échouer l'affichage plutôt que de montrer une image tronquée.
+
+### APP-24 — L'app se fie à la plateforme pour la signature
+Lot 2 · dépend de APP-12, INF-18 · `apps/desktop`
+
+But. Une mise à jour part même quand la release embarquée n'a pas de signature.
+Périmètre. INF-18 a rendu `signature` facultative dans `agent.upgrade` : l'agent lit désormais l'empreinte et la signature sur la route de métadonnées de la plateforme, qui fait foi quand elle répond. `runAgentUpgrade` refuse pourtant encore de démarrer quand la release portée par l'app n'en a pas, et le bandeau reste désactivé sans raison. Lever ce refus, garder la signature embarquée comme secours quand la plateforme est muette, et ajuster ce que le bandeau dit.
+Hors périmètre. L'agent et la route, livrés par INF-18.
+Critères d'acceptation.
+1. Une release embarquée sans signature n'empêche plus la mise à jour quand la plateforme répond.
+2. Plateforme muette et release sans signature : le bandeau explique, il ne prétend pas pouvoir.
+
