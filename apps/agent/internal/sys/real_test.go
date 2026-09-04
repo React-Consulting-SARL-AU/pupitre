@@ -122,3 +122,37 @@ func TestRealWriteFileFailsWithoutDirectory(t *testing.T) {
 		t.Fatal("expected an error when the directory is missing")
 	}
 }
+
+func TestRealReadDirNamesFoldersAndLeavesSymlinksAlone(t *testing.T) {
+	dir := t.TempDir()
+
+	if err := os.Mkdir(filepath.Join(dir, "api"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("hello"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.Symlink(dir, filepath.Join(dir, "loop")); err != nil {
+		t.Fatal(err)
+	}
+
+	entries, err := Real{}.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := map[string]bool{}
+	for _, entry := range entries {
+		got[entry.Name] = entry.Dir
+	}
+
+	if len(got) != 3 || !got["api"] || got["README.md"] || got["loop"] {
+		t.Fatalf("unexpected entries: %+v", entries)
+	}
+
+	if _, err := (Real{}).ReadDir(filepath.Join(dir, "absent")); err == nil {
+		t.Fatal("a missing folder must fail")
+	}
+}
