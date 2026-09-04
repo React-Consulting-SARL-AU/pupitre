@@ -8,6 +8,7 @@ import {
   InstallResultSchema,
   InstallSecretsSchema,
   ProbeResultSchema,
+  ProbeVerdictSchema,
   UninstallParamsSchema,
   UpgradeParamsSchema,
 } from "./install"
@@ -24,7 +25,7 @@ const probe = {
   panel: null,
   agent_version: null,
   installed_modules: [],
-  verdict: { level: "ready", reasons: [] },
+  verdict: { level: "ready", kind: "bare", reasons: [], fixes: [] },
 }
 
 describe("ProbeResultSchema", () => {
@@ -32,12 +33,66 @@ describe("ProbeResultSchema", () => {
     expect(ProbeResultSchema.safeParse(probe).success).toBe(true)
   })
 
-  it("rejects an unsupported architecture and a missing verdict", () => {
+  it("describes a machine an amd64/arm64 build cannot run on", () => {
     expect(
-      ProbeResultSchema.safeParse({ ...probe, arch: "i386" }).success
-    ).toBe(false)
+      ProbeResultSchema.safeParse({
+        ...probe,
+        arch: "i686",
+        verdict: {
+          level: "blocked",
+          kind: "incompatible",
+          reasons: ["Architecture non prise en charge : i686."],
+          fixes: ["Choisis un serveur amd64 (x86_64) ou arm64 (aarch64)."],
+        },
+      }).success
+    ).toBe(true)
+  })
+
+  it("accepts an unreadable architecture and rejects a missing verdict", () => {
+    expect(ProbeResultSchema.safeParse({ ...probe, arch: "" }).success).toBe(
+      true
+    )
     const { verdict: _verdict, ...withoutVerdict } = probe
     expect(ProbeResultSchema.safeParse(withoutVerdict).success).toBe(false)
+  })
+})
+
+describe("ProbeVerdictSchema", () => {
+  it("accepts a managed machine carrying whether it is up to date", () => {
+    expect(
+      ProbeVerdictSchema.safeParse({
+        level: "warning",
+        kind: "managed",
+        up_to_date: false,
+        reasons: ["Pupitre est déjà installé : agent 0.1.0."],
+        fixes: ["Mets l'agent à jour depuis l'app."],
+      }).success
+    ).toBe(true)
+  })
+
+  it("accepts a non-managed kind without up_to_date", () => {
+    expect(
+      ProbeVerdictSchema.safeParse({
+        level: "warning",
+        kind: "occupied",
+        reasons: ["Docker est installé."],
+        fixes: ["Installe quand même."],
+      }).success
+    ).toBe(true)
+  })
+
+  it("rejects a verdict without kind or fixes", () => {
+    expect(
+      ProbeVerdictSchema.safeParse({ level: "ready", reasons: [], fixes: [] })
+        .success
+    ).toBe(false)
+    expect(
+      ProbeVerdictSchema.safeParse({
+        level: "ready",
+        kind: "bare",
+        reasons: [],
+      }).success
+    ).toBe(false)
   })
 })
 
