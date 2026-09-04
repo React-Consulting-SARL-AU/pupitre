@@ -32,7 +32,7 @@ L'API vit dans `packages/api` et reste le contrat unique pour la console (`apps/
 
 ## État du dépôt
 
-Depuis PLT-03, le socle existe : `GET /health`, `GET /me` (preuve des guards, réponse `entitlement: "none"`), les guards, `serializeData`, `withOrganization`, `apiError`, l'openapi sur `/api/v1/openapi` (document sur `/api/v1/openapi/json`), le harnais PGlite et le client Eden. Les routes métier arrivent avec PLT-04 et suivantes ; ce skill décrit ce qui est livré, et une tâche qui change un nom met ce skill à jour dans la même passe.
+Depuis PLT-03, le socle existe : `GET /health`, `GET /me` (les guards, et depuis PLT-08 le droit d'usage de l'organisation active : `none` sans organisation, sinon `valid`, `grace` ou `suspended`, par `entitlementForOrganization`), les guards, `serializeData`, `withOrganization`, `apiError`, l'openapi sur `/api/v1/openapi` (document sur `/api/v1/openapi/json`), le harnais PGlite et le client Eden. Les routes métier arrivent avec PLT-04 et suivantes ; ce skill décrit ce qui est livré, et une tâche qui change un nom met ce skill à jour dans la même passe.
 
 ## Règles
 
@@ -167,7 +167,7 @@ export const routes = new Elysia({ name: "routes" })
   .use(adminRoutes)
 ```
 
-`server.ts` monte `routes` par `createApi(routes)` sous `/api/v1` avec l'openapi et la gestion d'erreurs ; `createApi` accepte un autre routeur, ce qui sert aux tests de mécanisme. Les routes `/admin/**` restent joignables mais n'apparaissent jamais dans le document OpenAPI : `hiddenRoutes` pose `{ detail: { hide: true } }` une fois sur le groupe, et `requirePlatformAdmin` va sur chaque routeur admin.
+`server.ts` monte `routes` par `createApi(routes)` sous `/api/v1` avec l'openapi et la gestion d'erreurs ; `createApi` accepte un autre routeur, ce qui sert aux tests de mécanisme. L'app est construite avec `aot: false` : Cloudflare Workers interdit `new Function`, dont dépend la compilation anticipée d'Elysia. En mode dynamique, un corps JSON illisible remonte comme `SyntaxError` et non comme le code `PARSE` ; `onError` traite les deux. Les routes `/admin/**` restent joignables mais n'apparaissent jamais dans le document OpenAPI : `hiddenRoutes` pose `{ detail: { hide: true } }` une fois sur le groupe, et `requirePlatformAdmin` va sur chaque routeur admin.
 
 ## Exemple complet : `devices`
 

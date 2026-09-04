@@ -4,9 +4,38 @@
 @layer base {
   html {
     font-family: var(--font-ui);
-    font-size: var(--font-ui-size);
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
     line-height: var(--font-ui-line-height);
     color: var(--ink);
     background: var(--base);
+  }
+
+  ::selection {
+    background: var(--raised);
+  }
+}
+
+@theme {
+  --animate-breathe: breathe var(--motion-breathe);
+
+  @keyframes breathe {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

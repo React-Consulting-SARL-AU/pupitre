@@ -3,6 +3,8 @@ import { t } from "elysia"
 import { dateTime } from "../openapi-models"
 import { serverStatusSchema } from "./servers/schemas"
 
+export const ME_ENTITLEMENTS = ["none", "valid", "grace", "suspended"] as const
+
 const organizationSummary = {
   id: t.String(),
   name: t.String(),
@@ -23,7 +25,7 @@ export const meSchema = t.Object(
     ),
     active_organization: t.Nullable(t.Object(organizationSummary)),
     role: t.Nullable(t.UnionEnum([...ORG_ROLES])),
-    entitlement: t.Literal("none"),
+    entitlement: t.UnionEnum([...ME_ENTITLEMENTS]),
   },
   { $id: "Me" }
 )
