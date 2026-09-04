@@ -21,6 +21,8 @@ import {
   SessionsListResultSchema,
   ShotsCleanResultSchema,
   ShotsListResultSchema,
+  ShotsReadParamsSchema,
+  ShotsReadResultSchema,
   ShotsUrlResultSchema,
 } from "./processes"
 import {
@@ -191,6 +193,10 @@ export const COMMANDS = {
   "process.kill": { params: ProcessKillParamsSchema, result: DoneResultSchema },
   "shots.list": { params: EmptyParamsSchema, result: ShotsListResultSchema },
   "shots.url": { params: EmptyParamsSchema, result: ShotsUrlResultSchema },
+  "shots.read": {
+    params: ShotsReadParamsSchema,
+    result: ShotsReadResultSchema,
+  },
   "shots.clean": { params: EmptyParamsSchema, result: ShotsCleanResultSchema },
   "secrets.status": {
     params: EmptyParamsSchema,

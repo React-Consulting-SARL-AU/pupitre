@@ -28,8 +28,19 @@ h1 a{color:var(--fg);text-decoration:none}
 .m span{color:var(--dim);font-size:11px;font-family:ui-monospace,monospace}
 .e{color:var(--dim)}`
 
-var imageExtensions = map[string]bool{
-	".png": true, ".jpg": true, ".jpeg": true, ".gif": true, ".webp": true, ".svg": true, ".avif": true,
+var mediaTypes = map[string]string{
+	".png":  "image/png",
+	".jpg":  "image/jpeg",
+	".jpeg": "image/jpeg",
+	".gif":  "image/gif",
+	".webp": "image/webp",
+	".avif": "image/avif",
+	".svg":  "image/svg+xml",
+}
+
+// The media types the contract knows; an empty answer means the file is not a capture.
+func MediaType(name string) string {
+	return mediaTypes[strings.ToLower(path.Ext(name))]
 }
 
 // Read-only, on the loopback alone: the gallery is reached through the SSH session the app already holds, never from outside.
@@ -121,7 +132,7 @@ func listing(dir string) ([]entry, error) {
 
 		entries = append(entries, entry{
 			name: item.Name(), dir: item.IsDir(), size: info.Size(), when: info.ModTime(),
-			image: imageExtensions[strings.ToLower(path.Ext(item.Name()))],
+			image: MediaType(item.Name()) != "",
 		})
 	}
 

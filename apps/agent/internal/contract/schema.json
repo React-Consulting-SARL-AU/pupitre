@@ -142,6 +142,34 @@
         "value"
       ]
     },
+    "ShotEvent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "event": {
+          "type": "string",
+          "const": "shot"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "bytes": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "event",
+        "seq",
+        "bytes"
+      ]
+    },
     "Response": {
       "oneOf": [
         {
@@ -2348,6 +2376,59 @@
       },
       "required": [
         "url"
+      ]
+    },
+    "ShotsReadParams": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "ShotsReadResult": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "media_type": {
+          "type": "string",
+          "enum": [
+            "image/png",
+            "image/jpeg",
+            "image/gif",
+            "image/webp",
+            "image/avif",
+            "image/svg+xml"
+          ]
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "chunks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "path",
+        "media_type",
+        "size_bytes",
+        "sha256",
+        "chunks"
       ]
     },
     "ShotsCleanParams": {
