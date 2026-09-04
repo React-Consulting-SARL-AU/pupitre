@@ -20,6 +20,14 @@ The root `package.json` lists `electron` and `node-pty` in `trustedDependencies`
 — without it Bun does not run their install scripts and the Electron binary is
 never downloaded.
 
+It happens anyway: an install that resolves nothing new does not replay the
+script, `node_modules/electron/path.txt` stays empty, and everything that starts
+the app fails on a binary that is not there. Put it back with:
+
+```bash
+cd apps/desktop && node node_modules/electron/install.js
+```
+
 ## Building
 
 ```bash
@@ -32,6 +40,37 @@ bun run build:win      # NSIS installer
 Each platform has to be built on itself: electron-builder can package for
 several architectures of the same OS, but the native module has to be compiled by
 the target platform.
+
+## Tests
+
+```bash
+bun run test      # main and stores, against the fake agent's transcripts
+bun run test:e2e  # builds, then drives the real window with Playwright
+```
+
+`e2e/` runs the app that `out/` holds, in a throwaway user folder, with the
+fixtures of the screen tests answering where the SSH channel would be. Nothing
+reaches a network: the only address in the harness is in TEST-NET-1.
+
+`themes.spec.ts` forces the light theme then the dark one and captures the
+dashboard in each. The references live in `e2e/references/`, one per platform,
+and are committed; the run artifacts are not. Rewrite them deliberately, and
+read the diff before you do:
+
+```bash
+bun run test:e2e -- --update-snapshots
+```
+
+Two runs on the same machine differ by zero pixels, so the tolerance —
+`threshold: 0.05`, `maxDiffPixelRatio: 0.0003` — exists for glyph rasterisation
+after an Electron upgrade, not for a change of rendering. It was measured
+against real regressions injected into the page: flattened corners cost 863
+pixels, service marks losing their brand colour 415, borders turning
+transparent 14 794. A per-pixel threshold of 0.15, Playwright's default, hides
+the first two outright: two greys of a monochrome palette sit closer than that.
+
+CI runs the suite on Linux without holding the pull request on it — the
+references committed here are macOS ones.
 
 ## The principle
 

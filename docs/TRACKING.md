@@ -18,7 +18,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-10 | Flux secret sur l'entrée standard | fait | `feat/INF-10-secret-stream` | fusionnée |
 | INF-12 | Contrat : les releases de l'app | fait | `feat/INF-12-app-releases` | fusionnée |
 | INF-13 | Le quota gratuit vit dans le contrat partagé | fait | `main` | constante unique dans `@pupitre/shared/plans` |
-| INF-14 | La langue de l'utilisateur est enregistrée | à faire | | |
+| INF-14 | La langue de l'utilisateur est enregistrée | fait | `feat/INF-14-user-locale` | fusionnée |
 | INF-15 | Contrat : détecter le gestionnaire d'un dépôt | à faire | | |
 | INF-17 | Contrat : lire la valeur d'un identifiant de service | à faire | | |
 | INF-18 | Contrat : la plateforme publie l'empreinte et refuse le retour en arrière | à faire | | |
@@ -68,7 +68,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-14 | Compte : device flow, appareils, enrôlement | à faire | | |
 | APP-15 | Serveurs distants et organisations | à faire | | |
 | APP-16 | Builds Windows et Linux | à faire | | |
-| APP-17 | Harnais Playwright pour Electron | à faire | | |
+| APP-17 | Harnais Playwright pour Electron | en revue | `feat/APP-17-electron-e2e` | |
 | APP-18 | Fond natif de la fenêtre selon le thème | à faire | | |
 | APP-19 | Appliquer le design accueillant à l'app | fait | `feat/APP-19-warm-design` | fusionnée |
 | APP-21 | Embarquer la police d'affichage dans l'app | à faire | | |
@@ -93,11 +93,11 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-13 | Passkeys et MFA | fait | `feat/PLT-13-passkeys` | fusionnée |
 | PLT-14 | Déploiement Cloudflare Builds, staging et production | en revue | `feat/PLT-14-deploy` | fusion en attente de PLT-18 : mêmes fichiers |
 | PLT-15 | Workflows Cloudflare : déclencheurs des tâches longues | fait | `feat/PLT-15-workflows` | fusionnée |
+| PLT-19 | Déclencheur planifié pour la fin de tolérance | à faire | | |
 | PLT-17 | Le workflow d'évaluation des alertes | fait | `feat/PLT-17-alerts-workflow` | fusionnée |
 | PLT-16 | Harnais Playwright pour la console | fait | `feat/PLT-16-e2e` | fusionnée |
 | PLT-18 | Managed Payments : vendeur Stripe, un produit, deux prix | en revue | `main` | |
 
-| MKT-04 | Téléchargement | en revue | `feat/MKT-04-09-site` | |
 
 ## Site marketing — `MKT`
 
@@ -106,7 +106,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | MKT-01 | Socle Astro, tokens, i18n, layout | fait | `feat/MKT-01-astro-base` | fusionnée |
 | MKT-02 | Accueil | fait | `feat/MKT-02-home` | fusionnée |
 | MKT-03 | Tarifs | fait | `feat/MKT-03-pricing` | fusionnée |
-| MKT-04 | Téléchargement | à faire | | |
+| MKT-04 | Téléchargement | en revue | `feat/MKT-04-09-site` | |
 | MKT-05 | Documentation publique | à faire | | |
 | MKT-06 | Blog et changelog | à faire | | |
 | MKT-07 | Pages légales | à faire | | |
@@ -119,4 +119,4 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
-| 2026-09-04 | APP-10 | La galerie ne peut pas montrer les captures : `shots.list` rend un chemin du serveur, `shots.url` une seule adresse pour la galerie entière, et aucune commande ne rend l'image. L'app liste donc les fichiers et ouvre la galerie dans le navigateur du système. | le propriétaire — une adresse par capture, ou une commande qui rend son contenu |
+| 2026-09-05 | INF-14 | La migration `add_user_locale` a été appliquée sur la branche staging de Neon sous l'horodatage que Prisma avait généré (`20260904212042_add_user_locale`), puis son dossier a été renommé en `20260905000000_add_user_locale` pour rester le dernier par ordre alphabétique. La colonne est en place, mais `_prisma_migrations` garde l'ancien nom : **le prochain `db:migrate` sur staging échouera**. Staging est vide (0 utilisateur, 0 organisation, 0 serveur). Remède au choix : renommer la ligne (`update _prisma_migrations set migration_name = '20260905000000_add_user_locale' where migration_name = '20260904212042_add_user_locale'`) ou réinitialiser staging. Les deux écritures m'ont été refusées : elles touchent ta base réelle. Production n'est pas concernée, elle recevra la migration sous son nom de dépôt. | propriétaire |

@@ -1,5 +1,10 @@
+import {
+  DEFAULT_LOCALE,
+  isLocale,
+  LOCALES,
+  type Locale,
+} from "@pupitre/shared/i18n"
 import { serve } from "bun"
-import { DEFAULT_LOCALE, isLocale, LOCALES, type Locale } from "../lib/i18n"
 import { EMAIL_PREVIEWS, previewOf } from "./catalog"
 import { EMAIL_TEMPLATE_IDS, type EmailTemplateId } from "./templates/ids"
 import { theme } from "./theme"

@@ -35,6 +35,7 @@ function list(
             email: "viewer@test.local",
             name: "Vue",
             image: null,
+            locale: "fr",
           },
           organizations: [],
           activeOrganization: organization,

@@ -1,6 +1,7 @@
+import { type Locale, resolveLocale } from "@pupitre/shared/i18n"
 import { Elysia } from "elysia"
 import { PublicKeyMalformedError } from "../../../devices/public-keys"
-import { type Locale, resolveLocale, translate } from "../../../i18n"
+import { translate } from "../../../i18n"
 import {
   EnrollmentTokenExpiredError,
   EnrollmentTokenUnknownError,

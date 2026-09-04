@@ -1,3 +1,4 @@
+import type { Locale } from "@pupitre/shared/i18n"
 import {
   Body,
   Head,
@@ -8,7 +9,6 @@ import {
   Text,
 } from "@react-email/components"
 import type { ReactNode } from "react"
-import type { Locale } from "../../lib/i18n"
 import { consoleUrl, EMAIL_DOMAIN } from "../config"
 import type { EmailTranslator } from "../i18n"
 import { DARK_MODE_CSS, theme } from "../theme"
