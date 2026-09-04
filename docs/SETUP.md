@@ -1,5 +1,7 @@
 # Setting up your own server, from A to Z
 
+> LEGACY — cette installation manuelle est la spécification des modules de l'agent Go (voir [contracts/service-catalog.md](./contracts/service-catalog.md)) ; elle n'est plus le chemin d'installation du produit.
+
 This walks through the whole thing: renting a machine, making an SSH key, putting
 the stack on it, and driving it from Pupitre. No prior knowledge of the project
 is assumed.
