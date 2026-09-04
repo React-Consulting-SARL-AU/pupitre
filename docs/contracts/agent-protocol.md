@@ -18,8 +18,25 @@ Le canal est une session SSH ouverte par l'app avec la clé du client, qui lance
 
 - `id` est choisi par l'app, croissant, jamais réutilisé dans une session.
 - Les requêtes sont sérialisées côté app : une seule commande en vol par canal. Les commandes longues (`install`, `upgrade`, `project.sync`) ouvrent un second canal pour ne pas bloquer les lectures d'état.
-- Toute erreur porte un `code` stable, un `message` pour l'humain, et un `fix` quand un remède existe.
+- Toute erreur porte un `code` stable, un `message` pour l'humain, un `fix` quand un remède existe, et un `remedy` quand ce remède tient dans une valeur.
 - La première commande d'une session est `hello` ; l'agent refuse le reste tant qu'elle n'a pas eu lieu.
+
+### Le remède structuré
+
+`fix` est une phrase, écrite pour un humain. Quand le remède tient dans une valeur, l'erreur porte en plus `remedy`, un objet discriminé par son propre `code` :
+
+```jsonc
+{ "id": 12, "ok": false, "error": {
+  "code": "bad_request",
+  "message": "le port 3000 est déjà pris par web",
+  "fix": "Donne un autre port à api, par exemple 3001.",
+  "remedy": { "code": "port_taken", "port_free": 3001 }
+} }
+```
+
+Un seul remède existe aujourd'hui : `port_taken`, rendu par `project.add` quand un projet déclaré tient déjà le port demandé. `port_free` est le premier port libre du registre à partir de celui-là. L'app applique cette valeur au lieu d'extraire un entier d'une phrase française — une formulation change, un champ non.
+
+`remedy` est optionnel et ne remplace jamais `fix` : une erreur dont le remède ne se résume pas à une valeur n'en porte pas.
 
 ## Commandes
 
@@ -90,6 +107,7 @@ Le chemin absolu vit sur le projet, pas sur la machine : `status`, `project.list
 | --- | --- |
 | `project.list` | — |
 | `project.add` | `{ name, dir, repo?, pkgmgr, host, port, subdomain?, cmd, install? }` |
+| `project.detect` | `{ repo }` ou `{ dir }` : ce qu'un dépôt demande, sans rien installer |
 | `project.remove` | `{ name }` (le dossier reste) |
 | `project.up` / `project.down` / `project.restart` | `{ name \| "all" }` |
 | `project.logs` | `{ name, lines?, follow? }` → événements `log` si `follow` |
@@ -103,6 +121,21 @@ Le chemin absolu vit sur le projet, pas sur la machine : `status`, `project.list
 | `project.diff` | `{ name, path }` : le patch brut |
 | `project.url` | `{ name }` |
 | `project.debug` | `{ name }` : redémarrage avec l'agent de débogage JVM |
+
+#### Ce qu'un dépôt demande, avant de l'ajouter
+
+`project.detect` répond à ce que l'écran d'ajout doit deviner avant `project.add` : quel gestionnaire de paquets, quelle commande de démarrage, quel port. Elle prend **une seule** source — `repo` pour un dépôt que le serveur ne connaît pas encore, `dir` pour un dossier déjà présent sous la racine des projets — et le contrat refuse les deux à la fois comme aucun des deux.
+
+Elle n'installe rien et ne déclare rien. Un `repo` est cloné **en surface** — `--depth 1`, sans étiquettes — dans le cache de l'utilisateur des projets, `~/.cache/pupitre/detect/<tirage>`, jamais sous la racine des projets : un clone à moitié fait ne doit pas pouvoir passer pour un projet. Le dossier est effacé dès la lecture finie, que la lecture ait réussi ou non. Chaque détection tire son propre nom, si bien que deux détections simultanées ne se marchent pas dessus ; et comme un agent tué en plein clone n'efface rien, chaque détection balaie d'abord ce que le cache garde depuis plus d'une heure — un âge qu'aucun clone en vol ne peut atteindre.
+
+| Champ | Description |
+| --- | --- |
+| `pkgmgr` | ce que le dépôt prouve : le champ `packageManager` du `package.json`, sinon son fichier de verrou (`bun.lock`, `pnpm-lock.yaml`, `package-lock.json`), sinon `bun` pour un `package.json` sans verrou. Sans `package.json` : `uv` pour un `pyproject.toml`, `gradle` pour un `gradlew`, `none` sinon |
+| `install` | la commande d'installation de ce gestionnaire, absente quand il n'en a pas |
+| `cmd` | la commande de démarrage : le premier script `dev`, `start` ou `serve` du `package.json`, sur le port de `port_hint`. Absente quand le dépôt n'en déclare aucun |
+| `port_hint` | le port que le dépôt demande — le `--port` de son script, le `server.port` de sa configuration Vite — s'il est libre sur ce serveur ; sinon le premier port libre du registre |
+
+Rien de tout cela n'est une décision : la détection propose, le client corrige à l'écran, et `project.add` reste l'autorité — c'est lui qui refuse un port déjà pris, avec le remède qui porte le port libre.
 
 ### Agents, sessions, processus
 
