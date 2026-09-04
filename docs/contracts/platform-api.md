@@ -81,7 +81,7 @@ Guards Elysia dans `packages/api/src/lib/api/plugins/` : `authPlugin` (résout s
 
 ## Modèle de données
 
-Tables Better Auth (générées) : `user`, `session`, `account`, `verification`, `organization`, `member`, `invitation`, `device_code`, plus celles des plugins activés.
+Tables Better Auth (générées) : `user`, `session`, `account`, `verification`, `organization`, `member`, `invitation`, `deviceCode`, plus celles des plugins activés.
 
 | Table | Champs |
 | --- | --- |
