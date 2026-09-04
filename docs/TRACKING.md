@@ -88,7 +88,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-12 | Alertes et page de statut | fait | `feat/PLT-12-alerts` | fusionnée |
 | PLT-13 | Passkeys et MFA | fait | `feat/PLT-13-passkeys` | fusionnée |
 | PLT-14 | Déploiement Cloudflare Builds, staging et production | à faire | | |
-| PLT-15 | Workflows Cloudflare : déclencheurs des tâches longues | à faire | | |
+| PLT-15 | Workflows Cloudflare : déclencheurs des tâches longues | en revue | `feat/PLT-15-workflows` | |
 | PLT-16 | Harnais Playwright pour la console | à faire | | |
 
 ## Site marketing — `MKT`
@@ -111,5 +111,6 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
+| 2026-09-04 | PLT-15 | Le contrat ([`platform-api.md`](./contracts/platform-api.md), « Tâches longues ») confie aussi à PLT-15 un quatrième workflow, `EvaluateAlerts` toutes les cinq minutes sur `evaluateAlerts()`, absent du périmètre de la tâche dans [`plans/platform.md`](./plans/platform.md) : les alertes ne sont donc toujours levées que par un appel explicite. À trancher : élargir PLT-15 ou ouvrir une tâche dédiée. | propriétaire |
 | 2026-09-04 | AGT-09 | Le contrat fixe la forme de la ligne secrète d'`install` (`InstallSecrets`) mais pas celle de `secrets.set` : l'agent lit `{"<clé>": "<valeur>"}`, la forme du test du protocole. À trancher : l'écrire dans `agent-protocol.md` et lui donner un schéma. | propriétaire |
 | 2026-09-04 | AGT-08 | Le contrat donne un champ `version` aux éditeurs, mais aucune liste fermée d'options ne tient : le serveur distant de Zed doit correspondre exactement à la version du client, et un backend JetBrains à la version du Gateway. Les deux modules livrent donc `version` en `text` (défaut `latest`) au lieu du genre `version`. À trancher : ouvrir le genre `version` à une saisie libre, ou laisser `text`. | propriétaire |
