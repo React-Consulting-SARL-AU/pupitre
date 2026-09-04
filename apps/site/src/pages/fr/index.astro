@@ -1,11 +1,5 @@
 ---
-import Hero from "../../components/Hero.astro"
-import Base from "../../layouts/Base.astro"
-import { localeFromPath, translator } from "../../lib/i18n"
-
-const t = translator(localeFromPath(Astro.url.pathname))
+import Home from "../../components/Home.astro"
 ---
 
-<Base title={t("home.title")} description={t("home.description")}>
-  <Hero />
-</Base>
+<Home />

@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { COMMAND_NAMES, COMMANDS } from "../agent-protocol"
+import { COMMAND_NAMES, COMMANDS, RESTRICTED_COMMANDS } from "../agent-protocol"
 import {
   EventSchema,
   LogEventSchema,
@@ -56,6 +56,7 @@ export const CONTRACT_DEFINITIONS: Readonly<Record<string, z.ZodType>> = {
   Response: ResponseSchema,
   ProtocolError: ProtocolErrorSchema,
   ErrorCode: ProtocolErrorCodeSchema,
+  RestrictedCommands: z.enum(RESTRICTED_COMMANDS),
   ...commandDefinitions(),
   Manifest: ManifestSchema,
   Field: FieldSchema,

@@ -21,15 +21,6 @@ export const en = {
   "callout.info": "Note",
   "callout.warn": "Warning",
   "callout.danger": "Danger",
-  "home.title": "Pupitre — a machine for your AI agents",
-  "home.description":
-    "A desktop app that turns any Ubuntu VPS into a workshop for AI agents, and a compiled agent installed on that server.",
-  "home.headline":
-    "Your AI agents work on a machine of their own. Your laptop breathes.",
-  "home.lead":
-    "A desktop app that turns any Ubuntu VPS into a workshop for AI agents, and a compiled agent installed on that server.",
-  "home.download": "Download the app",
-  "home.order": "Order",
 } as const
 
 export type Dictionary = Record<keyof typeof en, string>

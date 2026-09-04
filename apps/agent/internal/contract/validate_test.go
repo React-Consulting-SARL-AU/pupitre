@@ -84,6 +84,37 @@ func TestValidateAgainstDefinitions(t *testing.T) {
 	}
 }
 
+func TestFieldDefinitionKnowsBooleanAndList(t *testing.T) {
+	cases := []struct {
+		name  string
+		value string
+		valid bool
+	}{
+		{"boolean", `{"key":"tunnel","kind":"boolean","label":"Tunnel","required":false,"default":true}`, true},
+		{"boolean bad default", `{"key":"tunnel","kind":"boolean","label":"Tunnel","required":false,"default":"yes"}`, false},
+		{"boolean required", `{"key":"tunnel","kind":"boolean","label":"Tunnel","required":true,"default":true}`, false},
+		{"list of secrets", `{"key":"providers","kind":"list","label":"Providers","required":true,"items":"secret","min":1,"max":8}`, true},
+		{"list of text", `{"key":"extensions","kind":"list","label":"Extensions","required":false,"items":"text"}`, true},
+		{"list without items", `{"key":"providers","kind":"list","label":"Providers","required":true}`, false},
+		{"list unknown items", `{"key":"providers","kind":"list","label":"Providers","required":true,"items":"number"}`, false},
+		{"list negative min", `{"key":"providers","kind":"list","label":"Providers","required":true,"items":"text","min":-1}`, false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := Validate("Field", decode(t, tc.value))
+
+			if tc.valid && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if !tc.valid && err == nil {
+				t.Fatal("expected a validation error")
+			}
+		})
+	}
+}
+
 func TestValidateRejectsNonObjectAndBadRefs(t *testing.T) {
 	if err := Validate("HelloParams", decode(t, `[1]`)); err == nil {
 		t.Fatal("array accepted as HelloParams")

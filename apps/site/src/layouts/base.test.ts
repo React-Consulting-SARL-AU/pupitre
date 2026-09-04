@@ -81,8 +81,10 @@ describe("Base layout", () => {
     expect(stylesheet === -1 || script < stylesheet).toBe(true)
   })
 
-  it("loads Bricolage Grotesque and JetBrains Mono from Google Fonts with swap", async () => {
+  it("loads Bricolage Grotesque and JetBrains Mono from Google Fonts with swap, without blocking the first paint", async () => {
     const html = await render(Base, { props })
+    const fonts =
+      "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=JetBrains+Mono:wght@400;500&display=swap"
 
     expect(html).toContain(
       '<link rel="preconnect" href="https://fonts.googleapis.com">'
@@ -91,8 +93,22 @@ describe("Base layout", () => {
       '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
     )
     expect(html).toContain(
-      '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=JetBrains+Mono:wght@400;500&display=swap">'
+      `<link rel="stylesheet" href="${fonts}" media="print" onload="this.media='all'">`
     )
+    expect(html).toContain(
+      `<noscript><link rel="stylesheet" href="${fonts}"></noscript>`
+    )
+  })
+
+  it("puts the head slot inside the head", async () => {
+    const html = await render(Base, {
+      props,
+      slots: { head: '<meta name="x-test" content="1">' },
+    })
+    const meta = html.indexOf('name="x-test"')
+
+    expect(meta).toBeGreaterThan(-1)
+    expect(meta).toBeLessThan(html.indexOf("</head>"))
   })
 
   it("renders the nav, the theme and locale switches, and the footer", async () => {

@@ -32,7 +32,7 @@ func TestSchemaDeclaresTheContract(t *testing.T) {
 	}
 
 	for _, name := range []string{
-		"Request", "Event", "LogEvent", "StepEvent", "Response", "ProtocolError", "ErrorCode",
+		"Request", "Event", "LogEvent", "StepEvent", "Response", "ProtocolError", "ErrorCode", "RestrictedCommands",
 		"HelloParams", "HelloResult", "PingResult", "ProbeResult", "CatalogResult",
 		"InstallParams", "InstallResult", "SnapshotResult", "StatusResult",
 		"ProjectUpParams", "ProjectAddParams", "AgentOpenParams", "SecretsSetParams",

@@ -1,0 +1,84 @@
+---
+import { homeContent } from "../content/site/home"
+import Base from "../layouts/Base.astro"
+import { localeFromPath, translator } from "../lib/i18n"
+import { faqPage, jsonLd, softwareApplication } from "../lib/structured-data"
+import CatalogList from "./CatalogList.astro"
+import Claim from "./Claim.astro"
+import Faq from "./Faq.astro"
+import Feature from "./Feature.astro"
+import Hero from "./Hero.astro"
+import PricingNote from "./PricingNote.astro"
+import Section from "./Section.astro"
+
+const locale = localeFromPath(Astro.url.pathname)
+const t = translator(locale)
+const content = homeContent(locale)
+
+const application = jsonLd(
+  softwareApplication({
+    locale,
+    name: t("site.name"),
+    description: content.meta.description,
+  })
+)
+const questions = jsonLd(faqPage(content.faq.items))
+---
+
+<Base title={content.meta.title} description={content.meta.description}>
+  <Fragment slot="head">
+    <script is:inline type="application/ld+json" set:html={application} />
+    <script is:inline type="application/ld+json" set:html={questions} />
+  </Fragment>
+
+  <Hero />
+
+  <Section
+    id="features"
+    label={content.features.label}
+    title={content.features.title}
+  >
+    <div class="grid gap-x-10 gap-y-12 md:grid-cols-3">
+      {
+        content.features.items.map((item) => (
+          <Feature title={item.title} lines={item.lines} />
+        ))
+      }
+    </div>
+  </Section>
+
+  <Section
+    id="catalog"
+    label={content.catalog.label}
+    title={content.catalog.title}
+    lead={content.catalog.lead}
+  >
+    <CatalogList />
+  </Section>
+
+  <Section
+    id="promise"
+    label={content.promise.label}
+    title={content.promise.title}
+  >
+    <div class="grid gap-x-10 gap-y-12 md:grid-cols-3">
+      {
+        content.promise.items.map((item) => (
+          <Claim statement={item.statement} proof={item.proof} />
+        ))
+      }
+    </div>
+  </Section>
+
+  <Section id="faq" label={content.faq.label} title={content.faq.title}>
+    <Faq items={content.faq.items} />
+  </Section>
+
+  <Section
+    id="pricing"
+    label={content.pricing.label}
+    title={content.pricing.title}
+  >
+    <PricingNote />
+  </Section>
+</Base>
