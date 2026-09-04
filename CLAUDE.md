@@ -27,7 +27,6 @@ packages/design  tokens CSS monochrome + preset Tailwind, partagés par site, we
 
 docs/            produit, architecture, contrats, décisions, plans d'implémentation, suivi
 server/          LEGACY — la stack bash/zsh d'origine. Spécification des modules Go. Supprimée quand l'agent la couvre.
-app/             LEGACY — l'app Electron d'origine, déplacée vers apps/desktop par la tâche INF-03.
 ```
 
 ## Commands

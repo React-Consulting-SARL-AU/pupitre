@@ -12,7 +12,6 @@ Le produit est fermé et commercial. Rien de ce dépôt n'est publié ; son usag
 - `apps/agent` — `pupitred`, l'agent Go installé sur le serveur du client
 - `packages/*` — `db`, `auth`, `api`, `shared`, `design`
 - `docs/` — produit, architecture, contrats, décisions, plans, suivi
-- `app/` — LEGACY, l'app Electron d'origine, déplacée vers `apps/desktop`
 - `server/` — LEGACY, la stack bash d'origine, spécification des modules de l'agent Go
 
 ## Démarrer
