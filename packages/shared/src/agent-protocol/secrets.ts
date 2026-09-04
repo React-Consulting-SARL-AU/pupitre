@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { RequestIdSchema } from "./envelope"
 import { ProjectEnvResultSchema } from "./projects"
 import { ProjectNameSchema } from "./state"
 
@@ -29,6 +30,28 @@ export const SecretsSetSecretsSchema = z
   .refine((values) => Object.keys(values).length === 1)
 
 export type SecretsSetSecrets = z.infer<typeof SecretsSetSecretsSchema>
+
+export const ServiceSecretParamsSchema = z.strictObject({
+  id: z.string().min(1),
+  key: SecretKeySchema,
+})
+
+export type ServiceSecretParams = z.infer<typeof ServiceSecretParamsSchema>
+
+export const ServiceSecretResultSchema = z.object({
+  key: SecretKeySchema,
+})
+
+export type ServiceSecretResult = z.infer<typeof ServiceSecretResultSchema>
+
+export const SecretEventSchema = z.object({
+  id: RequestIdSchema,
+  event: z.literal("secret"),
+  key: SecretKeySchema,
+  value: z.string(),
+})
+
+export type SecretEvent = z.infer<typeof SecretEventSchema>
 
 export const SecretsSyncParamsSchema = z.strictObject({
   project: ProjectNameSchema,
