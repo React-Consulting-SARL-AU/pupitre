@@ -20,6 +20,7 @@ import {
   AGENT_INSTALL_COMMAND,
   agentPayload,
   agentSshArgs,
+  carriedRelease,
   type ShellSpawn,
   sendAgentBinary,
 } from "../agent-binary";
@@ -44,6 +45,28 @@ function builtAgent(): string {
   writeFileSync(join(dist, agentFileName("arm64")), ARM64);
 
   return dist;
+}
+
+function publishedAgent(): string {
+  const dist = builtAgent();
+  writeFileSync(
+    join(dist, "release.json"),
+    JSON.stringify({
+      notes: ["Retour arrière si la nouvelle version ne répond pas."],
+      signatures: { amd64: "c2lnbmF0dXJlLWFtZDY0" },
+      version: "0.4.0",
+    })
+  );
+
+  return dist;
+}
+
+function embedded(from: string): string {
+  const resources = join(tempDir(), "agent");
+  mkdirSync(resources, { recursive: true });
+  embedAgent({ from, to: resources });
+
+  return resources;
 }
 
 function digest(value: string): string {
@@ -285,5 +308,34 @@ describe("la construction de l'app", () => {
 
     expect(existsSync(join(resources, "manifest.json"))).toBe(true);
     expect(agentPayload(resources, "amd64").ok).toBe(true);
+  });
+});
+
+describe("la release que l'app porte", () => {
+  it("recopie la version, les notes et la signature de chaque architecture", () => {
+    const resources = embedded(publishedAgent());
+
+    expect(carriedRelease(resources, "amd64")).toEqual({
+      agent: {
+        arch: "amd64",
+        notes: ["Retour arrière si la nouvelle version ne répond pas."],
+        signed: true,
+        version: "0.4.0",
+      },
+      signature: "c2lnbmF0dXJlLWFtZDY0",
+    });
+  });
+
+  it("porte l'architecture sans signature comme non signée", () => {
+    const carried = carriedRelease(embedded(publishedAgent()), "arm64");
+
+    expect(carried).toMatchObject({
+      agent: { arch: "arm64", signed: false, version: "0.4.0" },
+      signature: null,
+    });
+  });
+
+  it("n'offre rien quand la construction n'a publié aucune version", () => {
+    expect(carriedRelease(embedded(builtAgent()), "amd64")).toBeNull();
   });
 });

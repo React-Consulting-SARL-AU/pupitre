@@ -64,7 +64,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-09 | Tableau de bord et projets sur le nouveau protocole | fait | `feat/APP-09-dashboard` | fusionnée |
 | APP-10 | Terminaux, agents, galerie | fait | `feat/APP-10-terminals` | fusionnée |
 | APP-11 | Services au quotidien | fait | `feat/APP-11-services` | fusionnée |
-| APP-12 | Mise à jour de l'agent depuis l'app | à faire | | |
+| APP-12 | Mise à jour de l'agent depuis l'app | en revue | `feat/APP-12-agent-update` | |
 | APP-13 | Build macOS signé, notarisé, bytecode, auto-update | à faire | | |
 | APP-14 | Compte : device flow, appareils, enrôlement | à faire | | |
 | APP-15 | Serveurs distants et organisations | à faire | | |
@@ -120,4 +120,5 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
+| 2026-09-04 | APP-12 | L'app n'a pas encore de session d'appareil : elle ne peut pas appeler `GET /releases/agent/latest?channel=&arch=` pour obtenir la version publiée, ses notes et sa signature. APP-12 les prend donc dans la release embarquée à la construction — `embedAgent` lit `apps/agent/dist/release.json` (`{ version, notes[], signatures: { arch } }`) et les recopie dans le manifeste des binaires. **Rien ne l'écrit aujourd'hui** : `bun --cwd=apps/agent run release` (AGT-15) doit le produire, sinon l'app porte un agent qu'elle sait pousser sur une machine nue mais pas proposer en mise à jour, et le bandeau le dit. À rebrancher sur la plateforme quand le lot 3 apporte le compte. | propriétaire |
 | 2026-09-05 | INF-14 | La migration `add_user_locale` a été appliquée sur la branche staging de Neon sous l'horodatage que Prisma avait généré (`20260904212042_add_user_locale`), puis son dossier a été renommé en `20260905000000_add_user_locale` pour rester le dernier par ordre alphabétique. La colonne est en place, mais `_prisma_migrations` garde l'ancien nom : **le prochain `db:migrate` sur staging échouera**. Staging est vide (0 utilisateur, 0 organisation, 0 serveur). Remède au choix : renommer la ligne (`update _prisma_migrations set migration_name = '20260905000000_add_user_locale' where migration_name = '20260904212042_add_user_locale'`) ou réinitialiser staging. Les deux écritures m'ont été refusées : elles touchent ta base réelle. Production n'est pas concernée, elle recevra la migration sous son nom de dépôt. | propriétaire |
