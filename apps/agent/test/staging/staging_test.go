@@ -16,7 +16,10 @@ import (
 	"pupitre.studio/agent/internal/contract"
 )
 
-const hostVariable = "PUPITRE_STAGING_HOST"
+const (
+	hostVariable = "PUPITRE_STAGING_HOST"
+	secretsPath  = "/run/pupitre-staging-secrets"
+)
 
 type request struct {
 	Cmd    string
@@ -74,7 +77,30 @@ func reachable(host string) bool {
 func agent(t *testing.T, host string, requests ...request) []response {
 	t.Helper()
 
+	return converse(t, host, "", requests...)
+}
+
+// The secret line travels on descriptor 3, as the app does; the staging VPS is reinstalled between campaigns, so the file it goes through lives on tmpfs and leaves with the run.
+func agentWithSecrets(t *testing.T, host, secrets string, requests ...request) []response {
+	t.Helper()
+
+	write := sshCommand(host, "sh", "-c", "'umask 077; cat > "+secretsPath+"'")
+	write.Stdin = strings.NewReader(secrets + "\n")
+	if out, err := write.CombinedOutput(); err != nil {
+		t.Fatalf("writing the secret line on %s: %v\n%s", host, err, out)
+	}
+	t.Cleanup(func() { sshCommand(host, "rm", "-f", secretsPath).Run() })
+
+	return converse(t, host, secretsPath, requests...)
+}
+
+func converse(t *testing.T, host, secrets string, requests ...request) []response {
+	t.Helper()
+
 	cmd := sshCommand(host, "sudo", "-n", "pupitred", "serve")
+	if secrets != "" {
+		cmd = sshCommand(host, "sudo", "-n", "sh", "-c", "'exec 3<"+secrets+"; exec pupitred serve'")
+	}
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 

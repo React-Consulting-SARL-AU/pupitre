@@ -30,6 +30,17 @@ const FR = {
   device_exists_fix:
     "Utilisez l'appareil déjà enregistré, ou ajoutez-en un avec une autre clé.",
   server_not_found: "Ce serveur n'existe pas.",
+  release_not_found: "Cette version de l'agent n'existe pas.",
+  release_not_found_fix:
+    "Demandez la dernière version publiée : GET /releases/agent/latest.",
+  release_conflict:
+    "La version {version} ({arch}) est déjà publiée avec une autre empreinte.",
+  release_conflict_fix:
+    "Publiez un nouveau numéro de version : une version déjà publiée n'est jamais réécrite.",
+  release_url_signed:
+    "Redirection vers le binaire signé sur R2, valable {seconds} secondes.",
+  release_url_local:
+    "Le stockage R2 n'est pas configuré : cette URL est locale et ne télécharge rien.",
   seat_quota_reached:
     "Votre abonnement couvre {quota} serveurs, ils sont tous utilisés.",
   seat_quota_reached_fix:
@@ -96,6 +107,17 @@ const EN: Record<MessageKey, string> = {
   device_exists_fix:
     "Use the device already registered, or add one with another key.",
   server_not_found: "This server does not exist.",
+  release_not_found: "This agent version does not exist.",
+  release_not_found_fix:
+    "Ask for the latest published version: GET /releases/agent/latest.",
+  release_conflict:
+    "Version {version} ({arch}) is already published with another fingerprint.",
+  release_conflict_fix:
+    "Publish a new version number: a published version is never rewritten.",
+  release_url_signed:
+    "Redirecting to the signed binary on R2, valid for {seconds} seconds.",
+  release_url_local:
+    "R2 storage is not configured: this URL is local and downloads nothing.",
   seat_quota_reached:
     "Your subscription covers {quota} servers, and they are all in use.",
   seat_quota_reached_fix: "Add a seat from billing, or delete a server.",

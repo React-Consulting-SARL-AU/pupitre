@@ -51,6 +51,7 @@ export type ServerMinAggregateOutputType = {
   entitlementValidUntil: Date | null
   decommissionAt: Date | null
   status: $Enums.ServerStatus | null
+  channel: $Enums.ReleaseChannel | null
   deviceId: string | null
   assignedUserId: string | null
   lastHeartbeatAt: Date | null
@@ -75,6 +76,7 @@ export type ServerMaxAggregateOutputType = {
   entitlementValidUntil: Date | null
   decommissionAt: Date | null
   status: $Enums.ServerStatus | null
+  channel: $Enums.ReleaseChannel | null
   deviceId: string | null
   assignedUserId: string | null
   lastHeartbeatAt: Date | null
@@ -99,6 +101,7 @@ export type ServerCountAggregateOutputType = {
   entitlementValidUntil: number
   decommissionAt: number
   status: number
+  channel: number
   deviceId: number
   assignedUserId: number
   lastHeartbeatAt: number
@@ -134,6 +137,7 @@ export type ServerMinAggregateInputType = {
   entitlementValidUntil?: true
   decommissionAt?: true
   status?: true
+  channel?: true
   deviceId?: true
   assignedUserId?: true
   lastHeartbeatAt?: true
@@ -158,6 +162,7 @@ export type ServerMaxAggregateInputType = {
   entitlementValidUntil?: true
   decommissionAt?: true
   status?: true
+  channel?: true
   deviceId?: true
   assignedUserId?: true
   lastHeartbeatAt?: true
@@ -182,6 +187,7 @@ export type ServerCountAggregateInputType = {
   entitlementValidUntil?: true
   decommissionAt?: true
   status?: true
+  channel?: true
   deviceId?: true
   assignedUserId?: true
   lastHeartbeatAt?: true
@@ -294,6 +300,7 @@ export type ServerGroupByOutputType = {
   entitlementValidUntil: Date | null
   decommissionAt: Date | null
   status: $Enums.ServerStatus
+  channel: $Enums.ReleaseChannel
   deviceId: string | null
   assignedUserId: string | null
   lastHeartbeatAt: Date | null
@@ -342,6 +349,7 @@ export type ServerWhereInput = {
   entitlementValidUntil?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   decommissionAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   status?: Prisma.EnumServerStatusFilter<"Server"> | $Enums.ServerStatus
+  channel?: Prisma.EnumReleaseChannelFilter<"Server"> | $Enums.ReleaseChannel
   deviceId?: Prisma.StringNullableFilter<"Server"> | string | null
   assignedUserId?: Prisma.StringNullableFilter<"Server"> | string | null
   lastHeartbeatAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
@@ -370,6 +378,7 @@ export type ServerOrderByWithRelationInput = {
   entitlementValidUntil?: Prisma.SortOrderInput | Prisma.SortOrder
   decommissionAt?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
+  channel?: Prisma.SortOrder
   deviceId?: Prisma.SortOrderInput | Prisma.SortOrder
   assignedUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   lastHeartbeatAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -401,6 +410,7 @@ export type ServerWhereUniqueInput = Prisma.AtLeast<{
   entitlementValidUntil?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   decommissionAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   status?: Prisma.EnumServerStatusFilter<"Server"> | $Enums.ServerStatus
+  channel?: Prisma.EnumReleaseChannelFilter<"Server"> | $Enums.ReleaseChannel
   deviceId?: Prisma.StringNullableFilter<"Server"> | string | null
   assignedUserId?: Prisma.StringNullableFilter<"Server"> | string | null
   lastHeartbeatAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
@@ -429,6 +439,7 @@ export type ServerOrderByWithAggregationInput = {
   entitlementValidUntil?: Prisma.SortOrderInput | Prisma.SortOrder
   decommissionAt?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
+  channel?: Prisma.SortOrder
   deviceId?: Prisma.SortOrderInput | Prisma.SortOrder
   assignedUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   lastHeartbeatAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -462,6 +473,7 @@ export type ServerScalarWhereWithAggregatesInput = {
   entitlementValidUntil?: Prisma.DateTimeNullableWithAggregatesFilter<"Server"> | Date | string | null
   decommissionAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Server"> | Date | string | null
   status?: Prisma.EnumServerStatusWithAggregatesFilter<"Server"> | $Enums.ServerStatus
+  channel?: Prisma.EnumReleaseChannelWithAggregatesFilter<"Server"> | $Enums.ReleaseChannel
   deviceId?: Prisma.StringNullableWithAggregatesFilter<"Server"> | string | null
   assignedUserId?: Prisma.StringNullableWithAggregatesFilter<"Server"> | string | null
   lastHeartbeatAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Server"> | Date | string | null
@@ -486,6 +498,7 @@ export type ServerCreateInput = {
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
+  channel?: $Enums.ReleaseChannel
   lastHeartbeatAt?: Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -512,6 +525,7 @@ export type ServerUncheckedCreateInput = {
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
+  channel?: $Enums.ReleaseChannel
   deviceId?: string | null
   assignedUserId?: string | null
   lastHeartbeatAt?: Date | string | null
@@ -536,6 +550,7 @@ export type ServerUpdateInput = {
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
+  channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -562,6 +577,7 @@ export type ServerUncheckedUpdateInput = {
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
+  channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -587,6 +603,7 @@ export type ServerCreateManyInput = {
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
+  channel?: $Enums.ReleaseChannel
   deviceId?: string | null
   assignedUserId?: string | null
   lastHeartbeatAt?: Date | string | null
@@ -611,6 +628,7 @@ export type ServerUpdateManyMutationInput = {
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
+  channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -634,6 +652,7 @@ export type ServerUncheckedUpdateManyInput = {
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
+  channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -669,6 +688,7 @@ export type ServerCountOrderByAggregateInput = {
   entitlementValidUntil?: Prisma.SortOrder
   decommissionAt?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  channel?: Prisma.SortOrder
   deviceId?: Prisma.SortOrder
   assignedUserId?: Prisma.SortOrder
   lastHeartbeatAt?: Prisma.SortOrder
@@ -698,6 +718,7 @@ export type ServerMaxOrderByAggregateInput = {
   entitlementValidUntil?: Prisma.SortOrder
   decommissionAt?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  channel?: Prisma.SortOrder
   deviceId?: Prisma.SortOrder
   assignedUserId?: Prisma.SortOrder
   lastHeartbeatAt?: Prisma.SortOrder
@@ -722,6 +743,7 @@ export type ServerMinOrderByAggregateInput = {
   entitlementValidUntil?: Prisma.SortOrder
   decommissionAt?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  channel?: Prisma.SortOrder
   deviceId?: Prisma.SortOrder
   assignedUserId?: Prisma.SortOrder
   lastHeartbeatAt?: Prisma.SortOrder
@@ -871,6 +893,10 @@ export type EnumServerStatusFieldUpdateOperationsInput = {
   set?: $Enums.ServerStatus
 }
 
+export type EnumReleaseChannelFieldUpdateOperationsInput = {
+  set?: $Enums.ReleaseChannel
+}
+
 export type ServerCreateWithoutAssignedUserInput = {
   id?: string
   name: string
@@ -887,6 +913,7 @@ export type ServerCreateWithoutAssignedUserInput = {
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
+  channel?: $Enums.ReleaseChannel
   lastHeartbeatAt?: Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -912,6 +939,7 @@ export type ServerUncheckedCreateWithoutAssignedUserInput = {
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
+  channel?: $Enums.ReleaseChannel
   deviceId?: string | null
   lastHeartbeatAt?: Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -965,6 +993,7 @@ export type ServerScalarWhereInput = {
   entitlementValidUntil?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   decommissionAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   status?: Prisma.EnumServerStatusFilter<"Server"> | $Enums.ServerStatus
+  channel?: Prisma.EnumReleaseChannelFilter<"Server"> | $Enums.ReleaseChannel
   deviceId?: Prisma.StringNullableFilter<"Server"> | string | null
   assignedUserId?: Prisma.StringNullableFilter<"Server"> | string | null
   lastHeartbeatAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
@@ -989,6 +1018,7 @@ export type ServerCreateWithoutOrganizationInput = {
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
+  channel?: $Enums.ReleaseChannel
   lastHeartbeatAt?: Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -1013,6 +1043,7 @@ export type ServerUncheckedCreateWithoutOrganizationInput = {
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
+  channel?: $Enums.ReleaseChannel
   deviceId?: string | null
   assignedUserId?: string | null
   lastHeartbeatAt?: Date | string | null
@@ -1063,6 +1094,7 @@ export type ServerCreateWithoutDeviceInput = {
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
+  channel?: $Enums.ReleaseChannel
   lastHeartbeatAt?: Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -1088,6 +1120,7 @@ export type ServerUncheckedCreateWithoutDeviceInput = {
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
+  channel?: $Enums.ReleaseChannel
   assignedUserId?: string | null
   lastHeartbeatAt?: Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1138,6 +1171,7 @@ export type ServerCreateManyAssignedUserInput = {
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
+  channel?: $Enums.ReleaseChannel
   deviceId?: string | null
   lastHeartbeatAt?: Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1161,6 +1195,7 @@ export type ServerUpdateWithoutAssignedUserInput = {
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
+  channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1186,6 +1221,7 @@ export type ServerUncheckedUpdateWithoutAssignedUserInput = {
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
+  channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1210,6 +1246,7 @@ export type ServerUncheckedUpdateManyWithoutAssignedUserInput = {
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
+  channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1233,6 +1270,7 @@ export type ServerCreateManyOrganizationInput = {
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
+  channel?: $Enums.ReleaseChannel
   deviceId?: string | null
   assignedUserId?: string | null
   lastHeartbeatAt?: Date | string | null
@@ -1257,6 +1295,7 @@ export type ServerUpdateWithoutOrganizationInput = {
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
+  channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1281,6 +1320,7 @@ export type ServerUncheckedUpdateWithoutOrganizationInput = {
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
+  channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1305,6 +1345,7 @@ export type ServerUncheckedUpdateManyWithoutOrganizationInput = {
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
+  channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1330,6 +1371,7 @@ export type ServerCreateManyDeviceInput = {
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
+  channel?: $Enums.ReleaseChannel
   assignedUserId?: string | null
   lastHeartbeatAt?: Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1353,6 +1395,7 @@ export type ServerUpdateWithoutDeviceInput = {
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
+  channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1378,6 +1421,7 @@ export type ServerUncheckedUpdateWithoutDeviceInput = {
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
+  channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1402,6 +1446,7 @@ export type ServerUncheckedUpdateManyWithoutDeviceInput = {
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
+  channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1428,6 +1473,7 @@ export type ServerSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   entitlementValidUntil?: boolean
   decommissionAt?: boolean
   status?: boolean
+  channel?: boolean
   deviceId?: boolean
   assignedUserId?: boolean
   lastHeartbeatAt?: boolean
@@ -1456,6 +1502,7 @@ export type ServerSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   entitlementValidUntil?: boolean
   decommissionAt?: boolean
   status?: boolean
+  channel?: boolean
   deviceId?: boolean
   assignedUserId?: boolean
   lastHeartbeatAt?: boolean
@@ -1484,6 +1531,7 @@ export type ServerSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   entitlementValidUntil?: boolean
   decommissionAt?: boolean
   status?: boolean
+  channel?: boolean
   deviceId?: boolean
   assignedUserId?: boolean
   lastHeartbeatAt?: boolean
@@ -1512,6 +1560,7 @@ export type ServerSelectScalar = {
   entitlementValidUntil?: boolean
   decommissionAt?: boolean
   status?: boolean
+  channel?: boolean
   deviceId?: boolean
   assignedUserId?: boolean
   lastHeartbeatAt?: boolean
@@ -1520,7 +1569,7 @@ export type ServerSelectScalar = {
   updatedAt?: boolean
 }
 
-export type ServerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "name" | "host" | "port" | "sshUser" | "hostFingerprint" | "arch" | "agentVersion" | "targetVersion" | "serverTokenHash" | "enrollmentTokenHash" | "enrollmentExpiresAt" | "entitlementValidUntil" | "decommissionAt" | "status" | "deviceId" | "assignedUserId" | "lastHeartbeatAt" | "metrics" | "createdAt" | "updatedAt", ExtArgs["result"]["server"]>
+export type ServerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "name" | "host" | "port" | "sshUser" | "hostFingerprint" | "arch" | "agentVersion" | "targetVersion" | "serverTokenHash" | "enrollmentTokenHash" | "enrollmentExpiresAt" | "entitlementValidUntil" | "decommissionAt" | "status" | "channel" | "deviceId" | "assignedUserId" | "lastHeartbeatAt" | "metrics" | "createdAt" | "updatedAt", ExtArgs["result"]["server"]>
 export type ServerInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
   device?: boolean | Prisma.Server$deviceArgs<ExtArgs>
@@ -1561,6 +1610,7 @@ export type $ServerPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     entitlementValidUntil: Date | null
     decommissionAt: Date | null
     status: $Enums.ServerStatus
+    channel: $Enums.ReleaseChannel
     deviceId: string | null
     assignedUserId: string | null
     lastHeartbeatAt: Date | null
@@ -2009,6 +2059,7 @@ export interface ServerFieldRefs {
   readonly entitlementValidUntil: Prisma.FieldRef<"Server", 'DateTime'>
   readonly decommissionAt: Prisma.FieldRef<"Server", 'DateTime'>
   readonly status: Prisma.FieldRef<"Server", 'ServerStatus'>
+  readonly channel: Prisma.FieldRef<"Server", 'ReleaseChannel'>
   readonly deviceId: Prisma.FieldRef<"Server", 'String'>
   readonly assignedUserId: Prisma.FieldRef<"Server", 'String'>
   readonly lastHeartbeatAt: Prisma.FieldRef<"Server", 'DateTime'>

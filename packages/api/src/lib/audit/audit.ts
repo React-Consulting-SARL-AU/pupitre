@@ -7,8 +7,10 @@ export type AuditAction =
   | "server.enrolled"
   | "server.exchanged"
   | "server.deleted"
+  | "release.published"
+  | "release.promoted"
 
-export type AuditTargetType = "device" | "server"
+export type AuditTargetType = "device" | "server" | "release"
 
 export interface AuditEntry {
   action: AuditAction

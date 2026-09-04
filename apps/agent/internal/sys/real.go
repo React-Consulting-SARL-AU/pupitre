@@ -26,6 +26,16 @@ func (Real) Run(cmd Command) (Output, error) {
 		process.Stdin = bytes.NewReader(cmd.Stdin)
 	}
 
+	if cmd.StdinPath != "" {
+		input, err := os.Open(cmd.StdinPath)
+		if err != nil {
+			return Output{}, err
+		}
+		defer input.Close()
+
+		process.Stdin = input
+	}
+
 	if cmd.User != "" && cmd.User != "root" {
 		credential, err := credentialOf(cmd.User)
 		if err != nil {

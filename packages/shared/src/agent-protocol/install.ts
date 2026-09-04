@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { ArchitectureSchema, ManifestSchema, PresetSchema } from "../catalog"
+import { ManifestSchema, PresetSchema } from "../catalog"
 import { StepStatusSchema } from "./envelope"
 
 export const ProbePortSchema = z.object({
@@ -13,9 +13,21 @@ export const PROBE_VERDICT_LEVELS = ["ready", "warning", "blocked"] as const
 
 export const ProbeVerdictLevelSchema = z.enum(PROBE_VERDICT_LEVELS)
 
+export const PROBE_VERDICT_KINDS = [
+  "bare",
+  "managed",
+  "occupied",
+  "incompatible",
+] as const
+
+export const ProbeVerdictKindSchema = z.enum(PROBE_VERDICT_KINDS)
+
 export const ProbeVerdictSchema = z.object({
   level: ProbeVerdictLevelSchema,
+  kind: ProbeVerdictKindSchema,
+  up_to_date: z.boolean().optional(),
   reasons: z.array(z.string()),
+  fixes: z.array(z.string()),
 })
 
 export type ProbeVerdict = z.infer<typeof ProbeVerdictSchema>
@@ -23,7 +35,7 @@ export type ProbeVerdict = z.infer<typeof ProbeVerdictSchema>
 export const ProbeResultSchema = z.object({
   os: z.string(),
   version: z.string(),
-  arch: ArchitectureSchema,
+  arch: z.string(),
   ram_mb: z.int().nonnegative(),
   disk_free_gb: z.number().nonnegative(),
   sudo: z.boolean(),

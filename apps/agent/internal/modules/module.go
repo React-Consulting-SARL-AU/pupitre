@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/protocol"
 )
 
 type Module interface {
@@ -65,4 +66,9 @@ func (e *StepError) Error() string {
 
 func Replay(module string) string {
 	return "sudo pupitred install --only=" + module
+}
+
+func NotInstalled(id, name string) error {
+	return protocol.NewError(contract.ErrorServiceNotFound, name+" n'est pas installé sur ce serveur").
+		WithFix("Installe " + id + " depuis le catalogue de l'app.")
 }

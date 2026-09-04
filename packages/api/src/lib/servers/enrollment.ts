@@ -3,6 +3,10 @@ import { getPrisma, withOrganization } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { fingerprintOfPublicKey } from "../devices/public-keys"
 import {
+  type EnrollmentRelease,
+  releaseForEnrollment,
+} from "../releases/releases"
+import {
   generateEnrollmentToken,
   generateServerToken,
   hashEnrollmentToken,
@@ -18,14 +22,6 @@ export const DEFAULT_SSH_PORT = 22
 export const DEFAULT_SSH_USER = "dev"
 
 export const DEV_SEAT_QUOTA = 2
-
-// PLT-06 publishes the signed binaries; until then the app pushes the agent it already carries.
-export const STUB_RELEASE = {
-  version: "0.0.0-dev",
-  url: "",
-  sha256: "",
-  signature: "",
-} as const
 
 const SEATED_STATUSES: ServerStatus[] = [
   "enrolling",
@@ -89,7 +85,7 @@ export interface EnrollInput {
 export interface EnrollResult {
   server_id: string
   enrollment_token: string
-  release: typeof STUB_RELEASE
+  release: EnrollmentRelease
 }
 
 export interface ExchangeInput {
@@ -134,6 +130,7 @@ export async function enrollServer(
   }
 
   const enrollmentToken = generateEnrollmentToken()
+  const release = await releaseForEnrollment(input.probe.arch)
   const host = input.host.trim()
   const server = await prisma.server.create({
     data: {
@@ -145,7 +142,7 @@ export async function enrollServer(
       arch: input.probe.arch,
       hostFingerprint: input.fingerprint ?? null,
       status: "enrolling",
-      targetVersion: STUB_RELEASE.version,
+      targetVersion: release.version,
       deviceId: device.id,
       assignedUserId: actor.userId,
       enrollmentTokenHash: await hashEnrollmentToken(enrollmentToken),
@@ -165,7 +162,7 @@ export async function enrollServer(
   return {
     server_id: server.id,
     enrollment_token: enrollmentToken,
-    release: STUB_RELEASE,
+    release,
   }
 }
 

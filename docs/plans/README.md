@@ -169,3 +169,13 @@ Critères d'acceptation.
 2. Aucun secret n'apparaît dans un événement, un rapport ou un journal : test explicite des deux côtés.
 3. `grep -rn "fd 3\|stdio\[3\]" apps/desktop/src apps/agent` ne renvoie plus rien.
 
+### INF-11 — Contrat : le verdict de la sonde
+Lot 0 · dépend de AGT-02 · `packages/shared`, `docs/contracts/agent-protocol.md`
+
+But. `ProbeResult` décrit le verdict que la sonde produit et que l'écran d'inspection affiche.
+Périmètre. Ajouter au schéma `verdict` : `kind` (`bare` | `managed` | `occupied` | `incompatible`), `fixes[]` à côté de `reasons[]`, et `up_to_date` quand `kind` vaut `managed`. Élargir `arch` à une chaîne libre avec les valeurs connues documentées : une machine `incompatible` par son architecture doit pouvoir se décrire. Décider si `disk_free_gb` reste un nombre unique (le plus petit entre la racine et le dossier des projets, ce que fait AGT-02) ou devient deux champs, et l'écrire. Régénérer `schema.json`, retirer les exceptions posées par AGT-02 dans `assertContractJSON`, retirer la ligne de blocage.
+Hors périmètre. La sonde elle-même, déjà livrée.
+Critères d'acceptation.
+1. Les deux sondes valident contre le schéma sans exception, avec `kind`, `fixes` et `up_to_date`.
+2. Une machine `i686` est descriptible et rendue `incompatible`.
+

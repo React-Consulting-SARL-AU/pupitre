@@ -14,19 +14,20 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-06 | Skills et outillage agent | fait | `chore/INF-06-skills` | fusionnée |
 | INF-07 | Contrat : champs booléens et listes dans le catalogue | fait | `feat/INF-07-catalog-fields` | fusionnée |
 | INF-08 | Contrat : flux secret d'`install`, presets dans le schéma, code `no_report` | fait | `feat/INF-08-install-contract` | fusionnée |
-| INF-09 | Design : ombres, rayons, espace, logos de services | à faire | | |
+| INF-09 | Design : ombres, rayons, espace, logos de services | fait | `feat/INF-09-design-tokens` | fusionnée |
 | INF-10 | Flux secret sur l'entrée standard | à faire | | |
+| INF-11 | Contrat : le verdict de la sonde | fait | `feat/INF-11-probe-contract` | fusionnée |
 
 ## Agent serveur — `AGT`
 
 | ID | Tâche | Statut | Branche | PR |
 | --- | --- | --- | --- | --- |
 | AGT-01 | Squelette, protocole, `hello` et `ping` | fait | `feat/AGT-01-protocol` | fusionnée |
-| AGT-02 | Sonde sh et sonde Go | à faire | | |
+| AGT-02 | Sonde sh et sonde Go | fait | `feat/AGT-02-probe` | fusionnée |
 | AGT-03 | Moteur de modules et rapport | fait | `feat/AGT-03-module-engine` | fusionnée |
 | AGT-04 | Modules socle et durcissement | fait | `feat/AGT-04-core-modules` | fusionnée |
 | AGT-05 | Modules runtimes | fait | `feat/AGT-05-runtimes` | fusionnée |
-| AGT-06 | Modules bases de données | à faire | | |
+| AGT-06 | Modules bases de données | fait | `feat/AGT-06-databases` | fusionnée |
 | AGT-07 | Modules agents IA et navigateur | à faire | | |
 | AGT-08 | Modules éditeurs distants | à faire | | |
 | AGT-09 | Modules exposition et outils | à faire | | |
@@ -71,7 +72,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-03 | Elysia : socle, guards, erreurs, harnais de test | fait | `feat/PLT-03-elysia-base` | fusionnée |
 | PLT-04 | Routes `me`, `devices` | fait | `feat/PLT-04-me-devices` | fusionnée |
 | PLT-05 | Enrôlement, jetons d'agent, `agent/state`, heartbeat | fait | `feat/PLT-05-enrollment` | fusionnée |
-| PLT-06 | Distribution des binaires signés (R2) | à faire | | |
+| PLT-06 | Distribution des binaires signés (R2) | fait | `feat/PLT-06-releases` | fusionnée |
 | PLT-07 | Stripe Managed Payments : checkout, portail, webhooks, réconciliation | à faire | | |
 | PLT-08 | Console : shell, connexion, serveurs, appareils | à faire | | |
 | PLT-09 | Console : abonnement, téléchargements, profil | à faire | | |

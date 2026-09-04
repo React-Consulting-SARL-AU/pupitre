@@ -6,8 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/probe"
 	"pupitre.studio/agent/internal/sys"
 )
 
@@ -73,5 +75,33 @@ func TestUsageAndVersion(t *testing.T) {
 	code, stdout, _ := runCLI(t, "version")
 	if code != 0 || stdout != "pupitred "+version+"\n" {
 		t.Fatalf("code = %d, stdout = %q", code, stdout)
+	}
+}
+
+func TestProbeWritesTheContractResultAndTheScript(t *testing.T) {
+	setupCLI(t)
+
+	code, stdout, stderr := runCLI(t, "probe")
+	if code != 0 || stderr != "" {
+		t.Fatalf("code = %d, stderr = %s", code, stderr)
+	}
+
+	value, err := contract.Decode([]byte(stdout))
+	if err != nil {
+		t.Fatalf("probe output is not JSON: %v\n%s", err, stdout)
+	}
+
+	if _, ok := value.(map[string]any)["verdict"]; !ok {
+		t.Fatalf("probe output lacks a verdict: %s", stdout)
+	}
+
+	code, stdout, _ = runCLI(t, "probe", "--script")
+	if code != 0 || stdout != probe.Script {
+		t.Fatalf("code = %d, --script must hand back probe.sh verbatim", code)
+	}
+
+	code, _, stderr = runCLI(t, "probe", "--bogus")
+	if code != 2 || !strings.Contains(stderr, "argument inconnu") {
+		t.Fatalf("code = %d, stderr = %s", code, stderr)
 	}
 }

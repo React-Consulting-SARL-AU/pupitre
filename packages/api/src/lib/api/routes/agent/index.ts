@@ -1,5 +1,6 @@
 import { Elysia } from "elysia"
 import { agentExchangeRoutes } from "./exchange"
+import { agentReleaseRoutes } from "./release"
 import { agentStateRoutes } from "./state"
 
 export const agentRoutes = new Elysia({
@@ -8,3 +9,4 @@ export const agentRoutes = new Elysia({
 })
   .use(agentExchangeRoutes)
   .use(agentStateRoutes)
+  .use(agentReleaseRoutes)

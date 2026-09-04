@@ -50,7 +50,7 @@ func TestServeNegotiatesHelloThenAnswersPing(t *testing.T) {
 	lines := serveLines(t,
 		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}`,
 		`{"id":2,"cmd":"ping"}`,
-		`{"id":3,"cmd":"probe"}`,
+		`{"id":3,"cmd":"snapshot"}`,
 	)
 
 	if len(lines) != 3 {
@@ -81,7 +81,7 @@ func TestServeNegotiatesHelloThenAnswersPing(t *testing.T) {
 	}
 
 	if code := errorCode(t, lines[2]); code != "unknown_command" {
-		t.Fatalf("probe → %s, want unknown_command", code)
+		t.Fatalf("snapshot → %s, want unknown_command", code)
 	}
 }
 
