@@ -1,9 +1,8 @@
 /**
- * The app's mark, taken from its icon.
+ * The app's mark: the prompt glyph in a square with `md` corners, inverted.
  *
- * A prompt chevron and two status lines: a console, and several things whose
- * state you watch. The stroke follows the requested size so it stays legible at
- * 16 pixels in a bar as well as at 40 on a welcome screen.
+ * Black on white in the light theme, white on black in the dark one — the tokens
+ * swap on their own, so the mark follows the window without a second asset.
  */
 export function Logo({ size = 24 }: { size?: number }) {
   return (
@@ -11,19 +10,28 @@ export function Logo({ size = 24 }: { size?: number }) {
       aria-hidden="true"
       fill="none"
       height={size}
-      viewBox="0 0 1024 1024"
+      viewBox="0 0 24 24"
       width={size}
       xmlns="http://www.w3.org/2000/svg"
     >
       <title>Pupitre</title>
+      <rect
+        fill="var(--inverse)"
+        height="24"
+        rx="6"
+        ry="6"
+        width="24"
+        x="0"
+        y="0"
+      />
       <g
+        stroke="var(--inverse-ink)"
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth={size < 20 ? 108 : 84}
+        strokeWidth="2"
       >
-        <path d="M 292 352 L 452 512 L 292 672" stroke="var(--color-accent)" />
-        <path d="M 590 428 L 736 428" stroke="var(--color-ink-2)" />
-        <path d="M 590 596 L 700 596" stroke="var(--color-ink-4)" />
+        <path d="M 7 8.5 L 10.5 12 L 7 15.5" />
+        <path d="M 13 15.5 L 17 15.5" />
       </g>
     </svg>
   );

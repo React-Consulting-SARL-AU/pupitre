@@ -9,10 +9,24 @@ import {
   Boxes,
   ChevronDown,
   ChevronRight,
+  Palette,
+  Plus,
   Server as ServerIcon,
+  X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import {
+  THEME_PREFERENCES,
+  type ThemePreference,
+  useTheme,
+} from "../stores/theme";
 import { Projects } from "./Projects";
+import { Button } from "./ui/button";
+import { Field, fieldControlClass } from "./ui/field";
+import { IconButton } from "./ui/icon-button";
+import { Label } from "./ui/label";
+import { PageHeader } from "./ui/page-header";
+import { StatusDot } from "./ui/status-dot";
 
 /**
  * The servers, and which one we drive.
@@ -30,8 +44,23 @@ import { Projects } from "./Projects";
  */
 const FREE = "__free__";
 const NONE = "__none__";
-const FIELD =
-  "rounded-md border border-line bg-base px-2.5 py-1.5 font-mono text-[12px] outline-none focus:border-accent";
+
+const THEME_LABEL: Record<ThemePreference, string> = {
+  system: "Follow the system",
+  light: "Light",
+  dark: "Dark",
+};
+
+type Section = "servers" | "projects" | "appearance";
+
+/** A known editor by name, an unknown URL as "other", nothing as "none". */
+function editorChoice(profile: ServerProfile): string {
+  if (!profile.editor) {
+    return NONE;
+  }
+  const known = EDITORS.find((e) => e.url === profile.editor);
+  return known ? known.name : FREE;
+}
 
 export function Settings({
   config,
@@ -42,7 +71,7 @@ export function Settings({
   capabilities: Capabilities | null;
   onSave: (config: ServersConfig) => void;
 }) {
-  const [section, setSection] = useState<"servers" | "projects">("servers");
+  const [section, setSection] = useState<Section>("servers");
   const [draft, setDraft] = useState<ServersConfig>(config);
   const [hosts, setHosts] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -114,7 +143,7 @@ export function Settings({
   return (
     <div className="h-full overflow-y-auto px-6 py-6">
       <div className="mx-auto max-w-2xl">
-        <h1 className="font-semibold text-xl tracking-tight">Settings</h1>
+        <PageHeader title="Settings" />
 
         <div className="mt-4 mb-5 flex gap-1 border-line border-b">
           <Tab
@@ -133,17 +162,26 @@ export function Settings({
               Projects
             </Tab>
           ) : null}
+          <Tab
+            active={section === "appearance"}
+            icon={Palette}
+            onClick={() => setSection("appearance")}
+          >
+            Appearance
+          </Tab>
         </div>
 
         {section === "projects" && hasRegistry ? (
           <Projects command={activeCommand} />
         ) : null}
 
+        {section === "appearance" ? <Appearance /> : null}
+
         <div hidden={section !== "servers"}>
           <p className="text-ink-3 leading-relaxed">
             The app stores neither key nor password. A server points at a host
             from your{" "}
-            <code className="font-mono text-ink-2">~/.ssh/config</code> — that
+            <code className="font-data text-ink-2">~/.ssh/config</code> — that
             is what carries the user, the port and the agent.
           </p>
 
@@ -152,51 +190,48 @@ export function Settings({
               const isActive = draft.active === server.id;
               return (
                 <div
-                  className={`rounded-xl border p-4 transition-soft ${
+                  className={`rounded-md border p-4 transition-soft ${
                     isActive
-                      ? "border-accent bg-accent-veil"
+                      ? "border-line-strong bg-raised"
                       : "border-line bg-surface"
                   }`}
                   key={server.id}
                 >
                   <div className="flex items-center gap-3">
                     <button
+                      aria-current={isActive}
                       aria-label={`Drive ${server.name}`}
-                      className={`h-4 w-4 shrink-0 rounded-full border-2 transition-soft ${
-                        isActive
-                          ? "border-accent bg-accent"
-                          : "border-line-strong hover:border-accent"
-                      }`}
+                      className="shrink-0 rounded-sm p-0.5 text-ink transition-soft"
                       onClick={() =>
                         setDraft((d) => ({ ...d, active: server.id }))
                       }
                       type="button"
-                    />
+                    >
+                      <StatusDot
+                        shape={isActive ? "filled" : "empty"}
+                        size={13}
+                      />
+                    </button>
                     <input
-                      className="min-w-0 flex-1 rounded-md border border-line bg-base px-2.5 py-1.5 font-medium text-[13px] outline-none focus:border-accent"
+                      className={`min-w-0 flex-1 ${fieldControlClass}`}
                       onChange={(e) =>
                         updateServer(server.id, "name", e.target.value)
                       }
                       placeholder="Display name"
                       value={server.name}
                     />
-                    <button
-                      aria-label={`Remove ${server.name}`}
-                      className="shrink-0 rounded-md px-2 py-1 text-ink-4 text-lg leading-none hover:text-danger"
+                    <IconButton
+                      icon={X}
+                      label={`Remove ${server.name}`}
                       onClick={() => remove(server.id)}
-                      type="button"
-                    >
-                      ×
-                    </button>
+                      variant="danger"
+                    />
                   </div>
 
                   <div className="mt-2.5 grid gap-2 pl-7 sm:grid-cols-2">
-                    <label className="flex flex-col gap-1">
-                      <span className="font-mono text-[10px] text-ink-4 uppercase tracking-[0.08em]">
-                        SSH host
-                      </span>
+                    <Field label="SSH host">
                       <select
-                        className={FIELD}
+                        className={fieldControlClass}
                         onChange={(e) =>
                           updateServer(
                             server.id,
@@ -215,7 +250,7 @@ export function Settings({
                       </select>
                       {hosts.includes(server.host) ? null : (
                         <input
-                          className={`${FIELD} mt-1`}
+                          className={`${fieldControlClass} mt-1`}
                           onChange={(e) =>
                             updateServer(server.id, "host", e.target.value)
                           }
@@ -223,20 +258,17 @@ export function Settings({
                           value={server.host}
                         />
                       )}
-                    </label>
-                    <label className="flex flex-col gap-1">
-                      <span className="font-mono text-[10px] text-ink-4 uppercase tracking-[0.08em]">
-                        Key (optional)
-                      </span>
+                    </Field>
+                    <Field label="Key (optional)">
                       <input
-                        className={FIELD}
+                        className={fieldControlClass}
                         onChange={(e) =>
                           updateServer(server.id, "key", e.target.value)
                         }
                         placeholder="the agent handles it"
                         value={server.key ?? ""}
                       />
-                    </label>
+                    </Field>
                   </div>
 
                   <Advanced
@@ -255,34 +287,67 @@ export function Settings({
           </div>
 
           <div className="mt-4 flex items-center gap-2">
-            <button
-              className="rounded-lg border border-line-strong px-3.5 py-2 text-[12px] transition-soft hover:border-accent hover:text-accent-strong"
-              onClick={add}
-              type="button"
-            >
+            <Button icon={Plus} onClick={add}>
               Add a server
-            </button>
-            <button
-              className="rounded-lg bg-accent px-3.5 py-2 font-semibold text-[12px] text-base transition-soft hover:bg-accent-strong disabled:opacity-35"
+            </Button>
+            <Button
               disabled={!changed}
               onClick={() => onSave(draft)}
-              type="button"
+              variant="inverse"
             >
               Save
-            </button>
+            </Button>
             {changed ? (
-              <span className="font-mono text-[11px] text-ink-4">
+              <span className="font-data text-[11px] text-ink-3">
                 switching server closes the open terminals
               </span>
             ) : null}
           </div>
 
-          <p className="mt-6 font-mono text-[11px] text-ink-4">
+          <p className="mt-6 font-data text-[11px] text-ink-3">
             {hosts.length > 0
               ? `${hosts.length} hosts read from ~/.ssh/config`
               : "No host in ~/.ssh/config — type a machine by hand"}
           </p>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Light, dark, or whatever the system says.
+ *
+ * The choice lands on `<html data-theme>`, which is what the tokens of
+ * `@pupitre/design` key off: the window, the panels and the open terminals turn
+ * over on the spot, with nothing reloaded and no session lost.
+ */
+function Appearance() {
+  const preference = useTheme((t) => t.preference);
+  const resolved = useTheme((t) => t.resolved);
+  const setPreference = useTheme((t) => t.setPreference);
+
+  return (
+    <div className="max-w-sm">
+      <p className="text-ink-3 leading-relaxed">
+        The interface is monochrome by design: no accent colour, and colour only
+        for the state of things. The theme applies at once, terminals included.
+      </p>
+
+      <div className="mt-4">
+        <Field help={`currently showing the ${resolved} theme`} label="Theme">
+          <select
+            className={fieldControlClass}
+            onChange={(e) => setPreference(e.target.value as ThemePreference)}
+            value={preference}
+          >
+            {THEME_PREFERENCES.map((option) => (
+              <option key={option} value={option}>
+                {THEME_LABEL[option]}
+              </option>
+            ))}
+          </select>
+        </Field>
       </div>
     </div>
   );
@@ -305,8 +370,7 @@ function Advanced({
   onToggle: () => void;
   onChange: (field: keyof ServerProfile, value: string) => void;
 }) {
-  const known = EDITORS.find((e) => e.url === profile.editor);
-  const choice = profile.editor ? (known ? known.name : FREE) : NONE;
+  const choice = editorChoice(profile);
 
   function pickEditor(value: string) {
     if (value === NONE) {
@@ -327,38 +391,42 @@ function Advanced({
   return (
     <div className="mt-2.5 pl-7">
       <button
-        className="flex items-center gap-1 font-mono text-[10px] text-ink-4 uppercase tracking-[0.08em] transition-soft hover:text-accent-strong"
+        className="flex items-center gap-1 rounded-sm text-ink-3 transition-soft hover:text-ink"
         onClick={onToggle}
         type="button"
       >
-        {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-        Advanced
+        {open ? (
+          <ChevronDown size={12} strokeWidth={1.5} />
+        ) : (
+          <ChevronRight size={12} strokeWidth={1.5} />
+        )}
+        <Label>Advanced</Label>
       </button>
 
       {open ? (
         <div className="mt-2 grid animate-[fade-in_160ms_ease-out] gap-2 sm:grid-cols-2">
-          <Setting help="what the app calls on the server" label="Command">
+          <Field help="what the app calls on the server" label="Command">
             <input
-              className={FIELD}
+              className={fieldControlClass}
               onChange={(e) => onChange("command", e.target.value)}
               placeholder="dev"
               value={profile.command}
             />
-          </Setting>
-          <Setting help='"{project}" is substituted' label="Logs">
+          </Field>
+          <Field help='"{project}" is substituted' label="Logs">
             <input
-              className={FIELD}
+              className={fieldControlClass}
               onChange={(e) => onChange("logs", e.target.value)}
               placeholder="~/.dev-stack/logs/{project}.log"
               value={profile.logs}
             />
-          </Setting>
-          <Setting
+          </Field>
+          <Field
             help="opens the remote folder from a project page"
             label="Editor"
           >
             <select
-              className={FIELD}
+              className={fieldControlClass}
               onChange={(e) => pickEditor(e.target.value)}
               value={choice}
             >
@@ -373,54 +441,34 @@ function Advanced({
             {choice === FREE ? (
               <>
                 <input
-                  className={`${FIELD} mt-1`}
+                  className={`${fieldControlClass} mt-1`}
                   onChange={(e) => onChange("editorName", e.target.value)}
                   placeholder="Button label"
                   value={profile.editorName}
                 />
                 <input
-                  className={`${FIELD} mt-1`}
+                  className={`${fieldControlClass} mt-1`}
                   onChange={(e) => onChange("editor", e.target.value)}
                   placeholder="myeditor://{host}{root}/{repo}"
                   value={profile.editor}
                 />
               </>
             ) : null}
-          </Setting>
-          <Setting
+          </Field>
+          <Field
             help="run from this computer when nothing is configured"
             label="Install script"
           >
             <input
-              className={FIELD}
+              className={fieldControlClass}
               onChange={(e) => onChange("installer", e.target.value)}
               placeholder="none"
               value={profile.installer}
             />
-          </Setting>
+          </Field>
         </div>
       ) : null}
     </div>
-  );
-}
-
-function Setting({
-  label,
-  help,
-  children,
-}: {
-  label: string;
-  help: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="font-mono text-[10px] text-ink-4 uppercase tracking-[0.08em]">
-        {label}
-      </span>
-      {children}
-      <span className="text-[11px] text-ink-4">{help}</span>
-    </label>
   );
 }
 
@@ -437,15 +485,15 @@ function Tab({
 }) {
   return (
     <button
-      className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-[12px] transition-colors ${
+      className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-[12px] transition-soft ${
         active
-          ? "border-accent font-medium text-accent-strong"
+          ? "border-ink font-medium text-ink"
           : "border-transparent text-ink-3 hover:text-ink"
       }`}
       onClick={onClick}
       type="button"
     >
-      <Icon size={13} />
+      <Icon size={13} strokeWidth={1.5} />
       {children}
     </button>
   );

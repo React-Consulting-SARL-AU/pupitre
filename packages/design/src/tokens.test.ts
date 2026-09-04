@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test"
 import { readFileSync } from "node:fs"
 import path from "node:path"
 import { YAML } from "bun"
+import { DARK, LIGHT, type ThemeColors } from "./tokens"
 
 const DESIGN_DOC = path.resolve(
   import.meta.dir,
@@ -73,6 +74,21 @@ describe("tokens.css", () => {
   for (const [name, value] of Object.entries(frontmatter.motion)) {
     it(`declares --motion-${name}: ${value}`, () => {
       expect(css).toContain(`--motion-${name}: ${value};`)
+    })
+  }
+})
+
+describe("tokens.ts", () => {
+  const RECORDS: ["light" | "dark", ThemeColors][] = [
+    ["light", LIGHT],
+    ["dark", DARK],
+  ]
+
+  for (const [theme, record] of RECORDS) {
+    it(`mirrors the ${theme} palette of DESIGN.md`, () => {
+      expect(record).toEqual(
+        frontmatter.colors[theme] as unknown as ThemeColors
+      )
     })
   }
 })

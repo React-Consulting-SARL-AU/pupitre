@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./tokens": "./src/tokens.ts",
     "./tokens.css": "./src/tokens.css",
     "./tailwind.css": "./src/tailwind.css",
     "./ansi": "./src/ansi.ts"
