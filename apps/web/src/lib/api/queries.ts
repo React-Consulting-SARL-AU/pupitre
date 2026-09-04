@@ -6,6 +6,8 @@ import type { BillingIntervalName } from "@/lib/domain/billing"
 
 export const SERVERS_POLL_INTERVAL_MS = 5000
 
+export const STATUS_POLL_INTERVAL_MS = 30_000
+
 const NOT_FOUND = 404
 
 export const queryKeys = {
@@ -19,6 +21,16 @@ export const queryKeys = {
   events: (organizationId: string, page: EventPageQuery) =>
     ["events", organizationId, page] as const,
   latestRelease: ["releases", "latest"] as const,
+  status: ["status"] as const,
+}
+
+export function statusQueryOptions() {
+  return queryOptions({
+    queryKey: queryKeys.status,
+    queryFn: async () => unwrap(await api().api.v1.status.get()).data,
+    refetchInterval: STATUS_POLL_INTERVAL_MS,
+    refetchIntervalInBackground: false,
+  })
 }
 
 export function meQueryOptions() {

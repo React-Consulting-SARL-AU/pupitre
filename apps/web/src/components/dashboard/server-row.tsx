@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router"
 import { UsageBar } from "@/components/dashboard/usage-bar"
 import { StatusBadge } from "@/components/ui/status-badge"
+import { StatusDot } from "@/components/ui/status-dot"
+import { alertLook } from "@/lib/domain/alerts"
 import { statusLook } from "@/lib/domain/server-status"
 import { formatRelative } from "@/lib/utils/format"
 
@@ -15,6 +17,7 @@ export interface ServerRowServer {
   agent_version: string | null
   last_heartbeat_at: string | null
   usage: { disk: number; ram: number; load: number } | null
+  alerts: { kind: string }[]
 }
 
 export interface ServerRowProps {
@@ -41,6 +44,24 @@ export function ServerRow({ server }: ServerRowProps) {
         className="w-36 shrink-0"
         look={statusLook(server.status, server.stale)}
       />
+
+      <span
+        className="flex w-16 shrink-0 items-center gap-1"
+        data-testid="server-row-alerts"
+      >
+        {server.alerts.map((alert) => {
+          const look = alertLook(alert.kind)
+
+          return (
+            <StatusDot
+              key={alert.kind}
+              label={look.label}
+              shape={look.shape}
+              tone={look.tone}
+            />
+          )
+        })}
+      </span>
 
       <div className="flex shrink-0 flex-col gap-[6px]">
         <UsageBar label="Disque" percent={server.usage?.disk ?? null} />

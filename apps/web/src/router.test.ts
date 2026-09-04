@@ -16,6 +16,7 @@ describe("router", () => {
     expect(ids).toContain("/dashboard/billing")
     expect(ids).toContain("/dashboard/settings")
     expect(ids).toContain("/download")
+    expect(ids).toContain("/status")
     expect(ids).toContain("/api/auth/$")
     expect(ids).not.toContain("/api/v1/$")
     expect(API_PREFIX).toBe("/api/v1")

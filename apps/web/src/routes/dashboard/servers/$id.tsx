@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { ServerActions } from "@/components/dashboard/server-actions"
+import { ServerAlerts } from "@/components/dashboard/server-alerts"
 import { ServerAssignment } from "@/components/dashboard/server-assignment"
 import { ServerDevices } from "@/components/dashboard/server-devices"
 import { ServerEvents } from "@/components/dashboard/server-events"
@@ -90,6 +91,8 @@ function ServerPage() {
             </div>
           </CardBody>
         </Card>
+
+        <ServerAlerts alerts={detail.alerts} />
 
         <ServerAssignment
           assignedUserId={detail.assigned_user_id}
