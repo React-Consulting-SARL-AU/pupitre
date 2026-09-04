@@ -50,6 +50,38 @@ function embedAgentBinary(): Plugin {
   };
 }
 
+/**
+ * CommonJS for the main process and the preload.
+ *
+ * V8 produces no cache data for an ES module, so bytecode below needs this
+ * format; the workspace stays `"type": "module"`, which makes the two entries
+ * come out as `.cjs`, and everything that points at them says so.
+ */
+const NODE_SIDE = {
+  rollupOptions: { output: { format: "cjs" } },
+} as const;
+
+/**
+ * The main process ships as V8 bytecode: no readable code, and the update token
+ * the release workflow bakes in is not a string in a file.
+ *
+ * The preload does not, and cannot for now: Electron loads it in the renderer,
+ * whose V8 refuses cache data produced by the Node isolate that compiled it
+ * (`cachedDataRejected`), and the window then opens without its bridge. It is
+ * no loss worth chasing — the preload declares channel names and nothing else,
+ * exactly like the renderer beside it.
+ */
+const PROTECTED = {
+  ...NODE_SIDE,
+  // A string literal survives in V8 cache data as it stands: `strings` on the
+  // compiled main process finds the update token unless it is named here.
+  bytecode: {
+    protectedStrings: [process.env.MAIN_VITE_UPDATE_TOKEN].filter(
+      (value): value is string => Boolean(value)
+    ),
+  },
+} as const;
+
 export default defineConfig({
   main: {
     // The design tokens ship as TypeScript: Electron cannot require them at
@@ -61,6 +93,7 @@ export default defineConfig({
         exclude: ["@pupitre/design", "@pupitre/shared"],
       }),
     ],
+    build: PROTECTED,
     resolve: {
       alias: {
         "@shared": resolve("src/shared"),
@@ -69,6 +102,7 @@ export default defineConfig({
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
+    build: NODE_SIDE,
     resolve: {
       alias: {
         "@shared": resolve("src/shared"),

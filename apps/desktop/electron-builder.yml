@@ -40,6 +40,28 @@ extraResources:
 asarUnpack:
   - "**/node_modules/node-pty/**"
 
+# The archive carries the hashes of what it contains, and the binary refuses to
+# run anything else: swapping a file in an installed app breaks the signature
+# instead of running. The fuses are flipped just before signing, so the app is
+# signed as it will run.
+electronFuses:
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  runAsNode: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableCookieEncryption: true
+
+# The releases are private, and the app reads them with a token the workflow
+# bakes in. Nothing here is a secret: `owner` and `repo` name a repository that
+# answers nothing without one.
+publish:
+  provider: github
+  owner: jordanmonier
+  repo: pupitre
+  private: true
+  releaseType: release
+
 mac:
   category: public.app-category.developer-tools
   icon: build/icon.icns
@@ -50,6 +72,14 @@ mac:
       arch:
         - arm64
         - x64
+  # Signing and notarization are driven entirely by the environment: with no
+  # identity in the keychain, electron-builder says so and builds an unsigned
+  # bundle, which is what a developer building on their own machine wants.
+  # Entitlements are electron-builder's own defaults — JIT, unsigned executable
+  # memory and library validation off, exactly what Chromium and node-pty need.
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  notarize: true
 
 dmg:
   title: Pupitre

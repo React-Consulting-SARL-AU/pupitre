@@ -65,7 +65,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-10 | Terminaux, agents, galerie | fait | `feat/APP-10-terminals` | fusionnée |
 | APP-11 | Services au quotidien | fait | `feat/APP-11-services` | fusionnée |
 | APP-12 | Mise à jour de l'agent depuis l'app | fait | `feat/APP-12-agent-update` | fusionnée |
-| APP-13 | Build macOS signé, notarisé, bytecode, auto-update | à faire | | |
+| APP-13 | Build macOS signé, notarisé, bytecode, auto-update | en revue | `feat/APP-13-builds` | |
 | APP-14 | Compte : device flow, appareils, enrôlement | à faire | | |
 | APP-15 | Serveurs distants et organisations | à faire | | |
 | APP-16 | Builds Windows et Linux | à faire | | |
@@ -120,4 +120,5 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
+| 2026-09-05 | APP-13 | Le preload ne peut pas être compilé en bytecode : Electron le charge dans le processus de rendu, dont le V8 refuse les données de cache produites par l'isolat Node du compilateur (`cachedDataRejected`), et la fenêtre s'ouvre alors sans son pont. Le processus principal, lui, l'est — c'est là que vivent la logique et le jeton de mise à jour. `docs/security.md` a été aligné. À rouvrir si une version d'Electron accepte un jour ce cache. | le propriétaire |
 | 2026-09-05 | APP-12 | L'app lit la version publiée, ses notes et sa signature dans la release embarquée à la construction : `embedAgent` attend `apps/agent/dist/release.json` (`{ version, notes[], signatures: { arch } }`). **Rien ne l'écrit aujourd'hui** — c'est à AGT-15, la chaîne de publication, de le produire. Sans lui l'app pousse bien un agent sur une machine nue mais ne peut pas en proposer la mise à jour : le bandeau le dit et son bouton reste désactivé, plutôt que d'envoyer une signature inventée que l'agent refuserait. À vérifier à la fusion d'AGT-15. | AGT-15 |

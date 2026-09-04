@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { AgentResponse } from "@shared/agent";
 import { windowBackground } from "@shared/appearance";
 import type {
@@ -53,9 +54,21 @@ import {
   terminalDiagnostics,
   write,
 } from "./terminals";
+import { startUpdater } from "./updater";
 import { readBounds } from "./view-bounds";
 
 let window: BrowserWindow | null = null;
+
+/**
+ * A file shipped next to this one, named the way the running system names it.
+ *
+ * `new URL(...).pathname` yields `/C:/Users/...` on Windows, which no API of
+ * Electron opens; `fileURLToPath` gives back the drive letter and the
+ * backslashes.
+ */
+function beside(relative: string): string {
+  return fileURLToPath(new URL(relative, import.meta.url));
+}
 
 /**
  * What has to be dropped whenever the server list changes.
@@ -94,9 +107,9 @@ function createWindow(): void {
     show: false,
     titleBarStyle: "hiddenInset",
     backgroundColor: nativeBackground(),
-    icon: new URL("../../build/icon.png", import.meta.url).pathname,
+    icon: beside("../../build/icon.png"),
     webPreferences: {
-      preload: new URL("../preload/index.mjs", import.meta.url).pathname,
+      preload: beside("../preload/index.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
@@ -118,9 +131,7 @@ function createWindow(): void {
   if (devUrl) {
     window.loadURL(devUrl);
   } else {
-    window.loadFile(
-      new URL("../renderer/index.html", import.meta.url).pathname
-    );
+    window.loadFile(beside("../renderer/index.html"));
   }
 }
 
@@ -368,6 +379,7 @@ function registerChannels(): void {
 
 app.whenReady().then(() => {
   registerChannels();
+  startUpdater();
   createWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {

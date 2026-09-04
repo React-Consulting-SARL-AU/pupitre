@@ -26,7 +26,7 @@ Un client est root sur son serveur : il peut copier tout fichier qui s'y trouve,
 
 ## Dans l'app desktop
 
-- Main et preload compilés en bytecode V8 (plugin bytecode d'electron-vite), archive asar avec intégrité, signature et notarisation.
+- Processus principal compilé en bytecode V8 (plugin bytecode d'electron-vite) : c'est là que vit toute la logique, et le jeton de mise à jour avec elle. Le preload reste du JavaScript — Electron le charge dans le renderer, dont le V8 refuse le cache produit par l'isolat Node — et il ne déclare que des noms de canaux. Archive asar dont l'intégrité est vérifiée par fusible, chargement restreint à l'archive, signature et notarisation.
 - Le renderer reste du JavaScript minifié : il ne contient que de l'interface.
 - Le compte et le droit d'usage sont vérifiés au lancement, avec la même tolérance de sept jours.
 - Le renderer n'a aucun accès au système. Aucune chaîne libre venue de l'interface n'atteint un shell : le renderer nomme un projet et une action, le main valide le nom contre la liste que l'agent vient de donner.

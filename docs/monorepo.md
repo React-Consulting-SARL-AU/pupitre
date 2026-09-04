@@ -57,6 +57,59 @@ Les PR font tourner les tâches affectées ; `main` fait tout.
 
 Deux environnements : `staging` (`staging.pupitre.studio`, `staging-app.pupitre.studio`, Stripe en mode test, branche Neon `staging`) et `production` (branche Neon `production`). L'app desktop de développement pointe sur `staging`.
 
+## Distribution de l'app desktop
+
+### Les noms exacts
+
+| Ce qui est créé | Où | Nom exact |
+| --- | --- | --- |
+| Identifiant de l'app | `apps/desktop/electron-builder.yml` | `dev.pupitre.app` |
+| Dépôt des releases | GitHub | `jordanmonier/pupitre`, privé |
+| Déclencheur | GitHub Actions `.github/workflows/release.yml` | un tag `v*` |
+| Artefacts macOS | GitHub Releases | `Pupitre-<version>-arm64.dmg`, `Pupitre-<version>.dmg`, `latest-mac.yml` |
+| Artefacts Windows | GitHub Releases | `Pupitre Setup <version>.exe`, `latest.yml` |
+| Artefacts Linux | GitHub Releases | `Pupitre-<version>.AppImage`, `pupitre_<version>_amd64.deb`, `latest-linux.yml` |
+| Certificat macOS | Apple Developer | `Developer ID Application: <société marocaine> (<Team ID>)` |
+| Clé de notarisation | App Store Connect | clé d'API, rôle *Developer*, fichier `AuthKey_<KeyID>.p8` |
+| Signature Windows | Azure Trusted Signing | compte `pupitre-signing`, profil de certificat `pupitre` |
+
+Les trois `latest*.yml` sont ce que lit `electron-updater` : ils sont produits par `electron-builder --publish always` et n'ont pas à être écrits à la main.
+
+### Les secrets du dépôt, par leur nom
+
+| Secret GitHub | Ce que c'est | Comment l'obtenir |
+| --- | --- | --- |
+| `PUPITRE_UPDATE_TOKEN` | jeton d'accès personnel, portée `repo` en lecture seule | GitHub → *Developer settings* → *Fine-grained tokens*, accès au seul dépôt `pupitre`, permission *Contents: read* |
+| `APPLE_CERTIFICATE` | le `.p12` du certificat Developer ID, en base 64 | `base64 -i DeveloperID.p12 \| pbcopy` |
+| `APPLE_CERTIFICATE_PASSWORD` | le mot de passe de ce `.p12` | choisi à l'export depuis Trousseau d'accès |
+| `APPLE_API_KEY_CONTENT` | le `.p8` de la clé de notarisation, en base 64 | `base64 -i AuthKey_<KeyID>.p8 \| pbcopy` |
+| `APPLE_API_KEY_ID` | l'identifiant de la clé | la colonne *Key ID* dans App Store Connect |
+| `APPLE_API_ISSUER` | l'identifiant de l'émetteur | en haut de la page *Keys* d'App Store Connect |
+| `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` | l'application Entra ID qui signe | Azure → *App registrations*, un secret client, puis le rôle *Trusted Signing Certificate Profile Signer* sur le compte de signature |
+
+`PUPITRE_UPDATE_TOKEN` entre dans le binaire de l'app : c'est un jeton de **lecture** sur un dépôt privé, rien d'autre. Il est passé au build par `MAIN_VITE_UPDATE_TOKEN`, se retrouve dans le bytecode du processus principal, et le plugin bytecode le protège pour qu'un `strings` ne le rende pas. Le faire tourner suffit à couper les anciennes versions du flux de mise à jour.
+
+### L'ordre de création, une fois pour toutes
+
+1. **Le compte Apple.** Le compte Apple Developer de la société marocaine existe déjà. Dans le portail, créer un certificat **Developer ID Application** (pas *Mac App Distribution* : la distribution se fait hors App Store), le télécharger, l'installer dans Trousseau d'accès, puis l'exporter en `.p12` avec un mot de passe.
+2. **La clé de notarisation.** App Store Connect → *Users and Access* → *Integrations* → *Keys*, une clé avec le rôle *Developer*. Le `.p8` ne se télécharge **qu'une fois** ; relever l'*Issuer ID* et le *Key ID* sur la même page.
+3. **Azure Trusted Signing.** Créer un compte de signature (région proche, par exemple *West Europe*), y créer une identité validée puis un profil de certificat. La validation d'identité d'une organisation prend quelques jours et demande des justificatifs ; un profil *Public Trust* est ce qu'il faut pour que Windows ne prévienne pas. Créer ensuite une application Entra ID, lui donner un secret client, et lui attribuer le rôle *Trusted Signing Certificate Profile Signer* sur le compte.
+4. **Le jeton de mise à jour.** Le jeton fin décrit ci-dessus, sur le seul dépôt `pupitre`, en lecture des contenus.
+5. **Les secrets du dépôt.** GitHub → *Settings* → *Secrets and variables* → *Actions*, les neuf noms du tableau ci-dessus. Rien de tout cela n'entre dans le dépôt sous aucune forme.
+6. **Aligner `electron-builder.yml`.** `win.azureSignOptions` porte `publisherName`, `endpoint`, `codeSigningAccountName` et `certificateProfileName` : ce sont les noms lus dans le portail Azure, et `publisherName` doit être **exactement** le sujet du certificat émis. Tant qu'ils ne sont pas connus, le bloc reste commenté et le build Windows sort non signé.
+7. **Publier.** `git tag v0.2.0 && git push origin v0.2.0`. Le workflow construit les trois systèmes, signe, notarise, et pousse les artefacts sur une release GitHub.
+8. **Vérifier.** Sur un Mac qui n'a jamais vu le certificat : télécharger le `.dmg`, l'ouvrir, l'app démarre sans avertissement Gatekeeper. `spctl --assess --type execute -vv /Applications/Pupitre.app` répond `accepted, source=Notarized Developer ID`.
+
+### Ce que fait chaque release
+
+`electron-vite build` compile le processus principal en bytecode V8 ; `electron-builder --publish always` empaquette, retourne les fusibles (`onlyLoadAppFromAsar`, validation d'intégrité de l'asar, `runAsNode` coupé), signe, notarise sur macOS, puis téléverse. Un build sans identité de signature ne s'arrête pas : electron-builder le dit et produit un artefact non signé — c'est ce qui rend `bun --cwd=apps/desktop run build:mac` utilisable sur la machine du propriétaire.
+
+Un retour arrière se fait en publiant la version précédente : `electron-updater` ne redescend pas de version, il faut donc republier au-dessus. Une release retirée de GitHub disparaît du flux, mais n'annule pas ce qui est déjà installé.
+
+### Ce que la mise à jour ne couvre pas
+
+Le `.deb` est installé par apt et mis à jour par apt : l'app n'y touche pas, et le dit. L'AppImage, le `.dmg` et l'installateur Windows se remplacent seuls. Une app construite sans `MAIN_VITE_UPDATE_TOKEN` ne cherche aucune mise à jour, ce qui est le cas de tout build local.
+
 ## Neon
 
 Projet `pupitre` (`royal-morning-15862824`, [console](https://console.neon.tech/app/projects/royal-morning-15862824)), région `aws-eu-central-1`, Postgres 18, créé le 4 septembre 2026. C'est la région sur laquelle le Worker `apps/web` est épinglé (`placement` dans `wrangler.jsonc`). Branche `production` par défaut ; branche `staging` pour le staging et la CI de migration ; les branches de développement se créent depuis `staging` avec `neonctl`. `DATABASE_URL` utilise l'endpoint poolé de la branche visée ; `MIGRATE_DATABASE_URL` l'endpoint direct (sans `-pooler`), le seul que Prisma Migrate accepte. `db:migrate:deploy` lit `MIGRATE_DATABASE_URL` et refuse de migrer une autre branche que celle de `DATABASE_URL`.
