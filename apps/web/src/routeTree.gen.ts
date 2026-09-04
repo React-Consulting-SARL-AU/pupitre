@@ -11,10 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as DownloadRouteImport } from './routes/download'
 import { Route as AuthDeviceRouteImport } from './routes/auth/device'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as DashboardBillingRouteImport } from './routes/dashboard/billing'
 import { Route as DashboardDevicesRouteImport } from './routes/dashboard/devices'
+import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthInvitationIdRouteImport } from './routes/auth/invitation.$id'
 import { Route as DashboardServersIndexRouteImport } from './routes/dashboard/servers/index'
@@ -28,6 +31,11 @@ const IndexRoute = IndexRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DownloadRoute = DownloadRouteImport.update({
+  id: '/download',
+  path: '/download',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthDeviceRoute = AuthDeviceRouteImport.update({
@@ -45,9 +53,19 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardBillingRoute = DashboardBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardDevicesRoute = DashboardDevicesRouteImport.update({
   id: '/devices',
   path: '/devices',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => DashboardRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -74,9 +92,12 @@ const DashboardServersIdRoute = DashboardServersIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/download': typeof DownloadRoute
   '/auth/device': typeof AuthDeviceRoute
   '/auth/sign-in': typeof AuthSignInRoute
+  '/dashboard/billing': typeof DashboardBillingRoute
   '/dashboard/devices': typeof DashboardDevicesRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/invitation/$id': typeof AuthInvitationIdRoute
@@ -85,9 +106,12 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/download': typeof DownloadRoute
   '/auth/device': typeof AuthDeviceRoute
   '/auth/sign-in': typeof AuthSignInRoute
+  '/dashboard/billing': typeof DashboardBillingRoute
   '/dashboard/devices': typeof DashboardDevicesRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/invitation/$id': typeof AuthInvitationIdRoute
@@ -98,9 +122,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/download': typeof DownloadRoute
   '/auth/device': typeof AuthDeviceRoute
   '/auth/sign-in': typeof AuthSignInRoute
+  '/dashboard/billing': typeof DashboardBillingRoute
   '/dashboard/devices': typeof DashboardDevicesRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/invitation/$id': typeof AuthInvitationIdRoute
@@ -112,9 +139,12 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/download'
     | '/auth/device'
     | '/auth/sign-in'
+    | '/dashboard/billing'
     | '/dashboard/devices'
+    | '/dashboard/settings'
     | '/dashboard/'
     | '/api/auth/$'
     | '/auth/invitation/$id'
@@ -123,9 +153,12 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/download'
     | '/auth/device'
     | '/auth/sign-in'
+    | '/dashboard/billing'
     | '/dashboard/devices'
+    | '/dashboard/settings'
     | '/dashboard'
     | '/api/auth/$'
     | '/auth/invitation/$id'
@@ -135,9 +168,12 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/dashboard'
+    | '/download'
     | '/auth/device'
     | '/auth/sign-in'
+    | '/dashboard/billing'
     | '/dashboard/devices'
+    | '/dashboard/settings'
     | '/dashboard/'
     | '/api/auth/$'
     | '/auth/invitation/$id'
@@ -148,6 +184,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRouteWithChildren
+  DownloadRoute: typeof DownloadRoute
   AuthDeviceRoute: typeof AuthDeviceRoute
   AuthSignInRoute: typeof AuthSignInRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -168,6 +205,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/download': {
+      id: '/download'
+      path: '/download'
+      fullPath: '/download'
+      preLoaderRoute: typeof DownloadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/device': {
@@ -191,11 +235,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/billing': {
+      id: '/dashboard/billing'
+      path: '/billing'
+      fullPath: '/dashboard/billing'
+      preLoaderRoute: typeof DashboardBillingRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/devices': {
       id: '/dashboard/devices'
       path: '/devices'
       fullPath: '/dashboard/devices'
       preLoaderRoute: typeof DashboardDevicesRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/settings': {
+      id: '/dashboard/settings'
+      path: '/settings'
+      fullPath: '/dashboard/settings'
+      preLoaderRoute: typeof DashboardSettingsRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/api/auth/$': {
@@ -230,14 +288,18 @@ declare module '@tanstack/react-router' {
 }
 
 interface DashboardRouteChildren {
+  DashboardBillingRoute: typeof DashboardBillingRoute
   DashboardDevicesRoute: typeof DashboardDevicesRoute
+  DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardServersIdRoute: typeof DashboardServersIdRoute
   DashboardServersIndexRoute: typeof DashboardServersIndexRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardBillingRoute: DashboardBillingRoute,
   DashboardDevicesRoute: DashboardDevicesRoute,
+  DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardServersIdRoute: DashboardServersIdRoute,
   DashboardServersIndexRoute: DashboardServersIndexRoute,
@@ -250,6 +312,7 @@ const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRouteWithChildren,
+  DownloadRoute: DownloadRoute,
   AuthDeviceRoute: AuthDeviceRoute,
   AuthSignInRoute: AuthSignInRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

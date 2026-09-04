@@ -166,11 +166,10 @@ func (r *Reader) sessions(table processTable, panes map[int]string) []contract.S
 	return sessions
 }
 
-// A remote IDE backend is reported as "shell": the contract knows the three agent kinds and a catch-all, and no "ide".
 func sessionKind(row process) (string, bool) {
 	switch {
 	case remoteIDE.MatchString(row.Args):
-		return "shell", true
+		return "ide", true
 	case row.program() == "claude", strings.Contains(row.Args, ".claude/remote"), strings.Contains(row.Args, "ccd-cli"):
 		return "claude", true
 	case row.program() == "codex":

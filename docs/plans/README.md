@@ -179,3 +179,21 @@ Critères d'acceptation.
 1. Les deux sondes valident contre le schéma sans exception, avec `kind`, `fixes` et `up_to_date`.
 2. Une machine `i686` est descriptible et rendue `incompatible`.
 
+### INF-12 — Contrat : les releases de l'app
+Lot 0 · dépend de PLT-09 · `packages/shared`, `docs/contracts/platform-api.md`, `packages/db`
+
+But. Le contrat distingue une release de l'agent (par architecture) d'une release de l'app (par système, avec ses notes).
+Périmètre. Une table `AppRelease` (`version`, `os` parmi `macos` | `windows` | `linux`, `arch?`, `url`, `sha256`, `signature?`, `notes`, `channel`, `publishedAt`) et ses routes : `POST /admin/app-releases` pour la CI, `GET /releases/app/latest?channel=` et `GET /releases/app/:version`. La console lit ces routes au lieu de dériver les liens d'une variable d'environnement, et affiche les vraies notes. Migration, schémas Zod, codes d'erreur, mise à jour de `docs/contracts/platform-api.md`.
+Hors périmètre. La CI qui publiera (APP-13, APP-16).
+Critères d'acceptation.
+1. La page de téléchargement affiche trois systèmes, leur version et leurs notes, depuis l'API.
+2. Sans release publiée, elle le dit et n'affiche aucun lien mort.
+
+### INF-13 — Le quota gratuit vit dans le contrat partagé
+Lot 0 · dépend de PLT-09 · `packages/shared`
+
+But. Le nombre de serveurs offerts sans abonnement est déclaré une seule fois.
+Périmètre. Déplacer `DEV_SEAT_QUOTA` de `packages/api/src/lib/billing/seats.ts` vers `packages/shared/src/plans`, et faire lire la console et l'API depuis là. Retirer la constante dupliquée de `apps/web`.
+Critères d'acceptation.
+1. Une seule occurrence du nombre dans le dépôt, hors tests.
+
