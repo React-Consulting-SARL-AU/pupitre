@@ -91,6 +91,70 @@ describe("le fichier de configuration de l'app", () => {
   });
 });
 
+describe("les chemins que chaque système impose", () => {
+  it("cite un chemin qui porte un espace, sinon ssh refuse tout le fichier", () => {
+    const paths = appSshPaths(
+      "/Users/jean/Library/Application Support/Pupitre"
+    );
+
+    const config = renderSshConfig(
+      [
+        {
+          ...APP_SERVER,
+          keyPath: "/Users/jean/Library/Application Support/Pupitre/keys/srv-a",
+        },
+      ],
+      paths,
+      "darwin"
+    );
+
+    expect(config).toContain(
+      '  IdentityFile "/Users/jean/Library/Application Support/Pupitre/keys/srv-a"'
+    );
+    expect(config).toContain(`  UserKnownHostsFile "${paths.knownHostsPath}"`);
+  });
+
+  it("laisse nu un chemin sans espace", () => {
+    const config = renderSshConfig([APP_SERVER], appSshPaths("/data"), "linux");
+
+    expect(config).toContain("  IdentityFile /data/keys/srv-a");
+    expect(config).not.toContain('"');
+  });
+
+  it("n'écrit aucun ControlMaster pour Windows, dont l'OpenSSH l'ignore", () => {
+    const windows = renderSshConfig(
+      [
+        {
+          ...APP_SERVER,
+          keyPath:
+            "C:\\Users\\Jean Dupont\\AppData\\Roaming\\Pupitre\\keys\\srv-a",
+        },
+      ],
+      appSshPaths("C:\\Users\\Jean Dupont\\AppData\\Roaming\\Pupitre"),
+      "win32"
+    );
+
+    expect(windows).not.toContain("ControlMaster");
+    expect(windows).not.toContain("ControlPath");
+    expect(windows).not.toContain("ControlPersist");
+    expect(windows).toContain("  ServerAliveInterval 30");
+    expect(windows).toContain(
+      '  IdentityFile "C:\\Users\\Jean Dupont\\AppData\\Roaming\\Pupitre\\keys\\srv-a"'
+    );
+  });
+
+  it("le garde sur macOS et sur Linux", () => {
+    const paths = appSshPaths("/data");
+
+    for (const platform of ["darwin", "linux"] as const) {
+      const config = renderSshConfig([APP_SERVER], paths, platform);
+
+      expect(config).toContain("  ControlMaster auto");
+      expect(config).toContain("  ControlPersist 10m");
+    }
+  });
+});
+
 describe("le chemin de multiplexage", () => {
   it("tient dans la limite d'un socket Unix, dossier de données compris", () => {
     const long = join(

@@ -2,6 +2,7 @@ import type { AgentState, TerminalKind } from "@shared/terminals";
 import type { WebContents } from "electron";
 import * as pty from "node-pty";
 
+import { current, terminalOptions } from "./platform";
 import { targetOf } from "./servers";
 import { loginAddress } from "./terminal-links";
 
@@ -110,13 +111,7 @@ export function open(request: OpenTerminal, recipient: WebContents): void {
   const proc = pty.spawn(
     "ssh",
     ["-tt", ...targetOf(request.serverId), request.command],
-    {
-      name: "xterm-256color",
-      cols: request.cols,
-      rows: request.rows,
-      cwd: process.env.HOME,
-      env: process.env as Record<string, string>,
-    }
+    terminalOptions(request, current(), process.env)
   );
 
   proc.onData((data) => {
