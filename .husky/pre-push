@@ -1,0 +1,37 @@
+#!/bin/sh
+set -e
+
+if [ "$SKIP_PREPUSH" = "1" ]; then
+  echo "Skipping pre-push checks because SKIP_PREPUSH=1"
+  exit 0
+fi
+
+REMOTE_NAME=${1:-origin}
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+# turbo --affected defaults to diffing against `main`, so pushing main itself resolves zero packages.
+if git rev-parse --verify --quiet "refs/remotes/$REMOTE_NAME/$BRANCH" >/dev/null; then
+  TURBO_SCM_BASE="$REMOTE_NAME/$BRANCH"
+  export TURBO_SCM_BASE
+fi
+
+AFFECTED_TASKS=$(bun x turbo run lint check:types test --affected --dry=json 2>/dev/null |
+  bun -e 'try { console.log((await Bun.stdin.json()).tasks.length) } catch { console.log(0) }')
+
+case "$AFFECTED_TASKS" in
+  '' | *[!0-9]*) AFFECTED_TASKS=0 ;;
+esac
+
+if [ "$AFFECTED_TASKS" -gt 0 ]; then
+  echo "Running pre-push checks on $AFFECTED_TASKS affected task(s) since ${TURBO_SCM_BASE:-the turbo default base}"
+
+  bun run lint -- --affected
+  bun run check:types -- --affected
+  bun run test -- --affected
+else
+  echo "No affected task resolved — running the full pre-push checks"
+
+  bun run lint
+  bun run check:types
+  bun run test
+fi

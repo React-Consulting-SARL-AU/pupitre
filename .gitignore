@@ -1,1 +1,40 @@
+# dependencies
+node_modules/
+
+# build outputs
+.output/
+.turbo/
+.wrangler/
+coverage/
+dist/
+out/
+*.tsbuildinfo
+
+# generated code and caches
+apps/web/.generated/
+packages/api/.cache/
+graphify-out/
+
+# env files and secrets
+.env
+.env.*
+!.env.example
+*.env.local
+apps/web/.dev.vars
+*.pem
+*.key
+*.p8
+*.p12
+*.jks
+*.mobileprovision
+
+# local files
 .DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# tooling session state
+.impeccable/live/
+.shipstudio/

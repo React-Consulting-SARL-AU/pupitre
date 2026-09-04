@@ -1,0 +1,70 @@
+#!/bin/sh
+
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR)
+if [ -z "$STAGED_FILES" ]; then
+  echo "No staged files to check"
+  exit 0
+fi
+
+STAGED_LIST=$(mktemp)
+SECRET_SCAN_LIST=$(mktemp)
+WORKSPACE_LIST=$(mktemp)
+trap 'rm -f "$STAGED_LIST" "$SECRET_SCAN_LIST" "$WORKSPACE_LIST"' EXIT
+
+printf '%s\n' "$STAGED_FILES" |
+  while IFS= read -r file; do
+    if [ -f "$file" ]; then
+      printf '%s\n' "$file"
+    fi
+  done > "$SECRET_SCAN_LIST"
+
+if ! tr '\n' '\0' < "$SECRET_SCAN_LIST" | xargs -0 bun scripts/assert-no-secrets.ts; then
+  exit 1
+fi
+
+grep -E '\.([cm]?[jt]sx?|jsonc?|css)$' "$SECRET_SCAN_LIST" > "$STAGED_LIST"
+
+if [ ! -s "$STAGED_LIST" ]; then
+  echo "No lintable staged files"
+  exit 0
+fi
+
+# Each workspace has its own biome config, so the fixer has to run from its directory.
+{
+  grep -oE '^(apps|packages)/[^/]+' "$STAGED_LIST"
+  if grep -qEv '^(apps|packages)/[^/]+/' "$STAGED_LIST"; then
+    echo "."
+  fi
+} | sort -u > "$WORKSPACE_LIST"
+
+FIX_EXIT_CODE=0
+
+while IFS= read -r workspace; do
+  if [ "$workspace" = "." ]; then
+    FILES=$(grep -Ev '^(apps|packages)/[^/]+/' "$STAGED_LIST")
+  else
+    FILES=$(grep "^$workspace/" "$STAGED_LIST" | sed "s|^$workspace/||")
+  fi
+
+  if [ -z "$FILES" ]; then
+    continue
+  fi
+
+  if printf '%s\n' "$FILES" | tr '\n' '\0' |
+    (cd "$workspace" && xargs -0 bun x ultracite fix); then
+    continue
+  fi
+
+  FIX_EXIT_CODE=1
+done < "$WORKSPACE_LIST"
+
+while IFS= read -r file; do
+  git add "$file"
+done < "$STAGED_LIST"
+
+if [ "$FIX_EXIT_CODE" -ne 0 ]; then
+  echo "Lint fix found issues that could not be auto-fixed."
+  exit "$FIX_EXIT_CODE"
+fi
+
+echo "Staged files formatted"
