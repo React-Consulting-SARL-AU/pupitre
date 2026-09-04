@@ -14,6 +14,9 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@astrojs/mdx": "^4",
+    "@astrojs/rss": "^4.0.19",
+    "@astrojs/sitemap": "^3.7.4",
     "@pupitre/design": "workspace:*",
     "@pupitre/shared": "workspace:*",
     "astro": "^5.18.2"

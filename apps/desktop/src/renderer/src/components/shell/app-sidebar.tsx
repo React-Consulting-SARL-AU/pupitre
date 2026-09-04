@@ -11,6 +11,7 @@ import type { Server } from "@shared/servers";
 import type { AgentState, Terminal } from "@shared/terminals";
 import {
   Activity,
+  Boxes,
   KeyRound,
   LayoutDashboard,
   Plus,
@@ -96,6 +97,13 @@ export function AppSidebar({
           onClick={() => onView("dashboard")}
         >
           Tableau de bord
+        </SidebarEntry>
+        <SidebarEntry
+          active={view === "services"}
+          bullet={<Boxes size={14} strokeWidth={1.5} />}
+          onClick={() => onView("services")}
+        >
+          Services
         </SidebarEntry>
         <SidebarEntry
           active={view === "activity"}

@@ -1,0 +1,57 @@
+import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
+import { bootApiTestServer, resetDb } from "@pupitre/api/testing"
+import {
+  createOrganizationWithMembers,
+  createServer,
+} from "@pupitre/api/testing/factories"
+import { recordSteps } from "@/testing/workflow"
+import { RECONCILE_SEATS_STEP, runReconcileSeats } from "./reconcile-seats"
+
+const PAID_SEATS = 4
+
+async function organizationWithOneSeatUsed(): Promise<string> {
+  const { prisma } = await bootApiTestServer()
+  const { organization } = await createOrganizationWithMembers({
+    roles: ["owner"],
+  })
+
+  await prisma.subscription.create({
+    data: {
+      organizationId: organization.id,
+      stripeSubscriptionId: "sub_reconcile",
+      product: "prod_server",
+      quantity: PAID_SEATS,
+      status: "active",
+    },
+  })
+  await createServer({ organizationId: organization.id })
+
+  return organization.id
+}
+
+describe("le workflow ReconcileSeats", () => {
+  beforeAll(async () => {
+    await bootApiTestServer()
+  })
+
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it("appelle reconcileSeats dans une étape nommée", async () => {
+    const organizationId = await organizationWithOneSeatUsed()
+    const recorder = recordSteps()
+
+    const report = await runReconcileSeats(recorder.step)
+
+    expect(recorder.names).toEqual([RECONCILE_SEATS_STEP])
+    expect(report).toHaveLength(1)
+    expect(report[0]).toMatchObject({
+      organization_id: organizationId,
+      paid: PAID_SEATS,
+      seated: 1,
+      drift: 1 - PAID_SEATS,
+      applied: false,
+    })
+  })
+})

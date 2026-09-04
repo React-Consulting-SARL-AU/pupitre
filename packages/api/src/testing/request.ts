@@ -97,3 +97,36 @@ export function sessionTokenFrom(response: Response): string | null {
 
   return cookie ? decodeURIComponent(cookie[1]) : null
 }
+
+const EXPIRED_COOKIE_RE = /(?:^|;\s*)(?:max-age=0|expires=thu,\s*01 jan 1970)/i
+
+export class CookieJar {
+  private readonly values = new Map<string, string>()
+
+  absorb(response: Response): this {
+    for (const entry of response.headers.getSetCookie()) {
+      const [pair] = entry.split(";")
+      const separator = pair.indexOf("=")
+      const name = pair.slice(0, separator).trim()
+      const value = pair.slice(separator + 1).trim()
+
+      if (value === "" || EXPIRED_COOKIE_RE.test(entry)) {
+        this.values.delete(name)
+      } else {
+        this.values.set(name, value)
+      }
+    }
+
+    return this
+  }
+
+  get header(): string {
+    return [...this.values]
+      .map(([name, value]) => `${name}=${value}`)
+      .join("; ")
+  }
+
+  get names(): string[] {
+    return [...this.values.keys()]
+  }
+}

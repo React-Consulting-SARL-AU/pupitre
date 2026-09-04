@@ -306,6 +306,7 @@ var PackageManagers = []string{"bun", "pnpm", "npm", "gradle", "uv", "service", 
 type Project struct {
 	Name      string       `json:"name"`
 	Dir       string       `json:"dir"`
+	Path      string       `json:"path"`
 	Repo      string       `json:"repo,omitempty"`
 	PkgMgr    string       `json:"pkgmgr"`
 	Host      string       `json:"host"`

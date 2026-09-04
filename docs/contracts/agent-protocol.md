@@ -78,6 +78,12 @@ Le canal est une session SSH ouverte par l'app avec la clé du client, qui lance
 
 `path` est relatif à `root` : un chemin absolu ou un `..` qui sort de la racine renvoie `bad_request`. Un dossier absent renvoie `paths: []` et non une erreur — une complétion ne fait pas échouer une frappe.
 
+Un `Project` porte deux chemins. `dir` est le dossier déclaré dans le registre, relatif à la racine des projets du serveur, et c'est lui que `project.add` prend en paramètre. `path` est ce même dossier en absolu, résolu par l'agent : `/home/dev/projects/flymate/api`. C'est `path` qu'on ouvre dans l'éditeur distant et où l'on démarre un terminal.
+
+Le chemin absolu vit sur le projet, pas sur la machine : `status`, `project.list` et `project.add` rendent des projets sans rendre de `machine`, et l'app n'aurait pas de racine à recoller. Elle ne concatène donc jamais rien — la racine des projets n'est pas dans le contrat, c'est un détail du serveur.
+
+`path` est toujours présent et toujours dans la racine des projets, versionné ou non : l'agent le résout puis vérifie la contenance, et une ligne de registre qui viserait ailleurs n'est pas un projet — elle ne sort pas de `project.list`. Quand le projet est un dépôt git, `path` est cohérent avec le `root` que rend `project.git_status` : ce dernier est la racine que git déclare, qui vaut `path` ou l'un de ses parents à l'intérieur de la racine des projets, jamais au-dessus.
+
 ### Projets
 
 | Commande | Paramètres |
@@ -157,3 +163,7 @@ Un champ `list` d'`items: "secret"` — `ai.hermes.providers`, par exemple — s
 ## Mode restreint
 
 Sans droit d'usage valide depuis sept jours, `hello` renvoie `entitlement: "restricted"` et seules `hello`, `ping`, `snapshot`, `status`, `diag` et `agent.upgrade` répondent ; les autres renvoient `entitlement_required` avec le lien vers la console.
+
+## Le tunnel local d'un port n'est pas du protocole
+
+`tunnel.*` désigne le tunnel Cloudflare que l'agent gère sur le serveur. Amener un port du serveur sur le laptop est autre chose, et cela reste l'affaire de l'app : elle ouvre un `ssh -L` sur son propre canal, avec sa configuration SSH et sa clé. L'agent n'y participe pas, et c'est voulu — un tunnel local ne demande rien au serveur qu'une session SSH ne fasse déjà, et lui donner une commande de protocole reviendrait à faire décider au serveur d'une écoute sur la machine du client.

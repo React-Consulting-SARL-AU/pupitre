@@ -136,10 +136,6 @@ export async function evaluateServerAlerts(
   return { opened, resolved: settled.map((alert: Alert) => alert.kind) }
 }
 
-/**
- * Nothing calls this on a schedule yet: PLT-15 wires the Cloudflare Workflow
- * that runs it.
- */
 export async function evaluateAlerts(
   now: Date = new Date()
 ): Promise<AlertRun[]> {

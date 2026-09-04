@@ -1,7 +1,6 @@
 import { describe, expect, it } from "bun:test"
 import {
   amountEur,
-  FREE_SEAT_QUOTA,
   formatEur,
   INTERVAL_LABELS,
   SEAT_PRICE_EUR_PER_MONTH,
@@ -53,10 +52,6 @@ describe("seatBalance", () => {
   it("reports a quota reached when servers outnumber paid seats", () => {
     expect(seatBalance(1, 2).verdict).toBe("over_quota")
     expect(seatBalance(1, 2).spare).toBe(-1)
-  })
-
-  it("keeps two development seats without a subscription", () => {
-    expect(FREE_SEAT_QUOTA).toBe(2)
   })
 })
 
