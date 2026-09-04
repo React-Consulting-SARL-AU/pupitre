@@ -82,7 +82,7 @@ Tests. Intégration sur PGlite.
 ### PLT-05 — Enrôlement, jetons d'agent, `agent/state`, heartbeat
 Lot 3 · dépend de PLT-04 · `packages/api`, `apps/web/src/workflows`
 
-Périmètre. `POST /servers/enroll` (quota de sièges, jeton d'enrôlement signé, une heure, brûlé à l'échange), `POST /agent/exchange`, `GET /agent/state` (droit d'usage, `valid_until`, clés autorisées, version cible, `module_params`), `POST /agent/heartbeat` (métriques 7 jours, `agentVersion`, `lastHeartbeatAt`), `GET /servers`, `GET /servers/:id`, `DELETE`, statuts `enrolling`, `active`, `grace`, `suspended`, `revoked`, Workflow `ExpireEnrollments`.
+Périmètre. Migration `packages/db` qui ajoute `host`, `port` et `sshUser` à `Server` (PLT-04 a laissé ces champs nuls dans `ServerForUser`, faute de colonnes). `POST /servers/enroll` (quota de sièges, jeton d'enrôlement signé, une heure, brûlé à l'échange), `POST /agent/exchange`, `GET /agent/state` (droit d'usage, `valid_until`, clés autorisées, version cible, `module_params`), `POST /agent/heartbeat` (métriques 7 jours, `agentVersion`, `lastHeartbeatAt`), `GET /servers`, `GET /servers/:id`, `DELETE`, statuts `enrolling`, `active`, `grace`, `suspended`, `revoked`, Workflow `ExpireEnrollments`.
 Critères d'acceptation.
 1. Un jeton d'enrôlement s'échange une fois ; la seconde renvoie `enrollment_used`.
 2. Un serveur sans heartbeat depuis 24 heures est marqué `stale` dans `GET /servers` sans changer son droit d'usage.

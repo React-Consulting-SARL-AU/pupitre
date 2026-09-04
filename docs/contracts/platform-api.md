@@ -95,7 +95,26 @@ Tables Better Auth (générées) : `user`, `session`, `account`, `verification`,
 
 ## Erreurs
 
-Forme unique : `{ error: { code, message, fix? } }`. Codes stables dans `packages/shared/src/api/errors.ts`. Validation par `t` d'Elysia ; les messages de validation sont traduits en français et en anglais.
+Forme unique : `{ error: { code, message, fix? } }`. Codes stables dans `packages/shared/src/api/errors.ts` ; un code nouveau s'ajoute ici et là-bas dans la même passe. Validation par `t` d'Elysia ; les messages de validation sont traduits en français et en anglais.
+
+| Code | Quand |
+| --- | --- |
+| `unauthenticated` | ni session ni jeton, ou jeton de session invalide (401) |
+| `invalid_server_token` | jeton de serveur inconnu, ou serveur révoqué : `requireServer` (401) |
+| `forbidden` | rôle trop bas, utilisateur qui n'est plus membre, `platform_admin` requis (403) |
+| `no_active_organization` | session sans organisation active : `requireOrg` (403) |
+| `not_found` | route inconnue, ou ressource qui n'appartient pas à l'appelant (404) |
+| `device_exists` | empreinte d'appareil déjà enregistrée (409) |
+| `conflict` | conflit d'état sur une ressource |
+| `validation` | corps illisible, schéma `t` non respecté, clé publique illisible (400, 422) |
+| `key_not_ed25519` | clé publique d'un autre type que ed25519 (422) |
+| `rate_limited` | dépassement de débit, avec `retry-after` (429) |
+| `enrollment_used`, `enrollment_expired` | jeton d'enrôlement déjà échangé ou expiré |
+| `seat_quota_reached` | quota de sièges de l'abonnement atteint |
+| `entitlement_required`, `server_suspended` | droit d'usage absent, serveur suspendu |
+| `release_not_found` | version de l'agent inconnue |
+| `stripe_signature_invalid` | signature de webhook Stripe invalide |
+| `internal` | exception, avec une référence journalisée (500) |
 
 ## Tâches longues
 

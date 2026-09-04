@@ -51,7 +51,7 @@ Chaque module implémente `Check`, `Install`, `Configure`, `Upgrade`, `Uninstall
 
 | Id | Fait | Champs | MVP |
 | --- | --- | --- | --- |
-| `runtime.node` | mise ; Node, Bun, pnpm aux versions choisies ; activés dans tous les shells y compris non interactifs | `node_version`, `bun` (boolean), `pnpm` (boolean) | oui |
+| `runtime.node` | mise ; Node, Bun, pnpm aux versions choisies ; activés dans tous les shells y compris non interactifs par un bloc balisé du `.zshenv` | `node_version`, `bun` (boolean), `pnpm` (boolean) | oui |
 | `runtime.java` | Temurin via mise, daemon Gradle dimensionné pour la RAM | `java_version` | oui |
 | `runtime.python` | uv et une version Python ; base des agents en Python | `python_version` | oui |
 | `runtime.go`, `runtime.php`, `runtime.ruby` | via mise | version | après |

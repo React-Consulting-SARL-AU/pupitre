@@ -23,11 +23,14 @@ describe("API_ERROR_CODES", () => {
     for (const code of [
       "unauthenticated",
       "forbidden",
+      "no_active_organization",
       "not_found",
       "validation",
       "enrollment_used",
       "seat_quota_reached",
       "key_not_ed25519",
+      "device_exists",
+      "invalid_server_token",
       "entitlement_required",
       "stripe_signature_invalid",
     ]) {

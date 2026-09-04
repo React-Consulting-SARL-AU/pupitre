@@ -20,6 +20,15 @@ const FR = {
   server_token_revoked: "Ce serveur a été révoqué.",
   server_token_revoked_fix: "Réinstallez l'agent depuis l'app.",
   not_found: "Cette ressource n'existe pas.",
+  device_not_found: "Cet appareil n'existe pas.",
+  key_not_ed25519: "Seules les clés ed25519 sont acceptées.",
+  key_not_ed25519_fix: "générez une clé ed25519 : ssh-keygen -t ed25519",
+  key_malformed: "Cette clé publique est illisible.",
+  key_malformed_fix:
+    "Collez la ligne entière de votre fichier .pub, par exemple : ssh-ed25519 AAAAC3Nza… vous@machine.",
+  device_exists: "Cet appareil est déjà enregistré.",
+  device_exists_fix:
+    "Utilisez l'appareil déjà enregistré, ou ajoutez-en un avec une autre clé.",
   internal: "Erreur interne (référence {ref}).",
   rate_limited: "Trop de requêtes.",
   rate_limited_fix: "Réessayez dans {seconds} secondes.",
@@ -67,6 +76,15 @@ const EN: Record<MessageKey, string> = {
   server_token_revoked: "This server has been revoked.",
   server_token_revoked_fix: "Reinstall the agent from the app.",
   not_found: "This resource does not exist.",
+  device_not_found: "This device does not exist.",
+  key_not_ed25519: "Only ed25519 keys are accepted.",
+  key_not_ed25519_fix: "generate an ed25519 key: ssh-keygen -t ed25519",
+  key_malformed: "This public key is unreadable.",
+  key_malformed_fix:
+    "Paste the whole line of your .pub file, for example: ssh-ed25519 AAAAC3Nza… you@machine.",
+  device_exists: "This device is already registered.",
+  device_exists_fix:
+    "Use the device already registered, or add one with another key.",
   internal: "Internal error (reference {ref}).",
   rate_limited: "Too many requests.",
   rate_limited_fix: "Retry in {seconds} seconds.",

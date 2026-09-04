@@ -8,6 +8,7 @@ import (
 	"pupitre.studio/agent/internal/entitlement"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/core"
+	_ "pupitre.studio/agent/internal/modules/runtime"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/sys"
 )

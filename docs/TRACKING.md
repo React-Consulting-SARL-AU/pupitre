@@ -23,7 +23,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-02 | Sonde sh et sonde Go | à faire | | |
 | AGT-03 | Moteur de modules et rapport | fait | `feat/AGT-03-module-engine` | fusionnée |
 | AGT-04 | Modules socle et durcissement | fait | `feat/AGT-04-core-modules` | fusionnée |
-| AGT-05 | Modules runtimes | à faire | | |
+| AGT-05 | Modules runtimes | fait | `feat/AGT-05-runtimes` | fusionnée |
 | AGT-06 | Modules bases de données | à faire | | |
 | AGT-07 | Modules agents IA et navigateur | à faire | | |
 | AGT-08 | Modules éditeurs distants | à faire | | |
@@ -64,7 +64,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-01 | Schéma Prisma et Neon | fait | `feat/PLT-01-prisma-neon` | fusionnée |
 | PLT-02 | Better Auth : serveur, plugins, clients | fait | `feat/PLT-02-better-auth` | fusionnée |
 | PLT-03 | Elysia : socle, guards, erreurs, harnais de test | fait | `feat/PLT-03-elysia-base` | fusionnée |
-| PLT-04 | Routes `me`, `devices` | à faire | | |
+| PLT-04 | Routes `me`, `devices` | fait | `feat/PLT-04-me-devices` | fusionnée |
 | PLT-05 | Enrôlement, jetons d'agent, `agent/state`, heartbeat | à faire | | |
 | PLT-06 | Distribution des binaires signés (R2) | à faire | | |
 | PLT-07 | Stripe Managed Payments : checkout, portail, webhooks, réconciliation | à faire | | |

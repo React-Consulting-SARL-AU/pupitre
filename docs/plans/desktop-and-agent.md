@@ -90,7 +90,7 @@ Tests. `test/staging/core_test.go`.
 ### AGT-05 — Modules runtimes
 Lot 1 · dépend de AGT-03 · `apps/agent`
 
-Périmètre. `runtime.node`, `runtime.java`, `runtime.python` via mise, activés pour les shells non interactifs (`ssh host 'node -v'` fonctionne). Daemon Gradle dimensionné.
+Périmètre. `runtime.node`, `runtime.java`, `runtime.python` via mise, activés pour les shells non interactifs par un bloc balisé par module dans le `.zshenv` de `dev` — `.zshrc` n'est pas lu par `ssh host 'node -v'` et reste au socle pour les marqueurs OSC 133. Daemon Gradle dimensionné.
 Critères d'acceptation. Sur le staging, `ssh dev@staging 'node -v && bun -v && java -version && uv --version'` renvoie les versions choisies.
 Tests. `test/staging/runtime_test.go`.
 
