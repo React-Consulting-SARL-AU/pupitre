@@ -29,7 +29,7 @@ export default defineConfig({
   webServer: [
     {
       command: `bun run vite dev --host 127.0.0.1 --port ${VITE_PORT} --strictPort`,
-      url: `http://127.0.0.1:${VITE_PORT}/auth/sign-in`,
+      url: `http://127.0.0.1:${VITE_PORT}/`,
       timeout: SERVER_TIMEOUT_MS,
       reuseExistingServer: false,
       stdout: "ignore",
