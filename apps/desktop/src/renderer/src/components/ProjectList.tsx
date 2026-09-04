@@ -1,5 +1,6 @@
 import type { Project } from "@shared/contract";
 import { StatusPill } from "./StatusPill";
+import { Label } from "./ui/label";
 
 function memory(mb: number): string {
   if (mb >= 1024) {
@@ -17,9 +18,9 @@ type Props = {
 export function ProjectList({ projects, selection, onSelect }: Props) {
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      <div className="sticky top-0 z-10 grid grid-cols-[1fr_auto] gap-3 border-line border-b bg-base px-4 py-2 font-mono text-[10px] text-ink-4 uppercase tracking-[0.09em]">
-        <span>Project</span>
-        <span>Memory</span>
+      <div className="sticky top-0 z-10 grid grid-cols-[1fr_auto] gap-3 border-line border-b bg-base px-4 py-2">
+        <Label>Project</Label>
+        <Label>Memory</Label>
       </div>
 
       {projects.map((project) => {
@@ -27,19 +28,17 @@ export function ProjectList({ projects, selection, onSelect }: Props) {
         return (
           <button
             className={`clickable border-line border-b px-4 py-2.5 text-left transition-soft ${
-              active ? "bg-accent-veil" : "hover:bg-surface"
+              active ? "bg-raised" : "hover:bg-surface"
             }`}
             key={project.name}
             onClick={() => onSelect(project.name)}
             type="button"
           >
             <div className="flex items-baseline justify-between gap-3">
-              <span
-                className={`truncate font-semibold ${active ? "text-accent-strong" : "text-ink"}`}
-              >
+              <span className="truncate font-semibold text-ink">
                 {project.name}
               </span>
-              <span className="shrink-0 font-mono text-[11px] text-ink-4 tabular-nums">
+              <span className="shrink-0 font-data text-[11px] text-ink-3 tabular-nums">
                 {memory(project.ram_mb)}
               </span>
             </div>
@@ -47,13 +46,13 @@ export function ProjectList({ projects, selection, onSelect }: Props) {
             <div className="mt-1.5 flex items-center gap-2">
               <StatusPill state={project.state} />
               {project.uptime ? (
-                <span className="font-mono text-[10px] text-ink-4">
+                <span className="font-data text-[10px] text-ink-3">
                   {project.uptime}
                 </span>
               ) : null}
             </div>
 
-            <div className="mt-1 truncate font-mono text-[10px] text-ink-4">
+            <div className="mt-1 truncate font-data text-[10px] text-ink-3">
               {project.host}:{project.port}
               {project.branch ? ` · ${project.branch}` : ""}
             </div>

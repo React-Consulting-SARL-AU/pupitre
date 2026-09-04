@@ -41,6 +41,8 @@ describe("GET /api/v1/openapi", () => {
     expect(doc.openapi).toMatch(OPENAPI_3_RE)
     expect(Object.keys(doc.paths)).toContain("/api/v1/health")
     expect(Object.keys(doc.paths)).toContain("/api/v1/me")
+    expect(Object.keys(doc.paths)).toContain("/api/v1/servers")
+    expect(Object.keys(doc.paths)).toContain("/api/v1/agent/state")
     expect(Object.keys(doc.paths).some((path) => path.includes("/admin"))).toBe(
       false
     )

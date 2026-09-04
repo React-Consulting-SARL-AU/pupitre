@@ -58,7 +58,7 @@ export function Completion({ id, frame }: Props) {
 
       {hasList ? (
         <div
-          className="absolute z-10 min-w-[16rem] max-w-[36rem] animate-[fade-in_120ms_ease-out] overflow-hidden rounded-lg border border-line-strong bg-raised shadow-[0_12px_32px_rgba(0,0,0,0.45)]"
+          className="absolute z-10 min-w-[16rem] max-w-[36rem] animate-[fade-in_120ms_ease-out] overflow-hidden rounded-md border border-line-strong bg-raised"
           role="listbox"
           style={{
             left: Math.max(0, Math.min(left, box.width - 260)),
@@ -77,7 +77,7 @@ export function Completion({ id, frame }: Props) {
               />
             ))}
           </ul>
-          <div className="flex gap-3 border-line border-t px-3 py-1 font-mono text-[10px] text-ink-4">
+          <div className="flex gap-3 border-line border-t px-3 py-1 font-data text-[10px] text-ink-3">
             <span>⇥ complete</span>
             <span>↑↓ choose</span>
             <span>⎋ close</span>
@@ -98,29 +98,33 @@ function Row({
   onChoose: () => void;
 }) {
   return (
-    <li aria-selected={active} role="option">
+    <li>
       <button
-        className={`flex w-full items-center gap-2.5 px-3 py-1 text-left ${
-          active ? "bg-accent-veil text-ink" : "text-ink-2 hover:bg-sunken"
+        aria-selected={active}
+        className={`flex w-full items-center gap-2.5 px-3 py-1 text-left transition-soft ${
+          active
+            ? "bg-sunken font-medium text-ink"
+            : "text-ink-2 hover:bg-sunken"
         }`}
         onMouseDown={(e) => {
           e.preventDefault();
           onChoose();
         }}
+        role="option"
         type="button"
       >
         <span
-          className={`w-3 shrink-0 text-center font-mono text-[10px] ${
-            active ? "text-accent-strong" : "text-ink-4"
+          className={`w-3 shrink-0 text-center font-data text-[10px] ${
+            active ? "text-ink" : "text-ink-3"
           }`}
         >
           {MARK[candidate.kind]}
         </span>
-        <span className="min-w-0 flex-1 truncate font-mono text-[11.5px]">
+        <span className="min-w-0 flex-1 truncate font-data text-[11.5px]">
           {candidate.text}
         </span>
         {candidate.help ? (
-          <span className="shrink-0 truncate text-[10.5px] text-ink-4">
+          <span className="shrink-0 truncate text-[10.5px] text-ink-3">
             {candidate.help}
           </span>
         ) : null}

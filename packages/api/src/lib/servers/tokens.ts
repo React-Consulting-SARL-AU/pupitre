@@ -1,6 +1,8 @@
 export const SERVER_TOKEN_PREFIX = "pupitre_srv_"
 
-const SERVER_TOKEN_BYTES = 32
+export const ENROLLMENT_TOKEN_PREFIX = "pupitre_enr_"
+
+const TOKEN_BYTES = 32
 const BASE64_PADDING_RE = /=+$/
 
 function base64Url(bytes: Uint8Array): string {
@@ -10,23 +12,38 @@ function base64Url(bytes: Uint8Array): string {
     .replace(BASE64_PADDING_RE, "")
 }
 
-export function generateServerToken(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(SERVER_TOKEN_BYTES))
+function randomToken(prefix: string): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(TOKEN_BYTES))
 
-  return `${SERVER_TOKEN_PREFIX}${base64Url(bytes)}`
+  return `${prefix}${base64Url(bytes)}`
+}
+
+function sha256Hex(value: string): Promise<string> {
+  return crypto.subtle
+    .digest("SHA-256", new TextEncoder().encode(value))
+    .then((digest) =>
+      Array.from(new Uint8Array(digest), (byte) =>
+        byte.toString(16).padStart(2, "0")
+      ).join("")
+    )
+}
+
+export function generateServerToken(): string {
+  return randomToken(SERVER_TOKEN_PREFIX)
+}
+
+export function generateEnrollmentToken(): string {
+  return randomToken(ENROLLMENT_TOKEN_PREFIX)
 }
 
 export function isServerToken(value: string): boolean {
   return value.startsWith(SERVER_TOKEN_PREFIX)
 }
 
-export async function hashServerToken(token: string): Promise<string> {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(token)
-  )
+export function hashServerToken(token: string): Promise<string> {
+  return sha256Hex(token)
+}
 
-  return Array.from(new Uint8Array(digest), (byte) =>
-    byte.toString(16).padStart(2, "0")
-  ).join("")
+export function hashEnrollmentToken(token: string): Promise<string> {
+  return sha256Hex(token)
 }

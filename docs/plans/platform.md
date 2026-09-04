@@ -134,6 +134,15 @@ Critères d'acceptation. Un push sur `main` déploie le staging ; un tag déploi
 
 **Porte du lot 3** : un inconnu paie en mode test, télécharge, enrôle son VPS et travaille, sans écrire au propriétaire.
 
+### PLT-15 — Workflows Cloudflare : déclencheurs des tâches longues
+Lot 3 · dépend de PLT-05, PLT-08 · `apps/web`
+
+But. Les fonctions de cycle de vie écrites par PLT-05 et PLT-07 ont un déclencheur.
+Périmètre. `apps/web/src/workflows/` : `ExpireEnrollments` (horaire) qui appelle `expireEnrollments`, `DecommissionServer` (quotidien) qui appelle `decommissionDueServers`, `ReconcileSeats` (quotidien). Déclaration des Cron Triggers dans `wrangler.jsonc`, un secret partagé pour les invocations internes, et un test qui prouve que chaque workflow appelle bien sa fonction.
+Hors périmètre. La logique elle-même, déjà livrée et testée dans `packages/api/src/lib/`.
+Critères d'acceptation.
+1. `wrangler dev` déclenche chaque cron en local et le journal montre l'appel.
+
 ## Lot 4 — Équipes
 
 ### PLT-10 — Organisations : membres, invitations, attribution, audit

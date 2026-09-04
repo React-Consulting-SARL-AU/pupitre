@@ -1,10 +1,14 @@
 import type { GitStatus } from "@shared/contract";
 import {
-  AlertTriangle,
   ArrowDownToLine,
   GitBranch,
   RefreshCw,
+  TriangleAlert,
 } from "lucide-react";
+import { Button } from "./ui/button";
+import { Callout } from "./ui/callout";
+import { IconButton } from "./ui/icon-button";
+import { StatusDot } from "./ui/status-dot";
 
 /**
  * What the repositories have more of than the server, shown before acting.
@@ -60,6 +64,16 @@ function commits(n: number): string {
   return `${n} commit${n > 1 ? "s" : ""}`;
 }
 
+function checkLabel(busy: boolean, checkedAt: number | null): string {
+  if (busy) {
+    return "querying repositories…";
+  }
+  if (checkedAt) {
+    return `repositories checked ${timeAgo(checkedAt)}`;
+  }
+  return "check repositories";
+}
+
 export function CheckButton({
   busy,
   checkedAt,
@@ -71,17 +85,17 @@ export function CheckButton({
 }) {
   return (
     <button
-      className="flex items-center gap-1.5 font-mono text-[10px] text-ink-4 transition-soft hover:text-accent-strong disabled:opacity-60"
+      className="flex items-center gap-1.5 rounded-sm font-data text-[10px] text-ink-3 transition-soft hover:text-ink disabled:opacity-60"
       disabled={busy}
       onClick={onCheck}
       type="button"
     >
-      <RefreshCw className={busy ? "animate-spin" : ""} size={11} />
-      {busy
-        ? "querying repositories…"
-        : checkedAt
-          ? `repositories checked ${timeAgo(checkedAt)}`
-          : "check repositories"}
+      {busy ? (
+        <StatusDot shape="breathing" size={11} />
+      ) : (
+        <RefreshCw size={11} strokeWidth={1.5} />
+      )}
+      {checkLabel(busy, checkedAt)}
     </button>
   );
 }
@@ -107,43 +121,40 @@ export function Repos({
   const silent = unreachable(git);
 
   if (late.length === 0) {
-    return silent.length === 0 ? null : (
-      <p className="mt-5 flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 text-[12px] text-ink-3">
-        <AlertTriangle className="shrink-0 text-warn" size={13} />
-        {silent.length} repositor{silent.length > 1 ? "ies" : "y"} unreachable
-        from the server —{" "}
-        <span className="font-mono text-[11px] text-ink-4">
-          {silent[0].problem}
-        </span>
-      </p>
+    if (silent.length === 0) {
+      return null;
+    }
+    return (
+      <div className="mt-5">
+        <Callout fix={silent[0].problem} tone="warn">
+          {silent.length} repositor{silent.length > 1 ? "ies" : "y"} unreachable
+          from the server
+        </Callout>
+      </div>
     );
   }
 
   const clean = late.filter((d) => !d.status.dirty);
 
   return (
-    <section className="mt-5 animate-[fade-in_200ms_ease-out] rounded-xl border border-accent/35 bg-accent-veil p-4">
+    <section className="mt-5 animate-[fade-in_200ms_ease-out] rounded-md border border-line-strong bg-surface p-4">
       <div className="flex flex-wrap items-center gap-3">
-        <ArrowDownToLine
-          className="text-accent-strong"
-          size={14}
-          strokeWidth={2}
-        />
-        <h2 className="font-semibold text-[13px]">
+        <ArrowDownToLine className="text-ink-2" size={14} strokeWidth={1.5} />
+        <h2 className="font-semibold text-[13px] text-ink">
           {late.length === 1
             ? "One repository has commits to pull"
             : `${late.length} repositories have commits to pull`}
         </h2>
         {clean.length > 1 ? (
-          <button
-            className="ml-auto flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 font-semibold text-[12px] text-base transition-soft hover:bg-accent-strong disabled:opacity-40"
+          <Button
+            className="ml-auto"
             disabled={busy || busyProject !== null}
+            icon={ArrowDownToLine}
             onClick={onPullAll}
-            type="button"
+            variant="inverse"
           >
-            <ArrowDownToLine size={13} strokeWidth={2} />
             Pull all
-          </button>
+          </Button>
         ) : null}
       </div>
 
@@ -158,14 +169,18 @@ export function Repos({
               onClick={() => onSelect(status.project)}
               type="button"
             >
-              <p className="truncate font-medium text-[12px] hover:text-accent-strong">
+              <p className="truncate font-medium text-[12px] text-ink hover:underline">
                 {projects.join(", ")}
-                <span className="ml-2 font-mono text-[11px] text-accent-strong">
+                <span className="ml-2 font-data font-semibold text-[11px] text-ink tabular-nums">
                   {commits(status.behind)}
                 </span>
               </p>
-              <p className="truncate font-mono text-[11px] text-ink-4">
-                <GitBranch className="mr-1 inline" size={10} />
+              <p className="truncate font-data text-[11px] text-ink-3">
+                <GitBranch
+                  className="mr-1 inline"
+                  size={10}
+                  strokeWidth={1.5}
+                />
                 {status.current} ← {status.upstream}
                 {status.subject ? ` · ${status.subject}` : ""}
               </p>
@@ -173,28 +188,27 @@ export function Repos({
 
             {status.dirty ? (
               <span
-                className="flex items-center gap-1 font-mono text-[10px] text-warn"
+                className="flex items-center gap-1 font-data text-[10px] text-warn"
                 title="Uncommitted changes live in this folder"
               >
-                <AlertTriangle size={11} />
+                <TriangleAlert size={11} strokeWidth={1.5} />
                 uncommitted
               </span>
             ) : null}
 
-            <button
-              className="flex shrink-0 items-center gap-1.5 rounded-md border border-line-strong px-2.5 py-1 text-[11px] transition-soft hover:border-accent hover:text-accent-strong disabled:opacity-40"
+            <Button
               disabled={busyProject === status.project || busy}
+              icon={ArrowDownToLine}
               onClick={() => onPull(status.project)}
-              type="button"
+              size="sm"
             >
-              <ArrowDownToLine size={12} strokeWidth={2} />
               Pull
-            </button>
+            </Button>
           </li>
         ))}
       </ul>
 
-      <p className="mt-2 font-mono text-[10px] text-ink-4">
+      <p className="mt-2 font-data text-[10px] text-ink-3">
         fast-forward only — a running project keeps its old code until you
         restart it
       </p>
@@ -228,26 +242,25 @@ export function RepoState({
 
   if (status.problem) {
     return (
-      <p className="mt-2 flex items-start gap-1.5 text-[11px] text-warn">
-        <AlertTriangle className="mt-px shrink-0" size={12} />
-        <span className="min-w-0 font-mono">{status.problem}</span>
-      </p>
+      <div className="mt-2">
+        <Callout tone="warn">{status.problem}</Callout>
+      </div>
     );
   }
 
   if (!status.upstream) {
     return (
-      <p className="mt-2 font-mono text-[11px] text-ink-4">
+      <p className="mt-2 font-data text-[11px] text-ink-3">
         no remote branch tracked
       </p>
     );
   }
 
   return (
-    <div className="mt-2.5 rounded-lg border border-line bg-base px-2.5 py-2">
+    <div className="mt-2.5 rounded-sm border border-line bg-base px-2.5 py-2">
       <div className="flex flex-wrap items-center gap-2">
         <span
-          className={`font-mono text-[11px] ${status.behind > 0 ? "text-accent-strong" : "text-ink-4"}`}
+          className={`font-data text-[11px] ${status.behind > 0 ? "font-semibold text-ink" : "text-ink-3"}`}
         >
           {status.behind > 0
             ? `${commits(status.behind)} to pull`
@@ -259,31 +272,29 @@ export function RepoState({
         </span>
 
         <div className="ml-auto flex items-center gap-1.5">
-          <button
-            aria-label="Query the remote repository"
-            className="rounded-md border border-line p-1 text-ink-4 transition-soft hover:border-accent hover:text-accent-strong disabled:opacity-40"
-            disabled={busy}
+          <IconButton
+            icon={RefreshCw}
+            label="Query the remote repository"
+            loading={busy}
             onClick={onCheck}
-            type="button"
-          >
-            <RefreshCw className={busy ? "animate-spin" : ""} size={12} />
-          </button>
+            size={12}
+          />
           {status.behind > 0 ? (
-            <button
-              className="flex items-center gap-1.5 rounded-md bg-accent px-2.5 py-1 font-semibold text-[11px] text-base transition-soft hover:bg-accent-strong disabled:opacity-40"
+            <Button
               disabled={busyProject || busy}
+              icon={ArrowDownToLine}
               onClick={onPull}
-              type="button"
+              size="sm"
+              variant="inverse"
             >
-              <ArrowDownToLine size={12} strokeWidth={2} />
               Pull
-            </button>
+            </Button>
           ) : null}
         </div>
       </div>
 
       {status.behind > 0 && status.subject ? (
-        <p className="mt-1 truncate font-mono text-[10px] text-ink-4">
+        <p className="mt-1 truncate font-data text-[10px] text-ink-3">
           latest: {status.subject}
         </p>
       ) : null}

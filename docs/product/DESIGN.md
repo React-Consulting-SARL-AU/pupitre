@@ -51,16 +51,31 @@ typography:
     fontWeight: 700
     letterSpacing: "-0.01em"
 radius:
-  sm: "4px"
-  md: "6px"
+  sm: "6px"
+  md: "10px"
+  lg: "14px"
+  full: "999px"
+space:
+  scale: "4px base, steps 1 2 3 4 6 8 12 16 24"
+  gutter: "20px"
+  section: "32px"
+elevation:
+  flat: "none"
+  raised: "0 1px 2px rgb(0 0 0 / .05), 0 1px 3px rgb(0 0 0 / .06)"
+  overlay: "0 4px 12px rgb(0 0 0 / .08), 0 12px 32px rgb(0 0 0 / .10)"
+  raised-dark: "0 1px 2px rgb(0 0 0 / .5), 0 1px 3px rgb(0 0 0 / .4)"
+  overlay-dark: "0 4px 12px rgb(0 0 0 / .5), 0 12px 32px rgb(0 0 0 / .55)"
 motion:
   fast: "120ms ease"
+  soft: "180ms cubic-bezier(.2,.6,.3,1)"
   breathe: "1.6s ease-in-out infinite"
 ---
 
 # Design System
 
-Épuré, noir et blanc, en nuances de gris, avec un thème clair et un thème sombre. Le thème suit le système par défaut et se force dans les réglages. **Il n'y a pas de couleur d'accent** : l'emphase vient du contraste, de la graisse, de l'inversion et du soulignement. La seule couleur admise sert l'état des choses, jamais la décoration.
+Une interface **monochrome mais accueillante**. Gris neutres, thème clair et thème sombre, aucune couleur d'accent : l'emphase vient du contraste, de la graisse et de l'inversion. Mais la sobriété n'est pas de la sécheresse — l'interface respire, ses surfaces sont posées les unes sur les autres par une ombre douce, ses coins sont arrondis, sa hiérarchie se lit d'un coup d'œil. On doit avoir envie de l'ouvrir.
+
+Deux exceptions à la monochromie, et deux seulement : **l'état** des choses, et **les logos des services** que le client installe, dans leurs couleurs d'origine. Le reste est gris.
 
 Ce document gouverne l'app desktop, la console web et le site. Un seul système, trois surfaces.
 
@@ -88,15 +103,29 @@ Une échelle de gris neutres, sans teinte. Quatre niveaux de surface pour l'él�
 ## Règles
 
 - **L'état se lit à la forme d'abord.** En ligne : point plein. Arrêté : cercle vide. En échec : point barré. En cours : point qui respire. La couleur confirme ; l'interface reste lisible en gris purs.
-- **Pas d'ombre, pas de dégradé, pas d'illustration.** L'élévation est un pas de gris et un trait d'un pixel. Rayon `sm` pour les contrôles, `md` pour les panneaux, jamais plus.
-- **Typographie.** Police système pour l'interface à 13 px. JetBrains Mono pour toute donnée : ports, chemins, commandes, durées, empreintes, versions. Libellés en capitales espacées à 10,5 px. Chiffres tabulaires partout où ils s'alignent. Bricolage Grotesque réservé aux titres du site et de la console.
-- **Icônes** Lucide, trait de 1,5 px, jamais remplies, jamais colorées. Un bouton d'action porte son icône avant son libellé.
+- **L'élévation est une ombre douce, jamais une bordure épaisse.** Trois niveaux seulement : `flat` pour ce qui est dans le flux, `raised` pour une carte ou un panneau posé sur le fond, `overlay` pour ce qui flotte — menu, popover, boîte de dialogue. En thème sombre, l'ombre est plus profonde et se double d'un pas de gris, l'ombre seule n'y suffisant pas. Une carte porte une ombre **ou** un trait, jamais les deux appuyés.
+- **Les coins sont arrondis.** `sm` pour un contrôle, `md` pour une carte ou un panneau, `lg` pour une boîte de dialogue ou une fenêtre, `full` pour une pastille. Un rayon plus petit que son parent quand un élément est imbriqué.
+- **L'espace fait la hiérarchie.** Échelle de 4 px. Une gouttière de 20 px entre les blocs d'un même groupe, 32 px entre deux sections. Un titre de section a plus d'air au-dessus qu'en dessous. Une liste dense reste aérée : 12 px de padding vertical minimum par ligne. Ne jamais serrer pour faire tenir : couper ou faire défiler.
+- **Les menus se hiérarchisent en trois plans** : le libellé de groupe en capitales espacées `ink-3`, les entrées en `ink`, l'entrée active sur `raised` avec un repère à gauche. Un séparateur avant une action destructrice. Jamais plus de deux niveaux d'imbrication.
+- **Typographie.** Police système pour l'interface à 13 px, 14 px sur le web. JetBrains Mono pour toute donnée : ports, chemins, commandes, durées, empreintes, versions. Libellés en capitales espacées à 10,5 px. Chiffres tabulaires partout où ils s'alignent. Bricolage Grotesque pour les titres. Interlignage généreux : 1,5 sur le texte courant, 1,2 sur les titres.
+- **Icônes d'interface** : Lucide, trait de 1,5 px, jamais remplies, jamais colorées. Un bouton d'action porte son icône avant son libellé.
+- **Logos de services** : les vrais, en SVG, dans leurs couleurs d'origine. Voir la section dédiée.
 - **Focus.** Anneau de deux pixels en `ink`, décalé de deux pixels. Visible sur les deux thèmes.
-- **Mouvement.** `fast` sur les fonds et les opacités. Une seule animation, `breathe`, pour « en cours ». Rien si `prefers-reduced-motion`.
+- **Mouvement.** `fast` sur les fonds et les opacités, `soft` sur ce qui apparaît ou change de taille. Une seule animation en boucle, `breathe`, pour « en cours ». Rien si `prefers-reduced-motion`.
 - **Le terminal** garde une palette ANSI, parce que Claude Code, Codex et les outils en dépendent, mais désaturée et adaptée à chaque thème. Fond `sunken`, curseur `ink`, sélection `raised`. Autour de lui, tout est monochrome.
 - **Le diff** marque les lignes par le signe et par un fond `ok` ou `danger` à 10 % d'opacité. Lisible sans la couleur.
 - **Les écrans d'attente disent ce qui se passe** : le module, l'étape, le compteur, la durée. Jamais un spinner seul.
 - **Les erreurs disent le remède** : ce qui a échoué, pourquoi, la commande ou le bouton qui répare.
+
+## Logos de services
+
+Le catalogue, l'écran Services et les cartes de projet montrent **le vrai logo** de chaque service, en SVG, dans ses couleurs d'origine : PostgreSQL, MySQL, MongoDB, Redis, Node.js, Bun, Python, Java, Go, Docker, GitHub, 1Password, Cloudflare, JetBrains, VS Code, Zed, Claude, Codex, Neon, Caddy. C'est ce qui rend une liste de vingt-six modules lisible en un coup d'œil, et ce qui donne à l'interface sa chaleur sans trahir la monochromie du reste.
+
+- **Où ils vivent** : `packages/design/src/logos/<id>.svg`, un fichier par module du catalogue, nommé par l'identifiant du module (`db.postgres` → `db-postgres.svg`). Ce sont des **fragments inline**, sans déclaration de namespace : ils sont destinés à être insérés dans le document, jamais chargés par un `<img>`. Un composant `ServiceLogo` par surface les rend à taille fixe (16, 20, 24, 32 px), avec un `title` accessible.
+- **Provenance** : Simple Icons quand la marque y est (CC0), sinon le kit de marque officiel de l'éditeur. Un fichier `packages/design/src/logos/NOTICE.md` liste pour chaque logo sa source, sa licence et la date. Usage nominatif : on nomme un logiciel qu'on installe, ce qui est licite ; on ne s'en sert jamais pour suggérer un partenariat.
+- **Traitement** : le logo garde ses couleurs, sans filtre ni teinte, posé sur une pastille `surface` aux coins `sm`. Un logo monochrome par nature (GitHub, Zed) prend `ink` et suit donc le thème. Aucun logo n'est déformé, recadré ni recoloré.
+- **Interdits** : un logo comme icône d'action, dans un bouton, ou en fond. Un logo de marque qui n'est pas un module du catalogue.
+- **Sans logo licite, pas de logo inventé.** Six modules MVP retombent sur une icône Lucide : `core.system`, `core.hardening`, `exposure.ssh`, `ai.codex`, `ai.hermes`, `editor.vscode`, faute de source redistribuable. `ServiceLogo` doit rendre cette retombée aussi soignée que les autres.
 
 ## Palette ANSI du terminal
 
@@ -113,7 +142,7 @@ Une échelle de gris neutres, sans teinte. Quatre niveaux de surface pour l'él�
 
 ## Mise en œuvre
 
-- `packages/design/src/tokens.css` déclare les tokens sous `:root` (clair), les redéfinit sous `:root[data-theme="dark"]` et sous `@media (prefers-color-scheme: dark)` guardé par `:root:not([data-theme="light"])`. `packages/design/src/tailwind.css` les expose au `@theme` de Tailwind 4 (`--color-base`, `--color-ink`…).
+- `packages/design/src/tokens.css` déclare les tokens sous `:root` (clair), les redéfinit sous `:root[data-theme="dark"]` et sous `@media (prefers-color-scheme: dark)` guardé par `:root:not([data-theme="light"])`. Les ombres, les rayons, l'échelle d'espace et les durées sont des tokens au même titre que les couleurs (`--shadow-raised`, `--radius-md`, `--space-4`, `--motion-soft`), et le thème sombre redéfinit les ombres. `packages/design/src/tailwind.css` les expose au `@theme` de Tailwind 4 (`--color-base`, `--radius-md`, `--shadow-overlay`…). `packages/design/src/tokens.ts` en donne la version TypeScript pour le processus principal d'Electron.
 - Le choix de thème (`system`, `light`, `dark`) vit avec les préférences de navigation de l'app desktop, dans le `localStorage` de la console, et dans un cookie pour le site. Le thème xterm bascule avec lui.
 - La marque est le glyphe `>_` dans un carré aux coins `md` : noir sur blanc en clair, blanc sur noir en sombre. Icône d'app, favicon et Open Graph en dérivent.
 - Composants de la console et de l'app : Base UI + shadcn/ui sur Tailwind 4, prop `render` (jamais `asChild`), un composant par fichier. Le site utilise les mêmes tokens en Astro sans bibliothèque de composants.

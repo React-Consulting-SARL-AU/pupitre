@@ -1,84 +1,75 @@
 @import "tailwindcss";
+@import "@pupitre/design/tailwind.css";
 
-/*
-  Monochrome warm neutrals, with orange as the only saturated colour. The greys
-  lean towards that orange rather than being pure neutrals: that is what makes
-  them look chosen. Green and amber only serve service states, never decoration.
-*/
-@theme {
-  --color-base: #100d0b;
-  --color-surface: #171310;
-  --color-sunken: #1f1a16;
-  --color-raised: #262019;
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
 
-  --color-ink: #f6f2ee;
-  --color-ink-2: #cdc3ba;
-  --color-ink-3: #9c9089;
-  --color-ink-4: #6f645d;
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+  }
 
-  --color-line: #2b2420;
-  --color-line-strong: #3d342e;
+  body {
+    overflow: hidden;
+    font-family: var(--font-ui);
+    font-size: var(--font-ui-size);
+    -webkit-font-smoothing: antialiased;
+    line-height: var(--font-ui-line-height);
+    color: var(--ink);
+    background: var(--base);
+  }
 
-  --color-accent: hsl(18 100% 60%);
-  --color-accent-strong: hsl(18 100% 68%);
-  --color-accent-veil: hsl(18 100% 60% / 0.13);
+  :focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
 
-  --color-ok: #4fbe85;
-  --color-warn: #d9a320;
-  --color-danger: #e8705a;
+  ::selection {
+    background: var(--raised);
+  }
 
-  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-}
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
 
-* {
-  box-sizing: border-box;
-}
+  ::-webkit-scrollbar-thumb {
+    background: var(--line-strong);
+    border: 3px solid var(--base);
+    border-radius: var(--radius-md);
+  }
 
-html,
-body,
-#root {
-  height: 100%;
-  margin: 0;
-}
-
-body {
-  overflow: hidden;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
-    "Helvetica Neue", sans-serif;
-  font-size: 13px;
-  -webkit-font-smoothing: antialiased;
-  color: var(--color-ink);
-  background: var(--color-base);
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 
 /* The hidden title bar leaves the window draggable by its header. */
-.draggable {
+@utility draggable {
   -webkit-app-region: drag;
 }
-.clickable {
+
+@utility clickable {
   -webkit-app-region: no-drag;
 }
 
-button:focus-visible,
-input:focus-visible,
-[tabindex]:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-  border-radius: 4px;
+@utility label {
+  font-size: var(--font-label-size);
+  text-transform: uppercase;
+  letter-spacing: var(--font-label-letter-spacing);
 }
 
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--color-line-strong);
-  border: 3px solid var(--color-base);
-  border-radius: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
+@utility transition-soft {
+  transition:
+    background-color var(--motion-fast),
+    border-color var(--motion-fast),
+    color var(--motion-fast),
+    opacity var(--motion-fast);
 }
 
 @keyframes fade-in {
@@ -86,6 +77,7 @@ input:focus-visible,
     opacity: 0;
     transform: translateY(4px);
   }
+
   to {
     opacity: 1;
     transform: none;
@@ -96,12 +88,16 @@ input:focus-visible,
   0%,
   100% {
     opacity: 1;
-    transform: scale(1);
   }
+
   50% {
-    opacity: 0.45;
-    transform: scale(0.8);
+    opacity: 0.3;
   }
+}
+
+/* The only animation the system allows, and it means one thing: in progress. */
+@utility breathe {
+  animation: breathe var(--motion-breathe);
 }
 
 /* A system preference, not an option: we honour it everywhere. */
@@ -111,14 +107,6 @@ input:focus-visible,
   *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .transition-soft {
-    transition:
-      background-color 120ms ease,
-      border-color 120ms ease,
-      color 120ms ease;
+    animation-iteration-count: 1 !important;
   }
 }

@@ -1,3 +1,4 @@
+import { SquareTerminal, X } from "lucide-react";
 import { useEffect } from "react";
 import { ConnectionSetup } from "./components/ConnectionSetup";
 import { Dashboard } from "./components/Dashboard";
@@ -6,6 +7,9 @@ import { Secrets } from "./components/Secrets";
 import { Settings } from "./components/Settings";
 import { Sidebar } from "./components/Sidebar";
 import { TerminalTabs } from "./components/TerminalTabs";
+import { Callout } from "./components/ui/callout";
+import { EmptyState } from "./components/ui/empty-state";
+import { IconButton } from "./components/ui/icon-button";
 import { noteProjects } from "./lib/completion";
 import { selectedProject, useAppState } from "./stores/state";
 
@@ -145,13 +149,22 @@ export function App() {
         <div className="draggable h-10 shrink-0 border-line border-b bg-base" />
 
         {message ? (
-          <button
-            className="clickable shrink-0 animate-[fade-in_200ms_ease-out] border-danger border-l-2 bg-danger/10 px-4 py-2 text-left font-mono text-[11px] text-danger"
-            onClick={() => state.announce(null)}
-            type="button"
-          >
-            {message}
-          </button>
+          <div className="clickable shrink-0 animate-[fade-in_200ms_ease-out] px-4 py-2">
+            <Callout
+              action={
+                <IconButton
+                  icon={X}
+                  label="Dismiss"
+                  onClick={() => state.announce(null)}
+                  size={12}
+                  variant="discreet"
+                />
+              }
+              tone="danger"
+            >
+              {message}
+            </Callout>
+          </div>
         ) : null}
 
         <div className="relative min-h-0 flex-1">
@@ -219,9 +232,11 @@ export function App() {
           {view === "terminals" ? (
             <div className="absolute inset-0">
               {serverTerminals.length === 0 ? (
-                <div className="grid h-full place-items-center bg-base text-ink-4">
-                  No terminal open
-                </div>
+                <EmptyState
+                  detail="Open one from the sidebar."
+                  icon={SquareTerminal}
+                  title="No terminal open"
+                />
               ) : (
                 <TerminalTabs
                   active={activeTerminal}
