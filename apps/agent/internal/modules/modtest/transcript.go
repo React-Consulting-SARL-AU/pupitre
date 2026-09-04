@@ -3,7 +3,6 @@ package modtest
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -53,13 +52,11 @@ type transcript struct {
 	entitlement contract.Entitlement
 	prepare     []func(*FakeSys)
 	input       []string
-	secrets     []string
-	hasSecrets  bool
 	expected    []string
 	commands    map[int64]string
 }
 
-// A transcript is a .jsonl of "> request", "$ secret line", "< expected output" and "@directive" lines that seed the fake machine.
+// A transcript is a .jsonl of "> request", "$ secret line on the same standard input", "< expected output" and "@directive" lines that seed the fake machine.
 func RunTranscripts(t *testing.T, glob string, options TranscriptOptions) {
 	t.Helper()
 
@@ -95,8 +92,7 @@ func parseTranscript(t *testing.T, path string) transcript {
 			parsed.input = append(parsed.input, request)
 			parsed.remember(t, request)
 		case strings.HasPrefix(line, "$ "):
-			parsed.secrets = append(parsed.secrets, strings.TrimPrefix(line, "$ "))
-			parsed.hasSecrets = true
+			parsed.input = append(parsed.input, strings.TrimPrefix(line, "$ "))
 		case strings.HasPrefix(line, "< "):
 			parsed.expected = append(parsed.expected, strings.TrimPrefix(line, "< "))
 		default:
@@ -193,13 +189,8 @@ func runTranscript(t *testing.T, f transcript, options TranscriptOptions) {
 		options.Register(server, engine)
 	}
 
-	var secrets io.Reader
-	if f.hasSecrets {
-		secrets = strings.NewReader(strings.Join(f.secrets, "\n") + "\n")
-	}
-
 	var out bytes.Buffer
-	if err := server.Serve(strings.NewReader(strings.Join(f.input, "\n")+"\n"), &out, secrets); err != nil {
+	if err := server.Serve(strings.NewReader(strings.Join(f.input, "\n")+"\n"), &out); err != nil {
 		t.Fatalf("serve: %v", err)
 	}
 

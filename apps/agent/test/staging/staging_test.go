@@ -16,14 +16,12 @@ import (
 	"pupitre.studio/agent/internal/contract"
 )
 
-const (
-	hostVariable = "PUPITRE_STAGING_HOST"
-	secretsPath  = "/run/pupitre-staging-secrets"
-)
+const hostVariable = "PUPITRE_STAGING_HOST"
 
 type request struct {
-	Cmd    string
-	Params any
+	Cmd     string
+	Params  any
+	Secrets string
 }
 
 type response struct {
@@ -77,37 +75,34 @@ func reachable(host string) bool {
 func agent(t *testing.T, host string, requests ...request) []response {
 	t.Helper()
 
-	return succeeded(t, converse(t, host, "", requests...), requests)
+	return succeeded(t, converse(t, host, requests...), requests)
 }
 
 // The refusals are part of the contract too: this one hands back what the agent answered, failure included.
 func attempt(t *testing.T, host string, requests ...request) []response {
 	t.Helper()
 
-	return converse(t, host, "", requests...)
+	return converse(t, host, requests...)
 }
 
-// The secret line travels on descriptor 3, as the app does; the staging VPS is reinstalled between campaigns, so the file it goes through lives on tmpfs and leaves with the run.
+// The secret line follows its request on the same standard input, exactly as the app writes it.
 func agentWithSecrets(t *testing.T, host, secrets string, requests ...request) []response {
 	t.Helper()
 
-	write := sshCommand(host, "sh", "-c", "'umask 077; cat > "+secretsPath+"'")
-	write.Stdin = strings.NewReader(secrets + "\n")
-	if out, err := write.CombinedOutput(); err != nil {
-		t.Fatalf("writing the secret line on %s: %v\n%s", host, err, out)
+	if len(requests) == 0 {
+		t.Fatal("agentWithSecrets needs a request to carry the secret line")
 	}
-	t.Cleanup(func() { sshCommand(host, "rm", "-f", secretsPath).Run() })
 
-	return succeeded(t, converse(t, host, secretsPath, requests...), requests)
+	carrying := append([]request{}, requests...)
+	carrying[0].Secrets = secrets
+
+	return succeeded(t, converse(t, host, carrying...), requests)
 }
 
-func converse(t *testing.T, host, secrets string, requests ...request) []response {
+func converse(t *testing.T, host string, requests ...request) []response {
 	t.Helper()
 
 	cmd := sshCommand(host, "sudo", "-n", "pupitred", "serve")
-	if secrets != "" {
-		cmd = sshCommand(host, "sudo", "-n", "sh", "-c", "'exec 3<"+secrets+"; exec pupitred serve'")
-	}
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
@@ -129,6 +124,10 @@ func converse(t *testing.T, host, secrets string, requests ...request) []respons
 		for i, req := range all {
 			line, _ := json.Marshal(map[string]any{"id": i + 1, "cmd": req.Cmd, "params": req.Params})
 			fmt.Fprintf(stdin, "%s\n", line)
+
+			if req.Secrets != "" {
+				fmt.Fprintf(stdin, "%s\n", req.Secrets)
+			}
 		}
 	}()
 

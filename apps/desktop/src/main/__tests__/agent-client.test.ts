@@ -157,7 +157,7 @@ describe("le canal", () => {
     agent.closeAll();
   });
 
-  it("écrit le secret sur le descripteur dédié, jamais dans params", async () => {
+  it("écrit le secret sur l'entrée standard, juste après la requête", async () => {
     const { agent, fake } = client("secrets-stream.jsonl");
 
     const done = await agent.call(
@@ -169,6 +169,41 @@ describe("le canal", () => {
 
     expect(done).toEqual({ done: true });
     expect(fake.trace().join("\n")).not.toContain("s3cret-de-test");
+
+    agent.closeAll();
+  });
+
+  it("installe avec sa ligne de secrets, sans qu'un secret ressorte", async () => {
+    const { agent, fake } = client("install-secrets.jsonl");
+
+    const events: Event[] = [];
+    const result = (await agent.stream(
+      SERVER,
+      "install",
+      {
+        modules: ["db.postgres"],
+        config: { "db.postgres": { version: "17" } },
+        secrets_stdin: true,
+      },
+      (event: Event) => events.push(event),
+      { secrets: { "db.postgres": { app_password: "s3cret-de-test" } } }
+    )) as InstallResult;
+
+    expect(result).toEqual({
+      failed: [],
+      warned: [],
+      report_path: "/var/lib/pupitre/report.json",
+    });
+    expect(events).toHaveLength(4);
+
+    const seen = [
+      JSON.stringify(events),
+      JSON.stringify(result),
+      fake.trace().join("\n"),
+    ].join("\n");
+
+    expect(seen).not.toContain("s3cret-de-test");
+    expect(seen).not.toContain("app_password");
 
     agent.closeAll();
   });

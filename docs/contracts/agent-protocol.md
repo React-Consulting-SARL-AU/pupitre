@@ -49,7 +49,7 @@ Le canal est une session SSH ouverte par l'app avec la clé du client, qui lance
 | `up_to_date` | `boolean`, optionnel | présent seulement quand `kind` vaut `managed` : l'agent installé est-il à la version courante |
 | `reasons[]` | `string[]` | ce qui a été observé |
 | `fixes[]` | `string[]` | comment y remédier, un fix par raison quand `kind` vaut `incompatible` ou `occupied` ; vide sur une machine `bare` ou un agent `managed` à jour |
-| `catalog` | — | `{ modules: Manifest[], presets: Preset[] }` d'après [service-catalog.md](./service-catalog.md) |
+| `catalog` | — | `{ modules: Manifest[], presets: Preset[] }` d'après [service-catalog.md](./service-catalog.md) ; un `Preset` porte son `id`, son `name` affichable et ses `modules`, si bien que l'app n'a rien à traduire |
 | `install` | `{ modules[], config: Record<moduleId, values>, secrets_stdin: true }` | événements `step` `{ module, step, status: "start" \| "ok" \| "skip" \| "fail", ms, replay? }` puis `{ failed[], warned[], report_path }`. Les secrets sont lus sur un flux séparé, jamais dans `params` |
 | `uninstall` | `{ modules[] }` | événements `step`, puis `{ failed[] }` |
 | `harden` | `{ user: "dev" }` | événements `step`, puis `{ root_closed: boolean, next_user, reason? }`. Ne ferme root que si une clé ouvre `dev` |
@@ -129,7 +129,13 @@ Pour `install`, la ligne a la forme de `params.config`, groupée par identifiant
 { "db.postgres": { "app_password": "…", "remote_password": "…" }, "tool.github": { "token": "…" } }
 ```
 
-Un module absent de la ligne n'a aucun secret. Une ligne qui ne respecte pas cette forme renvoie `bad_request` avant toute installation.
+Un module absent de la ligne n'a aucun secret. Une ligne absente, illisible ou qui ne respecte pas cette forme renvoie `bad_request` avec le `fix` qui montre la forme attendue, avant toute installation ; la requête suivante reste lue comme une requête.
+
+Un champ `list` d'`items: "secret"` — `ai.hermes.providers`, par exemple — se transmet avec des clés indicées, une par valeur, dans l'ordre de la liste :
+
+```jsonc
+{ "ai.hermes": { "providers.0": "sk-…", "providers.1": "sk-…" } }
+```
 
 ## Versionnage
 
