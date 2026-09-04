@@ -72,6 +72,7 @@ const serverFields = {
   target_version: t.Nullable(t.String()),
   host_fingerprint: t.Nullable(t.String()),
   assigned_user_id: t.Nullable(t.String()),
+  pending_assignment_email: t.Nullable(t.String()),
   last_heartbeat_at: t.Nullable(dateTime),
   entitlement_valid_until: t.Nullable(dateTime),
   usage: t.Nullable(serverUsageSchema),
@@ -112,3 +113,20 @@ export const serverDetailSchema = t.Object(
   },
   { $id: "ServerDetail" }
 )
+
+export const EMAIL_PATTERN = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+
+export const emailSchema = t.String({
+  minLength: 3,
+  maxLength: 254,
+  pattern: EMAIL_PATTERN,
+})
+
+export const assignBody = t.Union([
+  t.Object({ user_id: t.String({ minLength: 1 }) }),
+  t.Object({ invite_email: emailSchema }),
+])
+
+export const revokeDeviceBody = t.Object({
+  device_id: t.String({ minLength: 1 }),
+})

@@ -5,6 +5,7 @@ import {
   entitlementForServer,
 } from "../billing/entitlement"
 import { resolveTargetVersion } from "../releases/releases"
+import { settleAssignment } from "./assign"
 import { authorizedKeysForServer } from "./authorized-keys"
 import {
   appendSample,
@@ -34,8 +35,9 @@ export interface HeartbeatInput {
   agent_version?: string
 }
 
-export async function readAgentState(server: Server): Promise<AgentState> {
+export async function readAgentState(input: Server): Promise<AgentState> {
   const prisma = getPrisma()
+  const server = await settleAssignment(input)
   const entitlement = await entitlementForServer(server)
   const targetVersion = await resolveTargetVersion(server)
   const [authorizedKeys] = await Promise.all([

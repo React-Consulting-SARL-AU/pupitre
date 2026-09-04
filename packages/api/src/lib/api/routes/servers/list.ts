@@ -14,8 +14,13 @@ export const serversListRoutes = new Elysia({ name: "servers-list-routes" })
   .use(requireOrg)
   .get(
     "/servers",
-    async ({ organizationId }) => ({
-      data: serializeData(await listServersForOrganization(organizationId)),
+    async ({ user, organizationId, role }) => ({
+      data: serializeData(
+        await listServersForOrganization(organizationId, {
+          userId: user.id,
+          role,
+        })
+      ),
     }),
     {
       detail: { summary: "Les serveurs de l'organisation active" },
@@ -28,8 +33,11 @@ export const serversListRoutes = new Elysia({ name: "servers-list-routes" })
   )
   .get(
     "/servers/:id",
-    async ({ organizationId, params, request, set }) => {
-      const server = await getServerForOrganization(organizationId, params.id)
+    async ({ user, organizationId, role, params, request, set }) => {
+      const server = await getServerForOrganization(organizationId, params.id, {
+        userId: user.id,
+        role,
+      })
 
       if (!server) {
         set.status = 404

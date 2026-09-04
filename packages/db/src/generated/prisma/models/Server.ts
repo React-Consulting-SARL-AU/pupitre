@@ -54,6 +54,7 @@ export type ServerMinAggregateOutputType = {
   channel: $Enums.ReleaseChannel | null
   deviceId: string | null
   assignedUserId: string | null
+  pendingAssignmentEmail: string | null
   lastHeartbeatAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -79,6 +80,7 @@ export type ServerMaxAggregateOutputType = {
   channel: $Enums.ReleaseChannel | null
   deviceId: string | null
   assignedUserId: string | null
+  pendingAssignmentEmail: string | null
   lastHeartbeatAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -104,6 +106,7 @@ export type ServerCountAggregateOutputType = {
   channel: number
   deviceId: number
   assignedUserId: number
+  pendingAssignmentEmail: number
   lastHeartbeatAt: number
   metrics: number
   createdAt: number
@@ -140,6 +143,7 @@ export type ServerMinAggregateInputType = {
   channel?: true
   deviceId?: true
   assignedUserId?: true
+  pendingAssignmentEmail?: true
   lastHeartbeatAt?: true
   createdAt?: true
   updatedAt?: true
@@ -165,6 +169,7 @@ export type ServerMaxAggregateInputType = {
   channel?: true
   deviceId?: true
   assignedUserId?: true
+  pendingAssignmentEmail?: true
   lastHeartbeatAt?: true
   createdAt?: true
   updatedAt?: true
@@ -190,6 +195,7 @@ export type ServerCountAggregateInputType = {
   channel?: true
   deviceId?: true
   assignedUserId?: true
+  pendingAssignmentEmail?: true
   lastHeartbeatAt?: true
   metrics?: true
   createdAt?: true
@@ -303,6 +309,7 @@ export type ServerGroupByOutputType = {
   channel: $Enums.ReleaseChannel
   deviceId: string | null
   assignedUserId: string | null
+  pendingAssignmentEmail: string | null
   lastHeartbeatAt: Date | null
   metrics: runtime.JsonValue | null
   createdAt: Date
@@ -352,6 +359,7 @@ export type ServerWhereInput = {
   channel?: Prisma.EnumReleaseChannelFilter<"Server"> | $Enums.ReleaseChannel
   deviceId?: Prisma.StringNullableFilter<"Server"> | string | null
   assignedUserId?: Prisma.StringNullableFilter<"Server"> | string | null
+  pendingAssignmentEmail?: Prisma.StringNullableFilter<"Server"> | string | null
   lastHeartbeatAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   metrics?: Prisma.JsonNullableFilter<"Server">
   createdAt?: Prisma.DateTimeFilter<"Server"> | Date | string
@@ -359,6 +367,7 @@ export type ServerWhereInput = {
   organization?: Prisma.XOR<Prisma.OrganizationScalarRelationFilter, Prisma.OrganizationWhereInput>
   device?: Prisma.XOR<Prisma.DeviceNullableScalarRelationFilter, Prisma.DeviceWhereInput> | null
   assignedUser?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  revokedDevices?: Prisma.ServerRevokedDeviceListRelationFilter
 }
 
 export type ServerOrderByWithRelationInput = {
@@ -381,6 +390,7 @@ export type ServerOrderByWithRelationInput = {
   channel?: Prisma.SortOrder
   deviceId?: Prisma.SortOrderInput | Prisma.SortOrder
   assignedUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  pendingAssignmentEmail?: Prisma.SortOrderInput | Prisma.SortOrder
   lastHeartbeatAt?: Prisma.SortOrderInput | Prisma.SortOrder
   metrics?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -388,6 +398,7 @@ export type ServerOrderByWithRelationInput = {
   organization?: Prisma.OrganizationOrderByWithRelationInput
   device?: Prisma.DeviceOrderByWithRelationInput
   assignedUser?: Prisma.UserOrderByWithRelationInput
+  revokedDevices?: Prisma.ServerRevokedDeviceOrderByRelationAggregateInput
 }
 
 export type ServerWhereUniqueInput = Prisma.AtLeast<{
@@ -413,6 +424,7 @@ export type ServerWhereUniqueInput = Prisma.AtLeast<{
   channel?: Prisma.EnumReleaseChannelFilter<"Server"> | $Enums.ReleaseChannel
   deviceId?: Prisma.StringNullableFilter<"Server"> | string | null
   assignedUserId?: Prisma.StringNullableFilter<"Server"> | string | null
+  pendingAssignmentEmail?: Prisma.StringNullableFilter<"Server"> | string | null
   lastHeartbeatAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   metrics?: Prisma.JsonNullableFilter<"Server">
   createdAt?: Prisma.DateTimeFilter<"Server"> | Date | string
@@ -420,6 +432,7 @@ export type ServerWhereUniqueInput = Prisma.AtLeast<{
   organization?: Prisma.XOR<Prisma.OrganizationScalarRelationFilter, Prisma.OrganizationWhereInput>
   device?: Prisma.XOR<Prisma.DeviceNullableScalarRelationFilter, Prisma.DeviceWhereInput> | null
   assignedUser?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  revokedDevices?: Prisma.ServerRevokedDeviceListRelationFilter
 }, "id" | "serverTokenHash" | "enrollmentTokenHash">
 
 export type ServerOrderByWithAggregationInput = {
@@ -442,6 +455,7 @@ export type ServerOrderByWithAggregationInput = {
   channel?: Prisma.SortOrder
   deviceId?: Prisma.SortOrderInput | Prisma.SortOrder
   assignedUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  pendingAssignmentEmail?: Prisma.SortOrderInput | Prisma.SortOrder
   lastHeartbeatAt?: Prisma.SortOrderInput | Prisma.SortOrder
   metrics?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -476,6 +490,7 @@ export type ServerScalarWhereWithAggregatesInput = {
   channel?: Prisma.EnumReleaseChannelWithAggregatesFilter<"Server"> | $Enums.ReleaseChannel
   deviceId?: Prisma.StringNullableWithAggregatesFilter<"Server"> | string | null
   assignedUserId?: Prisma.StringNullableWithAggregatesFilter<"Server"> | string | null
+  pendingAssignmentEmail?: Prisma.StringNullableWithAggregatesFilter<"Server"> | string | null
   lastHeartbeatAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Server"> | Date | string | null
   metrics?: Prisma.JsonNullableWithAggregatesFilter<"Server">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Server"> | Date | string
@@ -499,6 +514,7 @@ export type ServerCreateInput = {
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   channel?: $Enums.ReleaseChannel
+  pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -506,6 +522,7 @@ export type ServerCreateInput = {
   organization: Prisma.OrganizationCreateNestedOneWithoutServersInput
   device?: Prisma.DeviceCreateNestedOneWithoutEnrolledServersInput
   assignedUser?: Prisma.UserCreateNestedOneWithoutAssignedServersInput
+  revokedDevices?: Prisma.ServerRevokedDeviceCreateNestedManyWithoutServerInput
 }
 
 export type ServerUncheckedCreateInput = {
@@ -528,10 +545,12 @@ export type ServerUncheckedCreateInput = {
   channel?: $Enums.ReleaseChannel
   deviceId?: string | null
   assignedUserId?: string | null
+  pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  revokedDevices?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutServerInput
 }
 
 export type ServerUpdateInput = {
@@ -551,6 +570,7 @@ export type ServerUpdateInput = {
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
+  pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -558,6 +578,7 @@ export type ServerUpdateInput = {
   organization?: Prisma.OrganizationUpdateOneRequiredWithoutServersNestedInput
   device?: Prisma.DeviceUpdateOneWithoutEnrolledServersNestedInput
   assignedUser?: Prisma.UserUpdateOneWithoutAssignedServersNestedInput
+  revokedDevices?: Prisma.ServerRevokedDeviceUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateInput = {
@@ -580,10 +601,12 @@ export type ServerUncheckedUpdateInput = {
   channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  revokedDevices?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutServerNestedInput
 }
 
 export type ServerCreateManyInput = {
@@ -606,6 +629,7 @@ export type ServerCreateManyInput = {
   channel?: $Enums.ReleaseChannel
   deviceId?: string | null
   assignedUserId?: string | null
+  pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -629,6 +653,7 @@ export type ServerUpdateManyMutationInput = {
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
+  pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -655,6 +680,7 @@ export type ServerUncheckedUpdateManyInput = {
   channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -691,6 +717,7 @@ export type ServerCountOrderByAggregateInput = {
   channel?: Prisma.SortOrder
   deviceId?: Prisma.SortOrder
   assignedUserId?: Prisma.SortOrder
+  pendingAssignmentEmail?: Prisma.SortOrder
   lastHeartbeatAt?: Prisma.SortOrder
   metrics?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -721,6 +748,7 @@ export type ServerMaxOrderByAggregateInput = {
   channel?: Prisma.SortOrder
   deviceId?: Prisma.SortOrder
   assignedUserId?: Prisma.SortOrder
+  pendingAssignmentEmail?: Prisma.SortOrder
   lastHeartbeatAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -746,6 +774,7 @@ export type ServerMinOrderByAggregateInput = {
   channel?: Prisma.SortOrder
   deviceId?: Prisma.SortOrder
   assignedUserId?: Prisma.SortOrder
+  pendingAssignmentEmail?: Prisma.SortOrder
   lastHeartbeatAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -753,6 +782,11 @@ export type ServerMinOrderByAggregateInput = {
 
 export type ServerSumOrderByAggregateInput = {
   port?: Prisma.SortOrder
+}
+
+export type ServerScalarRelationFilter = {
+  is?: Prisma.ServerWhereInput
+  isNot?: Prisma.ServerWhereInput
 }
 
 export type ServerCreateNestedManyWithoutAssignedUserInput = {
@@ -897,6 +931,20 @@ export type EnumReleaseChannelFieldUpdateOperationsInput = {
   set?: $Enums.ReleaseChannel
 }
 
+export type ServerCreateNestedOneWithoutRevokedDevicesInput = {
+  create?: Prisma.XOR<Prisma.ServerCreateWithoutRevokedDevicesInput, Prisma.ServerUncheckedCreateWithoutRevokedDevicesInput>
+  connectOrCreate?: Prisma.ServerCreateOrConnectWithoutRevokedDevicesInput
+  connect?: Prisma.ServerWhereUniqueInput
+}
+
+export type ServerUpdateOneRequiredWithoutRevokedDevicesNestedInput = {
+  create?: Prisma.XOR<Prisma.ServerCreateWithoutRevokedDevicesInput, Prisma.ServerUncheckedCreateWithoutRevokedDevicesInput>
+  connectOrCreate?: Prisma.ServerCreateOrConnectWithoutRevokedDevicesInput
+  upsert?: Prisma.ServerUpsertWithoutRevokedDevicesInput
+  connect?: Prisma.ServerWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ServerUpdateToOneWithWhereWithoutRevokedDevicesInput, Prisma.ServerUpdateWithoutRevokedDevicesInput>, Prisma.ServerUncheckedUpdateWithoutRevokedDevicesInput>
+}
+
 export type ServerCreateWithoutAssignedUserInput = {
   id?: string
   name: string
@@ -914,12 +962,14 @@ export type ServerCreateWithoutAssignedUserInput = {
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   channel?: $Enums.ReleaseChannel
+  pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   organization: Prisma.OrganizationCreateNestedOneWithoutServersInput
   device?: Prisma.DeviceCreateNestedOneWithoutEnrolledServersInput
+  revokedDevices?: Prisma.ServerRevokedDeviceCreateNestedManyWithoutServerInput
 }
 
 export type ServerUncheckedCreateWithoutAssignedUserInput = {
@@ -941,10 +991,12 @@ export type ServerUncheckedCreateWithoutAssignedUserInput = {
   status?: $Enums.ServerStatus
   channel?: $Enums.ReleaseChannel
   deviceId?: string | null
+  pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  revokedDevices?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutServerInput
 }
 
 export type ServerCreateOrConnectWithoutAssignedUserInput = {
@@ -996,6 +1048,7 @@ export type ServerScalarWhereInput = {
   channel?: Prisma.EnumReleaseChannelFilter<"Server"> | $Enums.ReleaseChannel
   deviceId?: Prisma.StringNullableFilter<"Server"> | string | null
   assignedUserId?: Prisma.StringNullableFilter<"Server"> | string | null
+  pendingAssignmentEmail?: Prisma.StringNullableFilter<"Server"> | string | null
   lastHeartbeatAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   metrics?: Prisma.JsonNullableFilter<"Server">
   createdAt?: Prisma.DateTimeFilter<"Server"> | Date | string
@@ -1019,12 +1072,14 @@ export type ServerCreateWithoutOrganizationInput = {
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   channel?: $Enums.ReleaseChannel
+  pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   device?: Prisma.DeviceCreateNestedOneWithoutEnrolledServersInput
   assignedUser?: Prisma.UserCreateNestedOneWithoutAssignedServersInput
+  revokedDevices?: Prisma.ServerRevokedDeviceCreateNestedManyWithoutServerInput
 }
 
 export type ServerUncheckedCreateWithoutOrganizationInput = {
@@ -1046,10 +1101,12 @@ export type ServerUncheckedCreateWithoutOrganizationInput = {
   channel?: $Enums.ReleaseChannel
   deviceId?: string | null
   assignedUserId?: string | null
+  pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  revokedDevices?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutServerInput
 }
 
 export type ServerCreateOrConnectWithoutOrganizationInput = {
@@ -1095,12 +1152,14 @@ export type ServerCreateWithoutDeviceInput = {
   decommissionAt?: Date | string | null
   status?: $Enums.ServerStatus
   channel?: $Enums.ReleaseChannel
+  pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   organization: Prisma.OrganizationCreateNestedOneWithoutServersInput
   assignedUser?: Prisma.UserCreateNestedOneWithoutAssignedServersInput
+  revokedDevices?: Prisma.ServerRevokedDeviceCreateNestedManyWithoutServerInput
 }
 
 export type ServerUncheckedCreateWithoutDeviceInput = {
@@ -1122,10 +1181,12 @@ export type ServerUncheckedCreateWithoutDeviceInput = {
   status?: $Enums.ServerStatus
   channel?: $Enums.ReleaseChannel
   assignedUserId?: string | null
+  pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  revokedDevices?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutServerInput
 }
 
 export type ServerCreateOrConnectWithoutDeviceInput = {
@@ -1154,6 +1215,130 @@ export type ServerUpdateManyWithWhereWithoutDeviceInput = {
   data: Prisma.XOR<Prisma.ServerUpdateManyMutationInput, Prisma.ServerUncheckedUpdateManyWithoutDeviceInput>
 }
 
+export type ServerCreateWithoutRevokedDevicesInput = {
+  id?: string
+  name: string
+  host?: string | null
+  port?: number
+  sshUser?: string
+  hostFingerprint?: string | null
+  arch: string
+  agentVersion?: string | null
+  targetVersion?: string | null
+  serverTokenHash?: string | null
+  enrollmentTokenHash?: string | null
+  enrollmentExpiresAt?: Date | string | null
+  entitlementValidUntil?: Date | string | null
+  decommissionAt?: Date | string | null
+  status?: $Enums.ServerStatus
+  channel?: $Enums.ReleaseChannel
+  pendingAssignmentEmail?: string | null
+  lastHeartbeatAt?: Date | string | null
+  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  organization: Prisma.OrganizationCreateNestedOneWithoutServersInput
+  device?: Prisma.DeviceCreateNestedOneWithoutEnrolledServersInput
+  assignedUser?: Prisma.UserCreateNestedOneWithoutAssignedServersInput
+}
+
+export type ServerUncheckedCreateWithoutRevokedDevicesInput = {
+  id?: string
+  organizationId: string
+  name: string
+  host?: string | null
+  port?: number
+  sshUser?: string
+  hostFingerprint?: string | null
+  arch: string
+  agentVersion?: string | null
+  targetVersion?: string | null
+  serverTokenHash?: string | null
+  enrollmentTokenHash?: string | null
+  enrollmentExpiresAt?: Date | string | null
+  entitlementValidUntil?: Date | string | null
+  decommissionAt?: Date | string | null
+  status?: $Enums.ServerStatus
+  channel?: $Enums.ReleaseChannel
+  deviceId?: string | null
+  assignedUserId?: string | null
+  pendingAssignmentEmail?: string | null
+  lastHeartbeatAt?: Date | string | null
+  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type ServerCreateOrConnectWithoutRevokedDevicesInput = {
+  where: Prisma.ServerWhereUniqueInput
+  create: Prisma.XOR<Prisma.ServerCreateWithoutRevokedDevicesInput, Prisma.ServerUncheckedCreateWithoutRevokedDevicesInput>
+}
+
+export type ServerUpsertWithoutRevokedDevicesInput = {
+  update: Prisma.XOR<Prisma.ServerUpdateWithoutRevokedDevicesInput, Prisma.ServerUncheckedUpdateWithoutRevokedDevicesInput>
+  create: Prisma.XOR<Prisma.ServerCreateWithoutRevokedDevicesInput, Prisma.ServerUncheckedCreateWithoutRevokedDevicesInput>
+  where?: Prisma.ServerWhereInput
+}
+
+export type ServerUpdateToOneWithWhereWithoutRevokedDevicesInput = {
+  where?: Prisma.ServerWhereInput
+  data: Prisma.XOR<Prisma.ServerUpdateWithoutRevokedDevicesInput, Prisma.ServerUncheckedUpdateWithoutRevokedDevicesInput>
+}
+
+export type ServerUpdateWithoutRevokedDevicesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  host?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  port?: Prisma.IntFieldUpdateOperationsInput | number
+  sshUser?: Prisma.StringFieldUpdateOperationsInput | string
+  hostFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  arch?: Prisma.StringFieldUpdateOperationsInput | string
+  agentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
+  channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
+  pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  organization?: Prisma.OrganizationUpdateOneRequiredWithoutServersNestedInput
+  device?: Prisma.DeviceUpdateOneWithoutEnrolledServersNestedInput
+  assignedUser?: Prisma.UserUpdateOneWithoutAssignedServersNestedInput
+}
+
+export type ServerUncheckedUpdateWithoutRevokedDevicesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  host?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  port?: Prisma.IntFieldUpdateOperationsInput | number
+  sshUser?: Prisma.StringFieldUpdateOperationsInput | string
+  hostFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  arch?: Prisma.StringFieldUpdateOperationsInput | string
+  agentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
+  channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
+  deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
 export type ServerCreateManyAssignedUserInput = {
   id?: string
   organizationId: string
@@ -1173,6 +1358,7 @@ export type ServerCreateManyAssignedUserInput = {
   status?: $Enums.ServerStatus
   channel?: $Enums.ReleaseChannel
   deviceId?: string | null
+  pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -1196,12 +1382,14 @@ export type ServerUpdateWithoutAssignedUserInput = {
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
+  pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   organization?: Prisma.OrganizationUpdateOneRequiredWithoutServersNestedInput
   device?: Prisma.DeviceUpdateOneWithoutEnrolledServersNestedInput
+  revokedDevices?: Prisma.ServerRevokedDeviceUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateWithoutAssignedUserInput = {
@@ -1223,10 +1411,12 @@ export type ServerUncheckedUpdateWithoutAssignedUserInput = {
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  revokedDevices?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateManyWithoutAssignedUserInput = {
@@ -1248,6 +1438,7 @@ export type ServerUncheckedUpdateManyWithoutAssignedUserInput = {
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1273,6 +1464,7 @@ export type ServerCreateManyOrganizationInput = {
   channel?: $Enums.ReleaseChannel
   deviceId?: string | null
   assignedUserId?: string | null
+  pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -1296,12 +1488,14 @@ export type ServerUpdateWithoutOrganizationInput = {
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
+  pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   device?: Prisma.DeviceUpdateOneWithoutEnrolledServersNestedInput
   assignedUser?: Prisma.UserUpdateOneWithoutAssignedServersNestedInput
+  revokedDevices?: Prisma.ServerRevokedDeviceUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateWithoutOrganizationInput = {
@@ -1323,10 +1517,12 @@ export type ServerUncheckedUpdateWithoutOrganizationInput = {
   channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  revokedDevices?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateManyWithoutOrganizationInput = {
@@ -1348,6 +1544,7 @@ export type ServerUncheckedUpdateManyWithoutOrganizationInput = {
   channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1373,6 +1570,7 @@ export type ServerCreateManyDeviceInput = {
   status?: $Enums.ServerStatus
   channel?: $Enums.ReleaseChannel
   assignedUserId?: string | null
+  pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -1396,12 +1594,14 @@ export type ServerUpdateWithoutDeviceInput = {
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
+  pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   organization?: Prisma.OrganizationUpdateOneRequiredWithoutServersNestedInput
   assignedUser?: Prisma.UserUpdateOneWithoutAssignedServersNestedInput
+  revokedDevices?: Prisma.ServerRevokedDeviceUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateWithoutDeviceInput = {
@@ -1423,10 +1623,12 @@ export type ServerUncheckedUpdateWithoutDeviceInput = {
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  revokedDevices?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateManyWithoutDeviceInput = {
@@ -1448,12 +1650,42 @@ export type ServerUncheckedUpdateManyWithoutDeviceInput = {
   status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
   channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
+
+/**
+ * Count Type ServerCountOutputType
+ */
+
+export type ServerCountOutputType = {
+  revokedDevices: number
+}
+
+export type ServerCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  revokedDevices?: boolean | ServerCountOutputTypeCountRevokedDevicesArgs
+}
+
+/**
+ * ServerCountOutputType without action
+ */
+export type ServerCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ServerCountOutputType
+   */
+  select?: Prisma.ServerCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * ServerCountOutputType without action
+ */
+export type ServerCountOutputTypeCountRevokedDevicesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ServerRevokedDeviceWhereInput
+}
 
 
 export type ServerSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1476,6 +1708,7 @@ export type ServerSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   channel?: boolean
   deviceId?: boolean
   assignedUserId?: boolean
+  pendingAssignmentEmail?: boolean
   lastHeartbeatAt?: boolean
   metrics?: boolean
   createdAt?: boolean
@@ -1483,6 +1716,8 @@ export type ServerSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
   device?: boolean | Prisma.Server$deviceArgs<ExtArgs>
   assignedUser?: boolean | Prisma.Server$assignedUserArgs<ExtArgs>
+  revokedDevices?: boolean | Prisma.Server$revokedDevicesArgs<ExtArgs>
+  _count?: boolean | Prisma.ServerCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["server"]>
 
 export type ServerSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1505,6 +1740,7 @@ export type ServerSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   channel?: boolean
   deviceId?: boolean
   assignedUserId?: boolean
+  pendingAssignmentEmail?: boolean
   lastHeartbeatAt?: boolean
   metrics?: boolean
   createdAt?: boolean
@@ -1534,6 +1770,7 @@ export type ServerSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   channel?: boolean
   deviceId?: boolean
   assignedUserId?: boolean
+  pendingAssignmentEmail?: boolean
   lastHeartbeatAt?: boolean
   metrics?: boolean
   createdAt?: boolean
@@ -1563,17 +1800,20 @@ export type ServerSelectScalar = {
   channel?: boolean
   deviceId?: boolean
   assignedUserId?: boolean
+  pendingAssignmentEmail?: boolean
   lastHeartbeatAt?: boolean
   metrics?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type ServerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "name" | "host" | "port" | "sshUser" | "hostFingerprint" | "arch" | "agentVersion" | "targetVersion" | "serverTokenHash" | "enrollmentTokenHash" | "enrollmentExpiresAt" | "entitlementValidUntil" | "decommissionAt" | "status" | "channel" | "deviceId" | "assignedUserId" | "lastHeartbeatAt" | "metrics" | "createdAt" | "updatedAt", ExtArgs["result"]["server"]>
+export type ServerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "name" | "host" | "port" | "sshUser" | "hostFingerprint" | "arch" | "agentVersion" | "targetVersion" | "serverTokenHash" | "enrollmentTokenHash" | "enrollmentExpiresAt" | "entitlementValidUntil" | "decommissionAt" | "status" | "channel" | "deviceId" | "assignedUserId" | "pendingAssignmentEmail" | "lastHeartbeatAt" | "metrics" | "createdAt" | "updatedAt", ExtArgs["result"]["server"]>
 export type ServerInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
   device?: boolean | Prisma.Server$deviceArgs<ExtArgs>
   assignedUser?: boolean | Prisma.Server$assignedUserArgs<ExtArgs>
+  revokedDevices?: boolean | Prisma.Server$revokedDevicesArgs<ExtArgs>
+  _count?: boolean | Prisma.ServerCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ServerIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
@@ -1592,6 +1832,7 @@ export type $ServerPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     organization: Prisma.$OrganizationPayload<ExtArgs>
     device: Prisma.$DevicePayload<ExtArgs> | null
     assignedUser: Prisma.$UserPayload<ExtArgs> | null
+    revokedDevices: Prisma.$ServerRevokedDevicePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1613,6 +1854,7 @@ export type $ServerPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     channel: $Enums.ReleaseChannel
     deviceId: string | null
     assignedUserId: string | null
+    pendingAssignmentEmail: string | null
     lastHeartbeatAt: Date | null
     metrics: runtime.JsonValue | null
     createdAt: Date
@@ -2014,6 +2256,7 @@ export interface Prisma__ServerClient<T, Null = never, ExtArgs extends runtime.T
   organization<T extends Prisma.OrganizationDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.OrganizationDefaultArgs<ExtArgs>>): Prisma.Prisma__OrganizationClient<runtime.Types.Result.GetResult<Prisma.$OrganizationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   device<T extends Prisma.Server$deviceArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Server$deviceArgs<ExtArgs>>): Prisma.Prisma__DeviceClient<runtime.Types.Result.GetResult<Prisma.$DevicePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   assignedUser<T extends Prisma.Server$assignedUserArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Server$assignedUserArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  revokedDevices<T extends Prisma.Server$revokedDevicesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Server$revokedDevicesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ServerRevokedDevicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2062,6 +2305,7 @@ export interface ServerFieldRefs {
   readonly channel: Prisma.FieldRef<"Server", 'ReleaseChannel'>
   readonly deviceId: Prisma.FieldRef<"Server", 'String'>
   readonly assignedUserId: Prisma.FieldRef<"Server", 'String'>
+  readonly pendingAssignmentEmail: Prisma.FieldRef<"Server", 'String'>
   readonly lastHeartbeatAt: Prisma.FieldRef<"Server", 'DateTime'>
   readonly metrics: Prisma.FieldRef<"Server", 'Json'>
   readonly createdAt: Prisma.FieldRef<"Server", 'DateTime'>
@@ -2502,6 +2746,30 @@ export type Server$assignedUserArgs<ExtArgs extends runtime.Types.Extensions.Int
    */
   include?: Prisma.UserInclude<ExtArgs> | null
   where?: Prisma.UserWhereInput
+}
+
+/**
+ * Server.revokedDevices
+ */
+export type Server$revokedDevicesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ServerRevokedDevice
+   */
+  select?: Prisma.ServerRevokedDeviceSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ServerRevokedDevice
+   */
+  omit?: Prisma.ServerRevokedDeviceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ServerRevokedDeviceInclude<ExtArgs> | null
+  where?: Prisma.ServerRevokedDeviceWhereInput
+  orderBy?: Prisma.ServerRevokedDeviceOrderByWithRelationInput | Prisma.ServerRevokedDeviceOrderByWithRelationInput[]
+  cursor?: Prisma.ServerRevokedDeviceWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ServerRevokedDeviceScalarFieldEnum | Prisma.ServerRevokedDeviceScalarFieldEnum[]
 }
 
 /**
