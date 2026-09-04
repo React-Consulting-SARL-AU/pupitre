@@ -4,10 +4,14 @@ interface TPattern {
   kind: string
   regex: RegExp
   entropy?: boolean
+  keyMaterial?: boolean
 }
 
 const PATTERNS: TPattern[] = [
-  { kind: "private key", regex: /-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----/ },
+  {
+    kind: "private key",
+    regex: /^\s*-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----/,
+  },
   {
     kind: "Stripe secret key",
     regex: /\b[sr]k_(?:live|test)_[0-9a-zA-Z]{16,}/,
@@ -45,6 +49,8 @@ const PATTERNS: TPattern[] = [
 
 const LETTER_RE = /[A-Za-z]/
 const DIGIT_RE = /\d/
+const HEADER_AT_LINE_START_RE = /^\s*-----BEGIN/
+const KEY_MATERIAL_LINE_RE = /^[A-Za-z0-9+/=]{20,}/
 
 export interface TSecretFinding {
   file: string
@@ -56,10 +62,17 @@ function looksRandom(value: string): boolean {
   return LETTER_RE.test(value) && DIGIT_RE.test(value)
 }
 
-function matches(pattern: TPattern, line: string): boolean {
+function matches(pattern: TPattern, line: string, nextLine: string): boolean {
   const match = line.match(pattern.regex)
   if (!match) {
     return false
+  }
+
+  if (pattern.keyMaterial) {
+    return (
+      HEADER_AT_LINE_START_RE.test(line) ||
+      KEY_MATERIAL_LINE_RE.test(nextLine.trim())
+    )
   }
 
   return pattern.entropy ? looksRandom(match[1] ?? "") : true
@@ -72,9 +85,11 @@ export function findSecrets(content: string, file: string): TSecretFinding[] {
 
   const findings: TSecretFinding[] = []
 
-  content.split("\n").forEach((line, index) => {
+  const lines = content.split("\n")
+
+  lines.forEach((line, index) => {
     for (const pattern of PATTERNS) {
-      if (matches(pattern, line)) {
+      if (matches(pattern, line, lines[index + 1] ?? "")) {
         findings.push({ file, line: index + 1, kind: pattern.kind })
       }
     }

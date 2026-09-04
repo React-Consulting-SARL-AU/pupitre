@@ -157,10 +157,20 @@ describe("command line", () => {
     expect(result.stderr.toString()).toContain("Stripe secret key")
   })
 
+  test("accepts a private key header quoted inside a sentence", () => {
+    const line = [
+      "> `-----BEGIN",
+      "OPENSSH PRIVATE",
+      "KEY-----`, you have the wrong file",
+    ].join(" ")
+
+    expect(findSecrets(line, "docs/SETUP.md")).toEqual([])
+  })
+
   test("refuses a .ts file holding a private key", () => {
     const file = tempFile(
       "key.ts",
-      `export const pem = \`${samples.privateKey}\nabc\`\n`
+      `export const pem = \`${samples.privateKey}\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7\`\n`
     )
     const result = spawnSync("bun", [SCRIPT, file])
 
