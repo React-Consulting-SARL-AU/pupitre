@@ -138,3 +138,23 @@ Critères d'acceptation.
 1. `bun run contracts:check` passe après régénération ; `go test ./...` vert, dont la comparaison des presets au schéma.
 2. Les trois lignes de blocage d'AGT-03 sont retirées de `TRACKING.md`.
 
+### INF-09 — Design : ombres, rayons, espace, logos de services
+Lot 0 · dépend de APP-01 · `packages/design`
+
+But. `packages/design` expose tout ce que le système de design révisé demande, et les logos des services.
+Périmètre. Dans `tokens.css`, `tailwind.css` et `tokens.ts` : les rayons (`sm` 6, `md` 10, `lg` 14, `full`), l'échelle d'espace de 4 px, les trois niveaux d'ombre avec leurs variantes sombres, les durées `fast` et `soft`. Un dossier `src/logos/` avec un SVG par module du catalogue, nommé par identifiant (`db-postgres.svg`), plus `NOTICE.md` qui donne pour chacun sa source, sa licence et la date ; source Simple Icons (CC0) quand la marque y est, kit de marque officiel sinon. Un module `src/logos/index.ts` qui associe un identifiant de module à son SVG inline et à son caractère monochrome. Tests : chaque token du frontmatter de `DESIGN.md` existe dans `tokens.css` et dans `tokens.ts` ; chaque module MVP du catalogue a son logo ; chaque SVG est bien formé, sans script, sans référence externe.
+Hors périmètre. Les composants qui les consomment.
+Critères d'acceptation.
+1. Un test échoue si un module du catalogue MVP n'a pas de logo, ou si un logo cite une URL externe.
+2. `NOTICE.md` couvre chaque fichier de `src/logos/`.
+
+### APP-19 — Appliquer le design accueillant à l'app
+Lot 2 · dépend de INF-09, APP-09 · `apps/desktop`
+
+But. L'app passe des règles sèches d'APP-01 au système révisé : ombres douces, coins arrondis, espace, hiérarchie des menus, logos de services.
+Périmètre. Les primitives de `components/ui/` et tous les écrans : élévation par `raised` et `overlay` au lieu du seul trait, rayons revus, gouttières de 20 px et sections de 32 px, listes à 12 px de padding vertical minimum, barre latérale à trois plans avec repère à gauche sur l'entrée active, `ServiceLogo` dans le catalogue, l'écran Services et les cartes de projet. Le terminal et le diff ne changent pas.
+Hors périmètre. Toute fonctionnalité.
+Critères d'acceptation.
+1. Aucune ombre ni rayon en dur : tout vient des tokens.
+2. Les captures des deux thèmes montrent des cartes posées, des coins arrondis et les logos en couleurs (APP-17 fournit le harnais).
+

@@ -14,6 +14,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-06 | Skills et outillage agent | fait | `chore/INF-06-skills` | fusionnée |
 | INF-07 | Contrat : champs booléens et listes dans le catalogue | fait | `feat/INF-07-catalog-fields` | fusionnée |
 | INF-08 | Contrat : flux secret d'`install`, presets dans le schéma, code `no_report` | fait | `feat/INF-08-install-contract` | fusionnée |
+| INF-09 | Design : ombres, rayons, espace, logos de services | à faire | | |
 
 ## Agent serveur — `AGT`
 
@@ -58,6 +59,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-16 | Builds Windows et Linux | à faire | | |
 | APP-17 | Harnais Playwright pour Electron | à faire | | |
 | APP-18 | Fond natif de la fenêtre selon le thème | à faire | | |
+| APP-19 | Appliquer le design accueillant à l'app | à faire | | |
 
 ## Plateforme — `PLT`
 
