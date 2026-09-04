@@ -1,22 +1,29 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { DeviceRow } from "@/components/dashboard/device-row"
 import { Callout } from "@/components/ui/callout"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { LoadingState } from "@/components/ui/loading-state"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
-import { deleteDevice, devicesQueryOptions } from "@/lib/api/queries"
+import { devicesQueryOptions, revokeServerDevice } from "@/lib/api/queries"
+import { formatRelative } from "@/lib/utils/format"
 
 export interface ServerDevicesProps {
+  serverId: string
+  serverName: string
   assignedUserId: string | null
 }
 
-export function ServerDevices({ assignedUserId }: ServerDevicesProps) {
+export function ServerDevices({
+  serverId,
+  serverName,
+  assignedUserId,
+}: ServerDevicesProps) {
   const { user } = useDashboardContext()
   const mine = assignedUserId === user.id
   const devices = useQuery({ ...devicesQueryOptions(), enabled: mine })
   const queryClient = useQueryClient()
   const revoke = useMutation({
-    mutationFn: deleteDevice,
+    mutationFn: (deviceId: string) => revokeServerDevice(serverId, deviceId),
     onSuccess: () => queryClient.invalidateQueries(),
   })
   const list = devices.data ?? []
@@ -35,7 +42,7 @@ export function ServerDevices({ assignedUserId }: ServerDevicesProps) {
         <Callout
           className="m-4"
           fix="Réessayez dans un instant."
-          title="La révocation a échoué."
+          title="Le retrait a échoué."
           tone="danger"
         />
       ) : null}
@@ -43,14 +50,34 @@ export function ServerDevices({ assignedUserId }: ServerDevicesProps) {
       {mine && !devices.isPending && list.length > 0 ? (
         <ul>
           {list.map((device) => (
-            <DeviceRow
-              device={device}
+            <li
+              className="flex flex-wrap items-center justify-between gap-4 border-line border-b px-4 py-3 last:border-b-0"
               key={device.id}
-              onRevoke={(id) => {
-                revoke.mutate(id)
-              }}
-              pending={revoke.isPending}
-            />
+            >
+              <div className="min-w-0">
+                <p className="truncate font-medium text-[13px] text-ink">
+                  {device.name}
+                </p>
+                <p className="truncate font-data text-[12px] text-ink-3">
+                  {device.fingerprint}
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-[12px] text-ink-3">
+                  {formatRelative(device.last_used_at)}
+                </span>
+                <ConfirmDialog
+                  confirmLabel="Retirer"
+                  description={`La clé de « ${device.name} » est retirée de « ${serverName} » au prochain état de l'agent. L'appareil garde ses autres serveurs.`}
+                  onConfirm={() => {
+                    revoke.mutate(device.id)
+                  }}
+                  pending={revoke.isPending}
+                  title="Retirer cet appareil de ce serveur ?"
+                  triggerLabel="Retirer d'ici"
+                />
+              </div>
+            </li>
           ))}
         </ul>
       ) : null}

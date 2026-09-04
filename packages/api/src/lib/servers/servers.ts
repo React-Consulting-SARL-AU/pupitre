@@ -1,7 +1,9 @@
 import type { Server, ServerStatus } from "@pupitre/db/cloudflare/client"
+import type { OrgRole } from "@pupitre/shared/permissions"
 import { getPrisma, withOrganization } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { metricsOf } from "./agent-state"
+import { settleAssignment, settleAssignments } from "./assign"
 import { authorizedKeysForUser } from "./authorized-keys"
 import { decommissionDeadline } from "./expire"
 import type { MetricSample } from "./metrics"
@@ -40,6 +42,7 @@ export interface ServerView {
   target_version: string | null
   host_fingerprint: string | null
   assigned_user_id: string | null
+  pending_assignment_email: string | null
   last_heartbeat_at: Date | null
   entitlement_valid_until: Date | null
   usage: ServerUsage | null
@@ -78,7 +81,10 @@ function lastUsage(server: Server): ServerUsage | null {
     : null
 }
 
-function toView(server: Server, now: Date): ServerView {
+export function toServerView(
+  server: Server,
+  now: Date = new Date()
+): ServerView {
   return {
     id: server.id,
     name: server.name,
@@ -92,6 +98,7 @@ function toView(server: Server, now: Date): ServerView {
     target_version: server.targetVersion,
     host_fingerprint: server.hostFingerprint,
     assigned_user_id: server.assignedUserId,
+    pending_assignment_email: server.pendingAssignmentEmail,
     last_heartbeat_at: server.lastHeartbeatAt,
     entitlement_valid_until: server.entitlementValidUntil,
     usage: lastUsage(server),
@@ -134,26 +141,47 @@ export async function listServersForUser(
   }))
 }
 
+export interface Viewer {
+  userId: string
+  role: OrgRole
+}
+
+function seesEveryServer(viewer: Viewer): boolean {
+  return viewer.role !== "member"
+}
+
 export async function listServersForOrganization(
-  organizationId: string
+  organizationId: string,
+  viewer: Viewer
 ): Promise<ServerView[]> {
-  const servers = await withOrganization(
+  const found = await withOrganization(
     getPrisma(),
     organizationId
   ).server.findMany({ orderBy: { createdAt: "asc" } })
+  const servers = await settleAssignments(found)
   const now = new Date()
+  const visible = seesEveryServer(viewer)
+    ? servers
+    : servers.filter((server) => server.assignedUserId === viewer.userId)
 
-  return servers.map((server) => toView(server, now))
+  return visible.map((server) => toServerView(server, now))
 }
 
 export async function getServerForOrganization(
   organizationId: string,
-  serverId: string
+  serverId: string,
+  viewer: Viewer
 ): Promise<ServerDetail | null> {
   const prisma = withOrganization(getPrisma(), organizationId)
-  const server = await prisma.server.findFirst({ where: { id: serverId } })
+  const found = await prisma.server.findFirst({ where: { id: serverId } })
 
-  if (!server) {
+  if (!found) {
+    return null
+  }
+
+  const server = await settleAssignment(found)
+
+  if (!(seesEveryServer(viewer) || server.assignedUserId === viewer.userId)) {
     return null
   }
 
@@ -164,7 +192,7 @@ export async function getServerForOrganization(
   })
 
   return {
-    ...toView(server, new Date()),
+    ...toServerView(server),
     metrics: metricsOf(server),
     events: events.map((event) => ({
       id: event.id,
@@ -192,6 +220,7 @@ export async function deleteServerForOrganization(
     data: {
       status: "revoked",
       assignedUserId: null,
+      pendingAssignmentEmail: null,
       enrollmentTokenHash: null,
       enrollmentExpiresAt: null,
       decommissionAt: decommissionDeadline(),

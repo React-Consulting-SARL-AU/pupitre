@@ -7,13 +7,22 @@ export type AuditAction =
   | "server.enrolled"
   | "server.exchanged"
   | "server.deleted"
+  | "server.assigned"
+  | "server.unassigned"
+  | "server.device_revoked"
+  | "member.invited"
   | "release.published"
   | "release.promoted"
   | "subscription.created"
   | "subscription.updated"
   | "subscription.canceled"
 
-export type AuditTargetType = "device" | "server" | "release" | "subscription"
+export type AuditTargetType =
+  | "device"
+  | "server"
+  | "release"
+  | "subscription"
+  | "invitation"
 
 export interface AuditEntry {
   action: AuditAction

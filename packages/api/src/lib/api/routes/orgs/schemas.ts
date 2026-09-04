@@ -1,8 +1,10 @@
+import { ORG_ROLES } from "@pupitre/shared/permissions"
 import { t } from "elysia"
 import {
   BILLING_CURRENCIES,
   BILLING_INTERVALS,
 } from "../../../billing/provider"
+import { EVENTS_MAX_PAGE_SIZE } from "../../../orgs/events"
 import { dateTime } from "../../openapi-models"
 
 export const billingIntervalSchema = t.UnionEnum([...BILLING_INTERVALS])
@@ -35,3 +37,65 @@ export const subscriptionSchema = t.Object(
   },
   { $id: "Subscription" }
 )
+
+export const memberSchema = t.Object(
+  {
+    id: t.String(),
+    user_id: t.String(),
+    email: t.String(),
+    name: t.String(),
+    role: t.String(),
+    created_at: dateTime,
+  },
+  { $id: "OrganizationMember" }
+)
+
+export const invitationSchema = t.Object(
+  {
+    id: t.String(),
+    email: t.String(),
+    role: t.Nullable(t.String()),
+    status: t.String(),
+    expires_at: dateTime,
+    created_at: dateTime,
+    inviter_id: t.String(),
+  },
+  { $id: "OrganizationInvitation" }
+)
+
+export const membersSchema = t.Object(
+  {
+    members: t.Array(memberSchema),
+    invitations: t.Array(invitationSchema),
+  },
+  { $id: "OrganizationMembers" }
+)
+
+export const invitationBody = t.Object({
+  email: t.String({
+    minLength: 3,
+    maxLength: 254,
+    pattern: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+  }),
+  role: t.UnionEnum([...ORG_ROLES]),
+})
+
+export const eventSchema = t.Object(
+  {
+    id: t.String(),
+    action: t.String(),
+    actor_user_id: t.Nullable(t.String()),
+    actor_email: t.Nullable(t.String()),
+    target_type: t.String(),
+    target_id: t.String(),
+    payload: t.Unknown(),
+    created_at: dateTime,
+  },
+  { $id: "OrganizationEvent" }
+)
+
+export const eventsQuery = t.Object({
+  limit: t.Optional(t.Integer({ minimum: 1, maximum: EVENTS_MAX_PAGE_SIZE })),
+  offset: t.Optional(t.Integer({ minimum: 0 })),
+  action: t.Optional(t.String({ minLength: 1, maxLength: 80 })),
+})

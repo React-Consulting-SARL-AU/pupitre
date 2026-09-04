@@ -92,6 +92,11 @@ export type Device = Prisma.DeviceModel
  */
 export type Server = Prisma.ServerModel
 /**
+ * Model ServerRevokedDevice
+ * 
+ */
+export type ServerRevokedDevice = Prisma.ServerRevokedDeviceModel
+/**
  * Model Subscription
  * 
  */

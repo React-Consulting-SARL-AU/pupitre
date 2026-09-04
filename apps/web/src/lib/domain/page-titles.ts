@@ -10,6 +10,8 @@ const TITLES: Record<string, PageTitle> = {
     title: "Serveur",
     parents: ["Tableau de bord", "Serveurs"],
   },
+  "/dashboard/members": { title: "Membres", parents: ["Tableau de bord"] },
+  "/dashboard/audit": { title: "Journal", parents: ["Tableau de bord"] },
   "/dashboard/devices": { title: "Appareils", parents: ["Tableau de bord"] },
   "/dashboard/billing": { title: "Facturation", parents: ["Tableau de bord"] },
   "/dashboard/settings": { title: "Préférences", parents: ["Tableau de bord"] },

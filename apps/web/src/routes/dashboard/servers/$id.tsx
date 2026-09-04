@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { ServerActions } from "@/components/dashboard/server-actions"
+import { ServerAssignment } from "@/components/dashboard/server-assignment"
 import { ServerDevices } from "@/components/dashboard/server-devices"
 import { ServerEvents } from "@/components/dashboard/server-events"
 import { ServerMetrics } from "@/components/dashboard/server-metrics"
@@ -90,6 +91,13 @@ function ServerPage() {
           </CardBody>
         </Card>
 
+        <ServerAssignment
+          assignedUserId={detail.assigned_user_id}
+          pendingAssignmentEmail={detail.pending_assignment_email}
+          serverId={detail.id}
+          serverName={detail.name}
+        />
+
         <ServerMetrics samples={detail.metrics} />
 
         <ServerModules
@@ -97,7 +105,11 @@ function ServerPage() {
           stackVersion={last?.stack_version ?? null}
         />
 
-        <ServerDevices assignedUserId={detail.assigned_user_id} />
+        <ServerDevices
+          assignedUserId={detail.assigned_user_id}
+          serverId={detail.id}
+          serverName={detail.name}
+        />
 
         <ServerEvents events={detail.events} />
       </div>
