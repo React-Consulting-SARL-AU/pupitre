@@ -44,7 +44,7 @@ export function twoFactorChallenge(consoleBaseUrl: string): BetterAuthPlugin {
     hooks: {
       after: [
         {
-          matcher: (context) => CHALLENGED_PATHS.has(context.path),
+          matcher: (context) => CHALLENGED_PATHS.has(context.path ?? ""),
           handler: createAuthMiddleware(async (ctx) => {
             const pending = ctx.context.newSession
 

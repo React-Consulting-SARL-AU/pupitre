@@ -18,6 +18,7 @@ const TITLES: Record<string, PageTitle> = {
   "/download": { title: "Télécharger l'app", parents: [] },
   "/auth/sign-in": { title: "Connexion", parents: [] },
   "/auth/device": { title: "Confirmer un appareil", parents: [] },
+  "/auth/two-factor": { title: "Second facteur", parents: [] },
   "/auth/invitation/$id": { title: "Invitation", parents: [] },
 }
 

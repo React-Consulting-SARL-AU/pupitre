@@ -55,7 +55,7 @@ export async function totpCode(
 
   const key = await crypto.subtle.importKey(
     "raw",
-    decodeBase32(secret),
+    new Uint8Array(decodeBase32(secret)),
     { name: "HMAC", hash: "SHA-1" },
     false,
     ["sign"]

@@ -50,7 +50,9 @@ function fromBase64url(value: string): Uint8Array {
 }
 
 async function sha256(bytes: Uint8Array): Promise<Uint8Array> {
-  return new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))
+  return new Uint8Array(
+    await crypto.subtle.digest("SHA-256", new Uint8Array(bytes))
+  )
 }
 
 function cborHead(major: number, length: number): Uint8Array {
@@ -303,7 +305,7 @@ export class VirtualAuthenticator {
       await crypto.subtle.sign(
         { name: "ECDSA", hash: "SHA-256" },
         credential.keyPair.privateKey,
-        signed
+        new Uint8Array(signed)
       )
     )
 
