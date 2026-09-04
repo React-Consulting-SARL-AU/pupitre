@@ -1,0 +1,52 @@
+---
+import { AVAILABILITY_LABELS, CATALOG } from "../content/site/catalog"
+import { localeFromPath } from "../lib/i18n"
+
+const locale = localeFromPath(Astro.url.pathname)
+---
+
+<div class="divide-y divide-line border-line border-t">
+  {
+    CATALOG.map((group) => (
+      <div class="grid gap-x-10 gap-y-4 py-6 md:grid-cols-[11rem_1fr] md:py-8">
+        <div class="flex items-baseline gap-3 md:block">
+          <h3 class="heading-4">{group.label[locale]}</h3>
+          {group.note && (
+            <span class="label text-ink-3 md:mt-1 md:block">
+              {group.note[locale]}
+            </span>
+          )}
+        </div>
+        <ul class="divide-y divide-line">
+          {group.entries.map((entry) => (
+            <li
+              data-availability={entry.availability}
+              class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 py-3"
+            >
+              <p
+                class:list={[
+                  "font-medium",
+                  entry.availability === "mvp" ? "text-ink" : "text-ink-2",
+                ]}
+              >
+                {entry.name[locale]}
+              </p>
+              <span
+                class:list={[
+                  "label self-start",
+                  entry.availability === "mvp"
+                    ? "text-ink-3"
+                    : "rounded-sm border border-line-strong px-1.5 py-0.5 text-ink-2",
+                ]}
+              >
+                {AVAILABILITY_LABELS[entry.availability][locale]}
+              </span>
+              <p class="col-span-2 text-ink-2">{entry.detail[locale]}</p>
+              <code class="data text-ink-3">{entry.id}</code>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))
+  }
+</div>

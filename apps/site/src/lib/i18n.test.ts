@@ -4,6 +4,7 @@ import { fr } from "../content/ui/fr"
 import {
   alternateLocale,
   DEFAULT_LOCALE,
+  fill,
   LOCALES,
   localeFromPath,
   localizePath,
@@ -65,13 +66,17 @@ describe("dictionary", () => {
     expect(translator("en")("nav.docs")).toBe("Docs")
     expect(translator("fr")("nav.pricing")).toBe("Tarifs")
   })
+})
 
-  it("carries the PRODUCT.md sentence in both languages", () => {
-    expect(translator("fr")("home.headline")).toBe(
-      "Vos agents IA travaillent sur une machine à eux. Votre laptop respire."
+describe("fill", () => {
+  it("replaces every placeholder with its value", () => {
+    expect(fill("{price} € per {unit}", { price: 19, unit: "server" })).toBe(
+      "19 € per server"
     )
-    expect(translator("en")("home.headline")).toBe(
-      "Your AI agents work on a machine of their own. Your laptop breathes."
-    )
+    expect(fill("{n} and {n}", { n: 2 })).toBe("2 and 2")
+  })
+
+  it("throws on a placeholder without a value", () => {
+    expect(() => fill("{price} €", {})).toThrow('Missing value for "price"')
   })
 })

@@ -7,6 +7,8 @@ export type Locale = (typeof LOCALES)[number]
 
 export const DEFAULT_LOCALE: Locale = "en"
 
+export type Localized = Record<Locale, string>
+
 export type DictionaryKey = keyof Dictionary
 
 const DICTIONARIES: Record<Locale, Dictionary> = { en, fr }
@@ -45,4 +47,21 @@ export function translator(locale: Locale) {
   const dictionary = DICTIONARIES[locale]
 
   return (key: DictionaryKey): string => dictionary[key]
+}
+
+const PLACEHOLDER_RE = /\{(\w+)\}/g
+
+export function fill(
+  template: string,
+  values: Record<string, string | number>
+): string {
+  return template.replace(PLACEHOLDER_RE, (_, key: string) => {
+    const value = values[key]
+
+    if (value === undefined) {
+      throw new Error(`Missing value for "${key}"`)
+    }
+
+    return String(value)
+  })
 }

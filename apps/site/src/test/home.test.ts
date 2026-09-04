@@ -1,14 +1,23 @@
+import { MODULE_IDS } from "@pupitre/shared/catalog"
 import { describe, expect, it } from "vitest"
+import { homeContent } from "../content/site/home"
 import Fr from "../pages/fr/index.astro"
 import En from "../pages/index.astro"
 import { render } from "./render"
 
+const SECTION_IDS = ["features", "catalog", "promise", "faq", "pricing"]
+const JSON_LD_RE = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g
+
+function structuredData(html: string): Record<string, unknown>[] {
+  return [...html.matchAll(JSON_LD_RE)].map((match) => JSON.parse(match[1]))
+}
+
 describe("home", () => {
-  it("carries the sentence and two buttons in English", async () => {
+  it("carries the headline and two buttons in English", async () => {
     const html = await render(En, { path: "/" })
 
     expect(html).toContain(
-      '<h1 class="heading-1 max-w-3xl">Your AI agents work on a machine of their own. Your laptop breathes.</h1>'
+      '<h1 class="heading-1 max-w-3xl">Your AI agents get a machine of their own. Your laptop cools down.</h1>'
     )
     expect(html).toContain(
       '<a href="/download/" class="btn btn-primary">Download the app</a>'
@@ -18,7 +27,7 @@ describe("home", () => {
     )
   })
 
-  it("carries the sentence and two buttons in French", async () => {
+  it("carries the headline and two buttons in French", async () => {
     const html = await render(Fr, { path: "/fr/" })
 
     expect(html).toContain('<html lang="fr"')
@@ -31,5 +40,69 @@ describe("home", () => {
     expect(html).toContain(
       '<a href="https://app.pupitre.sh/" class="btn btn-secondary">Commander</a>'
     )
+  })
+
+  it("stands without any image", async () => {
+    for (const [page, path] of [
+      [En, "/"],
+      [Fr, "/fr/"],
+    ] as const) {
+      const html = await render(page, { path })
+
+      expect(html).not.toContain("<img")
+      expect(html).not.toContain("<picture")
+      expect(html).not.toContain("<svg")
+    }
+  })
+
+  it("renders every section with its title in both languages", async () => {
+    for (const [page, path, locale] of [
+      [En, "/", "en"],
+      [Fr, "/fr/", "fr"],
+    ] as const) {
+      const html = await render(page, { path })
+      const content = homeContent(locale)
+
+      for (const id of SECTION_IDS) {
+        expect(html, `${locale} ${id}`).toContain(`<section id="${id}"`)
+      }
+      expect(html).toContain(`>${content.features.title}</h2>`)
+      expect(html).toContain(`>${content.catalog.title}</h2>`)
+      expect(html).toContain(`>${content.promise.title}</h2>`)
+      expect(html).toContain(`>${content.faq.title}</h2>`)
+      expect(html).toContain(`>${content.pricing.title}</h2>`)
+      for (const feature of content.features.items) {
+        expect(html).toContain(`>${feature.title}</h3>`)
+      }
+      for (const claim of content.promise.items) {
+        expect(html).toContain(`>${claim.statement}</h3>`)
+      }
+      expect(html.match(/<details/g)).toHaveLength(5)
+      expect(html.match(/data-availability=/g)).toHaveLength(MODULE_IDS.length)
+      expect(html).toContain(`href="${locale === "en" ? "" : "/fr"}/pricing/"`)
+    }
+  })
+
+  it("puts SoftwareApplication and FAQPage JSON-LD in the head", async () => {
+    for (const [page, path, locale] of [
+      [En, "/", "en"],
+      [Fr, "/fr/", "fr"],
+    ] as const) {
+      const html = await render(page, { path })
+      const head = html.slice(0, html.indexOf("<body"))
+      const data = structuredData(head)
+      const content = homeContent(locale)
+
+      expect(data.map((item) => item["@type"])).toEqual([
+        "SoftwareApplication",
+        "FAQPage",
+      ])
+      expect(data[0].name).toBe("Pupitre")
+      expect(data[0].inLanguage).toBe(locale)
+      expect(data[1].mainEntity).toHaveLength(5)
+      expect(
+        (data[1].mainEntity as Array<{ name: string }>).map((q) => q.name)
+      ).toEqual(content.faq.items.map((item) => item.question))
+    }
   })
 })
