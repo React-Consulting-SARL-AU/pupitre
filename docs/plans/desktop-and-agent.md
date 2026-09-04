@@ -247,7 +247,7 @@ Critères d'acceptation.
 ### APP-07 — Durcissement et bascule root → dev
 Lot 2 · dépend de APP-06, AGT-04 · `apps/desktop`
 
-Périmètre. Après l'installation : `harden`, puis réécriture de la config SSH de l'app en `User dev` et reconnexion ; si `root_closed: false`, écran qui explique et garde root.
+Périmètre. Après l'installation : `harden`, puis réécriture de la config SSH de l'app en `User dev` et reconnexion ; si `root_closed: false`, écran qui explique et garde root. **L'ordre complet de l'onboarding est câblé ici** : ajout du serveur, inspection, envoi du binaire de l'agent, catalogue, configuration, installation, durcissement — APP-06 a montré que le catalogue ne peut pas répondre avant que le binaire soit posé, l'envoi doit donc précéder l'écran catalogue et non le seul `install`. Un « Rejouer » sur un module qui portait un secret repasse par sa configuration, le coffre étant vidé au premier envoi.
 Critères d'acceptation. Depuis un serveur atteint en root, l'app termine connectée en `dev`, root fermé, sans intervention.
 
 ### APP-08 — Premier projet
