@@ -41,3 +41,11 @@ func TestRestrictedCommandsMatchTheContract(t *testing.T) {
 		}
 	}
 }
+
+func TestUnenrolledCommandsAreASubsetOfTheRestrictedOnes(t *testing.T) {
+	for _, cmd := range UnenrolledCommands {
+		if !AllowedInRestrictedMode(cmd) {
+			t.Errorf("%s ouvert sans jeton mais fermé en mode restreint", cmd)
+		}
+	}
+}
