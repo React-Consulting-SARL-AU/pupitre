@@ -169,6 +169,56 @@ func TestStateReadsEverythingTheAgentPolls(t *testing.T) {
 	}
 }
 
+func TestStateCarriesTheVersionFloorOfTheServer(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Write([]byte(`{"entitlement":"valid","valid_until":"2026-09-05T12:00:00.000Z","authorized_keys":[],"target_version":"1.4.0","minimum_version":"1.2.0","hostname":"vps","module_params":{}}`))
+	}))
+	defer server.Close()
+
+	state, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.State()
+	if err != nil || state.MinimumVersion != "1.2.0" {
+		t.Fatalf("state = %+v, err = %v", state, err)
+	}
+}
+
+func TestReleaseMetadataReadsTheFingerprintAndTheSignature(t *testing.T) {
+	var authorization string
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/agent/release/1.4.0/metadata" || r.Method != http.MethodGet {
+			t.Errorf("%s %s", r.Method, r.URL.Path)
+		}
+		authorization = r.Header.Get("Authorization")
+		w.Write([]byte(`{"version":"1.4.0","arch":"amd64","sha256":"` + strings.Repeat("a", 64) + `","signature":"c2lnbmF0dXJl","channel":"stable"}`))
+	}))
+	defer server.Close()
+
+	info, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.ReleaseMetadata("1.4.0")
+	if err != nil {
+		t.Fatalf("ReleaseMetadata: %v", err)
+	}
+
+	if info.Version != "1.4.0" || info.Arch != "amd64" || info.Signature != "c2lnbmF0dXJl" || info.SHA256 != strings.Repeat("a", 64) {
+		t.Fatalf("info = %+v", info)
+	}
+
+	if authorization != "Bearer jeton" {
+		t.Fatalf("autorisation = %q", authorization)
+	}
+}
+
+// Half an answer is no answer: an agent that took an empty signature for a valid one would install anything.
+func TestReleaseMetadataRefusesAnAnswerWithoutASignature(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Write([]byte(`{"version":"1.4.0","arch":"amd64","sha256":"","signature":"","channel":"stable"}`))
+	}))
+	defer server.Close()
+
+	if _, err := (platform.Client{BaseURL: server.URL, Token: "jeton"}).ReleaseMetadata("1.4.0"); err == nil {
+		t.Fatal("une métadonnée vide doit être refusée")
+	}
+}
+
 // The platform leaves target_version null while no release is published for this architecture.
 func TestStateAcceptsANullTargetVersion(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

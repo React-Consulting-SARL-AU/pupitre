@@ -20,6 +20,7 @@ export const agentStateSchema = t.Object(
     valid_until: dateTime,
     authorized_keys: t.Array(t.String()),
     target_version: t.Nullable(t.String()),
+    minimum_version: t.Nullable(t.String()),
     hostname: t.String(),
     module_params: t.Record(t.String(), t.Unknown()),
   },

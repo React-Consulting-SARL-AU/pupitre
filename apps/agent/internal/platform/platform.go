@@ -67,6 +67,7 @@ type State struct {
 	ValidUntil     time.Time      `json:"valid_until"`
 	AuthorizedKeys []string       `json:"authorized_keys"`
 	TargetVersion  string         `json:"target_version"`
+	MinimumVersion string         `json:"minimum_version"`
 	Hostname       string         `json:"hostname"`
 	ModuleParams   map[string]any `json:"module_params"`
 }
@@ -88,9 +89,38 @@ type Heartbeat struct {
 	AgentVersion string   `json:"agent_version,omitempty"`
 }
 
+// What the publication chain deposited for a version: the platform's own word on what the binary must hash to, and the signature that binds it.
+type ReleaseInfo struct {
+	Version   string `json:"version"`
+	Arch      string `json:"arch"`
+	SHA256    string `json:"sha256"`
+	Signature string `json:"signature"`
+	Channel   string `json:"channel"`
+}
+
 // The binary of a version, for the architecture the platform knows this server by.
 func (c Client) Release(version string) ([]byte, error) {
 	return c.get("/agent/release/" + url.PathEscape(version))
+}
+
+func (c Client) ReleaseMetadata(version string) (ReleaseInfo, error) {
+	path := "/agent/release/" + url.PathEscape(version) + "/metadata"
+
+	raw, err := c.get(path)
+	if err != nil {
+		return ReleaseInfo{}, err
+	}
+
+	var info ReleaseInfo
+	if err := json.Unmarshal(raw, &info); err != nil {
+		return ReleaseInfo{}, &Error{Path: path, Cause: errors.New("réponse illisible")}
+	}
+
+	if info.SHA256 == "" || info.Signature == "" {
+		return ReleaseInfo{}, &Error{Path: path, Cause: errors.New("réponse sans empreinte ni signature")}
+	}
+
+	return info, nil
 }
 
 func (c Client) State() (State, error) {

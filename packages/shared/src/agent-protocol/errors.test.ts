@@ -17,6 +17,7 @@ describe("ProtocolErrorCodeSchema", () => {
       "module_failed",
       "no_report",
       "bad_signature",
+      "downgrade_refused",
     ]) {
       expect(PROTOCOL_ERROR_CODES as readonly string[]).toContain(code)
       expect(ProtocolErrorCodeSchema.safeParse(code).success).toBe(true)

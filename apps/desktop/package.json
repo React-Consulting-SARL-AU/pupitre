@@ -2,7 +2,10 @@
   "name": "@pupitre/desktop",
   "version": "0.1.0",
   "description": "Pupitre desktop app: drives a remote development server over SSH",
-  "main": "out/main/index.js",
+  "homepage": "https://pupitre.studio",
+  "desktopName": "pupitre.desktop",
+  "author": "Jordan Monier <no-reply@pupitre.studio>",
+  "main": "out/main/index.cjs",
   "type": "module",
   "private": true,
   "scripts": {
@@ -12,6 +15,7 @@
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
     "build:win": "electron-vite build && electron-builder --win",
+    "release": "electron-vite build && electron-builder --publish always",
     "lint": "ultracite check",
     "lint:fix": "ultracite fix",
     "check:types": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
@@ -25,11 +29,13 @@
     "@pupitre/shared": "workspace:*",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
+    "electron-updater": "^6.8.9",
     "lucide-react": "^1.38.0",
     "node-pty": "^1.1.0",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@babel/plugin-transform-arrow-functions": "^8.0.1",
     "@electron/rebuild": "^4.2.0",
     "@playwright/test": "^1.62.1",
     "@pupitre/api": "workspace:*",

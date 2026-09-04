@@ -10,13 +10,18 @@ import (
 func RegisterCommands(server *protocol.Server, options Options) {
 	server.Register("agent.upgrade", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
 		var params struct {
-			Version   string `json:"version"`
-			Signature string `json:"signature"`
+			Version        string `json:"version"`
+			Signature      string `json:"signature"`
+			AllowDowngrade bool   `json:"allow_downgrade"`
 		}
 		if err := json.Unmarshal(raw, &params); err != nil {
 			return nil, protocol.NewError(contract.ErrorBadRequest, "paramètres illisibles : "+err.Error())
 		}
 
-		return New(options).Upgrade(Request{Version: params.Version, Signature: params.Signature})
+		return New(options).Upgrade(Request{
+			Version:        params.Version,
+			Signature:      params.Signature,
+			AllowDowngrade: params.AllowDowngrade,
+		})
 	})
 }

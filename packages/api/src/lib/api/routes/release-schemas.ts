@@ -64,6 +64,17 @@ export const latestReleaseSchema = t.Object(
   { $id: "LatestRelease" }
 )
 
+export const agentReleaseSchema = t.Object(
+  {
+    version: t.String(),
+    arch: t.String(),
+    sha256: t.String(),
+    signature: t.String(),
+    channel: releaseChannelSchema,
+  },
+  { $id: "AgentRelease" }
+)
+
 export const releaseVersionParams = t.Object({
   version: t.String({ minLength: 1, maxLength: MAX_VERSION_LENGTH }),
 })

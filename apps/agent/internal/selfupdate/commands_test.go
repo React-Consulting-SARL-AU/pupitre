@@ -2,6 +2,7 @@ package selfupdate_test
 
 import (
 	"encoding/json"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -41,13 +42,14 @@ func serve(t *testing.T, b *bench, granted contract.Entitlement, requests ...str
 	return answers
 }
 
-// An agent left behind is exactly the one that must be able to repair itself, so the restricted mode lets agent.upgrade through.
+// An agent left behind is exactly the one that must be able to repair itself, so the restricted mode lets agent.upgrade through — with nothing but a version, and a platform that no longer says how this server is doing.
 func TestAgentUpgradeAnswersInRestrictedMode(t *testing.T) {
 	b := newBench(t)
+	b.stateStatus = http.StatusUnauthorized
 
 	answers := serve(t, b, contract.EntitlementRestricted,
 		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":1}}`,
-		`{"id":2,"cmd":"agent.upgrade","params":{"version":"`+nextAgent+`","signature":"`+b.signature+`"}}`,
+		`{"id":2,"cmd":"agent.upgrade","params":{"version":"`+nextAgent+`"}}`,
 	)
 
 	if len(answers) != 2 || !answers[1].OK {
@@ -80,15 +82,15 @@ func TestAgentUpgradeIsAnnouncedAmongTheCapabilities(t *testing.T) {
 	}
 }
 
-func TestAgentUpgradeRefusesARequestWithoutASignature(t *testing.T) {
+func TestAgentUpgradeRefusesADowngradeThroughTheProtocol(t *testing.T) {
 	b := newBench(t)
 
 	answers := serve(t, b, contract.EntitlementValid,
 		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":1}}`,
-		`{"id":2,"cmd":"agent.upgrade","params":{"version":"`+nextAgent+`"}}`,
+		`{"id":2,"cmd":"agent.upgrade","params":{"version":"`+olderAgent+`"}}`,
 	)
 
-	if answers[1].OK || answers[1].Error.Code != contract.ErrorBadRequest {
+	if answers[1].OK || answers[1].Error.Code != contract.ErrorDowngradeRefused {
 		t.Fatalf("réponse = %+v", answers[1])
 	}
 
@@ -97,12 +99,30 @@ func TestAgentUpgradeRefusesARequestWithoutASignature(t *testing.T) {
 	}
 }
 
+func TestAgentUpgradeInstallsAnOlderVersionOnTheOwnersWord(t *testing.T) {
+	b := newBench(t)
+
+	answers := serve(t, b, contract.EntitlementValid,
+		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":1}}`,
+		`{"id":2,"cmd":"agent.upgrade","params":{"version":"`+olderAgent+`","allow_downgrade":true}}`,
+	)
+
+	if !answers[1].OK {
+		t.Fatalf("réponse = %+v", answers[1])
+	}
+
+	if string(b.fake.Files[binaryPath]) != string(newBinary) {
+		t.Fatalf("binaire en place : %q", b.fake.Files[binaryPath])
+	}
+}
+
 func TestAgentUpgradeSurfacesBadSignatureThroughTheProtocol(t *testing.T) {
 	b := newBench(t)
+	b.signedVersion = nextAgent
 
 	answers := serve(t, b, contract.EntitlementRestricted,
 		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":1}}`,
-		`{"id":2,"cmd":"agent.upgrade","params":{"version":"2.0.0","signature":"`+b.signature+`"}}`,
+		`{"id":2,"cmd":"agent.upgrade","params":{"version":"2.0.0"}}`,
 	)
 
 	if answers[1].OK || answers[1].Error.Code != contract.ErrorBadSignature {
