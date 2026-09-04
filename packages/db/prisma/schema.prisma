@@ -186,29 +186,43 @@ model Device {
   lastUsedAt  DateTime?
   createdAt   DateTime  @default(now())
 
+  enrolledServers Server[] @relation("ServerEnrollingDevice")
+
   @@index([userId])
 }
 
 model Server {
-  id              String        @id @default(cuid())
-  organizationId  String
-  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  name            String
-  hostFingerprint String?
-  arch            String
-  agentVersion    String?
-  serverTokenHash String?       @unique
-  status          ServerStatus  @default(enrolling)
-  assignedUserId  String?
-  assignedUser    User?         @relation("ServerAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
-  lastHeartbeatAt DateTime?
-  metrics         Json?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                    String       @id @default(cuid())
+  organizationId        String
+  organization          Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name                  String
+  host                  String?
+  port                  Int          @default(22)
+  sshUser               String       @default("dev")
+  hostFingerprint       String?
+  arch                  String
+  agentVersion          String?
+  targetVersion         String?
+  serverTokenHash       String?      @unique
+  enrollmentTokenHash   String?      @unique
+  enrollmentExpiresAt   DateTime?
+  entitlementValidUntil DateTime?
+  decommissionAt        DateTime?
+  status                ServerStatus @default(enrolling)
+  deviceId              String?
+  device                Device?      @relation("ServerEnrollingDevice", fields: [deviceId], references: [id], onDelete: SetNull)
+  assignedUserId        String?
+  assignedUser          User?        @relation("ServerAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  lastHeartbeatAt       DateTime?
+  metrics               Json?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
 
   @@index([organizationId])
   @@index([assignedUserId])
+  @@index([deviceId])
   @@index([status])
+  @@index([decommissionAt])
 }
 
 model Subscription {

@@ -1,0 +1,3 @@
+# hello refusé : le canal ne tente rien d'autre.
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","protocol":1}}
+< {"id":1,"ok":false,"error":{"code":"protocol_mismatch","message":"protocole 1 non pris en charge : cet agent parle le protocole 2","fix":"Mets à jour l'app jusqu'au protocole 2."}}

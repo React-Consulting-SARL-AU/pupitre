@@ -158,3 +158,14 @@ Critères d'acceptation.
 1. Aucune ombre ni rayon en dur : tout vient des tokens.
 2. Les captures des deux thèmes montrent des cartes posées, des coins arrondis et les logos en couleurs (APP-17 fournit le harnais).
 
+### INF-10 — Flux secret sur l'entrée standard
+Lot 0 · dépend de APP-02 · `apps/agent`, `apps/desktop`
+
+But. Le flux secret passe par l'entrée standard, comme le contrat révisé le fixe, et non par un descripteur 3 que `ssh` ne transmet pas.
+Périmètre. Côté agent : `internal/protocol/server.go` et `internal/modules/commands.go` lisent la ligne de secrets sur l'entrée standard, juste après la requête, au lieu du descripteur dédié ; les transcriptions de test suivent. Côté app : `src/main/agent-client.ts` écrit la ligne de secrets sur l'entrée standard du canal au lieu de `fd 3`, et `sshSpawn` cesse d'ouvrir un quatrième descripteur ; l'agent factice des fixtures suit.
+Hors périmètre. Toute autre commande.
+Critères d'acceptation.
+1. Une transcription qui envoie `install` avec `secrets_stdin: true` puis sa ligne de secrets fonctionne de bout en bout, agent et client.
+2. Aucun secret n'apparaît dans un événement, un rapport ou un journal : test explicite des deux côtés.
+3. `grep -rn "fd 3\|stdio\[3\]" apps/desktop/src apps/agent` ne renvoie plus rien.
+
