@@ -1,0 +1,22 @@
+> not json
+< {"id":0,"ok":false,"error":{"code":"bad_request","message":"requête illisible : un objet JSON {id, cmd, params?} par ligne est attendu"}}
+> [1,2]
+< {"id":0,"ok":false,"error":{"code":"bad_request","message":"requête illisible : un objet JSON {id, cmd, params?} par ligne est attendu"}}
+> {"cmd":"ping"}
+< {"id":0,"ok":false,"error":{"code":"bad_request","message":"id manquant ou invalide : entier ≥ 0 attendu"}}
+> {"id":"1","cmd":"ping"}
+< {"id":0,"ok":false,"error":{"code":"bad_request","message":"id manquant ou invalide : entier ≥ 0 attendu"}}
+> {"id":1.5,"cmd":"ping"}
+< {"id":0,"ok":false,"error":{"code":"bad_request","message":"id manquant ou invalide : entier ≥ 0 attendu"}}
+> {"id":-1,"cmd":"ping"}
+< {"id":0,"ok":false,"error":{"code":"bad_request","message":"id manquant ou invalide : entier ≥ 0 attendu"}}
+> {"id":1}
+< {"id":1,"ok":false,"error":{"code":"bad_request","message":"requête invalide : /cmd : champ requis"}}
+> {"id":2,"cmd":""}
+< {"id":2,"ok":false,"error":{"code":"bad_request","message":"requête invalide : /cmd : doit compter au moins 1 caractère"}}
+> {"id":3,"cmd":"ping","params":"x"}
+< {"id":3,"ok":false,"error":{"code":"bad_request","message":"requête invalide : /params : doit être de type object"}}
+> {"id":4,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+< {"id":4,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","ping","probe","project.logs","reboot","secrets.set"]}}
+> {"id":5,"cmd":"ping"}
+< {"id":5,"ok":true,"result":{"ts":"2026-09-04T12:00:00Z"}}

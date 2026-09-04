@@ -70,6 +70,11 @@ jobs:
       - name: Generate Prisma client
         run: bun run db:generate
 
+      - name: Apply migrations on an empty database
+        run: bun run db:migrate:deploy
+        env:
+          MIGRATE_DATABASE_URL: ${{ env.DATABASE_URL }}
+
       - name: Lint
         run: bun run lint
 
@@ -120,11 +125,9 @@ jobs:
           retention-days: 14
           if-no-files-found: error
 
-      # garble only supports the Go versions it was released against: @latest
-      # needs Go 1.26+, go.mod pins 1.25. Move the pin with the go directive.
       - name: Install garble
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: go install mvdan.cc/garble@v0.15.0
+        run: go install mvdan.cc/garble@latest
 
       - name: Release build (garble)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

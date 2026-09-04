@@ -18,7 +18,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 
 | ID | Tâche | Statut | Branche | PR |
 | --- | --- | --- | --- | --- |
-| AGT-01 | Squelette, protocole, `hello` et `ping` | à faire | | |
+| AGT-01 | Squelette, protocole, `hello` et `ping` | fait | `feat/AGT-01-protocol` | fusionnée |
 | AGT-02 | Sonde sh et sonde Go | à faire | | |
 | AGT-03 | Moteur de modules et rapport | à faire | | |
 | AGT-04 | Modules socle et durcissement | à faire | | |
@@ -59,7 +59,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 
 | ID | Tâche | Statut | Branche | PR |
 | --- | --- | --- | --- | --- |
-| PLT-01 | Schéma Prisma et Neon | à faire | | |
+| PLT-01 | Schéma Prisma et Neon | fait | `feat/PLT-01-prisma-neon` | fusionnée |
 | PLT-02 | Better Auth : serveur, plugins, clients | à faire | | |
 | PLT-03 | Elysia : socle, guards, erreurs, harnais de test | à faire | | |
 | PLT-04 | Routes `me`, `devices` | à faire | | |

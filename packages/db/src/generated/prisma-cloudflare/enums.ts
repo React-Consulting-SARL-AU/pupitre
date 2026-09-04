@@ -9,7 +9,28 @@
 * 🟢 You can import this file directly.
 */
 
+export const ServerStatus = {
+  enrolling: 'enrolling',
+  active: 'active',
+  grace: 'grace',
+  suspended: 'suspended',
+  revoked: 'revoked'
+} as const
+
+export type ServerStatus = (typeof ServerStatus)[keyof typeof ServerStatus]
 
 
-// This file is empty because there are no enums in the schema.
-export {}
+export const ReleaseChannel = {
+  stable: 'stable',
+  beta: 'beta'
+} as const
+
+export type ReleaseChannel = (typeof ReleaseChannel)[keyof typeof ReleaseChannel]
+
+
+export const BillingInterval = {
+  month: 'month',
+  year: 'year'
+} as const
+
+export type BillingInterval = (typeof BillingInterval)[keyof typeof BillingInterval]

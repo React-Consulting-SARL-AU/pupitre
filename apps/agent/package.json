@@ -4,11 +4,11 @@
   "private": true,
   "scripts": {
     "build": "bun run build:linux-amd64 && bun run build:linux-arm64",
-    "build:linux-amd64": "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags=\"-s -w\" -o dist/pupitred-linux-amd64 ./cmd/pupitred",
-    "build:linux-arm64": "CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags=\"-s -w\" -o dist/pupitred-linux-arm64 ./cmd/pupitred",
+    "build:linux-amd64": "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags=\"-s -w -X main.version=$(git describe --tags --always)\" -o dist/pupitred-linux-amd64 ./cmd/pupitred",
+    "build:linux-arm64": "CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags=\"-s -w -X main.version=$(git describe --tags --always)\" -o dist/pupitred-linux-arm64 ./cmd/pupitred",
     "release": "bun run release:linux-amd64 && bun run release:linux-arm64",
-    "release:linux-amd64": "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 garble -literals -tiny build -ldflags=\"-s -w\" -o dist/release/pupitred-linux-amd64 ./cmd/pupitred",
-    "release:linux-arm64": "CGO_ENABLED=0 GOOS=linux GOARCH=arm64 garble -literals -tiny build -ldflags=\"-s -w\" -o dist/release/pupitred-linux-arm64 ./cmd/pupitred",
+    "release:linux-amd64": "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 garble -literals -tiny build -ldflags=\"-s -w -X main.version=$(git describe --tags --always)\" -o dist/release/pupitred-linux-amd64 ./cmd/pupitred",
+    "release:linux-arm64": "CGO_ENABLED=0 GOOS=linux GOARCH=arm64 garble -literals -tiny build -ldflags=\"-s -w -X main.version=$(git describe --tags --always)\" -o dist/release/pupitred-linux-arm64 ./cmd/pupitred",
     "test": "go test ./...",
     "lint": "test -z \"$(gofmt -l .)\" && go vet ./...",
     "check:types": "true"

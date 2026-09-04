@@ -1,0 +1,51 @@
+package contract
+
+type ErrorCode string
+
+const (
+	ErrorHelloRequired       ErrorCode = "hello_required"
+	ErrorProtocolMismatch    ErrorCode = "protocol_mismatch"
+	ErrorBadRequest          ErrorCode = "bad_request"
+	ErrorUnknownCommand      ErrorCode = "unknown_command"
+	ErrorEntitlementRequired ErrorCode = "entitlement_required"
+	ErrorProjectNotFound     ErrorCode = "project_not_found"
+	ErrorModuleNotFound      ErrorCode = "module_not_found"
+	ErrorModuleFailed        ErrorCode = "module_failed"
+	ErrorServiceNotFound     ErrorCode = "service_not_found"
+	ErrorSecretsRequired     ErrorCode = "secrets_required"
+	ErrorBadSignature        ErrorCode = "bad_signature"
+	ErrorBusy                ErrorCode = "busy"
+	ErrorInternal            ErrorCode = "internal"
+)
+
+var ErrorCodes = []ErrorCode{
+	ErrorHelloRequired,
+	ErrorProtocolMismatch,
+	ErrorBadRequest,
+	ErrorUnknownCommand,
+	ErrorEntitlementRequired,
+	ErrorProjectNotFound,
+	ErrorModuleNotFound,
+	ErrorModuleFailed,
+	ErrorServiceNotFound,
+	ErrorSecretsRequired,
+	ErrorBadSignature,
+	ErrorBusy,
+	ErrorInternal,
+}
+
+type Entitlement string
+
+const (
+	EntitlementValid      Entitlement = "valid"
+	EntitlementGrace      Entitlement = "grace"
+	EntitlementRestricted Entitlement = "restricted"
+	EntitlementDev        Entitlement = "dev"
+)
+
+var Entitlements = []Entitlement{
+	EntitlementValid,
+	EntitlementGrace,
+	EntitlementRestricted,
+	EntitlementDev,
+}
