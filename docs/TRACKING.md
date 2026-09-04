@@ -31,7 +31,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | AGT-07 | Modules agents IA et navigateur | à faire | | |
 | AGT-08 | Modules éditeurs distants | à faire | | |
 | AGT-09 | Modules exposition et outils | à faire | | |
-| AGT-10 | Registre des projets et pilotage | à faire | | |
+| AGT-10 | Registre des projets et pilotage | fait | `feat/AGT-10-registry` | fusionnée |
 | AGT-11 | Sessions, processus, captures, secrets, bases | à faire | | |
 | AGT-12 | Shell de l'app et autocomplétion | à faire | | |
 | AGT-13 | Mise à jour de l'agent | à faire | | |
@@ -74,7 +74,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-04 | Routes `me`, `devices` | fait | `feat/PLT-04-me-devices` | fusionnée |
 | PLT-05 | Enrôlement, jetons d'agent, `agent/state`, heartbeat | fait | `feat/PLT-05-enrollment` | fusionnée |
 | PLT-06 | Distribution des binaires signés (R2) | fait | `feat/PLT-06-releases` | fusionnée |
-| PLT-07 | Stripe Managed Payments : checkout, portail, webhooks, réconciliation | à faire | | |
+| PLT-07 | Stripe Managed Payments : checkout, portail, webhooks, réconciliation | fait | `feat/PLT-07-stripe` | fusionnée |
 | PLT-08 | Console : shell, connexion, serveurs, appareils | à faire | | |
 | PLT-09 | Console : abonnement, téléchargements, profil | à faire | | |
 | PLT-10 | Organisations : membres, invitations, attribution, audit | à faire | | |
@@ -104,3 +104,4 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
+| 2026-09-04 | AGT-10 | L'énoncé et `docs/plans/desktop-and-agent.md` citent un état de projet `down` ; `packages/shared/src/agent-protocol/state.ts` n'en déclare que six (`online`, `starting`, `failed`, `stopped`, `external`, `service`) et le schéma refuse le septième. Une ligne `service` dont le port ne répond pas est rendue `stopped`. | propriétaire |

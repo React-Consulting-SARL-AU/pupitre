@@ -1,0 +1,11 @@
+# follow : chaque ligne du journal voyage en événement log, la queue comprise, et la réponse ferme le flux.
+@file /etc/pupitre/projects.conf web|web|-|bun|127.0.0.1|3000|web|bun run dev --port 3000
+@file /home/dev/.pupitre/logs/web.log VITE v7.1.0 ready in 412 ms\n➜ Local: http://127.0.0.1:3000/
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+> {"id":2,"cmd":"project.logs","params":{"name":"web","lines":2,"follow":true}}
+> {"id":3,"cmd":"project.url","params":{"name":"web"}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","ping","project.add","project.down","project.install","project.list","project.logs","project.remove","project.restart","project.up","project.url","report","service.status","snapshot","status","uninstall","upgrade"]}}
+< {"event":"log","id":2,"line":"VITE v7.1.0 ready in 412 ms"}
+< {"event":"log","id":2,"line":"➜ Local: http://127.0.0.1:3000/"}
+< {"id":2,"ok":true,"result":{"lines":[]}}
+< {"id":3,"ok":true,"result":{"url":"http://127.0.0.1:3000"}}

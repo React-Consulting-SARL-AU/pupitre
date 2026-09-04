@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"pupitre.studio/agent/internal/entitlement"
 	"pupitre.studio/agent/internal/modules"
@@ -12,7 +13,9 @@ import (
 	_ "pupitre.studio/agent/internal/modules/runtime"
 	"pupitre.studio/agent/internal/probe"
 	"pupitre.studio/agent/internal/protocol"
+	"pupitre.studio/agent/internal/state"
 	"pupitre.studio/agent/internal/sys"
+	"pupitre.studio/agent/internal/tmux"
 )
 
 var version = "dev"
@@ -66,8 +69,14 @@ func newServer(engine *modules.Engine) *protocol.Server {
 	core.RegisterCommands(server, engine)
 	db.RegisterCommands(server, engine)
 	probe.RegisterCommands(server, probeOptions(engine))
+	state.RegisterCommands(server, state.FromEngine(engine, stateOptions()).WithJournal(engine.LogPath))
 
 	return server
+}
+
+// The pause between the C-c and the kill leaves a dev server the time to close its port; nothing else waits.
+func stateOptions() state.Options {
+	return state.Options{Tmux: tmux.Options{Grace: 400 * time.Millisecond}}
 }
 
 func probeOptions(engine *modules.Engine) probe.Options {

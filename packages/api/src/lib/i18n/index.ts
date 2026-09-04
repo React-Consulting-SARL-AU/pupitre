@@ -44,7 +44,17 @@ const FR = {
   seat_quota_reached:
     "Votre abonnement couvre {quota} serveurs, ils sont tous utilisés.",
   seat_quota_reached_fix:
-    "Ajoutez un siège depuis la facturation, ou supprimez un serveur.",
+    "Ajoutez un siège dans le portail de facturation Stripe (POST /orgs/{organization}/portal), ou supprimez un serveur.",
+  seat_quota_development_fix:
+    "Aucun abonnement actif : le développement ouvre {quota} serveurs. Souscrivez depuis la facturation pour en ajouter.",
+  organization_not_found: "Cette organisation n'existe pas.",
+  billing_customer_missing:
+    "Cette organisation n'a pas encore de client Stripe.",
+  billing_customer_missing_fix:
+    "Passez d'abord par le checkout : POST /orgs/{organization}/checkout.",
+  stripe_signature_invalid: "Signature Stripe invalide.",
+  stripe_signature_invalid_fix:
+    "Signez le corps brut avec le secret du webhook, dans les cinq minutes.",
   enrollment_unknown: "Ce jeton d'enrôlement n'existe pas.",
   enrollment_used: "Ce jeton d'enrôlement a déjà été échangé.",
   enrollment_expired: "Ce jeton d'enrôlement a expiré.",
@@ -120,7 +130,17 @@ const EN: Record<MessageKey, string> = {
     "R2 storage is not configured: this URL is local and downloads nothing.",
   seat_quota_reached:
     "Your subscription covers {quota} servers, and they are all in use.",
-  seat_quota_reached_fix: "Add a seat from billing, or delete a server.",
+  seat_quota_reached_fix:
+    "Add a seat in the Stripe billing portal (POST /orgs/{organization}/portal), or delete a server.",
+  seat_quota_development_fix:
+    "No active subscription: development opens {quota} servers. Subscribe from billing to add more.",
+  organization_not_found: "This organization does not exist.",
+  billing_customer_missing: "This organization has no Stripe customer yet.",
+  billing_customer_missing_fix:
+    "Go through checkout first: POST /orgs/{organization}/checkout.",
+  stripe_signature_invalid: "Invalid Stripe signature.",
+  stripe_signature_invalid_fix:
+    "Sign the raw body with the webhook secret, within five minutes.",
   enrollment_unknown: "This enrollment token does not exist.",
   enrollment_used: "This enrollment token was already exchanged.",
   enrollment_expired: "This enrollment token expired.",
