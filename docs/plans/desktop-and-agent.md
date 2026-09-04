@@ -390,3 +390,13 @@ Critères d'acceptation.
 1. Une release embarquée sans signature n'empêche plus la mise à jour quand la plateforme répond.
 2. Plateforme muette et release sans signature : le bandeau explique, il ne prétend pas pouvoir.
 
+### APP-25 — L'app lit le port libre dans le remède, pas dans la phrase
+Lot 2 · dépend de INF-15 · `apps/desktop`
+
+But. L'app cesse d'extraire un entier d'une phrase française.
+Périmètre. INF-15 a ajouté `remedy` aux erreurs du protocole, avec aujourd'hui un seul membre : `{ code: "port_taken", port_free }`. `portFromFix` dans `lib/project-draft.ts` lit pourtant toujours le nombre dans le texte du `fix`. Basculer sur le champ structuré et retirer la lecture par expression régulière. Ajouter aussi `project.detect` à `LONG_COMMANDS` d'`agent-client.ts` : elle clone un dépôt et tombe sinon sur le délai standard.
+Hors périmètre. La commande et l'agent, livrés par INF-15.
+Critères d'acceptation.
+1. Un port déjà pris propose le port libre sans qu'aucune expression régulière ne lise une phrase.
+2. Une détection qui clone un dépôt lent n'est plus coupée par le délai standard.
+

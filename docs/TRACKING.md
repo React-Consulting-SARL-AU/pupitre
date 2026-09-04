@@ -19,12 +19,12 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-12 | Contrat : les releases de l'app | fait | `feat/INF-12-app-releases` | fusionnée |
 | INF-13 | Le quota gratuit vit dans le contrat partagé | fait | `main` | constante unique dans `@pupitre/shared/plans` |
 | INF-14 | La langue de l'utilisateur est enregistrée | fait | `feat/INF-14-user-locale` | fusionnée |
-| INF-15 | Contrat : détecter le gestionnaire d'un dépôt | en revue | `feat/INF-15-project-detect` | |
+| INF-15 | Contrat : détecter le gestionnaire d'un dépôt | fait | `feat/INF-15-project-detect` | fusionnée |
 | INF-17 | Contrat : lire la valeur d'un identifiant de service | fait | `feat/INF-17-secret-value` | fusionnée |
 | INF-18 | Contrat : la plateforme publie l'empreinte et refuse le retour en arrière | fait | `feat/INF-18-release-floor` | fusionnée |
 | INF-19 | Contrat : `/status` dit depuis quand il sait | fait | `feat/INF-19-status-freshness` | fusionnée |
 | INF-20 | Contrat : le contenu d'une capture | fait | `feat/INF-20-shot-url` | fusionnée |
-| INF-21 | Contrat : l'app remet le jeton d'enrôlement à l'agent | en revue | `feat/INF-21-enroll` | |
+| INF-21 | Contrat : l'app remet le jeton d'enrôlement à l'agent | fait | `feat/INF-21-enroll` | fusionnée |
 | INF-16 | Contrat : le chemin absolu d'un projet | fait | `feat/INF-16-project-path` | fusionnée |
 | INF-11 | Contrat : le verdict de la sonde | fait | `feat/INF-11-probe-contract` | fusionnée |
 
@@ -77,6 +77,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-22 | L'écran Services révèle une vraie valeur | à faire | | |
 | APP-23 | La galerie affiche vraiment les captures | à faire | | |
 | APP-24 | L'app se fie à la plateforme pour la signature | à faire | | |
+| APP-25 | L'app lit le port libre dans le remède, pas dans la phrase | à faire | | |
 | APP-20 | L'app parle deux langues | à faire | | |
 
 ## Plateforme — `PLT`
@@ -124,5 +125,6 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
+| 2026-09-05 | INF-21 | Un serveur **enrôlé mais restreint** ne peut pas se ré-enrôler : le contrat fige six commandes en mode restreint et `enroll` n'en fait pas partie. Le chemin de reprise passe donc par la console. Si l'app doit pouvoir réparer un serveur dont le jeton a été perdu ou révoqué, il faut ajouter `enroll` au mode restreint — un changement de contrat, sans perte de sûreté puisqu'un jeton d'enrôlement vient d'un compte authentifié. | propriétaire |
 | 2026-09-05 | APP-13 | Le preload ne peut pas être compilé en bytecode : Electron le charge dans le processus de rendu, dont le V8 refuse les données de cache produites par l'isolat Node du compilateur, et la fenêtre s'ouvre alors sans son pont — constaté par Playwright. Le processus principal, lui, l'est, et c'est là que vivent la logique et le jeton de mise à jour. Rien à décider dans l'immédiat : c'est une limite d'Electron, consignée pour qu'on ne la redécouvre pas. | pour information |
 | 2026-09-05 | APP-14 · AGT-15 | La clé publique qui vérifie une release doit être **la même** dans l'agent (`selfupdate.releasePublicKey`, injectée au build) et dans l'app (`AGENT_RELEASE_PUBLIC_KEY`, vide aujourd'hui). Elle est dérivée d'une clé privée que le propriétaire garde hors ligne. Décider : une seule clé publique de release, stable dans le temps, embarquée aux deux endroits et documentée dans le runbook. Sans elle, la vérification est en place mais rien ne la nourrit. | propriétaire |
