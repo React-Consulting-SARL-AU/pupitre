@@ -414,6 +414,7 @@ export const ModelName = {
   Subscription: 'Subscription',
   OrganizationBilling: 'OrganizationBilling',
   Release: 'Release',
+  AppRelease: 'AppRelease',
   Event: 'Event',
   StripeEvent: 'StripeEvent'
 } as const
@@ -431,7 +432,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "deviceCode" | "passkey" | "twoFactor" | "device" | "server" | "alert" | "serverRevokedDevice" | "subscription" | "organizationBilling" | "release" | "event" | "stripeEvent"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "deviceCode" | "passkey" | "twoFactor" | "device" | "server" | "alert" | "serverRevokedDevice" | "subscription" | "organizationBilling" | "release" | "appRelease" | "event" | "stripeEvent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1693,6 +1694,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AppRelease: {
+      payload: Prisma.$AppReleasePayload<ExtArgs>
+      fields: Prisma.AppReleaseFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AppReleaseFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AppReleasePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AppReleaseFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AppReleasePayload>
+        }
+        findFirst: {
+          args: Prisma.AppReleaseFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AppReleasePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AppReleaseFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AppReleasePayload>
+        }
+        findMany: {
+          args: Prisma.AppReleaseFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AppReleasePayload>[]
+        }
+        create: {
+          args: Prisma.AppReleaseCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AppReleasePayload>
+        }
+        createMany: {
+          args: Prisma.AppReleaseCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AppReleaseCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AppReleasePayload>[]
+        }
+        delete: {
+          args: Prisma.AppReleaseDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AppReleasePayload>
+        }
+        update: {
+          args: Prisma.AppReleaseUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AppReleasePayload>
+        }
+        deleteMany: {
+          args: Prisma.AppReleaseDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AppReleaseUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AppReleaseUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AppReleasePayload>[]
+        }
+        upsert: {
+          args: Prisma.AppReleaseUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AppReleasePayload>
+        }
+        aggregate: {
+          args: Prisma.AppReleaseAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAppRelease>
+        }
+        groupBy: {
+          args: Prisma.AppReleaseGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AppReleaseGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AppReleaseCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AppReleaseCountAggregateOutputType> | number
+        }
+      }
+    }
     Event: {
       payload: Prisma.$EventPayload<ExtArgs>
       fields: Prisma.EventFieldRefs
@@ -2132,6 +2207,21 @@ export const ReleaseScalarFieldEnum = {
 export type ReleaseScalarFieldEnum = (typeof ReleaseScalarFieldEnum)[keyof typeof ReleaseScalarFieldEnum]
 
 
+export const AppReleaseScalarFieldEnum = {
+  version: 'version',
+  os: 'os',
+  arch: 'arch',
+  url: 'url',
+  sha256: 'sha256',
+  signature: 'signature',
+  notes: 'notes',
+  channel: 'channel',
+  publishedAt: 'publishedAt'
+} as const
+
+export type AppReleaseScalarFieldEnum = (typeof AppReleaseScalarFieldEnum)[keyof typeof AppReleaseScalarFieldEnum]
+
+
 export const EventScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -2322,6 +2412,20 @@ export type ListEnumBillingIntervalFieldRefInput<$PrismaModel> = FieldRefInputTy
 
 
 /**
+ * Reference to a field of type 'DesktopOs'
+ */
+export type EnumDesktopOsFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DesktopOs'>
+    
+
+
+/**
+ * Reference to a field of type 'DesktopOs[]'
+ */
+export type ListEnumDesktopOsFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DesktopOs[]'>
+    
+
+
+/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -2502,6 +2606,7 @@ export type GlobalOmitConfig = {
   subscription?: Prisma.SubscriptionOmit
   organizationBilling?: Prisma.OrganizationBillingOmit
   release?: Prisma.ReleaseOmit
+  appRelease?: Prisma.AppReleaseOmit
   event?: Prisma.EventOmit
   stripeEvent?: Prisma.StripeEventOmit
 }

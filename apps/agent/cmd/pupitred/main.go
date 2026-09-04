@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"pupitre.studio/agent/internal/devcli"
 	"pupitre.studio/agent/internal/entitlement"
 	"pupitre.studio/agent/internal/modules"
 	_ "pupitre.studio/agent/internal/modules/ai"
@@ -53,6 +54,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return runReport(newEngine(), stdout, stderr)
 	case "probe":
 		return runProbe(probeOptions(newEngine()), args[1:], stdout, stderr)
+	case devcli.Command:
+		return devcli.Run(devcli.Options{Server: newServer(newEngine()), Tmux: stateOptions().Tmux}, args[1:], stdout, stderr)
 	case shots.Command:
 		return runShot(state.FromEngine(newEngine(), stateOptions()), args[1:], stdout, stderr)
 	case "gallery":
@@ -64,7 +67,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 }
 
 func usage(stderr io.Writer) {
-	fmt.Fprintln(stderr, "usage: pupitred <serve|install [--only=id,id] [--skip=id,id]|probe [--script] [--projects=DIR]|report|shot|gallery|version>")
+	fmt.Fprintln(stderr, "usage: pupitred <serve|install [--only=id,id] [--skip=id,id]|probe [--script] [--projects=DIR]|report|dev|shot|gallery|version>")
 }
 
 func newServer(engine *modules.Engine) *protocol.Server {

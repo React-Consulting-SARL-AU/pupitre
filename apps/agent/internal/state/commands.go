@@ -83,6 +83,17 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 		return reader.ServiceStatus(params.ID)
 	})
 
+	server.Register("completions", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			Path string `json:"path"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		return reader.Completions(params.Path)
+	})
+
 	server.Register("project.list", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
 		return listResult{Projects: reader.List()}, nil
 	})

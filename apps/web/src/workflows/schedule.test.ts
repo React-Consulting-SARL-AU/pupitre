@@ -15,6 +15,7 @@ function envRecording(started: string[]): CloudflareEnv {
     EXPIRE_ENROLLMENTS: workflow("expire-enrollments"),
     DECOMMISSION_SERVER: workflow("decommission-server"),
     RECONCILE_SEATS: workflow("reconcile-seats"),
+    EVALUATE_ALERTS: workflow("evaluate-alerts"),
   } as unknown as CloudflareEnv
 }
 
@@ -41,6 +42,14 @@ describe("les cron triggers", () => {
     await runScheduledWorkflow("40 3 * * *", env)
 
     expect(started).toEqual(["decommission-server", "reconcile-seats"])
+  })
+
+  it("démarre l'évaluation des alertes toutes les cinq minutes", async () => {
+    const started: string[] = []
+
+    await runScheduledWorkflow("*/5 * * * *", envRecording(started))
+
+    expect(started).toEqual(["evaluate-alerts"])
   })
 
   it("ne démarre rien sur un cron inconnu", async () => {

@@ -33,10 +33,15 @@
       "name": "pupitre-reconcile-seats",
       "binding": "RECONCILE_SEATS",
       "class_name": "ReconcileSeats"
+    },
+    {
+      "name": "pupitre-evaluate-alerts",
+      "binding": "EVALUATE_ALERTS",
+      "class_name": "EvaluateAlerts"
     }
   ],
   "triggers": {
-    "crons": ["0 * * * *", "20 3 * * *", "40 3 * * *"]
+    "crons": ["0 * * * *", "20 3 * * *", "40 3 * * *", "*/5 * * * *"]
   },
   "vars": {},
   "secrets": {

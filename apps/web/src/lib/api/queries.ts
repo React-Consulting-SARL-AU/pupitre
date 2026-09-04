@@ -21,6 +21,7 @@ export const queryKeys = {
   events: (organizationId: string, page: EventPageQuery) =>
     ["events", organizationId, page] as const,
   latestRelease: ["releases", "latest"] as const,
+  latestAppRelease: ["releases", "app", "latest"] as const,
   status: ["status"] as const,
 }
 
@@ -124,6 +125,28 @@ export function latestReleaseQueryOptions() {
             query: { channel: "stable" },
           })
         )
+      } catch (error) {
+        if (error instanceof ApiError && error.status === NOT_FOUND) {
+          return null
+        }
+
+        throw error
+      }
+    },
+    retry: false,
+  })
+}
+
+export function latestAppReleaseQueryOptions() {
+  return queryOptions({
+    queryKey: queryKeys.latestAppRelease,
+    queryFn: async () => {
+      try {
+        return unwrap(
+          await api().api.v1.releases.app.latest.get({
+            query: { channel: "stable" },
+          })
+        ).data
       } catch (error) {
         if (error instanceof ApiError && error.status === NOT_FOUND) {
           return null

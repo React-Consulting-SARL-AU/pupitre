@@ -1,32 +1,41 @@
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
+import { formatDateTime } from "@/lib/utils/format"
 
-export interface ReleaseNotesCardProps {
-  version: string | null
+export interface PublishedRelease {
+  version: string
+  notes: string
+  published_at: string
 }
 
-export function ReleaseNotesCard({ version }: ReleaseNotesCardProps) {
+export interface ReleaseNotesCardProps {
+  release: PublishedRelease | null
+}
+
+function paragraphs(notes: string): string[] {
+  return notes
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+}
+
+export function ReleaseNotesCard({ release }: ReleaseNotesCardProps) {
   return (
     <Card>
       <CardHeader>
         <CardTitle>Notes de version</CardTitle>
-        {version ? (
+        {release ? (
           <span className="font-data text-[12px] text-ink-2 tabular-nums">
-            {version}
+            {release.version} · {formatDateTime(release.published_at)}
           </span>
         ) : null}
       </CardHeader>
       <CardBody className="flex flex-col gap-2">
-        {version ? (
-          <>
-            <p className="text-[13px] text-ink-2">
-              L'app et l'agent sortent sur la même version : l'app installe
-              l'agent qu'elle sait piloter.
+        {release ? (
+          paragraphs(release.notes).map((line) => (
+            <p className="text-[13px] text-ink-2" key={line}>
+              {line}
             </p>
-            <p className="text-[13px] text-ink-3">
-              Le détail des changements est publié dans le changelog du site à
-              chaque version.
-            </p>
-          </>
+          ))
         ) : (
           <p className="text-[13px] text-ink-2">
             Aucune version n'a encore été publiée : il n'y a donc rien à

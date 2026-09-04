@@ -7,6 +7,7 @@ import { handleApiRequest } from "@pupitre/api/server"
 import serverEntry from "@tanstack/react-start/server-entry"
 import { API_PREFIX } from "./lib/config/urls"
 import { runDecommissionServer } from "./workflows/decommission-server"
+import { runEvaluateAlerts } from "./workflows/evaluate-alerts"
 import { runExpireEnrollments } from "./workflows/expire-enrollments"
 import {
   handleInternalWorkflowTrigger,
@@ -18,7 +19,7 @@ import { runScheduledWorkflow } from "./workflows/schedule"
 type CronEvent = Readonly<WorkflowEvent<unknown>>
 
 // Cloudflare resolves a workflow binding against a class exported by the
-// worker entry: these three shells cannot move into `workflows/`.
+// worker entry: these shells cannot move into `workflows/`.
 export class ExpireEnrollments extends WorkflowEntrypoint<CloudflareEnv> {
   override run(_event: CronEvent, step: WorkflowStep) {
     return runExpireEnrollments(step)
@@ -34,6 +35,12 @@ export class DecommissionServer extends WorkflowEntrypoint<CloudflareEnv> {
 export class ReconcileSeats extends WorkflowEntrypoint<CloudflareEnv> {
   override run(_event: CronEvent, step: WorkflowStep) {
     return runReconcileSeats(step)
+  }
+}
+
+export class EvaluateAlerts extends WorkflowEntrypoint<CloudflareEnv> {
+  override run(_event: CronEvent, step: WorkflowStep) {
+    return runEvaluateAlerts(step)
   }
 }
 

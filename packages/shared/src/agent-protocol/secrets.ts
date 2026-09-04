@@ -24,6 +24,12 @@ export const SecretsSetParamsSchema = z.strictObject({
 
 export type SecretsSetParams = z.infer<typeof SecretsSetParamsSchema>
 
+export const SecretsSetSecretsSchema = z
+  .record(SecretKeySchema, z.string().min(1))
+  .refine((values) => Object.keys(values).length === 1)
+
+export type SecretsSetSecrets = z.infer<typeof SecretsSetSecretsSchema>
+
 export const SecretsSyncParamsSchema = z.strictObject({
   project: ProjectNameSchema,
 })

@@ -44,7 +44,7 @@ Chaque module implémente `Check`, `Install`, `Configure`, `Upgrade`, `Uninstall
 
 | Id | Fait | Champs |
 | --- | --- | --- |
-| `core.system` | paquets de base, fuseau, mises à jour de sécurité automatiques sans redémarrage, swap dimensionné, garde-fou mémoire (`systemd-oomd` ou `earlyoom`), utilisateur `dev` avec sudo, dont `authorized_keys` reçoit les clés non restreintes de root pour qu'une clé l'ouvre avant le durcissement, tmux, zsh avec les marqueurs de prompt (OSC 133) lus par l'app, identité git | `timezone`, `git_name`, `git_email`, `projects_dir` |
+| `core.system` | paquets de base, fuseau, mises à jour de sécurité automatiques sans redémarrage, swap dimensionné, garde-fou mémoire (`systemd-oomd` ou `earlyoom`), utilisateur `dev` avec sudo, dont `authorized_keys` reçoit les clés non restreintes de root pour qu'une clé l'ouvre avant le durcissement, tmux, zsh et bash avec les marqueurs de prompt (OSC 133) lus par l'app, commande `dev` liée au binaire, identité git | `timezone`, `git_name`, `git_email`, `projects_dir` |
 | `core.hardening` | ufw sur SSH seul (22, et 443 en option), fail2ban, root fermé et mots de passe désactivés **après** vérification qu'une clé ouvre `dev`, `AllowUsers dev`, `ClientAlive` | `ssh_443` (boolean) |
 
 ### Runtimes
@@ -112,3 +112,7 @@ Visual Studio n'a pas de backend Linux : l'app le dit et renvoie vers `editor.vs
 ## Source des étapes
 
 `server/bootstrap.sh` et `server/bin/dev` décrivent, en bash et zsh, ce que chaque module reproduit : ordre, options apt (`DPkg::Lock::Timeout`), fermeture de root en dernier, rapport de fin, commandes de pilotage. Les agents lisent ces fichiers comme une spécification, pas comme du code à appeler.
+
+### Le champ `version` des éditeurs reste du texte libre
+
+Les modules d'éditeurs distants exposent `version` en `text`, avec `latest` par défaut, et non le genre `version` à liste fermée. Aucune liste ne tiendrait : le serveur distant de Zed doit correspondre exactement à la version du client installé sur le laptop, et un backend JetBrains à celle du Gateway. Une liste d'options serait fausse le jour de la première mise à jour de l'éditeur, côté client, sans que nous en sachions rien.

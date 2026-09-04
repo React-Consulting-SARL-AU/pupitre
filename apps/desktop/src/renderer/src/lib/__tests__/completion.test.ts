@@ -24,6 +24,10 @@ const GRAMMAR: CompletionsResult = {
       name: "logs",
     },
   ],
+  projects: ["flymate-api", "atlas-web"],
+  root: "/home/dev/projects",
+  path: "",
+  paths: ["flymate/", "atlas/"],
 };
 
 const SOURCES = {

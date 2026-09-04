@@ -44,6 +44,13 @@ const FR = {
     "La version {version} ({arch}) est déjà publiée avec une autre empreinte.",
   release_conflict_fix:
     "Publiez un nouveau numéro de version : une version déjà publiée n'est jamais réécrite.",
+  app_release_not_found: "Aucune version de l'app n'est publiée ici.",
+  app_release_not_found_fix:
+    "Attendez la première release signée, ou demandez un autre canal : GET /releases/app/latest?channel=beta.",
+  app_release_conflict:
+    "La version {version} ({os}) de l'app est déjà publiée avec une autre empreinte.",
+  app_release_conflict_fix:
+    "Publiez un nouveau numéro de version : une version déjà publiée n'est jamais réécrite.",
   release_url_signed:
     "Redirection vers le binaire signé sur R2, valable {seconds} secondes.",
   release_url_local:
@@ -136,6 +143,13 @@ const EN: Record<MessageKey, string> = {
   release_conflict:
     "Version {version} ({arch}) is already published with another fingerprint.",
   release_conflict_fix:
+    "Publish a new version number: a published version is never rewritten.",
+  app_release_not_found: "No version of the app is published here.",
+  app_release_not_found_fix:
+    "Wait for the first signed release, or ask for another channel: GET /releases/app/latest?channel=beta.",
+  app_release_conflict:
+    "Version {version} ({os}) of the app is already published with another fingerprint.",
+  app_release_conflict_fix:
     "Publish a new version number: a published version is never rewritten.",
   release_url_signed:
     "Redirecting to the signed binary on R2, valid for {seconds} seconds.",

@@ -1,8 +1,8 @@
 import { ReleaseChannel } from "@pupitre/db/cloudflare/enums"
 import { ARCHITECTURES } from "@pupitre/shared/catalog"
+import { SEMVER_PATTERN } from "@pupitre/shared/releases"
 import { t } from "elysia"
 import { DEFAULT_ARCH } from "../../releases/releases"
-import { SEMVER_PATTERN } from "../../releases/semver"
 import { dateTime } from "../openapi-models"
 import {
   architectureSchema,
