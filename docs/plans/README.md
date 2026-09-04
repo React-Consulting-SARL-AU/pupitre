@@ -117,3 +117,14 @@ But. Ce que les agents réutilisent d'une tâche à l'autre.
 Périmètre. `.claude/skills/elysia-api-routes` (structure des routes, `requireOrg`, `hasPermission`, `serializeData`), `.claude/skills/agent-modules` (écrire un module Go idempotent, le tester sur le staging), `.claude/skills/desktop-screens` (un écran de l'app : store, IPC, composant, test), `.claude/skills/release` (tag, builds, notarisation, publication), `.claude/launch.json` (`site`, `web`, `desktop`), `.claude/settings.json` (permissions `bun run *`, `bun test *`, `go test *`).
 Critères d'acceptation.
 1. Chaque skill a un frontmatter `name` et `description` et cite les fichiers qu'il gouverne.
+
+### INF-07 — Contrat : champs booléens et listes dans le catalogue
+Lot 0 · dépend de INF-04 · `packages/shared`, `docs/contracts/service-catalog.md`
+
+But. Le manifeste de module sait décrire une case à cocher et une liste de valeurs, dont le catalogue a besoin (`runtime.node.bun`, `core.hardening.ssh_443`, `ai.hermes.providers[]`, `editor.vscode.extensions[]`).
+Périmètre. Ajouter les kinds `boolean` (avec `default`) et `list` (éléments `text` ou `secret`, `min`, `max`) au type `Field` du contrat et au schéma Zod, régénérer le JSON Schema, mettre à jour les tests et le tableau des champs de `service-catalog.md`.
+Hors périmètre. Tout module, tout écran.
+Critères d'acceptation.
+1. Un manifeste avec un champ `boolean` et un champ `list` de secrets est validé ; un `list` sans `items` est rejeté.
+2. `bun run contracts:check` passe après régénération.
+

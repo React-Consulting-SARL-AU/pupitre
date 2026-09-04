@@ -1,0 +1,3115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pupitre.sh/contracts/agent/schema.json",
+  "title": "Pupitre agent contract",
+  "protocol": 1,
+  "$defs": {
+    "Request": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "cmd": {
+          "type": "string",
+          "minLength": 1
+        },
+        "params": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {}
+        }
+      },
+      "required": [
+        "id",
+        "cmd"
+      ]
+    },
+    "Event": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "event": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "id",
+        "event"
+      ],
+      "additionalProperties": {}
+    },
+    "LogEvent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "event": {
+          "type": "string",
+          "const": "log"
+        },
+        "line": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "event",
+        "line"
+      ]
+    },
+    "StepEvent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "event": {
+          "type": "string",
+          "const": "step"
+        },
+        "module": {
+          "type": "string"
+        },
+        "step": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "start",
+            "ok",
+            "skip",
+            "fail"
+          ]
+        },
+        "ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "replay": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "event",
+        "module",
+        "step",
+        "status",
+        "ms"
+      ]
+    },
+    "Response": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "ok": {
+              "type": "boolean",
+              "const": true
+            },
+            "result": {}
+          },
+          "required": [
+            "id",
+            "ok",
+            "result"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "ok": {
+              "type": "boolean",
+              "const": false
+            },
+            "error": {
+              "$ref": "#/$defs/ProtocolError"
+            }
+          },
+          "required": [
+            "id",
+            "ok",
+            "error"
+          ]
+        }
+      ]
+    },
+    "ProtocolError": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/ErrorCode"
+        },
+        "message": {
+          "type": "string"
+        },
+        "fix": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ]
+    },
+    "ErrorCode": {
+      "type": "string",
+      "enum": [
+        "hello_required",
+        "protocol_mismatch",
+        "bad_request",
+        "unknown_command",
+        "entitlement_required",
+        "project_not_found",
+        "module_not_found",
+        "module_failed",
+        "service_not_found",
+        "secrets_required",
+        "bad_signature",
+        "busy",
+        "internal"
+      ]
+    },
+    "HelloParams": {
+      "type": "object",
+      "properties": {
+        "app_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "protocol": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "app_version",
+        "protocol"
+      ],
+      "additionalProperties": false
+    },
+    "HelloResult": {
+      "type": "object",
+      "properties": {
+        "agent_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "protocol": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "server_id": {
+          "type": "string"
+        },
+        "entitlement": {
+          "type": "string",
+          "enum": [
+            "valid",
+            "grace",
+            "restricted",
+            "dev"
+          ]
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "agent_version",
+        "protocol",
+        "entitlement",
+        "capabilities"
+      ]
+    },
+    "PingParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "PingResult": {
+      "type": "object",
+      "properties": {
+        "ts": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "ts"
+      ]
+    },
+    "ProbeParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "ProbeResult": {
+      "type": "object",
+      "properties": {
+        "os": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "arch": {
+          "type": "string",
+          "enum": [
+            "amd64",
+            "arm64"
+          ]
+        },
+        "ram_mb": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "disk_free_gb": {
+          "type": "number",
+          "minimum": 0
+        },
+        "sudo": {
+          "type": "boolean"
+        },
+        "ports": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              },
+              "process": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "port"
+            ]
+          }
+        },
+        "docker": {
+          "type": "boolean"
+        },
+        "panel": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "agent_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "installed_modules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "verdict": {
+          "type": "object",
+          "properties": {
+            "level": {
+              "type": "string",
+              "enum": [
+                "ready",
+                "warning",
+                "blocked"
+              ]
+            },
+            "reasons": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "level",
+            "reasons"
+          ]
+        }
+      },
+      "required": [
+        "os",
+        "version",
+        "arch",
+        "ram_mb",
+        "disk_free_gb",
+        "sudo",
+        "ports",
+        "docker",
+        "panel",
+        "agent_version",
+        "installed_modules",
+        "verdict"
+      ]
+    },
+    "CatalogParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "CatalogResult": {
+      "type": "object",
+      "properties": {
+        "modules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Manifest"
+          }
+        },
+        "presets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Preset"
+          }
+        }
+      },
+      "required": [
+        "modules",
+        "presets"
+      ]
+    },
+    "InstallParams": {
+      "type": "object",
+      "properties": {
+        "modules": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "config": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          }
+        },
+        "secrets_stdin": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "modules",
+        "config",
+        "secrets_stdin"
+      ],
+      "additionalProperties": false
+    },
+    "InstallResult": {
+      "type": "object",
+      "properties": {
+        "failed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warned": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "report_path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "failed",
+        "warned",
+        "report_path"
+      ]
+    },
+    "UninstallParams": {
+      "type": "object",
+      "properties": {
+        "modules": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "modules"
+      ],
+      "additionalProperties": false
+    },
+    "UninstallResult": {
+      "type": "object",
+      "properties": {
+        "failed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "failed"
+      ]
+    },
+    "HardenParams": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string",
+          "const": "dev"
+        }
+      },
+      "required": [
+        "user"
+      ],
+      "additionalProperties": false
+    },
+    "HardenResult": {
+      "type": "object",
+      "properties": {
+        "root_closed": {
+          "type": "boolean"
+        },
+        "next_user": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "root_closed",
+        "next_user"
+      ]
+    },
+    "UpgradeParams": {
+      "type": "object",
+      "properties": {
+        "modules": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "UpgradeResult": {
+      "type": "object",
+      "properties": {
+        "failed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warned": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "report_path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "failed",
+        "warned",
+        "report_path"
+      ]
+    },
+    "ReportParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "ReportResult": {
+      "type": "object",
+      "properties": {
+        "started_at": {
+          "type": "string"
+        },
+        "finished_at": {
+          "type": "string"
+        },
+        "agent_version": {
+          "type": "string"
+        },
+        "modules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "ok",
+                  "skip",
+                  "warn",
+                  "fail"
+                ]
+              },
+              "steps": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "step": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "start",
+                        "ok",
+                        "skip",
+                        "fail"
+                      ]
+                    },
+                    "ms": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "replay": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "step",
+                    "status",
+                    "ms"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "id",
+              "status",
+              "steps"
+            ]
+          }
+        },
+        "failed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warned": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "report_path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "started_at",
+        "finished_at",
+        "agent_version",
+        "modules",
+        "failed",
+        "warned",
+        "report_path"
+      ]
+    },
+    "SnapshotParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "SnapshotResult": {
+      "type": "object",
+      "properties": {
+        "machine": {
+          "type": "object",
+          "properties": {
+            "hostname": {
+              "type": "string"
+            },
+            "os": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "arch": {
+              "type": "string",
+              "enum": [
+                "amd64",
+                "arm64"
+              ]
+            },
+            "cores": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "uptime_s": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "load": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "items": false,
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "ram_total_mb": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "ram_used_mb": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "swap_mb": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "disk_total_gb": {
+              "type": "number",
+              "minimum": 0
+            },
+            "disk_free_gb": {
+              "type": "number",
+              "minimum": 0
+            },
+            "agent_version": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "hostname",
+            "os",
+            "version",
+            "arch",
+            "cores",
+            "uptime_s",
+            "load",
+            "ram_total_mb",
+            "ram_used_mb",
+            "swap_mb",
+            "disk_total_gb",
+            "disk_free_gb",
+            "agent_version"
+          ]
+        },
+        "services": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "running",
+                  "stopped",
+                  "failed",
+                  "unknown"
+                ]
+              },
+              "version": {
+                "type": "string"
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              },
+              "unit": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "state"
+            ]
+          }
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ProjectAddResult"
+          }
+        },
+        "sessions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "pid": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "seconds": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "ram_mb": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "claude",
+                  "codex",
+                  "hermes",
+                  "shell"
+                ]
+              },
+              "project": {
+                "type": "string"
+              },
+              "command": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "pid",
+              "seconds",
+              "ram_mb",
+              "kind",
+              "command"
+            ]
+          }
+        },
+        "entitlement": {
+          "type": "string",
+          "enum": [
+            "valid",
+            "grace",
+            "restricted",
+            "dev"
+          ]
+        }
+      },
+      "required": [
+        "machine",
+        "services",
+        "projects",
+        "sessions",
+        "entitlement"
+      ]
+    },
+    "StatusParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "StatusResult": {
+      "type": "object",
+      "properties": {
+        "services": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "running",
+                  "stopped",
+                  "failed",
+                  "unknown"
+                ]
+              },
+              "version": {
+                "type": "string"
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              },
+              "unit": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "state"
+            ]
+          }
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ProjectAddResult"
+          }
+        }
+      },
+      "required": [
+        "services",
+        "projects"
+      ]
+    },
+    "ServiceStatusParams": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "ServiceStatusResult": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "running",
+            "stopped",
+            "failed",
+            "unknown"
+          ]
+        },
+        "version": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "unit": {
+          "type": "string"
+        },
+        "credentials": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "state"
+      ]
+    },
+    "CompletionsParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "CompletionsResult": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string"
+        },
+        "sub": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "help": {
+                "type": "string"
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "required": [
+              "name",
+              "help",
+              "args"
+            ]
+          }
+        }
+      },
+      "required": [
+        "command",
+        "sub"
+      ]
+    },
+    "ProjectListParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "ProjectListResult": {
+      "type": "object",
+      "properties": {
+        "projects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ProjectAddResult"
+          }
+        }
+      },
+      "required": [
+        "projects"
+      ]
+    },
+    "ProjectAddParams": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "dir": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repo": {
+          "type": "string"
+        },
+        "pkgmgr": {
+          "type": "string",
+          "enum": [
+            "bun",
+            "pnpm",
+            "npm",
+            "gradle",
+            "uv",
+            "service",
+            "none"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "subdomain": {
+          "type": "string"
+        },
+        "cmd": {
+          "type": "string",
+          "minLength": 1
+        },
+        "install": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "dir",
+        "pkgmgr",
+        "host",
+        "port",
+        "cmd"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectAddResult": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "dir": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repo": {
+          "type": "string"
+        },
+        "pkgmgr": {
+          "type": "string",
+          "enum": [
+            "bun",
+            "pnpm",
+            "npm",
+            "gradle",
+            "uv",
+            "service",
+            "none"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "subdomain": {
+          "type": "string"
+        },
+        "cmd": {
+          "type": "string",
+          "minLength": 1
+        },
+        "install": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "online",
+            "starting",
+            "failed",
+            "stopped",
+            "external",
+            "service"
+          ]
+        },
+        "url": {
+          "type": "string"
+        },
+        "branch": {
+          "type": "string"
+        },
+        "pid": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "ram_mb": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "uptime_s": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "name",
+        "dir",
+        "pkgmgr",
+        "host",
+        "port",
+        "cmd",
+        "state"
+      ]
+    },
+    "ProjectRemoveParams": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectRemoveResult": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "dir": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "dir"
+      ]
+    },
+    "ProjectUpParams": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[a-z0-9][a-z0-9._-]*$"
+            },
+            {
+              "type": "string",
+              "const": "all"
+            }
+          ]
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectUpResult": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "online",
+            "starting",
+            "failed",
+            "stopped",
+            "external",
+            "service"
+          ]
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^[a-z0-9][a-z0-9._-]*$"
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "online",
+                  "starting",
+                  "failed",
+                  "stopped",
+                  "external",
+                  "service"
+                ]
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              }
+            },
+            "required": [
+              "name",
+              "state"
+            ]
+          }
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "ProjectDownParams": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[a-z0-9][a-z0-9._-]*$"
+            },
+            {
+              "type": "string",
+              "const": "all"
+            }
+          ]
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectDownResult": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "online",
+            "starting",
+            "failed",
+            "stopped",
+            "external",
+            "service"
+          ]
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^[a-z0-9][a-z0-9._-]*$"
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "online",
+                  "starting",
+                  "failed",
+                  "stopped",
+                  "external",
+                  "service"
+                ]
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              }
+            },
+            "required": [
+              "name",
+              "state"
+            ]
+          }
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "ProjectRestartParams": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[a-z0-9][a-z0-9._-]*$"
+            },
+            {
+              "type": "string",
+              "const": "all"
+            }
+          ]
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectRestartResult": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "online",
+            "starting",
+            "failed",
+            "stopped",
+            "external",
+            "service"
+          ]
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^[a-z0-9][a-z0-9._-]*$"
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "online",
+                  "starting",
+                  "failed",
+                  "stopped",
+                  "external",
+                  "service"
+                ]
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              }
+            },
+            "required": [
+              "name",
+              "state"
+            ]
+          }
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "ProjectLogsParams": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "lines": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "follow": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectLogsResult": {
+      "type": "object",
+      "properties": {
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "lines"
+      ]
+    },
+    "ProjectSyncParams": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectSyncResult": {
+      "type": "object",
+      "properties": {
+        "pulled": {
+          "type": "boolean"
+        },
+        "installed": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "online",
+            "starting",
+            "failed",
+            "stopped",
+            "external",
+            "service"
+          ]
+        }
+      },
+      "required": [
+        "pulled",
+        "installed",
+        "state"
+      ]
+    },
+    "ProjectInstallParams": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectInstallResult": {
+      "type": "object",
+      "properties": {
+        "done": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "required": [
+        "done"
+      ]
+    },
+    "ProjectEnvParams": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "force": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectEnvResult": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "written": {
+          "type": "boolean"
+        },
+        "keys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "path",
+        "written",
+        "keys"
+      ]
+    },
+    "ProjectBranchesParams": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectBranchesResult": {
+      "type": "object",
+      "properties": {
+        "repo": {
+          "type": "boolean"
+        },
+        "root": {
+          "type": "string"
+        },
+        "current": {
+          "type": "string"
+        },
+        "dirty": {
+          "type": "boolean"
+        },
+        "local": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "remote": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "repo",
+        "root",
+        "current",
+        "dirty",
+        "local",
+        "remote"
+      ]
+    },
+    "ProjectCheckoutParams": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "branch": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "name",
+        "branch"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectCheckoutResult": {
+      "type": "object",
+      "properties": {
+        "branch": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "branch"
+      ]
+    },
+    "ProjectGitStatusParams": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectGitStatusResult": {
+      "type": "object",
+      "properties": {
+        "repo": {
+          "type": "boolean"
+        },
+        "root": {
+          "type": "string"
+        },
+        "current": {
+          "type": "string"
+        },
+        "upstream": {
+          "type": "string"
+        },
+        "behind": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "ahead": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "dirty": {
+          "type": "boolean"
+        },
+        "changed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "last": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "subject": {
+          "type": "string"
+        },
+        "problem": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "repo",
+        "root",
+        "current",
+        "upstream",
+        "behind",
+        "ahead",
+        "dirty",
+        "changed",
+        "last",
+        "subject",
+        "problem"
+      ]
+    },
+    "ProjectWorkingTreeParams": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectWorkingTreeResult": {
+      "type": "object",
+      "properties": {
+        "repo": {
+          "type": "boolean"
+        },
+        "root": {
+          "type": "string"
+        },
+        "branch": {
+          "type": "string"
+        },
+        "upstream": {
+          "type": "string"
+        },
+        "ahead": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "behind": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "code": {
+                "type": "string"
+              },
+              "stage": {
+                "type": "string",
+                "enum": [
+                  "staged",
+                  "unstaged",
+                  "untracked"
+                ]
+              },
+              "added": {
+                "type": "integer",
+                "minimum": -1,
+                "maximum": 9007199254740991
+              },
+              "removed": {
+                "type": "integer",
+                "minimum": -1,
+                "maximum": 9007199254740991
+              },
+              "binary": {
+                "type": "boolean"
+              },
+              "from": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "code",
+              "stage",
+              "added",
+              "removed",
+              "binary"
+            ]
+          }
+        }
+      },
+      "required": [
+        "repo",
+        "root",
+        "branch",
+        "upstream",
+        "ahead",
+        "behind",
+        "files"
+      ]
+    },
+    "ProjectDiffParams": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "name",
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectDiffResult": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "patch": {
+          "type": "string"
+        },
+        "binary": {
+          "type": "boolean"
+        },
+        "problem": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "patch",
+        "binary",
+        "problem"
+      ]
+    },
+    "ProjectUrlParams": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectUrlResult": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ]
+    },
+    "ProjectDebugParams": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectDebugResult": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "online",
+            "starting",
+            "failed",
+            "stopped",
+            "external",
+            "service"
+          ]
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "debug_port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        }
+      },
+      "required": [
+        "state",
+        "debug_port"
+      ]
+    },
+    "AgentOpenParams": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "claude",
+            "codex",
+            "hermes"
+          ]
+        },
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        }
+      },
+      "required": [
+        "kind",
+        "project"
+      ],
+      "additionalProperties": false
+    },
+    "AgentOpenResult": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string"
+        },
+        "session": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "command",
+        "session"
+      ]
+    },
+    "SessionsListParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "SessionsListResult": {
+      "type": "object",
+      "properties": {
+        "sessions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "pid": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "seconds": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "ram_mb": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "claude",
+                  "codex",
+                  "hermes",
+                  "shell"
+                ]
+              },
+              "project": {
+                "type": "string"
+              },
+              "command": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "pid",
+              "seconds",
+              "ram_mb",
+              "kind",
+              "command"
+            ]
+          }
+        }
+      },
+      "required": [
+        "sessions"
+      ]
+    },
+    "SessionsCleanParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "SessionsCleanResult": {
+      "type": "object",
+      "properties": {
+        "killed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "killed"
+      ]
+    },
+    "ProcessesListParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "ProcessesListResult": {
+      "type": "object",
+      "properties": {
+        "processes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "pid": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "cpu": {
+                "type": "number",
+                "minimum": 0
+              },
+              "ram_mb": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "command": {
+                "type": "string"
+              },
+              "project": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "pid",
+              "cpu",
+              "ram_mb",
+              "command",
+              "project"
+            ]
+          }
+        }
+      },
+      "required": [
+        "processes"
+      ]
+    },
+    "ProcessKillParams": {
+      "type": "object",
+      "properties": {
+        "pid": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "force": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "pid"
+      ],
+      "additionalProperties": false
+    },
+    "ProcessKillResult": {
+      "type": "object",
+      "properties": {
+        "done": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "required": [
+        "done"
+      ]
+    },
+    "ShotsListParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "ShotsListResult": {
+      "type": "object",
+      "properties": {
+        "shots": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "size_bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "created_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "path",
+              "size_bytes",
+              "created_at"
+            ]
+          }
+        }
+      },
+      "required": [
+        "shots"
+      ]
+    },
+    "ShotsUrlParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "ShotsUrlResult": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ]
+    },
+    "ShotsCleanParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "ShotsCleanResult": {
+      "type": "object",
+      "properties": {
+        "removed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "removed"
+      ]
+    },
+    "SecretsStatusParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "SecretsStatusResult": {
+      "type": "object",
+      "properties": {
+        "secrets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z0-9_]*$"
+              },
+              "set": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "key",
+              "set"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "secrets"
+      ]
+    },
+    "SecretsSetParams": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "secrets_stdin": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "required": [
+        "key",
+        "secrets_stdin"
+      ],
+      "additionalProperties": false
+    },
+    "SecretsSetResult": {
+      "type": "object",
+      "properties": {
+        "done": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "required": [
+        "done"
+      ]
+    },
+    "SecretsSyncParams": {
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        }
+      },
+      "required": [
+        "project"
+      ],
+      "additionalProperties": false
+    },
+    "SecretsSyncResult": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "written": {
+          "type": "boolean"
+        },
+        "keys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "path",
+        "written",
+        "keys"
+      ]
+    },
+    "DbDumpParams": {
+      "type": "object",
+      "properties": {
+        "engine": {
+          "type": "string",
+          "enum": [
+            "mysql",
+            "postgres",
+            "mongodb"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "engine"
+      ],
+      "additionalProperties": false
+    },
+    "DbDumpResult": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "path",
+        "size_bytes"
+      ]
+    },
+    "DbImportParams": {
+      "type": "object",
+      "properties": {
+        "engine": {
+          "type": "string",
+          "enum": [
+            "mysql",
+            "postgres",
+            "mongodb"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "engine"
+      ],
+      "additionalProperties": false
+    },
+    "DbImportResult": {
+      "type": "object",
+      "properties": {
+        "imported": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "imported"
+      ]
+    },
+    "DbShellParams": {
+      "type": "object",
+      "properties": {
+        "engine": {
+          "type": "string",
+          "enum": [
+            "mysql",
+            "postgres",
+            "mongodb"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "engine"
+      ],
+      "additionalProperties": false
+    },
+    "DbShellResult": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "command"
+      ]
+    },
+    "DbUrlParams": {
+      "type": "object",
+      "properties": {
+        "engine": {
+          "type": "string",
+          "enum": [
+            "mysql",
+            "postgres",
+            "mongodb"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "engine"
+      ],
+      "additionalProperties": false
+    },
+    "DbUrlResult": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ]
+    },
+    "TunnelStatusParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "TunnelStatusResult": {
+      "type": "object",
+      "properties": {
+        "installed": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "running",
+            "stopped",
+            "failed",
+            "absent"
+          ]
+        },
+        "routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "hostname": {
+                "type": "string"
+              },
+              "service": {
+                "type": "string"
+              },
+              "project": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "hostname",
+              "service"
+            ]
+          }
+        }
+      },
+      "required": [
+        "installed",
+        "state",
+        "routes"
+      ]
+    },
+    "TunnelSyncParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "TunnelSyncResult": {
+      "type": "object",
+      "properties": {
+        "installed": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "running",
+            "stopped",
+            "failed",
+            "absent"
+          ]
+        },
+        "routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "hostname": {
+                "type": "string"
+              },
+              "service": {
+                "type": "string"
+              },
+              "project": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "hostname",
+              "service"
+            ]
+          }
+        }
+      },
+      "required": [
+        "installed",
+        "state",
+        "routes"
+      ]
+    },
+    "TunnelRestartParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "TunnelRestartResult": {
+      "type": "object",
+      "properties": {
+        "installed": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "running",
+            "stopped",
+            "failed",
+            "absent"
+          ]
+        },
+        "routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "hostname": {
+                "type": "string"
+              },
+              "service": {
+                "type": "string"
+              },
+              "project": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "hostname",
+              "service"
+            ]
+          }
+        }
+      },
+      "required": [
+        "installed",
+        "state",
+        "routes"
+      ]
+    },
+    "KeysListParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "KeysListResult": {
+      "type": "object",
+      "properties": {
+        "keys": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "fingerprint": {
+                "type": "string"
+              },
+              "comment": {
+                "type": "string"
+              },
+              "device_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "fingerprint"
+            ]
+          }
+        },
+        "synced_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "keys"
+      ]
+    },
+    "KeysSyncParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "KeysSyncResult": {
+      "type": "object",
+      "properties": {
+        "keys": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "fingerprint": {
+                "type": "string"
+              },
+              "comment": {
+                "type": "string"
+              },
+              "device_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "fingerprint"
+            ]
+          }
+        },
+        "synced_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "keys"
+      ]
+    },
+    "AgentUpgradeParams": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "signature": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "signature"
+      ],
+      "additionalProperties": false
+    },
+    "AgentUpgradeResult": {
+      "type": "object",
+      "properties": {
+        "previous_version": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "restarting": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "previous_version",
+        "version",
+        "restarting"
+      ]
+    },
+    "RebootParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "RebootResult": {
+      "type": "object",
+      "properties": {
+        "done": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "required": [
+        "done"
+      ]
+    },
+    "DoctorParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "DoctorResult": {
+      "type": "object",
+      "properties": {
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "ok": {
+                "type": "boolean"
+              },
+              "message": {
+                "type": "string"
+              },
+              "fix": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "ok"
+            ]
+          }
+        }
+      },
+      "required": [
+        "checks"
+      ]
+    },
+    "DiagParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "DiagResult": {
+      "type": "object",
+      "properties": {
+        "generated_at": {
+          "type": "string"
+        },
+        "report": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "generated_at",
+        "report"
+      ]
+    },
+    "Manifest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z]+\\.[a-z0-9-]+$"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "core",
+            "runtime",
+            "database",
+            "ai",
+            "editor",
+            "exposure",
+            "tool"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requires": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z]+\\.[a-z0-9-]+$"
+          }
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z]+\\.[a-z0-9-]+$"
+          }
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "ram_mb": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "disk_mb": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "ram_mb",
+            "disk_mb"
+          ]
+        },
+        "arch": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "amd64",
+              "arm64"
+            ]
+          }
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Field"
+          }
+        },
+        "provides": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mandatory": {
+          "type": "boolean"
+        },
+        "since": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "id",
+        "category",
+        "name",
+        "summary",
+        "requires",
+        "conflicts",
+        "resources",
+        "arch",
+        "fields",
+        "provides",
+        "mandatory",
+        "since"
+      ]
+    },
+    "Field": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*$"
+            },
+            "label": {
+              "type": "string",
+              "minLength": 1
+            },
+            "help": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "text",
+                "number",
+                "select"
+              ]
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "default": {},
+            "options": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "key",
+            "label",
+            "kind",
+            "required"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*$"
+            },
+            "label": {
+              "type": "string",
+              "minLength": 1
+            },
+            "help": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "secret"
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "generate": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "key",
+            "label",
+            "kind",
+            "required"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*$"
+            },
+            "label": {
+              "type": "string",
+              "minLength": 1
+            },
+            "help": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "version"
+            },
+            "options": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "default": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "key",
+            "label",
+            "kind",
+            "options",
+            "default"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Preset": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": [
+            "web-js",
+            "full",
+            "minimal"
+          ]
+        },
+        "modules": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "core.system",
+              "core.hardening",
+              "runtime.node",
+              "runtime.java",
+              "runtime.python",
+              "db.mysql",
+              "db.postgres",
+              "db.mongodb",
+              "ai.claude",
+              "ai.codex",
+              "ai.hermes",
+              "ai.browser",
+              "editor.jetbrains",
+              "editor.vscode",
+              "editor.zed",
+              "exposure.cloudflare",
+              "exposure.ssh",
+              "tool.github",
+              "tool.1password",
+              "runtime.go",
+              "runtime.php",
+              "runtime.ruby",
+              "runtime.docker",
+              "db.redis",
+              "exposure.caddy",
+              "tool.neon"
+            ]
+          }
+        },
+        "choose_one": {
+          "minItems": 2,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "core.system",
+              "core.hardening",
+              "runtime.node",
+              "runtime.java",
+              "runtime.python",
+              "db.mysql",
+              "db.postgres",
+              "db.mongodb",
+              "ai.claude",
+              "ai.codex",
+              "ai.hermes",
+              "ai.browser",
+              "editor.jetbrains",
+              "editor.vscode",
+              "editor.zed",
+              "exposure.cloudflare",
+              "exposure.ssh",
+              "tool.github",
+              "tool.1password",
+              "runtime.go",
+              "runtime.php",
+              "runtime.ruby",
+              "runtime.docker",
+              "db.redis",
+              "exposure.caddy",
+              "tool.neon"
+            ]
+          }
+        }
+      },
+      "required": [
+        "id",
+        "modules"
+      ]
+    }
+  }
+}
