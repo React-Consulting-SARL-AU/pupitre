@@ -15,7 +15,7 @@
     "lint": "ultracite check",
     "lint:fix": "ultracite fix",
     "check:types": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
-    "test": "bun test",
+    "test": "bun test src",
     "test:e2e": "bun run build && playwright test",
     "postinstall": "electron-rebuild -f -w node-pty"
   },
