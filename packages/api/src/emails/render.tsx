@@ -4,6 +4,10 @@ import type { Locale } from "../lib/i18n"
 import { consolePath } from "./config"
 import { formatDate, formatDateTime } from "./format"
 import { type EmailMessageKey, type EmailParams, translateEmail } from "./i18n"
+import { AlertAgentOutdatedEmail } from "./templates/alert-agent-outdated"
+import { AlertDiskHighEmail } from "./templates/alert-disk-high"
+import { AlertEntitlementGraceEmail } from "./templates/alert-entitlement-grace"
+import { AlertServerUnreachableEmail } from "./templates/alert-server-unreachable"
 import { DeviceAddedEmail } from "./templates/device-added"
 import { EntitlementGraceEmail } from "./templates/entitlement-grace"
 import { InvitationEmail } from "./templates/invitation"
@@ -186,5 +190,113 @@ export function renderServerDecommissionEmail(
       deadline: formatDate(input.locale, input.deadline),
     },
     <ServerDecommissionEmail {...input} url={consolePath("/dashboard")} />
+  )
+}
+
+export interface AlertServerUnreachableInput {
+  locale: Locale
+  serverName: string
+  address: string
+  lastSeenAt: Date | null
+}
+
+export function renderAlertServerUnreachableEmail({
+  locale,
+  serverName,
+  address,
+  lastSeenAt,
+}: AlertServerUnreachableInput): Promise<RenderedEmail> {
+  return compose(
+    locale,
+    "alert_server_unreachable.subject",
+    { server: serverName },
+    <AlertServerUnreachableEmail
+      address={address}
+      lastSeen={lastSeenAt ? formatDateTime(locale, lastSeenAt) : "—"}
+      locale={locale}
+      serverName={serverName}
+      url={consolePath("/dashboard/servers")}
+    />
+  )
+}
+
+export interface AlertDiskHighInput {
+  locale: Locale
+  serverName: string
+  address: string
+  disk: number
+}
+
+export function renderAlertDiskHighEmail({
+  locale,
+  serverName,
+  address,
+  disk,
+}: AlertDiskHighInput): Promise<RenderedEmail> {
+  return compose(
+    locale,
+    "alert_disk_high.subject",
+    { server: serverName, disk: Math.round(disk) },
+    <AlertDiskHighEmail
+      address={address}
+      disk={disk}
+      locale={locale}
+      serverName={serverName}
+      url={consolePath("/dashboard/servers")}
+    />
+  )
+}
+
+export interface AlertAgentOutdatedInput {
+  locale: Locale
+  serverName: string
+  agentVersion: string
+  latestVersion: string
+}
+
+export function renderAlertAgentOutdatedEmail({
+  locale,
+  serverName,
+  agentVersion,
+  latestVersion,
+}: AlertAgentOutdatedInput): Promise<RenderedEmail> {
+  return compose(
+    locale,
+    "alert_agent_outdated.subject",
+    { server: serverName, current: agentVersion, version: latestVersion },
+    <AlertAgentOutdatedEmail
+      agentVersion={agentVersion}
+      latestVersion={latestVersion}
+      locale={locale}
+      serverName={serverName}
+      url={consolePath("/dashboard/servers")}
+    />
+  )
+}
+
+export interface AlertEntitlementGraceInput {
+  locale: Locale
+  serverName: string
+  organizationName: string
+  deadline: Date
+}
+
+export function renderAlertEntitlementGraceEmail({
+  locale,
+  serverName,
+  organizationName,
+  deadline,
+}: AlertEntitlementGraceInput): Promise<RenderedEmail> {
+  return compose(
+    locale,
+    "alert_entitlement_grace.subject",
+    { server: serverName },
+    <AlertEntitlementGraceEmail
+      deadline={formatDate(locale, deadline)}
+      locale={locale}
+      organizationName={organizationName}
+      serverName={serverName}
+      url={consolePath("/dashboard/billing")}
+    />
   )
 }

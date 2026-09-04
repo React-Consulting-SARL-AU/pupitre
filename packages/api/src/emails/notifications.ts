@@ -5,10 +5,15 @@ import {
   billingRecipients,
   organizationName,
   type Recipient,
+  serverRecipients,
   userRecipient,
 } from "./recipients"
 import {
   type RenderedEmail,
+  renderAlertAgentOutdatedEmail,
+  renderAlertDiskHighEmail,
+  renderAlertEntitlementGraceEmail,
+  renderAlertServerUnreachableEmail,
   renderDeviceAddedEmail,
   renderEntitlementGraceEmail,
   renderServerAssignedEmail,
@@ -30,10 +35,16 @@ function addressOf(server: Server): string {
 async function deliverTo(
   recipients: Recipient[],
   rendered: RenderedEmail
-): Promise<void> {
+): Promise<boolean> {
+  let delivered = false
+
   for (const recipient of recipients) {
-    await deliver({ to: recipient.email, ...rendered })
+    const sent = await deliver({ to: recipient.email, ...rendered })
+
+    delivered = delivered || sent
   }
+
+  return delivered
 }
 
 function localeFrom(input: Addressed): Locale {
@@ -207,6 +218,95 @@ export async function sendServerDecommissionEmail({
   await deliverTo(
     [recipient],
     await renderServerDecommissionEmail({
+      locale: localeFrom(input),
+      serverName: server.name,
+      organizationName: organization,
+      deadline,
+    })
+  )
+}
+
+export interface ServerUnreachableInput extends Addressed {
+  server: Server
+  lastSeenAt: Date | null
+}
+
+export async function sendServerUnreachableEmail({
+  server,
+  lastSeenAt,
+  ...input
+}: ServerUnreachableInput): Promise<boolean> {
+  return await deliverTo(
+    await serverRecipients(server),
+    await renderAlertServerUnreachableEmail({
+      locale: localeFrom(input),
+      serverName: server.name,
+      address: addressOf(server),
+      lastSeenAt,
+    })
+  )
+}
+
+export interface DiskHighInput extends Addressed {
+  server: Server
+  disk: number
+}
+
+export async function sendDiskHighEmail({
+  server,
+  disk,
+  ...input
+}: DiskHighInput): Promise<boolean> {
+  return await deliverTo(
+    await serverRecipients(server),
+    await renderAlertDiskHighEmail({
+      locale: localeFrom(input),
+      serverName: server.name,
+      address: addressOf(server),
+      disk,
+    })
+  )
+}
+
+export interface AgentOutdatedInput extends Addressed {
+  server: Server
+  latestVersion: string
+}
+
+export async function sendAgentOutdatedEmail({
+  server,
+  latestVersion,
+  ...input
+}: AgentOutdatedInput): Promise<boolean> {
+  return await deliverTo(
+    await serverRecipients(server),
+    await renderAlertAgentOutdatedEmail({
+      locale: localeFrom(input),
+      serverName: server.name,
+      agentVersion: server.agentVersion ?? "—",
+      latestVersion,
+    })
+  )
+}
+
+export interface ServerGraceInput extends Addressed {
+  server: Server
+  deadline: Date
+}
+
+export async function sendServerGraceEmail({
+  server,
+  deadline,
+  ...input
+}: ServerGraceInput): Promise<boolean> {
+  const [recipients, organization] = await Promise.all([
+    serverRecipients(server),
+    organizationName(server.organizationId),
+  ])
+
+  return await deliverTo(
+    recipients,
+    await renderAlertEntitlementGraceEmail({
       locale: localeFrom(input),
       serverName: server.name,
       organizationName: organization,

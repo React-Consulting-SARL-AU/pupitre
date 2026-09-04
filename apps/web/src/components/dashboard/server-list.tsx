@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query"
 import { Server } from "lucide-react"
+import { AlertBanner } from "@/components/dashboard/alert-banner"
 import { ServerRow } from "@/components/dashboard/server-row"
 import { Callout } from "@/components/ui/callout"
 import { EmptyState } from "@/components/ui/empty-state"
 import { LoadingState } from "@/components/ui/loading-state"
 import { serversQueryOptions } from "@/lib/api/queries"
+import { countAlerts } from "@/lib/domain/alerts"
 
 export function ServerList() {
   const servers = useQuery(serversQueryOptions())
@@ -34,13 +36,16 @@ export function ServerList() {
   }
 
   return (
-    <div
-      className="overflow-hidden rounded-md bg-surface shadow-raised"
-      data-testid="server-list"
-    >
-      {servers.data.map((server) => (
-        <ServerRow key={server.id} server={server} />
-      ))}
-    </div>
+    <>
+      <AlertBanner count={countAlerts(servers.data)} />
+      <div
+        className="overflow-hidden rounded-md bg-surface shadow-raised"
+        data-testid="server-list"
+      >
+        {servers.data.map((server) => (
+          <ServerRow key={server.id} server={server} />
+        ))}
+      </div>
+    </>
   )
 }

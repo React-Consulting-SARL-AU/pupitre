@@ -21,7 +21,7 @@ export const DEV_RELEASE: EnrollmentRelease = {
   channel: "beta",
 }
 
-const CHANNEL_SOURCES: Record<ReleaseChannel, ReleaseChannel[]> = {
+export const CHANNEL_SOURCES: Record<ReleaseChannel, ReleaseChannel[]> = {
   stable: ["stable"],
   beta: ["beta", "stable"],
 }

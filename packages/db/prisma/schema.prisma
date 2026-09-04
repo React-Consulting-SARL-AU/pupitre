@@ -32,6 +32,13 @@ enum BillingInterval {
   year
 }
 
+enum AlertKind {
+  server_unreachable
+  disk_high
+  agent_outdated
+  entitlement_grace
+}
+
 // user…deviceCode come from `@better-auth/cli generate` (magicLink, organization, deviceAuthorization, bearer, admin): regenerate, do not hand-edit.
 
 model User {
@@ -217,6 +224,7 @@ model Server {
   assignedUser           User?                 @relation("ServerAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
   pendingAssignmentEmail String?
   revokedDevices         ServerRevokedDevice[]
+  alerts                 Alert[]
   lastHeartbeatAt        DateTime?
   metrics                Json?
   createdAt              DateTime              @default(now())
@@ -228,6 +236,19 @@ model Server {
   @@index([status])
   @@index([decommissionAt])
   @@index([pendingAssignmentEmail])
+}
+
+model Alert {
+  id          String    @id @default(cuid())
+  serverId    String
+  server      Server    @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  kind        AlertKind
+  firstSeenAt DateTime  @default(now())
+  notifiedAt  DateTime?
+  resolvedAt  DateTime?
+
+  @@index([serverId, kind])
+  @@index([resolvedAt])
 }
 
 model ServerRevokedDevice {

@@ -8,7 +8,7 @@ function href(url: string): string {
 }
 
 const UNRESOLVED_PLACEHOLDER_RE =
-  /\{(server|organization|inviter|device|deadline|url|count|version|address|fingerprint|date)\}/
+  /\{(server|organization|inviter|device|deadline|url|count|version|current|disk|address|fingerprint|date)\}/
 
 describe("le catalogue des gabarits", () => {
   it("porte une prévisualisation par gabarit", () => {
@@ -17,8 +17,14 @@ describe("le catalogue des gabarits", () => {
     )
   })
 
-  it("compte les huit moments de la tâche", () => {
-    expect(EMAIL_TEMPLATE_IDS).toHaveLength(8)
+  it("compte les huit moments de PLT-11 et les quatre alertes de PLT-12", () => {
+    expect(EMAIL_TEMPLATE_IDS).toHaveLength(12)
+    expect(EMAIL_TEMPLATE_IDS.filter((id) => id.startsWith("alert_"))).toEqual([
+      "alert_server_unreachable",
+      "alert_disk_high",
+      "alert_agent_outdated",
+      "alert_entitlement_grace",
+    ])
   })
 })
 

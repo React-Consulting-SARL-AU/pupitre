@@ -25,6 +25,12 @@ Guards Elysia dans `packages/api/src/lib/api/plugins/` : `authPlugin` (résout s
 | DELETE | `/me/devices/:id` | — | 204. Retirée des serveurs en moins d'une minute |
 | GET | `/me/servers` | — | `{ data: ServerForUser[] }` : hôte, port, utilisateur, empreinte d'hôte, statut, `key_ready` |
 
+### Statut public
+
+| Méthode | Route | Corps | Réponse |
+| --- | --- | --- | --- |
+| GET | `/status` | — | `{ data: { api, database, latest_release, active_servers, checked_at } }`. Aucun guard : la route répond sans session. `api` et `database` valent `ok` ou `down`, `latest_release` est la dernière version publiée sur le canal `stable` (`{ version, channel, published_at }`) ou `null`, `active_servers` est le nombre total de serveurs au statut `active`. Rien d'autre ne sort : ni identifiant, ni nom d'organisation, ni nom de machine, ni adresse |
+
 ### Serveurs
 
 | Méthode | Route | Corps | Réponse |
@@ -91,6 +97,7 @@ Tables Better Auth (générées) : `user`, `session`, `account`, `verification`,
 | --- | --- |
 | `Device` | `id`, `userId`, `name`, `publicKey`, `fingerprint`, `lastUsedAt`, `createdAt` |
 | `Server` | `id`, `organizationId`, `name`, `host`, `port` (22), `sshUser` (`dev`), `hostFingerprint`, `arch`, `agentVersion`, `targetVersion`, `serverTokenHash`, `enrollmentTokenHash`, `enrollmentExpiresAt`, `entitlementValidUntil`, `decommissionAt`, `status` (`enrolling`, `active`, `grace`, `suspended`, `revoked`), `channel` (`stable`, `beta`), `deviceId?` (l'appareil qui a enrôlé), `assignedUserId?`, `pendingAssignmentEmail?` (attribution en attente d'une invitation), `lastHeartbeatAt`, `metrics` (json, 7 jours), `createdAt` |
+| `Alert` | `id`, `serverId`, `kind` (`server_unreachable`, `disk_high`, `agent_outdated`, `entitlement_grace`), `firstSeenAt`, `notifiedAt?`, `resolvedAt?`. Une ligne ouverte (`resolvedAt` nul) par genre et par serveur : tant qu'elle est ouverte, aucun second email ne part ; le retour à la normale la ferme, et la panne suivante en ouvre une autre |
 | `Subscription` | `id`, `organizationId`, `stripeSubscriptionId`, `product`, `quantity`, `status`, `currentPeriodEnd` |
 | `OrganizationBilling` | `organizationId`, `stripeCustomerId`, `defaultInterval` |
 | `Release` | `version`, `arch`, `sha256`, `signature`, `r2Key`, `publishedAt`, `channel` (`stable`, `beta`) |
@@ -123,4 +130,6 @@ Forme unique : `{ error: { code, message, fix? } }`. Codes stables dans `package
 
 ## Tâches longues
 
-Cloudflare Workflows dans `apps/web/src/workflows/` : `ReconcileSeats` (quotidien : sièges payés contre serveurs actifs), `DecommissionServer` (sept jours après suppression ou impayé), `ExpireEnrollments` (jetons d'enrôlement non échangés en une heure).
+Cloudflare Workflows dans `apps/web/src/workflows/` : `ReconcileSeats` (quotidien : sièges payés contre serveurs actifs), `DecommissionServer` (sept jours après suppression ou impayé), `ExpireEnrollments` (jetons d'enrôlement non échangés en une heure), `EvaluateAlerts` (toutes les cinq minutes : `evaluateAlerts()` de `packages/api/src/lib/alerts/alerts.ts`).
+
+Les fonctions existent et sont testées ; leur déclencheur planifié est la tâche PLT-15. Sans elle, rien ne les appelle en production : une alerte n'est levée que par un appel explicite à `evaluateServerAlerts` ou `evaluateAlerts`.
