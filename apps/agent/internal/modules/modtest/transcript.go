@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -28,6 +29,19 @@ var resultDefinitions = map[string]string{
 	"report":    "ReportResult",
 	"hello":     "HelloResult",
 	"ping":      "PingResult",
+
+	"snapshot":        "SnapshotResult",
+	"status":          "StatusResult",
+	"service.status":  "ServiceStatusResult",
+	"project.list":    "ProjectListResult",
+	"project.add":     "ProjectAddResult",
+	"project.remove":  "ProjectRemoveResult",
+	"project.up":      "ProjectUpResult",
+	"project.down":    "ProjectDownResult",
+	"project.restart": "ProjectRestartResult",
+	"project.logs":    "ProjectLogsResult",
+	"project.install": "ProjectInstallResult",
+	"project.url":     "ProjectUrlResult",
 }
 
 type TranscriptOptions struct {
@@ -120,6 +134,10 @@ func (f *transcript) directive(t *testing.T, path, line string) {
 		f.prepare = append(f.prepare, func(fake *FakeSys) {
 			fake.Files[filePath] = append(fake.Files[filePath], []byte(unescape(content)+"\n")...)
 		})
+	case "serves":
+		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Serves(fields[0], atoi(fields[1])) })
+	case "listen":
+		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Listen[atoi(fields[0])] = true })
 	case "reply":
 		program, reply, _ := strings.Cut(rest, " ")
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Replies[program] = unescape(reply) + "\n" })
@@ -262,6 +280,12 @@ func decodeJSON(t *testing.T, text string) any {
 	}
 
 	return value
+}
+
+func atoi(value string) int {
+	parsed, _ := strconv.Atoi(value)
+
+	return parsed
 }
 
 // A transcript is one line per directive, so a multi-line file or command output arrives escaped.

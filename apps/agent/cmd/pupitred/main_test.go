@@ -80,8 +80,13 @@ func TestServeNegotiatesHelloThenAnswersPing(t *testing.T) {
 		t.Fatalf("ping result lacks ts: %s", lines[1])
 	}
 
-	if code := errorCode(t, lines[2]); code != "unknown_command" {
-		t.Fatalf("snapshot → %s, want unknown_command", code)
+	snapshot := decodeResponse(t, lines[2])
+	if snapshot["ok"] != true {
+		t.Fatalf("snapshot failed: %s", lines[2])
+	}
+
+	if err := contract.Validate("SnapshotResult", snapshot["result"]); err != nil {
+		t.Fatalf("snapshot result violates SnapshotResult: %v", err)
 	}
 }
 
