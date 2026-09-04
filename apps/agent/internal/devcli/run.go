@@ -308,6 +308,11 @@ func runDB(options Options, asked request, out *printer) int {
 				out.line(text)
 			}
 		}
+
+		imported, _ := value["imported"].([]any)
+		for _, dump := range imported {
+			out.line(fmt.Sprint(dump))
+		}
 	})
 }
 

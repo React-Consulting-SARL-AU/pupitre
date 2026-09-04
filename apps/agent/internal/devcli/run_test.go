@@ -179,3 +179,18 @@ func decoded(t *testing.T, text string) any {
 
 	return value
 }
+
+func TestDevDbNamesTheDumpsItImported(t *testing.T) {
+	fake, dev := fixture(t)
+	fake.Dirs["/home/dev/dumps"] = true
+	fake.Files["/home/dev/dumps/shop.sql"] = []byte("CREATE TABLE shop (id int);\n")
+
+	got := dev("db", "import")
+	if got.code != 0 {
+		t.Fatalf("code = %d, stderr = %q", got.code, got.stderr)
+	}
+
+	if !strings.Contains(got.stdout, "shop") {
+		t.Fatalf("db import must name what it loaded: %q", got.stdout)
+	}
+}
