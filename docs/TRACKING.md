@@ -72,7 +72,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-17 | Harnais Playwright pour Electron | fait | `feat/APP-17-electron-e2e` | fusionnée |
 | APP-18 | Fond natif de la fenêtre selon le thème | en revue | `feat/APP-18-window-and-font` | |
 | APP-19 | Appliquer le design accueillant à l'app | fait | `feat/APP-19-warm-design` | fusionnée |
-| APP-21 | Embarquer la police d'affichage dans l'app | à faire | | |
+| APP-21 | Embarquer la police d'affichage dans l'app | en revue | `feat/APP-18-window-and-font` | |
 | APP-20 | L'app parle deux langues | à faire | | |
 
 ## Plateforme — `PLT`
