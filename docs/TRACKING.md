@@ -21,7 +21,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | INF-14 | La langue de l'utilisateur est enregistrée | fait | `feat/INF-14-user-locale` | fusionnée |
 | INF-15 | Contrat : détecter le gestionnaire d'un dépôt | à faire | | |
 | INF-17 | Contrat : lire la valeur d'un identifiant de service | fait | `feat/INF-17-secret-value` | fusionnée |
-| INF-18 | Contrat : la plateforme publie l'empreinte et refuse le retour en arrière | en revue | `feat/INF-18-release-floor` | |
+| INF-18 | Contrat : la plateforme publie l'empreinte et refuse le retour en arrière | fait | `feat/INF-18-release-floor` | fusionnée |
 | INF-19 | Contrat : `/status` dit depuis quand il sait | fait | `feat/INF-19-status-freshness` | fusionnée |
 | INF-20 | Contrat : le contenu d'une capture | fait | `feat/INF-20-shot-url` | fusionnée |
 | INF-21 | Contrat : l'app remet le jeton d'enrôlement à l'agent | à faire | | |
@@ -76,6 +76,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-21 | Embarquer la police d'affichage dans l'app | fait | `feat/APP-18-window-and-font` | fusionnée |
 | APP-22 | L'écran Services révèle une vraie valeur | à faire | | |
 | APP-23 | La galerie affiche vraiment les captures | à faire | | |
+| APP-24 | L'app se fie à la plateforme pour la signature | à faire | | |
 | APP-20 | L'app parle deux langues | à faire | | |
 
 ## Plateforme — `PLT`
