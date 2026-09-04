@@ -89,6 +89,7 @@ function deps(
           sha256: "0".repeat(64),
         },
       } satisfies AgentResponse<AgentDelivery>),
+    enrollment: () => null,
     probe: () => Promise.resolve({ ok: true, result: machine() }),
     secrets: () => ({}),
     ...over,
@@ -235,6 +236,111 @@ describe("le flux secret", () => {
     // La transcription refuse la requête si `params` ne correspond pas au
     // fixture, qui ne porte que `version`, et refuse la ligne de secrets si
     // elle n'est pas celle attendue : les deux ensemble prouvent la séparation.
+    expect(fake?.trace()).toEqual(["id=1 cmd=hello", "id=2 cmd=install"]);
+
+    client.closeAll();
+  });
+});
+
+describe("l'enrôlement", () => {
+  const GRANT = {
+    platformUrl: "https://app.pupitre.studio/api/v1",
+    token: "enr-jeton-de-test",
+  };
+
+  function bare(): ProbeResult {
+    return machine({
+      agent_version: null,
+      verdict: { fixes: [], kind: "bare", level: "ready", reasons: [] },
+    });
+  }
+
+  function delivered(): InstallDeps["deliver"] {
+    return () =>
+      Promise.resolve({
+        ok: true,
+        result: {
+          arch: "amd64",
+          bytes: 12,
+          enrollment: {
+            release: { available: false, channel: "stable", version: "1.0.0" },
+            serverId: "srv-platform-1",
+          },
+          path: "/usr/local/bin/pupitred",
+          sha256: "0".repeat(64),
+        },
+      } satisfies AgentResponse<AgentDelivery>);
+  }
+
+  it("remet le jeton sur le flux secret, jamais dans params", async () => {
+    const client = agent([
+      "enroll-then-install.jsonl",
+      "install-no-secrets.jsonl",
+    ]);
+
+    const answer = await runInstall(
+      SERVER,
+      ["core.system"],
+      { "core.system": {} },
+      () => undefined,
+      deps(client, {
+        deliver: delivered(),
+        enrollment: (id) => (id === "srv-platform-1" ? GRANT : null),
+        probe: () => Promise.resolve({ ok: true, result: bare() }),
+      })
+    );
+
+    expect(answer.ok).toBe(true);
+    expect(fake?.trace()).toEqual([
+      "id=1 cmd=hello",
+      "id=2 cmd=enroll",
+      "id=1 cmd=hello",
+      "id=2 cmd=install",
+    ]);
+
+    client.closeAll();
+  });
+
+  it("arrête l'installation quand la plateforme refuse le jeton", async () => {
+    const client = agent("enroll-refused.jsonl");
+
+    const answer = await runInstall(
+      SERVER,
+      ["core.system"],
+      { "core.system": {} },
+      () => undefined,
+      deps(client, {
+        deliver: delivered(),
+        enrollment: () => GRANT,
+        probe: () => Promise.resolve({ ok: true, result: bare() }),
+      })
+    );
+
+    expect(answer).toMatchObject({
+      ok: false,
+      error: { code: "entitlement_required" },
+    });
+    expect(fake?.trace()).toEqual(["id=1 cmd=hello", "id=2 cmd=enroll"]);
+
+    client.closeAll();
+  });
+
+  it("n'enrôle rien quand la plateforme n'a rien accordé", async () => {
+    const client = agent("install-no-secrets.jsonl");
+
+    const answer = await runInstall(
+      SERVER,
+      ["core.system"],
+      { "core.system": {} },
+      () => undefined,
+      deps(client, {
+        deliver: delivered(),
+        enrollment: () => null,
+        probe: () => Promise.resolve({ ok: true, result: bare() }),
+      })
+    );
+
+    expect(answer.ok).toBe(true);
     expect(fake?.trace()).toEqual(["id=1 cmd=hello", "id=2 cmd=install"]);
 
     client.closeAll();

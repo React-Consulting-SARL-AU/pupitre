@@ -210,6 +210,7 @@ describe("le parcours d'un serveur atteint en root", () => {
             },
           });
         },
+        enrollment: () => null,
         probe: () => Promise.resolve({ ok: true, result: bare() }),
         secrets: () => ({ "db.postgres": { app_password: "s3cret-de-test" } }),
       }

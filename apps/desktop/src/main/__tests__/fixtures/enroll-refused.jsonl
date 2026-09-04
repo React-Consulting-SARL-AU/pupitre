@@ -1,0 +1,6 @@
+# La plateforme refuse le jeton d'enrôlement : l'installation ne commence pas.
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","protocol":1}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"restricted","capabilities":["hello","ping","diag","enroll"]}}
+> {"id":2,"cmd":"enroll","params":{"platform_url":"https://app.pupitre.studio/api/v1","secrets_stdin":true}}
+$ {"enrollment_token":"enr-jeton-de-test"}
+< {"id":2,"ok":false,"error":{"code":"entitlement_required","message":"la plateforme refuse ce jeton d'enrôlement","fix":"Relance l'installation depuis l'app."}}
