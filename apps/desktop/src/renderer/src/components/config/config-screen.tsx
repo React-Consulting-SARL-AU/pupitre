@@ -63,7 +63,7 @@ export function ConfigScreen({
   }
 
   return (
-    <section className="flex flex-col gap-8">
+    <section className="flex flex-col gap-section">
       <PageHeader
         actions={
           <>

@@ -39,7 +39,7 @@ export function SecretsPanel({
   const filled = secrets.filter((secret) => secret.set).length;
 
   return (
-    <div className="h-full overflow-y-auto px-6 py-6">
+    <div className="h-full overflow-y-auto px-8 py-6">
       <div className="mx-auto flex max-w-2xl flex-col gap-4">
         <PageHeader
           description="Les clés d'environnement que le serveur garde pour ses services — lui seul sait lesquelles et où. L'app n'en voit que l'état : une valeur remplacée part sur le flux secret du protocole et ne revient pas."
@@ -72,7 +72,7 @@ export function SecretsPanel({
 
         {saved ? <Callout tone="info">{saved} enregistrée.</Callout> : null}
 
-        <div className="overflow-hidden rounded-md border border-line bg-surface">
+        <div className="elevation-raised overflow-hidden rounded-md border border-line bg-surface">
           {state.status === "idle" || state.status === "reading" ? (
             <p className="flex items-center justify-center gap-2 px-4 py-6 text-ink-3">
               <StatusDot shape="breathing" size={11} />

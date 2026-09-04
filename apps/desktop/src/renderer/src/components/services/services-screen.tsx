@@ -117,7 +117,7 @@ export function ServicesScreen({
 
   return (
     <div className="h-full overflow-y-auto px-8 py-6">
-      <section className="flex flex-col gap-8">
+      <section className="flex flex-col gap-section">
         <PageHeader
           actions={
             <Button

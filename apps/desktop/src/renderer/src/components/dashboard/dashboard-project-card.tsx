@@ -27,7 +27,7 @@ export function DashboardProjectCard({
   const running = isRunning(project.state);
 
   return (
-    <article className="elevation-raised rounded-md bg-surface p-4 transition-soft">
+    <article className="elevation-raised rounded-md border border-line bg-surface p-4 transition-soft">
       <div className="flex items-start justify-between gap-3">
         <button
           className="min-w-0 text-left"

@@ -97,7 +97,7 @@ export function InstallScreen({
   );
 
   return (
-    <section className="flex flex-col gap-8">
+    <section className="flex flex-col gap-section">
       {header}
 
       {install.status === "sending" ? (

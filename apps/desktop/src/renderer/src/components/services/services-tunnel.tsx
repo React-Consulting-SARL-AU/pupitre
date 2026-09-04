@@ -98,7 +98,7 @@ export function ServicesTunnel({
         <ul className="elevation-raised divide-y divide-line rounded-md border border-line bg-surface">
           {tunnel.routes.map((route) => (
             <li
-              className="flex flex-wrap items-center gap-3 px-4 py-2.5"
+              className="flex flex-wrap items-center gap-3 px-4 py-3"
               data-route={route.hostname}
               key={route.hostname}
             >

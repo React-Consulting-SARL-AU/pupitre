@@ -15,7 +15,7 @@ export function SettingsScreen({ onChanged }: { onChanged: () => void }) {
   const [section, setSection] = useState<Section>("servers");
 
   return (
-    <div className="h-full overflow-y-auto px-6 py-6">
+    <div className="h-full overflow-y-auto px-8 py-6">
       <div className="mx-auto max-w-2xl">
         <PageHeader title="Réglages" />
 

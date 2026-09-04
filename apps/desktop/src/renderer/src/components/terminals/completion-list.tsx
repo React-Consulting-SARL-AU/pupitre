@@ -58,7 +58,7 @@ export function CompletionList({ id, frame }: Props) {
 
       {hasList ? (
         <div
-          className="absolute z-10 min-w-[16rem] max-w-[36rem] animate-[fade-in_120ms_ease-out] overflow-hidden rounded-md border border-line-strong bg-raised"
+          className="fade-in elevation-overlay absolute z-10 min-w-[16rem] max-w-[36rem] overflow-hidden rounded-md border border-line bg-raised"
           role="listbox"
           style={{
             left: Math.max(0, Math.min(left, box.width - 260)),

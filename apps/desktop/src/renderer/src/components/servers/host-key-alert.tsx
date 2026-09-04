@@ -25,7 +25,7 @@ export function HostKeyAlert({
   onCancel: () => void;
 }) {
   return (
-    <div className="elevation-raised animate-[fade-in_200ms_ease-out] rounded-md border border-danger/40 bg-danger/10 p-5">
+    <div className="elevation-raised fade-in rounded-md border border-danger/40 bg-danger/10 p-5">
       <div className="flex items-start gap-3">
         <ShieldAlert
           className="mt-0.5 shrink-0 text-danger"

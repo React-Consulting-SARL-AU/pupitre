@@ -18,7 +18,7 @@ export function CatalogPresets({
     <section className="flex flex-col gap-3">
       <Label>Pour commencer</Label>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-gutter sm:grid-cols-3">
         {presets.map((preset) => (
           <button
             className="clickable elevation-raised flex flex-col items-start gap-1 rounded-md border border-line bg-surface px-4 py-3 text-left transition-soft hover:border-line-strong"

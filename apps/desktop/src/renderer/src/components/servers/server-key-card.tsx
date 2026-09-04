@@ -21,7 +21,7 @@ export function ServerKeyCard({
   onDone: () => void;
 }) {
   return (
-    <div className="elevation-raised animate-[fade-in_200ms_ease-out] rounded-md border border-line bg-surface p-5">
+    <div className="elevation-raised fade-in rounded-md border border-line bg-surface p-5">
       <h3 className="font-medium text-ink">
         {server.name} est prêt à recevoir sa clé
       </h3>
