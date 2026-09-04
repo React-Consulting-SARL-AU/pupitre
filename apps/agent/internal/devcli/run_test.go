@@ -10,6 +10,7 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/devcli"
+	"pupitre.studio/agent/internal/entitlement"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/db"
 	"pupitre.studio/agent/internal/modules/db/postgres"
@@ -51,7 +52,7 @@ func fixture(t *testing.T) (*modtest.FakeSys, func(...string) run) {
 		InstallPath:  filepath.Join(dir, "install.json"),
 	}
 
-	server := protocol.NewServer(protocol.Options{AgentVersion: "0.0.0-test", Entitlement: contract.EntitlementDev})
+	server := protocol.NewServer(protocol.Options{AgentVersion: "0.0.0-test", Entitlement: entitlement.Fixed(contract.EntitlementDev)})
 	db.RegisterCommands(server, engine)
 	state.RegisterCommands(server, state.FromEngine(engine, state.Options{
 		Follow: state.FollowOptions{Interval: time.Millisecond, Limit: -1, Sleep: func(time.Duration) {}},
@@ -158,7 +159,7 @@ func TestDevRefusesWhatItCannotDo(t *testing.T) {
 }
 
 func TestDevRefusesEverythingInRestrictedMode(t *testing.T) {
-	server := protocol.NewServer(protocol.Options{AgentVersion: "0.0.0-test", Entitlement: contract.EntitlementRestricted})
+	server := protocol.NewServer(protocol.Options{AgentVersion: "0.0.0-test", Entitlement: entitlement.Fixed(contract.EntitlementRestricted)})
 	state.RegisterCommands(server, state.New(state.Options{Sys: modtest.NewFakeSys()}))
 
 	var stdout, stderr bytes.Buffer

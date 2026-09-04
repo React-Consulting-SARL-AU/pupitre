@@ -1,0 +1,243 @@
+import { afterEach, describe, expect, it } from "bun:test";
+import type { Event } from "@pupitre/shared/agent-protocol/envelope";
+import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
+import type { CarriedRelease } from "../agent-binary";
+import { type AgentClient, createAgentClient } from "../agent-client";
+import {
+  type AgentUpdateDeps,
+  readAgentUpdate,
+  runAgentUpgrade,
+  runModuleUpgrade,
+} from "../agent-update-run";
+import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
+
+const SERVER = "staging";
+const SIGNATURE = "c2lnbmF0dXJlLWVkMjU1MTktZGUtdGVzdA==";
+
+function release(over: Partial<CarriedRelease> = {}): CarriedRelease {
+  return {
+    agent: {
+      arch: "amd64",
+      notes: ["Mise à jour de l'agent sans terminal."],
+      signed: true,
+      version: "0.4.0",
+    },
+    signature: SIGNATURE,
+    ...over,
+  };
+}
+
+function probeOf(over: Partial<ProbeResult> = {}): ProbeResult {
+  return {
+    agent_version: "0.2.0",
+    arch: "arm64",
+    disk_free_gb: 38,
+    docker: false,
+    installed_modules: [],
+    os: "ubuntu",
+    panel: null,
+    ports: [],
+    ram_mb: 8192,
+    sudo: true,
+    version: "24.04",
+    verdict: { fixes: [], kind: "managed", level: "ready", reasons: [] },
+    ...over,
+  };
+}
+
+let fake: FakeAgent | null = null;
+
+function agent(fixtures: string | string[]): AgentClient {
+  fake = fakeAgent(fixtures);
+
+  return createAgentClient({
+    appVersion: "0.1.0",
+    backoff: { attempts: 2, firstMs: 5, maxMs: 20 },
+    spawn: fake.spawn,
+  });
+}
+
+function deps(
+  client: AgentClient,
+  over: Partial<AgentUpdateDeps> = {}
+): AgentUpdateDeps {
+  return {
+    carried: () => release(),
+    client,
+    declared: () =>
+      Promise.resolve({ ok: true, result: ["runtime.node", "db.postgres"] }),
+    probe: () => Promise.resolve({ ok: true, result: probeOf() }),
+    ...over,
+  };
+}
+
+function collected(): { events: Event[]; note: (event: Event) => void } {
+  const events: Event[] = [];
+
+  return { events, note: (event) => events.push(event) };
+}
+
+afterEach(() => {
+  fake?.killAll();
+  fake = null;
+});
+
+describe("la comparaison des versions", () => {
+  it("annonce l'agent que l'app porte quand il est plus récent", async () => {
+    const client = agent("agent-update-control.jsonl");
+
+    const answer = await readAgentUpdate(SERVER, deps(client));
+
+    expect(answer).toMatchObject({
+      ok: true,
+      result: {
+        carried: { arch: "amd64", signed: true, version: "0.4.0" },
+        installed: "0.3.0",
+        order: "ahead",
+      },
+    });
+  });
+
+  it("dit que l'app est en retard sans rien empêcher", async () => {
+    const client = agent("agent-update-ahead.jsonl");
+
+    const answer = await readAgentUpdate(SERVER, deps(client));
+    const after = await client.request(SERVER, "snapshot");
+
+    expect(answer).toMatchObject({
+      ok: true,
+      result: { installed: "0.9.0", order: "behind" },
+    });
+    expect(after.ok).toBe(true);
+  });
+
+  it("lit la machine par la sonde quand le protocole refuse de répondre", async () => {
+    const client = agent("protocol-mismatch.jsonl");
+
+    const answer = await readAgentUpdate(
+      SERVER,
+      deps(client, { carried: (arch) => (arch === "arm64" ? release() : null) })
+    );
+
+    expect(answer).toMatchObject({
+      ok: true,
+      result: { installed: "0.2.0", order: "ahead" },
+    });
+  });
+
+  it("ne compare rien quand l'app ne porte pas cette architecture", async () => {
+    const client = agent("agent-update-control.jsonl");
+
+    const answer = await readAgentUpdate(
+      SERVER,
+      deps(client, { carried: () => null })
+    );
+
+    expect(answer).toMatchObject({
+      ok: true,
+      result: { carried: null, installed: "0.3.0", order: "unknown" },
+    });
+  });
+});
+
+describe("agent.upgrade", () => {
+  it("envoie la version et la signature de la release embarquée", async () => {
+    const client = agent([
+      "agent-update-control.jsonl",
+      "agent-upgrade-ok.jsonl",
+    ]);
+    const { events, note } = collected();
+
+    const answer = await runAgentUpgrade(SERVER, note, deps(client));
+
+    expect(answer).toMatchObject({
+      ok: true,
+      result: { previous_version: "0.3.0", restarting: true, version: "0.4.0" },
+    });
+    expect(events).toHaveLength(2);
+  });
+
+  it("rend le refus de vérification tel quel, avec son remède", async () => {
+    const client = agent([
+      "agent-update-control.jsonl",
+      "agent-upgrade-refused.jsonl",
+    ]);
+    const { note } = collected();
+
+    const answer = await runAgentUpgrade(SERVER, note, deps(client));
+
+    expect(answer).toEqual({
+      ok: false,
+      error: {
+        code: "bad_signature",
+        message:
+          "le binaire de la version 0.4.0 ne correspond pas à sa signature : rien n'a été installé",
+        fix: "Relance la mise à jour depuis l'app ; si le refus persiste, signale-le, le binaire publié est en cause.",
+      },
+    });
+  });
+
+  it("refuse de parler quand l'app ne porte pas la signature", async () => {
+    const client = agent("agent-update-control.jsonl");
+    const { note } = collected();
+
+    const answer = await runAgentUpgrade(
+      SERVER,
+      note,
+      deps(client, {
+        carried: () =>
+          release({
+            agent: {
+              arch: "amd64",
+              notes: [],
+              signed: false,
+              version: "0.4.0",
+            },
+            signature: null,
+          }),
+      })
+    );
+
+    expect(answer.ok).toBe(false);
+    expect(fake?.trace().some((line) => line.includes("agent.upgrade"))).toBe(
+      false
+    );
+  });
+});
+
+describe("upgrade des modules", () => {
+  it("rejoue les modules du catalogue et rend leur rapport", async () => {
+    const client = agent("module-upgrade.jsonl");
+    const { events, note } = collected();
+
+    const answer = await runModuleUpgrade(
+      SERVER,
+      ["runtime.node", "db.postgres"],
+      note,
+      deps(client)
+    );
+
+    expect(answer).toMatchObject({
+      ok: true,
+      result: { failed: ["db.postgres"], warned: ["runtime.node"] },
+    });
+    expect(events).toHaveLength(2);
+  });
+
+  it("refuse un module que ce serveur ne déclare pas", async () => {
+    const client = agent("hello-only.jsonl");
+    const { note } = collected();
+
+    const answer = await runModuleUpgrade(
+      SERVER,
+      ["db.mongodb"],
+      note,
+      deps(client)
+    );
+
+    expect(answer).toMatchObject({
+      ok: false,
+      error: { code: "module_not_found" },
+    });
+  });
+});

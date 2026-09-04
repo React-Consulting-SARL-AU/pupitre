@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./ansi": "./src/ansi.ts",
+    "./fonts.css": "./src/fonts/fonts.css",
     "./logos": "./src/logos/index.ts",
     "./tailwind.css": "./src/tailwind.css",
     "./tokens": "./src/tokens.ts",

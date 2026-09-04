@@ -30,7 +30,7 @@ import { sshArgs } from "./ssh-config";
 
 const AGENT_DIR = "agent";
 
-function agentResourcesDir(): string {
+export function agentResourcesDir(): string {
   return app.isPackaged
     ? join(process.resourcesPath, AGENT_DIR)
     : join(app.getAppPath(), "resources", AGENT_DIR);

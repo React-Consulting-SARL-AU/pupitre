@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/entitlement"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/protocol"
 )
@@ -69,6 +70,7 @@ type TranscriptOptions struct {
 
 type transcript struct {
 	entitlement contract.Entitlement
+	unenrolled  bool
 	prepare     []func(*FakeSys)
 	input       []string
 	expected    []string
@@ -131,6 +133,8 @@ func (f *transcript) directive(t *testing.T, path, line string) {
 	switch name {
 	case "entitlement":
 		f.entitlement = contract.Entitlement(rest)
+	case "unenrolled":
+		f.unenrolled = true
 	case "upgrade":
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Upgrades[fields[0]] = fields[1] })
 	case "package":
@@ -215,7 +219,8 @@ func runTranscript(t *testing.T, f transcript, options TranscriptOptions) {
 		InstallPath:  "/etc/pupitre/install.json",
 	}
 
-	server := protocol.NewServer(protocol.Options{AgentVersion: "0.0.0-test", Entitlement: f.entitlement, Now: fixed})
+	granted := entitlement.State{Entitlement: f.entitlement, Enrolled: !f.unenrolled}
+	server := protocol.NewServer(protocol.Options{AgentVersion: "0.0.0-test", Entitlement: func() entitlement.State { return granted }, Now: fixed})
 	modules.RegisterCommands(server, engine)
 	if options.Register != nil {
 		options.Register(server, engine)

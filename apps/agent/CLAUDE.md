@@ -21,7 +21,7 @@ Go 1.25, bibliothèque standard d'abord. Binaire statique (`CGO_ENABLED=0`), `-t
 ## Architecture
 
 ```
-cmd/pupitred/            main.go : serve · install · probe · upgrade · dev · version
+cmd/pupitred/            main.go : serve · daemon · enroll · install · probe · upgrade · dev · version
 internal/protocol/       enveloppe, dispatch, événements, flux secret, appel direct d'une commande
 internal/devcli/         grammaire et rendu de pupitred dev, la même que completions rend
 internal/probe/          probe.sh (sh POSIX, embarqué) et la sonde Go
@@ -31,6 +31,7 @@ internal/tmux/           session, fenêtres, logs
 internal/platform/       client HTTPS de la plateforme
 internal/selfupdate/     agent.upgrade : téléchargement, signature, remplacement, retour arrière
 internal/entitlement/    droit d'usage, cache, mode restreint
+internal/daemon/         pupitred daemon : lecture de /agent/state, clés, heartbeat, unité systemd, enrôlement
 internal/keys/           bloc balisé d'authorized_keys, écriture atomique
 internal/sys/            apt, systemd, fichiers, utilisateurs
 test/staging/            tests d'intégration contre le VPS de staging
@@ -46,6 +47,7 @@ Un module = un dossier avec `manifest.go`, `module.go`, `module_test.go`. Les é
 
 ```bash
 bun run build            # go build multi-arch
+bun run build:dev        # même chose avec -tags dev : droit d'usage intégré, ni jeton ni plateforme
 bun run test
 bun run lint             # gofmt, go vet, staticcheck
 bun run staging:reset    # réinstalle le VPS de staging

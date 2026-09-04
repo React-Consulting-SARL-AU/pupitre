@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@pupitre/design/tailwind.css";
+@import "@pupitre/design/fonts.css";
 
 @utility elevation-raised {
   box-shadow: var(--shadow-raised);
