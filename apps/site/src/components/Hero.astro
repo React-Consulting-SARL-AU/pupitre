@@ -1,4 +1,5 @@
 ---
+import { homeContent } from "../content/site/home"
 import { localeFromPath, localizePath, translator } from "../lib/i18n"
 import DownloadButton from "./DownloadButton.astro"
 
@@ -6,17 +7,19 @@ const CONSOLE_URL = "https://app.pupitre.sh/"
 
 const locale = localeFromPath(Astro.url.pathname)
 const t = translator(locale)
+const { hero } = homeContent(locale)
 ---
 
 <section class="mx-auto max-w-5xl px-6 py-24 md:py-40">
   <p class="label mb-8 text-ink-3">{t("site.name")}</p>
-  <h1 class="heading-1 max-w-3xl">{t("home.headline")}</h1>
-  <p class="lead mt-6 max-w-2xl text-ink-2">{t("home.lead")}</p>
+  <h1 class="heading-1 max-w-3xl">{hero.headline}</h1>
+  <p class="lead mt-6 max-w-2xl text-ink-2">{hero.lead}</p>
   <div class="mt-10 flex flex-wrap gap-3">
     <DownloadButton
       href={localizePath("/download/", locale)}
-      label={t("home.download")}
+      label={hero.download}
     />
-    <a href={CONSOLE_URL} class="btn btn-secondary">{t("home.order")}</a>
+    <a href={CONSOLE_URL} class="btn btn-secondary">{hero.order}</a>
   </div>
+  <p class="mt-10 max-w-2xl text-ink-3">{hero.note}</p>
 </section>

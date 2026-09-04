@@ -1,0 +1,24 @@
+---
+interface Props {
+  items: Array<{ question: string; answer: string }>
+}
+
+const { items } = Astro.props
+---
+
+<div class="divide-y divide-line border-line border-y">
+  {
+    items.map((item) => (
+      <details class="group">
+        <summary class="flex cursor-pointer list-none items-baseline justify-between gap-6 py-5 [&::-webkit-details-marker]:hidden">
+          <span class="heading-4">{item.question}</span>
+          <span aria-hidden="true" class="data text-ink-3">
+            <span class="group-open:hidden">+</span>
+            <span class="hidden group-open:inline">−</span>
+          </span>
+        </summary>
+        <p class="max-w-2xl pb-6 text-ink-2">{item.answer}</p>
+      </details>
+    ))
+  }
+</div>

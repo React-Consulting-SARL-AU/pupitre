@@ -23,13 +23,4 @@ export const fr: Dictionary = {
   "callout.info": "Note",
   "callout.warn": "Attention",
   "callout.danger": "Danger",
-  "home.title": "Pupitre — une machine pour vos agents IA",
-  "home.description":
-    "Une app desktop qui transforme n’importe quel VPS Ubuntu en atelier pour agents IA, et un agent compilé posé sur ce serveur.",
-  "home.headline":
-    "Vos agents IA travaillent sur une machine à eux. Votre laptop respire.",
-  "home.lead":
-    "Une app desktop qui transforme n’importe quel VPS Ubuntu en atelier pour agents IA, et un agent compilé posé sur ce serveur.",
-  "home.download": "Télécharger l’app",
-  "home.order": "Commander",
 }

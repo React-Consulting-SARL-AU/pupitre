@@ -197,6 +197,17 @@
         "internal"
       ]
     },
+    "RestrictedCommands": {
+      "type": "string",
+      "enum": [
+        "hello",
+        "ping",
+        "snapshot",
+        "status",
+        "diag",
+        "agent.upgrade"
+      ]
+    },
     "HelloParams": {
       "type": "object",
       "properties": {
@@ -3020,6 +3031,89 @@
             "kind",
             "options",
             "default"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*$"
+            },
+            "label": {
+              "type": "string",
+              "minLength": 1
+            },
+            "help": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "boolean"
+            },
+            "required": {
+              "type": "boolean",
+              "const": false
+            },
+            "default": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "key",
+            "label",
+            "kind",
+            "required",
+            "default"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*$"
+            },
+            "label": {
+              "type": "string",
+              "minLength": 1
+            },
+            "help": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "list"
+            },
+            "required": {
+              "type": "boolean"
+            },
+            "items": {
+              "type": "string",
+              "enum": [
+                "text",
+                "secret"
+              ]
+            },
+            "min": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "max": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "key",
+            "label",
+            "kind",
+            "required",
+            "items"
           ],
           "additionalProperties": false
         }
