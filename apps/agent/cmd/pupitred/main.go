@@ -8,6 +8,7 @@ import (
 	"pupitre.studio/agent/internal/entitlement"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/core"
+	"pupitre.studio/agent/internal/modules/db"
 	_ "pupitre.studio/agent/internal/modules/runtime"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/sys"
@@ -60,6 +61,7 @@ func newServer(engine *modules.Engine) *protocol.Server {
 	})
 	modules.RegisterCommands(server, engine)
 	core.RegisterCommands(server, engine)
+	db.RegisterCommands(server, engine)
 
 	return server
 }

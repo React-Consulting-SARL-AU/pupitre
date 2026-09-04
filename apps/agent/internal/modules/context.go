@@ -52,6 +52,10 @@ func (c *Context) Sys() sys.Sys {
 	return c.run.sys
 }
 
+func (c *Context) Now() time.Time {
+	return c.run.now()
+}
+
 func (c *Context) Logf(format string, args ...any) {
 	c.run.journal.logf(c.manifest.ID, format, args...)
 }

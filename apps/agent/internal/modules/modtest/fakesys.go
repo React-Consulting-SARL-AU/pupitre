@@ -28,6 +28,7 @@ type FakeSys struct {
 	Units     map[string]UnitState
 	Restarts  map[string]int
 	Replies   map[string]string
+	Answers   map[string]string
 	Failures  map[string]string
 	Users     map[string]string
 	Tools     map[string]string
@@ -48,6 +49,7 @@ func NewFakeSys() *FakeSys {
 		Units:    map[string]UnitState{},
 		Restarts: map[string]int{},
 		Replies:  map[string]string{},
+		Answers:  map[string]string{},
 		Failures: map[string]string{},
 		Users:    map[string]string{"root": "/root"},
 		Tools:    map[string]string{},
@@ -56,6 +58,11 @@ func NewFakeSys() *FakeSys {
 
 func (f *FakeSys) FailPackage(pkg, stderr string) {
 	f.Failures["apt:"+pkg] = stderr
+}
+
+// One program, several questions: an answer keyed by a fragment of the command line wins over the reply keyed by the program.
+func (f *FakeSys) Answer(fragment, stdout string) {
+	f.Answers[fragment] = stdout
 }
 
 func (f *FakeSys) FailProgram(program, stderr string) {
@@ -91,6 +98,13 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 	program := cmd.Argv[0]
 	if stderr, failing := f.Failures[program]; failing {
 		return f.fail(program, stderr)
+	}
+
+	line := strings.Join(cmd.Argv, " ")
+	for fragment, answer := range f.Answers {
+		if strings.Contains(line, fragment) {
+			return sys.Output{Stdout: answer}, nil
+		}
 	}
 
 	switch program {
