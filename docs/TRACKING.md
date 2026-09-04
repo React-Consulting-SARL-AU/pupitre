@@ -120,3 +120,4 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
+| 2026-09-05 | APP-12 | L'app lit la version publiée, ses notes et sa signature dans la release embarquée à la construction : `embedAgent` attend `apps/agent/dist/release.json` (`{ version, notes[], signatures: { arch } }`). **Rien ne l'écrit aujourd'hui** — c'est à AGT-15, la chaîne de publication, de le produire. Sans lui l'app pousse bien un agent sur une machine nue mais ne peut pas en proposer la mise à jour : le bandeau le dit et son bouton reste désactivé, plutôt que d'envoyer une signature inventée que l'agent refuserait. À vérifier à la fusion d'AGT-15. | AGT-15 |
