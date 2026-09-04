@@ -87,19 +87,20 @@ export function loginAddress(
  * It travels in the address of the page the browser is sent to, whether that
  * page can be reached from this computer or not: the app reads the address and
  * stops there, so a redirection to a port of the server is never opened.
+ *
+ * A short value is not one: the address that opens the round trip carries a
+ * `code=true` of its own, and taking it for the answer would close the page
+ * before the reader had signed in.
  */
+const SHORTEST_CODE = 8;
+
 export function authorizationCode(raw: string): string | null {
   try {
     const parsed = new URL(raw);
-    const query = parsed.searchParams.get("code");
-
-    if (query) {
-      return query;
-    }
-
     const fragment = new URLSearchParams(parsed.hash.slice(1));
+    const found = parsed.searchParams.get("code") ?? fragment.get("code");
 
-    return fragment.get("code");
+    return found && found.length >= SHORTEST_CODE ? found : null;
   } catch {
     return null;
   }

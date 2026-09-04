@@ -214,8 +214,16 @@ describe("l'adresse de connexion d'un agent", () => {
 
   it("lit le code du retour, même sur un port du serveur", () => {
     expect(
-      authorizationCode("http://localhost:54545/callback?code=abc123&state=x")
-    ).toBe("abc123");
+      authorizationCode(
+        "http://localhost:54545/callback?code=ac_9f2b7d41&state=x"
+      )
+    ).toBe("ac_9f2b7d41");
     expect(authorizationCode("https://claude.ai/oauth/authorize")).toBeNull();
+  });
+
+  it("ne prend pas le code=true de l'adresse d'ouverture pour une réponse", () => {
+    expect(
+      authorizationCode("https://claude.ai/oauth/authorize?code=true&state=x")
+    ).toBeNull();
   });
 });

@@ -59,7 +59,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-07 | Durcissement et bascule root → dev | fait | `feat/APP-07-harden` | fusionnée |
 | APP-08 | Premier projet | fait | `feat/APP-08-first-project` | fusionnée |
 | APP-09 | Tableau de bord et projets sur le nouveau protocole | fait | `feat/APP-09-dashboard` | fusionnée |
-| APP-10 | Terminaux, agents, galerie | à faire | | |
+| APP-10 | Terminaux, agents, galerie | en revue | `feat/APP-10-terminals` | |
 | APP-11 | Services au quotidien | fait | `feat/APP-11-services` | fusionnée |
 | APP-12 | Mise à jour de l'agent depuis l'app | à faire | | |
 | APP-13 | Build macOS signé, notarisé, bytecode, auto-update | à faire | | |
@@ -113,3 +113,4 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
+| 2026-09-04 | APP-10 | La galerie ne peut pas montrer les captures : `shots.list` rend un chemin du serveur, `shots.url` une seule adresse pour la galerie entière, et aucune commande ne rend l'image. L'app liste donc les fichiers et ouvre la galerie dans le navigateur du système. | le propriétaire — une adresse par capture, ou une commande qui rend son contenu |
