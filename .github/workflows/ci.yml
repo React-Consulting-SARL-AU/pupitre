@@ -121,6 +121,41 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  desktop-e2e:
+    name: Desktop end-to-end
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Non-blocking: the references are committed per platform, and a Linux one
+    # will not exist until someone writes it from a run here.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Bun skips that install script often enough that the binary is missing
+      # on a fresh checkout; running it costs nothing when it is already there.
+      - name: Install the Electron binary
+        run: node node_modules/electron/install.js
+        working-directory: apps/desktop
+
+      - name: Playwright
+        run: xvfb-run --auto-servernum bun --cwd=apps/desktop run test:e2e
+
+      - name: Upload the failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-desktop-${{ github.sha }}
+          path: .playwright/desktop
+          retention-days: 7
+          if-no-files-found: ignore
+
   agent:
     name: Agent
     runs-on: ubuntu-latest
