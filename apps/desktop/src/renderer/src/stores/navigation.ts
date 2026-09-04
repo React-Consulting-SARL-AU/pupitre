@@ -2,6 +2,7 @@ import type { AgentState, Terminal, TerminalKind } from "@shared/terminals";
 import { create } from "zustand";
 import { readNavigation, writeNavigation } from "../lib/memory";
 import { destroy } from "../lib/terminals";
+import { useTerminals } from "./terminals";
 
 /**
  * Where the reader is in the app, and what they left open.
@@ -16,6 +17,7 @@ export const VIEWS = [
   "project",
   "services",
   "activity",
+  "shots",
   "secrets",
   "terminals",
   "settings",
@@ -38,6 +40,7 @@ function rememberedView(): View {
 const LABELS: Record<TerminalKind, string> = {
   claude: "Claude",
   codex: "Codex",
+  hermes: "Hermes",
   shell: "Terminal",
 };
 
@@ -141,6 +144,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
   closeTerminal(id) {
     const leaving = get().terminals.find((t) => t.id === id);
     destroy(id);
+    useTerminals.getState().forget(id);
 
     set((state) => {
       const remaining = state.terminals.filter((t) => t.id !== id);
@@ -219,6 +223,8 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
     for (const terminal of get().terminals) {
       destroy(terminal.id);
     }
+
+    useTerminals.getState().reset();
 
     set({
       activeTabs: {},

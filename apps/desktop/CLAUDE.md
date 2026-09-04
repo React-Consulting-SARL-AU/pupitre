@@ -22,12 +22,12 @@ Electron 42 · electron-vite (bytecode sur main et preload) · React 19 · Tailw
 ## Architecture
 
 ```
-src/main/        index.ts · agent-client.ts · servers.ts · keys.ts · terminals.ts · account.ts · updater.ts · completion.ts
+src/main/        index.ts · agent-client.ts · servers.ts · keys.ts · terminals.ts · terminal-run.ts · login-view.ts · account.ts · updater.ts · completion.ts
 src/preload/     index.ts — la surface IPC, typée
 src/renderer/src/
   components/ui/          Base UI + shadcn, un composant par fichier
   components/onboarding/  add-server · inspection · catalog · configure · install · harden · first-project
-  components/dashboard, projects, terminals, agents, services, settings, account
+  components/dashboard, projects, terminals, agents, services, shots, settings, account
   stores/                 servers · snapshot · onboarding · theme · account
   lib/                    memory.ts (navigation), completion.ts, terminals.ts
 ```

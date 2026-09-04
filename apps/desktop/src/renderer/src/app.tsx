@@ -9,17 +9,20 @@ import { ServicesScreen } from "./components/services/services-screen";
 import { SettingsScreen } from "./components/settings/settings-screen";
 import { AppSidebar } from "./components/shell/app-sidebar";
 import { ServerUnreadyScreen } from "./components/shell/server-unready-screen";
+import { ShotsScreen } from "./components/shots/shots-screen";
 import { TerminalTabs } from "./components/terminals/terminal-tabs";
 import { EmptyState } from "./components/ui/empty-state";
 import { ErrorNotice } from "./components/ui/error-notice";
 import { IconButton } from "./components/ui/icon-button";
 import { noteProjects, noteServer } from "./lib/completion";
+import { attachedSessions } from "./lib/sessions";
 import { shellScreen } from "./lib/shell-screen";
 import { useNavigation } from "./stores/navigation";
 import { useOnboarding } from "./stores/onboarding";
 import { useSecrets } from "./stores/secrets";
 import { useServers } from "./stores/servers";
 import { snapshotOf, useSnapshot } from "./stores/snapshot";
+import { useTerminals } from "./stores/terminals";
 
 /** The dashboard is the state of the machine: it is worth a beat of its own. */
 const POLL_MS = 3000;
@@ -60,6 +63,22 @@ export function App() {
     () => window.pupitre.onTerminalStates(navigation.noteStates),
     [navigation.noteStates]
   );
+
+  // A session that prints a login address, and the round trip that ends: both
+  // come from the main process, which is the only side that saw the address.
+  useEffect(() => {
+    const link = window.pupitre.onTerminalLink((payload) =>
+      useTerminals.getState().noteLink(payload.id, payload.host)
+    );
+    const closed = window.pupitre.onLoginClosed((id) =>
+      useTerminals.getState().noteLoginClosed(id)
+    );
+
+    return () => {
+      link();
+      closed();
+    };
+  }, []);
 
   const { read, readProcesses, forget } = store;
 
@@ -150,6 +169,7 @@ export function App() {
   const serverTerminals = navigation.terminals.filter(
     (terminal) => terminal.project === null
   );
+  const attached = attachedSessions(navigation.terminals);
 
   return (
     <div className="grid h-full grid-cols-[224px_1fr]">
@@ -191,6 +211,7 @@ export function App() {
           {view === "dashboard" ? (
             <div className="absolute inset-0">
               <DashboardPanel
+                attached={attached}
                 busy={busy}
                 onAct={(action, name) => store.act(action, serverId, name)}
                 onCleanSessions={() => store.cleanSessions(serverId)}
@@ -230,12 +251,19 @@ export function App() {
           {view === "activity" ? (
             <div className="absolute inset-0">
               <ActivityPanel
+                attached={attached}
                 onCleanSessions={() => store.cleanSessions(serverId)}
                 onStopProcess={(pid) => store.stopProcess(serverId, pid)}
                 onStopSession={(pid) => store.stopProcess(serverId, pid)}
                 processes={processes}
                 sessions={snapshot.sessions}
               />
+            </div>
+          ) : null}
+
+          {view === "shots" ? (
+            <div className="absolute inset-0">
+              <ShotsScreen serverId={serverId} />
             </div>
           ) : null}
 

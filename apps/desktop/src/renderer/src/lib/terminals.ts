@@ -50,12 +50,7 @@ interface Live {
  */
 const live = new Map<string, Live>();
 
-export function obtain(
-  id: string,
-  serverId: string,
-  kind: TerminalKind,
-  project: string | null
-): Live {
+export function obtain(id: string, kind: TerminalKind): Live {
   const known = live.get(id);
   if (known) {
     return known;
@@ -92,15 +87,11 @@ export function obtain(
   const detachExit = window.pupitre.onTerminalExit((payload) => {
     if (payload.id === id) {
       xterm.writeln(
-        `\r\n\x1b[38;5;245m— session ended (${payload.code}) —\x1b[0m`
+        `\r\n\x1b[38;5;245m— session terminée (${payload.code}) —\x1b[0m`
       );
     }
   });
   xterm.onData((data) => window.pupitre.writeTerminal(id, data));
-
-  // The PTY opens at a default size: the host is not in the document yet, so
-  // nothing is measurable. The first `fitTerminal` will correct it.
-  window.pupitre.openTerminal(id, serverId, kind, project, 80, 24);
 
   const entry: Live = {
     host,

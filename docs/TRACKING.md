@@ -61,7 +61,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-07 | Durcissement et bascule root → dev | fait | `feat/APP-07-harden` | fusionnée |
 | APP-08 | Premier projet | fait | `feat/APP-08-first-project` | fusionnée |
 | APP-09 | Tableau de bord et projets sur le nouveau protocole | fait | `feat/APP-09-dashboard` | fusionnée |
-| APP-10 | Terminaux, agents, galerie | à faire | | |
+| APP-10 | Terminaux, agents, galerie | en revue | `feat/APP-10-terminals` | |
 | APP-11 | Services au quotidien | fait | `feat/APP-11-services` | fusionnée |
 | APP-12 | Mise à jour de l'agent depuis l'app | à faire | | |
 | APP-13 | Build macOS signé, notarisé, bytecode, auto-update | à faire | | |

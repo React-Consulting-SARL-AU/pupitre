@@ -6,13 +6,20 @@ import {
 } from "@renderer/components/ui/agent-icons";
 import { dominantState } from "@renderer/stores/navigation";
 import type { AgentState, Terminal } from "@shared/terminals";
-import { FileDiff, LayoutGrid, ScrollText, SquareTerminal } from "lucide-react";
+import {
+  Bot,
+  FileDiff,
+  LayoutGrid,
+  ScrollText,
+  SquareTerminal,
+} from "lucide-react";
 import { type ProjectTab, TAB_LABEL } from "./project-tabs";
 
 const ICONS: Record<ProjectTab, IconComponent> = {
   claude: ClaudeIcon,
   codex: CodexIcon,
   diff: FileDiff,
+  hermes: Bot,
   logs: ScrollText,
   overview: LayoutGrid,
   shell: SquareTerminal,

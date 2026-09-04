@@ -1,0 +1,11 @@
+# Un terminal et un agent : la liste des projets, puis agent.open.
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","protocol":1}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","project.list","agent.open","completions"]}}
+> {"id":2,"cmd":"project.list"}
+< {"id":2,"ok":true,"result":{"projects":[{"name":"flymate-api","dir":"flymate/api","path":"/home/dev/projects/flymate/api","pkgmgr":"bun","host":"127.0.0.1","port":3000,"cmd":"bun run dev","state":"online"}]}}
+> {"id":3,"cmd":"agent.open","params":{"kind":"claude","project":"flymate-api"}}
+< {"id":3,"ok":true,"result":{"command":"tmux new-session -A -s claude-flymate-api -c /home/dev/projects/flymate/api claude","session":"claude-flymate-api"}}
+> {"id":4,"cmd":"agent.open","params":{"kind":"hermes","project":"flymate-api"}}
+< {"id":4,"ok":false,"error":{"code":"module_not_found","message":"Hermes n'est pas installé sur ce serveur.","fix":"Ajoute le module ai.hermes depuis l'écran Services."}}
+> {"id":5,"cmd":"completions","params":{"path":""}}
+< {"id":5,"ok":true,"result":{"command":"dev","sub":[{"name":"up","help":"démarre un projet","args":[["$project"]]}],"projects":["flymate-api"],"root":"/home/dev/projects","path":"","paths":["flymate/"]}}

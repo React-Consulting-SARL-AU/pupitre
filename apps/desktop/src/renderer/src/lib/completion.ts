@@ -2,6 +2,7 @@ import type { CompletionsResult } from "@pupitre/shared/agent-protocol/state";
 import type { Candidate } from "@shared/completion";
 import type { IMarker, Terminal as XTerm } from "@xterm/xterm";
 import { useSyncExternalStore } from "react";
+import { readHistory, writeHistory } from "./memory";
 
 export const TERMINAL_FONT = '"JetBrains Mono", ui-monospace, Menlo, monospace';
 
@@ -62,6 +63,7 @@ const PATH_COMMANDS = new Set([
   "zed",
 ]);
 
+const LEADING_SLASH = /^\//;
 const SEPARATORS = /\s*(?:\|\||&&|\||;)\s*/;
 const SPACES = /\s+/;
 const TRAILING_SPACE = /\s$/;
@@ -281,6 +283,38 @@ function pathBase(
   return cut === -1 ? "" : token.slice(0, cut + 1);
 }
 
+/** `completions` reads under the projects root: elsewhere, no path is offered. */
+export function underRoot(
+  root: string,
+  dir: string,
+  base: string
+): string | null {
+  if (root.length === 0 || dir.length === 0) {
+    return null;
+  }
+
+  const absolute = base.startsWith("/") ? base : `${dir}/${base}`;
+  const walked: string[] = [];
+
+  for (const part of absolute.split("/")) {
+    if (part === "" || part === ".") {
+      continue;
+    }
+
+    if (part === "..") {
+      walked.pop();
+      continue;
+    }
+
+    walked.push(part);
+  }
+
+  const path = `/${walked.join("/")}`;
+  const inside = path === root || path.startsWith(`${root}/`);
+
+  return inside ? path.slice(root.length).replace(LEADING_SLASH, "") : null;
+}
+
 interface Tracked {
   xterm: XTerm;
   marker: IMarker | null;
@@ -297,32 +331,38 @@ const tracked = new Map<string, Tracked>();
 const subscribers = new Map<string, Set<() => void>>();
 
 let catalog: CompletionsResult | null = null;
-let catalogRequest: Promise<CompletionsResult | null> | null = null;
+let catalogRequest: Promise<unknown> | null = null;
 let serverId: string | null = null;
 let history: string[] = [];
-let historyReadAt = 0;
 let projects: string[] = [];
 
-const HISTORY_MS = 3000;
+const HISTORY_KEPT = 200;
 
 function loadCatalog(): void {
   if (catalogRequest || !serverId) {
     return;
   }
 
-  catalogRequest = window.pupitre.completionCatalog(serverId).then((read) => {
-    catalog = read;
-
-    return read;
+  catalogRequest = window.pupitre.completions(serverId).then((answer) => {
+    if (answer.ok) {
+      catalog = answer.result;
+    }
   });
 }
 
-async function rereadHistory(force: boolean): Promise<void> {
-  if (!force && Date.now() - historyReadAt < HISTORY_MS) {
+/** OSC 133 says where a command starts and ends: the app needs no history file. */
+function rememberCommand(line: string): void {
+  const command = line.trim();
+
+  if (command.length === 0 || !serverId || history[0] === command) {
     return;
   }
-  historyReadAt = Date.now();
-  history = await window.pupitre.completionHistory();
+
+  history = [command, ...history.filter((e) => e !== command)].slice(
+    0,
+    HISTORY_KEPT
+  );
+  writeHistory(serverId, history);
 }
 
 /** The projects the server announced: the app is what holds them. */
@@ -335,15 +375,15 @@ export function noteServer(id: string | null): void {
   if (id !== serverId) {
     serverId = id;
     forgetSources();
+    history = id ? readHistory(id) : [];
   }
 }
 
-/** On switching to another server: its grammar and history no longer apply. */
+/** On switching to another server: its grammar and its folders no longer apply. */
 export function forgetSources(): void {
   catalog = null;
   catalogRequest = null;
   history = [];
-  historyReadAt = 0;
   for (const item of tracked.values()) {
     item.paths.clear();
   }
@@ -439,14 +479,9 @@ function cursorPosition(xterm: XTerm): Cursor | null {
   };
 }
 
-function requestPaths(
-  id: string,
-  item: Tracked,
-  base: string,
-  token: string
-): void {
-  const key = `${item.dir}|${base}`;
-  if (item.paths.has(key)) {
+/** Filed under the folder asked for: walking back up a path costs nothing. */
+function requestPaths(id: string, item: Tracked, asked: string): void {
+  if (item.paths.has(asked) || !serverId) {
     return;
   }
   if (item.timer) {
@@ -454,9 +489,8 @@ function requestPaths(
   }
   item.timer = setTimeout(async () => {
     item.timer = null;
-    const dir = item.dir;
-    const read = await window.pupitre.completionPaths(dir, token);
-    item.paths.set(`${dir}|${base}`, read);
+    const answer = await window.pupitre.completions(serverId as string, asked);
+    item.paths.set(asked, answer.ok ? answer.result.paths : []);
     recompute(id);
   }, 120);
 }
@@ -480,15 +514,18 @@ export function recompute(id: string): void {
 
   const { tokens, token, position } = split(line);
   const base = pathBase(token, position, tokens[0] ?? "");
+  const asked =
+    base === null || !catalog ? null : underRoot(catalog.root, item.dir, base);
   let paths: string[] = [];
-  if (base !== null) {
-    paths = item.paths.get(`${item.dir}|${base}`) ?? [];
-    requestPaths(id, item, base, token);
+
+  if (asked !== null && base !== null) {
+    paths = (item.paths.get(asked) ?? []).map((entry) => base + entry);
+    requestPaths(id, item, asked);
   }
 
   const { candidates, ghost } = propose(line, {
     catalog,
-    projects,
+    projects: projects.length > 0 ? projects : (catalog?.projects ?? []),
     history,
     paths,
   });
@@ -632,7 +669,6 @@ export function attach(id: string, xterm: XTerm): () => void {
   };
   tracked.set(id, item);
   loadCatalog();
-  rereadHistory(false);
 
   const osc133 = xterm.parser.registerOscHandler(133, (data) => {
     const code = data.split(";")[0];
@@ -643,11 +679,11 @@ export function attach(id: string, xterm: XTerm): () => void {
       item.typing = true;
       item.closedFor = null;
     } else if (code === "C") {
+      rememberCommand(readLine(item) ?? "");
       item.typing = false;
       publish(id, item, NOTHING);
     } else if (code === "D") {
       item.typing = false;
-      setTimeout(() => rereadHistory(true), 400);
     }
     return true;
   });

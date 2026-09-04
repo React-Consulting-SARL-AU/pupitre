@@ -77,6 +77,21 @@ export function commits(count: number): string {
   return `${count} commit${count > 1 ? "s" : ""}`;
 }
 
+const BYTES_PER_KB = 1024;
+
+/** A file's weight, the way a reader judges whether it is worth keeping. */
+export function weight(bytes: number): string {
+  const kb = bytes / BYTES_PER_KB;
+
+  if (kb < 1) {
+    return `${bytes} o`;
+  }
+
+  return kb < BYTES_PER_KB
+    ? `${Math.round(kb)} Ko`
+    : `${comma(kb / BYTES_PER_KB)} Mo`;
+}
+
 export function plural(count: number, word: string): string {
   return `${count} ${word}${count > 1 ? "s" : ""}`;
 }

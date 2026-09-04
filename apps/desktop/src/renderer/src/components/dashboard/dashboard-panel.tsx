@@ -24,6 +24,8 @@ import { DashboardServices } from "./dashboard-services";
 interface Props {
   snapshot: SnapshotResult;
   busy: string | null;
+  /** The sessions the app still has a tab on. */
+  attached: readonly string[];
   onOpenProject: (name: string) => void;
   onAct: (action: ProjectAction, name: string) => void;
   onStopSession: (pid: number) => void;
@@ -34,6 +36,7 @@ interface Props {
 export function DashboardPanel({
   snapshot,
   busy,
+  attached,
   onOpenProject,
   onAct,
   onStopSession,
@@ -130,6 +133,7 @@ export function DashboardPanel({
           </h2>
           <div className="elevation-raised overflow-hidden rounded-md border border-line bg-surface">
             <ActivitySessions
+              attached={attached}
               onClean={onCleanSessions}
               onStop={onStopSession}
               sessions={snapshot.sessions}

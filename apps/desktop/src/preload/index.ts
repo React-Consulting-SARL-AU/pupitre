@@ -38,7 +38,13 @@ import type {
   ServersConfig,
 } from "@shared/servers";
 import type { PortForward, ServiceDetail } from "@shared/services";
-import type { AgentState, TerminalKind } from "@shared/terminals";
+import type {
+  AgentState,
+  TerminalKind,
+  TerminalLink,
+  TerminalOpened,
+  ViewBounds,
+} from "@shared/terminals";
 import { contextBridge, ipcRenderer } from "electron";
 
 /**
@@ -432,22 +438,19 @@ const api = {
 
   openUrl: (url: string): Promise<void> => ipcRenderer.invoke("open-url", url),
 
-  /**
-   * The three sources of terminal autocompletion. The grammar comes from the
-   * agent, the history from its shell, the paths from its disk: nothing is
-   * guessed here.
-   */
-  completionCatalog: (serverId: string): Promise<CompletionsResult | null> =>
-    ipcRenderer.invoke("completion-catalog", serverId),
-  completionHistory: (): Promise<string[]> =>
-    ipcRenderer.invoke("completion-history"),
-  completionPaths: (dir: string, token: string): Promise<string[]> =>
-    ipcRenderer.invoke("completion-paths", dir, token),
+  /** The grammar, the projects and one folder, in one command of the protocol. */
+  completions: (
+    serverId: string,
+    path?: string
+  ): Promise<AgentResponse<CompletionsResult>> =>
+    ipcRenderer.invoke("completions", serverId, path ?? ""),
 
   terminalDiagnostics: (): Promise<{
     sessions: number;
     keystrokesReceived: number;
   }> => ipcRenderer.invoke("terminal-diagnostics"),
+
+  /** The renderer names a kind and a project; the command is decided over there. */
   openTerminal: (
     id: string,
     serverId: string,
@@ -455,8 +458,16 @@ const api = {
     project: string | null,
     cols: number,
     rows: number
-  ): void =>
-    ipcRenderer.send("terminal-open", id, serverId, kind, project, cols, rows),
+  ): Promise<AgentResponse<TerminalOpened>> =>
+    ipcRenderer.invoke(
+      "terminal-open",
+      id,
+      serverId,
+      kind,
+      project,
+      cols,
+      rows
+    ),
   writeTerminal: (id: string, data: string): void =>
     ipcRenderer.send("terminal-write", id, data),
   resizeTerminal: (id: string, cols: number, rows: number): void =>
@@ -485,6 +496,23 @@ const api = {
       callback(payload);
     ipcRenderer.on("terminal-exit", listener);
     return () => ipcRenderer.removeListener("terminal-exit", listener);
+  },
+
+  /** The address never crosses: this side names a session and a rectangle. */
+  onTerminalLink: (callback: (link: TerminalLink) => void): (() => void) => {
+    const listener = (_e: unknown, link: TerminalLink) => callback(link);
+    ipcRenderer.on("terminal-link", listener);
+    return () => ipcRenderer.removeListener("terminal-link", listener);
+  },
+  openLogin: (id: string, bounds: ViewBounds): Promise<boolean> =>
+    ipcRenderer.invoke("login-open", id, bounds),
+  moveLogin: (bounds: ViewBounds): void =>
+    ipcRenderer.send("login-move", bounds),
+  closeLogin: (): void => ipcRenderer.send("login-close"),
+  onLoginClosed: (callback: (id: string) => void): (() => void) => {
+    const listener = (_e: unknown, id: string) => callback(id);
+    ipcRenderer.on("login-closed", listener);
+    return () => ipcRenderer.removeListener("login-closed", listener);
   },
 };
 
