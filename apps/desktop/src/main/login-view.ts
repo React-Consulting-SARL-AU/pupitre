@@ -1,6 +1,7 @@
 import type { ViewBounds } from "@shared/terminals";
 import { type BrowserWindow, WebContentsView } from "electron";
 import { authorizationCode } from "./terminal-links";
+import { insideFrame } from "./view-bounds";
 
 /**
  * The provider's page, inside the tab that asked for it.
@@ -22,19 +23,8 @@ interface Live {
 
 let live: Live | null = null;
 
-const MINIMUM = 40;
-
 function clamp(bounds: ViewBounds, window: BrowserWindow): ViewBounds {
-  const frame = window.getContentBounds();
-  const width = Math.min(Math.round(bounds.width), frame.width);
-  const height = Math.min(Math.round(bounds.height), frame.height);
-
-  return {
-    height: Math.max(height, MINIMUM),
-    width: Math.max(width, MINIMUM),
-    x: Math.max(0, Math.round(bounds.x)),
-    y: Math.max(0, Math.round(bounds.y)),
-  };
+  return insideFrame(bounds, window.getContentBounds());
 }
 
 export function closeLogin(): void {

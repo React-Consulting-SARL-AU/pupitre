@@ -7,7 +7,7 @@ import type {
   ServerDraft,
   ServersConfig,
 } from "@shared/servers";
-import type { TerminalOpened, ViewBounds } from "@shared/terminals";
+import type { TerminalOpened } from "@shared/terminals";
 import {
   app,
   BrowserWindow,
@@ -51,6 +51,7 @@ import {
   terminalDiagnostics,
   write,
 } from "./terminals";
+import { readBounds } from "./view-bounds";
 
 let window: BrowserWindow | null = null;
 
@@ -306,15 +307,6 @@ function registerTerminalChannels(): void {
   });
 }
 
-function asBounds(value: unknown): ViewBounds | null {
-  const box = value as Partial<ViewBounds> | null;
-  const numbers = [box?.x, box?.y, box?.width, box?.height];
-
-  return numbers.every((n) => typeof n === "number" && Number.isFinite(n))
-    ? (box as ViewBounds)
-    : null;
-}
-
 /**
  * The provider's page, in the tab that is waiting for it.
  *
@@ -324,7 +316,7 @@ function asBounds(value: unknown): ViewBounds | null {
  */
 function registerLoginChannels(): void {
   ipcMain.handle("login-open", (event, id: unknown, box: unknown): boolean => {
-    const bounds = asBounds(box);
+    const bounds = readBounds(box);
     const address = typeof id === "string" ? pendingLogin(id) : null;
 
     if (!(window && bounds && address && typeof id === "string")) {
@@ -350,7 +342,7 @@ function registerLoginChannels(): void {
   });
 
   ipcMain.on("login-move", (_e, box: unknown) => {
-    const bounds = asBounds(box);
+    const bounds = readBounds(box);
 
     if (bounds) {
       moveLogin(bounds);
