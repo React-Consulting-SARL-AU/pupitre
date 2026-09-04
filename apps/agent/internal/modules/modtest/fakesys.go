@@ -29,6 +29,7 @@ type FakeSys struct {
 	Replies   map[string]string
 	Failures  map[string]string
 	Users     map[string]string
+	Firewall  Firewall
 	Calls     []sys.Command
 	Mutations []string
 	Updates   int
@@ -100,6 +101,8 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 		return f.id(cmd.Argv[1:])
 	case "useradd":
 		return f.useradd(cmd.Argv[1:])
+	case "ufw":
+		return f.ufw(cmd.Argv[1:])
 	}
 
 	return sys.Output{Stdout: f.Replies[program]}, nil
@@ -248,6 +251,94 @@ func (f *FakeSys) useradd(args []string) (sys.Output, error) {
 	f.mutate("useradd " + name)
 
 	return sys.Output{}, nil
+}
+
+type Firewall struct {
+	Active   bool
+	Incoming string
+	Outgoing string
+	Rules    []string
+}
+
+func (f *FakeSys) ufw(args []string) (sys.Output, error) {
+	var words []string
+	for _, arg := range args {
+		if !strings.HasPrefix(arg, "-") {
+			words = append(words, arg)
+		}
+	}
+
+	if len(words) == 0 {
+		return f.fail("ufw", "ERROR: not enough args")
+	}
+
+	switch words[0] {
+	case "status":
+		return sys.Output{Stdout: f.Firewall.status()}, nil
+	case "default":
+		if words[2] == "incoming" {
+			f.Firewall.Incoming = words[1]
+		} else {
+			f.Firewall.Outgoing = words[1]
+		}
+		f.mutate("ufw default " + words[1] + " " + words[2])
+	case "allow":
+		if f.Firewall.has(words[1]) {
+			return sys.Output{Stdout: "Skipping adding existing rule\n"}, nil
+		}
+		f.Firewall.Rules = append(f.Firewall.Rules, words[1])
+		f.mutate("ufw allow " + words[1])
+	case "delete":
+		f.Firewall.remove(words[2])
+		f.mutate("ufw delete allow " + words[2])
+	case "enable":
+		f.Firewall.Active = true
+		f.mutate("ufw enable")
+	case "disable":
+		f.Firewall.Active = false
+		f.mutate("ufw disable")
+	default:
+		return f.fail("ufw", "ERROR: Invalid syntax")
+	}
+
+	return sys.Output{}, nil
+}
+
+func (w Firewall) status() string {
+	if !w.Active {
+		return "Status: inactive\n"
+	}
+
+	var out strings.Builder
+	fmt.Fprintf(&out, "Status: active\nLogging: on (low)\nDefault: %s (incoming), %s (outgoing), disabled (routed)\nNew profiles: skip\n\nTo                         Action      From\n--                         ------      ----\n", w.Incoming, w.Outgoing)
+	for _, rule := range w.Rules {
+		fmt.Fprintf(&out, "%-26s ALLOW IN    Anywhere\n", rule)
+	}
+	for _, rule := range w.Rules {
+		fmt.Fprintf(&out, "%-26s ALLOW IN    Anywhere (v6)\n", rule+" (v6)")
+	}
+
+	return out.String()
+}
+
+func (w Firewall) has(rule string) bool {
+	for _, existing := range w.Rules {
+		if existing == rule {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (w *Firewall) remove(rule string) {
+	var kept []string
+	for _, existing := range w.Rules {
+		if existing != rule {
+			kept = append(kept, existing)
+		}
+	}
+	w.Rules = kept
 }
 
 func (f *FakeSys) ReadFile(path string) ([]byte, error) {

@@ -179,6 +179,28 @@ func (e *Engine) Uninstall(ids []string, sink Sink) (contract.UninstallResult, e
 	return result, nil
 }
 
+// A command of a module (harden, db.dump…) runs under the same entitlement, lock, journal and remembered values as install.
+func (e *Engine) Command(id string, sink Sink, fn func(ctx *Context) error) error {
+	unlock, err := e.acquire()
+	if err != nil {
+		return err
+	}
+	defer unlock()
+
+	module, ok := e.Registry.Get(id)
+	if !ok {
+		return moduleNotFound(id)
+	}
+
+	r := e.newRun(Request{}, sink)
+	defer r.close()
+
+	recalled := e.recall(r)
+	r.redactAll(recalled.Secrets)
+
+	return fn(r.context(module.Manifest(), recalled.Config[id], recalled.Secrets[id]))
+}
+
 func (e *Engine) Report() (contract.Report, error) {
 	raw, err := os.ReadFile(e.reportPath())
 	if errors.Is(err, fs.ErrNotExist) {
