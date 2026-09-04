@@ -90,6 +90,19 @@ export async function launchPupitre(): Promise<Running> {
 
   await answerFromFixtures(app);
 
+  // The scenarios and the reference captures are written in French; pin the
+  // language so the machine's own locale cannot change what the window says.
+  await page.evaluate(() => {
+    try {
+      window.localStorage.setItem(
+        "pupitre.navigation.v1",
+        JSON.stringify({ locale: "fr" })
+      );
+    } catch {
+      // A context without storage: the resolved system locale stands.
+    }
+  });
+
   // What the window read on the way up came from the real channels; one reload
   // puts it on the fixtures.
   await page.reload();
