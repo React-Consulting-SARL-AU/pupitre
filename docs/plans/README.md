@@ -128,3 +128,13 @@ Critères d'acceptation.
 1. Un manifeste avec un champ `boolean` et un champ `list` de secrets est validé ; un `list` sans `items` est rejeté.
 2. `bun run contracts:check` passe après régénération.
 
+### INF-08 — Contrat : flux secret d'`install`, presets dans le schéma, code `no_report`
+Lot 0 · dépend de AGT-03 · `packages/shared`, `docs/contracts/agent-protocol.md`, `.claude/skills/agent-modules`
+
+But. Trois points qu'AGT-03 a dû trancher seul entrent dans le contrat, et le skill des modules reflète les signatures réelles.
+Périmètre. Dans `agent-protocol.md` et les schémas Zod : la ligne du flux secret d'`install` est `{ "<module id>": { "<clé>": "<valeur>" } }`, miroir de `config` (schéma `InstallSecrets`) ; les presets sont exportés dans le JSON Schema avec leur contenu (`Presets` en `const`), et le test Go de `internal/contract/presets.go` compare sa copie au schéma ; un code `no_report` remplace `bad_request` pour `report` avant toute installation. Mettre à jour `.claude/skills/agent-modules/SKILL.md` avec les signatures livrées par AGT-03 (`ctx` sur tous les helpers, `modtest.NewContext(t, sys, modtest.Options{…})`, `env.Set` renvoie `(changed, err)`, `Status.Service`). Régénérer `schema.json`.
+Hors périmètre. Tout module.
+Critères d'acceptation.
+1. `bun run contracts:check` passe après régénération ; `go test ./...` vert, dont la comparaison des presets au schéma.
+2. Les trois lignes de blocage d'AGT-03 sont retirées de `TRACKING.md`.
+

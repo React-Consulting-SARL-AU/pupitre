@@ -80,7 +80,7 @@ Tests. Modules factices en test unitaire : ordre, échec partiel, rejeu.
 ### AGT-04 — Modules socle et durcissement
 Lot 1 · dépend de AGT-03 · `apps/agent`
 
-Périmètre. `core.system` et `core.hardening` d'après le catalogue et `server/bootstrap.sh` phases `system`, `user`, `harden`. Commande `harden` qui refuse de fermer root si aucune clé n'ouvre `dev`. Marqueurs OSC 133 dans `.zshrc` de `dev` (`server/bin/pupitre.zsh` comme spécification).
+Périmètre. `core.system` et `core.hardening` d'après le catalogue et `server/bootstrap.sh` phases `system`, `user`, `harden`. Le moteur ordonne les modules par dépendances puis par catégorie, donc `core.*` en premier : la fermeture de root ne passe pas par l'ordre d'installation mais par la commande `harden`, appelée par l'app en dernier ; `core.hardening.Install` pose ufw et fail2ban sans toucher à sshd. Commande `harden` qui refuse de fermer root si aucune clé n'ouvre `dev`. Marqueurs OSC 133 dans `.zshrc` de `dev` (`server/bin/pupitre.zsh` comme spécification).
 Critères d'acceptation.
 1. Après `install core.*` sur le staging, `ssh dev@staging true` avec la clé fonctionne et `ssh root@staging` est refusé.
 2. `harden` sans clé sur `dev` renvoie `root_closed: false` avec la raison, et root reste ouvert.
