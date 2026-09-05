@@ -184,13 +184,13 @@ const api = {
     moduleId: string,
     key: string,
     value: string
-  ): Promise<SecretMarks> =>
+  ): Promise<AgentResponse<SecretMarks>> =>
     ipcRenderer.invoke("catalog:secret-set", serverId, moduleId, key, value),
   generateInstallSecret: (
     serverId: string,
     moduleId: string,
     key: string
-  ): Promise<SecretMarks> =>
+  ): Promise<AgentResponse<SecretMarks>> =>
     ipcRenderer.invoke("catalog:secret-generate", serverId, moduleId, key),
 
   /** The one way out, once: a second call answers `null`. */

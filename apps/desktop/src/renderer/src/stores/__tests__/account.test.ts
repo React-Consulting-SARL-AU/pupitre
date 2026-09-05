@@ -9,6 +9,11 @@ const SIGNED_OUT: AccountState = {
   consoleUrl: "https://app.pupitre.test/dashboard",
   device: null,
   identity: null,
+  refusal: {
+    code: "entitlement_required",
+    fix: "Connecte-toi depuis les réglages, ou ouvre la console : https://app.pupitre.test/dashboard",
+    message: "Installer un serveur demande un compte Pupitre.",
+  },
   sealed: true,
   usage: { consoleUrl: "https://app.pupitre.test/dashboard", status: "absent" },
 };
@@ -16,6 +21,7 @@ const SIGNED_OUT: AccountState = {
 const SIGNED_IN: AccountState = {
   ...SIGNED_OUT,
   checkedAt: "2026-09-04T10:00:00.000Z",
+  refusal: null,
   device: {
     fingerprint: "SHA256:mac",
     id: "device-1",
@@ -45,6 +51,31 @@ beforeEach(() => {
   });
 });
 
+const CACHED: AccountState = {
+  ...SIGNED_IN,
+  usage: {
+    entitlement: "valid",
+    source: "cache",
+    status: "granted",
+    validUntil: "2026-09-11T10:00:00.000Z",
+  },
+};
+
+const STALE: AccountState = {
+  ...SIGNED_IN,
+  refusal: {
+    code: "entitlement_required",
+    fix: "Reconnecte cet appareil, ou vérifie l'état du compte : https://app.pupitre.test/dashboard",
+    message:
+      "La plateforme n'a pas répondu depuis plus de sept jours : le droit d'usage a expiré.",
+  },
+  usage: {
+    consoleUrl: "https://app.pupitre.test/dashboard",
+    since: "2026-09-04T10:00:00.000Z",
+    status: "stale",
+  },
+};
+
 describe("la lecture du compte", () => {
   it("garde l'état que le processus principal a rendu", async () => {
     stubPupitre({ account: () => Promise.resolve(SIGNED_IN) });
@@ -52,6 +83,48 @@ describe("la lecture du compte", () => {
     await useAccount.getState().read();
 
     expect(accountOf(useAccount.getState().view)).toEqual(SIGNED_IN);
+  });
+
+  it("part d'un état inconnu, jamais d'un refus supposé", () => {
+    expect(useAccount.getState().view).toEqual({ status: "unknown" });
+    expect(accountOf(useAccount.getState().view)).toBeNull();
+  });
+
+  it("ouvre l'app sur une session en cache et dit de quand date la réponse", async () => {
+    stubPupitre({ account: () => Promise.resolve(CACHED) });
+
+    await useAccount.getState().read();
+
+    const account = accountOf(useAccount.getState().view);
+
+    expect(account?.usage).toMatchObject({
+      source: "cache",
+      status: "granted",
+    });
+    expect(account?.checkedAt).toBe("2026-09-04T10:00:00.000Z");
+    expect(account?.refusal).toBeNull();
+  });
+
+  it("garde le refus du garde tel quel au-delà des sept jours", async () => {
+    stubPupitre({ account: () => Promise.resolve(STALE) });
+
+    await useAccount.getState().read();
+
+    expect(accountOf(useAccount.getState().view)?.refusal).toEqual(
+      STALE.refusal
+    );
+  });
+
+  it("garde le refus après une actualisation qui n'a rien rapporté", async () => {
+    stubPupitre({
+      account: () => Promise.resolve(SIGNED_IN),
+      refreshAccount: () => Promise.resolve(STALE),
+    });
+
+    await useAccount.getState().read();
+    await useAccount.getState().refresh();
+
+    expect(accountOf(useAccount.getState().view)?.usage.status).toBe("stale");
   });
 });
 

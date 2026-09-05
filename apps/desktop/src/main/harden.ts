@@ -1,9 +1,11 @@
 import type { AgentResponse } from "@shared/agent";
 import type { HardenOutcome, HardenUpdate } from "@shared/harden";
 import { ipcMain } from "electron";
+import { account } from "./account";
 import { agentClient } from "./agent";
 import { runHarden } from "./harden-run";
 import { byId, switchAccount } from "./servers";
+import { usageRefusal } from "./usage-guard";
 
 /**
  * The hardening screen, seen from the main process.
@@ -30,6 +32,12 @@ export function registerHarden(): void {
             message: "Ce serveur n'est plus dans la liste.",
           },
         };
+      }
+
+      const refused = usageRefusal(() => account.guard());
+
+      if (refused) {
+        return refused;
       }
 
       const update = (change: HardenUpdate) => {

@@ -7,6 +7,7 @@ import {
   resetDb,
   TEST_BASE_URL,
 } from "@pupitre/api/testing";
+import { subscribeOrganization } from "@pupitre/api/testing/factories";
 import {
   createTestSession,
   createTestUser,
@@ -21,7 +22,7 @@ import { createAccount } from "../account-run";
 import { createTokenVault } from "../account-vault";
 import type { AgentDelivery } from "../agent-binary";
 import { createAgentClient } from "../agent-client";
-import { summaryOf } from "../enrollment-run";
+import { asAgentError, summaryOf } from "../enrollment-run";
 import { type EnrollmentGrant, runInstall } from "../install-run";
 import { createPlatformClient } from "../platform-client";
 import { fakeAgent } from "./fixtures/fake-agent";
@@ -60,9 +61,24 @@ async function rewindPolls(): Promise<void> {
   });
 }
 
-async function signedInConsole(): Promise<Console> {
+/**
+ * A console someone is signed into, and whose organization pays.
+ *
+ * No server enrols without a running subscription (PLT-21), so the fixture
+ * gives the personal organization one — a trial, which is what a new account
+ * starts on. `subscribed: false` is the other side of that rule, and one test
+ * below is about exactly that.
+ */
+async function signedInConsole({ subscribed = true } = {}): Promise<Console> {
   const { prisma, fetch } = await bootApiTestServer();
-  const { user } = await createTestUser(prisma, { email: "ada@test.local" });
+  const { user, organization } = await createTestUser(prisma, {
+    email: "ada@test.local",
+  });
+
+  if (subscribed) {
+    await subscribeOrganization({ organizationId: organization.id });
+  }
+
   const { token } = await createTestSession(prisma, { userId: user.id });
   const headers = setTestSession(new Headers(), { token });
 
@@ -296,6 +312,51 @@ describe("le compte contre l'API de la plateforme", () => {
       MINUTE_MS
     );
     expect(Date.now() - started).toBeLessThan(MINUTE_MS);
+  });
+
+  it("refuse l'enrôlement d'une organisation sans abonnement, avec le code et le remède de l'API", async () => {
+    const browser = await signedInConsole({ subscribed: false });
+    const { account, report } = await desktop(browser);
+
+    await account.signIn(report);
+
+    const input = {
+      device_id: account.state().device?.id ?? "",
+      host: "vps4.test",
+      probe: { arch: "amd64" },
+    };
+    const enrolled = await account.enroll(input);
+
+    expect(enrolled.ok).toBe(false);
+
+    if (enrolled.ok) {
+      throw new Error("unreachable");
+    }
+
+    const direct = await apiFetch("/servers/enroll", {
+      body: JSON.stringify(input),
+      headers: {
+        authorization: browser.headers.get("authorization") ?? "",
+        "content-type": "application/json",
+      },
+      method: "POST",
+    });
+    const refusal = (await direct.json()) as {
+      error: { code: string; message: string; fix: string };
+    };
+
+    expect(direct.status).toBe(403);
+    expect(refusal.error.code).toBe("entitlement_required");
+
+    // Le code, le message et le remède arrivent à l'écran tels que l'API les
+    // donne, du client de la plateforme jusqu'à l'erreur du protocole.
+    expect(enrolled.error).toEqual(refusal.error);
+    expect(asAgentError(enrolled.error)).toEqual(refusal.error);
+
+    const listed = await apiFetch("/servers", { headers: browser.headers });
+    const body = (await listed.json()) as { data: unknown[] };
+
+    expect(body.data).toEqual([]);
   });
 
   it("pousse la clé de l'appareil dans l'état que l'agent lit", async () => {

@@ -25,6 +25,7 @@ const KNOWN_CODES = new Set<string>([
   ...PROTOCOL_ERROR_CODES,
   "timeout",
   "disconnected",
+  "server_suspended",
 ]);
 
 export interface EnrollmentDeps {

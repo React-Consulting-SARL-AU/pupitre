@@ -23,6 +23,11 @@ function stubAccount(app: ElectronApplication): Promise<void> {
         consoleUrl: fixtures.consoleUrl,
         device: null,
         identity: null,
+        refusal: {
+          code: "entitlement_required",
+          fix: `Connecte-toi depuis les réglages, ou ouvre la console : ${fixtures.consoleUrl}`,
+          message: "Installer un serveur demande un compte Pupitre.",
+        },
         sealed: true,
         usage: { consoleUrl: fixtures.consoleUrl, status: "absent" },
       };
@@ -45,6 +50,7 @@ function stubAccount(app: ElectronApplication): Promise<void> {
           ],
           role: "owner",
         },
+        refusal: null,
         usage: {
           entitlement: "valid",
           source: "platform",
@@ -110,12 +116,10 @@ test.describe("compte", () => {
     await running.app.close();
   });
 
-  test("le device flow mène du refus d'installer à l'identité confirmée", async () => {
+  test("le device flow mène de l'écran de compte à l'identité confirmée", async () => {
     const { page } = running;
 
-    await page.getByRole("button", { name: "Réglages" }).click();
-    await page.getByRole("button", { name: "Compte" }).click();
-
+    // L'app s'ouvre sur le compte : rien d'une machine n'est derrière lui.
     await expect(page.getByText("Aucun compte connecté")).toBeVisible();
     await expect(
       page.getByText("refuse d'installer un serveur sans compte")
@@ -128,11 +132,21 @@ test.describe("compte", () => {
       page.getByText("En attente de votre approbation")
     ).toBeVisible();
 
+    await expect(
+      page.getByRole("button", { name: "Tableau de bord" })
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Réglages" }).click();
+    await page.getByRole("button", { name: "Compte" }).click();
+
     await expect(page.getByText("ada@pupitre.studio")).toBeVisible();
     await expect(page.getByText("Droit d'usage valide")).toBeVisible();
     await expect(page.getByText("Atelier Ada")).toBeVisible();
 
     await page.getByRole("button", { name: "Se déconnecter" }).click();
+
+    // Les réglages restent devant : c'est de là qu'on répare son compte.
+    await page.getByRole("button", { name: "Compte" }).click();
 
     await expect(page.getByText("Aucun compte connecté")).toBeVisible();
   });

@@ -8,11 +8,16 @@ import type {
  *
  * The commands, their parameters and their results come from
  * `@pupitre/shared/agent-protocol` and are never redeclared here. What lives
- * here is the envelope itself, plus the two failures that belong to the channel
- * rather than to the agent: a command that never answered, and a link that
- * dropped.
+ * here is the envelope itself, plus the failures that belong to the channel
+ * rather than to the agent: a command that never answered, a link that dropped,
+ * and the subscription this app refuses to act without — the agent has
+ * `entitlement_required` for its own side of that rule, never this one.
  */
-export type AgentErrorCode = ProtocolErrorCode | "timeout" | "disconnected";
+export type AgentErrorCode =
+  | ProtocolErrorCode
+  | "timeout"
+  | "disconnected"
+  | "server_suspended";
 
 export interface AgentError {
   code: AgentErrorCode;

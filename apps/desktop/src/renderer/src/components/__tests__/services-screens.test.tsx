@@ -57,8 +57,11 @@ async function catalogReady(): Promise<void> {
     catalog: () => Promise.resolve({ ok: true, result: WITH_MONGO }),
     generateInstallSecret: () =>
       Promise.resolve({
-        "db.mongodb": {
-          app_password: { filled: true, generated: true, revealed: false },
+        ok: true as const,
+        result: {
+          "db.mongodb": {
+            app_password: { filled: true, generated: true, revealed: false },
+          },
         },
       }),
   });

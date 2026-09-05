@@ -261,6 +261,55 @@ describe("le droit d'usage", () => {
     });
     expect(account.guard().ok).toBe(true);
   });
+
+  /**
+   * L'écran de compte n'écrit pas son propre refus : il rend celui du garde,
+   * message et remède compris, pour qu'un canal refusé et l'écran disent la
+   * même chose.
+   */
+  it("porte dans son état le refus que le garde oppose aux canaux", async () => {
+    let clock = Date.parse("2026-09-04T10:00:00.000Z");
+    const { account } = harness({ build: "production", now: () => clock });
+    const { report } = progressOf();
+
+    const first = account.guard();
+
+    expect(account.state().refusal).toEqual(first.ok ? null : first.error);
+    expect(account.state().refusal).toMatchObject({
+      code: "entitlement_required",
+    });
+
+    await account.signIn(report);
+
+    expect(account.state().refusal).toBeNull();
+
+    clock += TOLERANCE_MS + DAY_MS;
+
+    const refused = account.guard();
+
+    expect(refused.ok).toBe(false);
+    expect(account.state().refusal).toEqual(refused.ok ? null : refused.error);
+    expect(account.state().refusal?.fix).toContain(
+      "https://app.pupitre.test/dashboard"
+    );
+  });
+
+  it("porte le refus d'une organisation suspendue tel que le garde le dit", async () => {
+    const { account } = harness({
+      build: "production",
+      identity: { ...IDENTITY, entitlement: "suspended" },
+    });
+    const { report } = progressOf();
+
+    await account.signIn(report);
+
+    const refused = account.guard();
+
+    expect(account.state().refusal).toEqual(refused.ok ? null : refused.error);
+    expect(account.state().refusal).toMatchObject({
+      code: "server_suspended",
+    });
+  });
 });
 
 describe("l'enrôlement", () => {

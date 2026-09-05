@@ -3,7 +3,7 @@ import type {
   ModuleConfig,
 } from "@pupitre/shared/agent-protocol/install";
 import type { Manifest, Preset } from "@pupitre/shared/catalog";
-import type { AgentError } from "@shared/agent";
+import type { AgentError, AgentResponse } from "@shared/agent";
 import type { SecretMarks } from "@shared/secrets";
 import { create } from "zustand";
 import {
@@ -20,6 +20,19 @@ import {
   toggle as toggleIn,
 } from "../lib/catalog-selection";
 import { probeOf } from "./inspection";
+
+/**
+ * What the main process answered about a secret: the marks when it took it,
+ * its refusal word for word when it would not.
+ */
+function marksOf(answer: AgentResponse<SecretMarks>): {
+  problem: AgentError | null;
+  secrets?: SecretMarks;
+} {
+  return answer.ok
+    ? { problem: null, secrets: answer.result }
+    : { problem: answer.error };
+}
 
 /**
  * The catalogue screen's state, and none of its secrets.
@@ -41,6 +54,8 @@ interface CatalogStore {
   selected: readonly string[];
   values: Record<string, Record<string, unknown>>;
   secrets: SecretMarks;
+  /** A refusal the main process opposed to a secret, kept as it worded it. */
+  problem: AgentError | null;
   /** What the server already runs, when the screen is opened on top of it. */
   installed: Installed;
 
@@ -100,13 +115,15 @@ export const useCatalog = create<CatalogStore>((set, get) => {
         }
 
         pending = pending.then(async () => {
-          set({
-            secrets: await window.pupitre.generateInstallSecret(
-              serverId,
-              module.id,
-              key
-            ),
-          });
+          set(
+            marksOf(
+              await window.pupitre.generateInstallSecret(
+                serverId,
+                module.id,
+                key
+              )
+            )
+          );
         });
       }
     }
@@ -132,6 +149,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
   return {
     catalog: { status: "idle" },
     installed: [],
+    problem: null,
     selected: [],
     values: {},
     secrets: {},
@@ -149,6 +167,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
 
       set({
         catalog: { catalog: answer.result, serverId, status: "ready" },
+        problem: null,
         secrets: {},
         selected: [],
         values: {},
@@ -193,14 +212,11 @@ export const useCatalog = create<CatalogStore>((set, get) => {
         return;
       }
 
-      set({
-        secrets: await window.pupitre.setInstallSecret(
-          serverId,
-          moduleId,
-          key,
-          value
-        ),
-      });
+      set(
+        marksOf(
+          await window.pupitre.setInstallSecret(serverId, moduleId, key, value)
+        )
+      );
     },
 
     async generate(moduleId, key) {
@@ -210,13 +226,11 @@ export const useCatalog = create<CatalogStore>((set, get) => {
         return;
       }
 
-      set({
-        secrets: await window.pupitre.generateInstallSecret(
-          serverId,
-          moduleId,
-          key
-        ),
-      });
+      set(
+        marksOf(
+          await window.pupitre.generateInstallSecret(serverId, moduleId, key)
+        )
+      );
     },
 
     /**

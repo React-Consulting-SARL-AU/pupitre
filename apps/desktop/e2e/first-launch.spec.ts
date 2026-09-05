@@ -1,0 +1,120 @@
+import type { ElectronApplication } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { launchPupitre, type Running } from "./harness/launch";
+
+/**
+ * The first launch of a packaged build, and the eighth day.
+ *
+ * The account is the first screen: no onboarding, no server, no terminal is
+ * behind it. Only the account channels are replaced — the window, the bridge
+ * and the stores are the app's own, and the servers fixture is there precisely
+ * to prove that a declared server changes nothing.
+ */
+
+const CONSOLE_URL = "https://app.pupitre.test/dashboard";
+
+const NO_ACCOUNT = {
+  build: "production",
+  checkedAt: null,
+  consoleUrl: CONSOLE_URL,
+  device: null,
+  identity: null,
+  refusal: {
+    code: "entitlement_required",
+    fix: `Connecte-toi depuis les réglages, ou ouvre la console : ${CONSOLE_URL}`,
+    message: "Installer un serveur demande un compte Pupitre.",
+  },
+  sealed: true,
+  usage: { consoleUrl: CONSOLE_URL, status: "absent" },
+};
+
+const EIGHTH_DAY = {
+  ...NO_ACCOUNT,
+  checkedAt: "2026-08-01T10:00:00.000Z",
+  refusal: {
+    code: "entitlement_required",
+    fix: `Reconnecte cet appareil, ou vérifie l'état du compte : ${CONSOLE_URL}`,
+    message:
+      "La plateforme n'a pas répondu depuis plus de sept jours : le droit d'usage a expiré.",
+  },
+  usage: {
+    consoleUrl: CONSOLE_URL,
+    since: "2026-08-01T10:00:00.000Z",
+    status: "stale",
+  },
+};
+
+function stubAccount(
+  app: ElectronApplication,
+  account: Record<string, unknown>
+): Promise<void> {
+  return app.evaluate(({ ipcMain }, state) => {
+    for (const channel of ["account:state", "account:refresh"]) {
+      ipcMain.removeHandler(channel);
+      ipcMain.handle(channel, () => state);
+    }
+  }, account);
+}
+
+test.describe("premier lancement", () => {
+  let running: Running;
+
+  test.beforeEach(async () => {
+    running = await launchPupitre();
+  });
+
+  test.afterEach(async () => {
+    await running.app.close();
+  });
+
+  test("un build sans compte n'ouvre ni onboarding, ni serveur, ni terminal", async () => {
+    const { app, page } = running;
+
+    await stubAccount(app, NO_ACCOUNT);
+    await page.reload();
+
+    await expect(
+      page.getByRole("heading", { name: "Connectez-vous pour ouvrir Pupitre" })
+    ).toBeVisible();
+    await expect(page.getByText("Aucun compte connecté")).toBeVisible();
+    await expect(
+      page.getByText("Installer un serveur demande un compte Pupitre.")
+    ).toBeVisible();
+    await expect(page.getByText(NO_ACCOUNT.refusal.fix)).toBeVisible();
+
+    await expect(
+      page.getByRole("button", { name: "Tableau de bord" })
+    ).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Terminaux" })).toHaveCount(
+      0
+    );
+    await expect(page.getByRole("button", { name: "Projets" })).toHaveCount(0);
+    await expect(page.getByText("atelier")).toHaveCount(0);
+
+    // Les réglages restent joignables : c'est là qu'on répare une adresse de
+    // plateforme, un proxy ou le compte lui-même.
+    await page.getByRole("button", { name: "Ouvrir les réglages" }).click();
+
+    await expect(page.getByRole("heading", { name: "Réglages" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Compte" }).click();
+
+    await expect(
+      page.getByRole("button", { name: "Se connecter" })
+    ).toBeVisible();
+  });
+
+  test("au-delà de sept jours l'app revient au compte et dit le refus tel quel", async () => {
+    const { app, page } = running;
+
+    await stubAccount(app, EIGHTH_DAY);
+    await page.reload();
+
+    await expect(
+      page.getByRole("heading", { name: "Connectez-vous pour ouvrir Pupitre" })
+    ).toBeVisible();
+    await expect(page.getByText("Droit d'usage expiré")).toBeVisible();
+    await expect(page.getByText(EIGHTH_DAY.refusal.message)).toBeVisible();
+    await expect(page.getByText(EIGHTH_DAY.refusal.fix)).toBeVisible();
+  });
+});

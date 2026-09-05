@@ -13,6 +13,11 @@ export const shell = {
     "shell.sidebar.services": "Services",
     "shell.sidebar.settings": "Settings",
     "shell.sidebar.terminals": "Terminals",
+    "shell.restricted.console": "Open the console",
+    "shell.restricted.message":
+      "This server no longer holds a valid usage right: it can be read, and refuses everything else. Nothing that was running on it has been stopped.",
+    "shell.restricted.fix":
+      "Settle this server's subscription in the console, then try the action again.",
     "shell.unready.addServer": "Add a server",
     "shell.unready.eyebrow": "Connection",
     "shell.unready.installAgent": "Install the agent",
@@ -38,6 +43,11 @@ export const shell = {
     "shell.sidebar.services": "Services",
     "shell.sidebar.settings": "Réglages",
     "shell.sidebar.terminals": "Terminaux",
+    "shell.restricted.console": "Ouvrir la console",
+    "shell.restricted.message":
+      "Ce serveur n'a plus de droit d'usage valide : il se laisse lire, et refuse tout le reste. Rien de ce qui tournait dessus ne s'est arrêté.",
+    "shell.restricted.fix":
+      "Régularisez l'abonnement de ce serveur dans la console, puis relancez l'action.",
     "shell.unready.addServer": "Ajouter un serveur",
     "shell.unready.eyebrow": "Connexion",
     "shell.unready.installAgent": "Installer l'agent",

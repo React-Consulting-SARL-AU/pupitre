@@ -64,7 +64,7 @@ function fakeMain(catalog = CATALOG) {
         kept.set(`${moduleId}|${key}`, value);
         madeHere.delete(`${moduleId}|${key}`);
 
-        return Promise.resolve(mark());
+        return Promise.resolve({ ok: true as const, result: mark() });
       },
       generateInstallSecret: (
         _serverId: string,
@@ -75,7 +75,7 @@ function fakeMain(catalog = CATALOG) {
         kept.set(`${moduleId}|${key}`, `généré-${generated}`);
         madeHere.add(`${moduleId}|${key}`);
 
-        return Promise.resolve(mark());
+        return Promise.resolve({ ok: true as const, result: mark() });
       },
       revealInstallSecret: (
         _serverId: string,

@@ -169,6 +169,12 @@ export function createAccount(deps: AccountDeps): Account {
 
   function state(): AccountState {
     const record = deps.vault.record();
+    const usage = usageRightOf(record, {
+      build: deps.build,
+      consoleUrl,
+      now: deps.now(),
+    });
+    const refused = refusalFor(usage);
 
     return {
       build: deps.build,
@@ -176,12 +182,9 @@ export function createAccount(deps: AccountDeps): Account {
       consoleUrl,
       device: record.device,
       identity: record.identity,
+      refusal: refused.ok ? null : refused.error,
       sealed: deps.vault.sealed(),
-      usage: usageRightOf(record, {
-        build: deps.build,
-        consoleUrl,
-        now: deps.now(),
-      }),
+      usage,
     };
   }
 

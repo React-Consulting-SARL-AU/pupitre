@@ -17,7 +17,7 @@ import {
   nativeTheme,
   shell,
 } from "electron";
-import { registerAccount } from "./account";
+import { account, registerAccount } from "./account";
 import { agentClient, registerAgentChannels } from "./agent";
 import { registerAgentUpdate } from "./agent-update";
 import { registerAppearance } from "./appearance";
@@ -58,6 +58,7 @@ import {
   write,
 } from "./terminals";
 import { startUpdater } from "./updater";
+import { usageRefusal } from "./usage-guard";
 import { readBounds } from "./view-bounds";
 
 let window: BrowserWindow | null = null;
@@ -148,6 +149,12 @@ function registerServerChannels(): void {
   ipcMain.handle(
     "server-add",
     async (_e, draft: ServerDraft): Promise<AgentResponse<ServerAdded>> => {
+      const refused = usageRefusal(() => account.guard());
+
+      if (refused) {
+        return refused;
+      }
+
       try {
         const created = await addServer(draft);
 

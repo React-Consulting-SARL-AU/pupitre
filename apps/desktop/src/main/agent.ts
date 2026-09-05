@@ -7,9 +7,11 @@ import type { Event } from "@pupitre/shared/agent-protocol/envelope";
 import type { AgentResponse } from "@shared/agent";
 import { carriesCredential } from "@shared/services";
 import { app, ipcMain } from "electron";
+import { account } from "./account";
 import { createAgentClient, type SshTarget, sshSpawn } from "./agent-client";
 import { active, paths, read } from "./servers";
 import { sshArgs } from "./ssh-config";
+import { guardedRequest } from "./usage-guard";
 
 /**
  * The client bound to this machine's servers.
@@ -104,6 +106,16 @@ function checked(
   return { serverId: known, cmd, params: parsed.data };
 }
 
+/**
+ * The account's usage right, read at the moment of the call.
+ *
+ * It is not the one the agent answers with: the account may be valid and the
+ * server suspended, or the other way round, and each refuses in its own words.
+ */
+function usageRight() {
+  return account.guard();
+}
+
 function isRefusal(
   value: ReturnType<typeof checked>
 ): value is AgentResponse<never> {
@@ -118,7 +130,13 @@ export function registerAgentChannels(): void {
 
       return isRefusal(call)
         ? Promise.resolve(call)
-        : agentClient.request(call.serverId, call.cmd, call.params as never);
+        : guardedRequest(
+            agentClient,
+            usageRight,
+            call.serverId,
+            call.cmd,
+            call.params as never
+          );
     }
   );
 
@@ -143,13 +161,13 @@ export function registerAgentChannels(): void {
         }
       };
 
-      return agentClient.request(
+      return guardedRequest(
+        agentClient,
+        usageRight,
         call.serverId,
         call.cmd,
         call.params as never,
-        {
-          onEvent,
-        }
+        { onEvent }
       );
     }
   );

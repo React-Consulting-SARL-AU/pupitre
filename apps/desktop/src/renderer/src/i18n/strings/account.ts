@@ -12,6 +12,12 @@ export const account = {
     "account.reading.title": "Reading the account",
     "account.reading.detail": "This computer's keychain is being queried.",
 
+    "account.gate.eyebrow": "Account",
+    "account.gate.title": "Sign in to open Pupitre",
+    "account.gate.body":
+      "Pupitre asks for one successful sign-in, then works for seven days without the platform. Nothing running on your servers is stopped in the meantime.",
+    "account.gate.settings": "Open the settings",
+
     "account.signIn.connect": "Sign in",
     "account.signIn.openConsole": "Open the console",
     "account.signIn.startingTitle": "Sign-in request",
@@ -57,6 +63,12 @@ export const account = {
 
     "account.reading.title": "Lecture du compte",
     "account.reading.detail": "Le trousseau de cet ordinateur est interrogé.",
+
+    "account.gate.eyebrow": "Compte",
+    "account.gate.title": "Connectez-vous pour ouvrir Pupitre",
+    "account.gate.body":
+      "Pupitre demande une première connexion réussie, puis travaille sept jours sans la plateforme. Rien de ce qui tourne sur vos serveurs ne s'arrête entre-temps.",
+    "account.gate.settings": "Ouvrir les réglages",
 
     "account.signIn.connect": "Se connecter",
     "account.signIn.openConsole": "Ouvrir la console",

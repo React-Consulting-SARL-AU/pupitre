@@ -9,6 +9,7 @@ import {
 import { ActivityPanel } from "../activity/activity-panel";
 import { SecretsPanel } from "../secrets/secrets-panel";
 import { AppSidebar } from "../shell/app-sidebar";
+import { ServerRestrictedNotice } from "../shell/server-restricted-notice";
 import { ServerUnreadyScreen } from "../shell/server-unready-screen";
 
 /**
@@ -210,5 +211,31 @@ describe("les secrets", () => {
 
     expect(html).toContain("plusieurs lignes");
     expect(html).toContain("une seule ligne");
+  });
+});
+
+describe("le mode restreint de l'agent", () => {
+  it("dit pourquoi rien n'est possible et renvoie vers la console", () => {
+    const html = renderToStaticMarkup(
+      <ServerRestrictedNotice entitlement="restricted" onOpenConsole={NOOP} />
+    );
+
+    expect(html).toContain("se laisse lire");
+    expect(html).toContain("Rien de ce qui tournait dessus ne s&#x27;est");
+    expect(html).toContain("dans la console");
+    expect(html).toContain("Ouvrir la console");
+  });
+
+  it("ne dit rien d'un serveur dont le droit d'usage tient", () => {
+    for (const entitlement of ["valid", "grace", "dev"] as const) {
+      expect(
+        renderToStaticMarkup(
+          <ServerRestrictedNotice
+            entitlement={entitlement}
+            onOpenConsole={NOOP}
+          />
+        )
+      ).toBe("");
+    }
   });
 });

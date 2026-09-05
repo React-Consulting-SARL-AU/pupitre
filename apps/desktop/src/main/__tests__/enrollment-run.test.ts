@@ -124,6 +124,7 @@ function deps({
           consoleUrl: "https://app.pupitre.test/dashboard",
           device,
           identity: null,
+          refusal: null,
           sealed: true,
           usage: {
             consoleUrl: "https://app.pupitre.test/dashboard",

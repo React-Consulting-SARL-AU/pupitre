@@ -75,6 +75,11 @@ export interface AccountState {
   /** When the platform last answered. Null: it never did on this computer. */
   checkedAt: string | null;
   usage: UsageRight;
+  /**
+   * Why Pupitre refuses to work, in the words the guard uses on every channel.
+   * Null while the right is granted.
+   */
+  refusal: AccountError | null;
   /** Whether the keychain took the token. False: it lives for this run only. */
   sealed: boolean;
 }

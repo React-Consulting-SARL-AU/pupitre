@@ -70,6 +70,7 @@ function stubFleet(app: ElectronApplication): Promise<void> {
           ],
           role: "member",
         },
+        refusal: null,
         sealed: true,
         usage: {
           entitlement: "valid",

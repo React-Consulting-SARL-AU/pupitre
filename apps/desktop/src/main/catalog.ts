@@ -2,6 +2,7 @@ import type { CatalogResult } from "@pupitre/shared/agent-protocol/install";
 import type { AgentResponse } from "@shared/agent";
 import type { SecretMarks } from "@shared/secrets";
 import { ipcMain } from "electron";
+import { account } from "./account";
 import { agentClient } from "./agent";
 import {
   forgetSecrets,
@@ -11,6 +12,7 @@ import {
   setSecret,
 } from "./install-secrets";
 import { byId } from "./servers";
+import { usageRefusal } from "./usage-guard";
 
 /**
  * The catalogue screens, seen from the main process.
@@ -18,6 +20,10 @@ import { byId } from "./servers";
  * Two things cross: the catalogue the agent declares, untouched, and the marks
  * of the secrets it will need. A secret value only ever travels one way — in —
  * except for the single reveal the screen is allowed to ask for.
+ *
+ * Filing a secret prepares an installation, so it goes through the usage
+ * guard. Revealing one and forgetting them do not: they read and clear this
+ * process's own memory, and forgetting has to work whatever the account says.
  */
 
 function unknownServer(): AgentResponse<never> {
@@ -135,18 +141,31 @@ export function registerCatalog(): void {
       moduleId: unknown,
       key: unknown,
       value: unknown
-    ): Promise<SecretMarks> => {
+    ): Promise<AgentResponse<SecretMarks>> => {
       const server = known(serverId);
 
-      if (!server || typeof value !== "string") {
-        return {};
+      if (!server) {
+        return unknownServer();
+      }
+
+      const refused = usageRefusal(() => account.guard());
+
+      if (refused) {
+        return refused;
+      }
+
+      if (typeof value !== "string") {
+        return { ok: true, result: marks(server) };
       }
 
       const field = await secretField(server, moduleId, key);
 
-      return field
-        ? setSecret(server, field.moduleId, field.key, value)
-        : marks(server);
+      return {
+        ok: true,
+        result: field
+          ? setSecret(server, field.moduleId, field.key, value)
+          : marks(server),
+      };
     }
   );
 
@@ -157,18 +176,27 @@ export function registerCatalog(): void {
       serverId: unknown,
       moduleId: unknown,
       key: unknown
-    ): Promise<SecretMarks> => {
+    ): Promise<AgentResponse<SecretMarks>> => {
       const server = known(serverId);
 
       if (!server) {
-        return {};
+        return unknownServer();
+      }
+
+      const refused = usageRefusal(() => account.guard());
+
+      if (refused) {
+        return refused;
       }
 
       const field = await secretField(server, moduleId, key);
 
-      return field
-        ? generateSecret(server, field.moduleId, field.key)
-        : marks(server);
+      return {
+        ok: true,
+        result: field
+          ? generateSecret(server, field.moduleId, field.key)
+          : marks(server),
+      };
     }
   );
 

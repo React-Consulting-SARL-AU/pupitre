@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { AccountState, UsageRight } from "@shared/account";
 import { renderToStaticMarkup } from "react-dom/server";
+import { AccountGateScreen } from "../account/account-gate-screen";
 import { AccountIdentityCard } from "../account/account-identity-card";
 import { AccountSignInCard } from "../account/account-sign-in-card";
 import { AccountUsageNotice } from "../account/account-usage-notice";
@@ -41,6 +42,7 @@ const SIGNED_IN: AccountState = {
     ],
     role: "owner",
   },
+  refusal: null,
   sealed: true,
   usage: {
     entitlement: "valid",
@@ -175,6 +177,69 @@ describe("la connexion", () => {
     );
     expect(text(html)).toContain(
       "Relance la connexion et approuve le code affiché."
+    );
+  });
+});
+
+describe("l'écran de compte", () => {
+  const gate = (account: AccountState): string =>
+    renderToStaticMarkup(
+      <AccountGateScreen account={account} onSettings={NOOP} />
+    );
+
+  const SIGNED_OUT: AccountState = {
+    ...SIGNED_IN,
+    checkedAt: null,
+    device: null,
+    identity: null,
+    refusal: {
+      code: "entitlement_required",
+      fix: `Connecte-toi depuis les réglages, ou ouvre la console : ${CONSOLE_URL}`,
+      message: "Installer un serveur demande un compte Pupitre.",
+    },
+    usage: { consoleUrl: CONSOLE_URL, status: "absent" },
+  };
+
+  it("propose la connexion et les réglages, et rien d'une machine", () => {
+    const html = gate(SIGNED_OUT);
+
+    expect(text(html)).toContain("Connectez-vous pour ouvrir Pupitre");
+    expect(text(html)).toContain("Se connecter");
+    expect(text(html)).toContain("Ouvrir les réglages");
+    expect(text(html)).not.toContain("Tableau de bord");
+    expect(text(html)).not.toContain("Terminaux");
+  });
+
+  it("rend le message du garde et son remède tels quels", () => {
+    const html = gate(SIGNED_OUT);
+
+    expect(text(html)).toContain("Installer un serveur demande un compte");
+    expect(text(html)).toContain(
+      `Connecte-toi depuis les réglages, ou ouvre la console : ${CONSOLE_URL}`
+    );
+  });
+
+  it("dit depuis quand la plateforme n'a pas répondu au-delà des sept jours", () => {
+    const html = gate({
+      ...SIGNED_OUT,
+      checkedAt: "2026-08-01T10:00:00.000Z",
+      refusal: {
+        code: "entitlement_required",
+        fix: `Reconnecte cet appareil, ou vérifie l'état du compte : ${CONSOLE_URL}`,
+        message:
+          "La plateforme n'a pas répondu depuis plus de sept jours : le droit d'usage a expiré.",
+      },
+      usage: {
+        consoleUrl: CONSOLE_URL,
+        since: "2026-08-01T10:00:00.000Z",
+        status: "stale",
+      },
+    });
+
+    expect(text(html)).toContain("Droit d'usage expiré");
+    expect(text(html)).toContain("Dernière réponse de la plateforme");
+    expect(text(html)).toContain(
+      `Reconnecte cet appareil, ou vérifie l'état du compte : ${CONSOLE_URL}`
     );
   });
 });

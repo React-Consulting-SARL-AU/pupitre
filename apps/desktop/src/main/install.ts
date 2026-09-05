@@ -26,6 +26,7 @@ import {
 import { takeSecrets } from "./install-secrets";
 import { byId, paths } from "./servers";
 import { sshArgs } from "./ssh-config";
+import { usageRefusal } from "./usage-guard";
 
 /**
  * The installation screen, seen from the main process.
@@ -142,6 +143,12 @@ async function sendAgent(
     );
   }
 
+  const refused = usageRefusal(() => account.guard());
+
+  if (refused) {
+    return refused;
+  }
+
   const probe = await inspect(serverId);
 
   if (!probe.ok) {
@@ -176,6 +183,12 @@ export function registerInstall(): void {
 
       if ("ok" in call) {
         return call;
+      }
+
+      const refused = usageRefusal(() => account.guard());
+
+      if (refused) {
+        return refused;
       }
 
       const update = (change: InstallUpdate) => {

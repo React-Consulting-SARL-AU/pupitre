@@ -3,18 +3,10 @@ export const onboarding = {
     "onboarding.thisServer": "This server",
     "onboarding.finish": "Finish",
 
-    "onboarding.accountGate.title": "Install a server",
-    "onboarding.accountGate.eyebrow": "Account",
-    "onboarding.accountGate.description":
-      "The agent is downloaded from the platform, signed, then pushed to the server. This app no longer bundles it.",
-
     "onboarding.agent.eyebrow": "Agent",
     "onboarding.agent.description":
       "The services catalogue is the agent's own: it goes to the server before anything at all is asked of it.",
     "onboarding.agent.readCatalog": "Read the catalogue",
-    "onboarding.agent.readingTitle": "Reading the account",
-    "onboarding.agent.readingDetail":
-      "This device's usage entitlement is checked before anything is sent.",
     "onboarding.agent.inPlace": "Agent in place",
     "onboarding.agent.sendingTitle": "Enrolling and sending the agent",
     "onboarding.agent.sendingDetail":
@@ -130,18 +122,10 @@ export const onboarding = {
     "onboarding.thisServer": "Ce serveur",
     "onboarding.finish": "Terminer",
 
-    "onboarding.accountGate.title": "Installer un serveur",
-    "onboarding.accountGate.eyebrow": "Compte",
-    "onboarding.accountGate.description":
-      "L'agent est téléchargé depuis la plateforme, signé, puis poussé sur le serveur. Cette app ne l'embarque plus.",
-
     "onboarding.agent.eyebrow": "Agent",
     "onboarding.agent.description":
       "Le catalogue des services est celui de l'agent : il part sur le serveur avant qu'on lui demande quoi que ce soit.",
     "onboarding.agent.readCatalog": "Lire le catalogue",
-    "onboarding.agent.readingTitle": "Lecture du compte",
-    "onboarding.agent.readingDetail":
-      "Le droit d'usage de cet appareil est vérifié avant tout envoi.",
     "onboarding.agent.inPlace": "Agent en place",
     "onboarding.agent.sendingTitle": "Enrôlement et envoi de l'agent",
     "onboarding.agent.sendingDetail":

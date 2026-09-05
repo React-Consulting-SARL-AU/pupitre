@@ -1,5 +1,7 @@
 import { SquareTerminal, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { AccountGateScreen } from "./components/account/account-gate-screen";
+import { AccountReadingScreen } from "./components/account/account-reading-screen";
 import { ActivityPanel } from "./components/activity/activity-panel";
 import { DashboardPanel } from "./components/dashboard/dashboard-panel";
 import { OnboardingFlow } from "./components/onboarding/onboarding-flow";
@@ -8,6 +10,7 @@ import { SecretsPanel } from "./components/secrets/secrets-panel";
 import { ServicesScreen } from "./components/services/services-screen";
 import { SettingsScreen } from "./components/settings/settings-screen";
 import { AppSidebar } from "./components/shell/app-sidebar";
+import { ServerRestrictedNotice } from "./components/shell/server-restricted-notice";
 import { ServerUnreadyScreen } from "./components/shell/server-unready-screen";
 import { ShotsScreen } from "./components/shots/shots-screen";
 import { TerminalTabs } from "./components/terminals/terminal-tabs";
@@ -19,6 +22,7 @@ import { useTranslations } from "./i18n/use-translations";
 import { noteProjects, noteServer } from "./lib/completion";
 import { attachedSessions } from "./lib/sessions";
 import { shellScreen } from "./lib/shell-screen";
+import { accountOf, useAccount } from "./stores/account";
 import { announces, useAgentUpdate } from "./stores/agent-update";
 import { useNavigation } from "./stores/navigation";
 import { useOnboarding } from "./stores/onboarding";
@@ -43,6 +47,9 @@ export function App() {
   const config = useServers((s) => s.config);
   const loadServers = useServers((s) => s.load);
 
+  const accountView = useAccount((s) => s.view);
+  const readAccount = useAccount((s) => s.read);
+
   const navigation = useNavigation();
   const snapshotState = useSnapshot((s) => s.state);
   const processes = useSnapshot((s) => s.processes);
@@ -58,12 +65,17 @@ export function App() {
   const serverId = server?.id ?? null;
   const snapshot = snapshotOf(snapshotState);
 
+  // The account is read before anything of a machine is: a build without a
+  // usage right opens on the account, and the list of servers it would show is
+  // not what the reader has to answer first.
   useEffect(() => {
-    loadServers();
-    // An onboarding left half-way reopens where it stopped: the machine is in
-    // the state the last step left it in, not the one this launch would guess.
-    useOnboarding.getState().resume();
-  }, [loadServers]);
+    readAccount().then(() => {
+      loadServers();
+      // An onboarding left half-way reopens where it stopped: the machine is in
+      // the state the last step left it in, not the one this launch would guess.
+      useOnboarding.getState().resume();
+    });
+  }, [loadServers, readAccount]);
 
   useEffect(
     () => window.pupitre.onTerminalStates(navigation.noteStates),
@@ -155,12 +167,30 @@ export function App() {
     navigation.reset();
   }, [loadServers, navigation.reset]);
 
+  const account = accountOf(accountView);
+
+  // Until the keychain has answered there is no right to judge, and guessing
+  // one would open the onboarding on a build that refuses to install.
+  if (!account) {
+    return <AccountReadingScreen />;
+  }
+
   const shell = shellScreen({
     answered: snapshot !== null,
     onboarding,
     serverId,
+    usage: account.usage,
     view,
   });
+
+  if (shell === "account") {
+    return (
+      <AccountGateScreen
+        account={account}
+        onSettings={() => navigation.goTo("settings")}
+      />
+    );
+  }
 
   if (shell === "onboarding") {
     return <OnboardingFlow />;
@@ -213,6 +243,11 @@ export function App() {
 
       <div className="flex min-w-0 flex-col">
         <div className="draggable h-10 shrink-0 border-line border-b bg-base" />
+
+        <ServerRestrictedNotice
+          entitlement={snapshot.entitlement}
+          onOpenConsole={() => window.pupitre.openUrl(account.consoleUrl)}
+        />
 
         {announces(update.state, update.hidden) ? (
           <div className="clickable shrink-0 px-4 pt-2">

@@ -2,14 +2,12 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { ArrowRight, RefreshCw } from "lucide-react";
 import { useEffect } from "react";
 import { humanBytes } from "../../lib/duration";
-import { accountOf, useAccount } from "../../stores/account";
 import { useOnboarding } from "../../stores/onboarding";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
 import { PageHeader } from "../ui/page-header";
 import { StatusDot } from "../ui/status-dot";
 import { WaitingNotice } from "../ui/waiting-notice";
-import { OnboardingAccountGate } from "./onboarding-account-gate";
 import { OnboardingEnrollmentNote } from "./onboarding-enrollment-note";
 
 /**
@@ -17,7 +15,8 @@ import { OnboardingEnrollmentNote } from "./onboarding-enrollment-note";
  *
  * The server is enrolled first: the platform gives it a seat, names the release
  * to push, and hands the binary over. Only a development build without an
- * account still pushes the one the app built locally.
+ * account still pushes the one the app built locally. The usage right was
+ * settled before the onboarding opened, so nothing is asked of it here.
  */
 export function OnboardingAgentScreen({
   serverName,
@@ -30,34 +29,12 @@ export function OnboardingAgentScreen({
 
   const delivery = useOnboarding((state) => state.delivery);
   const sendAgent = useOnboarding((state) => state.sendAgent);
-  const view = useAccount((state) => state.view);
-  const readAccount = useAccount((state) => state.read);
-
-  const account = accountOf(view);
-  const granted = account?.usage.status === "granted";
 
   useEffect(() => {
-    readAccount();
-  }, [readAccount]);
-
-  useEffect(() => {
-    if (granted && useOnboarding.getState().delivery.status === "idle") {
+    if (useOnboarding.getState().delivery.status === "idle") {
       sendAgent();
     }
-  }, [granted, sendAgent]);
-
-  if (!account) {
-    return (
-      <WaitingNotice
-        detail={t("onboarding.agent.readingDetail")}
-        title={t("onboarding.agent.readingTitle")}
-      />
-    );
-  }
-
-  if (!granted) {
-    return <OnboardingAccountGate account={account} serverName={serverName} />;
-  }
+  }, [sendAgent]);
 
   return (
     <section className="flex flex-col gap-section">
