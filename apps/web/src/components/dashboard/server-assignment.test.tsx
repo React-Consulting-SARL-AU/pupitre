@@ -96,6 +96,7 @@ describe("ServerAssignment", () => {
     const { prisma } = await bootApiTestServer()
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
+      subscription: {},
     })
     const [owner, member] = members
     const { server } = await createServer({ organizationId: organization.id })
@@ -138,6 +139,7 @@ describe("ServerAssignment", () => {
     const { prisma } = await bootApiTestServer()
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
     const { server } = await createServer({ organizationId: organization.id })
 
@@ -171,6 +173,7 @@ describe("ServerAssignment", () => {
   it("gives a member no control over the attribution", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
+      subscription: {},
     })
     const [, member] = members
     const { server } = await createServer({

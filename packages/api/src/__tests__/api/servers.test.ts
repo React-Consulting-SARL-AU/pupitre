@@ -114,6 +114,7 @@ describe("POST /servers/enroll", () => {
     const { prisma } = await bootApiTestServer()
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
     const [owner] = members
     const device = await addDevice(owner, "MacBook", ED25519_KEY)
@@ -150,6 +151,7 @@ describe("POST /servers/enroll", () => {
     const { prisma } = await bootApiTestServer()
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
     const [owner] = members
     const device = await addDevice(owner, "MacBook", ED25519_KEY)
@@ -165,6 +167,7 @@ describe("POST /servers/enroll", () => {
   it("refuses a device that is not the caller's", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
+      subscription: {},
     })
     const [owner, member] = members
     const device = await addDevice(member, "Poste du membre", ED25519_KEY)
@@ -174,9 +177,42 @@ describe("POST /servers/enroll", () => {
     expect(response.json.error.code).toBe("not_found")
   })
 
-  it("refuses the third server of a development organization with a fix", async () => {
+  it("refuses to enroll without a subscription and points at billing", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: null,
+    })
+    const [owner] = members
+    const device = await addDevice(owner, "MacBook", ED25519_KEY)
+    const me = await apiRequest<{ entitlement: string }>("/me", {
+      session: owner,
+    })
+    const response = await enroll(owner, device.json.data.id, "vps.test")
+
+    expect(me.json.entitlement).toBe("suspended")
+    expect(response.status).toBe(403)
+    expect(response.json.error.code).toBe("entitlement_required")
+    expect(response.json.error.fix).toContain("/dashboard/billing")
+  })
+
+  it("refuses to enroll on a suspended subscription", async () => {
+    const { members } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: { status: "canceled" },
+    })
+    const [owner] = members
+    const device = await addDevice(owner, "MacBook", ED25519_KEY)
+    const response = await enroll(owner, device.json.data.id, "vps.test")
+
+    expect(response.status).toBe(403)
+    expect(response.json.error.code).toBe("server_suspended")
+    expect(response.json.error.fix).toContain("/dashboard/billing")
+  })
+
+  it("refuses the third server of a two-seat trial with a fix", async () => {
+    const { members } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: { quantity: 2 },
     })
     const [owner] = members
     const device = await addDevice(owner, "MacBook", ED25519_KEY)
@@ -193,22 +229,11 @@ describe("POST /servers/enroll", () => {
   })
 
   it("follows the subscription quantity when the organization has one", async () => {
-    const { prisma } = await bootApiTestServer()
-    const { organization, members } = await createOrganizationWithMembers({
+    const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: { quantity: 1, status: "active" },
     })
     const [owner] = members
-
-    await prisma.subscription.create({
-      data: {
-        organizationId: organization.id,
-        stripeSubscriptionId: "sub_test_1",
-        product: "server",
-        quantity: 1,
-        status: "active",
-      },
-    })
-
     const device = await addDevice(owner, "MacBook", ED25519_KEY)
     const deviceId = device.json.data.id
 
@@ -224,6 +249,7 @@ describe("POST /servers/enroll", () => {
     const { prisma } = await bootApiTestServer()
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: { quantity: 2 },
     })
     const [owner] = members
     const device = await addDevice(owner, "MacBook", ED25519_KEY)
@@ -243,6 +269,7 @@ describe("POST /servers/enroll", () => {
     const { prisma } = await bootApiTestServer()
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
     const [owner] = members
     const device = await addDevice(owner, "MacBook", ED25519_KEY)
@@ -274,8 +301,12 @@ describe("GET /servers", () => {
   it("lists the servers of the active organization only", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
-    const other = await createOrganizationWithMembers({ roles: ["owner"] })
+    const other = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
     const [owner] = members
     const [otherOwner] = other.members
 
@@ -300,6 +331,7 @@ describe("GET /servers", () => {
     const { prisma } = await bootApiTestServer()
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
     const [owner] = members
     const { serverId, token } = await enrolledServer(owner, "vps.test")
@@ -355,6 +387,7 @@ describe("GET /servers/:id", () => {
   it("returns the server with its metrics and its events", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
     const [owner] = members
     const { serverId, token } = await enrolledServer(owner, "vps.test")
@@ -395,8 +428,12 @@ describe("GET /servers/:id", () => {
   it("hides a server of another organization", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
-    const other = await createOrganizationWithMembers({ roles: ["owner"] })
+    const other = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
     const [owner] = members
     const [otherOwner] = other.members
     const { serverId } = await enrolledServer(
@@ -425,6 +462,7 @@ describe("DELETE /servers/:id", () => {
   it("refuses a member", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
+      subscription: {},
     })
     const [owner, member] = members
     const { serverId } = await enrolledServer(owner, "vps.test")
@@ -441,6 +479,7 @@ describe("DELETE /servers/:id", () => {
     const { prisma } = await bootApiTestServer()
     const { members } = await createOrganizationWithMembers({
       roles: ["owner", "admin"],
+      subscription: {},
     })
     const [owner, admin] = members
     const { serverId, token } = await enrolledServer(owner, "vps.test")
@@ -495,8 +534,12 @@ describe("DELETE /servers/:id", () => {
   it("refuses a server of another organization", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
-    const other = await createOrganizationWithMembers({ roles: ["owner"] })
+    const other = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
     const [owner] = members
     const [otherOwner] = other.members
     const { serverId } = await enrolledServer(
@@ -525,6 +568,7 @@ describe("GET /me/servers", () => {
   it("reports the real host, port and ssh user", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
     const [owner] = members
     const device = await addDevice(owner, "MacBook", ED25519_KEY)

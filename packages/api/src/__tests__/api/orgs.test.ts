@@ -65,6 +65,7 @@ describe("GET /orgs/:id/members", () => {
   it("lists the members and the pending invitations for a plain member", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "admin", "member"],
+      subscription: {},
     })
     const [owner, admin, member] = members
 
@@ -97,8 +98,12 @@ describe("GET /orgs/:id/members", () => {
   it("refuses to read another organization", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
-    const other = await createOrganizationWithMembers({ roles: ["owner"] })
+    const other = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
 
     const response = await apiRequest<ErrorBody>(
       `/orgs/${other.organization.id}/members`,
@@ -123,6 +128,7 @@ describe("POST /orgs/:id/invitations", () => {
     const server = await bootApiTestServer()
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "admin"],
+      subscription: {},
     })
     const [, admin] = members
 
@@ -142,6 +148,7 @@ describe("POST /orgs/:id/invitations", () => {
   it("refuses a member", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
+      subscription: {},
     })
     const [, member] = members
 
@@ -157,6 +164,7 @@ describe("POST /orgs/:id/invitations", () => {
   it("refuses an unreadable email address", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
 
     const response = await apiRequest<ErrorBody>(
@@ -171,6 +179,7 @@ describe("POST /orgs/:id/invitations", () => {
   it("refuses to invite someone who is already a member", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
+      subscription: {},
     })
     const [owner, member] = members
 
@@ -197,6 +206,7 @@ describe("GET /orgs/:id/events", () => {
   it("refuses a member and serves an admin", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "admin", "member"],
+      subscription: {},
     })
     const [, admin, member] = members
 
@@ -213,6 +223,7 @@ describe("GET /orgs/:id/events", () => {
   it("pages the audit newest first and carries the actor", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "admin", "member"],
+      subscription: {},
     })
     const [, admin, member] = members
     const { server } = await createServer({ organizationId: organization.id })
@@ -249,10 +260,14 @@ describe("GET /orgs/:id/events", () => {
   it("filters on an action and never leaks another organization", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
+      subscription: {},
     })
     const [owner, member] = members
     const { server } = await createServer({ organizationId: organization.id })
-    const other = await createOrganizationWithMembers({ roles: ["owner"] })
+    const other = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
     const otherServer = await createServer({
       organizationId: other.organization.id,
     })

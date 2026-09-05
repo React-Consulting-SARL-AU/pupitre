@@ -60,7 +60,10 @@ function exchange(enrollmentToken: string) {
 }
 
 async function enrolling(host = "vps.test") {
-  const { members } = await createOrganizationWithMembers({ roles: ["owner"] })
+  const { members } = await createOrganizationWithMembers({
+    roles: ["owner"],
+    subscription: {},
+  })
   const [owner] = members
   const device = await addDevice(owner, "MacBook", ED25519_KEY)
   const enrolled = await apiRequest<{
@@ -194,6 +197,7 @@ describe("GET /agent/state", () => {
   it("refuses a session token", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
     const [owner] = members
     const response = await apiRequest<ErrorBody>("/agent/state", {
@@ -241,6 +245,7 @@ describe("GET /agent/state", () => {
   it("says suspended for a suspended server", async () => {
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
     const { token } = await createServer({
       organizationId: organization.id,
@@ -258,6 +263,7 @@ describe("GET /agent/state", () => {
   it("says grace for a server in grace", async () => {
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
     const { token } = await createServer({
       organizationId: organization.id,
@@ -290,6 +296,7 @@ describe("POST /agent/heartbeat", () => {
     const { prisma } = await bootApiTestServer()
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
     const { server, token } = await createServer({
       organizationId: organization.id,
@@ -318,6 +325,7 @@ describe("POST /agent/heartbeat", () => {
     const { prisma } = await bootApiTestServer()
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
     const { server, token } = await createServer({
       organizationId: organization.id,

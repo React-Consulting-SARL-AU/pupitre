@@ -1,4 +1,3 @@
-import { FREE_SEAT_QUOTA } from "@pupitre/shared/plans"
 import { useQuery } from "@tanstack/react-query"
 import { Lock } from "lucide-react"
 import { CheckoutForm } from "@/components/dashboard/checkout-form"
@@ -8,6 +7,7 @@ import { Callout } from "@/components/ui/callout"
 import { EmptyState } from "@/components/ui/empty-state"
 import { LoadingState } from "@/components/ui/loading-state"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
+import { useTranslations } from "@/hooks/use-locale"
 import { usePermission } from "@/hooks/use-permission"
 import {
   serversQueryOptions,
@@ -27,6 +27,7 @@ function countSeated(servers: SeatedServer[] | undefined): number {
 }
 
 export function BillingPanel() {
+  const t = useTranslations()
   const { activeOrganization } = useDashboardContext()
   const canManage = usePermission("billing:manage")
   const organizationId = activeOrganization?.id ?? ""
@@ -40,9 +41,9 @@ export function BillingPanel() {
   if (!canManage) {
     return (
       <EmptyState
-        description="Seul le propriétaire de l'organisation voit l'abonnement, le montant et le portail de paiement. Demandez-lui un siège de plus si vous en manquez un."
+        description={t("billingPanel.lockedDescription")}
         icon={Lock}
-        title="La facturation est réservée au propriétaire"
+        title={t("billingPanel.lockedTitle")}
       />
     )
   }
@@ -50,29 +51,29 @@ export function BillingPanel() {
   if (!activeOrganization) {
     return (
       <EmptyState
-        description="Choisissez une organisation dans la barre latérale pour voir son abonnement."
+        description={t("billingPanel.noOrganizationDescription")}
         icon={Lock}
-        title="Aucune organisation active"
+        title={t("billingPanel.noOrganizationTitle")}
       />
     )
   }
 
   if (subscription.isPending || servers.isPending) {
-    return <LoadingState label="Lecture de l'abonnement…" />
+    return <LoadingState label={t("billingPanel.reading")} />
   }
 
   if (subscription.isError) {
     return (
       <Callout
-        fix="Rechargez la page ; si cela persiste, reconnectez-vous."
-        title="L'abonnement n'a pas pu être lu."
+        fix={t("billingPanel.failedFix")}
+        title={t("billingPanel.failed")}
         tone="danger"
       />
     )
   }
 
   const used = countSeated(servers.data as SeatedServer[] | undefined)
-  const paid = subscription.data?.quantity ?? FREE_SEAT_QUOTA
+  const paid = subscription.data?.quantity ?? 0
 
   return (
     <div className="flex flex-col gap-section">

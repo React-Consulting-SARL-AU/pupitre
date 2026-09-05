@@ -3,12 +3,13 @@ import { Elysia } from "elysia"
 import { translate } from "../../../i18n"
 import {
   EnrollmentDeviceUnknownError,
+  EntitlementMissingError,
   enrollServer,
   SeatQuotaReachedError,
 } from "../../../servers/enrollment"
 import { type ApiErrorPayload, apiError } from "../../errors"
 import { errorResponse } from "../../openapi-models"
-import { requireOrg } from "../../plugins/guards"
+import { requireEntitlement, requireOrg } from "../../plugins/guards"
 import { serializeData } from "../../prisma"
 import { enrollBody, enrollmentSchema } from "./schemas"
 
@@ -29,22 +30,26 @@ function refusalFor(
     }
   }
 
-  if (error instanceof SeatQuotaReachedError) {
-    const fix =
-      error.source === "subscription"
-        ? translate(locale, "seat_quota_reached_fix", {
-            organization: organizationId,
-          })
-        : translate(locale, "seat_quota_development_fix", {
-            quota: error.quota,
-          })
+  if (error instanceof EntitlementMissingError) {
+    return {
+      status: 403,
+      payload: apiError(
+        error.refusal,
+        translate(locale, error.refusal),
+        translate(locale, `${error.refusal}_fix`)
+      ),
+    }
+  }
 
+  if (error instanceof SeatQuotaReachedError) {
     return {
       status: 403,
       payload: apiError(
         "seat_quota_reached",
         translate(locale, "seat_quota_reached", { quota: error.quota }),
-        fix
+        translate(locale, "seat_quota_reached_fix", {
+          organization: organizationId,
+        })
       ),
     }
   }
@@ -54,6 +59,7 @@ function refusalFor(
 
 export const enrollRoutes = new Elysia({ name: "servers-enroll-routes" })
   .use(requireOrg)
+  .use(requireEntitlement)
   .post(
     "/servers/enroll",
     async ({ user, organizationId, body, request, set }) => {

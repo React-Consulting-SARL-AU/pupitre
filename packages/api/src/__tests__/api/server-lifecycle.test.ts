@@ -25,7 +25,10 @@ function enroll(session: Session, deviceId: string, host: string) {
 }
 
 async function ownerWithDevice() {
-  const { members } = await createOrganizationWithMembers({ roles: ["owner"] })
+  const { members } = await createOrganizationWithMembers({
+    roles: ["owner"],
+    subscription: {},
+  })
   const [owner] = members
   const device = await apiRequest<{ data: { id: string } }>("/me/devices", {
     body: { name: "MacBook", public_key: ED25519_KEY },

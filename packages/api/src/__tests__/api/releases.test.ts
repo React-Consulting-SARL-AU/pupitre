@@ -102,7 +102,10 @@ function promote(
 }
 
 async function enroll() {
-  const { members } = await createOrganizationWithMembers({ roles: ["owner"] })
+  const { members } = await createOrganizationWithMembers({
+    roles: ["owner"],
+    subscription: {},
+  })
   const [owner] = members
   const added = await apiRequest<{ data: { id: string } }>("/me/devices", {
     body: { name: "MacBook", public_key: ED25519_KEY },
@@ -328,6 +331,7 @@ describe("releases", () => {
       const admin = await platformAdmin()
       const { organization } = await createOrganizationWithMembers({
         roles: ["owner"],
+        subscription: {},
       })
       const { token } = await createServer({
         organizationId: organization.id,
@@ -357,6 +361,7 @@ describe("releases", () => {
       const admin = await platformAdmin()
       const { organization } = await createOrganizationWithMembers({
         roles: ["owner"],
+        subscription: {},
       })
       const { server, token } = await createServer({
         organizationId: organization.id,
@@ -380,6 +385,7 @@ describe("releases", () => {
       const admin = await platformAdmin()
       const { organization } = await createOrganizationWithMembers({
         roles: ["owner"],
+        subscription: {},
       })
       const { token } = await createServer({
         organizationId: organization.id,
@@ -401,6 +407,7 @@ describe("releases", () => {
       const admin = await platformAdmin()
       const { organization } = await createOrganizationWithMembers({
         roles: ["owner"],
+        subscription: {},
       })
       const { server, token } = await createServer({
         organizationId: organization.id,
@@ -434,6 +441,7 @@ describe("releases", () => {
       const admin = await platformAdmin()
       const { organization } = await createOrganizationWithMembers({
         roles: ["owner"],
+        subscription: {},
       })
       const { token } = await createServer({
         organizationId: organization.id,
@@ -464,6 +472,7 @@ describe("releases", () => {
       const admin = await platformAdmin()
       const { organization } = await createOrganizationWithMembers({
         roles: ["owner"],
+        subscription: {},
       })
       const { token } = await createServer({
         organizationId: organization.id,

@@ -28,19 +28,27 @@ export function entitlementWindow(from: Date = new Date()): Date {
   return new Date(from.getTime() + ENTITLEMENT_TTL_MS)
 }
 
-export async function entitlementForOrganization(
-  organizationId: string,
-  now: Date = new Date()
-): Promise<Entitlement> {
-  const subscription = await getPrisma().subscription.findFirst({
+export type EntitlementRefusal = "entitlement_required" | "server_suspended"
+
+interface SubscriptionMirror {
+  status: string
+  currentPeriodEnd: Date | null
+}
+
+function latestSubscriptionOf(
+  organizationId: string
+): Promise<SubscriptionMirror | null> {
+  return getPrisma().subscription.findFirst({
     where: { organizationId },
     orderBy: { updatedAt: "desc" },
+    select: { status: true, currentPeriodEnd: true },
   })
+}
 
-  if (!subscription) {
-    return { state: "valid", valid_until: entitlementWindow(now) }
-  }
-
+function entitlementOf(
+  subscription: SubscriptionMirror,
+  now: Date
+): Entitlement {
   if (VALID_SUBSCRIPTION_STATUSES.has(subscription.status)) {
     return { state: "valid", valid_until: entitlementWindow(now) }
   }
@@ -56,6 +64,36 @@ export async function entitlementForOrganization(
     state: "suspended",
     valid_until: subscription.currentPeriodEnd ?? now,
   }
+}
+
+export async function entitlementForOrganization(
+  organizationId: string,
+  now: Date = new Date()
+): Promise<Entitlement> {
+  const subscription = await latestSubscriptionOf(organizationId)
+
+  if (!subscription) {
+    return { state: "suspended", valid_until: now }
+  }
+
+  return entitlementOf(subscription, now)
+}
+
+export async function entitlementRefusalFor(
+  organizationId: string,
+  now: Date = new Date()
+): Promise<EntitlementRefusal | null> {
+  const subscription = await latestSubscriptionOf(organizationId)
+
+  if (!subscription) {
+    return "entitlement_required"
+  }
+
+  if (entitlementOf(subscription, now).state === "suspended") {
+    return "server_suspended"
+  }
+
+  return null
 }
 
 export async function entitlementForServer(

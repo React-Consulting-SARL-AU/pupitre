@@ -7,6 +7,7 @@ import { sessionHeaders } from "./session"
 
 let organizationCounter = 0
 let serverCounter = 0
+let subscriptionCounter = 0
 
 type TestUser = Awaited<ReturnType<typeof createTestUser>>["user"]
 
@@ -21,14 +22,45 @@ export interface MemberFixture {
   headers: Headers
 }
 
+export interface SubscriptionInput {
+  organizationId: string
+  quantity?: number
+  status?: string
+  currentPeriodEnd?: Date | null
+}
+
+export async function subscribeOrganization({
+  organizationId,
+  quantity = 5,
+  status = "trialing",
+  currentPeriodEnd = null,
+}: SubscriptionInput) {
+  const { prisma } = await bootApiTestServer()
+
+  subscriptionCounter += 1
+
+  return await prisma.subscription.create({
+    data: {
+      organizationId,
+      stripeSubscriptionId: `sub_fixture_${subscriptionCounter}`,
+      product: "prod_server",
+      quantity,
+      status,
+      currentPeriodEnd,
+    },
+  })
+}
+
 export interface OrganizationWithMembersInput {
   name?: string
   roles?: OrgRole[]
+  subscription?: Omit<SubscriptionInput, "organizationId"> | null
 }
 
 export async function createOrganizationWithMembers({
   name,
   roles = ["owner", "admin", "member"],
+  subscription = null,
 }: OrganizationWithMembersInput = {}) {
   const { prisma } = await bootApiTestServer()
 
@@ -70,6 +102,13 @@ export async function createOrganizationWithMembers({
       session,
       token,
       headers: sessionHeaders(token),
+    })
+  }
+
+  if (subscription) {
+    await subscribeOrganization({
+      ...subscription,
+      organizationId: organization.id,
     })
   }
 

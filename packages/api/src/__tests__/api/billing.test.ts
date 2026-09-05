@@ -1,17 +1,18 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
-import { FREE_SEAT_QUOTA } from "@pupitre/shared/plans"
 import type { FakeBilling } from "../../lib/billing/fake"
+import { suspendExpiredGrace } from "../../lib/billing/grace"
 import { reconcileSeats } from "../../lib/billing/reconcile"
 import { bootApiTestServer, resetDb } from "../../testing"
 import {
   postStripeWebhook,
   remoteSubscription,
   stripeEvent,
+  stripeSubscriptionObject,
   useFakeBilling,
 } from "../../testing/billing"
 import { createOrganizationWithMembers } from "../../testing/factories"
 import { ED25519_KEY } from "../../testing/keys"
-import { PROBE_REPORT } from "../../testing/probe"
+import { HOST_PUBLIC_KEY, PROBE_REPORT } from "../../testing/probe"
 import { apiRequest } from "../../testing/request"
 
 interface Session {
@@ -24,6 +25,14 @@ interface UrlBody {
 
 interface ErrorBody {
   error: { code: string; message: string; fix?: string }
+}
+
+interface MeBody {
+  entitlement: string
+}
+
+interface StateBody {
+  entitlement: string
 }
 
 interface SubscriptionBody {
@@ -51,7 +60,8 @@ function checkoutSessionObject(organizationId: string) {
 async function paySeats(
   billing: FakeBilling,
   organizationId: string,
-  quantity: number
+  quantity: number,
+  status = "active"
 ) {
   billing.put(
     remoteSubscription({
@@ -59,6 +69,7 @@ async function paySeats(
       customerId: "cus_seat",
       organizationId,
       quantity,
+      status,
     })
   )
 
@@ -78,7 +89,9 @@ function addDevice(session: Session, name: string) {
 }
 
 function enroll(session: Session, deviceId: string, host: string) {
-  return apiRequest<ErrorBody & { server_id: string }>("/servers/enroll", {
+  return apiRequest<
+    ErrorBody & { server_id: string; enrollment_token: string }
+  >("/servers/enroll", {
     body: { device_id: deviceId, host, probe: PROBE_REPORT },
     session,
   })
@@ -234,21 +247,116 @@ describe("facturation d'une organisation", () => {
     expect(third.json.error.fix).toContain(organizationId)
   })
 
-  it("garde le quota de développement sans abonnement, et le dit", async () => {
+  it("sans aucun abonnement, suspend le droit d'usage et refuse l'enrôlement", async () => {
+    const me = await apiRequest<MeBody>("/me", { session: owner })
+
+    expect(me.json.entitlement).toBe("suspended")
+
+    const device = await addDevice(owner, "poste")
+    const refused = await enroll(
+      owner,
+      device.json.data.id,
+      "dev-1.example.net"
+    )
+
+    expect(refused.status).toBe(403)
+    expect(refused.json.error.code).toBe("entitlement_required")
+    expect(refused.json.error.fix).toContain("/dashboard/billing")
+  })
+
+  it("enrôle jusqu'à la quantité de l'essai, puis refuse la suivante", async () => {
+    await paySeats(billing, organizationId, 2, "trialing")
+
+    const me = await apiRequest<MeBody>("/me", { session: owner })
+
+    expect(me.json.entitlement).toBe("valid")
+
     const device = await addDevice(owner, "poste")
     const deviceId = device.json.data.id
 
-    for (let index = 0; index < FREE_SEAT_QUOTA; index += 1) {
-      const accepted = await enroll(owner, deviceId, `dev-${index}.example.net`)
+    expect((await enroll(owner, deviceId, "trial-1.example.net")).status).toBe(
+      201
+    )
+    expect((await enroll(owner, deviceId, "trial-2.example.net")).status).toBe(
+      201
+    )
 
-      expect(accepted.status).toBe(201)
-    }
-
-    const refused = await enroll(owner, deviceId, "dev-extra.example.net")
+    const refused = await enroll(owner, deviceId, "trial-3.example.net")
 
     expect(refused.status).toBe(403)
     expect(refused.json.error.code).toBe("seat_quota_reached")
-    expect(refused.json.error.fix).toContain("développement")
+    expect(refused.json.error.message).toContain("2")
+  })
+
+  it("coupe l'accès quand l'essai se termine sans carte", async () => {
+    await paySeats(billing, organizationId, 1, "trialing")
+
+    const device = await addDevice(owner, "poste")
+    const enrolled = await enroll(owner, device.json.data.id, "vps.example.net")
+
+    expect(enrolled.status).toBe(201)
+
+    const exchanged = await apiRequest<{ server_token: string }>(
+      "/agent/exchange",
+      {
+        body: {
+          enrollment_token: enrolled.json.enrollment_token,
+          host_public_key: HOST_PUBLIC_KEY,
+          agent_version: "1.4.0",
+          arch: "amd64",
+        },
+      }
+    )
+    const trialEnd = new Date(Date.now() - 60_000)
+
+    billing.put(
+      remoteSubscription({
+        id: "sub_seat",
+        customerId: "cus_seat",
+        organizationId,
+        quantity: 1,
+        status: "canceled",
+        currentPeriodEnd: trialEnd,
+      })
+    )
+
+    await postStripeWebhook(
+      stripeEvent(
+        "customer.subscription.deleted",
+        stripeSubscriptionObject({
+          id: "sub_seat",
+          customerId: "cus_seat",
+          organizationId,
+          quantity: 1,
+          status: "canceled",
+          currentPeriodEnd: trialEnd,
+        })
+      )
+    )
+
+    const inGrace = await apiRequest<StateBody>("/agent/state", {
+      bearer: exchanged.json.server_token,
+    })
+
+    expect(inGrace.json.entitlement).toBe("grace")
+
+    expect(await suspendExpiredGrace(new Date())).toHaveLength(1)
+
+    const suspended = await apiRequest<StateBody>("/agent/state", {
+      bearer: exchanged.json.server_token,
+    })
+
+    expect(suspended.json.entitlement).toBe("suspended")
+
+    const refused = await enroll(
+      owner,
+      device.json.data.id,
+      "vps-2.example.net"
+    )
+
+    expect(refused.status).toBe(403)
+    expect(refused.json.error.code).toBe("server_suspended")
+    expect(refused.json.error.fix).toContain("/dashboard/billing")
   })
 
   it("compare les sièges payés et les serveurs actifs", async () => {

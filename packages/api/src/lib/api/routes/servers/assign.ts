@@ -13,7 +13,7 @@ import {
 import { toServerView } from "../../../servers/servers"
 import { type ApiErrorPayload, apiError } from "../../errors"
 import { dataResponse, errorResponse } from "../../openapi-models"
-import { requireRole } from "../../plugins/guards"
+import { requireEntitlement, requireRole } from "../../plugins/guards"
 import { serializeData } from "../../prisma"
 import { assignBody, revokeDeviceBody, serverSchema } from "./schemas"
 
@@ -66,6 +66,7 @@ function refusalFor(error: unknown, locale: Locale): Refusal | null {
 
 export const serversAssignRoutes = new Elysia({ name: "servers-assign-routes" })
   .use(requireRole("admin"))
+  .use(requireEntitlement)
   .post(
     "/servers/:id/assign",
     async ({ user, organizationId, params, body, request, set }) => {

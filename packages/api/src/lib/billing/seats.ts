@@ -1,5 +1,4 @@
 import type { ServerStatus } from "@pupitre/db/cloudflare/client"
-import { FREE_SEAT_QUOTA } from "@pupitre/shared/plans"
 import { getPrisma, type OrganizationPrisma } from "../api/prisma"
 
 export const SEATED_STATUSES: ServerStatus[] = [
@@ -11,7 +10,7 @@ export const SEATED_STATUSES: ServerStatus[] = [
 
 export const PAYING_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due"]
 
-export type SeatQuotaSource = "subscription" | "development"
+export type SeatQuotaSource = "subscription" | "none"
 
 export interface SeatQuota {
   quota: number
@@ -28,7 +27,7 @@ export async function seatQuotaFor(
   })
 
   if (!subscription) {
-    return { quota: FREE_SEAT_QUOTA, source: "development" }
+    return { quota: 0, source: "none" }
   }
 
   return { quota: subscription.quantity, source: "subscription" }

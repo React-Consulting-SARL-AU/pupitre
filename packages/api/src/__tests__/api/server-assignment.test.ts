@@ -60,9 +60,27 @@ describe("POST /servers/:id/assign", () => {
     expect(response.status).toBe(401)
   })
 
+  it("refuses an admin whose organization has no subscription", async () => {
+    const { organization, members } = await createOrganizationWithMembers({
+      roles: ["owner", "admin", "member"],
+      subscription: null,
+    })
+    const [, admin, member] = members
+    const { server } = await createServer({ organizationId: organization.id })
+
+    const response = await assign(admin, server.id, {
+      user_id: member.user.id,
+    })
+
+    expect(response.status).toBe(403)
+    expect(response.json.error.code).toBe("entitlement_required")
+    expect(response.json.error.fix).toContain("/dashboard/billing")
+  })
+
   it("refuses a member and lets an admin assign", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "admin", "member"],
+      subscription: {},
     })
     const [, admin, member] = members
     const { server } = await createServer({ organizationId: organization.id })
@@ -85,6 +103,7 @@ describe("POST /servers/:id/assign", () => {
     const { prisma } = testServer
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
+      subscription: {},
     })
     const [owner, member] = members
     const { server, token } = await createServer({
@@ -116,6 +135,7 @@ describe("POST /servers/:id/assign", () => {
     const { prisma } = await bootApiTestServer()
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
+      subscription: {},
     })
     const [owner, member] = members
     const { server, token } = await createServer({
@@ -138,6 +158,7 @@ describe("POST /servers/:id/assign", () => {
   it("refuses a user who is not a member of the organization", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
     const stranger = await createUser({ email: "etranger@test.local" })
     const { server } = await createServer({ organizationId: organization.id })
@@ -154,8 +175,12 @@ describe("POST /servers/:id/assign", () => {
   it("refuses a server of another organization", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
-    const other = await createOrganizationWithMembers({ roles: ["owner"] })
+    const other = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
     const { server } = await createServer({
       organizationId: other.organization.id,
     })
@@ -171,6 +196,7 @@ describe("POST /servers/:id/assign", () => {
     const { prisma } = await bootApiTestServer()
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
+      subscription: {},
     })
     const [owner, member] = members
     const { server } = await createServer({ organizationId: organization.id })
@@ -189,6 +215,7 @@ describe("POST /servers/:id/assign", () => {
     const testServer = await bootApiTestServer()
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
     const [owner] = members
     const { server, token } = await createServer({
@@ -255,6 +282,7 @@ describe("POST /servers/:id/unassign", () => {
     const testServer = await bootApiTestServer()
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "admin", "member"],
+      subscription: {},
     })
     const [, admin, member] = members
     const { server, token } = await createServer({
@@ -289,6 +317,7 @@ describe("POST /servers/:id/unassign", () => {
     const testServer = await bootApiTestServer()
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
     const { server } = await createServer({ organizationId: organization.id })
 
@@ -308,6 +337,7 @@ describe("POST /servers/:id/unassign", () => {
   it("refuses a member", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
+      subscription: {},
     })
     const { server } = await createServer({ organizationId: organization.id })
 
@@ -333,6 +363,7 @@ describe("POST /servers/:id/revoke-device", () => {
     const testServer = await bootApiTestServer()
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
+      subscription: {},
     })
     const [owner, member] = members
     const { server, token } = await createServer({
@@ -369,6 +400,7 @@ describe("POST /servers/:id/revoke-device", () => {
   it("refuses an unknown device and a member", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
+      subscription: {},
     })
     const [owner, member] = members
     const { server } = await createServer({ organizationId: organization.id })
@@ -403,6 +435,7 @@ describe("GET /servers for a member", () => {
   it("shows a member only their servers, and an admin all of them", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "admin", "member"],
+      subscription: {},
     })
     const [, admin, member] = members
     const mine = await createServer({

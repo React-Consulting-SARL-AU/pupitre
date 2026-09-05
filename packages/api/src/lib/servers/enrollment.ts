@@ -1,7 +1,11 @@
 import { sendServerEnrolledEmail } from "../../emails/notifications"
 import { getPrisma, withOrganization } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
-import { entitlementWindow } from "../billing/entitlement"
+import {
+  type EntitlementRefusal,
+  entitlementRefusalFor,
+  entitlementWindow,
+} from "../billing/entitlement"
 import {
   countSeatedServers,
   type SeatQuotaSource,
@@ -24,6 +28,16 @@ export const ENROLLMENT_TTL_MS = 3_600_000
 export const DEFAULT_SSH_PORT = 22
 
 export const DEFAULT_SSH_USER = "dev"
+
+export class EntitlementMissingError extends Error {
+  readonly refusal: EntitlementRefusal
+
+  constructor(refusal: EntitlementRefusal) {
+    super(`the organization has no usable subscription: ${refusal}`)
+    this.name = "EntitlementMissingError"
+    this.refusal = refusal
+  }
+}
 
 export class SeatQuotaReachedError extends Error {
   readonly quota: number
@@ -104,6 +118,12 @@ export async function enrollServer(
 
   if (!device) {
     throw new EnrollmentDeviceUnknownError()
+  }
+
+  const refusal = await entitlementRefusalFor(actor.organizationId)
+
+  if (refusal) {
+    throw new EntitlementMissingError(refusal)
   }
 
   const [{ quota, source }, seated] = await Promise.all([

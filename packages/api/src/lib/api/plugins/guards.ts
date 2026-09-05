@@ -5,6 +5,7 @@ import {
   type OrgRole,
 } from "@pupitre/shared/permissions"
 import { Elysia, status } from "elysia"
+import { entitlementRefusalFor } from "../../billing/entitlement"
 import { type MessageKey, type MessageParams, translate } from "../../i18n"
 import { findServerByToken } from "../../servers/servers"
 import { apiError } from "../errors"
@@ -123,6 +124,29 @@ export function requireRole(minimum: OrgRole) {
     }
   )
 }
+
+export const requireEntitlement = new Elysia({
+  name: "requireEntitlement",
+}).resolve({ as: "scoped" }, async ({ request }) => {
+  const membership = await resolveMembership(request)
+
+  if (!("organizationId" in membership)) {
+    return membership
+  }
+
+  const refusal = await entitlementRefusalFor(membership.organizationId)
+
+  if (refusal) {
+    return refuse(request, {
+      status: 403,
+      code: refusal,
+      message: refusal,
+      fix: `${refusal}_fix`,
+    })
+  }
+
+  return membership
+})
 
 export const requirePlatformAdmin = new Elysia({
   name: "requirePlatformAdmin",

@@ -56,7 +56,7 @@ describe("GET /me", () => {
     ])
     expect(me.json.active_organization).toMatchObject({ id: organization.id })
     expect(me.json.role).toBe("owner")
-    expect(me.json.entitlement).toBe("valid")
+    expect(me.json.entitlement).toBe("suspended")
 
     const asOwner = await apiRequest<MeBody>("/me", { session: owner })
 
@@ -94,8 +94,17 @@ describe("GET /me", () => {
         stripeSubscriptionId: "sub_me_entitlement",
         product: "prod_server",
         quantity: 2,
-        status: "past_due",
+        status: "trialing",
       },
+    })
+
+    const inTrial = await apiRequest<MeBody>("/me", { session })
+
+    expect(inTrial.json.entitlement).toBe("valid")
+
+    await prisma.subscription.updateMany({
+      where: { organizationId: organization.id },
+      data: { status: "past_due" },
     })
 
     const inGrace = await apiRequest<MeBody>("/me", { session })
@@ -124,7 +133,7 @@ describe("GET /me", () => {
     const me = unwrap(await client.api.v1.me.get())
 
     expect(me.user.id).toBe(user.id)
-    expect(me.entitlement).toBe("valid")
+    expect(me.entitlement).toBe("suspended")
 
     const anonymous = createApiClient(TEST_BASE_URL, { fetch: server.fetch })
 

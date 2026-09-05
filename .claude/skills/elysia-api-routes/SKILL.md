@@ -1,6 +1,6 @@
 ---
 name: elysia-api-routes
-description: Écrire ou modifier une route Elysia de `/api/v1` dans `packages/api/src/lib/api/routes` — routeur plat ou dossier, schémas `t` colocalisés, guards `authPlugin`, `requireAuth`, `requireOrg`, `requireRole`, `requireServer`, `requirePlatformAdmin`, `serializeData`, `withOrganization`, erreurs `{ error: { code, message, fix? } }`, enregistrement dans `routes/index.ts`, routes admin cachées par `hiddenRoutes`, test d'intégration sur le harnais PGlite. À utiliser dès qu'une tâche `PLT` ajoute, déplace ou touche un endpoint de l'API.
+description: Écrire ou modifier une route Elysia de `/api/v1` dans `packages/api/src/lib/api/routes` — routeur plat ou dossier, schémas `t` colocalisés, guards `authPlugin`, `requireAuth`, `requireOrg`, `requireRole`, `requireEntitlement`, `requireServer`, `requirePlatformAdmin`, `serializeData`, `withOrganization`, erreurs `{ error: { code, message, fix? } }`, enregistrement dans `routes/index.ts`, routes admin cachées par `hiddenRoutes`, test d'intégration sur le harnais PGlite. À utiliser dès qu'une tâche `PLT` ajoute, déplace ou touche un endpoint de l'API.
 ---
 
 # Routes Elysia — `/api/v1`
@@ -16,7 +16,7 @@ L'API vit dans `packages/api` et reste le contrat unique pour la console (`apps/
 | `packages/api/src/lib/api/routes/<ressource>.ts` | un routeur |
 | `packages/api/src/lib/api/routes/<ressource>-schemas.ts` | les schémas `t` colocalisés de ce routeur |
 | `packages/api/src/lib/api/plugins/auth.ts` | `authPlugin`, `resolveAuthContext`, `AuthContext` |
-| `packages/api/src/lib/api/plugins/guards.ts` | `requireAuth`, `requireOrg`, `requireRole`, `requireServer`, `requirePlatformAdmin`, `hasPermission`, `ROLE_RANK` |
+| `packages/api/src/lib/api/plugins/guards.ts` | `requireAuth`, `requireOrg`, `requireRole`, `requireEntitlement`, `requireServer`, `requirePlatformAdmin`, `hasPermission`, `ROLE_RANK` |
 | `packages/api/src/lib/api/prisma.ts` | `getPrisma`, `configurePrisma`, `ApiPrisma`, `serializeData`, `withOrganization` |
 | `packages/api/src/lib/api/errors.ts` | `apiError`, `createErrorRef` |
 | `packages/api/src/lib/api/openapi-models.ts` | `errorResponse`, `withAuthErrors`, `dataResponse`, `paginatedResponse`, `dateTime` |
@@ -32,7 +32,7 @@ L'API vit dans `packages/api` et reste le contrat unique pour la console (`apps/
 
 ## État du dépôt
 
-Depuis PLT-03, le socle existe : `GET /health`, `GET /me` (les guards, et depuis PLT-08 le droit d'usage de l'organisation active : `none` sans organisation, sinon `valid`, `grace` ou `suspended`, par `entitlementForOrganization`), les guards, `serializeData`, `withOrganization`, `apiError`, l'openapi sur `/api/v1/openapi` (document sur `/api/v1/openapi/json`), le harnais PGlite et le client Eden. Les routes métier arrivent avec PLT-04 et suivantes ; ce skill décrit ce qui est livré, et une tâche qui change un nom met ce skill à jour dans la même passe.
+Depuis PLT-03, le socle existe : `GET /health`, `GET /me` (les guards, et depuis PLT-08 le droit d'usage de l'organisation active : `none` sans organisation, sinon `valid`, `grace` ou `suspended`, par `entitlementForOrganization`), les guards (dont `requireEntitlement`, ajouté par PLT-21 : sans abonnement en cours, une organisation n'enrôle ni n'attribue rien), `serializeData`, `withOrganization`, `apiError`, l'openapi sur `/api/v1/openapi` (document sur `/api/v1/openapi/json`), le harnais PGlite et le client Eden. Les routes métier arrivent avec PLT-04 et suivantes ; ce skill décrit ce qui est livré, et une tâche qui change un nom met ce skill à jour dans la même passe.
 
 ## Règles
 
@@ -74,6 +74,7 @@ Composition, jamais réimplémentation. Le guard se monte **une fois**, juste ap
 | `requireAuth` | idem, `user` et `session` non nuls | 401 `unauthenticated` | tout ce qui parle à un humain : `/me`, `/me/devices` |
 | `requireOrg` | idem, `organizationId` et `role` non nuls (le rôle vient de la table `member`) | 401 `unauthenticated` ; 403 `forbidden` avec `fix` sans organisation active ; 403 `forbidden` si l'utilisateur n'est plus membre | `/servers`, `/orgs/:id/*` |
 | `requireRole("admin")` | idem `requireOrg` | 403 `forbidden` si le rôle est sous celui demandé ; `owner` > `admin` > `member` (`ROLE_RANK`) | `/servers/:id/assign`, `/orgs/:id/invitations`, la facturation en `owner` |
+| `requireEntitlement` | idem `requireOrg` | 403 `entitlement_required` sans abonnement sur l'organisation ; 403 `server_suspended` quand celui qu'elle a est suspendu ; `fix` vers `/dashboard/billing` dans les deux cas | tout ce qui suppose un abonnement en cours, fût-il en essai : `POST /servers/enroll`, les routes d'attribution |
 | `requireServer` | `currentServer` : le `Server` dont `serverTokenHash` est le SHA-256 du bearer, quel que soit son statut sauf `revoked` | 401 `unauthenticated` sans bearer, jeton inconnu, ou serveur `revoked` (avec `fix`) | `/agent/state`, `/agent/heartbeat`, `/agent/release/:version` |
 | `requirePlatformAdmin` | `user`, `session` non nuls, `isPlatformAdmin` vrai (`user.role === "platform_admin"`) | 401 `unauthenticated` ; 403 `forbidden` | `/admin/**` |
 

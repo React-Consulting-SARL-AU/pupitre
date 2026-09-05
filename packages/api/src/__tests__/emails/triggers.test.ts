@@ -69,6 +69,7 @@ describe("les huit moments envoient leur email", () => {
   it("l'invitation part vers l'adresse invitée", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
     const [owner] = members
 
@@ -89,6 +90,7 @@ describe("les huit moments envoient leur email", () => {
     const { prisma } = await bootApiTestServer()
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
     const [owner] = members
 
@@ -111,6 +113,7 @@ describe("les huit moments envoient leur email", () => {
   it("le serveur enrôlé prévient quand l'agent répond", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
     const [owner] = members
     const device = await addDevice(owner, "MacBook", "fr")
@@ -151,6 +154,7 @@ describe("les huit moments envoient leur email", () => {
   it("l'attribution prévient la personne attribuée", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
+      subscription: {},
     })
     const [owner, member] = members
     const { server } = await createServer({
@@ -174,6 +178,7 @@ describe("les huit moments envoient leur email", () => {
   it("la tolérance prévient les propriétaires de l'organisation", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner", "member"],
+      subscription: {},
     })
     const [owner] = members
 
@@ -195,6 +200,7 @@ describe("les huit moments envoient leur email", () => {
   it("la suspension prévient les propriétaires une fois la tolérance écoulée", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
     const [owner] = members
 
@@ -218,6 +224,7 @@ describe("les huit moments envoient leur email", () => {
   it("la suppression annonce la décommission dans sept jours", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],
+      subscription: {},
     })
     const [owner] = members
     const { server } = await createServer({

@@ -55,8 +55,12 @@ const FR = {
     "Votre abonnement couvre {quota} serveurs, ils sont tous utilisés.",
   seat_quota_reached_fix:
     "Ajoutez un siège dans le portail de facturation Stripe (POST /orgs/{organization}/portal), ou supprimez un serveur.",
-  seat_quota_development_fix:
-    "Aucun abonnement actif : le développement ouvre {quota} serveurs. Souscrivez depuis la facturation pour en ajouter.",
+  entitlement_required: "Cette organisation n'a aucun abonnement en cours.",
+  entitlement_required_fix:
+    "Démarrez votre essai de quatorze jours, sans carte, depuis /dashboard/billing.",
+  server_suspended: "L'abonnement de cette organisation est suspendu.",
+  server_suspended_fix:
+    "Reprenez un abonnement depuis /dashboard/billing pour retrouver vos serveurs.",
   organization_not_found: "Cette organisation n'existe pas.",
   billing_customer_missing:
     "Cette organisation n'a pas encore de client Stripe.",
@@ -155,8 +159,12 @@ const EN: Record<MessageKey, string> = {
     "Your subscription covers {quota} servers, and they are all in use.",
   seat_quota_reached_fix:
     "Add a seat in the Stripe billing portal (POST /orgs/{organization}/portal), or delete a server.",
-  seat_quota_development_fix:
-    "No active subscription: development opens {quota} servers. Subscribe from billing to add more.",
+  entitlement_required: "This organization has no active subscription.",
+  entitlement_required_fix:
+    "Start your fourteen-day trial, no card needed, from /dashboard/billing.",
+  server_suspended: "This organization's subscription is suspended.",
+  server_suspended_fix:
+    "Resume a subscription from /dashboard/billing to get your servers back.",
   organization_not_found: "This organization does not exist.",
   billing_customer_missing: "This organization has no Stripe customer yet.",
   billing_customer_missing_fix:
