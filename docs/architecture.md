@@ -30,7 +30,7 @@ Pupitre Desktop ──── ssh, clé du client ────▶ pupitred (VPS d
 2. **Aucune clé privée hors du laptop du client.** L'app génère une clé ed25519 par appareil ; seule la clé publique remonte à la plateforme, qui la transmet à l'agent.
 3. **Aucune connexion entrante vers le serveur du client**, ni de la plateforme, ni du support. L'agent tire ce dont il a besoin par HTTPS sortant. Le seul port ouvert est SSH, pour le client.
 4. **Rien de lisible n'est déposé sur le serveur.** Un binaire, des unités systemd générées, des fichiers de configuration. Pas de script.
-5. **L'app reste utilisable sans la plateforme** pendant sept jours : le droit d'usage est mis en cache, puis l'agent passe en mode restreint sans rien casser de ce qui tourne.
+5. **L'app exige une première connexion réussie, puis reste utilisable sans la plateforme pendant sept jours** : le droit d'usage est mis en cache, puis l'agent passe en mode restreint sans rien casser de ce qui tourne.
 6. **Le contrat avant l'implémentation.** Ce qui traverse une frontière est typé dans `packages/shared` et documenté dans `docs/contracts/` avant d'exister des deux côtés.
 
 ## Desktop
@@ -39,7 +39,7 @@ Pupitre Desktop ──── ssh, clé du client ────▶ pupitred (VPS d
 
 La configuration SSH de l'app vit dans son dossier de données (`ssh/config`, `keys/<serveur>` en 0600). Le `~/.ssh/config` de l'utilisateur n'est jamais modifié ; un hôte existant peut être désigné à la place.
 
-Le compte est optionnel. Sans, l'app fonctionne avec un droit d'usage de développement. Avec, la liste des serveurs se complète de ceux que la plateforme connaît, et le droit d'usage vient d'elle.
+Le compte est requis. L'app demande une connexion au premier lancement, puis lit le droit d'usage de l'organisation active : sans abonnement en cours, fût-il en essai, elle n'enrôle aucun serveur. Seul un build de développement porte un droit d'usage à lui, miroir du tag `dev` de l'agent, et il ne sort jamais du dépôt.
 
 ## Agent
 

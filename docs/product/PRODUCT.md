@@ -43,11 +43,22 @@ Jobs-to-be-done :
 
 Prix en dollars, la LLC vendant depuis les États-Unis ; Stripe convertit dans la devise du client au moment du paiement et ajoute la taxe applicable. Annuel avec deux mois offerts. Essai de 14 jours sans carte. Le prix par serveur est identique pour Solo et Team : l'agence achète l'organisation, pas un tarif. Noms en anglais sur toutes les surfaces publiques ; en français, Solo, Équipe, Hébergé.
 
-Quand l'abonnement s'arrête, le serveur du client continue de fonctionner comme un serveur normal : ses projets, ses bases, ses services restent. Il perd Pupitre, rien d'autre. C'est écrit dans les conditions et sur le site.
+Aucun serveur ne tourne sans abonnement : l'essai en est un, et sans lui l'app n'enrôle rien. Quand l'abonnement s'arrête, le serveur du client continue de fonctionner comme un serveur normal : ses projets, ses bases, ses services restent. Il perd Pupitre, rien d'autre. C'est écrit dans les conditions et sur le site.
+
+## Le parcours
+
+1. **Le site.** Le visiteur lit ce que Pupitre fait, et ce qu'il coûte.
+2. **Le compte.** Il s'inscrit sur `app.pupitre.studio` ; une organisation personnelle naît avec lui.
+3. **L'essai.** Il démarre son essai de quatorze jours, sans carte. C'est un abonnement : Stripe seul le crée, par webhook.
+4. **Le téléchargement.** La console lui donne l'app pour son système.
+5. **La liaison.** Il ouvre l'app, la lie à son compte par le code affiché sur `/auth/device`.
+6. **Le serveur.** Il enrôle son VPS, et l'onboarding commence.
+
+L'ordre ne se contourne pas : chaque étape suppose la précédente.
 
 ## Le MVP
 
-Une app desktop complète, sans compte ni paiement, que le propriétaire utilise sur son propre VPS avec ses projets réels. L'onboarding en sept étapes : ajouter un serveur, inspecter, choisir les services, configurer, installer, durcir et basculer de root vers `dev`, premier projet. Puis le quotidien : tableau de bord, projets, terminaux, agents, services, mise à jour.
+Une app desktop complète, que le propriétaire utilise sur son propre VPS avec ses projets réels, depuis un compte et un abonnement en cours comme n'importe quel client. L'onboarding en sept étapes : ajouter un serveur, inspecter, choisir les services, configurer, installer, durcir et basculer de root vers `dev`, premier projet. Puis le quotidien : tableau de bord, projets, terminaux, agents, services, mise à jour.
 
 Le MVP est réussi quand le propriétaire travaille tous les jours avec ses projets sur un serveur que l'app a entièrement installé, sans ouvrir un terminal hors de l'app.
 

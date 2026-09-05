@@ -60,8 +60,6 @@ export const PLANS: readonly Plan[] = [
 
 export const ANNUAL_FREE_MONTHS = 2
 
-/** Serveurs enrôlables sans abonnement. */
-export const FREE_SEAT_QUOTA = 2
 export const TRIAL_DAYS = 14
 export const TRIAL_REQUIRES_CARD = false
 

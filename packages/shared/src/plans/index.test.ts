@@ -3,7 +3,6 @@ import {
   ANNUAL_FREE_MONTHS,
   BILLING_INTERVALS,
   BillingIntervalSchema,
-  FREE_SEAT_QUOTA,
   formatUsd,
   getPlan,
   PLANS,
@@ -64,11 +63,5 @@ describe("formatUsd", () => {
   it("writes a whole amount in dollars", () => {
     expect(formatUsd(getPlan("solo").monthlyPriceUsd)).toBe("$19")
     expect(formatUsd(yearlyPriceUsd(getPlan("solo")))).toBe("$190")
-  })
-})
-
-describe("FREE_SEAT_QUOTA", () => {
-  it("offers two servers before any subscription", () => {
-    expect(FREE_SEAT_QUOTA).toBe(2)
   })
 })
