@@ -63,9 +63,7 @@ test.describe("console", () => {
       await expect(
         page.getByRole("heading", { name: "Connexion ou inscription" })
       ).toBeVisible()
-      await expect(
-        page.getByText("si vous n'avez pas encore de compte")
-      ).toBeVisible()
+      await expect(page.getByText("Pas encore de compte ?")).toBeVisible()
     })
 
     await test.step("le lien magique crée le compte et ouvre la console", async () => {
