@@ -15,12 +15,14 @@
 # ATTENTION : `op inject` échoue en bloc si un seul champ manque dans la note.
 # Garde une clé en commentaire tant que son champ n'existe pas.
 
-# --- Facturation. Stripe encaisse en Merchant of Record ; ces quatre valeurs
-# viennent du même compte, en mode test comme en direct.
+# --- Facturation. La clé et les deux prix suffisent pour un paiement de test.
 STRIPE_SECRET_KEY="op://{{OP_VAULT}}/{{OP_ITEM}}/STRIPE_SECRET_KEY"
-# STRIPE_WEBHOOK_SECRET="op://{{OP_VAULT}}/{{OP_ITEM}}/STRIPE_WEBHOOK_SECRET"
 # STRIPE_PRICE_SERVER_MONTH="op://{{OP_VAULT}}/{{OP_ITEM}}/STRIPE_PRICE_SERVER_MONTH"
 # STRIPE_PRICE_SERVER_YEAR="op://{{OP_VAULT}}/{{OP_ITEM}}/STRIPE_PRICE_SERVER_YEAR"
+#
+# STRIPE_WEBHOOK_SECRET n'a pas sa place ici : en local il vient de `stripe listen`,
+# qui en tire un neuf à chaque session, et il diffère de celui du tableau de bord.
+# Seuls staging et production en ont besoin, par secret Wrangler.
 
 # --- Connexion par GitHub. Absentes, le lien magique reste le seul chemin.
 # GITHUB_CLIENT_ID="op://{{OP_VAULT}}/{{OP_ITEM}}/GITHUB_CLIENT_ID"
