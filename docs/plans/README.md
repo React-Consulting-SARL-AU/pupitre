@@ -193,7 +193,7 @@ Critères d'acceptation.
 Lot 0 · dépend de PLT-09 · `packages/shared`
 
 But. Le nombre de serveurs offerts sans abonnement est déclaré une seule fois.
-Périmètre. Déplacer `DEV_SEAT_QUOTA` de `packages/api/src/lib/billing/seats.ts` vers `packages/shared/src/plans`, et faire lire la console et l'API depuis là. Retirer la constante dupliquée de `apps/web`.
+Périmètre. Déplacer la constante du quota gratuit de `packages/api/src/lib/billing/seats.ts` vers `packages/shared/src/plans`, et faire lire la console et l'API depuis là. Retirer la constante dupliquée de `apps/web`. INF-22 l'a depuis supprimée : aucun serveur ne s'enrôle sans abonnement.
 Critères d'acceptation.
 1. Une seule occurrence du nombre dans le dépôt, hors tests.
 
@@ -281,4 +281,31 @@ Hors périmètre. L'échange lui-même et le heartbeat, livrés par AGT-14.
 Critères d'acceptation.
 1. L'app enrôle un serveur de bout en bout contre le harnais de l'API, sans passer le jeton par un argument de ligne de commande.
 2. Le jeton d'enrôlement ne paraît dans aucun journal ni aucun `params`.
+
+
+### INF-22 — Contrat : rien sans compte ni abonnement
+Lot 0 · aucune dépendance · `packages/shared`, `docs/`
+
+But. Le contrat partagé et les documents fondateurs disent l'ordre du parcours avant que trois workspaces l'implémentent : site, compte, essai, téléchargement, liaison, serveur.
+Périmètre. `packages/shared/src/plans/index.ts` perd sa constante de quota gratuit : aucun serveur ne s'enrôle sans abonnement en cours, fût-il en essai, et le quota vient de `subscription.quantity` seul. `TRIAL_DAYS` et `TRIAL_REQUIRES_CARD` ne bougent pas. Dans `docs/architecture.md`, la règle 5 devient « L'app exige une première connexion réussie, puis reste utilisable sans la plateforme pendant sept jours », et la section Desktop cesse de présenter le compte comme facultatif : seul un build de développement porte un droit d'usage à lui, miroir du tag `dev` de l'agent. Dans `docs/product/PRODUCT.md`, une section « Le parcours » donne les six étapes, la définition du MVP cesse d'exclure le compte et le paiement, et l'offre dit qu'aucun serveur ne tourne sans abonnement. `docs/security.md` et `docs/contracts/platform-api.md` disent ce que rend `entitlement` pour une organisation sans abonnement. La ligne d'INF-13 de ce fichier cite encore l'ancien nom de développement de cette constante, renommé depuis puis supprimé : la corriger.
+Hors périmètre. Toute implémentation : PLT-21 pour l'API, PLT-25 et PLT-24 pour la console, APP-27 et APP-28 pour l'app, MKT-14 pour le site.
+Critères d'acceptation.
+1. Aucune occurrence, dans le dépôt, du nom de la constante de quota gratuit ni de son ancien nom de développement — le grep des deux noms ne renvoie rien, documents de plan compris.
+2. Aucun document du dépôt ne décrit plus un compte facultatif ni un MVP dispensé de paiement : le grep de ces deux formulations dans `docs/` ne renvoie rien.
+Tests. `packages/shared/src/plans/index.test.ts`, dont le cas du quota gratuit disparaît.
+
+### INF-23 — Contrat : un serveur restreint peut se ré-enrôler
+Lot 0 · dépend de INF-21 · `packages/shared`, `docs/contracts/agent-protocol.md`, `apps/agent`, `apps/desktop`
+
+But. Un serveur dont le jeton d'agent a été perdu ou révoqué se répare depuis l'app, sans détour par la console.
+
+Périmètre. Le mode restreint fige aujourd'hui six commandes — `hello`, `ping`, `snapshot`, `status`, `diag`, `agent.upgrade` — et `enroll` n'en fait pas partie : un serveur enrôlé mais restreint ne peut plus se ré-enrôler, alors que c'est précisément le geste qui le répare. `enroll` devient la septième commande admise en mode restreint, dans `docs/contracts/agent-protocol.md` et partout où la liste est écrite : la table des commandes, la section « Mode restreint », le garde du mode restreint dans `apps/agent/internal/protocol`, et la transcription `apps/agent/internal/protocol/testdata/restricted.jsonl`. La sûreté ne bouge pas : un jeton d'enrôlement vient d'un compte authentifié et d'un abonnement en cours, c'est la plateforme qui l'émet et elle seule qui décide de le faire ; admettre `enroll` n'ouvre donc rien qu'un compte valide ne puisse déjà obtenir.
+
+Hors périmètre. Toute autre commande du mode restreint. Le device flow et l'échange lui-même, livrés par APP-14, AGT-14 et INF-21.
+
+Critères d'acceptation.
+1. Un agent en mode restreint accepte `enroll` et refuse toujours les six autres familles de commandes mutantes, prouvé par une transcription.
+2. La liste des commandes admises est écrite à un seul endroit dans le code Go, et le test la compare au contrat.
+3. Depuis l'app, un serveur restreint dont le jeton a été révoqué redevient valide après un ré-enrôlement, sans passer par la console.
+Tests. `apps/agent/internal/protocol/testdata/restricted.jsonl` étendue, et le test du garde de mode restreint.
 

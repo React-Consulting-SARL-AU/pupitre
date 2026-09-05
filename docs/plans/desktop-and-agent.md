@@ -400,3 +400,53 @@ Critères d'acceptation.
 1. Un port déjà pris propose le port libre sans qu'aucune expression régulière ne lise une phrase.
 2. Une détection qui clone un dépôt lent n'est plus coupée par le délai standard.
 
+### APP-26 — L'app prend les arrondis du système
+Lot S · dépend de MKT-13 · `apps/desktop`
+
+But. L'app suit le même tour de vis que le site et la console.
+Périmètre. Les rayons viennent des tokens et montent d'eux-mêmes. Par primitive : bouton en pastille, champ et champ à copier en `md`. Le réglage de thème reste un champ de l'écran de préférences : c'est sa place, et rien n'y manque de place.
+Hors périmètre. La densité de l'interface, les écrans eux-mêmes.
+Critères d'acceptation.
+1. Le test des tokens continue de refuser tout rayon, toute ombre et toute couleur écrits à la main.
+2. Les tests du renderer et le scénario Playwright restent verts.
+
+
+### APP-27 — Le compte est le premier écran
+Lot 3 · dépend de PLT-21 · `apps/desktop`
+
+But. L'app s'ouvre sur la connexion au compte, avant l'onboarding et avant tout serveur.
+Périmètre. `shellScreen()` de `src/renderer/src/lib/shell-screen.ts` ouvre aujourd'hui sur l'onboarding, dont la première étape est « ajouter un serveur » ; le compte n'est demandé qu'à l'étape `agent`. `Shell` gagne `"account"` et `shellScreen()` une branche placée avant `onboarding` : tant que `usage.status` n'est pas `"granted"`, l'écran est le compte, sauf quand la vue est `settings` — les réglages restent joignables, c'est là qu'on répare une URL de plateforme ou un proxy. Dans `src/renderer/src/app.tsx`, l'effet de démarrage lit le compte avant `loadServers()` ; `App` n'importe aujourd'hui jamais `stores/account` et le fait maintenant. Tant que la lecture n'a pas répondu, l'écran est une attente, jamais l'onboarding. Un `src/renderer/src/components/account/account-gate-screen.tsx` compose `account-sign-in-card.tsx` et `account-usage-notice.tsx`, tous deux livrés : aucune primitive nouvelle. `components/onboarding/onboarding-account-gate.tsx` et le garde de `onboarding-agent-screen.tsx` disparaissent, le compte étant acquis bien avant. `usageRightOf` de `src/main/account-run.ts` ne change pas de logique : l'échappatoire de développement reste, miroir exact du tag `dev` du binaire Go.
+Hors périmètre. Le device flow, `account-vault.ts` et `keys.ts`, livrés par APP-14. Les refus sur les canaux, livrés par APP-28.
+Critères d'acceptation.
+1. Un build packagé sans compte ouvre sur l'écran de connexion ; ni l'onboarding, ni un serveur, ni un terminal ne sont atteignables.
+2. Une session en cache de moins de sept jours ouvre l'app sans plateforme joignable, et l'app dit de quand date sa dernière réponse.
+3. Au-delà de sept jours, l'app revient à l'écran de connexion et affiche le message de `refusalFor` tel quel, `fix` compris.
+4. Un build de développement ouvre sans compte, comme aujourd'hui.
+Tests. `src/renderer/src/lib/__tests__/shell-screen.test.ts` sur les quatre états d'`UsageRight` croisés avec l'onboarding et le serveur, le store `stores/account`, et un scénario Playwright de premier lancement dans `e2e/`.
+
+### APP-28 — Le droit d'usage refuse les actions, pas seulement l'installation
+Lot 3 · dépend de APP-27 · `apps/desktop`
+
+But. Un abonnement arrêté ferme l'app, et pas seulement l'enrôlement.
+Périmètre. `account.guard()` n'a aujourd'hui qu'un appelant, `src/main/enrollment-run.ts`. Les canaux qui font agir un serveur — `server-add`, `agent:call` et `agent:stream` pour les commandes mutantes, `install:start`, `harden:start`, `catalog:secret-*` — passent par `guard()` avant d'atteindre `src/main/agent-client.ts`. Les canaux de lecture — `snapshot`, `servers`, `ssh-hosts` — restent ouverts : on doit pouvoir regarder sa machine et réparer son compte. L'app lit enfin le droit d'usage que l'agent lui rend : `agentClient.entitlement(serverId)` et le champ `entitlement` de `SnapshotResult` existent et ne sont lus nulle part dans le renderer. Quand l'agent répond `restricted`, le shell du serveur l'affiche et renvoie vers la console, au lieu de laisser les boutons échouer un par un. Les deux sources restent distinctes : le compte peut être valide et le serveur suspendu, ou l'inverse.
+Hors périmètre. Arrêter quoi que ce soit sur le serveur. Rien de ce qui tourne ne s'arrête, c'est la promesse produit.
+Critères d'acceptation.
+1. Avec un droit d'usage absent ou expiré, aucun canal mutant n'aboutit ; chacun rend le code et le `fix` de `refusalFor`.
+2. Un serveur dont l'agent répond `restricted` reste lisible dans l'app, et l'app dit pourquoi rien d'autre n'est possible.
+3. Aucun projet ni aucune session tmux n'est arrêté par ce chemin, prouvé par l'agent factice qui ne reçoit aucune commande mutante.
+Tests. `src/main/__tests__` avec l'agent factice et une transcription en mode restreint, sur le modèle de `apps/agent/internal/protocol/testdata/restricted.jsonl`.
+
+### APP-29 — Réparer un serveur restreint depuis l'app
+Lot 3 · dépend de INF-23, APP-28 · `apps/desktop`
+
+But. Un serveur dont le jeton d'agent a été perdu ou révoqué redevient valide depuis l'app, sans détour par la console.
+
+Périmètre. INF-23 a ouvert `enroll` en mode restreint côté agent et côté contrat, et le critère 3 de cette tâche est resté ouvert faute de point d'entrée dans l'app. `enrolAgent` de `src/main/install-run.ts` n'est aujourd'hui appelable que depuis le flux d'installation, par `prepareAgent` de `src/main/install.ts` : un serveur déjà installé n'a aucun moyen de refaire l'échange. Donner une action « ré-enrôler ce serveur », offerte quand l'agent répond `restricted` — donc à côté de l'avis que le shell du serveur affiche depuis APP-28 — et qui rejoue l'échange avec un jeton frais obtenu de la plateforme, sur le flux secret comme l'installation le fait déjà. L'agent factice de `src/main/__tests__/fixtures/fake-agent.ts` ne modélise pas le droit d'usage : il doit apprendre le mode restreint pour que le chemin se teste.
+
+Hors périmètre. Le mode restreint de l'agent et la liste des commandes admises, livrés par INF-23. L'affichage de l'état `restricted`, livré par APP-28.
+
+Critères d'acceptation.
+1. Un serveur en `restricted` dont le jeton a été révoqué redevient `valid` après l'action, sans passer par la console.
+2. Le jeton d'enrôlement ne paraît dans aucun journal ni aucun `params`, comme INF-21 l'exige.
+3. Un serveur dont le compte n'a pas de droit d'usage n'offre pas l'action : elle renverrait un refus de la plateforme, pas une réparation.
+Tests. `src/main/__tests__` avec l'agent factice enseigné du mode restreint, et une transcription qui refuse puis accepte.

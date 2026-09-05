@@ -227,13 +227,104 @@ Critères d'acceptation.
 1. Vingt requêtes authentifiées consécutives aboutissent toutes.
 2. `/status` rend la base « ok » quand elle répond.
 
-### PLT-21 — Une organisation sans abonnement n'est pas indéfiniment valide
-Lot 3 · dépend de PLT-07 · `packages/api`
+### PLT-21 — Sans abonnement, aucun droit d'usage
+Lot 3 · dépend de INF-22 · `packages/api`
 
-But. L'accès au produit suppose un abonnement, fût-il en essai.
-Périmètre. `entitlementForOrganization` rend aujourd'hui `valid` lorsqu'aucun abonnement n'existe, et la fenêtre de validité se renouvelle à chaque lecture : une organisation qui ne passe jamais par le paiement garde l'accès sans limite de temps, bornée seulement par les deux serveurs de `FREE_SEAT_QUOTA`. Un essai qui se termine, lui, coupe bien l'accès. Décider si ces deux serveurs sont une offre gratuite permanente assumée — auquel cas le site doit l'annoncer — ou si l'enrôlement exige un abonnement en cours, y compris en essai.
-Hors périmètre. L'essai lui-même, tenu par Stripe.
+But. L'accès au produit suppose un abonnement en cours, fût-il en essai.
+Périmètre. `entitlementForOrganization` rend aujourd'hui `valid` lorsqu'aucun abonnement n'existe, et la fenêtre de validité se renouvelle à chaque lecture : une organisation qui ne passe jamais par le paiement garde l'accès sans limite de temps. L'absence d'abonnement rend désormais `{ state: "suspended", valid_until: now }`. Dans `seats.ts`, `seatQuotaFor` rend `{ quota: 0, source: "none" }` sans abonnement payant et `SeatQuotaSource` devient `"subscription" | "none"`. Un `requireEntitlement` s'ajoute aux guards de `packages/api/src/lib/api/plugins/guards.ts`, composé après `requireOrg` : il refuse en 403 `entitlement_required`, ou `server_suspended` quand l'organisation est explicitement suspendue, avec un `fix` qui renvoie vers `/dashboard/billing` ; il garde `POST /servers/enroll` et les routes d'attribution de `servers/assign.ts`. Dans `servers/enrollment.ts`, le droit d'usage se vérifie avant le quota, pour qu'une organisation sans abonnement lise « démarre ton essai » et non « tes zéro sièges sont pris » ; le `fix` de `SeatQuotaReachedError` perd sa branche `source === "development"`.
+Hors périmètre. L'essai lui-même, tenu par Stripe et ouvert par PLT-25. La console et l'app, qui suivent.
 Critères d'acceptation.
-1. Le comportement retenu est le même sur les trois surfaces : la console, l'app et le site.
-2. Un test couvre l'organisation sans aucun abonnement.
+1. Une organisation sans aucun abonnement : `GET /me` rend `entitlement: "suspended"` et `POST /servers/enroll` rend 403 `entitlement_required`.
+2. Une organisation en `trialing` enrôle jusqu'à `subscription.quantity` serveurs, et le serveur suivant est refusé.
+3. Un essai qui se termine sans carte, donc `canceled`, coupe l'accès : les serveurs passent en `grace` puis `suspended`, et `GET /agent/state` le dit.
+4. Les codes `entitlement_required` et `server_suspended` de `packages/shared/src/api/errors.ts`, jusqu'ici émis par aucune route, le sont.
+Tests. `packages/api/src/__tests__/api/billing.test.ts`, dont le cas « aucun abonnement » change de verdict, et `__tests__/api/servers.test.ts`, sur le harnais PGlite.
+
+### PLT-22 — La console prend les arrondis du système
+Lot S · dépend de MKT-13 · `apps/web`
+
+But. La console suit le tour de vis d'arrondi qui a rendu le site accueillant, sans rien changer à sa densité.
+Périmètre. Les rayons viennent des tokens, donc `sm` 6→8, `md` 10→12 et `lg` 14→18 s'appliquent seuls. Restent les choix par primitive : boutons et entrées de menu en pastille, carte et popover en `lg`, champs et encarts en `md`. Le menu de thème existait déjà — icône, menu, coche — et ne bouge pas.
+Hors périmètre. La densité, la typographie, la mise en page des écrans.
+Critères d'acceptation.
+1. Aucun rayon écrit à la main : tout passe par une classe adossée aux tokens.
+2. Les tests de la console et le parcours Playwright restent verts.
+
+
+### PLT-25 — De l'inscription à l'essai, en une action
+Lot 3 · dépend de PLT-21 · `apps/web`
+
+But. Un compte fraîchement créé n'a qu'une action possible : démarrer son essai de quatorze jours.
+Périmètre. Aujourd'hui `/` et `/dashboard` redirigent vers `/dashboard/servers`, dont l'état vide dit « Enrôlez un VPS depuis l'app Pupitre » sans lien ni bouton, et le checkout ne se trouve qu'en fouillant `/dashboard/billing`. Le `beforeLoad` de `apps/web/src/routes/dashboard.tsx` lit `entitlement` depuis `GET /me` et redirige vers `/dashboard/start` tant qu'il vaut `suspended`, en laissant passer `/dashboard/billing`, `/dashboard/start` et le profil. Une route `dashboard/start.tsx` porte l'étape : ce que l'essai donne, qu'aucune carte n'est demandée, et une seule action qui appelle `POST /orgs/:id/checkout` avec `quantity: 1` et l'intervalle par défaut de l'organisation, puis part sur Stripe. `CheckoutForm` sert en variante simplifiée plutôt qu'un second composant. Au retour `?checkout=done`, la page interroge `GET /orgs/:id/subscription` par `useRequestCycle` jusqu'à ce que le webhook ait atterri, puis mène au téléchargement : la console ne crée rien, les webhooks restent la seule entrée de la facturation. Un membre qui n'a pas `billing:manage` lit un état vide qui nomme le propriétaire. Dans `components/dashboard/billing-panel.tsx`, le repli du quota gratuit sur `paid` a disparu avec PLT-21, et l'essai est enfin nommé dans la console : jours restants, et ce qui arrive à la fin sans carte.
+Hors périmètre. Le téléchargement et la liaison de l'app, livrés par PLT-24. La création d'abonnement hors Checkout, que la décision 0007 interdit.
+Critères d'acceptation.
+1. Un compte neuf atterrit sur `/dashboard/start` et aucune autre route du tableau de bord ne s'ouvre, sauf la facturation et le profil.
+2. Le checkout de test aboutit à un abonnement `trialing`, `GET /me` rend alors `entitlement: "valid"`, et `/dashboard/servers` s'ouvre.
+3. Un membre sans `billing:manage` lit qui doit démarrer l'essai, et n'a aucun bouton de checkout.
+4. Les pages existent en français et en anglais dans la même passe.
+Tests. `apps/web/e2e` : inscription, `/dashboard/start`, checkout falsifié par `packages/api/src/lib/billing/fake.ts`, puis `/dashboard/servers` atteignable.
+
+### PLT-24 — La console fait télécharger, puis lier
+Lot 3 · dépend de PLT-25 · `apps/web`
+
+But. Les étapes qui suivent l'essai — télécharger l'app, la lier au compte — se lisent dans la console.
+Périmètre. `apps/web/src/routes/download.tsx` devient l'étape qui suit le checkout : `DownloadPanel` garde sa source, `GET /releases/app/latest`, et gagne un en-tête de parcours puis, sous les trois systèmes, la marche à suivre pour lier l'app — ouvrir Pupitre, l'écran de connexion, le code affiché, `/auth/device`. L'état vide de `components/dashboard/server-list.tsx` gagne un bouton « Télécharger l'app » vers `/download`. Dans `components/dashboard/dashboard-sidebar.tsx`, « Télécharger l'app » sort d'`ACCOUNT_LINKS` pour devenir une entrée de premier plan tant qu'aucun serveur n'est enrôlé. `apps/web/src/routes/auth/device.tsx` ne change pas de mécanique ; sa copie rappelle qu'on lie l'app à son compte.
+Hors périmètre. Le device flow, livré par PLT-04 et APP-14. La publication des releases, livrée par INF-12.
+Critères d'acceptation.
+1. Un compte dont l'essai est en cours et qui n'a aucun serveur voit, dans cet ordre : télécharger, lier, enrôler.
+2. Sans release publiée, la page le dit et n'affiche aucun lien mort.
+3. Français et anglais dans la même passe.
+Tests. `apps/web/e2e`, en suite du parcours de PLT-25.
+
+### PLT-23 — La console parle deux langues, et porte ses réglages partout
+Lot S · dépend de PLT-09 · `apps/web`
+
+But. Le thème, la langue et les pages légales manquaient aux écrans d'authentification, et la console n'existait qu'en français malgré la règle du workspace.
+
+Périmètre.
+- **Un pied de page global**, monté dans la route racine, donc présent sur la connexion, le device flow, l'invitation, le second facteur, le tableau de bord, le téléchargement et la page de statut : thème en menu d'icône, langue, et les cinq pages légales du site plus le statut. Le sélecteur de thème quitte la barre latérale — un seul contrôle, partout.
+- **Un i18n complet** : `src/lib/i18n` sur le modèle de l'app desktop — un fichier de chaînes par domaine, `translator(locale)` avec paramètres et pluriels, `useTranslations()` dans les composants. Les modules de domaine (`server-status`, `alerts`, `billing`, `audit`, `roles`, `downloads`, `page-titles`) rendent désormais des clés ; les formateurs et les schémas Zod prennent le traducteur en argument.
+- **La langue est celle du lecteur** : cookie `pupitre_locale` lu au rendu serveur par `createIsomorphicFn`, donc la page arrive déjà traduite et l'hydratation ne la retourne pas. Sans cookie, l'`Accept-Language` tranche. Connecté, changer la langue met aussi à jour celle du compte, qui gouverne les emails.
+- **Un état de thème partagé** : `useTheme` passe à `useSyncExternalStore`, si bien que le pied de page et la carte des préférences ne se contredisent plus.
+
+Critères d'acceptation.
+1. Toutes les pages, authentification comprise, portent le thème, la langue et les liens légaux.
+2. Le dictionnaire porte les mêmes clés et les mêmes paramètres dans les deux langues ; test.
+3. Aucune phrase française hors du dictionnaire dans `src/` ; test.
+4. Le bundle client ne contient aucun module serveur ; le parcours Playwright reste vert.
+
+Reste à faire. Une relecture de la traduction anglaise par un humain : elle est écrite, pas relue.
+
+### PLT-26 — Un ré-enrôlement répare, il ne duplique pas
+Lot 3 · dépend de INF-23, APP-29 · `packages/api`
+
+But. Réparer un serveur ne consomme pas un second siège et ne crée pas une seconde ligne.
+
+Périmètre. `enrollServer` de `packages/api/src/lib/servers/enrollment.ts` fait toujours `prisma.server.create`, et vérifie le quota avant. INF-23 et APP-29 ont pourtant ouvert un chemin de réparation : un serveur restreint se ré-enrôle depuis l'app. Aujourd'hui ce geste enregistre **une seconde ligne pour le même hôte** et consomme un siège de plus ; et sur un quota plein il rend `seat_quota_reached` au lieu de réparer — c'est-à-dire qu'il échoue exactement là où il servirait. Rendre `POST /servers/enroll` idempotent sur le triplet `(organisation, hôte, appareil)` : un enrôlement qui retrouve un serveur existant le met à jour et lui rend un jeton frais, sans toucher au quota ni créer de ligne. Un enrôlement pour un hôte inconnu garde le comportement actuel, quota compris. Les formes de requête et de réponse ne changent pas : c'est une correction d'implémentation, pas un changement de contrat.
+
+Hors périmètre. Le mode restreint et l'action de l'app, livrés par INF-23 et APP-29.
+
+Critères d'acceptation.
+1. Deux enrôlements successifs du même hôte, par le même appareil et la même organisation, laissent **une seule** ligne de serveur et **un seul** siège consommé.
+2. Le second enrôlement rend un jeton valide et réactive un serveur suspendu ou en sursis.
+3. Sur un quota plein, ré-enrôler un serveur **déjà connu** réussit ; enrôler un hôte inconnu est toujours refusé par `seat_quota_reached`.
+4. Un enrôlement du même hôte par une **autre** organisation n'est pas confondu avec une réparation.
+Tests. `packages/api/src/__tests__/api/servers.test.ts` sur le harnais PGlite.
+
+### PLT-27 — Deux enrôlements simultanés ne font qu'un serveur
+Lot 3 · dépend de PLT-26 · `packages/db`, `packages/api`
+
+But. La réparation d'un serveur est idempotente jusque sous une course.
+
+Périmètre. PLT-26 a rendu `POST /servers/enroll` idempotent en lisant puis en écrivant, ce qui ferme le cas courant mais laisse la course ouverte : **deux enrôlements simultanés du même hôte inconnu créent encore deux lignes et consomment deux sièges**. Rien dans `packages/api` ne peut le fermer ; l'outil juste est une contrainte d'unicité, donc une migration. La contrainte voulue est partielle — `UNIQUE (organizationId, host, port, deviceId)` restreinte aux serveurs qui consomment un siège — parce qu'une ligne `revoked` doit garder son quadruplet sans interdire de ré-enrôler l'hôte après une décommission.
+
+Deux voies, à trancher dans la tâche. Un index partiel en SQL brut est juste sémantiquement, mais Prisma ne sait pas exprimer un `WHERE` sur `@@unique` : l'index n'apparaîtrait pas dans le schéma et `migrate` le verrait comme une dérive à chaque diff. Une colonne discriminante — `enrollmentKey String? @unique` portant le quadruplet, mise à `null` à la révocation, Postgres tolérant plusieurs `NULL` — est exprimable en Prisma, au prix de l'écrire à l'enrôlement et de l'effacer à la révocation **et** dans `DecommissionServer`. Un `@@unique` simple sans discriminant est le mauvais choix : la ligne révoquée garderait le quadruplet et interdirait de ré-enrôler l'hôte.
+
+Hors périmètre. L'idempotence de lecture-écriture, livrée par PLT-26.
+
+Critères d'acceptation.
+1. Deux enrôlements concurrents du même hôte inconnu, par le même appareil et la même organisation, laissent **une seule** ligne et **un seul** siège ; le perdant répare au lieu de créer, ou échoue proprement avec un code que l'app sait rejouer.
+2. Ré-enrôler un hôte après une décommission complète réussit et crée une ligne neuve.
+3. `bun run db:migrate` et un diff Prisma à blanc ne signalent aucune dérive après la migration.
+Tests. `packages/api/src/__tests__/api/servers.test.ts`, dont un cas qui lance les deux enrôlements en parallèle.
 
