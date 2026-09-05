@@ -68,7 +68,8 @@ export function registerServices(): void {
       serverId: unknown,
       moduleId: unknown,
       label: unknown
-    ): string | null => credentialValue(serverId, moduleId, label)
+    ): Promise<string | null> =>
+      credentialValue(serverId, moduleId, label, deps)
   );
 
   /**
@@ -77,8 +78,13 @@ export function registerServices(): void {
    */
   ipcMain.handle(
     "service:credential-copy",
-    (_event, serverId: unknown, moduleId: unknown, label: unknown): boolean => {
-      const value = credentialValue(serverId, moduleId, label);
+    async (
+      _event,
+      serverId: unknown,
+      moduleId: unknown,
+      label: unknown
+    ): Promise<boolean> => {
+      const value = await credentialValue(serverId, moduleId, label, deps);
 
       if (value === null) {
         return false;

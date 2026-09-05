@@ -28,13 +28,19 @@ export function ServiceCredentialRow({
 
   const [shown, setShown] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [asking, setAsking] = useState(false);
 
+  // The value is on the server: revealing it is a round trip, not a toggle.
   async function reveal() {
+    setAsking(true);
     setShown(await onReveal());
+    setAsking(false);
   }
 
   async function copy() {
+    setAsking(true);
     setCopied(await onCopy());
+    setAsking(false);
     setTimeout(() => setCopied(false), FEEDBACK_MS);
   }
 
@@ -54,7 +60,7 @@ export function ServiceCredentialRow({
       </span>
 
       {shown === null ? (
-        <Button icon={Eye} onClick={reveal} size="sm">
+        <Button icon={Eye} loading={asking} onClick={reveal} size="sm">
           {t("services.credential.reveal")}
         </Button>
       ) : (
@@ -68,7 +74,12 @@ export function ServiceCredentialRow({
         </Button>
       )}
 
-      <Button icon={copied ? Check : Copy} onClick={copy} size="sm">
+      <Button
+        icon={copied ? Check : Copy}
+        loading={asking}
+        onClick={copy}
+        size="sm"
+      >
         {copied ? t("common.copied") : t("services.credential.copy")}
       </Button>
     </li>

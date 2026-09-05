@@ -26,15 +26,18 @@ export interface ServiceDetail {
 }
 
 /**
- * The commands whose result carries a credential.
+ * The commands that answer with a credential.
  *
  * They do not cross the generic bridge: `service.status` and `db.url` answer
  * with what opens a database, and a renderer that could call them itself would
  * hold that answer in a store — which is the one place it must never be.
+ * `service.secret` carries its value on an event rather than in its result, and
+ * belongs here for the same reason: it is read in the main process, or nowhere.
  */
 export const CREDENTIAL_COMMANDS = [
   "service.status",
   "db.url",
+  "service.secret",
 ] as const satisfies readonly CommandName[];
 
 export function carriesCredential(cmd: string): boolean {

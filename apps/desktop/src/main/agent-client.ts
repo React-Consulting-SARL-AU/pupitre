@@ -16,6 +16,10 @@ import type {
   InstallResult,
   InstallSecrets,
 } from "@pupitre/shared/agent-protocol/install";
+import {
+  type SecretEvent,
+  SecretEventSchema,
+} from "@pupitre/shared/agent-protocol/secrets";
 import type { HelloResult } from "@pupitre/shared/agent-protocol/session";
 import type { AgentError, AgentResponse } from "@shared/agent";
 
@@ -50,6 +54,11 @@ export type SecretPayload = InstallSecrets | Record<string, string>;
 
 export interface CallOptions {
   onEvent?: (event: Event) => void;
+  /**
+   * The value of a credential, off the generic event path on purpose: what
+   * crosses `onEvent` reaches the renderer, and a secret must not.
+   */
+  onSecret?: (secret: SecretEvent) => void;
   /** Written on the line that follows the request, never in `params`, never kept. */
   secrets?: SecretPayload;
   timeoutMs?: number;
@@ -120,8 +129,18 @@ function defaultTimeout(cmd: CommandName): number {
   return LONG_COMMANDS.includes(cmd) ? LONG_MS : STANDARD_MS;
 }
 
+/**
+ * `shots.read` sits here rather than in `LONG_COMMANDS`: it answers quickly but
+ * holds the channel for the length of a file, and the dashboard's own reads
+ * must not queue behind a gallery.
+ */
+const WORK_CHANNEL_COMMANDS: readonly CommandName[] = [
+  "project.logs",
+  "shots.read",
+];
+
 function usesWorkChannel(cmd: CommandName): ChannelPurpose {
-  return LONG_COMMANDS.includes(cmd) || cmd === "project.logs"
+  return LONG_COMMANDS.includes(cmd) || WORK_CHANNEL_COMMANDS.includes(cmd)
     ? "work"
     : "control";
 }
@@ -168,9 +187,31 @@ function stepKey(event: Event): string | null {
     : null;
 }
 
+/**
+ * The line of the agent, handed to the caller that awaits it.
+ *
+ * A `secret` event leaves the stream here: it goes to the caller that asked for
+ * that one value and to nothing else. Everything else — steps, logs, the bytes
+ * of a capture — takes the ordinary path, the one the IPC bridge listens on.
+ */
+function deliver(pending: Pending, event: Event): void {
+  if (event.event !== "secret") {
+    pending.onEvent?.(event);
+
+    return;
+  }
+
+  const secret = SecretEventSchema.safeParse(event);
+
+  if (secret.success) {
+    pending.onSecret?.(secret.data);
+  }
+}
+
 interface Pending {
   id: number;
   onEvent?: (event: Event) => void;
+  onSecret?: (secret: SecretEvent) => void;
   resolve: (value: unknown) => void;
   reject: (error: AgentCallError) => void;
   timer: ReturnType<typeof setTimeout>;
@@ -263,6 +304,7 @@ class AgentChannel {
     try {
       const result = await this.send(cmd, params, call.secrets, {
         onEvent,
+        onSecret: call.onSecret,
         timeoutMs,
       });
 
@@ -437,7 +479,11 @@ class AgentChannel {
     cmd: CommandName,
     params: unknown,
     secrets: SecretPayload | undefined,
-    options: { onEvent?: (event: Event) => void; timeoutMs: number }
+    options: {
+      onEvent?: (event: Event) => void;
+      onSecret?: (secret: SecretEvent) => void;
+      timeoutMs: number;
+    }
   ): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const proc = this.proc;
@@ -466,7 +512,14 @@ class AgentChannel {
         );
       }, options.timeoutMs);
 
-      this.pending = { id, onEvent: options.onEvent, resolve, reject, timer };
+      this.pending = {
+        id,
+        onEvent: options.onEvent,
+        onSecret: options.onSecret,
+        reject,
+        resolve,
+        timer,
+      };
 
       const request =
         params && Object.keys(params).length > 0
@@ -521,7 +574,7 @@ class AgentChannel {
     const event = EventSchema.safeParse(value);
     if (event.success) {
       if (pending?.id === event.data.id) {
-        pending.onEvent?.(event.data);
+        deliver(pending, event.data);
       }
 
       return;

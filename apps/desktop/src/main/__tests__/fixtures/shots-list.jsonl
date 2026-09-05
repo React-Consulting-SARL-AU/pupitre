@@ -1,0 +1,6 @@
+# Le listing de la galerie, sur le canal de contrôle.
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","protocol":1}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","shots.list","shots.read"]}}
+@repeat
+> {"id":2,"cmd":"shots.list"}
+< {"id":2,"ok":true,"result":{"shots":[{"name":"login.png","path":"2026-09-04/login.png","size_bytes":15,"created_at":"2026-09-04T10:00:00Z"}]}}

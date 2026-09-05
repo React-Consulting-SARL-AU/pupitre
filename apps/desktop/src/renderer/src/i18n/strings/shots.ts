@@ -3,7 +3,7 @@ export const shots = {
     "shots.title": "Gallery",
     "shots.eyebrow": "Server",
     "shots.description":
-      "What the agents captured while working. The images stay on the server.",
+      "What the agents captured while working. The files stay on the server.",
     "shots.openGallery": "Open the gallery",
     "shots.clear": "Empty the gallery",
     "shots.clearConfirm": "Empty",
@@ -18,12 +18,21 @@ export const shots = {
     "shots.capture.other": "{count} screenshots",
     "shots.removed.one": "{count} deleted",
     "shots.removed.other": "{count} deleted",
+    "shots.view": "View",
+    "shots.close": "Close",
+    "shots.readingTitle": "Reading the screenshot",
+    "shots.readingDetail": "{name} — {weight} over the server channel",
+    "shots.alt": "Screenshot {name}",
+    "shots.brokenMessage":
+      "The screenshot did not arrive whole: what came through does not match the fingerprint the server gave.",
+    "shots.brokenFix":
+      "Read it again; if it fails again, the file is damaged on the server.",
   },
   fr: {
     "shots.title": "Galerie",
     "shots.eyebrow": "Serveur",
     "shots.description":
-      "Ce que les agents ont capturé en travaillant. Les images restent sur le serveur.",
+      "Ce que les agents ont capturé en travaillant. Les fichiers restent sur le serveur.",
     "shots.openGallery": "Ouvrir la galerie",
     "shots.clear": "Vider la galerie",
     "shots.clearConfirm": "Vider",
@@ -38,5 +47,14 @@ export const shots = {
     "shots.capture.other": "{count} captures",
     "shots.removed.one": "{count} supprimée",
     "shots.removed.other": "{count} supprimées",
+    "shots.view": "Voir",
+    "shots.close": "Fermer",
+    "shots.readingTitle": "Lecture de la capture",
+    "shots.readingDetail": "{name} — {weight} par le canal du serveur",
+    "shots.alt": "Capture {name}",
+    "shots.brokenMessage":
+      "La capture n'est pas arrivée entière : ce qui a été reçu ne correspond pas à l'empreinte que le serveur a donnée.",
+    "shots.brokenFix":
+      "Relis la capture ; si elle échoue encore, le fichier est abîmé sur le serveur.",
   },
 } as const;

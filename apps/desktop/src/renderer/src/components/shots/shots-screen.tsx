@@ -10,8 +10,16 @@ import { useShots } from "@renderer/stores/shots";
 import { ExternalLink, Image as ImageIcon, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { ShotRow } from "./shot-row";
+import { ShotViewer } from "./shot-viewer";
 
-/** The images stay on the server: the app lists them and opens its gallery. */
+/**
+ * The gallery of a server, listed and read from here.
+ *
+ * The files stay where the agent put them: what the app brings over is the
+ * bytes of the one capture the reader asked to see, checked against the
+ * fingerprint that came with them. The server's own gallery address is still
+ * there for a browser, but the app no longer needs it to show an image.
+ */
 export function ShotsScreen({ serverId }: { serverId: string }) {
   const t = useTranslations();
 
@@ -22,10 +30,15 @@ export function ShotsScreen({ serverId }: { serverId: string }) {
   const read = useShots((s) => s.read);
   const clean = useShots((s) => s.clean);
   const openGallery = useShots((s) => s.openGallery);
+  const view = useShots((s) => s.view);
+  const show = useShots((s) => s.show);
+  const hide = useShots((s) => s.hide);
 
   useEffect(() => {
     read(serverId);
-  }, [serverId, read]);
+
+    return hide;
+  }, [serverId, read, hide]);
 
   const shots = state.status === "read" ? state.shots : [];
   const total = shots.reduce((sum, shot) => sum + shot.size_bytes, 0);
@@ -84,6 +97,8 @@ export function ShotsScreen({ serverId }: { serverId: string }) {
                 : ` · ${t.plural("shots.removed", removed)}`}
             </p>
 
+            <ShotViewer serverId={serverId} />
+
             <div className="elevation-raised overflow-hidden rounded-md border border-line bg-surface">
               {shots.length === 0 ? (
                 <EmptyState
@@ -94,7 +109,14 @@ export function ShotsScreen({ serverId }: { serverId: string }) {
               ) : (
                 <div className="divide-y divide-line">
                   {shots.map((shot) => (
-                    <ShotRow key={shot.path} shot={shot} />
+                    <ShotRow
+                      key={shot.path}
+                      onShow={() => show(serverId, shot)}
+                      shot={shot}
+                      shown={
+                        view.status !== "idle" && view.shot.path === shot.path
+                      }
+                    />
                   ))}
                 </div>
               )}

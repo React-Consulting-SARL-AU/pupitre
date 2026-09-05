@@ -12,16 +12,23 @@ const SHOT: Shot = {
 
 describe("une capture", () => {
   it("montre son nom, son dossier et son poids", () => {
-    const html = renderToStaticMarkup(<ShotRow shot={SHOT} />);
+    const html = renderToStaticMarkup(
+      <ShotRow onShow={() => undefined} shot={SHOT} shown={false} />
+    );
 
     expect(html).toContain("accueil.png");
     expect(html).toContain("/var/lib/pupitre/shots/accueil.png");
     expect(html).toContain("2,3 Mo");
+    expect(html).toContain("Voir");
   });
 
   it("montre la date brute quand le serveur en donne une illisible", () => {
     const html = renderToStaticMarkup(
-      <ShotRow shot={{ ...SHOT, created_at: "hier" }} />
+      <ShotRow
+        onShow={() => undefined}
+        shot={{ ...SHOT, created_at: "hier" }}
+        shown={false}
+      />
     );
 
     expect(html).toContain("hier");

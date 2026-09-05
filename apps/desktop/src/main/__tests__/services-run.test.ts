@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import type { CommandName } from "@pupitre/shared/agent-protocol";
+import type { SecretEvent } from "@pupitre/shared/agent-protocol/secrets";
 import type { AgentResponse } from "@shared/agent";
 import {
   CONNECTION_LABEL,
@@ -22,7 +23,10 @@ const URL = `postgresql://remote:${PASSWORD}@127.0.0.1:5432/flymate`;
 
 type Sent = { cmd: CommandName; params: unknown };
 
-function agent(answers: Partial<Record<CommandName, unknown>>): {
+function agent(
+  answers: Partial<Record<CommandName, unknown>>,
+  env: Record<string, string> = {}
+): {
   deps: ServicesDeps;
   sent: Sent[];
 } {
@@ -33,9 +37,29 @@ function agent(answers: Partial<Record<CommandName, unknown>>): {
       request: (
         _serverId: string,
         cmd: CommandName,
-        params?: unknown
+        params?: unknown,
+        options?: { onSecret?: (secret: SecretEvent) => void }
       ): Promise<AgentResponse<never>> => {
         sent.push({ cmd, params });
+
+        if (cmd === "service.secret") {
+          const key = (params as { key: string }).key;
+          const value = env[key];
+
+          if (value === undefined) {
+            return Promise.resolve({
+              error: { code: "bad_request", message: `${key} inconnue` },
+              ok: false,
+            });
+          }
+
+          options?.onSecret?.({ event: "secret", id: 1, key, value });
+
+          return Promise.resolve({
+            ok: true,
+            result: { key },
+          } as AgentResponse<never>);
+        }
 
         const result = answers[cmd];
 
@@ -55,9 +79,13 @@ function agent(answers: Partial<Record<CommandName, unknown>>): {
   return { deps, sent };
 }
 
+const APP_KEY = "POSTGRES_APP_PASSWORD";
+
+const ENV = { [APP_KEY]: PASSWORD };
+
 const STATUS = {
   credentials: {
-    "Rôle applicatif": PASSWORD,
+    "Rôle applicatif": APP_KEY,
     "Rôle distant": "POSTGRES_REMOTE_PASSWORD",
   },
   id: "db.postgres",
@@ -99,28 +127,34 @@ describe("l'état d'un service", () => {
     expect(JSON.stringify(answer)).not.toContain(PASSWORD);
   });
 
-  it("les garde de son côté, un à la fois, pour qui les demande", async () => {
-    const { deps } = agent({ "service.status": STATUS });
+  it("va chercher la valeur sur demande, une clé à la fois", async () => {
+    const { deps, sent } = agent({ "service.status": STATUS }, ENV);
 
     await readService(SERVER, "db.postgres", deps);
 
-    expect(credentialValue(SERVER, "db.postgres", "Rôle applicatif")).toBe(
-      PASSWORD
-    );
-    expect(credentialValue(SERVER, "db.postgres", "Inventé")).toBeNull();
     expect(
-      credentialValue("srv-2", "db.postgres", "Rôle applicatif")
+      await credentialValue(SERVER, "db.postgres", "Rôle applicatif", deps)
+    ).toBe(PASSWORD);
+    expect(sent.at(-1)).toEqual({
+      cmd: "service.secret",
+      params: { id: "db.postgres", key: APP_KEY },
+    });
+    expect(
+      await credentialValue(SERVER, "db.postgres", "Inventé", deps)
+    ).toBeNull();
+    expect(
+      await credentialValue("srv-2", "db.postgres", "Rôle applicatif", deps)
     ).toBeNull();
   });
 
   it("les oublie avec le serveur", async () => {
-    const { deps } = agent({ "service.status": STATUS });
+    const { deps } = agent({ "service.status": STATUS }, ENV);
 
     await readService(SERVER, "db.postgres", deps);
     forgetCredentials(SERVER);
 
     expect(
-      credentialValue(SERVER, "db.postgres", "Rôle applicatif")
+      await credentialValue(SERVER, "db.postgres", "Rôle applicatif", deps)
     ).toBeNull();
   });
 
@@ -150,7 +184,9 @@ describe("l'URL de connexion d'une base", () => {
 
     await readDatabaseUrl(SERVER, "db.postgres", "flymate", deps);
 
-    expect(credentialValue(SERVER, "db.postgres", CONNECTION_LABEL)).toBe(URL);
+    expect(
+      await credentialValue(SERVER, "db.postgres", CONNECTION_LABEL, deps)
+    ).toBe(URL);
   });
 
   it("refuse un module qui n'est pas une base", async () => {
@@ -173,15 +209,20 @@ describe("un identifiant révélé", () => {
     console.error = console.log;
 
     try {
-      const { deps } = agent({
-        "db.url": { url: URL },
-        "service.status": STATUS,
-      });
+      const { deps } = agent(
+        { "db.url": { url: URL }, "service.status": STATUS },
+        ENV
+      );
 
       const detail = await readService(SERVER, "db.postgres", deps);
       await readDatabaseUrl(SERVER, "db.postgres", null, deps);
 
-      const shown = credentialValue(SERVER, "db.postgres", CONNECTION_LABEL);
+      const shown = await credentialValue(
+        SERVER,
+        "db.postgres",
+        CONNECTION_LABEL,
+        deps
+      );
 
       expect(shown).toBe(URL);
       expect(written.join("\n")).not.toContain(PASSWORD);

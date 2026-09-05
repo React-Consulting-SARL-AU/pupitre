@@ -11,11 +11,11 @@ import type { AgentClient } from "./agent-client";
 /**
  * A service as the screen reads it, and its credentials as nobody reads them.
  *
- * `service.status` and `db.url` answer with what opens a database. Those values
- * stop here: the renderer is told which credentials exist, by the labels the
- * agent gave them, and asks for one at a time when the reader clicks. Nothing
- * of them is written to a file, a store or a log — this module never prints,
- * and the vault dies with the connection.
+ * `service.status` names the credentials of a module: a label, and the key of
+ * `/etc/pupitre/env` that holds it. The value is asked for one at a time, on
+ * `service.secret`, at the moment the reader clicks — it arrives on its own
+ * event, is handed to the caller, and is kept nowhere. `db.url` is the one that
+ * answers with a value rather than a key, and that value stops here too.
  */
 
 export interface ServicesDeps {
@@ -24,13 +24,16 @@ export interface ServicesDeps {
   knows: (serverId: string) => boolean;
 }
 
-const vaults = new Map<string, Map<string, Map<string, string>>>();
+/** What the app holds for a credential: the key that names it, or the value. */
+type Held = { key: string } | { value: string };
 
-function held(serverId: string, moduleId: string): Map<string, string> {
-  const server = vaults.get(serverId) ?? new Map<string, Map<string, string>>();
+const vaults = new Map<string, Map<string, Map<string, Held>>>();
+
+function held(serverId: string, moduleId: string): Map<string, Held> {
+  const server = vaults.get(serverId) ?? new Map<string, Map<string, Held>>();
   vaults.set(serverId, server);
 
-  const module = server.get(moduleId) ?? new Map<string, string>();
+  const module = server.get(moduleId) ?? new Map<string, Held>();
   server.set(moduleId, module);
 
   return module;
@@ -78,7 +81,7 @@ function isRefusal<T>(
 
 function detailOf(
   status: ServiceStatusResult,
-  vault: Map<string, string>
+  vault: Map<string, Held>
 ): ServiceDetail {
   return {
     credentials: [...vault.keys()],
@@ -94,8 +97,8 @@ function detailOf(
 /**
  * The state of one module, asked of the agent that installed it.
  *
- * The credentials it answers with are put away on arrival; what comes back from
- * here carries their labels alone.
+ * The credentials it answers with name keys of the server's environment; what
+ * comes back from here carries their labels alone.
  */
 export async function readService(
   serverId: unknown,
@@ -118,10 +121,8 @@ export async function readService(
 
   const vault = held(call.serverId, call.moduleId);
 
-  for (const [label, value] of Object.entries(
-    answer.result.credentials ?? {}
-  )) {
-    vault.set(label, value);
+  for (const [label, key] of Object.entries(answer.result.credentials ?? {})) {
+    vault.set(label, { key });
   }
 
   return { ok: true, result: detailOf(answer.result, vault) };
@@ -164,26 +165,68 @@ export async function readDatabaseUrl(
     return answer;
   }
 
-  held(call.serverId, call.moduleId).set(CONNECTION_LABEL, answer.result.url);
+  held(call.serverId, call.moduleId).set(CONNECTION_LABEL, {
+    value: answer.result.url,
+  });
 
   return { ok: true, result: { label: CONNECTION_LABEL } };
+}
+
+/**
+ * The value of one key, asked of the agent that holds it.
+ *
+ * It comes back on the protocol's `secret` event rather than in the result, so
+ * nothing that a request-and-answer recorder captures ever carries it. It is
+ * handed to the caller and to nobody else: a second reveal asks again.
+ */
+async function revealed(
+  serverId: string,
+  moduleId: string,
+  key: string,
+  deps: ServicesDeps
+): Promise<string | null> {
+  const seen: { value: string | null } = { value: null };
+
+  const answer = await deps.client.request(
+    serverId,
+    "service.secret",
+    { id: moduleId, key },
+    {
+      onSecret: (secret) => {
+        if (secret.key === key) {
+          seen.value = secret.value;
+        }
+      },
+    }
+  );
+
+  return answer.ok ? seen.value : null;
 }
 
 /** One credential, on demand. The caller shows it and lets it go. */
 export function credentialValue(
   serverId: unknown,
   moduleId: unknown,
-  label: unknown
-): string | null {
+  label: unknown,
+  deps: ServicesDeps
+): Promise<string | null> {
   if (
     typeof serverId !== "string" ||
     typeof moduleId !== "string" ||
     typeof label !== "string"
   ) {
-    return null;
+    return Promise.resolve(null);
   }
 
-  return vaults.get(serverId)?.get(moduleId)?.get(label) ?? null;
+  const credential = vaults.get(serverId)?.get(moduleId)?.get(label);
+
+  if (!credential) {
+    return Promise.resolve(null);
+  }
+
+  return "value" in credential
+    ? Promise.resolve(credential.value)
+    : revealed(serverId, moduleId, credential.key, deps);
 }
 
 export function forgetCredentials(serverId?: string, moduleId?: string): void {
