@@ -68,7 +68,19 @@
       "STRIPE_WEBHOOK_SECRET",
       "STRIPE_PRICE_SERVER_MONTH",
       "STRIPE_PRICE_SERVER_YEAR",
-      "INTERNAL_WORKFLOW_SECRET"
+      "INTERNAL_WORKFLOW_SECRET",
+      // Les quatre suivantes ne vivent qu'ici, jamais dans les listes de
+      // staging ni de production : `secrets.required` est la seule liste que
+      // Cloudflare lit, et elle fait deux choses à la fois — charger la
+      // variable en développement local, et l'exiger au déploiement. La
+      // connexion sociale, elle, est facultative : sans ses variables le lien
+      // magique et la clé d'accès restent les chemins. Les déclarer ici les
+      // fait atteindre le Worker local ; les taire là-bas laisse un
+      // déploiement réussir sans elles.
+      "GITHUB_CLIENT_ID",
+      "GITHUB_CLIENT_SECRET",
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET"
     ]
   },
   "env": {
