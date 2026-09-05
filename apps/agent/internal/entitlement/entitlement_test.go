@@ -42,13 +42,21 @@ func TestRestrictedCommandsMatchTheContract(t *testing.T) {
 	}
 }
 
-// Everything an unenrolled binary opens is also open in restricted mode, except the one command that ends the unenrolled state.
-func TestUnenrolledCommandsAreTheRestrictedOnesPlusEnrol(t *testing.T) {
-	for _, cmd := range UnenrolledCommands {
-		if cmd == "enroll" {
-			continue
-		}
+// A restricted server repairs itself by enrolling again: a lost token, a revoked one, or an entitlement to restore.
+func TestRestrictedModeLetsAServerEnrolAgain(t *testing.T) {
+	if !AllowedInRestrictedMode("enroll") {
+		t.Error("un serveur restreint ne peut plus se ré-enrôler")
+	}
 
+	restricted := State{Entitlement: contract.EntitlementRestricted, Enrolled: true}
+	if !restricted.Allows("enroll") {
+		t.Error("le garde refuse enroll à un serveur enrôlé mais restreint")
+	}
+}
+
+// An unenrolled binary opens nothing a restricted server does not also open.
+func TestUnenrolledCommandsAreOpenInRestrictedMode(t *testing.T) {
+	for _, cmd := range UnenrolledCommands {
 		if !AllowedInRestrictedMode(cmd) {
 			t.Errorf("%s ouvert sans jeton mais fermé en mode restreint", cmd)
 		}

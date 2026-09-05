@@ -1,5 +1,5 @@
 > {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","ping","probe","project.logs","reboot","secrets.set"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["enroll","hello","ping","probe","project.logs","reboot","secrets.set"]}}
 > {"id":2,"cmd":"project.logs","params":{"name":"flymate-api","lines":2}}
 < {"id":2,"event":"log","line":"vite v7 ready in 412 ms"}
 < {"id":2,"event":"log","line":"listening on :5173"}

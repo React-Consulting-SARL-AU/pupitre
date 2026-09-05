@@ -1,5 +1,5 @@
 > {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","ping","probe","project.logs","reboot","secrets.set"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["enroll","hello","ping","probe","project.logs","reboot","secrets.set"]}}
 > {"id":2,"cmd":"snapshot"}
 < {"id":2,"ok":false,"error":{"code":"unknown_command","message":"commande inconnue : snapshot"}}
 > {"id":3,"cmd":"nope"}

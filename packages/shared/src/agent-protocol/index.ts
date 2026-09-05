@@ -266,6 +266,7 @@ export const RESTRICTED_COMMANDS = [
   "status",
   "diag",
   "agent.upgrade",
+  "enroll",
 ] as const satisfies readonly CommandName[]
 
 export type RestrictedCommandName = (typeof RESTRICTED_COMMANDS)[number]

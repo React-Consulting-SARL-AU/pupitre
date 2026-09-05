@@ -297,6 +297,37 @@ func TestARefusalThatCarriesTheTokenIsRedacted(t *testing.T) {
 	}
 }
 
+// A server whose token was lost or revoked answers restricted, and enrolling again is the gesture that repairs it: the console is not the only way back.
+func TestARestrictedServerEnrolsAgainWithoutTheConsole(t *testing.T) {
+	b := newBench(t, true)
+	b.platform.allow(laptop)
+	b.fake.Files[platform.DefaultTokenPath] = []byte("jeton-revoque\n")
+
+	requests := append(enrollRequests(b), `{"id":3,"cmd":"keys.sync","params":{}}`)
+
+	answers := serve(t, b, contract.EntitlementRestricted, requests...)
+	if len(answers) != 2 {
+		t.Fatalf("%d réponse(s)", len(answers))
+	}
+
+	if !answers[0].OK {
+		t.Fatalf("un serveur restreint ne peut pas se ré-enrôler : %v", answers[0].Error)
+	}
+
+	if err := contract.Validate("EnrollResult", decode(t, answers[0].Result)); err != nil {
+		t.Fatalf("résultat hors contrat : %v", err)
+	}
+
+	token, err := platform.LoadToken(b.fake, platform.DefaultTokenPath)
+	if err != nil || token != "jeton-de-serveur" {
+		t.Fatalf("jeton = %q, err = %v", token, err)
+	}
+
+	if answers[1].OK || answers[1].Error.Code != contract.ErrorEntitlementRequired {
+		t.Fatalf("le mode restreint s'ouvre au-delà de enroll : %+v", answers[1])
+	}
+}
+
 // The one command a binary without a server token opens beyond hello, ping and diag.
 func TestOnlyEnrollOpensOnABinaryWithoutAServerToken(t *testing.T) {
 	b := newBench(t, false)

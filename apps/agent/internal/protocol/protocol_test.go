@@ -88,6 +88,17 @@ func newTestServer(granted contract.Entitlement) *Server {
 		panic("boom")
 	})
 
+	server.Register("enroll", func(ctx *Context, _ json.RawMessage) (any, error) {
+		var secrets struct {
+			Token string `json:"enrollment_token"`
+		}
+		if err := json.Unmarshal(ctx.Secrets, &secrets); err != nil || secrets.Token == "" {
+			return nil, badRequest("jeton d'enrôlement absent")
+		}
+
+		return map[string]any{"enrolled": true, "entitlement": string(contract.EntitlementValid)}, nil
+	})
+
 	return server
 }
 
@@ -241,7 +252,7 @@ func assertPanics(t *testing.T, label string, fn func()) {
 
 func TestCapabilitiesAreSorted(t *testing.T) {
 	got := newTestServer(contract.EntitlementDev).Capabilities()
-	want := []string{"hello", "ping", "probe", "project.logs", "reboot", "secrets.set"}
+	want := []string{"enroll", "hello", "ping", "probe", "project.logs", "reboot", "secrets.set"}
 
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("capabilities = %v, want %v", got, want)

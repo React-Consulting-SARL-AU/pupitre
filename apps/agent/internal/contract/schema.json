@@ -284,7 +284,8 @@
         "snapshot",
         "status",
         "diag",
-        "agent.upgrade"
+        "agent.upgrade",
+        "enroll"
       ]
     },
     "HelloParams": {

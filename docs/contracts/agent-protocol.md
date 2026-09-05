@@ -164,7 +164,7 @@ Rien de tout cela n'est une décision : la détection propose, le client corrige
 
 | Commande | Paramètres |
 | --- | --- |
-| `enroll` | `{ platform_url, secrets_stdin: true }` : le jeton d'enrôlement est lu sur le flux secret ; l'agent l'échange contre son jeton de serveur, puis lit `/agent/state` une première fois. Résultat `{ enrolled: true, entitlement, synced_at? }` |
+| `enroll` | `{ platform_url, secrets_stdin: true }` : le jeton d'enrôlement est lu sur le flux secret ; l'agent l'échange contre son jeton de serveur, puis lit `/agent/state` une première fois. Résultat `{ enrolled: true, entitlement, synced_at? }`. Répond aussi en [mode restreint](#mode-restreint), et c'est la commande qui en sort |
 | `keys.list` | — : les clés du bloc balisé |
 | `keys.sync` | — : force une lecture de `/api/v1/agent/state` |
 | `agent.upgrade` | `{ version?, signature?, allow_downgrade? }` : télécharge, vérifie, remplace, redémarre |
@@ -293,7 +293,7 @@ La version courante est le plancher qui compte, parce que l'agent la connaît sa
 
 Il y a deux situations, et elles n'ouvrent pas les mêmes commandes.
 
-**Un serveur enrôlé qui a perdu la plateforme.** Sans droit d'usage valide depuis sept jours, `hello` renvoie `entitlement: "restricted"` et six commandes répondent : `hello`, `ping`, `snapshot`, `status`, `diag` et `agent.upgrade`. Le client garde ainsi la vue de sa machine et le moyen de réparer un agent périmé. Les autres renvoient `entitlement_required` avec le lien vers la console. Rien de ce qui tourne ne s'arrête : tmux, les projets et les services continuent.
+**Un serveur enrôlé qui a perdu la plateforme.** Sans droit d'usage valide depuis sept jours, `hello` renvoie `entitlement: "restricted"` et sept commandes répondent : `hello`, `ping`, `snapshot`, `status`, `diag`, `agent.upgrade` et `enroll`. Le client garde ainsi la vue de sa machine, le moyen de réparer un agent périmé, et celui de réparer le serveur lui-même : un jeton perdu, un jeton révoqué ou un droit d'usage à rétablir se règlent par un ré-enrôlement depuis l'app, sans détour par la console. La sûreté ne bouge pas — un jeton d'enrôlement est signé par la plateforme pour un compte authentifié et un abonnement en cours, si bien qu'admettre `enroll` n'ouvre rien qu'un compte valide ne puisse déjà obtenir. Les autres commandes renvoient `entitlement_required` avec le lien vers la console. Rien de ce qui tourne ne s'arrête : tmux, les projets et les services continuent.
 
 **Un binaire sans jeton de serveur**, copié sur une autre machine, n'ouvre que `hello`, `ping`, `diag` et `enroll`. Il n'a aucun serveur à décrire et rien à mettre à jour : pas de jeton, donc pas de fonctions. `enroll` est la porte par laquelle il en obtient un, et elle ne s'ouvre que sur un jeton d'enrôlement que la plateforme a signé pour cet appareil et ce compte.
 

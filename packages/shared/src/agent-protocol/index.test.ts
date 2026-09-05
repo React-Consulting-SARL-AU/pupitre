@@ -93,12 +93,24 @@ describe("COMMANDS", () => {
 })
 
 describe("restricted mode", () => {
-  it("only lets the six contract commands through", () => {
+  it("only lets the seven contract commands through", () => {
     expect(([...RESTRICTED_COMMANDS] as string[]).sort()).toEqual(
-      ["agent.upgrade", "diag", "hello", "ping", "snapshot", "status"].sort()
+      [
+        "agent.upgrade",
+        "diag",
+        "enroll",
+        "hello",
+        "ping",
+        "snapshot",
+        "status",
+      ].sort()
     )
     expect(isAllowedInRestrictedMode("snapshot")).toBe(true)
     expect(isAllowedInRestrictedMode("install")).toBe(false)
+  })
+
+  it("lets a restricted server re-enrol, the gesture that repairs it", () => {
+    expect(isAllowedInRestrictedMode("enroll")).toBe(true)
   })
 })
 
