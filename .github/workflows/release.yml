@@ -27,13 +27,13 @@ jobs:
       # Read by electron-builder to publish, and by nothing that ships.
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: package.json
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: apps/agent/go.mod
           cache-dependency-path: apps/agent/go.mod
