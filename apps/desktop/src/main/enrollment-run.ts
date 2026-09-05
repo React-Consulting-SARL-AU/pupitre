@@ -81,7 +81,8 @@ function unpublished(build: BuildKind): AgentResponse<never> {
   };
 }
 
-function enrollInput(server: Server, arch: string, deviceId: string) {
+/** What the platform is told of a machine, whether it is being installed or repaired. */
+export function enrollInput(server: Server, arch: string, deviceId: string) {
   return {
     device_id: deviceId,
     host: server.host,

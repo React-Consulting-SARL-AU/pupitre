@@ -23,6 +23,28 @@ interface Exchange {
 
 const ANY = "*";
 
+const RESTRICTED = "restricted";
+
+const ENTITLEMENT_DIRECTIVE = "@entitlement ";
+
+/**
+ * The seven commands a restricted server still answers.
+ *
+ * The list is `RestrictedCommands` of `apps/agent/internal/entitlement`, and it
+ * has to stay its copy: `enroll` is in it because a re-enrolment is how a lost
+ * or revoked token is repaired, and a transcript that forgot it would let the
+ * app test a repair the real agent refuses.
+ */
+const RESTRICTED_COMMANDS = new Set([
+  "hello",
+  "ping",
+  "snapshot",
+  "status",
+  "diag",
+  "agent.upgrade",
+  "enroll",
+]);
+
 /**
  * The host key this fake server declares. A transcript that enrols trades it
  * against a server token, exactly as `pupitred` does with the one on its disk.
@@ -33,14 +55,26 @@ const HOST_PUBLIC_KEY =
 const OUT = 1;
 const TRACE = 2;
 
-function parse(path: string): Exchange[] {
+interface Transcript {
+  exchanges: Exchange[];
+  /** `@entitlement restricted` on a line of its own, as the agent's own testdata writes it. */
+  restricted: boolean;
+}
+
+function parse(path: string): Transcript {
   const exchanges: Exchange[] = [];
   const flags = { repeat: false, hang: false, die: false, enrol: false };
+  let restricted = false;
 
   for (const raw of readFileSync(path, "utf8").split("\n")) {
     const line = raw.trimEnd();
 
     if (line.length === 0 || line.startsWith("#")) {
+      continue;
+    }
+
+    if (line.startsWith(ENTITLEMENT_DIRECTIVE)) {
+      restricted = line.slice(ENTITLEMENT_DIRECTIVE.length) === RESTRICTED;
       continue;
     }
 
@@ -89,7 +123,7 @@ function parse(path: string): Exchange[] {
     }
   }
 
-  return exchanges;
+  return { exchanges, restricted };
 }
 
 function say(line: string): void {
@@ -102,6 +136,35 @@ function trace(line: string): void {
 
 function fail(id: number, code: string, message: string): void {
   say(JSON.stringify({ id, ok: false, error: { code, message } }));
+}
+
+/**
+ * What a restricted server answers to the commands it no longer opens, word for
+ * word as `protocol.EntitlementRequired()` phrases it. It costs the transcript
+ * nothing: the agent refuses before it dispatches, so the exchange the test is
+ * waiting on is still the next one.
+ */
+function refuseEntitlement(id: number): void {
+  say(
+    JSON.stringify({
+      id,
+      ok: false,
+      error: {
+        code: "entitlement_required",
+        message: "droit d'usage requis : ce serveur est en mode restreint",
+        fix: "Ouvre https://app.pupitre.studio pour renouveler le droit d'usage de ce serveur.",
+      },
+    })
+  );
+}
+
+/** The right an answer came back with, when it carries one. */
+function entitlementOf(reply: Record<string, unknown>): string | null {
+  const result = reply.result as { entitlement?: unknown } | undefined;
+
+  return reply.ok === true && typeof result?.entitlement === "string"
+    ? result.entitlement
+    : null;
 }
 
 /**
@@ -231,12 +294,13 @@ async function trade(
 
 function main(): void {
   const path = process.argv[2];
-  const exchanges = parse(path);
+  const { exchanges, restricted } = parse(path);
 
   let cursor = 0;
   let lastId = -1;
   let buffer = "";
   let traded = "";
+  let refusing = restricted;
 
   const handle = async (line: string): Promise<void> => {
     const request = JSON.parse(line) as {
@@ -257,6 +321,12 @@ function main(): void {
       return;
     }
     lastId = request.id;
+
+    if (refusing && !RESTRICTED_COMMANDS.has(request.cmd)) {
+      refuseEntitlement(request.id);
+
+      return;
+    }
 
     const exchange = exchanges[cursor];
 
@@ -319,6 +389,15 @@ function main(): void {
       ) as Record<string, unknown>;
       value.id = request.id;
       say(JSON.stringify(value));
+
+      // An enrolment that came back with a right ends the restriction: the
+      // agent resolves its entitlement again, and the seven commands become the
+      // whole contract once more.
+      const granted = exchange.cmd === "enroll" ? entitlementOf(value) : null;
+
+      if (granted) {
+        refusing = granted === RESTRICTED;
+      }
     }
 
     if (exchange.die) {

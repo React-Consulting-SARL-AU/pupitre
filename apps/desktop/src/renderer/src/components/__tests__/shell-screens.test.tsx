@@ -1,11 +1,14 @@
 import { describe, expect, it } from "bun:test";
+import type { AccountState } from "@shared/account";
 import type { Server } from "@shared/servers";
+import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   PROCESSES,
   SECRETS,
   SNAPSHOT,
 } from "../../__tests__/snapshot-fixtures";
+import { type ReenrollState, repairable } from "../../stores/reenroll";
 import { ActivityPanel } from "../activity/activity-panel";
 import { SecretsPanel } from "../secrets/secrets-panel";
 import { AppSidebar } from "../shell/app-sidebar";
@@ -215,10 +218,25 @@ describe("les secrets", () => {
 });
 
 describe("le mode restreint de l'agent", () => {
-  it("dit pourquoi rien n'est possible et renvoie vers la console", () => {
-    const html = renderToStaticMarkup(
-      <ServerRestrictedNotice entitlement="restricted" onOpenConsole={NOOP} />
+  const IDLE: ReenrollState = { status: "idle" };
+
+  type Props = ComponentProps<typeof ServerRestrictedNotice>;
+
+  function restricted(over: Partial<Props> = {}): string {
+    return renderToStaticMarkup(
+      <ServerRestrictedNotice
+        entitlement="restricted"
+        onOpenConsole={NOOP}
+        onRepair={NOOP}
+        repair={IDLE}
+        repairable={true}
+        {...over}
+      />
     );
+  }
+
+  it("dit pourquoi rien n'est possible et renvoie vers la console", () => {
+    const html = restricted();
 
     expect(html).toContain("se laisse lire");
     expect(html).toContain("Rien de ce qui tournait dessus ne s&#x27;est");
@@ -228,14 +246,117 @@ describe("le mode restreint de l'agent", () => {
 
   it("ne dit rien d'un serveur dont le droit d'usage tient", () => {
     for (const entitlement of ["valid", "grace", "dev"] as const) {
-      expect(
-        renderToStaticMarkup(
-          <ServerRestrictedNotice
-            entitlement={entitlement}
-            onOpenConsole={NOOP}
-          />
-        )
-      ).toBe("");
+      expect(restricted({ entitlement })).toBe("");
     }
+  });
+
+  /** Le compte est valide, le serveur ne l'est pas : la réparation est offerte. */
+  it("offre le ré-enrôlement à côté de la console", () => {
+    const html = restricted();
+
+    expect(html).toContain("Ré-enrôler ce serveur");
+    expect(html).toContain("Ouvrir la console");
+  });
+
+  it("dit que l'échange est en cours pendant qu'il se fait", () => {
+    const html = restricted({
+      repair: { serverId: "srv-1", status: "running" },
+    });
+
+    expect(html).toContain('aria-busy="true"');
+    expect(html).toContain("disabled");
+  });
+
+  /**
+   * Le compte n'a pas de droit d'usage : la plateforme refuserait le jeton, et
+   * l'app n'offre pas un geste qui ne réparerait rien. La console reste là.
+   */
+  it("n'offre pas la réparation quand le compte n'a pas de droit d'usage", () => {
+    const html = restricted({ repairable: false });
+
+    expect(html).not.toContain("Ré-enrôler ce serveur");
+    expect(html).toContain("Ouvrir la console");
+    expect(html).toContain("se laisse lire");
+  });
+
+  it("affiche le refus et son remède tels quels quand l'échange échoue", () => {
+    const html = restricted({
+      repair: {
+        error: {
+          code: "entitlement_required",
+          fix: "Régularise l'abonnement dans la console.",
+          message: "Cette organisation n'a pas d'abonnement en cours.",
+        },
+        serverId: "srv-1",
+        status: "failed",
+      },
+    });
+
+    expect(html).toContain("Cette organisation n&#x27;a pas d&#x27;abonnement");
+    expect(html).toContain("Régularise l&#x27;abonnement dans la console.");
+  });
+});
+
+describe("qui peut réparer un serveur restreint", () => {
+  function account(over: Partial<AccountState> = {}): AccountState {
+    return {
+      build: "production",
+      checkedAt: "2026-09-05T10:00:00Z",
+      consoleUrl: "https://app.pupitre.test/dashboard",
+      device: {
+        fingerprint: "SHA256:abc",
+        id: "dev-1",
+        name: "Atelier",
+        publicKey: "ssh-ed25519 AAAA",
+      },
+      identity: null,
+      refusal: null,
+      sealed: true,
+      usage: {
+        entitlement: "valid",
+        source: "platform",
+        status: "granted",
+        validUntil: null,
+      },
+      ...over,
+    };
+  }
+
+  it("laisse réparer un compte dont le droit d'usage tient", () => {
+    expect(repairable(account())).toBe(true);
+  });
+
+  it("ne laisse pas réparer un compte sans droit d'usage", () => {
+    const refused = [
+      { consoleUrl: "https://app.pupitre.test/dashboard", status: "absent" },
+      { consoleUrl: "https://app.pupitre.test/dashboard", status: "suspended" },
+      {
+        consoleUrl: "https://app.pupitre.test/dashboard",
+        since: "2026-08-01T10:00:00Z",
+        status: "stale",
+      },
+    ] as const;
+
+    for (const usage of refused) {
+      expect(repairable(account({ usage }))).toBe(false);
+    }
+  });
+
+  /** Un build de développement sans appareil connu : rien à signer, rien à réparer. */
+  it("ne laisse pas réparer sans appareil connu de la plateforme", () => {
+    expect(
+      repairable(
+        account({
+          build: "development",
+          device: null,
+          usage: {
+            entitlement: "none",
+            source: "development",
+            status: "granted",
+            validUntil: null,
+          },
+        })
+      )
+    ).toBe(false);
   });
 });

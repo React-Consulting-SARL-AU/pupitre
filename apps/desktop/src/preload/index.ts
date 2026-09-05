@@ -28,6 +28,7 @@ import type { CompletionsResult } from "@pupitre/shared/agent-protocol/state";
 import type {
   AgentUpgradeResult,
   DoneResult,
+  EnrollResult,
 } from "@pupitre/shared/agent-protocol/system";
 import type {
   AccountResponse,
@@ -495,6 +496,16 @@ const api = {
     onEvent: (event: Event) => void
   ): Promise<AgentResponse<InstallResult>> =>
     streamedUpdate("agent-update:modules", onEvent, serverId, modules),
+
+  /**
+   * The repair of a server the platform no longer vouches for.
+   *
+   * The renderer names a server and nothing else: the fresh enrolment token is
+   * asked of the platform by the main process and written on the protocol's
+   * secret line. It never crosses this bridge, in either direction.
+   */
+  reenrollServer: (serverId: string): Promise<AgentResponse<EnrollResult>> =>
+    ipcRenderer.invoke("reenroll:start", serverId),
 
   agentSession: (serverId: string): Promise<HelloResult | null> =>
     ipcRenderer.invoke("agent:session", serverId),

@@ -26,6 +26,7 @@ import { accountOf, useAccount } from "./stores/account";
 import { announces, useAgentUpdate } from "./stores/agent-update";
 import { useNavigation } from "./stores/navigation";
 import { useOnboarding } from "./stores/onboarding";
+import { repairable, useReenroll } from "./stores/reenroll";
 import { useSecrets } from "./stores/secrets";
 import { useServers } from "./stores/servers";
 import { snapshotOf, useSnapshot } from "./stores/snapshot";
@@ -59,6 +60,8 @@ export function App() {
 
   const secrets = useSecrets();
   const update = useAgentUpdate();
+  const reenroll = useReenroll((s) => s.state);
+  const repair = useReenroll((s) => s.repair);
   const [openSecret, setOpenSecret] = useState<string | null>(null);
 
   const server = config?.servers.find((s) => s.id === config.active) ?? null;
@@ -247,6 +250,9 @@ export function App() {
         <ServerRestrictedNotice
           entitlement={snapshot.entitlement}
           onOpenConsole={() => window.pupitre.openUrl(account.consoleUrl)}
+          onRepair={() => repair(serverId).then(() => read(serverId))}
+          repair={reenroll}
+          repairable={repairable(account)}
         />
 
         {announces(update.state, update.hidden) ? (

@@ -14,6 +14,9 @@ export const shell = {
     "shell.sidebar.settings": "Settings",
     "shell.sidebar.terminals": "Terminals",
     "shell.restricted.console": "Open the console",
+    "shell.restricted.repair": "Re-enrol this server",
+    "shell.restricted.repairTitle":
+      "Ask the platform for a fresh enrolment token and hand it to the agent. Nothing running on the server is stopped.",
     "shell.restricted.message":
       "This server no longer holds a valid usage right: it can be read, and refuses everything else. Nothing that was running on it has been stopped.",
     "shell.restricted.fix":
@@ -44,6 +47,9 @@ export const shell = {
     "shell.sidebar.settings": "Réglages",
     "shell.sidebar.terminals": "Terminaux",
     "shell.restricted.console": "Ouvrir la console",
+    "shell.restricted.repair": "Ré-enrôler ce serveur",
+    "shell.restricted.repairTitle":
+      "Demande un jeton d'enrôlement neuf à la plateforme et le remet à l'agent. Rien de ce qui tourne sur le serveur ne s'arrête.",
     "shell.restricted.message":
       "Ce serveur n'a plus de droit d'usage valide : il se laisse lire, et refuse tout le reste. Rien de ce qui tournait dessus ne s'est arrêté.",
     "shell.restricted.fix":

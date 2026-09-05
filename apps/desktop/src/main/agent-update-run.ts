@@ -56,7 +56,7 @@ function refuse(message: string, fix: string): AgentResponse<never> {
  */
 export async function machineFacts(
   serverId: string,
-  deps: AgentUpdateDeps
+  deps: Pick<AgentUpdateDeps, "client" | "probe">
 ): Promise<AgentResponse<MachineFacts>> {
   const snapshot = await deps.client.request(serverId, "snapshot");
 

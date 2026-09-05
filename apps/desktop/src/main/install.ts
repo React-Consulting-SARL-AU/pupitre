@@ -91,7 +91,9 @@ async function deliver(
     : sent;
 }
 
-function enrollmentGrant(platformServerId: string): EnrollmentGrant | null {
+export function enrollmentGrant(
+  platformServerId: string
+): EnrollmentGrant | null {
   const token = account.takeEnrollmentToken(platformServerId);
 
   return token ? { platformUrl: agentPlatformUrl(), token } : null;

@@ -1,0 +1,18 @@
+# Un serveur enrôlé dont le jeton a été révoqué : il se laisse lire, refuse
+# d'agir, et se répare par un ré-enrôlement. Le refus n'est pas écrit ici — la
+# directive le rend, exactement comme l'agent le rend avant de dispatcher.
+# Modèle : apps/agent/internal/protocol/testdata/restricted.jsonl
+@entitlement restricted
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","protocol":1}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"restricted","capabilities":["hello","ping","snapshot","status","diag","agent.upgrade","enroll"]}}
+> {"id":2,"cmd":"snapshot"}
+< {"id":2,"ok":true,"result":{"machine":{"hostname":"staging","os":"ubuntu","version":"24.04","arch":"arm64","cores":4,"uptime_s":86400,"load":[0.1,0.2,0.3],"ram_total_mb":4096,"ram_used_mb":1200,"swap_mb":0,"disk_total_gb":80,"disk_free_gb":38,"agent_version":"0.0.0-test"},"services":[],"projects":[{"name":"api","dir":"api","path":"/home/dev/projects/api","host":"api.test","port":3000,"pkgmgr":"bun","cmd":"bun dev","state":"online","versioned":true}],"sessions":[],"entitlement":"restricted"}}
+# Le jeton d'enrôlement arrive sur la ligne qui suit la requête, jamais dans params.
+> {"id":3,"cmd":"enroll","params":{"platform_url":"*","secrets_stdin":true}}
+$ *
+< {"id":3,"ok":true,"result":{"enrolled":true,"entitlement":"valid","synced_at":"2026-09-05T10:00:00Z"}}
+> {"id":4,"cmd":"snapshot"}
+< {"id":4,"ok":true,"result":{"machine":{"hostname":"staging","os":"ubuntu","version":"24.04","arch":"arm64","cores":4,"uptime_s":86400,"load":[0.1,0.2,0.3],"ram_total_mb":4096,"ram_used_mb":1200,"swap_mb":0,"disk_total_gb":80,"disk_free_gb":38,"agent_version":"0.0.0-test"},"services":[],"projects":[{"name":"api","dir":"api","path":"/home/dev/projects/api","host":"api.test","port":3000,"pkgmgr":"bun","cmd":"bun dev","state":"online","versioned":true}],"sessions":[],"entitlement":"valid"}}
+# Ce que le serveur refusait avant l'échange, il l'accepte après : le droit est réparé.
+> {"id":5,"cmd":"project.down","params":{"name":"api"}}
+< {"id":5,"ok":true,"result":{"state":"stopped"}}

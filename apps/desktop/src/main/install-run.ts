@@ -4,6 +4,7 @@ import type {
   ModuleConfig,
   ProbeResult,
 } from "@pupitre/shared/agent-protocol/install";
+import type { EnrollResult } from "@pupitre/shared/agent-protocol/system";
 import type { EnrollmentSummary } from "@shared/account";
 import type { AgentResponse } from "@shared/agent";
 import type { InstallUpdate } from "@shared/install";
@@ -64,25 +65,32 @@ export interface EnrollmentGrant {
  * an argument of a command line, where `ps` would show it to anyone with an
  * account on the machine.
  */
+export function sendEnrolment(
+  serverId: string,
+  granted: EnrollmentGrant,
+  client: Pick<AgentClient, "request">
+): Promise<AgentResponse<EnrollResult>> {
+  return client.request(
+    serverId,
+    "enroll",
+    { platform_url: granted.platformUrl, secrets_stdin: true },
+    { secrets: { enrollment_token: granted.token } }
+  );
+}
+
+/** Nothing granted, nothing to enrol: a development build has no seat to claim. */
 export async function enrolAgent(
   serverId: string,
   enrollment: EnrollmentSummary | null | undefined,
   deps: Pick<InstallDeps, "client" | "enrollment">
-): Promise<AgentResponse<null>> {
+): Promise<AgentResponse<EnrollResult | null>> {
   const granted = enrollment ? deps.enrollment(enrollment.serverId) : null;
 
   if (!granted) {
     return { ok: true, result: null };
   }
 
-  const enrolled = await deps.client.request(
-    serverId,
-    "enroll",
-    { platform_url: granted.platformUrl, secrets_stdin: true },
-    { secrets: { enrollment_token: granted.token } }
-  );
-
-  return enrolled.ok ? { ok: true, result: null } : enrolled;
+  return await sendEnrolment(serverId, granted, deps.client);
 }
 
 /**

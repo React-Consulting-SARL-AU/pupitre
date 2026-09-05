@@ -31,6 +31,7 @@ import { closeLogin, moveLogin, openLogin } from "./login-view";
 import { current, windowChrome } from "./platform";
 import { registerProjects } from "./projects";
 import { declaresProject, forgetProjects, projectFolder } from "./projects-run";
+import { registerReenroll } from "./reenroll";
 import { registerSecrets } from "./secrets";
 import { SetupError } from "./server-setup";
 import {
@@ -370,6 +371,7 @@ function registerChannels(): void {
   registerInspection();
   registerCatalog();
   registerInstall();
+  registerReenroll();
   registerHarden();
   registerProjects();
   registerSecrets();
