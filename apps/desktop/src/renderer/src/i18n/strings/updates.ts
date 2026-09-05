@@ -7,7 +7,7 @@ export const updates = {
       "This server has moved to a version this app does not know yet. Everything it knows how to ask keeps working.",
     "updates.agent.aheadTitle": "Update available",
     "updates.agent.unsignedBody":
-      "This app does not carry the signature of this version: the agent would refuse the update.",
+      "This app does not carry the signature of this version, and this server no longer reaches the platform that serves it: the agent would refuse the update.",
     "updates.agent.unsignedFix":
       "bun --cwd=apps/agent run release, then rebuild the app.",
     "updates.agent.upgraded": "Agent {previous} replaced by {version}.",
@@ -32,7 +32,7 @@ export const updates = {
       "Ce serveur est passé à une version que cette app ne connaît pas encore. Tout ce qu'elle sait demander continue de fonctionner.",
     "updates.agent.aheadTitle": "Mise à jour disponible",
     "updates.agent.unsignedBody":
-      "Cette app ne porte pas la signature de cette version : l'agent refuserait la mise à jour.",
+      "Cette app ne porte pas la signature de cette version, et ce serveur n'atteint plus la plateforme qui la sert : l'agent refuserait la mise à jour.",
     "updates.agent.unsignedFix":
       "bun --cwd=apps/agent run release, puis reconstruis l'app.",
     "updates.agent.upgraded": "Agent {previous} remplacé par {version}.",

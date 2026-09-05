@@ -38,7 +38,12 @@ describe("la lecture de l'écart", () => {
       agentUpdateState: () =>
         Promise.resolve({
           ok: true,
-          result: { carried: CARRIED, installed: "0.3.0", order: "ahead" },
+          result: {
+            carried: CARRIED,
+            installed: "0.3.0",
+            order: "ahead",
+            platform: true,
+          },
         }),
     });
 
@@ -86,6 +91,7 @@ describe("la mise à jour de l'agent", () => {
             carried: CARRIED,
             installed: reads === 1 ? "0.3.0" : "0.4.0",
             order: reads === 1 ? "ahead" : "same",
+            platform: true,
           },
         });
       },
@@ -187,7 +193,12 @@ describe("ce que le bandeau annonce", () => {
     const ahead = {
       serverId: SERVER,
       status: "ready" as const,
-      update: { carried: CARRIED, installed: "0.3.0", order: "ahead" as const },
+      update: {
+        carried: CARRIED,
+        installed: "0.3.0",
+        order: "ahead" as const,
+        platform: true,
+      },
     };
     const behind = {
       ...ahead,
@@ -202,7 +213,12 @@ describe("ce que le bandeau annonce", () => {
     const state = {
       serverId: SERVER,
       status: "ready" as const,
-      update: { carried: CARRIED, installed: "0.3.0", order: "ahead" as const },
+      update: {
+        carried: CARRIED,
+        installed: "0.3.0",
+        order: "ahead" as const,
+        platform: true,
+      },
     };
 
     expect(announces(state, "0.4.0")).toBe(false);

@@ -11,6 +11,7 @@ import {
   PROTOCOL_VERSION,
   ResponseSchema,
 } from "@pupitre/shared/agent-protocol/envelope";
+import type { Remedy } from "@pupitre/shared/agent-protocol/errors";
 import type {
   InstallReport,
   InstallResult,
@@ -28,25 +29,30 @@ export type { AgentError, AgentErrorCode, AgentResponse } from "@shared/agent";
 /**
  * An agent error, as an exception the renderer can render as it stands.
  *
- * `code`, `message` and `fix` are the agent's own words: nothing is rewritten on
- * the way, because a remedy written here would describe the machine we imagine
- * rather than the one that answered.
+ * `code`, `message`, `fix` and `remedy` are the agent's own words: nothing is
+ * rewritten on the way, because a remedy written here would describe the
+ * machine we imagine rather than the one that answered.
  */
 export class AgentCallError extends Error {
   readonly code: AgentError["code"];
   readonly fix?: string;
+  readonly remedy?: Remedy;
 
   constructor(error: AgentError) {
     super(error.message);
     this.name = "AgentCallError";
     this.code = error.code;
     this.fix = error.fix;
+    this.remedy = error.remedy;
   }
 
   toError(): AgentError {
-    return this.fix
-      ? { code: this.code, message: this.message, fix: this.fix }
-      : { code: this.code, message: this.message };
+    return {
+      code: this.code,
+      message: this.message,
+      ...(this.fix ? { fix: this.fix } : {}),
+      ...(this.remedy ? { remedy: this.remedy } : {}),
+    };
   }
 }
 
@@ -105,6 +111,7 @@ const LONG_COMMANDS: readonly CommandName[] = [
   "harden",
   "agent.upgrade",
   "project.add",
+  "project.detect",
   "project.install",
   "project.sync",
   "db.dump",
@@ -121,7 +128,7 @@ const DEFAULT_BACKOFF = { firstMs: 250, maxMs: 15_000, attempts: 4 };
 
 const STDERR_KEPT = 2000;
 
-function defaultTimeout(cmd: CommandName): number {
+export function defaultTimeout(cmd: CommandName): number {
   if (QUICK_COMMANDS.includes(cmd)) {
     return QUICK_MS;
   }

@@ -1,4 +1,7 @@
-import type { ProtocolErrorCode } from "@pupitre/shared/agent-protocol/errors";
+import type {
+  ProtocolErrorCode,
+  Remedy,
+} from "@pupitre/shared/agent-protocol/errors";
 
 /**
  * What crosses IPC, on both sides of the bridge.
@@ -15,6 +18,8 @@ export interface AgentError {
   code: AgentErrorCode;
   message: string;
   fix?: string;
+  /** The machine-readable half of `fix`, when the remedy is a value. */
+  remedy?: Remedy;
 }
 
 export type AgentResponse<T> =

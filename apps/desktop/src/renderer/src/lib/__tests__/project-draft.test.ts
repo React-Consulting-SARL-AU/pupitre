@@ -4,7 +4,7 @@ import {
   freePort,
   isGitSource,
   nameFromSource,
-  portFromFix,
+  portFromRemedy,
   startCommand,
 } from "../project-draft";
 
@@ -52,18 +52,12 @@ describe("le port proposé", () => {
     expect(freePort([])).toBe(3000);
   });
 
-  it("lit dans le remède de l'agent le port qu'il propose", () => {
-    expect(portFromFix("Donne un autre port à shop, par exemple 3001.")).toBe(
-      3001
-    );
-    expect(
-      portFromFix("Choisis un port entre 1024 et 65535, par exemple 3000.")
-    ).toBe(3000);
+  it("prend le port libre dans le champ du remède, jamais dans une phrase", () => {
+    expect(portFromRemedy({ code: "port_taken", port_free: 3001 })).toBe(3001);
   });
 
-  it("ne trouve aucun port quand le remède n'en porte pas", () => {
-    expect(portFromFix("Retire-le avec project.remove.")).toBeNull();
-    expect(portFromFix(undefined)).toBeNull();
+  it("ne trouve aucun port quand l'erreur ne porte pas de remède", () => {
+    expect(portFromRemedy(undefined)).toBeNull();
   });
 });
 

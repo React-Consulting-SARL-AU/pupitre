@@ -27,6 +27,13 @@ function release(over: Partial<CarriedRelease> = {}): CarriedRelease {
   };
 }
 
+function unsigned(): CarriedRelease {
+  return release({
+    agent: { arch: "amd64", notes: [], signed: false, version: "0.4.0" },
+    signature: null,
+  });
+}
+
 function probeOf(over: Partial<ProbeResult> = {}): ProbeResult {
   return {
     agent_version: "0.2.0",
@@ -96,6 +103,23 @@ describe("la comparaison des versions", () => {
         order: "ahead",
       },
     });
+  });
+
+  it("dit si la plateforme répond encore au serveur", async () => {
+    const live = await readAgentUpdate(
+      SERVER,
+      deps(agent("agent-update-live.jsonl"))
+    );
+
+    fake?.killAll();
+
+    const cut = await readAgentUpdate(
+      SERVER,
+      deps(agent("agent-update-control.jsonl"))
+    );
+
+    expect(live).toMatchObject({ ok: true, result: { platform: true } });
+    expect(cut).toMatchObject({ ok: true, result: { platform: false } });
   });
 
   it("dit que l'app est en retard sans rien empêcher", async () => {
@@ -177,25 +201,34 @@ describe("agent.upgrade", () => {
     });
   });
 
-  it("refuse de parler quand l'app ne porte pas la signature", async () => {
+  it("part sans signature quand la plateforme répond au serveur", async () => {
+    const client = agent([
+      "agent-update-live.jsonl",
+      "agent-upgrade-unsigned.jsonl",
+    ]);
+    const { events, note } = collected();
+
+    const answer = await runAgentUpgrade(
+      SERVER,
+      note,
+      deps(client, { carried: () => unsigned() })
+    );
+
+    expect(answer).toMatchObject({
+      ok: true,
+      result: { previous_version: "0.3.0", restarting: true, version: "0.4.0" },
+    });
+    expect(events).toHaveLength(1);
+  });
+
+  it("refuse quand ni l'app ni la plateforme ne portent la signature", async () => {
     const client = agent("agent-update-control.jsonl");
     const { note } = collected();
 
     const answer = await runAgentUpgrade(
       SERVER,
       note,
-      deps(client, {
-        carried: () =>
-          release({
-            agent: {
-              arch: "amd64",
-              notes: [],
-              signed: false,
-              version: "0.4.0",
-            },
-            signature: null,
-          }),
-      })
+      deps(client, { carried: () => unsigned() })
     );
 
     expect(answer.ok).toBe(false);

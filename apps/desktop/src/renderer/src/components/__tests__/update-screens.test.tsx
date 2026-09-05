@@ -20,12 +20,13 @@ const CARRIED = {
 
 function ready(
   order: "ahead" | "behind" | "same" | "unknown",
-  carried = CARRIED
+  carried = CARRIED,
+  platform = true
 ): UpdateState {
   return {
     serverId: "srv-1",
     status: "ready",
-    update: { carried, installed: "0.3.0", order },
+    update: { carried, installed: "0.3.0", order, platform },
   };
 }
 
@@ -70,11 +71,27 @@ describe("le bandeau de mise à jour", () => {
     expect(banner({ status: "idle" })).toBe("");
   });
 
-  it("désactive le bouton quand l'app ne porte pas la signature", () => {
-    const html = banner(ready("ahead", { ...CARRIED, signed: false }));
+  it("offre la mise à jour sans signature embarquée quand la plateforme répond", () => {
+    const html = banner(ready("ahead", { ...CARRIED, signed: false }, true));
+
+    expect(html).toContain("Mettre l&#x27;agent à jour");
+    expect(html).not.toContain("l&#x27;agent refuserait la mise à jour");
+    expect(html).not.toContain('disabled=""');
+  });
+
+  it("désactive le bouton quand la plateforme se tait et la signature manque", () => {
+    const html = banner(ready("ahead", { ...CARRIED, signed: false }, false));
 
     expect(html).toContain("l&#x27;agent refuserait la mise à jour");
-    expect(html).toContain("disabled");
+    expect(html).toContain("n&#x27;atteint plus la plateforme");
+    expect(html).toContain('disabled=""');
+  });
+
+  it("n'exige pas la plateforme quand l'app porte la signature", () => {
+    const html = banner(ready("ahead", CARRIED, false));
+
+    expect(html).not.toContain("l&#x27;agent refuserait la mise à jour");
+    expect(html).not.toContain('disabled=""');
   });
 
   it("montre le refus de l'agent et son remède, sans annoncer de réussite", () => {

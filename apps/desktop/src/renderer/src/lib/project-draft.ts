@@ -1,3 +1,4 @@
+import type { Remedy } from "@pupitre/shared/agent-protocol/errors";
 import type { PackageManager } from "@pupitre/shared/agent-protocol/state";
 
 /**
@@ -11,7 +12,6 @@ import type { PackageManager } from "@pupitre/shared/agent-protocol/state";
 
 export const FIRST_PORT = 3000;
 export const LAST_PORT = 65_535;
-export const LOWEST_PORT = 1024;
 
 const GIT_SCHEMES = ["http://", "https://", "ssh://", "git://"];
 
@@ -32,8 +32,6 @@ const DOUBLE_DASH = /-{2,}/g;
 const LEADING_NOISE = /^[^a-z0-9]+/;
 
 const TRAILING_NOISE = /[-._]+$/;
-
-const DIGITS = /\d+/g;
 
 export function isGitSource(value: string): boolean {
   const trimmed = value.trim();
@@ -99,26 +97,13 @@ export function freePort(taken: readonly number[], from = FIRST_PORT): number {
 /**
  * The port the agent named in its remedy.
  *
- * A refusal on a taken port ends with the next free one — "par exemple 3001." —
- * and taking it from there beats guessing a second time from a list the agent
- * has just proved to be stale.
+ * A refusal on a taken port carries the next free one as a value, and taking it
+ * from there beats guessing a second time from a list the agent has just proved
+ * to be stale. The sentence beside it is for the reader, not for the app: a
+ * wording changes, a field does not.
  */
-export function portFromFix(fix: string | undefined): number | null {
-  if (!fix) {
-    return null;
-  }
-
-  const numbers = fix.match(DIGITS) ?? [];
-
-  for (const raw of [...numbers].reverse()) {
-    const port = Number(raw);
-
-    if (port >= LOWEST_PORT && port <= LAST_PORT) {
-      return port;
-    }
-  }
-
-  return null;
+export function portFromRemedy(remedy: Remedy | undefined): number | null {
+  return remedy?.code === "port_taken" ? remedy.port_free : null;
 }
 
 const COMMANDS: Partial<Record<PackageManager, (port: number) => string>> = {

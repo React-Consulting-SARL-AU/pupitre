@@ -15,7 +15,7 @@ import {
   freePort,
   isGitSource,
   nameFromSource,
-  portFromFix,
+  portFromRemedy,
   startCommand,
 } from "../lib/project-draft";
 
@@ -293,7 +293,7 @@ export const useFirstProject = create<FirstProjectStore>((set, get) => {
       return true;
     }
 
-    const suggested = portFromFix(added.error.fix);
+    const suggested = portFromRemedy(added.error.remedy);
 
     if (suggested && suggested !== get().draft.port) {
       refresh({ port: suggested });

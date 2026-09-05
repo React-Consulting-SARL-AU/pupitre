@@ -142,8 +142,9 @@ describe("un dépôt qui démarre", () => {
 describe("un port déjà pris", () => {
   const taken: AgentError = {
     code: "bad_request",
-    fix: "Donne un autre port à shop, par exemple 3001.",
+    fix: "Donne un autre port à shop.",
     message: "le port 3000 est déjà pris par web",
+    remedy: { code: "port_taken", port_free: 3001 },
   };
 
   function stub(): { asked: ProjectAddParams[] } {
@@ -177,7 +178,7 @@ describe("un port déjà pris", () => {
     return { asked };
   }
 
-  it("garde le refus tel quel et propose le port que son remède donne", async () => {
+  it("garde le refus tel quel et prend le port libre du champ, pas de la phrase", async () => {
     stub();
 
     await useFirstProject.getState().prepare("srv-1", false);

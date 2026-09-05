@@ -1,11 +1,13 @@
+import type { Entitlement } from "@pupitre/shared/agent-protocol/session";
+
 /**
  * The agent the app carries, next to the one the server runs.
  *
  * The app has no list of published versions and asks none: what it can offer a
  * server is the binary embedded at build time, with the notes of that version
- * and the signature the agent demands before it replaces anything. Comparing
- * the two is all this file does — the decision of what to show belongs to the
- * screen, and the decision of what to install belongs to the agent.
+ * and, when it has it, the signature the agent falls back on. Comparing the two
+ * is all this file does — the decision of what to show belongs to the screen,
+ * and the decision of what to install belongs to the agent.
  */
 
 export interface CarriedAgent {
@@ -23,6 +25,18 @@ export interface AgentUpdateState {
   installed: string | null;
   carried: CarriedAgent | null;
   order: VersionOrder;
+  /** Whether the platform still answers this server, and can sign for it. */
+  platform: boolean;
+}
+
+/**
+ * The fingerprint and the signature come from the platform, which the agent
+ * reads with its server token: a server it still reaches needs nothing from the
+ * app. `restricted` is a server that lost it seven days ago, `dev` one that
+ * never had it, and an agent too old to speak the protocol answers neither.
+ */
+export function platformAnswers(entitlement: Entitlement | null): boolean {
+  return entitlement === "valid" || entitlement === "grace";
 }
 
 const SEMVER = /^v?(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/;

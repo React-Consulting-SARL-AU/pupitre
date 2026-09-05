@@ -5,6 +5,7 @@ import {
   AgentCallError,
   type AgentClient,
   createAgentClient,
+  defaultTimeout,
 } from "../agent-client";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 
@@ -222,6 +223,34 @@ describe("le canal", () => {
         fix: "Mets à jour l'app jusqu'au protocole 2.",
       },
     });
+
+    agent.closeAll();
+  });
+});
+
+describe("la détection d'un projet", () => {
+  it("prend le délai d'une commande longue, pas le délai standard", () => {
+    expect(defaultTimeout("project.detect")).toBe(
+      defaultTimeout("project.add")
+    );
+    expect(defaultTimeout("project.detect")).toBeGreaterThan(
+      defaultTimeout("project.restart")
+    );
+  });
+
+  it("passe par le canal de travail, laissant les lectures libres", async () => {
+    const { agent, fake } = client([
+      "project-detect-control.jsonl",
+      "project-detect-work.jsonl",
+    ]);
+
+    await agent.call(SERVER, "snapshot");
+    const detected = await agent.call(SERVER, "project.detect", {
+      repo: "https://github.com/moi/shop.git",
+    });
+
+    expect(detected).toMatchObject({ pkgmgr: "bun", port_hint: 3000 });
+    expect(fake.started()).toBe(2);
 
     agent.closeAll();
   });

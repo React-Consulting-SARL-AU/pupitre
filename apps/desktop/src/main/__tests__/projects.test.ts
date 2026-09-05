@@ -121,8 +121,9 @@ describe("un port déjà pris", () => {
     expect(refused).toMatchObject({
       error: {
         code: "bad_request",
-        fix: "Donne un autre port à shop, par exemple 3001.",
+        fix: "Donne un autre port à shop.",
         message: "le port 3000 est déjà pris par web",
+        remedy: { code: "port_taken", port_free: 3001 },
       },
       ok: false,
     });

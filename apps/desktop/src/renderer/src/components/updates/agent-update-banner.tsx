@@ -35,7 +35,7 @@ export function AgentUpdateBanner({
     return null;
   }
 
-  const { carried, installed, order } = state.update;
+  const { carried, installed, order, platform } = state.update;
 
   if (order === "behind") {
     return (
@@ -57,6 +57,8 @@ export function AgentUpdateBanner({
     return null;
   }
 
+  const signable = carried.signed || platform;
+
   return (
     <AgentUpdateFrame
       detail={`pupitred ${installed ?? "?"} → ${carried.version} · ${carried.arch}`}
@@ -66,7 +68,7 @@ export function AgentUpdateBanner({
     >
       <AgentUpdateNotes notes={carried.notes} />
 
-      {carried.signed ? null : (
+      {signable ? null : (
         <Callout fix={t("updates.agent.unsignedFix")} tone="warn">
           {t("updates.agent.unsignedBody")}
         </Callout>
@@ -94,7 +96,7 @@ export function AgentUpdateBanner({
 
       <div className="flex justify-end">
         <Button
-          disabled={!carried.signed}
+          disabled={!signable}
           icon={ArrowUp}
           loading={upgrade.status === "running"}
           onClick={onUpgrade}

@@ -3,9 +3,14 @@ import type {
   InstallResult,
   ProbeResult,
 } from "@pupitre/shared/agent-protocol/install";
+import type { Entitlement } from "@pupitre/shared/agent-protocol/session";
 import type { AgentUpgradeResult } from "@pupitre/shared/agent-protocol/system";
 import type { AgentResponse } from "@shared/agent";
-import { type AgentUpdateState, orderOf } from "@shared/agent-update";
+import {
+  type AgentUpdateState,
+  orderOf,
+  platformAnswers,
+} from "@shared/agent-update";
 import type { CarriedRelease } from "./agent-binary";
 import type { AgentClient } from "./agent-client";
 
@@ -13,10 +18,12 @@ import type { AgentClient } from "./agent-client";
  * Updating the agent, and the modules it installed.
  *
  * Two gestures that look alike and are not. `agent.upgrade` replaces the binary
- * that is answering us: the app hands it the version it carries and the
- * signature published with it, and the agent alone decides whether what it
- * downloads matches. `upgrade` replays the install steps of modules already
- * present, and only names the agent's own catalogue can name.
+ * that is answering us: the app names the version it carries, the agent reads
+ * the fingerprint and the signature on the platform, and it alone decides
+ * whether what it downloads matches. The signature the app carries goes with
+ * the request only as a fallback, for a server the platform no longer answers.
+ * `upgrade` replays the install steps of modules already present, and only
+ * names the agent's own catalogue can name.
  *
  * Neither is done from the renderer: a signature is not something an interface
  * gets to compose.
@@ -25,6 +32,7 @@ import type { AgentClient } from "./agent-client";
 export interface MachineFacts {
   arch: string;
   version: string | null;
+  entitlement: Entitlement | null;
 }
 
 export interface AgentUpdateDeps {
@@ -57,6 +65,7 @@ export async function machineFacts(
       ok: true,
       result: {
         arch: snapshot.result.machine.arch,
+        entitlement: snapshot.result.entitlement,
         version: snapshot.result.machine.agent_version,
       },
     };
@@ -69,6 +78,7 @@ export async function machineFacts(
         ok: true,
         result: {
           arch: probe.result.arch,
+          entitlement: null,
           version: probe.result.agent_version,
         },
       }
@@ -93,6 +103,7 @@ export async function readAgentUpdate(
       carried,
       installed: facts.result.version,
       order: orderOf(carried?.version ?? null, facts.result.version),
+      platform: platformAnswers(facts.result.entitlement),
     },
   };
 }
@@ -117,9 +128,9 @@ export async function runAgentUpgrade(
     );
   }
 
-  if (!release.signature) {
+  if (!(release.signature || platformAnswers(facts.result.entitlement))) {
     return refuse(
-      `Cette app ne porte pas la signature de l'agent ${release.agent.version} pour ${facts.result.arch}.`,
+      `Cette app ne porte pas la signature de l'agent ${release.agent.version} pour ${facts.result.arch}, et ce serveur n'atteint plus la plateforme qui la sert.`,
       "Publie cette version avec bun --cwd=apps/agent run release, puis reconstruis l'app."
     );
   }
@@ -127,7 +138,9 @@ export async function runAgentUpgrade(
   return await deps.client.request(
     serverId,
     "agent.upgrade",
-    { signature: release.signature, version: release.agent.version },
+    release.signature
+      ? { signature: release.signature, version: release.agent.version }
+      : { version: release.agent.version },
     { onEvent }
   );
 }
