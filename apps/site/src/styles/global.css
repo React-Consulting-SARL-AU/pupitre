@@ -179,13 +179,6 @@
   letter-spacing: var(--font-label-letter-spacing);
 }
 
-@utility index-mark {
-  font-family: var(--font-data);
-  font-size: var(--font-data-size);
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-4);
-}
-
 @utility nav-veil {
   position: relative;
 

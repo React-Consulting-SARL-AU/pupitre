@@ -14,8 +14,11 @@ const { hero } = homeContent(locale)
   <p class="lead mx-auto mt-8 max-w-2xl text-ink-2">{hero.lead}</p>
 
   <div class="mt-10 flex flex-wrap justify-center gap-3">
-    <a href={SIGNUP_URL} class="btn btn-lg btn-primary">{hero.signUp}</a>
+    <a data-emphasis="main" href={SIGNUP_URL} class="btn btn-lg btn-primary">
+      {hero.signUp}
+    </a>
     <a
+      data-emphasis="secondary"
       href={localizePath("/download/", locale)}
       class="btn btn-lg btn-secondary"
     >

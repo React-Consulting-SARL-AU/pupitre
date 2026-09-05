@@ -76,7 +76,7 @@ const offers = jsonLd(
         <p class="max-w-2xl text-ink-3">{content.plans.sameRate}</p>
 
         <div class="flex flex-wrap items-center gap-3">
-          <a href={SIGNUP_URL} class="btn btn-primary">
+          <a data-emphasis="main" href={SIGNUP_URL} class="btn btn-primary">
             {fill(content.plans.trial, numbers)}
           </a>
           <DownloadButton

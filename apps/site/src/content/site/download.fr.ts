@@ -4,7 +4,7 @@ export const downloadFr: DownloadContent = {
   meta: {
     title: "Télécharger Pupitre",
     description:
-      "L’app Pupitre pour macOS, Windows et Linux, avec les empreintes, la configuration requise et ce qu’attend le serveur.",
+      "L’app Pupitre pour macOS, Windows et Linux, avec la configuration requise et ce qu’attend le serveur.",
   },
   hero: {
     label: "Télécharger",
@@ -40,7 +40,9 @@ export const downloadFr: DownloadContent = {
   assets: {
     label: "Tous les fichiers",
     title: "Les trois systèmes",
-    lead: "Chaque fichier ci-dessous est la même version. Vérifiez l’empreinte si vous le souhaitez ; l’app vérifie ses propres mises à jour contre la signature.",
+    lead: "Chaque fichier ci-dessous est la même version. L’app vérifie ses propres mises à jour contre la signature.",
+    verify:
+      "Chaque build est publié ici avec sa taille et son SHA-256. Vérifiez-en un contre le fichier que vous avez téléchargé si vous le souhaitez.",
     download: "Télécharger",
     size: "Taille",
     digest: "SHA-256",
@@ -49,7 +51,7 @@ export const downloadFr: DownloadContent = {
   },
   stale: {
     title: "Cette liste peut être en retard",
-    body: "Le build n’a pas pu lire la liste des versions sur la plateforme : cette page affiche la dernière liste connue du dépôt. Les liens restent valides ; la version n’est peut-être pas la plus récente.",
+    body: "Le build n’a pas pu lire la liste des versions sur la plateforme : cette page affiche la dernière liste connue du dépôt. Les liens restent valides ; la version n’est peut-être pas la plus récente, et ni taille ni empreinte ne sont publiées pour elle, parce que le dépôt ne les connaît pas.",
   },
   release: {
     label: "Version",
@@ -84,7 +86,7 @@ export const downloadFr: DownloadContent = {
   },
   install: {
     label: "Après le téléchargement",
-    title: "Quatre minutes jusqu’à la première connexion",
+    title: "Du téléchargement à la première connexion",
     lead: "Rien à configurer avant de commencer. L’app demande le serveur, puis explique chaque étape qu’elle franchit.",
     steps: [
       "Ouvrez l’app et connectez-vous avec votre compte Pupitre. Elle affiche un code, vous le confirmez dans la console, et les deux sont liés.",

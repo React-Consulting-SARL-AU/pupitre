@@ -1,19 +1,49 @@
 import { formatUsd } from "@pupitre/shared/plans"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import Download from "../components/Download.astro"
 import { downloadContent } from "../content/site/download"
 import { FALLBACK_RELEASES } from "../content/site/releases"
 import { LOCALES } from "../lib/i18n"
 import { latestRelease, OPERATING_SYSTEMS } from "../lib/releases"
 import { SIGNUP_URL } from "../lib/urls"
+import {
+  actions,
+  offersDownloadAsMainAction,
+  undeclaredButtons,
+} from "./actions"
 import { render } from "./render"
 
 const paths = { en: "/download/", fr: "/fr/download/" } as const
 
-const MAIN_DOWNLOAD_RE = /href="[^"]*\/download\/"[^>]*class="[^"]*btn-primary/
+/** A title that counts anything drifts the day a step is added or split. */
+const MEGABYTES_RE = /\d+ MB/
+const COUNT_RE =
+  /\d|\b(one|two|three|four|five|six|seven|un|deux|trois|quatre|cinq|six|sept)\b/i
+
+const SERVED = {
+  version: "9.9.9",
+  channel: "stable",
+  published_at: "2026-09-04T00:00:00.000Z",
+  assets: [
+    {
+      os: "macos",
+      arch: "arm64",
+      format: "dmg",
+      size_bytes: 111_000_000,
+      sha256: "b".repeat(64),
+      url: "https://example.test/pupitre-macos-arm64.dmg",
+    },
+  ],
+}
+
+function stepCard(html: string, position: number): string {
+  const start = html.indexOf(`<p class="step-number">${position}</p>`)
+
+  return html.slice(start, html.indexOf("</li>", start))
+}
 
 describe("download", () => {
-  it("offers every system with its size and digest, in both languages", async () => {
+  it("offers every system in both languages", async () => {
     for (const locale of LOCALES) {
       const html = await render(Download, { path: paths[locale] })
       const content = downloadContent(locale)
@@ -41,6 +71,36 @@ describe("download", () => {
     expect(html).toContain('data-kind="warn"')
   })
 
+  it("publishes a digest and a size only for a release the platform served", async () => {
+    for (const locale of LOCALES) {
+      const html = await render(Download, { path: paths[locale] })
+      const { assets } = downloadContent(locale)
+
+      expect(html, locale).not.toContain(assets.digest)
+      expect(html, locale).not.toContain(assets.verify)
+      expect(html, locale).not.toMatch(MEGABYTES_RE)
+      expect(html, locale).not.toContain("0000000000")
+    }
+
+    vi.stubEnv("PUBLIC_RELEASES_URL", "https://example.test/releases")
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ data: [SERVED] }))
+    )
+
+    try {
+      const html = await render(Download, { path: paths.en })
+      const { assets } = downloadContent("en")
+
+      expect(html).toContain(assets.verify)
+      expect(html).toContain(`${assets.digest} bbbbbbbbbbbb`)
+      expect(html).toContain("111 MB")
+    } finally {
+      vi.unstubAllEnvs()
+      vi.unstubAllGlobals()
+    }
+  })
+
   it("states what each side needs", async () => {
     const html = await render(Download, { path: paths.en })
     const { requirements } = downloadContent("en")
@@ -66,9 +126,11 @@ describe("download", () => {
 
       expect(html, locale).toContain(account.title)
       expect(html, locale).toContain(account.body)
-      expect(html, locale).toContain(
-        `<a href="${SIGNUP_URL}" class="btn btn-primary">${account.cta}</a>`
-      )
+      expect(actions(html), locale).toContainEqual({
+        href: SIGNUP_URL,
+        label: account.cta,
+        main: true,
+      })
       expect(html.indexOf(account.cta), locale).toBeLessThan(
         html.indexOf('data-os="macos"')
       )
@@ -81,9 +143,9 @@ describe("download", () => {
       const { install } = downloadContent(locale)
 
       expect(install.steps, locale).toHaveLength(5)
-      expect(html, locale).toContain(
-        `<p class="step-number">1</p><p class="body-lg mt-5 text-ink-2">${install.steps[0]}</p>`
-      )
+      expect(install.title, locale).not.toMatch(COUNT_RE)
+      expect(html, locale).toContain(`>${install.title}</h2>`)
+      expect(stepCard(html, 1), locale).toContain(install.steps[0])
     }
   })
 
@@ -92,7 +154,8 @@ describe("download", () => {
       const html = await render(Download, { path: paths[locale] })
 
       expect(html, locale).not.toContain('name="robots"')
-      expect(html, locale).not.toMatch(MAIN_DOWNLOAD_RE)
+      expect(offersDownloadAsMainAction(html), locale).toBe(false)
+      expect(undeclaredButtons(html), locale).toEqual([])
     }
   })
 })

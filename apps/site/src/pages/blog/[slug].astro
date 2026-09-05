@@ -25,7 +25,6 @@ const t = translator("en")
   title={entry.data.title}
   description={entry.data.description}
   label={t("blog.label")}
-  index={String(entry.data.order).padStart(2, "0")}
   date={entry.data.date}
   meta={[entry.data.reading, `${t("blog.by")} ${entry.data.author}`]}
   backHref={localizePath("/blog/", "en")}

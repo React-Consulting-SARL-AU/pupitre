@@ -18,8 +18,11 @@ const locale = localeFromPath(Astro.url.pathname)
     <h2 class="heading-1 mx-auto max-w-3xl">{title}</h2>
     <p class="lead mx-auto mt-8 max-w-xl text-ink-2">{lead}</p>
     <div class="mt-10 flex flex-wrap justify-center gap-3">
-      <a href={SIGNUP_URL} class="btn btn-lg btn-primary">{signUp}</a>
-      <a href={localizePath("/docs/", locale)} class="btn btn-lg btn-secondary"
+      <a data-emphasis="main" href={SIGNUP_URL} class="btn btn-lg btn-primary">{signUp}</a>
+      <a
+        data-emphasis="secondary"
+        href={localizePath("/docs/", locale)}
+        class="btn btn-lg btn-secondary"
         >{docs}</a
       >
     </div>

@@ -5,6 +5,11 @@ import { homeContent, STACK } from "../content/site/home"
 import { SIGNUP_URL } from "../lib/urls"
 import Fr from "../pages/fr/index.astro"
 import En from "../pages/index.astro"
+import {
+  actions,
+  offersDownloadAsMainAction,
+  undeclaredButtons,
+} from "./actions"
 import { render } from "./render"
 import { undeclaredVectors } from "./vectors"
 
@@ -23,8 +28,6 @@ function structuredData(html: string): Record<string, unknown>[] {
   return [...html.matchAll(JSON_LD_RE)].map((match) => JSON.parse(match[1]))
 }
 
-const MAIN_DOWNLOAD_RE = /href="[^"]*\/download\/"[^>]*class="[^"]*btn-primary/
-
 describe("home", () => {
   it("carries the headline and two buttons in English", async () => {
     const html = await render(En, { path: "/" })
@@ -32,12 +35,16 @@ describe("home", () => {
     expect(html).toContain(
       ">Your AI agents get a machine of their own. Your laptop cools down.</h1>"
     )
-    expect(html).toContain(
-      `<a href="${SIGNUP_URL}" class="btn btn-lg btn-primary">Create an account</a>`
-    )
-    expect(html).toContain(
-      '<a href="/download/" class="btn btn-lg btn-secondary">Download the app</a>'
-    )
+    expect(actions(html)).toContainEqual({
+      href: SIGNUP_URL,
+      label: "Create an account",
+      main: true,
+    })
+    expect(actions(html)).toContainEqual({
+      href: "/download/",
+      label: "Download the app",
+      main: false,
+    })
   })
 
   it("carries the headline and two buttons in French", async () => {
@@ -47,12 +54,16 @@ describe("home", () => {
     expect(html).toContain(
       ">Vos agents IA travaillent sur une machine à eux. Votre laptop respire.</h1>"
     )
-    expect(html).toContain(
-      `<a href="${SIGNUP_URL}" class="btn btn-lg btn-primary">Créer un compte</a>`
-    )
-    expect(html).toContain(
-      '<a href="/fr/download/" class="btn btn-lg btn-secondary">Télécharger l’app</a>'
-    )
+    expect(actions(html)).toContainEqual({
+      href: SIGNUP_URL,
+      label: "Créer un compte",
+      main: true,
+    })
+    expect(actions(html)).toContainEqual({
+      href: "/fr/download/",
+      label: "Télécharger l’app",
+      main: false,
+    })
   })
 
   it("never makes the download a main action", async () => {
@@ -62,7 +73,8 @@ describe("home", () => {
     ] as const) {
       const html = await render(page, { path })
 
-      expect(html, path).not.toMatch(MAIN_DOWNLOAD_RE)
+      expect(offersDownloadAsMainAction(html), path).toBe(false)
+      expect(undeclaredButtons(html), path).toEqual([])
     }
   })
 
@@ -93,9 +105,11 @@ describe("home", () => {
       const html = await render(page, { path })
       const { cta } = homeContent(locale)
 
-      expect(html, locale).toContain(
-        `<a href="${SIGNUP_URL}" class="btn btn-lg btn-primary">${cta.signUp}</a>`
-      )
+      expect(actions(html), locale).toContainEqual({
+        href: SIGNUP_URL,
+        label: cta.signUp,
+        main: true,
+      })
       expect(html, locale).toContain(`>${cta.docs}</a>`)
     }
   })

@@ -4,20 +4,11 @@ interface Props {
   label: string
   title: string
   lead?: string
-  index?: string
   tone?: "base" | "surface"
   align?: "start" | "center"
 }
 
-const {
-  id,
-  label,
-  title,
-  lead,
-  index,
-  tone = "base",
-  align = "start",
-} = Astro.props
+const { id, label, title, lead, tone = "base", align = "start" } = Astro.props
 const titleId = `${id}-title`
 const centered = align === "center"
 ---
@@ -36,10 +27,7 @@ const centered = align === "center"
         centered ? (
           <p class="pill">{label}</p>
         ) : (
-          <p class="eyebrow">
-            {index && <span class="index-mark">{index}</span>}
-            <span>{label}</span>
-          </p>
+          <p class="eyebrow">{label}</p>
         )
       }
       <h2 id={titleId} class="heading-2 mt-6">{title}</h2>

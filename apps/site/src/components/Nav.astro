@@ -52,12 +52,16 @@ const isCurrent = (href: string) =>
         <ThemeToggle />
         <LocaleSwitch />
       </div>
-      <a href={SIGNUP_URL} class="btn btn-primary hidden sm:inline-flex"
+      <a
+        data-emphasis="main"
+        href={SIGNUP_URL}
+        class="btn btn-primary hidden sm:inline-flex"
         >{t("nav.cta")}</a
       >
 
       <details class="group relative md:hidden" data-nav-menu>
         <summary
+          data-emphasis="secondary"
           class="btn btn-secondary cursor-pointer list-none [&::-webkit-details-marker]:hidden"
         >
           <span class="group-open:hidden">{t("nav.menu")}</span>
@@ -81,7 +85,10 @@ const isCurrent = (href: string) =>
               )
             }
           </nav>
-          <a href={SIGNUP_URL} class="btn btn-primary mt-2 w-full"
+          <a
+            data-emphasis="main"
+            href={SIGNUP_URL}
+            class="btn btn-primary mt-2 w-full"
             >{t("nav.cta")}</a
           >
           <div

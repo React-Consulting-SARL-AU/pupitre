@@ -29,6 +29,7 @@ const format = new Intl.DateTimeFormat(locale, { dateStyle: "long" })
     lead={t("blog.lead")}
   >
     <a
+      data-emphasis="secondary"
       href={localizePath("/blog/rss.xml", locale)}
       class="btn btn-secondary">{t("blog.rss")}</a
     >

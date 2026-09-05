@@ -26,6 +26,7 @@ const t = translator(locale)
 const content = downloadContent(locale)
 const { releases, stale } = await loadReleases()
 const release = latestRelease(releases)
+const verifiable = (release?.assets ?? []).some((asset) => asset.sha256)
 
 const published = release
   ? new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(
@@ -92,7 +93,9 @@ const trail = jsonLd(
     <Callout title={content.account.title}>
       <p>{content.account.body}</p>
       <p class="mt-4">
-        <a href={SIGNUP_URL} class="btn btn-primary">{content.account.cta}</a>
+        <a data-emphasis="main" href={SIGNUP_URL} class="btn btn-primary">
+          {content.account.cta}
+        </a>
       </p>
     </Callout>
 
@@ -103,6 +106,8 @@ const trail = jsonLd(
         </Callout>
       )
     }
+
+    {verifiable && <p class="mt-8 text-ink-2">{content.assets.verify}</p>}
 
     <div data-download-picker class="mt-8 grid gap-6 lg:grid-cols-3">
       {
@@ -134,13 +139,17 @@ const trail = jsonLd(
                         {content.arch[asset.arch] ?? asset.arch}
                       </p>
                       <p class="data mt-1 text-ink-3">
-                        {asset.format} · {megabytes(asset.size_bytes)} MB ·{" "}
-                        {content.assets.digest} {shortDigest(asset.sha256)}
+                        {asset.format}
+                        {asset.size_bytes !== undefined &&
+                          ` · ${megabytes(asset.size_bytes)} MB`}
+                        {asset.sha256 !== undefined &&
+                          ` · ${content.assets.digest} ${shortDigest(asset.sha256)}`}
                       </p>
                     </div>
                     <a
                       href={asset.url}
                       data-download={`${asset.os}-${asset.arch}`}
+                      data-emphasis="secondary"
                       class="btn btn-secondary ms-auto"
                     >
                       {content.assets.download}

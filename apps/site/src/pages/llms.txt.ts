@@ -89,7 +89,7 @@ export async function GET() {
       {
         title: "Download",
         href: link(localizePath("/download/", "en")),
-        note: "The desktop app for macOS, Windows and Linux, with checksums and requirements.",
+        note: "The desktop app for macOS, Windows and Linux, with the requirements on both sides.",
       },
       {
         title: "Changelog",

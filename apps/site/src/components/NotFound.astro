@@ -12,10 +12,18 @@ const t = translator(locale)
     <h1 class="heading-1 mx-auto mt-7 max-w-2xl">{t("notFound.headline")}</h1>
     <p class="lead mx-auto mt-7 max-w-xl text-ink-2">{t("notFound.lead")}</p>
     <div class="mt-10 flex flex-wrap justify-center gap-3">
-      <a href={localizePath("/", locale)} class="btn btn-lg btn-primary">
+      <a
+        data-emphasis="main"
+        href={localizePath("/", locale)}
+        class="btn btn-lg btn-primary"
+      >
         {t("notFound.home")}
       </a>
-      <a href={localizePath("/docs/", locale)} class="btn btn-lg btn-secondary">
+      <a
+        data-emphasis="secondary"
+        href={localizePath("/docs/", locale)}
+        class="btn btn-lg btn-secondary"
+      >
         {t("notFound.docs")}
       </a>
     </div>

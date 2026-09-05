@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { actionTo } from "../test/actions"
 import { render } from "../test/render"
 import DownloadButton from "./DownloadButton.astro"
 
@@ -8,8 +9,11 @@ describe("DownloadButton", () => {
       props: { href: "/download/", label: "Download the app" },
     })
 
-    expect(html).toContain('<a href="/download/" class="btn btn-primary">')
-    expect(html).toContain("Download the app")
+    expect(actionTo(html, "/download/")).toEqual({
+      href: "/download/",
+      label: "Download the app",
+      main: true,
+    })
     expect(html).not.toContain("font-data")
   })
 

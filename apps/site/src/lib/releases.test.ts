@@ -188,4 +188,11 @@ describe("the static fallback", () => {
       expect(assetsFor(release as AppRelease, os).length).toBeGreaterThan(0)
     }
   })
+
+  it("claims no size and no digest, which the repository cannot know", () => {
+    for (const asset of FALLBACK_RELEASES.flatMap((entry) => entry.assets)) {
+      expect(asset.sha256, asset.url).toBeUndefined()
+      expect(asset.size_bytes, asset.url).toBeUndefined()
+    }
+  })
 })

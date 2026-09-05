@@ -4,7 +4,7 @@ export const downloadEn: DownloadContent = {
   meta: {
     title: "Download Pupitre",
     description:
-      "The Pupitre desktop app for macOS, Windows and Linux, with the checksums, the requirements and what the server needs.",
+      "The Pupitre desktop app for macOS, Windows and Linux, with the requirements and what the server needs.",
   },
   hero: {
     label: "Download",
@@ -40,7 +40,9 @@ export const downloadEn: DownloadContent = {
   assets: {
     label: "Every build",
     title: "All three systems",
-    lead: "Every file below is the same release. Check the digest if you care to; the app checks its own updates against the signature.",
+    lead: "Every file below is the same release. The app checks its own updates against the signature.",
+    verify:
+      "Every build here is published with its size and its SHA-256. Check one against the file you downloaded if you care to.",
     download: "Download",
     size: "Size",
     digest: "SHA-256",
@@ -49,7 +51,7 @@ export const downloadEn: DownloadContent = {
   },
   stale: {
     title: "This list may be behind",
-    body: "The build could not read the release list from the platform, so this page shows the last list the repository knows. The links stay valid; the version may not be the newest.",
+    body: "The build could not read the release list from the platform, so this page shows the last list the repository knows. The links stay valid; the version may not be the newest, and neither a size nor a digest is published for it, because the repository does not know them.",
   },
   release: {
     label: "Release",
@@ -84,7 +86,7 @@ export const downloadEn: DownloadContent = {
   },
   install: {
     label: "After the download",
-    title: "Four minutes to the first connection",
+    title: "From the download to the first connection",
     lead: "Nothing to configure before you start. The app asks for the server, then explains every step it takes.",
     steps: [
       "Open the app and sign in with your Pupitre account. It shows a code, you confirm it in the console, and the two are linked.",

@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest"
 import { SIGNUP_URL } from "../lib/urls"
+import {
+  actionTo,
+  offersDownloadAsMainAction,
+  undeclaredButtons,
+} from "../test/actions"
 import { render } from "../test/render"
 import Footer from "./Footer.astro"
 import Nav from "./Nav.astro"
-
-const MAIN_DOWNLOAD_RE = /href="[^"]*\/download\/"[^>]*class="[^"]*btn-primary/
 
 describe("Nav", () => {
   it("marks the section the reader is in", async () => {
@@ -31,18 +34,22 @@ describe("Nav", () => {
   it("makes creating an account the only main action", async () => {
     const html = await render(Nav, { path: "/" })
 
-    expect(html).toContain(
-      `<a href="${SIGNUP_URL}" class="btn btn-primary hidden sm:inline-flex">Create an account</a>`
-    )
-    expect(html).not.toMatch(MAIN_DOWNLOAD_RE)
+    expect(actionTo(html, SIGNUP_URL)).toEqual({
+      href: SIGNUP_URL,
+      label: "Create an account",
+      main: true,
+    })
+    expect(offersDownloadAsMainAction(html)).toBe(false)
+    expect(undeclaredButtons(html)).toEqual([])
   })
 
   it("says it in French too", async () => {
     const html = await render(Nav, { path: "/fr/" })
 
-    expect(html).toContain(
-      `<a href="${SIGNUP_URL}" class="btn btn-primary hidden sm:inline-flex">Créer un compte</a>`
-    )
+    expect(actionTo(html, SIGNUP_URL)).toMatchObject({
+      label: "Créer un compte",
+      main: true,
+    })
   })
 
   it("offers the same links behind a menu on a narrow screen", async () => {

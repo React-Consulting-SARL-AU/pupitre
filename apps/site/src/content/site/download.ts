@@ -24,6 +24,7 @@ export interface DownloadContent {
     label: string
     title: string
     lead: string
+    verify: string
     download: string
     size: string
     digest: string

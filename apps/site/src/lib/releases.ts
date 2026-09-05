@@ -16,9 +16,11 @@ export interface AppAsset {
   os: OperatingSystem
   arch: Architecture
   format: string
-  size_bytes: number
-  sha256: string
   url: string
+  /** Absent on the static fallback, which cannot know the published file. */
+  size_bytes?: number
+  /** Absent on the static fallback: a wrong checksum is worse than none. */
+  sha256?: string
 }
 
 export interface AppRelease {

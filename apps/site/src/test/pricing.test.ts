@@ -10,6 +10,11 @@ import { fill } from "../lib/i18n"
 import { SIGNUP_URL } from "../lib/urls"
 import Fr from "../pages/fr/pricing.astro"
 import En from "../pages/pricing.astro"
+import {
+  actions,
+  offersDownloadAsMainAction,
+  undeclaredButtons,
+} from "./actions"
 import { render } from "./render"
 import { undeclaredVectors } from "./vectors"
 
@@ -32,8 +37,6 @@ interface Offer {
 function structuredData(html: string): Record<string, unknown>[] {
   return [...html.matchAll(JSON_LD_RE)].map((match) => JSON.parse(match[1]))
 }
-
-const MAIN_DOWNLOAD_RE = /href="[^"]*\/download\/"[^>]*class="[^"]*btn-primary/
 
 describe("pricing page", () => {
   it("carries the headline and the three offers in both languages", async () => {
@@ -92,7 +95,8 @@ describe("pricing page", () => {
       expect(
         html.match(new RegExp(`href="${prefix}/download/"`, "g"))?.length
       ).toBeGreaterThanOrEqual(1)
-      expect(html).not.toMatch(MAIN_DOWNLOAD_RE)
+      expect(offersDownloadAsMainAction(html), locale).toBe(false)
+      expect(undeclaredButtons(html), locale).toEqual([])
       expect(html).toContain(`href="${prefix}/#catalog"`)
     }
   })
@@ -102,9 +106,11 @@ describe("pricing page", () => {
       const html = await render(page, { path })
       const content = pricingContent(locale)
 
-      expect(html, locale).toContain(
-        `<a href="${SIGNUP_URL}" class="btn btn-primary">${fill(content.plans.trial, { days: TRIAL_DAYS })}</a>`
-      )
+      expect(actions(html), locale).toContainEqual({
+        href: SIGNUP_URL,
+        label: fill(content.plans.trial, { days: TRIAL_DAYS }),
+        main: true,
+      })
     }
   })
 

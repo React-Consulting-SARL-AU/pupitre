@@ -1,6 +1,7 @@
 import { formatUsd, getPlan, yearlyPriceUsd } from "@pupitre/shared/plans"
 import { describe, expect, it } from "vitest"
 import { SIGNUP_URL } from "../lib/urls"
+import { actionTo } from "../test/actions"
 import { render } from "../test/render"
 import PlanCard from "./PlanCard.astro"
 
@@ -17,9 +18,11 @@ describe("PlanCard", () => {
     expect(html).toContain(formatUsd(solo.monthlyPriceUsd))
     expect(html).toContain(formatUsd(yearlyPriceUsd(solo)))
     expect(html).toContain(`Up to ${solo.maxServers} servers`)
-    expect(html).toContain(
-      `<a href="${SIGNUP_URL}" class="btn btn-primary w-full">Start the trial</a>`
-    )
+    expect(actionTo(html, SIGNUP_URL)).toEqual({
+      href: SIGNUP_URL,
+      label: "Start the trial",
+      main: true,
+    })
     expect(html).not.toContain(">From<")
   })
 

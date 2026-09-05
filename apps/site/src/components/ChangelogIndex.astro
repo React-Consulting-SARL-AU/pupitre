@@ -32,12 +32,16 @@ const format = new Intl.DateTimeFormat(locale, { dateStyle: "long" })
     lead={t("changelog.lead")}
   >
     <div class="flex flex-wrap gap-3">
-      <a href={SIGNUP_URL} class="btn btn-primary">{t("nav.cta")}</a>
+      <a data-emphasis="main" href={SIGNUP_URL} class="btn btn-primary">
+        {t("nav.cta")}
+      </a>
       <a
+        data-emphasis="secondary"
         href={localizePath("/download/", locale)}
         class="btn btn-secondary">{t("nav.download")}</a
       >
       <a
+        data-emphasis="secondary"
         href={localizePath("/changelog/rss.xml", locale)}
         class="btn btn-secondary">{t("changelog.rss")}</a
       >

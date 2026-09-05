@@ -31,7 +31,11 @@ const trail = jsonLd(
   >
     {
       first && (
-        <a href={docPath(first.slug, locale)} class="btn btn-lg btn-primary">
+        <a
+          data-emphasis="main"
+          href={docPath(first.slug, locale)}
+          class="btn btn-lg btn-primary"
+        >
           {t("docs.start")}
         </a>
       )

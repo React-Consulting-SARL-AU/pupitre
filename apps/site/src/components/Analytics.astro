@@ -18,10 +18,20 @@ const enabled = Boolean(import.meta.env.PUBLIC_POSTHOG_KEY)
       <p class="heading-4">{t("consent.title")}</p>
       <p class="mt-2 text-ink-2">{t("consent.body")}</p>
       <div class="mt-4 flex flex-wrap items-center gap-2">
-        <button type="button" data-consent="granted" class="btn btn-primary">
+        <button
+          type="button"
+          data-consent="granted"
+          data-emphasis="main"
+          class="btn btn-primary"
+        >
           {t("consent.accept")}
         </button>
-        <button type="button" data-consent="denied" class="btn btn-secondary">
+        <button
+          type="button"
+          data-consent="denied"
+          data-emphasis="secondary"
+          class="btn btn-secondary"
+        >
           {t("consent.decline")}
         </button>
         <a
