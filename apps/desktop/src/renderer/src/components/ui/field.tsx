@@ -3,7 +3,7 @@ import { Label } from "./label";
 
 /** The shared look of every text input, select and textarea of the app. */
 export const fieldControlClass =
-  "w-full rounded-sm border border-line-strong bg-sunken px-2.5 py-1.5 font-data text-[12px] text-ink outline-none transition-soft placeholder:text-ink-4 focus:border-ink disabled:text-ink-4";
+  "w-full rounded-md border border-line-strong bg-sunken px-3 py-1.5 font-data text-[12px] text-ink outline-none transition-soft placeholder:text-ink-4 focus:border-ink disabled:text-ink-4";
 
 export function Field({
   label,

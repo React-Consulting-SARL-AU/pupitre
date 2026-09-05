@@ -20,12 +20,12 @@ const VARIANT: Record<ButtonVariant, string> = {
 };
 
 const SIZE = {
-  sm: "gap-1.5 px-2.5 py-1 text-[11px]",
-  md: "gap-2 px-3 py-1.5 text-[12px]",
+  sm: "gap-1.5 px-3 py-1 text-[11px]",
+  md: "gap-2 px-3.5 py-1.5 text-[12px]",
 };
 
 const SHARED =
-  "clickable inline-flex shrink-0 items-center whitespace-nowrap rounded-sm transition-soft disabled:opacity-40";
+  "clickable inline-flex shrink-0 items-center whitespace-nowrap rounded-full transition-soft disabled:opacity-40";
 
 export function Button({
   children,

@@ -39,7 +39,7 @@ export function CopyField({
     <div className="min-w-0">
       <Label>{label}</Label>
 
-      <div className="mt-1.5 flex items-start gap-2 rounded-sm border border-line-strong bg-sunken px-2.5 py-2">
+      <div className="mt-1.5 flex items-start gap-2 rounded-md border border-line-strong bg-sunken px-3 py-2">
         <code className="min-w-0 flex-1 break-all font-data text-[11px] text-ink-2 leading-relaxed">
           {value}
         </code>
