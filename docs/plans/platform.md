@@ -227,3 +227,13 @@ Critères d'acceptation.
 1. Vingt requêtes authentifiées consécutives aboutissent toutes.
 2. `/status` rend la base « ok » quand elle répond.
 
+### PLT-21 — Une organisation sans abonnement n'est pas indéfiniment valide
+Lot 3 · dépend de PLT-07 · `packages/api`
+
+But. L'accès au produit suppose un abonnement, fût-il en essai.
+Périmètre. `entitlementForOrganization` rend aujourd'hui `valid` lorsqu'aucun abonnement n'existe, et la fenêtre de validité se renouvelle à chaque lecture : une organisation qui ne passe jamais par le paiement garde l'accès sans limite de temps, bornée seulement par les deux serveurs de `FREE_SEAT_QUOTA`. Un essai qui se termine, lui, coupe bien l'accès. Décider si ces deux serveurs sont une offre gratuite permanente assumée — auquel cas le site doit l'annoncer — ou si l'enrôlement exige un abonnement en cours, y compris en essai.
+Hors périmètre. L'essai lui-même, tenu par Stripe.
+Critères d'acceptation.
+1. Le comportement retenu est le même sur les trois surfaces : la console, l'app et le site.
+2. Un test couvre l'organisation sans aucun abonnement.
+

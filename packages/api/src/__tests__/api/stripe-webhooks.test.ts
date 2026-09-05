@@ -269,6 +269,50 @@ describe("POST /webhooks/stripe", () => {
     expect(canceled.organizationId).toBe(organizationId)
   })
 
+  it("coupe l'accès dès la fin d'un essai, sans sursis supplémentaire", async () => {
+    const trialEnd = secondsFloor(Date.now() - 60_000)
+    const enrolled = await createServer({ organizationId })
+
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.created",
+        stripeSubscriptionObject({
+          organizationId,
+          quantity: 1,
+          status: "trialing",
+        })
+      )
+    )
+
+    // Stripe résilie un essai qui finit sans carte : la fin de période est celle
+    // de l'essai, donc déjà passée — la tolérance ne rallonge rien.
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.deleted",
+        stripeSubscriptionObject({
+          organizationId,
+          quantity: 1,
+          status: "canceled",
+          currentPeriodEnd: trialEnd,
+        })
+      )
+    )
+
+    expect(await suspendExpiredGrace(new Date())).toContain(enrolled.server.id)
+
+    const stored = await server.prisma.server.findUniqueOrThrow({
+      where: { id: enrolled.server.id },
+    })
+
+    expect(stored.status).toBe("suspended")
+
+    const state = await apiRequest<StateBody>("/agent/state", {
+      bearer: enrolled.token,
+    })
+
+    expect(state.json.entitlement).toBe("suspended")
+  })
+
   it("met l'organisation en tolérance sept jours sur un impayé, puis suspend", async () => {
     const enrolled = await createServer({ organizationId })
 

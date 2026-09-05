@@ -102,6 +102,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-14 | Déploiement Cloudflare Builds, staging et production | en revue | `feat/PLT-14-deploy` | fusion en attente de PLT-18 : mêmes fichiers |
 | PLT-15 | Workflows Cloudflare : déclencheurs des tâches longues | fait | `feat/PLT-15-workflows` | fusionnée |
 | PLT-19 | Déclencheur planifié pour la fin de tolérance | fait | `feat/PLT-19-grace-cron` | fusionnée |
+| PLT-21 | Une organisation sans abonnement n'est pas indéfiniment valide | à faire | | |
 | PLT-17 | Le workflow d'évaluation des alertes | fait | `feat/PLT-17-alerts-workflow` | fusionnée |
 | PLT-16 | Harnais Playwright pour la console | fait | `feat/PLT-16-e2e` | fusionnée |
 | PLT-18 | Managed Payments : vendeur Stripe, un produit, deux prix | en revue | `main` | |
@@ -127,6 +128,7 @@ Une ligne par blocage, supprimée quand il est levé.
 
 | Date | Tâche | Ce qui bloque | Décision attendue de |
 | --- | --- | --- | --- |
+| 2026-09-05 | PLT-21 | `entitlementForOrganization` rend `valid` quand l'organisation n'a **aucun** abonnement, et renouvelle cette validité à chaque lecture : qui ne passe jamais par le paiement garde l'accès pour toujours, dans la limite des deux serveurs de `FREE_SEAT_QUOTA`. L'essai résilié est bien coupé, lui. À trancher : ces deux serveurs sont-ils une offre gratuite permanente assumée, ou faut-il exiger un abonnement — même en essai — pour enrôler ? La deuxième réponse tient en une ligne dans `entitlement.ts`. | propriétaire |
 | 2026-09-05 | INF-21 | Un serveur **enrôlé mais restreint** ne peut pas se ré-enrôler : le contrat fige six commandes en mode restreint et `enroll` n'en fait pas partie. Le chemin de reprise passe donc par la console. Si l'app doit pouvoir réparer un serveur dont le jeton a été perdu ou révoqué, il faut ajouter `enroll` au mode restreint — un changement de contrat, sans perte de sûreté puisqu'un jeton d'enrôlement vient d'un compte authentifié. | propriétaire |
 | 2026-09-05 | APP-13 | Le preload ne peut pas être compilé en bytecode : Electron le charge dans le processus de rendu, dont le V8 refuse les données de cache produites par l'isolat Node du compilateur, et la fenêtre s'ouvre alors sans son pont — constaté par Playwright. Le processus principal, lui, l'est, et c'est là que vivent la logique et le jeton de mise à jour. Rien à décider dans l'immédiat : c'est une limite d'Electron, consignée pour qu'on ne la redécouvre pas. | pour information |
 | 2026-09-05 | APP-14 · AGT-15 | La clé publique qui vérifie une release doit être **la même** dans l'agent (`selfupdate.releasePublicKey`, injectée au build) et dans l'app (`AGENT_RELEASE_PUBLIC_KEY`, vide aujourd'hui). Elle est dérivée d'une clé privée que le propriétaire garde hors ligne. Décider : une seule clé publique de release, stable dans le temps, embarquée aux deux endroits et documentée dans le runbook. Sans elle, la vérification est en place mais rien ne la nourrit. | propriétaire |
