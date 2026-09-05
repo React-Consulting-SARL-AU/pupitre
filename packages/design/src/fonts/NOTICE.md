@@ -35,3 +35,12 @@ Le sous-ensemble latin couvre le français de l'interface, accents et ligature
 `œ` compris ; l'`unicode-range` de `fonts.css` est celui de ce sous-ensemble, de
 sorte qu'un caractère hors couverture retombe proprement sur la police système
 plutôt que de faire dessiner un glyphe absent.
+
+## La copie TrueType du générateur
+
+`scripts/fonts/bricolage-grotesque-700.ttf` est la même graisse, au format
+TrueType, lue uniquement par `scripts/generate-brand.ts` : le générateur
+vectorise « Pupitre » pour les lockups du kit de marque, et l'outil qui fait ce
+travail ne sait pas lire un woff2. Ce fichier n'est jamais servi ni embarqué
+dans un binaire ; il ne quitte pas le temps de génération. Même source, même
+licence, même date que la ligne ci-dessus.

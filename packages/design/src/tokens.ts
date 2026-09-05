@@ -95,13 +95,15 @@ export interface Radius {
   sm: string
   md: string
   lg: string
+  xl: string
   full: string
 }
 
 export const RADIUS: Radius = {
-  sm: "6px",
-  md: "10px",
-  lg: "14px",
+  sm: "8px",
+  md: "12px",
+  lg: "18px",
+  xl: "24px",
   full: "999px",
 }
 

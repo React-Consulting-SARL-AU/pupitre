@@ -1,10 +1,18 @@
 # Logos de services
 
-Un fichier par module du catalogue qui nomme un produit de marque. Les tracés
-viennent de [Simple Icons](https://simpleicons.org) 16.29.0,
+Un fichier par module du catalogue qui nomme un produit de marque. La plupart des
+tracés viennent de [Simple Icons](https://simpleicons.org) 16.29.0,
 publié sous CC0-1.0 ; la couleur de chaque fichier est la couleur de marque que
-Simple Icons tient de la source citée. Les fichiers sont committés ;
-`bun scripts/generate-logos.ts` les régénère.
+Simple Icons tient de la source citée.
+
+Les marques que Simple Icons ne publie pas viennent du SVG du titulaire tel que
+[svgl.app](https://svgl.app) le collecte : le fichier d'origine est committé sous
+`scripts/vendor`, le générateur le réduit à ce que l'app inline — une racine, un
+`viewBox`, un titre, des identifiants préfixés pour que deux logos posés côte à
+côte ne se peignent pas l'un l'autre. Ces tracés-là sont en `marque déposée, usage nominatif`, pas
+sous CC0-1.0.
+
+Les fichiers sont committés ; `bun scripts/generate-logos.ts` les régénère.
 
 **Usage nominatif.** Ces marques appartiennent à leurs titulaires. Pupitre les
 affiche pour nommer un logiciel que le client installe sur son propre serveur,
@@ -33,6 +41,17 @@ un partenariat, une affiliation ou un aval, ni comme icône d'action, ni en fond
 | `db-redis.svg` | `db.redis` | Redis | https://redis.io/brand-guidelines | CC0-1.0 | 2026-09-04 |
 | `exposure-caddy.svg` | `exposure.caddy` | Caddy | https://caddyserver.com | CC0-1.0 | 2026-09-04 |
 | `tool-neon.svg` | `tool.neon` | Neon | https://neon.com/brand | CC0-1.0 | 2026-09-04 |
+| `editor-vscode.svg` | `editor.vscode` | Visual Studio Code | https://svgl.app/library/vscode.svg | marque déposée, usage nominatif | 2026-09-04 |
+| `ai-codex.svg` | `ai.codex` | Codex | https://svgl.app/library/codex_light.svg | marque déposée, usage nominatif | 2026-09-04 |
+
+## Marques hors catalogue
+
+Un produit que le site nomme sans qu'il porte le nom de son module : `runtime.node`
+installe aussi Bun.
+
+| Fichier | Marque | Source | Licence du tracé | Récupéré le |
+| --- | --- | --- | --- | --- |
+| `mark-bun.svg` | Bun | https://svgl.app/library/bun.svg | marque déposée, usage nominatif | 2026-09-04 |
 
 ## Modules sans logo
 
@@ -42,7 +61,5 @@ Le catalogue retombe sur une icône Lucide.
 | --- | --- |
 | `core.system` | Socle système : aucun produit de marque à nommer. |
 | `core.hardening` | Durcissement du système : aucun produit de marque à nommer. |
-| `exposure.ssh` | OpenSSH ne publie pas de marque figurative et ne figure pas dans Simple Icons. |
-| `ai.codex` | OpenAI a été retiré de Simple Icons et son kit de marque n'est pas redistribuable. |
+| `exposure.ssh` | OpenSSH ne publie pas de marque figurative, et ni Simple Icons ni svgl n'en portent une. |
 | `ai.hermes` | Nous Research ne publie pas de kit de marque ; le « Hermes » de Simple Icons est le moteur JavaScript de Meta, une autre marque. |
-| `editor.vscode` | Les marques Microsoft ont été retirées de Simple Icons et le kit Visual Studio Code n'est pas sous licence libre. |

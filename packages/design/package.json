@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./ansi": "./src/ansi.ts",
+    "./brand": "./src/brand/index.ts",
     "./fonts.css": "./src/fonts/fonts.css",
     "./logos": "./src/logos/index.ts",
     "./tailwind.css": "./src/tailwind.css",
@@ -12,6 +13,7 @@
     "./tokens.css": "./src/tokens.css"
   },
   "scripts": {
+    "brand": "bun scripts/generate-brand.ts",
     "lint": "ultracite check",
     "lint:fix": "ultracite fix",
     "check:types": "tsgo --noEmit",
@@ -21,8 +23,10 @@
     "@pupitre/shared": "workspace:*"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/bun": "^1.4.0",
     "@typescript/native-preview": "^7.0.0-dev.20260707.2",
+    "satori": "^0.33.4",
     "simple-icons": "^16.29.0",
     "typescript": "^6.0.3",
     "ultracite": "7.8.3"

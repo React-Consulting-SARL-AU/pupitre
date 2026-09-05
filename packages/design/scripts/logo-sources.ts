@@ -34,17 +34,51 @@ export const SOURCES: readonly LogoSource[] = [
   { id: "tool.neon", slug: "neon", monochrome: false },
 ]
 
+export interface VendorSource {
+  /** Names both the module and the file under `scripts/vendor`. */
+  id: string
+  title: string
+  source: string
+  monochrome: boolean
+  /** A brand the catalogue does not name: keyed in `MARKS`, filed as `mark-<id>`. */
+  mark?: boolean
+}
+
+/**
+ * A mark Simple Icons does not publish, taken from the brand's own SVG as
+ * collected by [svgl](https://svgl.app) and committed under `scripts/vendor`
+ * so the build stays offline. Same nominative use as the rest, but the path is
+ * not under the CC0 licence the Simple Icons ones are.
+ */
+export const VENDOR_SOURCES: readonly VendorSource[] = [
+  {
+    id: "editor.vscode",
+    title: "Visual Studio Code",
+    source: "https://svgl.app/library/vscode.svg",
+    monochrome: false,
+  },
+  {
+    id: "ai.codex",
+    title: "Codex",
+    source: "https://svgl.app/library/codex_light.svg",
+    monochrome: true,
+  },
+  {
+    id: "bun",
+    title: "Bun",
+    source: "https://svgl.app/library/bun.svg",
+    monochrome: false,
+    mark: true,
+  },
+]
+
 /** A module with no logo, and why. Inlined into the generated `src/logos/index.ts`. */
 export const EXEMPTIONS: Readonly<Partial<Record<ModuleId, string>>> = {
   "core.system": "Socle système : aucun produit de marque à nommer.",
   "core.hardening":
     "Durcissement du système : aucun produit de marque à nommer.",
   "exposure.ssh":
-    "OpenSSH ne publie pas de marque figurative et ne figure pas dans Simple Icons.",
-  "ai.codex":
-    "OpenAI a été retiré de Simple Icons et son kit de marque n'est pas redistribuable.",
+    "OpenSSH ne publie pas de marque figurative, et ni Simple Icons ni svgl n'en portent une.",
   "ai.hermes":
     "Nous Research ne publie pas de kit de marque ; le « Hermes » de Simple Icons est le moteur JavaScript de Meta, une autre marque.",
-  "editor.vscode":
-    "Les marques Microsoft ont été retirées de Simple Icons et le kit Visual Studio Code n'est pas sous licence libre.",
 }

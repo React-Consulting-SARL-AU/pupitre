@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test"
 import { readdirSync, readFileSync } from "node:fs"
 import path from "node:path"
 import { type ModuleId, MVP_MODULE_IDS } from "@pupitre/shared/catalog"
-import { EXEMPTIONS, LOGOS, logoFor } from "./index"
+import { EXEMPTIONS, LOGOS, logoFor, MARKS, markFor } from "./index"
 
 const LOGO_DIR = import.meta.dir
 const NOTICE = path.join(LOGO_DIR, "NOTICE.md")
@@ -10,6 +10,7 @@ const NOTICE_FILE_RE = /^\|\s*`([^`]+\.svg)`\s*\|/gm
 const TAG_RE = /<(\/?)([a-zA-Z][\w:-]*)((?:"[^"]*"|'[^']*'|[^>"'])*?)(\/?)>/g
 const VIEWBOX_RE = /\bviewBox="[-\d.\s]+"/
 const SIZE_ATTRIBUTE_RE = /\s(width|height)=/
+const ROOT_TAG_RE = /<svg\b[^>]*>/
 const FORBIDDEN = [
   "<script",
   "<image",
@@ -22,6 +23,24 @@ const FORBIDDEN = [
 
 function fileOf(moduleId: ModuleId): string {
   return `${moduleId.replaceAll(".", "-")}.svg`
+}
+
+function markFileOf(id: string): string {
+  return `mark-${id}.svg`
+}
+
+function logoOfFile(file: string) {
+  const moduleId = Object.keys(LOGOS).find(
+    (candidate) => fileOf(candidate as ModuleId) === file
+  )
+
+  if (moduleId) {
+    return LOGOS[moduleId as ModuleId]
+  }
+
+  return MARKS[
+    Object.keys(MARKS).find((candidate) => markFileOf(candidate) === file) ?? ""
+  ]
 }
 
 function svgFiles(): string[] {
@@ -79,28 +98,31 @@ describe("catalogue coverage", () => {
     })
   }
 
-  it("names every logo file after its module id", () => {
-    const expected = Object.keys(LOGOS)
-      .map((id) => fileOf(id as ModuleId))
-      .sort()
+  it("names every logo file after its module id, every mark after its brand", () => {
+    const expected = [
+      ...Object.keys(LOGOS).map((id) => fileOf(id as ModuleId)),
+      ...Object.keys(MARKS).map(markFileOf),
+    ].sort()
 
     expect(files).toEqual(expected)
   })
 
   it("inlines the markup its file holds", () => {
-    for (const [id, logo] of Object.entries(LOGOS)) {
-      const onDisk = readFileSync(
-        path.join(LOGO_DIR, fileOf(id as ModuleId)),
-        "utf8"
-      )
+    for (const file of files) {
+      const onDisk = readFileSync(path.join(LOGO_DIR, file), "utf8")
 
-      expect(logo?.svg).toBe(onDisk.trim())
+      expect(logoOfFile(file)?.svg).toBe(onDisk.trim())
     }
   })
 
   it("returns null for a module without a logo", () => {
     expect(logoFor("core.system")).toBeNull()
     expect(logoFor("tool.github")).not.toBeNull()
+  })
+
+  it("serves a brand the catalogue does not name", () => {
+    expect(markFor("bun")).not.toBeNull()
+    expect(markFor("runtime.node")).toBeNull()
   })
 })
 
@@ -128,16 +150,15 @@ describe.each(files)("%s", (file) => {
   })
 
   it("carries a viewBox and no fixed size", () => {
-    expect(markup).toMatch(VIEWBOX_RE)
-    expect(markup).not.toMatch(SIZE_ATTRIBUTE_RE)
+    const root = markup.match(ROOT_TAG_RE)?.[0] ?? ""
+
+    expect(root).toMatch(VIEWBOX_RE)
+    expect(root).not.toMatch(SIZE_ATTRIBUTE_RE)
   })
 
   it("takes its colour from the theme only when monochrome", () => {
-    const id = Object.keys(LOGOS).find(
-      (candidate) => fileOf(candidate as ModuleId) === file
-    ) as ModuleId
-    const { monochrome } = LOGOS[id] as { monochrome: boolean }
+    const logo = logoOfFile(file) as { monochrome: boolean }
 
-    expect(markup.includes("currentColor")).toBe(monochrome)
+    expect(markup.includes("currentColor")).toBe(logo.monochrome)
   })
 })
