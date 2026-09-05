@@ -10,6 +10,7 @@
 # NE METTRE ICI QUE CE QUI NE SE DÉRIVE PAS.
 #   - `DATABASE_URL` et `MIGRATE_DATABASE_URL` viennent de `neonctl`.
 #   - `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` sont tirés au hasard par poste.
+#   - `STRIPE_WEBHOOK_SECRET` vient du CLI Stripe.
 #   - `BETTER_AUTH_URL`, `VITE_APP_URL` et `EMAIL_FROM` viennent des `vars` de `apps/web/wrangler.jsonc`.
 #
 # ATTENTION : `op inject` échoue en bloc si un seul champ manque dans la note.
@@ -20,8 +21,8 @@ STRIPE_SECRET_KEY="op://{{OP_VAULT}}/{{OP_ITEM}}/STRIPE_SECRET_KEY"
 STRIPE_PRICE_SERVER_MONTH="op://{{OP_VAULT}}/{{OP_ITEM}}/STRIPE_PRICE_SERVER_MONTH"
 STRIPE_PRICE_SERVER_YEAR="op://{{OP_VAULT}}/{{OP_ITEM}}/STRIPE_PRICE_SERVER_YEAR"
 #
-# STRIPE_WEBHOOK_SECRET n'a pas sa place ici : en local il vient de `stripe listen`,
-# qui en tire un neuf à chaque session, et il diffère de celui du tableau de bord.
+# STRIPE_WEBHOOK_SECRET n'a pas sa place ici : `dev:prepare` le dérive par
+# `stripe listen --print-secret`, et il diffère de celui du tableau de bord.
 # Seuls staging et production en ont besoin, par secret Wrangler.
 
 # --- Connexion par GitHub et par Google. Chaque fournisseur exige ses deux

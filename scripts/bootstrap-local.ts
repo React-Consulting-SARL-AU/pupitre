@@ -240,6 +240,52 @@ function databaseUrls(): Record<string, string> {
   }
 }
 
+/**
+ * En local le secret de webhook est celui de l'endpoint que le CLI Stripe tient
+ * pour ce compte : `stripe listen` signe avec lui, et il diffère de celui du
+ * tableau de bord. Il se dérive donc, comme la base, au lieu d'être partagé.
+ */
+export function stripeWebhookSecret(
+  run = (args: string[]) =>
+    spawnSync("stripe", args, { encoding: "utf8" }) as {
+      status: number | null
+      stdout?: string
+    }
+): Record<string, string> {
+  if (run(["--version"]).status !== 0) {
+    process.stdout.write(
+      "Stripe ignoré : le CLI `stripe` est absent. Installe-le, ou renseigne STRIPE_WEBHOOK_SECRET à la main.\n"
+    )
+
+    return {}
+  }
+
+  const printed = run(["listen", "--print-secret"])
+
+  if (printed.status !== 0) {
+    process.stdout.write(
+      "Stripe ignoré : le CLI n'a pas de session. Lance `stripe login`.\n"
+    )
+
+    return {}
+  }
+
+  const secret = (printed.stdout ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .findLast((line) => line.startsWith("whsec_"))
+
+  if (!secret) {
+    process.stdout.write(
+      "Stripe ignoré : `stripe listen --print-secret` n'a rendu aucun secret.\n"
+    )
+
+    return {}
+  }
+
+  return { STRIPE_WEBHOOK_SECRET: secret }
+}
+
 function link(target: string, path: string): void {
   if (existsSync(path) || lstatSync(path, { throwIfNoEntry: false })) {
     unlinkSync(path)
@@ -276,6 +322,10 @@ function main(): void {
     Object.assign(values, databaseUrls())
   }
 
+  if (!current.STRIPE_WEBHOOK_SECRET) {
+    Object.assign(values, stripeWebhookSecret())
+  }
+
   writeFileSync(ENV_FILE, apply(base, values), { mode: 0o600 })
   chmodSync(ENV_FILE, 0o600)
 
@@ -292,6 +342,7 @@ function main(): void {
       ? `${Object.keys(local).length} depuis wrangler.jsonc`
       : null,
     "DATABASE_URL" in values ? "base depuis Neon" : null,
+    "STRIPE_WEBHOOK_SECRET" in values ? "webhook depuis Stripe" : null,
   ].filter(Boolean)
 
   process.stdout.write(

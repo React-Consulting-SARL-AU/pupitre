@@ -8,9 +8,9 @@
   ],
   "scripts": {
     "dev:prepare": "bun scripts/bootstrap-local.ts",
-    "dev": "bun run dev:prepare && turbo run dev --filter=@pupitre/site --filter=@pupitre/web",
+    "dev": "bun run dev:prepare && turbo run dev dev:stripe --filter=@pupitre/site --filter=@pupitre/web",
     "dev:site": "bun run dev:prepare && turbo run dev --filter=@pupitre/site",
-    "dev:web": "bun run dev:prepare && turbo run dev --filter=@pupitre/web",
+    "dev:web": "bun run dev:prepare && turbo run dev dev:stripe --filter=@pupitre/web",
     "dev:desktop": "turbo run dev --filter=@pupitre/desktop",
     "dev:email": "bun --cwd=packages/api run dev:email",
     "build": "turbo run build",
@@ -33,7 +33,8 @@
     "db:migrate:reset": "turbo run db:migrate:reset --filter=@pupitre/db",
     "db:studio": "turbo run db:studio --filter=@pupitre/db",
     "prepare": "husky",
-    "commitlint": "commitlint --edit"
+    "commitlint": "commitlint --edit",
+    "dev:stripe": "bun run dev:prepare && turbo run dev:stripe --filter=@pupitre/web"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.10",

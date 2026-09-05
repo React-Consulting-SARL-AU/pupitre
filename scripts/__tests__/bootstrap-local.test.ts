@@ -6,6 +6,7 @@ import {
   apply,
   localValues,
   parse,
+  stripeWebhookSecret,
   stripJsonComments,
   wranglerVars,
 } from "../bootstrap-local"
@@ -94,5 +95,47 @@ test("un .env.local vide ressort avec les valeurs locales", () => {
   expect(parse(written)).toEqual({
     BETTER_AUTH_URL: "http://localhost:3000",
     VITE_APP_URL: "http://localhost:3000",
+  })
+})
+
+describe("stripeWebhookSecret", () => {
+  const runner =
+    (replies: Record<string, { status: number; stdout?: string }>) =>
+    (args: string[]) =>
+      replies[args[0]] ?? { status: 1 }
+
+  test("prend le secret que le CLI tient pour ce compte", () => {
+    const values = stripeWebhookSecret(
+      runner({
+        "--version": { status: 0 },
+        listen: {
+          status: 0,
+          stdout: "Ready! Your webhook signing secret is\nwhsec_abc123\n",
+        },
+      })
+    )
+
+    expect(values).toEqual({ STRIPE_WEBHOOK_SECRET: "whsec_abc123" })
+  })
+
+  test("ne bloque rien quand le CLI est absent ou sans session", () => {
+    expect(stripeWebhookSecret(runner({}))).toEqual({})
+    expect(stripeWebhookSecret(runner({ "--version": { status: 0 } }))).toEqual(
+      {}
+    )
+  })
+
+  test("n'invente pas un secret quand la sortie n'en porte aucun", () => {
+    const values = stripeWebhookSecret(
+      runner({
+        "--version": { status: 0 },
+        listen: {
+          status: 0,
+          stdout: "A newer version of the Stripe CLI is available.\n",
+        },
+      })
+    )
+
+    expect(values).toEqual({})
   })
 })

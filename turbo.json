@@ -75,6 +75,13 @@
       "cache": false,
       "persistent": true
     },
+    // Le CLI Stripe signe avec le secret que `dev:prepare` a dérivé : les deux
+    // lisent le même endpoint de ce compte.
+    "dev:stripe": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": ["STRIPE_SECRET_KEY"]
+    },
     "lint": {
       "outputs": []
     },
