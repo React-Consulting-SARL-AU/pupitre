@@ -51,9 +51,10 @@ typography:
     fontWeight: 700
     letterSpacing: "-0.01em"
 radius:
-  sm: "6px"
-  md: "10px"
-  lg: "14px"
+  sm: "8px"
+  md: "12px"
+  lg: "18px"
+  xl: "24px"
   full: "999px"
 space:
   scale: "4px base, steps 1 2 3 4 6 8 12 16 24"
@@ -104,10 +105,10 @@ Une échelle de gris neutres, sans teinte. Quatre niveaux de surface pour l'él�
 
 - **L'état se lit à la forme d'abord.** En ligne : point plein. Arrêté : cercle vide. En échec : point barré. En cours : point qui respire. La couleur confirme ; l'interface reste lisible en gris purs.
 - **L'élévation est une ombre douce, jamais une bordure épaisse.** Trois niveaux seulement : `flat` pour ce qui est dans le flux, `raised` pour une carte ou un panneau posé sur le fond, `overlay` pour ce qui flotte — menu, popover, boîte de dialogue. En thème sombre, l'ombre est plus profonde et se double d'un pas de gris, l'ombre seule n'y suffisant pas. Une carte porte une ombre **ou** un trait, jamais les deux appuyés.
-- **Les coins sont arrondis.** `sm` pour un contrôle, `md` pour une carte ou un panneau, `lg` pour une boîte de dialogue ou une fenêtre, `full` pour une pastille. Un rayon plus petit que son parent quand un élément est imbriqué.
+- **Les coins sont arrondis.** `sm` pour un contrôle, `md` pour une carte ou un panneau, `lg` pour une boîte de dialogue ou une fenêtre, `xl` pour les grandes surfaces du site — bloc d'accueil, carte de section, tuile de logo —, `full` pour une pastille. Un rayon plus petit que son parent quand un élément est imbriqué.
 - **L'espace fait la hiérarchie.** Échelle de 4 px. Une gouttière de 20 px entre les blocs d'un même groupe, 32 px entre deux sections. Un titre de section a plus d'air au-dessus qu'en dessous. Une liste dense reste aérée : 12 px de padding vertical minimum par ligne. Ne jamais serrer pour faire tenir : couper ou faire défiler.
 - **Les menus se hiérarchisent en trois plans** : le libellé de groupe en capitales espacées `ink-3`, les entrées en `ink`, l'entrée active sur `raised` avec un repère à gauche. Un séparateur avant une action destructrice. Jamais plus de deux niveaux d'imbrication.
-- **Typographie.** Police système pour l'interface à 13 px, 14 px sur le web. JetBrains Mono pour toute donnée : ports, chemins, commandes, durées, empreintes, versions. Libellés en capitales espacées à 10,5 px. Chiffres tabulaires partout où ils s'alignent. Bricolage Grotesque pour les titres. Interlignage généreux : 1,5 sur le texte courant, 1,2 sur les titres.
+- **Typographie.** Police système pour l'interface à 13 px dans l'app et la console, 15 px sur le site, où le texte se lit de loin et sans clavier. JetBrains Mono pour toute donnée : ports, chemins, commandes, durées, empreintes, versions. Libellés en capitales espacées à 10,5 px. Chiffres tabulaires partout où ils s'alignent. Bricolage Grotesque pour les titres. Interlignage généreux : 1,5 sur le texte courant, 1,2 sur les titres.
 - **Icônes d'interface** : Lucide, trait de 1,5 px, jamais remplies, jamais colorées. Un bouton d'action porte son icône avant son libellé.
 - **Logos de services** : les vrais, en SVG, dans leurs couleurs d'origine. Voir la section dédiée.
 - **Focus.** Anneau de deux pixels en `ink`, décalé de deux pixels. Visible sur les deux thèmes.
@@ -125,10 +126,11 @@ Une échelle de gris neutres, sans teinte. Quatre niveaux de surface pour l'él�
 Le catalogue, l'écran Services et les cartes de projet montrent **le vrai logo** de chaque service, en SVG, dans ses couleurs d'origine : PostgreSQL, MySQL, MongoDB, Redis, Node.js, Bun, Python, Java, Go, Docker, GitHub, 1Password, Cloudflare, JetBrains, VS Code, Zed, Claude, Codex, Neon, Caddy. C'est ce qui rend une liste de vingt-six modules lisible en un coup d'œil, et ce qui donne à l'interface sa chaleur sans trahir la monochromie du reste.
 
 - **Où ils vivent** : `packages/design/src/logos/<id>.svg`, un fichier par module du catalogue, nommé par l'identifiant du module (`db.postgres` → `db-postgres.svg`). Ce sont des **fragments inline**, sans déclaration de namespace : ils sont destinés à être insérés dans le document, jamais chargés par un `<img>`. Un composant `ServiceLogo` par surface les rend à taille fixe (16, 20, 24, 32 px), avec un `title` accessible.
-- **Provenance** : Simple Icons quand la marque y est (CC0), sinon le kit de marque officiel de l'éditeur. Un fichier `packages/design/src/logos/NOTICE.md` liste pour chaque logo sa source, sa licence et la date. Usage nominatif : on nomme un logiciel qu'on installe, ce qui est licite ; on ne s'en sert jamais pour suggérer un partenariat.
+- **Provenance** : Simple Icons quand la marque y est (CC0), sinon le SVG du titulaire tel que [svgl](https://svgl.app) le collecte — le fichier d'origine est committé sous `packages/design/scripts/vendor`, et le générateur le réduit à ce que l'app inline : une racine, un `viewBox`, un titre, des identifiants préfixés pour que deux logos posés côte à côte ne se peignent pas l'un l'autre. Un fichier `packages/design/src/logos/NOTICE.md` liste pour chaque logo sa source, sa licence et la date, et sépare les tracés CC0 de ceux qui restent une marque déposée. Usage nominatif : on nomme un logiciel qu'on installe, ce qui est licite ; on ne s'en sert jamais pour suggérer un partenariat.
 - **Traitement** : le logo garde ses couleurs, sans filtre ni teinte, posé sur une pastille `surface` aux coins `sm`. Un logo monochrome par nature (GitHub, Zed) prend `ink` et suit donc le thème. Aucun logo n'est déformé, recadré ni recoloré.
-- **Interdits** : un logo comme icône d'action, dans un bouton, ou en fond. Un logo de marque qui n'est pas un module du catalogue.
-- **Sans logo licite, pas de logo inventé.** Six modules MVP retombent sur une icône Lucide : `core.system`, `core.hardening`, `exposure.ssh`, `ai.codex`, `ai.hermes`, `editor.vscode`, faute de source redistribuable. `ServiceLogo` doit rendre cette retombée aussi soignée que les autres.
+- **Une marque hors catalogue** — un produit qu'un module installe sous un autre nom, comme Bun dans `runtime.node` — vit dans le même dossier sous `mark-<id>.svg`, servie par `markFor`. Le site s'en sert pour nommer ce que Pupitre installe ; le reste du produit n'affiche que des logos de modules.
+- **Interdits** : un logo comme icône d'action, dans un bouton, ou en fond.
+- **Sans logo licite, pas de logo inventé.** Quatre modules MVP n'ont pas de marque à montrer : `core.system` et `core.hardening` ne nomment aucun produit, `exposure.ssh` et `ai.hermes` n'ont pas de source. La retombée doit être aussi soignée que les autres : une icône Lucide dans l'app et la console, un monogramme sur le site.
 
 ## Palette ANSI du terminal
 
@@ -148,5 +150,6 @@ Le catalogue, l'écran Services et les cartes de projet montrent **le vrai logo*
 - `packages/design/src/tokens.css` déclare les tokens sous `:root` (clair), les redéfinit sous `:root[data-theme="dark"]` et sous `@media (prefers-color-scheme: dark)` guardé par `:root:not([data-theme="light"])`. Les ombres, les rayons, l'échelle d'espace et les durées sont des tokens au même titre que les couleurs (`--shadow-raised`, `--radius-md`, `--space-4`, `--motion-soft`), et le thème sombre redéfinit les ombres. `packages/design/src/tailwind.css` les expose au `@theme` de Tailwind 4 (`--color-base`, `--radius-md`, `--shadow-overlay`…). `packages/design/src/tokens.ts` en donne la version TypeScript pour le processus principal d'Electron.
 - La police d'affichage est embarquée, pas chargée : `packages/design/src/fonts/` porte le woff2 en sous-ensemble latin de la seule graisse utilisée, sa provenance et sa licence (SIL OFL 1.1), et `@pupitre/design/fonts.css` la déclare. L'app desktop l'importe, et rend donc la même chose hors ligne.
 - Le choix de thème (`system`, `light`, `dark`) vit avec les préférences de navigation de l'app desktop, dans le `localStorage` de la console, et dans un cookie pour le site. Le thème xterm bascule avec lui.
-- La marque est le glyphe `>_` dans un carré aux coins `md` : noir sur blanc en clair, blanc sur noir en sombre. Icône d'app, favicon et Open Graph en dérivent.
+- La marque est le glyphe `>_` dans un carré aux coins `md` : noir sur blanc en clair, blanc sur noir en sombre. Elle est **définie une fois**, dans `packages/design/src/brand/index.ts` : la géométrie sur une grille de 1024, les deux paires de couleurs, une petite taille optique pour le dessous de vingt-quatre pixels, et un constructeur de SVG. L'icône de l'app Electron (`bun --cwd=apps/desktop run icons`), le favicon du site et le kit de marque en dérivent tous, et un test du site interdit au favicon de diverger.
+- **Le kit de marque** est un artefact, pas une source : `bun --cwd=packages/design run brand` écrit dans `packages/design/dist/brand/` tout ce dont la marque a besoin hors des apps — les deux versions du carré en SVG et en PNG de 16 à 1024, les lockups horizontal et vertical avec « Pupitre » vectorisé, les glyphes seuls, `favicon.ico`, les fichiers pour Stripe, l'avatar social, la carte Open Graph, les icônes macOS, Windows, iOS et PWA. Son `README.md` dit quel fichier va où.
 - Composants de la console et de l'app : Base UI + shadcn/ui sur Tailwind 4, prop `render` (jamais `asChild`), un composant par fichier. Le site utilise les mêmes tokens en Astro sans bibliothèque de composants.
