@@ -102,18 +102,37 @@ describe("createAuth", () => {
     expect(passkeyOptionsOf(local).rpID).toBe("localhost")
   })
 
-  it("enables GitHub only when both credentials are present", () => {
+  it("enables a social provider only when both its credentials are present", () => {
     expect(createAuth({ prisma, env }).options.socialProviders).toEqual({})
     expect(
-      createAuth({ prisma, env: { ...env, GITHUB_CLIENT_ID: "id" } }).options
-        .socialProviders
+      createAuth({
+        prisma,
+        env: { ...env, GITHUB_CLIENT_ID: "id", GOOGLE_CLIENT_ID: "id" },
+      }).options.socialProviders
     ).toEqual({})
 
-    const withGithub = createAuth({
+    const withBoth = createAuth({
+      prisma,
+      env: {
+        ...env,
+        GITHUB_CLIENT_ID: "github-id",
+        GITHUB_CLIENT_SECRET: "github-secret",
+        GOOGLE_CLIENT_ID: "google-id",
+        GOOGLE_CLIENT_SECRET: "google-secret",
+      },
+    })
+
+    expect(withBoth.options.socialProviders?.github?.clientId).toBe("github-id")
+    expect(withBoth.options.socialProviders?.google?.clientId).toBe("google-id")
+  })
+
+  it("enables one social provider without the other", () => {
+    const githubOnly = createAuth({
       prisma,
       env: { ...env, GITHUB_CLIENT_ID: "id", GITHUB_CLIENT_SECRET: "secret" },
     })
 
-    expect(withGithub.options.socialProviders?.github?.clientId).toBe("id")
+    expect(githubOnly.options.socialProviders?.github).toBeDefined()
+    expect(githubOnly.options.socialProviders?.google).toBeUndefined()
   })
 })

@@ -11,7 +11,8 @@
     "./cloudflare/client": "./src/generated/prisma-cloudflare/client.ts",
     "./cloudflare/enums": "./src/generated/prisma-cloudflare/enums.ts",
     "./cloudflare/models": "./src/generated/prisma-cloudflare/models.ts",
-    "./latest-migration": "./src/latest-migration.ts"
+    "./latest-migration": "./src/latest-migration.ts",
+    "./neon": "./src/neon.ts"
   },
   "scripts": {
     "build": "bun run db:generate",
@@ -26,6 +27,8 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
+    "@prisma/adapter-neon": "^7.9.1",
     "@prisma/client": "^7.9.1"
   },
   "devDependencies": {

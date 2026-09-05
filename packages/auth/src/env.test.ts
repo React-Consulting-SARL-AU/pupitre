@@ -14,10 +14,12 @@ describe("readAuthEnv", () => {
       BETTER_AUTH_SECRET: "s",
       BETTER_AUTH_URL: "http://localhost:3000",
       GITHUB_CLIENT_ID: "  ",
+      GOOGLE_CLIENT_SECRET: "  ",
       VITE_APP_URL: "",
     })
 
     expect(env.GITHUB_CLIENT_ID).toBeUndefined()
+    expect(env.GOOGLE_CLIENT_SECRET).toBeUndefined()
     expect(env.VITE_APP_URL).toBeUndefined()
   })
 })

@@ -1,6 +1,7 @@
 import { openapi } from "@elysiajs/openapi"
 import { configureAuthEmails } from "@pupitre/auth/emails"
 import { type Auth, CLIENT_IP_HEADER } from "@pupitre/auth/server"
+import { withNeonPrismaClient } from "@pupitre/db/neon"
 import { resolveLocale } from "@pupitre/shared/i18n"
 import { type AnyElysia, Elysia, ValidationError } from "elysia"
 import { authEmails } from "./emails/renderer"
@@ -136,5 +137,5 @@ export async function handleApiRequest(request: Request): Promise<Response> {
     }
   }
 
-  return await app.handle(request)
+  return await withNeonPrismaClient(() => app.handle(request))
 }

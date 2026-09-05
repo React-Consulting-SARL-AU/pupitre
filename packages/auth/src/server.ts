@@ -1,6 +1,5 @@
 import { passkey } from "@better-auth/passkey"
-import { PrismaNeon } from "@prisma/adapter-neon"
-import { PrismaClient } from "@pupitre/db/cloudflare/client"
+import { scopedNeonPrismaClient, withNeonPrismaClient } from "@pupitre/db/neon"
 import { DEFAULT_LOCALE, LOCALES, localeOf } from "@pupitre/shared/i18n"
 import { PLATFORM_ADMIN_ROLE } from "@pupitre/shared/permissions"
 import { betterAuth } from "better-auth"
@@ -100,16 +99,17 @@ function acceptLanguageOf(source: unknown): string | null {
   return headers?.get("accept-language") ?? null
 }
 
-function githubProvider(env: AuthEnv) {
-  if (!(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET)) {
-    return {}
-  }
+function credentialsOf(clientId?: string, clientSecret?: string) {
+  return clientId && clientSecret ? { clientId, clientSecret } : null
+}
+
+function socialProviders(env: AuthEnv) {
+  const github = credentialsOf(env.GITHUB_CLIENT_ID, env.GITHUB_CLIENT_SECRET)
+  const google = credentialsOf(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET)
 
   return {
-    github: {
-      clientId: env.GITHUB_CLIENT_ID,
-      clientSecret: env.GITHUB_CLIENT_SECRET,
-    },
+    ...(github ? { github } : {}),
+    ...(google ? { google } : {}),
   }
 }
 
@@ -133,7 +133,7 @@ export function createAuth({
     secret: env.BETTER_AUTH_SECRET,
     trustedOrigins: trustedOrigins(env),
     database: prismaAdapter(prisma, { provider: "postgresql" }),
-    socialProviders: githubProvider(env),
+    socialProviders: socialProviders(env),
     session: {
       expiresIn: SESSION_EXPIRES_IN,
       updateAge: SESSION_UPDATE_AGE,
@@ -275,34 +275,20 @@ export type Session = Auth["$Infer"]["Session"]
 
 let instance: Auth | null = null
 
-function requireDatabaseUrl(): string {
-  const url = process.env.DATABASE_URL
-
-  if (!url) {
-    throw new Error("DATABASE_URL is not set")
-  }
-
-  return url
-}
-
 export function getAuth(): Auth {
-  if (instance) {
-    return instance
-  }
-
-  const prisma = new PrismaClient({
-    adapter: new PrismaNeon({ connectionString: requireDatabaseUrl() }),
+  instance ??= createAuth({
+    prisma: scopedNeonPrismaClient(),
+    env: readAuthEnv(process.env),
   })
-
-  instance = createAuth({ prisma, env: readAuthEnv(process.env) })
 
   return instance
 }
 
 export const auth = {
-  handler: (request: Request): Promise<Response> => getAuth().handler(request),
+  handler: (request: Request): Promise<Response> =>
+    withNeonPrismaClient(() => getAuth().handler(request)),
 }
 
 export function getSession(headers: Headers): Promise<Session | null> {
-  return getAuth().api.getSession({ headers })
+  return withNeonPrismaClient(() => getAuth().api.getSession({ headers }))
 }

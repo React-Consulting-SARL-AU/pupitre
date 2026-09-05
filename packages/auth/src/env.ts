@@ -4,6 +4,8 @@ export interface AuthEnv {
   VITE_APP_URL?: string
   GITHUB_CLIENT_ID?: string
   GITHUB_CLIENT_SECRET?: string
+  GOOGLE_CLIENT_ID?: string
+  GOOGLE_CLIENT_SECRET?: string
 }
 
 export type EnvSource = Record<string, string | undefined>
@@ -34,6 +36,8 @@ export function readAuthEnv(source: EnvSource): AuthEnv {
     VITE_APP_URL: optionalVariable(source, "VITE_APP_URL"),
     GITHUB_CLIENT_ID: optionalVariable(source, "GITHUB_CLIENT_ID"),
     GITHUB_CLIENT_SECRET: optionalVariable(source, "GITHUB_CLIENT_SECRET"),
+    GOOGLE_CLIENT_ID: optionalVariable(source, "GOOGLE_CLIENT_ID"),
+    GOOGLE_CLIENT_SECRET: optionalVariable(source, "GOOGLE_CLIENT_SECRET"),
   }
 }
 

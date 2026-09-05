@@ -1,30 +1,16 @@
-import { PrismaNeon } from "@prisma/adapter-neon"
-import { Prisma, PrismaClient } from "@pupitre/db/cloudflare/client"
+import { Prisma, type PrismaClient } from "@pupitre/db/cloudflare/client"
+import { neonPrismaClient } from "@pupitre/db/neon"
 
 export type ApiPrisma = PrismaClient
 
 let configured: ApiPrisma | null = null
-
-function requireDatabaseUrl(): string {
-  const url = process.env.DATABASE_URL
-
-  if (!url) {
-    throw new Error("DATABASE_URL is not set")
-  }
-
-  return url
-}
 
 export function configurePrisma(client: ApiPrisma): void {
   configured = client
 }
 
 export function getPrisma(): ApiPrisma {
-  configured ??= new PrismaClient({
-    adapter: new PrismaNeon({ connectionString: requireDatabaseUrl() }),
-  })
-
-  return configured
+  return configured ?? neonPrismaClient()
 }
 
 export type Serialized<T> = T extends Date | bigint | Prisma.Decimal

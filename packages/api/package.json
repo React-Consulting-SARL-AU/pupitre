@@ -24,8 +24,6 @@
   "dependencies": {
     "@elysiajs/eden": "^1.4.9",
     "@elysiajs/openapi": "1.4.16",
-    "@neondatabase/serverless": "^1.1.0",
-    "@prisma/adapter-neon": "^7.9.1",
     "@pupitre/auth": "workspace:*",
     "@pupitre/db": "workspace:*",
     "@pupitre/design": "workspace:*",
