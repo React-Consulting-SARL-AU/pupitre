@@ -11,8 +11,7 @@ export const en = {
   "nav.download": "Download",
   "nav.blog": "Blog",
   "nav.changelog": "Changelog",
-  "nav.cta": "Download the app",
-  "nav.console": "Console",
+  "nav.cta": "Create an account",
   "nav.menu": "Menu",
   "nav.menuClose": "Close",
 

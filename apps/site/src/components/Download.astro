@@ -15,6 +15,7 @@ import {
   jsonLd,
   softwareApplication,
 } from "../lib/structured-data"
+import { SIGNUP_URL } from "../lib/urls"
 import Callout from "./Callout.astro"
 import Feature from "./Feature.astro"
 import PageHeader from "./PageHeader.astro"
@@ -82,12 +83,19 @@ const trail = jsonLd(
   </PageHeader>
 
   <Section
+    align="center"
     id="builds"
-    index="01"
     label={content.assets.label}
     title={content.assets.title}
     lead={content.assets.lead}
   >
+    <Callout title={content.account.title}>
+      <p>{content.account.body}</p>
+      <p class="mt-4">
+        <a href={SIGNUP_URL} class="btn btn-primary">{content.account.cta}</a>
+      </p>
+    </Callout>
+
     {
       stale && (
         <Callout kind="warn" title={content.stale.title}>
@@ -154,8 +162,8 @@ const trail = jsonLd(
   </Section>
 
   <Section
+    align="center"
     id="requirements"
-    index="02"
     tone="surface"
     label={content.requirements.label}
     title={content.requirements.title}
@@ -174,18 +182,18 @@ const trail = jsonLd(
   </Section>
 
   <Section
+    align="center"
     id="after"
-    index="03"
     label={content.install.label}
     title={content.install.title}
     lead={content.install.lead}
   >
-    <ol class="grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+    <ol class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {
         content.install.steps.map((step, position) => (
-          <li class="border-line border-t pt-5">
-            <p class="index-mark">{String(position + 1).padStart(2, "0")}</p>
-            <p class="mt-3 text-ink-2">{step}</p>
+          <li class="card-soft p-6">
+            <p class="step-number">{position + 1}</p>
+            <p class="body-lg mt-5 text-ink-2">{step}</p>
           </li>
         ))
       }

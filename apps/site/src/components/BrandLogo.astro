@@ -1,0 +1,42 @@
+---
+import { logoFor, markFor } from "@pupitre/design/logos"
+import type { ModuleId } from "@pupitre/shared/catalog"
+
+interface Props {
+  name: string
+  module?: ModuleId
+  mark?: string
+  size?: "sm" | "lg"
+}
+
+const { name, module, mark, size = "sm" } = Astro.props
+
+function brand() {
+  if (module) {
+    return logoFor(module)
+  }
+
+  return mark ? markFor(mark) : null
+}
+
+const logo = brand()
+const box = size === "lg" ? "size-8" : "size-6"
+---
+
+{
+  logo ? (
+    <span
+      aria-hidden="true"
+      class:list={[
+        "flex shrink-0 [&>svg]:size-full",
+        box,
+        logo.monochrome && "text-ink",
+      ]}
+      set:html={logo.svg}
+    />
+  ) : (
+    <span aria-hidden="true" class:list={["monogram shrink-0", box]}>
+      {name.slice(0, 1)}
+    </span>
+  )
+}

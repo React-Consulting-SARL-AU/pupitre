@@ -28,7 +28,7 @@ const lines = [
 ]
 ---
 
-<div class="card grid gap-x-12 gap-y-8 p-8 md:grid-cols-[auto_1fr] md:p-12">
+<div class="card-soft mx-auto grid max-w-4xl gap-x-12 gap-y-8 p-8 md:grid-cols-[auto_1fr] md:p-12">
   <p class="figure text-[clamp(64px,44px+3.5vw,104px)]">
     {formatUsd(solo.monthlyPriceUsd)}
   </p>
@@ -42,8 +42,8 @@ const lines = [
         })
       }
     </p>
-    <ul class="mt-6 divide-y divide-line border-line border-y text-ink-2">
-      {lines.map((line) => <li class="py-3.5">{line}</li>)}
+    <ul class="mt-6 flex flex-col gap-3 text-ink-2">
+      {lines.map((line) => <li class="body-lg">{line}</li>)}
     </ul>
     <a
       href={localizePath("/pricing/", locale)}

@@ -28,7 +28,7 @@ export const pricingFr: PricingContent = {
     later: "Plus tard",
     serversUpTo: "Jusqu’à {count} serveurs apportés",
     serversUnlimited: "Autant de serveurs que vous en apportez",
-    trial: "{days} jours d’essai, sans carte.",
+    trial: "Démarrer l’essai de {days} jours",
     sameRate:
       "Le prix par serveur est le même en Solo et en Équipe : une agence achète l’organisation, pas une remise.",
     download: "Télécharger l’app",
@@ -41,7 +41,7 @@ export const pricingFr: PricingContent = {
           "Les mises à jour et les alertes",
           "Vos propres abonnements Claude, Codex ou Hermes",
         ],
-        cta: "Commander",
+        cta: "Démarrer l’essai",
       },
       team: {
         audience: "Une organisation",
@@ -52,7 +52,7 @@ export const pricingFr: PricingContent = {
           "La révocation en un clic quand quelqu’un part",
           "Une facture unique pour toute l’équipe",
         ],
-        cta: "Commander",
+        cta: "Démarrer l’essai",
       },
       hosted: {
         audience: "Qui ne veut pas louer",

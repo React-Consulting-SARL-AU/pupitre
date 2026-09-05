@@ -1,0 +1,35 @@
+---
+import type { HTMLAttributes } from "astro/types"
+
+/**
+ * The few interface icons the site needs, as Lucide outlines inlined by hand.
+ * The site pulls in no icon package: four glyphs do not justify a dependency,
+ * and an `<img>` would not follow the theme.
+ */
+export type IconName = "system" | "light" | "dark" | "check"
+
+interface Props extends HTMLAttributes<"svg"> {
+  name: IconName
+}
+
+const PATHS: Record<IconName, string> = {
+  system: `<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>`,
+  light: `<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>`,
+  dark: `<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>`,
+  check: `<path d="M20 6 9 17l-5-5"/>`,
+}
+
+const { name, ...rest } = Astro.props
+---
+
+<svg
+  aria-hidden="true"
+  fill="none"
+  stroke="currentColor"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  stroke-width="1.5"
+  viewBox="0 0 24 24"
+  {...rest}
+  set:html={PATHS[name]}
+></svg>

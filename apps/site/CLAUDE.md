@@ -12,6 +12,7 @@ Astro 5 statique sur Cloudflare Pages · Tailwind 4 sur `@pupitre/design` · MDX
 
 - **La voix de [PRODUCT.md](../../docs/product/PRODUCT.md)** : précise, sobre, technique sans jargon. Mots interdits, vérifiés par test : « AI-powered », « seamless », « blazing », « bank-grade », « secure by design », « revolutionary ».
 - **Les captures montrent l'app réelle**, via `<ProductShot>` uniquement, jamais un `<img>` à la main. Pas de capture tant que l'app n'est pas au design monochrome : du texte.
+- **Deux SVG seulement** : un logo de service, lu dans `@pupitre/design/logos` par `<BrandLogo>` dans les couleurs de la marque, et une icône d'interface tracée par `<Icon>` — quatre glyphes Lucide inlinés, `aria-hidden`, jamais décoratifs. Jamais un fichier de logo posé dans le site. Un test refuse tout autre `<svg>`.
 - **Les prix viennent de `@pupitre/shared/plans`.** Le site et la console affichent les mêmes chiffres par construction.
 - **Chaque page existe en fr et en en dans la même passe.** Un script vérifie la parité des routes.
 - **Le site ne vend pas.** Le bouton de commande ouvre la console ; aucune logique de compte ici.

@@ -4,16 +4,17 @@ import { render } from "../test/render"
 import Steps from "./Steps.astro"
 
 describe("Steps", () => {
-  it("numbers the onboarding in order", async () => {
+  it("numbers every step in order", async () => {
     const items = homeContent("en").steps.items
     const html = await render(Steps, { props: { items } })
 
-    expect(html).toContain(">01</p>")
-    expect(html).toContain(">07</p>")
-    expect(html.match(/<li/g)).toHaveLength(items.length)
+    expect(html.match(/<li[\s>]/g)).toHaveLength(items.length)
+    expect(html).toContain('<p class="step-number">1</p>')
+    expect(html).toContain(`<p class="step-number">${items.length}</p>`)
 
     for (const item of items) {
       expect(html).toContain(`>${item.title}</h3>`)
+      expect(html).toContain(item.detail)
     }
   })
 })

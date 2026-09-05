@@ -1,7 +1,8 @@
 ---
+import { TRIAL_DAYS } from "@pupitre/shared/plans"
 import { homeContent } from "../content/site/home"
 import Base from "../layouts/Base.astro"
-import { localeFromPath, translator } from "../lib/i18n"
+import { fill, localeFromPath, translator } from "../lib/i18n"
 import {
   faqPage,
   jsonLd,
@@ -31,6 +32,10 @@ const application = jsonLd(
 )
 const company = jsonLd(organization({ name: t("site.name"), locale }))
 const questions = jsonLd(faqPage(content.faq.items))
+const steps = content.steps.items.map((item) => ({
+  ...item,
+  detail: fill(item.detail, { days: TRIAL_DAYS }),
+}))
 ---
 
 <Base title={content.meta.title} description={content.meta.description}>
@@ -44,29 +49,25 @@ const questions = jsonLd(faqPage(content.faq.items))
 
   <Section
     id="steps"
-    index="01"
+    align="center"
     label={content.steps.label}
     title={content.steps.title}
     lead={content.steps.lead}
     tone="surface"
   >
-    <Steps items={content.steps.items} />
+    <Steps items={steps} />
   </Section>
 
   <Section
     id="features"
-    index="02"
+    align="center"
     label={content.features.label}
     title={content.features.title}
   >
     <div class="grid gap-6 md:grid-cols-3">
       {
-        content.features.items.map((item, position) => (
-          <Feature
-            title={item.title}
-            lines={item.lines}
-            index={String(position + 1).padStart(2, "0")}
-          />
+        content.features.items.map((item) => (
+          <Feature title={item.title} lines={item.lines} />
         ))
       }
     </div>
@@ -74,7 +75,7 @@ const questions = jsonLd(faqPage(content.faq.items))
 
   <Section
     id="clients"
-    index="03"
+    align="center"
     label={content.clients.label}
     title={content.clients.title}
     lead={content.clients.lead}
@@ -87,27 +88,18 @@ const questions = jsonLd(faqPage(content.faq.items))
         ))
       }
     </div>
-    <p class="lead mt-12 max-w-2xl text-ink-2">{content.clients.note}</p>
-  </Section>
-
-  <Section
-    id="catalog"
-    index="04"
-    label={content.catalog.label}
-    title={content.catalog.title}
-    lead={content.catalog.lead}
-  >
-    <CatalogList />
+    <p class="mx-auto mt-14 max-w-2xl text-center text-ink-3">
+      {content.clients.note}
+    </p>
   </Section>
 
   <Section
     id="promise"
-    index="05"
-    tone="surface"
+    align="center"
     label={content.promise.label}
     title={content.promise.title}
   >
-    <div class="grid gap-x-10 gap-y-12 md:grid-cols-3">
+    <div class="mx-auto grid max-w-4xl gap-x-12 gap-y-14 sm:grid-cols-2">
       {
         content.promise.items.map((item) => (
           <Claim statement={item.statement} proof={item.proof} />
@@ -117,8 +109,19 @@ const questions = jsonLd(faqPage(content.faq.items))
   </Section>
 
   <Section
+    id="catalog"
+    align="center"
+    label={content.catalog.label}
+    title={content.catalog.title}
+    lead={content.catalog.lead}
+    tone="surface"
+  >
+    <CatalogList />
+  </Section>
+
+  <Section
     id="pricing"
-    index="06"
+    align="center"
     label={content.pricing.label}
     title={content.pricing.title}
   >
@@ -127,10 +130,10 @@ const questions = jsonLd(faqPage(content.faq.items))
 
   <Section
     id="faq"
-    index="07"
-    tone="surface"
+    align="center"
     label={content.faq.label}
     title={content.faq.title}
+    tone="surface"
   >
     <Faq items={content.faq.items} />
   </Section>
@@ -138,7 +141,7 @@ const questions = jsonLd(faqPage(content.faq.items))
   <ClosingCta
     title={content.cta.title}
     lead={content.cta.lead}
-    download={content.cta.download}
+    signUp={content.cta.signUp}
     docs={content.cta.docs}
   />
 </Base>

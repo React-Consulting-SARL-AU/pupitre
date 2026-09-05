@@ -5,6 +5,7 @@ import {
   stripLocale,
   translator,
 } from "../lib/i18n"
+import { SIGNUP_URL } from "../lib/urls"
 import Brand from "./Brand.astro"
 import LocaleSwitch from "./LocaleSwitch.astro"
 import ThemeToggle from "./ThemeToggle.astro"
@@ -25,10 +26,8 @@ const isCurrent = (href: string) =>
   href === "/" ? current === "/" : current.startsWith(href)
 ---
 
-<header
-  class="sticky top-0 z-50 border-line border-b bg-base/85 backdrop-blur-md"
->
-  <div class="shell flex h-16 items-center gap-6">
+<header class="nav-veil sticky top-0 z-50 px-3 pt-3 md:px-6 md:pt-4">
+  <div class="nav-bar gap-6">
     <Brand />
 
     <nav
@@ -40,7 +39,7 @@ const isCurrent = (href: string) =>
           <a
             href={localizePath(link.href, locale)}
             aria-current={isCurrent(link.href) ? "page" : undefined}
-            class="rounded-sm px-3 py-2 text-ink-3 hover:bg-raised hover:text-ink aria-[current=page]:text-ink"
+            class="nav-link"
           >
             {link.label}
           </a>
@@ -53,10 +52,8 @@ const isCurrent = (href: string) =>
         <ThemeToggle />
         <LocaleSwitch />
       </div>
-      <a
-        href={localizePath("/download/", locale)}
-        aria-current={isCurrent("/download/") ? "page" : undefined}
-        class="btn btn-primary hidden sm:inline-flex">{t("nav.cta")}</a
+      <a href={SIGNUP_URL} class="btn btn-primary hidden sm:inline-flex"
+        >{t("nav.cta")}</a
       >
 
       <details class="group relative md:hidden" data-nav-menu>
@@ -67,7 +64,7 @@ const isCurrent = (href: string) =>
           <span class="hidden group-open:inline">{t("nav.menuClose")}</span>
         </summary>
         <div
-          class="absolute end-0 mt-2 w-64 rounded-lg border border-line bg-base p-2 shadow-overlay"
+          class="absolute end-0 mt-3 w-[17.5rem] rounded-xl border border-line bg-base p-2 shadow-overlay"
         >
           <nav aria-label={t("nav.label")} class="grid">
             {
@@ -76,7 +73,7 @@ const isCurrent = (href: string) =>
                   <a
                     href={localizePath(link.href, locale)}
                     aria-current={isCurrent(link.href) ? "page" : undefined}
-                    class="rounded-sm px-3 py-2.5 text-ink-2 hover:bg-raised hover:text-ink aria-[current=page]:bg-raised aria-[current=page]:text-ink"
+                    class="rounded-full px-3 py-2.5 text-ink-2 hover:bg-raised hover:text-ink aria-[current=page]:bg-raised aria-[current=page]:text-ink"
                   >
                     {link.label}
                   </a>
@@ -84,8 +81,11 @@ const isCurrent = (href: string) =>
               )
             }
           </nav>
+          <a href={SIGNUP_URL} class="btn btn-primary mt-2 w-full"
+            >{t("nav.cta")}</a
+          >
           <div
-            class="mt-2 flex items-center justify-between gap-2 border-line border-t pt-2"
+            class="mt-2 flex flex-wrap items-center justify-between gap-2 border-line border-t pt-2"
           >
             <ThemeToggle />
             <LocaleSwitch />

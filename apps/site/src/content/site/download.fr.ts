@@ -13,6 +13,11 @@ export const downloadFr: DownloadContent = {
     detecting: "Votre système",
     unknown: "Choisissez votre système",
   },
+  account: {
+    title: "L’app a besoin d’un compte et d’un essai en cours",
+    body: "Pupitre se connecte à un compte Pupitre, et ce compte doit porter un essai en cours ou un abonnement. Créez-le d’abord : une adresse mail suffit, et aucune carte bancaire n’est demandée.",
+    cta: "Créer un compte",
+  },
   os: {
     macos: {
       name: "macOS",
@@ -82,7 +87,8 @@ export const downloadFr: DownloadContent = {
     title: "Quatre minutes jusqu’à la première connexion",
     lead: "Rien à configurer avant de commencer. L’app demande le serveur, puis explique chaque étape qu’elle franchit.",
     steps: [
-      "Ouvrez l’app. Elle génère une clé ed25519 pour cet appareil et garde la moitié privée sur votre disque.",
+      "Ouvrez l’app et connectez-vous avec votre compte Pupitre. Elle affiche un code, vous le confirmez dans la console, et les deux sont liés.",
+      "Elle génère une clé ed25519 pour cet appareil et garde la moitié privée sur votre disque.",
       "Ajoutez votre serveur : son adresse, et un compte root ou sudo pour la première connexion seulement.",
       "Laissez-la inspecter. Elle lit la distribution, la RAM, le disque et ce qui est déjà installé, et dit ce qu’elle ne gérera pas.",
       "Choisissez vos services et laissez-la installer. À partir de là, l’app est la fenêtre sur cette machine.",

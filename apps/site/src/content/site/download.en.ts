@@ -13,6 +13,11 @@ export const downloadEn: DownloadContent = {
     detecting: "Your system",
     unknown: "Pick your system",
   },
+  account: {
+    title: "The app needs an account and a running trial",
+    body: "Pupitre signs in to a Pupitre account, and that account must carry a running trial or a subscription. Create it first: an email address is enough, and no card is asked for.",
+    cta: "Create an account",
+  },
   os: {
     macos: {
       name: "macOS",
@@ -82,7 +87,8 @@ export const downloadEn: DownloadContent = {
     title: "Four minutes to the first connection",
     lead: "Nothing to configure before you start. The app asks for the server, then explains every step it takes.",
     steps: [
-      "Open the app. It generates an ed25519 key for this device and keeps the private half on your disk.",
+      "Open the app and sign in with your Pupitre account. It shows a code, you confirm it in the console, and the two are linked.",
+      "It generates an ed25519 key for this device and keeps the private half on your disk.",
       "Add your server: its address, and a root or sudo account for the first connection only.",
       "Let it inspect. It reads the distribution, the RAM, the disk and what is already installed, and says what it will not manage.",
       "Choose your services and let it install. From there the app is the window onto that machine.",

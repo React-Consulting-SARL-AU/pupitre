@@ -13,7 +13,7 @@ describe("Feature", () => {
 
     expect(html).toContain('<h3 class="heading-3')
     expect(html).toContain(">Inspect and install</h3>")
-    expect(html.match(/<li/g)).toHaveLength(3)
+    expect(html.match(/<li[\s>]/g)).toHaveLength(3)
     expect(html).toContain(">Rent a VPS.</li>")
     expect(html).toContain(">Pick your services.</li>")
     expect(html).not.toContain("<svg")

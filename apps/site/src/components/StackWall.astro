@@ -1,0 +1,37 @@
+---
+import { homeContent, STACK } from "../content/site/home"
+import { localeFromPath, localizePath } from "../lib/i18n"
+import BrandLogo from "./BrandLogo.astro"
+
+const locale = localeFromPath(Astro.url.pathname)
+const { stack } = homeContent(locale)
+---
+
+<div class="text-center">
+  <h2 class="heading-2">{stack.title}</h2>
+  <p class="lead mx-auto mt-6 max-w-xl text-ink-2">{stack.lead}</p>
+
+  <ul class="mt-14 grid grid-cols-2 gap-3 xs:grid-cols-3 md:grid-cols-5">
+    {
+      STACK.map((item) => (
+        <li class="logo-tile" data-brand={item.name}>
+          <BrandLogo
+            name={item.name}
+            module={item.module}
+            mark={item.mark}
+            size="lg"
+          />
+          <span class="heading-4">{item.name}</span>
+        </li>
+      ))
+    }
+  </ul>
+
+  <p class="mt-10 text-ink-3">{stack.note}</p>
+  <a
+    href={localizePath("/docs/services/", locale)}
+    class="link-underline mt-3 inline-block py-2"
+  >
+    {stack.link}
+  </a>
+</div>

@@ -1,8 +1,7 @@
+import type { ModuleId } from "@pupitre/shared/catalog"
 import type { Locale } from "../../lib/i18n"
 import { homeEn } from "./home.en"
 import { homeFr } from "./home.fr"
-
-export type Mark = "on" | "warn" | "off"
 
 export interface FeatureItem {
   title: string
@@ -24,11 +23,29 @@ export interface StepItem {
   detail: string
 }
 
-export interface ReportLine {
-  mark: Mark
-  module: string
-  detail: string
+/**
+ * A brand shown on the home page. `module` names a catalogue module and takes
+ * its logo; `mark` names a product a module installs under another name, such
+ * as Bun inside `runtime.node`.
+ */
+export interface StackItem {
+  name: string
+  module?: ModuleId
+  mark?: string
 }
+
+export const STACK: readonly StackItem[] = [
+  { name: "Claude Code", module: "ai.claude" },
+  { name: "Codex", module: "ai.codex" },
+  { name: "Node.js", module: "runtime.node" },
+  { name: "Bun", mark: "bun" },
+  { name: "Python", module: "runtime.python" },
+  { name: "Java", module: "runtime.java" },
+  { name: "PostgreSQL", module: "db.postgres" },
+  { name: "MySQL", module: "db.mysql" },
+  { name: "Docker", module: "runtime.docker" },
+  { name: "Cloudflare", module: "exposure.cloudflare" },
+]
 
 export interface HomeContent {
   meta: { title: string; description: string }
@@ -36,17 +53,11 @@ export interface HomeContent {
     eyebrow: string
     headline: string
     lead: string
+    signUp: string
     download: string
-    order: string
     note: string
-    specs: string[]
-    report: {
-      title: string
-      caption: string
-      lines: ReportLine[]
-      footer: string
-    }
   }
+  stack: { title: string; lead: string; note: string; link: string }
   steps: { label: string; title: string; lead: string; items: StepItem[] }
   features: { label: string; title: string; items: FeatureItem[] }
   clients: {
@@ -68,7 +79,7 @@ export interface HomeContent {
     hosted: string
     link: string
   }
-  cta: { title: string; lead: string; download: string; docs: string }
+  cta: { title: string; lead: string; signUp: string; docs: string }
 }
 
 const HOME: Record<Locale, HomeContent> = { en: homeEn, fr: homeFr }

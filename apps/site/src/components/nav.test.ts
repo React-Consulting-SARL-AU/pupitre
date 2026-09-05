@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest"
+import { SIGNUP_URL } from "../lib/urls"
 import { render } from "../test/render"
 import Footer from "./Footer.astro"
 import Nav from "./Nav.astro"
+
+const MAIN_DOWNLOAD_RE = /href="[^"]*\/download\/"[^>]*class="[^"]*btn-primary/
 
 describe("Nav", () => {
   it("marks the section the reader is in", async () => {
@@ -25,11 +28,29 @@ describe("Nav", () => {
     expect(html).toContain('href="/pricing/" hreflang="en"')
   })
 
+  it("makes creating an account the only main action", async () => {
+    const html = await render(Nav, { path: "/" })
+
+    expect(html).toContain(
+      `<a href="${SIGNUP_URL}" class="btn btn-primary hidden sm:inline-flex">Create an account</a>`
+    )
+    expect(html).not.toMatch(MAIN_DOWNLOAD_RE)
+  })
+
+  it("says it in French too", async () => {
+    const html = await render(Nav, { path: "/fr/" })
+
+    expect(html).toContain(
+      `<a href="${SIGNUP_URL}" class="btn btn-primary hidden sm:inline-flex">Créer un compte</a>`
+    )
+  })
+
   it("offers the same links behind a menu on a narrow screen", async () => {
     const html = await render(Nav, { path: "/" })
 
     expect(html).toContain("data-nav-menu")
-    expect(html.match(/href="\/download\/"/g)?.length).toBe(2)
+    expect(html.match(/href="\/download\/"/g)?.length).toBe(1)
+    expect(html.match(new RegExp(`href="${SIGNUP_URL}"`, "g"))?.length).toBe(2)
   })
 })
 

@@ -17,6 +17,7 @@ export interface DownloadContent {
     detecting: string
     unknown: string
   }
+  account: { title: string; body: string; cta: string }
   os: Record<OperatingSystem, { name: string; note: string }>
   arch: Record<string, string>
   assets: {

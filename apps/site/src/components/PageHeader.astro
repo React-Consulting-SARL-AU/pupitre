@@ -3,18 +3,30 @@ interface Props {
   label: string
   title: string
   lead?: string
+  align?: "start" | "center"
 }
 
-const { label, title, lead } = Astro.props
+const { label, title, lead, align = "center" } = Astro.props
+const centered = align === "center"
 ---
 
 <header class="border-line border-b">
-  <div class="shell py-16 md:py-24">
-    <p class="eyebrow max-w-lg">{label}</p>
-    <h1 class="heading-1 mt-6 max-w-3xl">{title}</h1>
-    {lead && <p class="lead mt-6 max-w-2xl text-ink-2">{lead}</p>}
-    <div class="mt-8 empty:hidden">
-      <slot />
+  <div class="shell py-20 md:py-28">
+    <div
+      class:list={[centered ? "mx-auto max-w-3xl text-center" : "max-w-3xl"]}
+    >
+      <p class="pill">{label}</p>
+      <h1 class="heading-1 mt-7">{title}</h1>
+      {
+        lead && (
+          <p class:list={["lead mt-7 text-ink-2", centered && "mx-auto max-w-2xl"]}>
+            {lead}
+          </p>
+        )
+      }
+      <div class:list={["mt-9 empty:hidden", centered && "flex flex-wrap justify-center gap-3"]}>
+        <slot />
+      </div>
     </div>
   </div>
 </header>

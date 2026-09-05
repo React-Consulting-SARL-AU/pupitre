@@ -1,44 +1,46 @@
 ---
 import { AVAILABILITY_LABELS, CATALOG } from "../content/site/catalog"
 import { localeFromPath } from "../lib/i18n"
+import BrandLogo from "./BrandLogo.astro"
 
 const locale = localeFromPath(Astro.url.pathname)
 ---
 
-<div class="gap-6 md:columns-2">
+<div class="gap-6 md:columns-2 lg:columns-3">
   {
     CATALOG.map((group) => (
       <section
         data-category={group.id}
         aria-label={group.label[locale]}
-        class="card mb-6 break-inside-avoid p-6 md:p-7"
+        class="card-soft mb-6 break-inside-avoid p-7 md:p-8"
       >
         <header class="flex items-baseline gap-3">
           <h3 class="heading-3">{group.label[locale]}</h3>
-          {group.note && <span class="label text-ink-3">{group.note[locale]}</span>}
-          <span class="index-mark ms-auto">{group.entries.length}</span>
+          {group.note && (
+            <span class="label text-ink-3">{group.note[locale]}</span>
+          )}
         </header>
 
-        <ul class="mt-5 divide-y divide-line">
+        <ul class="mt-5 flex flex-col gap-4">
           {group.entries.map((entry) => (
-            <li data-availability={entry.availability} class="py-4">
-              <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <p
-                  class:list={[
-                    "heading-4",
-                    entry.availability === "later" && "text-ink-3",
-                  ]}
-                >
-                  {entry.name[locale]}
-                </p>
-                <code class="data text-ink-4">{entry.id}</code>
-                {entry.availability === "later" && (
-                  <span class="tag ms-auto">
-                    {AVAILABILITY_LABELS[entry.availability][locale]}
-                  </span>
-                )}
-              </div>
-              <p class="mt-1.5 text-ink-2">{entry.detail[locale]}</p>
+            <li
+              data-availability={entry.availability}
+              class="flex items-center gap-3"
+            >
+              <BrandLogo name={entry.name[locale]} module={entry.id} />
+              <p
+                class:list={[
+                  "heading-4",
+                  entry.availability === "later" && "text-ink-3",
+                ]}
+              >
+                {entry.name[locale]}
+              </p>
+              {entry.availability === "later" && (
+                <span class="tag ms-auto">
+                  {AVAILABILITY_LABELS[entry.availability][locale]}
+                </span>
+              )}
             </li>
           ))}
         </ul>

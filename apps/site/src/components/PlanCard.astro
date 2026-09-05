@@ -2,7 +2,7 @@
 import { formatUsd, type Plan, yearlyPriceUsd } from "@pupitre/shared/plans"
 import { pricingContent } from "../content/site/pricing"
 import { fill, localeFromPath, planName } from "../lib/i18n"
-import { CONSOLE_URL } from "../lib/urls"
+import { SIGNUP_URL } from "../lib/urls"
 
 interface Props {
   plan: Plan
@@ -25,7 +25,7 @@ const lines = perServer ? [servers, ...copy.includes] : copy.includes
   data-plan={plan.id}
   data-availability={plan.availability}
   class:list={[
-    "flex flex-col rounded-lg border p-6 md:p-7",
+    "flex flex-col rounded-xl border p-6 md:p-7",
     later
       ? "border-line border-dashed bg-base"
       : "card border-line-strong bg-surface",
@@ -83,7 +83,7 @@ const lines = perServer ? [servers, ...copy.includes] : copy.includes
   {
     copy.cta && (
       <div class="mt-8">
-        <a href={CONSOLE_URL} class="btn btn-primary w-full">
+        <a href={SIGNUP_URL} class="btn btn-primary w-full">
           {copy.cta}
         </a>
       </div>

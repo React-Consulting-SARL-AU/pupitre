@@ -1,66 +1,29 @@
 ---
 import { homeContent } from "../content/site/home"
-import { localeFromPath, localizePath, translator } from "../lib/i18n"
-import { CONSOLE_URL } from "../lib/urls"
-import StatusMark from "./StatusMark.astro"
+import { localeFromPath, localizePath } from "../lib/i18n"
+import { SIGNUP_URL } from "../lib/urls"
+import StackWall from "./StackWall.astro"
 
 const locale = localeFromPath(Astro.url.pathname)
-const t = translator(locale)
 const { hero } = homeContent(locale)
-const marks = {
-  on: t("changelog.stable"),
-  warn: t("callout.warn"),
-  off: t("callout.info"),
-}
 ---
 
-<section class="border-line border-b">
-  <div
-    class="shell grid items-start gap-x-16 gap-y-16 py-20 md:py-28 lg:grid-cols-[1.05fr_0.95fr]"
-  >
-    <div>
-      <p class="eyebrow">{hero.eyebrow}</p>
-      <h1 class="display-1 mt-7 max-w-3xl">{hero.headline}</h1>
-      <p class="lead mt-7 max-w-xl text-ink-2">{hero.lead}</p>
+<section class="shell pt-16 pb-20 text-center md:pt-24 md:pb-28">
+  <p class="pill">{hero.eyebrow}</p>
+  <h1 class="display-1 mx-auto mt-8 max-w-4xl">{hero.headline}</h1>
+  <p class="lead mx-auto mt-8 max-w-2xl text-ink-2">{hero.lead}</p>
 
-      <div class="mt-9 flex flex-wrap gap-3">
-        <a
-          href={localizePath("/download/", locale)}
-          class="btn btn-lg btn-primary">{hero.download}</a
-        >
-        <a href={CONSOLE_URL} class="btn btn-lg btn-secondary">{hero.order}</a>
-      </div>
-
-      <ul class="mt-9 flex flex-wrap gap-2">
-        {hero.specs.map((spec) => <li class="tag">{spec}</li>)}
-      </ul>
-
-      <p class="mt-9 max-w-xl text-ink-3">{hero.note}</p>
-    </div>
-
-    <figure class="card overflow-hidden">
-      <figcaption class="border-line border-b bg-base px-5 py-4">
-        <p class="heading-4">{hero.report.title}</p>
-        <p class="data mt-1.5 text-ink-3">{hero.report.footer}</p>
-      </figcaption>
-      <ul class="divide-y divide-line">
-        {
-          hero.report.lines.map((line) => (
-            <li class="flex gap-3 px-5 py-3.5">
-              <span class="mt-1 flex">
-                <StatusMark mark={line.mark} label={marks[line.mark]} />
-              </span>
-              <div class="min-w-0">
-                <p class="data text-ink">{line.module}</p>
-                <p class="data mt-0.5 text-ink-3">{line.detail}</p>
-              </div>
-            </li>
-          ))
-        }
-      </ul>
-      <p class="border-line border-t bg-base px-5 py-4 text-ink-3">
-        {hero.report.caption}
-      </p>
-    </figure>
+  <div class="mt-10 flex flex-wrap justify-center gap-3">
+    <a href={SIGNUP_URL} class="btn btn-lg btn-primary">{hero.signUp}</a>
+    <a
+      href={localizePath("/download/", locale)}
+      class="btn btn-lg btn-secondary"
+    >
+      {hero.download}
+    </a>
   </div>
+
+  <p class="mx-auto mt-6 max-w-md text-ink-3">{hero.note}</p>
+
+  <div class="mt-20 md:mt-24"><StackWall /></div>
 </section>

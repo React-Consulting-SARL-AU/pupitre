@@ -5,9 +5,12 @@ import { downloadContent } from "../content/site/download"
 import { FALLBACK_RELEASES } from "../content/site/releases"
 import { LOCALES } from "../lib/i18n"
 import { latestRelease, OPERATING_SYSTEMS } from "../lib/releases"
+import { SIGNUP_URL } from "../lib/urls"
 import { render } from "./render"
 
 const paths = { en: "/download/", fr: "/fr/download/" } as const
+
+const MAIN_DOWNLOAD_RE = /href="[^"]*\/download\/"[^>]*class="[^"]*btn-primary/
 
 describe("download", () => {
   it("offers every system with its size and digest, in both languages", async () => {
@@ -54,5 +57,42 @@ describe("download", () => {
     const html = await render(Download, { path: paths.en })
 
     expect(html).not.toContain(formatUsd(19))
+  })
+
+  it("says an account and a running trial come first, above the three systems", async () => {
+    for (const locale of LOCALES) {
+      const html = await render(Download, { path: paths[locale] })
+      const { account } = downloadContent(locale)
+
+      expect(html, locale).toContain(account.title)
+      expect(html, locale).toContain(account.body)
+      expect(html, locale).toContain(
+        `<a href="${SIGNUP_URL}" class="btn btn-primary">${account.cta}</a>`
+      )
+      expect(html.indexOf(account.cta), locale).toBeLessThan(
+        html.indexOf('data-os="macos"')
+      )
+    }
+  })
+
+  it("puts signing in to the account on the first step", async () => {
+    for (const locale of LOCALES) {
+      const html = await render(Download, { path: paths[locale] })
+      const { install } = downloadContent(locale)
+
+      expect(install.steps, locale).toHaveLength(5)
+      expect(html, locale).toContain(
+        `<p class="step-number">1</p><p class="body-lg mt-5 text-ink-2">${install.steps[0]}</p>`
+      )
+    }
+  })
+
+  it("stays public, and offers no download as a main action", async () => {
+    for (const locale of LOCALES) {
+      const html = await render(Download, { path: paths[locale] })
+
+      expect(html, locale).not.toContain('name="robots"')
+      expect(html, locale).not.toMatch(MAIN_DOWNLOAD_RE)
+    }
   })
 })

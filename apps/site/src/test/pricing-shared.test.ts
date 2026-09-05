@@ -54,13 +54,20 @@ vi.mock("@pupitre/shared/plans", async (importOriginal) => {
 const SOURCE_RE = /\.(ts|astro)$/
 const TEST_RE = /\.test\.ts$/
 
+/** Path data is geometry: its numbers are coordinates, never a price. */
+const GEOMETRY = new Set(["Icon.astro"])
+
 function sources(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name)
 
     if (entry.isDirectory()) {
       sources(full, out)
-    } else if (SOURCE_RE.test(entry.name) && !TEST_RE.test(entry.name)) {
+    } else if (
+      SOURCE_RE.test(entry.name) &&
+      !TEST_RE.test(entry.name) &&
+      !GEOMETRY.has(entry.name)
+    ) {
       out.push(full)
     }
   }

@@ -3,12 +3,13 @@ interface Props {
   href: string
   label: string
   os?: string
+  tone?: "primary" | "secondary"
 }
 
-const { href, label, os } = Astro.props
+const { href, label, os, tone = "primary" } = Astro.props
 ---
 
-<a href={href} class="btn btn-primary">
+<a href={href} class:list={["btn", `btn-${tone}`]}>
   {label}
   {os && <span class="font-data text-[12px] tabular-nums">{os}</span>}
 </a>

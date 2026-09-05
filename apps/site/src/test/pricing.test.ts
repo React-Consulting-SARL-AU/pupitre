@@ -6,9 +6,12 @@ import {
 } from "@pupitre/shared/plans"
 import { describe, expect, it } from "vitest"
 import { pricingContent } from "../content/site/pricing"
+import { fill } from "../lib/i18n"
+import { SIGNUP_URL } from "../lib/urls"
 import Fr from "../pages/fr/pricing.astro"
 import En from "../pages/pricing.astro"
 import { render } from "./render"
+import { undeclaredVectors } from "./vectors"
 
 const SECTION_IDS = ["plans", "stop", "diy", "catalog"]
 const JSON_LD_RE = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g
@@ -29,6 +32,8 @@ interface Offer {
 function structuredData(html: string): Record<string, unknown>[] {
   return [...html.matchAll(JSON_LD_RE)].map((match) => JSON.parse(match[1]))
 }
+
+const MAIN_DOWNLOAD_RE = /href="[^"]*\/download\/"[^>]*class="[^"]*btn-primary/
 
 describe("pricing page", () => {
   it("carries the headline and the three offers in both languages", async () => {
@@ -72,7 +77,7 @@ describe("pricing page", () => {
     }
   })
 
-  it("sends Solo and Team to the console and the visitor to the download page", async () => {
+  it("sends every offer to the sign-up, and keeps the download in reach", async () => {
     for (const [page, path, locale] of PAGES) {
       const html = await render(page, { path })
       const prefix = locale === "en" ? "" : "/fr"
@@ -81,12 +86,25 @@ describe("pricing page", () => {
       )
 
       expect(
-        html.match(/href="https:\/\/app\.pupitre\.studio\/"/g)
-      ).toHaveLength(available.length)
+        html.match(new RegExp(`href="${SIGNUP_URL}"`, "g"))?.length
+      ).toBeGreaterThanOrEqual(available.length + 1)
+      expect(html.match(/href="https:\/\/app\.pupitre\.studio\/"/g)).toBeNull()
       expect(
         html.match(new RegExp(`href="${prefix}/download/"`, "g"))?.length
-      ).toBeGreaterThanOrEqual(2)
+      ).toBeGreaterThanOrEqual(1)
+      expect(html).not.toMatch(MAIN_DOWNLOAD_RE)
       expect(html).toContain(`href="${prefix}/#catalog"`)
+    }
+  })
+
+  it("turns the trial from a note into the promise of the button", async () => {
+    for (const [page, path, locale] of PAGES) {
+      const html = await render(page, { path })
+      const content = pricingContent(locale)
+
+      expect(html, locale).toContain(
+        `<a href="${SIGNUP_URL}" class="btn btn-primary">${fill(content.plans.trial, { days: TRIAL_DAYS })}</a>`
+      )
     }
   })
 
@@ -123,13 +141,13 @@ describe("pricing page", () => {
     }
   })
 
-  it("stands without any image", async () => {
+  it("stands without any image, and draws no undeclared vector", async () => {
     for (const [page, path] of PAGES) {
       const html = await render(page, { path })
 
       expect(html).not.toContain("<img")
       expect(html).not.toContain("<picture")
-      expect(html).not.toContain("<svg")
+      expect(undeclaredVectors(html)).toEqual([])
     }
   })
 

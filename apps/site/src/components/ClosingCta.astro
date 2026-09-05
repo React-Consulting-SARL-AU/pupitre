@@ -1,31 +1,27 @@
 ---
 import { localeFromPath, localizePath } from "../lib/i18n"
+import { SIGNUP_URL } from "../lib/urls"
 
 interface Props {
   title: string
   lead: string
-  download: string
+  signUp: string
   docs: string
 }
 
-const { title, lead, download, docs } = Astro.props
+const { title, lead, signUp, docs } = Astro.props
 const locale = localeFromPath(Astro.url.pathname)
 ---
 
 <section class="border-line border-t">
-  <div class="shell py-20 md:py-28">
-    <div class="card mx-auto max-w-3xl p-8 text-center md:p-12">
-      <h2 class="heading-2">{title}</h2>
-      <p class="lead mx-auto mt-5 max-w-xl text-ink-2">{lead}</p>
-      <div class="mt-9 flex flex-wrap justify-center gap-3">
-        <a
-          href={localizePath("/download/", locale)}
-          class="btn btn-lg btn-primary">{download}</a
-        >
-        <a href={localizePath("/docs/", locale)} class="btn btn-lg btn-secondary"
-          >{docs}</a
-        >
-      </div>
+  <div class="shell py-24 text-center md:py-32">
+    <h2 class="heading-1 mx-auto max-w-3xl">{title}</h2>
+    <p class="lead mx-auto mt-8 max-w-xl text-ink-2">{lead}</p>
+    <div class="mt-10 flex flex-wrap justify-center gap-3">
+      <a href={SIGNUP_URL} class="btn btn-lg btn-primary">{signUp}</a>
+      <a href={localizePath("/docs/", locale)} class="btn btn-lg btn-secondary"
+        >{docs}</a
+      >
     </div>
   </div>
 </section>

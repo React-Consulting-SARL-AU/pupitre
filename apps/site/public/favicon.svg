@@ -1,27 +1,30 @@
-<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
   <title>Pupitre</title>
   <style>
   rect {
     fill: #0a0a0a;
   }
-  path {
-    stroke: #ffffff;
+  g {
+    color: #ffffff;
   }
   @media (prefers-color-scheme: dark) {
     rect {
       fill: #f5f5f5;
     }
-    path {
-      stroke: #0a0a0a;
+    g {
+      color: #0a0a0a;
     }
   }
   </style>
-  <rect height="32" rx="6" width="32" />
-  <path
-    d="M9 10l6 6-6 6M17 23h7"
+  <rect height="1024" rx="256" width="1024" x="0" y="0" />
+  <g
     fill="none"
+    stroke="currentColor"
     stroke-linecap="round"
     stroke-linejoin="round"
-    stroke-width="2.5"
-  />
+    stroke-width="86"
+  >
+    <path d="M 300 364 L 448 512 L 300 660" />
+    <path d="M 556 660 L 724 660" />
+  </g>
 </svg>

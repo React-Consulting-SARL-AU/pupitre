@@ -2,6 +2,7 @@
 import { getCollection, render } from "astro:content"
 import Base from "../layouts/Base.astro"
 import { localeFromPath, localizePath, translator } from "../lib/i18n"
+import { SIGNUP_URL } from "../lib/urls"
 import PageHeader from "./PageHeader.astro"
 
 const locale = localeFromPath(Astro.url.pathname)
@@ -31,9 +32,10 @@ const format = new Intl.DateTimeFormat(locale, { dateStyle: "long" })
     lead={t("changelog.lead")}
   >
     <div class="flex flex-wrap gap-3">
+      <a href={SIGNUP_URL} class="btn btn-primary">{t("nav.cta")}</a>
       <a
         href={localizePath("/download/", locale)}
-        class="btn btn-primary">{t("nav.cta")}</a
+        class="btn btn-secondary">{t("nav.download")}</a
       >
       <a
         href={localizePath("/changelog/rss.xml", locale)}

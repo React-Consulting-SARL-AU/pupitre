@@ -2,16 +2,14 @@
 interface Props {
   title: string
   lines: string[]
-  index?: string
 }
 
-const { title, lines, index } = Astro.props
+const { title, lines } = Astro.props
 ---
 
-<article class="card flex h-full flex-col p-6 md:p-7">
-  {index && <p class="index-mark">{index}</p>}
-  <h3 class="heading-3 mt-3">{title}</h3>
-  <ul class="mt-5 flex-1 divide-y divide-line">
-    {lines.map((line) => <li class="py-3.5 text-ink-2">{line}</li>)}
+<article class="card-soft flex h-full flex-col p-8 md:p-10">
+  <h3 class="heading-3">{title}</h3>
+  <ul class="mt-6 flex flex-1 flex-col gap-4">
+    {lines.map((line) => <li class="body-lg text-ink-2">{line}</li>)}
   </ul>
 </article>

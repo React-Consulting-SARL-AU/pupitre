@@ -1,10 +1,11 @@
 import { formatUsd, getPlan, yearlyPriceUsd } from "@pupitre/shared/plans"
 import { describe, expect, it } from "vitest"
+import { SIGNUP_URL } from "../lib/urls"
 import { render } from "../test/render"
 import PlanCard from "./PlanCard.astro"
 
 describe("PlanCard", () => {
-  it("prints Solo with both intervals, its server cap and an order button", async () => {
+  it("prints Solo with both intervals, its server cap and a trial button", async () => {
     const solo = getPlan("solo")
     const html = await render(PlanCard, { props: { plan: solo }, path: "/" })
 
@@ -17,7 +18,7 @@ describe("PlanCard", () => {
     expect(html).toContain(formatUsd(yearlyPriceUsd(solo)))
     expect(html).toContain(`Up to ${solo.maxServers} servers`)
     expect(html).toContain(
-      '<a href="https://app.pupitre.studio/" class="btn btn-primary w-full">Order</a>'
+      `<a href="${SIGNUP_URL}" class="btn btn-primary w-full">Start the trial</a>`
     )
     expect(html).not.toContain(">From<")
   })
@@ -32,7 +33,7 @@ describe("PlanCard", () => {
     expect(html).toContain(">Team</h3>")
     expect(html).not.toContain("Up to")
     expect(html).toContain("As many servers as you bring")
-    expect(html).toContain('href="https://app.pupitre.studio/"')
+    expect(html).toContain(`href="${SIGNUP_URL}"`)
   })
 
   it("marks Hosted as later, from a monthly price, without a button", async () => {
@@ -61,7 +62,7 @@ describe("PlanCard", () => {
     })
 
     expect(team).toContain(">Équipe</h3>")
-    expect(team).toContain(">Commander</a>")
+    expect(team).toContain(">Démarrer l’essai</a>")
     expect(hosted).toContain(">Hébergé</h3>")
     expect(hosted).toContain(">À partir de<")
     expect(hosted).toContain(">Plus tard<")

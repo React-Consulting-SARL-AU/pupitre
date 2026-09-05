@@ -13,8 +13,7 @@ export const fr: Dictionary = {
   "nav.download": "Télécharger",
   "nav.blog": "Blog",
   "nav.changelog": "Changelog",
-  "nav.cta": "Télécharger l’app",
-  "nav.console": "Console",
+  "nav.cta": "Créer un compte",
   "nav.menu": "Menu",
   "nav.menuClose": "Fermer",
 

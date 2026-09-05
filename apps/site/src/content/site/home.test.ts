@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest"
 import { LOCALES } from "../../lib/i18n"
 import { homeContent } from "./home"
 
+/** The two places allowed to name a VPS: the answer that defines it, and search. */
+const DEFINES_IT = /^root\.(faq|meta)/
+
 function leaves(value: unknown, trail = "root"): [string, string][] {
   if (typeof value === "string") {
     return [[trail, value]]
@@ -47,21 +50,45 @@ describe("home content", () => {
     }
   })
 
-  it("holds three features of three lines, three clients, three claims, seven questions, seven steps", () => {
+  it("holds three features of two lines, three clients, four claims, seven questions, six steps", () => {
     for (const locale of LOCALES) {
       const content = homeContent(locale)
 
       expect(content.features.items).toHaveLength(3)
       for (const feature of content.features.items) {
-        expect(feature.lines).toHaveLength(3)
+        expect(feature.lines).toHaveLength(2)
       }
       expect(content.clients.items).toHaveLength(3)
       for (const client of content.clients.items) {
-        expect(client.lines).toHaveLength(3)
+        expect(client.lines).toHaveLength(2)
       }
-      expect(content.promise.items).toHaveLength(3)
+      expect(content.promise.items).toHaveLength(4)
       expect(content.faq.items).toHaveLength(7)
-      expect(content.steps.items).toHaveLength(7)
+      expect(content.steps.items).toHaveLength(6)
+    }
+  })
+
+  it("keeps the jargon off the page, and defines the one word search needs", () => {
+    const JARGON = ["SSH", "ed25519", "ufw", "fail2ban", "tmux", "systemd"]
+
+    for (const locale of LOCALES) {
+      const content = homeContent(locale)
+      const spoken = leaves(content)
+        .filter(([path]) => !DEFINES_IT.test(path))
+        .map(([, text]) => text)
+        .join(" ")
+
+      for (const word of [...JARGON, "VPS"]) {
+        expect(spoken, `${locale} ${word}`).not.toContain(word)
+      }
+
+      const faq = content.faq.items.map((item) => item.answer).join(" ")
+
+      expect(content.meta.description, locale).toContain("VPS")
+      expect(faq, locale).toContain("VPS")
+      for (const word of JARGON) {
+        expect(faq, `${locale} ${word}`).not.toContain(word)
+      }
     }
   })
 

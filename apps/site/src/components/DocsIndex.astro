@@ -38,16 +38,11 @@ const trail = jsonLd(
     }
   </PageHeader>
 
-  <div class="shell grid gap-12 py-16 md:py-24">
+  <div class="shell grid gap-16 py-20 md:py-28">
     {
-      sections.map((section, position) => (
+      sections.map((section) => (
         <section aria-label={section.title}>
-          <p class="eyebrow">
-            <span class="index-mark">
-              {String(position + 1).padStart(2, "0")}
-            </span>
-            <span>{section.title}</span>
-          </p>
+          <p class="eyebrow">{section.title}</p>
           <p class="lead mt-5 max-w-2xl text-ink-2">{section.lead}</p>
           <ul class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {section.entries.map((entry) => (

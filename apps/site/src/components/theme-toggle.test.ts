@@ -5,10 +5,11 @@ import ThemeToggle from "./ThemeToggle.astro"
 const BUTTON_RE = /<button[^>]*>/g
 
 describe("ThemeToggle", () => {
-  it("offers system, light and dark as pressed buttons, system pressed by default", async () => {
+  it("hides the three choices behind one icon, system chosen by default", async () => {
     const html = await render(ThemeToggle)
     const buttons = [...html.matchAll(BUTTON_RE)].map((m) => m[0])
 
+    expect(html).toContain("data-theme-menu")
     expect(html).toContain(
       '<div role="group" aria-label="Theme" data-theme-toggle'
     )
@@ -22,12 +23,28 @@ describe("ThemeToggle", () => {
     expect(buttons.every((b) => b.includes('type="button"'))).toBe(true)
   })
 
-  it("translates the labels", async () => {
+  it("shows the icon of the current theme and hides the others", async () => {
+    const html = await render(ThemeToggle)
+    const icons = [...html.matchAll(/<svg[^>]*data-theme-icon="(\w+)"[^>]*>/g)]
+
+    expect(icons).toHaveLength(3)
+    expect(icons[0][0]).toContain('class="size-4"')
+    expect(icons[1][0]).toContain("hidden")
+    expect(icons[2][0]).toContain("hidden")
+  })
+
+  it("names the choices for a reader who opens the menu", async () => {
     const html = await render(ThemeToggle, { path: "/fr/" })
 
     expect(html).toContain('aria-label="Thème"')
     expect(html).toContain(">Système<")
     expect(html).toContain(">Clair<")
     expect(html).toContain(">Sombre<")
+  })
+
+  it("opens upward when it sits at the bottom of the page", async () => {
+    const html = await render(ThemeToggle, { props: { placement: "up" } })
+
+    expect(html).toContain("bottom-full")
   })
 })

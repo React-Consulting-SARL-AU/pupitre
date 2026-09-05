@@ -10,6 +10,7 @@ import { pricingContent } from "../content/site/pricing"
 import Base from "../layouts/Base.astro"
 import { fill, localeFromPath, localizePath, translator } from "../lib/i18n"
 import { jsonLd, product } from "../lib/structured-data"
+import { SIGNUP_URL } from "../lib/urls"
 import BillingToggle from "./BillingToggle.astro"
 import CatalogSummary from "./CatalogSummary.astro"
 import DownloadButton from "./DownloadButton.astro"
@@ -43,17 +44,13 @@ const offers = jsonLd(
   </Fragment>
 
   <section class="border-line border-b">
-    <div
-      class="shell grid gap-x-16 gap-y-12 py-16 md:grid-cols-[1fr_auto] md:items-end md:py-24"
-    >
-      <div>
-        <p class="eyebrow max-w-md">{content.hero.label}</p>
-        <h1 class="heading-1 mt-6 max-w-3xl">{content.hero.headline}</h1>
-        <p class="lead mt-6 max-w-2xl text-ink-2">
-          {fill(content.hero.lead, numbers)}
-        </p>
-      </div>
-      <p class="card px-8 py-7 md:text-right">
+    <div class="shell py-20 text-center md:py-28">
+      <p class="pill">{content.hero.label}</p>
+      <h1 class="heading-1 mx-auto mt-7 max-w-3xl">{content.hero.headline}</h1>
+      <p class="lead mx-auto mt-7 max-w-2xl text-ink-2">
+        {fill(content.hero.lead, numbers)}
+      </p>
+      <p class="card-soft mx-auto mt-12 inline-block px-12 py-9">
         <span class="figure block text-[clamp(64px,44px+3.5vw,104px)]"
           >{formatUsd(solo.monthlyPriceUsd)}</span
         >
@@ -63,8 +60,8 @@ const offers = jsonLd(
   </section>
 
   <Section
+    align="center"
     id="plans"
-    index="01"
     label={content.plans.label}
     title={content.plans.title}
   >
@@ -76,21 +73,25 @@ const offers = jsonLd(
       <div
         class="mt-12 grid gap-x-10 gap-y-6 border-line border-t pt-8 md:grid-cols-[1fr_auto] md:items-center"
       >
-        <div class="max-w-2xl">
-          <p class="text-ink">{fill(content.plans.trial, numbers)}</p>
-          <p class="mt-2 text-ink-3">{content.plans.sameRate}</p>
+        <p class="max-w-2xl text-ink-3">{content.plans.sameRate}</p>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <a href={SIGNUP_URL} class="btn btn-primary">
+            {fill(content.plans.trial, numbers)}
+          </a>
+          <DownloadButton
+            href={localizePath("/download/", locale)}
+            label={content.plans.download}
+            tone="secondary"
+          />
         </div>
-        <DownloadButton
-          href={localizePath("/download/", locale)}
-          label={content.plans.download}
-        />
       </div>
     </div>
   </Section>
 
   <Section
+    align="center"
     id="stop"
-    index="02"
     tone="surface"
     label={content.stop.label}
     title={content.stop.title}
@@ -104,8 +105,8 @@ const offers = jsonLd(
   </Section>
 
   <Section
+    align="center"
     id="diy"
-    index="03"
     label={content.diy.label}
     title={content.diy.title}
     lead={content.diy.lead}
@@ -120,8 +121,8 @@ const offers = jsonLd(
   </Section>
 
   <Section
+    align="center"
     id="catalog"
-    index="04"
     tone="surface"
     label={content.catalog.label}
     title={content.catalog.title}

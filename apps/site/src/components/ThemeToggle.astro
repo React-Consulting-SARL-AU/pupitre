@@ -1,29 +1,62 @@
 ---
 import { localeFromPath, translator } from "../lib/i18n"
 import { THEMES } from "../lib/theme"
+import Icon from "./Icon.astro"
 
+interface Props {
+  placement?: "down" | "up"
+}
+
+const { placement = "down" } = Astro.props
 const t = translator(localeFromPath(Astro.url.pathname))
 ---
 
-<div
-  role="group"
-  aria-label={t("theme.label")}
-  data-theme-toggle
-  class="inline-flex rounded-md border border-line bg-surface p-0.5"
->
-  {
-    THEMES.map((theme) => (
-      <button
-        type="button"
-        data-theme-option={theme}
-        aria-pressed={theme === "system" ? "true" : "false"}
-        class="label rounded-sm px-2 py-1.5 text-ink-3 hover:text-ink aria-pressed:bg-inverse aria-pressed:text-inverse-ink"
-      >
-        {t(`theme.${theme}`)}
-      </button>
-    ))
-  }
-</div>
+<details class="relative" data-theme-menu>
+  <summary
+    aria-label={t("theme.label")}
+    class="grid size-8 cursor-pointer list-none place-items-center rounded-full border border-line text-ink-2 hover:bg-raised hover:text-ink [&::-webkit-details-marker]:hidden"
+  >
+    {
+      THEMES.map((theme) => (
+        <Icon
+          class:list={["size-4", theme !== "system" && "hidden"]}
+          data-theme-icon={theme}
+          name={theme}
+        />
+      ))
+    }
+    <span class="sr-only" data-theme-current>{t("theme.system")}</span>
+  </summary>
+
+  <div
+    role="group"
+    aria-label={t("theme.label")}
+    data-theme-toggle
+    class:list={[
+      "absolute end-0 z-50 w-44 rounded-xl border border-line bg-base p-1.5 shadow-overlay",
+      placement === "up" ? "bottom-full mb-2" : "mt-2",
+    ]}
+  >
+    {
+      THEMES.map((theme) => (
+        <button
+          aria-pressed={theme === "system" ? "true" : "false"}
+          class="flex w-full items-center gap-2.5 rounded-full px-3 py-2 text-ink-2 hover:bg-raised hover:text-ink aria-pressed:text-ink"
+          data-theme-option={theme}
+          type="button"
+        >
+          <Icon class="size-4 text-ink-3" name={theme} />
+          <span>{t(`theme.${theme}`)}</span>
+          <Icon
+            class:list={["ms-auto size-4", theme !== "system" && "opacity-0"]}
+            data-theme-check
+            name="check"
+          />
+        </button>
+      ))
+    }
+  </div>
+</details>
 
 <script>
   import {
@@ -33,16 +66,35 @@ const t = translator(localeFromPath(Astro.url.pathname))
     themeFromCookie,
   } from "../lib/theme"
 
+  const menus =
+    document.querySelectorAll<HTMLDetailsElement>("[data-theme-menu]")
   const options = document.querySelectorAll<HTMLButtonElement>(
     "[data-theme-option]"
   )
 
   function sync(theme: string): void {
     for (const option of options) {
-      option.setAttribute(
-        "aria-pressed",
-        String(option.dataset.themeOption === theme)
-      )
+      const pressed = option.dataset.themeOption === theme
+
+      option.setAttribute("aria-pressed", String(pressed))
+      option
+        .querySelector("[data-theme-check]")
+        ?.classList.toggle("opacity-0", !pressed)
+    }
+
+    for (const menu of menus) {
+      const icons = menu.querySelectorAll<SVGElement>("[data-theme-icon]")
+
+      for (const icon of icons) {
+        icon.classList.toggle("hidden", icon.dataset.themeIcon !== theme)
+      }
+
+      const label = menu.querySelector("[data-theme-current]")
+      const active = menu.querySelector(`[data-theme-option="${theme}"] span`)
+
+      if (label && active) {
+        label.textContent = active.textContent
+      }
     }
   }
 
@@ -55,6 +107,21 @@ const t = translator(localeFromPath(Astro.url.pathname))
       applyTheme(document.documentElement, theme)
       document.cookie = themeCookie(theme, location.protocol === "https:")
       sync(theme)
+      option.closest("details")?.removeAttribute("open")
+    })
+  }
+
+  for (const menu of menus) {
+    document.addEventListener("click", (event) => {
+      if (menu.open && !menu.contains(event.target as Node)) {
+        menu.open = false
+      }
+    })
+
+    menu.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        menu.open = false
+      }
     })
   }
 </script>
