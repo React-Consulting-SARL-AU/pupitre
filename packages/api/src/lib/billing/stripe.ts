@@ -1,4 +1,5 @@
-import { priceKeyOf, type StripeConfig } from "./config"
+import { TRIAL_DAYS, TRIAL_REQUIRES_CARD } from "@pupitre/shared/plans"
+import type { StripeConfig } from "./config"
 import {
   BILLING_INTERVALS,
   type BillingIntervalName,
@@ -150,14 +151,14 @@ export function createStripeBilling(config: StripeConfig): BillingProvider {
     async createCheckoutSession(
       input: CheckoutSessionInput
     ): Promise<BillingSession> {
-      const price = config.prices[priceKeyOf(input.currency, input.interval)]
+      const price = config.prices[input.interval]
       const session = await call<{ id?: string; url?: string }>(
         "/checkout/sessions",
         {
           method: "POST",
           body: {
             mode: "subscription",
-            currency: input.currency,
+            managed_payments: { enabled: true },
             success_url: input.successUrl,
             cancel_url: input.cancelUrl,
             client_reference_id: input.organizationId,
@@ -166,8 +167,21 @@ export function createStripeBilling(config: StripeConfig): BillingProvider {
             allow_promotion_codes: true,
             line_items: { 0: { price, quantity: input.quantity } },
             metadata: { organization_id: input.organizationId },
+            // Sans carte demandée, c'est Stripe qui résilie à la fin de l'essai :
+            // l'abonnement passe en `canceled`, le webhook suspend, rien à compter ici.
+            payment_method_collection: TRIAL_REQUIRES_CARD
+              ? "always"
+              : "if_required",
             subscription_data: {
               metadata: { organization_id: input.organizationId },
+              trial_period_days: TRIAL_DAYS,
+              trial_settings: {
+                end_behavior: {
+                  missing_payment_method: TRIAL_REQUIRES_CARD
+                    ? "create_invoice"
+                    : "cancel",
+                },
+              },
             },
           },
         }

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test"
+import { TRIAL_DAYS } from "@pupitre/shared/plans"
 import type { StripeConfig } from "./config"
 import { createStripeBilling } from "./stripe"
 
@@ -53,6 +54,27 @@ afterEach(() => {
 })
 
 describe("createCheckoutSession", () => {
+  it("laisse Stripe tenir l'essai, et résilier quand il finit sans carte", async () => {
+    const calls = stubStripe({
+      id: "cs_test_trial",
+      url: "https://checkout.test/trial",
+    })
+
+    await checkout("month")
+
+    const { body } = calls[0]
+
+    expect(body.get("subscription_data[trial_period_days]")).toBe(
+      String(TRIAL_DAYS)
+    )
+    expect(body.get("payment_method_collection")).toBe("if_required")
+    expect(
+      body.get(
+        "subscription_data[trial_settings][end_behavior][missing_payment_method]"
+      )
+    ).toBe("cancel")
+  })
+
   it("vend en Managed Payments, sans devise ni taxe à nous", async () => {
     const calls = stubStripe({
       id: "cs_test_1",
