@@ -7,14 +7,14 @@ export async function runScheduledWorkflow(
   const name = workflowScheduledAt(cron)
 
   if (!name) {
-    console.warn(`[workflows] aucun workflow n'est planifié sur « ${cron} »`)
+    console.warn(`[workflows] no workflow is scheduled on "${cron}"`)
 
     return null
   }
 
   const instanceId = await startWorkflow(env, name)
 
-  console.info(`[workflows] ${name} démarré par « ${cron} » : ${instanceId}`)
+  console.info(`[workflows] ${name} started by "${cron}": ${instanceId}`)
 
   return instanceId
 }

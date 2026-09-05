@@ -116,7 +116,9 @@ export function PasskeyPanel() {
               </div>
               <ConfirmDialog
                 confirmLabel={t("passkeys.revoke")}
-                description={`« ${passkey.name || t("passkeys.unnamed")} » n'ouvrira plus de session. Les autres clés et le lien magique restent.`}
+                description={t("passkeys.revokeDescription", {
+                  name: passkey.name || t("passkeys.unnamed"),
+                })}
                 onConfirm={() => {
                   revoke(passkey.id)
                 }}

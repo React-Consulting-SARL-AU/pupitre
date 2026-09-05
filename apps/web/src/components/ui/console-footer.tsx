@@ -1,4 +1,4 @@
-import { LOCALES } from "@pupitre/shared/i18n"
+import { LOCALES, type Locale } from "@pupitre/shared/i18n"
 import type { LucideIcon } from "lucide-react"
 import { Languages, Monitor, Moon, Sun } from "lucide-react"
 import {
@@ -10,7 +10,8 @@ import {
   MenuRoot,
   MenuTrigger,
 } from "@/components/ui/menu"
-import { useLocale, useTranslations } from "@/hooks/use-locale"
+import { useTranslations } from "@/hooks/use-locale"
+import { useLocaleChoice } from "@/hooks/use-locale-choice"
 import { useTheme } from "@/hooks/use-theme"
 import { SITE_URL } from "@/lib/config/urls"
 import type { DictionaryKey } from "@/lib/i18n/en"
@@ -39,7 +40,7 @@ const TRIGGER =
  */
 export function ConsoleFooter() {
   const t = useTranslations()
-  const { locale, setLocale } = useLocale()
+  const { locale, choose, pending, error } = useLocaleChoice()
   const { theme, setTheme } = useTheme()
   const ThemeIcon = THEME_ICONS[theme]
 
@@ -102,7 +103,11 @@ export function ConsoleFooter() {
           </MenuRoot>
 
           <MenuRoot>
-            <MenuTrigger aria-label={t("footer.language")} className={TRIGGER}>
+            <MenuTrigger
+              aria-label={t("footer.language")}
+              className={TRIGGER}
+              disabled={pending}
+            >
               <Languages className="size-4" strokeWidth={1.5} />
               {locale.toUpperCase()}
             </MenuTrigger>
@@ -111,7 +116,7 @@ export function ConsoleFooter() {
                 <MenuGroupLabel>{t("footer.language")}</MenuGroupLabel>
                 <MenuRadioGroup
                   onValueChange={(value) => {
-                    setLocale(value as (typeof LOCALES)[number])
+                    choose(value as Locale)
                   }}
                   value={locale}
                 >
@@ -124,6 +129,10 @@ export function ConsoleFooter() {
               </MenuGroup>
             </MenuPopup>
           </MenuRoot>
+
+          {error ? (
+            <span className="text-[12px] text-danger">{error}</span>
+          ) : null}
         </div>
       </div>
     </footer>
