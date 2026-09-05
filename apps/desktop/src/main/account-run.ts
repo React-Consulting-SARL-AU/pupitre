@@ -1,5 +1,6 @@
 import type {
   AccountDevice,
+  AccountError,
   AccountResponse,
   AccountState,
   BuildKind,
@@ -122,6 +123,27 @@ export function usageRightOf(
     validUntil: new Date(
       Date.parse(record.checkedAt) + TOLERANCE_MS
     ).toISOString(),
+  };
+}
+
+/**
+ * Sans jeton, l'appareil n'a pas de session : un droit d'usage accordé — le cas
+ * d'un build de développement — ne doit pas se faire passer pour un succès.
+ */
+function withoutSession(right: UsageRight): { ok: false; error: AccountError } {
+  const refusal = refusalFor(right);
+
+  if (!refusal.ok) {
+    return refusal;
+  }
+
+  return {
+    ok: false,
+    error: {
+      code: "signed_out",
+      message: "Aucun compte n'est connecté sur cet appareil.",
+      fix: "Connecte-toi depuis l'écran de compte, puis réessaie.",
+    },
   };
 }
 
@@ -377,7 +399,7 @@ export function createAccount(deps: AccountDeps): Account {
     const token = deps.vault.token();
 
     if (!token) {
-      return refusalFor(state().usage) as AccountResponse<Enrollment>;
+      return withoutSession(state().usage);
     }
 
     const enrolled = await deps.platform.enroll(token, input);
@@ -407,7 +429,7 @@ export function createAccount(deps: AccountDeps): Account {
     const token = deps.vault.token();
 
     if (!token) {
-      return refusalFor(state().usage) as AccountResponse<Uint8Array>;
+      return withoutSession(state().usage);
     }
 
     const downloaded = await deps.platform.downloadRelease(

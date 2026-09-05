@@ -356,4 +356,27 @@ describe("l'enrôlement", () => {
     expect(account.takeEnrollmentToken("srv-platform-1")).toBe("enrol-secret");
     expect(account.takeEnrollmentToken("srv-platform-1")).toBeNull();
   });
+  it("refuse l'enrôlement sans session, même sur un build de développement", async () => {
+    const { account, platform } = harness({
+      build: "development" as BuildKind,
+    });
+
+    expect(account.state().usage.status).toBe("granted");
+
+    const enrolled = await account.enroll({
+      device_id: "device-1",
+      host: "vps.test",
+      probe: { arch: "amd64" },
+    });
+
+    expect(enrolled).toEqual({
+      ok: false,
+      error: {
+        code: "signed_out",
+        message: "Aucun compte n'est connecté sur cet appareil.",
+        fix: "Connecte-toi depuis l'écran de compte, puis réessaie.",
+      },
+    });
+    expect(platform.enrolled).toEqual([]);
+  });
 });
