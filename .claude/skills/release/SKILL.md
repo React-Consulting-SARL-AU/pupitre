@@ -65,6 +65,24 @@ git push origin vX.Y.Z
 
 Le push du tag est l'acte de release ; il déclenche `release.yml` (cible). Il est fait par le propriétaire ou sur sa demande explicite.
 
+### 3 bis. La clé de release, une fois pour toutes
+
+Une **seule** paire Ed25519 signe toutes les releases de l'agent, stable dans le temps. Elle n'existe pas encore : tant qu'elle manque, la vérification est en place des deux côtés mais rien ne la nourrit.
+
+Le propriétaire la crée lui-même, hors de toute session d'agent — la moitié privée ne doit traverser ni un transcript, ni un fichier du dépôt :
+
+```
+cd apps/agent && go run ./tools/release keygen
+```
+
+La commande écrit `public <base64>` et `private <base64>` sur la sortie standard, et nulle part ailleurs. Ensuite, trois gestes :
+
+1. **La moitié privée** va dans 1Password, puis dans le secret GitHub Actions que le job `agent-release` lit sous `PUPITRE_RELEASE_PRIVATE_KEY`. Elle ne descend jamais sur un poste de travail autrement.
+2. **La moitié publique** est recopiée dans `apps/desktop/src/main/agent-release.ts`, à la place de la chaîne vide d'`AGENT_RELEASE_PUBLIC_KEY`. Le test `src/main/__tests__/agent-release.test.ts` attend aujourd'hui `""` : il attend désormais la vraie valeur.
+3. **L'agent** ne la porte pas en dur : `apps/agent/package.json` l'injecte au build par `-X …/selfupdate.releasePublicKey=$(go run ./tools/release public-key)`, qui la dérive de la moitié privée. Rien à recopier là.
+
+Les deux moitiés vont ensemble : une app qui embarque une clé publique et un agent construit avec une autre refusent toute mise à jour, sans message utile. Si la paire doit changer un jour, l'app doit connaître l'ancienne **et** la nouvelle le temps que le parc se mette à jour.
+
 ### 4. Ce que la CI construit (cible)
 
 `release.yml` enchaîne, après `Quality` et `Agent` :
