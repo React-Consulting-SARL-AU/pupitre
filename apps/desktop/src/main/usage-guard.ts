@@ -1,21 +1,17 @@
-import type {
-  CommandName,
-  CommandParams,
-  CommandResult,
-} from "@pupitre/shared/agent-protocol";
+import type { CommandName } from "@pupitre/shared/agent-protocol";
 import type { AccountResponse, UsageRight } from "@shared/account";
-import type { AgentResponse } from "@shared/agent";
-import type { AgentClient, CallOptions } from "./agent-client";
+import type { AgentError, AgentResponse } from "@shared/agent";
 import { asAgentError } from "./enrollment-run";
 
 /**
  * The usage right in front of the channels.
  *
- * A subscription that stopped closes the app, not only the enrolment: every
- * command that makes a server act goes through the guard first, and never
- * reaches the channel. Reading stays open — the machine has to remain visible
- * while the account is repaired — and nothing that runs on it is stopped by
- * this path, because nothing is sent.
+ * A subscription that stopped closes the app, not only the enrolment. The guard
+ * is not held channel by channel — a channel written tomorrow would forget it —
+ * but at the one doorway they all use, `agent-client.ts`: every command that
+ * makes a server act is refused there and never reaches the agent. Reading
+ * stays open, the machine has to remain visible while the account is repaired,
+ * and nothing that runs on it is stopped by this path, because nothing is sent.
  *
  * The list below is what may be read. Anything else is held to act, so a
  * command added to the contract is guarded until it is declared otherwise.
@@ -57,24 +53,16 @@ export function mutates(cmd: CommandName): boolean {
   return !READING_COMMANDS.has(cmd);
 }
 
-/** The guard's refusal in the envelope the bridge carries, or nothing. */
-export function usageRefusal(guard: UsageGuard): AgentResponse<never> | null {
+/** The guard's refusal, in the words the agent's own errors are read with. */
+export function usageError(guard: UsageGuard): AgentError | null {
   const allowed = guard();
 
-  return allowed.ok ? null : { ok: false, error: asAgentError(allowed.error) };
+  return allowed.ok ? null : asAgentError(allowed.error);
 }
 
-export function guardedRequest<C extends CommandName>(
-  client: Pick<AgentClient, "request">,
-  guard: UsageGuard,
-  serverId: string,
-  cmd: C,
-  params?: CommandParams<C>,
-  options?: CallOptions
-): Promise<AgentResponse<CommandResult<C>>> {
-  const refused = mutates(cmd) ? usageRefusal(guard) : null;
+/** That same refusal in the envelope the bridge carries, or nothing. */
+export function usageRefusal(guard: UsageGuard): AgentResponse<never> | null {
+  const error = usageError(guard);
 
-  return refused
-    ? Promise.resolve(refused)
-    : client.request(serverId, cmd, params, options);
+  return error ? { ok: false, error } : null;
 }

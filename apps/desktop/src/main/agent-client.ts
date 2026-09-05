@@ -23,6 +23,7 @@ import {
 } from "@pupitre/shared/agent-protocol/secrets";
 import type { HelloResult } from "@pupitre/shared/agent-protocol/session";
 import type { AgentError, AgentResponse } from "@shared/agent";
+import { mutates } from "./usage-guard";
 
 export type { AgentError, AgentErrorCode, AgentResponse } from "@shared/agent";
 
@@ -80,11 +81,21 @@ export type AgentSpawn = (context: {
   purpose: ChannelPurpose;
 }) => ChildProcess;
 
+/**
+ * The usage right, asked before a command that acts leaves the app.
+ *
+ * It answers the refusal to hand back, or nothing. A client built without one
+ * lets everything through: only the app's own client is bound to an account,
+ * the ones that replay transcripts are not.
+ */
+export type UsageGate = () => AgentError | null;
+
 export interface AgentClientOptions {
   spawn: AgentSpawn;
   appVersion?: string;
   timeouts?: Partial<Record<CommandName, number>>;
   backoff?: { firstMs?: number; maxMs?: number; attempts?: number };
+  gate?: UsageGate;
 }
 
 const QUICK_MS = 10_000;
@@ -620,6 +631,7 @@ export class AgentClient {
       appVersion: options.appVersion ?? "0.1.0",
       timeouts: options.timeouts ?? {},
       backoff: { ...DEFAULT_BACKOFF, ...options.backoff },
+      gate: options.gate ?? (() => null),
     };
   }
 
@@ -634,7 +646,7 @@ export class AgentClient {
       CallOptions | undefined,
     ];
 
-    return this.channel(serverId, cmd).run(cmd, params, options ?? {});
+    return this.run(serverId, cmd, params, options ?? {});
   }
 
   /** The same call, with the events of a long command as they arrive. */
@@ -645,10 +657,7 @@ export class AgentClient {
     onEvent: (event: Event) => void,
     options: Omit<CallOptions, "onEvent"> = {}
   ): Promise<CommandResult<C>> {
-    return this.channel(serverId, cmd).run(cmd, params, {
-      ...options,
-      onEvent,
-    });
+    return this.run(serverId, cmd, params, { ...options, onEvent });
   }
 
   /** The envelope, for what crosses IPC: it never throws. */
@@ -659,11 +668,7 @@ export class AgentClient {
     options: CallOptions = {}
   ): Promise<AgentResponse<CommandResult<C>>> {
     try {
-      const result = await this.channel(serverId, cmd).run(
-        cmd,
-        params,
-        options
-      );
+      const result = await this.run(serverId, cmd, params, options);
 
       return { ok: true, result };
     } catch (error) {
@@ -706,6 +711,28 @@ export class AgentClient {
       channel.close();
     }
     this.channels.clear();
+  }
+
+  /**
+   * The one place a command becomes a request, and the only door to the agent.
+   *
+   * The usage right is asked here rather than on each channel: a channel added
+   * tomorrow reaches the agent through this method and is refused by it without
+   * anyone having thought about it. `READING_COMMANDS` being a whitelist, a
+   * command added to the contract is held to act until it is declared readable.
+   * A refusal stops nothing on the server — nothing is sent at all.
+   */
+  private run<C extends CommandName>(
+    serverId: string,
+    cmd: C,
+    params: CommandParams<C> | undefined,
+    options: CallOptions
+  ): Promise<CommandResult<C>> {
+    const refused = mutates(cmd) ? this.options.gate() : null;
+
+    return refused
+      ? Promise.reject(new AgentCallError(refused))
+      : this.channel(serverId, cmd).run(cmd, params, options);
   }
 
   private channel(serverId: string, cmd: CommandName): AgentChannel {

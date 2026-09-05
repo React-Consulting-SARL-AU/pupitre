@@ -11,14 +11,14 @@ import { account } from "./account";
 import { createAgentClient, type SshTarget, sshSpawn } from "./agent-client";
 import { active, paths, read } from "./servers";
 import { sshArgs } from "./ssh-config";
-import { guardedRequest } from "./usage-guard";
+import { usageError } from "./usage-guard";
 
 /**
  * The client bound to this machine's servers.
  *
  * `agent-client.ts` knows nothing of Electron so it can be replayed against the
  * fake agent; the SSH target it needs is resolved here, where the configuration
- * lives.
+ * lives, and so is the account whose usage right stands in front of it.
  */
 function target(serverId: string): SshTarget {
   const config = read();
@@ -27,9 +27,17 @@ function target(serverId: string): SshTarget {
   return { args: server ? sshArgs(server, paths()) : [] };
 }
 
+/**
+ * Every channel of the app goes through this client, so the usage right is
+ * asked once, here, rather than on each of them.
+ *
+ * It is not the right the agent answers with: the account may be valid and the
+ * server suspended, or the other way round, and each refuses in its own words.
+ */
 export const agentClient = createAgentClient({
-  spawn: sshSpawn(target),
   appVersion: app.getVersion(),
+  gate: () => usageError(() => account.guard()),
+  spawn: sshSpawn(target),
 });
 
 function refuse(
@@ -106,16 +114,6 @@ function checked(
   return { serverId: known, cmd, params: parsed.data };
 }
 
-/**
- * The account's usage right, read at the moment of the call.
- *
- * It is not the one the agent answers with: the account may be valid and the
- * server suspended, or the other way round, and each refuses in its own words.
- */
-function usageRight() {
-  return account.guard();
-}
-
 function isRefusal(
   value: ReturnType<typeof checked>
 ): value is AgentResponse<never> {
@@ -130,13 +128,7 @@ export function registerAgentChannels(): void {
 
       return isRefusal(call)
         ? Promise.resolve(call)
-        : guardedRequest(
-            agentClient,
-            usageRight,
-            call.serverId,
-            call.cmd,
-            call.params as never
-          );
+        : agentClient.request(call.serverId, call.cmd, call.params as never);
     }
   );
 
@@ -161,9 +153,7 @@ export function registerAgentChannels(): void {
         }
       };
 
-      return guardedRequest(
-        agentClient,
-        usageRight,
+      return agentClient.request(
         call.serverId,
         call.cmd,
         call.params as never,
