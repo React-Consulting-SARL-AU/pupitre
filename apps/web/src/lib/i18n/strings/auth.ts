@@ -2,7 +2,7 @@ export const auth = {
   en: {
     "auth.signIn.title": "Sign in or sign up",
     "auth.signIn.description":
-      "Enter your address: if you have no account yet, it is created at your first sign-in. A passkey, a sign-in link, or your Google or GitHub account — no password to remember.",
+      "No account yet? It is created at your first sign-in.",
     "auth.signIn.email": "Email address",
     "auth.signIn.emailPlaceholder": "you@example.com",
     "auth.signIn.magicLink": "Send me a sign-in link",
@@ -62,7 +62,7 @@ export const auth = {
   fr: {
     "auth.signIn.title": "Connexion ou inscription",
     "auth.signIn.description":
-      "Entrez votre adresse : si vous n'avez pas encore de compte, il se crée à votre première connexion. Une clé d'accès, un lien de connexion, ou votre compte Google ou GitHub — aucun mot de passe à retenir.",
+      "Pas encore de compte ? Il se crée à votre première connexion.",
     "auth.signIn.email": "Adresse email",
     "auth.signIn.emailPlaceholder": "vous@exemple.com",
     "auth.signIn.magicLink": "Recevoir un lien de connexion",
