@@ -78,6 +78,40 @@ function listServers(session: Session) {
   return apiRequest<{ data: ServerBody[] }>("/servers", { session })
 }
 
+async function repairOf(status: "grace" | "suspended") {
+  const { prisma } = await bootApiTestServer()
+  const { members } = await createOrganizationWithMembers({
+    roles: ["owner"],
+    subscription: {},
+  })
+  const [owner] = members
+  const device = await addDevice(owner, "MacBook", ED25519_KEY)
+  const deviceId = device.json.data.id
+  const first = await enroll(owner, deviceId, "vps.test")
+
+  await exchange(first.json.enrollment_token)
+  await prisma.server.update({
+    where: { id: first.json.server_id },
+    data: { status },
+  })
+
+  const again = await enroll(owner, deviceId, "vps.test")
+  const exchanged = await exchange(again.json.enrollment_token)
+  const state = await apiRequest("/agent/state", {
+    bearer: exchanged.json.server_token,
+  })
+
+  return {
+    serverId: first.json.server_id,
+    again,
+    exchanged,
+    state,
+    server: await prisma.server.findUniqueOrThrow({
+      where: { id: first.json.server_id },
+    }),
+  }
+}
+
 async function enrolledServer(
   session: Session,
   host: string,
@@ -282,6 +316,143 @@ describe("POST /servers/enroll", () => {
     expect(event.targetType).toBe("server")
     expect(event.actorUserId).toBe(owner.user.id)
     expect(event.organizationId).toBe(organization.id)
+  })
+
+  it("repairs a known host instead of adding a second server", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { organization, members } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: { quantity: 2 },
+    })
+    const [owner] = members
+    const device = await addDevice(owner, "MacBook", ED25519_KEY)
+    const deviceId = device.json.data.id
+    const first = await enroll(owner, deviceId, "vps.test", { port: 2222 })
+    const second = await enroll(owner, deviceId, "vps.test", {
+      port: 2222,
+      ssh_user: "ops",
+    })
+
+    expect(second.status).toBe(201)
+    expect(second.json.server_id).toBe(first.json.server_id)
+    expect(second.json.enrollment_token).not.toBe(first.json.enrollment_token)
+
+    const servers = await prisma.server.findMany({
+      where: { organizationId: organization.id },
+    })
+
+    expect(servers).toHaveLength(1)
+    expect(servers[0]?.status).toBe("enrolling")
+    expect(servers[0]?.sshUser).toBe("ops")
+    expect(servers[0]?.serverTokenHash).toBeNull()
+  })
+
+  it("hands a suspended server a token that works again", async () => {
+    const { again, exchanged, serverId, server, state } =
+      await repairOf("suspended")
+
+    expect(again.status).toBe(201)
+    expect(again.json.server_id).toBe(serverId)
+    expect(exchanged.status).toBe(200)
+    expect(state.status).toBe(200)
+    expect(server.status).toBe("active")
+  })
+
+  it("brings a server in grace back to active", async () => {
+    const { again, exchanged, serverId, server } = await repairOf("grace")
+
+    expect(again.status).toBe(201)
+    expect(again.json.server_id).toBe(serverId)
+    expect(exchanged.status).toBe(200)
+    expect(server.status).toBe("active")
+  })
+
+  it("repairs on a full quota but still refuses an unknown host", async () => {
+    const { members } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: { quantity: 1, status: "active" },
+    })
+    const [owner] = members
+    const device = await addDevice(owner, "MacBook", ED25519_KEY)
+    const deviceId = device.json.data.id
+    const first = await enroll(owner, deviceId, "vps-1.test")
+    const repair = await enroll(owner, deviceId, "vps-1.test")
+    const unknown = await enroll(owner, deviceId, "vps-2.test")
+
+    expect(repair.status).toBe(201)
+    expect(repair.json.server_id).toBe(first.json.server_id)
+    expect(unknown.status).toBe(403)
+    expect(unknown.json.error.code).toBe("seat_quota_reached")
+  })
+
+  it("does not read the same host in another organization as a repair", async () => {
+    const { prisma } = await bootApiTestServer()
+    const one = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
+    const other = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
+    const [oneOwner] = one.members
+    const [otherOwner] = other.members
+    const oneDevice = await addDevice(oneOwner, "MacBook", ED25519_KEY)
+    const otherDevice = await addDevice(
+      otherOwner,
+      "ThinkPad",
+      SECOND_ED25519_KEY
+    )
+    const oneServer = await enroll(oneOwner, oneDevice.json.data.id, "vps.test")
+    const otherServer = await enroll(
+      otherOwner,
+      otherDevice.json.data.id,
+      "vps.test"
+    )
+
+    expect(otherServer.status).toBe(201)
+    expect(otherServer.json.server_id).not.toBe(oneServer.json.server_id)
+    expect(await prisma.server.count({ where: { host: "vps.test" } })).toBe(2)
+  })
+
+  it("gives another device of the same host its own server", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { members } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: { quantity: 2 },
+    })
+    const [owner] = members
+    const laptop = await addDevice(owner, "MacBook", ED25519_KEY)
+    const desktop = await addDevice(owner, "ThinkPad", SECOND_ED25519_KEY)
+    const first = await enroll(owner, laptop.json.data.id, "vps.test")
+    const second = await enroll(owner, desktop.json.data.id, "vps.test")
+
+    expect(second.status).toBe(201)
+    expect(second.json.server_id).not.toBe(first.json.server_id)
+    expect(await prisma.server.count({ where: { host: "vps.test" } })).toBe(2)
+  })
+
+  it("enrolls a fresh server when the known host was revoked", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { members } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: { quantity: 1, status: "active" },
+    })
+    const [owner] = members
+    const device = await addDevice(owner, "MacBook", ED25519_KEY)
+    const deviceId = device.json.data.id
+    const first = await enroll(owner, deviceId, "vps.test")
+
+    await prisma.server.update({
+      where: { id: first.json.server_id },
+      data: { status: "revoked" },
+    })
+
+    const again = await enroll(owner, deviceId, "vps.test")
+
+    expect(again.status).toBe(201)
+    expect(again.json.server_id).not.toBe(first.json.server_id)
+    expect(await prisma.server.count({ where: { host: "vps.test" } })).toBe(2)
   })
 })
 

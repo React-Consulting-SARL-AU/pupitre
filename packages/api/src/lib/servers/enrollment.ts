@@ -1,5 +1,9 @@
 import { sendServerEnrolledEmail } from "../../emails/notifications"
-import { getPrisma, withOrganization } from "../api/prisma"
+import {
+  getPrisma,
+  type OrganizationPrisma,
+  withOrganization,
+} from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import {
   type EntitlementRefusal,
@@ -8,6 +12,7 @@ import {
 } from "../billing/entitlement"
 import {
   countSeatedServers,
+  SEATED_STATUSES,
   type SeatQuotaSource,
   seatQuotaFor,
 } from "../billing/seats"
@@ -106,6 +111,73 @@ export interface ExchangeInput {
   arch: string
 }
 
+interface EnrollTarget {
+  host: string
+  port: number
+  deviceId: string
+}
+
+interface EnrollmentGrant {
+  arch: string
+  sshUser: string
+  targetVersion: string
+  enrollmentTokenHash: string
+  enrollmentExpiresAt: Date
+  hostFingerprint?: string
+}
+
+function seatedServerAt(prisma: OrganizationPrisma, target: EnrollTarget) {
+  return prisma.server.findFirst({
+    where: { ...target, status: { in: SEATED_STATUSES } },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  })
+}
+
+async function createServer(
+  prisma: OrganizationPrisma,
+  actor: EnrollActor,
+  target: EnrollTarget,
+  grant: EnrollmentGrant
+) {
+  const [{ quota, source }, seated] = await Promise.all([
+    seatQuotaFor(prisma),
+    countSeatedServers(prisma),
+  ])
+
+  if (seated >= quota) {
+    throw new SeatQuotaReachedError(quota, source)
+  }
+
+  return await prisma.server.create({
+    data: {
+      ...target,
+      ...grant,
+      organizationId: actor.organizationId,
+      name: target.host,
+      status: "enrolling",
+      assignedUserId: actor.userId,
+    },
+  })
+}
+
+async function repairServer(
+  prisma: OrganizationPrisma,
+  serverId: string,
+  grant: EnrollmentGrant
+) {
+  const repaired = await prisma.server.updateMany({
+    where: { id: serverId, status: { in: SEATED_STATUSES } },
+    data: { ...grant, status: "enrolling", serverTokenHash: null },
+  })
+
+  if (repaired.count === 0) {
+    return null
+  }
+
+  return await prisma.server.findFirst({ where: { id: serverId } })
+}
+
 export async function enrollServer(
   actor: EnrollActor,
   input: EnrollInput
@@ -126,35 +198,26 @@ export async function enrollServer(
     throw new EntitlementMissingError(refusal)
   }
 
-  const [{ quota, source }, seated] = await Promise.all([
-    seatQuotaFor(prisma),
-    countSeatedServers(prisma),
-  ])
-
-  if (seated >= quota) {
-    throw new SeatQuotaReachedError(quota, source)
+  const target: EnrollTarget = {
+    host: input.host.trim(),
+    port: input.port ?? DEFAULT_SSH_PORT,
+    deviceId: device.id,
   }
 
+  const known = await seatedServerAt(prisma, target)
   const enrollmentToken = generateEnrollmentToken()
   const release = await releaseForEnrollment(input.probe.arch)
-  const host = input.host.trim()
-  const server = await prisma.server.create({
-    data: {
-      organizationId: actor.organizationId,
-      name: host,
-      host,
-      port: input.port ?? DEFAULT_SSH_PORT,
-      sshUser: input.ssh_user ?? DEFAULT_SSH_USER,
-      arch: input.probe.arch,
-      hostFingerprint: input.fingerprint ?? null,
-      status: "enrolling",
-      targetVersion: release.version,
-      deviceId: device.id,
-      assignedUserId: actor.userId,
-      enrollmentTokenHash: await hashEnrollmentToken(enrollmentToken),
-      enrollmentExpiresAt: new Date(Date.now() + ENROLLMENT_TTL_MS),
-    },
-  })
+  const grant: EnrollmentGrant = {
+    arch: input.probe.arch,
+    sshUser: input.ssh_user ?? DEFAULT_SSH_USER,
+    targetVersion: release.version,
+    enrollmentTokenHash: await hashEnrollmentToken(enrollmentToken),
+    enrollmentExpiresAt: new Date(Date.now() + ENROLLMENT_TTL_MS),
+    ...(input.fingerprint ? { hostFingerprint: input.fingerprint } : {}),
+  }
+
+  const repaired = known ? await repairServer(prisma, known.id, grant) : null
+  const server = repaired ?? (await createServer(prisma, actor, target, grant))
 
   await recordEvent({
     action: "server.enrolled",
@@ -162,7 +225,12 @@ export async function enrollServer(
     organizationId: actor.organizationId,
     targetType: "server",
     targetId: server.id,
-    payload: { host, port: server.port, ssh_user: server.sshUser },
+    payload: {
+      host: target.host,
+      port: server.port,
+      ssh_user: server.sshUser,
+      repaired: repaired !== null,
+    },
   })
 
   return {
