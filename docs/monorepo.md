@@ -44,7 +44,12 @@ Les PR font tourner les tâches affectées ; `main` fait tout.
 ## Secrets
 
 - Jamais dans le dépôt. Le hook pre-commit refuse toute chaîne ressemblant à une clé API, un jeton ou une clé privée.
-- Local : `.env.local` racine, ignoré, symlinké dans `apps/web/`. Modèle : `.env.example`.
+- Local : `bun run dev:prepare` prépare `.env.local` et les liens que chaque outil attend. Les trois commandes de développement l'appellent d'abord, donc il n'y a rien à lancer à la main. Il ne remplace jamais une valeur déjà écrite : un `.env.local` renseigné reste tel quel.
+- **Ce qui se dérive n'est pas stocké.** `DATABASE_URL` et `MIGRATE_DATABASE_URL` viennent de `neonctl` (projet `pupitre`, branche `staging`, poolé et direct) ; `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` sont tirés au hasard par poste, puisqu'ils n'ont pas à être partagés.
+- **Ce qui ne se dérive pas vient de 1Password.** `.env.1password.tpl` est le modèle committé, avec des références `op://` et aucune valeur ; le coffre et l'élément sont dans `op.config.json`, surchargeables par `OP_VAULT` et `OP_ITEM`. `op inject` échoue en bloc si un champ manque, donc une clé reste **en commentaire** tant que son champ n'existe pas dans la note.
+- **Rien n'est bloquant.** `op` absent, session fermée, champ manquant ou `neonctl` sans session : le script le dit et retombe sur ce que `.env.local` porte déjà.
+- Les valeurs **non secrètes** du développement (`BETTER_AUTH_URL`, `VITE_APP_URL`, `EMAIL_FROM`) ne sont ni dérivées ni dans 1Password : elles vivent dans `vars` de `apps/web/wrangler.jsonc`.
+- `.env.local` est écrit en 0600 et lié en `apps/web/.dev.vars` (que le Worker lit) et `apps/web/.env.local` (que Vite lit) : une seule valeur à tenir à jour. `.env.example` reste la liste de référence des noms.
 - Production : secrets Wrangler. `wrangler.jsonc` déclare `secrets.required` ; `scripts/check-worker-secrets.ts` compare avec ce qui est lié au Worker et refuse le déploiement s'il en manque un.
 - Signature : certificats Apple et Azure Trusted Signing dans les secrets GitHub Actions uniquement.
 

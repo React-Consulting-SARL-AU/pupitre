@@ -7,9 +7,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "turbo run dev --filter=@pupitre/site --filter=@pupitre/web",
-    "dev:site": "turbo run dev --filter=@pupitre/site",
-    "dev:web": "turbo run dev --filter=@pupitre/web",
+    "dev:prepare": "bun scripts/bootstrap-local.ts",
+    "dev": "bun run dev:prepare && turbo run dev --filter=@pupitre/site --filter=@pupitre/web",
+    "dev:site": "bun run dev:prepare && turbo run dev --filter=@pupitre/site",
+    "dev:web": "bun run dev:prepare && turbo run dev --filter=@pupitre/web",
     "dev:desktop": "turbo run dev --filter=@pupitre/desktop",
     "dev:email": "bun --cwd=packages/api run dev:email",
     "build": "turbo run build",
