@@ -15,6 +15,7 @@ import { loadOnePasswordEnv } from "./op-env"
 const ROOT = join(import.meta.dir, "..")
 const ENV_FILE = join(ROOT, ".env.local")
 const ENV_SOURCE = join(ROOT, ".env.example")
+const WRANGLER_FILE = join(ROOT, "apps/web/wrangler.jsonc")
 const ENV_LINE_RE = /^([A-Z0-9_]+)=/
 
 const NEON_PROJECT = process.env.PUPITRE_NEON_PROJECT ?? "pupitre"
@@ -34,7 +35,7 @@ function quote(value: string): string {
   return `"${value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`
 }
 
-function parse(content: string): Record<string, string> {
+export function parse(content: string): Record<string, string> {
   const values: Record<string, string> = {}
 
   for (const raw of content.split("\n")) {
@@ -56,7 +57,7 @@ function parse(content: string): Record<string, string> {
   return values
 }
 
-function apply(content: string, values: Record<string, string>): string {
+export function apply(content: string, values: Record<string, string>): string {
   const seen = new Set<string>()
 
   const lines = content.split("\n").map((line) => {
@@ -78,6 +79,103 @@ function apply(content: string, values: Record<string, string>): string {
   }
 
   return lines.join("\n")
+}
+
+export function stripJsonComments(content: string): string {
+  let out = ""
+  let inString = false
+  let escaped = false
+  let index = 0
+
+  while (index < content.length) {
+    const char = content[index]
+
+    if (inString) {
+      out += char
+      inString = !(char === '"' && !escaped)
+      escaped = char === "\\" && !escaped
+      index += 1
+
+      continue
+    }
+
+    if (char === '"') {
+      inString = true
+      out += char
+      index += 1
+
+      continue
+    }
+
+    if (char === "/" && content[index + 1] === "/") {
+      const end = content.indexOf("\n", index)
+
+      index = end === -1 ? content.length : end
+
+      continue
+    }
+
+    if (char === "/" && content[index + 1] === "*") {
+      const end = content.indexOf("*/", index + 2)
+
+      index = end === -1 ? content.length : end + 2
+
+      continue
+    }
+
+    out += char
+    index += 1
+  }
+
+  return out
+}
+
+/**
+ * Les valeurs non secrètes du développement vivent dans `vars` de
+ * `apps/web/wrangler.jsonc`, mais `.dev.vars` masque `vars` clé par clé : sans
+ * elles dans `.env.local`, le Worker local démarre avec `BETTER_AUTH_URL` vide.
+ */
+export function wranglerVars(path = WRANGLER_FILE): Record<string, string> {
+  if (!existsSync(path)) {
+    return {}
+  }
+
+  let parsed: { vars?: Record<string, unknown> }
+
+  try {
+    parsed = JSON.parse(stripJsonComments(readFileSync(path, "utf8")))
+  } catch {
+    process.stdout.write(
+      `Valeurs locales ignorées : ${path} n'est pas lisible comme du JSONC.\n`
+    )
+
+    return {}
+  }
+
+  const values: Record<string, string> = {}
+
+  for (const [key, value] of Object.entries(parsed.vars ?? {})) {
+    if (typeof value === "string" && value !== "") {
+      values[key] = value
+    }
+  }
+
+  return values
+}
+
+export function localValues(
+  current: Record<string, string>,
+  defaults: Record<string, string> = wranglerVars()
+): Record<string, string> {
+  const values: Record<string, string> = {}
+
+  for (const [key, value] of Object.entries(defaults)) {
+    if (!current[key]) {
+      values[key] = value
+    }
+  }
+
+  return values
 }
 
 function neonctlReady(): boolean {
@@ -170,6 +268,10 @@ function main(): void {
     }
   }
 
+  const local = localValues({ ...current, ...values })
+
+  Object.assign(values, local)
+
   if (!(current.DATABASE_URL && current.MIGRATE_DATABASE_URL)) {
     Object.assign(values, databaseUrls())
   }
@@ -186,6 +288,9 @@ function main(): void {
     GENERATED.filter((key) => key in values).length > 0
       ? `${GENERATED.filter((key) => key in values).length} tirés au hasard`
       : null,
+    Object.keys(local).length > 0
+      ? `${Object.keys(local).length} depuis wrangler.jsonc`
+      : null,
     "DATABASE_URL" in values ? "base depuis Neon" : null,
   ].filter(Boolean)
 
@@ -194,4 +299,6 @@ function main(): void {
   )
 }
 
-main()
+if (import.meta.main) {
+  main()
+}

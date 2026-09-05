@@ -5,6 +5,7 @@
     "includes": [
       "!**/node_modules",
       "!packages/design/src/logos/*.svg",
+      "!packages/design/scripts/vendor/*.svg",
       "!**/.turbo",
       "!**/.wrangler",
       "!**/dist",

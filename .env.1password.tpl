@@ -10,7 +10,7 @@
 # NE METTRE ICI QUE CE QUI NE SE DÉRIVE PAS.
 #   - `DATABASE_URL` et `MIGRATE_DATABASE_URL` viennent de `neonctl`.
 #   - `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` sont tirés au hasard par poste.
-#   - `BETTER_AUTH_URL`, `VITE_APP_URL` et `EMAIL_FROM` vivent dans `apps/web/wrangler.jsonc`.
+#   - `BETTER_AUTH_URL`, `VITE_APP_URL` et `EMAIL_FROM` viennent des `vars` de `apps/web/wrangler.jsonc`.
 #
 # ATTENTION : `op inject` échoue en bloc si un seul champ manque dans la note.
 # Garde une clé en commentaire tant que son champ n'existe pas.
@@ -24,9 +24,12 @@ STRIPE_PRICE_SERVER_YEAR="op://{{OP_VAULT}}/{{OP_ITEM}}/STRIPE_PRICE_SERVER_YEAR
 # qui en tire un neuf à chaque session, et il diffère de celui du tableau de bord.
 # Seuls staging et production en ont besoin, par secret Wrangler.
 
-# --- Connexion par GitHub. Absentes, le lien magique reste le seul chemin.
+# --- Connexion par GitHub et par Google. Chaque fournisseur exige ses deux
+# variables ; sans aucune, la clé d'accès et le lien magique restent les chemins.
 # GITHUB_CLIENT_ID="op://{{OP_VAULT}}/{{OP_ITEM}}/GITHUB_CLIENT_ID"
 # GITHUB_CLIENT_SECRET="op://{{OP_VAULT}}/{{OP_ITEM}}/GITHUB_CLIENT_SECRET"
+# GOOGLE_CLIENT_ID="op://{{OP_VAULT}}/{{OP_ITEM}}/GOOGLE_CLIENT_ID"
+# GOOGLE_CLIENT_SECRET="op://{{OP_VAULT}}/{{OP_ITEM}}/GOOGLE_CLIENT_SECRET"
 
 # --- Binaires signés de l'agent sur R2. Absentes, la distribution est coupée.
 # R2_ACCOUNT_ID="op://{{OP_VAULT}}/{{OP_ITEM}}/R2_ACCOUNT_ID"
