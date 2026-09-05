@@ -56,6 +56,26 @@ export function amountUsd(
   return quantity * SEAT_PRICE_USD_PER_MONTH * months
 }
 
+const MS_PER_DAY = 86_400_000
+
+/** A day that has begun still counts: Stripe bills at the end of the last one. */
+export function trialDaysLeft(
+  endsAt: string | Date | null,
+  now: Date = new Date()
+): number | null {
+  if (!endsAt) {
+    return null
+  }
+
+  const end = new Date(endsAt).getTime()
+
+  if (Number.isNaN(end)) {
+    return null
+  }
+
+  return Math.max(0, Math.ceil((end - now.getTime()) / MS_PER_DAY))
+}
+
 export type SeatVerdict = "matched" | "unused" | "over_quota"
 
 export interface SeatBalance {

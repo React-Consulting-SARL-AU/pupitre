@@ -1,8 +1,8 @@
 export const auth = {
   en: {
-    "auth.signIn.title": "Sign in",
+    "auth.signIn.title": "Sign in or sign up",
     "auth.signIn.description":
-      "A passkey, a sign-in link, or your Google or GitHub account. No password to remember.",
+      "Enter your address: if you have no account yet, it is created at your first sign-in. A passkey, a sign-in link, or your Google or GitHub account — no password to remember.",
     "auth.signIn.email": "Email address",
     "auth.signIn.emailPlaceholder": "you@example.com",
     "auth.signIn.magicLink": "Send me a sign-in link",
@@ -21,7 +21,7 @@ export const auth = {
 
     "auth.device.title": "Confirm a device",
     "auth.device.description":
-      "Enter the code your device shows, then confirm. That is what opens its session.",
+      "This is where the Pupitre app is linked to your account. Enter the code the app shows, then confirm: that is what opens its session.",
     "auth.device.codeLabel": "Code shown by the device",
     "auth.device.check": "Check the code",
     "auth.device.confirmLead":
@@ -60,9 +60,9 @@ export const auth = {
       "Ask the organisation's administrator for a new invitation.",
   },
   fr: {
-    "auth.signIn.title": "Connexion",
+    "auth.signIn.title": "Connexion ou inscription",
     "auth.signIn.description":
-      "Une clé d'accès, un lien de connexion, ou votre compte Google ou GitHub. Aucun mot de passe à retenir.",
+      "Entrez votre adresse : si vous n'avez pas encore de compte, il se crée à votre première connexion. Une clé d'accès, un lien de connexion, ou votre compte Google ou GitHub — aucun mot de passe à retenir.",
     "auth.signIn.email": "Adresse email",
     "auth.signIn.emailPlaceholder": "vous@exemple.com",
     "auth.signIn.magicLink": "Recevoir un lien de connexion",
@@ -81,7 +81,7 @@ export const auth = {
 
     "auth.device.title": "Confirmer un appareil",
     "auth.device.description":
-      "Entrez le code que votre appareil affiche, puis confirmez. C'est ce qui lui ouvre une session.",
+      "C'est ici que l'app Pupitre se lie à votre compte. Entrez le code qu'elle affiche, puis confirmez : c'est ce qui ouvre sa session.",
     "auth.device.codeLabel": "Code affiché par l'appareil",
     "auth.device.check": "Vérifier le code",
     "auth.device.confirmLead":

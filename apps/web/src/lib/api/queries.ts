@@ -93,13 +93,58 @@ export function deleteServer(id: string): Promise<void> {
     })
 }
 
+async function readSubscription(organizationId: string) {
+  return unwrap(
+    await api().api.v1.orgs({ id: organizationId }).subscription.get()
+  ).data
+}
+
 export function subscriptionQueryOptions(organizationId: string) {
   return queryOptions({
     queryKey: queryKeys.subscription(organizationId),
-    queryFn: async () =>
-      unwrap(await api().api.v1.orgs({ id: organizationId }).subscription.get())
-        .data,
+    queryFn: () => readSubscription(organizationId),
   })
+}
+
+export const SUBSCRIPTION_POLL_INTERVAL_MS = 1000
+
+export const SUBSCRIPTION_POLL_TIMEOUT_MS = 60_000
+
+export interface SubscriptionPoll {
+  intervalMs?: number
+  timeoutMs?: number
+}
+
+export type Subscription = NonNullable<
+  Awaited<ReturnType<typeof readSubscription>>
+>
+
+/**
+ * Stripe alone opens a subscription, and tells us by webhook: coming back from
+ * Checkout, the console has nothing to create and everything to wait for.
+ */
+export async function pollSubscription(
+  organizationId: string,
+  {
+    intervalMs = SUBSCRIPTION_POLL_INTERVAL_MS,
+    timeoutMs = SUBSCRIPTION_POLL_TIMEOUT_MS,
+  }: SubscriptionPoll = {}
+): Promise<Subscription> {
+  const deadline = Date.now() + timeoutMs
+
+  for (;;) {
+    const subscription = await readSubscription(organizationId)
+
+    if (subscription) {
+      return subscription
+    }
+
+    if (Date.now() >= deadline) {
+      throw new Error("the webhook has not landed yet")
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, intervalMs))
+  }
 }
 
 export interface CheckoutInput {

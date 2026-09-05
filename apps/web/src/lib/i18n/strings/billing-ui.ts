@@ -19,6 +19,12 @@ export const billingUi = {
     "billing.portalFailedFix":
       "Try again in a moment; if it persists, go through a first payment to create the Stripe customer.",
     "billing.statusUnknown": "Unknown status",
+    "billing.trialTitle": "Trial running",
+    "billing.trialLeft.one": "{count} day left.",
+    "billing.trialLeft.other": "{count} days left.",
+    "billing.trialOver": "The trial is over.",
+    "billing.trialEnds":
+      "At the end of the trial, with no card registered, Stripe cancels the subscription: the servers go to grace, then suspended. Register a card in the Stripe portal to keep them.",
     "checkout.title": "Order seats",
     "checkout.unitPrice": "{price} per server per month",
     "checkout.servers": "Servers",
@@ -52,6 +58,12 @@ export const billingUi = {
     "billing.portalFailedFix":
       "Réessayez dans un instant ; si cela persiste, passez par un premier paiement pour créer le client Stripe.",
     "billing.statusUnknown": "Statut inconnu",
+    "billing.trialTitle": "Essai en cours",
+    "billing.trialLeft.one": "{count} jour restant.",
+    "billing.trialLeft.other": "{count} jours restants.",
+    "billing.trialOver": "L'essai est terminé.",
+    "billing.trialEnds":
+      "À la fin de l'essai, sans carte enregistrée, Stripe résilie l'abonnement : les serveurs passent en sursis, puis suspendus. Enregistrez une carte dans le portail Stripe pour les garder.",
     "checkout.title": "Commander des sièges",
     "checkout.unitPrice": "{price} par serveur et par mois",
     "checkout.servers": "Serveurs",

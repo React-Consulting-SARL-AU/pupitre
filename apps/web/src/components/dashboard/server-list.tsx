@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
-import { Server } from "lucide-react"
+import { Link } from "@tanstack/react-router"
+import { Download, Server } from "lucide-react"
 import { AlertBanner } from "@/components/dashboard/alert-banner"
 import { ServerRow } from "@/components/dashboard/server-row"
+import { buttonClassName } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { EmptyState } from "@/components/ui/empty-state"
 import { LoadingState } from "@/components/ui/loading-state"
@@ -30,6 +32,15 @@ export function ServerList() {
   if (servers.data.length === 0) {
     return (
       <EmptyState
+        action={
+          <Link
+            className={buttonClassName({ variant: "primary" })}
+            to="/download"
+          >
+            <Download className="size-4" strokeWidth={1.5} />
+            {t("nav.download")}
+          </Link>
+        }
         description={t("serverList.emptyDescription")}
         icon={Server}
         title={t("serverList.emptyTitle")}

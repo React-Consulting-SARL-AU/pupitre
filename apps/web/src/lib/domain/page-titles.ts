@@ -9,6 +9,7 @@ export interface PageTitle {
 
 const TITLES: Record<string, PageTitle> = {
   "/dashboard": { title: "nav.dashboard", parents: [] },
+  "/dashboard/start": { title: "nav.start", parents: ["nav.dashboard"] },
   "/dashboard/servers": { title: "nav.servers", parents: ["nav.dashboard"] },
   "/dashboard/servers/$id": {
     title: "nav.server",

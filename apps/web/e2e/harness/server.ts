@@ -1,4 +1,10 @@
 import { bootApiTestServer, resetDb } from "@pupitre/api/testing"
+import {
+  postStripeWebhook,
+  stripeEvent,
+  stripeSubscriptionObject,
+  useFakeBilling,
+} from "@pupitre/api/testing/billing"
 import { createServer } from "@pupitre/api/testing/factories"
 import { serve } from "bun"
 import { HARNESS_PORT, HARNESS_PREFIX, VITE_PORT } from "./ports"
@@ -10,9 +16,20 @@ const API_PREFIXES = ["/api/v1", "/api/auth"]
 const MAGIC_LINK_RE = /https?:\/\/\S+/
 const BODYLESS_METHODS = new Set(["GET", "HEAD"])
 
+const TRIAL_DAYS_MS = 14 * 86_400_000
+
+// The console never opens a subscription: Checkout is faked and Stripe's
+// webhook is played back, exactly as in production.
+// biome-ignore lint/correctness/useHookAtTopLevel: the test harness reads as a hook by name only
+const billing = useFakeBilling()
+
 interface SeedServerBody {
   email: string
   name: string
+}
+
+interface TrialBody {
+  email: string
 }
 
 function json(payload: unknown, status = 200): Response {
@@ -50,6 +67,26 @@ async function seedServer(body: SeedServerBody): Promise<Response> {
   return json({ id: server.id, name: server.name })
 }
 
+/** Stripe alone opens a subscription: the harness plays its webhook, nothing else. */
+async function openTrial(body: TrialBody): Promise<Response> {
+  const organizationId = await organizationOf(body.email)
+  const received = await postStripeWebhook<{ handled: boolean }>(
+    stripeEvent(
+      "customer.subscription.created",
+      stripeSubscriptionObject({
+        id: `sub_e2e_${organizationId}`,
+        customerId: `cus_e2e_${organizationId}`,
+        organizationId,
+        status: "trialing",
+        quantity: 1,
+        currentPeriodEnd: new Date(Date.now() + TRIAL_DAYS_MS),
+      })
+    )
+  )
+
+  return json({ handled: received.json.handled })
+}
+
 async function handleHarness(
   request: Request,
   path: string
@@ -60,8 +97,17 @@ async function handleHarness(
 
   if (path === "/reset") {
     await resetDb()
+    billing.reset()
 
     return json({ ok: true })
+  }
+
+  if (path === "/trial") {
+    return await openTrial((await request.json()) as TrialBody)
+  }
+
+  if (path === "/checkouts") {
+    return json({ checkouts: billing.checkouts })
   }
 
   if (path === "/magic-link") {

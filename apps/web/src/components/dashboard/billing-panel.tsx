@@ -13,7 +13,8 @@ import {
   serversQueryOptions,
   subscriptionQueryOptions,
 } from "@/lib/api/queries"
-import { seatBalance } from "@/lib/domain/billing"
+import { seatBalance, trialDaysLeft } from "@/lib/domain/billing"
+import type { Translate } from "@/lib/i18n/i18n"
 
 const SEATED_STATUSES = new Set(["enrolling", "active", "grace", "suspended"])
 
@@ -24,6 +25,21 @@ interface SeatedServer {
 function countSeated(servers: SeatedServer[] | undefined): number {
   return (servers ?? []).filter((server) => SEATED_STATUSES.has(server.status))
     .length
+}
+
+function trialNotice(t: Translate, daysLeft: number | null): string {
+  const title = t("billing.trialTitle")
+
+  if (daysLeft === null) {
+    return title
+  }
+
+  const remaining =
+    daysLeft === 0
+      ? t("billing.trialOver")
+      : t.plural("billing.trialLeft", daysLeft)
+
+  return `${title} · ${remaining}`
 }
 
 export function BillingPanel() {
@@ -74,9 +90,18 @@ export function BillingPanel() {
 
   const used = countSeated(servers.data as SeatedServer[] | undefined)
   const paid = subscription.data?.quantity ?? 0
+  const trialing = subscription.data?.status === "trialing"
+  const daysLeft = trialing
+    ? trialDaysLeft(subscription.data?.current_period_end ?? null)
+    : null
+  const trialTitle = trialNotice(t, daysLeft)
 
   return (
     <div className="flex flex-col gap-section">
+      {trialing ? (
+        <Callout fix={t("billing.trialEnds")} title={trialTitle} />
+      ) : null}
+
       {subscription.data ? (
         <SubscriptionCard
           organizationId={activeOrganization.id}

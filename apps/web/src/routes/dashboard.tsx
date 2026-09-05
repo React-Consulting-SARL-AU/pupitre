@@ -1,12 +1,40 @@
 import type { OrgRole } from "@pupitre/shared/permissions"
 import { useQuery } from "@tanstack/react-query"
-import { createFileRoute, Navigate, Outlet } from "@tanstack/react-router"
+import {
+  createFileRoute,
+  Navigate,
+  Outlet,
+  redirect,
+} from "@tanstack/react-router"
 import { DashboardShell } from "@/components/dashboard/dashboard-shell"
 import { LoadingState } from "@/components/ui/loading-state"
 import { useTranslations } from "@/hooks/use-locale"
 import { meQueryOptions } from "@/lib/api/queries"
+import { START_ROUTE, startRedirectFor } from "@/lib/domain/entitlement-gate"
 
 export const Route = createFileRoute("/dashboard")({
+  /** The console reads the session in the browser, so the gate does too. */
+  ssr: false,
+  beforeLoad: async ({ context, location }) => {
+    const me = await context.queryClient
+      .ensureQueryData(meQueryOptions())
+      .catch(() => null)
+
+    if (!me) {
+      return
+    }
+
+    const checkout = (location.search as Record<string, unknown>).checkout
+    const search = startRedirectFor({
+      entitlement: me.entitlement,
+      pathname: location.pathname,
+      checkout: typeof checkout === "string" ? checkout : undefined,
+    })
+
+    if (search) {
+      throw redirect({ to: START_ROUTE, search })
+    }
+  },
   component: DashboardLayout,
 })
 

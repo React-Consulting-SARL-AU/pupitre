@@ -1,4 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import {
   CreditCard,
@@ -15,6 +15,7 @@ import { SidebarLink } from "@/components/dashboard/sidebar-link"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { usePermission } from "@/hooks/use-permission"
+import { serversQueryOptions } from "@/lib/api/queries"
 import { authClient } from "@/lib/auth/client"
 import { ENTITLEMENT_KEYS } from "@/lib/domain/server-status"
 import type { DictionaryKey } from "@/lib/i18n/en"
@@ -42,11 +43,23 @@ const BILLING_LINK: SidebarEntry = {
   icon: CreditCard,
 }
 
-const ACCOUNT_LINKS: SidebarEntry[] = [
-  { to: "/dashboard/devices", label: "nav.devices", icon: Laptop },
-  { to: "/download", label: "nav.download", icon: Download },
-  { to: "/dashboard/settings", label: "nav.settings", icon: SlidersHorizontal },
-]
+const DOWNLOAD_LINK: SidebarEntry = {
+  to: "/download",
+  label: "nav.download",
+  icon: Download,
+}
+
+const DEVICES_LINK: SidebarEntry = {
+  to: "/dashboard/devices",
+  label: "nav.devices",
+  icon: Laptop,
+}
+
+const SETTINGS_LINK: SidebarEntry = {
+  to: "/dashboard/settings",
+  label: "nav.settings",
+  icon: SlidersHorizontal,
+}
 
 export function DashboardSidebar() {
   const t = useTranslations()
@@ -55,16 +68,24 @@ export function DashboardSidebar() {
   const canReadAudit = usePermission("audit:view")
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const servers = useQuery(serversQueryOptions())
+  const enrolled = (servers.data?.length ?? 0) > 0
   const groups = [
     {
       label: t("nav.group.organization"),
       links: [
         ...ORGANIZATION_LINKS,
+        ...(enrolled ? [] : [DOWNLOAD_LINK]),
         ...(canReadAudit ? [AUDIT_LINK] : []),
         ...(canManageBilling ? [BILLING_LINK] : []),
       ],
     },
-    { label: t("nav.group.account"), links: ACCOUNT_LINKS },
+    {
+      label: t("nav.group.account"),
+      links: enrolled
+        ? [DEVICES_LINK, DOWNLOAD_LINK, SETTINGS_LINK]
+        : [DEVICES_LINK, SETTINGS_LINK],
+    },
   ]
 
   async function signOut() {

@@ -1,6 +1,7 @@
 export const nav = {
   en: {
     "nav.dashboard": "Dashboard",
+    "nav.start": "Get started",
     "nav.servers": "Servers",
     "nav.server": "Server",
     "nav.members": "Members",
@@ -33,9 +34,12 @@ export const nav = {
       "Your account, its appearance and its security. What belongs to the organisation lives elsewhere.",
     "page.servers.description":
       "The enrolled servers of the active organisation. The list refreshes itself.",
+    "page.start.description":
+      "The account and its organisation exist; the trial does not yet. It opens the product, and it starts here.",
   },
   fr: {
     "nav.dashboard": "Tableau de bord",
+    "nav.start": "Démarrer",
     "nav.servers": "Serveurs",
     "nav.server": "Serveur",
     "nav.members": "Membres",
@@ -68,5 +72,7 @@ export const nav = {
       "Votre compte, son apparence et sa sécurité. Ce qui touche à l'organisation vit ailleurs.",
     "page.servers.description":
       "Les serveurs enrôlés de l'organisation active. La liste se rafraîchit toute seule.",
+    "page.start.description":
+      "Le compte et son organisation existent ; l'essai, pas encore. C'est lui qui ouvre le produit, et il se démarre ici.",
   },
 }

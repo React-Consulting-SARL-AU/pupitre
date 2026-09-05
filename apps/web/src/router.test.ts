@@ -10,6 +10,7 @@ describe("router", () => {
     expect(ids).toContain("/auth/device")
     expect(ids).toContain("/auth/invitation/$id")
     expect(ids).toContain("/dashboard")
+    expect(ids).toContain("/dashboard/start")
     expect(ids).toContain("/dashboard/servers/")
     expect(ids).toContain("/dashboard/servers/$id")
     expect(ids).toContain("/dashboard/devices")

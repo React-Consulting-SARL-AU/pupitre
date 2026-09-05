@@ -6,6 +6,7 @@ import {
   SEAT_PRICE_USD_PER_MONTH,
   seatBalance,
   subscriptionStatusLook,
+  trialDaysLeft,
 } from "@/lib/domain/billing"
 import { translator } from "@/lib/i18n/i18n"
 
@@ -83,5 +84,26 @@ describe("INTERVAL_KEYS", () => {
     expect(fr(INTERVAL_KEYS.year)).toBe("Annuel")
     expect(en(INTERVAL_KEYS.month)).toBe("Monthly")
     expect(en(INTERVAL_KEYS.year)).toBe("Yearly")
+  })
+})
+
+describe("trialDaysLeft", () => {
+  const now = new Date("2026-09-05T10:00:00.000Z")
+
+  it("counts the days a running trial still has", () => {
+    expect(trialDaysLeft("2026-09-19T10:00:00.000Z", now)).toBe(14)
+    expect(trialDaysLeft("2026-09-06T09:00:00.000Z", now)).toBe(1)
+  })
+
+  it("counts a started day as a whole day", () => {
+    expect(trialDaysLeft("2026-09-05T23:00:00.000Z", now)).toBe(1)
+  })
+
+  it("stops at zero once the trial is over", () => {
+    expect(trialDaysLeft("2026-09-01T10:00:00.000Z", now)).toBe(0)
+  })
+
+  it("says nothing when Stripe gave no end date", () => {
+    expect(trialDaysLeft(null, now)).toBeNull()
   })
 })

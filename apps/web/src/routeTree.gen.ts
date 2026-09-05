@@ -22,6 +22,7 @@ import { Route as DashboardBillingRouteImport } from './routes/dashboard/billing
 import { Route as DashboardDevicesRouteImport } from './routes/dashboard/devices'
 import { Route as DashboardMembersRouteImport } from './routes/dashboard/members'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
+import { Route as DashboardStartRouteImport } from './routes/dashboard/start'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthInvitationIdRouteImport } from './routes/auth/invitation.$id'
 import { Route as DashboardServersIndexRouteImport } from './routes/dashboard/servers/index'
@@ -92,6 +93,11 @@ const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardStartRoute = DashboardStartRouteImport.update({
+  id: '/start',
+  path: '/start',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -126,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/devices': typeof DashboardDevicesRoute
   '/dashboard/members': typeof DashboardMembersRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/start': typeof DashboardStartRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/invitation/$id': typeof AuthInvitationIdRoute
@@ -144,6 +151,7 @@ export interface FileRoutesByTo {
   '/dashboard/devices': typeof DashboardDevicesRoute
   '/dashboard/members': typeof DashboardMembersRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/start': typeof DashboardStartRoute
   '/dashboard': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/invitation/$id': typeof AuthInvitationIdRoute
@@ -164,6 +172,7 @@ export interface FileRoutesById {
   '/dashboard/devices': typeof DashboardDevicesRoute
   '/dashboard/members': typeof DashboardMembersRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/start': typeof DashboardStartRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/invitation/$id': typeof AuthInvitationIdRoute
@@ -185,6 +194,7 @@ export interface FileRouteTypes {
     | '/dashboard/devices'
     | '/dashboard/members'
     | '/dashboard/settings'
+    | '/dashboard/start'
     | '/dashboard/'
     | '/api/auth/$'
     | '/auth/invitation/$id'
@@ -203,6 +213,7 @@ export interface FileRouteTypes {
     | '/dashboard/devices'
     | '/dashboard/members'
     | '/dashboard/settings'
+    | '/dashboard/start'
     | '/dashboard'
     | '/api/auth/$'
     | '/auth/invitation/$id'
@@ -222,6 +233,7 @@ export interface FileRouteTypes {
     | '/dashboard/devices'
     | '/dashboard/members'
     | '/dashboard/settings'
+    | '/dashboard/start'
     | '/dashboard/'
     | '/api/auth/$'
     | '/auth/invitation/$id'
@@ -334,6 +346,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSettingsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/start': {
+      id: '/dashboard/start'
+      path: '/start'
+      fullPath: '/dashboard/start'
+      preLoaderRoute: typeof DashboardStartRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -371,6 +390,7 @@ interface DashboardRouteChildren {
   DashboardDevicesRoute: typeof DashboardDevicesRoute
   DashboardMembersRoute: typeof DashboardMembersRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
+  DashboardStartRoute: typeof DashboardStartRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardServersIdRoute: typeof DashboardServersIdRoute
   DashboardServersIndexRoute: typeof DashboardServersIndexRoute
@@ -382,6 +402,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardDevicesRoute: DashboardDevicesRoute,
   DashboardMembersRoute: DashboardMembersRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
+  DashboardStartRoute: DashboardStartRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardServersIdRoute: DashboardServersIdRoute,
   DashboardServersIndexRoute: DashboardServersIndexRoute,

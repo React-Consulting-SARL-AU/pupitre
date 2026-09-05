@@ -94,10 +94,48 @@ describe("DownloadPanel", () => {
     expect(container.textContent).toContain(
       "Aucune version de l'app n'a encore été publiée"
     )
-    expect(container.querySelectorAll("a")).toHaveLength(0)
+    const links = [...container.querySelectorAll("a")].map((link) =>
+      link.getAttribute("href")
+    )
+
+    expect(links).toEqual(["/auth/device"])
     expect(container.textContent).not.toContain("Télécharger pour")
     expect(container.textContent).toContain("Pas encore publié")
     expect(container.textContent).toContain("il n'y a donc rien à raconter ici")
+  })
+
+  it("puts the journey in order, then the steps that link the app", async () => {
+    const { container, unmount } = await render(panel())
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("Ce qu'il reste à faire") === true
+    )
+
+    const text = container.textContent ?? ""
+    const order = [
+      "Télécharger l'app",
+      "La lier à votre compte",
+      "Enrôler votre serveur",
+    ].map((step) => text.indexOf(step))
+
+    expect(order.every((position) => position >= 0)).toBe(true)
+    expect(order[0]).toBeLessThan(order[1])
+    expect(order[1]).toBeLessThan(order[2])
+
+    expect(text).toContain("Lier l'app à votre compte")
+    expect(text).toContain("Ouvrez Pupitre sur votre machine")
+    expect(text).toContain("code de huit caractères")
+    expect(text.indexOf("Lier l'app à votre compte")).toBeGreaterThan(
+      text.indexOf("L'app Pupitre")
+    )
+
+    const device = [...container.querySelectorAll("a")].map((link) =>
+      link.getAttribute("href")
+    )
+
+    expect(device).toContain("/auth/device")
   })
 
   it("still lists the three systems and the requirements", async () => {
@@ -141,6 +179,7 @@ describe("DownloadPanel", () => {
       `${BASE}/Pupitre-1.4.0.dmg`,
       `${BASE}/Pupitre-Setup-1.4.0.exe`,
       `${BASE}/Pupitre-1.4.0.AppImage`,
+      "/auth/device",
     ])
   })
 

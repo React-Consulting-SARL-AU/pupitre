@@ -16,6 +16,7 @@ import { roles } from "./strings/roles"
 import { security } from "./strings/security"
 import { servers } from "./strings/servers"
 import { settings } from "./strings/settings"
+import { start } from "./strings/start"
 import { status } from "./strings/status"
 import { statusPage } from "./strings/status-page"
 import { twoFactor } from "./strings/two-factor"
@@ -35,6 +36,7 @@ export const en = {
   ...billingUi.en,
   ...download.en,
   ...servers.en,
+  ...start.en,
   ...members.en,
   ...invites.en,
   ...security.en,
