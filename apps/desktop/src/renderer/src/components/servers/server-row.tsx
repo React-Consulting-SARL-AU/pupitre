@@ -1,3 +1,4 @@
+import type { DictionaryKey } from "@renderer/i18n/en";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { Server } from "@shared/servers";
 import { KeyRound, Trash2 } from "lucide-react";
@@ -74,7 +75,7 @@ export function ServerRow({
           value={name}
         />
 
-        {server.origin === "app" ? (
+        {server.origin === "app" && !server.grant?.adopted ? (
           <IconButton
             icon={KeyRound}
             label={
@@ -102,9 +103,7 @@ export function ServerRow({
             : `${server.user}@${server.host}:${server.port}`}
         </Detail>
         <Detail label={t("servers.row.configLabel")}>
-          {server.origin === "app"
-            ? t("servers.row.configApp")
-            : t("servers.row.configSystem")}
+          {t(configLabel(server))}
         </Detail>
         <Detail label={t("servers.row.hostKeyLabel")}>
           {server.hostFingerprint ?? t("servers.row.notPinned")}
@@ -121,9 +120,7 @@ export function ServerRow({
         <div className="fade-in mt-5 rounded-sm border border-danger/40 bg-danger/10 p-3 pl-7">
           <p className="text-ink leading-relaxed">
             {t("servers.row.confirmQuestion", { name: server.name })}{" "}
-            {server.origin === "app"
-              ? t("servers.row.confirmApp")
-              : t("servers.row.confirmSystem")}
+            {t(confirmLabel(server))}
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Button onClick={onRemove} variant="danger">
@@ -137,6 +134,26 @@ export function ServerRow({
       ) : null}
     </div>
   );
+}
+
+function configLabel(server: Server): DictionaryKey {
+  if (server.grant?.adopted) {
+    return "servers.row.configGranted";
+  }
+
+  return server.origin === "app"
+    ? "servers.row.configApp"
+    : "servers.row.configSystem";
+}
+
+function confirmLabel(server: Server): DictionaryKey {
+  if (server.grant?.adopted) {
+    return "servers.row.confirmGranted";
+  }
+
+  return server.origin === "app"
+    ? "servers.row.confirmApp"
+    : "servers.row.confirmSystem";
 }
 
 function Detail({ label, children }: { label: string; children: ReactNode }) {

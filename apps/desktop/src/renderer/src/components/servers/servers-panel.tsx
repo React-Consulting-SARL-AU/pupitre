@@ -3,6 +3,7 @@ import type { ServerDraft } from "@shared/servers";
 import { Plus, Server as ServerIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useServers } from "../../stores/servers";
+import { FleetPanel } from "../fleet/fleet-panel";
 import { OnboardingEntry } from "../onboarding/onboarding-entry";
 import { Button } from "../ui/button";
 import { EmptyState } from "../ui/empty-state";
@@ -92,6 +93,8 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
           state={refused}
         />
       ) : null}
+
+      <FleetPanel />
 
       <section>
         <div className="flex flex-wrap items-baseline justify-between gap-3">

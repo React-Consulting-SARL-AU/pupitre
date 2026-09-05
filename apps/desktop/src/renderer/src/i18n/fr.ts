@@ -7,6 +7,7 @@ import { common } from "./strings/common";
 import { config } from "./strings/config";
 import { dashboard } from "./strings/dashboard";
 import { firstProject } from "./strings/first-project";
+import { fleet } from "./strings/fleet";
 import { format } from "./strings/format";
 import { install } from "./strings/install";
 import { onboarding } from "./strings/onboarding";
@@ -33,6 +34,7 @@ export const fr: Dictionary = {
   ...config.fr,
   ...dashboard.fr,
   ...firstProject.fr,
+  ...fleet.fr,
   ...install.fr,
   ...onboarding.fr,
   ...project.fr,

@@ -25,7 +25,10 @@
     "src/renderer/src/__tests__/snapshot-fixtures.ts",
     "src/shared/**/*.ts"
   ],
-  // The platform integration test drives `@pupitre/api/testing`, whose sources
+  // The platform integration tests drive `@pupitre/api/testing`, whose sources
   // are compiled for Cloudflare Workers: this project cannot typecheck them.
-  "exclude": ["src/main/__tests__/account-platform.test.ts"]
+  "exclude": [
+    "src/main/__tests__/account-platform.test.ts",
+    "src/main/__tests__/fleet-platform.test.ts"
+  ]
 }

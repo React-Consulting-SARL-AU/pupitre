@@ -106,6 +106,8 @@ interface OnboardingStore {
 
   open: () => void;
   begin: (serverId: string) => void;
+  /** The first opening of a server the platform granted, already installed. */
+  personalise: (serverId: string) => void;
   goTo: (step: OnboardingStep) => void;
   back: () => void;
   canGoBack: () => boolean;
@@ -155,6 +157,21 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
         serverId,
       });
       move("inspection");
+    },
+
+    /**
+     * A server someone else installed: there is nothing to inspect and nothing
+     * to send, only a first project to open. The machine has already changed,
+     * so the wizard offers no way back into the steps that changed it.
+     */
+    personalise(serverId) {
+      set({
+        delivery: { status: "idle" },
+        installed: true,
+        replaying: null,
+        serverId,
+      });
+      move("project");
     },
 
     goTo(step) {

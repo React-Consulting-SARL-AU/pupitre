@@ -1,4 +1,5 @@
 import type { AccountDevice, AccountIdentity } from "@shared/account";
+import type { FleetServer } from "@shared/servers";
 import type { Sealer } from "../../account-vault";
 import type {
   EnrollBody,
@@ -25,6 +26,7 @@ export const IDENTITY: AccountIdentity = {
   entitlement: "valid",
   name: "Ada",
   organization: { id: "org-1", name: "Ada", slug: "ada" },
+  organizations: [{ id: "org-1", name: "Ada", role: "owner", slug: "ada" }],
   role: "owner",
 };
 
@@ -54,6 +56,7 @@ export interface FakePlatformOptions {
   )[];
   release?: EnrollBody["release"];
   binary?: Uint8Array;
+  servers?: FleetServer[];
 }
 
 export interface FakePlatform extends PlatformClient {
@@ -118,6 +121,8 @@ export function fakePlatform(options: FakePlatformOptions = {}): FakePlatform {
     me: (token) => Promise.resolve(seen(token, options.identity ?? IDENTITY)),
 
     devices: (token) => Promise.resolve(seen(token, devices)),
+
+    servers: (token) => Promise.resolve(seen(token, options.servers ?? [])),
 
     addDevice: (token, name, publicKey) => {
       added.push({ name, publicKey });

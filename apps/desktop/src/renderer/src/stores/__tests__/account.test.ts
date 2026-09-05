@@ -27,6 +27,7 @@ const SIGNED_IN: AccountState = {
     entitlement: "valid",
     name: "Ada",
     organization: { id: "org-1", name: "Ada", slug: "ada" },
+    organizations: [{ id: "org-1", name: "Ada", role: "owner", slug: "ada" }],
     role: "owner",
   },
   usage: {

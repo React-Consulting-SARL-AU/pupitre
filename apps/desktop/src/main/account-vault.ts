@@ -51,6 +51,17 @@ export interface TokenVault {
   clear: () => void;
 }
 
+/** A record written before the organizations were read back carries none. */
+function healed(record: AccountRecord): AccountRecord {
+  const { identity } = record;
+
+  if (!identity || Array.isArray(identity.organizations)) {
+    return record;
+  }
+
+  return { ...record, identity: { ...identity, organizations: [] } };
+}
+
 function ensureDir(dir: string): void {
   mkdirSync(dir, { mode: DIR_MODE, recursive: true });
   chmodSync(dir, DIR_MODE);
@@ -110,10 +121,10 @@ export function createTokenVault({
 
     record() {
       try {
-        return {
+        return healed({
           ...EMPTY_RECORD,
           ...(JSON.parse(readFileSync(recordPath, "utf8")) as AccountRecord),
-        };
+        });
       } catch {
         return EMPTY_RECORD;
       }

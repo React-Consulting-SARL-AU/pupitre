@@ -11,6 +11,7 @@ import type {
   AccountResponse,
   Entitlement,
 } from "@shared/account";
+import type { FleetServer } from "@shared/servers";
 
 /**
  * The platform, seen from the main process.
@@ -33,9 +34,21 @@ export type FetchLike = (
 
 export interface MeBody {
   user: { email: string; name: string };
+  organizations: { id: string; name: string; slug: string; role: string }[];
   active_organization: { id: string; name: string; slug: string } | null;
   role: string | null;
   entitlement: Entitlement;
+}
+
+export interface ServerForUserBody {
+  id: string;
+  name: string;
+  host: string | null;
+  port: number;
+  user: string;
+  host_fingerprint: string | null;
+  status: string;
+  key_ready: boolean;
 }
 
 export interface DeviceBody {
@@ -82,6 +95,7 @@ export interface PlatformClient {
     name: string,
     publicKey: string
   ) => Promise<AccountResponse<AccountDevice>>;
+  servers: (token: string) => Promise<AccountResponse<FleetServer[]>>;
   enroll: (
     token: string,
     input: EnrollInput
@@ -129,7 +143,21 @@ function identityOf(body: MeBody): AccountIdentity {
     entitlement: body.entitlement,
     name: body.user.name,
     organization: body.active_organization,
+    organizations: body.organizations,
     role: body.role,
+  };
+}
+
+function fleetServerOf(body: ServerForUserBody): FleetServer {
+  return {
+    host: body.host,
+    hostFingerprint: body.host_fingerprint,
+    id: body.id,
+    keyReady: body.key_ready,
+    name: body.name,
+    port: body.port,
+    status: body.status,
+    user: body.user,
   };
 }
 
@@ -290,6 +318,17 @@ export function createPlatformClient({
 
       return answer.ok
         ? { ok: true, result: deviceOf(answer.result.data) }
+        : answer;
+    },
+
+    async servers(token) {
+      const answer = await call<{ data: ServerForUserBody[] }>(
+        token,
+        "/me/servers"
+      );
+
+      return answer.ok
+        ? { ok: true, result: answer.result.data.map(fleetServerOf) }
         : answer;
     },
 

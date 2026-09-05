@@ -61,12 +61,15 @@ export const servers = {
     "servers.row.remove": "Delete {name}",
     "servers.row.configLabel": "Configuration",
     "servers.row.configApp": "written by the app",
+    "servers.row.configGranted": "granted by your organization",
     "servers.row.configSystem": "your ~/.ssh/config",
     "servers.row.hostKeyLabel": "Host key",
     "servers.row.notPinned": "not pinned yet",
     "servers.row.confirmQuestion": "Delete {name}?",
     "servers.row.confirmApp":
       "The key the app made for this server leaves with it, and no other copy of it exists.",
+    "servers.row.confirmGranted":
+      "It comes back at the next reading: the platform still grants it to this account.",
     "servers.row.confirmSystem":
       "Your ~/.ssh/config is not touched: only this shortcut disappears.",
     "servers.row.confirmRemove": "Delete permanently",
@@ -141,12 +144,15 @@ export const servers = {
     "servers.row.remove": "Supprimer {name}",
     "servers.row.configLabel": "Configuration",
     "servers.row.configApp": "écrite par l'app",
+    "servers.row.configGranted": "attribuée par votre organisation",
     "servers.row.configSystem": "votre ~/.ssh/config",
     "servers.row.hostKeyLabel": "Clé d'hôte",
     "servers.row.notPinned": "pas encore épinglée",
     "servers.row.confirmQuestion": "Supprimer {name} ?",
     "servers.row.confirmApp":
       "La clé que l'app a créée pour ce serveur part avec lui, et il n'en existe pas d'autre copie.",
+    "servers.row.confirmGranted":
+      "Il revient à la prochaine lecture : la plateforme l'attribue toujours à ce compte.",
     "servers.row.confirmSystem":
       "Votre ~/.ssh/config n'est pas touché : seul ce raccourci disparaît.",
     "servers.row.confirmRemove": "Supprimer définitivement",

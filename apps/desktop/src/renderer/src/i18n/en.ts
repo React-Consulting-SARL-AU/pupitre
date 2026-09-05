@@ -6,6 +6,7 @@ import { common } from "./strings/common";
 import { config } from "./strings/config";
 import { dashboard } from "./strings/dashboard";
 import { firstProject } from "./strings/first-project";
+import { fleet } from "./strings/fleet";
 import { format } from "./strings/format";
 import { install } from "./strings/install";
 import { onboarding } from "./strings/onboarding";
@@ -32,6 +33,7 @@ export const en = {
   ...config.en,
   ...dashboard.en,
   ...firstProject.en,
+  ...fleet.en,
   ...install.en,
   ...onboarding.en,
   ...project.en,

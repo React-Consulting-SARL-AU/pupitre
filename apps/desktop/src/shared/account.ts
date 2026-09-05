@@ -27,10 +27,16 @@ export interface AccountOrganization {
   slug: string;
 }
 
+export interface AccountMembership extends AccountOrganization {
+  role: string;
+}
+
 export interface AccountIdentity {
   email: string;
   name: string;
   organization: AccountOrganization | null;
+  /** Every organization this account belongs to, the active one included. */
+  organizations: AccountMembership[];
   role: string | null;
   entitlement: Entitlement;
 }

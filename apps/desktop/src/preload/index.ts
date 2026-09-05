@@ -42,6 +42,7 @@ import type { HardenOutcome, HardenUpdate } from "@shared/harden";
 import type { AgentDelivery, InstallUpdate } from "@shared/install";
 import type { SecretMarks } from "@shared/secrets";
 import type {
+  FleetView,
   HostKeyDecision,
   ServerAdded,
   ServerDraft,
@@ -501,6 +502,19 @@ const api = {
     ipcRenderer.invoke("agent:close", serverId),
 
   servers: (): Promise<ServersConfig> => ipcRenderer.invoke("servers"),
+
+  /**
+   * The servers the platform grants this account, merged into the local list.
+   *
+   * The renderer sends nothing and gets back both lists: what the platform
+   * said, and what the app now knows. Opening one names it by its local
+   * identifier; the address and the key are never named here.
+   */
+  fleet: (): Promise<AgentResponse<FleetView>> =>
+    ipcRenderer.invoke("fleet:list"),
+  openGrantedServer: (id: string): Promise<AgentResponse<ServersConfig>> =>
+    ipcRenderer.invoke("fleet:open", id),
+
   sshHosts: (): Promise<string[]> => ipcRenderer.invoke("ssh-hosts"),
   saveServers: (config: ServersConfig): Promise<ServersConfig> =>
     ipcRenderer.invoke("servers-write", config),

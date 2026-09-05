@@ -23,6 +23,7 @@ import { registerAgentUpdate } from "./agent-update";
 import { registerAppearance } from "./appearance";
 import { registerCatalog } from "./catalog";
 import { completions } from "./completion";
+import { registerFleet } from "./fleet";
 import { registerHarden } from "./harden";
 import { registerInspection } from "./inspection";
 import { registerInstall } from "./install";
@@ -358,6 +359,7 @@ function registerChannels(): void {
   registerAgentChannels();
   registerAgentUpdate();
   registerAppearance(() => window);
+  registerFleet(settle);
   registerInspection();
   registerCatalog();
   registerInstall();

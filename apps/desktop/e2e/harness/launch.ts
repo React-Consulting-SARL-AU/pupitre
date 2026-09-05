@@ -43,6 +43,16 @@ function answerFromFixtures(app: ElectronApplication): Promise<void> {
 
     answer("servers", () => fixtures.servers);
     answer("ssh-hosts", () => []);
+    answer("fleet:list", () => ({
+      ok: true,
+      result: {
+        adopted: [],
+        changed: false,
+        config: fixtures.servers,
+        granted: [],
+        withdrawn: [],
+      },
+    }));
     answer("completion-catalog", () => null);
     answer("server-host-key", () => ({
       ok: true,

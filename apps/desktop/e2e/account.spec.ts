@@ -40,6 +40,9 @@ function stubAccount(app: ElectronApplication): Promise<void> {
           entitlement: "valid",
           name: "Ada Lovelace",
           organization: { id: "org-1", name: "Atelier Ada", slug: "ada" },
+          organizations: [
+            { id: "org-1", name: "Atelier Ada", role: "owner", slug: "ada" },
+          ],
           role: "owner",
         },
         usage: {

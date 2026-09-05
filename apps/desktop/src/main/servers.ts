@@ -72,6 +72,7 @@ function normaliseServer(raw: Server): Server {
     Number.isInteger(raw.port) && raw.port > 0 ? raw.port : DEFAULT_PORT;
 
   return {
+    ...(raw.grant?.id ? { grant: raw.grant } : {}),
     host: raw.host.slice(0, HOST_LIMIT),
     hostFingerprint: raw.hostFingerprint || undefined,
     id: raw.id,
@@ -204,6 +205,29 @@ export function switchAccount(id: string, user: string): string | null {
   write({ active: config.active, servers });
 
   return user;
+}
+
+/**
+ * The first opening of a server the platform granted.
+ *
+ * Written down rather than kept in memory: the customisation the app offers on
+ * that first opening is offered once, and a relaunch is not a first opening.
+ */
+export function noteOpened(id: string): Configuration {
+  const config = read();
+
+  if (!config.servers.some((server) => server.id === id)) {
+    return config;
+  }
+
+  return write({
+    active: id,
+    servers: config.servers.map((server) =>
+      server.id === id && server.grant
+        ? { ...server, grant: { ...server.grant, opened: true } }
+        : server
+    ),
+  });
 }
 
 export function activate(id: string): Configuration {

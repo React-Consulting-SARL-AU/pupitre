@@ -6,6 +6,7 @@ import type {
   SignInProgress,
   UsageRight,
 } from "@shared/account";
+import type { FleetServer } from "@shared/servers";
 import type { AccountRecord, TokenVault } from "./account-vault";
 import type { EnrollInput, PlatformClient } from "./platform-client";
 
@@ -63,6 +64,8 @@ export interface Account {
   signOut: () => AccountState;
   refresh: () => Promise<AccountState>;
   guard: () => AccountResponse<UsageRight>;
+  /** The servers the platform grants this account, whatever its subscription. */
+  fleet: () => Promise<AccountResponse<FleetServer[]>>;
   enroll: (input: EnrollInput) => Promise<AccountResponse<Enrollment>>;
   releaseBytes: (
     version: string,
@@ -343,6 +346,28 @@ export function createAccount(deps: AccountDeps): Account {
     return state();
   }
 
+  /**
+   * `GET /me/servers` asks for a session and nothing else: a member who was
+   * given a server sees it before their organization has any subscription of
+   * its own, which is exactly the case an invitation creates.
+   */
+  async function fleet(): Promise<AccountResponse<FleetServer[]>> {
+    const token = deps.vault.token();
+
+    if (!token) {
+      return {
+        ok: false,
+        error: {
+          code: "unauthenticated",
+          message: "Cet appareil n'est connecté à aucun compte Pupitre.",
+          fix: `Connecte-toi depuis les réglages, ou ouvre la console : ${consoleUrl}`,
+        },
+      };
+    }
+
+    return await deps.platform.servers(token);
+  }
+
   async function enroll(
     input: EnrollInput
   ): Promise<AccountResponse<Enrollment>> {
@@ -395,6 +420,7 @@ export function createAccount(deps: AccountDeps): Account {
 
   return {
     enroll,
+    fleet,
     refresh,
     releaseBytes,
     signIn,

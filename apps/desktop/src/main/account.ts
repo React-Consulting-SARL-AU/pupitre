@@ -7,7 +7,7 @@ import type {
 import { app, ipcMain, safeStorage, shell } from "electron";
 import { type Account, createAccount } from "./account-run";
 import { createTokenVault, type Sealer } from "./account-vault";
-import { generateKey, readPublicKey } from "./keys";
+import { generateKey, keyPaths, readPublicKey } from "./keys";
 import { createPlatformClient, DEFAULT_PLATFORM_URL } from "./platform-client";
 import { paths } from "./servers";
 
@@ -40,7 +40,7 @@ export function agentPlatformUrl(): string {
  * One ed25519 key for this computer, made once and never leaving it. Only the
  * public half goes up to the platform, which hands it to the agents.
  */
-async function deviceKey(): Promise<string> {
+export async function deviceKey(): Promise<string> {
   const dir = paths().keysDir;
   const existing = readPublicKey(dir, DEVICE_KEY_ID);
 
@@ -49,6 +49,17 @@ async function deviceKey(): Promise<string> {
   }
 
   return (await generateKey(dir, DEVICE_KEY_ID)).publicKey;
+}
+
+/**
+ * The private half of that key, which a granted server is opened with.
+ *
+ * The platform pushed its public half to every machine this account may open,
+ * so an assigned server needs no key of its own — and this file has never left
+ * the folder the app made it in.
+ */
+export function deviceKeyPath(): string {
+  return keyPaths(paths().keysDir, DEVICE_KEY_ID).keyPath;
 }
 
 export const account: Account = createAccount({

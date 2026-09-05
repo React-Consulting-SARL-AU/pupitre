@@ -32,6 +32,72 @@ export interface Server {
   keyPath?: string;
   /** The host key recorded on first contact. Absent: never contacted yet. */
   hostFingerprint?: string;
+  /** What the platform last said about it. Absent: the platform never named it. */
+  grant?: ServerGrant;
+}
+
+/**
+ * One server the platform grants this account, as `GET /me/servers` says it.
+ *
+ * The address, the account and the fingerprint come from the platform, and the
+ * key is the one this computer already registered as a device: an invited
+ * member types neither.
+ */
+export interface FleetServer {
+  id: string;
+  name: string;
+  /** Null until the platform knows where the machine answers. */
+  host: string | null;
+  port: number;
+  user: string;
+  hostFingerprint: string | null;
+  /** `enrolling`, `active`, `grace`, `suspended`, `revoked` — the platform's word. */
+  status: string;
+  /** Whether the platform holds a key of this account to push on the servers. */
+  keyReady: boolean;
+}
+
+/** The platform's last word about a server of the local list. */
+export interface ServerGrant {
+  id: string;
+  status: string;
+  keyReady: boolean;
+  /** Whether the platform still lists it for this account. */
+  listed: boolean;
+  /** Whether this entry was created from the platform rather than typed here. */
+  adopted: boolean;
+  /** Whether this computer has already opened it once. */
+  opened: boolean;
+}
+
+const WITHDRAWN_STATUSES = ["revoked", "suspended"];
+
+/** The platform has taken this server back, or no longer lists it at all. */
+export function grantWithdrawn(grant: ServerGrant): boolean {
+  return !grant.listed || WITHDRAWN_STATUSES.includes(grant.status);
+}
+
+/** Still granted, but not openable yet: no key pushed, or no agent installed. */
+export function grantPending(grant: ServerGrant): boolean {
+  return (
+    !grantWithdrawn(grant) && (!grant.keyReady || grant.status === "enrolling")
+  );
+}
+
+export function grantOpens(grant: ServerGrant): boolean {
+  return !(grantWithdrawn(grant) || grantPending(grant));
+}
+
+/** What the merge of the platform's list into the local one produced. */
+export interface FleetView {
+  granted: FleetServer[];
+  config: ServersConfig;
+  /** Local identifiers that entered the list on this pass. */
+  adopted: string[];
+  /** Local identifiers the platform no longer grants. */
+  withdrawn: string[];
+  /** Whether the merge changed the list the app had on disk. */
+  changed: boolean;
 }
 
 export interface ServersConfig {
