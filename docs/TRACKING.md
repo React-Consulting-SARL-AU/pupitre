@@ -117,6 +117,7 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | PLT-24 | La console fait télécharger, puis lier | fait | `main` | c10eb27 |
 | PLT-26 | Un ré-enrôlement répare, il ne duplique pas | fait | `main` | 278cb02 |
 | PLT-27 | Deux enrôlements simultanés ne font qu'un serveur | à faire | | ouverte par PLT-26 : la course demande une migration |
+| PLT-28 | La connexion n'offre que les fournisseurs configurés | à faire | | cliquer Google non configuré rend 404 PROVIDER_NOT_FOUND |
 
 
 ## Site marketing — `MKT`

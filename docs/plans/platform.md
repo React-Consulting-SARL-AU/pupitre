@@ -328,3 +328,19 @@ Critères d'acceptation.
 3. `bun run db:migrate` et un diff Prisma à blanc ne signalent aucune dérive après la migration.
 Tests. `packages/api/src/__tests__/api/servers.test.ts`, dont un cas qui lance les deux enrôlements en parallèle.
 
+### PLT-28 — La connexion n'offre que les fournisseurs configurés
+Lot S · dépend de PLT-23 · `packages/api`, `apps/web`
+
+But. Un bouton de connexion sociale qui ne peut pas marcher n'est pas affiché.
+
+Périmètre. `sign-in-form.tsx` rend « Continuer avec Google » et « Continuer avec GitHub » sans condition, alors que `socialProviders` de `packages/auth/src/server.ts` n'ajoute un fournisseur que si ses **deux** variables sont présentes. Cliquer un fournisseur non configuré rend aujourd'hui `404 PROVIDER_NOT_FOUND` — vérifié. Rien côté client ne sait lesquels existent, et rien ne peut le savoir : la configuration est serveur. Faire dire à la plateforme quels fournisseurs sont montés — un champ sur une route publique déjà existante plutôt qu'une route de plus — et n'afficher que ceux-là. Quand aucun n'est monté, le séparateur « ou » et le bloc social disparaissent au lieu de laisser un titre orphelin. Le lien magique et la clé d'accès ne dépendent d'aucune configuration et ne bougent pas.
+
+Hors périmètre. La configuration elle-même, qui vit dans l'environnement.
+
+Critères d'acceptation.
+1. Sans `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, le bouton Google n'est pas rendu ; avec les deux, il l'est.
+2. Un fournisseur à moitié configuré — l'identifiant sans le secret — est traité comme absent, comme le serveur le fait déjà.
+3. Aucun fournisseur monté : la page n'affiche ni séparateur, ni bloc social, et le lien magique reste au centre.
+4. Les deux langues dans la même passe.
+Tests. Un test de rendu de `sign-in-form`, et un test d'API sur le champ.
+
