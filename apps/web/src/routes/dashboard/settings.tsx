@@ -4,6 +4,7 @@ import { DeleteAccountCard } from "@/components/dashboard/delete-account-card"
 import { ProfileForm } from "@/components/dashboard/profile-form"
 import { SecurityCard } from "@/components/dashboard/security-card"
 import { PageHeader } from "@/components/ui/page-header"
+import { useTranslations } from "@/hooks/use-locale"
 import { pageTitle } from "@/lib/domain/page-titles"
 
 export const Route = createFileRoute("/dashboard/settings")({
@@ -11,14 +12,15 @@ export const Route = createFileRoute("/dashboard/settings")({
 })
 
 function SettingsPage() {
+  const t = useTranslations()
   const { title, parents } = pageTitle("/dashboard/settings")
 
   return (
     <>
       <PageHeader
-        description="Votre compte, son apparence et sa sécurité. Ce qui touche à l'organisation vit ailleurs."
+        description={t("page.settings.description")}
         parents={parents}
-        title={title}
+        title={t(title)}
       />
       <div className="flex flex-col gap-section">
         <ProfileForm />

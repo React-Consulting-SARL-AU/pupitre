@@ -1,3 +1,4 @@
+import type { Locale } from "@pupitre/shared/i18n"
 import type { QueryClient } from "@tanstack/react-query"
 import {
   createRootRouteWithContext,
@@ -6,6 +7,9 @@ import {
   Scripts,
 } from "@tanstack/react-router"
 import type { ReactNode } from "react"
+import { ConsoleFooter } from "@/components/ui/console-footer"
+import { LocaleProvider } from "@/hooks/use-locale"
+import { readLocale } from "@/lib/i18n/locale"
 import { THEME_BOOT_SCRIPT } from "@/lib/theme"
 import "@/styles/globals.css"
 
@@ -14,6 +18,7 @@ export interface RouterContext {
 }
 
 export const Route = createRootRouteWithContext<RouterContext>()({
+  beforeLoad: (): { locale: Locale } => ({ locale: readLocale() }),
   component: RootComponent,
   head: () => ({
     meta: [
@@ -46,15 +51,20 @@ function RootComponent() {
 }
 
 function RootDocument({ children }: { children: ReactNode }) {
+  const { locale } = Route.useRouteContext()
+
   return (
-    <html lang="fr">
+    <html lang={locale}>
       <head>
         {/** biome-ignore lint/security/noDangerouslySetInnerHtml: the theme must be set before the first paint */}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
         <HeadContent />
       </head>
-      <body className="min-h-screen bg-base text-ink">
-        {children}
+      <body className="flex min-h-dvh flex-col bg-base text-ink">
+        <LocaleProvider initial={locale}>
+          <div className="flex flex-1 flex-col">{children}</div>
+          <ConsoleFooter />
+        </LocaleProvider>
         <Scripts />
       </body>
     </html>

@@ -1,4 +1,5 @@
 import type { StatusShape, StatusTone } from "@/lib/domain/server-status"
+import type { DictionaryKey } from "@/lib/i18n/en"
 
 export const ALERT_KINDS = [
   "server_unreachable",
@@ -12,42 +13,42 @@ export type AlertKind = (typeof ALERT_KINDS)[number]
 export interface AlertLook {
   shape: StatusShape
   tone: StatusTone
-  label: string
-  fix: string
+  label: DictionaryKey
+  fix: DictionaryKey
 }
 
 const LOOKS: Record<AlertKind, AlertLook> = {
   server_unreachable: {
     shape: "barred",
     tone: "danger",
-    label: "Injoignable depuis 30 minutes",
-    fix: "Ouvrez une session SSH sur la machine et vérifiez le service : systemctl status pupitred.",
+    label: "alert.server_unreachable",
+    fix: "alert.server_unreachable.fix",
   },
   disk_high: {
     shape: "barred",
     tone: "danger",
-    label: "Disque au-dessus de 90 %",
-    fix: "Effacez les journaux et les images inutiles, ou agrandissez le volume chez votre hébergeur.",
+    label: "alert.disk_high",
+    fix: "alert.disk_high.fix",
   },
   agent_outdated: {
     shape: "hollow",
     tone: "warn",
-    label: "Agent périmé de deux versions",
-    fix: "L'agent se met à jour à son prochain contact ; relancez la mise à jour depuis l'app si rien ne bouge.",
+    label: "alert.agent_outdated",
+    fix: "alert.agent_outdated.fix",
   },
   entitlement_grace: {
     shape: "hollow",
     tone: "warn",
-    label: "Droit d'usage en tolérance",
-    fix: "Mettez le moyen de paiement à jour depuis la facturation.",
+    label: "alert.entitlement_grace",
+    fix: "alert.entitlement_grace.fix",
   },
 }
 
 const UNKNOWN: AlertLook = {
   shape: "hollow",
   tone: "warn",
-  label: "Alerte",
-  fix: "Ouvrez la fiche du serveur pour en savoir plus.",
+  label: "alert.unknown",
+  fix: "alert.unknown.fix",
 }
 
 export function alertLook(kind: string): AlertLook {
@@ -68,11 +69,4 @@ export function countAlerts(
     alerts: touched.reduce((total, server) => total + server.alerts.length, 0),
     servers: touched.length,
   }
-}
-
-export function alertBannerLabel({ alerts, servers }: AlertCount): string {
-  const subject = alerts > 1 ? "alertes actives" : "alerte active"
-  const object = servers > 1 ? "serveurs" : "serveur"
-
-  return `${alerts} ${subject} sur ${servers} ${object}`
 }

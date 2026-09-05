@@ -1,6 +1,7 @@
 import { Dialog } from "@base-ui-components/react/dialog"
 import type { LucideIcon } from "lucide-react"
 import { Button, type ButtonVariant } from "@/components/ui/button"
+import { useTranslations } from "@/hooks/use-locale"
 
 export interface ConfirmDialogProps {
   triggerLabel: string
@@ -23,6 +24,8 @@ export function ConfirmDialog({
   onConfirm,
   pending = false,
 }: ConfirmDialogProps) {
+  const t = useTranslations()
+
   return (
     <Dialog.Root>
       <Dialog.Trigger
@@ -45,7 +48,9 @@ export function ConfirmDialog({
             {description}
           </Dialog.Description>
           <div className="mt-6 flex justify-end gap-2">
-            <Dialog.Close render={<Button variant="ghost">Annuler</Button>} />
+            <Dialog.Close
+              render={<Button variant="ghost">{t("common.cancel")}</Button>}
+            />
             <Dialog.Close
               render={
                 <Button disabled={pending} onClick={onConfirm} variant="danger">

@@ -25,7 +25,7 @@ export function Callout({
   return (
     <div
       className={cn(
-        "rounded-sm border border-line bg-sunken px-3 py-2 text-[13px]",
+        "rounded-md border border-line bg-sunken px-3.5 py-2.5 text-[13px]",
         className
       )}
       role="alert"

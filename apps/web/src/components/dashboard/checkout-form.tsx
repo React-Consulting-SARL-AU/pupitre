@@ -8,13 +8,14 @@ import { FieldError } from "@/components/ui/field-error"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useForm } from "@/hooks/use-form"
+import { useTranslations } from "@/hooks/use-locale"
 import { startCheckout } from "@/lib/api/queries"
 import { leaveFor } from "@/lib/config/urls"
 import {
   amountUsd,
   BILLING_INTERVALS,
   type BillingIntervalName,
-  INTERVAL_LABELS,
+  INTERVAL_KEYS,
   SEAT_PRICE_USD_PER_MONTH,
 } from "@/lib/domain/billing"
 import {
@@ -35,8 +36,9 @@ export function CheckoutForm({
   organizationId,
   defaultQuantity,
 }: CheckoutFormProps) {
+  const t = useTranslations()
   const form = useForm<CheckoutInput, CheckoutValues>({
-    schema: checkoutSchema,
+    schema: checkoutSchema(t),
     defaultValues: { quantity: defaultQuantity, interval: "month" },
   })
   const order = useMutation({
@@ -55,9 +57,11 @@ export function CheckoutForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Commander des sièges</CardTitle>
+        <CardTitle>{t("checkout.title")}</CardTitle>
         <span className="font-data text-[12px] text-ink-3 tabular-nums">
-          {formatUsd(SEAT_PRICE_USD_PER_MONTH)} par serveur et par mois
+          {t("checkout.unitPrice", {
+            price: formatUsd(SEAT_PRICE_USD_PER_MONTH),
+          })}
         </span>
       </CardHeader>
       <CardBody>
@@ -70,7 +74,7 @@ export function CheckoutForm({
         >
           <div className="flex flex-wrap items-end gap-gutter">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="quantity">Serveurs</Label>
+              <Label htmlFor="quantity">{t("checkout.servers")}</Label>
               <Input
                 className="w-24 font-data tabular-nums"
                 id="quantity"
@@ -83,7 +87,7 @@ export function CheckoutForm({
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label>Période</Label>
+              <Label>{t("checkout.period")}</Label>
               <div className="flex h-9 items-center gap-1 rounded-sm border border-line-strong bg-sunken p-1">
                 {BILLING_INTERVALS.map((candidate) => (
                   <button
@@ -101,7 +105,7 @@ export function CheckoutForm({
                     }}
                     type="button"
                   >
-                    {INTERVAL_LABELS[candidate]}
+                    {t(INTERVAL_KEYS[candidate])}
                   </button>
                 ))}
               </div>
@@ -109,12 +113,14 @@ export function CheckoutForm({
 
             <p className="flex flex-col gap-1">
               <span className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-                Total
+                {t("checkout.total")}
               </span>
               <span className="font-data text-[12px] text-ink tabular-nums">
                 {formatUsd(amountUsd(total, interval))}
                 <span className="text-ink-3">
-                  {interval === "year" ? " par an" : " par mois"}
+                  {interval === "year"
+                    ? t("billing.perYear")
+                    : t("billing.perMonth")}
                 </span>
               </span>
             </p>
@@ -125,18 +131,15 @@ export function CheckoutForm({
           <div className="flex flex-wrap items-center gap-3">
             <Button disabled={order.isPending} type="submit" variant="primary">
               <ShoppingCart className="size-4" strokeWidth={1.5} />
-              {order.isPending ? "Ouverture de Stripe…" : "Commander"}
+              {order.isPending ? t("checkout.opening") : t("checkout.order")}
             </Button>
-            <p className="text-[13px] text-ink-2">
-              Le paiement se fait sur Stripe. L'abonnement arrive ici dès que
-              Stripe nous l'a confirmé.
-            </p>
+            <p className="text-[13px] text-ink-2">{t("checkout.lead")}</p>
           </div>
 
           {order.isError ? (
             <Callout
-              fix="Réessayez ; si cela persiste, vérifiez que vous êtes bien propriétaire de cette organisation."
-              title="Le paiement n'a pas pu être ouvert."
+              fix={t("checkout.failedFix")}
+              title={t("checkout.failed")}
               tone="danger"
             />
           ) : null}

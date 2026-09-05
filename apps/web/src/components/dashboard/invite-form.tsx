@@ -6,8 +6,13 @@ import { FieldError } from "@/components/ui/field-error"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useForm } from "@/hooks/use-form"
+import { useTranslations } from "@/hooks/use-locale"
 import { inviteMember } from "@/lib/api/queries"
-import { INVITABLE_ROLES, roleDescription, roleLabel } from "@/lib/domain/roles"
+import {
+  INVITABLE_ROLES,
+  roleDescriptionKey,
+  roleKey,
+} from "@/lib/domain/roles"
 import {
   type InviteInput,
   type InviteValues,
@@ -20,9 +25,10 @@ export interface InviteFormProps {
 }
 
 export function InviteForm({ organizationId }: InviteFormProps) {
+  const t = useTranslations()
   const queryClient = useQueryClient()
   const form = useForm<InviteInput, InviteValues>({
-    schema: inviteSchema,
+    schema: inviteSchema(t),
     defaultValues: { email: "", role: "member" },
   })
   const invite = useMutation({
@@ -52,19 +58,19 @@ export function InviteForm({ organizationId }: InviteFormProps) {
     >
       <div className="flex flex-wrap items-end gap-gutter">
         <div className="flex min-w-[260px] flex-1 flex-col gap-2">
-          <Label htmlFor="invite-email">Adresse email</Label>
+          <Label htmlFor="invite-email">{t("invites.email")}</Label>
           <Input
             autoComplete="off"
             className="font-data"
             id="invite-email"
-            placeholder="prenom@agence.fr"
+            placeholder={t("invites.emailPlaceholder")}
             type="email"
             {...form.register("email")}
           />
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label>Rôle</Label>
+          <Label>{t("invites.role")}</Label>
           <div className="flex h-9 items-center gap-1 rounded-sm border border-line-strong bg-sunken p-1">
             {INVITABLE_ROLES.map((candidate) => (
               <button
@@ -82,7 +88,7 @@ export function InviteForm({ organizationId }: InviteFormProps) {
                 }}
                 type="button"
               >
-                {roleLabel(candidate)}
+                {t(roleKey(candidate) ?? "role.member")}
               </button>
             ))}
           </div>
@@ -90,25 +96,25 @@ export function InviteForm({ organizationId }: InviteFormProps) {
 
         <Button disabled={invite.isPending} type="submit" variant="primary">
           <UserPlus className="size-4" strokeWidth={1.5} />
-          {invite.isPending ? "Envoi…" : "Inviter"}
+          {invite.isPending ? t("invites.sending") : t("invites.send")}
         </Button>
       </div>
 
-      <p className="text-[13px] text-ink-2">{roleDescription(role)}</p>
+      <p className="text-[13px] text-ink-2">
+        {t(roleDescriptionKey(role) ?? "role.member.description")}
+      </p>
 
       <FieldError>{form.formState.errors.email?.message}</FieldError>
 
       {invite.isError ? (
         <Callout
-          fix="Vérifiez l'adresse, et qu'elle n'est pas déjà membre de l'organisation."
-          title="L'invitation n'a pas pu être envoyée."
+          fix={t("invites.failedFix")}
+          title={t("invites.failed")}
           tone="danger"
         />
       ) : null}
 
-      {invite.isSuccess ? (
-        <Callout title="Invitation envoyée. Elle expire dans sept jours." />
-      ) : null}
+      {invite.isSuccess ? <Callout title={t("invites.sent")} /> : null}
     </form>
   )
 }

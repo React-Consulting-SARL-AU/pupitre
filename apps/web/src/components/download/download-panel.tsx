@@ -7,6 +7,7 @@ import { Callout } from "@/components/ui/callout"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
 import { LoadingState } from "@/components/ui/loading-state"
+import { useTranslations } from "@/hooks/use-locale"
 import { latestAppReleaseQueryOptions } from "@/lib/api/queries"
 import { detectOs, downloadOffers } from "@/lib/domain/downloads"
 
@@ -15,17 +16,18 @@ function currentUserAgent(): string {
 }
 
 export function DownloadPanel() {
+  const t = useTranslations()
   const release = useQuery(latestAppReleaseQueryOptions())
 
   if (release.isPending) {
-    return <LoadingState label="Lecture des versions publiées…" />
+    return <LoadingState label={t("download.reading")} />
   }
 
   if (release.isError) {
     return (
       <Callout
-        fix="Rechargez la page ; si cela persiste, reconnectez-vous."
-        title="Les versions publiées n'ont pas pu être lues."
+        fix={t("download.failedFix")}
+        title={t("download.failed")}
         tone="danger"
       />
     )
@@ -40,18 +42,18 @@ export function DownloadPanel() {
     <div className="flex flex-col gap-section">
       {downloadable ? null : (
         <EmptyState
-          description="Aucune version de l'app n'a encore été publiée. Cette page affichera les installateurs des trois systèmes, et leurs notes, dès la première release signée."
+          description={t("download.emptyDescription")}
           icon={PackageOpen}
-          title="Rien à télécharger pour l'instant"
+          title={t("download.emptyTitle")}
         />
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle>L'app Pupitre</CardTitle>
+          <CardTitle>{t("download.appTitle")}</CardTitle>
           {published ? (
             <span className="font-data text-[12px] text-ink-2 tabular-nums">
-              Version {published.version}
+              {t("download.version", { version: published.version })}
             </span>
           ) : null}
         </CardHeader>

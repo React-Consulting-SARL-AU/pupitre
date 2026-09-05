@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
 import { StatusBadge } from "@/components/ui/status-badge"
+import { useTranslations } from "@/hooks/use-locale"
 import { openBillingPortal } from "@/lib/api/queries"
 import { leaveFor } from "@/lib/config/urls"
 import {
   amountUsd,
   type BillingIntervalName,
-  INTERVAL_LABELS,
+  INTERVAL_KEYS,
   isBillingIntervalName,
   subscriptionStatusLook,
 } from "@/lib/domain/billing"
@@ -37,6 +38,7 @@ export function SubscriptionCard({
   organizationId,
   subscription,
 }: SubscriptionCardProps) {
+  const t = useTranslations()
   const portal = useMutation({
     mutationFn: () => openBillingPortal(organizationId),
     onSuccess: leaveFor,
@@ -47,14 +49,14 @@ export function SubscriptionCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Abonnement</CardTitle>
+        <CardTitle>{t("billing.subscription")}</CardTitle>
         <StatusBadge look={subscriptionStatusLook(subscription.status)} />
       </CardHeader>
       <CardBody className="flex flex-col gap-gutter">
         <dl className="grid gap-gutter sm:grid-cols-2">
           <div>
             <dt className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-              Produit
+              {t("billing.product")}
             </dt>
             <dd className="mt-1 font-data text-[12px] text-ink">
               {subscription.product}
@@ -62,37 +64,38 @@ export function SubscriptionCard({
           </div>
           <div>
             <dt className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-              Sièges
+              {t("billing.seats")}
             </dt>
             <dd className="mt-1 font-data text-[12px] text-ink tabular-nums">
-              {seats} {seats > 1 ? "serveurs" : "serveur"}
+              {t.plural("billing.seat", seats)}
             </dd>
           </div>
           <div>
             <dt className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-              Montant
+              {t("billing.amount")}
             </dt>
             <dd className="mt-1 font-data text-[12px] text-ink tabular-nums">
               {formatUsd(amountUsd(seats, interval))}
               <span className="text-ink-3">
-                {interval === "year" ? " par an" : " par mois"}
+                {interval === "year"
+                  ? t("billing.perYear")
+                  : t("billing.perMonth")}
               </span>
             </dd>
           </div>
           <div>
             <dt className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-              Période
+              {t("billing.period")}
             </dt>
             <dd className="mt-1 text-[13px] text-ink-2">
-              {interval ? INTERVAL_LABELS[interval] : "Inconnue"}
-              {subscription.current_period_end ? (
-                <>
-                  {" · jusqu'au "}
-                  <span className="font-data text-[12px] tabular-nums">
-                    {formatDateTime(subscription.current_period_end)}
-                  </span>
-                </>
-              ) : null}
+              {interval
+                ? t(INTERVAL_KEYS[interval])
+                : t("billing.periodUnknown")}
+              {subscription.current_period_end
+                ? t("billing.until", {
+                    date: formatDateTime(subscription.current_period_end, t),
+                  })
+                : null}
             </dd>
           </div>
         </dl>
@@ -107,19 +110,16 @@ export function SubscriptionCard({
           >
             <CreditCard className="size-4" strokeWidth={1.5} />
             {portal.isPending
-              ? "Ouverture du portail…"
-              : "Gérer l'abonnement sur Stripe"}
+              ? t("billing.portalOpening")
+              : t("billing.portal")}
           </Button>
-          <p className="text-[13px] text-ink-2">
-            Sièges, moyen de paiement, factures et résiliation vivent dans le
-            portail Stripe.
-          </p>
+          <p className="text-[13px] text-ink-2">{t("billing.portalLead")}</p>
         </div>
 
         {portal.isError ? (
           <Callout
-            fix="Réessayez dans un instant ; si cela persiste, passez par un premier paiement pour créer le client Stripe."
-            title="Le portail n'a pas pu être ouvert."
+            fix={t("billing.portalFailedFix")}
+            title={t("billing.portalFailed")}
             tone="danger"
           />
         ) : null}

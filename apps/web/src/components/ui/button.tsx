@@ -16,8 +16,8 @@ const VARIANTS: Record<ButtonVariant, string> = {
 }
 
 const SIZES: Record<ButtonSize, string> = {
-  sm: "h-7 gap-1 px-2 text-[13px]",
-  md: "h-9 gap-2 px-3 text-[13px]",
+  sm: "h-7 gap-1 px-3 text-[13px]",
+  md: "h-9 gap-2 px-4 text-[13px]",
 }
 
 export interface ButtonLook {
@@ -32,7 +32,7 @@ export function buttonClassName({
   className,
 }: ButtonLook = {}): string {
   return cn(
-    "inline-flex items-center justify-center rounded-sm font-medium transition-[background-color,opacity,color] duration-[120ms] ease-[ease]",
+    "inline-flex items-center justify-center rounded-full font-medium transition-[background-color,opacity,color] duration-[120ms] ease-[ease]",
     "focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2",
     "disabled:cursor-not-allowed",
     VARIANTS[variant],

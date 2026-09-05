@@ -8,18 +8,20 @@ import { EmptyState } from "@/components/ui/empty-state"
 import { Label } from "@/components/ui/label"
 import { LoadingState } from "@/components/ui/loading-state"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
+import { useTranslations } from "@/hooks/use-locale"
 import { eventsQueryOptions } from "@/lib/api/queries"
 import {
   AUDIT_ACTIONS,
-  actionLabel,
+  actionKey,
   EVENTS_PER_PAGE,
-  targetLabel,
+  targetKey,
 } from "@/lib/domain/audit"
 import { formatDateTime } from "@/lib/utils/format"
 
 const ALL_ACTIONS = ""
 
 export function AuditLog() {
+  const t = useTranslations()
   const { activeOrganization } = useDashboardContext()
   const [action, setAction] = useState(ALL_ACTIONS)
   const [offset, setOffset] = useState(0)
@@ -33,6 +35,18 @@ export function AuditLog() {
     enabled: organizationId !== "",
   })
 
+  function actionName(action: string): string {
+    const key = actionKey(action)
+
+    return key ? t(key) : action
+  }
+
+  function targetName(targetType: string): string {
+    const key = targetKey(targetType)
+
+    return key ? t(key) : targetType
+  }
+
   function filterOn(next: string) {
     setAction(next)
     setOffset(0)
@@ -41,8 +55,8 @@ export function AuditLog() {
   if (!activeOrganization) {
     return (
       <Callout
-        fix="Choisissez une organisation dans le sélecteur de la barre latérale."
-        title="Aucune organisation active."
+        fix={t("auditUi.noOrganizationFix")}
+        title={t("auditUi.noOrganization")}
       />
     )
   }
@@ -51,7 +65,7 @@ export function AuditLog() {
     <div className="flex flex-col gap-gutter">
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="audit-action">Action</Label>
+          <Label htmlFor="audit-action">{t("auditUi.action")}</Label>
           <select
             className="h-9 rounded-sm border border-line-strong bg-sunken px-2 text-[13px] text-ink focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
             id="audit-action"
@@ -60,41 +74,44 @@ export function AuditLog() {
             }}
             value={action}
           >
-            <option value={ALL_ACTIONS}>Toutes les actions</option>
+            <option value={ALL_ACTIONS}>{t("auditUi.allActions")}</option>
             {AUDIT_ACTIONS.map((candidate) => (
               <option key={candidate} value={candidate}>
-                {actionLabel(candidate)}
+                {actionName(candidate)}
               </option>
             ))}
           </select>
         </div>
       </div>
 
-      {page.isPending ? <LoadingState label="Lecture du journal…" /> : null}
+      {page.isPending ? <LoadingState label={t("auditUi.reading")} /> : null}
 
       {page.isError ? (
         <Callout
-          fix="Le journal est réservé aux administrateurs de l'organisation."
-          title="Le journal n'a pas pu être lu."
+          fix={t("auditUi.failedFix")}
+          title={t("auditUi.failed")}
           tone="danger"
         />
       ) : null}
 
       {page.isSuccess && page.data.total === 0 ? (
         <EmptyState
-          description="Chaque enrôlement, attribution, révocation et changement d'abonnement viendra s'inscrire ici, avec son auteur et son horodatage."
+          description={t("auditUi.emptyDescription")}
           icon={ScrollText}
-          title="Rien dans le journal pour l'instant"
+          title={t("auditUi.emptyTitle")}
         />
       ) : null}
 
       {page.isSuccess && page.data.total > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>Journal</CardTitle>
+            <CardTitle>{t("auditUi.title")}</CardTitle>
             <span className="font-data text-[12px] text-ink-3 tabular-nums">
-              {offset + 1}–{offset + page.data.data.length} sur{" "}
-              {page.data.total}
+              {t("auditUi.range", {
+                from: offset + 1,
+                to: offset + page.data.data.length,
+                total: page.data.total,
+              })}
             </span>
           </CardHeader>
 
@@ -106,18 +123,18 @@ export function AuditLog() {
               >
                 <div className="min-w-0">
                   <p className="text-[13px] text-ink">
-                    {actionLabel(event.action)}
+                    {actionName(event.action)}
                   </p>
                   <p className="truncate font-data text-[12px] text-ink-3">
-                    {targetLabel(event.target_type)} · {event.target_id}
+                    {targetName(event.target_type)} · {event.target_id}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="truncate font-data text-[12px] text-ink-2">
-                    {event.actor_email ?? "Pupitre"}
+                    {event.actor_email ?? t("auditUi.system")}
                   </p>
                   <p className="font-data text-[12px] text-ink-3 tabular-nums">
-                    {formatDateTime(event.created_at)}
+                    {formatDateTime(event.created_at, t)}
                   </p>
                 </div>
               </li>
@@ -135,7 +152,7 @@ export function AuditLog() {
             }}
             size="sm"
           >
-            Plus récent
+            {t("auditUi.newer")}
           </Button>
           <Button
             disabled={offset + EVENTS_PER_PAGE >= page.data.total}
@@ -144,7 +161,7 @@ export function AuditLog() {
             }}
             size="sm"
           >
-            Plus ancien
+            {t("auditUi.older")}
           </Button>
         </div>
       ) : null}

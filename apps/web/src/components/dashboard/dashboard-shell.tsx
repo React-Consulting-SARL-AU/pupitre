@@ -13,7 +13,7 @@ export interface DashboardShellProps {
 export function DashboardShell({ value, children }: DashboardShellProps) {
   return (
     <DashboardContext.Provider value={value}>
-      <div className="flex min-h-screen bg-base">
+      <div className="flex flex-1 bg-base">
         <DashboardSidebar />
         <main className="min-w-0 flex-1 px-8 py-8">
           <div className="mx-auto max-w-5xl">{children}</div>

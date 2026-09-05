@@ -6,6 +6,7 @@ import { STATUS_STALE_AFTER_MS } from "@pupitre/shared/status"
 import { setApiClient } from "@/lib/api/client"
 import { STATUS_POLL_INTERVAL_MS, statusQueryOptions } from "@/lib/api/queries"
 import { freshnessNotice } from "@/lib/domain/service-status"
+import { translator } from "@/lib/i18n/i18n"
 import { createQueryClient } from "@/lib/query/client"
 
 async function useAnonymousApiClient(): Promise<void> {
@@ -104,6 +105,7 @@ describe("la page de statut", () => {
     const notice = freshnessNotice(
       status.freshness as "stale",
       status.last_observation_at,
+      translator("fr"),
       now
     )
 
@@ -116,7 +118,7 @@ describe("la page de statut", () => {
 
     expect(status.freshness).toBe("unknown")
     expect(status.last_observation_at).toBeNull()
-    expect(freshnessNotice("unknown", null)?.headline).toBe(
+    expect(freshnessNotice("unknown", null, translator("fr"))?.headline).toBe(
       "Aucune observation à afficher"
     )
   })

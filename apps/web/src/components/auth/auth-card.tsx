@@ -8,7 +8,7 @@ export interface AuthCardProps {
 
 export function AuthCard({ title, description, children }: AuthCardProps) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-base px-6 py-12">
+    <main className="flex flex-1 items-center justify-center bg-base px-6 py-12">
       <div className="w-full max-w-[380px]">
         <div className="mb-8 flex items-center gap-2">
           <span className="flex size-7 items-center justify-center rounded-md bg-inverse font-data text-[12px] text-inverse-ink">

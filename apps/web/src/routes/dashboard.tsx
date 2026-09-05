@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, Navigate, Outlet } from "@tanstack/react-router"
 import { DashboardShell } from "@/components/dashboard/dashboard-shell"
 import { LoadingState } from "@/components/ui/loading-state"
+import { useTranslations } from "@/hooks/use-locale"
 import { meQueryOptions } from "@/lib/api/queries"
 
 export const Route = createFileRoute("/dashboard")({
@@ -10,12 +11,13 @@ export const Route = createFileRoute("/dashboard")({
 })
 
 function DashboardLayout() {
+  const t = useTranslations()
   const me = useQuery(meQueryOptions())
 
   if (me.isPending) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-base">
-        <LoadingState label="Ouverture de la console…" />
+      <div className="flex flex-1 items-center justify-center bg-base">
+        <LoadingState label={t("nav.opening")} />
       </div>
     )
   }

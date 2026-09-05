@@ -1,4 +1,5 @@
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
+import { useTranslations } from "@/hooks/use-locale"
 import { formatDateTime } from "@/lib/utils/format"
 
 export interface PublishedRelease {
@@ -19,13 +20,15 @@ function paragraphs(notes: string): string[] {
 }
 
 export function ReleaseNotesCard({ release }: ReleaseNotesCardProps) {
+  const t = useTranslations()
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Notes de version</CardTitle>
+        <CardTitle>{t("releases.notes.title")}</CardTitle>
         {release ? (
           <span className="font-data text-[12px] text-ink-2 tabular-nums">
-            {release.version} · {formatDateTime(release.published_at)}
+            {release.version} · {formatDateTime(release.published_at, t)}
           </span>
         ) : null}
       </CardHeader>
@@ -37,10 +40,7 @@ export function ReleaseNotesCard({ release }: ReleaseNotesCardProps) {
             </p>
           ))
         ) : (
-          <p className="text-[13px] text-ink-2">
-            Aucune version n'a encore été publiée : il n'y a donc rien à
-            raconter ici.
-          </p>
+          <p className="text-[13px] text-ink-2">{t("releases.notes.empty")}</p>
         )}
       </CardBody>
     </Card>

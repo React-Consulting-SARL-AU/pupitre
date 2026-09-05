@@ -19,24 +19,20 @@ export interface DeviceCodeLookup {
   expires_at?: string
 }
 
+/**
+ * The reason travels as a code, never as a sentence: the screen that shows it
+ * knows the reader's language, this module does not.
+ */
 export class DeviceCodeError extends Error {
   readonly code: string
   readonly status: number
 
-  constructor(code: string, status: number, message: string) {
-    super(message)
+  constructor(code: string, status: number) {
+    super(code)
     this.name = "DeviceCodeError"
     this.code = code
     this.status = status
   }
-}
-
-const MESSAGES: Record<string, string> = {
-  invalid_user_code: "Ce code est inconnu. Vérifiez-le sur votre appareil.",
-  expired_user_code: "Ce code a expiré. Relancez la connexion sur l'appareil.",
-  unauthenticated: "Connectez-vous pour confirmer cet appareil.",
-  forbidden: "Ce code appartient à un autre compte.",
-  unknown: "La confirmation a échoué. Réessayez dans un instant.",
 }
 
 export function normalizeUserCode(value: string): string {
@@ -76,9 +72,7 @@ function codeFor(status: number, payload: unknown): string {
 }
 
 function errorFor(status: number, payload: unknown): DeviceCodeError {
-  const code = codeFor(status, payload)
-
-  return new DeviceCodeError(code, status, MESSAGES[code] ?? MESSAGES.unknown)
+  return new DeviceCodeError(codeFor(status, payload), status)
 }
 
 async function readJson(response: Response): Promise<unknown> {

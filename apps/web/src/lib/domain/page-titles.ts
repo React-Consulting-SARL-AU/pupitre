@@ -1,31 +1,40 @@
+import type { Locale } from "@pupitre/shared/i18n"
+import type { DictionaryKey } from "@/lib/i18n/en"
+import { translator } from "@/lib/i18n/i18n"
+
 export interface PageTitle {
-  title: string
-  parents: string[]
+  title: DictionaryKey
+  parents: DictionaryKey[]
 }
 
 const TITLES: Record<string, PageTitle> = {
-  "/dashboard": { title: "Tableau de bord", parents: [] },
-  "/dashboard/servers": { title: "Serveurs", parents: ["Tableau de bord"] },
+  "/dashboard": { title: "nav.dashboard", parents: [] },
+  "/dashboard/servers": { title: "nav.servers", parents: ["nav.dashboard"] },
   "/dashboard/servers/$id": {
-    title: "Serveur",
-    parents: ["Tableau de bord", "Serveurs"],
+    title: "nav.server",
+    parents: ["nav.dashboard", "nav.servers"],
   },
-  "/dashboard/members": { title: "Membres", parents: ["Tableau de bord"] },
-  "/dashboard/audit": { title: "Journal", parents: ["Tableau de bord"] },
-  "/dashboard/devices": { title: "Appareils", parents: ["Tableau de bord"] },
-  "/dashboard/billing": { title: "Facturation", parents: ["Tableau de bord"] },
-  "/dashboard/settings": { title: "Préférences", parents: ["Tableau de bord"] },
-  "/download": { title: "Télécharger l'app", parents: [] },
-  "/auth/sign-in": { title: "Connexion", parents: [] },
-  "/auth/device": { title: "Confirmer un appareil", parents: [] },
-  "/auth/two-factor": { title: "Second facteur", parents: [] },
-  "/auth/invitation/$id": { title: "Invitation", parents: [] },
+  "/dashboard/members": { title: "nav.members", parents: ["nav.dashboard"] },
+  "/dashboard/audit": { title: "nav.audit", parents: ["nav.dashboard"] },
+  "/dashboard/devices": { title: "nav.devices", parents: ["nav.dashboard"] },
+  "/dashboard/billing": { title: "nav.billing", parents: ["nav.dashboard"] },
+  "/dashboard/settings": { title: "nav.settings", parents: ["nav.dashboard"] },
+  "/download": { title: "nav.download", parents: [] },
+  "/auth/sign-in": { title: "auth.signIn.title", parents: [] },
+  "/auth/device": { title: "auth.device.title", parents: [] },
+  "/auth/two-factor": { title: "auth.twoFactor.title", parents: [] },
+  "/auth/invitation/$id": { title: "auth.invitation.title", parents: [] },
 }
+
+const FALLBACK: PageTitle = { title: "app.name", parents: [] }
 
 export function pageTitle(routeId: string): PageTitle {
-  return TITLES[routeId] ?? { title: "Pupitre", parents: [] }
+  return TITLES[routeId] ?? FALLBACK
 }
 
-export function documentTitle(routeId: string): string {
-  return `${pageTitle(routeId).title} · Pupitre`
+/** Runs in a route's `head`, outside React, so it takes the locale of the match. */
+export function documentTitle(routeId: string, locale: Locale): string {
+  const t = translator(locale)
+
+  return `${t(pageTitle(routeId).title)} · ${t("app.name")}`
 }

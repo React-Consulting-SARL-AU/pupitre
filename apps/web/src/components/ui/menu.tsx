@@ -20,7 +20,7 @@ export function MenuPopup({
       <BaseMenu.Positioner align="start" sideOffset={6}>
         <BaseMenu.Popup
           className={cn(
-            "min-w-[220px] rounded-md bg-surface p-1 shadow-overlay outline-none",
+            "min-w-[220px] rounded-lg bg-surface p-1 shadow-overlay outline-none",
             className
           )}
           {...props}
@@ -54,7 +54,7 @@ export function MenuItem({
   return (
     <BaseMenu.Item
       className={cn(
-        "flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-2 text-[13px] text-ink outline-none",
+        "flex cursor-default select-none items-center gap-2 rounded-full px-3 py-2 text-[13px] text-ink outline-none",
         "data-[highlighted]:bg-raised",
         className
       )}
@@ -70,7 +70,7 @@ export function MenuRadioItem({
   return (
     <BaseMenu.RadioItem
       className={cn(
-        "flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-2 text-[13px] text-ink outline-none",
+        "flex cursor-default select-none items-center gap-2 rounded-full px-3 py-2 text-[13px] text-ink outline-none",
         "data-[highlighted]:bg-raised",
         className
       )}

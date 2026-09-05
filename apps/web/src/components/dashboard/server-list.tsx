@@ -5,21 +5,23 @@ import { ServerRow } from "@/components/dashboard/server-row"
 import { Callout } from "@/components/ui/callout"
 import { EmptyState } from "@/components/ui/empty-state"
 import { LoadingState } from "@/components/ui/loading-state"
+import { useTranslations } from "@/hooks/use-locale"
 import { serversQueryOptions } from "@/lib/api/queries"
 import { countAlerts } from "@/lib/domain/alerts"
 
 export function ServerList() {
+  const t = useTranslations()
   const servers = useQuery(serversQueryOptions())
 
   if (servers.isPending) {
-    return <LoadingState label="Lecture des serveurs de l'organisation…" />
+    return <LoadingState label={t("serverList.reading")} />
   }
 
   if (servers.isError) {
     return (
       <Callout
-        fix="Rechargez la page ; si cela persiste, vérifiez votre connexion."
-        title="Les serveurs n'ont pas pu être lus."
+        fix={t("serverList.failedFix")}
+        title={t("serverList.failed")}
         tone="danger"
       />
     )
@@ -28,9 +30,9 @@ export function ServerList() {
   if (servers.data.length === 0) {
     return (
       <EmptyState
-        description="Enrôlez un VPS depuis l'app Pupitre : il apparaîtra ici dès son premier contact."
+        description={t("serverList.emptyDescription")}
         icon={Server}
-        title="Aucun serveur pour l'instant"
+        title={t("serverList.emptyTitle")}
       />
     )
   }

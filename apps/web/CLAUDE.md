@@ -39,7 +39,8 @@ packages/auth/   createAuth, plugins, clients web et desktop
 - **Fichiers** `{feature}-{context}-{type}.tsx`, un composant React par fichier hors `ui/`, pas de barrel files. Types inférés depuis Prisma et Eden, jamais redéclarés. Zod dans `src/lib/schemas/`.
 - **Anti-patterns → primitive** : `useForm` direct → `@/hooks/use-form` · `useState` loading/error → `useRequestCycle` · bloc vide inline → `<EmptyState>` · titre de page inline → `<PageHeader>` · tableau avec query manuelle → `<AsyncDataTable>`.
 - **Breadcrumb** : toute page sous `/dashboard/**` et `/admin/**` a une entrée dans `src/lib/domain/page-titles.ts` avec sa hiérarchie.
-- **i18n** : fr et en dans la même passe, aucune chaîne utilisateur en dur.
+- **i18n** : fr et en dans la même passe, aucune chaîne utilisateur en dur. Les phrases vivent dans `src/lib/i18n/strings/<domaine>.ts` (`{ en, fr }`), fusionnées dans `en.ts` et `fr.ts` ; un composant lit `useTranslations()`, un module hors React reçoit le `Translate` en argument, et un module de domaine rend une **clé** (`DictionaryKey`), jamais une phrase. La langue vient du cookie `pupitre_locale`, lue au rendu serveur par `readLocale()` et posée dans le contexte de la route racine ; sans cookie, l'`Accept-Language` du navigateur tranche. Deux tests gardent la règle : parité des clés et des paramètres entre les langues, et aucune phrase française hors du dictionnaire.
+- **Le pied de page est global** : thème, langue et pages légales sur toutes les pages, y compris l'authentification. Il vit dans la route racine, pas dans une mise en page de tableau de bord.
 
 ## Tests
 

@@ -1,0 +1,68 @@
+export const billingUi = {
+  en: {
+    "billing.subscription": "Subscription",
+    "billing.product": "Product",
+    "billing.seats": "Seats",
+    "billing.seat.one": "{count} server",
+    "billing.seat.other": "{count} servers",
+    "billing.amount": "Amount",
+    "billing.perYear": " per year",
+    "billing.perMonth": " per month",
+    "billing.period": "Period",
+    "billing.periodUnknown": "Unknown",
+    "billing.until": " · until {date}",
+    "billing.portal": "Manage the subscription on Stripe",
+    "billing.portalOpening": "Opening the portal…",
+    "billing.portalLead":
+      "Seats, payment method, invoices and cancellation live in the Stripe portal.",
+    "billing.portalFailed": "The portal could not be opened.",
+    "billing.portalFailedFix":
+      "Try again in a moment; if it persists, go through a first payment to create the Stripe customer.",
+    "billing.statusUnknown": "Unknown status",
+    "checkout.title": "Order seats",
+    "checkout.unitPrice": "{price} per server per month",
+    "checkout.servers": "Servers",
+    "checkout.period": "Period",
+    "checkout.total": "Total",
+    "checkout.order": "Order",
+    "checkout.opening": "Opening Stripe…",
+    "checkout.lead":
+      "Payment happens on Stripe. The subscription lands here as soon as Stripe confirms it.",
+    "checkout.failed": "The payment could not be opened.",
+    "checkout.failedFix":
+      "Try again; if it persists, check that you own this organisation.",
+  },
+  fr: {
+    "billing.subscription": "Abonnement",
+    "billing.product": "Produit",
+    "billing.seats": "Sièges",
+    "billing.seat.one": "{count} serveur",
+    "billing.seat.other": "{count} serveurs",
+    "billing.amount": "Montant",
+    "billing.perYear": " par an",
+    "billing.perMonth": " par mois",
+    "billing.period": "Période",
+    "billing.periodUnknown": "Inconnue",
+    "billing.until": " · jusqu'au {date}",
+    "billing.portal": "Gérer l'abonnement sur Stripe",
+    "billing.portalOpening": "Ouverture du portail…",
+    "billing.portalLead":
+      "Sièges, moyen de paiement, factures et résiliation vivent dans le portail Stripe.",
+    "billing.portalFailed": "Le portail n'a pas pu être ouvert.",
+    "billing.portalFailedFix":
+      "Réessayez dans un instant ; si cela persiste, passez par un premier paiement pour créer le client Stripe.",
+    "billing.statusUnknown": "Statut inconnu",
+    "checkout.title": "Commander des sièges",
+    "checkout.unitPrice": "{price} par serveur et par mois",
+    "checkout.servers": "Serveurs",
+    "checkout.period": "Période",
+    "checkout.total": "Total",
+    "checkout.order": "Commander",
+    "checkout.opening": "Ouverture de Stripe…",
+    "checkout.lead":
+      "Le paiement se fait sur Stripe. L'abonnement arrive ici dès que Stripe nous l'a confirmé.",
+    "checkout.failed": "Le paiement n'a pas pu être ouvert.",
+    "checkout.failedFix":
+      "Réessayez ; si cela persiste, vérifiez que vous êtes bien propriétaire de cette organisation.",
+  },
+}

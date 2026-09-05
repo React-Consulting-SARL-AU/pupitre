@@ -6,6 +6,7 @@ import {
   type PublishedAppRelease,
   SERVER_REQUIREMENTS,
 } from "@/lib/domain/downloads"
+import { translator } from "@/lib/i18n/i18n"
 
 const MAC = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1"
 const WINDOWS = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
@@ -75,8 +76,10 @@ describe("downloadOffers", () => {
 })
 
 describe("requirements", () => {
+  const t = translator("fr")
+
   it("states the supported desktop systems", () => {
-    expect(APP_REQUIREMENTS.map((line) => line.requirement)).toEqual([
+    expect(APP_REQUIREMENTS.map((line) => t(line.requirement))).toEqual([
       "macOS 13 ou plus récent",
       "Windows 11",
       "Ubuntu 22.04 ou plus récent",
@@ -84,7 +87,9 @@ describe("requirements", () => {
   })
 
   it("states what the server needs", () => {
-    expect(SERVER_REQUIREMENTS.join(" ")).toContain("Ubuntu 22.04 ou 24.04")
-    expect(SERVER_REQUIREMENTS.join(" ")).toContain("4 Go")
+    const written = SERVER_REQUIREMENTS.map((line) => t(line)).join(" ")
+
+    expect(written).toContain("Ubuntu 22.04 ou 24.04")
+    expect(written).toContain("4 Go")
   })
 })

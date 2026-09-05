@@ -1,8 +1,10 @@
 import type { ReactNode } from "react"
+import { useTranslations } from "@/hooks/use-locale"
+import type { DictionaryKey } from "@/lib/i18n/en"
 
 export interface PageHeaderProps {
   title: string
-  parents?: string[]
+  parents?: DictionaryKey[]
   description?: string
   actions?: ReactNode
 }
@@ -13,15 +15,17 @@ export function PageHeader({
   description,
   actions,
 }: PageHeaderProps) {
+  const t = useTranslations()
+
   return (
     <header className="flex flex-wrap items-end justify-between gap-4 pb-gutter">
       <div className="space-y-1">
         {parents.length > 0 ? (
           <nav
-            aria-label="Fil d'Ariane"
+            aria-label={t("nav.breadcrumb")}
             className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]"
           >
-            {parents.join(" · ")}
+            {parents.map((parent) => t(parent)).join(" · ")}
           </nav>
         ) : null}
         <h1 className="font-bold font-display text-[22px] text-ink leading-[1.2] tracking-[-0.01em]">

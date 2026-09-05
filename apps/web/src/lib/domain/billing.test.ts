@@ -2,11 +2,12 @@ import { describe, expect, it } from "bun:test"
 import { formatUsd } from "@pupitre/shared/plans"
 import {
   amountUsd,
-  INTERVAL_LABELS,
+  INTERVAL_KEYS,
   SEAT_PRICE_USD_PER_MONTH,
   seatBalance,
   subscriptionStatusLook,
 } from "@/lib/domain/billing"
+import { translator } from "@/lib/i18n/i18n"
 
 describe("amountUsd", () => {
   it("bills a monthly subscription per seat", () => {
@@ -60,24 +61,27 @@ describe("subscriptionStatusLook", () => {
     expect(subscriptionStatusLook("active")).toEqual({
       shape: "filled",
       tone: "ok",
-      label: "Actif",
+      label: "billing.status.active",
     })
   })
 
   it("reads a late payment as a warning", () => {
-    expect(subscriptionStatusLook("past_due").tone).toBe("warn")
+    expect(subscriptionStatusLook("past_due")?.tone).toBe("warn")
   })
 
-  it("keeps an unknown status readable", () => {
-    expect(subscriptionStatusLook("weird_new_status").label).toBe(
-      "weird_new_status"
-    )
+  it("has no look for a status Stripe invented after us", () => {
+    expect(subscriptionStatusLook("weird_new_status")).toBeNull()
   })
 })
 
-describe("INTERVAL_LABELS", () => {
-  it("names both intervals in French", () => {
-    expect(INTERVAL_LABELS.month).toBe("Mensuel")
-    expect(INTERVAL_LABELS.year).toBe("Annuel")
+describe("INTERVAL_KEYS", () => {
+  it("names both intervals in each language", () => {
+    const fr = translator("fr")
+    const en = translator("en")
+
+    expect(fr(INTERVAL_KEYS.month)).toBe("Mensuel")
+    expect(fr(INTERVAL_KEYS.year)).toBe("Annuel")
+    expect(en(INTERVAL_KEYS.month)).toBe("Monthly")
+    expect(en(INTERVAL_KEYS.year)).toBe("Yearly")
   })
 })

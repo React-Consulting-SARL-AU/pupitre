@@ -6,6 +6,9 @@ import {
   freshnessNotice,
   observationLabel,
 } from "@/lib/domain/service-status"
+import { translator } from "@/lib/i18n/i18n"
+
+const t = translator("fr")
 
 const NOW = new Date("2026-09-04T12:00:00.000Z")
 
@@ -17,13 +20,14 @@ describe("freshnessNotice", () => {
       freshnessNotice(
         "fresh",
         new Date(NOW.getTime() - 60_000).toISOString(),
+        t,
         NOW
       )
     ).toBeNull()
   })
 
   it("dit depuis quand la plateforme n'a plus de nouvelles", () => {
-    const notice = freshnessNotice("stale", STALE_AT.toISOString(), NOW)
+    const notice = freshnessNotice("stale", STALE_AT.toISOString(), t, NOW)
 
     expect(notice?.headline).toBe("Dernière observation il y a 1 h")
     expect(notice?.detail).toContain("15 minutes")
@@ -31,7 +35,7 @@ describe("freshnessNotice", () => {
   })
 
   it("distingue l'absence d'observation d'un état rassurant", () => {
-    const notice = freshnessNotice("unknown", null, NOW)
+    const notice = freshnessNotice("unknown", null, t, NOW)
 
     expect(notice?.headline).toBe("Aucune observation à afficher")
     expect(notice?.look.tone).toBe("muted")
@@ -40,13 +44,13 @@ describe("freshnessNotice", () => {
 
 describe("observationLabel", () => {
   it("date l'observation quand elle existe", () => {
-    expect(observationLabel("stale", STALE_AT.toISOString(), NOW)).toBe(
+    expect(observationLabel("stale", STALE_AT.toISOString(), t, NOW)).toBe(
       "Dernière observation il y a 1 h."
     )
   })
 
   it("avoue l'absence d'observation", () => {
-    expect(observationLabel("unknown", null, NOW)).toBe(
+    expect(observationLabel("unknown", null, t, NOW)).toBe(
       "Aucune observation reçue."
     )
   })
@@ -54,18 +58,18 @@ describe("observationLabel", () => {
 
 describe("le compteur de serveurs actifs", () => {
   it("se présente tel quel quand l'observation est fraîche", () => {
-    expect(activeServersLabel("fresh")).toBe("Serveurs actifs")
-    expect(activeServersValue("fresh", 12)).toBe("12")
+    expect(activeServersLabel("fresh", t)).toBe("Serveurs actifs")
+    expect(activeServersValue("fresh", 12, t)).toBe("12")
   })
 
   it("se date quand l'observation est périmée", () => {
-    expect(activeServersLabel("stale")).toBe(
+    expect(activeServersLabel("stale", t)).toBe(
       "Serveurs actifs à la dernière observation"
     )
-    expect(activeServersValue("stale", 12)).toBe("12")
+    expect(activeServersValue("stale", 12, t)).toBe("12")
   })
 
   it("ne montre aucun chiffre sans observation", () => {
-    expect(activeServersValue("unknown", 12)).toBe("—")
+    expect(activeServersValue("unknown", 12, t)).toBe("—")
   })
 })

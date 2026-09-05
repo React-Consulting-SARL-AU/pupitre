@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { ServerList } from "@/components/dashboard/server-list"
 import { PageHeader } from "@/components/ui/page-header"
+import { useTranslations } from "@/hooks/use-locale"
 import { pageTitle } from "@/lib/domain/page-titles"
 
 export const Route = createFileRoute("/dashboard/servers/")({
@@ -8,14 +9,15 @@ export const Route = createFileRoute("/dashboard/servers/")({
 })
 
 function ServersPage() {
+  const t = useTranslations()
   const { title, parents } = pageTitle("/dashboard/servers")
 
   return (
     <>
       <PageHeader
-        description="Les serveurs enrôlés de l'organisation active. La liste se rafraîchit toute seule."
+        description={t("page.servers.description")}
         parents={parents}
-        title={title}
+        title={t(title)}
       />
       <ServerList />
     </>

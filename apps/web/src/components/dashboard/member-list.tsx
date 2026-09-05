@@ -6,11 +6,13 @@ import { Callout } from "@/components/ui/callout"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
 import { LoadingState } from "@/components/ui/loading-state"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
+import { useTranslations } from "@/hooks/use-locale"
 import { usePermission } from "@/hooks/use-permission"
 import { membersQueryOptions } from "@/lib/api/queries"
 import { cancelInvitation, removeMember } from "@/lib/auth/organization"
 
 export function MemberList() {
+  const t = useTranslations()
   const { user, activeOrganization } = useDashboardContext()
   const canInvite = usePermission("members:invite")
   const canManage = usePermission("members:manage")
@@ -32,21 +34,21 @@ export function MemberList() {
   if (!activeOrganization) {
     return (
       <Callout
-        fix="Choisissez une organisation dans le sélecteur de la barre latérale."
-        title="Aucune organisation active."
+        fix={t("auditUi.noOrganizationFix")}
+        title={t("auditUi.noOrganization")}
       />
     )
   }
 
   if (members.isPending) {
-    return <LoadingState label="Lecture des membres…" />
+    return <LoadingState label={t("memberList.reading")} />
   }
 
   if (members.isError) {
     return (
       <Callout
-        fix="Rechargez la page ; si cela persiste, reconnectez-vous."
-        title="Les membres n'ont pas pu être lus."
+        fix={t("memberList.failedFix")}
+        title={t("memberList.failed")}
         tone="danger"
       />
     )
@@ -59,7 +61,7 @@ export function MemberList() {
       {canInvite ? (
         <Card>
           <CardHeader>
-            <CardTitle>Inviter quelqu'un</CardTitle>
+            <CardTitle>{t("memberList.invite")}</CardTitle>
           </CardHeader>
           <CardBody>
             <InviteForm organizationId={organizationId} />
@@ -69,7 +71,7 @@ export function MemberList() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Membres</CardTitle>
+          <CardTitle>{t("memberList.members")}</CardTitle>
           <span className="font-data text-[12px] text-ink-3 tabular-nums">
             {people.length}
           </span>
@@ -78,8 +80,8 @@ export function MemberList() {
         {remove.isError ? (
           <Callout
             className="m-4"
-            fix="Un propriétaire ne peut pas être retiré ; changez son rôle d'abord."
-            title="Ce membre n'a pas pu être retiré."
+            fix={t("memberList.removeFailedFix")}
+            title={t("memberList.removeFailed")}
             tone="danger"
           />
         ) : null}
@@ -106,7 +108,7 @@ export function MemberList() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Invitations en attente</CardTitle>
+          <CardTitle>{t("memberList.invitations")}</CardTitle>
           <span className="font-data text-[12px] text-ink-3 tabular-nums">
             {invitations.length}
           </span>
@@ -115,8 +117,8 @@ export function MemberList() {
         {cancel.isError ? (
           <Callout
             className="m-4"
-            fix="Réessayez dans un instant."
-            title="L'invitation n'a pas pu être annulée."
+            fix={t("memberList.cancelFailedFix")}
+            title={t("memberList.cancelFailed")}
             tone="danger"
           />
         ) : null}
@@ -124,7 +126,7 @@ export function MemberList() {
         {invitations.length === 0 ? (
           <CardBody>
             <p className="text-[13px] text-ink-3">
-              Aucune invitation en attente.
+              {t("memberList.noInvitation")}
             </p>
           </CardBody>
         ) : (

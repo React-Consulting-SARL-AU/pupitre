@@ -8,15 +8,17 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useForm } from "@/hooks/use-form"
+import { useTranslations } from "@/hooks/use-locale"
 import { useRequestCycle } from "@/hooks/use-request-cycle"
 import { authClient } from "@/lib/auth/client"
 import { type ProfileInput, profileSchema } from "@/lib/schemas/profile"
 
 export function ProfileForm() {
+  const t = useTranslations()
   const { user } = useDashboardContext()
   const queryClient = useQueryClient()
   const form = useForm<ProfileInput>({
-    schema: profileSchema,
+    schema: profileSchema(t),
     defaultValues: { name: user.name },
   })
   const save = useRequestCycle()
@@ -26,7 +28,7 @@ export function ProfileForm() {
       const { error } = await authClient().updateUser({ name: values.name })
 
       if (error) {
-        throw new Error("Le nom n'a pas pu être enregistré.")
+        throw new Error(t("profile.failed"))
       }
 
       await queryClient.invalidateQueries()
@@ -36,7 +38,7 @@ export function ProfileForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Profil</CardTitle>
+        <CardTitle>{t("profile.title")}</CardTitle>
       </CardHeader>
       <CardBody>
         <form
@@ -47,13 +49,13 @@ export function ProfileForm() {
           }}
         >
           <div className="flex flex-col gap-2">
-            <Label htmlFor="name">Nom</Label>
+            <Label htmlFor="name">{t("profile.name")}</Label>
             <Input autoComplete="name" id="name" {...form.register("name")} />
             <FieldError>{form.formState.errors.name?.message}</FieldError>
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="email">Adresse email</Label>
+            <Label htmlFor="email">{t("profile.email")}</Label>
             <Input
               disabled
               id="email"
@@ -61,10 +63,7 @@ export function ProfileForm() {
               type="email"
               value={user.email}
             />
-            <p className="text-[12px] text-ink-3">
-              L'adresse sert à vous connecter : la changer demandera une
-              vérification par email, qui n'est pas encore branchée.
-            </p>
+            <p className="text-[12px] text-ink-3">{t("profile.emailHelp")}</p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -74,16 +73,18 @@ export function ProfileForm() {
               variant="primary"
             >
               <Check className="size-4" strokeWidth={1.5} />
-              {save.phase === "pending" ? "Enregistrement…" : "Enregistrer"}
+              {save.phase === "pending" ? t("common.saving") : t("common.save")}
             </Button>
             {save.phase === "done" ? (
-              <span className="text-[13px] text-ink-2">Nom enregistré.</span>
+              <span className="text-[13px] text-ink-2">
+                {t("profile.saved")}
+              </span>
             ) : null}
           </div>
 
           {save.error ? (
             <Callout
-              fix="Réessayez dans un instant."
+              fix={t("profile.failedFix")}
               title={save.error}
               tone="danger"
             />

@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { StatusDot } from "@/components/ui/status-dot"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useForm } from "@/hooks/use-form"
+import { useTranslations } from "@/hooks/use-locale"
 import { usePermission } from "@/hooks/use-permission"
 import {
   type AssignServerInput,
@@ -18,7 +19,7 @@ import {
   membersQueryOptions,
   unassignServer,
 } from "@/lib/api/queries"
-import { roleLabel } from "@/lib/domain/roles"
+import { roleKey } from "@/lib/domain/roles"
 import {
   type AssignByEmailInput,
   type AssignByEmailValues,
@@ -40,6 +41,7 @@ export function ServerAssignment({
   assignedUserId,
   pendingAssignmentEmail,
 }: ServerAssignmentProps) {
+  const t = useTranslations()
   const { activeOrganization, user } = useDashboardContext()
   const canAssign = usePermission("servers:assign")
   const organizationId = activeOrganization?.id ?? ""
@@ -50,7 +52,7 @@ export function ServerAssignment({
   const queryClient = useQueryClient()
   const [choice, setChoice] = useState(NOBODY)
   const form = useForm<AssignByEmailInput, AssignByEmailValues>({
-    schema: assignByEmailSchema,
+    schema: assignByEmailSchema(t),
     defaultValues: { email: "" },
   })
   const assign = useMutation({
@@ -78,39 +80,41 @@ export function ServerAssignment({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Attribution</CardTitle>
+        <CardTitle>{t("assign.title")}</CardTitle>
         {assignedUserId ? (
           <span className="inline-flex items-center gap-2">
-            <StatusDot label="Attribué" shape="filled" tone="ok" />
-            <span className="text-[13px] text-ink-2">Attribué</span>
+            <StatusDot label={t("assign.assigned")} shape="filled" tone="ok" />
+            <span className="text-[13px] text-ink-2">
+              {t("assign.assigned")}
+            </span>
           </span>
         ) : null}
         {pendingAssignmentEmail ? (
           <span className="inline-flex items-center gap-2">
             <StatusDot
-              label="En attente d'acceptation"
+              label={t("assign.pendingLabel")}
               shape="breathing"
               tone="muted"
             />
-            <span className="text-[13px] text-ink-2">En attente</span>
+            <span className="text-[13px] text-ink-2">
+              {t("assign.pending")}
+            </span>
           </span>
         ) : null}
       </CardHeader>
 
       <CardBody className="flex flex-col gap-gutter">
         <p className="text-[13px] text-ink-2">
-          {assignedUserId && assignedToViewer
-            ? "Les clés de vos appareils sont déposées sur ce serveur."
-            : null}
+          {assignedUserId && assignedToViewer ? t("assign.yours") : null}
           {assignedUserId && !assignedToViewer
-            ? `Les clés des appareils de ${assignee?.email ?? "la personne à qui il est attribué"} sont déposées sur ce serveur.`
+            ? t("assign.theirs", {
+                who: assignee?.email ?? t("assign.themFallback"),
+              })
             : null}
           {pendingAssignmentEmail
-            ? `${pendingAssignmentEmail} a reçu une invitation. Ses clés arriveront sur ce serveur dès qu'elle l'aura acceptée.`
+            ? t("assign.invited", { email: pendingAssignmentEmail })
             : null}
-          {assignedUserId || pendingAssignmentEmail
-            ? null
-            : "Ce serveur n'est attribué à personne : aucune clé n'y est déposée et personne ne peut l'ouvrir."}
+          {assignedUserId || pendingAssignmentEmail ? null : t("assign.nobody")}
         </p>
 
         {assignedUserId && assignee ? (
@@ -122,7 +126,7 @@ export function ServerAssignment({
               </p>
             </div>
             <span className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-              {roleLabel(assignee.role)}
+              {t(roleKey(assignee.role) ?? "role.member")}
             </span>
           </div>
         ) : null}
@@ -131,7 +135,7 @@ export function ServerAssignment({
           <div className="flex flex-col gap-gutter">
             <div className="flex flex-wrap items-end gap-3">
               <div className="flex min-w-[240px] flex-1 flex-col gap-2">
-                <Label htmlFor="assignee">Attribuer à un membre</Label>
+                <Label htmlFor="assignee">{t("assign.toMember")}</Label>
                 <select
                   className="h-9 w-full rounded-sm border border-line-strong bg-sunken px-2 text-[13px] text-ink focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
                   id="assignee"
@@ -140,7 +144,7 @@ export function ServerAssignment({
                   }}
                   value={choice}
                 >
-                  <option value={NOBODY}>Choisir un membre…</option>
+                  <option value={NOBODY}>{t("assign.pickMember")}</option>
                   {(members.data?.members ?? [])
                     .filter((member) => member.user_id !== assignedUserId)
                     .map((member) => (
@@ -158,7 +162,7 @@ export function ServerAssignment({
                 variant="primary"
               >
                 <UserCheck className="size-4" strokeWidth={1.5} />
-                Attribuer
+                {t("assign.assign")}
               </Button>
             </div>
 
@@ -170,58 +174,57 @@ export function ServerAssignment({
               }}
             >
               <div className="flex min-w-[240px] flex-1 flex-col gap-2">
-                <Label htmlFor="assign-email">
-                  Ou attribuer à une adresse email
-                </Label>
+                <Label htmlFor="assign-email">{t("assign.orEmail")}</Label>
                 <Input
                   autoComplete="off"
                   className="font-data"
                   id="assign-email"
-                  placeholder="prenom@agence.fr"
+                  placeholder={t("assign.emailPlaceholder")}
                   type="email"
                   {...form.register("email")}
                 />
               </div>
               <Button disabled={assign.isPending} type="submit">
                 <Mail className="size-4" strokeWidth={1.5} />
-                Inviter et attribuer
+                {t("assign.inviteAndAssign")}
               </Button>
             </form>
 
             <FieldError>{form.formState.errors.email?.message}</FieldError>
 
             <p className="text-[13px] text-ink-3">
-              Une adresse inconnue reçoit une invitation ; le serveur l'attend
-              et lui revient à l'acceptation.
+              {t("assign.unknownAddress")}
             </p>
 
             {assignedUserId || pendingAssignmentEmail ? (
               <div className="flex justify-start">
                 <ConfirmDialog
-                  confirmLabel="Retirer"
-                  description={`Les clés déposées sur « ${serverName} » sont retirées tout de suite, et l'agent cesse de les accepter à son prochain état.`}
+                  confirmLabel={t("assign.remove")}
+                  description={t("assign.removeDescription", {
+                    server: serverName,
+                  })}
                   onConfirm={() => {
                     unassign.mutate()
                   }}
                   pending={unassign.isPending}
-                  title="Retirer l'attribution ?"
-                  triggerLabel="Retirer l'attribution"
+                  title={t("assign.removeTitle")}
+                  triggerLabel={t("assign.removeAssignment")}
                 />
               </div>
             ) : null}
 
             {assign.isError ? (
               <Callout
-                fix="Vérifiez que la personne est membre de l'organisation, ou attribuez le serveur à son adresse email."
-                title="L'attribution a échoué."
+                fix={t("assign.failedFix")}
+                title={t("assign.failed")}
                 tone="danger"
               />
             ) : null}
 
             {unassign.isError ? (
               <Callout
-                fix="Réessayez ; si cela persiste, vérifiez votre rôle dans l'organisation."
-                title="L'attribution n'a pas pu être retirée."
+                fix={t("assign.removeFailedFix")}
+                title={t("assign.removeFailed")}
                 tone="danger"
               />
             ) : null}

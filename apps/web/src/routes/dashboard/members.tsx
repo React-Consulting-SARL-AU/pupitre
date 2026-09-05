@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { MemberList } from "@/components/dashboard/member-list"
 import { PageHeader } from "@/components/ui/page-header"
+import { useTranslations } from "@/hooks/use-locale"
 import { pageTitle } from "@/lib/domain/page-titles"
 
 export const Route = createFileRoute("/dashboard/members")({
@@ -8,14 +9,15 @@ export const Route = createFileRoute("/dashboard/members")({
 })
 
 function MembersPage() {
+  const t = useTranslations()
   const { title, parents } = pageTitle("/dashboard/members")
 
   return (
     <>
       <PageHeader
-        description="Qui travaille dans cette organisation, et à quel titre. Un membre ne voit que les serveurs qui lui sont attribués ; un administrateur les voit tous et les attribue."
+        description={t("page.members.description")}
         parents={parents}
-        title={title}
+        title={t(title)}
       />
       <MemberList />
     </>

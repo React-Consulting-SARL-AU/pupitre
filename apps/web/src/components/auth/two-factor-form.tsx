@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useTranslations } from "@/hooks/use-locale"
 import { useRequestCycle } from "@/hooks/use-request-cycle"
 import { authClient } from "@/lib/auth/client"
 import { leaveFor } from "@/lib/config/urls"
@@ -15,6 +16,7 @@ export interface TwoFactorFormProps {
 }
 
 export function TwoFactorForm({ callbackURL }: TwoFactorFormProps) {
+  const t = useTranslations()
   const verification = useRequestCycle()
   const [recovery, setRecovery] = useState(false)
   const [code, setCode] = useState("")
@@ -29,8 +31,8 @@ export function TwoFactorForm({ callbackURL }: TwoFactorFormProps) {
       if (error) {
         throw new Error(
           recovery
-            ? "Ce code de récupération n'est pas valable, ou il a déjà servi."
-            : "Ce code ne correspond pas."
+            ? t("auth.twoFactor.wrongRecovery")
+            : t("auth.twoFactor.wrongCode")
         )
       }
 
@@ -49,7 +51,9 @@ export function TwoFactorForm({ callbackURL }: TwoFactorFormProps) {
         }}
       >
         <Label htmlFor="two-factor-code">
-          {recovery ? "Code de récupération" : "Code de l'application"}
+          {recovery
+            ? t("auth.twoFactor.recoveryLabel")
+            : t("auth.twoFactor.codeLabel")}
         </Label>
         <Input
           autoComplete="one-time-code"
@@ -73,14 +77,16 @@ export function TwoFactorForm({ callbackURL }: TwoFactorFormProps) {
           variant="primary"
         >
           <ShieldCheck className="size-4" strokeWidth={1.5} />
-          {verification.phase === "pending" ? "Vérification…" : "Continuer"}
+          {verification.phase === "pending"
+            ? t("auth.twoFactor.pending")
+            : t("common.continue")}
         </Button>
         {verification.error ? (
           <Callout
             fix={
               recovery
-                ? "Chaque code ne sert qu'une fois. Essayez le suivant sur votre liste."
-                : "Les codes changent toutes les trente secondes ; vérifiez aussi l'heure du téléphone."
+                ? t("auth.twoFactor.recoveryFix")
+                : t("auth.twoFactor.codeFix")
             }
             title={verification.error}
             tone="danger"
@@ -98,8 +104,8 @@ export function TwoFactorForm({ callbackURL }: TwoFactorFormProps) {
       >
         <KeyRound className="size-4" strokeWidth={1.5} />
         {recovery
-          ? "Revenir au code de l'application"
-          : "Utiliser un code de récupération"}
+          ? t("auth.twoFactor.useApp")
+          : t("auth.twoFactor.useRecovery")}
       </Button>
     </div>
   )

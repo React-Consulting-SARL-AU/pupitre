@@ -1,5 +1,8 @@
 export const API_PREFIX = "/api/v1"
 
+/** The marketing site, where the legal pages and the docs live. */
+export const SITE_URL = "https://pupitre.studio"
+
 const DEV_ORIGIN = "http://localhost:3000"
 
 export function appOrigin(): string {

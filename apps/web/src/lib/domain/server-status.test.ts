@@ -22,7 +22,7 @@ describe("statusLook", () => {
     const stale = statusLook("active", true)
 
     expect(stale.shape).toBe("hollow")
-    expect(stale.label).toBe("Sans nouvelles")
+    expect(stale.label).toBe("status.stale")
   })
 
   it("falls back to the revoked look for an unknown status", () => {

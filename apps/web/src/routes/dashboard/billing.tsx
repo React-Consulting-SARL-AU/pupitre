@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { BillingPanel } from "@/components/dashboard/billing-panel"
 import { PageHeader } from "@/components/ui/page-header"
+import { useTranslations } from "@/hooks/use-locale"
 import { pageTitle } from "@/lib/domain/page-titles"
 
 export const Route = createFileRoute("/dashboard/billing")({
@@ -8,14 +9,15 @@ export const Route = createFileRoute("/dashboard/billing")({
 })
 
 function BillingPage() {
+  const t = useTranslations()
   const { title, parents } = pageTitle("/dashboard/billing")
 
   return (
     <>
       <PageHeader
-        description="Un siège par serveur. Le paiement et les factures vivent chez Stripe ; ce que vous voyez ici en est le miroir."
+        description={t("page.billing.description")}
         parents={parents}
-        title={title}
+        title={t(title)}
       />
       <BillingPanel />
     </>

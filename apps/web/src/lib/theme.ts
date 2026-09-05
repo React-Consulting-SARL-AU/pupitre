@@ -4,12 +4,6 @@ export const THEMES = ["system", "light", "dark"] as const
 
 export type Theme = (typeof THEMES)[number]
 
-export const THEME_LABELS: Record<Theme, string> = {
-  system: "Système",
-  light: "Clair",
-  dark: "Sombre",
-}
-
 export function parseTheme(value: unknown): Theme {
   return THEMES.includes(value as Theme) ? (value as Theme) : "system"
 }

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { AuditLog } from "@/components/dashboard/audit-log"
 import { PageHeader } from "@/components/ui/page-header"
+import { useTranslations } from "@/hooks/use-locale"
 import { pageTitle } from "@/lib/domain/page-titles"
 
 export const Route = createFileRoute("/dashboard/audit")({
@@ -8,14 +9,15 @@ export const Route = createFileRoute("/dashboard/audit")({
 })
 
 function AuditPage() {
+  const t = useTranslations()
   const { title, parents } = pageTitle("/dashboard/audit")
 
   return (
     <>
       <PageHeader
-        description="Ce que l'organisation a fait, qui l'a fait et quand. Le journal est en lecture seule et ne s'efface pas."
+        description={t("page.audit.description")}
         parents={parents}
-        title={title}
+        title={t(title)}
       />
       <AuditLog />
     </>

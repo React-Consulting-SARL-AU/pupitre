@@ -1,19 +1,18 @@
 import { PasskeyPanel } from "@/components/dashboard/passkey-panel"
 import { TwoFactorPanel } from "@/components/dashboard/two-factor-panel"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
+import { useTranslations } from "@/hooks/use-locale"
 
 export function SecurityCard() {
+  const t = useTranslations()
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Sécurité</CardTitle>
+        <CardTitle>{t("settings.security")}</CardTitle>
       </CardHeader>
       <CardBody className="flex flex-col gap-section">
-        <p className="text-[13px] text-ink-2">
-          La connexion se fait par lien magique ou par GitHub, et la session
-          vaut soixante jours. Vos appareils se révoquent depuis la page
-          Appareils.
-        </p>
+        <p className="text-[13px] text-ink-2">{t("settings.securityLead")}</p>
 
         <PasskeyPanel />
 

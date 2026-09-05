@@ -1,5 +1,6 @@
 import type { StatusFreshness } from "@pupitre/shared/status"
 import { StatusDot } from "@/components/ui/status-dot"
+import { useTranslations } from "@/hooks/use-locale"
 import { freshnessNotice } from "@/lib/domain/service-status"
 
 export interface FreshnessNoticeProps {
@@ -13,7 +14,8 @@ export function FreshnessNotice({
   lastObservationAt,
   now,
 }: FreshnessNoticeProps) {
-  const notice = freshnessNotice(freshness, lastObservationAt, now)
+  const t = useTranslations()
+  const notice = freshnessNotice(freshness, lastObservationAt, t, now)
 
   if (!notice) {
     return null
@@ -28,7 +30,7 @@ export function FreshnessNotice({
     >
       <span className="pt-1">
         <StatusDot
-          label={notice.look.label}
+          label={t(notice.look.label)}
           shape={notice.look.shape}
           tone={notice.look.tone}
         />

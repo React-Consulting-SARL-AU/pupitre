@@ -1,11 +1,14 @@
 import { StatusDot } from "@/components/ui/status-dot"
-import { type AlertCount, alertBannerLabel } from "@/lib/domain/alerts"
+import { useTranslations } from "@/hooks/use-locale"
+import type { AlertCount } from "@/lib/domain/alerts"
 
 export interface AlertBannerProps {
   count: AlertCount
 }
 
 export function AlertBanner({ count }: AlertBannerProps) {
+  const t = useTranslations()
+
   if (count.alerts === 0) {
     return null
   }
@@ -16,11 +19,18 @@ export function AlertBanner({ count }: AlertBannerProps) {
       data-testid="alert-banner"
       role="status"
     >
-      <StatusDot label="Alertes actives" shape="barred" tone="danger" />
-      <p className="text-[13px] text-ink">{alertBannerLabel(count)}</p>
-      <p className="text-[13px] text-ink-3">
-        Ouvrez la fiche du serveur concerné : le remède y est écrit.
+      <StatusDot
+        label={t("servers.alerts.active")}
+        shape="barred"
+        tone="danger"
+      />
+      <p className="text-[13px] text-ink">
+        {t.plural("alert.banner", count.alerts, {
+          alerts: count.alerts,
+          servers: t.plural("alert.banner.servers", count.servers),
+        })}
       </p>
+      <p className="text-[13px] text-ink-3">{t("servers.alerts.open")}</p>
     </div>
   )
 }

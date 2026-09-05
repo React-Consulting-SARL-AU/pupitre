@@ -21,6 +21,8 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   use: {
     baseURL: HARNESS_ORIGIN,
+    /** The console follows the browser's language; the scenarios read French. */
+    locale: "fr-FR",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "off",

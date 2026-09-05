@@ -12,36 +12,44 @@ import {
 } from "lucide-react"
 import { OrganizationSwitcher } from "@/components/dashboard/organization-switcher"
 import { SidebarLink } from "@/components/dashboard/sidebar-link"
-import { ThemeToggle } from "@/components/dashboard/theme-toggle"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
+import { useTranslations } from "@/hooks/use-locale"
 import { usePermission } from "@/hooks/use-permission"
 import { authClient } from "@/lib/auth/client"
-import { ENTITLEMENT_LABELS } from "@/lib/domain/server-status"
+import { ENTITLEMENT_KEYS } from "@/lib/domain/server-status"
+import type { DictionaryKey } from "@/lib/i18n/en"
 
-const ORGANIZATION_LINKS = [
-  { to: "/dashboard/servers", label: "Serveurs", icon: Server },
-  { to: "/dashboard/members", label: "Membres", icon: Users },
+interface SidebarEntry {
+  to: string
+  label: DictionaryKey
+  icon: typeof Server
+}
+
+const ORGANIZATION_LINKS: SidebarEntry[] = [
+  { to: "/dashboard/servers", label: "nav.servers", icon: Server },
+  { to: "/dashboard/members", label: "nav.members", icon: Users },
 ]
 
-const AUDIT_LINK = {
+const AUDIT_LINK: SidebarEntry = {
   to: "/dashboard/audit",
-  label: "Journal",
+  label: "nav.audit",
   icon: ScrollText,
 }
 
-const BILLING_LINK = {
+const BILLING_LINK: SidebarEntry = {
   to: "/dashboard/billing",
-  label: "Facturation",
+  label: "nav.billing",
   icon: CreditCard,
 }
 
-const ACCOUNT_LINKS = [
-  { to: "/dashboard/devices", label: "Appareils", icon: Laptop },
-  { to: "/download", label: "Télécharger l'app", icon: Download },
-  { to: "/dashboard/settings", label: "Préférences", icon: SlidersHorizontal },
+const ACCOUNT_LINKS: SidebarEntry[] = [
+  { to: "/dashboard/devices", label: "nav.devices", icon: Laptop },
+  { to: "/download", label: "nav.download", icon: Download },
+  { to: "/dashboard/settings", label: "nav.settings", icon: SlidersHorizontal },
 ]
 
 export function DashboardSidebar() {
+  const t = useTranslations()
   const { user, entitlement } = useDashboardContext()
   const canManageBilling = usePermission("billing:manage")
   const canReadAudit = usePermission("audit:view")
@@ -49,14 +57,14 @@ export function DashboardSidebar() {
   const queryClient = useQueryClient()
   const groups = [
     {
-      label: "Organisation",
+      label: t("nav.group.organization"),
       links: [
         ...ORGANIZATION_LINKS,
         ...(canReadAudit ? [AUDIT_LINK] : []),
         ...(canManageBilling ? [BILLING_LINK] : []),
       ],
     },
-    { label: "Mon compte", links: ACCOUNT_LINKS },
+    { label: t("nav.group.account"), links: ACCOUNT_LINKS },
   ]
 
   async function signOut() {
@@ -89,7 +97,7 @@ export function DashboardSidebar() {
                 <SidebarLink
                   icon={link.icon}
                   key={link.to}
-                  label={link.label}
+                  label={t(link.label)}
                   to={link.to}
                 />
               ))}
@@ -100,9 +108,10 @@ export function DashboardSidebar() {
 
       <div className="mt-auto flex flex-col gap-1">
         <p className="px-2 pb-1 text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-          {ENTITLEMENT_LABELS[entitlement] ?? entitlement}
+          {ENTITLEMENT_KEYS[entitlement]
+            ? t(ENTITLEMENT_KEYS[entitlement])
+            : entitlement}
         </p>
-        <ThemeToggle />
         <div className="my-1 h-px bg-line" />
         <p className="truncate px-2 text-[12px] text-ink-3">{user.email}</p>
         <button
@@ -113,7 +122,7 @@ export function DashboardSidebar() {
           type="button"
         >
           <LogOut className="size-4" strokeWidth={1.5} />
-          Se déconnecter
+          {t("nav.signOut")}
         </button>
       </div>
     </aside>

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { AuthCard } from "@/components/auth/auth-card"
 import { TwoFactorForm } from "@/components/auth/two-factor-form"
+import { useTranslations } from "@/hooks/use-locale"
 import { appOrigin } from "@/lib/config/urls"
 import { documentTitle } from "@/lib/domain/page-titles"
 
@@ -33,7 +34,9 @@ function safeCallback(value: unknown): string {
 
 export const Route = createFileRoute("/auth/two-factor")({
   component: TwoFactorPage,
-  head: () => ({ meta: [{ title: documentTitle("/auth/two-factor") }] }),
+  head: ({ match }) => ({
+    meta: [{ title: documentTitle("/auth/two-factor", match.context.locale) }],
+  }),
   validateSearch: (search: Record<string, unknown>): TwoFactorSearch => ({
     callbackURL: safeCallback(search.callbackURL),
   }),
@@ -41,11 +44,12 @@ export const Route = createFileRoute("/auth/two-factor")({
 
 function TwoFactorPage() {
   const { callbackURL } = Route.useSearch()
+  const t = useTranslations()
 
   return (
     <AuthCard
-      description="Votre lien a été reconnu. Entrez le code de votre application d'authentification pour ouvrir la session."
-      title="Second facteur"
+      description={t("auth.twoFactor.description")}
+      title={t("auth.twoFactor.title")}
     >
       <TwoFactorForm callbackURL={callbackURL} />
     </AuthCard>

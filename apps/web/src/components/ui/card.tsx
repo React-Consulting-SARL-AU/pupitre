@@ -6,7 +6,7 @@ export type CardProps = HTMLAttributes<HTMLDivElement>
 export function Card({ className, ...props }: CardProps) {
   return (
     <div
-      className={cn("rounded-md bg-surface shadow-raised", className)}
+      className={cn("rounded-lg bg-surface shadow-raised", className)}
       {...props}
     />
   )

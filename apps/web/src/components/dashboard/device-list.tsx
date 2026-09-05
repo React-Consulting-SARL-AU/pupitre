@@ -4,9 +4,11 @@ import { DeviceRow } from "@/components/dashboard/device-row"
 import { Callout } from "@/components/ui/callout"
 import { EmptyState } from "@/components/ui/empty-state"
 import { LoadingState } from "@/components/ui/loading-state"
+import { useTranslations } from "@/hooks/use-locale"
 import { deleteDevice, devicesQueryOptions } from "@/lib/api/queries"
 
 export function DeviceList() {
+  const t = useTranslations()
   const devices = useQuery(devicesQueryOptions())
   const queryClient = useQueryClient()
   const revoke = useMutation({
@@ -15,14 +17,14 @@ export function DeviceList() {
   })
 
   if (devices.isPending) {
-    return <LoadingState label="Lecture de vos appareils…" />
+    return <LoadingState label={t("deviceList.reading")} />
   }
 
   if (devices.isError) {
     return (
       <Callout
-        fix="Rechargez la page ; si cela persiste, reconnectez-vous."
-        title="Vos appareils n'ont pas pu être lus."
+        fix={t("deviceList.failedFix")}
+        title={t("deviceList.failed")}
         tone="danger"
       />
     )
@@ -31,9 +33,9 @@ export function DeviceList() {
   if (devices.data.length === 0) {
     return (
       <EmptyState
-        description="L'app Pupitre enregistre votre appareil à sa première connexion : sa clé reste sur votre machine, seule la partie publique arrive ici."
+        description={t("deviceList.emptyDescription")}
         icon={Laptop}
-        title="Aucun appareil enregistré"
+        title={t("deviceList.emptyTitle")}
       />
     )
   }
@@ -43,8 +45,8 @@ export function DeviceList() {
       {revoke.isError ? (
         <Callout
           className="m-4"
-          fix="Réessayez dans un instant."
-          title="La révocation a échoué."
+          fix={t("deviceList.revokeFailedFix")}
+          title={t("deviceList.revokeFailed")}
           tone="danger"
         />
       ) : null}

@@ -1,18 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { AuthCard } from "@/components/auth/auth-card"
 import { SignInForm } from "@/components/auth/sign-in-form"
+import { useTranslations } from "@/hooks/use-locale"
 import { documentTitle } from "@/lib/domain/page-titles"
 
 export const Route = createFileRoute("/auth/sign-in")({
   component: SignInPage,
-  head: () => ({ meta: [{ title: documentTitle("/auth/sign-in") }] }),
+  head: ({ match }) => ({
+    meta: [{ title: documentTitle("/auth/sign-in", match.context.locale) }],
+  }),
 })
 
 function SignInPage() {
+  const t = useTranslations()
+
   return (
     <AuthCard
-      description="Une clé d'accès, un lien de connexion, ou votre compte GitHub. Aucun mot de passe à retenir."
-      title="Connexion"
+      description={t("auth.signIn.description")}
+      title={t("auth.signIn.title")}
     >
       <SignInForm />
     </AuthCard>

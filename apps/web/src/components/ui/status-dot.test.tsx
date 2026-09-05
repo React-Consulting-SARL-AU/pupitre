@@ -2,12 +2,15 @@ import { describe, expect, it } from "bun:test"
 import { renderToStaticMarkup } from "react-dom/server"
 import { StatusDot } from "@/components/ui/status-dot"
 import { statusLook } from "@/lib/domain/server-status"
+import { translator } from "@/lib/i18n/i18n"
+
+const t = translator("fr")
 
 function markupFor(status: string): string {
   const look = statusLook(status)
 
   return renderToStaticMarkup(
-    <StatusDot label={look.label} shape={look.shape} tone={look.tone} />
+    <StatusDot label={t(look.label)} shape={look.shape} tone={look.tone} />
   )
 }
 

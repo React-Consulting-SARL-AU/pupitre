@@ -1,16 +1,28 @@
 import { z } from "zod"
+import type { Translate } from "@/lib/i18n/i18n"
 
-export const signInSchema = z.object({
-  email: z.email("Entrez une adresse email valide."),
-})
+const USER_CODE_LENGTH = 8
 
-export type SignInInput = z.infer<typeof signInSchema>
+/**
+ * A schema is built with a translator: the message a field shows is in the
+ * language the reader picked, not in the one the file was written in.
+ */
+export function signInSchema(t: Translate) {
+  return z.object({ email: z.email(t("validation.email")) })
+}
 
-export const deviceCodeSchema = z.object({
-  code: z
-    .string()
-    .transform((value) => value.toUpperCase().replaceAll(/[^A-Z0-9]/g, ""))
-    .refine((value) => value.length === 8, "Le code compte huit caractères."),
-})
+export type SignInInput = z.infer<ReturnType<typeof signInSchema>>
 
-export type DeviceCodeInput = z.infer<typeof deviceCodeSchema>
+export function deviceCodeSchema(t: Translate) {
+  return z.object({
+    code: z
+      .string()
+      .transform((value) => value.toUpperCase().replaceAll(/[^A-Z0-9]/g, ""))
+      .refine(
+        (value) => value.length === USER_CODE_LENGTH,
+        t("validation.deviceCode")
+      ),
+  })
+}
+
+export type DeviceCodeInput = z.infer<ReturnType<typeof deviceCodeSchema>>

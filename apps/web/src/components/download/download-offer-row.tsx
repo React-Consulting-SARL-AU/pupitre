@@ -1,5 +1,6 @@
 import { Download } from "lucide-react"
 import { buttonClassName } from "@/components/ui/button"
+import { useTranslations } from "@/hooks/use-locale"
 import type { DownloadOffer } from "@/lib/domain/downloads"
 
 export interface DownloadOfferRowProps {
@@ -8,19 +9,22 @@ export interface DownloadOfferRowProps {
 }
 
 export function DownloadOfferRow({ offer, suggested }: DownloadOfferRowProps) {
+  const t = useTranslations()
+  const system = t(offer.label)
+
   return (
     <li className="flex flex-wrap items-center justify-between gap-4 border-line border-b px-4 py-3 last:border-b-0">
       <div className="min-w-0">
         <p className="flex items-center gap-2 font-medium text-[13px] text-ink">
-          {offer.label}
+          {system}
           {suggested ? (
             <span className="rounded-full bg-raised px-2 py-[2px] text-[10.5px] text-ink-2 uppercase tracking-[0.08em]">
-              Votre système
+              {t("download.yourSystem")}
             </span>
           ) : null}
         </p>
         <p className="text-[13px] text-ink-3">
-          {offer.format} · {offer.requirement}
+          {t(offer.format)} · {t(offer.requirement)}
           {offer.arch ? ` · ${offer.arch}` : ""}
         </p>
       </div>
@@ -33,10 +37,12 @@ export function DownloadOfferRow({ offer, suggested }: DownloadOfferRowProps) {
           href={offer.url}
         >
           <Download className="size-4" strokeWidth={1.5} />
-          Télécharger pour {offer.label}
+          {t("download.get", { system })}
         </a>
       ) : (
-        <span className="text-[13px] text-ink-3">Pas encore publié</span>
+        <span className="text-[13px] text-ink-3">
+          {t("download.notPublished")}
+        </span>
       )}
     </li>
   )

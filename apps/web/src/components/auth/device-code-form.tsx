@@ -5,35 +5,59 @@ import { FieldError } from "@/components/ui/field-error"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useForm } from "@/hooks/use-form"
+import { useTranslations } from "@/hooks/use-locale"
 import { useRequestCycle } from "@/hooks/use-request-cycle"
 import {
   approveDeviceCode,
+  DeviceCodeError,
   denyDeviceCode,
   formatUserCode,
   lookupDeviceCode,
   normalizeUserCode,
 } from "@/lib/auth/device-flow"
 import { appOrigin } from "@/lib/config/urls"
+import type { DictionaryKey } from "@/lib/i18n/en"
 import { type DeviceCodeInput, deviceCodeSchema } from "@/lib/schemas/auth"
 
 export type DeviceStep = "code" | "confirm" | "approved" | "denied"
+
+const DEVICE_ERRORS = new Set([
+  "invalid_user_code",
+  "expired_user_code",
+  "unauthenticated",
+  "forbidden",
+])
+
+function deviceErrorKey(error: unknown): DictionaryKey {
+  if (error instanceof DeviceCodeError && DEVICE_ERRORS.has(error.code)) {
+    return `device.error.${error.code}` as DictionaryKey
+  }
+
+  return "device.error.unknown"
+}
 
 export interface DeviceCodeFormProps {
   initialCode?: string
 }
 
 export function DeviceCodeForm({ initialCode = "" }: DeviceCodeFormProps) {
+  const t = useTranslations()
   const [step, setStep] = useState<DeviceStep>("code")
   const [code, setCode] = useState(normalizeUserCode(initialCode))
   const cycle = useRequestCycle()
   const form = useForm<DeviceCodeInput>({
-    schema: deviceCodeSchema,
+    schema: deviceCodeSchema(t),
     defaultValues: { code: formatUserCode(initialCode) },
   })
 
   const check = form.handleSubmit((values) =>
     cycle.run(async () => {
-      await lookupDeviceCode(appOrigin(), values.code)
+      try {
+        await lookupDeviceCode(appOrigin(), values.code)
+      } catch (error) {
+        throw new Error(t(deviceErrorKey(error)))
+      }
+
       setCode(normalizeUserCode(values.code))
       setStep("confirm")
     })
@@ -41,14 +65,19 @@ export function DeviceCodeForm({ initialCode = "" }: DeviceCodeFormProps) {
 
   function decide(approve: boolean) {
     cycle.run(async () => {
-      if (approve) {
-        await approveDeviceCode(appOrigin(), code)
-        setStep("approved")
+      try {
+        if (approve) {
+          await approveDeviceCode(appOrigin(), code)
+          setStep("approved")
 
-        return
+          return
+        }
+
+        await denyDeviceCode(appOrigin(), code)
+      } catch (error) {
+        throw new Error(t(deviceErrorKey(error)))
       }
 
-      await denyDeviceCode(appOrigin(), code)
       setStep("denied")
     })
   }
@@ -57,8 +86,8 @@ export function DeviceCodeForm({ initialCode = "" }: DeviceCodeFormProps) {
     return (
       <Callout
         data-testid="device-approved"
-        fix="Retournez à l'app Pupitre : elle prend la main dans quelques secondes."
-        title="Appareil confirmé."
+        fix={t("auth.device.approvedFix")}
+        title={t("auth.device.approved")}
       />
     )
   }
@@ -66,8 +95,8 @@ export function DeviceCodeForm({ initialCode = "" }: DeviceCodeFormProps) {
   if (step === "denied") {
     return (
       <Callout
-        fix="Si ce n'était pas vous, aucune session n'a été ouverte."
-        title="Demande refusée."
+        fix={t("auth.device.deniedFix")}
+        title={t("auth.device.denied")}
       />
     )
   }
@@ -75,10 +104,7 @@ export function DeviceCodeForm({ initialCode = "" }: DeviceCodeFormProps) {
   if (step === "confirm") {
     return (
       <div className="flex flex-col gap-4">
-        <p className="text-[13px] text-ink-2">
-          Un appareil demande à ouvrir une session sur votre compte. Vérifiez
-          que ce code est bien celui affiché sur l'appareil.
-        </p>
+        <p className="text-[13px] text-ink-2">{t("auth.device.confirmLead")}</p>
         <p className="rounded-sm bg-sunken px-4 py-4 text-center font-data text-[22px] text-ink tracking-[0.2em]">
           {formatUserCode(code)}
         </p>
@@ -91,7 +117,7 @@ export function DeviceCodeForm({ initialCode = "" }: DeviceCodeFormProps) {
             }}
             variant="primary"
           >
-            Confirmer cet appareil
+            {t("auth.device.confirm")}
           </Button>
           <Button
             disabled={cycle.phase === "pending"}
@@ -100,7 +126,7 @@ export function DeviceCodeForm({ initialCode = "" }: DeviceCodeFormProps) {
             }}
             variant="danger"
           >
-            Refuser
+            {t("auth.device.deny")}
           </Button>
         </div>
         {cycle.error ? <Callout title={cycle.error} tone="danger" /> : null}
@@ -116,7 +142,7 @@ export function DeviceCodeForm({ initialCode = "" }: DeviceCodeFormProps) {
         check(event)
       }}
     >
-      <Label htmlFor="device-code">Code affiché par l'appareil</Label>
+      <Label htmlFor="device-code">{t("auth.device.codeLabel")}</Label>
       <Input
         autoComplete="one-time-code"
         className="text-center font-data text-[18px] uppercase tracking-[0.2em]"
@@ -131,7 +157,7 @@ export function DeviceCodeForm({ initialCode = "" }: DeviceCodeFormProps) {
         type="submit"
         variant="primary"
       >
-        Vérifier le code
+        {t("auth.device.check")}
       </Button>
       {cycle.error ? <Callout title={cycle.error} tone="danger" /> : null}
     </form>

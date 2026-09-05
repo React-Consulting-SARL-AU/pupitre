@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { AuthCard } from "@/components/auth/auth-card"
 import { DeviceCodeForm } from "@/components/auth/device-code-form"
+import { useTranslations } from "@/hooks/use-locale"
 import { documentTitle } from "@/lib/domain/page-titles"
 
 interface DeviceSearch {
@@ -9,7 +10,9 @@ interface DeviceSearch {
 
 export const Route = createFileRoute("/auth/device")({
   component: DevicePage,
-  head: () => ({ meta: [{ title: documentTitle("/auth/device") }] }),
+  head: ({ match }) => ({
+    meta: [{ title: documentTitle("/auth/device", match.context.locale) }],
+  }),
   validateSearch: (search: Record<string, unknown>): DeviceSearch => ({
     user_code: typeof search.user_code === "string" ? search.user_code : "",
   }),
@@ -17,11 +20,12 @@ export const Route = createFileRoute("/auth/device")({
 
 function DevicePage() {
   const { user_code: userCode } = Route.useSearch()
+  const t = useTranslations()
 
   return (
     <AuthCard
-      description="Entrez le code que votre appareil affiche, puis confirmez. C'est ce qui lui ouvre une session."
-      title="Confirmer un appareil"
+      description={t("auth.device.description")}
+      title={t("auth.device.title")}
     >
       <DeviceCodeForm initialCode={userCode} />
     </AuthCard>

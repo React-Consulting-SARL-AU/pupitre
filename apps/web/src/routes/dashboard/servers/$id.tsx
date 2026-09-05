@@ -12,6 +12,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
 import { LoadingState } from "@/components/ui/loading-state"
 import { PageHeader } from "@/components/ui/page-header"
 import { StatusBadge } from "@/components/ui/status-badge"
+import { useTranslations } from "@/hooks/use-locale"
 import { serverQueryOptions } from "@/lib/api/queries"
 import { pageTitle } from "@/lib/domain/page-titles"
 import { statusLook } from "@/lib/domain/server-status"
@@ -22,19 +23,20 @@ export const Route = createFileRoute("/dashboard/servers/$id")({
 })
 
 function ServerPage() {
+  const t = useTranslations()
   const { id } = Route.useParams()
   const server = useQuery(serverQueryOptions(id))
   const { parents } = pageTitle("/dashboard/servers/$id")
 
   if (server.isPending) {
-    return <LoadingState label="Lecture du serveur…" />
+    return <LoadingState label={t("serverPage.reading")} />
   }
 
   if (server.isError) {
     return (
       <Callout
-        fix="Retournez à la liste des serveurs."
-        title="Ce serveur est introuvable dans l'organisation active."
+        fix={t("serverPage.notFoundFix")}
+        title={t("serverPage.notFound")}
         tone="danger"
       />
     )
@@ -49,7 +51,7 @@ function ServerPage() {
         actions={
           <ServerActions serverId={detail.id} serverName={detail.name} />
         }
-        description={`${detail.user}@${detail.host ?? "hôte inconnu"}:${detail.port}`}
+        description={`${detail.user}@${detail.host ?? t("servers.unknownHost")}:${detail.port}`}
         parents={parents}
         title={detail.name}
       />
@@ -57,16 +59,16 @@ function ServerPage() {
       <div className="flex flex-col gap-gutter">
         <Card>
           <CardHeader>
-            <CardTitle>État</CardTitle>
+            <CardTitle>{t("serverPage.state")}</CardTitle>
             <StatusBadge look={statusLook(detail.status, detail.stale)} />
           </CardHeader>
           <CardBody className="grid gap-gutter sm:grid-cols-3">
             <div>
               <p className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-                Agent
+                {t("serverPage.agent")}
               </p>
               <p className="font-data text-[12px] text-ink tabular-nums">
-                {detail.agent_version ?? "—"}
+                {detail.agent_version ?? t("format.none")}
                 {detail.target_version &&
                 detail.target_version !== detail.agent_version
                   ? ` → ${detail.target_version}`
@@ -75,18 +77,18 @@ function ServerPage() {
             </div>
             <div>
               <p className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-                Dernier heartbeat
+                {t("serverPage.lastHeartbeat")}
               </p>
               <p className="text-[13px] text-ink">
-                {formatRelative(detail.last_heartbeat_at)}
+                {formatRelative(detail.last_heartbeat_at, t)}
               </p>
             </div>
             <div>
               <p className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-                Empreinte d'hôte
+                {t("serverPage.hostFingerprint")}
               </p>
               <p className="truncate font-data text-[12px] text-ink-2">
-                {detail.host_fingerprint ?? "—"}
+                {detail.host_fingerprint ?? t("format.none")}
               </p>
             </div>
           </CardBody>

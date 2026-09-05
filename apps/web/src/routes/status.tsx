@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { FreshnessNotice } from "@/components/status/freshness-notice"
 import { StatusDot } from "@/components/ui/status-dot"
+import { useTranslations } from "@/hooks/use-locale"
 import { statusQueryOptions } from "@/lib/api/queries"
 import type { StatusLook } from "@/lib/domain/server-status"
 import {
@@ -16,8 +17,8 @@ export const Route = createFileRoute("/status")({
 })
 
 const HEALTH_LOOKS: Record<string, StatusLook> = {
-  ok: { shape: "filled", tone: "ok", label: "Répond" },
-  down: { shape: "barred", tone: "danger", label: "Ne répond pas" },
+  ok: { shape: "filled", tone: "ok", label: "service.responds" },
+  down: { shape: "barred", tone: "danger", label: "service.doesNotRespond" },
 }
 
 function healthLook(health: string): StatusLook {
@@ -33,11 +34,13 @@ function Row({
   look: StatusLook
   detail?: string
 }) {
+  const t = useTranslations()
+
   return (
     <li className="flex items-center gap-3 border-line border-b px-4 py-3 last:border-b-0">
-      <StatusDot label={look.label} shape={look.shape} tone={look.tone} />
+      <StatusDot label={t(look.label)} shape={look.shape} tone={look.tone} />
       <span className="flex-1 text-[14px] text-ink">{label}</span>
-      <span className="text-[13px] text-ink-2">{look.label}</span>
+      <span className="text-[13px] text-ink-2">{t(look.label)}</span>
       {detail ? (
         <span className="font-data text-[12px] text-ink-3 tabular-nums">
           {detail}
@@ -48,37 +51,33 @@ function Row({
 }
 
 function StatusPage() {
+  const t = useTranslations()
   const status = useQuery(statusQueryOptions())
 
   return (
-    <main className="min-h-screen bg-base px-8 py-16">
+    <main className="flex-1 bg-base px-8 py-16">
       <div className="mx-auto max-w-2xl">
         <header className="pb-section">
           <p className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-            Pupitre
+            {t("app.name")}
           </p>
           <h1 className="mt-1 font-bold font-display text-[26px] text-ink leading-[1.2] tracking-[-0.01em]">
-            État du service
+            {t("statusPage.title")}
           </h1>
-          <p className="mt-2 text-[14px] text-ink-2">
-            L'état de la plateforme Pupitre, pas celui de vos serveurs. Ceux-ci
-            se lisent dans votre console, après connexion.
-          </p>
+          <p className="mt-2 text-[14px] text-ink-2">{t("statusPage.lead")}</p>
         </header>
 
         {status.isPending ? (
-          <p className="text-[13px] text-ink-3">
-            Lecture de l'état du service…
-          </p>
+          <p className="text-[13px] text-ink-3">{t("statusPage.reading")}</p>
         ) : null}
 
         {status.isError ? (
           <div className="rounded-md bg-surface shadow-raised">
             <ul>
-              <Row label="API" look={healthLook("down")} />
+              <Row label={t("statusPage.api")} look={healthLook("down")} />
             </ul>
             <p className="border-line border-t px-4 py-3 text-[13px] text-ink-2">
-              La page n'a pas obtenu de réponse. Rechargez dans une minute.
+              {t("statusPage.unreachable")}
             </p>
           </div>
         ) : null}
@@ -93,24 +92,31 @@ function StatusPage() {
         {status.data ? (
           <div className="rounded-md bg-surface shadow-raised">
             <ul>
-              <Row label="API" look={healthLook(status.data.api)} />
               <Row
-                label="Base de données"
+                label={t("statusPage.api")}
+                look={healthLook(status.data.api)}
+              />
+              <Row
+                label={t("statusPage.database")}
                 look={healthLook(status.data.database)}
               />
               <Row
-                detail={status.data.latest_release?.version ?? "—"}
-                label="Dernière version publiée de l'agent"
+                detail={status.data.latest_release?.version ?? t("format.none")}
+                label={t("statusPage.latestRelease")}
                 look={
                   status.data.latest_release
                     ? healthLook("ok")
-                    : { shape: "hollow", tone: "muted", label: "Aucune" }
+                    : {
+                        shape: "hollow",
+                        tone: "muted",
+                        label: "statusPage.noRelease",
+                      }
                 }
               />
             </ul>
             <div className="flex items-baseline justify-between gap-4 border-line border-t px-4 py-3">
               <span className="text-[13px] text-ink-2">
-                {activeServersLabel(status.data.freshness)}
+                {activeServersLabel(status.data.freshness, t)}
               </span>
               <span
                 className={`font-data text-[14px] tabular-nums ${
@@ -120,7 +126,8 @@ function StatusPage() {
               >
                 {activeServersValue(
                   status.data.freshness,
-                  status.data.active_servers
+                  status.data.active_servers,
+                  t
                 )}
               </span>
             </div>
@@ -129,12 +136,15 @@ function StatusPage() {
 
         <footer className="pt-gutter text-[12px] text-ink-3">
           {status.data
-            ? `Relevé le ${formatDateTime(status.data.checked_at)}. ${observationLabel(
+            ? `${t("statusPage.checkedAt", {
+                date: formatDateTime(status.data.checked_at, t),
+              })} ${observationLabel(
                 status.data.freshness,
-                status.data.last_observation_at
+                status.data.last_observation_at,
+                t
               )} `
             : ""}
-          Ce compteur est agrégé : il ne dit rien d'aucun client.
+          {t("statusPage.aggregated")}
         </footer>
       </div>
     </main>

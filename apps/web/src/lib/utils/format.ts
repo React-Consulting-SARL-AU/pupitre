@@ -1,27 +1,33 @@
-const BYTE_UNITS = ["o", "ko", "Mo", "Go", "To"] as const
+import type { Translate } from "@/lib/i18n/i18n"
+
+const BYTE_UNITS_FR = ["o", "ko", "Mo", "Go", "To"] as const
+const BYTE_UNITS_EN = ["B", "kB", "MB", "GB", "TB"] as const
 
 const MINUTE_MS = 60_000
 const HOUR_MS = 3_600_000
 const DAY_MS = 86_400_000
 
-export function formatBytes(bytes: number): string {
+export function formatBytes(bytes: number, t: Translate): string {
+  const units = t.locale === "fr" ? BYTE_UNITS_FR : BYTE_UNITS_EN
   let value = bytes
   let unit = 0
 
-  while (value >= 1024 && unit < BYTE_UNITS.length - 1) {
+  while (value >= 1024 && unit < units.length - 1) {
     value /= 1024
     unit += 1
   }
 
-  return `${value.toFixed(value >= 10 || unit === 0 ? 0 : 1)} ${BYTE_UNITS[unit]}`
+  return `${value.toFixed(value >= 10 || unit === 0 ? 0 : 1)} ${units[unit]}`
 }
 
-export function formatRatio(ratio: number): string {
-  return `${Math.round(ratio * 100)} %`
+export function formatRatio(ratio: number, t: Translate): string {
+  const space = t.locale === "fr" ? " " : ""
+
+  return `${Math.round(ratio * 100)}${space}%`
 }
 
-export function formatDateTime(value: string | Date): string {
-  return new Intl.DateTimeFormat("fr-FR", {
+export function formatDateTime(value: string | Date, t: Translate): string {
+  return new Intl.DateTimeFormat(t.locale, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value))
@@ -29,25 +35,26 @@ export function formatDateTime(value: string | Date): string {
 
 export function formatRelative(
   value: string | Date | null,
+  t: Translate,
   now: Date = new Date()
 ): string {
   if (!value) {
-    return "jamais"
+    return t("format.never")
   }
 
   const elapsed = now.getTime() - new Date(value).getTime()
 
   if (elapsed < MINUTE_MS) {
-    return "à l'instant"
+    return t("format.justNow")
   }
 
   if (elapsed < HOUR_MS) {
-    return `il y a ${Math.floor(elapsed / MINUTE_MS)} min`
+    return t("format.minutesAgo", { count: Math.floor(elapsed / MINUTE_MS) })
   }
 
   if (elapsed < DAY_MS) {
-    return `il y a ${Math.floor(elapsed / HOUR_MS)} h`
+    return t("format.hoursAgo", { count: Math.floor(elapsed / HOUR_MS) })
   }
 
-  return `il y a ${Math.floor(elapsed / DAY_MS)} j`
+  return t("format.daysAgo", { count: Math.floor(elapsed / DAY_MS) })
 }

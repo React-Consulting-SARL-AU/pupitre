@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { LoadingState } from "@/components/ui/loading-state"
 import { QrCode } from "@/components/ui/qr-code"
 import { StatusDot } from "@/components/ui/status-dot"
+import { useTranslations } from "@/hooks/use-locale"
 import { useRequestCycle } from "@/hooks/use-request-cycle"
 import { authClient } from "@/lib/auth/client"
 import { twoFactorEnabledQueryOptions } from "@/lib/auth/queries"
@@ -25,6 +26,7 @@ function secretOf(totpURI: string): string {
 }
 
 export function TwoFactorPanel() {
+  const t = useTranslations()
   const enabled = useQuery(twoFactorEnabledQueryOptions())
   const queryClient = useQueryClient()
   const activation = useRequestCycle()
@@ -39,9 +41,7 @@ export function TwoFactorPanel() {
       const { data, error } = await authClient().twoFactor.enable({})
 
       if (error || !data) {
-        throw new Error(
-          "Le second facteur n'a pas pu être préparé. Réessayez dans un instant."
-        )
+        throw new Error(t("twoFactor.prepareFailed"))
       }
 
       setConfirmed(false)
@@ -55,7 +55,7 @@ export function TwoFactorPanel() {
       const { error } = await authClient().twoFactor.verifyTotp({ code })
 
       if (error) {
-        throw new Error("Ce code ne correspond pas. Regardez le suivant.")
+        throw new Error(t("twoFactor.wrongCode"))
       }
 
       setConfirmed(true)
@@ -69,7 +69,7 @@ export function TwoFactorPanel() {
       const { error } = await authClient().twoFactor.disable({})
 
       if (error) {
-        throw new Error("Le second facteur n'a pas pu être désactivé.")
+        throw new Error(t("twoFactor.disableFailed"))
       }
 
       setSetup(null)
@@ -82,36 +82,30 @@ export function TwoFactorPanel() {
     <section className="flex flex-col gap-3">
       <div>
         <h3 className="flex items-center gap-2 font-medium text-[13px] text-ink">
-          Second facteur
+          {t("twoFactor.title")}
           {enabled.data ? (
-            <StatusDot label="Actif" shape="filled" tone="ok" />
+            <StatusDot label={t("twoFactor.active")} shape="filled" tone="ok" />
           ) : null}
         </h3>
-        <p className="mt-1 text-[13px] text-ink-2">
-          Un code à usage unique, demandé après le lien magique et après GitHub.
-          Pas après une clé d'accès : elle est déjà un second facteur.
-        </p>
+        <p className="mt-1 text-[13px] text-ink-2">{t("twoFactor.lead")}</p>
       </div>
 
       {enabled.isPending ? (
-        <LoadingState label="Lecture de votre second facteur…" />
+        <LoadingState label={t("twoFactor.reading")} />
       ) : null}
 
       {enabled.data && !setup ? (
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-sm border border-line bg-sunken px-3 py-3">
-          <p className="text-[13px] text-ink-2">
-            Actif. Vos codes de récupération remplacent l'application si vous
-            perdez le téléphone.
-          </p>
+          <p className="text-[13px] text-ink-2">{t("twoFactor.activeLead")}</p>
           <ConfirmDialog
-            confirmLabel="Désactiver"
-            description="La connexion ne demandera plus de code après le lien magique. Vos codes de récupération sont effacés."
+            confirmLabel={t("twoFactor.disable")}
+            description={t("twoFactor.disableDescription")}
             onConfirm={() => {
               disable()
             }}
             pending={removal.phase === "pending"}
-            title="Désactiver le second facteur ?"
-            triggerLabel="Désactiver"
+            title={t("twoFactor.disableTitle")}
+            triggerLabel={t("twoFactor.disable")}
           />
         </div>
       ) : null}
@@ -127,14 +121,14 @@ export function TwoFactorPanel() {
         >
           <ShieldCheck className="size-4" strokeWidth={1.5} />
           {activation.phase === "pending"
-            ? "Préparation…"
-            : "Activer le second facteur"}
+            ? t("twoFactor.preparing")
+            : t("twoFactor.enable")}
         </Button>
       ) : null}
 
       {activation.error ? (
         <Callout
-          fix="Réessayez dans un instant."
+          fix={t("twoFactor.prepareFailedFix")}
           title={activation.error}
           tone="danger"
         />
@@ -142,7 +136,7 @@ export function TwoFactorPanel() {
 
       {removal.error ? (
         <Callout
-          fix="Rechargez la page, puis réessayez."
+          fix={t("twoFactor.disableFailedFix")}
           title={removal.error}
           tone="danger"
         />
@@ -151,12 +145,10 @@ export function TwoFactorPanel() {
       {setup ? (
         <div className="flex flex-col gap-gutter rounded-sm border border-line bg-sunken p-4">
           <div className="flex flex-wrap items-start gap-gutter">
-            <QrCode label="QR code du second facteur" value={setup.totpURI} />
+            <QrCode label={t("twoFactor.qrLabel")} value={setup.totpURI} />
             <div className="flex min-w-[220px] flex-1 flex-col gap-2">
-              <p className="text-[13px] text-ink">
-                Scannez ce code avec votre application d'authentification.
-              </p>
-              <Label>Clé à saisir à la main</Label>
+              <p className="text-[13px] text-ink">{t("twoFactor.scan")}</p>
+              <Label>{t("twoFactor.manualKey")}</Label>
               <p className="break-all font-data text-[12px] text-ink-2">
                 {secretOf(setup.totpURI)}
               </p>
@@ -164,10 +156,9 @@ export function TwoFactorPanel() {
           </div>
 
           <div>
-            <Label>Codes de récupération</Label>
+            <Label>{t("twoFactor.recoveryCodes")}</Label>
             <p className="mt-1 text-[13px] text-ink-2">
-              Notez-les maintenant : ils ne seront plus affichés, et chacun ne
-              sert qu'une fois.
+              {t("twoFactor.recoveryLead")}
             </p>
             <ul className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3">
               {setup.backupCodes.map((backupCode) => (
@@ -183,22 +174,20 @@ export function TwoFactorPanel() {
 
           {confirmed ? (
             <div className="flex flex-wrap items-center justify-between gap-4">
-              <p className="text-[13px] text-ink">
-                Le second facteur est actif.
-              </p>
+              <p className="text-[13px] text-ink">{t("twoFactor.done")}</p>
               <Button
                 onClick={() => {
                   setSetup(null)
                 }}
                 variant="primary"
               >
-                J'ai noté mes codes
+                {t("twoFactor.acknowledged")}
               </Button>
             </div>
           ) : (
             <div className="flex flex-wrap items-end gap-2">
               <div className="flex min-w-[160px] flex-col gap-2">
-                <Label htmlFor="totp-code">Code de l'application</Label>
+                <Label htmlFor="totp-code">{t("twoFactor.codeLabel")}</Label>
                 <Input
                   autoComplete="one-time-code"
                   className="font-data tabular-nums"
@@ -223,8 +212,8 @@ export function TwoFactorPanel() {
                 variant="primary"
               >
                 {confirmation.phase === "pending"
-                  ? "Vérification…"
-                  : "Confirmer"}
+                  ? t("twoFactor.checking")
+                  : t("twoFactor.confirm")}
               </Button>
               <Button
                 onClick={() => {
@@ -232,14 +221,14 @@ export function TwoFactorPanel() {
                 }}
                 variant="ghost"
               >
-                Annuler
+                {t("common.cancel")}
               </Button>
             </div>
           )}
 
           {confirmation.error ? (
             <Callout
-              fix="Les codes changent toutes les trente secondes ; vérifiez aussi l'heure du téléphone."
+              fix={t("twoFactor.wrongCodeFix")}
               title={confirmation.error}
               tone="danger"
             />

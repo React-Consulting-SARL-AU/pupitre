@@ -1,23 +1,24 @@
 import type { OrgRole } from "@pupitre/shared/permissions"
+import type { DictionaryKey } from "@/lib/i18n/en"
 
 export const INVITABLE_ROLES: OrgRole[] = ["member", "admin"]
 
-export const ROLE_LABELS: Record<string, string> = {
-  owner: "Propriétaire",
-  admin: "Administrateur",
-  member: "Membre",
+const ROLE_KEYS: Record<string, DictionaryKey> = {
+  owner: "role.owner",
+  admin: "role.admin",
+  member: "role.member",
 }
 
-const ROLE_DESCRIPTIONS: Record<string, string> = {
-  owner: "Voit tout, attribue, et gère seul la facturation.",
-  admin: "Voit tous les serveurs, attribue, invite, lit le journal.",
-  member: "Ne voit que les serveurs qui lui sont attribués.",
+const DESCRIPTION_KEYS: Record<string, DictionaryKey> = {
+  owner: "role.owner.description",
+  admin: "role.admin.description",
+  member: "role.member.description",
 }
 
-export function roleLabel(role: string): string {
-  return ROLE_LABELS[role] ?? role
+export function roleKey(role: string): DictionaryKey | null {
+  return ROLE_KEYS[role] ?? null
 }
 
-export function roleDescription(role: string): string {
-  return ROLE_DESCRIPTIONS[role] ?? ""
+export function roleDescriptionKey(role: string): DictionaryKey | null {
+  return DESCRIPTION_KEYS[role] ?? null
 }

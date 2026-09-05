@@ -19,9 +19,7 @@ export function passkeysQueryOptions() {
       const { data, error } = await authClient().passkey.listUserPasskeys()
 
       if (error) {
-        throw new Error(
-          error.message ?? "Vos clés d'accès n'ont pas pu être lues."
-        )
+        throw new Error(error.message ?? "passkeys_unreadable")
       }
 
       return data ?? []
@@ -41,7 +39,7 @@ export function twoFactorEnabledQueryOptions() {
       const { data, error } = await authClient().getSession()
 
       if (error) {
-        throw new Error(error.message ?? "Votre session n'a pas pu être relue.")
+        throw new Error(error.message ?? "session_unreadable")
       }
 
       const user = data?.user as { twoFactorEnabled?: boolean } | undefined

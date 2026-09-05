@@ -1,0 +1,26 @@
+export const billing = {
+  en: {
+    "billing.interval.month": "Monthly",
+    "billing.interval.year": "Yearly",
+    "billing.status.active": "Active",
+    "billing.status.trialing": "Trial",
+    "billing.status.past_due": "Payment overdue",
+    "billing.status.incomplete": "Payment incomplete",
+    "billing.status.paused": "Paused",
+    "billing.status.unpaid": "Unpaid",
+    "billing.status.canceled": "Cancelled",
+    "billing.status.incomplete_expired": "Expired",
+  },
+  fr: {
+    "billing.interval.month": "Mensuel",
+    "billing.interval.year": "Annuel",
+    "billing.status.active": "Actif",
+    "billing.status.trialing": "Essai",
+    "billing.status.past_due": "Paiement en retard",
+    "billing.status.incomplete": "Paiement incomplet",
+    "billing.status.paused": "En pause",
+    "billing.status.unpaid": "Impayé",
+    "billing.status.canceled": "Résilié",
+    "billing.status.incomplete_expired": "Expiré",
+  },
+}

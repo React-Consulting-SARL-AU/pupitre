@@ -1,5 +1,6 @@
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
 import { ServiceLogo } from "@/components/ui/service-logo"
+import { useTranslations } from "@/hooks/use-locale"
 
 export interface ServerModulesProps {
   modules: string[]
@@ -7,19 +8,19 @@ export interface ServerModulesProps {
 }
 
 export function ServerModules({ modules, stackVersion }: ServerModulesProps) {
+  const t = useTranslations()
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Services installés</CardTitle>
+        <CardTitle>{t("modules.title")}</CardTitle>
         <span className="font-data text-[12px] text-ink-3 tabular-nums">
-          {stackVersion ?? "—"}
+          {stackVersion ?? t("format.none")}
         </span>
       </CardHeader>
       <CardBody>
         {modules.length === 0 ? (
-          <p className="text-[13px] text-ink-3">
-            Le serveur n'a encore rapporté aucun module.
-          </p>
+          <p className="text-[13px] text-ink-3">{t("modules.empty")}</p>
         ) : (
           <ul className="flex flex-wrap gap-2">
             {modules.map((moduleId) => (

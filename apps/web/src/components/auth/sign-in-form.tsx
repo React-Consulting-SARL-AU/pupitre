@@ -1,4 +1,4 @@
-import { Fingerprint, KeyRound, Mail } from "lucide-react"
+import { Fingerprint, Mail } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
@@ -6,16 +6,20 @@ import { FieldError } from "@/components/ui/field-error"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useForm } from "@/hooks/use-form"
+import { useTranslations } from "@/hooks/use-locale"
 import { useRequestCycle } from "@/hooks/use-request-cycle"
 import { authClient } from "@/lib/auth/client"
 import { leaveFor } from "@/lib/config/urls"
 import { type SignInInput, signInSchema } from "@/lib/schemas/auth"
+import { GithubMark } from "./github-mark"
+import { GoogleMark } from "./google-mark"
 
 const CALLBACK_URL = "/dashboard/servers"
 
 export function SignInForm() {
+  const t = useTranslations()
   const form = useForm<SignInInput>({
-    schema: signInSchema,
+    schema: signInSchema(t),
     defaultValues: { email: "" },
   })
   const magicLink = useRequestCycle()
@@ -27,13 +31,15 @@ export function SignInForm() {
       const result = await authClient().signIn.passkey()
 
       if (result?.error) {
-        throw new Error(
-          "Aucune clé d'accès n'a répondu. Utilisez le lien de connexion."
-        )
+        throw new Error(t("auth.signIn.passkeyFailed"))
       }
 
       leaveFor(CALLBACK_URL)
     })
+  }
+
+  function signInWithSocial(provider: "github" | "google") {
+    authClient().signIn.social({ provider, callbackURL: CALLBACK_URL })
   }
 
   const submit = form.handleSubmit((values) =>
@@ -44,9 +50,7 @@ export function SignInForm() {
       })
 
       if (error) {
-        throw new Error(
-          "Le lien n'a pas pu être envoyé. Vérifiez l'adresse et réessayez."
-        )
+        throw new Error(t("auth.signIn.magicLinkFailed"))
       }
 
       setSentTo(values.email)
@@ -56,8 +60,8 @@ export function SignInForm() {
   if (sentTo) {
     return (
       <Callout
-        fix="Le lien vaut quinze minutes. Sans rien dans la boîte, regardez les indésirables."
-        title={`Un lien de connexion part vers ${sentTo}.`}
+        fix={t("auth.signIn.sentFix")}
+        title={t("auth.signIn.sent", { email: sentTo })}
       />
     )
   }
@@ -71,11 +75,11 @@ export function SignInForm() {
           submit(event)
         }}
       >
-        <Label htmlFor="email">Adresse email</Label>
+        <Label htmlFor="email">{t("auth.signIn.email")}</Label>
         <Input
           autoComplete="email"
           id="email"
-          placeholder="vous@exemple.com"
+          placeholder={t("auth.signIn.emailPlaceholder")}
           type="email"
           {...form.register("email")}
         />
@@ -88,8 +92,8 @@ export function SignInForm() {
         >
           <Mail className="size-4" strokeWidth={1.5} />
           {magicLink.phase === "pending"
-            ? "Envoi du lien…"
-            : "Recevoir un lien de connexion"}
+            ? t("auth.signIn.magicLinkPending")
+            : t("auth.signIn.magicLink")}
         </Button>
         {magicLink.error ? (
           <Callout title={magicLink.error} tone="danger" />
@@ -99,7 +103,7 @@ export function SignInForm() {
       <div className="flex items-center gap-3">
         <span className="h-px flex-1 bg-line" />
         <span className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-          ou
+          {t("common.or")}
         </span>
         <span className="h-px flex-1 bg-line" />
       </div>
@@ -112,20 +116,26 @@ export function SignInForm() {
       >
         <Fingerprint className="size-4" strokeWidth={1.5} />
         {passkey.phase === "pending"
-          ? "En attente de votre appareil…"
-          : "Utiliser une clé d'accès"}
+          ? t("auth.signIn.passkeyPending")
+          : t("auth.signIn.passkey")}
       </Button>
 
       <Button
         onClick={() => {
-          authClient().signIn.social({
-            provider: "github",
-            callbackURL: CALLBACK_URL,
-          })
+          signInWithSocial("google")
         }}
       >
-        <KeyRound className="size-4" strokeWidth={1.5} />
-        Continuer avec GitHub
+        <GoogleMark className="size-4" />
+        {t("auth.signIn.google")}
+      </Button>
+
+      <Button
+        onClick={() => {
+          signInWithSocial("github")
+        }}
+      >
+        <GithubMark className="size-4" />
+        {t("auth.signIn.github")}
       </Button>
 
       {passkey.error ? <Callout title={passkey.error} tone="danger" /> : null}

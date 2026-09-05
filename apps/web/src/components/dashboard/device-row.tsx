@@ -1,4 +1,5 @@
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { useTranslations } from "@/hooks/use-locale"
 import { formatRelative } from "@/lib/utils/format"
 
 export interface DeviceRowDevice {
@@ -15,6 +16,8 @@ export interface DeviceRowProps {
 }
 
 export function DeviceRow({ device, onRevoke, pending }: DeviceRowProps) {
+  const t = useTranslations()
+
   return (
     <li className="flex flex-wrap items-center justify-between gap-4 border-line border-b px-4 py-3 last:border-b-0">
       <div className="min-w-0">
@@ -27,17 +30,17 @@ export function DeviceRow({ device, onRevoke, pending }: DeviceRowProps) {
       </div>
       <div className="flex items-center gap-4">
         <span className="text-[12px] text-ink-3">
-          {formatRelative(device.last_used_at)}
+          {formatRelative(device.last_used_at, t)}
         </span>
         <ConfirmDialog
-          confirmLabel="Révoquer"
-          description={`La clé de « ${device.name} » est retirée de tous vos serveurs en moins d'une minute. L'appareil devra être réajouté depuis l'app.`}
+          confirmLabel={t("devices.revoke")}
+          description={t("devices.revokeDescription", { name: device.name })}
           onConfirm={() => {
             onRevoke(device.id)
           }}
           pending={pending}
-          title="Révoquer cet appareil ?"
-          triggerLabel="Révoquer"
+          title={t("devices.revokeTitle")}
+          triggerLabel={t("devices.revoke")}
         />
       </div>
     </li>

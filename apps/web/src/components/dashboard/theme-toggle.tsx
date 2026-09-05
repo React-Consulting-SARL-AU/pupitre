@@ -9,8 +9,10 @@ import {
   MenuRoot,
   MenuTrigger,
 } from "@/components/ui/menu"
+import { useTranslations } from "@/hooks/use-locale"
 import { useTheme } from "@/hooks/use-theme"
-import { THEME_LABELS, THEMES, type Theme } from "@/lib/theme"
+import type { DictionaryKey } from "@/lib/i18n/en"
+import { THEMES, type Theme } from "@/lib/theme"
 
 const ICONS: Record<Theme, LucideIcon> = {
   system: Monitor,
@@ -19,21 +21,22 @@ const ICONS: Record<Theme, LucideIcon> = {
 }
 
 export function ThemeToggle() {
+  const t = useTranslations()
   const { theme, setTheme } = useTheme()
   const Icon = ICONS[theme]
 
   return (
     <MenuRoot>
       <MenuTrigger
-        aria-label="Choisir le thème"
-        className="flex items-center gap-2 rounded-sm px-2 py-2 text-[13px] text-ink-2 transition-colors duration-[120ms] ease-[ease] hover:bg-raised hover:text-ink focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
+        aria-label={t("footer.theme")}
+        className="flex items-center gap-2 rounded-full px-3 py-2 text-[13px] text-ink-2 transition-colors duration-[120ms] ease-[ease] hover:bg-raised hover:text-ink focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
       >
         <Icon className="size-4" strokeWidth={1.5} />
-        {THEME_LABELS[theme]}
+        {t(`footer.theme.${theme}` as DictionaryKey)}
       </MenuTrigger>
       <MenuPopup>
         <MenuGroup>
-          <MenuGroupLabel>Thème</MenuGroupLabel>
+          <MenuGroupLabel>{t("footer.theme")}</MenuGroupLabel>
           <MenuRadioGroup
             onValueChange={(value) => {
               setTheme(value as Theme)
@@ -49,7 +52,7 @@ export function ThemeToggle() {
                     className="size-4 text-ink-3"
                     strokeWidth={1.5}
                   />
-                  {THEME_LABELS[candidate]}
+                  {t(`footer.theme.${candidate}` as DictionaryKey)}
                 </MenuRadioItem>
               )
             })}

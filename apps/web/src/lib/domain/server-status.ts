@@ -1,3 +1,5 @@
+import type { DictionaryKey } from "@/lib/i18n/en"
+
 export const SERVER_STATUSES = [
   "enrolling",
   "active",
@@ -15,21 +17,21 @@ export type StatusTone = "ok" | "warn" | "danger" | "muted"
 export interface StatusLook {
   shape: StatusShape
   tone: StatusTone
-  label: string
+  label: DictionaryKey
 }
 
 const LOOKS: Record<ServerStatus, StatusLook> = {
-  enrolling: { shape: "breathing", tone: "muted", label: "Enrôlement" },
-  active: { shape: "filled", tone: "ok", label: "En ligne" },
-  grace: { shape: "hollow", tone: "warn", label: "Tolérance" },
-  suspended: { shape: "barred", tone: "danger", label: "Suspendu" },
-  revoked: { shape: "barred", tone: "muted", label: "Révoqué" },
+  enrolling: { shape: "breathing", tone: "muted", label: "status.enrolling" },
+  active: { shape: "filled", tone: "ok", label: "status.active" },
+  grace: { shape: "hollow", tone: "warn", label: "status.grace" },
+  suspended: { shape: "barred", tone: "danger", label: "status.suspended" },
+  revoked: { shape: "barred", tone: "muted", label: "status.revoked" },
 }
 
 const STALE: StatusLook = {
   shape: "hollow",
   tone: "warn",
-  label: "Sans nouvelles",
+  label: "status.stale",
 }
 
 export function statusLook(status: string, stale = false): StatusLook {
@@ -40,9 +42,9 @@ export function statusLook(status: string, stale = false): StatusLook {
   return LOOKS[status as ServerStatus] ?? LOOKS.revoked
 }
 
-export const ENTITLEMENT_LABELS: Record<string, string> = {
-  none: "Aucune organisation",
-  valid: "Droit d'usage actif",
-  grace: "Droit d'usage en tolérance",
-  suspended: "Droit d'usage suspendu",
+export const ENTITLEMENT_KEYS: Record<string, DictionaryKey> = {
+  none: "entitlement.none",
+  valid: "entitlement.valid",
+  grace: "entitlement.grace",
+  suspended: "entitlement.suspended",
 }

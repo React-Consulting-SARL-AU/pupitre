@@ -10,9 +10,11 @@ import {
   MenuTrigger,
 } from "@/components/ui/menu"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
+import { useTranslations } from "@/hooks/use-locale"
 import { authClient } from "@/lib/auth/client"
 
 export function OrganizationSwitcher() {
+  const t = useTranslations()
   const { organizations, activeOrganization } = useDashboardContext()
   const queryClient = useQueryClient()
   const [switching, setSwitching] = useState(false)
@@ -35,7 +37,7 @@ export function OrganizationSwitcher() {
         disabled={switching}
       >
         <span className="truncate">
-          {activeOrganization?.name ?? "Aucune organisation"}
+          {activeOrganization?.name ?? t("nav.noOrganization")}
         </span>
         <ChevronsUpDown
           className="size-4 shrink-0 text-ink-3"
@@ -44,7 +46,7 @@ export function OrganizationSwitcher() {
       </MenuTrigger>
       <MenuPopup>
         <MenuGroup>
-          <MenuGroupLabel>Organisations</MenuGroupLabel>
+          <MenuGroupLabel>{t("nav.organizations")}</MenuGroupLabel>
           {organizations.map((organization) => (
             <MenuItem
               key={organization.id}

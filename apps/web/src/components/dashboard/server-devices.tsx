@@ -4,6 +4,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { LoadingState } from "@/components/ui/loading-state"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
+import { useTranslations } from "@/hooks/use-locale"
 import { devicesQueryOptions, revokeServerDevice } from "@/lib/api/queries"
 import { formatRelative } from "@/lib/utils/format"
 
@@ -18,6 +19,7 @@ export function ServerDevices({
   serverName,
   assignedUserId,
 }: ServerDevicesProps) {
+  const t = useTranslations()
   const { user } = useDashboardContext()
   const mine = assignedUserId === user.id
   const devices = useQuery({ ...devicesQueryOptions(), enabled: mine })
@@ -31,18 +33,18 @@ export function ServerDevices({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Appareils autorisés</CardTitle>
+        <CardTitle>{t("servers.devices.title")}</CardTitle>
       </CardHeader>
 
       {mine && devices.isPending ? (
-        <LoadingState label="Lecture des appareils autorisés…" />
+        <LoadingState label={t("servers.devices.reading")} />
       ) : null}
 
       {mine && revoke.isError ? (
         <Callout
           className="m-4"
-          fix="Réessayez dans un instant."
-          title="Le retrait a échoué."
+          fix={t("servers.devices.revokeFailedFix")}
+          title={t("servers.devices.revokeFailed")}
           tone="danger"
         />
       ) : null}
@@ -64,17 +66,20 @@ export function ServerDevices({
               </div>
               <div className="flex items-center gap-4">
                 <span className="text-[12px] text-ink-3">
-                  {formatRelative(device.last_used_at)}
+                  {formatRelative(device.last_used_at, t)}
                 </span>
                 <ConfirmDialog
-                  confirmLabel="Retirer"
-                  description={`La clé de « ${device.name} » est retirée de « ${serverName} » au prochain état de l'agent. L'appareil garde ses autres serveurs.`}
+                  confirmLabel={t("servers.devices.remove")}
+                  description={t("servers.devices.removeDescription", {
+                    device: device.name,
+                    server: serverName,
+                  })}
                   onConfirm={() => {
                     revoke.mutate(device.id)
                   }}
                   pending={revoke.isPending}
-                  title="Retirer cet appareil de ce serveur ?"
-                  triggerLabel="Retirer d'ici"
+                  title={t("servers.devices.removeTitle")}
+                  triggerLabel={t("servers.devices.removeHere")}
                 />
               </div>
             </li>
@@ -84,9 +89,7 @@ export function ServerDevices({
 
       {mine && !devices.isPending && list.length === 0 ? (
         <CardBody>
-          <p className="text-[13px] text-ink-3">
-            Aucun appareil : ajoutez-en un depuis l'app pour ouvrir ce serveur.
-          </p>
+          <p className="text-[13px] text-ink-3">{t("servers.devices.empty")}</p>
         </CardBody>
       ) : null}
 
@@ -94,8 +97,8 @@ export function ServerDevices({
         <CardBody>
           <p className="text-[13px] text-ink-3">
             {assignedUserId
-              ? "Ce serveur est attribué à un autre membre : ses appareils lui appartiennent."
-              : "Ce serveur n'est attribué à personne : aucune clé n'y est déposée."}
+              ? t("servers.devices.otherMember")
+              : t("servers.devices.unassigned")}
           </p>
         </CardBody>
       )}
