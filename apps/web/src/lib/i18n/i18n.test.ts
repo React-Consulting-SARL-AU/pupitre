@@ -52,7 +52,10 @@ function looksFrench(literal: string): boolean {
  * The one file that legitimately carries French with no reader: the internal
  * workflow trigger, whose bodies answer a machine, never a person.
  */
-const NOT_INTERFACE = new Set(["src/workflows/internal-trigger.ts"])
+const NOT_INTERFACE = new Set([
+  "src/lib/observability/sentry.ts",
+  "src/workflows/internal-trigger.ts",
+])
 
 function sources(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {

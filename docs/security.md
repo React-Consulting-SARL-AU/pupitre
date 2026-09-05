@@ -12,7 +12,7 @@ Un client est root sur son serveur : il peut copier tout fichier qui s'y trouve,
 | Jeton de session desktop (bearer) | `safeStorage` : trousseau macOS, DPAPI Windows, libsecret Linux | l'app |
 | Jeton d'enrôlement | mémoire de l'app, une fois, à l'installation ; remis à l'agent par la commande `enroll` du protocole, sur le flux secret | l'app, puis l'agent qui l'échange |
 | Jeton de serveur | `/etc/pupitre/server.token`, 0600 root ; haché en base | l'agent. Ne donne accès qu'à l'état de son propre serveur. Rotation à chaque réinstallation |
-| Jetons Stripe, Neon, R2, clé de signature des binaires | secrets Wrangler et GitHub Actions | l'API, la CI |
+| Jetons Stripe, Neon, R2, DSN Sentry, clé de signature des binaires | secrets Wrangler, un jeu par environnement, et secrets GitHub Actions | l'API, la CI |
 | Secrets du client (mots de passe de bases, jetons Cloudflare, 1Password) | `/etc/pupitre/env`, 0600, sur son serveur | lui seul. Ils ne remontent jamais |
 
 ## Sur le serveur du client
@@ -52,6 +52,8 @@ Un client est root sur son serveur : il peut copier tout fichier qui s'y trouve,
 - Audit de chaque action d'administration : acteur, action, cible, date.
 - **Les clés autorisées d'un serveur dérivent du membre qui lui est attribué, et de son adhésion.** Retirer quelqu'un de l'organisation retire ses clés de tous les serveurs, sans qu'un administrateur ait à y penser. C'est vérifié par un test.
 - Suspension automatique d'un serveur sur signalement d'abus : clés retirées, droit d'usage suspendu, email au propriétaire de l'organisation.
+- **Ce qui sort vers Sentry** : le type et le message de l'exception, l'environnement, la méthode HTTP, le cron, et la forme de la route — les segments qui ressemblent à un identifiant sont remplacés par `:id` avant l'envoi. Jamais l'URL complète, jamais un corps de requête, jamais un email. C'est vérifié par un test.
+- La page `/status` répond sans session et n'expose que des agrégats : aucun identifiant de serveur, aucun email, aucun nom d'organisation.
 - Dépendances : alertes de sécurité GitHub bloquantes en CI ; mise à jour de Better Auth dans la journée d'une faille publiée.
 
 ## Contrat

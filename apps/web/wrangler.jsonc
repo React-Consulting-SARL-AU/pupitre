@@ -70,5 +70,186 @@
       "STRIPE_PRICE_SERVER_YEAR",
       "INTERNAL_WORKFLOW_SECRET"
     ]
+  },
+  "env": {
+    "staging": {
+      "workers_dev": false,
+      "preview_urls": false,
+      "upload_source_maps": true,
+      "placement": {
+        "mode": "targeted",
+        "region": "aws:eu-central-1"
+      },
+      "routes": [
+        {
+          "pattern": "staging-app.pupitre.studio",
+          "custom_domain": true
+        }
+      ],
+      "assets": {
+        "directory": ".output/public",
+        "binding": "ASSETS"
+      },
+      "observability": {
+        "enabled": true,
+        "head_sampling_rate": 1,
+        "logs": {
+          "enabled": true,
+          "invocation_logs": true
+        }
+      },
+      "workflows": [
+        {
+          "name": "pupitre-expire-enrollments-staging",
+          "binding": "EXPIRE_ENROLLMENTS",
+          "class_name": "ExpireEnrollments"
+        },
+        {
+          "name": "pupitre-decommission-server-staging",
+          "binding": "DECOMMISSION_SERVER",
+          "class_name": "DecommissionServer"
+        },
+        {
+          "name": "pupitre-reconcile-seats-staging",
+          "binding": "RECONCILE_SEATS",
+          "class_name": "ReconcileSeats"
+        },
+        {
+          "name": "pupitre-evaluate-alerts-staging",
+          "binding": "EVALUATE_ALERTS",
+          "class_name": "EvaluateAlerts"
+        },
+        {
+          "name": "pupitre-suspend-expired-grace-staging",
+          "binding": "SUSPEND_EXPIRED_GRACE",
+          "class_name": "SuspendExpiredGrace"
+        }
+      ],
+      "send_email": [
+        {
+          "name": "EMAIL"
+        }
+      ],
+      "triggers": {
+        "crons": [
+          "0 * * * *",
+          "20 3 * * *",
+          "40 3 * * *",
+          "*/5 * * * *",
+          "7 4 * * *"
+        ]
+      },
+      "vars": {
+        "PUPITRE_ENVIRONMENT": "staging",
+        "VITE_APP_URL": "https://staging-app.pupitre.studio",
+        "BETTER_AUTH_URL": "https://staging-app.pupitre.studio",
+        "EMAIL_FROM": "no-reply@pupitre.studio"
+      },
+      "secrets": {
+        "required": [
+          "DATABASE_URL",
+          "BETTER_AUTH_SECRET",
+          "INTERNAL_WORKFLOW_SECRET",
+          "STRIPE_SECRET_KEY",
+          "STRIPE_WEBHOOK_SECRET",
+          "STRIPE_PRICE_SERVER_MONTH",
+          "STRIPE_PRICE_SERVER_YEAR",
+          "R2_ACCOUNT_ID",
+          "R2_ACCESS_KEY_ID",
+          "R2_SECRET_ACCESS_KEY",
+          "R2_BUCKET_NAME"
+        ]
+      }
+    },
+    "production": {
+      "workers_dev": false,
+      "preview_urls": false,
+      "upload_source_maps": true,
+      "placement": {
+        "mode": "targeted",
+        "region": "aws:eu-central-1"
+      },
+      "routes": [
+        {
+          "pattern": "app.pupitre.studio",
+          "custom_domain": true
+        }
+      ],
+      "assets": {
+        "directory": ".output/public",
+        "binding": "ASSETS"
+      },
+      "observability": {
+        "enabled": true,
+        "head_sampling_rate": 1,
+        "logs": {
+          "enabled": true,
+          "invocation_logs": true
+        }
+      },
+      "workflows": [
+        {
+          "name": "pupitre-expire-enrollments",
+          "binding": "EXPIRE_ENROLLMENTS",
+          "class_name": "ExpireEnrollments"
+        },
+        {
+          "name": "pupitre-decommission-server",
+          "binding": "DECOMMISSION_SERVER",
+          "class_name": "DecommissionServer"
+        },
+        {
+          "name": "pupitre-reconcile-seats",
+          "binding": "RECONCILE_SEATS",
+          "class_name": "ReconcileSeats"
+        },
+        {
+          "name": "pupitre-evaluate-alerts",
+          "binding": "EVALUATE_ALERTS",
+          "class_name": "EvaluateAlerts"
+        },
+        {
+          "name": "pupitre-suspend-expired-grace",
+          "binding": "SUSPEND_EXPIRED_GRACE",
+          "class_name": "SuspendExpiredGrace"
+        }
+      ],
+      "send_email": [
+        {
+          "name": "EMAIL"
+        }
+      ],
+      "triggers": {
+        "crons": [
+          "0 * * * *",
+          "20 3 * * *",
+          "40 3 * * *",
+          "*/5 * * * *",
+          "7 4 * * *"
+        ]
+      },
+      "vars": {
+        "PUPITRE_ENVIRONMENT": "production",
+        "VITE_APP_URL": "https://app.pupitre.studio",
+        "BETTER_AUTH_URL": "https://app.pupitre.studio",
+        "EMAIL_FROM": "no-reply@pupitre.studio"
+      },
+      "secrets": {
+        "required": [
+          "DATABASE_URL",
+          "BETTER_AUTH_SECRET",
+          "INTERNAL_WORKFLOW_SECRET",
+          "SENTRY_DSN",
+          "STRIPE_SECRET_KEY",
+          "STRIPE_WEBHOOK_SECRET",
+          "STRIPE_PRICE_SERVER_MONTH",
+          "STRIPE_PRICE_SERVER_YEAR",
+          "R2_ACCOUNT_ID",
+          "R2_ACCESS_KEY_ID",
+          "R2_SECRET_ACCESS_KEY",
+          "R2_BUCKET_NAME"
+        ]
+      }
+    }
   }
 }

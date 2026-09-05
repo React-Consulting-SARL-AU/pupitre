@@ -12,6 +12,7 @@
   "globalPassThroughEnv": [
     "BETTER_AUTH_SECRET",
     "BETTER_AUTH_URL",
+    "CLOUDFLARE_ENV",
     "DATABASE_URL",
     "MIGRATE_DATABASE_URL",
     "GITHUB_CLIENT_ID",

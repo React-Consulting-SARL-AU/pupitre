@@ -8,8 +8,13 @@ interface CloudflareEnv {
   RECONCILE_SEATS: Workflow
   SUSPEND_EXPIRED_GRACE: Workflow
   BETTER_AUTH_SECRET?: string
+  BETTER_AUTH_URL?: string
   DATABASE_URL?: string
+  EMAIL_FROM?: string
   INTERNAL_WORKFLOW_SECRET?: string
+  PUPITRE_ENVIRONMENT?: string
+  SENTRY_DSN?: string
   STRIPE_SECRET_KEY?: string
   STRIPE_WEBHOOK_SECRET?: string
+  VITE_APP_URL?: string
 }

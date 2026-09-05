@@ -51,17 +51,83 @@ Les PR font tourner les tâches affectées ; `main` fait tout.
 - `STRIPE_WEBHOOK_SECRET` n'est **pas** un secret de développement local : `stripe listen` en tire un neuf à chaque session, différent de celui du tableau de bord. Il reste requis en staging et en production, où le webhook doit vérifier ses signatures.
 - Les valeurs **non secrètes** du développement (`BETTER_AUTH_URL`, `VITE_APP_URL`, `EMAIL_FROM`) ne sont ni dans 1Password ni écrites à la main : elles vivent dans `vars` de `apps/web/wrangler.jsonc`, et `dev:prepare` les recopie dans `.env.local` quand elles y sont vides. Sans cette copie, `.dev.vars` masquerait `vars` clé par clé et le Worker local démarrerait avec un `BETTER_AUTH_URL` vide.
 - `.env.local` est écrit en 0600 et lié en `apps/web/.dev.vars` (que le Worker lit) et `apps/web/.env.local` (que Vite lit) : une seule valeur à tenir à jour. `.env.example` reste la liste de référence des noms.
-- Production : secrets Wrangler. `wrangler.jsonc` déclare `secrets.required` ; `scripts/check-worker-secrets.ts` compare avec ce qui est lié au Worker et refuse le déploiement s'il en manque un.
+- Déployés : secrets Wrangler, un jeu par environnement. `apps/web/wrangler.jsonc` déclare `env.<environnement>.secrets.required` ; `scripts/check-worker-secrets.ts <environnement>` compare cette liste avec ce qui est lié au Worker et refuse le déploiement en nommant ce qui manque. Il refuse aussi un secret requis déclaré en clair dans `vars`.
+- Le script lit les secrets liés par `wrangler secret list`. `PUPITRE_WORKER_SECRETS` (liste de noms) ou `--bound-from <fichier|->` remplacent cette lecture, pour les tests et pour une CI qui a déjà la liste.
 - Signature : certificats Apple et Azure Trusted Signing dans les secrets GitHub Actions uniquement.
+
+## Déploiement de la plateforme
+
+### Les noms exacts
+
+| Ce qui est créé | staging | production |
+| --- | --- | --- |
+| Worker | `pupitre-web-staging` | `pupitre-web-production` |
+| Domaine | `staging-app.pupitre.studio` | `app.pupitre.studio` |
+| Environnement Wrangler | `staging` | `production` |
+| Branche Neon | `staging` | `production` |
+| Workflows | `pupitre-expire-enrollments-staging`, `pupitre-decommission-server-staging`, `pupitre-reconcile-seats-staging`, `pupitre-evaluate-alerts-staging`, `pupitre-suspend-expired-grace-staging` | les mêmes sans suffixe |
+| Déclencheur | Cloudflare Builds sur un push de `main` | GitHub Actions `.github/workflows/deploy.yml` sur un tag `v*` |
+| Stripe | mode test | mode live |
+
+Le nom du Worker n'est pas choisi : Wrangler est en environnements *legacy*, il suffixe le nom racine (`pupitre-web`) du nom de l'environnement. Les cinq Cron Triggers, les domaines, les bindings et la liste des secrets requis viennent tous de `apps/web/wrangler.jsonc` : le tableau de bord n'en déclare aucun.
+
+### L'ordre de création, une fois pour toutes
+
+1. **Zone Cloudflare.** `pupitre.studio` est sur le compte. Sans elle, le domaine personnalisé du Worker ne peut pas être attaché.
+2. **Neon.** Les branches `staging` et `production` du projet `pupitre` existent. Relever pour chacune l'URL poolée (`DATABASE_URL`) et l'URL directe, sans `-pooler` (`MIGRATE_DATABASE_URL`).
+3. **Stripe.** Le produit et les deux prix décrits plus bas, créés à l'identique en sandbox pour le staging et en live pour la production. Relever `STRIPE_PRICE_SERVER_MONTH`, `STRIPE_PRICE_SERVER_YEAR` et la clé secrète ; le secret de webhook vient de l'endpoint créé sur `https://<domaine>/api/v1/webhooks/stripe`.
+4. **R2.** Un bucket par environnement pour les binaires signés, et un jeton d'API S3 : `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`.
+5. **Sentry.** Un projet JavaScript par environnement ; relever le DSN. Il est requis en production, facultatif en staging : sans `SENTRY_DSN`, le Worker n'envoie rien et ne casse pas.
+6. **Cloudflare Email.** Email Routing activé sur la zone, `no-reply@pupitre.studio` vérifié : c'est ce qui alimente le binding `EMAIL` déclaré dans `wrangler.jsonc`.
+7. **Premier déploiement, à la main.** Un secret ne s'attache qu'à un Worker qui existe. On le crée donc une fois sans le garde-fou :
+
+   ```bash
+   bun --cwd=apps/web run build:staging          # migre la branche Neon, puis construit
+   bun x wrangler deploy --config apps/web/dist/server/wrangler.json --keep-vars
+   ```
+
+8. **Les secrets.** Un par un, ou en une fois depuis un fichier JSON gardé hors du dépôt :
+
+   ```bash
+   bun x wrangler secret put DATABASE_URL --config apps/web/wrangler.jsonc --env staging
+   bun x wrangler secret bulk ~/secrets/pupitre-staging.json --config apps/web/wrangler.jsonc --env staging
+   bun --cwd=apps/web run check:secrets staging   # doit dire que tout est là
+   ```
+
+9. **Cloudflare Builds, pour le staging.** Un projet Workers Builds sur le dépôt, branche `main` :
+
+   | Champ | Valeur |
+   | --- | --- |
+   | Build command | `bun install --frozen-lockfile && bun --cwd=apps/web run build:staging` |
+   | Deploy command | `bun --cwd=apps/web run deploy:staging` |
+   | Build variables | `VITE_APP_URL=https://staging-app.pupitre.studio` |
+   | Build secrets | `DATABASE_URL`, `MIGRATE_DATABASE_URL` (branche Neon `staging`) |
+
+   `build:staging` migre la branche Neon **avant** de construire ; `deploy:staging` refuse le déploiement si un secret requis manque. Les deux échouent avant d'avoir touché au Worker en place.
+
+10. **GitHub, pour la production.** Un environnement `production` (avec approbation si on la veut) portant `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `DATABASE_URL` et `MIGRATE_DATABASE_URL` de la branche Neon `production`. Le jeton Cloudflare a les droits *Workers Scripts: Edit*, *Workers Routes: Edit* et *Workers Secrets: Read*.
+
+11. **Vérifier.** `https://<domaine>/status` répond sans session, `https://<domaine>/api/v1/health` renvoie `{"ok":true}`, et le tableau de bord du Worker montre les cinq Cron Triggers.
+
+### Ce que fait chaque déploiement
+
+`build:*` migre la branche Neon visée puis construit avec `CLOUDFLARE_ENV`, ce qui fige l'environnement dans `apps/web/dist/server/wrangler.json` : le déploiement ne prend plus `--env`. `deploy:*` vérifie les secrets, puis `wrangler deploy --keep-vars`, qui attache le domaine personnalisé, les Cron Triggers et les Workflows de l'environnement.
+
+Un retour arrière se fait sur les versions du Worker (`bun x wrangler rollback --config apps/web/dist/server/wrangler.json`, ou la liste des déploiements dans le tableau de bord). Une migration Prisma, elle, ne se rejoue pas à l'envers : une migration qui casse se corrige par une migration suivante.
+
+### Observabilité
+
+`observability` est activé dans les deux environnements (journaux d'invocation, échantillonnage à 100 %) et `upload_source_maps` est vrai, pour que les piles soient lisibles. En plus, le Worker envoie ses exceptions non rattrapées à Sentry (`apps/web/src/lib/observability/sentry.ts`) : l'environnement, la méthode, le cron et la forme de la route, jamais l'URL complète ni un identifiant — les segments qui ressemblent à un identifiant deviennent `:id` avant l'envoi.
 
 ## Cloudflare Builds
 
 | Service | Commande de build | Commande de déploiement |
 | --- | --- | --- |
-| web | `bun install --frozen-lockfile && bun --cwd=packages/db run db:migrate:deploy && bun --cwd=apps/web run build:cloudflare` | `bun scripts/check-worker-secrets.ts web && cd apps/web/dist/server && bun x wrangler deploy --config wrangler.json --keep-vars` |
+| web (staging) | `bun install --frozen-lockfile && bun --cwd=apps/web run build:staging` | `bun --cwd=apps/web run deploy:staging` |
+| web (production) | `.github/workflows/deploy.yml`, sur un tag `v*` | idem, `deploy:production` |
 | site | `bun install --frozen-lockfile && bun --cwd=apps/site run build` | Pages, `apps/site/dist` |
 
-Deux environnements : `staging` (`staging.pupitre.studio`, `staging-app.pupitre.studio`, Stripe en mode test, branche Neon `staging`) et `production` (branche Neon `production`). L'app desktop de développement pointe sur `staging`.
+Deux environnements : `staging` (`staging.pupitre.studio`, `staging-app.pupitre.studio`, Stripe en mode test, branche Neon `staging`) et `production` (`app.pupitre.studio`, branche Neon `production`). L'app desktop de développement pointe sur `staging`.
 
 ### Le site sur Pages
 
@@ -177,4 +243,4 @@ Les `overrides` du `package.json` racine sont la seule source de vérité de l'a
 
 ## Dashboards externes
 
-Cloudflare Builds, Stripe, Neon (projet `pupitre`), Apple Developer, Azure Trusted Signing, GitHub Releases. Ce document est ce qui les décrit ; rien dans le dépôt ne peut vérifier ce qu'ils exécutent. Quand un tableau ci-dessus change, le dashboard change dans la même passe.
+Cloudflare Builds, Cloudflare Email Routing, R2, Sentry, Stripe, Neon (projet `pupitre`), Apple Developer, Azure Trusted Signing, GitHub Releases. Ce document est ce qui les décrit ; rien dans le dépôt ne peut vérifier ce qu'ils exécutent. Quand un tableau ci-dessus change, le dashboard change dans la même passe.

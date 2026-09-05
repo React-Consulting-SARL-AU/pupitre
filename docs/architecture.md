@@ -77,4 +77,4 @@ Variables publiques du web en `VITE_*` ; secrets en variables runtime ou secrets
 
 ## Déploiement
 
-`apps/web` : Cloudflare Builds, `bun --cwd=packages/db run db:migrate:deploy` puis `build:cloudflare`, puis `wrangler deploy --keep-vars`. `apps/site` : Cloudflare Pages sur push. `apps/desktop` : GitHub Actions par tag, builds signés, publication sur GitHub Releases privées et sur R2 pour le site. `apps/agent` : GitHub Actions par tag, garble, signature, publication sur R2 via l'API de la plateforme.
+`apps/web` : deux environnements Wrangler, `staging` et `production`. Le staging part de Cloudflare Builds sur un push de `main`, la production d'un tag `v*` par GitHub Actions ; les deux enchaînent `build:<environnement>` (migrations Neon puis build) et `deploy:<environnement>` (vérification des secrets requis puis `wrangler deploy --keep-vars`). Runbook et noms exacts dans [monorepo.md](./monorepo.md). `apps/site` : Cloudflare Pages sur push. `apps/desktop` : GitHub Actions par tag, builds signés, publication sur GitHub Releases privées et sur R2 pour le site. `apps/agent` : GitHub Actions par tag, garble, signature, publication sur R2 via l'API de la plateforme.

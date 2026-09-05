@@ -6,6 +6,7 @@ import {
 import { handleApiRequest } from "@pupitre/api/server"
 import serverEntry from "@tanstack/react-start/server-entry"
 import { API_PREFIX } from "./lib/config/urls"
+import { reportException } from "./lib/observability/sentry"
 import { runDecommissionServer } from "./workflows/decommission-server"
 import { runEvaluateAlerts } from "./workflows/evaluate-alerts"
 import { runExpireEnrollments } from "./workflows/expire-enrollments"
@@ -51,22 +52,44 @@ export class SuspendExpiredGrace extends WorkflowEntrypoint<CloudflareEnv> {
   }
 }
 
+function route(request: Request, env: CloudflareEnv, pathname: string) {
+  if (pathname.startsWith(API_PREFIX)) {
+    return handleApiRequest(request)
+  }
+
+  if (pathname.startsWith(INTERNAL_WORKFLOW_PREFIX)) {
+    return handleInternalWorkflowTrigger(request, env)
+  }
+
+  return serverEntry.fetch(request)
+}
+
 export default {
-  fetch(request: Request, env: CloudflareEnv) {
+  async fetch(request: Request, env: CloudflareEnv, ctx: ExecutionContext) {
     const { pathname } = new URL(request.url)
 
-    if (pathname.startsWith(API_PREFIX)) {
-      return handleApiRequest(request)
-    }
+    try {
+      return await route(request, env, pathname)
+    } catch (error) {
+      ctx.waitUntil(
+        reportException(error, env, { method: request.method, pathname })
+      )
 
-    if (pathname.startsWith(INTERNAL_WORKFLOW_PREFIX)) {
-      return handleInternalWorkflowTrigger(request, env)
+      throw error
     }
-
-    return serverEntry.fetch(request)
   },
 
-  async scheduled(controller: ScheduledController, env: CloudflareEnv) {
-    await runScheduledWorkflow(controller.cron, env)
+  async scheduled(
+    controller: ScheduledController,
+    env: CloudflareEnv,
+    ctx: ExecutionContext
+  ) {
+    try {
+      await runScheduledWorkflow(controller.cron, env)
+    } catch (error) {
+      ctx.waitUntil(reportException(error, env, { cron: controller.cron }))
+
+      throw error
+    }
   },
 } satisfies ExportedHandler<CloudflareEnv>
