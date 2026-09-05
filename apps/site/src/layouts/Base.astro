@@ -1,30 +1,35 @@
 ---
-import "../styles/global.css"
+import { LIGHT } from "@pupitre/design/tokens"
+import Analytics from "../components/Analytics.astro"
 import Footer from "../components/Footer.astro"
 import Nav from "../components/Nav.astro"
+import "../styles/global.css"
 import {
   alternateLocale,
   type Locale,
   localeFromPath,
+  localizePath,
   translator,
 } from "../lib/i18n"
-import { alternateLinks, canonicalUrl } from "../lib/seo"
+import { alternateLinks, canonicalUrl, ogUrl } from "../lib/seo"
 import { THEME_BOOT_SCRIPT } from "../lib/theme"
 
 interface Props {
   title: string
   description: string
+  noIndex?: boolean
 }
 
 const OG_LOCALES: Record<Locale, string> = { en: "en_US", fr: "fr_FR" }
 const FONTS_HREF =
   "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=JetBrains+Mono:wght@400;500&display=swap"
 
-const { title, description } = Astro.props
+const { title, description, noIndex = false } = Astro.props
 const pathname = Astro.url.pathname
 const locale = localeFromPath(pathname)
 const t = translator(locale)
 const canonical = canonicalUrl(pathname)
+const image = ogUrl(pathname)
 ---
 
 <!doctype html>
@@ -36,6 +41,9 @@ const canonical = canonicalUrl(pathname)
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content={LIGHT.base} media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content={LIGHT.ink} media="(prefers-color-scheme: dark)" />
+    {noIndex && <meta name="robots" content="noindex, follow" />}
     <link rel="canonical" href={canonical} />
     {
       alternateLinks(pathname).map((link) => (
@@ -43,6 +51,18 @@ const canonical = canonicalUrl(pathname)
       ))
     }
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title={t("blog.label")}
+      href={localizePath("/blog/rss.xml", locale)}
+    />
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title={t("changelog.label")}
+      href={localizePath("/changelog/rss.xml", locale)}
+    />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
@@ -53,7 +73,12 @@ const canonical = canonicalUrl(pathname)
       content={OG_LOCALES[alternateLocale(locale)]}
     />
     <meta property="og:site_name" content={t("site.name")} />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content={image} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={title} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={image} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -72,5 +97,6 @@ const canonical = canonicalUrl(pathname)
       <slot />
     </main>
     <Footer />
+    <Analytics />
   </body>
 </html>

@@ -4,18 +4,30 @@ interface Props {
   label: string
   title: string
   lead?: string
+  index?: string
+  tone?: "base" | "surface"
 }
 
-const { id, label, title, lead } = Astro.props
+const { id, label, title, lead, index, tone = "base" } = Astro.props
 const titleId = `${id}-title`
 ---
 
-<section id={id} aria-labelledby={titleId} class="border-line border-t">
-  <div class="mx-auto max-w-5xl px-6 py-20 md:py-28">
+<section
+  id={id}
+  aria-labelledby={titleId}
+  class:list={[
+    "border-line border-t py-20 md:py-28",
+    tone === "surface" && "bg-surface",
+  ]}
+>
+  <div class="shell">
     <header class="max-w-2xl">
-      <p class="label text-ink-3">{label}</p>
-      <h2 id={titleId} class="heading-2 mt-3">{title}</h2>
-      {lead && <p class="lead mt-4 text-ink-2">{lead}</p>}
+      <p class="eyebrow">
+        {index && <span class="index-mark">{index}</span>}
+        <span>{label}</span>
+      </p>
+      <h2 id={titleId} class="heading-2 mt-5">{title}</h2>
+      {lead && <p class="lead mt-5 text-ink-2">{lead}</p>}
     </header>
     <div class="mt-12 md:mt-16">
       <slot />

@@ -11,7 +11,7 @@ const MOCKED_PLANS = vi.hoisted<Plan[]>(() => [
     id: "solo",
     name: "Solo",
     nameFr: "Solo",
-    monthlyPriceEur: 23,
+    monthlyPriceUsd: 23,
     billedPer: "server",
     startingAt: false,
     maxServers: 3,
@@ -21,7 +21,7 @@ const MOCKED_PLANS = vi.hoisted<Plan[]>(() => [
     id: "team",
     name: "Team",
     nameFr: "Équipe",
-    monthlyPriceEur: 23,
+    monthlyPriceUsd: 23,
     billedPer: "server",
     startingAt: false,
     maxServers: null,
@@ -31,7 +31,7 @@ const MOCKED_PLANS = vi.hoisted<Plan[]>(() => [
     id: "hosted",
     name: "Hosted",
     nameFr: "Hébergé",
-    monthlyPriceEur: 41,
+    monthlyPriceUsd: 41,
     billedPer: "month",
     startingAt: true,
     maxServers: null,
@@ -76,14 +76,14 @@ describe("pricing page follows @pupitre/shared/plans", () => {
     ] as const) {
       const html = await render(page, { path })
 
-      expect(html).toContain("23 €")
-      expect(html).toContain("230 €")
-      expect(html).toContain("41 €")
+      expect(html).toContain("$23")
+      expect(html).toContain("$230")
+      expect(html).toContain("$41")
       expect(html).toContain("21")
       expect(html).toContain("3 serv")
-      expect(html).not.toContain("19 €")
-      expect(html).not.toContain("190 €")
-      expect(html).not.toContain("29 €")
+      expect(html).not.toContain("$19")
+      expect(html).not.toContain("$190")
+      expect(html).not.toContain("$29")
       expect(html).toContain('"price":"23"')
       expect(html).toContain('"price":"230"')
       expect(html).not.toContain('"price":"19"')
@@ -96,8 +96,8 @@ describe("pricing page follows @pupitre/shared/plans", () => {
     >("@pupitre/shared/plans")
     const amounts = new Set(
       actual.PLANS.flatMap((plan) => [
-        plan.monthlyPriceEur,
-        actual.yearlyPriceEur(plan),
+        plan.monthlyPriceUsd,
+        actual.yearlyPriceUsd(plan),
       ])
     )
     amounts.add(actual.TRIAL_DAYS)

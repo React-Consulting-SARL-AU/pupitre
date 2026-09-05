@@ -1,0 +1,58 @@
+---
+import { getCollection, render } from "astro:content"
+import Callout from "../../components/Callout.astro"
+import PageHeader from "../../components/PageHeader.astro"
+import Base from "../../layouts/Base.astro"
+import { docSlug } from "../../lib/docs"
+import { localizePath, translator } from "../../lib/i18n"
+
+export async function getStaticPaths() {
+  const pages = await getCollection(
+    "legal",
+    (entry) => entry.data.locale === "en"
+  )
+
+  return pages.map((entry) => ({
+    params: { slug: docSlug(entry.id) },
+    props: { entry },
+  }))
+}
+
+const { entry } = Astro.props
+const { Content } = await render(entry)
+const t = translator("en")
+const updated = new Intl.DateTimeFormat("en", { dateStyle: "long" }).format(
+  entry.data.updated
+)
+---
+
+<Base
+  title={`${entry.data.title} — ${t("site.name")}`}
+  description={entry.data.description}
+>
+  <PageHeader
+    label={t("legal.label")}
+    title={entry.data.title}
+    lead={entry.data.description}
+  >
+    <p class="tag">{t("legal.updated")} {updated}</p>
+  </PageHeader>
+
+  <div class="shell-narrow py-16 md:py-24">
+    {
+      entry.data.draft && (
+        <Callout kind="warn" title={t("legal.draft")}>
+          <p>{t("legal.draftBody")}</p>
+        </Callout>
+      )
+    }
+    <div class="prose mt-10 max-w-none">
+      <Content />
+    </div>
+    <p class="mt-16 border-line border-t pt-8">
+      <a href={localizePath("/legal/", "en")} class="link-underline">
+        {t("legal.label")}
+      </a>
+    </p>
+  </div>
+</Base>

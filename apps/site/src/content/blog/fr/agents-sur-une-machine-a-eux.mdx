@@ -1,0 +1,53 @@
+---
+title: Donnez à vos agents une machine à eux
+description: Pourquoi le laptop est le mauvais hôte pour un travail qu’on ne regarde pas, et ce qui change quand l’agent a un endroit persistant où vivre.
+locale: fr
+date: 2026-08-29
+author: Jordan Monier
+reading: 8 min
+order: 2
+---
+
+La première semaine où j’ai fait travailler des agents sérieusement, j’ai appris trois choses sur mon laptop que je n’avais jamais eu de raison de remarquer.
+
+Il s’endort. Les ventilateurs veulent dire quelque chose. Et un processus qui survit à un écran rabattu est un processus que je n’avais jamais demandé.
+
+## Ce qui ne va pas, concrètement
+
+**Le travail s’arrête quand vous vous arrêtez.** Vous fermez le laptop pour déjeuner et la branche en cours de build s’arrête avec. Pas en pause — tuée, au milieu d’un `npm install`, laissant un `node_modules` que vous supprimerez plus tard.
+
+**La machine devient inutilisable pendant qu’elle travaille.** Trois worktrees, un navigateur headless et un lanceur de tests, c’est une charge. Une petite charge pour un serveur, une charge bruyante pour un laptop. Vous finissez par ne pas lancer ce que vous vouliez lancer, parce que vous voulez aussi lire vos mails.
+
+**Rien ne persiste.** La base dont l’agent avait besoin vivait dans un conteneur qui a disparu. La capture qu’il a prise est dans `/tmp`. Le service qu’il avait démarré pour le test d’intégration ne tourne plus, et il ne peut pas vous dire pourquoi le test échoue maintenant.
+
+Rien de dramatique là-dedans. C’est de la friction, appliquée en continu, exactement à l’activité que vous cherchiez à rendre moins chère.
+
+## Ce que change un serveur
+
+Une machine Linux louée le prix de deux cafés règle les trois, et elle les règle en étant ennuyeuse.
+
+Le travail continue parce que rien n’est lié à votre session. `tmux` garde le shell, `systemd` garde les services, et la machine ne s’endort pas. Vous fermez le laptop et la branche continue de se construire.
+
+Votre laptop se tait, parce que la charge a déménagé. L’éditeur est local, les fichiers sont distants, et les ventilateurs s’arrêtent.
+
+Les choses persistent. La base est installée, pas lancée à la volée. Les captures sont dans un dossier. Le serveur de développement a une URL. Quand un agent demande « est-ce que ça a marché ? », il y a une machine capable de répondre.
+
+## Et vous gardez votre propre client
+
+Ce qui m’a surpris, c’est que la machine ne m’a pas imposé un nouvel outil. L’app Claude ouvre une session sur une machine distante en SSH ; celle de ChatGPT aussi. Pointez-en une vers le serveur et l’agent y tourne — dans le dossier du projet, sur les runtimes, à côté de la base — pendant que la fenêtre que vous regardez est celle que vous aviez déjà ouverte.
+
+Cela ne marche que si le serveur a été préparé pour : les runtimes doivent être actifs dans les shells non interactifs, le projet doit se trouver à un endroit prévisible, et la base doit déjà exister. Ratez ces trois-là et un client distant passe sa journée à vous dire que votre projet est cassé.
+
+## La partie qui n’est pas gratuite
+
+Un serveur est une chose à administrer, et c’est là le coût réel. Quelqu’un doit créer l’utilisateur, dimensionner le swap, activer les runtimes dans les shells non interactifs, lier la base à localhost, poser `ufw`, et fermer root dans le bon ordre. Puis recommencer sur la machine suivante, dans le même ordre, en se rappelant lesquelles des douze étapes comptaient.
+
+C’est tout l’écart entre « un VPS est évidemment la bonne réponse » et « j’ai un VPS correctement installé ». Ça m’a pris un après-midi la première fois et quarante minutes la quatrième, et je me suis quand même trompé une fois dans l’ordre du durcissement, ce qui m’a coûté une réinstallation.
+
+## Ce qu’on a construit à la place
+
+Pupitre, c’est cet après-midi, fait par un programme qui ne s’ennuie pas. Il inspecte la machine, dit ce qu’il ne gérera pas, installe ce que vous choisissez, durcit dans un ordre qui ne peut pas vous enfermer dehors, puis reste la fenêtre sur cette machine : projets, terminaux, agents, services.
+
+La machine reste la vôtre. Rien ne s’y connecte vers l’intérieur, aucune clé privée ne quitte votre laptop, et si vous arrêtez de payer vous gardez un serveur Ubuntu ordinaire avec tout dessus.
+
+Cette dernière partie n’est pas de la générosité. C’est la seule version de ce produit que j’installerais moi-même.

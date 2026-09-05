@@ -2,14 +2,21 @@
 import { homeContent } from "../content/site/home"
 import Base from "../layouts/Base.astro"
 import { localeFromPath, translator } from "../lib/i18n"
-import { faqPage, jsonLd, softwareApplication } from "../lib/structured-data"
+import {
+  faqPage,
+  jsonLd,
+  organization,
+  softwareApplication,
+} from "../lib/structured-data"
 import CatalogList from "./CatalogList.astro"
 import Claim from "./Claim.astro"
+import ClosingCta from "./ClosingCta.astro"
 import Faq from "./Faq.astro"
 import Feature from "./Feature.astro"
 import Hero from "./Hero.astro"
 import PricingNote from "./PricingNote.astro"
 import Section from "./Section.astro"
+import Steps from "./Steps.astro"
 
 const locale = localeFromPath(Astro.url.pathname)
 const t = translator(locale)
@@ -22,33 +29,70 @@ const application = jsonLd(
     description: content.meta.description,
   })
 )
+const company = jsonLd(organization({ name: t("site.name"), locale }))
 const questions = jsonLd(faqPage(content.faq.items))
 ---
 
 <Base title={content.meta.title} description={content.meta.description}>
   <Fragment slot="head">
     <script is:inline type="application/ld+json" set:html={application} />
+    <script is:inline type="application/ld+json" set:html={company} />
     <script is:inline type="application/ld+json" set:html={questions} />
   </Fragment>
 
   <Hero />
 
   <Section
+    id="steps"
+    index="01"
+    label={content.steps.label}
+    title={content.steps.title}
+    lead={content.steps.lead}
+    tone="surface"
+  >
+    <Steps items={content.steps.items} />
+  </Section>
+
+  <Section
     id="features"
+    index="02"
     label={content.features.label}
     title={content.features.title}
   >
-    <div class="grid gap-x-10 gap-y-12 md:grid-cols-3">
+    <div class="grid gap-6 md:grid-cols-3">
       {
-        content.features.items.map((item) => (
-          <Feature title={item.title} lines={item.lines} />
+        content.features.items.map((item, position) => (
+          <Feature
+            title={item.title}
+            lines={item.lines}
+            index={String(position + 1).padStart(2, "0")}
+          />
         ))
       }
     </div>
   </Section>
 
   <Section
+    id="clients"
+    index="03"
+    label={content.clients.label}
+    title={content.clients.title}
+    lead={content.clients.lead}
+    tone="surface"
+  >
+    <div class="grid gap-6 md:grid-cols-3">
+      {
+        content.clients.items.map((item) => (
+          <Feature title={item.title} lines={item.lines} />
+        ))
+      }
+    </div>
+    <p class="lead mt-12 max-w-2xl text-ink-2">{content.clients.note}</p>
+  </Section>
+
+  <Section
     id="catalog"
+    index="04"
     label={content.catalog.label}
     title={content.catalog.title}
     lead={content.catalog.lead}
@@ -58,6 +102,8 @@ const questions = jsonLd(faqPage(content.faq.items))
 
   <Section
     id="promise"
+    index="05"
+    tone="surface"
     label={content.promise.label}
     title={content.promise.title}
   >
@@ -70,15 +116,29 @@ const questions = jsonLd(faqPage(content.faq.items))
     </div>
   </Section>
 
-  <Section id="faq" label={content.faq.label} title={content.faq.title}>
-    <Faq items={content.faq.items} />
-  </Section>
-
   <Section
     id="pricing"
+    index="06"
     label={content.pricing.label}
     title={content.pricing.title}
   >
     <PricingNote />
   </Section>
+
+  <Section
+    id="faq"
+    index="07"
+    tone="surface"
+    label={content.faq.label}
+    title={content.faq.title}
+  >
+    <Faq items={content.faq.items} />
+  </Section>
+
+  <ClosingCta
+    title={content.cta.title}
+    lead={content.cta.lead}
+    download={content.cta.download}
+    docs={content.cta.docs}
+  />
 </Base>

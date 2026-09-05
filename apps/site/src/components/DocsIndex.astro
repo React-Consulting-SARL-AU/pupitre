@@ -1,0 +1,66 @@
+---
+import Base from "../layouts/Base.astro"
+import { docPath } from "../lib/docs"
+import { docsSections } from "../lib/docs-entries"
+import { localeFromPath, localizePath, translator } from "../lib/i18n"
+import { breadcrumbs, jsonLd } from "../lib/structured-data"
+import PageHeader from "./PageHeader.astro"
+
+const locale = localeFromPath(Astro.url.pathname)
+const t = translator(locale)
+const sections = await docsSections(locale)
+const first = sections[0]?.entries[0]
+
+const trail = jsonLd(
+  breadcrumbs([
+    { name: t("site.name"), pathname: localizePath("/", locale) },
+    { name: t("docs.label"), pathname: localizePath("/docs/", locale) },
+  ])
+)
+---
+
+<Base title={t("docs.title")} description={t("docs.description")}>
+  <Fragment slot="head">
+    <script is:inline type="application/ld+json" set:html={trail} />
+  </Fragment>
+
+  <PageHeader
+    label={t("docs.label")}
+    title={t("docs.headline")}
+    lead={t("docs.lead")}
+  >
+    {
+      first && (
+        <a href={docPath(first.slug, locale)} class="btn btn-lg btn-primary">
+          {t("docs.start")}
+        </a>
+      )
+    }
+  </PageHeader>
+
+  <div class="shell grid gap-12 py-16 md:py-24">
+    {
+      sections.map((section, position) => (
+        <section aria-label={section.title}>
+          <p class="eyebrow">
+            <span class="index-mark">
+              {String(position + 1).padStart(2, "0")}
+            </span>
+            <span>{section.title}</span>
+          </p>
+          <p class="lead mt-5 max-w-2xl text-ink-2">{section.lead}</p>
+          <ul class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {section.entries.map((entry) => (
+              <li>
+                <a href={docPath(entry.slug, locale)} class="card-link block h-full p-5">
+                  <span class="heading-4 block text-ink">{entry.title}</span>
+                  <span class="mt-2 block text-ink-2">{entry.description}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+    }
+  </div>
+</Base>

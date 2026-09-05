@@ -17,8 +17,8 @@
 
 # --- Facturation. La clé et les deux prix suffisent pour un paiement de test.
 STRIPE_SECRET_KEY="op://{{OP_VAULT}}/{{OP_ITEM}}/STRIPE_SECRET_KEY"
-# STRIPE_PRICE_SERVER_MONTH="op://{{OP_VAULT}}/{{OP_ITEM}}/STRIPE_PRICE_SERVER_MONTH"
-# STRIPE_PRICE_SERVER_YEAR="op://{{OP_VAULT}}/{{OP_ITEM}}/STRIPE_PRICE_SERVER_YEAR"
+STRIPE_PRICE_SERVER_MONTH="op://{{OP_VAULT}}/{{OP_ITEM}}/STRIPE_PRICE_SERVER_MONTH"
+STRIPE_PRICE_SERVER_YEAR="op://{{OP_VAULT}}/{{OP_ITEM}}/STRIPE_PRICE_SERVER_YEAR"
 #
 # STRIPE_WEBHOOK_SECRET n'a pas sa place ici : en local il vient de `stripe listen`,
 # qui en tire un neuf à chaque session, et il diffère de celui du tableau de bord.

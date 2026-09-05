@@ -1,0 +1,30 @@
+---
+title: Services and updates
+description: Adding, configuring, updating and removing a module after the first install.
+locale: en
+section: daily
+sectionOrder: 2
+order: 6
+---
+
+The catalogue does not close after onboarding. Adding a module later is the same screen, without the rest of the walkthrough.
+
+## Every module does six things
+
+`Check`, `Install`, `Configure`, `Upgrade`, `Uninstall`, `Status`. Every one of them is idempotent: it verifies before it acts, so running an install twice changes nothing the second time.
+
+## Status
+
+The services screen shows what the agent reports: the module, its version, whether it is running, and when it was last checked. It shows nothing the agent did not send — no cached guess, no optimistic state.
+
+## Updating
+
+Updating a module runs its `Upgrade` step. Updating the agent itself is a separate operation: the agent downloads its own signed binary over outbound HTTPS, checks the signature, and swaps itself. It never runs anything you did not ask for.
+
+## Uninstalling
+
+`Uninstall` removes what the module installed, and only that. A module never touches what it did not put there — a database you installed by hand stays exactly where it is.
+
+## What stays if you stop paying
+
+Everything on the machine. Projects, databases, services, tunnels and configuration are ordinary Ubuntu artefacts managed with `systemd`, `tmux`, `ufw` and `fail2ban`. You lose the app: the dashboard, the catalogue, updates, backups and alerts. The server is still yours, and you still reach it over SSH.

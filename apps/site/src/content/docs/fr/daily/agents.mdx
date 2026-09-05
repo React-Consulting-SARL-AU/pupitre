@@ -1,0 +1,38 @@
+---
+title: Agents IA
+description: Faire tourner Claude Code, Codex et Hermes sur le serveur, avec vos propres abonnements.
+locale: fr
+section: daily
+sectionOrder: 2
+order: 4
+---
+
+Pupitre installe les agents ; vous apportez les abonnements. Rien n’est revendu, et aucun de vos jetons n’est stocké sur la plateforme.
+
+## Se connecter
+
+`ai.claude` et `ai.codex` se connectent comme partout ailleurs : l’outil affiche une URL dans le terminal, vous l’ouvrez dans votre navigateur, vous approuvez. L’app montre ce terminal : le flux est celui que vous connaissez déjà — il se passe simplement sur le serveur.
+
+## Depuis votre propre client
+
+Vous n’êtes pas obligé d’ouvrir un agent depuis Pupitre. L’app Claude et l’app ChatGPT ouvrent toutes deux une session sur une machine distante en SSH : pointez-en une vers votre serveur et l’agent y tourne, dans vos projets, sur les runtimes qu’ont installés les modules. Voir [votre propre client](/fr/docs/daily/clients/).
+
+## Contexte
+
+L’app ouvre un agent dans le dossier du projet, pas dans un dossier personnel. Les fichiers d’instructions du projet sont là, et les skills Pupitre aussi : prendre une capture, ouvrir une branche, ouvrir une pull request, livrer.
+
+## Captures
+
+Avec `ai.browser` installé, un agent peut piloter Chrome headless et ranger les images dans la galerie du projet. C’est ce qui lui permet de regarder la page qu’il vient de modifier au lieu de décrire ce qu’il croit avoir fait.
+
+## Travailler la nuit
+
+Un agent démarré dans une session `tmux` continue quand vous fermez l’app. C’est l’intérêt de la machine : une tâche longue n’a pas besoin que votre laptop reste ouvert, et un build n’a pas besoin de vos ventilateurs.
+
+## Hermes
+
+`ai.hermes` fait tourner l’agent de Nous Research sur le runtime Python, avec les fournisseurs de modèles que vous configurez. Si vous le voulez toujours actif, il reçoit une unité `systemd`. Les clés des fournisseurs atterrissent dans un fichier que seul root peut lire.
+
+## Ce que Pupitre ne fait pas
+
+Il ne choisit pas de modèle pour vous, ne relaie pas vos requêtes, et ne lit pas vos conversations. Il installe les outils, les ouvre dans le bon dossier, et vous montre le terminal.

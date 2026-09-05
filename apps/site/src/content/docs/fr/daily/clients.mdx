@@ -1,0 +1,57 @@
+---
+title: Votre propre client
+description: Brancher l’app Claude, l’app ChatGPT ou n’importe quel client SSH sur un serveur Pupitre, et travailler là plutôt que dans l’app.
+locale: fr
+section: daily
+sectionOrder: 2
+order: 3
+---
+
+Une fois la machine installée, Pupitre n’est pas l’endroit où vous devez travailler. Le serveur est une machine Ubuntu ordinaire, atteinte en SSH sous `dev`, et tout ce qui parle SSH peut s’y brancher — y compris les apps desktop de Claude et de ChatGPT.
+
+## Ce que le serveur offre à un client
+
+Rien de spécial, et c’est voulu :
+
+- un point d’entrée SSH sur le port 22 — et sur le 443 aussi, si vous l’avez demandé à `core.hardening` ;
+- l’utilisateur `dev`, dont `authorized_keys` porte la moitié publique de chaque appareil de votre compte ;
+- vos projets sous le dossier que vous avez choisi, appartenant à `dev` ;
+- les runtimes activés dans les shells **non interactifs** aussi, pour qu’un client qui lance une commande sans shell de connexion trouve les mêmes `node`, `python` et `java` que vous ;
+- `tmux`, `systemd`, et les bases sur `127.0.0.1`.
+
+Ce dernier point est celui qui décide si un client distant est agréable ou exaspérant. `runtime.node` écrit son activation dans `.zshenv` exactement pour cette raison.
+
+## Claude
+
+L’app Claude sait ouvrir une session sur une machine distante en SSH. Donnez-lui votre serveur et Claude Code y tourne : dans le dossier du projet, avec les fichiers d’instructions du projet, avec les skills Pupitre qu’a installés le module `ai.claude`, et avec la base que le projet attend en écoute sur localhost.
+
+Vous vous connectez une fois, depuis la session où vous êtes — l’outil affiche une URL, vous l’approuvez dans votre navigateur. C’est votre abonnement ; Pupitre ne revend rien et ne stocke aucun jeton pour vous.
+
+## ChatGPT et Codex
+
+Pareil depuis l’app ChatGPT : Codex tourne sur le serveur, sur votre propre abonnement. `ai.claude` et `ai.codex` peuvent cohabiter ; ils voient les mêmes projets, les mêmes runtimes et les mêmes bases, parce qu’il n’y a qu’une machine.
+
+## Éditeurs
+
+VS Code, Cursor et Windsurf se connectent en Remote SSH, Zed par `zed://ssh`, les IDE JetBrains par Gateway. Les modules `editor.*` préinstallent les backends distants pour que la première connexion soit immédiate au lieu d’un téléchargement de dix minutes. Voir [éditeurs distants](/fr/docs/daily/editors/).
+
+## ssh tout court
+
+`ssh dev@votre-serveur` fonctionne, et le binaire de l’agent est aussi lié sous le nom `dev` : les opérations que l’app effectue existent dans un terminal nu, avec les mêmes gestionnaires et les mêmes refus.
+
+## Quelle clé
+
+Pupitre garde sa propre configuration SSH dans le dossier de données de l’app — un fichier `config` et une clé par serveur, en `0600`. Il n’écrit jamais dans votre `~/.ssh/config`.
+
+Un client tiers n’hérite donc pas automatiquement de la clé de Pupitre. Deux façons de faire, également valables :
+
+1. **Pointer le client sur la clé de Pupitre.** L’écran du serveur affiche l’hôte, le port, l’utilisateur et le chemin de la clé ; collez-les dans le client, ou dans votre `~/.ssh/config` sous forme d’entrée d’hôte.
+2. **Utiliser une clé que vous avez déjà.** Ajoutez sa moitié publique à `dev`, ou laissez Pupitre adopter une entrée d’hôte existante au lieu de gérer la sienne — c’est l’option proposée sur l’écran du serveur au moment de l’ajouter.
+
+Dans les deux cas la révocation continue de faire son travail : un appareil retiré dans la console perd sa clé sur le serveur à la prochaine remontée de l’agent.
+
+## Ce qui reste dans l’app
+
+Pupitre reste l’endroit des choses qu’un client de conversation n’a pas à faire : inspecter la machine, installer et configurer les services, durcir, le rapport d’installation en direct, l’enregistrement des projets, l’état des services que l’agent rapporte, les mises à jour et les alertes.
+
+Son terminal est là pour le jour où vous en voulez un — la première connexion, un log à regarder, une commande que vous préférez lancer là où l’installation a eu lieu. Ce n’est pas un péage.

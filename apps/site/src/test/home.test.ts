@@ -5,7 +5,15 @@ import Fr from "../pages/fr/index.astro"
 import En from "../pages/index.astro"
 import { render } from "./render"
 
-const SECTION_IDS = ["features", "catalog", "promise", "faq", "pricing"]
+const SECTION_IDS = [
+  "steps",
+  "features",
+  "clients",
+  "catalog",
+  "promise",
+  "pricing",
+  "faq",
+]
 const JSON_LD_RE = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g
 
 function structuredData(html: string): Record<string, unknown>[] {
@@ -17,13 +25,13 @@ describe("home", () => {
     const html = await render(En, { path: "/" })
 
     expect(html).toContain(
-      '<h1 class="heading-1 max-w-3xl">Your AI agents get a machine of their own. Your laptop cools down.</h1>'
+      ">Your AI agents get a machine of their own. Your laptop cools down.</h1>"
     )
     expect(html).toContain(
-      '<a href="/download/" class="btn btn-primary">Download the app</a>'
+      '<a href="/download/" class="btn btn-lg btn-primary">Download the app</a>'
     )
     expect(html).toContain(
-      '<a href="https://app.pupitre.studio/" class="btn btn-secondary">Order</a>'
+      '<a href="https://app.pupitre.studio/" class="btn btn-lg btn-secondary">Order</a>'
     )
   })
 
@@ -32,13 +40,13 @@ describe("home", () => {
 
     expect(html).toContain('<html lang="fr"')
     expect(html).toContain(
-      '<h1 class="heading-1 max-w-3xl">Vos agents IA travaillent sur une machine à eux. Votre laptop respire.</h1>'
+      ">Vos agents IA travaillent sur une machine à eux. Votre laptop respire.</h1>"
     )
     expect(html).toContain(
-      '<a href="/fr/download/" class="btn btn-primary">Télécharger l’app</a>'
+      '<a href="/fr/download/" class="btn btn-lg btn-primary">Télécharger l’app</a>'
     )
     expect(html).toContain(
-      '<a href="https://app.pupitre.studio/" class="btn btn-secondary">Commander</a>'
+      '<a href="https://app.pupitre.studio/" class="btn btn-lg btn-secondary">Commander</a>'
     )
   })
 
@@ -67,6 +75,7 @@ describe("home", () => {
         expect(html, `${locale} ${id}`).toContain(`<section id="${id}"`)
       }
       expect(html).toContain(`>${content.features.title}</h2>`)
+      expect(html).toContain(`>${content.clients.title}</h2>`)
       expect(html).toContain(`>${content.catalog.title}</h2>`)
       expect(html).toContain(`>${content.promise.title}</h2>`)
       expect(html).toContain(`>${content.faq.title}</h2>`)
@@ -77,7 +86,7 @@ describe("home", () => {
       for (const claim of content.promise.items) {
         expect(html).toContain(`>${claim.statement}</h3>`)
       }
-      expect(html.match(/<details/g)).toHaveLength(5)
+      expect(html.match(/<details/g)).toHaveLength(content.faq.items.length + 1)
       expect(html.match(/data-availability=/g)).toHaveLength(MODULE_IDS.length)
       expect(html).toContain(`href="${locale === "en" ? "" : "/fr"}/pricing/"`)
     }
@@ -95,13 +104,14 @@ describe("home", () => {
 
       expect(data.map((item) => item["@type"])).toEqual([
         "SoftwareApplication",
+        "Organization",
         "FAQPage",
       ])
       expect(data[0].name).toBe("Pupitre")
       expect(data[0].inLanguage).toBe(locale)
-      expect(data[1].mainEntity).toHaveLength(5)
+      expect(data[2].mainEntity).toHaveLength(content.faq.items.length)
       expect(
-        (data[1].mainEntity as Array<{ name: string }>).map((q) => q.name)
+        (data[2].mainEntity as Array<{ name: string }>).map((q) => q.name)
       ).toEqual(content.faq.items.map((item) => item.question))
     }
   })

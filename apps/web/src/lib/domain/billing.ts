@@ -10,7 +10,7 @@ export const INTERVAL_LABELS: Record<BillingIntervalName, string> = {
   year: "Annuel",
 }
 
-export const SEAT_PRICE_EUR_PER_MONTH = getPlan("team").monthlyPriceEur
+export const SEAT_PRICE_USD_PER_MONTH = getPlan("team").monthlyPriceUsd
 
 const BILLED_MONTHS_PER_YEAR = 12 - ANNUAL_FREE_MONTHS
 
@@ -31,21 +31,13 @@ export function subscriptionStatusLook(status: string): StatusLook {
   )
 }
 
-export function amountEur(
+export function amountUsd(
   quantity: number,
   interval: BillingIntervalName | null
 ): number {
   const months = interval === "year" ? BILLED_MONTHS_PER_YEAR : 1
 
-  return quantity * SEAT_PRICE_EUR_PER_MONTH * months
-}
-
-export function formatEur(amount: number): string {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(amount)
+  return quantity * SEAT_PRICE_USD_PER_MONTH * months
 }
 
 export type SeatVerdict = "matched" | "unused" | "over_quota"

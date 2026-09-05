@@ -1,0 +1,38 @@
+---
+title: Teams
+description: Organisations, members, roles, assigning a server to a person, and revoking access.
+locale: en
+section: account
+sectionOrder: 3
+order: 1
+---
+
+Everything belongs to an organisation. When you sign up, a personal one is created for you; you may never think about it again. A team is the same object with more than one person in it.
+
+## Roles
+
+| Role | Can |
+| --- | --- |
+| Owner | Everything, including billing and deleting the organisation |
+| Admin | Invite, assign servers, revoke, read the audit log |
+| Member | Use the servers assigned to them |
+
+## Assigning a server
+
+A server belongs to the organisation and is assigned to one person. That person's devices get their public keys pushed to the machine; nobody else's do. Reassigning a server removes the old keys and adds the new ones on the next agent check-in.
+
+## Inviting
+
+An invitation is an email with a link. The person accepts, signs in, and installs the app; their first device generates its own key. Nothing is shared, and no password is passed around.
+
+## Revoking
+
+Removing a member removes their devices' keys from every server they were on. The revocation reaches a machine on the agent's next outbound check-in — it is not a connection the platform opens.
+
+## The audit log
+
+Who invited whom, who assigned which server, who revoked what, and when. It records actions taken in the console. It does not record what happens inside your servers: the platform never sees that.
+
+## Billing for a team
+
+One invoice. The price per server is the same on Solo and Team: an organisation buys the organisation, not a discount.

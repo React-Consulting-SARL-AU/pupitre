@@ -4,12 +4,12 @@ export const pricingFr: PricingContent = {
   meta: {
     title: "Tarifs — Pupitre",
     description:
-      "{price} € HT par serveur et par mois, en Solo comme en Équipe. {months} mois offerts à l’année, {days} jours d’essai sans carte. Quand vous arrêtez, votre serveur continue de tourner.",
+      "{price} HT par serveur et par mois, en Solo comme en Équipe. {months} mois offerts à l’année, {days} jours d’essai sans carte. Quand vous arrêtez, votre serveur continue de tourner.",
   },
   hero: {
     label: "Tarifs",
     headline: "Un prix par serveur. Le serveur reste à vous.",
-    lead: "Solo et Équipe coûtent le même prix par serveur : {price} € HT par mois. À l’année, {months} mois sont offerts. L’essai dure {days} jours et ne demande pas de carte. Quand vous arrêtez de payer, votre serveur continue de fonctionner sans Pupitre.",
+    lead: "Solo et Équipe coûtent le même prix par serveur : {price} HT par mois. À l’année, {months} mois sont offerts. L’essai dure {days} jours et ne demande pas de carte. Quand vous arrêtez de payer, votre serveur continue de fonctionner sans Pupitre.",
     unit: "par serveur et par mois",
   },
   billing: {
@@ -38,7 +38,7 @@ export const pricingFr: PricingContent = {
         includes: [
           "L’app desktop, et l’agent sur chaque serveur",
           "Tout le catalogue : runtimes, bases, agents, éditeurs, exposition",
-          "Les mises à jour, les sauvegardes et les alertes",
+          "Les mises à jour et les alertes",
           "Vos propres abonnements Claude, Codex ou Hermes",
         ],
         cta: "Commander",
@@ -82,7 +82,7 @@ export const pricingFr: PricingContent = {
       lines: [
         "L’app desktop : tableau de bord, projets, terminaux",
         "Le catalogue : installer, mettre à jour, retirer des services",
-        "Les mises à jour de l’agent, les sauvegardes et les alertes",
+        "Les mises à jour de l’agent et les alertes",
         "Le support",
       ],
     },

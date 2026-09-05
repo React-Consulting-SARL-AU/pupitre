@@ -1,0 +1,65 @@
+---
+import { getCollection } from "astro:content"
+import Base from "../layouts/Base.astro"
+import { docSlug } from "../lib/docs"
+import { localeFromPath, localizePath, translator } from "../lib/i18n"
+import PageHeader from "./PageHeader.astro"
+
+const locale = localeFromPath(Astro.url.pathname)
+const t = translator(locale)
+const posts = (
+  await getCollection("blog", (entry) => entry.data.locale === locale)
+).sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+const format = new Intl.DateTimeFormat(locale, { dateStyle: "long" })
+---
+
+<Base title={t("blog.title")} description={t("blog.description")}>
+  <Fragment slot="head">
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title={t("blog.label")}
+      href={localizePath("/blog/rss.xml", locale)}
+    />
+  </Fragment>
+
+  <PageHeader
+    label={t("blog.label")}
+    title={t("blog.headline")}
+    lead={t("blog.lead")}
+  >
+    <a
+      href={localizePath("/blog/rss.xml", locale)}
+      class="btn btn-secondary">{t("blog.rss")}</a
+    >
+  </PageHeader>
+
+  <div class="shell py-16 md:py-24">
+    {posts.length === 0 && <p class="text-ink-3">{t("blog.empty")}</p>}
+    <ul class="grid gap-6 md:grid-cols-2">
+      {
+        posts.map((post) => (
+          <li>
+            <a
+              href={localizePath(`/blog/${docSlug(post.id)}/`, locale)}
+              class="card-link flex h-full flex-col p-6 md:p-7"
+            >
+              <span class="data text-ink-3">
+                {format.format(post.data.date)} · {post.data.reading}
+              </span>
+              <span class="heading-3 mt-4 block text-ink">
+                {post.data.title}
+              </span>
+              <span class="mt-3 block flex-1 text-ink-2">
+                {post.data.description}
+              </span>
+              <span class="label mt-6 block text-ink-3">
+                {t("blog.by")} {post.data.author}
+              </span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</Base>

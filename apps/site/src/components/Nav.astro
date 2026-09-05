@@ -6,7 +6,6 @@ import {
   translator,
 } from "../lib/i18n"
 import Brand from "./Brand.astro"
-import DownloadButton from "./DownloadButton.astro"
 import LocaleSwitch from "./LocaleSwitch.astro"
 import ThemeToggle from "./ThemeToggle.astro"
 
@@ -18,36 +17,99 @@ const current = stripLocale(pathname)
 const links = [
   { href: "/docs/", label: t("nav.docs") },
   { href: "/pricing/", label: t("nav.pricing") },
-  { href: "/download/", label: t("nav.download") },
+  { href: "/changelog/", label: t("nav.changelog") },
   { href: "/blog/", label: t("nav.blog") },
 ]
+
+const isCurrent = (href: string) =>
+  href === "/" ? current === "/" : current.startsWith(href)
 ---
 
-<header class="border-line border-b">
-  <div
-    class="mx-auto flex max-w-5xl flex-wrap items-center gap-x-8 gap-y-2 px-6 py-3"
-  >
+<header
+  class="sticky top-0 z-50 border-line border-b bg-base/85 backdrop-blur-md"
+>
+  <div class="shell flex h-16 items-center gap-6">
     <Brand />
-    <nav aria-label={t("nav.label")} class="flex flex-wrap items-center gap-x-5">
+
+    <nav
+      aria-label={t("nav.label")}
+      class="ms-2 hidden items-center gap-1 md:flex"
+    >
       {
         links.map((link) => (
           <a
             href={localizePath(link.href, locale)}
-            aria-current={current.startsWith(link.href) ? "page" : undefined}
-            class="py-2 text-ink-2 hover:text-ink aria-[current=page]:text-ink"
+            aria-current={isCurrent(link.href) ? "page" : undefined}
+            class="rounded-sm px-3 py-2 text-ink-3 hover:bg-raised hover:text-ink aria-[current=page]:text-ink"
           >
             {link.label}
           </a>
         ))
       }
     </nav>
-    <div class="ms-auto flex flex-wrap items-center gap-x-3 gap-y-2">
-      <ThemeToggle />
-      <LocaleSwitch />
-      <DownloadButton
+
+    <div class="ms-auto flex items-center gap-2">
+      <div class="hidden items-center gap-2 lg:flex">
+        <ThemeToggle />
+        <LocaleSwitch />
+      </div>
+      <a
         href={localizePath("/download/", locale)}
-        label={t("nav.cta")}
-      />
+        aria-current={isCurrent("/download/") ? "page" : undefined}
+        class="btn btn-primary hidden sm:inline-flex">{t("nav.cta")}</a
+      >
+
+      <details class="group relative md:hidden" data-nav-menu>
+        <summary
+          class="btn btn-secondary cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+        >
+          <span class="group-open:hidden">{t("nav.menu")}</span>
+          <span class="hidden group-open:inline">{t("nav.menuClose")}</span>
+        </summary>
+        <div
+          class="absolute end-0 mt-2 w-64 rounded-lg border border-line bg-base p-2 shadow-overlay"
+        >
+          <nav aria-label={t("nav.label")} class="grid">
+            {
+              [...links, { href: "/download/", label: t("nav.download") }].map(
+                (link) => (
+                  <a
+                    href={localizePath(link.href, locale)}
+                    aria-current={isCurrent(link.href) ? "page" : undefined}
+                    class="rounded-sm px-3 py-2.5 text-ink-2 hover:bg-raised hover:text-ink aria-[current=page]:bg-raised aria-[current=page]:text-ink"
+                  >
+                    {link.label}
+                  </a>
+                )
+              )
+            }
+          </nav>
+          <div
+            class="mt-2 flex items-center justify-between gap-2 border-line border-t pt-2"
+          >
+            <ThemeToggle />
+            <LocaleSwitch />
+          </div>
+        </div>
+      </details>
     </div>
   </div>
 </header>
+
+<script>
+  const menus = document.querySelectorAll<HTMLDetailsElement>("[data-nav-menu]")
+
+  for (const menu of menus) {
+    document.addEventListener("click", (event) => {
+      if (menu.open && !menu.contains(event.target as Node)) {
+        menu.open = false
+      }
+    })
+
+    menu.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        menu.open = false
+      }
+    })
+  }
+</script>

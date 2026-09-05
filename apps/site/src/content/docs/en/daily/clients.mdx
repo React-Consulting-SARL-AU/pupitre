@@ -1,0 +1,57 @@
+---
+title: Your own client
+description: Attaching the Claude desktop app, the ChatGPT desktop app or any SSH client to a Pupitre server, and working there instead of in the app.
+locale: en
+section: daily
+sectionOrder: 2
+order: 3
+---
+
+Once the machine is set up, Pupitre is not where you have to work. The server is an ordinary Ubuntu box reached over SSH as `dev`, and anything that speaks SSH can attach to it — including the desktop apps of Claude and ChatGPT.
+
+## What the server offers a client
+
+Nothing special, on purpose:
+
+- an SSH endpoint on port 22 — or 443 as well, if you asked `core.hardening` for it;
+- the `dev` user, whose `authorized_keys` holds the public half of every device on your account;
+- your projects under the directory you chose, owned by `dev`;
+- the runtimes activated in **non-interactive** shells too, so a client that runs a command without a login shell finds the same `node`, `python` and `java` you do;
+- `tmux`, `systemd`, and the databases on `127.0.0.1`.
+
+That last point is the one that decides whether a remote client is pleasant or maddening. `runtime.node` writes its activation into `.zshenv` for exactly this reason.
+
+## Claude
+
+The Claude desktop app can open a session on a remote machine over SSH. Give it your server and Claude Code runs there: in the project folder, with the project's own instruction files, with the Pupitre skills the `ai.claude` module installed, and with the database the project expects listening on localhost.
+
+You sign in once, from whichever session you are in — the tool prints a URL, you approve it in your browser. It is your subscription; Pupitre resells nothing and stores no token for you.
+
+## ChatGPT and Codex
+
+The same, from the ChatGPT desktop app: Codex runs on the server, on your own subscription. `ai.claude` and `ai.codex` can be installed side by side; they see the same projects, the same runtimes and the same databases, because there is only one machine.
+
+## Editors
+
+VS Code, Cursor and Windsurf connect over Remote SSH, Zed through `zed://ssh`, JetBrains IDEs through Gateway. The `editor.*` modules preinstall the remote backends so the first connection is immediate rather than a ten-minute download. See [remote editors](/docs/daily/editors/).
+
+## Plain ssh
+
+`ssh dev@your-server` works, and the agent binary is also linked as `dev`, so the operations the app performs exist in a bare terminal with the same handlers and the same refusals.
+
+## Which key
+
+Pupitre keeps its own SSH configuration in the app's data directory — a `config` file and one key per server, in mode `0600`. It never writes to your `~/.ssh/config`.
+
+That means a third-party client does not automatically inherit Pupitre's key. Two ways round it, both fine:
+
+1. **Point the client at Pupitre's key.** The server screen shows the host, the port, the user and the key path; paste them into the client, or into your own `~/.ssh/config` as a host entry.
+2. **Use a key you already have.** Add its public half to `dev`, or let Pupitre adopt an existing host entry instead of managing its own — that is the option on the server screen when you add the machine.
+
+Either way, revocation still works the way it should: a device removed in the console loses its key on the server at the agent's next check-in.
+
+## What stays in the app
+
+Pupitre remains the place for the things a chat client has no business doing: inspecting the machine, installing and configuring services, hardening, the live install report, project registration, the service status the agent reports, updates and alerts.
+
+Its terminal is there for the day you want it — the first sign-in, a log you want to watch, a command you would rather run where the install happened. It is not the price of admission.

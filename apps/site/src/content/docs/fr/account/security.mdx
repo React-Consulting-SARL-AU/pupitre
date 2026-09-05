@@ -1,0 +1,40 @@
+---
+title: Sécurité
+description: Ce que Pupitre peut et ne peut pas faire sur votre serveur, et comment vérifier chaque affirmation.
+locale: fr
+section: account
+sectionOrder: 3
+order: 3
+---
+
+Quatre règles tiennent le produit. Chacune est énoncée pour que vous puissiez la vérifier plutôt que la croire.
+
+## Rien ne se connecte vers l’intérieur
+
+L’app ouvre une session SSH depuis votre laptop. L’agent fait des appels HTTPS sortants pour son droit d’usage, les clés publiques et ses propres mises à jour. Ni la plateforme ni le support n’ouvrent de connexion vers votre machine.
+
+Vérifiez : `sudo ufw status` montre SSH, et rien d’autre sauf si vous avez installé `exposure.caddy`.
+
+## Aucune clé privée ne quitte votre laptop
+
+L’app génère une clé ed25519 par appareil. La moitié publique va dans `authorized_keys` de `dev` ; la moitié privée reste sur votre disque en `0600`.
+
+Vérifiez : `cat ~/.ssh/authorized_keys` sur le serveur ne montre que des clés publiques, et le dossier de clés de l’app sur votre laptop est le seul endroit où existe la moitié privée.
+
+## Rien de lisible n’est laissé sur le serveur
+
+Pupitre installe un binaire compilé, des unités `systemd` générées et des fichiers de configuration. Il ne dépose pas de script, et ne laisse pas une copie de vos secrets dans un fichier dont il ne vous a pas parlé. Les secrets passent par l’entrée standard de la session SSH et atterrissent là où le module l’annonce, lisibles par root seul.
+
+Vérifiez : `ls /etc/pupitre/` et ses permissions.
+
+## Le support ne peut pas entrer
+
+Le support voit qu’un serveur est enrôlé et quelle version de l’agent il fait tourner. Il n’y a pas d’usurpation de votre machine, pas de shell distant, et aucune clé de support dans `authorized_keys`. Si un ingénieur du support a besoin de voir quelque chose sur votre serveur, c’est vous qui le collez.
+
+## Le durcissement, dans l’ordre
+
+`core.hardening` ferme root **en dernier**, et seulement après que l’app a vérifié que votre clé ouvre `dev`. Si cette vérification échoue, rien n’est fermé et l’app dit quoi corriger. C’est la seule étape qui pourrait vous enfermer dehors, et elle est écrite pour ne pas le pouvoir.
+
+## Ce dont Pupitre ne vous protège pas
+
+Ce n’est pas un produit de sauvegarde pour vos données, pas un système de détection d’intrusion, et pas un substitut à la lecture de ce que vous exécutez. Il pose `ufw` et `fail2ban`, laisse couler les mises à jour de sécurité, et se tient à l’écart.

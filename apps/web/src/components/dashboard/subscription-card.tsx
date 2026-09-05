@@ -1,3 +1,4 @@
+import { formatUsd } from "@pupitre/shared/plans"
 import { useMutation } from "@tanstack/react-query"
 import { CreditCard } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -7,9 +8,8 @@ import { StatusBadge } from "@/components/ui/status-badge"
 import { openBillingPortal } from "@/lib/api/queries"
 import { leaveFor } from "@/lib/config/urls"
 import {
-  amountEur,
+  amountUsd,
   type BillingIntervalName,
-  formatEur,
   INTERVAL_LABELS,
   isBillingIntervalName,
   subscriptionStatusLook,
@@ -73,7 +73,7 @@ export function SubscriptionCard({
               Montant
             </dt>
             <dd className="mt-1 font-data text-[12px] text-ink tabular-nums">
-              {formatEur(amountEur(seats, interval))}
+              {formatUsd(amountUsd(seats, interval))}
               <span className="text-ink-3">
                 {interval === "year" ? " par an" : " par mois"}
               </span>

@@ -1,0 +1,218 @@
+---
+import { downloadContent } from "../content/site/download"
+import Base from "../layouts/Base.astro"
+import { localeFromPath, localizePath, translator } from "../lib/i18n"
+import {
+  assetsFor,
+  latestRelease,
+  loadReleases,
+  megabytes,
+  OPERATING_SYSTEMS,
+  shortDigest,
+} from "../lib/releases"
+import {
+  breadcrumbs,
+  jsonLd,
+  softwareApplication,
+} from "../lib/structured-data"
+import Callout from "./Callout.astro"
+import Feature from "./Feature.astro"
+import PageHeader from "./PageHeader.astro"
+import Section from "./Section.astro"
+
+const locale = localeFromPath(Astro.url.pathname)
+const t = translator(locale)
+const content = downloadContent(locale)
+const { releases, stale } = await loadReleases()
+const release = latestRelease(releases)
+
+const published = release
+  ? new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(
+      new Date(release.published_at)
+    )
+  : ""
+
+const application = jsonLd(
+  softwareApplication({
+    locale,
+    name: t("site.name"),
+    description: content.meta.description,
+  })
+)
+const trail = jsonLd(
+  breadcrumbs([
+    { name: t("site.name"), pathname: localizePath("/", locale) },
+    {
+      name: content.hero.label,
+      pathname: localizePath("/download/", locale),
+    },
+  ])
+)
+---
+
+<Base title={content.meta.title} description={content.meta.description}>
+  <Fragment slot="head">
+    <script is:inline type="application/ld+json" set:html={application} />
+    <script is:inline type="application/ld+json" set:html={trail} />
+  </Fragment>
+
+  <PageHeader
+    label={content.hero.label}
+    title={content.hero.headline}
+    lead={content.hero.lead}
+  >
+    {
+      release && (
+        <dl class="flex flex-wrap gap-2">
+          <div class="tag">
+            <dt class="text-ink-3">{content.release.version}</dt>
+            <dd class="text-ink">{release.version}</dd>
+          </div>
+          <div class="tag">
+            <dt class="text-ink-3">{content.release.channel}</dt>
+            <dd class="text-ink">{t(`changelog.${release.channel}`)}</dd>
+          </div>
+          <div class="tag">
+            <dt class="text-ink-3">{content.release.published}</dt>
+            <dd class="text-ink">{published}</dd>
+          </div>
+        </dl>
+      )
+    }
+  </PageHeader>
+
+  <Section
+    id="builds"
+    index="01"
+    label={content.assets.label}
+    title={content.assets.title}
+    lead={content.assets.lead}
+  >
+    {
+      stale && (
+        <Callout kind="warn" title={content.stale.title}>
+          <p>{content.stale.body}</p>
+        </Callout>
+      )
+    }
+
+    <div data-download-picker class="mt-8 grid gap-6 lg:grid-cols-3">
+      {
+        OPERATING_SYSTEMS.map((os) => {
+          const assets = release ? assetsFor(release, os) : []
+
+          return (
+            <section
+              data-os={os}
+              aria-label={content.os[os].name}
+              class="card flex flex-col p-6 data-[current]:border-line-strong data-[current]:shadow-overlay md:p-7"
+            >
+              <header class="flex items-baseline justify-between gap-3">
+                <h3 class="heading-3">{content.os[os].name}</h3>
+                <span data-current-label hidden class="tag">
+                  {content.hero.detecting}
+                </span>
+              </header>
+              <p class="mt-3 text-ink-2">{content.os[os].note}</p>
+
+              <ul class="mt-6 flex-1 divide-y divide-line border-line border-t">
+                {assets.length === 0 && (
+                  <li class="py-4 text-ink-3">{content.assets.empty}</li>
+                )}
+                {assets.map((asset) => (
+                  <li class="flex flex-wrap items-center gap-x-4 gap-y-3 py-4">
+                    <div class="min-w-0">
+                      <p class="heading-4">
+                        {content.arch[asset.arch] ?? asset.arch}
+                      </p>
+                      <p class="data mt-1 text-ink-3">
+                        {asset.format} · {megabytes(asset.size_bytes)} MB ·{" "}
+                        {content.assets.digest} {shortDigest(asset.sha256)}
+                      </p>
+                    </div>
+                    <a
+                      href={asset.url}
+                      data-download={`${asset.os}-${asset.arch}`}
+                      class="btn btn-secondary ms-auto"
+                    >
+                      {content.assets.download}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )
+        })
+      }
+    </div>
+
+    <p class="mt-10">
+      <a href={localizePath("/changelog/", locale)} class="link-underline">
+        {content.release.changelog}
+      </a>
+    </p>
+  </Section>
+
+  <Section
+    id="requirements"
+    index="02"
+    tone="surface"
+    label={content.requirements.label}
+    title={content.requirements.title}
+    lead={content.requirements.lead}
+  >
+    <div class="grid gap-6 md:grid-cols-2">
+      <Feature
+        title={content.requirements.app.title}
+        lines={content.requirements.app.lines}
+      />
+      <Feature
+        title={content.requirements.server.title}
+        lines={content.requirements.server.lines}
+      />
+    </div>
+  </Section>
+
+  <Section
+    id="after"
+    index="03"
+    label={content.install.label}
+    title={content.install.title}
+    lead={content.install.lead}
+  >
+    <ol class="grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+      {
+        content.install.steps.map((step, position) => (
+          <li class="border-line border-t pt-5">
+            <p class="index-mark">{String(position + 1).padStart(2, "0")}</p>
+            <p class="mt-3 text-ink-2">{step}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </Section>
+</Base>
+
+<script>
+  import { detectOs } from "../lib/platform"
+
+  const picker = document.querySelector<HTMLElement>("[data-download-picker]")
+  const os = detectOs({
+    userAgent: navigator.userAgent,
+    platform: navigator.platform,
+  })
+
+  if (picker && os) {
+    const card = picker.querySelector<HTMLElement>(`[data-os="${os}"]`)
+    const badge = card?.querySelector<HTMLElement>("[data-current-label]")
+
+    if (card) {
+      card.dataset.current = "true"
+      picker.prepend(card)
+    }
+
+    if (badge) {
+      badge.hidden = false
+    }
+  }
+</script>

@@ -93,7 +93,7 @@ Critères d'acceptation.
 3. Aucune couleur en dur hors `packages/design` ; les tests de rendu ne dépendent pas d'une classe utilitaire précise.
 Tests. Tests de rendu des primitives (`Hero`, `Steps`, `StatusMark`, `Nav`, `Footer`), test « l'accueil tient sans image ».
 
-### MKT-10 — Redirections manquantes vers les tarifs et le téléchargement
+### MKT-11 — Redirections manquantes vers les tarifs et le téléchargement
 Lot S · dépend de MKT-01 · `apps/site`
 
 But. Une adresse tapée à la main aboutit.

@@ -1,0 +1,42 @@
+---
+title: Les sept étapes
+description: Tout l’onboarding, étape par étape, avec ce qui change sur la machine à chacune.
+locale: fr
+section: start
+sectionOrder: 0
+order: 4
+---
+
+L’app mène une machine neuve du vide au prêt en sept étapes. Vous pouvez vous arrêter après n’importe laquelle ; rien n’est laissé à moitié appliqué.
+
+## 1. Ajouter le serveur
+
+Son adresse et un compte root ou sudo. L’app génère une clé ed25519 pour cet appareil et garde la moitié privée sur votre disque.
+
+## 2. Inspecter
+
+La sonde lit la distribution, la RAM, le disque, l’architecture et ce qui est déjà installé. Vous voyez ce qui va, ce qui manque, et ce que Pupitre ne gérera pas.
+
+## 3. Choisir les services
+
+Le catalogue, groupé par catégorie. `core.system` et `core.hardening` sont toujours inclus. Chaque module annonce ce qu’il installe et ce qu’il vous demandera. Des préréglages existent pour les formes courantes.
+
+## 4. Configurer
+
+Versions, ports, comptes, secrets. Un secret passe par l’entrée standard de la session SSH ; il n’est jamais écrit dans un fichier que vous n’avez pas demandé, et jamais réaffiché après saisie.
+
+## 5. Installer
+
+Étape par étape, en direct : le module, l’étape, le compteur, la durée. Une étape qui échoue n’arrête pas les autres modules — elle est notée avec la commande qui la rejoue. Chaque étape est idempotente : l’installation entière peut être relancée sans dégât.
+
+## 6. Durcir et basculer sur dev
+
+`ufw` sur SSH seul, `fail2ban`, mots de passe désactivés, `AllowUsers dev`. Root est fermé **en dernier**, et seulement après que l’app a vérifié que votre clé ouvre bien `dev`. Si cette vérification échoue, rien n’est fermé.
+
+## 7. Premier projet
+
+Une URL git ou un dossier sur la machine. L’agent clone, installe les dépendances, démarre le projet dans `tmux`, et rapporte le port, l’URL et les logs.
+
+## Après la septième étape
+
+L’onboarding est fini et ne revient pas. À partir de là, l’app est une fenêtre sur cette machine : tableau de bord, projets, terminaux, agents, services. Ajouter un module plus tard, c’est le même écran de catalogue, sans le reste du parcours.

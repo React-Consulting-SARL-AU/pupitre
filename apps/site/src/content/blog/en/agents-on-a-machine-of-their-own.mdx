@@ -1,0 +1,53 @@
+---
+title: Give your agents a machine of their own
+description: Why the laptop is the wrong host for work you do not watch, and what changes when the agent has somewhere persistent to live.
+locale: en
+date: 2026-08-29
+author: Jordan Monier
+reading: 8 min
+order: 2
+---
+
+The first week I ran agents seriously, I learned three things about my laptop that I had never had reason to notice.
+
+It sleeps. The fans mean something. And a process that survives a closed lid is a process I had never asked for.
+
+## What actually goes wrong
+
+**The work stops when you stop.** You close the laptop to go to lunch and the branch that was being built stops with it. Not paused — killed, halfway through an `npm install`, leaving a `node_modules` you will delete later.
+
+**The machine becomes unusable while it works.** Three worktrees, a headless browser and a test runner is a load. It is a small load for a server and a loud one for a laptop. You end up not running the thing you wanted to run because you also want to read your email.
+
+**Nothing persists.** The database the agent needed exists in a container that is gone. The screenshot it took is in `/tmp`. The service it started for the integration test is not running any more, and it cannot tell you why the test now fails.
+
+None of this is dramatic. It is just friction, applied constantly, to the exact activity you were trying to make cheaper.
+
+## What a server changes
+
+A Linux machine you rent for the price of two coffees fixes all three, and it fixes them by being boring.
+
+The work continues because nothing is tied to your session. `tmux` keeps the shell, `systemd` keeps the services, and the machine does not sleep. You close the laptop and the branch keeps building.
+
+Your laptop goes quiet, because the load moved. The editor is local, the files are remote, and the fans stop.
+
+Things persist. The database is installed, not spun up. The screenshots are in a folder. The dev server has a URL. When an agent asks "did that work?", there is a machine that can answer.
+
+## And you keep your own client
+
+The part that surprised me is that the machine did not force me into a new tool. The Claude desktop app opens a session on a remote machine over SSH; so does ChatGPT's. Point one at the server and the agent is running there — in the project folder, on the runtimes, next to the database — while the window you are looking at is the one you already had open.
+
+That only works if the server was set up for it: the runtimes have to be active in non-interactive shells, the project has to be somewhere predictable, and the database has to already exist. Get those three wrong and a remote client spends its day telling you your project is broken.
+
+## The part that is not free
+
+A server is a thing to administer, and that is the actual cost. Somebody has to create the user, size the swap, activate the runtimes in non-interactive shells, bind the database to localhost, set up `ufw`, and close root in the right order. Then do it again on the next machine, in the same order, and remember which of the twelve steps mattered.
+
+That is the whole gap between "a VPS is obviously the right answer" and "I have a VPS set up correctly". It took me an afternoon the first time and forty minutes the fourth time, and I still got the hardening order wrong once, which cost me a rebuild.
+
+## What we built instead
+
+Pupitre is that afternoon, done by a program that does not get bored. It inspects the machine, tells you what it will not manage, installs what you pick, hardens in an order that cannot lock you out, and then stays as the window onto that machine: projects, terminals, agents, services.
+
+The machine stays yours. Nothing connects inward to it, no private key leaves your laptop, and if you stop paying you keep an ordinary Ubuntu server with everything on it.
+
+That last part is not generosity. It is the only version of this product that I would install myself.

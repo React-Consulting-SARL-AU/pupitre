@@ -1,0 +1,40 @@
+---
+title: Security
+description: What Pupitre can and cannot do on your server, and how to check each claim.
+locale: en
+section: account
+sectionOrder: 3
+order: 3
+---
+
+Four rules hold the product together. Each one is stated so you can verify it rather than believe it.
+
+## Nothing connects inward
+
+The app opens an SSH session from your laptop. The agent makes outbound HTTPS calls for its licence, for public keys, and for its own updates. Neither the platform nor support opens a connection to your machine.
+
+Check it: `sudo ufw status` shows SSH, and nothing else unless you installed `exposure.caddy`.
+
+## No private key leaves your laptop
+
+The app generates one ed25519 key per device. The public half goes into `authorized_keys` for `dev`; the private half stays on your disk in mode `0600`.
+
+Check it: `cat ~/.ssh/authorized_keys` on the server shows public keys only, and the app's key directory on your laptop is the only place the private half exists.
+
+## Nothing readable is left on the server
+
+Pupitre installs a compiled binary, generated `systemd` units and configuration files. It does not drop scripts, and it does not leave a copy of your secrets in a file it did not tell you about. Secrets travel on the SSH session's standard input and land where the module says they land, readable by root alone.
+
+Check it: `ls /etc/pupitre/` and its permissions.
+
+## Support cannot get in
+
+Support sees that a server is enrolled and which agent version it runs. There is no impersonation of your machine, no remote shell, and no support key in `authorized_keys`. If a support engineer needs to see something on your server, you paste it.
+
+## Hardening, in order
+
+`core.hardening` closes root **last**, and only after the app has verified that your key opens `dev`. If that verification fails, nothing is closed and the app tells you what to fix. This is the one step that could lock you out, and it is written so it cannot.
+
+## What Pupitre does not protect you from
+
+It is not a backup product for your data, not an intrusion detection system, and not a substitute for reading what you run. It sets up `ufw` and `fail2ban`, keeps security updates flowing, and stays out of the way.

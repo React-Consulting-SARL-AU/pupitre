@@ -10,14 +10,17 @@ const { items } = Astro.props
   {
     items.map((item) => (
       <details class="group">
-        <summary class="flex cursor-pointer list-none items-baseline justify-between gap-6 py-5 [&::-webkit-details-marker]:hidden">
-          <span class="heading-4">{item.question}</span>
-          <span aria-hidden="true" class="data text-ink-3">
+        <summary class="flex cursor-pointer list-none items-baseline justify-between gap-6 py-5 hover:text-ink [&::-webkit-details-marker]:hidden">
+          <span class="heading-3">{item.question}</span>
+          <span
+            aria-hidden="true"
+            class="data shrink-0 self-center rounded-full border border-line-strong px-2 py-0.5 text-ink-3"
+          >
             <span class="group-open:hidden">+</span>
             <span class="hidden group-open:inline">−</span>
           </span>
         </summary>
-        <p class="max-w-2xl pb-6 text-ink-2">{item.answer}</p>
+        <p class="max-w-2xl pb-6 text-ink-2 body-lg">{item.answer}</p>
       </details>
     ))
   }

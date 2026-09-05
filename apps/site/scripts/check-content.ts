@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs"
 import path from "node:path"
 import { BANNED_WORDS } from "../src/lib/voice"
+import { checkLegalDrafts, isProduction } from "./legal"
 
 export interface ContentFinding {
   file: string
@@ -12,6 +13,9 @@ const SCANNED_DIRS = ["src/content", "src/pages"]
 const ROUTE_FILE_RE = /\.(astro|md|mdx|html|ts|js)$/
 const TEST_FILE_RE = /\.test\.[cm]?[jt]s$/
 const FRENCH_PREFIX = "fr/"
+
+/** Endpoints that serve every language from one route, so they have no twin. */
+const SHARED_ROUTES = new Set(["llms.txt.ts", "og/[...slug].png.ts"])
 
 function walk(dir: string, out: string[] = []): string[] {
   if (!existsSync(dir)) {
@@ -54,6 +58,10 @@ export function checkRouteParity(root: string): ContentFinding[] {
   const findings: ContentFinding[] = []
 
   for (const route of routes) {
+    if (SHARED_ROUTES.has(route)) {
+      continue
+    }
+
     const french = route.startsWith(FRENCH_PREFIX)
     const twin = french
       ? route.slice(FRENCH_PREFIX.length)
@@ -92,7 +100,9 @@ export function checkBannedWords(root: string): ContentFinding[] {
 }
 
 export function checkContent(root: string): ContentFinding[] {
-  return [...checkRouteParity(root), ...checkBannedWords(root)]
+  const legal = isProduction() ? checkLegalDrafts(root) : []
+
+  return [...checkRouteParity(root), ...checkBannedWords(root), ...legal]
 }
 
 function main(): void {
@@ -109,10 +119,17 @@ function main(): void {
 
   const routes = listRoutes(root)
   const pairs = routes.filter((route) => route.startsWith(FRENCH_PREFIX))
+  const drafts = checkLegalDrafts(root)
 
   process.stdout.write(
     `Content OK: ${pairs.length} route(s) in both languages (${routes.length} files), no banned word.\n`
   )
+
+  if (drafts.length > 0) {
+    process.stdout.write(
+      `${drafts.length} legal page(s) still draft; the production build refuses them.\n`
+    )
+  }
 }
 
 if (import.meta.main) {

@@ -1,4 +1,4 @@
-import { getPlan, yearlyPriceEur } from "@pupitre/shared/plans"
+import { formatUsd, getPlan, yearlyPriceUsd } from "@pupitre/shared/plans"
 import { describe, expect, it } from "vitest"
 import { render } from "../test/render"
 import PlanCard from "./PlanCard.astro"
@@ -13,11 +13,11 @@ describe("PlanCard", () => {
     expect(html).toContain(">Solo</h3>")
     expect(html).toContain('data-interval="month"')
     expect(html).toContain('data-interval="year"')
-    expect(html).toContain(`${solo.monthlyPriceEur} €`)
-    expect(html).toContain(`${yearlyPriceEur(solo)} €`)
+    expect(html).toContain(formatUsd(solo.monthlyPriceUsd))
+    expect(html).toContain(formatUsd(yearlyPriceUsd(solo)))
     expect(html).toContain(`Up to ${solo.maxServers} servers`)
     expect(html).toContain(
-      '<a href="https://app.pupitre.studio/" class="btn btn-primary">Order</a>'
+      '<a href="https://app.pupitre.studio/" class="btn btn-primary w-full">Order</a>'
     )
     expect(html).not.toContain(">From<")
   })
@@ -43,8 +43,8 @@ describe("PlanCard", () => {
     expect(html).toContain('data-availability="later"')
     expect(html).toContain(">Hosted</h3>")
     expect(html).toContain(">From<")
-    expect(html).toContain(`${hosted.monthlyPriceEur} €`)
-    expect(html).not.toContain(`${yearlyPriceEur(hosted)} €`)
+    expect(html).toContain(formatUsd(hosted.monthlyPriceUsd))
+    expect(html).not.toContain(formatUsd(yearlyPriceUsd(hosted)))
     expect(html).not.toContain("data-interval")
     expect(html).not.toContain("<a ")
     expect(html).toContain(">Later<")

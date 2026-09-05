@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { render } from "../test/render"
 import Base from "./Base.astro"
 
-const props = { title: "Pricing · Pupitre", description: "19 € per server." }
+const props = { title: "Pricing · Pupitre", description: "$19 per server." }
 
 describe("Base layout", () => {
   it("renders a complete English head at the root", async () => {
@@ -18,7 +18,7 @@ describe("Base layout", () => {
     expect(html).toContain('name="viewport"')
     expect(html).toContain("<title>Pricing · Pupitre</title>")
     expect(html).toContain(
-      '<meta name="description" content="19 € per server.">'
+      '<meta name="description" content="$19 per server.">'
     )
     expect(html).toContain('<meta name="color-scheme" content="light dark">')
     expect(html).toContain(
@@ -40,7 +40,7 @@ describe("Base layout", () => {
       '<meta property="og:title" content="Pricing · Pupitre">'
     )
     expect(html).toContain(
-      '<meta property="og:description" content="19 € per server.">'
+      '<meta property="og:description" content="$19 per server.">'
     )
     expect(html).toContain('<meta property="og:type" content="website">')
     expect(html).toContain(
@@ -122,7 +122,8 @@ describe("Base layout", () => {
     expect(html).toContain(">Blog</a>")
     expect(html).toContain('data-theme-option="system"')
     expect(html).toContain('href="/fr/pricing/" hreflang="fr" lang="fr"')
-    expect(html).toContain('<a href="/download/" class="btn btn-primary">')
+    expect(html).toContain('href="/download/"')
+    expect(html).toContain(">Changelog</a>")
     expect(html).toContain("<footer")
     expect(html).toContain("</footer>")
     expect(html).toContain('href="/legal/terms/"')

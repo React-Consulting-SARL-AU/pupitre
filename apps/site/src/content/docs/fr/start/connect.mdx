@@ -1,0 +1,40 @@
+---
+title: Connecter l’app
+description: Ajouter un serveur, ce que fait la première connexion, et ce que l’inspection rapporte.
+locale: fr
+section: start
+sectionOrder: 0
+order: 3
+---
+
+Ajouter un serveur tient sur un écran : une adresse, un port s’il n’est pas 22, et un compte pour la première connexion. Rien d’autre n’est demandé, et rien n’est encore installé.
+
+## La première connexion
+
+L’app ouvre une session SSH avec le compte que vous avez donné — root, ou un utilisateur avec sudo. Elle ne s’en sert qu’une fois, pour poser la clé générée pour cet appareil et lancer la sonde. Ensuite elle se connecte en `dev` avec sa propre clé, et n’a plus jamais besoin du premier compte.
+
+## La sonde
+
+La sonde lit la machine et rapporte :
+
+- la distribution et sa version, l’architecture, le noyau ;
+- la RAM, le swap, le disque, et ce qui reste libre de chacun ;
+- ce qui est déjà installé parmi ce que le catalogue connaît ;
+- si SSH est joignable, si un pare-feu tourne, si root peut encore se connecter.
+
+Elle n’écrit rien. Une machine que la sonde refuse n’est pas touchée.
+
+## Ce qu’il refuse
+
+Pupitre dit non clairement, plutôt que d’installer à moitié :
+
+- une distribution qui n’est ni Ubuntu 22.04 ni 24.04 ;
+- moins de RAM que n’en demandent les modules choisis ;
+- une architecture qu’un module ne prend pas en charge ;
+- un service déjà installé autrement, qu’un module devrait reprendre.
+
+Chaque refus nomme la raison et, quand elle existe, la commande qui répare.
+
+## Rien ne se connecte vers l’intérieur
+
+Une fois l’app connectée, le seul port ouvert sur le serveur est SSH, pour vous. Ni la plateforme ni le support ne se connectent à votre machine. L’agent sort en HTTPS pour son droit d’usage, les clés publiques et ses propres mises à jour ; rien n’entre.

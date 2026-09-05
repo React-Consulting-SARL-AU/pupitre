@@ -1,0 +1,115 @@
+---
+title: "Claude Code sur un VPS : l’installation complète"
+description: Tout ce qu’il faut pour faire tourner Claude Code sur un serveur Linux loué — l’utilisateur, les shells, les runtimes, la base, le tunnel — et ce qui casse si vous sautez une étape.
+locale: fr
+date: 2026-08-18
+author: Jordan Monier
+reading: 12 min
+order: 1
+---
+
+Un laptop est un mauvais endroit pour faire travailler un agent. Il s’endort, il bride, il manque de mémoire pendant un build, et il s’arrête au moment où vous rabattez l’écran. Chacun de ces comportements est acceptable quand c’est vous qui tapez. Aucun ne l’est quand c’est autre chose.
+
+Voici l’installation que j’utilise tous les jours : une machine Ubuntu, quatre gigaoctets de mémoire, et Claude Code qui y vit. Rien d’exotique. C’est écrit en entier parce que chaque guide que j’ai trouvé sautait l’étape qui a cassé ensuite.
+
+## La machine
+
+Ubuntu 22.04 ou 24.04, 4 Go de RAM, 20 Go de disque, amd64 ou arm64. N’importe quel hébergeur avec une image nue convient. Évitez ceux qui livrent un panneau de contrôle : ils ont des opinions sur les unités `systemd` que vous passerez une soirée à défaire.
+
+Démarrez-la, notez l’adresse, ouvrez une session en root.
+
+## Un utilisateur qui n’est pas root
+
+Les agents se trompent, et une erreur commise en root est une erreur d’un autre genre.
+
+```sh
+adduser --disabled-password --gecos "" dev
+usermod -aG sudo dev
+install -d -m 700 -o dev -g dev /home/dev/.ssh
+cp /root/.ssh/authorized_keys /home/dev/.ssh/authorized_keys
+chown dev:dev /home/dev/.ssh/authorized_keys
+chmod 600 /home/dev/.ssh/authorized_keys
+```
+
+Copiez la clé **avant** de fermer root, et vérifiez qu’elle marche depuis un second terminal avant de fermer quoi que ce soit. C’est l’étape qu’on saute, et c’est l’étape qui enferme dehors.
+
+## La mémoire, avant tout le reste
+
+Quatre gigaoctets disparaissent vite quand un build Node et une base partagent une machine. Deux choses empêchent le tueur de mémoire de choisir le mauvais processus :
+
+```sh
+fallocate -l 4G /swapfile && chmod 600 /swapfile
+mkswap /swapfile && swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+apt-get install -y systemd-oomd
+```
+
+Le swap n’est pas là pour rendre la machine rapide. Il est là pour qu’un build qui a brièvement besoin de six gigaoctets finisse au lieu de mourir.
+
+## Les shells, et la partie que tout le monde rate
+
+Installez `tmux` et `zsh`, puis un gestionnaire de versions. `mise` est celui sur lequel je reviens :
+
+```sh
+curl https://mise.run | sh
+mise use --global node@24 bun@latest
+```
+
+Voici ce qui compte. Un agent n’ouvre pas de shell de connexion. Quand Claude Code lance `npm test` par une commande `ssh` non interactive, il obtient un shell qui n’a jamais lu votre `.zshrc`, et `node` n’est pas dans le chemin. Le symptôme, c’est un agent qui affirme que votre projet est cassé.
+
+Le correctif est d’activer le gestionnaire de versions dans `.zshenv`, que les shells non interactifs lisent bel et bien :
+
+```sh
+# ~/.zshenv
+eval "$(mise activate zsh --shims)"
+```
+
+Utilisez les shims, pas l’activation complète : les shims fonctionnent sans hook de shell, ce qui est exactement votre situation.
+
+## Marqueurs de prompt
+
+Si vous comptez lire le terminal depuis un programme — et vous le ferez — posez des marqueurs OSC 133 pour que le lecteur sache où une commande finit et où la suivante commence. `zsh` les obtient par un petit hook, `bash` par `PROMPT_COMMAND`. Sans eux, un flux de terminal est un mur d’octets indifférencié et vous finissez par écrire un analyseur de prompt, ce qui est une mauvaise façon d’occuper un week-end.
+
+## Claude Code
+
+```sh
+npm install -g @anthropic-ai/claude-code
+claude
+```
+
+Il affiche une URL. Ouvrez-la sur votre laptop, approuvez, et vous êtes connecté sur le serveur avec votre propre abonnement. Rien n’est relayé et rien n’est stocké ailleurs que sur la machine.
+
+Lancez-le dans `tmux`, toujours :
+
+```sh
+tmux new -s work -c ~/projects/api
+```
+
+La session survit alors à votre laptop. C’est toute la raison d’être de la machine.
+
+## Un navigateur, pour qu’il puisse regarder
+
+Un agent qui modifie une page et ne peut pas voir le résultat décrira ce qu’il croit avoir fait. Installez Chrome headless et les dépendances Playwright, et donnez-lui une commande de capture qui range les images quelque part où vous pouvez les regarder. La différence de qualité du travail est plus grande qu’elle n’a le droit de l’être.
+
+## La base, liée à localhost
+
+```sh
+apt-get install -y postgresql
+```
+
+Liez-la ensuite à `127.0.0.1` et laissez-la là. Votre laptop l’atteint par la session SSH déjà ouverte — une redirection de port, pas un port ouvert. Une base sur une interface publique, c’est comme ça qu’un projet du soir devient un incident.
+
+## Fermer la porte, en dernier
+
+```sh
+ufw allow OpenSSH && ufw --force enable
+apt-get install -y fail2ban
+```
+
+Ensuite, et seulement ensuite, désactivez l’authentification par mot de passe et la connexion root. Testez d’abord que votre clé ouvre `dev` depuis un terminal neuf. Gardez l’ancienne session ouverte pendant le test. Si ça rate, il vous reste un chemin de retour.
+
+## Ce que ça fait au total
+
+Un après-midi, si rien ne vous surprend. Ça m’a surpris trois fois : le shell non interactif, le swap, et l’ordre des étapes de durcissement. Ces trois-là sont la raison pour laquelle j’ai fini par écrire un programme qui fait tout ça en dix minutes, vérifie chaque étape, et refuse de fermer root tant qu’il n’a pas prouvé que votre clé fonctionne.
+
+Ce programme, c’est Pupitre. Mais l’installation ci-dessus reste l’installation, avec ou sans lui, et elle mérite d’être faite une fois à la main pour savoir ce que la machine contient réellement.

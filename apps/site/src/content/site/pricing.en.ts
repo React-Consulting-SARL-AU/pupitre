@@ -4,12 +4,12 @@ export const pricingEn: PricingContent = {
   meta: {
     title: "Pricing — Pupitre",
     description:
-      "{price} € per server per month on Solo and Team, excluding VAT. {months} months free on the yearly plan, a {days}-day trial without a card. When you stop, your server keeps running.",
+      "{price} per server per month on Solo and Team, excluding tax. {months} months free on the yearly plan, a {days}-day trial without a card. When you stop, your server keeps running.",
   },
   hero: {
     label: "Pricing",
     headline: "One price per server. The server stays yours.",
-    lead: "Solo and Team cost the same per server: {price} € a month, excluding VAT. Yearly, {months} months are free. The trial lasts {days} days and asks for no card. When you stop paying, your server keeps working without Pupitre.",
+    lead: "Solo and Team cost the same per server: {price} a month, excluding tax. Yearly, {months} months are free. The trial lasts {days} days and asks for no card. When you stop paying, your server keeps working without Pupitre.",
     unit: "per server, per month",
   },
   billing: {
@@ -21,9 +21,9 @@ export const pricingEn: PricingContent = {
   plans: {
     label: "Offers",
     title: "Solo, Team, and later Hosted",
-    perServerMonth: "per server, per month, excl. VAT",
-    perServerYear: "per server, per year, excl. VAT",
-    perMonth: "per month, excl. VAT",
+    perServerMonth: "per server, per month, excl. tax",
+    perServerYear: "per server, per year, excl. tax",
+    perMonth: "per month, excl. tax",
     from: "From",
     later: "Later",
     serversUpTo: "Up to {count} servers you bring",
@@ -38,7 +38,7 @@ export const pricingEn: PricingContent = {
         includes: [
           "The desktop app, and the agent on each server",
           "The whole catalogue: runtimes, databases, agents, editors, exposure",
-          "Updates, backups and alerts",
+          "Updates and alerts",
           "Your own Claude, Codex or Hermes subscriptions",
         ],
         cta: "Order",
@@ -82,7 +82,7 @@ export const pricingEn: PricingContent = {
       lines: [
         "The desktop app: dashboard, projects, terminals",
         "The catalogue: installing, updating, removing services",
-        "Updates of the agent, backups and alerts",
+        "Updates of the agent and alerts",
         "Support",
       ],
     },

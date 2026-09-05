@@ -1,4 +1,4 @@
-import { getPlan, PLANS, yearlyPriceEur } from "@pupitre/shared/plans"
+import { getPlan, PLANS, yearlyPriceUsd } from "@pupitre/shared/plans"
 import { describe, expect, it } from "vitest"
 import {
   faqPage,
@@ -37,8 +37,8 @@ describe("softwareApplication", () => {
     expect(data.operatingSystem).toBe("macOS, Windows, Linux")
     expect(data.offers).toEqual({
       "@type": "Offer",
-      price: String(getPlan("solo").monthlyPriceEur),
-      priceCurrency: "EUR",
+      price: String(getPlan("solo").monthlyPriceUsd),
+      priceCurrency: "USD",
       url: "https://pupitre.studio/pricing/",
     })
   })
@@ -103,16 +103,16 @@ describe("product", () => {
     expect(data.offers[0]).toEqual({
       "@type": "Offer",
       name: "Solo, monthly",
-      price: String(getPlan("solo").monthlyPriceEur),
-      priceCurrency: "EUR",
+      price: String(getPlan("solo").monthlyPriceUsd),
+      priceCurrency: "USD",
       url: "https://app.pupitre.studio/",
       availability: "https://schema.org/InStock",
     })
     expect(data.offers[1]).toEqual({
       "@type": "Offer",
       name: "Solo, yearly",
-      price: String(yearlyPriceEur(getPlan("solo"))),
-      priceCurrency: "EUR",
+      price: String(yearlyPriceUsd(getPlan("solo"))),
+      priceCurrency: "USD",
       url: "https://app.pupitre.studio/",
       availability: "https://schema.org/InStock",
     })

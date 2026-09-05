@@ -1,0 +1,38 @@
+---
+title: Choisir un VPS
+description: Ce que Pupitre attend de la machine que vous louez, et ce qu’il faut regarder avant de payer.
+locale: fr
+section: start
+sectionOrder: 0
+order: 1
+---
+
+Pupitre ne vous vend pas de serveur et n’en loue pas pour vous. Vous apportez la machine ; l’app la rend utilisable. La première décision est donc la vôtre, et elle est courte.
+
+## Le minimum
+
+- **Ubuntu 22.04 LTS ou 24.04 LTS.** Ni Debian, ni une distribution dérivée d’Ubuntu. Les modules sont écrits et testés contre ces deux-là.
+- **4 Go de RAM.** En dessous, un build Node et une base sur la même machine se disputent la mémoire.
+- **amd64 ou arm64.** Les deux sont traités à égalité. arm64 est souvent moins cher à mémoire égale.
+- **20 Go de disque libre.** Un runtime, une base et quelques projets tiennent à l’aise ; un backend JetBrains, non.
+- **Root, ou un compte avec sudo**, pour la première connexion seulement.
+- **Le port 22 joignable.** Si votre réseau le bloque, le module de durcissement peut aussi poser SSH sur le 443.
+
+## Ce qu’il faut prendre plus large
+
+| Si vous prévoyez de | Prenez |
+| --- | --- |
+| Faire tourner un IDE JetBrains distant | 8 Go de RAM |
+| Faire tourner deux ou trois bases en même temps | 8 Go de RAM |
+| Construire plusieurs projets en parallèle | 4 vCPU |
+| Stocker dumps, artefacts et captures | 40 Go de disque |
+
+## Hébergeurs
+
+N’importe quel hébergeur qui vous donne une image Ubuntu nue convient : Hetzner, netcup, OVH, Scaleway, DigitalOcean, Vultr, Contabo, ou une machine dans votre propre baie. Il n’y a aucune intégration à configurer et aucun jeton d’API à confier. Pupitre se connecte en SSH comme vous le feriez.
+
+Évitez les images livrées avec un panneau de contrôle, une pile web préinstallée ou un noyau verrouillé. Pupitre rapporte ce qu’il trouve, mais une machine qui a déjà son idée de la gestion des services rend l’installation plus bruyante.
+
+## Avant de connecter
+
+Démarrez la machine, notez son adresse, et vérifiez que vous pouvez ouvrir une session SSH en root ou avec sudo. C’est toute la préparation. Pupitre génère sa propre clé sur votre laptop à l’étape suivante : vous n’avez pas à en créer une d’abord.

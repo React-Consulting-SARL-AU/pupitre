@@ -1,0 +1,38 @@
+---
+title: AI agents
+description: Running Claude Code, Codex and Hermes on the server, with your own subscriptions.
+locale: en
+section: daily
+sectionOrder: 2
+order: 4
+---
+
+Pupitre installs the agents; you bring the subscriptions. Nothing is resold, and no token of yours is stored on the platform.
+
+## Signing in
+
+`ai.claude` and `ai.codex` sign in the way they do anywhere: the tool prints a URL in the terminal, you open it in your browser, you approve. The app shows that terminal, so the flow is the same one you already know — it just happens on the server.
+
+## From your own client
+
+You do not have to open an agent from Pupitre. The Claude desktop app and the ChatGPT desktop app both open a session on a remote machine over SSH: point one at your server and the agent runs there, in your projects, on the runtimes the modules installed. See [your own client](/docs/daily/clients/).
+
+## Context
+
+The app opens an agent in the project folder, not in a home directory. The project's own instruction files are there, and so are the Pupitre skills: take a screenshot, open a branch, open a pull request, ship.
+
+## Screenshots
+
+With `ai.browser` installed, an agent can drive headless Chrome and file the images in the project gallery. That is what lets it look at the page it just changed instead of describing what it thinks it did.
+
+## Running overnight
+
+An agent started in a `tmux` session keeps working when you close the app. That is the point of the machine: a long task does not need your laptop to stay open, and a build does not need your fans.
+
+## Hermes
+
+`ai.hermes` runs the Nous Research agent on the Python runtime, with the model providers you configure. If you ask for it to be always on, it gets a `systemd` unit. Provider keys land in a file only root can read.
+
+## What Pupitre does not do
+
+It does not choose a model for you, does not proxy your requests, and does not read your conversations. It installs the tools, opens them in the right folder, and shows you the terminal.

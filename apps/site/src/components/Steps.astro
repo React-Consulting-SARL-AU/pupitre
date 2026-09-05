@@ -1,0 +1,23 @@
+---
+import type { StepItem } from "../content/site/home"
+
+interface Props {
+  items: StepItem[]
+}
+
+const { items } = Astro.props
+---
+
+<ol class="grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+  {
+    items.map((item, position) => (
+      <li class="border-line border-t pt-5">
+        <p class="index-mark">
+          {String(position + 1).padStart(2, "0")}
+        </p>
+        <h3 class="heading-3 mt-3">{item.title}</h3>
+        <p class="mt-3 text-ink-2">{item.detail}</p>
+      </li>
+    ))
+  }
+</ol>

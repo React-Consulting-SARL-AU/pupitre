@@ -1,0 +1,42 @@
+---
+title: Projects
+description: Adding a project, what the agent does with it, and how it reaches a URL.
+locale: en
+section: daily
+sectionOrder: 2
+order: 1
+---
+
+A project is a git repository or a folder on the server. The agent keeps a registry of them, and the app shows what the registry says. Nothing is inferred.
+
+## Adding one
+
+Give a git URL or point at a folder that already exists. The agent then:
+
+1. clones the repository into your projects directory, or adopts the folder;
+2. detects the package manager and installs dependencies;
+3. reads whatever start command the project declares;
+4. starts it in a `tmux` session named after the project;
+5. reports the port it listens on, the URL, and the log stream.
+
+If a step needs something the machine does not have — a runtime you did not install, a database the project expects — it says so and names the module that provides it.
+
+## Where it lives
+
+Projects sit under the directory you chose during `core.system`, one folder per project, owned by `dev`. The registry records the absolute path, so a project moved by hand is a project the agent can still find.
+
+## Running and stopping
+
+Starting and stopping go through `tmux`. That is deliberate: a project keeps running when you close the app, when your laptop sleeps, and when your connection drops. Reopen the app and it reattaches to the same session with the same scrollback.
+
+## Logs
+
+The app streams the session output as the agent reads it. The scrollback is the `tmux` scrollback; nothing is buffered on the platform, and nothing is stored anywhere but the machine.
+
+## Environment files
+
+If `tool.1password` is installed, a project that carries an `.env.local` template gets its file generated from your vault when it starts. Without it, you manage environment files yourself, in the folder, like anywhere else.
+
+## Exposure
+
+By default a project listens on localhost and the app reaches it through the SSH session — `exposure.ssh`. With `exposure.cloudflare` installed, you can give a project a route on your domain: one tunnel for the machine, one route per project, DNS and certificate handled.

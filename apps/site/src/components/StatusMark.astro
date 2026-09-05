@@ -1,0 +1,21 @@
+---
+import type { Mark } from "../content/site/home"
+
+interface Props {
+  mark: Mark
+  label: string
+}
+
+const CLASS: Record<Mark, string> = {
+  on: "mark-dot mark-dot-on",
+  warn: "mark-dot mark-dot-warn",
+  off: "mark-dot mark-dot-off",
+}
+
+const { mark, label } = Astro.props
+---
+
+<span class="inline-flex shrink-0 items-center">
+  <span data-mark={mark} class={CLASS[mark]}></span>
+  <span class="sr-only">{label}</span>
+</span>

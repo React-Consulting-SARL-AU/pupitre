@@ -1,40 +1,87 @@
 ---
 import { localeFromPath, localizePath, translator } from "../lib/i18n"
+import { STATUS_URL } from "../lib/urls"
+import Brand from "./Brand.astro"
 import LocaleSwitch from "./LocaleSwitch.astro"
+import ThemeToggle from "./ThemeToggle.astro"
 
 const locale = localeFromPath(Astro.url.pathname)
 const t = translator(locale)
 const year = new Date().getFullYear()
 
-const links = [
-  { href: "/legal/terms/", label: t("footer.terms") },
-  { href: "/legal/privacy/", label: t("footer.privacy") },
-  { href: "/legal/licence/", label: t("footer.licence") },
-  { href: "/legal/acceptable-use/", label: t("footer.acceptableUse") },
+const groups = [
+  {
+    title: t("footer.product"),
+    links: [
+      { href: "/download/", label: t("nav.download") },
+      { href: "/pricing/", label: t("nav.pricing") },
+      { href: "/changelog/", label: t("nav.changelog") },
+    ],
+  },
+  {
+    title: t("footer.resources"),
+    links: [
+      { href: "/docs/", label: t("nav.docs") },
+      { href: "/blog/", label: t("nav.blog") },
+      { href: STATUS_URL, label: t("footer.status"), external: true },
+    ],
+  },
+  {
+    title: t("footer.legal"),
+    links: [
+      { href: "/legal/terms/", label: t("footer.terms") },
+      { href: "/legal/privacy/", label: t("footer.privacy") },
+      { href: "/legal/licence/", label: t("footer.licence") },
+      { href: "/legal/acceptable-use/", label: t("footer.acceptableUse") },
+      { href: "/legal/data-processing/", label: t("footer.dpa") },
+    ],
+  },
 ]
 ---
 
-<footer class="border-line border-t">
-  <div
-    class="mx-auto flex max-w-5xl flex-wrap items-center gap-x-8 gap-y-3 px-6 py-6"
-  >
-    <p class="text-ink-3">
-      © {year} {t("site.name")} · {t("footer.company")}
-    </p>
-    <nav aria-label={t("footer.legal")} class="flex flex-wrap gap-x-4">
+<footer class="mt-24 border-line border-t bg-surface">
+  <div class="shell grid gap-x-10 gap-y-12 py-16 md:grid-cols-[1.4fr_2fr]">
+    <div class="max-w-sm">
+      <Brand />
+      <p class="mt-5 text-ink-2">{t("footer.tagline")}</p>
+      <p class="mt-4 text-ink-3">{t("footer.builtBy")}</p>
+    </div>
+
+    <div class="grid gap-x-8 gap-y-10 sm:grid-cols-3">
       {
-        links.map((link) => (
-          <a
-            href={localizePath(link.href, locale)}
-            class="py-2 text-ink-2 hover:text-ink"
-          >
-            {link.label}
-          </a>
+        groups.map((group) => (
+          <nav aria-label={group.title}>
+            <h2 class="label text-ink-3">{group.title}</h2>
+            <ul class="mt-4 grid gap-1">
+              {group.links.map((link) => (
+                <li>
+                  <a
+                    href={
+                      link.external ? link.href : localizePath(link.href, locale)
+                    }
+                    rel={link.external ? "noreferrer" : undefined}
+                    class="-mx-2 inline-block rounded-sm px-2 py-1.5 text-ink-2 hover:text-ink"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
         ))
       }
-    </nav>
-    <div class="ms-auto">
-      <LocaleSwitch />
+    </div>
+  </div>
+
+  <div class="border-line border-t">
+    <div
+      class="shell flex flex-wrap items-center gap-x-6 gap-y-4 py-6 text-ink-3"
+    >
+      <p class="data">© {year} {t("site.name")} · {t("footer.company")}</p>
+      <div class="ms-auto flex items-center gap-2">
+        <ThemeToggle />
+        <LocaleSwitch />
+      </div>
     </div>
   </div>
 </footer>

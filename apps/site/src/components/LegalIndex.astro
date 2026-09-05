@@ -1,0 +1,50 @@
+---
+import { getCollection } from "astro:content"
+import Base from "../layouts/Base.astro"
+import { docSlug } from "../lib/docs"
+import { localeFromPath, localizePath, translator } from "../lib/i18n"
+import PageHeader from "./PageHeader.astro"
+
+const locale = localeFromPath(Astro.url.pathname)
+const t = translator(locale)
+const pages = (
+  await getCollection("legal", (entry) => entry.data.locale === locale)
+).sort((a, b) => a.data.order - b.data.order)
+const format = new Intl.DateTimeFormat(locale, { dateStyle: "long" })
+---
+
+<Base title={t("legal.title")} description={t("legal.description")}>
+  <PageHeader
+    label={t("legal.label")}
+    title={t("legal.headline")}
+    lead={t("legal.lead")}
+  />
+
+  <div class="shell py-16 md:py-24">
+    <ul class="grid gap-6 md:grid-cols-2">
+      {
+        pages.map((page) => (
+          <li>
+            <a
+              href={localizePath(`/legal/${docSlug(page.id)}/`, locale)}
+              class="card-link flex h-full flex-col p-6"
+            >
+              <span class="flex items-baseline gap-3">
+                <span class="heading-3 text-ink">{page.data.title}</span>
+                {page.data.draft && (
+                  <span class="tag ms-auto">{t("legal.draft")}</span>
+                )}
+              </span>
+              <span class="mt-3 block flex-1 text-ink-2">
+                {page.data.description}
+              </span>
+              <span class="data mt-5 block text-ink-3">
+                {t("legal.updated")} {format.format(page.data.updated)}
+              </span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</Base>

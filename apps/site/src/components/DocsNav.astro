@@ -1,0 +1,50 @@
+---
+import type { DocsSection } from "../lib/docs"
+import { docPath } from "../lib/docs"
+import { type Locale, localizePath, translator } from "../lib/i18n"
+import DocsSearch from "./DocsSearch.astro"
+
+interface Props {
+  sections: DocsSection[]
+  current: string
+  locale: Locale
+  id: string
+}
+
+const { sections, current, locale, id } = Astro.props
+const t = translator(locale)
+---
+
+<nav aria-label={t("docs.nav")} class="grid gap-8">
+  <DocsSearch id={id} />
+
+  <a
+    href={localizePath("/docs/", locale)}
+    aria-current={current === "" ? "page" : undefined}
+    class="label text-ink-3 hover:text-ink aria-[current=page]:text-ink"
+  >
+    {t("docs.back")}
+  </a>
+
+  {
+    sections.map((section) => (
+      <div data-docs-group>
+        <p class="label text-ink-3">{section.title}</p>
+        <ul class="mt-3 grid border-line border-s">
+          {section.entries.map((entry) => (
+            <li>
+              <a
+                href={docPath(entry.slug, locale)}
+                data-docs-link={`${entry.title} ${entry.description} ${entry.slug}`}
+                aria-current={entry.slug === current ? "page" : undefined}
+                class="-ms-px block border-transparent border-s ps-4 py-1.5 text-ink-3 hover:border-line-strong hover:text-ink aria-[current=page]:border-ink aria-[current=page]:font-medium aria-[current=page]:text-ink"
+              >
+                {entry.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))
+  }
+</nav>

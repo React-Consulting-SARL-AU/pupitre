@@ -1,0 +1,38 @@
+---
+title: Choose a VPS
+description: What Pupitre needs from the machine you rent, and what to look at before you pay for one.
+locale: en
+section: start
+sectionOrder: 0
+order: 1
+---
+
+Pupitre does not sell you a server and does not rent one for you. You bring the machine; the app makes it usable. That means the first decision is yours, and it is a small one.
+
+## The minimum
+
+- **Ubuntu 22.04 LTS or 24.04 LTS.** Not Debian, not a distribution derived from Ubuntu. The modules are written and tested against these two.
+- **4 GB of RAM.** Below that, a Node build and a database on the same machine start fighting over memory.
+- **amd64 or arm64.** Both are first-class. arm64 is often cheaper for the same memory.
+- **20 GB of free disk.** A runtime, a database and a few projects fit comfortably; a JetBrains backend does not.
+- **Root, or an account with sudo**, for the first connection only.
+- **Port 22 reachable.** If your network blocks it, the hardening module can put SSH on 443 as well.
+
+## What to take more of
+
+| If you plan to | Take |
+| --- | --- |
+| Run a remote JetBrains IDE | 8 GB of RAM |
+| Run two or three databases at once | 8 GB of RAM |
+| Keep several projects building in parallel | 4 vCPU |
+| Store dumps, artefacts and screenshots | 40 GB of disk |
+
+## Hosts
+
+Any host that gives you a plain Ubuntu image works: Hetzner, netcup, OVH, Scaleway, DigitalOcean, Vultr, Contabo, or a machine in your own rack. There is no integration to configure and no API token to hand over. Pupitre connects over SSH like you would.
+
+Avoid images that ship a control panel, a preinstalled web stack, or a locked-down kernel. Pupitre reports what it finds, but a machine that already has its own idea of how services are managed makes for a noisier install.
+
+## Before you connect
+
+Boot the machine, note its address, and make sure you can open an SSH session as root or with sudo. That is the whole preparation. Pupitre generates its own key on your laptop at the next step, so you do not need to create one first.

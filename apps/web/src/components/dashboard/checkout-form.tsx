@@ -1,3 +1,4 @@
+import { formatUsd } from "@pupitre/shared/plans"
 import { useMutation } from "@tanstack/react-query"
 import { ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -10,12 +11,11 @@ import { useForm } from "@/hooks/use-form"
 import { startCheckout } from "@/lib/api/queries"
 import { leaveFor } from "@/lib/config/urls"
 import {
-  amountEur,
+  amountUsd,
   BILLING_INTERVALS,
   type BillingIntervalName,
-  formatEur,
   INTERVAL_LABELS,
-  SEAT_PRICE_EUR_PER_MONTH,
+  SEAT_PRICE_USD_PER_MONTH,
 } from "@/lib/domain/billing"
 import {
   type CheckoutInput,
@@ -57,7 +57,7 @@ export function CheckoutForm({
       <CardHeader>
         <CardTitle>Commander des sièges</CardTitle>
         <span className="font-data text-[12px] text-ink-3 tabular-nums">
-          {formatEur(SEAT_PRICE_EUR_PER_MONTH)} par serveur et par mois
+          {formatUsd(SEAT_PRICE_USD_PER_MONTH)} par serveur et par mois
         </span>
       </CardHeader>
       <CardBody>
@@ -112,7 +112,7 @@ export function CheckoutForm({
                 Total
               </span>
               <span className="font-data text-[12px] text-ink tabular-nums">
-                {formatEur(amountEur(total, interval))}
+                {formatUsd(amountUsd(total, interval))}
                 <span className="text-ink-3">
                   {interval === "year" ? " par an" : " par mois"}
                 </span>

@@ -1,0 +1,75 @@
+---
+import { getCollection, render } from "astro:content"
+import Base from "../layouts/Base.astro"
+import { localeFromPath, localizePath, translator } from "../lib/i18n"
+import PageHeader from "./PageHeader.astro"
+
+const locale = localeFromPath(Astro.url.pathname)
+const t = translator(locale)
+const entries = (
+  await getCollection("changelog", (entry) => entry.data.locale === locale)
+).sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+const rendered = await Promise.all(
+  entries.map(async (entry) => ({ entry, ...(await render(entry)) }))
+)
+const format = new Intl.DateTimeFormat(locale, { dateStyle: "long" })
+---
+
+<Base title={t("changelog.title")} description={t("changelog.description")}>
+  <Fragment slot="head">
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title={t("changelog.label")}
+      href={localizePath("/changelog/rss.xml", locale)}
+    />
+  </Fragment>
+
+  <PageHeader
+    label={t("changelog.label")}
+    title={t("changelog.headline")}
+    lead={t("changelog.lead")}
+  >
+    <div class="flex flex-wrap gap-3">
+      <a
+        href={localizePath("/download/", locale)}
+        class="btn btn-primary">{t("nav.cta")}</a
+      >
+      <a
+        href={localizePath("/changelog/rss.xml", locale)}
+        class="btn btn-secondary">{t("changelog.rss")}</a
+      >
+    </div>
+  </PageHeader>
+
+  <div class="shell py-16 md:py-24">
+    {rendered.length === 0 && <p class="text-ink-3">{t("changelog.empty")}</p>}
+    <div class="grid gap-12">
+      {
+        rendered.map(({ entry, Content }) => (
+          <article
+            id={entry.data.version}
+            class="grid gap-x-10 gap-y-6 border-line border-t pt-8 md:grid-cols-[13rem_minmax(0,1fr)]"
+          >
+            <header class="md:sticky md:top-24 md:self-start">
+              <p class="figure text-[32px]">{entry.data.version}</p>
+              <p class="data mt-3 text-ink-3">
+                <time datetime={entry.data.date.toISOString()}>
+                  {format.format(entry.data.date)}
+                </time>
+              </p>
+              <p class="tag mt-3">{t(`changelog.${entry.data.channel}`)}</p>
+            </header>
+            <div>
+              <h2 class="heading-2">{entry.data.title}</h2>
+              <p class="lead mt-4 text-ink-2">{entry.data.description}</p>
+              <div class="prose mt-8 max-w-none">
+                <Content />
+              </div>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</Base>

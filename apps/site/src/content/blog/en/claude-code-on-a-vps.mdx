@@ -1,0 +1,115 @@
+---
+title: "Claude Code on a VPS: the complete setup"
+description: Everything it takes to run Claude Code on a Linux server you rent — the user, the shells, the runtimes, the database, the tunnel — and what breaks if you skip a step.
+locale: en
+date: 2026-08-18
+author: Jordan Monier
+reading: 12 min
+order: 1
+---
+
+A laptop is a bad place for an agent to work. It sleeps, it throttles, it runs out of memory during a build, and it stops the moment you close the lid. Every one of those is fine when you are the one typing. None of them are fine when something else is.
+
+This is the setup I run every day: one Ubuntu machine, four gigabytes of memory, and Claude Code living on it. Nothing here is exotic. It is written out in full because every guide I found skipped the step that later broke.
+
+## The machine
+
+Ubuntu 22.04 or 24.04, 4 GB of RAM, 20 GB of disk, amd64 or arm64. Any host with a plain image works. Avoid the ones that ship a control panel: they have opinions about `systemd` units that you will spend an evening undoing.
+
+Boot it, note the address, and open a session as root.
+
+## A user that is not root
+
+Agents make mistakes, and a mistake made as root is a different kind of mistake.
+
+```sh
+adduser --disabled-password --gecos "" dev
+usermod -aG sudo dev
+install -d -m 700 -o dev -g dev /home/dev/.ssh
+cp /root/.ssh/authorized_keys /home/dev/.ssh/authorized_keys
+chown dev:dev /home/dev/.ssh/authorized_keys
+chmod 600 /home/dev/.ssh/authorized_keys
+```
+
+Copy the key **before** you close root, and verify that it works from a second terminal before you close anything. This is the step people skip, and it is the step that locks them out.
+
+## Memory, before anything else
+
+Four gigabytes disappears fast when a Node build and a database share a machine. Two things prevent the out-of-memory killer from taking the wrong process:
+
+```sh
+fallocate -l 4G /swapfile && chmod 600 /swapfile
+mkswap /swapfile && swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+apt-get install -y systemd-oomd
+```
+
+Swap is not there to make the machine fast. It is there so that a build that briefly needs six gigabytes finishes instead of dying.
+
+## Shells, and the part everybody gets wrong
+
+Install `tmux` and `zsh`, then a version manager. `mise` is the one I keep coming back to:
+
+```sh
+curl https://mise.run | sh
+mise use --global node@24 bun@latest
+```
+
+Here is the part that matters. An agent does not open a login shell. When Claude Code runs `npm test` through a non-interactive `ssh` command, it gets a shell that never sourced your `.zshrc`, and `node` is not on the path. The symptom is an agent that insists your project is broken.
+
+The fix is to activate the version manager in `.zshenv`, which non-interactive shells *do* read:
+
+```sh
+# ~/.zshenv
+eval "$(mise activate zsh --shims)"
+```
+
+Use the shims, not the full activation: shims work without a shell hook, which is exactly the situation you are in.
+
+## Prompt markers
+
+If you plan to read the terminal from a program — and you will — set OSC 133 markers so the reader can tell where one command ends and the next begins. `zsh` gets them from a small hook; `bash` from `PROMPT_COMMAND`. Without them, a terminal stream is an undifferentiated wall of bytes and you end up writing a prompt parser, which is a bad way to spend a weekend.
+
+## Claude Code
+
+```sh
+npm install -g @anthropic-ai/claude-code
+claude
+```
+
+It prints a URL. Open it on your laptop, approve, and you are signed in on the server with your own subscription. Nothing is proxied and nothing is stored anywhere but the machine.
+
+Run it inside `tmux`, always:
+
+```sh
+tmux new -s work -c ~/projects/api
+```
+
+Now the session survives your laptop. This is the whole reason the machine exists.
+
+## A browser, so it can look
+
+An agent that changes a page and cannot see the result will describe what it believes it did. Install headless Chrome and the Playwright dependencies, and give it a capture command that files images somewhere you can look at them. The difference in the quality of the work is larger than it has any right to be.
+
+## The database, bound to localhost
+
+```sh
+apt-get install -y postgresql
+```
+
+Then bind it to `127.0.0.1` and leave it there. Your laptop reaches it through the SSH session you already have open — a port forward, not an open port. A database on a public interface is how a side project becomes an incident.
+
+## Closing the door, last
+
+```sh
+ufw allow OpenSSH && ufw --force enable
+apt-get install -y fail2ban
+```
+
+Then, and only then, disable password authentication and root login. Test that your key opens `dev` from a fresh terminal first. Keep the old session open while you test. If it fails, you still have a way back.
+
+## What this adds up to
+
+An afternoon, if nothing surprises you. It surprised me three times: the non-interactive shell, the swap, and the order of the hardening steps. Those three are why I ended up writing a program that does all of it in ten minutes, checks each step, and refuses to close root until it has proven your key works.
+
+That program is Pupitre. But the setup above is the setup, with or without it, and it is worth doing once by hand to know what the machine actually holds.

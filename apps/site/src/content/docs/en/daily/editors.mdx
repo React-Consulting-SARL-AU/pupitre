@@ -1,0 +1,32 @@
+---
+title: Remote editors
+description: JetBrains Gateway, VS Code Remote SSH and Zed against a Pupitre server.
+locale: en
+section: daily
+sectionOrder: 2
+order: 5
+---
+
+Editing happens in your editor, on your laptop, against files on the server. Pupitre's job is to make the first connection immediate instead of a ten-minute download.
+
+## JetBrains
+
+`editor.jetbrains` preinstalls the remote development backend in the cache JetBrains Gateway expects, with a JVM and a heap sized for the machine. You open the project through the Gateway link the app gives you, on your own licence.
+
+The backend version has to match your Gateway. That is a JetBrains constraint, not ours: the module asks for the version rather than guessing.
+
+A remote backend is the heaviest thing in the catalogue. Plan for 8 GB of RAM if you use one.
+
+## VS Code, Cursor, Windsurf
+
+`editor.vscode` preinstalls the `code` CLI and the remote server, plus whatever extensions you list. Remote SSH then connects immediately. Cursor and Windsurf use the same remote server, so the same module covers them.
+
+Visual Studio has no Linux backend. If you ask for it, the app says so and points you here.
+
+## Zed
+
+`editor.zed` preinstalls the Zed remote server for your version, and the app opens the project with `zed://ssh`. Zed requires the remote server to match your client exactly, so the module asks for the version.
+
+## What they share
+
+All three connect over the same SSH the app uses, with the same key. No editor gets its own credentials on the machine, and none of them open a port.

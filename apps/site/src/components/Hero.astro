@@ -2,23 +2,65 @@
 import { homeContent } from "../content/site/home"
 import { localeFromPath, localizePath, translator } from "../lib/i18n"
 import { CONSOLE_URL } from "../lib/urls"
-import DownloadButton from "./DownloadButton.astro"
+import StatusMark from "./StatusMark.astro"
 
 const locale = localeFromPath(Astro.url.pathname)
 const t = translator(locale)
 const { hero } = homeContent(locale)
+const marks = {
+  on: t("changelog.stable"),
+  warn: t("callout.warn"),
+  off: t("callout.info"),
+}
 ---
 
-<section class="mx-auto max-w-5xl px-6 py-24 md:py-40">
-  <p class="label mb-8 text-ink-3">{t("site.name")}</p>
-  <h1 class="heading-1 max-w-3xl">{hero.headline}</h1>
-  <p class="lead mt-6 max-w-2xl text-ink-2">{hero.lead}</p>
-  <div class="mt-10 flex flex-wrap gap-3">
-    <DownloadButton
-      href={localizePath("/download/", locale)}
-      label={hero.download}
-    />
-    <a href={CONSOLE_URL} class="btn btn-secondary">{hero.order}</a>
+<section class="border-line border-b">
+  <div
+    class="shell grid items-start gap-x-16 gap-y-16 py-20 md:py-28 lg:grid-cols-[1.05fr_0.95fr]"
+  >
+    <div>
+      <p class="eyebrow">{hero.eyebrow}</p>
+      <h1 class="display-1 mt-7 max-w-3xl">{hero.headline}</h1>
+      <p class="lead mt-7 max-w-xl text-ink-2">{hero.lead}</p>
+
+      <div class="mt-9 flex flex-wrap gap-3">
+        <a
+          href={localizePath("/download/", locale)}
+          class="btn btn-lg btn-primary">{hero.download}</a
+        >
+        <a href={CONSOLE_URL} class="btn btn-lg btn-secondary">{hero.order}</a>
+      </div>
+
+      <ul class="mt-9 flex flex-wrap gap-2">
+        {hero.specs.map((spec) => <li class="tag">{spec}</li>)}
+      </ul>
+
+      <p class="mt-9 max-w-xl text-ink-3">{hero.note}</p>
+    </div>
+
+    <figure class="card overflow-hidden">
+      <figcaption class="border-line border-b bg-base px-5 py-4">
+        <p class="heading-4">{hero.report.title}</p>
+        <p class="data mt-1.5 text-ink-3">{hero.report.footer}</p>
+      </figcaption>
+      <ul class="divide-y divide-line">
+        {
+          hero.report.lines.map((line) => (
+            <li class="flex gap-3 px-5 py-3.5">
+              <span class="mt-1 flex">
+                <StatusMark mark={line.mark} label={marks[line.mark]} />
+              </span>
+              <div class="min-w-0">
+                <p class="data text-ink">{line.module}</p>
+                <p class="data mt-0.5 text-ink-3">{line.detail}</p>
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+      <p class="border-line border-t bg-base px-5 py-4 text-ink-3">
+        {hero.report.caption}
+      </p>
+    </figure>
   </div>
-  <p class="mt-10 max-w-2xl text-ink-3">{hero.note}</p>
 </section>

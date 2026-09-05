@@ -1,0 +1,30 @@
+---
+title: Your key
+description: How Pupitre generates and uses an SSH key, where the private half lives, and what the platform sees of it.
+locale: en
+section: start
+sectionOrder: 0
+order: 2
+---
+
+Pupitre generates an ed25519 key pair the first time you open it. The private half never leaves your laptop. Everything the app and the agent do afterwards rests on that one fact.
+
+## Where the key lives
+
+The app keeps its own SSH configuration inside its data directory: a `config` file and one key per server, in mode `0600`. Your `~/.ssh/config` is not modified. If you already keep a host entry there and would rather use it, you can point the app at that host instead of letting it manage its own.
+
+## What goes to the server
+
+The public half, and only the public half, lands in `authorized_keys` for the `dev` user. The `core.system` module copies the unrestricted keys already present on root, so a key opens `dev` **before** hardening closes root. That order matters: it is what stops an install from locking you out of your own machine.
+
+## What the platform sees
+
+If you sign in, the platform stores the public half so it can hand it to the agents of servers you own. It never sees the private half, and it never connects to your server: the agent pulls what it needs over outbound HTTPS.
+
+## One key per device
+
+Each device you install the app on generates its own key. That is what makes revocation useful: removing a device removes one key, and the other machines you work from keep working. A laptop that is lost is a key you revoke, not a password you rotate everywhere.
+
+## If you lose the key
+
+You lose the app's way in, not the machine. Connect with whatever other access you kept — your host's console, another key already in `authorized_keys` — and add the new public key by hand. The app shows it on the server screen so you can paste it.

@@ -1,0 +1,38 @@
+---
+title: Équipes
+description: Organisations, membres, rôles, attribution d’un serveur à une personne, et révocation.
+locale: fr
+section: account
+sectionOrder: 3
+order: 1
+---
+
+Tout appartient à une organisation. À l’inscription, une organisation personnelle est créée pour vous ; vous n’y penserez peut-être jamais. Une équipe, c’est le même objet avec plus d’une personne dedans.
+
+## Rôles
+
+| Rôle | Peut |
+| --- | --- |
+| Owner | Tout, y compris la facturation et la suppression de l’organisation |
+| Admin | Inviter, attribuer des serveurs, révoquer, lire le journal d’audit |
+| Member | Utiliser les serveurs qui lui sont attribués |
+
+## Attribuer un serveur
+
+Un serveur appartient à l’organisation et est attribué à une personne. Les appareils de cette personne voient leurs clés publiques poussées sur la machine ; ceux des autres, non. Réattribuer un serveur retire les anciennes clés et ajoute les nouvelles à la prochaine remontée de l’agent.
+
+## Inviter
+
+Une invitation est un email avec un lien. La personne accepte, se connecte, installe l’app ; son premier appareil génère sa propre clé. Rien n’est partagé, et aucun mot de passe ne circule.
+
+## Révoquer
+
+Retirer un membre retire les clés de ses appareils de tous les serveurs où il était. La révocation atteint une machine à la prochaine remontée sortante de l’agent — ce n’est pas une connexion que la plateforme ouvre.
+
+## Le journal d’audit
+
+Qui a invité qui, qui a attribué quel serveur, qui a révoqué quoi, et quand. Il enregistre les actions faites dans la console. Il n’enregistre pas ce qui se passe dans vos serveurs : la plateforme ne le voit jamais.
+
+## Facturation d’une équipe
+
+Une facture. Le prix par serveur est le même en Solo et en Équipe : une organisation achète l’organisation, pas une remise.

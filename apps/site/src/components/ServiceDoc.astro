@@ -1,0 +1,88 @@
+---
+import type { ModuleId } from "@pupitre/shared/catalog"
+import { AVAILABILITY_LABELS, CATALOG } from "../content/site/catalog"
+import { MODULE_LABELS } from "../content/site/docs"
+import { MODULE_DOCS } from "../content/site/module-docs"
+import Docs from "../layouts/Docs.astro"
+import { docPath, moduleSlug } from "../lib/docs"
+import { docsSections } from "../lib/docs-entries"
+import { localeFromPath } from "../lib/i18n"
+
+interface Props {
+  moduleId: ModuleId
+}
+
+const { moduleId } = Astro.props
+const locale = localeFromPath(Astro.url.pathname)
+const sections = await docsSections(locale)
+const group = CATALOG.find((candidate) =>
+  candidate.entries.some((entry) => entry.id === moduleId)
+)
+const entry = group?.entries.find((candidate) => candidate.id === moduleId)
+
+if (!(entry && group)) {
+  throw new Error(`Unknown module: ${moduleId}`)
+}
+
+const doc = MODULE_DOCS[moduleId]
+const facts = [
+  { term: MODULE_LABELS.moduleId[locale], value: moduleId },
+  { term: MODULE_LABELS.category[locale], value: group.label[locale] },
+  {
+    term: MODULE_LABELS.availability[locale],
+    value: AVAILABILITY_LABELS[entry.availability][locale],
+  },
+]
+---
+
+<Docs
+  title={entry.name[locale]}
+  description={entry.detail[locale]}
+  section={MODULE_LABELS.overviewTitle[locale]}
+  slug={moduleSlug(moduleId)}
+  sections={sections}
+>
+  <dl class="not-prose flex flex-wrap gap-2">
+    {
+      facts.map((fact) => (
+        <div class="tag">
+          <dt class="text-ink-3">{fact.term}</dt>
+          <dd class="text-ink">{fact.value}</dd>
+        </div>
+      ))
+    }
+  </dl>
+
+  <h2 id="installs">{MODULE_LABELS.installs[locale]}</h2>
+  <ul>
+    {doc.installs.map((line) => <li>{line[locale]}</li>)}
+  </ul>
+
+  <h2 id="asks">{MODULE_LABELS.asks[locale]}</h2>
+  {
+    doc.asks.length === 0 ? (
+      <p>{MODULE_LABELS.none[locale]}</p>
+    ) : (
+      <ul>
+        {doc.asks.map((line) => (
+          <li>{line[locale]}</li>
+        ))}
+      </ul>
+    )
+  }
+
+  {
+    doc.notes && (
+      <>
+        <h2 id="notes">{MODULE_LABELS.notes[locale]}</h2>
+        <p>{doc.notes[locale]}</p>
+      </>
+    )
+  }
+
+  <p class="mt-10">
+    <a href={docPath("services", locale)}>
+      {MODULE_LABELS.backToServices[locale]}
+    </a>
+  </p>
+</Docs>

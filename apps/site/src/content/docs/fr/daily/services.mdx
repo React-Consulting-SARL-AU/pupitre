@@ -1,0 +1,30 @@
+---
+title: Services et mises à jour
+description: Ajouter, configurer, mettre à jour et retirer un module après la première installation.
+locale: fr
+section: daily
+sectionOrder: 2
+order: 6
+---
+
+Le catalogue ne se ferme pas après l’onboarding. Ajouter un module plus tard, c’est le même écran, sans le reste du parcours.
+
+## Chaque module fait six choses
+
+`Check`, `Install`, `Configure`, `Upgrade`, `Uninstall`, `Status`. Chacune est idempotente : elle vérifie avant d’agir, si bien que lancer une installation deux fois ne change rien la seconde fois.
+
+## État
+
+L’écran des services affiche ce que l’agent rapporte : le module, sa version, s’il tourne, et quand il a été vérifié pour la dernière fois. Il n’affiche rien que l’agent n’ait envoyé — aucune supposition en cache, aucun état optimiste.
+
+## Mettre à jour
+
+Mettre à jour un module lance son étape `Upgrade`. Mettre à jour l’agent lui-même est une opération distincte : l’agent télécharge son propre binaire signé en HTTPS sortant, vérifie la signature, et se remplace. Il ne lance jamais rien que vous n’ayez demandé.
+
+## Désinstaller
+
+`Uninstall` retire ce que le module a installé, et rien d’autre. Un module ne touche jamais à ce qu’il n’a pas posé — une base que vous avez installée à la main reste exactement où elle est.
+
+## Ce qui reste si vous arrêtez de payer
+
+Tout ce qui est sur la machine. Projets, bases, services, tunnels et configuration sont des artefacts Ubuntu ordinaires gérés avec `systemd`, `tmux`, `ufw` et `fail2ban`. Vous perdez l’app : le tableau de bord, le catalogue, les mises à jour, les sauvegardes et les alertes. Le serveur reste le vôtre, et vous y accédez toujours en SSH.

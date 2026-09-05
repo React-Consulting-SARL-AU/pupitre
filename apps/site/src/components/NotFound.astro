@@ -1,0 +1,23 @@
+---
+import Base from "../layouts/Base.astro"
+import { localeFromPath, localizePath, translator } from "../lib/i18n"
+
+const locale = localeFromPath(Astro.url.pathname)
+const t = translator(locale)
+---
+
+<Base title={t("notFound.title")} description={t("notFound.description")} noIndex>
+  <section class="shell py-24 md:py-40">
+    <p class="eyebrow max-w-xs"><span class="index-mark">404</span></p>
+    <h1 class="heading-1 mt-6 max-w-2xl">{t("notFound.headline")}</h1>
+    <p class="lead mt-6 max-w-xl text-ink-2">{t("notFound.lead")}</p>
+    <div class="mt-9 flex flex-wrap gap-3">
+      <a href={localizePath("/", locale)} class="btn btn-lg btn-primary">
+        {t("notFound.home")}
+      </a>
+      <a href={localizePath("/docs/", locale)} class="btn btn-lg btn-secondary">
+        {t("notFound.docs")}
+      </a>
+    </div>
+  </section>
+</Base>

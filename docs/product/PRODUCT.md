@@ -31,17 +31,17 @@ Jobs-to-be-done :
 | Choisit ses services dans le catalogue | Les installe, les configure, les surveille, les met à jour, les désinstalle |
 | Ajoute ses projets par URL git ou dossier | Clone, installe les dépendances, démarre dans tmux, expose l'URL, montre les logs |
 | Se connecte à ses agents avec ses propres abonnements | Ouvre Claude Code, Codex ou Hermes dans le bon dossier, avec le contexte du projet et des skills |
-| Paie un abonnement par serveur | Fournit l'app, l'agent, les mises à jour, les sauvegardes et les alertes |
+| Paie un abonnement par serveur | Fournit l'app, l'agent, les mises à jour et les alertes |
 
 ## Offre et prix
 
 | Offre | Pour qui | Contenu | Prix HT |
 | --- | --- | --- | --- |
-| **Solo** | un utilisateur | jusqu'à deux serveurs apportés | 19 € par serveur et par mois |
-| **Team** | une organisation | serveurs apportés, membres, rôles, attribution d'un serveur à une personne, audit, facture unique | 19 € par serveur et par mois |
-| **Hosted** | qui ne veut pas louer | serveur fourni par Pupitre. Plus tard, après 100 serveurs payants | à partir de 29 € par mois |
+| **Solo** | un utilisateur | jusqu'à deux serveurs apportés | 19 $ par serveur et par mois |
+| **Team** | une organisation | serveurs apportés, membres, rôles, attribution d'un serveur à une personne, audit, facture unique | 19 $ par serveur et par mois |
+| **Hosted** | qui ne veut pas louer | serveur fourni par Pupitre. Plus tard, après 100 serveurs payants | à partir de 29 $ par mois |
 
-Annuel avec deux mois offerts. Essai de 14 jours sans carte. Le prix par serveur est identique pour Solo et Team : l'agence achète l'organisation, pas un tarif. Noms en anglais sur toutes les surfaces publiques ; en français, Solo, Équipe, Hébergé.
+Prix en dollars, la LLC vendant depuis les États-Unis ; Stripe convertit dans la devise du client au moment du paiement et ajoute la taxe applicable. Annuel avec deux mois offerts. Essai de 14 jours sans carte. Le prix par serveur est identique pour Solo et Team : l'agence achète l'organisation, pas un tarif. Noms en anglais sur toutes les surfaces publiques ; en français, Solo, Équipe, Hébergé.
 
 Quand l'abonnement s'arrête, le serveur du client continue de fonctionner comme un serveur normal : ses projets, ses bases, ses services restent. Il perd Pupitre, rien d'autre. C'est écrit dans les conditions et sur le site.
 

@@ -1,0 +1,38 @@
+---
+title: La première version
+description: L’app desktop mène l’onboarding d’un bout à l’autre, l’agent installe le catalogue du MVP, et la console vous connecte.
+locale: fr
+version: 0.1.0
+channel: beta
+date: 2026-09-01
+order: 1
+---
+
+La première version installable hors du projet. Elle fait tout l’onboarding : ajouter un serveur, l’inspecter, choisir les services, configurer, installer, durcir, premier projet.
+
+## L’app
+
+- Les serveurs, avec une clé ed25519 par appareil et une configuration SSH qui appartient à l’app.
+- L’écran d’inspection : distribution, mémoire, disque, architecture, et ce qui est déjà installé.
+- Le catalogue et ses écrans de configuration, pilotés par les manifestes que déclare l’agent.
+- L’installation en direct avec le module, l’étape, le compteur et la durée, et la commande de rejeu en cas d’échec.
+- Le durcissement, et la bascule de root vers `dev` — root fermé en dernier, après vérification de la clé.
+- Premier projet : clone, dépendances, `tmux`, port, URL, logs.
+- Le tableau de bord, et les projets sur le nouveau protocole.
+
+## L’agent
+
+- La sonde, le moteur de modules et le rapport de fin d’installation.
+- Les modules socle et de durcissement, les runtimes, les bases, les agents IA, les éditeurs distants, l’exposition et les outils.
+- Le registre des projets, et le pilotage des sessions `tmux`, des processus, des captures, des secrets et des bases.
+
+## La plateforme
+
+- Comptes, appareils, enrôlement, jetons d’agent et heartbeat.
+- Distribution des binaires signés, abonnements, organisations, emails transactionnels, alertes, passkeys.
+
+## Limites connues
+
+- L’app est en bêta. Elle est signée et notarisée sur macOS, signée sur Windows, et livrée en AppImage sur Linux.
+- La mise à jour automatique n’est pas encore active : cette version se télécharge à la main.
+- `Hosted` n’existe pas. Vous apportez le serveur.

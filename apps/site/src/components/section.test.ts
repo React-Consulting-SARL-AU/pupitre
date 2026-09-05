@@ -11,7 +11,8 @@ describe("Section", () => {
 
     expect(html).toContain('<section id="catalog"')
     expect(html).toContain('aria-labelledby="catalog-title"')
-    expect(html).toContain('<p class="label text-ink-3">Catalogue</p>')
+    expect(html).toContain('class="eyebrow"')
+    expect(html).toContain("<span>Catalogue</span>")
     expect(html).toContain('<h2 id="catalog-title" class="heading-2')
     expect(html).toContain(">What it installs</h2>")
     expect(html).toContain("<p>List</p>")

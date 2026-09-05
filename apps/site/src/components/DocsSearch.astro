@@ -1,0 +1,73 @@
+---
+import { localeFromPath, translator } from "../lib/i18n"
+
+interface Props {
+  id: string
+}
+
+const { id } = Astro.props
+const t = translator(localeFromPath(Astro.url.pathname))
+const inputId = `docs-search-${id}`
+---
+
+<div data-docs-search>
+  <label class="label block text-ink-3" for={inputId}>
+    {t("docs.search")}
+  </label>
+  <input
+    id={inputId}
+    type="search"
+    autocomplete="off"
+    placeholder={t("docs.searchPlaceholder")}
+    class="mt-2 w-full rounded-md border border-line bg-sunken px-3 py-2 text-ink placeholder:text-ink-4"
+  />
+  <p data-search-empty hidden class="mt-2 text-ink-3">
+    {t("docs.searchEmpty")}
+  </p>
+</div>
+
+<script>
+  function normalize(value: string): string {
+    return value
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+  }
+
+  for (const root of document.querySelectorAll<HTMLElement>(
+    "[data-docs-search]"
+  )) {
+    const input = root.querySelector<HTMLInputElement>("input")
+    const empty = root.querySelector<HTMLElement>("[data-search-empty]")
+    const nav = root.closest("nav")
+    const links = [
+      ...(nav?.querySelectorAll<HTMLAnchorElement>("[data-docs-link]") ?? []),
+    ]
+    const groups = [
+      ...(nav?.querySelectorAll<HTMLElement>("[data-docs-group]") ?? []),
+    ]
+
+    input?.addEventListener("input", () => {
+      const query = normalize(input.value.trim())
+      let matches = 0
+
+      for (const link of links) {
+        const hit =
+          query === "" || normalize(link.dataset.docsLink ?? "").includes(query)
+
+        link.hidden = !hit
+        matches += hit ? 1 : 0
+      }
+
+      for (const group of groups) {
+        group.hidden = ![
+          ...group.querySelectorAll<HTMLAnchorElement>("[data-docs-link]"),
+        ].some((link) => !link.hidden)
+      }
+
+      if (empty) {
+        empty.hidden = matches > 0
+      }
+    })
+  }
+</script>

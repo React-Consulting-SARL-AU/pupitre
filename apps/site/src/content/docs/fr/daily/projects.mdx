@@ -1,0 +1,42 @@
+---
+title: Projets
+description: Ajouter un projet, ce que l’agent en fait, et comment il arrive derrière une URL.
+locale: fr
+section: daily
+sectionOrder: 2
+order: 1
+---
+
+Un projet est un dépôt git ou un dossier sur le serveur. L’agent en tient un registre, et l’app affiche ce que dit le registre. Rien n’est deviné.
+
+## En ajouter un
+
+Donnez une URL git ou pointez un dossier qui existe déjà. L’agent alors :
+
+1. clone le dépôt dans votre dossier de projets, ou adopte le dossier ;
+2. détecte le gestionnaire de paquets et installe les dépendances ;
+3. lit la commande de démarrage que le projet déclare ;
+4. le démarre dans une session `tmux` nommée d’après le projet ;
+5. rapporte le port sur lequel il écoute, l’URL, et le flux de logs.
+
+Si une étape a besoin de quelque chose qui manque — un runtime non installé, une base que le projet attend — elle le dit et nomme le module qui le fournit.
+
+## Où il vit
+
+Les projets vivent sous le dossier choisi pendant `core.system`, un dossier par projet, appartenant à `dev`. Le registre enregistre le chemin absolu : un projet déplacé à la main reste un projet que l’agent retrouve.
+
+## Démarrer et arrêter
+
+Le démarrage et l’arrêt passent par `tmux`. C’est délibéré : un projet continue de tourner quand vous fermez l’app, quand votre laptop s’endort, et quand votre connexion tombe. Rouvrez l’app, elle se rattache à la même session avec le même historique.
+
+## Logs
+
+L’app diffuse la sortie de la session telle que l’agent la lit. L’historique est celui de `tmux` ; rien n’est mis en tampon sur la plateforme, et rien n’est stocké ailleurs que sur la machine.
+
+## Fichiers d’environnement
+
+Si `tool.1password` est installé, un projet qui porte un gabarit `.env.local` voit son fichier généré depuis votre coffre au démarrage. Sans lui, vous gérez vos fichiers d’environnement vous-même, dans le dossier, comme partout ailleurs.
+
+## Exposition
+
+Par défaut un projet écoute en local et l’app l’atteint par la session SSH — `exposure.ssh`. Avec `exposure.cloudflare` installé, vous pouvez donner à un projet une route sur votre domaine : un tunnel pour la machine, une route par projet, DNS et certificat gérés.

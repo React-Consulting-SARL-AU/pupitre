@@ -1,0 +1,40 @@
+---
+title: Connect the app
+description: Adding a server, what the first connection does, and what the inspection reports back.
+locale: en
+section: start
+sectionOrder: 0
+order: 3
+---
+
+Adding a server is one screen: an address, a port if it is not 22, and an account for the first connection. Nothing else is asked, and nothing is installed yet.
+
+## The first connection
+
+The app opens an SSH session as the account you gave — root, or a user with sudo. It uses that session once, to place the key it generated for this device and to run the probe. After that, it connects as `dev` with its own key and never needs the first account again.
+
+## The probe
+
+The probe reads the machine and reports:
+
+- the distribution and its version, the architecture, the kernel;
+- RAM, swap, disk, and how much of each is free;
+- what is already installed among the things the catalogue knows about;
+- whether SSH is reachable, whether a firewall is running, whether root can still log in.
+
+It writes nothing. A machine that fails the probe is not touched.
+
+## What it refuses
+
+Pupitre says no clearly, rather than half-installing:
+
+- a distribution that is not Ubuntu 22.04 or 24.04;
+- less RAM than the modules you selected need;
+- an architecture a module does not support;
+- a service already installed by other means that a module would have to take over.
+
+Every refusal names the reason and, when there is one, the command that fixes it.
+
+## Nothing connects inward
+
+Once the app is connected, the only open port on the server is SSH, for you. Neither the platform nor support connects to your machine. The agent reaches out over HTTPS for its licence, for public keys, and for its own updates; nothing reaches in.

@@ -10,7 +10,7 @@ describe("CatalogList", () => {
     expect(html.match(/<h3/g)).toHaveLength(7)
     expect(html.match(/<li/g)).toHaveLength(MODULE_IDS.length)
     for (const id of MODULE_IDS) {
-      expect(html).toContain(`<code class="data text-ink-3">${id}</code>`)
+      expect(html).toContain(`<code class="data text-ink-4">${id}</code>`)
     }
     expect(html).toContain(">Runtimes</h3>")
     expect(html).toContain("PostgreSQL 17")

@@ -70,13 +70,13 @@ describe("dictionary", () => {
 
 describe("fill", () => {
   it("replaces every placeholder with its value", () => {
-    expect(fill("{price} € per {unit}", { price: 19, unit: "server" })).toBe(
-      "19 € per server"
+    expect(fill("{price} USD per {unit}", { price: 19, unit: "server" })).toBe(
+      "19 USD per server"
     )
     expect(fill("{n} and {n}", { n: 2 })).toBe("2 and 2")
   })
 
   it("throws on a placeholder without a value", () => {
-    expect(() => fill("{price} €", {})).toThrow('Missing value for "price"')
+    expect(() => fill("{price} USD", {})).toThrow('Missing value for "price"')
   })
 })

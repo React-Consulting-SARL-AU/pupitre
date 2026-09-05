@@ -1,0 +1,75 @@
+---
+import { localeFromPath, localizePath, translator } from "../lib/i18n"
+import { article, breadcrumbs, jsonLd } from "../lib/structured-data"
+import Base from "./Base.astro"
+
+interface Props {
+  title: string
+  description: string
+  label: string
+  index: string
+  date: Date
+  meta: string[]
+  backHref: string
+  backLabel: string
+}
+
+const { title, description, label, index, date, meta, backHref, backLabel } =
+  Astro.props
+const locale = localeFromPath(Astro.url.pathname)
+const t = translator(locale)
+const pathname = Astro.url.pathname
+const published = new Intl.DateTimeFormat(locale, {
+  dateStyle: "long",
+}).format(date)
+
+const structured = jsonLd(
+  article({
+    locale,
+    type: "BlogPosting",
+    headline: title,
+    description,
+    pathname,
+    published: date,
+    publisher: t("site.name"),
+  })
+)
+const trail = jsonLd(
+  breadcrumbs([
+    { name: t("site.name"), pathname: localizePath("/", locale) },
+    { name: label, pathname: backHref },
+    { name: title, pathname },
+  ])
+)
+---
+
+<Base title={`${title} — ${t("site.name")}`} description={description}>
+  <Fragment slot="head">
+    <script is:inline type="application/ld+json" set:html={structured} />
+    <script is:inline type="application/ld+json" set:html={trail} />
+  </Fragment>
+
+  <article class="shell-narrow py-16 md:py-24">
+    <p class="eyebrow">
+      <span class="index-mark">{index}</span>
+      <span>{label}</span>
+    </p>
+    <h1 class="heading-1 mt-6">{title}</h1>
+    <p class="lead mt-6 text-ink-2">{description}</p>
+
+    <ul class="mt-8 flex flex-wrap gap-2">
+      <li class="tag">
+        <time datetime={date.toISOString()}>{published}</time>
+      </li>
+      {meta.map((item) => <li class="tag">{item}</li>)}
+    </ul>
+
+    <div class="prose mt-12 max-w-none">
+      <slot />
+    </div>
+
+    <p class="mt-16 border-line border-t pt-8">
+      <a href={backHref} class="link-underline">{backLabel}</a>
+    </p>
+  </article>
+</Base>

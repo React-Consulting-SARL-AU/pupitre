@@ -47,7 +47,7 @@ describe("home content", () => {
     }
   })
 
-  it("holds three features of three lines, three claims, five questions", () => {
+  it("holds three features of three lines, three clients, three claims, seven questions, seven steps", () => {
     for (const locale of LOCALES) {
       const content = homeContent(locale)
 
@@ -55,8 +55,13 @@ describe("home content", () => {
       for (const feature of content.features.items) {
         expect(feature.lines).toHaveLength(3)
       }
+      expect(content.clients.items).toHaveLength(3)
+      for (const client of content.clients.items) {
+        expect(client.lines).toHaveLength(3)
+      }
       expect(content.promise.items).toHaveLength(3)
-      expect(content.faq.items).toHaveLength(5)
+      expect(content.faq.items).toHaveLength(7)
+      expect(content.steps.items).toHaveLength(7)
     }
   })
 

@@ -1,6 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
 import { FREE_SEAT_QUOTA } from "@pupitre/shared/plans"
-import { COUNTRY_HEADER, currencyForCountry } from "../../lib/billing/config"
 import type { FakeBilling } from "../../lib/billing/fake"
 import { reconcileSeats } from "../../lib/billing/reconcile"
 import { bootApiTestServer, resetDb } from "../../testing"
@@ -109,14 +108,7 @@ describe("facturation d'une organisation", () => {
     member = created.members[2].session
   })
 
-  it("choisit la devise sur le pays", () => {
-    expect(currencyForCountry("FR")).toBe("eur")
-    expect(currencyForCountry("ma")).toBe("eur")
-    expect(currencyForCountry("US")).toBe("usd")
-    expect(currencyForCountry(null)).toBe("eur")
-  })
-
-  it("ouvre un checkout en quantité, mensuel, en euros", async () => {
+  it("ouvre un checkout en quantité, mensuel", async () => {
     const response = await apiRequest<UrlBody>(
       `/orgs/${organizationId}/checkout`,
       { body: { quantity: 3, interval: "month" }, session: owner }
@@ -129,20 +121,18 @@ describe("facturation d'une organisation", () => {
       organizationId,
       quantity: 3,
       interval: "month",
-      currency: "eur",
       customerId: null,
     })
   })
 
-  it("facture en dollars depuis un pays du dollar", async () => {
+  it("ouvre un checkout annuel", async () => {
     await apiRequest(`/orgs/${organizationId}/checkout`, {
       body: { quantity: 1, interval: "year" },
       session: owner,
-      headers: { [COUNTRY_HEADER]: "US" },
     })
 
     expect(billing.checkouts[0]).toMatchObject({
-      currency: "usd",
+      quantity: 1,
       interval: "year",
     })
   })

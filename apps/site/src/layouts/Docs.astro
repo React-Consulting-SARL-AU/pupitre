@@ -1,0 +1,152 @@
+---
+import DocsNav from "../components/DocsNav.astro"
+import {
+  type DocsSection,
+  docPath,
+  flatten,
+  type Heading,
+  neighbours,
+  tableOfContents,
+} from "../lib/docs"
+import { localeFromPath, localizePath, translator } from "../lib/i18n"
+import { article, breadcrumbs, jsonLd } from "../lib/structured-data"
+import Base from "./Base.astro"
+
+interface Props {
+  title: string
+  description: string
+  section: string
+  slug: string
+  sections: DocsSection[]
+  headings?: Heading[]
+}
+
+const {
+  title,
+  description,
+  section,
+  slug,
+  sections,
+  headings = [],
+} = Astro.props
+const locale = localeFromPath(Astro.url.pathname)
+const t = translator(locale)
+const contents = tableOfContents(headings)
+const { previous, next } = neighbours(flatten(sections), slug)
+const pathname = Astro.url.pathname
+
+const structured = jsonLd(
+  article({
+    locale,
+    type: "TechArticle",
+    headline: title,
+    description,
+    pathname,
+    publisher: t("site.name"),
+  })
+)
+const trail = jsonLd(
+  breadcrumbs([
+    { name: t("site.name"), pathname: localizePath("/", locale) },
+    { name: t("docs.label"), pathname: localizePath("/docs/", locale) },
+    { name: title, pathname },
+  ])
+)
+---
+
+<Base title={`${title} — ${t("site.name")}`} description={description}>
+  <Fragment slot="head">
+    <script is:inline type="application/ld+json" set:html={structured} />
+    <script is:inline type="application/ld+json" set:html={trail} />
+  </Fragment>
+
+  <div
+    class="shell grid items-start gap-x-12 gap-y-10 py-10 lg:grid-cols-[15rem_minmax(0,1fr)_13rem] lg:py-16"
+  >
+    <aside class="lg:sticky lg:top-24">
+      <details class="lg:hidden" data-docs-drawer>
+        <summary
+          class="btn btn-secondary w-full cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+        >
+          {t("docs.nav")}
+        </summary>
+        <div class="mt-4">
+          <DocsNav
+            sections={sections}
+            current={slug}
+            locale={locale}
+            id="drawer"
+          />
+        </div>
+      </details>
+      <div class="hidden lg:block">
+        <DocsNav
+          sections={sections}
+          current={slug}
+          locale={locale}
+          id="sidebar"
+        />
+      </div>
+    </aside>
+
+    <article class="min-w-0">
+      <p class="eyebrow">{section}</p>
+      <h1 class="heading-1 mt-5">{title}</h1>
+      <p class="lead mt-5 text-ink-2">{description}</p>
+
+      <div class="prose mt-10 max-w-none">
+        <slot />
+      </div>
+
+      <nav
+        aria-label={t("docs.nav")}
+        class="mt-16 grid gap-4 border-line border-t pt-8 sm:grid-cols-2"
+      >
+        {
+          previous && (
+            <a href={docPath(previous.slug, locale)} class="card-link p-5">
+              <span class="label text-ink-3">{t("docs.previous")}</span>
+              <span class="heading-4 mt-2 block text-ink">
+                {previous.title}
+              </span>
+            </a>
+          )
+        }
+        {
+          next && (
+            <a
+              href={docPath(next.slug, locale)}
+              class="card-link p-5 sm:col-start-2 sm:text-end"
+            >
+              <span class="label text-ink-3">{t("docs.next")}</span>
+              <span class="heading-4 mt-2 block text-ink">{next.title}</span>
+            </a>
+          )
+        }
+      </nav>
+    </article>
+
+    {
+      contents.length > 0 && (
+        <aside class="hidden lg:sticky lg:top-24 lg:block">
+          <p class="label text-ink-3">{t("docs.contents")}</p>
+          <ul class="mt-3 grid border-line border-s">
+            {contents.map((heading) => (
+              <li>
+                <a
+                  href={`#${heading.slug}`}
+                  class:list={[
+                    "-ms-px block border-transparent border-s py-1.5 text-ink-3 hover:border-line-strong hover:text-ink",
+                    heading.depth === 3 ? "ps-7" : "ps-4",
+                  ]}
+                >
+                  {heading.text}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      )
+    }
+  </div>
+</Base>

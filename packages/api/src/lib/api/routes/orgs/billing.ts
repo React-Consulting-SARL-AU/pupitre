@@ -5,7 +5,6 @@ import {
   startCheckout,
   startPortal,
 } from "../../../billing/checkout"
-import { currencyOfRequest } from "../../../billing/config"
 import { readSubscription } from "../../../billing/subscription"
 import { translate } from "../../../i18n"
 import { type ApiErrorPayload, apiError } from "../../errors"
@@ -36,14 +35,7 @@ export const orgsBillingRoutes = new Elysia({ name: "orgs-billing-routes" })
         return organizationNotFound(locale)
       }
 
-      return await startCheckout(
-        {
-          organizationId,
-          email: user.email,
-          currency: currencyOfRequest(request.headers),
-        },
-        body
-      )
+      return await startCheckout({ organizationId, email: user.email }, body)
     },
     {
       params: organizationParams,

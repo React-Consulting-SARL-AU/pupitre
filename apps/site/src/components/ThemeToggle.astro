@@ -9,7 +9,7 @@ const t = translator(localeFromPath(Astro.url.pathname))
   role="group"
   aria-label={t("theme.label")}
   data-theme-toggle
-  class="inline-flex rounded-md border border-line-strong p-0.5"
+  class="inline-flex rounded-md border border-line bg-surface p-0.5"
 >
   {
     THEMES.map((theme) => (
@@ -17,7 +17,7 @@ const t = translator(localeFromPath(Astro.url.pathname))
         type="button"
         data-theme-option={theme}
         aria-pressed={theme === "system" ? "true" : "false"}
-        class="label rounded-sm px-2.5 py-1.5 text-ink-2 hover:text-ink aria-pressed:bg-inverse aria-pressed:text-inverse-ink"
+        class="label rounded-sm px-2 py-1.5 text-ink-3 hover:text-ink aria-pressed:bg-inverse aria-pressed:text-inverse-ink"
       >
         {t(`theme.${theme}`)}
       </button>

@@ -7,11 +7,11 @@ const locale = localeFromPath(Astro.url.pathname)
 const { billing } = pricingContent(locale)
 ---
 
-<fieldset class="inline-flex rounded-md border border-line-strong p-0.5">
+<fieldset class="inline-flex rounded-md border border-line bg-surface p-0.5">
   <legend class="sr-only">{billing.legend}</legend>
   {
     BILLING_INTERVALS.map((interval) => (
-      <label class="group label flex cursor-pointer items-baseline gap-2 rounded-sm px-3 py-1.5 text-ink-2 hover:text-ink has-checked:bg-inverse has-checked:text-inverse-ink has-focus-visible:outline-2 has-focus-visible:outline-ink has-focus-visible:outline-offset-2">
+      <label class="group label flex cursor-pointer items-baseline gap-2 rounded-sm px-3.5 py-2 text-ink-3 hover:text-ink has-checked:bg-inverse has-checked:text-inverse-ink has-focus-visible:outline-2 has-focus-visible:outline-ink has-focus-visible:outline-offset-2">
         <input
           type="radio"
           name="billing"
@@ -22,7 +22,7 @@ const { billing } = pricingContent(locale)
         />
         <span>{billing[interval]}</span>
         {interval === "year" && (
-          <span class="text-ink-3 group-has-checked:text-inverse-ink/70">
+          <span class="text-ink-4 group-has-checked:text-inverse-ink/70">
             {fill(billing.yearNote, { months: ANNUAL_FREE_MONTHS })}
           </span>
         )}

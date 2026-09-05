@@ -1,0 +1,26 @@
+---
+title: Terminals
+description: How the app opens shells on the server, what tmux gives you, and what happens when you close the window.
+locale: en
+section: daily
+sectionOrder: 2
+order: 2
+---
+
+The app opens real terminals on the server, over the system `ssh` binary, in the project folder you are looking at. There is no web shell and no relay: it is the same connection you would open yourself.
+
+## Sessions survive
+
+Every terminal is a `tmux` session. Close the app, close the laptop, lose the network: the session keeps running and you find it again where you left it. This is the whole reason work moves off the laptop in the first place.
+
+## Prompt markers
+
+`core.system` sets OSC 133 markers in `zsh` and `bash`. They let the app tell one command from the next in a stream of bytes: it can show you where a command started, how long it took, and whether it failed, without parsing your prompt.
+
+## The dev command
+
+The agent binary is also linked as `dev`. In a plain SSH terminal, `dev` gives the same operations the app performs — the same handlers, the same refusals. Nothing the app can do is hidden behind the app.
+
+## Colours
+
+The terminal keeps a proper ANSI palette, because Claude Code, Codex and the tools around them depend on it. It is desaturated and fitted to the theme you chose. Everything around the terminal stays monochrome.

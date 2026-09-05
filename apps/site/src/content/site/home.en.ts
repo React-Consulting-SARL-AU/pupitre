@@ -7,12 +7,99 @@ export const homeEn: HomeContent = {
       "A desktop app that turns any Ubuntu VPS into a workshop for AI agents, and a compiled agent installed on that server.",
   },
   hero: {
+    eyebrow: "Desktop app · Ubuntu server · your own keys",
     headline:
       "Your AI agents get a machine of their own. Your laptop cools down.",
     lead: "Pupitre turns any Ubuntu VPS into a workshop for your agents: it inspects the machine, installs the services you pick and hardens it. Your projects, terminals, databases and Claude Code run there, and you see all of it from a desktop app.",
     download: "Download the app",
     order: "Order",
     note: "Built by someone who runs his own agents on a VPS every day.",
+    specs: [
+      "Ubuntu 22.04 / 24.04",
+      "4 GB RAM",
+      "SSH ed25519",
+      "macOS · Windows · Linux",
+    ],
+    report: {
+      title: "Install report",
+      caption:
+        "The report the agent returns when an install ends. The app shows this and nothing it did not receive.",
+      lines: [
+        {
+          mark: "on",
+          module: "core.system",
+          detail: "swap 4 GB · user dev · tmux · zsh",
+        },
+        {
+          mark: "on",
+          module: "core.hardening",
+          detail: "ufw · fail2ban · root closed",
+        },
+        {
+          mark: "on",
+          module: "runtime.node",
+          detail: "node 24.4.0 · bun 1.3.14 · pnpm 10.4.1",
+        },
+        {
+          mark: "on",
+          module: "db.postgres",
+          detail: "17.4 · 127.0.0.1:5432 · local only",
+        },
+        {
+          mark: "warn",
+          module: "ai.claude",
+          detail: "signed out — open the terminal to sign in",
+        },
+        {
+          mark: "off",
+          module: "exposure.cloudflare",
+          detail: "not installed",
+        },
+      ],
+      footer: "6 modules · 4 min 12 s · 1 to finish",
+    },
+  },
+  steps: {
+    label: "Onboarding",
+    title: "Seven steps, once",
+    lead: "The app walks the machine from empty to working. Every step says what it is doing and what it changed; you can stop after any of them.",
+    items: [
+      {
+        title: "Add the server",
+        detail:
+          "Its address and a root or sudo account. The app generates an ed25519 key for this device; the private half never leaves your laptop.",
+      },
+      {
+        title: "Inspect",
+        detail:
+          "Distribution, RAM, disk, architecture, what is already installed. Pupitre says what works, what is missing, and what it will not manage.",
+      },
+      {
+        title: "Choose the services",
+        detail:
+          "Runtimes, databases, agents, remote editors, exposure, tools. Each one states what it installs and what it will ask you for.",
+      },
+      {
+        title: "Configure",
+        detail:
+          "Versions, ports, accounts, secrets. Secrets travel over the SSH session and are never written to a file you did not ask for.",
+      },
+      {
+        title: "Install",
+        detail:
+          "Step by step, live: the module, the step, the counter, the elapsed time. A failure names the command that repairs it.",
+      },
+      {
+        title: "Harden and switch to dev",
+        detail:
+          "ufw on SSH only, fail2ban, passwords off, root closed last — after the app has verified that your key opens the dev account.",
+      },
+      {
+        title: "First project",
+        detail:
+          "A git URL or a folder. Clone, dependencies, tmux, the port, the URL, the logs. From there it is just your machine.",
+      },
+    ],
   },
   features: {
     label: "What it does",
@@ -43,6 +130,38 @@ export const homeEn: HomeContent = {
         ],
       },
     ],
+  },
+  clients: {
+    label: "Your own client",
+    title: "Work from the app you already use",
+    lead: "Claude and ChatGPT both ship a desktop app that opens a session on a remote machine over SSH. Point one at your server and it lands in your projects, on the runtimes Pupitre installed, next to the database the project needs. Pupitre’s own terminal becomes a choice.",
+    items: [
+      {
+        title: "Claude",
+        lines: [
+          "Add the server as a remote connection in the Claude desktop app and Claude Code runs there, not on your laptop.",
+          "It works in the project folder, with the project’s own instruction files and the Pupitre skills already on the machine.",
+          "Your subscription, your session. Nothing is proxied and nothing of yours is stored on our platform.",
+        ],
+      },
+      {
+        title: "ChatGPT and Codex",
+        lines: [
+          "The same over SSH from the ChatGPT desktop app: Codex runs on the server, with your own subscription.",
+          "Claude Code and Codex live on the same machine and see the same projects, the same runtimes, the same databases.",
+          "Both were installed and kept up to date by Pupitre, so there is nothing to set up on the server side.",
+        ],
+      },
+      {
+        title: "Editors, and plain ssh",
+        lines: [
+          "VS Code, Cursor and Windsurf over Remote SSH, Zed through zed://ssh, JetBrains through Gateway — the backends are preinstalled.",
+          "Or your own terminal: it is an ordinary Ubuntu machine, reached as dev with a key, running systemd and tmux.",
+          "Pupitre installs no lock. Anything that speaks SSH can attach to the server it set up.",
+        ],
+      },
+    ],
+    note: "You sign an agent in once, from whichever session you are in. After that, the Pupitre app is where the install, the services and the logs live — not a terminal you are made to work in.",
   },
   catalog: {
     label: "Catalogue",
@@ -97,7 +216,17 @@ export const homeEn: HomeContent = {
       {
         question: "What happens if the subscription stops?",
         answer:
-          "You lose the app: the dashboard, the catalogue, updates, backups and alerts. The server keeps going as a normal server — projects, databases, services and tunnels stay in place, and you connect over SSH as before. Subscribe again and the app picks up where it left off.",
+          "You lose the app: the dashboard, the catalogue, updates and alerts. The server keeps going as a normal server — projects, databases, services and tunnels stay in place, and you connect over SSH as before. Subscribe again and the app picks up where it left off.",
+      },
+      {
+        question: "Do I have to work inside Pupitre?",
+        answer:
+          "No. The server is an ordinary Ubuntu machine you reach over SSH as dev. The Claude desktop app and the ChatGPT desktop app both open a session on a remote machine, and so do VS Code, Cursor, Zed and JetBrains Gateway — point any of them at your server and you are in your projects, on the runtimes Pupitre installed. The app is where the install, the services, the alerts and the logs live; the terminal in it is there for the day you want it.",
+      },
+      {
+        question: "Can support get onto my machine?",
+        answer:
+          "No. Nothing connects inward to your server, not the platform and not support. The agent only makes outbound HTTPS calls for its licence, the public half of your keys and its own updates. Support sees that a server is enrolled and which version it runs; that is the whole of it.",
       },
     ],
   },
@@ -105,11 +234,17 @@ export const homeEn: HomeContent = {
     label: "Pricing",
     title: "One price per server",
     perServer:
-      "{price} € per server per month, excluding VAT, on {solo} as on {team}.",
-    annual: "Yearly, {months} months are free: {yearly} € per server per year.",
+      "{price} per server per month, excluding tax, on {solo} as on {team}.",
+    annual: "Yearly, {months} months are free: {yearly} per server per year.",
     trial: "{days}-day trial, no card.",
     hosted:
-      "{hosted}, a server provided by Pupitre, from {price} € per month. Later.",
+      "{hosted}, a server provided by Pupitre, from {price} per month. Later.",
     link: "See the pricing",
+  },
+  cta: {
+    title: "Give your agents a machine.",
+    lead: "Download the app, point it at a fresh Ubuntu VPS, and read along while it works. Nothing is installed on your laptop but the app itself.",
+    download: "Download the app",
+    docs: "Read the docs",
   },
 }

@@ -1,0 +1,94 @@
+---
+import { localeFromPath, localizePath, translator } from "../lib/i18n"
+
+const locale = localeFromPath(Astro.url.pathname)
+const t = translator(locale)
+const enabled = Boolean(import.meta.env.PUBLIC_POSTHOG_KEY)
+---
+
+{
+  enabled && (
+    <div
+      data-consent-banner
+      hidden
+      role="dialog"
+      aria-label={t("consent.title")}
+      class="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-md rounded-lg border border-line bg-base p-5 shadow-overlay"
+    >
+      <p class="heading-4">{t("consent.title")}</p>
+      <p class="mt-2 text-ink-2">{t("consent.body")}</p>
+      <div class="mt-4 flex flex-wrap items-center gap-2">
+        <button type="button" data-consent="granted" class="btn btn-primary">
+          {t("consent.accept")}
+        </button>
+        <button type="button" data-consent="denied" class="btn btn-secondary">
+          {t("consent.decline")}
+        </button>
+        <a
+          href={localizePath("/legal/privacy/", locale)}
+          class="ms-auto py-2 text-ink-3 hover:text-ink"
+        >
+          {t("consent.link")}
+        </a>
+      </div>
+    </div>
+  )
+}
+
+<script>
+  import {
+    CONSENT_KEY,
+    parseConsent,
+    posthogOptions,
+    readConsent,
+  } from "../lib/analytics"
+
+  const key = import.meta.env.PUBLIC_POSTHOG_KEY
+  const host = import.meta.env.PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com"
+  const banner = document.querySelector<HTMLElement>("[data-consent-banner]")
+
+  async function start(key: string): Promise<void> {
+    const { default: posthog } = await import("posthog-js")
+
+    posthog.init(key, posthogOptions(host))
+  }
+
+  function remember(consent: string): void {
+    try {
+      localStorage.setItem(CONSENT_KEY, consent)
+    } catch {
+      // A browser that refuses storage simply asks again on the next visit.
+    }
+  }
+
+  if (key) {
+    const decided = readConsent(localStorage)
+
+    if (decided === "granted") {
+      await start(key)
+    }
+
+    if (decided === null && banner) {
+      banner.hidden = false
+    }
+
+    for (const button of banner?.querySelectorAll<HTMLButtonElement>(
+      "[data-consent]"
+    ) ?? []) {
+      button.addEventListener("click", async () => {
+        const consent = parseConsent(button.dataset.consent)
+
+        if (!consent || !banner) {
+          return
+        }
+
+        remember(consent)
+        banner.hidden = true
+
+        if (consent === "granted") {
+          await start(key)
+        }
+      })
+    }
+  }
+</script>

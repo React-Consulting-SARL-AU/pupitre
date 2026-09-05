@@ -16,7 +16,7 @@ export const PlanSchema = z.object({
   id: PlanIdSchema,
   name: z.string().min(1),
   nameFr: z.string().min(1),
-  monthlyPriceEur: z.number().nonnegative(),
+  monthlyPriceUsd: z.number().nonnegative(),
   billedPer: z.enum(["server", "month"]),
   startingAt: z.boolean(),
   maxServers: z.int().positive().nullable(),
@@ -30,7 +30,7 @@ export const PLANS: readonly Plan[] = [
     id: "solo",
     name: "Solo",
     nameFr: "Solo",
-    monthlyPriceEur: 19,
+    monthlyPriceUsd: 19,
     billedPer: "server",
     startingAt: false,
     maxServers: 2,
@@ -40,7 +40,7 @@ export const PLANS: readonly Plan[] = [
     id: "team",
     name: "Team",
     nameFr: "Équipe",
-    monthlyPriceEur: 19,
+    monthlyPriceUsd: 19,
     billedPer: "server",
     startingAt: false,
     maxServers: null,
@@ -50,7 +50,7 @@ export const PLANS: readonly Plan[] = [
     id: "hosted",
     name: "Hosted",
     nameFr: "Hébergé",
-    monthlyPriceEur: 29,
+    monthlyPriceUsd: 29,
     billedPer: "month",
     startingAt: true,
     maxServers: null,
@@ -75,6 +75,16 @@ export function getPlan(id: PlanId): Plan {
   return plan
 }
 
-export function yearlyPriceEur(plan: Plan): number {
-  return plan.monthlyPriceEur * (12 - ANNUAL_FREE_MONTHS)
+export function yearlyPriceUsd(plan: Plan): number {
+  return plan.monthlyPriceUsd * (12 - ANNUAL_FREE_MONTHS)
+}
+
+const USD = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0,
+})
+
+export function formatUsd(amount: number): string {
+  return USD.format(amount)
 }

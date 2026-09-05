@@ -1,32 +1,32 @@
 import { describe, expect, it } from "bun:test"
+import { formatUsd } from "@pupitre/shared/plans"
 import {
-  amountEur,
-  formatEur,
+  amountUsd,
   INTERVAL_LABELS,
-  SEAT_PRICE_EUR_PER_MONTH,
+  SEAT_PRICE_USD_PER_MONTH,
   seatBalance,
   subscriptionStatusLook,
 } from "@/lib/domain/billing"
 
-describe("amountEur", () => {
+describe("amountUsd", () => {
   it("bills a monthly subscription per seat", () => {
-    expect(SEAT_PRICE_EUR_PER_MONTH).toBe(19)
-    expect(amountEur(3, "month")).toBe(57)
+    expect(SEAT_PRICE_USD_PER_MONTH).toBe(19)
+    expect(amountUsd(3, "month")).toBe(57)
   })
 
   it("offers two months on the annual interval", () => {
-    expect(amountEur(1, "year")).toBe(190)
-    expect(amountEur(4, "year")).toBe(760)
+    expect(amountUsd(1, "year")).toBe(190)
+    expect(amountUsd(4, "year")).toBe(760)
   })
 
   it("falls back to the monthly price without an interval", () => {
-    expect(amountEur(2, null)).toBe(38)
+    expect(amountUsd(2, null)).toBe(38)
   })
 })
 
-describe("formatEur", () => {
-  it("writes a French amount with its currency", () => {
-    expect(formatEur(57).replace(/ | /g, " ")).toBe("57 €")
+describe("formatUsd", () => {
+  it("writes an amount in dollars", () => {
+    expect(formatUsd(57)).toBe("$57")
   })
 })
 

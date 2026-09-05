@@ -4,13 +4,14 @@ import {
   BILLING_INTERVALS,
   BillingIntervalSchema,
   FREE_SEAT_QUOTA,
+  formatUsd,
   getPlan,
   PLANS,
   PlanIdSchema,
   PlanSchema,
   TRIAL_DAYS,
   TRIAL_REQUIRES_CARD,
-  yearlyPriceEur,
+  yearlyPriceUsd,
 } from "./index"
 
 describe("plans", () => {
@@ -19,9 +20,9 @@ describe("plans", () => {
   })
 
   it("prices Solo and Team per server, Hosted from 29 per month", () => {
-    expect(getPlan("solo").monthlyPriceEur).toBe(19)
-    expect(getPlan("team").monthlyPriceEur).toBe(19)
-    expect(getPlan("hosted").monthlyPriceEur).toBe(29)
+    expect(getPlan("solo").monthlyPriceUsd).toBe(19)
+    expect(getPlan("team").monthlyPriceUsd).toBe(19)
+    expect(getPlan("hosted").monthlyPriceUsd).toBe(29)
     expect(getPlan("hosted").billedPer).toBe("month")
     expect(getPlan("hosted").startingAt).toBe(true)
   })
@@ -36,7 +37,7 @@ describe("plans", () => {
   it("offers two months on the annual interval and a 14-day trial without card", () => {
     expect(BILLING_INTERVALS).toEqual(["month", "year"])
     expect(ANNUAL_FREE_MONTHS).toBe(2)
-    expect(yearlyPriceEur(getPlan("solo"))).toBe(190)
+    expect(yearlyPriceUsd(getPlan("solo"))).toBe(190)
     expect(TRIAL_DAYS).toBe(14)
     expect(TRIAL_REQUIRES_CARD).toBe(false)
   })
@@ -50,12 +51,19 @@ describe("plans", () => {
       expect(PlanSchema.safeParse(plan).success).toBe(true)
     }
     expect(
-      PlanSchema.safeParse({ ...getPlan("solo"), monthlyPriceEur: -1 }).success
+      PlanSchema.safeParse({ ...getPlan("solo"), monthlyPriceUsd: -1 }).success
     ).toBe(false)
   })
 
   it("throws on an unknown plan", () => {
     expect(() => getPlan("free" as never)).toThrow("Unknown plan: free")
+  })
+})
+
+describe("formatUsd", () => {
+  it("writes a whole amount in dollars", () => {
+    expect(formatUsd(getPlan("solo").monthlyPriceUsd)).toBe("$19")
+    expect(formatUsd(yearlyPriceUsd(getPlan("solo")))).toBe("$190")
   })
 })
 

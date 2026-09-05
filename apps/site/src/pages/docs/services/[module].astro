@@ -1,0 +1,16 @@
+---
+import { MODULE_IDS, type ModuleId } from "@pupitre/shared/catalog"
+import ServiceDoc from "../../../components/ServiceDoc.astro"
+import { moduleSlug } from "../../../lib/docs"
+
+export function getStaticPaths() {
+  return MODULE_IDS.map((id) => ({
+    params: { module: moduleSlug(id).split("/")[1] },
+    props: { moduleId: id as ModuleId },
+  }))
+}
+
+const { moduleId } = Astro.props
+---
+
+<ServiceDoc moduleId={moduleId} />

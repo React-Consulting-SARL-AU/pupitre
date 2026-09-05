@@ -79,7 +79,6 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | APP-24 | L'app se fie à la plateforme pour la signature | à faire | | |
 | APP-25 | L'app lit le port libre dans le remède, pas dans la phrase | à faire | | |
 | PLT-20 | Le client de base de données ne survit pas à une requête | à faire | | |
-| MKT-10 | Redirections manquantes vers les tarifs et le téléchargement | à faire | | |
 | APP-20 | L'app parle deux langues | fait | `feat/APP-20-i18n` | fusionnée |
 
 ## Plateforme — `PLT`
@@ -116,11 +115,13 @@ Une ligne par tâche. L'agent qui prend une tâche met à jour sa ligne ; le pro
 | MKT-02 | Accueil | fait | `feat/MKT-02-home` | fusionnée |
 | MKT-03 | Tarifs | fait | `feat/MKT-03-pricing` | fusionnée |
 | MKT-04 | Téléchargement | en revue | `feat/MKT-04-09-site` | |
-| MKT-05 | Documentation publique | à faire | | |
-| MKT-06 | Blog et changelog | à faire | | |
-| MKT-07 | Pages légales | à faire | | |
-| MKT-08 | SEO, Open Graph, `llms.txt`, analytics | à faire | | |
-| MKT-09 | Déploiement Cloudflare Pages | à faire | | |
+| MKT-05 | Documentation publique | en revue | `main` | |
+| MKT-06 | Blog et changelog | en revue | `main` | |
+| MKT-07 | Pages légales | en revue | `main` | structure livrée ; les textes restent des `TODO` jusqu'au propriétaire |
+| MKT-08 | SEO, Open Graph, `llms.txt`, analytics | en revue | `main` | |
+| MKT-09 | Déploiement Cloudflare Pages | en revue | `main` | dépôt prêt ; projet Pages à relier dans le dashboard |
+| MKT-10 | Refonte du design du site | en revue | `main` | |
+| MKT-11 | Redirections manquantes vers les tarifs et le téléchargement | en revue | `main` | |
 
 ## Blocages et demandes de contrat
 

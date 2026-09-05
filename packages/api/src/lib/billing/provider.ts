@@ -7,17 +7,12 @@ export const BILLING_INTERVALS = [
 
 export type BillingIntervalName = (typeof BILLING_INTERVALS)[number]
 
-export const BILLING_CURRENCIES = ["eur", "usd"] as const
-
-export type BillingCurrency = (typeof BILLING_CURRENCIES)[number]
-
 export interface CheckoutSessionInput {
   organizationId: string
   customerId: string | null
   customerEmail: string | null
   quantity: number
   interval: BillingIntervalName
-  currency: BillingCurrency
   successUrl: string
   cancelUrl: string
 }

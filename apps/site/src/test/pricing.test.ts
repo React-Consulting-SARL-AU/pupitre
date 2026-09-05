@@ -1,4 +1,9 @@
-import { PLANS, TRIAL_DAYS, yearlyPriceEur } from "@pupitre/shared/plans"
+import {
+  formatUsd,
+  PLANS,
+  TRIAL_DAYS,
+  yearlyPriceUsd,
+} from "@pupitre/shared/plans"
 import { describe, expect, it } from "vitest"
 import { pricingContent } from "../content/site/pricing"
 import Fr from "../pages/fr/pricing.astro"
@@ -41,7 +46,7 @@ describe("pricing page", () => {
         const name = locale === "fr" ? plan.nameFr : plan.name
 
         expect(html, `${locale} ${plan.id}`).toContain(`>${name}</h3>`)
-        expect(html).toContain(`${plan.monthlyPriceEur} €`)
+        expect(html).toContain(formatUsd(plan.monthlyPriceUsd))
       }
       for (const id of SECTION_IDS) {
         expect(html, `${locale} ${id}`).toContain(`<section id="${id}"`)
@@ -61,7 +66,7 @@ describe("pricing page", () => {
       )
       expect(html.match(/data-interval="year"/g)).toHaveLength(perServer.length)
       for (const plan of perServer) {
-        expect(html).toContain(`${yearlyPriceEur(plan)} €`)
+        expect(html).toContain(formatUsd(yearlyPriceUsd(plan)))
       }
       expect(html).toContain(`${TRIAL_DAYS}`)
     }
@@ -151,12 +156,12 @@ describe("pricing page", () => {
         const name = locale === "fr" ? plan.nameFr : plan.name
         const monthly = offers.find(
           (offer) =>
-            offer.price === String(plan.monthlyPriceEur) &&
+            offer.price === String(plan.monthlyPriceUsd) &&
             offer.name.startsWith(name)
         )
         const yearly = offers.find(
           (offer) =>
-            offer.price === String(yearlyPriceEur(plan)) &&
+            offer.price === String(yearlyPriceUsd(plan)) &&
             offer.name.startsWith(name)
         )
 
@@ -165,7 +170,7 @@ describe("pricing page", () => {
       }
       for (const offer of offers) {
         expect(offer["@type"]).toBe("Offer")
-        expect(offer.priceCurrency).toBe("EUR")
+        expect(offer.priceCurrency).toBe("USD")
         expect(offer.availability).toBe("https://schema.org/InStock")
         expect(offer.url).toBe("https://app.pupitre.studio/")
       }

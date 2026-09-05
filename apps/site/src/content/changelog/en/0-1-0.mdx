@@ -1,0 +1,38 @@
+---
+title: The first build
+description: The desktop app onboards a server end to end, the agent installs the MVP catalogue, and the console signs you in.
+locale: en
+version: 0.1.0
+channel: beta
+date: 2026-09-01
+order: 1
+---
+
+The first build anyone outside the project can install. It does the whole onboarding: add a server, inspect it, choose services, configure, install, harden, first project.
+
+## The app
+
+- Servers, with one ed25519 key generated per device and an SSH configuration the app owns.
+- The inspection screen: distribution, memory, disk, architecture, and what is already installed.
+- The catalogue and its configuration screens, driven by the manifests the agent declares.
+- Live install with the module, the step, the counter and the elapsed time, and the replay command on failure.
+- Hardening, and the switch from root to `dev` — root closed last, after the key is verified.
+- First project: clone, dependencies, `tmux`, port, URL, logs.
+- The dashboard, and projects on the new protocol.
+
+## The agent
+
+- The probe, the module engine and the end-of-install report.
+- The base and hardening modules, the runtimes, the databases, the AI agents, the remote editors, exposure and tools.
+- The project registry, and driving `tmux` sessions, processes, captures, secrets and databases.
+
+## The platform
+
+- Accounts, devices, enrolment, agent tokens and heartbeat.
+- Signed binary distribution, subscriptions, organisations, transactional email, alerts, passkeys.
+
+## Known limits
+
+- The app is beta. It is signed and notarised on macOS, signed on Windows, and an AppImage on Linux.
+- Automatic updates are not on yet: this version is downloaded by hand.
+- `Hosted` does not exist. You bring the server.

@@ -1,0 +1,42 @@
+---
+title: The seven steps
+description: The whole onboarding, step by step, with what changes on the machine at each one.
+locale: en
+section: start
+sectionOrder: 0
+order: 4
+---
+
+The app walks a fresh machine from empty to working in seven steps. You can stop after any of them; nothing is left half-applied.
+
+## 1. Add the server
+
+Its address and a root or sudo account. The app generates an ed25519 key for this device and keeps the private half on your disk.
+
+## 2. Inspect
+
+The probe reads the distribution, the RAM, the disk, the architecture and what is already installed. You see what works, what is missing, and what Pupitre will not manage.
+
+## 3. Choose the services
+
+The catalogue, grouped by category. `core.system` and `core.hardening` are always included. Each module states what it installs and what it will ask you for. Presets exist for the common shapes.
+
+## 4. Configure
+
+Versions, ports, accounts, secrets. A secret travels on the SSH session's standard input; it is never written to a file you did not ask for, and it is never displayed again after you enter it.
+
+## 5. Install
+
+Step by step, live: the module, the step, the counter, the elapsed time. A step that fails does not stop the other modules — it is recorded with the command that replays it. Every step is idempotent, so the whole install can be run again without damage.
+
+## 6. Harden and switch to dev
+
+`ufw` on SSH only, `fail2ban`, passwords off, `AllowUsers dev`. Root is closed **last**, and only after the app has verified that your key actually opens `dev`. If that check fails, nothing is closed.
+
+## 7. First project
+
+A git URL or a folder on the machine. The agent clones, installs dependencies, starts the project in `tmux`, and reports the port, the URL and the logs.
+
+## After the seventh step
+
+The onboarding is done and does not come back. From there the app is a window onto that machine: the dashboard, projects, terminals, agents, services. Adding a module later is the same catalogue screen, without the rest of the walkthrough.

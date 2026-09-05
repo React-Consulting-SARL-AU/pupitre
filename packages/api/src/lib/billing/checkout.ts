@@ -1,5 +1,5 @@
 import { appUrlFromEnv } from "./config"
-import type { BillingCurrency, BillingIntervalName } from "./provider"
+import type { BillingIntervalName } from "./provider"
 import { getBillingProvider } from "./runtime"
 import { readBilling } from "./subscription"
 
@@ -15,7 +15,6 @@ export class BillingCustomerMissingError extends Error {
 export interface CheckoutActor {
   organizationId: string
   email: string
-  currency: BillingCurrency
 }
 
 export interface CheckoutInput {
@@ -38,7 +37,6 @@ export async function startCheckout(
     customerEmail: actor.email,
     quantity: input.quantity,
     interval: input.interval,
-    currency: actor.currency,
     successUrl: billingUrl("?checkout=done"),
     cancelUrl: billingUrl("?checkout=cancelled"),
   })

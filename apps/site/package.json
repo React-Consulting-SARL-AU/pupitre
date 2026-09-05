@@ -19,7 +19,10 @@
     "@astrojs/sitemap": "^3.7.4",
     "@pupitre/design": "workspace:*",
     "@pupitre/shared": "workspace:*",
-    "astro": "^5.18.2"
+    "@resvg/resvg-js": "^2.6.2",
+    "astro": "^5.18.2",
+    "posthog-js": "^1.427.2",
+    "satori": "^0.33.4"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",

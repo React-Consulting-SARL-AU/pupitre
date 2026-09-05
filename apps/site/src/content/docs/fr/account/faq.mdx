@@ -1,0 +1,40 @@
+---
+title: Questions
+description: Les questions qui reviennent, répondues sans détour.
+locale: fr
+section: account
+sectionOrder: 3
+order: 4
+---
+
+## Pourquoi pas Claude Code sur le web ?
+
+La version web convient à une tâche isolée sur un dépôt. Elle ne vous donne pas une machine : pas de base à côté du code, pas de navigateur headless, pas de service qui tourne la nuit, rien qui persiste une fois la session finie. Pupitre vous donne la machine, et votre abonnement y fonctionne tel quel.
+
+## Puis-je utiliser mon serveur existant ?
+
+Oui, s’il tourne Ubuntu 22.04 ou 24.04. La sonde rapporte ce qui est déjà installé, et les modules ne gèrent que ce qu’ils ont installé eux-mêmes. Une machine qui a déjà une base posée à la main la garde ; Pupitre ne l’adoptera pas, et ne s’y opposera pas non plus.
+
+## Est-ce que ça marche sous Windows ?
+
+L’app desktop tourne sur macOS, Windows 11 et Ubuntu desktop. Le serveur est toujours Ubuntu — Pupitre n’installe rien sur un VPS Windows.
+
+## Faut-il un compte ?
+
+Pas pour essayer. L’app tourne sans compte avec un droit d’usage de développement. Le compte donne l’abonnement, les serveurs que la plateforme connaît, et les fonctions d’équipe.
+
+## Que se passe-t-il si je perds mon laptop ?
+
+Révoquez l’appareil dans la console. Sa clé est retirée de tous les serveurs où il était à la prochaine remontée de l’agent. Vos autres appareils continuent ; rien d’autre n’a besoin d’être changé.
+
+## Deux personnes peuvent-elles partager un serveur ?
+
+Un serveur est attribué à une personne. Deux personnes qui ont besoin de la même machine la partagent comme elles l’ont toujours fait, en SSH, avec leurs propres clés ajoutées à la main. Le modèle de Pupitre est une machine par développeur, parce que c’est ce qui rend la révocation nette.
+
+## Où sont mes données ?
+
+Sur votre serveur. La plateforme stocke votre compte, votre organisation, l’existence de vos serveurs et leurs clés publiques. Elle ne stocke aucun code, aucun secret, aucun log, et aucun contenu venu de vos machines.
+
+## Puis-je lire le code de l’agent ?
+
+Non. Pupitre est un produit commercial fermé. Ce que fait l’agent est documenté ici, module par module, et tout ce qu’il installe est un outil standard que vous pouvez inspecter sur votre propre machine.

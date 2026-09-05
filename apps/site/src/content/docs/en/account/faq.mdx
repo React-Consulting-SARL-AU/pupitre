@@ -1,0 +1,40 @@
+---
+title: Questions
+description: The questions that come back, answered without hedging.
+locale: en
+section: account
+sectionOrder: 3
+order: 4
+---
+
+## Why not Claude Code on the web?
+
+The web version fits an isolated task on one repository. It does not give you a machine: no database next to the code, no headless browser, no service running overnight, nothing that persists once the session ends. Pupitre gives you the machine, and your subscription works there as it is.
+
+## Can I use my existing server?
+
+Yes, if it runs Ubuntu 22.04 or 24.04. The probe reports what is already installed and the modules only manage what they installed themselves. A machine that already has a database set up by hand keeps it; Pupitre will not adopt it, and will not fight it either.
+
+## Does it work on Windows?
+
+The desktop app runs on macOS, Windows 11 and Ubuntu desktop. The server is always Ubuntu — Pupitre installs nothing on a Windows VPS.
+
+## Do I need an account?
+
+Not to try. The app runs without one on a development licence. An account is what gives you a subscription, the servers the platform knows about, and team features.
+
+## What happens if I lose my laptop?
+
+Revoke the device in the console. Its key is removed from every server it was on at the agent's next check-in. Your other devices keep working; nothing else has to be rotated.
+
+## Can two people share a server?
+
+A server is assigned to one person. Two people who need the same machine share it the way they always have, over SSH, with their own keys added by hand. Pupitre's model is one machine per developer, because that is what makes revocation clean.
+
+## Where is my data?
+
+On your server. The platform stores your account, your organisation, your servers' existence and their public keys. It stores no code, no secrets, no logs, and no content from your machines.
+
+## Can I read the agent's source?
+
+No. Pupitre is a closed commercial product. What the agent does is documented here, module by module, and everything it installs is a standard tool you can inspect on your own machine.

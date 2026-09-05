@@ -20,17 +20,27 @@ Astro 5 statique sur Cloudflare Pages · Tailwind 4 sur `@pupitre/design` · MDX
 ## Architecture
 
 ```
-src/pages/       index · pricing · download · docs/[...slug] · blog/[...slug] · changelog · legal/* · fr/**
-src/content/     docs/ · blog/ · changelog/ · legal/ · site/ (accueil, tarifs, FAQ) — fr et en côte à côte
+src/pages/       index · pricing · download · docs/** · blog/** · changelog · legal/** · og/[...slug].png · llms.txt · 404 · fr/**
+src/content/     docs/{en,fr} · blog/ · changelog/ · legal/ (MDX) · site/ (accueil, tarifs, téléchargement, catalogue, doc des modules) · ui/ (chaînes d'interface)
 src/layouts/     Base · Docs · Post
-src/components/  Nav · Footer · Hero · Pricing · ProductShot · Callout · DownloadButton · ThemeToggle
-src/lib/         releases.ts · i18n.ts · seo.ts
-public/          llms.txt · robots.txt · favicons
+src/components/  Nav · Footer · Hero · Steps · Section · PageHeader · Card·like (Feature, Claim) · Pricing · Download · Docs* · Callout · ProductShot · StatusMark · Analytics
+src/lib/         releases.ts · docs.ts · docs-entries.ts · og.ts · og-pages.ts · feeds.ts · platform.ts · analytics.ts · i18n.ts · theme.ts · seo.ts · structured-data.ts
+src/assets/fonts Bricolage et JetBrains Mono, lues au build pour les images Open Graph seulement
+scripts/         check-content.ts (parité, mots interdits) · legal.ts (garde des TODO légaux, intégration Astro) · redirects.ts (chaque page de premier niveau a sa redirection)
+public/          robots.txt · _headers · _redirects · favicons
 ```
+
+Le design vit dans `src/styles/global.css` : des `@utility` Tailwind 4 posées sur les tokens de `@pupitre/design` (`shell`, `card`, `card-link`, `eyebrow`, `tag`, `mark-dot`, `prose`, `display-1`…). Un composant n'écrit jamais une valeur de couleur, de rayon ou d'ombre.
+
+Les pages des modules du catalogue sont **générées** depuis `src/content/site/catalog.ts` et `src/content/site/module-docs.ts` : une route `docs/services/[module]` par langue, jamais un fichier MDX par module.
+
+Deux variables de build, absentes en local : `PUBLIC_RELEASES_URL` (liste des releases, sinon le fallback statique et un avertissement) et `PUBLIC_POSTHOG_KEY` (sans elle, aucun analytics et aucun bandeau de consentement).
 
 ## Tests
 
 Tests de rendu Astro, script de parité fr/en, test des mots interdits sur `src/content`, Lighthouse en CI sur l'accueil et une page de doc.
+
+Les collections de contenu ne se chargent pas dans le conteneur Astro de Vitest : on teste les pages adossées à une collection par leur **modèle** (frontmatter sur le disque, parité des dossiers `en` et `fr`) plutôt que par leur rendu, et on garde le rendu pour ce qui est adossé à des données statiques.
 
 ## Commandes
 

@@ -1,20 +1,30 @@
 ---
 import { localeFromPath, localizePath, translator } from "../lib/i18n"
 
+interface Props {
+  size?: "sm" | "lg"
+}
+
+const { size = "sm" } = Astro.props
 const locale = localeFromPath(Astro.url.pathname)
 const t = translator(locale)
 ---
 
 <a
   href={localizePath("/", locale)}
-  class="flex items-center gap-2.5 py-1 text-ink"
+  class="group flex items-center gap-2.5 rounded-sm text-ink"
 >
   <span
     aria-hidden="true"
-    class="data grid size-6 place-items-center rounded-md bg-inverse font-medium text-[11px] text-inverse-ink"
-    >&gt;_</span
+    class:list={[
+      "data grid place-items-center rounded-md bg-inverse font-medium text-inverse-ink shadow-raised",
+      size === "lg" ? "size-9 text-[14px]" : "size-7 text-[12px]",
+    ]}>&gt;_</span
   >
-  <span class="font-display font-bold text-[15px] tracking-tight"
-    >{t("site.name")}</span
+  <span
+    class:list={[
+      "font-display font-bold tracking-tight",
+      size === "lg" ? "text-[19px]" : "text-[16px]",
+    ]}>{t("site.name")}</span
   >
 </a>
