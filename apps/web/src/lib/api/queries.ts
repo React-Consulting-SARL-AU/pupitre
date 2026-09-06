@@ -24,6 +24,7 @@ export const queryKeys = {
   latestRelease: ["releases", "latest"] as const,
   latestAppRelease: ["releases", "app", "latest"] as const,
   status: ["status"] as const,
+  socialProviders: ["status", "social-providers"] as const,
 }
 
 export function statusQueryOptions() {
@@ -32,6 +33,15 @@ export function statusQueryOptions() {
     queryFn: async () => unwrap(await api().api.v1.status.get()).data,
     refetchInterval: STATUS_POLL_INTERVAL_MS,
     refetchIntervalInBackground: false,
+  })
+}
+
+export function socialProvidersQueryOptions() {
+  return queryOptions({
+    queryKey: queryKeys.socialProviders,
+    queryFn: async () =>
+      unwrap(await api().api.v1.status.get()).data.social_providers,
+    staleTime: Number.POSITIVE_INFINITY,
   })
 }
 

@@ -1,7 +1,14 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
+import { type AuthEnv, type AuthPrisma, createAuth } from "@pupitre/auth/server"
 import { STATUS_STALE_AFTER_MS } from "@pupitre/shared/status"
+import { configureAuth } from "../../lib/api/plugins/auth"
 import { readServiceStatus } from "../../lib/status/status"
-import { type ApiTestServer, bootApiTestServer, resetDb } from "../../testing"
+import {
+  type ApiTestServer,
+  bootApiTestServer,
+  resetDb,
+  TEST_AUTH_ENV,
+} from "../../testing"
 import {
   createOrganizationWithMembers,
   createServer,
@@ -21,6 +28,7 @@ interface StatusBody {
     last_observation_at: string | null
     freshness: string
     checked_at: string
+    social_providers: string[]
   }
 }
 
@@ -137,6 +145,7 @@ describe("GET /status", () => {
       "freshness",
       "last_observation_at",
       "latest_release",
+      "social_providers",
     ])
   })
 })
@@ -208,5 +217,82 @@ describe("GET /status — la fraîcheur", () => {
     expect(body).not.toContain(organization.id)
     expect(body).not.toContain(organization.name)
     expect(body).not.toContain(organization.slug)
+  })
+})
+
+describe("GET /status — les fournisseurs de connexion montés", () => {
+  beforeAll(async () => {
+    harness = await bootApiTestServer()
+  })
+
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  async function withAuthEnv<T>(
+    env: Partial<AuthEnv>,
+    read: () => Promise<T>
+  ): Promise<T> {
+    configureAuth(
+      createAuth({
+        prisma: harness.prisma as unknown as AuthPrisma,
+        env: { ...TEST_AUTH_ENV, ...env },
+      })
+    )
+
+    try {
+      return await read()
+    } finally {
+      configureAuth(harness.auth)
+    }
+  }
+
+  it("n'annonce aucun fournisseur quand l'environnement n'en configure pas", async () => {
+    const response = await statusRequest()
+
+    expect(response.status).toBe(200)
+    expect(response.json.data.social_providers).toEqual([])
+  })
+
+  it("annonce le fournisseur dont les deux variables sont là", async () => {
+    const response = await withAuthEnv(
+      {
+        GOOGLE_CLIENT_ID: "google-client-id",
+        GOOGLE_CLIENT_SECRET: "google-client-secret",
+      },
+      statusRequest
+    )
+
+    expect(response.json.data.social_providers).toEqual(["google"])
+  })
+
+  it("tait le fournisseur à moitié configuré", async () => {
+    const response = await withAuthEnv(
+      {
+        GOOGLE_CLIENT_ID: "google-client-id",
+        GITHUB_CLIENT_ID: "github-client-id",
+        GITHUB_CLIENT_SECRET: "github-client-secret",
+      },
+      statusRequest
+    )
+
+    expect(response.json.data.social_providers).toEqual(["github"])
+  })
+
+  it("ne divulgue aucun identifiant ni secret de fournisseur", async () => {
+    const response = await withAuthEnv(
+      {
+        GOOGLE_CLIENT_ID: "google-client-id",
+        GOOGLE_CLIENT_SECRET: "google-client-secret",
+        GITHUB_CLIENT_ID: "github-client-id",
+        GITHUB_CLIENT_SECRET: "github-client-secret",
+      },
+      statusRequest
+    )
+    const body = JSON.stringify(response.json)
+
+    expect(response.json.data.social_providers).toEqual(["github", "google"])
+    expect(body).not.toContain("client-id")
+    expect(body).not.toContain("client-secret")
   })
 })

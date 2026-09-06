@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test"
 import type { AuthPrisma } from "./prisma"
-import { createAuth } from "./server"
+import { createAuth, mountedSocialProviders } from "./server"
 
 const DAY = 60 * 60 * 24
 
@@ -134,5 +134,50 @@ describe("createAuth", () => {
 
     expect(githubOnly.options.socialProviders?.github).toBeDefined()
     expect(githubOnly.options.socialProviders?.google).toBeUndefined()
+  })
+})
+
+describe("mountedSocialProviders", () => {
+  const allCredentials = {
+    GITHUB_CLIENT_ID: "github-id",
+    GITHUB_CLIENT_SECRET: "github-secret",
+    GOOGLE_CLIENT_ID: "google-id",
+    GOOGLE_CLIENT_SECRET: "google-secret",
+  }
+
+  it("names nothing when no provider is configured", () => {
+    expect(mountedSocialProviders(createAuth({ prisma, env }))).toEqual([])
+  })
+
+  it("names the provider whose two variables are set", () => {
+    const auth = createAuth({
+      prisma,
+      env: {
+        ...env,
+        GOOGLE_CLIENT_ID: "google-id",
+        GOOGLE_CLIENT_SECRET: "google-secret",
+      },
+    })
+
+    expect(mountedSocialProviders(auth)).toEqual(["google"])
+  })
+
+  it("treats a half-configured provider as absent", () => {
+    const auth = createAuth({
+      prisma,
+      env: { ...env, GOOGLE_CLIENT_ID: "google-id" },
+    })
+
+    expect(mountedSocialProviders(auth)).toEqual([])
+  })
+
+  it("covers every provider createAuth can mount", () => {
+    const auth = createAuth({ prisma, env: { ...env, ...allCredentials } })
+
+    const mounted: string[] = mountedSocialProviders(auth)
+
+    expect(mounted).toEqual(
+      Object.keys(auth.options.socialProviders ?? {}).sort()
+    )
   })
 })

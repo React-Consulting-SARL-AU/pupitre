@@ -1,5 +1,10 @@
+import {
+  mountedSocialProviders,
+  type SocialProviderId,
+} from "@pupitre/auth/server"
 import type { ReleaseChannel } from "@pupitre/db/cloudflare/client"
 import { type StatusFreshness, statusFreshness } from "@pupitre/shared/status"
+import { getApiAuth } from "../api/plugins/auth"
 import { getPrisma } from "../api/prisma"
 import { compareVersions } from "../releases/semver"
 
@@ -19,6 +24,7 @@ export interface ServiceStatus {
   last_observation_at: Date | null
   freshness: StatusFreshness
   checked_at: Date
+  social_providers: SocialProviderId[]
 }
 
 interface ReleaseRow {
@@ -53,6 +59,7 @@ export async function readServiceStatus(
   now: Date = new Date()
 ): Promise<ServiceStatus> {
   const prisma = getPrisma()
+  const socialProviders = mountedSocialProviders(getApiAuth())
 
   try {
     const [activeServers, releases, lastObservation] = await Promise.all([
@@ -77,6 +84,7 @@ export async function readServiceStatus(
       last_observation_at: lastObservationAt,
       freshness: statusFreshness(lastObservationAt, now),
       checked_at: now,
+      social_providers: socialProviders,
     }
   } catch (error) {
     console.error("[api] status: the database did not answer", error)
@@ -89,6 +97,7 @@ export async function readServiceStatus(
       last_observation_at: null,
       freshness: "unknown",
       checked_at: now,
+      social_providers: socialProviders,
     }
   }
 }

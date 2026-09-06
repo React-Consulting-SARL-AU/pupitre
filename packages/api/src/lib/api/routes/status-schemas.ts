@@ -1,3 +1,4 @@
+import { SOCIAL_PROVIDER_IDS } from "@pupitre/auth/server"
 import { STATUS_FRESHNESS } from "@pupitre/shared/status"
 import { t } from "elysia"
 import { dateTime } from "../openapi-models"
@@ -16,6 +17,8 @@ export const serviceHealthSchema = t.UnionEnum(["ok", "down"])
 
 export const statusFreshnessSchema = t.UnionEnum([...STATUS_FRESHNESS])
 
+export const socialProviderSchema = t.UnionEnum([...SOCIAL_PROVIDER_IDS])
+
 export const serviceStatusSchema = t.Object(
   {
     api: serviceHealthSchema,
@@ -25,6 +28,7 @@ export const serviceStatusSchema = t.Object(
     last_observation_at: t.Nullable(dateTime),
     freshness: statusFreshnessSchema,
     checked_at: dateTime,
+    social_providers: t.Array(socialProviderSchema),
   },
   { $id: "ServiceStatus" }
 )

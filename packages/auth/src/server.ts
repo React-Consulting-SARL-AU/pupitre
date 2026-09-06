@@ -53,6 +53,10 @@ const MAGIC_LINK_EXPIRES_IN = 15 * 60
 const DEVICE_CODE_EXPIRES_IN = "30m"
 const DEVICE_POLL_INTERVAL = "5s"
 
+export const SOCIAL_PROVIDER_IDS = ["github", "google"] as const
+
+export type SocialProviderId = (typeof SOCIAL_PROVIDER_IDS)[number]
+
 export const RELYING_PARTY_NAME = "Pupitre"
 export const BACKUP_CODE_COUNT = 10
 
@@ -111,6 +115,16 @@ function socialProviders(env: AuthEnv) {
     ...(github ? { github } : {}),
     ...(google ? { google } : {}),
   }
+}
+
+/**
+ * Read back what `socialProviders` actually mounted, so nothing downstream has
+ * to know again that a provider needs both of its variables.
+ */
+export function mountedSocialProviders(instance: Auth): SocialProviderId[] {
+  const mounted = instance.options.socialProviders ?? {}
+
+  return SOCIAL_PROVIDER_IDS.filter((provider) => provider in mounted)
 }
 
 function activeOrganizationIdOf(session: object): string | null {
