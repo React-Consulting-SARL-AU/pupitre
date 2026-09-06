@@ -257,6 +257,7 @@ model Server {
   targetVersion          String?
   serverTokenHash        String?               @unique
   enrollmentTokenHash    String?               @unique
+  enrollmentKey          String?               @unique
   enrollmentExpiresAt    DateTime?
   entitlementValidUntil  DateTime?
   decommissionAt         DateTime?

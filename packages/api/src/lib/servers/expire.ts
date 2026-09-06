@@ -1,4 +1,5 @@
 import { getPrisma } from "../api/prisma"
+import { RELEASED_ENROLLMENT } from "./enrollment-key"
 
 export const DECOMMISSION_DELAY_MS = 604_800_000
 
@@ -29,9 +30,8 @@ export async function expireEnrollments(
   await prisma.server.updateMany({
     where: { id: { in: ids } },
     data: {
+      ...RELEASED_ENROLLMENT,
       status: "revoked",
-      enrollmentTokenHash: null,
-      enrollmentExpiresAt: null,
       decommissionAt: decommissionDeadline(now),
     },
   })

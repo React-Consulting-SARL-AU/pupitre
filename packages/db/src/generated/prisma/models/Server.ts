@@ -47,6 +47,7 @@ export type ServerMinAggregateOutputType = {
   targetVersion: string | null
   serverTokenHash: string | null
   enrollmentTokenHash: string | null
+  enrollmentKey: string | null
   enrollmentExpiresAt: Date | null
   entitlementValidUntil: Date | null
   decommissionAt: Date | null
@@ -73,6 +74,7 @@ export type ServerMaxAggregateOutputType = {
   targetVersion: string | null
   serverTokenHash: string | null
   enrollmentTokenHash: string | null
+  enrollmentKey: string | null
   enrollmentExpiresAt: Date | null
   entitlementValidUntil: Date | null
   decommissionAt: Date | null
@@ -99,6 +101,7 @@ export type ServerCountAggregateOutputType = {
   targetVersion: number
   serverTokenHash: number
   enrollmentTokenHash: number
+  enrollmentKey: number
   enrollmentExpiresAt: number
   entitlementValidUntil: number
   decommissionAt: number
@@ -136,6 +139,7 @@ export type ServerMinAggregateInputType = {
   targetVersion?: true
   serverTokenHash?: true
   enrollmentTokenHash?: true
+  enrollmentKey?: true
   enrollmentExpiresAt?: true
   entitlementValidUntil?: true
   decommissionAt?: true
@@ -162,6 +166,7 @@ export type ServerMaxAggregateInputType = {
   targetVersion?: true
   serverTokenHash?: true
   enrollmentTokenHash?: true
+  enrollmentKey?: true
   enrollmentExpiresAt?: true
   entitlementValidUntil?: true
   decommissionAt?: true
@@ -188,6 +193,7 @@ export type ServerCountAggregateInputType = {
   targetVersion?: true
   serverTokenHash?: true
   enrollmentTokenHash?: true
+  enrollmentKey?: true
   enrollmentExpiresAt?: true
   entitlementValidUntil?: true
   decommissionAt?: true
@@ -302,6 +308,7 @@ export type ServerGroupByOutputType = {
   targetVersion: string | null
   serverTokenHash: string | null
   enrollmentTokenHash: string | null
+  enrollmentKey: string | null
   enrollmentExpiresAt: Date | null
   entitlementValidUntil: Date | null
   decommissionAt: Date | null
@@ -352,6 +359,7 @@ export type ServerWhereInput = {
   targetVersion?: Prisma.StringNullableFilter<"Server"> | string | null
   serverTokenHash?: Prisma.StringNullableFilter<"Server"> | string | null
   enrollmentTokenHash?: Prisma.StringNullableFilter<"Server"> | string | null
+  enrollmentKey?: Prisma.StringNullableFilter<"Server"> | string | null
   enrollmentExpiresAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   entitlementValidUntil?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   decommissionAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
@@ -384,6 +392,7 @@ export type ServerOrderByWithRelationInput = {
   targetVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   serverTokenHash?: Prisma.SortOrderInput | Prisma.SortOrder
   enrollmentTokenHash?: Prisma.SortOrderInput | Prisma.SortOrder
+  enrollmentKey?: Prisma.SortOrderInput | Prisma.SortOrder
   enrollmentExpiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
   entitlementValidUntil?: Prisma.SortOrderInput | Prisma.SortOrder
   decommissionAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -407,6 +416,7 @@ export type ServerWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   serverTokenHash?: string
   enrollmentTokenHash?: string
+  enrollmentKey?: string
   AND?: Prisma.ServerWhereInput | Prisma.ServerWhereInput[]
   OR?: Prisma.ServerWhereInput[]
   NOT?: Prisma.ServerWhereInput | Prisma.ServerWhereInput[]
@@ -436,7 +446,7 @@ export type ServerWhereUniqueInput = Prisma.AtLeast<{
   assignedUser?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   revokedDevices?: Prisma.ServerRevokedDeviceListRelationFilter
   alerts?: Prisma.AlertListRelationFilter
-}, "id" | "serverTokenHash" | "enrollmentTokenHash">
+}, "id" | "serverTokenHash" | "enrollmentTokenHash" | "enrollmentKey">
 
 export type ServerOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -451,6 +461,7 @@ export type ServerOrderByWithAggregationInput = {
   targetVersion?: Prisma.SortOrderInput | Prisma.SortOrder
   serverTokenHash?: Prisma.SortOrderInput | Prisma.SortOrder
   enrollmentTokenHash?: Prisma.SortOrderInput | Prisma.SortOrder
+  enrollmentKey?: Prisma.SortOrderInput | Prisma.SortOrder
   enrollmentExpiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
   entitlementValidUntil?: Prisma.SortOrderInput | Prisma.SortOrder
   decommissionAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -486,6 +497,7 @@ export type ServerScalarWhereWithAggregatesInput = {
   targetVersion?: Prisma.StringNullableWithAggregatesFilter<"Server"> | string | null
   serverTokenHash?: Prisma.StringNullableWithAggregatesFilter<"Server"> | string | null
   enrollmentTokenHash?: Prisma.StringNullableWithAggregatesFilter<"Server"> | string | null
+  enrollmentKey?: Prisma.StringNullableWithAggregatesFilter<"Server"> | string | null
   enrollmentExpiresAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Server"> | Date | string | null
   entitlementValidUntil?: Prisma.DateTimeNullableWithAggregatesFilter<"Server"> | Date | string | null
   decommissionAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Server"> | Date | string | null
@@ -512,6 +524,7 @@ export type ServerCreateInput = {
   targetVersion?: string | null
   serverTokenHash?: string | null
   enrollmentTokenHash?: string | null
+  enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
@@ -542,6 +555,7 @@ export type ServerUncheckedCreateInput = {
   targetVersion?: string | null
   serverTokenHash?: string | null
   enrollmentTokenHash?: string | null
+  enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
@@ -570,6 +584,7 @@ export type ServerUpdateInput = {
   targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -600,6 +615,7 @@ export type ServerUncheckedUpdateInput = {
   targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -629,6 +645,7 @@ export type ServerCreateManyInput = {
   targetVersion?: string | null
   serverTokenHash?: string | null
   enrollmentTokenHash?: string | null
+  enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
@@ -655,6 +672,7 @@ export type ServerUpdateManyMutationInput = {
   targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -680,6 +698,7 @@ export type ServerUncheckedUpdateManyInput = {
   targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -717,6 +736,7 @@ export type ServerCountOrderByAggregateInput = {
   targetVersion?: Prisma.SortOrder
   serverTokenHash?: Prisma.SortOrder
   enrollmentTokenHash?: Prisma.SortOrder
+  enrollmentKey?: Prisma.SortOrder
   enrollmentExpiresAt?: Prisma.SortOrder
   entitlementValidUntil?: Prisma.SortOrder
   decommissionAt?: Prisma.SortOrder
@@ -748,6 +768,7 @@ export type ServerMaxOrderByAggregateInput = {
   targetVersion?: Prisma.SortOrder
   serverTokenHash?: Prisma.SortOrder
   enrollmentTokenHash?: Prisma.SortOrder
+  enrollmentKey?: Prisma.SortOrder
   enrollmentExpiresAt?: Prisma.SortOrder
   entitlementValidUntil?: Prisma.SortOrder
   decommissionAt?: Prisma.SortOrder
@@ -774,6 +795,7 @@ export type ServerMinOrderByAggregateInput = {
   targetVersion?: Prisma.SortOrder
   serverTokenHash?: Prisma.SortOrder
   enrollmentTokenHash?: Prisma.SortOrder
+  enrollmentKey?: Prisma.SortOrder
   enrollmentExpiresAt?: Prisma.SortOrder
   entitlementValidUntil?: Prisma.SortOrder
   decommissionAt?: Prisma.SortOrder
@@ -970,6 +992,7 @@ export type ServerCreateWithoutAssignedUserInput = {
   targetVersion?: string | null
   serverTokenHash?: string | null
   enrollmentTokenHash?: string | null
+  enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
@@ -999,6 +1022,7 @@ export type ServerUncheckedCreateWithoutAssignedUserInput = {
   targetVersion?: string | null
   serverTokenHash?: string | null
   enrollmentTokenHash?: string | null
+  enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
@@ -1056,6 +1080,7 @@ export type ServerScalarWhereInput = {
   targetVersion?: Prisma.StringNullableFilter<"Server"> | string | null
   serverTokenHash?: Prisma.StringNullableFilter<"Server"> | string | null
   enrollmentTokenHash?: Prisma.StringNullableFilter<"Server"> | string | null
+  enrollmentKey?: Prisma.StringNullableFilter<"Server"> | string | null
   enrollmentExpiresAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   entitlementValidUntil?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   decommissionAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
@@ -1082,6 +1107,7 @@ export type ServerCreateWithoutOrganizationInput = {
   targetVersion?: string | null
   serverTokenHash?: string | null
   enrollmentTokenHash?: string | null
+  enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
@@ -1110,6 +1136,7 @@ export type ServerUncheckedCreateWithoutOrganizationInput = {
   targetVersion?: string | null
   serverTokenHash?: string | null
   enrollmentTokenHash?: string | null
+  enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
@@ -1164,6 +1191,7 @@ export type ServerCreateWithoutDeviceInput = {
   targetVersion?: string | null
   serverTokenHash?: string | null
   enrollmentTokenHash?: string | null
+  enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
@@ -1193,6 +1221,7 @@ export type ServerUncheckedCreateWithoutDeviceInput = {
   targetVersion?: string | null
   serverTokenHash?: string | null
   enrollmentTokenHash?: string | null
+  enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
@@ -1246,6 +1275,7 @@ export type ServerCreateWithoutAlertsInput = {
   targetVersion?: string | null
   serverTokenHash?: string | null
   enrollmentTokenHash?: string | null
+  enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
@@ -1275,6 +1305,7 @@ export type ServerUncheckedCreateWithoutAlertsInput = {
   targetVersion?: string | null
   serverTokenHash?: string | null
   enrollmentTokenHash?: string | null
+  enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
@@ -1318,6 +1349,7 @@ export type ServerUpdateWithoutAlertsInput = {
   targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1347,6 +1379,7 @@ export type ServerUncheckedUpdateWithoutAlertsInput = {
   targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1374,6 +1407,7 @@ export type ServerCreateWithoutRevokedDevicesInput = {
   targetVersion?: string | null
   serverTokenHash?: string | null
   enrollmentTokenHash?: string | null
+  enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
@@ -1403,6 +1437,7 @@ export type ServerUncheckedCreateWithoutRevokedDevicesInput = {
   targetVersion?: string | null
   serverTokenHash?: string | null
   enrollmentTokenHash?: string | null
+  enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
@@ -1446,6 +1481,7 @@ export type ServerUpdateWithoutRevokedDevicesInput = {
   targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1475,6 +1511,7 @@ export type ServerUncheckedUpdateWithoutRevokedDevicesInput = {
   targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1503,6 +1540,7 @@ export type ServerCreateManyAssignedUserInput = {
   targetVersion?: string | null
   serverTokenHash?: string | null
   enrollmentTokenHash?: string | null
+  enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
@@ -1528,6 +1566,7 @@ export type ServerUpdateWithoutAssignedUserInput = {
   targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1557,6 +1596,7 @@ export type ServerUncheckedUpdateWithoutAssignedUserInput = {
   targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1585,6 +1625,7 @@ export type ServerUncheckedUpdateManyWithoutAssignedUserInput = {
   targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1610,6 +1651,7 @@ export type ServerCreateManyOrganizationInput = {
   targetVersion?: string | null
   serverTokenHash?: string | null
   enrollmentTokenHash?: string | null
+  enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
@@ -1636,6 +1678,7 @@ export type ServerUpdateWithoutOrganizationInput = {
   targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1664,6 +1707,7 @@ export type ServerUncheckedUpdateWithoutOrganizationInput = {
   targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1692,6 +1736,7 @@ export type ServerUncheckedUpdateManyWithoutOrganizationInput = {
   targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1719,6 +1764,7 @@ export type ServerCreateManyDeviceInput = {
   targetVersion?: string | null
   serverTokenHash?: string | null
   enrollmentTokenHash?: string | null
+  enrollmentKey?: string | null
   enrollmentExpiresAt?: Date | string | null
   entitlementValidUntil?: Date | string | null
   decommissionAt?: Date | string | null
@@ -1744,6 +1790,7 @@ export type ServerUpdateWithoutDeviceInput = {
   targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1773,6 +1820,7 @@ export type ServerUncheckedUpdateWithoutDeviceInput = {
   targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1801,6 +1849,7 @@ export type ServerUncheckedUpdateManyWithoutDeviceInput = {
   targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1867,6 +1916,7 @@ export type ServerSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   targetVersion?: boolean
   serverTokenHash?: boolean
   enrollmentTokenHash?: boolean
+  enrollmentKey?: boolean
   enrollmentExpiresAt?: boolean
   entitlementValidUntil?: boolean
   decommissionAt?: boolean
@@ -1900,6 +1950,7 @@ export type ServerSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   targetVersion?: boolean
   serverTokenHash?: boolean
   enrollmentTokenHash?: boolean
+  enrollmentKey?: boolean
   enrollmentExpiresAt?: boolean
   entitlementValidUntil?: boolean
   decommissionAt?: boolean
@@ -1930,6 +1981,7 @@ export type ServerSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   targetVersion?: boolean
   serverTokenHash?: boolean
   enrollmentTokenHash?: boolean
+  enrollmentKey?: boolean
   enrollmentExpiresAt?: boolean
   entitlementValidUntil?: boolean
   decommissionAt?: boolean
@@ -1960,6 +2012,7 @@ export type ServerSelectScalar = {
   targetVersion?: boolean
   serverTokenHash?: boolean
   enrollmentTokenHash?: boolean
+  enrollmentKey?: boolean
   enrollmentExpiresAt?: boolean
   entitlementValidUntil?: boolean
   decommissionAt?: boolean
@@ -1974,7 +2027,7 @@ export type ServerSelectScalar = {
   updatedAt?: boolean
 }
 
-export type ServerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "name" | "host" | "port" | "sshUser" | "hostFingerprint" | "arch" | "agentVersion" | "targetVersion" | "serverTokenHash" | "enrollmentTokenHash" | "enrollmentExpiresAt" | "entitlementValidUntil" | "decommissionAt" | "status" | "channel" | "deviceId" | "assignedUserId" | "pendingAssignmentEmail" | "lastHeartbeatAt" | "metrics" | "createdAt" | "updatedAt", ExtArgs["result"]["server"]>
+export type ServerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "name" | "host" | "port" | "sshUser" | "hostFingerprint" | "arch" | "agentVersion" | "targetVersion" | "serverTokenHash" | "enrollmentTokenHash" | "enrollmentKey" | "enrollmentExpiresAt" | "entitlementValidUntil" | "decommissionAt" | "status" | "channel" | "deviceId" | "assignedUserId" | "pendingAssignmentEmail" | "lastHeartbeatAt" | "metrics" | "createdAt" | "updatedAt", ExtArgs["result"]["server"]>
 export type ServerInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
   device?: boolean | Prisma.Server$deviceArgs<ExtArgs>
@@ -2016,6 +2069,7 @@ export type $ServerPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     targetVersion: string | null
     serverTokenHash: string | null
     enrollmentTokenHash: string | null
+    enrollmentKey: string | null
     enrollmentExpiresAt: Date | null
     entitlementValidUntil: Date | null
     decommissionAt: Date | null
@@ -2468,6 +2522,7 @@ export interface ServerFieldRefs {
   readonly targetVersion: Prisma.FieldRef<"Server", 'String'>
   readonly serverTokenHash: Prisma.FieldRef<"Server", 'String'>
   readonly enrollmentTokenHash: Prisma.FieldRef<"Server", 'String'>
+  readonly enrollmentKey: Prisma.FieldRef<"Server", 'String'>
   readonly enrollmentExpiresAt: Prisma.FieldRef<"Server", 'DateTime'>
   readonly entitlementValidUntil: Prisma.FieldRef<"Server", 'DateTime'>
   readonly decommissionAt: Prisma.FieldRef<"Server", 'DateTime'>

@@ -264,6 +264,7 @@ export const ServerScalarFieldEnum = {
   targetVersion: 'targetVersion',
   serverTokenHash: 'serverTokenHash',
   enrollmentTokenHash: 'enrollmentTokenHash',
+  enrollmentKey: 'enrollmentKey',
   enrollmentExpiresAt: 'enrollmentExpiresAt',
   entitlementValidUntil: 'entitlementValidUntil',
   decommissionAt: 'decommissionAt',

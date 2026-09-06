@@ -7,6 +7,7 @@ import { recordEvent } from "../audit/audit"
 import { metricsOf } from "./agent-state"
 import { settleAssignment, settleAssignments } from "./assign"
 import { authorizedKeysForUser } from "./authorized-keys"
+import { RELEASED_ENROLLMENT } from "./enrollment-key"
 import { decommissionDeadline } from "./expire"
 import type { MetricSample } from "./metrics"
 import { hashServerToken, isServerToken } from "./tokens"
@@ -232,11 +233,10 @@ export async function deleteServerForOrganization(
   await prisma.server.updateMany({
     where: { id: server.id },
     data: {
+      ...RELEASED_ENROLLMENT,
       status: "revoked",
       assignedUserId: null,
       pendingAssignmentEmail: null,
-      enrollmentTokenHash: null,
-      enrollmentExpiresAt: null,
       decommissionAt,
     },
   })

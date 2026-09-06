@@ -1,6 +1,10 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
+import { SEATED_STATUSES } from "../../lib/billing/seats"
 import { authorizedKeysForServer } from "../../lib/servers/authorized-keys"
-import { DECOMMISSION_DELAY_MS } from "../../lib/servers/expire"
+import {
+  DECOMMISSION_DELAY_MS,
+  decommissionDueServers,
+} from "../../lib/servers/expire"
 import { bootApiTestServer, resetDb } from "../../testing"
 import { createOrganizationWithMembers } from "../../testing/factories"
 import { ED25519_KEY, SECOND_ED25519_KEY } from "../../testing/keys"
@@ -443,9 +447,9 @@ describe("POST /servers/enroll", () => {
     const deviceId = device.json.data.id
     const first = await enroll(owner, deviceId, "vps.test")
 
-    await prisma.server.update({
-      where: { id: first.json.server_id },
-      data: { status: "revoked" },
+    await apiRequest(`/servers/${first.json.server_id}`, {
+      method: "DELETE",
+      session: owner,
     })
 
     const again = await enroll(owner, deviceId, "vps.test")
@@ -453,6 +457,69 @@ describe("POST /servers/enroll", () => {
     expect(again.status).toBe(201)
     expect(again.json.server_id).not.toBe(first.json.server_id)
     expect(await prisma.server.count({ where: { host: "vps.test" } })).toBe(2)
+  })
+
+  it("enrolls a fresh server after the host was fully decommissioned", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { members } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: { quantity: 1, status: "active" },
+    })
+    const [owner] = members
+    const device = await addDevice(owner, "MacBook", ED25519_KEY)
+    const deviceId = device.json.data.id
+    const first = await enroll(owner, deviceId, "vps.test")
+
+    await apiRequest(`/servers/${first.json.server_id}`, {
+      method: "DELETE",
+      session: owner,
+    })
+
+    const decommissioned = await decommissionDueServers(
+      new Date(Date.now() + DECOMMISSION_DELAY_MS + DAY_MS)
+    )
+
+    expect(decommissioned).toEqual([first.json.server_id])
+
+    const again = await enroll(owner, deviceId, "vps.test")
+
+    expect(again.status).toBe(201)
+    expect(again.json.server_id).not.toBe(first.json.server_id)
+    expect(await prisma.server.count({ where: { host: "vps.test" } })).toBe(1)
+  })
+
+  it("keeps one server and one seat when two enrolments of the same unknown host race", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { organization, members } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: { quantity: 2 },
+    })
+    const [owner] = members
+    const device = await addDevice(owner, "MacBook", ED25519_KEY)
+    const deviceId = device.json.data.id
+    const [one, two] = await Promise.all([
+      enroll(owner, deviceId, "vps.test"),
+      enroll(owner, deviceId, "vps.test"),
+    ])
+
+    expect(one.status).toBe(201)
+    expect(two.status).toBe(201)
+    expect(one.json.server_id).toBe(two.json.server_id)
+
+    const servers = await prisma.server.findMany({
+      where: { organizationId: organization.id },
+    })
+
+    expect(servers).toHaveLength(1)
+
+    const seated = await prisma.server.count({
+      where: {
+        organizationId: organization.id,
+        status: { in: SEATED_STATUSES },
+      },
+    })
+
+    expect(seated).toBe(1)
   })
 })
 

@@ -21,6 +21,7 @@ import {
   type EnrollmentRelease,
   releaseForEnrollment,
 } from "../releases/releases"
+import { enrollmentKeyOf, isEnrollmentKeyConflict } from "./enrollment-key"
 import {
   generateEnrollmentToken,
   generateServerToken,
@@ -117,10 +118,16 @@ interface EnrollTarget {
   deviceId: string
 }
 
+interface ClaimedServer {
+  server: Awaited<ReturnType<typeof createServer>>
+  repaired: boolean
+}
+
 interface EnrollmentGrant {
   arch: string
   sshUser: string
   targetVersion: string
+  enrollmentKey: string
   enrollmentTokenHash: string
   enrollmentExpiresAt: Date
   hostFingerprint?: string
@@ -178,6 +185,48 @@ async function repairServer(
   return await prisma.server.findFirst({ where: { id: serverId } })
 }
 
+async function repairSeatedServer(
+  prisma: OrganizationPrisma,
+  target: EnrollTarget,
+  grant: EnrollmentGrant
+) {
+  const known = await seatedServerAt(prisma, target)
+
+  return known ? await repairServer(prisma, known.id, grant) : null
+}
+
+async function claimServer(
+  prisma: OrganizationPrisma,
+  actor: EnrollActor,
+  target: EnrollTarget,
+  grant: EnrollmentGrant
+): Promise<ClaimedServer> {
+  const repaired = await repairSeatedServer(prisma, target, grant)
+
+  if (repaired) {
+    return { server: repaired, repaired: true }
+  }
+
+  try {
+    return {
+      server: await createServer(prisma, actor, target, grant),
+      repaired: false,
+    }
+  } catch (error) {
+    if (!isEnrollmentKeyConflict(error)) {
+      throw error
+    }
+
+    const raced = await repairSeatedServer(prisma, target, grant)
+
+    if (!raced) {
+      throw error
+    }
+
+    return { server: raced, repaired: true }
+  }
+}
+
 export async function enrollServer(
   actor: EnrollActor,
   input: EnrollInput
@@ -204,20 +253,22 @@ export async function enrollServer(
     deviceId: device.id,
   }
 
-  const known = await seatedServerAt(prisma, target)
   const enrollmentToken = generateEnrollmentToken()
   const release = await releaseForEnrollment(input.probe.arch)
   const grant: EnrollmentGrant = {
     arch: input.probe.arch,
     sshUser: input.ssh_user ?? DEFAULT_SSH_USER,
     targetVersion: release.version,
+    enrollmentKey: enrollmentKeyOf({
+      ...target,
+      organizationId: actor.organizationId,
+    }),
     enrollmentTokenHash: await hashEnrollmentToken(enrollmentToken),
     enrollmentExpiresAt: new Date(Date.now() + ENROLLMENT_TTL_MS),
     ...(input.fingerprint ? { hostFingerprint: input.fingerprint } : {}),
   }
 
-  const repaired = known ? await repairServer(prisma, known.id, grant) : null
-  const server = repaired ?? (await createServer(prisma, actor, target, grant))
+  const { server, repaired } = await claimServer(prisma, actor, target, grant)
 
   await recordEvent({
     action: "server.enrolled",
@@ -229,7 +280,7 @@ export async function enrollServer(
       host: target.host,
       port: server.port,
       ssh_user: server.sshUser,
-      repaired: repaired !== null,
+      repaired,
     },
   })
 
