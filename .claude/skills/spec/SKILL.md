@@ -1,6 +1,6 @@
 ---
 name: spec
-description: "Écrire ou modifier la spécification d'une tâche dans `docs/plans/` — le gabarit de `docs/plans/README.md`, le choix du plan et du lot, un identifiant stable, la ligne dans `docs/TRACKING.md`, des critères d'acceptation observables, les tests d'acceptation avant le code, les blocages et les tâches de contrat. À utiliser quand le propriétaire demande une nouvelle tâche, un découpage, une reformulation de spec, ou quand une tâche en cours découvre un besoin hors de son périmètre."
+description: "Écrire ou modifier la spécification d'une tâche dans `docs/plans/README.md` — le gabarit, un identifiant stable, des critères d'acceptation observables, les tests d'acceptation avant le code, les blocages et les tâches de contrat. Ce fichier ne porte que ce qui reste à faire : une tâche livrée en sort, l'historique git en tient le registre. À utiliser quand le propriétaire demande une nouvelle tâche, un découpage, une reformulation de spec, ou quand une tâche en cours découvre un besoin hors de son périmètre."
 ---
 
 # Spécifier une tâche
@@ -11,13 +11,11 @@ Les documents sont la spécification ; le code les suit (`docs/README.md`). Une 
 
 | Fichier | Rôle |
 | --- | --- |
-| `docs/plans/README.md` | le gabarit, les statuts, le protocole de démarrage, le lot `INF` |
-| `docs/plans/marketing-site.md` | tâches `MKT` : `apps/site`, `packages/design` |
-| `docs/plans/platform.md` | tâches `PLT` : `apps/web`, `packages/db`, `packages/auth`, `packages/api` |
-| `docs/plans/desktop-and-agent.md` | tâches `APP` et `AGT` : `apps/desktop`, `apps/agent`, `packages/shared` |
-| `docs/TRACKING.md` | une ligne par tâche : statut, branche, PR ; le tableau des blocages |
+| `docs/plans/README.md` | le gabarit, le protocole de démarrage, et **les seules tâches non terminées** |
 | `docs/contracts/*.md` | ce qu'une tâche de contrat modifie ; ce qu'une tâche d'implémentation lit |
 | `docs/decisions/` | ce qu'une tâche ne remet pas en cause sans blocage |
+
+Il n'y a **pas** de fichier de suivi. Une tâche livrée est retirée de `docs/plans/README.md` dans la passe qui la livre ; son identifiant vit dans le sujet de son commit, et `git log --oneline --grep "<ID>"` la retrouve. Un document ne conserve pas ce qui est fait.
 
 ## Le gabarit
 
@@ -48,31 +46,19 @@ Une tâche courte peut omettre « Hors périmètre » ou « Tests » quand ils s
 
 ## Où l'ajouter
 
-| Préfixe | Plan | Lots |
-| --- | --- | --- |
-| `INF` | `docs/plans/README.md`, section « Lot INF — Socle » | lot 0 |
-| `AGT` | `docs/plans/desktop-and-agent.md` | lot 1 (modules), lot 3 (compte) |
-| `APP` | `docs/plans/desktop-and-agent.md` | lot 2 (app), lot 3 (compte), lot 4 (OS) |
-| `PLT` | `docs/plans/platform.md` | lot 3 (comptes), lot 4 (équipes), lot 5 (sécurité) |
-| `MKT` | `docs/plans/marketing-site.md` | lot S |
-
-La tâche se place dans son lot, après la dernière tâche du lot. Une tâche qui touche deux workspaces de deux plans est deux tâches, une par plan, liées par leurs dépendances. Une tâche qui modifie `packages/shared` ou `docs/contracts/` est une **tâche de contrat** : elle vit dans le plan du consommateur principal, son périmètre nomme le fichier de contrat et le fichier de `packages/shared/src/`, et les tâches d'implémentation en dépendent.
+Tout vit dans la section « Ce qui reste » de `docs/plans/README.md`, dans l'ordre d'arrivée. Le préfixe dit le chantier — `INF` le socle et les contrats, `AGT` l'agent Go, `APP` l'app desktop, `PLT` la plateforme, `MKT` le site — il ne dit plus dans quel fichier écrire. Une tâche qui touche deux workspaces est deux tâches, liées par leurs dépendances. Une tâche qui modifie `packages/shared` ou `docs/contracts/` est une **tâche de contrat** : elle vit dans le plan du consommateur principal, son périmètre nomme le fichier de contrat et le fichier de `packages/shared/src/`, et les tâches d'implémentation en dépendent.
 
 ## Identifiants
 
 - `<PRÉFIXE>-<NN>`, deux chiffres, le suivant du plus grand identifiant existant du préfixe, même si ce dernier est abandonné.
-- Un identifiant est stable : on ne renumérote jamais, on ne réutilise jamais un identifiant d'une tâche supprimée. Une tâche abandonnée reste dans le plan avec « Abandonnée : » et la raison en tête de section, et sa ligne de `TRACKING.md` passe en `bloqué` avec la raison.
+- Un identifiant est stable : on ne renumérote jamais, on ne réutilise jamais un identifiant d'une tâche supprimée. Une tâche abandonnée sort du fichier ; la raison va dans le commit qui la retire.
 - Une tâche qui grossit se découpe : l'ancienne garde son numéro et son premier morceau, les autres morceaux prennent les identifiants suivants disponibles.
 
-## La ligne dans `TRACKING.md`
+## Ce qui remplace le suivi
 
-Dans la section du préfixe, à la place qui suit l'ordre des identifiants :
+L'état d'une tâche ne s'écrit nulle part : une tâche présente dans `docs/plans/README.md` reste à faire, une tâche absente est faite ou abandonnée. `git log --oneline` donne le reste, chaque sujet de commit portant l'identifiant.
 
-```
-| APP-17 | Réglages du proxy SSH | à faire | | |
-```
-
-Statut `à faire`, branche et PR vides. La colonne « Tâche » reprend le nom du titre. L'agent qui prend la tâche remplit la branche (`<type>/<ID>-<slug>`) et passe `en cours` ; le propriétaire passe `en revue` à `fait` à la fusion.
+Ce qu'une tâche livrée laisse derrière elle, quand elle laisse quelque chose : une ligne dans son commit, et — si un travail reste au propriétaire — une tâche ouverte qui le nomme.
 
 ## Critères d'acceptation, puis tests, puis code
 
@@ -80,19 +66,13 @@ La spec précède le code, et les tests précèdent le code (`CLAUDE.md`, « Tra
 
 1. traduit chaque critère d'acceptation en un test qui échoue, au chemin que la section « Tests » indique ;
 2. implémente jusqu'à ce que les tests passent ;
-3. ne touche pas aux critères. Un critère faux ou impossible se signale dans `TRACKING.md`, section « Blocages », et attend le propriétaire.
+3. ne touche pas aux critères. Un critère faux ou impossible se signale au propriétaire et attend sa décision.
 
 Un critère qui ne peut pas s'écrire en test se reformule jusqu'à pouvoir l'être, ou dit explicitement « test manuel : … ».
 
 ## Blocages et besoins de contrat
 
-Une tâche qui découvre un besoin hors de son périmètre s'arrête et l'écrit dans le tableau « Blocages et demandes de contrat » de `docs/TRACKING.md` :
-
-```
-| 2026-09-12 | APP-05 | `catalog` ne renvoie pas `resources.disk_mb` par préréglage | propriétaire : tâche de contrat sur agent-protocol.md |
-```
-
-Date absolue, identifiant, ce qui bloque en une phrase, de qui vient la décision. Le propriétaire crée la tâche de contrat ; la ligne est supprimée quand le blocage est levé. Une tâche ne modifie jamais un contrat ou une décision « au fil de l'eau ».
+Une tâche qui découvre un besoin hors de son périmètre s'arrête et l'écrit dans son rapport au propriétaire : ce qui bloque en une phrase, et de qui vient la décision. Le propriétaire crée la tâche de contrat, qui rejoint « Ce qui reste ». Une tâche ne modifie jamais un contrat ou une décision « au fil de l'eau ».
 
 Une tâche qui pense qu'une décision de `docs/decisions/` est fausse la lit d'abord, puis ouvre un blocage ; elle ne l'améliore pas.
 
@@ -109,6 +89,6 @@ Une tâche qui pense qu'une décision de `docs/decisions/` est fausse la lit d'a
 1. Le gabarit est respecté ; le titre, le lot, les dépendances et le workspace sont là.
 2. Chaque critère est observable et numéroté ; chaque critère a son test ou dit pourquoi il n'en a pas.
 3. Le périmètre nomme des fichiers réels ; le hors périmètre nomme les tentations.
-4. L'identifiant est le suivant du préfixe et n'existe nulle part ailleurs (`grep -rn "<ID>" docs/`).
-5. La ligne est dans `docs/TRACKING.md`, en `à faire`.
+4. L'identifiant est le suivant du préfixe, et n'a jamais servi : `grep -rn "<ID>" docs/` est vide **et** `git log --oneline --grep "<ID>"` aussi — un identifiant déjà livré ne se réutilise pas.
+5. La tâche est dans « Ce qui reste » de `docs/plans/README.md`.
 6. Rien dans la spec ne contredit `CLAUDE.md`, un contrat, une décision ; sinon, blocage.

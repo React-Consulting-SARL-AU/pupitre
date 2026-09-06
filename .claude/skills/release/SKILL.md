@@ -19,7 +19,7 @@ Une release livre deux artefacts : l'app desktop (macOS, Windows, Linux) et l'ag
 | `apps/site/src/content/changelog/` | une entrée par version, fr et en (MKT-06) | **non** |
 | `docs/monorepo.md` | les dashboards externes : Apple Developer, Azure Trusted Signing, GitHub Releases, R2 | oui |
 | `docs/contracts/platform-api.md` | `POST /admin/releases`, `GET /agent/release/:version`, table `Release` | oui |
-| `docs/TRACKING.md` | ce qui est `fait` sur `main` au moment du tag | oui |
+| `git log <dernier tag>..main` | ce qui entre dans la version, un identifiant de tâche par sujet de commit | oui |
 
 ## Ce qui existe au 2026-09-04
 
@@ -33,7 +33,7 @@ Une release livre deux artefacts : l'app desktop (macOS, Windows, Linux) et l'ag
 | Changelog du site lu depuis les notes de version | MKT-06 | à faire |
 | Page de téléchargement de la console depuis `Release` | PLT-09 | à faire |
 
-Tant que ces tâches ne sont pas `fait` dans `docs/TRACKING.md`, **il n'y a pas de pipeline de release**. Ce skill décrit la procédure cible pour que chacune de ces tâches la construise dans le même sens ; une étape marquée « (cible) » ne s'exécute pas aujourd'hui.
+Tant que ces tâches n'ont pas atterri sur `main`, **il n'y a pas de pipeline de release**. Ce skill décrit la procédure cible pour que chacune de ces tâches la construise dans le même sens ; une étape marquée « (cible) » ne s'exécute pas aujourd'hui.
 
 ## Versionnage
 
@@ -46,9 +46,9 @@ Tant que ces tâches ne sont pas `fait` dans `docs/TRACKING.md`, **il n'y a pas 
 
 ### 1. Vérifier `main`
 
-- `docs/TRACKING.md` : tout ce qui entre dans la version est `fait`, rien n'est `en revue` avec une PR fusionnée par erreur.
+- `git log --oneline <dernier tag>..main` : lis ce qui entre dans la version, un sujet par tâche. Ce qui reste à faire vit dans `docs/plans/README.md` — une tâche encore listée là n'est pas dans la version.
 - `bun run lint`, `bun run check:types`, `bun run test`, `bun run build` verts en local sur `main` à jour.
-- Le propriétaire a fait tourner la version candidate sur son propre VPS (porte du MVP dans `docs/plans/desktop-and-agent.md`).
+- Le propriétaire a fait tourner la version candidate sur son propre VPS.
 
 ### 2. Préparer la version
 

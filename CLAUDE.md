@@ -7,7 +7,7 @@ Source de vérité du monorepo. Lis aussi le guide du workspace que tu touches :
 - App desktop : [`apps/desktop/CLAUDE.md`](./apps/desktop/CLAUDE.md)
 - Agent serveur : [`apps/agent/CLAUDE.md`](./apps/agent/CLAUDE.md)
 - Produit : [`docs/product/PRODUCT.md`](./docs/product/PRODUCT.md) · design : [`docs/product/DESIGN.md`](./docs/product/DESIGN.md)
-- Plans et suivi : [`docs/plans/README.md`](./docs/plans/README.md) · [`docs/TRACKING.md`](./docs/TRACKING.md)
+- Ce qui reste à faire : [`docs/plans/README.md`](./docs/plans/README.md)
 
 Pupitre est un produit **fermé et commercial**. Rien de ce dépôt n'est publié. Tout le code est produit par des agents ; le propriétaire du projet spécifie, relit et valide.
 
@@ -67,11 +67,11 @@ Commandes d'un seul workspace : `bun --cwd=<workspace> run <script>`.
 
 ## Travailler par tâche
 
-1. Lis ce fichier, le guide du workspace, le plan de la tâche dans `docs/plans/`, et les contrats concernés dans `docs/contracts/`.
-2. Passe la tâche en `en cours` dans [`docs/TRACKING.md`](./docs/TRACKING.md), avec la branche.
-3. Écris d'abord les tests d'acceptation qui traduisent les critères de la tâche, puis le code.
-4. Reste dans le périmètre de la tâche et dans ton workspace. Un besoin dans un autre workspace devient une tâche, pas une incursion.
-5. Lint, typecheck, tests verts. Passe la tâche en `en revue`, arrête-toi.
+1. Lis ce fichier, le guide du workspace, la tâche dans [`docs/plans/README.md`](./docs/plans/README.md), et les contrats concernés dans `docs/contracts/`.
+2. Écris d'abord les tests d'acceptation qui traduisent les critères de la tâche, puis le code.
+3. Reste dans le périmètre de la tâche et dans ton workspace. Un besoin dans un autre workspace devient une tâche, pas une incursion.
+4. Lint, typecheck, tests verts, puis arrête-toi.
+5. Une tâche finie sort de `docs/plans/README.md` : l'historique git en tient le registre, l'identifiant vivant dans le sujet du commit.
 
 ## External Configs
 
