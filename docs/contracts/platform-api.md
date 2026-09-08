@@ -82,7 +82,7 @@ Les deux redirections portent l'en-tête `x-pupitre-release-storage` : `r2` quan
 | GET | `/releases/app/:version` | aucune | `{ data: AppRelease }` pour une version précise, quel que soit son canal ; `app_release_not_found` (404) sinon |
 | GET | `/releases/app/:version/:os/:arch` | aucune | 303 vers l'artefact, le lien stable que le site et les pages d'aide écrivent ; `app_release_not_found` (404) pour une architecture que personne n'a construite |
 
-`AppRelease` vaut `{ version, channel, notes, published_at, builds: [{ os, arch, format, url, bytes, sha256, signature }] }`, une entrée de `builds` par fichier téléchargeable — deux sur macOS, une par architecture. `arch` vaut `arm64`, `x64` ou `universal` : le vocabulaire d'Electron, qui n'est pas celui du catalogue de l'agent (`amd64`, `arm64`). Les notes appartiennent à la version : la ligne publiée en premier les porte pour toute la version.
+`AppRelease` vaut `{ version, channel, notes, published_at, builds: [{ os, arch, format, url, bytes, sha256, signature }] }`, une entrée de `builds` par fichier téléchargeable. L'`url` rendue ici est **composée par la plateforme** à partir de la clé stockée et de `PUPITRE_DOWNLOADS_URL` : la publication n'envoie qu'une clé (`r2_key`), la lecture rend une adresse — deux sur macOS, une par architecture. `arch` vaut `arm64`, `x64` ou `universal` : le vocabulaire d'Electron, qui n'est pas celui du catalogue de l'agent (`amd64`, `arm64`). Les notes appartiennent à la version : la ligne publiée en premier les porte pour toute la version.
 
 Ces quatre routes ne demandent aucune session, contrairement à celles de l'agent : les artefacts de l'app sont publics — ils vivent sur `dl.pupitre.studio` — là où le binaire de l'agent ne l'est pas.
 
