@@ -152,10 +152,13 @@ async function fleetOf(
   return listed.result;
 }
 
+// The first file to run pays for PGlite starting and taking the migrations, and a cold runner is far slower over it than a laptop.
+const BOOT_TIMEOUT_MS = 60_000;
+
 describe("le membre invité, contre l'API de la plateforme", () => {
   beforeAll(async () => {
     await bootApiTestServer();
-  });
+  }, BOOT_TIMEOUT_MS);
 
   beforeEach(async () => {
     await resetDb();
@@ -163,7 +166,7 @@ describe("le membre invité, contre l'API de la plateforme", () => {
     for (const dir of dirs.splice(0)) {
       rmSync(dir, { force: true, recursive: true });
     }
-  });
+  }, BOOT_TIMEOUT_MS);
 
   it("voit son serveur attribué et s'y connecte sans saisir ni adresse ni clé", async () => {
     const { invited, organization, server } = await assignedServer();

@@ -17,16 +17,32 @@ import (
 	"pupitre.studio/agent/internal/tmux"
 )
 
+// A git that answers the same on every machine: no system or global configuration to read,
+// an identity of its own, and one language. Without it a developer's ~/.gitconfig decides
+// what a reading says, and a runner that has none reads something else.
+var gitEnv = []string{
+	"GIT_AUTHOR_NAME=Pupitre", "GIT_AUTHOR_EMAIL=test@pupitre.studio",
+	"GIT_COMMITTER_NAME=Pupitre", "GIT_COMMITTER_EMAIL=test@pupitre.studio",
+	"GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL=/dev/null", "LC_ALL=C",
+}
+
 // The real machine, minus the user switch: the tests run as whoever runs go test, and git is the point of the fixture.
 type asMe struct {
 	sys.Real
+	t *testing.T
 }
 
 func (a asMe) Run(cmd sys.Command) (sys.Output, error) {
 	cmd.User = ""
 	cmd.Env = append(cmd.Env, "HOME="+os.Getenv("HOME"))
+	cmd.Env = append(cmd.Env, gitEnv...)
 
-	return a.Real.Run(cmd)
+	out, err := a.Real.Run(cmd)
+	if err != nil && a.t != nil {
+		a.t.Logf("%s: %v\n%s", strings.Join(cmd.Argv, " "), err, out.Stderr)
+	}
+
+	return out, err
 }
 
 type fixtureRepo struct {
@@ -41,11 +57,7 @@ func run(t *testing.T, dir string, argv ...string) string {
 
 	command := exec.Command(argv[0], argv[1:]...)
 	command.Dir = dir
-	command.Env = append(os.Environ(),
-		"GIT_AUTHOR_NAME=Pupitre", "GIT_AUTHOR_EMAIL=test@pupitre.studio",
-		"GIT_COMMITTER_NAME=Pupitre", "GIT_COMMITTER_EMAIL=test@pupitre.studio",
-		"GIT_CONFIG_NOSYSTEM=1", "LC_ALL=C",
-	)
+	command.Env = append(os.Environ(), gitEnv...)
 
 	out, err := command.Output()
 	if err != nil {
@@ -111,7 +123,7 @@ func gitFixture(t *testing.T) fixtureRepo {
 	write(t, conf, "web|web|"+origin+"|none|127.0.0.1|3000|web|sleep 1\nfresh|fresh|"+origin+"|none|127.0.0.1|3100|-|sleep 1\n")
 
 	reader := state.New(state.Options{
-		Sys:          asMe{},
+		Sys:          asMe{t: t},
 		Now:          modtest.NewClock(time.Millisecond).Now,
 		Registry:     modules.NewRegistry(),
 		AgentVersion: "0.0.0-test",
@@ -378,7 +390,7 @@ func readerAt(t *testing.T, base, projects string) *state.Reader {
 	write(t, conf, "web|web|-|none|127.0.0.1|3000|web|sleep 1\n")
 
 	return state.New(state.Options{
-		Sys:          asMe{},
+		Sys:          asMe{t: t},
 		Now:          modtest.NewClock(time.Millisecond).Now,
 		Registry:     modules.NewRegistry(),
 		AgentVersion: "0.0.0-test",
