@@ -139,7 +139,7 @@ bun x wrangler secret bulk ~/secrets/pupitre-staging.json --config apps/web/wran
 bun --cwd=apps/web run check:secrets staging     # doit dire que tout est là
 ```
 
-`BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` sont à tirer au sort, une fois, et à garder : `openssl rand -base64 32`. Les quatre `TUNNEL_*` viennent du tunnel Cloudflare de l'exposition ; les quatre `R2_*` de l'étape 3 ; les quatre `STRIPE_*` de l'étape 5.
+`BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` sont à tirer au sort, une fois, et à garder : `openssl rand -base64 32`. Les cinq `TUNNEL_*` viennent du tunnel Cloudflare de l'exposition ; les quatre `R2_*` de l'étape 3 ; les quatre `STRIPE_*` de l'étape 5.
 
 Les identifiants de connexion sociale (`GITHUB_CLIENT_ID`, `GOOGLE_CLIENT_ID` et leurs secrets) **ne sont pas** dans la liste de staging : ils sont facultatifs, et l'écran de connexion n'offre que les fournisseurs configurés. Les poser rend le bouton ; les taire laisse le lien magique et la clé d'accès.
 
