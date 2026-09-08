@@ -126,7 +126,7 @@ async function connect(
   try {
     accounts = (await verifyToken(token)).map(({ id, name }) => ({
       accountId: id,
-      accountName: name,
+      accountName: name || id,
     }));
   } catch (failure) {
     return refuseWith("bad_request", "refusal.cloudflare.call", {

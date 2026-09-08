@@ -12,7 +12,8 @@
 #   - `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` sont tirés au hasard
 #     par poste.
 #   - `STRIPE_WEBHOOK_SECRET` vient du CLI Stripe.
-#   - `BETTER_AUTH_URL`, `VITE_APP_URL` et `EMAIL_FROM` viennent des `vars` de `apps/web/wrangler.jsonc`.
+#   - `BETTER_AUTH_URL`, `VITE_APP_URL`, `EMAIL_FROM` et `PUPITRE_DOWNLOADS_URL`
+#     viennent des `vars` de `apps/web/wrangler.jsonc`.
 #
 # ATTENTION : `op inject` échoue en bloc si un seul champ manque dans la note.
 # Garde une clé en commentaire tant que son champ n'existe pas.
@@ -43,6 +44,12 @@ R2_ACCOUNT_ID="op://{{OP_VAULT}}/{{OP_ITEM}}/R2_ACCOUNT_ID"
 R2_ACCESS_KEY_ID="op://{{OP_VAULT}}/{{OP_ITEM}}/R2_ACCESS_KEY_ID"
 R2_SECRET_ACCESS_KEY="op://{{OP_VAULT}}/{{OP_ITEM}}/R2_SECRET_ACCESS_KEY"
 R2_BUCKET_NAME="op://{{OP_VAULT}}/{{OP_ITEM}}/R2_BUCKET_NAME"
+
+# --- Le jeton du pipeline de release. La même valeur ici, sur le Worker de
+# chaque environnement, et dans les secrets GitHub : c'est leur accord qui ouvre
+# les routes de version. Préfixé `pupitre_pub_`, sans quoi la plateforme le prend
+# pour une session et le refuse.
+PUPITRE_PUBLISH_TOKEN="op://{{OP_VAULT}}/{{OP_ITEM}}/PUPITRE_PUBLISH_TOKEN"
 
 # --- Site. Absentes, le site se construit sans mesure d'audience.
 # PUBLIC_RELEASES_URL="op://{{OP_VAULT}}/{{OP_ITEM}}/PUBLIC_RELEASES_URL"
