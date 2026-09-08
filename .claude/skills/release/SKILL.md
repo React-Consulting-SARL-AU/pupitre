@@ -27,6 +27,7 @@ Le tag se pose sur **`staging`**, jamais sur `main`. Une version est donc toujou
 | `scripts/release-notes.ts` | `--check` qu'une version est couverte partout, sinon écrit le corps de l'entrée anglaise | oui |
 | `scripts/assert-branch-writable.ts` | le refus de commiter et de pousser sur `main` | oui |
 | `docs/monorepo.md` | les branches, et les dashboards externes : Apple Developer, Azure Trusted Signing, R2, Cloudflare | oui |
+| `docs/deploy.md` | la mise en ligne de bout en bout, et les douze secrets du Worker | oui |
 | `docs/contracts/platform-api.md` | `/admin/releases`, `/admin/app-releases`, `/releases/app`, table `Release` et `AppRelease` | oui |
 | `git log <dernier tag>..staging` | ce qui entre dans la version | oui |
 
@@ -118,7 +119,7 @@ Les deux moitiés vont ensemble : une app qui embarque une clé publique et un a
 | --- | --- | --- |
 | `agent` | vérifie la version de l'app contre le tag, construit `amd64` et `arm64` avec garble, signe, éprouve le binaire (`version`, `hello`, moins de dix chaînes lisibles), l'envoie sur le bucket **privé**, déclare la version par `POST /admin/releases`, et publie binaires et `release.json` en artefact de CI | `PUPITRE_RELEASE_PRIVATE_KEY`, `CLOUDFLARE_*`, `PUPITRE_PUBLISH_TOKEN` |
 | `desktop` | sur `macos-15`, `windows-2025`, `ubuntu-24.04` : reprend l'agent signé, compile le processus principal en bytecode, empaquette, retourne les fusibles, signe et notarise sur macOS, signe par Azure sur Windows | certificat Apple, clé de notarisation, application Entra ID |
-| `publish` | rassemble les artefacts, les signe avec la clé de release, les dépose sur le bucket **public** avec leur `.sig`, réécrit les flux `latest*.yml` en URL absolues, les dépose sous `app/beta/`, et déclare chaque fichier par `POST /admin/app-releases` | `PUPITRE_RELEASE_PRIVATE_KEY`, `CLOUDFLARE_*`, `PUPITRE_PUBLISH_TOKEN` |
+| `publish` | rassemble les artefacts, les signe avec la clé de release, les dépose sur le bucket **public** avec leur `.sig`, réécrit les flux `latest*.yml` en URL absolues, les dépose sous `app/beta/`, et déclare chaque fichier par `POST /admin/app-releases` — en envoyant sa **clé** dans le seau, `app/<version>/<fichier>`, jamais une adresse : la plateforme compose l'URL, et la signature est obligatoire | `PUPITRE_RELEASE_PRIVATE_KEY`, `CLOUDFLARE_*`, `PUPITRE_PUBLISH_TOKEN` |
 
 Le binaire de l'agent n'entre **jamais** dans le bucket public : il n'est pas public, l'app le télécharge depuis la plateforme avec le jeton de l'appareil (`docs/security.md`). Les certificats et les clés ne vivent que dans les secrets GitHub Actions et les dashboards listés dans `docs/monorepo.md` ; rien dans le dépôt, jamais dans un log de CI.
 
