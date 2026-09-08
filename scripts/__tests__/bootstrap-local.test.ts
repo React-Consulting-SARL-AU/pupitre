@@ -168,12 +168,16 @@ describe("slugify", () => {
 })
 
 describe("neonTargetFor", () => {
-  test("main travaille sur la branche partagée, qui existe déjà", () => {
-    expect(neonTargetFor("main")).toEqual({
+  test("staging travaille sur la branche partagée, qui existe déjà", () => {
+    expect(neonTargetFor("staging")).toEqual({
       branch: "staging",
       parent: null,
       expiresAt: null,
     })
+  })
+
+  test("main aussi, faute d'y travailler jamais", () => {
+    expect(neonTargetFor("main").branch).toBe("staging")
   })
 
   test("une branche détachée retombe sur la branche partagée", () => {
