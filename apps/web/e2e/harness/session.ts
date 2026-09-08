@@ -3,7 +3,9 @@ import { HARNESS_ORIGIN, HARNESS_PORT, HARNESS_PREFIX } from "./ports"
 
 const EXTERNAL_URL_RE = /^https?:\/\/(?!localhost|127\.0\.0\.1)/
 const HMR_SOCKET_RE = new RegExp(`^ws://localhost:${HARNESS_PORT}/`)
-const MAGIC_LINK_TIMEOUT_MS = 20_000
+// The link is written as soon as the API answers, so this budget only has to
+// outlast a contended runner — never a broken sign-in, which fails on its own.
+const MAGIC_LINK_TIMEOUT_MS = 60_000
 const START_URL_RE = /\/dashboard\/start$/
 
 export function harnessUrl(path: string): string {
