@@ -11,7 +11,7 @@ $ {"tool.github":{"token":"s3cret-de-test"},"tool.1password":{"service_account_t
 > {"id":3,"cmd":"secrets.status"}
 > {"id":4,"cmd":"install","params":{"secrets_stdin":true,"modules":["tool.github","tool.1password"],"config":{}}}
 $ {"tool.github":{"token":"s3cret-de-test"},"tool.1password":{"service_account_token":"s3cret-de-test"}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","ping","project.env","report","secrets.set","secrets.status","secrets.sync","uninstall","upgrade"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","project.env","report","secrets.set","secrets.status","secrets.sync","uninstall","upgrade"]}}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"install-package"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"install-package"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"write-config"}

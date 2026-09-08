@@ -4,7 +4,7 @@
 > {"id":2,"cmd":"install","params":{"secrets_stdin":false,"modules":["runtime.node","runtime.java","runtime.python"],"config":{"runtime.node":{"node_version":"22","bun":true,"pnpm":true},"runtime.java":{"java_version":"21"},"runtime.python":{"python_version":"3.12"}}}}
 > {"id":3,"cmd":"install","params":{"secrets_stdin":false,"modules":["runtime.node","runtime.java","runtime.python"],"config":{"runtime.node":{"node_version":"22","bun":true,"pnpm":true},"runtime.java":{"java_version":"21"},"runtime.python":{"python_version":"3.12"}}}}
 > {"id":4,"cmd":"report"}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","ping","report","uninstall","upgrade"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"install-package"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"install-package"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"write-config"}

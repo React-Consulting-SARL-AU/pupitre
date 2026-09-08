@@ -10,7 +10,7 @@
 > {"id":0,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
 > {"id":1,"cmd":"install","params":{"secrets_stdin":false,"modules":["editor.jetbrains","editor.vscode","editor.zed"],"config":{"editor.jetbrains":{"ide":"idea","version":"latest"},"editor.vscode":{"extensions":["esbenp.prettier-vscode"],"tunnel":true},"editor.zed":{"version":"latest"}}}}
 > {"id":2,"cmd":"install","params":{"secrets_stdin":false,"modules":["editor.jetbrains","editor.vscode","editor.zed"],"config":{"editor.jetbrains":{"ide":"idea","version":"latest"},"editor.vscode":{"extensions":["esbenp.prettier-vscode"],"tunnel":true},"editor.zed":{"version":"latest"}}}}
-< {"id":0,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","ping","report","uninstall","upgrade"]}}
+< {"id":0,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
 < {"event":"step","id":1,"module":"core.system","ms":0,"status":"start","step":"install-package"}
 < {"event":"step","id":1,"module":"core.system","ms":0,"status":"ok","step":"install-package"}
 < {"event":"step","id":1,"module":"core.system","ms":0,"status":"start","step":"write-config"}
@@ -39,7 +39,7 @@
 < {"event":"step","id":1,"module":"editor.zed","ms":0,"status":"ok","step":"install-remote-server"}
 < {"event":"step","id":1,"module":"editor.zed","ms":0,"status":"start","step":"record-release"}
 < {"event":"step","id":1,"module":"editor.zed","ms":0,"status":"ok","step":"record-release"}
-< {"id":1,"ok":true,"result":{"failed":[],"warned":["editor.vscode : le tunnel VS Code attend une authentification une fois : sudo -u dev /usr/local/bin/code tunnel user login"],"report_path":"%REPORT_PATH%"}}
+< {"id":1,"ok":true,"result":{"failed":[],"warned":["editor.vscode : the VS Code tunnel expects one sign-in: sudo -u dev /usr/local/bin/code tunnel user login"],"report_path":"%REPORT_PATH%"}}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"install-package"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"skip","step":"install-package"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"write-config"}

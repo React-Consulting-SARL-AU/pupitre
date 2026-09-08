@@ -1,3 +1,4 @@
+import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { RefreshCw } from "lucide-react";
 import { useEffect } from "react";
@@ -60,10 +61,10 @@ export function OnboardingInspectionScreen({
               {t("onboarding.inspection.rerun")}
             </Button>
           }
-          fix={failed.fix}
+          fix={agentText(t, failed).fix}
           tone="danger"
         >
-          {failed.message}
+          {agentText(t, failed).message}
         </Callout>
       ) : (
         <WaitingNotice

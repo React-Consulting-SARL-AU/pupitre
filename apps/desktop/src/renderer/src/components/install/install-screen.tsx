@@ -1,7 +1,9 @@
+import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { RefreshCw } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { humanMs } from "../../lib/duration";
+import { riseAt } from "../../lib/motion";
 import { useCatalog } from "../../stores/catalog";
 import { useInstall } from "../../stores/install";
 import { Button } from "../ui/button";
@@ -23,11 +25,18 @@ import { InstallSending } from "./install-sending";
 export function InstallScreen({
   serverId,
   serverName,
+  modules: wanted,
   onContinue,
   onReplay,
 }: {
   serverId: string;
   serverName?: string;
+  /**
+   * What to install, when it is not simply the catalogue selection: a resumed
+   * onboarding installs what the machine is still missing, not what it already
+   * runs.
+   */
+  modules?: readonly string[];
   onContinue?: () => void;
   /**
    * What a replay means outside this screen. A module that carried a secret
@@ -45,6 +54,7 @@ export function InstallScreen({
   const start = useInstall((state) => state.start);
   const replay = useInstall((state) => state.replay);
   const reload = useInstall((state) => state.reload);
+  const touched = useInstall((state) => state.touched);
 
   const catalog = useCatalog((state) => state.modules);
   const selected = useCatalog((state) => state.selected);
@@ -53,16 +63,28 @@ export function InstallScreen({
 
   const [replaying, setReplaying] = useState<string | null>(null);
 
+  const asked = wanted ?? selected;
+
+  /**
+   * The generated secrets are made in the main process, one round trip each:
+   * starting before they have landed would install a database with no password
+   * on it.
+   */
+  const run = useCallback(
+    () => settled().then(() => start(serverId, asked, config())),
+    [asked, config, serverId, settled, start]
+  );
+
   useEffect(() => {
-    if (useInstall.getState().install.status !== "idle") {
+    // Nothing chosen is not an install to run: an app that comes back before
+    // the catalogue has answered would otherwise ask the agent for nothing and
+    // be told so, on a screen that has nothing to do with it.
+    if (useInstall.getState().install.status !== "idle" || asked.length === 0) {
       return;
     }
 
-    // The generated secrets are made in the main process, one round trip each:
-    // starting before they have landed would install a database with no
-    // password on it.
-    settled().then(() => start(serverId, selected, config()));
-  }, [serverId, selected, config, settled, start]);
+    run();
+  }, [asked, run]);
 
   function nameOf(moduleId: string): string {
     return (
@@ -110,34 +132,53 @@ export function InstallScreen({
       {install.status === "failed" ? (
         <Callout
           action={
-            <Button icon={RefreshCw} onClick={() => reload(serverId)}>
-              {t("install.rereadReport")}
-            </Button>
+            /*
+              A run that never reached a module left no report to read: what it
+              refused, it refused before touching the machine, so the way out is
+              to ask again rather than to read what was done. Nothing to ask
+              again for — a resumed screen that found the machine already done —
+              and the report is all there is.
+            */
+            touched() || asked.length === 0 ? (
+              <Button icon={RefreshCw} onClick={() => reload(serverId)}>
+                {t("install.rereadReport")}
+              </Button>
+            ) : (
+              <Button icon={RefreshCw} onClick={run}>
+                {t("install.retry")}
+              </Button>
+            )
           }
-          fix={install.error.fix}
+          fix={agentText(t, install.error).fix}
           tone="danger"
         >
-          {install.error.message}
+          {agentText(t, install.error).message}
         </Callout>
       ) : null}
 
       {modules.length > 0 ? (
-        <InstallProgress modules={modules} nameOf={nameOf} />
+        <div className="rise" style={riseAt(0)}>
+          <InstallProgress modules={modules} nameOf={nameOf} />
+        </div>
       ) : null}
 
       {install.status === "done" ? (
-        <InstallReport
-          blocking={blockingOf(install.result.failed)}
-          modules={modules}
-          nameOf={nameOf}
-          onContinue={onContinue}
-          onReplay={replayOne}
-          replaying={replaying}
-          result={install.result}
-        />
+        <div className="rise" style={riseAt(1)}>
+          <InstallReport
+            blocking={blockingOf(install.result.failed)}
+            modules={modules}
+            nameOf={nameOf}
+            onContinue={onContinue}
+            onReplay={replayOne}
+            replaying={replaying}
+            result={install.result}
+          />
+        </div>
       ) : null}
 
-      <InstallLog lines={log} />
+      <div className="rise" style={riseAt(2)}>
+        <InstallLog lines={log} />
+      </div>
     </section>
   );
 }

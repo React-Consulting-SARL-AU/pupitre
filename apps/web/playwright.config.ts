@@ -2,6 +2,8 @@ import { defineConfig, devices } from "@playwright/test"
 import { HARNESS_ORIGIN, HARNESS_PORT, VITE_PORT } from "./e2e/harness/ports"
 
 const SERVER_TIMEOUT_MS = 180_000
+const MOBILE_SPEC_RE = /mobile\.spec\.ts$/
+const PHONE_VIEWPORT = { width: 390, height: 844 }
 
 const consoleEnv = {
   BETTER_AUTH_SECRET: "pupitre-test-secret-pupitre-test-secret",
@@ -27,7 +29,20 @@ export default defineConfig({
     screenshot: "only-on-failure",
     video: "off",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+      testIgnore: MOBILE_SPEC_RE,
+    },
+    {
+      // A phone-sized Chromium rather than an iPhone preset: the preset would
+      // pull in WebKit, and what is under test is the width, not the engine.
+      name: "mobile",
+      use: { ...devices["Desktop Chrome"], viewport: PHONE_VIEWPORT },
+      testMatch: MOBILE_SPEC_RE,
+    },
+  ],
   webServer: [
     {
       command: `bun run vite dev --host 127.0.0.1 --port ${VITE_PORT} --strictPort`,

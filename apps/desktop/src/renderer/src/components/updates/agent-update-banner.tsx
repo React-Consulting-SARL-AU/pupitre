@@ -9,12 +9,14 @@ import { AgentUpdateFrame } from "./agent-update-frame";
 import { AgentUpdateNotes } from "./agent-update-notes";
 
 /**
- * The gap between the agent this app carries and the one the server runs.
+ * The gap between the agent this app can offer and the one the server runs.
  *
  * Ahead, it offers the update and the notes that came with it. Behind, it says
  * so and stops there: the server runs a newer agent, everything this app still
  * knows how to ask goes on working, and barring the screens over a version
- * number would break the app rather than the mismatch.
+ * number would break the app rather than the mismatch. Too far behind — a
+ * generation of protocol away — nothing can be asked of that agent any more,
+ * and the banner says which gesture repairs it.
  */
 export function AgentUpdateBanner({
   state,
@@ -35,14 +37,30 @@ export function AgentUpdateBanner({
     return null;
   }
 
-  const { carried, installed, order, platform } = state.update;
+  const { floor, installed, offer, order, platform, verdict } = state.update;
+
+  if (verdict === "agent_too_old") {
+    return (
+      <AgentUpdateFrame
+        detail={t("updates.agent.staleDetail", {
+          floor: floor ?? "?",
+          installed: installed ?? "?",
+        })}
+        onHide={onHide}
+        order="behind"
+        title={t("updates.agent.staleTitle")}
+      >
+        <Callout>{t("updates.agent.staleBody")}</Callout>
+      </AgentUpdateFrame>
+    );
+  }
 
   if (order === "behind") {
     return (
       <AgentUpdateFrame
         detail={t("updates.agent.behindDetail", {
           installed: installed ?? "?",
-          carried: carried?.version ?? "?",
+          offered: offer?.version ?? "?",
         })}
         onHide={onHide}
         order={order}
@@ -53,20 +71,20 @@ export function AgentUpdateBanner({
     );
   }
 
-  if (!(order === "ahead" && carried)) {
+  if (!(order === "ahead" && offer)) {
     return null;
   }
 
-  const signable = carried.signed || platform;
+  const signable = offer.signed || platform;
 
   return (
     <AgentUpdateFrame
-      detail={`pupitred ${installed ?? "?"} → ${carried.version} · ${carried.arch}`}
+      detail={`pupitred ${installed ?? "?"} → ${offer.version} · ${offer.arch}`}
       onHide={onHide}
       order={order}
       title={t("updates.agent.aheadTitle")}
     >
-      <AgentUpdateNotes notes={carried.notes} />
+      <AgentUpdateNotes notes={offer.notes} />
 
       {signable ? null : (
         <Callout fix={t("updates.agent.unsignedFix")} tone="warn">

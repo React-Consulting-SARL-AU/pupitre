@@ -9,10 +9,12 @@ import (
 	"pupitre.studio/agent/internal/modules/modtest"
 )
 
-func newContext(t *testing.T, fake *modtest.FakeSys, ssh443 bool) *modules.Context {
+func newContext(t *testing.T, fake *modtest.FakeSys, o Options) *modules.Context {
 	t.Helper()
 
-	return modtest.NewContext(t, fake, modtest.Options{Manifest: manifest(), Values: modtest.Values{"ssh_443": ssh443}})
+	values := modtest.Values{"ssh_443": o.SSH443, "keep_root": o.KeepRoot}
+
+	return modtest.NewContext(t, fake, modtest.Options{Manifest: manifest(), Values: values})
 }
 
 func run(t *testing.T, ctx *modules.Context) {
@@ -37,7 +39,7 @@ func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 
 func TestInstallOnABareMachine(t *testing.T) {
 	fake := modtest.NewFakeSys()
-	ctx := newContext(t, fake, false)
+	ctx := newContext(t, fake, Options{})
 
 	run(t, ctx)
 
@@ -55,7 +57,7 @@ func TestInstallOnABareMachine(t *testing.T) {
 		t.Errorf("jail = %q, unit %s", fake.Files[jailPath], fake.Units[jailUnit])
 	}
 
-	if string(fake.Files[PreparedPath]) != string(Fragment(false)) || fake.Modes[PreparedPath] != 0o600 {
+	if string(fake.Files[PreparedPath]) != string(Fragment(Options{})) || fake.Modes[PreparedPath] != 0o600 {
 		t.Errorf("prepared fragment = %q (%o)", fake.Files[PreparedPath], fake.Modes[PreparedPath])
 	}
 
@@ -63,7 +65,7 @@ func TestInstallOnABareMachine(t *testing.T) {
 		t.Fatal("install must never touch sshd: that is harden's job")
 	}
 
-	for _, line := range strings.Split(string(Fragment(false)), "\n") {
+	for _, line := range strings.Split(string(Fragment(Options{})), "\n") {
 		if strings.HasPrefix(line, "Port") {
 			t.Fatalf("no Port line without ssh_443: %q", line)
 		}
@@ -81,10 +83,10 @@ func TestInstallOnABareMachine(t *testing.T) {
 
 func TestReplayOnAnInstalledMachineChangesNothing(t *testing.T) {
 	fake := modtest.NewFakeSys()
-	run(t, newContext(t, fake, false))
+	run(t, newContext(t, fake, Options{}))
 
 	mutations := len(fake.Mutations)
-	ctx := newContext(t, fake, false)
+	ctx := newContext(t, fake, Options{})
 	run(t, ctx)
 
 	for step, status := range statuses(ctx) {
@@ -100,7 +102,7 @@ func TestReplayOnAnInstalledMachineChangesNothing(t *testing.T) {
 
 func TestSSH443OpensThePortAndTogglingBackClosesIt(t *testing.T) {
 	fake := modtest.NewFakeSys()
-	run(t, newContext(t, fake, true))
+	run(t, newContext(t, fake, Options{SSH443: true}))
 
 	if strings.Join(fake.Firewall.Rules, ",") != "22/tcp,443/tcp" {
 		t.Fatalf("rules = %v", fake.Firewall.Rules)
@@ -110,7 +112,7 @@ func TestSSH443OpensThePortAndTogglingBackClosesIt(t *testing.T) {
 		t.Fatalf("jail = %q, fragment = %q", fake.Files[jailPath], fake.Files[PreparedPath])
 	}
 
-	ctx := newContext(t, fake, false)
+	ctx := newContext(t, fake, Options{})
 	run(t, ctx)
 
 	if strings.Join(fake.Firewall.Rules, ",") != "22/tcp" || fake.Restarts[jailUnit] != 1 {
@@ -122,10 +124,30 @@ func TestSSH443OpensThePortAndTogglingBackClosesIt(t *testing.T) {
 	}
 }
 
+func TestKeepRootPreparesAFragmentThatLetsRootBackInByKey(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	run(t, newContext(t, fake, Options{KeepRoot: true}))
+
+	prepared := string(fake.Files[PreparedPath])
+	if !strings.Contains(prepared, "PermitRootLogin prohibit-password\n") || !strings.Contains(prepared, "AllowUsers dev root\n") {
+		t.Fatalf("prepared fragment = %q", prepared)
+	}
+
+	if strings.Contains(prepared, "PasswordAuthentication yes") {
+		t.Fatalf("keeping root never reopens passwords: %q", prepared)
+	}
+
+	run(t, newContext(t, fake, Options{}))
+
+	if !strings.Contains(string(fake.Files[PreparedPath]), "PermitRootLogin no\n") {
+		t.Fatalf("turning the option off must close root again: %q", fake.Files[PreparedPath])
+	}
+}
+
 func TestFailedPackageReportsReplay(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.FailPackage("fail2ban", "E: Unable to locate package fail2ban")
-	ctx := newContext(t, fake, false)
+	ctx := newContext(t, fake, Options{})
 
 	err := (Module{}).Install(ctx)
 	if err == nil {
@@ -141,10 +163,10 @@ func TestFailedPackageReportsReplay(t *testing.T) {
 func TestUninstallRevertsWhatTheModuleDid(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Units["ssh"] = modtest.UnitActive
-	run(t, newContext(t, fake, false))
-	fake.Files[FragmentPath] = Fragment(false)
+	run(t, newContext(t, fake, Options{}))
+	fake.Files[FragmentPath] = Fragment(Options{})
 
-	ctx := newContext(t, fake, false)
+	ctx := newContext(t, fake, Options{})
 	if err := (Module{}).Uninstall(ctx); err != nil {
 		t.Fatal(err)
 	}

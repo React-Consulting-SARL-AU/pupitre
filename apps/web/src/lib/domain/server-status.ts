@@ -42,9 +42,17 @@ export function statusLook(status: string, stale = false): StatusLook {
   return LOOKS[status as ServerStatus] ?? LOOKS.revoked
 }
 
-export const ENTITLEMENT_KEYS: Record<string, DictionaryKey> = {
-  none: "entitlement.none",
-  valid: "entitlement.valid",
-  grace: "entitlement.grace",
-  suspended: "entitlement.suspended",
+const ENTITLEMENT_LOOKS: Record<string, StatusLook> = {
+  none: { shape: "hollow", tone: "warn", label: "entitlement.none" },
+  valid: { shape: "filled", tone: "ok", label: "entitlement.valid" },
+  grace: { shape: "hollow", tone: "warn", label: "entitlement.grace" },
+  suspended: {
+    shape: "barred",
+    tone: "danger",
+    label: "entitlement.suspended",
+  },
+}
+
+export function entitlementLook(entitlement: string): StatusLook | null {
+  return ENTITLEMENT_LOOKS[entitlement] ?? null
 }

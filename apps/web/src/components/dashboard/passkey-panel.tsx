@@ -115,6 +115,7 @@ export function PasskeyPanel() {
                 </p>
               </div>
               <ConfirmDialog
+                busy={revocation.phase === "pending"}
                 confirmLabel={t("passkeys.revoke")}
                 description={t("passkeys.revokeDescription", {
                   name: passkey.name || t("passkeys.unnamed"),
@@ -122,7 +123,6 @@ export function PasskeyPanel() {
                 onConfirm={() => {
                   revoke(passkey.id)
                 }}
-                pending={revocation.phase === "pending"}
                 title={t("passkeys.revokeTitle")}
                 triggerLabel={t("passkeys.revoke")}
               />

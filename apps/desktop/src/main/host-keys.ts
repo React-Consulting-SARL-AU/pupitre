@@ -41,9 +41,7 @@ export function hostKeyDecision(
   return {
     actions: [REINSTALLED_ACTION, "cancel"],
     expected: pinned,
-    fix: "Si vous venez de réinstaller ce serveur, remplacez l'empreinte épinglée. Sinon, ne vous connectez pas : vérifiez la machine avant tout.",
-    message:
-      "La clé d'hôte de ce serveur a changé depuis le premier contact. La connexion est refusée : cela arrive quand un serveur est réinstallé, et aussi quand quelqu'un répond à sa place.",
+    phrase: { id: "refusal.hostKey.changed" },
     observed,
     status: "changed",
   };

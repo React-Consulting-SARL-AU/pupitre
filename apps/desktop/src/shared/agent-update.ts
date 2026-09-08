@@ -1,13 +1,21 @@
 import type { Entitlement } from "@pupitre/shared/agent-protocol/session";
+import {
+  agentFloorFor,
+  type CompatibilityVerdict,
+  compatibility,
+} from "@pupitre/shared/compat";
 
 /**
- * The agent the app carries, next to the one the server runs.
+ * The agent that can be offered to a server, next to the one it runs.
  *
- * The app has no list of published versions and asks none: what it can offer a
- * server is the binary embedded at build time, with the notes of that version
- * and, when it has it, the signature the agent falls back on. Comparing the two
- * is all this file does — the decision of what to show belongs to the screen,
- * and the decision of what to install belongs to the agent.
+ * Two sources, in this order. The platform first: it publishes a signed
+ * version, the agent downloads it itself with its server token and checks its
+ * digest, and the app only has a version number to name. The app second, for a
+ * server the platform no longer reaches: it carries the binary of its own
+ * build, and the matching signature when the publishing chain left it one.
+ *
+ * Comparing the two versions is all this file does — what is shown belongs to
+ * the screen, what is installed belongs to the agent.
  */
 
 export interface CarriedAgent {
@@ -18,15 +26,25 @@ export interface CarriedAgent {
   signed: boolean;
 }
 
+export type OfferSource = "platform" | "app";
+
+export interface AgentOffer extends CarriedAgent {
+  source: OfferSource;
+}
+
 export type VersionOrder = "ahead" | "same" | "behind" | "unknown";
 
 export interface AgentUpdateState {
   /** The version the server answered, or nothing on a machine without agent. */
   installed: string | null;
-  carried: CarriedAgent | null;
+  offer: AgentOffer | null;
   order: VersionOrder;
   /** Whether the platform still answers this server, and can sign for it. */
   platform: boolean;
+  /** What the compatibility sheet says about this app and this agent. */
+  verdict: CompatibilityVerdict;
+  /** The oldest agent this version of the app knows how to drive. */
+  floor: string | null;
 }
 
 /**
@@ -74,14 +92,14 @@ export function compareVersions(a: string, b: string): number | null {
 }
 
 export function orderOf(
-  carried: string | null,
+  offered: string | null,
   installed: string | null
 ): VersionOrder {
-  if (!(carried && installed)) {
+  if (!(offered && installed)) {
     return "unknown";
   }
 
-  const compared = compareVersions(carried, installed);
+  const compared = compareVersions(offered, installed);
 
   if (compared === null) {
     return "unknown";
@@ -92,4 +110,20 @@ export function orderOf(
   }
 
   return compared > 0 ? "ahead" : "behind";
+}
+
+/**
+ * The compatibility verdict for the running app and the answering agent. A
+ * server one generation behind no longer speaks this app's protocol: the screen
+ * does not hide that behind a plain version number.
+ */
+export function verdictOf(
+  appVersion: string,
+  installed: string | null
+): CompatibilityVerdict {
+  return installed ? compatibility(appVersion, installed) : "unknown";
+}
+
+export function floorOf(appVersion: string): string | null {
+  return agentFloorFor(appVersion);
 }

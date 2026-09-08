@@ -45,7 +45,7 @@ export function InstallModuleRow({
             {name}
           </span>
           {module.ms > 0 ? (
-            <span className="shrink-0 font-data text-[11px] text-ink-3 tabular-nums">
+            <span className="shrink-0 font-data text-[12px] text-ink-3 tabular-nums">
               {humanMs(module.ms)}
             </span>
           ) : null}
@@ -60,7 +60,7 @@ export function InstallModuleRow({
         ) : null}
 
         {replay ? (
-          <code className="mt-1.5 block break-all font-data text-[11px] text-ink-3">
+          <code className="mt-1.5 block break-all font-data text-[12px] text-ink-3">
             {replay}
           </code>
         ) : null}

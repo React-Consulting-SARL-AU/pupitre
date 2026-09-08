@@ -10,6 +10,8 @@ import type { AgentResponse } from "@shared/agent";
 import type { InstallUpdate } from "@shared/install";
 import type { AgentDelivery } from "./agent-binary";
 import type { AgentClient } from "./agent-client";
+import { refusalOf } from "./refusal";
+import type { ManagedValues } from "./tunnel-run";
 
 export type { InstallUpdate } from "@shared/install";
 
@@ -49,6 +51,16 @@ export interface InstallDeps {
    * the seat that was just bought, and it is burnt by the first exchange.
    */
   enrollment: (platformServerId: string) => EnrollmentGrant | null;
+  /**
+   * The values a module declares `managed`: they come from the platform, never
+   * from the form, and the app only carries them.
+   */
+  managed: (
+    serverId: string,
+    modules: readonly string[]
+  ) => Promise<AgentResponse<ManagedValues>>;
+  /** The identity the agent already answers with, when it has one. */
+  identity?: (serverId: string) => string | null;
 }
 
 /** What the agent needs to buy its server token, and nothing else. */
@@ -78,15 +90,28 @@ export function sendEnrolment(
   );
 }
 
-/** Nothing granted, nothing to enrol: a development build has no seat to claim. */
+/**
+ * The seat this machine was granted, handed to the agent that will hold it.
+ *
+ * An enrolment is taken up rather than replayed: a server already carrying an
+ * identity says so in its `hello`, which is what an app whose channel dropped
+ * between the exchange and its answer reads on the way back. A refusal is
+ * reported as it comes — the agent answers a burnt token and a revoked one with
+ * the same code, so only the identity can tell the two apart.
+ * Nothing granted, nothing to enrol: a development build has no seat to claim.
+ */
 export async function enrolAgent(
   serverId: string,
   enrollment: EnrollmentSummary | null | undefined,
-  deps: Pick<InstallDeps, "client" | "enrollment">
+  deps: Pick<InstallDeps, "client" | "enrollment" | "identity">
 ): Promise<AgentResponse<EnrollResult | null>> {
   const granted = enrollment ? deps.enrollment(enrollment.serverId) : null;
 
   if (!granted) {
+    return { ok: true, result: null };
+  }
+
+  if (deps.identity?.(serverId)) {
     return { ok: true, result: null };
   }
 
@@ -110,6 +135,20 @@ function only(config: ModuleConfig, modules: readonly string[]): ModuleConfig {
   }
 
   return kept;
+}
+
+/** What the platform provided wins: the form never had these keys to fill in. */
+function merged<T extends ModuleConfig | InstallSecrets>(
+  asked: T,
+  given: T
+): T {
+  const kept = { ...asked } as ModuleConfig;
+
+  for (const [id, values] of Object.entries(given)) {
+    kept[id] = { ...kept[id], ...values };
+  }
+
+  return kept as T;
 }
 
 function secretsOf(
@@ -140,9 +179,7 @@ export async function runInstall(
     return {
       ok: false,
       error: {
-        code: "bad_request",
-        message: "Aucun module à installer.",
-        fix: "Choisis au moins un module dans le catalogue.",
+        ...refusalOf("bad_request", "refusal.modules.none"),
       },
     };
   }
@@ -188,21 +225,30 @@ export async function runInstall(
     return {
       ok: false,
       error: {
-        code: "module_not_found",
-        message: `Le catalogue de ce serveur ne déclare pas ${stranger}.`,
-        fix: "Recharge le catalogue, puis refais ta sélection.",
+        ...refusalOf("module_not_found", "refusal.module.undeclared", {
+          module: stranger,
+        }),
       },
     };
   }
 
-  const secrets = secretsOf(deps.secrets(serverId), modules);
+  const managed = await deps.managed(serverId, modules);
+
+  if (!managed.ok) {
+    return managed;
+  }
+
+  const secrets = secretsOf(
+    merged(deps.secrets(serverId), managed.result.secrets),
+    modules
+  );
   const carries = Object.keys(secrets).length > 0;
 
   return await deps.client.request(
     serverId,
     "install",
     {
-      config: only(config, modules),
+      config: only(merged(config, managed.result.config), modules),
       modules: [...modules],
       secrets_stdin: carries,
     },

@@ -8,9 +8,9 @@ function headers(acceptLanguage?: string): Headers {
 }
 
 describe("resolveLocale", () => {
-  it("defaults to French", () => {
-    expect(resolveLocale(headers())).toBe("fr")
-    expect(resolveLocale(headers("de-DE,de;q=0.9"))).toBe("fr")
+  it("defaults to English", () => {
+    expect(resolveLocale(headers())).toBe("en")
+    expect(resolveLocale(headers("de-DE,de;q=0.9"))).toBe("en")
   })
 
   it("honours the best supported language by quality", () => {
@@ -21,9 +21,9 @@ describe("resolveLocale", () => {
 })
 
 describe("localeOrDefault", () => {
-  it("keeps a known language and falls back to French otherwise", () => {
-    expect(localeOrDefault("en")).toBe("en")
-    expect(localeOrDefault(null)).toBe("fr")
-    expect(localeOrDefault("de")).toBe("fr")
+  it("keeps a known language and falls back to English otherwise", () => {
+    expect(localeOrDefault("fr")).toBe("fr")
+    expect(localeOrDefault(null)).toBe("en")
+    expect(localeOrDefault("de")).toBe("en")
   })
 })

@@ -181,8 +181,8 @@ describe("le binaire choisi pour la machine", () => {
     expect(answer).toMatchObject({ ok: false, error: { code: "internal" } });
     expect(answer.ok).toBe(false);
     if (!answer.ok) {
-      expect(answer.error.message).toContain("amd64");
-      expect(answer.error.fix).toContain("apps/agent");
+      expect(answer.error.phrase?.id).toBe("refusal.binary.arch");
+      expect(answer.error.phrase?.values?.arch).toBe("amd64");
     }
   });
 
@@ -194,7 +194,7 @@ describe("le binaire choisi pour la machine", () => {
 
     expect(answer.ok).toBe(false);
     if (!answer.ok) {
-      expect(answer.error.message).toContain("i686");
+      expect(answer.error.phrase?.values?.arch).toBe("i686");
     }
   });
 
@@ -209,7 +209,7 @@ describe("le binaire choisi pour la machine", () => {
 
     expect(answer.ok).toBe(false);
     if (!answer.ok) {
-      expect(answer.error.message).toContain("somme de contrôle");
+      expect(answer.error.phrase?.id).toBe("refusal.binary.checksum");
     }
   });
 });
@@ -267,8 +267,7 @@ describe("l'envoi du binaire par le canal SSH", () => {
 
     expect(answer.ok).toBe(false);
     if (!answer.ok) {
-      expect(answer.error.message).toContain("somme de contrôle");
-      expect(answer.error.fix).toBeTruthy();
+      expect(answer.error.phrase?.id).toBe("refusal.binary.mismatch");
     }
   });
 
@@ -294,7 +293,9 @@ describe("l'envoi du binaire par le canal SSH", () => {
 
     expect(answer.ok).toBe(false);
     if (!answer.ok) {
-      expect(answer.error.message).toContain("Permission denied");
+      expect(String(answer.error.phrase?.values?.detail)).toContain(
+        "Permission denied"
+      );
     }
   });
 });

@@ -40,7 +40,7 @@ export function CopyField({
       <Label>{label}</Label>
 
       <div className="mt-1.5 flex items-start gap-2 rounded-md border border-line-strong bg-sunken px-3 py-2">
-        <code className="min-w-0 flex-1 break-all font-data text-[11px] text-ink-2 leading-relaxed">
+        <code className="min-w-0 flex-1 break-all font-data text-[12px] text-ink-2 leading-relaxed">
           {value}
         </code>
         <IconButton
@@ -51,7 +51,7 @@ export function CopyField({
         />
       </div>
 
-      {help ? <p className="mt-1.5 text-[11px] text-ink-3">{help}</p> : null}
+      {help ? <p className="mt-1.5 text-[12px] text-ink-3">{help}</p> : null}
     </div>
   );
 }

@@ -125,6 +125,7 @@ describe("tunnel", () => {
   it("describes the tunnel and its routes", () => {
     expect(
       TunnelStatusResultSchema.safeParse({
+        provider: "cloudflare",
         installed: true,
         state: "running",
         routes: [
@@ -140,5 +141,16 @@ describe("tunnel", () => {
       TunnelStatusResultSchema.safeParse({ installed: false, state: "absent" })
         .success
     ).toBe(false)
+  })
+
+  it("names no provider when no exposure holds the machine", () => {
+    expect(
+      TunnelStatusResultSchema.safeParse({
+        provider: null,
+        installed: false,
+        state: "absent",
+        routes: [],
+      }).success
+    ).toBe(true)
   })
 })

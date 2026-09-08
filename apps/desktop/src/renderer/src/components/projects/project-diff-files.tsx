@@ -65,7 +65,7 @@ function FileRow({
         way round — as the path reads — a deep folder eats the width and every
         row truncates on the one word that tells them apart.
       */}
-      <span className="min-w-0 flex-1 font-data text-[11px]">
+      <span className="min-w-0 flex-1 font-data text-[12px]">
         <span
           className={`block truncate ${active ? "text-ink" : "text-ink-2"}`}
         >
@@ -75,13 +75,13 @@ function FileRow({
           ) : null}
         </span>
         {dir ? (
-          <span className="block truncate text-[10px] text-ink-3">
+          <span className="block truncate text-[11px] text-ink-3">
             {dir.replace(TRAILING_SLASH, "")}
           </span>
         ) : null}
       </span>
       {change.binary ? (
-        <span className="shrink-0 font-data text-[10px] text-ink-3">
+        <span className="shrink-0 font-data text-[11px] text-ink-3">
           {t("project.diff.binary")}
         </span>
       ) : (
@@ -114,7 +114,7 @@ export function ProjectDiffFiles({
         return (
           <div key={stage}>
             <p
-              className={`sticky top-0 z-10 border-line border-b bg-base px-3 py-1 font-data text-[10px] uppercase tracking-[0.08em] ${STAGES[stage].className}`}
+              className={`sticky top-0 z-10 border-line border-b bg-base px-3 py-1 font-data text-[11px] uppercase tracking-[0.08em] ${STAGES[stage].className}`}
             >
               {t(STAGES[stage].label)} · {group.length}
             </p>

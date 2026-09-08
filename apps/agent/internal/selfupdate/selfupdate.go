@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/platform"
 	"pupitre.studio/agent/internal/protocol"
@@ -74,7 +75,7 @@ func (u *Upgrader) Upgrade(request Request) (Result, error) {
 	token, err := platform.LoadToken(u.options.Sys, u.options.TokenPath)
 	if err != nil {
 		return Result{}, protocol.NewError(contract.ErrorBadRequest, err.Error()).
-			WithFix("Réinstalle ce serveur depuis l'app pour lui rendre un jeton de serveur.")
+			WithFix(i18n.T("selfupdate.token.missing.fix"))
 	}
 
 	client := u.options.Platform
@@ -102,7 +103,7 @@ func (u *Upgrader) Upgrade(request Request) (Result, error) {
 	}
 
 	fingerprint := Fingerprint(binary)
-	ctx.Logf("version %s téléchargée, %d octets, empreinte %s", version, len(binary), fingerprint)
+	ctx.Logf("version %s downloaded, %d bytes, fingerprint %s", version, len(binary), fingerprint)
 
 	if release.Fingerprint != "" && release.Fingerprint != fingerprint {
 		return Result{}, corrupted(version, release.Fingerprint, fingerprint)
@@ -131,7 +132,7 @@ func (u *Upgrader) published(ctx sys.Context, client platform.Client, version, o
 		return published{}, metadataFailed(version, err)
 	}
 
-	ctx.Logf("empreinte de la version %s illisible (%s), signature des paramètres retenue", version, err)
+	ctx.Logf("fingerprint of version %s unreadable (%s), falling back to the signature from the parameters", version, err)
 
 	signature, decodeErr := DecodeSignature(offered)
 	if decodeErr != nil {
@@ -150,7 +151,7 @@ func (u *Upgrader) holdTheFloor(ctx sys.Context, request Request, version string
 	}
 
 	if request.AllowDowngrade {
-		ctx.Logf("plancher %s levé à la demande du propriétaire pour installer %s", floor, version)
+		ctx.Logf("floor %s lifted at the owner's request to install %s", floor, version)
 
 		return nil
 	}
@@ -178,18 +179,18 @@ func (u *Upgrader) install(ctx sys.Context, version string, binary []byte) (Resu
 	previous, err := ctx.Sys().ReadFile(u.binaryPath())
 	if err != nil {
 		return Result{}, protocol.NewError(contract.ErrorInternal, fmt.Sprintf("%s illisible : %s", u.binaryPath(), err)).
-			WithFix("Vérifie que la commande tourne en root sur le serveur.")
+			WithFix(i18n.T("selfupdate.root.required.fix"))
 	}
 
 	if bytes.Equal(previous, binary) {
-		ctx.Logf("version %s déjà en place, rien à remplacer", version)
+		ctx.Logf("version %s already in place, nothing to replace", version)
 
 		return Result{PreviousVersion: u.options.Version, Version: version, Restarting: false}, nil
 	}
 
 	if err := ctx.Sys().WriteFile(u.binaryPath(), binary, binaryMode); err != nil {
-		return Result{}, protocol.NewError(contract.ErrorInternal, fmt.Sprintf("%s non remplacé : %s", u.binaryPath(), err)).
-			WithFix("Vérifie l'espace disque du serveur, puis relance la mise à jour.")
+		return Result{}, protocol.NewError(contract.ErrorInternal, i18n.T("selfupdate.replace.failed", u.binaryPath(), err)).
+			WithFix(i18n.T("selfupdate.replace.failed.fix"))
 	}
 
 	restarting, err := u.restart(ctx)
@@ -202,7 +203,7 @@ func (u *Upgrader) install(ctx sys.Context, version string, binary []byte) (Resu
 		return u.rollback(ctx, previous, silent(version, u.options.Version, err))
 	}
 
-	ctx.Logf("agent %s installé, unité %s redémarrée", running, u.unit())
+	ctx.Logf("agent %s installed, unit %s restarted", running, u.unit())
 
 	return Result{PreviousVersion: u.options.Version, Version: running, Restarting: restarting}, nil
 }
@@ -211,22 +212,22 @@ func (u *Upgrader) install(ctx sys.Context, version string, binary []byte) (Resu
 func (u *Upgrader) rollback(ctx sys.Context, previous []byte, cause error) (Result, error) {
 	if err := ctx.Sys().WriteFile(u.binaryPath(), previous, binaryMode); err != nil {
 		return Result{}, protocol.NewError(contract.ErrorInternal,
-			fmt.Sprintf("%s ; le retour à la version précédente a échoué lui aussi : %s", cause, err)).
-			WithFix("Pousse le binaire de l'agent depuis l'app pour rétablir le serveur.")
+			i18n.T("selfupdate.rollback.failed", cause, err)).
+			WithFix(i18n.T("selfupdate.rollback.failed.fix"))
 	}
 
 	if _, err := u.restart(ctx); err != nil {
-		ctx.Logf("unité %s non redémarrée après le retour arrière : %s", u.unit(), err)
+		ctx.Logf("unit %s not restarted after the rollback: %s", u.unit(), err)
 	}
 
-	ctx.Logf("retour à l'agent %s", u.options.Version)
+	ctx.Logf("rolled back to agent %s", u.options.Version)
 
 	return Result{}, cause
 }
 
 func (u *Upgrader) restart(ctx sys.Context) (bool, error) {
 	if !systemd.Loaded(ctx, u.unit()) {
-		ctx.Logf("unité %s absente, aucun redémarrage", u.unit())
+		ctx.Logf("unit %s absent, no restart", u.unit())
 
 		return false, nil
 	}
@@ -268,7 +269,7 @@ func (u *Upgrader) hello(ctx sys.Context) (string, error) {
 
 	var answer helloAnswer
 	if err := json.Unmarshal([]byte(firstLine(out.Stdout)), &answer); err != nil {
-		return "", errors.New("réponse illisible à hello")
+		return "", errors.New("unreadable answer to hello")
 	}
 
 	if !answer.OK {
@@ -276,7 +277,7 @@ func (u *Upgrader) hello(ctx sys.Context) (string, error) {
 	}
 
 	if answer.Result.AgentVersion == "" {
-		return "", errors.New("hello sans version d'agent")
+		return "", errors.New("hello without an agent version")
 	}
 
 	return answer.Result.AgentVersion, nil
@@ -292,8 +293,8 @@ func (u *Upgrader) resolve(wanted string, state platform.State, stateErr error) 
 	}
 
 	if state.TargetVersion == "" {
-		return "", protocol.NewError(contract.ErrorBadRequest, "la plateforme n'annonce aucune version cible pour ce serveur").
-			WithFix("Passe la version à installer dans les paramètres de agent.upgrade.")
+		return "", protocol.NewError(contract.ErrorBadRequest, i18n.T("selfupdate.target.none")).
+			WithFix(i18n.T("selfupdate.state.unreadable.fix"))
 	}
 
 	return state.TargetVersion, nil
@@ -352,7 +353,7 @@ func firstLine(output string) string {
 
 func reason(failure *protocol.Error) string {
 	if failure == nil {
-		return "hello refusé sans motif"
+		return "hello refused without a reason"
 	}
 
 	return string(failure.Code) + " : " + failure.Message

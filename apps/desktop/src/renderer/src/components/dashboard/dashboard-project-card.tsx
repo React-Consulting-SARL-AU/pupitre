@@ -49,7 +49,7 @@ export function DashboardProjectCard({
           <p className="truncate font-semibold text-ink hover:underline">
             {project.name}
           </p>
-          <p className="mt-0.5 truncate font-data text-[10px] text-ink-3">
+          <p className="mt-0.5 truncate font-data text-[11px] text-ink-3">
             {project.host}:{project.port}
             {project.branch ? ` · ${project.branch}` : ""}
           </p>
@@ -57,7 +57,7 @@ export function DashboardProjectCard({
 
         <div className="flex shrink-0 flex-col items-end gap-1">
           <StatePill look={PROJECT_LOOK[project.state]} name={project.state} />
-          <span className="font-data text-[10px] text-ink-3 tabular-nums">
+          <span className="font-data text-[11px] text-ink-3 tabular-nums">
             {uptime(project.uptime_s)}
             {project.ram_mb ? ` · ${memory(project.ram_mb)}` : ""}
           </span>

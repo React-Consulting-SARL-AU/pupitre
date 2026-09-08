@@ -54,7 +54,7 @@ export function ActivitySessions({
   return (
     <div>
       <div className="flex items-center justify-between border-line border-b px-4 py-2.5">
-        <span className="font-data text-[11px] text-ink-3">
+        <span className="font-data text-[12px] text-ink-3">
           {t.plural("activity.session", sessions.length)} ·{" "}
           <span className={total > HEAVY_TOTAL_MB ? "text-warn" : ""}>
             {memory(total)}
@@ -90,8 +90,8 @@ export function ActivitySessions({
                 />
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[12px]">{session.command}</p>
-                  <p className="font-data text-[10px] text-ink-3">
+                  <p className="truncate text-[13px]">{session.command}</p>
+                  <p className="font-data text-[11px] text-ink-3">
                     {t(kind.label)} · pid {session.pid} ·{" "}
                     {uptime(session.seconds)}
                     {session.project ? ` · ${session.project}` : ""}
@@ -102,7 +102,7 @@ export function ActivitySessions({
                 </div>
 
                 <span
-                  className={`shrink-0 font-data text-[11px] tabular-nums ${
+                  className={`shrink-0 font-data text-[12px] tabular-nums ${
                     session.ram_mb > HEAVY_MB ? "text-warn" : "text-ink-3"
                   }`}
                 >

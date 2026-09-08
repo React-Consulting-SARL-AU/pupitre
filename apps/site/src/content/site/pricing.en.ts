@@ -114,9 +114,8 @@ export const pricingEn: PricingContent = {
   catalog: {
     label: "Catalogue",
     title: "Included in every offer",
-    lead: "The whole catalogue comes with each server, whatever the offer. Here is what is available today, by category.",
+    lead: "The whole catalogue comes with each server, whatever the offer. Twenty-six modules, all available, by category.",
     available: "{count} available",
-    soon: "{count} soon",
     link: "See the full catalogue",
   },
 }

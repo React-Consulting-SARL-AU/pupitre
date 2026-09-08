@@ -1,8 +1,8 @@
 package registry
 
 import (
-	"fmt"
 	"path"
+	"pupitre.studio/agent/internal/i18n"
 	"regexp"
 	"strconv"
 	"strings"
@@ -122,7 +122,7 @@ func (p Project) Contract(projects string) contract.Project {
 	}
 }
 
-// Le registre du dépôt est écrit à la main : une ligne qui viserait hors de la racine des projets ne rend aucun chemin plutôt qu'un chemin ailleurs.
+// Under: the on-disk registry file is hand-edited, so a row that aims outside the projects root returns no path rather than a path elsewhere.
 func Under(root, relative string) string {
 	base := path.Clean(root)
 	full := path.Clean(base + "/" + relative)
@@ -288,8 +288,8 @@ func (f *File) Remove(ctx sys.Context, name string) (Project, error) {
 	}
 
 	if !project.Local {
-		return Project{}, protocol.NewError(contract.ErrorBadRequest, name+" vient du registre du dépôt, pas de ce serveur").
-			WithFix("Retire sa ligne de projects.conf dans le dépôt, puis redéploie.")
+		return Project{}, protocol.NewError(contract.ErrorBadRequest, i18n.T("registry.project.versioned", name)).
+			WithFix(i18n.T("registry.project.versioned.fix"))
 	}
 
 	var kept []string
@@ -328,27 +328,27 @@ func (f *File) write(ctx sys.Context, rows []string) error {
 
 func (f *File) validate(project Project) error {
 	if !namePattern.MatchString(project.Name) {
-		return bad("nom de projet invalide : "+project.Name, "Minuscules, chiffres, point, tiret et souligné, en commençant par une lettre ou un chiffre.")
+		return bad(i18n.T("registry.name.invalid", project.Name), i18n.T("registry.name.invalid.fix"))
 	}
 
 	if project.Dir == "" || strings.HasPrefix(project.Dir, "/") || strings.Contains(project.Dir, "..") {
-		return bad("dossier invalide : "+project.Dir, "Donne un chemin relatif à "+f.Paths.Resolved().Projects+", sans « .. ».")
+		return bad(i18n.T("registry.dir.invalid", project.Dir), i18n.T("registry.dir.invalid.fix", f.Paths.Resolved().Projects))
 	}
 
 	if project.Port < 1024 || project.Port > LastPort {
-		return bad(fmt.Sprintf("port invalide : %d", project.Port), fmt.Sprintf("Choisis un port entre 1024 et %d, par exemple %d.", LastPort, f.FreePort(FirstPort, nil)))
+		return bad(i18n.T("registry.port.invalid", project.Port), i18n.T("registry.port.invalid.fix", LastPort, f.FreePort(FirstPort, nil)))
 	}
 
 	if !known(project.PkgMgr) {
-		return bad("gestionnaire de paquets inconnu : "+project.PkgMgr, "Choisis "+strings.Join(contract.PackageManagers, ", ")+".")
+		return bad(i18n.T("registry.pkgmgr.unknown", project.PkgMgr), i18n.T("registry.pkgmgr.unknown.fix", strings.Join(contract.PackageManagers, ", ")))
 	}
 
 	if project.Cmd == "" {
-		return bad("commande de démarrage vide", "Donne la commande qui lance le projet, par exemple « bun run dev --port 3000 ».")
+		return bad(i18n.T("registry.cmd.empty"), i18n.T("registry.cmd.empty.fix"))
 	}
 
 	if sub := project.Sub(); sub != "" && !subPattern.MatchString(sub) {
-		return bad("sous-domaine invalide : "+sub, "Un seul niveau, minuscules, chiffres et tirets — c'est ce que couvre le certificat joker.")
+		return bad(i18n.T("registry.sub.invalid", sub), i18n.T("registry.sub.invalid.fix"))
 	}
 
 	if err := f.checkSeparators(project); err != nil {
@@ -360,12 +360,14 @@ func (f *File) validate(project Project) error {
 
 // A "|" or a newline in a field would split the row in two and turn a project into another one.
 func (f *File) checkSeparators(project Project) error {
-	for label, field := range map[string]string{
-		"nom": project.Name, "dossier": project.Dir, "dépôt": project.Repo, "hôte": project.Host,
-		"sous-domaine": project.Subdomain, "commande": project.Cmd, "installation": project.Install,
+	for key, field := range map[string]string{
+		"registry.field.name": project.Name, "registry.field.dir": project.Dir,
+		"registry.field.repo": project.Repo, "registry.field.host": project.Host,
+		"registry.field.sub": project.Subdomain, "registry.field.cmd": project.Cmd,
+		"registry.field.install": project.Install,
 	} {
 		if strings.ContainsAny(field, "|\n\r") {
-			return bad(label+" : le caractère « | » et les retours à la ligne sont interdits", "Retire-les : « | » sépare les colonnes du registre.")
+			return bad(i18n.T("registry.field.separator", i18n.T(key)), i18n.T("registry.field.separator.fix"))
 		}
 	}
 
@@ -376,11 +378,11 @@ func (f *File) checkUnique(project Project) error {
 	for _, existing := range f.Projects {
 		switch {
 		case existing.Name == project.Name:
-			return bad(project.Name+" est déjà déclaré", "Retire-le avec project.remove, ou choisis un autre nom.")
+			return bad(i18n.T("registry.project.declared", project.Name), i18n.T("registry.project.declared.fix"))
 		case existing.Port == project.Port:
 			return f.portTaken(project, existing)
 		case project.Sub() != "" && existing.Sub() == project.Sub():
-			return bad("le sous-domaine "+project.Sub()+" est déjà pris par "+existing.Name, "Choisis un autre sous-domaine.")
+			return bad(i18n.T("registry.sub.taken", project.Sub(), existing.Name), i18n.T("registry.sub.taken.fix"))
 		}
 	}
 
@@ -391,8 +393,8 @@ func (f *File) checkUnique(project Project) error {
 func (f *File) portTaken(project, existing Project) error {
 	free := f.FreePort(project.Port, nil)
 
-	failure := protocol.NewError(contract.ErrorBadRequest, fmt.Sprintf("le port %d est déjà pris par %s", project.Port, existing.Name)).
-		WithFix(fmt.Sprintf("Donne un autre port à %s, par exemple %d.", project.Name, free))
+	failure := protocol.NewError(contract.ErrorBadRequest, i18n.T("registry.port.taken", project.Port, existing.Name)).
+		WithFix(i18n.T("registry.port.taken.fix", project.Name, free))
 
 	if free == 0 {
 		return failure
@@ -402,8 +404,8 @@ func (f *File) portTaken(project, existing Project) error {
 }
 
 func NotFound(name string) error {
-	return protocol.NewError(contract.ErrorProjectNotFound, "projet inconnu : "+name).
-		WithFix("Appelle project.list pour la liste des projets déclarés.")
+	return protocol.NewError(contract.ErrorProjectNotFound, i18n.T("registry.project.unknown", name)).
+		WithFix(i18n.T("registry.project.unknown.fix"))
 }
 
 func bad(message, fix string) error {

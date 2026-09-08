@@ -12,10 +12,12 @@ import { invites } from "./strings/invites"
 import { lists } from "./strings/lists"
 import { members } from "./strings/members"
 import { nav } from "./strings/nav"
+import { organization } from "./strings/organization"
 import { roles } from "./strings/roles"
 import { security } from "./strings/security"
 import { servers } from "./strings/servers"
 import { settings } from "./strings/settings"
+import { sidebar } from "./strings/sidebar"
 import { start } from "./strings/start"
 import { status } from "./strings/status"
 import { statusPage } from "./strings/status-page"
@@ -38,6 +40,8 @@ export const en = {
   ...servers.en,
   ...start.en,
   ...members.en,
+  ...organization.en,
+  ...sidebar.en,
   ...invites.en,
   ...security.en,
   ...lists.en,

@@ -20,7 +20,7 @@ func TestTheDevelopmentBuildNeedsNeitherTokenNorPlatform(t *testing.T) {
 
 	for _, cmd := range []string{"install", "project.up", "keys.sync", "secrets.set"} {
 		if !state.Allows(cmd) {
-			t.Errorf("%s refusé dans un build de développement", cmd)
+			t.Errorf("%s refused in a development build", cmd)
 		}
 	}
 }

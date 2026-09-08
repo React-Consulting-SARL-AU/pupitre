@@ -79,7 +79,7 @@ func resolve(ctx *modules.Context) (release, error) {
 
 	var index map[string][]indexEntry
 	if err := json.Unmarshal([]byte(out), &index); err != nil {
-		return release{}, fmt.Errorf("index des versions JetBrains illisible pour %s", selected.code)
+		return release{}, fmt.Errorf("unreadable JetBrains version index for %s", selected.code)
 	}
 
 	for _, entry := range index[selected.code] {
@@ -95,7 +95,7 @@ func resolve(ctx *modules.Context) (release, error) {
 		return release{version: entry.Version, build: entry.Build, link: link}, nil
 	}
 
-	return release{}, fmt.Errorf("aucune version %s de %s pour cette machine", wanted, selected.code)
+	return release{}, fmt.Errorf("no %s version of %s for this machine", wanted, selected.code)
 }
 
 func indexURL(selected ide, wanted string) string {

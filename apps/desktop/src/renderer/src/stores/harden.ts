@@ -1,7 +1,8 @@
-import type { StepStatus } from "@pupitre/shared/agent-protocol/envelope";
+import type { Event } from "@pupitre/shared/agent-protocol/envelope";
 import type { AgentError } from "@shared/agent";
 import type { HardenOutcome, HardenUpdate } from "@shared/harden";
 import { create } from "zustand";
+import { stepOf as stepFrom, withStep } from "../lib/module-progress";
 import type { StepEntry } from "./install";
 
 /**
@@ -27,39 +28,21 @@ interface HardenStore {
   reset: () => void;
 }
 
+/**
+ * The `step` event of a hardening, read by the reader the install uses.
+ *
+ * The hardening emits one module's worth of steps and no module name, so the
+ * shared reader's answer is unwrapped here — the shape of a step is the
+ * protocol's, and there is no second account of it.
+ */
 function stepOf(update: HardenUpdate): StepEntry | null {
-  if (update.kind !== "event" || update.event.event !== "step") {
+  if (update.kind !== "event") {
     return null;
   }
 
-  const raw = update.event as unknown as {
-    step?: unknown;
-    status?: unknown;
-    ms?: unknown;
-  };
-
-  if (typeof raw.step !== "string") {
-    return null;
-  }
-
-  return {
-    ms: typeof raw.ms === "number" ? raw.ms : 0,
-    status: raw.status as StepStatus,
-    step: raw.step,
-  };
-}
-
-/** A step closes the one it opened rather than piling up next to it. */
-function withStep(steps: StepEntry[], entry: StepEntry): StepEntry[] {
-  const open = steps.findIndex(
-    (candidate) => candidate.step === entry.step && candidate.status === "start"
+  return (
+    stepFrom({ ...update.event, module: "harden" } as Event)?.entry ?? null
   );
-
-  if (entry.status === "start" || open === -1) {
-    return [...steps, entry];
-  }
-
-  return steps.map((candidate, index) => (index === open ? entry : candidate));
 }
 
 export const useHarden = create<HardenStore>((set) => ({

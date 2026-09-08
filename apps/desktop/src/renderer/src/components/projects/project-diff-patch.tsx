@@ -32,7 +32,7 @@ function Rows({ patch, problem }: { patch: string; problem: string }) {
 
   if (rows.length === 0) {
     return (
-      <p className="p-6 text-center text-[12px] text-ink-3">
+      <p className="p-6 text-center text-[13px] text-ink-3">
         {problem || t("project.diff.noTextChange")}
       </p>
     );
@@ -47,7 +47,7 @@ function Rows({ patch, problem }: { patch: string; problem: string }) {
       ) : null}
       <table
         className="w-full border-collapse"
-        style={{ fontFamily: TERMINAL_FONT, fontSize: 11.5 }}
+        style={{ fontFamily: TERMINAL_FONT, fontSize: 12.5 }}
       >
         <tbody>
           {rows.map((row, index) => {
@@ -56,10 +56,10 @@ function Rows({ patch, problem }: { patch: string; problem: string }) {
             return (
               // biome-ignore lint/suspicious/noArrayIndexKey: a patch is a sequence, its position IS its identity
               <tr className={look.background} data-kind={row.kind} key={index}>
-                <td className="w-10 select-none border-line border-r px-1.5 text-right align-top text-[10px] text-ink-3 tabular-nums">
+                <td className="w-10 select-none border-line border-r px-1.5 text-right align-top text-[11px] text-ink-3 tabular-nums">
                   {row.before ?? ""}
                 </td>
-                <td className="w-10 select-none border-line border-r px-1.5 text-right align-top text-[10px] text-ink-3 tabular-nums">
+                <td className="w-10 select-none border-line border-r px-1.5 text-right align-top text-[11px] text-ink-3 tabular-nums">
                   {row.after ?? ""}
                 </td>
                 <td
@@ -95,7 +95,7 @@ export function ProjectDiffPatch({
 
   if (state.status === "reading") {
     return (
-      <p className="flex items-center justify-center gap-2 p-6 text-[12px] text-ink-3">
+      <p className="flex items-center justify-center gap-2 p-6 text-[13px] text-ink-3">
         <StatusDot shape="breathing" size={11} />
         {t("project.diff.reading")}
       </p>
@@ -112,7 +112,7 @@ export function ProjectDiffPatch({
 
   if (state.diff.binary) {
     return (
-      <p className="p-6 text-center text-[12px] text-ink-3">
+      <p className="p-6 text-center text-[13px] text-ink-3">
         {t("project.diff.binaryFile")}
       </p>
     );

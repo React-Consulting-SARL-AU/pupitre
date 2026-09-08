@@ -107,11 +107,11 @@ export function AccountUsageNotice({
       </span>
       <div className="min-w-0">
         <p className="font-medium text-ink">{look.title}</p>
-        <p className="mt-1 text-[11px] text-ink-3 leading-relaxed">
+        <p className="mt-1 text-[12px] text-ink-3 leading-relaxed">
           {detailOf(usage, checkedAt, t)}
         </p>
         {usage.status === "granted" && usage.validUntil ? (
-          <p className="mt-1.5 font-data text-[11px] text-ink-4">
+          <p className="mt-1.5 font-data text-[12px] text-ink-4">
             {t("account.usage.validUntil", {
               date: new Date(usage.validUntil).toLocaleDateString("fr-FR"),
             })}

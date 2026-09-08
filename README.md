@@ -29,5 +29,4 @@ Bun uniquement. Les autres commandes sont listées dans [`CLAUDE.md`](./CLAUDE.m
 ## Lire ensuite
 
 - [`docs/README.md`](./docs/README.md) — la carte de la documentation
-- [`CLAUDE.md`](./CLAUDE.md) — les règles du monorepo et la façon de travailler par tâche
-- [`docs/plans/README.md`](./docs/plans/README.md) — ce qui reste à faire
+- [`CLAUDE.md`](./CLAUDE.md) — les règles du monorepo et la façon de travailler

@@ -13,7 +13,6 @@ interface CloudflareEnv {
   EMAIL_FROM?: string
   INTERNAL_WORKFLOW_SECRET?: string
   PUPITRE_ENVIRONMENT?: string
-  SENTRY_DSN?: string
   STRIPE_SECRET_KEY?: string
   STRIPE_WEBHOOK_SECRET?: string
   VITE_APP_URL?: string

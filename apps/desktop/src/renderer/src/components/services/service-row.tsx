@@ -31,10 +31,10 @@ export function ServiceRow({
         <ServiceLogo moduleId={service.id} name={service.name} size={20} />
 
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-medium text-[12px] text-ink">
+          <span className="block truncate font-medium text-[13px] text-ink">
             {service.name}
           </span>
-          <span className="block truncate font-data text-[10.5px] text-ink-3">
+          <span className="block truncate font-data text-[11.5px] text-ink-3">
             {[service.id, ...facts].join(" · ")}
           </span>
         </span>

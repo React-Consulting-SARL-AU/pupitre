@@ -8,6 +8,7 @@ const VARIANT: Record<ButtonVariant, string> = {
   discreet:
     "border border-transparent text-ink-4 hover:bg-raised hover:text-ink",
   danger: "border border-line text-ink-4 hover:border-danger hover:text-danger",
+  destructive: "border border-danger bg-danger text-base hover:bg-danger/80",
 };
 
 /**

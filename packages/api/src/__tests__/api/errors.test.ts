@@ -46,26 +46,26 @@ async function call(
 }
 
 describe("API error envelope", () => {
-  it("answers a validation error in French by default, naming the field", async () => {
+  it("answers a validation error in English by default, naming the field", async () => {
     const response = await call("/echo", { json: { name: "a" } })
 
     expect(response.status).toBe(422)
     expect(response.json.error.code).toBe("validation")
     expect(response.json.error.message).toContain("name")
-    expect(response.json.error.message).toContain("invalide")
+    expect(response.json.error.message).toContain("invalid")
     expect(response.json.error.fix).toContain("2")
   })
 
-  it("answers the same validation error in English from Accept-Language", async () => {
+  it("answers the same validation error in French from Accept-Language", async () => {
     const response = await call("/echo", {
       json: { name: "a" },
-      locale: "en-US,en;q=0.9,fr;q=0.8",
+      locale: "fr-FR,fr;q=0.9,en;q=0.8",
     })
 
     expect(response.status).toBe(422)
     expect(response.json.error.code).toBe("validation")
     expect(response.json.error.message).toContain("name")
-    expect(response.json.error.message).toContain("invalid")
+    expect(response.json.error.message).toContain("invalide")
     expect(response.json.error.fix).toContain("2")
   })
 

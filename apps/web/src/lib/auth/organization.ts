@@ -28,3 +28,39 @@ export async function cancelInvitation(invitationId: string): Promise<void> {
     raise(error)
   }
 }
+
+export async function createOrganization(name: string, slug: string) {
+  const { data, error } = await authClient().organization.create({ name, slug })
+
+  if (error || !data) {
+    raise(error)
+  }
+
+  return data
+}
+
+export async function updateOrganization(
+  organizationId: string,
+  data: { name: string; slug: string }
+): Promise<void> {
+  const { error } = await authClient().organization.update({
+    organizationId,
+    data,
+  })
+
+  if (error) {
+    raise(error)
+  }
+}
+
+export async function setActiveOrganization(
+  organizationId: string
+): Promise<void> {
+  const { error } = await authClient().organization.setActive({
+    organizationId,
+  })
+
+  if (error) {
+    raise(error)
+  }
+}

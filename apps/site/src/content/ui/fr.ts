@@ -36,7 +36,6 @@ export const fr: Dictionary = {
   "footer.acceptableUse": "Usage acceptable",
   "footer.dpa": "Traitement des données",
   "footer.status": "Statut",
-  "footer.company": "Pupitre LLC — mentions légales à venir",
   "footer.builtBy":
     "Construit par quelqu’un qui fait tourner ses propres agents sur un VPS tous les jours.",
 
@@ -98,9 +97,10 @@ export const fr: Dictionary = {
   "legal.lead":
     "Les règles du produit, écrites pour être lues. Rien ici ne contredit ce que l’app fait sur votre machine.",
   "legal.updated": "Mise à jour",
-  "legal.draft": "Brouillon — texte à venir",
-  "legal.draftBody":
-    "Cette page est une structure en attente de sa rédaction définitive. Le build de production refuse de la publier dans cet état.",
+  "legal.draft": "Brouillon",
+  "legal.subProcessor": "Sous-traitant",
+  "legal.purpose": "Rôle",
+  "legal.region": "Région",
 
   "notFound.title": "Introuvable — Pupitre",
   "notFound.description": "Cette page n’existe pas.",

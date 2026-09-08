@@ -55,14 +55,14 @@ export function ConfirmButton({
     <span
       className={`inline-flex items-center gap-2 rounded-sm border border-line-strong bg-sunken px-2 py-1 ${className}`}
     >
-      <span className="text-[11px] text-ink-2">{question}</span>
+      <span className="text-[12px] text-ink-2">{question}</span>
       <Button
         onClick={() => {
           setAsking(false);
           onConfirm();
         }}
         size="sm"
-        variant="danger"
+        variant="destructive"
       >
         {confirmLabel}
       </Button>

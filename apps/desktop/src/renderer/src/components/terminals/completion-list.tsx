@@ -52,7 +52,7 @@ export function CompletionList({ id, frame }: Props) {
             height: cursor.height,
             lineHeight: `${cursor.height}px`,
             fontFamily: TERMINAL_FONT,
-            fontSize: 12,
+            fontSize: 13,
           }}
         >
           {state.ghost}
@@ -80,7 +80,7 @@ export function CompletionList({ id, frame }: Props) {
               />
             ))}
           </ul>
-          <div className="flex gap-3 border-line border-t px-3 py-1 font-data text-[10px] text-ink-3">
+          <div className="flex gap-3 border-line border-t px-3 py-1 font-data text-[11px] text-ink-3">
             <span>{t("terminals.completeHint")}</span>
             <span>{t("terminals.chooseHint")}</span>
             <span>{t("terminals.closeHint")}</span>
@@ -117,17 +117,17 @@ function Row({
         type="button"
       >
         <span
-          className={`w-3 shrink-0 text-center font-data text-[10px] ${
+          className={`w-3 shrink-0 text-center font-data text-[11px] ${
             active ? "text-ink" : "text-ink-3"
           }`}
         >
           {MARK[candidate.kind]}
         </span>
-        <span className="min-w-0 flex-1 truncate font-data text-[11.5px]">
+        <span className="min-w-0 flex-1 truncate font-data text-[12.5px]">
           {candidate.text}
         </span>
         {candidate.help ? (
-          <span className="shrink-0 truncate text-[10.5px] text-ink-3">
+          <span className="shrink-0 truncate text-[11.5px] text-ink-3">
             {candidate.help}
           </span>
         ) : null}

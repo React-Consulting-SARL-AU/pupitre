@@ -42,18 +42,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null
 }
 
+/** The platform's build becomes an asset here; one missing its size or digest is dropped — silence beats a wrong claim. */
 function parseAsset(value: unknown): AppAsset | null {
   if (!isRecord(value)) {
     return null
   }
 
-  const { os, arch, format, size_bytes, sha256, url } = value
+  const { os, arch, format, bytes, sha256, url } = value
   const known =
     OPERATING_SYSTEMS.includes(os as OperatingSystem) &&
     ARCHITECTURES.includes(arch as Architecture) &&
     typeof format === "string" &&
-    typeof size_bytes === "number" &&
-    Number.isFinite(size_bytes) &&
+    typeof bytes === "number" &&
+    Number.isFinite(bytes) &&
     typeof sha256 === "string" &&
     SHA256_RE.test(sha256) &&
     typeof url === "string"
@@ -62,7 +63,14 @@ function parseAsset(value: unknown): AppAsset | null {
     return null
   }
 
-  return value as unknown as AppAsset
+  return {
+    os: os as OperatingSystem,
+    arch: arch as Architecture,
+    format,
+    url,
+    size_bytes: bytes,
+    sha256,
+  }
 }
 
 export function parseRelease(value: unknown): AppRelease | null {
@@ -70,19 +78,19 @@ export function parseRelease(value: unknown): AppRelease | null {
     return null
   }
 
-  const { version, channel, published_at, assets } = value
+  const { version, channel, published_at, builds } = value
   const shaped =
     typeof version === "string" &&
     version.length > 0 &&
     RELEASE_CHANNELS.includes(channel as ReleaseChannel) &&
     typeof published_at === "string" &&
-    Array.isArray(assets)
+    Array.isArray(builds)
 
   if (!shaped) {
     return null
   }
 
-  const parsed = (assets as unknown[]).map(parseAsset)
+  const parsed = (builds as unknown[]).map(parseAsset)
 
   if (parsed.length === 0 || parsed.some((asset) => asset === null)) {
     return null
@@ -122,13 +130,6 @@ export function latestRelease(releases: AppRelease[]): AppRelease | undefined {
   )
 
   return stable[0] ?? sortReleases(releases)[0]
-}
-
-export function assetFor(
-  release: AppRelease,
-  os: OperatingSystem
-): AppAsset | undefined {
-  return release.assets.find((asset) => asset.os === os)
 }
 
 export function assetsFor(

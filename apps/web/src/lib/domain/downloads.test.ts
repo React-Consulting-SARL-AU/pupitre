@@ -19,9 +19,10 @@ const RELEASE: PublishedAppRelease = {
   version: "1.4.0",
   notes: "Première version signée.",
   builds: [
-    { os: "macos", arch: "arm64", url: `${BASE}/Pupitre-1.4.0.dmg` },
-    { os: "windows", arch: null, url: `${BASE}/Pupitre-Setup-1.4.0.exe` },
-    { os: "linux", arch: "amd64", url: `${BASE}/Pupitre-1.4.0.AppImage` },
+    { os: "macos", arch: "arm64", url: `${BASE}/Pupitre-1.4.0-arm64.dmg` },
+    { os: "macos", arch: "x64", url: `${BASE}/Pupitre-1.4.0-x64.dmg` },
+    { os: "windows", arch: "x64", url: `${BASE}/Pupitre-Setup-1.4.0-x64.exe` },
+    { os: "linux", arch: "x64", url: `${BASE}/Pupitre-1.4.0-x64.AppImage` },
   ],
 }
 
@@ -50,15 +51,21 @@ describe("downloadOffers", () => {
     expect(offers.every((offer) => offer.url === null)).toBe(true)
   })
 
-  it("takes one link per system from the published release", () => {
+  it("takes one link per artefact from the published release", () => {
     const offers = downloadOffers(RELEASE)
 
     expect(offers.map((offer) => offer.url)).toEqual([
-      `${BASE}/Pupitre-1.4.0.dmg`,
-      `${BASE}/Pupitre-Setup-1.4.0.exe`,
-      `${BASE}/Pupitre-1.4.0.AppImage`,
+      `${BASE}/Pupitre-1.4.0-arm64.dmg`,
+      `${BASE}/Pupitre-1.4.0-x64.dmg`,
+      `${BASE}/Pupitre-Setup-1.4.0-x64.exe`,
+      `${BASE}/Pupitre-1.4.0-x64.AppImage`,
     ])
-    expect(offers.map((offer) => offer.arch)).toEqual(["arm64", null, "amd64"])
+    expect(offers.map((offer) => offer.arch)).toEqual([
+      "arm64",
+      "x64",
+      "x64",
+      "x64",
+    ])
   })
 
   it("leaves a system without a build without a link", () => {
@@ -68,6 +75,7 @@ describe("downloadOffers", () => {
     })
 
     expect(offers.map((offer) => offer.url !== null)).toEqual([
+      true,
       true,
       false,
       false,

@@ -11,6 +11,7 @@ import {
   revealSecret,
   setSecret,
 } from "./install-secrets";
+import { refusalOf } from "./refusal";
 import { byId } from "./servers";
 import { usageRefusal } from "./usage-guard";
 
@@ -30,9 +31,7 @@ function unknownServer(): AgentResponse<never> {
   return {
     ok: false,
     error: {
-      code: "bad_request",
-      message: "Ce serveur n'est plus dans la liste.",
-      fix: "Choisis un serveur dans les réglages.",
+      ...refusalOf("bad_request", "refusal.server.unknown"),
     },
   };
 }

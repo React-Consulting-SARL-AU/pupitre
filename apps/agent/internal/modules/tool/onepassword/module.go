@@ -1,6 +1,7 @@
 package onepassword
 
 import (
+	"pupitre.studio/agent/internal/i18n"
 	"runtime"
 
 	"pupitre.studio/agent/internal/contract"
@@ -96,10 +97,6 @@ func addRepository(ctx *modules.Context) error {
 }
 
 func (Module) Configure(ctx *modules.Context) error {
-	if err := ctx.RequireFields(); err != nil {
-		return err
-	}
-
 	if err := storeToken(ctx); err != nil {
 		return err
 	}
@@ -127,7 +124,7 @@ func verifyAccount(ctx *modules.Context) error {
 	return ctx.Step("verify-service-account", func() (modules.Outcome, error) {
 		input := user.Input{Env: environment(serviceToken(ctx))}
 		if _, err := user.RunWith(ctx, shell.User, input, program, "vault", "list", "--format=json"); err != nil {
-			ctx.Warn("op est installé mais le jeton n'ouvre aucun coffre : les .env.local retomberont sur le .env.example des dépôts")
+			ctx.Warn(i18n.T("warn.onepassword.vault.none"))
 		}
 
 		return modules.Done, nil
@@ -191,7 +188,7 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	}
 
 	if status.Configured {
-		status.Credentials = map[string]string{"Jeton du compte de service": envKey}
+		status.Credentials = map[string]string{i18n.T("module.tool.1password.service_account_token.label"): envKey}
 	}
 
 	return status, nil

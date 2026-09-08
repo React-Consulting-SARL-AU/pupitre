@@ -2,12 +2,17 @@ export const updates = {
   en: {
     "updates.agent.behindTitle": "Update the app",
     "updates.agent.behindDetail":
-      "pupitred {installed} on the server, {carried} in this app",
+      "pupitred {installed} on the server, {offered} in this app",
     "updates.agent.behindBody":
       "This server has moved to a version this app does not know yet. Everything it knows how to ask keeps working.",
     "updates.agent.aheadTitle": "Update available",
+    "updates.agent.staleTitle": "This server is too far behind",
+    "updates.agent.staleDetail":
+      "pupitred {installed} on the server, {floor} at the very least for this app",
+    "updates.agent.staleBody":
+      "This agent no longer speaks the protocol of this app, so the app cannot ask it for its own update. Reinstall the agent on this server from the repair screen.",
     "updates.agent.unsignedBody":
-      "This app does not carry the signature of this version, and this server no longer reaches the platform that serves it: the agent would refuse the update.",
+      "This app does not carry the signature of this version, and this server no longer reaches the console that serves it: the agent would refuse the update.",
     "updates.agent.unsignedFix":
       "bun --cwd=apps/agent run release, then rebuild the app.",
     "updates.agent.upgraded": "Agent {previous} replaced by {version}.",
@@ -27,12 +32,17 @@ export const updates = {
   fr: {
     "updates.agent.behindTitle": "Mettez l'app à jour",
     "updates.agent.behindDetail":
-      "pupitred {installed} sur le serveur, {carried} dans cette app",
+      "pupitred {installed} sur le serveur, {offered} dans cette app",
     "updates.agent.behindBody":
       "Ce serveur est passé à une version que cette app ne connaît pas encore. Tout ce qu'elle sait demander continue de fonctionner.",
     "updates.agent.aheadTitle": "Mise à jour disponible",
+    "updates.agent.staleTitle": "Ce serveur est trop en arrière",
+    "updates.agent.staleDetail":
+      "pupitred {installed} sur le serveur, {floor} au minimum pour cette app",
+    "updates.agent.staleBody":
+      "Cet agent ne parle plus le protocole de cette app : elle ne peut pas lui demander sa propre mise à jour. Réinstalle l'agent sur ce serveur depuis l'écran de réparation.",
     "updates.agent.unsignedBody":
-      "Cette app ne porte pas la signature de cette version, et ce serveur n'atteint plus la plateforme qui la sert : l'agent refuserait la mise à jour.",
+      "Cette app ne porte pas la signature de cette version, et ce serveur n'atteint plus la console qui la sert : l'agent refuserait la mise à jour.",
     "updates.agent.unsignedFix":
       "bun --cwd=apps/agent run release, puis reconstruis l'app.",
     "updates.agent.upgraded": "Agent {previous} remplacé par {version}.",

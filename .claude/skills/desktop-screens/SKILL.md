@@ -1,6 +1,6 @@
 ---
 name: desktop-screens
-description: "Ajouter ou refondre un écran de l'app Electron `apps/desktop` — store Zustand dans `src/renderer/src/stores`, méthode IPC exposée dans `src/preload/index.ts` et gérée dans `src/main`, appel de l'agent par `src/main/agent-client.ts` avec les types de `@pupitre/shared/agent-protocol`, composants monochromes sur les tokens de `@pupitre/design`, état par la forme, `fix` affiché tel quel, test du store et du main avec l'agent factice, scénario Playwright. À utiliser pour toute tâche `APP` qui touche à un écran."
+description: "Ajouter ou refondre un écran de l'app Electron `apps/desktop` — store Zustand dans `src/renderer/src/stores`, méthode IPC exposée dans `src/preload/index.ts` et gérée dans `src/main`, appel de l'agent par `src/main/agent-client.ts` avec les types de `@pupitre/shared/agent-protocol`, composants monochromes sur les tokens de `@pupitre/design`, état par la forme, `fix` affiché tel quel, test du store et du main avec l'agent factice, scénario Playwright. À utiliser dès qu'on touche à un écran."
 ---
 
 # Écrans de l'app desktop
@@ -11,13 +11,13 @@ L'app est un client de l'agent : elle affiche ce que `pupitred` renvoie et n'a p
 
 | Fichier | Rôle |
 | --- | --- |
-| `apps/desktop/src/main/agent-client.ts` | le canal SSH par serveur qui lance `pupitred serve` ; `request(serverId, cmd, params)` typé par le protocole (APP-02) |
+| `apps/desktop/src/main/agent-client.ts` | le canal SSH par serveur qui lance `pupitred serve` ; `request(serverId, cmd, params)` typé par le protocole |
 | `apps/desktop/src/main/<feature>.ts` | les handlers `ipcMain.handle` d'une feature ; validation des noms contre ce que l'agent a donné |
 | `apps/desktop/src/main/index.ts` | enregistre les handlers, crée la fenêtre |
 | `apps/desktop/src/preload/index.ts` | la surface IPC exposée au renderer, typée, et rien d'autre |
 | `apps/desktop/src/renderer/src/stores/<store>.ts` | un store Zustand par domaine : `servers`, `snapshot`, `onboarding`, `theme`, `account` |
 | `apps/desktop/src/renderer/src/components/<feature>/` | les écrans : `onboarding/`, `dashboard/`, `projects/`, `terminals/`, `agents/`, `services/`, `settings/`, `account/` |
-| `apps/desktop/src/renderer/src/components/ui/` | les primitives Base UI + shadcn sur les tokens (APP-01) |
+| `apps/desktop/src/renderer/src/components/ui/` | les primitives Base UI + shadcn sur les tokens |
 | `apps/desktop/src/renderer/src/styles.css` | importe `@pupitre/design/tailwind.css` ; aucune couleur ici |
 | `apps/desktop/src/main/__tests__/` | tests du main ; `fixtures/` contient les transcriptions de l'agent factice |
 | `apps/desktop/src/renderer/src/stores/__tests__/` | tests des stores |
@@ -28,7 +28,7 @@ L'app est un client de l'agent : elle affiche ce que `pupitred` renvoie et n'a p
 
 ## État du dépôt
 
-Au 2026-09-04, `apps/desktop` est l'app d'origine déplacée par INF-03 : un seul store (`stores/state.ts`), des composants en PascalCase à la racine de `components/`, un canal `sh` à marqueurs dans `src/main/ssh.ts` qui parle à l'ancienne commande `dev`, une palette chaude dans `styles.css`. **APP-01** livre les tokens et `components/ui/`, **APP-02** livre `agent-client.ts` et l'agent factice, **INF-04** livre `@pupitre/shared/agent-protocol`. Ce skill décrit la cible ; un écran nouveau suit la cible, pas l'existant. Un écran existant migre vers la cible quand sa tâche le dit (APP-09), pas avant.
+Il reste, dans `apps/desktop`, des morceaux de l'app d'origine : un store unique (`stores/state.ts`), des composants en PascalCase à la racine de `components/`, un canal `sh` à marqueurs dans `src/main/ssh.ts` qui parle à l'ancienne commande `dev`, une palette chaude dans `styles.css`. Ce skill décrit la cible : les tokens et `components/ui/`, `agent-client.ts` et l'agent factice, `@pupitre/shared/agent-protocol`. Un écran nouveau suit la cible, pas l'existant ; un écran existant y migre quand on le lui demande, pas avant.
 
 Style propre au workspace : `apps/desktop/biome.jsonc` impose les **points-virgules** (le reste du monorepo les omet). Alias `@renderer` → `src/renderer/src`, `@shared` → `src/shared`. Fichiers `{feature}-{context}-{type}.tsx`, un composant React par fichier hors `components/ui/`, pas de barrel file.
 
@@ -46,7 +46,7 @@ composant ──► store Zustand ──► window.pupitre.<méthode>() ──�
 
 ## Ajouter un écran, dans l'ordre
 
-1. **Le type du protocole.** La commande et son résultat existent dans `docs/contracts/agent-protocol.md` et dans `@pupitre/shared/agent-protocol`. Sinon, la tâche s'arrête, écrit le besoin dans `docs/TRACKING.md`, et attend une tâche de contrat.
+1. **Le type du protocole.** La commande et son résultat existent dans `docs/contracts/agent-protocol.md` et dans `@pupitre/shared/agent-protocol`. Sinon, on s'arrête : le besoin se signale au propriétaire et le contrat est amendé d'abord.
 2. **Le handler du main**, dans `src/main/<feature>.ts`, enregistré depuis `src/main/index.ts`. Il valide l'entrée, appelle `agentClient.request`, renvoie l'enveloppe.
 3. **La méthode du preload**, une ligne dans `src/preload/index.ts`, typée par le résultat du protocole. Le type `PupitreApi` en découle et le renderer le voit par `window.pupitre`.
 4. **Le store**, dans `src/renderer/src/stores/<store>.ts`. L'état est une union discriminée par `status`, jamais des booléens `loading` et `error` côte à côte.
@@ -56,16 +56,16 @@ composant ──► store Zustand ──► window.pupitre.<méthode>() ──�
 ## Composants
 
 - **Cherche la primitive avant d'écrire** : bouton, point d'état, libellé, avis d'attente, avis d'erreur, champ, liste. Si elle manque, elle naît dans `components/ui/` avec un `variant`, jamais dans le dossier de la feature.
-- **Tokens seulement** : `bg-base`, `bg-surface`, `bg-sunken`, `bg-raised`, `text-ink`, `text-ink-2`, `text-ink-3`, `text-ink-4`, `border-line`, `border-line-strong`, `bg-inverse text-inverse-ink` pour le bouton principal, `text-ok`, `text-warn`, `text-danger` pour l'état seulement, `font-data` pour toute donnée (port, chemin, commande, durée, version, empreinte), `rounded-sm` pour les contrôles, `rounded-md` pour les panneaux. `grep -rE "#[0-9a-f]{6}|hsl\(|rgb\(" src/renderer --include=*.tsx` doit rester vide (critère d'APP-01).
+- **Tokens seulement** : `bg-base`, `bg-surface`, `bg-sunken`, `bg-raised`, `text-ink`, `text-ink-2`, `text-ink-3`, `text-ink-4`, `border-line`, `border-line-strong`, `bg-inverse text-inverse-ink` pour le bouton principal, `text-ok`, `text-warn`, `text-danger` pour l'état seulement, `font-data` pour toute donnée (port, chemin, commande, durée, version, empreinte), `rounded-sm` pour les contrôles, `rounded-md` pour les panneaux. `grep -rE "#[0-9a-f]{6}|hsl\(|rgb\(" src/renderer --include=*.tsx` doit rester vide.
 - **L'état se lit à la forme d'abord** : point plein pour en ligne, cercle vide pour arrêté, point barré pour en échec, point qui respire pour en cours. La couleur confirme, l'écran reste lisible en gris.
 - **Chaque attente dit ce qui se passe** : le module, l'étape, le compteur, la durée. Jamais un spinner seul.
 - **Chaque erreur dit le remède** : `error.message` puis `error.fix` tel quel, dans une balise `<code>` s'il ressemble à une commande, avec le bouton qui rejoue.
 - **Base UI + shadcn, prop `render`**, jamais `asChild`, jamais Radix. Lucide uniquement, trait 1,5 px, jamais coloré. Un bouton d'action porte son icône avant son libellé.
 - Pas d'ombre, pas de dégradé, pas d'illustration, pas de spinner décoratif.
 
-## Exemple complet : l'écran « Inspection » (APP-04)
+## Exemple complet : l'écran « Inspection »
 
-L'écran envoie `probe` au serveur actif et rend le verdict — `{ level, kind, up_to_date?, reasons, fixes }` — selon son `kind` : `bare`, `managed` (version, mise à jour disponible), `occupied` (ce qui serait touché), `incompatible` (raison, remède). Les boutons dépendent du verdict. Sur un serveur sans agent, `agent-client` joue `probe.sh` en mémoire et renvoie le même `ProbeResult` (AGT-02 garantit l'égalité des deux sondes) : l'écran ne fait pas la différence.
+L'écran envoie `probe` au serveur actif et rend le verdict — `{ level, kind, up_to_date?, reasons, fixes }` — selon son `kind` : `bare`, `managed` (version, mise à jour disponible), `occupied` (ce qui serait touché), `incompatible` (raison, remède). Les boutons dépendent du verdict. Sur un serveur sans agent, `agent-client` joue `probe.sh` en mémoire et renvoie le même `ProbeResult` — les deux sondes sont égales — : l'écran ne fait pas la différence.
 
 ### Le handler du main — `src/main/inspection.ts`
 
@@ -207,7 +207,7 @@ export function OnboardingInspectionScreen() {
 }
 ```
 
-`WaitingNotice` et `ErrorNotice` sont des primitives de `components/ui/` : la première affiche le titre et le détail de ce qui se passe avec le point qui respire, la seconde affiche `message`, `fix` tel quel et le bouton de rejeu. Les noms sont ceux qu'APP-01 livre ; s'ils diffèrent, ce skill se met à jour.
+`WaitingNotice` et `ErrorNotice` sont des primitives de `components/ui/` : la première affiche le titre et le détail de ce qui se passe avec le point qui respire, la seconde affiche `message`, `fix` tel quel et le bouton de rejeu. Si les noms diffèrent de ceux-là, ce skill se met à jour.
 
 ### Le verdict — `onboarding-inspection-verdict.tsx`
 
@@ -302,7 +302,7 @@ export function OnboardingInspectionActions({ probe }: Props) {
 
 ### Test du main — `src/main/__tests__/inspection.test.ts`
 
-L'agent factice (APP-02) rejoue une transcription : une ligne de requête attendue, une ligne de réponse rendue. Il tourne dans un `child_process` local à la place de `ssh`, ce qui teste `agent-client` sans réseau.
+L'agent factice rejoue une transcription : une ligne de requête attendue, une ligne de réponse rendue. Il tourne dans un `child_process` local à la place de `ssh`, ce qui teste `agent-client` sans réseau.
 
 `src/main/__tests__/fixtures/probe-bare.jsonl` :
 
@@ -422,7 +422,7 @@ test("un serveur nu propose l'installation", async () => {
 
 Le scénario tourne contre le staging réinstallé (`bun --cwd=apps/agent run staging:reset`), jamais contre une machine du propriétaire. `bun run test:e2e` le lance après `bun run build`. Un écran a au moins un scénario par verdict ou par état terminal ; les états d'attente sont couverts par les tests de store.
 
-## Avant de passer la tâche en « en revue »
+## Avant de rendre la main
 
 1. La commande et le type viennent de `@pupitre/shared/agent-protocol` ; rien n'est redéclaré dans `src/shared/`.
 2. Le renderer n'envoie que des identifiants ; le main les valide contre ce que l'agent a donné.

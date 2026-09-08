@@ -8,14 +8,14 @@
 $ {"enrollment_token":"enr-jeton-tres-secret"}
 < {"id":3,"ok":true,"result":{"enrolled":true,"entitlement":"valid"}}
 > {"id":4,"cmd":"probe"}
-< {"id":4,"ok":false,"error":{"code":"entitlement_required","message":"droit d'usage requis : ce serveur est en mode restreint","fix":"Ouvre https://app.pupitre.studio pour renouveler le droit d'usage de ce serveur."}}
+< {"id":4,"ok":false,"error":{"code":"entitlement_required","message":"a usage right is required: this server is in restricted mode","fix":"Open https://app.pupitre.studio to renew this server's usage right."}}
 > {"id":5,"cmd":"secrets.set","params":{"key":"API_KEY","secrets_stdin":true}}
-< {"id":5,"ok":false,"error":{"code":"entitlement_required","message":"droit d'usage requis : ce serveur est en mode restreint","fix":"Ouvre https://app.pupitre.studio pour renouveler le droit d'usage de ce serveur."}}
+< {"id":5,"ok":false,"error":{"code":"entitlement_required","message":"a usage right is required: this server is in restricted mode","fix":"Open https://app.pupitre.studio to renew this server's usage right."}}
 > {"id":6,"cmd":"project.logs","params":{}}
-< {"id":6,"ok":false,"error":{"code":"entitlement_required","message":"droit d'usage requis : ce serveur est en mode restreint","fix":"Ouvre https://app.pupitre.studio pour renouveler le droit d'usage de ce serveur."}}
+< {"id":6,"ok":false,"error":{"code":"entitlement_required","message":"a usage right is required: this server is in restricted mode","fix":"Open https://app.pupitre.studio to renew this server's usage right."}}
 > {"id":7,"cmd":"reboot","params":{}}
-< {"id":7,"ok":false,"error":{"code":"entitlement_required","message":"droit d'usage requis : ce serveur est en mode restreint","fix":"Ouvre https://app.pupitre.studio pour renouveler le droit d'usage de ce serveur."}}
+< {"id":7,"ok":false,"error":{"code":"entitlement_required","message":"a usage right is required: this server is in restricted mode","fix":"Open https://app.pupitre.studio to renew this server's usage right."}}
 > {"id":8,"cmd":"snapshot"}
-< {"id":8,"ok":false,"error":{"code":"unknown_command","message":"commande inconnue : snapshot"}}
+< {"id":8,"ok":false,"error":{"code":"unknown_command","message":"unknown command: snapshot"}}
 > {"id":9,"cmd":"ping"}
 < {"id":9,"ok":true,"result":{"ts":"2026-09-04T12:00:00Z"}}

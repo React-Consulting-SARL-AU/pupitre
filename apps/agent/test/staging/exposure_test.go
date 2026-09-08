@@ -10,16 +10,15 @@ import (
 	"pupitre.studio/agent/internal/contract"
 )
 
-// The zone the staging campaign is allowed to touch, and the account that owns it; without them the exposure tests stay out of the way.
-func zone(t *testing.T) map[string]any {
+// The tunnel the staging campaign is given: the app creates it on Cloudflare, the agent only ever receives these four.
+func tunnelConfig(t *testing.T) map[string]any {
 	t.Helper()
 
 	config := map[string]any{}
 	for key, variable := range map[string]string{
-		"account_id": "PUPITRE_STAGING_CF_ACCOUNT",
-		"zone_id":    "PUPITRE_STAGING_CF_ZONE",
-		"zone_name":  "PUPITRE_STAGING_CF_DOMAIN",
-		"domain":     "PUPITRE_STAGING_CF_DOMAIN",
+		"account_tag": "PUPITRE_STAGING_TUNNEL_ACCOUNT",
+		"tunnel_id":   "PUPITRE_STAGING_TUNNEL_ID",
+		"domain":      "PUPITRE_STAGING_TUNNEL_DOMAIN",
 	} {
 		value := os.Getenv(variable)
 		if value == "" {
@@ -32,15 +31,15 @@ func zone(t *testing.T) map[string]any {
 	return config
 }
 
-func cloudflareToken(t *testing.T) string {
+func tunnelSecret(t *testing.T) string {
 	t.Helper()
 
-	token := os.Getenv("PUPITRE_STAGING_CF_TOKEN")
-	if token == "" {
-		t.Skip("PUPITRE_STAGING_CF_TOKEN is not set")
+	secret := os.Getenv("PUPITRE_STAGING_TUNNEL_SECRET")
+	if secret == "" {
+		t.Skip("PUPITRE_STAGING_TUNNEL_SECRET is not set")
 	}
 
-	return token
+	return secret
 }
 
 func installTunnel(t *testing.T, host string) response {
@@ -51,11 +50,11 @@ func installTunnel(t *testing.T, host string) response {
 		"modules":       []string{"exposure.cloudflare"},
 		"config": map[string]any{
 			"core.system":         map[string]any{"timezone": "Europe/Paris", "git_name": "Pupitre Staging", "git_email": "staging@pupitre.studio"},
-			"exposure.cloudflare": zone(t),
+			"exposure.cloudflare": tunnelConfig(t),
 		},
 	}}
 
-	secrets := `{"exposure.cloudflare":{"api_token":"` + cloudflareToken(t) + `"}}`
+	secrets := `{"exposure.cloudflare":{"tunnel_secret":"` + tunnelSecret(t) + `"}}`
 	first := agentWithSecrets(t, host, secrets, install)[0]
 
 	if result := decode[contract.InstallResult](t, first.Result); len(result.Failed) != 0 {
@@ -65,14 +64,14 @@ func installTunnel(t *testing.T, host string) response {
 	return first
 }
 
-// The token is the one thing the module cannot invent: cloudflared installs, and the configuration is what refuses.
-func TestWithoutATokenTheConfigurationIsRefusedNotTheInstall(t *testing.T) {
+// The four values come from the app and the module cannot invent them: cloudflared installs, and the configuration is what refuses.
+func TestWithoutItsCredentialsTheConfigurationIsRefusedNotTheInstall(t *testing.T) {
 	host := stagingHost(t)
 
 	refused := attempt(t, host, request{Cmd: "install", Params: map[string]any{
 		"secrets_stdin": false,
 		"modules":       []string{"exposure.cloudflare"},
-		"config":        map[string]any{"exposure.cloudflare": zone(t)},
+		"config":        map[string]any{"exposure.cloudflare": tunnelConfig(t)},
 	}})[0]
 
 	result := decode[contract.InstallResult](t, refused.Result)
@@ -89,12 +88,12 @@ func TestWithoutATokenTheConfigurationIsRefusedNotTheInstall(t *testing.T) {
 	}
 
 	sync := attempt(t, host, request{Cmd: "tunnel.sync"})[0]
-	if sync.OK || !strings.Contains(string(sync.Error), "bad_request") {
-		t.Fatalf("tunnel.sync must answer bad_request: %s", sync.Error)
+	if sync.OK || !strings.Contains(string(sync.Error), "service_not_found") {
+		t.Fatalf("tunnel.sync must answer service_not_found: %s", sync.Error)
 	}
 }
 
-func TestASubdomainGetsARouteAndADnsRecord(t *testing.T) {
+func TestASubdomainGetsARoute(t *testing.T) {
 	host := stagingHost(t)
 
 	agent(t, host, request{Cmd: "project.add", Params: map[string]any{
@@ -105,7 +104,7 @@ func TestASubdomainGetsARouteAndADnsRecord(t *testing.T) {
 	installTunnel(t, host)
 
 	config := ssh(t, host, "cat", "/etc/cloudflared/config.yml")
-	if !strings.Contains(config, "hostname: fixture."+os.Getenv("PUPITRE_STAGING_CF_DOMAIN")) {
+	if !strings.Contains(config, "hostname: fixture."+os.Getenv("PUPITRE_STAGING_TUNNEL_DOMAIN")) {
 		t.Fatalf("the ingress must carry the project's route:\n%s", config)
 	}
 
@@ -130,9 +129,8 @@ func TestASubdomainGetsARouteAndADnsRecord(t *testing.T) {
 		t.Fatalf("with a tunnel the project answers on its subdomain, got %s", address)
 	}
 
-	resolved := ssh(t, host, "dig", "+short", "fixture."+os.Getenv("PUPITRE_STAGING_CF_DOMAIN"))
-	if strings.TrimSpace(resolved) == "" {
-		t.Fatalf("the DNS record must exist:\n%s", resolved)
+	if out := ssh(t, host, "sudo", "cat", "/etc/pupitre/exposure"); strings.TrimSpace(out) != "cloudflare" {
+		t.Fatalf("the marker must name this exposure: %s", out)
 	}
 }
 
@@ -205,6 +203,40 @@ func TestGithubClonesOverHttpsWithoutAKey(t *testing.T) {
 	}
 }
 
+// The module poses the CLI and authenticates it; the client's account decides the rest.
+func TestNeonPosesTheAuthenticatedCli(t *testing.T) {
+	host := stagingHost(t)
+
+	key := os.Getenv("PUPITRE_STAGING_NEON_KEY")
+	if key == "" {
+		t.Skip("PUPITRE_STAGING_NEON_KEY is not set")
+	}
+
+	install := request{Cmd: "install", Params: map[string]any{
+		"secrets_stdin": true,
+		"modules":       []string{"tool.neon"},
+	}}
+
+	first := agentWithSecrets(t, host, `{"tool.neon":{"api_key":"`+key+`"}}`, install)[0]
+	if result := decode[contract.InstallResult](t, first.Result); len(result.Failed) != 0 {
+		t.Fatalf("install failed: %v", result.Failed)
+	}
+
+	if out := ssh(t, "dev@"+address(host), "neon", "projects", "list"); strings.TrimSpace(out) == "" {
+		t.Fatalf("the CLI must answer with the stored key alone:\n%s", out)
+	}
+
+	status := agent(t, host, request{Cmd: "secrets.status"})[0]
+	if strings.Contains(string(status.Result), key) {
+		t.Fatal("the api key must never leave the machine")
+	}
+
+	replay := agentWithSecrets(t, host, `{"tool.neon":{"api_key":"`+key+`"}}`, install)[0]
+	if changed := steps(replay, contract.StepOK); len(changed) != 0 {
+		t.Fatalf("a replay must change nothing: %v", changed)
+	}
+}
+
 func TestProjectEnvFallsBackOnTheVersionedExample(t *testing.T) {
 	host := stagingHost(t)
 	dev := "dev@" + address(host)
@@ -229,9 +261,61 @@ func TestReplayingTheExposureInstallChangesNothing(t *testing.T) {
 	installTunnel(t, host)
 	second := installTunnel(t, host)
 
-	for _, changed := range steps(second, contract.StepOK) {
-		if !strings.HasSuffix(changed, "sync-dns") {
-			t.Fatalf("a replay must only skip, this ran again: %s", changed)
+	if changed := steps(second, contract.StepOK); len(changed) != 0 {
+		t.Fatalf("a replay must change nothing: %v", changed)
+	}
+}
+
+// A domain that is not on Cloudflare: Caddy answers the same questions, through the same tunnel.* commands.
+func TestCaddyServesTheSameRoutesUnderItsOwnRules(t *testing.T) {
+	host := stagingHost(t)
+	domain := os.Getenv("PUPITRE_STAGING_CADDY_DOMAIN")
+	if domain == "" {
+		t.Skip("PUPITRE_STAGING_CADDY_DOMAIN is not set")
+	}
+
+	agent(t, host, request{Cmd: "uninstall", Params: map[string]any{"modules": []string{"exposure.cloudflare"}}})
+	agent(t, host, request{Cmd: "project.add", Params: map[string]any{
+		"name": "fixture", "dir": "fixture", "pkgmgr": "bun", "host": "fixture.localhost",
+		"port": 3100, "subdomain": "fixture", "cmd": "bun run dev",
+	}})
+
+	install := request{Cmd: "install", Params: map[string]any{
+		"secrets_stdin": false,
+		"modules":       []string{"exposure.caddy"},
+		"config": map[string]any{
+			"exposure.caddy": map[string]any{
+				"domain": domain, "email": "staging@pupitre.studio", "http_port": 80, "https_port": 443,
+			},
+		},
+	}}
+
+	if result := decode[contract.InstallResult](t, agent(t, host, install)[0].Result); len(result.Failed) != 0 {
+		t.Fatalf("install failed: %v", result.Failed)
+	}
+
+	config := ssh(t, host, "sudo", "cat", "/etc/caddy/Caddyfile")
+	if !strings.Contains(config, "fixture."+domain+" {") || !strings.Contains(config, "reverse_proxy fixture.localhost:3100") {
+		t.Fatalf("the Caddyfile must carry the project's route:\n%s", config)
+	}
+
+	rules := ssh(t, host, "sudo", "ufw", "status")
+	for _, want := range []string{"80/tcp", "443/tcp"} {
+		if !strings.Contains(rules, want) {
+			t.Errorf("ufw must let %s through, otherwise no certificate is ever issued:\n%s", want, rules)
 		}
+	}
+
+	status := agent(t, host, request{Cmd: "tunnel.status"})[0]
+	report := decode[struct {
+		Installed bool   `json:"installed"`
+		State     string `json:"state"`
+		Routes    []struct {
+			Hostname string `json:"hostname"`
+		} `json:"routes"`
+	}](t, status.Result)
+
+	if !report.Installed || report.State != "running" || len(report.Routes) != 1 {
+		t.Fatalf("tunnel.status must answer for the exposure that is installed: %+v", report)
 	}
 }

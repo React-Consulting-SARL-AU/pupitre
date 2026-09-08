@@ -98,12 +98,12 @@ export function TwoFactorPanel() {
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-sm border border-line bg-sunken px-3 py-3">
           <p className="text-[13px] text-ink-2">{t("twoFactor.activeLead")}</p>
           <ConfirmDialog
+            busy={removal.phase === "pending"}
             confirmLabel={t("twoFactor.disable")}
             description={t("twoFactor.disableDescription")}
             onConfirm={() => {
               disable()
             }}
-            pending={removal.phase === "pending"}
             title={t("twoFactor.disableTitle")}
             triggerLabel={t("twoFactor.disable")}
           />

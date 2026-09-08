@@ -5,6 +5,7 @@ import {
   Navigate,
   Outlet,
   redirect,
+  useRouterState,
 } from "@tanstack/react-router"
 import { DashboardShell } from "@/components/dashboard/dashboard-shell"
 import { LoadingState } from "@/components/ui/loading-state"
@@ -41,6 +42,9 @@ export const Route = createFileRoute("/dashboard")({
 function DashboardLayout() {
   const t = useTranslations()
   const me = useQuery(meQueryOptions())
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  })
 
   if (me.isPending) {
     return (
@@ -64,7 +68,9 @@ function DashboardLayout() {
         entitlement: me.data.entitlement,
       }}
     >
-      <Outlet />
+      <div className="animate-enter" key={pathname}>
+        <Outlet />
+      </div>
     </DashboardShell>
   )
 }

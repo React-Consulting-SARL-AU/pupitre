@@ -81,7 +81,7 @@ func download(ctx *modules.Context, version string) error {
 	}
 
 	if !file.Exists(ctx, binary) {
-		return fmt.Errorf("le serveur distant Zed %s est absent de %s après décompression", version, ServerDir)
+		return fmt.Errorf("the Zed remote server %s is missing from %s after decompression", version, ServerDir)
 	}
 
 	if _, err := user.Run(ctx, shell.User, "chmod", "0755", binary); err != nil {
@@ -201,7 +201,7 @@ func resolve(ctx *modules.Context) (string, error) {
 
 	version := versionOf(out)
 	if version == "" {
-		return "", fmt.Errorf("version de Zed illisible dans %q", strings.TrimSpace(out))
+		return "", fmt.Errorf("unreadable Zed version in %q", strings.TrimSpace(out))
 	}
 
 	return version, nil

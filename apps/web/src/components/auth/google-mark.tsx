@@ -2,7 +2,7 @@ export interface GoogleMarkProps {
   className?: string
 }
 
-/** Tracé Simple Icons 16.29.0 (CC0-1.0), d'après le Partner Marketing Hub de Google. */
+/** Path from Simple Icons 16.29.0 (CC0-1.0), based on Google's Partner Marketing Hub. */
 export function GoogleMark({ className }: GoogleMarkProps) {
   return (
     <svg

@@ -19,16 +19,16 @@ describe("ThemeToggle", () => {
 
     mounted.push(unmount)
 
-    await click(trigger(container, "Système"))
+    await click(trigger(container, "System"))
 
     const items = [...document.querySelectorAll("[role=menuitemradio]")]
 
     expect(items.map((item) => item.textContent)).toEqual([
-      "Système",
-      "Clair",
-      "Sombre",
+      "System",
+      "Light",
+      "Dark",
     ])
-    expect(document.body.textContent).toContain("Thème")
+    expect(document.body.textContent).toContain("Theme")
   })
 
   it("stamps the root and remembers the choice", async () => {
@@ -36,10 +36,10 @@ describe("ThemeToggle", () => {
 
     mounted.push(unmount)
 
-    await click(trigger(container, "Système"))
+    await click(trigger(container, "System"))
 
     const dark = [...document.querySelectorAll("[role=menuitemradio]")].find(
-      (item) => item.textContent === "Sombre"
+      (item) => item.textContent === "Dark"
     )
 
     if (!dark) {

@@ -1,6 +1,7 @@
 package state
 
 import (
+	"pupitre.studio/agent/internal/i18n"
 	"regexp"
 	"sort"
 	"strconv"
@@ -231,31 +232,31 @@ var carriers = map[string]bool{
 
 func (r *Reader) Kill(pid int, force bool) error {
 	if pid <= 1 {
-		return badPID(strconv.Itoa(pid), "Donne le pid d'une ligne de processes.list.")
+		return badPID(strconv.Itoa(pid), i18n.T("state.pid.refused.fix"))
 	}
 
 	table := r.processes()
 
 	target, running := table.get(pid)
 	if !running {
-		return badPID(strconv.Itoa(pid), "Rafraîchis la liste : ce processus n'existe plus.")
+		return badPID(strconv.Itoa(pid), i18n.T("state.pid.gone.fix"))
 	}
 
 	if owner := r.options.Tmux.Resolved().User; target.User != owner {
-		return badPID(strconv.Itoa(pid)+" appartient à "+target.User, "Seuls les processus de "+owner+" peuvent être arrêtés depuis Pupitre.")
+		return badPID(i18n.T("state.pid.foreign", strconv.Itoa(pid), target.User), i18n.T("state.pid.foreign.fix", owner))
 	}
 
 	if carriers[target.program()] {
-		return badPID(target.program()+" porte la session", "Arrête le projet avec project.down, ou ferme le terminal.")
+		return badPID(i18n.T("state.pid.carrier", target.program()), i18n.T("state.pid.carrier.fix"))
 	}
 
 	if table.ancestor(pid, r.self()) {
-		return badPID(strconv.Itoa(pid)+" est un parent de l'agent", "L'arrêter couperait le canal par lequel l'ordre est arrivé.")
+		return badPID(i18n.T("state.pid.ancestor", strconv.Itoa(pid)), i18n.T("state.pid.ancestor.fix"))
 	}
 
 	if err := r.signal(pid, "-TERM"); err != nil {
-		return protocol.NewError(contract.ErrorInternal, "impossible d'arrêter "+strconv.Itoa(pid)).
-			WithFix("Regarde s'il s'est terminé seul avec processes.list.")
+		return protocol.NewError(contract.ErrorInternal, i18n.T("state.process.kill.failed", strconv.Itoa(pid))).
+			WithFix(i18n.T("state.process.kill.failed.fix"))
 	}
 
 	if force {
@@ -284,7 +285,7 @@ func (r *Reader) panes() map[int]string {
 }
 
 func badPID(message, fix string) error {
-	return protocol.NewError(contract.ErrorBadRequest, "pid refusé : "+message).WithFix(fix)
+	return protocol.NewError(contract.ErrorBadRequest, i18n.T("state.pid.refused", message)).WithFix(fix)
 }
 
 func base(path string) string {

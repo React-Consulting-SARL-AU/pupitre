@@ -17,6 +17,17 @@ func decode(t *testing.T, text string) any {
 	return value
 }
 
+func validateAgainst(t *testing.T, raw string, value any) error {
+	t.Helper()
+
+	var compiled schema
+	if err := json.Unmarshal([]byte(raw), &compiled); err != nil {
+		t.Fatalf("schema %s: %v", raw, err)
+	}
+
+	return validate(&compiled, value, "")
+}
+
 func assertValidation(t *testing.T, err error, wantErr string) {
 	t.Helper()
 
@@ -50,7 +61,7 @@ func TestValidateAgainstDefinitions(t *testing.T) {
 		{"hello float protocol", "HelloParams", `{"app_version":"0.2.0","protocol":1.5}`, "/protocol"},
 		{"hello protocol zero", "HelloParams", `{"app_version":"0.2.0","protocol":0}`, "/protocol"},
 		{"hello empty version", "HelloParams", `{"app_version":"","protocol":1}`, "/app_version"},
-		{"hello not an object", "HelloParams", `[1]`, "objet"},
+		{"hello not an object", "HelloParams", `[1]`, "object"},
 		{"ping ok", "PingParams", `{}`, ""},
 		{"ping extra", "PingParams", `{"x":1}`, "/x"},
 		{"enum ok", "DbDumpParams", `{"engine":"postgres"}`, ""},
@@ -123,10 +134,10 @@ func TestFieldOneOfMessagesAreExactAndStable(t *testing.T) {
 		value string
 		want  string
 	}{
-		{"boolean default wrong type", `{"key":"tunnel","kind":"boolean","label":"Tunnel","required":false,"default":"yes"}`, "/default : doit être un booléen"},
-		{"version missing default", `{"key":"php","kind":"version","label":"PHP","options":["8.3"]}`, "/default : champ requis"},
-		{"list missing items", `{"key":"providers","kind":"list","label":"Providers","required":true}`, "/items : champ requis"},
-		{"secret unknown field", `{"key":"token","kind":"secret","label":"Token","required":true,"default":"x"}`, "/default : champ inconnu"},
+		{"boolean default wrong type", `{"key":"tunnel","kind":"boolean","label":"Tunnel","required":false,"default":"yes"}`, "/default: must be a boolean"},
+		{"version missing default", `{"key":"php","kind":"version","label":"PHP","options":["8.3"]}`, "/default: required field"},
+		{"list missing items", `{"key":"providers","kind":"list","label":"Providers","required":true}`, "/items: required field"},
+		{"secret unknown field", `{"key":"token","kind":"secret","label":"Token","required":true,"default":"x"}`, "/default: unknown field"},
 	}
 
 	for _, tc := range cases {
@@ -151,7 +162,7 @@ func TestResponseOneOfMessageIsExact(t *testing.T) {
 		t.Fatal("expected an error, got nil")
 	}
 
-	if got, want := err.Error(), "/error/code : doit être l'une des valeurs hello_required, protocol_mismatch, bad_request, unknown_command, entitlement_required, project_not_found, module_not_found, module_failed, no_report, service_not_found, secrets_required, bad_signature, downgrade_refused, busy, internal"; got != want {
+	if got, want := err.Error(), "/error/code: must be one of hello_required, protocol_mismatch, bad_request, invalid_config, unknown_command, entitlement_required, project_not_found, module_not_found, module_failed, no_report, service_not_found, secrets_required, bad_signature, downgrade_refused, busy, internal"; got != want {
 		t.Fatalf("message = %q, want %q", got, want)
 	}
 }
@@ -170,7 +181,7 @@ func TestValidateRejectsNonObjectAndBadRefs(t *testing.T) {
 	}
 }
 
-func TestValidateSchemaKeywords(t *testing.T) {
+func TestSchemaKeywords(t *testing.T) {
 	cases := []struct {
 		name    string
 		schema  string
@@ -178,7 +189,7 @@ func TestValidateSchemaKeywords(t *testing.T) {
 		wantErr string
 	}{
 		{"type list accepts null", `{"type":["string","null"]}`, `null`, ""},
-		{"type list rejects number", `{"type":["string","null"]}`, `1`, "chaîne"},
+		{"type list rejects number", `{"type":["string","null"]}`, `1`, "string"},
 		{"prefixItems ok", `{"type":"array","prefixItems":[{"type":"number"},{"type":"number"}],"items":false,"minItems":2,"maxItems":2}`, `[0.1,0.2]`, ""},
 		{"prefixItems too many", `{"type":"array","prefixItems":[{"type":"number"}],"items":false,"maxItems":1}`, `[0.1,0.2]`, "1"},
 		{"prefixItems wrong type", `{"type":"array","prefixItems":[{"type":"number"},{"type":"number"}]}`, `[0.1,"x"]`, "/1"},
@@ -189,7 +200,7 @@ func TestValidateSchemaKeywords(t *testing.T) {
 		{"const string", `{"const":"all"}`, `"none"`, "all"},
 		{"propertyNames", `{"type":"object","propertyNames":{"type":"string","pattern":"^[a-z]+$"},"additionalProperties":{}}`, `{"Ab":1}`, "Ab"},
 		{"additionalProperties schema", `{"type":"object","additionalProperties":{"type":"integer"}}`, `{"a":"x"}`, "/a"},
-		{"boolean", `{"type":"boolean"}`, `"true"`, "booléen"},
+		{"boolean", `{"type":"boolean"}`, `"true"`, "boolean"},
 		{"ref", `{"$ref":"#/$defs/ErrorCode"}`, `"busy"`, ""},
 		{"ref rejects", `{"$ref":"#/$defs/ErrorCode"}`, `"nope"`, "busy"},
 		{"empty schema accepts anything", `{}`, `{"a":[1,2,{"b":null}]}`, ""},
@@ -199,7 +210,7 @@ func TestValidateSchemaKeywords(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			assertValidation(t, ValidateSchema(json.RawMessage(tc.schema), decode(t, tc.value)), tc.wantErr)
+			assertValidation(t, validateAgainst(t, tc.schema, decode(t, tc.value)), tc.wantErr)
 		})
 	}
 }

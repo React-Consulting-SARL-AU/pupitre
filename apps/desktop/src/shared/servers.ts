@@ -1,3 +1,4 @@
+import type { ErrorPhrase } from "./agent";
 /**
  * What the two processes say to each other about servers.
  *
@@ -55,6 +56,13 @@ export interface FleetServer {
   status: string;
   /** Whether the platform holds a key of this account to push on the servers. */
   keyReady: boolean;
+  /** The organization that owns the server, as the platform names it. */
+  organization: ServerOrganization;
+}
+
+export interface ServerOrganization {
+  id: string;
+  name: string;
 }
 
 /** The platform's last word about a server of the local list. */
@@ -62,6 +70,8 @@ export interface ServerGrant {
   id: string;
   status: string;
   keyReady: boolean;
+  /** What the platform says about the server's organization. Absent from an earlier version of the file. */
+  organization?: ServerOrganization;
   /** Whether the platform still lists it for this account. */
   listed: boolean;
   /** Whether this entry was created from the platform rather than typed here. */
@@ -70,11 +80,21 @@ export interface ServerGrant {
   opened: boolean;
 }
 
-const WITHDRAWN_STATUSES = ["revoked", "suspended"];
+/**
+ * The platform has let this server go, and nothing here brings it back.
+ *
+ * Unlisted or revoked are the two ways out, and both are final: the console
+ * deletes, the enrolment expires, the membership ends. A suspended server is
+ * not one of them — a subscription comes back, and the entry has to survive
+ * the wait.
+ */
+export function grantGone(grant: ServerGrant): boolean {
+  return !grant.listed || grant.status === "revoked";
+}
 
-/** The platform has taken this server back, or no longer lists it at all. */
+/** The platform has taken this server back, for good or while it is suspended. */
 export function grantWithdrawn(grant: ServerGrant): boolean {
-  return !grant.listed || WITHDRAWN_STATUSES.includes(grant.status);
+  return grantGone(grant) || grant.status === "suspended";
 }
 
 /** Still granted, but not openable yet: no key pushed, or no agent installed. */
@@ -105,6 +125,14 @@ export interface ServersConfig {
   version?: number;
   servers: Server[];
   active: string | null;
+  /**
+   * The platform identifiers this computer was told to stop showing.
+   *
+   * Without it the merge would put back, on the next reading, every granted
+   * server someone has just removed here: the platform still grants it, and
+   * the merge has no other way to tell a removal from a first sight.
+   */
+  dismissed?: string[];
 }
 
 /**
@@ -135,6 +163,39 @@ export interface ServerAdded {
   copyId: string | null;
 }
 
+/**
+ * What an address answered when the app knocked, before any key exists.
+ *
+ * The three ways of giving a key do not all have one yet at this point — the
+ * recommended one makes its key with the server — so what is testable ahead of
+ * adding is the address itself: something listens there, and it speaks SSH.
+ * Nothing is sent and nothing is written: the banner a server volunteers is
+ * read, and the socket is hung up.
+ */
+export interface ServerReachOk {
+  reached: true;
+  /** How the address introduced itself, e.g. `OpenSSH_9.6p1`. */
+  software: string;
+  /** How long the address took to answer, in milliseconds. */
+  ms: number;
+}
+
+export type ReachFailure =
+  | "bad-port"
+  | "refused"
+  | "unreachable"
+  | "timeout"
+  | "not-ssh";
+
+export interface ServerReachFailed {
+  reached: false;
+  code: ReachFailure;
+  /** What the screen must render: the main process names it, it doesn't write it. */
+  phrase: ErrorPhrase;
+}
+
+export type ServerReach = ServerReachOk | ServerReachFailed;
+
 export type HostKeyAction = "reinstalled" | "cancel";
 
 /**
@@ -151,7 +212,37 @@ export type HostKeyDecision =
       status: "changed";
       expected: string;
       observed: string | null;
-      message: string;
-      fix: string;
+      phrase: ErrorPhrase;
       actions: HostKeyAction[];
     };
+
+/**
+ * Where the app is while it puts its own key on a server it has just added.
+ *
+ * `reaching` asks the machine whether the key already opens it, `authorizing`
+ * appends the public half to the account's `authorized_keys`, `verifying` opens
+ * the machine again with that key alone. The third phase is not decoration: a
+ * key written into a file nobody reads is a key that does not work, and only
+ * signing in with it proves otherwise.
+ */
+export type KeyInstallPhase = "reaching" | "authorizing" | "verifying";
+
+export const KEY_INSTALL_PHASES: readonly KeyInstallPhase[] = [
+  "reaching",
+  "authorizing",
+  "verifying",
+];
+
+/**
+ * What came of the app installing the key by itself.
+ *
+ * "opened": the key opens the machine, whether the app has just put it there or
+ * found it already in place. "password": nothing this computer holds opens the
+ * machine yet, and the account's password is what would let the app in — asked
+ * again when one was tried and refused. "manual": the app cannot do it at all,
+ * and hands back the line to paste rather than pretending otherwise.
+ */
+export type KeyInstall =
+  | { status: "opened"; installed: boolean }
+  | { status: "password"; retry: boolean }
+  | { status: "manual"; phrase: ErrorPhrase };

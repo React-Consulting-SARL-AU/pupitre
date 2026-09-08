@@ -17,7 +17,7 @@ type Real struct{}
 
 func (Real) Run(cmd Command) (Output, error) {
 	if len(cmd.Argv) == 0 {
-		return Output{}, errors.New("commande vide")
+		return Output{}, errors.New("empty command")
 	}
 
 	ctx := context.Background()

@@ -7,6 +7,7 @@ import {
   type ServiceDetail,
 } from "@shared/services";
 import type { AgentClient } from "./agent-client";
+import { refusalOf, refuseWith } from "./refusal";
 
 /**
  * A service as the screen reads it, and its credentials as nobody reads them.
@@ -43,15 +44,16 @@ function unknownServer(): AgentResponse<never> {
   return {
     ok: false,
     error: {
-      code: "bad_request",
-      message: "Ce serveur n'est plus dans la liste.",
-      fix: "Choisis un serveur dans les réglages.",
+      ...refusalOf("bad_request", "refusal.server.unknown"),
     },
   };
 }
 
-function refuse(message: string, fix: string): AgentResponse<never> {
-  return { ok: false, error: { code: "bad_request", fix, message } };
+function refuse(
+  id: string,
+  values?: Record<string, string | number>
+): AgentResponse<never> {
+  return refuseWith("bad_request", id, values);
 }
 
 function named(
@@ -64,10 +66,7 @@ function named(
   }
 
   if (typeof moduleId !== "string" || moduleId.length === 0) {
-    return refuse(
-      "Ce module n'a pas de nom.",
-      "Choisis un service dans la liste."
-    );
+    return refuse("refusal.module.none");
   }
 
   return { moduleId, serverId };
@@ -121,6 +120,14 @@ export async function readService(
 
   const vault = held(call.serverId, call.moduleId);
 
+  // Labels are the agent's, in the session's language: keeping the ones it no
+  // longer names would list the same credential twice after a language change.
+  for (const [label, entry] of vault) {
+    if ("key" in entry) {
+      vault.delete(label);
+    }
+  }
+
   for (const [label, key] of Object.entries(answer.result.credentials ?? {})) {
     vault.set(label, { key });
   }
@@ -150,10 +157,7 @@ export async function readDatabaseUrl(
   const engine: DbEngine | null = databaseEngineOf(call.moduleId);
 
   if (!engine) {
-    return refuse(
-      `${call.moduleId} n'est pas une base de données.`,
-      "Cette action n'existe que pour les modules de la catégorie « bases de données »."
-    );
+    return refuse("refusal.module.notDatabase", { module: call.moduleId });
   }
 
   const answer = await deps.client.request(call.serverId, "db.url", {

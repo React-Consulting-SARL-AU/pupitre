@@ -8,7 +8,7 @@ import type {
   ServersConfig,
 } from "@shared/servers";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
-import { grantedServers, useFleet } from "../fleet";
+import { fleetGroups, grantedServers, useFleet } from "../fleet";
 import { useOnboarding } from "../onboarding";
 import { useServers } from "../servers";
 
@@ -26,6 +26,7 @@ const GRANTED: FleetServer = {
   id: "srv-platform-1",
   keyReady: true,
   name: "vps-atelier",
+  organization: { id: "org-1", name: "Flymate" },
   port: 22,
   status: "active",
   user: "dev",
@@ -237,7 +238,7 @@ describe("la première ouverture d'un serveur attribué", () => {
 });
 
 describe("les serveurs attribués de la liste", () => {
-  it("ne retient que ceux que la plateforme a nommés", () => {
+  it("ne retient que ceux que la console a nommés", () => {
     const typed: Server = {
       host: "vps.test",
       id: "srv-local",
@@ -260,5 +261,86 @@ describe("les serveurs attribués de la liste", () => {
 
   it("n'en retient aucun tant que rien n'a été lu", () => {
     expect(grantedServers({ status: "idle" })).toEqual([]);
+  });
+});
+
+describe("les serveurs rangés par organisation", () => {
+  it("ne nomme rien quand tout vient de la même", () => {
+    const first = localServer({
+      ...GRANT,
+      organization: { id: "org-1", name: "Flymate" },
+    });
+    const second = {
+      ...localServer({
+        ...GRANT,
+        id: "srv-platform-2",
+        organization: { id: "org-1", name: "Flymate" },
+      }),
+      id: "srv-local-2",
+    };
+
+    useFleet.setState({
+      state: {
+        status: "read",
+        view: {
+          adopted: [],
+          changed: false,
+          config: { active: null, servers: [first, second] },
+          granted: [GRANTED],
+          withdrawn: [],
+        },
+      },
+    });
+
+    const groups = fleetGroups(useFleet.getState().state);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0]?.servers).toHaveLength(2);
+  });
+
+  it("sépare les serveurs de deux organisations, dans l'ordre où ils viennent", () => {
+    const first = localServer({
+      ...GRANT,
+      organization: { id: "org-1", name: "Flymate" },
+    });
+    const second = {
+      ...localServer({
+        ...GRANT,
+        id: "srv-platform-2",
+        organization: { id: "org-2", name: "Atelier" },
+      }),
+      id: "srv-local-2",
+    };
+
+    useFleet.setState({
+      state: {
+        status: "read",
+        view: {
+          adopted: [],
+          changed: false,
+          config: { active: null, servers: [first, second] },
+          granted: [GRANTED],
+          withdrawn: [],
+        },
+      },
+    });
+
+    expect(
+      fleetGroups(useFleet.getState().state).map((group) => group.name)
+    ).toEqual(["Flymate", "Atelier"]);
+  });
+
+  it("garde sa place au serveur qu'aucune organisation ne nomme", () => {
+    useFleet.setState({
+      state: {
+        status: "read",
+        view: view(localServer()),
+      },
+    });
+
+    const groups = fleetGroups(useFleet.getState().state);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0]?.name).toBe("");
   });
 });

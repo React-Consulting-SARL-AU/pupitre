@@ -10,7 +10,7 @@ import { stubPupitre } from "../../__tests__/stub-pupitre";
 import { removalOf } from "../../lib/service-removal";
 import { useCatalog } from "../../stores/catalog";
 import { CatalogChoice } from "../catalog/catalog-choice";
-import { ConfigForm } from "../config/config-form";
+import { ConfigModuleGroup } from "../config/config-module-group";
 import { ServiceCredentials } from "../services/service-credentials";
 import { ServiceForward } from "../services/service-forward";
 import { ServiceRemovalLosses } from "../services/service-removal-losses";
@@ -165,6 +165,7 @@ describe("la confirmation d'un retrait", () => {
 
 describe("le tunnel du serveur", () => {
   const tunnel: TunnelStatusResult = {
+    provider: "cloudflare",
     installed: true,
     routes: [
       {
@@ -196,7 +197,12 @@ describe("le tunnel du serveur", () => {
         busy={null}
         onRestart={() => undefined}
         onSync={() => undefined}
-        tunnel={{ installed: false, routes: [], state: "absent" }}
+        tunnel={{
+          provider: null,
+          installed: false,
+          routes: [],
+          state: "absent",
+        }}
       />
     );
 
@@ -277,14 +283,21 @@ describe("ajouter un module à un serveur déjà installé", () => {
     await useCatalog.getState().settled();
 
     const state = useCatalog.getState();
-    const html = renderToStaticMarkup(
-      <ConfigForm
-        groups={state.groups()}
-        machineName="atelier"
-        secrets={state.secrets}
-        values={state.values}
-      />
-    );
+    const html = state
+      .groups()
+      .map((group) =>
+        renderToStaticMarkup(
+          <ConfigModuleGroup
+            group={group}
+            handlers={{}}
+            key={group.module.id}
+            marks={state.secrets[group.module.id]}
+            problems={[]}
+            values={state.values[group.module.id] ?? {}}
+          />
+        )
+      )
+      .join("");
 
     expect(text(html)).toContain("MongoDB 8");
     expect(text(html)).toContain("Mot de passe applicatif");

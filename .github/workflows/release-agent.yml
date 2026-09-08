@@ -1,8 +1,9 @@
 name: Release agent
 
+# L'agent seul, sans l'app : republier une version que la plateforme a perdue,
+# ou en sortir une entre deux versions de l'app. Le tag, lui, passe par
+# `release.yml`, qui publie les deux dans le même geste.
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
     inputs:
       version:
@@ -13,10 +14,6 @@ on:
         type: choice
         options: [beta, stable]
         default: beta
-      promote:
-        description: Promouvoir la version dans le canal stable après la publication
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -60,7 +57,7 @@ jobs:
       - name: Resolve the published version
         env:
           REQUESTED: ${{ inputs.version }}
-        run: echo "PUPITRE_RELEASE_VERSION=${REQUESTED:-${GITHUB_REF_NAME#v}}" >> "$GITHUB_ENV"
+        run: echo "PUPITRE_RELEASE_VERSION=$REQUESTED" >> "$GITHUB_ENV"
 
       - name: Build and sign
         working-directory: apps/agent
@@ -110,14 +107,6 @@ jobs:
         run: bun run release:publish
         env:
           PUPITRE_ADMIN_TOKEN: ${{ secrets.PUPITRE_ADMIN_TOKEN }}
-
-      - name: Promote to the stable channel
-        if: inputs.promote
-        working-directory: apps/agent
-        run: bun run release:promote
-        env:
-          PUPITRE_ADMIN_TOKEN: ${{ secrets.PUPITRE_ADMIN_TOKEN }}
-          PUPITRE_RELEASE_CHANNEL: stable
 
       - name: Upload the signed binaries
         uses: actions/upload-artifact@v4

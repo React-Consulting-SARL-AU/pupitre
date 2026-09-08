@@ -11,6 +11,7 @@ import { createOrganizationWithMembers } from "@pupitre/api/testing/factories"
 import type { OrgRole } from "@pupitre/shared/permissions"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { MemberList } from "@/components/dashboard/member-list"
+import { ToastProvider } from "@/components/ui/toast"
 import {
   DashboardContext,
   type DashboardOrganization,
@@ -43,7 +44,9 @@ function list(
           entitlement: "valid",
         }}
       >
-        <MemberList />
+        <ToastProvider>
+          <MemberList />
+        </ToastProvider>
       </DashboardContext.Provider>
     </QueryClientProvider>
   )
@@ -87,7 +90,7 @@ describe("MemberList", () => {
     mounted.push(unmount)
 
     await waitUntil(() =>
-      (container.textContent ?? "").includes("Aucune invitation en attente")
+      (container.textContent ?? "").includes("No pending invitation.")
     )
 
     const email = container.querySelector("#invite-email")
@@ -97,14 +100,16 @@ describe("MemberList", () => {
     }
 
     await fill(email, "recrue@test.local")
-    await click(trigger(container, "Inviter"))
+    await click(trigger(container, "Invite"))
     await waitUntil(() =>
       (container.textContent ?? "").includes("recrue@test.local")
     )
 
-    expect(container.textContent).toContain("Invitation envoyée")
-    expect(container.textContent).toContain("Propriétaire")
-    expect(container.textContent).toContain("Membre")
+    expect(document.body.textContent).toContain(
+      "Invitation sent to recrue@test.local"
+    )
+    expect(container.textContent).toContain("Owner")
+    expect(container.textContent).toContain("Member")
   })
 
   it("shows a member the roster without the invite form", async () => {
@@ -134,7 +139,7 @@ describe("MemberList", () => {
     )
 
     expect(container.querySelector("#invite-email")).toBeNull()
-    expect(container.textContent).toContain("· vous")
+    expect(container.textContent).toContain("· you")
     expect(
       [...container.querySelectorAll("button")].map(
         (button) => button.textContent

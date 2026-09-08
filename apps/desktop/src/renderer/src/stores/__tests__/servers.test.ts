@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import type { Server } from "@shared/servers";
+import type { KeyInstallPhase, Server } from "@shared/servers";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
 import { useServers } from "../servers";
 
@@ -26,10 +26,99 @@ function reset(): void {
     addition: { status: "idle" },
     config: null,
     hostKey: { status: "unknown" },
+    keyInstall: { status: "idle" },
     publicKey: null,
     status: "idle",
   });
 }
+
+describe("l'installation de la clé", () => {
+  beforeEach(reset);
+
+  it("suit les étapes que le processus principal annonce", async () => {
+    const seen: string[] = [];
+
+    stubPupitre({
+      installKey: (
+        _id: string,
+        _password: string | null,
+        onPhase: (phase: KeyInstallPhase) => void
+      ) => {
+        const state = useServers.getState().keyInstall;
+
+        seen.push(state.status === "working" ? state.phase : state.status);
+
+        for (const phase of ["authorizing", "verifying"] as const) {
+          onPhase(phase);
+
+          const now = useServers.getState().keyInstall;
+
+          seen.push(now.status === "working" ? now.phase : now.status);
+        }
+
+        return Promise.resolve({
+          ok: true,
+          result: { installed: true, status: "opened" },
+        });
+      },
+    });
+
+    await useServers.getState().installKey("srv-a", null);
+
+    expect(seen).toEqual(["reaching", "authorizing", "verifying"]);
+    expect(useServers.getState().keyInstall).toEqual({
+      installed: true,
+      status: "opened",
+    });
+  });
+
+  it("ne garde jamais le mot de passe, seulement le fait qu'il a été refusé", async () => {
+    stubPupitre({
+      installKey: () =>
+        Promise.resolve({
+          ok: true,
+          result: { retry: true, status: "password" },
+        }),
+    });
+
+    await useServers.getState().installKey("srv-a", "hunter2");
+
+    const state = useServers.getState();
+
+    expect(state.keyInstall).toEqual({ retry: true, status: "password" });
+    expect(JSON.stringify(state)).not.toContain("hunter2");
+  });
+
+  it("rend la ligne à coller quand l'app ne peut pas poser la clé", async () => {
+    stubPupitre({
+      installKey: () =>
+        Promise.resolve({
+          ok: true,
+          result: {
+            phrase: { id: "refusal.keyInstall.keysOnly" },
+            status: "manual",
+          },
+        }),
+    });
+
+    await useServers.getState().installKey("srv-a", null);
+
+    expect(useServers.getState().keyInstall).toMatchObject({
+      phrase: { id: "refusal.keyInstall.keysOnly" },
+      status: "manual",
+    });
+  });
+
+  it("oublie l'installation en même temps que l'ajout", () => {
+    useServers.setState({
+      keyInstall: { installed: true, status: "opened" },
+    });
+
+    useServers.getState().forgetAddition();
+
+    expect(useServers.getState().keyInstall).toEqual({ status: "idle" });
+  });
+});
 
 describe("l'ajout d'un serveur", () => {
   beforeEach(reset);
@@ -91,9 +180,7 @@ describe("la clé d'hôte", () => {
           result: {
             actions: ["reinstalled", "cancel"],
             expected: "SHA256:aaa",
-            fix: "Si vous venez de réinstaller ce serveur, remplacez l'empreinte.",
-            message:
-              "La clé d'hôte de ce serveur a changé depuis le premier contact.",
+            phrase: { id: "refusal.hostKey.changed" },
             observed: "SHA256:bbb",
             status: "changed",
           },
@@ -110,9 +197,7 @@ describe("la clé d'hôte", () => {
     expect(state.serverId).toBe("srv-a");
     expect(state.expected).toBe("SHA256:aaa");
     expect(state.observed).toBe("SHA256:bbb");
-    expect(state.fix).toBe(
-      "Si vous venez de réinstaller ce serveur, remplacez l'empreinte."
-    );
+    expect(state.phrase.id).toBe("refusal.hostKey.changed");
   });
 
   it("ne retient rien d'un premier contact", async () => {
@@ -143,8 +228,7 @@ describe("la clé d'hôte", () => {
       hostKey: {
         actions: ["reinstalled", "cancel"],
         expected: "SHA256:aaa",
-        fix: "Si vous venez de réinstaller ce serveur, remplacez l'empreinte.",
-        message: "La clé d'hôte de ce serveur a changé.",
+        phrase: { id: "refusal.hostKey.changed" },
         observed: "SHA256:bbb",
         serverId: "srv-a",
         status: "changed",
@@ -162,8 +246,7 @@ describe("la clé d'hôte", () => {
       hostKey: {
         actions: ["reinstalled", "cancel"],
         expected: "SHA256:aaa",
-        fix: "Si vous venez de réinstaller ce serveur, remplacez l'empreinte.",
-        message: "La clé d'hôte de ce serveur a changé.",
+        phrase: { id: "refusal.hostKey.changed" },
         observed: "SHA256:bbb",
         serverId: "srv-a",
         status: "changed",
@@ -220,5 +303,106 @@ describe("la liste", () => {
       "remove srv-a",
     ]);
     expect(useServers.getState().config?.servers).toEqual([]);
+  });
+});
+
+describe("un serveur supprimé", () => {
+  beforeEach(reset);
+
+  function pendingOn(server: Server): void {
+    useServers.setState({
+      addition: {
+        copyId: null,
+        publicKey: "ssh-ed25519 AAAAC3Nz pupitre srv-a",
+        server,
+        status: "added",
+      },
+      config: { active: server.id, servers: [server] },
+      keyInstall: { retry: false, status: "password" },
+      publicKey: "ssh-ed25519 AAAAC3Nz pupitre srv-a",
+    });
+  }
+
+  it("emporte la demande de mot de passe avec lui", async () => {
+    stubPupitre({
+      removeServer: () => Promise.resolve({ active: null, servers: [] }),
+    });
+    pendingOn(STAGING);
+
+    await useServers.getState().remove("srv-a");
+
+    const state = useServers.getState();
+
+    expect(state.addition).toEqual({ status: "idle" });
+    expect(state.keyInstall).toEqual({ status: "idle" });
+    expect(state.publicKey).toBeNull();
+  });
+
+  it("laisse l'installation en cours quand c'est un autre serveur qui part", async () => {
+    stubPupitre({
+      removeServer: () =>
+        Promise.resolve({ active: "srv-a", servers: [STAGING] }),
+    });
+    pendingOn(STAGING);
+
+    await useServers.getState().remove("srv-b");
+
+    expect(useServers.getState().addition).toMatchObject({
+      server: STAGING,
+      status: "added",
+    });
+    expect(useServers.getState().keyInstall).toEqual({
+      retry: false,
+      status: "password",
+    });
+  });
+
+  it("emporte aussi la demande quand il est effacé de la console", async () => {
+    stubPupitre({
+      forgetServer: () =>
+        Promise.resolve({ ok: true, result: { active: null, servers: [] } }),
+    });
+    pendingOn(STAGING);
+
+    await useServers.getState().forget("srv-a");
+
+    expect(useServers.getState().addition).toEqual({ status: "idle" });
+    expect(useServers.getState().keyInstall).toEqual({ status: "idle" });
+  });
+
+  it("ne revient pas quand l'écran relit la liste", async () => {
+    stubPupitre({
+      servers: () => Promise.resolve({ active: null, servers: [] }),
+    });
+    pendingOn(STAGING);
+
+    await useServers.getState().load();
+
+    expect(useServers.getState().addition).toEqual({ status: "idle" });
+    expect(useServers.getState().keyInstall).toEqual({ status: "idle" });
+  });
+
+  it("ne laisse pas la réponse tardive de l'installation revenir sur l'écran", async () => {
+    let answer: (value: {
+      ok: true;
+      result: { retry: boolean; status: "password" };
+    }) => void = () => undefined;
+
+    stubPupitre({
+      installKey: () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
+      removeServer: () => Promise.resolve({ active: null, servers: [] }),
+    });
+    pendingOn(STAGING);
+
+    const knocking = useServers.getState().installKey("srv-a", "hunter2");
+
+    await useServers.getState().remove("srv-a");
+    answer({ ok: true, result: { retry: true, status: "password" } });
+    await knocking;
+
+    expect(useServers.getState().keyInstall).toEqual({ status: "idle" });
   });
 });

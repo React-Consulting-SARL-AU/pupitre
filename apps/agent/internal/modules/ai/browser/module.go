@@ -2,6 +2,7 @@ package browser
 
 import (
 	"fmt"
+	"pupitre.studio/agent/internal/i18n"
 	"runtime"
 	"strings"
 
@@ -103,7 +104,7 @@ func installBrowser(ctx *modules.Context) error {
 		}
 
 		if err := apt.Install(ctx, chromiumPackage); err != nil {
-			ctx.Warn("aucun navigateur sans interface : shot <url> restera indisponible, shot <fichier> marche")
+			ctx.Warn(i18n.T("warn.browser.none"))
 
 			return modules.Done, nil
 		}
@@ -155,7 +156,7 @@ func installPlaywrightLibraries(ctx *modules.Context) error {
 		}
 
 		if len(refused) > 0 {
-			ctx.Warn("bibliothèques Playwright absentes de cette version d'Ubuntu : " + strings.Join(refused, ", "))
+			ctx.Warn(i18n.T("warn.browser.libraries.missing", strings.Join(refused, ", ")))
 		}
 
 		return modules.Done, nil

@@ -20,7 +20,9 @@ import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardAuditRouteImport } from './routes/dashboard/audit'
 import { Route as DashboardBillingRouteImport } from './routes/dashboard/billing'
 import { Route as DashboardDevicesRouteImport } from './routes/dashboard/devices'
+import { Route as DashboardDownloadRouteImport } from './routes/dashboard/download'
 import { Route as DashboardMembersRouteImport } from './routes/dashboard/members'
+import { Route as DashboardOrganizationRouteImport } from './routes/dashboard/organization'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
 import { Route as DashboardStartRouteImport } from './routes/dashboard/start'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -83,9 +85,19 @@ const DashboardDevicesRoute = DashboardDevicesRouteImport.update({
   path: '/devices',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardDownloadRoute = DashboardDownloadRouteImport.update({
+  id: '/download',
+  path: '/download',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardMembersRoute = DashboardMembersRouteImport.update({
   id: '/members',
   path: '/members',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardOrganizationRoute = DashboardOrganizationRouteImport.update({
+  id: '/organization',
+  path: '/organization',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
@@ -130,7 +142,9 @@ export interface FileRoutesByFullPath {
   '/dashboard/audit': typeof DashboardAuditRoute
   '/dashboard/billing': typeof DashboardBillingRoute
   '/dashboard/devices': typeof DashboardDevicesRoute
+  '/dashboard/download': typeof DashboardDownloadRoute
   '/dashboard/members': typeof DashboardMembersRoute
+  '/dashboard/organization': typeof DashboardOrganizationRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/start': typeof DashboardStartRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -149,7 +163,9 @@ export interface FileRoutesByTo {
   '/dashboard/audit': typeof DashboardAuditRoute
   '/dashboard/billing': typeof DashboardBillingRoute
   '/dashboard/devices': typeof DashboardDevicesRoute
+  '/dashboard/download': typeof DashboardDownloadRoute
   '/dashboard/members': typeof DashboardMembersRoute
+  '/dashboard/organization': typeof DashboardOrganizationRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/start': typeof DashboardStartRoute
   '/dashboard': typeof DashboardIndexRoute
@@ -170,7 +186,9 @@ export interface FileRoutesById {
   '/dashboard/audit': typeof DashboardAuditRoute
   '/dashboard/billing': typeof DashboardBillingRoute
   '/dashboard/devices': typeof DashboardDevicesRoute
+  '/dashboard/download': typeof DashboardDownloadRoute
   '/dashboard/members': typeof DashboardMembersRoute
+  '/dashboard/organization': typeof DashboardOrganizationRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/start': typeof DashboardStartRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -192,7 +210,9 @@ export interface FileRouteTypes {
     | '/dashboard/audit'
     | '/dashboard/billing'
     | '/dashboard/devices'
+    | '/dashboard/download'
     | '/dashboard/members'
+    | '/dashboard/organization'
     | '/dashboard/settings'
     | '/dashboard/start'
     | '/dashboard/'
@@ -211,7 +231,9 @@ export interface FileRouteTypes {
     | '/dashboard/audit'
     | '/dashboard/billing'
     | '/dashboard/devices'
+    | '/dashboard/download'
     | '/dashboard/members'
+    | '/dashboard/organization'
     | '/dashboard/settings'
     | '/dashboard/start'
     | '/dashboard'
@@ -231,7 +253,9 @@ export interface FileRouteTypes {
     | '/dashboard/audit'
     | '/dashboard/billing'
     | '/dashboard/devices'
+    | '/dashboard/download'
     | '/dashboard/members'
+    | '/dashboard/organization'
     | '/dashboard/settings'
     | '/dashboard/start'
     | '/dashboard/'
@@ -332,11 +356,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardDevicesRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/download': {
+      id: '/dashboard/download'
+      path: '/download'
+      fullPath: '/dashboard/download'
+      preLoaderRoute: typeof DashboardDownloadRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/members': {
       id: '/dashboard/members'
       path: '/members'
       fullPath: '/dashboard/members'
       preLoaderRoute: typeof DashboardMembersRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/organization': {
+      id: '/dashboard/organization'
+      path: '/organization'
+      fullPath: '/dashboard/organization'
+      preLoaderRoute: typeof DashboardOrganizationRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/settings': {
@@ -388,7 +426,9 @@ interface DashboardRouteChildren {
   DashboardAuditRoute: typeof DashboardAuditRoute
   DashboardBillingRoute: typeof DashboardBillingRoute
   DashboardDevicesRoute: typeof DashboardDevicesRoute
+  DashboardDownloadRoute: typeof DashboardDownloadRoute
   DashboardMembersRoute: typeof DashboardMembersRoute
+  DashboardOrganizationRoute: typeof DashboardOrganizationRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardStartRoute: typeof DashboardStartRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
@@ -400,7 +440,9 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardAuditRoute: DashboardAuditRoute,
   DashboardBillingRoute: DashboardBillingRoute,
   DashboardDevicesRoute: DashboardDevicesRoute,
+  DashboardDownloadRoute: DashboardDownloadRoute,
   DashboardMembersRoute: DashboardMembersRoute,
+  DashboardOrganizationRoute: DashboardOrganizationRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardStartRoute: DashboardStartRoute,
   DashboardIndexRoute: DashboardIndexRoute,

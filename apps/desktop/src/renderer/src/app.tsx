@@ -10,18 +10,20 @@ import { SecretsPanel } from "./components/secrets/secrets-panel";
 import { ServicesScreen } from "./components/services/services-screen";
 import { SettingsScreen } from "./components/settings/settings-screen";
 import { AppSidebar } from "./components/shell/app-sidebar";
+import { NoServerScreen } from "./components/shell/no-server-screen";
 import { ServerRestrictedNotice } from "./components/shell/server-restricted-notice";
-import { ServerUnreadyScreen } from "./components/shell/server-unready-screen";
 import { ShotsScreen } from "./components/shots/shots-screen";
 import { TerminalTabs } from "./components/terminals/terminal-tabs";
 import { EmptyState } from "./components/ui/empty-state";
 import { ErrorNotice } from "./components/ui/error-notice";
 import { IconButton } from "./components/ui/icon-button";
+import { WindowBand } from "./components/ui/window-band";
 import { AgentUpdateBanner } from "./components/updates/agent-update-banner";
 import { useTranslations } from "./i18n/use-translations";
 import { noteProjects, noteServer } from "./lib/completion";
 import { attachedSessions } from "./lib/sessions";
 import { shellScreen } from "./lib/shell-screen";
+import { usePlatformSync } from "./lib/use-platform-sync";
 import { accountOf, useAccount } from "./stores/account";
 import { announces, useAgentUpdate } from "./stores/agent-update";
 import { useNavigation } from "./stores/navigation";
@@ -50,6 +52,7 @@ export function App() {
 
   const accountView = useAccount((s) => s.view);
   const readAccount = useAccount((s) => s.read);
+  const bypassed = useAccount((s) => s.bypassed);
 
   const navigation = useNavigation();
   const snapshotState = useSnapshot((s) => s.state);
@@ -67,6 +70,8 @@ export function App() {
   const server = config?.servers.find((s) => s.id === config.active) ?? null;
   const serverId = server?.id ?? null;
   const snapshot = snapshotOf(snapshotState);
+
+  usePlatformSync();
 
   // The account is read before anything of a machine is: a build without a
   // usage right opens on the account, and the list of servers it would show is
@@ -180,8 +185,10 @@ export function App() {
 
   const shell = shellScreen({
     answered: snapshot !== null,
+    bypassed,
     onboarding,
     serverId,
+    signedIn: account.identity !== null,
     usage: account.usage,
     view,
   });
@@ -200,15 +207,21 @@ export function App() {
   }
 
   if (shell === "settings") {
-    return <SettingsScreen onChanged={serversChanged} />;
+    return (
+      <SettingsScreen
+        onBack={() => navigation.goTo("dashboard")}
+        onChanged={serversChanged}
+      />
+    );
   }
 
   if (shell === "unready" || !(serverId && snapshot)) {
     return (
-      <ServerUnreadyScreen
+      <NoServerScreen
         error={
           snapshotState.status === "unreachable" ? snapshotState.error : null
         }
+        onAddServer={openOnboarding}
         onInstall={() =>
           serverId ? beginOnboarding(serverId) : openOnboarding()
         }
@@ -245,7 +258,7 @@ export function App() {
       />
 
       <div className="flex min-w-0 flex-col">
-        <div className="draggable h-10 shrink-0 border-line border-b bg-base" />
+        <WindowBand className="border-line border-b bg-base" />
 
         <ServerRestrictedNotice
           entitlement={snapshot.entitlement}

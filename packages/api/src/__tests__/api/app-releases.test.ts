@@ -11,8 +11,10 @@ interface BuildBody {
   data: {
     version: string
     os: string
-    arch: string | null
+    arch: string
+    format: string
     url: string
+    bytes: number
     sha256: string
     signature: string | null
     notes: string
@@ -21,14 +23,20 @@ interface BuildBody {
   }
 }
 
+interface Release {
+  version: string
+  channel: string
+  notes: string
+  published_at: string
+  builds: { os: string; arch: string; format: string; url: string }[]
+}
+
 interface ReleaseBody {
-  data: {
-    version: string
-    channel: string
-    notes: string
-    published_at: string
-    builds: { os: string; arch: string | null; url: string }[]
-  }
+  data: Release
+}
+
+interface ReleaseListBody {
+  data: Release[]
 }
 
 const SHA256 = "a".repeat(64)
@@ -41,7 +49,10 @@ function publication(overrides: Record<string, unknown> = {}) {
   return {
     version: "1.4.0",
     os: "macos",
-    url: "https://downloads.pupitre.studio/1.4.0/Pupitre-1.4.0.dmg",
+    arch: "arm64",
+    format: "dmg",
+    url: "https://dl.pupitre.studio/app/1.4.0/Pupitre-1.4.0-arm64.dmg",
+    bytes: 118_000_000,
     sha256: SHA256,
     notes: NOTES,
     ...overrides,
@@ -82,14 +93,24 @@ async function publishEveryOs(
   await publish(session, {
     version,
     channel,
+    arch: "x64",
+    url: `https://dl.pupitre.studio/app/${version}/Pupitre-${version}-x64.dmg`,
+  })
+  await publish(session, {
+    version,
+    channel,
     os: "windows",
-    url: `https://downloads.pupitre.studio/${version}/Pupitre-Setup-${version}.exe`,
+    arch: "x64",
+    format: "exe",
+    url: `https://dl.pupitre.studio/app/${version}/Pupitre-Setup-${version}.exe`,
   })
   await publish(session, {
     version,
     channel,
     os: "linux",
-    url: `https://downloads.pupitre.studio/${version}/Pupitre-${version}.AppImage`,
+    arch: "x64",
+    format: "AppImage",
+    url: `https://dl.pupitre.studio/app/${version}/Pupitre-${version}.AppImage`,
   })
 }
 
@@ -120,7 +141,7 @@ describe("app releases", () => {
       expect(response.json.error.code).toBe("forbidden")
     })
 
-    it("publishes in the beta channel by default, without arch nor signature", async () => {
+    it("publishes in the beta channel by default, without a signature", async () => {
       const { prisma } = await bootApiTestServer()
       const session = await platformAdmin()
       const response = await publish(session)
@@ -128,7 +149,8 @@ describe("app releases", () => {
       expect(response.status).toBe(201)
       expect(response.json.data.channel).toBe("beta")
       expect(response.json.data.os).toBe("macos")
-      expect(response.json.data.arch).toBeNull()
+      expect(response.json.data.arch).toBe("arm64")
+      expect(response.json.data.format).toBe("dmg")
       expect(response.json.data.signature).toBeNull()
       expect(response.json.data.notes).toBe(NOTES)
 
@@ -167,7 +189,30 @@ describe("app releases", () => {
       expect((await publish(session, { notes: "" })).status).toBe(422)
     })
 
-    it("is idempotent on (version, os)", async () => {
+    it("refuses a build without architecture, format or size", async () => {
+      const session = await platformAdmin()
+
+      expect((await publish(session, { arch: undefined })).status).toBe(422)
+      expect((await publish(session, { format: undefined })).status).toBe(422)
+      expect((await publish(session, { bytes: 0 })).status).toBe(422)
+    })
+
+    it("keeps the two architectures of the same system apart", async () => {
+      const { prisma } = await bootApiTestServer()
+      const session = await platformAdmin()
+
+      await publish(session)
+      await publish(session, {
+        arch: "x64",
+        url: "https://dl.pupitre.studio/app/1.4.0/Pupitre-1.4.0-x64.dmg",
+      })
+
+      const stored = await prisma.appRelease.findMany()
+
+      expect(stored).toHaveLength(2)
+    })
+
+    it("is idempotent on (version, os, arch)", async () => {
       const { prisma } = await bootApiTestServer()
       const session = await platformAdmin()
 
@@ -194,7 +239,7 @@ describe("app releases", () => {
       expect(response.json.error.fix).toBeString()
     })
 
-    it("keeps one row per system", async () => {
+    it("keeps one row per artefact", async () => {
       const { prisma } = await bootApiTestServer()
       const session = await platformAdmin()
 
@@ -202,22 +247,107 @@ describe("app releases", () => {
 
       const stored = await prisma.appRelease.findMany()
 
-      expect(stored).toHaveLength(3)
+      expect(stored).toHaveLength(4)
+    })
+  })
+
+  describe("POST /admin/app-releases/:version/promote", () => {
+    it("moves every artefact of a version to the stable channel", async () => {
+      const admin = await platformAdmin()
+
+      await publishEveryOs(admin, "beta", "1.4.0")
+
+      const promoted = await apiRequest<ReleaseBody & ErrorBody>(
+        "/admin/app-releases/1.4.0/promote",
+        { body: { channel: "stable" }, session: admin }
+      )
+
+      expect(promoted.status).toBe(200)
+      expect(promoted.json.data.channel).toBe("stable")
+
+      const stable = await apiRequest<ReleaseBody>("/releases/app/latest")
+
+      expect(stable.json.data.version).toBe("1.4.0")
+    })
+
+    it("refuses a caller who is not a platform admin", async () => {
+      const session = await member()
+      const response = await apiRequest<ErrorBody>(
+        "/admin/app-releases/1.4.0/promote",
+        { body: { channel: "stable" }, session }
+      )
+
+      expect(response.status).toBe(403)
+    })
+
+    it("answers app_release_not_found for a version nobody published", async () => {
+      const admin = await platformAdmin()
+      const response = await apiRequest<ErrorBody>(
+        "/admin/app-releases/9.9.9/promote",
+        { body: { channel: "stable" }, session: admin }
+      )
+
+      expect(response.status).toBe(404)
+    })
+  })
+
+  describe("GET /releases/app", () => {
+    it("lists the published versions, newest first, without a session", async () => {
+      const admin = await platformAdmin()
+
+      await publishEveryOs(admin, "stable", "1.3.0")
+      await publishEveryOs(admin, "stable", "1.4.0")
+
+      const response = await apiRequest<ReleaseListBody>("/releases/app")
+
+      expect(response.status).toBe(200)
+      expect(response.json.data.map((release) => release.version)).toEqual([
+        "1.4.0",
+        "1.3.0",
+      ])
+      expect(response.json.data[0]?.builds).toHaveLength(4)
+    })
+
+    it("answers an empty list rather than an error when nothing is published", async () => {
+      const response = await apiRequest<ReleaseListBody>("/releases/app")
+
+      expect(response.status).toBe(200)
+      expect(response.json.data).toEqual([])
+    })
+  })
+
+  describe("GET /releases/app/:version/:os/:arch", () => {
+    it("redirects to the artefact of that architecture", async () => {
+      const admin = await platformAdmin()
+
+      await publishEveryOs(admin, "stable", "1.4.0")
+
+      const response = await apiRequest<ErrorBody>(
+        "/releases/app/1.4.0/macos/x64"
+      )
+
+      expect(response.status).toBe(303)
+      expect(response.raw.headers.get("location")).toBe(
+        "https://dl.pupitre.studio/app/1.4.0/Pupitre-1.4.0-x64.dmg"
+      )
+    })
+
+    it("answers app_release_not_found for an architecture nobody built", async () => {
+      const admin = await platformAdmin()
+
+      await publishEveryOs(admin, "stable", "1.4.0")
+
+      const response = await apiRequest<ErrorBody>(
+        "/releases/app/1.4.0/windows/arm64"
+      )
+
+      expect(response.status).toBe(404)
     })
   })
 
   describe("GET /releases/app/latest", () => {
-    it("refuses an anonymous caller", async () => {
-      const response = await apiRequest<ErrorBody>("/releases/app/latest")
-
-      expect(response.status).toBe(401)
-    })
-
     it("says nothing is published rather than inventing a version", async () => {
-      const session = await member()
-      const response = await apiRequest<ErrorBody>("/releases/app/latest", {
-        session,
-      })
+      const response = await apiRequest<ErrorBody>("/releases/app/latest")
 
       expect(response.status).toBe(404)
       expect(response.json.error.code).toBe("app_release_not_found")
@@ -230,17 +360,14 @@ describe("app releases", () => {
       await publishEveryOs(admin, "stable", "1.3.0")
       await publishEveryOs(admin, "stable", "1.4.0")
 
-      const session = await member()
-      const response = await apiRequest<ReleaseBody>("/releases/app/latest", {
-        session,
-      })
+      const response = await apiRequest<ReleaseBody>("/releases/app/latest")
 
       expect(response.status).toBe(200)
       expect(response.json.data.version).toBe("1.4.0")
       expect(response.json.data.notes).toBe(NOTES)
-      expect(response.json.data.builds.map((build) => build.os).sort()).toEqual(
-        ["linux", "macos", "windows"]
-      )
+      expect(
+        [...new Set(response.json.data.builds.map((build) => build.os))].sort()
+      ).toEqual(["linux", "macos", "windows"])
     })
 
     it("hides a beta version from the stable channel", async () => {
@@ -249,13 +376,9 @@ describe("app releases", () => {
       await publishEveryOs(admin, "stable", "1.3.0")
       await publishEveryOs(admin, "beta", "1.4.0")
 
-      const session = await member()
-      const stable = await apiRequest<ReleaseBody>("/releases/app/latest", {
-        session,
-      })
+      const stable = await apiRequest<ReleaseBody>("/releases/app/latest")
       const beta = await apiRequest<ReleaseBody>(
-        "/releases/app/latest?channel=beta",
-        { session }
+        "/releases/app/latest?channel=beta"
       )
 
       expect(stable.json.data.version).toBe("1.3.0")
@@ -265,10 +388,7 @@ describe("app releases", () => {
 
   describe("GET /releases/app/:version", () => {
     it("answers app_release_not_found for an unknown version", async () => {
-      const session = await member()
-      const response = await apiRequest<ErrorBody>("/releases/app/9.9.9", {
-        session,
-      })
+      const response = await apiRequest<ErrorBody>("/releases/app/9.9.9")
 
       expect(response.status).toBe(404)
       expect(response.json.error.code).toBe("app_release_not_found")
@@ -280,14 +400,11 @@ describe("app releases", () => {
       await publishEveryOs(admin, "stable", "1.3.0")
       await publishEveryOs(admin, "stable", "1.4.0")
 
-      const session = await member()
-      const response = await apiRequest<ReleaseBody>("/releases/app/1.3.0", {
-        session,
-      })
+      const response = await apiRequest<ReleaseBody>("/releases/app/1.3.0")
 
       expect(response.status).toBe(200)
       expect(response.json.data.version).toBe("1.3.0")
-      expect(response.json.data.builds).toHaveLength(3)
+      expect(response.json.data.builds).toHaveLength(4)
     })
   })
 })

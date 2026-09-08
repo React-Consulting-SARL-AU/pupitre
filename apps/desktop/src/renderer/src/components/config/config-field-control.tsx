@@ -1,7 +1,7 @@
 import type { Field } from "@pupitre/shared/catalog";
 import type { SecretMark } from "@shared/secrets";
 import type { ReactNode } from "react";
-import { Label } from "../ui/label";
+import { Field as FieldFrame } from "../ui/field";
 import { ConfigListField } from "./config-list-field";
 import { ConfigSecretField } from "./config-secret-field";
 import { ConfigValueControl } from "./config-value-control";
@@ -11,7 +11,8 @@ import { ConfigValueControl } from "./config-value-control";
  *
  * Every kind of the contract has a control; a manifest that declares a kind
  * this build does not know renders its caption and no input, which is what a
- * new kind's task will come to fill.
+ * new kind's task will come to fill. What is refused is said under the field
+ * that carries it, never in a list at the top of the page.
  */
 
 export interface FieldHandlers {
@@ -26,6 +27,10 @@ interface ControlProps {
   field: Field;
   value: unknown;
   marks?: Record<string, SecretMark>;
+  /** The secrets the server already holds, when the module is installed. */
+  held?: readonly string[];
+  /** Why the value is refused, in the words of whoever refused it. */
+  problem?: string;
   handlers: FieldHandlers;
 }
 
@@ -43,13 +48,17 @@ function control({
   field,
   value,
   marks,
+  held,
+  problem,
   handlers,
 }: ControlProps): ReactNode {
   const name = `${moduleId}.${field.key}`;
+  const wrong = Boolean(problem);
 
   if (field.kind === "secret") {
     return (
       <ConfigSecretField
+        held={held?.includes(field.key)}
         label={field.label}
         mark={marks?.[field.key]}
         name={name}
@@ -59,6 +68,7 @@ function control({
         }
         onReveal={() => handlers.onReveal?.(field.key) ?? Promise.resolve(null)}
         required={field.required}
+        wrong={wrong}
       />
     );
   }
@@ -72,6 +82,7 @@ function control({
         onChange={(next) => handlers.onValue?.(field.key, next)}
         onSecret={handlers.onSecret}
         values={Array.isArray(value) ? (value as string[]) : []}
+        wrong={wrong}
       />
     );
   }
@@ -82,17 +93,17 @@ function control({
       name={name}
       onValue={(next) => handlers.onValue?.(field.key, next)}
       value={value}
+      wrong={wrong}
     />
   );
 }
 
 export function ConfigFieldControl(props: ControlProps) {
-  const { moduleId, field, marks } = props;
+  const { moduleId, field, marks, problem } = props;
   const mark = marks?.[field.key];
 
   return (
     <div
-      className="flex min-w-0 flex-col gap-1.5"
       data-field={`${moduleId}.${field.key}`}
       data-generated={mark?.generated ? "true" : undefined}
       data-items={field.kind === "list" ? field.items : undefined}
@@ -100,13 +111,16 @@ export function ConfigFieldControl(props: ControlProps) {
       data-required={isRequired(field) ? "true" : "false"}
       data-revealed={mark?.revealed ? "true" : undefined}
     >
-      <Label>{field.label}</Label>
-
-      {control(props)}
-
-      {field.kind !== "version" && field.help ? (
-        <span className="text-[11px] text-ink-3">{field.help}</span>
-      ) : null}
+      <FieldFrame
+        help={field.help}
+        hint={field.hint}
+        label={field.label}
+        name={`${moduleId}.${field.key}`}
+        problem={problem}
+        required={isRequired(field)}
+      >
+        {control(props)}
+      </FieldFrame>
     </div>
   );
 }

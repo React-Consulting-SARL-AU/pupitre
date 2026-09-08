@@ -1,7 +1,5 @@
-import { useQueryClient } from "@tanstack/react-query"
 import { Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Callout } from "@/components/ui/callout"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
 import { FieldError } from "@/components/ui/field-error"
 import { Input } from "@/components/ui/input"
@@ -9,31 +7,41 @@ import { Label } from "@/components/ui/label"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useForm } from "@/hooks/use-form"
 import { useTranslations } from "@/hooks/use-locale"
-import { useRequestCycle } from "@/hooks/use-request-cycle"
+import { useOptimisticMutation } from "@/hooks/use-optimistic-mutation"
+import { queryKeys } from "@/lib/api/queries"
 import { authClient } from "@/lib/auth/client"
 import { type ProfileInput, profileSchema } from "@/lib/schemas/profile"
+
+async function updateName(name: string): Promise<void> {
+  const { error } = await authClient().updateUser({ name })
+
+  if (error) {
+    throw new Error(error.message ?? "profile_update_failed")
+  }
+}
 
 export function ProfileForm() {
   const t = useTranslations()
   const { user } = useDashboardContext()
-  const queryClient = useQueryClient()
   const form = useForm<ProfileInput>({
     schema: profileSchema(t),
     defaultValues: { name: user.name },
   })
-  const save = useRequestCycle()
+  const save = useOptimisticMutation<ProfileInput, void>({
+    mutationFn: (values) => updateName(values.name),
+    invalidate: [queryKeys.me],
+    toast: {
+      done: () => t("profile.saved"),
+      failed: () => ({
+        title: t("profile.failed"),
+        fix: t("profile.failedFix"),
+      }),
+    },
+  })
 
-  const submit = form.handleSubmit((values) =>
-    save.run(async () => {
-      const { error } = await authClient().updateUser({ name: values.name })
-
-      if (error) {
-        throw new Error(t("profile.failed"))
-      }
-
-      await queryClient.invalidateQueries()
-    })
-  )
+  const submit = form.handleSubmit((values) => {
+    save.mutate(values)
+  })
 
   return (
     <Card>
@@ -66,29 +74,16 @@ export function ProfileForm() {
             <p className="text-[12px] text-ink-3">{t("profile.emailHelp")}</p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div>
             <Button
-              disabled={save.phase === "pending"}
+              icon={Check}
+              loading={save.isPending}
               type="submit"
               variant="primary"
             >
-              <Check className="size-4" strokeWidth={1.5} />
-              {save.phase === "pending" ? t("common.saving") : t("common.save")}
+              {save.isPending ? t("common.saving") : t("common.save")}
             </Button>
-            {save.phase === "done" ? (
-              <span className="text-[13px] text-ink-2">
-                {t("profile.saved")}
-              </span>
-            ) : null}
           </div>
-
-          {save.error ? (
-            <Callout
-              fix={t("profile.failedFix")}
-              title={save.error}
-              tone="danger"
-            />
-          ) : null}
         </form>
       </CardBody>
     </Card>

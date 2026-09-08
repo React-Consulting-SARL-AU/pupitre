@@ -36,6 +36,7 @@ const EDIT = {
   name: () => undefined,
   pkgmgr: () => undefined,
   port: () => undefined,
+  publish: () => undefined,
   source: () => undefined,
   subdomain: () => undefined,
 };
@@ -65,7 +66,11 @@ function text(html: string): string {
 
 function panel(
   run: FirstProjectState,
-  extra: { cloudflare?: boolean; logs?: string[] } = {}
+  extra: {
+    cloudflare?: boolean;
+    logs?: string[];
+    publish?: boolean;
+  } = {}
 ): string {
   return renderToStaticMarkup(
     <FirstProjectPanel
@@ -79,6 +84,7 @@ function panel(
       onReload={() => undefined}
       onRetry={() => undefined}
       phases={PHASES}
+      publish={extra.publish ?? true}
       ready
       run={run}
       serverName="staging"

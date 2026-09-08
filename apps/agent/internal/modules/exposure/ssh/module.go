@@ -3,17 +3,22 @@ package ssh
 import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/exposure/routes"
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/env"
 	"pupitre.studio/agent/internal/sys/file"
 )
 
 const (
-	pkg      = "openssh-server"
-	modePath = "/etc/pupitre/exposure"
+	pkg = "openssh-server"
+
+	// Provider is the one name this module answers to: the marker on disk says the machine is exposed by nothing but the app's own session.
+	Provider = "ssh"
+
+	modePath = routes.ModePath
 )
 
-var mode = []byte("ssh\n")
+var mode = []byte(Provider + "\n")
 
 type Module struct{}
 

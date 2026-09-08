@@ -11,6 +11,8 @@ export const status = {
     "entitlement.valid": "Licence active",
     "entitlement.grace": "Licence in grace period",
     "entitlement.suspended": "Licence suspended",
+    "entitlement.trialPending": "Trial not started",
+    "entitlement.waitingTrial": "Waiting for the trial",
 
     "alert.server_unreachable": "Unreachable for 30 minutes",
     "alert.server_unreachable.fix":
@@ -58,6 +60,8 @@ export const status = {
     "entitlement.valid": "Droit d'usage actif",
     "entitlement.grace": "Droit d'usage en tolérance",
     "entitlement.suspended": "Droit d'usage suspendu",
+    "entitlement.trialPending": "Essai non démarré",
+    "entitlement.waitingTrial": "En attente de l'essai",
 
     "alert.server_unreachable": "Injoignable depuis 30 minutes",
     "alert.server_unreachable.fix":

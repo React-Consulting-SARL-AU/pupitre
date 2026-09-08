@@ -6,6 +6,7 @@ import type { AgentResponse } from "@shared/agent";
 import type { CarriedAgent } from "@shared/agent-update";
 import type { AgentDelivery } from "@shared/install";
 import { AGENT_MANIFEST, type AgentManifest } from "../../scripts/embed-agent";
+import { refusalOf } from "./refusal";
 
 const SPACES = /\s+/;
 
@@ -30,8 +31,13 @@ const AGENT_STAGING_PATH = "/usr/local/bin/.pupitred.new";
 /**
  * Written aside, then renamed over the old one: replacing a running `pupitred`
  * in place would fail with ETXTBSY on the very server that is answering us.
+ *
+ * The service restarts right after, because the rename does not touch it: the
+ * daemon would keep running the old binary, report its old version to the
+ * platform, and the app would offer forever the update it just made. A bare
+ * machine has no unit yet, and its refusal concerns nobody.
  */
-export const AGENT_INSTALL_COMMAND = `set -e; install -m 755 /dev/stdin ${AGENT_STAGING_PATH}; sha256sum ${AGENT_STAGING_PATH}; mv -f ${AGENT_STAGING_PATH} ${AGENT_REMOTE_PATH}`;
+export const AGENT_INSTALL_COMMAND = `set -e; install -m 755 /dev/stdin ${AGENT_STAGING_PATH}; sha256sum ${AGENT_STAGING_PATH}; mv -f ${AGENT_STAGING_PATH} ${AGENT_REMOTE_PATH}; systemctl restart pupitred 2>/dev/null || true`;
 
 const SEND_TIMEOUT_MS = 180_000;
 
@@ -53,9 +59,7 @@ function absent(arch: string): AgentResponse<never> {
   return {
     ok: false,
     error: {
-      code: "internal",
-      message: `Cette app ne porte pas d'agent pour l'architecture ${arch}.`,
-      fix: "Construis l'agent avec bun --cwd=apps/agent run build, puis reconstruis l'app.",
+      ...refusalOf("internal", "refusal.binary.arch", { arch }),
     },
   };
 }
@@ -128,9 +132,9 @@ export function agentPayload(
     return {
       ok: false,
       error: {
-        code: "internal",
-        message: `Le binaire ${entry.file} embarqué ne correspond pas à sa somme de contrôle.`,
-        fix: "Reconstruis l'app : bun --cwd=apps/desktop run build.",
+        ...refusalOf("internal", "refusal.binary.checksum", {
+          file: entry.file,
+        }),
       },
     };
   }
@@ -190,9 +194,9 @@ export function sendAgentBinary({
       settle({
         ok: false,
         error: {
-          code: "timeout",
-          message: `L'envoi de l'agent n'a pas abouti en ${Math.round(timeoutMs / 1000)} s.`,
-          fix: "Vérifie le débit de la connexion au serveur, puis relance l'installation.",
+          ...refusalOf("timeout", "refusal.binary.timeout", {
+            seconds: Math.round(timeoutMs / 1000),
+          }),
         },
       });
     }, timeoutMs);
@@ -210,9 +214,9 @@ export function sendAgentBinary({
       settle({
         ok: false,
         error: {
-          code: "disconnected",
-          message: `L'agent n'a pas pu être envoyé sur le serveur : ${error.message}`,
-          fix: "Vérifie que le serveur répond en SSH, puis relance l'installation.",
+          ...refusalOf("disconnected", "refusal.binary.send", {
+            detail: error.message,
+          }),
         },
       })
     );
@@ -224,9 +228,9 @@ export function sendAgentBinary({
         settle({
           ok: false,
           error: {
-            code: "disconnected",
-            message: `L'agent n'a pas pu être installé sur le serveur : ${err.trim().split("\n").at(-1) ?? `ssh a rendu le code ${String(code)}`}`,
-            fix: `Vérifie que le compte utilisé peut écrire dans ${AGENT_REMOTE_PATH}, puis relance l'installation.`,
+            ...refusalOf("internal", "refusal.binary.install", {
+              detail: err.trim().split("\n").at(-1) ?? String(code),
+            }),
           },
         });
 
@@ -237,10 +241,7 @@ export function sendAgentBinary({
         settle({
           ok: false,
           error: {
-            code: "internal",
-            message:
-              "Le serveur n'a pas la même somme de contrôle que le binaire envoyé.",
-            fix: "Relance l'installation ; si l'écart persiste, vérifie l'espace disque du serveur.",
+            ...refusalOf("internal", "refusal.binary.mismatch"),
           },
         });
 

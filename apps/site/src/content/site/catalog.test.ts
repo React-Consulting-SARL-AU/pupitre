@@ -2,11 +2,10 @@ import {
   MANDATORY_MODULE_IDS,
   MODULE_CATEGORIES,
   MODULE_IDS,
-  MVP_MODULE_IDS,
 } from "@pupitre/shared/catalog"
 import { describe, expect, it } from "vitest"
 import { LOCALES } from "../../lib/i18n"
-import { AVAILABILITY_LABELS, CATALOG, CATALOG_ENTRIES } from "./catalog"
+import { CATALOG, CATALOG_ENTRIES } from "./catalog"
 
 describe("catalog content", () => {
   it("lists every module of the shared contract exactly once", () => {
@@ -20,16 +19,6 @@ describe("catalog content", () => {
     expect(CATALOG.map((group) => group.id)).toEqual([...MODULE_CATEGORIES])
     for (const group of CATALOG) {
       expect(group.entries.length).toBeGreaterThan(0)
-    }
-  })
-
-  it("marks MVP modules as mvp and the others as later", () => {
-    for (const entry of CATALOG_ENTRIES) {
-      const expected = (MVP_MODULE_IDS as readonly string[]).includes(entry.id)
-        ? "mvp"
-        : "later"
-
-      expect(entry.availability, entry.id).toBe(expected)
     }
   })
 
@@ -47,10 +36,8 @@ describe("catalog content", () => {
     }
   })
 
-  it("names groups, entries and availability in both languages", () => {
+  it("names groups and entries in both languages", () => {
     for (const locale of LOCALES) {
-      expect(AVAILABILITY_LABELS.mvp[locale].trim()).not.toBe("")
-      expect(AVAILABILITY_LABELS.later[locale].trim()).not.toBe("")
       for (const group of CATALOG) {
         expect(group.label[locale].trim(), group.id).not.toBe("")
         for (const entry of group.entries) {

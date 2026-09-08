@@ -106,7 +106,7 @@ func Take(ctx sys.Context, options Options, request Request) (Capture, error) {
 func shoot(ctx sys.Context, request Request, target string) error {
 	browser := Browser(ctx)
 	if browser == "" {
-		return fmt.Errorf("aucun navigateur sans interface installé — shot <fichier> reste disponible")
+		return fmt.Errorf("no headless browser installed — shot <file> is still available")
 	}
 
 	size := request.Size
@@ -138,7 +138,7 @@ func shoot(ctx sys.Context, request Request, target string) error {
 func copyFile(ctx sys.Context, source, target string) error {
 	content, err := file.Read(ctx, source)
 	if err != nil {
-		return fmt.Errorf("fichier introuvable : %s", source)
+		return fmt.Errorf("file not found: %s", source)
 	}
 
 	return file.WriteAtomic(ctx, target, content, 0o644)

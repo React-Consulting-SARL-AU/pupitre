@@ -5,10 +5,12 @@ import {
   HeadContent,
   Outlet,
   Scripts,
+  useRouterState,
 } from "@tanstack/react-router"
 import type { ReactNode } from "react"
 import { ConsoleFooter } from "@/components/ui/console-footer"
 import { LocaleProvider } from "@/hooks/use-locale"
+import { sidebarCarriesChrome } from "@/lib/domain/chrome"
 import { readLocale } from "@/lib/i18n/locale"
 import { THEME_BOOT_SCRIPT } from "@/lib/theme"
 import "@/styles/globals.css"
@@ -52,6 +54,9 @@ function RootComponent() {
 
 function RootDocument({ children }: { children: ReactNode }) {
   const { locale } = Route.useRouteContext()
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  })
 
   return (
     <html lang={locale}>
@@ -63,7 +68,7 @@ function RootDocument({ children }: { children: ReactNode }) {
       <body className="flex min-h-dvh flex-col bg-base text-ink">
         <LocaleProvider initial={locale}>
           <div className="flex flex-1 flex-col">{children}</div>
-          <ConsoleFooter />
+          {sidebarCarriesChrome(pathname) ? null : <ConsoleFooter />}
         </LocaleProvider>
         <Scripts />
       </body>

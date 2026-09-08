@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import { createHash, generateKeyPairSync, sign } from "node:crypto";
-import { AGENT_RELEASE_PUBLIC_KEY, checkAgentRelease } from "../agent-release";
+import {
+  AGENT_RELEASE_PUBLIC_KEY,
+  checkAgentRelease,
+  signedMessage,
+} from "../agent-release";
 
 /**
  * The binary that comes down from the platform is checked before it goes up to
@@ -10,6 +14,8 @@ import { AGENT_RELEASE_PUBLIC_KEY, checkAgentRelease } from "../agent-release";
 const BINARY = new Uint8Array([0x7f, 0x45, 0x4c, 0x46, 1, 2, 3, 4]);
 
 const SPKI_HEADER_BYTES = 12;
+
+const ED25519_PUBLIC_KEY_BYTES = 32;
 
 function keyPair() {
   const pair = generateKeyPairSync("ed25519");
@@ -21,13 +27,30 @@ function keyPair() {
   };
 }
 
+const ARCH = "amd64";
+
 function releaseOf(bytes: Uint8Array, privateKey: Parameters<typeof sign>[2]) {
+  const sha256 = createHash("sha256").update(bytes).digest("hex");
+
   return {
-    sha256: createHash("sha256").update(bytes).digest("hex"),
-    signature: sign(null, bytes, privateKey).toString("base64"),
+    arch: ARCH,
+    sha256,
+    signature: sign(
+      null,
+      signedMessage("1.4.0", ARCH, sha256),
+      privateKey
+    ).toString("base64"),
     version: "1.4.0",
   };
 }
+
+describe("le message signé", () => {
+  it("est celui que apps/agent/internal/release écrit, à la ligne près", () => {
+    expect(signedMessage("1.4.0", "amd64", "abc").toString("utf8")).toBe(
+      "pupitred\n1.4.0\namd64\nabc\n"
+    );
+  });
+});
 
 describe("la vérification d'une release de l'agent", () => {
   it("accepte un binaire signé dont la somme correspond", () => {
@@ -48,8 +71,26 @@ describe("la vérification d'une release de l'agent", () => {
       ok: false,
       error: {
         code: "bad_signature",
-        message: expect.stringContaining("1.4.0"),
+        phrase: {
+          id: "refusal.release.checksum",
+          values: { version: "1.4.0" },
+        },
       },
+    });
+  });
+
+  it("refuse un binaire signé pour une autre architecture", () => {
+    const { privateKey, publicKey } = keyPair();
+
+    expect(
+      checkAgentRelease(
+        BINARY,
+        { ...releaseOf(BINARY, privateKey), arch: "arm64" },
+        publicKey
+      )
+    ).toMatchObject({
+      ok: false,
+      error: { phrase: { id: "refusal.release.signature" } },
     });
   });
 
@@ -61,7 +102,7 @@ describe("la vérification d'une release de l'agent", () => {
       checkAgentRelease(BINARY, releaseOf(BINARY, privateKey), other.publicKey)
     ).toMatchObject({
       ok: false,
-      error: { message: expect.stringContaining("invalide") },
+      error: { phrase: { id: "refusal.release.signature" } },
     });
   });
 
@@ -71,12 +112,12 @@ describe("la vérification d'une release de l'agent", () => {
     expect(
       checkAgentRelease(
         BINARY,
-        { sha256: "", signature: "", version: "1.4.0" },
+        { arch: ARCH, sha256: "", signature: "", version: "1.4.0" },
         publicKey
       )
     ).toMatchObject({
       ok: false,
-      error: { fix: expect.stringContaining("version signée") },
+      error: { phrase: { id: "refusal.release.unsigned" } },
     });
   });
 
@@ -87,8 +128,10 @@ describe("la vérification d'une release de l'agent", () => {
       checkAgentRelease(BINARY, releaseOf(BINARY, privateKey), "")
     ).toMatchObject({
       ok: false,
-      error: { message: expect.stringContaining("clé publique") },
+      error: { phrase: { id: "refusal.release.key" } },
     });
-    expect(AGENT_RELEASE_PUBLIC_KEY).toBe("");
+    expect(Buffer.from(AGENT_RELEASE_PUBLIC_KEY, "base64")).toHaveLength(
+      ED25519_PUBLIC_KEY_BYTES
+    );
   });
 });

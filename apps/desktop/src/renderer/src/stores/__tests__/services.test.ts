@@ -99,6 +99,7 @@ describe("la fiche d'un service", () => {
 
         return Promise.resolve();
       },
+      forgetInstallSecrets: () => Promise.resolve(),
       serviceDetail: () => Promise.resolve({ ok: true, result: DETAIL }),
     });
 
@@ -107,6 +108,88 @@ describe("la fiche d'un service", () => {
 
     expect(forgotten).toEqual(["db.postgres"]);
     expect(useServices.getState().detail.status).toBe("idle");
+  });
+});
+
+describe("la configuration d'un module installé", () => {
+  it("remet dans le formulaire ce que l'agent a retenu", async () => {
+    stubPupitre({
+      agentCall: (_server, cmd, params) => {
+        expect(cmd).toBe("module.config");
+        expect(params).toEqual({ id: "db.mysql" });
+
+        return Promise.resolve({
+          ok: true,
+          result: {
+            id: "db.mysql",
+            values: { engine: "mysql", port: 3306 },
+            secrets: ["app_password", "remote_password"],
+          },
+        } as AgentResponse<unknown>);
+      },
+    });
+
+    await useServices.getState().readConfig(SERVER, "db.mysql");
+
+    const { config, values } = useServices.getState();
+
+    expect(config.status).toBe("ready");
+    expect(config.status === "ready" && config.held).toEqual([
+      "app_password",
+      "remote_password",
+    ]);
+    expect(values).toEqual({ engine: "mysql", port: 3306 });
+  });
+
+  it("renvoie la configuration entière du seul module, sans le mot de passe", async () => {
+    const sent: { modules: readonly string[]; config: unknown }[] = [];
+    const filed: { key: string; value: string }[] = [];
+
+    stubPupitre({
+      agentCall: () =>
+        Promise.resolve({
+          ok: true,
+          result: {
+            id: "db.mysql",
+            values: { engine: "mysql", port: 3306 },
+            secrets: ["app_password"],
+          },
+        } as AgentResponse<unknown>),
+      serviceDetail: () => Promise.resolve({ ok: true, result: DETAIL }),
+      setInstallSecret: (_server, _module, key, value) => {
+        filed.push({ key, value });
+
+        return Promise.resolve({ ok: true, result: {} });
+      },
+      startInstall: (_server, modules, config) => {
+        sent.push({ config, modules });
+
+        return Promise.resolve({
+          ok: true,
+          result: {
+            failed: [],
+            report_path: "/var/lib/pupitre/report.json",
+            warned: [],
+          },
+        });
+      },
+    });
+
+    await useServices.getState().readConfig(SERVER, "db.mysql");
+    useServices.getState().setValue("port", 3307);
+    await useServices
+      .getState()
+      .setSecret(SERVER, "db.mysql", "app_password", PASSWORD);
+    await useServices.getState().reconfigure(SERVER, "db.mysql");
+
+    expect(filed).toEqual([{ key: "app_password", value: PASSWORD }]);
+    expect(sent).toEqual([
+      {
+        config: { "db.mysql": { engine: "mysql", port: 3307 } },
+        modules: ["db.mysql"],
+      },
+    ]);
+    expect(JSON.stringify(useServices.getState())).not.toContain(PASSWORD);
   });
 });
 

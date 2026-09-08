@@ -1,0 +1,15 @@
+# Ce que l'app demande en quittant l'écran de configuration : la même requête, pesée et non jouée.
+# Rien n'est touché. Un secret n'y est jamais jugé — l'app tient son coffre et l'écrira au moment de l'installation —
+# mais install, lui, le juge, parce que la ligne secrète est là.
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
+> {"id":2,"cmd":"install.check","params":{"modules":["tool.demo"],"config":{"tool.demo":{"port":"nope"}}}}
+< {"id":2,"ok":true,"result":{"problems":[{"module":"tool.demo","field":"port","code":"type","expected":"number","message":"a number is expected"}],"warnings":[]}}
+> {"id":3,"cmd":"install.check","params":{"modules":["tool.demo"],"config":{"tool.demo":{"port":8080}}}}
+< {"id":3,"ok":true,"result":{"problems":[],"warnings":[]}}
+> {"id":4,"cmd":"install.check","params":{"modules":["db.nope"],"config":{}}}
+< {"id":4,"ok":false,"error":{"code":"module_not_found","message":"unknown module: db.nope","fix":"Ask catalog for the list of this agent's modules."}}
+> {"id":5,"cmd":"install","params":{"modules":["tool.demo"],"config":{"tool.demo":{"port":"nope"}},"secrets_stdin":false}}
+< {"id":5,"ok":false,"error":{"code":"invalid_config","message":"the configuration is refused: tool.demo · port: a number is expected · tool.demo · password: this field is required","fix":"Fix the fields marked on the configuration screen, then run the installation again.","remedy":{"code":"invalid_fields","problems":[{"module":"tool.demo","field":"port","code":"type","expected":"number","message":"a number is expected"},{"module":"tool.demo","field":"password","code":"required","message":"this field is required"}]}}}
+> {"id":6,"cmd":"report"}
+< {"id":6,"ok":false,"error":{"code":"no_report","message":"no report: no installation has happened on this server yet","fix":"Run install from the app, or sudo pupitred install on the server."}}

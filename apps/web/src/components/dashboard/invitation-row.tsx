@@ -14,21 +14,24 @@ export interface InvitationRowInvitation {
 export interface InvitationRowProps {
   invitation: InvitationRowInvitation
   cancellable: boolean
-  onCancel: (invitationId: string) => void
-  pending: boolean
+  onCancel: () => void
+  cancelling: boolean
 }
 
 export function InvitationRow({
   invitation,
   cancellable,
   onCancel,
-  pending,
+  cancelling,
 }: InvitationRowProps) {
   const t = useTranslations()
   const role = invitation.role ? roleKey(invitation.role) : "role.member"
 
   return (
-    <li className="flex flex-wrap items-center justify-between gap-4 border-line border-b px-4 py-3 last:border-b-0">
+    <li
+      aria-busy={cancelling || undefined}
+      className="flex flex-wrap items-center justify-between gap-4 border-line border-b px-4 py-3 last:border-b-0"
+    >
       <div className="flex min-w-0 items-center gap-3">
         <StatusDot
           label={t("members.invitation.pending")}
@@ -52,14 +55,13 @@ export function InvitationRow({
         </span>
         {cancellable ? (
           <ConfirmDialog
+            busy={cancelling}
+            busyLabel={t("members.invitation.cancelling")}
             confirmLabel={t("members.invitation.cancel")}
             description={t("members.invitation.cancelDescription", {
               email: invitation.email,
             })}
-            onConfirm={() => {
-              onCancel(invitation.id)
-            }}
-            pending={pending}
+            onConfirm={onCancel}
             title={t("members.invitation.cancelTitle")}
             triggerLabel={t("members.invitation.cancel")}
           />

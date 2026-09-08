@@ -42,8 +42,8 @@ describe("ServerAlerts", () => {
       ...container.querySelectorAll("[data-testid='status-dot']"),
     ].map((dot) => dot.getAttribute("data-shape"))
 
-    expect(container.textContent).toContain("Injoignable depuis 30 minutes")
-    expect(container.textContent).toContain("Disque au-dessus de 90 %")
+    expect(container.textContent).toContain("Unreachable for 30 minutes")
+    expect(container.textContent).toContain("Disk above 90%")
     expect(container.textContent).toContain("systemctl status pupitred")
     expect(shapes).toEqual(["barred", "barred"])
   })
@@ -51,7 +51,7 @@ describe("ServerAlerts", () => {
   it("dit la sérénité quand il n'y a rien", async () => {
     const { container } = await mount(<ServerAlerts alerts={[]} />)
 
-    expect(container.textContent).toContain("Rien à signaler")
+    expect(container.textContent).toContain("Nothing to report")
   })
 })
 
@@ -66,7 +66,7 @@ describe("AlertBanner", () => {
       />
     )
 
-    expect(container.textContent).toContain("2 alertes actives sur 1 serveur")
+    expect(container.textContent).toContain("2 active alerts on 1 server")
   })
 
   it("disparaît quand rien ne va mal", async () => {

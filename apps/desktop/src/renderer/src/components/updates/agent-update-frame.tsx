@@ -34,7 +34,7 @@ export function AgentUpdateFrame({
 
         <div className="min-w-0 flex-1">
           <p className="font-medium text-ink">{title}</p>
-          <p className="mt-0.5 font-data text-[11px] text-ink-3">{detail}</p>
+          <p className="mt-0.5 font-data text-[12px] text-ink-3">{detail}</p>
         </div>
 
         {onHide ? (

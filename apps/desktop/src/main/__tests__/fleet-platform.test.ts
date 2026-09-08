@@ -24,7 +24,7 @@ import { memorySealer } from "./fixtures/fake-platform";
 /**
  * The invited member, against the platform's own API booted on PGlite.
  *
- * This is the acceptance criterion of APP-15, played end to end: an admin is
+ * The shared fleet, played end to end: an admin is
  * given a server, assigns it to someone else, and that someone opens it from
  * this computer without ever typing an address or making a key. Nothing here
  * reaches a deployed service — `@pupitre/api/testing` is the Elysia app the
@@ -166,7 +166,7 @@ describe("le membre invité, contre l'API de la plateforme", () => {
   });
 
   it("voit son serveur attribué et s'y connecte sans saisir ni adresse ni clé", async () => {
-    const { invited, server } = await assignedServer();
+    const { invited, organization, server } = await assignedServer();
     const { account, paths } = await laptopOf(invited.user.id);
 
     const granted = await fleetOf(account);
@@ -178,6 +178,7 @@ describe("le membre invité, contre l'API de la plateforme", () => {
         id: server.id,
         keyReady: true,
         name: "vps-atelier",
+        organization: { id: organization.id, name: organization.name },
         port: 22,
         status: "active",
         user: "dev",
@@ -187,6 +188,7 @@ describe("le membre invité, contre l'API de la plateforme", () => {
     const merged = mergeFleet({
       active: null,
       deviceKeyPath: join(paths.keysDir, "device"),
+      dismissed: [],
       granted,
       local: [],
     });
@@ -235,7 +237,7 @@ describe("le membre invité, contre l'API de la plateforme", () => {
     expect((await fleetOf(account))[0]).toMatchObject({ keyReady: false });
   });
 
-  it("voit la révocation : le serveur reste dans la liste, marqué retiré", async () => {
+  it("voit la révocation : le serveur quitte la liste que l'app avait remplie", async () => {
     const { prisma } = await bootApiTestServer();
     const { invited, server } = await assignedServer();
     const { account, paths } = await laptopOf(invited.user.id);
@@ -243,6 +245,7 @@ describe("le membre invité, contre l'API de la plateforme", () => {
     const merged = mergeFleet({
       active: null,
       deviceKeyPath: join(paths.keysDir, "device"),
+      dismissed: [],
       granted: await fleetOf(account),
       local: [],
     });
@@ -255,13 +258,13 @@ describe("le membre invité, contre l'API de la plateforme", () => {
     const after = mergeFleet({
       active: merged.config.active,
       deviceKeyPath: join(paths.keysDir, "device"),
+      dismissed: [],
       granted: await fleetOf(account),
       local: merged.config.servers,
     });
 
-    expect(after.withdrawn).toEqual([server.id]);
-    expect(after.config.servers).toHaveLength(1);
-    expect(after.config.servers[0].grant).toMatchObject({ listed: false });
+    expect(after.released).toEqual([server.id]);
+    expect(after.config.servers).toEqual([]);
   });
 
   it("laisse dehors un serveur dont la plateforme ignore l'adresse", async () => {
@@ -271,6 +274,7 @@ describe("le membre invité, contre l'API de la plateforme", () => {
     const merged = mergeFleet({
       active: null,
       deviceKeyPath: join(paths.keysDir, "device"),
+      dismissed: [],
       granted: await fleetOf(account),
       local: [],
     });

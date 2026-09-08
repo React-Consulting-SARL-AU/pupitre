@@ -57,6 +57,14 @@ export interface Enrollment {
   };
 }
 
+/** A published version of the agent, as the platform names it. */
+export interface PublishedAgent {
+  version: string;
+  arch: string;
+  sha256: string;
+  signature: string;
+}
+
 export interface Account {
   state: () => AccountState;
   signIn: (
@@ -67,12 +75,25 @@ export interface Account {
   guard: () => AccountResponse<UsageRight>;
   /** The servers the platform grants this account, whatever its subscription. */
   fleet: () => Promise<AccountResponse<FleetServer[]>>;
+  switchOrganization: (organizationId: string) => Promise<AccountState>;
   enroll: (input: EnrollInput) => Promise<AccountResponse<Enrollment>>;
   releaseBytes: (
     version: string,
     arch: string
   ) => Promise<AccountResponse<Uint8Array>>;
+  /** The version the platform publishes for this architecture, the one a server should reach. */
+  latestAgentRelease: (
+    arch: string
+  ) => Promise<AccountResponse<PublishedAgent>>;
   takeEnrollmentToken: (serverId: string) => string | null;
+  /**
+   * Erase the server from the platform, for good.
+   *
+   * The platform deletes in two stages — the first call revokes and leaves
+   * seven days, the second erases the row — and "remove everywhere" asks for
+   * both. A row already gone answers `not_found`, which is the result sought.
+   */
+  forgetServer: (platformServerId: string) => Promise<AccountResponse<null>>;
 }
 
 function keyBody(line: string): string {
@@ -127,8 +148,8 @@ export function usageRightOf(
 }
 
 /**
- * Sans jeton, l'appareil n'a pas de session : un droit d'usage accordé — le cas
- * d'un build de développement — ne doit pas se faire passer pour un succès.
+ * Without a token, the device has no session: a granted usage right — the
+ * case of a development build — must not pass itself off as a success.
  */
 function withoutSession(right: UsageRight): { ok: false; error: AccountError } {
   const refusal = refusalFor(right);
@@ -141,8 +162,8 @@ function withoutSession(right: UsageRight): { ok: false; error: AccountError } {
     ok: false,
     error: {
       code: "signed_out",
-      message: "Aucun compte n'est connecté sur cet appareil.",
-      fix: "Connecte-toi depuis l'écran de compte, puis réessaie.",
+      message: "refusal.account.signedOut",
+      phrase: { id: "refusal.account.signedOut" },
     },
   };
 }
@@ -157,8 +178,11 @@ function refusalFor(right: UsageRight): AccountResponse<UsageRight> {
       ok: false,
       error: {
         code: "server_suspended",
-        message: "Le droit d'usage de cette organisation est suspendu.",
-        fix: `Régularise l'abonnement dans la console : ${right.consoleUrl}`,
+        message: "refusal.account.suspended",
+        phrase: {
+          id: "refusal.account.suspended",
+          values: { console: right.consoleUrl },
+        },
       },
     };
   }
@@ -168,9 +192,11 @@ function refusalFor(right: UsageRight): AccountResponse<UsageRight> {
       ok: false,
       error: {
         code: "entitlement_required",
-        message:
-          "La plateforme n'a pas répondu depuis plus de sept jours : le droit d'usage a expiré.",
-        fix: `Reconnecte cet appareil, ou vérifie l'état du compte : ${right.consoleUrl}`,
+        message: "refusal.account.stale",
+        phrase: {
+          id: "refusal.account.stale",
+          values: { console: right.consoleUrl },
+        },
       },
     };
   }
@@ -179,8 +205,11 @@ function refusalFor(right: UsageRight): AccountResponse<UsageRight> {
     ok: false,
     error: {
       code: "entitlement_required",
-      message: "Installer un serveur demande un compte Pupitre.",
-      fix: `Connecte-toi depuis les réglages, ou ouvre la console : ${right.consoleUrl}`,
+      message: "refusal.account.required",
+      phrase: {
+        id: "refusal.account.required",
+        values: { console: right.consoleUrl },
+      },
     },
   };
 }
@@ -303,8 +332,8 @@ export function createAccount(deps: AccountDeps): Account {
           ok: false,
           error: {
             code: "denied",
-            message: "La demande a été refusée dans le navigateur.",
-            fix: "Relance la connexion et approuve le code affiché.",
+            message: "refusal.signIn.denied",
+            phrase: { id: "refusal.signIn.denied" },
           },
         };
       } else if (polled.result.status === "expired") {
@@ -316,8 +345,8 @@ export function createAccount(deps: AccountDeps): Account {
       ok: false,
       error: {
         code: "expired",
-        message: "Le code affiché a expiré avant d'être approuvé.",
-        fix: "Relance la connexion pour obtenir un nouveau code.",
+        message: "refusal.signIn.expired",
+        phrase: { id: "refusal.signIn.expired" },
       },
     };
   }
@@ -384,8 +413,11 @@ export function createAccount(deps: AccountDeps): Account {
         ok: false,
         error: {
           code: "unauthenticated",
-          message: "Cet appareil n'est connecté à aucun compte Pupitre.",
-          fix: `Connecte-toi depuis les réglages, ou ouvre la console : ${consoleUrl}`,
+          message: "refusal.device.none",
+          phrase: {
+            id: "refusal.device.none.console",
+            values: { console: consoleUrl },
+          },
         },
       };
     }
@@ -443,9 +475,62 @@ export function createAccount(deps: AccountDeps): Account {
       : downloaded;
   }
 
+  function latestAgentRelease(
+    arch: string
+  ): Promise<AccountResponse<PublishedAgent>> {
+    return withToken((token) => deps.platform.latestAgentRelease(token, arch));
+  }
+
+  /** The tunnel's three calls need a session, and nothing more: the server already belongs to the account. */
+  async function withToken<T>(
+    work: (token: string) => Promise<AccountResponse<T>>
+  ): Promise<AccountResponse<T>> {
+    const token = deps.vault.token();
+
+    if (!token) {
+      return withoutSession(state().usage);
+    }
+
+    return await work(token);
+  }
+
+  /**
+   * The active organization, switched from the app.
+   *
+   * What the platform returns replaces the cached identity: the entitlement and
+   * the role are the new organization's, not the old one's, and a refusal
+   * leaves the app exactly where it was.
+   */
+  async function switchOrganization(
+    organizationId: string
+  ): Promise<AccountState> {
+    const token = deps.vault.token();
+
+    if (!token) {
+      return state();
+    }
+
+    const identity = await deps.platform.switchOrganization(
+      token,
+      organizationId
+    );
+
+    if (identity.ok) {
+      deps.vault.remember({
+        ...deps.vault.record(),
+        checkedAt: new Date(deps.now()).toISOString(),
+        identity: identity.result,
+      });
+    }
+
+    return state();
+  }
+
   return {
     enroll,
     fleet,
+    latestAgentRelease,
+    switchOrganization,
     refresh,
     releaseBytes,
     signIn,
@@ -460,6 +545,26 @@ export function createAccount(deps: AccountDeps): Account {
 
     guard() {
       return refusalFor(state().usage);
+    },
+
+    async forgetServer(platformServerId) {
+      const revoked = await withToken((token) =>
+        deps.platform.deleteServer(token, platformServerId)
+      );
+
+      if (!revoked.ok) {
+        return revoked.error.code === "not_found"
+          ? { ok: true, result: null }
+          : revoked;
+      }
+
+      const purged = await withToken((token) =>
+        deps.platform.deleteServer(token, platformServerId)
+      );
+
+      return purged.ok || purged.error.code === "not_found"
+        ? { ok: true, result: null }
+        : purged;
     },
 
     takeEnrollmentToken(serverId) {

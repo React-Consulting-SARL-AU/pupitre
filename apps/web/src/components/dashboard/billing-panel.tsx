@@ -105,6 +105,7 @@ export function BillingPanel() {
       {subscription.data ? (
         <SubscriptionCard
           organizationId={activeOrganization.id}
+          seatsInUse={used}
           subscription={subscription.data}
         />
       ) : (

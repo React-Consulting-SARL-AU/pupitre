@@ -97,7 +97,7 @@ func TestAMissingBrowserOnlyWarns(t *testing.T) {
 
 	warned := false
 	for _, line := range ctx.Output() {
-		warned = warned || strings.Contains(line, "shot <fichier> marche")
+		warned = warned || strings.Contains(line, "shot <file> works")
 	}
 
 	if !warned {

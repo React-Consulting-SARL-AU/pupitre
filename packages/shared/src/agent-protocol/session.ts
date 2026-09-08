@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { LocaleSchema } from "../i18n/locale"
 import { ProtocolVersionSchema } from "./envelope"
 
 export const EmptyParamsSchema = z.strictObject({})
@@ -11,9 +12,19 @@ export const EntitlementSchema = z.enum(ENTITLEMENTS)
 
 export type Entitlement = z.infer<typeof EntitlementSchema>
 
+/**
+ * The app's language travels with the handshake.
+ *
+ * Everything the server sends back — messages, remedies, probe reasons,
+ * catalogue labels — is written into the agent binary, and the app displays
+ * it as is. Without this tag, an English app would show French sentences. An
+ * agent that doesn't know the requested language answers in its own: never
+ * an error, never an empty field.
+ */
 export const HelloParamsSchema = z.strictObject({
   app_version: z.string().min(1),
   protocol: ProtocolVersionSchema,
+  locale: LocaleSchema.optional(),
 })
 
 export type HelloParams = z.infer<typeof HelloParamsSchema>

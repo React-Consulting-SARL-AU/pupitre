@@ -2,6 +2,7 @@ package onepassword
 
 import (
 	"encoding/json"
+	"pupitre.studio/agent/internal/i18n"
 	"regexp"
 	"strings"
 
@@ -53,8 +54,8 @@ func Env(ctx *modules.Context, name string, force bool) (Result, error) {
 		return copyExample(ctx, name, home, target)
 	}
 
-	return Result{}, protocol.NewError(contract.ErrorBadRequest, name+" : ni "+templateName+" ni "+exampleName+" dans le dépôt").
-		WithFix("Versionne un " + exampleName + " dans " + home + ", ou un " + templateName + " si le projet garde ses secrets dans 1Password.")
+	return Result{}, protocol.NewError(contract.ErrorBadRequest, i18n.T("onepassword.template.none", name, templateName, exampleName)).
+		WithFix(i18n.T("onepassword.template.none.fix", exampleName, home, templateName))
 }
 
 // A monorepo keeps one environment file at its root and its workspaces point back at it; the project folder is looked at first, the root next.
@@ -88,13 +89,13 @@ func inject(ctx *modules.Context, name, home, root, target string) (Result, erro
 	})
 	if err != nil || strings.TrimSpace(out.Stdout) == "" {
 		if file.Exists(ctx, home+"/"+exampleName) {
-			ctx.Warn(name + " : 1Password n'a pas répondu, " + targetName + " copié depuis " + exampleName + ", valeurs à compléter")
+			ctx.Warn(i18n.T("onepassword.inject.fallback", name, targetName, exampleName))
 
 			return copyExample(ctx, name, home, target)
 		}
 
-		return Result{}, protocol.NewError(contract.ErrorInternal, name+" : op inject n'a rien produit").
-			WithFix("Vérifie que le compte de service voit le coffre du projet : sudo -u " + shell.User + " op vault list.")
+		return Result{}, protocol.NewError(contract.ErrorInternal, i18n.T("onepassword.inject.empty", name)).
+			WithFix(i18n.T("onepassword.inject.empty.fix", shell.User))
 	}
 
 	return write(ctx, target, []byte(out.Stdout))
@@ -123,7 +124,7 @@ func copyExample(ctx *modules.Context, name, home, target string) (Result, error
 		return Result{}, err
 	}
 
-	ctx.Logf("%s : %s copié depuis %s", name, targetName, exampleName)
+	ctx.Logf("%s: %s copied from %s", name, targetName, exampleName)
 
 	return write(ctx, target, raw)
 }

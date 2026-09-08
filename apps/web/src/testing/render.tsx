@@ -1,9 +1,65 @@
+import type { OrgRole } from "@pupitre/shared/permissions"
+import { QueryClientProvider } from "@tanstack/react-query"
+import { RouterContextProvider } from "@tanstack/react-router"
 import type { ReactElement } from "react"
 import { act } from "react"
 import { createRoot, type Root } from "react-dom/client"
+import {
+  DashboardContext,
+  type DashboardOrganization,
+} from "@/lib/domain/dashboard-context"
+import { createQueryClient } from "@/lib/query/client"
+import { getRouter } from "@/router"
 
 declare global {
   var IS_REACT_ACT_ENVIRONMENT: boolean | undefined
+}
+
+/** A `Link` reads the router, so anything carrying one needs its context. */
+export function withRouter(element: ReactElement): ReactElement {
+  return (
+    <RouterContextProvider router={getRouter()}>
+      {element}
+    </RouterContextProvider>
+  )
+}
+
+export interface DashboardHarness {
+  organization?: DashboardOrganization | null
+  role?: OrgRole
+  entitlement?: string
+}
+
+/** Anything under the console reads the session, its organisation and its rights. */
+export function withDashboard(
+  element: ReactElement,
+  {
+    organization = null,
+    role = "owner",
+    entitlement = "suspended",
+  }: DashboardHarness = {}
+): ReactElement {
+  return withRouter(
+    <QueryClientProvider client={createQueryClient()}>
+      <DashboardContext.Provider
+        value={{
+          user: {
+            id: "u1",
+            email: "console@test.local",
+            name: "Ada",
+            image: null,
+            locale: "fr",
+          },
+          organizations: [],
+          activeOrganization: organization,
+          role: organization ? role : null,
+          entitlement,
+        }}
+      >
+        {element}
+      </DashboardContext.Provider>
+    </QueryClientProvider>
+  )
 }
 
 export interface Rendered {
@@ -77,17 +133,42 @@ export async function fill(input: Element, value: string): Promise<void> {
   })
 }
 
-export async function choose(element: Element, value: string): Promise<void> {
-  const setter = Object.getOwnPropertyDescriptor(
-    HTMLSelectElement.prototype,
-    "value"
-  )?.set
+async function key(target: Element, name: string): Promise<void> {
+  const details = { bubbles: true, cancelable: true, key: name }
 
   await act(async () => {
-    setter?.call(element, value)
-    element.dispatchEvent(new Event("change", { bubbles: true }))
+    target.dispatchEvent(new KeyboardEvent("keydown", details))
+    target.dispatchEvent(new KeyboardEvent("keyup", details))
     await Promise.resolve()
   })
+}
+
+function options(): Element[] {
+  return [...document.querySelectorAll("[role=option]")]
+}
+
+/** A `Select` is a button and a popup: an item is reached the way a keyboard reaches it. */
+export async function pick(control: Element, label: string): Promise<void> {
+  await act(async () => {
+    ;(control as HTMLElement).focus()
+    await Promise.resolve()
+  })
+  await key(control, "Enter")
+  await waitUntil(() =>
+    options().some((option) => (option.textContent ?? "").includes(label))
+  )
+
+  for (let step = options().length; step > 0; step -= 1) {
+    await key(document.activeElement ?? control, "ArrowDown")
+
+    if ((document.activeElement?.textContent ?? "").includes(label)) {
+      await key(document.activeElement ?? control, "Enter")
+
+      return
+    }
+  }
+
+  throw new Error(`no option labelled ${label} in ${document.body.innerHTML}`)
 }
 
 export async function waitUntilStored(
@@ -110,9 +191,12 @@ export async function waitUntilStored(
 }
 
 export function trigger(container: HTMLElement, label: string): HTMLElement {
-  const found = [...document.querySelectorAll("button")].find((button) =>
-    (button.textContent ?? "").includes(label)
-  )
+  const buttons = [...document.querySelectorAll("button")]
+
+  // An exact label wins over a longer one containing it: "Assign" must not pick "Assigned".
+  const found =
+    buttons.find((button) => (button.textContent ?? "").trim() === label) ??
+    buttons.find((button) => (button.textContent ?? "").includes(label))
 
   if (!found) {
     throw new Error(`no button labelled ${label} in ${container.innerHTML}`)

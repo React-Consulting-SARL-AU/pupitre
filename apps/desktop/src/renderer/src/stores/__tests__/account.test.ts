@@ -67,7 +67,7 @@ const STALE: AccountState = {
     code: "entitlement_required",
     fix: "Reconnecte cet appareil, ou vérifie l'état du compte : https://app.pupitre.test/dashboard",
     message:
-      "La plateforme n'a pas répondu depuis plus de sept jours : le droit d'usage a expiré.",
+      "La console n'a pas répondu depuis plus de sept jours : le droit d'usage a expiré.",
   },
   usage: {
     consoleUrl: "https://app.pupitre.test/dashboard",
@@ -187,7 +187,7 @@ describe("la connexion", () => {
     });
   });
 
-  it("garde le refus de la plateforme avec son remède", async () => {
+  it("garde le refus de la console avec son remède", async () => {
     stubPupitre({
       signIn: () =>
         Promise.resolve({

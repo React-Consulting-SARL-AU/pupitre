@@ -104,7 +104,7 @@ describe("runHarden", () => {
     expect(answer).toMatchObject({
       ok: true,
       result: {
-        harden: { next_user: "dev", root_closed: true },
+        harden: { next_user: "dev", root_closed: true, root_kept: false },
         reconnected: true,
         user: "dev",
       },
@@ -116,6 +116,39 @@ describe("runHarden", () => {
     expect(
       updates.filter((change) => change.kind === "event").length
     ).toBeGreaterThan(0);
+  });
+
+  it("bascule quand même sur dev quand root est gardé à la demande", async () => {
+    const client = agent(["harden-kept.jsonl", "hello-then-ping.jsonl"]);
+    let servers = [asRoot()];
+    let rendered = "";
+
+    const answer = await runHarden(SERVER, () => undefined, {
+      client,
+      close: (id) => client.close(id),
+      switchUser: (id, user) => {
+        const next = account(servers, user);
+        if (!(next.servers && id === SERVER)) {
+          return null;
+        }
+        servers = next.servers;
+        rendered = next.config ?? rendered;
+
+        return user;
+      },
+    });
+
+    expect(answer).toMatchObject({
+      ok: true,
+      result: {
+        harden: { next_user: "dev", root_closed: false, root_kept: true },
+        reconnected: true,
+        user: "dev",
+      },
+    });
+
+    expect(servers[0]?.user).toBe("dev");
+    expect(rendered).toContain("User dev");
   });
 
   it("garde root et rend la raison de l'agent telle quelle", async () => {
@@ -141,6 +174,7 @@ describe("runHarden", () => {
           reason:
             "Aucune clé n'ouvre le compte dev : /home/dev/.ssh/authorized_keys est vide.",
           root_closed: false,
+          root_kept: false,
         },
         reconnected: false,
         user: null,
@@ -211,6 +245,8 @@ describe("le parcours d'un serveur atteint en root", () => {
           });
         },
         enrollment: () => null,
+        managed: () =>
+          Promise.resolve({ ok: true, result: { config: {}, secrets: {} } }),
         probe: () => Promise.resolve({ ok: true, result: bare() }),
         secrets: () => ({ "db.postgres": { app_password: "s3cret-de-test" } }),
       }

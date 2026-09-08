@@ -1,5 +1,5 @@
 ---
-title: Les sept étapes
+title: Les huit étapes
 description: Tout l’onboarding, étape par étape, avec ce qui change sur la machine à chacune.
 locale: fr
 section: start
@@ -7,7 +7,7 @@ sectionOrder: 0
 order: 4
 ---
 
-L’app mène une machine neuve du vide au prêt en sept étapes. Vous pouvez vous arrêter après n’importe laquelle ; rien n’est laissé à moitié appliqué.
+L’app mène une machine neuve du vide au prêt en huit étapes. Vous pouvez vous arrêter après n’importe laquelle ; rien n’est laissé à moitié appliqué.
 
 ## 1. Ajouter le serveur
 
@@ -17,26 +17,42 @@ Son adresse et un compte root ou sudo. L’app génère une clé ed25519 pour ce
 
 La sonde lit la distribution, la RAM, le disque, l’architecture et ce qui est déjà installé. Vous voyez ce qui va, ce qui manque, et ce que Pupitre ne gérera pas.
 
-## 3. Choisir les services
+## 3. Poser l'agent
+
+Le serveur est enrôlé auprès de la plateforme, puis le binaire signé part sur la session SSH déjà ouverte. La somme de contrôle de ce que le serveur a reçu est comparée à celle de l'app avant la suite. Le catalogue des services est celui de l'agent : il n'existe qu'une fois l'agent en place.
+
+Une machine qui porte déjà son identité n'est pas enrôlée deux fois : une connexion coupée entre l'échange et sa réponse se reprend, elle ne se rejoue pas.
+
+## 4. Choisir les services
 
 Le catalogue, groupé par catégorie. `core.system` et `core.hardening` sont toujours inclus. Chaque module annonce ce qu’il installe et ce qu’il vous demandera. Des préréglages existent pour les formes courantes.
 
-## 4. Configurer
+## 5. Configurer
 
-Versions, ports, comptes, secrets. Un secret passe par l’entrée standard de la session SSH ; il n’est jamais écrit dans un fichier que vous n’avez pas demandé, et jamais réaffiché après saisie.
+Versions, ports, comptes, secrets. Chaque champ dit ce qu'il attend et refuse ce qui n'a pas la forme voulue, à sa hauteur, au moment où vous le remplissez — jamais une liste de reproches en haut de la page. Une bulle à côté du libellé dit où trouver une valeur : les permissions exactes d'un jeton, la page qui le délivre, ce qu'il en coûte de se tromper. L'action est en bas, là où votre lecture s'arrête.
 
-## 5. Installer
+Un secret passe par l'entrée standard de la session SSH ; il n'est jamais écrit dans un fichier que vous n'avez pas demandé, et jamais réaffiché après saisie.
 
-Étape par étape, en direct : le module, l’étape, le compteur, la durée. Une étape qui échoue n’arrête pas les autres modules — elle est notée avec la commande qui la rejoue. Chaque étape est idempotente : l’installation entière peut être relancée sans dégât.
+Un module qui publie par votre compte Cloudflare demande ce compte ici, au-dessus de ses propres questions, et non trois écrans plus loin. Vous donnez un jeton, une fois pour tous vos serveurs ; l'app lit elle-même le compte qu'il ouvre et les zones qu'il porte. Le domaine sous lequel ce serveur publie est un choix par serveur.
 
-## 6. Durcir et basculer sur dev
+Avant de lancer, l'app demande au serveur de peser la configuration : un port que quelque chose écoute déjà, un dossier qui est un fichier, un fuseau que cette machine ignore. Ce qu'il refuse revient sur le champ concerné.
+
+## 6. Installer
+
+Étape par étape, en direct : le module, l'étape, le compteur, la durée. Une configuration qui ne tiendrait pas est refusée **avant la première étape**, machine intacte et champs nommés. Une étape qui échoue n'arrête pas les autres modules — elle est notée avec la commande qui la rejoue. Chaque étape est idempotente : l'installation entière peut être relancée sans dégât.
+
+À la fin, l'app prévient la plateforme sans attendre : la console montre les modules tout de suite, au lieu d'un serveur vide pendant cinq minutes.
+
+## 7. Durcir et basculer sur dev
 
 `ufw` sur SSH seul, `fail2ban`, mots de passe désactivés, `AllowUsers dev`. Root est fermé **en dernier**, et seulement après que l’app a vérifié que votre clé ouvre bien `dev`. Si cette vérification échoue, rien n’est fermé.
 
-## 7. Premier projet
+À la configuration, l’option « Garder l’accès root » laisse root joignable par clé SSH — jamais par mot de passe — et applique tout le reste du durcissement. Pour qui veut garder la main sur son serveur.
+
+## 8. Premier projet
 
 Une URL git ou un dossier sur la machine. L’agent clone, installe les dépendances, démarre le projet dans `tmux`, et rapporte le port, l’URL et les logs.
 
-## Après la septième étape
+## Après la huitième étape
 
 L’onboarding est fini et ne revient pas. À partir de là, l’app est une fenêtre sur cette machine : tableau de bord, projets, terminaux, agents, services. Ajouter un module plus tard, c’est le même écran de catalogue, sans le reste du parcours.

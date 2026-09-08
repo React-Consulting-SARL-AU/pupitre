@@ -47,6 +47,8 @@ export interface Translate {
    * `{count}`. French counts 0 and 1 as singular, English only 1.
    */
   plural(key: string, count: number, values?: Values): string;
+  /** Whether the dictionary carries this key: a fix is optional, a message isn't. */
+  has(key: string): boolean;
 }
 
 function pluralForm(locale: Locale, count: number): "one" | "other" {
@@ -63,6 +65,8 @@ export function translator(locale: Locale): Translate {
 
     return values ? fill(template, values) : template;
   }) as Translate;
+
+  translate.has = (key) => key in dictionary;
 
   translate.plural = (key, count, values) => {
     const form = pluralForm(locale, count);

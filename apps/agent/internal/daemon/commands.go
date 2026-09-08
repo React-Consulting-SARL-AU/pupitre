@@ -3,6 +3,7 @@ package daemon
 import (
 	"encoding/json"
 	"errors"
+	"pupitre.studio/agent/internal/i18n"
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
@@ -20,13 +21,16 @@ type keysResult struct {
 	SyncedAt string          `json:"synced_at,omitempty"`
 }
 
+type platformSyncResult struct {
+	SyncedAt    string `json:"synced_at"`
+	HeartbeatAt string `json:"heartbeat_at,omitempty"`
+}
+
 type enrollResult struct {
 	Enrolled    bool                 `json:"enrolled"`
 	Entitlement contract.Entitlement `json:"entitlement"`
 	SyncedAt    string               `json:"synced_at,omitempty"`
 }
-
-const enrollFix = `Écris le jeton d'enrôlement sur la ligne suivante, sous la forme {"enrollment_token": "<jeton>"}.`
 
 func RegisterCommands(server *protocol.Server, options Options) {
 	agent := New(options)
@@ -40,7 +44,7 @@ func RegisterCommands(server *protocol.Server, options Options) {
 			PlatformURL string `json:"platform_url"`
 		}
 		if err := json.Unmarshal(raw, &params); err != nil {
-			return nil, protocol.NewError(contract.ErrorBadRequest, "paramètres illisibles : "+err.Error())
+			return nil, protocol.NewError(contract.ErrorBadRequest, i18n.T("command.params.unreadable", err.Error()))
 		}
 
 		token, refusal := enrollmentToken(ctx.Secrets)
@@ -70,6 +74,26 @@ func RegisterCommands(server *protocol.Server, options Options) {
 
 		return agent.listed(), nil
 	})
+
+	// An installation that has just changed the machine says so now rather than
+	// at the daemon's next turn: the console shows the modules instead of an
+	// empty server for the following five minutes.
+	server.Register("platform.sync", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
+		synced, err := agent.Sync()
+		if err != nil {
+			return nil, syncFailed(err)
+		}
+
+		result := platformSyncResult{SyncedAt: synced.SyncedAt.UTC().Format(time.RFC3339)}
+
+		// The heartbeat is what carries the module list. Its failure is not the
+		// command's: the state was read, and the daemon beats again on its own.
+		if err := agent.Beat(); err == nil {
+			result.HeartbeatAt = agent.options.Now().UTC().Format(time.RFC3339)
+		}
+
+		return result, nil
+	})
 }
 
 func (d *Daemon) listed() keysResult {
@@ -94,14 +118,14 @@ func enrollmentToken(line json.RawMessage) (string, *protocol.Error) {
 		err = contract.Validate("EnrollSecrets", value)
 	}
 	if err != nil {
-		return "", protocol.NewError(contract.ErrorBadRequest, "flux secret invalide : "+err.Error()).WithFix(enrollFix)
+		return "", protocol.NewError(contract.ErrorBadRequest, i18n.T("secrets.invalid", err.Error())).WithFix(i18n.T("daemon.enroll.token.fix"))
 	}
 
 	var secrets struct {
 		Token string `json:"enrollment_token"`
 	}
 	if err := json.Unmarshal(line, &secrets); err != nil {
-		return "", protocol.NewError(contract.ErrorInternal, "flux secret validé mais illisible : "+err.Error())
+		return "", protocol.NewError(contract.ErrorInternal, i18n.T("secrets.unreadable", err.Error()))
 	}
 
 	return secrets.Token, nil
@@ -110,26 +134,26 @@ func enrollmentToken(line json.RawMessage) (string, *protocol.Error) {
 func enrollFailed(cause error) *protocol.Error {
 	var failure *platform.Error
 	if errors.As(cause, &failure) && failure.Unauthorized() {
-		return protocol.NewError(contract.ErrorEntitlementRequired, "la plateforme refuse ce jeton d'enrôlement : "+cause.Error()).
-			WithFix("Relance l'installation depuis l'app pour obtenir un jeton neuf.")
+		return protocol.NewError(contract.ErrorEntitlementRequired, i18n.T("daemon.enroll.refused", cause.Error())).
+			WithFix(i18n.T("daemon.enroll.refused.fix"))
 	}
 
-	return protocol.NewError(contract.ErrorInternal, "enrôlement impossible : "+cause.Error()).
-		WithFix("Vérifie que le serveur joint la plateforme en HTTPS sortant, puis relance l'installation.")
+	return protocol.NewError(contract.ErrorInternal, i18n.T("daemon.enroll.failed", cause.Error())).
+		WithFix(i18n.T("daemon.enroll.failed.fix"))
 }
 
 func syncFailed(cause error) *protocol.Error {
 	if errors.Is(cause, platform.ErrNoToken) {
 		return protocol.NewError(contract.ErrorBadRequest, cause.Error()).
-			WithFix("Réinstalle ce serveur depuis l'app pour lui rendre un jeton de serveur.")
+			WithFix(i18n.T("daemon.token.missing.fix"))
 	}
 
 	var failure *platform.Error
 	if errors.As(cause, &failure) && failure.Unauthorized() {
-		return protocol.NewError(contract.ErrorEntitlementRequired, "la plateforme refuse le jeton de ce serveur : "+cause.Error()).
-			WithFix("Ouvre https://app.pupitre.studio pour rétablir le droit d'usage de ce serveur.")
+		return protocol.NewError(contract.ErrorEntitlementRequired, i18n.T("daemon.token.refused", cause.Error())).
+			WithFix(i18n.T("daemon.token.refused.fix"))
 	}
 
-	return protocol.NewError(contract.ErrorInternal, "clés non synchronisées : "+cause.Error()).
-		WithFix("Vérifie que le serveur joint la plateforme en HTTPS sortant, puis relance keys.sync.")
+	return protocol.NewError(contract.ErrorInternal, i18n.T("daemon.keys.failed", cause.Error())).
+		WithFix(i18n.T("daemon.keys.failed.fix"))
 }

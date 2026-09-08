@@ -1,6 +1,8 @@
 ---
 import { localeFromPath, localizePath } from "../lib/i18n"
 import { SIGNUP_URL } from "../lib/urls"
+import CtaPair from "./CtaPair.astro"
+import LogoDrift from "./LogoDrift.astro"
 
 interface Props {
   title: string
@@ -13,18 +15,15 @@ const { title, lead, signUp, docs } = Astro.props
 const locale = localeFromPath(Astro.url.pathname)
 ---
 
-<section class="border-line border-t">
-  <div class="shell py-24 text-center md:py-32">
+<section class="relative border-line border-t">
+  <LogoDrift place="cta" />
+
+  <div class="reveal shell relative py-24 text-center md:py-32">
     <h2 class="heading-1 mx-auto max-w-3xl">{title}</h2>
     <p class="lead mx-auto mt-8 max-w-xl text-ink-2">{lead}</p>
-    <div class="mt-10 flex flex-wrap justify-center gap-3">
-      <a data-emphasis="main" href={SIGNUP_URL} class="btn btn-lg btn-primary">{signUp}</a>
-      <a
-        data-emphasis="secondary"
-        href={localizePath("/docs/", locale)}
-        class="btn btn-lg btn-secondary"
-        >{docs}</a
-      >
-    </div>
+    <CtaPair
+      main={{ href: SIGNUP_URL, label: signUp }}
+      secondary={{ href: localizePath("/docs/", locale), label: docs }}
+    />
   </div>
 </section>

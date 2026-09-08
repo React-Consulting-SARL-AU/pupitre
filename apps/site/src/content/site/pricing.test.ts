@@ -57,7 +57,6 @@ describe("pricing content", () => {
       expect(placeholders(content.plans.trial)).toEqual(["days"])
       expect(placeholders(content.plans.serversUpTo)).toEqual(["count"])
       expect(placeholders(content.catalog.available)).toEqual(["count"])
-      expect(placeholders(content.catalog.soon)).toEqual(["count"])
     }
   })
 

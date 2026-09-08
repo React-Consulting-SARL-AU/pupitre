@@ -31,12 +31,12 @@ export function InstallStepRow({ step }: { step: StepEntry }) {
         />
       </span>
 
-      <span className="min-w-0 flex-1 truncate font-data text-[11px] text-ink-2">
+      <span className="min-w-0 flex-1 truncate font-data text-[12px] text-ink-2">
         {step.step}
       </span>
 
       {step.status === "start" ? null : (
-        <span className="shrink-0 font-data text-[11px] text-ink-3 tabular-nums">
+        <span className="shrink-0 font-data text-[12px] text-ink-3 tabular-nums">
           {humanMs(step.ms)}
         </span>
       )}

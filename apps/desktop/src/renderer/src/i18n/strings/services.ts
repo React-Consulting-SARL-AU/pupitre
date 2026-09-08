@@ -5,9 +5,18 @@ export const services = {
 
     "services.credentials.title": "Credentials",
     "services.credentials.connectionUrl": "Request the connection URL",
+    "services.credentials.connectionLabel": "Connection URL",
     "services.credentials.empty": "This module declares no credentials.",
     "services.credentials.note":
       "The values stay in the main process: they are neither stored nor logged, and the clipboard is written on that side.",
+
+    "services.config.title": "Configuration",
+    "services.config.apply": "Apply",
+    "services.config.note":
+      "These are the values the agent kept from the last installation. Applying replays the module with them; a secret left empty stays the one the server holds.",
+    "services.config.done": "{name} was reconfigured on this server.",
+    "services.config.failed":
+      "{name}: the server did not apply everything. The steps say where it stopped.",
 
     "services.database.title": "Database",
     "services.database.shell": "Open a shell",
@@ -95,9 +104,18 @@ export const services = {
 
     "services.credentials.title": "Identifiants",
     "services.credentials.connectionUrl": "Demander l'URL de connexion",
+    "services.credentials.connectionLabel": "URL de connexion",
     "services.credentials.empty": "Ce module ne déclare aucun identifiant.",
     "services.credentials.note":
       "Les valeurs restent dans le processus principal : elles ne sont ni enregistrées, ni journalisées, et le presse-papiers est écrit de ce côté-là.",
+
+    "services.config.title": "Configuration",
+    "services.config.apply": "Appliquer",
+    "services.config.note":
+      "Ce sont les valeurs que l'agent a gardées de la dernière installation. Appliquer rejoue le module avec elles ; un secret laissé vide reste celui que le serveur détient.",
+    "services.config.done": "{name} a été reconfiguré sur ce serveur.",
+    "services.config.failed":
+      "{name} : le serveur n'a pas tout appliqué. Les étapes disent où il s'est arrêté.",
 
     "services.database.title": "Base de données",
     "services.database.shell": "Ouvrir un shell",

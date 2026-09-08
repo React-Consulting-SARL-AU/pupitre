@@ -64,16 +64,35 @@ function agent(fixtures: string | string[]): AgentClient {
   });
 }
 
+/** A platform that publishes nothing: the app is reduced to what it carries. */
+function unpublished(): AgentUpdateDeps["published"] {
+  return () =>
+    Promise.resolve({
+      ok: false,
+      error: { code: "release_not_found", message: "aucune version publiée" },
+    });
+}
+
+function published(version: string): AgentUpdateDeps["published"] {
+  return (arch) =>
+    Promise.resolve({
+      ok: true,
+      result: { arch, sha256: "", signature: SIGNATURE, version },
+    });
+}
+
 function deps(
   client: AgentClient,
   over: Partial<AgentUpdateDeps> = {}
 ): AgentUpdateDeps {
   return {
+    appVersion: "0.1.0",
     carried: () => release(),
     client,
     declared: () =>
       Promise.resolve({ ok: true, result: ["runtime.node", "db.postgres"] }),
     probe: () => Promise.resolve({ ok: true, result: probeOf() }),
+    published: unpublished(),
     ...over,
   };
 }
@@ -98,10 +117,52 @@ describe("la comparaison des versions", () => {
     expect(answer).toMatchObject({
       ok: true,
       result: {
-        carried: { arch: "amd64", signed: true, version: "0.4.0" },
         installed: "0.3.0",
+        offer: { arch: "amd64", signed: true, source: "app", version: "0.4.0" },
         order: "ahead",
       },
+    });
+  });
+
+  it("propose la version publiée plutôt que celle qu'elle porte", async () => {
+    const client = agent("agent-update-live.jsonl");
+
+    const answer = await readAgentUpdate(
+      SERVER,
+      deps(client, { published: published("0.5.0") })
+    );
+
+    expect(answer).toMatchObject({
+      ok: true,
+      result: {
+        offer: { signed: true, source: "platform", version: "0.5.0" },
+        order: "ahead",
+      },
+    });
+  });
+
+  it("garde son propre binaire quand il devance ce qui est publié", async () => {
+    const client = agent("agent-update-live.jsonl");
+
+    const answer = await readAgentUpdate(
+      SERVER,
+      deps(client, { published: published("0.2.0") })
+    );
+
+    expect(answer).toMatchObject({
+      ok: true,
+      result: { offer: { source: "app", version: "0.4.0" } },
+    });
+  });
+
+  it("dit ce que la feuille de compatibilité pense du serveur", async () => {
+    const client = agent("agent-update-control.jsonl");
+
+    const answer = await readAgentUpdate(SERVER, deps(client));
+
+    expect(answer).toMatchObject({
+      ok: true,
+      result: { floor: "0.1.0", verdict: "ok" },
     });
   });
 
@@ -159,7 +220,7 @@ describe("la comparaison des versions", () => {
 
     expect(answer).toMatchObject({
       ok: true,
-      result: { carried: null, installed: "0.3.0", order: "unknown" },
+      result: { installed: "0.3.0", offer: null, order: "unknown" },
     });
   });
 });
@@ -179,6 +240,28 @@ describe("agent.upgrade", () => {
       result: { previous_version: "0.3.0", restarting: true, version: "0.4.0" },
     });
     expect(events).toHaveLength(2);
+  });
+
+  it("n'envoie que la version quand la plateforme la publie", async () => {
+    const client = agent([
+      "agent-update-live.jsonl",
+      "agent-upgrade-unsigned.jsonl",
+    ]);
+    const { note } = collected();
+
+    const answer = await runAgentUpgrade(
+      SERVER,
+      note,
+      deps(client, { published: published("0.4.0") })
+    );
+
+    expect(answer).toMatchObject({
+      ok: true,
+      result: { version: "0.4.0" },
+    });
+    expect(fake?.trace().some((line) => line.includes("signature"))).toBe(
+      false
+    );
   });
 
   it("rend le refus de vérification tel quel, avec son remède", async () => {

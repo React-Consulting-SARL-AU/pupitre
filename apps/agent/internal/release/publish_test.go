@@ -54,18 +54,18 @@ func TestPublishSendsTheBodyTheContractDescribes(t *testing.T) {
 	}
 
 	if !created || published.Version != "1.4.2" {
-		t.Fatalf("créée = %v, version = %s", created, published.Version)
+		t.Fatalf("created = %v, version = %s", created, published.Version)
 	}
 
 	sent := (*calls)[0]
 
 	if sent.Path != "/admin/releases" || sent.Bearer != "Bearer jeton-de-test" {
-		t.Fatalf("appel = %s, autorisation = %q", sent.Path, sent.Bearer)
+		t.Fatalf("call = %s, authorization = %q", sent.Path, sent.Bearer)
 	}
 
 	for _, field := range []string{"version", "arch", "sha256", "signature", "r2_key", "channel"} {
 		if _, ok := sent.Body[field]; !ok {
-			t.Errorf("champ %s absent du corps", field)
+			t.Errorf("field %s missing from the body", field)
 		}
 	}
 }
@@ -80,12 +80,12 @@ func TestPublishAcceptsAVersionAlreadyPublished(t *testing.T) {
 	}
 
 	if created || published.Channel != "stable" {
-		t.Fatalf("créée = %v, canal = %s", created, published.Channel)
+		t.Fatalf("created = %v, channel = %s", created, published.Channel)
 	}
 }
 
 func TestPublishReportsWhatThePlatformRefused(t *testing.T) {
-	api, _ := platform(t, http.StatusConflict, `{"error":{"code":"conflict","message":"déjà publiée avec une autre empreinte","fix":"Publie une nouvelle version."}}`)
+	api, _ := platform(t, http.StatusConflict, `{"error":{"code":"conflict","message":"already published with a different fingerprint","fix":"Publish a new version."}}`)
 
 	_, _, err := api.Publish(release.Publication{Version: "1.4.2", Arch: "amd64"})
 

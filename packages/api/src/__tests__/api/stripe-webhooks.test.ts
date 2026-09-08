@@ -284,8 +284,8 @@ describe("POST /webhooks/stripe", () => {
       )
     )
 
-    // Stripe résilie un essai qui finit sans carte : la fin de période est celle
-    // de l'essai, donc déjà passée — la tolérance ne rallonge rien.
+    // Stripe cancels a trial that ends without a card: the period end is the
+    // trial's, so already past — the tolerance window extends nothing here.
     await postStripeWebhook<AckBody>(
       stripeEvent(
         "customer.subscription.deleted",

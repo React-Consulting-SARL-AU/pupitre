@@ -3,6 +3,7 @@ import { spawn as spawnChild } from "node:child_process";
 import { createServer } from "node:net";
 import type { AgentResponse } from "@shared/agent";
 import type { PortForward } from "@shared/services";
+import { refuseWith } from "./refusal";
 
 /**
  * A port of the server, brought to this computer by `ssh -L`.
@@ -31,8 +32,11 @@ const open = new Map<string, Held>();
 
 let counter = 0;
 
-function refuse(message: string, fix: string): AgentResponse<never> {
-  return { ok: false, error: { code: "bad_request", fix, message } };
+function refuse(
+  id: string,
+  values?: Record<string, string | number>
+): AgentResponse<never> {
+  return refuseWith("bad_request", id, values);
 }
 
 /**
@@ -101,19 +105,13 @@ export async function openForward(
   deps: ForwardDeps
 ): Promise<AgentResponse<PortForward>> {
   if (typeof serverId !== "string") {
-    return refuse(
-      "Ce serveur n'est plus dans la liste.",
-      "Choisis un serveur dans les réglages."
-    );
+    return refuse("refusal.server.unknown");
   }
 
   const args = deps.resolve(serverId);
 
   if (!args) {
-    return refuse(
-      "Ce serveur n'est plus dans la liste.",
-      "Choisis un serveur dans les réglages."
-    );
+    return refuse("refusal.server.unknown");
   }
 
   if (
@@ -122,10 +120,7 @@ export async function openForward(
     remotePort < 1 ||
     remotePort > MAX_PORT
   ) {
-    return refuse(
-      "Ce port n'existe pas.",
-      "Un port va de 1 à 65535 ; celui du service est dans sa fiche."
-    );
+    return refuse("refusal.port.range");
   }
 
   const already = existing(serverId, remotePort);

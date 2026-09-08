@@ -1,56 +1,214 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { ArrowRight } from "lucide-react";
-import { useEffect } from "react";
+import type { Server, ServerDraft } from "@shared/servers";
+import { Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import type { ServerStage } from "../../stores/onboarding-machine";
 import { useServers } from "../../stores/servers";
-import { ServersPanel } from "../servers/servers-panel";
+import { FleetPanel } from "../fleet/fleet-panel";
+import { HostKeyAlert } from "../servers/host-key-alert";
+import { ServerAddForm } from "../servers/server-add-form";
+import { ServerKeyInstall } from "../servers/server-key-install";
 import { Button } from "../ui/button";
+import { Label } from "../ui/label";
 import { PageHeader } from "../ui/page-header";
+import { OnboardingServerChoice } from "./onboarding-server-choice";
 
 /**
  * The first step: the machine to drive, and the key that opens it.
  *
- * The step does not walk itself: the key the app just made has to be pasted on
- * the server before anything can answer, and only the reader knows when that is
- * done.
+ * A sequence, not a list. You pick a machine already known, or describe one,
+ * and the key that follows installs itself: each screen leads to the next where
+ * you have just acted. Nothing asks you to scroll back up to continue, and
+ * nothing leaves you waiting in front of an empty card — a computer that knows
+ * no machine yet opens the form.
+ *
+ * Granted servers stay above throughout: a grant lands while you are typing,
+ * and it beats what you are entering.
  */
+
+type Stage = "pick" | "add" | "key";
+
 export function OnboardingServerScreen({
   onContinue,
+  onStage,
 }: {
   onContinue: (serverId: string) => void;
+  /** Where this step is within itself, so the rail shows it rather than hiding it. */
+  onStage?: (stage: ServerStage) => void;
 }) {
   const t = useTranslations();
 
-  const config = useServers((state) => state.config);
-  const load = useServers((state) => state.load);
+  const {
+    activate,
+    add,
+    addition,
+    checkHostKey,
+    config,
+    dismissHostKey,
+    forgetAddition,
+    hostKey,
+    load,
+    status,
+    trustReinstalled,
+  } = useServers();
+
+  const [stage, setStage] = useState<Stage | null>(null);
+  const [trusting, setTrusting] = useState(false);
 
   useEffect(() => {
     load();
   }, [load]);
 
+  const servers = config?.servers ?? [];
   const active = config?.active ?? null;
-  const server = config?.servers.find((candidate) => candidate.id === active);
+
+  useEffect(() => {
+    if (active) {
+      checkHostKey(active);
+    }
+  }, [active, checkHostKey]);
+
+  // A machine that was just added is waiting on its key: that's the next
+  // screen, and nobody has to ask to go there.
+  const added = addition.status === "added" ? addition : null;
+  const here: Stage | null = added?.publicKey
+    ? "key"
+    : serverStage(stage, status, servers.length);
+
+  useEffect(() => {
+    onStage?.(here ?? "pick");
+  }, [here, onStage]);
+
+  async function pick(server: Server): Promise<void> {
+    await activate(server.id);
+    onContinue(server.id);
+  }
+
+  async function submit(draft: ServerDraft): Promise<void> {
+    await add(draft);
+
+    const state = useServers.getState().addition;
+
+    // A refusal keeps the form open with its remedy: closing it would carry
+    // away the explanation along with what was typed.
+    if (state.status !== "added") {
+      return;
+    }
+
+    // A system host already opens the machine: there's nothing to install
+    // and nothing to wait for. Otherwise the key just made takes the next screen.
+    if (!state.publicKey) {
+      forgetAddition();
+      onContinue(state.server.id);
+    }
+  }
+
+  function installed(server: Server): void {
+    forgetAddition();
+    onContinue(server.id);
+  }
+
+  async function reinstalled(id: string): Promise<void> {
+    setTrusting(true);
+    await trustReinstalled(id);
+    setTrusting(false);
+  }
+
+  const refused = hostKey.status === "changed" ? hostKey : null;
+  const refusedServer = servers.find((s) => s.id === refused?.serverId);
 
   return (
     <section className="flex flex-col gap-section">
       <PageHeader
-        actions={
-          <Button
-            disabled={!active}
-            icon={ArrowRight}
-            onClick={() => active && onContinue(active)}
-            variant="inverse"
-          >
-            {server
-              ? t("onboarding.server.inspectNamed", { name: server.name })
-              : t("onboarding.server.inspect")}
-          </Button>
-        }
-        description={t("onboarding.server.description")}
+        description={t(`onboarding.server.${here ?? "pick"}.description`)}
         eyebrow={t("onboarding.server.eyebrow")}
-        title={t("onboarding.server.title")}
+        title={t(`onboarding.server.${here ?? "pick"}.title`)}
       />
 
-      <ServersPanel />
+      {refused ? (
+        <HostKeyAlert
+          busy={trusting}
+          onCancel={dismissHostKey}
+          onReinstalled={() => reinstalled(refused.serverId)}
+          serverName={refusedServer?.name ?? refused.serverId}
+          state={refused}
+        />
+      ) : null}
+
+      {here === "key" ? null : <FleetPanel silentWhenEmpty />}
+
+      {here === "pick" ? (
+        <section className="flex flex-col gap-4">
+          <div>
+            <Label>{t("onboarding.server.knownHeading")}</Label>
+            <p className="mt-1 text-ink-3 leading-relaxed">
+              {t("onboarding.server.knownIntro")}
+            </p>
+          </div>
+
+          {servers.map((server) => (
+            <OnboardingServerChoice
+              key={server.id}
+              onPick={() => pick(server)}
+              server={server}
+            />
+          ))}
+
+          <div>
+            <Button icon={Plus} onClick={() => setStage("add")}>
+              {t("servers.addServer")}
+            </Button>
+          </div>
+        </section>
+      ) : null}
+
+      {here === "add" ? (
+        <ServerAddForm
+          busy={addition.status === "adding"}
+          error={addition.status === "failed" ? addition.error : null}
+          onCancel={
+            servers.length > 0
+              ? () => {
+                  setStage("pick");
+                  forgetAddition();
+                }
+              : undefined
+          }
+          onSubmit={submit}
+        />
+      ) : null}
+
+      {here === "key" && added?.publicKey ? (
+        <ServerKeyInstall
+          copyId={added.copyId}
+          doneLabel={t("servers.key.inspect")}
+          onDone={() => installed(added.server)}
+          publicKey={added.publicKey}
+          server={added.server}
+        />
+      ) : null}
     </section>
   );
+}
+
+/**
+ * The step to show: the one asked for, otherwise the one the list imposes.
+ *
+ * With no known machine there is nothing to pick, and the form is the step;
+ * with one, the choice is. Before the list has been read, neither.
+ */
+export function serverStage(
+  asked: Stage | null,
+  status: "idle" | "loading" | "ready",
+  known: number
+): Stage | null {
+  if (asked) {
+    return asked;
+  }
+
+  if (status !== "ready") {
+    return null;
+  }
+
+  return known > 0 ? "pick" : "add";
 }

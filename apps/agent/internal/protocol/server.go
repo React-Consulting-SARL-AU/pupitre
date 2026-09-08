@@ -12,6 +12,7 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/entitlement"
+	"pupitre.studio/agent/internal/i18n"
 )
 
 type Options struct {
@@ -87,16 +88,16 @@ func (s *Server) Call(cmd string, params any, emit func(event string, fields map
 
 	raw, err := json.Marshal(params)
 	if err != nil {
-		return nil, badRequest("paramètres illisibles : " + err.Error())
+		return nil, badRequest(i18n.T("protocol.params.unreadable", err.Error()))
 	}
 
 	value, err := contract.Decode(raw)
 	if err != nil {
-		return nil, badRequest("paramètres illisibles : " + err.Error())
+		return nil, badRequest(i18n.T("protocol.params.unreadable", err.Error()))
 	}
 
 	if err := contract.Validate(contract.ParamsDefinition(cmd), value); err != nil {
-		return nil, badRequest("paramètres invalides : params" + err.Error())
+		return nil, badRequest(i18n.T("protocol.params.invalid", "params"+err.Error()))
 	}
 
 	result, failure := call(handler, &Context{sink: sink(emit)}, raw)
@@ -161,24 +162,24 @@ func (s *session) handle(line []byte) error {
 	value, err := contract.Decode(line)
 	object, isObject := value.(map[string]any)
 	if err != nil || !isObject {
-		s.fail(0, badRequest("requête illisible : un objet JSON {id, cmd, params?} par ligne est attendu"))
+		s.fail(0, badRequest(i18n.T("protocol.request.unreadable")))
 		return s.writeErr
 	}
 
 	id, ok := requestID(object["id"])
 	if !ok {
-		s.fail(0, badRequest("id manquant ou invalide : entier ≥ 0 attendu"))
+		s.fail(0, badRequest(i18n.T("protocol.id.invalid")))
 		return s.writeErr
 	}
 
 	if id <= s.lastID {
-		s.fail(id, badRequest(fmt.Sprintf("id %d refusé : l'id doit être strictement croissant, dernier id reçu %d", id, s.lastID)))
+		s.fail(id, badRequest(i18n.T("protocol.id.not_increasing", id, s.lastID)))
 		return s.writeErr
 	}
 	s.lastID = id
 
 	if err := contract.Validate("Request", value); err != nil {
-		s.fail(id, badRequest("requête invalide : "+err.Error()))
+		s.fail(id, badRequest(i18n.T("protocol.request.invalid", err.Error())))
 		return s.writeErr
 	}
 
@@ -212,7 +213,7 @@ func (s *session) dispatch(id int64, cmd string, params any, line []byte) (any, 
 	}
 
 	if err := contract.Validate(contract.ParamsDefinition(cmd), params); err != nil {
-		return nil, badRequest("paramètres invalides : params" + err.Error())
+		return nil, badRequest(i18n.T("protocol.params.invalid", "params"+err.Error()))
 	}
 
 	ctx := &Context{ID: id, session: s, sink: func(line map[string]any) { s.write(line) }}
@@ -259,7 +260,7 @@ func (s *session) readSecrets() (json.RawMessage, *Error) {
 		}
 
 		if err != nil {
-			return nil, missingSecrets("l'entrée standard s'est fermée après la requête")
+			return nil, missingSecrets(i18n.T("protocol.secrets.stdin_closed"))
 		}
 	}
 }
@@ -269,13 +270,13 @@ func (s *session) readSecrets() (json.RawMessage, *Error) {
 func (s *session) decodeSecretLine(line []byte) (json.RawMessage, *Error) {
 	value, err := contract.Decode(line)
 	if _, isObject := value.(map[string]any); err != nil || !isObject {
-		return nil, badRequest("ligne de secrets illisible : un objet JSON sur une ligne est attendu").WithFix(secretsFix)
+		return nil, badRequest(i18n.T("protocol.secrets.unreadable")).WithFix(secretsFix())
 	}
 
 	if contract.Validate("Request", value) == nil {
 		s.pushback = line
 
-		return nil, missingSecrets("la ligne suivante est une requête")
+		return nil, missingSecrets(i18n.T("protocol.secrets.next_is_request"))
 	}
 
 	return json.RawMessage(line), nil

@@ -30,7 +30,7 @@ func TestInstallRunsOnADevBuild(t *testing.T) {
 		"✓ tool.demo · install-package",
 		"✗ db.broken · install-package",
 		"rejeu : sudo pupitred install --only=db.broken",
-		"1 étape(s) en échec",
+		"1 failed step(s)",
 	} {
 		if !strings.Contains(stderr, want) {
 			t.Errorf("stderr lacks %q:\n%s", want, stderr)
@@ -64,12 +64,12 @@ func TestInstallOnlyAndSkipFilterTheRequest(t *testing.T) {
 	writeInstallJSON(t, dir, modules.Request{Modules: []string{"tool.demo", "db.broken"}})
 
 	code, _, stderr := runCLI(t, "install", "--skip=db.broken")
-	if code != 0 || strings.Contains(stderr, "db.broken") || !strings.Contains(stderr, "Aucune étape en échec") {
+	if code != 0 || strings.Contains(stderr, "db.broken") || !strings.Contains(stderr, "No failed step") {
 		t.Fatalf("code = %d, stderr:\n%s", code, stderr)
 	}
 
 	code, _, stderr = runCLI(t, "install", "--only=tool.demo")
-	if code != 0 || !strings.Contains(stderr, "· tool.demo · install-package (déjà fait)") {
+	if code != 0 || !strings.Contains(stderr, "· tool.demo · install-package (already done)") {
 		t.Fatalf("replay code = %d, stderr:\n%s", code, stderr)
 	}
 

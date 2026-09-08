@@ -54,7 +54,7 @@ export function FirstProjectOutcome({
           <p className="font-medium text-ink">
             <code className="font-data">{name}</code> {t(look.label)}
           </p>
-          <p className="mt-1 font-data text-[11px] text-ink-3">
+          <p className="mt-1 font-data text-[12px] text-ink-3">
             {url ?? t("firstProject.outcome.unknownAddress")}
             {port ? ` · port ${port}` : ""}
           </p>

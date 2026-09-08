@@ -4,6 +4,8 @@ const OPEN_WHILE_SUSPENDED = new Set([
   START_ROUTE,
   "/dashboard/billing",
   "/dashboard/settings",
+  "/dashboard/organization",
+  "/dashboard/download",
 ])
 
 const TRAILING_SLASH_RE = /(.)\/+$/
@@ -20,6 +22,11 @@ export interface StartRedirect {
 
 function normalize(pathname: string): string {
   return pathname.replace(TRAILING_SLASH_RE, "$1")
+}
+
+/** The pages a console without a subscription can still open, and show. */
+export function opensWhileSuspended(pathname: string): boolean {
+  return OPEN_WHILE_SUSPENDED.has(normalize(pathname))
 }
 
 /**
@@ -41,5 +48,5 @@ export function startRedirectFor({
     return { checkout: "done" }
   }
 
-  return OPEN_WHILE_SUSPENDED.has(target) ? null : {}
+  return opensWhileSuspended(target) ? null : {}
 }

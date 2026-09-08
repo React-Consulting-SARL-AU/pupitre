@@ -33,7 +33,7 @@ func (m Passing) Manifest() contract.Manifest {
 		ID:        m.ID,
 		Category:  categoryOf(m.ID),
 		Name:      "Demo " + m.ID,
-		Summary:   "Module de démonstration qui réussit.",
+		Summary:   "Demonstration module that succeeds.",
 		Requires:  m.Requires,
 		Conflicts: m.Conflicts,
 		Resources: contract.Resources{RAMMB: 16, DiskMB: 8},

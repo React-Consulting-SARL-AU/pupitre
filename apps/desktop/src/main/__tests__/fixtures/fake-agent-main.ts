@@ -1,7 +1,7 @@
 import { readFileSync, writeSync } from "node:fs";
 
 /**
- * The fake agent: it replays an AGT-01 transcript, and nothing else.
+ * The fake agent: it replays a transcript, and nothing else.
  *
  * It matches on the command and its parameters, never on the `id`, which it
  * echoes back — the client owns the numbering, and a transcript that pinned it

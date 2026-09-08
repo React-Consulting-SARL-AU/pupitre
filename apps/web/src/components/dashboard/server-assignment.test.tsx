@@ -20,14 +20,7 @@ import {
 } from "@/lib/domain/dashboard-context"
 import { createQueryClient } from "@/lib/query/client"
 import { useSessionApiClient } from "@/testing/harness"
-import {
-  choose,
-  fill,
-  render,
-  trigger,
-  waitUntil,
-  waitUntilStored,
-} from "@/testing/render"
+import { fill, pick, render, trigger, waitUntilStored } from "@/testing/render"
 
 const mounted: (() => void)[] = []
 
@@ -109,18 +102,14 @@ describe("ServerAssignment", () => {
 
     mounted.push(unmount)
 
-    await waitUntil(() =>
-      (container.textContent ?? "").includes(member.user.email)
-    )
-
     const assignee = container.querySelector("#assignee")
 
     if (!assignee) {
       throw new Error("no assignee select")
     }
 
-    await choose(assignee, member.user.id)
-    await click(trigger(container, "Attribuer"))
+    await pick(assignee, member.user.email)
+    await click(trigger(container, "Assign"))
     await waitUntilStored(async () => {
       const stored = await prisma.server.findUnique({
         where: { id: server.id },
@@ -158,7 +147,7 @@ describe("ServerAssignment", () => {
     }
 
     await fill(email, "recrue@test.local")
-    await click(trigger(container, "Inviter et attribuer"))
+    await click(trigger(container, "Invite and assign"))
     await waitUntilStored(async () => {
       const stored = await prisma.server.findUnique({
         where: { id: server.id },

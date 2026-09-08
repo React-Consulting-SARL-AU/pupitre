@@ -26,11 +26,11 @@ Une clé d'accès enregistrée ouvre la session seule : le relying party est le 
 | Méthode | Route | Corps | Réponse |
 | --- | --- | --- | --- |
 | GET | `/me` | — | `{ user, organizations[], active_organization, role, entitlement }`. `user.locale` vaut `fr` ou `en`. `entitlement` vaut `none` sans organisation active, sinon le droit d'usage de l'organisation : `valid`, `grace` ou `suspended`. Une organisation sans aucun abonnement rend `suspended`, avec un `valid_until` à l'instant présent : aucun droit d'usage ne naît hors d'un abonnement, et l'essai en est un |
-| PATCH | `/me` | `{ locale }` (`fr` ou `en`) | le même corps que `GET /me`. La langue enregistrée décide de celle des emails, y compris ceux qu'une tâche planifiée envoie sans en-tête `Accept-Language` à lire |
+| PATCH | `/me` | `{ locale?, organization_id? }` | le même corps que `GET /me`. Ce que l'appelant tait ne bouge pas. La langue enregistrée décide de celle des emails, y compris ceux qu'une tâche planifiée envoie sans en-tête `Accept-Language` à lire. `organization_id` doit nommer une organisation dont l'appelant est membre, sinon `forbidden` (403) sans dire si elle existe ; la bascule ne touche que la session qui la demande — la console ouverte à côté garde la sienne — et la réponse porte aussitôt le nouveau rôle et le droit d'usage qui va avec |
 | GET | `/me/devices` | — | `{ data: Device[] }` |
 | POST | `/me/devices` | `{ name, public_key }` | `{ data: Device }`. La clé est poussée sur tous les serveurs que l'utilisateur peut ouvrir |
 | DELETE | `/me/devices/:id` | — | 204. Retirée des serveurs en moins d'une minute |
-| GET | `/me/servers` | — | `{ data: ServerForUser[] }` : hôte, port, utilisateur, empreinte d'hôte, statut, `key_ready` |
+| GET | `/me/servers` | — | `{ data: ServerForUser[] }` : hôte, port, utilisateur, empreinte d'hôte, statut, `key_ready`, et `organization` — l'identifiant et le nom de l'organisation qui porte le serveur, pour qu'un membre de plusieurs sache d'où vient chaque machine qu'on lui attribue. Rien d'autre de l'organisation ne sort : ni rôle, ni abonnement, ni compteur de sièges. `key_ready` se lit serveur par serveur, jamais par compte : il vaut `true` quand le membre assigné appartient encore à l'organisation du serveur et garde au moins un appareil que **ce** serveur n'a pas révoqué — exactement les clés que l'agent recevra. Un appareil révoqué sur une machine laisse les autres prêtes |
 
 ### Statut public
 
@@ -42,19 +42,19 @@ Une clé d'accès enregistrée ouvre la session seule : le relying party est le 
 
 | Méthode | Route | Corps | Réponse |
 | --- | --- | --- | --- |
-| POST | `/servers/enroll` | `{ device_id, host, port?, ssh_user?, fingerprint?, probe }` | `{ server_id, enrollment_token, release: { version, url, sha256, signature, channel } }`. `release` est la dernière version `stable` de l'architecture sondée, ou la dernière `beta` si aucune `stable` n'existe — `channel` le dit. Le serveur naît `enrolling`, attribué à l'appelant ; le jeton d'enrôlement vaut une heure et n'est stocké que haché. Refusé sans abonnement en cours (`entitlement_required`, 403) ou sur un abonnement suspendu (`server_suspended`, 403), avant même de compter les sièges. Un enrôlement qui retrouve un serveur déjà connu de l'organisation — même hôte, même port, même appareil, et un statut qui consomme un siège — le met à jour et lui rend un jeton frais, **sans consommer de siège** : c'est le geste de réparation d'un serveur restreint. Le quota ne refuse donc que l'hôte inconnu (`seat_quota_reached`, 403). Le quota est la quantité de l'abonnement `active`, `trialing` ou `past_due` de l'organisation, et rien d'autre |
+| POST | `/servers/enroll` | `{ device_id, host, port?, ssh_user?, fingerprint?, probe }` | `{ server_id, enrollment_token, release: { version, url, sha256, signature, channel } }`. `release` est la dernière version `stable` de l'architecture sondée, ou la dernière `beta` si aucune `stable` n'existe — `channel` le dit. Le serveur naît `enrolling`, attribué à l'appelant ; le jeton d'enrôlement vaut une heure et n'est stocké que haché. Refusé sans abonnement en cours (`entitlement_required`, 403) ou sur un abonnement suspendu (`server_suspended`, 403), avant même de compter les sièges. Un enrôlement qui retrouve un serveur déjà connu de l'organisation — même hôte, même port, même appareil, et un statut qui consomme un siège — le met à jour et lui rend un jeton frais, **sans consommer de siège** : c'est le geste de réparation d'un serveur restreint. Son statut et son jeton de serveur ne bougent pas pour autant : la machine garde l'accès qu'elle a jusqu'à ce que l'échange lui en donne un autre, et un envoi de binaire qui échoue entre les deux ne laisse ni jeton mort ni ligne bloquée en `enrolling`. Le quota ne refuse donc que l'hôte inconnu (`seat_quota_reached`, 403). Le quota est la quantité de l'abonnement `active`, `trialing` ou `past_due` de l'organisation, et rien d'autre |
 | GET | `/servers` | — | `{ data: Server[] }` de l'organisation active — un `member` ne voit que les serveurs qui lui sont attribués, `admin` et `owner` les voient tous. `stale` est calculé : aucun heartbeat depuis 24 h. Il ne change ni le statut ni le droit d'usage. `usage` porte le dernier échantillon de `metrics` (`at`, `disk`, `ram`, `load`) ou `null` |
 | GET | `/servers/:id` | — | `{ data: Server }` avec `metrics` des 7 derniers jours et `events`. `not_found` (404) pour un `member` à qui ce serveur n'est pas attribué |
 | POST | `/servers/:id/assign` | `{ user_id }` ou `{ invite_email }` | `{ data: Server }`. Rôle `admin`, et abonnement en cours. `user_id` doit être membre de l'organisation, sinon `not_found` (404) avec un `fix`. `invite_email` déjà membre attribue directement ; sinon l'invitation part et le serveur porte `pending_assignment_email` jusqu'à l'acceptation, qui l'attribue et pousse ses clés |
 | POST | `/servers/:id/unassign` | — | `{ data: Server }`. Clés retirées, attribution en attente effacée |
 | POST | `/servers/:id/revoke-device` | `{ device_id }` | 204. Cet appareil ne reçoit plus ce serveur ; les autres appareils de la personne restent |
-| DELETE | `/servers/:id` | — | 204. Rôle `admin`. Le serveur passe `revoked`, l'attribution et les clés tombent tout de suite, `DecommissionServer` est programmé à sept jours |
+| DELETE | `/servers/:id` | — | 204. Rôle `admin`. En deux temps : sur un serveur actif, il passe `revoked`, l'attribution et les clés tombent tout de suite et `DecommissionServer` est programmé à sept jours ; sur un serveur **déjà `revoked`**, la ligne est effacée sur-le-champ, avec ses alertes et ses révocations d'appareils. Un second appel ne repousse jamais l'échéance. `not_found` (404) quand il n'y a plus de ligne |
 
 ### Agent
 
 | Méthode | Route | Corps | Réponse |
 | --- | --- | --- | --- |
-| POST | `/agent/exchange` | `{ enrollment_token, host_public_key, agent_version, arch }` | `{ server_token }`. Le jeton d'enrôlement est brûlé |
+| POST | `/agent/exchange` | `{ enrollment_token, host_public_key, agent_version, arch }` | `{ server_token }`. Le jeton d'enrôlement est brûlé — son échéance tombe sous la même écriture conditionnelle, donc deux échanges concurrents n'en font qu'un et le second est refusé en 409 `enrollment_used`. Le serveur passe `active` avec son nouveau jeton, celui qu'il portait avant ne vaut plus |
 | GET | `/agent/state` | — | `{ entitlement: "valid" \| "grace" \| "suspended", valid_until, authorized_keys[], target_version, minimum_version, hostname, module_params }`. `target_version` est la dernière version publiée du canal du serveur (`Server.channel`, `stable` par défaut ; un serveur `beta` voit aussi les versions `stable`) pour son architecture, jamais plus ancienne que celle qu'il porte déjà. `minimum_version` est le plancher que la plateforme retient pour ce serveur : la dernière version d'agent qu'elle l'a vu exécuter, `null` tant qu'elle n'en a vu aucune |
 | POST | `/agent/heartbeat` | `{ disk, ram, load, sessions[], stack_version, modules[], agent_version? }` | 204. L'échantillon rejoint `Server.metrics`, fenêtre glissante de 7 jours |
 | GET | `/agent/release/:version` | — | 303 vers une URL R2 signée, valable 5 minutes, pour l'architecture du serveur. `release_not_found` (404) si la version n'existe pas pour cette architecture |
@@ -77,10 +77,14 @@ Les deux redirections portent l'en-tête `x-pupitre-release-storage` : `r2` quan
 
 | Méthode | Route | Auth | Réponse |
 | --- | --- | --- | --- |
-| GET | `/releases/app/latest?channel=stable` | session | `{ data: AppRelease }` : la version la plus haute du canal, ses notes et un `build` par système publié. `channel` vaut `stable` par défaut ; un canal `beta` voit aussi les versions `stable`. `app_release_not_found` (404) tant que rien n'est publié — la console dit alors qu'il n'y a rien à télécharger plutôt que d'afficher un lien mort |
-| GET | `/releases/app/:version` | session | `{ data: AppRelease }` pour une version précise, quel que soit son canal ; `app_release_not_found` (404) sinon |
+| GET | `/releases/app?channel=stable&limit=10` | aucune | `{ data: AppRelease[] }`, de la plus récente à la plus ancienne : ce que la page de téléchargement du site lit au build. Liste vide, jamais 404 |
+| GET | `/releases/app/latest?channel=stable` | aucune | `{ data: AppRelease }` : la version la plus haute du canal, ses notes et un `build` par artefact publié. `channel` vaut `stable` par défaut ; un canal `beta` voit aussi les versions `stable`. `app_release_not_found` (404) tant que rien n'est publié — la console dit alors qu'il n'y a rien à télécharger plutôt que d'afficher un lien mort |
+| GET | `/releases/app/:version` | aucune | `{ data: AppRelease }` pour une version précise, quel que soit son canal ; `app_release_not_found` (404) sinon |
+| GET | `/releases/app/:version/:os/:arch` | aucune | 303 vers l'artefact, le lien stable que le site et les pages d'aide écrivent ; `app_release_not_found` (404) pour une architecture que personne n'a construite |
 
-`AppRelease` vaut `{ version, channel, notes, published_at, builds: [{ os, arch, url, sha256, signature }] }`. Les notes appartiennent à la version : la ligne publiée en premier les porte pour toute la version. `url` est publique et durable (GitHub Releases privées ou R2), contrairement aux URL signées de l'agent : l'app desktop n'est pas un binaire poussé sur un serveur, elle se télécharge depuis un navigateur.
+`AppRelease` vaut `{ version, channel, notes, published_at, builds: [{ os, arch, format, url, bytes, sha256, signature }] }`, une entrée de `builds` par fichier téléchargeable — deux sur macOS, une par architecture. `arch` vaut `arm64`, `x64` ou `universal` : le vocabulaire d'Electron, qui n'est pas celui du catalogue de l'agent (`amd64`, `arm64`). Les notes appartiennent à la version : la ligne publiée en premier les porte pour toute la version.
+
+Ces quatre routes ne demandent aucune session, contrairement à celles de l'agent : les artefacts de l'app sont publics — ils vivent sur `dl.pupitre.studio` — là où le binaire de l'agent ne l'est pas.
 
 ### Organisation
 
@@ -91,7 +95,8 @@ Les deux redirections portent l'en-tête `x-pupitre-release-storage` : `r2` quan
 | GET | `/orgs/:id/events` | admin | audit paginé : `?limit=&offset=&action=` → `{ data: Event[], total }`, du plus récent au plus ancien, chaque ligne portant `actor_user_id` et `actor_email` |
 | GET | `/orgs/:id/subscription` | owner | miroir Stripe : produit, quantité, statut, fin de période |
 | POST | `/orgs/:id/checkout` | owner | `{ quantity, interval }` → `{ url }` Stripe Checkout (Managed Payments) |
-| POST | `/orgs/:id/portal` | owner | `{ url }` portail client Stripe |
+| POST | `/orgs/:id/seats` | owner | `{ quantity }` (1 à 500) → `{ data: Subscription }` : la quantité de l'abonnement `active`, `trialing` ou `past_due` est portée à `quantity` chez Stripe puis dans le miroir, et le journal garde `subscription.updated` avec l'ancienne et la nouvelle valeur. Stripe proratise sur la période en cours ; pendant l'essai rien n'est facturé et la nouvelle quantité s'applique à sa fin. `conflict` (409) sans abonnement en cours, ou sous le nombre de serveurs qui occupent un siège |
+| POST | `/orgs/:id/portal` | owner | `{ url }` portail client Stripe : moyen de paiement, factures, résiliation — jamais la quantité |
 
 ### Plateforme
 
@@ -101,7 +106,8 @@ Les deux redirections portent l'en-tête `x-pupitre-release-storage` : `r2` quan
 | POST | `/admin/servers/:id/suspend` | platform_admin | `{ reason }` |
 | POST | `/admin/releases` | platform_admin | publier une version de l'agent : `{ version, arch, sha256, signature, r2_key, channel? }`, `channel` valant `beta` par défaut. `version` est du semver, `sha256` 64 caractères hexadécimaux, `signature` une signature Ed25519 en base64 (88 caractères) : sinon `validation` (422). Réponse `{ data: Release }`, idempotente sur `(version, arch)` : 201 à la création, 200 si la ligne existe déjà à l'identique, `conflict` (409) si elle existe avec une autre empreinte |
 | POST | `/admin/releases/:version/promote` | platform_admin | `{ channel: "stable" }` : toutes les architectures de la version passent dans le canal et la version devient cible dans `/agent/state`. Réponse `{ data: Release[] }` ; `release_not_found` (404) si la version n'existe pas |
-| POST | `/admin/app-releases` | platform_admin | publier une version de l'app pour un système : `{ version, os, arch?, url, sha256, signature?, notes, channel? }`, `channel` valant `beta` par défaut. `os` vaut `macos`, `windows` ou `linux` ; `version` est du semver, `url` une URL absolue, `sha256` 64 caractères hexadécimaux, `notes` non vides : sinon `validation` (422). Réponse `{ data: AppReleaseBuild }`, idempotente sur `(version, os)` : 201 à la création, 200 si la ligne existe déjà à l'identique, `conflict` (409) si elle existe avec une autre empreinte. Appelé par la CI de l'app (APP-13, APP-16) |
+| POST | `/admin/app-releases` | platform_admin | publier un artefact de l'app : `{ version, os, arch, format, url, bytes, sha256, signature?, notes, channel? }`, `channel` valant `beta` par défaut. `os` vaut `macos`, `windows` ou `linux` ; `arch` vaut `arm64`, `x64` ou `universal` ; `format` est l'extension du fichier (`dmg`, `exe`, `AppImage`, `deb`) ; `version` est du semver, `url` une URL absolue, `bytes` la taille du fichier, `sha256` 64 caractères hexadécimaux, `notes` non vides : sinon `validation` (422). Réponse `{ data: AppReleaseBuild }`, idempotente sur `(version, os, arch)` : 201 à la création, 200 si la ligne existe déjà à l'identique, `conflict` (409) si elle existe avec une autre empreinte. Appelé par la CI de l'app, un appel par fichier |
+| POST | `/admin/app-releases/:version/promote` | platform_admin | `{ channel: "stable" }` : tous les artefacts de la version passent dans le canal, et la page de téléchargement comme le flux de mise à jour du canal la désignent. Réponse `{ data: AppRelease }` ; `app_release_not_found` (404) si la version n'existe pas |
 
 ### Webhooks
 
@@ -145,7 +151,7 @@ Forme unique : `{ error: { code, message, fix? } }`. Codes stables dans `package
 | `key_not_ed25519` | clé publique d'un autre type que ed25519 (422) |
 | `rate_limited` | dépassement de débit, avec `retry-after` (429) |
 | `enrollment_used`, `enrollment_expired` | jeton d'enrôlement déjà échangé ou expiré (409) |
-| `seat_quota_reached` | quota de sièges de l'abonnement atteint (403), avec un `fix` vers la facturation |
+| `seat_quota_reached` | quota de sièges de l'abonnement atteint (403), avec un `fix` vers `POST /orgs/:id/seats` |
 | `entitlement_required` | aucun abonnement en cours sur l'organisation : `requireEntitlement` (403), avec un `fix` vers `/dashboard/billing` |
 | `server_suspended` | l'abonnement de l'organisation est suspendu : `requireEntitlement` (403), avec le même `fix` |
 | `release_not_found` | version de l'agent inconnue |

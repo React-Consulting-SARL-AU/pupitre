@@ -1,11 +1,8 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { RefreshCw } from "lucide-react";
-import { useEffect } from "react";
 import { useHarden } from "../../stores/harden";
 import { InstallStepRow } from "../install/install-step-row";
-import { Button } from "../ui/button";
-import { Callout } from "../ui/callout";
 import { PageHeader } from "../ui/page-header";
+import { StepFailure } from "../ui/step-failure";
 import { WaitingNotice } from "../ui/waiting-notice";
 import { OnboardingHardenOutcome } from "./onboarding-harden-outcome";
 
@@ -30,12 +27,6 @@ export function OnboardingHardenScreen({
   const harden = useHarden((state) => state.harden);
   const steps = useHarden((state) => state.steps);
   const start = useHarden((state) => state.start);
-
-  useEffect(() => {
-    if (useHarden.getState().harden.status === "idle") {
-      start(serverId);
-    }
-  }, [serverId, start]);
 
   return (
     <section className="flex flex-col gap-section">
@@ -71,17 +62,7 @@ export function OnboardingHardenScreen({
       ) : null}
 
       {harden.status === "failed" ? (
-        <Callout
-          action={
-            <Button icon={RefreshCw} onClick={() => start(serverId)}>
-              {t("common.retry")}
-            </Button>
-          }
-          fix={harden.error.fix}
-          tone="danger"
-        >
-          {harden.error.message}
-        </Callout>
+        <StepFailure error={harden.error} onRetry={() => start(serverId)} />
       ) : null}
 
       {harden.status === "done" ? (

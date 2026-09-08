@@ -26,6 +26,9 @@ const FR = {
   device_exists_fix:
     "Utilisez l'appareil déjà enregistré, ou ajoutez-en un avec une autre clé.",
   server_not_found: "Ce serveur n'existe pas.",
+  organization_forbidden: "Cette organisation n'est pas la vôtre.",
+  organization_forbidden_fix:
+    "Choisissez une organisation dont vous êtes membre.",
   assignee_not_a_member:
     "Cette personne n'est pas membre de cette organisation.",
   assignee_not_a_member_fix:
@@ -54,7 +57,13 @@ const FR = {
   seat_quota_reached:
     "Votre abonnement couvre {quota} serveurs, ils sont tous utilisés.",
   seat_quota_reached_fix:
-    "Ajoutez un siège dans le portail de facturation Stripe (POST /orgs/{organization}/portal), ou supprimez un serveur.",
+    "Ajoutez des sièges depuis la facturation de la console (POST /orgs/{organization}/seats), ou supprimez un serveur.",
+  subscription_missing: "Cette organisation n'a aucun abonnement à ajuster.",
+  subscription_missing_fix:
+    "Démarrez l'essai ou commandez des sièges depuis /dashboard/billing.",
+  seats_below_usage: "Cette organisation occupe déjà {used} sièges.",
+  seats_below_usage_fix:
+    "Supprimez d'abord des serveurs, puis réduisez le nombre de sièges.",
   entitlement_required: "Cette organisation n'a aucun abonnement en cours.",
   entitlement_required_fix:
     "Démarrez votre essai de quatorze jours, sans carte, depuis /dashboard/billing.",
@@ -131,6 +140,8 @@ const EN: Record<MessageKey, string> = {
   device_exists_fix:
     "Use the device already registered, or add one with another key.",
   server_not_found: "This server does not exist.",
+  organization_forbidden: "This organization is not yours.",
+  organization_forbidden_fix: "Pick an organization you belong to.",
   assignee_not_a_member: "This person is not a member of this organization.",
   assignee_not_a_member_fix:
     "Invite them first, or assign the server to their email address.",
@@ -158,7 +169,12 @@ const EN: Record<MessageKey, string> = {
   seat_quota_reached:
     "Your subscription covers {quota} servers, and they are all in use.",
   seat_quota_reached_fix:
-    "Add a seat in the Stripe billing portal (POST /orgs/{organization}/portal), or delete a server.",
+    "Add seats from the console billing page (POST /orgs/{organization}/seats), or delete a server.",
+  subscription_missing: "This organization has no subscription to resize.",
+  subscription_missing_fix:
+    "Start the trial or order seats from /dashboard/billing.",
+  seats_below_usage: "This organization already seats {used} servers.",
+  seats_below_usage_fix: "Delete servers first, then lower the seat count.",
   entitlement_required: "This organization has no active subscription.",
   entitlement_required_fix:
     "Start your fourteen-day trial, no card needed, from /dashboard/billing.",

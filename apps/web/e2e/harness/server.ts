@@ -1,6 +1,7 @@
 import { bootApiTestServer, resetDb } from "@pupitre/api/testing"
 import {
   postStripeWebhook,
+  remoteSubscription,
   stripeEvent,
   stripeSubscriptionObject,
   useFakeBilling,
@@ -23,9 +24,12 @@ const TRIAL_DAYS_MS = 14 * 86_400_000
 // biome-ignore lint/correctness/useHookAtTopLevel: the test harness reads as a hook by name only
 const billing = useFakeBilling()
 
+type SeededStatus = "enrolling" | "active" | "grace" | "suspended" | "revoked"
+
 interface SeedServerBody {
   email: string
   name: string
+  status?: SeededStatus
 }
 
 interface TrialBody {
@@ -62,6 +66,7 @@ async function seedServer(body: SeedServerBody): Promise<Response> {
   const { server } = await createServer({
     organizationId: await organizationOf(body.email),
     name: body.name,
+    status: body.status,
   })
 
   return json({ id: server.id, name: server.name })
@@ -70,6 +75,18 @@ async function seedServer(body: SeedServerBody): Promise<Response> {
 /** Stripe alone opens a subscription: the harness plays its webhook, nothing else. */
 async function openTrial(body: TrialBody): Promise<Response> {
   const organizationId = await organizationOf(body.email)
+
+  billing.put(
+    remoteSubscription({
+      id: `sub_e2e_${organizationId}`,
+      customerId: `cus_e2e_${organizationId}`,
+      organizationId,
+      status: "trialing",
+      quantity: 1,
+      currentPeriodEnd: new Date(Date.now() + TRIAL_DAYS_MS),
+    })
+  )
+
   const received = await postStripeWebhook<{ handled: boolean }>(
     stripeEvent(
       "customer.subscription.created",

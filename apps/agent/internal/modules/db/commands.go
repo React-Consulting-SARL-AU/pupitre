@@ -2,6 +2,7 @@ package db
 
 import (
 	"encoding/json"
+	"pupitre.studio/agent/internal/i18n"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
@@ -61,13 +62,13 @@ func command(runner *modules.Engine, run func(engine, *modules.Context, string) 
 			Name   string `json:"name"`
 		}
 		if err := json.Unmarshal(raw, &params); err != nil {
-			return nil, protocol.NewError(contract.ErrorBadRequest, "paramètres illisibles : "+err.Error())
+			return nil, protocol.NewError(contract.ErrorBadRequest, i18n.T("command.params.unreadable", err.Error()))
 		}
 
 		chosen, known := engines[params.Engine]
 		if !known {
-			return nil, protocol.NewError(contract.ErrorBadRequest, "moteur inconnu : "+params.Engine).
-				WithFix("Choisis mysql, postgres ou mongodb.")
+			return nil, protocol.NewError(contract.ErrorBadRequest, i18n.T("db.engine.unknown", params.Engine)).
+				WithFix(i18n.T("db.engine.unknown.fix"))
 		}
 
 		var result any

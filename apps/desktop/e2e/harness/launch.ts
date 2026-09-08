@@ -6,7 +6,7 @@ import {
   _electron as electron,
   type Page,
 } from "@playwright/test";
-import { ANSWERS, SERVERS } from "./fixtures";
+import { ACCOUNT, ANSWERS, SERVERS } from "./fixtures";
 
 const ENTRY = "out/main/index.cjs";
 const WIDTH = 1280;
@@ -18,6 +18,7 @@ export interface Running {
 }
 
 interface Harness {
+  account: unknown;
   answers: Record<string, unknown>;
   height: number;
   servers: unknown;
@@ -26,6 +27,7 @@ interface Harness {
 
 function answerFromFixtures(app: ElectronApplication): Promise<void> {
   const harness: Harness = {
+    account: ACCOUNT,
     answers: ANSWERS as Record<string, unknown>,
     height: HEIGHT,
     servers: SERVERS,
@@ -41,6 +43,8 @@ function answerFromFixtures(app: ElectronApplication): Promise<void> {
       ipcMain.handle(channel, (_event, ...args: unknown[]) => reply(...args));
     };
 
+    answer("account:state", () => fixtures.account);
+    answer("account:refresh", () => fixtures.account);
     answer("servers", () => fixtures.servers);
     answer("ssh-hosts", () => []);
     answer("fleet:list", () => ({

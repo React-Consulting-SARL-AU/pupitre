@@ -1,6 +1,7 @@
 ---
 import Base from "../layouts/Base.astro"
 import { localeFromPath, localizePath, translator } from "../lib/i18n"
+import CtaPair from "./CtaPair.astro"
 
 const locale = localeFromPath(Astro.url.pathname)
 const t = translator(locale)
@@ -11,21 +12,12 @@ const t = translator(locale)
     <p class="pill">404</p>
     <h1 class="heading-1 mx-auto mt-7 max-w-2xl">{t("notFound.headline")}</h1>
     <p class="lead mx-auto mt-7 max-w-xl text-ink-2">{t("notFound.lead")}</p>
-    <div class="mt-10 flex flex-wrap justify-center gap-3">
-      <a
-        data-emphasis="main"
-        href={localizePath("/", locale)}
-        class="btn btn-lg btn-primary"
-      >
-        {t("notFound.home")}
-      </a>
-      <a
-        data-emphasis="secondary"
-        href={localizePath("/docs/", locale)}
-        class="btn btn-lg btn-secondary"
-      >
-        {t("notFound.docs")}
-      </a>
-    </div>
+    <CtaPair
+      main={{ href: localizePath("/", locale), label: t("notFound.home") }}
+      secondary={{
+        href: localizePath("/docs/", locale),
+        label: t("notFound.docs"),
+      }}
+    />
   </section>
 </Base>

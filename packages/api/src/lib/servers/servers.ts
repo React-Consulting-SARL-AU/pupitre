@@ -6,7 +6,7 @@ import { getPrisma, withOrganization } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { metricsOf } from "./agent-state"
 import { settleAssignment, settleAssignments } from "./assign"
-import { authorizedKeysForUser } from "./authorized-keys"
+import { keyReadyByServer } from "./authorized-keys"
 import { RELEASED_ENROLLMENT } from "./enrollment-key"
 import { decommissionDeadline } from "./expire"
 import type { MetricSample } from "./metrics"
@@ -23,6 +23,8 @@ export interface ServerForUser {
   host_fingerprint: string | null
   status: ServerStatus
   key_ready: boolean
+  /** The organization the server belongs to: a member of several knows where each comes from. */
+  organization: { id: string; name: string }
 }
 
 export interface ServerUsage {
@@ -48,6 +50,8 @@ export interface ServerView {
   pending_assignment_email: string | null
   last_heartbeat_at: Date | null
   entitlement_valid_until: Date | null
+  /** When the row disappears for good. Null as long as nothing has revoked it. */
+  decommission_at: Date | null
   usage: ServerUsage | null
   alerts: AlertView[]
   created_at: Date
@@ -106,6 +110,7 @@ export function toServerView(
     pending_assignment_email: server.pendingAssignmentEmail,
     last_heartbeat_at: server.lastHeartbeatAt,
     entitlement_valid_until: server.entitlementValidUntil,
+    decommission_at: server.decommissionAt,
     usage: lastUsage(server),
     alerts,
     created_at: server.createdAt,
@@ -126,14 +131,13 @@ export async function listServersForUser(
   userId: string
 ): Promise<ServerForUser[]> {
   const prisma = getPrisma()
-  const [servers, keys] = await Promise.all([
-    prisma.server.findMany({
-      where: { assignedUserId: userId },
-      orderBy: { createdAt: "asc" },
-    }),
-    authorizedKeysForUser(prisma, userId),
-  ])
-  const keyReady = keys.length > 0
+  const servers = await prisma.server.findMany({
+    where: { assignedUserId: userId },
+    orderBy: { createdAt: "asc" },
+    include: { organization: { select: { id: true, name: true } } },
+  })
+
+  const keyReady = await keyReadyByServer(prisma, userId, servers)
 
   return servers.map((server) => ({
     id: server.id,
@@ -143,7 +147,11 @@ export async function listServersForUser(
     user: server.sshUser,
     host_fingerprint: server.hostFingerprint,
     status: server.status,
-    key_ready: keyReady,
+    key_ready: keyReady.get(server.id) ?? false,
+    organization: {
+      id: server.organization.id,
+      name: server.organization.name,
+    },
   }))
 }
 
@@ -216,16 +224,42 @@ export async function getServerForOrganization(
   }
 }
 
+/**
+ * What a deletion did to the server.
+ *
+ * The first revokes access and schedules the decommission; the second, on a
+ * server already revoked, erases the row. A deletion that only knew how to
+ * wait would leave the server sitting in the list forever, and a second
+ * click that merely pushed the deadline back would delay the very thing it
+ * claims to hasten.
+ */
+export type ServerDeletion = "revoked" | "purged"
+
 export async function deleteServerForOrganization(
   actor: { userId: string; organizationId: string },
   serverId: string,
   acceptLanguage: string | null = null
-): Promise<boolean> {
+): Promise<ServerDeletion | null> {
   const prisma = withOrganization(getPrisma(), actor.organizationId)
   const server = await prisma.server.findFirst({ where: { id: serverId } })
 
   if (!server) {
-    return false
+    return null
+  }
+
+  if (server.status === "revoked") {
+    await prisma.server.deleteMany({ where: { id: server.id } })
+
+    await recordEvent({
+      action: "server.purged",
+      actorUserId: actor.userId,
+      organizationId: actor.organizationId,
+      targetType: "server",
+      targetId: server.id,
+      payload: { host: server.host, name: server.name },
+    })
+
+    return "purged"
   }
 
   const decommissionAt = decommissionDeadline()
@@ -256,5 +290,5 @@ export async function deleteServerForOrganization(
     acceptLanguage,
   })
 
-  return true
+  return "revoked"
 }

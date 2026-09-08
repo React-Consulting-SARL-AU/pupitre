@@ -25,6 +25,19 @@ const RADIUS_TOKEN_RE = /--radius-([a-z0-9]+)\s*:/g
 const ARBITRARY_RADIUS_RE = /\brounded(?:-[a-z]+)*-\[/
 const INLINE_RADIUS_RE = /\bborderRadius\b|border-radius\s*:/
 
+/**
+ * A duration or an easing written by hand: `@pupitre/design` exposes the motion
+ * as `transition-fast`, `transition-soft`, `animate-enter` and `animate-exit`.
+ */
+const ARBITRARY_MOTION_RE = /\bduration-\[|\bease-\[/
+
+/**
+ * `ink-4` is the one ink that does not reach 4.5:1: it belongs to a placeholder
+ * and to what is disabled, never to a sentence somebody has to read.
+ */
+const INK_4_RE = /(?:[a-z-]+:)*text-ink-4/g
+const STATE_VARIANT_RE = /(?:placeholder|disabled):/
+
 const ROUNDED_CLASS_RE =
   /\brounded(?:-(?:t|r|b|l|s|e|tl|tr|br|bl|ss|se|es|ee))?(?:-([a-z0-9]+))?\b/g
 
@@ -80,6 +93,23 @@ describe("les rayons de la console", () => {
     expect(files.length).toBeGreaterThan(SOURCES_AT_LEAST)
   })
 
+  it("n'écrit aucune durée ni aucune courbe à la main", () => {
+    const offenders: string[] = []
+
+    for (const file of files) {
+      const relative = path.relative(CONSOLE_ROOT, file)
+      const found = offendingLines(readFileSync(file, "utf8"), (line) =>
+        ARBITRARY_MOTION_RE.test(line)
+          ? "a duration or an easing instead of a utility from @pupitre/design"
+          : null
+      )
+
+      offenders.push(...found.map((entry) => `${relative}:${entry}`))
+    }
+
+    expect(offenders).toEqual([])
+  })
+
   it("n'écrit aucun rayon à la main", () => {
     const offenders: string[] = []
 
@@ -115,6 +145,26 @@ describe("les rayons de la console", () => {
         const step = match[1]
 
         if (!(step && scale.has(step))) {
+          offenders.push(`${relative}: ${match[0]}`)
+        }
+      }
+    }
+
+    expect(offenders).toEqual([])
+  })
+})
+
+describe("les encres de la console", () => {
+  const files = sources(SOURCE_ROOT)
+
+  it("ne pose text-ink-4 que sur un placeholder ou un désactivé", () => {
+    const offenders: string[] = []
+
+    for (const file of files) {
+      const relative = path.relative(CONSOLE_ROOT, file)
+
+      for (const match of readFileSync(file, "utf8").matchAll(INK_4_RE)) {
+        if (!STATE_VARIANT_RE.test(match[0])) {
           offenders.push(`${relative}: ${match[0]}`)
         }
       }

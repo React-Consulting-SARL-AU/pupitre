@@ -15,7 +15,7 @@ export const footer = {
     "footer.legal.dpa": "Data processing",
     "footer.status": "Status",
     "footer.site": "pupitre.studio",
-    "footer.company": "© {year} Pupitre LLC",
+    "footer.company": "© {year} {entity}",
   },
   fr: {
     "footer.theme": "Thème",
@@ -33,6 +33,6 @@ export const footer = {
     "footer.legal.dpa": "Traitement des données",
     "footer.status": "Statut",
     "footer.site": "pupitre.studio",
-    "footer.company": "© {year} Pupitre LLC",
+    "footer.company": "© {year} {entity}",
   },
 }

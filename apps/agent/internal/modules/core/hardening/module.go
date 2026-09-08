@@ -25,7 +25,7 @@ const (
 
 var Packages = []string{"ufw", "fail2ban", "python3-systemd"}
 
-const fragmentTemplate = `PermitRootLogin no
+const fragmentTemplate = `PermitRootLogin %s
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 PubkeyAuthentication yes
@@ -43,6 +43,16 @@ maxretry = 5
 findtime = 10m
 bantime = 1h
 `
+
+// What the owner chose for SSH: the alternate port, and whether root keeps a way in.
+type Options struct {
+	SSH443   bool
+	KeepRoot bool
+}
+
+func options(ctx *modules.Context) Options {
+	return Options{SSH443: ctx.Bool("ssh_443"), KeepRoot: ctx.Bool("keep_root")}
+}
 
 type Module struct{}
 
@@ -113,7 +123,7 @@ func (Module) Configure(ctx *modules.Context) error {
 	}
 
 	return ctx.Step("prepare-sshd-fragment", func() (modules.Outcome, error) {
-		content := Fragment(ctx.Bool("ssh_443"))
+		content := Fragment(options(ctx))
 		if file.Same(ctx, PreparedPath, content) {
 			return modules.Skipped, nil
 		}
@@ -222,9 +232,14 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	return status, nil
 }
 
-func Fragment(ssh443 bool) []byte {
-	content := fmt.Sprintf(fragmentTemplate, User)
-	if ssh443 {
+func Fragment(o Options) []byte {
+	rootLogin, allowed := "no", User
+	if o.KeepRoot {
+		rootLogin, allowed = "prohibit-password", User+" root"
+	}
+
+	content := fmt.Sprintf(fragmentTemplate, rootLogin, allowed)
+	if o.SSH443 {
 		content += "Port 22\nPort 443\n"
 	}
 

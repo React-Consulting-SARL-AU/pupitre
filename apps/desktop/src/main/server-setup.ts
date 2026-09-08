@@ -1,3 +1,4 @@
+import type { ErrorPhrase } from "@shared/agent";
 import type { KeyChoice, Server, ServerDraft } from "@shared/servers";
 import { forgetHostKey } from "./host-keys";
 import {
@@ -26,12 +27,12 @@ const MAX_PORT = 65_535;
 const NAME_LIMIT = 60;
 
 export class SetupError extends Error {
-  readonly fix: string;
+  readonly phrase: ErrorPhrase;
 
-  constructor(message: string, fix: string) {
-    super(message);
+  constructor(id: string, values?: Record<string, string | number>) {
+    super(id);
     this.name = "SetupError";
-    this.fix = fix;
+    this.phrase = values ? { id, values } : { id };
   }
 }
 
@@ -42,9 +43,13 @@ export interface ServerCreation {
   copyId: string | null;
 }
 
-function refuse(condition: boolean, message: string, fix: string): void {
+function refuse(
+  condition: boolean,
+  id: string,
+  values?: Record<string, string | number>
+): void {
   if (!condition) {
-    throw new SetupError(message, fix);
+    throw new SetupError(id, values);
   }
 }
 
@@ -72,7 +77,7 @@ async function keyFor(
       : await generateKey(paths.keysDir, id);
   } catch (cause) {
     if (cause instanceof KeyError) {
-      throw new SetupError(cause.message, cause.fix);
+      throw new SetupError(cause.phrase.id, cause.phrase.values);
     }
     throw cause;
   }
@@ -90,17 +95,13 @@ export async function addServer(
   const user = draft.user.trim();
   const name = draft.name.trim().slice(0, NAME_LIMIT) || host;
 
-  refuse(
-    HOST.test(host),
-    `« ${host} » ne ressemble pas à une adresse de serveur.`,
-    "Une adresse IP ou un nom d'hôte, sans espace ni ponctuation — « 203.0.113.10 » ou « vps.exemple.net »."
-  );
+  refuse(HOST.test(host), "refusal.setup.host", { host });
   refuse(
     Number.isInteger(draft.port) &&
       draft.port >= MIN_PORT &&
       draft.port <= MAX_PORT,
-    `Le port ${draft.port} n'existe pas.`,
-    "Un port entre 1 et 65535 : 22 pour un serveur SSH ordinaire."
+    "refusal.setup.port",
+    { port: draft.port }
   );
 
   const id = freshId(servers);
@@ -123,11 +124,7 @@ export async function addServer(
     };
   }
 
-  refuse(
-    USER.test(user),
-    `« ${user} » n'est pas un nom d'utilisateur.`,
-    "Le compte à ouvrir sur le serveur : « root » au premier contact, « dev » une fois la machine durcie."
-  );
+  refuse(USER.test(user), "refusal.setup.user", { user });
 
   const pair = await keyFor(draft.key, id, paths);
   const server: Server = {

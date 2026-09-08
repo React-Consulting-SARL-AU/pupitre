@@ -36,6 +36,15 @@ func (r *Registry) Register(module Module) {
 		panic(fmt.Sprintf("modules: %q is already registered", manifest.ID))
 	}
 
+	// A managed value is derived from a connection the app holds. A module
+	// without one has nothing to derive it from, so the field could only ever be
+	// typed — and a typed field is not managed.
+	for _, field := range manifest.Fields {
+		if field.Managed && manifest.Connection == "" {
+			panic(fmt.Sprintf("modules: %q marks %q managed without declaring a connection", manifest.ID, field.Key))
+		}
+	}
+
 	r.modules[manifest.ID] = module
 }
 

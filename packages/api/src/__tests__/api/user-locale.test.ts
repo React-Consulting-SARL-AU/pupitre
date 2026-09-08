@@ -95,16 +95,16 @@ describe("la langue de l'utilisateur", () => {
   it("part de l'en-tête Accept-Language à l'inscription", async () => {
     const { prisma } = await bootApiTestServer()
 
-    await signUpByMagicLink("grace@test.local", "en-US,en;q=0.9,fr;q=0.8")
+    await signUpByMagicLink("grace@test.local", "fr-FR,fr;q=0.9,en;q=0.8")
 
     const user = await prisma.user.findUniqueOrThrow({
       where: { email: "grace@test.local" },
     })
 
-    expect(user.locale).toBe("en")
+    expect(user.locale).toBe("fr")
   })
 
-  it("retombe sur le français quand l'en-tête ne dit rien de connu", async () => {
+  it("retombe sur l'anglais quand l'en-tête ne dit rien de connu", async () => {
     const { prisma } = await bootApiTestServer()
 
     await signUpByMagicLink("kurt@test.local", "de-DE,de;q=0.9")
@@ -113,7 +113,7 @@ describe("la langue de l'utilisateur", () => {
       where: { email: "kurt@test.local" },
     })
 
-    expect(user.locale).toBe("fr")
+    expect(user.locale).toBe("en")
   })
 
   it("suspend en anglais un propriétaire dont la langue est en, hors requête", async () => {

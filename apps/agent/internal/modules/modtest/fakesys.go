@@ -3,6 +3,7 @@ package modtest
 import (
 	"fmt"
 	"io/fs"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -33,6 +34,7 @@ type FakeSys struct {
 	Answers    map[string]string
 	Failures   map[string]string
 	Users      map[string]string
+	Groups     map[string][]string
 	Tools      map[string]string
 	Sessions   map[string]bool
 	Windows    map[string]int
@@ -79,6 +81,7 @@ func NewFakeSys() *FakeSys {
 		Answers:    map[string]string{},
 		Failures:   map[string]string{},
 		Users:      map[string]string{"root": "/root"},
+		Groups:     map[string][]string{},
 		Tools:      map[string]string{},
 		Sessions:   map[string]bool{},
 		Windows:    map[string]int{},
@@ -148,7 +151,7 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 	f.Calls = append(f.Calls, cmd)
 
 	if len(cmd.Argv) == 0 {
-		return sys.Output{}, fmt.Errorf("commande vide")
+		return sys.Output{}, fmt.Errorf("empty command")
 	}
 
 	program := cmd.Argv[0]
@@ -186,6 +189,8 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 		return f.id(cmd.Argv[1:])
 	case "useradd":
 		return f.useradd(cmd.Argv[1:])
+	case "usermod":
+		return f.usermod(cmd.Argv[1:])
 	case "ufw":
 		return f.ufw(cmd.Argv[1:])
 	case "curl":
@@ -657,7 +662,31 @@ func (f *FakeSys) id(args []string) (sys.Output, error) {
 		return f.fail("id", "id: '"+name+"': no such user")
 	}
 
-	return sys.Output{Stdout: name + "\n"}, nil
+	return sys.Output{Stdout: strings.Join(append([]string{name}, f.Groups[name]...), " ") + "\n"}, nil
+}
+
+// usermod -aG <group> <user>: the only form the modules use, and the one that makes joining a group replayable.
+func (f *FakeSys) usermod(args []string) (sys.Output, error) {
+	name := args[len(args)-1]
+	if _, ok := f.Users[name]; !ok {
+		return f.fail("usermod", "usermod: user '"+name+"' does not exist")
+	}
+
+	for index, arg := range args {
+		if arg != "-aG" && arg != "-G" {
+			continue
+		}
+
+		for _, group := range strings.Split(next(args, index), ",") {
+			if !slices.Contains(f.Groups[name], group) {
+				f.Groups[name] = append(f.Groups[name], group)
+			}
+		}
+
+		f.mutate("usermod " + name + " " + next(args, index))
+	}
+
+	return sys.Output{}, nil
 }
 
 func (f *FakeSys) useradd(args []string) (sys.Output, error) {

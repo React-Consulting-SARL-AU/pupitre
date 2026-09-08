@@ -52,6 +52,37 @@ export async function loadMe({ user, organizationId, role }: MeInput) {
   }
 }
 
+/**
+ * The active organization of this session, and this session alone.
+ *
+ * The console next to it keeps its own: the switch only affects the device
+ * that requested it. An organization the caller isn't a member of is refused
+ * without saying whether it exists.
+ */
+export async function setActiveOrganization(
+  userId: string,
+  sessionId: string,
+  organizationId: string
+): Promise<boolean> {
+  const prisma = getPrisma()
+
+  const membership = await prisma.member.findFirst({
+    where: { userId, organizationId },
+    select: { id: true },
+  })
+
+  if (!membership) {
+    return false
+  }
+
+  await prisma.session.updateMany({
+    where: { id: sessionId, userId },
+    data: { activeOrganizationId: organizationId },
+  })
+
+  return true
+}
+
 export async function setUserLocale(
   userId: string,
   locale: Locale

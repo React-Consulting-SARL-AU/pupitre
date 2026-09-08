@@ -1,0 +1,28 @@
+---
+import { SUB_PROCESSORS } from "@pupitre/shared/legal"
+import { localeFromPath, translator } from "../lib/i18n"
+
+const locale = localeFromPath(Astro.url.pathname)
+const t = translator(locale)
+---
+
+<table>
+  <thead>
+    <tr>
+      <th>{t("legal.subProcessor")}</th>
+      <th>{t("legal.purpose")}</th>
+      <th>{t("legal.region")}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {
+      SUB_PROCESSORS.map((processor) => (
+        <tr>
+          <td>{processor.name}</td>
+          <td>{processor.purpose[locale]}</td>
+          <td>{processor.region[locale]}</td>
+        </tr>
+      ))
+    }
+  </tbody>
+</table>

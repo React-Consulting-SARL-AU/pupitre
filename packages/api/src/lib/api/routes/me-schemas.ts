@@ -10,6 +10,12 @@ export const localeSchema = t.UnionEnum([...LOCALES])
 
 export const localeInputBody = t.Object({ locale: localeSchema })
 
+/** La langue, l'organisation active, ou les deux : ce que l'appelant tait ne bouge pas. */
+export const meInputBody = t.Object({
+  locale: t.Optional(localeSchema),
+  organization_id: t.Optional(t.String({ minLength: 1 })),
+})
+
 const organizationSummary = {
   id: t.String(),
   name: t.String(),
@@ -46,6 +52,7 @@ export const serverForUserSchema = t.Object(
     host_fingerprint: t.Nullable(t.String()),
     status: serverStatusSchema,
     key_ready: t.Boolean(),
+    organization: t.Object({ id: t.String(), name: t.String() }),
   },
   { $id: "ServerForUser" }
 )

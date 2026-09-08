@@ -14,8 +14,8 @@ export const downloadFr: DownloadContent = {
     unknown: "Choisissez votre système",
   },
   account: {
-    title: "L’app a besoin d’un compte et d’un essai en cours",
-    body: "Pupitre se connecte à un compte Pupitre, et ce compte doit porter un essai en cours ou un abonnement. Créez-le d’abord : une adresse mail suffit, et aucune carte bancaire n’est demandée.",
+    title: "L’app a besoin d’un compte Pupitre",
+    body: "Pupitre se connecte à un compte Pupitre. Créez-le d’abord : une adresse mail suffit, et aucune carte bancaire n’est demandée.",
     cta: "Créer un compte",
   },
   os: {

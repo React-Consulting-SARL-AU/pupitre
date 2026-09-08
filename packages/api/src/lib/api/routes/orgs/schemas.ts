@@ -8,10 +8,18 @@ export const billingIntervalSchema = t.UnionEnum([...BILLING_INTERVALS])
 
 export const organizationParams = t.Object({ id: t.String() })
 
+export const MIN_SEATS = 1
+
+export const MAX_SEATS = 500
+
+const seatQuantity = t.Integer({ minimum: MIN_SEATS, maximum: MAX_SEATS })
+
 export const checkoutBody = t.Object({
-  quantity: t.Integer({ minimum: 1, maximum: 500 }),
+  quantity: seatQuantity,
   interval: billingIntervalSchema,
 })
+
+export const seatsBody = t.Object({ quantity: seatQuantity })
 
 export const billingUrlSchema = t.Object(
   { url: t.String() },
@@ -31,6 +39,11 @@ export const subscriptionSchema = t.Object(
     updated_at: dateTime,
   },
   { $id: "Subscription" }
+)
+
+export const subscriptionEnvelope = t.Object(
+  { data: t.Nullable(subscriptionSchema) },
+  { $id: "SubscriptionEnvelope" }
 )
 
 export const memberSchema = t.Object(

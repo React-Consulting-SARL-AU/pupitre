@@ -421,6 +421,27 @@ describe("POST /servers/:id/revoke-device", () => {
 
     expect(refused.status).toBe(403)
   })
+
+  it("refuses a device belonging to another organization", async () => {
+    const { organization, members } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
+    const { members: strangers } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
+    const { server } = await createServer({ organizationId: organization.id })
+    const stranger = await addDevice(strangers[0], "MacBook", ED25519_KEY)
+
+    const response = await apiRequest<ErrorBody>(
+      `/servers/${server.id}/revoke-device`,
+      { body: { device_id: stranger.json.data.id }, session: members[0] }
+    )
+
+    expect(response.status).toBe(404)
+    expect(response.json.error.code).toBe("not_found")
+  })
 })
 
 describe("GET /servers for a member", () => {

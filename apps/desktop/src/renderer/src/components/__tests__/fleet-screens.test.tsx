@@ -59,7 +59,7 @@ function row(
 }
 
 describe("un serveur attribué", () => {
-  it("montre l'adresse que la plateforme a donnée, sans champ à remplir", () => {
+  it("montre l'adresse que la console a donnée, sans champ à remplir", () => {
     const html = row();
 
     expect(text(html)).toContain("dev@203.0.113.10:22");
@@ -70,17 +70,17 @@ describe("un serveur attribué", () => {
     const shapes = [
       row(),
       row({ keyReady: false }),
-      row({ listed: false }),
+      row({ status: "suspended" }),
     ].map((html) => /data-shape="([a-z]+)"/.exec(html)?.[1]);
 
     expect(shapes).toEqual(["filled", "breathing", "struck"]);
     expect(new Set(shapes).size).toBe(3);
   });
 
-  it("n'offre pas d'ouvrir un serveur qui n'est plus attribué, et dit pourquoi", () => {
-    const html = row({ listed: false });
+  it("n'offre pas d'ouvrir un serveur suspendu, et dit pourquoi", () => {
+    const html = row({ status: "suspended" });
 
-    expect(text(html)).toContain("La plateforme n'attribue plus ce serveur");
+    expect(text(html)).toContain("La console a suspendu ce serveur");
     expect(html).not.toContain("<button");
   });
 
@@ -90,7 +90,7 @@ describe("un serveur attribué", () => {
       { serverId: "srv-platform-1", status: "waiting" }
     );
 
-    expect(text(html)).toContain("La plateforme pose votre clé");
+    expect(text(html)).toContain("La console pose votre clé");
     expect(html).toContain('aria-busy="true"');
   });
 
@@ -133,10 +133,7 @@ describe("les organisations", () => {
 
   it("marque l'organisation active par une forme pleine", () => {
     const html = renderToStaticMarkup(
-      <FleetOrganizations
-        consoleUrl="https://app.test/dashboard"
-        identity={identity}
-      />
+      <FleetOrganizations identity={identity} />
     );
 
     expect(html.match(/data-shape="filled"/g)).toHaveLength(1);
@@ -144,14 +141,19 @@ describe("les organisations", () => {
     expect(text(html)).toContain("Fonderie");
   });
 
+  it("n'offre la bascule qu'aux organisations qui ne sont pas actives", () => {
+    const html = renderToStaticMarkup(
+      <FleetOrganizations identity={identity} />
+    );
+
+    expect(html.match(/Rendre active|Make active/g)).toHaveLength(1);
+  });
+
   it("ne montre rien quand il n'y a rien à choisir", () => {
     for (const organizations of [[], identity.organizations.slice(0, 1)]) {
       expect(
         renderToStaticMarkup(
-          <FleetOrganizations
-            consoleUrl="https://app.test/dashboard"
-            identity={{ ...identity, organizations }}
-          />
+          <FleetOrganizations identity={{ ...identity, organizations }} />
         )
       ).toBe("");
     }

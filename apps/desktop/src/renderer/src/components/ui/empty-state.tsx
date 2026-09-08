@@ -24,9 +24,9 @@ export function EmptyState({
         {Icon ? (
           <Icon className="text-ink-3" size={18} strokeWidth={1.5} />
         ) : null}
-        <p className="text-[12px] text-ink-3">{title}</p>
+        <p className="text-[13px] text-ink-3">{title}</p>
         {detail ? (
-          <p className="font-data text-[11px] text-ink-3">{detail}</p>
+          <p className="font-data text-[12px] text-ink-3">{detail}</p>
         ) : null}
         {action ? <div className="mt-1">{action}</div> : null}
       </div>

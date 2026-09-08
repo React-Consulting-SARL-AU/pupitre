@@ -1,15 +1,10 @@
-import { currentLocale, translate } from "@renderer/i18n/translate";
+import { translate } from "@renderer/i18n/translate";
+import { decimal } from "./format";
 
 const SECOND_MS = 1000;
 const MINUTE_MS = 60_000;
 const HOUR_MS = 3_600_000;
 const MEGABYTE = 1_000_000;
-
-function comma(value: number, digits = 1): string {
-  const fixed = value.toFixed(digits);
-
-  return currentLocale() === "fr" ? fixed.replace(".", ",") : fixed;
-}
 
 /**
  * A duration the eye can compare at a glance.
@@ -24,7 +19,7 @@ export function humanMs(ms: number): string {
   const minute = t("format.unit.minute");
 
   if (ms < MINUTE_MS) {
-    return `${comma(ms / SECOND_MS)} ${second}`;
+    return `${decimal(ms / SECOND_MS)} ${second}`;
   }
 
   if (ms < HOUR_MS) {
@@ -39,5 +34,5 @@ export function humanMs(ms: number): string {
 }
 
 export function humanBytes(bytes: number): string {
-  return `${comma(bytes / MEGABYTE)} ${translate()("format.unit.mb")}`;
+  return `${decimal(bytes / MEGABYTE)} ${translate()("format.unit.mb")}`;
 }

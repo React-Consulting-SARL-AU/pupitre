@@ -3,6 +3,7 @@ import type { DoneResult } from "@pupitre/shared/agent-protocol/system";
 import type { AgentResponse } from "@shared/agent";
 import { ipcMain } from "electron";
 import { agentClient } from "./agent";
+import { refuseWith } from "./refusal";
 import { byId } from "./servers";
 
 /**
@@ -17,8 +18,11 @@ const KEY_OK = /^[A-Z][A-Z0-9_]{1,60}$/;
 
 const NEWLINE = /[\r\n]/;
 
-function refuse(message: string, fix: string): AgentResponse<never> {
-  return { ok: false, error: { code: "bad_request", fix, message } };
+function refuse(
+  id: string,
+  values?: Record<string, string | number>
+): AgentResponse<never> {
+  return refuseWith("bad_request", id, values);
 }
 
 /** The keys the agent itself named, so a key typed here goes nowhere. */
@@ -28,10 +32,7 @@ export async function readSecrets(
   serverId: unknown
 ): Promise<AgentResponse<SecretsStatusResult>> {
   if (typeof serverId !== "string" || !byId(serverId)) {
-    return refuse(
-      "Ce serveur n'est plus dans la liste.",
-      "Choisis un serveur dans les réglages."
-    );
+    return refuse("refusal.server.unknown");
   }
 
   const answer = await agentClient.request(serverId, "secrets.status");
@@ -52,33 +53,21 @@ export async function writeSecret(
   value: unknown
 ): Promise<AgentResponse<DoneResult>> {
   if (typeof serverId !== "string" || !byId(serverId)) {
-    return refuse(
-      "Ce serveur n'est plus dans la liste.",
-      "Choisis un serveur dans les réglages."
-    );
+    return refuse("refusal.server.unknown");
   }
 
   if (typeof key !== "string" || !KEY_OK.test(key)) {
-    return refuse(
-      `Clé invalide : ${String(key)}.`,
-      "Choisis une clé de la liste que le serveur a donnée."
-    );
+    return refuse("refusal.secret.unknown", { key: String(key) });
   }
 
   if (!named.get(serverId)?.has(key)) {
-    return refuse(
-      `Ce serveur n'a pas déclaré de clé nommée ${key}.`,
-      "Recharge la liste des secrets, puis reprends."
-    );
+    return refuse("refusal.secrets.stale", { key });
   }
 
   // A multi-line value would be truncated at the first line on the server, and
   // the rest would be read as further lines of the environment file.
   if (typeof value !== "string" || value.length === 0 || NEWLINE.test(value)) {
-    return refuse(
-      "La valeur est vide ou tient sur plusieurs lignes.",
-      "Donne une valeur sur une seule ligne."
-    );
+    return refuse("refusal.secret.value.invalid");
   }
 
   return await agentClient.request(

@@ -75,7 +75,7 @@ export function TerminalTabs({
             />
           ) : (
             <div
-              className={`group flex shrink-0 items-center gap-1 rounded-sm border px-2 py-1 text-[11px] transition-soft ${
+              className={`group flex shrink-0 items-center gap-1 rounded-sm border px-2 py-1 text-[12px] transition-soft ${
                 session.id === active
                   ? "border-line-strong bg-sunken text-ink"
                   : "border-transparent text-ink-3 hover:text-ink"

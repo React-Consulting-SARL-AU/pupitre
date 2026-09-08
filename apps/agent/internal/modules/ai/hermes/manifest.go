@@ -1,6 +1,9 @@
 package hermes
 
-import "pupitre.studio/agent/internal/contract"
+import (
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
+)
 
 const ID = "ai.hermes"
 
@@ -9,18 +12,19 @@ func manifest() contract.Manifest {
 		ID:        ID,
 		Category:  "ai",
 		Name:      "Hermes Agent",
-		Summary:   "L'agent Hermes de Nous Research, posé par Python, avec les fournisseurs de modèles de ton choix et, si tu le veux, un service qui le garde en marche.",
+		Summary:   i18n.T("module.ai.hermes.summary"),
 		Requires:  []string{"core.system", "runtime.python"},
 		Conflicts: []string{},
 		Resources: contract.Resources{RAMMB: 512, DiskMB: 1024},
 		Arch:      []string{"amd64", "arm64"},
 		Fields: []contract.Field{
 			{
-				Key: "providers", Kind: contract.FieldList, Label: "Fournisseurs de modèles",
-				Help:     "Une entrée par fournisseur, sous la forme fournisseur:clé, par exemple openai:sk-…",
+				Key: "providers", Kind: contract.FieldList, Label: i18n.T("module.ai.hermes.providers.label"),
+				Help:     i18n.T("module.ai.hermes.providers.help"),
+				HintText: i18n.T("module.ai.hermes.providers.hint"),
 				Required: true, Items: contract.ItemsSecret, Min: 1, Max: 8,
 			},
-			{Key: "always_on", Kind: contract.FieldBoolean, Label: "Toujours actif", Help: "Un service systemd garde Hermes en marche entre deux sessions.", Required: false, Default: false},
+			{Key: "always_on", Kind: contract.FieldBoolean, Label: i18n.T("module.ai.hermes.always_on.label"), Help: i18n.T("module.ai.hermes.always_on.help"), Required: false, Default: false},
 		},
 		Provides:  []string{"agent:hermes"},
 		Mandatory: false,

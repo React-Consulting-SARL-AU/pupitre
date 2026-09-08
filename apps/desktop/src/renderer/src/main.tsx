@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./app";
+import { watchTrace } from "./lib/trace";
 import { startLocaleWatch } from "./stores/locale";
 import { startThemeWatch } from "./stores/theme";
 import "./styles.css";
@@ -9,6 +10,7 @@ import "./styles.css";
 // flashes the wrong theme on launch.
 startThemeWatch();
 startLocaleWatch();
+watchTrace();
 
 const root = document.getElementById("root");
 if (root) {

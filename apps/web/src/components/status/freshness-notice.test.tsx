@@ -50,7 +50,7 @@ describe("FreshnessNotice", () => {
 
     expect(notice).not.toBeNull()
     expect(notice?.getAttribute("data-freshness")).toBe("stale")
-    expect(container.textContent).toContain("Dernière observation il y a 1 h")
+    expect(container.textContent).toContain("Last observation 1 h ago")
     expect(container.textContent).toContain("15 minutes")
     expect(
       container
@@ -64,6 +64,6 @@ describe("FreshnessNotice", () => {
       <FreshnessNotice freshness="unknown" lastObservationAt={null} now={NOW} />
     )
 
-    expect(container.textContent).toContain("Aucune observation à afficher")
+    expect(container.textContent).toContain("No observation to show")
   })
 })

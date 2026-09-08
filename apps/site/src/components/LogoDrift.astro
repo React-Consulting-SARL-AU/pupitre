@@ -1,0 +1,40 @@
+---
+import { type DriftPlace, driftFor } from "../lib/drift"
+import BrandLogo from "./BrandLogo.astro"
+
+interface Props {
+  place: DriftPlace
+}
+
+const { place } = Astro.props
+const drifts = driftFor(place)
+---
+
+<div
+  aria-hidden="true"
+  class="pointer-events-none absolute inset-0 hidden overflow-hidden xl:block"
+>
+  {
+    drifts.map((drift) => (
+      <span
+        class:list={["drift-slot", place === "hero" ? "drift-enter" : "reveal"]}
+        data-drift={drift.item.name}
+        data-side={drift.side}
+        style={`--drift-top:${drift.top}%;--drift-out:${drift.out}rem;--drift-delay:${drift.delay}ms`}
+      >
+        <span
+          class="drift-tile"
+          data-size={drift.size}
+          style={`--drift-lift:${drift.lift}rem;--drift-seconds:${drift.seconds}s`}
+        >
+          <BrandLogo
+            mark={drift.item.mark}
+            module={drift.item.module}
+            name={drift.item.name}
+            size={drift.size}
+          />
+        </span>
+      </span>
+    ))
+  }
+</div>

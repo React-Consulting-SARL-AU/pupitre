@@ -24,17 +24,13 @@ type Step = "catalog" | "config" | "install";
 export function ServicesAddFlow({
   serverId,
   serverName,
-  machineName,
   installed,
-  onMachineName,
   onDone,
 }: {
   serverId: string;
   serverName?: string;
-  machineName: string;
   /** The identifiers the snapshot reports, so the catalogue skips them. */
   installed: readonly string[];
-  onMachineName?: (name: string) => void;
   onDone: () => void;
 }) {
   const t = useTranslations();
@@ -97,13 +93,11 @@ export function ServicesAddFlow({
 
       {step === "config" ? (
         <ConfigScreen
-          machineName={machineName}
           onBack={replaying ? undefined : () => setStep("catalog")}
           onInstall={() =>
             replaying ? confirmReplay(replaying) : setStep("install")
           }
           only={replaying ? [replaying] : undefined}
-          onMachineName={onMachineName}
           serverName={serverName}
           submitLabel={
             replaying ? t("services.add.replay") : t("services.add.submit")

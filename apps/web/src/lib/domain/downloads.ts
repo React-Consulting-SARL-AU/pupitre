@@ -62,7 +62,7 @@ export function detectOs(userAgent: string): DesktopSystem | null {
 
 export interface PublishedBuild {
   os: string
-  arch: string | null
+  arch: string
   url: string
 }
 
@@ -77,16 +77,29 @@ export interface DownloadOffer extends DesktopTarget {
   arch: string | null
 }
 
+/**
+ * One row per downloadable file, not one per OS: an Intel Mac and an Apple
+ * Silicon Mac don't install the same `.dmg`, and letting the reader pick the
+ * right machine means showing both. An OS with nothing published keeps its
+ * row, without a link.
+ */
 export function downloadOffers(
   release: PublishedAppRelease | null
 ): DownloadOffer[] {
-  return DESKTOP_SYSTEMS.map((os) => {
-    const build = release?.builds.find((candidate) => candidate.os === os)
+  return DESKTOP_SYSTEMS.flatMap((os) => {
+    const builds =
+      release?.builds.filter((candidate) => candidate.os === os) ?? []
 
-    return {
-      ...TARGETS[os],
-      url: build?.url ?? null,
-      arch: build?.arch ?? null,
+    if (builds.length === 0) {
+      const empty: DownloadOffer = { ...TARGETS[os], arch: null, url: null }
+
+      return [empty]
     }
+
+    return builds.map<DownloadOffer>((build) => ({
+      ...TARGETS[os],
+      arch: build.arch,
+      url: build.url,
+    }))
   })
 }

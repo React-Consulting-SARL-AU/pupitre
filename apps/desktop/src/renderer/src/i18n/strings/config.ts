@@ -1,9 +1,5 @@
 export const config = {
   en: {
-    "config.machine.title": "This machine",
-    "config.machine.help":
-      "The name the app will show it under. It never leaves this workstation.",
-    "config.machine.nameLabel": "Machine name",
     "config.list.add": "Add",
     "config.list.remove": "Remove {label} {index}",
     "config.list.between": "from {min} to {max} values",
@@ -11,6 +7,37 @@ export const config = {
     "config.module.nothing": "Nothing to set for this module.",
     "config.back": "Back to the catalogue",
     "config.install": "Install",
+    "config.problem.required": "This field is required.",
+    "config.problem.type": "A {expected} is expected.",
+    "config.problem.min": "Too small: {expected} expected.",
+    "config.problem.max": "Too large: {expected} expected.",
+    "config.problem.minLength": "Too short: {expected} characters at least.",
+    "config.problem.maxLength": "Too long: {expected} characters at most.",
+    "config.problem.options": "Unknown value: expected {expected}.",
+    "config.problem.pattern": "This value does not have the expected shape.",
+    "config.problem.connection": "This account is not connected yet.",
+    "config.problem.format.port": "A port between 1 and 65535 is expected.",
+    "config.problem.format.hostname":
+      "A hostname is expected, with no space and no slash.",
+    "config.problem.format.domain":
+      "A domain is expected, like flymate.dev, with no scheme and no slash.",
+    "config.problem.format.email": "An email address is expected.",
+    "config.problem.format.identifier":
+      "An identifier is expected: lower case, digits and underscores, starting with a letter.",
+    "config.problem.format.path":
+      "An absolute path is expected, with no space, starting with /.",
+    "config.problem.format.timezone":
+      "An IANA time zone is expected, like Europe/Paris.",
+    "config.problem.format.size": "A size is expected, like 256M or 1G.",
+    "config.problem.format.url": "An http or https address is expected.",
+    "config.index.label": "The chosen modules",
+    "config.remaining.one": "One field is still waiting.",
+    "config.remaining.other": "{count} fields are still waiting.",
+    "config.remaining.goTo": "Go to the first",
+    "config.checking": "Weighing the configuration on the server",
+    "config.checked.one": "The server refuses one field.",
+    "config.checked.other": "The server refuses {count} fields.",
+    "config.ready": "Everything is answered.",
     "config.description":
       "The questions come from the manifests of the chosen modules.",
     "config.eyebrow": "Configuration",
@@ -24,13 +51,10 @@ export const config = {
     "config.secret.shown": "Already shown once; it will not be shown again.",
     "config.secret.saved": "Saved",
     "config.secret.paste": "Paste the value",
+    "config.secret.kept": "Kept by the server — leave empty",
     "config.secret.generate": "Generate for me",
   },
   fr: {
-    "config.machine.title": "Cette machine",
-    "config.machine.help":
-      "Le nom sous lequel l'app la montrera. Il ne quitte pas ce poste.",
-    "config.machine.nameLabel": "Nom de la machine",
     "config.list.add": "Ajouter",
     "config.list.remove": "Retirer {label} {index}",
     "config.list.between": "de {min} à {max} valeurs",
@@ -38,6 +62,38 @@ export const config = {
     "config.module.nothing": "Rien à régler pour ce module.",
     "config.back": "Revenir au catalogue",
     "config.install": "Installer",
+    "config.problem.required": "Ce champ est obligatoire.",
+    "config.problem.type": "Une valeur de type {expected} est attendue.",
+    "config.problem.min": "Trop petit : attendu {expected}.",
+    "config.problem.max": "Trop grand : attendu {expected}.",
+    "config.problem.minLength":
+      "Trop court : {expected} caractères au minimum.",
+    "config.problem.maxLength": "Trop long : {expected} caractères au maximum.",
+    "config.problem.options": "Valeur inconnue : attendu {expected}.",
+    "config.problem.pattern": "Cette valeur n'a pas la forme attendue.",
+    "config.problem.connection": "Ce compte n'est pas encore connecté.",
+    "config.problem.format.port": "Un port entre 1 et 65535 est attendu.",
+    "config.problem.format.hostname":
+      "Un nom d'hôte est attendu, sans espace ni barre oblique.",
+    "config.problem.format.domain":
+      "Un domaine est attendu, comme flymate.dev, sans schéma ni barre oblique.",
+    "config.problem.format.email": "Une adresse électronique est attendue.",
+    "config.problem.format.identifier":
+      "Un identifiant est attendu : minuscules, chiffres et tirets bas, commençant par une lettre.",
+    "config.problem.format.path":
+      "Un chemin absolu est attendu, sans espace, commençant par /.",
+    "config.problem.format.timezone":
+      "Un fuseau IANA est attendu, comme Europe/Paris.",
+    "config.problem.format.size": "Une taille est attendue, comme 256M ou 1G.",
+    "config.problem.format.url": "Une adresse http ou https est attendue.",
+    "config.index.label": "Les modules choisis",
+    "config.remaining.one": "Un champ attend encore.",
+    "config.remaining.other": "{count} champs attendent encore.",
+    "config.remaining.goTo": "Aller au premier",
+    "config.checking": "Vérification de la configuration sur le serveur",
+    "config.checked.one": "Le serveur refuse un champ.",
+    "config.checked.other": "Le serveur refuse {count} champs.",
+    "config.ready": "Tout est renseigné.",
     "config.description":
       "Les questions viennent des manifestes des modules choisis.",
     "config.eyebrow": "Configuration",
@@ -51,6 +107,7 @@ export const config = {
     "config.secret.shown": "Déjà montré une fois ; il ne sera plus affiché.",
     "config.secret.saved": "Enregistré",
     "config.secret.paste": "Collez la valeur",
+    "config.secret.kept": "Gardé par le serveur — laissez vide",
     "config.secret.generate": "Générer à ma place",
   },
 } as const;

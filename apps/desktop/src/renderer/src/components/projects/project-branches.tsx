@@ -1,6 +1,7 @@
 import { Callout } from "@renderer/components/ui/callout";
 import { fieldControlClass } from "@renderer/components/ui/field";
 import { StatusDot } from "@renderer/components/ui/status-dot";
+import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { BranchState } from "@renderer/stores/project";
 import { GitBranchPlus } from "lucide-react";
@@ -27,7 +28,7 @@ export function ProjectBranches({
 
   if (state.status === "idle" || state.status === "reading") {
     return (
-      <p className="flex items-center gap-2 font-data text-[11px] text-ink-3">
+      <p className="flex items-center gap-2 font-data text-[12px] text-ink-3">
         <StatusDot shape="breathing" size={11} />
         {t("project.branches.reading")}
       </p>
@@ -36,8 +37,8 @@ export function ProjectBranches({
 
   if (state.status === "failed") {
     return (
-      <Callout fix={state.error.fix} tone="warn">
-        {state.error.message}
+      <Callout fix={agentText(t, state.error).fix} tone="warn">
+        {agentText(t, state.error).message}
       </Callout>
     );
   }
@@ -49,10 +50,10 @@ export function ProjectBranches({
       <div className="flex items-start gap-2 text-ink-3">
         <GitBranchPlus className="mt-px shrink-0" size={13} strokeWidth={1.5} />
         <div className="min-w-0">
-          <p className="text-[12px] text-ink-2">
+          <p className="text-[13px] text-ink-2">
             {t("project.branches.noRepoTitle")}
           </p>
-          <p className="mt-0.5 truncate font-data text-[11px]">
+          <p className="mt-0.5 truncate font-data text-[12px]">
             {t("project.branches.notVersioned", { folder })}
           </p>
         </div>
@@ -86,7 +87,7 @@ export function ProjectBranches({
       {branches.dirty ? (
         <Callout tone="warn">{t("project.branches.dirty")}</Callout>
       ) : (
-        <p className="truncate font-data text-[11px] text-ink-3">
+        <p className="truncate font-data text-[12px] text-ink-3">
           {branches.root} ·{" "}
           {t.plural("project.branches.localCount", branches.local.length)}
         </p>

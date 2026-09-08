@@ -2,6 +2,7 @@ package modules
 
 import (
 	"encoding/json"
+	"pupitre.studio/agent/internal/i18n"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/protocol"
@@ -19,7 +20,7 @@ func RegisterCommands(server *protocol.Server, engine *Engine) {
 			SecretsStdin bool                      `json:"secrets_stdin"`
 		}
 		if err := json.Unmarshal(raw, &params); err != nil {
-			return nil, protocol.NewError(contract.ErrorBadRequest, "paramètres illisibles : "+err.Error())
+			return nil, protocol.NewError(contract.ErrorBadRequest, i18n.T("command.params.unreadable", err.Error()))
 		}
 
 		secrets, err := decodeSecrets(ctx.Secrets, params.SecretsStdin)
@@ -30,12 +31,25 @@ func RegisterCommands(server *protocol.Server, engine *Engine) {
 		return engine.Install(Request{Modules: params.Modules, Config: params.Config, Secrets: secrets, Persist: true}, Emitter(ctx))
 	})
 
+	// No secret, no lock, nothing touched: it answers what an install would refuse.
+	server.Register("install.check", func(ctx *protocol.Context, raw json.RawMessage) (any, error) {
+		var params struct {
+			Modules []string                  `json:"modules"`
+			Config  map[string]map[string]any `json:"config"`
+		}
+		if err := json.Unmarshal(raw, &params); err != nil {
+			return nil, protocol.NewError(contract.ErrorBadRequest, i18n.T("command.params.unreadable", err.Error()))
+		}
+
+		return engine.Check(Request{Modules: params.Modules, Config: params.Config}, Emitter(ctx))
+	})
+
 	server.Register("uninstall", func(ctx *protocol.Context, raw json.RawMessage) (any, error) {
 		var params struct {
 			Modules []string `json:"modules"`
 		}
 		if err := json.Unmarshal(raw, &params); err != nil {
-			return nil, protocol.NewError(contract.ErrorBadRequest, "paramètres illisibles : "+err.Error())
+			return nil, protocol.NewError(contract.ErrorBadRequest, i18n.T("command.params.unreadable", err.Error()))
 		}
 
 		return engine.Uninstall(params.Modules, Emitter(ctx))
@@ -46,10 +60,21 @@ func RegisterCommands(server *protocol.Server, engine *Engine) {
 			Modules []string `json:"modules"`
 		}
 		if err := json.Unmarshal(raw, &params); err != nil {
-			return nil, protocol.NewError(contract.ErrorBadRequest, "paramètres illisibles : "+err.Error())
+			return nil, protocol.NewError(contract.ErrorBadRequest, i18n.T("command.params.unreadable", err.Error()))
 		}
 
 		return engine.Upgrade(Request{Modules: params.Modules}, Emitter(ctx))
+	})
+
+	server.Register("module.config", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
+		var params struct {
+			ID string `json:"id"`
+		}
+		if err := json.Unmarshal(raw, &params); err != nil {
+			return nil, protocol.NewError(contract.ErrorBadRequest, i18n.T("command.params.unreadable", err.Error()))
+		}
+
+		return engine.Config(params.ID)
 	})
 
 	server.Register("report", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
@@ -67,13 +92,13 @@ func decodeSecrets(raw json.RawMessage, expected bool) (map[string]map[string]st
 		err = contract.Validate("InstallSecrets", value)
 	}
 	if err != nil {
-		return nil, protocol.NewError(contract.ErrorBadRequest, "flux secret invalide : "+err.Error()).
-			WithFix(`Écris les secrets groupés par identifiant de module, comme config : {"<module id>": {"<clé>": "<valeur>"}}.`)
+		return nil, protocol.NewError(contract.ErrorBadRequest, i18n.T("secrets.invalid", err.Error())).
+			WithFix(i18n.T("secrets.install.fix"))
 	}
 
 	var secrets map[string]map[string]string
 	if err := json.Unmarshal(raw, &secrets); err != nil {
-		return nil, protocol.NewError(contract.ErrorInternal, "flux secret validé mais illisible : "+err.Error())
+		return nil, protocol.NewError(contract.ErrorInternal, i18n.T("secrets.unreadable", err.Error()))
 	}
 
 	return secrets, nil

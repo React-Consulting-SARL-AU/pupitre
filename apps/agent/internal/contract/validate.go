@@ -3,6 +3,7 @@ package contract
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"reflect"
@@ -10,6 +11,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+
+	"pupitre.studio/agent/internal/i18n"
 )
 
 type ValidationError struct {
@@ -24,7 +27,7 @@ func (e *ValidationError) Error() string {
 		return e.Reason
 	}
 
-	return e.Path + " : " + e.Reason
+	return i18n.T("validate.path.reason", e.Path, e.Reason)
 }
 
 type schema struct {
@@ -195,7 +198,7 @@ func Decode(data []byte) (any, error) {
 	}
 
 	if decoder.More() {
-		return nil, fmt.Errorf("trailing data after the JSON value")
+		return nil, errors.New(i18n.T("validate.trailing_data"))
 	}
 
 	return value, nil
@@ -210,15 +213,6 @@ func Validate(definition string, value any) error {
 	return validate(compiled, value, "")
 }
 
-func ValidateSchema(raw json.RawMessage, value any) error {
-	var compiled schema
-	if err := json.Unmarshal(raw, &compiled); err != nil {
-		return err
-	}
-
-	return validate(&compiled, value, "")
-}
-
 func definitionSchema(name string) (*schema, error) {
 	if cached, ok := compiledDefinitions.Load(name); ok {
 		return cached.(*schema), nil
@@ -226,7 +220,7 @@ func definitionSchema(name string) (*schema, error) {
 
 	raw, ok := Definition(name)
 	if !ok {
-		return nil, &ValidationError{Reason: "définition inconnue : " + name}
+		return nil, &ValidationError{Reason: i18n.T("validate.definition.unknown", name)}
 	}
 
 	var compiled schema
@@ -243,7 +237,7 @@ func validate(s *schema, value any, path string) error {
 	if s.Ref != "" {
 		name, ok := strings.CutPrefix(s.Ref, "#/$defs/")
 		if !ok {
-			return &ValidationError{Path: path, Reason: "référence non prise en charge : " + s.Ref}
+			return &ValidationError{Path: path, Reason: i18n.T("validate.ref.unsupported", s.Ref)}
 		}
 
 		target, err := definitionSchema(name)
@@ -255,7 +249,7 @@ func validate(s *schema, value any, path string) error {
 	}
 
 	if len(s.Type) > 0 && !matchesAnyType(s.Type, value) {
-		return &ValidationError{Path: path, Reason: "doit être " + frenchType(s.Type), typeMismatch: true}
+		return &ValidationError{Path: path, Reason: i18n.T("validate.type", describeTypes(s.Type)), typeMismatch: true}
 	}
 
 	if s.Const != nil {
@@ -296,32 +290,20 @@ func validate(s *schema, value any, path string) error {
 	return nil
 }
 
-func frenchType(types []string) string {
+func describeTypes(types []string) string {
 	names := make([]string, len(types))
 
 	for i, t := range types {
-		names[i] = frenchTypeName(t)
+		names[i] = typeLabel(t)
 	}
 
-	return strings.Join(names, " ou ")
+	return strings.Join(names, " "+i18n.T("validate.type.or")+" ")
 }
 
-func frenchTypeName(t string) string {
+func typeLabel(t string) string {
 	switch t {
-	case "object":
-		return "un objet"
-	case "array":
-		return "un tableau"
-	case "string":
-		return "une chaîne"
-	case "boolean":
-		return "un booléen"
-	case "number":
-		return "un nombre"
-	case "integer":
-		return "un entier"
-	case "null":
-		return "nul"
+	case "object", "array", "string", "boolean", "number", "integer", "null":
+		return i18n.T("validate.type." + t)
 	}
 
 	return t
@@ -381,7 +363,7 @@ func checkConst(raw json.RawMessage, value any, path string) error {
 	}
 
 	if !reflect.DeepEqual(expected, value) {
-		return &ValidationError{Path: path, Reason: "doit valoir " + string(raw)}
+		return &ValidationError{Path: path, Reason: i18n.T("validate.const", string(raw))}
 	}
 
 	return nil
@@ -403,7 +385,7 @@ func checkEnum(raws []json.RawMessage, value any, path string) error {
 		labels = append(labels, strings.Trim(string(raw), `"`))
 	}
 
-	return &ValidationError{Path: path, Reason: "doit être l'une des valeurs " + strings.Join(labels, ", ")}
+	return &ValidationError{Path: path, Reason: i18n.T("validate.enum", strings.Join(labels, ", "))}
 }
 
 func checkAnyOf(branches []*schema, value any, path string) error {
@@ -450,7 +432,7 @@ func checkOneOf(branches []*schema, value any, path string) error {
 
 		return mostRelevant(failures)
 	default:
-		return &ValidationError{Path: path, Reason: "correspond à plusieurs variantes (oneOf)"}
+		return &ValidationError{Path: path, Reason: i18n.T("validate.oneof.ambiguous")}
 	}
 }
 
@@ -506,7 +488,7 @@ func mostRelevant(failures []error) error {
 func validateObject(s *schema, object map[string]any, path string) error {
 	for _, key := range s.Required {
 		if _, ok := object[key]; !ok {
-			return &ValidationError{Path: childPath(path, key), Reason: "champ requis"}
+			return &ValidationError{Path: childPath(path, key), Reason: i18n.T("validate.field.required")}
 		}
 	}
 
@@ -516,7 +498,7 @@ func validateObject(s *schema, object map[string]any, path string) error {
 
 		if s.PropertyNames != nil {
 			if err := validate(s.PropertyNames, key, child); err != nil {
-				return &ValidationError{Path: child, Reason: "nom de champ invalide : " + reasonOf(err)}
+				return &ValidationError{Path: child, Reason: i18n.T("validate.field.name.invalid", reasonOf(err))}
 			}
 		}
 
@@ -533,7 +515,7 @@ func validateObject(s *schema, object map[string]any, path string) error {
 		}
 
 		if !s.AdditionalProperties.allowed {
-			return &ValidationError{Path: child, Reason: "champ inconnu"}
+			return &ValidationError{Path: child, Reason: i18n.T("validate.field.unknown")}
 		}
 
 		if s.AdditionalProperties.schema != nil {
@@ -572,11 +554,11 @@ func orderedKeys(s *schema, object map[string]any) []string {
 
 func validateArray(s *schema, items []any, path string) error {
 	if s.MinItems != nil && len(items) < *s.MinItems {
-		return &ValidationError{Path: path, Reason: fmt.Sprintf("doit compter au moins %d élément%s", *s.MinItems, plural(*s.MinItems))}
+		return &ValidationError{Path: path, Reason: i18n.Count(*s.MinItems, "validate.array.min_items.one", "validate.array.min_items.many")}
 	}
 
 	if s.MaxItems != nil && len(items) > *s.MaxItems {
-		return &ValidationError{Path: path, Reason: fmt.Sprintf("doit compter au plus %d élément%s", *s.MaxItems, plural(*s.MaxItems))}
+		return &ValidationError{Path: path, Reason: i18n.Count(*s.MaxItems, "validate.array.max_items.one", "validate.array.max_items.many")}
 	}
 
 	for index, item := range items {
@@ -594,7 +576,7 @@ func validateArray(s *schema, items []any, path string) error {
 		}
 
 		if !s.Items.allowed {
-			return &ValidationError{Path: child, Reason: "élément en trop"}
+			return &ValidationError{Path: child, Reason: i18n.T("validate.array.item.extra")}
 		}
 
 		if err := validate(s.Items.schema, item, child); err != nil {
@@ -607,7 +589,7 @@ func validateArray(s *schema, items []any, path string) error {
 
 func validateString(s *schema, value string, path string) error {
 	if s.MinLength != nil && len([]rune(value)) < *s.MinLength {
-		return &ValidationError{Path: path, Reason: fmt.Sprintf("doit compter au moins %d caractère%s", *s.MinLength, plural(*s.MinLength))}
+		return &ValidationError{Path: path, Reason: i18n.Count(*s.MinLength, "validate.string.min_length.one", "validate.string.min_length.many")}
 	}
 
 	if s.Pattern != "" {
@@ -617,7 +599,7 @@ func validateString(s *schema, value string, path string) error {
 		}
 
 		if !pattern.MatchString(value) {
-			return &ValidationError{Path: path, Reason: "ne correspond pas au motif " + s.Pattern}
+			return &ValidationError{Path: path, Reason: i18n.T("validate.string.pattern", s.Pattern)}
 		}
 	}
 
@@ -627,19 +609,19 @@ func validateString(s *schema, value string, path string) error {
 func validateNumber(s *schema, number json.Number, path string) error {
 	value, err := number.Float64()
 	if err != nil {
-		return &ValidationError{Path: path, Reason: "nombre illisible"}
+		return &ValidationError{Path: path, Reason: i18n.T("validate.number.unreadable")}
 	}
 
 	if s.Minimum != nil && value < *s.Minimum {
-		return &ValidationError{Path: path, Reason: "doit être ≥ " + formatNumber(*s.Minimum)}
+		return &ValidationError{Path: path, Reason: i18n.T("validate.number.minimum", formatNumber(*s.Minimum))}
 	}
 
 	if s.ExclusiveMinimum != nil && value <= *s.ExclusiveMinimum {
-		return &ValidationError{Path: path, Reason: "doit être > " + formatNumber(*s.ExclusiveMinimum)}
+		return &ValidationError{Path: path, Reason: i18n.T("validate.number.exclusive_minimum", formatNumber(*s.ExclusiveMinimum))}
 	}
 
 	if s.Maximum != nil && value > *s.Maximum {
-		return &ValidationError{Path: path, Reason: "doit être ≤ " + formatNumber(*s.Maximum)}
+		return &ValidationError{Path: path, Reason: i18n.T("validate.number.maximum", formatNumber(*s.Maximum))}
 	}
 
 	return nil
@@ -680,12 +662,4 @@ func formatNumber(value float64) string {
 	}
 
 	return fmt.Sprint(value)
-}
-
-func plural(count int) string {
-	if count > 1 {
-		return "s"
-	}
-
-	return ""
 }

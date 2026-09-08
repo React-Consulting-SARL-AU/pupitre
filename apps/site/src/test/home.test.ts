@@ -163,7 +163,7 @@ describe("home", () => {
         expect(html).toContain(`>${claim.statement}</h3>`)
       }
       expect(html.match(/data-faq/g)).toHaveLength(content.faq.items.length)
-      expect(html.match(/data-availability=/g)).toHaveLength(MODULE_IDS.length)
+      expect(html.match(/data-module=/g)).toHaveLength(MODULE_IDS.length)
       expect(html).toContain(`href="${locale === "en" ? "" : "/fr"}/pricing/"`)
     }
   })

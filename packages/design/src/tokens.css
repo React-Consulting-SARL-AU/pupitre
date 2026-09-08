@@ -5,14 +5,14 @@
   --raised: #e6e6e6;
   --ink: #0a0a0a;
   --ink-2: #4a4a4a;
-  --ink-3: #767676;
-  --ink-4: #a3a3a3;
+  --ink-3: #676767;
+  --ink-4: #838383;
   --line: #e3e3e3;
   --line-strong: #c9c9c9;
   --inverse: #0a0a0a;
   --inverse-ink: #ffffff;
   --ok: #1f7a45;
-  --warn: #9a6a00;
+  --warn: #8a5f00;
   --danger: #b3362a;
 
   --font-ui:
@@ -53,6 +53,9 @@
 
   --motion-fast: 120ms ease;
   --motion-soft: 180ms cubic-bezier(0.2, 0.6, 0.3, 1);
+  --motion-enter: 320ms cubic-bezier(0.16, 0.84, 0.44, 1);
+  --motion-exit: 160ms cubic-bezier(0.4, 0, 1, 1);
+  --motion-stagger: 40ms;
   --motion-breathe: 1.6s ease-in-out infinite;
 
   color-scheme: light;
@@ -66,7 +69,7 @@
   --ink: #f5f5f5;
   --ink-2: #c4c4c4;
   --ink-3: #8f8f8f;
-  --ink-4: #5c5c5c;
+  --ink-4: #696969;
   --line: #232323;
   --line-strong: #353535;
   --inverse: #f5f5f5;
@@ -90,7 +93,7 @@
     --ink: #f5f5f5;
     --ink-2: #c4c4c4;
     --ink-3: #8f8f8f;
-    --ink-4: #5c5c5c;
+    --ink-4: #696969;
     --line: #232323;
     --line-strong: #353535;
     --inverse: #f5f5f5;

@@ -32,6 +32,25 @@ const release = (over: Partial<AppRelease> = {}): AppRelease => ({
   ...over,
 })
 
+/** Mirrors the platform's raw response shape: builds, not assets, and size in bytes. */
+const served = (over: Record<string, unknown> = {}) => ({
+  version: "1.2.0",
+  channel: "stable",
+  notes: "Une version.",
+  published_at: "2026-09-02T00:00:00.000Z",
+  builds: [
+    {
+      os: "macos",
+      arch: "arm64",
+      format: "dmg",
+      bytes: 120_000_000,
+      sha256: DIGEST,
+      url: "https://example.test/mac",
+    },
+  ],
+  ...over,
+})
+
 function respondWith(payload: unknown, ok = true): typeof fetch {
   return vi.fn(
     async () =>
@@ -40,33 +59,39 @@ function respondWith(payload: unknown, ok = true): typeof fetch {
 }
 
 describe("parseRelease", () => {
-  it("accepts a well-formed release", () => {
-    expect(parseRelease(release())).toEqual(release())
+  it("turns the builds the platform published into downloadable assets", () => {
+    expect(parseRelease(served())).toEqual(release())
   })
 
-  it("refuses a release with a bad digest, an unknown os or no asset", () => {
-    expect(parseRelease({ ...release(), assets: [] })).toBeNull()
+  it("refuses a release with a bad digest, an unknown os or no build", () => {
+    expect(parseRelease({ ...served(), builds: [] })).toBeNull()
     expect(
       parseRelease({
-        ...release(),
-        assets: [{ ...release().assets[0], sha256: "short" }],
+        ...served(),
+        builds: [{ ...served().builds[0], sha256: "short" }],
       })
     ).toBeNull()
     expect(
       parseRelease({
-        ...release(),
-        assets: [{ ...release().assets[0], os: "haiku" }],
+        ...served(),
+        builds: [{ ...served().builds[0], os: "haiku" }],
       })
     ).toBeNull()
-    expect(parseRelease({ ...release(), channel: "nightly" })).toBeNull()
+    expect(
+      parseRelease({
+        ...served(),
+        builds: [{ ...served().builds[0], bytes: undefined }],
+      })
+    ).toBeNull()
+    expect(parseRelease({ ...served(), channel: "nightly" })).toBeNull()
     expect(parseRelease("not an object")).toBeNull()
   })
 })
 
 describe("parseReleases", () => {
   it("reads both a bare array and an envelope", () => {
-    expect(parseReleases([release()])).toHaveLength(1)
-    expect(parseReleases({ data: [release()] })).toHaveLength(1)
+    expect(parseReleases([served()])).toHaveLength(1)
+    expect(parseReleases({ data: [served()] })).toHaveLength(1)
   })
 
   it("refuses a payload with nothing usable in it", () => {
@@ -115,7 +140,7 @@ describe("loadReleases", () => {
   it("reads the platform when it answers", async () => {
     const warn = vi.fn()
     const list = await loadReleases({
-      fetcher: respondWith({ data: [release()] }),
+      fetcher: respondWith({ data: [served()] }),
       warn,
       endpoint: "https://example.test/releases",
     })

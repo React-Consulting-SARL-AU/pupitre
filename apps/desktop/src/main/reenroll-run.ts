@@ -7,6 +7,7 @@ import type { AgentClient } from "./agent-client";
 import { machineFacts } from "./agent-update-run";
 import { asAgentError } from "./enrollment-run";
 import { type EnrollmentGrant, sendEnrolment } from "./install-run";
+import { refusalOf } from "./refusal";
 
 /**
  * Repairing a server the platform no longer vouches for.
@@ -37,10 +38,7 @@ function ungranted(): AgentResponse<never> {
   return {
     ok: false,
     error: {
-      code: "internal",
-      message:
-        "La plateforme n'a remis aucun jeton d'enrôlement pour ce serveur.",
-      fix: "Relance la réparation, ou reconnecte cet appareil depuis les réglages.",
+      ...refusalOf("internal", "refusal.enrollment.none"),
     },
   };
 }

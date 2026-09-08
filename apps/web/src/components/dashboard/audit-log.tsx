@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Label } from "@/components/ui/label"
 import { LoadingState } from "@/components/ui/loading-state"
+import { Select } from "@/components/ui/select"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { eventsQueryOptions } from "@/lib/api/queries"
@@ -66,21 +67,19 @@ export function AuditLog() {
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-2">
           <Label htmlFor="audit-action">{t("auditUi.action")}</Label>
-          <select
-            className="h-9 rounded-sm border border-line-strong bg-sunken px-2 text-[13px] text-ink focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
+          <Select
+            className="w-[240px]"
             id="audit-action"
-            onChange={(event) => {
-              filterOn(event.target.value)
-            }}
+            items={[
+              { value: ALL_ACTIONS, label: t("auditUi.allActions") },
+              ...AUDIT_ACTIONS.map((candidate) => ({
+                value: candidate,
+                label: actionName(candidate),
+              })),
+            ]}
+            onValueChange={filterOn}
             value={action}
-          >
-            <option value={ALL_ACTIONS}>{t("auditUi.allActions")}</option>
-            {AUDIT_ACTIONS.map((candidate) => (
-              <option key={candidate} value={candidate}>
-                {actionName(candidate)}
-              </option>
-            ))}
-          </select>
+          />
         </div>
       </div>
 
@@ -115,7 +114,7 @@ export function AuditLog() {
             </span>
           </CardHeader>
 
-          <ul>
+          <ul aria-busy={page.isFetching || undefined}>
             {page.data.data.map((event) => (
               <li
                 className="flex flex-wrap items-baseline justify-between gap-4 border-line border-b px-4 py-3 last:border-b-0"

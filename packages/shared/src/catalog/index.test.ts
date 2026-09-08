@@ -3,12 +3,10 @@ import {
   ARCHITECTURES,
   FieldSchema,
   getPreset,
-  LATER_MODULE_IDS,
   ManifestSchema,
   MODULE_CATEGORIES,
   MODULE_IDS,
   ModuleIdSchema,
-  MVP_MODULE_IDS,
   PRESETS,
   PresetSchema,
 } from "./index"
@@ -127,6 +125,29 @@ describe("FieldSchema", () => {
     ).toBe(true)
   })
 
+  it("bounds a number field, so a port cannot be typed out of range", () => {
+    expect(
+      FieldSchema.safeParse({
+        key: "port",
+        kind: "number",
+        label: "Port",
+        required: true,
+        default: 5432,
+        min: 1024,
+        max: 65_535,
+      }).success
+    ).toBe(true)
+    expect(
+      FieldSchema.safeParse({
+        key: "port",
+        kind: "number",
+        label: "Port",
+        required: true,
+        min: "1024",
+      }).success
+    ).toBe(false)
+  })
+
   it("accepts boolean and list fields", () => {
     expect(FieldSchema.safeParse(booleanField).success).toBe(true)
     expect(FieldSchema.safeParse(listField).success).toBe(true)
@@ -178,16 +199,21 @@ describe("FieldSchema", () => {
 })
 
 describe("module ids", () => {
-  it("split the catalogue between MVP and later", () => {
-    expect(MVP_MODULE_IDS).toEqual([
+  it("list the whole catalogue, once each", () => {
+    expect(MODULE_IDS).toEqual([
       "core.system",
       "core.hardening",
       "runtime.node",
       "runtime.java",
       "runtime.python",
+      "runtime.go",
+      "runtime.php",
+      "runtime.ruby",
+      "runtime.docker",
       "db.mysql",
       "db.postgres",
       "db.mongodb",
+      "db.redis",
       "ai.claude",
       "ai.codex",
       "ai.hermes",
@@ -197,21 +223,11 @@ describe("module ids", () => {
       "editor.zed",
       "exposure.cloudflare",
       "exposure.ssh",
+      "exposure.caddy",
       "tool.github",
       "tool.1password",
-    ])
-    expect(LATER_MODULE_IDS).toEqual([
-      "runtime.go",
-      "runtime.php",
-      "runtime.ruby",
-      "runtime.docker",
-      "db.redis",
-      "exposure.caddy",
       "tool.neon",
     ])
-    expect(MODULE_IDS).toHaveLength(
-      MVP_MODULE_IDS.length + LATER_MODULE_IDS.length
-    )
     expect(new Set(MODULE_IDS).size).toBe(MODULE_IDS.length)
   })
 
@@ -252,8 +268,13 @@ describe("presets", () => {
       "exposure.ssh",
     ])
     expect(getPreset("full").modules).toEqual(
-      MVP_MODULE_IDS.filter((id) => id !== "exposure.ssh")
+      MODULE_IDS.filter((id) => !id.startsWith("exposure."))
     )
+    expect(getPreset("full").choose_one).toEqual([
+      "exposure.ssh",
+      "exposure.caddy",
+      "exposure.cloudflare",
+    ])
     expect(getPreset("minimal").modules).toEqual([
       "core.system",
       "core.hardening",

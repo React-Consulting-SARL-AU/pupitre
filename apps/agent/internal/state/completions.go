@@ -7,6 +7,7 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/devcli"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/file"
 )
@@ -77,16 +78,16 @@ func name(entry sys.Entry) string {
 // The projects root is the only folder the app may list: the rest of the machine is not its business, and a completion is not a file browser.
 func under(wanted string) (string, error) {
 	if strings.ContainsAny(wanted, "\x00\n\r") {
-		return "", bad("chemin illisible", "Donne un chemin relatif à la racine des projets.")
+		return "", bad(i18n.T("state.path.unreadable"), i18n.T("state.path.unreadable.fix"))
 	}
 
 	if strings.HasPrefix(wanted, "/") {
-		return "", bad("chemin absolu refusé : "+wanted, "Donne un chemin relatif à la racine des projets, par exemple flymate/api.")
+		return "", bad(i18n.T("state.path.absolute", wanted), i18n.T("state.path.absolute.fix"))
 	}
 
 	for _, segment := range strings.Split(wanted, "/") {
 		if segment == ".." {
-			return "", bad("chemin hors de la racine des projets : "+wanted, "Reste sous la racine des projets, sans « .. ».")
+			return "", bad(i18n.T("state.path.outside", wanted), i18n.T("state.path.outside.fix"))
 		}
 	}
 

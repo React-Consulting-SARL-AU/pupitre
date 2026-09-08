@@ -2,57 +2,45 @@
 title: "Privacy"
 description: "What Pupitre collects, what it never collects, and how to get it back or have it deleted."
 locale: en
-updated: 2026-09-04
+updated: 2026-09-06
 draft: true
 order: 4
 ---
 
-This page carries the structure of the document. Each heading names the clause it will hold; the binding wording is written by Pupitre LLC and is not published yet.
+import SubProcessors from "../../../components/SubProcessors.astro"
+
+Working draft. The service is not open: no customer data is processed today. This text describes what will be processed when it opens, and will be completed with the identity of the data controller at incorporation.
 
 ## What we store
 
-Your account, your organisation, the existence of your servers, and the public half of your device keys.
-
-TODO — final wording pending from Pupitre LLC.
+Your account: email, name if you give one, language, and the devices you sign in from. Your organisation and its members. The existence of your servers — a name, an address, the agent version, the state of the entitlement — and the public half of your device keys. Your subscriptions and invoices, held by Stripe.
 
 ## What we never store
 
-No code, no secrets, no logs, no terminal content, and no private key.
+No code, no project file, no service secret, no application log, no terminal content, no environment variable, no private key. What lives on your server stays on your server: the platform has no technical means of fetching it.
 
-TODO — final wording pending from Pupitre LLC.
+## Analytics
 
-## Audience measurement
-
-Page views on this site, without a cookie and without an identifier, and only after you accept.
-
-TODO — final wording pending from Pupitre LLC.
+The site measures page views with PostHog, without advertising cookies and without a durable identifier, and only after you agree in the banner. Declining takes nothing away from the site. The console measures screen usage on the same terms.
 
 ## Transactional email
 
-The messages we send, why we send them, and how to stop the ones that are optional.
-
-TODO — final wording pending from Pupitre LLC.
+We send what makes the account work: address confirmation, sign-in, invitation to an organisation, alert about a server, billing notice. Those cannot be turned off while the account exists. Optional messages — news, tips — are turned off in one click from the message itself.
 
 ## Payments
 
-Stripe acts as merchant of record and holds the payment data; we never see a card number.
-
-TODO — final wording pending from Pupitre LLC.
+Stripe acts as merchant of record: it collects, invoices, handles taxes and holds the payment data. We keep a Stripe customer identifier, the plan, the state of the subscription and the invoice history. Never a card number.
 
 ## Sub-processors
 
-The list of providers that process data on our behalf, and where they run.
+<SubProcessors />
 
-TODO — final wording pending from Pupitre LLC.
+The publisher will be a United States company and the platform will be hosted in the United States; the database still lives in a European region today and will be migrated before launch. [Full contact details, country of establishment for each sub-processor and the legal basis for transfers to be published when the service opens.]
 
 ## Retention
 
-How long each category is kept, and what happens when an account is deleted.
-
-TODO — final wording pending from Pupitre LLC.
+The account and the organisation are kept while the account exists, then for thirty days after its deletion, in case the deletion was a mistake. Invoices are kept for as long as the applicable accounting law requires [duration to be confirmed at incorporation]. Analytics are kept for twelve months.
 
 ## Your rights
 
-Access, correction, export, deletion, and the address to write to.
-
-TODO — final wording pending from Pupitre LLC.
+You can see, correct, export and have your data deleted. Deleting the account is done from the console and also deletes the organisations where you are the only member. For anything else, write to `privacy@pupitre.studio`; we answer within thirty days. [Competent supervisory authority and details of any representative to be completed at incorporation.]

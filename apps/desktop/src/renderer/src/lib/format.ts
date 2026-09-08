@@ -19,7 +19,7 @@ const DAY_S = 86_400;
 
 const EMPTY = "—";
 
-function comma(value: number, digits = 1): string {
+export function decimal(value: number, digits = 1): string {
   const fixed = value.toFixed(digits);
 
   return currentLocale() === "fr" ? fixed.replace(".", ",") : fixed;
@@ -33,16 +33,21 @@ export function memory(mb: number | undefined): string {
   const t = translate();
 
   return mb >= MB_PER_GB
-    ? `${comma(mb / MB_PER_GB)} ${t("format.unit.gb")}`
+    ? `${decimal(mb / MB_PER_GB)} ${t("format.unit.gb")}`
     : `${mb} ${t("format.unit.mb")}`;
 }
 
 export function gigabytes(mb: number): string {
-  return `${comma(mb / MB_PER_GB, mb >= 10 * MB_PER_GB ? 0 : 1)} ${translate()("format.unit.gb")}`;
+  return `${decimal(mb / MB_PER_GB, mb >= 10 * MB_PER_GB ? 0 : 1)} ${translate()("format.unit.gb")}`;
 }
 
 export function disk(gb: number): string {
-  return `${comma(gb, gb >= 10 ? 0 : 1)} ${translate()("format.unit.gb")}`;
+  return `${decimal(gb, gb >= 10 ? 0 : 1)} ${translate()("format.unit.gb")}`;
+}
+
+/** A figure shown as it was measured, with only the decimal mark localised. */
+export function measured(value: number): string {
+  return decimal(value, Number.isInteger(value) ? 0 : 1);
 }
 
 export function uptime(seconds: number | undefined): string {
@@ -100,5 +105,5 @@ export function weight(bytes: number): string {
 
   return kb < BYTES_PER_KB
     ? `${Math.round(kb)} ${t("format.unit.kb")}`
-    : `${comma(kb / BYTES_PER_KB)} ${t("format.unit.mb")}`;
+    : `${decimal(kb / BYTES_PER_KB)} ${t("format.unit.mb")}`;
 }

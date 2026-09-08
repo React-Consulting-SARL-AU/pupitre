@@ -37,7 +37,7 @@ func TestCompareVersionsOrdersSemver(t *testing.T) {
 // A version that is not semver still has to order somehow, and it must never read as newer than one that is.
 func TestCompareVersionsFallsBackOnTheStringOrder(t *testing.T) {
 	if selfupdate.CompareVersions("nightly", "nightly") != 0 {
-		t.Fatal("deux versions identiques hors semver doivent s'égaler")
+		t.Fatal("two identical non-semver versions must compare equal")
 	}
 
 	if !selfupdate.Older("1.0.0", "nightly") {
@@ -47,10 +47,10 @@ func TestCompareVersionsFallsBackOnTheStringOrder(t *testing.T) {
 
 func TestOlderNamesTheStrictOrder(t *testing.T) {
 	if !selfupdate.Older("0.9.0", "1.0.0") {
-		t.Fatal("0.9.0 est antérieure à 1.0.0")
+		t.Fatal("0.9.0 comes before 1.0.0")
 	}
 
 	if selfupdate.Older("1.0.0", "1.0.0") {
-		t.Fatal("une version n'est pas antérieure à elle-même")
+		t.Fatal("a version does not come before itself")
 	}
 }

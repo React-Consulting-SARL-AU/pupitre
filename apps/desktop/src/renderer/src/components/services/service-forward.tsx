@@ -44,7 +44,7 @@ export function ServiceForward({
       </div>
 
       {open.length === 0 ? (
-        <p className="text-[11px] text-ink-3">
+        <p className="text-[12px] text-ink-3">
           {t("services.forward.empty", { port })}
         </p>
       ) : (

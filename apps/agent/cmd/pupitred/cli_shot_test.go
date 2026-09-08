@@ -37,7 +37,7 @@ func TestShotReadsItsOptions(t *testing.T) {
 		t.Error("--list must be recognised")
 	}
 
-	for _, args := range [][]string{{}, {"--size"}, {"--wait", "bientôt"}, {"--zoom", "2"}} {
+	for _, args := range [][]string{{}, {"--size"}, {"--wait", "soon"}, {"--zoom", "2"}} {
 		if _, _, err := parseShot(args); err == nil {
 			t.Errorf("%v must be refused", args)
 		}

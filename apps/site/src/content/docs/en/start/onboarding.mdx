@@ -1,5 +1,5 @@
 ---
-title: The seven steps
+title: The eight steps
 description: The whole onboarding, step by step, with what changes on the machine at each one.
 locale: en
 section: start
@@ -17,26 +17,42 @@ Its address and a root or sudo account. The app generates an ed25519 key for thi
 
 The probe reads the distribution, the RAM, the disk, the architecture and what is already installed. You see what works, what is missing, and what Pupitre will not manage.
 
-## 3. Choose the services
+## 3. Put the agent in place
+
+The server is enrolled with the platform, then the signed binary goes over the already-open SSH session. The checksum of what the server received is compared with the app's before going on. The services catalogue is the agent's own: it does not exist until the agent does.
+
+A machine already carrying its identity is not enrolled twice: a connection cut between the exchange and its answer is taken up again, not replayed.
+
+## 4. Choose the services
 
 The catalogue, grouped by category. `core.system` and `core.hardening` are always included. Each module states what it installs and what it will ask you for. Presets exist for the common shapes.
 
-## 4. Configure
+## 5. Configure
 
-Versions, ports, accounts, secrets. A secret travels on the SSH session's standard input; it is never written to a file you did not ask for, and it is never displayed again after you enter it.
+Versions, ports, accounts, secrets. Every field says what it expects and refuses what does not have the right shape, at its own height, as you fill it in — never a list of complaints at the top of the page. A bubble beside the caption says where to find a value: the exact permissions a token needs, the page that issues it, what it costs to get it wrong. The action sits at the bottom, where your reading stops.
 
-## 5. Install
+A secret goes through the standard input of the SSH session; it is never written to a file you did not ask for, and never shown again after you type it.
 
-Step by step, live: the module, the step, the counter, the elapsed time. A step that fails does not stop the other modules — it is recorded with the command that replays it. Every step is idempotent, so the whole install can be run again without damage.
+A module that publishes through your Cloudflare account asks for that account here, above its own questions, not three screens away. You give a token once, for every server; the app reads which account it opens and which zones it carries. The domain this server publishes under is a per-server choice.
 
-## 6. Harden and switch to dev
+Before it runs, the app asks the server to weigh the configuration: a port something already listens on, a directory that turns out to be a file, a time zone this machine has never heard of. What it refuses comes back on the field it belongs to.
+
+## 6. Install
+
+Step by step, live: the module, the step, the counter, the duration. A configuration that would not hold is refused **before the first step**, machine untouched and fields named. A step that fails does not stop the other modules — it is noted with the command that replays it. Every step is idempotent: the whole install can be run again without damage.
+
+At the end the app tells the platform straight away: the console shows the modules at once, instead of an empty server for five minutes.
+
+## 7. Harden and switch to dev
 
 `ufw` on SSH only, `fail2ban`, passwords off, `AllowUsers dev`. Root is closed **last**, and only after the app has verified that your key actually opens `dev`. If that check fails, nothing is closed.
 
-## 7. First project
+At configuration time, the “Keep root access” option leaves root reachable by SSH key — never by password — and applies all the rest of the hardening. For those who want to keep a hand on their own server.
+
+## 8. First project
 
 A git URL or a folder on the machine. The agent clones, installs dependencies, starts the project in `tmux`, and reports the port, the URL and the logs.
 
-## After the seventh step
+## After the eighth step
 
 The onboarding is done and does not come back. From there the app is a window onto that machine: the dashboard, projects, terminals, agents, services. Adding a module later is the same catalogue screen, without the rest of the walkthrough.

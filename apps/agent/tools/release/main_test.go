@@ -65,11 +65,11 @@ func TestKeygenWritesThePairToStandardOutputOnly(t *testing.T) {
 
 	private, err := release.ParsePrivateKey(lines[3])
 	if err != nil {
-		t.Fatalf("clé privée : %v", err)
+		t.Fatalf("private key: %v", err)
 	}
 
 	if release.PublicKeyOf(private) != lines[1] {
-		t.Fatal("la paire ne tient pas ensemble")
+		t.Fatal("the pair does not hold together")
 	}
 }
 
@@ -82,7 +82,7 @@ func TestPublicKeyDerivesTheFlagTheReleaseBuildInjects(t *testing.T) {
 	}
 
 	if strings.TrimSpace(stdout) != public {
-		t.Fatalf("clé publique = %q", stdout)
+		t.Fatalf("public key = %q", stdout)
 	}
 }
 
@@ -92,7 +92,7 @@ func TestSigningStopsWithoutTheSecret(t *testing.T) {
 
 	code, _, stderr := execute(t, noEnvironment, "sign", "--version=1.4.2", binary)
 	if code == 0 {
-		t.Fatal("signature sans clé")
+		t.Fatal("signed without a key")
 	}
 
 	if !strings.Contains(stderr, privateKeyVariable) {
@@ -136,7 +136,7 @@ func TestSignWritesPublicationsTheAgentAccepts(t *testing.T) {
 
 	key, err := selfupdate.ParsePublicKey(public)
 	if err != nil {
-		t.Fatalf("clé publique : %v", err)
+		t.Fatalf("public key: %v", err)
 	}
 
 	for _, publication := range publications {
@@ -146,7 +146,7 @@ func TestSignWritesPublicationsTheAgentAccepts(t *testing.T) {
 		}
 
 		if !selfupdate.Verify(key, publication.Version, publication.Arch, publication.SHA256, signature) {
-			t.Errorf("%s : signature refusée par l'agent", publication.Arch)
+			t.Errorf("%s: signature refused by the agent", publication.Arch)
 		}
 	}
 
@@ -160,7 +160,7 @@ func TestSignRefusesABinaryWhoseNameDoesNotSayItsArchitecture(t *testing.T) {
 	binary := binaryAt(t, "pupitred", []byte("pupitred"))
 
 	if code, _, _ := execute(t, env, "sign", "--version=1.4.2", binary); code == 0 {
-		t.Fatal("binaire accepté")
+		t.Fatal("binary accepted")
 	}
 }
 
@@ -197,7 +197,7 @@ func TestPublishSendsEveryPublicationToThePlatform(t *testing.T) {
 		t.Fatalf("appels = %v", paths)
 	}
 
-	if strings.Count(stdout, "publiée") != 2 {
+	if strings.Count(stdout, "published") != 2 {
 		t.Fatalf("sortie = %q", stdout)
 	}
 }

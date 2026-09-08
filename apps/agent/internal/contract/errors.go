@@ -6,6 +6,7 @@ const (
 	ErrorHelloRequired       ErrorCode = "hello_required"
 	ErrorProtocolMismatch    ErrorCode = "protocol_mismatch"
 	ErrorBadRequest          ErrorCode = "bad_request"
+	ErrorInvalidConfig       ErrorCode = "invalid_config"
 	ErrorUnknownCommand      ErrorCode = "unknown_command"
 	ErrorEntitlementRequired ErrorCode = "entitlement_required"
 	ErrorProjectNotFound     ErrorCode = "project_not_found"
@@ -24,6 +25,7 @@ var ErrorCodes = []ErrorCode{
 	ErrorHelloRequired,
 	ErrorProtocolMismatch,
 	ErrorBadRequest,
+	ErrorInvalidConfig,
 	ErrorUnknownCommand,
 	ErrorEntitlementRequired,
 	ErrorProjectNotFound,

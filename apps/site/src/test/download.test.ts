@@ -24,12 +24,12 @@ const SERVED = {
   version: "9.9.9",
   channel: "stable",
   published_at: "2026-09-04T00:00:00.000Z",
-  assets: [
+  builds: [
     {
       os: "macos",
       arch: "arm64",
       format: "dmg",
-      size_bytes: 111_000_000,
+      bytes: 111_000_000,
       sha256: "b".repeat(64),
       url: "https://example.test/pupitre-macos-arm64.dmg",
     },
@@ -119,7 +119,7 @@ describe("download", () => {
     expect(html).not.toContain(formatUsd(19))
   })
 
-  it("says an account and a running trial come first, above the three systems", async () => {
+  it("says the account comes first, above the three systems", async () => {
     for (const locale of LOCALES) {
       const html = await render(Download, { path: paths[locale] })
       const { account } = downloadContent(locale)

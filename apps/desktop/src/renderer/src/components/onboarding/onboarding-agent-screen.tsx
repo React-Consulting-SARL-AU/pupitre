@@ -1,12 +1,13 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { ArrowRight, RefreshCw } from "lucide-react";
-import { useEffect } from "react";
+import { phasesAt } from "@renderer/lib/waiting-phases";
+import { AGENT_SEND_PHASES } from "@shared/install";
+import { ArrowRight } from "lucide-react";
 import { humanBytes } from "../../lib/duration";
 import { useOnboarding } from "../../stores/onboarding";
 import { Button } from "../ui/button";
-import { Callout } from "../ui/callout";
 import { PageHeader } from "../ui/page-header";
 import { StatusDot } from "../ui/status-dot";
+import { StepFailure } from "../ui/step-failure";
 import { WaitingNotice } from "../ui/waiting-notice";
 import { OnboardingEnrollmentNote } from "./onboarding-enrollment-note";
 
@@ -30,12 +31,6 @@ export function OnboardingAgentScreen({
   const delivery = useOnboarding((state) => state.delivery);
   const sendAgent = useOnboarding((state) => state.sendAgent);
 
-  useEffect(() => {
-    if (useOnboarding.getState().delivery.status === "idle") {
-      sendAgent();
-    }
-  }, [sendAgent]);
-
   return (
     <section className="flex flex-col gap-section">
       <PageHeader
@@ -52,17 +47,7 @@ export function OnboardingAgentScreen({
       />
 
       {delivery.status === "failed" ? (
-        <Callout
-          action={
-            <Button icon={RefreshCw} onClick={sendAgent}>
-              {t("common.retry")}
-            </Button>
-          }
-          fix={delivery.error.fix}
-          tone="danger"
-        >
-          {delivery.error.message}
-        </Callout>
+        <StepFailure error={delivery.error} onRetry={sendAgent} />
       ) : null}
 
       {delivery.status === "sent" ? (
@@ -84,7 +69,7 @@ export function OnboardingAgentScreen({
                 linux-{delivery.delivery.arch} ·{" "}
                 {humanBytes(delivery.delivery.bytes)}
               </p>
-              <p className="mt-2 break-all font-data text-[11px] text-ink-4">
+              <p className="mt-2 break-all font-data text-[12px] text-ink-4">
                 sha256 {delivery.delivery.sha256}
               </p>
             </div>
@@ -96,6 +81,11 @@ export function OnboardingAgentScreen({
         <WaitingNotice
           detail={t("onboarding.agent.sendingDetail")}
           note={t("onboarding.agent.sendingNote")}
+          phases={phasesAt(
+            AGENT_SEND_PHASES,
+            delivery.status === "sending" ? delivery.phase : "reading",
+            (id) => t(`onboarding.agent.phase.${id}`)
+          )}
           title={t("onboarding.agent.sendingTitle")}
         />
       ) : null}

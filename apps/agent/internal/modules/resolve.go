@@ -1,7 +1,7 @@
 package modules
 
 import (
-	"fmt"
+	"pupitre.studio/agent/internal/i18n"
 	"sort"
 	"strings"
 
@@ -67,8 +67,8 @@ func checkConflicts(selected map[string]Module) error {
 					first, second = second, first
 				}
 
-				return protocol.NewError(contract.ErrorBadRequest, fmt.Sprintf("les modules %s et %s sont en conflit", first, second)).
-					WithFix("Retire l'un des deux de la sélection.")
+				return protocol.NewError(contract.ErrorBadRequest, i18n.T("resolve.conflict", first, second)).
+					WithFix(i18n.T("resolve.conflict.fix"))
 			}
 		}
 	}
@@ -131,10 +131,10 @@ func dependencyCycle(remaining map[string]int) error {
 	}
 	sort.Strings(ids)
 
-	return protocol.NewError(contract.ErrorInternal, "dépendances circulaires entre les modules "+strings.Join(ids, ", "))
+	return protocol.NewError(contract.ErrorInternal, i18n.T("resolve.cycle", strings.Join(ids, ", ")))
 }
 
 func moduleNotFound(id string) error {
-	return protocol.NewError(contract.ErrorModuleNotFound, "module inconnu : "+id).
-		WithFix("Demande catalog pour la liste des modules de cet agent.")
+	return protocol.NewError(contract.ErrorModuleNotFound, i18n.T("resolve.module.unknown", id)).
+		WithFix(i18n.T("resolve.module.unknown.fix"))
 }

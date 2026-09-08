@@ -31,7 +31,7 @@ func resolve(ctx *modules.Context) (release, error) {
 		ProductVersion string `json:"productVersion"`
 	}
 	if err := json.Unmarshal([]byte(out), &answer); err != nil || answer.Version == "" {
-		return release{}, fmt.Errorf("réponse illisible de %s", updateURL)
+		return release{}, fmt.Errorf("unreadable answer from %s", updateURL)
 	}
 
 	return release{Commit: answer.Version, Version: answer.ProductVersion}, nil

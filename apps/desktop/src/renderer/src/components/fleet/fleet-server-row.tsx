@@ -73,7 +73,7 @@ export function FleetServerRow({
 
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium text-ink">{server.name}</p>
-          <p className="mt-0.5 break-all font-data text-[11px] text-ink-3">
+          <p className="mt-0.5 break-all font-data text-[12px] text-ink-3">
             {address}
           </p>
         </div>
@@ -96,7 +96,7 @@ export function FleetServerRow({
           <dt>
             <Label>{t("fleet.row.platformState")}</Label>
           </dt>
-          <dd className="font-data text-[11px] text-ink-2">
+          <dd className="font-data text-[12px] text-ink-2">
             {t(look.label)} · {server.grant.status}
           </dd>
         </div>
@@ -104,7 +104,7 @@ export function FleetServerRow({
           <dt>
             <Label>{t("servers.row.hostKeyLabel")}</Label>
           </dt>
-          <dd className="break-all font-data text-[11px] text-ink-2">
+          <dd className="break-all font-data text-[12px] text-ink-2">
             {server.hostFingerprint ?? t("servers.row.notPinned")}
           </dd>
         </div>

@@ -41,12 +41,12 @@ export function SecretsRow({
       <div className="flex items-center gap-3 px-4 py-3">
         <Lock className="shrink-0 text-ink-3" size={13} strokeWidth={1.5} />
 
-        <p className="min-w-0 flex-1 truncate font-data text-[12px] text-ink">
+        <p className="min-w-0 flex-1 truncate font-data text-[13px] text-ink">
           {secret.key}
         </p>
 
         <span
-          className={`flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 font-data text-[10px] text-ink-2 ${
+          className={`flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 font-data text-[11px] text-ink-2 ${
             secret.set ? "border-ok/40" : "border-warn/40"
           }`}
           data-state={secret.set ? "set" : "missing"}

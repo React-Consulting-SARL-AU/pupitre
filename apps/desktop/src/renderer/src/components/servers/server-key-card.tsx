@@ -15,11 +15,14 @@ export function ServerKeyCard({
   publicKey,
   copyId,
   onDone,
+  doneLabel,
 }: {
   server: Server;
   publicKey: string;
   copyId: string | null;
   onDone: () => void;
+  /** What the way on is called when there is a next step to go to. */
+  doneLabel?: string;
 }) {
   const t = useTranslations();
 
@@ -50,7 +53,7 @@ export function ServerKeyCard({
 
       <div className="mt-5">
         <Button onClick={onDone} variant="inverse">
-          {t("servers.key.done")}
+          {doneLabel ?? t("servers.key.done")}
         </Button>
       </div>
     </div>

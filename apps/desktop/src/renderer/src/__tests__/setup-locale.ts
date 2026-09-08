@@ -1,7 +1,7 @@
 export {};
 
-// Le rendu statique de React sert l'état initial du store : la langue doit être
-// choisie avant que le module ne soit chargé, donc par `navigator`, pas par `setState`.
+// React's static render serves the store's initial state: the language must
+// be chosen before the module is loaded, so via `navigator`, not `setState`.
 Object.defineProperty(globalThis, "navigator", {
   configurable: true,
   value: { ...globalThis.navigator, language: "fr-FR" },

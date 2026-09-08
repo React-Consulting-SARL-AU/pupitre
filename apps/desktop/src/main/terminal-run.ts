@@ -4,6 +4,7 @@ import type { AgentError, AgentResponse } from "@shared/agent";
 import type { TerminalKind } from "@shared/terminals";
 import { TERMINAL_KINDS } from "@shared/terminals";
 import type { AgentClient } from "./agent-client";
+import { refuseWith } from "./refusal";
 
 export interface TerminalDeps {
   client: Pick<AgentClient, "request">;
@@ -22,10 +23,10 @@ const FOLDER_OK = /^\/[\w.\-/+@]{0,240}$/;
 
 function refuse(
   code: AgentError["code"],
-  message: string,
-  fix: string
+  id: string,
+  values?: Record<string, string | number>
 ): AgentResponse<never> {
-  return { ok: false, error: { code, fix, message } };
+  return refuseWith(code, id, values);
 }
 
 export function isTerminalKind(value: unknown): value is TerminalKind {
@@ -53,29 +54,21 @@ export async function terminalCommand(
   deps: TerminalDeps
 ): Promise<AgentResponse<TerminalCommand>> {
   if (typeof serverId !== "string" || !deps.knows(serverId)) {
-    return refuse(
-      "bad_request",
-      "Ce serveur n'est plus dans la liste.",
-      "Choisis un serveur dans les réglages."
-    );
+    return refuse("bad_request", "refusal.server.unknown");
   }
 
   if (!isTerminalKind(kind)) {
-    return refuse(
-      "bad_request",
-      `Genre de terminal inconnu : ${String(kind)}.`,
-      "Ouvre un terminal, ou l'onglet d'un agent installé."
-    );
+    return refuse("bad_request", "refusal.terminal.kind", {
+      kind: String(kind),
+    });
   }
 
   const named = typeof project === "string" ? project : null;
 
   if (named !== null && !deps.declares(serverId, named)) {
-    return refuse(
-      "project_not_found",
-      `Ce serveur n'a pas déclaré de projet nommé ${named}.`,
-      "Recharge la liste des projets, puis reprends."
-    );
+    return refuse("project_not_found", "refusal.project.unknown", {
+      name: named,
+    });
   }
 
   if (!isAgentKind(kind)) {
@@ -86,11 +79,7 @@ export async function terminalCommand(
   }
 
   if (named === null) {
-    return refuse(
-      "bad_request",
-      "Un agent s'ouvre sur un projet.",
-      "Ouvre l'agent depuis la page d'un projet."
-    );
+    return refuse("bad_request", "refusal.agent.project");
   }
 
   const answer = await deps.client.request(serverId, "agent.open", {

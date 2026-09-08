@@ -1,4 +1,5 @@
 import { Menu as BaseMenu } from "@base-ui-components/react/menu"
+import { Check } from "lucide-react"
 import type { ComponentProps } from "react"
 import { cn } from "@/lib/utils/cn"
 
@@ -10,14 +11,21 @@ export const MenuRadioGroup = BaseMenu.RadioGroup
 
 export const MenuGroup = BaseMenu.Group
 
+export interface MenuPopupProps extends ComponentProps<typeof BaseMenu.Popup> {
+  side?: ComponentProps<typeof BaseMenu.Positioner>["side"]
+  align?: ComponentProps<typeof BaseMenu.Positioner>["align"]
+}
+
 export function MenuPopup({
   className,
   children,
+  side = "bottom",
+  align = "start",
   ...props
-}: ComponentProps<typeof BaseMenu.Popup>) {
+}: MenuPopupProps) {
   return (
     <BaseMenu.Portal>
-      <BaseMenu.Positioner align="start" sideOffset={6}>
+      <BaseMenu.Positioner align={align} side={side} sideOffset={6}>
         <BaseMenu.Popup
           className={cn(
             "min-w-[220px] rounded-lg bg-surface p-1 shadow-overlay outline-none",
@@ -65,6 +73,7 @@ export function MenuItem({
 
 export function MenuRadioItem({
   className,
+  children,
   ...props
 }: ComponentProps<typeof BaseMenu.RadioItem>) {
   return (
@@ -75,7 +84,12 @@ export function MenuRadioItem({
         className
       )}
       {...props}
-    />
+    >
+      {children}
+      <BaseMenu.RadioItemIndicator className="ml-auto flex">
+        <Check className="size-4 text-ink" strokeWidth={1.5} />
+      </BaseMenu.RadioItemIndicator>
+    </BaseMenu.RadioItem>
   )
 }
 

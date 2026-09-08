@@ -1,5 +1,6 @@
-import { Dialog } from "@base-ui-components/react/dialog"
+import { AlertDialog } from "@base-ui-components/react/alert-dialog"
 import type { LucideIcon } from "lucide-react"
+import { useState } from "react"
 import { Button, type ButtonVariant } from "@/components/ui/button"
 import { useTranslations } from "@/hooks/use-locale"
 
@@ -7,60 +8,75 @@ export interface ConfirmDialogProps {
   triggerLabel: string
   triggerIcon?: LucideIcon
   triggerVariant?: ButtonVariant
+  /** A row has no room for a sentence: the icon carries the action, the word names it. */
+  triggerIconOnly?: boolean
   title: string
   description: string
   confirmLabel: string
   onConfirm: () => void
-  pending?: boolean
+  /** The screen already shows the outcome: the trigger breathes until the server agrees. */
+  busy?: boolean
+  busyLabel?: string
 }
 
 export function ConfirmDialog({
   triggerLabel,
   triggerIcon: TriggerIcon,
   triggerVariant = "danger",
+  triggerIconOnly = false,
   title,
   description,
   confirmLabel,
   onConfirm,
-  pending = false,
+  busy = false,
+  busyLabel,
 }: ConfirmDialogProps) {
   const t = useTranslations()
+  const [open, setOpen] = useState(false)
+  const label = busy && busyLabel ? busyLabel : triggerLabel
 
   return (
-    <Dialog.Root>
-      <Dialog.Trigger
+    <AlertDialog.Root onOpenChange={setOpen} open={open}>
+      <AlertDialog.Trigger
         render={
-          <Button size="sm" variant={triggerVariant}>
-            {TriggerIcon ? (
-              <TriggerIcon className="size-4" strokeWidth={1.5} />
-            ) : null}
-            {triggerLabel}
+          <Button
+            aria-label={triggerIconOnly ? label : undefined}
+            className={triggerIconOnly ? "w-7 px-0" : undefined}
+            icon={TriggerIcon}
+            loading={busy}
+            size="sm"
+            title={triggerIconOnly ? label : undefined}
+            variant={triggerVariant}
+          >
+            {triggerIconOnly ? null : label}
           </Button>
         }
       />
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 bg-base/70 backdrop-blur-[2px]" />
-        <Dialog.Popup className="fixed top-1/2 left-1/2 w-[min(420px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-lg bg-surface p-6 shadow-overlay outline-none">
-          <Dialog.Title className="font-bold font-display text-[16px] text-ink leading-[1.2]">
+      <AlertDialog.Portal>
+        <AlertDialog.Backdrop className="fixed inset-0 bg-base/70 backdrop-blur-[2px]" />
+        <AlertDialog.Popup className="fixed top-1/2 left-1/2 w-[min(420px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-lg bg-surface p-6 shadow-overlay outline-none">
+          <AlertDialog.Title className="font-bold font-display text-[16px] text-ink leading-[1.2]">
             {title}
-          </Dialog.Title>
-          <Dialog.Description className="mt-2 text-[13px] text-ink-2">
+          </AlertDialog.Title>
+          <AlertDialog.Description className="mt-2 text-[13px] text-ink-2">
             {description}
-          </Dialog.Description>
+          </AlertDialog.Description>
           <div className="mt-6 flex justify-end gap-2">
-            <Dialog.Close
+            <AlertDialog.Close
               render={<Button variant="ghost">{t("common.cancel")}</Button>}
             />
-            <Dialog.Close
-              render={
-                <Button disabled={pending} onClick={onConfirm} variant="danger">
-                  {confirmLabel}
-                </Button>
-              }
-            />
+            <Button
+              onClick={() => {
+                setOpen(false)
+                onConfirm()
+              }}
+              variant="danger"
+            >
+              {confirmLabel}
+            </Button>
           </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+        </AlertDialog.Popup>
+      </AlertDialog.Portal>
+    </AlertDialog.Root>
   )
 }

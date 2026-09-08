@@ -19,22 +19,31 @@ interface Held {
   revealed: boolean;
 }
 
-const vaults = new Map<string, Map<string, Held>>();
+const vaults = new Map<string, Map<string, Map<string, Held>>>();
 
-function vault(serverId: string): Map<string, Held> {
+function vault(serverId: string): Map<string, Map<string, Held>> {
   const existing = vaults.get(serverId);
   if (existing) {
     return existing;
   }
 
-  const made = new Map<string, Held>();
+  const made = new Map<string, Map<string, Held>>();
   vaults.set(serverId, made);
 
   return made;
 }
 
-function path(moduleId: string, key: string): string {
-  return `${moduleId} ${key}`;
+function moduleVault(serverId: string, moduleId: string): Map<string, Held> {
+  const server = vault(serverId);
+  const existing = server.get(moduleId);
+  if (existing) {
+    return existing;
+  }
+
+  const made = new Map<string, Held>();
+  server.set(moduleId, made);
+
+  return made;
 }
 
 function mark(held: Held): SecretMark {
@@ -55,7 +64,7 @@ export function setSecret(
     return clearSecret(serverId, moduleId, key);
   }
 
-  vault(serverId).set(path(moduleId, key), {
+  moduleVault(serverId, moduleId).set(key, {
     value,
     generated: false,
     revealed: false,
@@ -75,7 +84,7 @@ export function generateSecret(
   moduleId: string,
   key: string
 ): SecretMarks {
-  vault(serverId).set(path(moduleId, key), {
+  moduleVault(serverId, moduleId).set(key, {
     value: randomBytes(GENERATED_BYTES).toString("base64url"),
     generated: true,
     revealed: false,
@@ -90,7 +99,7 @@ export function revealSecret(
   moduleId: string,
   key: string
 ): string | null {
-  const held = vault(serverId).get(path(moduleId, key));
+  const held = moduleVault(serverId, moduleId).get(key);
 
   if (!held || held.revealed) {
     return null;
@@ -106,7 +115,7 @@ export function clearSecret(
   moduleId: string,
   key: string
 ): SecretMarks {
-  vault(serverId).delete(path(moduleId, key));
+  moduleVault(serverId, moduleId).delete(key);
 
   return marks(serverId);
 }
@@ -114,13 +123,11 @@ export function clearSecret(
 export function marks(serverId: string): SecretMarks {
   const state: SecretMarks = {};
 
-  for (const [held, secret] of vault(serverId)) {
-    const [moduleId, key] = held.split(" ");
-    if (!(moduleId && key)) {
-      continue;
+  for (const [moduleId, secrets] of vault(serverId)) {
+    for (const [key, secret] of secrets) {
+      state[moduleId] ??= {};
+      state[moduleId][key] = mark(secret);
     }
-    state[moduleId] ??= {};
-    state[moduleId][key] = mark(secret);
   }
 
   return state;
@@ -135,13 +142,11 @@ export function marks(serverId: string): SecretMarks {
 export function takeSecrets(serverId: string): InstallSecrets {
   const line: InstallSecrets = {};
 
-  for (const [held, secret] of vault(serverId)) {
-    const [moduleId, key] = held.split(" ");
-    if (!(moduleId && key)) {
-      continue;
+  for (const [moduleId, secrets] of vault(serverId)) {
+    for (const [key, secret] of secrets) {
+      line[moduleId] ??= {};
+      line[moduleId][key] = secret.value;
     }
-    line[moduleId] ??= {};
-    line[moduleId][key] = secret.value;
   }
 
   forgetSecrets(serverId);

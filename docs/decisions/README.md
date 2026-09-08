@@ -1,6 +1,6 @@
 # Décisions
 
-Une décision par fichier, numérotée, jamais réécrite : une décision qui change est remplacée par une nouvelle qui la cite. Un agent qui veut « améliorer » une décision la lit d'abord, puis ouvre un blocage dans `../TRACKING.md` s'il pense qu'elle est fausse.
+Une décision par fichier, numérotée, jamais réécrite : une décision qui change est remplacée par une nouvelle qui la cite. Un agent qui veut « améliorer » une décision la lit d'abord, puis le signale au propriétaire s'il pense qu'elle est fausse.
 
 | N° | Décision |
 | --- | --- |

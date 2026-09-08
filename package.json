@@ -8,9 +8,9 @@
   ],
   "scripts": {
     "dev:prepare": "bun scripts/bootstrap-local.ts",
-    "dev": "bun run dev:prepare && turbo run dev dev:stripe --filter=@pupitre/site --filter=@pupitre/web",
+    "dev": "bun run dev:prepare && turbo run dev dev:stripe dev:tunnel --filter=@pupitre/site --filter=@pupitre/web",
     "dev:site": "bun run dev:prepare && turbo run dev --filter=@pupitre/site",
-    "dev:web": "bun run dev:prepare && turbo run dev dev:stripe --filter=@pupitre/web",
+    "dev:web": "bun run dev:prepare && turbo run dev dev:stripe dev:tunnel --filter=@pupitre/web",
     "dev:desktop": "turbo run dev --filter=@pupitre/desktop",
     "dev:email": "bun --cwd=packages/api run dev:email",
     "build": "turbo run build",
@@ -22,6 +22,7 @@
     "check:types": "turbo run check:types",
     "check:prisma-client": "bun scripts/check-prisma-client-freshness.ts",
     "check:secrets": "bun scripts/check-worker-secrets.ts",
+    "workflows:run": "bun scripts/run-workflow.ts",
     "test": "bun run test:root && turbo run test",
     "test:root": "bun test scripts",
     "test:affected": "turbo run test --affected",
@@ -56,5 +57,8 @@
     "electron-builder",
     "esbuild",
     "node-pty"
-  ]
+  ],
+  "patchedDependencies": {
+    "miniflare@4.20260708.0": "patches/miniflare@4.20260708.0.patch"
+  }
 }

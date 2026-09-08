@@ -216,7 +216,7 @@ func TestADumpWhoseNameIsNotUsableIsLeftAlone(t *testing.T) {
 		t.Fatal("nothing was imported from it, nothing marks it as done")
 	}
 
-	if !strings.Contains(strings.Join(ctx.Output(), "\n"), "ignoré") {
+	if !strings.Contains(strings.Join(ctx.Output(), "\n"), "was skipped") {
 		t.Fatalf("the client must be told:\n%s", strings.Join(ctx.Output(), "\n"))
 	}
 }

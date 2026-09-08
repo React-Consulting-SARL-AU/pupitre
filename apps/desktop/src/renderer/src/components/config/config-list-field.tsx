@@ -3,7 +3,7 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { itemKey, type SecretMark } from "@shared/secrets";
 import { Plus, X } from "lucide-react";
 import { Button } from "../ui/button";
-import { fieldControlClass } from "../ui/field";
+import { controlClass } from "../ui/field";
 import { IconButton } from "../ui/icon-button";
 import { ConfigSecretField } from "./config-secret-field";
 
@@ -11,13 +11,14 @@ import { ConfigSecretField } from "./config-secret-field";
  * A list of values of one kind, within the bounds the manifest set.
  *
  * A list of `secret` items is a list of secret fields: each element goes to the
- * main process under `<clé>.<rang>` and never comes back, exactly like a lone
+ * main process under `<key>.<index>` and never comes back, exactly like a lone
  * secret.
  */
 export function ConfigListField({
   moduleId,
   field,
   values,
+  wrong = false,
   marks,
   onChange,
   onSecret,
@@ -25,6 +26,8 @@ export function ConfigListField({
   moduleId: string;
   field: ListField;
   values: readonly string[];
+  /** Whether the list is refused: its rows are bordered and said to be invalid. */
+  wrong?: boolean;
   marks?: Record<string, SecretMark>;
   onChange?: (next: string[]) => void;
   onSecret?: (key: string, value: string) => void;
@@ -62,7 +65,7 @@ export function ConfigListField({
               ) : (
                 <input
                   aria-label={`${field.label} ${index + 1}`}
-                  className={fieldControlClass}
+                  className={controlClass("data", wrong)}
                   name={name}
                   onChange={(event) => replace(index, event.target.value)}
                   type="text"
@@ -100,7 +103,7 @@ export function ConfigListField({
           </Button>
         ) : null}
 
-        <span className="font-data text-[10.5px] text-ink-4 tabular-nums">
+        <span className="font-data text-[11.5px] text-ink-4 tabular-nums">
           {least > 0
             ? t("config.list.between", { min: least, max: field.max ?? "n" })
             : t("config.list.upTo", { max: field.max ?? "n" })}

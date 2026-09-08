@@ -27,9 +27,9 @@ export function createNeonPrismaClient(): NeonPrismaClient {
 }
 
 /**
- * Le socket Neon appartient au contexte d'entrée-sortie qui l'a ouvert et un
- * Worker interdit d'en changer : un client ne vit donc pas plus longtemps que
- * la requête qui l'ouvre.
+ * The Neon socket belongs to the I/O context that opened it, and a Worker
+ * forbids changing that: a client therefore never outlives the request that
+ * opens it.
  */
 export async function withNeonPrismaClient<T>(
   run: () => T | Promise<T>

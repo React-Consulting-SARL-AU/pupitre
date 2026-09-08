@@ -45,12 +45,12 @@ func TestRestrictedCommandsMatchTheContract(t *testing.T) {
 // A restricted server repairs itself by enrolling again: a lost token, a revoked one, or an entitlement to restore.
 func TestRestrictedModeLetsAServerEnrolAgain(t *testing.T) {
 	if !AllowedInRestrictedMode("enroll") {
-		t.Error("un serveur restreint ne peut plus se ré-enrôler")
+		t.Error("a restricted server can no longer re-enrol")
 	}
 
 	restricted := State{Entitlement: contract.EntitlementRestricted, Enrolled: true}
 	if !restricted.Allows("enroll") {
-		t.Error("le garde refuse enroll à un serveur enrôlé mais restreint")
+		t.Error("the guard refuses enroll to an enrolled but restricted server")
 	}
 }
 
@@ -58,15 +58,15 @@ func TestRestrictedModeLetsAServerEnrolAgain(t *testing.T) {
 func TestUnenrolledCommandsAreOpenInRestrictedMode(t *testing.T) {
 	for _, cmd := range UnenrolledCommands {
 		if !AllowedInRestrictedMode(cmd) {
-			t.Errorf("%s ouvert sans jeton mais fermé en mode restreint", cmd)
+			t.Errorf("%s open without a token but closed in restricted mode", cmd)
 		}
 	}
 
 	if !AllowedWithoutEnrolment("enroll") {
-		t.Error("un binaire sans jeton ne peut pas s'enrôler")
+		t.Error("a binary without a token cannot enrol")
 	}
 
 	if AllowedWithoutEnrolment("install") || AllowedWithoutEnrolment("snapshot") {
-		t.Error("un binaire sans jeton ouvre plus que son enrôlement")
+		t.Error("a binary without a token opens more than its enrolment")
 	}
 }

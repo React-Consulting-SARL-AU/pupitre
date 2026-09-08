@@ -1,3 +1,4 @@
+import { legalEntityLabel } from "@pupitre/shared/legal"
 import { describe, expect, it } from "vitest"
 import { SIGNUP_URL } from "../lib/urls"
 import {
@@ -70,7 +71,7 @@ describe("Footer", () => {
     expect(html).toContain('aria-label="Legal"')
     expect(html).toContain('href="https://app.pupitre.studio/status/"')
     expect(html).toContain('href="/legal/data-processing/"')
-    expect(html).toContain("Pupitre LLC")
+    expect(html).toContain(legalEntityLabel("en"))
   })
 
   it("localises every internal link under /fr", async () => {

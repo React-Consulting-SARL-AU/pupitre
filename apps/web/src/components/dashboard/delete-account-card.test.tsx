@@ -43,9 +43,9 @@ describe("DeleteAccountCard", () => {
 
     mounted.push(unmount)
 
-    await click(trigger(container, "Supprimer mon compte"))
+    await click(trigger(container, "Delete my account"))
 
-    const confirm = trigger(container, "Supprimer définitivement")
+    const confirm = trigger(container, "Delete for good")
     const field = document.querySelector("#confirm-email")
 
     if (!field) {
@@ -57,15 +57,13 @@ describe("DeleteAccountCard", () => {
     await fill(field, "ada@other.local")
 
     expect(
-      (trigger(container, "Supprimer définitivement") as HTMLButtonElement)
-        .disabled
+      (trigger(container, "Delete for good") as HTMLButtonElement).disabled
     ).toBe(true)
 
     await fill(field, "ada@test.local")
 
     expect(
-      (trigger(container, "Supprimer définitivement") as HTMLButtonElement)
-        .disabled
+      (trigger(container, "Delete for good") as HTMLButtonElement).disabled
     ).toBe(false)
   })
 })

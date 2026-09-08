@@ -1,5 +1,6 @@
 import { createHash, createPublicKey, verify } from "node:crypto";
 import type { AgentResponse } from "@shared/agent";
+import { refuseWith } from "./refusal";
 
 /**
  * The agent's binary, checked before it is pushed anywhere.
@@ -11,11 +12,15 @@ import type { AgentResponse } from "@shared/agent";
  */
 
 /**
- * The release signing key is issued by the distribution pipeline (AGT-15,
- * INF-05) and does not exist yet: an unsigned release is refused in a packaged
- * build rather than trusted.
+ * The public half of the release key, the same for every version.
+ *
+ * Its private half lives only in 1Password and in the CI secret; it signs the
+ * agent binary and the app artefacts. Changing this string repudiates
+ * everything published before: an app carrying one key and an agent signed by
+ * another refuse every update.
  */
-export const AGENT_RELEASE_PUBLIC_KEY = "";
+export const AGENT_RELEASE_PUBLIC_KEY =
+  "weIpHX6WI4GjQquEBNFOjl6F61ntJ0k6DrRBOXhM/us";
 
 const ED25519_SPKI_PREFIX = "302a300506032b6570032100";
 
@@ -23,12 +28,32 @@ const ED25519_PUBLIC_KEY_BYTES = 32;
 
 export interface ReleaseFingerprint {
   version: string;
+  arch: string;
   sha256: string;
   signature: string;
 }
 
-function refuse(message: string, fix: string): AgentResponse<never> {
-  return { ok: false, error: { code: "bad_signature", fix, message } };
+/**
+ * What the publishing chain signs, line for line.
+ *
+ * The signature does not cover the bytes alone: it binds the digest to the
+ * published version and architecture, so an authentic binary meant for another
+ * machine is refused too. `internal/release` in Go writes exactly these four
+ * lines.
+ */
+export function signedMessage(
+  version: string,
+  arch: string,
+  sha256: string
+): Buffer {
+  return Buffer.from(`pupitred\n${version}\n${arch}\n${sha256}\n`, "utf8");
+}
+
+function refuse(
+  id: string,
+  values?: Record<string, string | number>
+): AgentResponse<never> {
+  return refuseWith("bad_signature", id, values);
 }
 
 function keyObjectOf(publicKey: string) {
@@ -46,7 +71,7 @@ function keyObjectOf(publicKey: string) {
 }
 
 function signatureHolds(
-  bytes: Uint8Array,
+  message: Uint8Array,
   signature: string,
   publicKey: string
 ): boolean {
@@ -57,7 +82,7 @@ function signatureHolds(
   }
 
   try {
-    return verify(null, bytes, key, Buffer.from(signature, "base64"));
+    return verify(null, message, key, Buffer.from(signature, "base64"));
   } catch {
     return false;
   }
@@ -71,31 +96,21 @@ export function checkAgentRelease(
   const sha256 = createHash("sha256").update(bytes).digest("hex");
 
   if (release.sha256 && sha256 !== release.sha256) {
-    return refuse(
-      `Le binaire téléchargé ne correspond pas à la somme annoncée pour ${release.version}.`,
-      "Relance l'installation : la plateforme a peut-être servi un fichier tronqué."
-    );
+    return refuse("refusal.release.checksum", { version: release.version });
   }
 
   if (!release.signature) {
-    return refuse(
-      `La plateforme n'a pas signé la version ${release.version} de l'agent.`,
-      "Publie une version signée de l'agent avant de l'installer sur un serveur."
-    );
+    return refuse("refusal.release.unsigned", { version: release.version });
   }
 
   if (!publicKey) {
-    return refuse(
-      "Cette app ne porte pas la clé publique qui valide les binaires de l'agent.",
-      "Reconstruis l'app avec la clé de signature des releases."
-    );
+    return refuse("refusal.release.key");
   }
 
-  if (!signatureHolds(bytes, release.signature, publicKey)) {
-    return refuse(
-      `La signature de la version ${release.version} de l'agent est invalide.`,
-      "N'installe pas ce binaire : signale-le, puis réessaie depuis la console."
-    );
+  const message = signedMessage(release.version, release.arch, sha256);
+
+  if (!signatureHolds(message, release.signature, publicKey)) {
+    return refuse("refusal.release.signature", { version: release.version });
   }
 
   return { ok: true, result: { sha256 } };

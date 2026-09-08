@@ -4,6 +4,7 @@ import type { AgentResponse } from "@shared/agent";
 import type { AgentDelivery } from "../agent-binary";
 import { type AgentClient, createAgentClient } from "../agent-client";
 import {
+  enrolAgent,
   type InstallDeps,
   type InstallUpdate,
   runInstall,
@@ -90,6 +91,8 @@ function deps(
         },
       } satisfies AgentResponse<AgentDelivery>),
     enrollment: () => null,
+    managed: () =>
+      Promise.resolve({ ok: true, result: { config: {}, secrets: {} } }),
     probe: () => Promise.resolve({ ok: true, result: machine() }),
     secrets: () => ({}),
     ...over,
@@ -233,9 +236,9 @@ describe("le flux secret", () => {
       deps(client, { secrets: takeSecrets })
     );
 
-    // La transcription refuse la requête si `params` ne correspond pas au
-    // fixture, qui ne porte que `version`, et refuse la ligne de secrets si
-    // elle n'est pas celle attendue : les deux ensemble prouvent la séparation.
+    // The transcript refuses the request if `params` doesn't match the
+    // fixture, which carries only `version`, and refuses the secrets line if
+    // it isn't the expected one: together, the two prove the separation.
     expect(fake?.trace()).toEqual(["id=1 cmd=hello", "id=2 cmd=install"]);
 
     client.closeAll();
@@ -656,5 +659,78 @@ describe("une coupure pendant l'installation", () => {
     ]);
 
     client.closeAll();
+  });
+});
+
+describe("un enrôlement repris", () => {
+  /**
+   * A channel cut between the exchange and its answer leaves the app not
+   * knowing whether the token was burnt. It was: the platform says so, and the
+   * server carries the identity it granted.
+   */
+  it("ne réenrôle pas un agent qui porte déjà son identité", async () => {
+    const calls: string[] = [];
+
+    const answer = await enrolAgent(
+      "srv-1",
+      {
+        release: { available: true, channel: "stable", version: "0.4.0" },
+        serverId: "plt-1",
+      },
+      {
+        client: {
+          request: (_id, cmd) => {
+            calls.push(cmd);
+
+            return Promise.resolve({ ok: true, result: {} } as never);
+          },
+        },
+        enrollment: () => ({
+          platformUrl: "https://app.pupitre.test",
+          token: "enr-1",
+        }),
+        identity: () => "plt-1",
+      }
+    );
+
+    expect(answer).toEqual({ ok: true, result: null });
+    expect(calls).toEqual([]);
+  });
+
+  /**
+   * The agent answers a burnt token and a revoked one with the same code, so a
+   * refusal is reported as it comes: only the identity says the exchange
+   * already happened, and a server without one has genuinely not enrolled.
+   */
+  it("rapporte un refus tel quel quand le serveur ne porte aucune identité", async () => {
+    const answer = await enrolAgent(
+      "srv-1",
+      {
+        release: { available: true, channel: "stable", version: "0.4.0" },
+        serverId: "plt-1",
+      },
+      {
+        client: {
+          request: () =>
+            Promise.resolve({
+              error: {
+                code: "entitlement_required",
+                message: "ce jeton a déjà servi",
+              },
+              ok: false,
+            } as never),
+        },
+        enrollment: () => ({
+          platformUrl: "https://app.pupitre.test",
+          token: "enr-1",
+        }),
+        identity: () => null,
+      }
+    );
+
+    expect(answer).toMatchObject({
+      error: { code: "entitlement_required" },
+      ok: false,
+    });
   });
 });

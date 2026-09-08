@@ -92,14 +92,14 @@ export function ServiceDatabase({
             <div className="elevation-raised rounded-md border border-line bg-surface p-3">
               <Label>{t(TITLES[outcome.kind])}</Label>
               {outcome.lines.length === 0 ? (
-                <p className="mt-1 text-[11px] text-ink-3">
+                <p className="mt-1 text-[12px] text-ink-3">
                   {t("services.database.empty")}
                 </p>
               ) : (
                 <ul className="mt-1 flex flex-col gap-1">
                   {outcome.lines.map((line) => (
                     <li
-                      className="break-all font-data text-[11px] text-ink-2"
+                      className="break-all font-data text-[12px] text-ink-2"
                       key={line}
                     >
                       {line}

@@ -1,6 +1,6 @@
 ---
 name: elysia-api-routes
-description: Écrire ou modifier une route Elysia de `/api/v1` dans `packages/api/src/lib/api/routes` — routeur plat ou dossier, schémas `t` colocalisés, guards `authPlugin`, `requireAuth`, `requireOrg`, `requireRole`, `requireEntitlement`, `requireServer`, `requirePlatformAdmin`, `serializeData`, `withOrganization`, erreurs `{ error: { code, message, fix? } }`, enregistrement dans `routes/index.ts`, routes admin cachées par `hiddenRoutes`, test d'intégration sur le harnais PGlite. À utiliser dès qu'une tâche `PLT` ajoute, déplace ou touche un endpoint de l'API.
+description: Écrire ou modifier une route Elysia de `/api/v1` dans `packages/api/src/lib/api/routes` — routeur plat ou dossier, schémas `t` colocalisés, guards `authPlugin`, `requireAuth`, `requireOrg`, `requireRole`, `requireEntitlement`, `requireServer`, `requirePlatformAdmin`, `serializeData`, `withOrganization`, erreurs `{ error: { code, message, fix? } }`, enregistrement dans `routes/index.ts`, routes admin cachées par `hiddenRoutes`, test d'intégration sur le harnais PGlite. À utiliser dès qu'on ajoute, déplace ou touche un endpoint de l'API.
 ---
 
 # Routes Elysia — `/api/v1`
@@ -32,13 +32,13 @@ L'API vit dans `packages/api` et reste le contrat unique pour la console (`apps/
 
 ## État du dépôt
 
-Depuis PLT-03, le socle existe : `GET /health`, `GET /me` (les guards, et depuis PLT-08 le droit d'usage de l'organisation active : `none` sans organisation, sinon `valid`, `grace` ou `suspended`, par `entitlementForOrganization`), les guards (dont `requireEntitlement`, ajouté par PLT-21 : sans abonnement en cours, une organisation n'enrôle ni n'attribue rien), `serializeData`, `withOrganization`, `apiError`, l'openapi sur `/api/v1/openapi` (document sur `/api/v1/openapi/json`), le harnais PGlite et le client Eden. Les routes métier arrivent avec PLT-04 et suivantes ; ce skill décrit ce qui est livré, et une tâche qui change un nom met ce skill à jour dans la même passe.
+Le socle existe : `GET /health`, `GET /me` (les guards, et le droit d'usage de l'organisation active : `none` sans organisation, sinon `valid`, `grace` ou `suspended`, par `entitlementForOrganization`), les guards (dont `requireEntitlement` : sans abonnement en cours, une organisation n'enrôle ni n'attribue rien), `serializeData`, `withOrganization`, `apiError`, l'openapi sur `/api/v1/openapi` (document sur `/api/v1/openapi/json`), le harnais PGlite et le client Eden. Ce skill décrit ce qui est livré ; une passe qui change un nom met ce skill à jour en même temps.
 
 ## Règles
 
-- **Le contrat d'abord.** Une route absente de `docs/contracts/platform-api.md` n'existe pas. Un besoin nouveau s'écrit dans `docs/TRACKING.md` (blocages) et devient une tâche de contrat ; on n'ajoute pas une route « en passant ».
+- **Le contrat d'abord.** Une route absente de `docs/contracts/platform-api.md` n'existe pas. Un besoin nouveau se signale au propriétaire et le contrat est amendé d'abord ; on n'ajoute pas une route « en passant ».
 - **Le routeur ne fait que brancher** : HTTP → fonction de domaine dans `src/lib/<domaine>/` → `serializeData`. Aucun appel Prisma dans un routeur. Le domaine lit le client par `getPrisma()` (`src/lib/api/prisma.ts`), jamais en l'instanciant.
-- **Les codes d'erreur viennent de `@pupitre/shared/api/errors`.** Un code nouveau se déclare là, par une tâche de contrat, jamais comme une chaîne libre dans un handler. `apiError` refuse un code inconnu à la compilation.
+- **Les codes d'erreur viennent de `@pupitre/shared/api/errors`.** Un code nouveau se déclare là, jamais comme une chaîne libre dans un handler. `apiError` refuse un code inconnu à la compilation.
 - **Les messages d'erreur sont traduits** : une clé dans `src/lib/i18n/index.ts` (fr et en dans la même passe), `translate(resolveLocale(request.headers), clé)` dans le handler. Pas de phrase en dur.
 - **La plateforme ne connaît pas le contenu d'un serveur.** Aucune route ne reçoit un projet, un secret ou un fichier client. Une PR qui ajoute un tel champ est refusée (`apps/web/CLAUDE.md`).
 - **Les webhooks Stripe sont la seule entrée de la facturation.** Une route ne crée jamais un abonnement ou un siège à la fin d'un checkout.
@@ -172,7 +172,7 @@ export const routes = new Elysia({ name: "routes" })
 
 ## Exemple complet : `devices`
 
-Le contrat (`platform-api.md`, section « Moi ») : `GET /me/devices` → `{ data: Device[] }`, `POST /me/devices` `{ name, public_key }` → `{ data: Device }`, `DELETE /me/devices/:id` → 204. La clé est ed25519 uniquement, l'empreinte est calculée côté serveur, la clé est poussée sur les serveurs que l'utilisateur peut ouvrir (PLT-04). Tout cela vit dans le domaine, pas dans la route.
+Le contrat (`platform-api.md`, section « Moi ») : `GET /me/devices` → `{ data: Device[] }`, `POST /me/devices` `{ name, public_key }` → `{ data: Device }`, `DELETE /me/devices/:id` → 204. La clé est ed25519 uniquement, l'empreinte est calculée côté serveur, la clé est poussée sur les serveurs que l'utilisateur peut ouvrir. Tout cela vit dans le domaine, pas dans la route.
 
 `packages/api/src/lib/api/routes/device-schemas.ts` :
 
@@ -305,7 +305,7 @@ Puis `.use(devicesRoutes)` dans `routes/index.ts`, comme ci-dessus, et les clés
 
 ## Test d'intégration
 
-Le harnais (`@pupitre/api/testing`) démarre la même app Elysia sur PGlite en moins d'une seconde (`boot.test.ts` le mesure et exige moins de trois). Modèle : `bootApiTestServer` une fois par fichier, `resetDb` avant chaque test, un utilisateur par `createUser`, une session par `createSession` (organisation personnelle active par défaut, `activeOrganizationId: null` pour une session nue), des requêtes par `apiRequest(path, { method, body, session, bearer, headers, locale })`. Une organisation partagée avec ses membres et leurs sessions vient de `createOrganizationWithMembers({ roles })`, un serveur enrôlé avec son jeton en clair de `createServer({ organizationId, status })`. Les tests écrivent les critères d'acceptation de la tâche, avant le code.
+Le harnais (`@pupitre/api/testing`) démarre la même app Elysia sur PGlite en moins d'une seconde (`boot.test.ts` le mesure et exige moins de trois). Modèle : `bootApiTestServer` une fois par fichier, `resetDb` avant chaque test, un utilisateur par `createUser`, une session par `createSession` (organisation personnelle active par défaut, `activeOrganizationId: null` pour une session nue), des requêtes par `apiRequest(path, { method, body, session, bearer, headers, locale })`. Une organisation partagée avec ses membres et leurs sessions vient de `createOrganizationWithMembers({ roles })`, un serveur enrôlé avec son jeton en clair de `createServer({ organizationId, status })`. Les tests écrivent le comportement attendu, avant le code.
 
 `packages/api/src/__tests__/api/devices.test.ts` :
 
@@ -368,12 +368,12 @@ Un test de mécanisme (guard, erreur, openapi) construit sa propre app avec `cre
 
 Les fichiers `*.test.ts` et `testing/**` ont leurs propres règles Biome (`biome.jsonc`, `overrides`) : `useAwait` et `noVoid` désactivés, types par `type` ou `interface` au choix.
 
-## Avant de passer la tâche en « en revue »
+## Avant de rendre la main
 
 1. La route existe dans `docs/contracts/platform-api.md`, avec le même corps et la même réponse.
 2. Le routeur ne contient ni Prisma ni règle métier ; le domaine est dans `src/lib/<domaine>/` et lit `getPrisma()` ou `withOrganization(...)`.
 3. Chaque code d'erreur renvoyé existe dans `packages/shared/src/api/errors.ts` ; chaque message a sa clé fr et en dans `src/lib/i18n` ; chaque `fix` dit un remède.
 4. Chaque statut renvoyé est déclaré dans `response`, et `errorResponse` couvre les statuts d'erreur.
 5. Le routeur est monté dans `routes/index.ts` ; une route admin est sous `hiddenRoutes` et derrière `requirePlatformAdmin`.
-6. Un test d'intégration sur PGlite couvre chaque critère d'acceptation, le cas sans session, et le cas d'un autre utilisateur ou d'une autre organisation qui ne voit pas la ressource.
+6. Un test d'intégration sur PGlite couvre chaque comportement attendu, le cas sans session, et le cas d'un autre utilisateur ou d'une autre organisation qui ne voit pas la ressource.
 7. `bun --cwd=packages/api run lint`, `check:types`, `test` verts, puis les mêmes à la racine.

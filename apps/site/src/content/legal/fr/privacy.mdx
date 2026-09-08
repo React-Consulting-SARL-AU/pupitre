@@ -2,57 +2,45 @@
 title: "Confidentialité"
 description: "Ce que Pupitre collecte, ce qu’il ne collecte jamais, et comment le récupérer ou le faire supprimer."
 locale: fr
-updated: 2026-09-04
+updated: 2026-09-06
 draft: true
 order: 4
 ---
 
-Cette page porte la structure du document. Chaque titre nomme la clause qu’il portera ; la rédaction contraignante est écrite par Pupitre LLC et n’est pas encore publiée.
+import SubProcessors from "../../../components/SubProcessors.astro"
+
+Brouillon de travail. Le service n’est pas ouvert : aucune donnée client n’est traitée aujourd’hui. Ce texte décrit ce qui sera traité à l’ouverture, et sera complété par l’identité du responsable de traitement à l’immatriculation.
 
 ## Ce que nous stockons
 
-Votre compte, votre organisation, l’existence de vos serveurs, et la moitié publique de vos clés d’appareil.
-
-TODO — rédaction définitive à fournir par Pupitre LLC.
+Votre compte : email, nom si vous en donnez un, langue, et les appareils depuis lesquels vous vous connectez. Votre organisation et ses membres. L’existence de vos serveurs — un nom, une adresse, la version de l’agent, l’état du droit d’usage — et la moitié publique des clés de vos appareils. Vos abonnements et vos factures, tenus par Stripe.
 
 ## Ce que nous ne stockons jamais
 
-Aucun code, aucun secret, aucun log, aucun contenu de terminal, et aucune clé privée.
-
-TODO — rédaction définitive à fournir par Pupitre LLC.
+Aucun code, aucun fichier de projet, aucun secret de service, aucun journal applicatif, aucun contenu de terminal, aucune variable d’environnement, aucune clé privée. Ce qui vit sur votre serveur reste sur votre serveur : la plateforme n’a aucun moyen technique d’aller le chercher.
 
 ## Mesure d’audience
 
-Les pages vues sur ce site, sans cookie et sans identifiant, et seulement après votre accord.
-
-TODO — rédaction définitive à fournir par Pupitre LLC.
+Le site mesure les pages vues avec PostHog, sans cookie publicitaire et sans identifiant durable, et seulement après votre accord donné dans le bandeau. Refuser n’enlève rien au site. La console mesure l’usage des écrans dans les mêmes conditions.
 
 ## Emails transactionnels
 
-Les messages que nous envoyons, pourquoi, et comment arrêter ceux qui sont facultatifs.
-
-TODO — rédaction définitive à fournir par Pupitre LLC.
+Nous envoyons ce qui fait fonctionner le compte : confirmation d’adresse, connexion, invitation dans une organisation, alerte sur un serveur, avis de facturation. Ces messages ne se refusent pas tant que le compte existe. Les messages facultatifs — nouveautés, conseils — se coupent en un clic depuis le message lui-même.
 
 ## Paiements
 
-Stripe agit en marchand officiel et détient les données de paiement ; nous ne voyons jamais un numéro de carte.
-
-TODO — rédaction définitive à fournir par Pupitre LLC.
+Stripe agit en marchand officiel : il encaisse, facture, collecte les taxes et détient les données de paiement. Nous conservons de vous un identifiant client Stripe, le plan, l’état de l’abonnement et l’historique des factures. Jamais un numéro de carte.
 
 ## Sous-traitants
 
-La liste des prestataires qui traitent des données pour notre compte, et où ils opèrent.
+<SubProcessors />
 
-TODO — rédaction définitive à fournir par Pupitre LLC.
+L’éditeur sera une société américaine et la plateforme sera hébergée aux États-Unis ; la base de données vit encore en région européenne aujourd’hui et sera migrée avant l’ouverture. [Coordonnées complètes, pays d’établissement de chaque sous-traitant et base légale des transferts à publier à l’ouverture du service.]
 
 ## Conservation
 
-Combien de temps chaque catégorie est conservée, et ce qui se passe à la suppression d’un compte.
-
-TODO — rédaction définitive à fournir par Pupitre LLC.
+Le compte et l’organisation sont conservés tant que le compte existe, puis trente jours après sa suppression, le temps d’un retour en arrière demandé par erreur. Les factures sont conservées le temps qu’impose le droit comptable applicable [durée à confirmer à l’immatriculation]. Les mesures d’audience sont conservées douze mois.
 
 ## Vos droits
 
-Accès, rectification, export, suppression, et l’adresse à laquelle écrire.
-
-TODO — rédaction définitive à fournir par Pupitre LLC.
+Vous pouvez consulter, corriger, exporter et faire supprimer vos données. La suppression du compte se fait depuis la console et supprime aussi les organisations dont vous êtes seul membre. Pour tout le reste, écrivez à `privacy@pupitre.studio` ; nous répondons sous trente jours. [Autorité de contrôle compétente et coordonnées d’un éventuel représentant à compléter à l’immatriculation.]

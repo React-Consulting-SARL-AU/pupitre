@@ -2,6 +2,7 @@ package state
 
 import (
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
@@ -29,8 +30,8 @@ func (r *Reader) Status() contract.Status {
 func (r *Reader) ServiceStatus(id string) (contract.ServiceStatus, error) {
 	module, known := r.module(id)
 	if !known {
-		return contract.ServiceStatus{}, protocol.NewError(contract.ErrorServiceNotFound, "service inconnu : "+id).
-			WithFix("Appelle catalog pour la liste des modules de ce serveur.")
+		return contract.ServiceStatus{}, protocol.NewError(contract.ErrorServiceNotFound, i18n.T("state.service.unknown", id)).
+			WithFix(i18n.T("state.service.unknown.fix"))
 	}
 
 	status, err := module.Status(r.moduleContext(module))

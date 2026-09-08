@@ -43,7 +43,7 @@ func TestCacheResolvesTheTwentyFourHoursThenTheTolerance(t *testing.T) {
 		{day(8), contract.EntitlementRestricted},
 	} {
 		if got := cache.Resolve(want.at, entitlement.DefaultTolerance); got != want.state {
-			t.Errorf("à %s : %s, attendu %s", want.at, got, want.state)
+			t.Errorf("at %s: %s, want %s", want.at, got, want.state)
 		}
 	}
 }
@@ -56,7 +56,7 @@ func TestCacheFollowsTheStateThePlatformGave(t *testing.T) {
 
 	grace := entitlement.Cache{State: "grace", ValidUntil: enrolledAt.Add(24 * time.Hour), CheckedAt: enrolledAt}
 	if got := grace.Resolve(enrolledAt, entitlement.DefaultTolerance); got != contract.EntitlementGrace {
-		t.Errorf("tolérance = %s", got)
+		t.Errorf("grace = %s", got)
 	}
 }
 
@@ -73,26 +73,26 @@ func TestSevenDaysWithoutThePlatformCloseTheAgent(t *testing.T) {
 	now = day(6)
 	state := resolved.State()
 	if state.Entitlement == contract.EntitlementRestricted {
-		t.Fatalf("au sixième jour : %s", state.Entitlement)
+		t.Fatalf("on the sixth day: %s", state.Entitlement)
 	}
 
 	if !state.Allows("install") || !state.Allows("project.up") {
-		t.Fatal("au sixième jour, install et project.up devraient répondre")
+		t.Fatal("on the sixth day, install and project.up should answer")
 	}
 
 	now = day(8)
 	state = resolved.State()
 	if state.Entitlement != contract.EntitlementRestricted {
-		t.Fatalf("au huitième jour : %s", state.Entitlement)
+		t.Fatalf("on the eighth day: %s", state.Entitlement)
 	}
 
 	if state.Allows("install") {
-		t.Fatal("au huitième jour, install devrait refuser")
+		t.Fatal("on the eighth day, install should refuse")
 	}
 
 	for _, cmd := range entitlement.RestrictedCommands {
 		if !state.Allows(cmd) {
-			t.Errorf("%s devrait répondre en mode restreint", cmd)
+			t.Errorf("%s should answer in restricted mode", cmd)
 		}
 	}
 }
@@ -110,12 +110,12 @@ func TestASuccessfulReadPushesTheDeadline(t *testing.T) {
 
 	now = day(11)
 	if got := resolved.Current(); got != contract.EntitlementGrace {
-		t.Fatalf("onzième jour = %s", got)
+		t.Fatalf("eleventh day = %s", got)
 	}
 
 	now = day(13)
 	if got := resolved.Current(); got != contract.EntitlementRestricted {
-		t.Fatalf("treizième jour = %s", got)
+		t.Fatalf("thirteenth day = %s", got)
 	}
 }
 
@@ -139,13 +139,13 @@ func TestABinaryWithoutATokenAnswersThreeCommands(t *testing.T) {
 
 	for _, cmd := range []string{"hello", "ping", "diag"} {
 		if !state.Allows(cmd) {
-			t.Errorf("%s devrait répondre", cmd)
+			t.Errorf("%s should answer", cmd)
 		}
 	}
 
 	for _, cmd := range []string{"snapshot", "status", "agent.upgrade", "install", "probe", "keys.sync", "project.up"} {
 		if state.Allows(cmd) {
-			t.Errorf("%s devrait refuser sans jeton", cmd)
+			t.Errorf("%s should refuse without a token", cmd)
 		}
 	}
 }
@@ -168,7 +168,7 @@ func TestRememberWritesForRootAlone(t *testing.T) {
 
 func TestAnUnreadableCacheRestrictsRatherThanOpens(t *testing.T) {
 	fake := enrolledMachine()
-	fake.Files[entitlement.DefaultCachePath] = []byte("{ pas du json")
+	fake.Files[entitlement.DefaultCachePath] = []byte("{ not json")
 	now := enrolledAt
 
 	if got := resolver(fake, &now).Current(); got != contract.EntitlementRestricted {

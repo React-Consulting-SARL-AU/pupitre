@@ -14,6 +14,7 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/entitlement"
+	"pupitre.studio/agent/internal/golden"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/protocol"
 )
@@ -78,6 +79,7 @@ type TranscriptOptions struct {
 }
 
 type transcript struct {
+	path        string
 	entitlement contract.Entitlement
 	unenrolled  bool
 	prepare     []func(*FakeSys)
@@ -87,6 +89,8 @@ type transcript struct {
 }
 
 // A transcript is a .jsonl of "> request", "$ secret line on the same standard input", "< expected output" and "@directive" lines that seed the fake machine.
+//
+// UPDATE_GOLDEN=1 records a diverging run into the file instead of failing on it.
 func RunTranscripts(t *testing.T, glob string, options TranscriptOptions) {
 	t.Helper()
 
@@ -110,7 +114,7 @@ func parseTranscript(t *testing.T, path string) transcript {
 		t.Fatal(err)
 	}
 
-	parsed := transcript{entitlement: contract.EntitlementDev, commands: map[int64]string{}}
+	parsed := transcript{path: path, entitlement: contract.EntitlementDev, commands: map[int64]string{}}
 
 	for _, line := range strings.Split(string(raw), "\n") {
 		switch {
@@ -241,16 +245,24 @@ func runTranscript(t *testing.T, f transcript, options TranscriptOptions) {
 	}
 
 	got := strings.Split(strings.TrimRight(out.String(), "\n"), "\n")
-	if len(got) != len(f.expected) {
-		t.Fatalf("got %d lines, want %d\n--- got\n%s\n--- want\n%s", len(got), len(f.expected), out.String(), strings.Join(f.expected, "\n"))
+	for _, line := range got {
+		assertContractLine(t, line, f.commands)
 	}
 
-	for i := range got {
-		assertContractLine(t, got[i], f.commands)
+	produced := make([]string, len(got))
+	for i, line := range got {
+		produced[i] = strings.ReplaceAll(line, engine.ReportPath, "%REPORT_PATH%")
+	}
 
-		want := strings.ReplaceAll(f.expected[i], "%REPORT_PATH%", engine.ReportPath)
-		if !reflect.DeepEqual(decodeJSON(t, got[i]), decodeJSON(t, want)) {
-			t.Errorf("line %d\n got: %s\nwant: %s", i+1, got[i], want)
+	if recorded, diverged := recording(t, produced, f.expected); diverged {
+		if golden.Updating() {
+			if err := golden.Rewrite(f.path, recorded); err != nil {
+				t.Fatal(err)
+			}
+
+			t.Logf("rewritten from the run: %s", f.path)
+		} else {
+			report(t, recorded, f.expected)
 		}
 	}
 
@@ -263,6 +275,41 @@ func runTranscript(t *testing.T, f transcript, options TranscriptOptions) {
 
 	if t.Failed() {
 		t.Logf("mutations:\n  %s", strings.Join(fake.Mutations, "\n  "))
+	}
+}
+
+// A line the run only spells differently is kept as the file holds it: a regeneration records what changed, not the whole file.
+func recording(t *testing.T, got, want []string) (lines []string, diverged bool) {
+	t.Helper()
+
+	lines = make([]string, len(got))
+	diverged = len(got) != len(want)
+
+	for i, line := range got {
+		lines[i] = line
+
+		if i < len(want) && reflect.DeepEqual(decodeJSON(t, line), decodeJSON(t, want[i])) {
+			lines[i] = want[i]
+			continue
+		}
+
+		diverged = true
+	}
+
+	return lines, diverged
+}
+
+func report(t *testing.T, got, want []string) {
+	t.Helper()
+
+	if len(got) != len(want) {
+		t.Fatalf("got %d lines, want %d\n--- got\n%s\n--- want\n%s", len(got), len(want), strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+
+	for i := range got {
+		if !reflect.DeepEqual(decodeJSON(t, got[i]), decodeJSON(t, want[i])) {
+			t.Errorf("line %d\n got: %s\nwant: %s", i+1, got[i], want[i])
+		}
 	}
 }
 

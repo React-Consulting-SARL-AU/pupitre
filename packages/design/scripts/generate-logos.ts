@@ -16,7 +16,6 @@ import {
   siMysql,
   siNeon,
   siNodedotjs,
-  siOpenjdk,
   siPhp,
   siPostgresql,
   siPython,
@@ -48,7 +47,6 @@ const ICONS: Record<string, SimpleIcon> = {
   mysql: siMysql,
   neon: siNeon,
   nodedotjs: siNodedotjs,
-  openjdk: siOpenjdk,
   php: siPhp,
   postgresql: siPostgresql,
   python: siPython,
@@ -64,7 +62,6 @@ const FORMATTER = path.join(PACKAGE_ROOT, "../../node_modules/.bin/biome")
 const RETRIEVED_ON = "2026-09-04"
 const LICENSE = "CC0-1.0"
 const TRADEMARK = "marque déposée, usage nominatif"
-const SVGL = "svgl.app"
 const RANGE_PREFIX_RE = /^\D*/
 
 function simpleIconsVersion(): string {
@@ -212,8 +209,10 @@ tracés viennent de [Simple Icons](https://simpleicons.org) ${simpleIconsVersion
 publié sous ${LICENSE} ; la couleur de chaque fichier est la couleur de marque que
 Simple Icons tient de la source citée.
 
-Les marques que Simple Icons ne publie pas viennent du SVG du titulaire tel que
-[${SVGL}](https://svgl.app) le collecte : le fichier d'origine est committé sous
+Les marques que Simple Icons ne publie pas viennent du SVG du titulaire tel qu'un
+collecteur le republie — [svgl.app](https://svgl.app),
+[lobehub](https://lobehub.com/icons) — la colonne Source disant lequel pour
+chaque fichier. L'original est committé sous
 \`scripts/vendor\`, le générateur le réduit à ce que l'app inline — une racine, un
 \`viewBox\`, un titre, des identifiants préfixés pour que deux logos posés côte à
 côte ne se peignent pas l'un l'autre. Ces tracés-là sont en \`${TRADEMARK}\`, pas
@@ -224,7 +223,8 @@ Les fichiers sont committés ; \`bun scripts/generate-logos.ts\` les régénère
 **Usage nominatif.** Ces marques appartiennent à leurs titulaires. Pupitre les
 affiche pour nommer un logiciel que le client installe sur son propre serveur,
 ce que le droit des marques autorise. Pupitre ne s'en sert jamais pour suggérer
-un partenariat, une affiliation ou un aval, ni comme icône d'action, ni en fond.
+un partenariat, une affiliation ou un aval, ni comme icône d'action, ni en
+filigrane derrière du texte.
 
 | Fichier | Module | Marque | Source | Licence du tracé | Récupéré le |
 | --- | --- | --- | --- | --- | --- |
@@ -338,7 +338,14 @@ for (const { id, slug, monochrome } of SOURCES) {
   )
 }
 
-for (const { id, title, source, monochrome, mark } of VENDOR_SOURCES) {
+for (const {
+  id,
+  title,
+  source,
+  monochrome,
+  mark,
+  retrieved,
+} of VENDOR_SOURCES) {
   const file = mark ? markFileOf(id) : fileOf(id)
   const raw = readFileSync(path.join(VENDOR_DIR, file), "utf8")
 
@@ -347,13 +354,14 @@ for (const { id, title, source, monochrome, mark } of VENDOR_SOURCES) {
     vendorSvg(raw, { id, monochrome, title })
   )
 
-  const row = `| \`${file}\` | ${title} | ${source} | ${TRADEMARK} | ${RETRIEVED_ON} |`
+  const on = retrieved ?? RETRIEVED_ON
+  const row = `| \`${file}\` | ${title} | ${source} | ${TRADEMARK} | ${on} |`
 
   if (mark) {
     markRows.push(row)
   } else {
     rows.push(
-      `| \`${file}\` | \`${id}\` | ${title} | ${source} | ${TRADEMARK} | ${RETRIEVED_ON} |`
+      `| \`${file}\` | \`${id}\` | ${title} | ${source} | ${TRADEMARK} | ${on} |`
     )
   }
 }

@@ -1,6 +1,9 @@
 package jetbrains
 
-import "pupitre.studio/agent/internal/contract"
+import (
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
+)
 
 const ID = "editor.jetbrains"
 
@@ -9,21 +12,23 @@ func manifest() contract.Manifest {
 		ID:        ID,
 		Category:  "editor",
 		Name:      "JetBrains Remote Dev",
-		Summary:   "Le backend de développement distant posé d'avance là où JetBrains Gateway le cherche, JVM taillée pour la mémoire de la machine ; la licence reste la tienne, rien à activer ici.",
+		Summary:   i18n.T("module.editor.jetbrains.summary"),
 		Requires:  []string{"core.system"},
 		Conflicts: []string{},
 		Resources: contract.Resources{RAMMB: 2048, DiskMB: 6144},
 		Arch:      []string{"amd64", "arm64"},
 		Fields: []contract.Field{
 			{
-				Key: "ide", Kind: contract.FieldSelect, Label: "IDE",
-				Help:     "Celui que tu ouvres depuis Gateway ; un backend par IDE.",
+				Key: "ide", Kind: contract.FieldSelect, Label: i18n.T("module.editor.jetbrains.ide.label"),
+				Help:     i18n.T("module.editor.jetbrains.ide.help"),
 				Required: true, Default: "idea",
 				Options: []string{"idea", "webstorm", "pycharm", "phpstorm", "goland"},
 			},
 			{
-				Key: "version", Kind: contract.FieldText, Label: "Version",
-				Help:     "latest, ou une version majeure comme 2026.2 ; le backend doit rester compatible avec ton Gateway.",
+				Key: "version", Kind: contract.FieldText, Label: i18n.T("module.editor.jetbrains.version.label"),
+				Help:     i18n.T("module.editor.jetbrains.version.help"),
+				HintText: i18n.T("module.editor.jetbrains.version.hint"),
+				Pattern:  contract.PatternVersionOrLatest,
 				Required: false, Default: latest,
 			},
 		},

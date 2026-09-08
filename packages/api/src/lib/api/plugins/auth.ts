@@ -64,7 +64,7 @@ function carriesSessionCredentials(headers: Headers): boolean {
   return headers.has("cookie")
 }
 
-async function memberRole(
+export async function memberRole(
   userId: string,
   organizationId: string
 ): Promise<OrgRole | null> {

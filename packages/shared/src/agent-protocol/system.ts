@@ -22,6 +22,20 @@ export const KeysListResultSchema = z.object({
 
 export type KeysListResult = z.infer<typeof KeysListResultSchema>
 
+/**
+ * The platform, told now rather than at the next turn of the daemon.
+ *
+ * The app asks for it when an installation or a hardening has just changed the
+ * machine, so the console shows the modules instead of an empty server for the
+ * next five minutes. It reads and reports; it changes nothing on the machine.
+ */
+export const PlatformSyncResultSchema = z.object({
+  synced_at: z.string(),
+  heartbeat_at: z.string().optional(),
+})
+
+export type PlatformSyncResult = z.infer<typeof PlatformSyncResultSchema>
+
 export const AgentUpgradeParamsSchema = z.strictObject({
   version: z.string().min(1).optional(),
   signature: z.string().min(1).optional(),

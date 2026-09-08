@@ -44,7 +44,7 @@ export function FirstProjectSteps({ phases }: { phases: readonly Phase[] }) {
                 {t(PHASE_TITLES[phase.id])}
               </p>
               {detail ? (
-                <p className="mt-0.5 font-data text-[11px] text-ink-3 leading-relaxed">
+                <p className="mt-0.5 font-data text-[12px] text-ink-3 leading-relaxed">
                   {detail}
                 </p>
               ) : null}

@@ -1,8 +1,10 @@
 export const settings = {
   en: {
     "settings.title": "Settings",
+    "settings.back": "Back",
     "settings.section.servers": "Servers",
     "settings.section.account": "Account",
+    "settings.section.connections": "Connections",
     "settings.section.appearance": "Appearance",
     "settings.appearance.intro":
       "The interface is monochrome on purpose: no accent colour, and colour only for the state of things. The theme applies at once, terminals included.",
@@ -22,8 +24,10 @@ export const settings = {
   },
   fr: {
     "settings.title": "Réglages",
+    "settings.back": "Revenir",
     "settings.section.servers": "Serveurs",
     "settings.section.account": "Compte",
+    "settings.section.connections": "Connexions",
     "settings.section.appearance": "Apparence",
     "settings.appearance.intro":
       "L'interface est monochrome par choix : aucune couleur d'accent, et de la couleur seulement pour l'état des choses. Le thème s'applique aussitôt, terminaux compris.",

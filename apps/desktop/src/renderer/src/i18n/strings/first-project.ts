@@ -18,6 +18,9 @@ export const firstProject = {
     "firstProject.form.subdomainHelp":
       "The installed Cloudflare tunnel publishes the project under this name.",
     "firstProject.form.subdomainLabel": "Subdomain",
+    "firstProject.form.publishHelp":
+      "Pupitre holds the tunnel and draws the address: nothing to buy, nothing to point.",
+    "firstProject.form.publishLabel": "Publish this project on the web",
     "firstProject.form.cmdHelp":
       "Run from the project's folder, in the agent's session.",
     "firstProject.form.cmdLabel": "Start command",
@@ -90,6 +93,9 @@ export const firstProject = {
     "firstProject.form.subdomainHelp":
       "Le tunnel Cloudflare installé publie le projet sous ce nom.",
     "firstProject.form.subdomainLabel": "Sous-domaine",
+    "firstProject.form.publishHelp":
+      "Pupitre tient le tunnel et tire l'adresse : rien à acheter, rien à pointer.",
+    "firstProject.form.publishLabel": "Publier ce projet sur le web",
     "firstProject.form.cmdHelp":
       "Lancée depuis le dossier du projet, dans la session de l'agent.",
     "firstProject.form.cmdLabel": "Commande de démarrage",

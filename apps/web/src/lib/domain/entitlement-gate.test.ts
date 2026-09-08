@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { startRedirectFor } from "./entitlement-gate"
+import { opensWhileSuspended, startRedirectFor } from "./entitlement-gate"
 
 describe("la porte de l'essai", () => {
   it("laisse passer une organisation qui a un droit d'usage", () => {
@@ -33,6 +33,8 @@ describe("la porte de l'essai", () => {
       "/dashboard/settings",
       "/dashboard/start",
       "/dashboard/settings/",
+      "/dashboard/organization",
+      "/dashboard/download",
     ]) {
       expect(
         startRedirectFor({ entitlement: "suspended", pathname }),
@@ -69,5 +71,36 @@ describe("la porte de l'essai", () => {
         checkout: "cancelled",
       })
     ).toBeNull()
+  })
+})
+
+describe("ce qui s'ouvre sans abonnement", () => {
+  it("nomme les pages que la barre latérale peut encore lister", () => {
+    for (const pathname of [
+      "/dashboard/start",
+      "/dashboard/billing",
+      "/dashboard/settings",
+      "/dashboard/organization",
+      "/dashboard/download",
+    ]) {
+      expect(opensWhileSuspended(pathname), pathname).toBe(true)
+    }
+  })
+
+  it("écarte celles qui renverraient sur le démarrage", () => {
+    for (const pathname of [
+      "/dashboard",
+      "/dashboard/servers",
+      "/dashboard/servers/abc",
+      "/dashboard/members",
+      "/dashboard/audit",
+      "/dashboard/devices",
+    ]) {
+      expect(opensWhileSuspended(pathname), pathname).toBe(false)
+    }
+  })
+
+  it("ignore une barre oblique finale", () => {
+    expect(opensWhileSuspended("/dashboard/settings/")).toBe(true)
   })
 })

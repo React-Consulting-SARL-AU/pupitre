@@ -20,15 +20,20 @@ export const ArchitectureSchema = z.enum(ARCHITECTURES)
 
 export type Architecture = z.infer<typeof ArchitectureSchema>
 
-export const MVP_MODULE_IDS = [
+export const MODULE_IDS = [
   "core.system",
   "core.hardening",
   "runtime.node",
   "runtime.java",
   "runtime.python",
+  "runtime.go",
+  "runtime.php",
+  "runtime.ruby",
+  "runtime.docker",
   "db.mysql",
   "db.postgres",
   "db.mongodb",
+  "db.redis",
   "ai.claude",
   "ai.codex",
   "ai.hermes",
@@ -38,21 +43,11 @@ export const MVP_MODULE_IDS = [
   "editor.zed",
   "exposure.cloudflare",
   "exposure.ssh",
+  "exposure.caddy",
   "tool.github",
   "tool.1password",
-] as const
-
-export const LATER_MODULE_IDS = [
-  "runtime.go",
-  "runtime.php",
-  "runtime.ruby",
-  "runtime.docker",
-  "db.redis",
-  "exposure.caddy",
   "tool.neon",
 ] as const
-
-export const MODULE_IDS = [...MVP_MODULE_IDS, ...LATER_MODULE_IDS] as const
 
 export const ModuleIdSchema = z.enum(MODULE_IDS)
 
@@ -65,10 +60,57 @@ export const MANDATORY_MODULE_IDS = [
 
 const ModuleIdPatternSchema = z.string().regex(/^[a-z]+\.[a-z0-9-]+$/)
 
+/**
+ * The shapes a manifest can hold a value to.
+ *
+ * The names live here, with the field that carries them; the expressions that
+ * decide live in `formats.ts`, which is where both sides read them from.
+ */
+export const FIELD_FORMATS = [
+  "port",
+  "hostname",
+  "domain",
+  "email",
+  "identifier",
+  "path",
+  "timezone",
+  "size",
+  "url",
+] as const
+
+export const FieldFormatSchema = z.enum(FIELD_FORMATS)
+
+export type FieldFormat = z.infer<typeof FieldFormatSchema>
+
+/**
+ * The long form of `help`, behind a bubble.
+ *
+ * It says where a value is found and, when there is one, links the page that
+ * issues it. Nothing the reader needs in order to fill the field belongs here:
+ * a bubble is opened, and what decides is read without a gesture.
+ */
+export const FieldHintSchema = z.object({
+  text: z.string().min(1),
+  url: z.url().optional(),
+})
+
+export type FieldHint = z.infer<typeof FieldHintSchema>
+
+/**
+ * A managed field is derived from a connection by the app, never typed: it is
+ * filled on the way out and never displayed. Only a module that declares a
+ * `connection` may carry one.
+ */
 const FieldBaseSchema = z.object({
   key: z.string().regex(/^[a-z][a-z0-9_]*$/),
   label: z.string().min(1),
   help: z.string().optional(),
+  hint: FieldHintSchema.optional(),
+  format: FieldFormatSchema.optional(),
+  pattern: z.string().optional(),
+  min_length: z.int().nonnegative().optional(),
+  max_length: z.int().nonnegative().optional(),
+  managed: z.boolean().optional(),
 })
 
 export const INPUT_FIELD_KINDS = ["text", "number", "select"] as const
@@ -78,6 +120,8 @@ export const InputFieldSchema = FieldBaseSchema.extend({
   required: z.boolean(),
   default: z.unknown().optional(),
   options: z.array(z.string()).optional(),
+  min: z.int().optional(),
+  max: z.int().optional(),
 }).strict()
 
 export type InputField = z.infer<typeof InputFieldSchema>
@@ -135,6 +179,12 @@ export const ResourcesSchema = z.object({
 
 export type Resources = z.infer<typeof ResourcesSchema>
 
+export const CONNECTION_KINDS = ["cloudflare"] as const
+
+export const ConnectionKindSchema = z.enum(CONNECTION_KINDS)
+
+export type ConnectionKind = z.infer<typeof ConnectionKindSchema>
+
 export const ManifestSchema = z.object({
   id: ModuleIdPatternSchema,
   category: ModuleCategorySchema,
@@ -146,6 +196,7 @@ export const ManifestSchema = z.object({
   arch: z.array(ArchitectureSchema).min(1),
   fields: z.array(FieldSchema),
   provides: z.array(z.string()),
+  connection: ConnectionKindSchema.optional(),
   mandatory: z.boolean(),
   since: z.string().min(1),
 })
@@ -183,11 +234,12 @@ export const PRESETS: readonly Preset[] = [
     ],
   },
   {
-    // Everything but exposure.ssh: the two exposure modules conflict, and a
-    // preset that cannot be resolved is worse than one that picks a side.
+    // The three exposure modules contradict each other, so the preset carries
+    // none of them and asks which one instead.
     id: "full",
     name: "Tout le catalogue",
-    modules: MVP_MODULE_IDS.filter((id) => id !== "exposure.ssh"),
+    modules: MODULE_IDS.filter((id) => !id.startsWith("exposure.")),
+    choose_one: ["exposure.ssh", "exposure.caddy", "exposure.cloudflare"],
   },
   {
     id: "minimal",

@@ -55,7 +55,7 @@ func TestACopiedBinaryAnswersHelloPingAndDiagAlone(t *testing.T) {
 
 	for _, cmd := range []string{"ping", "diag"} {
 		if !answered[cmd] {
-			t.Errorf("%s devrait répondre : %s", cmd, lines[indexOf(commands, cmd)+1])
+			t.Errorf("%s should answer: %s", cmd, lines[indexOf(commands, cmd)+1])
 		}
 	}
 
@@ -64,7 +64,7 @@ func TestACopiedBinaryAnswersHelloPingAndDiagAlone(t *testing.T) {
 			continue
 		}
 
-		t.Errorf("%s a répondu sans jeton", cmd)
+		t.Errorf("%s answered without a token", cmd)
 	}
 
 	for i, cmd := range commands {
@@ -73,7 +73,7 @@ func TestACopiedBinaryAnswersHelloPingAndDiagAlone(t *testing.T) {
 		}
 
 		if code := errorCode(t, lines[i+1]); code != "entitlement_required" {
-			t.Errorf("%s refusé avec %s", cmd, code)
+			t.Errorf("%s refused with %s", cmd, code)
 		}
 	}
 }

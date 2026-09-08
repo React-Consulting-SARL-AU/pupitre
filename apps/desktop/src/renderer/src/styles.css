@@ -2,6 +2,16 @@
 @import "@pupitre/design/tailwind.css";
 @import "@pupitre/design/fonts.css";
 
+/**
+ * Unlayered on purpose: `@pupitre/design` declares the type sizes outside any
+ * layer, and an unlayered declaration beats a layered one whatever its order.
+ * The app is read at arm's length on a large screen, a step above the console.
+ */
+:root {
+  --font-ui-size: 14px;
+  --font-label-size: 11.5px;
+}
+
 @utility elevation-raised {
   box-shadow: var(--shadow-raised);
 }
@@ -102,6 +112,96 @@
   animation: fade-in var(--motion-soft);
 }
 
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* A block that arrives. `--rise-index` places it in its cascade. */
+@utility rise {
+  animation: rise var(--motion-enter) backwards;
+  animation-delay: calc(var(--rise-index, 0) * var(--motion-stagger));
+}
+
+@keyframes step-forward {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes step-back {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* A step of a sequence: forward comes from the right, back from the left. */
+@utility step-forward {
+  animation: step-forward var(--motion-enter);
+}
+
+@utility step-back {
+  animation: step-back var(--motion-enter);
+}
+
+@keyframes leave-forward {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+}
+
+@keyframes leave-back {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+
+@utility leave-forward {
+  animation: leave-forward var(--motion-exit) forwards;
+}
+
+@utility leave-back {
+  animation: leave-back var(--motion-exit) forwards;
+}
+
+/* A bar or a rail that fills up to the width its state names. */
+@utility transition-track {
+  transition:
+    width var(--motion-enter),
+    transform var(--motion-enter);
+}
+
 @keyframes breathe {
   0%,
   100% {
@@ -118,13 +218,28 @@
   animation: breathe var(--motion-breathe);
 }
 
+/* Read out loud and never drawn: the live regions, and the caption of a control that carries only a glyph. */
+@utility sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  white-space: nowrap;
+  border-width: 0;
+  clip-path: inset(50%);
+}
+
 /* A system preference, not an option: we honour it everywhere. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
+    transition-delay: 0ms !important;
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
   }
 }

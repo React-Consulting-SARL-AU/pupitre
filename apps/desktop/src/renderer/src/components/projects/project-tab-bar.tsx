@@ -56,7 +56,7 @@ export function ProjectTabBar({
 
         return (
           <button
-            className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-[12px] transition-soft ${
+            className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-[13px] transition-soft ${
               tab === active
                 ? "border-ink font-medium text-ink"
                 : "border-transparent text-ink-3 hover:text-ink"
@@ -68,7 +68,7 @@ export function ProjectTabBar({
             <Icon size={13} strokeWidth={1.5} />
             {TAB_LABEL[tab]}
             {count > 0 ? (
-              <span className="rounded-full bg-sunken px-1.5 font-data text-[10px] text-ink-3 tabular-nums">
+              <span className="rounded-full bg-sunken px-1.5 font-data text-[11px] text-ink-3 tabular-nums">
                 {count}
               </span>
             ) : null}

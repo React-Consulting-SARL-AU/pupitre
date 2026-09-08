@@ -8,7 +8,15 @@ import { embedAgent } from "./scripts/embed-agent";
 
 const AGENT_PROBE = resolve("../agent/internal/probe/probe.sh");
 const EMBEDDED_PROBE = resolve("resources/probe.sh");
-const AGENT_DIST = resolve("../agent/dist");
+/**
+ * Where the embedded agent comes from.
+ *
+ * In development, the workspace `dist/` that `bun run build` fills. In a
+ * release, `PUPITRE_AGENT_DIST` points at `dist/release/`, so the app embeds
+ * exactly the signed binaries the publishing chain produced rather than one
+ * more local build.
+ */
+const AGENT_DIST = resolve(process.env.PUPITRE_AGENT_DIST ?? "../agent/dist");
 const EMBEDDED_AGENT = resolve("resources/agent");
 
 /**
@@ -62,8 +70,7 @@ const NODE_SIDE = {
 } as const;
 
 /**
- * The main process ships as V8 bytecode: no readable code, and the update token
- * the release workflow bakes in is not a string in a file.
+ * The main process ships as V8 bytecode: no readable code in the archive.
  *
  * The preload does not, and cannot for now: Electron loads it in the renderer,
  * whose V8 refuses cache data produced by the Node isolate that compiled it
@@ -73,13 +80,7 @@ const NODE_SIDE = {
  */
 const PROTECTED = {
   ...NODE_SIDE,
-  // A string literal survives in V8 cache data as it stands: `strings` on the
-  // compiled main process finds the update token unless it is named here.
-  bytecode: {
-    protectedStrings: [process.env.MAIN_VITE_UPDATE_TOKEN].filter(
-      (value): value is string => Boolean(value)
-    ),
-  },
+  bytecode: { protectedStrings: [] as string[] },
 } as const;
 
 export default defineConfig({
@@ -94,6 +95,10 @@ export default defineConfig({
       }),
     ],
     build: PROTECTED,
+    // The release bucket is named once, by the variable the publishing script
+    // already reads; the full name is the prefix, so nothing else of the
+    // environment ends up in the bundle.
+    envPrefix: ["MAIN_VITE_", "VITE_", "PUPITRE_DOWNLOADS_URL"],
     resolve: {
       alias: {
         "@shared": resolve("src/shared"),

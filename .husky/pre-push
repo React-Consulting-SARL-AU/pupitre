@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+bun scripts/assert-branch-writable.ts push
+
 if [ "$SKIP_PREPUSH" = "1" ]; then
   echo "Skipping pre-push checks because SKIP_PREPUSH=1"
   exit 0
@@ -9,9 +11,15 @@ fi
 REMOTE_NAME=${1:-origin}
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
-# turbo --affected defaults to diffing against `main`, so pushing main itself resolves zero packages.
+# turbo --affected defaults to diffing against `main`, which is now the production
+# branch: a feature branch would resolve everything staging holds and main does not.
 if git rev-parse --verify --quiet "refs/remotes/$REMOTE_NAME/$BRANCH" >/dev/null; then
   TURBO_SCM_BASE="$REMOTE_NAME/$BRANCH"
+elif git rev-parse --verify --quiet "refs/remotes/$REMOTE_NAME/staging" >/dev/null; then
+  TURBO_SCM_BASE="$REMOTE_NAME/staging"
+fi
+
+if [ -n "${TURBO_SCM_BASE:-}" ]; then
   export TURBO_SCM_BASE
 fi
 

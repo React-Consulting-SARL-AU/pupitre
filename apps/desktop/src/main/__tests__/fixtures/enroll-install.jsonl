@@ -2,7 +2,7 @@
 # jeton de serveur auprès de la plateforme, puis installe. Le jeton et l'adresse
 # de la plateforme changent à chaque exécution : le transcript les accepte par
 # joker, et l'échange lui-même est réel.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","protocol":1}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
 < {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"restricted","capabilities":["hello","ping","diag","enroll"]}}
 @enrol
 > {"id":2,"cmd":"enroll","params":{"platform_url":"*","secrets_stdin":true}}

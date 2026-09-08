@@ -20,10 +20,11 @@ export const account = {
     "seats.spare.one": "{count} seat is empty.",
     "seats.spare.other": "{count} seats are empty.",
     "seats.spareFixPaid":
-      "Lower the quantity in the Stripe portal: you are paying for seats nobody uses.",
+      "Lower the number of servers in the subscription above: you are paying for seats nobody uses.",
     "seats.spareFixFree": "You can enrol more servers without paying anything.",
     "seats.fullTitle": "Every seat is taken.",
-    "seats.fullFix": "Add seats to enrol one more server.",
+    "seats.fullFix":
+      "Raise the number of servers in the subscription above to enrol one more.",
 
     "profile.title": "Profile",
     "profile.name": "Name",
@@ -38,7 +39,7 @@ export const account = {
     "deleteAccount.lead":
       "Deleting removes your account, your devices and their public keys. It is final and cannot be undone. Your servers stay yours: it is your VPS, at your host.",
     "deleteAccount.subscription":
-      "A running subscription must be cancelled first, from the Stripe portal, and a server still assigned must be released.",
+      "A running subscription must be cancelled first, from the billing area, and a server still assigned must be released.",
     "deleteAccount.trigger": "Delete my account",
     "deleteAccount.dialogTitle": "Delete this account for good?",
     "deleteAccount.dialogDescription":
@@ -74,11 +75,12 @@ export const account = {
     "seats.spare.one": "{count} siège est inoccupé.",
     "seats.spare.other": "{count} sièges sont inoccupés.",
     "seats.spareFixPaid":
-      "Réduisez la quantité dans le portail Stripe : vous payez des sièges que personne n'utilise.",
+      "Réduisez le nombre de serveurs dans l'abonnement ci-dessus : vous payez des sièges que personne n'utilise.",
     "seats.spareFixFree":
       "Vous pouvez enrôler encore des serveurs sans rien payer.",
     "seats.fullTitle": "Tous les sièges sont occupés.",
-    "seats.fullFix": "Ajoutez des sièges pour enrôler un serveur de plus.",
+    "seats.fullFix":
+      "Augmentez le nombre de serveurs dans l'abonnement ci-dessus pour en enrôler un de plus.",
 
     "profile.title": "Profil",
     "profile.name": "Nom",
@@ -93,7 +95,7 @@ export const account = {
     "deleteAccount.lead":
       "La suppression retire votre compte, vos appareils et leurs clés publiques. Elle est définitive et ne se rattrape pas. Vos serveurs restent les vôtres : c'est votre VPS, chez votre hébergeur.",
     "deleteAccount.subscription":
-      "Un abonnement en cours doit être résilié avant, depuis le portail Stripe, et un serveur encore attribué doit être retiré.",
+      "Un abonnement en cours doit être résilié avant, depuis l'espace de facturation, et un serveur encore attribué doit être retiré.",
     "deleteAccount.trigger": "Supprimer mon compte",
     "deleteAccount.dialogTitle": "Supprimer définitivement ce compte ?",
     "deleteAccount.dialogDescription":

@@ -21,6 +21,7 @@ export const READING_COMMANDS: ReadonlySet<CommandName> = new Set([
   "ping",
   "probe",
   "catalog",
+  "module.config",
   "report",
   "snapshot",
   "status",

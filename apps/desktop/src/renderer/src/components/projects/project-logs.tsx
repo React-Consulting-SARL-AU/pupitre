@@ -80,10 +80,10 @@ export function ProjectLogs({
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between gap-3 border-line border-b px-4 py-2">
-        <span className="font-data text-[11px] text-ink-3">
+        <span className="font-data text-[12px] text-ink-3">
           {t("project.logs.journal", { name: project })}
         </span>
-        <label className="clickable flex items-center gap-2 font-data text-[10px] text-ink-3">
+        <label className="clickable flex items-center gap-2 font-data text-[11px] text-ink-3">
           <input
             checked={follow}
             className="accent-ink"
@@ -104,7 +104,7 @@ export function ProjectLogs({
       ) : null}
 
       <div
-        className="flex-1 overflow-auto bg-sunken px-4 py-3 font-data text-[11px] text-ink-2 leading-[1.7]"
+        className="flex-1 overflow-auto bg-sunken px-4 py-3 font-data text-[12px] text-ink-2 leading-[1.7]"
         onScroll={(event) => {
           const element = event.currentTarget;
           const atBottom =

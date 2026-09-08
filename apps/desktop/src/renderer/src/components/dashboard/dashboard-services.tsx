@@ -40,10 +40,10 @@ export function DashboardServices({
           <ServiceLogo moduleId={service.id} name={service.name} size={20} />
 
           <div className="min-w-0 flex-1">
-            <p className="truncate font-medium text-[12px] text-ink">
+            <p className="truncate font-medium text-[13px] text-ink">
               {service.name}
             </p>
-            <p className="truncate font-data text-[10px] text-ink-3">
+            <p className="truncate font-data text-[11px] text-ink-3">
               {service.id}
               {service.version ? ` · ${service.version}` : ""}
               {service.port ? ` · port ${service.port}` : ""}

@@ -15,7 +15,7 @@ import (
 const (
 	Path = "/etc/pupitre/env"
 
-	// La clé que project.url et la galerie lisent pour savoir si la machine a un domaine public.
+	// DomainKey is the key project.url and the gallery read to know whether the machine has a public domain.
 	DomainKey = "PUPITRE_DOMAIN"
 )
 
@@ -49,11 +49,11 @@ func Keys(ctx sys.Context) ([]string, error) {
 
 func Set(ctx sys.Context, key, value string) (bool, error) {
 	if !keyPattern.MatchString(key) {
-		return false, fmt.Errorf("clé d'environnement invalide : %q", key)
+		return false, fmt.Errorf("invalid environment key: %q", key)
 	}
 
 	if strings.ContainsAny(value, "\n\r") {
-		return false, fmt.Errorf("la valeur de %s ne peut pas contenir de saut de ligne", key)
+		return false, fmt.Errorf("the value of %s cannot contain a newline", key)
 	}
 
 	entries, err := read(ctx)

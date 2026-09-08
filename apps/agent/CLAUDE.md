@@ -1,6 +1,6 @@
 # apps/agent — Guidelines
 
-`pupitred`, l'agent Go installé sur le VPS du client. Monorepo → [`../../CLAUDE.md`](../../CLAUDE.md) · plan → [`docs/plans/desktop-and-agent.md`](../../docs/plans/desktop-and-agent.md) · protocole → [`docs/contracts/agent-protocol.md`](../../docs/contracts/agent-protocol.md) · catalogue → [`docs/contracts/service-catalog.md`](../../docs/contracts/service-catalog.md) · sécurité → [`docs/security.md`](../../docs/security.md).
+`pupitred`, l'agent Go installé sur le VPS du client. Monorepo → [`../../CLAUDE.md`](../../CLAUDE.md) · protocole → [`docs/contracts/agent-protocol.md`](../../docs/contracts/agent-protocol.md) · catalogue → [`docs/contracts/service-catalog.md`](../../docs/contracts/service-catalog.md) · sécurité → [`docs/security.md`](../../docs/security.md).
 
 ## Stack imposée
 
@@ -12,6 +12,8 @@ Go 1.25, bibliothèque standard d'abord. Binaire statique (`CGO_ENABLED=0`), `-t
 
 - **Rien de lisible sur le serveur.** Le binaire, `/etc/pupitre/` en 0600 root, des unités systemd générées, des fichiers de configuration. `server/` du dépôt est la spécification des modules, jamais une dépendance.
 - **Idempotence.** Chaque étape vérifie avant d'agir. `install` rejoué sur une machine installée ne change rien et finit en moins de 30 secondes.
+- **La configuration est validée avant la première étape.** Le moteur applique les contraintes du manifeste — `format`, `pattern`, bornes, options, requis — et refuse en `invalid_config` sans rien toucher. Un module ne vérifie plus ses propres champs. Ce que seule la machine sait — un port écouté, un dossier occupé — s'ajoute par `Preflight`, que `install.check` appelle.
+- **Les mêmes règles des deux côtés.** `internal/contract/fields.go` et `packages/shared/src/catalog/validate.ts` sont vérifiés contre `fields.fixtures.json`, exporté par `contracts:export`. Une règle changée d'un seul côté casse ce test.
 - **Un échec n'arrête pas les autres.** Il est noté avec sa commande de rejeu ; le rapport dit tout en une fois.
 - **Root se ferme en dernier**, et seulement si une clé ouvre `dev`. Jamais l'inverse.
 - **Aucune connexion entrante.** Le seul canal de commande est `pupitred serve` sur la session SSH du client. Vers la plateforme : HTTPS sortant, jeton de serveur, rien d'autre.

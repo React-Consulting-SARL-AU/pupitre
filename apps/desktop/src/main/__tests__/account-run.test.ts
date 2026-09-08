@@ -127,7 +127,7 @@ describe("la connexion", () => {
 
     expect(answer).toMatchObject({
       ok: false,
-      error: { code: "denied", fix: expect.stringContaining("code affiché") },
+      error: { code: "denied", phrase: { id: "refusal.signIn.denied" } },
     });
   });
 
@@ -247,7 +247,10 @@ describe("le droit d'usage", () => {
       ok: false,
       error: {
         code: "entitlement_required",
-        fix: expect.stringContaining("https://app.pupitre.test/dashboard"),
+        phrase: {
+          id: "refusal.account.required",
+          values: { console: "https://app.pupitre.test/dashboard" },
+        },
       },
     });
   });
@@ -263,9 +266,9 @@ describe("le droit d'usage", () => {
   });
 
   /**
-   * L'écran de compte n'écrit pas son propre refus : il rend celui du garde,
-   * message et remède compris, pour qu'un canal refusé et l'écran disent la
-   * même chose.
+   * The account screen does not word its own refusal: it renders the guard's,
+   * message and fix included, so a refused channel and the screen say the same
+   * thing.
    */
   it("porte dans son état le refus que le garde oppose aux canaux", async () => {
     let clock = Date.parse("2026-09-04T10:00:00.000Z");
@@ -289,7 +292,7 @@ describe("le droit d'usage", () => {
 
     expect(refused.ok).toBe(false);
     expect(account.state().refusal).toEqual(refused.ok ? null : refused.error);
-    expect(account.state().refusal?.fix).toContain(
+    expect(account.state().refusal?.phrase?.values?.console).toBe(
       "https://app.pupitre.test/dashboard"
     );
   });
@@ -373,10 +376,63 @@ describe("l'enrôlement", () => {
       ok: false,
       error: {
         code: "signed_out",
-        message: "Aucun compte n'est connecté sur cet appareil.",
-        fix: "Connecte-toi depuis l'écran de compte, puis réessaie.",
+        message: "refusal.account.signedOut",
+        phrase: { id: "refusal.account.signedOut" },
       },
     });
     expect(platform.enrolled).toEqual([]);
+  });
+});
+
+describe("la suppression d'un serveur sur la plateforme", () => {
+  it("demande les deux temps : révoquer, puis effacer la ligne", async () => {
+    const { account, platform } = harness();
+    const { report } = progressOf();
+
+    await account.signIn(report);
+
+    const forgotten = await account.forgetServer("srv-platform-1");
+
+    expect(forgotten).toEqual({ ok: true, result: null });
+    expect(platform.deletions).toEqual(["srv-platform-1", "srv-platform-1"]);
+  });
+
+  it("n'efface rien de plus quand la plateforme refuse le premier temps", async () => {
+    const { account, platform } = harness();
+
+    const forgotten = await account.forgetServer("srv-platform-1");
+
+    expect(forgotten).toMatchObject({ ok: false });
+    expect(platform.deletions).toEqual([]);
+  });
+});
+
+describe("l'organisation active de cet appareil", () => {
+  it("bascule, et l'identité en cache suit le rôle de la nouvelle", async () => {
+    const { account, platform } = harness({
+      identity: {
+        ...IDENTITY,
+        organizations: [
+          { id: "org-1", name: "Ada", role: "owner", slug: "ada" },
+          { id: "org-2", name: "Fonderie", role: "member", slug: "fonderie" },
+        ],
+      },
+    });
+
+    await account.signIn(() => undefined);
+
+    const state = await account.switchOrganization("org-2");
+
+    expect(platform.switched).toEqual(["org-2"]);
+    expect(state.identity?.organization?.id).toBe("org-2");
+    expect(state.identity?.role).toBe("member");
+  });
+
+  it("ne demande rien sans session", async () => {
+    const { account, platform } = harness();
+
+    await account.switchOrganization("org-2");
+
+    expect(platform.switched).toEqual([]);
   });
 });

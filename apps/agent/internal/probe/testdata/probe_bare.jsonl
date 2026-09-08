@@ -9,5 +9,5 @@
 @reply ss State  Recv-Q Send-Q     Local Address:Port  Peer Address:Port Process\nLISTEN 0      128              0.0.0.0:22         0.0.0.0:*     users:(("sshd",pid=901,fd=3))
 > {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
 > {"id":2,"cmd":"probe"}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","ping","probe","report","uninstall","upgrade"]}}
-< {"id":2,"ok":true,"result":{"os":"ubuntu","version":"24.04","arch":"amd64","ram_mb":7938,"disk_free_gb":40.0,"sudo":true,"ports":[{"port":22,"process":"sshd"}],"docker":false,"panel":null,"agent_version":null,"installed_modules":[],"verdict":{"level":"ready","kind":"bare","reasons":["Machine nue : ubuntu 24.04 amd64, 7938 Mo de mémoire, 40.0 Go libres."],"fixes":[]}}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","probe","report","uninstall","upgrade"]}}
+< {"id":2,"ok":true,"result":{"os":"ubuntu","version":"24.04","arch":"amd64","ram_mb":7938,"disk_free_gb":40.0,"sudo":true,"ports":[{"port":22,"process":"sshd"}],"docker":false,"panel":null,"agent_version":null,"installed_modules":[],"verdict":{"level":"ready","kind":"bare","reasons":["A bare machine: ubuntu 24.04 amd64, 7938 MB of memory, 40.0 GB free."],"fixes":[]}}}

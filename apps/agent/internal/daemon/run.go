@@ -16,7 +16,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 	beats := time.NewTicker(d.options.HeartbeatInterval)
 	defer beats.Stop()
 
-	d.journal.Logf("agent %s en veille, plateforme lue toutes les %s", d.options.AgentVersion, d.options.StateInterval)
+	d.journal.Logf("agent %s idling, platform read every %s", d.options.AgentVersion, d.options.StateInterval)
 
 	d.syncOnce()
 	d.beatOnce()
@@ -24,7 +24,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			d.journal.Logf("agent arrêté")
+			d.journal.Logf("agent stopped")
 
 			return nil
 		case <-states.C:
@@ -38,13 +38,13 @@ func (d *Daemon) Run(ctx context.Context) error {
 func (d *Daemon) syncOnce() {
 	synced, err := d.Sync()
 	if err != nil {
-		d.report("état", err)
+		d.report("state", err)
 
 		return
 	}
 
 	if synced.KeysChanged {
-		d.journal.Logf("droit d'usage %s, version cible %s", synced.Entitlement, orNone(synced.TargetVersion))
+		d.journal.Logf("entitlement %s, target version %s", synced.Entitlement, orNone(synced.TargetVersion))
 	}
 }
 
@@ -57,14 +57,14 @@ func (d *Daemon) beatOnce() {
 // An unenrolled server, a network down, a revoked token: three silences the journal tells apart, and none of them stops anything that runs.
 func (d *Daemon) report(what string, err error) {
 	if errors.Is(err, platform.ErrNoToken) {
-		d.once(what, "ce serveur n'est pas enrôlé")
+		d.once(what, "this server is not enrolled")
 
 		return
 	}
 
 	var failure *platform.Error
 	if errors.As(err, &failure) && failure.Unauthorized() {
-		d.once(what, "la plateforme refuse le jeton de ce serveur")
+		d.once(what, "the platform refuses this server's token")
 
 		return
 	}

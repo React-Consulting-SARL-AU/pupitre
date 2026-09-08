@@ -48,13 +48,14 @@ const enabled = Boolean(import.meta.env.PUBLIC_POSTHOG_KEY)
 <script>
   import {
     CONSENT_KEY,
+    DEFAULT_POSTHOG_HOST,
     parseConsent,
     posthogOptions,
     readConsent,
   } from "../lib/analytics"
 
   const key = import.meta.env.PUBLIC_POSTHOG_KEY
-  const host = import.meta.env.PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com"
+  const host = import.meta.env.PUBLIC_POSTHOG_HOST ?? DEFAULT_POSTHOG_HOST
   const banner = document.querySelector<HTMLElement>("[data-consent-banner]")
 
   async function start(key: string): Promise<void> {

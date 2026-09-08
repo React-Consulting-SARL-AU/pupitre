@@ -229,7 +229,7 @@ export function createAuth({
           )
         },
       }),
-      // Avant `bearer`, qui sinon délivrerait un jeton pour la session que le code n'a pas encore gardée.
+      // Before `bearer`, which would otherwise issue a token for the session before the code above has secured it.
       twoFactorChallenge(consoleUrl(env)),
       deviceAuthorization({
         expiresIn: DEVICE_CODE_EXPIRES_IN,

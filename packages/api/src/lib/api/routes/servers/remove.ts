@@ -17,7 +17,7 @@ export const serversRemoveRoutes = new Elysia({ name: "servers-remove-routes" })
         request.headers.get("accept-language")
       )
 
-      if (!deleted) {
+      if (deleted === null) {
         set.status = 404
 
         return apiError(

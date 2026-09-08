@@ -102,8 +102,8 @@ func TestAnEditedSkillIsPutBack(t *testing.T) {
 	}
 
 	original := string(fake.Files[SkillsDir+"/ship/SKILL.md"])
-	fake.Files[SkillsDir+"/ship/SKILL.md"] = []byte("modifié")
-	fake.Files[SkillsDir+"/perso/SKILL.md"] = []byte("le skill du client")
+	fake.Files[SkillsDir+"/ship/SKILL.md"] = []byte("edited")
+	fake.Files[SkillsDir+"/perso/SKILL.md"] = []byte("the client's own skill")
 
 	if err := Deploy(newContext(t, fake), demo); err != nil {
 		t.Fatal(err)
@@ -113,7 +113,7 @@ func TestAnEditedSkillIsPutBack(t *testing.T) {
 		t.Error("the shipped skill must be restored")
 	}
 
-	if string(fake.Files[SkillsDir+"/perso/SKILL.md"]) != "le skill du client" {
+	if string(fake.Files[SkillsDir+"/perso/SKILL.md"]) != "the client's own skill" {
 		t.Error("a skill the client added is none of our business")
 	}
 }

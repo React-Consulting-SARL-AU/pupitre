@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const RENDERER = join(HERE, "..", "src", "renderer", "src");
+const MAIN = join(HERE, "..", "src", "main");
 
 const ACCENT = /[àâäçéèêëîïôöùûüÿœæ°€’“”«»À-ÖØ-Þ]/u;
 
@@ -36,6 +37,15 @@ const JSX_TEXT_RE =
 
 const JSX_TEXT_ALLOW = new Set(["px", "px.", "Claude", "Codex", "Pupitre"]);
 
+const UNITS = ["octets?", "[KMGT]o", "[KMG]io", "[KMGT]B", "[KMG]iB"];
+
+const UNIT_RE = new RegExp(`(?<!\\w)(?:${UNITS.join("|")})(?!\\w)`, "g");
+
+const DECIMAL_MARK_RE = /\.replace\(\s*(["'])\.\1\s*,\s*(["']),\2\s*\)/g;
+
+/** The one place a unit word and a decimal mark are assembled, per locale. */
+const FORMATTER = "src/renderer/src/lib/format.ts";
+
 const SOURCE_FILE = /\.tsx?$/;
 
 const TOKEN_RE = /\S+/g;
@@ -43,6 +53,7 @@ const TOKEN_RE = /\S+/g;
 function isSkipped(path) {
   return (
     path.includes("/i18n/") ||
+    path.endsWith("/dialogs.ts") ||
     path.includes("__tests__") ||
     path.endsWith(".d.ts")
   );
@@ -73,6 +84,7 @@ class Projection {
     this.source = source;
     this.masked = [];
     this.codeOnly = [];
+    this.strings = [];
   }
 
   keep(ch, inString) {
@@ -80,8 +92,10 @@ class Projection {
 
     if (ch === "\n") {
       this.codeOnly.push("\n");
+      this.strings.push("\n");
     } else {
       this.codeOnly.push(inString ? " " : ch);
+      this.strings.push(inString ? ch : " ");
     }
   }
 
@@ -90,6 +104,7 @@ class Projection {
 
     this.masked.push(soft);
     this.codeOnly.push(soft);
+    this.strings.push(soft);
   }
 
   comment(from, isBlock) {
@@ -164,7 +179,11 @@ class Projection {
       i++;
     }
 
-    return { masked: this.masked.join(""), codeOnly: this.codeOnly.join("") };
+    return {
+      masked: this.masked.join(""),
+      codeOnly: this.codeOnly.join(""),
+      strings: this.strings.join(""),
+    };
   }
 }
 
@@ -182,8 +201,9 @@ function lineOf(text, index) {
 
 function scan(file) {
   const source = readFileSync(file, "utf8");
-  const { masked, codeOnly } = new Projection(source).run();
+  const { masked, codeOnly, strings } = new Projection(source).run();
   const isTsx = file.endsWith(".tsx");
+  const formats = file.endsWith(FORMATTER);
   const violations = [];
 
   for (const match of masked.matchAll(TOKEN_RE)) {
@@ -216,12 +236,30 @@ function scan(file) {
     }
   }
 
+  for (const match of formats ? [] : strings.matchAll(UNIT_RE)) {
+    violations.push({
+      line: lineOf(strings, match.index),
+      why: "hard-coded unit",
+      text: match[0],
+    });
+  }
+
+  for (const match of formats ? [] : masked.matchAll(DECIMAL_MARK_RE)) {
+    violations.push({
+      line: lineOf(masked, match.index),
+      why: "hard-coded decimal mark",
+      text: match[0],
+    });
+  }
+
   return violations;
 }
 
 function main() {
   const files = [];
   walk(RENDERER, files);
+  // Le processus principal ne rédige plus : il nomme une entrée du dictionnaire.
+  walk(MAIN, files);
 
   const found = [];
 

@@ -97,7 +97,7 @@ describe("une clé importée", () => {
     const dir = keysDir();
 
     expect(importKey(dir, "srv-a", "/nowhere/id_ed25519")).rejects.toThrow(
-      /introuvable/i
+      /refusal.key.missing/
     );
   });
 
@@ -106,7 +106,9 @@ describe("une clé importée", () => {
     const source = join(mkdtempSync(join(tmpdir(), "pupitre-src-")), "id.pub");
     writeFileSync(source, "ssh-ed25519 AAAAC3Nz nobody@nowhere\n");
 
-    expect(importKey(dir, "srv-a", source)).rejects.toThrow(/privée/i);
+    expect(importKey(dir, "srv-a", source)).rejects.toThrow(
+      /refusal.key.public/
+    );
   });
 });
 
@@ -122,6 +124,23 @@ describe("la commande ssh-copy-id", () => {
   it("omet le port par défaut", () => {
     expect(copyIdCommand({ ...SERVER, port: 22 }, "/k.pub")).toBe(
       "ssh-copy-id -i /k.pub root@203.0.113.10"
+    );
+  });
+
+  it("protège un chemin à espaces, comme celui de l'app sur macOS", () => {
+    const command = copyIdCommand(
+      SERVER,
+      "/Users/moi/Library/Application Support/@pupitre/desktop/keys/srv-a.pub"
+    );
+
+    expect(command).toBe(
+      "ssh-copy-id -i '/Users/moi/Library/Application Support/@pupitre/desktop/keys/srv-a.pub' -p 2222 root@203.0.113.10"
+    );
+  });
+
+  it("ferme, échappe et rouvre une apostrophe du chemin", () => {
+    expect(copyIdCommand({ ...SERVER, port: 22 }, "/k'a.pub")).toBe(
+      "ssh-copy-id -i '/k'\\''a.pub' root@203.0.113.10"
     );
   });
 });

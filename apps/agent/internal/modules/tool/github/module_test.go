@@ -7,7 +7,6 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
-	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/sys/env"
 )
 
@@ -103,15 +102,29 @@ func TestSecretNeverLeaks(t *testing.T) {
 	}
 }
 
-func TestConfigureWithoutTokenIsRefused(t *testing.T) {
-	fake := modtest.NewFakeSys()
-	fake.Packages[pkg] = "2.62.0"
-	ctx := newContext(t, fake, nil)
+// The engine refuses a configuration before the first step, so the module never
+// sees a missing secret. What this module owes is the declaration it is refused on.
+func TestTheSecretIsRequiredByTheContract(t *testing.T) {
+	held := func(string, string) int { return 0 }
 
-	failure, isProtocol := (Module{}).Configure(ctx).(*protocol.Error)
-	if !isProtocol || failure.Code != contract.ErrorBadRequest {
-		t.Fatalf("want bad_request, got %#v", failure)
+	for _, field := range manifest().Fields {
+		if field.Key != "token" {
+			continue
+		}
+
+		problem := contract.ValidateField(ID, field, nil, held)
+		if problem == nil || problem.Code != contract.ProblemRequired {
+			t.Fatalf("problem = %+v", problem)
+		}
+
+		if problem.Message == "" {
+			t.Fatal("a refusal says what is wrong")
+		}
+
+		return
 	}
+
+	t.Fatalf("the manifest declares no token field")
 }
 
 func TestFailedStepReportsReplay(t *testing.T) {

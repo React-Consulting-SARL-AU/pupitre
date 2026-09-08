@@ -1,10 +1,10 @@
-## Tâche
+## Ce que change cette PR
 
-<!-- Identifiant et titre, ex. INF-05 — CI GitHub Actions. Lien vers docs/plans/. -->
+<!-- Une phrase : ce qui est livré, et pourquoi. -->
 
-## Critères d'acceptation
+## Ce qui le prouve
 
-<!-- Une case par critère de la tâche, cochée quand elle est prouvée. -->
+<!-- Une case par comportement vérifié, cochée quand le test l'établit. -->
 
 - [ ]
 

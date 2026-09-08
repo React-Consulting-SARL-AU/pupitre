@@ -12,12 +12,13 @@ import {
 } from "../lib/module-progress";
 
 /**
- * What separates the agent this app carries from the one the server runs.
+ * What separates the agent this app can offer from the one the server runs.
  *
- * The comparison is the main process's — it holds the embedded release — and
- * this store keeps its answer as it came. An app behind the server is a fact to
- * show, not a state to be in: nothing here gates a screen, so a reader on an
- * older app goes on driving everything the agent still understands.
+ * The comparison is the main process's — it reads the platform and holds the
+ * embedded release — and this store keeps its answer as it came. An app behind
+ * the server is a fact to show, not a state to be in: nothing here gates a
+ * screen, so a reader on an older app goes on driving everything the agent
+ * still understands.
  */
 
 export type UpdateState =
@@ -147,7 +148,7 @@ export const useAgentUpdate = create<AgentUpdateStore>((set, get) => {
       set({
         hidden:
           current.status === "ready"
-            ? (current.update.carried?.version ?? null)
+            ? (current.update.offer?.version ?? null)
             : null,
       });
     },
@@ -165,18 +166,23 @@ export const useAgentUpdate = create<AgentUpdateStore>((set, get) => {
 });
 
 /**
- * Whether the banner has anything to say: an app ahead of the server has an
- * update to offer, an app behind it has one to ask for. The rest is silence.
+ * Whether the banner has anything to say: a server the sheet says this app can
+ * no longer drive is always said, an app ahead of the server has an update to
+ * offer, an app behind it has one to ask for. The rest is silence.
  */
 export function announces(state: UpdateState, hidden: string | null): boolean {
   if (state.status !== "ready") {
     return false;
   }
 
-  const { carried, order } = state.update;
+  const { offer, order, verdict } = state.update;
+
+  if (verdict === "agent_too_old") {
+    return true;
+  }
 
   if (order === "ahead") {
-    return carried !== null && carried.version !== hidden;
+    return offer !== null && offer.version !== hidden;
   }
 
   return order === "behind";

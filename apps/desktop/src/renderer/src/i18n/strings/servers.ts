@@ -41,18 +41,52 @@ export const servers = {
     "servers.add.pickFile": "Choose a file…",
     "servers.add.noFile": "no file chosen",
     "servers.add.preparing": "Preparing…",
+    "servers.add.test": "Test the connection",
+    "servers.add.retest": "Test again",
+    "servers.add.reached": "{software} answered in {ms} ms.",
+    "servers.add.reachedHelp":
+      "The address answers and speaks SSH. Whether the key opens it is what the inspection settles, right after.",
+    "servers.add.submitAnyway": "Add anyway",
     "servers.add.submit": "Add",
     "servers.add.recommended": "Recommended",
 
+    "servers.key.installing.title": "Installing the key",
+    "servers.key.installing.detail":
+      "The app is putting the public half on {name} itself. Nothing to paste, nothing to type.",
+    "servers.key.installing.note":
+      "The private half never leaves this computer's folder, at 0600.",
+    "servers.key.phase.reaching": "Knocking with the key",
+    "servers.key.phase.authorizing": "Writing it into authorized_keys",
+    "servers.key.phase.verifying": "Signing in with it alone",
+
+    "servers.key.installed.title": "{name} opens with its key",
+    "servers.key.installed.detail":
+      "The public half is on the machine and the app has just signed in with it.",
+    "servers.key.alreadyOpen.title": "{name} already opens",
+    "servers.key.alreadyOpen.detail":
+      "The key was in place: nothing was written on the machine.",
+
+    "servers.key.password.title": "{name} asks for its password",
+    "servers.key.password.intro":
+      "Nothing this computer holds opens {user}@{host} yet. The password of that account lets the app put its key there, once.",
+    "servers.key.password.label": "Password of the remote account",
+    "servers.key.password.help":
+      "Used for this one connection, held nowhere, and never written to a file or a log.",
+    "servers.key.password.refused":
+      "The server refused that password. It is the one for the account above, the one your host gave you.",
+    "servers.key.password.submit": "Install the key",
+    "servers.key.password.skip": "Do it myself",
+
     "servers.key.title": "{name} is ready to receive its key",
     "servers.key.intro":
-      "The private key stays in the app's folder, at 0600. Carry the public half to the server — the command below does it for you.",
+      "The private key stays in the app's folder, at 0600. The app could not install the public half by itself, so here it is, along with the line that installs it.",
     "servers.key.publicHelp":
       "To add to the server's ~/.ssh/authorized_keys if you prefer to do it by hand.",
     "servers.key.commandHelp":
-      "To paste in a terminal on this computer. The password asked for is the server's.",
+      "To paste in a terminal on this computer. `ssh-copy-id` signs in with the server's password: if the machine only takes keys, install the public key above yourself, then carry on.",
     "servers.key.commandLabel": "Command to paste",
     "servers.key.done": "Done",
+    "servers.key.inspect": "Inspect this server",
 
     "servers.row.activate": "Drive {name}",
     "servers.row.rename": "Name of {name}",
@@ -68,11 +102,13 @@ export const servers = {
     "servers.row.confirmQuestion": "Delete {name}?",
     "servers.row.confirmApp":
       "The key the app made for this server leaves with it, and no other copy of it exists.",
-    "servers.row.confirmGranted":
-      "It comes back at the next reading: the platform still grants it to this account.",
+    "servers.row.confirmGrantedOrForget":
+      "Removed from here, it stays granted: the list of granted servers puts it back. Deleted everywhere, it leaves the console too, and nothing brings it back.",
     "servers.row.confirmSystem":
       "Your ~/.ssh/config is not touched: only this shortcut disappears.",
     "servers.row.confirmRemove": "Delete permanently",
+    "servers.row.confirmRemoveGranted": "Remove from this computer",
+    "servers.row.confirmForget": "Delete everywhere",
 
     "servers.panel.heading": "Your servers",
     "servers.panel.intro":
@@ -124,18 +160,52 @@ export const servers = {
     "servers.add.pickFile": "Choisir un fichier…",
     "servers.add.noFile": "aucun fichier choisi",
     "servers.add.preparing": "Préparation…",
+    "servers.add.test": "Tester la connexion",
+    "servers.add.retest": "Retester",
+    "servers.add.reached": "{software} a répondu en {ms} ms.",
+    "servers.add.reachedHelp":
+      "L'adresse répond et parle SSH. Que la clé l'ouvre, c'est l'inspection qui le dira, juste après.",
+    "servers.add.submitAnyway": "Ajouter quand même",
     "servers.add.submit": "Ajouter",
     "servers.add.recommended": "Recommandé",
 
+    "servers.key.installing.title": "Installation de la clé",
+    "servers.key.installing.detail":
+      "L'app pose elle-même la moitié publique sur {name}. Rien à coller, rien à taper.",
+    "servers.key.installing.note":
+      "La moitié privée ne quitte pas le dossier de cet ordinateur, en 0600.",
+    "servers.key.phase.reaching": "On frappe avec la clé",
+    "servers.key.phase.authorizing": "On l'écrit dans authorized_keys",
+    "servers.key.phase.verifying": "On se connecte avec elle seule",
+
+    "servers.key.installed.title": "{name} s'ouvre avec sa clé",
+    "servers.key.installed.detail":
+      "La moitié publique est sur la machine, et l'app vient de s'y connecter avec.",
+    "servers.key.alreadyOpen.title": "{name} s'ouvre déjà",
+    "servers.key.alreadyOpen.detail":
+      "La clé était en place : rien n'a été écrit sur la machine.",
+
+    "servers.key.password.title": "{name} demande son mot de passe",
+    "servers.key.password.intro":
+      "Rien de ce que cet ordinateur détient n'ouvre encore {user}@{host}. Le mot de passe de ce compte permet à l'app d'y poser sa clé, une fois.",
+    "servers.key.password.label": "Mot de passe du compte distant",
+    "servers.key.password.help":
+      "Utilisé pour cette seule connexion, gardé nulle part, jamais écrit dans un fichier ni dans un journal.",
+    "servers.key.password.refused":
+      "Le serveur a refusé ce mot de passe. C'est celui du compte ci-dessus, celui que votre hébergeur vous a donné.",
+    "servers.key.password.submit": "Installer la clé",
+    "servers.key.password.skip": "Le faire moi-même",
+
     "servers.key.title": "{name} est prêt à recevoir sa clé",
     "servers.key.intro":
-      "La clé privée reste dans le dossier de l'app, en 0600. Portez la moitié publique sur le serveur — la commande ci-dessous le fait pour vous.",
+      "La clé privée reste dans le dossier de l'app, en 0600. L'app n'a pas pu poser la moitié publique elle-même : la voici, avec la ligne qui l'installe.",
     "servers.key.publicHelp":
       "À ajouter dans ~/.ssh/authorized_keys du serveur si vous préférez le faire à la main.",
     "servers.key.commandHelp":
-      "À coller dans un terminal de cet ordinateur. Le mot de passe demandé est celui du serveur.",
+      "À coller dans un terminal de cet ordinateur. `ssh-copy-id` se connecte avec le mot de passe du serveur : si la machine n'accepte que des clés, posez vous-même la clé publique ci-dessus, puis continuez.",
     "servers.key.commandLabel": "Commande à coller",
     "servers.key.done": "Terminé",
+    "servers.key.inspect": "Inspecter ce serveur",
 
     "servers.row.activate": "Piloter {name}",
     "servers.row.rename": "Nom de {name}",
@@ -151,11 +221,13 @@ export const servers = {
     "servers.row.confirmQuestion": "Supprimer {name} ?",
     "servers.row.confirmApp":
       "La clé que l'app a créée pour ce serveur part avec lui, et il n'en existe pas d'autre copie.",
-    "servers.row.confirmGranted":
-      "Il revient à la prochaine lecture : la plateforme l'attribue toujours à ce compte.",
+    "servers.row.confirmGrantedOrForget":
+      "Retiré d'ici, il reste attribué : la liste des serveurs attribués sait le remettre. Supprimé partout, il quitte aussi la console, et rien ne le ramène.",
     "servers.row.confirmSystem":
       "Votre ~/.ssh/config n'est pas touché : seul ce raccourci disparaît.",
     "servers.row.confirmRemove": "Supprimer définitivement",
+    "servers.row.confirmRemoveGranted": "Retirer de cet ordinateur",
+    "servers.row.confirmForget": "Supprimer partout",
 
     "servers.panel.heading": "Vos serveurs",
     "servers.panel.intro":

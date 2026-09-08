@@ -14,6 +14,11 @@ import (
 const (
 	appPassword    = "s3cret-de-test-app"
 	remotePassword = "s3cret-de-test-remote"
+
+	defaultPkg     = "postgresql-" + DefaultVersion
+	defaultCluster = "/etc/postgresql/" + DefaultVersion + "/main"
+	defaultConf    = defaultCluster + "/conf.d/99-pupitre.conf"
+	defaultHba     = defaultCluster + "/pg_hba.conf"
 )
 
 func newContext(t *testing.T, fake *modtest.FakeSys) *modules.Context {
@@ -40,12 +45,12 @@ func installedSys(t *testing.T) *modtest.FakeSys {
 	t.Helper()
 
 	fake := newFakeSys()
-	fake.Packages[pkg] = "17.2-1.pgdg24.04+1"
+	fake.Packages[defaultPkg] = "17.2-1.pgdg24.04+1"
 	fake.Units[unit] = modtest.UnitActive
 	fake.Files[keyringPath] = []byte("-----BEGIN PGP PUBLIC KEY BLOCK-----\n")
 	fake.Files[listPath] = repository("noble")
-	fake.Files[confPath] = renderConfig("980MB")
-	fake.Files[hbaPath] = []byte("local   all             postgres                                peer\n" + hbaLine + "\n")
+	fake.Files[defaultConf] = renderConfig(DefaultPort, "980MB")
+	fake.Files[defaultHba] = []byte("local   all             postgres                                peer\n" + hbaLine + "\n")
 	fake.Files[env.Path] = []byte(appPasswordKey + "=" + appPassword + "\n" + remotePasswordKey + "=" + remotePassword + "\n")
 
 	return fake
@@ -106,23 +111,23 @@ func TestInstallAndConfigureAreIdempotent(t *testing.T) {
 
 func TestPostgresListensOnTheLoopbackOnly(t *testing.T) {
 	fake := newFakeSys()
-	fake.Files[hbaPath] = []byte("local   all             postgres                                peer\n")
+	fake.Files[defaultHba] = []byte("local   all             postgres                                peer\n")
 	ctx := newContext(t, fake)
 
 	install(t, ctx)
 
-	written := string(fake.Files[confPath])
+	written := string(fake.Files[defaultConf])
 	if !strings.Contains(written, "listen_addresses = '127.0.0.1'") {
-		t.Fatalf("%s must bind the loopback:\n%s", confPath, written)
+		t.Fatalf("%s must bind the loopback:\n%s", defaultConf, written)
 	}
 
 	if strings.Contains(written, "0.0.0.0") || strings.Contains(written, "'*'") {
 		t.Fatalf("no address but the loopback may appear:\n%s", written)
 	}
 
-	hba := string(fake.Files[hbaPath])
+	hba := string(fake.Files[defaultHba])
 	if !strings.Contains(hba, "host    all             all             127.0.0.1/32            scram-sha-256") {
-		t.Fatalf("%s must let the loopback in, and only it:\n%s", hbaPath, hba)
+		t.Fatalf("%s must let the loopback in, and only it:\n%s", defaultHba, hba)
 	}
 
 	if !strings.Contains(written, "shared_buffers = 980MB") {
@@ -151,8 +156,8 @@ func TestPostgres17ComesFromItsOwnRepository(t *testing.T) {
 		t.Fatalf("the repository key is fetched over https into the keyring: %q", fetched)
 	}
 
-	if _, installed := fake.Packages[pkg]; !installed {
-		t.Fatalf("%s must be installed: %v", pkg, fake.Packages)
+	if _, installed := fake.Packages[defaultPkg]; !installed {
+		t.Fatalf("%s must be installed: %v", defaultPkg, fake.Packages)
 	}
 }
 
@@ -184,7 +189,7 @@ func TestNoGeneratedPasswordReachesTheJournalOrTheEvents(t *testing.T) {
 		t.Fatalf("both passwords belong in %s: %s", env.Path, fake.Files[env.Path])
 	}
 
-	if strings.Contains(string(fake.Files[confPath]), appPassword) {
+	if strings.Contains(string(fake.Files[defaultConf]), appPassword) {
 		t.Fatal("the configuration carries no password")
 	}
 }
@@ -344,7 +349,7 @@ func TestShellAndDumpStayOnTheSocketAccount(t *testing.T) {
 
 func TestFailedStepReportsItsReplayCommand(t *testing.T) {
 	fake := newFakeSys()
-	fake.FailPackage(pkg, "E: Unable to locate package postgresql-17")
+	fake.FailPackage(defaultPkg, "E: Unable to locate package postgresql-17")
 	ctx := newContext(t, fake)
 
 	if err := (Module{}).Install(ctx); err == nil {
@@ -365,11 +370,11 @@ func TestUninstallLeavesTheDataAlone(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, kept := fake.Packages[pkg]; kept {
+	if _, kept := fake.Packages[defaultPkg]; kept {
 		t.Fatal("the package the module installed must go")
 	}
 
-	if _, kept := fake.Files[confPath]; kept {
+	if _, kept := fake.Files[defaultConf]; kept {
 		t.Fatal("the configuration the module wrote must go")
 	}
 
@@ -392,7 +397,7 @@ func TestStatusNamesTheKeysNotTheSecrets(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !status.Installed || status.State != contract.ServiceRunning || status.Port != Port || status.Unit != unit {
+	if !status.Installed || status.State != contract.ServiceRunning || status.Port != DefaultPort || status.Unit != unit {
 		t.Fatalf("status = %+v", status)
 	}
 
@@ -404,3 +409,53 @@ func TestStatusNamesTheKeysNotTheSecrets(t *testing.T) {
 }
 
 var _ modules.Module = Module{}
+
+func newContextWith(t *testing.T, fake *modtest.FakeSys, values modtest.Values) *modules.Context {
+	t.Helper()
+
+	return modtest.NewContext(t, fake, modtest.Options{
+		Manifest: manifest(),
+		Values:   values,
+		Secrets:  modtest.Secrets{"app_password": appPassword, "remote_password": remotePassword},
+	})
+}
+
+// The version, the port and the two role names are the client's call; the cluster the module writes into follows.
+func TestTheChosenVersionPortAndRolesReachTheCluster(t *testing.T) {
+	fake := newFakeSys()
+	fake.Answer("FROM pg_roles", "0\n")
+	ctx := newContextWith(t, fake, modtest.Values{
+		"version": "16", "port": 5433, "app_role": "flymate", "remote_role": "laptop",
+	})
+
+	install(t, ctx)
+
+	if _, installed := fake.Packages["postgresql-16"]; !installed {
+		t.Fatalf("the chosen major must be the package installed: %v", fake.Packages)
+	}
+
+	written := string(fake.Files["/etc/postgresql/16/main/conf.d/99-pupitre.conf"])
+	if !strings.Contains(written, "port = 5433") {
+		t.Fatalf("the chosen port must reach the configuration:\n%s", written)
+	}
+
+	roles := strings.Join(fake.Commands(), "\n")
+	if !strings.Contains(roles, "psql") {
+		t.Fatalf("the roles must be created:\n%s", roles)
+	}
+
+	url, err := URL(ctx, "shop")
+	if err != nil || url != "postgresql://laptop@127.0.0.1:5433/shop" {
+		t.Fatalf("url = %q, %v", url, err)
+	}
+}
+
+// A role name reaches SQL as an identifier: what does not look like one is refused before it gets there.
+func TestARoleNameThatIsNotAnIdentifierFallsBackOnTheDefault(t *testing.T) {
+	fake := newFakeSys()
+	ctx := newContextWith(t, fake, modtest.Values{"app_role": `dev"; DROP DATABASE postgres; --`})
+
+	if got := appRole(ctx); got != defaultAppRole {
+		t.Fatalf("appRole = %q, want %q", got, defaultAppRole)
+	}
+}

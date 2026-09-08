@@ -3,7 +3,7 @@ import { type Dictionary, type DictionaryKey, en } from "./en"
 import { fr } from "./fr"
 
 /** The console was written in French first, and falls back to it. */
-export const DEFAULT_LOCALE: Locale = "fr"
+export const DEFAULT_LOCALE: Locale = "en"
 
 const DICTIONARIES: Record<Locale, Dictionary> = { en, fr }
 

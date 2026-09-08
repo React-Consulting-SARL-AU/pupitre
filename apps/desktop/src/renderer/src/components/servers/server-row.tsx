@@ -1,7 +1,8 @@
 import type { DictionaryKey } from "@renderer/i18n/en";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { Server } from "@shared/servers";
-import { KeyRound, Trash2 } from "lucide-react";
+import { grantGone } from "@shared/servers";
+import { KeyRound, OctagonAlert, Trash2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Button } from "../ui/button";
 import { CopyField } from "../ui/copy-field";
@@ -14,7 +15,9 @@ import { StatusDot } from "../ui/status-dot";
  * One server, and everything that can be done to it from a list.
  *
  * Deleting asks first, and says what goes with it: the key the app made for
- * this machine leaves with the server, and no other copy of it exists.
+ * this machine leaves with the server, and no other copy of it exists. A
+ * server the platform grants offers the two gestures apart — removed from here
+ * it stays granted; erased everywhere it does not come back.
  */
 export function ServerRow({
   server,
@@ -22,12 +25,17 @@ export function ServerRow({
   onActivate,
   onRename,
   onRemove,
+  onForget,
+  refusal,
 }: {
   server: Server;
   active: boolean;
   onActivate: () => void;
   onRename: (name: string) => void;
   onRemove: () => void;
+  onForget: () => void;
+  /** What the platform objected to the removal with, in its own words. */
+  refusal?: ReactNode;
 }) {
   const t = useTranslations();
 
@@ -117,18 +125,48 @@ export function ServerRow({
       ) : null}
 
       {confirming ? (
-        <div className="fade-in mt-5 rounded-sm border border-danger/40 bg-danger/10 p-3 pl-7">
-          <p className="text-ink leading-relaxed">
-            {t("servers.row.confirmQuestion", { name: server.name })}{" "}
-            {t(confirmLabel(server))}
-          </p>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Button onClick={onRemove} variant="danger">
-              {t("servers.row.confirmRemove")}
-            </Button>
-            <Button onClick={() => setConfirming(false)} variant="discreet">
-              {t("common.cancel")}
-            </Button>
+        <div className="fade-in mt-5 flex items-start gap-2.5 rounded-sm border border-danger/40 bg-danger/10 p-3">
+          <OctagonAlert
+            className="mt-0.5 shrink-0 text-danger"
+            size={14}
+            strokeWidth={1.5}
+          />
+          <div className="min-w-0">
+            <p className="font-medium text-ink leading-relaxed">
+              {t("servers.row.confirmQuestion", { name: server.name })}
+            </p>
+            <p className="mt-1 text-ink-2 leading-relaxed">
+              {t(confirmLabel(server))}
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Button
+                icon={Trash2}
+                onClick={onRemove}
+                size="sm"
+                variant="destructive"
+              >
+                {t(removeLabel(server))}
+              </Button>
+              {granted(server) ? (
+                <Button
+                  icon={Trash2}
+                  onClick={onForget}
+                  size="sm"
+                  variant="destructive"
+                >
+                  {t("servers.row.confirmForget")}
+                </Button>
+              ) : null}
+              <Button
+                onClick={() => setConfirming(false)}
+                size="sm"
+                variant="discreet"
+              >
+                {t("common.cancel")}
+              </Button>
+            </div>
+
+            {refusal ? <div className="mt-3">{refusal}</div> : null}
           </div>
         </div>
       ) : null}
@@ -146,9 +184,26 @@ function configLabel(server: Server): DictionaryKey {
     : "servers.row.configSystem";
 }
 
+/**
+ * What the button promises, and it promises only what it can keep.
+ *
+ * What decides is not who created the entry but whether the platform still
+ * grants the machine: only the platform can delete it. Removing it here hides
+ * it on this computer, and the granted-servers panel knows how to bring it back.
+ */
+function granted(server: Server): boolean {
+  return Boolean(server.grant && !grantGone(server.grant));
+}
+
+function removeLabel(server: Server): DictionaryKey {
+  return granted(server)
+    ? "servers.row.confirmRemoveGranted"
+    : "servers.row.confirmRemove";
+}
+
 function confirmLabel(server: Server): DictionaryKey {
-  if (server.grant?.adopted) {
-    return "servers.row.confirmGranted";
+  if (granted(server)) {
+    return "servers.row.confirmGrantedOrForget";
   }
 
   return server.origin === "app"
@@ -162,7 +217,7 @@ function Detail({ label, children }: { label: string; children: ReactNode }) {
       <dt>
         <Label>{label}</Label>
       </dt>
-      <dd className="break-all font-data text-[11px] text-ink-2">{children}</dd>
+      <dd className="break-all font-data text-[12px] text-ink-2">{children}</dd>
     </div>
   );
 }

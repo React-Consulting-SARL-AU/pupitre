@@ -17,9 +17,9 @@ Vérifiez : `sudo ufw status` montre SSH, et rien d’autre sauf si vous avez in
 
 ## Aucune clé privée ne quitte votre laptop
 
-L’app génère une clé ed25519 par appareil. La moitié publique va dans `authorized_keys` de `dev` ; la moitié privée reste sur votre disque en `0600`.
+L’app garde ses clés ed25519 dans son dossier, en `0600` : une pour cet ordinateur, et une par serveur pour lequel vous lui avez demandé d’en générer une. Une clé que vous importez y est recopiée ; un hôte déclaré dans votre `~/.ssh/config` n’y met rien du tout. Seules les moitiés publiques sortent : vers l’`authorized_keys` du serveur, et vers la plateforme, qui les transmet aux machines de votre organisation.
 
-Vérifiez : `cat ~/.ssh/authorized_keys` sur le serveur ne montre que des clés publiques, et le dossier de clés de l’app sur votre laptop est le seul endroit où existe la moitié privée.
+Vérifiez : `cat ~/.ssh/authorized_keys` sur le serveur ne montre que des clés publiques, et le dossier de clés de l’app sur votre laptop est le seul endroit où existe une moitié privée.
 
 ## Rien de lisible n’est laissé sur le serveur
 

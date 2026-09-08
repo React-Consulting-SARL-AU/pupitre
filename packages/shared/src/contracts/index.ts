@@ -17,6 +17,9 @@ import { ShotEventSchema } from "../agent-protocol/processes"
 import { SecretEventSchema } from "../agent-protocol/secrets"
 import { EnrollSecretsSchema } from "../agent-protocol/system"
 import { FieldSchema, ManifestSchema, PRESETS, PresetSchema } from "../catalog"
+import { FORMAT_PATTERNS } from "../catalog/formats"
+import { FieldProblemSchema } from "../catalog/validate"
+import { GENERATIONS, type Generation } from "../compat"
 
 export const CONTRACT_ID = "https://pupitre.studio/contracts/agent/schema.json"
 
@@ -29,6 +32,8 @@ export interface ContractSchema {
   $id: string
   title: string
   protocol: number
+  /** The compatibility sheet, as the agent will read it compiled into itself. */
+  compatibility: readonly Generation[]
   $defs: Record<string, JsonObject | undefined>
 }
 
@@ -68,6 +73,7 @@ export const CONTRACT_DEFINITIONS: Readonly<Record<string, z.ZodType>> = {
   EnrollSecrets: EnrollSecretsSchema,
   Manifest: ManifestSchema,
   Field: FieldSchema,
+  FieldProblem: FieldProblemSchema,
   Preset: PresetSchema,
 }
 
@@ -76,6 +82,11 @@ export const CONTRACT_CONSTANTS: Readonly<Record<string, JsonObject>> = {
     type: "array",
     items: { $ref: "#/$defs/Preset" },
     const: PRESETS,
+  },
+  /** The regular expressions the agent holds a formatted field to, ours verbatim. */
+  FieldFormats: {
+    type: "object",
+    const: FORMAT_PATTERNS,
   },
 }
 
@@ -114,6 +125,7 @@ export function buildContractSchema(): ContractSchema {
     $id: CONTRACT_ID,
     title: "Pupitre agent contract",
     protocol: PROTOCOL_VERSION,
+    compatibility: GENERATIONS,
     $defs,
   }
 }

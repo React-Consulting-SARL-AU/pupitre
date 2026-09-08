@@ -2,6 +2,7 @@ package state
 
 import (
 	"encoding/json"
+	"pupitre.studio/agent/internal/i18n"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/protocol"
@@ -270,7 +271,7 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 			return nil, err
 		}
 
-		return agentOpenResult{Command: opened.Command, Session: opened.Session}, nil
+		return agentOpenResult(opened), nil
 	})
 
 	server.Register("sessions.list", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
@@ -373,7 +374,7 @@ func named(run func(string) (any, error)) protocol.Handler {
 func decode[T any](raw json.RawMessage) (T, error) {
 	var params T
 	if err := json.Unmarshal(raw, &params); err != nil {
-		return params, protocol.NewError(contract.ErrorBadRequest, "paramètres illisibles : "+err.Error())
+		return params, protocol.NewError(contract.ErrorBadRequest, i18n.T("command.params.unreadable", err.Error()))
 	}
 
 	return params, nil

@@ -1,30 +1,32 @@
 package cloudflare
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/exposure/cloudflared"
 	"pupitre.studio/agent/internal/modules/modtest"
-	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys/env"
 )
 
 const (
-	token   = "s3cret-de-test"
 	account = "acc-1234"
-	zone    = "zone-1234"
-	domain  = "flymate.dev"
+	tunnel  = "t-1234"
+	secret  = "s3cret-de-test"
+	domain  = "pupitre.sh"
+	label   = "hibou-tranquille-4821"
 )
 
-const projects = `web|flymate/apps/web|-|bun|web.localhost|3000|app|bun run dev
+const projects = `web|flymate/apps/web|-|bun|web.localhost|3000|` + label + `|bun run dev
 api|flymate/apps/api|-|bun|api.localhost|3001|-|bun run api
 `
 
 func values() modtest.Values {
-	return modtest.Values{"account_id": account, "zone_id": zone, "zone_name": domain, "domain": domain}
+	return modtest.Values{"account_tag": account, "tunnel_id": tunnel, "domain": domain}
 }
 
 func newContext(t *testing.T, fake *modtest.FakeSys, secrets modtest.Secrets) *modules.Context {
@@ -33,30 +35,70 @@ func newContext(t *testing.T, fake *modtest.FakeSys, secrets modtest.Secrets) *m
 	return modtest.NewContext(t, fake, modtest.Options{Manifest: manifest(), Values: values(), Secrets: secrets})
 }
 
-func installedMachine() *modtest.FakeSys {
+func bareMachine() *modtest.FakeSys {
 	fake := modtest.NewFakeSys()
-	fake.Packages[pkg] = "2026.6.1"
-	fake.Files[keyringPath] = []byte("keyring")
-	fake.Files[sourcePath] = []byte(sourceLine)
 	fake.Files[registry.DefaultConf] = []byte(projects)
-	fake.Files[credentialsPath] = credentials{AccountTag: account, TunnelID: "t-1234", TunnelSecret: "unused"}.encode()
-	fake.Files[configPath] = ingress("t-1234", domain, projectsOf(projects))
-	fake.Files[unitPath] = unit
-	fake.Files[env.Path] = []byte("CLOUDFLARE_API_TOKEN=" + token + "\nPUPITRE_DOMAIN=" + domain + "\n")
-	fake.Units[Unit] = modtest.UnitActive
-	fake.Answer("dns_records?name=app."+domain, `{"success":true,"result":[{"id":"r-1","content":"t-1234.cfargotunnel.com"}]}`)
 
 	return fake
 }
 
-func projectsOf(raw string) []registry.Project {
-	return registry.Parse([]byte(raw), false)
+func equipped(t *testing.T) *modtest.FakeSys {
+	t.Helper()
+
+	fake := bareMachine()
+	ctx := newContext(t, fake, modtest.Secrets{"tunnel_secret": secret})
+
+	if err := (Module{}).Install(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := (Module{}).Configure(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	return fake
+}
+
+func TestTheTunnelOfThePlatformIsRunNotCreated(t *testing.T) {
+	fake := equipped(t)
+
+	if got := string(fake.Files[cloudflared.CredentialsPath]); !strings.Contains(got, tunnel) || !strings.Contains(got, account) {
+		t.Fatalf("credentials = %s", got)
+	}
+
+	ingress := string(fake.Files[cloudflared.ConfigPath])
+	if !strings.Contains(ingress, label+"."+domain) || !strings.Contains(ingress, "http://web.localhost:3000") {
+		t.Fatalf("ingress = %s", ingress)
+	}
+
+	if strings.Contains(ingress, "api.localhost") {
+		t.Fatal("a project without a subdomain has no public route")
+	}
+
+	if fake.EnvValue(env.DomainKey) != domain {
+		t.Fatalf("%s = %q", env.DomainKey, fake.EnvValue(env.DomainKey))
+	}
+
+	if fake.Units[Unit] != modtest.UnitActive {
+		t.Fatalf("cloudflared = %q", fake.Units[Unit])
+	}
+}
+
+// Everything the account can do is done by the platform: the server holds a secret that runs one tunnel, and nothing else.
+func TestNoStepCallsTheCloudflareApi(t *testing.T) {
+	fake := equipped(t)
+
+	for _, command := range fake.Commands() {
+		if strings.Contains(command, "api.cloudflare.com") {
+			t.Fatalf("the module called the Cloudflare API: %s", command)
+		}
+	}
 }
 
 func TestInstallAndConfigureAreIdempotent(t *testing.T) {
-	fake := installedMachine()
-	ctx := newContext(t, fake, modtest.Secrets{"api_token": token})
+	fake := equipped(t)
+	before := fake.Restarts[Unit]
 
+	ctx := newContext(t, fake, modtest.Secrets{"tunnel_secret": secret})
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -70,185 +112,126 @@ func TestInstallAndConfigureAreIdempotent(t *testing.T) {
 		}
 	}
 
-	if fake.Restarts[Unit] != 0 {
-		t.Fatalf("cloudflared restarted %d times on a configured machine", fake.Restarts[Unit])
-	}
-
-	if len(fake.Mutations) != 0 {
-		t.Fatalf("a replay must not touch the machine: %v", fake.Mutations)
+	if fake.Restarts[Unit] != before {
+		t.Fatalf("cloudflared restarted on a configured machine")
 	}
 }
 
-// The token is what the module cannot invent: cloudflared installs, and the configuration refuses.
-func TestConfigureWithoutTokenIsRefusedAfterTheInstall(t *testing.T) {
-	fake := modtest.NewFakeSys()
-	fake.Files[registry.DefaultConf] = []byte(projects)
-	ctx := newContext(t, fake, nil)
+// A new project takes its route without touching anything else: the app declares the subdomain, sync writes the ingress.
+func TestSyncFollowsTheRegistry(t *testing.T) {
+	fake := equipped(t)
+	fake.Files[registry.DefaultConf] = []byte(projects + "docs|flymate/apps/docs|-|bun|docs.localhost|3002|renard-calme-1122|bun run docs\n")
 
-	if err := (Module{}).Install(ctx); err != nil {
-		t.Fatalf("cloudflared must install without a token: %v", err)
-	}
-
-	if _, installed := fake.Packages[pkg]; !installed {
-		t.Fatal("the package must be there before the configuration is even attempted")
-	}
-
-	err := (Module{}).Configure(ctx)
-
-	failure, isProtocol := err.(*protocol.Error)
-	if !isProtocol {
-		t.Fatalf("want a protocol error, got %#v", err)
-	}
-
-	if failure.Code != contract.ErrorBadRequest {
-		t.Fatalf("want bad_request, got %s", failure.Code)
-	}
-
-	if !strings.Contains(failure.Message, "Jeton d'API") || failure.Fix == "" {
-		t.Fatalf("the refusal must name the missing field and say how to fix it: %+v", failure)
-	}
-
-	if fake.Files[configPath] != nil {
-		t.Fatal("nothing must be written when the configuration is refused")
-	}
-}
-
-func TestTheTunnelIsCreatedWithARouteAndARecordPerSubdomain(t *testing.T) {
-	fake := modtest.NewFakeSys()
-	fake.Packages[pkg] = "2026.6.1"
-	fake.Files[registry.DefaultConf] = []byte(projects)
-	fake.Answer("cfd_tunnel", `{"success":true,"result":{"id":"t-1234"}}`)
-	fake.Answer("dns_records?name=app."+domain, `{"success":true,"result":[]}`)
-	fake.Answer("dns_records ", `{"success":true,"result":{"id":"r-1"}}`)
-	ctx := newContext(t, fake, modtest.Secrets{"api_token": token})
-
-	if err := (Module{}).Configure(ctx); err != nil {
+	report, err := Sync(newContext(t, fake, nil))
+	if err != nil {
 		t.Fatal(err)
 	}
 
-	config := string(fake.Files[configPath])
-	if !strings.Contains(config, "hostname: app."+domain) || !strings.Contains(config, "service: http://web.localhost:3000") {
-		t.Fatalf("the project that declares a subdomain must get a route:\n%s", config)
+	if len(report.Routes) != 2 || report.Routes[1].Hostname != "renard-calme-1122."+domain {
+		t.Fatalf("routes = %+v", report.Routes)
 	}
 
-	if strings.Contains(config, "api.localhost") {
-		t.Fatalf("a project without a subdomain has no route:\n%s", config)
-	}
-
-	created := false
-	for _, line := range fake.Commands() {
-		if strings.Contains(line, "-X POST") && strings.Contains(line, "dns_records") {
-			created = true
-		}
-	}
-	if !created {
-		t.Fatalf("the subdomain must get a DNS record:\n%s", strings.Join(fake.Commands(), "\n"))
-	}
-
-	if fake.Units[Unit] != modtest.UnitActive {
-		t.Fatal("cloudflared must be enabled once the tunnel is configured")
-	}
-
-	if fake.EnvValue(env.DomainKey) != domain {
-		t.Fatalf("project.url reads %s, it must carry the domain", env.DomainKey)
+	if !strings.Contains(string(fake.Files[cloudflared.ConfigPath]), "renard-calme-1122."+domain) {
+		t.Fatal("the new route must reach the ingress")
 	}
 }
 
-func TestSecretNeverLeaks(t *testing.T) {
-	fake := modtest.NewFakeSys()
-	fake.Packages[pkg] = "2026.6.1"
-	fake.Files[registry.DefaultConf] = []byte(projects)
-	fake.Answer("cfd_tunnel", `{"success":true,"result":{"id":"t-1234"}}`)
-	fake.Answer("dns_records", `{"success":true,"result":[{"id":"r-1","content":"t-1234.cfargotunnel.com"}]}`)
-	ctx := newContext(t, fake, modtest.Secrets{"api_token": token})
+// The tunnel, its DNS and the label belong to the platform: the machine gives itself back, and the account keeps everything.
+func TestUninstallGivesBackTheMachineOnly(t *testing.T) {
+	fake := equipped(t)
 
+	if err := (Module{}).Uninstall(newContext(t, fake, nil)); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, path := range []string{cloudflared.ConfigPath, cloudflared.CredentialsPath, cloudflared.UnitPath, modePath} {
+		if _, left := fake.Files[path]; left {
+			t.Errorf("%s survived the uninstall", path)
+		}
+	}
+
+	if fake.EnvValue(env.DomainKey) != "" {
+		t.Error("the domain must be forgotten with the module")
+	}
+
+	for _, command := range fake.Commands() {
+		if strings.Contains(command, "api.cloudflare.com") {
+			t.Fatalf("the uninstall must not touch the account: %s", command)
+		}
+	}
+}
+
+// The daemon alone proves nothing: a machine held by exposure.cloudflare must not answer for this module.
+func TestAMachineOfTheOtherExposureIsNotOurs(t *testing.T) {
+	fake := bareMachine()
+	fake.Packages[cloudflared.Pkg] = "2026.6.1"
+
+	status, err := (Module{}).Status(newContext(t, fake, nil))
+	if err != nil || status.Installed {
+		t.Fatalf("status = %+v, %v", status, err)
+	}
+}
+
+// The engine refuses a configuration before the first step, so the module never
+// sees a missing credential. What this module owes is the declaration it is
+// refused on: three values the app derives, and one domain the client chooses.
+func TestTheManifestSeparatesWhatIsDerivedFromWhatIsChosen(t *testing.T) {
+	if manifest().Connection != contract.ConnectionCloudflare {
+		t.Fatalf("connection = %q, want %q", manifest().Connection, contract.ConnectionCloudflare)
+	}
+
+	managed := []string{}
+
+	for _, field := range manifest().Fields {
+		if field.Managed {
+			managed = append(managed, field.Key)
+			continue
+		}
+
+		if field.Key != "domain" {
+			t.Errorf("%s is neither derived nor the domain", field.Key)
+		}
+
+		if field.Format != contract.FormatDomain || !field.Required {
+			t.Errorf("the domain is a required domain, got format %q required %v", field.Format, field.Required)
+		}
+	}
+
+	if !reflect.DeepEqual(managed, []string{"account_tag", "tunnel_id", "tunnel_secret"}) {
+		t.Fatalf("derived fields = %v", managed)
+	}
+}
+
+func TestTheMissingTunnelSecretIsRefusedByTheContract(t *testing.T) {
+	held := func(string, string) int { return 0 }
+
+	for _, field := range manifest().Fields {
+		if field.Kind != contract.FieldSecret {
+			continue
+		}
+
+		problem := contract.ValidateField(ID, field, nil, held)
+		if problem == nil || problem.Code != contract.ProblemRequired {
+			t.Fatalf("%s: problem = %+v", field.Key, problem)
+		}
+	}
+}
+
+func TestTheSecretNeverLeaves(t *testing.T) {
+	fake := bareMachine()
+	ctx := newContext(t, fake, modtest.Secrets{"tunnel_secret": secret})
+
+	if err := (Module{}).Install(ctx); err != nil {
+		t.Fatal(err)
+	}
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
 
 	for _, line := range ctx.Output() {
-		if strings.Contains(line, token) {
+		if strings.Contains(line, secret) {
 			t.Fatalf("secret in output: %s", line)
 		}
-	}
-
-	if strings.Contains(string(fake.Files[configPath]), token) {
-		t.Fatal("the ingress carries no secret")
-	}
-
-	if fake.EnvValue(tokenKey) != token {
-		t.Fatalf("the token belongs in %s", env.Path)
-	}
-
-	for _, path := range []string{credentialsPath, env.Path} {
-		if mode := fake.Modes[path]; mode != 0o600 {
-			t.Fatalf("%s must be 0600, got %o", path, mode)
-		}
-	}
-}
-
-func TestFailedStepReportsReplay(t *testing.T) {
-	fake := modtest.NewFakeSys()
-	fake.FailPackage(pkg, "E: Unable to locate package cloudflared")
-	ctx := newContext(t, fake, modtest.Secrets{"api_token": token})
-
-	if err := (Module{}).Install(ctx); err == nil {
-		t.Fatal("expected install to fail")
-	}
-
-	last := ctx.Events()[len(ctx.Events())-1]
-	if last.Status != contract.StepFail || last.Replay != "sudo pupitred install --only="+ID {
-		t.Fatalf("unexpected event: %+v", last)
-	}
-}
-
-func TestStatusListsTheRoutesAndNeverAValue(t *testing.T) {
-	fake := installedMachine()
-	ctx := newContext(t, fake, modtest.Secrets{"api_token": token})
-
-	report, err := Status(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !report.Installed || report.State != StateRunning {
-		t.Fatalf("unexpected report: %+v", report)
-	}
-
-	if len(report.Routes) != 1 || report.Routes[0].Hostname != "app."+domain || report.Routes[0].Project != "web" {
-		t.Fatalf("unexpected routes: %+v", report.Routes)
-	}
-
-	status, err := (Module{}).Status(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	for label, value := range status.Credentials {
-		if strings.Contains(value, token) {
-			t.Fatalf("%s carries a value instead of a key", label)
-		}
-	}
-}
-
-func TestUninstallGivesBackWhatTheModuleInstalled(t *testing.T) {
-	fake := installedMachine()
-	ctx := newContext(t, fake, modtest.Secrets{"api_token": token})
-
-	if err := (Module{}).Uninstall(ctx); err != nil {
-		t.Fatal(err)
-	}
-
-	if _, present := fake.Packages[pkg]; present {
-		t.Fatal("the package must be removed")
-	}
-
-	if fake.EnvValue(env.DomainKey) != "" || fake.EnvValue(tokenKey) != "" {
-		t.Fatal("the module's keys must leave /etc/pupitre/env")
-	}
-
-	if fake.Files[registry.DefaultConf] == nil {
-		t.Fatal("the project registry belongs to the client")
 	}
 }
 

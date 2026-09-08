@@ -40,7 +40,7 @@ export function ServicePanelHeader({
             <StatePill look={SERVICE_LOOK[detail.state]} name={detail.state} />
           </div>
 
-          <p className="mt-0.5 font-data text-[11px] text-ink-3">
+          <p className="mt-0.5 font-data text-[12px] text-ink-3">
             {[detail.id, ...facts].join(" · ")}
           </p>
 

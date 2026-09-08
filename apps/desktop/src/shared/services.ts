@@ -45,7 +45,8 @@ export function carriesCredential(cmd: string): boolean {
 }
 
 /** The label the connection string is filed under, alongside the agent's own. */
-export const CONNECTION_LABEL = "URL de connexion";
+/** A sentinel, not prose: the screen translates it, the vault keys on it. */
+export const CONNECTION_LABEL = "connection-url";
 
 /**
  * The engine a module drives, read off its identifier.

@@ -20,7 +20,7 @@ func parse(t *testing.T, lines ...string) []keys.Key {
 
 	parsed, refused := keys.ParseAll(lines)
 	if len(refused) > 0 {
-		t.Fatalf("clés refusées : %v", refused)
+		t.Fatalf("refused keys: %v", refused)
 	}
 
 	return parsed
@@ -45,7 +45,7 @@ func TestFingerprintIsTheOpenSSHOne(t *testing.T) {
 	}
 
 	if key.Fingerprint() == parse(t, desktop)[0].Fingerprint() {
-		t.Fatal("deux clés différentes ont la même empreinte")
+		t.Fatal("two different keys share the same fingerprint")
 	}
 }
 
@@ -60,17 +60,17 @@ func TestSyncWritesTheBlockAndLeavesTheRestAlone(t *testing.T) {
 
 	content := string(fake.Files[path])
 	if !strings.HasPrefix(content, own+"\n") {
-		t.Fatalf("la ligne du client a bougé :\n%s", content)
+		t.Fatalf("the client line moved:\n%s", content)
 	}
 
 	for _, line := range []string{laptop, desktop} {
 		if !strings.Contains(content, line) {
-			t.Errorf("clé absente :\n%s", content)
+			t.Errorf("missing key:\n%s", content)
 		}
 	}
 
 	if fake.Modes[path] != keys.FileMode || fake.Owners[path] != "dev:dev" {
-		t.Fatalf("mode %o, propriétaire %q", fake.Modes[path], fake.Owners[path])
+		t.Fatalf("mode %o, owner %q", fake.Modes[path], fake.Owners[path])
 	}
 }
 
@@ -96,11 +96,11 @@ func TestSyncWithdrawsAKeyWithoutTouchingTheClientsOwn(t *testing.T) {
 
 	content := string(fake.Files[path])
 	if strings.Contains(content, desktop) {
-		t.Fatalf("la clé retirée ouvre encore :\n%s", content)
+		t.Fatalf("the removed key still opens:\n%s", content)
 	}
 
 	if !strings.Contains(content, laptop) || !strings.Contains(content, own) {
-		t.Fatalf("une clé a disparu de trop :\n%s", content)
+		t.Fatalf("one key too many disappeared:\n%s", content)
 	}
 }
 
@@ -115,7 +115,7 @@ func TestSyncEmptiesTheBlockWhenThePlatformSendsNothing(t *testing.T) {
 	}
 
 	if !strings.Contains(string(fake.Files[path]), own) {
-		t.Fatalf("la clé du client a été emportée :\n%s", fake.Files[path])
+		t.Fatalf("the client key was carried away:\n%s", fake.Files[path])
 	}
 }
 
@@ -131,7 +131,7 @@ func TestListedReadsTheBlockAndNothingAroundIt(t *testing.T) {
 
 	for _, key := range listed {
 		if key.Line() == own {
-			t.Fatal("la clé du client est comptée dans le bloc")
+			t.Fatal("the client key is counted in the block")
 		}
 	}
 }
@@ -145,9 +145,9 @@ func TestListedAnswersNothingWithoutABlock(t *testing.T) {
 }
 
 func TestParseAllSetsAsideWhatItCannotRead(t *testing.T) {
-	parsed, refused := keys.ParseAll([]string{laptop, "", "ssh-ed25519 cassée", "  "})
+	parsed, refused := keys.ParseAll([]string{laptop, "", "ssh-ed25519 broken", "  "})
 
-	if len(parsed) != 1 || len(refused) != 1 || refused[0] != "ssh-ed25519 cassée" {
+	if len(parsed) != 1 || len(refused) != 1 || refused[0] != "ssh-ed25519 broken" {
 		t.Fatalf("parsed = %v, refused = %v", parsed, refused)
 	}
 }

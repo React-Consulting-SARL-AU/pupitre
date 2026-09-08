@@ -64,7 +64,7 @@ export const auth = {
     "auth.signIn.description":
       "Pas encore de compte ? Il se crée à votre première connexion.",
     "auth.signIn.email": "Adresse email",
-    "auth.signIn.emailPlaceholder": "vous@exemple.com",
+    "auth.signIn.emailPlaceholder": "you@example.com",
     "auth.signIn.magicLink": "Recevoir un lien de connexion",
     "auth.signIn.magicLinkPending": "Envoi du lien…",
     "auth.signIn.magicLinkFailed":

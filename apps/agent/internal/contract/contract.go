@@ -14,8 +14,9 @@ var spec = load()
 var ProtocolVersion = spec.Protocol
 
 type schemaDocument struct {
-	Protocol int                        `json:"protocol"`
-	Defs     map[string]json.RawMessage `json:"$defs"`
+	Protocol      int                        `json:"protocol"`
+	Compatibility []Generation               `json:"compatibility"`
+	Defs          map[string]json.RawMessage `json:"$defs"`
 }
 
 func load() schemaDocument {

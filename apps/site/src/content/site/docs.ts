@@ -46,7 +46,6 @@ export interface ModulePageLabels {
   notes: Localized
   category: Localized
   moduleId: Localized
-  availability: Localized
   none: Localized
   overviewTitle: Localized
   overviewLead: Localized
@@ -59,7 +58,6 @@ export const MODULE_LABELS: ModulePageLabels = {
   notes: { en: "Good to know", fr: "Bon à savoir" },
   category: { en: "Category", fr: "Catégorie" },
   moduleId: { en: "Module", fr: "Module" },
-  availability: { en: "Availability", fr: "Disponibilité" },
   none: {
     en: "Nothing. It installs as it is.",
     fr: "Rien. Il s’installe tel quel.",

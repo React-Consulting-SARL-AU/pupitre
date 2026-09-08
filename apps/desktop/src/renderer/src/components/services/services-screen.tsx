@@ -34,7 +34,6 @@ export function ServicesScreen({
   serverId,
   serverName,
   services,
-  onMachineName,
   onTerminal,
 }: {
   serverId: string;
@@ -102,9 +101,7 @@ export function ServicesScreen({
       <div className="h-full overflow-y-auto px-8 py-6">
         <ServicesAddFlow
           installed={installed}
-          machineName={serverName ?? ""}
           onDone={() => setView({ kind: "list" })}
-          onMachineName={onMachineName}
           serverId={serverId}
           serverName={serverName}
         />

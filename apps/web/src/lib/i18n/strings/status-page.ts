@@ -13,9 +13,6 @@ export const statusPage = {
     "statusPage.aggregated":
       "This counter is aggregated: it says nothing about any customer.",
 
-    "serverPage.reading": "Reading the server…",
-    "serverPage.notFound": "This server is not in the active organisation.",
-    "serverPage.notFoundFix": "Go back to the list of servers.",
     "serverPage.state": "State",
     "serverPage.agent": "Agent",
     "serverPage.lastHeartbeat": "Last heartbeat",
@@ -36,10 +33,6 @@ export const statusPage = {
     "statusPage.aggregated":
       "Ce compteur est agrégé : il ne dit rien d'aucun client.",
 
-    "serverPage.reading": "Lecture du serveur…",
-    "serverPage.notFound":
-      "Ce serveur est introuvable dans l'organisation active.",
-    "serverPage.notFoundFix": "Retournez à la liste des serveurs.",
     "serverPage.state": "État",
     "serverPage.agent": "Agent",
     "serverPage.lastHeartbeat": "Dernier heartbeat",

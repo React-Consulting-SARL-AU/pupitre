@@ -74,7 +74,7 @@ export function shaped(id: string, steps: StepEntry[]): ModuleProgress {
  * A step closes the one it opened rather than piling up next to it: `start` and
  * `ok` are the same step seen twice, and the list is what the reader counts.
  */
-function withStep(steps: StepEntry[], entry: StepEntry): StepEntry[] {
+export function withStep(steps: StepEntry[], entry: StepEntry): StepEntry[] {
   const open = steps.findIndex(
     (candidate) => candidate.step === entry.step && candidate.status === "start"
   );

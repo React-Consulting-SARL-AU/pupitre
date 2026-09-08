@@ -58,7 +58,7 @@ func Ensure(ctx *modules.Context) error {
 		}
 
 		if !Present(ctx) {
-			return modules.Failed, fmt.Errorf("mise absent de %s après téléchargement", Path)
+			return modules.Failed, fmt.Errorf("mise missing from %s after the download", Path)
 		}
 
 		return modules.Done, file.Chown(ctx, Path, shell.User, shell.User)
@@ -142,7 +142,7 @@ func Add(ctx *modules.Context, step, tool, wanted string) (bool, error) {
 		}
 
 		if !Matches(Installed(ctx)[tool], wanted) {
-			return modules.Failed, fmt.Errorf("mise a rendu la main sans installer %s@%s", tool, wanted)
+			return modules.Failed, fmt.Errorf("mise returned without installing %s@%s", tool, wanted)
 		}
 
 		added = true

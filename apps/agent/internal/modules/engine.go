@@ -7,6 +7,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"pupitre.studio/agent/internal/i18n"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -67,6 +69,16 @@ func (e *Engine) Install(request Request, sink Sink) (contract.InstallResult, er
 
 	if err := e.refuseInstalledConflicts(r, modules); err != nil {
 		return contract.InstallResult{}, err
+	}
+
+	// A secret the app does not send back is a secret left unchanged: reconfiguring a port must not clear the password.
+	request.Secrets = mergeSecrets(e.recall(r).Secrets, request.Secrets)
+	r.redactAll(request.Secrets)
+
+	// Nothing is touched on a configuration that would not hold: a module used to
+	// find its own missing field halfway through, and left the machine there.
+	if problems := fieldProblems(modules, request); len(problems) > 0 {
+		return contract.InstallResult{}, invalidConfig(problems)
 	}
 
 	if request.Persist {
@@ -201,11 +213,37 @@ func (e *Engine) Command(id string, sink Sink, fn func(ctx *Context) error) erro
 	return fn(r.context(module.Manifest(), recalled.Config[id], recalled.Secrets[id]))
 }
 
+// Config returns what should be put back into the form for an already-installed module.
+func (e *Engine) Config(id string) (contract.ModuleConfig, error) {
+	if _, ok := e.Registry.Get(id); !ok {
+		return contract.ModuleConfig{}, moduleNotFound(id)
+	}
+
+	kept, err := e.remembered()
+	if err != nil {
+		return contract.ModuleConfig{}, protocol.NewError(contract.ErrorInternal, i18n.T("engine.remembered.unreadable", e.installPath(), err.Error())).
+			WithFix(i18n.T("engine.remembered.unreadable.fix", e.installPath()))
+	}
+
+	return contract.ModuleConfig{ID: id, Values: kept.Config[id], Secrets: heldSecrets(kept.Secrets[id])}, nil
+}
+
+func heldSecrets(values map[string]string) []string {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+
+	sort.Strings(keys)
+
+	return keys
+}
+
 func (e *Engine) Report() (contract.Report, error) {
 	raw, err := os.ReadFile(e.reportPath())
 	if errors.Is(err, fs.ErrNotExist) {
-		return contract.Report{}, protocol.NewError(contract.ErrorNoReport, "aucun rapport : aucune installation n'a encore eu lieu sur ce serveur").
-			WithFix("Lance install depuis l'app, ou sudo pupitred install sur le serveur.")
+		return contract.Report{}, protocol.NewError(contract.ErrorNoReport, i18n.T("engine.report.none")).
+			WithFix(i18n.T("engine.report.none.fix"))
 	}
 
 	if err != nil {
@@ -226,8 +264,8 @@ func (e *Engine) acquire() (func(), error) {
 	}
 
 	if !e.mu.TryLock() {
-		return nil, protocol.NewError(contract.ErrorBusy, "une installation est déjà en cours").
-			WithFix("Attends la fin de l'installation en cours.")
+		return nil, protocol.NewError(contract.ErrorBusy, i18n.T("engine.busy")).
+			WithFix(i18n.T("engine.busy.fix"))
 	}
 
 	return e.mu.Unlock, nil
@@ -274,7 +312,7 @@ func (e *Engine) finish(r *run, report contract.Report) (contract.InstallResult,
 		return contract.InstallResult{}, err
 	}
 
-	r.journal.logf("pupitred", "%d échec(s), %d avertissement(s), rapport : %s", len(report.Failed), len(report.Warned), report.ReportPath)
+	r.journal.logf("pupitred", "%d failure(s), %d warning(s), report: %s", len(report.Failed), len(report.Warned), report.ReportPath)
 
 	return contract.InstallResult{Failed: report.Failed, Warned: report.Warned, ReportPath: report.ReportPath}, nil
 }
@@ -297,7 +335,7 @@ func (e *Engine) remember(r *run, request Request) error {
 	kept := e.recall(r)
 	kept.Modules = union(kept.Modules, request.Modules)
 	kept.Config = merge(kept.Config, request.Config)
-	kept.Secrets = merge(kept.Secrets, request.Secrets)
+	kept.Secrets = mergeSecrets(kept.Secrets, request.Secrets)
 
 	return e.store(r, kept)
 }
@@ -318,18 +356,35 @@ func (e *Engine) forget(r *run, ids []string) error {
 }
 
 func (e *Engine) recall(r *run) Request {
-	request := Request{Config: map[string]map[string]any{}, Secrets: map[string]map[string]string{}}
-
-	raw, err := e.Sys.ReadFile(e.installPath())
+	request, err := e.remembered()
 	if err != nil {
-		return request
-	}
-
-	if err := json.Unmarshal(raw, &request); err != nil {
-		r.journal.logf("pupitred", "%s illisible, ignoré : %v", e.installPath(), err)
+		r.journal.logf("pupitred", "%s unreadable, ignored: %v", e.installPath(), err)
 	}
 
 	return request
+}
+
+func (e *Engine) remembered() (Request, error) {
+	empty := Request{Config: map[string]map[string]any{}, Secrets: map[string]map[string]string{}}
+
+	raw, err := e.Sys.ReadFile(e.installPath())
+	if err != nil {
+		return empty, nil
+	}
+
+	request := empty
+	if err := json.Unmarshal(raw, &request); err != nil {
+		return empty, err
+	}
+
+	if request.Config == nil {
+		request.Config = map[string]map[string]any{}
+	}
+	if request.Secrets == nil {
+		request.Secrets = map[string]map[string]string{}
+	}
+
+	return request, nil
 }
 
 func (e *Engine) store(r *run, request Request) error {
@@ -368,8 +423,8 @@ func (e *Engine) refuseInstalledConflicts(r *run, selected []Module) error {
 
 			status, err := installed.Check(r.context(installed.Manifest(), nil, nil))
 			if err == nil && status.Installed {
-				return protocol.NewError(contract.ErrorBadRequest, fmt.Sprintf("%s est en conflit avec %s, déjà installé", module.Manifest().ID, other)).
-					WithFix(fmt.Sprintf("Désinstalle %s d'abord.", other))
+				return protocol.NewError(contract.ErrorBadRequest, i18n.T("engine.conflict.installed", module.Manifest().ID, other)).
+					WithFix(i18n.T("engine.conflict.installed.fix", other))
 			}
 		}
 	}
@@ -384,7 +439,7 @@ func (e *Engine) installedAmong(r *run, candidates []Module) []Module {
 
 		status, err := module.Check(ctx)
 		if err != nil {
-			ctx.Warn("état illisible, mise à jour ignorée : " + err.Error())
+			ctx.Warn(i18n.T("warn.engine.state.unreadable", err.Error()))
 			continue
 		}
 
@@ -475,6 +530,19 @@ func without(ids, excluded []string) []string {
 	}
 
 	return result
+}
+
+// mergeSecrets merges key by key: a module carries several secrets, and only one changes at a time.
+func mergeSecrets(base, extra map[string]map[string]string) map[string]map[string]string {
+	if base == nil {
+		base = map[string]map[string]string{}
+	}
+
+	for id, values := range extra {
+		base[id] = merge(base[id], values)
+	}
+
+	return base
 }
 
 func merge[V any](base, extra map[string]V) map[string]V {

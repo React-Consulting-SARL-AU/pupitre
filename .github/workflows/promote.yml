@@ -1,0 +1,134 @@
+name: Promote
+
+# Une version publiée sort en `beta`, depuis un tag posé sur `staging`. Quand la
+# pull request `staging` → `main` est fusionnée — par un merge commit, jamais un
+# squash, sans quoi le commit tagué n'entre pas dans l'historique de `main` — ce
+# workflow reprend les tags que le merge vient de rendre accessibles et les passe
+# en `stable`. Rien n'est reconstruit, rien n'est re-signé : c'est la même
+# version qui change d'audience.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version semver à promouvoir, sans le v
+        required: true
+      channel:
+        description: Canal cible
+        type: choice
+        options: [stable, beta]
+        default: stable
+
+concurrency:
+  group: promote-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  resolve:
+    name: Ce que le merge apporte
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      versions: ${{ steps.resolve.outputs.versions }}
+      channel: ${{ steps.resolve.outputs.channel }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # A version is promoted once: the tags counted are those `main` could not
+      # reach before this push and can reach now.
+      - name: Resolve the versions
+        id: resolve
+        env:
+          REQUESTED: ${{ inputs.version }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if [ -n "${REQUESTED:-}" ]; then
+            printf '%s\n' "${REQUESTED#v}" > versions.txt
+          else
+            git tag --merged HEAD --list 'v*' | sort > after.txt
+            if git rev-parse --verify --quiet "${BEFORE}^{commit}" >/dev/null; then
+              git tag --merged "$BEFORE" --list 'v*' | sort > before.txt
+            else
+              : > before.txt
+            fi
+            comm -23 after.txt before.txt | sed 's/^v//' > versions.txt
+          fi
+          cat versions.txt
+          versions=$(jq -R -s -c 'split("\n") | map(select(length > 0))' < versions.txt)
+          echo "versions=$versions" >> "$GITHUB_OUTPUT"
+          echo "channel=${{ inputs.channel || 'stable' }}" >> "$GITHUB_OUTPUT"
+
+  promote:
+    name: Promouvoir ${{ matrix.version }}
+    needs: resolve
+    if: needs.resolve.outputs.versions != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: release
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        version: ${{ fromJSON(needs.resolve.outputs.versions) }}
+    env:
+      PUPITRE_RELEASE_VERSION: ${{ matrix.version }}
+      PUPITRE_RELEASE_CHANNEL: ${{ needs.resolve.outputs.channel }}
+      PUPITRE_PLATFORM_URL: ${{ vars.PUPITRE_PLATFORM_URL }}
+      R2_BUCKET: ${{ vars.PUPITRE_DOWNLOADS_BUCKET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/agent/go.mod
+          cache-dependency-path: apps/agent/go.mod
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Promote the agent
+        working-directory: apps/agent
+        run: bun run release:promote
+        env:
+          PUPITRE_ADMIN_TOKEN: ${{ secrets.PUPITRE_ADMIN_TOKEN }}
+
+      - name: Promote the app
+        run: |
+          set -euo pipefail
+          status=$(curl -sS -o "$RUNNER_TEMP/promote.json" -w '%{http_code}' \
+            -X POST "$PUPITRE_PLATFORM_URL/api/v1/admin/app-releases/$PUPITRE_RELEASE_VERSION/promote" \
+            -H "authorization: Bearer $PUPITRE_ADMIN_TOKEN" \
+            -H 'content-type: application/json' \
+            -d "{\"channel\":\"$PUPITRE_RELEASE_CHANNEL\"}")
+          cat "$RUNNER_TEMP/promote.json"
+          test "$status" = "200"
+        env:
+          PUPITRE_ADMIN_TOKEN: ${{ secrets.PUPITRE_ADMIN_TOKEN }}
+
+      # The feed of a channel points at the version that channel serves: an app
+      # that follows `stable` reads this file and nothing else.
+      - name: Point the channel feed at this version
+        run: |
+          set -euo pipefail
+          for feed in latest.yml latest-mac.yml latest-linux.yml; do
+            bun x wrangler r2 object get \
+              "$R2_BUCKET/app/$PUPITRE_RELEASE_VERSION/$feed" \
+              --file="$RUNNER_TEMP/$feed" --remote
+            bun x wrangler r2 object put \
+              "$R2_BUCKET/app/$PUPITRE_RELEASE_CHANNEL/$feed" \
+              --file="$RUNNER_TEMP/$feed" --remote
+          done
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

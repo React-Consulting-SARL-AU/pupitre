@@ -69,7 +69,7 @@ LISTEN 0      511                 [::]:80            [::]:*     users:(("nginx",
 	}
 
 	reasons := strings.Join(result.Verdict.Reasons, "\n")
-	if !strings.Contains(reasons, "Docker") || !strings.Contains(reasons, "port 80") || !strings.Contains(reasons, "nginx") {
+	if !strings.Contains(reasons, "Docker") || !strings.Contains(reasons, "Port 80") || !strings.Contains(reasons, "nginx") {
 		t.Fatalf("the verdict must list what would be touched:\n%s", reasons)
 	}
 }

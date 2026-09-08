@@ -20,11 +20,38 @@ Même outillage que React-Box, mêmes versions quand elles sont compatibles : ce
 
 ```bash
 bun install
-bun dev              # site sur :4321, web sur :3000
-bun run dev:desktop  # l'app, pointée sur le staging par défaut
+bun dev              # site sur :4321, web sur :3000, tunnel de l'agent
+bun run dev:desktop  # l'app, pointée sur la console locale
 ```
 
 `bun run dev:web` lance Vite et TanStack Start sous le plugin Cloudflare, avec les bindings locaux. Neon local via `neonctl` ou une branche de dev ; `DATABASE_URL` dans `.env.local`. L'agent se teste sur un VPS de staging réinstallable (`bun --cwd=apps/agent run staging:reset`), jamais sur la machine du propriétaire.
+
+### Lancer un workflow à la main
+
+Les cinq workflows partent de Cron Triggers, qui ne se déclenchent que sur un Worker déployé : en local, rien ne les appelle jamais. Une ligne révoquée n'y est donc jamais décommissionnée, et tout ce qui dépend d'une échéance reste intestable.
+
+```bash
+bun run workflows:run decommission-server
+```
+
+Le script frappe le déclencheur interne avec le secret que `dev:prepare` a écrit, et rend l'identifiant de l'instance. Les noms sont ceux de `apps/web/src/workflows/registry.ts`, qui reste la seule liste ; un nom inconnu est refusé par le Worker.
+
+### Le tunnel qui rend la console locale joignable
+
+Un VPS ne peut pas atteindre `localhost:3000` : c'est sa propre boucle locale. `bun dev` lance donc `scripts/dev-tunnel.ts`, un tunnel Cloudflare **nommé** — l'adresse ne change pas d'un lancement à l'autre, contrairement à un tunnel jetable.
+
+| Ce qui est créé | Valeur |
+| --- | --- |
+| Tunnel | `ppt-dev`, sur le compte Cloudflare de la zone |
+| Nom d'hôte | `dev-app.pupitre.studio`, enregistrement CNAME posé par `cloudflared tunnel route dns` |
+| Ce qui est servi | `^/api/v1/agent/` vers `http://localhost:3000` — tout le reste répond 404 |
+| Identifiants | `~/.cloudflared/<uuid>.json`, hors du dépôt ; la configuration est régénérée dans `apps/web/.cloudflared.yml`, ignoré par Git |
+
+`apps/web/vite.config.ts` déclare ce nom dans `server.allowedHosts` : Vite refuse par défaut tout hôte qu'il ne connaît pas, et sans cette ligne le tunnel arrive jusqu'à la console pour se faire renvoyer un 403.
+
+Une seule étape est manuelle, une fois par machine : `cloudflared tunnel login`, en choisissant la zone `pupitre.studio`. Sans elle le script le dit et s'arrête sans faire échouer `bun dev` — le tunnel ne sert qu'à installer un agent sur un serveur distant.
+
+L'app desktop suit d'elle-même : `agentPlatformUrl()` remplace une console de cet ordinateur par ce nom avant de le donner à l'agent, la console et le flux d'appareil continuant de passer par `localhost:3000`. `PUPITRE_AGENT_PLATFORM_URL` désigne une autre plateforme pour l'agent seul.
 
 ## Vérifications
 
@@ -45,7 +72,7 @@ Les PR font tourner les tâches affectées ; `main` fait tout.
 
 - Jamais dans le dépôt. Le hook pre-commit refuse toute chaîne ressemblant à une clé API, un jeton ou une clé privée.
 - Local : `bun run dev:prepare` prépare `.env.local` et les liens que chaque outil attend. Les trois commandes de développement l'appellent d'abord, donc il n'y a rien à lancer à la main. Il ne remplace jamais une valeur déjà écrite : un `.env.local` renseigné reste tel quel.
-- **Ce qui se dérive n'est pas stocké.** `DATABASE_URL` et `MIGRATE_DATABASE_URL` viennent de `neonctl` (projet `pupitre`, branche `staging`, poolé et direct) ; `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` sont tirés au hasard par poste, puisqu'ils n'ont pas à être partagés.
+- **Ce qui se dérive n'est pas stocké.** `DATABASE_URL` et `MIGRATE_DATABASE_URL` viennent de `neonctl`, poolé et direct, sur la branche Neon que la branche Git désigne ; `.env.local` garde à côté `NEON_PROJECT_ID` et `NEON_BRANCH`, qui disent d'où elles viennent. `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` sont tirés au hasard par poste, puisqu'ils n'ont pas à être partagés.
 - **Ce qui ne se dérive pas vient de 1Password.** `.env.1password.tpl` est le modèle committé, avec des références `op://` et aucune valeur ; le coffre et l'élément sont dans `op.config.json`, surchargeables par `OP_VAULT` et `OP_ITEM`. `op inject` échoue en bloc si un champ manque, donc une clé reste **en commentaire** tant que son champ n'existe pas dans la note.
 - **Rien n'est bloquant.** `op` absent, session fermée, champ manquant ou `neonctl` sans session : le script le dit et retombe sur ce que `.env.local` porte déjà.
 - **`secrets.required` de `wrangler.jsonc` fait deux choses à la fois**, et c'est un piège : Cloudflare ne charge dans le Worker local **que** les clés qui y figurent — tout ce que `.dev.vars` porte en plus est silencieusement ignoré — et `wrangler deploy` refuse de partir si l'une d'elles manque. Il n'existe pas de liste « facultative ». Une variable dont le produit peut se passer, comme les identifiants de connexion sociale, se déclare donc **dans la liste racine seulement** : les blocs `env.staging` et `env.production` portent chacun leur propre liste complète et l'emportent entièrement, si bien que la variable atteint le développement local sans devenir obligatoire au déploiement. Un secret qui n'apparaît nulle part n'atteint jamais le Worker, quoi qu'il y ait dans `.env.local` — le symptôme est une fonctionnalité qui se croit non configurée alors que la valeur est bien là.
@@ -56,38 +83,60 @@ Les PR font tourner les tâches affectées ; `main` fait tout.
 - Le script lit les secrets liés par `wrangler secret list`. `PUPITRE_WORKER_SECRETS` (liste de noms) ou `--bound-from <fichier|->` remplacent cette lecture, pour les tests et pour une CI qui a déjà la liste.
 - Signature : certificats Apple et Azure Trusted Signing dans les secrets GitHub Actions uniquement.
 
+## Branches
+
+Deux branches longues, et rien d'autre qui vive plus qu'une pull request.
+
+| Branche | Ce qu'elle est | Ce qu'elle déploie |
+| --- | --- | --- |
+| `staging` | la branche de travail : tout y arrive, directement ou par pull request | `staging-app.pupitre.studio`, `staging.pupitre.studio` |
+| `main` | la production, et rien d'autre : elle ne change que par une pull request depuis `staging` | `app.pupitre.studio`, `pupitre.studio` |
+
+- **`main` ne se commite ni ne se pousse en local.** `.husky/pre-commit` et `.husky/pre-push` appellent `scripts/assert-branch-writable.ts`, qui refuse l'un et l'autre et dit quoi faire à la place. `PUPITRE_ALLOW_MAIN=1` ouvre l'exception, une fois, en le sachant. Le vrai garde-fou reste la protection de branche GitHub : un hook local ne protège que celui qui l'a installé.
+- **La pull request `staging` → `main` se fusionne par un merge commit.** Ni squash, ni rebase : ils réécrivent les commits, et le commit tagué d'une version sortirait de l'historique de `main` — `git describe` ne le verrait plus, et `promote.yml` ne le compterait pas. Le réglage se pose une fois dans *Settings* → *General* → *Pull Requests*, et la protection de `main` ne laisse passer que `merge`.
+- **Un correctif urgent** part de `main`, y revient par une pull request, et `main` est refusionnée dans `staging` dans la foulée. Sans ce retour, la promotion suivante défait le correctif.
+- **Les tags n'appartiennent à aucune branche.** `git push origin vX.Y.Z` les rend visibles partout, tout de suite : une pull request n'a rien à « rapatrier ». La seule question qui compte est de savoir si le commit tagué est accessible depuis `main`, ce que le merge commit garantit et que le squash casse.
+- Dependabot ouvre ses pull requests sur `staging`.
+
 ## Déploiement de la plateforme
+
+### Le préfixe des ressources Cloudflare
+
+**Toute ressource créée sur le compte Cloudflare porte le préfixe `ppt-`** : Workers, Workflows, projets Pages, buckets R2, KV, files. Le compte héberge plusieurs produits, chacun avec son préfixe court ; sans lui, une ressource de Pupitre ne se distingue de celle d'un autre projet que par la mémoire de qui la lit. Le nom du domaine, lui, ne change pas : `pupitre.studio` reste ce qu'il est.
 
 ### Les noms exacts
 
 | Ce qui est créé | staging | production |
 | --- | --- | --- |
-| Worker | `pupitre-web-staging` | `pupitre-web-production` |
+| Worker | `ppt-web-staging` | `ppt-web-production` |
 | Domaine | `staging-app.pupitre.studio` | `app.pupitre.studio` |
 | Environnement Wrangler | `staging` | `production` |
 | Branche Neon | `staging` | `production` |
-| Workflows | `pupitre-expire-enrollments-staging`, `pupitre-decommission-server-staging`, `pupitre-reconcile-seats-staging`, `pupitre-evaluate-alerts-staging`, `pupitre-suspend-expired-grace-staging` | les mêmes sans suffixe |
-| Déclencheur | Cloudflare Builds sur un push de `main` | GitHub Actions `.github/workflows/deploy.yml` sur un tag `v*` |
+| Workflows | `ppt-expire-enrollments-staging`, `ppt-decommission-server-staging`, `ppt-reconcile-seats-staging`, `ppt-evaluate-alerts-staging`, `ppt-suspend-expired-grace-staging` | les mêmes sans suffixe |
+| Déclencheur | Cloudflare Builds sur un push de `staging` | Cloudflare Builds sur un push de `main` |
 | Stripe | mode test | mode live |
 
-Le nom du Worker n'est pas choisi : Wrangler est en environnements *legacy*, il suffixe le nom racine (`pupitre-web`) du nom de l'environnement. Les cinq Cron Triggers, les domaines, les bindings et la liste des secrets requis viennent tous de `apps/web/wrangler.jsonc` : le tableau de bord n'en déclare aucun.
+Le nom du Worker n'est pas choisi : Wrangler est en environnements *legacy*, il suffixe le nom racine (`ppt-web`) du nom de l'environnement. Les cinq Cron Triggers, les domaines, les bindings et la liste des secrets requis viennent tous de `apps/web/wrangler.jsonc` : le tableau de bord n'en déclare aucun.
 
 ### L'ordre de création, une fois pour toutes
 
 1. **Zone Cloudflare.** `pupitre.studio` est sur le compte. Sans elle, le domaine personnalisé du Worker ne peut pas être attaché.
 2. **Neon.** Les branches `staging` et `production` du projet `pupitre` existent. Relever pour chacune l'URL poolée (`DATABASE_URL`) et l'URL directe, sans `-pooler` (`MIGRATE_DATABASE_URL`).
 3. **Stripe.** Le produit et les deux prix décrits plus bas, créés à l'identique en sandbox pour le staging et en live pour la production. Relever `STRIPE_PRICE_SERVER_MONTH`, `STRIPE_PRICE_SERVER_YEAR` et la clé secrète ; le secret de webhook vient de l'endpoint créé sur `https://<domaine>/api/v1/webhooks/stripe`.
-4. **R2.** Un bucket par environnement pour les binaires signés, et un jeton d'API S3 : `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`.
-5. **Sentry.** Un projet JavaScript par environnement ; relever le DSN. Il est requis en production, facultatif en staging : sans `SENTRY_DSN`, le Worker n'envoie rien et ne casse pas.
-6. **Cloudflare Email.** Email Routing activé sur la zone, `no-reply@pupitre.studio` vérifié : c'est ce qui alimente le binding `EMAIL` déclaré dans `wrangler.jsonc`.
-7. **Premier déploiement, à la main.** Un secret ne s'attache qu'à un Worker qui existe. On le crée donc une fois sans le garde-fou :
+4. **R2.** Deux buckets, deux régimes. `ppt-downloads` est public par son domaine `dl.pupitre.studio` ; la CI y dépose, le Worker n'y touche jamais. `ppt-agent` n'a **ni domaine personnalisé, ni URL `r2.dev`** : rien ne l'atteint depuis l'internet, et c'est ce qui garde le binaire de l'agent hors de portée.
+
+   Le Worker en sert le contenu par une URL S3 pré-signée de cinq minutes qu'il calcule lui-même (`packages/api/src/lib/releases/storage.ts`), derrière deux routes qui demandent chacune un jeton. Il lui faut pour cela un jeton d'API **R2** : Cloudflare → *R2* → *Manage API tokens* → *Create API token*, permission *Object Read only*, restreint au seul bucket `ppt-agent`. Il rend une clé d'accès et un secret, qui font avec l'identifiant de compte et le nom du bucket les quatre valeurs `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME` = `ppt-agent`. Elles vivent à deux endroits, et il faut les deux : la note 1Password, d'où `dev:prepare` les tire pour le développement local, et les secrets Wrangler de **chaque** environnement — elles sont dans `secrets.required` du staging et de la production, si bien qu'un déploiement sans elles est refusé avant de partir.
+
+   Absentes en local, la plateforme ne se tait pas : elle rend une URL `http://localhost/__release-storage/…` et l'en-tête `x-pupitre-release-storage: local`, qui dit à l'app que rien ne sera téléchargé. C'est ce qui permet de développer sans jeton.
+5. **Cloudflare Email.** Email Routing activé sur la zone, `no-reply@pupitre.studio` vérifié : c'est ce qui alimente le binding `EMAIL` déclaré dans `wrangler.jsonc`.
+6. **Premier déploiement, à la main.** Un secret ne s'attache qu'à un Worker qui existe. On le crée donc une fois sans le garde-fou :
 
    ```bash
    bun --cwd=apps/web run build:staging          # migre la branche Neon, puis construit
    bun x wrangler deploy --config apps/web/dist/server/wrangler.json --keep-vars
    ```
 
-8. **Les secrets.** Un par un, ou en une fois depuis un fichier JSON gardé hors du dépôt :
+7. **Les secrets.** Un par un, ou en une fois depuis un fichier JSON gardé hors du dépôt :
 
    ```bash
    bun x wrangler secret put DATABASE_URL --config apps/web/wrangler.jsonc --env staging
@@ -95,7 +144,7 @@ Le nom du Worker n'est pas choisi : Wrangler est en environnements *legacy*, il 
    bun --cwd=apps/web run check:secrets staging   # doit dire que tout est là
    ```
 
-9. **Cloudflare Builds, pour le staging.** Un projet Workers Builds sur le dépôt, branche `main` :
+8. **Cloudflare Builds, pour le staging.** Un projet Workers Builds sur le dépôt, branche `staging` :
 
    | Champ | Valeur |
    | --- | --- |
@@ -106,9 +155,18 @@ Le nom du Worker n'est pas choisi : Wrangler est en environnements *legacy*, il 
 
    `build:staging` migre la branche Neon **avant** de construire ; `deploy:staging` refuse le déploiement si un secret requis manque. Les deux échouent avant d'avoir touché au Worker en place.
 
-10. **GitHub, pour la production.** Un environnement `production` (avec approbation si on la veut) portant `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `DATABASE_URL` et `MIGRATE_DATABASE_URL` de la branche Neon `production`. Le jeton Cloudflare a les droits *Workers Scripts: Edit*, *Workers Routes: Edit* et *Workers Secrets: Read*.
+9. **Cloudflare Builds, pour la production.** Un second projet Workers Builds sur le même dépôt — un projet par Worker, et les environnements *legacy* en font deux — branche `main` :
 
-11. **Vérifier.** `https://<domaine>/status` répond sans session, `https://<domaine>/api/v1/health` renvoie `{"ok":true}`, et le tableau de bord du Worker montre les cinq Cron Triggers.
+    | Champ | Valeur |
+    | --- | --- |
+    | Build command | `bun install --frozen-lockfile && bun --cwd=apps/web run build:production` |
+    | Deploy command | `bun --cwd=apps/web run deploy:production` |
+    | Build variables | `VITE_APP_URL=https://app.pupitre.studio` |
+    | Build secrets | `DATABASE_URL`, `MIGRATE_DATABASE_URL` (branche Neon `production`) |
+
+    La production se déploie donc en fusionnant la pull request `staging` → `main`, jamais en taguant : Cloudflare Builds ne se déclenche que sur une branche. Le tag `v*` garde son rôle, qui est de sortir l'app et l'agent, pas la console.
+
+10. **Vérifier.** `https://<domaine>/status` répond sans session, `https://<domaine>/api/v1/health` renvoie `{"ok":true}`, et le tableau de bord du Worker montre les cinq Cron Triggers.
 
 ### Ce que fait chaque déploiement
 
@@ -118,28 +176,28 @@ Un retour arrière se fait sur les versions du Worker (`bun x wrangler rollback 
 
 ### Observabilité
 
-`observability` est activé dans les deux environnements (journaux d'invocation, échantillonnage à 100 %) et `upload_source_maps` est vrai, pour que les piles soient lisibles. En plus, le Worker envoie ses exceptions non rattrapées à Sentry (`apps/web/src/lib/observability/sentry.ts`) : l'environnement, la méthode, le cron et la forme de la route, jamais l'URL complète ni un identifiant — les segments qui ressemblent à un identifiant deviennent `:id` avant l'envoi.
+`observability` est activé dans les deux environnements (journaux d'invocation, échantillonnage à 100 %) et `upload_source_maps` est vrai, pour que les piles soient lisibles. C'est la seule observabilité de la plateforme : une exception non rattrapée remonte au tableau de bord Cloudflare et à `wrangler tail`, rien n'est envoyé à un service tiers.
 
 ## Cloudflare Builds
 
 | Service | Commande de build | Commande de déploiement |
 | --- | --- | --- |
 | web (staging) | `bun install --frozen-lockfile && bun --cwd=apps/web run build:staging` | `bun --cwd=apps/web run deploy:staging` |
-| web (production) | `.github/workflows/deploy.yml`, sur un tag `v*` | idem, `deploy:production` |
+| web (production) | `bun install --frozen-lockfile && bun --cwd=apps/web run build:production` | `bun --cwd=apps/web run deploy:production` |
 | site | `bun install --frozen-lockfile && bun --cwd=apps/site run build` | Pages, `apps/site/dist` |
 
-Deux environnements : `staging` (`staging.pupitre.studio`, `staging-app.pupitre.studio`, Stripe en mode test, branche Neon `staging`) et `production` (`app.pupitre.studio`, branche Neon `production`). L'app desktop de développement pointe sur `staging`.
+Deux environnements : `staging`, déployé par la branche `staging` (`staging.pupitre.studio`, `staging-app.pupitre.studio`, Stripe en mode test, branche Neon `staging`), et `production`, déployé par la branche `main` (`app.pupitre.studio`, branche Neon `production`). L'app desktop de développement pointe sur `staging`.
 
 ### Le site sur Pages
 
-Projet Pages `pupitre-site`, relié au dépôt, branche de production `main` :
+Projet Pages `ppt-site`, relié au dépôt, branche de production `main` :
 
 - `main` publie sur `pupitre.studio` ; toute autre branche obtient une URL de prévisualisation, et `staging` est aliasée en `staging.pupitre.studio`.
 - Domaines : `pupitre.studio` en apex, `www.pupitre.studio` redirigé en 301 par `apps/site/public/_redirects`.
 - En-têtes de sécurité et de cache dans `apps/site/public/_headers` : `HSTS`, `CSP`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, et un an d'immuable sur `/_astro/*` et `/og/*`.
 - Variables de build : `PUBLIC_POSTHOG_KEY` et `PUBLIC_POSTHOG_HOST` en production seulement — sans clé, le site ne charge aucun analytics et n'affiche pas de bandeau de consentement.
-- Le garde légal (`apps/site/scripts/legal.ts`) fait échouer le build quand `CF_PAGES_BRANCH` vaut `main` — ou quand `PUPITRE_ENV` vaut `production` — et qu'une page de `src/content/legal/` porte encore un `TODO`. Les pages légales ne se publient donc jamais à l'état de brouillon.
-- La liste des releases de l'app est lue au build depuis `PUBLIC_RELEASES_URL`. Variable absente ou API injoignable n'échoue pas le build : la page de téléchargement part avec `apps/site/src/content/site/releases.ts` et un avertissement de build. En local et en test, la variable n'est pas posée, donc le build ne sort jamais sur le réseau.
+- Le garde légal (`apps/site/scripts/legal.ts`) fait échouer le build de production — `CF_PAGES_BRANCH=main` ou `PUPITRE_ENV=production` — quand une page de `src/content/legal/` porte un `TODO`, et, dès que `PROJECT_STAGE` de `@pupitre/shared/legal` vaut `public`, quand elle est encore un brouillon ou porte un passage à compléter. Tant que le projet se déclare en développement, les brouillons se publient avec leur avertissement. Voir [`legal.md`](./legal.md).
+- La liste des releases de l'app est lue au build depuis `PUBLIC_RELEASES_URL`, qui vaut `https://app.pupitre.studio/api/v1/releases/app` — une route publique, sans session : ce sont des fichiers publics. Variable absente ou API injoignable n'échoue pas le build : la page de téléchargement part avec `apps/site/src/content/site/releases.ts` et un avertissement de build. En local et en test, la variable n'est pas posée, donc le build ne sort jamais sur le réseau.
 
 ## Stripe
 
@@ -153,7 +211,7 @@ Un produit et deux prix, créés à l'identique en sandbox et en live :
 | Prix mensuel | 19 $, `tax_behavior` `exclusive` → `STRIPE_PRICE_SERVER_MONTH` |
 | Prix annuel | 190 $, deux mois offerts → `STRIPE_PRICE_SERVER_YEAR` |
 
-Réglages du dashboard : email de support à jour dans [Business details](https://dashboard.stripe.com/settings/business-details) (Stripe y escalade, et sans réponse sous 48 h il rembourse) ; logo, CGU et confidentialité dans [Checkout settings](https://dashboard.stripe.com/settings/checkout) ; portail client limité au moyen de paiement, aux factures et à la résiliation, jamais à la quantité, que `ReconcileSeats` recale sur le nombre de serveurs.
+Réglages du dashboard : email de support à jour dans [Business details](https://dashboard.stripe.com/settings/business-details) (Stripe y escalade, et sans réponse sous 48 h il rembourse) ; logo, CGU et confidentialité dans [Checkout settings](https://dashboard.stripe.com/settings/checkout) ; portail client limité au moyen de paiement, aux factures et à la résiliation, jamais à la quantité : les sièges se changent depuis la console par `POST /orgs/:id/seats`, et `ReconcileSeats` ne fait que rapporter l'écart avec le nombre de serveurs.
 
 Webhook `https://app.pupitre.studio/api/v1/webhooks/stripe`, un endpoint et un secret par mode, sur les cinq événements de `HANDLED_EVENT_TYPES` : `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`. En local, `stripe listen --forward-to localhost:3000/api/v1/webhooks/stripe`.
 
@@ -164,22 +222,32 @@ Webhook `https://app.pupitre.studio/api/v1/webhooks/stripe`, un endpoint et un s
 | Ce qui est créé | Où | Nom exact |
 | --- | --- | --- |
 | Identifiant de l'app | `apps/desktop/electron-builder.yml` | `dev.pupitre.app` |
-| Dépôt des releases | GitHub | `jordanmonier/pupitre`, privé |
-| Déclencheur | GitHub Actions `.github/workflows/release.yml` | un tag `v*` |
-| Artefacts macOS | GitHub Releases | `Pupitre-<version>-arm64.dmg`, `Pupitre-<version>.dmg`, `latest-mac.yml` |
-| Artefacts Windows | GitHub Releases | `Pupitre Setup <version>.exe`, `latest.yml` |
-| Artefacts Linux | GitHub Releases | `Pupitre-<version>.AppImage`, `pupitre_<version>_amd64.deb`, `latest-linux.yml` |
+| Déclencheur | GitHub Actions `.github/workflows/release.yml` | un tag `v*`, posé sur `staging` |
+| Bucket public | Cloudflare R2 | `ppt-downloads`, domaine public `dl.pupitre.studio` |
+| Bucket privé | Cloudflare R2 | `ppt-agent`, les binaires de l'agent, jamais public |
+| Artefacts macOS | `dl.pupitre.studio/app/<version>/` | `Pupitre-<version>-arm64.dmg`, `Pupitre-<version>-x64.dmg` |
+| Artefacts Windows | `dl.pupitre.studio/app/<version>/` | `Pupitre-Setup-<version>-x64.exe` |
+| Artefacts Linux | `dl.pupitre.studio/app/<version>/` | `Pupitre-<version>-x64.AppImage`, `pupitre_<version>_amd64.deb` |
+| Flux de mise à jour | `dl.pupitre.studio/app/<canal>/` | `latest.yml`, `latest-mac.yml`, `latest-linux.yml` |
 | Certificat macOS | Apple Developer | `Developer ID Application: <société marocaine> (<Team ID>)` |
 | Clé de notarisation | App Store Connect | clé d'API, rôle *Developer*, fichier `AuthKey_<KeyID>.p8` |
-| Signature Windows | Azure Trusted Signing | compte `pupitre-signing`, profil de certificat `pupitre` |
+| Signature Windows | Azure Trusted Signing | compte `ppt-signing`, profil de certificat `ppt-app` — voir [`tasks/windows-signing.md`](./tasks/windows-signing.md) |
 
-Les trois `latest*.yml` sont ce que lit `electron-updater` : ils sont produits par `electron-builder --publish always` et n'ont pas à être écrits à la main.
+Chaque artefact monte avec un fichier `.sig` à côté : la signature Ed25519 de la clé de release, la même que celle de l'agent, sur `pupitre-app\n<version>\n<système>\n<architecture>\n<sha256>\n`. Elle est aussi enregistrée dans la table `AppRelease`, avec la somme et la taille du fichier. Sur macOS et Windows, c'est la signature du système qui protège l'installation ; sur Linux, celle-ci est la seule, et elle se vérifie à la main.
 
-### Les secrets du dépôt, par leur nom
+Les trois `latest*.yml` sont ce que lit `electron-updater`. `electron-builder` les écrit, `apps/desktop/scripts/publish-release.ts` réécrit les liens qu'ils contiennent en URL absolues — les artefacts vivent dans le dossier de leur version, les flux dans celui de leur canal — puis les dépose sous `app/beta/`. `promote.yml` les recopie sous `app/stable/`.
+
+### Le bucket public
+
+Un bucket R2 `ppt-downloads`, **accès public activé** par le domaine personnalisé `dl.pupitre.studio`, TLS 1.2 au minimum. Il ne contient que des artefacts de l'app, leurs `.sig`, leurs `.blockmap` et les flux de mise à jour. Le binaire de l'agent n'y entre jamais : il reste dans le bucket privé, servi par une URL signée de cinq minutes à un serveur qui présente son jeton (voir [`security.md`](./security.md)).
+
+### Les secrets et les variables du dépôt
 
 | Secret GitHub | Ce que c'est | Comment l'obtenir |
 | --- | --- | --- |
-| `PUPITRE_UPDATE_TOKEN` | jeton d'accès personnel, portée `repo` en lecture seule | GitHub → *Developer settings* → *Fine-grained tokens*, accès au seul dépôt `pupitre`, permission *Contents: read* |
+| `PUPITRE_RELEASE_PRIVATE_KEY` | la moitié privée de la clé Ed25519 qui signe l'agent et les artefacts de l'app | `cd apps/agent && go run ./tools/release keygen`, une seule fois, hors de toute session d'agent |
+| `PUPITRE_ADMIN_TOKEN` | une session d'un compte `platform_admin` : c'est elle qui déclare les versions à la plateforme | la console, compte de support |
+| `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | l'accès R2 de la CI | Cloudflare → *R2* → *Manage API tokens*, droits *Object Read & Write* sur les deux buckets |
 | `APPLE_CERTIFICATE` | le `.p12` du certificat Developer ID, en base 64 | `base64 -i DeveloperID.p12 \| pbcopy` |
 | `APPLE_CERTIFICATE_PASSWORD` | le mot de passe de ce `.p12` | choisi à l'export depuis Trousseau d'accès |
 | `APPLE_API_KEY_CONTENT` | le `.p8` de la clé de notarisation, en base 64 | `base64 -i AuthKey_<KeyID>.p8 \| pbcopy` |
@@ -187,34 +255,54 @@ Les trois `latest*.yml` sont ce que lit `electron-updater` : ils sont produits p
 | `APPLE_API_ISSUER` | l'identifiant de l'émetteur | en haut de la page *Keys* d'App Store Connect |
 | `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` | l'application Entra ID qui signe | Azure → *App registrations*, un secret client, puis le rôle *Trusted Signing Certificate Profile Signer* sur le compte de signature |
 
-`PUPITRE_UPDATE_TOKEN` entre dans le binaire de l'app : c'est un jeton de **lecture** sur un dépôt privé, rien d'autre. Il est passé au build par `MAIN_VITE_UPDATE_TOKEN`, se retrouve dans le bytecode du processus principal, et le plugin bytecode le protège pour qu'un `strings` ne le rende pas. Le faire tourner suffit à couper les anciennes versions du flux de mise à jour.
+| Variable GitHub | Ce que c'est |
+| --- | --- |
+| `PUPITRE_PLATFORM_URL` | `https://app.pupitre.studio` |
+| `PUPITRE_DOWNLOADS_URL` | `https://dl.pupitre.studio` |
+| `PUPITRE_DOWNLOADS_BUCKET` | `ppt-downloads` |
+| `PUPITRE_R2_BUCKET` | `ppt-agent`, le bucket privé des binaires de l'agent |
+| `AZURE_SIGNING_ENDPOINT`, `AZURE_SIGNING_ACCOUNT`, `AZURE_SIGNING_PROFILE` | les trois noms du compte Azure Trusted Signing, lus dans le portail |
+
+Les secrets et les variables vivent dans l'environnement **`release`**, que le propriétaire approuve à chaque exécution. Aucun jeton n'entre dans le binaire de l'app : les artefacts sont publics, et l'app n'a rien à présenter pour se mettre à jour.
 
 ### L'ordre de création, une fois pour toutes
 
-1. **Le compte Apple.** Le compte Apple Developer de la société marocaine existe déjà. Dans le portail, créer un certificat **Developer ID Application** (pas *Mac App Distribution* : la distribution se fait hors App Store), le télécharger, l'installer dans Trousseau d'accès, puis l'exporter en `.p12` avec un mot de passe.
-2. **La clé de notarisation.** App Store Connect → *Users and Access* → *Integrations* → *Keys*, une clé avec le rôle *Developer*. Le `.p8` ne se télécharge **qu'une fois** ; relever l'*Issuer ID* et le *Key ID* sur la même page.
-3. **Azure Trusted Signing.** Créer un compte de signature (région proche, par exemple *West Europe*), y créer une identité validée puis un profil de certificat. La validation d'identité d'une organisation prend quelques jours et demande des justificatifs ; un profil *Public Trust* est ce qu'il faut pour que Windows ne prévienne pas. Créer ensuite une application Entra ID, lui donner un secret client, et lui attribuer le rôle *Trusted Signing Certificate Profile Signer* sur le compte.
-4. **Le jeton de mise à jour.** Le jeton fin décrit ci-dessus, sur le seul dépôt `pupitre`, en lecture des contenus.
-5. **Les secrets du dépôt.** GitHub → *Settings* → *Secrets and variables* → *Actions*, les neuf noms du tableau ci-dessus. Rien de tout cela n'entre dans le dépôt sous aucune forme.
-6. **Aligner `electron-builder.yml`.** Les quatre valeurs de la signature Windows se lisent dans le portail Azure et ne s'inventent pas ; une fois connues, ajouter sous `win:` :
-
-   ```yaml
-   azureSignOptions:
-     publisherName: <le sujet exact du certificat émis>
-     endpoint: https://weu.codesigning.azure.net
-     codeSigningAccountName: pupitre-signing
-     certificateProfileName: pupitre
-   ```
-
-   `endpoint` dépend de la région du compte de signature. Tant que ce bloc n'existe pas, le build Windows va au bout et sort **non signé** : Windows affiche alors un avertissement SmartScreen au premier lancement.
-7. **Publier.** `git tag v0.2.0 && git push origin v0.2.0`. Le workflow construit les trois systèmes, signe, notarise, et pousse les artefacts sur une release GitHub.
-8. **Vérifier.** Sur un Mac qui n'a jamais vu le certificat : télécharger le `.dmg`, l'ouvrir, l'app démarre sans avertissement Gatekeeper. `spctl --assess --type execute -vv /Applications/Pupitre.app` répond `accepted, source=Notarized Developer ID`.
+1. **La clé de release.** `cd apps/agent && go run ./tools/release keygen`, une fois pour toutes. La moitié privée va dans 1Password puis dans le secret `PUPITRE_RELEASE_PRIVATE_KEY` ; la moitié publique est recopiée dans `AGENT_RELEASE_PUBLIC_KEY` de `apps/desktop/src/main/agent-release.ts`. Sans elle, rien ne se publie.
+2. **Les buckets.** Faits : `ppt-agent`, privé, et `ppt-downloads`, public sur `dl.pupitre.studio` (TLS 1.2 minimum). La commande, si le domaine doit être rattaché à nouveau : `bun x wrangler r2 bucket domain add ppt-downloads --domain dl.pupitre.studio --zone-id <la zone pupitre.studio> --min-tls 1.2`.
+3. **Le compte Apple.** Le compte Apple Developer de la société marocaine existe déjà. Dans le portail, créer un certificat **Developer ID Application** (pas *Mac App Distribution* : la distribution se fait hors App Store), le télécharger, l'installer dans Trousseau d'accès, puis l'exporter en `.p12` avec un mot de passe.
+4. **La clé de notarisation.** App Store Connect → *Users and Access* → *Integrations* → *Keys*, une clé avec le rôle *Developer*. Le `.p8` ne se télécharge **qu'une fois** ; relever l'*Issuer ID* et le *Key ID* sur la même page.
+5. **Azure Trusted Signing.** Créer un compte de signature (région proche, par exemple *West Europe*), y créer une identité validée puis un profil de certificat. La validation d'identité d'une organisation prend quelques jours et demande des justificatifs ; un profil *Public Trust* est ce qu'il faut pour que Windows ne prévienne pas. Créer ensuite une application Entra ID, lui donner un secret client, et lui attribuer le rôle *Trusted Signing Certificate Profile Signer* sur le compte. Poser ses trois noms dans les variables `AZURE_SIGNING_*` : tant qu'elles sont vides, le build Windows va au bout et sort **non signé**, et SmartScreen prévient au premier lancement. La marche à suivre complète est dans [`tasks/windows-signing.md`](./tasks/windows-signing.md).
+6. **Les secrets et les variables du dépôt.** GitHub → *Settings* → *Environments* → `release`, les noms des deux tableaux ci-dessus. Rien de tout cela n'entre dans le dépôt sous aucune forme.
+7. **Publier.** L'entrée de changelog de la version existe dans les deux langues, puis `git tag -a v0.2.0 -m "…" && git push origin v0.2.0` depuis `staging`. Les notes de version sont l'entrée de changelog, pas l'annotation du tag.
+8. **Vérifier.** Sur un Mac qui n'a jamais vu le certificat : télécharger le `.dmg` depuis `dl.pupitre.studio`, l'ouvrir, l'app démarre sans avertissement Gatekeeper. `spctl --assess --type execute -vv /Applications/Pupitre.app` répond `accepted, source=Notarized Developer ID`.
 
 ### Ce que fait chaque release
 
-`electron-vite build` compile le processus principal en bytecode V8 ; `electron-builder --publish always` empaquette, retourne les fusibles (`onlyLoadAppFromAsar`, validation d'intégrité de l'asar, `runAsNode` coupé), signe, notarise sur macOS, puis téléverse. Un build sans identité de signature ne s'arrête pas : electron-builder le dit et produit un artefact non signé — c'est ce qui rend `bun --cwd=apps/desktop run build:mac` utilisable sur la machine du propriétaire.
+Un tag `v*` déclenche `release.yml`, en trois temps :
 
-Un retour arrière se fait en publiant la version précédente : `electron-updater` ne redescend pas de version, il faut donc republier au-dessus. Une release retirée de GitHub disparaît du flux, mais n'annule pas ce qui est déjà installé.
+| Job | Ce qu'il fait |
+| --- | --- |
+| `agent` | construit `pupitred` pour `linux/amd64` et `linux/arm64` avec garble, le signe, vérifie qu'il répond `hello` et qu'il ne laisse presque aucune chaîne lisible, le dépose sur le bucket **privé**, déclare la version par `POST /api/v1/admin/releases`, et publie les binaires signés et leur `release.json` en artefact de CI. Il refuse de continuer si `apps/desktop/package.json` ne porte pas la version du tag. |
+| `desktop` | sur les trois systèmes : reprend l'agent signé du job précédent, compile le processus principal en bytecode V8, empaquette, retourne les fusibles (`onlyLoadAppFromAsar`, intégrité de l'asar, `runAsNode` coupé), signe et notarise sur macOS, signe par Azure sur Windows. |
+| `publish` | rassemble les artefacts des trois systèmes, les signe avec la clé de release, les dépose sur le bucket **public** avec leur `.sig`, réécrit les flux de mise à jour, et déclare chaque fichier par `POST /api/v1/admin/app-releases`. |
+
+Le tag est posé sur `staging` : une version sort donc toujours en **`beta`**, et c'est cet artefact-là, celui qui a été éprouvé, qui finit en production. Elle passe en `stable` quand la pull request `staging` → `main` est fusionnée : le push sur `main` déclenche `promote.yml`, qui reprend les tags que le merge vient de rendre accessibles, change le canal de l'agent et de l'app sur la plateforme et recopie les flux du canal. Rien n'est reconstruit ni re-signé — un second build donnerait d'autres binaires, d'autres signatures et d'autres sommes de contrôle pour le même numéro de version. Le même workflow s'appelle aussi à la main, sur une version précise, pour revenir en arrière.
+
+Un build sans identité de signature ne s'arrête pas : electron-builder le dit et produit un artefact non signé — c'est ce qui rend `bun --cwd=apps/desktop run build:mac` utilisable sur la machine du propriétaire.
+
+Un retour arrière se fait en promouvant la version précédente : `electron-updater` ne redescend pas de version, mais le flux du canal désigne à nouveau l'ancienne, et une app déjà à jour attend la suivante. Les artefacts d'une version publiée ne sont jamais supprimés.
+
+### Le changelog
+
+`apps/site/src/content/changelog/<langue>/<version>.mdx` est la **seule** source. Une entrée par version et par langue, le nom du fichier étant la version avec des tirets — `0-2-0.mdx`.
+
+| Qui le lit | Ce qu'il en fait |
+| --- | --- |
+| Le site | la page `/changelog`, son flux RSS, et la version française sous `/fr/changelog` |
+| `release.yml` | refuse de construire si l'entrée manque dans une des langues, puis passe le corps de l'entrée anglaise en notes de version |
+| La plateforme | l'enregistre dans `AppRelease.notes`, d'où la console et l'app desktop le tirent par `GET /api/v1/releases/app/:version` |
+
+`scripts/release-notes.ts` fait les deux : `--check` vérifie qu'une version est couverte partout, sans argument il écrit le corps de l'entrée. Les notes stockées sont anglaises parce que `AppRelease.notes` est une seule chaîne et que l'anglais est la langue que le site sert sans préfixe.
 
 ### Ce qui se construit où
 
@@ -222,19 +310,27 @@ Un module natif ne se compile pas pour un autre système : `node-pty` impose un 
 
 | Système | Ce qui sort | Ce qui le signe |
 | --- | --- | --- |
-| macOS | `.dmg` arm64 et x64 | certificat Developer ID, puis notarisation |
-| Windows | installateur NSIS de l'architecture du runner | Azure Trusted Signing, si le bloc existe |
-| Linux | AppImage et `.deb` de l'architecture du runner | rien : Linux ne signe pas les applications |
+| macOS | `.dmg` arm64 et x64 | certificat Developer ID, puis notarisation, puis la clé de release |
+| Windows | installateur NSIS de l'architecture du runner | Azure Trusted Signing si les variables existent, puis la clé de release |
+| Linux | AppImage et `.deb` de l'architecture du runner | la clé de release seule : Linux n'a pas d'autorité à qui répondre |
 
 Le `.deb` s'appelle `pupitre` et non `@pupitre/desktop` : le nom du workspace porte une barre oblique, que dpkg refuse. L'exécutable Linux s'appelle `pupitre` pour la même raison, et `pupitre.desktop` s'aligne dessus pour que l'environnement de bureau relie la fenêtre à son lanceur.
 
+### La feuille de compatibilité
+
+`packages/shared/src/compat` porte la seule table qui dit quelle app pilote quel agent : une ligne par génération de protocole, avec la première version d'app et la première version d'agent de cette génération. Elle part dans `apps/agent/internal/contract/schema.json` par `bun run contracts:export`, donc l'agent la porte compilée en lui.
+
+Tant qu'aucune ligne n'est ajoutée, toutes les versions d'app pilotent toutes les versions d'agent. Une ligne s'ajoute le jour où le protocole retire ou renomme un champ, dans la même passe que le changement de `PROTOCOL_VERSION` : le `hello` d'un agent d'une autre génération répond alors lequel des deux mettre à jour, et l'app le dit sur son bandeau.
+
 ### Ce que la mise à jour ne couvre pas
 
-Le `.deb` est installé par apt et mis à jour par apt : l'app n'y touche pas, et le dit. L'AppImage, le `.dmg` et l'installateur Windows se remplacent seuls. Une app construite sans `MAIN_VITE_UPDATE_TOKEN` ne cherche aucune mise à jour, ce qui est le cas de tout build local.
+Le `.deb` est installé par apt et mis à jour par apt : l'app n'y touche pas, et le dit. L'AppImage, le `.dmg` et l'installateur Windows se remplacent seuls. Un build de développement ne cherche aucune mise à jour ; un build empaqueté suit le canal que `MAIN_VITE_UPDATE_CHANNEL` lui a donné, `stable` par défaut, sur le seau que `PUPITRE_DOWNLOADS_URL` lui a donné — la même variable que la publication lit, `https://dl.pupitre.studio` quand le build n'en reçoit aucune.
 
 ## Neon
 
-Projet `pupitre` (`royal-morning-15862824`, [console](https://console.neon.tech/app/projects/royal-morning-15862824)), région `aws-eu-central-1`, Postgres 18, créé le 4 septembre 2026. C'est la région sur laquelle le Worker `apps/web` est épinglé (`placement` dans `wrangler.jsonc`). Branche `production` par défaut ; branche `staging` pour le staging et la CI de migration ; les branches de développement se créent depuis `staging` avec `neonctl`. `DATABASE_URL` utilise l'endpoint poolé de la branche visée ; `MIGRATE_DATABASE_URL` l'endpoint direct (sans `-pooler`), le seul que Prisma Migrate accepte. `db:migrate:deploy` lit `MIGRATE_DATABASE_URL` et refuse de migrer une autre branche que celle de `DATABASE_URL`.
+Projet `pupitre` (`plain-water-62675197`, [console](https://console.neon.tech/app/projects/plain-water-62675197)), région `aws-us-east-1`, Postgres 18. Le projet de Francfort qui l'a précédé n'existe plus : la région d'un projet Neon est figée à sa création, une migration de région est donc une recréation. C'est la région sur laquelle le Worker `apps/web` est épinglé (`placement` dans `wrangler.jsonc`). Branche `production` par défaut ; branche `staging` pour le staging et la CI de migration.
+
+**Une branche Neon par branche Git.** `bun run dev:prepare` lit la branche Git courante et en déduit la branche Neon : `main` travaille sur `staging`, toute autre branche obtient `dev/<slug>`, créée depuis `staging` et périmée au bout de quatorze jours — personne ne nettoie. `production` n'est jamais visée en local, le script refuse. Le projet se résout **par son nom**, jamais par un identifiant écrit quelque part : un projet recréé, dans une autre région par exemple, est retrouvé et les URL sont réécrites. `.env.local` garde `NEON_PROJECT_ID` et `NEON_BRANCH` : c'est cette provenance, et non la simple présence des URL, qui décide s'il faut les redemander. Pour viser une branche précise sans y toucher : `PUPITRE_NEON_BRANCH=staging bun run dev:prepare`. `DATABASE_URL` utilise l'endpoint poolé de la branche visée ; `MIGRATE_DATABASE_URL` l'endpoint direct (sans `-pooler`), le seul que Prisma Migrate accepte. `db:migrate:deploy` lit `MIGRATE_DATABASE_URL` et refuse de migrer une autre branche que celle de `DATABASE_URL`.
 
 ## Dépendances
 
@@ -242,6 +338,8 @@ Les `overrides` du `package.json` racine sont la seule source de vérité de l'a
 
 Épingles héritées de React-Box, à revérifier à la première mise à niveau : `typescript ^6` (TS 7 casse encore des outils), `ultracite 7.8.3` (la version suivante reformate tout le dépôt), `better-auth` exact (les mineures ont déjà cassé `customSession`).
 
+**`miniflare` est patché** (`patches/miniflare@4.20260708.0.patch`, appliqué par `patchedDependencies`). Le `workerd` que miniflare lance en développement tourne avec le tas V8 par défaut, environ 1,4 Go ; le Worker de la console se stabilise plutôt vers 1,8 Go au bout d'une longue session de HMR. Il meurt donc, et **rien ne le relance** : miniflare le lance une seule fois et ne surveille pas sa sortie, si bien que Vite continue de tourner en répondant à chaque requête par la même trace `fetch failed` d'undici, indéfiniment, jusqu'à ce qu'on relance `bun run dev:web`. Le tas se règle par le champ `v8Flags` de la configuration workerd, que miniflare n'expose pas : le patch le lit dans `MINIFLARE_V8_FLAGS`, et le script `dev` d'`apps/web` le pose à `--max-old-space-size=4096` — comme React-Box, d'où le patch vient. La version est celle qu'`@cloudflare/vite-plugin@1.43.3` épingle ; un jour où le plugin bouge, le patch est à rejouer.
+
 ## Dashboards externes
 
-Cloudflare Builds, Cloudflare Email Routing, R2, Sentry, Stripe, Neon (projet `pupitre`), Apple Developer, Azure Trusted Signing, GitHub Releases. Ce document est ce qui les décrit ; rien dans le dépôt ne peut vérifier ce qu'ils exécutent. Quand un tableau ci-dessus change, le dashboard change dans la même passe.
+Cloudflare Builds, Cloudflare Email Routing, R2 (les deux buckets, dont `ppt-downloads` et son domaine public), Stripe, Neon (projet `pupitre`), Apple Developer, Azure Trusted Signing. Ce document est ce qui les décrit ; rien dans le dépôt ne peut vérifier ce qu'ils exécutent. Quand un tableau ci-dessus change, le dashboard change dans la même passe.

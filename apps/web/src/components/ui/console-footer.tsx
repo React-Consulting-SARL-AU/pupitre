@@ -1,4 +1,5 @@
 import { LOCALES, type Locale } from "@pupitre/shared/i18n"
+import { developmentNotice, legalEntityLabel } from "@pupitre/shared/legal"
 import type { LucideIcon } from "lucide-react"
 import { Languages, Monitor, Moon, Sun } from "lucide-react"
 import {
@@ -13,7 +14,7 @@ import {
 import { useTranslations } from "@/hooks/use-locale"
 import { useLocaleChoice } from "@/hooks/use-locale-choice"
 import { useTheme } from "@/hooks/use-theme"
-import { SITE_URL } from "@/lib/config/urls"
+import { LEGAL_PAGES, legalUrl } from "@/lib/domain/legal-pages"
 import type { DictionaryKey } from "@/lib/i18n/en"
 import { THEMES, type Theme } from "@/lib/theme"
 
@@ -23,16 +24,8 @@ const THEME_ICONS: Record<Theme, LucideIcon> = {
   dark: Moon,
 }
 
-const LEGAL: { slug: string; key: DictionaryKey }[] = [
-  { slug: "terms", key: "footer.legal.terms" },
-  { slug: "privacy", key: "footer.legal.privacy" },
-  { slug: "licence", key: "footer.legal.licence" },
-  { slug: "acceptable-use", key: "footer.legal.acceptableUse" },
-  { slug: "data-processing", key: "footer.legal.dpa" },
-]
-
 const TRIGGER =
-  "flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] text-ink-3 transition-colors duration-[120ms] ease-[ease] hover:bg-raised hover:text-ink focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
+  "flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] text-ink-3 transition-fast hover:bg-raised hover:text-ink focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
 
 /**
  * On every page, signed in or not: the theme, the language, and the legal
@@ -47,16 +40,23 @@ export function ConsoleFooter() {
   return (
     <footer className="border-line border-t">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-8 py-5 text-[12px] text-ink-3">
-        <p>{t("footer.company", { year: new Date().getFullYear() })}</p>
+        <p>
+          {t("footer.company", {
+            year: new Date().getFullYear(),
+            entity: legalEntityLabel(locale),
+          })}
+        </p>
+
+        <p>{developmentNotice(locale).short}</p>
 
         <nav
           aria-label={t("footer.legal")}
           className="flex flex-wrap items-center gap-x-4 gap-y-2"
         >
-          {LEGAL.map((page) => (
+          {LEGAL_PAGES.map((page) => (
             <a
               className="rounded-full hover:text-ink"
-              href={`${SITE_URL}/${locale === "fr" ? "fr/" : ""}legal/${page.slug}/`}
+              href={legalUrl(page.slug, locale)}
               key={page.slug}
               rel="noreferrer"
               target="_blank"

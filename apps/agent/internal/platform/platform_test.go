@@ -27,7 +27,7 @@ func TestReleaseCarriesTheServerToken(t *testing.T) {
 	}
 
 	if string(body) != "ELF" || seen != "Bearer jeton" {
-		t.Fatalf("corps %q, en-tête %q", body, seen)
+		t.Fatalf("body %q, header %q", body, seen)
 	}
 }
 
@@ -43,7 +43,7 @@ func TestReleaseAsksForTheVersionOfTheRequest(t *testing.T) {
 	}
 
 	if path != "/api/v1/agent/release/1.2.3" {
-		t.Fatalf("chemin demandé : %s", path)
+		t.Fatalf("requested path: %s", path)
 	}
 }
 
@@ -51,9 +51,9 @@ func TestReleaseAsksForTheVersionOfTheRequest(t *testing.T) {
 func TestReleaseFollowsTheRedirectWithoutLeakingTheToken(t *testing.T) {
 	storage := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "" {
-			t.Errorf("le jeton a suivi la redirection : %s", r.Header.Get("Authorization"))
+			t.Errorf("the token followed the redirect: %s", r.Header.Get("Authorization"))
 		}
-		w.Write([]byte("binaire signé"))
+		w.Write([]byte("signed binary"))
 	}))
 	defer storage.Close()
 
@@ -67,8 +67,8 @@ func TestReleaseFollowsTheRedirectWithoutLeakingTheToken(t *testing.T) {
 		t.Fatalf("Release: %v", err)
 	}
 
-	if string(body) != "binaire signé" {
-		t.Fatalf("corps : %q", body)
+	if string(body) != "signed binary" {
+		t.Fatalf("body: %q", body)
 	}
 }
 
@@ -82,7 +82,7 @@ func TestReleaseTellsAnUnknownVersionApartFromAFailure(t *testing.T) {
 
 	var failure *platform.Error
 	if !errors.As(err, &failure) || !failure.NotFound() {
-		t.Fatalf("erreur = %v", err)
+		t.Fatalf("error = %v", err)
 	}
 }
 
@@ -93,37 +93,22 @@ func TestReleaseRefusesABodyBeyondTheCap(t *testing.T) {
 	defer server.Close()
 
 	_, err := platform.Client{BaseURL: server.URL, Token: "jeton", MaxBytes: 16}.Release("1.2.3")
-	if err == nil || !strings.Contains(err.Error(), "au-delà de 16 octets") {
-		t.Fatalf("erreur = %v", err)
+	if err == nil || !strings.Contains(err.Error(), "beyond 16 bytes") {
+		t.Fatalf("error = %v", err)
 	}
 }
 
 func TestClientRefusesAPlaintextPlatform(t *testing.T) {
 	_, err := platform.Client{BaseURL: "http://pupitre.example", Token: "jeton"}.Release("1.2.3")
-	if err == nil || !strings.Contains(err.Error(), "non chiffrée") {
-		t.Fatalf("erreur = %v", err)
+	if err == nil || !strings.Contains(err.Error(), "plaintext platform address") {
+		t.Fatalf("error = %v", err)
 	}
 }
 
 func TestClientRefusesToCallWithoutAToken(t *testing.T) {
 	_, err := platform.Client{BaseURL: "https://pupitre.example"}.Release("1.2.3")
-	if err == nil || !strings.Contains(err.Error(), "aucun jeton") {
-		t.Fatalf("erreur = %v", err)
-	}
-}
-
-func TestTargetVersionReadsTheStateOfTheServer(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/agent/state" {
-			t.Errorf("chemin demandé : %s", r.URL.Path)
-		}
-		w.Write([]byte(`{"entitlement":"valid","target_version":"1.4.0"}`))
-	}))
-	defer server.Close()
-
-	version, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.TargetVersion()
-	if err != nil || version != "1.4.0" {
-		t.Fatalf("version = %q, err = %v", version, err)
+	if err == nil || !strings.Contains(err.Error(), "no server token") {
+		t.Fatalf("error = %v", err)
 	}
 }
 
@@ -132,7 +117,7 @@ func TestLoadTokenRefusesAnEmptyFile(t *testing.T) {
 	fake.Files["/etc/pupitre/server.token"] = []byte("  \n")
 
 	if _, err := platform.LoadToken(fake, "/etc/pupitre/server.token"); !errors.Is(err, platform.ErrNoToken) {
-		t.Fatalf("erreur = %v", err)
+		t.Fatalf("error = %v", err)
 	}
 }
 
@@ -142,7 +127,7 @@ func TestLoadTokenTrimsTheFile(t *testing.T) {
 
 	token, err := platform.LoadToken(fake, "/etc/pupitre/server.token")
 	if err != nil || token != "jeton-de-serveur" {
-		t.Fatalf("jeton = %q, err = %v", token, err)
+		t.Fatalf("token = %q, err = %v", token, err)
 	}
 }
 
@@ -165,7 +150,7 @@ func TestStateReadsEverythingTheAgentPolls(t *testing.T) {
 	}
 
 	if len(state.AuthorizedKeys) != 1 || !state.ValidUntil.Equal(time.Date(2026, time.September, 5, 12, 0, 0, 0, time.UTC)) {
-		t.Fatalf("clés %v, valide jusqu'à %s", state.AuthorizedKeys, state.ValidUntil)
+		t.Fatalf("keys %v, valid until %s", state.AuthorizedKeys, state.ValidUntil)
 	}
 }
 
@@ -203,7 +188,7 @@ func TestReleaseMetadataReadsTheFingerprintAndTheSignature(t *testing.T) {
 	}
 
 	if authorization != "Bearer jeton" {
-		t.Fatalf("autorisation = %q", authorization)
+		t.Fatalf("authorization = %q", authorization)
 	}
 }
 
@@ -215,7 +200,7 @@ func TestReleaseMetadataRefusesAnAnswerWithoutASignature(t *testing.T) {
 	defer server.Close()
 
 	if _, err := (platform.Client{BaseURL: server.URL, Token: "jeton"}).ReleaseMetadata("1.4.0"); err == nil {
-		t.Fatal("une métadonnée vide doit être refusée")
+		t.Fatal("empty metadata must be refused")
 	}
 }
 
@@ -253,11 +238,11 @@ func TestExchangeTradesTheEnrolmentTokenWithoutAServerToken(t *testing.T) {
 		Arch:          "amd64",
 	})
 	if err != nil || token != "jeton-de-serveur" {
-		t.Fatalf("jeton = %q, err = %v", token, err)
+		t.Fatalf("token = %q, err = %v", token, err)
 	}
 
 	if seen.Token != "jeton-d-enrolement" || seen.Arch != "amd64" || authorization != "" {
-		t.Fatalf("envoyé %+v, en-tête %q", seen, authorization)
+		t.Fatalf("sent %+v, header %q", seen, authorization)
 	}
 }
 
@@ -272,7 +257,7 @@ func TestExchangeCarriesTheRefusalOfThePlatform(t *testing.T) {
 
 	var failure *platform.Error
 	if !errors.As(err, &failure) || failure.Code != "enrollment_used" || failure.Status != http.StatusConflict {
-		t.Fatalf("erreur = %v", err)
+		t.Fatalf("error = %v", err)
 	}
 
 	if !strings.Contains(err.Error(), "jeton déjà échangé") {
@@ -284,7 +269,7 @@ func TestBeatSendsTheSampleAndAcceptsAnEmptyAnswer(t *testing.T) {
 	var body map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer jeton" {
-			t.Errorf("en-tête %q", r.Header.Get("Authorization"))
+			t.Errorf("header %q", r.Header.Get("Authorization"))
 		}
 		json.NewDecoder(r.Body).Decode(&body)
 		w.WriteHeader(http.StatusNoContent)
@@ -299,7 +284,7 @@ func TestBeatSendsTheSampleAndAcceptsAnEmptyAnswer(t *testing.T) {
 	}
 
 	if body["disk"] != float64(41) || body["stack_version"] != "1.2.3" {
-		t.Fatalf("corps = %v", body)
+		t.Fatalf("body = %v", body)
 	}
 
 	// The contract types sessions and modules as arrays: an agent with neither still sends arrays.
@@ -312,8 +297,8 @@ func TestBeatSendsTheSampleAndAcceptsAnEmptyAnswer(t *testing.T) {
 }
 
 func TestBeatRefusesWithoutAToken(t *testing.T) {
-	if err := (platform.Client{BaseURL: "https://pupitre.example"}).Beat(platform.Heartbeat{}); err == nil || !strings.Contains(err.Error(), "aucun jeton") {
-		t.Fatalf("erreur = %v", err)
+	if err := (platform.Client{BaseURL: "https://pupitre.example"}).Beat(platform.Heartbeat{}); err == nil || !strings.Contains(err.Error(), "no server token") {
+		t.Fatalf("error = %v", err)
 	}
 }
 
@@ -330,16 +315,57 @@ func TestSaveTokenWritesForRootAlone(t *testing.T) {
 
 	token, err := platform.LoadToken(fake, "/etc/pupitre/server.token")
 	if err != nil || token != "jeton" {
-		t.Fatalf("jeton = %q, err = %v", token, err)
+		t.Fatalf("token = %q, err = %v", token, err)
 	}
 
 	if !platform.Enrolled(fake, "/etc/pupitre/server.token") {
-		t.Fatal("Enrolled dit non après SaveToken")
+		t.Fatal("Enrolled says no after SaveToken")
 	}
 }
 
 func TestSaveTokenRefusesAnEmptyToken(t *testing.T) {
 	if err := platform.SaveToken(modtest.NewFakeSys(), "/etc/pupitre/server.token", " \n"); err == nil {
-		t.Fatal("un jeton vide a été écrit")
+		t.Fatal("an empty token was written")
+	}
+}
+
+// TestExchangeGivesUpOnAPlatformThatDoesNotAnswer: the app gives up on the command before the agent does — a stalled exchange must return a failure, not hold the line open.
+func TestExchangeGivesUpOnAPlatformThatDoesNotAnswer(t *testing.T) {
+	held := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-held
+	}))
+	defer server.Close()
+	defer close(held)
+
+	client := platform.Client{BaseURL: server.URL, ControlTimeout: 40 * time.Millisecond}
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := client.Exchange(platform.Enrollment{Token: "jeton", HostPublicKey: "ssh-ed25519 AAAA"})
+		done <- err
+	}()
+
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("an exchange without an answer succeeded")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("the exchange holds the line past its timeout")
+	}
+}
+
+// TestReleaseKeepsTheLongTimeout: downloading the binary keeps the long timeout — it is not a control command.
+func TestReleaseKeepsTheLongTimeout(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(80 * time.Millisecond)
+		w.Write([]byte("ELF"))
+	}))
+	defer server.Close()
+
+	body, err := platform.Client{BaseURL: server.URL, Token: "jeton", ControlTimeout: time.Millisecond}.Release("1.2.3")
+	if err != nil || string(body) != "ELF" {
+		t.Fatalf("body %q, err = %v", body, err)
 	}
 }

@@ -13,8 +13,10 @@ type Manifest struct {
 	Arch      []string  `json:"arch"`
 	Fields    []Field   `json:"fields"`
 	Provides  []string  `json:"provides"`
-	Mandatory bool      `json:"mandatory"`
-	Since     string    `json:"since"`
+	// Connection names the third-party account the app must hold for this module; only such a module may carry a managed field.
+	Connection string `json:"connection,omitempty"`
+	Mandatory  bool   `json:"mandatory"`
+	Since      string `json:"since"`
 }
 
 type Resources struct {
@@ -25,6 +27,32 @@ type Resources struct {
 var Categories = []string{"core", "runtime", "database", "ai", "editor", "exposure", "tool"}
 
 var Architectures = []string{"amd64", "arm64"}
+
+const (
+	ConnectionCloudflare = "cloudflare"
+)
+
+var Connections = []string{ConnectionCloudflare}
+
+const (
+	// PatternVersionOrLatest holds an editor's free version field: `latest`, or a version the client reads off their own client.
+	PatternVersionOrLatest = `^(latest|[0-9]+\.[0-9]+(\.[0-9]+)?)$`
+
+	// PatternExtensionID holds a marketplace identifier, publisher and name.
+	PatternExtensionID = `^[A-Za-z0-9][A-Za-z0-9._-]*\.[A-Za-z0-9][A-Za-z0-9._-]*$`
+)
+
+const (
+	FormatPort       = "port"
+	FormatHostname   = "hostname"
+	FormatDomain     = "domain"
+	FormatEmail      = "email"
+	FormatIdentifier = "identifier"
+	FormatPath       = "path"
+	FormatTimezone   = "timezone"
+	FormatSize       = "size"
+	FormatURL        = "url"
+)
 
 const (
 	FieldText    = "text"
@@ -39,18 +67,31 @@ const (
 	ItemsSecret = "secret"
 )
 
+// Hint is the long form of Help, shown behind a bubble: where a value is found, and the page that issues it.
+type Hint struct {
+	Text string `json:"text"`
+	URL  string `json:"url,omitempty"`
+}
+
 type Field struct {
-	Key      string
-	Kind     string
-	Label    string
-	Help     string
-	Required bool
-	Default  any
-	Options  []string
-	Generate bool
-	Items    string
-	Min      int
-	Max      int
+	Key       string
+	Kind      string
+	Label     string
+	Help      string
+	HintText  string
+	HintURL   string
+	Format    string
+	Pattern   string
+	MinLength int
+	MaxLength int
+	Required  bool
+	Default   any
+	Options   []string
+	Generate  bool
+	Items     string
+	Min       int
+	Max       int
+	Managed   bool
 }
 
 // The schema is a oneOf with additionalProperties:false per kind, so each kind serialises only its own keys.
@@ -58,6 +99,28 @@ func (f Field) MarshalJSON() ([]byte, error) {
 	object := map[string]any{"key": f.Key, "kind": f.Kind, "label": f.Label}
 	if f.Help != "" {
 		object["help"] = f.Help
+	}
+	if f.HintText != "" {
+		hint := map[string]any{"text": f.HintText}
+		if f.HintURL != "" {
+			hint["url"] = f.HintURL
+		}
+		object["hint"] = hint
+	}
+	if f.Format != "" {
+		object["format"] = f.Format
+	}
+	if f.Pattern != "" {
+		object["pattern"] = f.Pattern
+	}
+	if f.MinLength > 0 {
+		object["min_length"] = f.MinLength
+	}
+	if f.MaxLength > 0 {
+		object["max_length"] = f.MaxLength
+	}
+	if f.Managed {
+		object["managed"] = true
 	}
 
 	switch f.Kind {
@@ -86,6 +149,12 @@ func (f Field) MarshalJSON() ([]byte, error) {
 		if f.Options != nil {
 			object["options"] = f.Options
 		}
+		if f.Min != 0 {
+			object["min"] = f.Min
+		}
+		if f.Max != 0 {
+			object["max"] = f.Max
+		}
 	}
 
 	return json.Marshal(object)
@@ -93,24 +162,52 @@ func (f Field) MarshalJSON() ([]byte, error) {
 
 func (f *Field) UnmarshalJSON(data []byte) error {
 	var object struct {
-		Key      string   `json:"key"`
-		Kind     string   `json:"kind"`
-		Label    string   `json:"label"`
-		Help     string   `json:"help"`
-		Required bool     `json:"required"`
-		Default  any      `json:"default"`
-		Options  []string `json:"options"`
-		Generate bool     `json:"generate"`
-		Items    string   `json:"items"`
-		Min      int      `json:"min"`
-		Max      int      `json:"max"`
+		Key       string   `json:"key"`
+		Kind      string   `json:"kind"`
+		Label     string   `json:"label"`
+		Help      string   `json:"help"`
+		Hint      *Hint    `json:"hint"`
+		Format    string   `json:"format"`
+		Pattern   string   `json:"pattern"`
+		MinLength int      `json:"min_length"`
+		MaxLength int      `json:"max_length"`
+		Required  bool     `json:"required"`
+		Default   any      `json:"default"`
+		Options   []string `json:"options"`
+		Generate  bool     `json:"generate"`
+		Items     string   `json:"items"`
+		Min       int      `json:"min"`
+		Max       int      `json:"max"`
+		Managed   bool     `json:"managed"`
 	}
 
 	if err := json.Unmarshal(data, &object); err != nil {
 		return err
 	}
 
-	*f = Field(object)
+	*f = Field{
+		Key:       object.Key,
+		Kind:      object.Kind,
+		Label:     object.Label,
+		Help:      object.Help,
+		Format:    object.Format,
+		Pattern:   object.Pattern,
+		MinLength: object.MinLength,
+		MaxLength: object.MaxLength,
+		Required:  object.Required,
+		Default:   object.Default,
+		Options:   object.Options,
+		Generate:  object.Generate,
+		Items:     object.Items,
+		Min:       object.Min,
+		Max:       object.Max,
+		Managed:   object.Managed,
+	}
+
+	if object.Hint != nil {
+		f.HintText = object.Hint.Text
+		f.HintURL = object.Hint.URL
+	}
 
 	return nil
 }
@@ -171,6 +268,45 @@ type StepEvent struct {
 	Status StepStatus `json:"status"`
 	Ms     int64      `json:"ms"`
 	Replay string     `json:"replay,omitempty"`
+}
+
+// ModuleConfig is what the agent kept from the last request for a module: plain values, and the names of the secrets it holds — never their value.
+type ModuleConfig struct {
+	ID      string         `json:"id"`
+	Values  map[string]any `json:"values"`
+	Secrets []string       `json:"secrets"`
+}
+
+func (c ModuleConfig) MarshalJSON() ([]byte, error) {
+	type plain ModuleConfig
+
+	normalized := plain(c)
+	if normalized.Values == nil {
+		normalized.Values = map[string]any{}
+	}
+	normalized.Secrets = emptyIfNil(c.Secrets)
+
+	return json.Marshal(normalized)
+}
+
+// InstallCheck is the same request as install, weighed and not run: what the fields get wrong, and what only the machine knows.
+type InstallCheck struct {
+	Problems []FieldProblem `json:"problems"`
+	Warnings []string       `json:"warnings"`
+}
+
+func (c InstallCheck) MarshalJSON() ([]byte, error) {
+	type plain InstallCheck
+
+	normalized := plain(c)
+	if normalized.Problems == nil {
+		normalized.Problems = []FieldProblem{}
+	}
+	if normalized.Warnings == nil {
+		normalized.Warnings = []string{}
+	}
+
+	return json.Marshal(normalized)
 }
 
 type InstallResult struct {
@@ -421,16 +557,25 @@ type ProjectGitStatus struct {
 	Problem  string `json:"problem"`
 }
 
-const RemedyPortTaken = "port_taken"
+const (
+	RemedyPortTaken     = "port_taken"
+	RemedyInvalidFields = "invalid_fields"
+)
 
 // The machine-readable half of a fix: what to do next as a value, so the app never reads a number out of a sentence.
 type Remedy struct {
-	Code     string `json:"code"`
-	PortFree int    `json:"port_free,omitempty"`
+	Code     string         `json:"code"`
+	PortFree int            `json:"port_free,omitempty"`
+	Problems []FieldProblem `json:"problems,omitempty"`
 }
 
 func PortTaken(free int) *Remedy {
 	return &Remedy{Code: RemedyPortTaken, PortFree: free}
+}
+
+// InvalidFields carries what the configuration got wrong, field by field, so the screen marks them instead of printing a sentence.
+func InvalidFields(problems []FieldProblem) *Remedy {
+	return &Remedy{Code: RemedyInvalidFields, Problems: problems}
 }
 
 type FileStage string

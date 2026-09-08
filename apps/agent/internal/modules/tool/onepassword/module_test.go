@@ -76,14 +76,29 @@ func TestInstallAndConfigureAreIdempotent(t *testing.T) {
 	}
 }
 
-func TestConfigureWithoutTokenIsRefused(t *testing.T) {
-	fake := machine()
-	ctx := newContext(t, fake, nil)
+// The engine refuses a configuration before the first step, so the module never
+// sees a missing secret. What this module owes is the declaration it is refused on.
+func TestTheSecretIsRequiredByTheContract(t *testing.T) {
+	held := func(string, string) int { return 0 }
 
-	failure, isProtocol := (Module{}).Configure(ctx).(*protocol.Error)
-	if !isProtocol || failure.Code != contract.ErrorBadRequest {
-		t.Fatalf("want bad_request, got %#v", failure)
+	for _, field := range manifest().Fields {
+		if field.Key != "service_account_token" {
+			continue
+		}
+
+		problem := contract.ValidateField(ID, field, nil, held)
+		if problem == nil || problem.Code != contract.ProblemRequired {
+			t.Fatalf("problem = %+v", problem)
+		}
+
+		if problem.Message == "" {
+			t.Fatal("a refusal says what is wrong")
+		}
+
+		return
 	}
+
+	t.Fatalf("the manifest declares no service_account_token field")
 }
 
 func TestSecretNeverLeaks(t *testing.T) {

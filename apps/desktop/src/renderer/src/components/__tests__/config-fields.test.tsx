@@ -2,8 +2,12 @@ import { describe, expect, it } from "bun:test";
 import type { SecretMarks } from "@shared/secrets";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CATALOG, CATALOG_NEXT } from "../../__tests__/catalog-fixtures";
-import { fieldsOf, select } from "../../lib/catalog-selection";
-import { ConfigForm } from "../config/config-form";
+import {
+  type FieldProblemView,
+  fieldsOf,
+  select,
+} from "../../lib/catalog-selection";
+import { ConfigModuleGroup } from "../config/config-module-group";
 
 /**
  * Every kind of field the contract defines, drawn from a manifest and nothing
@@ -30,17 +34,25 @@ function form(
   extra: {
     values?: Record<string, Record<string, unknown>>;
     secrets?: SecretMarks;
-    machineName?: string;
+    problems?: readonly FieldProblemView[];
   } = {}
 ): string {
-  return renderToStaticMarkup(
-    <ConfigForm
-      groups={fieldsOf(modules, selected)}
-      machineName={extra.machineName ?? "staging"}
-      secrets={extra.secrets ?? {}}
-      values={extra.values ?? {}}
-    />
-  );
+  return fieldsOf(modules, selected)
+    .map((group) =>
+      renderToStaticMarkup(
+        <ConfigModuleGroup
+          group={group}
+          handlers={{}}
+          key={group.module.id}
+          marks={extra.secrets?.[group.module.id]}
+          problems={(extra.problems ?? []).filter(
+            (one) => one.module === group.module.id
+          )}
+          values={extra.values?.[group.module.id] ?? {}}
+        />
+      )
+    )
+    .join("");
 }
 
 /** The opening tag that carries this attribute, whatever order it renders in. */
@@ -161,12 +173,24 @@ describe("chaque genre de champ a son contrôle", () => {
   });
 
   it("secret : masqué, jamais rempli depuis une valeur", () => {
-    const wrapper = field(html, "exposure.cloudflare.api_token");
-    const input = control(html, "exposure.cloudflare.api_token");
+    const wrapper = field(html, "db.postgres.app_password");
+    const input = control(html, "db.postgres.app_password");
 
     expect(wrapper).toContain('data-kind="secret"');
     expect(input).toContain('type="password"');
     expect(input).not.toContain("value=");
+  });
+
+  /**
+   * A managed value comes from a connection the app holds. Asking for it here
+   * would be asking twice, and the form never shows one.
+   */
+  it("ne demande jamais un champ que l'app remplit elle-même", () => {
+    expect(html).toContain('data-field="exposure.cloudflare.domain"');
+    expect(html).not.toContain('data-field="exposure.cloudflare.tunnel_id"');
+    expect(html).not.toContain(
+      'data-field="exposure.cloudflare.tunnel_secret"'
+    );
   });
 });
 
@@ -206,18 +230,60 @@ describe("un secret généré", () => {
   });
 });
 
-describe("les champs communs de la machine", () => {
+describe("les champs du socle", () => {
   const html = form();
-
-  it("demande le nom de la machine, qui est celui de l'app", () => {
-    expect(html).toContain('data-field="machine.name"');
-    expect(html).toContain('value="staging"');
-  });
 
   it("laisse le fuseau, l'identité git et le dossier des projets au manifeste", () => {
     for (const key of ["timezone", "git_name", "git_email", "projects_dir"]) {
       expect(html).toContain(`data-field="core.system.${key}"`);
     }
+  });
+
+  /** The machine is named where a machine is named: adding it, and in the list. */
+  it("ne demande pas le nom de la machine", () => {
+    expect(html).not.toContain('data-field="machine.name"');
+  });
+});
+
+describe("ce qu'un champ refusé montre", () => {
+  const problems = [
+    {
+      code: "format" as const,
+      declared: undefined,
+      expected: "email",
+      field: "git_email",
+      manifest: CATALOG.modules[0],
+      message: "Une adresse électronique est attendue.",
+      module: "core.system",
+    },
+  ];
+
+  const html = form(CATALOG.modules, ALL, { problems });
+
+  it("porte la phrase du refus sous le champ, et pas ailleurs", () => {
+    expect(text(html)).toContain("Une adresse électronique est attendue.");
+  });
+
+  it("le dit aussi à qui ne voit pas l'écran", () => {
+    expect(control(html, "core.system.git_email")).toContain(
+      'aria-invalid="true"'
+    );
+    expect(control(html, "core.system.git_email")).toContain(
+      'aria-describedby="core.system.git_email-problem"'
+    );
+  });
+
+  it("ne marque que le champ nommé", () => {
+    expect(control(html, "core.system.git_name")).not.toContain("aria-invalid");
+  });
+});
+
+describe("l'aide d'un champ", () => {
+  const html = form();
+
+  it("met la phrase courte sous le contrôle et le reste dans une bulle", () => {
+    expect(text(html)).toContain("Ce que les commits porteront comme auteur.");
+    expect(html).toContain('data-hint="Dossier des projets"');
   });
 });
 

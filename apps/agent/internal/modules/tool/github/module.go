@@ -1,6 +1,7 @@
 package github
 
 import (
+	"pupitre.studio/agent/internal/i18n"
 	"runtime"
 	"strings"
 
@@ -103,10 +104,6 @@ func addRepository(ctx *modules.Context) error {
 }
 
 func (Module) Configure(ctx *modules.Context) error {
-	if err := ctx.RequireFields(); err != nil {
-		return err
-	}
-
 	if err := storeToken(ctx); err != nil {
 		return err
 	}
@@ -205,7 +202,7 @@ func registerKey(ctx *modules.Context) error {
 		}
 
 		if _, err := user.Run(ctx, shell.User, "gh", "ssh-key", "add", keyPath+".pub", "--title", title); err != nil {
-			ctx.Warn("clé du serveur non enregistrée sur GitHub : il manque probablement le droit admin:public_key au jeton")
+			ctx.Warn(i18n.T("warn.github.key.refused"))
 
 			return modules.Done, nil
 		}
@@ -271,7 +268,7 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	}
 
 	if status.Configured {
-		status.Credentials = map[string]string{"Jeton d'accès": envKey}
+		status.Credentials = map[string]string{i18n.T("module.tool.github.token.label"): envKey}
 	}
 
 	return status, nil

@@ -12,9 +12,10 @@ const EVERY_MS = 4 * 60 * 60 * 1000;
 function environment(): UpdaterEnvironment {
   return {
     appImage: process.env.APPIMAGE,
+    channel: import.meta.env.MAIN_VITE_UPDATE_CHANNEL,
+    downloads: import.meta.env.PUPITRE_DOWNLOADS_URL,
     packaged: app.isPackaged,
     platform: process.platform,
-    token: import.meta.env.MAIN_VITE_UPDATE_TOKEN,
   };
 }
 

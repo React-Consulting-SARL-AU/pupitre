@@ -3,6 +3,13 @@
   "$id": "https://pupitre.studio/contracts/agent/schema.json",
   "title": "Pupitre agent contract",
   "protocol": 1,
+  "compatibility": [
+    {
+      "protocol": 1,
+      "app": "0.1.0",
+      "agent": "0.1.0"
+    }
+  ],
   "$defs": {
     "Request": {
       "type": "object",
@@ -247,6 +254,25 @@
                 "code",
                 "port_free"
               ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "const": "invalid_fields"
+                },
+                "problems": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/FieldProblem"
+                  }
+                }
+              },
+              "required": [
+                "code",
+                "problems"
+              ]
             }
           ]
         }
@@ -262,6 +288,7 @@
         "hello_required",
         "protocol_mismatch",
         "bad_request",
+        "invalid_config",
         "unknown_command",
         "entitlement_required",
         "project_not_found",
@@ -285,7 +312,8 @@
         "status",
         "diag",
         "agent.upgrade",
-        "enroll"
+        "enroll",
+        "platform.sync"
       ]
     },
     "HelloParams": {
@@ -299,6 +327,13 @@
           "type": "integer",
           "exclusiveMinimum": 0,
           "maximum": 9007199254740991
+        },
+        "locale": {
+          "type": "string",
+          "enum": [
+            "fr",
+            "en"
+          ]
         }
       },
       "required": [
@@ -575,6 +610,97 @@
         "report_path"
       ]
     },
+    "InstallCheckParams": {
+      "type": "object",
+      "properties": {
+        "modules": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "config": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          }
+        }
+      },
+      "required": [
+        "modules",
+        "config"
+      ],
+      "additionalProperties": false
+    },
+    "InstallCheckResult": {
+      "type": "object",
+      "properties": {
+        "problems": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FieldProblem"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "problems",
+        "warnings"
+      ]
+    },
+    "ModuleConfigParams": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "ModuleConfigResult": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "values": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {}
+        },
+        "secrets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "values",
+        "secrets"
+      ]
+    },
     "UninstallParams": {
       "type": "object",
       "properties": {
@@ -625,6 +751,9 @@
         "root_closed": {
           "type": "boolean"
         },
+        "root_kept": {
+          "type": "boolean"
+        },
         "next_user": {
           "type": "string"
         },
@@ -634,6 +763,7 @@
       },
       "required": [
         "root_closed",
+        "root_kept",
         "next_user"
       ]
     },
@@ -2778,6 +2908,21 @@
     "TunnelStatusResult": {
       "type": "object",
       "properties": {
+        "provider": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "cloudflare",
+                "caddy",
+                "ssh"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "installed": {
           "type": "boolean"
         },
@@ -2813,6 +2958,7 @@
         }
       },
       "required": [
+        "provider",
         "installed",
         "state",
         "routes"
@@ -2826,6 +2972,21 @@
     "TunnelSyncResult": {
       "type": "object",
       "properties": {
+        "provider": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "cloudflare",
+                "caddy",
+                "ssh"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "installed": {
           "type": "boolean"
         },
@@ -2861,6 +3022,7 @@
         }
       },
       "required": [
+        "provider",
         "installed",
         "state",
         "routes"
@@ -2874,6 +3036,21 @@
     "TunnelRestartResult": {
       "type": "object",
       "properties": {
+        "provider": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "cloudflare",
+                "caddy",
+                "ssh"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "installed": {
           "type": "boolean"
         },
@@ -2909,6 +3086,7 @@
         }
       },
       "required": [
+        "provider",
         "installed",
         "state",
         "routes"
@@ -3027,6 +3205,25 @@
       },
       "required": [
         "keys"
+      ]
+    },
+    "PlatformSyncParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "PlatformSyncResult": {
+      "type": "object",
+      "properties": {
+        "synced_at": {
+          "type": "string"
+        },
+        "heartbeat_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "synced_at"
       ]
     },
     "AgentUpgradeParams": {
@@ -3250,6 +3447,12 @@
             "type": "string"
           }
         },
+        "connection": {
+          "type": "string",
+          "enum": [
+            "cloudflare"
+          ]
+        },
         "mandatory": {
           "type": "boolean"
         },
@@ -3289,6 +3492,52 @@
             "help": {
               "type": "string"
             },
+            "hint": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              },
+              "required": [
+                "text"
+              ]
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "port",
+                "hostname",
+                "domain",
+                "email",
+                "identifier",
+                "path",
+                "timezone",
+                "size",
+                "url"
+              ]
+            },
+            "pattern": {
+              "type": "string"
+            },
+            "min_length": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "max_length": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "managed": {
+              "type": "boolean"
+            },
             "kind": {
               "type": "string",
               "enum": [
@@ -3306,6 +3555,16 @@
               "items": {
                 "type": "string"
               }
+            },
+            "min": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "max": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
             }
           },
           "required": [
@@ -3329,6 +3588,52 @@
             },
             "help": {
               "type": "string"
+            },
+            "hint": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              },
+              "required": [
+                "text"
+              ]
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "port",
+                "hostname",
+                "domain",
+                "email",
+                "identifier",
+                "path",
+                "timezone",
+                "size",
+                "url"
+              ]
+            },
+            "pattern": {
+              "type": "string"
+            },
+            "min_length": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "max_length": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "managed": {
+              "type": "boolean"
             },
             "kind": {
               "type": "string",
@@ -3362,6 +3667,52 @@
             },
             "help": {
               "type": "string"
+            },
+            "hint": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              },
+              "required": [
+                "text"
+              ]
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "port",
+                "hostname",
+                "domain",
+                "email",
+                "identifier",
+                "path",
+                "timezone",
+                "size",
+                "url"
+              ]
+            },
+            "pattern": {
+              "type": "string"
+            },
+            "min_length": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "max_length": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "managed": {
+              "type": "boolean"
             },
             "kind": {
               "type": "string",
@@ -3401,6 +3752,52 @@
             "help": {
               "type": "string"
             },
+            "hint": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              },
+              "required": [
+                "text"
+              ]
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "port",
+                "hostname",
+                "domain",
+                "email",
+                "identifier",
+                "path",
+                "timezone",
+                "size",
+                "url"
+              ]
+            },
+            "pattern": {
+              "type": "string"
+            },
+            "min_length": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "max_length": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "managed": {
+              "type": "boolean"
+            },
             "kind": {
               "type": "string",
               "const": "boolean"
@@ -3435,6 +3832,52 @@
             },
             "help": {
               "type": "string"
+            },
+            "hint": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              },
+              "required": [
+                "text"
+              ]
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "port",
+                "hostname",
+                "domain",
+                "email",
+                "identifier",
+                "path",
+                "timezone",
+                "size",
+                "url"
+              ]
+            },
+            "pattern": {
+              "type": "string"
+            },
+            "min_length": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "max_length": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "managed": {
+              "type": "boolean"
             },
             "kind": {
               "type": "string",
@@ -3472,6 +3915,43 @@
         }
       ]
     },
+    "FieldProblem": {
+      "type": "object",
+      "properties": {
+        "module": {
+          "type": "string"
+        },
+        "field": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string",
+          "enum": [
+            "required",
+            "type",
+            "min",
+            "max",
+            "min_length",
+            "max_length",
+            "options",
+            "format",
+            "pattern",
+            "connection"
+          ]
+        },
+        "expected": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "module",
+        "field",
+        "code"
+      ]
+    },
     "Preset": {
       "type": "object",
       "properties": {
@@ -3497,9 +3977,14 @@
               "runtime.node",
               "runtime.java",
               "runtime.python",
+              "runtime.go",
+              "runtime.php",
+              "runtime.ruby",
+              "runtime.docker",
               "db.mysql",
               "db.postgres",
               "db.mongodb",
+              "db.redis",
               "ai.claude",
               "ai.codex",
               "ai.hermes",
@@ -3509,14 +3994,9 @@
               "editor.zed",
               "exposure.cloudflare",
               "exposure.ssh",
+              "exposure.caddy",
               "tool.github",
               "tool.1password",
-              "runtime.go",
-              "runtime.php",
-              "runtime.ruby",
-              "runtime.docker",
-              "db.redis",
-              "exposure.caddy",
               "tool.neon"
             ]
           }
@@ -3532,9 +4012,14 @@
               "runtime.node",
               "runtime.java",
               "runtime.python",
+              "runtime.go",
+              "runtime.php",
+              "runtime.ruby",
+              "runtime.docker",
               "db.mysql",
               "db.postgres",
               "db.mongodb",
+              "db.redis",
               "ai.claude",
               "ai.codex",
               "ai.hermes",
@@ -3544,14 +4029,9 @@
               "editor.zed",
               "exposure.cloudflare",
               "exposure.ssh",
+              "exposure.caddy",
               "tool.github",
               "tool.1password",
-              "runtime.go",
-              "runtime.php",
-              "runtime.ruby",
-              "runtime.docker",
-              "db.redis",
-              "exposure.caddy",
               "tool.neon"
             ]
           }
@@ -3592,9 +4072,14 @@
             "runtime.node",
             "runtime.java",
             "runtime.python",
+            "runtime.go",
+            "runtime.php",
+            "runtime.ruby",
+            "runtime.docker",
             "db.mysql",
             "db.postgres",
             "db.mongodb",
+            "db.redis",
             "ai.claude",
             "ai.codex",
             "ai.hermes",
@@ -3602,9 +4087,14 @@
             "editor.jetbrains",
             "editor.vscode",
             "editor.zed",
-            "exposure.cloudflare",
             "tool.github",
-            "tool.1password"
+            "tool.1password",
+            "tool.neon"
+          ],
+          "choose_one": [
+            "exposure.ssh",
+            "exposure.caddy",
+            "exposure.cloudflare"
           ]
         },
         {
@@ -3621,6 +4111,20 @@
           ]
         }
       ]
+    },
+    "FieldFormats": {
+      "type": "object",
+      "const": {
+        "domain": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$",
+        "email": "^[a-z0-9._%+-]+@[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$",
+        "hostname": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$",
+        "identifier": "^[a-z_][a-z0-9_]{0,62}$",
+        "path": "^/([A-Za-z0-9._~@+-]+/?)*$",
+        "port": "^[0-9]{1,5}$",
+        "size": "^[0-9]+[KkMmGg]?[Bb]?$",
+        "timezone": "^(UTC|[A-Za-z][A-Za-z_+-]*(/[A-Za-z0-9][A-Za-z0-9_+-]*){1,2})$",
+        "url": "^https?://[^\\s]+$"
+      }
     }
   }
 }

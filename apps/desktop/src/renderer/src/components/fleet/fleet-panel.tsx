@@ -1,3 +1,4 @@
+import { Button } from "@renderer/components/ui/button";
 import { EmptyState } from "@renderer/components/ui/empty-state";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { Label } from "@renderer/components/ui/label";
@@ -5,11 +6,13 @@ import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { accountOf, useAccount } from "@renderer/stores/account";
 import {
+  dismissedGrants,
+  fleetGroups,
   grantedServers,
   unreachableGrants,
   useFleet,
 } from "@renderer/stores/fleet";
-import { Users } from "lucide-react";
+import { Undo2, Users } from "lucide-react";
 import { useEffect } from "react";
 import { FleetOrganizations } from "./fleet-organizations";
 import { FleetServerRow } from "./fleet-server-row";
@@ -17,14 +20,23 @@ import { FleetServerRow } from "./fleet-server-row";
 /**
  * The servers your organization gave you, above the ones you added yourself.
  *
- * The list is read again on a beat because an assignment lands while the app
- * is open, and because the key the platform pushes is what turns a waiting
- * server into one that opens.
+ * The list refreshes itself: the heartbeat that follows the platform lives
+ * above the screens, because a grant lands while the app is open and the pushed
+ * key is what turns a pending server into one that opens.
  */
 
-const POLL_MS = 10_000;
-
-export function FleetPanel() {
+export function FleetPanel({
+  silentWhenEmpty = false,
+}: {
+  /**
+   * Say nothing as long as the organization grants nothing.
+   *
+   * A "no server is granted to you" card is information in the settings, and
+   * an obstacle in the wizard: there, what has to be possible when nothing is
+   * granted is adding a machine.
+   */
+  silentWhenEmpty?: boolean;
+} = {}) {
   const t = useTranslations();
 
   const view = useAccount((store) => store.view);
@@ -34,6 +46,7 @@ export function FleetPanel() {
   const opening = useFleet((store) => store.opening);
   const read = useFleet((store) => store.read);
   const open = useFleet((store) => store.open);
+  const restore = useFleet((store) => store.restore);
 
   const account = accountOf(view);
   const identity = account?.identity ?? null;
@@ -42,16 +55,12 @@ export function FleetPanel() {
     readAccount();
   }, [readAccount]);
 
+  // The heartbeat that follows the platform lives above the screens; this
+  // panel only asks for a first read when it opens.
   useEffect(() => {
-    if (!identity) {
-      return;
+    if (identity) {
+      read();
     }
-
-    read();
-
-    const beat = setInterval(read, POLL_MS);
-
-    return () => clearInterval(beat);
   }, [identity, read]);
 
   if (!(account && identity)) {
@@ -59,7 +68,15 @@ export function FleetPanel() {
   }
 
   const servers = grantedServers(state);
+  const groups = fleetGroups(state);
+  const named = groups.length > 1;
   const unreachable = unreachableGrants(state);
+  const dismissed = dismissedGrants(state).length;
+  const empty = servers.length === 0 && dismissed === 0 && unreachable === 0;
+
+  if (silentWhenEmpty && empty && state.status !== "failed") {
+    return null;
+  }
 
   return (
     <section className="flex flex-col gap-4">
@@ -68,7 +85,7 @@ export function FleetPanel() {
         <p className="mt-1 text-ink-3 leading-relaxed">{t("fleet.intro")}</p>
       </div>
 
-      <FleetOrganizations consoleUrl={account.consoleUrl} identity={identity} />
+      <FleetOrganizations identity={identity} />
 
       {state.status === "reading" ? (
         <WaitingNotice
@@ -81,7 +98,7 @@ export function FleetPanel() {
         <ErrorNotice error={state.error} onRetry={read} />
       ) : null}
 
-      {state.status === "read" && servers.length === 0 ? (
+      {state.status === "read" && servers.length === 0 && !silentWhenEmpty ? (
         <div className="rounded-md border border-line border-dashed">
           <EmptyState
             detail={t("fleet.empty.detail")}
@@ -91,21 +108,38 @@ export function FleetPanel() {
         </div>
       ) : null}
 
-      {servers.map((server) => (
-        <FleetServerRow
-          key={server.id}
-          onOpen={() => open(server.id)}
-          opening={
-            opening.status !== "idle" && opening.serverId === server.id
-              ? opening
-              : null
-          }
-          server={server}
-        />
+      {groups.map((group) => (
+        <div className="flex flex-col gap-4" key={group.id}>
+          {named && group.name ? <Label>{group.name}</Label> : null}
+
+          {group.servers.map((server) => (
+            <FleetServerRow
+              key={server.id}
+              onOpen={() => open(server.id)}
+              opening={
+                opening.status !== "idle" && opening.serverId === server.id
+                  ? opening
+                  : null
+              }
+              server={server}
+            />
+          ))}
+        </div>
       ))}
 
+      {dismissed > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[12px] text-ink-4 leading-relaxed">
+            {t.plural("fleet.dismissed", dismissed)}
+          </p>
+          <Button icon={Undo2} onClick={restore} size="sm" variant="discreet">
+            {t("fleet.restore")}
+          </Button>
+        </div>
+      ) : null}
+
       {unreachable > 0 ? (
-        <p className="text-[11px] text-ink-4 leading-relaxed">
+        <p className="text-[12px] text-ink-4 leading-relaxed">
           {t.plural("fleet.noAddress", unreachable)}
         </p>
       ) : null}

@@ -47,7 +47,8 @@ describe("machine nue", () => {
     expect(text(html)).toContain("Distribution ubuntu 24.04");
     expect(text(html)).toContain("Architecture amd64");
     expect(text(html)).toContain("Mémoire 8192 Mo");
-    expect(text(html)).toContain("Disque libre 38.4 Go");
+    expect(text(html)).toContain("Disque libre 38,4 Go");
+    expect(text(html)).toContain("8192 Mo · 38,4 Go libres");
   });
 
   it("propose l'installation", () => {

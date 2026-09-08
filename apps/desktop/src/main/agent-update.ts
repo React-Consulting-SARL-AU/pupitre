@@ -3,7 +3,8 @@ import type { InstallResult } from "@pupitre/shared/agent-protocol/install";
 import type { AgentUpgradeResult } from "@pupitre/shared/agent-protocol/system";
 import type { AgentResponse } from "@shared/agent";
 import type { AgentUpdateState } from "@shared/agent-update";
-import { ipcMain, type WebContents } from "electron";
+import { app, ipcMain, type WebContents } from "electron";
+import { account } from "./account";
 import { agentClient } from "./agent";
 import { carriedRelease } from "./agent-binary";
 import {
@@ -15,6 +16,8 @@ import {
 import { declaredModules } from "./catalog";
 import { inspect } from "./inspection";
 import { agentResourcesDir } from "./install";
+import { refusalOf } from "./refusal";
+import { relayTo } from "./relay";
 import { byId } from "./servers";
 
 /**
@@ -28,10 +31,12 @@ import { byId } from "./servers";
 
 function deps(): AgentUpdateDeps {
   return {
+    appVersion: app.getVersion(),
     carried: (arch) => carriedRelease(agentResourcesDir(), arch),
     client: agentClient,
     declared: declaredModules,
     probe: inspect,
+    published: (arch) => account.latestAgentRelease(arch),
   };
 }
 
@@ -39,9 +44,7 @@ function unknownServer(): AgentResponse<never> {
   return {
     ok: false,
     error: {
-      code: "bad_request",
-      message: "Ce serveur n'est plus dans la liste.",
-      fix: "Choisis un serveur dans les réglages.",
+      ...refusalOf("bad_request", "refusal.server.unknown"),
     },
   };
 }
@@ -51,11 +54,7 @@ function known(serverId: unknown): string | null {
 }
 
 function relay(sender: WebContents, token: unknown): (event: Event) => void {
-  return (event) => {
-    if (typeof token === "string" && !sender.isDestroyed()) {
-      sender.send("agent-update:event", { token, event });
-    }
-  };
+  return relayTo<Event>(sender, token, "agent-update:event", "event");
 }
 
 function names(modules: unknown): string[] | null {
@@ -113,9 +112,8 @@ export function registerAgentUpdate(): void {
         return {
           ok: false,
           error: {
-            code: "bad_request",
-            message: "La liste des modules est illisible.",
-            fix: "Recharge la liste des services, puis relance la mise à jour.",
+            ...refusalOf("bad_request", "refusal.modules.unreadable"),
+            fix: undefined,
           },
         };
       }

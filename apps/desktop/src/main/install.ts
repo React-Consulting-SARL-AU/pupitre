@@ -5,6 +5,7 @@ import type {
   ModuleConfig,
 } from "@pupitre/shared/agent-protocol/install";
 import type { AgentResponse } from "@shared/agent";
+import type { AgentSendPhase } from "@shared/install";
 import { app, ipcMain } from "electron";
 import { account, agentPlatformUrl } from "./account";
 import { agentClient } from "./agent";
@@ -15,6 +16,7 @@ import {
 } from "./agent-binary";
 import { AGENT_RELEASE_PUBLIC_KEY } from "./agent-release";
 import { declaredModules } from "./catalog";
+import { managedValues } from "./connections";
 import { prepareAgent } from "./enrollment-run";
 import { inspect } from "./inspection";
 import {
@@ -24,7 +26,9 @@ import {
   runInstall,
 } from "./install-run";
 import { takeSecrets } from "./install-secrets";
-import { byId, paths } from "./servers";
+import { refuseWith } from "./refusal";
+import { relayTo } from "./relay";
+import { byId, noteGrant, paths } from "./servers";
 import { sshArgs } from "./ssh-config";
 import { usageRefusal } from "./usage-guard";
 
@@ -45,8 +49,8 @@ export function agentResourcesDir(): string {
     : join(app.getAppPath(), "resources", AGENT_DIR);
 }
 
-function refuse(message: string, fix: string): AgentResponse<never> {
-  return { ok: false, error: { code: "bad_request", fix, message } };
+function refuse(id: string): AgentResponse<never> {
+  return refuseWith("bad_request", id);
 }
 
 /**
@@ -56,19 +60,20 @@ function refuse(message: string, fix: string): AgentResponse<never> {
  */
 async function deliver(
   serverId: string,
-  arch: string
+  arch: string,
+  onPhase: (phase: AgentSendPhase) => void = () => undefined
 ): Promise<AgentResponse<AgentDelivery>> {
   const server = byId(serverId);
 
   if (!server) {
-    return refuse(
-      "Ce serveur n'est plus dans la liste.",
-      "Choisis un serveur dans les réglages."
-    );
+    return refuse("refusal.server.unknown");
   }
+
+  onPhase("enrolling");
 
   const prepared = await prepareAgent(server, arch, {
     account,
+    bind: noteGrant,
     build: app.isPackaged ? "production" : "development",
     embedded: (wanted) => agentPayload(agentResourcesDir(), wanted),
     releaseKey: AGENT_RELEASE_PUBLIC_KEY,
@@ -77,6 +82,8 @@ async function deliver(
   if (!prepared.ok) {
     return prepared;
   }
+
+  onPhase("sending");
 
   const sent = await sendAgentBinary({
     args: sshArgs(server, paths()),
@@ -108,17 +115,11 @@ function checked(
   modules: unknown
 ): { serverId: string; modules: string[] } | AgentResponse<never> {
   if (typeof serverId !== "string" || !byId(serverId)) {
-    return refuse(
-      "Ce serveur n'est plus dans la liste.",
-      "Choisis un serveur dans les réglages."
-    );
+    return refuse("refusal.server.unknown");
   }
 
   if (!Array.isArray(modules) || modules.some((id) => typeof id !== "string")) {
-    return refuse(
-      "La liste des modules est illisible.",
-      "Reviens au catalogue et refais ta sélection."
-    );
+    return refuse("refusal.selection.unreadable");
   }
 
   return { modules: modules as string[], serverId };
@@ -136,13 +137,11 @@ function configOf(value: unknown): ModuleConfig {
  * interface: the renderer names a server, and nothing else about the machine.
  */
 async function sendAgent(
-  serverId: unknown
+  serverId: unknown,
+  onPhase: (phase: AgentSendPhase) => void = () => undefined
 ): Promise<AgentResponse<AgentDelivery>> {
   if (typeof serverId !== "string" || !byId(serverId)) {
-    return refuse(
-      "Ce serveur n'est plus dans la liste.",
-      "Choisis un serveur dans les réglages."
-    );
+    return refuse("refusal.server.unknown");
   }
 
   const refused = usageRefusal(() => account.guard());
@@ -151,21 +150,26 @@ async function sendAgent(
     return refused;
   }
 
+  onPhase("reading");
+
   const probe = await inspect(serverId);
 
   if (!probe.ok) {
     return probe;
   }
 
-  const sent = await deliver(serverId, probe.result.arch);
+  const sent = await deliver(serverId, probe.result.arch, onPhase);
 
   if (!sent.ok) {
     return sent;
   }
 
+  onPhase("starting");
+
   const enrolled = await enrolAgent(serverId, sent.result.enrollment, {
     client: agentClient,
     enrollment: enrollmentGrant,
+    identity: (id) => agentClient.session(id)?.server_id ?? null,
   });
 
   return enrolled.ok ? sent : enrolled;
@@ -193,11 +197,12 @@ export function registerInstall(): void {
         return refused;
       }
 
-      const update = (change: InstallUpdate) => {
-        if (typeof token === "string" && !event.sender.isDestroyed()) {
-          event.sender.send("install:update", { token, update: change });
-        }
-      };
+      const update = relayTo<InstallUpdate>(
+        event.sender,
+        token,
+        "install:update",
+        "update"
+      );
 
       return await runInstall(
         call.serverId,
@@ -206,9 +211,11 @@ export function registerInstall(): void {
         update,
         {
           client: agentClient,
+          identity: (id) => agentClient.session(id)?.server_id ?? null,
           declared: declaredModules,
           deliver,
           enrollment: enrollmentGrant,
+          managed: managedValues,
           probe: inspect,
           secrets: takeSecrets,
         }
@@ -216,8 +223,18 @@ export function registerInstall(): void {
     }
   );
 
-  ipcMain.handle("install:agent-send", (_event, serverId: unknown) =>
-    sendAgent(serverId)
+  ipcMain.handle(
+    "install:agent-send",
+    (event, token: unknown, serverId: unknown) =>
+      sendAgent(
+        serverId,
+        relayTo<AgentSendPhase>(
+          event.sender,
+          token,
+          "install:agent-phase",
+          "phase"
+        )
+      )
   );
 
   ipcMain.handle(
@@ -227,10 +244,7 @@ export function registerInstall(): void {
       serverId: unknown
     ): Promise<AgentResponse<InstallReport>> => {
       if (typeof serverId !== "string" || !byId(serverId)) {
-        return refuse(
-          "Ce serveur n'est plus dans la liste.",
-          "Choisis un serveur dans les réglages."
-        );
+        return refuse("refusal.server.unknown");
       }
 
       return await agentClient.request(serverId, "report");

@@ -1,6 +1,7 @@
 import { formatUsd } from "@pupitre/shared/plans"
 import { useMutation } from "@tanstack/react-query"
 import { CreditCard } from "lucide-react"
+import { SeatQuantityForm } from "@/components/dashboard/seat-quantity-form"
 import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,7 +19,6 @@ import {
 import { formatDateTime } from "@/lib/utils/format"
 
 export interface SubscriptionCardSubscription {
-  product: string
   quantity: number
   status: string
   interval: string | null
@@ -28,6 +28,7 @@ export interface SubscriptionCardSubscription {
 export interface SubscriptionCardProps {
   organizationId: string
   subscription: SubscriptionCardSubscription
+  seatsInUse: number
 }
 
 function intervalOf(value: string | null): BillingIntervalName | null {
@@ -37,6 +38,7 @@ function intervalOf(value: string | null): BillingIntervalName | null {
 export function SubscriptionCard({
   organizationId,
   subscription,
+  seatsInUse,
 }: SubscriptionCardProps) {
   const t = useTranslations()
   const portal = useMutation({
@@ -54,14 +56,6 @@ export function SubscriptionCard({
       </CardHeader>
       <CardBody className="flex flex-col gap-gutter">
         <dl className="grid gap-gutter sm:grid-cols-2">
-          <div>
-            <dt className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-              {t("billing.product")}
-            </dt>
-            <dd className="mt-1 font-data text-[12px] text-ink">
-              {subscription.product}
-            </dd>
-          </div>
           <div>
             <dt className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
               {t("billing.seats")}
@@ -99,6 +93,13 @@ export function SubscriptionCard({
             </dd>
           </div>
         </dl>
+
+        <SeatQuantityForm
+          organizationId={organizationId}
+          quantity={seats}
+          seatsInUse={seatsInUse}
+          trialing={subscription.status === "trialing"}
+        />
 
         <div className="flex flex-wrap items-center gap-3">
           <Button

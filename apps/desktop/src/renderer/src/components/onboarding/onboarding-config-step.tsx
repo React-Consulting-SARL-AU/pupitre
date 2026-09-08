@@ -2,25 +2,25 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { useCatalog } from "../../stores/catalog";
 import { ConfigScreen } from "../config/config-screen";
 import { OnboardingReplayNotice } from "./onboarding-replay-notice";
+import { OnboardingResumeNotice } from "./onboarding-resume-notice";
 
 /**
- * The configuration screen of APP-05, mounted for the two moments that need it:
- * before the first install, and again for a module whose secret the app no
- * longer has.
+ * The configuration screen, mounted for the three moments that need
+ * it: before the first install, again for a module whose secret the app no
+ * longer has, and once more for what an interrupted install never sent.
  */
 export function OnboardingConfigStep({
   serverName,
-  machineName,
   replaying,
-  onMachineName,
+  remaining,
   onBack,
   onInstall,
   onReplay,
 }: {
   serverName: string;
-  machineName: string;
   replaying: string | null;
-  onMachineName: (name: string) => void;
+  /** What a resumed onboarding has left to install, and must ask about again. */
+  remaining: readonly string[];
   onBack: () => void;
   onInstall: () => void;
   onReplay: (moduleId: string) => void;
@@ -38,23 +38,31 @@ export function OnboardingConfigStep({
   if (replaying) {
     return (
       <ConfigScreen
-        machineName={machineName}
         notice={<OnboardingReplayNotice moduleName={nameOf(replaying)} />}
         onInstall={() => onReplay(replaying)}
         only={[replaying]}
-        onMachineName={onMachineName}
         serverName={serverName}
         submitLabel={t("onboarding.config.replaySubmit")}
       />
     );
   }
 
+  if (remaining.length > 0) {
+    return (
+      <ConfigScreen
+        notice={<OnboardingResumeNotice names={remaining.map(nameOf)} />}
+        onInstall={onInstall}
+        only={remaining}
+        serverName={serverName}
+        submitLabel={t("onboarding.config.resumeSubmit")}
+      />
+    );
+  }
+
   return (
     <ConfigScreen
-      machineName={machineName}
       onBack={onBack}
       onInstall={onInstall}
-      onMachineName={onMachineName}
       serverName={serverName}
     />
   );

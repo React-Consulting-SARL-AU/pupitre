@@ -1,3 +1,6 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateEnum
 CREATE TYPE "ServerStatus" AS ENUM ('enrolling', 'active', 'grace', 'suspended', 'revoked');
 
@@ -5,7 +8,13 @@ CREATE TYPE "ServerStatus" AS ENUM ('enrolling', 'active', 'grace', 'suspended',
 CREATE TYPE "ReleaseChannel" AS ENUM ('stable', 'beta');
 
 -- CreateEnum
+CREATE TYPE "DesktopOs" AS ENUM ('macos', 'windows', 'linux');
+
+-- CreateEnum
 CREATE TYPE "BillingInterval" AS ENUM ('month', 'year');
+
+-- CreateEnum
+CREATE TYPE "AlertKind" AS ENUM ('server_unreachable', 'disk_high', 'agent_outdated', 'entitlement_grace');
 
 -- CreateTable
 CREATE TABLE "user" (
@@ -20,6 +29,8 @@ CREATE TABLE "user" (
     "banned" BOOLEAN DEFAULT false,
     "banReason" TEXT,
     "banExpires" TIMESTAMP(3),
+    "twoFactorEnabled" BOOLEAN DEFAULT false,
+    "locale" TEXT NOT NULL DEFAULT 'fr',
 
     CONSTRAINT "user_pkey" PRIMARY KEY ("id")
 );
@@ -125,6 +136,36 @@ CREATE TABLE "deviceCode" (
 );
 
 -- CreateTable
+CREATE TABLE "passkey" (
+    "id" TEXT NOT NULL,
+    "name" TEXT,
+    "publicKey" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "credentialID" TEXT NOT NULL,
+    "counter" INTEGER NOT NULL,
+    "deviceType" TEXT NOT NULL,
+    "backedUp" BOOLEAN NOT NULL,
+    "transports" TEXT,
+    "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+    "aaguid" TEXT,
+
+    CONSTRAINT "passkey_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "twoFactor" (
+    "id" TEXT NOT NULL,
+    "secret" TEXT NOT NULL,
+    "backupCodes" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "verified" BOOLEAN DEFAULT true,
+    "failedVerificationCount" INTEGER DEFAULT 0,
+    "lockedUntil" TIMESTAMP(3),
+
+    CONSTRAINT "twoFactor_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Device" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -142,18 +183,52 @@ CREATE TABLE "Server" (
     "id" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "host" TEXT,
+    "port" INTEGER NOT NULL DEFAULT 22,
+    "sshUser" TEXT NOT NULL DEFAULT 'dev',
     "hostFingerprint" TEXT,
     "arch" TEXT NOT NULL,
     "agentVersion" TEXT,
+    "targetVersion" TEXT,
     "serverTokenHash" TEXT,
+    "enrollmentTokenHash" TEXT,
+    "enrollmentKey" TEXT,
+    "enrollmentExpiresAt" TIMESTAMP(3),
+    "entitlementValidUntil" TIMESTAMP(3),
+    "decommissionAt" TIMESTAMP(3),
     "status" "ServerStatus" NOT NULL DEFAULT 'enrolling',
+    "channel" "ReleaseChannel" NOT NULL DEFAULT 'stable',
+    "deviceId" TEXT,
     "assignedUserId" TEXT,
+    "pendingAssignmentEmail" TEXT,
     "lastHeartbeatAt" TIMESTAMP(3),
     "metrics" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Server_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Alert" (
+    "id" TEXT NOT NULL,
+    "serverId" TEXT NOT NULL,
+    "kind" "AlertKind" NOT NULL,
+    "firstSeenAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "notifiedAt" TIMESTAMP(3),
+    "resolvedAt" TIMESTAMP(3),
+
+    CONSTRAINT "Alert_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ServerRevokedDevice" (
+    "serverId" TEXT NOT NULL,
+    "deviceId" TEXT NOT NULL,
+    "revokedByUserId" TEXT,
+    "revokedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ServerRevokedDevice_pkey" PRIMARY KEY ("serverId","deviceId")
 );
 
 -- CreateTable
@@ -193,6 +268,23 @@ CREATE TABLE "Release" (
     "publishedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Release_pkey" PRIMARY KEY ("version","arch")
+);
+
+-- CreateTable
+CREATE TABLE "AppRelease" (
+    "version" TEXT NOT NULL,
+    "os" "DesktopOs" NOT NULL,
+    "arch" TEXT NOT NULL,
+    "format" TEXT NOT NULL,
+    "url" TEXT NOT NULL,
+    "bytes" INTEGER NOT NULL,
+    "sha256" TEXT NOT NULL,
+    "signature" TEXT,
+    "notes" TEXT NOT NULL,
+    "channel" "ReleaseChannel" NOT NULL DEFAULT 'beta',
+    "publishedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AppRelease_pkey" PRIMARY KEY ("version","os","arch")
 );
 
 -- CreateTable
@@ -255,6 +347,18 @@ CREATE INDEX "deviceCode_deviceCode_idx" ON "deviceCode"("deviceCode");
 CREATE INDEX "deviceCode_userCode_idx" ON "deviceCode"("userCode");
 
 -- CreateIndex
+CREATE INDEX "passkey_userId_idx" ON "passkey"("userId");
+
+-- CreateIndex
+CREATE INDEX "passkey_credentialID_idx" ON "passkey"("credentialID");
+
+-- CreateIndex
+CREATE INDEX "twoFactor_secret_idx" ON "twoFactor"("secret");
+
+-- CreateIndex
+CREATE INDEX "twoFactor_userId_idx" ON "twoFactor"("userId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Device_fingerprint_key" ON "Device"("fingerprint");
 
 -- CreateIndex
@@ -264,13 +368,37 @@ CREATE INDEX "Device_userId_idx" ON "Device"("userId");
 CREATE UNIQUE INDEX "Server_serverTokenHash_key" ON "Server"("serverTokenHash");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Server_enrollmentTokenHash_key" ON "Server"("enrollmentTokenHash");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Server_enrollmentKey_key" ON "Server"("enrollmentKey");
+
+-- CreateIndex
 CREATE INDEX "Server_organizationId_idx" ON "Server"("organizationId");
 
 -- CreateIndex
 CREATE INDEX "Server_assignedUserId_idx" ON "Server"("assignedUserId");
 
 -- CreateIndex
+CREATE INDEX "Server_deviceId_idx" ON "Server"("deviceId");
+
+-- CreateIndex
 CREATE INDEX "Server_status_idx" ON "Server"("status");
+
+-- CreateIndex
+CREATE INDEX "Server_decommissionAt_idx" ON "Server"("decommissionAt");
+
+-- CreateIndex
+CREATE INDEX "Server_pendingAssignmentEmail_idx" ON "Server"("pendingAssignmentEmail");
+
+-- CreateIndex
+CREATE INDEX "Alert_serverId_kind_idx" ON "Alert"("serverId", "kind");
+
+-- CreateIndex
+CREATE INDEX "Alert_resolvedAt_idx" ON "Alert"("resolvedAt");
+
+-- CreateIndex
+CREATE INDEX "ServerRevokedDevice_deviceId_idx" ON "ServerRevokedDevice"("deviceId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Subscription_stripeSubscriptionId_key" ON "Subscription"("stripeSubscriptionId");
@@ -283,6 +411,9 @@ CREATE UNIQUE INDEX "OrganizationBilling_stripeCustomerId_key" ON "OrganizationB
 
 -- CreateIndex
 CREATE INDEX "Release_channel_publishedAt_idx" ON "Release"("channel", "publishedAt");
+
+-- CreateIndex
+CREATE INDEX "AppRelease_channel_publishedAt_idx" ON "AppRelease"("channel", "publishedAt");
 
 -- CreateIndex
 CREATE INDEX "Event_organizationId_createdAt_idx" ON "Event"("organizationId", "createdAt");
@@ -312,13 +443,31 @@ ALTER TABLE "invitation" ADD CONSTRAINT "invitation_organizationId_fkey" FOREIGN
 ALTER TABLE "invitation" ADD CONSTRAINT "invitation_inviterId_fkey" FOREIGN KEY ("inviterId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "passkey" ADD CONSTRAINT "passkey_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "twoFactor" ADD CONSTRAINT "twoFactor_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Device" ADD CONSTRAINT "Device_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Server" ADD CONSTRAINT "Server_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Server" ADD CONSTRAINT "Server_deviceId_fkey" FOREIGN KEY ("deviceId") REFERENCES "Device"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Server" ADD CONSTRAINT "Server_assignedUserId_fkey" FOREIGN KEY ("assignedUserId") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Alert" ADD CONSTRAINT "Alert_serverId_fkey" FOREIGN KEY ("serverId") REFERENCES "Server"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ServerRevokedDevice" ADD CONSTRAINT "ServerRevokedDevice_serverId_fkey" FOREIGN KEY ("serverId") REFERENCES "Server"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ServerRevokedDevice" ADD CONSTRAINT "ServerRevokedDevice_deviceId_fkey" FOREIGN KEY ("deviceId") REFERENCES "Device"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Subscription" ADD CONSTRAINT "Subscription_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -331,3 +480,4 @@ ALTER TABLE "Event" ADD CONSTRAINT "Event_organizationId_fkey" FOREIGN KEY ("org
 
 -- AddForeignKey
 ALTER TABLE "Event" ADD CONSTRAINT "Event_actorUserId_fkey" FOREIGN KEY ("actorUserId") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+

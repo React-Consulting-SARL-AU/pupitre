@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"pupitre.studio/agent/internal/i18n"
 	"strings"
 	"time"
 
@@ -24,8 +25,8 @@ var tools = [][]string{
 
 func (r *Reader) Reboot() error {
 	if _, err := sys.Exec(r.ctx(), sys.Command{Argv: []string{"systemctl", "reboot"}}); err != nil {
-		return protocol.NewError(contract.ErrorInternal, "le redémarrage a été refusé").
-			WithFix("Connecte-toi en SSH et lance sudo systemctl reboot.")
+		return protocol.NewError(contract.ErrorInternal, i18n.T("state.reboot.refused")).
+			WithFix(i18n.T("state.reboot.refused.fix"))
 	}
 
 	return nil
@@ -51,7 +52,7 @@ func (r *Reader) toolChecks() []contract.DoctorCheck {
 			Name:    argv[0],
 			OK:      err == nil,
 			Message: firstLine(out),
-			Fix:     absent(err, "Installe le module qui fournit "+argv[0]+", la liste vient de catalog."),
+			Fix:     absent(err, i18n.T("state.doctor.tool.fix", argv[0])),
 		})
 	}
 
@@ -68,7 +69,7 @@ func (r *Reader) serviceChecks() []contract.DoctorCheck {
 			Name:    service.Name + " (" + service.ID + ")",
 			OK:      running,
 			Message: string(service.State),
-			Fix:     when(!running, "Lis son état avec service.status "+service.ID+"."),
+			Fix:     when(!running, i18n.T("state.doctor.service.fix", service.ID)),
 		})
 	}
 
@@ -80,9 +81,9 @@ func (r *Reader) sessionCheck() contract.DoctorCheck {
 	_, err := r.ctx().Sys().Run(sys.Command{Argv: []string{"tmux", "has-session", "-t", session}})
 
 	return contract.DoctorCheck{
-		Name: "session tmux « " + session + " »",
+		Name: i18n.T("state.doctor.session", session),
 		OK:   err == nil,
-		Fix:  absent(err, "Elle naît au premier project.up : aucun projet n'a encore démarré."),
+		Fix:  absent(err, i18n.T("state.doctor.session.fix")),
 	}
 }
 
@@ -101,8 +102,8 @@ func (r *Reader) projectChecks() []contract.DoctorCheck {
 		checks = append(checks, contract.DoctorCheck{
 			Name:    project.Name,
 			OK:      present,
-			Message: when(!present, "dossier absent : "+dir),
-			Fix:     when(!present, "Récupère les sources avec project.sync "+project.Name+"."),
+			Message: when(!present, i18n.T("state.dir.absent", dir)),
+			Fix:     when(!present, i18n.T("state.project.sync.fix", project.Name)),
 		})
 	}
 
@@ -116,28 +117,28 @@ func (r *Reader) Diag() contract.Diag {
 
 	var report strings.Builder
 	fmt.Fprintf(&report, "pupitred %s · %s · %s %s · %s\n", machine.AgentVersion, machine.Hostname, machine.OS, machine.Version, machine.Arch)
-	fmt.Fprintf(&report, "droit d'usage : %s\n", r.entitlement())
-	fmt.Fprintf(&report, "charge %.2f %.2f %.2f · mémoire %d/%d Mo · disque %.0f/%.0f Go · démarrée depuis %s\n",
+	report.WriteString(i18n.T("state.diag.entitlement", r.entitlement()) + "\n")
+	report.WriteString(i18n.T("state.diag.machine",
 		machine.Load[0], machine.Load[1], machine.Load[2],
 		machine.RAMUsedMB, machine.RAMTotalMB, machine.DiskFreeGB, machine.DiskTotalGB,
-		(time.Duration(machine.UptimeS) * time.Second).String())
+		(time.Duration(machine.UptimeS)*time.Second).String()) + "\n")
 
-	report.WriteString("\nservices\n")
+	report.WriteString("\n" + i18n.T("state.diag.services") + "\n")
 	for _, service := range r.services(false) {
 		fmt.Fprintf(&report, "  %-24s %-8s %s\n", service.ID, service.State, service.Version)
 	}
 
-	report.WriteString("\nprojets\n")
+	report.WriteString("\n" + i18n.T("state.diag.projects") + "\n")
 	for _, project := range r.projects() {
 		fmt.Fprintf(&report, "  %-24s %-9s port %-6d %s\n", project.Name, project.State, project.Port, project.Branch)
 	}
 
-	report.WriteString("\nsessions\n")
+	report.WriteString("\n" + i18n.T("state.diag.sessions") + "\n")
 	for _, session := range r.Sessions() {
-		fmt.Fprintf(&report, "  %-8d %-7s %5d Mo %s\n", session.PID, session.Kind, session.RAMMB, session.Command)
+		fmt.Fprintf(&report, "  %-8d %-7s %5d %s %s\n", session.PID, session.Kind, session.RAMMB, i18n.T("state.diag.megabytes"), session.Command)
 	}
 
-	report.WriteString("\ndoctor\n")
+	report.WriteString("\n" + i18n.T("state.diag.doctor") + "\n")
 	for _, check := range r.Doctor() {
 		fmt.Fprintf(&report, "  %s %-30s %s\n", mark(check.OK), check.Name, check.Message)
 	}

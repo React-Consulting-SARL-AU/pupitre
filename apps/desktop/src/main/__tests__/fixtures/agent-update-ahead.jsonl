@@ -1,5 +1,5 @@
 # Le serveur porte un agent plus récent que l'app : le protocole répond quand même.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","protocol":1}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
 < {"id":1,"ok":true,"result":{"agent_version":"0.9.0","protocol":1,"entitlement":"valid","capabilities":["hello","ping","snapshot","status","diag","agent.upgrade"]}}
 @repeat
 > {"id":2,"cmd":"snapshot"}

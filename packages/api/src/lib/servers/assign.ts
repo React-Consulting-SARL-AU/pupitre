@@ -158,8 +158,11 @@ export async function revokeDeviceOnServer(
 ): Promise<void> {
   const server = await findServer(actor.organizationId, serverId)
   const prisma = getPrisma()
-  const device = await prisma.device.findUnique({
-    where: { id: deviceId },
+  const device = await prisma.device.findFirst({
+    where: {
+      id: deviceId,
+      user: { members: { some: { organizationId: actor.organizationId } } },
+    },
     select: { id: true, name: true },
   })
 

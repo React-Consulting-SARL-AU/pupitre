@@ -14,7 +14,7 @@ func TestSignedMessageHasTheFormThePipelineSigns(t *testing.T) {
 	message := string(selfupdate.SignedMessage("1.4.2", "amd64", strings.Repeat("ab", 32)))
 
 	if message != "pupitred\n1.4.2\namd64\n"+strings.Repeat("ab", 32)+"\n" {
-		t.Fatalf("message signé : %q", message)
+		t.Fatalf("signed message: %q", message)
 	}
 }
 
@@ -25,9 +25,9 @@ func TestFingerprintIsTheHexSha256(t *testing.T) {
 }
 
 func TestDecodeSignatureRefusesWhatIsNotAnEd25519Signature(t *testing.T) {
-	for _, encoded := range []string{"", "pas du base64 !", base64.StdEncoding.EncodeToString([]byte("trop court"))} {
+	for _, encoded := range []string{"", "not base64!", base64.StdEncoding.EncodeToString([]byte("trop court"))} {
 		if _, err := selfupdate.DecodeSignature(encoded); err == nil {
-			t.Fatalf("signature acceptée : %q", encoded)
+			t.Fatalf("signature accepted: %q", encoded)
 		}
 	}
 }
@@ -35,12 +35,12 @@ func TestDecodeSignatureRefusesWhatIsNotAnEd25519Signature(t *testing.T) {
 func TestDecodeSignatureAcceptsTheEncodingThePlatformStores(t *testing.T) {
 	public, private, err := ed25519.GenerateKey(nil)
 	if err != nil {
-		t.Fatalf("clé de test : %v", err)
+		t.Fatalf("test key: %v", err)
 	}
 
 	encoded := base64.StdEncoding.EncodeToString(ed25519.Sign(private, selfupdate.SignedMessage("1.0.0", "arm64", "ab")))
 	if len(encoded) != 88 {
-		t.Fatalf("la signature stockée fait %d caractères", len(encoded))
+		t.Fatalf("the stored signature is %d characters long", len(encoded))
 	}
 
 	signature, err := selfupdate.DecodeSignature(encoded)
@@ -49,14 +49,14 @@ func TestDecodeSignatureAcceptsTheEncodingThePlatformStores(t *testing.T) {
 	}
 
 	if !selfupdate.Verify(public, "1.0.0", "arm64", "ab", signature) {
-		t.Fatal("la signature n'a pas été reconnue")
+		t.Fatal("the signature was not recognized")
 	}
 }
 
 func TestParsePublicKeyRefusesAnythingButAnEd25519Key(t *testing.T) {
-	for _, encoded := range []string{"", "pas du base64 !", base64.StdEncoding.EncodeToString([]byte("trop court"))} {
+	for _, encoded := range []string{"", "not base64!", base64.StdEncoding.EncodeToString([]byte("trop court"))} {
 		if _, err := selfupdate.ParsePublicKey(encoded); err == nil {
-			t.Fatalf("clé acceptée : %q", encoded)
+			t.Fatalf("key accepted: %q", encoded)
 		}
 	}
 }
@@ -64,6 +64,6 @@ func TestParsePublicKeyRefusesAnythingButAnEd25519Key(t *testing.T) {
 // Nothing is signed for a build that carries no key, so a release built without one refuses every upgrade rather than trusting it.
 func TestEmbeddedPublicKeyIsAbsentUntilTheReleaseBuildSetsIt(t *testing.T) {
 	if _, err := selfupdate.EmbeddedPublicKey(); err == nil {
-		t.Fatal("une clé est embarquée dans le build de test")
+		t.Fatal("a key is embedded in the test build")
 	}
 }

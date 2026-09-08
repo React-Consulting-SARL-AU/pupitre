@@ -2,10 +2,12 @@ package mongodb
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/db/dumps"
 	"pupitre.studio/agent/internal/sys"
@@ -16,8 +18,8 @@ import (
 )
 
 const (
-	Port    = 27017
-	release = "8.0"
+	DefaultPort    = 27017
+	DefaultVersion = "8.0"
 
 	pkg  = "mongodb-org"
 	unit = "mongod"
@@ -26,15 +28,12 @@ const (
 	markerPath = "/var/lib/pupitre/mongodb-app-user"
 	markerDir  = "/var/lib/pupitre"
 
-	keyringDir  = "/etc/apt/keyrings"
-	keyringPath = keyringDir + "/mongodb-" + release + ".asc"
-	keyURL      = "https://www.mongodb.org/static/pgp/server-" + release + ".asc"
-	listPath    = "/etc/apt/sources.list.d/mongodb-org-" + release + ".list"
+	keyringDir = "/etc/apt/keyrings"
 
 	osReleasePath   = "/etc/os-release"
 	defaultCodename = "noble"
 
-	appUser         = "app"
+	defaultAppUser  = "app"
 	authDatabase    = "admin"
 	loopback        = "127.0.0.1"
 	defaultDatabase = "admin"
@@ -42,18 +41,23 @@ const (
 	appPasswordKey = "MONGODB_APP_PASSWORD"
 )
 
-var config = []byte(`storage:
+const configTemplate = `storage:
   dbPath: /var/lib/mongodb
 systemLog:
   destination: file
   logAppend: true
   path: /var/log/mongodb/mongod.log
 net:
-  port: 27017
+  port: %d
   bindIp: 127.0.0.1
 security:
   authorization: enabled
-`)
+`
+
+var (
+	versionPattern = regexp.MustCompile(`^[0-9]{1,2}\.[0-9]$`)
+	userPattern    = regexp.MustCompile(`^[a-z][a-z0-9_]{0,63}$`)
+)
 
 type Module struct{}
 
@@ -63,6 +67,11 @@ func init() {
 
 func (Module) Manifest() contract.Manifest {
 	return manifest()
+}
+
+// A port another program already holds is the one thing this configuration cannot know from the manifest alone.
+func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
+	return modules.Problems(modules.PortTaken(ctx, "port"))
 }
 
 func (Module) Check(ctx *modules.Context) (modules.Status, error) {
@@ -81,8 +90,8 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 // MongoDB is not in the Ubuntu archive: the module adds the project's own repository, key first.
 func (Module) Install(ctx *modules.Context) error {
 	if err := ctx.Step("add-repository", func() (modules.Outcome, error) {
-		list := repository(codename(ctx))
-		if file.Exists(ctx, keyringPath) && file.Same(ctx, listPath, list) {
+		list := repository(version(ctx), codename(ctx))
+		if file.Exists(ctx, keyringPath(ctx)) && file.Same(ctx, listPath(ctx), list) {
 			return modules.Skipped, nil
 		}
 
@@ -90,11 +99,11 @@ func (Module) Install(ctx *modules.Context) error {
 			return modules.Failed, err
 		}
 
-		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"curl", "-fsSL", "-o", keyringPath, keyURL}}); err != nil {
+		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"curl", "-fsSL", "-o", keyringPath(ctx), keyURL(ctx)}}); err != nil {
 			return modules.Failed, err
 		}
 
-		if err := file.WriteAtomic(ctx, listPath, list, 0o644); err != nil {
+		if err := file.WriteAtomic(ctx, listPath(ctx), list, 0o644); err != nil {
 			return modules.Failed, err
 		}
 
@@ -139,14 +148,16 @@ func (Module) Configure(ctx *modules.Context) error {
 func writeConfig(ctx *modules.Context) (bool, error) {
 	changed := false
 
+	content := renderConfig(port(ctx))
+
 	err := ctx.Step("write-config", func() (modules.Outcome, error) {
-		if file.Same(ctx, confPath, config) {
+		if file.Same(ctx, confPath, content) {
 			return modules.Skipped, nil
 		}
 
 		changed = true
 
-		return modules.Done, file.WriteAtomic(ctx, confPath, config, 0o644)
+		return modules.Done, file.WriteAtomic(ctx, confPath, content, 0o644)
 	})
 
 	return changed, err
@@ -189,21 +200,21 @@ func storePassword(ctx *modules.Context) (bool, error) {
 // The script goes in on the standard input of mongosh: an argv would show the password in ps.
 func createAppUser(ctx *modules.Context, rotated bool) error {
 	return ctx.Step("create-app-user", func() (modules.Outcome, error) {
-		if !rotated && file.Exists(ctx, markerPath) {
+		if !rotated && file.Same(ctx, markerPath, marker(ctx)) {
 			return modules.Skipped, nil
 		}
 
-		script := renderUser(ctx.Secret("app_password"))
-		argv := []string{"mongosh", "--quiet", "--host", loopback, "--port", strconv.Itoa(Port)}
+		script := renderUser(appUser(ctx), ctx.Secret("app_password"))
+		argv := []string{"mongosh", "--quiet", "--host", loopback, "--port", strconv.Itoa(port(ctx))}
 		if _, err := sys.Exec(ctx, sys.Command{Argv: argv, Stdin: []byte(script)}); err != nil {
-			return modules.Failed, fmt.Errorf("création de l'utilisateur applicatif refusée : journalctl -u %s -n 40 · %w", unit, err)
+			return modules.Failed, fmt.Errorf("application user creation refused: journalctl -u %s -n 40 · %w", unit, err)
 		}
 
 		if err := ctx.Sys().MkdirAll(markerDir, 0o755); err != nil {
 			return modules.Failed, err
 		}
 
-		return modules.Done, file.WriteAtomic(ctx, markerPath, []byte(appUser+"\n"), 0o600)
+		return modules.Done, file.WriteAtomic(ctx, markerPath, marker(ctx), 0o600)
 	})
 }
 
@@ -306,9 +317,9 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	}
 
 	status.State = systemd.State(ctx, unit)
-	status.Port = Port
+	status.Port = port(ctx)
 	status.Unit = unit
-	status.Credentials = map[string]string{"Utilisateur applicatif": appPasswordKey}
+	status.Credentials = map[string]string{i18n.T("module.db.mongodb.app_user.label"): appPasswordKey}
 
 	return status, nil
 }
@@ -318,7 +329,7 @@ func URL(ctx *modules.Context, name string) (string, error) {
 		return "", err
 	}
 
-	return fmt.Sprintf("mongodb://%s@%s:%d/%s?authSource=%s", appUser, loopback, Port, database(name), authDatabase), nil
+	return fmt.Sprintf("mongodb://%s@%s:%d/%s?authSource=%s", appUser(ctx), loopback, port(ctx), database(name), authDatabase), nil
 }
 
 // mongosh asks for the password itself: an url without one is an url that can be shown.
@@ -368,8 +379,8 @@ func requireInstalled(ctx *modules.Context) error {
 // mongodump and mongorestore read their credentials from the command line and from nowhere else; the journal masks them.
 func credentials(ctx *modules.Context) []string {
 	return []string{
-		"--host=" + loopback, "--port=" + strconv.Itoa(Port),
-		"--username=" + appUser, "--password=" + ctx.Secret("app_password"),
+		"--host=" + loopback, "--port=" + strconv.Itoa(port(ctx)),
+		"--username=" + appUser(ctx), "--password=" + ctx.Secret("app_password"),
 		"--authenticationDatabase=" + authDatabase,
 	}
 }
@@ -396,8 +407,60 @@ func database(name string) string {
 	return name
 }
 
-func repository(codename string) []byte {
-	return []byte("deb [ arch=amd64,arm64 signed-by=" + keyringPath + " ] https://repo.mongodb.org/apt/ubuntu " + codename + "/mongodb-org/" + release + " multiverse\n")
+func repository(version, codename string) []byte {
+	return []byte("deb [ arch=amd64,arm64 signed-by=" + keyringPathOf(version) + " ] https://repo.mongodb.org/apt/ubuntu " + codename + "/mongodb-org/" + version + " multiverse\n")
+}
+
+func version(ctx *modules.Context) string {
+	chosen := strings.TrimSpace(ctx.String("version"))
+	if chosen == "" || !versionPattern.MatchString(chosen) {
+		return DefaultVersion
+	}
+
+	return chosen
+}
+
+func keyringPathOf(version string) string {
+	return keyringDir + "/mongodb-" + version + ".asc"
+}
+
+func keyringPath(ctx *modules.Context) string {
+	return keyringPathOf(version(ctx))
+}
+
+func keyURL(ctx *modules.Context) string {
+	return "https://www.mongodb.org/static/pgp/server-" + version(ctx) + ".asc"
+}
+
+func listPath(ctx *modules.Context) string {
+	return "/etc/apt/sources.list.d/mongodb-org-" + version(ctx) + ".list"
+}
+
+func port(ctx *modules.Context) int {
+	if chosen := ctx.Int("port"); chosen > 0 {
+		return chosen
+	}
+
+	return DefaultPort
+}
+
+// A user name reaches the mongosh script as an identifier, so it is held to what Mongo accepts and nothing else.
+func appUser(ctx *modules.Context) string {
+	chosen := strings.TrimSpace(ctx.String("app_user"))
+	if chosen == "" || !userPattern.MatchString(chosen) {
+		return defaultAppUser
+	}
+
+	return chosen
+}
+
+// The marker carries the user it created: renaming the applicative user is what makes the step run again.
+func marker(ctx *modules.Context) []byte {
+	return []byte(appUser(ctx) + "\n")
+}
+
+func renderConfig(port int) []byte {
+	return []byte(fmt.Sprintf(configTemplate, port))
 }
 
 func codename(ctx *modules.Context) string {
@@ -416,7 +479,7 @@ func codename(ctx *modules.Context) string {
 }
 
 // The first user is created through the localhost exception; afterwards the script authenticates before touching anything.
-func renderUser(password string) string {
+func renderUser(appUser, password string) string {
 	quoted := strconv.Quote(password)
 
 	return strings.Join([]string{

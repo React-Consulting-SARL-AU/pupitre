@@ -46,8 +46,10 @@ function reportInternalError(error: unknown, request: Request): string {
 }
 
 export function createApi<Routes extends AnyElysia>(apiRoutes: Routes) {
-  // Workers forbid `new Function`, which Elysia's ahead-of-time compiler uses.
-  return new Elysia({ aot: false, prefix: "/api/v1" })
+  // Workers forbid `new Function`, which Elysia's ahead-of-time compiler and its
+  // exact-mirror normalizer both use: the typebox normalizer is the fallback
+  // Elysia would reach anyway, minus a warning per route.
+  return new Elysia({ aot: false, normalize: "typebox", prefix: "/api/v1" })
     .onError(({ code, error, request, set }) => {
       const locale = resolveLocale(request.headers)
 

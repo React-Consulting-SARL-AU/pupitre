@@ -192,7 +192,7 @@ describe("ce que le formulaire refuse", () => {
       throw new Error("attendu : un refus");
     } catch (error) {
       expect(error).toBeInstanceOf(SetupError);
-      expect((error as SetupError).fix.length).toBeGreaterThan(0);
+      expect((error as SetupError).phrase.id).toStartWith("refusal.");
     }
   });
 });

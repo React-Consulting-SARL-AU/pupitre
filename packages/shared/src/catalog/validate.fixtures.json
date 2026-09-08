@@ -1,0 +1,933 @@
+{
+  "cases": [
+    {
+      "name": "text/required/empty",
+      "field": {
+        "key": "git_name",
+        "kind": "text",
+        "label": "Nom",
+        "required": true
+      },
+      "value": "",
+      "expect": "required"
+    },
+    {
+      "name": "text/required/blank",
+      "field": {
+        "key": "git_name",
+        "kind": "text",
+        "label": "Nom",
+        "required": true
+      },
+      "value": "   ",
+      "expect": "required"
+    },
+    {
+      "name": "text/required/filled",
+      "field": {
+        "key": "git_name",
+        "kind": "text",
+        "label": "Nom",
+        "required": true
+      },
+      "value": "Jordan",
+      "expect": null
+    },
+    {
+      "name": "text/optional/empty",
+      "field": {
+        "key": "gopath",
+        "kind": "text",
+        "label": "GOPATH",
+        "required": false
+      },
+      "value": "",
+      "expect": null
+    },
+    {
+      "name": "text/optional/absent",
+      "field": {
+        "key": "gopath",
+        "kind": "text",
+        "label": "GOPATH",
+        "required": false
+      },
+      "expect": null
+    },
+    {
+      "name": "text/min_length/short",
+      "field": {
+        "key": "git_name",
+        "kind": "text",
+        "label": "Nom",
+        "required": true,
+        "min_length": 2
+      },
+      "value": "J",
+      "expect": "min_length"
+    },
+    {
+      "name": "text/max_length/long",
+      "field": {
+        "key": "git_name",
+        "kind": "text",
+        "label": "Nom",
+        "required": true,
+        "max_length": 4
+      },
+      "value": "Jordan",
+      "expect": "max_length"
+    },
+    {
+      "name": "text/pattern/wrong",
+      "field": {
+        "key": "version",
+        "kind": "text",
+        "label": "Version",
+        "required": true,
+        "pattern": "^(latest|[0-9]+\\.[0-9]+(\\.[0-9]+)?)$"
+      },
+      "value": "nightly",
+      "expect": "pattern"
+    },
+    {
+      "name": "text/pattern/latest",
+      "field": {
+        "key": "version",
+        "kind": "text",
+        "label": "Version",
+        "required": true,
+        "pattern": "^(latest|[0-9]+\\.[0-9]+(\\.[0-9]+)?)$"
+      },
+      "value": "latest",
+      "expect": null
+    },
+    {
+      "name": "text/pattern/semver",
+      "field": {
+        "key": "version",
+        "kind": "text",
+        "label": "Version",
+        "required": true,
+        "pattern": "^(latest|[0-9]+\\.[0-9]+(\\.[0-9]+)?)$"
+      },
+      "value": "2.1.3",
+      "expect": null
+    },
+
+    {
+      "name": "format/email/ok",
+      "field": {
+        "key": "git_email",
+        "kind": "text",
+        "label": "Courriel",
+        "required": true,
+        "format": "email"
+      },
+      "value": "jordan@pupitre.studio",
+      "expect": null
+    },
+    {
+      "name": "format/email/upper",
+      "field": {
+        "key": "git_email",
+        "kind": "text",
+        "label": "Courriel",
+        "required": true,
+        "format": "email"
+      },
+      "value": "Jordan@Pupitre.Studio",
+      "expect": null
+    },
+    {
+      "name": "format/email/no-at",
+      "field": {
+        "key": "git_email",
+        "kind": "text",
+        "label": "Courriel",
+        "required": true,
+        "format": "email"
+      },
+      "value": "jordan.pupitre.studio",
+      "expect": "format"
+    },
+    {
+      "name": "format/email/no-tld",
+      "field": {
+        "key": "git_email",
+        "kind": "text",
+        "label": "Courriel",
+        "required": true,
+        "format": "email"
+      },
+      "value": "jordan@localhost",
+      "expect": "format"
+    },
+
+    {
+      "name": "format/domain/ok",
+      "field": {
+        "key": "domain",
+        "kind": "text",
+        "label": "Domaine",
+        "required": true,
+        "format": "domain"
+      },
+      "value": "flymate.dev",
+      "expect": null
+    },
+    {
+      "name": "format/domain/sub",
+      "field": {
+        "key": "domain",
+        "kind": "text",
+        "label": "Domaine",
+        "required": true,
+        "format": "domain"
+      },
+      "value": "dev.flymate.dev",
+      "expect": null
+    },
+    {
+      "name": "format/domain/upper",
+      "field": {
+        "key": "domain",
+        "kind": "text",
+        "label": "Domaine",
+        "required": true,
+        "format": "domain"
+      },
+      "value": "FlyMate.dev",
+      "expect": null
+    },
+    {
+      "name": "format/domain/single-label",
+      "field": {
+        "key": "domain",
+        "kind": "text",
+        "label": "Domaine",
+        "required": true,
+        "format": "domain"
+      },
+      "value": "flymate",
+      "expect": "format"
+    },
+    {
+      "name": "format/domain/scheme",
+      "field": {
+        "key": "domain",
+        "kind": "text",
+        "label": "Domaine",
+        "required": true,
+        "format": "domain"
+      },
+      "value": "https://flymate.dev",
+      "expect": "format"
+    },
+    {
+      "name": "format/domain/trailing-dot",
+      "field": {
+        "key": "domain",
+        "kind": "text",
+        "label": "Domaine",
+        "required": true,
+        "format": "domain"
+      },
+      "value": "flymate.dev.",
+      "expect": "format"
+    },
+    {
+      "name": "format/domain/leading-hyphen",
+      "field": {
+        "key": "domain",
+        "kind": "text",
+        "label": "Domaine",
+        "required": true,
+        "format": "domain"
+      },
+      "value": "-flymate.dev",
+      "expect": "format"
+    },
+
+    {
+      "name": "format/hostname/single",
+      "field": {
+        "key": "host",
+        "kind": "text",
+        "label": "Hôte",
+        "required": true,
+        "format": "hostname"
+      },
+      "value": "localhost",
+      "expect": null
+    },
+    {
+      "name": "format/hostname/space",
+      "field": {
+        "key": "host",
+        "kind": "text",
+        "label": "Hôte",
+        "required": true,
+        "format": "hostname"
+      },
+      "value": "my host",
+      "expect": "format"
+    },
+
+    {
+      "name": "format/identifier/ok",
+      "field": {
+        "key": "app_role",
+        "kind": "text",
+        "label": "Rôle",
+        "required": true,
+        "format": "identifier"
+      },
+      "value": "app",
+      "expect": null
+    },
+    {
+      "name": "format/identifier/underscore",
+      "field": {
+        "key": "app_role",
+        "kind": "text",
+        "label": "Rôle",
+        "required": true,
+        "format": "identifier"
+      },
+      "value": "app_user",
+      "expect": null
+    },
+    {
+      "name": "format/identifier/hyphen",
+      "field": {
+        "key": "app_role",
+        "kind": "text",
+        "label": "Rôle",
+        "required": true,
+        "format": "identifier"
+      },
+      "value": "app-user",
+      "expect": "format"
+    },
+    {
+      "name": "format/identifier/digit-first",
+      "field": {
+        "key": "app_role",
+        "kind": "text",
+        "label": "Rôle",
+        "required": true,
+        "format": "identifier"
+      },
+      "value": "1app",
+      "expect": "format"
+    },
+    {
+      "name": "format/identifier/upper",
+      "field": {
+        "key": "app_role",
+        "kind": "text",
+        "label": "Rôle",
+        "required": true,
+        "format": "identifier"
+      },
+      "value": "App",
+      "expect": "format"
+    },
+
+    {
+      "name": "format/path/ok",
+      "field": {
+        "key": "projects_dir",
+        "kind": "text",
+        "label": "Dossier",
+        "required": true,
+        "format": "path"
+      },
+      "value": "/home/dev/projects",
+      "expect": null
+    },
+    {
+      "name": "format/path/relative",
+      "field": {
+        "key": "projects_dir",
+        "kind": "text",
+        "label": "Dossier",
+        "required": true,
+        "format": "path"
+      },
+      "value": "projects",
+      "expect": "format"
+    },
+    {
+      "name": "format/path/tilde",
+      "field": {
+        "key": "projects_dir",
+        "kind": "text",
+        "label": "Dossier",
+        "required": true,
+        "format": "path"
+      },
+      "value": "~/projects",
+      "expect": "format"
+    },
+    {
+      "name": "format/path/space",
+      "field": {
+        "key": "projects_dir",
+        "kind": "text",
+        "label": "Dossier",
+        "required": true,
+        "format": "path"
+      },
+      "value": "/home/dev/my projects",
+      "expect": "format"
+    },
+
+    {
+      "name": "format/timezone/ok",
+      "field": {
+        "key": "timezone",
+        "kind": "text",
+        "label": "Fuseau",
+        "required": true,
+        "format": "timezone"
+      },
+      "value": "Europe/Paris",
+      "expect": null
+    },
+    {
+      "name": "format/timezone/etc",
+      "field": {
+        "key": "timezone",
+        "kind": "text",
+        "label": "Fuseau",
+        "required": true,
+        "format": "timezone"
+      },
+      "value": "Etc/UTC",
+      "expect": null
+    },
+    {
+      "name": "format/timezone/three",
+      "field": {
+        "key": "timezone",
+        "kind": "text",
+        "label": "Fuseau",
+        "required": true,
+        "format": "timezone"
+      },
+      "value": "America/Argentina/Salta",
+      "expect": null
+    },
+    {
+      "name": "format/timezone/bare",
+      "field": {
+        "key": "timezone",
+        "kind": "text",
+        "label": "Fuseau",
+        "required": true,
+        "format": "timezone"
+      },
+      "value": "Paris",
+      "expect": "format"
+    },
+    {
+      "name": "format/timezone/utc",
+      "field": {
+        "key": "timezone",
+        "kind": "text",
+        "label": "Fuseau",
+        "required": true,
+        "format": "timezone"
+      },
+      "value": "UTC",
+      "expect": null
+    },
+
+    {
+      "name": "format/size/mega",
+      "field": {
+        "key": "memory_limit",
+        "kind": "text",
+        "label": "Mémoire",
+        "required": false,
+        "format": "size"
+      },
+      "value": "256M",
+      "expect": null
+    },
+    {
+      "name": "format/size/giga-lower",
+      "field": {
+        "key": "buffer_pool",
+        "kind": "text",
+        "label": "Buffer",
+        "required": false,
+        "format": "size"
+      },
+      "value": "1g",
+      "expect": null
+    },
+    {
+      "name": "format/size/bytes",
+      "field": {
+        "key": "log_max_size",
+        "kind": "text",
+        "label": "Journal",
+        "required": false,
+        "format": "size"
+      },
+      "value": "10mb",
+      "expect": null
+    },
+    {
+      "name": "format/size/words",
+      "field": {
+        "key": "memory_limit",
+        "kind": "text",
+        "label": "Mémoire",
+        "required": false,
+        "format": "size"
+      },
+      "value": "beaucoup",
+      "expect": "format"
+    },
+    {
+      "name": "format/size/negative",
+      "field": {
+        "key": "memory_limit",
+        "kind": "text",
+        "label": "Mémoire",
+        "required": false,
+        "format": "size"
+      },
+      "value": "-1M",
+      "expect": "format"
+    },
+
+    {
+      "name": "format/url/ok",
+      "field": {
+        "key": "endpoint",
+        "kind": "text",
+        "label": "Adresse",
+        "required": true,
+        "format": "url"
+      },
+      "value": "https://api.example.com/v1",
+      "expect": null
+    },
+    {
+      "name": "format/url/scheme",
+      "field": {
+        "key": "endpoint",
+        "kind": "text",
+        "label": "Adresse",
+        "required": true,
+        "format": "url"
+      },
+      "value": "ftp://example.com",
+      "expect": "format"
+    },
+
+    {
+      "name": "number/ok",
+      "field": {
+        "key": "port",
+        "kind": "number",
+        "label": "Port",
+        "required": true,
+        "min": 1024,
+        "max": 65535
+      },
+      "value": 5432,
+      "expect": null
+    },
+    {
+      "name": "number/string",
+      "field": {
+        "key": "port",
+        "kind": "number",
+        "label": "Port",
+        "required": true,
+        "min": 1024,
+        "max": 65535
+      },
+      "value": "5432",
+      "expect": null
+    },
+    {
+      "name": "number/words",
+      "field": {
+        "key": "port",
+        "kind": "number",
+        "label": "Port",
+        "required": true,
+        "min": 1024,
+        "max": 65535
+      },
+      "value": "nope",
+      "expect": "type"
+    },
+    {
+      "name": "number/fraction",
+      "field": {
+        "key": "port",
+        "kind": "number",
+        "label": "Port",
+        "required": true,
+        "min": 1024,
+        "max": 65535
+      },
+      "value": 5432.5,
+      "expect": "type"
+    },
+    {
+      "name": "number/boolean",
+      "field": {
+        "key": "port",
+        "kind": "number",
+        "label": "Port",
+        "required": true
+      },
+      "value": true,
+      "expect": "type"
+    },
+    {
+      "name": "number/too-small",
+      "field": {
+        "key": "port",
+        "kind": "number",
+        "label": "Port",
+        "required": true,
+        "min": 1024,
+        "max": 65535
+      },
+      "value": 80,
+      "expect": "min"
+    },
+    {
+      "name": "number/too-large",
+      "field": {
+        "key": "port",
+        "kind": "number",
+        "label": "Port",
+        "required": true,
+        "min": 1024,
+        "max": 65535
+      },
+      "value": 70000,
+      "expect": "max"
+    },
+    {
+      "name": "number/required/empty",
+      "field": {
+        "key": "port",
+        "kind": "number",
+        "label": "Port",
+        "required": true
+      },
+      "value": "",
+      "expect": "required"
+    },
+    {
+      "name": "number/optional/empty",
+      "field": {
+        "key": "maxmemory_mb",
+        "kind": "number",
+        "label": "Plafond",
+        "required": false
+      },
+      "value": "",
+      "expect": null
+    },
+    {
+      "name": "number/zero",
+      "field": {
+        "key": "maxmemory_mb",
+        "kind": "number",
+        "label": "Plafond",
+        "required": false,
+        "min": 0,
+        "max": 262144
+      },
+      "value": 0,
+      "expect": null
+    },
+
+    {
+      "name": "select/ok",
+      "field": {
+        "key": "engine",
+        "kind": "select",
+        "label": "Moteur",
+        "required": true,
+        "options": ["mysql", "mariadb"]
+      },
+      "value": "mariadb",
+      "expect": null
+    },
+    {
+      "name": "select/unknown",
+      "field": {
+        "key": "engine",
+        "kind": "select",
+        "label": "Moteur",
+        "required": true,
+        "options": ["mysql", "mariadb"]
+      },
+      "value": "postgres",
+      "expect": "options"
+    },
+    {
+      "name": "select/empty",
+      "field": {
+        "key": "engine",
+        "kind": "select",
+        "label": "Moteur",
+        "required": true,
+        "options": ["mysql", "mariadb"]
+      },
+      "value": "",
+      "expect": "required"
+    },
+
+    {
+      "name": "version/ok",
+      "field": {
+        "key": "node_version",
+        "kind": "version",
+        "label": "Node",
+        "options": ["24", "22", "20"],
+        "default": "22"
+      },
+      "value": "24",
+      "expect": null
+    },
+    {
+      "name": "version/unknown",
+      "field": {
+        "key": "node_version",
+        "kind": "version",
+        "label": "Node",
+        "options": ["24", "22", "20"],
+        "default": "22"
+      },
+      "value": "18",
+      "expect": "options"
+    },
+    {
+      "name": "version/absent",
+      "field": {
+        "key": "node_version",
+        "kind": "version",
+        "label": "Node",
+        "options": ["24", "22", "20"],
+        "default": "22"
+      },
+      "expect": "options"
+    },
+
+    {
+      "name": "boolean/true",
+      "field": {
+        "key": "bun",
+        "kind": "boolean",
+        "label": "Bun",
+        "required": false,
+        "default": true
+      },
+      "value": true,
+      "expect": null
+    },
+    {
+      "name": "boolean/false",
+      "field": {
+        "key": "bun",
+        "kind": "boolean",
+        "label": "Bun",
+        "required": false,
+        "default": true
+      },
+      "value": false,
+      "expect": null
+    },
+    {
+      "name": "boolean/absent",
+      "field": {
+        "key": "bun",
+        "kind": "boolean",
+        "label": "Bun",
+        "required": false,
+        "default": true
+      },
+      "expect": null
+    },
+    {
+      "name": "boolean/string",
+      "field": {
+        "key": "bun",
+        "kind": "boolean",
+        "label": "Bun",
+        "required": false,
+        "default": true
+      },
+      "value": "true",
+      "expect": "type"
+    },
+
+    {
+      "name": "secret/required/absent",
+      "field": {
+        "key": "token",
+        "kind": "secret",
+        "label": "Jeton",
+        "required": true
+      },
+      "held": 0,
+      "expect": "required"
+    },
+    {
+      "name": "secret/required/held",
+      "field": {
+        "key": "token",
+        "kind": "secret",
+        "label": "Jeton",
+        "required": true
+      },
+      "held": 1,
+      "expect": null
+    },
+    {
+      "name": "secret/optional/absent",
+      "field": {
+        "key": "token",
+        "kind": "secret",
+        "label": "Jeton",
+        "required": false
+      },
+      "held": 0,
+      "expect": null
+    },
+
+    {
+      "name": "list/text/required/empty",
+      "field": {
+        "key": "extensions",
+        "kind": "list",
+        "label": "Extensions",
+        "required": true,
+        "items": "text"
+      },
+      "value": [],
+      "expect": "required"
+    },
+    {
+      "name": "list/text/optional/empty",
+      "field": {
+        "key": "extensions",
+        "kind": "list",
+        "label": "Extensions",
+        "required": false,
+        "items": "text",
+        "max": 32
+      },
+      "value": [],
+      "expect": null
+    },
+    {
+      "name": "list/text/blank-items",
+      "field": {
+        "key": "extensions",
+        "kind": "list",
+        "label": "Extensions",
+        "required": true,
+        "items": "text"
+      },
+      "value": ["", "  "],
+      "expect": "required"
+    },
+    {
+      "name": "list/text/ok",
+      "field": {
+        "key": "extensions",
+        "kind": "list",
+        "label": "Extensions",
+        "required": false,
+        "items": "text",
+        "max": 2
+      },
+      "value": ["a.b", "c.d"],
+      "expect": null
+    },
+    {
+      "name": "list/text/too-many",
+      "field": {
+        "key": "extensions",
+        "kind": "list",
+        "label": "Extensions",
+        "required": false,
+        "items": "text",
+        "max": 2
+      },
+      "value": ["a.b", "c.d", "e.f"],
+      "expect": "max"
+    },
+    {
+      "name": "list/text/item-pattern",
+      "field": {
+        "key": "extensions",
+        "kind": "list",
+        "label": "Extensions",
+        "required": false,
+        "items": "text",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*\\.[A-Za-z0-9][A-Za-z0-9._-]*$"
+      },
+      "value": ["biomejs.biome", "oops"],
+      "expect": "pattern"
+    },
+    {
+      "name": "list/secret/below-min",
+      "field": {
+        "key": "providers",
+        "kind": "list",
+        "label": "Fournisseurs",
+        "required": true,
+        "items": "secret",
+        "min": 1,
+        "max": 8
+      },
+      "held": 0,
+      "expect": "required"
+    },
+    {
+      "name": "list/secret/ok",
+      "field": {
+        "key": "providers",
+        "kind": "list",
+        "label": "Fournisseurs",
+        "required": true,
+        "items": "secret",
+        "min": 1,
+        "max": 8
+      },
+      "held": 2,
+      "expect": null
+    },
+    {
+      "name": "list/secret/too-many",
+      "field": {
+        "key": "providers",
+        "kind": "list",
+        "label": "Fournisseurs",
+        "required": true,
+        "items": "secret",
+        "min": 1,
+        "max": 2
+      },
+      "held": 3,
+      "expect": "max"
+    }
+  ]
+}

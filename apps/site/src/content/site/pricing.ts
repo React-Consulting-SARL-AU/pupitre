@@ -52,7 +52,6 @@ export interface PricingContent {
     title: string
     lead: string
     available: string
-    soon: string
     link: string
   }
 }

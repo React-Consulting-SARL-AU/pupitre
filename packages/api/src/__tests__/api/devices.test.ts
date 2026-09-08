@@ -128,7 +128,7 @@ describe("devices", () => {
       expect(ApiErrorBodySchema.safeParse(response.json).success).toBe(true)
       expect(response.json.error.code).toBe("key_not_ed25519")
       expect(response.json.error.fix).toBe(
-        "générez une clé ed25519 : ssh-keygen -t ed25519"
+        "generate an ed25519 key: ssh-keygen -t ed25519"
       )
       expect((await listDevices(session)).json.data).toEqual([])
     })

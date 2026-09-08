@@ -168,6 +168,15 @@ async function createServer(
   })
 }
 
+/**
+ * A new enrollment granted to a server the organization already holds.
+ *
+ * Its server token and status don't move: the machine keeps the access it
+ * has until the exchange gives it another. Clearing them here would leave,
+ * at the slightest failure between the grant and the exchange, a machine
+ * whose token no longer works and a row stuck in `enrolling` — which
+ * `ExpireEnrollments` revokes an hour later.
+ */
 async function repairServer(
   prisma: OrganizationPrisma,
   serverId: string,
@@ -175,7 +184,7 @@ async function repairServer(
 ) {
   const repaired = await prisma.server.updateMany({
     where: { id: serverId, status: { in: SEATED_STATUSES } },
-    data: { ...grant, status: "enrolling", serverTokenHash: null },
+    data: grant,
   })
 
   if (repaired.count === 0) {
@@ -291,6 +300,15 @@ export async function enrollServer(
   }
 }
 
+/**
+ * The enrollment token, exchanged once for a server token.
+ *
+ * What's only valid once is the token, and its expiry is what says so: it
+ * drops at the moment of the exchange, under the same conditional write, so
+ * two concurrent exchanges collapse into one. The server itself may well
+ * already carry a token — a machine being re-enrolled keeps a valid one
+ * until this exchange replaces it.
+ */
 export async function exchangeEnrollmentToken(
   input: ExchangeInput,
   acceptLanguage: string | null = null
@@ -305,20 +323,20 @@ export async function exchangeEnrollmentToken(
     throw new EnrollmentTokenUnknownError()
   }
 
-  if (server.status !== "enrolling" || server.serverTokenHash) {
+  const grantedUntil = server.enrollmentExpiresAt
+
+  if (!grantedUntil) {
     throw new EnrollmentTokenUsedError()
   }
 
-  const expiresAt = server.enrollmentExpiresAt?.getTime() ?? 0
-
-  if (expiresAt <= Date.now()) {
+  if (grantedUntil.getTime() <= Date.now()) {
     throw new EnrollmentTokenExpiredError()
   }
 
   const serverToken = generateServerToken()
   const hostFingerprint = await fingerprintOfPublicKey(input.host_public_key)
   const burnt = await prisma.server.updateMany({
-    where: { id: server.id, status: "enrolling", serverTokenHash: null },
+    where: { id: server.id, enrollmentExpiresAt: grantedUntil },
     data: {
       status: "active",
       arch: input.arch,
@@ -326,6 +344,7 @@ export async function exchangeEnrollmentToken(
       hostFingerprint,
       serverTokenHash: await hashServerToken(serverToken),
       entitlementValidUntil: entitlementWindow(),
+      enrollmentExpiresAt: null,
     },
   })
 

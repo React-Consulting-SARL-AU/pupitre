@@ -2,6 +2,7 @@ package vscode
 
 import (
 	"fmt"
+	"pupitre.studio/agent/internal/i18n"
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
@@ -104,7 +105,7 @@ func fetchCLI(ctx *modules.Context) error {
 	}
 
 	if !file.Exists(ctx, cliPath) {
-		return fmt.Errorf("la commande code est absente de %s après extraction", cliPath)
+		return fmt.Errorf("the code command is missing from %s after extraction", cliPath)
 	}
 
 	return nil
@@ -157,7 +158,7 @@ func unpackServer(ctx *modules.Context, found release) error {
 	}
 
 	if !file.Exists(ctx, found.serverCLI()) {
-		return fmt.Errorf("le serveur distant est absent de %s après extraction", found.serverDir())
+		return fmt.Errorf("the remote server is missing from %s after extraction", found.serverDir())
 	}
 
 	return nil
@@ -229,7 +230,7 @@ func installExtensions(ctx *modules.Context) error {
 
 		installed := recorded(ctx)
 		if installed.Commit == "" {
-			return modules.Failed, fmt.Errorf("aucun serveur distant installé pour poser les extensions")
+			return modules.Failed, fmt.Errorf("no remote server installed to place the extensions")
 		}
 
 		missing := absent(ctx, installed, wanted)
@@ -239,7 +240,7 @@ func installExtensions(ctx *modules.Context) error {
 
 		for _, extension := range missing {
 			if _, err := user.Run(ctx, shell.User, installed.serverCLI(), "--install-extension", extension, "--force"); err != nil {
-				ctx.Warn("extension refusée par la place de marché : " + extension)
+				ctx.Warn(i18n.T("warn.vscode.extension.refused", extension))
 			}
 		}
 
@@ -302,7 +303,7 @@ func tunnel(ctx *modules.Context, wanted bool) error {
 		}
 
 		changed = true
-		ctx.Warn("le tunnel VS Code attend une authentification une fois : sudo -u dev " + cliPath + " tunnel user login")
+		ctx.Warn(i18n.T("warn.vscode.tunnel.login", cliPath))
 
 		return modules.Done, systemd.WriteUnit(ctx, Unit, content)
 	}); err != nil {

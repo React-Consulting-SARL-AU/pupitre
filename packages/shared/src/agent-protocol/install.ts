@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { ManifestSchema, PresetSchema } from "../catalog"
+import { FieldProblemSchema } from "../catalog/validate"
 import { StepStatusSchema } from "./envelope"
 
 export const ProbePortSchema = z.object({
@@ -63,6 +64,28 @@ export const ModuleConfigSchema = z.record(
 
 export type ModuleConfig = z.infer<typeof ModuleConfigSchema>
 
+export const ModuleConfigParamsSchema = z.strictObject({
+  id: z.string().min(1),
+})
+
+export type ModuleConfigParams = z.infer<typeof ModuleConfigParamsSchema>
+
+/**
+ * What the agent retained from the last request for this module.
+ *
+ * `values` carries the plain configuration, the kind that already travels in
+ * `params`. `secrets` only carries the names of the secret fields it holds:
+ * a secret value never comes back through here, it only leaves the server
+ * via `service.secret`, one at a time, on request.
+ */
+export const ModuleConfigResultSchema = z.object({
+  id: z.string(),
+  values: z.record(z.string(), z.unknown()),
+  secrets: z.array(z.string()),
+})
+
+export type ModuleConfigResult = z.infer<typeof ModuleConfigResultSchema>
+
 export const InstallParamsSchema = z.strictObject({
   modules: z.array(z.string().min(1)).min(1),
   config: ModuleConfigSchema,
@@ -70,6 +93,27 @@ export const InstallParamsSchema = z.strictObject({
 })
 
 export type InstallParams = z.infer<typeof InstallParamsSchema>
+
+/**
+ * The same request as `install`, weighed and not run.
+ *
+ * It carries no secret and touches nothing: it answers with what the fields get
+ * wrong and with what only the machine knows — a port already listening, a
+ * directory that is a file. The app asks it before leaving the configuration.
+ */
+export const InstallCheckParamsSchema = z.strictObject({
+  modules: z.array(z.string().min(1)).min(1),
+  config: ModuleConfigSchema,
+})
+
+export type InstallCheckParams = z.infer<typeof InstallCheckParamsSchema>
+
+export const InstallCheckResultSchema = z.object({
+  problems: z.array(FieldProblemSchema),
+  warnings: z.array(z.string()),
+})
+
+export type InstallCheckResult = z.infer<typeof InstallCheckResultSchema>
 
 /** A `list` field of `items: "secret"` travels under indexed keys: `providers.0`, `providers.1`. */
 export const InstallSecretsSchema = z.record(
@@ -105,8 +149,14 @@ export const HardenParamsSchema = z.strictObject({
 
 export type HardenParams = z.infer<typeof HardenParamsSchema>
 
+/**
+ * `root_kept` says root is still reachable because the configuration asked for
+ * it, never because the hardening gave up: a refusal is `root_closed: false`
+ * with a `reason`, and the two flags are never true together.
+ */
 export const HardenResultSchema = z.object({
   root_closed: z.boolean(),
+  root_kept: z.boolean(),
   next_user: z.string(),
   reason: z.string().optional(),
 })

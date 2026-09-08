@@ -4,9 +4,13 @@ import {
   CatalogResultSchema,
   HardenParamsSchema,
   HardenResultSchema,
+  InstallCheckParamsSchema,
+  InstallCheckResultSchema,
   InstallParamsSchema,
   InstallReportSchema,
   InstallResultSchema,
+  ModuleConfigParamsSchema,
+  ModuleConfigResultSchema,
   ProbeResultSchema,
   UninstallParamsSchema,
   UninstallResultSchema,
@@ -87,6 +91,7 @@ import {
   EnrollParamsSchema,
   EnrollResultSchema,
   KeysListResultSchema,
+  PlatformSyncResultSchema,
 } from "./system"
 
 export const COMMANDS = {
@@ -95,6 +100,14 @@ export const COMMANDS = {
   probe: { params: EmptyParamsSchema, result: ProbeResultSchema },
   catalog: { params: EmptyParamsSchema, result: CatalogResultSchema },
   install: { params: InstallParamsSchema, result: InstallResultSchema },
+  "install.check": {
+    params: InstallCheckParamsSchema,
+    result: InstallCheckResultSchema,
+  },
+  "module.config": {
+    params: ModuleConfigParamsSchema,
+    result: ModuleConfigResultSchema,
+  },
   uninstall: { params: UninstallParamsSchema, result: UninstallResultSchema },
   harden: { params: HardenParamsSchema, result: HardenResultSchema },
   upgrade: { params: UpgradeParamsSchema, result: InstallResultSchema },
@@ -234,6 +247,10 @@ export const COMMANDS = {
   enroll: { params: EnrollParamsSchema, result: EnrollResultSchema },
   "keys.list": { params: EmptyParamsSchema, result: KeysListResultSchema },
   "keys.sync": { params: EmptyParamsSchema, result: KeysListResultSchema },
+  "platform.sync": {
+    params: EmptyParamsSchema,
+    result: PlatformSyncResultSchema,
+  },
   "agent.upgrade": {
     params: AgentUpgradeParamsSchema,
     result: AgentUpgradeResultSchema,
@@ -259,6 +276,11 @@ export function isCommandName(value: string): value is CommandName {
   return Object.hasOwn(COMMANDS, value)
 }
 
+/**
+ * `platform.sync` is among them on purpose: a restricted agent is one whose
+ * usage right the platform has not confirmed, and this is how it asks again
+ * without waiting for the daemon's next turn.
+ */
 export const RESTRICTED_COMMANDS = [
   "hello",
   "ping",
@@ -267,6 +289,7 @@ export const RESTRICTED_COMMANDS = [
   "diag",
   "agent.upgrade",
   "enroll",
+  "platform.sync",
 ] as const satisfies readonly CommandName[]
 
 export type RestrictedCommandName = (typeof RESTRICTED_COMMANDS)[number]

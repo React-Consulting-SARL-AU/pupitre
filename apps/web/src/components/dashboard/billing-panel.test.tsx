@@ -53,13 +53,19 @@ function panel(organization: DashboardOrganization | null, role: OrgRole) {
   )
 }
 
-async function payFor(billing: Billing, organizationId: string) {
+async function payFor(
+  billing: Billing,
+  organizationId: string,
+  quantity = 3,
+  status = "active"
+) {
   billing.put(
     remoteSubscription({
       id: "sub_console",
       customerId: "cus_console",
       organizationId,
-      quantity: 3,
+      quantity,
+      status,
       interval: "year",
     })
   )
@@ -122,7 +128,7 @@ describe("BillingPanel", () => {
 
     mounted.push(unmount)
 
-    await waitUntil(() => container.textContent?.includes("Commander") === true)
+    await waitUntil(() => container.textContent?.includes("Order") === true)
 
     const quantity = container.querySelector("#quantity")
 
@@ -131,8 +137,8 @@ describe("BillingPanel", () => {
     }
 
     await fill(quantity, "3")
-    await click(trigger(container, "Annuel"))
-    await click(trigger(container, "Commander"))
+    await click(trigger(container, "Yearly"))
+    await click(trigger(container, "Order"))
     await waitUntil(() => billing.checkouts.length === 1)
 
     expect(billing.checkouts[0]).toMatchObject({
@@ -155,23 +161,85 @@ describe("BillingPanel", () => {
     mounted.push(unmount)
 
     await waitUntil(
-      () => container.textContent?.includes("Gérer l'abonnement") === true
+      () => container.textContent?.includes("Manage the subscription") === true
     )
 
-    expect(container.textContent).toContain("Abonnement")
-    expect(container.textContent).toContain("3 serveurs")
-    expect(container.textContent).toContain("Actif")
-    expect(container.textContent).toContain("Annuel")
+    expect(container.textContent).toContain("Subscription")
+    expect(container.textContent).toContain("3 servers")
+    expect(container.textContent).toContain("Active")
+    expect(container.textContent).toContain("Yearly")
     expect(container.textContent).toContain("570")
-    expect(container.textContent).not.toContain("Commander")
+    expect(container.textContent).not.toContain("Order")
 
-    await click(trigger(container, "Gérer l'abonnement"))
+    await click(trigger(container, "Manage the subscription"))
     await waitUntil(() => billing.portals.length === 1)
 
     expect(billing.portals[0]).toMatchObject({ customerId: "cus_console" })
     expect(leave).toHaveBeenCalledWith(
       expect.stringContaining("billing.stripe.test")
     )
+  })
+
+  it("raises the seats of a running trial, without leaving the console", async () => {
+    await payFor(billing, organization.id, 1, "trialing")
+
+    const { container, unmount, click } = await render(
+      panel(organization, "owner")
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("Change the number") === true
+    )
+
+    expect(container.textContent).toContain("During the trial")
+
+    const seats = container.querySelector("#seats")
+
+    if (!seats) {
+      throw new Error("no seats field")
+    }
+
+    await fill(seats, "3")
+    await click(trigger(container, "Update"))
+    await waitUntil(() => billing.quantities.length === 1)
+
+    expect(billing.quantities[0]).toEqual({
+      subscriptionId: "sub_console",
+      quantity: 3,
+    })
+    await waitUntil(() => container.textContent?.includes("3 servers") === true)
+
+    expect(leave).not.toHaveBeenCalled()
+  })
+
+  it("refuses a seat count below the servers in place", async () => {
+    await payFor(billing, organization.id)
+
+    const { container, unmount, click } = await render(
+      panel(organization, "owner")
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("Change the number") === true
+    )
+
+    const seats = container.querySelector("#seats")
+
+    if (!seats) {
+      throw new Error("no seats field")
+    }
+
+    await fill(seats, "0")
+    await click(trigger(container, "Update"))
+    await waitUntil(
+      () => container.textContent?.includes("At least 1") === true
+    )
+
+    expect(billing.quantities).toHaveLength(0)
   })
 
   it("shows a member neither a button nor an amount", async () => {
@@ -182,13 +250,13 @@ describe("BillingPanel", () => {
     mounted.push(unmount)
 
     await waitUntil(
-      () => container.textContent?.includes("réservée au propriétaire") === true
+      () => container.textContent?.includes("Billing is for the owner") === true
     )
 
     expect(container.querySelectorAll("button")).toHaveLength(0)
     expect(container.querySelectorAll("a")).toHaveLength(0)
     expect(container.textContent).not.toContain("€")
-    expect(container.textContent).not.toContain("Commander")
-    expect(container.textContent).not.toContain("Gérer l'abonnement")
+    expect(container.textContent).not.toContain("Order")
+    expect(container.textContent).not.toContain("Manage the subscription")
   })
 })

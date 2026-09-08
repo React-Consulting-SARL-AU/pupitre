@@ -228,14 +228,14 @@ describe("le jeton d'enrôlement", () => {
     const requests = written.filter((line) => line.includes('"cmd"'));
     const enrol = requests.find((line) => line.includes('"enroll"')) ?? "";
 
-    // Les bytes eux-mêmes, avant tout verdict sur l'échange : une requête qui
-    // porterait le jeton serait déjà écrite quand la transcription la refuse.
+    // The bytes themselves, before any verdict on the exchange: a request
+    // carrying the token would already be written by the time the transcript refuses it.
     for (const line of requests) {
       expect(line).not.toContain(TOKEN);
     }
 
-    // Le jeton n'a traversé le canal qu'une fois, sur la ligne qui suit la
-    // requête, et sous cette seule forme.
+    // The token crossed the channel only once, on the line following the
+    // request, and in that form alone.
     expect(written.filter((line) => line.includes(TOKEN))).toEqual([
       JSON.stringify({ enrollment_token: TOKEN }),
     ]);
@@ -243,7 +243,7 @@ describe("le jeton d'enrôlement", () => {
     expect(fake?.trace().join("\n")).not.toContain(TOKEN);
     expect(JSON.stringify(repaired)).not.toContain(TOKEN);
 
-    // La requête nomme la plateforme et annonce la ligne secrète, rien de plus.
+    // The request names the platform and announces the secret line, nothing more.
     expect(enrol).toContain(PLATFORM);
     expect(enrol).toContain('"secrets_stdin":true');
     expect(repaired.ok).toBe(true);
@@ -302,7 +302,7 @@ describe("un compte sans droit d'usage", () => {
 
   /**
    * The action and the guard say the same thing rather than contradicting each
-   * other: `enroll` acts, so APP-28's doorway holds it too, and the app never
+   * other: `enroll` acts, so the usage guard holds it too, and the app never
    * offers a gesture the platform would refuse.
    */
   it("s'accorde avec le garde des canaux, qui tient enroll comme toute commande mutante", async () => {

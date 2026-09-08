@@ -38,12 +38,6 @@ export function moduleSlug(id: ModuleId): string {
   return `${SERVICES_SLUG}/${id.replace(".", "-")}`
 }
 
-export function moduleIdFromSlug(slug: string, ids: readonly string[]): string {
-  const bare = slug.replace(`${SERVICES_SLUG}/`, "")
-
-  return ids.find((id) => id.replace(".", "-") === bare) ?? bare
-}
-
 function isSection(value: string): value is DocsSectionId {
   return (DOCS_SECTIONS as readonly string[]).includes(value)
 }

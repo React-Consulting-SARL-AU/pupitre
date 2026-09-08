@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"pupitre.studio/agent/internal/i18n"
 	"regexp"
 	"strconv"
 	"strings"
@@ -61,27 +62,24 @@ func randomName() string {
 func (r *Reader) Detect(repo, dir string) (contract.ProjectDetect, error) {
 	switch {
 	case repo != "" && dir != "":
-		return contract.ProjectDetect{}, bad("repo et dir ensemble : la détection lit une source, pas deux",
-			"Donne le dépôt à cloner, ou le dossier déjà présent sur le serveur.")
+		return contract.ProjectDetect{}, bad(i18n.T("state.detect.bothSources"), i18n.T("state.detect.source.fix"))
 	case dir != "":
 		return r.detectDir(dir)
 	case repo != "":
 		return r.detectRepo(repo)
 	}
 
-	return contract.ProjectDetect{}, bad("ni repo ni dir", "Donne le dépôt à cloner, ou le dossier déjà présent sur le serveur.")
+	return contract.ProjectDetect{}, bad(i18n.T("state.detect.noSource"), i18n.T("state.detect.source.fix"))
 }
 
 func (r *Reader) detectDir(dir string) (contract.ProjectDetect, error) {
 	root := registry.Under(r.options.Paths.Resolved().Projects, dir)
 	if root == "" {
-		return contract.ProjectDetect{}, bad("dossier hors de la racine des projets : "+dir,
-			"Donne un chemin relatif à la racine des projets, sans « .. ».")
+		return contract.ProjectDetect{}, bad(i18n.T("state.dir.outside", dir), i18n.T("state.dir.outside.fix"))
 	}
 
 	if !file.Exists(r.ctx(), root) {
-		return contract.ProjectDetect{}, bad("dossier absent : "+dir,
-			"Vérifie le chemin avec completions, ou donne le dépôt à cloner.")
+		return contract.ProjectDetect{}, bad(i18n.T("state.dir.absent", dir), i18n.T("state.dir.absent.fix"))
 	}
 
 	return r.read(root), nil
@@ -90,7 +88,7 @@ func (r *Reader) detectDir(dir string) (contract.ProjectDetect, error) {
 // The clone lands in the cache of the projects user, never in the projects root: a half-clone must not be able to pass for a project.
 func (r *Reader) detectRepo(repo string) (contract.ProjectDetect, error) {
 	if strings.HasPrefix(repo, "-") {
-		return contract.ProjectDetect{}, bad("dépôt invalide : "+repo, "Donne une adresse de dépôt, pas une option de git.")
+		return contract.ProjectDetect{}, bad(i18n.T("state.repo.invalid", repo), i18n.T("state.repo.invalid.fix"))
 	}
 
 	cache := r.options.Detect
@@ -100,8 +98,8 @@ func (r *Reader) detectRepo(repo string) (contract.ProjectDetect, error) {
 	defer r.discard(target)
 
 	if _, err := r.clone(repo, target); err != nil {
-		return contract.ProjectDetect{}, protocol.NewError(contract.ErrorInternal, "le clonage de "+repo+" a échoué").
-			WithFix("Vérifie que la machine a le droit de lire ce dépôt : ssh -T git@github.com.")
+		return contract.ProjectDetect{}, protocol.NewError(contract.ErrorInternal, i18n.T("state.clone.failed", repo)).
+			WithFix(i18n.T("state.repo.unreadable.fix"))
 	}
 
 	return r.read(target), nil
@@ -124,7 +122,7 @@ func (r *Reader) discard(target string) {
 	owner := r.options.Tmux.Resolved().User
 
 	if _, err := user.RunWith(r.ctx(), owner, user.Input{Dir: anywhere}, "rm", "-rf", target); err != nil {
-		r.ctx().Logf("détection : %s n'a pas pu être effacé : %v", target, err)
+		r.ctx().Logf("detection: %s could not be erased: %v", target, err)
 	}
 }
 

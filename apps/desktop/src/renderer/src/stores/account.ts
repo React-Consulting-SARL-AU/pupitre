@@ -23,11 +23,19 @@ export type SignInState =
 interface AccountStore {
   view: AccountView;
   signIn: SignInState;
+  /**
+   * Whether a development build was told to work without an account. It lives
+   * for this run only: the app is meant to open on the sign-in, and a choice
+   * written down would quietly undo that on the next launch.
+   */
+  bypassed: boolean;
 
   read: () => Promise<void>;
   refresh: () => Promise<void>;
+  switchOrganization: (organizationId: string) => Promise<void>;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
+  bypass: () => void;
   forgetSignIn: () => void;
 }
 
@@ -36,11 +44,21 @@ export function accountOf(view: AccountView): AccountState | null {
 }
 
 export const useAccount = create<AccountStore>((set, get) => ({
+  bypassed: false,
   signIn: { status: "idle" },
   view: { status: "unknown" },
 
   async read() {
     set({ view: { account: await window.pupitre.account(), status: "read" } });
+  },
+
+  async switchOrganization(organizationId) {
+    set({
+      view: {
+        account: await window.pupitre.switchOrganization(organizationId),
+        status: "read",
+      },
+    });
   },
 
   async refresh() {
@@ -86,9 +104,14 @@ export const useAccount = create<AccountStore>((set, get) => ({
 
   async disconnect() {
     set({
+      bypassed: false,
       signIn: { status: "idle" },
       view: { account: await window.pupitre.signOut(), status: "read" },
     });
+  },
+
+  bypass() {
+    set({ bypassed: true });
   },
 
   forgetSignIn() {

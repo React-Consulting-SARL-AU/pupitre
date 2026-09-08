@@ -1,27 +1,95 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { Trash2 } from "lucide-react"
-import { Callout } from "@/components/ui/callout"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { useTranslations } from "@/hooks/use-locale"
+import {
+  patchQuery,
+  useOptimisticMutation,
+} from "@/hooks/use-optimistic-mutation"
 import { usePermission } from "@/hooks/use-permission"
-import { deleteServer } from "@/lib/api/queries"
+import {
+  deleteServer,
+  queryKeys,
+  type ServerDetail,
+  type ServerSummary,
+} from "@/lib/api/queries"
+import { deletionLook, type ServerDeletion } from "@/lib/domain/server-deletion"
+import { formatDateTime } from "@/lib/utils/format"
 
 export interface ServerActionsProps {
   serverId: string
   serverName: string
+  status: string
+  decommissionAt: string | null
 }
 
-export function ServerActions({ serverId, serverName }: ServerActionsProps) {
+const REVOKED = "revoked"
+
+/**
+ * The deletion the click meant is carried by the call, not read back from the
+ * status: the optimistic patch turns the server revoked the instant the first
+ * step starts, and the sentence that closes it must still speak of that step.
+ */
+export function ServerActions({
+  serverId,
+  serverName,
+  status,
+  decommissionAt,
+}: ServerActionsProps) {
   const t = useTranslations()
+  const look = deletionLook(status)
   const canManage = usePermission("servers:manage")
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const remove = useMutation({
+
+  const remove = useOptimisticMutation<ServerDeletion, void>({
     mutationFn: () => deleteServer(serverId),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries()
-      await navigate({ to: "/dashboard/servers" })
+    patch: [
+      patchQuery<ServerSummary[], ServerDeletion>(
+        queryKeys.servers,
+        (servers, deletion) =>
+          deletion === "purge"
+            ? servers.filter((server) => server.id !== serverId)
+            : servers.map((server) =>
+                server.id === serverId ? { ...server, status: REVOKED } : server
+              )
+      ),
+      patchQuery<ServerDetail, ServerDeletion>(
+        queryKeys.server(serverId),
+        (detail, deletion) =>
+          deletion === "purge" ? detail : { ...detail, status: REVOKED }
+      ),
+    ],
+    invalidate: [queryKeys.servers, queryKeys.server(serverId)],
+    onStart: (deletion) => {
+      if (deletion === "purge") {
+        navigate({ to: "/dashboard/servers" })
+      }
+    },
+    toast: {
+      done: (_data, deletion) =>
+        t(
+          deletion === "purge"
+            ? "serverActions.purged"
+            : "serverActions.revoked",
+          { name: serverName }
+        ),
+      failed: (deletion) => ({
+        title: t("serverActions.deleteFailed"),
+        fix: t("serverActions.deleteFailedFix"),
+        ...(deletion === "purge"
+          ? {
+              action: {
+                label: t("serverActions.reopen"),
+                run: () => {
+                  navigate({
+                    to: "/dashboard/servers/$id",
+                    params: { id: serverId },
+                  })
+                },
+              },
+            }
+          : {}),
+      }),
     },
   })
 
@@ -30,27 +98,22 @@ export function ServerActions({ serverId, serverName }: ServerActionsProps) {
   }
 
   return (
-    <div className="flex flex-col items-end gap-2">
-      <ConfirmDialog
-        confirmLabel={t("serverActions.delete")}
-        description={t("serverActions.deleteDescription", {
-          name: serverName,
-        })}
-        onConfirm={() => {
-          remove.mutate()
-        }}
-        pending={remove.isPending}
-        title={t("serverActions.deleteTitle")}
-        triggerIcon={Trash2}
-        triggerLabel={t("serverActions.deleteServer")}
-      />
-      {remove.isError ? (
-        <Callout
-          fix={t("serverActions.deleteFailedFix")}
-          title={t("serverActions.deleteFailed")}
-          tone="danger"
-        />
-      ) : null}
-    </div>
+    <ConfirmDialog
+      busy={remove.isPending}
+      busyLabel={t("serverActions.deleting")}
+      confirmLabel={t(look.confirm)}
+      description={t(look.description, {
+        date: decommissionAt
+          ? formatDateTime(decommissionAt, t)
+          : t("format.none"),
+        name: serverName,
+      })}
+      onConfirm={() => {
+        remove.mutate(look.deletion)
+      }}
+      title={t(look.title)}
+      triggerIcon={Trash2}
+      triggerLabel={t(look.trigger)}
+    />
   )
 }

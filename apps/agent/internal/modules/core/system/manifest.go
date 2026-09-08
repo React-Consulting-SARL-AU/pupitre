@@ -1,6 +1,9 @@
 package system
 
-import "pupitre.studio/agent/internal/contract"
+import (
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
+)
 
 const ID = "core.system"
 
@@ -8,17 +11,17 @@ func manifest() contract.Manifest {
 	return contract.Manifest{
 		ID:        ID,
 		Category:  "core",
-		Name:      "Système",
-		Summary:   "Paquets de base, fuseau, mises à jour de sécurité, swap, garde-fou mémoire, utilisateur dev avec sudo, zsh, tmux, identité git et service de l'agent.",
+		Name:      i18n.T("module.core.system.name"),
+		Summary:   i18n.T("module.core.system.summary"),
 		Requires:  []string{},
 		Conflicts: []string{},
 		Resources: contract.Resources{RAMMB: 256, DiskMB: 1024},
 		Arch:      []string{"amd64", "arm64"},
 		Fields: []contract.Field{
-			{Key: "timezone", Kind: contract.FieldText, Label: "Fuseau horaire", Help: "Nom IANA, par exemple Europe/Paris.", Required: true, Default: "Etc/UTC"},
-			{Key: "git_name", Kind: contract.FieldText, Label: "Nom pour git", Required: true},
-			{Key: "git_email", Kind: contract.FieldText, Label: "Email pour git", Required: true},
-			{Key: "projects_dir", Kind: contract.FieldText, Label: "Dossier des projets", Required: true, Default: ProjectsDir},
+			{Key: "timezone", Kind: contract.FieldText, Label: i18n.T("module.core.system.timezone.label"), Help: i18n.T("module.core.system.timezone.help"), HintText: i18n.T("module.core.system.timezone.hint"), Format: contract.FormatTimezone, Required: true, Default: "Etc/UTC"},
+			{Key: "git_name", Kind: contract.FieldText, Label: i18n.T("module.core.system.git_name.label"), Help: i18n.T("module.core.system.git_name.help"), Required: true, MinLength: 2, MaxLength: 64},
+			{Key: "git_email", Kind: contract.FieldText, Label: i18n.T("module.core.system.git_email.label"), Help: i18n.T("module.core.system.git_email.help"), Format: contract.FormatEmail, Required: true},
+			{Key: "projects_dir", Kind: contract.FieldText, Label: i18n.T("module.core.system.projects_dir.label"), Help: i18n.T("module.core.system.projects_dir.help"), HintText: i18n.T("module.core.system.projects_dir.hint"), Format: contract.FormatPath, Required: true, Default: ProjectsDir},
 		},
 		Provides:  []string{"user:dev", "shell:zsh"},
 		Mandatory: true,

@@ -34,7 +34,7 @@ export function Callout({
 
   return (
     <div
-      className={`elevation-raised flex items-start gap-2.5 rounded-md border px-3.5 py-3 text-[11px] ${look.frame}`}
+      className={`elevation-raised flex items-start gap-2.5 rounded-md border px-3.5 py-3 text-[12px] ${look.frame}`}
       data-tone={tone}
     >
       <Icon className="mt-px shrink-0" size={13} strokeWidth={1.5} />

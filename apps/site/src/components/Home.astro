@@ -15,6 +15,7 @@ import ClosingCta from "./ClosingCta.astro"
 import Faq from "./Faq.astro"
 import Feature from "./Feature.astro"
 import Hero from "./Hero.astro"
+import NameNote from "./NameNote.astro"
 import PricingNote from "./PricingNote.astro"
 import Section from "./Section.astro"
 import Steps from "./Steps.astro"
@@ -64,7 +65,7 @@ const steps = content.steps.items.map((item) => ({
     label={content.features.label}
     title={content.features.title}
   >
-    <div class="grid gap-6 md:grid-cols-3">
+    <div class="reveal-group grid gap-6 md:grid-cols-3">
       {
         content.features.items.map((item) => (
           <Feature title={item.title} lines={item.lines} />
@@ -81,14 +82,14 @@ const steps = content.steps.items.map((item) => ({
     lead={content.clients.lead}
     tone="surface"
   >
-    <div class="grid gap-6 md:grid-cols-3">
+    <div class="reveal-group grid gap-6 md:grid-cols-3">
       {
         content.clients.items.map((item) => (
           <Feature title={item.title} lines={item.lines} />
         ))
       }
     </div>
-    <p class="mx-auto mt-14 max-w-2xl text-center text-ink-3">
+    <p class="reveal mx-auto mt-14 max-w-2xl text-center text-ink-3">
       {content.clients.note}
     </p>
   </Section>
@@ -99,7 +100,7 @@ const steps = content.steps.items.map((item) => ({
     label={content.promise.label}
     title={content.promise.title}
   >
-    <div class="mx-auto grid max-w-4xl gap-x-12 gap-y-14 sm:grid-cols-2">
+    <div class="reveal-group mx-auto grid max-w-4xl gap-x-12 gap-y-14 sm:grid-cols-2">
       {
         content.promise.items.map((item) => (
           <Claim statement={item.statement} proof={item.proof} />
@@ -137,6 +138,8 @@ const steps = content.steps.items.map((item) => ({
   >
     <Faq items={content.faq.items} />
   </Section>
+
+  <NameNote />
 
   <ClosingCta
     title={content.cta.title}

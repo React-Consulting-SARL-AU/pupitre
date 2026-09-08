@@ -19,3 +19,17 @@ export function checkoutSchema(t: Translate) {
 export type CheckoutInput = z.input<ReturnType<typeof checkoutSchema>>
 
 export type CheckoutValues = z.output<ReturnType<typeof checkoutSchema>>
+
+export function seatsSchema(t: Translate, minimum: number = MIN_SEATS) {
+  return z.object({
+    quantity: z.coerce
+      .number({ error: t("validation.quantity") })
+      .int(t("validation.quantityInteger"))
+      .min(minimum, t("validation.quantityMin", { min: minimum }))
+      .max(MAX_SEATS, t("validation.quantityMax", { max: MAX_SEATS })),
+  })
+}
+
+export type SeatsInput = z.input<ReturnType<typeof seatsSchema>>
+
+export type SeatsValues = z.output<ReturnType<typeof seatsSchema>>

@@ -76,6 +76,48 @@ func TestHardenWithoutKeyKeepsRoot(t *testing.T) {
 	}
 }
 
+var coreInstallKeepingRoot = request{Cmd: "install", Params: map[string]any{
+	"modules":       []string{"core.system", "core.hardening"},
+	"secrets_stdin": false,
+	"config": map[string]any{
+		"core.system":    map[string]any{"timezone": "Europe/Paris", "git_name": "Pupitre Staging", "git_email": "staging@pupitre.studio"},
+		"core.hardening": map[string]any{"ssh_443": false, "keep_root": true},
+	},
+}}
+
+// Runs before the test that closes root for good, and puts the default configuration back so that one still has root to close.
+func TestHardenKeepsRootWhenTheConfigurationAsksForIt(t *testing.T) {
+	host := stagingHost(t)
+	dev := "dev@" + address(host)
+
+	if failed := decode[contract.InstallResult](t, agent(t, host, coreInstallKeepingRoot)[0].Result).Failed; len(failed) != 0 {
+		t.Fatalf("install failed: %v", failed)
+	}
+
+	resp := agent(t, host, request{Cmd: "harden", Params: map[string]any{"user": "dev"}})[0]
+	result := decode[struct {
+		RootClosed bool   `json:"root_closed"`
+		RootKept   bool   `json:"root_kept"`
+		NextUser   string `json:"next_user"`
+	}](t, resp.Result)
+
+	if result.RootClosed || !result.RootKept || result.NextUser != "dev" {
+		t.Fatalf("harden = %+v, events %v", result, resp.Events)
+	}
+
+	if !reachable(host) || !reachable(dev) {
+		t.Fatal("root and dev must both be reachable when the configuration keeps root")
+	}
+
+	if out := ssh(t, host, "cat", "/etc/ssh/sshd_config.d/10-pupitre.conf"); !strings.Contains(out, "PermitRootLogin prohibit-password") || !strings.Contains(out, "PasswordAuthentication no") {
+		t.Fatalf("fragment must let root back in by key only:\n%s", out)
+	}
+
+	if failed := decode[contract.InstallResult](t, agent(t, host, coreInstall)[0].Result).Failed; len(failed) != 0 {
+		t.Fatalf("restoring the default configuration failed: %v", failed)
+	}
+}
+
 func TestHardenClosesRootAndReplaysWithoutWriting(t *testing.T) {
 	host := stagingHost(t)
 	dev := "dev@" + address(host)

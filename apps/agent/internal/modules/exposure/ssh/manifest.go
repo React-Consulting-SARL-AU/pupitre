@@ -1,6 +1,9 @@
 package ssh
 
-import "pupitre.studio/agent/internal/contract"
+import (
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
+)
 
 const ID = "exposure.ssh"
 
@@ -8,10 +11,10 @@ func manifest() contract.Manifest {
 	return contract.Manifest{
 		ID:        ID,
 		Category:  "exposure",
-		Name:      "Accès par SSH",
-		Summary:   "Sans exposition publique : chaque projet reste sur son port, et l'app y accède par la session SSH qu'elle tient déjà.",
+		Name:      i18n.T("module.exposure.ssh.name"),
+		Summary:   i18n.T("module.exposure.ssh.summary"),
 		Requires:  []string{"core.system"},
-		Conflicts: []string{"exposure.cloudflare"},
+		Conflicts: []string{"exposure.cloudflare", "exposure.caddy"},
 		Resources: contract.Resources{RAMMB: 0, DiskMB: 0},
 		Arch:      []string{"amd64", "arm64"},
 		Fields:    []contract.Field{},

@@ -41,7 +41,7 @@ export function ServiceRemovalLosses({
         ))}
       </ul>
 
-      <p className="text-[11px] text-ink-3 leading-relaxed">
+      <p className="text-[12px] text-ink-3 leading-relaxed">
         {t("services.removal.losses.note")}
       </p>
 

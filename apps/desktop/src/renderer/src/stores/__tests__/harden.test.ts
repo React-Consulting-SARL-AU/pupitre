@@ -41,7 +41,7 @@ describe("harden", () => {
         return Promise.resolve({
           ok: true,
           result: {
-            harden: { next_user: "dev", root_closed: true },
+            harden: { next_user: "dev", root_closed: true, root_kept: false },
             reconnected: true,
             user: "dev",
           },
@@ -70,6 +70,7 @@ describe("harden", () => {
               next_user: "root",
               reason: REASON,
               root_closed: false,
+              root_kept: false,
             },
             reconnected: false,
             user: null,

@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"slices"
 	"testing"
 
 	"pupitre.studio/agent/internal/contract"
@@ -97,9 +98,15 @@ func TestFailedStepReportsReplay(t *testing.T) {
 	}
 }
 
-func TestTheTwoExposuresRefuseEachOther(t *testing.T) {
+func TestTheOtherExposuresAreRefused(t *testing.T) {
 	conflicts := manifest().Conflicts
-	if len(conflicts) != 1 || conflicts[0] != "exposure.cloudflare" {
+	for _, other := range []string{"exposure.cloudflare", "exposure.caddy"} {
+		if !slices.Contains(conflicts, other) {
+			t.Fatalf("one exposure at a time: %v", conflicts)
+		}
+	}
+
+	if len(conflicts) != 2 {
 		t.Fatalf("one exposure at a time: %v", conflicts)
 	}
 }

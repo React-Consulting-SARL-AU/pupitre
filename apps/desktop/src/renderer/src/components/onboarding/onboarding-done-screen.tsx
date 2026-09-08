@@ -4,6 +4,12 @@ import { Button } from "../ui/button";
 import { PageHeader } from "../ui/page-header";
 import { StatusDot } from "../ui/status-dot";
 
+const ROOT_LINE = {
+  closed: "onboarding.done.rootClosed",
+  kept: "onboarding.done.rootKept",
+  open: "onboarding.done.rootOpen",
+} as const;
+
 /**
  * The end of the onboarding: a machine that runs the agent, reached by the
  * account it opened. What comes next — the first project — is its own screen.
@@ -11,15 +17,18 @@ import { StatusDot } from "../ui/status-dot";
 export function OnboardingDoneScreen({
   serverName,
   user,
-  rootClosed,
+  root,
   onClose,
 }: {
   serverName?: string;
   user: string;
-  rootClosed: boolean;
+  /** Closed, kept open because the configuration asked for it, or left open by a hardening that stopped. */
+  root: "closed" | "kept" | "open";
   onClose?: () => void;
 }) {
   const t = useTranslations();
+
+  const hardened = root !== "open";
 
   return (
     <section className="flex flex-col gap-section">
@@ -37,9 +46,9 @@ export function OnboardingDoneScreen({
       <div className="elevation-raised flex items-start gap-3 rounded-md border border-line bg-surface px-4 py-4">
         <span className="translate-y-1">
           <StatusDot
-            shape={rootClosed ? "filled" : "ringed"}
+            shape={hardened ? "filled" : "ringed"}
             size={12}
-            tone={rootClosed ? "ok" : "warn"}
+            tone={hardened ? "ok" : "warn"}
           />
         </span>
         <div className="min-w-0">
@@ -48,9 +57,7 @@ export function OnboardingDoneScreen({
             <code className="font-data">{user}</code>
           </p>
           <p className="mt-1 text-ink-3 leading-relaxed">
-            {rootClosed
-              ? t("onboarding.done.rootClosed")
-              : t("onboarding.done.rootOpen")}
+            {t(ROOT_LINE[root])}
           </p>
         </div>
       </div>

@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"fmt"
+	"pupitre.studio/agent/internal/i18n"
 	"sort"
 	"strconv"
 	"strings"
@@ -138,25 +138,25 @@ type ShotFile struct {
 func (r *Reader) ReadShot(relative string) (ShotFile, error) {
 	listed, found := r.shot(relative)
 	if !found {
-		return ShotFile{}, protocol.NewError(contract.ErrorBadRequest, "capture inconnue : "+relative).
-			WithFix("Appelle shots.list et reprends le path d'une de ses entrées, tel quel.")
+		return ShotFile{}, protocol.NewError(contract.ErrorBadRequest, i18n.T("state.shot.unknown", relative)).
+			WithFix(i18n.T("state.shot.unknown.fix"))
 	}
 
 	mediaType := shots.MediaType(listed.Name)
 	if mediaType == "" {
-		return ShotFile{}, protocol.NewError(contract.ErrorBadRequest, "ce fichier n'est pas une image : "+relative).
-			WithFix("La galerie ne rend que png, jpeg, gif, webp, avif et svg.")
+		return ShotFile{}, protocol.NewError(contract.ErrorBadRequest, i18n.T("state.shot.notImage", relative)).
+			WithFix(i18n.T("state.shot.notImage.fix"))
 	}
 
 	if listed.SizeBytes > ShotMaxBytes {
 		return ShotFile{}, protocol.NewError(contract.ErrorBadRequest,
-			fmt.Sprintf("capture trop lourde : %d octets pour un maximum de %d", listed.SizeBytes, ShotMaxBytes)).
-			WithFix("Ouvre la galerie sur le serveur pour cette capture, ou reprends-en une plus légère.")
+			i18n.T("state.shot.tooLarge", listed.SizeBytes, ShotMaxBytes)).
+			WithFix(i18n.T("state.shot.tooLarge.fix"))
 	}
 
 	content, err := file.Read(r.ctx(), r.options.Shots.Dir+"/"+listed.Path)
 	if err != nil {
-		return ShotFile{}, protocol.NewError(contract.ErrorBadRequest, "capture illisible : "+relative)
+		return ShotFile{}, protocol.NewError(contract.ErrorBadRequest, i18n.T("state.shot.unreadable", relative))
 	}
 
 	digest := sha256.Sum256(content)

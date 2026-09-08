@@ -15,15 +15,16 @@ import {
   useFakeBilling,
 } from "@pupitre/api/testing/billing"
 import type { OrgRole } from "@pupitre/shared/permissions"
-import { QueryClientProvider } from "@tanstack/react-query"
 import { StartPanel } from "@/components/dashboard/start-panel"
-import {
-  DashboardContext,
-  type DashboardOrganization,
-} from "@/lib/domain/dashboard-context"
-import { createQueryClient } from "@/lib/query/client"
+import type { DashboardOrganization } from "@/lib/domain/dashboard-context"
 import { createConsoleUser, useSessionApiClient } from "@/testing/harness"
-import { render, trigger, waitUntil } from "@/testing/render"
+import {
+  type DashboardHarness,
+  render,
+  trigger,
+  waitUntil,
+  withDashboard,
+} from "@/testing/render"
 
 type Billing = ReturnType<typeof useFakeBilling>
 
@@ -32,29 +33,14 @@ const mounted: (() => void)[] = []
 function panel(
   organization: DashboardOrganization,
   role: OrgRole,
-  returning = false
+  returning = false,
+  entitlement: DashboardHarness["entitlement"] = "suspended"
 ) {
-  return (
-    <QueryClientProvider client={createQueryClient()}>
-      <DashboardContext.Provider
-        value={{
-          user: {
-            id: "u1",
-            email: "ada@test.local",
-            name: "Ada",
-            image: null,
-            locale: "fr",
-          },
-          organizations: [],
-          activeOrganization: organization,
-          role,
-          entitlement: "suspended",
-        }}
-      >
-        <StartPanel returningFromCheckout={returning} />
-      </DashboardContext.Provider>
-    </QueryClientProvider>
-  )
+  return withDashboard(<StartPanel returningFromCheckout={returning} />, {
+    organization,
+    role,
+    entitlement,
+  })
 }
 
 async function openTrial(organizationId: string) {
@@ -119,15 +105,15 @@ describe("StartPanel", () => {
     mounted.push(unmount)
 
     await waitUntil(
-      () => container.textContent?.includes("Démarrer l'essai") === true
+      () => container.textContent?.includes("Start the trial") === true
     )
 
-    expect(container.textContent).toContain("Quatorze jours, sans carte")
-    expect(container.textContent).toContain("Aucune carte n'est demandée")
+    expect(container.textContent).toContain("Fourteen days, no card")
+    expect(container.textContent).toContain("No card is asked for")
     expect(container.querySelectorAll("button")).toHaveLength(1)
     expect(container.querySelector("#quantity")).toBeNull()
 
-    await click(trigger(container, "Démarrer l'essai"))
+    await click(trigger(container, "Start the trial"))
     await waitUntil(() => billing.checkouts.length === 1)
 
     expect(billing.checkouts[0]).toMatchObject({
@@ -140,7 +126,24 @@ describe("StartPanel", () => {
     )
   })
 
-  it("waits for the webhook on the way back, then leads to the download", async () => {
+  it("names the four steps, and the account is already behind", async () => {
+    const { container, unmount } = await render(panel(organization, "owner"))
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("Create your account") === true
+    )
+
+    const text = container.textContent ?? ""
+
+    expect(text).toContain("Four steps, and your server works for you.")
+    expect(text).toContain("Install the app and link it to your account")
+    expect(text).toContain("Rent a server and add it")
+    expect(text).toContain("Done")
+  })
+
+  it("waits for the webhook on the way back", async () => {
     const { container, unmount } = await render(
       panel(organization, "owner", true)
     )
@@ -149,23 +152,44 @@ describe("StartPanel", () => {
 
     await waitUntil(
       () =>
-        container.textContent?.includes("Attente de la confirmation") === true
+        container.textContent?.includes("Waiting for the confirmation") === true
     )
 
-    expect(container.textContent).not.toContain("L'essai est ouvert")
+    expect(container.textContent).not.toContain("The trial is open.")
 
     await openTrial(organization.id)
 
     await waitUntil(
-      () => container.textContent?.includes("L'essai est ouvert") === true
+      () => container.textContent?.includes("The trial is open.") === true
+    )
+  })
+
+  it("once the trial is confirmed, the list points at the app", async () => {
+    await openTrial(organization.id)
+
+    const { container, unmount } = await render(
+      panel(organization, "owner", true, "valid")
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("The trial is open.") === true
+    )
+    await waitUntil(
+      () =>
+        container.textContent?.includes(
+          "Install the app and link it to your account"
+        ) === true
     )
 
     const links = [...container.querySelectorAll("a")].map((link) =>
       link.getAttribute("href")
     )
 
-    expect(links).toContain("/download")
-    expect(container.textContent).toContain("Télécharger l'app")
+    expect(links).toContain("/dashboard/download")
+    expect(container.textContent).toContain("All platforms")
+    expect(container.textContent).not.toContain("No card is asked for")
   })
 
   it("tells a member who has to start the trial, and offers no checkout", async () => {
@@ -175,12 +199,11 @@ describe("StartPanel", () => {
 
     await waitUntil(
       () =>
-        container.textContent?.includes("se démarre par le propriétaire") ===
-        true
+        container.textContent?.includes("The owner starts the trial") === true
     )
 
     expect(container.textContent).toContain("ada@test.local")
     expect(container.querySelectorAll("button")).toHaveLength(0)
-    expect(container.textContent).not.toContain("Démarrer l'essai")
+    expect(container.textContent).not.toContain("No card is asked for")
   })
 })

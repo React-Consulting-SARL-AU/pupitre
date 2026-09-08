@@ -32,7 +32,7 @@ type APIError struct {
 
 func (e *APIError) Error() string {
 	if e.Message == "" {
-		return fmt.Sprintf("%s : la plateforme a répondu %d", e.Path, e.Status)
+		return fmt.Sprintf("%s: the platform answered %d", e.Path, e.Status)
 	}
 
 	return fmt.Sprintf("%s : %s %s (%d)", e.Path, e.Code, e.Message, e.Status)
@@ -50,7 +50,7 @@ func (a API) Publish(publication Publication) (Publication, bool, error) {
 	}
 
 	if err := json.Unmarshal(body, &answer); err != nil {
-		return Publication{}, false, fmt.Errorf("/admin/releases : réponse illisible : %w", err)
+		return Publication{}, false, fmt.Errorf("/admin/releases: unreadable answer: %w", err)
 	}
 
 	return answer.Data, status == http.StatusCreated, nil
@@ -69,7 +69,7 @@ func (a API) Promote(version, channel string) ([]Publication, error) {
 	}
 
 	if err := json.Unmarshal(body, &answer); err != nil {
-		return nil, fmt.Errorf("%s : réponse illisible : %w", path, err)
+		return nil, fmt.Errorf("%s: unreadable answer: %w", path, err)
 	}
 
 	return answer.Data, nil

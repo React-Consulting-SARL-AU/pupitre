@@ -14,6 +14,7 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/entitlement"
+	"pupitre.studio/agent/internal/golden"
 )
 
 const testAgentVersion = "0.0.0-test"
@@ -23,6 +24,7 @@ var fixedNow = func() time.Time {
 }
 
 type fixture struct {
+	path        string
 	entitlement contract.Entitlement
 	input       []string
 	expected    []string
@@ -36,7 +38,7 @@ func parseFixture(t *testing.T, path string) fixture {
 		t.Fatal(err)
 	}
 
-	parsed := fixture{entitlement: contract.EntitlementDev}
+	parsed := fixture{path: path, entitlement: contract.EntitlementDev}
 
 	for _, line := range strings.Split(string(raw), "\n") {
 		switch {
@@ -59,7 +61,7 @@ func newTestServer(granted contract.Entitlement) *Server {
 	server := NewServer(Options{AgentVersion: testAgentVersion, Entitlement: entitlement.Fixed(granted), Now: fixedNow})
 
 	server.Register("probe", func(_ *Context, _ json.RawMessage) (any, error) {
-		return nil, NewError(contract.ErrorBusy, "une installation est en cours").WithFix("Attends la fin de l'installation.")
+		return nil, NewError(contract.ErrorBusy, "an installation is in progress").WithFix("Wait for the installation to finish.")
 	})
 
 	server.Register("project.logs", func(ctx *Context, _ json.RawMessage) (any, error) {
@@ -93,7 +95,7 @@ func newTestServer(granted contract.Entitlement) *Server {
 			Token string `json:"enrollment_token"`
 		}
 		if err := json.Unmarshal(ctx.Secrets, &secrets); err != nil || secrets.Token == "" {
-			return nil, badRequest("jeton d'enrôlement absent")
+			return nil, badRequest("enrolment token missing")
 		}
 
 		return map[string]any{"enrolled": true, "entitlement": string(contract.EntitlementValid)}, nil
@@ -137,17 +139,55 @@ func runFixture(t *testing.T, f fixture) {
 	}
 
 	got := strings.Split(strings.TrimRight(out.String(), "\n"), "\n")
+	for _, line := range got {
+		assertContractLine(t, line)
+	}
+
+	recorded, diverged := recording(t, got, f.expected)
+	if !diverged {
+		return
+	}
+
+	if golden.Updating() {
+		if err := golden.Rewrite(f.path, recorded); err != nil {
+			t.Fatal(err)
+		}
+
+		t.Logf("rewritten from the run: %s", f.path)
+
+		return
+	}
+
 	if len(got) != len(f.expected) {
 		t.Fatalf("got %d lines, want %d\n--- got\n%s\n--- want\n%s", len(got), len(f.expected), out.String(), strings.Join(f.expected, "\n"))
 	}
 
 	for i := range got {
-		assertContractLine(t, got[i])
-
 		if !reflect.DeepEqual(decodeJSON(t, got[i]), decodeJSON(t, f.expected[i])) {
 			t.Errorf("line %d\n got: %s\nwant: %s", i+1, got[i], f.expected[i])
 		}
 	}
+}
+
+// A line the run only spells differently is kept as the file holds it: a regeneration records what changed, not the whole file.
+func recording(t *testing.T, got, want []string) (lines []string, diverged bool) {
+	t.Helper()
+
+	lines = make([]string, len(got))
+	diverged = len(got) != len(want)
+
+	for i, line := range got {
+		lines[i] = line
+
+		if i < len(want) && reflect.DeepEqual(decodeJSON(t, line), decodeJSON(t, want[i])) {
+			lines[i] = want[i]
+			continue
+		}
+
+		diverged = true
+	}
+
+	return lines, diverged
 }
 
 func assertContractLine(t *testing.T, line string) {
@@ -260,7 +300,7 @@ func TestCapabilitiesAreSorted(t *testing.T) {
 }
 
 func TestErrorUnwrapsAsProtocolError(t *testing.T) {
-	err := NewError(contract.ErrorBusy, "occupé")
+	err := NewError(contract.ErrorBusy, "busy")
 
 	var protocolErr *Error
 	if !errors.As(err, &protocolErr) || protocolErr.Code != contract.ErrorBusy {
