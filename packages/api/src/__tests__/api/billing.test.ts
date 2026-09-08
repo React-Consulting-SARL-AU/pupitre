@@ -158,6 +158,47 @@ describe("facturation d'une organisation", () => {
     })
   })
 
+  it("ramène le checkout sur la facturation par défaut", async () => {
+    await apiRequest(`/orgs/${organizationId}/checkout`, {
+      body: { quantity: 1, interval: "month" },
+      session: owner,
+    })
+
+    expect(billing.checkouts[0]).toMatchObject({
+      successUrl: "http://localhost:3000/dashboard/billing?checkout=done",
+      cancelUrl: "http://localhost:3000/dashboard/billing?checkout=cancelled",
+    })
+  })
+
+  it("ramène le checkout sur l'onboarding quand il en vient", async () => {
+    await apiRequest(`/orgs/${organizationId}/checkout`, {
+      body: { quantity: 1, interval: "month", return_to: "start" },
+      session: owner,
+    })
+
+    expect(billing.checkouts[0]).toMatchObject({
+      successUrl: "http://localhost:3000/dashboard/start?checkout=done",
+      cancelUrl: "http://localhost:3000/dashboard/start?checkout=cancelled",
+    })
+  })
+
+  it("refuse une destination de retour inconnue", async () => {
+    const response = await apiRequest<ErrorBody>(
+      `/orgs/${organizationId}/checkout`,
+      {
+        body: {
+          quantity: 1,
+          interval: "month",
+          return_to: "https://ailleurs.test",
+        },
+        session: owner,
+      }
+    )
+
+    expect(response.status).toBe(422)
+    expect(billing.checkouts).toHaveLength(0)
+  })
+
   it("réserve le checkout au propriétaire", async () => {
     const byAdmin = await apiRequest<ErrorBody>(
       `/orgs/${organizationId}/checkout`,
