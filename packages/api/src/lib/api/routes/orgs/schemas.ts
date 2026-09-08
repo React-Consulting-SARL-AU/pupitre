@@ -1,5 +1,6 @@
 import { ORG_ROLES } from "@pupitre/shared/permissions"
 import { t } from "elysia"
+import { CHECKOUT_RETURNS } from "../../../billing/checkout"
 import { BILLING_INTERVALS } from "../../../billing/provider"
 import { EVENTS_MAX_PAGE_SIZE } from "../../../orgs/events"
 import { dateTime } from "../../openapi-models"
@@ -17,6 +18,7 @@ const seatQuantity = t.Integer({ minimum: MIN_SEATS, maximum: MAX_SEATS })
 export const checkoutBody = t.Object({
   quantity: seatQuantity,
   interval: billingIntervalSchema,
+  return_to: t.Optional(t.UnionEnum([...CHECKOUT_RETURNS])),
 })
 
 export const seatsBody = t.Object({ quantity: seatQuantity })

@@ -17,13 +17,27 @@ export interface CheckoutActor {
   email: string
 }
 
+export const CHECKOUT_RETURNS = ["billing", "start"] as const
+
+export type CheckoutReturn = (typeof CHECKOUT_RETURNS)[number]
+
+const RETURN_PATHS: Record<CheckoutReturn, string> = {
+  billing: "/dashboard/billing",
+  start: "/dashboard/start",
+}
+
 export interface CheckoutInput {
   quantity: number
   interval: BillingIntervalName
+  return_to?: CheckoutReturn
 }
 
-function billingUrl(query: string): string {
-  return `${appUrlFromEnv().replace(TRAILING_SLASHES_RE, "")}/dashboard/billing${query}`
+function appUrl(path: string): string {
+  return `${appUrlFromEnv().replace(TRAILING_SLASHES_RE, "")}${path}`
+}
+
+function returnUrl(destination: CheckoutReturn, query: string): string {
+  return appUrl(`${RETURN_PATHS[destination]}${query}`)
 }
 
 export async function startCheckout(
@@ -31,14 +45,15 @@ export async function startCheckout(
   input: CheckoutInput
 ): Promise<{ url: string }> {
   const billing = await readBilling(actor.organizationId)
+  const destination = input.return_to ?? "billing"
   const session = await getBillingProvider().createCheckoutSession({
     organizationId: actor.organizationId,
     customerId: billing?.stripeCustomerId ?? null,
     customerEmail: actor.email,
     quantity: input.quantity,
     interval: input.interval,
-    successUrl: billingUrl("?checkout=done"),
-    cancelUrl: billingUrl("?checkout=cancelled"),
+    successUrl: returnUrl(destination, "?checkout=done"),
+    cancelUrl: returnUrl(destination, "?checkout=cancelled"),
   })
 
   return { url: session.url }
@@ -55,7 +70,7 @@ export async function startPortal(
 
   const session = await getBillingProvider().createPortalSession({
     customerId: billing.stripeCustomerId,
-    returnUrl: billingUrl(""),
+    returnUrl: appUrl(RETURN_PATHS.billing),
   })
 
   return { url: session.url }

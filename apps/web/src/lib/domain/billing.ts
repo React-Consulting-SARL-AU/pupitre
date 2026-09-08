@@ -6,6 +6,8 @@ export const BILLING_INTERVALS = ["month", "year"] as const
 
 export type BillingIntervalName = (typeof BILLING_INTERVALS)[number]
 
+export type CheckoutReturn = "billing" | "start"
+
 export const INTERVAL_KEYS: Record<BillingIntervalName, DictionaryKey> = {
   month: "billing.interval.month",
   year: "billing.interval.year",

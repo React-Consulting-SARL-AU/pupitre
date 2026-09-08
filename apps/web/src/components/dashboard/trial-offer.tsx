@@ -23,7 +23,11 @@ export function TrialOffer({ organizationId }: TrialOfferProps) {
   const t = useTranslations()
   const order = useMutation({
     mutationFn: () =>
-      startCheckout(organizationId, { quantity: 1, interval: "month" }),
+      startCheckout(organizationId, {
+        quantity: 1,
+        interval: "month",
+        return_to: "start",
+      }),
     onSuccess: leaveFor,
   })
 
