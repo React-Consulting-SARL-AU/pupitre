@@ -420,7 +420,7 @@ test("un serveur nu propose l'installation", async () => {
 });
 ```
 
-Le scénario tourne contre le staging réinstallé (`bun --cwd=apps/agent run staging:reset`), jamais contre une machine du propriétaire. `bun run test:e2e` le lance après `bun run build`. Un écran a au moins un scénario par verdict ou par état terminal ; les états d'attente sont couverts par les tests de store.
+Le scénario tourne contre l'agent factice de `e2e/harness/`, qui rejoue des réponses enregistrées : aucun serveur n'est joint. `bun run test:e2e` le lance après `bun run build`. Un écran a au moins un scénario par verdict ou par état terminal ; les états d'attente sont couverts par les tests de store.
 
 ## Avant de rendre la main
 

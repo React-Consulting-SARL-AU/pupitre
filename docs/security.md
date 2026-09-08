@@ -13,6 +13,7 @@ Un client est root sur son serveur : il peut copier tout fichier qui s'y trouve,
 | Jeton d'enrôlement | mémoire de l'app, une fois, à l'installation ; remis à l'agent par la commande `enroll` du protocole, sur le flux secret | l'app, puis l'agent qui l'échange |
 | Jeton de serveur | `/etc/pupitre/server.token`, 0600 root ; haché en base | l'agent. Ne donne accès qu'à l'état de son propre serveur. Rotation à chaque réinstallation |
 | Jetons Stripe, Neon, R2, clé de signature des binaires | secrets Wrangler, un jeu par environnement, et secrets GitHub Actions | l'API, la CI |
+| Jeton de publication (`PUPITRE_PUBLISH_TOKEN`) | secret Wrangler des deux environnements, et secret GitHub de l'environnement `release` | la CI. Il n'ouvre que les routes de version : ni un client, ni une organisation, ni un serveur |
 | Secrets du client (mots de passe de bases, jetons Cloudflare, 1Password) | `/etc/pupitre/env`, 0600, sur son serveur | lui seul. Ils ne remontent jamais |
 
 ## Sur le serveur du client
