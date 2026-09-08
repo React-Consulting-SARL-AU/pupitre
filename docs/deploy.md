@@ -131,7 +131,7 @@ Le Worker créé s'appelle `ppt-web-staging` : Wrangler est en environnements *l
 
 ### 6.2 Les secrets
 
-Seize secrets, listés dans `secrets.required` de l'environnement `staging` de [`apps/web/wrangler.jsonc`](../apps/web/wrangler.jsonc) — c'est cette liste, et elle seule, qui fait foi. Un par un, ou en une fois depuis un fichier JSON gardé hors du dépôt :
+Dix-sept secrets, listés dans `secrets.required` de l'environnement `staging` de [`apps/web/wrangler.jsonc`](../apps/web/wrangler.jsonc) — c'est cette liste, et elle seule, qui fait foi. Un par un, ou en une fois depuis un fichier JSON gardé hors du dépôt :
 
 ```bash
 bun x wrangler secret put DATABASE_URL --config apps/web/wrangler.jsonc --env staging
@@ -139,7 +139,13 @@ bun x wrangler secret bulk ~/secrets/pupitre-staging.json --config apps/web/wran
 bun --cwd=apps/web run check:secrets staging     # doit dire que tout est là
 ```
 
-`BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` sont à tirer au sort, une fois, et à garder : `openssl rand -base64 32`. Les cinq `TUNNEL_*` viennent du tunnel Cloudflare de l'exposition ; les quatre `R2_*` de l'étape 3 ; les quatre `STRIPE_*` de l'étape 5.
+`BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` sont à tirer au sort, une fois, et à garder : `openssl rand -base64 32`. `PUPITRE_PUBLISH_TOKEN` se tire de la même façon, mais **avec son préfixe** — c'est à lui que la plateforme le distingue d'une session :
+
+```bash
+echo "pupitre_pub_$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '=')"
+```
+
+Il va au même endroit que les autres ici, et dans les secrets GitHub à l'étape 10.3. Les deux copies doivent dire la même chose. Les cinq `TUNNEL_*` viennent du tunnel Cloudflare de l'exposition ; les quatre `R2_*` de l'étape 3 ; les quatre `STRIPE_*` de l'étape 5.
 
 Les identifiants de connexion sociale (`GITHUB_CLIENT_ID`, `GOOGLE_CLIENT_ID` et leurs secrets) **ne sont pas** dans la liste de staging : ils sont facultatifs, et l'écran de connexion n'offre que les fournisseurs configurés. Les poser rend le bouton ; les taire laisse le lien magique et la clé d'accès.
 
@@ -232,7 +238,7 @@ L'environnement existe. Douze secrets, tous posés par le propriétaire — aucu
 | Secret | Comment l'obtenir | Sans lui |
 | --- | --- | --- |
 | `PUPITRE_RELEASE_PRIVATE_KEY` | `cd apps/agent && go run ./tools/release keygen`, une seule fois | rien ne se construit |
-| `PUPITRE_ADMIN_TOKEN` | une session d'un compte `platform_admin` de la console | la version ne se déclare pas à la plateforme |
+| `PUPITRE_PUBLISH_TOKEN` | la même valeur qu'à l'étape 6.2, mot pour mot | la version ne se déclare pas à la plateforme |
 | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | le jeton R2 *Object Read & Write* de l'étape 3 | rien ne monte sur R2 |
 | `APPLE_CERTIFICATE` | `base64 -i DeveloperID.p12 \| pbcopy` | le `.dmg` sort non signé |
 | `APPLE_CERTIFICATE_PASSWORD` | choisi à l'export depuis Trousseau d'accès | idem |
@@ -240,7 +246,9 @@ L'environnement existe. Douze secrets, tous posés par le propriétaire — aucu
 | `APPLE_API_KEY_ID`, `APPLE_API_ISSUER` | la page *Keys* d'App Store Connect | idem |
 | `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` | l'application Entra ID du compte de signature | l'installateur Windows sort non signé |
 
-**`PUPITRE_ADMIN_TOKEN` n'existe qu'une fois `app.pupitre.studio` en ligne** et un compte de support créé : c'est la contrainte d'ordre de tout ce document. Cloudflare d'abord, la première release ensuite.
+Le jeton de publication n'est pas une session : il n'expire pas, il n'appartient à personne, et il n'ouvre que les quatre routes de version — ni un client, ni une organisation, ni un serveur. Le journal d'audit dit `by: "pipeline"` plutôt que le nom de quelqu'un.
+
+**Le faire tourner ne coupe rien**, à condition de suivre l'ordre : poser le nouveau sur le Worker sous `PUPITRE_PUBLISH_TOKEN` et l'ancien sous `PUPITRE_PUBLISH_TOKEN_PREVIOUS`, basculer le secret GitHub, puis retirer `PUPITRE_PUBLISH_TOKEN_PREVIOUS`. La plateforme accepte les deux entre-temps. `PUPITRE_PUBLISH_TOKEN_PREVIOUS` n'est pas dans `secrets.required` : il n'existe que le temps de la bascule.
 
 La clé de release mérite un mot : une **seule** paire Ed25519 signe toutes les releases, l'agent comme les artefacts de l'app, stable dans le temps. Sa moitié privée va dans 1Password puis dans le secret ; sa moitié publique est recopiée dans `AGENT_RELEASE_PUBLIC_KEY` de `apps/desktop/src/main/agent-release.ts`. Les deux moitiés vont ensemble : une app qui embarque une clé publique et un agent construit avec une autre refusent toute mise à jour, sans message utile.
 

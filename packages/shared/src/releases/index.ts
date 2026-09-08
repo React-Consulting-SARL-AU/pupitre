@@ -7,7 +7,19 @@ export const SHA256_PATTERN = "^[0-9a-f]{64}$"
 
 export const MAX_VERSION_LENGTH = 64
 
-export const MAX_URL_LENGTH = 2048
+export const MAX_R2_KEY_LENGTH = 400
+
+/**
+ * Where an artefact sits in the downloads bucket: `app/<version>/<file>`.
+ *
+ * A publication names a key, never an address: the platform composes the URL
+ * from the bucket it owns, so nothing published can send a reader to a host
+ * that is not ours. The version segment starts with a digit and the file name
+ * with an alphanumeric, which is what forbids a `..` segment and a leading
+ * slash — the two shapes that would escape the prefix.
+ */
+export const APP_R2_KEY_PATTERN =
+  "^app/[0-9][0-9A-Za-z.+-]{0,63}/[0-9A-Za-z][0-9A-Za-z._-]{0,127}$"
 
 export const MAX_NOTES_LENGTH = 20_000
 
@@ -52,10 +64,13 @@ export const AppReleasePublishSchema = z.object({
   os: DesktopSystemSchema,
   arch: DesktopArchitectureSchema,
   format: z.string().regex(new RegExp(FORMAT_PATTERN)),
-  url: z.url().max(MAX_URL_LENGTH),
+  r2_key: z
+    .string()
+    .max(MAX_R2_KEY_LENGTH)
+    .regex(new RegExp(APP_R2_KEY_PATTERN)),
   bytes: z.int().positive().max(MAX_ARTEFACT_BYTES),
   sha256: z.string().regex(new RegExp(SHA256_PATTERN)),
-  signature: z.string().min(1).max(MAX_SIGNATURE_LENGTH).optional(),
+  signature: z.string().min(1).max(MAX_SIGNATURE_LENGTH),
   notes: z.string().min(1).max(MAX_NOTES_LENGTH),
   channel: ReleaseChannelSchema.optional(),
 })

@@ -8,7 +8,7 @@ import {
 } from "../../../releases/releases"
 import { apiError } from "../../errors"
 import { dataResponse, errorResponse } from "../../openapi-models"
-import { requirePlatformAdmin } from "../../plugins/guards"
+import { requirePublisher } from "../../plugins/guards"
 import { serializeData } from "../../prisma"
 import {
   releasePromoteBody,
@@ -27,12 +27,12 @@ const releaseListEnvelope = t.Object(
 export const adminReleasesRoutes = new Elysia({
   name: "admin-releases-routes",
 })
-  .use(requirePlatformAdmin)
+  .use(requirePublisher)
   .post(
     "/releases",
-    async ({ user, body, request, set }) => {
+    async ({ actor, body, request, set }) => {
       try {
-        const { release, created } = await publishRelease(user.id, body)
+        const { release, created } = await publishRelease(actor, body)
 
         set.status = created ? 201 : 200
 
@@ -71,12 +71,8 @@ export const adminReleasesRoutes = new Elysia({
   )
   .post(
     "/releases/:version/promote",
-    async ({ user, params, body, request, set }) => {
-      const promoted = await promoteRelease(
-        user.id,
-        params.version,
-        body.channel
-      )
+    async ({ actor, params, body, request, set }) => {
+      const promoted = await promoteRelease(actor, params.version, body.channel)
 
       if (!promoted) {
         const locale = resolveLocale(request.headers)

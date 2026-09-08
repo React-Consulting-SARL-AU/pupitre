@@ -58,7 +58,8 @@
   "vars": {
     "BETTER_AUTH_URL": "http://localhost:3000",
     "VITE_APP_URL": "http://localhost:3000",
-    "EMAIL_FROM": "no-reply@pupitre.studio"
+    "EMAIL_FROM": "no-reply@pupitre.studio",
+    "PUPITRE_DOWNLOADS_URL": "https://dl.pupitre.studio"
   },
   "secrets": {
     "required": [
@@ -74,6 +75,7 @@
       "TUNNEL_ZONE_ID",
       "TUNNEL_ZONE_NAME",
       "TUNNEL_SIGNING_KEY",
+      "PUPITRE_PUBLISH_TOKEN",
       // Les quatre suivantes ne vivent qu'ici, jamais dans les listes de
       // staging ni de production : `secrets.required` est la seule liste que
       // Cloudflare lit, et elle fait deux choses à la fois — charger la
@@ -160,7 +162,8 @@
         "PUPITRE_ENVIRONMENT": "staging",
         "VITE_APP_URL": "https://staging-app.pupitre.studio",
         "BETTER_AUTH_URL": "https://staging-app.pupitre.studio",
-        "EMAIL_FROM": "no-reply@pupitre.studio"
+        "EMAIL_FROM": "no-reply@pupitre.studio",
+        "PUPITRE_DOWNLOADS_URL": "https://dl.pupitre.studio"
       },
       "secrets": {
         "required": [
@@ -179,7 +182,8 @@
           "TUNNEL_ZONE_ID",
           "TUNNEL_ZONE_NAME",
           "TUNNEL_SIGNING_KEY",
-          "R2_BUCKET_NAME"
+          "R2_BUCKET_NAME",
+          "PUPITRE_PUBLISH_TOKEN"
         ]
       }
     },
@@ -254,7 +258,8 @@
         "PUPITRE_ENVIRONMENT": "production",
         "VITE_APP_URL": "https://app.pupitre.studio",
         "BETTER_AUTH_URL": "https://app.pupitre.studio",
-        "EMAIL_FROM": "no-reply@pupitre.studio"
+        "EMAIL_FROM": "no-reply@pupitre.studio",
+        "PUPITRE_DOWNLOADS_URL": "https://dl.pupitre.studio"
       },
       "secrets": {
         "required": [
@@ -273,7 +278,8 @@
           "TUNNEL_ZONE_ID",
           "TUNNEL_ZONE_NAME",
           "TUNNEL_SIGNING_KEY",
-          "R2_BUCKET_NAME"
+          "R2_BUCKET_NAME",
+          "PUPITRE_PUBLISH_TOKEN"
         ]
       }
     }

@@ -8,7 +8,7 @@ import {
 } from "../../../releases/app-releases"
 import { apiError } from "../../errors"
 import { dataResponse, errorResponse } from "../../openapi-models"
-import { requirePlatformAdmin } from "../../plugins/guards"
+import { requirePublisher } from "../../plugins/guards"
 import { serializeData } from "../../prisma"
 import {
   appReleaseBuildSchema,
@@ -25,12 +25,12 @@ const appReleaseEnvelope = dataResponse(appReleaseSchema)
 export const adminAppReleasesRoutes = new Elysia({
   name: "admin-app-releases-routes",
 })
-  .use(requirePlatformAdmin)
+  .use(requirePublisher)
   .post(
     "/app-releases",
-    async ({ user, body, request, set }) => {
+    async ({ actor, body, request, set }) => {
       try {
-        const { build, created } = await publishAppRelease(user.id, body)
+        const { build, created } = await publishAppRelease(actor, body)
 
         set.status = created ? 201 : 200
 
@@ -69,9 +69,9 @@ export const adminAppReleasesRoutes = new Elysia({
   )
   .post(
     "/app-releases/:version/promote",
-    async ({ user, params, body, request, set }) => {
+    async ({ actor, params, body, request, set }) => {
       const promoted = await promoteAppRelease(
-        user.id,
+        actor,
         params.version,
         body.channel
       )

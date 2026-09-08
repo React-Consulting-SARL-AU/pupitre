@@ -5,7 +5,6 @@ import { join } from "node:path";
 import {
   absoluteFeed,
   artefactOf,
-  downloadUrl,
   feedKey,
   isBlockmap,
   isFeed,
@@ -28,7 +27,7 @@ import {
 
 const PRIVATE_KEY_VARIABLE = "PUPITRE_RELEASE_PRIVATE_KEY";
 
-const ADMIN_TOKEN_VARIABLE = "PUPITRE_ADMIN_TOKEN";
+const PUBLISH_TOKEN_VARIABLE = "PUPITRE_PUBLISH_TOKEN";
 
 const ED25519_PKCS8_PREFIX = "302e020100300506032b657004220420";
 
@@ -141,8 +140,8 @@ function upload(path: string, key: string, options: Options): void {
 
 async function declare(body: unknown, options: Options): Promise<void> {
   const token = required(
-    ADMIN_TOKEN_VARIABLE,
-    process.env[ADMIN_TOKEN_VARIABLE] ?? ""
+    PUBLISH_TOKEN_VARIABLE,
+    process.env[PUBLISH_TOKEN_VARIABLE] ?? ""
   );
 
   if (options.dryRun) {
@@ -205,7 +204,7 @@ async function publishArtefact(
       os: artefact.os,
       sha256,
       signature,
-      url: downloadUrl(settings.base, settings.version, file),
+      r2_key: objectKey(settings.version, file),
       version: settings.version,
     },
     settings

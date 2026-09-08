@@ -157,7 +157,7 @@ jobs:
         working-directory: apps/agent
         run: bun run release:publish
         env:
-          PUPITRE_ADMIN_TOKEN: ${{ secrets.PUPITRE_ADMIN_TOKEN }}
+          PUPITRE_PUBLISH_TOKEN: ${{ secrets.PUPITRE_PUBLISH_TOKEN }}
 
       # What the app build reads: the signed binaries, and the release.json that
       # names their version and their signatures.
@@ -330,7 +330,7 @@ jobs:
             --notes-file="$RUNNER_TEMP/notes.md"
         env:
           PUPITRE_RELEASE_PRIVATE_KEY: ${{ secrets.PUPITRE_RELEASE_PRIVATE_KEY }}
-          PUPITRE_ADMIN_TOKEN: ${{ secrets.PUPITRE_ADMIN_TOKEN }}
+          PUPITRE_PUBLISH_TOKEN: ${{ secrets.PUPITRE_PUBLISH_TOKEN }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 

@@ -1,0 +1,79 @@
+/**
+ * The credential the release pipeline presents.
+ *
+ * It is not a session: a session belongs to a person, expires, and carries the
+ * whole platform with it. This one is a machine credential of its own, declared
+ * on the Worker and in GitHub Actions, and it opens the release routes only.
+ *
+ * Two values are accepted so a rotation leaves no window: the new token is
+ * added here, GitHub switches to it, and the old one is dropped afterwards.
+ */
+
+export const PUBLISH_TOKEN_PREFIX = "pupitre_pub_"
+
+export const PUBLISH_TOKEN_VARIABLE = "PUPITRE_PUBLISH_TOKEN"
+
+export const PREVIOUS_PUBLISH_TOKEN_VARIABLE = "PUPITRE_PUBLISH_TOKEN_PREVIOUS"
+
+export type PublishTokenEnv = Record<string, string | undefined>
+
+export function isPublishToken(value: string): boolean {
+  return value.startsWith(PUBLISH_TOKEN_PREFIX)
+}
+
+export function acceptedPublishTokens(
+  env: PublishTokenEnv = process.env
+): string[] {
+  return [env[PUBLISH_TOKEN_VARIABLE], env[PREVIOUS_PUBLISH_TOKEN_VARIABLE]]
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value))
+}
+
+async function digest(value: string): Promise<Uint8Array> {
+  const bytes = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(value)
+  )
+
+  return new Uint8Array(bytes)
+}
+
+/**
+ * Compared on digests, and to the end.
+ *
+ * The digest is what defeats a timing attack: a caller cannot choose what it
+ * hashes to, so learning how far two digests agree teaches nothing about the
+ * token. Running to the end anyway costs thirty-two subtractions.
+ */
+function sameDigest(left: Uint8Array, right: Uint8Array): boolean {
+  if (left.length !== right.length) {
+    return false
+  }
+
+  let differences = 0
+
+  for (let index = 0; index < left.length; index += 1) {
+    differences += Math.abs((left[index] ?? 0) - (right[index] ?? 0))
+  }
+
+  return differences === 0
+}
+
+export async function verifyPublishToken(
+  token: string,
+  env: PublishTokenEnv = process.env
+): Promise<boolean> {
+  const accepted = acceptedPublishTokens(env)
+
+  if (accepted.length === 0) {
+    return false
+  }
+
+  const presented = await digest(token)
+  const digests = await Promise.all(accepted.map(digest))
+
+  return digests.reduce(
+    (matched, candidate) => sameDigest(presented, candidate) || matched,
+    false
+  )
+}

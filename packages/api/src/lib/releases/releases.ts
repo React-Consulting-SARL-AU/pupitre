@@ -5,7 +5,7 @@ import type {
 } from "@pupitre/db/cloudflare/client"
 import { isNewer, latestBy } from "@pupitre/shared/semver"
 import { getPrisma } from "../api/prisma"
-import { recordEvent } from "../audit/audit"
+import { type Actor, recordEvent } from "../audit/audit"
 import { publishOnce } from "./publish"
 import { getReleaseStorage, type ReleaseStorageKind } from "./storage"
 
@@ -121,7 +121,7 @@ export async function releaseDownloadUrl(
 }
 
 export async function publishRelease(
-  actorUserId: string,
+  actor: Actor,
   input: PublishReleaseInput
 ): Promise<PublishReleaseResult> {
   const { row, created } = await publishOnce<Release>({
@@ -145,10 +145,11 @@ export async function publishRelease(
   if (created) {
     await recordEvent({
       action: "release.published",
-      actorUserId,
+      actorUserId: actor.userId,
       targetType: "release",
       targetId: row.version,
       payload: {
+        by: actor.source,
         arch: row.arch,
         channel: row.channel,
         sha256: row.sha256,
@@ -160,7 +161,7 @@ export async function publishRelease(
 }
 
 export async function promoteRelease(
-  actorUserId: string,
+  actor: Actor,
   version: string,
   channel: ReleaseChannel
 ): Promise<ReleaseView[] | null> {
@@ -175,10 +176,14 @@ export async function promoteRelease(
 
   await recordEvent({
     action: "release.promoted",
-    actorUserId,
+    actorUserId: actor.userId,
     targetType: "release",
     targetId: version,
-    payload: { channel, arch: published.map((release) => release.arch) },
+    payload: {
+      by: actor.source,
+      channel,
+      arch: published.map((release) => release.arch),
+    },
   })
 
   return published.map((release) => toReleaseView({ ...release, channel }))

@@ -101,20 +101,20 @@ jobs:
         working-directory: apps/agent
         run: bun run release:promote
         env:
-          PUPITRE_ADMIN_TOKEN: ${{ secrets.PUPITRE_ADMIN_TOKEN }}
+          PUPITRE_PUBLISH_TOKEN: ${{ secrets.PUPITRE_PUBLISH_TOKEN }}
 
       - name: Promote the app
         run: |
           set -euo pipefail
           status=$(curl -sS -o "$RUNNER_TEMP/promote.json" -w '%{http_code}' \
             -X POST "$PUPITRE_PLATFORM_URL/api/v1/admin/app-releases/$PUPITRE_RELEASE_VERSION/promote" \
-            -H "authorization: Bearer $PUPITRE_ADMIN_TOKEN" \
+            -H "authorization: Bearer $PUPITRE_PUBLISH_TOKEN" \
             -H 'content-type: application/json' \
             -d "{\"channel\":\"$PUPITRE_RELEASE_CHANNEL\"}")
           cat "$RUNNER_TEMP/promote.json"
           test "$status" = "200"
         env:
-          PUPITRE_ADMIN_TOKEN: ${{ secrets.PUPITRE_ADMIN_TOKEN }}
+          PUPITRE_PUBLISH_TOKEN: ${{ secrets.PUPITRE_PUBLISH_TOKEN }}
 
       # The feed of a channel points at the version that channel serves: an app
       # that follows `stable` reads this file and nothing else.

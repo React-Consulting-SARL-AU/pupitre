@@ -2214,7 +2214,7 @@ export const AppReleaseScalarFieldEnum = {
   os: 'os',
   arch: 'arch',
   format: 'format',
-  url: 'url',
+  r2Key: 'r2Key',
   bytes: 'bytes',
   sha256: 'sha256',
   signature: 'signature',

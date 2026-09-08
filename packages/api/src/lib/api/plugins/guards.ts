@@ -5,8 +5,13 @@ import {
   type OrgRole,
 } from "@pupitre/shared/permissions"
 import { Elysia, status } from "elysia"
+import { PIPELINE_ACTOR } from "../../audit/audit"
 import { entitlementRefusalFor } from "../../billing/entitlement"
 import { type MessageKey, type MessageParams, translate } from "../../i18n"
+import {
+  isPublishToken,
+  verifyPublishToken,
+} from "../../releases/publish-token"
 import { findServerByToken } from "../../servers/servers"
 import { apiError } from "../errors"
 import { bearerTokenOf, resolveAuthContext } from "./auth"
@@ -166,6 +171,49 @@ export const requirePlatformAdmin = new Elysia({
   }
 
   return { ...auth, user: auth.user, session: auth.session }
+})
+
+/**
+ * Who may publish a version: the release pipeline, or a member of the team.
+ *
+ * The pipeline presents a token of its own, declared on the Worker and in
+ * GitHub Actions, which opens these routes and nothing else. The console keeps
+ * its session, so a version can still be promoted by hand the day the pipeline
+ * cannot. Both end up as an actor the journal can name.
+ */
+export const requirePublisher = new Elysia({
+  name: "requirePublisher",
+}).resolve({ as: "scoped" }, async ({ request }) => {
+  const token = bearerTokenOf(request.headers)
+
+  if (token && isPublishToken(token)) {
+    if (await verifyPublishToken(token)) {
+      return { actor: PIPELINE_ACTOR }
+    }
+
+    return refuse(request, {
+      status: 401,
+      code: "unauthenticated",
+      message: "publish_token_invalid",
+      fix: "publish_token_invalid_fix",
+    })
+  }
+
+  const auth = await resolveAuthContext(request)
+
+  if (!(auth.user && auth.session)) {
+    return unauthenticated(request)
+  }
+
+  if (!auth.isPlatformAdmin) {
+    return refuse(request, {
+      status: 403,
+      code: "forbidden",
+      message: "platform_admin_required",
+    })
+  }
+
+  return { actor: { userId: auth.user.id, source: "console" } }
 })
 
 export const requireServer = new Elysia({ name: "requireServer" }).resolve(
