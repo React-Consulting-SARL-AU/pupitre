@@ -3,10 +3,12 @@ import { bootApiTestServer } from "../../testing"
 import { apiRequest } from "../../testing/request"
 import { createSession, createUser } from "../../testing/session"
 
-const BOOT_BUDGET_MS = 3000
+// A shared runner takes about twice as long as a laptop over the same work, and
+// the budget is here to notice a regression, not to rank machines.
+const BOOT_BUDGET_MS = process.env.CI ? 10_000 : 3000
 
 describe("API test harness", () => {
-  it("boots the API on PGlite in under 3 seconds and serves GET /me with a test session", async () => {
+  it("boots the API on PGlite within its budget and serves GET /me with a test session", async () => {
     const warm = await bootApiTestServer()
 
     await warm.stop()

@@ -96,6 +96,11 @@ export async function bootTestDatabase(): Promise<TestDatabase> {
       database: "postgres",
       ssl: false,
       max: 1,
+      // One connection, kept for the life of the process. Reaping it on idle
+      // races the next checkout, and the query that follows dies on a socket
+      // the pool had already closed.
+      idleTimeoutMillis: 0,
+      allowExitOnIdle: false,
     }),
     transactionOptions: { maxWait: 10_000, timeout: 15_000 },
   })

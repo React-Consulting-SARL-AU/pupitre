@@ -144,8 +144,19 @@ jobs:
         run: node node_modules/electron/install.js
         working-directory: apps/desktop
 
+      # TEMPORARY: writes the linux references, which no machine here can take.
+      # Reverted in the commit that adds them.
       - name: Playwright
-        run: xvfb-run --auto-servernum bun --cwd=apps/desktop run test:e2e
+        run: xvfb-run --auto-servernum bash -c "cd apps/desktop && bun run build && bun x playwright test --update-snapshots"
+
+      - name: Upload the references
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-references-${{ github.sha }}
+          path: apps/desktop/e2e/references
+          retention-days: 7
+          if-no-files-found: error
 
       - name: Upload the failure artifacts
         if: failure()

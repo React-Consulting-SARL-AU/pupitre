@@ -45,9 +45,11 @@ export function SettingsAppearance() {
             theme: t(`settings.resolved.${resolved}`),
           })}
           label={t("settings.appearance.themeLabel")}
+          name="settings.theme"
         >
           <select
             className={fieldControlClass}
+            id="settings.theme"
             onChange={(event) =>
               setPreference(event.target.value as ThemePreference)
             }
@@ -66,9 +68,11 @@ export function SettingsAppearance() {
         <Field
           help={t("settings.language.help")}
           label={t("settings.language.label")}
+          name="settings.language"
         >
           <select
             className={fieldControlClass}
+            id="settings.language"
             onChange={(event) =>
               setLocalePreference(
                 event.target.value as (typeof LOCALE_PREFERENCES)[number]
