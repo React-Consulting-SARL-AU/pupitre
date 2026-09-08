@@ -11,6 +11,9 @@ const FR = {
   not_a_member: "Vous n'êtes plus membre de cette organisation.",
   role_required: "Le rôle {role} est requis.",
   platform_admin_required: "Réservé à l'équipe Pupitre.",
+  publish_token_invalid: "Jeton de publication invalide.",
+  publish_token_invalid_fix:
+    "Vérifiez PUPITRE_PUBLISH_TOKEN des deux côtés : le Worker et GitHub Actions.",
   server_token_required: "Jeton de serveur requis.",
   server_token_unknown: "Jeton de serveur inconnu.",
   server_token_revoked: "Ce serveur a été révoqué.",
@@ -125,6 +128,9 @@ const EN: Record<MessageKey, string> = {
   not_a_member: "You are no longer a member of this organization.",
   role_required: "The {role} role is required.",
   platform_admin_required: "Reserved to the Pupitre team.",
+  publish_token_invalid: "Invalid publish token.",
+  publish_token_invalid_fix:
+    "Check PUPITRE_PUBLISH_TOKEN on both sides: the Worker and GitHub Actions.",
   server_token_required: "Server token required.",
   server_token_unknown: "Unknown server token.",
   server_token_revoked: "This server has been revoked.",

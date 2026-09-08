@@ -20,7 +20,7 @@ import { refuseWith } from "./refusal";
  * another refuse every update.
  */
 export const AGENT_RELEASE_PUBLIC_KEY =
-  "weIpHX6WI4GjQquEBNFOjl6F61ntJ0k6DrRBOXhM/us";
+  "hs05klwUQPR+pNnh7lVme+DKN5SUNC3+OGKrEBTOr48=";
 
 const ED25519_SPKI_PREFIX = "302a300506032b6570032100";
 

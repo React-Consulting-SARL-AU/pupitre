@@ -1,0 +1,319 @@
+# Mettre Pupitre en ligne
+
+Ce document suppose que tu ne connais pas le projet. Il donne les gestes dans l'ordre, la commande exacte à chaque fois, et ce qui casse quand une étape est sautée. Suivi de bout en bout, il mène d'un dépôt Git à un service qui répond.
+
+Compte une demi-journée la première fois, dont la moitié à attendre des vérifications de comptes tiers.
+
+## 1. Ce que tu mets en ligne
+
+Quatre choses, sur deux environnements.
+
+| Ce qui est publié | Où | Ce qui le déclenche |
+| --- | --- | --- |
+| La console et l'API — un seul Worker Cloudflare | `staging-app.pupitre.studio`, puis `app.pupitre.studio` | un push sur la branche `staging`, puis sur `main` |
+| Le site marketing | `staging.pupitre.studio`, puis `pupitre.studio` | les mêmes branches, sur Cloudflare Pages |
+| L'app desktop (macOS, Windows, Linux) | le seau public `ppt-downloads`, servi par `dl.pupitre.studio` | un tag `vX.Y.Z` posé sur `staging` |
+| L'agent `pupitred`, installé sur le serveur du client | le seau privé `ppt-agent`, que rien n'atteint directement | le même tag |
+
+**Staging d'abord, production ensuite.** Les deux environnements sont identiques en tout sauf leurs valeurs : même code, mêmes douze secrets, mêmes vérifications. Ce que tu apprends sur l'un s'applique à l'autre.
+
+Les branches : `staging` est la branche de travail, `main` est la production et ne change que par une pull request depuis `staging`. Les hooks du dépôt refusent d'y committer en local. Voir [`monorepo.md`](./monorepo.md#branches).
+
+## 2. Avant de commencer
+
+### Les comptes
+
+| Compte | Ce qu'il porte | Coût | Délai |
+| --- | --- | --- | --- |
+| **Cloudflare** | le domaine, le Worker, le site, les deux seaux de fichiers | gratuit pour commencer | immédiat |
+| **Neon** | la base de données Postgres | gratuit pour commencer | immédiat |
+| **Stripe** | le produit et ses deux prix | commission par vente | quelques jours de vérification |
+| **GitHub** | le dépôt et la chaîne de publication | gratuit | immédiat |
+| Apple Developer | la signature de l'app macOS | 99 $/an | quelques jours |
+| Azure Trusted Signing | la signature de l'app Windows | à l'usage | quelques jours de vérification |
+
+Les quatre premiers suffisent pour mettre le service en ligne. Les deux derniers ne concernent que la publication de l'app desktop : sans eux elle se construit quand même, non signée, et les systèmes préviennent l'utilisateur au premier lancement.
+
+### Les outils
+
+```bash
+bun install                 # depuis la racine du dépôt
+bun x wrangler login        # ouvre le navigateur : choisir le compte qui porte le domaine
+neonctl auth                # idem, pour la base de données
+gh auth status              # doit afficher le compte propriétaire du dépôt
+```
+
+### La règle sur les secrets
+
+**Aucune valeur ne se tape à la main dans un fichier du dépôt.** Chaque secret est déposé dans 1Password — coffre et note nommés dans [`op.config.json`](../op.config.json) — et `bun run dev:prepare` va l'y chercher pour le développement local. Le dépôt ne contient que des références ; un hook refuse le commit qui porterait une valeur.
+
+## 3. Les douze secrets
+
+C'est la partie qui bloque tout le monde. Elle est ici en entier.
+
+Le Worker exige **les douze**, dans les deux environnements. La liste vit dans [`apps/web/wrangler.jsonc`](../apps/web/wrangler.jsonc) sous `secrets.required`, et `deploy:staging` comme `deploy:production` refusent de partir s'il en manque un : c'est un garde-fou, pas une préférence. Il n'y a donc pas de « déployer d'abord, compléter ensuite ».
+
+En revanche tu peux les obtenir dans l'ordre, et trois d'entre eux se fabriquent en une commande.
+
+### D'un coup d'œil
+
+| Secret | À quoi il sert | Où le prendre | staging et production |
+| --- | --- | --- | --- |
+| `DATABASE_URL` | tout : sans base, rien ne répond | Neon | **valeurs différentes** |
+| `BETTER_AUTH_SECRET` | signe les sessions de connexion | tu le tires toi-même | **valeurs différentes** |
+| `INTERNAL_WORKFLOW_SECRET` | ferme le déclencheur interne des tâches de fond | tu le tires toi-même | **valeurs différentes** |
+| `PUPITRE_PUBLISH_TOKEN` | laisse la CI déclarer une version publiée | tu le tires toi-même | même valeur des deux côtés |
+| `STRIPE_SECRET_KEY` | ouvrir un paiement | Stripe | sandbox / live |
+| `STRIPE_WEBHOOK_SECRET` | vérifier que Stripe est bien l'émetteur | Stripe | sandbox / live |
+| `STRIPE_PRICE_SERVER_MONTH` | le prix mensuel | Stripe | sandbox / live |
+| `STRIPE_PRICE_SERVER_YEAR` | le prix annuel | Stripe | sandbox / live |
+| `R2_ACCOUNT_ID` | servir le binaire de l'agent | Cloudflare | même valeur des deux côtés |
+| `R2_ACCESS_KEY_ID` | idem | Cloudflare | même valeur des deux côtés |
+| `R2_SECRET_ACCESS_KEY` | idem | Cloudflare | même valeur des deux côtés |
+| `R2_BUCKET_NAME` | idem — vaut `ppt-agent` | c'est le nom du seau | même valeur des deux côtés |
+
+**Quatre secrets n'apparaissent pas ici et n'apparaîtront jamais en ligne** : `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Ils n'existent que dans la liste locale, pour le développement, et sont **facultatifs par conception** : l'écran de connexion n'affiche que les fournisseurs configurés, et sans eux il reste le lien par email et la clé d'accès. Ne les cherche pas pour un déploiement.
+
+### Ce qui casse si l'un est faux
+
+Un secret présent mais faux ne bloque pas le déploiement : le garde-fou compte les secrets, il ne les essaie pas. Voici ce que tu observeras.
+
+| Faux ou factice | Ce qui marche quand même | Ce qui casse |
+| --- | --- | --- |
+| `DATABASE_URL` | rien | tout, dès la première page |
+| `BETTER_AUTH_SECRET` | les pages publiques | toute connexion |
+| `INTERNAL_WORKFLOW_SECRET` | tout, tâches planifiées comprises | seulement le déclenchement manuel d'une tâche de fond, qui ne sert qu'en développement |
+| `PUPITRE_PUBLISH_TOKEN` | tout le service | la CI ne peut plus déclarer de version publiée |
+| les quatre `STRIPE_*` | la connexion, la console, l'ajout d'un serveur | souscrire un abonnement |
+| les quatre `R2_*` | la console entière | l'app ne peut pas télécharger l'agent, donc aucune installation sur un serveur |
+
+Autrement dit : `DATABASE_URL` et `BETTER_AUTH_SECRET` sont les deux seuls dont une valeur fausse rend le service inutilisable. Les autres dégradent une fonction, et le disent.
+
+### Les trois que tu fabriques toi-même
+
+Trente secondes, aucun compte tiers.
+
+```bash
+# BETTER_AUTH_SECRET, puis INTERNAL_WORKFLOW_SECRET : une valeur par environnement
+openssl rand -base64 32
+
+# PUPITRE_PUBLISH_TOKEN : le préfixe fait partie du jeton, il n'est pas décoratif
+echo "pupitre_pub_$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '=')"
+```
+
+Le préfixe `pupitre_pub_` est ce à quoi la plateforme reconnaît un jeton de publication ; sans lui elle le prend pour une session et le refuse. Ce jeton va à trois endroits, mot pour mot identique : 1Password, les secrets du Worker, et les secrets GitHub de l'étape 8.
+
+### `DATABASE_URL` — Neon
+
+Le projet s'appelle `pupitre` et porte deux branches, `production` et `staging`. Dans la console Neon, ouvre la branche, puis *Connection details*. Relève **deux** adresses, qui ne sont pas la même :
+
+| Variable | Quel point de connexion | Pourquoi |
+| --- | --- | --- |
+| `DATABASE_URL` | celui dont l'hôte contient `-pooler` | ce que le Worker ouvre, des centaines de fois |
+| `MIGRATE_DATABASE_URL` | celui **sans** `-pooler` | le seul que l'outil de migration accepte |
+
+`MIGRATE_DATABASE_URL` n'est pas un secret du Worker : il ne sert qu'à la construction, et se donne à Cloudflare Builds à l'étape 7.
+
+### Les quatre `R2_*` — Cloudflare
+
+Ils servent à une seule chose : laisser la plateforme distribuer le binaire de l'agent depuis un seau que rien n'atteint autrement.
+
+Cloudflare → **R2** → *Manage API tokens* → *Create API token*. Permission **Object Read only**, restreinte au seul seau `ppt-agent`. Cloudflare affiche alors une clé et un secret — **le secret n'est montré qu'une fois**.
+
+| Variable | Valeur |
+| --- | --- |
+| `R2_ACCOUNT_ID` | l'identifiant de ton compte Cloudflare, dans le tableau de bord |
+| `R2_ACCESS_KEY_ID` | la clé que le jeton vient de rendre |
+| `R2_SECRET_ACCESS_KEY` | le secret, montré une seule fois |
+| `R2_BUCKET_NAME` | `ppt-agent` |
+
+Crée **un second jeton** au même endroit, celui-là en **Object Read & Write** sur les deux seaux : il devient `CLOUDFLARE_API_TOKEN` dans GitHub à l'étape 8. Ne réutilise pas le premier — celui du Worker n'a pas à pouvoir écrire.
+
+### Les quatre `STRIPE_*` — Stripe
+
+Un produit et deux prix, à créer **deux fois** : en sandbox pour le staging, en live pour la production.
+
+| | |
+| --- | --- |
+| Produit | `Pupitre Server`, code fiscal `txcd_10103001` (logiciel en ligne, usage professionnel) |
+| Prix mensuel | 19 $, taxe en sus → `STRIPE_PRICE_SERVER_MONTH` |
+| Prix annuel | 190 $, deux mois offerts → `STRIPE_PRICE_SERVER_YEAR` |
+
+`STRIPE_SECRET_KEY` se relève dans *Developers* → *API keys*.
+
+`STRIPE_WEBHOOK_SECRET` demande une adresse en ligne : il vient d'un point de terminaison créé sur `https://<ton-domaine>/api/v1/webhooks/stripe`. **Tu ne peux donc pas l'obtenir avant l'étape 6.** Deux façons de s'en sortir : créer le Worker une première fois avec une valeur factice pour ce seul secret et la remplacer ensuite, ou faire l'étape 6 en sachant que la souscription ne marchera qu'après ce retour. Rien d'autre n'en dépend. C'est la seule circularité du document, et elle coûte un aller-retour.
+
+Trois réglages à faire une fois dans le tableau de bord Stripe : **Managed Payments** activé et conditions acceptées — c'est ce qui fait de Stripe le vendeur, qui calcule et reverse la taxe ; l'adresse de support à jour, car Stripe y escalade et rembourse sans réponse sous 48 heures ; le portail client limité au moyen de paiement, aux factures et à la résiliation, **jamais à la quantité** — le nombre de serveurs se change depuis la console, pas depuis Stripe.
+
+## 4. Le domaine et les seaux
+
+`pupitre.studio` est sur le compte Cloudflare. **Toute ressource créée y porte le préfixe `ppt-`** : le compte héberge plusieurs produits, et sans ce préfixe on ne les distingue plus.
+
+Deux seaux R2, deux régimes.
+
+**`ppt-downloads`, public.** Il ne contient que les fichiers de l'app et leurs signatures. Son adresse publique :
+
+```bash
+bun x wrangler r2 bucket domain add ppt-downloads \
+  --domain dl.pupitre.studio --zone-id <identifiant de la zone> --min-tls 1.2
+```
+
+Vérifie : `curl -I https://dl.pupitre.studio` répond **404 servi par Cloudflare**. Un 404 est le bon signe — le seau répond, et sa racine est vide.
+
+**`ppt-agent`, privé.** Ni adresse publique, ni URL `r2.dev`. Rien ne l'atteint depuis internet : c'est ce qui garde le binaire de l'agent hors de portée. La plateforme en sert le contenu par une adresse signée valable cinq minutes, qu'elle calcule elle-même, et seulement à un serveur qui présente son jeton.
+
+**Email.** Active Email Routing sur la zone et fais vérifier `no-reply@pupitre.studio`. Sans lui aucun lien de connexion ne part, donc personne ne se connecte.
+
+## 5. La base de données
+
+Deux branches Neon dans le projet `pupitre` : `production` et `staging`. Elles existent déjà. Tu n'as rien à créer ni à migrer à la main — la construction applique les migrations avant de déployer, à chaque fois.
+
+Une seule chose à savoir : `MIGRATE_DATABASE_URL` doit désigner le point de connexion **direct** de la branche visée. Un point poolé est refusé, avec un message qui le dit.
+
+## 6. Le premier déploiement, à la main
+
+Un secret ne s'attache qu'à un Worker qui existe. On le crée donc une fois sans passer par la construction automatique. Depuis une branche de travail, avec les deux adresses de la branche Neon `staging` dans l'environnement :
+
+```bash
+bun --cwd=apps/web run build:staging
+bun x wrangler deploy --config apps/web/dist/server/wrangler.json --keep-vars
+```
+
+Le Worker s'appelle `ppt-web-staging`. Rien ne se saisit dans le tableau de bord : l'adresse, les tâches planifiées et les liens de service viennent tous de `wrangler.jsonc`.
+
+Puis les douze secrets, un par un ou d'un coup depuis un fichier JSON gardé hors du dépôt :
+
+```bash
+bun x wrangler secret put DATABASE_URL --config apps/web/wrangler.jsonc --env staging
+bun x wrangler secret bulk ~/secrets/pupitre-staging.json --config apps/web/wrangler.jsonc --env staging
+bun --cwd=apps/web run check:secrets staging     # doit dire que tout est là
+```
+
+**Recommence l'étape entière pour `production`**, avec `build:production`, `--env production` et `check:secrets production`. Les valeurs diffèrent : branche Neon `production`, Stripe en live. Ne recopie rien depuis le staging sauf les quatre `R2_*` et le jeton de publication.
+
+Vérifie :
+
+```bash
+curl -s https://staging-app.pupitre.studio/api/v1/health       # {"ok":true}
+curl -sI https://staging-app.pupitre.studio/status | head -1    # 200, sans être connecté
+```
+
+## 7. Les déploiements automatiques
+
+À partir d'ici, plus rien ne se déploie à la main.
+
+**Deux projets Workers Builds** sur le dépôt — un par environnement, c'est ainsi que Cloudflare les sépare. La création passe par une autorisation GitHub dans le tableau de bord ; elle ne s'automatise pas.
+
+| | staging | production |
+| --- | --- | --- |
+| Branche surveillée | `staging` | `main` |
+| Commande de construction | `bun install --frozen-lockfile && bun --cwd=apps/web run build:staging` | `bun install --frozen-lockfile && bun --cwd=apps/web run build:production` |
+| Commande de déploiement | `bun --cwd=apps/web run deploy:staging` | `bun --cwd=apps/web run deploy:production` |
+| Variable de construction | `VITE_APP_URL=https://staging-app.pupitre.studio` | `VITE_APP_URL=https://app.pupitre.studio` |
+| Secrets de construction | `DATABASE_URL` et `MIGRATE_DATABASE_URL` de la branche Neon `staging` | les mêmes, de la branche `production` |
+
+La construction migre la base **avant** de construire, et le déploiement refuse de partir s'il manque un secret : les deux échouent avant d'avoir touché au Worker en place.
+
+**Un projet Pages** pour le site marketing.
+
+| Champ | Valeur |
+| --- | --- |
+| Nom | `ppt-site` |
+| Commande | `bun install --frozen-lockfile && bun --cwd=apps/site run build` |
+| Dossier de sortie | `apps/site/dist` |
+| Branche de production | `main` → `pupitre.studio` |
+| Branche de prévisualisation | `staging`, à aliaser en `staging.pupitre.studio` |
+
+Une seule variable de construction est utile : `PUBLIC_RELEASES_URL=https://app.pupitre.studio/api/v1/releases/app`, que la page de téléchargement lit pour nommer les versions publiées. Si elle manque ou si l'API ne répond pas, la construction n'échoue pas : la page part avec une liste écrite dans le dépôt et un avertissement. Les redirections et les en-têtes de sécurité sont dans `apps/site/public/`, rien à saisir.
+
+## 8. GitHub
+
+### Les réglages du dépôt
+
+```bash
+gh repo edit <compte>/pupitre \
+  --enable-squash-merge=false --enable-rebase-merge=false --enable-merge-commit
+```
+
+Le squash est interdit parce qu'il réécrit les commits : le commit tagué d'une version sortirait de l'historique de `main`, et la promotion de cette version ne le retrouverait plus.
+
+**Ce dépôt est privé sur un plan GitHub gratuit**, qui refuse la protection de branche et les relecteurs obligatoires. `main` n'a donc **aucune protection côté serveur** : les hooks du dépôt sont la seule barrière, et ils ne protègent que la machine sur laquelle `bun install` est passé. GitHub Pro lève les deux.
+
+### Les variables
+
+Publiques, pas des secrets :
+
+```bash
+gh variable set PUPITRE_PLATFORM_URL     --body "https://app.pupitre.studio"
+gh variable set PUPITRE_DOWNLOADS_URL    --body "https://dl.pupitre.studio"
+gh variable set PUPITRE_DOWNLOADS_BUCKET --body "ppt-downloads"
+gh variable set PUPITRE_R2_BUCKET        --body "ppt-agent"
+```
+
+### Les secrets de publication
+
+Ils vivent dans un environnement nommé `release` et ne servent qu'à publier l'app et l'agent.
+
+| Secret | D'où il vient | Sans lui |
+| --- | --- | --- |
+| `PUPITRE_PUBLISH_TOKEN` | la même valeur qu'à l'étape 3, mot pour mot | la version se construit et ne se déclare pas |
+| `PUPITRE_RELEASE_PRIVATE_KEY` | `cd apps/agent && go run ./tools/release keygen`, une seule fois | rien ne se construit |
+| `CLOUDFLARE_API_TOKEN` | le second jeton R2 de l'étape 3 | rien ne monte sur les seaux |
+| `CLOUDFLARE_ACCOUNT_ID` | l'identifiant du compte | idem |
+| `APPLE_CERTIFICATE` | `base64 -i DeveloperID.p12 \| pbcopy` | l'app macOS sort non signée |
+| `APPLE_CERTIFICATE_PASSWORD` | choisi à l'export du certificat | idem |
+| `APPLE_API_KEY_CONTENT` | `base64 -i AuthKey_<id>.p8 \| pbcopy` | pas de notarisation |
+| `APPLE_API_KEY_ID`, `APPLE_API_ISSUER` | la page *Keys* d'App Store Connect | idem |
+| `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` | l'application Entra ID du compte de signature | l'installateur Windows sort non signé |
+
+Les quatre premiers suffisent pour publier. Les autres n'évitent que les avertissements des systèmes au premier lancement.
+
+**La clé de publication mérite une phrase.** Une seule paire de clés signe tout ce que Pupitre publie, pour toujours. Sa moitié privée va dans 1Password puis dans le secret GitHub ; sa moitié publique est déjà écrite dans le code de l'app. Les deux vont ensemble : une app qui connaît une clé publique et un agent signé avec une autre refusent toute mise à jour, sans message utile. Ne la régénère pas.
+
+**Faire tourner le jeton de publication ne coupe rien**, dans cet ordre : poser le nouveau sur le Worker sous `PUPITRE_PUBLISH_TOKEN` et l'ancien sous `PUPITRE_PUBLISH_TOKEN_PREVIOUS`, changer le secret GitHub, puis retirer l'ancien. La plateforme accepte les deux entre-temps.
+
+## 9. La première version publiée
+
+```bash
+git switch staging && git pull --ff-only
+bun scripts/release-notes.ts 0.1.0 --check   # l'entrée de changelog existe en anglais et en français
+git tag -a v0.1.0 -m "Pupitre 0.1.0"
+git push origin v0.1.0
+```
+
+Le push du tag est l'acte de publication. La chaîne refuse de commencer si le tag n'est pas sur `staging` ou `main`, si le changelog ne couvre pas la version, ou si l'app ne déclare pas ce numéro.
+
+Une version sort toujours en canal **`beta`**. Elle passe en `stable` quand la pull request `staging` → `main` est fusionnée : c'est **le même fichier**, celui qui a été éprouvé, qui devient la version stable — rien n'est reconstruit. Un second build donnerait d'autres signatures pour le même numéro.
+
+## 10. Vérifier que tout tient
+
+```bash
+curl -s https://app.pupitre.studio/api/v1/health                      # {"ok":true}
+curl -sI https://pupitre.studio | head -1                             # 200
+curl -sI https://staging.pupitre.studio | head -1                     # 200
+curl -s "https://app.pupitre.studio/api/v1/releases/app/latest?channel=beta" | head -c 200
+curl -sI https://dl.pupitre.studio/app/0.1.0/latest.yml | head -1     # 200
+```
+
+Puis, à la main : ouvrir le `.dmg` sur un Mac qui n'a jamais vu le certificat, sans avertissement ; installer sur Windows sans que SmartScreen bloque ; et faire installer l'agent par l'app sur un serveur d'essai.
+
+## 11. Si ça casse
+
+| Symptôme | Cause la plus probable |
+| --- | --- |
+| Le déploiement refuse de partir en nommant des secrets | il en manque un : `check:secrets <environnement>` les liste |
+| Le site répond mais aucune connexion n'aboutit | `BETTER_AUTH_SECRET` absent, ou différent de celui qui a signé les sessions |
+| Aucun email ne part | Email Routing pas activé, ou `no-reply@pupitre.studio` pas vérifié |
+| L'app dit qu'il n'y a rien à télécharger | les quatre `R2_*` sont faux : la plateforme rend une adresse locale et le dit dans un en-tête |
+| La construction échoue sur la migration | `MIGRATE_DATABASE_URL` désigne un point poolé, ou la mauvaise branche |
+| La CI publie mais la plateforme refuse | `PUPITRE_PUBLISH_TOKEN` diffère entre GitHub et le Worker, ou a perdu son préfixe |
+| Une version publiée ne devient jamais stable | la pull request a été fusionnée en squash, et le commit tagué a quitté l'historique |
+
+Un retour arrière du Worker se fait sur ses versions : `bun x wrangler rollback --config apps/web/dist/server/wrangler.json`. Une migration de base, elle, ne se rejoue pas à l'envers — une migration qui casse se corrige par une migration suivante.
+
+## 12. Ce que rien n'automatise
+
+- **Un secret ou un certificat.** Aucun n'entre dans le dépôt, dans un journal de construction ou dans une conversation.
+- **La création des projets Cloudflare Builds et Pages**, qui passe par une autorisation GitHub dans le tableau de bord.
+- **La vérification d'identité d'Azure Trusted Signing**, qui prend quelques jours.
+- **La mise à jour de ce document.** Quand un réglage change dans un tableau de bord, il change ici dans la même passe : c'est la seule trace qu'en garde le dépôt.

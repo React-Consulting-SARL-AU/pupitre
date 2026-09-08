@@ -125,9 +125,6 @@ jobs:
     name: Desktop end-to-end
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # Non-blocking: the references are committed per platform, and a Linux one
-    # will not exist until someone writes it from a run here.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 

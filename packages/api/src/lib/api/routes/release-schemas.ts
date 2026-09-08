@@ -1,6 +1,6 @@
 import { ReleaseChannel } from "@pupitre/db/cloudflare/enums"
 import { ARCHITECTURES } from "@pupitre/shared/catalog"
-import { SEMVER_PATTERN } from "@pupitre/shared/releases"
+import { MAX_R2_KEY_LENGTH, SEMVER_PATTERN } from "@pupitre/shared/releases"
 import { t } from "elysia"
 import { DEFAULT_ARCH } from "../../releases/releases"
 import { dateTime } from "../openapi-models"
@@ -27,8 +27,6 @@ const SHA256_PATTERN = "^[0-9a-f]{64}$"
 const ED25519_SIGNATURE_PATTERN = "^[A-Za-z0-9+/]{86}==$"
 
 const MAX_VERSION_LENGTH = 64
-
-const MAX_R2_KEY_LENGTH = 400
 
 export const releasePublishBody = t.Object({
   version: t.String({ pattern: SEMVER_PATTERN, maxLength: MAX_VERSION_LENGTH }),

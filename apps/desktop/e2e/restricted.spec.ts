@@ -72,6 +72,11 @@ function stubRestricted(
       ipcMain.removeHandler("account:state");
       ipcMain.handle("account:state", () => harness.account);
 
+      // The platform sync refreshes the account a moment after the window
+      // opens; left on the fixture, it would put the device back.
+      ipcMain.removeHandler("account:refresh");
+      ipcMain.handle("account:refresh", () => harness.account);
+
       ipcMain.removeHandler("reenroll:start");
       ipcMain.handle("reenroll:start", () => {
         state.pupitreRepaired = true;

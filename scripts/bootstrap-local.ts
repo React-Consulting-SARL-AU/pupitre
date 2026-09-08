@@ -208,11 +208,11 @@ export interface NeonTarget {
 }
 
 /**
- * La branche Git décide de la branche Neon : `main` travaille sur la branche
- * partagée, tout le reste obtient la sienne, tirée de la partagée. Deux tâches
- * menées en parallèle ne se marchent donc plus sur les migrations.
- * `parent` à `null` dit que la branche doit déjà exister : on ne crée jamais
- * `staging` ni `production` par accident.
+ * La branche Git décide de la branche Neon : la branche d'intégration travaille
+ * sur la branche partagée, tout le reste obtient la sienne, tirée de la
+ * partagée. Deux tâches menées en parallèle ne se marchent donc plus sur les
+ * migrations. `parent` à `null` dit que la branche doit déjà exister : on ne
+ * crée jamais `staging` ni `production` par accident.
  */
 export function neonTargetFor(gitBranch: string, now = new Date()): NeonTarget {
   const shared: NeonTarget = {
@@ -225,7 +225,12 @@ export function neonTargetFor(gitBranch: string, now = new Date()): NeonTarget {
     return { branch: NEON_BRANCH_OVERRIDE, parent: null, expiresAt: null }
   }
 
-  if (gitBranch === "" || gitBranch === "main" || gitBranch === "master") {
+  if (
+    gitBranch === "" ||
+    gitBranch === NEON_SHARED_BRANCH ||
+    gitBranch === "main" ||
+    gitBranch === "master"
+  ) {
     return shared
   }
 

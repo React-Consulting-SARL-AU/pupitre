@@ -24,7 +24,7 @@ bun dev              # site sur :4321, web sur :3000, tunnel de l'agent
 bun run dev:desktop  # l'app, pointée sur la console locale
 ```
 
-`bun run dev:web` lance Vite et TanStack Start sous le plugin Cloudflare, avec les bindings locaux. Neon local via `neonctl` ou une branche de dev ; `DATABASE_URL` dans `.env.local`. L'agent se teste sur un VPS de staging réinstallable (`bun --cwd=apps/agent run staging:reset`), jamais sur la machine du propriétaire.
+`bun run dev:web` lance Vite et TanStack Start sous le plugin Cloudflare, avec les bindings locaux. Neon local via `neonctl` ou une branche de dev ; `DATABASE_URL` dans `.env.local`. L'agent se teste sur un VPS réinstallable, jamais sur la machine du propriétaire : `PUPITRE_STAGING_HOST=root@<adresse> go test -tags staging ./test/staging/...` depuis `apps/agent`. Sans la variable, ces tests se sautent.
 
 ### Lancer un workflow à la main
 
@@ -62,7 +62,9 @@ bun run test
 bun run build
 ```
 
-Les PR font tourner les tâches affectées ; `main` fait tout.
+Les PR font tourner les tâches affectées ; `staging` et `main` font tout.
+
+Trois workspaces passent `--timeout=60000` à `bun test` : `apps/web`, `apps/desktop` et `packages/api`. Leurs tests démarrent un Postgres en WebAssembly et lui appliquent les migrations avant le premier cas, ce qu'un runner froid met une vingtaine de secondes à faire — au-delà des cinq secondes que `bun test` accorde par défaut, et le hook tombe avant que le premier cas ait pu tourner.
 
 ## Frontières de workspace
 
@@ -77,7 +79,7 @@ Les PR font tourner les tâches affectées ; `main` fait tout.
 - **Rien n'est bloquant.** `op` absent, session fermée, champ manquant ou `neonctl` sans session : le script le dit et retombe sur ce que `.env.local` porte déjà.
 - **`secrets.required` de `wrangler.jsonc` fait deux choses à la fois**, et c'est un piège : Cloudflare ne charge dans le Worker local **que** les clés qui y figurent — tout ce que `.dev.vars` porte en plus est silencieusement ignoré — et `wrangler deploy` refuse de partir si l'une d'elles manque. Il n'existe pas de liste « facultative ». Une variable dont le produit peut se passer, comme les identifiants de connexion sociale, se déclare donc **dans la liste racine seulement** : les blocs `env.staging` et `env.production` portent chacun leur propre liste complète et l'emportent entièrement, si bien que la variable atteint le développement local sans devenir obligatoire au déploiement. Un secret qui n'apparaît nulle part n'atteint jamais le Worker, quoi qu'il y ait dans `.env.local` — le symptôme est une fonctionnalité qui se croit non configurée alors que la valeur est bien là.
 - `STRIPE_WEBHOOK_SECRET` **se dérive** en local, comme la base : `dev:prepare` le lit par `stripe listen --print-secret`, c'est-à-dire le secret de l'endpoint que le CLI tient pour ce compte, et avec lequel `bun run dev:stripe` signe. Il diffère de celui du tableau de bord et n'a donc rien à faire dans 1Password. Sans le CLI, ou sans `stripe login`, le script le dit et ne bloque rien. Il reste requis en staging et en production, par secret Wrangler, où le webhook vérifie ses signatures.
-- Les valeurs **non secrètes** du développement (`BETTER_AUTH_URL`, `VITE_APP_URL`, `EMAIL_FROM`) ne sont ni dans 1Password ni écrites à la main : elles vivent dans `vars` de `apps/web/wrangler.jsonc`, et `dev:prepare` les recopie dans `.env.local` quand elles y sont vides. Sans cette copie, `.dev.vars` masquerait `vars` clé par clé et le Worker local démarrerait avec un `BETTER_AUTH_URL` vide.
+- Les valeurs **non secrètes** du développement (`BETTER_AUTH_URL`, `VITE_APP_URL`, `EMAIL_FROM`, `PUPITRE_DOWNLOADS_URL`) ne sont ni dans 1Password ni écrites à la main : elles vivent dans `vars` de `apps/web/wrangler.jsonc`, et `dev:prepare` les recopie dans `.env.local` quand elles y sont vides. Sans cette copie, `.dev.vars` masquerait `vars` clé par clé et le Worker local démarrerait avec un `BETTER_AUTH_URL` vide.
 - `.env.local` est écrit en 0600 et lié en `apps/web/.dev.vars` (que le Worker lit) et `apps/web/.env.local` (que Vite lit) : une seule valeur à tenir à jour. `.env.example` reste la liste de référence des noms.
 - Déployés : secrets Wrangler, un jeu par environnement. `apps/web/wrangler.jsonc` déclare `env.<environnement>.secrets.required` ; `scripts/check-worker-secrets.ts <environnement>` compare cette liste avec ce qui est lié au Worker et refuse le déploiement en nommant ce qui manque. Il refuse aussi un secret requis déclaré en clair dans `vars`.
 - Le script lit les secrets liés par `wrangler secret list`. `PUPITRE_WORKER_SECRETS` (liste de noms) ou `--bound-from <fichier|->` remplacent cette lecture, pour les tests et pour une CI qui a déjà la liste.
@@ -118,55 +120,9 @@ Deux branches longues, et rien d'autre qui vive plus qu'une pull request.
 
 Le nom du Worker n'est pas choisi : Wrangler est en environnements *legacy*, il suffixe le nom racine (`ppt-web`) du nom de l'environnement. Les cinq Cron Triggers, les domaines, les bindings et la liste des secrets requis viennent tous de `apps/web/wrangler.jsonc` : le tableau de bord n'en déclare aucun.
 
-### L'ordre de création, une fois pour toutes
+### L'ordre de création
 
-1. **Zone Cloudflare.** `pupitre.studio` est sur le compte. Sans elle, le domaine personnalisé du Worker ne peut pas être attaché.
-2. **Neon.** Les branches `staging` et `production` du projet `pupitre` existent. Relever pour chacune l'URL poolée (`DATABASE_URL`) et l'URL directe, sans `-pooler` (`MIGRATE_DATABASE_URL`).
-3. **Stripe.** Le produit et les deux prix décrits plus bas, créés à l'identique en sandbox pour le staging et en live pour la production. Relever `STRIPE_PRICE_SERVER_MONTH`, `STRIPE_PRICE_SERVER_YEAR` et la clé secrète ; le secret de webhook vient de l'endpoint créé sur `https://<domaine>/api/v1/webhooks/stripe`.
-4. **R2.** Deux buckets, deux régimes. `ppt-downloads` est public par son domaine `dl.pupitre.studio` ; la CI y dépose, le Worker n'y touche jamais. `ppt-agent` n'a **ni domaine personnalisé, ni URL `r2.dev`** : rien ne l'atteint depuis l'internet, et c'est ce qui garde le binaire de l'agent hors de portée.
-
-   Le Worker en sert le contenu par une URL S3 pré-signée de cinq minutes qu'il calcule lui-même (`packages/api/src/lib/releases/storage.ts`), derrière deux routes qui demandent chacune un jeton. Il lui faut pour cela un jeton d'API **R2** : Cloudflare → *R2* → *Manage API tokens* → *Create API token*, permission *Object Read only*, restreint au seul bucket `ppt-agent`. Il rend une clé d'accès et un secret, qui font avec l'identifiant de compte et le nom du bucket les quatre valeurs `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME` = `ppt-agent`. Elles vivent à deux endroits, et il faut les deux : la note 1Password, d'où `dev:prepare` les tire pour le développement local, et les secrets Wrangler de **chaque** environnement — elles sont dans `secrets.required` du staging et de la production, si bien qu'un déploiement sans elles est refusé avant de partir.
-
-   Absentes en local, la plateforme ne se tait pas : elle rend une URL `http://localhost/__release-storage/…` et l'en-tête `x-pupitre-release-storage: local`, qui dit à l'app que rien ne sera téléchargé. C'est ce qui permet de développer sans jeton.
-5. **Cloudflare Email.** Email Routing activé sur la zone, `no-reply@pupitre.studio` vérifié : c'est ce qui alimente le binding `EMAIL` déclaré dans `wrangler.jsonc`.
-6. **Premier déploiement, à la main.** Un secret ne s'attache qu'à un Worker qui existe. On le crée donc une fois sans le garde-fou :
-
-   ```bash
-   bun --cwd=apps/web run build:staging          # migre la branche Neon, puis construit
-   bun x wrangler deploy --config apps/web/dist/server/wrangler.json --keep-vars
-   ```
-
-7. **Les secrets.** Un par un, ou en une fois depuis un fichier JSON gardé hors du dépôt :
-
-   ```bash
-   bun x wrangler secret put DATABASE_URL --config apps/web/wrangler.jsonc --env staging
-   bun x wrangler secret bulk ~/secrets/pupitre-staging.json --config apps/web/wrangler.jsonc --env staging
-   bun --cwd=apps/web run check:secrets staging   # doit dire que tout est là
-   ```
-
-8. **Cloudflare Builds, pour le staging.** Un projet Workers Builds sur le dépôt, branche `staging` :
-
-   | Champ | Valeur |
-   | --- | --- |
-   | Build command | `bun install --frozen-lockfile && bun --cwd=apps/web run build:staging` |
-   | Deploy command | `bun --cwd=apps/web run deploy:staging` |
-   | Build variables | `VITE_APP_URL=https://staging-app.pupitre.studio` |
-   | Build secrets | `DATABASE_URL`, `MIGRATE_DATABASE_URL` (branche Neon `staging`) |
-
-   `build:staging` migre la branche Neon **avant** de construire ; `deploy:staging` refuse le déploiement si un secret requis manque. Les deux échouent avant d'avoir touché au Worker en place.
-
-9. **Cloudflare Builds, pour la production.** Un second projet Workers Builds sur le même dépôt — un projet par Worker, et les environnements *legacy* en font deux — branche `main` :
-
-    | Champ | Valeur |
-    | --- | --- |
-    | Build command | `bun install --frozen-lockfile && bun --cwd=apps/web run build:production` |
-    | Deploy command | `bun --cwd=apps/web run deploy:production` |
-    | Build variables | `VITE_APP_URL=https://app.pupitre.studio` |
-    | Build secrets | `DATABASE_URL`, `MIGRATE_DATABASE_URL` (branche Neon `production`) |
-
-    La production se déploie donc en fusionnant la pull request `staging` → `main`, jamais en taguant : Cloudflare Builds ne se déclenche que sur une branche. Le tag `v*` garde son rôle, qui est de sortir l'app et l'agent, pas la console.
-
-10. **Vérifier.** `https://<domaine>/status` répond sans session, `https://<domaine>/api/v1/health` renvoie `{"ok":true}`, et le tableau de bord du Worker montre les cinq Cron Triggers.
+Les étapes, dans l'ordre où elles se tiennent, sont dans [`deploy.md`](./deploy.md) : zone, Neon, buckets, Email Routing, Stripe, premier déploiement à la main, secrets, projets Cloudflare Builds, Pages. Les tableaux ci-dessus disent les noms ; ce document-là dit les gestes.
 
 ### Ce que fait chaque déploiement
 
@@ -246,7 +202,7 @@ Un bucket R2 `ppt-downloads`, **accès public activé** par le domaine personnal
 | Secret GitHub | Ce que c'est | Comment l'obtenir |
 | --- | --- | --- |
 | `PUPITRE_RELEASE_PRIVATE_KEY` | la moitié privée de la clé Ed25519 qui signe l'agent et les artefacts de l'app | `cd apps/agent && go run ./tools/release keygen`, une seule fois, hors de toute session d'agent |
-| `PUPITRE_ADMIN_TOKEN` | une session d'un compte `platform_admin` : c'est elle qui déclare les versions à la plateforme | la console, compte de support |
+| `PUPITRE_PUBLISH_TOKEN` | le jeton du pipeline de release, préfixé `pupitre_pub_` : il n'ouvre que les quatre routes de version, n'expire pas et n'appartient à personne | tiré une fois, posé sur le Worker et ici — voir [`deploy.md`](./deploy.md), étapes 6.2 et 10.3 |
 | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | l'accès R2 de la CI | Cloudflare → *R2* → *Manage API tokens*, droits *Object Read & Write* sur les deux buckets |
 | `APPLE_CERTIFICATE` | le `.p12` du certificat Developer ID, en base 64 | `base64 -i DeveloperID.p12 \| pbcopy` |
 | `APPLE_CERTIFICATE_PASSWORD` | le mot de passe de ce `.p12` | choisi à l'export depuis Trousseau d'accès |
@@ -265,16 +221,9 @@ Un bucket R2 `ppt-downloads`, **accès public activé** par le domaine personnal
 
 Les secrets et les variables vivent dans l'environnement **`release`**, que le propriétaire approuve à chaque exécution. Aucun jeton n'entre dans le binaire de l'app : les artefacts sont publics, et l'app n'a rien à présenter pour se mettre à jour.
 
-### L'ordre de création, une fois pour toutes
+### L'ordre de création
 
-1. **La clé de release.** `cd apps/agent && go run ./tools/release keygen`, une fois pour toutes. La moitié privée va dans 1Password puis dans le secret `PUPITRE_RELEASE_PRIVATE_KEY` ; la moitié publique est recopiée dans `AGENT_RELEASE_PUBLIC_KEY` de `apps/desktop/src/main/agent-release.ts`. Sans elle, rien ne se publie.
-2. **Les buckets.** Faits : `ppt-agent`, privé, et `ppt-downloads`, public sur `dl.pupitre.studio` (TLS 1.2 minimum). La commande, si le domaine doit être rattaché à nouveau : `bun x wrangler r2 bucket domain add ppt-downloads --domain dl.pupitre.studio --zone-id <la zone pupitre.studio> --min-tls 1.2`.
-3. **Le compte Apple.** Le compte Apple Developer de la société marocaine existe déjà. Dans le portail, créer un certificat **Developer ID Application** (pas *Mac App Distribution* : la distribution se fait hors App Store), le télécharger, l'installer dans Trousseau d'accès, puis l'exporter en `.p12` avec un mot de passe.
-4. **La clé de notarisation.** App Store Connect → *Users and Access* → *Integrations* → *Keys*, une clé avec le rôle *Developer*. Le `.p8` ne se télécharge **qu'une fois** ; relever l'*Issuer ID* et le *Key ID* sur la même page.
-5. **Azure Trusted Signing.** Créer un compte de signature (région proche, par exemple *West Europe*), y créer une identité validée puis un profil de certificat. La validation d'identité d'une organisation prend quelques jours et demande des justificatifs ; un profil *Public Trust* est ce qu'il faut pour que Windows ne prévienne pas. Créer ensuite une application Entra ID, lui donner un secret client, et lui attribuer le rôle *Trusted Signing Certificate Profile Signer* sur le compte. Poser ses trois noms dans les variables `AZURE_SIGNING_*` : tant qu'elles sont vides, le build Windows va au bout et sort **non signé**, et SmartScreen prévient au premier lancement. La marche à suivre complète est dans [`tasks/windows-signing.md`](./tasks/windows-signing.md).
-6. **Les secrets et les variables du dépôt.** GitHub → *Settings* → *Environments* → `release`, les noms des deux tableaux ci-dessus. Rien de tout cela n'entre dans le dépôt sous aucune forme.
-7. **Publier.** L'entrée de changelog de la version existe dans les deux langues, puis `git tag -a v0.2.0 -m "…" && git push origin v0.2.0` depuis `staging`. Les notes de version sont l'entrée de changelog, pas l'annotation du tag.
-8. **Vérifier.** Sur un Mac qui n'a jamais vu le certificat : télécharger le `.dmg` depuis `dl.pupitre.studio`, l'ouvrir, l'app démarre sans avertissement Gatekeeper. `spctl --assess --type execute -vv /Applications/Pupitre.app` répond `accepted, source=Notarized Developer ID`.
+La clé de release, les buckets, le compte Apple, la clé de notarisation, Azure Trusted Signing, les secrets du dépôt : [`deploy.md`](./deploy.md), étapes 3 et 10.
 
 ### Ce que fait chaque release
 
@@ -330,7 +279,7 @@ Le `.deb` est installé par apt et mis à jour par apt : l'app n'y touche pas, e
 
 Projet `pupitre` (`plain-water-62675197`, [console](https://console.neon.tech/app/projects/plain-water-62675197)), région `aws-us-east-1`, Postgres 18. Le projet de Francfort qui l'a précédé n'existe plus : la région d'un projet Neon est figée à sa création, une migration de région est donc une recréation. C'est la région sur laquelle le Worker `apps/web` est épinglé (`placement` dans `wrangler.jsonc`). Branche `production` par défaut ; branche `staging` pour le staging et la CI de migration.
 
-**Une branche Neon par branche Git.** `bun run dev:prepare` lit la branche Git courante et en déduit la branche Neon : `main` travaille sur `staging`, toute autre branche obtient `dev/<slug>`, créée depuis `staging` et périmée au bout de quatorze jours — personne ne nettoie. `production` n'est jamais visée en local, le script refuse. Le projet se résout **par son nom**, jamais par un identifiant écrit quelque part : un projet recréé, dans une autre région par exemple, est retrouvé et les URL sont réécrites. `.env.local` garde `NEON_PROJECT_ID` et `NEON_BRANCH` : c'est cette provenance, et non la simple présence des URL, qui décide s'il faut les redemander. Pour viser une branche précise sans y toucher : `PUPITRE_NEON_BRANCH=staging bun run dev:prepare`. `DATABASE_URL` utilise l'endpoint poolé de la branche visée ; `MIGRATE_DATABASE_URL` l'endpoint direct (sans `-pooler`), le seul que Prisma Migrate accepte. `db:migrate:deploy` lit `MIGRATE_DATABASE_URL` et refuse de migrer une autre branche que celle de `DATABASE_URL`.
+**Une branche Neon par branche Git.** `bun run dev:prepare` lit la branche Git courante et en déduit la branche Neon : `staging` — et `main`, faute d'y travailler jamais — travaille sur la branche `staging`, toute autre branche obtient `dev/<slug>`, créée depuis `staging` et périmée au bout de quatorze jours — personne ne nettoie. `production` n'est jamais visée en local, le script refuse. Le projet se résout **par son nom**, jamais par un identifiant écrit quelque part : un projet recréé, dans une autre région par exemple, est retrouvé et les URL sont réécrites. `.env.local` garde `NEON_PROJECT_ID` et `NEON_BRANCH` : c'est cette provenance, et non la simple présence des URL, qui décide s'il faut les redemander. Pour viser une branche précise sans y toucher : `PUPITRE_NEON_BRANCH=staging bun run dev:prepare`. `DATABASE_URL` utilise l'endpoint poolé de la branche visée ; `MIGRATE_DATABASE_URL` l'endpoint direct (sans `-pooler`), le seul que Prisma Migrate accepte. `db:migrate:deploy` lit `MIGRATE_DATABASE_URL` et refuse de migrer une autre branche que celle de `DATABASE_URL`.
 
 ## Dépendances
 

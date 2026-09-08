@@ -83,7 +83,16 @@ export async function bootTestDatabase(): Promise<TestDatabase> {
   await applyMigrations(pglite)
 
   const port = await pickFreePort()
-  const server = new PGLiteSocketServer({ db: pglite, host: "127.0.0.1", port })
+  // PGlite serves one query at a time whatever the number of sockets, and the
+  // server queues them for it. Its default of one *connection*, though, makes it
+  // answer "Too many connections" and hang up on the second — which the pool
+  // reports as a connection terminated under a query it had already sent.
+  const server = new PGLiteSocketServer({
+    db: pglite,
+    host: "127.0.0.1",
+    maxConnections: 10,
+    port,
+  })
 
   await server.start()
 

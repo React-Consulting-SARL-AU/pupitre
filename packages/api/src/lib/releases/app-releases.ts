@@ -5,9 +5,36 @@ import type {
 } from "@pupitre/shared/releases"
 import { compareVersions, latestBy } from "@pupitre/shared/semver"
 import { getPrisma } from "../api/prisma"
-import { recordEvent } from "../audit/audit"
+import { type Actor, recordEvent } from "../audit/audit"
 import { publishOnce } from "./publish"
 import { CHANNEL_SOURCES } from "./releases"
+
+const DOWNLOADS_URL_VARIABLE = "PUPITRE_DOWNLOADS_URL"
+
+const TRAILING_SLASHES_RE = /\/+$/
+
+/**
+ * The address of an artefact.
+ *
+ * Composed here, from the bucket the platform owns, and never taken from the
+ * publisher: a version cannot send a reader to a host that is not ours. The
+ * key is concatenated rather than resolved — `new URL` would follow a key
+ * beginning with `//` to another host, which is the escape the pattern on
+ * `r2_key` and this line close together.
+ *
+ * Without the variable — in development — the address says plainly that
+ * nothing will be downloaded, the way the private bucket does.
+ */
+export function artefactUrl(
+  r2Key: string,
+  env: Record<string, string | undefined> = process.env
+): string {
+  const origin = env[DOWNLOADS_URL_VARIABLE]
+    ?.trim()
+    .replace(TRAILING_SLASHES_RE, "")
+
+  return `${origin || "http://localhost/__downloads"}/${r2Key}`
+}
 
 export class AppReleaseFingerprintConflictError extends Error {
   constructor(version: string, os: string, arch: string) {
@@ -41,10 +68,10 @@ export interface PublishAppReleaseInput {
   os: DesktopSystem
   arch: DesktopArchitecture
   format: string
-  url: string
+  r2_key: string
   bytes: number
   sha256: string
-  signature?: string
+  signature: string
   notes: string
   channel?: ReleaseChannel
 }
@@ -66,7 +93,7 @@ function toBuildView(release: AppRelease): AppBuildView {
     os: release.os,
     arch: release.arch as DesktopArchitecture,
     format: release.format,
-    url: release.url,
+    url: artefactUrl(release.r2Key),
     bytes: release.bytes,
     sha256: release.sha256,
     signature: release.signature,
@@ -111,8 +138,8 @@ function hasSameFingerprint(
 ): boolean {
   return (
     release.sha256 === input.sha256 &&
-    release.url === input.url &&
-    release.signature === (input.signature ?? null)
+    release.r2Key === input.r2_key &&
+    release.signature === input.signature
   )
 }
 
@@ -177,7 +204,7 @@ export async function listAppReleases(
 }
 
 export async function promoteAppRelease(
-  actorUserId: string,
+  actor: Actor,
   version: string,
   channel: ReleaseChannel
 ): Promise<AppReleaseView | null> {
@@ -192,17 +219,21 @@ export async function promoteAppRelease(
 
   await recordEvent({
     action: "app_release.promoted",
-    actorUserId,
+    actorUserId: actor.userId,
     targetType: "app_release",
     targetId: version,
-    payload: { channel, os: published.map((release) => release.os) },
+    payload: {
+      by: actor.source,
+      channel,
+      os: published.map((release) => release.os),
+    },
   })
 
   return toAppReleaseView(published.map((release) => ({ ...release, channel })))
 }
 
 export async function publishAppRelease(
-  actorUserId: string,
+  actor: Actor,
   input: PublishAppReleaseInput
 ): Promise<PublishAppReleaseResult> {
   const data = {
@@ -210,10 +241,10 @@ export async function publishAppRelease(
     os: input.os,
     arch: input.arch,
     format: input.format,
-    url: input.url,
+    r2Key: input.r2_key,
     bytes: input.bytes,
     sha256: input.sha256,
-    signature: input.signature ?? null,
+    signature: input.signature,
     notes: input.notes,
     channel: input.channel ?? "beta",
   }
@@ -233,10 +264,11 @@ export async function publishAppRelease(
   if (created) {
     await recordEvent({
       action: "app_release.published",
-      actorUserId,
+      actorUserId: actor.userId,
       targetType: "app_release",
       targetId: row.version,
       payload: {
+        by: actor.source,
         os: row.os,
         arch: row.arch,
         channel: row.channel,

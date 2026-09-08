@@ -82,7 +82,7 @@ Les deux redirections portent l'en-tête `x-pupitre-release-storage` : `r2` quan
 | GET | `/releases/app/:version` | aucune | `{ data: AppRelease }` pour une version précise, quel que soit son canal ; `app_release_not_found` (404) sinon |
 | GET | `/releases/app/:version/:os/:arch` | aucune | 303 vers l'artefact, le lien stable que le site et les pages d'aide écrivent ; `app_release_not_found` (404) pour une architecture que personne n'a construite |
 
-`AppRelease` vaut `{ version, channel, notes, published_at, builds: [{ os, arch, format, url, bytes, sha256, signature }] }`, une entrée de `builds` par fichier téléchargeable — deux sur macOS, une par architecture. `arch` vaut `arm64`, `x64` ou `universal` : le vocabulaire d'Electron, qui n'est pas celui du catalogue de l'agent (`amd64`, `arm64`). Les notes appartiennent à la version : la ligne publiée en premier les porte pour toute la version.
+`AppRelease` vaut `{ version, channel, notes, published_at, builds: [{ os, arch, format, url, bytes, sha256, signature }] }`, une entrée de `builds` par fichier téléchargeable. L'`url` rendue ici est **composée par la plateforme** à partir de la clé stockée et de `PUPITRE_DOWNLOADS_URL` : la publication n'envoie qu'une clé (`r2_key`), la lecture rend une adresse — deux sur macOS, une par architecture. `arch` vaut `arm64`, `x64` ou `universal` : le vocabulaire d'Electron, qui n'est pas celui du catalogue de l'agent (`amd64`, `arm64`). Les notes appartiennent à la version : la ligne publiée en premier les porte pour toute la version.
 
 Ces quatre routes ne demandent aucune session, contrairement à celles de l'agent : les artefacts de l'app sont publics — ils vivent sur `dl.pupitre.studio` — là où le binaire de l'agent ne l'est pas.
 
@@ -100,14 +100,21 @@ Ces quatre routes ne demandent aucune session, contrairement à celles de l'agen
 
 ### Plateforme
 
+Le rôle **publication** ouvre les quatre routes de version à deux appelants, et à eux seuls :
+
+- **Le pipeline de release**, qui présente le jeton `PUPITRE_PUBLISH_TOKEN` en `Authorization: Bearer`. Le jeton porte le préfixe `pupitre_pub_`, à quoi la plateforme le distingue d'une session ; il est déclaré sur le Worker et dans GitHub Actions, comparé sur empreintes SHA-256, et n'ouvre rien d'autre. `PUPITRE_PUBLISH_TOKEN_PREVIOUS` est accepté en même temps, le temps d'une rotation. Un jeton refusé rend `unauthenticated` (401).
+- **Un compte `platform_admin`**, avec sa session, pour qu'une version reste promouvable à la main depuis la console.
+
+Le journal d'audit garde les deux séparés : une publication du pipeline n'a pas d'`actorUserId` et porte `by: "pipeline"` dans son payload.
+
 | Méthode | Route | Rôle | Réponse |
 | --- | --- | --- | --- |
 | GET | `/admin/servers` | platform_admin | tous les serveurs, filtrables |
 | POST | `/admin/servers/:id/suspend` | platform_admin | `{ reason }` |
-| POST | `/admin/releases` | platform_admin | publier une version de l'agent : `{ version, arch, sha256, signature, r2_key, channel? }`, `channel` valant `beta` par défaut. `version` est du semver, `sha256` 64 caractères hexadécimaux, `signature` une signature Ed25519 en base64 (88 caractères) : sinon `validation` (422). Réponse `{ data: Release }`, idempotente sur `(version, arch)` : 201 à la création, 200 si la ligne existe déjà à l'identique, `conflict` (409) si elle existe avec une autre empreinte |
-| POST | `/admin/releases/:version/promote` | platform_admin | `{ channel: "stable" }` : toutes les architectures de la version passent dans le canal et la version devient cible dans `/agent/state`. Réponse `{ data: Release[] }` ; `release_not_found` (404) si la version n'existe pas |
-| POST | `/admin/app-releases` | platform_admin | publier un artefact de l'app : `{ version, os, arch, format, url, bytes, sha256, signature?, notes, channel? }`, `channel` valant `beta` par défaut. `os` vaut `macos`, `windows` ou `linux` ; `arch` vaut `arm64`, `x64` ou `universal` ; `format` est l'extension du fichier (`dmg`, `exe`, `AppImage`, `deb`) ; `version` est du semver, `url` une URL absolue, `bytes` la taille du fichier, `sha256` 64 caractères hexadécimaux, `notes` non vides : sinon `validation` (422). Réponse `{ data: AppReleaseBuild }`, idempotente sur `(version, os, arch)` : 201 à la création, 200 si la ligne existe déjà à l'identique, `conflict` (409) si elle existe avec une autre empreinte. Appelé par la CI de l'app, un appel par fichier |
-| POST | `/admin/app-releases/:version/promote` | platform_admin | `{ channel: "stable" }` : tous les artefacts de la version passent dans le canal, et la page de téléchargement comme le flux de mise à jour du canal la désignent. Réponse `{ data: AppRelease }` ; `app_release_not_found` (404) si la version n'existe pas |
+| POST | `/admin/releases` | publication | publier une version de l'agent : `{ version, arch, sha256, signature, r2_key, channel? }`, `channel` valant `beta` par défaut. `version` est du semver, `sha256` 64 caractères hexadécimaux, `signature` une signature Ed25519 en base64 (88 caractères) : sinon `validation` (422). Réponse `{ data: Release }`, idempotente sur `(version, arch)` : 201 à la création, 200 si la ligne existe déjà à l'identique, `conflict` (409) si elle existe avec une autre empreinte |
+| POST | `/admin/releases/:version/promote` | publication | `{ channel: "stable" }` : toutes les architectures de la version passent dans le canal et la version devient cible dans `/agent/state`. Réponse `{ data: Release[] }` ; `release_not_found` (404) si la version n'existe pas |
+| POST | `/admin/app-releases` | publication | publier un artefact de l'app : `{ version, os, arch, format, r2_key, bytes, sha256, signature, notes, channel? }`, `channel` valant `beta` par défaut. `os` vaut `macos`, `windows` ou `linux` ; `arch` vaut `arm64`, `x64` ou `universal` ; `format` est l'extension du fichier (`dmg`, `exe`, `AppImage`, `deb`) ; `version` est du semver, `bytes` la taille du fichier, `sha256` 64 caractères hexadécimaux, `signature` et `notes` non vides : sinon `validation` (422). **`r2_key` est une place dans le seau des téléchargements, jamais une adresse** : `app/<version>/<fichier>`, motif `APP_R2_KEY_PATTERN` de `@pupitre/shared/releases`. La plateforme compose l'URL rendue à partir de `PUPITRE_DOWNLOADS_URL` ; une publication ne peut donc désigner aucun hôte. Réponse `{ data: AppReleaseBuild }`, idempotente sur `(version, os, arch)` : 201 à la création, 200 si la ligne existe déjà à l'identique, `conflict` (409) si elle existe avec une autre empreinte. Appelé par la CI de l'app, un appel par fichier |
+| POST | `/admin/app-releases/:version/promote` | publication | `{ channel: "stable" }` : tous les artefacts de la version passent dans le canal, et la page de téléchargement comme le flux de mise à jour du canal la désignent. Réponse `{ data: AppRelease }` ; `app_release_not_found` (404) si la version n'existe pas |
 
 ### Webhooks
 
@@ -129,7 +136,7 @@ Tables Better Auth (générées) : `user` (avec `twoFactorEnabled` et `locale`, 
 | `Subscription` | `id`, `organizationId`, `stripeSubscriptionId`, `product`, `quantity`, `status`, `currentPeriodEnd` |
 | `OrganizationBilling` | `organizationId`, `stripeCustomerId`, `defaultInterval` |
 | `Release` | `version`, `arch`, `sha256`, `signature`, `r2Key`, `publishedAt`, `channel` (`stable`, `beta`) |
-| `AppRelease` | `version`, `os` (`macos`, `windows`, `linux`), `arch?`, `url`, `sha256`, `signature?`, `notes`, `channel` (`stable`, `beta`), `publishedAt` — clé primaire `(version, os)`. Une ligne par système et par version de l'app desktop, distincte de `Release` qui décrit l'agent par architecture |
+| `AppRelease` | `version`, `os` (`macos`, `windows`, `linux`), `arch?`, `r2Key`, `sha256`, `signature?`, `notes`, `channel` (`stable`, `beta`), `publishedAt` — clé primaire `(version, os)`. Une ligne par système et par version de l'app desktop, distincte de `Release` qui décrit l'agent par architecture |
 | `ServerRevokedDevice` | `serverId`, `deviceId`, `revokedByUserId?`, `revokedAt` — clé primaire `(serverId, deviceId)`. La clé de cet appareil est retirée de ce serveur, sans toucher aux autres |
 | `Event` | `id`, `organizationId?`, `actorUserId?`, `action`, `targetType`, `targetId`, `payload`, `createdAt` |
 | `StripeEvent` | `id` (Stripe), `type`, `processedAt` |

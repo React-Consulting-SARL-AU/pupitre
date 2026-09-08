@@ -2,6 +2,7 @@ import { resolveLocale } from "@pupitre/shared/i18n"
 import { Elysia, t } from "elysia"
 import { translate } from "../../i18n"
 import {
+  artefactUrl,
   findAppRelease,
   findAppReleaseBuild,
   latestAppRelease,
@@ -137,11 +138,13 @@ export const appReleasesRoutes = new Elysia({
         )
       }
 
+      const url = artefactUrl(build.r2Key)
+
       set.status = 303
-      set.headers.location = build.url
+      set.headers.location = url
       set.headers["cache-control"] = "public, max-age=300"
 
-      return build.url
+      return url
     },
     {
       params: appReleaseBuildParams,

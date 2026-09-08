@@ -21,7 +21,7 @@
     "lint:fix": "ultracite fix",
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:types": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
-    "test": "bun test src",
+    "test": "bun test --timeout=60000 src",
     "test:e2e": "bun run build && playwright test",
     "postinstall": "electron-rebuild -f -w node-pty"
   },

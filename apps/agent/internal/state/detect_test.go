@@ -272,7 +272,7 @@ func TestDetectRefusesARepositoryItCannotClone(t *testing.T) {
 	cache := filepath.Join(base, "cache")
 
 	reader := state.New(state.Options{
-		Sys:          asMe{},
+		Sys:          asMe{t: t},
 		Now:          modtest.NewClock(time.Millisecond).Now,
 		Registry:     modules.NewRegistry(),
 		AgentVersion: "0.0.0-test",

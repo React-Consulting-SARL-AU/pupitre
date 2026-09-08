@@ -43,7 +43,13 @@ Un module = un dossier avec `manifest.go`, `module.go`, `module_test.go`. Les é
 
 ## Tests
 
-`go test ./...` pour l'unitaire. `go test ./test/staging/...` réinstalle le staging (`bun run staging:reset`) puis joue les modules ; jamais contre une machine du propriétaire. Un module sans test de staging n'est pas fini.
+`go test ./...` pour l'unitaire. Les tests d'intégration sont derrière le tag de build `staging` et visent un VPS réinstallable, jamais une machine du propriétaire :
+
+```bash
+PUPITRE_STAGING_HOST=root@<adresse> go test -tags staging ./test/staging/...
+```
+
+Sans la variable, ils se sautent au lieu d'échouer. La réinstallation du VPS est manuelle, chez l'hébergeur. Un module sans test de staging n'est pas fini.
 
 ## Commandes
 
@@ -52,6 +58,5 @@ bun run build            # go build multi-arch
 bun run build:dev        # même chose avec -tags dev : droit d'usage intégré, ni jeton ni plateforme
 bun run test
 bun run lint             # gofmt, go vet, staticcheck
-bun run staging:reset    # réinstalle le VPS de staging
 bun run release          # garble + signature, CI seulement
 ```

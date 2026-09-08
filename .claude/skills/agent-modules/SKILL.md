@@ -19,14 +19,14 @@ Un service du catalogue est un **module** : une unité Go qui sait se vérifier,
 | `apps/agent/internal/sys/{apt,systemd,file,user,env}/` | les helpers système, tous sur `sys.Context` |
 | `apps/agent/internal/contract/schema.json` | le JSON Schema exporté de `packages/shared` ; les types Go en dérivent |
 | `apps/agent/test/staging/<catégorie>_test.go` | les tests d'intégration contre le VPS de staging |
-| `apps/agent/package.json` | `build`, `test`, `lint`, `staging:reset` |
+| `apps/agent/package.json` | `build`, `test`, `lint` |
 | `server/bootstrap.sh`, `server/bin/dev`, `docs/SETUP.md` | la spécification des étapes, en bash ; jamais une dépendance |
 | `docs/contracts/service-catalog.md` | manifeste, catégories, champs, préréglages |
 | `docs/contracts/agent-protocol.md` | `install`, `uninstall`, `upgrade`, `report`, événements `step`, flux secret |
 
 ## État du dépôt
 
-Le catalogue est complet : les vingt-six modules de `docs/contracts/service-catalog.md` existent sous `internal/modules/`, `internal/sys` porte les cinq helpers, `modtest` le système factice, et `test/staging/` le harnais d'intégration avec `bun --cwd=apps/agent run staging:reset`. Un module nouveau s'ajoute désormais à côté des autres : on lit le voisin le plus proche avant d'écrire — un runtime par mise ressemble à `runtime/python`, une base à `db/postgres`, un outil qui parle à une API à `tool/neon`.
+Le catalogue est complet : les vingt-six modules de `docs/contracts/service-catalog.md` existent sous `internal/modules/`, `internal/sys` porte les cinq helpers, `modtest` le système factice, et `test/staging/` le harnais d'intégration, derrière le tag de build `staging`. Un module nouveau s'ajoute désormais à côté des autres : on lit le voisin le plus proche avant d'écrire — un runtime par mise ressemble à `runtime/python`, une base à `db/postgres`, un outil qui parle à une API à `tool/neon`.
 
 Ce que le client choisit fait partie du module : la **version** quand plusieurs sont posables, le **port** quand un service écoute, les **noms des comptes** que le module crée. Chaque champ porte le `default` qui reproduit le comportement d'avant, et un nom qui traverse une requête SQL ou un fichier de configuration est tenu à un motif d'identifiant, avec retour au défaut plutôt qu'une valeur non reconnue.
 
@@ -566,7 +566,7 @@ func TestRedisListensLocallyWithPassword(t *testing.T) {
 
 - `stagingHost(t)` lit `PUPITRE_STAGING_HOST` (`root@203.0.113.10`) et appelle `t.Skip` si elle est absente, pour que `go test ./...` reste vert sur un poste sans staging. La clé SSH est celle de l'agent SSH local.
 - Le tag de build `staging` sépare ces tests de l'unitaire : `go test -tags staging ./test/staging/...`.
-- Avant une campagne : `bun --cwd=apps/agent run staging:reset` réinstalle le VPS depuis une image Ubuntu vierge et y pousse le binaire fraîchement construit.
+- Avant une campagne : réinstaller le VPS depuis une image Ubuntu vierge chez l'hébergeur, y pousser le binaire fraîchement construit, puis `PUPITRE_STAGING_HOST=root@<adresse> go test -tags staging ./test/staging/...`. Sans la variable, ces tests se sautent.
 - Les helpers `install`, `ssh`, `lastReport` vivent dans `test/staging/staging_test.go` et parlent au staging par le même protocole que l'app, ligne secrète comprise.
 
 ## Avant de rendre la main

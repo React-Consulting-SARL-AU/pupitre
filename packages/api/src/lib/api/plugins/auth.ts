@@ -9,6 +9,7 @@ import {
   PLATFORM_ADMIN_ROLE,
 } from "@pupitre/shared/permissions"
 import { Elysia } from "elysia"
+import { isPublishToken } from "../../releases/publish-token"
 import { isServerToken } from "../../servers/tokens"
 import { getPrisma } from "../prisma"
 
@@ -58,7 +59,7 @@ function carriesSessionCredentials(headers: Headers): boolean {
   const bearer = bearerTokenOf(headers)
 
   if (bearer) {
-    return !isServerToken(bearer)
+    return !(isServerToken(bearer) || isPublishToken(bearer))
   }
 
   return headers.has("cookie")

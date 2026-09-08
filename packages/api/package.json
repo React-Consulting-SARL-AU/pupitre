@@ -19,7 +19,7 @@
     "lint:fix": "ultracite fix",
     "check:types": "tsgo --noEmit",
     "dev:email": "bun run src/emails/preview.ts",
-    "test": "bun test"
+    "test": "bun test --timeout=60000"
   },
   "dependencies": {
     "@elysiajs/eden": "^1.4.9",

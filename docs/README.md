@@ -10,6 +10,7 @@ Tout ce qu'un agent doit lire avant de toucher au code, et tout ce que le propri
 | [`product/DESIGN.md`](./product/DESIGN.md) | Le système de design monochrome : tokens, règles, mise en œuvre | site, web, desktop |
 | [`architecture.md`](./architecture.md) | Les composants, les runtimes, les frontières, les règles qui ne bougent pas | tout le monde |
 | [`monorepo.md`](./monorepo.md) | Outillage : Bun, Turbo, Biome, hooks, CI, Cloudflare Builds, secrets | tout le monde |
+| [`deploy.md`](./deploy.md) | La mise en ligne, étape par étape : Cloudflare, Neon, R2, Stripe, Pages, GitHub Actions | le propriétaire |
 | [`security.md`](./security.md) | Modèle de menace, protection du code, droit d'usage, jetons | web, desktop, agent |
 | [`legal.md`](./legal.md) | L'éditeur, les pages légales en brouillon, ce qui reste à remplir à l'immatriculation | tout le monde |
 | [`incorporation.pdf`](./incorporation.pdf) | Constitution de Pupitre Inc. au Delaware, comptes à ouvrir, échéances de conformité annuelles | le propriétaire |
@@ -18,6 +19,7 @@ Tout ce qu'un agent doit lire avant de toucher au code, et tout ce que le propri
 | [`contracts/service-catalog.md`](./contracts/service-catalog.md) | Les modules du catalogue, leurs manifestes, leurs champs | desktop, agent |
 | [`decisions/`](./decisions/) | Une décision par fichier. Un agent qui veut « améliorer » une décision la lit d'abord | tout le monde |
 | [`SETUP.md`](./SETUP.md) | LEGACY : l'installation manuelle de la stack bash. Source de vérité des étapes que les modules Go reproduisent | agent |
+| [`plans/`](./plans/) | Les décisions encore ouvertes d'un chantier livré. Un plan disparaît quand ses questions sont tranchées | tout le monde |
 | [`tasks/`](./tasks/) | Ce qui est décidé mais attend un compte, une validation ou une échéance extérieure. Un fichier par tâche, supprimé le jour où elle est faite | tout le monde |
 
 ## Conventions d'écriture

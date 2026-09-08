@@ -3,7 +3,9 @@ import { HARNESS_ORIGIN, HARNESS_PORT, HARNESS_PREFIX } from "./ports"
 
 const EXTERNAL_URL_RE = /^https?:\/\/(?!localhost|127\.0\.0\.1)/
 const HMR_SOCKET_RE = new RegExp(`^ws://localhost:${HARNESS_PORT}/`)
-const MAGIC_LINK_TIMEOUT_MS = 20_000
+// The link is written as soon as the API answers, so this budget only has to
+// outlast a contended runner — never a broken sign-in, which fails on its own.
+const MAGIC_LINK_TIMEOUT_MS = 60_000
 const START_URL_RE = /\/dashboard\/start$/
 
 export function harnessUrl(path: string): string {
@@ -11,7 +13,15 @@ export function harnessUrl(path: string): string {
 }
 
 export async function stayLocal(page: Page): Promise<void> {
-  await page.route(EXTERNAL_URL_RE, (route) => route.abort())
+  // Nothing leaves the machine. A subresource is refused outright; a document
+  // is answered with an empty page instead, because aborting a navigation
+  // leaves the tab on chrome-error and that error interrupts the next goto —
+  // which is what the checkout of the fake billing sends the page into.
+  await page.route(EXTERNAL_URL_RE, (route) =>
+    route.request().isNavigationRequest()
+      ? route.fulfill({ body: "", contentType: "text/html", status: 200 })
+      : route.abort()
+  )
 
   // The harness proxies HTTP only: left unanswered, the Vite HMR socket makes
   // the client reload the page in the middle of a step.
