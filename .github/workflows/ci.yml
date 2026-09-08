@@ -125,9 +125,6 @@ jobs:
     name: Desktop end-to-end
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # Non-blocking: the references are committed per platform, and a Linux one
-    # will not exist until someone writes it from a run here.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -144,19 +141,8 @@ jobs:
         run: node node_modules/electron/install.js
         working-directory: apps/desktop
 
-      # TEMPORARY: writes the linux references, which no machine here can take.
-      # Reverted in the commit that adds them.
       - name: Playwright
-        run: xvfb-run --auto-servernum bash -c "cd apps/desktop && bun run build && bun x playwright test --update-snapshots"
-
-      - name: Upload the references
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: desktop-references-${{ github.sha }}
-          path: apps/desktop/e2e/references
-          retention-days: 7
-          if-no-files-found: error
+        run: xvfb-run --auto-servernum bun --cwd=apps/desktop run test:e2e
 
       - name: Upload the failure artifacts
         if: failure()
