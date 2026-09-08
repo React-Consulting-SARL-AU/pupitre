@@ -19,6 +19,7 @@ Tout ce qu'un agent doit lire avant de toucher au code, et tout ce que le propri
 | [`contracts/service-catalog.md`](./contracts/service-catalog.md) | Les modules du catalogue, leurs manifestes, leurs champs | desktop, agent |
 | [`decisions/`](./decisions/) | Une décision par fichier. Un agent qui veut « améliorer » une décision la lit d'abord | tout le monde |
 | [`SETUP.md`](./SETUP.md) | LEGACY : l'installation manuelle de la stack bash. Source de vérité des étapes que les modules Go reproduisent | agent |
+| [`plans/`](./plans/) | Les décisions encore ouvertes d'un chantier livré. Un plan disparaît quand ses questions sont tranchées | tout le monde |
 | [`tasks/`](./tasks/) | Ce qui est décidé mais attend un compte, une validation ou une échéance extérieure. Un fichier par tâche, supprimé le jour où elle est faite | tout le monde |
 
 ## Conventions d'écriture

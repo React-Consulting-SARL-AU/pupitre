@@ -24,7 +24,7 @@ bun dev              # site sur :4321, web sur :3000, tunnel de l'agent
 bun run dev:desktop  # l'app, pointée sur la console locale
 ```
 
-`bun run dev:web` lance Vite et TanStack Start sous le plugin Cloudflare, avec les bindings locaux. Neon local via `neonctl` ou une branche de dev ; `DATABASE_URL` dans `.env.local`. L'agent se teste sur un VPS de staging réinstallable (`bun --cwd=apps/agent run staging:reset`), jamais sur la machine du propriétaire.
+`bun run dev:web` lance Vite et TanStack Start sous le plugin Cloudflare, avec les bindings locaux. Neon local via `neonctl` ou une branche de dev ; `DATABASE_URL` dans `.env.local`. L'agent se teste sur un VPS réinstallable, jamais sur la machine du propriétaire : `PUPITRE_STAGING_HOST=root@<adresse> go test -tags staging ./test/staging/...` depuis `apps/agent`. Sans la variable, ces tests se sautent.
 
 ### Lancer un workflow à la main
 
