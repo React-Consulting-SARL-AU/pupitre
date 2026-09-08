@@ -4,6 +4,7 @@ import {
   type Page,
   test,
 } from "@playwright/test";
+import type { AgentUpdateState } from "@shared/agent-update";
 import { launchPupitre, type Running } from "./harness/launch";
 
 /**
@@ -14,36 +15,43 @@ import { launchPupitre, type Running } from "./harness/launch";
  * as it ships. Nothing here talks to a machine.
  */
 
-interface Update {
-  carried: {
-    arch: string;
-    notes: string[];
-    signed: boolean;
-    version: string;
-  } | null;
-  installed: string;
-  order: string;
-}
-
-const AHEAD: Update = {
-  carried: {
+// The state the main process answers, taken from the contract rather than
+// written out here: a field renamed there has to fail the typecheck, not the run.
+const AHEAD: AgentUpdateState = {
+  floor: null,
+  installed: "0.3.0",
+  offer: {
     arch: "amd64",
     notes: ["Retour arrière si la nouvelle version ne répond pas."],
     signed: true,
+    source: "app",
     version: "0.4.0",
   },
-  installed: "0.3.0",
   order: "ahead",
+  platform: false,
+  verdict: "ok",
 };
 
-const BEHIND: Update = {
-  carried: { arch: "amd64", notes: [], signed: true, version: "0.3.0" },
+const BEHIND: AgentUpdateState = {
+  floor: null,
   installed: "0.9.0",
+  offer: {
+    arch: "amd64",
+    notes: [],
+    signed: true,
+    source: "app",
+    version: "0.3.0",
+  },
   order: "behind",
+  platform: false,
+  verdict: "ok",
 };
 
-function announce(app: ElectronApplication, update: Update): Promise<void> {
-  return app.evaluate(({ ipcMain }, answer: Update) => {
+function announce(
+  app: ElectronApplication,
+  update: AgentUpdateState
+): Promise<void> {
+  return app.evaluate(({ ipcMain }, answer: AgentUpdateState) => {
     ipcMain.removeHandler("agent-update:state");
     ipcMain.handle("agent-update:state", () => ({ ok: true, result: answer }));
   }, update);
