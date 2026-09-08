@@ -106,7 +106,7 @@ jobs:
         working-directory: apps/agent
         run: bun run release:publish
         env:
-          PUPITRE_ADMIN_TOKEN: ${{ secrets.PUPITRE_ADMIN_TOKEN }}
+          PUPITRE_PUBLISH_TOKEN: ${{ secrets.PUPITRE_PUBLISH_TOKEN }}
 
       - name: Upload the signed binaries
         uses: actions/upload-artifact@v4

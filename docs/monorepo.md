@@ -202,7 +202,7 @@ Un bucket R2 `ppt-downloads`, **accès public activé** par le domaine personnal
 | Secret GitHub | Ce que c'est | Comment l'obtenir |
 | --- | --- | --- |
 | `PUPITRE_RELEASE_PRIVATE_KEY` | la moitié privée de la clé Ed25519 qui signe l'agent et les artefacts de l'app | `cd apps/agent && go run ./tools/release keygen`, une seule fois, hors de toute session d'agent |
-| `PUPITRE_ADMIN_TOKEN` | une session d'un compte `platform_admin` : c'est elle qui déclare les versions à la plateforme | la console, compte de support |
+| `PUPITRE_PUBLISH_TOKEN` | le jeton du pipeline de release, préfixé `pupitre_pub_` : il n'ouvre que les quatre routes de version, n'expire pas et n'appartient à personne | tiré une fois, posé sur le Worker et ici — voir [`deploy.md`](./deploy.md), étapes 6.2 et 10.3 |
 | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | l'accès R2 de la CI | Cloudflare → *R2* → *Manage API tokens*, droits *Object Read & Write* sur les deux buckets |
 | `APPLE_CERTIFICATE` | le `.p12` du certificat Developer ID, en base 64 | `base64 -i DeveloperID.p12 \| pbcopy` |
 | `APPLE_CERTIFICATE_PASSWORD` | le mot de passe de ce `.p12` | choisi à l'export depuis Trousseau d'accès |

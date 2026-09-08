@@ -1,12 +1,13 @@
 import { ReleaseChannel } from "@pupitre/db/cloudflare/enums"
 import {
+  APP_R2_KEY_PATTERN,
   DESKTOP_ARCHITECTURES,
   DESKTOP_SYSTEMS,
   FORMAT_PATTERN,
   MAX_ARTEFACT_BYTES,
   MAX_NOTES_LENGTH,
+  MAX_R2_KEY_LENGTH,
   MAX_SIGNATURE_LENGTH,
-  MAX_URL_LENGTH,
   MAX_VERSION_LENGTH,
   SEMVER_PATTERN,
   SHA256_PATTERN,
@@ -32,12 +33,13 @@ export const appReleasePublishBody = t.Object({
   os: desktopSystemSchema,
   arch: desktopArchitectureSchema,
   format: t.String({ pattern: FORMAT_PATTERN }),
-  url: t.String({ format: "uri", minLength: 1, maxLength: MAX_URL_LENGTH }),
+  r2_key: t.String({
+    pattern: APP_R2_KEY_PATTERN,
+    maxLength: MAX_R2_KEY_LENGTH,
+  }),
   bytes: t.Integer({ minimum: 1, maximum: MAX_ARTEFACT_BYTES }),
   sha256: t.String({ pattern: SHA256_PATTERN }),
-  signature: t.Optional(
-    t.String({ minLength: 1, maxLength: MAX_SIGNATURE_LENGTH })
-  ),
+  signature: t.String({ minLength: 1, maxLength: MAX_SIGNATURE_LENGTH }),
   notes: t.String({ minLength: 1, maxLength: MAX_NOTES_LENGTH }),
   channel: t.Optional(publishedChannelSchema),
 })

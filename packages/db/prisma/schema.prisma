@@ -350,7 +350,9 @@ model AppRelease {
   os          DesktopOs
   arch        String
   format      String
-  url         String
+  /// Where the artefact sits in the downloads bucket. The platform composes the
+  /// address from it: a publication never names a host.
+  r2Key       String
   bytes       Int
   sha256      String
   signature   String?

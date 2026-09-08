@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	privateKeyVariable = "PUPITRE_RELEASE_PRIVATE_KEY"
-	adminTokenVariable = "PUPITRE_ADMIN_TOKEN"
-	platformVariable   = "PUPITRE_PLATFORM_URL"
+	privateKeyVariable   = "PUPITRE_RELEASE_PRIVATE_KEY"
+	publishTokenVariable = "PUPITRE_PUBLISH_TOKEN"
+	platformVariable     = "PUPITRE_PLATFORM_URL"
 )
 
 type environment func(string) string
@@ -262,9 +262,9 @@ func privateKey(env environment) (ed25519.PrivateKey, error) {
 }
 
 func apiClient(baseURL string, env environment) (release.API, error) {
-	token := env(adminTokenVariable)
+	token := env(publishTokenVariable)
 	if token == "" {
-		return release.API{}, fmt.Errorf("%s is empty: publishing requires a platform administrator token", adminTokenVariable)
+		return release.API{}, fmt.Errorf("%s is empty: publishing requires the release pipeline token", publishTokenVariable)
 	}
 
 	if baseURL == "" {

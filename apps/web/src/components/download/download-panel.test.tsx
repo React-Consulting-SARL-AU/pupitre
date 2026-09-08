@@ -16,7 +16,10 @@ const mounted: (() => void)[] = []
 
 const NOTES = "Onboarding en trois étapes.\nCatalogue de services complet."
 
-const BASE = "https://downloads.pupitre.studio/1.4.0"
+const KEY_PREFIX = "app/1.4.0"
+
+/** The address the platform composes when no downloads bucket is declared. */
+const DOWNLOADS = `http://localhost/__downloads/${KEY_PREFIX}`
 
 /** The offer rows alone: the checklist above them carries links of its own. */
 function offerLinks(container: HTMLElement): (string | null)[] {
@@ -44,7 +47,7 @@ async function publishEveryOs() {
         os: "macos",
         arch: "arm64",
         format: "dmg",
-        url: `${BASE}/Pupitre-1.4.0-arm64.dmg`,
+        r2Key: `${KEY_PREFIX}/Pupitre-1.4.0-arm64.dmg`,
         bytes: 118_000_000,
         sha256: "a".repeat(64),
         notes: NOTES,
@@ -55,7 +58,7 @@ async function publishEveryOs() {
         os: "windows",
         arch: "x64",
         format: "exe",
-        url: `${BASE}/Pupitre-Setup-1.4.0-x64.exe`,
+        r2Key: `${KEY_PREFIX}/Pupitre-Setup-1.4.0-x64.exe`,
         bytes: 92_000_000,
         sha256: "b".repeat(64),
         notes: NOTES,
@@ -66,7 +69,7 @@ async function publishEveryOs() {
         os: "linux",
         arch: "x64",
         format: "AppImage",
-        url: `${BASE}/Pupitre-1.4.0-x64.AppImage`,
+        r2Key: `${KEY_PREFIX}/Pupitre-1.4.0-x64.AppImage`,
         bytes: 104_000_000,
         sha256: "c".repeat(64),
         notes: NOTES,
@@ -182,9 +185,9 @@ describe("DownloadPanel", () => {
     const links = offerLinks(container)
 
     expect(links).toEqual([
-      `${BASE}/Pupitre-1.4.0-arm64.dmg`,
-      `${BASE}/Pupitre-Setup-1.4.0-x64.exe`,
-      `${BASE}/Pupitre-1.4.0-x64.AppImage`,
+      `${DOWNLOADS}/Pupitre-1.4.0-arm64.dmg`,
+      `${DOWNLOADS}/Pupitre-Setup-1.4.0-x64.exe`,
+      `${DOWNLOADS}/Pupitre-1.4.0-x64.AppImage`,
     ])
   })
 
@@ -197,7 +200,7 @@ describe("DownloadPanel", () => {
         os: "macos",
         arch: "arm64",
         format: "dmg",
-        url: `${BASE}/Pupitre-1.5.0-beta.1-arm64.dmg`,
+        r2Key: "app/1.5.0-beta.1/Pupitre-1.5.0-beta.1-arm64.dmg",
         bytes: 118_000_000,
         sha256: "d".repeat(64),
         notes: "Canal beta.",

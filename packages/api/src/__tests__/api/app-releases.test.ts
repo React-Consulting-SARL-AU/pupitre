@@ -1,4 +1,15 @@
-import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "bun:test"
+import {
+  PUBLISH_TOKEN_PREFIX,
+  PUBLISH_TOKEN_VARIABLE,
+} from "../../lib/releases/publish-token"
 import { bootApiTestServer, resetDb } from "../../testing"
 import { apiRequest } from "../../testing/request"
 import { createSession, createUser } from "../../testing/session"
@@ -45,15 +56,21 @@ const OTHER_SHA256 = "b".repeat(64)
 
 const NOTES = "Première version signée : onboarding, catalogue, terminaux."
 
+const SIGNATURE = `${"c".repeat(86)}==`
+
+/** What a published address is composed from when no bucket is configured. */
+const DOWNLOADS = "http://localhost/__downloads"
+
 function publication(overrides: Record<string, unknown> = {}) {
   return {
     version: "1.4.0",
     os: "macos",
     arch: "arm64",
     format: "dmg",
-    url: "https://dl.pupitre.studio/app/1.4.0/Pupitre-1.4.0-arm64.dmg",
+    r2_key: "app/1.4.0/Pupitre-1.4.0-arm64.dmg",
     bytes: 118_000_000,
     sha256: SHA256,
+    signature: SIGNATURE,
     notes: NOTES,
     ...overrides,
   }
@@ -94,7 +111,7 @@ async function publishEveryOs(
     version,
     channel,
     arch: "x64",
-    url: `https://dl.pupitre.studio/app/${version}/Pupitre-${version}-x64.dmg`,
+    r2_key: `app/${version}/Pupitre-${version}-x64.dmg`,
   })
   await publish(session, {
     version,
@@ -102,7 +119,7 @@ async function publishEveryOs(
     os: "windows",
     arch: "x64",
     format: "exe",
-    url: `https://dl.pupitre.studio/app/${version}/Pupitre-Setup-${version}.exe`,
+    r2_key: `app/${version}/Pupitre-Setup-${version}.exe`,
   })
   await publish(session, {
     version,
@@ -110,7 +127,7 @@ async function publishEveryOs(
     os: "linux",
     arch: "x64",
     format: "AppImage",
-    url: `https://dl.pupitre.studio/app/${version}/Pupitre-${version}.AppImage`,
+    r2_key: `app/${version}/Pupitre-${version}.AppImage`,
   })
 }
 
@@ -141,7 +158,7 @@ describe("app releases", () => {
       expect(response.json.error.code).toBe("forbidden")
     })
 
-    it("publishes in the beta channel by default, without a signature", async () => {
+    it("publishes in the beta channel by default", async () => {
       const { prisma } = await bootApiTestServer()
       const session = await platformAdmin()
       const response = await publish(session)
@@ -151,7 +168,7 @@ describe("app releases", () => {
       expect(response.json.data.os).toBe("macos")
       expect(response.json.data.arch).toBe("arm64")
       expect(response.json.data.format).toBe("dmg")
-      expect(response.json.data.signature).toBeNull()
+      expect(response.json.data.signature).toBe(SIGNATURE)
       expect(response.json.data.notes).toBe(NOTES)
 
       const stored = await prisma.appRelease.findMany()
@@ -187,6 +204,9 @@ describe("app releases", () => {
       expect((await publish(session, { os: "freebsd" })).status).toBe(422)
       expect((await publish(session, { sha256: "deadbeef" })).status).toBe(422)
       expect((await publish(session, { notes: "" })).status).toBe(422)
+      expect((await publish(session, { signature: undefined })).status).toBe(
+        422
+      )
     })
 
     it("refuses a build without architecture, format or size", async () => {
@@ -204,7 +224,7 @@ describe("app releases", () => {
       await publish(session)
       await publish(session, {
         arch: "x64",
-        url: "https://dl.pupitre.studio/app/1.4.0/Pupitre-1.4.0-x64.dmg",
+        r2_key: "app/1.4.0/Pupitre-1.4.0-x64.dmg",
       })
 
       const stored = await prisma.appRelease.findMany()
@@ -248,6 +268,106 @@ describe("app releases", () => {
       const stored = await prisma.appRelease.findMany()
 
       expect(stored).toHaveLength(4)
+    })
+  })
+
+  describe("le jeton de publication", () => {
+    const TOKEN = `${PUBLISH_TOKEN_PREFIX}pipeline-token-for-the-tests`
+    let held: string | undefined
+
+    beforeEach(() => {
+      held = process.env[PUBLISH_TOKEN_VARIABLE]
+      process.env[PUBLISH_TOKEN_VARIABLE] = TOKEN
+    })
+
+    afterEach(() => {
+      if (held === undefined) {
+        process.env[PUBLISH_TOKEN_VARIABLE] = undefined
+      } else {
+        process.env[PUBLISH_TOKEN_VARIABLE] = held
+      }
+    })
+
+    it("ouvre la publication sans session", async () => {
+      const response = await apiRequest<BuildBody & ErrorBody>(
+        "/admin/app-releases",
+        { body: publication(), bearer: TOKEN }
+      )
+
+      expect(response.status).toBe(201)
+      expect(response.json.data.version).toBe("1.4.0")
+    })
+
+    it("dit le pipeline plutôt qu'un utilisateur dans le journal", async () => {
+      const { prisma } = await bootApiTestServer()
+
+      await apiRequest("/admin/app-releases", {
+        body: publication(),
+        bearer: TOKEN,
+      })
+
+      const [event] = await prisma.event.findMany({
+        where: { action: "app_release.published" },
+      })
+
+      expect(event?.actorUserId).toBeNull()
+      expect(event?.payload).toMatchObject({ by: "pipeline" })
+    })
+
+    it("refuse un jeton qui n'est pas celui-là", async () => {
+      const response = await apiRequest<ErrorBody>("/admin/app-releases", {
+        body: publication(),
+        bearer: `${PUBLISH_TOKEN_PREFIX}autre-chose`,
+      })
+
+      expect(response.status).toBe(401)
+      expect(response.json.error.code).toBe("unauthenticated")
+    })
+
+    it("refuse tout jeton quand la plateforme n'en déclare aucun", async () => {
+      process.env[PUBLISH_TOKEN_VARIABLE] = undefined
+
+      const response = await apiRequest<ErrorBody>("/admin/app-releases", {
+        body: publication(),
+        bearer: TOKEN,
+      })
+
+      expect(response.status).toBe(401)
+    })
+
+    it("laisse la console publier avec sa session", async () => {
+      const session = await platformAdmin()
+
+      expect((await publish(session)).status).toBe(201)
+    })
+  })
+
+  describe("la clé de l'artefact", () => {
+    it("refuse une clé qui sortirait du dossier des versions", async () => {
+      const session = await platformAdmin()
+
+      for (const r2_key of [
+        "//evil.example/Pupitre.dmg",
+        "/app/1.4.0/Pupitre.dmg",
+        "app/1.4.0/../../../etc/passwd",
+        "../app/1.4.0/Pupitre.dmg",
+        "https://evil.example/Pupitre.dmg",
+        "agent/1.4.0/pupitred-linux-amd64",
+      ]) {
+        expect((await publish(session, { r2_key })).status).toBe(422)
+      }
+    })
+
+    it("compose l'adresse depuis le seau, jamais depuis l'appelant", async () => {
+      const session = await platformAdmin()
+
+      await publish(session)
+
+      const response = await apiRequest<ReleaseBody>("/releases/app/1.4.0")
+
+      expect(response.json.data.builds[0]?.url).toBe(
+        `${DOWNLOADS}/app/1.4.0/Pupitre-1.4.0-arm64.dmg`
+      )
     })
   })
 
@@ -328,7 +448,7 @@ describe("app releases", () => {
 
       expect(response.status).toBe(303)
       expect(response.raw.headers.get("location")).toBe(
-        "https://dl.pupitre.studio/app/1.4.0/Pupitre-1.4.0-x64.dmg"
+        `${DOWNLOADS}/app/1.4.0/Pupitre-1.4.0-x64.dmg`
       )
     })
 

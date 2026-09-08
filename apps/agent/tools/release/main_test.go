@@ -168,7 +168,7 @@ func TestPublishStopsWithoutTheAdministratorToken(t *testing.T) {
 	file := binaryAt(t, "publications.json", []byte(`[{"version":"1.4.2","arch":"amd64"}]`))
 
 	code, _, stderr := execute(t, noEnvironment, "publish", file)
-	if code == 0 || !strings.Contains(stderr, adminTokenVariable) {
+	if code == 0 || !strings.Contains(stderr, publishTokenVariable) {
 		t.Fatalf("code = %d, stderr = %s", code, stderr)
 	}
 }
@@ -186,7 +186,7 @@ func TestPublishSendsEveryPublicationToThePlatform(t *testing.T) {
 	defer server.Close()
 
 	file := binaryAt(t, "publications.json", []byte(`[{"version":"1.4.2","arch":"amd64"},{"version":"1.4.2","arch":"arm64"}]`))
-	env := environmentOf(map[string]string{adminTokenVariable: "jeton"})
+	env := environmentOf(map[string]string{publishTokenVariable: "jeton"})
 
 	code, stdout, stderr := execute(t, env, "publish", "--api="+server.URL, file)
 	if code != 0 {
@@ -216,7 +216,7 @@ func TestPromoteAsksThePlatformForTheChannel(t *testing.T) {
 
 	defer server.Close()
 
-	env := environmentOf(map[string]string{adminTokenVariable: "jeton"})
+	env := environmentOf(map[string]string{publishTokenVariable: "jeton"})
 
 	code, _, stderr := execute(t, env, "promote", "--version=1.4.2", "--api="+server.URL)
 	if code != 0 {
