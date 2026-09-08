@@ -17,6 +17,7 @@ const SERVER_URL_RE = /\/dashboard\/servers\/[^/]+$/
 const SERVERS_TITLE_RE = /Serveurs · Pupitre/
 const REVOKED_RE = /^Révoqué$/
 const START_URL_RE = /\/dashboard\/start$/
+const CHECKOUT_URL_RE = /^https:\/\/checkout\.stripe\.test\//
 const START_RETURN_URL_RE = /\/dashboard\/start\?checkout=done$/
 const BILLING_URL_RE = /\/dashboard\/billing$/
 const SETTINGS_URL_RE = /\/dashboard\/settings$/
@@ -143,6 +144,11 @@ test.describe("console", () => {
           return checkouts
         })
         .toEqual([expect.objectContaining({ quantity: 1, interval: "month" })])
+
+      // The click sends the page to the payment provider. Waiting for it to
+      // land is what keeps the next step from racing it — the harness answers
+      // that domain with an empty page, so it does land.
+      await page.waitForURL(CHECKOUT_URL_RE)
     })
 
     await test.step("au retour du paiement, la console attend le webhook", async () => {
