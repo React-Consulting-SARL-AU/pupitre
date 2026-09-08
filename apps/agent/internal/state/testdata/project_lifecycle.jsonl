@@ -6,7 +6,7 @@
 @file /proc/uptime 98765.43 700000.00
 @file /etc/pupitre/projects.conf shots|.|-|service|127.0.0.1|8099|shots|-|-
 @reply nproc 4
-@reply uname -m aarch64
+@answer uname -m :: aarch64
 @answer df -P -B1 Filesystem 1B-blocks Used Available Capacity Mounted\n/dev/sda1 85899345920 21474836480 64424509440 25% /
 @file /home/dev/.pupitre/logs/flymate-api.log vite v7 ready in 412 ms
 @serves flymate-api 5173

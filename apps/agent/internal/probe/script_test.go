@@ -13,17 +13,26 @@ import (
 	"pupitre.studio/agent/internal/contract"
 )
 
-func shells(t *testing.T) []string {
+// busybox is not a shell but a dispatcher: its shell is the `sh` applet, and
+// `busybox -n probe.sh` is an applet it does not know. Hence an argv per shell
+// rather than a path — Linux carries /bin/busybox, macOS does not.
+func shells(t *testing.T) [][]string {
 	t.Helper()
 
-	found := []string{"/bin/sh"}
-	for _, candidate := range []string{"/bin/dash", "/usr/bin/dash", "/bin/busybox"} {
-		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+	found := [][]string{{"/bin/sh"}}
+	for _, candidate := range [][]string{{"/bin/dash"}, {"/usr/bin/dash"}, {"/bin/busybox", "sh"}} {
+		if info, err := os.Stat(candidate[0]); err == nil && !info.IsDir() {
 			found = append(found, candidate)
 		}
 	}
 
 	return found
+}
+
+func shellCommand(shell []string, args ...string) *exec.Cmd {
+	argv := append(append([]string{}, shell...), args...)
+
+	return exec.Command(argv[0], argv[1:]...)
 }
 
 func TestScriptParses(t *testing.T) {
@@ -33,9 +42,9 @@ func TestScriptParses(t *testing.T) {
 	}
 
 	for _, shell := range shells(t) {
-		out, err := exec.Command(shell, "-n", path).CombinedOutput()
+		out, err := shellCommand(shell, "-n", path).CombinedOutput()
 		if err != nil {
-			t.Errorf("%s -n probe.sh: %v\n%s", shell, err, out)
+			t.Errorf("%s -n probe.sh: %v\n%s", strings.Join(shell, " "), err, out)
 		}
 	}
 }
@@ -63,7 +72,7 @@ func TestScriptRunsFromStandardInputAndTouchesNothing(t *testing.T) {
 	env := f.onDisk(t, root)
 
 	before := tree(t, root)
-	runScript(t, "/bin/sh", root, f, env)
+	runScript(t, []string{"/bin/sh"}, root, f, env)
 
 	if after := tree(t, root); !equalTrees(before, after) {
 		t.Fatalf("probe.sh left something behind:\n%s\n%s", strings.Join(before, "\n"), strings.Join(after, "\n"))
@@ -94,7 +103,7 @@ func TestBothProbesProduceTheSameJSON(t *testing.T) {
 				got := runScript(t, shell, root, f, env)
 
 				if !bytes.Equal(got, want) {
-					t.Fatalf("%s disagrees with the Go probe\n  sh: %s\n  go: %s", shell, got, want)
+					t.Fatalf("%s disagrees with the Go probe\n  sh: %s\n  go: %s", strings.Join(shell, " "), got, want)
 				}
 
 				assertContractJSON(t, got)
@@ -103,10 +112,10 @@ func TestBothProbesProduceTheSameJSON(t *testing.T) {
 	}
 }
 
-func runScript(t *testing.T, shell, root string, f fixture, env []string) []byte {
+func runScript(t *testing.T, shell []string, root string, f fixture, env []string) []byte {
 	t.Helper()
 
-	cmd := exec.Command(shell, "-s", "--",
+	cmd := shellCommand(shell, "-s", "--",
 		"--root="+root,
 		"--projects="+projectsDir(root),
 		"--version="+f.Current,
@@ -118,7 +127,7 @@ func runScript(t *testing.T, shell, root string, f fixture, env []string) []byte
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("%s probe.sh: %v\n%s", shell, err, stderr.String())
+		t.Fatalf("%s probe.sh: %v\n%s", strings.Join(shell, " "), err, stderr.String())
 	}
 
 	if stderr.Len() > 0 {

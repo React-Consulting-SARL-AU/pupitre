@@ -189,10 +189,13 @@ function asAgent(token: string, body: unknown, path: string) {
   });
 }
 
+// The first file to run pays for PGlite starting and taking the migrations, and a cold runner is far slower over it than a laptop.
+const BOOT_TIMEOUT_MS = 60_000;
+
 describe("le compte contre l'API de la plateforme", () => {
   beforeAll(async () => {
     await bootApiTestServer();
-  });
+  }, BOOT_TIMEOUT_MS);
 
   beforeEach(async () => {
     await resetDb();
@@ -200,7 +203,7 @@ describe("le compte contre l'API de la plateforme", () => {
     for (const dir of dirs.splice(0)) {
       rmSync(dir, { force: true, recursive: true });
     }
-  });
+  }, BOOT_TIMEOUT_MS);
 
   it("connecte l'appareil par le device flow et enregistre sa clé publique", async () => {
     const browser = await signedInConsole();
