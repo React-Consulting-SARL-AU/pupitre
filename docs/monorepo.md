@@ -62,7 +62,9 @@ bun run test
 bun run build
 ```
 
-Les PR font tourner les tâches affectées ; `main` fait tout.
+Les PR font tourner les tâches affectées ; `staging` et `main` font tout.
+
+Trois workspaces passent `--timeout=60000` à `bun test` : `apps/web`, `apps/desktop` et `packages/api`. Leurs tests démarrent un Postgres en WebAssembly et lui appliquent les migrations avant le premier cas, ce qu'un runner froid met une vingtaine de secondes à faire — au-delà des cinq secondes que `bun test` accorde par défaut, et le hook tombe avant que le premier cas ait pu tourner.
 
 ## Frontières de workspace
 
