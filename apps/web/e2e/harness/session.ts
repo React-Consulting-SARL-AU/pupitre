@@ -11,7 +11,15 @@ export function harnessUrl(path: string): string {
 }
 
 export async function stayLocal(page: Page): Promise<void> {
-  await page.route(EXTERNAL_URL_RE, (route) => route.abort())
+  // Nothing leaves the machine. A subresource is refused outright; a document
+  // is answered with an empty page instead, because aborting a navigation
+  // leaves the tab on chrome-error and that error interrupts the next goto —
+  // which is what the checkout of the fake billing sends the page into.
+  await page.route(EXTERNAL_URL_RE, (route) =>
+    route.request().isNavigationRequest()
+      ? route.fulfill({ body: "", contentType: "text/html", status: 200 })
+      : route.abort()
+  )
 
   // The harness proxies HTTP only: left unanswered, the Vite HMR socket makes
   // the client reload the page in the middle of a step.
