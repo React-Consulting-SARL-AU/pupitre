@@ -276,7 +276,7 @@ CREATE TABLE "AppRelease" (
     "os" "DesktopOs" NOT NULL,
     "arch" TEXT NOT NULL,
     "format" TEXT NOT NULL,
-    "url" TEXT NOT NULL,
+    "r2Key" TEXT NOT NULL,
     "bytes" INTEGER NOT NULL,
     "sha256" TEXT NOT NULL,
     "signature" TEXT,
