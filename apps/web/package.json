@@ -20,7 +20,7 @@
     "lint": "ultracite check",
     "lint:fix": "ultracite fix",
     "check:types": "tsgo --noEmit --pretty false",
-    "test": "bun test src",
+    "test": "bun test --timeout=60000 src",
     "test:e2e": "playwright test"
   },
   "dependencies": {

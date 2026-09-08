@@ -29,6 +29,22 @@ func shells(t *testing.T) [][]string {
 	return found
 }
 
+// busybox's standalone shell answers uname, df, free, ss and id from its own applets
+// before it looks at PATH: the fake programs the fixture puts there are never reached,
+// and it reports the machine it actually runs on. Parsing the script under it still counts.
+func shellsThatObeyPath(t *testing.T) [][]string {
+	t.Helper()
+
+	var found [][]string
+	for _, shell := range shells(t) {
+		if !strings.HasSuffix(shell[0], "busybox") {
+			found = append(found, shell)
+		}
+	}
+
+	return found
+}
+
 func shellCommand(shell []string, args ...string) *exec.Cmd {
 	argv := append(append([]string{}, shell...), args...)
 
@@ -91,7 +107,7 @@ func TestBothProbesProduceTheSameJSON(t *testing.T) {
 
 	for name, f := range cases {
 		t.Run(name, func(t *testing.T) {
-			for _, shell := range shells(t) {
+			for _, shell := range shellsThatObeyPath(t) {
 				root := t.TempDir()
 				env := f.onDisk(t, root)
 
