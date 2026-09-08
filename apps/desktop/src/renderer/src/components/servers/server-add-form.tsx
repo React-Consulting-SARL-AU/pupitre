@@ -1,14 +1,21 @@
+import { agentText } from "@renderer/i18n/agent-error";
 import type { DictionaryKey } from "@renderer/i18n/en";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AgentError } from "@shared/agent";
-import type { KeyChoice, ServerDraft } from "@shared/servers";
-import { FileKey2, KeyRound, Server as ServerIcon } from "lucide-react";
+import type { KeyChoice, ServerDraft, ServerReach } from "@shared/servers";
+import {
+  FileKey2,
+  KeyRound,
+  PlugZap,
+  Server as ServerIcon,
+} from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import type { ButtonIcon } from "../ui/button";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
 import { Field, fieldControlClass } from "../ui/field";
 import { Label } from "../ui/label";
+import { ServerReachNotice } from "./server-reach-notice";
 
 type Mode = KeyChoice["mode"];
 
@@ -46,6 +53,11 @@ const MODES: {
  * The three ways of giving a key are shown side by side rather than hidden in a
  * menu, because choosing between them is the one decision of this screen — and
  * the recommended one says so.
+ *
+ * The address is knocked on before it is declared: a typo, a closed port or a
+ * web server on 22 is worth learning here rather than three screens later. The
+ * test never blocks — a machine that is down is still worth declaring — but it
+ * goes first, and adding waits behind its answer.
  */
 export function ServerAddForm({
   busy,
@@ -56,7 +68,8 @@ export function ServerAddForm({
   busy: boolean;
   error: AgentError | null;
   onSubmit: (draft: ServerDraft) => void;
-  onCancel: () => void;
+  /** Absent when there's nothing behind it: a button that leads nowhere. */
+  onCancel?: () => void;
 }) {
   const t = useTranslations();
 
@@ -68,6 +81,8 @@ export function ServerAddForm({
   const [file, setFile] = useState("");
   const [hosts, setHosts] = useState<string[]>([]);
   const [systemHost, setSystemHost] = useState("");
+  const [reach, setReach] = useState<ServerReach | null>(null);
+  const [testing, setTesting] = useState(false);
 
   useEffect(() => {
     window.pupitre.sshHosts().then((found) => {
@@ -103,10 +118,30 @@ export function ServerAddForm({
     });
   }
 
+  async function test() {
+    setTesting(true);
+    setReach(await window.pupitre.reachServer(host.trim(), Number(port)));
+    setTesting(false);
+  }
+
+  /** A result describes the address that was typed then; a new one is untested. */
+  function retype(set: (value: string) => void) {
+    return (value: string) => {
+      setReach(null);
+      set(value);
+    };
+  }
+
   const ready =
     mode === "system"
       ? systemHost !== ""
       : host.trim() !== "" && user.trim() !== "" && (mode !== "import" || file);
+
+  // An alias of `~/.ssh/config` carries its address in that file, which this
+  // window does not read: there is nothing here to knock on.
+  const testable =
+    mode !== "system" && host.trim() !== "" && port.trim() !== "";
+  const untested = testable && reach === null;
 
   return (
     <div className="elevation-raised rounded-md border border-line bg-surface p-5">
@@ -172,7 +207,7 @@ export function ServerAddForm({
           >
             <input
               className={fieldControlClass}
-              onChange={(e) => setHost(e.target.value)}
+              onChange={(e) => retype(setHost)(e.target.value)}
               placeholder="203.0.113.10"
               value={host}
             />
@@ -188,7 +223,7 @@ export function ServerAddForm({
               <input
                 className={fieldControlClass}
                 inputMode="numeric"
-                onChange={(e) => setPort(e.target.value)}
+                onChange={(e) => retype(setPort)(e.target.value)}
                 placeholder={DEFAULT_PORT}
                 value={port}
               />
@@ -216,7 +251,7 @@ export function ServerAddForm({
             <Button icon={FileKey2} onClick={pickFile}>
               {t("servers.add.pickFile")}
             </Button>
-            <span className="min-w-0 truncate font-data text-[11px] text-ink-3">
+            <span className="min-w-0 truncate font-data text-[12px] text-ink-3">
               {file || t("servers.add.noFile")}
             </span>
           </div>
@@ -225,27 +260,60 @@ export function ServerAddForm({
 
       {error ? (
         <div className="mt-5">
-          <Callout fix={error.fix} tone="danger">
-            {error.message}
+          <Callout fix={agentText(t, error).fix} tone="danger">
+            {agentText(t, error).message}
           </Callout>
         </div>
       ) : null}
 
+      {reach ? (
+        <div className="fade-in mt-5">
+          <ServerReachNotice reach={reach} />
+        </div>
+      ) : null}
+
       <div className="mt-5 flex flex-wrap items-center gap-2">
-        <Button
-          disabled={!ready}
-          loading={busy}
-          onClick={submit}
-          variant="inverse"
-        >
-          {busy ? t("servers.add.preparing") : t("servers.add.submit")}
-        </Button>
-        <Button onClick={onCancel} variant="discreet">
-          {t("common.cancel")}
-        </Button>
+        {testable ? (
+          <Button
+            icon={PlugZap}
+            loading={testing}
+            onClick={test}
+            variant={untested ? "inverse" : "default"}
+          >
+            {reach ? t("servers.add.retest") : t("servers.add.test")}
+          </Button>
+        ) : null}
+
+        {untested ? null : (
+          <Button
+            disabled={!ready}
+            loading={busy}
+            onClick={submit}
+            variant="inverse"
+          >
+            {submitLabel(t, { busy, refused: reach?.reached === false })}
+          </Button>
+        )}
+
+        {onCancel ? (
+          <Button onClick={onCancel} variant="discreet">
+            {t("common.cancel")}
+          </Button>
+        ) : null}
       </div>
     </div>
   );
+}
+
+function submitLabel(
+  t: ReturnType<typeof useTranslations>,
+  { busy, refused }: { busy: boolean; refused: boolean }
+): string {
+  if (busy) {
+    return t("servers.add.preparing");
+  }
+
+  return refused ? t("servers.add.submitAnyway") : t("servers.add.submit");
 }
 
 function ModeCard({
@@ -281,7 +349,7 @@ function ModeCard({
         {title}
       </span>
       {recommended ? <Label>{t("servers.add.recommended")}</Label> : null}
-      <span className="text-[11px] text-ink-3 leading-relaxed">{detail}</span>
+      <span className="text-[12px] text-ink-3 leading-relaxed">{detail}</span>
     </button>
   );
 }

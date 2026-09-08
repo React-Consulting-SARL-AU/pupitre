@@ -14,7 +14,7 @@ const (
 )
 
 // enroll is admitted because it is the gesture that repairs a restricted server, and a token the platform signs for an authenticated account opens nothing that account could not already obtain.
-var RestrictedCommands = []string{"hello", "ping", "snapshot", "status", "diag", "agent.upgrade", "enroll"}
+var RestrictedCommands = []string{"hello", "ping", "snapshot", "status", "diag", "agent.upgrade", "enroll", "platform.sync"}
 
 // A binary copied onto a server that was never enrolled has no state to show and no server to upgrade: it says who it is, answers a ping, hands out a diagnostic, and takes the enrolment that gives it a server.
 var UnenrolledCommands = []string{"hello", "ping", "diag", "enroll"}

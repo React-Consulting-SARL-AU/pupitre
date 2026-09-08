@@ -1,6 +1,6 @@
 import type { Machine } from "@pupitre/shared/agent-protocol/state";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { disk, gigabytes, memory, uptime } from "@renderer/lib/format";
+import { decimal, disk, gigabytes, memory, uptime } from "@renderer/lib/format";
 import { Cpu, HardDrive, Layers, MemoryStick } from "lucide-react";
 import { DashboardStat } from "./dashboard-stat";
 
@@ -53,7 +53,7 @@ export function DashboardMachine({
         icon={Cpu}
         share={Math.min(1, perCore)}
         title={t("dashboard.machine.loadTitle")}
-        value={load.toFixed(2).replace(".", ",")}
+        value={decimal(load, 2)}
       />
       <DashboardStat
         alert={usedDisk / machine.disk_total_gb > LOW_DISK_SHARE}

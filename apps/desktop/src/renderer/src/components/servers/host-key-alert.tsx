@@ -40,7 +40,9 @@ export function HostKeyAlert({
           <h3 className="font-medium text-danger">
             {t("servers.hostKey.title", { name: serverName })}
           </h3>
-          <p className="mt-1.5 text-ink-2 leading-relaxed">{state.message}</p>
+          <p className="mt-1.5 text-ink-2 leading-relaxed">
+            {t(state.phrase.id as never, state.phrase.values)}
+          </p>
 
           <div className="mt-5 grid gap-5 sm:grid-cols-2">
             <Fingerprint
@@ -54,7 +56,7 @@ export function HostKeyAlert({
           </div>
 
           <p className="mt-5 font-medium text-ink leading-relaxed">
-            {state.fix}
+            {t(`${state.phrase.id}.fix` as never, state.phrase.values)}
           </p>
 
           <div className="mt-5 flex flex-wrap items-center gap-2">
@@ -75,7 +77,7 @@ function Fingerprint({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
       <Label>{label}</Label>
-      <p className="mt-1 break-all font-data text-[11px] text-ink-2 leading-relaxed">
+      <p className="mt-1 break-all font-data text-[12px] text-ink-2 leading-relaxed">
         {value}
       </p>
     </div>

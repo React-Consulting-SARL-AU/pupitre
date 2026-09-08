@@ -5,9 +5,14 @@ import { ProfileForm } from "@/components/dashboard/profile-form"
 import { SecurityCard } from "@/components/dashboard/security-card"
 import { PageHeader } from "@/components/ui/page-header"
 import { useTranslations } from "@/hooks/use-locale"
-import { pageTitle } from "@/lib/domain/page-titles"
+import { documentTitle, pageTitle } from "@/lib/domain/page-titles"
 
 export const Route = createFileRoute("/dashboard/settings")({
+  head: ({ match }) => ({
+    meta: [
+      { title: documentTitle("/dashboard/settings", match.context.locale) },
+    ],
+  }),
   component: SettingsPage,
 })
 

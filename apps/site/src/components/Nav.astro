@@ -104,19 +104,7 @@ const isCurrent = (href: string) =>
 </header>
 
 <script>
-  const menus = document.querySelectorAll<HTMLDetailsElement>("[data-nav-menu]")
+  import { closeMenusOnDismiss } from "../lib/menu"
 
-  for (const menu of menus) {
-    document.addEventListener("click", (event) => {
-      if (menu.open && !menu.contains(event.target as Node)) {
-        menu.open = false
-      }
-    })
-
-    menu.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") {
-        menu.open = false
-      }
-    })
-  }
+  closeMenusOnDismiss("[data-nav-menu]")
 </script>

@@ -116,6 +116,7 @@ describe("ce que le droit d'usage laisse passer", () => {
           "doctor",
           "hello",
           "keys.list",
+          "module.config",
           "ping",
           "probe",
           "processes.list",
@@ -318,7 +319,7 @@ describe("les deux sources de refus restent distinctes", () => {
       },
     });
 
-    // Le serveur reste lisible malgré son mode restreint.
+    // The server stays readable despite its restricted mode.
     const status = await guarded.request("srv-1", "status");
 
     expect(status.ok && status.result.projects[0]?.name).toBe("api");

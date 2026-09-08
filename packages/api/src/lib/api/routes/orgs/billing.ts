@@ -1,10 +1,15 @@
 import { type Locale, resolveLocale } from "@pupitre/shared/i18n"
-import { Elysia, t } from "elysia"
+import { Elysia } from "elysia"
 import {
   BillingCustomerMissingError,
   startCheckout,
   startPortal,
 } from "../../../billing/checkout"
+import {
+  NoPayingSubscriptionError,
+  resizeSeats,
+  SeatsBelowUsageError,
+} from "../../../billing/seats"
 import { readSubscription } from "../../../billing/subscription"
 import { translate } from "../../../i18n"
 import { type ApiErrorPayload, apiError } from "../../errors"
@@ -15,7 +20,8 @@ import {
   billingUrlSchema,
   checkoutBody,
   organizationParams,
-  subscriptionSchema,
+  seatsBody,
+  subscriptionEnvelope,
 } from "./schemas"
 
 function organizationNotFound(locale: Locale): ApiErrorPayload {
@@ -108,13 +114,66 @@ export const orgsBillingRoutes = new Elysia({ name: "orgs-billing-routes" })
       params: organizationParams,
       detail: { summary: "Le miroir de l'abonnement Stripe" },
       response: {
-        200: t.Object(
-          { data: t.Nullable(subscriptionSchema) },
-          { $id: "SubscriptionEnvelope" }
-        ),
+        200: subscriptionEnvelope,
         401: errorResponse,
         403: errorResponse,
         404: errorResponse,
+      },
+    }
+  )
+  .post(
+    "/:id/seats",
+    async ({ user, organizationId, params, body, request, set }) => {
+      const locale = resolveLocale(request.headers)
+
+      if (params.id !== organizationId) {
+        set.status = 404
+
+        return organizationNotFound(locale)
+      }
+
+      try {
+        const subscription = await resizeSeats(
+          { organizationId, userId: user.id },
+          body.quantity
+        )
+
+        return { data: serializeData(subscription) }
+      } catch (error) {
+        if (error instanceof NoPayingSubscriptionError) {
+          set.status = 409
+
+          return apiError(
+            "conflict",
+            translate(locale, "subscription_missing"),
+            translate(locale, "subscription_missing_fix")
+          )
+        }
+
+        if (error instanceof SeatsBelowUsageError) {
+          set.status = 409
+
+          return apiError(
+            "conflict",
+            translate(locale, "seats_below_usage", { used: error.used }),
+            translate(locale, "seats_below_usage_fix")
+          )
+        }
+
+        throw error
+      }
+    },
+    {
+      params: organizationParams,
+      body: seatsBody,
+      detail: { summary: "Changer le nombre de sièges de serveur payés" },
+      response: {
+        200: subscriptionEnvelope,
+        401: errorResponse,
+        403: errorResponse,
+        404: errorResponse,
+        409: errorResponse,
+        422: errorResponse,
       },
     }
   )

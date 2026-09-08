@@ -42,7 +42,7 @@ func runInstall(engine *modules.Engine, args []string, stderr io.Writer) int {
 	request.Modules = without(request.Modules, skip)
 
 	if len(request.Modules) == 0 {
-		fmt.Fprintf(stderr, "aucun module à installer : %s est absent et --only n'est pas donné.\nLance l'installation depuis l'app, ou passe --only=<id>.\n", engine.InstallPath)
+		fmt.Fprintf(stderr, "no module to install: %s is absent and --only is not given.\nStart the installation from the app, or pass --only=<id>.\n", engine.InstallPath)
 		return 2
 	}
 
@@ -126,7 +126,7 @@ func printStep(stderr io.Writer) modules.Sink {
 		case contract.StepOK:
 			fmt.Fprintf(stderr, "  ✓ %s · %s (%d ms)\n", event.Module, event.Step, event.Ms)
 		case contract.StepSkip:
-			fmt.Fprintf(stderr, "  · %s · %s (déjà fait)\n", event.Module, event.Step)
+			fmt.Fprintf(stderr, "  · %s · %s (already done)\n", event.Module, event.Step)
 		case contract.StepFail:
 			fmt.Fprintf(stderr, "  ✗ %s · %s\n    rejeu : %s\n", event.Module, event.Step, event.Replay)
 		}
@@ -141,11 +141,11 @@ func printSummary(stderr io.Writer, result contract.InstallResult) int {
 	}
 
 	if len(result.Failed) == 0 {
-		fmt.Fprintf(stderr, "Aucune étape en échec. Rapport : %s\n", result.ReportPath)
+		fmt.Fprintf(stderr, "No failed step. Report: %s\n", result.ReportPath)
 		return 0
 	}
 
-	fmt.Fprintf(stderr, "%d étape(s) en échec :\n", len(result.Failed))
+	fmt.Fprintf(stderr, "%d failed step(s):\n", len(result.Failed))
 	for _, failure := range result.Failed {
 		fmt.Fprintf(stderr, "  ✗ %s\n", failure)
 	}

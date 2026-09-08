@@ -7,8 +7,8 @@ export const StatusFreshnessSchema = z.enum(STATUS_FRESHNESS)
 export type StatusFreshness = z.infer<typeof StatusFreshnessSchema>
 
 /**
- * Trois cycles de heartbeat : un battement manqué est banal, trois sur toute
- * la flotte à la fois veut dire que la collecte est cassée.
+ * Three heartbeat cycles: one missed beat is unremarkable, three across the
+ * whole fleet at once means collection is broken.
  */
 export const STATUS_STALE_AFTER_MS = 900_000
 

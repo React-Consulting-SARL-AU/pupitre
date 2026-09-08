@@ -20,15 +20,27 @@ export type AppReleaseModel = runtime.Types.Result.DefaultSelection<Prisma.$AppR
 
 export type AggregateAppRelease = {
   _count: AppReleaseCountAggregateOutputType | null
+  _avg: AppReleaseAvgAggregateOutputType | null
+  _sum: AppReleaseSumAggregateOutputType | null
   _min: AppReleaseMinAggregateOutputType | null
   _max: AppReleaseMaxAggregateOutputType | null
+}
+
+export type AppReleaseAvgAggregateOutputType = {
+  bytes: number | null
+}
+
+export type AppReleaseSumAggregateOutputType = {
+  bytes: number | null
 }
 
 export type AppReleaseMinAggregateOutputType = {
   version: string | null
   os: $Enums.DesktopOs | null
   arch: string | null
+  format: string | null
   url: string | null
+  bytes: number | null
   sha256: string | null
   signature: string | null
   notes: string | null
@@ -40,7 +52,9 @@ export type AppReleaseMaxAggregateOutputType = {
   version: string | null
   os: $Enums.DesktopOs | null
   arch: string | null
+  format: string | null
   url: string | null
+  bytes: number | null
   sha256: string | null
   signature: string | null
   notes: string | null
@@ -52,7 +66,9 @@ export type AppReleaseCountAggregateOutputType = {
   version: number
   os: number
   arch: number
+  format: number
   url: number
+  bytes: number
   sha256: number
   signature: number
   notes: number
@@ -62,11 +78,21 @@ export type AppReleaseCountAggregateOutputType = {
 }
 
 
+export type AppReleaseAvgAggregateInputType = {
+  bytes?: true
+}
+
+export type AppReleaseSumAggregateInputType = {
+  bytes?: true
+}
+
 export type AppReleaseMinAggregateInputType = {
   version?: true
   os?: true
   arch?: true
+  format?: true
   url?: true
+  bytes?: true
   sha256?: true
   signature?: true
   notes?: true
@@ -78,7 +104,9 @@ export type AppReleaseMaxAggregateInputType = {
   version?: true
   os?: true
   arch?: true
+  format?: true
   url?: true
+  bytes?: true
   sha256?: true
   signature?: true
   notes?: true
@@ -90,7 +118,9 @@ export type AppReleaseCountAggregateInputType = {
   version?: true
   os?: true
   arch?: true
+  format?: true
   url?: true
+  bytes?: true
   sha256?: true
   signature?: true
   notes?: true
@@ -137,6 +167,18 @@ export type AppReleaseAggregateArgs<ExtArgs extends runtime.Types.Extensions.Int
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: AppReleaseAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: AppReleaseSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: AppReleaseMinAggregateInputType
@@ -167,6 +209,8 @@ export type AppReleaseGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inter
   take?: number
   skip?: number
   _count?: AppReleaseCountAggregateInputType | true
+  _avg?: AppReleaseAvgAggregateInputType
+  _sum?: AppReleaseSumAggregateInputType
   _min?: AppReleaseMinAggregateInputType
   _max?: AppReleaseMaxAggregateInputType
 }
@@ -174,14 +218,18 @@ export type AppReleaseGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inter
 export type AppReleaseGroupByOutputType = {
   version: string
   os: $Enums.DesktopOs
-  arch: string | null
+  arch: string
+  format: string
   url: string
+  bytes: number
   sha256: string
   signature: string | null
   notes: string
   channel: $Enums.ReleaseChannel
   publishedAt: Date
   _count: AppReleaseCountAggregateOutputType | null
+  _avg: AppReleaseAvgAggregateOutputType | null
+  _sum: AppReleaseSumAggregateOutputType | null
   _min: AppReleaseMinAggregateOutputType | null
   _max: AppReleaseMaxAggregateOutputType | null
 }
@@ -207,8 +255,10 @@ export type AppReleaseWhereInput = {
   NOT?: Prisma.AppReleaseWhereInput | Prisma.AppReleaseWhereInput[]
   version?: Prisma.StringFilter<"AppRelease"> | string
   os?: Prisma.EnumDesktopOsFilter<"AppRelease"> | $Enums.DesktopOs
-  arch?: Prisma.StringNullableFilter<"AppRelease"> | string | null
+  arch?: Prisma.StringFilter<"AppRelease"> | string
+  format?: Prisma.StringFilter<"AppRelease"> | string
   url?: Prisma.StringFilter<"AppRelease"> | string
+  bytes?: Prisma.IntFilter<"AppRelease"> | number
   sha256?: Prisma.StringFilter<"AppRelease"> | string
   signature?: Prisma.StringNullableFilter<"AppRelease"> | string | null
   notes?: Prisma.StringFilter<"AppRelease"> | string
@@ -219,8 +269,10 @@ export type AppReleaseWhereInput = {
 export type AppReleaseOrderByWithRelationInput = {
   version?: Prisma.SortOrder
   os?: Prisma.SortOrder
-  arch?: Prisma.SortOrderInput | Prisma.SortOrder
+  arch?: Prisma.SortOrder
+  format?: Prisma.SortOrder
   url?: Prisma.SortOrder
+  bytes?: Prisma.SortOrder
   sha256?: Prisma.SortOrder
   signature?: Prisma.SortOrderInput | Prisma.SortOrder
   notes?: Prisma.SortOrder
@@ -229,34 +281,40 @@ export type AppReleaseOrderByWithRelationInput = {
 }
 
 export type AppReleaseWhereUniqueInput = Prisma.AtLeast<{
-  version_os?: Prisma.AppReleaseVersionOsCompoundUniqueInput
+  version_os_arch?: Prisma.AppReleaseVersionOsArchCompoundUniqueInput
   AND?: Prisma.AppReleaseWhereInput | Prisma.AppReleaseWhereInput[]
   OR?: Prisma.AppReleaseWhereInput[]
   NOT?: Prisma.AppReleaseWhereInput | Prisma.AppReleaseWhereInput[]
   version?: Prisma.StringFilter<"AppRelease"> | string
   os?: Prisma.EnumDesktopOsFilter<"AppRelease"> | $Enums.DesktopOs
-  arch?: Prisma.StringNullableFilter<"AppRelease"> | string | null
+  arch?: Prisma.StringFilter<"AppRelease"> | string
+  format?: Prisma.StringFilter<"AppRelease"> | string
   url?: Prisma.StringFilter<"AppRelease"> | string
+  bytes?: Prisma.IntFilter<"AppRelease"> | number
   sha256?: Prisma.StringFilter<"AppRelease"> | string
   signature?: Prisma.StringNullableFilter<"AppRelease"> | string | null
   notes?: Prisma.StringFilter<"AppRelease"> | string
   channel?: Prisma.EnumReleaseChannelFilter<"AppRelease"> | $Enums.ReleaseChannel
   publishedAt?: Prisma.DateTimeFilter<"AppRelease"> | Date | string
-}, "version_os">
+}, "version_os_arch">
 
 export type AppReleaseOrderByWithAggregationInput = {
   version?: Prisma.SortOrder
   os?: Prisma.SortOrder
-  arch?: Prisma.SortOrderInput | Prisma.SortOrder
+  arch?: Prisma.SortOrder
+  format?: Prisma.SortOrder
   url?: Prisma.SortOrder
+  bytes?: Prisma.SortOrder
   sha256?: Prisma.SortOrder
   signature?: Prisma.SortOrderInput | Prisma.SortOrder
   notes?: Prisma.SortOrder
   channel?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
   _count?: Prisma.AppReleaseCountOrderByAggregateInput
+  _avg?: Prisma.AppReleaseAvgOrderByAggregateInput
   _max?: Prisma.AppReleaseMaxOrderByAggregateInput
   _min?: Prisma.AppReleaseMinOrderByAggregateInput
+  _sum?: Prisma.AppReleaseSumOrderByAggregateInput
 }
 
 export type AppReleaseScalarWhereWithAggregatesInput = {
@@ -265,8 +323,10 @@ export type AppReleaseScalarWhereWithAggregatesInput = {
   NOT?: Prisma.AppReleaseScalarWhereWithAggregatesInput | Prisma.AppReleaseScalarWhereWithAggregatesInput[]
   version?: Prisma.StringWithAggregatesFilter<"AppRelease"> | string
   os?: Prisma.EnumDesktopOsWithAggregatesFilter<"AppRelease"> | $Enums.DesktopOs
-  arch?: Prisma.StringNullableWithAggregatesFilter<"AppRelease"> | string | null
+  arch?: Prisma.StringWithAggregatesFilter<"AppRelease"> | string
+  format?: Prisma.StringWithAggregatesFilter<"AppRelease"> | string
   url?: Prisma.StringWithAggregatesFilter<"AppRelease"> | string
+  bytes?: Prisma.IntWithAggregatesFilter<"AppRelease"> | number
   sha256?: Prisma.StringWithAggregatesFilter<"AppRelease"> | string
   signature?: Prisma.StringNullableWithAggregatesFilter<"AppRelease"> | string | null
   notes?: Prisma.StringWithAggregatesFilter<"AppRelease"> | string
@@ -277,8 +337,10 @@ export type AppReleaseScalarWhereWithAggregatesInput = {
 export type AppReleaseCreateInput = {
   version: string
   os: $Enums.DesktopOs
-  arch?: string | null
+  arch: string
+  format: string
   url: string
+  bytes: number
   sha256: string
   signature?: string | null
   notes: string
@@ -289,8 +351,10 @@ export type AppReleaseCreateInput = {
 export type AppReleaseUncheckedCreateInput = {
   version: string
   os: $Enums.DesktopOs
-  arch?: string | null
+  arch: string
+  format: string
   url: string
+  bytes: number
   sha256: string
   signature?: string | null
   notes: string
@@ -301,8 +365,10 @@ export type AppReleaseUncheckedCreateInput = {
 export type AppReleaseUpdateInput = {
   version?: Prisma.StringFieldUpdateOperationsInput | string
   os?: Prisma.EnumDesktopOsFieldUpdateOperationsInput | $Enums.DesktopOs
-  arch?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  arch?: Prisma.StringFieldUpdateOperationsInput | string
+  format?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
+  bytes?: Prisma.IntFieldUpdateOperationsInput | number
   sha256?: Prisma.StringFieldUpdateOperationsInput | string
   signature?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.StringFieldUpdateOperationsInput | string
@@ -313,8 +379,10 @@ export type AppReleaseUpdateInput = {
 export type AppReleaseUncheckedUpdateInput = {
   version?: Prisma.StringFieldUpdateOperationsInput | string
   os?: Prisma.EnumDesktopOsFieldUpdateOperationsInput | $Enums.DesktopOs
-  arch?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  arch?: Prisma.StringFieldUpdateOperationsInput | string
+  format?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
+  bytes?: Prisma.IntFieldUpdateOperationsInput | number
   sha256?: Prisma.StringFieldUpdateOperationsInput | string
   signature?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.StringFieldUpdateOperationsInput | string
@@ -325,8 +393,10 @@ export type AppReleaseUncheckedUpdateInput = {
 export type AppReleaseCreateManyInput = {
   version: string
   os: $Enums.DesktopOs
-  arch?: string | null
+  arch: string
+  format: string
   url: string
+  bytes: number
   sha256: string
   signature?: string | null
   notes: string
@@ -337,8 +407,10 @@ export type AppReleaseCreateManyInput = {
 export type AppReleaseUpdateManyMutationInput = {
   version?: Prisma.StringFieldUpdateOperationsInput | string
   os?: Prisma.EnumDesktopOsFieldUpdateOperationsInput | $Enums.DesktopOs
-  arch?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  arch?: Prisma.StringFieldUpdateOperationsInput | string
+  format?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
+  bytes?: Prisma.IntFieldUpdateOperationsInput | number
   sha256?: Prisma.StringFieldUpdateOperationsInput | string
   signature?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.StringFieldUpdateOperationsInput | string
@@ -349,8 +421,10 @@ export type AppReleaseUpdateManyMutationInput = {
 export type AppReleaseUncheckedUpdateManyInput = {
   version?: Prisma.StringFieldUpdateOperationsInput | string
   os?: Prisma.EnumDesktopOsFieldUpdateOperationsInput | $Enums.DesktopOs
-  arch?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  arch?: Prisma.StringFieldUpdateOperationsInput | string
+  format?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
+  bytes?: Prisma.IntFieldUpdateOperationsInput | number
   sha256?: Prisma.StringFieldUpdateOperationsInput | string
   signature?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.StringFieldUpdateOperationsInput | string
@@ -358,16 +432,19 @@ export type AppReleaseUncheckedUpdateManyInput = {
   publishedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
-export type AppReleaseVersionOsCompoundUniqueInput = {
+export type AppReleaseVersionOsArchCompoundUniqueInput = {
   version: string
   os: $Enums.DesktopOs
+  arch: string
 }
 
 export type AppReleaseCountOrderByAggregateInput = {
   version?: Prisma.SortOrder
   os?: Prisma.SortOrder
   arch?: Prisma.SortOrder
+  format?: Prisma.SortOrder
   url?: Prisma.SortOrder
+  bytes?: Prisma.SortOrder
   sha256?: Prisma.SortOrder
   signature?: Prisma.SortOrder
   notes?: Prisma.SortOrder
@@ -375,11 +452,17 @@ export type AppReleaseCountOrderByAggregateInput = {
   publishedAt?: Prisma.SortOrder
 }
 
+export type AppReleaseAvgOrderByAggregateInput = {
+  bytes?: Prisma.SortOrder
+}
+
 export type AppReleaseMaxOrderByAggregateInput = {
   version?: Prisma.SortOrder
   os?: Prisma.SortOrder
   arch?: Prisma.SortOrder
+  format?: Prisma.SortOrder
   url?: Prisma.SortOrder
+  bytes?: Prisma.SortOrder
   sha256?: Prisma.SortOrder
   signature?: Prisma.SortOrder
   notes?: Prisma.SortOrder
@@ -391,12 +474,18 @@ export type AppReleaseMinOrderByAggregateInput = {
   version?: Prisma.SortOrder
   os?: Prisma.SortOrder
   arch?: Prisma.SortOrder
+  format?: Prisma.SortOrder
   url?: Prisma.SortOrder
+  bytes?: Prisma.SortOrder
   sha256?: Prisma.SortOrder
   signature?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   channel?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
+}
+
+export type AppReleaseSumOrderByAggregateInput = {
+  bytes?: Prisma.SortOrder
 }
 
 export type EnumDesktopOsFieldUpdateOperationsInput = {
@@ -409,7 +498,9 @@ export type AppReleaseSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   version?: boolean
   os?: boolean
   arch?: boolean
+  format?: boolean
   url?: boolean
+  bytes?: boolean
   sha256?: boolean
   signature?: boolean
   notes?: boolean
@@ -421,7 +512,9 @@ export type AppReleaseSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   version?: boolean
   os?: boolean
   arch?: boolean
+  format?: boolean
   url?: boolean
+  bytes?: boolean
   sha256?: boolean
   signature?: boolean
   notes?: boolean
@@ -433,7 +526,9 @@ export type AppReleaseSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   version?: boolean
   os?: boolean
   arch?: boolean
+  format?: boolean
   url?: boolean
+  bytes?: boolean
   sha256?: boolean
   signature?: boolean
   notes?: boolean
@@ -445,7 +540,9 @@ export type AppReleaseSelectScalar = {
   version?: boolean
   os?: boolean
   arch?: boolean
+  format?: boolean
   url?: boolean
+  bytes?: boolean
   sha256?: boolean
   signature?: boolean
   notes?: boolean
@@ -453,7 +550,7 @@ export type AppReleaseSelectScalar = {
   publishedAt?: boolean
 }
 
-export type AppReleaseOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"version" | "os" | "arch" | "url" | "sha256" | "signature" | "notes" | "channel" | "publishedAt", ExtArgs["result"]["appRelease"]>
+export type AppReleaseOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"version" | "os" | "arch" | "format" | "url" | "bytes" | "sha256" | "signature" | "notes" | "channel" | "publishedAt", ExtArgs["result"]["appRelease"]>
 
 export type $AppReleasePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "AppRelease"
@@ -461,8 +558,10 @@ export type $AppReleasePayload<ExtArgs extends runtime.Types.Extensions.Internal
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     version: string
     os: $Enums.DesktopOs
-    arch: string | null
+    arch: string
+    format: string
     url: string
+    bytes: number
     sha256: string
     signature: string | null
     notes: string
@@ -894,7 +993,9 @@ export interface AppReleaseFieldRefs {
   readonly version: Prisma.FieldRef<"AppRelease", 'String'>
   readonly os: Prisma.FieldRef<"AppRelease", 'DesktopOs'>
   readonly arch: Prisma.FieldRef<"AppRelease", 'String'>
+  readonly format: Prisma.FieldRef<"AppRelease", 'String'>
   readonly url: Prisma.FieldRef<"AppRelease", 'String'>
+  readonly bytes: Prisma.FieldRef<"AppRelease", 'Int'>
   readonly sha256: Prisma.FieldRef<"AppRelease", 'String'>
   readonly signature: Prisma.FieldRef<"AppRelease", 'String'>
   readonly notes: Prisma.FieldRef<"AppRelease", 'String'>

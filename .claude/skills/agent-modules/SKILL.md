@@ -1,6 +1,6 @@
 ---
 name: agent-modules
-description: "Écrire un module Go de `pupitred` dans `apps/agent/internal/modules/<catégorie>/<nom>` — `manifest.go`, `module.go`, `module_test.go`, interface `Module`, étapes idempotentes courtes et nommées, helpers `internal/sys`, événements `step`, comptabilité `failed`/`warned` et commande de rejeu, lecture de la spécification dans `server/bootstrap.sh`, test unitaire et test de staging. À utiliser pour toute tâche `AGT` qui ajoute ou modifie un module du catalogue."
+description: "Écrire un module Go de `pupitred` dans `apps/agent/internal/modules/<catégorie>/<nom>` — `manifest.go`, `module.go`, `module_test.go`, interface `Module`, étapes idempotentes courtes et nommées, helpers `internal/sys`, événements `step`, comptabilité `failed`/`warned` et commande de rejeu, lecture de la spécification dans `server/bootstrap.sh`, test unitaire et test de staging. À utiliser dès qu'on ajoute ou modifie un module du catalogue."
 ---
 
 # Modules de l'agent
@@ -14,7 +14,7 @@ Un service du catalogue est un **module** : une unité Go qui sait se vérifier,
 | `apps/agent/internal/modules/<catégorie>/<nom>/manifest.go` | le manifeste, conforme à `docs/contracts/service-catalog.md` |
 | `apps/agent/internal/modules/<catégorie>/<nom>/module.go` | l'implémentation de `Module` |
 | `apps/agent/internal/modules/<catégorie>/<nom>/module_test.go` | le test unitaire sur un système factice |
-| `apps/agent/internal/modules/` | l'interface `Module`, le `Context`, le registre, le moteur, le journal (AGT-03) |
+| `apps/agent/internal/modules/` | l'interface `Module`, le `Context`, le registre, le moteur, le journal |
 | `apps/agent/internal/modules/modtest/` | `FakeSys`, `NewContext`, les modules de démonstration `Passing` et `Failing` |
 | `apps/agent/internal/sys/{apt,systemd,file,user,env}/` | les helpers système, tous sur `sys.Context` |
 | `apps/agent/internal/contract/schema.json` | le JSON Schema exporté de `packages/shared` ; les types Go en dérivent |
@@ -26,7 +26,9 @@ Un service du catalogue est un **module** : une unité Go qui sait se vérifier,
 
 ## État du dépôt
 
-Au 2026-09-04, AGT-03 est fusionnée : `apps/agent/internal/modules` contient l'interface `Module`, le `Context`, le registre, le moteur (`Install`, `Upgrade`, `Uninstall`, `Report`, `Catalog`) et le journal ; `internal/sys` contient les cinq helpers ; `modtest` contient le système factice. Les signatures ci-dessous sont celles du code livré, `modtest/passing.go` en est la référence exécutable. Aucun module du catalogue n'existe encore. `apps/agent/test/staging/` et `staging:reset` n'existent pas : la section « Test de staging » décrit la cible, la tâche qui livre le premier module livre aussi le harnais.
+Le catalogue est complet : les vingt-six modules de `docs/contracts/service-catalog.md` existent sous `internal/modules/`, `internal/sys` porte les cinq helpers, `modtest` le système factice, et `test/staging/` le harnais d'intégration avec `bun --cwd=apps/agent run staging:reset`. Un module nouveau s'ajoute désormais à côté des autres : on lit le voisin le plus proche avant d'écrire — un runtime par mise ressemble à `runtime/python`, une base à `db/postgres`, un outil qui parle à une API à `tool/neon`.
+
+Ce que le client choisit fait partie du module : la **version** quand plusieurs sont posables, le **port** quand un service écoute, les **noms des comptes** que le module crée. Chaque champ porte le `default` qui reproduit le comportement d'avant, et un nom qui traverse une requête SQL ou un fichier de configuration est tenu à un motif d'identifiant, avec retour au défaut plutôt qu'une valeur non reconnue.
 
 ## Interdictions
 
@@ -145,7 +147,7 @@ Tous prennent `ctx` en premier argument : un `sys.Context` (`Sys()`, `Logf`, `On
 
 | Phase bash | Lignes | Module cible |
 | --- | --- | --- |
-| Préflight (`preflight`) | 337–500 | la sonde, AGT-02 |
+| Préflight (`preflight`) | 337–500 | la sonde |
 | `system` | 505–604 | `core.system` : dpkg réparé, apt, paquets de base, fuseau, swap, garde-fou mémoire, `sysctl` pour les watchers |
 | `user` | 608–663 | `core.system` : utilisateur `dev`, sudo sans mot de passe, zsh, `authorized_keys` |
 | `runtimes` | 668–760 | `runtime.node`, `runtime.java`, `runtime.python` via mise ; `.zshenv` lu par les shells non interactifs |
@@ -155,8 +157,8 @@ Tous prennent `ctx` en premier argument : un `sys.Context` (`Sys()`, `Logf`, `On
 | `gallery` | 1220–1308 | `ai.browser` : Chrome headless, `shot`, serveur de galerie |
 | `agents` | 1313–1368 | `ai.claude`, `ai.codex` : installation, contexte machine |
 | `skills` | 1378–1445 | `ai.*` : skills Pupitre dans `~/.agents/skills`, liens pour Claude Code |
-| `projects` | 1450–1535 | registre et `project.env`, AGT-10 |
-| `tooling` | 1540–1637 | `core.system` : `.zshrc` de `dev`, marqueurs OSC 133 (`server/bin/pupitre.zsh`), commande `dev` → `pupitred dev`, AGT-12 |
+| `projects` | 1450–1535 | registre et `project.env` |
+| `tooling` | 1540–1637 | `core.system` : `.zshrc` de `dev`, marqueurs OSC 133 (`server/bin/pupitre.zsh`), commande `dev` → `pupitred dev` |
 | `harden` | 1642–1686 | `core.hardening` : ufw, fail2ban, root fermé **seulement si** `authorized_keys` de `dev` est non vide, `sshd -t` avant `reload` |
 | Rapport (`report`) | 1691–1750 | le rapport JSON du moteur : `failed[]` avec rejeu, `warned[]`, adresses |
 
@@ -164,7 +166,7 @@ Ce qu'on garde de la spec : l'ordre des étapes, les options apt, les fichiers �
 
 ## Exemple complet : `db.redis`
 
-Catalogue : `db.redis`, « local seulement, mot de passe, persistance », champ `password`, après le MVP. Le module installe `redis-server` d'Ubuntu, écrit une configuration incluse depuis `/etc/redis/redis.conf`, range le mot de passe dans `/etc/pupitre/env`, active l'unité.
+Le module livré vit dans `internal/modules/db/redis` et porte quatre champs. Ce qui suit en est une version réduite à un seul, pour montrer la forme sans la noyer : il installe `redis-server` d'Ubuntu, écrit une configuration incluse depuis `/etc/redis/redis.conf`, range le mot de passe dans `/etc/pupitre/env`, active l'unité.
 
 `internal/modules/db/redis/manifest.go` :
 
@@ -564,15 +566,15 @@ func TestRedisListensLocallyWithPassword(t *testing.T) {
 
 - `stagingHost(t)` lit `PUPITRE_STAGING_HOST` (`root@203.0.113.10`) et appelle `t.Skip` si elle est absente, pour que `go test ./...` reste vert sur un poste sans staging. La clé SSH est celle de l'agent SSH local.
 - Le tag de build `staging` sépare ces tests de l'unitaire : `go test -tags staging ./test/staging/...`.
-- Avant une campagne : `bun --cwd=apps/agent run staging:reset` réinstalle le VPS depuis une image Ubuntu vierge et y pousse le binaire fraîchement construit. Ni le harnais, ni `staging:reset` n'existent au 2026-09-04 : la tâche qui livre le premier module les livre, et ce skill se met à jour avec les noms retenus.
+- Avant une campagne : `bun --cwd=apps/agent run staging:reset` réinstalle le VPS depuis une image Ubuntu vierge et y pousse le binaire fraîchement construit.
 - Les helpers `install`, `ssh`, `lastReport` vivent dans `test/staging/staging_test.go` et parlent au staging par le même protocole que l'app, ligne secrète comprise.
 
-## Avant de passer la tâche en « en revue »
+## Avant de rendre la main
 
 1. Le manifeste correspond ligne à ligne à `docs/contracts/service-catalog.md` : id, catégorie, champs, `requires`, `conflicts`, `provides`.
 2. Chaque étape a un nom, vérifie avant d'agir, et `install` rejoué sur le staging n'émet que des `skip`.
 3. Aucun `sh -c`, aucun script écrit sur le disque, aucun secret dans `ctx.Output()`, le rapport ou une erreur.
 4. `Uninstall` ne retire que ce que le module a installé.
-5. Trois tests unitaires sur `modtest`, un test de staging par critère d'acceptation.
+5. Trois tests unitaires sur `modtest`, un test de staging par comportement attendu.
 6. `bun --cwd=apps/agent run lint` (`gofmt`, `go vet`), `go test ./...` et `go test -tags staging ./test/staging/...` verts.
 7. Le module lit `server/bootstrap.sh` comme une spécification et n'en importe rien.

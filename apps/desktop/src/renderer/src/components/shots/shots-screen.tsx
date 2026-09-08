@@ -88,7 +88,7 @@ export function ShotsScreen({ serverId }: { serverId: string }) {
 
         {state.status === "read" ? (
           <section className="flex flex-col gap-3">
-            <p className="font-data text-[11px] text-ink-3">
+            <p className="font-data text-[12px] text-ink-3">
               {shots.length === 0
                 ? t("shots.none")
                 : `${t.plural("shots.capture", shots.length)} · ${weight(total)}`}

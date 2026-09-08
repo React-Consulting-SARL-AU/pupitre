@@ -1,4 +1,4 @@
-import { MODULE_IDS, MVP_MODULE_IDS } from "@pupitre/shared/catalog"
+import { MODULE_IDS } from "@pupitre/shared/catalog"
 import { describe, expect, it } from "vitest"
 import DocsIndex from "../components/DocsIndex.astro"
 import ServiceDoc from "../components/ServiceDoc.astro"
@@ -39,8 +39,8 @@ describe("services index", () => {
 })
 
 describe("a module page", () => {
-  it("states what every MVP module installs and asks for", async () => {
-    for (const id of MVP_MODULE_IDS) {
+  it("states what every module installs and asks for", async () => {
+    for (const id of MODULE_IDS) {
       const html = await render(ServiceDoc, {
         props: { moduleId: id },
         path: `/docs/${moduleSlug(id)}/`,

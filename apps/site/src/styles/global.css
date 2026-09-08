@@ -12,6 +12,7 @@
 :root {
   --font-ui-size: 15px;
   --shell-max: 76rem;
+  --motion-rise: 620ms cubic-bezier(0.2, 0.7, 0.25, 1);
   --shell-gutter: clamp(1.25rem, 0.5rem + 3vw, 3rem);
   --prose-max: 68ch;
 }
@@ -26,6 +27,7 @@
     background: var(--base);
     scroll-behavior: smooth;
     scroll-padding-top: 6rem;
+    interpolate-size: allow-keywords;
   }
 
   h1,
@@ -49,7 +51,9 @@
       background-color var(--motion-fast),
       color var(--motion-fast),
       border-color var(--motion-fast),
+      text-decoration-color var(--motion-fast),
       box-shadow var(--motion-soft),
+      transform var(--motion-soft),
       opacity var(--motion-fast);
   }
 
@@ -80,6 +84,143 @@
       transition: none !important;
       animation: none !important;
     }
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes drift {
+  50% {
+    transform: translateY(calc(-1 * var(--drift-lift)));
+  }
+}
+
+@keyframes nav-settle {
+  from {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+}
+
+/**
+ * Scroll-driven, so nothing runs on a timer and nothing needs a script. The
+ * hidden start sits inside both guards: a browser without view timelines, or a
+ * reader who asked for less motion, is never served a blank page.
+ */
+@utility reveal {
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      opacity: 0;
+      animation: rise linear both;
+      animation-timeline: view();
+      animation-range: entry 4% cover 26%;
+    }
+  }
+}
+
+/** The same, offset by column so a row of cards arrives one after the other. */
+@utility reveal-group {
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      & > * {
+        opacity: 0;
+        animation: rise linear both;
+        animation-timeline: view();
+        animation-range: entry 4% cover 26%;
+      }
+
+      & > *:nth-child(3n + 2) {
+        animation-range: entry 9% cover 31%;
+      }
+
+      & > *:nth-child(3n + 3) {
+        animation-range: entry 14% cover 36%;
+      }
+    }
+  }
+}
+
+@utility reveal-wall {
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      & > * {
+        opacity: 0;
+        animation: rise linear both;
+        animation-timeline: view();
+        animation-range: entry 4% cover 24%;
+      }
+
+      & > *:nth-child(5n + 2) {
+        animation-range: entry 8% cover 28%;
+      }
+
+      & > *:nth-child(5n + 3) {
+        animation-range: entry 12% cover 32%;
+      }
+
+      & > *:nth-child(5n + 4) {
+        animation-range: entry 16% cover 36%;
+      }
+
+      & > *:nth-child(5n + 5) {
+        animation-range: entry 20% cover 40%;
+      }
+    }
+  }
+}
+
+/** Above the fold there is nothing to scroll into, so this one runs on load. */
+@utility enter-group {
+  @media (prefers-reduced-motion: no-preference) {
+    & > * {
+      opacity: 0;
+      animation: rise var(--motion-rise) both;
+    }
+
+    & > *:nth-child(2) {
+      animation-delay: 60ms;
+    }
+
+    & > *:nth-child(3) {
+      animation-delay: 120ms;
+    }
+
+    & > *:nth-child(4) {
+      animation-delay: 180ms;
+    }
+
+    & > *:nth-child(n + 5) {
+      animation-delay: 240ms;
+    }
+  }
+}
+
+@utility disclosure {
+  &::details-content {
+    block-size: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition:
+      block-size var(--motion-soft),
+      content-visibility var(--motion-soft),
+      opacity var(--motion-soft);
+    transition-behavior: allow-discrete;
+  }
+
+  &[open]::details-content {
+    block-size: auto;
+    opacity: 1;
   }
 }
 
@@ -210,6 +351,14 @@
   border-radius: var(--radius-full);
   box-shadow: var(--shadow-overlay);
   backdrop-filter: blur(20px) saturate(1.4);
+
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+      animation: nav-settle linear both;
+      animation-timeline: scroll();
+      animation-range: 0 5rem;
+    }
+  }
 }
 
 @utility nav-link {
@@ -259,6 +408,7 @@
   &:hover {
     background: var(--raised);
     border-color: var(--line-strong);
+    transform: translateY(-2px);
   }
 }
 
@@ -274,10 +424,79 @@
   background: var(--base);
   border: 1px solid var(--line);
   border-radius: var(--radius-xl);
+  transition:
+    border-color var(--motion-fast),
+    box-shadow var(--motion-soft),
+    transform var(--motion-soft);
+
+  & svg {
+    transition: transform var(--motion-soft);
+  }
 
   & > svg {
     width: 2rem;
     height: 2rem;
+  }
+
+  &:hover {
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-raised);
+    transform: translateY(-2px);
+  }
+
+  &:hover svg {
+    transform: scale(1.08);
+  }
+}
+
+/**
+ * A service logo set in the margin beside the hero and the closing call to
+ * action. The slot places it and brings it in; the tile inside carries the
+ * endless float, so the two motions never fight over one transform.
+ */
+@utility drift-slot {
+  --drift-keep: 1.5rem;
+
+  position: absolute;
+  top: var(--drift-top);
+
+  &[data-side="start"] {
+    inset-inline-start: max(var(--drift-keep), 50% - var(--drift-out));
+  }
+
+  &[data-side="end"] {
+    inset-inline-end: max(var(--drift-keep), 50% - var(--drift-out));
+  }
+}
+
+@utility drift-enter {
+  @media (prefers-reduced-motion: no-preference) {
+    opacity: 0;
+    animation: rise var(--motion-rise) var(--drift-delay) both;
+  }
+}
+
+@utility drift-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-raised);
+
+  &[data-size="sm"] {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+
+  &[data-size="lg"] {
+    width: 4.75rem;
+    height: 4.75rem;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: drift var(--drift-seconds) ease-in-out infinite;
   }
 }
 
@@ -306,6 +525,21 @@
   border-radius: var(--radius-full);
 }
 
+/** The lid of a school desk: it lifts a little when you reach for it. */
+@utility desk-lid {
+  transform-origin: top center;
+  transition:
+    border-color var(--motion-fast),
+    box-shadow var(--motion-soft),
+    transform var(--motion-soft);
+
+  &:hover {
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-overlay);
+    transform: perspective(60rem) rotateX(-2deg) translateY(-2px);
+  }
+}
+
 @utility card {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -328,6 +562,7 @@
   &:hover {
     border-color: var(--line-strong);
     box-shadow: var(--shadow-overlay);
+    transform: translateY(-2px);
   }
 }
 
@@ -345,6 +580,28 @@
   background: var(--base);
   border: 1px solid var(--line);
   border-radius: var(--radius-full);
+}
+
+@utility faq-marker {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--ink-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  transition:
+    color var(--motion-fast),
+    border-color var(--motion-fast),
+    transform var(--motion-soft);
+
+  [open] > summary > & {
+    color: var(--ink);
+    border-color: var(--ink-3);
+    transform: rotate(45deg);
+  }
 }
 
 @utility mark-dot {
@@ -383,6 +640,10 @@
   white-space: nowrap;
   border: 1px solid transparent;
   border-radius: var(--radius-full);
+
+  &:active {
+    transform: translateY(1px);
+  }
 }
 
 @utility btn-lg {
@@ -400,6 +661,12 @@
   &:hover {
     background: var(--ink-2);
     border-color: var(--ink-2);
+    box-shadow: var(--shadow-overlay);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(1px);
   }
 }
 
@@ -411,6 +678,11 @@
   &:hover {
     background: var(--surface);
     border-color: var(--ink-3);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(1px);
   }
 }
 

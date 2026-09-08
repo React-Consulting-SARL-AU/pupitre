@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite dev --port 3000",
+    "dev": "MINIFLARE_V8_FLAGS=--max-old-space-size=4096 NODE_OPTIONS=--max-old-space-size=6144 vite dev --port 3000",
+    "dev:tunnel": "bun ../../scripts/dev-tunnel.ts",
     "dev:stripe": "stripe listen --events checkout.session.completed,customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,invoice.payment_failed --forward-to http://localhost:3000/api/v1/webhooks/stripe",
     "build": "vite build",
     "build:cloudflare": "bun --cwd=../../packages/db run db:generate && bun run build",

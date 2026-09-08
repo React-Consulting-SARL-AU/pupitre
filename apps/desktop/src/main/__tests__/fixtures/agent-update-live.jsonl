@@ -1,5 +1,5 @@
 # Un serveur dont la plateforme répond : c'est elle qui sert l'empreinte et la signature.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","protocol":1}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
 < {"id":1,"ok":true,"result":{"agent_version":"0.3.0","protocol":1,"entitlement":"valid","capabilities":["hello","ping","snapshot","status","diag","agent.upgrade"]}}
 @repeat
 > {"id":2,"cmd":"snapshot"}

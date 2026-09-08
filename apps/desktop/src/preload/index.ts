@@ -2,6 +2,7 @@ import type { CommandName } from "@pupitre/shared/agent-protocol";
 import type { Event } from "@pupitre/shared/agent-protocol/envelope";
 import type {
   CatalogResult,
+  InstallCheckResult,
   InstallReport,
   InstallResult,
   ModuleConfig,
@@ -22,13 +23,17 @@ import type {
   ProjectUrlResult,
   ProjectWorkingTreeResult,
 } from "@pupitre/shared/agent-protocol/projects";
-import type { SecretsStatusResult } from "@pupitre/shared/agent-protocol/secrets";
+import type {
+  SecretsStatusResult,
+  TunnelRoute,
+} from "@pupitre/shared/agent-protocol/secrets";
 import type { HelloResult } from "@pupitre/shared/agent-protocol/session";
 import type { CompletionsResult } from "@pupitre/shared/agent-protocol/state";
 import type {
   AgentUpgradeResult,
   DoneResult,
   EnrollResult,
+  PlatformSyncResult,
 } from "@pupitre/shared/agent-protocol/system";
 import type {
   AccountResponse,
@@ -38,15 +43,23 @@ import type {
 import type { AgentResponse } from "@shared/agent";
 import type { AgentUpdateState } from "@shared/agent-update";
 import type { Appearance } from "@shared/appearance";
+import type { CloudflareZone, ConnectionsState } from "@shared/cloudflare";
 import type { RemoteEditorId } from "@shared/editors";
 import type { HardenOutcome, HardenUpdate } from "@shared/harden";
-import type { AgentDelivery, InstallUpdate } from "@shared/install";
+import type {
+  AgentDelivery,
+  AgentSendPhase,
+  InstallUpdate,
+} from "@shared/install";
 import type { SecretMarks } from "@shared/secrets";
 import type {
   FleetView,
   HostKeyDecision,
+  KeyInstall,
+  KeyInstallPhase,
   ServerAdded,
   ServerDraft,
+  ServerReach,
   ServersConfig,
 } from "@shared/servers";
 import type { PortForward, ServiceDetail } from "@shared/services";
@@ -57,6 +70,7 @@ import type {
   TerminalOpened,
   ViewBounds,
 } from "@shared/terminals";
+import type { TraceEntry } from "@shared/trace";
 import { contextBridge, ipcRenderer } from "electron";
 
 /**
@@ -68,24 +82,32 @@ import { contextBridge, ipcRenderer } from "electron";
 
 export type ProjectAction = "project.up" | "project.down" | "project.restart";
 
-/** One update command, its events routed to the caller that started it. */
-function streamedUpdate<T>(
-  channel: string,
-  onEvent: (event: Event) => void,
+/**
+ * One long command, its events routed to the caller that started it.
+ *
+ * Every caller of a channel hears the same event channel, so the call carries a
+ * token the main process sends back with each payload: without it, two installs
+ * side by side would each draw the other's progress. The listener leaves when
+ * the call settles, whichever way it settles.
+ */
+function streamed<Result, Payload>(
+  call: string,
+  events: string,
+  onPayload: (payload: Payload) => void,
   ...args: unknown[]
-): Promise<AgentResponse<T>> {
+): Promise<Result> {
   const token = crypto.randomUUID();
-  const listener = (_e: unknown, payload: { token: string; event: Event }) => {
+  const listener = (_e: unknown, payload: Payload & { token: string }) => {
     if (payload.token === token) {
-      onEvent(payload.event);
+      onPayload(payload);
     }
   };
 
-  ipcRenderer.on("agent-update:event", listener);
+  ipcRenderer.on(events, listener);
 
   return ipcRenderer
-    .invoke(channel, token, ...args)
-    .finally(() => ipcRenderer.removeListener("agent-update:event", listener));
+    .invoke(call, token, ...args)
+    .finally(() => ipcRenderer.removeListener(events, listener));
 }
 
 const api = {
@@ -97,6 +119,11 @@ const api = {
    * in, which device this computer is, and whether Pupitre may work.
    */
   account: (): Promise<AccountState> => ipcRenderer.invoke("account:state"),
+  /** The app's language: the agent gets it on the next hello. */
+  setLocale: (locale: string): void => ipcRenderer.send("locale:set", locale),
+  /** Switches this device's active organization. The console alongside it keeps its own. */
+  switchOrganization: (organizationId: string): Promise<AccountState> =>
+    ipcRenderer.invoke("account:organization", organizationId),
   refreshAccount: (): Promise<AccountState> =>
     ipcRenderer.invoke("account:refresh"),
   signOut: (): Promise<AccountState> => ipcRenderer.invoke("account:sign-out"),
@@ -107,25 +134,12 @@ const api = {
    */
   signIn: (
     onProgress: (progress: SignInProgress) => void
-  ): Promise<AccountResponse<AccountState>> => {
-    const token = crypto.randomUUID();
-    const listener = (
-      _e: unknown,
-      payload: { token: string; progress: SignInProgress }
-    ) => {
-      if (payload.token === token) {
-        onProgress(payload.progress);
-      }
-    };
-
-    ipcRenderer.on("account:sign-in-progress", listener);
-
-    return ipcRenderer
-      .invoke("account:sign-in", token)
-      .finally(() =>
-        ipcRenderer.removeListener("account:sign-in-progress", listener)
-      );
-  },
+  ): Promise<AccountResponse<AccountState>> =>
+    streamed<AccountResponse<AccountState>, { progress: SignInProgress }>(
+      "account:sign-in",
+      "account:sign-in-progress",
+      (payload) => onProgress(payload.progress)
+    ),
 
   /**
    * The agent protocol, as it stands: a command of `COMMANDS`, its parameters,
@@ -145,23 +159,15 @@ const api = {
     cmd: CommandName,
     params: unknown,
     onEvent: (event: Event) => void
-  ): Promise<AgentResponse<unknown>> => {
-    const token = crypto.randomUUID();
-    const listener = (
-      _e: unknown,
-      payload: { token: string; event: Event }
-    ) => {
-      if (payload.token === token) {
-        onEvent(payload.event);
-      }
-    };
-
-    ipcRenderer.on("agent:event", listener);
-
-    return ipcRenderer
-      .invoke("agent:stream", token, serverId, cmd, params)
-      .finally(() => ipcRenderer.removeListener("agent:event", listener));
-  },
+  ): Promise<AgentResponse<unknown>> =>
+    streamed<AgentResponse<unknown>, { event: Event }>(
+      "agent:stream",
+      "agent:event",
+      (payload) => onEvent(payload.event),
+      serverId,
+      cmd,
+      params
+    ),
 
   /**
    * The probe of a server, whether or not it already runs the agent. Nothing is
@@ -217,23 +223,15 @@ const api = {
     modules: readonly string[],
     config: ModuleConfig,
     onUpdate: (update: InstallUpdate) => void
-  ): Promise<AgentResponse<InstallResult>> => {
-    const token = crypto.randomUUID();
-    const listener = (
-      _e: unknown,
-      payload: { token: string; update: InstallUpdate }
-    ) => {
-      if (payload.token === token) {
-        onUpdate(payload.update);
-      }
-    };
-
-    ipcRenderer.on("install:update", listener);
-
-    return ipcRenderer
-      .invoke("install:start", token, serverId, modules, config)
-      .finally(() => ipcRenderer.removeListener("install:update", listener));
-  },
+  ): Promise<AgentResponse<InstallResult>> =>
+    streamed<AgentResponse<InstallResult>, { update: InstallUpdate }>(
+      "install:start",
+      "install:update",
+      (payload) => onUpdate(payload.update),
+      serverId,
+      modules,
+      config
+    ),
 
   /**
    * The agent's binary, on its way to a machine that has none.
@@ -241,8 +239,16 @@ const api = {
    * It goes before the catalogue rather than with the install: a bare server
    * has nothing to answer `catalog` with until `pupitred` sits on it.
    */
-  sendAgent: (serverId: string): Promise<AgentResponse<AgentDelivery>> =>
-    ipcRenderer.invoke("install:agent-send", serverId),
+  sendAgent: (
+    serverId: string,
+    onPhase: (phase: AgentSendPhase) => void
+  ): Promise<AgentResponse<AgentDelivery>> =>
+    streamed<AgentResponse<AgentDelivery>, { phase: AgentSendPhase }>(
+      "install:agent-send",
+      "install:agent-phase",
+      (payload) => onPhase(payload.phase),
+      serverId
+    ),
 
   /**
    * The hardening, and the switch that follows it.
@@ -254,23 +260,13 @@ const api = {
   harden: (
     serverId: string,
     onUpdate: (update: HardenUpdate) => void
-  ): Promise<AgentResponse<HardenOutcome>> => {
-    const token = crypto.randomUUID();
-    const listener = (
-      _e: unknown,
-      payload: { token: string; update: HardenUpdate }
-    ) => {
-      if (payload.token === token) {
-        onUpdate(payload.update);
-      }
-    };
-
-    ipcRenderer.on("harden:update", listener);
-
-    return ipcRenderer
-      .invoke("harden:start", token, serverId)
-      .finally(() => ipcRenderer.removeListener("harden:update", listener));
-  },
+  ): Promise<AgentResponse<HardenOutcome>> =>
+    streamed<AgentResponse<HardenOutcome>, { update: HardenUpdate }>(
+      "harden:start",
+      "harden:update",
+      (payload) => onUpdate(payload.update),
+      serverId
+    ),
 
   /**
    * The projects of a server, and what drives them.
@@ -281,6 +277,71 @@ const api = {
    */
   listProjects: (serverId: string): Promise<AgentResponse<ProjectListResult>> =>
     ipcRenderer.invoke("project:list", serverId),
+  /**
+   * The third-party accounts the app holds, once for every server.
+   *
+   * The token crosses the bridge once, on connection, and goes straight to the
+   * system keychain: nothing gives it back, and it never comes down here again.
+   * What the window learns is the name of the account it opened.
+   */
+  connectionsState: (): Promise<ConnectionsState> =>
+    ipcRenderer.invoke("connections:state"),
+  connectAccount: (token: string): Promise<AgentResponse<ConnectionsState>> =>
+    ipcRenderer.invoke("connections:connect", token),
+  forgetAccount: (): Promise<ConnectionsState> =>
+    ipcRenderer.invoke("connections:forget"),
+  /** The zones the connected account carries, read fresh rather than remembered. */
+  connectionZones: (): Promise<AgentResponse<CloudflareZone[]>> =>
+    ipcRenderer.invoke("connections:zones"),
+  /**
+   * The configuration weighed on the server before it is installed.
+   *
+   * No secret goes with it and nothing is touched: what comes back is what the
+   * server would refuse, field by field, including what only it can know.
+   */
+  checkInstall: (
+    serverId: string,
+    modules: readonly string[],
+    config: ModuleConfig
+  ): Promise<AgentResponse<InstallCheckResult>> =>
+    ipcRenderer.invoke("install:check", serverId, modules, config),
+  /**
+   * The link to a server, as it drops and comes back.
+   *
+   * It belongs to no call in particular: the command in flight learns of it
+   * through its own refusal, and the screens learn of it here.
+   */
+  onChannel: (
+    callback: (change: { serverId: string; state: "open" | "lost" }) => void
+  ): (() => void) => {
+    const listener = (
+      _event: unknown,
+      change: { serverId: string; state: "open" | "lost" }
+    ) => callback(change);
+
+    ipcRenderer.on("agent:channel", listener);
+
+    return () => {
+      ipcRenderer.removeListener("agent:channel", listener);
+    };
+  },
+  /**
+   * The platform, told now rather than at the daemon's next turn.
+   *
+   * An installation or a hardening has just changed the machine: without this
+   * the console shows an empty server for the next five minutes. A failure is
+   * not the caller's business — the daemon beats again on its own.
+   */
+  syncPlatform: (
+    serverId: string
+  ): Promise<AgentResponse<PlatformSyncResult>> =>
+    ipcRenderer.invoke("platform:sync", serverId),
+  /** The records called for by the routes the agent just declared. */
+  syncTunnelRecords: (
+    serverId: string,
+    routes: readonly TunnelRoute[]
+  ): Promise<AgentResponse<number>> =>
+    ipcRenderer.invoke("tunnel:records", serverId, routes),
   addProject: (
     serverId: string,
     params: ProjectAddParams
@@ -374,23 +435,16 @@ const api = {
     lines: number,
     follow: boolean,
     onLine: (line: string) => void
-  ): Promise<AgentResponse<ProjectLogsResult>> => {
-    const token = crypto.randomUUID();
-    const listener = (
-      _e: unknown,
-      payload: { token: string; line: string }
-    ) => {
-      if (payload.token === token) {
-        onLine(payload.line);
-      }
-    };
-
-    ipcRenderer.on("project:log-line", listener);
-
-    return ipcRenderer
-      .invoke("project:logs", token, serverId, name, lines, follow)
-      .finally(() => ipcRenderer.removeListener("project:log-line", listener));
-  },
+  ): Promise<AgentResponse<ProjectLogsResult>> =>
+    streamed<AgentResponse<ProjectLogsResult>, { line: string }>(
+      "project:logs",
+      "project:log-line",
+      (payload) => onLine(payload.line),
+      serverId,
+      name,
+      lines,
+      follow
+    ),
 
   /**
    * The server's environment keys, and the one way a value reaches them.
@@ -488,14 +542,25 @@ const api = {
     serverId: string,
     onEvent: (event: Event) => void
   ): Promise<AgentResponse<AgentUpgradeResult>> =>
-    streamedUpdate("agent-update:agent", onEvent, serverId),
+    streamed<AgentResponse<AgentUpgradeResult>, { event: Event }>(
+      "agent-update:agent",
+      "agent-update:event",
+      (payload) => onEvent(payload.event),
+      serverId
+    ),
 
   upgradeModules: (
     serverId: string,
     modules: readonly string[],
     onEvent: (event: Event) => void
   ): Promise<AgentResponse<InstallResult>> =>
-    streamedUpdate("agent-update:modules", onEvent, serverId, modules),
+    streamed<AgentResponse<InstallResult>, { event: Event }>(
+      "agent-update:modules",
+      "agent-update:event",
+      (payload) => onEvent(payload.event),
+      serverId,
+      modules
+    ),
 
   /**
    * The repair of a server the platform no longer vouches for.
@@ -525,6 +590,8 @@ const api = {
     ipcRenderer.invoke("fleet:list"),
   openGrantedServer: (id: string): Promise<AgentResponse<ServersConfig>> =>
     ipcRenderer.invoke("fleet:open", id),
+  restoreGrantedServers: (): Promise<AgentResponse<ServersConfig>> =>
+    ipcRenderer.invoke("fleet:restore"),
 
   sshHosts: (): Promise<string[]> => ipcRenderer.invoke("ssh-hosts"),
   saveServers: (config: ServersConfig): Promise<ServersConfig> =>
@@ -538,6 +605,13 @@ const api = {
    * key to import is designated through the system dialog, and copied into the
    * app's folder by the main process alone.
    */
+  /**
+   * Whether an address answers, and answers SSH. It runs before a server is
+   * declared, so it takes the two values the form has rather than an id.
+   */
+  reachServer: (host: string, port: number): Promise<ServerReach> =>
+    ipcRenderer.invoke("server-reach", host, port),
+
   addServer: (draft: ServerDraft): Promise<AgentResponse<ServerAdded>> =>
     ipcRenderer.invoke("server-add", draft),
   renameServer: (id: string, name: string): Promise<ServersConfig> =>
@@ -546,10 +620,47 @@ const api = {
     ipcRenderer.invoke("server-activate", id),
   removeServer: (id: string): Promise<ServersConfig> =>
     ipcRenderer.invoke("server-remove", id),
+
+  /** Removes the server from this computer and erases it from the platform. */
+  forgetServer: (id: string): Promise<AgentResponse<ServersConfig>> =>
+    ipcRenderer.invoke("server-forget", id),
   serverPublicKey: (id: string): Promise<string | null> =>
     ipcRenderer.invoke("server-public-key", id),
   pickKeyFile: (): Promise<string | null> =>
     ipcRenderer.invoke("key-file-pick"),
+
+  /**
+   * Installing the app's key on a server it has just added.
+   *
+   * The password goes one way and is never held: it crosses on this call, the
+   * main process hands it to one `ssh` and forgets it. What comes back says
+   * whether the machine opens, whether a password would help, or that the app
+   * has to hand the line over after all.
+   */
+  installKey: (
+    serverId: string,
+    password: string | null,
+    onPhase: (phase: KeyInstallPhase) => void
+  ): Promise<AgentResponse<KeyInstall>> =>
+    streamed<AgentResponse<KeyInstall>, { phase: KeyInstallPhase }>(
+      "server-key-install",
+      "server-key-install:phase",
+      (payload) => onPhase(payload.phase),
+      serverId,
+      password
+    ),
+
+  /**
+   * What the main process does, for the devtools console. Nothing arrives in a
+   * packaged build: the trace is off there, and nobody emits.
+   */
+  onTrace: (listener: (entry: TraceEntry) => void): (() => void) => {
+    const handler = (_e: unknown, entry: TraceEntry) => listener(entry);
+
+    ipcRenderer.on("trace", handler);
+
+    return () => ipcRenderer.removeListener("trace", handler);
+  },
 
   hostKey: (id: string): Promise<AgentResponse<HostKeyDecision>> =>
     ipcRenderer.invoke("server-host-key", id),

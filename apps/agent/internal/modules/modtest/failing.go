@@ -22,7 +22,7 @@ func (m Failing) Manifest() contract.Manifest {
 		ID:        m.ID,
 		Category:  categoryOf(m.ID),
 		Name:      "Demo " + m.ID,
-		Summary:   "Module de démonstration dont une étape échoue.",
+		Summary:   "Demonstration module whose step fails.",
 		Requires:  m.Requires,
 		Resources: contract.Resources{RAMMB: 16, DiskMB: 8},
 		Arch:      []string{"amd64", "arm64"},
@@ -39,7 +39,7 @@ func (m Failing) step(ctx *modules.Context, name string) error {
 		if m.FailAt == name {
 			message := m.Message
 			if message == "" {
-				message = "échec volontaire de " + name
+				message = "deliberate failure of " + name
 			}
 
 			return modules.Failed, errors.New(message)

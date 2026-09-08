@@ -202,12 +202,16 @@ describe("HardenParamsSchema and HardenResultSchema", () => {
 
   it("report whether root was closed and why not", () => {
     expect(
-      HardenResultSchema.safeParse({ root_closed: true, next_user: "dev" })
-        .success
+      HardenResultSchema.safeParse({
+        root_closed: true,
+        root_kept: false,
+        next_user: "dev",
+      }).success
     ).toBe(true)
     expect(
       HardenResultSchema.safeParse({
         root_closed: false,
+        root_kept: false,
         next_user: "root",
         reason: "no key opens dev",
       }).success
@@ -215,6 +219,20 @@ describe("HardenParamsSchema and HardenResultSchema", () => {
     expect(HardenResultSchema.safeParse({ root_closed: "no" }).success).toBe(
       false
     )
+  })
+
+  it("tell root kept on purpose from root left open by a refusal", () => {
+    expect(
+      HardenResultSchema.safeParse({
+        root_closed: false,
+        root_kept: true,
+        next_user: "dev",
+      }).success
+    ).toBe(true)
+    expect(
+      HardenResultSchema.safeParse({ root_closed: false, next_user: "dev" })
+        .success
+    ).toBe(false)
   })
 })
 

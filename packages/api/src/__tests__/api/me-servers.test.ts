@@ -18,6 +18,7 @@ interface ServerForUserBody {
   host_fingerprint: string | null
   status: string
   key_ready: boolean
+  organization: { id: string; name: string }
 }
 
 type Session = { token: string }
@@ -98,6 +99,142 @@ describe("GET /me/servers", () => {
     await addDevice(member, "MacBook", ED25519_KEY)
 
     expect((await myServers(member)).json.data[0].key_ready).toBe(true)
+  })
+
+  it("drops key_ready on the server that revoked the only device, and on it alone", async () => {
+    const { organization, members } = await createOrganizationWithMembers({
+      roles: ["owner", "member"],
+      subscription: {},
+    })
+    const [owner, member] = members
+    const revoking = await createServer({
+      organizationId: organization.id,
+      name: "vps-fache",
+      assignedUserId: member.user.id,
+    })
+
+    await createServer({
+      organizationId: organization.id,
+      name: "vps-serein",
+      assignedUserId: member.user.id,
+    })
+
+    const laptop = await addDevice(member, "MacBook", ED25519_KEY)
+
+    await apiRequest(`/servers/${revoking.server.id}/revoke-device`, {
+      body: { device_id: laptop.json.data.id },
+      session: owner,
+    })
+
+    const listed = (await myServers(member)).json.data
+    const readiness = new Map(
+      listed.map((server) => [server.name, server.key_ready])
+    )
+
+    expect(readiness.get("vps-fache")).toBe(false)
+    expect(readiness.get("vps-serein")).toBe(true)
+  })
+
+  it("keeps key_ready when a second device survives the revocation", async () => {
+    const { organization, members } = await createOrganizationWithMembers({
+      roles: ["owner", "member"],
+      subscription: {},
+    })
+    const [owner, member] = members
+    const { server } = await createServer({
+      organizationId: organization.id,
+      assignedUserId: member.user.id,
+    })
+    const laptop = await addDevice(member, "MacBook", ED25519_KEY)
+
+    await addDevice(member, "Fixe", SECOND_ED25519_KEY)
+
+    await apiRequest(`/servers/${server.id}/revoke-device`, {
+      body: { device_id: laptop.json.data.id },
+      session: owner,
+    })
+
+    expect((await myServers(member)).json.data[0].key_ready).toBe(true)
+  })
+})
+
+describe("l'organisation qui porte le serveur", () => {
+  beforeAll(async () => {
+    await bootApiTestServer()
+  })
+
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it("voyage avec chaque serveur attribué", async () => {
+    const { organization, members } = await createOrganizationWithMembers({
+      name: "Flymate",
+      roles: ["owner"],
+      subscription: {},
+    })
+    const [owner] = members
+
+    await createServer({
+      assignedUserId: owner.user.id,
+      organizationId: organization.id,
+    })
+
+    const listed = await myServers(owner)
+
+    expect(listed.json.data[0]?.organization).toEqual({
+      id: organization.id,
+      name: "Flymate",
+    })
+  })
+
+  it("distingue les serveurs de deux organisations d'un même membre", async () => {
+    const first = await createOrganizationWithMembers({
+      name: "Flymate",
+      roles: ["owner"],
+      subscription: {},
+    })
+    const [owner] = first.members
+
+    const second = await createOrganizationWithMembers({
+      name: "Autre",
+      roles: ["owner"],
+      subscription: {},
+    })
+
+    await createServer({
+      assignedUserId: owner.user.id,
+      organizationId: first.organization.id,
+    })
+    await createServer({
+      assignedUserId: owner.user.id,
+      organizationId: second.organization.id,
+    })
+
+    const listed = await myServers(owner)
+
+    expect(
+      listed.json.data.map((server) => server.organization.name).sort()
+    ).toEqual(["Autre", "Flymate"])
+  })
+
+  it("ne dit rien de plus de l'organisation", async () => {
+    const { organization, members } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
+    const [owner] = members
+
+    await createServer({
+      assignedUserId: owner.user.id,
+      organizationId: organization.id,
+    })
+
+    const listed = await myServers(owner)
+
+    expect(Object.keys(listed.json.data[0]?.organization ?? {}).sort()).toEqual(
+      ["id", "name"]
+    )
   })
 })
 

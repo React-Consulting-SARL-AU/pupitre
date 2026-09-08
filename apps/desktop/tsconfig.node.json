@@ -20,6 +20,8 @@
     "electron.vite.config.ts",
     "playwright.config.ts",
     "scripts/embed-agent.ts",
+    "scripts/publish-release.ts",
+    "scripts/release-artefacts.ts",
     "src/main/**/*.ts",
     "src/preload/**/*.ts",
     "src/renderer/src/__tests__/snapshot-fixtures.ts",

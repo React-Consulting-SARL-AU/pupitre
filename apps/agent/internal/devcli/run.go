@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"pupitre.studio/agent/internal/i18n"
 	"strconv"
 	"strings"
 
@@ -58,7 +59,7 @@ func Run(options Options, args []string, stdout, stderr io.Writer) int {
 
 	run, known := verbs[asked.verb]
 	if !known {
-		fmt.Fprintf(stderr, "commande inconnue : %s\n", asked.verb)
+		fmt.Fprintf(stderr, "unknown command: %s\n", asked.verb)
 		fmt.Fprint(stderr, Usage)
 
 		return 2
@@ -176,7 +177,7 @@ func runSync(options Options, asked request, out *printer) int {
 	}
 
 	return render(out, result, func(value contract.ProjectSync) {
-		out.line(fmt.Sprintf("%s · %s · %s · %s", name, done(value.Pulled, "pull", "déjà à jour"), done(value.Installed, "dépendances", "dépendances inchangées"), value.State))
+		out.line(fmt.Sprintf("%s · %s · %s · %s", name, done(value.Pulled, "pull", "already up to date"), done(value.Installed, "dependencies", "dependencies unchanged"), value.State))
 	})
 }
 
@@ -200,8 +201,8 @@ func runAttach(options Options, asked request, out *printer) int {
 	}
 
 	if !holds(listed.Projects, name) {
-		return out.failure(protocol.NewError(contract.ErrorProjectNotFound, "projet inconnu : "+name).
-			WithFix("Liste les projets avec pupitred dev status."))
+		return out.failure(protocol.NewError(contract.ErrorProjectNotFound, i18n.T("registry.project.unknown", name)).
+			WithFix(i18n.T("devcli.project.unknown.fix")))
 	}
 
 	command := "tmux attach-session -t " + tmux.Target(options.Tmux, name)
@@ -247,12 +248,12 @@ func branchesOf(options Options, name string, out *printer) int {
 
 	return render(out, result, func(value contract.ProjectBranches) {
 		if !value.Repo {
-			out.line(name + " n'est pas dans un dépôt git")
+			out.line(name + " is not in a git repository")
 
 			return
 		}
 
-		out.line(fmt.Sprintf("%s · %s%s", name, value.Current, when(value.Dirty, " · modifications non validées")))
+		out.line(fmt.Sprintf("%s · %s%s", name, value.Current, when(value.Dirty, " · uncommitted changes")))
 		for _, branch := range value.Local {
 			out.line("  " + current(branch == value.Current) + " " + branch)
 		}
@@ -340,8 +341,8 @@ func engineOf(options Options, asked request) (string, error) {
 	}
 
 	if len(engines) != 1 {
-		return "", protocol.NewError(contract.ErrorBadRequest, "moteur de base attendu").
-			WithFix("Donne le moteur : pupitred dev db " + asked.words[0] + " postgres.")
+		return "", protocol.NewError(contract.ErrorBadRequest, i18n.T("devcli.engine.expected")).
+			WithFix(i18n.T("devcli.engine.expected.fix", asked.words[0]))
 	}
 
 	return engines[0], nil
@@ -383,7 +384,7 @@ func failed(checks []contract.DoctorCheck) int {
 
 func target(asked request) (string, error) {
 	if len(asked.words) == 0 {
-		return "", fmt.Errorf("%s attend un projet", asked.verb)
+		return "", fmt.Errorf("%s expects a project", asked.verb)
 	}
 
 	return asked.words[0], nil

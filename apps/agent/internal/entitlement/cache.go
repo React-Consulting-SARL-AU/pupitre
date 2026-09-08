@@ -28,7 +28,7 @@ type Cache struct {
 
 func ReadCache(machine sys.Sys, filePath string) (Cache, error) {
 	if machine == nil {
-		return Cache{}, errors.New("aucune machine à lire")
+		return Cache{}, errors.New("no machine to read")
 	}
 
 	raw, err := machine.ReadFile(filePath)
@@ -42,7 +42,7 @@ func ReadCache(machine sys.Sys, filePath string) (Cache, error) {
 	}
 
 	if cache.CheckedAt.IsZero() {
-		return Cache{}, errors.New("cache du droit d'usage sans date de lecture")
+		return Cache{}, errors.New("entitlement cache without a read date")
 	}
 
 	return cache, nil
@@ -50,7 +50,7 @@ func ReadCache(machine sys.Sys, filePath string) (Cache, error) {
 
 func WriteCache(machine sys.Sys, filePath string, cache Cache) error {
 	if machine == nil {
-		return errors.New("aucune machine où écrire")
+		return errors.New("no machine to write to")
 	}
 
 	raw, err := json.Marshal(cache)

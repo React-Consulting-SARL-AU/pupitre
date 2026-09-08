@@ -32,7 +32,7 @@ import { memorySealer } from "./fixtures/fake-platform";
  * The account against the platform's own API, booted on PGlite.
  *
  * Nothing here reaches a remote service: `@pupitre/api/testing` is the same
- * Elysia app the console mounts. What it proves is the round trip APP-14 owns —
+ * Elysia app the console mounts. What it proves is the enrolment round trip —
  * device flow, device key, enrolment — and that a server enrolled from the app
  * shows up in the console with its heartbeat well inside a minute.
  *
@@ -64,7 +64,7 @@ async function rewindPolls(): Promise<void> {
 /**
  * A console someone is signed into, and whose organization pays.
  *
- * No server enrols without a running subscription (PLT-21), so the fixture
+ * No server enrols without a running subscription, so the fixture
  * gives the personal organization one — a trial, which is what a new account
  * starts on. `subscribed: false` is the other side of that rule, and one test
  * below is about exactly that.
@@ -348,8 +348,8 @@ describe("le compte contre l'API de la plateforme", () => {
     expect(direct.status).toBe(403);
     expect(refusal.error.code).toBe("entitlement_required");
 
-    // Le code, le message et le remède arrivent à l'écran tels que l'API les
-    // donne, du client de la plateforme jusqu'à l'erreur du protocole.
+    // The code, message and fix arrive on screen exactly as the API gives
+    // them, from the platform client through to the protocol error.
     expect(enrolled.error).toEqual(refusal.error);
     expect(asAgentError(enrolled.error)).toEqual(refusal.error);
 
@@ -464,6 +464,8 @@ describe("le compte contre l'API de la plateforme", () => {
 
           return { platformUrl: bridge.url, token };
         },
+        managed: () =>
+          Promise.resolve({ ok: true, result: { config: {}, secrets: {} } }),
         probe: () => Promise.resolve({ ok: true, result: bareMachine() }),
         secrets: () => ({}),
       }
@@ -495,7 +497,7 @@ describe("le compte contre l'API de la plateforme", () => {
       "id=2 cmd=install",
     ]);
 
-    // Le jeton a bien servi à cet échange-là : la plateforme le refuse une seconde fois.
+    // The token did serve that one exchange: the platform refuses it a second time.
     const replayed = await apiFetch("/agent/exchange", {
       body: JSON.stringify({
         agent_version: "0.0.0-test",

@@ -17,6 +17,7 @@ import { ProjectAddParamsSchema } from "@pupitre/shared/agent-protocol/projects"
 import type { DoneResult } from "@pupitre/shared/agent-protocol/system";
 import type { AgentError, AgentResponse } from "@shared/agent";
 import type { AgentClient } from "./agent-client";
+import { refuseWith } from "./refusal";
 
 /**
  * The project commands, and what the renderer is allowed to say to them.
@@ -37,6 +38,11 @@ export interface ProjectDeps {
   client: Pick<AgentClient, "request">;
   /** Whether this identifier still names a server of the app's configuration. */
   knows: (serverId: string) => boolean;
+  /**
+   * Removes the DNS record for the subdomain of a project that's leaving: a
+   * name left behind still answers, with nothing behind it anymore.
+   */
+  release?: (serverId: string, subdomain: string) => Promise<unknown>;
 }
 
 /**
@@ -53,6 +59,8 @@ interface Declared {
   dir: string;
   path: string | null;
   root: string | null;
+  /** The project's subdomain, to hand back to the platform if it came from there. */
+  subdomain: string | null;
 }
 
 const declared = new Map<string, Map<string, Declared>>();
@@ -89,18 +97,14 @@ function noteRoot(serverId: string, name: string, root: unknown): void {
 
 function refuse(
   code: AgentError["code"],
-  message: string,
-  fix: string
+  id: string,
+  values?: Record<string, string | number>
 ): AgentResponse<never> {
-  return { ok: false, error: { code, fix, message } };
+  return refuseWith(code, id, values);
 }
 
 function unknownServer(): AgentResponse<never> {
-  return refuse(
-    "bad_request",
-    "Ce serveur n'est plus dans la liste.",
-    "Choisis un serveur dans les réglages."
-  );
+  return refuse("bad_request", "refusal.server.unknown");
 }
 
 function known(serverId: unknown, deps: ProjectDeps): string | null {
@@ -109,7 +113,12 @@ function known(serverId: unknown, deps: ProjectDeps): string | null {
 
 function remember(
   serverId: string,
-  projects: readonly { name: string; dir: string; path?: string }[]
+  projects: readonly {
+    name: string;
+    dir: string;
+    path?: string;
+    subdomain?: string;
+  }[]
 ): void {
   const held = declared.get(serverId) ?? new Map<string, Declared>();
 
@@ -124,6 +133,7 @@ function remember(
       dir: project.dir,
       path: absolute,
       root: known?.root ?? null,
+      subdomain: project.subdomain ?? known?.subdomain ?? null,
     });
   }
 
@@ -163,11 +173,7 @@ export async function addProject(
   const parsed = ProjectAddParamsSchema.safeParse(params);
 
   if (!parsed.success) {
-    return refuse(
-      "bad_request",
-      "La description du projet est incomplète.",
-      parsed.error.issues[0]?.message ?? "Reprends le formulaire."
-    );
+    return refuse("bad_request", "refusal.project.unreadable");
   }
 
   const answer = await deps.client.request(
@@ -201,11 +207,9 @@ function target(
   }
 
   if (typeof name !== "string" || !declared.get(server)?.has(name)) {
-    return refuse(
-      "project_not_found",
-      `Ce serveur n'a pas déclaré de projet nommé ${String(name)}.`,
-      "Recharge la liste des projets, puis reprends."
-    );
+    return refuse("project_not_found", "refusal.project.unknown", {
+      name: String(name),
+    });
   }
 
   return { name, serverId: server };
@@ -262,7 +266,13 @@ export async function onProject<C extends PlainProjectCommand>(
 
   if (answer.ok) {
     if (cmd === "project.remove") {
+      const label = declared.get(call.serverId)?.get(call.name)?.subdomain;
+
       declared.get(call.serverId)?.delete(call.name);
+
+      if (label && deps.release) {
+        await deps.release(call.serverId, label);
+      }
     } else {
       noteRoot(
         call.serverId,
@@ -320,11 +330,9 @@ export async function actOnProject(
   deps: ProjectDeps
 ): Promise<AgentResponse<ProjectActionResult>> {
   if (!ACTIONS.includes(action as ProjectAction)) {
-    return refuse(
-      "bad_request",
-      `Action inconnue : ${String(action)}.`,
-      "Choisis démarrer, arrêter ou redémarrer."
-    );
+    return refuse("bad_request", "refusal.project.action.unknown", {
+      action: String(action),
+    });
   }
 
   const server = known(serverId, deps);
@@ -367,11 +375,9 @@ export async function checkoutProject(
   }
 
   if (typeof branch !== "string" || !BRANCH_OK.test(branch)) {
-    return refuse(
-      "bad_request",
-      `Nom de branche invalide : ${String(branch)}.`,
-      "Choisis une branche dans la liste que le serveur a donnée."
-    );
+    return refuse("bad_request", "refusal.branch.unknown", {
+      branch: String(branch),
+    });
   }
 
   return await deps.client.request(call.serverId, "project.checkout", {
@@ -399,11 +405,7 @@ export async function diffProject(
   }
 
   if (typeof path !== "string" || path.length === 0) {
-    return refuse(
-      "bad_request",
-      "Aucun fichier n'a été désigné.",
-      "Choisis un fichier de l'arbre de travail."
-    );
+    return refuse("bad_request", "refusal.file.none");
   }
 
   return await deps.client.request(call.serverId, "project.diff", {

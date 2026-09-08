@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test"
 import { readdirSync, readFileSync } from "node:fs"
 import path from "node:path"
-import { type ModuleId, MVP_MODULE_IDS } from "@pupitre/shared/catalog"
+import { MODULE_IDS, type ModuleId } from "@pupitre/shared/catalog"
 import { EXEMPTIONS, LOGOS, logoFor, MARKS, markFor } from "./index"
 
 const LOGO_DIR = import.meta.dir
@@ -88,7 +88,7 @@ function xmlRoots(markup: string): string[] {
 const files = svgFiles()
 
 describe("catalogue coverage", () => {
-  for (const id of MVP_MODULE_IDS) {
+  for (const id of MODULE_IDS) {
     it(`${id} has a logo or a declared exemption`, () => {
       const hasLogo = Boolean(LOGOS[id])
       const hasExemption = Boolean(EXEMPTIONS[id])

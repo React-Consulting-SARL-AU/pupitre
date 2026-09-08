@@ -19,10 +19,25 @@ const WRANGLER_FILE = join(ROOT, "apps/web/wrangler.jsonc")
 const ENV_LINE_RE = /^([A-Z0-9_]+)=/
 
 const NEON_PROJECT = process.env.PUPITRE_NEON_PROJECT ?? "pupitre"
-const NEON_BRANCH = process.env.PUPITRE_NEON_BRANCH ?? "staging"
+const NEON_PRODUCTION_BRANCH =
+  process.env.PUPITRE_NEON_PRODUCTION_BRANCH ?? "production"
+const NEON_SHARED_BRANCH = process.env.PUPITRE_NEON_SHARED_BRANCH ?? "staging"
+const NEON_BRANCH_OVERRIDE = process.env.PUPITRE_NEON_BRANCH ?? ""
+
+/** Une branche de développement s'efface d'elle-même : personne ne nettoie. */
+const BRANCH_TTL_DAYS = 14
+const BRANCH_READY_TIMEOUT_MS = 60_000
+const BRANCH_POLL_INTERVAL_MS = 2000
+
+const UNSAFE_SLUG_RE = /[^a-z0-9-]+/g
+const REPEATED_DASH_RE = /-+/g
+const EDGE_DASH_RE = /^-|-$/g
 
 /** Propres au poste : une valeur tirée au hasard suffit, rien à partager. */
-const GENERATED = ["BETTER_AUTH_SECRET", "INTERNAL_WORKFLOW_SECRET"] as const
+export const GENERATED = [
+  "BETTER_AUTH_SECRET",
+  "INTERNAL_WORKFLOW_SECRET",
+] as const
 
 /** Chaque outil lit l'environnement sous le nom qu'il attend, mais tous pointent
  * sur le même fichier : une seule valeur à tenir à jour. */
@@ -178,6 +193,86 @@ export function localValues(
   return values
 }
 
+export function slugify(branch: string): string {
+  return branch
+    .toLowerCase()
+    .replace(UNSAFE_SLUG_RE, "-")
+    .replace(REPEATED_DASH_RE, "-")
+    .replace(EDGE_DASH_RE, "")
+}
+
+export interface NeonTarget {
+  branch: string
+  parent: string | null
+  expiresAt: string | null
+}
+
+/**
+ * La branche Git décide de la branche Neon : `main` travaille sur la branche
+ * partagée, tout le reste obtient la sienne, tirée de la partagée. Deux tâches
+ * menées en parallèle ne se marchent donc plus sur les migrations.
+ * `parent` à `null` dit que la branche doit déjà exister : on ne crée jamais
+ * `staging` ni `production` par accident.
+ */
+export function neonTargetFor(gitBranch: string, now = new Date()): NeonTarget {
+  const shared: NeonTarget = {
+    branch: NEON_SHARED_BRANCH,
+    parent: null,
+    expiresAt: null,
+  }
+
+  if (NEON_BRANCH_OVERRIDE) {
+    return { branch: NEON_BRANCH_OVERRIDE, parent: null, expiresAt: null }
+  }
+
+  if (gitBranch === "" || gitBranch === "main" || gitBranch === "master") {
+    return shared
+  }
+
+  const slug = slugify(gitBranch)
+
+  if (slug === "") {
+    return shared
+  }
+
+  return {
+    branch: `dev/${slug}`,
+    parent: NEON_SHARED_BRANCH,
+    expiresAt: new Date(
+      now.getTime() + BRANCH_TTL_DAYS * 86_400_000
+    ).toISOString(),
+  }
+}
+
+export function isUsableDatabaseUrl(value: string | undefined): boolean {
+  return Boolean(value?.startsWith("postgres") && !value.includes("<"))
+}
+
+/**
+ * `.env.local` garde la provenance de ses URL — le projet et la branche. Sans
+ * elle, une base déplacée laissait le fichier pointer sur l'ancienne pour
+ * toujours : les deux URL étaient là, donc plus personne ne les redemandait.
+ */
+export function needsNeonRefresh(
+  current: Record<string, string>,
+  target: { projectId: string; branch: string }
+): boolean {
+  return !(
+    isUsableDatabaseUrl(current.DATABASE_URL) &&
+    isUsableDatabaseUrl(current.MIGRATE_DATABASE_URL) &&
+    current.NEON_PROJECT_ID === target.projectId &&
+    current.NEON_BRANCH === target.branch
+  )
+}
+
+function assertNotProduction(branch: string): void {
+  if (branch === NEON_PRODUCTION_BRANCH) {
+    throw new Error(
+      `Le développement local ne vise jamais la branche Neon « ${NEON_PRODUCTION_BRANCH} ».`
+    )
+  }
+}
+
 function neonctlReady(): boolean {
   return (
     spawnSync("neonctl", ["--version"], { encoding: "utf8" }).status === 0 &&
@@ -185,6 +280,14 @@ function neonctlReady(): boolean {
       encoding: "utf8",
     }).status === 0
   )
+}
+
+function currentGitBranch(): string {
+  const shown = spawnSync("git", ["branch", "--show-current"], {
+    encoding: "utf8",
+  })
+
+  return shown.status === 0 ? shown.stdout.trim() : ""
 }
 
 function neonProjectId(): string | null {
@@ -203,10 +306,95 @@ function neonProjectId(): string | null {
   return owned.find((project) => project.name === NEON_PROJECT)?.id ?? null
 }
 
-function connectionString(projectId: string, pooled: boolean): string {
+interface NeonBranch {
+  name: string
+  current_state?: string
+}
+
+function listBranches(projectId: string): NeonBranch[] {
+  const listed = execFileSync(
+    "neonctl",
+    ["branches", "list", "--project-id", projectId, "--output", "json"],
+    { encoding: "utf8", maxBuffer: 10 * 1024 * 1024 }
+  )
+
+  const parsed = JSON.parse(listed) as
+    | NeonBranch[]
+    | { branches?: NeonBranch[] }
+
+  return Array.isArray(parsed) ? parsed : (parsed.branches ?? [])
+}
+
+function sleepSync(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
+}
+
+function waitForBranch(projectId: string, branch: string): void {
+  const deadline = Date.now() + BRANCH_READY_TIMEOUT_MS
+
+  while (Date.now() < deadline) {
+    const found = listBranches(projectId).find((one) => one.name === branch)
+
+    if (!found || found.current_state === undefined) {
+      return
+    }
+
+    if (found.current_state === "ready") {
+      return
+    }
+
+    sleepSync(BRANCH_POLL_INTERVAL_MS)
+  }
+
+  process.stdout.write(
+    `La branche Neon « ${branch} » n'a pas dit qu'elle était prête ; on continue avec ses URL.\n`
+  )
+}
+
+function ensureBranch(projectId: string, target: NeonTarget): void {
+  if (listBranches(projectId).some((one) => one.name === target.branch)) {
+    return
+  }
+
+  if (!target.parent) {
+    throw new Error(
+      `La branche Neon « ${target.branch} » n'existe pas sur le projet « ${NEON_PROJECT} ».`
+    )
+  }
+
+  execFileSync(
+    "neonctl",
+    [
+      "branches",
+      "create",
+      "--project-id",
+      projectId,
+      "--name",
+      target.branch,
+      "--parent",
+      target.parent,
+      ...(target.expiresAt ? ["--expires-at", target.expiresAt] : []),
+      "--output",
+      "json",
+    ],
+    { encoding: "utf8", maxBuffer: 10 * 1024 * 1024 }
+  )
+
+  waitForBranch(projectId, target.branch)
+
+  process.stdout.write(
+    `Branche Neon « ${target.branch} » créée depuis « ${target.parent} ».\n`
+  )
+}
+
+function connectionString(
+  projectId: string,
+  branch: string,
+  pooled: boolean
+): string {
   const command = [
     "connection-string",
-    NEON_BRANCH,
+    branch,
     "--project-id",
     projectId,
     ...(pooled ? ["--pooled"] : []),
@@ -215,7 +403,7 @@ function connectionString(projectId: string, pooled: boolean): string {
   return execFileSync("neonctl", command, { encoding: "utf8" }).trim()
 }
 
-function databaseUrls(): Record<string, string> {
+function neonValues(current: Record<string, string>): Record<string, string> {
   if (!neonctlReady()) {
     process.stdout.write(
       "Neon ignoré : `neonctl` est absent ou sans session. Lance `neonctl auth`, ou renseigne DATABASE_URL à la main.\n"
@@ -234,9 +422,33 @@ function databaseUrls(): Record<string, string> {
     return {}
   }
 
-  return {
-    DATABASE_URL: connectionString(projectId, true),
-    MIGRATE_DATABASE_URL: connectionString(projectId, false),
+  const target = neonTargetFor(currentGitBranch())
+
+  assertNotProduction(target.branch)
+
+  if (!needsNeonRefresh(current, { projectId, branch: target.branch })) {
+    return {}
+  }
+
+  try {
+    ensureBranch(projectId, target)
+
+    return {
+      DATABASE_URL: connectionString(projectId, target.branch, true),
+      MIGRATE_DATABASE_URL: connectionString(projectId, target.branch, false),
+      NEON_BRANCH: target.branch,
+      NEON_PROJECT_ID: projectId,
+    }
+  } catch (error) {
+    if (!isUsableDatabaseUrl(current.DATABASE_URL)) {
+      throw error
+    }
+
+    process.stdout.write(
+      `Neon n'a pas répondu (${error instanceof Error ? error.message : error}) ; on garde les URL déjà écrites.\n`
+    )
+
+    return {}
   }
 }
 
@@ -318,9 +530,7 @@ function main(): void {
 
   Object.assign(values, local)
 
-  if (!(current.DATABASE_URL && current.MIGRATE_DATABASE_URL)) {
-    Object.assign(values, databaseUrls())
-  }
+  Object.assign(values, neonValues(current))
 
   if (!current.STRIPE_WEBHOOK_SECRET) {
     Object.assign(values, stripeWebhookSecret())
@@ -341,7 +551,9 @@ function main(): void {
     Object.keys(local).length > 0
       ? `${Object.keys(local).length} depuis wrangler.jsonc`
       : null,
-    "DATABASE_URL" in values ? "base depuis Neon" : null,
+    "DATABASE_URL" in values
+      ? `base depuis Neon (${values.NEON_BRANCH})`
+      : null,
     "STRIPE_WEBHOOK_SECRET" in values ? "webhook depuis Stripe" : null,
   ].filter(Boolean)
 

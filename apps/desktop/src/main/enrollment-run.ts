@@ -10,6 +10,8 @@ import type { Server } from "@shared/servers";
 import type { Account, Enrollment } from "./account-run";
 import type { AgentPayload } from "./agent-binary";
 import { checkAgentRelease } from "./agent-release";
+import { refusalOf } from "./refusal";
+import { trace } from "./trace";
 
 /**
  * What has to happen before a binary reaches a server.
@@ -33,6 +35,14 @@ export interface EnrollmentDeps {
   embedded: (arch: string) => AgentResponse<AgentPayload>;
   build: BuildKind;
   releaseKey: string;
+  /**
+   * The identity the platform just gave, written on the local server entry.
+   *
+   * Without it, an installation following the enrollment does not know which
+   * platform server it is talking about: what the platform manages for it — a
+   * tunnel, a subdomain — is asked for by that id.
+   */
+  bind: (serverId: string, platformServerId: string) => void;
 }
 
 export interface PreparedAgent {
@@ -47,6 +57,7 @@ export function asAgentError(error: AccountError): AgentError {
     code: (KNOWN_CODES.has(code) ? code : "internal") as AgentError["code"],
     message: error.message,
     ...(error.fix ? { fix: error.fix } : {}),
+    ...(error.phrase ? { phrase: error.phrase } : {}),
   };
 }
 
@@ -71,12 +82,12 @@ function unpublished(build: BuildKind): AgentResponse<never> {
   return {
     ok: false,
     error: {
-      code: "internal",
-      message: "Aucune version de l'agent n'est publiée pour cette machine.",
-      fix:
+      ...refusalOf(
+        "internal",
         build === "production"
-          ? "Publie une version de l'agent depuis la console avant d'installer un serveur."
-          : "Construis l'agent avec bun --cwd=apps/agent run build, puis reconstruis l'app.",
+          ? "refusal.release.none"
+          : "refusal.binary.missing"
+      ),
     },
   };
 }
@@ -107,7 +118,11 @@ async function fromPlatform(
   }
 
   const bytes = downloaded.result;
-  const checked = checkAgentRelease(bytes, enrollment.release, deps.releaseKey);
+  const checked = checkAgentRelease(
+    bytes,
+    { ...enrollment.release, arch },
+    deps.releaseKey
+  );
 
   if (!checked.ok) {
     return checked;
@@ -151,6 +166,8 @@ export async function prepareAgent(
   arch: string,
   deps: EnrollmentDeps
 ): Promise<AgentResponse<PreparedAgent>> {
+  trace("agent-binary", "prepare", { arch, server: server.id });
+
   const allowed = lift(deps.account.guard());
 
   if (!allowed.ok) {
@@ -173,9 +190,16 @@ export async function prepareAgent(
 
   const enrollment = enrolled.result;
 
+  deps.bind(server.id, enrollment.serverId);
+
   if (enrollment.release.url === "") {
     return carried(enrollment, arch, deps);
   }
+
+  trace("agent-binary", "enrolled", {
+    release: enrollment.release.version,
+    server: server.id,
+  });
 
   const fetched = await fromPlatform(enrollment, arch, deps);
 

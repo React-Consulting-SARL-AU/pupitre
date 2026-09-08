@@ -37,7 +37,7 @@ func TestDoctorSaysWhatIsMissingAndHowToFixIt(t *testing.T) {
 		t.Fatalf("unexpected %+v", bun)
 	}
 
-	if session := checkOf(t, checks, "session tmux « pupitre »"); session.OK {
+	if session := checkOf(t, checks, `tmux session "pupitre"`); session.OK {
 		t.Fatal("no project has started: the session does not exist yet")
 	}
 

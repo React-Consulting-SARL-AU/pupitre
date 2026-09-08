@@ -11,22 +11,30 @@ import { ModuleUpgradePanel } from "../updates/module-upgrade-panel";
 
 const NOOP = () => undefined;
 
-const CARRIED = {
+const OFFER = {
   arch: "amd64",
   notes: ["Retour arrière si la nouvelle version ne répond pas."],
   signed: true,
+  source: "app" as const,
   version: "0.4.0",
 };
 
 function ready(
   order: "ahead" | "behind" | "same" | "unknown",
-  carried = CARRIED,
+  offer = OFFER,
   platform = true
 ): UpdateState {
   return {
     serverId: "srv-1",
     status: "ready",
-    update: { carried, installed: "0.3.0", order, platform },
+    update: {
+      floor: "0.1.0",
+      installed: "0.3.0",
+      offer,
+      order,
+      platform,
+      verdict: "ok",
+    },
   };
 }
 
@@ -66,29 +74,48 @@ describe("le bandeau de mise à jour", () => {
     expect(html).toContain("continue de fonctionner");
   });
 
+  it("dit qu'un serveur d'une autre génération se répare, sans rien proposer", () => {
+    const html = banner({
+      serverId: "srv-1",
+      status: "ready",
+      update: {
+        floor: "0.1.0",
+        installed: "0.0.9",
+        offer: OFFER,
+        order: "ahead",
+        platform: true,
+        verdict: "agent_too_old",
+      },
+    });
+
+    expect(html).toContain("Ce serveur est trop en arrière");
+    expect(html).toContain("écran de réparation");
+    expect(html).not.toContain("Mettre l&#x27;agent à jour");
+  });
+
   it("se tait quand les deux versions coïncident", () => {
     expect(banner(ready("same"))).toBe("");
     expect(banner({ status: "idle" })).toBe("");
   });
 
-  it("offre la mise à jour sans signature embarquée quand la plateforme répond", () => {
-    const html = banner(ready("ahead", { ...CARRIED, signed: false }, true));
+  it("offre la mise à jour sans signature embarquée quand la console répond", () => {
+    const html = banner(ready("ahead", { ...OFFER, signed: false }, true));
 
     expect(html).toContain("Mettre l&#x27;agent à jour");
     expect(html).not.toContain("l&#x27;agent refuserait la mise à jour");
     expect(html).not.toContain('disabled=""');
   });
 
-  it("désactive le bouton quand la plateforme se tait et la signature manque", () => {
-    const html = banner(ready("ahead", { ...CARRIED, signed: false }, false));
+  it("désactive le bouton quand la console se tait et la signature manque", () => {
+    const html = banner(ready("ahead", { ...OFFER, signed: false }, false));
 
     expect(html).toContain("l&#x27;agent refuserait la mise à jour");
-    expect(html).toContain("n&#x27;atteint plus la plateforme");
+    expect(html).toContain("n&#x27;atteint plus la console");
     expect(html).toContain('disabled=""');
   });
 
-  it("n'exige pas la plateforme quand l'app porte la signature", () => {
-    const html = banner(ready("ahead", CARRIED, false));
+  it("n'exige pas la console quand l'app porte la signature", () => {
+    const html = banner(ready("ahead", OFFER, false));
 
     expect(html).not.toContain("l&#x27;agent refuserait la mise à jour");
     expect(html).not.toContain('disabled=""');

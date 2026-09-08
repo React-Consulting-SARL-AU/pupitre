@@ -2,6 +2,7 @@ import type { ProjectGitStatusResult } from "@pupitre/shared/agent-protocol/proj
 import { Callout } from "@renderer/components/ui/callout";
 import { IconButton } from "@renderer/components/ui/icon-button";
 import { StatusDot } from "@renderer/components/ui/status-dot";
+import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { since } from "@renderer/lib/format";
 import type { GitState } from "@renderer/stores/project";
@@ -25,7 +26,7 @@ function Summary({ git }: { git: ProjectGitStatusResult }) {
 
   if (!git.upstream) {
     return (
-      <p className="font-data text-[11px] text-ink-3">
+      <p className="font-data text-[12px] text-ink-3">
         {t("project.git.noUpstream")}
       </p>
     );
@@ -33,7 +34,7 @@ function Summary({ git }: { git: ProjectGitStatusResult }) {
 
   return (
     <p
-      className={`font-data text-[11px] ${git.behind > 0 ? "font-semibold text-ink" : "text-ink-3"}`}
+      className={`font-data text-[12px] ${git.behind > 0 ? "font-semibold text-ink" : "text-ink-3"}`}
     >
       {git.behind > 0
         ? t("project.git.behind", {
@@ -61,7 +62,7 @@ export function ProjectGitState({
 
   if (state.status === "idle" || state.status === "reading") {
     return (
-      <p className="flex items-center gap-2 font-data text-[11px] text-ink-3">
+      <p className="flex items-center gap-2 font-data text-[12px] text-ink-3">
         <StatusDot shape="breathing" size={11} />
         {t("project.git.querying")}
       </p>
@@ -70,15 +71,15 @@ export function ProjectGitState({
 
   if (state.status === "failed") {
     return (
-      <Callout fix={state.error.fix} tone="warn">
-        {state.error.message}
+      <Callout fix={agentText(t, state.error).fix} tone="warn">
+        {agentText(t, state.error).message}
       </Callout>
     );
   }
 
   if (!state.git.repo) {
     return (
-      <p className="font-data text-[11px] text-ink-3">
+      <p className="font-data text-[12px] text-ink-3">
         {t("project.git.notRepo")}
       </p>
     );
@@ -90,13 +91,13 @@ export function ProjectGitState({
         <div className="min-w-0 flex-1">
           <Summary git={state.git} />
           {state.git.subject ? (
-            <p className="mt-1 truncate font-data text-[10px] text-ink-3">
+            <p className="mt-1 truncate font-data text-[11px] text-ink-3">
               {t("project.git.lastCommit", { subject: state.git.subject })}
             </p>
           ) : null}
         </div>
 
-        <span className="font-data text-[10px] text-ink-4">
+        <span className="font-data text-[11px] text-ink-4">
           {t("project.git.readAt", { when: since(state.at) })}
         </span>
         <IconButton

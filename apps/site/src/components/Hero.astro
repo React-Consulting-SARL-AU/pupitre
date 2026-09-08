@@ -2,31 +2,34 @@
 import { homeContent } from "../content/site/home"
 import { localeFromPath, localizePath } from "../lib/i18n"
 import { SIGNUP_URL } from "../lib/urls"
+import CtaPair from "./CtaPair.astro"
+import LogoDrift from "./LogoDrift.astro"
 import StackWall from "./StackWall.astro"
 
 const locale = localeFromPath(Astro.url.pathname)
 const { hero } = homeContent(locale)
 ---
 
-<section class="shell pt-16 pb-20 text-center md:pt-24 md:pb-28">
-  <p class="pill">{hero.eyebrow}</p>
-  <h1 class="display-1 mx-auto mt-8 max-w-4xl">{hero.headline}</h1>
-  <p class="lead mx-auto mt-8 max-w-2xl text-ink-2">{hero.lead}</p>
+<section class="pt-16 pb-20 text-center md:pt-24 md:pb-28">
+  <div class="relative">
+    <LogoDrift place="hero" />
 
-  <div class="mt-10 flex flex-wrap justify-center gap-3">
-    <a data-emphasis="main" href={SIGNUP_URL} class="btn btn-lg btn-primary">
-      {hero.signUp}
-    </a>
-    <a
-      data-emphasis="secondary"
-      href={localizePath("/download/", locale)}
-      class="btn btn-lg btn-secondary"
-    >
-      {hero.download}
-    </a>
+    <div class="shell enter-group relative">
+      <p class="pill">{hero.eyebrow}</p>
+      <h1 class="display-1 mx-auto mt-8 max-w-4xl">{hero.headline}</h1>
+      <p class="lead mx-auto mt-8 max-w-2xl text-ink-2">{hero.lead}</p>
+
+      <CtaPair
+        main={{ href: SIGNUP_URL, label: hero.signUp }}
+        secondary={{
+          href: localizePath("/download/", locale),
+          label: hero.download,
+        }}
+      />
+
+      <p class="mx-auto mt-6 max-w-md text-ink-3">{hero.note}</p>
+    </div>
   </div>
 
-  <p class="mx-auto mt-6 max-w-md text-ink-3">{hero.note}</p>
-
-  <div class="mt-20 md:mt-24"><StackWall /></div>
+  <div class="shell mt-20 md:mt-24"><StackWall /></div>
 </section>

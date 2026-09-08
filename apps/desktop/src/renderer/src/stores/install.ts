@@ -70,6 +70,8 @@ interface InstallStore {
   reset: () => void;
 
   counts: () => { done: number; total: number };
+  /** Whether a module of this run has already started: the machine has changed. */
+  touched: () => boolean;
   elapsed: () => number;
   failed: () => readonly string[];
   warned: () => readonly string[];
@@ -242,6 +244,10 @@ export const useInstall = create<InstallStore>((set, get) => {
       const { modules } = get();
 
       return { done: doneCount(modules), total: modules.length };
+    },
+
+    touched() {
+      return get().modules.some((module) => module.status !== "pending");
     },
 
     elapsed() {

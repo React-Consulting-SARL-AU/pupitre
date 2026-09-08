@@ -1,7 +1,7 @@
 import { GlobalRegistrator } from "@happy-dom/global-registrator"
 
 if (typeof globalThis.window === "undefined") {
-  // happy-dom écrase WritableStream par le Writable de Node, que pipeTo refuse.
+  // happy-dom overwrites WritableStream with Node's Writable, which pipeTo rejects.
   const { WritableStream } = globalThis
 
   GlobalRegistrator.register({ url: "http://localhost:3000" })

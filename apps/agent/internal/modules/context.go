@@ -152,7 +152,7 @@ func (c *Context) Secret(key string) string {
 	return c.secrets[key]
 }
 
-// A list field of secrets arrives as one entry per rank, "<clé>.0", "<clé>.1", the secret line being a flat map of strings.
+// A list field of secrets arrives as one entry per rank, "<key>.0", "<key>.1", the secret line being a flat map of strings.
 func (c *Context) SecretList(key string) []string {
 	var values []string
 
@@ -174,40 +174,6 @@ func (c *Context) SecretList(key string) []string {
 	return values
 }
 
-// The fields the manifest marks required and the app left empty, in the order of the manifest.
-func (c *Context) RequireFields() error {
-	var missing []string
-
-	for _, field := range c.manifest.Fields {
-		if !field.Required || c.filled(field) {
-			continue
-		}
-
-		missing = append(missing, field.Key)
-	}
-
-	if len(missing) == 0 {
-		return nil
-	}
-
-	return missingFields(c.manifest, missing)
-}
-
-func (c *Context) filled(field contract.Field) bool {
-	switch field.Kind {
-	case contract.FieldSecret:
-		return strings.TrimSpace(c.Secret(field.Key)) != ""
-	case contract.FieldList:
-		if field.Items == contract.ItemsSecret {
-			return len(c.SecretList(field.Key)) > 0
-		}
-
-		return len(c.StringList(field.Key)) > 0
-	}
-
-	return strings.TrimSpace(c.String(field.Key)) != ""
-}
-
 func (c *Context) Step(name string, fn func() (Outcome, error)) error {
 	started := c.run.now()
 	c.emit(name, contract.StepStart, 0, "")
@@ -217,7 +183,7 @@ func (c *Context) Step(name string, fn func() (Outcome, error)) error {
 
 	if err != nil || outcome == Failed {
 		if err == nil {
-			err = errors.New("étape en échec")
+			err = errors.New("step failed")
 		}
 
 		return c.fail(name, ms, err)

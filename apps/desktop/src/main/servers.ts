@@ -5,6 +5,7 @@ import type {
   HostKeyDecision,
   Server,
   ServerDraft,
+  ServerGrant,
   ServersConfig,
 } from "@shared/servers";
 import { app } from "electron";
@@ -26,6 +27,7 @@ import {
   sshArgs,
   writeSshConfig,
 } from "./ssh-config";
+import { trace } from "./trace";
 
 /**
  * The known servers, and which one is active.
@@ -35,7 +37,9 @@ import {
  * the app's SSH configuration, so the two never drift apart — and neither of
  * them is ever the user's own ~/.ssh.
  */
-type Configuration = Required<Pick<ServersConfig, "servers" | "active">> & {
+type Configuration = Required<
+  Pick<ServersConfig, "servers" | "active" | "dismissed">
+> & {
   version: number;
 };
 
@@ -50,7 +54,12 @@ const DEFAULT_PORT = 22;
 const NAME_LIMIT = 60;
 const HOST_LIMIT = 120;
 
-const EMPTY: Configuration = { active: null, servers: [], version: VERSION };
+const EMPTY: Configuration = {
+  active: null,
+  dismissed: [],
+  servers: [],
+  version: VERSION,
+};
 
 let cache: Configuration | null = null;
 
@@ -93,7 +102,11 @@ function normalise(raw: ServersConfig): Configuration {
     ? raw.active
     : (servers[0]?.id ?? null);
 
-  return { active, servers, version: VERSION };
+  const dismissed = Array.isArray(raw.dismissed)
+    ? [...new Set(raw.dismissed.filter((id) => typeof id === "string" && id))]
+    : [];
+
+  return { active, dismissed, servers, version: VERSION };
 }
 
 export function read(): Configuration {
@@ -170,7 +183,16 @@ export async function add(draft: ServerDraft): Promise<ServerCreation> {
   const config = read();
   const created = await addServer(draft, config.servers, paths());
 
-  write({ active: created.server.id, servers: created.servers });
+  write({ ...config, active: created.server.id, servers: created.servers });
+
+  trace("servers", "added", {
+    host: created.server.host,
+    key: draft.key.mode,
+    origin: created.server.origin,
+    port: created.server.port,
+    server: created.server.id,
+    user: created.server.user,
+  });
 
   return created;
 }
@@ -179,7 +201,7 @@ export function rename(id: string, name: string): Configuration {
   const config = read();
 
   return write({
-    active: config.active,
+    ...config,
     servers: config.servers.map((server) =>
       server.id === id
         ? { ...server, name: name.trim().slice(0, NAME_LIMIT) || server.name }
@@ -202,9 +224,45 @@ export function switchAccount(id: string, user: string): string | null {
     return null;
   }
 
-  write({ active: config.active, servers });
+  write({ ...config, servers });
+
+  trace("servers", "account", { server: id, user });
 
   return user;
+}
+
+/**
+ * The identity the platform gives a server the moment it enrols it.
+ *
+ * Written before the binary leaves rather than at the next reading of the
+ * fleet: what the platform manages for that server — a tunnel, a hostname — is
+ * asked for by this identifier, and the installation that follows asks for it
+ * straight away. A grant already bound to the same identifier is left alone: it
+ * carries what the platform last said, and that is fresher than an enrolment.
+ */
+export function noteGrant(id: string, platformServerId: string): Configuration {
+  const config = read();
+  const server = config.servers.find((candidate) => candidate.id === id);
+
+  if (!server || server.grant?.id === platformServerId) {
+    return config;
+  }
+
+  const grant: ServerGrant = {
+    adopted: server.grant?.adopted ?? false,
+    id: platformServerId,
+    keyReady: false,
+    listed: true,
+    opened: server.grant?.opened ?? false,
+    status: "enrolling",
+  };
+
+  return write({
+    ...config,
+    servers: config.servers.map((candidate) =>
+      candidate.id === id ? { ...candidate, grant } : candidate
+    ),
+  });
 }
 
 /**
@@ -221,6 +279,7 @@ export function noteOpened(id: string): Configuration {
   }
 
   return write({
+    ...config,
     active: id,
     servers: config.servers.map((server) =>
       server.id === id && server.grant
@@ -234,18 +293,37 @@ export function activate(id: string): Configuration {
   const config = read();
 
   return config.servers.some((server) => server.id === id)
-    ? write({ active: id, servers: config.servers })
+    ? write({ ...config, active: id })
     : config;
 }
 
+/**
+ * Remove a server from this computer, and have it stay removed.
+ *
+ * A server the platform grants would come back on the next read — the merge has
+ * no way to tell a removal from a first encounter — so its platform id is
+ * recorded. `restore` is the way back, and the only one.
+ */
 export function remove(id: string): Configuration {
   const config = read();
+  const going = config.servers.find((server) => server.id === id);
   const left = removeServer(config.servers, id, paths());
+  const grantId = going?.grant?.id;
 
   return write({
     active: config.active === id ? (left[0]?.id ?? null) : config.active,
+    dismissed: grantId
+      ? [...new Set([...config.dismissed, grantId])]
+      : config.dismissed,
     servers: left,
   });
+}
+
+/** Returns to the list every granted server that had been removed from here. */
+export function restore(): Configuration {
+  const config = read();
+
+  return write({ ...config, dismissed: [] });
 }
 
 /**
@@ -265,10 +343,7 @@ export async function hostKey(id: string): Promise<HostKeyDecision> {
 
   if (decision.status === "first_contact" && observed) {
     const config = read();
-    write({
-      active: config.active,
-      servers: pinFingerprint(config.servers, id, observed),
-    });
+    write({ ...config, servers: pinFingerprint(config.servers, id, observed) });
   }
 
   return decision;
@@ -289,7 +364,7 @@ export async function trustReinstalled(id: string): Promise<Configuration> {
   const config = read();
 
   return write({
-    active: config.active,
+    ...config,
     servers: config.servers.map((s) =>
       s.id === id ? { ...s, hostFingerprint: undefined } : s
     ),

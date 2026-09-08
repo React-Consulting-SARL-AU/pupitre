@@ -2,6 +2,7 @@ package tmux
 
 import (
 	"fmt"
+	"pupitre.studio/agent/internal/i18n"
 	"regexp"
 	"strconv"
 	"strings"
@@ -257,8 +258,8 @@ func Logs(ctx sys.Context, options Options, project string, lines int) ([]string
 
 	raw, err := file.Read(ctx, options.LogPath(project))
 	if err != nil {
-		return nil, protocol.NewError(contract.ErrorProjectNotFound, "aucun journal pour "+project).
-			WithFix("Démarre-le avec project.up : le journal naît au premier démarrage.")
+		return nil, protocol.NewError(contract.ErrorProjectNotFound, i18n.T("tmux.journal.none", project)).
+			WithFix(i18n.T("tmux.journal.none.fix"))
 	}
 
 	return tail(string(raw), lines), nil

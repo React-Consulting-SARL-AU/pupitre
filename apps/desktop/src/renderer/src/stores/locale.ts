@@ -24,6 +24,9 @@ function paint(resolved: Locale): void {
   } catch {
     // No document (tests): the choice still lives in the store.
   }
+
+  // The server replies in whatever language it's told: it goes out on the next hello.
+  window.pupitre?.setLocale?.(resolved);
 }
 
 interface LocaleStore {

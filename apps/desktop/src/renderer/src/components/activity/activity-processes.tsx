@@ -41,11 +41,11 @@ export function ActivityProcesses({
         >
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2">
-              <span className="truncate font-medium text-[12px]">
+              <span className="truncate font-medium text-[13px]">
                 {process.command}
               </span>
               {process.project ? (
-                <span className="shrink-0 rounded-full border border-line-strong px-1.5 py-0.5 font-data text-[10px] text-ink-2">
+                <span className="shrink-0 rounded-full border border-line-strong px-1.5 py-0.5 font-data text-[11px] text-ink-2">
                   {process.project}
                 </span>
               ) : null}
@@ -58,7 +58,7 @@ export function ActivityProcesses({
             </div>
           </div>
 
-          <div className="shrink-0 text-right font-data text-[11px] tabular-nums">
+          <div className="shrink-0 text-right font-data text-[12px] tabular-nums">
             <div
               className={process.cpu > BUSY_CPU ? "text-warn" : "text-ink-2"}
             >

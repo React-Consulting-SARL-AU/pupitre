@@ -1,5 +1,6 @@
 import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { measured } from "@renderer/lib/format";
 import { PageHeader } from "../ui/page-header";
 import {
   type InspectionActions,
@@ -20,8 +21,10 @@ export function OnboardingInspectionResult({
   const machine = [
     `${probe.os} ${probe.version}`.trim(),
     probe.arch,
-    `${probe.ram_mb} Mo`,
-    `${probe.disk_free_gb} Go libres`,
+    `${probe.ram_mb} ${t("format.unit.mb")}`,
+    t("onboarding.inspection.diskFree", {
+      disk: `${measured(probe.disk_free_gb)} ${t("format.unit.gb")}`,
+    }),
   ].join(" · ");
 
   return (

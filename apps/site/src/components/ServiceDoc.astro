@@ -1,6 +1,6 @@
 ---
 import type { ModuleId } from "@pupitre/shared/catalog"
-import { AVAILABILITY_LABELS, CATALOG } from "../content/site/catalog"
+import { CATALOG } from "../content/site/catalog"
 import { MODULE_LABELS } from "../content/site/docs"
 import { MODULE_DOCS } from "../content/site/module-docs"
 import Docs from "../layouts/Docs.astro"
@@ -28,10 +28,6 @@ const doc = MODULE_DOCS[moduleId]
 const facts = [
   { term: MODULE_LABELS.moduleId[locale], value: moduleId },
   { term: MODULE_LABELS.category[locale], value: group.label[locale] },
-  {
-    term: MODULE_LABELS.availability[locale],
-    value: AVAILABILITY_LABELS[entry.availability][locale],
-  },
 ]
 ---
 

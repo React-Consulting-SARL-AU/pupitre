@@ -1,13 +1,12 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Callout } from "@/components/ui/callout"
 import { FieldError } from "@/components/ui/field-error"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useForm } from "@/hooks/use-form"
 import { useTranslations } from "@/hooks/use-locale"
-import { inviteMember } from "@/lib/api/queries"
+import { useOptimisticMutation } from "@/hooks/use-optimistic-mutation"
+import { inviteMember, queryKeys } from "@/lib/api/queries"
 import {
   INVITABLE_ROLES,
   roleDescriptionKey,
@@ -26,20 +25,26 @@ export interface InviteFormProps {
 
 export function InviteForm({ organizationId }: InviteFormProps) {
   const t = useTranslations()
-  const queryClient = useQueryClient()
   const form = useForm<InviteInput, InviteValues>({
     schema: inviteSchema(t),
     defaultValues: { email: "", role: "member" },
   })
-  const invite = useMutation({
-    mutationFn: (values: InviteValues) =>
+  const invite = useOptimisticMutation<InviteValues, void>({
+    mutationFn: (values) =>
       inviteMember(organizationId, {
         email: values.email,
         role: values.role as (typeof INVITABLE_ROLES)[number],
       }),
-    onSuccess: async () => {
+    invalidate: [queryKeys.members(organizationId)],
+    onDone: () => {
       form.reset({ email: "", role: form.getValues("role") })
-      await queryClient.invalidateQueries()
+    },
+    toast: {
+      done: (_data, values) => t("invites.sent", { email: values.email }),
+      failed: () => ({
+        title: t("invites.failed"),
+        fix: t("invites.failedFix"),
+      }),
     },
   })
   const role = form.watch("role")
@@ -76,7 +81,7 @@ export function InviteForm({ organizationId }: InviteFormProps) {
               <button
                 aria-pressed={role === candidate}
                 className={cn(
-                  "h-7 rounded-sm px-3 text-[13px] transition-colors duration-[120ms] ease-[ease]",
+                  "h-7 rounded-sm px-3 text-[13px] transition-fast",
                   "focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2",
                   role === candidate
                     ? "bg-inverse text-inverse-ink"
@@ -94,8 +99,12 @@ export function InviteForm({ organizationId }: InviteFormProps) {
           </div>
         </div>
 
-        <Button disabled={invite.isPending} type="submit" variant="primary">
-          <UserPlus className="size-4" strokeWidth={1.5} />
+        <Button
+          icon={UserPlus}
+          loading={invite.isPending}
+          type="submit"
+          variant="primary"
+        >
           {invite.isPending ? t("invites.sending") : t("invites.send")}
         </Button>
       </div>
@@ -105,16 +114,6 @@ export function InviteForm({ organizationId }: InviteFormProps) {
       </p>
 
       <FieldError>{form.formState.errors.email?.message}</FieldError>
-
-      {invite.isError ? (
-        <Callout
-          fix={t("invites.failedFix")}
-          title={t("invites.failed")}
-          tone="danger"
-        />
-      ) : null}
-
-      {invite.isSuccess ? <Callout title={t("invites.sent")} /> : null}
     </form>
   )
 }

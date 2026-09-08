@@ -1,5 +1,7 @@
 export const CONSENT_KEY = "pupitre_analytics"
 
+export const DEFAULT_POSTHOG_HOST = "https://eu.i.posthog.com"
+
 export const CONSENT_VALUES = ["granted", "denied"] as const
 
 export type Consent = (typeof CONSENT_VALUES)[number]

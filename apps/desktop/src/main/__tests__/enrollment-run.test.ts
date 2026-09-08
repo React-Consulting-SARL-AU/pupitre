@@ -5,11 +5,12 @@ import type { AgentResponse } from "@shared/agent";
 import type { Server } from "@shared/servers";
 import type { Account, Enrollment } from "../account-run";
 import type { AgentPayload } from "../agent-binary";
+import { signedMessage } from "../agent-release";
 import { type EnrollmentDeps, prepareAgent } from "../enrollment-run";
 import type { EnrollInput } from "../platform-client";
 
 /**
- * The order APP-14 fixes: the usage right, then the enrolment, then the binary
+ * The fixed order: the usage right, then the enrolment, then the binary
  * the platform named. A packaged build has nothing to fall back on.
  */
 
@@ -45,17 +46,24 @@ function keyPair() {
   };
 }
 
-function signedRelease(bytes: Uint8Array) {
+/** The signature binds the fingerprint to the published version and architecture, never the bytes alone. */
+function signedRelease(bytes: Uint8Array, arch = "amd64") {
   const { privateKey, publicKey } = keyPair();
+  const version = "1.4.0";
+  const sha256 = createHash("sha256").update(bytes).digest("hex");
 
   return {
     publicKey,
     release: {
       channel: "stable",
-      sha256: createHash("sha256").update(bytes).digest("hex"),
-      signature: sign(null, bytes, privateKey).toString("base64"),
+      sha256,
+      signature: sign(
+        null,
+        signedMessage(version, arch, sha256),
+        privateKey
+      ).toString("base64"),
       url: "https://r2.pupitre.test/pupitred",
-      version: "1.4.0",
+      version,
     },
   };
 }
@@ -76,8 +84,12 @@ function deps({
   bytes: Uint8Array;
   releaseKey: string;
   embedded: () => AgentResponse<AgentPayload>;
-}> = {}): EnrollmentDeps & { enrolled: EnrollInput[] } {
+}> = {}): EnrollmentDeps & {
+  enrolled: EnrollInput[];
+  bound: { serverId: string; platformServerId: string }[];
+} {
   const enrolled: EnrollInput[] = [];
+  const bound: { serverId: string; platformServerId: string }[] = [];
   const account: Pick<Account, "guard" | "state" | "enroll" | "releaseBytes"> =
     {
       enroll: (input) => {
@@ -112,8 +124,11 @@ function deps({
               ok: false,
               error: {
                 code: "entitlement_required",
-                message: "Installer un serveur demande un compte Pupitre.",
-                fix: "Connecte-toi depuis les réglages, ou ouvre la console : https://app.pupitre.test/dashboard",
+                message: "refusal.account.required",
+                phrase: {
+                  id: "refusal.account.required",
+                  values: { console: "https://app.pupitre.test/dashboard" },
+                },
               },
             },
       releaseBytes: () => Promise.resolve({ ok: true, result: bytes }),
@@ -133,7 +148,17 @@ function deps({
         }) satisfies AccountState,
     };
 
-  return { account, build, embedded, enrolled, releaseKey };
+  return {
+    account,
+    bind: (serverId, platformServerId) => {
+      bound.push({ platformServerId, serverId });
+    },
+    bound,
+    build,
+    embedded,
+    enrolled,
+    releaseKey,
+  };
 }
 
 describe("la préparation de l'agent", () => {
@@ -148,7 +173,10 @@ describe("la préparation de l'agent", () => {
       ok: false,
       error: {
         code: "entitlement_required",
-        fix: expect.stringContaining("https://app.pupitre.test/dashboard"),
+        phrase: {
+          id: "refusal.account.required",
+          values: { console: "https://app.pupitre.test/dashboard" },
+        },
       },
     });
   });
@@ -180,6 +208,16 @@ describe("la préparation de l'agent", () => {
         payload: { arch: "amd64", path: "pupitred 1.4.0" },
       },
     });
+  });
+
+  it("écrit sur le serveur local l'identité que la plateforme lui donne", async () => {
+    const ready = deps();
+
+    await prepareAgent(SERVER, "amd64", ready);
+
+    expect(ready.bound).toEqual([
+      { platformServerId: "srv-platform-1", serverId: "srv-local" },
+    ]);
   });
 
   it("refuse un binaire dont la signature ne tient pas", async () => {
@@ -219,7 +257,7 @@ describe("la préparation de l'agent", () => {
 
     expect(answer).toMatchObject({
       ok: false,
-      error: { fix: expect.stringContaining("Publie une version") },
+      error: { phrase: { id: "refusal.release.none" } },
     });
   });
 

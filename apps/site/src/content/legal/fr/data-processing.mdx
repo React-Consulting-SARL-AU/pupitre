@@ -2,57 +2,49 @@
 title: "Traitement des données"
 description: "L’accord de traitement des données pour les organisations qui en ont besoin, et les sous-traitants qu’il nomme."
 locale: fr
-updated: 2026-09-04
+updated: 2026-09-06
 draft: true
 order: 5
 ---
 
-Cette page porte la structure du document. Chaque titre nomme la clause qu’il portera ; la rédaction contraignante est écrite par Pupitre LLC et n’est pas encore publiée.
+import SubProcessors from "../../../components/SubProcessors.astro"
+
+Brouillon de travail. Aucun accord n’est signé aujourd’hui : l’éditeur n’est pas immatriculé et le texte n’a pas été relu par un avocat. Il est publié pour que vous sachiez ce qu’il contiendra.
 
 ## Périmètre
 
-Ce que Pupitre traite pour votre compte, et ce qu’il traite en tant que responsable.
+L’accord couvre les données personnelles que nous traitons pour le compte de votre organisation quand vous utilisez la console et la plateforme : les comptes de vos membres, leurs appareils, et les métadonnées de vos serveurs.
 
-TODO — rédaction définitive à fournir par Pupitre LLC.
+Il ne couvre pas les données qui vivent sur vos serveurs. Nous n’y avons pas accès : pour elles, vous n’êtes pas notre client, vous êtes seul aux commandes.
 
 ## Instructions
 
-Les instructions documentées sur lesquelles nous agissons, et leurs limites.
-
-TODO — rédaction définitive à fournir par Pupitre LLC.
+Nous traitons ces données uniquement pour fournir le service, sur vos instructions documentées, et pour rien d’autre. Nous ne les vendons pas, nous ne les partageons pas, nous n’entraînons aucun modèle avec.
 
 ## Mesures de sécurité
 
-Les mesures techniques et organisationnelles applicables à la plateforme.
-
-TODO — rédaction définitive à fournir par Pupitre LLC.
+Chiffrement en transit et au repos, accès aux systèmes de production limité aux personnes qui en ont besoin et tracé, secrets tenus hors du dépôt, agent distribué en binaire signé, aucune connexion entrante vers vos machines. [Liste complète des mesures techniques et organisationnelles à annexer avant signature.]
 
 ## Sous-traitants
 
-La liste nominative, et comment une modification est annoncée.
+<SubProcessors />
 
-TODO — rédaction définitive à fournir par Pupitre LLC.
+Vous êtes prévenu par email avant l’ajout d’un sous-traitant, et vous pouvez y objecter.
 
 ## Transferts
 
-Où les données sont traitées et quel mécanisme couvre un transfert.
+L’éditeur sera une société américaine et la plateforme sera hébergée aux États-Unis : les données de votre organisation y seront traitées, comme celles que Stripe et GitHub traitent déjà. La base de données vit encore en région européenne aujourd’hui ; elle est migrée avant que le service accueille son premier client.
 
-TODO — rédaction définitive à fournir par Pupitre LLC.
+Pour une organisation établie dans l’Union européenne, le transfert s’appuiera sur les clauses contractuelles types et sur les garanties publiées par chaque sous-traitant. [Références exactes des clauses et analyse d’impact du transfert à annexer avant signature.]
 
 ## Assistance et audits
 
-Comment nous aidons face à la demande d’une personne, et à quoi ressemble un audit.
-
-TODO — rédaction définitive à fournir par Pupitre LLC.
+Nous vous aidons à répondre aux demandes des personnes concernées et aux obligations qui vous incombent, et nous vous prévenons sans délai injustifié d’une violation de données qui vous touche. Les documents attestant nos mesures vous sont fournis sur demande. [Modalités et fréquence des audits à arrêter avant signature.]
 
 ## Suppression
 
-Ce qui est supprimé à la fin du contrat, et quand.
-
-TODO — rédaction définitive à fournir par Pupitre LLC.
+À la fin du contrat, les données de votre organisation sont supprimées dans les trente jours, sauf ce que le droit comptable nous impose de conserver. Une copie de vos données vous est remise sur demande avant la suppression.
 
 ## Obtenir un exemplaire signé
 
-Comment obtenir un exemplaire contresigné pour vos archives.
-
-TODO — rédaction définitive à fournir par Pupitre LLC.
+À l’ouverture du service, la demande se fera depuis la console et l’accord sera signé par voie électronique. En attendant, écrivez à `legal@pupitre.studio` : nous ne pouvons rien signer avant l’immatriculation, mais nous vous dirons où en est le texte.

@@ -85,7 +85,7 @@ func download(ctx *modules.Context, found release) error {
 	}
 
 	if !file.Exists(ctx, dist) {
-		return fmt.Errorf("le backend %s est absent de %s après extraction", found.version, dist)
+		return fmt.Errorf("the %s backend is missing from %s after extraction", found.version, dist)
 	}
 
 	return nil

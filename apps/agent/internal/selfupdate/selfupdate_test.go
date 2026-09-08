@@ -53,7 +53,7 @@ func newBench(t *testing.T) *bench {
 
 	public, private, err := ed25519.GenerateKey(nil)
 	if err != nil {
-		t.Fatalf("clé de test : %v", err)
+		t.Fatalf("test key: %v", err)
 	}
 
 	fake := modtest.NewFakeSys()
@@ -178,7 +178,7 @@ func codeOf(t *testing.T, err error) contract.ErrorCode {
 
 	failure, ok := err.(*protocol.Error)
 	if !ok {
-		t.Fatalf("erreur de protocole attendue, reçu %T : %v", err, err)
+		t.Fatalf("expected a protocol error, got %T: %v", err, err)
 	}
 
 	return failure.Code
@@ -193,7 +193,7 @@ func TestUpgradeInstallsASignedBinaryAndRestartsTheUnit(t *testing.T) {
 	}
 
 	if result.PreviousVersion != currentAgent || result.Version != nextAgent || !result.Restarting {
-		t.Fatalf("résultat = %+v", result)
+		t.Fatalf("result = %+v", result)
 	}
 
 	if string(b.fake.Files[binaryPath]) != string(newBinary) {
@@ -201,7 +201,7 @@ func TestUpgradeInstallsASignedBinaryAndRestartsTheUnit(t *testing.T) {
 	}
 
 	if b.fake.Restarts[unit] != 1 {
-		t.Fatalf("redémarrages de %s : %d", unit, b.fake.Restarts[unit])
+		t.Fatalf("restarts of %s: %d", unit, b.fake.Restarts[unit])
 	}
 }
 
@@ -209,7 +209,7 @@ func TestUpgradeRefusesABinaryWhoseSignatureDoesNotMatch(t *testing.T) {
 	b := newBench(t)
 	_, other, err := ed25519.GenerateKey(nil)
 	if err != nil {
-		t.Fatalf("clé de test : %v", err)
+		t.Fatalf("test key: %v", err)
 	}
 	b.private = other
 
@@ -294,11 +294,11 @@ func TestUpgradeRestoresThePreviousBinaryWhenTheNewOneStaysSilent(t *testing.T) 
 	}
 
 	if b.fake.Restarts[unit] != 2 {
-		t.Fatalf("redémarrages de %s : %d", unit, b.fake.Restarts[unit])
+		t.Fatalf("restarts of %s: %d", unit, b.fake.Restarts[unit])
 	}
 
 	if !strings.Contains(err.Error(), currentAgent) {
-		t.Fatalf("l'erreur ne dit pas la version rétablie : %v", err)
+		t.Fatalf("the error does not name the restored version: %v", err)
 	}
 }
 
@@ -340,7 +340,7 @@ func TestUpgradeLeavesTheBinaryAloneWhenItIsAlreadyTheVersionAsked(t *testing.T)
 	}
 
 	if result.Restarting || b.fake.Restarts[unit] != 0 {
-		t.Fatalf("résultat = %+v, redémarrages = %d", result, b.fake.Restarts[unit])
+		t.Fatalf("result = %+v, restarts = %d", result, b.fake.Restarts[unit])
 	}
 }
 
@@ -354,7 +354,7 @@ func TestUpgradeSkipsTheRestartWhenTheUnitIsAbsent(t *testing.T) {
 	}
 
 	if result.Restarting || string(b.fake.Files[binaryPath]) != string(newBinary) {
-		t.Fatalf("résultat = %+v", result)
+		t.Fatalf("result = %+v", result)
 	}
 }
 
@@ -385,7 +385,7 @@ func TestUpgradeRefusesWithoutAServerToken(t *testing.T) {
 	}
 
 	if len(b.requested) != 0 {
-		t.Fatalf("la plateforme a été appelée sans jeton : %v", b.requested)
+		t.Fatalf("the platform was called without a token: %v", b.requested)
 	}
 
 	assertUntouched(t, b, before)
@@ -400,7 +400,7 @@ func TestUpgradeWithoutAVersionTakesTheTargetOfThePlatform(t *testing.T) {
 	}
 
 	if result.Version != nextAgent {
-		t.Fatalf("résultat = %+v", result)
+		t.Fatalf("result = %+v", result)
 	}
 
 	if len(b.requested) != 3 || b.requested[0] != "/agent/state" || b.requested[2] != "/agent/release/"+nextAgent {
@@ -418,11 +418,11 @@ func TestUpgradeTakesTheFingerprintFromThePlatformWithoutASignatureParameter(t *
 	}
 
 	if result.Version != nextAgent || string(b.fake.Files[binaryPath]) != string(newBinary) {
-		t.Fatalf("résultat = %+v, binaire = %q", result, b.fake.Files[binaryPath])
+		t.Fatalf("result = %+v, binary = %q", result, b.fake.Files[binaryPath])
 	}
 
 	if !contains(b.requested, "/agent/release/"+nextAgent+"/metadata") {
-		t.Fatalf("la métadonnée de la plateforme n'a pas été lue : %v", b.requested)
+		t.Fatalf("the platform metadata was not read: %v", b.requested)
 	}
 }
 
@@ -452,7 +452,7 @@ func TestUpgradeRefusesAVersionOlderThanTheRunningOne(t *testing.T) {
 	}
 
 	if contains(b.requested, "/agent/release/"+olderAgent) {
-		t.Fatalf("le binaire a été téléchargé malgré le refus : %v", b.requested)
+		t.Fatalf("the binary was downloaded despite the refusal: %v", b.requested)
 	}
 
 	assertUntouched(t, b, before)
@@ -471,7 +471,7 @@ func TestUpgradeRefusesAVersionBelowTheFloorThePlatformRemembers(t *testing.T) {
 
 	failure, _ := err.(*protocol.Error)
 	if failure.Fix == "" || !strings.Contains(failure.Fix, "allow_downgrade") {
-		t.Fatalf("le refus ne dit pas comment passer outre : %+v", failure)
+		t.Fatalf("the refusal does not say how to override it: %+v", failure)
 	}
 
 	assertUntouched(t, b, before)
@@ -516,7 +516,7 @@ func TestUpgradeFallsBackOnTheSignatureOfTheParametersWhenTheMetadataIsUnreachab
 	}
 
 	if result.Version != nextAgent || string(b.fake.Files[binaryPath]) != string(newBinary) {
-		t.Fatalf("résultat = %+v, binaire = %q", result, b.fake.Files[binaryPath])
+		t.Fatalf("result = %+v, binary = %q", result, b.fake.Files[binaryPath])
 	}
 }
 
@@ -559,17 +559,17 @@ func assertUntouched(t *testing.T, b *bench, before map[string]string) {
 
 	after := snapshot(b.fake)
 	if len(after) != len(before) {
-		t.Fatalf("fichiers avant %v, après %v", keys(before), keys(after))
+		t.Fatalf("files before %v, after %v", keys(before), keys(after))
 	}
 
 	for path, content := range before {
 		if after[path] != content {
-			t.Fatalf("%s a changé : %q", path, after[path])
+			t.Fatalf("%s changed: %q", path, after[path])
 		}
 	}
 
 	if b.fake.Restarts[unit] != 0 {
-		t.Fatalf("redémarrages de %s : %d", unit, b.fake.Restarts[unit])
+		t.Fatalf("restarts of %s: %d", unit, b.fake.Restarts[unit])
 	}
 }
 

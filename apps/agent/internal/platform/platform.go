@@ -18,15 +18,18 @@ const (
 	DefaultTokenPath = "/etc/pupitre/server.token"
 	DefaultMaxBytes  = 128 << 20
 	DefaultTimeout   = 5 * time.Minute
-	maxRedirects     = 5
-	maxDetailBytes   = 8 << 10
+	// Two exchanges fit under the timeout the app grants a command: the agent must answer before the app gives up.
+	DefaultControlTimeout = 20 * time.Second
+	maxRedirects          = 5
+	maxDetailBytes        = 8 << 10
 )
 
 type Client struct {
-	BaseURL  string
-	Token    string
-	HTTP     *http.Client
-	MaxBytes int64
+	BaseURL        string
+	Token          string
+	HTTP           *http.Client
+	MaxBytes       int64
+	ControlTimeout time.Duration
 }
 
 type Error struct {
@@ -46,7 +49,7 @@ func (e *Error) Error() string {
 		return fmt.Sprintf("%s : %s (%d)", e.Path, e.Message, e.Status)
 	}
 
-	return fmt.Sprintf("%s : la plateforme a répondu %d", e.Path, e.Status)
+	return fmt.Sprintf("%s : the platform answered %d", e.Path, e.Status)
 }
 
 func (e *Error) Unwrap() error {
@@ -100,7 +103,7 @@ type ReleaseInfo struct {
 
 // The binary of a version, for the architecture the platform knows this server by.
 func (c Client) Release(version string) ([]byte, error) {
-	return c.get("/agent/release/" + url.PathEscape(version))
+	return c.do(http.MethodGet, "/agent/release/"+url.PathEscape(version), nil, true, DefaultTimeout)
 }
 
 func (c Client) ReleaseMetadata(version string) (ReleaseInfo, error) {
@@ -113,11 +116,11 @@ func (c Client) ReleaseMetadata(version string) (ReleaseInfo, error) {
 
 	var info ReleaseInfo
 	if err := json.Unmarshal(raw, &info); err != nil {
-		return ReleaseInfo{}, &Error{Path: path, Cause: errors.New("réponse illisible")}
+		return ReleaseInfo{}, &Error{Path: path, Cause: errors.New("unreadable answer")}
 	}
 
 	if info.SHA256 == "" || info.Signature == "" {
-		return ReleaseInfo{}, &Error{Path: path, Cause: errors.New("réponse sans empreinte ni signature")}
+		return ReleaseInfo{}, &Error{Path: path, Cause: errors.New("answer without hash or signature")}
 	}
 
 	return info, nil
@@ -131,16 +134,10 @@ func (c Client) State() (State, error) {
 
 	var state State
 	if err := json.Unmarshal(raw, &state); err != nil {
-		return State{}, &Error{Path: "/agent/state", Cause: errors.New("réponse illisible")}
+		return State{}, &Error{Path: "/agent/state", Cause: errors.New("unreadable answer")}
 	}
 
 	return state, nil
-}
-
-func (c Client) TargetVersion() (string, error) {
-	state, err := c.State()
-
-	return state.TargetVersion, err
 }
 
 // The only call made without a server token: it is the one that hands one out.
@@ -150,7 +147,7 @@ func (c Client) Exchange(enrollment Enrollment) (string, error) {
 		return "", &Error{Path: "/agent/exchange", Cause: err}
 	}
 
-	raw, err := c.do(http.MethodPost, "/agent/exchange", body, false)
+	raw, err := c.do(http.MethodPost, "/agent/exchange", body, false, c.control())
 	if err != nil {
 		return "", err
 	}
@@ -159,7 +156,7 @@ func (c Client) Exchange(enrollment Enrollment) (string, error) {
 		ServerToken string `json:"server_token"`
 	}
 	if err := json.Unmarshal(raw, &answer); err != nil || answer.ServerToken == "" {
-		return "", &Error{Path: "/agent/exchange", Cause: errors.New("réponse sans jeton de serveur")}
+		return "", &Error{Path: "/agent/exchange", Cause: errors.New("answer without a server token")}
 	}
 
 	return answer.ServerToken, nil
@@ -178,23 +175,23 @@ func (c Client) Beat(beat Heartbeat) error {
 		return &Error{Path: "/agent/heartbeat", Cause: err}
 	}
 
-	_, err = c.do(http.MethodPost, "/agent/heartbeat", body, true)
+	_, err = c.do(http.MethodPost, "/agent/heartbeat", body, true, c.control())
 
 	return err
 }
 
 func (c Client) get(path string) ([]byte, error) {
-	return c.do(http.MethodGet, path, nil, true)
+	return c.do(http.MethodGet, path, nil, true, c.control())
 }
 
-func (c Client) do(method, path string, body []byte, authenticated bool) ([]byte, error) {
+func (c Client) do(method, path string, body []byte, authenticated bool, timeout time.Duration) ([]byte, error) {
 	base, err := c.base()
 	if err != nil {
 		return nil, &Error{Path: path, Cause: err}
 	}
 
 	if authenticated && c.Token == "" {
-		return nil, &Error{Path: path, Cause: errors.New("aucun jeton de serveur")}
+		return nil, &Error{Path: path, Cause: errors.New("no server token")}
 	}
 
 	var payload io.Reader
@@ -215,7 +212,7 @@ func (c Client) do(method, path string, body []byte, authenticated bool) ([]byte
 	}
 	request.Header.Set("Accept", "*/*")
 
-	response, err := c.client().Do(request)
+	response, err := c.client(timeout).Do(request)
 	if err != nil {
 		return nil, &Error{Path: path, Cause: err}
 	}
@@ -232,7 +229,7 @@ func (c Client) do(method, path string, body []byte, authenticated bool) ([]byte
 	}
 
 	if int64(len(answer)) > limit {
-		return nil, &Error{Path: path, Cause: fmt.Errorf("réponse au-delà de %d octets", limit)}
+		return nil, &Error{Path: path, Cause: fmt.Errorf("answer beyond %d bytes", limit)}
 	}
 
 	return answer, nil
@@ -261,8 +258,8 @@ func refusal(path string, response *http.Response) *Error {
 	return failure
 }
 
-func (c Client) client() *http.Client {
-	client := &http.Client{Timeout: DefaultTimeout}
+func (c Client) client(timeout time.Duration) *http.Client {
+	client := &http.Client{Timeout: timeout}
 	if c.HTTP != nil {
 		copied := *c.HTTP
 		client = &copied
@@ -275,12 +272,20 @@ func (c Client) client() *http.Client {
 // The server token stops at the platform: what the redirect points at is a storage URL already signed for this download.
 func dropToken(request *http.Request, via []*http.Request) error {
 	if len(via) >= maxRedirects {
-		return errors.New("trop de redirections")
+		return errors.New("too many redirects")
 	}
 
 	request.Header.Del("Authorization")
 
 	return nil
+}
+
+func (c Client) control() time.Duration {
+	if c.ControlTimeout > 0 {
+		return c.ControlTimeout
+	}
+
+	return DefaultControlTimeout
 }
 
 func (c Client) maxBytes() int64 {
@@ -300,11 +305,11 @@ func (c Client) base() (string, error) {
 
 	parsed, err := url.Parse(raw)
 	if err != nil || parsed.Host == "" {
-		return "", fmt.Errorf("adresse de plateforme illisible : %s", raw)
+		return "", fmt.Errorf("unreadable platform address: %s", raw)
 	}
 
 	if parsed.Scheme != "https" && !loopback(parsed.Hostname()) {
-		return "", fmt.Errorf("adresse de plateforme non chiffrée : %s", raw)
+		return "", fmt.Errorf("plaintext platform address: %s", raw)
 	}
 
 	return raw, nil

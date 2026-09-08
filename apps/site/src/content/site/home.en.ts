@@ -21,6 +21,17 @@ export const homeEn: HomeContent = {
     note: "And a score of others, to add or remove whenever you like.",
     link: "See everything it installs",
   },
+  name: {
+    label: "The name",
+    word: "pupitre",
+    pronunciation: "py.pitʁ",
+    grammar: "French, masculine noun",
+    senses: [
+      "The school desk. The sloping wooden lid you lifted to find your books, two to a bench, at the back of a classroom.",
+      "By extension, the stand a conductor reads from, and the console an engineer sits at.",
+    ],
+    note: "We gave one to your agents. Yours is the laptop you have just closed.",
+  },
   steps: {
     label: "How it works",
     title: "Six steps, and you only walk them once",

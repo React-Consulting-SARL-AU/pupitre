@@ -9,7 +9,7 @@ export const TWO_FACTOR_CHALLENGE_TTL_SECONDS = 600
 const TWO_FACTOR_COOKIE_NAME = "two_factor"
 const IDENTIFIER_LENGTH = 20
 
-/** Le greffon natif ne défend que ses connexions par mot de passe, que Pupitre n'a pas ; une passkey est déjà un second facteur. */
+/** The built-in plugin only guards password sign-ins, which Pupitre doesn't have; a passkey is already a second factor. */
 const CHALLENGED_PATHS = new Set(["/magic-link/verify", "/callback/:id"])
 
 const DEFAULT_REDIRECT = "/dashboard/servers"

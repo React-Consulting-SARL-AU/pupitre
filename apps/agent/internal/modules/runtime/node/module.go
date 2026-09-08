@@ -1,6 +1,7 @@
 package node
 
 import (
+	"pupitre.studio/agent/internal/i18n"
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
@@ -64,7 +65,7 @@ func (Module) Install(ctx *modules.Context) error {
 		}
 
 		if _, err := user.Run(ctx, shell.User, "corepack", "enable", "pnpm"); err != nil {
-			ctx.Warn("corepack indisponible, pnpm gardera sa version globale : " + err.Error())
+			ctx.Warn(i18n.T("warn.node.corepack.missing", err.Error()))
 		}
 
 		return modules.Done, nil

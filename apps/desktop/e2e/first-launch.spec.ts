@@ -35,7 +35,7 @@ const EIGHTH_DAY = {
     code: "entitlement_required",
     fix: `Reconnecte cet appareil, ou vérifie l'état du compte : ${CONSOLE_URL}`,
     message:
-      "La plateforme n'a pas répondu depuis plus de sept jours : le droit d'usage a expiré.",
+      "La console n'a pas répondu depuis plus de sept jours : le droit d'usage a expiré.",
   },
   usage: {
     consoleUrl: CONSOLE_URL,
@@ -91,8 +91,8 @@ test.describe("premier lancement", () => {
     await expect(page.getByRole("button", { name: "Projets" })).toHaveCount(0);
     await expect(page.getByText("atelier")).toHaveCount(0);
 
-    // Les réglages restent joignables : c'est là qu'on répare une adresse de
-    // plateforme, un proxy ou le compte lui-même.
+    // Settings stay reachable: it's where a console address, a proxy, or
+    // the account itself gets repaired.
     await page.getByRole("button", { name: "Ouvrir les réglages" }).click();
 
     await expect(page.getByRole("heading", { name: "Réglages" })).toBeVisible();

@@ -10,6 +10,7 @@ export const install = {
     "install.eyebrow": "Installation",
     "install.thisServer": "This server",
     "install.rereadReport": "Reread the report",
+    "install.retry": "Try again",
     "install.sending.detail":
       "pupitred linux-{arch} goes out on the channel and installs into /usr/local/bin.",
     "install.sending.note":
@@ -24,6 +25,8 @@ export const install = {
     "install.stepStatus.ok": "succeeded",
     "install.stepStatus.skip": "skipped",
     "install.stepStatus.fail": "failed",
+    "install.journal.lines.one": "Journal — 1 line",
+    "install.journal.lines.other": "Journal — {count} lines",
     "install.journal.sending": "sending to the server",
     "install.journal.installed": "installed",
   },
@@ -38,6 +41,7 @@ export const install = {
     "install.eyebrow": "Installation",
     "install.thisServer": "Ce serveur",
     "install.rereadReport": "Relire le rapport",
+    "install.retry": "Réessayer",
     "install.sending.detail":
       "pupitred linux-{arch} part sur le canal et s'installe dans /usr/local/bin.",
     "install.sending.note":
@@ -52,6 +56,8 @@ export const install = {
     "install.stepStatus.ok": "réussie",
     "install.stepStatus.skip": "ignorée",
     "install.stepStatus.fail": "en échec",
+    "install.journal.lines.one": "Journal — 1 ligne",
+    "install.journal.lines.other": "Journal — {count} lignes",
     "install.journal.sending": "envoi sur le serveur",
     "install.journal.installed": "installé",
   },

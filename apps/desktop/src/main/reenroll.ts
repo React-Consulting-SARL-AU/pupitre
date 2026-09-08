@@ -7,7 +7,8 @@ import { enrollInput } from "./enrollment-run";
 import { inspect } from "./inspection";
 import { enrollmentGrant } from "./install";
 import { runReenroll } from "./reenroll-run";
-import { byId } from "./servers";
+import { refusalOf, refuseWith } from "./refusal";
+import { byId, noteGrant } from "./servers";
 
 /**
  * The repair of a restricted server, seen from the main process.
@@ -17,39 +18,45 @@ import { byId } from "./servers";
  * `enroll`, refusal included, as it arrived.
  */
 
-function refuse(message: string, fix: string): AgentResponse<never> {
-  return { ok: false, error: { code: "bad_request", fix, message } };
+function refuse(
+  id: string,
+  values?: Record<string, string | number>
+): AgentResponse<never> {
+  return refuseWith("bad_request", id, values);
 }
 
 function reenroll(serverId: unknown): Promise<AgentResponse<EnrollResult>> {
   const server = typeof serverId === "string" ? byId(serverId) : null;
 
   if (!server) {
-    return Promise.resolve(
-      refuse(
-        "Ce serveur n'est plus dans la liste.",
-        "Choisis un serveur dans les réglages."
-      )
-    );
+    return Promise.resolve(refuse("refusal.server.unknown"));
   }
 
   return runReenroll(server.id, {
     client: agentClient,
-    enroll: (arch) => {
+    enroll: async (arch) => {
       const device = account.state().device;
 
       // Without a device the platform has no one to sign an enrolment for, and
       // asking anyway would trade a clear refusal for an obscure one.
-      return device
-        ? account.enroll(enrollInput(server, arch, device.id))
-        : Promise.resolve({
-            ok: false,
-            error: {
-              code: "entitlement_required",
-              message: "Cet appareil n'est connecté à aucun compte Pupitre.",
-              fix: "Connecte-toi depuis les réglages, puis relance la réparation.",
-            },
-          });
+      if (!device) {
+        return {
+          ok: false,
+          error: {
+            ...refusalOf("bad_request", "refusal.device.none"),
+          },
+        };
+      }
+
+      const enrolled = await account.enroll(
+        enrollInput(server, arch, device.id)
+      );
+
+      if (enrolled.ok) {
+        noteGrant(server.id, enrolled.result.serverId);
+      }
+
+      return enrolled;
     },
     grant: enrollmentGrant,
     guard: () => account.guard(),

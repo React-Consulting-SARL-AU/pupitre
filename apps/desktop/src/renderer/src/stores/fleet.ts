@@ -1,6 +1,11 @@
 import type { AgentError } from "@shared/agent";
-import type { FleetView, Server, ServerGrant } from "@shared/servers";
-import { grantPending } from "@shared/servers";
+import type {
+  FleetServer,
+  FleetView,
+  Server,
+  ServerGrant,
+} from "@shared/servers";
+import { grantGone, grantPending } from "@shared/servers";
 import { create } from "zustand";
 import { useOnboarding } from "./onboarding";
 import { useServers } from "./servers";
@@ -34,20 +39,71 @@ export interface GrantedServer extends Server {
   grant: ServerGrant;
 }
 
-/** The servers of the local list the platform has named, and only those. */
+/**
+ * The servers of the local list the platform grants, and only those.
+ *
+ * An attribution the platform has let go is not one: the entry that carried it
+ * was typed here, so it keeps its place in the list below — but this panel
+ * says what the organization gives, and it no longer gives that.
+ */
 export function grantedServers(state: FleetState): GrantedServer[] {
-  return (
-    fleetView(state)?.config.servers.filter((server): server is GrantedServer =>
-      Boolean(server.grant)
-    ) ?? []
+  const servers = fleetView(state)?.config.servers ?? [];
+
+  return servers.filter((server): server is GrantedServer =>
+    Boolean(server.grant && !grantGone(server.grant))
   );
+}
+
+export interface FleetGroup {
+  id: string;
+  name: string;
+  servers: GrantedServer[];
+}
+
+/**
+ * The granted servers, gathered under the organization that carries each.
+ *
+ * A member of one organization sees one group and no heading; a member of
+ * several sees where every machine comes from without opening the console. A
+ * server granted before the platform said so keeps its place, unnamed.
+ */
+export function fleetGroups(state: FleetState): FleetGroup[] {
+  const groups: FleetGroup[] = [];
+
+  for (const server of grantedServers(state)) {
+    const organization = server.grant.organization;
+    const id = organization?.id ?? "";
+    const held = groups.find((group) => group.id === id);
+
+    if (held) {
+      held.servers.push(server);
+
+      continue;
+    }
+
+    groups.push({ id, name: organization?.name ?? "", servers: [server] });
+  }
+
+  return groups;
+}
+
+/**
+ * Granted servers that were removed from this computer.
+ *
+ * The platform still grants them; it is the local list that hides them. The
+ * panel gives their count and offers the way back, otherwise an accidental
+ * removal would have none.
+ */
+export function dismissedGrants(state: FleetState): FleetServer[] {
+  const view = fleetView(state);
+  const dismissed = new Set(view?.config.dismissed ?? []);
+
+  return view?.granted.filter((server) => dismissed.has(server.id)) ?? [];
 }
 
 /** Granted, but with no address to reach: the app could not adopt them. */
 export function unreachableGrants(state: FleetState): number {
-  const view = fleetView(state);
-
-  return view ? view.granted.length - grantedServers(state).length : 0;
+  return fleetView(state)?.granted.filter((server) => !server.host).length ?? 0;
 }
 
 interface FleetStore {
@@ -56,6 +112,7 @@ interface FleetStore {
 
   read: () => Promise<void>;
   open: (serverId: string) => Promise<void>;
+  restore: () => Promise<void>;
   forgetOpening: () => void;
 }
 
@@ -118,6 +175,17 @@ export const useFleet = create<FleetStore>((set, get) => ({
     if (first) {
       useOnboarding.getState().personalise(serverId);
     }
+  },
+
+  async restore() {
+    const answer = await window.pupitre.restoreGrantedServers();
+
+    if (!answer.ok) {
+      return;
+    }
+
+    await useServers.getState().load();
+    await get().read();
   },
 
   forgetOpening() {

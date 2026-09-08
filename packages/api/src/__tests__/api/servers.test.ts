@@ -28,6 +28,7 @@ interface ServerBody {
   arch: string
   status: string
   stale: boolean
+  decommission_at: string | null
   agent_version: string | null
   target_version: string | null
   host_fingerprint: string | null
@@ -349,6 +350,59 @@ describe("POST /servers/enroll", () => {
     expect(servers[0]?.status).toBe("enrolling")
     expect(servers[0]?.sshUser).toBe("ops")
     expect(servers[0]?.serverTokenHash).toBeNull()
+  })
+
+  it("leaves a working server its token until the exchange gives it another", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { members } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
+    const [owner] = members
+    const device = await addDevice(owner, "MacBook", ED25519_KEY)
+    const deviceId = device.json.data.id
+    const first = await enroll(owner, deviceId, "vps.test")
+    const held = await exchange(first.json.enrollment_token)
+
+    // The second enrollment isn't followed by an exchange: sending the binary
+    // failed, the machine keeps the token it has, and the row stays standing —
+    // otherwise ExpireEnrollments would revoke it an hour later.
+    const again = await enroll(owner, deviceId, "vps.test")
+    const still = await apiRequest("/agent/state", {
+      bearer: held.json.server_token,
+    })
+    const server = await prisma.server.findUniqueOrThrow({
+      where: { id: first.json.server_id },
+    })
+
+    expect(again.status).toBe(201)
+    expect(still.status).toBe(200)
+    expect(server.status).toBe("active")
+    expect(server.serverTokenHash).not.toBeNull()
+
+    const exchanged = await exchange(again.json.enrollment_token)
+    const replaced = await apiRequest("/agent/state", {
+      bearer: exchanged.json.server_token,
+    })
+
+    expect(exchanged.status).toBe(200)
+    expect(replaced.status).toBe(200)
+  })
+
+  it("refuses a second exchange of the same enrolment token", async () => {
+    const { members } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
+    const [owner] = members
+    const device = await addDevice(owner, "MacBook", ED25519_KEY)
+    const enrolled = await enroll(owner, device.json.data.id, "vps.test")
+
+    const first = await exchange(enrolled.json.enrollment_token)
+    const second = await exchange(enrolled.json.enrollment_token)
+
+    expect(first.status).toBe(200)
+    expect(second.status).toBe(409)
   })
 
   it("hands a suspended server a token that works again", async () => {
@@ -767,6 +821,93 @@ describe("DELETE /servers/:id", () => {
 
     expect(event.targetId).toBe(serverId)
     expect(event.actorUserId).toBe(admin.user.id)
+  })
+
+  it("purges the server on a second deletion, without pushing the deadline", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { members } = await createOrganizationWithMembers({
+      roles: ["owner", "admin"],
+      subscription: {},
+    })
+    const [owner, admin] = members
+    const { serverId } = await enrolledServer(owner, "vps.test")
+
+    const first = await apiRequest(`/servers/${serverId}`, {
+      method: "DELETE",
+      session: admin,
+    })
+
+    expect(first.status).toBe(204)
+
+    const revoked = await prisma.server.findUniqueOrThrow({
+      where: { id: serverId },
+    })
+    const deadline = revoked.decommissionAt?.getTime() ?? 0
+
+    const second = await apiRequest(`/servers/${serverId}`, {
+      method: "DELETE",
+      session: admin,
+    })
+
+    expect(second.status).toBe(204)
+    expect(
+      await prisma.server.findUnique({ where: { id: serverId } })
+    ).toBeNull()
+
+    // The second click erases, it doesn't push back the deadline: no row
+    // survives with a later deadline than the first.
+    expect(deadline).toBeGreaterThan(0)
+
+    const purged = await prisma.event.findFirstOrThrow({
+      where: { action: "server.purged" },
+    })
+
+    expect(purged.targetId).toBe(serverId)
+    expect(purged.actorUserId).toBe(admin.user.id)
+  })
+
+  it("answers 404 once the server has been purged", async () => {
+    const { members } = await createOrganizationWithMembers({
+      roles: ["owner", "admin"],
+      subscription: {},
+    })
+    const [owner, admin] = members
+    const { serverId } = await enrolledServer(owner, "vps.test")
+
+    for (const expected of [204, 204, 404]) {
+      const response = await apiRequest(`/servers/${serverId}`, {
+        method: "DELETE",
+        session: admin,
+      })
+
+      expect(response.status).toBe(expected)
+    }
+  })
+
+  it("carries the decommission date in the server it lists", async () => {
+    const { members } = await createOrganizationWithMembers({
+      roles: ["owner", "admin"],
+      subscription: {},
+    })
+    const [owner, admin] = members
+    const { serverId } = await enrolledServer(owner, "vps.test")
+
+    const before = await apiRequest<{ data: ServerBody[] }>("/servers", {
+      session: admin,
+    })
+
+    expect(before.json.data[0].decommission_at).toBeNull()
+
+    await apiRequest(`/servers/${serverId}`, {
+      method: "DELETE",
+      session: admin,
+    })
+
+    const after = await apiRequest<{ data: ServerBody[] }>("/servers", {
+      session: admin,
+    })
+
+    expect(after.json.data[0].decommission_at).not.toBeNull()
   })
 
   it("refuses a server of another organization", async () => {

@@ -38,7 +38,7 @@ export function DashboardStat({
       <p className="mt-1.5 font-semibold text-ink text-xl tabular-nums tracking-tight">
         {value}
       </p>
-      <p className="font-data text-[11px] text-ink-3">{detail}</p>
+      <p className="font-data text-[12px] text-ink-3">{detail}</p>
       {share === undefined ? null : <Gauge alert={alert} share={share} />}
     </div>
   );

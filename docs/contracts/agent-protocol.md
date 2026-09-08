@@ -34,7 +34,7 @@ Le canal est une session SSH ouverte par l'app avec la clé du client, qui lance
 } }
 ```
 
-Un seul remède existe aujourd'hui : `port_taken`, rendu par `project.add` quand un projet déclaré tient déjà le port demandé. `port_free` est le premier port libre du registre à partir de celui-là. L'app applique cette valeur au lieu d'extraire un entier d'une phrase française — une formulation change, un champ non.
+Deux remèdes existent. `invalid_fields` accompagne `invalid_config` et porte les `FieldProblem` de la configuration refusée, un par champ, si bien que l'écran marque les champs au lieu d'imprimer une phrase. `port_taken` est rendu par `project.add` quand un projet déclaré tient déjà le port demandé. `port_free` est le premier port libre du registre à partir de celui-là. L'app applique cette valeur au lieu d'extraire un entier d'une phrase française — une formulation change, un champ non.
 
 `remedy` est optionnel et ne remplace jamais `fix` : une erreur dont le remède ne se résume pas à une valeur n'en porte pas.
 
@@ -44,7 +44,7 @@ Un seul remède existe aujourd'hui : `port_taken`, rendu par `project.add` quand
 
 | Commande | Paramètres | Résultat |
 | --- | --- | --- |
-| `hello` | `{ app_version, protocol }` | `{ agent_version, protocol, server_id?, entitlement: "valid" \| "grace" \| "restricted" \| "dev", capabilities[] }`. Un `protocol` incompatible renvoie `protocol_mismatch` avec la version attendue |
+| `hello` | `{ app_version, protocol, locale? }` | `{ agent_version, protocol, server_id?, entitlement: "valid" \| "grace" \| "restricted" \| "dev", capabilities[] }`. Un `protocol` incompatible renvoie `protocol_mismatch` avec la version attendue. `locale` vaut `fr` ou `en` — les langues que le produit sert — et vaut pour toute la session : l'agent répond dans cette langue quand il la connaît, dans la sienne sinon. Jamais une erreur, jamais un champ vide. Un agent d'une version antérieure ignore le champ et répond comme avant ; la version de protocole ne bouge donc pas |
 | `ping` | — | `{ ts }` |
 
 ### Inspection et installation
@@ -67,10 +67,12 @@ Un seul remède existe aujourd'hui : `port_taken`, rendu par `project.add` quand
 | `reasons[]` | `string[]` | ce qui a été observé |
 | `fixes[]` | `string[]` | comment y remédier, un fix par raison quand `kind` vaut `incompatible` ou `occupied` ; vide sur une machine `bare` ou un agent `managed` à jour |
 | `catalog` | — | `{ modules: Manifest[], presets: Preset[] }` d'après [service-catalog.md](./service-catalog.md) ; un `Preset` porte son `id`, son `name` affichable et ses `modules`, si bien que l'app n'a rien à traduire |
-| `install` | `{ modules[], config: Record<moduleId, values>, secrets_stdin: true }` | événements `step` `{ module, step, status: "start" \| "ok" \| "skip" \| "fail", ms, replay? }` puis `{ failed[], warned[], report_path }`. Les secrets sont lus sur un flux séparé, jamais dans `params` |
+| `install` | `{ modules[], config: Record<moduleId, values>, secrets_stdin: true }` | événements `step` `{ module, step, status: "start" \| "ok" \| "skip" \| "fail", ms, replay? }` puis `{ failed[], warned[], report_path }`. Les secrets sont lus sur un flux séparé, jamais dans `params`. `config` remplace la configuration du module ; un secret absent du flux n'est pas effacé, l'agent garde celui qu'il détient, si bien que changer un port ne vide pas un mot de passe. **Toute la configuration est validée avant la première étape** : un refus est `invalid_config`, porte la liste complète dans son remède `invalid_fields`, et rien n'est touché sur la machine |
+| `install.check` | `{ modules[], config }` | `{ problems: FieldProblem[], warnings[] }` d'après [service-catalog.md](./service-catalog.md). Aucun secret ne l'accompagne et rien n'est touché : elle rejoue la validation des champs et y ajoute ce que seule la machine sait — un port déjà écouté, un dossier qui est un fichier, un fuseau que ce noyau ignore. Elle ne juge jamais un secret, que l'app est seule à détenir avant l'installation |
 | `uninstall` | `{ modules[] }` | événements `step`, puis `{ failed[] }` |
-| `harden` | `{ user: "dev" }` | événements `step`, puis `{ root_closed: boolean, next_user, reason? }`. Ne ferme root que si une clé ouvre `dev` |
+| `harden` | `{ user: "dev" }` | événements `step`, puis `{ root_closed: boolean, root_kept: boolean, next_user, reason? }`. Ne ferme root que si une clé ouvre `dev`. `root_kept` dit que root reste ouvert parce que `keep_root` le demande, jamais parce que le durcissement a renoncé : les deux drapeaux ne sont jamais vrais ensemble, et un refus est `root_closed: false` avec sa `reason` |
 | `upgrade` | `{ modules?: string[] }` | idem `install`, sur les modules déjà présents |
+| `module.config` | `{ id }` | ce que l'agent a retenu de la dernière demande pour ce module : `{ id, values, secrets[] }`. `values` porte la configuration en clair, `secrets[]` le seul nom des champs secrets détenus — aucune valeur de secret ne sort par là. C'est ce que l'app remet dans le formulaire d'un module déjà installé |
 | `report` | — | le dernier rapport d'installation ; `no_report` tant qu'aucune installation n'a eu lieu sur ce serveur |
 
 ### État
@@ -167,6 +169,7 @@ Rien de tout cela n'est une décision : la détection propose, le client corrige
 | `enroll` | `{ platform_url, secrets_stdin: true }` : le jeton d'enrôlement est lu sur le flux secret ; l'agent l'échange contre son jeton de serveur, puis lit `/agent/state` une première fois. Résultat `{ enrolled: true, entitlement, synced_at? }`. Répond aussi en [mode restreint](#mode-restreint), et c'est la commande qui en sort |
 | `keys.list` | — : les clés du bloc balisé |
 | `keys.sync` | — : force une lecture de `/api/v1/agent/state` |
+| `platform.sync` | — : la même lecture, suivie du heartbeat. `{ synced_at, heartbeat_at? }`. L'app la demande à la fin d'une installation et d'un durcissement, pour que la console montre les modules au lieu d'un serveur vide pendant cinq minutes. Elle lit et rapporte, ne touche à rien de la machine, et reste donc ouverte en mode restreint : un serveur dont la plateforme n'a pas confirmé le droit d'usage est exactement celui qui doit redemander. Un `heartbeat_at` absent dit que l'état a été lu et que le battement n'est pas passé ; le daemon le refera |
 | `agent.upgrade` | `{ version?, signature?, allow_downgrade? }` : télécharge, vérifie, remplace, redémarre |
 | `reboot` | — |
 | `doctor` | — : diagnostic court |
@@ -273,7 +276,7 @@ La clé publique correspondante est **embarquée dans le binaire à l'édition d
 
 **L'empreinte et la signature viennent de la plateforme, pas de l'app.** L'agent lit `GET /api/v1/agent/release/:version/metadata` avec son jeton de serveur ; il en tire l'empreinte attendue et la signature, refuse un binaire dont l'empreinte diffère de celle annoncée, puis vérifie la signature. `signature` reste dans les paramètres comme secours, pour un agent dont la plateforme est injoignable ou trop ancienne pour servir cette route : quand la plateforme répond, c'est elle qui fait foi et le paramètre est ignoré. Une mise à jour sans paramètre `signature` est donc le cas normal.
 
-Ce format est la référence commune de la chaîne de publication (AGT-15), de l'agent (AGT-13) et de l'app (APP-12). Le changer casse les trois à la fois.
+Ce format est la référence commune de la chaîne de publication, de l'agent et de l'app. Le changer casse les trois à la fois.
 
 ## Le plancher de version
 
@@ -287,16 +290,22 @@ La version courante est le plancher qui compte, parce que l'agent la connaît sa
 
 ## Versionnage
 
-`protocol` est un entier. L'agent accepte la version courante et la précédente. L'app refuse un agent trop vieux et propose `agent.upgrade`. Un champ ajouté à un résultat n'incrémente pas la version ; un champ retiré ou renommé, oui.
+`protocol` est un entier. Un champ ajouté à un résultat ne l'incrémente pas ; un champ retiré ou renommé, oui. Un `hello` dont le `protocol` n'est pas celui de l'agent est refusé par `protocol_mismatch`.
+
+La **feuille de compatibilité** dit lequel des deux mettre à jour. Elle vit dans `packages/shared/src/compat`, une ligne par génération de protocole — l'entier, la première version d'app et la première version d'agent qui le parlent — et voyage jusqu'à l'agent dans `schema.json`. Une pré-version appartient à la lignée qu'elle annonce : `0.2.0-beta.1` est de la génération de `0.2.0`.
+
+Le refus de `hello` s'écrit avec elle : un agent d'une génération antérieure répond que c'est lui qu'il faut mettre à jour, et nomme la version minimale ; une app d'une génération antérieure s'entend dire l'inverse. Une version qui n'est pas du semver — un build de développement — n'est jugée par personne, et le message retombe sur les deux numéros de protocole.
+
+Côté app, le bandeau de mise à jour lit la même feuille : un serveur d'une génération en arrière ne répond plus au protocole, donc `agent.upgrade` ne peut plus lui être demandé, et l'écran renvoie vers la réinstallation de l'agent plutôt que vers un bouton qui échouerait.
 
 ## Mode restreint
 
 Il y a deux situations, et elles n'ouvrent pas les mêmes commandes.
 
-**Un serveur enrôlé qui a perdu la plateforme.** Sans droit d'usage valide depuis sept jours, `hello` renvoie `entitlement: "restricted"` et sept commandes répondent : `hello`, `ping`, `snapshot`, `status`, `diag`, `agent.upgrade` et `enroll`. Le client garde ainsi la vue de sa machine, le moyen de réparer un agent périmé, et celui de réparer le serveur lui-même : un jeton perdu, un jeton révoqué ou un droit d'usage à rétablir se règlent par un ré-enrôlement depuis l'app, sans détour par la console. La sûreté ne bouge pas — un jeton d'enrôlement est signé par la plateforme pour un compte authentifié et un abonnement en cours, si bien qu'admettre `enroll` n'ouvre rien qu'un compte valide ne puisse déjà obtenir. Les autres commandes renvoient `entitlement_required` avec le lien vers la console. Rien de ce qui tourne ne s'arrête : tmux, les projets et les services continuent.
+**Un serveur enrôlé qui a perdu la plateforme.** Sans droit d'usage valide depuis sept jours, `hello` renvoie `entitlement: "restricted"` et huit commandes répondent : `hello`, `ping`, `snapshot`, `status`, `diag`, `agent.upgrade`, `enroll` et `platform.sync`. Le client garde ainsi la vue de sa machine, le moyen de redemander à la plateforme ce qu'elle n'a pas confirmé, celui de réparer un agent périmé, et celui de réparer le serveur lui-même : un jeton perdu, un jeton révoqué ou un droit d'usage à rétablir se règlent par un ré-enrôlement depuis l'app, sans détour par la console. La sûreté ne bouge pas — un jeton d'enrôlement est signé par la plateforme pour un compte authentifié et un abonnement en cours, si bien qu'admettre `enroll` n'ouvre rien qu'un compte valide ne puisse déjà obtenir. Les autres commandes renvoient `entitlement_required` avec le lien vers la console. Rien de ce qui tourne ne s'arrête : tmux, les projets et les services continuent.
 
 **Un binaire sans jeton de serveur**, copié sur une autre machine, n'ouvre que `hello`, `ping`, `diag` et `enroll`. Il n'a aucun serveur à décrire et rien à mettre à jour : pas de jeton, donc pas de fonctions. `enroll` est la porte par laquelle il en obtient un, et elle ne s'ouvre que sur un jeton d'enrôlement que la plateforme a signé pour cet appareil et ce compte.
 
 ## Le tunnel local d'un port n'est pas du protocole
 
-`tunnel.*` désigne le tunnel Cloudflare que l'agent gère sur le serveur. Amener un port du serveur sur le laptop est autre chose, et cela reste l'affaire de l'app : elle ouvre un `ssh -L` sur son propre canal, avec sa configuration SSH et sa clé. L'agent n'y participe pas, et c'est voulu — un tunnel local ne demande rien au serveur qu'une session SSH ne fasse déjà, et lui donner une commande de protocole reviendrait à faire décider au serveur d'une écoute sur la machine du client.
+`tunnel.*` s'adresse à l'exposition installée, quelle qu'elle soit — Cloudflare ou Caddy — et son rapport la nomme dans `provider`, `null` quand aucune ne tient la machine. Amener un port du serveur sur le laptop est autre chose, et cela reste l'affaire de l'app : elle ouvre un `ssh -L` sur son propre canal, avec sa configuration SSH et sa clé. L'agent n'y participe pas, et c'est voulu — un tunnel local ne demande rien au serveur qu'une session SSH ne fasse déjà, et lui donner une commande de protocole reviendrait à faire décider au serveur d'une écoute sur la machine du client.

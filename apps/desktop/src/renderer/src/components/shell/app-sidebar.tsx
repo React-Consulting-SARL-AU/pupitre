@@ -3,6 +3,7 @@ import { Logo } from "@renderer/components/logo";
 import { AgentDot } from "@renderer/components/ui/agent-dot";
 import { IconButton } from "@renderer/components/ui/icon-button";
 import { StatusDot } from "@renderer/components/ui/status-dot";
+import { WindowBand } from "@renderer/components/ui/window-band";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { memory } from "@renderer/lib/format";
 import { PROJECT_LOOK } from "@renderer/lib/project-state";
@@ -70,9 +71,9 @@ export function AppSidebar({
 
   return (
     <nav className="flex h-full flex-col overflow-y-auto border-line border-r bg-surface pb-4">
-      <div className="draggable flex h-10 shrink-0 items-center justify-end px-3">
+      <WindowBand className="justify-end px-3">
         <Logo size={17} />
-      </div>
+      </WindowBand>
 
       <button
         className="clickable mx-2 mb-1 flex items-center gap-2.5 rounded-md border border-line bg-base px-3 py-2.5 text-left transition-soft hover:border-line-strong hover:bg-raised"
@@ -85,10 +86,10 @@ export function AppSidebar({
           strokeWidth={1.5}
         />
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-medium text-[12px]">
+          <span className="block truncate font-medium text-[13px]">
             {server?.name ?? t("shell.sidebar.noServer")}
           </span>
-          <span className="block truncate font-data text-[10px] text-ink-3">
+          <span className="block truncate font-data text-[11px] text-ink-3">
             {server?.host ?? "—"}
           </span>
         </span>
@@ -134,7 +135,7 @@ export function AppSidebar({
 
       <SidebarGroup title={t("shell.sidebar.projects")}>
         {projects.length === 0 ? (
-          <p className="px-3 py-2 text-[11px] text-ink-4 leading-relaxed">
+          <p className="px-3 py-2 text-[12px] text-ink-4 leading-relaxed">
             {t("shell.sidebar.noProjects")}
           </p>
         ) : null}
@@ -163,7 +164,7 @@ export function AppSidebar({
             onClick={() => onProject(project.name)}
             suffix={
               project.ram_mb ? (
-                <span className="shrink-0 font-data text-[10px] text-ink-3 tabular-nums">
+                <span className="shrink-0 font-data text-[11px] text-ink-3 tabular-nums">
                   {memory(project.ram_mb)}
                 </span>
               ) : null

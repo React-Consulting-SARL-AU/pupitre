@@ -1,3 +1,4 @@
+import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { ArrowRight, RefreshCw } from "lucide-react";
 import { useEffect } from "react";
@@ -37,7 +38,16 @@ export function CatalogScreen({
   const warnings = useCatalog((state) => state.warnings);
 
   useEffect(() => {
-    load(serverId);
+    // A catalogue already read for this server is kept: coming back from the
+    // configuration, or from an onboarding taken up again, must not throw away
+    // the choice that was made under it.
+    const held = useCatalog.getState().catalog;
+
+    if (held.status !== "idle" && held.serverId === serverId) {
+      return;
+    }
+
+    load(serverId, probeOf(serverId)?.installed_modules ?? []);
   }, [serverId, load]);
 
   const header = (
@@ -58,10 +68,10 @@ export function CatalogScreen({
               {t("catalog.screen.reload")}
             </Button>
           }
-          fix={catalog.error.fix}
+          fix={agentText(t, catalog.error).fix}
           tone="danger"
         >
-          {catalog.error.message}
+          {agentText(t, catalog.error).message}
         </Callout>
       </section>
     );

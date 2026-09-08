@@ -1,15 +1,24 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { InvitationRow } from "@/components/dashboard/invitation-row"
 import { InviteForm } from "@/components/dashboard/invite-form"
 import { MemberRow } from "@/components/dashboard/member-row"
 import { Callout } from "@/components/ui/callout"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
-import { LoadingState } from "@/components/ui/loading-state"
+import { SkeletonCards } from "@/components/ui/skeleton"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
+import {
+  patchQuery,
+  useOptimisticMutation,
+} from "@/hooks/use-optimistic-mutation"
 import { usePermission } from "@/hooks/use-permission"
-import { membersQueryOptions } from "@/lib/api/queries"
+import { membersQueryOptions, queryKeys, type Roster } from "@/lib/api/queries"
 import { cancelInvitation, removeMember } from "@/lib/auth/organization"
+
+interface Target {
+  id: string
+  email: string
+}
 
 export function MemberList() {
   const t = useTranslations()
@@ -21,15 +30,48 @@ export function MemberList() {
     ...membersQueryOptions(organizationId),
     enabled: organizationId !== "",
   })
-  const queryClient = useQueryClient()
-  const remove = useMutation({
-    mutationFn: (memberId: string) => removeMember(organizationId, memberId),
-    onSuccess: () => queryClient.invalidateQueries(),
+  const roster = queryKeys.members(organizationId)
+
+  const remove = useOptimisticMutation<Target, void>({
+    mutationFn: ({ id }) => removeMember(organizationId, id),
+    patch: [
+      patchQuery<Roster, Target>(roster, (previous, target) => ({
+        ...previous,
+        members: previous.members.filter((member) => member.id !== target.id),
+      })),
+    ],
+    invalidate: [roster],
+    toast: {
+      done: (_data, target) => t("memberList.removed", { email: target.email }),
+      failed: () => ({
+        title: t("memberList.removeFailed"),
+        fix: t("memberList.removeFailedFix"),
+      }),
+    },
   })
-  const cancel = useMutation({
-    mutationFn: cancelInvitation,
-    onSuccess: () => queryClient.invalidateQueries(),
+
+  const cancel = useOptimisticMutation<Target, void>({
+    mutationFn: ({ id }) => cancelInvitation(id),
+    patch: [
+      patchQuery<Roster, Target>(roster, (previous, target) => ({
+        ...previous,
+        invitations: previous.invitations.filter(
+          (invitation) => invitation.id !== target.id
+        ),
+      })),
+    ],
+    invalidate: [roster],
+    toast: {
+      done: (_data, target) =>
+        t("memberList.cancelled", { email: target.email }),
+      failed: () => ({
+        title: t("memberList.cancelFailed"),
+        fix: t("memberList.cancelFailedFix"),
+      }),
+    },
   })
+  const removing = remove.isPending ? remove.variables?.id : undefined
+  const cancelling = cancel.isPending ? cancel.variables?.id : undefined
 
   if (!activeOrganization) {
     return (
@@ -41,7 +83,7 @@ export function MemberList() {
   }
 
   if (members.isPending) {
-    return <LoadingState label={t("memberList.reading")} />
+    return <SkeletonCards />
   }
 
   if (members.isError) {
@@ -77,30 +119,21 @@ export function MemberList() {
           </span>
         </CardHeader>
 
-        {remove.isError ? (
-          <Callout
-            className="m-4"
-            fix={t("memberList.removeFailedFix")}
-            title={t("memberList.removeFailed")}
-            tone="danger"
-          />
-        ) : null}
-
         <ul>
           {people.map((member) => (
             <MemberRow
               isSelf={member.user_id === user.id}
               key={member.id}
               member={member}
-              onRemove={(memberId) => {
-                remove.mutate(memberId)
+              onRemove={() => {
+                remove.mutate({ id: member.id, email: member.email })
               }}
-              pending={remove.isPending}
               removable={
                 canManage &&
                 member.user_id !== user.id &&
                 member.role !== "owner"
               }
+              removing={removing === member.id}
             />
           ))}
         </ul>
@@ -114,15 +147,6 @@ export function MemberList() {
           </span>
         </CardHeader>
 
-        {cancel.isError ? (
-          <Callout
-            className="m-4"
-            fix={t("memberList.cancelFailedFix")}
-            title={t("memberList.cancelFailed")}
-            tone="danger"
-          />
-        ) : null}
-
         {invitations.length === 0 ? (
           <CardBody>
             <p className="text-[13px] text-ink-3">
@@ -134,12 +158,12 @@ export function MemberList() {
             {invitations.map((invitation) => (
               <InvitationRow
                 cancellable={canManage}
+                cancelling={cancelling === invitation.id}
                 invitation={invitation}
                 key={invitation.id}
-                onCancel={(invitationId) => {
-                  cancel.mutate(invitationId)
+                onCancel={() => {
+                  cancel.mutate({ id: invitation.id, email: invitation.email })
                 }}
-                pending={cancel.isPending}
               />
             ))}
           </ul>

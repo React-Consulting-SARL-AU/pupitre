@@ -14,7 +14,10 @@ function publication(overrides: Record<string, unknown> = {}) {
   return {
     version: "1.4.0",
     os: "macos",
-    url: "https://downloads.pupitre.studio/1.4.0/Pupitre-1.4.0.dmg",
+    arch: "arm64",
+    format: "dmg",
+    url: "https://dl.pupitre.studio/app/1.4.0/Pupitre-1.4.0-arm64.dmg",
+    bytes: 118_000_000,
     sha256: SHA256,
     notes: "Première version signée.",
     ...overrides,
@@ -41,11 +44,24 @@ describe("VersionSchema", () => {
 })
 
 describe("AppReleasePublishSchema", () => {
-  it("accepts a publication without arch nor signature", () => {
+  it("accepts a publication without a signature", () => {
     const parsed = AppReleasePublishSchema.safeParse(publication())
 
     expect(parsed.success).toBe(true)
     expect(parsed.data?.channel).toBeUndefined()
+  })
+
+  it("refuses a build that names neither its architecture nor its format", () => {
+    expect(
+      AppReleasePublishSchema.safeParse(publication({ arch: undefined }))
+        .success
+    ).toBe(false)
+    expect(
+      AppReleasePublishSchema.safeParse(publication({ format: "" })).success
+    ).toBe(false)
+    expect(
+      AppReleasePublishSchema.safeParse(publication({ bytes: 0 })).success
+    ).toBe(false)
   })
 
   it("refuses an url that is not one, and a broken digest", () => {
@@ -77,7 +93,9 @@ describe("AppReleaseSchema", () => {
         {
           os: "macos",
           arch: "arm64",
-          url: "https://downloads.pupitre.studio/1.4.0/Pupitre-1.4.0.dmg",
+          format: "dmg",
+          url: "https://dl.pupitre.studio/app/1.4.0/Pupitre-1.4.0-arm64.dmg",
+          bytes: 118_000_000,
           sha256: SHA256,
           signature: null,
         },

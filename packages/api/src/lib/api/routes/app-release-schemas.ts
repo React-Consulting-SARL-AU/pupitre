@@ -1,6 +1,9 @@
 import { ReleaseChannel } from "@pupitre/db/cloudflare/enums"
 import {
+  DESKTOP_ARCHITECTURES,
   DESKTOP_SYSTEMS,
+  FORMAT_PATTERN,
+  MAX_ARTEFACT_BYTES,
   MAX_NOTES_LENGTH,
   MAX_SIGNATURE_LENGTH,
   MAX_URL_LENGTH,
@@ -10,11 +13,7 @@ import {
 } from "@pupitre/shared/releases"
 import { t } from "elysia"
 import { dateTime } from "../openapi-models"
-import {
-  architectureSchema,
-  RELEASE_CHANNELS,
-  releaseChannelSchema,
-} from "./servers/schemas"
+import { RELEASE_CHANNELS, releaseChannelSchema } from "./servers/schemas"
 
 const publishedChannelSchema = t.UnionEnum([...RELEASE_CHANNELS], {
   default: ReleaseChannel.beta,
@@ -26,11 +25,15 @@ const requestedChannelSchema = t.UnionEnum([...RELEASE_CHANNELS], {
 
 export const desktopSystemSchema = t.UnionEnum([...DESKTOP_SYSTEMS])
 
+export const desktopArchitectureSchema = t.UnionEnum([...DESKTOP_ARCHITECTURES])
+
 export const appReleasePublishBody = t.Object({
   version: t.String({ pattern: SEMVER_PATTERN, maxLength: MAX_VERSION_LENGTH }),
   os: desktopSystemSchema,
-  arch: t.Optional(architectureSchema),
+  arch: desktopArchitectureSchema,
+  format: t.String({ pattern: FORMAT_PATTERN }),
   url: t.String({ format: "uri", minLength: 1, maxLength: MAX_URL_LENGTH }),
+  bytes: t.Integer({ minimum: 1, maximum: MAX_ARTEFACT_BYTES }),
   sha256: t.String({ pattern: SHA256_PATTERN }),
   signature: t.Optional(
     t.String({ minLength: 1, maxLength: MAX_SIGNATURE_LENGTH })
@@ -42,8 +45,10 @@ export const appReleasePublishBody = t.Object({
 export const appBuildSchema = t.Object(
   {
     os: desktopSystemSchema,
-    arch: t.Nullable(t.String()),
+    arch: desktopArchitectureSchema,
+    format: t.String(),
     url: t.String(),
+    bytes: t.Integer(),
     sha256: t.String(),
     signature: t.Nullable(t.String()),
   },
@@ -65,8 +70,10 @@ export const appReleaseBuildSchema = t.Object(
   {
     version: t.String(),
     os: desktopSystemSchema,
-    arch: t.Nullable(t.String()),
+    arch: desktopArchitectureSchema,
+    format: t.String(),
     url: t.String(),
+    bytes: t.Integer(),
     sha256: t.String(),
     signature: t.Nullable(t.String()),
     notes: t.String(),
@@ -82,4 +89,19 @@ export const appReleaseVersionParams = t.Object({
 
 export const latestAppReleaseQuery = t.Object({
   channel: t.Optional(requestedChannelSchema),
+})
+
+export const appReleaseListQuery = t.Object({
+  channel: t.Optional(requestedChannelSchema),
+  limit: t.Optional(t.Integer({ minimum: 1, maximum: 50, default: 10 })),
+})
+
+export const appReleasePromoteBody = t.Object({
+  channel: t.UnionEnum([...RELEASE_CHANNELS]),
+})
+
+export const appReleaseBuildParams = t.Object({
+  version: t.String({ minLength: 1, maxLength: MAX_VERSION_LENGTH }),
+  os: desktopSystemSchema,
+  arch: desktopArchitectureSchema,
 })

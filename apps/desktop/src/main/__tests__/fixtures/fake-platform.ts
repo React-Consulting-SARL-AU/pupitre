@@ -55,6 +55,7 @@ export interface FakePlatformOptions {
     | "expired"
   )[];
   release?: EnrollBody["release"];
+  latest?: { version: string; sha256: string; signature: string };
   binary?: Uint8Array;
   servers?: FleetServer[];
 }
@@ -63,6 +64,9 @@ export interface FakePlatform extends PlatformClient {
   enrolled: EnrollInput[];
   added: { name: string; publicKey: string }[];
   seenTokens: string[];
+  switched: string[];
+  /** One call per stage of deletion: the first revokes, the second erases. */
+  deletions: string[];
 }
 
 const READY_RELEASE: EnrollBody["release"] = {
@@ -79,6 +83,8 @@ export function fakePlatform(options: FakePlatformOptions = {}): FakePlatform {
   const enrolled: EnrollInput[] = [];
   const added: { name: string; publicKey: string }[] = [];
   const seenTokens: string[] = [];
+  const switched: string[] = [];
+  const deletions: string[] = [];
 
   function seen<T>(token: string, result: T) {
     seenTokens.push(token);
@@ -89,8 +95,10 @@ export function fakePlatform(options: FakePlatformOptions = {}): FakePlatform {
   return {
     added,
     baseUrl: "https://app.pupitre.test",
+    deletions,
     enrolled,
     seenTokens,
+    switched,
 
     deviceCode: () =>
       Promise.resolve({
@@ -120,6 +128,26 @@ export function fakePlatform(options: FakePlatformOptions = {}): FakePlatform {
 
     me: (token) => Promise.resolve(seen(token, options.identity ?? IDENTITY)),
 
+    switchOrganization: (token, organizationId) => {
+      switched.push(organizationId);
+
+      const identity = options.identity ?? IDENTITY;
+      const wanted =
+        identity.organizations.find(
+          (organization) => organization.id === organizationId
+        ) ?? null;
+
+      return Promise.resolve(
+        seen(token, {
+          ...identity,
+          organization: wanted
+            ? { id: wanted.id, name: wanted.name, slug: wanted.slug }
+            : identity.organization,
+          role: wanted?.role ?? identity.role,
+        })
+      );
+    },
+
     devices: (token) => Promise.resolve(seen(token, devices)),
 
     servers: (token) => Promise.resolve(seen(token, options.servers ?? [])),
@@ -143,11 +171,27 @@ export function fakePlatform(options: FakePlatformOptions = {}): FakePlatform {
       );
     },
 
+    deleteServer: (token, serverId) => {
+      deletions.push(serverId);
+
+      return Promise.resolve(seen(token, null));
+    },
+
     downloadRelease: (token) =>
       Promise.resolve(
         seen(token, {
           bytes: options.binary ?? new Uint8Array([1, 2, 3]),
           storage: "r2",
+        })
+      ),
+
+    latestAgentRelease: (token, arch) =>
+      Promise.resolve(
+        seen(token, {
+          arch,
+          sha256: options.latest?.sha256 ?? "",
+          signature: options.latest?.signature ?? "",
+          version: options.latest?.version ?? "0.0.0-dev",
         })
       ),
   };

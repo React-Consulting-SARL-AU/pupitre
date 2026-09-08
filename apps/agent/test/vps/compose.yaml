@@ -1,0 +1,16 @@
+services:
+  vps:
+    build: .
+    image: pupitre-vps:ubuntu-24.04
+    container_name: pupitre-vps
+    hostname: pupitre-vps
+    privileged: true
+    cgroup: host
+    stop_signal: SIGRTMIN+3
+    stop_grace_period: 20s
+    tmpfs:
+      - /run
+      - /run/lock
+      - /tmp
+    ports:
+      - "2222:22"

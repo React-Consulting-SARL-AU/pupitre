@@ -1,38 +1,29 @@
+import type { Manifest } from "@pupitre/shared/catalog";
 import type { AgentError } from "@shared/agent";
-import type { AgentDelivery } from "@shared/install";
+import type { AgentDelivery, AgentSendPhase } from "@shared/install";
 import { create } from "zustand";
-import { carriesSecret } from "../lib/catalog-selection";
+import { translate } from "../i18n/translate";
+import { carriesSecret, restored } from "../lib/catalog-selection";
+import { announce } from "./announcements";
 import { useCatalog } from "./catalog";
-
-/**
- * The order of the onboarding, and where it got to.
- *
- * The binary comes before the catalogue and not with the install: a bare
- * machine has nothing to answer `catalog` with until `pupitred` sits on it.
- * Going back is allowed as long as nothing has been installed — after that the
- * machine has changed, and a screen that let you "go back" would be lying.
- */
-
-export const ONBOARDING_STEPS = [
-  "server",
-  "inspection",
-  "agent",
-  "catalog",
-  "config",
-  "install",
-  "harden",
-  "project",
-  "done",
-] as const;
-
-export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
-
-/** `closed` is the app as it stands: the onboarding is a screen, not a mode. */
-export type OnboardingView = OnboardingStep | "closed";
+import { useFleet } from "./fleet";
+import { useHarden } from "./harden";
+import { probeOf, useInspection } from "./inspection";
+import { useInstall } from "./install";
+import {
+  canGoBack as allowedBack,
+  CLOSED,
+  type Effect,
+  type Event,
+  type MachineState,
+  ONBOARDING_STEPS,
+  type OnboardingStep,
+  transition,
+} from "./onboarding-machine";
 
 export type DeliveryState =
   | { status: "idle" }
-  | { status: "sending" }
+  | { status: "sending"; phase: AgentSendPhase }
   | { status: "sent"; delivery: AgentDelivery }
   | { status: "failed"; error: AgentError };
 
@@ -40,9 +31,19 @@ interface Saved {
   serverId: string | null;
   step: OnboardingStep;
   installed: boolean;
+  /**
+   * The catalogue choice and the answers typed under it, so an app closed
+   * half-way opens on the same selection rather than on a blank form. No secret
+   * is ever in here: they never reach this side of the bridge.
+   */
+  selected: readonly string[];
+  values: Record<string, Record<string, unknown>>;
 }
 
 const KEY = "pupitre.onboarding";
+
+/** How long the form waits for a pause before the draft reaches the shelf. */
+const DRAFT_PAUSE_MS = 400;
 
 const held = new Map<string, string>();
 
@@ -55,6 +56,17 @@ const memory = {
     held.set(key, value);
   },
 };
+
+/**
+ * The bridge to the main process, when there is a window to hold it.
+ *
+ * The machine runs an effect on entering a step, so a store exercised outside a
+ * window — a test, a headless render — reaches for a bridge that is not there.
+ * It answers nothing rather than throwing, and the step stands where it is.
+ */
+function bridge(): Partial<Window["pupitre"]> {
+  return globalThis.window?.pupitre ?? {};
+}
 
 /**
  * Where the progress is written down, so a relaunched app opens on the screen
@@ -84,9 +96,19 @@ function keep(saved: Saved | null): void {
 export function savedOnboarding(): Saved | null {
   try {
     const raw = shelf().getItem(KEY);
-    const saved = raw ? (JSON.parse(raw) as Saved) : null;
+    const saved = raw ? (JSON.parse(raw) as Partial<Saved>) : null;
 
-    return saved && ONBOARDING_STEPS.includes(saved.step) ? saved : null;
+    if (!(saved?.step && ONBOARDING_STEPS.includes(saved.step))) {
+      return null;
+    }
+
+    return {
+      installed: saved.installed === true,
+      selected: Array.isArray(saved.selected) ? saved.selected : [],
+      serverId: saved.serverId ?? null,
+      step: saved.step,
+      values: saved.values ?? {},
+    };
   } catch {
     return null;
   }
@@ -96,146 +118,300 @@ export function forgetOnboarding(): void {
   keep(null);
 }
 
-interface OnboardingStore {
-  step: OnboardingView;
-  serverId: string | null;
-  installed: boolean;
-  /** The module whose configuration is being asked again before a replay. */
-  replaying: string | null;
+interface OnboardingStore extends MachineState {
+  /** The machine is being read again after a relaunch, before any screen acts. */
+  recovering: boolean;
   delivery: DeliveryState;
 
+  send: (event: Event) => void;
+  /** The catalogue changed under an open onboarding: the draft follows, after a pause. */
+  noteDraft: () => void;
   open: () => void;
   begin: (serverId: string) => void;
   /** The first opening of a server the platform granted, already installed. */
   personalise: (serverId: string) => void;
-  goTo: (step: OnboardingStep) => void;
   back: () => void;
   canGoBack: () => boolean;
-  noteInstalled: () => void;
   replay: (moduleId: string) => OnboardingStep;
-  endReplay: () => void;
   sendAgent: () => Promise<void>;
   close: () => void;
-  resume: () => void;
+  resume: () => Promise<void>;
   reset: () => void;
 }
 
-function rank(step: OnboardingStep): number {
-  return ONBOARDING_STEPS.indexOf(step);
+function manifestOf(moduleId: string): Manifest | undefined {
+  return useCatalog
+    .getState()
+    .modules()
+    .find((candidate) => candidate.id === moduleId);
+}
+
+type Draft = Pick<Saved, "selected" | "values">;
+
+function shelved(): Draft {
+  const saved = savedOnboarding();
+
+  return { selected: saved?.selected ?? [], values: saved?.values ?? {} };
+}
+
+/**
+ * The choice this onboarding made, when the catalogue still holds it.
+ *
+ * The screens that add a service to another machine mount the same store, and
+ * their selection has nothing to do with an onboarding waiting elsewhere: a
+ * catalogue read for another server answers nothing at all rather than an
+ * emptiness that would erase what is already on the shelf.
+ */
+function ownDraft(serverId: string | null): Draft | null {
+  const catalog = useCatalog.getState();
+  const read =
+    catalog.catalog.status === "idle" ? null : catalog.catalog.serverId;
+
+  if (!serverId || read !== serverId) {
+    return null;
+  }
+
+  return { selected: catalog.selected, values: catalog.values };
 }
 
 export const useOnboarding = create<OnboardingStore>((set, get) => {
-  function move(step: OnboardingStep): void {
-    const { serverId, installed } = get();
+  /**
+   * The choice as it stood when it was last this server's.
+   *
+   * The pause below is what keeps a keystroke off the disk, and this is what
+   * keeps the pause honest: what is written is the draft at the moment it
+   * changed, not whatever the catalogue happens to hold when the timer fires.
+   */
+  let pending: { serverId: string | null; draft: Draft } | null = null;
 
-    set({ step });
-    keep({ installed, serverId, step });
+  /** A step is written down the moment it changes: it is what a resume reads first. */
+  function persist(): void {
+    const { serverId, installed, step } = get();
+
+    if (step === "closed") {
+      return;
+    }
+
+    const held = pending?.serverId === serverId ? pending.draft : null;
+    const own = ownDraft(serverId) ?? held ?? shelved();
+
+    keep({ installed, serverId, step, ...own });
   }
 
-  return {
-    delivery: { status: "idle" },
-    installed: false,
-    replaying: null,
-    serverId: null,
-    step: "closed",
+  /**
+   * The answers typed under the choice, written down as they are made: an app
+   * closed on the configuration screen has to find them again when it opens.
+   */
+  let writing: ReturnType<typeof setTimeout> | null = null;
 
-    open() {
-      set({
-        delivery: { status: "idle" },
-        installed: false,
-        replaying: null,
-        serverId: null,
-      });
-      move("server");
-    },
+  function persistSoon(): void {
+    const own = ownDraft(get().serverId);
 
-    begin(serverId) {
-      set({
-        delivery: { status: "idle" },
-        installed: false,
-        replaying: null,
-        serverId,
-      });
-      move("inspection");
-    },
+    if (!own) {
+      return;
+    }
 
-    /**
-     * A server someone else installed: there is nothing to inspect and nothing
-     * to send, only a first project to open. The machine has already changed,
-     * so the wizard offers no way back into the steps that changed it.
-     */
-    personalise(serverId) {
-      set({
-        delivery: { status: "idle" },
-        installed: true,
-        replaying: null,
-        serverId,
-      });
-      move("project");
-    },
+    pending = { draft: own, serverId: get().serverId };
 
-    goTo(step) {
-      move(step);
-    },
+    if (writing) {
+      return;
+    }
 
-    canGoBack() {
-      const { step, installed } = get();
+    writing = setTimeout(() => {
+      writing = null;
+      persist();
+    }, DRAFT_PAUSE_MS);
+  }
 
-      return (
-        !installed && step !== "closed" && step !== "server" && step !== "done"
-      );
-    },
+  function run(effect: Effect): void {
+    switch (effect.kind) {
+      case "persist":
+        persist();
+        break;
+      case "forget":
+        pending = null;
+        keep(null);
+        break;
+      case "sendAgent":
+        get().sendAgent();
+        break;
+      case "startHarden":
+        useHarden.getState().start(effect.serverId);
+        break;
+      case "reloadReport":
+        useInstall.getState().reload(effect.serverId);
+        break;
+      /**
+       * The console is told at once rather than at the daemon's next turn. An
+       * agent too old to answer, or a platform that is out of reach, costs five
+       * minutes of a stale console and nothing else — so nothing here waits on
+       * it, and nothing here fails on it.
+       */
+      case "platformSync":
+        bridge()
+          .syncPlatform?.(effect.serverId)
+          ?.catch(() => undefined);
+        break;
+      case "reloadFleet":
+        useFleet.getState().read();
+        break;
+      default:
+        // `inspect` and `startInstall` are the screens' own: they show what they
+        // are doing while they do it, and would only be started twice here.
+        break;
+    }
+  }
 
-    back() {
-      const { step } = get();
+  function send(event: Event): void {
+    const before = get().step;
+    const { state, effects } = transition(get(), event);
 
-      if (!(get().canGoBack() && step !== "closed")) {
+    set(state);
+
+    for (const effect of effects) {
+      run(effect);
+    }
+
+    if (state.step !== before && state.step !== "closed") {
+      announce(translate()(`onboarding.step.${state.step}`));
+    }
+  }
+
+  /**
+   * What is left to install, once the machine has said what it already runs.
+   *
+   * Nothing is deduced from the events the app saw before it closed: an install
+   * cut mid-run writes no report, so the probe is the only account of it. A
+   * module that still has to be installed and carries a secret goes back
+   * through the configuration, because the vault left with the app.
+   */
+  function settle(saved: Saved, installedModules: readonly string[]): void {
+    const left = restored(
+      useCatalog.getState().modules(),
+      saved.selected,
+      installedModules
+    );
+
+    if (left.length === 0) {
+      if (saved.serverId) {
+        useInstall.getState().reload(saved.serverId);
+      }
+
+      return;
+    }
+
+    const asks = left.some((id) => {
+      const manifest = manifestOf(id);
+
+      return Boolean(manifest && carriesSecret(manifest));
+    });
+
+    send({
+      remaining: left,
+      step: asks ? "config" : "install",
+      type: "resumeAt",
+    });
+  }
+
+  /**
+   * The machine, read again before the resumed screen does anything to it.
+   *
+   * What comes back from the shelf is the step and the choice; what the server
+   * runs comes from the server. The app never installs on the strength of what
+   * it merely remembers.
+   */
+  async function recover(saved: Saved): Promise<void> {
+    const serverId = saved.serverId;
+
+    // Before the catalogue nothing had been chosen, and those screens read the
+    // machine themselves anyway.
+    if (
+      !serverId ||
+      ONBOARDING_STEPS.indexOf(saved.step) < ONBOARDING_STEPS.indexOf("catalog")
+    ) {
+      return;
+    }
+
+    set({ recovering: true });
+
+    try {
+      await useInspection.getState().inspect(serverId);
+
+      const probe = probeOf(serverId);
+
+      // Past the install the choice has become the machine: the probe is read
+      // for what the last screens weigh against it, and nothing is rebuilt.
+      if (
+        ONBOARDING_STEPS.indexOf(saved.step) >
+        ONBOARDING_STEPS.indexOf("install")
+      ) {
         return;
       }
 
-      const previous = ONBOARDING_STEPS[rank(step) - 1];
+      if (!probe) {
+        send({ remaining: [], step: "inspection", type: "resumeAt" });
 
-      if (previous) {
-        move(previous);
+        return;
       }
+
+      if (probe.agent_version === null) {
+        send({ remaining: [], step: "agent", type: "resumeAt" });
+
+        return;
+      }
+
+      const catalog = useCatalog.getState();
+
+      await catalog.load(serverId, probe.installed_modules);
+      catalog.restore(saved.selected, saved.values);
+
+      if (saved.step === "install") {
+        settle(saved, probe.installed_modules);
+      }
+    } finally {
+      set({ recovering: false });
+    }
+  }
+
+  return {
+    ...CLOSED,
+    delivery: { status: "idle" },
+    recovering: false,
+
+    send,
+
+    noteDraft: persistSoon,
+
+    open() {
+      set({ delivery: { status: "idle" } });
+      send({ type: "open" });
     },
 
-    /** From here the machine has changed: the way back is the way through. */
-    noteInstalled() {
-      const { serverId, step } = get();
-
-      set({ installed: true });
-      keep({
-        installed: true,
-        serverId,
-        step: step === "closed" ? "install" : step,
-      });
+    begin(serverId) {
+      set({ delivery: { status: "idle" } });
+      send({ serverId, type: "begin" });
     },
 
-    /**
-     * The vault was emptied when the secrets left, so a module that carried one
-     * cannot simply be run again: its configuration is asked a second time, and
-     * the screen says why.
-     */
+    personalise(serverId) {
+      set({ delivery: { status: "idle" } });
+      send({ serverId, type: "personalise" });
+    },
+
+    canGoBack() {
+      return allowedBack(get());
+    },
+
+    back() {
+      send({ type: "back" });
+    },
+
     replay(moduleId) {
-      const manifest = useCatalog
-        .getState()
-        .modules()
-        .find((candidate) => candidate.id === moduleId);
+      const manifest = manifestOf(moduleId);
+      const asks = Boolean(manifest && carriesSecret(manifest));
 
-      if (!(manifest && carriesSecret(manifest))) {
-        return "install";
-      }
+      send({ carriesSecret: asks, moduleId, type: "replay" });
 
-      set({ replaying: moduleId });
-      move("config");
-
-      return "config";
-    },
-
-    endReplay() {
-      set({ replaying: null });
-      move("install");
+      return asks ? "config" : "install";
     },
 
     async sendAgent() {
@@ -245,9 +421,23 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
         return;
       }
 
-      set({ delivery: { status: "sending" } });
+      set({ delivery: { phase: "reading", status: "sending" } });
 
-      const answer = await window.pupitre.sendAgent(serverId);
+      const push = bridge().sendAgent;
+
+      if (!push) {
+        set({ delivery: { status: "idle" } });
+
+        return;
+      }
+
+      const answer = await push(serverId, (phase) =>
+        set((state) =>
+          state.delivery.status === "sending"
+            ? { delivery: { phase, status: "sending" } }
+            : state
+        )
+      );
 
       set({
         delivery: answer.ok
@@ -258,33 +448,44 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
 
     /** Leaving the wizard keeps the progress: the servers screen offers it back. */
     close() {
-      set({ step: "closed" });
+      send({ type: "close" });
     },
 
-    resume() {
+    async resume() {
       const saved = savedOnboarding();
 
       if (!saved || saved.step === "done") {
         return;
       }
 
-      set({
+      set({ delivery: { status: "idle" } });
+      send({
         installed: saved.installed,
-        replaying: null,
         serverId: saved.serverId,
         step: saved.step,
+        type: "resume",
       });
+
+      await recover(saved);
     },
 
     reset() {
       keep(null);
-      set({
-        delivery: { status: "idle" },
-        installed: false,
-        replaying: null,
-        serverId: null,
-        step: "closed",
-      });
+      set({ ...CLOSED, delivery: { status: "idle" }, recovering: false });
     },
   };
+});
+
+/**
+ * A change made in the catalogue, and not by a step, still reaches the shelf.
+ *
+ * It goes through the store's own pause rather than writing on every keystroke,
+ * and it writes nothing at all while no onboarding is open.
+ */
+useCatalog.subscribe(() => {
+  const { step, serverId } = useOnboarding.getState();
+
+  if (step !== "closed" && serverId) {
+    useOnboarding.getState().noteDraft();
+  }
 });

@@ -126,26 +126,111 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
     asks: [{ en: "The Python version.", fr: "La version de Python." }],
   },
   "runtime.go": {
-    installs: [{ en: "Go through mise.", fr: "Go via mise." }],
-    asks: [{ en: "The version.", fr: "La version." }],
+    installs: [
+      {
+        en: "Go at the major version you pick, through mise, active in every shell including the one an ssh command opens.",
+        fr: "Go à la version majeure choisie, via mise, actif dans tous les shells, y compris celui qu’ouvre une commande ssh.",
+      },
+      {
+        en: "GOPATH and its bin folder on the path, so what go install puts there is reachable by name.",
+        fr: "GOPATH et son dossier bin sur le PATH, pour que ce que go install y dépose s’appelle par son nom.",
+      },
+    ],
+    asks: [
+      { en: "The Go version.", fr: "La version de Go." },
+      {
+        en: "GOPATH, if ~/go is not where you want the modules and the binaries.",
+        fr: "GOPATH, si ~/go n’est pas là où vous voulez les modules et les binaires.",
+      },
+    ],
+    notes: {
+      en: "Uninstalling takes back Go and the shell block. The module cache and whatever you installed into GOPATH stay: they are your work, not ours.",
+      fr: "La désinstallation reprend Go et le bloc de shell. Le cache de modules et ce que vous avez installé dans GOPATH restent : c’est votre travail, pas le nôtre.",
+    },
   },
   "runtime.php": {
-    installs: [{ en: "PHP through mise.", fr: "PHP via mise." }],
-    asks: [{ en: "The version.", fr: "La version." }],
+    installs: [
+      {
+        en: "The headers PHP needs to build, then PHP itself at the version you pick, compiled by mise.",
+        fr: "Les en-têtes dont PHP a besoin pour se compiler, puis PHP lui-même à la version choisie, compilé par mise.",
+      },
+      {
+        en: "Composer, if you want it, and a php.ini of ours read after the one the build ships.",
+        fr: "Composer, si vous le voulez, et un php.ini à nous lu après celui que la compilation livre.",
+      },
+    ],
+    asks: [
+      { en: "The PHP version.", fr: "La version de PHP." },
+      {
+        en: "Whether to install Composer.",
+        fr: "S’il faut installer Composer.",
+      },
+      {
+        en: "The CLI memory limit. Empty means 512M.",
+        fr: "La limite mémoire du CLI. Vide vaut 512M.",
+      },
+    ],
+    notes: {
+      en: "PHP is built from source, so the first install is the long one — several minutes. Replaying it afterwards changes nothing and takes seconds.",
+      fr: "PHP est compilé depuis les sources : la première installation est la longue, plusieurs minutes. La rejouer ensuite ne change rien et prend quelques secondes.",
+    },
   },
   "runtime.ruby": {
-    installs: [{ en: "Ruby through mise.", fr: "Ruby via mise." }],
-    asks: [{ en: "The version.", fr: "La version." }],
+    installs: [
+      {
+        en: "The headers Ruby needs to build, then Ruby itself at the version you pick, compiled by mise.",
+        fr: "Les en-têtes dont Ruby a besoin pour se compiler, puis Ruby lui-même à la version choisie, compilé par mise.",
+      },
+      {
+        en: "A current Bundler, if you want one, and its binaries on the path.",
+        fr: "Un Bundler à jour, si vous en voulez un, et ses binaires sur le PATH.",
+      },
+    ],
+    asks: [
+      { en: "The Ruby version.", fr: "La version de Ruby." },
+      {
+        en: "Whether to refresh Bundler.",
+        fr: "S’il faut rafraîchir Bundler.",
+      },
+    ],
+    notes: {
+      en: "Ruby is built from source, so the first install is the long one. A Bundler that refuses to install is a warning, not a failure: the one shipped with the interpreter stays.",
+      fr: "Ruby est compilé depuis les sources : la première installation est la longue. Un Bundler qui refuse de s’installer est un avertissement, pas un échec : celui livré avec l’interpréteur reste en place.",
+    },
   },
   "runtime.docker": {
     installs: [
-      { en: "Docker Engine and Compose.", fr: "Docker Engine et Compose." },
       {
-        en: "The dev user in the docker group.",
-        fr: "L’utilisateur dev dans le groupe docker.",
+        en: "Docker Engine from Docker’s own repository, and the Compose and buildx plugins with it.",
+        fr: "Docker Engine depuis le dépôt de Docker, et les plugins Compose et buildx avec lui.",
+      },
+      {
+        en: "The dev user in the docker group, so no docker command on this machine needs sudo.",
+        fr: "L’utilisateur dev dans le groupe docker, pour qu’aucune commande docker sur cette machine ne demande sudo.",
+      },
+      {
+        en: "A daemon configuration that rotates container logs instead of letting them fill the disk.",
+        fr: "Une configuration du démon qui fait tourner les logs des conteneurs au lieu de les laisser remplir le disque.",
       },
     ],
-    asks: [],
+    asks: [
+      {
+        en: "Whether to install Compose.",
+        fr: "S’il faut installer Compose.",
+      },
+      {
+        en: "Where images live. Empty means /var/lib/docker; give a path if another disk has the room.",
+        fr: "Où vivent les images. Vide vaut /var/lib/docker ; donnez un chemin si un autre disque a la place.",
+      },
+      {
+        en: "The size of one log file. Empty means 10m, kept three deep per container.",
+        fr: "La taille d’un fichier de log. Vide vaut 10m, gardé sur trois fichiers par conteneur.",
+      },
+    ],
+    notes: {
+      en: "The daemon listens on its socket and on nothing else. Uninstalling takes back the engine and leaves your images, volumes and containers where they are.",
+      fr: "Le démon écoute sur sa socket et sur rien d’autre. La désinstallation reprend le moteur et laisse vos images, volumes et conteneurs là où ils sont.",
+    },
   },
   "db.mysql": {
     installs: [
@@ -164,6 +249,11 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
     ],
     asks: [
       { en: "MySQL or MariaDB.", fr: "MySQL ou MariaDB." },
+      { en: "The port. 3306 by default.", fr: "Le port. 3306 par défaut." },
+      {
+        en: "The names of the application account and the remote account.",
+        fr: "Les noms du compte applicatif et du compte distant.",
+      },
       {
         en: "The application password and the remote password. Both can be generated for you and are never displayed again.",
         fr: "Le mot de passe applicatif et le mot de passe distant. Les deux peuvent être générés pour vous et ne sont jamais réaffichés.",
@@ -178,8 +268,8 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
   "db.postgres": {
     installs: [
       {
-        en: "PostgreSQL 17, listening on localhost only.",
-        fr: "PostgreSQL 17, en écoute sur localhost uniquement.",
+        en: "PostgreSQL at the major version you pick, from the project’s own repository, listening on localhost only.",
+        fr: "PostgreSQL à la version majeure choisie, depuis le dépôt du projet, en écoute sur localhost uniquement.",
       },
       {
         en: "An application role and a remote role, and the extensions most projects reach for.",
@@ -191,6 +281,12 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       },
     ],
     asks: [
+      { en: "The major version.", fr: "La version majeure." },
+      { en: "The port. 5432 by default.", fr: "Le port. 5432 par défaut." },
+      {
+        en: "The names of the application role and the remote role.",
+        fr: "Les noms du rôle applicatif et du rôle distant.",
+      },
       {
         en: "The application password and the remote password, generated if you like.",
         fr: "Le mot de passe applicatif et le mot de passe distant, générés si vous le souhaitez.",
@@ -199,7 +295,10 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
   },
   "db.mongodb": {
     installs: [
-      { en: "MongoDB 8, local only.", fr: "MongoDB 8, local seulement." },
+      {
+        en: "MongoDB at the major version you pick, local only, with authentication on.",
+        fr: "MongoDB à la version majeure choisie, local seulement, authentification active.",
+      },
       { en: "An application user.", fr: "Un utilisateur applicatif." },
       {
         en: "An import of mongodump archives.",
@@ -207,17 +306,45 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       },
     ],
     asks: [
+      { en: "The major version.", fr: "La version majeure." },
+      { en: "The port. 27017 by default.", fr: "Le port. 27017 par défaut." },
+      {
+        en: "The name of the application user.",
+        fr: "Le nom de l’utilisateur applicatif.",
+      },
       { en: "The application password.", fr: "Le mot de passe applicatif." },
     ],
   },
   "db.redis": {
     installs: [
       {
-        en: "Redis, local only, with persistence on.",
-        fr: "Redis, local seulement, avec la persistance activée.",
+        en: "Redis bound to 127.0.0.1 on the port you pick, refusing anyone who does not have the password.",
+        fr: "Redis lié à 127.0.0.1 sur le port choisi, refusant quiconque n’a pas le mot de passe.",
+      },
+      {
+        en: "The append-only journal, if you want the data to survive a restart, and a memory ceiling if you want one.",
+        fr: "Le journal append-only, si vous voulez que les données survivent à un redémarrage, et un plafond mémoire si vous en voulez un.",
       },
     ],
-    asks: [{ en: "The password.", fr: "Le mot de passe." }],
+    asks: [
+      {
+        en: "The password. It can be generated for you and is never displayed again.",
+        fr: "Le mot de passe. Il peut être généré pour vous et n’est jamais réaffiché.",
+      },
+      { en: "The port. 6379 by default.", fr: "Le port. 6379 par défaut." },
+      {
+        en: "Whether to keep persistence on.",
+        fr: "S’il faut garder la persistance.",
+      },
+      {
+        en: "The memory ceiling in megabytes. Zero means no ceiling.",
+        fr: "Le plafond mémoire en mégaoctets. Zéro veut dire aucun plafond.",
+      },
+    ],
+    notes: {
+      en: "Uninstalling takes back the package and the configuration. What Redis wrote under /var/lib/redis stays: it is your data.",
+      fr: "La désinstallation reprend le paquet et la configuration. Ce que Redis a écrit sous /var/lib/redis reste : ce sont vos données.",
+    },
   },
   "ai.claude": {
     installs: [
@@ -373,13 +500,13 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
     ],
     asks: [
       {
-        en: "A Cloudflare API token, your account id, the zone and the domain.",
-        fr: "Un jeton d’API Cloudflare, votre identifiant de compte, la zone et le domaine.",
+        en: "A Cloudflare API token, your account id, the zone and the domain — given once, in the app, and kept in your computer’s keychain.",
+        fr: "Un jeton d’API Cloudflare, votre identifiant de compte, la zone et le domaine — donnés une fois, dans l’app, et gardés dans le trousseau de votre ordinateur.",
       },
     ],
     notes: {
-      en: "A tunnel is an outbound connection: it opens no port on your server. The firewall stays closed on everything but SSH.",
-      fr: "Un tunnel est une connexion sortante : il n’ouvre aucun port sur votre serveur. Le pare-feu reste fermé sur tout sauf SSH.",
+      en: "Your token never leaves your computer: the app creates the tunnel and writes the DNS, and your server only ever receives what it needs to run that one tunnel. A tunnel is an outbound connection: it opens no port on your server, and the firewall stays closed on everything but SSH.",
+      fr: "Votre jeton ne quitte jamais votre ordinateur : l’app crée le tunnel et écrit le DNS, et votre serveur ne reçoit que de quoi faire tourner ce tunnel-là. Un tunnel est une connexion sortante : il n’ouvre aucun port sur votre serveur, et le pare-feu reste fermé sur tout sauf SSH.",
     },
   },
   "exposure.ssh": {
@@ -398,14 +525,35 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
   "exposure.caddy": {
     installs: [
       {
-        en: "Caddy as a reverse proxy, with automatic certificates, for a domain that is not on Cloudflare.",
-        fr: "Caddy en reverse proxy, avec certificats automatiques, pour un domaine qui n’est pas chez Cloudflare.",
+        en: "Caddy from its own repository, as a reverse proxy with automatic Let’s Encrypt certificates.",
+        fr: "Caddy depuis son propre dépôt, en reverse proxy avec certificats Let’s Encrypt automatiques.",
+      },
+      {
+        en: "One site block per project that declares a subdomain, rewritten from the registry every time it changes.",
+        fr: "Un bloc de site par projet qui déclare un sous-domaine, réécrit depuis le registre à chaque changement.",
+      },
+      {
+        en: "The firewall rules its two ports need, under names of its own so hardening never takes them back.",
+        fr: "Les règles de pare-feu dont ses deux ports ont besoin, sous des noms à lui pour que le durcissement ne les reprenne jamais.",
       },
     ],
-    asks: [{ en: "The domain.", fr: "Le domaine." }],
+    asks: [
+      {
+        en: "The domain the projects answer under. Its DNS record must already point at this server.",
+        fr: "Le domaine sous lequel les projets répondent. Son enregistrement DNS doit déjà pointer sur ce serveur.",
+      },
+      {
+        en: "The address Let’s Encrypt writes to about expiring certificates.",
+        fr: "L’adresse à laquelle Let’s Encrypt écrit au sujet des certificats qui expirent.",
+      },
+      {
+        en: "The HTTP and HTTPS ports. 80 and 443 unless something else already has them.",
+        fr: "Les ports HTTP et HTTPS. 80 et 443, sauf si autre chose les occupe déjà.",
+      },
+    ],
     notes: {
-      en: "This one does open ports 80 and 443. It is the only module that does.",
-      fr: "Celui-ci ouvre bien les ports 80 et 443. C’est le seul module qui le fasse.",
+      en: "This one does open ports 80 and 443. It is the only module that does. Uninstalling closes them again and leaves the certificates it obtained in place.",
+      fr: "Celui-ci ouvre bien les ports 80 et 443. C’est le seul module qui le fasse. La désinstallation les referme et laisse en place les certificats obtenus.",
     },
   },
   "tool.github": {
@@ -455,10 +603,23 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
   "tool.neon": {
     installs: [
       {
-        en: "A Neon branch for every project that declares one.",
-        fr: "Une branche Neon pour chaque projet qui en déclare une.",
+        en: "The Neon CLI on the machine, authenticated by the key you gave, ready in every shell and for every agent.",
+        fr: "Le CLI Neon sur la machine, authentifié par la clé que vous donnez, prêt dans tous les shells et pour tous les agents.",
+      },
+      {
+        en: "Nothing else: your projects, your branches and your databases stay yours to create.",
+        fr: "Rien d’autre : vos projets, vos branches et vos bases restent les vôtres à créer.",
       },
     ],
-    asks: [{ en: "A Neon API key.", fr: "Une clé d’API Neon." }],
+    asks: [
+      {
+        en: "A Neon API key, personal or organisation.",
+        fr: "Une clé d’API Neon, personnelle ou d’organisation.",
+      },
+    ],
+    notes: {
+      en: "Uninstalling takes back the CLI and the key it stored, and never touches your Neon account.",
+      fr: "La désinstallation reprend le CLI et la clé qu’il rangeait, et ne touche jamais à votre compte Neon.",
+    },
   },
 }

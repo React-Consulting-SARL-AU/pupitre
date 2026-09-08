@@ -8,10 +8,12 @@ const { stack } = homeContent(locale)
 ---
 
 <div class="text-center">
-  <h2 class="heading-2">{stack.title}</h2>
-  <p class="lead mx-auto mt-6 max-w-xl text-ink-2">{stack.lead}</p>
+  <h2 class="heading-2 reveal">{stack.title}</h2>
+  <p class="lead reveal mx-auto mt-6 max-w-xl text-ink-2">{stack.lead}</p>
 
-  <ul class="mt-14 grid grid-cols-2 gap-3 xs:grid-cols-3 md:grid-cols-5">
+  <ul
+    class="reveal-wall mt-14 grid grid-cols-2 gap-3 xs:grid-cols-3 md:grid-cols-6"
+  >
     {
       STACK.map((item) => (
         <li class="logo-tile" data-brand={item.name}>
@@ -27,7 +29,7 @@ const { stack } = homeContent(locale)
     }
   </ul>
 
-  <p class="mt-10 text-ink-3">{stack.note}</p>
+  <p class="reveal mt-10 text-ink-3">{stack.note}</p>
   <a
     href={localizePath("/docs/services/", locale)}
     class="link-underline mt-3 inline-block py-2"

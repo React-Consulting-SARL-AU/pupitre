@@ -5,12 +5,15 @@ import { announces, useAgentUpdate } from "../agent-update";
 
 const SERVER = "srv-1";
 
-const CARRIED = {
+const OFFER = {
   arch: "amd64",
   notes: ["Mise à jour de l'agent depuis l'app."],
   signed: true,
+  source: "app" as const,
   version: "0.4.0",
 };
+
+const SHEET = { floor: "0.1.0", verdict: "ok" as const };
 
 function log(line: string): Event {
   return { event: "log", id: 2, line } as unknown as Event;
@@ -39,8 +42,9 @@ describe("la lecture de l'écart", () => {
         Promise.resolve({
           ok: true,
           result: {
-            carried: CARRIED,
+            ...SHEET,
             installed: "0.3.0",
+            offer: OFFER,
             order: "ahead",
             platform: true,
           },
@@ -88,8 +92,9 @@ describe("la mise à jour de l'agent", () => {
         return Promise.resolve({
           ok: true,
           result: {
-            carried: CARRIED,
+            ...SHEET,
             installed: reads === 1 ? "0.3.0" : "0.4.0",
+            offer: OFFER,
             order: reads === 1 ? "ahead" : "same",
             platform: true,
           },
@@ -194,8 +199,9 @@ describe("ce que le bandeau annonce", () => {
       serverId: SERVER,
       status: "ready" as const,
       update: {
-        carried: CARRIED,
+        ...SHEET,
         installed: "0.3.0",
+        offer: OFFER,
         order: "ahead" as const,
         platform: true,
       },
@@ -214,8 +220,9 @@ describe("ce que le bandeau annonce", () => {
       serverId: SERVER,
       status: "ready" as const,
       update: {
-        carried: CARRIED,
+        ...SHEET,
         installed: "0.3.0",
+        offer: OFFER,
         order: "ahead" as const,
         platform: true,
       },

@@ -22,7 +22,10 @@ const centered = align === "center"
   ]}
 >
   <div class="shell">
-    <header class:list={[centered ? "mx-auto max-w-3xl text-center" : "max-w-2xl"]}>
+    <header class:list={[
+      "reveal",
+      centered ? "mx-auto max-w-3xl text-center" : "max-w-2xl",
+    ]}>
       {
         centered ? (
           <p class="pill">{label}</p>

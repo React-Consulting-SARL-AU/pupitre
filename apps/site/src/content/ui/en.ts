@@ -34,7 +34,6 @@ export const en = {
   "footer.acceptableUse": "Acceptable use",
   "footer.dpa": "Data processing",
   "footer.status": "Status",
-  "footer.company": "Pupitre LLC — legal notice to come",
   "footer.builtBy":
     "Built by someone who runs his own agents on a VPS every day.",
 
@@ -95,9 +94,10 @@ export const en = {
   "legal.lead":
     "The rules of the product, written to be read. Nothing here contradicts what the app does on your machine.",
   "legal.updated": "Updated",
-  "legal.draft": "Draft — text pending",
-  "legal.draftBody":
-    "This page is a structure waiting for its final wording. The production build refuses to publish it in this state.",
+  "legal.draft": "Draft",
+  "legal.subProcessor": "Sub-processor",
+  "legal.purpose": "Purpose",
+  "legal.region": "Region",
 
   "notFound.title": "Not found — Pupitre",
   "notFound.description": "This page does not exist.",

@@ -286,8 +286,8 @@ BLOCKED=0
 case "$OS $VERSION" in
   'ubuntu 22.04'|'ubuntu 24.04') ;;
   *)
-    add_reason "Distribution non prise en charge : $(label "$OS $VERSION"). Pupitre demande Ubuntu 22.04 ou 24.04."
-    add_fix "Réinstalle le serveur depuis une image Ubuntu 24.04 LTS, puis relance l'inspection."
+    add_reason "Unsupported distribution: $(label "$OS $VERSION"). Pupitre asks for Ubuntu 22.04 or 24.04."
+    add_fix "Reinstall the server from an Ubuntu 24.04 LTS image, then run the inspection again."
     BLOCKED=1
     ;;
 esac
@@ -295,21 +295,21 @@ esac
 case $ARCH in
   amd64|arm64) ;;
   *)
-    add_reason "Architecture non prise en charge : $(label "$ARCH"). Pupitre ne fournit que des binaires amd64 et arm64."
-    add_fix "Choisis un serveur amd64 (x86_64) ou arm64 (aarch64)."
+    add_reason "Unsupported architecture: $(label "$ARCH"). Pupitre ships amd64 and arm64 binaries only."
+    add_fix "Pick an amd64 (x86_64) or arm64 (aarch64) server."
     BLOCKED=1
     ;;
 esac
 
 if [ "$RAM_MB" -lt 4096 ]; then
-  add_reason "Mémoire insuffisante : $RAM_MB Mo. Pupitre demande 4096 Mo au minimum."
-  add_fix "Passe le serveur à une offre d'au moins 4 Go de mémoire."
+  add_reason "Not enough memory: $RAM_MB MB. Pupitre asks for 4096 MB at least."
+  add_fix "Move the server to a plan with at least 4 GB of memory."
   BLOCKED=1
 fi
 
 if [ "$SUDO" != true ]; then
-  add_reason "sudo sans mot de passe indisponible pour l'utilisateur courant."
-  add_fix "Connecte-toi en root, ou donne NOPASSWD à ce compte dans /etc/sudoers.d/."
+  add_reason "Passwordless sudo is not available for the current user."
+  add_fix "Sign in as root, or give this account NOPASSWD in /etc/sudoers.d/."
   BLOCKED=1
 fi
 
@@ -320,25 +320,25 @@ elif [ -n "$AGENT" ]; then
   KIND='managed'
   if [ -z "$CURRENT" ] || [ "$AGENT" = "$CURRENT" ]; then
     UP_TO_DATE='true'
-    add_reason "Pupitre est déjà installé : agent $AGENT, à jour."
+    add_reason "Pupitre is already installed: agent $AGENT, up to date."
   else
     UP_TO_DATE='false'
     LEVEL='warning'
-    add_reason "Pupitre est déjà installé : agent $AGENT, la version courante est $CURRENT."
-    add_fix "Mets l'agent à jour depuis l'app avant d'installer des services."
+    add_reason "Pupitre is already installed: agent $AGENT, the current version is $CURRENT."
+    add_fix "Update the agent from the app before installing any service."
   fi
 else
   OCCUPIED=0
 
   if [ "$DOCKER" = true ]; then
-    add_reason "Docker est installé : ses conteneurs, ses réseaux et ses règles de pare-feu resteraient en place."
-    add_fix "Retire Docker pour une machine dédiée, ou installe quand même : Pupitre n'y touchera pas."
+    add_reason "Docker is installed: its containers, its networks and its firewall rules would stay in place."
+    add_fix "Remove Docker for a dedicated machine, or install anyway: Pupitre will not touch it."
     OCCUPIED=1
   fi
 
   if [ -n "$PANEL" ]; then
-    add_reason "Panneau d'hébergement détecté : $PANEL. Il se dispute nginx, les utilisateurs et le pare-feu avec Pupitre."
-    add_fix "Choisis un serveur sans panneau d'hébergement."
+    add_reason "A hosting panel was found: $PANEL. It fights Pupitre over nginx, the users and the firewall."
+    add_fix "Pick a server without a hosting panel."
     OCCUPIED=1
   fi
 
@@ -350,9 +350,9 @@ else
     esac
 
     if [ -n "$process" ]; then
-      add_reason "Le port $port est déjà écouté par $process."
+      add_reason "Port $port is already listened on by $process."
     else
-      add_reason "Le port $port est déjà écouté."
+      add_reason "Port $port is already listened on."
     fi
     WEB=1
   done <<WEB_EOF
@@ -360,13 +360,13 @@ $PORTS
 WEB_EOF
 
   if [ "$WEB" -eq 1 ]; then
-    add_fix "Libère les ports 80 et 443, ou installe quand même : l'exposition par tunnel ne les utilise pas."
+    add_fix "Free ports 80 and 443, or install anyway: tunnel exposure does not use them."
     OCCUPIED=1
   fi
 
   if [ -n "$ACCOUNT_LIST" ]; then
-    add_reason "Des comptes non système existent déjà : $ACCOUNT_LIST."
-    add_fix "Vérifie que ces comptes cohabitent avec l'utilisateur dev créé par Pupitre."
+    add_reason "Non-system accounts already exist: $ACCOUNT_LIST."
+    add_fix "Check that these accounts live alongside the dev user Pupitre creates."
     OCCUPIED=1
   fi
 
@@ -374,7 +374,7 @@ WEB_EOF
     LEVEL='warning'
     KIND='occupied'
   else
-    add_reason "Machine nue : $OS $VERSION $ARCH, $RAM_MB Mo de mémoire, $DISK_GB Go libres."
+    add_reason "A bare machine: $OS $VERSION $ARCH, $RAM_MB MB of memory, $DISK_GB GB free."
   fi
 fi
 

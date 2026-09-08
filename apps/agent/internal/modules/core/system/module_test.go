@@ -208,7 +208,7 @@ func TestSwapFailureIsAWarningNotAFailure(t *testing.T) {
 		t.Fatalf("create-swap = %s, fstab = %q", statuses(ctx)["create-swap"], fake.Files["/etc/fstab"])
 	}
 
-	if output := strings.Join(ctx.Output(), "\n"); !strings.Contains(output, "! swap non créé") {
+	if output := strings.Join(ctx.Output(), "\n"); !strings.Contains(output, "! the swap file was not created") {
 		t.Fatalf("no warning in output:\n%s", output)
 	}
 }
@@ -219,7 +219,7 @@ func TestFailedPackageReportsReplay(t *testing.T) {
 	ctx := newContext(t, fake)
 
 	err := (Module{}).Install(ctx)
-	if err == nil || !strings.Contains(err.Error(), "core.system · install-packages : paquets introuvables ou refusés : git") {
+	if err == nil || !strings.Contains(err.Error(), "core.system · install-packages : packages not found or refused: git") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -272,7 +272,7 @@ func TestMissingGitIdentityFailsTheStep(t *testing.T) {
 	ctx := modtest.NewContext(t, fake, modtest.Options{Manifest: manifest(), Values: modtest.Values{"git_name": "Jordan"}})
 
 	err := (Module{}).Configure(ctx)
-	if err == nil || !strings.Contains(err.Error(), "set-git-identity : git_name et git_email sont requis") {
+	if err == nil || !strings.Contains(err.Error(), "set-git-identity : git_name and git_email are required") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -387,15 +387,15 @@ func TestConfigureInstallsAndEnablesTheAgentService(t *testing.T) {
 
 	unit := string(fake.Files[daemon.UnitPath])
 	if !strings.Contains(unit, "pupitred daemon") || !strings.Contains(unit, "Restart=always") {
-		t.Fatalf("unité :\n%s", unit)
+		t.Fatalf("unit:\n%s", unit)
 	}
 
 	if fake.Units[daemon.Unit] != modtest.UnitActive {
-		t.Fatalf("état de l'unité = %q", fake.Units[daemon.Unit])
+		t.Fatalf("unit state = %q", fake.Units[daemon.Unit])
 	}
 
 	if statuses(ctx)["install-agent-unit"] != contract.StepOK {
-		t.Fatalf("étapes = %v", statuses(ctx))
+		t.Fatalf("steps = %v", statuses(ctx))
 	}
 
 	replayed := newContext(t, fake)
@@ -415,6 +415,6 @@ func TestUninstallTakesTheAgentServiceAway(t *testing.T) {
 	}
 
 	if _, present := fake.Files[daemon.UnitPath]; present {
-		t.Fatal("l'unité est restée en place")
+		t.Fatal("the unit stayed in place")
 	}
 }

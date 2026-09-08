@@ -115,7 +115,15 @@ export const TunnelRouteSchema = z.object({
 
 export type TunnelRoute = z.infer<typeof TunnelRouteSchema>
 
+export const EXPOSURE_PROVIDERS = ["cloudflare", "caddy", "ssh"] as const
+
+export const ExposureProviderSchema = z.enum(EXPOSURE_PROVIDERS)
+
+export type ExposureProvider = z.infer<typeof ExposureProviderSchema>
+
+/** `provider` names the module that answered, and is null when none holds the machine. */
 export const TunnelStatusResultSchema = z.object({
+  provider: ExposureProviderSchema.nullable(),
   installed: z.boolean(),
   state: TunnelStateSchema,
   routes: z.array(TunnelRouteSchema),

@@ -22,12 +22,12 @@ func TestTheSignedMessageIsTheOneTheContractRatified(t *testing.T) {
 
 	signed := release.SignedMessage("1.4.2", "amd64", fingerprint)
 	if string(signed) != golden {
-		t.Fatalf("la chaîne de release signe %q", signed)
+		t.Fatalf("the release chain signs %q", signed)
 	}
 
 	verified := selfupdate.SignedMessage("1.4.2", "amd64", fingerprint)
 	if !bytes.Equal(signed, verified) {
-		t.Fatalf("la chaîne signe %q et l'agent vérifie %q", signed, verified)
+		t.Fatalf("the chain signs %q and the agent verifies %q", signed, verified)
 	}
 }
 
@@ -51,14 +51,14 @@ func TestASignedBinaryIsAcceptedByTheAgentAndOneAlteredByteIsNot(t *testing.T) {
 	signature := decode(t, publication.Signature)
 
 	if !selfupdate.Verify(public, publication.Version, publication.Arch, publication.SHA256, signature) {
-		t.Fatal("l'agent a refusé un binaire signé par la chaîne de release")
+		t.Fatal("the agent refused a binary signed by the release chain")
 	}
 
 	altered := bytes.Clone(binary)
 	altered[7] ^= 1
 
 	if selfupdate.Verify(public, publication.Version, publication.Arch, release.Fingerprint(altered), signature) {
-		t.Fatal("l'agent a accepté un binaire modifié d'un octet")
+		t.Fatal("the agent accepted a binary altered by one byte")
 	}
 }
 
@@ -74,11 +74,11 @@ func TestTheSignatureDoesNotTravelToAnotherVersionOrArchitecture(t *testing.T) {
 	signature := decode(t, publication.Signature)
 
 	if selfupdate.Verify(public, "1.4.3", publication.Arch, publication.SHA256, signature) {
-		t.Error("la signature vaut pour une autre version")
+		t.Error("the signature holds for another version")
 	}
 
 	if selfupdate.Verify(public, publication.Version, "arm64", publication.SHA256, signature) {
-		t.Error("la signature vaut pour une autre architecture")
+		t.Error("the signature holds for another architecture")
 	}
 }
 
@@ -92,7 +92,7 @@ func TestAnotherKeyIsRefused(t *testing.T) {
 	}
 
 	if selfupdate.Verify(other, publication.Version, publication.Arch, publication.SHA256, decode(t, publication.Signature)) {
-		t.Fatal("une clé étrangère a validé la signature")
+		t.Fatal("a foreign key validated the signature")
 	}
 }
 
@@ -113,11 +113,11 @@ func TestThePublicationIsWhatThePlatformAccepts(t *testing.T) {
 	}
 
 	if publication.R2Key != "agent/1.4.2/pupitred-linux-arm64" {
-		t.Errorf("clé R2 = %q", publication.R2Key)
+		t.Errorf("R2 key = %q", publication.R2Key)
 	}
 
 	if publication.Channel != "beta" {
-		t.Errorf("canal par défaut = %q", publication.Channel)
+		t.Errorf("default channel = %q", publication.Channel)
 	}
 }
 
@@ -130,17 +130,17 @@ func TestSignRefusesWhatThePlatformWouldRefuseToo(t *testing.T) {
 		channel string
 		binary  []byte
 	}{
-		"version non semver": {"v1.4", "amd64", "", []byte("x")},
-		"version vide":       {"", "amd64", "", []byte("x")},
-		"architecture rejetée par la plateforme": {"1.4.2", "riscv64", "", []byte("x")},
-		"canal inconnu": {"1.4.2", "amd64", "nightly", []byte("x")},
-		"binaire vide":  {"1.4.2", "amd64", "", nil},
+		"non-semver version":                   {"v1.4", "amd64", "", []byte("x")},
+		"empty version":                        {"", "amd64", "", []byte("x")},
+		"architecture refused by the platform": {"1.4.2", "riscv64", "", []byte("x")},
+		"unknown channel":                      {"1.4.2", "amd64", "nightly", []byte("x")},
+		"empty binary":                         {"1.4.2", "amd64", "", nil},
 	}
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			if _, err := release.Sign(private, tc.version, tc.arch, tc.channel, tc.binary); err == nil {
-				t.Fatal("signature acceptée")
+				t.Fatal("signature accepted")
 			}
 		})
 	}
@@ -148,7 +148,7 @@ func TestSignRefusesWhatThePlatformWouldRefuseToo(t *testing.T) {
 
 func TestSignRefusesAKeyThatIsNotEd25519(t *testing.T) {
 	if _, err := release.Sign(ed25519.PrivateKey("trop courte"), "1.4.2", "amd64", "", []byte("x")); err == nil {
-		t.Fatal("clé acceptée")
+		t.Fatal("key accepted")
 	}
 }
 
@@ -160,15 +160,15 @@ func TestArchOfReadsTheArchitectureFromTheBuiltFile(t *testing.T) {
 
 	for _, path := range []string{"dist/release/pupitred", "dist/release/pupitred-linux-riscv64", "pupitred-darwin-arm64"} {
 		if _, err := release.ArchOf(path); err == nil {
-			t.Errorf("%s accepté", path)
+			t.Errorf("%s accepted", path)
 		}
 	}
 }
 
 func TestParsePrivateKeyRefusesAnythingElse(t *testing.T) {
-	for _, encoded := range []string{"", "pas du base64 !", base64.StdEncoding.EncodeToString([]byte("trop courte"))} {
+	for _, encoded := range []string{"", "not base64!", base64.StdEncoding.EncodeToString([]byte("trop courte"))} {
 		if _, err := release.ParsePrivateKey(encoded); err == nil {
-			t.Errorf("clé acceptée : %q", encoded)
+			t.Errorf("key accepted: %q", encoded)
 		}
 	}
 }
@@ -186,12 +186,12 @@ func TestTheGeneratedPairFeedsTheLinkerFlagTheAgentReads(t *testing.T) {
 	}
 
 	if release.PublicKeyOf(parsed) != public {
-		t.Fatal("la clé publique ne vient pas de la clé privée")
+		t.Fatal("the public key does not come from the private key")
 	}
 
 	embedded, err := selfupdate.ParsePublicKey(public)
 	if err != nil {
-		t.Fatalf("l'agent refuse la clé publique : %v", err)
+		t.Fatalf("the agent refuses the public key: %v", err)
 	}
 
 	publication, err := release.Sign(parsed, "1.4.2", "amd64", "", []byte("pupitred"))
@@ -200,7 +200,7 @@ func TestTheGeneratedPairFeedsTheLinkerFlagTheAgentReads(t *testing.T) {
 	}
 
 	if !selfupdate.Verify(embedded, publication.Version, publication.Arch, publication.SHA256, decode(t, publication.Signature)) {
-		t.Fatal("la signature n'a pas été reconnue par la clé embarquée")
+		t.Fatal("the signature was not recognized by the embedded key")
 	}
 }
 
@@ -224,4 +224,38 @@ func decode(t *testing.T, encoded string) []byte {
 	}
 
 	return signature
+}
+
+func TestManifestOfDescribesWhatTheAppCarries(t *testing.T) {
+	publications := []release.Publication{
+		{Version: "1.4.0", Arch: "amd64", Signature: "sig-amd64"},
+		{Version: "1.4.0", Arch: "arm64", Signature: "sig-arm64"},
+	}
+
+	manifest, err := release.ManifestOf(publications)
+	if err != nil {
+		t.Fatalf("ManifestOf: %v", err)
+	}
+
+	if manifest.Version != "1.4.0" {
+		t.Fatalf("version %q, want 1.4.0", manifest.Version)
+	}
+
+	if manifest.Signatures["arm64"] != "sig-arm64" {
+		t.Fatalf("signature arm64 %q", manifest.Signatures["arm64"])
+	}
+}
+
+func TestManifestOfRefusesTwoVersionsAtOnce(t *testing.T) {
+	_, err := release.ManifestOf([]release.Publication{
+		{Version: "1.4.0", Arch: "amd64"},
+		{Version: "1.5.0", Arch: "arm64"},
+	})
+	if err == nil {
+		t.Fatal("two versions in the same publication accepted")
+	}
+
+	if _, err := release.ManifestOf(nil); err == nil {
+		t.Fatal("empty publication accepted")
+	}
 }

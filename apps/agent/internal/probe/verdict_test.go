@@ -24,7 +24,7 @@ func TestBareMachineIsReady(t *testing.T) {
 		t.Fatalf("verdict = %s/%s, want bare/ready", verdict.Kind, verdict.Level)
 	}
 
-	if len(verdict.Reasons) != 1 || !strings.Contains(verdict.Reasons[0], "8192 Mo") {
+	if len(verdict.Reasons) != 1 || !strings.Contains(verdict.Reasons[0], "8192 MB") {
 		t.Fatalf("reasons = %q", verdict.Reasons)
 	}
 
@@ -109,7 +109,7 @@ func TestOccupiedListsWhatWouldBeTouched(t *testing.T) {
 				m.Ports = []Port{{Port: 22, Process: "sshd"}, {Port: 80, Process: "nginx"}}
 				return m
 			},
-			expect: "port 80",
+			expect: "Port 80",
 		},
 		{
 			name:    "users",
@@ -166,7 +166,7 @@ func TestIncompatibleReasons(t *testing.T) {
 		{
 			name:    "memory",
 			machine: func(m Machine) Machine { m.RAMMB = 2048; return m },
-			expect:  "2048 Mo",
+			expect:  "2048 MB",
 		},
 		{
 			name:    "sudo",

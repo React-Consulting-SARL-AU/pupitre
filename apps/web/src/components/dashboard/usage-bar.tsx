@@ -1,4 +1,6 @@
+import { useTranslations } from "@/hooks/use-locale"
 import { cn } from "@/lib/utils/cn"
+import { formatRatio } from "@/lib/utils/format"
 
 const WARN_THRESHOLD = 80
 const DANGER_THRESHOLD = 90
@@ -22,7 +24,9 @@ function tone(percent: number): string {
 }
 
 export function UsageBar({ label, percent, className }: UsageBarProps) {
+  const t = useTranslations()
   const value = percent === null ? null : Math.max(0, Math.min(100, percent))
+  const reading = value === null ? null : formatRatio(value / 100, t)
 
   return (
     <div className={cn("flex items-center gap-3", className)}>
@@ -30,7 +34,11 @@ export function UsageBar({ label, percent, className }: UsageBarProps) {
         {label}
       </span>
       <span
-        aria-label={`${label} ${value === null ? "inconnu" : `${Math.round(value)} %`}`}
+        aria-label={
+          reading === null
+            ? t("servers.usage.unknown", { label })
+            : t("servers.usage.value", { label, percent: reading })
+        }
         aria-valuemax={100}
         aria-valuemin={0}
         aria-valuenow={value ?? undefined}
@@ -45,7 +53,7 @@ export function UsageBar({ label, percent, className }: UsageBarProps) {
         )}
       </span>
       <span className="w-11 shrink-0 whitespace-nowrap text-right font-data text-[12px] text-ink-2 tabular-nums">
-        {value === null ? "—" : `${Math.round(value)} %`}
+        {reading ?? t("format.none")}
       </span>
     </div>
   )

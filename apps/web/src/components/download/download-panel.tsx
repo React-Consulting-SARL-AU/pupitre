@@ -1,23 +1,16 @@
 import { useQuery } from "@tanstack/react-query"
 import { PackageOpen } from "lucide-react"
+import { StartChecklist } from "@/components/dashboard/start-checklist"
 import { DownloadOfferRow } from "@/components/download/download-offer-row"
-import { LinkAppCard } from "@/components/download/link-app-card"
 import { ReleaseNotesCard } from "@/components/download/release-notes-card"
 import { RequirementsCard } from "@/components/download/requirements-card"
 import { Callout } from "@/components/ui/callout"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
-import { LoadingState } from "@/components/ui/loading-state"
+import { SkeletonCards } from "@/components/ui/skeleton"
 import { useTranslations } from "@/hooks/use-locale"
 import { latestAppReleaseQueryOptions } from "@/lib/api/queries"
 import { detectOs, downloadOffers } from "@/lib/domain/downloads"
-import type { DictionaryKey } from "@/lib/i18n/en"
-
-const JOURNEY: DictionaryKey[] = [
-  "download.journey.download",
-  "download.journey.link",
-  "download.journey.enrol",
-]
 
 function currentUserAgent(): string {
   return typeof navigator === "undefined" ? "" : navigator.userAgent
@@ -28,7 +21,7 @@ export function DownloadPanel() {
   const release = useQuery(latestAppReleaseQueryOptions())
 
   if (release.isPending) {
-    return <LoadingState label={t("download.reading")} />
+    return <SkeletonCards />
   }
 
   if (release.isError) {
@@ -48,24 +41,7 @@ export function DownloadPanel() {
 
   return (
     <div className="flex flex-col gap-section">
-      <div className="rounded-md border border-line bg-sunken px-3.5 py-2.5">
-        <p className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-          {t("download.journey")}
-        </p>
-        <ol className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-          {JOURNEY.map((step, index) => (
-            <li
-              className="flex items-center gap-2 text-[13px] text-ink"
-              key={step}
-            >
-              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-raised font-data text-[11px] text-ink-2 tabular-nums">
-                {index + 1}
-              </span>
-              {t(step)}
-            </li>
-          ))}
-        </ol>
-      </div>
+      <StartChecklist compact />
 
       {downloadable ? null : (
         <EmptyState
@@ -87,15 +63,13 @@ export function DownloadPanel() {
         <ul>
           {offers.map((offer) => (
             <DownloadOfferRow
-              key={offer.os}
+              key={`${offer.os}-${offer.arch ?? "none"}`}
               offer={offer}
               suggested={offer.os === suggested}
             />
           ))}
         </ul>
       </Card>
-
-      <LinkAppCard />
 
       <ReleaseNotesCard release={published} />
       <RequirementsCard />

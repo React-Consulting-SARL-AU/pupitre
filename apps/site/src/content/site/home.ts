@@ -37,12 +37,14 @@ export interface StackItem {
 export const STACK: readonly StackItem[] = [
   { name: "Claude Code", module: "ai.claude" },
   { name: "Codex", module: "ai.codex" },
+  { name: "Hermes", module: "ai.hermes" },
   { name: "Node.js", module: "runtime.node" },
   { name: "Bun", mark: "bun" },
   { name: "Python", module: "runtime.python" },
   { name: "Java", module: "runtime.java" },
   { name: "PostgreSQL", module: "db.postgres" },
   { name: "MySQL", module: "db.mysql" },
+  { name: "Redis", module: "db.redis" },
   { name: "Docker", module: "runtime.docker" },
   { name: "Cloudflare", module: "exposure.cloudflare" },
 ]
@@ -58,6 +60,14 @@ export interface HomeContent {
     note: string
   }
   stack: { title: string; lead: string; note: string; link: string }
+  name: {
+    label: string
+    word: string
+    pronunciation: string
+    grammar: string
+    senses: string[]
+    note: string
+  }
   steps: { label: string; title: string; lead: string; items: StepItem[] }
   features: { label: string; title: string; items: FeatureItem[] }
   clients: {

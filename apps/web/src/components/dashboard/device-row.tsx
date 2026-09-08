@@ -11,15 +11,18 @@ export interface DeviceRowDevice {
 
 export interface DeviceRowProps {
   device: DeviceRowDevice
-  onRevoke: (id: string) => void
-  pending: boolean
+  onRevoke: () => void
+  revoking: boolean
 }
 
-export function DeviceRow({ device, onRevoke, pending }: DeviceRowProps) {
+export function DeviceRow({ device, onRevoke, revoking }: DeviceRowProps) {
   const t = useTranslations()
 
   return (
-    <li className="flex flex-wrap items-center justify-between gap-4 border-line border-b px-4 py-3 last:border-b-0">
+    <li
+      aria-busy={revoking || undefined}
+      className="flex flex-wrap items-center justify-between gap-4 border-line border-b px-4 py-3 last:border-b-0"
+    >
       <div className="min-w-0">
         <p className="truncate font-medium text-[13px] text-ink">
           {device.name}
@@ -33,12 +36,11 @@ export function DeviceRow({ device, onRevoke, pending }: DeviceRowProps) {
           {formatRelative(device.last_used_at, t)}
         </span>
         <ConfirmDialog
+          busy={revoking}
+          busyLabel={t("devices.revoking")}
           confirmLabel={t("devices.revoke")}
           description={t("devices.revokeDescription", { name: device.name })}
-          onConfirm={() => {
-            onRevoke(device.id)
-          }}
-          pending={pending}
+          onConfirm={onRevoke}
           title={t("devices.revokeTitle")}
           triggerLabel={t("devices.revoke")}
         />

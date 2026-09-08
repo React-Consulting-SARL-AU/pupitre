@@ -35,6 +35,14 @@ interface StateBody {
   entitlement: string
 }
 
+interface EventsBody {
+  data: {
+    action: string
+    target_id: string
+    payload: unknown
+  }[]
+}
+
 interface SubscriptionBody {
   data: {
     quantity: number
@@ -243,7 +251,7 @@ describe("facturation d'une organisation", () => {
     expect(third.status).toBe(403)
     expect(third.json.error.code).toBe("seat_quota_reached")
     expect(third.json.error.message).toContain("2")
-    expect(third.json.error.fix).toContain("portail")
+    expect(third.json.error.fix).toContain("seats")
     expect(third.json.error.fix).toContain(organizationId)
   })
 
@@ -399,6 +407,137 @@ describe("facturation d'une organisation", () => {
     )
 
     expect(after.json.data?.quantity).toBe(1)
+  })
+
+  it("ajoute un siège en cours d'essai, et l'enrôlement suivant passe", async () => {
+    await paySeats(billing, organizationId, 1, "trialing")
+
+    const device = await addDevice(owner, "poste")
+    const deviceId = device.json.data.id
+
+    expect((await enroll(owner, deviceId, "trial-1.example.net")).status).toBe(
+      201
+    )
+    expect((await enroll(owner, deviceId, "trial-2.example.net")).status).toBe(
+      403
+    )
+
+    const resized = await apiRequest<SubscriptionBody>(
+      `/orgs/${organizationId}/seats`,
+      { body: { quantity: 2 }, session: owner }
+    )
+
+    expect(resized.status).toBe(200)
+    expect(resized.json.data).toMatchObject({ quantity: 2, status: "trialing" })
+    expect(billing.quantities).toEqual([
+      { subscriptionId: "sub_seat", quantity: 2 },
+    ])
+    expect((await enroll(owner, deviceId, "trial-2.example.net")).status).toBe(
+      201
+    )
+  })
+
+  it("garde la trace du changement dans le journal", async () => {
+    await paySeats(billing, organizationId, 1, "trialing")
+    await apiRequest(`/orgs/${organizationId}/seats`, {
+      body: { quantity: 3 },
+      session: owner,
+    })
+
+    const events = await apiRequest<EventsBody>(
+      `/orgs/${organizationId}/events?action=subscription.updated`,
+      { session: owner }
+    )
+
+    expect(events.json.data[0]).toMatchObject({
+      action: "subscription.updated",
+      target_id: "sub_seat",
+      payload: { quantity: 3, previous: 1 },
+    })
+  })
+
+  it("descend jusqu'aux serveurs en place, jamais en dessous", async () => {
+    await paySeats(billing, organizationId, 4)
+
+    const device = await addDevice(owner, "poste")
+
+    await enroll(owner, device.json.data.id, "vps-1.example.net")
+    await enroll(owner, device.json.data.id, "vps-2.example.net")
+
+    const lowered = await apiRequest<SubscriptionBody>(
+      `/orgs/${organizationId}/seats`,
+      { body: { quantity: 2 }, session: owner }
+    )
+
+    expect(lowered.status).toBe(200)
+    expect(lowered.json.data?.quantity).toBe(2)
+
+    const refused = await apiRequest<ErrorBody>(
+      `/orgs/${organizationId}/seats`,
+      { body: { quantity: 1 }, session: owner }
+    )
+
+    expect(refused.status).toBe(409)
+    expect(refused.json.error.code).toBe("conflict")
+    expect(refused.json.error.message).toContain("2")
+    expect(refused.json.error.fix).toContain("servers")
+    expect(billing.quantities).toHaveLength(1)
+  })
+
+  it("refuse de changer les sièges sans abonnement en cours", async () => {
+    const response = await apiRequest<ErrorBody>(
+      `/orgs/${organizationId}/seats`,
+      { body: { quantity: 2 }, session: owner }
+    )
+
+    expect(response.status).toBe(409)
+    expect(response.json.error.code).toBe("conflict")
+    expect(response.json.error.fix).toContain("/dashboard/billing")
+  })
+
+  it("réserve le changement de sièges au propriétaire", async () => {
+    await paySeats(billing, organizationId, 2)
+
+    const byAdmin = await apiRequest<ErrorBody>(
+      `/orgs/${organizationId}/seats`,
+      { body: { quantity: 3 }, session: admin }
+    )
+    const byMember = await apiRequest<ErrorBody>(
+      `/orgs/${organizationId}/seats`,
+      { body: { quantity: 3 }, session: member }
+    )
+    const anonymous = await apiRequest<ErrorBody>(
+      `/orgs/${organizationId}/seats`,
+      { body: { quantity: 3 } }
+    )
+    const other = await createOrganizationWithMembers({ roles: ["owner"] })
+    const elsewhere = await apiRequest<ErrorBody>(
+      `/orgs/${other.organization.id}/seats`,
+      { body: { quantity: 3 }, session: owner }
+    )
+
+    expect(byAdmin.status).toBe(403)
+    expect(byMember.status).toBe(403)
+    expect(anonymous.status).toBe(401)
+    expect(elsewhere.status).toBe(404)
+    expect(billing.quantities).toHaveLength(0)
+  })
+
+  it("borne la quantité demandée", async () => {
+    await paySeats(billing, organizationId, 2)
+
+    const none = await apiRequest<ErrorBody>(`/orgs/${organizationId}/seats`, {
+      body: { quantity: 0 },
+      session: owner,
+    })
+    const tooMany = await apiRequest<ErrorBody>(
+      `/orgs/${organizationId}/seats`,
+      { body: { quantity: 501 }, session: owner }
+    )
+
+    expect(none.status).toBe(422)
+    expect(tooMany.status).toBe(422)
+    expect(billing.quantities).toHaveLength(0)
   })
 
   it("ne réconcilie rien sans abonnement", async () => {

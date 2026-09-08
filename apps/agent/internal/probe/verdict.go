@@ -1,7 +1,7 @@
 package probe
 
 import (
-	"fmt"
+	"pupitre.studio/agent/internal/i18n"
 	"strings"
 )
 
@@ -63,8 +63,7 @@ func Decide(machine Machine) Verdict {
 		return Verdict{Level: LevelWarning, Kind: KindOccupied, Reasons: reasons, Fixes: fixes}
 	}
 
-	bare := fmt.Sprintf("Machine nue : %s %s %s, %d Mo de mémoire, %s Go libres.",
-		machine.OS, machine.Version, machine.Arch, machine.RAMMB, machine.DiskFreeGB)
+	bare := i18n.T("probe.bare", machine.OS, machine.Version, machine.Arch, machine.RAMMB, machine.DiskFreeGB)
 
 	return Verdict{Level: LevelReady, Kind: KindBare, Reasons: []string{bare}, Fixes: []string{}}
 }
@@ -73,23 +72,23 @@ func blockers(machine Machine) (reasons, fixes []string) {
 	reasons, fixes = []string{}, []string{}
 
 	if machine.OS != SupportedOS || !contains(SupportedVersions, machine.Version) {
-		reasons = append(reasons, "Distribution non prise en charge : "+label(machine.OS+" "+machine.Version)+". Pupitre demande Ubuntu 22.04 ou 24.04.")
-		fixes = append(fixes, "Réinstalle le serveur depuis une image Ubuntu 24.04 LTS, puis relance l'inspection.")
+		reasons = append(reasons, i18n.T("probe.os.unsupported", label(machine.OS+" "+machine.Version)))
+		fixes = append(fixes, i18n.T("probe.os.unsupported.fix"))
 	}
 
 	if !contains(SupportedArch, machine.Arch) {
-		reasons = append(reasons, "Architecture non prise en charge : "+label(machine.Arch)+". Pupitre ne fournit que des binaires amd64 et arm64.")
-		fixes = append(fixes, "Choisis un serveur amd64 (x86_64) ou arm64 (aarch64).")
+		reasons = append(reasons, i18n.T("probe.arch.unsupported", label(machine.Arch)))
+		fixes = append(fixes, i18n.T("probe.arch.unsupported.fix"))
 	}
 
 	if machine.RAMMB < MinRAMMB {
-		reasons = append(reasons, fmt.Sprintf("Mémoire insuffisante : %d Mo. Pupitre demande %d Mo au minimum.", machine.RAMMB, MinRAMMB))
-		fixes = append(fixes, "Passe le serveur à une offre d'au moins 4 Go de mémoire.")
+		reasons = append(reasons, i18n.T("probe.ram.low", machine.RAMMB, MinRAMMB))
+		fixes = append(fixes, i18n.T("probe.ram.low.fix"))
 	}
 
 	if !machine.Sudo {
-		reasons = append(reasons, "sudo sans mot de passe indisponible pour l'utilisateur courant.")
-		fixes = append(fixes, "Connecte-toi en root, ou donne NOPASSWD à ce compte dans /etc/sudoers.d/.")
+		reasons = append(reasons, i18n.T("probe.sudo.missing"))
+		fixes = append(fixes, i18n.T("probe.sudo.missing.fix"))
 	}
 
 	return reasons, fixes
@@ -100,14 +99,14 @@ func managed(machine Machine) Verdict {
 	verdict := Verdict{Level: LevelReady, Kind: KindManaged, UpToDate: &upToDate, Fixes: []string{}}
 
 	if upToDate {
-		verdict.Reasons = []string{"Pupitre est déjà installé : agent " + machine.AgentVersion + ", à jour."}
+		verdict.Reasons = []string{i18n.T("probe.managed.upToDate", machine.AgentVersion)}
 
 		return verdict
 	}
 
 	verdict.Level = LevelWarning
-	verdict.Reasons = []string{"Pupitre est déjà installé : agent " + machine.AgentVersion + ", la version courante est " + machine.Current + "."}
-	verdict.Fixes = []string{"Mets l'agent à jour depuis l'app avant d'installer des services."}
+	verdict.Reasons = []string{i18n.T("probe.managed.behind", machine.AgentVersion, machine.Current)}
+	verdict.Fixes = []string{i18n.T("probe.managed.behind.fix")}
 
 	return verdict
 }
@@ -116,13 +115,13 @@ func occupants(machine Machine) (reasons, fixes []string) {
 	reasons, fixes = []string{}, []string{}
 
 	if machine.Docker {
-		reasons = append(reasons, "Docker est installé : ses conteneurs, ses réseaux et ses règles de pare-feu resteraient en place.")
-		fixes = append(fixes, "Retire Docker pour une machine dédiée, ou installe quand même : Pupitre n'y touchera pas.")
+		reasons = append(reasons, i18n.T("probe.docker.present"))
+		fixes = append(fixes, i18n.T("probe.docker.present.fix"))
 	}
 
 	if machine.Panel != "" {
-		reasons = append(reasons, "Panneau d'hébergement détecté : "+machine.Panel+". Il se dispute nginx, les utilisateurs et le pare-feu avec Pupitre.")
-		fixes = append(fixes, "Choisis un serveur sans panneau d'hébergement.")
+		reasons = append(reasons, i18n.T("probe.panel.present", machine.Panel))
+		fixes = append(fixes, i18n.T("probe.panel.present.fix"))
 	}
 
 	web := false
@@ -133,20 +132,20 @@ func occupants(machine Machine) (reasons, fixes []string) {
 
 		web = true
 		if port.Process == "" {
-			reasons = append(reasons, fmt.Sprintf("Le port %d est déjà écouté.", port.Port))
+			reasons = append(reasons, i18n.T("probe.port.taken", port.Port))
 			continue
 		}
 
-		reasons = append(reasons, fmt.Sprintf("Le port %d est déjà écouté par %s.", port.Port, port.Process))
+		reasons = append(reasons, i18n.T("probe.port.taken.by", port.Port, port.Process))
 	}
 
 	if web {
-		fixes = append(fixes, "Libère les ports 80 et 443, ou installe quand même : l'exposition par tunnel ne les utilise pas.")
+		fixes = append(fixes, i18n.T("probe.ports.web.fix"))
 	}
 
 	if len(machine.Users) > 0 {
-		reasons = append(reasons, "Des comptes non système existent déjà : "+strings.Join(machine.Users, ", ")+".")
-		fixes = append(fixes, "Vérifie que ces comptes cohabitent avec l'utilisateur dev créé par Pupitre.")
+		reasons = append(reasons, i18n.T("probe.users.present", strings.Join(machine.Users, ", ")))
+		fixes = append(fixes, i18n.T("probe.users.present.fix"))
 	}
 
 	return reasons, fixes

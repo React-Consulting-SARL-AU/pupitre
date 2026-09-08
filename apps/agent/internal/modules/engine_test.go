@@ -305,7 +305,7 @@ func TestResolveRefusesConflictsUnknownModulesAndCycles(t *testing.T) {
 	)
 
 	_, err := registry.Resolve([]string{"db.mariadb", "db.mysql"})
-	if protocolCode(t, err) != contract.ErrorBadRequest || !strings.Contains(err.Error(), "db.mariadb et db.mysql") {
+	if protocolCode(t, err) != contract.ErrorBadRequest || !strings.Contains(err.Error(), "db.mariadb and db.mysql") {
 		t.Fatalf("conflict: %v", err)
 	}
 
@@ -315,7 +315,7 @@ func TestResolveRefusesConflictsUnknownModulesAndCycles(t *testing.T) {
 	}
 
 	_, err = registry.Resolve([]string{"tool.loop"})
-	if protocolCode(t, err) != contract.ErrorInternal || !strings.Contains(err.Error(), "circulaires") {
+	if protocolCode(t, err) != contract.ErrorInternal || !strings.Contains(err.Error(), "circular") {
 		t.Fatalf("cycle: %v", err)
 	}
 }
@@ -330,7 +330,7 @@ func TestInstallRefusesAConflictWithAnInstalledModule(t *testing.T) {
 	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
 
 	_, err := engine.Install(modules.Request{Modules: []string{"db.mysql"}}, nil)
-	if protocolCode(t, err) != contract.ErrorBadRequest || !strings.Contains(err.Error(), "déjà installé") {
+	if protocolCode(t, err) != contract.ErrorBadRequest || !strings.Contains(err.Error(), "already installed") {
 		t.Fatalf("got %v", err)
 	}
 }
@@ -358,14 +358,14 @@ func TestPanicAndBareErrorsAreFailuresOfTheModuleOnly(t *testing.T) {
 }
 
 func TestWarningsAreAccountedWithoutFailing(t *testing.T) {
-	engine := newEngine(t, modtest.NewFakeSys(), demoRegistry(modtest.Failing{ID: "tool.noisy", WarnWith: "le port 8080 est déjà pris"}), entitled(contract.EntitlementDev))
+	engine := newEngine(t, modtest.NewFakeSys(), demoRegistry(modtest.Failing{ID: "tool.noisy", WarnWith: "port 8080 is already taken"}), entitled(contract.EntitlementDev))
 
 	result, err := engine.Install(modules.Request{Modules: []string{"tool.noisy"}}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(result.Failed) != 0 || !reflect.DeepEqual(result.Warned, []string{"tool.noisy : le port 8080 est déjà pris"}) {
+	if len(result.Failed) != 0 || !reflect.DeepEqual(result.Warned, []string{"tool.noisy : port 8080 is already taken"}) {
 		t.Fatalf("result = %+v", result)
 	}
 
@@ -526,4 +526,96 @@ func TestRegisterRefusesInvalidManifests(t *testing.T) {
 	}()
 
 	newRegistry().Register(modtest.Passing{ID: "Not An Id"})
+}
+
+func demoEngine(t *testing.T) (*modules.Engine, *modtest.FakeSys) {
+	t.Helper()
+
+	fake := modtest.NewFakeSys()
+	registry := demoRegistry(
+		modtest.Passing{ID: "core.system"},
+		modtest.Passing{ID: "tool.demo", Requires: []string{"core.system"}, Unit: "demo", EnvKey: "DEMO_PASSWORD"},
+	)
+
+	return newEngine(t, fake, registry, entitled(contract.EntitlementDev)), fake
+}
+
+// A configuration that would not hold is refused before the first step: the
+// machine is left as it was, and every field is named at once rather than one
+// per attempt.
+func TestAnInvalidConfigurationIsRefusedBeforeAnythingIsTouched(t *testing.T) {
+	engine, fake := demoEngine(t)
+
+	_, err := engine.Install(modules.Request{
+		Modules: []string{"tool.demo"},
+		Config:  map[string]map[string]any{"tool.demo": {"port": "nope"}},
+	}, nil)
+
+	failure, isProtocol := err.(*protocol.Error)
+	if !isProtocol || failure.Code != contract.ErrorInvalidConfig {
+		t.Fatalf("want invalid_config, got %#v", err)
+	}
+
+	if failure.Fix == "" || failure.Remedy == nil || failure.Remedy.Code != contract.RemedyInvalidFields {
+		t.Fatalf("a refusal carries its remedy: %+v", failure)
+	}
+
+	if len(fake.Mutations) != 0 {
+		t.Fatalf("the machine was touched: %v", fake.Mutations)
+	}
+}
+
+func TestCheckNamesEveryProblemAndChangesNothing(t *testing.T) {
+	engine, fake := demoEngine(t)
+
+	answer, err := engine.Check(modules.Request{
+		Modules: []string{"tool.demo"},
+		Config:  map[string]map[string]any{"tool.demo": {"port": "nope"}},
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(answer.Problems) != 1 || answer.Problems[0].Field != "port" {
+		t.Fatalf("problems = %+v", answer.Problems)
+	}
+
+	for _, problem := range answer.Problems {
+		if problem.Message == "" {
+			t.Fatalf("a problem without a phrase: %+v", problem)
+		}
+	}
+
+	if len(fake.Mutations) != 0 {
+		t.Fatalf("check touched the machine: %v", fake.Mutations)
+	}
+}
+
+// The app holds the vault and writes the secret line at install time; a server
+// that called every secret it cannot see missing would be wrong every time.
+func TestCheckNeverCallsASecretMissing(t *testing.T) {
+	engine, _ := demoEngine(t)
+
+	answer, err := engine.Check(modules.Request{
+		Modules: []string{"tool.demo"},
+		Config:  map[string]map[string]any{"tool.demo": {"port": 8080}},
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(answer.Problems) != 0 {
+		t.Fatalf("problems = %+v", answer.Problems)
+	}
+
+	// The install does judge it: there the secret line is either present or not.
+	_, err = engine.Install(modules.Request{
+		Modules: []string{"tool.demo"},
+		Config:  map[string]map[string]any{"tool.demo": {"port": 8080}},
+	}, nil)
+
+	failure, isProtocol := err.(*protocol.Error)
+	if !isProtocol || failure.Code != contract.ErrorInvalidConfig {
+		t.Fatalf("want invalid_config on a missing password, got %#v", err)
+	}
 }

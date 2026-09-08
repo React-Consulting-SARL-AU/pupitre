@@ -333,7 +333,7 @@ func TestUnderRefusesWhatLeavesTheRoot(t *testing.T) {
 	}
 }
 
-// Une ligne posée à la main dans le registre du dépôt : si son dossier ou son nom vise hors de la racine, ce n'est pas un projet.
+// TestLoadDropsARowThatAimsOutsideTheProjectsRoot: a hand-edited row in the registry file is not a project if its directory or name aims outside the root.
 func TestLoadDropsARowThatAimsOutsideTheProjectsRoot(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Files[registry.DefaultConf] = []byte(strings.Join([]string{

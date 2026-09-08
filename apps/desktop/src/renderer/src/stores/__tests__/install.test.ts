@@ -412,3 +412,32 @@ describe("ce que le renderer garde d'une installation", () => {
     expect(seen).toContain("db.postgres");
   });
 });
+
+describe("ce que l'installation a touché", () => {
+  it("ne compte rien tant qu'aucun module n'a commencé", async () => {
+    stubPupitre({
+      startInstall: () =>
+        Promise.resolve({
+          ok: false,
+          error: { code: "bad_request", message: "refusé avant tout" },
+        }),
+    });
+
+    await useInstall.getState().start(SERVER, ["core.system"], {});
+
+    expect(useInstall.getState().install.status).toBe("failed");
+    expect(useInstall.getState().touched()).toBe(false);
+  });
+
+  it("compte dès la première étape ouverte", async () => {
+    agent([step("core.system", "paquets", "start", 0)], {
+      failed: [],
+      report_path: REPORT,
+      warned: [],
+    });
+
+    await useInstall.getState().start(SERVER, ["core.system"], {});
+
+    expect(useInstall.getState().touched()).toBe(true);
+  });
+});

@@ -2,6 +2,7 @@ import type {
   CatalogResult,
   ProbeResult,
 } from "@pupitre/shared/agent-protocol/install";
+import { riseAt } from "@renderer/lib/motion";
 import {
   byCategory,
   type ResourceWarning,
@@ -33,27 +34,36 @@ export function CatalogChoice({
   warnings: readonly ResourceWarning[];
   probe?: ProbeResult | null;
   onToggle?: (moduleId: string) => void;
-  onPreset?: (presetId: string) => void;
+  onPreset?: (presetId: string, chosen?: string) => void;
 }) {
   return (
     <div className="flex flex-col gap-section">
-      <CatalogPresets onPick={onPreset} presets={catalog.presets} />
-
-      <CatalogResources
-        needs={totals(catalog.modules, selected)}
-        probe={probe}
-        warnings={warnings}
-      />
-
-      {byCategory(catalog.modules).map((group) => (
-        <CatalogCategorySection
-          blocked={blocked}
-          category={group.category}
-          key={group.category}
-          modules={group.modules}
-          onToggle={onToggle}
-          selected={selected}
+      <div className="rise" style={riseAt(0)}>
+        <CatalogPresets
+          modules={catalog.modules}
+          onPick={onPreset}
+          presets={catalog.presets}
         />
+      </div>
+
+      <div className="rise" style={riseAt(1)}>
+        <CatalogResources
+          needs={totals(catalog.modules, selected)}
+          probe={probe}
+          warnings={warnings}
+        />
+      </div>
+
+      {byCategory(catalog.modules).map((group, index) => (
+        <div className="rise" key={group.category} style={riseAt(2 + index)}>
+          <CatalogCategorySection
+            blocked={blocked}
+            category={group.category}
+            modules={group.modules}
+            onToggle={onToggle}
+            selected={selected}
+          />
+        </div>
       ))}
     </div>
   );

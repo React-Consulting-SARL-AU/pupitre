@@ -1,5 +1,5 @@
 # Le canal de contrôle d'un serveur en retard : hello, puis snapshot autant de fois qu'on le lui demande.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","protocol":1}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
 < {"id":1,"ok":true,"result":{"agent_version":"0.3.0","protocol":1,"entitlement":"restricted","capabilities":["hello","ping","snapshot","status","diag","agent.upgrade"]}}
 @repeat
 > {"id":2,"cmd":"snapshot"}

@@ -52,7 +52,7 @@ export function InstallReport({
               <div className="min-w-0 flex-1">
                 <p className="text-ink">{nameOf(moduleId)}</p>
                 {replayOf(moduleId) ? (
-                  <code className="mt-0.5 block break-all font-data text-[11px] text-ink-3">
+                  <code className="mt-0.5 block break-all font-data text-[12px] text-ink-3">
                     {replayOf(moduleId)}
                   </code>
                 ) : null}
@@ -85,7 +85,7 @@ export function InstallReport({
       ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <code className="font-data text-[11px] text-ink-3">
+        <code className="font-data text-[12px] text-ink-3">
           {result.report_path}
         </code>
 

@@ -32,14 +32,14 @@ export const LIGHT: ThemeColors = {
   raised: "#e6e6e6",
   ink: "#0a0a0a",
   "ink-2": "#4a4a4a",
-  "ink-3": "#767676",
-  "ink-4": "#a3a3a3",
+  "ink-3": "#676767",
+  "ink-4": "#838383",
   line: "#e3e3e3",
   "line-strong": "#c9c9c9",
   inverse: "#0a0a0a",
   "inverse-ink": "#ffffff",
   ok: "#1f7a45",
-  warn: "#9a6a00",
+  warn: "#8a5f00",
   danger: "#b3362a",
 }
 
@@ -51,7 +51,7 @@ export const DARK: ThemeColors = {
   ink: "#f5f5f5",
   "ink-2": "#c4c4c4",
   "ink-3": "#8f8f8f",
-  "ink-4": "#5c5c5c",
+  "ink-4": "#696969",
   line: "#232323",
   "line-strong": "#353535",
   inverse: "#f5f5f5",
@@ -146,11 +146,20 @@ export const SHADOW_DARK: Elevation = {
 export interface Motion {
   fast: string
   soft: string
+  /** What arrives on screen. */
+  enter: string
+  /** What leaves it, always shorter than what arrives. */
+  exit: string
+  /** The interval between two siblings of one cascade. */
+  stagger: string
   breathe: string
 }
 
 export const MOTION: Motion = {
   fast: "120ms ease",
   soft: "180ms cubic-bezier(.2,.6,.3,1)",
+  enter: "320ms cubic-bezier(.16,.84,.44,1)",
+  exit: "160ms cubic-bezier(.4,0,1,1)",
+  stagger: "40ms",
   breathe: "1.6s ease-in-out infinite",
 }

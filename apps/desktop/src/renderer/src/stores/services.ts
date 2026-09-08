@@ -1,10 +1,15 @@
 import type { Event } from "@pupitre/shared/agent-protocol/envelope";
 import type {
+  InstallResult,
+  ModuleConfigResult,
+} from "@pupitre/shared/agent-protocol/install";
+import type {
   DbDumpResult,
   DbImportResult,
   DbShellResult,
 } from "@pupitre/shared/agent-protocol/secrets";
 import type { AgentError, AgentResponse } from "@shared/agent";
+import type { SecretMarks } from "@shared/secrets";
 import { databaseEngineOf, type ServiceDetail } from "@shared/services";
 import { create } from "zustand";
 import {
@@ -29,6 +34,23 @@ export type DetailState =
   | { status: "ready"; moduleId: string; detail: ServiceDetail }
   | { status: "failed"; moduleId: string; error: AgentError };
 
+/**
+ * What the agent kept from the last request for this module, and what the
+ * reader changed since. Secrets are here by name only: their value goes to the
+ * main process and does not come back.
+ */
+export type ConfigState =
+  | { status: "idle" }
+  | { status: "reading"; moduleId: string }
+  | { status: "ready"; moduleId: string; held: readonly string[] }
+  | { status: "failed"; moduleId: string; error: AgentError };
+
+export type ApplyState =
+  | { status: "idle" }
+  | { status: "running"; moduleId: string }
+  | { status: "done"; moduleId: string; result: InstallResult }
+  | { status: "failed"; moduleId: string; error: AgentError };
+
 export type RemovalState =
   | { status: "idle" }
   | { status: "running"; moduleId: string }
@@ -44,6 +66,10 @@ export interface DatabaseOutcome {
 
 interface ServicesStore {
   detail: DetailState;
+  config: ConfigState;
+  values: Record<string, unknown>;
+  secrets: SecretMarks;
+  apply: ApplyState;
   removal: RemovalState;
   steps: ModuleProgress[];
   database: DatabaseOutcome | null;
@@ -51,6 +77,25 @@ interface ServicesStore {
   problem: AgentError | null;
 
   open: (serverId: string, moduleId: string) => Promise<void>;
+  readConfig: (
+    serverId: string,
+    moduleId: string,
+    defaults?: Record<string, unknown>
+  ) => Promise<void>;
+  setValue: (key: string, value: unknown) => void;
+  setSecret: (
+    serverId: string,
+    moduleId: string,
+    key: string,
+    value: string
+  ) => Promise<void>;
+  generate: (serverId: string, moduleId: string, key: string) => Promise<void>;
+  revealSecret: (
+    serverId: string,
+    moduleId: string,
+    key: string
+  ) => Promise<string | null>;
+  reconfigure: (serverId: string, moduleId: string) => Promise<void>;
   close: (serverId: string) => Promise<void>;
   reveal: (
     serverId: string,
@@ -126,16 +171,64 @@ export const useServices = create<ServicesStore>((set, get) => {
     });
   }
 
+  /**
+   * The configuration the agent kept, re-read when the panel opens.
+   *
+   * `values` is what the form will send back in `install`: it always goes
+   * whole, because the agent replaces a module's configuration rather than
+   * merging it field by field.
+   */
+  async function readDetail(serverId: string, moduleId: string): Promise<void> {
+    const answer = await window.pupitre.serviceDetail(serverId, moduleId);
+
+    set({
+      detail: answer.ok
+        ? { detail: answer.result, moduleId, status: "ready" }
+        : { error: answer.error, moduleId, status: "failed" },
+    });
+  }
+
+  async function read(
+    serverId: string,
+    moduleId: string,
+    defaults: Record<string, unknown> = {}
+  ): Promise<void> {
+    set({ config: { moduleId, status: "reading" }, secrets: {}, values: {} });
+
+    const answer = await call<ModuleConfigResult>(serverId, "module.config", {
+      id: moduleId,
+    });
+
+    if (!answer.ok) {
+      set({ config: { error: answer.error, moduleId, status: "failed" } });
+
+      return;
+    }
+
+    // A module installed by an older agent kept nothing on record: the form
+    // then shows the manifest's defaults, the values the agent would apply,
+    // instead of empty fields.
+    set({
+      config: { held: answer.result.secrets, moduleId, status: "ready" },
+      values: { ...defaults, ...answer.result.values },
+    });
+  }
+
   return {
+    apply: { status: "idle" },
     busy: null,
+    config: { status: "idle" },
     database: null,
     detail: { status: "idle" },
     problem: null,
     removal: { status: "idle" },
+    secrets: {},
     steps: [],
+    values: {},
 
     async open(serverId, moduleId) {
       set({
+        apply: { status: "idle" },
         database: null,
         detail: { moduleId, status: "reading" },
         problem: null,
@@ -143,13 +236,93 @@ export const useServices = create<ServicesStore>((set, get) => {
         steps: [],
       });
 
-      const answer = await window.pupitre.serviceDetail(serverId, moduleId);
+      await readDetail(serverId, moduleId);
+    },
+
+    readConfig: read,
+
+    setValue(key, value) {
+      set((state) => ({ values: { ...state.values, [key]: value } }));
+    },
+
+    async setSecret(serverId, moduleId, key, value) {
+      const answer = await window.pupitre.setInstallSecret(
+        serverId,
+        moduleId,
+        key,
+        value
+      );
+
+      set(
+        answer.ok
+          ? { problem: null, secrets: answer.result }
+          : { problem: answer.error }
+      );
+    },
+
+    async generate(serverId, moduleId, key) {
+      const answer = await window.pupitre.generateInstallSecret(
+        serverId,
+        moduleId,
+        key
+      );
+
+      set(
+        answer.ok
+          ? { problem: null, secrets: answer.result }
+          : { problem: answer.error }
+      );
+    },
+
+    async revealSecret(serverId, moduleId, key) {
+      const answer = await window.pupitre.revealInstallSecret(
+        serverId,
+        moduleId,
+        key
+      );
+      set({ secrets: answer.marks });
+
+      return answer.value;
+    },
+
+    /**
+     * The form sent back to the agent: the same `install`, for this one module.
+     *
+     * A retyped secret leaves the main process's vault on the secret stream;
+     * a secret left untyped isn't sent at all, and the agent keeps the one it
+     * already holds.
+     */
+    async reconfigure(serverId, moduleId) {
+      set({
+        apply: { moduleId, status: "running" },
+        problem: null,
+        steps: pending([moduleId]),
+      });
+
+      const answer = await window.pupitre.startInstall(
+        serverId,
+        [moduleId],
+        { [moduleId]: { ...get().values } },
+        (update) => {
+          if (update.kind === "event") {
+            note(update.event);
+          }
+        }
+      );
 
       set({
-        detail: answer.ok
-          ? { detail: answer.result, moduleId, status: "ready" }
+        apply: answer.ok
+          ? { moduleId, result: answer.result, status: "done" }
           : { error: answer.error, moduleId, status: "failed" },
+        secrets: {},
       });
+
+      // The panel keeps its steps and verdict: only the service's state and
+      // what the agent now holds are re-read.
+      if (answer.ok) {
+        await readDetail(serverId, moduleId);
+        await read(serverId, moduleId, get().values);
+      }
     },
 
     /** Closing the panel is what tells the main process to drop the values. */
@@ -160,6 +333,7 @@ export const useServices = create<ServicesStore>((set, get) => {
         await window.pupitre.forgetCredentials(serverId, detail.moduleId);
       }
 
+      await window.pupitre.forgetInstallSecrets(serverId);
       get().forget();
     },
 
@@ -250,12 +424,16 @@ export const useServices = create<ServicesStore>((set, get) => {
 
     forget() {
       set({
+        apply: { status: "idle" },
         busy: null,
+        config: { status: "idle" },
         database: null,
         detail: { status: "idle" },
         problem: null,
         removal: { status: "idle" },
+        secrets: {},
         steps: [],
+        values: {},
       });
     },
   };

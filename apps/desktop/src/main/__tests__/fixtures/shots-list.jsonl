@@ -1,5 +1,5 @@
 # Le listing de la galerie, sur le canal de contrôle.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","protocol":1}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
 < {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","shots.list","shots.read"]}}
 @repeat
 > {"id":2,"cmd":"shots.list"}

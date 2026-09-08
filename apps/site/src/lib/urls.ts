@@ -1,4 +1,6 @@
-export const CONSOLE_URL = "https://app.pupitre.studio/"
-export const SIGNUP_URL = "https://app.pupitre.studio/auth/sign-in/"
-export const STATUS_URL = "https://app.pupitre.studio/status/"
-export const API_URL = "https://app.pupitre.studio/api/v1"
+import { PUPITRE_ORIGINS } from "@pupitre/shared/legal"
+
+export const CONSOLE_URL = `${PUPITRE_ORIGINS.app}/`
+export const SIGNUP_URL = `${PUPITRE_ORIGINS.app}/auth/sign-in/`
+export const STATUS_URL = `${PUPITRE_ORIGINS.app}/status/`
+export const API_URL = `${PUPITRE_ORIGINS.app}/api/v1`

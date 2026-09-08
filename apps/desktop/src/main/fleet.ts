@@ -5,7 +5,8 @@ import { ipcMain } from "electron";
 import { account, deviceKey, deviceKeyPath } from "./account";
 import { asAgentError } from "./enrollment-run";
 import { mergeFleet } from "./fleet-run";
-import { byId, noteOpened, read, write } from "./servers";
+import { refuseWith } from "./refusal";
+import { byId, noteOpened, read, restore, write } from "./servers";
 
 /**
  * The servers the platform grants this account, in the app's own list.
@@ -19,10 +20,10 @@ import { byId, noteOpened, read, write } from "./servers";
 
 function refuse(
   code: AgentErrorCode,
-  message: string,
-  fix: string
+  id: string,
+  values?: Record<string, string | number>
 ): AgentResponse<never> {
-  return { ok: false, error: { code, fix, message } };
+  return refuseWith(code, id, values);
 }
 
 export function registerFleet(
@@ -43,6 +44,7 @@ export function registerFleet(
     const merged = mergeFleet({
       active: config.active,
       deviceKeyPath: deviceKeyPath(),
+      dismissed: config.dismissed,
       granted: granted.result,
       local: config.servers,
     });
@@ -65,30 +67,32 @@ export function registerFleet(
       const server = typeof id === "string" ? byId(id) : null;
 
       if (!server?.grant) {
-        return refuse(
-          "bad_request",
-          "Ce serveur n'est plus dans la liste.",
-          "Recharge les serveurs de ton organisation depuis les réglages."
-        );
+        return refuse("bad_request", "refusal.fleet.unknown");
       }
 
       if (grantWithdrawn(server.grant)) {
-        return refuse(
-          "entitlement_required",
-          "Ce serveur ne t'est plus attribué.",
-          "Demande à un administrateur de ton organisation de te l'attribuer à nouveau."
-        );
+        return refuse("entitlement_required", "refusal.fleet.withdrawn");
       }
 
       if (grantPending(server.grant)) {
-        return refuse(
-          "bad_request",
-          "La plateforme n'a pas encore posé ta clé sur ce serveur.",
-          "Laisse la fenêtre ouverte : l'app réessaie toute seule."
-        );
+        return refuse("bad_request", "refusal.fleet.pending");
       }
 
       return { ok: true, result: settle(noteOpened(server.id)) };
     }
+  );
+
+  /**
+   * Give the list back the granted servers that were removed from here.
+   *
+   * The removal is this computer's decision, not the platform's: it still
+   * grants them. Without this path, an accidental removal would be final.
+   */
+  ipcMain.handle(
+    "fleet:restore",
+    (): AgentResponse<ServersConfig> => ({
+      ok: true,
+      result: settle(restore()),
+    })
   );
 }

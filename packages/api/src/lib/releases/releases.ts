@@ -3,9 +3,10 @@ import type {
   ReleaseChannel,
   Server,
 } from "@pupitre/db/cloudflare/client"
+import { isNewer, latestBy } from "@pupitre/shared/semver"
 import { getPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
-import { compareVersions, isNewer } from "./semver"
+import { publishOnce } from "./publish"
 import { getReleaseStorage, type ReleaseStorageKind } from "./storage"
 
 export const RELEASE_URL_TTL_SECONDS = 300
@@ -25,8 +26,6 @@ export const CHANNEL_SOURCES: Record<ReleaseChannel, ReleaseChannel[]> = {
   stable: ["stable"],
   beta: ["beta", "stable"],
 }
-
-const UNIQUE_VIOLATION = "P2002"
 
 export class ReleaseFingerprintConflictError extends Error {
   constructor(version: string, arch: string) {
@@ -90,15 +89,6 @@ function hasSameFingerprint(
   )
 }
 
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error as { code: unknown }).code === UNIQUE_VIOLATION
-  )
-}
-
 export async function findRelease(
   version: string,
   arch: string
@@ -116,13 +106,7 @@ export async function latestRelease(
     where: { arch, channel: { in: CHANNEL_SOURCES[channel] } },
   })
 
-  return candidates.reduce<Release | null>(
-    (best, candidate) =>
-      best && compareVersions(candidate.version, best.version) <= 0
-        ? best
-        : candidate,
-    null
-  )
+  return latestBy(candidates, (candidate) => candidate.version)
 }
 
 export async function releaseDownloadUrl(
@@ -140,58 +124,39 @@ export async function publishRelease(
   actorUserId: string,
   input: PublishReleaseInput
 ): Promise<PublishReleaseResult> {
-  const existing = await findRelease(input.version, input.arch)
-
-  if (existing) {
-    if (!hasSameFingerprint(existing, input)) {
-      throw new ReleaseFingerprintConflictError(input.version, input.arch)
-    }
-
-    return { release: toReleaseView(existing), created: false }
-  }
-
-  let created: Release
-
-  try {
-    created = await getPrisma().release.create({
-      data: {
-        version: input.version,
-        arch: input.arch,
-        sha256: input.sha256,
-        signature: input.signature,
-        r2Key: input.r2_key,
-        channel: input.channel ?? "beta",
-      },
-    })
-  } catch (error) {
-    const concurrent = isUniqueViolation(error)
-      ? await findRelease(input.version, input.arch)
-      : null
-
-    if (!concurrent) {
-      throw error
-    }
-
-    if (!hasSameFingerprint(concurrent, input)) {
-      throw new ReleaseFingerprintConflictError(input.version, input.arch)
-    }
-
-    return { release: toReleaseView(concurrent), created: false }
-  }
-
-  await recordEvent({
-    action: "release.published",
-    actorUserId,
-    targetType: "release",
-    targetId: created.version,
-    payload: {
-      arch: created.arch,
-      channel: created.channel,
-      sha256: created.sha256,
-    },
+  const { row, created } = await publishOnce<Release>({
+    find: () => findRelease(input.version, input.arch),
+    create: () =>
+      getPrisma().release.create({
+        data: {
+          version: input.version,
+          arch: input.arch,
+          sha256: input.sha256,
+          signature: input.signature,
+          r2Key: input.r2_key,
+          channel: input.channel ?? "beta",
+        },
+      }),
+    hasSameFingerprint: (release) => hasSameFingerprint(release, input),
+    conflict: () =>
+      new ReleaseFingerprintConflictError(input.version, input.arch),
   })
 
-  return { release: toReleaseView(created), created: true }
+  if (created) {
+    await recordEvent({
+      action: "release.published",
+      actorUserId,
+      targetType: "release",
+      targetId: row.version,
+      payload: {
+        arch: row.arch,
+        channel: row.channel,
+        sha256: row.sha256,
+      },
+    })
+  }
+
+  return { release: toReleaseView(row), created }
 }
 
 export async function promoteRelease(

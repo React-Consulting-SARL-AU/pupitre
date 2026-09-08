@@ -1,23 +1,23 @@
 > {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","ping","report","uninstall","upgrade"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
 > {"id":2,"cmd":"install","params":{"modules":["tool.demo"],"config":{},"secrets_stdin":true}}
 $ {"password":"s3cret-de-test"}
-< {"id":2,"ok":false,"error":{"code":"bad_request","message":"flux secret invalide : /password : doit être un objet","fix":"Écris les secrets groupés par identifiant de module, comme config : {\"<module id>\": {\"<clé>\": \"<valeur>\"}}."}}
+< {"id":2,"ok":false,"error":{"code":"bad_request","message":"the secret stream is invalid: /password: must be an object","fix":"Write the secrets grouped by module identifier, like config: {\"<module id>\": {\"<key>\": \"<value>\"}}."}}
 > {"id":3,"cmd":"install","params":{"modules":["db.nope"],"config":{},"secrets_stdin":false}}
-< {"id":3,"ok":false,"error":{"code":"module_not_found","message":"module inconnu : db.nope","fix":"Demande catalog pour la liste des modules de cet agent."}}
+< {"id":3,"ok":false,"error":{"code":"module_not_found","message":"unknown module: db.nope","fix":"Ask catalog for the list of this agent's modules."}}
 > {"id":4,"cmd":"install","params":{"modules":["tool.demo","tool.rival"],"config":{},"secrets_stdin":false}}
-< {"id":4,"ok":false,"error":{"code":"bad_request","message":"les modules tool.demo et tool.rival sont en conflit","fix":"Retire l'un des deux de la sélection."}}
+< {"id":4,"ok":false,"error":{"code":"bad_request","message":"modules tool.demo and tool.rival conflict","fix":"Take one of the two out of the selection."}}
 > {"id":5,"cmd":"uninstall","params":{"modules":["db.nope"]}}
-< {"id":5,"ok":false,"error":{"code":"module_not_found","message":"module inconnu : db.nope","fix":"Demande catalog pour la liste des modules de cet agent."}}
+< {"id":5,"ok":false,"error":{"code":"module_not_found","message":"unknown module: db.nope","fix":"Ask catalog for the list of this agent's modules."}}
 > {"id":6,"cmd":"upgrade","params":{"modules":["db.nope"]}}
-< {"id":6,"ok":false,"error":{"code":"module_not_found","message":"module inconnu : db.nope","fix":"Demande catalog pour la liste des modules de cet agent."}}
+< {"id":6,"ok":false,"error":{"code":"module_not_found","message":"unknown module: db.nope","fix":"Ask catalog for the list of this agent's modules."}}
 > {"id":7,"cmd":"install","params":{"modules":[],"config":{},"secrets_stdin":false}}
-< {"id":7,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/modules : doit compter au moins 1 élément"}}
+< {"id":7,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/modules: must hold at least 1 item"}}
 > {"id":8,"cmd":"report"}
-< {"id":8,"ok":false,"error":{"code":"no_report","message":"aucun rapport : aucune installation n'a encore eu lieu sur ce serveur","fix":"Lance install depuis l'app, ou sudo pupitred install sur le serveur."}}
+< {"id":8,"ok":false,"error":{"code":"no_report","message":"no report: no installation has happened on this server yet","fix":"Run install from the app, or sudo pupitred install on the server."}}
 > {"id":9,"cmd":"install","params":{"modules":["tool.demo"],"config":{},"secrets_stdin":true}}
 $ {"tool.demo":{"password":42}}
-< {"id":9,"ok":false,"error":{"code":"bad_request","message":"flux secret invalide : /tool.demo/password : doit être une chaîne","fix":"Écris les secrets groupés par identifiant de module, comme config : {\"<module id>\": {\"<clé>\": \"<valeur>\"}}."}}
+< {"id":9,"ok":false,"error":{"code":"bad_request","message":"the secret stream is invalid: /tool.demo/password: must be a string","fix":"Write the secrets grouped by module identifier, like config: {\"<module id>\": {\"<key>\": \"<value>\"}}."}}
 > {"id":10,"cmd":"install","params":{"modules":["tool.demo"],"config":{},"secrets_stdin":true}}
 $ {"tool.demo":["s3cret-de-test"]}
-< {"id":10,"ok":false,"error":{"code":"bad_request","message":"flux secret invalide : /tool.demo : doit être un objet","fix":"Écris les secrets groupés par identifiant de module, comme config : {\"<module id>\": {\"<clé>\": \"<valeur>\"}}."}}
+< {"id":10,"ok":false,"error":{"code":"bad_request","message":"the secret stream is invalid: /tool.demo: must be an object","fix":"Write the secrets grouped by module identifier, like config: {\"<module id>\": {\"<key>\": \"<value>\"}}."}}

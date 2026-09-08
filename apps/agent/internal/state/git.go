@@ -1,6 +1,7 @@
 package state
 
 import (
+	"pupitre.studio/agent/internal/i18n"
 	"regexp"
 	"sort"
 	"strconv"
@@ -153,7 +154,7 @@ func (r *Reader) refs(top, namespace, prefix string) []string {
 
 func (r *Reader) Checkout(name, branch string) (string, error) {
 	if !branchPattern.MatchString(branch) {
-		return "", bad("nom de branche invalide : "+branch, "Lettres, chiffres, point, tiret, souligné et barre oblique.")
+		return "", bad(i18n.T("state.branch.invalid", branch), i18n.T("state.branch.invalid.fix"))
 	}
 
 	_, top, err := r.top(name)
@@ -167,7 +168,7 @@ func (r *Reader) Checkout(name, branch string) (string, error) {
 
 	// git would refuse on its own, and say it less clearly: a switch never carries uncommitted work away.
 	if r.dirty(top) {
-		return "", bad(name+" a des modifications non validées", "Valide-les, mets-les de côté avec git stash, ou annule-les avant de changer de branche.")
+		return "", bad(i18n.T("state.tree.dirty", name), i18n.T("state.tree.dirty.fix"))
 	}
 
 	r.gitWrite(top, "fetch", "--quiet", "origin")
@@ -182,8 +183,8 @@ func (r *Reader) Checkout(name, branch string) (string, error) {
 	}
 
 	if _, err := r.gitWrite(top, argv...); err != nil {
-		return "", protocol.NewError(contract.ErrorInternal, name+" : le passage sur "+branch+" a échoué").
-			WithFix("Ouvre un terminal sur " + top + " et lis ce que git répond.")
+		return "", protocol.NewError(contract.ErrorInternal, i18n.T("state.checkout.failed", name, branch)).
+			WithFix(i18n.T("state.git.read.fix", top))
 	}
 
 	current, _ := r.git(top, "rev-parse", "--abbrev-ref", "HEAD")
@@ -227,7 +228,7 @@ func (r *Reader) fetch(top string) string {
 
 	problem := strings.TrimSpace(strings.ReplaceAll(out.Stderr, "\n", " "))
 	if problem == "" {
-		problem = "dépôt distant inaccessible"
+		problem = i18n.T("state.remote.unreachable")
 	}
 
 	return cut(problem, problemLimit)
@@ -383,7 +384,7 @@ func (r *Reader) Diff(name, path string) (contract.ProjectDiff, error) {
 	diff := contract.ProjectDiff{Path: path}
 
 	if !validRepoPath(path) {
-		diff.Problem = "ce nom de fichier ne peut pas être transmis à git"
+		diff.Problem = i18n.T("state.diff.path.refused")
 
 		return diff, nil
 	}
@@ -394,7 +395,7 @@ func (r *Reader) Diff(name, path string) (contract.ProjectDiff, error) {
 	}
 
 	if top == "" {
-		diff.Problem = "dossier du dépôt introuvable"
+		diff.Problem = i18n.T("state.repo.root.missing")
 
 		return diff, nil
 	}
@@ -416,7 +417,7 @@ func (r *Reader) Diff(name, path string) (contract.ProjectDiff, error) {
 
 	if len(patch) > patchLimit {
 		diff.Patch = patch[:patchLimit]
-		diff.Problem = "patch tronqué — ouvre-le dans un terminal pour le lire en entier"
+		diff.Problem = i18n.T("state.diff.truncated")
 
 		return diff, nil
 	}
@@ -460,16 +461,16 @@ func (r *Reader) pull(project registry.Project, root string) (bool, error) {
 
 		projects := r.options.Paths.Resolved().Projects
 		if _, err := r.gitWrite(projects, "clone", "--recurse-submodules", project.Repo, root); err != nil {
-			return false, protocol.NewError(contract.ErrorInternal, project.Name+" : le clonage de "+project.Repo+" a échoué").
-				WithFix("Vérifie que la machine a le droit de lire ce dépôt : ssh -T git@github.com.")
+			return false, protocol.NewError(contract.ErrorInternal, i18n.T("state.project.clone.failed", project.Name, project.Repo)).
+				WithFix(i18n.T("state.repo.unreadable.fix"))
 		}
 
 		return true, nil
 	}
 
 	if _, err := r.gitWrite(root, "pull", "--rebase", "--autostash"); err != nil {
-		return false, protocol.NewError(contract.ErrorInternal, project.Name+" : le pull a laissé un conflit").
-			WithFix("Ouvre un terminal sur " + root + " et résous-le à la main.")
+		return false, protocol.NewError(contract.ErrorInternal, i18n.T("state.pull.conflict", project.Name)).
+			WithFix(i18n.T("state.pull.conflict.fix", root))
 	}
 
 	return true, nil
@@ -565,8 +566,8 @@ func cut(text string, limit int) string {
 }
 
 func notARepo(name string) error {
-	return protocol.NewError(contract.ErrorProjectNotFound, name+" n'est pas dans un dépôt git").
-		WithFix("Récupère les sources avec project.sync " + name + ".")
+	return protocol.NewError(contract.ErrorProjectNotFound, i18n.T("state.project.notInGit", name)).
+		WithFix(i18n.T("state.project.sync.fix", name))
 }
 
 func bad(message, fix string) error {

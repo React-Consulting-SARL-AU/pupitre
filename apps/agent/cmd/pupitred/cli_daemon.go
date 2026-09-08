@@ -27,7 +27,7 @@ func runDaemon(agent *daemon.Daemon, stderr io.Writer) int {
 func runEnroll(agent *daemon.Daemon, stdin io.Reader, stderr io.Writer) int {
 	token, err := bufio.NewReader(stdin).ReadString('\n')
 	if err != nil && token == "" {
-		fmt.Fprintln(stderr, "jeton d'enrôlement attendu sur l'entrée standard")
+		fmt.Fprintln(stderr, "enrolment token expected on standard input")
 		return 2
 	}
 
@@ -36,10 +36,10 @@ func runEnroll(agent *daemon.Daemon, stdin io.Reader, stderr io.Writer) int {
 		return 1
 	}
 
-	fmt.Fprintln(stderr, "serveur enrôlé")
+	fmt.Fprintln(stderr, "server enrolled")
 
 	if _, err := agent.Sync(); err != nil {
-		fmt.Fprintf(stderr, "premier état non lu, l'agent réessaiera : %s\n", err)
+		fmt.Fprintf(stderr, "first state not read, the agent will retry: %s\n", err)
 	}
 
 	return 0

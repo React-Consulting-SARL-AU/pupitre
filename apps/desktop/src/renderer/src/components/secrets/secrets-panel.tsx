@@ -51,7 +51,7 @@ export function SecretsPanel({
         />
 
         <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5 font-data text-[11px] text-ink-3">
+          <span className="flex items-center gap-1.5 font-data text-[12px] text-ink-3">
             <ShieldCheck size={13} strokeWidth={1.5} />
             {state.status === "read"
               ? t("secrets.inPlace", { filled, total: secrets.length })

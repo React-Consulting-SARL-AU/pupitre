@@ -2,6 +2,8 @@ package postgres
 
 import (
 	"fmt"
+	"pupitre.studio/agent/internal/i18n"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -16,16 +18,11 @@ import (
 )
 
 const (
-	Port    = 5432
-	version = "17"
+	DefaultPort    = 5432
+	DefaultVersion = "17"
 
-	pkg  = "postgresql-" + version
-	unit = "postgresql"
-
-	clusterDir = "/etc/postgresql/" + version + "/main"
-	confPath   = clusterDir + "/conf.d/99-pupitre.conf"
-	hbaPath    = clusterDir + "/pg_hba.conf"
-	dataHome   = "/var/lib/postgresql"
+	unit     = "postgresql"
+	dataHome = "/var/lib/postgresql"
 
 	keyringDir  = "/etc/apt/keyrings"
 	keyringPath = keyringDir + "/pgdg.asc"
@@ -35,8 +32,9 @@ const (
 	osReleasePath   = "/etc/os-release"
 	defaultCodename = "noble"
 
-	appRole         = "app"
-	remoteRole      = "dev"
+	defaultAppRole    = "app"
+	defaultRemoteRole = "dev"
+
 	loopback        = "127.0.0.1"
 	defaultDatabase = "postgres"
 
@@ -45,7 +43,6 @@ const (
 
 	hbaLine = "host    all             all             127.0.0.1/32            scram-sha-256"
 
-	countRoles      = "SELECT count(*) FROM pg_roles WHERE rolname IN ('app', 'dev')"
 	countExtensions = "SELECT count(*) FROM pg_extension WHERE extname IN ('pg_trgm', 'uuid-ossp', 'citext')"
 
 	meminfoPath   = "/proc/meminfo"
@@ -57,8 +54,13 @@ const (
 
 var extensions = []string{"pg_trgm", "uuid-ossp", "citext"}
 
+var (
+	versionPattern = regexp.MustCompile(`^[0-9]{1,2}$`)
+	rolePattern    = regexp.MustCompile(`^[a-z][a-z0-9_]{0,62}$`)
+)
+
 const configTemplate = `listen_addresses = '127.0.0.1'
-port = 5432
+port = %d
 shared_buffers = %s
 password_encryption = scram-sha-256
 `
@@ -73,20 +75,25 @@ func (Module) Manifest() contract.Manifest {
 	return manifest()
 }
 
+// A port another program already holds is the one thing this configuration cannot know from the manifest alone.
+func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
+	return modules.Problems(modules.PortTaken(ctx, "port"))
+}
+
 func (Module) Check(ctx *modules.Context) (modules.Status, error) {
-	if !apt.Installed(ctx, pkg) {
+	if !apt.Installed(ctx, pkg(ctx)) {
 		return modules.Status{}, nil
 	}
 
-	release, err := apt.Version(ctx, pkg)
+	release, err := apt.Version(ctx, pkg(ctx))
 	if err != nil {
 		return modules.Status{}, err
 	}
 
-	return modules.Status{Installed: true, Version: release, Configured: file.Exists(ctx, confPath)}, nil
+	return modules.Status{Installed: true, Version: release, Configured: file.Exists(ctx, confPath(ctx))}, nil
 }
 
-// PostgreSQL 17 is not in the Ubuntu archive: the module adds the project's own repository, key first.
+// The version the client asked for is rarely the one Ubuntu ships: the module adds the project's own repository, key first.
 func (Module) Install(ctx *modules.Context) error {
 	if err := ctx.Step("add-repository", func() (modules.Outcome, error) {
 		list := repository(codename(ctx))
@@ -112,11 +119,11 @@ func (Module) Install(ctx *modules.Context) error {
 	}
 
 	return ctx.Step("install-package", func() (modules.Outcome, error) {
-		if apt.Installed(ctx, pkg) {
+		if apt.Installed(ctx, pkg(ctx)) {
 			return modules.Skipped, nil
 		}
 
-		return modules.Done, apt.Install(ctx, pkg)
+		return modules.Done, apt.Install(ctx, pkg(ctx))
 	})
 }
 
@@ -154,21 +161,21 @@ func (Module) Configure(ctx *modules.Context) error {
 }
 
 func writeConfig(ctx *modules.Context) (bool, error) {
-	content := renderConfig(sharedBuffers(ctx))
+	content := renderConfig(port(ctx), sharedBuffers(ctx))
 	changed := false
 
 	err := ctx.Step("write-config", func() (modules.Outcome, error) {
-		if file.Same(ctx, confPath, content) {
+		if file.Same(ctx, confPath(ctx), content) {
 			return modules.Skipped, nil
 		}
 
-		if err := ctx.Sys().MkdirAll(clusterDir+"/conf.d", 0o755); err != nil {
+		if err := ctx.Sys().MkdirAll(clusterDir(ctx)+"/conf.d", 0o755); err != nil {
 			return modules.Failed, err
 		}
 
 		changed = true
 
-		return modules.Done, file.WriteAtomic(ctx, confPath, content, 0o644)
+		return modules.Done, file.WriteAtomic(ctx, confPath(ctx), content, 0o644)
 	})
 
 	return changed, err
@@ -178,13 +185,13 @@ func allowLoopback(ctx *modules.Context) (bool, error) {
 	changed := false
 
 	err := ctx.Step("allow-loopback", func() (modules.Outcome, error) {
-		if !file.Exists(ctx, hbaPath) {
-			ctx.Warn(hbaPath + " est absent : le cluster n'a pas été créé par le paquet, les accès restent ceux de la machine")
+		if !file.Exists(ctx, hbaPath(ctx)) {
+			ctx.Warn(i18n.T("warn.postgres.hba.missing", hbaPath(ctx)))
 
 			return modules.Skipped, nil
 		}
 
-		added, err := file.EnsureLine(ctx, hbaPath, hbaLine)
+		added, err := file.EnsureLine(ctx, hbaPath(ctx), hbaLine)
 		if err != nil {
 			return modules.Failed, err
 		}
@@ -245,9 +252,9 @@ func createRoles(ctx *modules.Context, rotated bool) error {
 			return modules.Skipped, nil
 		}
 
-		sql := renderRoles(ctx.Secret("app_password"), ctx.Secret("remote_password"))
+		sql := renderRoles(appRole(ctx), remoteRole(ctx), ctx.Secret("app_password"), ctx.Secret("remote_password"))
 		if _, err := psql(ctx, []string{"psql", "-v", "ON_ERROR_STOP=1", "--quiet", "--no-psqlrc"}, sql); err != nil {
-			return modules.Failed, fmt.Errorf("création des rôles refusée : journalctl -u %s -n 40 · %w", unit, err)
+			return modules.Failed, fmt.Errorf("role creation refused: journalctl -u %s -n 40 · %w", unit, err)
 		}
 
 		return modules.Done, nil
@@ -297,14 +304,14 @@ func createDatabase(ctx *modules.Context, name string) error {
 		return nil
 	}
 
-	_, err := psql(ctx, []string{"createdb", "--owner=" + appRole, name}, "")
+	_, err := psql(ctx, []string{"createdb", "--owner=" + appRole(ctx), name}, "")
 
 	return err
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
 	if err := ctx.Step("upgrade-package", func() (modules.Outcome, error) {
-		upgraded, err := apt.Upgrade(ctx, pkg)
+		upgraded, err := apt.Upgrade(ctx, pkg(ctx))
 		if err != nil {
 			return modules.Failed, err
 		}
@@ -334,17 +341,17 @@ func (Module) Uninstall(ctx *modules.Context) error {
 	}
 
 	if err := ctx.Step("remove-package", func() (modules.Outcome, error) {
-		if !apt.Installed(ctx, pkg) {
+		if !apt.Installed(ctx, pkg(ctx)) {
 			return modules.Skipped, nil
 		}
 
-		return modules.Done, apt.Remove(ctx, pkg)
+		return modules.Done, apt.Remove(ctx, pkg(ctx))
 	}); err != nil {
 		return err
 	}
 
 	if err := ctx.Step("remove-config", func() (modules.Outcome, error) {
-		removed, err := file.Remove(ctx, confPath)
+		removed, err := file.Remove(ctx, confPath(ctx))
 		if err != nil {
 			return modules.Failed, err
 		}
@@ -384,11 +391,11 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	}
 
 	status.State = systemd.State(ctx, unit)
-	status.Port = Port
+	status.Port = port(ctx)
 	status.Unit = unit
 	status.Credentials = map[string]string{
-		"Rôle applicatif": appPasswordKey,
-		"Rôle distant":    remotePasswordKey,
+		i18n.T("module.db.postgres.app_role.label"):    appPasswordKey,
+		i18n.T("module.db.postgres.remote_role.label"): remotePasswordKey,
 	}
 
 	return status, nil
@@ -399,7 +406,7 @@ func URL(ctx *modules.Context, name string) (string, error) {
 		return "", err
 	}
 
-	return fmt.Sprintf("postgresql://%s@%s:%d/%s", remoteRole, loopback, Port, database(name)), nil
+	return fmt.Sprintf("postgresql://%s@%s:%d/%s", remoteRole(ctx), loopback, port(ctx), database(name)), nil
 }
 
 func Shell(ctx *modules.Context, name string) (string, error) {
@@ -422,8 +429,8 @@ func Dump(ctx *modules.Context, name string) (string, int64, error) {
 	}
 
 	argv := []string{
-		"pg_dump", "--format=custom", "--host=" + loopback, "--port=" + strconv.Itoa(Port),
-		"--username=" + appRole, "--no-password", "--file=" + path, database(name),
+		"pg_dump", "--format=custom", "--host=" + loopback, "--port=" + strconv.Itoa(port(ctx)),
+		"--username=" + appRole(ctx), "--no-password", "--file=" + path, database(name),
 	}
 	cmd := sys.Command{Argv: argv, Env: []string{"PGPASSWORD=" + ctx.Secret("app_password")}}
 	if _, err := sys.Exec(ctx, cmd); err != nil {
@@ -442,7 +449,7 @@ func Import(ctx *modules.Context, name string) ([]string, error) {
 }
 
 func requireInstalled(ctx *modules.Context) error {
-	if !apt.Installed(ctx, pkg) {
+	if !apt.Installed(ctx, pkg(ctx)) {
 		return modules.NotInstalled(ID, "PostgreSQL")
 	}
 
@@ -465,7 +472,9 @@ func count(ctx *modules.Context, database, query string) string {
 }
 
 func rolesExist(ctx *modules.Context) bool {
-	return count(ctx, defaultDatabase, countRoles) == "2"
+	query := fmt.Sprintf("SELECT count(*) FROM pg_roles WHERE rolname IN ('%s', '%s')", appRole(ctx), remoteRole(ctx))
+
+	return count(ctx, defaultDatabase, query) == "2"
 }
 
 func size(ctx *modules.Context, path string) int64 {
@@ -480,6 +489,57 @@ func size(ctx *modules.Context, path string) int64 {
 	}
 
 	return bytes
+}
+
+func version(ctx *modules.Context) string {
+	chosen := strings.TrimSpace(ctx.String("version"))
+	if chosen == "" || !versionPattern.MatchString(chosen) {
+		return DefaultVersion
+	}
+
+	return chosen
+}
+
+func pkg(ctx *modules.Context) string {
+	return "postgresql-" + version(ctx)
+}
+
+func clusterDir(ctx *modules.Context) string {
+	return "/etc/postgresql/" + version(ctx) + "/main"
+}
+
+func confPath(ctx *modules.Context) string {
+	return clusterDir(ctx) + "/conf.d/99-pupitre.conf"
+}
+
+func hbaPath(ctx *modules.Context) string {
+	return clusterDir(ctx) + "/pg_hba.conf"
+}
+
+func port(ctx *modules.Context) int {
+	if chosen := ctx.Int("port"); chosen > 0 {
+		return chosen
+	}
+
+	return DefaultPort
+}
+
+func appRole(ctx *modules.Context) string {
+	return roleOr(ctx, "app_role", defaultAppRole)
+}
+
+func remoteRole(ctx *modules.Context) string {
+	return roleOr(ctx, "remote_role", defaultRemoteRole)
+}
+
+// A role name reaches SQL as an identifier, so it is held to what PostgreSQL accepts and nothing else.
+func roleOr(ctx *modules.Context, key, fallback string) string {
+	chosen := strings.TrimSpace(ctx.String(key))
+	if chosen == "" || !rolePattern.MatchString(chosen) {
+		return fallback
+	}
+
+	return chosen
 }
 
 func database(name string) string {
@@ -509,11 +569,11 @@ func codename(ctx *modules.Context) string {
 	return defaultCodename
 }
 
-func renderConfig(buffers string) []byte {
-	return []byte(fmt.Sprintf(configTemplate, buffers))
+func renderConfig(port int, buffers string) []byte {
+	return []byte(fmt.Sprintf(configTemplate, port, buffers))
 }
 
-func renderRoles(app, remote string) string {
+func renderRoles(appRole, remoteRole, app, remote string) string {
 	return strings.Join([]string{
 		"DO $do$",
 		"BEGIN",

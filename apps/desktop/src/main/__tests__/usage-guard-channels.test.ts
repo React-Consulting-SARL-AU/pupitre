@@ -24,7 +24,7 @@ import { usageError } from "../usage-guard";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 
 /**
- * The channels APP-28 left outside, checked one by one at the door they now
+ * The channels the usage guard left outside, checked one by one at the door they now
  * share. Each of them used to reach the agent without a word to the account.
  */
 
@@ -68,8 +68,14 @@ function release(): CarriedRelease {
 
 function updateDeps(current: AgentClient): AgentUpdateDeps {
   return {
+    appVersion: "0.1.0",
     carried: () => release(),
     client: current,
+    published: () =>
+      Promise.resolve({
+        ok: false,
+        error: { code: "release_not_found", message: "aucune version publiée" },
+      }),
     declared: () => Promise.resolve({ ok: true, result: ["db.postgres"] }),
     probe: () =>
       Promise.resolve({

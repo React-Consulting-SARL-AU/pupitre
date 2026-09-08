@@ -34,8 +34,7 @@ describe("la décision sur la clé d'hôte", () => {
     }
     expect(decision.expected).toBe(PINNED);
     expect(decision.observed).toBe(OTHER);
-    expect(decision.message).toContain("clé d'hôte");
-    expect(decision.fix.length).toBeGreaterThan(0);
+    expect(decision.phrase.id).toBe("refusal.hostKey.changed");
   });
 
   it("refuse aussi quand l'empreinte épinglée a disparu du fichier de l'app", () => {

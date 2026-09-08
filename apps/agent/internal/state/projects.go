@@ -1,6 +1,7 @@
 package state
 
 import (
+	"pupitre.studio/agent/internal/i18n"
 	"strconv"
 	"strings"
 
@@ -85,8 +86,8 @@ func (r *Reader) start(project registry.Project) error {
 
 	dir := project.Path(r.options.Paths.Resolved().Projects)
 	if !file.Exists(ctx, dir) {
-		return protocol.NewError(contract.ErrorProjectNotFound, project.Name+" : le dossier "+dir+" est absent").
-			WithFix("Récupère les sources avec project.sync " + project.Name + ".")
+		return protocol.NewError(contract.ErrorProjectNotFound, i18n.T("state.project.dir.missing", project.Name, dir)).
+			WithFix(i18n.T("state.project.sync.fix", project.Name))
 	}
 
 	return tmux.Start(ctx, r.options.Tmux, tmux.Job{Project: project.Name, Dir: dir, Cmd: project.Cmd})
@@ -224,16 +225,16 @@ func (r *Reader) Install(name string) (string, error) {
 	ctx := r.ctx()
 	dir := project.Path(r.options.Paths.Resolved().Projects)
 	if !file.Exists(ctx, dir) {
-		return "", protocol.NewError(contract.ErrorProjectNotFound, name+" : le dossier "+dir+" est absent").
-			WithFix("Récupère les sources avec project.sync " + name + ".")
+		return "", protocol.NewError(contract.ErrorProjectNotFound, i18n.T("state.project.dir.missing", name, dir)).
+			WithFix(i18n.T("state.project.sync.fix", name))
 	}
 
 	ctx.Logf("%s : %s", name, command)
 
 	// The declared line needs a shell to honour its "&&" and its variables; it travels as one argv word, and runs as dev, never as root.
 	if _, err := user.RunIn(ctx, r.options.Tmux.User, dir, "zsh", "-lc", command); err != nil {
-		return command, protocol.NewError(contract.ErrorInternal, name+" : "+command+" a échoué").
-			WithFix("Ouvre le journal du projet, ou corrige la colonne install du registre.")
+		return command, protocol.NewError(contract.ErrorInternal, i18n.T("state.project.install.failed", name, command)).
+			WithFix(i18n.T("state.project.install.failed.fix"))
 	}
 
 	return command, nil

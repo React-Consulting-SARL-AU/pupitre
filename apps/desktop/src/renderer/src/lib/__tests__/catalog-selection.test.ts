@@ -15,7 +15,9 @@ import {
   fieldsOf,
   fromPreset,
   mandatory,
+  problemsOf,
   resourceWarnings,
+  restored,
   select,
   totals,
 } from "../catalog-selection";
@@ -214,5 +216,119 @@ describe("un catalogue ouvert sur un serveur déjà installé", () => {
       "db.mysql",
       "editor.vscode",
     ]);
+  });
+});
+
+describe("une sélection reprise après coup", () => {
+  const RUNNING = ["core.system", "core.hardening", "runtime.node"];
+
+  it("garde l'ordre du catalogue, quel que soit celui du brouillon", () => {
+    expect(
+      restored(CATALOG.modules, ["editor.vscode", "runtime.node"])
+    ).toEqual(["runtime.node", "editor.vscode"]);
+  });
+
+  it("laisse tomber ce que le catalogue ne déclare plus", () => {
+    expect(
+      restored(CATALOG.modules, ["db.clickhouse", "runtime.node"])
+    ).toEqual(["runtime.node"]);
+  });
+
+  it("laisse tomber ce que la machine fait déjà tourner", () => {
+    expect(
+      restored(CATALOG.modules, ["runtime.node", "db.mysql"], RUNNING)
+    ).toEqual(["db.mysql"]);
+  });
+});
+
+describe("ce que la sélection refuse", () => {
+  /**
+   * A field nobody filled in is one the manifest gives no default for. The
+   * agent reads a default the same way, so a value neither side was sent is
+   * refused by neither.
+   */
+  it("nomme le module et le champ qu'aucune valeur ne remplit", () => {
+    const problems = problemsOf(
+      MODULES,
+      ["core.system"],
+      { "core.system": { timezone: "Europe/Paris", git_name: "  " } },
+      {}
+    );
+
+    expect(problems.map((entry) => `${entry.module}.${entry.field}`)).toEqual([
+      "core.system.git_name",
+      "core.system.git_email",
+    ]);
+  });
+
+  it("ne réclame rien quand tout est rempli", () => {
+    const problems = problemsOf(
+      MODULES,
+      ["core.system", "core.hardening"],
+      {
+        "core.system": {
+          timezone: "Europe/Paris",
+          git_name: "Jordan",
+          git_email: "jordan@example.org",
+          projects_dir: "/home/dev/projects",
+        },
+      },
+      {}
+    );
+
+    expect(problems).toEqual([]);
+  });
+
+  it("compte un secret sur la marque que le processus principal a rendue", () => {
+    const values = { "db.postgres": {} };
+    const before = problemsOf(MODULES, ["db.postgres"], values, {});
+
+    const after = problemsOf(MODULES, ["db.postgres"], values, {
+      "db.postgres": {
+        app_password: { filled: true, generated: true, revealed: false },
+        remote_password: { filled: true, generated: true, revealed: false },
+      },
+    });
+
+    expect(before.map((entry) => entry.field)).toEqual([
+      "app_password",
+      "remote_password",
+    ]);
+    expect(after).toEqual([]);
+  });
+
+  /** The same rules as the agent's, so a shape it refuses is one this refuses too. */
+  it("refuse une valeur qui n'a pas la forme que le manifeste déclare", () => {
+    const problems = problemsOf(
+      MODULES,
+      ["core.system"],
+      {
+        "core.system": {
+          timezone: "Europe/Paris",
+          git_name: "Jordan",
+          git_email: "pas-une-adresse",
+          projects_dir: "projets",
+        },
+      },
+      {}
+    );
+
+    expect(problems.map((entry) => `${entry.field}:${entry.code}`)).toEqual([
+      "git_email:format",
+      "projects_dir:format",
+    ]);
+  });
+
+  /** A module that needs an account says so before it asks for a domain. */
+  it("réclame la connexion d'un module qui en déclare une", () => {
+    const problems = problemsOf(
+      MODULES,
+      ["exposure.cloudflare"],
+      {},
+      {},
+      () => false
+    );
+
+    expect(problems.map((entry) => entry.code)).toEqual(["connection"]);
   });
 });

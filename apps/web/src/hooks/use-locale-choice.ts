@@ -30,7 +30,7 @@ export function useLocaleChoice(): LocaleChoice {
 
     save.run(async () => {
       await updateLocale(next)
-      await queryClient.invalidateQueries()
+      await queryClient.invalidateQueries({ queryKey: queryKeys.me })
     })
   }
 

@@ -42,7 +42,7 @@ func installedSys(t *testing.T) *modtest.FakeSys {
 	fake := newFakeSys()
 	fake.Packages[mysqlPackage] = "8.0.36-0ubuntu0.24.04.1"
 	fake.Units[mysqlUnit] = modtest.UnitActive
-	fake.Files[confPath] = renderConfig(mysqlEngine, "980M")
+	fake.Files[confPath] = renderConfig(mysqlEngine, DefaultPort, "980M")
 	fake.Files[env.Path] = []byte(appPasswordKey + "=" + appPassword + "\n" + remotePasswordKey + "=" + remotePassword + "\n")
 
 	return fake
@@ -374,7 +374,7 @@ func TestStatusNamesTheKeysNotTheSecrets(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !status.Installed || status.State != contract.ServiceRunning || status.Port != Port || status.Unit != mysqlUnit {
+	if !status.Installed || status.State != contract.ServiceRunning || status.Port != DefaultPort || status.Unit != mysqlUnit {
 		t.Fatalf("status = %+v", status)
 	}
 
@@ -391,3 +391,45 @@ func TestStatusNamesTheKeysNotTheSecrets(t *testing.T) {
 }
 
 var _ modules.Module = Module{}
+
+// The port and the two account names are the client's call; the configuration and the accounts follow.
+func TestTheChosenPortAndAccountsReachTheEngine(t *testing.T) {
+	fake := newFakeSys()
+	ctx := newContext(t, fake, modtest.Values{
+		"engine": mysqlEngine, "port": 3307, "app_user": "flymate", "remote_user": "laptop",
+	})
+
+	install(t, ctx)
+
+	written := string(fake.Files[confPath])
+	if !strings.Contains(written, "port                           = 3307") {
+		t.Fatalf("the chosen port must reach the configuration:\n%s", written)
+	}
+
+	sql := ""
+	for _, call := range fake.Calls {
+		if len(call.Stdin) > 0 {
+			sql = string(call.Stdin)
+		}
+	}
+
+	for _, want := range []string{"'flymate'@'127.0.0.1'", "'laptop'@'127.0.0.1'"} {
+		if !strings.Contains(sql, want) {
+			t.Errorf("the chosen accounts must be the ones created, %q missing:\n%s", want, sql)
+		}
+	}
+
+	url, err := URL(ctx, "shop")
+	if err != nil || url != "mysql://laptop@127.0.0.1:3307/shop" {
+		t.Fatalf("url = %q, %v", url, err)
+	}
+}
+
+// An account name reaches SQL as an identifier: what does not look like one is refused before it gets there.
+func TestAnAccountNameThatIsNotAnIdentifierFallsBackOnTheDefault(t *testing.T) {
+	ctx := newContext(t, newFakeSys(), modtest.Values{"app_user": "root'; DROP DATABASE mysql; --"})
+
+	if got := appAccount(ctx); got != defaultAppAccount {
+		t.Fatalf("appAccount = %q, want %q", got, defaultAppAccount)
+	}
+}

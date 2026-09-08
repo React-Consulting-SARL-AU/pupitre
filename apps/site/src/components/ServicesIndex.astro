@@ -1,5 +1,5 @@
 ---
-import { AVAILABILITY_LABELS, CATALOG } from "../content/site/catalog"
+import { CATALOG } from "../content/site/catalog"
 import { MODULE_LABELS } from "../content/site/docs"
 import Docs from "../layouts/Docs.astro"
 import { docPath, moduleSlug, SERVICES_SLUG } from "../lib/docs"
@@ -30,11 +30,6 @@ const sections = await docsSections(locale)
               >
                 <span class="flex items-baseline gap-3">
                   <span class="heading-4 text-ink">{entry.name[locale]}</span>
-                  {entry.availability === "later" && (
-                    <span class="tag ms-auto">
-                      {AVAILABILITY_LABELS[entry.availability][locale]}
-                    </span>
-                  )}
                 </span>
                 <span class="data mt-1.5 block text-ink-4">{entry.id}</span>
                 <span class="mt-2 block text-ink-2">{entry.detail[locale]}</span>

@@ -34,7 +34,7 @@ func serve(t *testing.T, b *bench, granted contract.Entitlement, requests ...str
 	for _, line := range strings.Split(strings.TrimSpace(out.String()), "\n") {
 		var answer response
 		if err := json.Unmarshal([]byte(line), &answer); err != nil {
-			t.Fatalf("réponse illisible %q : %v", line, err)
+			t.Fatalf("unreadable answer %q: %v", line, err)
 		}
 		answers = append(answers, answer)
 	}
@@ -53,16 +53,16 @@ func TestAgentUpgradeAnswersInRestrictedMode(t *testing.T) {
 	)
 
 	if len(answers) != 2 || !answers[1].OK {
-		t.Fatalf("réponses = %+v", answers)
+		t.Fatalf("answers = %+v", answers)
 	}
 
 	value, err := contract.Decode(answers[1].Result)
 	if err != nil {
-		t.Fatalf("résultat illisible : %v", err)
+		t.Fatalf("unreadable result: %v", err)
 	}
 
 	if err := contract.Validate("AgentUpgradeResult", value); err != nil {
-		t.Fatalf("résultat hors contrat : %v", err)
+		t.Fatalf("result outside the contract: %v", err)
 	}
 
 	if string(b.fake.Files[binaryPath]) != string(newBinary) {
@@ -78,7 +78,7 @@ func TestAgentUpgradeIsAnnouncedAmongTheCapabilities(t *testing.T) {
 	)
 
 	if !strings.Contains(string(answers[0].Result), `"agent.upgrade"`) {
-		t.Fatalf("capacités : %s", answers[0].Result)
+		t.Fatalf("capabilities: %s", answers[0].Result)
 	}
 }
 
@@ -91,7 +91,7 @@ func TestAgentUpgradeRefusesADowngradeThroughTheProtocol(t *testing.T) {
 	)
 
 	if answers[1].OK || answers[1].Error.Code != contract.ErrorDowngradeRefused {
-		t.Fatalf("réponse = %+v", answers[1])
+		t.Fatalf("answer = %+v", answers[1])
 	}
 
 	if string(b.fake.Files[binaryPath]) != string(oldBinary) {
@@ -108,7 +108,7 @@ func TestAgentUpgradeInstallsAnOlderVersionOnTheOwnersWord(t *testing.T) {
 	)
 
 	if !answers[1].OK {
-		t.Fatalf("réponse = %+v", answers[1])
+		t.Fatalf("answer = %+v", answers[1])
 	}
 
 	if string(b.fake.Files[binaryPath]) != string(newBinary) {
@@ -126,10 +126,10 @@ func TestAgentUpgradeSurfacesBadSignatureThroughTheProtocol(t *testing.T) {
 	)
 
 	if answers[1].OK || answers[1].Error.Code != contract.ErrorBadSignature {
-		t.Fatalf("réponse = %+v", answers[1])
+		t.Fatalf("answer = %+v", answers[1])
 	}
 
 	if answers[1].Error.Fix == "" {
-		t.Fatalf("un refus de signature doit porter un remède : %+v", answers[1].Error)
+		t.Fatalf("a signature refusal must carry a fix: %+v", answers[1].Error)
 	}
 }

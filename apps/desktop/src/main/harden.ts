@@ -4,6 +4,8 @@ import { ipcMain } from "electron";
 import { account } from "./account";
 import { agentClient } from "./agent";
 import { runHarden } from "./harden-run";
+import { refusalOf } from "./refusal";
+import { relayTo } from "./relay";
 import { byId, switchAccount } from "./servers";
 import { usageRefusal } from "./usage-guard";
 
@@ -27,9 +29,7 @@ export function registerHarden(): void {
         return {
           ok: false,
           error: {
-            code: "bad_request",
-            fix: "Choisis un serveur dans les réglages.",
-            message: "Ce serveur n'est plus dans la liste.",
+            ...refusalOf("bad_request", "refusal.server.unknown"),
           },
         };
       }
@@ -40,11 +40,12 @@ export function registerHarden(): void {
         return refused;
       }
 
-      const update = (change: HardenUpdate) => {
-        if (typeof token === "string" && !event.sender.isDestroyed()) {
-          event.sender.send("harden:update", { token, update: change });
-        }
-      };
+      const update = relayTo<HardenUpdate>(
+        event.sender,
+        token,
+        "harden:update",
+        "update"
+      );
 
       return await runHarden(serverId, update, {
         client: agentClient,

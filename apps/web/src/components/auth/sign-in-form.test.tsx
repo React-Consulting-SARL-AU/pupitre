@@ -37,39 +37,39 @@ describe("SignInForm", () => {
   it("n'offre aucun fournisseur quand la plateforme n'en monte aucun", async () => {
     const { container } = await mountWith([])
 
-    expect(container.textContent).not.toContain("Continuer avec Google")
-    expect(container.textContent).not.toContain("Continuer avec GitHub")
+    expect(container.textContent).not.toContain("Continue with Google")
+    expect(container.textContent).not.toContain("Continue with GitHub")
     expect(divider(container)).toBeNull()
   })
 
   it("garde le lien magique et la clé d'accès sans aucun fournisseur", async () => {
     const { container } = await mountWith([])
 
-    expect(container.textContent).toContain("Recevoir un lien de connexion")
-    expect(container.textContent).toContain("Utiliser une clé d'accès")
+    expect(container.textContent).toContain("Send me a sign-in link")
+    expect(container.textContent).toContain("Use a passkey")
     expect(container.querySelector("input#email")).not.toBeNull()
   })
 
   it("n'offre que le fournisseur monté", async () => {
     const { container } = await mountWith(["google"])
 
-    expect(container.textContent).toContain("Continuer avec Google")
-    expect(container.textContent).not.toContain("Continuer avec GitHub")
+    expect(container.textContent).toContain("Continue with Google")
+    expect(container.textContent).not.toContain("Continue with GitHub")
     expect(divider(container)).not.toBeNull()
   })
 
   it("offre les deux fournisseurs quand les deux sont montés", async () => {
     const { container } = await mountWith(["github", "google"])
 
-    expect(container.textContent).toContain("Continuer avec Google")
-    expect(container.textContent).toContain("Continuer avec GitHub")
+    expect(container.textContent).toContain("Continue with Google")
+    expect(container.textContent).toContain("Continue with GitHub")
     expect(divider(container)).not.toBeNull()
   })
 
   it("garde le lien magique et la clé d'accès quand un fournisseur est monté", async () => {
     const { container } = await mountWith(["github"])
 
-    expect(container.textContent).toContain("Recevoir un lien de connexion")
-    expect(container.textContent).toContain("Utiliser une clé d'accès")
+    expect(container.textContent).toContain("Send me a sign-in link")
+    expect(container.textContent).toContain("Use a passkey")
   })
 })

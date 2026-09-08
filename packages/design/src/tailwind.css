@@ -49,3 +49,68 @@
   --shadow-raised: var(--shadow-raised);
   --shadow-overlay: var(--shadow-overlay);
 }
+
+@theme {
+  --animate-breathe: breathe var(--motion-breathe);
+
+  @keyframes breathe {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes exit {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@utility transition-fast {
+  transition:
+    color var(--motion-fast),
+    background-color var(--motion-fast),
+    border-color var(--motion-fast),
+    opacity var(--motion-fast),
+    box-shadow var(--motion-fast),
+    fill var(--motion-fast),
+    stroke var(--motion-fast);
+}
+
+@utility transition-soft {
+  transition:
+    opacity var(--motion-soft),
+    transform var(--motion-soft),
+    width var(--motion-soft),
+    height var(--motion-soft),
+    max-height var(--motion-soft);
+}
+
+@utility animate-enter {
+  animation: enter var(--motion-enter) both;
+  animation-delay: calc(var(--motion-stagger) * var(--stagger, 0));
+}
+
+@utility animate-exit {
+  animation: exit var(--motion-exit) forwards;
+}

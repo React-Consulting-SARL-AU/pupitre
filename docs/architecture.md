@@ -27,10 +27,10 @@ Pupitre Desktop ──── ssh, clé du client ────▶ pupitred (VPS d
 ## Les règles qui ne bougent pas
 
 1. **Le serveur du client est la source de vérité** pour ses projets, ses services, ses secrets. L'app affiche ce que l'agent renvoie. La plateforme ne stocke ni code, ni secrets, ni contenu.
-2. **Aucune clé privée hors du laptop du client.** L'app génère une clé ed25519 par appareil ; seule la clé publique remonte à la plateforme, qui la transmet à l'agent.
+2. **Aucune clé privée hors du laptop du client.** L'app génère ses clés ed25519 dans son dossier, une par appareil et une par serveur qu'elle installe ; seules les moitiés publiques remontent à la plateforme, qui les transmet à l'agent.
 3. **Aucune connexion entrante vers le serveur du client**, ni de la plateforme, ni du support. L'agent tire ce dont il a besoin par HTTPS sortant. Le seul port ouvert est SSH, pour le client.
 4. **Rien de lisible n'est déposé sur le serveur.** Un binaire, des unités systemd générées, des fichiers de configuration. Pas de script.
-5. **L'app exige une première connexion réussie, puis reste utilisable sans la plateforme pendant sept jours** : le droit d'usage est mis en cache, puis l'agent passe en mode restreint sans rien casser de ce qui tourne.
+5. **L'app exige une première connexion réussie, puis reste utilisable sans la plateforme pendant sept jours** : le droit d'usage est mis en cache, puis l'agent passe en mode restreint sans rien casser de ce qui tourne. L'exposition ne dépend pas d'elle du tout : le tunnel est sur le compte Cloudflare du client, monté par l'app depuis son laptop, et rien de la plateforme n'est sur le chemin.
 6. **Le contrat avant l'implémentation.** Ce qui traverse une frontière est typé dans `packages/shared` et documenté dans `docs/contracts/` avant d'exister des deux côtés.
 
 ## Desktop
@@ -77,4 +77,4 @@ Variables publiques du web en `VITE_*` ; secrets en variables runtime ou secrets
 
 ## Déploiement
 
-`apps/web` : deux environnements Wrangler, `staging` et `production`. Le staging part de Cloudflare Builds sur un push de `main`, la production d'un tag `v*` par GitHub Actions ; les deux enchaînent `build:<environnement>` (migrations Neon puis build) et `deploy:<environnement>` (vérification des secrets requis puis `wrangler deploy --keep-vars`). Runbook et noms exacts dans [monorepo.md](./monorepo.md). `apps/site` : Cloudflare Pages sur push. `apps/desktop` : GitHub Actions par tag, builds signés, publication sur GitHub Releases privées et sur R2 pour le site. `apps/agent` : GitHub Actions par tag, garble, signature, publication sur R2 via l'API de la plateforme.
+`apps/web` : deux environnements Wrangler, `staging` et `production`. Le staging part de Cloudflare Builds sur un push de `main`, la production d'un tag `v*` par GitHub Actions ; les deux enchaînent `build:<environnement>` (migrations Neon puis build) et `deploy:<environnement>` (vérification des secrets requis puis `wrangler deploy --keep-vars`). Runbook et noms exacts dans [monorepo.md](./monorepo.md). `apps/site` : Cloudflare Pages sur push. `apps/desktop` : GitHub Actions par tag, builds signés et notarisés, publication sur un bucket R2 public — `dl.pupitre.studio` — et déclaration à la plateforme, qui sert la page de téléchargement du site. `apps/agent` : le même tag, garble, signature, publication sur le bucket R2 privé via l'API de la plateforme.

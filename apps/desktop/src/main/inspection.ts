@@ -5,6 +5,7 @@ import type { AgentResponse } from "@shared/agent";
 import { app, ipcMain } from "electron";
 import { agentClient } from "./agent";
 import { runShellProbe } from "./probe-shell";
+import { refusalOf } from "./refusal";
 import { byId, paths } from "./servers";
 import { sshArgs } from "./ssh-config";
 
@@ -33,11 +34,7 @@ export async function inspect(
   if (!server) {
     return {
       ok: false,
-      error: {
-        code: "bad_request",
-        message: "Ce serveur n'est plus dans la liste.",
-        fix: "Choisis un serveur dans les réglages.",
-      },
+      error: refusalOf("bad_request", "refusal.server.unknown"),
     };
   }
 

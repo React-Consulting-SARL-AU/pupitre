@@ -6,6 +6,7 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { FolderPlus } from "lucide-react";
 import type { Draft } from "../../stores/first-project";
 import { Button } from "../ui/button";
+import { CheckBox } from "../ui/check-box";
 import { Field, fieldControlClass } from "../ui/field";
 
 /**
@@ -22,6 +23,7 @@ export interface DraftEdits {
   pkgmgr: (value: PackageManager) => void;
   port: (value: number) => void;
   subdomain: (value: string) => void;
+  publish: (value: boolean) => void;
   cmd: (value: string) => void;
 }
 
@@ -29,6 +31,7 @@ export function FirstProjectForm({
   draft,
   detected,
   cloudflare,
+  publish,
   ready,
   edit,
   onSubmit,
@@ -37,6 +40,8 @@ export function FirstProjectForm({
   /** The package manager came from a project the agent already declares. */
   detected: boolean;
   cloudflare: boolean;
+  /** The address is drawn by the platform: the reader chooses to publish, not the name. */
+  publish: boolean;
   ready: boolean;
   edit: DraftEdits;
   onSubmit: () => void;
@@ -115,6 +120,20 @@ export function FirstProjectForm({
             value={Number.isFinite(draft.port) ? draft.port : ""}
           />
         </Field>
+
+        {cloudflare ? (
+          <Field
+            help={t("firstProject.form.publishHelp")}
+            label={t("firstProject.form.publishLabel")}
+          >
+            <CheckBox
+              checked={publish}
+              label={t("firstProject.form.publishLabel")}
+              name="publish"
+              onChange={edit.publish}
+            />
+          </Field>
+        ) : null}
 
         {cloudflare ? (
           <Field

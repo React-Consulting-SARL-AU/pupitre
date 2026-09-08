@@ -6,7 +6,7 @@ import { launchPupitre, type Running } from "./harness/launch";
  * The invited member, from the settings to the machine.
  *
  * Only the platform is replaced: the window, the bridge and the stores are the
- * app's own. What the scenario watches is the promise of APP-15 — the server
+ * app's own. What the scenario watches is the promise of the shared fleet — the server
  * arrives with its address, no field asks for one, and the first opening leads
  * straight to the customisation rather than to an installation.
  */

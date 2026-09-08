@@ -1,4 +1,4 @@
-import { MVP_MODULE_IDS } from "@pupitre/shared/catalog"
+import { MODULE_IDS } from "@pupitre/shared/catalog"
 import { describe, expect, it, vi } from "vitest"
 
 interface Entry {
@@ -123,7 +123,7 @@ describe("llms.txt", () => {
   it("lists every catalogue module and the other pages of the site", async () => {
     const body = await llms()
 
-    for (const id of MVP_MODULE_IDS) {
+    for (const id of MODULE_IDS) {
       expect(body, id).toContain(`(${id})`)
     }
     expect(body).toContain("https://pupitre.studio/pricing/")

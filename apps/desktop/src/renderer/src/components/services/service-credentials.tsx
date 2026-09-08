@@ -47,7 +47,7 @@ export function ServiceCredentials({
       </div>
 
       {labels.length === 0 ? (
-        <p className="text-[11px] text-ink-3">
+        <p className="text-[12px] text-ink-3">
           {t("services.credentials.empty")}
         </p>
       ) : (
@@ -63,7 +63,7 @@ export function ServiceCredentials({
         </ul>
       )}
 
-      <p className="text-[11px] text-ink-4 leading-relaxed">
+      <p className="text-[12px] text-ink-4 leading-relaxed">
         {t("services.credentials.note")}
       </p>
     </section>

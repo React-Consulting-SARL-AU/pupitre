@@ -189,7 +189,7 @@ func TestAKeyAddedInTheConsoleOpensTheServer(t *testing.T) {
 	}
 
 	if synced.Entitlement == contract.EntitlementRestricted {
-		t.Fatalf("une lecture qui vient de réussir restreint l'agent : %s", synced.Entitlement)
+		t.Fatalf("a read that just succeeded restricts the agent: %s", synced.Entitlement)
 	}
 }
 
@@ -208,7 +208,7 @@ func TestAKeyWithdrawnInTheConsoleClosesTheServer(t *testing.T) {
 	}
 
 	if strings.Contains(b.authorized(), desktop) {
-		t.Fatalf("la clé retirée ouvre encore :\n%s", b.authorized())
+		t.Fatalf("the removed key still opens:\n%s", b.authorized())
 	}
 
 	if !strings.Contains(b.authorized(), own) || !strings.Contains(b.authorized(), laptop) {
@@ -218,14 +218,14 @@ func TestAKeyWithdrawnInTheConsoleClosesTheServer(t *testing.T) {
 
 func TestSyncIgnoresAKeyItCannotRead(t *testing.T) {
 	b := newBench(t, true)
-	b.platform.allow(laptop, "ssh-ed25519 cassée")
+	b.platform.allow(laptop, "ssh-ed25519 broken")
 
 	synced, err := b.agent().Sync()
 	if err != nil || len(synced.Keys) != 1 {
 		t.Fatalf("synced = %+v, err = %v", synced, err)
 	}
 
-	if strings.Contains(b.authorized(), "cassée") {
+	if strings.Contains(b.authorized(), "broken") {
 		t.Fatalf("authorized_keys :\n%s", b.authorized())
 	}
 }
@@ -261,7 +261,7 @@ func TestSyncRefusesWithoutAServerToken(t *testing.T) {
 	}
 
 	if strings.Contains(b.authorized(), "pupitre") {
-		t.Fatalf("un bloc a été écrit sans jeton :\n%s", b.authorized())
+		t.Fatalf("a block was written without a token:\n%s", b.authorized())
 	}
 }
 
@@ -275,11 +275,11 @@ func TestARefusedTokenLeavesTheKeysInPlace(t *testing.T) {
 	b.platform.suspend(http.StatusUnauthorized)
 
 	if _, err := agent.Sync(); err == nil {
-		t.Fatal("un jeton refusé devrait remonter")
+		t.Fatal("a refused token should surface")
 	}
 
 	if !strings.Contains(b.authorized(), laptop) {
-		t.Fatalf("les clés ont sauté sur un refus :\n%s", b.authorized())
+		t.Fatalf("the keys were dropped on a refusal:\n%s", b.authorized())
 	}
 }
 
@@ -308,12 +308,12 @@ func TestEnrollTradesTheTokenAndWritesTheServerToken(t *testing.T) {
 	}
 
 	if len(b.platform.traded) != 1 {
-		t.Fatalf("%d échange(s)", len(b.platform.traded))
+		t.Fatalf("%d exchange(s)", len(b.platform.traded))
 	}
 
 	traded := b.platform.traded[0]
 	if traded.Token != "jeton-d-enrolement" || traded.HostPublicKey != hostKey || traded.Arch != "amd64" {
-		t.Fatalf("échangé %+v", traded)
+		t.Fatalf("traded %+v", traded)
 	}
 
 	token, err := platform.LoadToken(b.fake, platform.DefaultTokenPath)
@@ -326,11 +326,11 @@ func TestEnrollRefusesAnEmptyTokenAndAnUnreadableHostKey(t *testing.T) {
 	b := newBench(t, false)
 
 	if err := b.agent().Enroll("  \n", ""); err == nil {
-		t.Fatal("un jeton vide a été échangé")
+		t.Fatal("an empty token was exchanged")
 	}
 
 	delete(b.fake.Files, daemon.DefaultHostKeyPath)
-	if err := b.agent().Enroll("jeton", ""); err == nil || !strings.Contains(err.Error(), "clé d'hôte") {
+	if err := b.agent().Enroll("jeton", ""); err == nil || !strings.Contains(err.Error(), "host key") {
 		t.Fatalf("erreur = %v", err)
 	}
 }
@@ -360,7 +360,7 @@ func TestRunPollsUntilItIsStopped(t *testing.T) {
 	for b.platform.count() < 3 {
 		select {
 		case <-deadline:
-			t.Fatalf("%d lecture(s) d'état en cinq secondes", b.platform.count())
+			t.Fatalf("%d state read(s) in five seconds", b.platform.count())
 		default:
 			time.Sleep(time.Millisecond)
 		}

@@ -42,7 +42,7 @@ func startProject(t *testing.T, fake *modtest.FakeSys) {
 	)
 
 	if decodeResponse(t, lines[1])["result"].(map[string]any)["state"] != "online" {
-		t.Fatalf("le projet n'a pas démarré : %s", lines[1])
+		t.Fatalf("the project did not start: %s", lines[1])
 	}
 }
 
@@ -51,7 +51,7 @@ func helloEntitlement(t *testing.T, line string) string {
 
 	response := decodeResponse(t, line)
 	if response["ok"] != true {
-		t.Fatalf("hello a échoué : %s", line)
+		t.Fatalf("hello failed: %s", line)
 	}
 
 	return response["result"].(map[string]any)["entitlement"].(string)
@@ -70,11 +70,11 @@ func TestSixDaysWithoutThePlatformChangeNothing(t *testing.T) {
 	)
 
 	if got := helloEntitlement(t, lines[0]); got != "grace" {
-		t.Fatalf("droit d'usage au sixième jour = %s", got)
+		t.Fatalf("entitlement on the sixth day = %s", got)
 	}
 
 	if decodeResponse(t, lines[1])["ok"] != true {
-		t.Fatalf("catalog refusé au sixième jour : %s", lines[1])
+		t.Fatalf("catalog refused on the sixth day: %s", lines[1])
 	}
 
 	if projects(t, lines[2]) != 1 {
@@ -100,25 +100,25 @@ func TestOnTheEighthDayTheAgentRestrictsItselfWithoutStoppingAnything(t *testing
 	)
 
 	if got := helloEntitlement(t, lines[0]); got != "restricted" {
-		t.Fatalf("droit d'usage au huitième jour = %s", got)
+		t.Fatalf("entitlement on the eighth day = %s", got)
 	}
 
 	if code := errorCode(t, lines[1]); code != "entitlement_required" {
-		t.Fatalf("install refusé avec %s", code)
+		t.Fatalf("install refused with %s", code)
 	}
 
 	if state := projectState(t, lines[2]); state != "online" {
-		t.Fatalf("le projet ne tourne plus : %s", lines[2])
+		t.Fatalf("the project is no longer running: %s", lines[2])
 	}
 
 	for _, line := range lines[3:] {
 		if decodeResponse(t, line)["ok"] != true {
-			t.Fatalf("commande refusée en mode restreint : %s", line)
+			t.Fatalf("command refused in restricted mode: %s", line)
 		}
 	}
 
 	if len(fake.Mutations) != before {
-		t.Fatalf("le mode restreint a touché la machine : %v", fake.Mutations[before:])
+		t.Fatalf("restricted mode touched the machine: %v", fake.Mutations[before:])
 	}
 }
 
@@ -127,7 +127,7 @@ func projectState(t *testing.T, line string) string {
 
 	response := decodeResponse(t, line)
 	if response["ok"] != true {
-		t.Fatalf("snapshot a échoué : %s", line)
+		t.Fatalf("snapshot failed: %s", line)
 	}
 
 	list := response["result"].(map[string]any)["projects"].([]any)
@@ -143,7 +143,7 @@ func projects(t *testing.T, line string) int {
 
 	response := decodeResponse(t, line)
 	if response["ok"] != true {
-		t.Fatalf("snapshot a échoué : %s", line)
+		t.Fatalf("snapshot failed: %s", line)
 	}
 
 	return len(response["result"].(map[string]any)["projects"].([]any))

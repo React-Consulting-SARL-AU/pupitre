@@ -22,7 +22,10 @@ import {
   SecretEventSchema,
 } from "@pupitre/shared/agent-protocol/secrets";
 import type { HelloResult } from "@pupitre/shared/agent-protocol/session";
-import type { AgentError, AgentResponse } from "@shared/agent";
+import { timeoutOf } from "@pupitre/shared/agent-protocol/timeouts";
+import type { AgentError, AgentResponse, ErrorPhrase } from "@shared/agent";
+import { refusalOf } from "./refusal";
+import { trace } from "./trace";
 import { mutates } from "./usage-guard";
 
 export type { AgentError, AgentErrorCode, AgentResponse } from "@shared/agent";
@@ -38,6 +41,8 @@ export class AgentCallError extends Error {
   readonly code: AgentError["code"];
   readonly fix?: string;
   readonly remedy?: Remedy;
+  /** The dictionary entry and its values: without it, the screen shows the raw key. */
+  readonly phrase?: ErrorPhrase;
 
   constructor(error: AgentError) {
     super(error.message);
@@ -45,6 +50,7 @@ export class AgentCallError extends Error {
     this.code = error.code;
     this.fix = error.fix;
     this.remedy = error.remedy;
+    this.phrase = error.phrase;
   }
 
   toError(): AgentError {
@@ -53,6 +59,7 @@ export class AgentCallError extends Error {
       message: this.message,
       ...(this.fix ? { fix: this.fix } : {}),
       ...(this.remedy ? { remedy: this.remedy } : {}),
+      ...(this.phrase ? { phrase: this.phrase } : {}),
     };
   }
 }
@@ -93,74 +100,89 @@ export type UsageGate = () => AgentError | null;
 export interface AgentClientOptions {
   spawn: AgentSpawn;
   appVersion?: string;
+  /**
+   * The app's language, told to the agent at `hello`.
+   *
+   * It holds for the session: a channel already open keeps the one it received,
+   * and the next one leaves with the new one.
+   */
+  locale?: () => string;
   timeouts?: Partial<Record<CommandName, number>>;
   backoff?: { firstMs?: number; maxMs?: number; attempts?: number };
+  /** The time a channel has to open, whatever command sits behind it. */
+  connectMs?: number;
   gate?: UsageGate;
+  /**
+   * What the window is told about the link.
+   *
+   * A channel that drops and comes back is the ordinary life of an SSH session
+   * over a laptop's wifi. A screen that says nothing about it leaves the reader
+   * looking at a step that has stopped for no reason they can see.
+   */
+  onChannel?: (serverId: string, state: ChannelState) => void;
 }
 
-const QUICK_MS = 10_000;
-const STANDARD_MS = 60_000;
-const LONG_MS = 1_800_000;
+export type ChannelState = "open" | "lost";
 
-const QUICK_COMMANDS: readonly CommandName[] = [
-  "hello",
-  "ping",
-  "snapshot",
-  "status",
-  "service.status",
-  "completions",
-  "project.list",
-  "report",
-  "secrets.status",
-  "keys.list",
-];
-
-const LONG_COMMANDS: readonly CommandName[] = [
-  "install",
-  "uninstall",
-  "upgrade",
-  "harden",
-  "agent.upgrade",
-  "project.add",
-  "project.detect",
-  "project.install",
-  "project.sync",
-  "db.dump",
-  "db.import",
-];
+/** The one timeout this file still names: the handshake that opens a channel. */
+const HELLO_MS = 10_000;
 
 /**
- * Commands whose state survives the channel: the agent keeps installing when the
- * link drops, and its report is what tells us where it got to.
+ * Commands whose state survives the channel: the agent keeps working when the
+ * link drops, and its own record is what tells us where it got to. Hardening is
+ * among them — it is what closes root, and a channel cut halfway through must
+ * not read as a machine left open.
  */
-const RESUMABLE_COMMANDS: readonly CommandName[] = ["install", "upgrade"];
+const RESUMABLE_COMMANDS: readonly CommandName[] = [
+  "install",
+  "upgrade",
+  "harden",
+];
 
 const DEFAULT_BACKOFF = { firstMs: 250, maxMs: 15_000, attempts: 4 };
 
+/**
+ * A long command grants thirty minutes to its execution, never to its
+ * connection: a channel that refuses to open has to say so, otherwise the
+ * screen sits on its step announcing nothing.
+ */
+const CONNECT_MS = 30_000;
+
 const STDERR_KEPT = 2000;
 
+/**
+ * How long a command may take, read from the contract rather than kept here.
+ *
+ * A screen says more than "still going": past half of it, it tells the reader
+ * how long this is allowed to take, and at the end it offers to read the state
+ * again rather than to keep waiting. Two sides needing the same number is what
+ * makes it a contract.
+ */
 export function defaultTimeout(cmd: CommandName): number {
-  if (QUICK_COMMANDS.includes(cmd)) {
-    return QUICK_MS;
-  }
-
-  return LONG_COMMANDS.includes(cmd) ? LONG_MS : STANDARD_MS;
+  return timeoutOf(cmd);
 }
 
 /**
- * `shots.read` sits here rather than in `LONG_COMMANDS`: it answers quickly but
- * holds the channel for the length of a file, and the dashboard's own reads
- * must not queue behind a gallery.
+ * `shots.read` and `project.logs` sit here rather than falling out of the
+ * timeout: they answer quickly but hold the channel for the length of a file,
+ * and the dashboard's own reads must not queue behind a gallery.
  */
 const WORK_CHANNEL_COMMANDS: readonly CommandName[] = [
   "project.logs",
   "shots.read",
 ];
 
+/** A command allowed more than a minute holds the channel long enough to need its own. */
+const WORK_CHANNEL_MS = 60_000;
+
 function usesWorkChannel(cmd: CommandName): ChannelPurpose {
-  return LONG_COMMANDS.includes(cmd) || WORK_CHANNEL_COMMANDS.includes(cmd)
+  return timeoutOf(cmd) > WORK_CHANNEL_MS || WORK_CHANNEL_COMMANDS.includes(cmd)
     ? "work"
     : "control";
+}
+
+function left(deadline: number): number {
+  return Math.max(0, deadline - Date.now());
 }
 
 function delay(ms: number): Promise<void> {
@@ -171,11 +193,9 @@ function delay(ms: number): Promise<void> {
 
 function disconnected(detail: string): AgentCallError {
   return new AgentCallError({
-    code: "disconnected",
-    message: detail
-      ? `La connexion au serveur s'est interrompue : ${detail}`
-      : "La connexion au serveur s'est interrompue.",
-    fix: "Vérifie que le serveur répond, puis relance la commande.",
+    ...(detail
+      ? refusalOf("disconnected", "refusal.agent.dropped.detail", { detail })
+      : refusalOf("disconnected", "refusal.agent.dropped")),
   });
 }
 
@@ -292,7 +312,9 @@ class AgentChannel {
   }
 
   close(): void {
-    this.settlePending(disconnected("le canal a été fermé"));
+    this.settlePending(
+      new AgentCallError(refusalOf("disconnected", "refusal.channel.closed"))
+    );
     this.destroy();
     this.greeting = null;
     this.refusal = null;
@@ -319,6 +341,10 @@ class AgentChannel {
     const timeoutMs =
       call.timeoutMs ?? this.options.timeouts[cmd] ?? defaultTimeout(cmd);
 
+    const started = Date.now();
+
+    trace("agent", cmd, { channel: this.purpose, server: this.serverId });
+
     try {
       const result = await this.send(cmd, params, call.secrets, {
         onEvent,
@@ -326,13 +352,24 @@ class AgentChannel {
         timeoutMs,
       });
 
+      trace("agent", `${cmd}.done`, { ms: Date.now() - started });
+
       return result as CommandResult<C>;
     } catch (error) {
+      trace("agent", `${cmd}.failed`, {
+        ms: Date.now() - started,
+        why: error instanceof Error ? error.message : String(error),
+      });
+
       const cut =
         error instanceof AgentCallError && error.code === "disconnected";
 
       if (cut && RESUMABLE_COMMANDS.includes(cmd)) {
-        return (await this.resume(delivered, call.onEvent)) as CommandResult<C>;
+        return (await this.resume(
+          delivered,
+          call.onEvent,
+          error as AgentCallError
+        )) as CommandResult<C>;
       }
 
       throw error;
@@ -348,12 +385,17 @@ class AgentChannel {
    */
   private async resume(
     delivered: Set<string>,
-    onEvent: ((event: Event) => void) | undefined
+    onEvent: ((event: Event) => void) | undefined,
+    cut: AgentCallError
   ): Promise<InstallResult> {
     await this.ensure();
 
+    // An agent with no report simply didn't write one for that particular
+    // install: the disconnection remains the only true thing to say.
     const report = (await this.send("report", undefined, undefined, {
-      timeoutMs: this.options.timeouts.report ?? QUICK_MS,
+      timeoutMs: this.options.timeouts.report ?? timeoutOf("report"),
+    }).catch(() => {
+      throw cut;
     })) as InstallReport;
 
     for (const module of report.modules) {
@@ -396,9 +438,11 @@ class AgentChannel {
       return;
     }
 
+    const deadline = Date.now() + this.options.connectMs;
+
     for (let attempt = 0; ; attempt += 1) {
       if (this.failures > 0) {
-        await delay(this.backoffMs());
+        await delay(Math.min(this.backoffMs(), left(deadline)));
       }
 
       try {
@@ -413,7 +457,10 @@ class AgentChannel {
         if (this.refusal) {
           throw this.refusal;
         }
-        if (attempt + 1 >= this.options.backoff.attempts) {
+        if (
+          attempt + 1 >= this.options.backoff.attempts ||
+          left(deadline) === 0
+        ) {
           throw error;
         }
       }
@@ -427,10 +474,12 @@ class AgentChannel {
   }
 
   private async connect(): Promise<void> {
-    const proc = this.options.spawn({
-      serverId: this.serverId,
-      purpose: this.purpose,
+    trace("agent", "connect", {
+      channel: this.purpose,
+      server: this.serverId,
     });
+
+    const proc = this.open();
 
     this.proc = proc;
     this.buffer = "";
@@ -441,20 +490,39 @@ class AgentChannel {
     proc.stderr?.setEncoding("utf8");
     proc.stderr?.on("data", (chunk: string) => {
       this.stderr = (this.stderr + chunk).slice(-STDERR_KEPT);
+      trace("agent", "stderr", { channel: this.purpose, line: chunk.trim() });
     });
     proc.on("error", () => this.drop(proc));
-    proc.on("exit", () => this.drop(proc));
+    proc.on("exit", (code: number | null) => {
+      trace("agent", "exit", {
+        channel: this.purpose,
+        code,
+        server: this.serverId,
+      });
+    });
+    // `close`, not `exit`: the streams only drain afterward, and `ssh`'s own
+    // complaint arrives after its death when that death is immediate.
+    proc.on("close", () => this.drop(proc));
 
     try {
       this.greeting = (await this.send(
         "hello",
         {
           app_version: this.options.appVersion,
+          locale: this.options.locale(),
           protocol: PROTOCOL_VERSION,
         },
         undefined,
-        { timeoutMs: this.options.timeouts.hello ?? QUICK_MS }
+        { timeoutMs: this.options.timeouts.hello ?? HELLO_MS }
       )) as HelloResult;
+
+      this.options.onChannel(this.serverId, "open");
+
+      trace("agent", "hello", {
+        agent: this.greeting.agent_version,
+        channel: this.purpose,
+        server: this.serverId,
+      });
     } catch (error) {
       if (
         error instanceof AgentCallError &&
@@ -467,11 +535,31 @@ class AgentChannel {
     }
   }
 
+  /**
+   * A server the configuration no longer knows does not come back: the channel
+   * remembers that, rather than reopening on nothing every fifteen seconds.
+   */
+  private open(): ChildProcess {
+    try {
+      return this.options.spawn({
+        serverId: this.serverId,
+        purpose: this.purpose,
+      });
+    } catch (error) {
+      if (error instanceof AgentCallError) {
+        this.refusal = error;
+      }
+
+      throw error;
+    }
+  }
+
   private drop(proc: ChildProcess): void {
     if (this.proc !== proc) {
       return;
     }
     this.proc = null;
+    this.options.onChannel(this.serverId, "lost");
     this.settlePending(
       disconnected(this.stderr.trim().split("\n").at(-1) ?? "")
     );
@@ -523,9 +611,10 @@ class AgentChannel {
         this.pending = null;
         reject(
           new AgentCallError({
-            code: "timeout",
-            message: `La commande ${cmd} n'a pas répondu en ${Math.round(options.timeoutMs / 1000)} s.`,
-            fix: "Relance la commande, ou ouvre un diagnostic avec doctor.",
+            ...refusalOf("timeout", "refusal.command.timeout", {
+              cmd,
+              seconds: Math.round(options.timeoutMs / 1000),
+            }),
           })
         );
       }, options.timeoutMs);
@@ -629,9 +718,12 @@ export class AgentClient {
     this.options = {
       spawn: options.spawn,
       appVersion: options.appVersion ?? "0.1.0",
+      locale: options.locale ?? (() => "en"),
       timeouts: options.timeouts ?? {},
       backoff: { ...DEFAULT_BACKOFF, ...options.backoff },
+      connectMs: options.connectMs ?? CONNECT_MS,
       gate: options.gate ?? (() => null),
+      onChannel: options.onChannel ?? (() => undefined),
     };
   }
 
@@ -767,10 +859,25 @@ export interface SshTarget {
  * Three descriptors and no more: `ssh` forwards nothing beyond 0, 1 and 2, so a
  * fourth one would never reach the agent — the secret line travels on standard
  * input like the requests it follows.
+ *
+ * A resolver that does not know the server says so, and the channel refuses:
+ * falling back on another machine would run there what was meant for this one.
  */
-export function sshSpawn(resolve: (serverId: string) => SshTarget): AgentSpawn {
+export function sshSpawn(
+  resolve: (serverId: string) => SshTarget | null
+): AgentSpawn {
   return ({ serverId }) => {
     const target = resolve(serverId);
+
+    if (!target) {
+      throw new AgentCallError(
+        refusalOf("bad_request", "refusal.server.unknown")
+      );
+    }
+
+    // Tighter than the 30 seconds `ssh-config.ts` writes for everything else:
+    // this channel sits idle between requests, so a dead one is only noticed by
+    // the keepalive, and a request would otherwise wait on a socket nobody holds.
     const args = [
       "-o",
       "BatchMode=yes",
@@ -779,6 +886,8 @@ export function sshSpawn(resolve: (serverId: string) => SshTarget): AgentSpawn {
       ...target.args,
       target.serveCommand ?? "pupitred serve",
     ];
+
+    trace("agent", "ssh", { args, server: serverId });
 
     return spawnChild("ssh", args, {
       stdio: ["pipe", "pipe", "pipe"],

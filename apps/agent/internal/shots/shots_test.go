@@ -110,7 +110,7 @@ func TestWithoutABrowserTheUrlCaptureSaysSo(t *testing.T) {
 	fake := modtest.NewFakeSys()
 
 	_, err := shots.Take(modtest.NewSysContext(fake), options(), shots.Request{Source: "https://example.org"})
-	if err == nil || !strings.Contains(err.Error(), "navigateur") {
+	if err == nil || !strings.Contains(err.Error(), "headless browser") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }

@@ -2,6 +2,8 @@ package mysql
 
 import (
 	"fmt"
+	"pupitre.studio/agent/internal/i18n"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -16,7 +18,7 @@ import (
 )
 
 const (
-	Port = 3306
+	DefaultPort = 3306
 
 	mysqlEngine   = "mysql"
 	mariadbEngine = "mariadb"
@@ -32,12 +34,11 @@ const (
 	appPasswordKey    = "MYSQL_APP_PASSWORD"
 	remotePasswordKey = "MYSQL_REMOTE_PASSWORD"
 
-	appAccount      = "root"
-	remoteAccount   = "dev"
+	defaultAppAccount    = "root"
+	defaultRemoteAccount = "dev"
+
 	loopback        = "127.0.0.1"
 	defaultDatabase = "mysql"
-
-	countAccounts = "SELECT COUNT(*) FROM mysql.user WHERE host = '127.0.0.1' AND user IN ('root', 'dev')"
 
 	meminfoPath   = "/proc/meminfo"
 	poolDivisor   = 4
@@ -48,6 +49,7 @@ const (
 
 const configTemplate = `[mysqld]
 bind-address                   = 127.0.0.1
+port                           = %d
 max_connections                = 200
 innodb_buffer_pool_size        = %s
 innodb_flush_log_at_trx_commit = 2
@@ -56,6 +58,8 @@ collation-server               = utf8mb4_unicode_ci
 local_infile                   = 1
 skip_name_resolve              = ON
 `
+
+var accountPattern = regexp.MustCompile(`^[a-z][a-z0-9_]{0,31}$`)
 
 // A TCP connection from 127.0.0.1 resolved to "localhost" would land on the socket-only account; skip_name_resolve keeps the two apart.
 const mysqlxOff = "mysqlx                         = 0\n"
@@ -68,6 +72,11 @@ func init() {
 
 func (Module) Manifest() contract.Manifest {
 	return manifest()
+}
+
+// A port another program already holds is the one thing this configuration cannot know from the manifest alone.
+func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
+	return modules.Problems(modules.PortTaken(ctx, "port"))
 }
 
 func (Module) Check(ctx *modules.Context) (modules.Status, error) {
@@ -100,7 +109,7 @@ func (Module) Install(ctx *modules.Context) error {
 			return modules.Failed, err
 		}
 
-		ctx.Warn(fallback + " installé à la place de " + chosen + " : compatible avec la plupart des clients, mais ce n'est pas le même moteur")
+		ctx.Warn(i18n.T("warn.mysql.fallback", fallback, chosen))
 
 		return modules.Done, nil
 	})
@@ -131,7 +140,7 @@ func (m Module) Configure(ctx *modules.Context) error {
 }
 
 func writeConfig(ctx *modules.Context) (bool, error) {
-	content := renderConfig(engineOf(ctx), bufferPool(ctx))
+	content := renderConfig(engineOf(ctx), port(ctx), bufferPool(ctx))
 	changed := false
 
 	err := ctx.Step("write-config", func() (modules.Outcome, error) {
@@ -197,9 +206,9 @@ func createAccounts(ctx *modules.Context, rotated bool) error {
 			return modules.Skipped, nil
 		}
 
-		sql := renderAccounts(engineOf(ctx), ctx.Secret("app_password"), ctx.Secret("remote_password"))
+		sql := renderAccounts(engineOf(ctx), appAccount(ctx), remoteAccount(ctx), ctx.Secret("app_password"), ctx.Secret("remote_password"))
 		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"mysql", "--protocol=socket"}, Stdin: []byte(sql)}); err != nil {
-			return modules.Failed, fmt.Errorf("création des comptes refusée : journalctl -u %s -n 40 · %w", unitOf(ctx), err)
+			return modules.Failed, fmt.Errorf("account creation refused: journalctl -u %s -n 40 · %w", unitOf(ctx), err)
 		}
 
 		return modules.Done, nil
@@ -321,11 +330,11 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	}
 
 	status.State = systemd.State(ctx, unitOf(ctx))
-	status.Port = Port
+	status.Port = port(ctx)
 	status.Unit = unitOf(ctx)
 	status.Credentials = map[string]string{
-		"Compte applicatif": appPasswordKey,
-		"Compte distant":    remotePasswordKey,
+		i18n.T("module.db.mysql.app_user.label"):    appPasswordKey,
+		i18n.T("module.db.mysql.remote_user.label"): remotePasswordKey,
 	}
 
 	return status, nil
@@ -336,7 +345,7 @@ func URL(ctx *modules.Context, name string) (string, error) {
 		return "", err
 	}
 
-	return fmt.Sprintf("mysql://%s@%s:%d/%s", remoteAccount, loopback, Port, database(name)), nil
+	return fmt.Sprintf("mysql://%s@%s:%d/%s", remoteAccount(ctx), loopback, port(ctx), database(name)), nil
 }
 
 func Shell(ctx *modules.Context, name string) (string, error) {
@@ -396,6 +405,32 @@ func size(ctx *modules.Context, path string) int64 {
 	}
 
 	return bytes
+}
+
+func port(ctx *modules.Context) int {
+	if chosen := ctx.Int("port"); chosen > 0 {
+		return chosen
+	}
+
+	return DefaultPort
+}
+
+func appAccount(ctx *modules.Context) string {
+	return accountOr(ctx, "app_user", defaultAppAccount)
+}
+
+func remoteAccount(ctx *modules.Context) string {
+	return accountOr(ctx, "remote_user", defaultRemoteAccount)
+}
+
+// An account name reaches SQL as an identifier, so it is held to what MySQL accepts and nothing else.
+func accountOr(ctx *modules.Context, key, fallback string) string {
+	chosen := strings.TrimSpace(ctx.String(key))
+	if chosen == "" || !accountPattern.MatchString(chosen) {
+		return fallback
+	}
+
+	return chosen
 }
 
 // A pool sized above the machine gets the engine killed by the memory guard, which reads as a database that will not start.
@@ -487,13 +522,14 @@ func packages(engine string) (chosen, fallback string) {
 }
 
 func accountsExist(ctx *modules.Context) bool {
-	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"mysql", "--protocol=socket", "-N", "-B", "-e", countAccounts}})
+	query := fmt.Sprintf("SELECT COUNT(*) FROM mysql.user WHERE host = '%s' AND user IN ('%s', '%s')", loopback, appAccount(ctx), remoteAccount(ctx))
+	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"mysql", "--protocol=socket", "-N", "-B", "-e", query}})
 
 	return err == nil && strings.TrimSpace(out.Stdout) == "2"
 }
 
-func renderConfig(engine, pool string) []byte {
-	content := fmt.Sprintf(configTemplate, pool)
+func renderConfig(engine string, port int, pool string) []byte {
+	content := fmt.Sprintf(configTemplate, port, pool)
 	if engine == mysqlEngine {
 		content += mysqlxOff
 	}
@@ -502,7 +538,7 @@ func renderConfig(engine, pool string) []byte {
 }
 
 // root@localhost stays on socket authentication: that is what makes `sudo mysql`, db.shell and the dump imports work without a password.
-func renderAccounts(engine, app, remote string) string {
+func renderAccounts(engine, appAccount, remoteAccount, app, remote string) string {
 	plugin := "caching_sha2_password"
 	if engine == mariadbEngine {
 		plugin = "mysql_native_password"

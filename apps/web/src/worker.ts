@@ -6,7 +6,6 @@ import {
 import { handleApiRequest } from "@pupitre/api/server"
 import serverEntry from "@tanstack/react-start/server-entry"
 import { API_PREFIX } from "./lib/config/urls"
-import { reportException } from "./lib/observability/sentry"
 import { runDecommissionServer } from "./workflows/decommission-server"
 import { runEvaluateAlerts } from "./workflows/evaluate-alerts"
 import { runExpireEnrollments } from "./workflows/expire-enrollments"
@@ -65,31 +64,13 @@ function route(request: Request, env: CloudflareEnv, pathname: string) {
 }
 
 export default {
-  async fetch(request: Request, env: CloudflareEnv, ctx: ExecutionContext) {
+  fetch(request: Request, env: CloudflareEnv) {
     const { pathname } = new URL(request.url)
 
-    try {
-      return await route(request, env, pathname)
-    } catch (error) {
-      ctx.waitUntil(
-        reportException(error, env, { method: request.method, pathname })
-      )
-
-      throw error
-    }
+    return route(request, env, pathname)
   },
 
-  async scheduled(
-    controller: ScheduledController,
-    env: CloudflareEnv,
-    ctx: ExecutionContext
-  ) {
-    try {
-      await runScheduledWorkflow(controller.cron, env)
-    } catch (error) {
-      ctx.waitUntil(reportException(error, env, { cron: controller.cron }))
-
-      throw error
-    }
+  async scheduled(controller: ScheduledController, env: CloudflareEnv) {
+    await runScheduledWorkflow(controller.cron, env)
   },
 } satisfies ExportedHandler<CloudflareEnv>

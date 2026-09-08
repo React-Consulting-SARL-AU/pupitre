@@ -31,7 +31,7 @@ export function AccountIdentityCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-medium text-ink">{identity.name}</p>
-          <p className="mt-0.5 font-data text-[11px] text-ink-3">
+          <p className="mt-0.5 font-data text-[12px] text-ink-3">
             {identity.email}
           </p>
         </div>
@@ -59,7 +59,7 @@ export function AccountIdentityCard({
               t("account.identity.noOrganization")}
           </p>
           {identity.role ? (
-            <p className="mt-0.5 font-data text-[11px] text-ink-4">
+            <p className="mt-0.5 font-data text-[12px] text-ink-4">
               {identity.role}
             </p>
           ) : null}
@@ -71,7 +71,7 @@ export function AccountIdentityCard({
             {device?.name ?? t("account.identity.deviceUnregistered")}
           </p>
           {device ? (
-            <p className="mt-0.5 break-all font-data text-[11px] text-ink-4">
+            <p className="mt-0.5 break-all font-data text-[12px] text-ink-4">
               {device.fingerprint}
             </p>
           ) : null}
@@ -79,7 +79,7 @@ export function AccountIdentityCard({
       </div>
 
       {account.sealed ? null : (
-        <p className="border-line border-t pt-3 text-[11px] text-warn leading-relaxed">
+        <p className="border-line border-t pt-3 text-[12px] text-warn leading-relaxed">
           {t("account.identity.unsealed")}
         </p>
       )}

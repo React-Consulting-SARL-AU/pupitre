@@ -3,8 +3,9 @@ package hardening
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io/fs"
+
+	"pupitre.studio/agent/internal/i18n"
 
 	"pupitre.studio/agent/internal/keys"
 	"pupitre.studio/agent/internal/modules"
@@ -16,16 +17,24 @@ import (
 
 type Result struct {
 	RootClosed bool   `json:"root_closed"`
+	RootKept   bool   `json:"root_kept"`
 	NextUser   string `json:"next_user"`
 	Reason     string `json:"reason,omitempty"`
 }
 
 func rootStays(reason string) Result {
-	return Result{RootClosed: false, NextUser: "root", Reason: reason}
+	return Result{NextUser: "root", Reason: reason}
+}
+
+// Root kept is a choice, not a failure: the fragment went in, and it left root a way back by key.
+func hardened(keepRoot bool, name string) Result {
+	return Result{RootClosed: !keepRoot, RootKept: keepRoot, NextUser: name}
 }
 
 // Root closes last, and only once a key opens the next user; any failure after the fragment is written puts the previous configuration back.
 func Harden(ctx *modules.Context, name string) Result {
+	keepRoot := options(ctx).KeepRoot
+
 	reason, err := checkAuthorizedKeys(ctx, name)
 	if err != nil {
 		return rootStays(err.Error())
@@ -39,7 +48,7 @@ func Harden(ctx *modules.Context, name string) Result {
 		return rootStays(err.Error())
 	}
 	if !changed {
-		return Result{RootClosed: true, NextUser: name}
+		return hardened(keepRoot, name)
 	}
 
 	if err := ctx.Step("validate-sshd-config", func() (modules.Outcome, error) {
@@ -51,17 +60,17 @@ func Harden(ctx *modules.Context, name string) Result {
 		return modules.Done, nil
 	}); err != nil {
 		revertFragment(ctx, previous)
-		return rootStays("configuration sshd invalide, fragment retiré, root reste ouvert : " + message(err))
+		return rootStays(i18n.T("harden.sshd.invalid", message(err)))
 	}
 
 	if err := ctx.Step("reload-sshd", func() (modules.Outcome, error) {
 		return modules.Done, reloadSSHD(ctx)
 	}); err != nil {
 		revertFragment(ctx, previous)
-		return rootStays("rechargement de sshd en échec, fragment retiré, root reste ouvert : " + message(err))
+		return rootStays(i18n.T("harden.sshd.reload.failed", message(err)))
 	}
 
-	return Result{RootClosed: true, NextUser: name}
+	return hardened(keepRoot, name)
 }
 
 func checkAuthorizedKeys(ctx *modules.Context, name string) (string, error) {
@@ -70,7 +79,7 @@ func checkAuthorizedKeys(ctx *modules.Context, name string) (string, error) {
 
 	err := ctx.Step("check-authorized-keys", func() (modules.Outcome, error) {
 		if !user.Exists(ctx, name) {
-			reason = fmt.Sprintf("l'utilisateur %s n'existe pas : installe core.system puis relance harden", name)
+			reason = i18n.T("harden.user.missing", name)
 			return modules.Done, nil
 		}
 
@@ -80,21 +89,21 @@ func checkAuthorizedKeys(ctx *modules.Context, name string) (string, error) {
 		}
 
 		if len(bytes.TrimSpace(raw)) == 0 {
-			reason = fmt.Sprintf("aucune clé dans %s : ajoute la clé publique du poste puis relance harden", path)
+			reason = i18n.T("harden.keys.none", path)
 			return modules.Done, nil
 		}
 
 		parsed := keys.Parse(raw)
 		for _, line := range parsed.Malformed {
-			ctx.Logf("%s : ligne %d illisible, ignorée", path, line)
+			ctx.Logf("%s: line %d unreadable, ignored", path, line)
 		}
 
 		if len(parsed.Keys) == 0 {
-			reason = fmt.Sprintf("aucune clé bien formée dans %s (%d ligne(s) illisible(s)) : ajoute la clé publique du poste puis relance harden", path, len(parsed.Malformed))
+			reason = i18n.T("harden.keys.malformed", path, len(parsed.Malformed))
 			return modules.Done, nil
 		}
 
-		ctx.Logf("%d clé(s) ouvre(nt) %s", len(parsed.Keys), name)
+		ctx.Logf("%d key(s) open %s", len(parsed.Keys), name)
 
 		return modules.Done, nil
 	})
@@ -128,7 +137,7 @@ func preparedFragment(ctx *modules.Context) []byte {
 		return content
 	}
 
-	return Fragment(ctx.Bool("ssh_443"))
+	return Fragment(options(ctx))
 }
 
 func revertFragment(ctx *modules.Context, previous []byte) {

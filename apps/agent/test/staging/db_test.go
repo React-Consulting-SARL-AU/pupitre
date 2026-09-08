@@ -20,20 +20,23 @@ const (
 )
 
 var dbInstall = request{Cmd: "install", Params: map[string]any{
-	"modules":       []string{"db.mysql", "db.postgres", "db.mongodb"},
+	"modules":       []string{"db.mysql", "db.postgres", "db.mongodb", "db.redis"},
 	"secrets_stdin": true,
 	"config": map[string]any{
 		"core.system": map[string]any{"timezone": "Europe/Paris", "git_name": "Pupitre Staging", "git_email": "staging@pupitre.studio"},
-		"db.mysql":    map[string]any{"engine": "mysql"},
+		"db.mysql":    map[string]any{"engine": "mysql", "port": 3306, "app_user": "root", "remote_user": "dev"},
+		"db.postgres": map[string]any{"version": "17", "port": 5432, "app_role": "app", "remote_role": "dev"},
+		"db.mongodb":  map[string]any{"version": "8.0", "port": 27017, "app_user": "app"},
+		"db.redis":    map[string]any{"port": 6379, "persistence": true, "maxmemory_mb": 256},
 	},
 }}
 
 var dbSecrets = fmt.Sprintf(
-	`{"db.mysql":{"app_password":%q,"remote_password":%q},"db.postgres":{"app_password":%q,"remote_password":%q},"db.mongodb":{"app_password":%q}}`,
-	dbSecret, dbSecret, dbSecret, dbSecret, dbSecret,
+	`{"db.mysql":{"app_password":%q,"remote_password":%q},"db.postgres":{"app_password":%q,"remote_password":%q},"db.mongodb":{"app_password":%q},"db.redis":{"password":%q}}`,
+	dbSecret, dbSecret, dbSecret, dbSecret, dbSecret, dbSecret,
 )
 
-var ports = map[string]int{"mysql": 3306, "postgres": 5432, "mongodb": 27017}
+var ports = map[string]int{"mysql": 3306, "postgres": 5432, "mongodb": 27017, "redis": 6379}
 
 // The dump has to be there before the engines are, which is the whole point of ~/dumps.
 func installDatabases(t *testing.T, host string) response {
@@ -83,6 +86,23 @@ func TestDatabasesListenOnTheLoopbackOnly(t *testing.T) {
 	if conf := ssh(t, host, "sudo", "cat", "/etc/mongod.conf"); !strings.Contains(conf, "bindIp: 127.0.0.1") {
 		t.Errorf("the mongodb configuration must bind the loopback:\n%s", conf)
 	}
+
+	if conf := ssh(t, host, "sudo", "cat", "/etc/redis/pupitre.conf"); !strings.Contains(conf, "bind 127.0.0.1 ::1") {
+		t.Errorf("the redis configuration must bind the loopback:\n%s", conf)
+	}
+}
+
+// Redis without a password on a machine that also carries the client's code is the classic way to lose both.
+func TestRedisRefusesAnyoneWithoutThePassword(t *testing.T) {
+	host := stagingHost(t)
+
+	if out := ssh(t, host, "redis-cli", "ping"); !strings.Contains(out, "NOAUTH") {
+		t.Fatalf("redis must require a password, got %q", out)
+	}
+
+	if conf := ssh(t, host, "sudo", "cat", "/etc/redis/pupitre.conf"); !strings.Contains(conf, "maxmemory 256mb") {
+		t.Errorf("the chosen memory limit must reach the configuration:\n%s", conf)
+	}
 }
 
 func TestADumpLeftBeforeTheInstallIsImportedAndReported(t *testing.T) {
@@ -104,6 +124,10 @@ func TestDbUrlIsUsableThroughAnSshForward(t *testing.T) {
 	host := stagingHost(t)
 
 	for engine, port := range ports {
+		if engine == "redis" {
+			continue
+		}
+
 		answers := agent(t, host, request{Cmd: "db.url", Params: map[string]any{"engine": engine}})[0]
 		url := decode[struct {
 			URL string `json:"url"`
@@ -164,7 +188,7 @@ func TestNoGeneratedPasswordLeavesTheEnvFile(t *testing.T) {
 	host := stagingHost(t)
 
 	keys := ssh(t, host, "sudo", "cat", "/etc/pupitre/env")
-	for _, key := range []string{"MYSQL_APP_PASSWORD", "MYSQL_REMOTE_PASSWORD", "POSTGRES_APP_PASSWORD", "POSTGRES_REMOTE_PASSWORD", "MONGODB_APP_PASSWORD"} {
+	for _, key := range []string{"MYSQL_APP_PASSWORD", "MYSQL_REMOTE_PASSWORD", "POSTGRES_APP_PASSWORD", "POSTGRES_REMOTE_PASSWORD", "MONGODB_APP_PASSWORD", "REDIS_PASSWORD"} {
 		if !strings.Contains(keys, key+"=") {
 			t.Errorf("%s must be stored in /etc/pupitre/env", key)
 		}

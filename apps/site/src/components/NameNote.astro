@@ -1,0 +1,36 @@
+---
+import { homeContent } from "../content/site/home"
+import { localeFromPath } from "../lib/i18n"
+
+const locale = localeFromPath(Astro.url.pathname)
+const { name } = homeContent(locale)
+---
+
+<section id="name" aria-labelledby="name-word" class="border-line border-t">
+  <div class="shell py-24 md:py-32">
+    <figure class="card-soft desk-lid reveal mx-auto max-w-2xl p-8 md:p-12">
+      <p class="eyebrow">{name.label}</p>
+
+      <div class="mt-6 flex flex-wrap items-baseline gap-x-4 gap-y-2">
+        <h2 id="name-word" class="heading-2">{name.word}</h2>
+        <p class="data text-ink-3">[{name.pronunciation}]</p>
+        <p class="tag">{name.grammar}</p>
+      </div>
+
+      <ol class="mt-8 flex flex-col gap-5">
+        {
+          name.senses.map((sense, position) => (
+            <li class="flex gap-4">
+              <span class="data text-ink-4">{position + 1}</span>
+              <p class="body-lg text-ink-2">{sense}</p>
+            </li>
+          ))
+        }
+      </ol>
+
+      <figcaption class="heading-3 mt-8 border-line border-t pt-8">
+        {name.note}
+      </figcaption>
+    </figure>
+  </div>
+</section>

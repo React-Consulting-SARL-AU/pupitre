@@ -24,7 +24,16 @@ const SIGNED_IN = {
     name: "atelier",
     publicKey: "ssh-ed25519 AAAA",
   },
-  identity: null,
+  identity: {
+    email: "ada@pupitre.studio",
+    entitlement: "valid",
+    name: "Ada Lovelace",
+    organization: { id: "org-1", name: "Atelier Ada", slug: "ada" },
+    organizations: [
+      { id: "org-1", name: "Atelier Ada", role: "owner", slug: "ada" },
+    ],
+    role: "owner",
+  },
   refusal: null,
   sealed: true,
   usage: {
@@ -34,6 +43,10 @@ const SIGNED_IN = {
     validUntil: null,
   },
 };
+
+/** Signed in, but the platform knows no device for this computer: nothing to
+ * ask a re-enrolment token with. */
+const WITHOUT_DEVICE = { ...SIGNED_IN, device: null };
 
 interface Harness {
   account: unknown;
@@ -56,10 +69,8 @@ function stubRestricted(
       const state = globalThis as unknown as { pupitreRepaired?: boolean };
       state.pupitreRepaired = false;
 
-      if (harness.repairable) {
-        ipcMain.removeHandler("account:state");
-        ipcMain.handle("account:state", () => harness.account);
-      }
+      ipcMain.removeHandler("account:state");
+      ipcMain.handle("account:state", () => harness.account);
 
       ipcMain.removeHandler("reenroll:start");
       ipcMain.handle("reenroll:start", () => {
@@ -95,7 +106,7 @@ function stubRestricted(
       );
     },
     {
-      account: SIGNED_IN,
+      account: repairable ? SIGNED_IN : WITHOUT_DEVICE,
       answers: ANSWERS as Record<string, unknown>,
       repairable,
     }
@@ -128,15 +139,15 @@ test.describe("serveur en mode restreint", () => {
       page.getByRole("button", { name: "Ouvrir la console" })
     ).toBeVisible();
 
-    // La machine reste devant les yeux : la barre latérale et ses projets.
+    // The machine stays in view: the sidebar and its projects.
     await expect(
       page.getByRole("button", { name: "Tableau de bord" })
     ).toBeVisible();
     await expect(page.getByText("flymate-api").first()).toBeVisible();
   });
 
-  // Le compte n'a pas de quoi obtenir un jeton : la plateforme refuserait, et
-  // l'app n'offre pas un geste qui ne réparerait rien.
+  // The account has nothing to get a token with: the platform would refuse,
+  // so the app doesn't offer a gesture that would fix nothing.
   test("n'offre pas le ré-enrôlement à un appareil sans compte", async () => {
     await expect(
       running.page.getByRole("button", { name: REPAIR })
@@ -170,7 +181,7 @@ test.describe("réparer un serveur restreint depuis l'app", () => {
       page.getByText("se laisse lire, et refuse tout le reste")
     ).toBeHidden();
 
-    // Rien ne s'est arrêté : la machine et ses projets sont toujours là.
+    // Nothing has stopped: the machine and its projects are still there.
     await expect(page.getByText("flymate-api").first()).toBeVisible();
     await expect(page.getByRole("button", { name: REPAIR })).toBeHidden();
   });

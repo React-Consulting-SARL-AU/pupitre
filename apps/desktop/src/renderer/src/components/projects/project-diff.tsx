@@ -37,7 +37,7 @@ export function ProjectDiff({
   if (tree.status === "idle" || tree.status === "reading") {
     return (
       <div className="grid h-full place-items-center">
-        <span className="flex items-center gap-2 text-[12px] text-ink-3">
+        <span className="flex items-center gap-2 text-[13px] text-ink-3">
           <StatusDot shape="breathing" size={11} />
           {t("project.diff.readingTree")}
         </span>
@@ -76,20 +76,20 @@ export function ProjectDiff({
   return (
     <div className="flex h-full flex-col">
       <div className="flex shrink-0 flex-wrap items-center gap-3 border-line border-b px-4 py-2">
-        <span className="font-data text-[11px] text-ink-3">
+        <span className="font-data text-[12px] text-ink-3">
           {tree.tree.branch || t("project.diff.detachedHead")}
           {tree.tree.upstream ? (
             <span className="text-ink-3"> → {tree.tree.upstream}</span>
           ) : null}
         </span>
-        <span className="font-data text-[11px] text-ink-3">
+        <span className="font-data text-[12px] text-ink-3">
           {files.length === 0
             ? t("project.clean")
             : t.plural("project.file", files.length)}
         </span>
         <ProjectDiffCount added={total.added} removed={total.removed} />
         <span
-          className="ml-auto font-data text-[10px] text-ink-3"
+          className="ml-auto font-data text-[11px] text-ink-3"
           title={t("project.diff.readOnlyHint")}
         >
           {t("project.diff.readOnly")}
@@ -115,7 +115,7 @@ export function ProjectDiff({
           <div className="flex min-h-0 min-w-0 flex-col">
             {change ? (
               <p className="flex shrink-0 items-center gap-2 border-line border-b px-4 py-1.5">
-                <span className="min-w-0 flex-1 truncate font-data text-[11px] text-ink-2">
+                <span className="min-w-0 flex-1 truncate font-data text-[12px] text-ink-2">
                   {change.path}
                 </span>
                 {change.binary ? null : (

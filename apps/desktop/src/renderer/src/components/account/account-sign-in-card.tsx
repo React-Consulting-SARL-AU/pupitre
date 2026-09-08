@@ -1,16 +1,22 @@
 import { Button } from "@renderer/components/ui/button";
 import { Callout } from "@renderer/components/ui/callout";
-import { CopyField } from "@renderer/components/ui/copy-field";
+import { StatusDot } from "@renderer/components/ui/status-dot";
 import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
+import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { riseAt } from "@renderer/lib/motion";
 import type { SignInState } from "@renderer/stores/account";
-import { LogIn, RotateCw } from "lucide-react";
+import { ExternalLink, LogIn, RotateCw } from "lucide-react";
+import { AccountCode } from "./account-code";
 
 /**
  * The device flow, as it is lived: a code to read, a browser that opens on it,
  * and a wait that says what it is waiting for. The code stays on screen until
  * someone approves it, because that is the one thing to type over there.
  */
+
+const STEPS = ["browser", "approve", "back"] as const;
+
 export function AccountSignInCard({
   signIn,
   consoleUrl,
@@ -26,13 +32,23 @@ export function AccountSignInCard({
 
   if (signIn.status === "idle") {
     return (
-      <div className="flex flex-wrap items-center gap-2">
-        <Button icon={LogIn} onClick={onConnect} variant="inverse">
-          {t("account.signIn.connect")}
-        </Button>
-        <Button onClick={onOpenConsole} variant="discreet">
-          {t("account.signIn.openConsole")}
-        </Button>
+      <div className="elevation-raised rounded-md border border-line bg-surface px-5 py-5">
+        <p className="text-ink-2 leading-relaxed">
+          {t("account.signIn.howItWorks")}
+        </p>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Button icon={LogIn} onClick={onConnect} variant="inverse">
+            {t("account.signIn.connect")}
+          </Button>
+          <Button
+            icon={ExternalLink}
+            onClick={onOpenConsole}
+            variant="discreet"
+          >
+            {t("account.signIn.openConsole")}
+          </Button>
+        </div>
       </div>
     );
   }
@@ -45,10 +61,10 @@ export function AccountSignInCard({
             {t("common.retry")}
           </Button>
         }
-        fix={signIn.error.fix}
+        fix={agentText(t, signIn.error).fix}
         tone="danger"
       >
-        {signIn.error.message}
+        {agentText(t, signIn.error).message}
       </Callout>
     );
   }
@@ -63,21 +79,34 @@ export function AccountSignInCard({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <WaitingNotice
-        detail={t("account.signIn.waitingDetail", { url: consoleUrl })}
-        note={t("account.signIn.waitingNote")}
-        title={t("account.signIn.waitingTitle")}
-      />
-
-      <CopyField
+    <div
+      aria-busy="true"
+      className="elevation-raised flex flex-col gap-5 rounded-md border border-line bg-surface px-5 py-5"
+    >
+      <AccountCode
         help={t("account.signIn.codeHelp")}
         label={t("account.signIn.codeLabel")}
         value={signIn.userCode}
       />
 
+      <ol className="flex flex-col gap-2.5 border-line border-t pt-4">
+        {STEPS.map((step, index) => (
+          <li className="rise flex gap-2.5" key={step} style={riseAt(index)}>
+            <span className="mt-1">
+              <StatusDot
+                shape={step === "back" ? "empty" : "filled"}
+                size={9}
+              />
+            </span>
+            <p className="text-[12px] text-ink-2 leading-relaxed">
+              {t(`account.signIn.step.${step}`, { url: consoleUrl })}
+            </p>
+          </li>
+        ))}
+      </ol>
+
       <div>
-        <Button onClick={onOpenConsole} variant="discreet">
+        <Button icon={ExternalLink} onClick={onOpenConsole} size="sm">
           {t("account.signIn.reopenBrowser")}
         </Button>
       </div>

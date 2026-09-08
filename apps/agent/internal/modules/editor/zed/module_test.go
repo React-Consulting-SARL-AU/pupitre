@@ -21,7 +21,7 @@ func machine() *modtest.FakeSys {
 	fake := modtest.NewFakeSys()
 	fake.Users["dev"] = "/home/dev"
 	fake.Answer("url_effective", latestRedirect)
-	fake.Replies["curl"] = "\x1f\x8b binaire compressé"
+	fake.Replies["curl"] = "\x1f\x8b compressed binary"
 
 	return fake
 }
@@ -120,7 +120,7 @@ func TestStatusNamesTheInstalledVersion(t *testing.T) {
 func TestUninstallTakesBackTheServerOnly(t *testing.T) {
 	fake := machine()
 	install(t, fake, modtest.Values{"version": "latest"})
-	fake.Files[ServerDir+"/zed-remote-server-stable-0.9.9"] = []byte("posé par le client")
+	fake.Files[ServerDir+"/zed-remote-server-stable-0.9.9"] = []byte("placed by the client")
 
 	if err := (Module{}).Uninstall(newContext(t, fake, modtest.Values{"version": "latest"})); err != nil {
 		t.Fatal(err)

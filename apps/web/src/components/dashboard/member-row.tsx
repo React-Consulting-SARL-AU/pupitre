@@ -14,8 +14,8 @@ export interface MemberRowProps {
   member: MemberRowMember
   removable: boolean
   isSelf: boolean
-  onRemove: (memberId: string) => void
-  pending: boolean
+  onRemove: () => void
+  removing: boolean
 }
 
 export function MemberRow({
@@ -23,13 +23,16 @@ export function MemberRow({
   removable,
   isSelf,
   onRemove,
-  pending,
+  removing,
 }: MemberRowProps) {
   const t = useTranslations()
   const role = roleKey(member.role)
 
   return (
-    <li className="flex flex-wrap items-center justify-between gap-4 border-line border-b px-4 py-3 last:border-b-0">
+    <li
+      aria-busy={removing || undefined}
+      className="flex flex-wrap items-center justify-between gap-4 border-line border-b px-4 py-3 last:border-b-0"
+    >
       <div className="min-w-0">
         <p className="truncate font-medium text-[13px] text-ink">
           {member.name}
@@ -47,14 +50,13 @@ export function MemberRow({
         </span>
         {removable ? (
           <ConfirmDialog
+            busy={removing}
+            busyLabel={t("members.removing")}
             confirmLabel={t("members.remove")}
             description={t("members.removeDescription", {
               email: member.email,
             })}
-            onConfirm={() => {
-              onRemove(member.id)
-            }}
-            pending={pending}
+            onConfirm={onRemove}
             title={t("members.removeTitle")}
             triggerLabel={t("members.remove")}
           />

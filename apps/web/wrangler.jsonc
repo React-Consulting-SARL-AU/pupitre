@@ -1,6 +1,6 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "pupitre-web",
+  "name": "ppt-web",
   "main": "src/worker.ts",
   "compatibility_date": "2026-06-19",
   "compatibility_flags": ["nodejs_compat"],
@@ -9,7 +9,7 @@
   "upload_source_maps": false,
   "placement": {
     "mode": "targeted",
-    "region": "aws:eu-central-1"
+    "region": "aws:us-east-1"
   },
   "assets": {
     "directory": ".output/public",
@@ -20,27 +20,27 @@
   },
   "workflows": [
     {
-      "name": "pupitre-expire-enrollments",
+      "name": "ppt-expire-enrollments",
       "binding": "EXPIRE_ENROLLMENTS",
       "class_name": "ExpireEnrollments"
     },
     {
-      "name": "pupitre-decommission-server",
+      "name": "ppt-decommission-server",
       "binding": "DECOMMISSION_SERVER",
       "class_name": "DecommissionServer"
     },
     {
-      "name": "pupitre-reconcile-seats",
+      "name": "ppt-reconcile-seats",
       "binding": "RECONCILE_SEATS",
       "class_name": "ReconcileSeats"
     },
     {
-      "name": "pupitre-evaluate-alerts",
+      "name": "ppt-evaluate-alerts",
       "binding": "EVALUATE_ALERTS",
       "class_name": "EvaluateAlerts"
     },
     {
-      "name": "pupitre-suspend-expired-grace",
+      "name": "ppt-suspend-expired-grace",
       "binding": "SUSPEND_EXPIRED_GRACE",
       "class_name": "SuspendExpiredGrace"
     }
@@ -69,6 +69,11 @@
       "STRIPE_PRICE_SERVER_MONTH",
       "STRIPE_PRICE_SERVER_YEAR",
       "INTERNAL_WORKFLOW_SECRET",
+      "TUNNEL_API_TOKEN",
+      "TUNNEL_ACCOUNT_ID",
+      "TUNNEL_ZONE_ID",
+      "TUNNEL_ZONE_NAME",
+      "TUNNEL_SIGNING_KEY",
       // Les quatre suivantes ne vivent qu'ici, jamais dans les listes de
       // staging ni de production : `secrets.required` est la seule liste que
       // Cloudflare lit, et elle fait deux choses à la fois — charger la
@@ -90,7 +95,7 @@
       "upload_source_maps": true,
       "placement": {
         "mode": "targeted",
-        "region": "aws:eu-central-1"
+        "region": "aws:us-east-1"
       },
       "routes": [
         {
@@ -112,27 +117,27 @@
       },
       "workflows": [
         {
-          "name": "pupitre-expire-enrollments-staging",
+          "name": "ppt-expire-enrollments-staging",
           "binding": "EXPIRE_ENROLLMENTS",
           "class_name": "ExpireEnrollments"
         },
         {
-          "name": "pupitre-decommission-server-staging",
+          "name": "ppt-decommission-server-staging",
           "binding": "DECOMMISSION_SERVER",
           "class_name": "DecommissionServer"
         },
         {
-          "name": "pupitre-reconcile-seats-staging",
+          "name": "ppt-reconcile-seats-staging",
           "binding": "RECONCILE_SEATS",
           "class_name": "ReconcileSeats"
         },
         {
-          "name": "pupitre-evaluate-alerts-staging",
+          "name": "ppt-evaluate-alerts-staging",
           "binding": "EVALUATE_ALERTS",
           "class_name": "EvaluateAlerts"
         },
         {
-          "name": "pupitre-suspend-expired-grace-staging",
+          "name": "ppt-suspend-expired-grace-staging",
           "binding": "SUSPEND_EXPIRED_GRACE",
           "class_name": "SuspendExpiredGrace"
         }
@@ -169,6 +174,11 @@
           "R2_ACCOUNT_ID",
           "R2_ACCESS_KEY_ID",
           "R2_SECRET_ACCESS_KEY",
+          "TUNNEL_API_TOKEN",
+          "TUNNEL_ACCOUNT_ID",
+          "TUNNEL_ZONE_ID",
+          "TUNNEL_ZONE_NAME",
+          "TUNNEL_SIGNING_KEY",
           "R2_BUCKET_NAME"
         ]
       }
@@ -179,7 +189,7 @@
       "upload_source_maps": true,
       "placement": {
         "mode": "targeted",
-        "region": "aws:eu-central-1"
+        "region": "aws:us-east-1"
       },
       "routes": [
         {
@@ -201,27 +211,27 @@
       },
       "workflows": [
         {
-          "name": "pupitre-expire-enrollments",
+          "name": "ppt-expire-enrollments",
           "binding": "EXPIRE_ENROLLMENTS",
           "class_name": "ExpireEnrollments"
         },
         {
-          "name": "pupitre-decommission-server",
+          "name": "ppt-decommission-server",
           "binding": "DECOMMISSION_SERVER",
           "class_name": "DecommissionServer"
         },
         {
-          "name": "pupitre-reconcile-seats",
+          "name": "ppt-reconcile-seats",
           "binding": "RECONCILE_SEATS",
           "class_name": "ReconcileSeats"
         },
         {
-          "name": "pupitre-evaluate-alerts",
+          "name": "ppt-evaluate-alerts",
           "binding": "EVALUATE_ALERTS",
           "class_name": "EvaluateAlerts"
         },
         {
-          "name": "pupitre-suspend-expired-grace",
+          "name": "ppt-suspend-expired-grace",
           "binding": "SUSPEND_EXPIRED_GRACE",
           "class_name": "SuspendExpiredGrace"
         }
@@ -251,7 +261,6 @@
           "DATABASE_URL",
           "BETTER_AUTH_SECRET",
           "INTERNAL_WORKFLOW_SECRET",
-          "SENTRY_DSN",
           "STRIPE_SECRET_KEY",
           "STRIPE_WEBHOOK_SECRET",
           "STRIPE_PRICE_SERVER_MONTH",
@@ -259,6 +268,11 @@
           "R2_ACCOUNT_ID",
           "R2_ACCESS_KEY_ID",
           "R2_SECRET_ACCESS_KEY",
+          "TUNNEL_API_TOKEN",
+          "TUNNEL_ACCOUNT_ID",
+          "TUNNEL_ZONE_ID",
+          "TUNNEL_ZONE_NAME",
+          "TUNNEL_SIGNING_KEY",
           "R2_BUCKET_NAME"
         ]
       }

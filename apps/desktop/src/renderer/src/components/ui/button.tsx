@@ -1,7 +1,12 @@
 import type { ComponentType, ReactNode } from "react";
 import { StatusDot } from "./status-dot";
 
-export type ButtonVariant = "default" | "inverse" | "discreet" | "danger";
+export type ButtonVariant =
+  | "default"
+  | "inverse"
+  | "discreet"
+  | "danger"
+  | "destructive";
 
 export type ButtonIcon = ComponentType<{
   size?: number;
@@ -17,11 +22,17 @@ const VARIANT: Record<ButtonVariant, string> = {
     "border border-transparent text-ink-2 hover:bg-raised hover:text-ink",
   danger:
     "border border-line-strong text-ink-2 hover:border-danger hover:text-danger",
+  // The one filled colour of the system, and it is spent here: the gesture that
+  // destroys must be the loudest thing on the panel that asks for it, never the
+  // quietest. `base` is white on the light theme and near-black on the dark one,
+  // so the ink stays readable on both reds.
+  destructive:
+    "border border-danger bg-danger text-base hover:border-danger/80 hover:bg-danger/80",
 };
 
 const SIZE = {
-  sm: "gap-1.5 px-3 py-1 text-[11px]",
-  md: "gap-2 px-3.5 py-1.5 text-[12px]",
+  sm: "gap-1.5 px-3 py-1 text-[12px]",
+  md: "gap-2 px-3.5 py-1.5 text-[13px]",
 };
 
 const SHARED =

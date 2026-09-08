@@ -3,12 +3,14 @@ import { Button } from "@renderer/components/ui/button";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { defaultsOf } from "@renderer/lib/catalog-selection";
 import { removalOf } from "@renderer/lib/service-removal";
 import { useServices } from "@renderer/stores/services";
 import { useTunnel } from "@renderer/stores/tunnel";
 import { databaseEngineOf } from "@shared/services";
 import { ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
+import { ServiceConfig } from "./service-config";
 import { ServiceCredentials } from "./service-credentials";
 import { ServiceDatabase } from "./service-database";
 import { ServiceForward } from "./service-forward";
@@ -45,20 +47,32 @@ export function ServicePanel({
   const store = useServices();
   const tunnel = useTunnel();
 
-  const { open } = store;
+  const { open, readConfig } = store;
   const { readForwards } = tunnel;
 
   // Leaving the page is enough to drop the values, whichever way it is left.
   useEffect(() => {
     open(serverId, moduleId);
+    readConfig(serverId, moduleId, manifest ? defaultsOf(manifest) : {});
     readForwards(serverId);
 
     return () => {
       window.pupitre.forgetCredentials(serverId, moduleId);
     };
-  }, [serverId, moduleId, open, readForwards]);
+  }, [serverId, moduleId, manifest, open, readConfig, readForwards]);
 
-  const { detail, removal, steps, database, busy, problem } = store;
+  const {
+    detail,
+    config,
+    apply,
+    values,
+    secrets,
+    removal,
+    steps,
+    database,
+    busy,
+    problem,
+  } = store;
 
   function nameOf(id: string): string {
     return installed.find((module) => module.id === id)?.name ?? id;
@@ -109,6 +123,23 @@ export function ServicePanel({
         onConnectionUrl={() => store.connectionUrl(serverId, moduleId)}
         onCopy={(label) => store.copy(serverId, moduleId, label)}
         onReveal={(label) => store.reveal(serverId, moduleId, label)}
+      />
+
+      <ServiceConfig
+        apply={apply}
+        config={config}
+        manifest={manifest}
+        name={detail.detail.name}
+        onApply={() => store.reconfigure(serverId, moduleId)}
+        onGenerate={(key) => store.generate(serverId, moduleId, key)}
+        onReveal={(key) => store.revealSecret(serverId, moduleId, key)}
+        onSecret={(key, value) => {
+          store.setSecret(serverId, moduleId, key, value);
+        }}
+        onValue={store.setValue}
+        secrets={secrets}
+        steps={steps}
+        values={values}
       />
 
       {isDatabase ? (

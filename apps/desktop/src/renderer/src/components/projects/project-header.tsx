@@ -66,7 +66,7 @@ export function ProjectHeader({
 
         {git?.repo ? (
           <button
-            className="flex items-center gap-1.5 rounded-full border border-line px-2 py-0.5 font-data text-[10px] text-ink-3 tabular-nums transition-soft hover:border-line-strong hover:text-ink"
+            className="flex items-center gap-1.5 rounded-full border border-line px-2 py-0.5 font-data text-[11px] text-ink-3 tabular-nums transition-soft hover:border-line-strong hover:text-ink"
             onClick={onSeeDiff}
             title={t("project.header.seeDiff")}
             type="button"

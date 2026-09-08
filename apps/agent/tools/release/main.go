@@ -50,7 +50,7 @@ func run(args []string, stdout, stderr io.Writer, env environment) int {
 }
 
 func usage(stderr io.Writer) {
-	fmt.Fprintln(stderr, "usage: release <keygen|public-key|sign --version=X [--channel=beta] [--out=FILE] BINAIRE...|publish [--api=URL] FICHIER|promote --version=X [--channel=stable] [--api=URL]>")
+	fmt.Fprintln(stderr, "usage: release <keygen|public-key|sign --version=X [--channel=beta] [--out=FILE] [--release=FILE] BINARY...|publish [--api=URL] FILE|promote --version=X [--channel=stable] [--api=URL]>")
 }
 
 // The pair is written to standard output and nowhere else: the private half belongs in a secret store, never in a file this repository could pick up.
@@ -81,16 +81,17 @@ func runSign(args []string, stdout, stderr io.Writer, env environment) int {
 	flags := flag.NewFlagSet("sign", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 
-	version := flags.String("version", "", "version publiée, en semver")
-	channel := flags.String("channel", release.DefaultChannel, "canal de publication")
-	out := flags.String("out", "", "fichier où écrire les publications ; sortie standard par défaut")
+	version := flags.String("version", "", "published version, in semver")
+	channel := flags.String("channel", release.DefaultChannel, "publication channel")
+	out := flags.String("out", "", "file to write the publications to; standard output by default")
+	manifest := flags.String("release", "", "release.json file the app reads next to the binaries it ships")
 
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
 
 	if flags.NArg() == 0 {
-		return fail(stderr, fmt.Errorf("aucun binaire à signer"))
+		return fail(stderr, fmt.Errorf("no binary to sign"))
 	}
 
 	private, err := privateKey(env)
@@ -116,9 +117,17 @@ func runSign(args []string, stdout, stderr io.Writer, env environment) int {
 			return fail(stderr, err)
 		}
 
-		fmt.Fprintf(stderr, "%s signé pour %s %s, empreinte %s\n", path, *version, arch, publication.SHA256)
+		fmt.Fprintf(stderr, "%s signed for %s %s, fingerprint %s\n", path, *version, arch, publication.SHA256)
 
 		publications = append(publications, publication)
+	}
+
+	if *manifest != "" {
+		if err := writeManifest(*manifest, publications); err != nil {
+			return fail(stderr, err)
+		}
+
+		fmt.Fprintf(stderr, "%s written for the app\n", *manifest)
 	}
 
 	encoded, err := json.MarshalIndent(publications, "", "  ")
@@ -145,14 +154,14 @@ func runPublish(args []string, stdout, stderr io.Writer, env environment) int {
 	flags := flag.NewFlagSet("publish", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 
-	api := flags.String("api", "", "URL de l'API de la plateforme")
+	api := flags.String("api", "", "URL of the platform API")
 
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
 
 	if flags.NArg() != 1 {
-		return fail(stderr, fmt.Errorf("un seul fichier de publications est attendu"))
+		return fail(stderr, fmt.Errorf("exactly one publications file is expected"))
 	}
 
 	client, err := apiClient(*api, env)
@@ -181,16 +190,16 @@ func runPromote(args []string, stdout, stderr io.Writer, env environment) int {
 	flags := flag.NewFlagSet("promote", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 
-	version := flags.String("version", "", "version à promouvoir")
-	channel := flags.String("channel", "stable", "canal cible")
-	api := flags.String("api", "", "URL de l'API de la plateforme")
+	version := flags.String("version", "", "version to promote")
+	channel := flags.String("channel", "stable", "target channel")
+	api := flags.String("api", "", "URL of the platform API")
 
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
 
 	if *version == "" {
-		return fail(stderr, fmt.Errorf("aucune version à promouvoir"))
+		return fail(stderr, fmt.Errorf("no version to promote"))
 	}
 
 	client, err := apiClient(*api, env)
@@ -208,6 +217,20 @@ func runPromote(args []string, stdout, stderr io.Writer, env environment) int {
 	}
 
 	return 0
+}
+
+func writeManifest(path string, publications []release.Publication) error {
+	manifest, err := release.ManifestOf(publications)
+	if err != nil {
+		return err
+	}
+
+	encoded, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(path, append(encoded, '\n'), 0o644)
 }
 
 func readPublications(path string) ([]release.Publication, error) {
@@ -232,7 +255,7 @@ func readPublications(path string) ([]release.Publication, error) {
 func privateKey(env environment) (ed25519.PrivateKey, error) {
 	encoded := env(privateKeyVariable)
 	if encoded == "" {
-		return nil, fmt.Errorf("%s est vide : la clé de signature vient du secret, pas d'un fichier du dépôt", privateKeyVariable)
+		return nil, fmt.Errorf("%s is empty: the signing key comes from the secret, not from a file in the repository", privateKeyVariable)
 	}
 
 	return release.ParsePrivateKey(encoded)
@@ -241,7 +264,7 @@ func privateKey(env environment) (ed25519.PrivateKey, error) {
 func apiClient(baseURL string, env environment) (release.API, error) {
 	token := env(adminTokenVariable)
 	if token == "" {
-		return release.API{}, fmt.Errorf("%s est vide : la publication demande un jeton d'administrateur de la plateforme", adminTokenVariable)
+		return release.API{}, fmt.Errorf("%s is empty: publishing requires a platform administrator token", adminTokenVariable)
 	}
 
 	if baseURL == "" {
@@ -253,10 +276,10 @@ func apiClient(baseURL string, env environment) (release.API, error) {
 
 func state(created bool) string {
 	if created {
-		return "publiée"
+		return "published"
 	}
 
-	return "déjà publiée"
+	return "already published"
 }
 
 func fail(stderr io.Writer, err error) int {

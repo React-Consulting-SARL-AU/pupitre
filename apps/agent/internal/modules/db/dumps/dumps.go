@@ -3,6 +3,7 @@ package dumps
 
 import (
 	"path"
+	"pupitre.studio/agent/internal/i18n"
 	"regexp"
 	"sort"
 	"strings"
@@ -125,7 +126,7 @@ func discover(ctx *modules.Context, patterns []string) []File {
 
 	out, err := sys.Exec(ctx, sys.Command{Argv: find(patterns)})
 	if err != nil {
-		ctx.Warn("dossier " + Dir + " illisible, aucun dump importé : " + err.Error())
+		ctx.Warn(i18n.T("warn.dumps.dir.unreadable", Dir, err.Error()))
 
 		return nil
 	}
@@ -139,7 +140,7 @@ func discover(ctx *modules.Context, patterns []string) []File {
 
 		name := database(path.Base(trimmed))
 		if !safeName.MatchString(name) {
-			ctx.Warn(path.Base(trimmed) + " ignoré : le nom de base qu'il porte n'est pas utilisable")
+			ctx.Warn(i18n.T("warn.dumps.name.refused", path.Base(trimmed)))
 
 			continue
 		}

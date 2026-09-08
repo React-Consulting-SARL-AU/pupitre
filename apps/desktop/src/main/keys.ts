@@ -10,6 +10,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { promisify } from "node:util";
+import type { ErrorPhrase } from "@shared/agent";
 import type { Server } from "@shared/servers";
 
 const SPACES = /\s+/;
@@ -32,12 +33,12 @@ const PRIVATE_MODE = 0o600;
 const PUBLIC_MODE = 0o644;
 
 export class KeyError extends Error {
-  readonly fix: string;
+  readonly phrase: ErrorPhrase;
 
-  constructor(message: string, fix: string) {
-    super(message);
+  constructor(id: string, values?: Record<string, string | number>) {
+    super(id);
     this.name = "KeyError";
-    this.fix = fix;
+    this.phrase = values ? { id, values } : { id };
   }
 }
 
@@ -52,10 +53,7 @@ export type KeyPair = KeyPaths & {
 
 export function keyPaths(dir: string, serverId: string): KeyPaths {
   if (!SERVER_ID.test(serverId)) {
-    throw new KeyError(
-      `« ${serverId} » ne peut pas nommer une clé.`,
-      "Un identifiant de lettres, de chiffres et de tirets : rien qui puisse désigner un autre dossier."
-    );
+    throw new KeyError("refusal.key.name", { serverId });
   }
 
   const keyPath = join(dir, serverId);
@@ -101,10 +99,7 @@ export async function generateKey(
       paths.keyPath,
     ]);
   } catch {
-    throw new KeyError(
-      "ssh-keygen n'a pas pu créer la clé.",
-      "Installez OpenSSH sur cet ordinateur, ou importez une clé que vous avez déjà."
-    );
+    throw new KeyError("refusal.key.generate");
   }
 
   return seal(paths);
@@ -122,10 +117,7 @@ async function publicHalf(keyPath: string): Promise<string> {
     const { stdout } = await run("ssh-keygen", ["-y", "-f", keyPath]);
     return stdout.trim().split(SPACES).slice(0, 2).join(" ");
   } catch {
-    throw new KeyError(
-      "Cette clé privée n'a pas pu être lue.",
-      "Une clé protégée par une phrase de passe ne convient pas ici : importez-en une sans phrase de passe, ou laissez l'app en générer une."
-    );
+    throw new KeyError("refusal.key.unreadable");
   }
 }
 
@@ -143,17 +135,11 @@ export async function importKey(
   const paths = keyPaths(dir, serverId);
 
   if (!existsSync(source)) {
-    throw new KeyError(
-      `Le fichier ${source} est introuvable.`,
-      "Choisissez le fichier de la clé, celui qui ne porte pas l'extension .pub."
-    );
+    throw new KeyError("refusal.key.missing", { source });
   }
 
   if (!readFileSync(source, "utf8").includes("PRIVATE KEY")) {
-    throw new KeyError(
-      "Ce fichier n'est pas une clé privée.",
-      "Prenez la moitié privée — « id_ed25519 » — et non le « id_ed25519.pub » qui l'accompagne."
-    );
+    throw new KeyError("refusal.key.public");
   }
 
   ensureDir(dir);
@@ -193,6 +179,23 @@ export function removeKey(dir: string, serverId: string): void {
   rmSync(paths.publicKeyPath, { force: true });
 }
 
+/** What a shell reads as one word, and needs no quotes to do so. */
+const PLAIN_ARGUMENT = /^[A-Za-z0-9_@%+=:,./-]+$/;
+
+/**
+ * One argument of a line meant to be pasted into a shell.
+ *
+ * The app's own folder is `~/Library/Application Support/…` on macOS: a path
+ * with a space in it, which a shell splits in two unless it is quoted. Single
+ * quotes protect everything but a single quote, which is closed, escaped and
+ * reopened.
+ */
+function shellArgument(value: string): string {
+  return PLAIN_ARGUMENT.test(value)
+    ? value
+    : `'${value.replaceAll("'", "'\\''")}'`;
+}
+
 /** The line to paste on the server, ready to run, with nothing to fill in. */
 export function copyIdCommand(server: Server, publicKeyPath: string): string {
   const port = server.port === DEFAULT_PORT ? [] : ["-p", String(server.port)];
@@ -200,8 +203,8 @@ export function copyIdCommand(server: Server, publicKeyPath: string): string {
   return [
     "ssh-copy-id",
     "-i",
-    publicKeyPath,
+    shellArgument(publicKeyPath),
     ...port,
-    `${server.user}@${server.host}`,
+    shellArgument(`${server.user}@${server.host}`),
   ].join(" ");
 }

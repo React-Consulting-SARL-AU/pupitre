@@ -70,7 +70,7 @@ export function ProjectOverview({
           {project.url ? (
             <div className="flex items-center gap-2">
               <button
-                className="min-w-0 flex-1 truncate text-left font-data text-[12px] text-ink hover:underline"
+                className="min-w-0 flex-1 truncate text-left font-data text-[13px] text-ink hover:underline"
                 onClick={() => window.pupitre.openUrl(project.url ?? "")}
                 type="button"
               >
@@ -91,7 +91,7 @@ export function ProjectOverview({
               {t("project.overview.notPublished")}
             </span>
           )}
-          <p className="mt-2 font-data text-[11px] text-ink-3">
+          <p className="mt-2 font-data text-[12px] text-ink-3">
             {t("project.overview.local")} · {project.host}:{project.port}
           </p>
         </ProjectPanel>
@@ -112,7 +112,7 @@ export function ProjectOverview({
           <p className="font-semibold text-ink text-lg tabular-nums">
             {uptime(project.uptime_s)}
           </p>
-          <p className="font-data text-[11px] text-ink-3">
+          <p className="font-data text-[12px] text-ink-3">
             {isRunning(project.state)
               ? t("project.overview.running")
               : t("project.overview.stopped")}
@@ -122,13 +122,13 @@ export function ProjectOverview({
 
         <ProjectPanel icon={Terminal} label={t("project.overview.commands")}>
           <Label>{t("project.overview.startCmd")}</Label>
-          <p className="break-all font-data text-[11px] text-ink-2">
+          <p className="break-all font-data text-[12px] text-ink-2">
             {project.cmd}
           </p>
           <p className="mt-2">
             <Label>{t("project.overview.installCmd")}</Label>
           </p>
-          <p className="break-all font-data text-[11px] text-ink-2">
+          <p className="break-all font-data text-[12px] text-ink-2">
             {project.install ||
               t("project.overview.derivedFrom", { pkgmgr: project.pkgmgr })}
           </p>
@@ -140,7 +140,7 @@ export function ProjectOverview({
           >
             {memory(project.ram_mb)}
           </p>
-          <p className="truncate font-data text-[11px] text-ink-3">
+          <p className="truncate font-data text-[12px] text-ink-3">
             {project.dir}
             {project.repo ? ` · ${project.repo}` : ""}
           </p>

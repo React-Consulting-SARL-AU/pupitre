@@ -19,6 +19,7 @@ export function FirstProjectScreen({
   serverId: string;
   serverName?: string;
   cloudflare: boolean;
+  /** Exposure derives its own address: what's chosen is whether to publish, not the name. */
   onSkip?: () => void;
   onFinish?: () => void;
 }) {
@@ -37,6 +38,8 @@ export function FirstProjectScreen({
   const setPkgmgr = useFirstProject((state) => state.setPkgmgr);
   const setPort = useFirstProject((state) => state.setPort);
   const setSubdomain = useFirstProject((state) => state.setSubdomain);
+  const setPublish = useFirstProject((state) => state.setPublish);
+  const publish = useFirstProject((state) => state.publish);
   const setCmd = useFirstProject((state) => state.setCmd);
 
   useEffect(() => {
@@ -55,6 +58,7 @@ export function FirstProjectScreen({
         name: setName,
         pkgmgr: setPkgmgr,
         port: setPort,
+        publish: setPublish,
         source: setSource,
         subdomain: setSubdomain,
       }}
@@ -67,6 +71,7 @@ export function FirstProjectScreen({
       onRetry={() => retry(serverId)}
       onSkip={onSkip}
       phases={phases}
+      publish={publish}
       ready={ready()}
       run={run}
       serverName={serverName}

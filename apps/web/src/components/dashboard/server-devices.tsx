@@ -1,17 +1,26 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Callout } from "@/components/ui/callout"
+import { useQuery } from "@tanstack/react-query"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { LoadingState } from "@/components/ui/loading-state"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
-import { devicesQueryOptions, revokeServerDevice } from "@/lib/api/queries"
+import { useOptimisticMutation } from "@/hooks/use-optimistic-mutation"
+import {
+  devicesQueryOptions,
+  queryKeys,
+  revokeServerDevice,
+} from "@/lib/api/queries"
 import { formatRelative } from "@/lib/utils/format"
 
 export interface ServerDevicesProps {
   serverId: string
   serverName: string
   assignedUserId: string | null
+}
+
+interface RevokeTarget {
+  id: string
+  name: string
 }
 
 export function ServerDevices({
@@ -23,11 +32,27 @@ export function ServerDevices({
   const { user } = useDashboardContext()
   const mine = assignedUserId === user.id
   const devices = useQuery({ ...devicesQueryOptions(), enabled: mine })
-  const queryClient = useQueryClient()
-  const revoke = useMutation({
-    mutationFn: (deviceId: string) => revokeServerDevice(serverId, deviceId),
-    onSuccess: () => queryClient.invalidateQueries(),
+  /**
+   * Removing a key doesn't remove the device: revocation applies to this
+   * server alone, and the API doesn't return it. Nothing to reconcile here
+   * up front — what moves is the server's log, right below.
+   */
+  const revoke = useOptimisticMutation<RevokeTarget, void>({
+    mutationFn: ({ id }) => revokeServerDevice(serverId, id),
+    invalidate: [queryKeys.server(serverId)],
+    toast: {
+      done: (_data, target) =>
+        t("servers.devices.removed", {
+          device: target.name,
+          server: serverName,
+        }),
+      failed: () => ({
+        title: t("servers.devices.revokeFailed"),
+        fix: t("servers.devices.revokeFailedFix"),
+      }),
+    },
   })
+  const revoking = revoke.isPending ? revoke.variables?.id : undefined
   const list = devices.data ?? []
 
   return (
@@ -40,19 +65,11 @@ export function ServerDevices({
         <LoadingState label={t("servers.devices.reading")} />
       ) : null}
 
-      {mine && revoke.isError ? (
-        <Callout
-          className="m-4"
-          fix={t("servers.devices.revokeFailedFix")}
-          title={t("servers.devices.revokeFailed")}
-          tone="danger"
-        />
-      ) : null}
-
       {mine && !devices.isPending && list.length > 0 ? (
         <ul>
           {list.map((device) => (
             <li
+              aria-busy={revoking === device.id || undefined}
               className="flex flex-wrap items-center justify-between gap-4 border-line border-b px-4 py-3 last:border-b-0"
               key={device.id}
             >
@@ -69,15 +86,16 @@ export function ServerDevices({
                   {formatRelative(device.last_used_at, t)}
                 </span>
                 <ConfirmDialog
+                  busy={revoking === device.id}
+                  busyLabel={t("servers.devices.removing")}
                   confirmLabel={t("servers.devices.remove")}
                   description={t("servers.devices.removeDescription", {
                     device: device.name,
                     server: serverName,
                   })}
                   onConfirm={() => {
-                    revoke.mutate(device.id)
+                    revoke.mutate({ id: device.id, name: device.name })
                   }}
-                  pending={revoke.isPending}
                   title={t("servers.devices.removeTitle")}
                   triggerLabel={t("servers.devices.removeHere")}
                 />

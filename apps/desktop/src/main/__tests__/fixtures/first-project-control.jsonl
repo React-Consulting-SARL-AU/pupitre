@@ -1,5 +1,5 @@
 # Le canal de lecture : la liste des projets, le démarrage, l'adresse.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","protocol":1}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
 < {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","project.add","project.install","project.list","project.logs","project.sync","project.up","project.url"]}}
 > {"id":2,"cmd":"project.list"}
 < {"id":2,"ok":true,"result":{"projects":[]}}

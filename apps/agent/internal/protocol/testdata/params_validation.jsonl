@@ -1,20 +1,20 @@
 > {"id":1,"cmd":"hello","params":{"protocol":1}}
-< {"id":1,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/app_version : champ requis"}}
+< {"id":1,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/app_version: required field"}}
 > {"id":2,"cmd":"hello","params":{"app_version":"0.2.0","protocol":"1"}}
-< {"id":2,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/protocol : doit être un entier"}}
+< {"id":2,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/protocol: must be an integer"}}
 > {"id":3,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1,"extra":true}}
-< {"id":3,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/extra : champ inconnu"}}
+< {"id":3,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/extra: unknown field"}}
 > {"id":4,"cmd":"hello"}
-< {"id":4,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/app_version : champ requis"}}
+< {"id":4,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/app_version: required field"}}
 > {"id":5,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
 < {"id":5,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["enroll","hello","ping","probe","project.logs","reboot","secrets.set"]}}
 > {"id":6,"cmd":"ping","params":{"x":1}}
-< {"id":6,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/x : champ inconnu"}}
+< {"id":6,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/x: unknown field"}}
 > {"id":7,"cmd":"project.logs","params":{"name":"Flymate"}}
-< {"id":7,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/name : ne correspond pas au motif ^[a-z0-9][a-z0-9._-]*$"}}
+< {"id":7,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/name: does not match the pattern ^[a-z0-9][a-z0-9._-]*$"}}
 > {"id":8,"cmd":"project.logs","params":{"name":"flymate-api","lines":0}}
-< {"id":8,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/lines : doit être > 0"}}
+< {"id":8,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/lines: must be > 0"}}
 > {"id":9,"cmd":"secrets.set","params":{"key":"api_key","secrets_stdin":true}}
-< {"id":9,"ok":false,"error":{"code":"bad_request","message":"paramètres invalides : params/key : ne correspond pas au motif ^[A-Z][A-Z0-9_]*$"}}
+< {"id":9,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/key: does not match the pattern ^[A-Z][A-Z0-9_]*$"}}
 > {"id":10,"cmd":"ping"}
 < {"id":10,"ok":true,"result":{"ts":"2026-09-04T12:00:00Z"}}

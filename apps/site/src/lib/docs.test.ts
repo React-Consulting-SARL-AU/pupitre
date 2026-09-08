@@ -5,7 +5,6 @@ import {
   docSlug,
   flatten,
   groupSections,
-  moduleIdFromSlug,
   moduleSlug,
   neighbours,
   sectionOf,
@@ -34,11 +33,8 @@ describe("slugs", () => {
     expect(docPath("", "fr")).toBe("/fr/docs/")
   })
 
-  it("turns a module id into a path segment and back", () => {
+  it("turns a module id into a path segment", () => {
     expect(moduleSlug("db.postgres")).toBe("services/db-postgres")
-    expect(moduleIdFromSlug("services/db-postgres", ["db.postgres"])).toBe(
-      "db.postgres"
-    )
   })
 
   it("falls back to the first section for an unknown one", () => {

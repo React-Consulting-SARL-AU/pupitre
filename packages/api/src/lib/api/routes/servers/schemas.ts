@@ -97,6 +97,7 @@ const serverFields = {
   pending_assignment_email: t.Nullable(t.String()),
   last_heartbeat_at: t.Nullable(dateTime),
   entitlement_valid_until: t.Nullable(dateTime),
+  decommission_at: t.Nullable(dateTime),
   usage: t.Nullable(serverUsageSchema),
   alerts: t.Array(alertSchema),
   created_at: dateTime,

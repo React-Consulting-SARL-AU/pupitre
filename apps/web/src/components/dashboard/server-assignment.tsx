@@ -1,22 +1,28 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { Mail, UserCheck } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Callout } from "@/components/ui/callout"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { FieldError } from "@/components/ui/field-error"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select } from "@/components/ui/select"
 import { StatusDot } from "@/components/ui/status-dot"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useForm } from "@/hooks/use-form"
 import { useTranslations } from "@/hooks/use-locale"
+import {
+  patchQuery,
+  useOptimisticMutation,
+} from "@/hooks/use-optimistic-mutation"
 import { usePermission } from "@/hooks/use-permission"
 import {
   type AssignServerInput,
   assignServer,
   membersQueryOptions,
+  queryKeys,
+  type ServerDetail,
   unassignServer,
 } from "@/lib/api/queries"
 import { roleKey } from "@/lib/domain/roles"
@@ -49,28 +55,67 @@ export function ServerAssignment({
     ...membersQueryOptions(organizationId),
     enabled: canAssign && organizationId !== "",
   })
-  const queryClient = useQueryClient()
   const [choice, setChoice] = useState(NOBODY)
   const form = useForm<AssignByEmailInput, AssignByEmailValues>({
     schema: assignByEmailSchema(t),
     defaultValues: { email: "" },
   })
-  const assign = useMutation({
-    mutationFn: (input: AssignServerInput) => assignServer(serverId, input),
-    onSuccess: async () => {
+  const detail = queryKeys.server(serverId)
+  const roster = members.data?.members ?? []
+
+  function nameOf(userId: string): string {
+    const member = roster.find((candidate) => candidate.user_id === userId)
+
+    return member?.email ?? t("assign.themFallback")
+  }
+
+  const assign = useOptimisticMutation<AssignServerInput, void>({
+    mutationFn: (input) => assignServer(serverId, input),
+    patch: [
+      patchQuery<ServerDetail, AssignServerInput>(detail, (server, input) => ({
+        ...server,
+        assigned_user_id: "user_id" in input ? input.user_id : null,
+        pending_assignment_email:
+          "invite_email" in input ? input.invite_email : null,
+      })),
+    ],
+    invalidate: [detail, queryKeys.servers, queryKeys.members(organizationId)],
+    onDone: () => {
       form.reset({ email: "" })
       setChoice(NOBODY)
-      await queryClient.invalidateQueries()
+    },
+    toast: {
+      done: (_data, input) =>
+        "user_id" in input
+          ? t("assign.done", { who: nameOf(input.user_id) })
+          : t("assign.invitedDone", { email: input.invite_email }),
+      failed: () => ({
+        title: t("assign.failed"),
+        fix: t("assign.failedFix"),
+      }),
     },
   })
-  const unassign = useMutation({
+
+  const unassign = useOptimisticMutation({
     mutationFn: () => unassignServer(serverId),
-    onSuccess: () => queryClient.invalidateQueries(),
+    patch: [
+      patchQuery<ServerDetail>(detail, (server) => ({
+        ...server,
+        assigned_user_id: null,
+        pending_assignment_email: null,
+      })),
+    ],
+    invalidate: [detail, queryKeys.servers],
+    toast: {
+      done: () => t("assign.removed"),
+      failed: () => ({
+        title: t("assign.removeFailed"),
+        fix: t("assign.removeFailedFix"),
+      }),
+    },
   })
 
-  const assignee = members.data?.members.find(
-    (member) => member.user_id === assignedUserId
-  )
+  const assignee = roster.find((member) => member.user_id === assignedUserId)
   const assignedToViewer = assignedUserId === user.id
 
   const submitEmail = form.handleSubmit((values) => {
@@ -103,7 +148,10 @@ export function ServerAssignment({
         ) : null}
       </CardHeader>
 
-      <CardBody className="flex flex-col gap-gutter">
+      <CardBody
+        aria-busy={assign.isPending || unassign.isPending || undefined}
+        className="flex flex-col gap-gutter"
+      >
         <p className="text-[13px] text-ink-2">
           {assignedUserId && assignedToViewer ? t("assign.yours") : null}
           {assignedUserId && !assignedToViewer
@@ -136,33 +184,29 @@ export function ServerAssignment({
             <div className="flex flex-wrap items-end gap-3">
               <div className="flex min-w-[240px] flex-1 flex-col gap-2">
                 <Label htmlFor="assignee">{t("assign.toMember")}</Label>
-                <select
-                  className="h-9 w-full rounded-sm border border-line-strong bg-sunken px-2 text-[13px] text-ink focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
+                <Select
                   id="assignee"
-                  onChange={(event) => {
-                    setChoice(event.target.value)
-                  }}
-                  value={choice}
-                >
-                  <option value={NOBODY}>{t("assign.pickMember")}</option>
-                  {(members.data?.members ?? [])
+                  items={roster
                     .filter((member) => member.user_id !== assignedUserId)
-                    .map((member) => (
-                      <option key={member.id} value={member.user_id}>
-                        {member.name} · {member.email}
-                      </option>
-                    ))}
-                </select>
+                    .map((member) => ({
+                      value: member.user_id,
+                      label: `${member.name} · ${member.email}`,
+                    }))}
+                  onValueChange={setChoice}
+                  placeholder={t("assign.pickMember")}
+                  value={choice}
+                />
               </div>
               <Button
-                disabled={choice === NOBODY || assign.isPending}
+                disabled={choice === NOBODY}
+                icon={UserCheck}
+                loading={assign.isPending}
                 onClick={() => {
                   assign.mutate({ user_id: choice })
                 }}
                 variant="primary"
               >
-                <UserCheck className="size-4" strokeWidth={1.5} />
-                {t("assign.assign")}
+                {assign.isPending ? t("assign.assigning") : t("assign.assign")}
               </Button>
             </div>
 
@@ -184,8 +228,7 @@ export function ServerAssignment({
                   {...form.register("email")}
                 />
               </div>
-              <Button disabled={assign.isPending} type="submit">
-                <Mail className="size-4" strokeWidth={1.5} />
+              <Button icon={Mail} loading={assign.isPending} type="submit">
                 {t("assign.inviteAndAssign")}
               </Button>
             </form>
@@ -199,6 +242,8 @@ export function ServerAssignment({
             {assignedUserId || pendingAssignmentEmail ? (
               <div className="flex justify-start">
                 <ConfirmDialog
+                  busy={unassign.isPending}
+                  busyLabel={t("assign.removing")}
                   confirmLabel={t("assign.remove")}
                   description={t("assign.removeDescription", {
                     server: serverName,
@@ -206,27 +251,10 @@ export function ServerAssignment({
                   onConfirm={() => {
                     unassign.mutate()
                   }}
-                  pending={unassign.isPending}
                   title={t("assign.removeTitle")}
                   triggerLabel={t("assign.removeAssignment")}
                 />
               </div>
-            ) : null}
-
-            {assign.isError ? (
-              <Callout
-                fix={t("assign.failedFix")}
-                title={t("assign.failed")}
-                tone="danger"
-              />
-            ) : null}
-
-            {unassign.isError ? (
-              <Callout
-                fix={t("assign.removeFailedFix")}
-                title={t("assign.removeFailed")}
-                tone="danger"
-              />
             ) : null}
           </div>
         ) : null}

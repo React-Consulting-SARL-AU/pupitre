@@ -8,6 +8,7 @@ import { useTunnel } from "../tunnel";
 const SERVER = "srv-1";
 
 const TUNNEL: TunnelStatusResult = {
+  provider: "cloudflare",
   installed: true,
   routes: [
     {

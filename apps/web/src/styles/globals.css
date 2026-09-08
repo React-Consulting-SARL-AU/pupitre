@@ -16,20 +16,6 @@
   }
 }
 
-@theme {
-  --animate-breathe: breathe var(--motion-breathe);
-
-  @keyframes breathe {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.35;
-    }
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

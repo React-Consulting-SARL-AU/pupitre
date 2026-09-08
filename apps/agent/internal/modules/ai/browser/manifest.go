@@ -1,6 +1,9 @@
 package browser
 
-import "pupitre.studio/agent/internal/contract"
+import (
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
+)
 
 const ID = "ai.browser"
 
@@ -8,8 +11,8 @@ func manifest() contract.Manifest {
 	return contract.Manifest{
 		ID:        ID,
 		Category:  "ai",
-		Name:      "Navigateur et galerie",
-		Summary:   "Chrome sans interface et les bibliothèques dont Playwright a besoin, la commande shot qui range ses captures dans ~/shots, et la galerie qui les sert en local.",
+		Name:      i18n.T("module.ai.browser.name"),
+		Summary:   i18n.T("module.ai.browser.summary"),
 		Requires:  []string{"core.system"},
 		Conflicts: []string{},
 		Resources: contract.Resources{RAMMB: 512, DiskMB: 1024},

@@ -102,7 +102,9 @@ export function DashboardPanel({
             projectCount={projects.length}
             projectsRam={projectsRam}
           />
-          <p className="font-data text-[11px] text-ink-4">
+          {/* What the machine is and what runs it: information, so it is read
+              in an ink that can be, not in the faintest one. */}
+          <p className="font-data text-[12px] text-ink-3">
             {snapshot.machine.os} {snapshot.machine.version} ·{" "}
             {snapshot.machine.arch} · pupitred {snapshot.machine.agent_version}
           </p>
@@ -120,7 +122,7 @@ export function DashboardPanel({
             <Label>{t("dashboard.panel.projects")}</Label>
           </h2>
           {projects.length === 0 ? (
-            <p className="text-[12px] text-ink-3">
+            <p className="text-[13px] text-ink-3">
               {t("dashboard.panel.noProjects")}
             </p>
           ) : (

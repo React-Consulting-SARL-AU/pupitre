@@ -11,7 +11,12 @@ import (
 	"pupitre.studio/agent/internal/sys/env"
 )
 
-const appPassword = "s3cret-de-test-app"
+const (
+	appPassword = "s3cret-de-test-app"
+
+	defaultKeyring = keyringDir + "/mongodb-" + DefaultVersion + ".asc"
+	defaultList    = "/etc/apt/sources.list.d/mongodb-org-" + DefaultVersion + ".list"
+)
 
 func newContext(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	t.Helper()
@@ -35,10 +40,10 @@ func installedSys(t *testing.T) *modtest.FakeSys {
 	fake := newFakeSys()
 	fake.Packages[pkg] = "8.0.4"
 	fake.Units[unit] = modtest.UnitActive
-	fake.Files[keyringPath] = []byte("-----BEGIN PGP PUBLIC KEY BLOCK-----\n")
-	fake.Files[listPath] = repository("noble")
-	fake.Files[confPath] = config
-	fake.Files[markerPath] = []byte(appUser + "\n")
+	fake.Files[defaultKeyring] = []byte("-----BEGIN PGP PUBLIC KEY BLOCK-----\n")
+	fake.Files[defaultList] = repository(DefaultVersion, "noble")
+	fake.Files[confPath] = renderConfig(DefaultPort)
+	fake.Files[markerPath] = []byte(defaultAppUser + "\n")
 	fake.Files[env.Path] = []byte(appPasswordKey + "=" + appPassword + "\n")
 
 	return fake
@@ -114,9 +119,9 @@ func TestMongodb8ComesFromItsOwnRepository(t *testing.T) {
 
 	install(t, ctx)
 
-	list := string(fake.Files[listPath])
+	list := string(fake.Files[defaultList])
 	if !strings.Contains(list, "https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 multiverse") {
-		t.Fatalf("%s = %q", listPath, list)
+		t.Fatalf("%s = %q", defaultList, list)
 	}
 
 	var fetched string
@@ -126,7 +131,7 @@ func TestMongodb8ComesFromItsOwnRepository(t *testing.T) {
 		}
 	}
 
-	if !strings.Contains(fetched, keyringPath) || !strings.Contains(fetched, "https://www.mongodb.org/static/pgp/") {
+	if !strings.Contains(fetched, defaultKeyring) || !strings.Contains(fetched, "https://www.mongodb.org/static/pgp/") {
 		t.Fatalf("the repository key is fetched over https into the keyring: %q", fetched)
 	}
 
@@ -329,7 +334,7 @@ func TestStatusNamesTheKeyNotTheSecret(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !status.Installed || status.State != contract.ServiceRunning || status.Port != Port || status.Unit != unit {
+	if !status.Installed || status.State != contract.ServiceRunning || status.Port != DefaultPort || status.Unit != unit {
 		t.Fatalf("status = %+v", status)
 	}
 
@@ -341,3 +346,54 @@ func TestStatusNamesTheKeyNotTheSecret(t *testing.T) {
 }
 
 var _ modules.Module = Module{}
+
+func newContextWith(t *testing.T, fake *modtest.FakeSys, values modtest.Values) *modules.Context {
+	t.Helper()
+
+	return modtest.NewContext(t, fake, modtest.Options{
+		Manifest: manifest(),
+		Values:   values,
+		Secrets:  modtest.Secrets{"app_password": appPassword},
+	})
+}
+
+// The version, the port and the user name are the client's call; the repository, the configuration and the url follow.
+func TestTheChosenVersionPortAndUserReachTheServer(t *testing.T) {
+	fake := newFakeSys()
+	ctx := newContextWith(t, fake, modtest.Values{"version": "7.0", "port": 27018, "app_user": "flymate"})
+
+	install(t, ctx)
+
+	list := string(fake.Files["/etc/apt/sources.list.d/mongodb-org-7.0.list"])
+	if !strings.Contains(list, "mongodb-org/7.0") {
+		t.Fatalf("the chosen major must be the repository added: %q", list)
+	}
+
+	if !strings.Contains(string(fake.Files[confPath]), "port: 27018") {
+		t.Fatalf("the chosen port must reach the configuration:\n%s", fake.Files[confPath])
+	}
+
+	script := ""
+	for _, call := range fake.Calls {
+		if len(call.Stdin) > 0 {
+			script = string(call.Stdin)
+		}
+	}
+	if !strings.Contains(script, `"flymate"`) {
+		t.Fatalf("the chosen user must be the one created:\n%s", script)
+	}
+
+	url, err := URL(ctx, "shop")
+	if err != nil || url != "mongodb://flymate@127.0.0.1:27018/shop?authSource=admin" {
+		t.Fatalf("url = %q, %v", url, err)
+	}
+}
+
+// A user name reaches the mongosh script as an identifier: what does not look like one is refused before it gets there.
+func TestAUserNameThatIsNotAnIdentifierFallsBackOnTheDefault(t *testing.T) {
+	ctx := newContextWith(t, newFakeSys(), modtest.Values{"app_user": `app"); db.dropDatabase(); //`})
+
+	if got := appUser(ctx); got != defaultAppUser {
+		t.Fatalf("appUser = %q, want %q", got, defaultAppUser)
+	}
+}

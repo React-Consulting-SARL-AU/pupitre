@@ -16,19 +16,25 @@ const (
 func hardenedMachine(t *testing.T) *modtest.FakeSys {
 	t.Helper()
 
+	return machine(t, Options{})
+}
+
+func machine(t *testing.T, o Options) *modtest.FakeSys {
+	t.Helper()
+
 	fake := modtest.NewFakeSys()
 	fake.Users["dev"] = "/home/dev"
 	fake.Units["ssh"] = modtest.UnitActive
 	fake.Files[authorizedKeysPath] = []byte(devKey + "\n")
-	run(t, newContext(t, fake, false))
+	run(t, newContext(t, fake, o))
 
 	return fake
 }
 
-func events(fake *modtest.FakeSys, t *testing.T, ssh443 bool, name string) (Result, []string) {
+func events(fake *modtest.FakeSys, t *testing.T, o Options, name string) (Result, []string) {
 	t.Helper()
 
-	ctx := newContext(t, fake, ssh443)
+	ctx := newContext(t, fake, o)
 	result := Harden(ctx, name)
 
 	var steps []string
@@ -48,9 +54,9 @@ func TestHardenWithoutKeyKeepsRootAndChangesNothing(t *testing.T) {
 	delete(fake.Files, authorizedKeysPath)
 	mutations := len(fake.Mutations)
 
-	result, steps := events(fake, t, false, "dev")
+	result, steps := events(fake, t, Options{}, "dev")
 
-	if result.RootClosed || result.NextUser != "root" || !strings.Contains(result.Reason, "aucune clé dans /home/dev/.ssh/authorized_keys") {
+	if result.RootClosed || result.NextUser != "root" || !strings.Contains(result.Reason, "no key in /home/dev/.ssh/authorized_keys") {
 		t.Fatalf("result = %+v", result)
 	}
 
@@ -68,9 +74,9 @@ func TestHardenWithMalformedKeyKeepsRoot(t *testing.T) {
 	fake.Files[authorizedKeysPath] = []byte("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILykUfO8a7 truncated\nnot a key\n")
 	mutations := len(fake.Mutations)
 
-	result, _ := events(fake, t, false, "dev")
+	result, _ := events(fake, t, Options{}, "dev")
 
-	if result.RootClosed || !strings.Contains(result.Reason, "aucune clé bien formée") || !strings.Contains(result.Reason, "2 ligne(s) illisible(s)") {
+	if result.RootClosed || !strings.Contains(result.Reason, "no well-formed key") || !strings.Contains(result.Reason, "2 unreadable line(s)") {
 		t.Fatalf("result = %+v", result)
 	}
 
@@ -83,8 +89,8 @@ func TestHardenWithoutUserKeepsRoot(t *testing.T) {
 	fake := hardenedMachine(t)
 	delete(fake.Users, "dev")
 
-	result, _ := events(fake, t, false, "dev")
-	if result.RootClosed || !strings.Contains(result.Reason, "l'utilisateur dev n'existe pas") {
+	result, _ := events(fake, t, Options{}, "dev")
+	if result.RootClosed || !strings.Contains(result.Reason, "the user dev does not exist") {
 		t.Fatalf("result = %+v", result)
 	}
 }
@@ -92,9 +98,9 @@ func TestHardenWithoutUserKeepsRoot(t *testing.T) {
 func TestHardenClosesRootThenReplaysWithoutWriting(t *testing.T) {
 	fake := hardenedMachine(t)
 
-	result, steps := events(fake, t, false, "dev")
+	result, steps := events(fake, t, Options{}, "dev")
 
-	if !result.RootClosed || result.NextUser != "dev" || result.Reason != "" {
+	if !result.RootClosed || result.RootKept || result.NextUser != "dev" || result.Reason != "" {
 		t.Fatalf("result = %+v", result)
 	}
 
@@ -102,7 +108,7 @@ func TestHardenClosesRootThenReplaysWithoutWriting(t *testing.T) {
 		t.Fatalf("steps = %v", steps)
 	}
 
-	if string(fake.Files[FragmentPath]) != string(Fragment(false)) || fake.Modes[FragmentPath] != 0o644 {
+	if string(fake.Files[FragmentPath]) != string(Fragment(Options{})) || fake.Modes[FragmentPath] != 0o644 {
 		t.Fatalf("fragment = %q", fake.Files[FragmentPath])
 	}
 
@@ -118,7 +124,7 @@ func TestHardenClosesRootThenReplaysWithoutWriting(t *testing.T) {
 	}
 
 	mutations := len(fake.Mutations)
-	result, steps = events(fake, t, false, "dev")
+	result, steps = events(fake, t, Options{}, "dev")
 
 	if !result.RootClosed || strings.Join(steps, " ") != "check-authorized-keys=ok write-sshd-fragment=skip" || len(fake.Mutations) != mutations || fake.Restarts["ssh"] != 1 {
 		t.Fatalf("replay: result %+v, steps %v, mutations %v", result, steps, fake.Mutations[mutations:])
@@ -131,9 +137,9 @@ func TestHardenUsesThePreparedFragmentAndRestartsTheSocketFor443(t *testing.T) {
 	fake.Units["ssh.socket"] = modtest.UnitActive
 	fake.Units["ssh.service"] = modtest.UnitActive
 	fake.Files[authorizedKeysPath] = []byte(devKey + "\n")
-	run(t, newContext(t, fake, true))
+	run(t, newContext(t, fake, Options{SSH443: true}))
 
-	result, _ := events(fake, t, true, "dev")
+	result, _ := events(fake, t, Options{SSH443: true}, "dev")
 
 	if !result.RootClosed || !strings.HasSuffix(string(fake.Files[FragmentPath]), "Port 22\nPort 443\n") {
 		t.Fatalf("result %+v, fragment %q", result, fake.Files[FragmentPath])
@@ -150,9 +156,9 @@ func TestInvalidSSHDConfigIsRevertedAndRootStays(t *testing.T) {
 	fake.FailProgram("sshd", "/etc/ssh/sshd_config.d/10-pupitre.conf: line 5: Bad configuration option: AllowUsers")
 	mutations := len(fake.Mutations)
 
-	result, steps := events(fake, t, false, "dev")
+	result, steps := events(fake, t, Options{}, "dev")
 
-	if result.RootClosed || result.NextUser != "root" || !strings.Contains(result.Reason, "configuration sshd invalide, fragment retiré") || !strings.Contains(result.Reason, "Bad configuration option") {
+	if result.RootClosed || result.NextUser != "root" || !strings.Contains(result.Reason, "the sshd configuration is invalid, the fragment was removed") || !strings.Contains(result.Reason, "Bad configuration option") {
 		t.Fatalf("result = %+v", result)
 	}
 
@@ -171,13 +177,13 @@ func TestInvalidSSHDConfigIsRevertedAndRootStays(t *testing.T) {
 
 func TestInvalidConfigRestoresThePreviousFragment(t *testing.T) {
 	fake := hardenedMachine(t)
-	Harden(newContext(t, fake, false), "dev")
-	run(t, newContext(t, fake, true))
+	Harden(newContext(t, fake, Options{}), "dev")
+	run(t, newContext(t, fake, Options{SSH443: true}))
 	fake.FailProgram("sshd", "Port: bad port number")
 
-	result, steps := events(fake, t, true, "dev")
+	result, steps := events(fake, t, Options{SSH443: true}, "dev")
 
-	if result.RootClosed || string(fake.Files[FragmentPath]) != string(Fragment(false)) {
+	if result.RootClosed || string(fake.Files[FragmentPath]) != string(Fragment(Options{})) {
 		t.Fatalf("result %+v, fragment %q", result, fake.Files[FragmentPath])
 	}
 
@@ -190,9 +196,9 @@ func TestReloadFailureIsRevertedAndRootStays(t *testing.T) {
 	fake := hardenedMachine(t)
 	delete(fake.Units, "ssh")
 
-	result, steps := events(fake, t, false, "dev")
+	result, steps := events(fake, t, Options{}, "dev")
 
-	if result.RootClosed || !strings.Contains(result.Reason, "rechargement de sshd en échec") {
+	if result.RootClosed || !strings.Contains(result.Reason, "reloading sshd failed") {
 		t.Fatalf("result = %+v", result)
 	}
 
@@ -202,5 +208,45 @@ func TestReloadFailureIsRevertedAndRootStays(t *testing.T) {
 
 	if _, present := fake.Files[FragmentPath]; present {
 		t.Fatal("fragment must be removed when sshd cannot reload")
+	}
+}
+
+func TestKeepRootAppliesTheFragmentAndLeavesRootAWayIn(t *testing.T) {
+	keep := Options{KeepRoot: true}
+	fake := machine(t, keep)
+
+	result, steps := events(fake, t, keep, "dev")
+
+	if result.RootClosed || !result.RootKept || result.NextUser != "dev" || result.Reason != "" {
+		t.Fatalf("result = %+v", result)
+	}
+
+	if strings.Join(steps, " ") != "check-authorized-keys=ok write-sshd-fragment=ok validate-sshd-config=ok reload-sshd=ok" {
+		t.Fatalf("steps = %v", steps)
+	}
+
+	fragment := string(fake.Files[FragmentPath])
+	for _, want := range []string{"PermitRootLogin prohibit-password\n", "AllowUsers dev root\n", "PasswordAuthentication no\n"} {
+		if !strings.Contains(fragment, want) {
+			t.Errorf("fragment = %q, misses %q", fragment, want)
+		}
+	}
+
+	result, steps = events(fake, t, keep, "dev")
+
+	if result.RootClosed || !result.RootKept || strings.Join(steps, " ") != "check-authorized-keys=ok write-sshd-fragment=skip" {
+		t.Fatalf("replay: result %+v, steps %v", result, steps)
+	}
+}
+
+func TestKeepRootStillNeedsAKeyOnDev(t *testing.T) {
+	keep := Options{KeepRoot: true}
+	fake := machine(t, keep)
+	delete(fake.Files, authorizedKeysPath)
+
+	result, _ := events(fake, t, keep, "dev")
+
+	if result.RootClosed || result.RootKept || result.NextUser != "root" || !strings.Contains(result.Reason, "no key in /home/dev/.ssh/authorized_keys") {
+		t.Fatalf("result = %+v", result)
 	}
 }

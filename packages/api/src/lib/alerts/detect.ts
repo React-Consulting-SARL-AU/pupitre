@@ -1,5 +1,5 @@
 import type { AlertKind, ServerStatus } from "@pupitre/db/cloudflare/client"
-import { compareVersions } from "../releases/semver"
+import { compareVersions, latestBy } from "@pupitre/shared/semver"
 
 export const UNREACHABLE_AFTER_MS = 1_800_000
 
@@ -59,11 +59,7 @@ export function isEntitlementGrace(state: AlertState): boolean {
 }
 
 export function latestVersionOf(versions: string[]): string | null {
-  return versions.reduce<string | null>(
-    (best, version) =>
-      best === null || compareVersions(version, best) > 0 ? version : best,
-    null
-  )
+  return latestBy(versions, (version) => version)
 }
 
 export function detectAlerts(state: AlertState, now: Date): AlertKind[] {

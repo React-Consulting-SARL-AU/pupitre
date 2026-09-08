@@ -6,7 +6,14 @@ import {
   type ModuleCategory,
   type Preset,
 } from "@pupitre/shared/catalog";
+import {
+  type FieldProblem,
+  type SecretsHeld,
+  validateConfig,
+} from "@pupitre/shared/catalog/validate";
 import { translate } from "@renderer/i18n/translate";
+import { itemKey, type SecretMark } from "@shared/secrets";
+import { decimal } from "./format";
 
 /**
  * What a selection of modules implies, computed from the manifests alone.
@@ -249,14 +256,6 @@ export function totals(
     );
 }
 
-function gigabytes(mb: number): string {
-  return (mb / MB_PER_GB).toFixed(1).replace(".", ",");
-}
-
-function decimal(gb: number): string {
-  return gb.toFixed(1).replace(".", ",");
-}
-
 /**
  * What the selection asks for, against what the probe measured.
  *
@@ -290,7 +289,7 @@ export function resourceWarnings(
     warnings.push({
       kind: "disk",
       message: translate()("catalog.warning.disk", {
-        asked: gigabytes(asked.disk_mb),
+        asked: decimal(asked.disk_mb / MB_PER_GB),
         has: decimal(probe.disk_free_gb),
       }),
     });
@@ -299,6 +298,11 @@ export function resourceWarnings(
   return warnings;
 }
 
+/**
+ * A `managed` field is never asked for: its value comes from the platform, and
+ * the configuration screen never shows it. A module whose fields are all
+ * managed therefore asks nothing, and reads as such.
+ */
 export function fieldsOf(
   modules: readonly Manifest[],
   selected: Selection
@@ -307,7 +311,68 @@ export function fieldsOf(
 
   return modules
     .filter((module) => chosen.has(module.id))
-    .map((module) => ({ module, fields: module.fields }));
+    .map((module) => ({
+      module,
+      fields: module.fields.filter((field) => field.managed !== true),
+    }));
+}
+
+type Marks = Record<string, SecretMark>;
+
+/** A problem, and the manifest and field it belongs to, so a screen can draw it. */
+export interface FieldProblemView extends FieldProblem {
+  manifest: Manifest;
+  /** The field the problem names, when the manifest still declares one. */
+  declared?: Field;
+}
+
+/** How many values are held for a secret field: one, or the ranks of a secret list. */
+export function heldSecrets(secrets: Record<string, Marks>): SecretsHeld {
+  return (moduleId, key) => {
+    const marks = secrets[moduleId];
+
+    if (marks?.[key]?.filled) {
+      return 1;
+    }
+
+    let filled = 0;
+    while (marks?.[itemKey(key, filled)]?.filled) {
+      filled += 1;
+    }
+
+    return filled;
+  };
+}
+
+/**
+ * What the chosen modules refuse, by the rules of the manifest and nothing
+ * else — the same rules the agent applies to the same values before its first
+ * step, so a configuration this screen accepts is one the server accepts.
+ *
+ * A managed field is skipped: the app fills it on the way out, from a
+ * connection, and a form that asked for it would be asking twice.
+ */
+export function problemsOf(
+  modules: readonly Manifest[],
+  selected: Selection,
+  values: Record<string, Record<string, unknown>>,
+  secrets: Record<string, Marks>,
+  connected?: (kind: string) => boolean
+): FieldProblemView[] {
+  const known = index(modules);
+
+  return validateConfig(modules, selected, values, heldSecrets(secrets), {
+    connected,
+    skipManaged: true,
+  }).map((problem) => {
+    const manifest = known.get(problem.module) as Manifest;
+
+    return {
+      ...problem,
+      declared: manifest?.fields.find((one) => one.key === problem.field),
+      manifest,
+    };
+  });
 }
 
 /** What a field is worth before anyone touches it, per its manifest. */
@@ -315,7 +380,7 @@ export function defaultsOf(manifest: Manifest): Record<string, unknown> {
   const values: Record<string, unknown> = {};
 
   for (const field of manifest.fields) {
-    if (field.kind === "secret") {
+    if (field.kind === "secret" || field.managed === true) {
       continue;
     }
 
@@ -340,7 +405,12 @@ export function defaultsOf(manifest: Manifest): Record<string, unknown> {
 /** The secret fields the manifest says to generate rather than ask for. */
 export function generatedKeysOf(manifest: Manifest): string[] {
   return manifest.fields
-    .filter((field) => field.kind === "secret" && field.generate === true)
+    .filter(
+      (field) =>
+        field.kind === "secret" &&
+        field.generate === true &&
+        field.managed !== true
+    )
     .map((field) => field.key);
 }
 
@@ -353,7 +423,28 @@ export function generatedKeysOf(manifest: Manifest): string[] {
 export function carriesSecret(manifest: Manifest): boolean {
   return manifest.fields.some(
     (field) =>
-      field.kind === "secret" ||
-      (field.kind === "list" && field.items === "secret")
+      field.managed !== true &&
+      (field.kind === "secret" ||
+        (field.kind === "list" && field.items === "secret"))
   );
+}
+
+/**
+ * A selection written down before the app closed, read back against the machine
+ * as it stands now.
+ *
+ * What the catalogue no longer declares is dropped, what the server already
+ * runs is dropped with it: the reader comes back to the choice they made, minus
+ * the part of it that has since become a fact.
+ */
+export function restored(
+  modules: readonly Manifest[],
+  selected: Selection,
+  installed: Installed = []
+): string[] {
+  const wanted = new Set(selected);
+
+  return modules
+    .filter((module) => wanted.has(module.id) && !installed.includes(module.id))
+    .map((module) => module.id);
 }

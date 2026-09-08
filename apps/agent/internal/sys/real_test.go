@@ -23,7 +23,7 @@ func TestRealRunCapturesOutputAndExitCode(t *testing.T) {
 		t.Fatalf("unexpected output %+v", out)
 	}
 
-	if !strings.Contains(exit.Error(), "code 3") || !strings.Contains(exit.Error(), "err") {
+	if !strings.Contains(exit.Error(), "exit 3") || !strings.Contains(exit.Error(), "err") {
 		t.Fatalf("error message must carry the code and stderr: %s", exit)
 	}
 }

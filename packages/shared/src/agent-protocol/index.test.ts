@@ -13,6 +13,8 @@ const CONTRACT_COMMANDS = [
   "probe",
   "catalog",
   "install",
+  "install.check",
+  "module.config",
   "uninstall",
   "harden",
   "upgrade",
@@ -62,6 +64,7 @@ const CONTRACT_COMMANDS = [
   "enroll",
   "keys.list",
   "keys.sync",
+  "platform.sync",
   "agent.upgrade",
   "reboot",
   "doctor",
@@ -93,7 +96,7 @@ describe("COMMANDS", () => {
 })
 
 describe("restricted mode", () => {
-  it("only lets the seven contract commands through", () => {
+  it("only lets the eight contract commands through", () => {
     expect(([...RESTRICTED_COMMANDS] as string[]).sort()).toEqual(
       [
         "agent.upgrade",
@@ -101,6 +104,7 @@ describe("restricted mode", () => {
         "enroll",
         "hello",
         "ping",
+        "platform.sync",
         "snapshot",
         "status",
       ].sort()

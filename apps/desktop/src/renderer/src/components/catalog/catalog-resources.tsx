@@ -1,4 +1,5 @@
 import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
+import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { Resources, ResourceWarning } from "../../lib/catalog-selection";
 import { Callout } from "../ui/callout";
@@ -51,7 +52,7 @@ export function CatalogResources({
               <span className="font-data text-ink tabular-nums">
                 {cell.asked}
               </span>
-              <span className="font-data text-[11px] text-ink-3 tabular-nums">
+              <span className="font-data text-[12px] text-ink-3 tabular-nums">
                 {cell.has}
               </span>
             </dd>
@@ -61,7 +62,7 @@ export function CatalogResources({
 
       {warnings.map((warning) => (
         <Callout key={warning.kind} tone="warn">
-          {warning.message}
+          {agentText(t, warning).message}
         </Callout>
       ))}
     </section>

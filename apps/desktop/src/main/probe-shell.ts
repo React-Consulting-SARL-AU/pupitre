@@ -2,6 +2,8 @@ import { type ChildProcess, spawn as spawnChild } from "node:child_process";
 import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
 import { ProbeResultSchema } from "@pupitre/shared/agent-protocol/install";
 import type { AgentResponse } from "@shared/agent";
+import { refusalOf } from "./refusal";
+import { trace } from "./trace";
 
 /**
  * The probe, on a machine that has no agent yet.
@@ -37,11 +39,9 @@ function unreachable(detail: string): AgentResponse<never> {
   return {
     ok: false,
     error: {
-      code: "disconnected",
-      message: detail
-        ? `La sonde n'a pas pu s'exécuter sur le serveur : ${detail}`
-        : "La sonde n'a pas pu s'exécuter sur le serveur.",
-      fix: "Vérifie que le serveur répond en SSH, puis relance l'inspection.",
+      ...(detail
+        ? refusalOf("disconnected", "refusal.probe.failed.detail", { detail })
+        : refusalOf("disconnected", "refusal.probe.failed")),
     },
   };
 }
@@ -50,9 +50,7 @@ function unreadable(): AgentResponse<never> {
   return {
     ok: false,
     error: {
-      code: "internal",
-      message: "La sonde n'a pas renvoyé de rapport lisible.",
-      fix: "Relance l'inspection ; si le serveur répond avec une bannière, retire-la du profil de connexion.",
+      ...refusalOf("internal", "refusal.probe.unreadable"),
     },
   };
 }
@@ -93,7 +91,11 @@ export function runShellProbe({
   timeoutMs = PROBE_TIMEOUT_MS,
 }: ShellProbeOptions): Promise<AgentResponse<ProbeResult>> {
   return new Promise((resolve) => {
-    const child = spawn("ssh", probeSshArgs(args));
+    const sshArguments = probeSshArgs(args);
+
+    trace("probe", "ssh", { args: sshArguments });
+
+    const child = spawn("ssh", sshArguments);
 
     let out = "";
     let err = "";
@@ -113,9 +115,9 @@ export function runShellProbe({
       settle({
         ok: false,
         error: {
-          code: "timeout",
-          message: `La sonde n'a pas répondu en ${Math.round(timeoutMs / 1000)} s.`,
-          fix: "Relance l'inspection, ou vérifie la latence de la connexion au serveur.",
+          ...refusalOf("timeout", "refusal.probe.timeout", {
+            seconds: Math.round(timeoutMs / 1000),
+          }),
         },
       });
     }, timeoutMs);
@@ -133,6 +135,14 @@ export function runShellProbe({
 
     child.on("close", (code: number | null) => {
       const probe = parse(out);
+
+      trace("probe", "done", {
+        agent: probe?.agent_version ?? "none",
+        code,
+        modules: probe?.installed_modules.length ?? 0,
+        read: Boolean(probe),
+        ...(probe ? {} : { stderr: err.trim().split("\n").at(-1) ?? "" }),
+      });
 
       if (probe) {
         settle({ ok: true, result: probe });

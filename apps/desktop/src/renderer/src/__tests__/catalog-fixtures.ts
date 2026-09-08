@@ -41,11 +41,19 @@ export const CORE_SYSTEM: Manifest = {
       help: "Ce que les commits porteront comme auteur.",
       required: true,
     },
-    { key: "git_email", kind: "text", label: "Adresse git", required: true },
+    {
+      key: "git_email",
+      kind: "text",
+      label: "Adresse git",
+      format: "email",
+      required: true,
+    },
     {
       key: "projects_dir",
       kind: "text",
       label: "Dossier des projets",
+      format: "path",
+      hint: { text: "Un chemin absolu appartenant au compte dev." },
       required: true,
       default: "/home/dev/projects",
     },
@@ -333,14 +341,29 @@ export const EXPOSURE_CLOUDFLARE: Manifest = {
   conflicts: ["exposure.caddy"],
   resources: { ram_mb: 128, disk_mb: 120 },
   arch: [...BOTH],
+  connection: "cloudflare",
   fields: [
     {
-      key: "api_token",
-      kind: "secret",
-      label: "Jeton d'API",
+      key: "domain",
+      kind: "text",
+      label: "Domaine des projets",
+      format: "domain",
       required: true,
     },
-    { key: "zone_name", kind: "text", label: "Zone", required: true },
+    {
+      key: "tunnel_id",
+      kind: "text",
+      label: "Identifiant du tunnel",
+      managed: true,
+      required: true,
+    },
+    {
+      key: "tunnel_secret",
+      kind: "secret",
+      label: "Secret du tunnel",
+      managed: true,
+      required: true,
+    },
   ],
   provides: ["exposure:public"],
   mandatory: false,
@@ -391,6 +414,7 @@ const PRESETS: Preset[] = [
     ],
   },
   {
+    // The exposures refuse each other, so the preset carries neither and asks.
     id: "full",
     name: "Tout le catalogue",
     modules: [
@@ -403,8 +427,8 @@ const PRESETS: Preset[] = [
       "editor.jetbrains",
       "editor.vscode",
       "ai.hermes",
-      "exposure.cloudflare",
     ],
+    choose_one: ["exposure.cloudflare", "exposure.caddy"],
   },
   {
     id: "minimal",

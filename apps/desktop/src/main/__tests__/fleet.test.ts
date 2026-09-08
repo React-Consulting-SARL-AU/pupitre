@@ -7,7 +7,7 @@ import { renderSshConfig, type SshPaths, sshArgs } from "../ssh-config";
 /**
  * The platform's list, merged into the one the app keeps.
  *
- * What these prove is the promise of APP-15: a member who was given a server
+ * What these prove: a member who was given a server
  * never types an address and never makes a key. The address comes from
  * `GET /me/servers`, the key is the one this computer registered as a device,
  * and the merge is what puts the two together.
@@ -28,6 +28,7 @@ const GRANTED: FleetServer = {
   id: "srv-platform-1",
   keyReady: true,
   name: "vps-atelier",
+  organization: { id: "org-1", name: "Flymate" },
   port: 22,
   status: "active",
   user: "dev",
@@ -46,9 +47,16 @@ const TYPED: Server = {
 function merge(
   local: Server[],
   granted: FleetServer[],
-  active: string | null = null
+  active: string | null = null,
+  dismissed: string[] = []
 ) {
-  return mergeFleet({ active, deviceKeyPath: DEVICE_KEY, granted, local });
+  return mergeFleet({
+    active,
+    deviceKeyPath: DEVICE_KEY,
+    dismissed,
+    granted,
+    local,
+  });
 }
 
 function grantOf(servers: readonly Server[]): ServerGrant {
@@ -194,23 +202,29 @@ describe("un serveur déjà connu de l'app", () => {
 });
 
 describe("la révocation", () => {
-  it("marque le serveur que la plateforme ne liste plus, sans l'effacer", () => {
+  it("efface le serveur que la plateforme ne liste plus, puisqu'elle l'avait posé", () => {
     const [adopted] = merge([], [GRANTED]).config.servers;
     const merged = merge([adopted], []);
 
-    expect(merged.withdrawn).toEqual(["srv-platform-1"]);
-    expect(merged.config.servers[0].grant).toMatchObject({ listed: false });
+    expect(merged.config.servers).toEqual([]);
+    expect(merged.released).toEqual(["srv-platform-1"]);
+    expect(merged.changed).toBe(true);
   });
 
-  it("marque le serveur que la plateforme rend révoqué", () => {
+  it("efface le serveur que la plateforme rend révoqué", () => {
     const [adopted] = merge([], [GRANTED]).config.servers;
     const merged = merge([adopted], [{ ...GRANTED, status: "revoked" }]);
 
-    expect(merged.withdrawn).toEqual(["srv-platform-1"]);
-    expect(merged.config.servers[0].grant).toMatchObject({
-      listed: true,
-      status: "revoked",
-    });
+    expect(merged.config.servers).toEqual([]);
+    expect(merged.released).toEqual(["srv-platform-1"]);
+  });
+
+  it("garde le serveur qu'on avait saisi ici, attribution tombée ou non", () => {
+    const bound = merge([TYPED], [GRANTED]).config.servers;
+    const merged = merge(bound, []);
+
+    expect(merged.released).toEqual([]);
+    expect(merged.config.servers[0].grant).toMatchObject({ listed: false });
   });
 
   it("rend un serveur suspendu au premier signe de retour", () => {
@@ -218,8 +232,78 @@ describe("la révocation", () => {
     const suspended = merge([adopted], [{ ...GRANTED, status: "suspended" }]);
     const back = merge(suspended.config.servers, [GRANTED]);
 
+    expect(suspended.config.servers).toHaveLength(1);
     expect(back.withdrawn).toEqual([]);
     expect(back.config.servers[0].grant).toMatchObject({ status: "active" });
+  });
+});
+
+/**
+ * What this section proves: a server removed here stays removed, and a
+ * re-enrolled server stays a single server. Both were the same fault seen from
+ * two sides — the merge had no memory of a removal, and it bound an entry to an
+ * id that re-enrollment had just made stale.
+ */
+describe("le retrait sur cet ordinateur", () => {
+  it("ne réadopte pas un serveur attribué qu'on avait retiré", () => {
+    const merged = merge([], [GRANTED], null, ["srv-platform-1"]);
+
+    expect(merged.config.servers).toEqual([]);
+    expect(merged.adopted).toEqual([]);
+  });
+
+  it("garde la mémoire du retrait tant que la plateforme l'attribue", () => {
+    expect(
+      merge([], [GRANTED], null, ["srv-platform-1"]).config.dismissed
+    ).toEqual(["srv-platform-1"]);
+  });
+
+  it("oublie le retrait dès que la plateforme cesse de l'attribuer", () => {
+    const merged = merge([], [], null, ["srv-platform-1"]);
+
+    expect(merged.config.dismissed).toEqual([]);
+    expect(merged.changed).toBe(true);
+  });
+
+  it("rend le serveur dès que la mémoire du retrait est effacée", () => {
+    expect(merge([], [GRANTED], null, []).config.servers).toHaveLength(1);
+  });
+});
+
+describe("le réenrôlement", () => {
+  const REENROLLED: FleetServer = { ...GRANTED, id: "srv-platform-2" };
+
+  it("suit la même machine sous son nouvel identifiant, sans la dédoubler", () => {
+    const [adopted] = merge([], [GRANTED]).config.servers;
+    const merged = merge([adopted], [REENROLLED]);
+
+    expect(merged.config.servers).toHaveLength(1);
+    expect(merged.config.servers[0].grant).toMatchObject({
+      id: "srv-platform-2",
+      listed: true,
+    });
+  });
+
+  it("suit aussi un serveur qu'on avait saisi ici", () => {
+    const bound = merge([TYPED], [GRANTED]).config.servers;
+    const merged = merge(bound, [REENROLLED]);
+
+    expect(merged.config.servers).toHaveLength(1);
+    expect(merged.config.servers[0].id).toBe("srv-local-1");
+    expect(merged.config.servers[0].grant).toMatchObject({
+      adopted: false,
+      id: "srv-platform-2",
+    });
+  });
+
+  it("ne confond pas deux serveurs que la plateforme liste toujours tous les deux", () => {
+    const [adopted] = merge([], [GRANTED]).config.servers;
+    const merged = merge([adopted], [GRANTED, REENROLLED]);
+
+    expect(merged.config.servers).toHaveLength(2);
+    expect(merged.config.servers[0].grant).toMatchObject({
+      id: "srv-platform-1",
+    });
   });
 });
 
@@ -246,8 +330,8 @@ describe("l'état d'une attribution", () => {
   });
 
   it("est retirée dès que la plateforme cesse de la lister", () => {
-    const adopted = merge([], [GRANTED]).config.servers;
-    const gone = grantOf(merge(adopted, []).config.servers);
+    const bound = merge([TYPED], [GRANTED]).config.servers;
+    const gone = grantOf(merge(bound, []).config.servers);
 
     expect(grantWithdrawn(gone)).toBe(true);
     expect(grantPending(gone)).toBe(false);

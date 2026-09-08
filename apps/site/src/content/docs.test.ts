@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs"
 import path from "node:path"
-import { MODULE_IDS, MVP_MODULE_IDS } from "@pupitre/shared/catalog"
+import { MODULE_IDS } from "@pupitre/shared/catalog"
 import { describe, expect, it } from "vitest"
 import { LOCALES } from "../lib/i18n"
 import { DOCS_SECTIONS } from "./site/docs"
@@ -93,10 +93,10 @@ describe("the documentation", () => {
 })
 
 describe("the service catalogue", () => {
-  it("documents every module, and every MVP module says what it asks for", () => {
+  it("documents every module of the contract, and what each one asks for", () => {
     expect(Object.keys(MODULE_DOCS).sort()).toEqual([...MODULE_IDS].sort())
 
-    for (const id of MVP_MODULE_IDS) {
+    for (const id of MODULE_IDS) {
       const doc = MODULE_DOCS[id]
 
       expect(doc.installs.length, id).toBeGreaterThan(0)

@@ -14,18 +14,25 @@ export const onboarding = {
     "onboarding.agent.sendingNote":
       "The checksum of what the server received is compared with the app's before going on.",
 
+    "onboarding.agent.phase.reading": "Reading the machine's architecture",
+    "onboarding.agent.phase.enrolling": "Enrolling with the console",
+    "onboarding.agent.phase.sending": "Writing the binary on the server",
+    "onboarding.agent.phase.starting": "Handing the agent its token",
+
     "onboarding.done.eyebrow": "Ready",
     "onboarding.done.description":
       "The server is installed, and the app drives it through its agent.",
     "onboarding.done.connectedAs": "Connected as",
     "onboarding.done.rootClosed":
       "Root is closed: no one else gets onto this machine with this account.",
+    "onboarding.done.rootKept":
+      "Root stayed open, as you asked: by key only, never by password.",
     "onboarding.done.rootOpen":
       "Root stayed open: resume hardening once the reason the agent gave is gone.",
 
     "onboarding.enrollment.title": "Server enrolled",
     "onboarding.enrollment.detail":
-      "It shows up in the console with its heartbeat as soon as the agent talks to the platform.",
+      "It shows up in the console with its heartbeat as soon as the agent reports in.",
 
     "onboarding.entry.unfinished": "The install of {name} isn't finished.",
     "onboarding.entry.noAgent": "No known Pupitre agent on {name}.",
@@ -36,6 +43,8 @@ export const onboarding = {
 
     "onboarding.flow.back": "Back",
     "onboarding.flow.quit": "Quit the assistant",
+    "onboarding.flow.progress": "Progress",
+    "onboarding.flow.stepCount": "Step {index} of {total}",
 
     "onboarding.harden.eyebrow": "Hardening",
     "onboarding.harden.description":
@@ -49,6 +58,10 @@ export const onboarding = {
     "onboarding.harden.switchingDetail":
       "The app rewrites its SSH configuration to User {user} and reopens the channel.",
     "onboarding.harden.rootClosedTitle": "Root is closed on this server.",
+    "onboarding.harden.rootKeptTitle":
+      "This server is hardened, and root keeps its own way in.",
+    "onboarding.harden.rootKeptDetail":
+      "You chose to keep root: it opens with an SSH key, never with a password.",
     "onboarding.harden.connectedPrefix":
       "The app now connects to it with the account",
     "onboarding.harden.connectedSuffix": ", through its own SSH configuration.",
@@ -60,6 +73,7 @@ export const onboarding = {
     "onboarding.harden.continueOpen": "Continue without closing root",
 
     "onboarding.inspection.eyebrow": "Inspection",
+    "onboarding.inspection.diskFree": "{disk} free",
     "onboarding.inspection.pickAnother": "Choose another server",
     "onboarding.inspection.install": "Install",
     "onboarding.inspection.update": "Update",
@@ -96,6 +110,15 @@ export const onboarding = {
     "onboarding.verdict.reasonsLabel": "What the probe saw",
     "onboarding.verdict.fixesLabel": "What lifts these reservations",
 
+    "onboarding.stage.pick": "Choose",
+    "onboarding.stage.add": "Add",
+    "onboarding.stage.key": "Key",
+    "onboarding.failure.journal": "See the journal",
+    "onboarding.channel.lost": "Connection to {name} lost.",
+    "onboarding.channel.retrying": "Trying again…",
+    "onboarding.channel.back": "Connection to {name} is back.",
+    "onboarding.usage.held":
+      "The console has not confirmed this account's usage right: the step is holding where it is.",
     "onboarding.step.agent": "Agent",
     "onboarding.step.catalog": "Catalogue",
     "onboarding.step.config": "Configuration",
@@ -109,14 +132,30 @@ export const onboarding = {
     "onboarding.replay.notice":
       "{name} carried a secret. The app didn't keep it: it left on the secret stream at install time, then was forgotten. Enter it again, or have one generated, before replaying the module.",
 
-    "onboarding.server.inspectNamed": "Inspect {name}",
-    "onboarding.server.inspect": "Inspect the server",
-    "onboarding.server.description":
-      "An address, an account, and a key the app generates for this computer. Paste the key on the server before continuing.",
     "onboarding.server.eyebrow": "Server",
-    "onboarding.server.title": "The machine to install",
+    "onboarding.server.pick.title": "The machine to install",
+    "onboarding.server.pick.description":
+      "Pick the machine to take in hand. The assistant goes on with it right away.",
+    "onboarding.server.add.title": "The machine to install",
+    "onboarding.server.add.description":
+      "An address, an account, and a key the app generates for this computer — and installs on the server itself.",
+    "onboarding.server.key.title": "The key that opens it",
+    "onboarding.server.key.description":
+      "The app puts the public half on the machine, then signs in with it. The inspection follows on its own.",
+    "onboarding.server.knownHeading": "Your servers",
+    "onboarding.server.knownIntro":
+      "The app keeps an SSH configuration of its own, one key per server in its folder, and each machine's fingerprint from the first contact.",
 
     "onboarding.config.replaySubmit": "Replay this module",
+    "onboarding.config.resumeSubmit": "Resume the install",
+
+    "onboarding.resume.readingTitle": "Reading the server again",
+    "onboarding.resume.readingDetail":
+      "The install was interrupted: the machine says what it already runs before the assistant picks up where it left off.",
+    "onboarding.resume.readingNote":
+      "Nothing is installed on the strength of what the app remembers.",
+    "onboarding.resume.notice":
+      "The install stopped before {modules} reached the server. Their secrets left with the app, which never kept them: enter them again, or have them generated, and the install resumes with those modules only.",
   },
   fr: {
     "onboarding.thisServer": "Ce serveur",
@@ -133,18 +172,25 @@ export const onboarding = {
     "onboarding.agent.sendingNote":
       "La somme de contrôle de ce que le serveur a reçu est comparée à celle de l'app avant la suite.",
 
+    "onboarding.agent.phase.reading": "Lecture de l'architecture de la machine",
+    "onboarding.agent.phase.enrolling": "Enrôlement auprès de la console",
+    "onboarding.agent.phase.sending": "Écriture du binaire sur le serveur",
+    "onboarding.agent.phase.starting": "Remise de son jeton à l'agent",
+
     "onboarding.done.eyebrow": "Prêt",
     "onboarding.done.description":
       "Le serveur est installé, et l'app le pilote par son agent.",
     "onboarding.done.connectedAs": "Connecté en",
     "onboarding.done.rootClosed":
       "Root est fermé : plus personne n'entre sur cette machine avec ce compte.",
+    "onboarding.done.rootKept":
+      "Root est resté ouvert, comme demandé : par clé seulement, jamais par mot de passe.",
     "onboarding.done.rootOpen":
       "Root est resté ouvert : reprends le durcissement quand la raison donnée par l'agent aura disparu.",
 
     "onboarding.enrollment.title": "Serveur enrôlé",
     "onboarding.enrollment.detail":
-      "Il apparaît dans la console avec son heartbeat dès que l'agent parle à la plateforme.",
+      "Il apparaît dans la console avec son heartbeat dès que l'agent s'y annonce.",
 
     "onboarding.entry.unfinished":
       "L'installation de {name} n'est pas terminée.",
@@ -156,6 +202,8 @@ export const onboarding = {
 
     "onboarding.flow.back": "Revenir",
     "onboarding.flow.quit": "Quitter l'assistant",
+    "onboarding.flow.progress": "Avancement",
+    "onboarding.flow.stepCount": "Étape {index} sur {total}",
 
     "onboarding.harden.eyebrow": "Durcissement",
     "onboarding.harden.description":
@@ -169,6 +217,10 @@ export const onboarding = {
     "onboarding.harden.switchingDetail":
       "L'app réécrit sa configuration SSH en User {user} et rouvre le canal.",
     "onboarding.harden.rootClosedTitle": "Root est fermé sur ce serveur.",
+    "onboarding.harden.rootKeptTitle":
+      "Ce serveur est durci, et root garde son accès.",
+    "onboarding.harden.rootKeptDetail":
+      "Tu as choisi de garder l'accès root : il s'ouvre par clé SSH, jamais par mot de passe.",
     "onboarding.harden.connectedPrefix":
       "L'app s'y connecte maintenant avec le compte",
     "onboarding.harden.connectedSuffix": ", par sa propre configuration SSH.",
@@ -181,6 +233,7 @@ export const onboarding = {
     "onboarding.harden.continueOpen": "Continuer sans fermer root",
 
     "onboarding.inspection.eyebrow": "Inspection",
+    "onboarding.inspection.diskFree": "{disk} libres",
     "onboarding.inspection.pickAnother": "Choisir un autre serveur",
     "onboarding.inspection.install": "Installer",
     "onboarding.inspection.update": "Mettre à jour",
@@ -217,6 +270,15 @@ export const onboarding = {
     "onboarding.verdict.reasonsLabel": "Ce que la sonde a vu",
     "onboarding.verdict.fixesLabel": "Ce qui lève ces réserves",
 
+    "onboarding.stage.pick": "Choisir",
+    "onboarding.stage.add": "Ajouter",
+    "onboarding.stage.key": "Clé",
+    "onboarding.failure.journal": "Voir le journal",
+    "onboarding.channel.lost": "Connexion à {name} perdue.",
+    "onboarding.channel.retrying": "Nouvelle tentative…",
+    "onboarding.channel.back": "Connexion à {name} rétablie.",
+    "onboarding.usage.held":
+      "La console n'a pas confirmé le droit d'usage de ce compte : l'étape reste où elle est.",
     "onboarding.step.agent": "Agent",
     "onboarding.step.catalog": "Catalogue",
     "onboarding.step.config": "Configuration",
@@ -230,13 +292,29 @@ export const onboarding = {
     "onboarding.replay.notice":
       "{name} portait un secret. L'app ne l'a pas gardé : il est parti sur le flux secret au moment de l'installation, puis oublié. Saisis-le à nouveau, ou fais-en générer un, avant de rejouer le module.",
 
-    "onboarding.server.inspectNamed": "Inspecter {name}",
-    "onboarding.server.inspect": "Inspecter le serveur",
-    "onboarding.server.description":
-      "Une adresse, un compte, et une clé que l'app génère pour cet ordinateur. Colle la clé sur le serveur avant de continuer.",
     "onboarding.server.eyebrow": "Serveur",
-    "onboarding.server.title": "La machine à installer",
+    "onboarding.server.pick.title": "La machine à installer",
+    "onboarding.server.pick.description":
+      "Choisissez la machine à prendre en main. L'assistant continue avec elle aussitôt.",
+    "onboarding.server.add.title": "La machine à installer",
+    "onboarding.server.add.description":
+      "Une adresse, un compte, et une clé que l'app génère pour cet ordinateur — et qu'elle pose elle-même sur le serveur.",
+    "onboarding.server.key.title": "La clé qui l'ouvre",
+    "onboarding.server.key.description":
+      "L'app pose la moitié publique sur la machine, puis s'y connecte avec. L'inspection suit toute seule.",
+    "onboarding.server.knownHeading": "Vos serveurs",
+    "onboarding.server.knownIntro":
+      "L'app garde une configuration SSH à elle, une clé par serveur dans son dossier, et l'empreinte de chaque machine dès le premier contact.",
 
     "onboarding.config.replaySubmit": "Rejouer ce module",
+    "onboarding.config.resumeSubmit": "Reprendre l'installation",
+
+    "onboarding.resume.readingTitle": "Relecture du serveur",
+    "onboarding.resume.readingDetail":
+      "L'installation a été interrompue : la machine dit ce qu'elle fait déjà tourner avant que l'assistant ne reprenne où il s'était arrêté.",
+    "onboarding.resume.readingNote":
+      "Rien n'est installé sur la foi de ce que l'app se rappelle.",
+    "onboarding.resume.notice":
+      "L'installation s'est arrêtée avant que {modules} n'arrive sur le serveur. Leurs secrets sont partis avec l'app, qui ne les a jamais gardés : saisis-les à nouveau, ou fais-en générer, et l'installation reprend sur ces modules seuls.",
   },
 } as const;

@@ -2,6 +2,7 @@ package java
 
 import (
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/runtime/mise"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
@@ -147,7 +148,7 @@ func release(ctx *modules.Context) string {
 func home(ctx *modules.Context) string {
 	resolved := mise.Where(ctx, "java")
 	if resolved == "" {
-		ctx.Warn("JAVA_HOME introuvable, à vérifier avant de compiler un projet JVM")
+		ctx.Warn(i18n.T("warn.java.home.missing"))
 	}
 
 	return resolved

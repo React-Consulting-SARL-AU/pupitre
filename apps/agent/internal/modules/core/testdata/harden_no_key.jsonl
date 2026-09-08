@@ -5,7 +5,7 @@
 > {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
 > {"id":2,"cmd":"install","params":{"secrets_stdin":false,"modules":["core.system","core.hardening"],"config":{"core.system":{"git_name":"Jordan Monier","git_email":"jordan@example.org"}}}}
 > {"id":3,"cmd":"harden","params":{"user":"dev"}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","harden","hello","install","ping","report","uninstall","upgrade"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","harden","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"repair-dpkg"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"skip","step":"repair-dpkg"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"install-packages"}
@@ -57,4 +57,4 @@
 < {"id":2,"ok":true,"result":{"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"start","step":"check-authorized-keys"}
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"ok","step":"check-authorized-keys"}
-< {"id":3,"ok":true,"result":{"root_closed":false,"next_user":"root","reason":"aucune clé dans /home/dev/.ssh/authorized_keys : ajoute la clé publique du poste puis relance harden"}}
+< {"id":3,"ok":true,"result":{"root_closed":false,"root_kept":false,"next_user":"root","reason":"no key in /home/dev/.ssh/authorized_keys: add the laptop's public key, then run harden again"}}

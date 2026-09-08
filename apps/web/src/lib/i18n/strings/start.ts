@@ -1,5 +1,8 @@
 export const start = {
   en: {
+    "start.heroTitle": "Four steps, and your server works for you.",
+    "start.heroLead":
+      "The account exists. What is left: start the trial, install the app, plug in a server.",
     "start.trialTitle": "Fourteen days, no card",
     "start.trialBadge": "{days} days",
     "start.gives.enrol":
@@ -11,30 +14,49 @@ export const start = {
     "start.noCard":
       "No card is asked for. At the end of the {days} days, without one, the subscription stops and nothing is charged.",
     "start.action": "Start the trial",
-    "start.actionPending": "Opening Stripe…",
+    "start.actionPending": "Opening the trial…",
     "start.lead":
-      "Stripe opens the trial. The subscription lands here as soon as Stripe confirms it.",
+      "The subscription lands here as soon as it is confirmed, and the console opens with it.",
     "start.failed": "The trial could not be opened.",
     "start.failedFix":
       "Try again; if it persists, check that you own this organisation.",
-    "start.waitingTitle": "Waiting for Stripe's confirmation…",
+    "start.waitingTitle": "Waiting for the confirmation…",
     "start.waitingLead":
-      "Stripe has opened the trial and is telling us about it. The console creates nothing on its own; it waits for that message.",
+      "The trial has just been opened and is being confirmed to us. The console creates nothing on its own; it waits for that confirmation.",
     "start.confirmedTitle": "The trial is open.",
     "start.confirmedLead":
       "Next step: download the app for your system, then link it to your account.",
-    "start.confirmedAction": "Download the app",
-    "start.pendingFailed": "Stripe has not confirmed the trial yet.",
+    "start.pendingFailed": "The trial is not confirmed yet.",
     "start.pendingFailedFix":
-      "Reload this page in a moment. Nothing is lost: Stripe alone opens a subscription.",
+      "Reload this page in a moment. Nothing is lost: a subscription only opens once.",
     "start.lockedTitle": "The owner starts the trial",
     "start.lockedDescription":
       "{owner} owns this organisation, and starts its {days}-day trial. Until then, no server can be enrolled.",
     "start.lockedUnknownOwner":
       "The owner of this organisation starts its {days}-day trial. Until then, no server can be enrolled.",
     "start.reading": "Reading the organisation…",
+
+    "onboarding.done": "Done",
+    "onboarding.todo": "To do",
+    "onboarding.account.title": "Create your account",
+    "onboarding.account.lead": "Done: you are signed in.",
+    "onboarding.trial.title": "Start the trial",
+    "onboarding.trial.lead":
+      "Fourteen days, no card. The trial is what lets you add a server.",
+    "onboarding.app.title": "Install the app and link it to your account",
+    "onboarding.app.lead":
+      "The app runs on your computer. When it opens, it shows a code: enter it here, on the linking page.",
+    "onboarding.server.title": "Rent a server and add it",
+    "onboarding.server.lead":
+      "Then, in the app: Add a server. The assistant does the rest in seven steps.",
+    "onboarding.server.guide": "Which server to rent, and where",
+    "onboarding.server.enrolling":
+      "Enrolment under way: the server shows up here at its first contact.",
   },
   fr: {
+    "start.heroTitle": "Quatre pas, et votre serveur travaille pour vous.",
+    "start.heroLead":
+      "Le compte est créé. Il reste à démarrer l'essai, installer l'app et brancher un serveur.",
     "start.trialTitle": "Quatorze jours, sans carte",
     "start.trialBadge": "{days} jours",
     "start.gives.enrol":
@@ -46,27 +68,43 @@ export const start = {
     "start.noCard":
       "Aucune carte n'est demandée. À la fin des {days} jours, sans carte, l'abonnement s'arrête et rien n'est prélevé.",
     "start.action": "Démarrer l'essai",
-    "start.actionPending": "Ouverture de Stripe…",
+    "start.actionPending": "Ouverture de l'essai…",
     "start.lead":
-      "C'est Stripe qui ouvre l'essai. L'abonnement arrive ici dès que Stripe nous l'a confirmé.",
+      "L'abonnement arrive ici dès qu'il est confirmé, et la console s'ouvre avec lui.",
     "start.failed": "L'essai n'a pas pu être ouvert.",
     "start.failedFix":
       "Réessayez ; si cela persiste, vérifiez que vous êtes bien propriétaire de cette organisation.",
-    "start.waitingTitle": "Attente de la confirmation de Stripe…",
+    "start.waitingTitle": "Attente de la confirmation…",
     "start.waitingLead":
-      "Stripe a ouvert l'essai et nous l'annonce. La console ne crée rien d'elle-même ; elle attend ce message.",
+      "L'essai vient d'être ouvert et nous est confirmé dans l'instant. La console ne crée rien d'elle-même ; elle attend cette confirmation.",
     "start.confirmedTitle": "L'essai est ouvert.",
     "start.confirmedLead":
       "Étape suivante : téléchargez l'app pour votre système, puis liez-la à votre compte.",
-    "start.confirmedAction": "Télécharger l'app",
-    "start.pendingFailed": "Stripe n'a pas encore confirmé l'essai.",
+    "start.pendingFailed": "L'essai n'est pas encore confirmé.",
     "start.pendingFailedFix":
-      "Rechargez cette page dans un instant. Rien n'est perdu : Stripe seul ouvre un abonnement.",
+      "Rechargez cette page dans un instant. Rien n'est perdu : un abonnement ne s'ouvre qu'une fois.",
     "start.lockedTitle": "L'essai se démarre par le propriétaire",
     "start.lockedDescription":
       "{owner} est propriétaire de cette organisation, et démarre son essai de {days} jours. D'ici là, aucun serveur ne peut être enrôlé.",
     "start.lockedUnknownOwner":
       "Le propriétaire de cette organisation démarre son essai de {days} jours. D'ici là, aucun serveur ne peut être enrôlé.",
     "start.reading": "Lecture de l'organisation…",
+
+    "onboarding.done": "Fait",
+    "onboarding.todo": "À faire",
+    "onboarding.account.title": "Créer votre compte",
+    "onboarding.account.lead": "Fait : vous êtes connecté.",
+    "onboarding.trial.title": "Démarrer l'essai",
+    "onboarding.trial.lead":
+      "Quatorze jours, sans carte. C'est l'essai qui permet d'ajouter un serveur.",
+    "onboarding.app.title": "Installer l'app et la lier à votre compte",
+    "onboarding.app.lead":
+      "L'app tourne sur votre ordinateur. À l'ouverture, elle affiche un code : entrez-le ici, sur la page de liaison.",
+    "onboarding.server.title": "Louer un serveur et l'ajouter",
+    "onboarding.server.lead":
+      "Puis, dans l'app : Ajouter un serveur. L'assistant fait le reste en sept étapes.",
+    "onboarding.server.guide": "Quel serveur louer, et où",
+    "onboarding.server.enrolling":
+      "Enrôlement en cours : le serveur apparaît ici à son premier contact.",
   },
 }

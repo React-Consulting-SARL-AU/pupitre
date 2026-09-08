@@ -55,7 +55,7 @@ async function publishAmd64(session: { token: string }) {
   })
 }
 
-describe("AGT-15 distribution", () => {
+describe("distribution de l'agent", () => {
   beforeAll(async () => {
     await bootApiTestServer()
   })

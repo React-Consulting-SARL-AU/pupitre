@@ -5,8 +5,10 @@ tracés viennent de [Simple Icons](https://simpleicons.org) 16.29.0,
 publié sous CC0-1.0 ; la couleur de chaque fichier est la couleur de marque que
 Simple Icons tient de la source citée.
 
-Les marques que Simple Icons ne publie pas viennent du SVG du titulaire tel que
-[svgl.app](https://svgl.app) le collecte : le fichier d'origine est committé sous
+Les marques que Simple Icons ne publie pas viennent du SVG du titulaire tel qu'un
+collecteur le republie — [svgl.app](https://svgl.app),
+[lobehub](https://lobehub.com/icons) — la colonne Source disant lequel pour
+chaque fichier. L'original est committé sous
 `scripts/vendor`, le générateur le réduit à ce que l'app inline — une racine, un
 `viewBox`, un titre, des identifiants préfixés pour que deux logos posés côte à
 côte ne se peignent pas l'un l'autre. Ces tracés-là sont en `marque déposée, usage nominatif`, pas
@@ -17,12 +19,12 @@ Les fichiers sont committés ; `bun scripts/generate-logos.ts` les régénère.
 **Usage nominatif.** Ces marques appartiennent à leurs titulaires. Pupitre les
 affiche pour nommer un logiciel que le client installe sur son propre serveur,
 ce que le droit des marques autorise. Pupitre ne s'en sert jamais pour suggérer
-un partenariat, une affiliation ou un aval, ni comme icône d'action, ni en fond.
+un partenariat, une affiliation ou un aval, ni comme icône d'action, ni en
+filigrane derrière du texte.
 
 | Fichier | Module | Marque | Source | Licence du tracé | Récupéré le |
 | --- | --- | --- | --- | --- | --- |
 | `runtime-node.svg` | `runtime.node` | Node.js | https://nodejs.org/en/about/branding | CC0-1.0 | 2026-09-04 |
-| `runtime-java.svg` | `runtime.java` | OpenJDK | https://hg.openjdk.java.net/duke/duke/file/ca00f100dafc/vector/Agent.svg | CC0-1.0 | 2026-09-04 |
 | `runtime-python.svg` | `runtime.python` | Python | https://www.python.org/community/logos/ | CC0-1.0 | 2026-09-04 |
 | `db-mysql.svg` | `db.mysql` | MySQL | https://www.mysql.com/about/legal/logos.html | CC0-1.0 | 2026-09-04 |
 | `db-postgres.svg` | `db.postgres` | PostgreSQL | https://wiki.postgresql.org/wiki/Logo | CC0-1.0 | 2026-09-04 |
@@ -42,7 +44,9 @@ un partenariat, une affiliation ou un aval, ni comme icône d'action, ni en fond
 | `exposure-caddy.svg` | `exposure.caddy` | Caddy | https://caddyserver.com | CC0-1.0 | 2026-09-04 |
 | `tool-neon.svg` | `tool.neon` | Neon | https://neon.com/brand | CC0-1.0 | 2026-09-04 |
 | `editor-vscode.svg` | `editor.vscode` | Visual Studio Code | https://svgl.app/library/vscode.svg | marque déposée, usage nominatif | 2026-09-04 |
+| `runtime-java.svg` | `runtime.java` | Java | https://svgl.app/library/java.svg | marque déposée, usage nominatif | 2026-09-04 |
 | `ai-codex.svg` | `ai.codex` | Codex | https://svgl.app/library/codex_light.svg | marque déposée, usage nominatif | 2026-09-04 |
+| `ai-hermes.svg` | `ai.hermes` | Nous Research | https://lobehub.com/icons/nousresearch | marque déposée, usage nominatif | 2026-09-07 |
 
 ## Marques hors catalogue
 
@@ -62,4 +66,3 @@ Le catalogue retombe sur une icône Lucide.
 | `core.system` | Socle système : aucun produit de marque à nommer. |
 | `core.hardening` | Durcissement du système : aucun produit de marque à nommer. |
 | `exposure.ssh` | OpenSSH ne publie pas de marque figurative, et ni Simple Icons ni svgl n'en portent une. |
-| `ai.hermes` | Nous Research ne publie pas de kit de marque ; le « Hermes » de Simple Icons est le moteur JavaScript de Meta, une autre marque. |

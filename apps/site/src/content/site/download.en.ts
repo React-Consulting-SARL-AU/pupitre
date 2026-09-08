@@ -14,8 +14,8 @@ export const downloadEn: DownloadContent = {
     unknown: "Pick your system",
   },
   account: {
-    title: "The app needs an account and a running trial",
-    body: "Pupitre signs in to a Pupitre account, and that account must carry a running trial or a subscription. Create it first: an email address is enough, and no card is asked for.",
+    title: "The app needs a Pupitre account",
+    body: "Pupitre signs in to a Pupitre account. Create it first: an email address is enough, and no card is asked for.",
     cta: "Create an account",
   },
   os: {

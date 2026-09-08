@@ -1,6 +1,9 @@
 package codex
 
-import "pupitre.studio/agent/internal/contract"
+import (
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
+)
 
 const ID = "ai.codex"
 
@@ -9,7 +12,7 @@ func manifest() contract.Manifest {
 		ID:        ID,
 		Category:  "ai",
 		Name:      "Codex",
-		Summary:   "Codex installé pour dev, avec le contexte de la machine et les skills Pupitre. La connexion passe par l'URL affichée au premier lancement et l'abonnement du client.",
+		Summary:   i18n.T("module.ai.codex.summary"),
 		Requires:  []string{"core.system", "runtime.node"},
 		Conflicts: []string{},
 		Resources: contract.Resources{RAMMB: 512, DiskMB: 512},

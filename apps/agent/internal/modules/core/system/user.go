@@ -8,6 +8,7 @@ import (
 
 	"pupitre.studio/agent/internal/daemon"
 	"pupitre.studio/agent/internal/devcli"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/keys"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/sys"
@@ -122,7 +123,7 @@ func seedAuthorizedKeys(ctx *modules.Context) error {
 			return modules.Skipped, nil
 		}
 
-		ctx.Logf("%d clé(s) de root copiée(s) pour %s", added, User)
+		ctx.Logf("%d key(s) copied from root for %s", added, User)
 
 		return modules.Done, ownedFile(ctx, authorizedKeysPath, []byte(content), 0o600)
 	})
@@ -145,7 +146,7 @@ func createProjectsDir(ctx *modules.Context) error {
 	return ctx.Step("create-projects-dir", func() (modules.Outcome, error) {
 		dir := ctx.String("projects_dir")
 		if !strings.HasPrefix(dir, "/") || strings.Contains(dir, "\n") {
-			return modules.Failed, fmt.Errorf("dossier des projets invalide : %q", dir)
+			return modules.Failed, fmt.Errorf("invalid projects folder: %q", dir)
 		}
 
 		if file.Exists(ctx, dir) {
@@ -160,7 +161,7 @@ func setGitIdentity(ctx *modules.Context) error {
 	return ctx.Step("set-git-identity", func() (modules.Outcome, error) {
 		name, email := ctx.String("git_name"), ctx.String("git_email")
 		if name == "" || email == "" || strings.ContainsAny(name+email, "\n\r") {
-			return modules.Failed, errors.New("git_name et git_email sont requis")
+			return modules.Failed, errors.New(i18n.T("module.core.system.git_identity.required"))
 		}
 
 		return ensureOwnedBlock(ctx, gitconfigPath, gitIdentity(name, email))
@@ -243,7 +244,7 @@ func removeAgentUnit(ctx *modules.Context) error {
 		}
 
 		if err := systemd.Disable(ctx, daemon.Unit); err != nil {
-			ctx.Warn("unité " + daemon.Unit + " non arrêtée : " + err.Error())
+			ctx.Warn(i18n.T("warn.system.unit.stop.failed", daemon.Unit, err.Error()))
 		}
 
 		_, err := file.Remove(ctx, daemon.UnitPath)

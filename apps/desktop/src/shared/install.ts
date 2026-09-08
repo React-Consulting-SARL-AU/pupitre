@@ -30,3 +30,21 @@ export interface AgentDelivery {
    */
   enrollment?: EnrollmentSummary | null;
 }
+
+/**
+ * Where the binary install stands, which the agent cannot report itself.
+ *
+ * `reading` re-reads the machine to know which architecture to send it,
+ * `enrolling` asks the platform for its place and checks the version it names,
+ * `sending` writes the megabytes onto the machine, `starting` gives the agent
+ * the token it will introduce itself with. These are four different waits, and
+ * the longest is not always the same one.
+ */
+export type AgentSendPhase = "reading" | "enrolling" | "sending" | "starting";
+
+export const AGENT_SEND_PHASES: readonly AgentSendPhase[] = [
+  "reading",
+  "enrolling",
+  "sending",
+  "starting",
+];

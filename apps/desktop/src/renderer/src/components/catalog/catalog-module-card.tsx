@@ -55,22 +55,22 @@ export function CatalogModuleCard({
         <span className="flex min-w-0 flex-col gap-1">
           <span className="flex flex-wrap items-baseline gap-2">
             <span className="font-medium text-ink">{module.name}</span>
-            <code className="font-data text-[10.5px] text-ink-4">
+            <code className="font-data text-[11.5px] text-ink-4">
               {module.id}
             </code>
           </span>
 
-          <span className="text-[11px] text-ink-3 leading-relaxed">
+          <span className="text-[12px] text-ink-3 leading-relaxed">
             {module.summary}
           </span>
 
           {reason ? (
-            <span className="text-[11px] text-warn leading-relaxed">
+            <span className="text-[12px] text-warn leading-relaxed">
               {reason}
             </span>
           ) : null}
 
-          <span className="flex gap-3 font-data text-[10.5px] text-ink-4 tabular-nums">
+          <span className="flex gap-3 font-data text-[11.5px] text-ink-4 tabular-nums">
             <span>
               {t("catalog.module.ram", { mb: module.resources.ram_mb })}
             </span>

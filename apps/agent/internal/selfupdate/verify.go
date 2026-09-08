@@ -26,7 +26,7 @@ func DecodeSignature(encoded string) ([]byte, error) {
 	}
 
 	if err != nil || len(raw) != ed25519.SignatureSize {
-		return nil, errors.New("signature illisible : une signature Ed25519 en base64 est attendue")
+		return nil, errors.New("unreadable signature: a base64 Ed25519 signature is expected")
 	}
 
 	return raw, nil

@@ -1,6 +1,7 @@
 import { editorById, remoteEditorUrl } from "@shared/editors";
 import { ipcMain, shell } from "electron";
 import { agentClient } from "./agent";
+import { releaseSubdomain } from "./connections";
 import {
   actOnProject,
   addProject,
@@ -12,6 +13,8 @@ import {
   type ProjectDeps,
   projectLogs,
 } from "./projects-run";
+import { refusalOf } from "./refusal";
+import { relayTo } from "./relay";
 import { byId } from "./servers";
 
 /**
@@ -35,6 +38,7 @@ export function registerProjects(): void {
   const deps: ProjectDeps = {
     client: agentClient,
     knows: (serverId) => Boolean(byId(serverId)),
+    release: (serverId, subdomain) => releaseSubdomain(serverId, subdomain),
   };
 
   ipcMain.handle("project:list", (_event, serverId: unknown) =>
@@ -51,10 +55,11 @@ export function registerProjects(): void {
       PLAIN.includes(cmd as PlainProjectCommand)
         ? onProject(cmd as PlainProjectCommand, serverId, name, deps)
         : Promise.resolve({
-            error: {
-              code: "unknown_command" as const,
-              message: `Commande de projet inconnue : ${String(cmd)}.`,
-            },
+            error: refusalOf(
+              "unknown_command",
+              "refusal.project.command.unknown",
+              { cmd: String(cmd) }
+            ),
             ok: false as const,
           })
   );
@@ -117,11 +122,7 @@ export function registerProjects(): void {
         name,
         lines,
         follow === true,
-        (line) => {
-          if (typeof token === "string" && !event.sender.isDestroyed()) {
-            event.sender.send("project:log-line", { line, token });
-          }
-        },
+        relayTo<string>(event.sender, token, "project:log-line", "line"),
         deps
       )
   );

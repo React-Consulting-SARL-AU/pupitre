@@ -1,6 +1,7 @@
 import type { CompletionsResult } from "@pupitre/shared/agent-protocol/state";
 import type { AgentResponse } from "@shared/agent";
 import { agentClient } from "./agent";
+import { refusalOf } from "./refusal";
 import { byId } from "./servers";
 
 const PATH_OK = /^[\w.\-/+@ ]{0,240}$/;
@@ -27,9 +28,7 @@ export function completions(
   if (typeof serverId !== "string" || !byId(serverId)) {
     return Promise.resolve({
       error: {
-        code: "bad_request",
-        fix: "Choisis un serveur dans les réglages.",
-        message: "Ce serveur n'est plus dans la liste.",
+        ...refusalOf("bad_request", "refusal.server.unknown"),
       },
       ok: false,
     });

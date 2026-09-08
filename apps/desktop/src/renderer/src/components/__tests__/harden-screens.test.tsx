@@ -20,13 +20,24 @@ function text(html: string): string {
 }
 
 const CLOSED: HardenOutcome = {
-  harden: { next_user: "dev", root_closed: true },
+  harden: { next_user: "dev", root_closed: true, root_kept: false },
   reconnected: true,
   user: "dev",
 };
 
 const KEPT: HardenOutcome = {
-  harden: { next_user: "root", reason: REASON, root_closed: false },
+  harden: { next_user: "dev", root_closed: false, root_kept: true },
+  reconnected: true,
+  user: "dev",
+};
+
+const REFUSED: HardenOutcome = {
+  harden: {
+    next_user: "root",
+    reason: REASON,
+    root_closed: false,
+    root_kept: false,
+  },
   reconnected: false,
   user: null,
 };
@@ -44,12 +55,25 @@ describe("le verdict du durcissement", () => {
 
   it("garde root, rend la raison telle quelle et propose de réessayer", () => {
     const html = renderToStaticMarkup(
-      <OnboardingHardenOutcome outcome={KEPT} />
+      <OnboardingHardenOutcome outcome={REFUSED} />
     );
 
     expect(text(html)).toContain(REASON);
     expect(text(html)).toContain("Root reste ouvert");
     expect(text(html)).toContain("Réessayer");
+  });
+
+  it("dit que root est gardé à la demande, sans proposer de réessayer", () => {
+    const html = renderToStaticMarkup(
+      <OnboardingHardenOutcome outcome={KEPT} />
+    );
+
+    expect(text(html)).toContain("root garde son accès");
+    expect(text(html)).toContain("jamais par mot de passe");
+    expect(text(html)).not.toContain("Réessayer");
+    expect(text(html)).not.toContain(
+      "Root reste ouvert et rien n'a été changé"
+    );
   });
 
   it("dit pourquoi la reconnexion a échoué, avec le remède de l'agent", () => {
@@ -77,11 +101,20 @@ describe("le verdict du durcissement", () => {
 describe("la fin du parcours", () => {
   it("montre le compte auquel l'app est connectée", () => {
     const html = renderToStaticMarkup(
-      <OnboardingDoneScreen rootClosed serverName="Staging" user="dev" />
+      <OnboardingDoneScreen root="closed" serverName="Staging" user="dev" />
     );
 
     expect(text(html)).toContain("Connecté en dev");
     expect(text(html)).toContain("Root est fermé");
+  });
+
+  it("dit que root est resté ouvert parce qu'on l'a demandé", () => {
+    const html = renderToStaticMarkup(
+      <OnboardingDoneScreen root="kept" serverName="Staging" user="dev" />
+    );
+
+    expect(text(html)).toContain("Root est resté ouvert, comme demandé");
+    expect(text(html)).not.toContain("reprends le durcissement");
   });
 });
 

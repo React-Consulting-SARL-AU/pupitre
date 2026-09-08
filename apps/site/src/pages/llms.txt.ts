@@ -1,8 +1,9 @@
 import { getCollection } from "astro:content"
 import { CATALOG_ENTRIES } from "../content/site/catalog"
 import { MODULE_LABELS } from "../content/site/docs"
+import { LLMS } from "../content/site/llms"
 import { docSlug, moduleSlug } from "../lib/docs"
-import { LOCALES, localizePath, translator } from "../lib/i18n"
+import { fill, LOCALES, localizePath, translator } from "../lib/i18n"
 import { canonicalUrl } from "../lib/seo"
 
 interface Line {
@@ -49,14 +50,14 @@ export async function GET() {
   const link = (path: string) => canonicalUrl(path)
 
   const sections = [
-    block("Start here", [
+    block(LLMS.sections.start, [
       ...start.map((entry) => ({
         title: entry.data.title,
         href: link(localizePath(`/docs/${docSlug(entry.id)}/`, "en")),
         note: entry.data.description,
       })),
     ]),
-    block("Documentation", [
+    block(LLMS.sections.documentation, [
       {
         title: t("docs.label"),
         href: link(localizePath("/docs/", "en")),
@@ -68,7 +69,7 @@ export async function GET() {
         note: entry.data.description,
       })),
     ]),
-    block("Service catalogue", [
+    block(LLMS.sections.catalog, [
       {
         title: MODULE_LABELS.overviewTitle.en,
         href: link(localizePath("/docs/services/", "en")),
@@ -80,25 +81,16 @@ export async function GET() {
         note: entry.detail.en,
       })),
     ]),
-    block("Product", [
-      {
-        title: "Pricing",
-        href: link(localizePath("/pricing/", "en")),
-        note: "One price per server, monthly or yearly, and what happens when it stops.",
-      },
-      {
-        title: "Download",
-        href: link(localizePath("/download/", "en")),
-        note: "The desktop app for macOS, Windows and Linux, with the requirements on both sides.",
-      },
-      {
-        title: "Changelog",
-        href: link(localizePath("/changelog/", "en")),
-        note: "One entry per release of the app and of the agent.",
-      },
-    ]),
     block(
-      "Writing",
+      LLMS.sections.product,
+      LLMS.product.map((entry) => ({
+        title: entry.title,
+        href: link(localizePath(entry.path, "en")),
+        note: entry.note,
+      }))
+    ),
+    block(
+      LLMS.sections.writing,
       posts.map((entry) => ({
         title: entry.data.title,
         href: link(localizePath(`/blog/${docSlug(entry.id)}/`, "en")),
@@ -106,28 +98,30 @@ export async function GET() {
       }))
     ),
     block(
-      "Legal",
+      LLMS.sections.legal,
       legal.map((entry) => ({
         title: entry.data.title,
         href: link(localizePath(`/legal/${docSlug(entry.id)}/`, "en")),
         note: entry.data.description,
       }))
     ),
-    block("Other languages", [
+    block(LLMS.sections.languages, [
       {
-        title: "Français",
+        title: LLMS.alternate.title,
         href: link(localizePath("/", "fr")),
-        note: `The whole site exists in ${LOCALES.join(" and ")} under the same paths.`,
+        note: fill(LLMS.alternate.note, {
+          locales: LOCALES.join(" and "),
+        }),
       },
     ]),
   ]
 
   const body = [
-    "# Pupitre",
+    `# ${LLMS.title}`,
     "",
-    "> A desktop app that turns any Ubuntu VPS into a workshop for AI agents, and a compiled agent installed on that server. The customer brings the machine; Pupitre inspects it, installs the services they choose, hardens it, and becomes the window onto it.",
+    `> ${LLMS.summary}`,
     "",
-    "Pupitre is a closed commercial product. Nothing connects inward to a customer's server, no private key leaves their laptop, and when a subscription stops the server keeps running as an ordinary Ubuntu machine.",
+    LLMS.note,
     "",
     ...sections,
   ].join("\n")

@@ -1,3 +1,4 @@
+import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { Check, RefreshCw } from "lucide-react";
 import type {
@@ -30,6 +31,7 @@ export function FirstProjectPanel({
   draft,
   detected,
   cloudflare,
+  publish,
   phases,
   logs,
   run,
@@ -46,8 +48,10 @@ export function FirstProjectPanel({
   known: KnownState;
   draft: Draft;
   detected: boolean;
-  /** Whether `exposure.cloudflare` sits on this machine: no tunnel, no subdomain. */
+  /** Whether an exposure sits on this machine: no tunnel, no subdomain. */
   cloudflare: boolean;
+  /** Whether that exposure draws the address itself. */
+  publish: boolean;
   phases: readonly Phase[];
   logs: readonly string[];
   run: FirstProjectState;
@@ -95,10 +99,10 @@ export function FirstProjectPanel({
               {t("common.retry")}
             </Button>
           }
-          fix={known.error.fix}
+          fix={agentText(t, known.error).fix}
           tone="danger"
         >
-          {known.error.message}
+          {agentText(t, known.error).message}
         </Callout>
       ) : null}
 
@@ -109,6 +113,7 @@ export function FirstProjectPanel({
           draft={draft}
           edit={edit}
           onSubmit={onLaunch}
+          publish={publish}
           ready={ready}
         />
       ) : null}
@@ -122,10 +127,10 @@ export function FirstProjectPanel({
               {t("common.retry")}
             </Button>
           }
-          fix={run.error.fix}
+          fix={agentText(t, run.error).fix}
           tone="danger"
         >
-          {run.error.message}
+          {agentText(t, run.error).message}
         </Callout>
       ) : null}
 

@@ -21,6 +21,17 @@ export const homeFr: HomeContent = {
     note: "Et une vingtaine d’autres, à ajouter ou à retirer quand vous voulez.",
     link: "Voir tout ce qu’il installe",
   },
+  name: {
+    label: "Le mot",
+    word: "pupitre",
+    pronunciation: "py.pitʁ",
+    grammar: "nom masculin",
+    senses: [
+      "Le banc d’écolier. Le couvercle en pente qu’on soulevait pour retrouver ses livres, deux par table, au fond de la classe.",
+      "Par extension, le lutrin où lit un chef d’orchestre, et la console où s’assoit un ingénieur.",
+    ],
+    note: "On en a donné un à vos agents. Le vôtre, c’est le laptop que vous venez de refermer.",
+  },
   steps: {
     label: "Comment ça marche",
     title: "Six marches, et vous ne les montez qu’une fois",

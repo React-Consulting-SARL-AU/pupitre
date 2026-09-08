@@ -1,3 +1,4 @@
+import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { ServerDraft } from "@shared/servers";
 import { Plus, Server as ServerIcon } from "lucide-react";
@@ -6,11 +7,12 @@ import { useServers } from "../../stores/servers";
 import { FleetPanel } from "../fleet/fleet-panel";
 import { OnboardingEntry } from "../onboarding/onboarding-entry";
 import { Button } from "../ui/button";
+import { Callout } from "../ui/callout";
 import { EmptyState } from "../ui/empty-state";
 import { Label } from "../ui/label";
 import { HostKeyAlert } from "./host-key-alert";
 import { ServerAddForm } from "./server-add-form";
-import { ServerKeyCard } from "./server-key-card";
+import { ServerKeyInstall } from "./server-key-install";
 import { ServerRow } from "./server-row";
 
 /**
@@ -20,6 +22,10 @@ import { ServerRow } from "./server-row";
  * what it answered. The host key sits above the list rather than inside it,
  * because a refused connection is not a detail of one row: it is the reason
  * nothing works.
+ *
+ * This is the panel of the settings, where a server is managed: renamed, made
+ * active, deleted. The assistant has its own screen for the same machines,
+ * because choosing one is not managing them.
  */
 export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
   const t = useTranslations();
@@ -32,9 +38,11 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
     config,
     dismissHostKey,
     forgetAddition,
+    forget,
     hostKey,
     load,
     remove,
+    removal,
     rename,
     trustReinstalled,
   } = useServers();
@@ -63,11 +71,21 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
   async function submit(draft: ServerDraft) {
     await add(draft);
 
+    const state = useServers.getState().addition;
+
     // A refusal keeps the form open, with its remedy: closing it would take the
     // typed values away along with the explanation.
-    if (useServers.getState().addition.status === "added") {
-      setAdding(false);
-      onChanged?.();
+    if (state.status !== "added") {
+      return;
+    }
+
+    setAdding(false);
+    onChanged?.();
+
+    // A system host already opens the machine: there is no key to install and
+    // nothing to wait for.
+    if (!state.publicKey) {
+      forgetAddition();
     }
   }
 
@@ -138,8 +156,20 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
                 <ServerRow
                   active={server.id === active}
                   onActivate={() => run(activate(server.id))}
+                  onForget={() => run(forget(server.id))}
                   onRemove={() => run(remove(server.id))}
                   onRename={(name) => run(rename(server.id, name))}
+                  refusal={
+                    removal.status === "refused" &&
+                    removal.serverId === server.id ? (
+                      <Callout
+                        fix={agentText(t, removal.error).fix}
+                        tone="danger"
+                      >
+                        {agentText(t, removal.error).message}
+                      </Callout>
+                    ) : null
+                  }
                   server={server}
                 />
               </div>
@@ -161,7 +191,7 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
       ) : null}
 
       {justAdded?.publicKey ? (
-        <ServerKeyCard
+        <ServerKeyInstall
           copyId={justAdded.copyId}
           onDone={forgetAddition}
           publicKey={justAdded.publicKey}

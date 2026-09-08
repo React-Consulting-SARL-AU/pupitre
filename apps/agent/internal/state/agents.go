@@ -1,6 +1,7 @@
 package state
 
 import (
+	"pupitre.studio/agent/internal/i18n"
 	"sort"
 	"strings"
 
@@ -29,8 +30,8 @@ type AgentSession struct {
 func (r *Reader) OpenAgent(kind, name string) (AgentSession, error) {
 	agent, known := agentPrograms[kind]
 	if !known {
-		return AgentSession{}, protocol.NewError(contract.ErrorBadRequest, "agent inconnu : "+kind).
-			WithFix("Les agents sont " + strings.Join(agentKinds(), ", ") + ".")
+		return AgentSession{}, protocol.NewError(contract.ErrorBadRequest, i18n.T("state.agent.unknown", kind)).
+			WithFix(i18n.T("state.agent.unknown.fix", strings.Join(agentKinds(), ", ")))
 	}
 
 	project, declared := r.registry().Get(name)

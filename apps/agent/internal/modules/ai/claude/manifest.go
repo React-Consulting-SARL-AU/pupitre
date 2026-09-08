@@ -1,6 +1,9 @@
 package claude
 
-import "pupitre.studio/agent/internal/contract"
+import (
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
+)
 
 const ID = "ai.claude"
 
@@ -9,7 +12,7 @@ func manifest() contract.Manifest {
 		ID:        ID,
 		Category:  "ai",
 		Name:      "Claude Code",
-		Summary:   "Claude Code installé pour dev, avec le contexte de la machine et les skills Pupitre. La connexion se fait par l'URL que l'outil affiche au premier lancement.",
+		Summary:   i18n.T("module.ai.claude.summary"),
 		Requires:  []string{"core.system", "runtime.node"},
 		Conflicts: []string{},
 		Resources: contract.Resources{RAMMB: 512, DiskMB: 512},

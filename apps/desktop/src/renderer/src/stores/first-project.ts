@@ -45,15 +45,24 @@ export const PHASES = ["add", "sources", "install", "up", "logs"] as const;
  * anything on this screen. What the probe found and what the install just put
  * there both count; a module that failed does not.
  */
-export function hasCloudflare(
+function holds(
+  moduleId: string,
   present: readonly string[],
   installed: readonly string[],
   failed: readonly string[]
 ): boolean {
   return (
-    present.includes(CLOUDFLARE) ||
-    (installed.includes(CLOUDFLARE) && !failed.includes(CLOUDFLARE))
+    present.includes(moduleId) ||
+    (installed.includes(moduleId) && !failed.includes(moduleId))
   );
+}
+
+export function hasCloudflare(
+  present: readonly string[],
+  installed: readonly string[],
+  failed: readonly string[]
+): boolean {
+  return holds(CLOUDFLARE, present, installed, failed);
 }
 
 export type PhaseId = (typeof PHASES)[number];
@@ -116,6 +125,7 @@ interface FirstProjectStore {
   /** True when the package manager came from a project the agent already knows. */
   detected: boolean;
   cloudflare: boolean;
+  publish: boolean;
   phases: Phase[];
   logs: string[];
   run: FirstProjectState;
@@ -126,6 +136,7 @@ interface FirstProjectStore {
   setPkgmgr: (value: PackageManager) => void;
   setPort: (value: number) => void;
   setSubdomain: (value: string) => void;
+  setPublish: (value: boolean) => void;
   setCmd: (value: string) => void;
 
   launch: (serverId: string) => Promise<void>;
@@ -281,7 +292,6 @@ export const useFirstProject = create<FirstProjectStore>((set, get) => {
     );
   }
 
-  /** The project's row in the registry, and the port the agent will take. */
   async function declare(serverId: string): Promise<boolean> {
     const added = await step("add", serverId, () =>
       window.pupitre.addProject(serverId, get().params())
@@ -498,6 +508,7 @@ export const useFirstProject = create<FirstProjectStore>((set, get) => {
   return {
     cloudflare: false,
     detected: false,
+    publish: true,
     draft: EMPTY_DRAFT,
     edited: UNTOUCHED,
     known: { status: "idle" },
@@ -506,7 +517,10 @@ export const useFirstProject = create<FirstProjectStore>((set, get) => {
     run: { status: "idle" },
 
     async prepare(serverId, cloudflare) {
-      set({ cloudflare, known: { serverId, status: "loading" } });
+      set({
+        cloudflare,
+        known: { serverId, status: "loading" },
+      });
 
       const answer: AgentResponse<ProjectListResult> =
         await window.pupitre.listProjects(serverId);
@@ -551,6 +565,10 @@ export const useFirstProject = create<FirstProjectStore>((set, get) => {
       refresh({ subdomain: value }, { subdomain: true });
     },
 
+    setPublish(value) {
+      set({ publish: value });
+    },
+
     setCmd(value) {
       refresh({ cmd: value }, { cmd: true });
     },
@@ -573,6 +591,7 @@ export const useFirstProject = create<FirstProjectStore>((set, get) => {
         cloudflare: false,
         detected: false,
         draft: EMPTY_DRAFT,
+        publish: true,
         edited: UNTOUCHED,
         known: { status: "idle" },
         logs: [],

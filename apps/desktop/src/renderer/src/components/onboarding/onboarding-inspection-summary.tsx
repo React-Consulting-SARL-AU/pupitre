@@ -1,12 +1,14 @@
 import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { measured } from "@renderer/lib/format";
 import { Label } from "../ui/label";
 
 /**
  * The machine in four figures, as the probe measured them.
  *
  * Nothing is converted and nothing is rounded further: what is shown is what
- * the next screen will weigh services against.
+ * the next screen will weigh services against. Only the unit words and the
+ * decimal mark follow the reader's language.
  */
 export function OnboardingInspectionSummary({ probe }: { probe: ProbeResult }) {
   const t = useTranslations();
@@ -17,10 +19,13 @@ export function OnboardingInspectionSummary({ probe }: { probe: ProbeResult }) {
       value: `${probe.os} ${probe.version}`.trim(),
     },
     { label: t("onboarding.summary.architecture"), value: probe.arch },
-    { label: t("onboarding.summary.memory"), value: `${probe.ram_mb} Mo` },
+    {
+      label: t("onboarding.summary.memory"),
+      value: `${probe.ram_mb} ${t("format.unit.mb")}`,
+    },
     {
       label: t("onboarding.summary.diskFree"),
-      value: `${probe.disk_free_gb} Go`,
+      value: `${measured(probe.disk_free_gb)} ${t("format.unit.gb")}`,
     },
   ];
 

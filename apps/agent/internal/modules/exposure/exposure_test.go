@@ -2,12 +2,14 @@ package exposure_test
 
 import (
 	"reflect"
+	"slices"
 	"testing"
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/exposure"
+	"pupitre.studio/agent/internal/modules/exposure/caddy"
 	"pupitre.studio/agent/internal/modules/exposure/cloudflare"
 	"pupitre.studio/agent/internal/modules/exposure/ssh"
 	"pupitre.studio/agent/internal/modules/modtest"
@@ -22,6 +24,7 @@ func registry(t *testing.T) *modules.Registry {
 	registry.Register(modtest.Passing{ID: "core.system"})
 	registry.Register(cloudflare.Module{})
 	registry.Register(ssh.Module{})
+	registry.Register(caddy.Module{})
 
 	return registry
 }
@@ -41,10 +44,11 @@ func TestTranscripts(t *testing.T) {
 	})
 }
 
-func TestTheTwoManifestsMatchTheCatalog(t *testing.T) {
+func TestTheManifestsMatchTheCatalog(t *testing.T) {
 	fields := map[string][]string{
-		cloudflare.ID: {"api_token", "account_id", "zone_id", "zone_name", "domain"},
+		cloudflare.ID: {"domain", "account_tag", "tunnel_id", "tunnel_secret"},
 		ssh.ID:        {},
+		caddy.ID:      {"domain", "email", "http_port", "https_port"},
 	}
 
 	for _, module := range registry(t).All() {
@@ -74,13 +78,26 @@ func TestTheTwoManifestsMatchTheCatalog(t *testing.T) {
 	}
 }
 
-// One exposure at a time: the engine refuses the second one, and each manifest names the other.
-func TestTheTwoExposuresConflict(t *testing.T) {
-	for id, other := range map[string]string{cloudflare.ID: ssh.ID, ssh.ID: cloudflare.ID} {
+// One exposure at a time: the engine refuses the second one, and each manifest names the two others.
+func TestTheThreeExposuresConflict(t *testing.T) {
+	all := []string{cloudflare.ID, ssh.ID, caddy.ID}
+
+	for _, id := range all {
 		module, _ := registry(t).Get(id)
 
-		if conflicts := module.Manifest().Conflicts; len(conflicts) != 1 || conflicts[0] != other {
-			t.Errorf("%s must conflict with %s, got %v", id, other, conflicts)
+		others := []string{}
+		for _, candidate := range all {
+			if candidate != id {
+				others = append(others, candidate)
+			}
+		}
+
+		conflicts := slices.Clone(module.Manifest().Conflicts)
+		slices.Sort(conflicts)
+		slices.Sort(others)
+
+		if !reflect.DeepEqual(conflicts, others) {
+			t.Errorf("%s must conflict with %v, got %v", id, others, conflicts)
 		}
 	}
 }

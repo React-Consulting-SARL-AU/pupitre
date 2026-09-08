@@ -2,6 +2,7 @@ package state
 
 import (
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/sys/env"
@@ -11,8 +12,8 @@ import (
 func (r *Reader) ServiceSecret(id, key string) (string, error) {
 	module, known := r.module(id)
 	if !known {
-		return "", protocol.NewError(contract.ErrorServiceNotFound, "service inconnu : "+id).
-			WithFix("Appelle catalog pour la liste des modules de ce serveur.")
+		return "", protocol.NewError(contract.ErrorServiceNotFound, i18n.T("state.service.unknown", id)).
+			WithFix(i18n.T("state.service.unknown.fix"))
 	}
 
 	ctx := r.moduleContext(module)
@@ -27,8 +28,8 @@ func (r *Reader) ServiceSecret(id, key string) (string, error) {
 	}
 
 	if !owns(status.Credentials, key) {
-		return "", protocol.NewError(contract.ErrorBadRequest, "la clé "+key+" n'appartient pas à "+id).
-			WithFix("Appelle service.status " + id + " pour la liste de ses identifiants.")
+		return "", protocol.NewError(contract.ErrorBadRequest, i18n.T("state.secret.foreign", key, id)).
+			WithFix(i18n.T("state.secret.foreign.fix", id))
 	}
 
 	value, present, err := env.Get(ctx, key)
@@ -37,8 +38,8 @@ func (r *Reader) ServiceSecret(id, key string) (string, error) {
 	}
 
 	if !present || value == "" {
-		return "", protocol.NewError(contract.ErrorBadRequest, "aucune valeur enregistrée pour "+key).
-			WithFix("Enregistre la valeur avec secrets.set, ou réinstalle " + id + ".")
+		return "", protocol.NewError(contract.ErrorBadRequest, i18n.T("state.secret.missing", key)).
+			WithFix(i18n.T("state.secret.missing.fix", id))
 	}
 
 	return value, nil

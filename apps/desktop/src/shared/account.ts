@@ -1,3 +1,4 @@
+import type { ErrorPhrase } from "./agent";
 /**
  * What the two processes say to each other about the account.
  *
@@ -15,6 +16,7 @@ export interface AccountError {
   code: string;
   message: string;
   fix?: string;
+  phrase?: ErrorPhrase;
 }
 
 export type AccountResponse<T> =

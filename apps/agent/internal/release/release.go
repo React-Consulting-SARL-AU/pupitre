@@ -29,6 +29,35 @@ var Channels = []string{"stable", "beta"}
 
 var semver = regexp.MustCompile(`^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`)
 
+// Manifest is what the app reads alongside the binaries it embeds: the version it carries, and the per-architecture signature it will attach to an update for a server out of the platform's reach.
+type Manifest struct {
+	Version    string            `json:"version"`
+	Notes      []string          `json:"notes"`
+	Signatures map[string]string `json:"signatures"`
+}
+
+func ManifestOf(publications []Publication) (Manifest, error) {
+	if len(publications) == 0 {
+		return Manifest{}, errors.New("no publication: nothing to describe to the app")
+	}
+
+	manifest := Manifest{
+		Version:    publications[0].Version,
+		Notes:      []string{},
+		Signatures: make(map[string]string, len(publications)),
+	}
+
+	for _, publication := range publications {
+		if publication.Version != manifest.Version {
+			return Manifest{}, fmt.Errorf("two versions in the same publication: %s and %s", manifest.Version, publication.Version)
+		}
+
+		manifest.Signatures[publication.Arch] = publication.Signature
+	}
+
+	return manifest, nil
+}
+
 // The body of POST /admin/releases, field for field.
 type Publication struct {
 	Version   string `json:"version"`
@@ -68,11 +97,11 @@ func Sign(private ed25519.PrivateKey, version, arch, channel string, binary []by
 	}
 
 	if len(private) != ed25519.PrivateKeySize {
-		return Publication{}, errors.New("clé de signature illisible : une clé privée Ed25519 en base64 est attendue")
+		return Publication{}, errors.New("unreadable signing key: a base64 Ed25519 private key is expected")
 	}
 
 	if len(binary) == 0 {
-		return Publication{}, errors.New("binaire vide : rien à signer")
+		return Publication{}, errors.New("empty binary: nothing to sign")
 	}
 
 	fingerprint := Fingerprint(binary)
@@ -94,7 +123,7 @@ func ArchOf(binaryPath string) (string, error) {
 
 	arch, found := strings.CutPrefix(name, BinaryPrefix)
 	if !found {
-		return "", fmt.Errorf("%s : le nom attendu est %s<architecture>", name, BinaryPrefix)
+		return "", fmt.Errorf("%s: the expected name is %s<architecture>", name, BinaryPrefix)
 	}
 
 	if err := checkArch(arch); err != nil {
@@ -107,7 +136,7 @@ func ArchOf(binaryPath string) (string, error) {
 func ParsePrivateKey(encoded string) (ed25519.PrivateKey, error) {
 	raw, err := base64.StdEncoding.DecodeString(strings.TrimSpace(encoded))
 	if err != nil || len(raw) != ed25519.PrivateKeySize {
-		return nil, errors.New("clé de signature illisible : une clé privée Ed25519 en base64 est attendue")
+		return nil, errors.New("unreadable signing key: a base64 Ed25519 private key is expected")
 	}
 
 	return ed25519.PrivateKey(raw), nil
@@ -128,7 +157,7 @@ func GenerateKeyPair() (string, string, error) {
 
 func checkVersion(version string) error {
 	if !semver.MatchString(version) {
-		return fmt.Errorf("%q n'est pas une version semver ; la plateforme refuserait la publication", version)
+		return fmt.Errorf("%q is not a semver version; the platform would refuse the publication", version)
 	}
 
 	return nil
@@ -141,7 +170,7 @@ func checkArch(arch string) error {
 		}
 	}
 
-	return fmt.Errorf("architecture inconnue : %q, attendu %s", arch, strings.Join(Architectures, " ou "))
+	return fmt.Errorf("unknown architecture: %q, expected %s", arch, strings.Join(Architectures, " or "))
 }
 
 func resolveChannel(channel string) (string, error) {
@@ -155,5 +184,5 @@ func resolveChannel(channel string) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("canal inconnu : %q, attendu %s", channel, strings.Join(Channels, " ou "))
+	return "", fmt.Errorf("unknown channel: %q, expected %s", channel, strings.Join(Channels, " or "))
 }

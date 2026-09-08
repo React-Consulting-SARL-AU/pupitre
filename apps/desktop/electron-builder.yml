@@ -48,19 +48,23 @@ electronFuses:
   enableNodeCliInspectArguments: false
   enableCookieEncryption: true
 
-# The releases are private, and the app reads them with a token the workflow
-# bakes in. Nothing here is a secret: `owner` and `repo` name a repository that
-# answers nothing without one.
+# The artefacts are public: they live in the download bucket, one folder per
+# version, and one folder per channel holds the feed electron-updater reads.
+# This is the feed a build ships with; the app points itself at the folder of
+# the channel it follows when it starts. Nothing here is a secret, and no token
+# is baked into the app.
 publish:
-  provider: github
-  owner: jordanmonier
-  repo: pupitre
-  private: true
-  releaseType: release
+  provider: generic
+  url: https://dl.pupitre.studio/app/stable
+  channel: latest
 
 mac:
   category: public.app-category.developer-tools
   icon: build/icon.icns
+  # The architecture is in the name of every artefact, on the three systems: the
+  # publication reads it from there, and a download page that cannot say which
+  # machine a file is for is worse than no page.
+  artifactName: Pupitre-${version}-${arch}.${ext}
   # Both architectures: an Intel Mac is still a Mac, and cross-building the other
   # one costs nothing here.
   target:
@@ -103,6 +107,7 @@ linux:
   target:
     - AppImage
     - deb
+  artifactName: Pupitre-${version}-${arch}.${ext}
   # The window carries no title bar of its own; a desktop environment ties it
   # back to its launcher entry by WM_CLASS, which Electron takes from
   # `desktopName` in package.json. This makes the installed file agree with it.
@@ -119,6 +124,10 @@ win:
   icon: build/icon.png
   target:
     - nsis
-  # Signing is Azure Trusted Signing, whose four names are read in the portal:
-  # `azureSignOptions` is added here once they exist, and the credentials come
-  # from the environment. See the runbook in docs/monorepo.md.
+  # Signing is Azure Trusted Signing, whose four names are read in the portal.
+  # They are not in this file: the release workflow passes them on the command
+  # line from repository variables, so a build without them is unsigned and says
+  # so rather than failing. See the runbook in docs/monorepo.md.
+
+nsis:
+  artifactName: Pupitre-Setup-${version}-${arch}.${ext}

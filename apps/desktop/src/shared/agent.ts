@@ -19,12 +19,25 @@ export type AgentErrorCode =
   | "disconnected"
   | "server_suspended";
 
+/**
+ * What the app has to render itself, rather than show as is.
+ *
+ * A refusal from the main process names an entry of the renderer's dictionary
+ * and the values to put in it; what comes from the agent carries none, and is
+ * shown word for word, in the language the server answered in.
+ */
+export interface ErrorPhrase {
+  id: string;
+  values?: Record<string, string | number>;
+}
+
 export interface AgentError {
   code: AgentErrorCode;
   message: string;
   fix?: string;
   /** The machine-readable half of `fix`, when the remedy is a value. */
   remedy?: Remedy;
+  phrase?: ErrorPhrase;
 }
 
 export type AgentResponse<T> =

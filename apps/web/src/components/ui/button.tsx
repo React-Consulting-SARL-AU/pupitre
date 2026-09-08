@@ -1,4 +1,5 @@
-import type { ButtonHTMLAttributes } from "react"
+import type { LucideIcon } from "lucide-react"
+import type { ButtonHTMLAttributes, ReactNode } from "react"
 import { cn } from "@/lib/utils/cn"
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger"
@@ -32,7 +33,7 @@ export function buttonClassName({
   className,
 }: ButtonLook = {}): string {
   return cn(
-    "inline-flex items-center justify-center rounded-full font-medium transition-[background-color,opacity,color] duration-[120ms] ease-[ease]",
+    "inline-flex items-center justify-center rounded-full font-medium transition-fast",
     "focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2",
     "disabled:cursor-not-allowed",
     VARIANTS[variant],
@@ -44,6 +45,9 @@ export function buttonClassName({
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant
   size?: ButtonSize
+  icon?: LucideIcon
+  /** While it works the button breathes in place of its icon, and takes no second click. */
+  loading?: boolean
 }
 
 export function Button({
@@ -51,13 +55,35 @@ export function Button({
   variant = "secondary",
   size = "md",
   type = "button",
+  icon: Icon,
+  loading = false,
+  disabled = false,
+  children,
   ...props
 }: ButtonProps) {
+  let glyph: ReactNode = null
+
+  if (loading) {
+    glyph = (
+      <span
+        aria-hidden="true"
+        className="size-[10px] shrink-0 animate-breathe rounded-full bg-current"
+      />
+    )
+  } else if (Icon) {
+    glyph = <Icon className="size-4 shrink-0" strokeWidth={1.5} />
+  }
+
   return (
     <button
+      aria-busy={loading || undefined}
       className={buttonClassName({ variant, size, className })}
+      disabled={disabled || loading}
       type={type}
       {...props}
-    />
+    >
+      {glyph}
+      {children}
+    </button>
   )
 }

@@ -77,7 +77,7 @@ func parseShot(args []string) (shots.Request, bool, error) {
 		case argument == "-s" || argument == "--size":
 			index++
 			if index >= len(args) {
-				return request, false, fmt.Errorf("--size attend une taille, par exemple 1024x768")
+				return request, false, fmt.Errorf("--size expects a size, for example 1024x768")
 			}
 			request.Size = strings.ReplaceAll(args[index], "x", ",")
 		case argument == "-w" || argument == "--wait":
@@ -95,7 +95,7 @@ func parseShot(args []string) (shots.Request, bool, error) {
 	}
 
 	if len(positional) == 0 {
-		return request, false, fmt.Errorf("il manque le fichier ou l'URL à capturer")
+		return request, false, fmt.Errorf("the file or URL to capture is missing")
 	}
 
 	request.Source = positional[0]

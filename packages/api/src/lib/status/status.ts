@@ -3,10 +3,10 @@ import {
   type SocialProviderId,
 } from "@pupitre/auth/server"
 import type { ReleaseChannel } from "@pupitre/db/cloudflare/client"
+import { latestBy } from "@pupitre/shared/semver"
 import { type StatusFreshness, statusFreshness } from "@pupitre/shared/status"
 import { getApiAuth } from "../api/plugins/auth"
 import { getPrisma } from "../api/prisma"
-import { compareVersions } from "../releases/semver"
 
 export type ServiceHealth = "ok" | "down"
 
@@ -34,13 +34,7 @@ interface ReleaseRow {
 }
 
 function newest(releases: ReleaseRow[]): PublishedRelease | null {
-  const latest = releases.reduce<ReleaseRow | null>(
-    (best, release) =>
-      best && compareVersions(release.version, best.version) <= 0
-        ? best
-        : release,
-    null
-  )
+  const latest = latestBy(releases, (release) => release.version)
 
   return latest
     ? {

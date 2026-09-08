@@ -38,7 +38,7 @@ function run(
 
 function fixture(): TWranglerConfig {
   return {
-    name: "pupitre-web",
+    name: "ppt-web",
     secrets: { required: ["DATABASE_URL"] },
     env: {
       staging: {
@@ -57,13 +57,13 @@ describe("the wrangler configuration is read as JSONC", () => {
     const source = [
       "{",
       "  // the Worker",
-      '  "name": "pupitre-web", /* deployed name */',
+      '  "name": "ppt-web", /* deployed name */',
       '  "url": "https://app.pupitre.studio",',
       "}",
     ].join("\n")
 
     expect(JSON.parse(stripJsonc(source))).toEqual({
-      name: "pupitre-web",
+      name: "ppt-web",
       url: "https://app.pupitre.studio",
     })
   })
@@ -89,7 +89,7 @@ describe("the required secrets of an environment", () => {
     const secrets = environmentSecrets(fixture(), "staging")
 
     expect(secrets.required).toEqual(["DATABASE_URL", "STRIPE_SECRET_KEY"])
-    expect(secrets.workerName).toBe("pupitre-web-staging")
+    expect(secrets.workerName).toBe("ppt-web-staging")
   })
 
   test("an environment without a list inherits the top-level one", () => {
@@ -114,7 +114,7 @@ describe("the required secrets of an environment", () => {
       "DATABASE_URL"
     )
     expect(environmentSecrets(config, "production").required).toContain(
-      "SENTRY_DSN"
+      "R2_BUCKET_NAME"
     )
   })
 })
@@ -134,8 +134,8 @@ describe("the bound secrets are read from wrangler or from a list", () => {
 
   test("a plain list is understood", () => {
     expect(
-      parseBoundNames("DATABASE_URL, BETTER_AUTH_SECRET\nSENTRY_DSN")
-    ).toEqual(["DATABASE_URL", "BETTER_AUTH_SECRET", "SENTRY_DSN"])
+      parseBoundNames("DATABASE_URL, BETTER_AUTH_SECRET\nR2_BUCKET_NAME")
+    ).toEqual(["DATABASE_URL", "BETTER_AUTH_SECRET", "R2_BUCKET_NAME"])
   })
 
   test("nothing bound is an empty list", () => {
@@ -178,14 +178,14 @@ describe("command line", () => {
     expect(result.status).toBe(1)
     expect(result.stderr).toContain("Deployment refused")
     expect(result.stderr).toContain("R2_BUCKET_NAME")
-    expect(result.stderr).toContain("pupitre-web-staging")
+    expect(result.stderr).toContain("ppt-web-staging")
   })
 
   test("every missing secret is named", () => {
     const result = run(["production"], "DATABASE_URL")
 
     expect(result.status).toBe(1)
-    expect(result.stderr).toContain("SENTRY_DSN")
+    expect(result.stderr).toContain("R2_ACCOUNT_ID")
     expect(result.stderr).toContain("STRIPE_WEBHOOK_SECRET")
     expect(result.stderr).not.toContain("- DATABASE_URL")
   })
@@ -199,7 +199,7 @@ describe("command line", () => {
     const result = run(["production"], required.join(","))
 
     expect(result.status).toBe(0)
-    expect(result.stdout).toContain("pupitre-web-production")
+    expect(result.stdout).toContain("ppt-web-production")
   })
 
   test("an unknown environment is refused before any deployment", () => {

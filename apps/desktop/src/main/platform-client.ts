@@ -4,6 +4,7 @@ import {
   pollDeviceFlow,
   startDeviceFlow,
 } from "@pupitre/auth/client/desktop";
+import { PUPITRE_ORIGINS } from "@pupitre/shared/legal";
 import type {
   AccountDevice,
   AccountError,
@@ -21,11 +22,35 @@ import type { FleetServer } from "@shared/servers";
  * never held by this module: it belongs to the vault.
  */
 
-export const DEFAULT_PLATFORM_URL = "https://app.pupitre.studio";
+export const DEFAULT_PLATFORM_URL = PUPITRE_ORIGINS.app;
+
+/** `bun run dev:web` — the console and its API, on this computer. */
+export const LOCAL_PLATFORM_URL = "http://localhost:3000";
+
+/**
+ * The same console, as a remote server reaches it.
+ *
+ * `localhost` means nothing on the VPS: it is that machine's own loopback,
+ * where nothing listens. The named tunnel `bun dev` runs publishes this console
+ * under this name, which does not change from one launch to the next, and
+ * serves only `/api/v1/agent/` of it.
+ */
+export const DEV_AGENT_PLATFORM_URL = "https://dev-app.pupitre.studio";
 
 export const RELEASE_STORAGE_HEADER = "x-pupitre-release-storage";
 
 const REDIRECT = 303;
+
+/**
+ * How long a call has to come back, and the binary to arrive.
+ *
+ * A silent platform — one that accepts the connection and never answers — is
+ * the case that doesn't show itself: without a bound, the wizard stays stuck
+ * on its step announcing nothing. The binary download keeps its own budget,
+ * since it needs it.
+ */
+const CALL_MS = 20_000;
+const DOWNLOAD_MS = 5 * 60_000;
 
 export type FetchLike = (
   input: string | URL | Request,
@@ -49,6 +74,7 @@ export interface ServerForUserBody {
   host_fingerprint: string | null;
   status: string;
   key_ready: boolean;
+  organization: { id: string; name: string };
 }
 
 export interface DeviceBody {
@@ -84,11 +110,24 @@ export interface ReleaseDownload {
   storage: string;
 }
 
+/** What the platform publishes for a version of the agent: enough to name and verify it, not to read it. */
+export interface AgentReleaseBody {
+  version: string;
+  arch: string;
+  sha256: string;
+  signature: string;
+}
+
 export interface PlatformClient {
   baseUrl: string;
   deviceCode: () => Promise<AccountResponse<DeviceFlowStart>>;
   deviceToken: (deviceCode: string) => Promise<AccountResponse<DeviceFlowPoll>>;
   me: (token: string) => Promise<AccountResponse<AccountIdentity>>;
+  /** Switches this session's active organization, and this session's alone. */
+  switchOrganization: (
+    token: string,
+    organizationId: string
+  ) => Promise<AccountResponse<AccountIdentity>>;
   devices: (token: string) => Promise<AccountResponse<AccountDevice[]>>;
   addDevice: (
     token: string,
@@ -105,16 +144,51 @@ export interface PlatformClient {
     version: string,
     arch: string
   ) => Promise<AccountResponse<ReleaseDownload>>;
+  /** The latest version published for this architecture, the one a server should run. */
+  latestAgentRelease: (
+    token: string,
+    arch: string,
+    channel?: string
+  ) => Promise<AccountResponse<AgentReleaseBody>>;
+  /**
+   * One call per stage of deletion: the first revokes, the second erases the
+   * row. Requires the `admin` role; a row already erased answers `not_found`.
+   */
+  deleteServer: (
+    token: string,
+    serverId: string
+  ) => Promise<AccountResponse<null>>;
 }
 
-export function offlineError(error: unknown): AccountError {
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+export function isLocalPlatform(baseUrl: string): boolean {
+  try {
+    return LOOPBACK_HOSTS.has(new URL(baseUrl).hostname);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The platform as the agent is given it: its own, unless that is a console of
+ * this computer, which no remote server could reach.
+ */
+export function agentBaseUrl(platform: string): string {
+  return isLocalPlatform(platform) ? DEV_AGENT_PLATFORM_URL : platform;
+}
+
+export function offlineError(error: unknown, baseUrl?: string): AccountError {
   const reason =
     error instanceof Error ? error.message : "connexion impossible";
 
   return {
     code: "offline",
-    message: `La plateforme n'a pas répondu : ${reason}.`,
-    fix: "Vérifie ta connexion. Pupitre reste utilisable sept jours sans la plateforme.",
+    message: "refusal.platform.silent",
+    phrase:
+      baseUrl && isLocalPlatform(baseUrl)
+        ? { id: "refusal.platform.silent.local", values: { reason, baseUrl } }
+        : { id: "refusal.platform.silent", values: { reason } },
   };
 }
 
@@ -132,8 +206,8 @@ function failureOf(status: number, payload: unknown): AccountError {
 
   return {
     code: status === 401 ? "unauthenticated" : "internal",
-    message: `La plateforme a refusé la demande (${status}).`,
-    fix: "Reconnecte-toi depuis les réglages, puis réessaie.",
+    message: "refusal.platform.refused",
+    phrase: { id: "refusal.platform.refused", values: { status } },
   };
 }
 
@@ -155,6 +229,10 @@ function fleetServerOf(body: ServerForUserBody): FleetServer {
     id: body.id,
     keyReady: body.key_ready,
     name: body.name,
+    organization: {
+      id: body.organization?.id ?? "",
+      name: body.organization?.name ?? "",
+    },
     port: body.port,
     status: body.status,
     user: body.user,
@@ -173,9 +251,13 @@ function deviceOf(body: DeviceBody): AccountDevice {
 export function createPlatformClient({
   baseUrl,
   fetch: fetchImpl = (input, init) => fetch(input, init),
+  timeoutMs = CALL_MS,
+  downloadMs = DOWNLOAD_MS,
 }: {
   baseUrl: string;
   fetch?: FetchLike;
+  timeoutMs?: number;
+  downloadMs?: number;
 }): PlatformClient {
   function url(path: string): string {
     return new URL(`/api/v1${path}`, baseUrl).toString();
@@ -190,6 +272,7 @@ export function createPlatformClient({
 
     try {
       response = await fetchImpl(url(path), {
+        signal: AbortSignal.timeout(timeoutMs),
         ...init,
         headers: {
           accept: "application/json",
@@ -199,7 +282,7 @@ export function createPlatformClient({
         },
       });
     } catch (error) {
-      return { ok: false, error: offlineError(error) };
+      return { ok: false, error: offlineError(error, baseUrl) };
     }
 
     const payload = (await response.json().catch(() => null)) as unknown;
@@ -215,7 +298,7 @@ export function createPlatformClient({
     try {
       return await work();
     } catch (error) {
-      return { ok: false, error: offlineError(error) };
+      return { ok: false, error: offlineError(error, baseUrl) };
     }
   }
 
@@ -229,6 +312,7 @@ export function createPlatformClient({
       {
         headers: { authorization: `Bearer ${token}` },
         redirect: "manual",
+        signal: AbortSignal.timeout(timeoutMs),
       }
     );
 
@@ -246,13 +330,15 @@ export function createPlatformClient({
         ok: false,
         error: {
           code: "release_not_found",
-          message: `La plateforme n'a pas de binaire téléchargeable pour ${version}.`,
-          fix: "Publie une version de l'agent, ou reste sur un build de développement.",
+          message: "refusal.release.unpublished",
+          phrase: { id: "refusal.release.unpublished", values: { version } },
         },
       };
     }
 
-    const binary = await fetchImpl(location);
+    const binary = await fetchImpl(location, {
+      signal: AbortSignal.timeout(downloadMs),
+    });
 
     if (!binary.ok) {
       return { ok: false, error: failureOf(binary.status, null) };
@@ -277,7 +363,7 @@ export function createPlatformClient({
           result: await startDeviceFlow(baseUrl, { fetch: fetchImpl }),
         };
       } catch (error) {
-        return { ok: false, error: offlineError(error) };
+        return { ok: false, error: offlineError(error, baseUrl) };
       }
     },
 
@@ -290,12 +376,23 @@ export function createPlatformClient({
           }),
         };
       } catch (error) {
-        return { ok: false, error: offlineError(error) };
+        return { ok: false, error: offlineError(error, baseUrl) };
       }
     },
 
     async me(token) {
       const answer = await call<MeBody>(token, "/me");
+
+      return answer.ok
+        ? { ok: true, result: identityOf(answer.result) }
+        : answer;
+    },
+
+    async switchOrganization(token, organizationId) {
+      const answer = await call<MeBody>(token, "/me", {
+        body: JSON.stringify({ organization_id: organizationId }),
+        method: "PATCH",
+      });
 
       return answer.ok
         ? { ok: true, result: identityOf(answer.result) }
@@ -341,6 +438,22 @@ export function createPlatformClient({
 
     downloadRelease(token, version, arch) {
       return guarded(() => fetchRelease(token, version, arch));
+    },
+
+    latestAgentRelease(token, arch, channel) {
+      const query = new URLSearchParams({ arch });
+
+      if (channel) {
+        query.set("channel", channel);
+      }
+
+      return call<AgentReleaseBody>(token, `/releases/agent/latest?${query}`);
+    },
+
+    deleteServer(token, serverId) {
+      return call<null>(token, `/servers/${encodeURIComponent(serverId)}`, {
+        method: "DELETE",
+      });
     },
   };
 }

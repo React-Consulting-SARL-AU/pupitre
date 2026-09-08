@@ -84,7 +84,7 @@ type entry struct {
 func index(writer http.ResponseWriter, root, relative string) {
 	entries, err := listing(path.Join(root, relative))
 	if err != nil {
-		http.Error(writer, "dossier illisible", http.StatusNotFound)
+		http.Error(writer, "unreadable folder", http.StatusNotFound)
 		return
 	}
 
@@ -93,7 +93,7 @@ func index(writer http.ResponseWriter, root, relative string) {
 	fmt.Fprintf(writer, "<h1><a href=\"/\">shots</a>%s</h1><div class=g>", crumb(relative))
 
 	if len(entries) == 0 {
-		fmt.Fprint(writer, "<p class=e>Aucune capture pour l'instant.</p>")
+		fmt.Fprint(writer, "<p class=e>No capture yet.</p>")
 	}
 
 	for _, found := range entries {

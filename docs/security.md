@@ -12,7 +12,7 @@ Un client est root sur son serveur : il peut copier tout fichier qui s'y trouve,
 | Jeton de session desktop (bearer) | `safeStorage` : trousseau macOS, DPAPI Windows, libsecret Linux | l'app |
 | Jeton d'enrôlement | mémoire de l'app, une fois, à l'installation ; remis à l'agent par la commande `enroll` du protocole, sur le flux secret | l'app, puis l'agent qui l'échange |
 | Jeton de serveur | `/etc/pupitre/server.token`, 0600 root ; haché en base | l'agent. Ne donne accès qu'à l'état de son propre serveur. Rotation à chaque réinstallation |
-| Jetons Stripe, Neon, R2, DSN Sentry, clé de signature des binaires | secrets Wrangler, un jeu par environnement, et secrets GitHub Actions | l'API, la CI |
+| Jetons Stripe, Neon, R2, clé de signature des binaires | secrets Wrangler, un jeu par environnement, et secrets GitHub Actions | l'API, la CI |
 | Secrets du client (mots de passe de bases, jetons Cloudflare, 1Password) | `/etc/pupitre/env`, 0600, sur son serveur | lui seul. Ils ne remontent jamais |
 
 ## Sur le serveur du client
@@ -21,7 +21,7 @@ Un client est root sur son serveur : il peut copier tout fichier qui s'y trouve,
 - **Un droit d'usage lié au serveur, et adossé à un abonnement.** Une organisation sans abonnement en cours — l'essai en est un — n'a aucun droit d'usage : la plateforme rend `suspended`, valable jusqu'à l'instant présent, et refuse l'enrôlement. À l'installation, l'agent reçoit un jeton d'enrôlement signé par la plateforme pour cet appareil et ce compte ; il l'échange contre un jeton de serveur. Il lit `/agent/state` toutes les 30 secondes ; chaque lecture réussie renouvelle un droit d'usage valable 24 heures, mis en cache. Sans lecture réussie pendant 7 jours, il passe en **mode restreint** : ce qui tourne continue de tourner, et seules `hello`, `ping`, `snapshot`, `status`, `diag`, `agent.upgrade` et `enroll` répondent, comme le fixe le protocole. `enroll` en fait partie parce que c'est le geste qui répare un serveur dont le jeton a été perdu ou révoqué, et parce que le jeton d'enrôlement vient de la plateforme, pour un compte authentifié et un abonnement en cours. Un binaire copié ailleurs n'a pas de jeton, donc pas de fonctions.
 - **Les modules ne s'exécutent qu'avec un droit d'usage valide**, et certaines de leurs étapes dépendent de paramètres reçus de la plateforme à l'enrôlement (versions, URL de téléchargement, clés de dépôts apt), pas seulement de ce que contient le binaire.
 - **Une exception connue** : `mongodump` et `mongorestore` n'acceptent leurs identifiants que sur la ligne de commande, donc ils sont visibles dans `ps` le temps de la commande. Tous les autres moteurs reçoivent leurs secrets par l'entrée standard. À revoir si MongoDB propose un jour un fichier de configuration pour ses outils.
-- **Distribution contrôlée** : le binaire n'est pas public. L'app le télécharge depuis la plateforme avec le jeton de l'appareil, vérifie sa signature (Ed25519, clé publique embarquée dans l'app), et le pousse elle-même sur le serveur par SSH.
+- **Distribution contrôlée** : le binaire n'est pas public — les artefacts de l'app le sont, sur `dl.pupitre.studio`, mais l'agent reste dans un bucket privé. L'app le télécharge depuis la plateforme avec le jeton de l'appareil, vérifie sa signature (Ed25519, clé publique embarquée dans l'app), et le pousse elle-même sur le serveur par SSH.
 - **Ce qui reste au client, sans condition** : ses projets, ses bases, ses secrets, tmux, les services installés. En mode restreint, il n'a perdu que Pupitre.
 
 ## Dans l'app desktop
@@ -35,6 +35,7 @@ Un client est root sur son serveur : il peut copier tout fichier qui s'y trouve,
 
 - SSH avec la clé du client, `IdentitiesOnly yes`, clé d'hôte épinglée dès l'enrôlement : l'agent envoie l'empreinte de la clé d'hôte à la plateforme, l'app la compare à ce que `ssh` voit, un écart bloque et s'explique.
 - Le durcissement ferme root et les mots de passe **après** avoir vérifié qu'une clé ouvre `dev`. Si la vérification échoue, root reste ouvert et l'app le dit.
+- Option `keep_root` pour qui veut garder la main sur son serveur : root reste joignable par clé, jamais par mot de passe, et tout le reste du durcissement s'applique. L'app le dit aussi, et ne le confond pas avec un durcissement qui a renoncé.
 - Option SSH sur 443 en plus de 22 pour les réseaux qui filtrent.
 
 ## Entre le serveur et la plateforme
@@ -52,7 +53,7 @@ Un client est root sur son serveur : il peut copier tout fichier qui s'y trouve,
 - Audit de chaque action d'administration : acteur, action, cible, date.
 - **Les clés autorisées d'un serveur dérivent du membre qui lui est attribué, et de son adhésion.** Retirer quelqu'un de l'organisation retire ses clés de tous les serveurs, sans qu'un administrateur ait à y penser. C'est vérifié par un test.
 - Suspension automatique d'un serveur sur signalement d'abus : clés retirées, droit d'usage suspendu, email au propriétaire de l'organisation.
-- **Ce qui sort vers Sentry** : le type et le message de l'exception, l'environnement, la méthode HTTP, le cron, et la forme de la route — les segments qui ressemblent à un identifiant sont remplacés par `:id` avant l'envoi. Jamais l'URL complète, jamais un corps de requête, jamais un email. C'est vérifié par un test.
+- **Aucune erreur ne sort de la plateforme** : les exceptions du Worker restent dans les journaux Cloudflare du compte, aucun service tiers d'observabilité n'est branché.
 - La page `/status` répond sans session et n'expose que des agrégats : aucun identifiant de serveur, aucun email, aucun nom d'organisation.
 - Dépendances : alertes de sécurité GitHub bloquantes en CI ; mise à jour de Better Auth dans la journée d'une faille publiée.
 

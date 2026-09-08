@@ -167,8 +167,8 @@ export function createStripeBilling(config: StripeConfig): BillingProvider {
             allow_promotion_codes: true,
             line_items: { 0: { price, quantity: input.quantity } },
             metadata: { organization_id: input.organizationId },
-            // Sans carte demandée, c'est Stripe qui résilie à la fin de l'essai :
-            // l'abonnement passe en `canceled`, le webhook suspend, rien à compter ici.
+            // Without a card required, Stripe is the one that cancels at the end of the trial:
+            // the subscription moves to `canceled`, the webhook suspends it, nothing to count here.
             payment_method_collection: TRIAL_REQUIRES_CARD
               ? "always"
               : "if_required",

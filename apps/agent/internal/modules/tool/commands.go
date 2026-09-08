@@ -2,6 +2,7 @@ package tool
 
 import (
 	"encoding/json"
+	"pupitre.studio/agent/internal/i18n"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
@@ -101,14 +102,14 @@ func set(runner *modules.Engine) protocol.Handler {
 func valueOf(line json.RawMessage, key string) (string, error) {
 	var values map[string]string
 	if err := json.Unmarshal(line, &values); err != nil {
-		return "", protocol.NewError(contract.ErrorBadRequest, "ligne de secrets illisible").
-			WithFix(`Écris la valeur sur la ligne suivante, sous la forme {"` + key + `": "<valeur>"}.`)
+		return "", protocol.NewError(contract.ErrorBadRequest, i18n.T("secrets.line.unreadable")).
+			WithFix(i18n.T("secrets.line.fix", key))
 	}
 
 	value, given := values[key]
 	if !given || value == "" {
-		return "", protocol.NewError(contract.ErrorBadRequest, "la ligne de secrets ne porte pas de valeur pour "+key).
-			WithFix(`Écris la valeur sur la ligne suivante, sous la forme {"` + key + `": "<valeur>"}.`)
+		return "", protocol.NewError(contract.ErrorBadRequest, i18n.T("secrets.line.missing", key)).
+			WithFix(i18n.T("secrets.line.fix", key))
 	}
 
 	return value, nil
@@ -135,7 +136,7 @@ func command(runner *modules.Engine, run func(*modules.Context, json.RawMessage)
 func decode[T any](raw json.RawMessage) (T, error) {
 	var params T
 	if err := json.Unmarshal(raw, &params); err != nil {
-		return params, protocol.NewError(contract.ErrorBadRequest, "paramètres illisibles : "+err.Error())
+		return params, protocol.NewError(contract.ErrorBadRequest, i18n.T("command.params.unreadable", err.Error()))
 	}
 
 	return params, nil

@@ -7,7 +7,7 @@
 > {"id":2,"cmd":"install","params":{"secrets_stdin":false,"modules":["core.system","core.hardening"],"config":{"core.system":{"git_name":"Jordan Monier","git_email":"jordan@example.org"},"core.hardening":{"ssh_443":true}}}}
 > {"id":3,"cmd":"harden","params":{"user":"dev"}}
 > {"id":4,"cmd":"harden","params":{"user":"dev"}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","harden","hello","install","ping","report","uninstall","upgrade"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","harden","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"repair-dpkg"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"skip","step":"repair-dpkg"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"install-packages"}
@@ -65,9 +65,9 @@
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"ok","step":"validate-sshd-config"}
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"start","step":"reload-sshd"}
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"ok","step":"reload-sshd"}
-< {"id":3,"ok":true,"result":{"root_closed":true,"next_user":"dev"}}
+< {"id":3,"ok":true,"result":{"root_closed":true,"root_kept":false,"next_user":"dev"}}
 < {"event":"step","id":4,"module":"core.hardening","ms":0,"status":"start","step":"check-authorized-keys"}
 < {"event":"step","id":4,"module":"core.hardening","ms":0,"status":"ok","step":"check-authorized-keys"}
 < {"event":"step","id":4,"module":"core.hardening","ms":0,"status":"start","step":"write-sshd-fragment"}
 < {"event":"step","id":4,"module":"core.hardening","ms":0,"status":"skip","step":"write-sshd-fragment"}
-< {"id":4,"ok":true,"result":{"root_closed":true,"next_user":"dev"}}
+< {"id":4,"ok":true,"result":{"root_closed":true,"root_kept":false,"next_user":"dev"}}

@@ -1,3 +1,4 @@
+import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AgentError } from "@shared/agent";
 import { RotateCw } from "lucide-react";
@@ -31,10 +32,10 @@ export function ErrorNotice({
           </Button>
         ) : null
       }
-      fix={error.fix}
+      fix={agentText(t, error).fix}
       tone="danger"
     >
-      {error.message}
+      {agentText(t, error).message}
     </Callout>
   );
 }

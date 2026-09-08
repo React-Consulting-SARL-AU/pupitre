@@ -48,10 +48,10 @@ export function ShotViewer({ serverId }: { serverId: string }) {
   return (
     <section className="elevation-raised flex flex-col gap-3 rounded-md border border-line bg-surface p-4">
       <header className="flex items-center gap-3">
-        <span className="min-w-0 flex-1 truncate font-data text-[12px] text-ink">
+        <span className="min-w-0 flex-1 truncate font-data text-[13px] text-ink">
           {view.shot.name}
         </span>
-        <span className="shrink-0 font-data text-[11px] text-ink-3 tabular-nums">
+        <span className="shrink-0 font-data text-[12px] text-ink-3 tabular-nums">
           {view.size
             ? `${view.mediaType} · ${view.size.width} × ${view.size.height}`
             : view.mediaType}

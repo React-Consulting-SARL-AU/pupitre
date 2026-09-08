@@ -22,4 +22,11 @@ describe("router", () => {
     expect(ids).not.toContain("/api/v1/$")
     expect(API_PREFIX).toBe("/api/v1")
   })
+
+  it("only says it is loading when the wait is real, and long enough to be read", () => {
+    const { defaultPendingMs, defaultPendingMinMs } = getRouter().options
+
+    expect(defaultPendingMs).toBe(150)
+    expect(defaultPendingMinMs).toBe(300)
+  })
 })

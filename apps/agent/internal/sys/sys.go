@@ -29,13 +29,14 @@ type ExitError struct {
 	Stderr  string
 }
 
+// Wording stays language-neutral: this text is interpolated into localized catalogue messages.
 func (e *ExitError) Error() string {
 	detail := strings.TrimSpace(e.Stderr)
 	if detail == "" {
-		return fmt.Sprintf("%s a échoué (code %d)", e.Program, e.Code)
+		return fmt.Sprintf("%s: exit %d", e.Program, e.Code)
 	}
 
-	return fmt.Sprintf("%s a échoué (code %d) : %s", e.Program, e.Code, lastLines(detail, 3))
+	return fmt.Sprintf("%s: exit %d: %s", e.Program, e.Code, lastLines(detail, 3))
 }
 
 // One entry of a folder. A symlink is never a directory here: descending one could walk out of the folder its parent belongs to.

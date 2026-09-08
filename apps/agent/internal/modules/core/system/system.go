@@ -2,6 +2,7 @@ package system
 
 import (
 	"fmt"
+	"pupitre.studio/agent/internal/i18n"
 	"strconv"
 	"strings"
 
@@ -52,7 +53,7 @@ func installPackages(ctx *modules.Context) error {
 		}
 
 		if len(failed) > 0 {
-			return modules.Failed, fmt.Errorf("paquets introuvables ou refusés : %s", strings.Join(failed, ", "))
+			return modules.Failed, fmt.Errorf("packages not found or refused: %s", strings.Join(failed, ", "))
 		}
 
 		return modules.Done, nil
@@ -73,7 +74,7 @@ func createSwap(ctx *modules.Context) error {
 			{"swapon", swapPath},
 		} {
 			if _, err := sys.Exec(ctx, sys.Command{Argv: argv}); err != nil {
-				ctx.Warn("swap non créé : " + err.Error())
+				ctx.Warn(i18n.T("warn.system.swap.failed", err.Error()))
 				return modules.Done, nil
 			}
 		}

@@ -1,7 +1,7 @@
 import { ApiError, unwrap } from "@pupitre/api/client"
 import type { Locale } from "@pupitre/shared/i18n"
 import type { OrgRole } from "@pupitre/shared/permissions"
-import { queryOptions } from "@tanstack/react-query"
+import { keepPreviousData, queryOptions } from "@tanstack/react-query"
 import { api } from "@/lib/api/client"
 import type { BillingIntervalName } from "@/lib/domain/billing"
 
@@ -27,6 +27,18 @@ export const queryKeys = {
   socialProviders: ["status", "social-providers"] as const,
 }
 
+/** The query roots whose answers belong to one organisation and to no other. */
+export const ORGANIZATION_SCOPED_ROOTS = [
+  "servers",
+  "subscription",
+  "members",
+  "events",
+]
+
+export function isOrganizationScoped(queryKey: readonly unknown[]): boolean {
+  return ORGANIZATION_SCOPED_ROOTS.includes(queryKey[0] as string)
+}
+
 export function statusQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.status,
@@ -45,10 +57,16 @@ export function socialProvidersQueryOptions() {
   })
 }
 
+async function readMe() {
+  return unwrap(await api().api.v1.me.get())
+}
+
+export type Me = Awaited<ReturnType<typeof readMe>>
+
 export function meQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.me,
-    queryFn: async () => unwrap(await api().api.v1.me.get()),
+    queryFn: readMe,
   })
 }
 
@@ -60,28 +78,46 @@ export function updateLocale(locale: Locale): Promise<void> {
     })
 }
 
+async function readServers() {
+  return unwrap(await api().api.v1.servers.get()).data
+}
+
+export type ServerSummary = Awaited<ReturnType<typeof readServers>>[number]
+
 export function serversQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.servers,
-    queryFn: async () => unwrap(await api().api.v1.servers.get()).data,
+    queryFn: readServers,
     refetchInterval: SERVERS_POLL_INTERVAL_MS,
     refetchIntervalInBackground: false,
   })
 }
+
+async function readServer(id: string) {
+  return unwrap(await api().api.v1.servers({ id }).get()).data
+}
+
+export type ServerDetail = Awaited<ReturnType<typeof readServer>>
 
 export function serverQueryOptions(id: string) {
   return queryOptions({
     queryKey: queryKeys.server(id),
-    queryFn: async () => unwrap(await api().api.v1.servers({ id }).get()).data,
+    queryFn: () => readServer(id),
     refetchInterval: SERVERS_POLL_INTERVAL_MS,
     refetchIntervalInBackground: false,
   })
 }
 
+async function readDevices() {
+  return unwrap(await api().api.v1.me.devices.get()).data
+}
+
+export type Device = Awaited<ReturnType<typeof readDevices>>[number]
+
 export function devicesQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.devices,
-    queryFn: async () => unwrap(await api().api.v1.me.devices.get()).data,
+    queryFn: readDevices,
   })
 }
 
@@ -172,6 +208,16 @@ export function startCheckout(
     .then((response) => unwrap(response).url)
 }
 
+export function updateSeats(
+  organizationId: string,
+  quantity: number
+): Promise<Subscription | null> {
+  return api()
+    .api.v1.orgs({ id: organizationId })
+    .seats.post({ quantity })
+    .then((response) => unwrap(response).data)
+}
+
 export function openBillingPortal(organizationId: string): Promise<string> {
   return api()
     .api.v1.orgs({ id: organizationId })
@@ -223,12 +269,17 @@ export function latestAppReleaseQueryOptions() {
   })
 }
 
+async function readMembers(organizationId: string) {
+  return unwrap(await api().api.v1.orgs({ id: organizationId }).members.get())
+    .data
+}
+
+export type Roster = Awaited<ReturnType<typeof readMembers>>
+
 export function membersQueryOptions(organizationId: string) {
   return queryOptions({
     queryKey: queryKeys.members(organizationId),
-    queryFn: async () =>
-      unwrap(await api().api.v1.orgs({ id: organizationId }).members.get())
-        .data,
+    queryFn: () => readMembers(organizationId),
   })
 }
 
@@ -267,6 +318,7 @@ export function eventsQueryOptions(
           .api.v1.orgs({ id: organizationId })
           .events.get({ query: page })
       ),
+    placeholderData: keepPreviousData,
   })
 }
 

@@ -13,7 +13,6 @@ export interface LogoSource {
  */
 export const SOURCES: readonly LogoSource[] = [
   { id: "runtime.node", slug: "nodedotjs", monochrome: false },
-  { id: "runtime.java", slug: "openjdk", monochrome: true },
   { id: "runtime.python", slug: "python", monochrome: false },
   { id: "db.mysql", slug: "mysql", monochrome: false },
   { id: "db.postgres", slug: "postgresql", monochrome: false },
@@ -42,6 +41,8 @@ export interface VendorSource {
   monochrome: boolean
   /** A brand the catalogue does not name: keyed in `MARKS`, filed as `mark-<id>`. */
   mark?: boolean
+  /** When this file was taken from the source, if not on the sweep date. */
+  retrieved?: string
 }
 
 /**
@@ -58,10 +59,23 @@ export const VENDOR_SOURCES: readonly VendorSource[] = [
     monochrome: false,
   },
   {
+    id: "runtime.java",
+    title: "Java",
+    source: "https://svgl.app/library/java.svg",
+    monochrome: false,
+  },
+  {
     id: "ai.codex",
     title: "Codex",
     source: "https://svgl.app/library/codex_light.svg",
     monochrome: true,
+  },
+  {
+    id: "ai.hermes",
+    title: "Nous Research",
+    source: "https://lobehub.com/icons/nousresearch",
+    monochrome: true,
+    retrieved: "2026-09-07",
   },
   {
     id: "bun",
@@ -79,6 +93,4 @@ export const EXEMPTIONS: Readonly<Partial<Record<ModuleId, string>>> = {
     "Durcissement du système : aucun produit de marque à nommer.",
   "exposure.ssh":
     "OpenSSH ne publie pas de marque figurative, et ni Simple Icons ni svgl n'en portent une.",
-  "ai.hermes":
-    "Nous Research ne publie pas de kit de marque ; le « Hermes » de Simple Icons est le moteur JavaScript de Meta, une autre marque.",
 }

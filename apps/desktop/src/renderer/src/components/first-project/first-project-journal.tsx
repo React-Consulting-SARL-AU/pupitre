@@ -20,12 +20,12 @@ export function FirstProjectJournal({ lines }: { lines: readonly string[] }) {
         <span className="label text-ink-3">
           {t("firstProject.journal.title")}
         </span>
-        <span className="font-data text-[11px] text-ink-4">
+        <span className="font-data text-[12px] text-ink-4">
           {t("firstProject.journal.lines", { count: lines.length })}
         </span>
       </header>
 
-      <pre className="max-h-72 overflow-auto border-line border-t bg-sunken px-4 py-3 font-data text-[11px] text-ink-2 leading-relaxed">
+      <pre className="max-h-72 overflow-auto border-line border-t bg-sunken px-4 py-3 font-data text-[12px] text-ink-2 leading-relaxed">
         {lines.join("\n")}
       </pre>
     </section>

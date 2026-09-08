@@ -152,7 +152,7 @@ func TestMissingJavaHomeWarnsWithoutFailing(t *testing.T) {
 		t.Error("no JAVA_HOME may be written when mise cannot resolve it")
 	}
 
-	if output := strings.Join(ctx.Output(), "\n"); !strings.Contains(output, "! JAVA_HOME introuvable") {
+	if output := strings.Join(ctx.Output(), "\n"); !strings.Contains(output, "! JAVA_HOME was not found") {
 		t.Fatalf("no warning in output:\n%s", output)
 	}
 }

@@ -118,7 +118,7 @@ func (d *Daemon) SyncAt(platformURL string) (Sync, error) {
 
 	wanted, refused := keys.ParseAll(answer.AuthorizedKeys)
 	for _, line := range refused {
-		d.journal.Logf("clé illisible ignorée : %s", summary(line))
+		d.journal.Logf("unreadable key ignored: %s", summary(line))
 	}
 
 	changed, err := keys.Sync(d.journal, keys.Target{Path: d.options.KeysPath, Owner: d.options.KeysOwner}, wanted)
@@ -127,7 +127,7 @@ func (d *Daemon) SyncAt(platformURL string) (Sync, error) {
 	}
 
 	if changed {
-		d.journal.Logf("%d clé(s) autorisée(s) dans %s", len(wanted), d.options.KeysPath)
+		d.journal.Logf("%d authorized key(s) in %s", len(wanted), d.options.KeysPath)
 	}
 
 	return Sync{
@@ -183,7 +183,7 @@ func (d *Daemon) sample() platform.Heartbeat {
 func (d *Daemon) Enroll(token, platformURL string) error {
 	token = strings.TrimSpace(token)
 	if token == "" {
-		return errors.New("jeton d'enrôlement vide")
+		return errors.New("empty enrolment token")
 	}
 
 	journal := d.enrolment(token)
@@ -207,7 +207,7 @@ func (d *Daemon) Enroll(token, platformURL string) error {
 		return err
 	}
 
-	journal.Logf("serveur enrôlé, jeton écrit dans %s", d.options.TokenPath)
+	journal.Logf("server enrolled, token written to %s", d.options.TokenPath)
 
 	return nil
 }
@@ -241,12 +241,12 @@ func (d *Daemon) enrolment(token string) *modules.Context {
 func (d *Daemon) hostPublicKey() (string, error) {
 	raw, err := d.options.Sys.ReadFile(d.options.HostKeyPath)
 	if err != nil {
-		return "", errors.New("clé d'hôte illisible : " + d.options.HostKeyPath)
+		return "", errors.New("unreadable host key: " + d.options.HostKeyPath)
 	}
 
 	line := strings.TrimSpace(string(raw))
 	if _, err := keys.ParseLine(line); err != nil {
-		return "", errors.New("clé d'hôte illisible : " + err.Error())
+		return "", errors.New("unreadable host key: " + err.Error())
 	}
 
 	return line, nil

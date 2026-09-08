@@ -1,36 +1,18 @@
-import { TRIAL_DAYS } from "@pupitre/shared/plans"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Download, Lock } from "lucide-react"
+import { useQueryClient } from "@tanstack/react-query"
+import { Lock } from "lucide-react"
 import { useEffect, useRef } from "react"
-import { CheckoutForm } from "@/components/dashboard/checkout-form"
-import { buttonClassName } from "@/components/ui/button"
+import { StartChecklist } from "@/components/dashboard/start-checklist"
 import { Callout } from "@/components/ui/callout"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
-import { LoadingState } from "@/components/ui/loading-state"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { usePermission } from "@/hooks/use-permission"
 import { useRequestCycle } from "@/hooks/use-request-cycle"
-import {
-  membersQueryOptions,
-  pollSubscription,
-  queryKeys,
-} from "@/lib/api/queries"
-
-interface OrganizationMember {
-  email: string
-  role: string
-}
+import { pollSubscription, queryKeys } from "@/lib/api/queries"
 
 export interface StartPanelProps {
   returningFromCheckout?: boolean
-}
-
-function ownerEmailOf(
-  members: OrganizationMember[] | undefined
-): string | null {
-  return members?.find((member) => member.role === "owner")?.email ?? null
 }
 
 export function StartPanel({ returningFromCheckout = false }: StartPanelProps) {
@@ -41,10 +23,6 @@ export function StartPanel({ returningFromCheckout = false }: StartPanelProps) {
   const queryClient = useQueryClient()
   const confirmation = useRequestCycle()
   const asked = useRef(false)
-  const members = useQuery({
-    ...membersQueryOptions(organizationId),
-    enabled: !canManage && organizationId !== "",
-  })
   const waiting = returningFromCheckout && canManage && organizationId !== ""
   const { run } = confirmation
 
@@ -76,55 +54,28 @@ export function StartPanel({ returningFromCheckout = false }: StartPanelProps) {
     )
   }
 
-  if (!canManage) {
-    if (members.isPending) {
-      return <LoadingState label={t("start.reading")} />
+  if (waiting && confirmation.phase !== "failed") {
+    if (confirmation.phase !== "done") {
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("start.waitingTitle")}</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <p className="text-[13px] text-ink-2">{t("start.waitingLead")}</p>
+          </CardBody>
+        </Card>
+      )
     }
 
-    const owner = ownerEmailOf(members.data?.members)
-
     return (
-      <EmptyState
-        description={
-          owner
-            ? t("start.lockedDescription", { owner, days: TRIAL_DAYS })
-            : t("start.lockedUnknownOwner", { days: TRIAL_DAYS })
-        }
-        icon={Lock}
-        title={t("start.lockedTitle")}
-      />
-    )
-  }
-
-  if (waiting && confirmation.phase !== "failed") {
-    return confirmation.phase === "done" ? (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("start.confirmedTitle")}</CardTitle>
-        </CardHeader>
-        <CardBody className="flex flex-col gap-gutter">
-          <p className="text-[13px] text-ink-2">{t("start.confirmedLead")}</p>
-          <div>
-            {/* A full load, so the whole console reads the entitlement Stripe just opened. */}
-            <a
-              className={buttonClassName({ variant: "primary" })}
-              href="/download"
-            >
-              <Download className="size-4" strokeWidth={1.5} />
-              {t("start.confirmedAction")}
-            </a>
-          </div>
-        </CardBody>
-      </Card>
-    ) : (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("start.waitingTitle")}</CardTitle>
-        </CardHeader>
-        <CardBody>
-          <p className="text-[13px] text-ink-2">{t("start.waitingLead")}</p>
-        </CardBody>
-      </Card>
+      <div className="flex flex-col gap-section">
+        <Callout
+          fix={t("start.confirmedLead")}
+          title={t("start.confirmedTitle")}
+        />
+        <StartChecklist />
+      </div>
     )
   }
 
@@ -138,11 +89,19 @@ export function StartPanel({ returningFromCheckout = false }: StartPanelProps) {
         />
       ) : null}
 
-      <CheckoutForm
-        defaultQuantity={1}
-        organizationId={activeOrganization.id}
-        variant="trial"
-      />
+      <header className="flex flex-col items-center gap-3 text-center">
+        <span className="flex size-11 items-center justify-center rounded-md bg-inverse font-data text-[16px] text-inverse-ink">
+          &gt;_
+        </span>
+        <h1 className="font-bold font-display text-[24px] text-ink leading-[1.2] tracking-[-0.01em]">
+          {t("start.heroTitle")}
+        </h1>
+        <p className="max-w-[46ch] text-[13px] text-ink-2">
+          {t("start.heroLead")}
+        </p>
+      </header>
+
+      <StartChecklist />
     </div>
   )
 }

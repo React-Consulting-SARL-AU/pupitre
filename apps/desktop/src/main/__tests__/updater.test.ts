@@ -1,36 +1,66 @@
 import { describe, expect, it } from "bun:test";
 import {
-  UPDATE_OWNER,
-  UPDATE_REPO,
   type UpdaterEnvironment,
+  updateBaseUrl,
   updaterPlan,
 } from "../updater-run";
+
+const UPDATE_BASE_URL = updateBaseUrl(undefined);
 
 function environment(
   over: Partial<UpdaterEnvironment> = {}
 ): UpdaterEnvironment {
   return {
     appImage: undefined,
+    channel: undefined,
+    downloads: undefined,
     packaged: true,
     platform: "darwin",
-    token: "jeton-de-release",
     ...over,
   };
 }
 
 describe("la mise à jour de l'app", () => {
-  it("lit une release privée avec le jeton du build", () => {
+  it("lit le flux public du canal stable par défaut", () => {
     const plan = updaterPlan(environment());
 
     expect(plan).toEqual({
       feed: {
-        owner: UPDATE_OWNER,
-        private: true,
-        provider: "github",
-        repo: UPDATE_REPO,
-        token: "jeton-de-release",
+        channel: "stable",
+        provider: "generic",
+        url: `${UPDATE_BASE_URL}/stable`,
       },
       updates: true,
+    });
+  });
+
+  it("suit le canal que le build lui a donné", () => {
+    const plan = updaterPlan(environment({ channel: "beta" }));
+
+    expect(plan).toMatchObject({
+      feed: { channel: "beta", url: `${UPDATE_BASE_URL}/beta` },
+    });
+  });
+
+  it("lit le seau que le build lui a désigné", () => {
+    const plan = updaterPlan(
+      environment({ downloads: "https://dl.exemple.test/" })
+    );
+
+    expect(plan).toMatchObject({
+      feed: { url: "https://dl.exemple.test/app/stable" },
+    });
+  });
+
+  it("garde le seau de production quand le build n'en nomme aucun", () => {
+    expect(updaterPlan(environment({ downloads: "  " }))).toMatchObject({
+      feed: { url: "https://dl.pupitre.studio/app/stable" },
+    });
+  });
+
+  it("ignore un canal qui n'en est pas un", () => {
+    expect(updaterPlan(environment({ channel: "nightly" }))).toMatchObject({
+      feed: { channel: "stable" },
     });
   });
 
@@ -38,12 +68,6 @@ describe("la mise à jour de l'app", () => {
     const plan = updaterPlan(environment({ packaged: false }));
 
     expect(plan).toEqual({ reason: "development", updates: false });
-  });
-
-  it("se tait quand le build n'a pas reçu de jeton", () => {
-    const plan = updaterPlan(environment({ token: undefined }));
-
-    expect(plan).toEqual({ reason: "no_token", updates: false });
   });
 
   it("met à jour un AppImage et laisse le .deb à apt", () => {

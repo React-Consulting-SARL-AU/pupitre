@@ -51,6 +51,14 @@ func (Module) Manifest() contract.Manifest {
 	return manifest()
 }
 
+// The machine's own answers: a directory that is a file holds no project, and a zone this kernel never heard of leaves the clock wrong.
+func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
+	return modules.Problems(
+		modules.TimezoneUnknown(ctx, "timezone"),
+		modules.DirectoryOccupied(ctx, "projects_dir"),
+	)
+}
+
 func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 	if len(apt.Missing(ctx, Packages...)) > 0 || !user.Exists(ctx, User) {
 		return modules.Status{}, nil

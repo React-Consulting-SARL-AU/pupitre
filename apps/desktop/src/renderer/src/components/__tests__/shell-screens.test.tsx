@@ -12,6 +12,7 @@ import { type ReenrollState, repairable } from "../../stores/reenroll";
 import { ActivityPanel } from "../activity/activity-panel";
 import { SecretsPanel } from "../secrets/secrets-panel";
 import { AppSidebar } from "../shell/app-sidebar";
+import { FirstRunScreen } from "../shell/first-run-screen";
 import { ServerRestrictedNotice } from "../shell/server-restricted-notice";
 import { ServerUnreadyScreen } from "../shell/server-unready-screen";
 
@@ -108,20 +109,28 @@ describe("un serveur qui ne répond pas encore", () => {
     expect(html).toContain("le port 22 est ouvert");
     expect(html).toContain("Installer l&#x27;agent");
   });
+});
 
-  it("propose d'ajouter un serveur quand il n'y en a aucun", () => {
+describe("l'app sans la moindre machine", () => {
+  it("dit ce que l'assistant va faire, dans l'ordre où il le fait", () => {
     const html = renderToStaticMarkup(
-      <ServerUnreadyScreen
-        error={null}
-        onInstall={NOOP}
-        onRetry={NOOP}
-        onSettings={NOOP}
-        server={null}
-      />
+      <FirstRunScreen onAddServer={NOOP} onSettings={NOOP} />
     );
 
-    expect(html).toContain("Aucun serveur pour l&#x27;instant");
+    expect(html).toContain("Prenez une machine en main");
+    expect(html).toContain("Il inspecte la machine");
+    expect(html).toContain("Il installe ce que vous choisissez");
+    expect(html).toContain("Il referme la porte derrière lui");
     expect(html).toContain("Ajouter un serveur");
+  });
+
+  it("ne signale aucune panne : rien n'a échoué", () => {
+    const html = renderToStaticMarkup(
+      <FirstRunScreen onAddServer={NOOP} onSettings={NOOP} />
+    );
+
+    expect(html).not.toContain("Réessayer");
+    expect(html).not.toContain('data-shape="struck"');
   });
 });
 
@@ -250,7 +259,7 @@ describe("le mode restreint de l'agent", () => {
     }
   });
 
-  /** Le compte est valide, le serveur ne l'est pas : la réparation est offerte. */
+  /** The account is valid, the server isn't: the repair is offered. */
   it("offre le ré-enrôlement à côté de la console", () => {
     const html = restricted();
 
@@ -268,8 +277,8 @@ describe("le mode restreint de l'agent", () => {
   });
 
   /**
-   * Le compte n'a pas de droit d'usage : la plateforme refuserait le jeton, et
-   * l'app n'offre pas un geste qui ne réparerait rien. La console reste là.
+   * Without an entitlement the platform would refuse the token, so the app does
+   * not offer a gesture that would repair nothing. The console stays available.
    */
   it("n'offre pas la réparation quand le compte n'a pas de droit d'usage", () => {
     const html = restricted({ repairable: false });
@@ -342,8 +351,8 @@ describe("qui peut réparer un serveur restreint", () => {
     }
   });
 
-  /** Un build de développement sans appareil connu : rien à signer, rien à réparer. */
-  it("ne laisse pas réparer sans appareil connu de la plateforme", () => {
+  /** A development build with no known device: nothing to sign, nothing to repair. */
+  it("ne laisse pas réparer sans appareil connu de la console", () => {
     expect(
       repairable(
         account({

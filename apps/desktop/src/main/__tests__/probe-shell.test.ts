@@ -180,9 +180,9 @@ describe("la sonde envoyée par SSH", () => {
       ok: false,
       error: { code: "disconnected" },
     });
-    expect(answer.ok === false && answer.error.message).toContain(
-      "Connection refused"
-    );
+    expect(
+      answer.ok === false && answer.error.phrase?.values?.detail
+    ).toContain("Connection refused");
   });
 
   it("le dit quand la sortie n'est pas un rapport", async () => {
@@ -198,7 +198,9 @@ describe("la sonde envoyée par SSH", () => {
       ok: false,
       error: { code: "internal" },
     });
-    expect(answer.ok === false && answer.error.fix).toBeTruthy();
+    expect(answer.ok === false && answer.error.phrase?.id).toBe(
+      "refusal.probe.unreadable"
+    );
   });
 
   it("abandonne après le délai, sans laisser le processus derrière", async () => {

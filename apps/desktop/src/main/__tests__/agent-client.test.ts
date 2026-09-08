@@ -1,11 +1,15 @@
 import { describe, expect, it } from "bun:test";
+import { spawn as spawnChild } from "node:child_process";
+import { EventEmitter } from "node:events";
 import type { Event } from "@pupitre/shared/agent-protocol/envelope";
 import type { InstallResult } from "@pupitre/shared/agent-protocol/install";
 import {
   AgentCallError,
   type AgentClient,
+  type AgentClientOptions,
   createAgentClient,
   defaultTimeout,
+  sshSpawn,
 } from "../agent-client";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 
@@ -45,7 +49,7 @@ function ids(fake: FakeAgent): number[] {
 }
 
 describe("le canal", () => {
-  it("dit hello tout seul, puis rejoue la transcription d'AGT-01", async () => {
+  it("dit hello tout seul, puis rejoue la transcription", async () => {
     const { agent, fake } = client("hello-then-ping.jsonl");
 
     const ping = await agent.call(SERVER, "ping");
@@ -117,6 +121,38 @@ describe("le canal", () => {
       report_path: "/var/lib/pupitre/report.json",
     });
     expect(fake.started()).toBe(2);
+    expect(fake.trace()).toEqual([
+      "id=1 cmd=hello",
+      "id=2 cmd=install",
+      "id=3 cmd=hello",
+      "id=4 cmd=report",
+    ]);
+
+    agent.closeAll();
+  });
+
+  it("dit la coupure, pas l'absence de rapport, quand l'agent n'en a écrit aucun", async () => {
+    const { agent, fake } = client([
+      "install-cut.jsonl",
+      "install-resume-none.jsonl",
+    ]);
+
+    const failure = await agent
+      .stream(
+        SERVER,
+        "install",
+        {
+          modules: ["db.postgres"],
+          config: { "db.postgres": { version: "17" } },
+          secrets_stdin: true,
+        },
+        () => undefined,
+        { secrets: { "db.postgres": { app_password: "s3cret-de-test" } } }
+      )
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(AgentCallError);
+    expect((failure as AgentCallError).code).toBe("disconnected");
     expect(fake.trace()).toEqual([
       "id=1 cmd=hello",
       "id=2 cmd=install",
@@ -251,6 +287,165 @@ describe("la détection d'un projet", () => {
 
     expect(detected).toMatchObject({ pkgmgr: "bun", port_hint: 3000 });
     expect(fake.started()).toBe(2);
+
+    agent.closeAll();
+  });
+});
+
+describe("un canal qui refuse de s'ouvrir", () => {
+  /** `ssh` exits with 255: neither the machine nor the agent was reached. */
+  function refusesToOpen(complaint = ""): AgentClientOptions["spawn"] {
+    const script = complaint ? `echo '${complaint}' >&2; exit 255` : "exit 255";
+
+    return () =>
+      spawnChild("sh", ["-c", script], { stdio: ["pipe", "pipe", "pipe"] });
+  }
+
+  it("rend un refus au lieu de tenir l'écran, quel que soit le délai de la commande", async () => {
+    const agent = createAgentClient({
+      spawn: refusesToOpen(),
+      backoff: { firstMs: 60_000, maxMs: 60_000, attempts: 4 },
+      connectMs: 300,
+    });
+
+    const started = Date.now();
+    // `install` grants itself thirty minutes: they count for its execution, never for its connection.
+    const answer = await agent.request(SERVER, "install", {
+      modules: [],
+      config: {},
+    } as never);
+
+    expect(answer.ok).toBe(false);
+    expect(Date.now() - started).toBeLessThan(5000);
+
+    agent.closeAll();
+  });
+
+  it("dit ce que ssh a dit, plutôt que de laisser deviner", async () => {
+    const agent = createAgentClient({
+      spawn: refusesToOpen("Could not resolve hostname pupitre-srv-mtq9rxgr"),
+      backoff: { firstMs: 1, maxMs: 5, attempts: 2 },
+      connectMs: 300,
+    });
+
+    const answer = await agent.request(SERVER, "enroll", {
+      platform_url: "https://app.pupitre.studio/api/v1",
+    } as never);
+
+    expect(answer).toMatchObject({
+      ok: false,
+      error: {
+        code: "disconnected",
+        phrase: {
+          id: "refusal.agent.dropped.detail",
+          values: {
+            detail: "Could not resolve hostname pupitre-srv-mtq9rxgr",
+          },
+        },
+      },
+    });
+
+    agent.closeAll();
+  });
+});
+
+describe("le serveur d'un canal", () => {
+  /**
+   * A channel belongs to its machine and no other.
+   *
+   * Falling back to another one — the active machine, say — would run on it
+   * what was meant for the one that disappeared. No convenience buys back that
+   * kind of substitution.
+   */
+  it("ne se rabat sur aucune autre quand elle est inconnue", async () => {
+    const agent = createAgentClient({
+      spawn: sshSpawn((serverId) => {
+        if (serverId === "connu") {
+          return { args: ["-F", "/tmp/config", "pupitre-connu"] };
+        }
+
+        return null;
+      }),
+      backoff: { firstMs: 1, maxMs: 5, attempts: 3 },
+      connectMs: 200,
+    });
+
+    const answer = await agent.request("disparu", "ping");
+
+    expect(answer).toMatchObject({
+      ok: false,
+      error: {
+        code: "bad_request",
+        phrase: { id: "refusal.server.unknown" },
+      },
+    });
+    agent.closeAll();
+  });
+});
+
+describe("un ssh qui meurt vite", () => {
+  /**
+   * `exit` arrives before stderr is handed over.
+   *
+   * Node reports the process ending as soon as it stops, but the streams are
+   * only flushed at `close`. Keying on `exit` lost `ssh`'s complaint when it
+   * arrived a few milliseconds too late — and the screen had nothing but an
+   * exit code to show.
+   */
+  function dyingProcess(): { child: EventEmitter; stderr: EventEmitter } {
+    const stderr = new EventEmitter() as EventEmitter & {
+      setEncoding: () => void;
+    };
+    stderr.setEncoding = () => undefined;
+
+    const stdout = new EventEmitter() as EventEmitter & {
+      setEncoding: () => void;
+    };
+    stdout.setEncoding = () => undefined;
+
+    const child = Object.assign(new EventEmitter(), {
+      exitCode: null as number | null,
+      kill: () => undefined,
+      stderr,
+      stdin: { write: () => true },
+      stdout,
+    });
+
+    return { child, stderr };
+  }
+
+  it("dit quand même ce qu'il avait à dire", async () => {
+    const dying = dyingProcess();
+    const agent = createAgentClient({
+      spawn: (() => {
+        queueMicrotask(() => {
+          (dying.child as unknown as { exitCode: number }).exitCode = 255;
+          dying.child.emit("exit", 255);
+          dying.stderr.emit(
+            "data",
+            "ssh: connect to host 192.168.100.228 port 2222: Operation timed out\n"
+          );
+          dying.child.emit("close", 255);
+        });
+
+        return dying.child;
+      }) as never,
+      backoff: { firstMs: 1, maxMs: 2, attempts: 1 },
+      connectMs: 200,
+    });
+
+    const answer = await agent.request(SERVER, "ping");
+
+    expect(answer).toMatchObject({
+      ok: false,
+      error: {
+        code: "disconnected",
+        phrase: { id: "refusal.agent.dropped.detail" },
+      },
+    });
+    expect(answer.ok ? "" : answer.error.phrase?.values?.detail).toContain(
+      "Operation timed out"
+    );
 
     agent.closeAll();
   });

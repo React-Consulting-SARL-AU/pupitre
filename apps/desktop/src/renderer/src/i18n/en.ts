@@ -4,6 +4,7 @@ import { app } from "./strings/app";
 import { catalog } from "./strings/catalog";
 import { common } from "./strings/common";
 import { config } from "./strings/config";
+import { connections } from "./strings/connections";
 import { dashboard } from "./strings/dashboard";
 import { firstProject } from "./strings/first-project";
 import { fleet } from "./strings/fleet";
@@ -11,6 +12,7 @@ import { format } from "./strings/format";
 import { install } from "./strings/install";
 import { onboarding } from "./strings/onboarding";
 import { project } from "./strings/project";
+import { refusals } from "./strings/refusals";
 import { secrets } from "./strings/secrets";
 import { servers } from "./strings/servers";
 import { services } from "./strings/services";
@@ -24,6 +26,7 @@ import { updates } from "./strings/updates";
 
 export const en = {
   ...common.en,
+  ...refusals.en,
   ...format.en,
   ...state.en,
   ...app.en,
@@ -31,6 +34,7 @@ export const en = {
   ...activity.en,
   ...catalog.en,
   ...config.en,
+  ...connections.en,
   ...dashboard.en,
   ...firstProject.en,
   ...fleet.en,

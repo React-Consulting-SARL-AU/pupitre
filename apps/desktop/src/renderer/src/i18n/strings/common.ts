@@ -5,6 +5,11 @@ export const common = {
     "common.hide": "Hide",
     "common.copied": "Copied",
     "common.copy": "Copy — {label}",
+    "common.close": "Close",
+    "common.field.required": "Required field",
+    "common.hint.about": "About {label}",
+    "common.hint.open": "Open the page",
+    "common.working": "Working…",
   },
   fr: {
     "common.retry": "Réessayer",
@@ -12,5 +17,10 @@ export const common = {
     "common.hide": "Masquer",
     "common.copied": "Copié",
     "common.copy": "Copier — {label}",
+    "common.close": "Fermer",
+    "common.field.required": "Champ obligatoire",
+    "common.hint.about": "À propos de {label}",
+    "common.hint.open": "Ouvrir la page",
+    "common.working": "En cours…",
   },
 } as const;

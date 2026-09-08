@@ -1,12 +1,12 @@
 > {"id":5,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
 < {"id":5,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["enroll","hello","ping","probe","project.logs","reboot","secrets.set"]}}
 > {"id":5,"cmd":"ping"}
-< {"id":5,"ok":false,"error":{"code":"bad_request","message":"id 5 refusé : l'id doit être strictement croissant, dernier id reçu 5"}}
+< {"id":5,"ok":false,"error":{"code":"bad_request","message":"id 5 is refused: an id has to grow strictly, last id received 5"}}
 > {"id":4,"cmd":"ping"}
-< {"id":4,"ok":false,"error":{"code":"bad_request","message":"id 4 refusé : l'id doit être strictement croissant, dernier id reçu 5"}}
+< {"id":4,"ok":false,"error":{"code":"bad_request","message":"id 4 is refused: an id has to grow strictly, last id received 5"}}
 > {"id":6}
-< {"id":6,"ok":false,"error":{"code":"bad_request","message":"requête invalide : /cmd : champ requis"}}
+< {"id":6,"ok":false,"error":{"code":"bad_request","message":"invalid request: /cmd: required field"}}
 > {"id":6,"cmd":"ping"}
-< {"id":6,"ok":false,"error":{"code":"bad_request","message":"id 6 refusé : l'id doit être strictement croissant, dernier id reçu 6"}}
+< {"id":6,"ok":false,"error":{"code":"bad_request","message":"id 6 is refused: an id has to grow strictly, last id received 6"}}
 > {"id":9007199254740991,"cmd":"ping"}
 < {"id":9007199254740991,"ok":true,"result":{"ts":"2026-09-04T12:00:00Z"}}

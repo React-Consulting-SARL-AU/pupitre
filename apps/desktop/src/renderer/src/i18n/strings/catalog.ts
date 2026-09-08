@@ -15,6 +15,11 @@ export const catalog = {
     "catalog.module.disk": "{mb} MB disk",
     "catalog.module.ram": "{mb} MB memory",
     "catalog.presets.title": "To get started",
+    "catalog.presets.modules.one": "1 module",
+    "catalog.presets.modules.other": "{count} modules",
+    "catalog.presets.chooseOne":
+      "{preset} — one of these, they refuse each other",
+    "catalog.presets.apply": "Apply the preset",
     "catalog.resources.diskHas": "of {gb} GB free",
     "catalog.resources.diskLabel": "Disk requested",
     "catalog.resources.megabytes": "{mb} MB",
@@ -50,6 +55,11 @@ export const catalog = {
     "catalog.module.disk": "{mb} Mo de disque",
     "catalog.module.ram": "{mb} Mo de mémoire",
     "catalog.presets.title": "Pour commencer",
+    "catalog.presets.modules.one": "1 module",
+    "catalog.presets.modules.other": "{count} modules",
+    "catalog.presets.chooseOne":
+      "{preset} — l'un de ceux-ci, ils se refusent l'un l'autre",
+    "catalog.presets.apply": "Appliquer le préréglage",
     "catalog.resources.diskHas": "sur {gb} Go libres",
     "catalog.resources.diskLabel": "Disque demandé",
     "catalog.resources.megabytes": "{mb} Mo",

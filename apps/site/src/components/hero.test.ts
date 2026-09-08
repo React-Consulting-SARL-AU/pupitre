@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { homeContent, STACK } from "../content/site/home"
+import { driftFor } from "../lib/drift"
 import { LOCALES } from "../lib/i18n"
 import { render } from "../test/render"
 import Hero from "./Hero.astro"
@@ -28,8 +29,20 @@ describe("Hero", () => {
       expect(html, item.name).toContain(`>${item.name}</span>`)
     }
     expect(html.match(/<svg/g)).toHaveLength(
-      STACK.filter((item) => item.module || item.mark).length
+      STACK.filter((item) => item.module || item.mark).length +
+        driftFor("hero").length
     )
+  })
+
+  it("sets eight of those logos adrift in the margins, named and hidden from readers", async () => {
+    const html = await render(Hero, { path: "/" })
+    const drifts = driftFor("hero")
+
+    expect(drifts).toHaveLength(8)
+    for (const drift of drifts) {
+      expect(html, drift.item.name).toContain(`data-drift="${drift.item.name}"`)
+    }
+    expect(html).toContain('aria-hidden="true" class="pointer-events-none')
   })
 
   it("shows no jargon a beginner would have to look up", async () => {

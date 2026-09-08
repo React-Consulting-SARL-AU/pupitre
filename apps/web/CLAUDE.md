@@ -1,6 +1,6 @@
 # apps/web — Guidelines
 
-La plateforme : console, API et authentification. Monorepo → [`../../CLAUDE.md`](../../CLAUDE.md) · plan → [`docs/plans/platform.md`](../../docs/plans/platform.md) · API → [`docs/contracts/platform-api.md`](../../docs/contracts/platform-api.md) · design → [`DESIGN.md`](../../docs/product/DESIGN.md).
+La plateforme : console, API et authentification. Monorepo → [`../../CLAUDE.md`](../../CLAUDE.md) · API → [`docs/contracts/platform-api.md`](../../docs/contracts/platform-api.md) · design → [`DESIGN.md`](../../docs/product/DESIGN.md).
 
 > Le style est enforced par Ultracite (Biome). Ce fichier ne contient que ce que le linter ne dérive pas : choix d'architecture, primitives, règles.
 
@@ -13,7 +13,7 @@ TanStack Start (React 19) sur Cloudflare Workers via le plugin Vite · TS strict
 - Forms : React Hook Form + Zod via `@/hooks/use-form`.
 - State serveur : TanStack Query natif. State client : React.
 - Icônes : Lucide uniquement.
-- Paiement : Stripe Checkout et le portail client, rien d'autre.
+- Paiement : Stripe Checkout et le portail client, rien d'autre. La quantité de sièges est la seule chose que la console change elle-même, par `POST /orgs/:id/seats` ; le portail ne la touche pas.
 
 **Banned** : `@radix-ui/*`, `axios`, `react-query`, `@tanstack/react-table`, `express`, `@polar-sh/*`, Stripe Elements, toute couleur en dur.
 
@@ -40,7 +40,7 @@ packages/auth/   createAuth, plugins, clients web et desktop
 - **Anti-patterns → primitive** : `useForm` direct → `@/hooks/use-form` · `useState` loading/error → `useRequestCycle` · bloc vide inline → `<EmptyState>` · titre de page inline → `<PageHeader>` · tableau avec query manuelle → `<AsyncDataTable>`.
 - **Breadcrumb** : toute page sous `/dashboard/**` et `/admin/**` a une entrée dans `src/lib/domain/page-titles.ts` avec sa hiérarchie.
 - **i18n** : fr et en dans la même passe, aucune chaîne utilisateur en dur. Les phrases vivent dans `src/lib/i18n/strings/<domaine>.ts` (`{ en, fr }`), fusionnées dans `en.ts` et `fr.ts` ; un composant lit `useTranslations()`, un module hors React reçoit le `Translate` en argument, et un module de domaine rend une **clé** (`DictionaryKey`), jamais une phrase. La langue vient du cookie `pupitre_locale`, lue au rendu serveur par `readLocale()` et posée dans le contexte de la route racine ; sans cookie, l'`Accept-Language` du navigateur tranche. Deux tests gardent la règle : parité des clés et des paramètres entre les langues, et aucune phrase française hors du dictionnaire.
-- **Le pied de page est global** : thème, langue et pages légales sur toutes les pages, y compris l'authentification. Il vit dans la route racine, pas dans une mise en page de tableau de bord.
+- **Thème, langue et pages légales sont partout**, y compris sur l'authentification. Hors de la console, c'est le pied de page global de la route racine qui les porte ; sous `/dashboard/**`, c'est le menu de compte en bas de la barre latérale, et le pied de page s'efface (`sidebarCarriesChrome`).
 
 ## Tests
 

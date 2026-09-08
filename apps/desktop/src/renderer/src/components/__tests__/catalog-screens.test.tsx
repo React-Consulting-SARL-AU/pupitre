@@ -13,6 +13,7 @@ import {
 } from "../../__tests__/catalog-fixtures";
 import { blocked, resourceWarnings, select } from "../../lib/catalog-selection";
 import { CatalogChoice } from "../catalog/catalog-choice";
+import { CatalogPresetChoice } from "../catalog/catalog-preset-choice";
 
 /**
  * The catalogue as it is drawn, from a catalogue and a probe and nothing else.
@@ -185,5 +186,37 @@ describe("un module que l'agent vient d'ajouter", () => {
       "Base analytique en colonnes, locale, pour les tableaux de bord."
     );
     expect(after).toContain('data-logo-fallback="db.clickhouse"');
+  });
+});
+
+describe("un préréglage qui nomme des modules exclusifs", () => {
+  const preset = CATALOG.presets.find((one) => one.choose_one);
+
+  it("demande lequel prendre plutôt que de choisir à la place du lecteur", () => {
+    if (!preset) {
+      throw new Error(
+        "le catalogue de test ne porte aucun préréglage exclusif"
+      );
+    }
+
+    const html = renderToStaticMarkup(
+      <CatalogPresetChoice
+        modules={CATALOG.modules}
+        onCancel={() => undefined}
+        onChoose={() => undefined}
+        preset={preset}
+      />
+    );
+
+    for (const id of preset.choose_one ?? []) {
+      expect(html).toContain(`value="${id}"`);
+    }
+  });
+
+  /** A preset that carried one of them would be choosing; one that carried none would leave a hole. */
+  it("ne porte lui-même aucun des modules qu'il oppose", () => {
+    for (const id of preset?.choose_one ?? []) {
+      expect(preset?.modules).not.toContain(id);
+    }
   });
 });

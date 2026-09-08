@@ -9,7 +9,8 @@
 #
 # NE METTRE ICI QUE CE QUI NE SE DÉRIVE PAS.
 #   - `DATABASE_URL` et `MIGRATE_DATABASE_URL` viennent de `neonctl`.
-#   - `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` sont tirés au hasard par poste.
+#   - `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` sont tirés au hasard
+#     par poste.
 #   - `STRIPE_WEBHOOK_SECRET` vient du CLI Stripe.
 #   - `BETTER_AUTH_URL`, `VITE_APP_URL` et `EMAIL_FROM` viennent des `vars` de `apps/web/wrangler.jsonc`.
 #
@@ -36,11 +37,12 @@ GITHUB_CLIENT_SECRET="op://{{OP_VAULT}}/{{OP_ITEM}}/GITHUB_CLIENT_SECRET"
 GOOGLE_CLIENT_ID="op://{{OP_VAULT}}/{{OP_ITEM}}/GOOGLE_CLIENT_ID"
 GOOGLE_CLIENT_SECRET="op://{{OP_VAULT}}/{{OP_ITEM}}/GOOGLE_CLIENT_SECRET"
 
-# --- Binaires signés de l'agent sur R2. Absentes, la distribution est coupée.
-# R2_ACCOUNT_ID="op://{{OP_VAULT}}/{{OP_ITEM}}/R2_ACCOUNT_ID"
-# R2_ACCESS_KEY_ID="op://{{OP_VAULT}}/{{OP_ITEM}}/R2_ACCESS_KEY_ID"
-# R2_SECRET_ACCESS_KEY="op://{{OP_VAULT}}/{{OP_ITEM}}/R2_SECRET_ACCESS_KEY"
-# R2_BUCKET_NAME="op://{{OP_VAULT}}/{{OP_ITEM}}/R2_BUCKET_NAME"
+# --- Binaires de l'agent sur le bucket privé `ppt-agent`. Absentes, la
+# plateforme rend une URL locale et l'app dit qu'il n'y a rien à télécharger.
+R2_ACCOUNT_ID="op://{{OP_VAULT}}/{{OP_ITEM}}/R2_ACCOUNT_ID"
+R2_ACCESS_KEY_ID="op://{{OP_VAULT}}/{{OP_ITEM}}/R2_ACCESS_KEY_ID"
+R2_SECRET_ACCESS_KEY="op://{{OP_VAULT}}/{{OP_ITEM}}/R2_SECRET_ACCESS_KEY"
+R2_BUCKET_NAME="op://{{OP_VAULT}}/{{OP_ITEM}}/R2_BUCKET_NAME"
 
 # --- Site. Absentes, le site se construit sans mesure d'audience.
 # PUBLIC_RELEASES_URL="op://{{OP_VAULT}}/{{OP_ITEM}}/PUBLIC_RELEASES_URL"

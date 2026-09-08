@@ -1,4 +1,5 @@
 ---
+import { developmentNotice, legalEntityLabel } from "@pupitre/shared/legal"
 import { localeFromPath, localizePath, translator } from "../lib/i18n"
 import { STATUS_URL } from "../lib/urls"
 import Brand from "./Brand.astro"
@@ -8,6 +9,7 @@ import ThemeToggle from "./ThemeToggle.astro"
 const locale = localeFromPath(Astro.url.pathname)
 const t = translator(locale)
 const year = new Date().getFullYear()
+const notice = developmentNotice(locale)
 
 const groups = [
   {
@@ -77,7 +79,8 @@ const groups = [
     <div
       class="shell flex flex-wrap items-center gap-x-6 gap-y-4 py-6 text-ink-3"
     >
-      <p class="data">© {year} {t("site.name")} · {t("footer.company")}</p>
+      <p class="data">© {year} {legalEntityLabel(locale)}</p>
+      <p class="data">{notice.short}</p>
       <div class="ms-auto flex items-center gap-2">
         <ThemeToggle placement="up" />
         <LocaleSwitch />

@@ -119,7 +119,7 @@ test.describe("compte", () => {
   test("le device flow mène de l'écran de compte à l'identité confirmée", async () => {
     const { page } = running;
 
-    // L'app s'ouvre sur le compte : rien d'une machine n'est derrière lui.
+    // The app opens on the account: nothing about a machine sits behind it.
     await expect(page.getByText("Aucun compte connecté")).toBeVisible();
     await expect(
       page.getByText("refuse d'installer un serveur sans compte")
@@ -145,7 +145,7 @@ test.describe("compte", () => {
 
     await page.getByRole("button", { name: "Se déconnecter" }).click();
 
-    // Les réglages restent devant : c'est de là qu'on répare son compte.
+    // Settings stay in front: it's where the account gets repaired.
     await page.getByRole("button", { name: "Compte" }).click();
 
     await expect(page.getByText("Aucun compte connecté")).toBeVisible();

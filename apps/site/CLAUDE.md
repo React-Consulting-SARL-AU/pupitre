@@ -1,6 +1,6 @@
 # apps/site — Guidelines
 
-`pupitre.studio`, le site. Monorepo → [`../../CLAUDE.md`](../../CLAUDE.md) · plan → [`docs/plans/marketing-site.md`](../../docs/plans/marketing-site.md) · produit et voix → [`PRODUCT.md`](../../docs/product/PRODUCT.md) · design → [`DESIGN.md`](../../docs/product/DESIGN.md).
+`pupitre.studio`, le site. Monorepo → [`../../CLAUDE.md`](../../CLAUDE.md) · produit et voix → [`PRODUCT.md`](../../docs/product/PRODUCT.md) · design → [`DESIGN.md`](../../docs/product/DESIGN.md).
 
 ## Stack imposée
 
@@ -16,7 +16,7 @@ Astro 5 statique sur Cloudflare Pages · Tailwind 4 sur `@pupitre/design` · MDX
 - **Les prix viennent de `@pupitre/shared/plans`.** Le site et la console affichent les mêmes chiffres par construction.
 - **Chaque page existe en fr et en en dans la même passe.** Un script vérifie la parité des routes.
 - **Le site ne vend pas.** Le bouton de commande ouvre la console ; aucune logique de compte ici.
-- **Légal** : les textes viennent du propriétaire ; un `TODO` légal fait échouer le build de production.
+- **Légal** : l'éditeur, les contacts, les origines, le registre des documents et l'avertissement de développement viennent de `@pupitre/shared/legal` ; aucune page n'écrit un nom d'entreprise à la main. Les textes sont des brouillons tant que la société n'est pas immatriculée ; un `TODO` légal fait échouer le build de production. Voir [`docs/legal.md`](../../docs/legal.md).
 
 ## Architecture
 

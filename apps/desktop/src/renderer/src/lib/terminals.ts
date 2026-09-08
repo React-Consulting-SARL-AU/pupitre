@@ -64,7 +64,7 @@ export function obtain(id: string, kind: TerminalKind): Live {
   const xterm = new XTerm({
     theme: currentTheme(),
     fontFamily: TERMINAL_FONT,
-    fontSize: 12,
+    fontSize: 13,
     lineHeight: 1.3,
     cursorBlink: true,
     scrollback: 8000,

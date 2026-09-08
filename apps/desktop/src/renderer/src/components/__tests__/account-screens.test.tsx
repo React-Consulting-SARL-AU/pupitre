@@ -109,7 +109,7 @@ describe("le droit d'usage", () => {
       new Date().toISOString()
     );
 
-    expect(text(html)).toContain("sept jours sans la plateforme");
+    expect(text(html)).toContain("sept jours sans la console");
     expect(html).toContain('data-usage="granted"');
   });
 
@@ -153,6 +153,25 @@ describe("la connexion", () => {
     expect(text(html)).toContain("WDJB-MJHT");
     expect(text(html)).toContain(CONSOLE_URL);
     expect(html).toContain('aria-busy="true"');
+  });
+
+  it("déroule les trois pas de l'approbation pendant l'attente", () => {
+    const html = renderToStaticMarkup(
+      <AccountSignInCard
+        consoleUrl={CONSOLE_URL}
+        onConnect={NOOP}
+        onOpenConsole={NOOP}
+        signIn={{
+          status: "code",
+          userCode: "WDJB-MJHT",
+          verificationUri: `${CONSOLE_URL}/device`,
+        }}
+      />
+    );
+
+    expect(text(html)).toContain("Le navigateur s'est ouvert");
+    expect(text(html)).toContain("approuvez-le");
+    expect(text(html)).toContain("dès que la console a confirmé");
   });
 
   it("rend le refus et son remède tels quels", () => {
@@ -219,7 +238,32 @@ describe("l'écran de compte", () => {
     );
   });
 
-  it("dit depuis quand la plateforme n'a pas répondu au-delà des sept jours", () => {
+  it("nomme la console à laquelle on se connecte", () => {
+    expect(text(gate(SIGNED_OUT))).toContain("app.pupitre.test");
+  });
+
+  it("offre à un build de développement de continuer sans compte", () => {
+    const html = gate({
+      ...SIGNED_OUT,
+      build: "development",
+      refusal: null,
+      usage: {
+        entitlement: "none",
+        source: "development",
+        status: "granted",
+        validUntil: null,
+      },
+    });
+
+    expect(text(html)).toContain("Continuer sans compte");
+    expect(text(html)).toContain("Se connecter");
+  });
+
+  it("ne l'offre jamais à un build packagé", () => {
+    expect(text(gate(SIGNED_OUT))).not.toContain("Continuer sans compte");
+  });
+
+  it("dit depuis quand la console n'a pas répondu au-delà des sept jours", () => {
     const html = gate({
       ...SIGNED_OUT,
       checkedAt: "2026-08-01T10:00:00.000Z",
@@ -227,7 +271,7 @@ describe("l'écran de compte", () => {
         code: "entitlement_required",
         fix: `Reconnecte cet appareil, ou vérifie l'état du compte : ${CONSOLE_URL}`,
         message:
-          "La plateforme n'a pas répondu depuis plus de sept jours : le droit d'usage a expiré.",
+          "La console n'a pas répondu depuis plus de sept jours : le droit d'usage a expiré.",
       },
       usage: {
         consoleUrl: CONSOLE_URL,
@@ -237,7 +281,7 @@ describe("l'écran de compte", () => {
     });
 
     expect(text(html)).toContain("Droit d'usage expiré");
-    expect(text(html)).toContain("Dernière réponse de la plateforme");
+    expect(text(html)).toContain("Dernière réponse de la console");
     expect(text(html)).toContain(
       `Reconnecte cet appareil, ou vérifie l'état du compte : ${CONSOLE_URL}`
     );

@@ -13,7 +13,7 @@ const (
 	tokenDir  = 0o700
 )
 
-var ErrNoToken = errors.New("aucun jeton de serveur : ce serveur n'est pas enrôlé")
+var ErrNoToken = errors.New("no server token: this server is not enrolled")
 
 func LoadToken(machine sys.Sys, filePath string) (string, error) {
 	if filePath == "" {
@@ -47,7 +47,7 @@ func SaveToken(machine sys.Sys, filePath, token string) error {
 
 	token = strings.TrimSpace(token)
 	if token == "" {
-		return errors.New("jeton de serveur vide")
+		return errors.New("empty server token")
 	}
 
 	if err := machine.MkdirAll(path.Dir(filePath), tokenDir); err != nil {

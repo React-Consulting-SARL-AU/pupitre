@@ -2,57 +2,49 @@
 title: "Data processing"
 description: "The data processing agreement for organisations that need one, and the sub-processors it names."
 locale: en
-updated: 2026-09-04
+updated: 2026-09-06
 draft: true
 order: 5
 ---
 
-This page carries the structure of the document. Each heading names the clause it will hold; the binding wording is written by Pupitre LLC and is not published yet.
+import SubProcessors from "../../../components/SubProcessors.astro"
+
+Working draft. No agreement is signed today: the publisher is not incorporated and the text has not been reviewed by a lawyer. It is published so you know what it will contain.
 
 ## Scope
 
-What Pupitre processes on your behalf, and what it processes as a controller.
+The agreement covers the personal data we process on behalf of your organisation when you use the console and the platform: your members' accounts, their devices, and the metadata of your servers.
 
-TODO — final wording pending from Pupitre LLC.
+It does not cover the data that lives on your servers. We have no access to it: there, you are not our customer, you are the only one at the controls.
 
 ## Instructions
 
-The documented instructions we act on, and the limits of them.
-
-TODO — final wording pending from Pupitre LLC.
+We process that data only to provide the service, on your documented instructions, and for nothing else. We do not sell it, we do not share it, and we train no model on it.
 
 ## Security measures
 
-The technical and organisational measures that apply to the platform.
-
-TODO — final wording pending from Pupitre LLC.
+Encryption in transit and at rest, access to production systems limited to the people who need it and logged, secrets kept out of the repository, agent distributed as a signed binary, no inbound connection to your machines. [Full list of technical and organisational measures to be annexed before signature.]
 
 ## Sub-processors
 
-The named list, and how a change is announced.
+<SubProcessors />
 
-TODO — final wording pending from Pupitre LLC.
+You are told by email before a sub-processor is added, and you may object to it.
 
 ## Transfers
 
-Where data is processed and which mechanism covers a transfer.
+The publisher will be a United States company and the platform will be hosted in the United States: your organisation's data will be processed there, as Stripe and GitHub already process theirs. The database still lives in a European region today; it is migrated before the service takes its first customer.
 
-TODO — final wording pending from Pupitre LLC.
+For an organisation established in the European Union, the transfer will rely on the standard contractual clauses and on the guarantees each sub-processor publishes. [Exact references of the clauses and the transfer impact assessment to be annexed before signature.]
 
 ## Assistance and audits
 
-How we help with a request from a person, and what an audit looks like.
-
-TODO — final wording pending from Pupitre LLC.
+We help you answer requests from data subjects and meet the obligations that fall on you, and we tell you without undue delay about a data breach that affects you. The documents evidencing our measures are provided on request. [Audit terms and frequency to be settled before signature.]
 
 ## Deletion
 
-What is deleted at the end of the contract, and when.
+At the end of the contract, your organisation's data is deleted within thirty days, except what accounting law requires us to keep. A copy of your data is handed to you on request before the deletion.
 
-TODO — final wording pending from Pupitre LLC.
+## Getting a signed copy
 
-## Signing a copy
-
-How to get a countersigned copy for your records.
-
-TODO — final wording pending from Pupitre LLC.
+When the service opens, the request will be made from the console and the agreement signed electronically. Until then, write to `legal@pupitre.studio`: we cannot sign anything before incorporation, but we will tell you where the text stands.

@@ -1,6 +1,6 @@
-import { formatUsd, TRIAL_DAYS } from "@pupitre/shared/plans"
+import { formatUsd } from "@pupitre/shared/plans"
 import { useMutation } from "@tanstack/react-query"
-import { Check, Rocket, ShoppingCart } from "lucide-react"
+import { ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,7 +18,6 @@ import {
   INTERVAL_KEYS,
   SEAT_PRICE_USD_PER_MONTH,
 } from "@/lib/domain/billing"
-import type { DictionaryKey } from "@/lib/i18n/en"
 import {
   type CheckoutInput,
   type CheckoutValues,
@@ -28,26 +27,16 @@ import {
 } from "@/lib/schemas/billing"
 import { cn } from "@/lib/utils/cn"
 
-export type CheckoutFormVariant = "seats" | "trial"
-
-const TRIAL_PROMISES: DictionaryKey[] = [
-  "start.gives.enrol",
-  "start.gives.catalogue",
-  "start.gives.yours",
-]
-
 export interface CheckoutFormProps {
   organizationId: string
   defaultQuantity: number
   defaultInterval?: BillingIntervalName
-  variant?: CheckoutFormVariant
 }
 
 export function CheckoutForm({
   organizationId,
   defaultQuantity,
   defaultInterval = "month",
-  variant = "seats",
 }: CheckoutFormProps) {
   const t = useTranslations()
   const form = useForm<CheckoutInput, CheckoutValues>({
@@ -69,66 +58,11 @@ export function CheckoutForm({
 
   const failure = order.isError ? (
     <Callout
-      fix={t(variant === "trial" ? "start.failedFix" : "checkout.failedFix")}
-      title={t(variant === "trial" ? "start.failed" : "checkout.failed")}
+      fix={t("checkout.failedFix")}
+      title={t("checkout.failed")}
       tone="danger"
     />
   ) : null
-
-  if (variant === "trial") {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("start.trialTitle")}</CardTitle>
-          <span className="font-data text-[12px] text-ink-3 tabular-nums">
-            {t("start.trialBadge", { days: TRIAL_DAYS })}
-          </span>
-        </CardHeader>
-        <CardBody>
-          <form
-            className="flex flex-col gap-gutter"
-            noValidate
-            onSubmit={(event) => {
-              submit(event)
-            }}
-          >
-            <ul className="flex flex-col gap-2">
-              {TRIAL_PROMISES.map((promise) => (
-                <li
-                  className="flex items-start gap-2 text-[13px] text-ink-2"
-                  key={promise}
-                >
-                  <Check
-                    className="mt-[2px] size-4 shrink-0 text-ink-3"
-                    strokeWidth={1.5}
-                  />
-                  {t(promise)}
-                </li>
-              ))}
-            </ul>
-
-            <p className="text-[13px] text-ink">
-              {t("start.noCard", { days: TRIAL_DAYS })}
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                disabled={order.isPending}
-                type="submit"
-                variant="primary"
-              >
-                <Rocket className="size-4" strokeWidth={1.5} />
-                {order.isPending ? t("start.actionPending") : t("start.action")}
-              </Button>
-              <p className="text-[13px] text-ink-2">{t("start.lead")}</p>
-            </div>
-
-            {failure}
-          </form>
-        </CardBody>
-      </Card>
-    )
-  }
 
   return (
     <Card>
@@ -169,7 +103,7 @@ export function CheckoutForm({
                   <button
                     aria-pressed={interval === candidate}
                     className={cn(
-                      "h-7 rounded-sm px-3 text-[13px] transition-colors duration-[120ms] ease-[ease]",
+                      "h-7 rounded-sm px-3 text-[13px] transition-fast",
                       "focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2",
                       interval === candidate
                         ? "bg-inverse text-inverse-ink"

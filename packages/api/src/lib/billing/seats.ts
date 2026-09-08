@@ -1,5 +1,8 @@
 import type { ServerStatus } from "@pupitre/db/cloudflare/client"
 import { getPrisma, type OrganizationPrisma } from "../api/prisma"
+import { recordEvent } from "../audit/audit"
+import { getBillingProvider } from "./runtime"
+import { readSubscription, type SubscriptionView } from "./subscription"
 
 export const SEATED_STATUSES: ServerStatus[] = [
   "enrolling",
@@ -47,4 +50,72 @@ export async function payingSubscriptionOf(organizationId: string) {
     },
     orderBy: { updatedAt: "desc" },
   })
+}
+
+export class NoPayingSubscriptionError extends Error {
+  constructor() {
+    super("this organization has no subscription to resize")
+    this.name = "NoPayingSubscriptionError"
+  }
+}
+
+export class SeatsBelowUsageError extends Error {
+  readonly used: number
+
+  constructor(used: number) {
+    super(`this organization already seats ${used} servers`)
+    this.name = "SeatsBelowUsageError"
+    this.used = used
+  }
+}
+
+export interface SeatsActor {
+  organizationId: string
+  userId: string
+}
+
+export async function resizeSeats(
+  actor: SeatsActor,
+  quantity: number
+): Promise<SubscriptionView | null> {
+  const { organizationId } = actor
+  const subscription = await payingSubscriptionOf(organizationId)
+
+  if (!subscription) {
+    throw new NoPayingSubscriptionError()
+  }
+
+  const prisma = getPrisma()
+  const seated = await prisma.server.count({
+    where: { organizationId, status: { in: SEATED_STATUSES } },
+  })
+
+  if (quantity < seated) {
+    throw new SeatsBelowUsageError(seated)
+  }
+
+  if (quantity === subscription.quantity) {
+    return await readSubscription(organizationId)
+  }
+
+  const remote = await getBillingProvider().updateQuantity(
+    subscription.stripeSubscriptionId,
+    quantity
+  )
+
+  await prisma.subscription.update({
+    where: { id: subscription.id },
+    data: { quantity: remote.quantity },
+  })
+
+  await recordEvent({
+    action: "subscription.updated",
+    actorUserId: actor.userId,
+    organizationId,
+    targetType: "subscription",
+    targetId: subscription.stripeSubscriptionId,
+    payload: { quantity: remote.quantity, previous: subscription.quantity },
+  })
+
+  return await readSubscription(organizationId)
 }

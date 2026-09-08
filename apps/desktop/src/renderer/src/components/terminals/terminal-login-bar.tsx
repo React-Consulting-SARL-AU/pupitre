@@ -20,7 +20,7 @@ export function TerminalLoginBar({
     <div className="flex shrink-0 items-center gap-3 border-line border-b bg-raised px-3 py-2">
       <LogIn className="shrink-0 text-ink-3" size={14} strokeWidth={1.5} />
 
-      <p className="min-w-0 flex-1 text-[12px] text-ink-2">
+      <p className="min-w-0 flex-1 text-[13px] text-ink-2">
         {open ? t("terminals.loginActive") : t("terminals.loginWaiting")}
         <span className="font-data text-ink">{host}</span>
       </p>

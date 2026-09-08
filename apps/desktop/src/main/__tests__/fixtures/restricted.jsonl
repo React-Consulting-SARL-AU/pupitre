@@ -1,6 +1,6 @@
 # Un serveur en mode restreint : il se laisse lire, et refuse d'agir.
 # Modèle : apps/agent/internal/protocol/testdata/restricted.jsonl
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","protocol":1}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
 < {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"restricted","capabilities":["hello","ping","snapshot","status","diag","agent.upgrade"]}}
 > {"id":2,"cmd":"snapshot"}
 < {"id":2,"ok":true,"result":{"machine":{"hostname":"staging","os":"ubuntu","version":"24.04","arch":"amd64","cores":4,"uptime_s":86400,"load":[0.1,0.2,0.3],"ram_total_mb":4096,"ram_used_mb":1200,"swap_mb":0,"disk_total_gb":80,"disk_free_gb":38,"agent_version":"0.0.0-test"},"services":[],"projects":[{"name":"api","dir":"api","path":"/home/dev/projects/api","host":"api.test","port":3000,"pkgmgr":"bun","cmd":"bun dev","state":"online","versioned":true}],"sessions":[{"pid":4242,"seconds":3600,"ram_mb":120,"kind":"claude","project":"api","command":"claude"}],"entitlement":"restricted"}}

@@ -2,7 +2,7 @@ export interface GithubMarkProps {
   className?: string
 }
 
-/** Tracé Simple Icons 16.29.0 (CC0-1.0), d'après https://github.com/logos. */
+/** Path from Simple Icons 16.29.0 (CC0-1.0), based on https://github.com/logos. */
 export function GithubMark({ className }: GithubMarkProps) {
   return (
     <svg

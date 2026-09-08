@@ -1,6 +1,9 @@
 package protocol
 
-import "pupitre.studio/agent/internal/contract"
+import (
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
+)
 
 type Error struct {
 	Code    contract.ErrorCode `json:"code"`
@@ -33,26 +36,28 @@ func badRequest(message string) *Error {
 	return NewError(contract.ErrorBadRequest, message)
 }
 
-const secretsFix = `Écris les secrets en JSON sur une seule ligne de l'entrée standard, juste après la requête : {"<clé>":"<valeur>"}.`
+func secretsFix() string {
+	return i18n.T("protocol.secrets.fix")
+}
 
 func missingSecrets(cause string) *Error {
-	return badRequest("ligne de secrets absente : " + cause).WithFix(secretsFix)
+	return badRequest(i18n.T("protocol.secrets.missing", cause)).WithFix(secretsFix())
 }
 
 func helloRequired() *Error {
-	return NewError(contract.ErrorHelloRequired, "hello attendu avant toute commande").
-		WithFix("Envoie hello {app_version, protocol} en premier.")
+	return NewError(contract.ErrorHelloRequired, i18n.T("protocol.hello.required")).
+		WithFix(i18n.T("protocol.hello.required.fix"))
 }
 
 func unknownCommand(cmd string) *Error {
-	return NewError(contract.ErrorUnknownCommand, "commande inconnue : "+cmd)
+	return NewError(contract.ErrorUnknownCommand, i18n.T("protocol.command.unknown", cmd))
 }
 
 func EntitlementRequired() *Error {
-	return NewError(contract.ErrorEntitlementRequired, "droit d'usage requis : ce serveur est en mode restreint").
-		WithFix("Ouvre https://app.pupitre.studio pour renouveler le droit d'usage de ce serveur.")
+	return NewError(contract.ErrorEntitlementRequired, i18n.T("protocol.entitlement.required")).
+		WithFix(i18n.T("protocol.entitlement.required.fix"))
 }
 
 func internalError(cause string) *Error {
-	return NewError(contract.ErrorInternal, "erreur interne : "+cause)
+	return NewError(contract.ErrorInternal, i18n.T("protocol.internal", cause))
 }

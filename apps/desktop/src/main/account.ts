@@ -8,7 +8,13 @@ import { app, ipcMain, safeStorage, shell } from "electron";
 import { type Account, createAccount } from "./account-run";
 import { createTokenVault, type Sealer } from "./account-vault";
 import { generateKey, keyPaths, readPublicKey } from "./keys";
-import { createPlatformClient, DEFAULT_PLATFORM_URL } from "./platform-client";
+import {
+  agentBaseUrl,
+  createPlatformClient,
+  DEFAULT_PLATFORM_URL,
+  LOCAL_PLATFORM_URL,
+} from "./platform-client";
+import { relayTo } from "./relay";
 import { paths } from "./servers";
 
 /**
@@ -27,13 +33,33 @@ const sealer: Sealer = {
   encrypt: (value) => safeStorage.encryptString(value),
 };
 
+/**
+ * Which platform this build talks to.
+ *
+ * A packaged app knows only the hosted one. A development build talks to the
+ * console running beside it, so the whole account — device flow, enrolment,
+ * console links — stays on this computer; `PUPITRE_PLATFORM_URL` names another
+ * one when it is elsewhere.
+ */
 export function platformUrl(): string {
-  return process.env.PUPITRE_PLATFORM_URL || DEFAULT_PLATFORM_URL;
+  const fallback = app.isPackaged ? DEFAULT_PLATFORM_URL : LOCAL_PLATFORM_URL;
+
+  return process.env.PUPITRE_PLATFORM_URL || fallback;
 }
 
-/** The same platform, as the agent reaches it: the API's own base, not the console's. */
+/**
+ * The same platform, as the agent reaches it: the API's own base, not the
+ * console's — and under a name the server can actually resolve.
+ *
+ * A development console is served on this computer, which the VPS has no way to
+ * reach; what leaves for the server is the tunnel that publishes that same
+ * console. `PUPITRE_AGENT_PLATFORM_URL` names another one when the agent has to
+ * answer somewhere else than the app does.
+ */
 export function agentPlatformUrl(): string {
-  return new URL("/api/v1", platformUrl()).toString();
+  const base = process.env.PUPITRE_AGENT_PLATFORM_URL || platformUrl();
+
+  return new URL("/api/v1", agentBaseUrl(base)).toString();
 }
 
 /**
@@ -86,18 +112,26 @@ export function registerAccount(): void {
     (): Promise<AccountState> => account.refresh()
   );
 
+  ipcMain.handle(
+    "account:organization",
+    (_event, organizationId: unknown): Promise<AccountState> =>
+      typeof organizationId === "string" && organizationId.length > 0
+        ? account.switchOrganization(organizationId)
+        : Promise.resolve(account.state())
+  );
+
   ipcMain.handle("account:sign-out", (): AccountState => account.signOut());
 
   ipcMain.handle(
     "account:sign-in",
-    (event, token: unknown): Promise<AccountResponse<AccountState>> => {
-      const report = (progress: SignInProgress) => {
-        if (typeof token === "string" && !event.sender.isDestroyed()) {
-          event.sender.send("account:sign-in-progress", { progress, token });
-        }
-      };
-
-      return account.signIn(report);
-    }
+    (event, token: unknown): Promise<AccountResponse<AccountState>> =>
+      account.signIn(
+        relayTo<SignInProgress>(
+          event.sender,
+          token,
+          "account:sign-in-progress",
+          "progress"
+        )
+      )
   );
 }

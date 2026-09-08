@@ -55,7 +55,7 @@ func session(t *testing.T, b *bench, granted func() entitlement.State, requests 
 	for _, line := range spoken(t, b, granted, requests...) {
 		var answer response
 		if err := json.Unmarshal([]byte(line), &answer); err != nil {
-			t.Fatalf("réponse illisible %q : %v", line, err)
+			t.Fatalf("unreadable answer %q: %v", line, err)
 		}
 
 		answers = append(answers, answer)
@@ -96,7 +96,7 @@ func assertKeysResult(t *testing.T, answer response, fingerprints int) {
 	}
 
 	if err := contract.Validate("KeysListResult", decode(t, answer.Result)); err != nil {
-		t.Fatalf("résultat hors contrat : %v", err)
+		t.Fatalf("result outside the contract: %v", err)
 	}
 
 	var result struct {
@@ -109,7 +109,7 @@ func assertKeysResult(t *testing.T, answer response, fingerprints int) {
 	json.Unmarshal(answer.Result, &result)
 
 	if len(result.Keys) != fingerprints {
-		t.Fatalf("%d clé(s), attendu %d", len(result.Keys), fingerprints)
+		t.Fatalf("%d key(s), want %d", len(result.Keys), fingerprints)
 	}
 
 	for _, key := range result.Keys {
@@ -165,7 +165,7 @@ func TestKeysSyncSaysWhenThePlatformRefusesTheToken(t *testing.T) {
 
 	answer := serve(t, b, contract.EntitlementValid, `{"id":2,"cmd":"keys.sync","params":{}}`)[0]
 	if answer.OK || answer.Error.Code != contract.ErrorEntitlementRequired || answer.Error.Fix == "" {
-		t.Fatalf("réponse = %+v", answer)
+		t.Fatalf("answer = %+v", answer)
 	}
 }
 
@@ -174,7 +174,7 @@ func TestKeysSyncSaysWhenTheServerIsNotEnrolled(t *testing.T) {
 
 	answer := serve(t, b, contract.EntitlementValid, `{"id":2,"cmd":"keys.sync","params":{}}`)[0]
 	if answer.OK || answer.Error.Code != contract.ErrorBadRequest {
-		t.Fatalf("réponse = %+v", answer)
+		t.Fatalf("answer = %+v", answer)
 	}
 }
 
@@ -187,7 +187,7 @@ func TestTheKeysCommandsCloseInRestrictedMode(t *testing.T) {
 		`{"id":3,"cmd":"keys.list","params":{}}`,
 	) {
 		if answer.OK || answer.Error.Code != contract.ErrorEntitlementRequired {
-			t.Errorf("réponse = %+v", answer)
+			t.Errorf("answer = %+v", answer)
 		}
 	}
 }
@@ -208,7 +208,7 @@ func TestEnrollTradesTheTokenTakenFromTheSecretLine(t *testing.T) {
 
 	answers := serveResolved(t, b, enrollRequests(b)...)
 	if len(answers) != 1 {
-		t.Fatalf("%d réponse(s)", len(answers))
+		t.Fatalf("%d answer(s)", len(answers))
 	}
 
 	answer := answers[0]
@@ -217,7 +217,7 @@ func TestEnrollTradesTheTokenTakenFromTheSecretLine(t *testing.T) {
 	}
 
 	if err := contract.Validate("EnrollResult", decode(t, answer.Result)); err != nil {
-		t.Fatalf("résultat hors contrat : %v", err)
+		t.Fatalf("result outside the contract: %v", err)
 	}
 
 	var result struct {
@@ -228,15 +228,15 @@ func TestEnrollTradesTheTokenTakenFromTheSecretLine(t *testing.T) {
 	json.Unmarshal(answer.Result, &result)
 
 	if !result.Enrolled || result.Entitlement != string(contract.EntitlementValid) || result.SyncedAt == "" {
-		t.Fatalf("résultat = %+v", result)
+		t.Fatalf("result = %+v", result)
 	}
 
 	if len(b.platform.traded) != 1 || b.platform.traded[0].Token != enrollmentToken {
-		t.Fatalf("échangé %+v", b.platform.traded)
+		t.Fatalf("traded %+v", b.platform.traded)
 	}
 
 	if b.platform.traded[0].HostPublicKey != hostKey || b.platform.traded[0].Arch != "amd64" {
-		t.Fatalf("échangé %+v", b.platform.traded[0])
+		t.Fatalf("traded %+v", b.platform.traded[0])
 	}
 
 	token, err := platform.LoadToken(b.fake, platform.DefaultTokenPath)
@@ -245,7 +245,7 @@ func TestEnrollTradesTheTokenTakenFromTheSecretLine(t *testing.T) {
 	}
 
 	if !strings.Contains(b.authorized(), laptop) {
-		t.Fatalf("le premier état n'a pas été lu :\n%s", b.authorized())
+		t.Fatalf("the first state was not read:\n%s", b.authorized())
 	}
 }
 
@@ -257,16 +257,16 @@ func TestEnrollNeverWritesTheTokenDownAnywhere(t *testing.T) {
 
 	for _, line := range written {
 		if strings.Contains(line, enrollmentToken) {
-			t.Fatalf("le jeton sort de l'agent : %s", line)
+			t.Fatalf("the token leaves the agent: %s", line)
 		}
 	}
 
 	if journal := b.journal(); strings.Contains(journal, enrollmentToken) {
-		t.Fatalf("le jeton est dans le journal :\n%s", journal)
+		t.Fatalf("the token is in the journal:\n%s", journal)
 	}
 
-	if !strings.Contains(b.journal(), "serveur enrôlé") {
-		t.Fatalf("l'enrôlement n'est pas journalisé :\n%s", b.journal())
+	if !strings.Contains(b.journal(), "server enrolled") {
+		t.Fatalf("the enrolment is not journalled:\n%s", b.journal())
 	}
 }
 
@@ -277,7 +277,7 @@ func TestARefusalThatCarriesTheTokenIsRedacted(t *testing.T) {
 
 	answer := serveResolved(t, b, enrollRequests(b)...)[0]
 	if answer.OK {
-		t.Fatal("un jeton refusé a enrôlé le serveur")
+		t.Fatal("a refused token enrolled the server")
 	}
 
 	if answer.Error.Code != contract.ErrorEntitlementRequired {
@@ -285,15 +285,15 @@ func TestARefusalThatCarriesTheTokenIsRedacted(t *testing.T) {
 	}
 
 	if strings.Contains(answer.Error.Message, enrollmentToken) {
-		t.Fatalf("le jeton est dans le refus : %s", answer.Error.Message)
+		t.Fatalf("the token is in the refusal: %s", answer.Error.Message)
 	}
 
 	if !strings.Contains(answer.Error.Message, "[secret]") {
-		t.Fatalf("le refus ne masque rien : %s", answer.Error.Message)
+		t.Fatalf("the refusal masks nothing: %s", answer.Error.Message)
 	}
 
 	if platform.Enrolled(b.fake, platform.DefaultTokenPath) {
-		t.Fatal("un échange refusé a écrit un jeton de serveur")
+		t.Fatal("a refused exchange wrote a server token")
 	}
 }
 
@@ -307,15 +307,15 @@ func TestARestrictedServerEnrolsAgainWithoutTheConsole(t *testing.T) {
 
 	answers := serve(t, b, contract.EntitlementRestricted, requests...)
 	if len(answers) != 2 {
-		t.Fatalf("%d réponse(s)", len(answers))
+		t.Fatalf("%d answer(s)", len(answers))
 	}
 
 	if !answers[0].OK {
-		t.Fatalf("un serveur restreint ne peut pas se ré-enrôler : %v", answers[0].Error)
+		t.Fatalf("a restricted server cannot re-enrol: %v", answers[0].Error)
 	}
 
 	if err := contract.Validate("EnrollResult", decode(t, answers[0].Result)); err != nil {
-		t.Fatalf("résultat hors contrat : %v", err)
+		t.Fatalf("result outside the contract: %v", err)
 	}
 
 	token, err := platform.LoadToken(b.fake, platform.DefaultTokenPath)
@@ -324,7 +324,7 @@ func TestARestrictedServerEnrolsAgainWithoutTheConsole(t *testing.T) {
 	}
 
 	if answers[1].OK || answers[1].Error.Code != contract.ErrorEntitlementRequired {
-		t.Fatalf("le mode restreint s'ouvre au-delà de enroll : %+v", answers[1])
+		t.Fatalf("restricted mode opens beyond enroll: %+v", answers[1])
 	}
 }
 
@@ -338,7 +338,7 @@ func TestOnlyEnrollOpensOnABinaryWithoutAServerToken(t *testing.T) {
 	}
 
 	if answer := serveResolved(t, b, enrollRequests(b)...)[0]; !answer.OK {
-		t.Fatalf("enroll refusé sur un binaire non enrôlé : %v", answer.Error)
+		t.Fatalf("enroll refused on an unenrolled binary: %v", answer.Error)
 	}
 }
 
@@ -352,11 +352,60 @@ func TestEnrollRefusesASecretLineThatIsNotOne(t *testing.T) {
 		)[0]
 
 		if answer.OK || answer.Error.Code != contract.ErrorBadRequest || answer.Error.Fix == "" {
-			t.Fatalf("ligne %s : réponse = %+v", line, answer)
+			t.Fatalf("line %s: answer = %+v", line, answer)
 		}
 
 		if len(b.platform.traded) != 0 {
-			t.Fatalf("ligne %s : un échange a eu lieu", line)
+			t.Fatalf("line %s: an exchange took place", line)
 		}
+	}
+}
+
+// The console shows the modules at the end of an installation rather than at
+// the daemon's next turn, five minutes later.
+func TestPlatformSyncReadsTheStateAndBeatsAtOnce(t *testing.T) {
+	b := newBench(t, true)
+	b.platform.allow(laptop)
+
+	answer := serve(t, b, contract.EntitlementValid, `{"id":2,"cmd":"platform.sync","params":{}}`)[0]
+	if !answer.OK {
+		t.Fatalf("answer = %+v", answer)
+	}
+
+	var synced struct {
+		SyncedAt    string `json:"synced_at"`
+		HeartbeatAt string `json:"heartbeat_at"`
+	}
+	if err := json.Unmarshal(answer.Result, &synced); err != nil {
+		t.Fatal(err)
+	}
+
+	if synced.SyncedAt != noon.Format(time.RFC3339) || synced.HeartbeatAt == "" {
+		t.Fatalf("synced = %+v", synced)
+	}
+
+	if len(b.platform.beats) != 1 {
+		t.Fatalf("%d heartbeat(s), want one", len(b.platform.beats))
+	}
+}
+
+// A server whose usage right the platform has not confirmed is exactly the one
+// that needs to ask again: the contract leaves this command open for it.
+func TestPlatformSyncStaysOpenInRestrictedMode(t *testing.T) {
+	b := newBench(t, true)
+	b.platform.allow(laptop)
+
+	answer := serve(t, b, contract.EntitlementRestricted, `{"id":2,"cmd":"platform.sync","params":{}}`)[0]
+	if !answer.OK {
+		t.Fatalf("answer = %+v", answer)
+	}
+}
+
+func TestPlatformSyncSaysWhenTheServerIsNotEnrolled(t *testing.T) {
+	b := newBench(t, false)
+
+	answer := serve(t, b, contract.EntitlementValid, `{"id":2,"cmd":"platform.sync","params":{}}`)[0]
+	if answer.OK || answer.Error.Code != contract.ErrorBadRequest || answer.Error.Fix == "" {
+		t.Fatalf("answer = %+v", answer)
 	}
 }

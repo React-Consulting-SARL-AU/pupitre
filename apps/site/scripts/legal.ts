@@ -1,5 +1,13 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs"
 import path from "node:path"
+import {
+  isIncorporated,
+  isPublicStage,
+  LEGAL_ENTITY,
+  type LegalEntity,
+  PROJECT_STAGE,
+  type ProjectStage,
+} from "@pupitre/shared/legal"
 
 export const LEGAL_DIR = "src/content/legal"
 
@@ -7,9 +15,17 @@ const TODO_MARKER = "TODO"
 
 const DRAFT_FRONTMATTER = /^draft:\s*true\s*$/m
 
+/** A bracket that doesn't open a Markdown link: information still missing. */
+const PLACEHOLDER = /\[[^\]\n]+\](?!\()/
+
 export interface LegalFinding {
   file: string
   reason: string
+}
+
+export interface LegalStage {
+  stage?: ProjectStage
+  entity?: LegalEntity
 }
 
 export function isProduction(
@@ -36,8 +52,25 @@ function walk(dir: string, out: string[] = []): string[] {
   return out.sort()
 }
 
-export function checkLegalDrafts(root: string): LegalFinding[] {
+export function legalDrafts(root: string): string[] {
+  return walk(path.join(root, LEGAL_DIR))
+    .filter((file) => DRAFT_FRONTMATTER.test(readFileSync(file, "utf8")))
+    .map((file) => path.relative(root, file))
+}
+
+export function checkLegalDrafts(
+  root: string,
+  { stage = PROJECT_STAGE, entity = LEGAL_ENTITY }: LegalStage = {}
+): LegalFinding[] {
   const findings: LegalFinding[] = []
+  const open = isPublicStage(stage)
+
+  if (open && !isIncorporated(entity)) {
+    findings.push({
+      file: "@pupitre/shared/legal",
+      reason: "project opened while the publisher is not incorporated",
+    })
+  }
 
   for (const file of walk(path.join(root, LEGAL_DIR))) {
     const content = readFileSync(file, "utf8")
@@ -45,18 +78,17 @@ export function checkLegalDrafts(root: string): LegalFinding[] {
 
     if (content.includes(TODO_MARKER)) {
       findings.push({ file: relative, reason: `legal ${TODO_MARKER} left` })
-    } else if (DRAFT_FRONTMATTER.test(content)) {
+    } else if (open && DRAFT_FRONTMATTER.test(content)) {
       findings.push({ file: relative, reason: "still marked draft" })
+    } else if (open && PLACEHOLDER.test(content)) {
+      findings.push({ file: relative, reason: "placeholder left" })
     }
   }
 
   return findings
 }
 
-/**
- * Structure ships in every environment; the binding wording only ships in
- * production. A `TODO` left in a legal page fails the production build.
- */
+/** A legal `TODO` never ships. A draft does, with its warning, until the project declares itself open — then pages must be signed. */
 export function legalGuard() {
   return {
     name: "pupitre:legal-guard",
@@ -68,19 +100,27 @@ export function legalGuard() {
       }) => {
         const findings = checkLegalDrafts(process.cwd())
 
-        if (findings.length === 0) {
+        if (findings.length > 0) {
+          const summary = findings
+            .map((finding) => `${finding.file}: ${finding.reason}`)
+            .join("\n")
+
+          if (isProduction()) {
+            throw new Error(`Legal pages are not ready to publish:\n${summary}`)
+          }
+
+          logger.warn(`Legal pages are not ready to publish:\n${summary}`)
+
           return
         }
 
-        const summary = findings
-          .map((finding) => `${finding.file}: ${finding.reason}`)
-          .join("\n")
+        const drafts = legalDrafts(process.cwd())
 
-        if (isProduction()) {
-          throw new Error(`Legal pages are not ready to publish:\n${summary}`)
+        if (drafts.length > 0) {
+          logger.warn(
+            `${drafts.length} legal page(s) publish as drafts while the project is in development.`
+          )
         }
-
-        logger.warn(`Legal pages are still drafts:\n${summary}`)
       },
     },
   }

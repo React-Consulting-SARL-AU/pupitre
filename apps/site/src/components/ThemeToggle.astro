@@ -59,6 +59,7 @@ const t = translator(localeFromPath(Astro.url.pathname))
 </details>
 
 <script>
+  import { closeMenusOnDismiss } from "../lib/menu"
   import {
     applyTheme,
     parseTheme,
@@ -111,17 +112,5 @@ const t = translator(localeFromPath(Astro.url.pathname))
     })
   }
 
-  for (const menu of menus) {
-    document.addEventListener("click", (event) => {
-      if (menu.open && !menu.contains(event.target as Node)) {
-        menu.open = false
-      }
-    })
-
-    menu.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") {
-        menu.open = false
-      }
-    })
-  }
+  closeMenusOnDismiss("[data-theme-menu]")
 </script>

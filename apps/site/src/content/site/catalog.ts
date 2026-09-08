@@ -1,11 +1,8 @@
 import type { ModuleCategory, ModuleId } from "@pupitre/shared/catalog"
 import type { Localized } from "../../lib/i18n"
 
-export type Availability = "mvp" | "later"
-
 export interface CatalogEntry {
   id: ModuleId
-  availability: Availability
   name: Localized
   detail: Localized
 }
@@ -17,11 +14,6 @@ export interface CatalogGroup {
   entries: CatalogEntry[]
 }
 
-export const AVAILABILITY_LABELS: Record<Availability, Localized> = {
-  mvp: { en: "Available", fr: "Disponible" },
-  later: { en: "Soon", fr: "Bientôt" },
-}
-
 export const CATALOG: CatalogGroup[] = [
   {
     id: "core",
@@ -30,7 +22,6 @@ export const CATALOG: CatalogGroup[] = [
     entries: [
       {
         id: "core.system",
-        availability: "mvp",
         name: { en: "System", fr: "Système" },
         detail: {
           en: "Base packages, sized swap, memory guard, a dev user with sudo, tmux, zsh, git identity.",
@@ -39,7 +30,6 @@ export const CATALOG: CatalogGroup[] = [
       },
       {
         id: "core.hardening",
-        availability: "mvp",
         name: { en: "Hardening", fr: "Durcissement" },
         detail: {
           en: "ufw on SSH only, fail2ban, root closed and passwords off once a key opens dev.",
@@ -54,7 +44,6 @@ export const CATALOG: CatalogGroup[] = [
     entries: [
       {
         id: "runtime.node",
-        availability: "mvp",
         name: { en: "Node.js", fr: "Node.js" },
         detail: {
           en: "Node, Bun and pnpm through mise, at the versions you choose, in every shell.",
@@ -63,7 +52,6 @@ export const CATALOG: CatalogGroup[] = [
       },
       {
         id: "runtime.java",
-        availability: "mvp",
         name: { en: "Java", fr: "Java" },
         detail: {
           en: "Temurin through mise, Gradle daemon sized for the RAM.",
@@ -72,38 +60,42 @@ export const CATALOG: CatalogGroup[] = [
       },
       {
         id: "runtime.python",
-        availability: "mvp",
         name: { en: "Python", fr: "Python" },
         detail: {
-          en: "uv and one Python version.",
-          fr: "uv et une version de Python.",
+          en: "uv and the Python version you choose, through mise.",
+          fr: "uv et la version de Python choisie, via mise.",
         },
       },
       {
         id: "runtime.go",
-        availability: "later",
         name: { en: "Go", fr: "Go" },
-        detail: { en: "Through mise.", fr: "Via mise." },
+        detail: {
+          en: "Go at the version you choose, through mise, with GOPATH and go install binaries on the path.",
+          fr: "Go à la version choisie, via mise, avec GOPATH et les binaires de go install sur le PATH.",
+        },
       },
       {
         id: "runtime.php",
-        availability: "later",
         name: { en: "PHP", fr: "PHP" },
-        detail: { en: "Through mise.", fr: "Via mise." },
+        detail: {
+          en: "PHP at the version you choose, built by mise, Composer optional, memory limit yours.",
+          fr: "PHP à la version choisie, compilé par mise, Composer en option, limite mémoire à votre main.",
+        },
       },
       {
         id: "runtime.ruby",
-        availability: "later",
         name: { en: "Ruby", fr: "Ruby" },
-        detail: { en: "Through mise.", fr: "Via mise." },
+        detail: {
+          en: "Ruby at the version you choose, built by mise, Bundler optional.",
+          fr: "Ruby à la version choisie, compilé par mise, Bundler en option.",
+        },
       },
       {
         id: "runtime.docker",
-        availability: "later",
         name: { en: "Docker", fr: "Docker" },
         detail: {
-          en: "Docker Engine and Compose, dev in the group.",
-          fr: "Docker Engine et Compose, dev dans le groupe.",
+          en: "Docker Engine and Compose, dev in the group so no command needs sudo, images where you want them.",
+          fr: "Docker Engine et Compose, dev dans le groupe pour qu’aucune commande ne demande sudo, images là où vous voulez.",
         },
       },
     ],
@@ -114,38 +106,34 @@ export const CATALOG: CatalogGroup[] = [
     entries: [
       {
         id: "db.mysql",
-        availability: "mvp",
-        name: { en: "MySQL 8 or MariaDB", fr: "MySQL 8 ou MariaDB" },
+        name: { en: "MySQL or MariaDB", fr: "MySQL ou MariaDB" },
         detail: {
-          en: "Bound to 127.0.0.1, app and remote accounts through SSH, dumps in ~/dumps/ imported for you.",
-          fr: "Lié à 127.0.0.1, comptes applicatif et distant à travers SSH, dumps déposés dans ~/dumps/ importés pour vous.",
+          en: "Bound to 127.0.0.1 on the port you pick, app and remote accounts you name, dumps in ~/dumps/ imported for you.",
+          fr: "Lié à 127.0.0.1 sur le port choisi, comptes applicatif et distant que vous nommez, dumps déposés dans ~/dumps/ importés pour vous.",
         },
       },
       {
         id: "db.postgres",
-        availability: "mvp",
-        name: { en: "PostgreSQL 17", fr: "PostgreSQL 17" },
+        name: { en: "PostgreSQL", fr: "PostgreSQL" },
         detail: {
-          en: "Local only, app and remote roles, common extensions, dump import.",
-          fr: "Local seulement, rôles applicatif et distant, extensions courantes, import de dumps.",
+          en: "The major version you choose, local only, app and remote roles you name, common extensions, dump import.",
+          fr: "La version majeure choisie, local seulement, rôles applicatif et distant que vous nommez, extensions courantes, import de dumps.",
         },
       },
       {
         id: "db.mongodb",
-        availability: "mvp",
-        name: { en: "MongoDB 8", fr: "MongoDB 8" },
+        name: { en: "MongoDB", fr: "MongoDB" },
         detail: {
-          en: "Local only, app user, mongodump import.",
-          fr: "Local seulement, utilisateur applicatif, import de mongodump.",
+          en: "The major version you choose, local only, the app user you name, mongodump import.",
+          fr: "La version majeure choisie, local seulement, l’utilisateur applicatif que vous nommez, import de mongodump.",
         },
       },
       {
         id: "db.redis",
-        availability: "later",
         name: { en: "Redis", fr: "Redis" },
         detail: {
-          en: "Local only, password, persistence.",
-          fr: "Local seulement, mot de passe, persistance.",
+          en: "Local only, a password it refuses to work without, persistence and a memory ceiling you set.",
+          fr: "Local seulement, un mot de passe sans lequel il refuse de répondre, persistance et plafond mémoire à votre main.",
         },
       },
     ],
@@ -156,7 +144,6 @@ export const CATALOG: CatalogGroup[] = [
     entries: [
       {
         id: "ai.claude",
-        availability: "mvp",
         name: { en: "Claude Code", fr: "Claude Code" },
         detail: {
           en: "Sign in with the URL shown in the app terminal, project context, Pupitre skills.",
@@ -165,7 +152,6 @@ export const CATALOG: CatalogGroup[] = [
       },
       {
         id: "ai.codex",
-        availability: "mvp",
         name: { en: "Codex", fr: "Codex" },
         detail: {
           en: "Same mechanism as Claude Code, with your own subscription.",
@@ -174,7 +160,6 @@ export const CATALOG: CatalogGroup[] = [
       },
       {
         id: "ai.hermes",
-        availability: "mvp",
         name: { en: "Hermes Agent", fr: "Hermes Agent" },
         detail: {
           en: "Nous Research’s agent through Python, model providers configured, a systemd service if always on.",
@@ -183,7 +168,6 @@ export const CATALOG: CatalogGroup[] = [
       },
       {
         id: "ai.browser",
-        availability: "mvp",
         name: { en: "Headless Chrome", fr: "Chrome headless" },
         detail: {
           en: "Playwright dependencies, a capture command that files images in the gallery.",
@@ -198,7 +182,6 @@ export const CATALOG: CatalogGroup[] = [
     entries: [
       {
         id: "editor.jetbrains",
-        availability: "mvp",
         name: { en: "JetBrains Gateway", fr: "JetBrains Gateway" },
         detail: {
           en: "Remote backend preinstalled for IntelliJ IDEA, WebStorm, PyCharm, PhpStorm or GoLand, JVM sized, your licence.",
@@ -207,7 +190,6 @@ export const CATALOG: CatalogGroup[] = [
       },
       {
         id: "editor.vscode",
-        availability: "mvp",
         name: { en: "VS Code Remote SSH", fr: "VS Code Remote SSH" },
         detail: {
           en: "code CLI and remote server preinstalled so the first connection is immediate; same for Cursor and Windsurf.",
@@ -216,7 +198,6 @@ export const CATALOG: CatalogGroup[] = [
       },
       {
         id: "editor.zed",
-        availability: "mvp",
         name: { en: "Zed", fr: "Zed" },
         detail: {
           en: "Remote server preinstalled for your version, opened through zed://ssh.",
@@ -231,16 +212,14 @@ export const CATALOG: CatalogGroup[] = [
     entries: [
       {
         id: "exposure.cloudflare",
-        availability: "mvp",
         name: { en: "Cloudflare Tunnel", fr: "Cloudflare Tunnel" },
         detail: {
-          en: "One tunnel, one route per project, DNS and certificate managed.",
-          fr: "Un tunnel, une route par projet, DNS et certificat gérés.",
+          en: "One tunnel on your own Cloudflare account, one route per project, DNS and certificate managed.",
+          fr: "Un tunnel sur votre compte Cloudflare, une route par projet, DNS et certificat gérés.",
         },
       },
       {
         id: "exposure.ssh",
-        availability: "mvp",
         name: { en: "SSH only", fr: "SSH seul" },
         detail: {
           en: "No public exposure: each project on its port, through the SSH session the app holds.",
@@ -249,11 +228,10 @@ export const CATALOG: CatalogGroup[] = [
       },
       {
         id: "exposure.caddy",
-        availability: "later",
         name: { en: "Caddy", fr: "Caddy" },
         detail: {
-          en: "Reverse proxy with automatic certificates for a domain outside Cloudflare.",
-          fr: "Reverse proxy avec certificats automatiques pour un domaine hors Cloudflare.",
+          en: "Reverse proxy with automatic Let’s Encrypt certificates, one route per project, for a domain outside Cloudflare.",
+          fr: "Reverse proxy avec certificats Let’s Encrypt automatiques, une route par projet, pour un domaine hors Cloudflare.",
         },
       },
     ],
@@ -264,7 +242,6 @@ export const CATALOG: CatalogGroup[] = [
     entries: [
       {
         id: "tool.github",
-        availability: "mvp",
         name: { en: "GitHub", fr: "GitHub" },
         detail: {
           en: "gh, HTTPS clone without a key, the server’s key registered on your account.",
@@ -273,7 +250,6 @@ export const CATALOG: CatalogGroup[] = [
       },
       {
         id: "tool.1password",
-        availability: "mvp",
         name: { en: "1Password", fr: "1Password" },
         detail: {
           en: "CLI and service account, .env.local generated from the templates in your repositories.",
@@ -282,11 +258,10 @@ export const CATALOG: CatalogGroup[] = [
       },
       {
         id: "tool.neon",
-        availability: "later",
         name: { en: "Neon", fr: "Neon" },
         detail: {
-          en: "One branch per project that declares it.",
-          fr: "Une branche par projet qui le déclare.",
+          en: "One Neon branch per project you name, its connection string filed with the server’s secrets.",
+          fr: "Une branche Neon par projet que vous nommez, sa chaîne de connexion rangée avec les secrets du serveur.",
         },
       },
     ],

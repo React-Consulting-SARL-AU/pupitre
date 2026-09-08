@@ -44,7 +44,7 @@ func (k Key) Restricted() bool {
 func ParseLine(line string) (Key, error) {
 	fields := strings.Fields(line)
 	if len(fields) < 2 {
-		return Key{}, errors.New("type et clé attendus")
+		return Key{}, errors.New("a type and a key are expected")
 	}
 
 	key := Key{}
@@ -54,14 +54,14 @@ func ParseLine(line string) (Key, error) {
 	}
 
 	if len(fields) < 2 || !types[fields[0]] {
-		return Key{}, errors.New("type de clé inconnu")
+		return Key{}, errors.New("unknown key type")
 	}
 
 	key.Type, key.Blob = fields[0], fields[1]
 	key.Comment = strings.Join(fields[2:], " ")
 
 	if !blobMatches(key.Type, key.Blob) {
-		return Key{}, errors.New("clé illisible : le contenu ne correspond pas à son type")
+		return Key{}, errors.New("unreadable key: the body does not match its type")
 	}
 
 	return key, nil

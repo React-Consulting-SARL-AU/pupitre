@@ -1,6 +1,7 @@
 import type { AgentResponse } from "@shared/agent";
 import type { HardenOutcome, HardenUpdate } from "@shared/harden";
 import type { AgentClient } from "./agent-client";
+import { refusalOf } from "./refusal";
 
 export type { HardenOutcome, HardenUpdate } from "@shared/harden";
 
@@ -14,7 +15,9 @@ export type { HardenOutcome, HardenUpdate } from "@shared/harden";
  * want to prove — then speaks again to see who answers.
  *
  * A refusal changes nothing here: root stays open, the configuration stays as
- * it was, and the reason travels back exactly as the agent phrased it.
+ * it was, and the reason travels back exactly as the agent phrased it. Root
+ * kept on purpose is not a refusal: the machine was hardened, only its root
+ * account keeps a key of its own, and the app moves to `dev` all the same.
  */
 
 export interface HardenDeps {
@@ -47,7 +50,7 @@ export async function runHarden(
 
   const harden = answer.result;
 
-  if (!harden.root_closed) {
+  if (!(harden.root_closed || harden.root_kept)) {
     return { ok: true, result: { harden, reconnected: false, user: null } };
   }
 
@@ -60,9 +63,9 @@ export async function runHarden(
       ok: true,
       result: {
         error: {
-          code: "internal",
-          fix: "Ouvre les réglages et corrige le compte de ce serveur, puis reconnecte-toi.",
-          message: `Root est fermé sur le serveur, mais l'app n'a pas pu passer sa connexion sur ${harden.next_user}.`,
+          ...refusalOf("internal", "refusal.harden.account", {
+            user: harden.next_user,
+          }),
         },
         harden,
         reconnected: false,

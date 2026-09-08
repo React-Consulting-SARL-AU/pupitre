@@ -348,15 +348,17 @@ model Release {
 model AppRelease {
   version     String
   os          DesktopOs
-  arch        String?
+  arch        String
+  format      String
   url         String
+  bytes       Int
   sha256      String
   signature   String?
   notes       String
   channel     ReleaseChannel @default(beta)
   publishedAt DateTime       @default(now())
 
-  @@id([version, os])
+  @@id([version, os, arch])
   @@index([channel, publishedAt])
 }
 

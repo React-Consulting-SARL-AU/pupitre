@@ -57,7 +57,7 @@ export function ServicesTunnel({
     return (
       <section className="flex flex-col gap-2" data-tunnel="absent">
         <Label>{t("services.tunnel.title")}</Label>
-        <p className="text-[11px] text-ink-3">{t("services.tunnel.absent")}</p>
+        <p className="text-[12px] text-ink-3">{t("services.tunnel.absent")}</p>
       </section>
     );
   }
@@ -91,7 +91,7 @@ export function ServicesTunnel({
       </div>
 
       {tunnel.routes.length === 0 ? (
-        <p className="text-[11px] text-ink-3">
+        <p className="text-[12px] text-ink-3">
           {t("services.tunnel.noRoutes")}
         </p>
       ) : (
@@ -102,14 +102,14 @@ export function ServicesTunnel({
               data-route={route.hostname}
               key={route.hostname}
             >
-              <code className="min-w-0 flex-1 truncate font-data text-[11px] text-ink">
+              <code className="min-w-0 flex-1 truncate font-data text-[12px] text-ink">
                 {route.hostname}
               </code>
-              <code className="font-data text-[11px] text-ink-3">
+              <code className="font-data text-[12px] text-ink-3">
                 {route.service}
               </code>
               {route.project ? (
-                <span className="text-[11px] text-ink-3">{route.project}</span>
+                <span className="text-[12px] text-ink-3">{route.project}</span>
               ) : null}
             </li>
           ))}

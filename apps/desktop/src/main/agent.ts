@@ -9,7 +9,10 @@ import { carriesCredential } from "@shared/services";
 import { app, ipcMain } from "electron";
 import { account } from "./account";
 import { createAgentClient, type SshTarget, sshSpawn } from "./agent-client";
-import { active, paths, read } from "./servers";
+import { broadcast } from "./broadcast";
+import { refuseWith } from "./refusal";
+import { relayTo } from "./relay";
+import { paths, read } from "./servers";
 import { sshArgs } from "./ssh-config";
 import { usageError } from "./usage-guard";
 
@@ -20,11 +23,10 @@ import { usageError } from "./usage-guard";
  * fake agent; the SSH target it needs is resolved here, where the configuration
  * lives, and so is the account whose usage right stands in front of it.
  */
-function target(serverId: string): SshTarget {
-  const config = read();
-  const server = config.servers.find((s) => s.id === serverId) ?? active();
+function target(serverId: string): SshTarget | null {
+  const server = read().servers.find((s) => s.id === serverId);
 
-  return { args: server ? sshArgs(server, paths()) : [] };
+  return server ? { args: sshArgs(server, paths()) } : null;
 }
 
 /**
@@ -34,18 +36,32 @@ function target(serverId: string): SshTarget {
  * It is not the right the agent answers with: the account may be valid and the
  * server suspended, or the other way round, and each refuses in its own words.
  */
+let language = "en";
+
+/** What the renderer chose: the agent gets it on the next `hello`. */
+export function rememberLanguage(locale: string): void {
+  language = locale;
+}
+
+export function currentLanguage(): string {
+  return language;
+}
+
 export const agentClient = createAgentClient({
+  onChannel: (serverId, state) =>
+    broadcast("agent:channel", { serverId, state }),
   appVersion: app.getVersion(),
+  locale: () => language,
   gate: () => usageError(() => account.guard()),
   spawn: sshSpawn(target),
 });
 
 function refuse(
   code: "bad_request" | "unknown_command",
-  message: string,
-  fix?: string
+  id: string,
+  values?: Record<string, string | number>
 ): AgentResponse<never> {
-  return { ok: false, error: fix ? { code, message, fix } : { code, message } };
+  return refuseWith(code, id, values);
 }
 
 /**
@@ -70,45 +86,31 @@ function checked(
       : null;
 
   if (!known) {
-    return refuse(
-      "bad_request",
-      "Ce serveur n'est plus dans la liste.",
-      "Choisis un serveur dans les réglages."
-    );
+    return refuse("bad_request", "refusal.server.unknown");
   }
 
   if (typeof cmd !== "string" || !isCommandName(cmd)) {
-    return refuse("unknown_command", `Commande inconnue : ${String(cmd)}.`);
+    return refuse("unknown_command", "refusal.command.unknown", {
+      cmd: String(cmd),
+    });
   }
 
   const parsed = COMMANDS[cmd].params.safeParse(params ?? {});
 
   if (!parsed.success) {
-    return refuse(
-      "bad_request",
-      `Paramètres invalides pour ${cmd}.`,
-      parsed.error.issues[0]?.message
-    );
+    return refuse("bad_request", "refusal.params.invalid", { cmd });
   }
 
   // A credential is not something a store may hold: those results are read by
   // the Services channels, which keep the values on this side.
   if (carriesCredential(cmd)) {
-    return refuse(
-      "bad_request",
-      `${cmd} répond avec un identifiant et ne passe pas par ce pont.`,
-      "Utilise l'écran Services, qui garde la valeur dans le processus principal."
-    );
+    return refuse("bad_request", "refusal.bridge.credential", { cmd });
   }
 
   // A secret never crosses the bridge: the flows that carry one send it from the
   // main process, on the line that follows the request.
   if ((parsed.data as { secrets_stdin?: unknown }).secrets_stdin === true) {
-    return refuse(
-      "bad_request",
-      `${cmd} porte un secret et ne passe pas par ce pont.`,
-      "Utilise l'écran d'installation, qui envoie le secret depuis le processus principal."
-    );
+    return refuse("bad_request", "refusal.bridge.secret", { cmd });
   }
 
   return { serverId: known, cmd, params: parsed.data };
@@ -118,6 +120,31 @@ function isRefusal(
   value: ReturnType<typeof checked>
 ): value is AgentResponse<never> {
   return "ok" in value;
+}
+
+export function registerLanguage(): void {
+  ipcMain.on("locale:set", (_event, locale: unknown) => {
+    if (locale === "fr" || locale === "en") {
+      rememberLanguage(locale);
+    }
+  });
+}
+
+/**
+ * The platform, told now rather than at the daemon's next turn.
+ *
+ * It reads and reports; it changes nothing on the machine, which is why it
+ * passes the usage guard even on a server whose right the platform stopped
+ * confirming — asking again is exactly what such a server has to do.
+ */
+export function registerPlatformSync(): void {
+  ipcMain.handle("platform:sync", (_event, serverId: unknown) => {
+    if (typeof serverId !== "string") {
+      return refuseWith("bad_request", "refusal.server.unknown");
+    }
+
+    return agentClient.request(serverId, "platform.sync");
+  });
 }
 
 export function registerAgentChannels(): void {
@@ -147,11 +174,12 @@ export function registerAgentChannels(): void {
         return Promise.resolve(call);
       }
 
-      const onEvent = (payload: Event) => {
-        if (typeof token === "string" && !event.sender.isDestroyed()) {
-          event.sender.send("agent:event", { token, event: payload });
-        }
-      };
+      const onEvent = relayTo<Event>(
+        event.sender,
+        token,
+        "agent:event",
+        "event"
+      );
 
       return agentClient.request(
         call.serverId,

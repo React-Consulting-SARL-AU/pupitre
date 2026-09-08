@@ -1,6 +1,6 @@
 > {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
-< {"id":1,"ok":false,"error":{"code":"protocol_mismatch","message":"protocole 2 non pris en charge : cet agent parle le protocole 1","fix":"Mets à jour l'agent avec agent.upgrade, ou l'app, jusqu'au protocole 1."}}
+< {"id":1,"ok":false,"error":{"code":"protocol_mismatch","message":"agent 0.0.0-test is too old: app 0.2.0 drives agents 0.1.0 and newer","fix":"Update this agent to version 0.1.0 from the app's update banner."}}
 > {"id":2,"cmd":"ping"}
-< {"id":2,"ok":false,"error":{"code":"hello_required","message":"hello attendu avant toute commande","fix":"Envoie hello {app_version, protocol} en premier."}}
+< {"id":2,"ok":false,"error":{"code":"hello_required","message":"hello is expected before any command","fix":"Send hello {app_version, protocol} first."}}
 > {"id":3,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
 < {"id":3,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["enroll","hello","ping","probe","project.logs","reboot","secrets.set"]}}

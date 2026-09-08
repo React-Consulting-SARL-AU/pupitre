@@ -55,7 +55,7 @@ export function OnboardingEntry({ server }: { server: Server }) {
             ? t("onboarding.entry.unfinished", { name: server.name })
             : t("onboarding.entry.noAgent", { name: server.name })}
         </p>
-        <p className="mt-0.5 text-[11px] text-ink-3 leading-relaxed">
+        <p className="mt-0.5 text-[12px] text-ink-3 leading-relaxed">
           {t("onboarding.entry.detail")}
         </p>
       </div>

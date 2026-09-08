@@ -1,5 +1,5 @@
 # L'app ne porte pas la signature : elle n'envoie que la version, la plateforme fait foi.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","protocol":1}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
 < {"id":1,"ok":true,"result":{"agent_version":"0.3.0","protocol":1,"entitlement":"valid","capabilities":["hello","agent.upgrade"]}}
 > {"id":2,"cmd":"agent.upgrade","params":{"version":"0.4.0"}}
 < {"id":2,"event":"log","line":"métadonnée de la version 0.4.0 lue sur la plateforme, empreinte 4c9f2a"}

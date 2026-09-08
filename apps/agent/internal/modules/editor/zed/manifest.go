@@ -1,6 +1,9 @@
 package zed
 
-import "pupitre.studio/agent/internal/contract"
+import (
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
+)
 
 const ID = "editor.zed"
 
@@ -9,15 +12,17 @@ func manifest() contract.Manifest {
 		ID:        ID,
 		Category:  "editor",
 		Name:      "Zed Remote Server",
-		Summary:   "Le serveur distant de Zed posé d'avance pour la version que tu utilises ; le projet s'ouvre par un lien zed://ssh, sans rien télécharger à la connexion.",
+		Summary:   i18n.T("module.editor.zed.summary"),
 		Requires:  []string{"core.system"},
 		Conflicts: []string{},
 		Resources: contract.Resources{RAMMB: 256, DiskMB: 256},
 		Arch:      []string{"amd64", "arm64"},
 		Fields: []contract.Field{
 			{
-				Key: "version", Kind: contract.FieldText, Label: "Version",
-				Help:     "latest, ou la version exacte de ton Zed (menu Zed, À propos) : le serveur distant doit correspondre au client.",
+				Key: "version", Kind: contract.FieldText, Label: i18n.T("module.editor.zed.version.label"),
+				Help:     i18n.T("module.editor.zed.version.help"),
+				HintText: i18n.T("module.editor.zed.version.hint"),
+				Pattern:  contract.PatternVersionOrLatest,
 				Required: false, Default: latest,
 			},
 		},
