@@ -40,6 +40,21 @@ export interface CloudflareVault {
   clear: () => void;
 }
 
+/**
+ * A record is a connection only when it names the account: an earlier shape of
+ * the app kept a zone here and no name, and everything above reads a connected
+ * account as one it can name.
+ */
+function readConnection(value: unknown): CloudflareConnection | null {
+  if (typeof value !== "object" || value === null) {
+    return null;
+  }
+
+  const { accountId, accountName } = value as Partial<CloudflareConnection>;
+
+  return accountId && accountName ? { accountId, accountName } : null;
+}
+
 function ensureDir(dir: string): void {
   mkdirSync(dir, { mode: DIR_MODE, recursive: true });
   chmodSync(dir, DIR_MODE);
@@ -83,10 +98,11 @@ export function createCloudflareVault({
 
   function record(): CloudflareRecord {
     try {
-      return {
-        ...EMPTY_RECORD,
-        ...(JSON.parse(readFileSync(recordPath, "utf8")) as CloudflareRecord),
+      const held = JSON.parse(readFileSync(recordPath, "utf8")) as {
+        connection?: unknown;
       };
+
+      return { connection: readConnection(held.connection) };
     } catch {
       return EMPTY_RECORD;
     }
