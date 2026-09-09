@@ -3,7 +3,6 @@ package modules
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -97,7 +96,9 @@ func (e *Engine) Install(request Request, sink Sink) (contract.InstallResult, er
 		}
 
 		report.Modules = append(report.Modules, ctx.report())
-		report.Failed = append(report.Failed, ctx.failures()...)
+		if ctx.failed {
+			report.Failed = append(report.Failed, ctx.manifest.ID)
+		}
 	}
 
 	return e.finish(r, report)
@@ -142,7 +143,9 @@ func (e *Engine) Upgrade(request Request, sink Sink) (contract.InstallResult, er
 		execute(ctx, "upgrade", func() error { return module.Upgrade(ctx) })
 
 		report.Modules = append(report.Modules, ctx.report())
-		report.Failed = append(report.Failed, ctx.failures()...)
+		if ctx.failed {
+			report.Failed = append(report.Failed, ctx.manifest.ID)
+		}
 	}
 
 	return e.finish(r, report)
@@ -178,7 +181,9 @@ func (e *Engine) Uninstall(ids []string, sink Sink) (contract.UninstallResult, e
 		ctx := r.context(module.Manifest(), nil, nil)
 
 		execute(ctx, "uninstall", func() error { return module.Uninstall(ctx) })
-		result.Failed = append(result.Failed, ctx.failures()...)
+		if ctx.failed {
+			result.Failed = append(result.Failed, ctx.manifest.ID)
+		}
 		if !ctx.failed {
 			removed = append(removed, module.Manifest().ID)
 		}
@@ -252,7 +257,7 @@ func (e *Engine) Report() (contract.Report, error) {
 
 	var report contract.Report
 	if err := json.Unmarshal(raw, &report); err != nil {
-		return contract.Report{}, fmt.Errorf("rapport illisible %s : %w", e.reportPath(), err)
+		return contract.Report{}, errors.New(i18n.T("engine.report.unreadable", e.reportPath(), err.Error()))
 	}
 
 	return report, nil
@@ -475,7 +480,7 @@ func (e *Engine) installPath() string {
 func execute(ctx *Context, phase string, fn func() error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
-			ctx.fail(phase, 0, fmt.Errorf("panique : %v", recovered))
+			ctx.fail(phase, 0, errors.New(i18n.T("engine.step.panic", recovered)))
 		}
 	}()
 

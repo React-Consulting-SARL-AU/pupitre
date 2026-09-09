@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+// DefaultTimeout caps a command nobody bounded: an apt run or a download that
+// never answers turns into a failed step with a reason, not a wait without end.
+const DefaultTimeout = 30 * time.Minute
+
 type Command struct {
 	User      string
 	Argv      []string
@@ -53,6 +57,7 @@ type Sys interface {
 	Remove(path string) error
 	Exists(path string) (bool, error)
 	Chown(path, user, group string) error
+	Owner(path string) (string, error)
 	MkdirAll(path string, mode fs.FileMode) error
 }
 

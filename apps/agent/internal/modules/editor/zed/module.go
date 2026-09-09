@@ -183,7 +183,10 @@ func recorded(ctx *modules.Context) string {
 	return strings.TrimSpace(string(raw))
 }
 
-// A pinned version is downloaded as it is asked for; latest is resolved through the redirect, whose target names the release.
+// A pinned version is downloaded as it is asked for; latest is resolved from
+// the first redirect alone: zed.dev points at the GitHub release, whose path
+// names the version, and GitHub then sends the download on to a storage host
+// whose path names nothing.
 func resolve(ctx *modules.Context) (string, error) {
 	wanted := strings.TrimSpace(ctx.String("version"))
 	if wanted == "" {
@@ -194,7 +197,7 @@ func resolve(ctx *modules.Context) (string, error) {
 		return strings.TrimPrefix(wanted, "v"), nil
 	}
 
-	out, err := user.Run(ctx, shell.User, "curl", "-fsSL", "--proto", "=https", "--tlsv1.2", "-o", "/dev/null", "-w", "%{url_effective}", assetURL(latest))
+	out, err := user.Run(ctx, shell.User, "curl", "-fsS", "--proto", "=https", "--tlsv1.2", "-o", "/dev/null", "-w", "%{redirect_url}", assetURL(latest))
 	if err != nil {
 		return "", err
 	}

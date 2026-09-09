@@ -43,36 +43,36 @@ const REFUSED: HardenOutcome = {
 };
 
 describe("le verdict du durcissement", () => {
-  it("dit que root est fermé et sur quel compte l'app parle", () => {
+  it("dit que l'accès root est fermé et sur quel compte l'app parle", () => {
     const html = renderToStaticMarkup(
       <OnboardingHardenOutcome outcome={CLOSED} />
     );
 
-    expect(text(html)).toContain("Root est fermé");
+    expect(text(html)).toContain("L'accès root est fermé");
     expect(text(html)).toContain("dev");
     expect(text(html)).not.toContain("Réessayer");
   });
 
-  it("garde root, rend la raison telle quelle et propose de réessayer", () => {
+  it("garde l'accès, rend la raison telle quelle et propose de réessayer", () => {
     const html = renderToStaticMarkup(
       <OnboardingHardenOutcome outcome={REFUSED} />
     );
 
     expect(text(html)).toContain(REASON);
-    expect(text(html)).toContain("Root reste ouvert");
+    expect(text(html)).toContain("L'accès root reste ouvert");
     expect(text(html)).toContain("Réessayer");
   });
 
-  it("dit que root est gardé à la demande, sans proposer de réessayer", () => {
+  it("dit que l'accès est gardé à la demande, sans proposer de réessayer", () => {
     const html = renderToStaticMarkup(
       <OnboardingHardenOutcome outcome={KEPT} />
     );
 
-    expect(text(html)).toContain("root garde son accès");
-    expect(text(html)).toContain("jamais par mot de passe");
+    expect(text(html)).toContain("l'accès root reste ouvert");
+    expect(text(html)).toContain("jamais avec un mot de passe");
     expect(text(html)).not.toContain("Réessayer");
     expect(text(html)).not.toContain(
-      "Root reste ouvert et rien n'a été changé"
+      "L'accès root reste ouvert et rien n'a changé"
     );
   });
 
@@ -105,26 +105,28 @@ describe("la fin du parcours", () => {
     );
 
     expect(text(html)).toContain("Connecté en dev");
-    expect(text(html)).toContain("Root est fermé");
+    expect(text(html)).toContain("L'accès root est fermé");
   });
 
-  it("dit que root est resté ouvert parce qu'on l'a demandé", () => {
+  it("dit que l'accès est resté ouvert parce qu'on l'a demandé", () => {
     const html = renderToStaticMarkup(
       <OnboardingDoneScreen root="kept" serverName="Staging" user="dev" />
     );
 
-    expect(text(html)).toContain("Root est resté ouvert, comme demandé");
-    expect(text(html)).not.toContain("reprends le durcissement");
+    expect(text(html)).toContain(
+      "L'accès root est resté ouvert, comme demandé"
+    );
+    expect(text(html)).not.toContain("relancez la sécurisation");
   });
 });
 
 describe("le rejeu d'un module à secret", () => {
-  it("dit que le secret a été oublié et qu'il faut le ressaisir", () => {
+  it("dit que le secret n'a pas été gardé et qu'il faut le ressaisir", () => {
     const html = renderToStaticMarkup(
       <OnboardingReplayNotice moduleName="PostgreSQL 17" />
     );
 
     expect(text(html)).toContain("PostgreSQL 17");
-    expect(text(html)).toContain("oublié");
+    expect(text(html)).toContain("n'a pas gardés");
   });
 });

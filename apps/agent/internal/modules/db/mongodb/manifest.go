@@ -23,7 +23,6 @@ func manifest() contract.Manifest {
 			{Key: "app_user", Kind: contract.FieldText, Label: i18n.T("module.db.mongodb.app_user.label"), Help: i18n.T("module.db.mongodb.app_user.help"), Format: contract.FormatIdentifier, Required: true, Default: defaultAppUser},
 			{Key: "app_password", Kind: contract.FieldSecret, Label: i18n.T("module.db.mongodb.app_password.label"), Help: i18n.T("module.db.mongodb.app_password.help"), Required: true, Generate: true},
 		},
-		Provides:  []string{"db:mongodb"},
 		Mandatory: false,
 		Since:     "0.1.0",
 	}

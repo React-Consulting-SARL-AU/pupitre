@@ -1,4 +1,5 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
+import type { Gesture } from "@renderer/lib/use-pending";
 import { useState } from "react";
 import { Button, type ButtonIcon, type ButtonVariant } from "./button";
 
@@ -9,6 +10,9 @@ import { Button, type ButtonIcon, type ButtonVariant } from "./button";
  * reader keeps what they were looking at, and the second click is exactly where
  * the first one was — which is also why the confirmation says what it will do,
  * not "are you sure".
+ *
+ * The question also stays up while the work runs, so the spinner turns on the
+ * button that was clicked instead of on a row that has already vanished.
  */
 export function ConfirmButton({
   children,
@@ -25,7 +29,7 @@ export function ConfirmButton({
   /** What is about to happen, in one line. */
   question: string;
   confirmLabel: string;
-  onConfirm: () => void;
+  onConfirm: Gesture;
   icon?: ButtonIcon;
   variant?: ButtonVariant;
   size?: "sm" | "md";
@@ -35,6 +39,18 @@ export function ConfirmButton({
   const t = useTranslations();
 
   const [asking, setAsking] = useState(false);
+  const [working, setWorking] = useState(false);
+
+  async function confirm() {
+    setWorking(true);
+
+    try {
+      await onConfirm();
+      setAsking(false);
+    } finally {
+      setWorking(false);
+    }
+  }
 
   if (!asking) {
     return (
@@ -56,17 +72,15 @@ export function ConfirmButton({
       className={`inline-flex items-center gap-2 rounded-sm border border-line-strong bg-sunken px-2 py-1 ${className}`}
     >
       <span className="text-[12px] text-ink-2">{question}</span>
-      <Button
-        onClick={() => {
-          setAsking(false);
-          onConfirm();
-        }}
-        size="sm"
-        variant="destructive"
-      >
+      <Button onClick={confirm} size="sm" variant="destructive">
         {confirmLabel}
       </Button>
-      <Button onClick={() => setAsking(false)} size="sm" variant="discreet">
+      <Button
+        disabled={working}
+        onClick={() => setAsking(false)}
+        size="sm"
+        variant="discreet"
+      >
         {t("common.cancel")}
       </Button>
     </span>

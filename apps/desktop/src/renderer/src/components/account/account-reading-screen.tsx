@@ -1,5 +1,5 @@
 import { Logo } from "@renderer/components/logo";
-import { StatusDot } from "@renderer/components/ui/status-dot";
+import { WaitingLine } from "@renderer/components/ui/waiting-line";
 import { useTranslations } from "@renderer/i18n/use-translations";
 
 /**
@@ -17,10 +17,7 @@ export function AccountReadingScreen() {
       <div className="fade-in flex flex-col items-center gap-5">
         <Logo size={34} />
 
-        <div className="flex items-center gap-2">
-          <StatusDot shape="breathing" size={10} />
-          <p className="text-ink-3">{t("account.reading.title")}</p>
-        </div>
+        <WaitingLine>{t("account.reading.title")}</WaitingLine>
       </div>
     </div>
   );

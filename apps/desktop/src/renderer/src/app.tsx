@@ -1,22 +1,22 @@
-import { SquareTerminal, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { Plus, SquareTerminal } from "lucide-react";
+import { useCallback, useEffect } from "react";
 import { AccountGateScreen } from "./components/account/account-gate-screen";
 import { AccountReadingScreen } from "./components/account/account-reading-screen";
 import { ActivityPanel } from "./components/activity/activity-panel";
 import { DashboardPanel } from "./components/dashboard/dashboard-panel";
 import { OnboardingFlow } from "./components/onboarding/onboarding-flow";
 import { ProjectScreen } from "./components/projects/project-screen";
-import { SecretsPanel } from "./components/secrets/secrets-panel";
 import { ServicesScreen } from "./components/services/services-screen";
 import { SettingsScreen } from "./components/settings/settings-screen";
 import { AppSidebar } from "./components/shell/app-sidebar";
 import { NoServerScreen } from "./components/shell/no-server-screen";
+import { ScreenBoundary } from "./components/shell/screen-boundary";
 import { ServerRestrictedNotice } from "./components/shell/server-restricted-notice";
 import { ShotsScreen } from "./components/shots/shots-screen";
 import { TerminalTabs } from "./components/terminals/terminal-tabs";
+import { Button } from "./components/ui/button";
 import { EmptyState } from "./components/ui/empty-state";
 import { ErrorNotice } from "./components/ui/error-notice";
-import { IconButton } from "./components/ui/icon-button";
 import { WindowBand } from "./components/ui/window-band";
 import { AgentUpdateBanner } from "./components/updates/agent-update-banner";
 import { useTranslations } from "./i18n/use-translations";
@@ -29,7 +29,6 @@ import { announces, useAgentUpdate } from "./stores/agent-update";
 import { useNavigation } from "./stores/navigation";
 import { useOnboarding } from "./stores/onboarding";
 import { repairable, useReenroll } from "./stores/reenroll";
-import { useSecrets } from "./stores/secrets";
 import { useServers } from "./stores/servers";
 import { snapshotOf, useSnapshot } from "./stores/snapshot";
 import { useTerminals } from "./stores/terminals";
@@ -61,11 +60,9 @@ export function App() {
   const problem = useSnapshot((s) => s.problem);
   const store = useSnapshot();
 
-  const secrets = useSecrets();
   const update = useAgentUpdate();
   const reenroll = useReenroll((s) => s.state);
   const repair = useReenroll((s) => s.repair);
-  const [openSecret, setOpenSecret] = useState<string | null>(null);
 
   const server = config?.servers.find((s) => s.id === config.active) ?? null;
   const serverId = server?.id ?? null;
@@ -77,10 +74,11 @@ export function App() {
   // usage right opens on the account, and the list of servers it would show is
   // not what the reader has to answer first.
   useEffect(() => {
-    readAccount().then(() => {
-      loadServers();
-      // An onboarding left half-way reopens where it stopped: the machine is in
-      // the state the last step left it in, not the one this launch would guess.
+    readAccount().then(async () => {
+      // The list comes first: an onboarding left half-way reopens where it
+      // stopped, and a machine that has left the list stops it there.
+      await loadServers();
+
       useOnboarding.getState().resume();
     });
   }, [loadServers, readAccount]);
@@ -99,10 +97,14 @@ export function App() {
     const closed = window.pupitre.onLoginClosed((id) =>
       useTerminals.getState().noteLoginClosed(id)
     );
+    const exit = window.pupitre.onTerminalExit((payload) =>
+      useTerminals.getState().noteExit(payload.id, payload.code)
+    );
 
     return () => {
       link();
       closed();
+      exit();
     };
   }, []);
 
@@ -162,13 +164,6 @@ export function App() {
   }, [serverId, readUpdate, forgetUpdate]);
 
   const view = navigation.view;
-  const readSecrets = secrets.read;
-
-  useEffect(() => {
-    if (serverId && view === "secrets") {
-      readSecrets(serverId);
-    }
-  }, [serverId, view, readSecrets]);
 
   const serversChanged = useCallback(() => {
     loadServers();
@@ -282,135 +277,119 @@ export function App() {
 
         {problem ? (
           <div className="clickable shrink-0 px-4 py-2">
-            <ErrorNotice error={problem} />
-            <div className="mt-1 flex justify-end">
-              <IconButton
-                icon={X}
-                label={t("common.hide")}
-                onClick={() => store.announce(null)}
-                size={12}
-                variant="discreet"
-              />
-            </div>
+            <ErrorNotice
+              error={problem}
+              name="command"
+              onDismiss={() => store.announce(null)}
+            />
           </div>
         ) : null}
 
-        <div className="relative min-h-0 flex-1">
-          {view === "dashboard" ? (
-            <div className="absolute inset-0">
-              <DashboardPanel
-                attached={attached}
-                busy={busy}
-                onAct={(action, name) => store.act(action, serverId, name)}
-                onCleanSessions={() => store.cleanSessions(serverId)}
-                onOpenProject={navigation.select}
-                onReboot={() => store.reboot(serverId)}
-                onStopSession={(pid) => store.stopProcess(serverId, pid)}
-                snapshot={snapshot}
-              />
-            </div>
-          ) : null}
+        <ScreenBoundary view={view}>
+          <div className="relative min-h-0 flex-1">
+            {view === "dashboard" ? (
+              <div className="absolute inset-0">
+                <DashboardPanel
+                  attached={attached}
+                  busy={busy}
+                  onAct={(action, name) => store.act(action, serverId, name)}
+                  onCleanSessions={() => store.cleanSessions(serverId)}
+                  onOpenProject={navigation.select}
+                  onReboot={() => store.reboot(serverId)}
+                  onStopSession={(pid) => store.stopProcess(serverId, pid)}
+                  snapshot={snapshot}
+                />
+              </div>
+            ) : null}
 
-          {view === "project" && project ? (
-            <div className="absolute inset-0">
-              <ProjectScreen
-                onRemoved={() => navigation.goTo("dashboard")}
-                project={project}
-                serverId={serverId}
-                services={snapshot.services}
-              />
-            </div>
-          ) : null}
+            {view === "project" && project ? (
+              <div className="absolute inset-0">
+                <ProjectScreen
+                  onRemoved={() => navigation.goTo("dashboard")}
+                  project={project}
+                  serverId={serverId}
+                  services={snapshot.services}
+                />
+              </div>
+            ) : null}
 
-          {view === "services" ? (
-            <div className="absolute inset-0">
-              <ServicesScreen
-                onMachineName={(name) =>
-                  serverId && useServers.getState().rename(serverId, name)
-                }
-                onTerminal={() => navigation.openTerminal(null, "shell")}
-                serverId={serverId}
-                serverName={server?.name}
-                services={snapshot.services}
-              />
-            </div>
-          ) : null}
-
-          {view === "activity" ? (
-            <div className="absolute inset-0">
-              <ActivityPanel
-                attached={attached}
-                onCleanSessions={() => store.cleanSessions(serverId)}
-                onStopProcess={(pid) => store.stopProcess(serverId, pid)}
-                onStopSession={(pid) => store.stopProcess(serverId, pid)}
-                processes={processes}
-                sessions={snapshot.sessions}
-              />
-            </div>
-          ) : null}
-
-          {view === "shots" ? (
-            <div className="absolute inset-0">
-              <ShotsScreen serverId={serverId} />
-            </div>
-          ) : null}
-
-          {view === "secrets" ? (
-            <div className="absolute inset-0">
-              <SecretsPanel
-                onOpen={setOpenSecret}
-                onReload={() => secrets.read(serverId)}
-                onSave={async (key, value) => {
-                  const ok = await secrets.save(serverId, key, value);
-
-                  if (ok) {
-                    setOpenSecret(null);
+            {view === "services" ? (
+              <div className="absolute inset-0">
+                <ServicesScreen
+                  onMachineName={(name) =>
+                    serverId && useServers.getState().rename(serverId, name)
                   }
-                }}
-                open={openSecret}
-                problem={secrets.problem}
-                saved={secrets.saved}
-                saving={secrets.saving}
-                state={secrets.state}
-              />
-            </div>
-          ) : null}
+                  onTerminal={() => navigation.openTerminal(null, "shell")}
+                  serverId={serverId}
+                  serverName={server?.name}
+                  services={snapshot.services}
+                />
+              </div>
+            ) : null}
 
-          {view === "settings" ? (
-            <div className="absolute inset-0">
-              <SettingsScreen onChanged={serversChanged} />
-            </div>
-          ) : null}
+            {view === "activity" ? (
+              <div className="absolute inset-0">
+                <ActivityPanel
+                  attached={attached}
+                  onCleanSessions={() => store.cleanSessions(serverId)}
+                  onStopProcess={(pid) => store.stopProcess(serverId, pid)}
+                  onStopSession={(pid) => store.stopProcess(serverId, pid)}
+                  processes={processes}
+                  sessions={snapshot.sessions}
+                />
+              </div>
+            ) : null}
 
-          {/*
+            {view === "shots" ? (
+              <div className="absolute inset-0">
+                <ShotsScreen serverId={serverId} />
+              </div>
+            ) : null}
+
+            {view === "settings" ? (
+              <div className="absolute inset-0">
+                <SettingsScreen onChanged={serversChanged} />
+              </div>
+            ) : null}
+
+            {/*
             The server's own terminals — the projects' ones live on their page.
             Sessions survive unmounting: it is the `lib/terminals` registry that
             holds them, not React.
           */}
-          {view === "terminals" ? (
-            <div className="absolute inset-0">
-              {serverTerminals.length === 0 ? (
-                <EmptyState
-                  detail={t("app.terminals.empty.detail")}
-                  icon={SquareTerminal}
-                  title={t("app.terminals.empty.title")}
-                />
-              ) : (
-                <TerminalTabs
-                  active={navigation.activeTerminal}
-                  kind="shell"
-                  onActivate={navigation.activateTerminal}
-                  onClose={navigation.closeTerminal}
-                  onNew={() => navigation.openTerminal(null, "shell")}
-                  onRename={navigation.renameTerminal}
-                  project={null}
-                  sessions={serverTerminals}
-                  states={navigation.terminalStates}
-                />
-              )}
-            </div>
-          ) : null}
-        </div>
+            {view === "terminals" ? (
+              <div className="absolute inset-0">
+                {serverTerminals.length === 0 ? (
+                  <EmptyState
+                    action={
+                      <Button
+                        icon={Plus}
+                        onClick={() => navigation.openTerminal(null, "shell")}
+                      >
+                        {t("app.terminals.empty.action")}
+                      </Button>
+                    }
+                    detail={t("app.terminals.empty.detail")}
+                    icon={SquareTerminal}
+                    title={t("app.terminals.empty.title")}
+                  />
+                ) : (
+                  <TerminalTabs
+                    active={navigation.activeTerminal}
+                    kind="shell"
+                    onActivate={navigation.activateTerminal}
+                    onClose={navigation.closeTerminal}
+                    onNew={() => navigation.openTerminal(null, "shell")}
+                    onRename={navigation.renameTerminal}
+                    project={null}
+                    sessions={serverTerminals}
+                    states={navigation.terminalStates}
+                  />
+                )}
+              </div>
+            ) : null}
+          </div>
+        </ScreenBoundary>
       </div>
     </div>
   );

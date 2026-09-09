@@ -26,7 +26,9 @@ export function EmptyState({
         ) : null}
         <p className="text-[13px] text-ink-3">{title}</p>
         {detail ? (
-          <p className="font-data text-[12px] text-ink-3">{detail}</p>
+          <p className="max-w-md text-[12px] text-ink-3 leading-relaxed">
+            {detail}
+          </p>
         ) : null}
         {action ? <div className="mt-1">{action}</div> : null}
       </div>

@@ -1,7 +1,7 @@
 import { Callout } from "@renderer/components/ui/callout";
 import { EmptyState } from "@renderer/components/ui/empty-state";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
-import { StatusDot } from "@renderer/components/ui/status-dot";
+import { WaitingLine } from "@renderer/components/ui/waiting-line";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { TERMINAL_FONT } from "@renderer/lib/completion";
 import { type PatchRow, parsePatch } from "@renderer/lib/patch";
@@ -95,10 +95,11 @@ export function ProjectDiffPatch({
 
   if (state.status === "reading") {
     return (
-      <p className="flex items-center justify-center gap-2 p-6 text-[13px] text-ink-3">
-        <StatusDot shape="breathing" size={11} />
-        {t("project.diff.reading")}
-      </p>
+      <div className="flex justify-center p-6">
+        <WaitingLine className="text-[13px]">
+          {t("project.diff.reading")}
+        </WaitingLine>
+      </div>
     );
   }
 

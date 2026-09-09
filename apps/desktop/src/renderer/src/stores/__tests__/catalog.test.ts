@@ -211,7 +211,7 @@ describe("les ressources cumulées face à la sonde", () => {
 
     expect(warnings).toHaveLength(1);
     expect(warnings[0]?.message).toBe(
-      "Les modules choisis demandent 4928 Mo de mémoire ; cette machine en a 4096."
+      "Les services choisis demandent 4928 Mo de mémoire ; cette machine en a 4096."
     );
   });
 });
@@ -294,5 +294,70 @@ describe("les secrets ne vivent pas ici", () => {
       "généré-1"
     );
     expect(main.kept.size).toBe(2);
+  });
+});
+
+describe("la configuration pesée par le serveur", () => {
+  it("pose sur les champs ce que la machine seule savait", async () => {
+    const main = await ready();
+    stubPupitre({
+      ...main.api,
+      checkInstall: () =>
+        Promise.resolve({
+          ok: true as const,
+          result: {
+            problems: [
+              {
+                module: "db.mysql",
+                field: "buffer_pool",
+                code: "max" as const,
+              },
+            ],
+            warnings: [],
+          },
+        }),
+    });
+
+    const refused = await useCatalog.getState().check(["db.mysql"]);
+
+    expect(refused.map((one) => one.field)).toEqual(["buffer_pool"]);
+    expect(refused[0]?.declared?.key).toBe("buffer_pool");
+  });
+
+  it("ignore un champ que l'app remplit elle-même à la sortie", async () => {
+    const main = await ready();
+    stubPupitre({
+      ...main.api,
+      checkInstall: () =>
+        Promise.resolve({
+          ok: true as const,
+          result: {
+            problems: [
+              {
+                module: "exposure.cloudflare",
+                field: "tunnel_id",
+                code: "required" as const,
+              },
+            ],
+            warnings: [],
+          },
+        }),
+    });
+
+    const refused = await useCatalog.getState().check(["exposure.cloudflare"]);
+
+    expect(refused).toEqual([]);
+  });
+
+  it("laisse passer l'installation quand le pont ne répond pas", async () => {
+    const main = await ready();
+    stubPupitre({
+      ...main.api,
+      checkInstall: () => Promise.reject(new Error("no handler")),
+    });
+
+    const refused = await useCatalog.getState().check(["db.postgres"]);
+
+    expect(refused).toEqual([]);
   });
 });

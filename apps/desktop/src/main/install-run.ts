@@ -1,4 +1,5 @@
 import type {
+  InstallCheckResult,
   InstallResult,
   InstallSecrets,
   ModuleConfig,
@@ -10,7 +11,7 @@ import type { AgentResponse } from "@shared/agent";
 import type { InstallUpdate } from "@shared/install";
 import type { AgentDelivery } from "./agent-binary";
 import type { AgentClient } from "./agent-client";
-import { refusalOf } from "./refusal";
+import { refusalOf, refuseWith } from "./refusal";
 import type { ManagedValues } from "./tunnel-run";
 
 export type { InstallUpdate } from "@shared/install";
@@ -257,4 +258,43 @@ export async function runInstall(
       ...(carries ? { secrets } : {}),
     }
   );
+}
+
+/**
+ * The same request, weighed rather than run.
+ *
+ * Nothing leaves and nothing is created: no binary, no enrolment, no tunnel,
+ * and above all no secret — a screen that opened an account's tunnel to weigh a
+ * form would bill the reader for looking at it. What comes back is what the
+ * machine alone knows, and an agent too old to answer refuses, which the screen
+ * reads as nothing to add.
+ */
+export async function runCheck(
+  serverId: string,
+  modules: readonly string[],
+  config: ModuleConfig,
+  deps: Pick<InstallDeps, "client" | "declared">
+): Promise<AgentResponse<InstallCheckResult>> {
+  if (modules.length === 0) {
+    return { ok: true, result: { problems: [], warnings: [] } };
+  }
+
+  const declared = await deps.declared(serverId);
+
+  if (!declared.ok) {
+    return declared;
+  }
+
+  const stranger = modules.find((id) => !declared.result.includes(id));
+
+  if (stranger) {
+    return refuseWith("module_not_found", "refusal.module.undeclared", {
+      module: stranger,
+    });
+  }
+
+  return await deps.client.request(serverId, "install.check", {
+    config: only(config, modules),
+    modules: [...modules],
+  });
 }

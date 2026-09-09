@@ -195,7 +195,6 @@ export const ManifestSchema = z.object({
   resources: ResourcesSchema,
   arch: z.array(ArchitectureSchema).min(1),
   fields: z.array(FieldSchema),
-  provides: z.array(z.string()),
   connection: ConnectionKindSchema.optional(),
   mandatory: z.boolean(),
   since: z.string().min(1),
@@ -209,11 +208,15 @@ export const PresetIdSchema = z.enum(PRESET_IDS)
 
 export type PresetId = z.infer<typeof PresetIdSchema>
 
+/**
+ * A preset names modules the way a manifest does: a module the agent gained
+ * before this package knew of it can enter one without a release here.
+ */
 export const PresetSchema = z.object({
   id: PresetIdSchema,
   name: z.string().min(1),
-  modules: z.array(ModuleIdSchema),
-  choose_one: z.array(ModuleIdSchema).min(2).optional(),
+  modules: z.array(ModuleIdPatternSchema),
+  choose_one: z.array(ModuleIdPatternSchema).min(2).optional(),
 })
 
 export type Preset = z.infer<typeof PresetSchema>

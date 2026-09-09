@@ -24,11 +24,11 @@ var catalog = map[string]Message{
 		EN: "unknown command: %s",
 	},
 	"protocol.entitlement.required": {
-		FR: "droit d'usage requis : ce serveur est en mode restreint",
+		FR: "abonnement requis : ce serveur est en mode restreint",
 		EN: "a usage right is required: this server is in restricted mode",
 	},
 	"protocol.entitlement.required.fix": {
-		FR: "Ouvre https://app.pupitre.studio pour renouveler le droit d'usage de ce serveur.",
+		FR: "Ouvrez https://app.pupitre.studio pour renouveler l'abonnement de ce serveur.",
 		EN: "Open https://app.pupitre.studio to renew this server's usage right.",
 	},
 	"protocol.internal": {
@@ -68,7 +68,7 @@ var catalog = map[string]Message{
 		EN: "protocol %d is not supported: this agent speaks protocol %d",
 	},
 	"protocol.mismatch.fix": {
-		FR: "Mets à jour l'agent avec agent.upgrade, ou l'app, jusqu'au protocole %d.",
+		FR: "Mettez à jour l'agent avec agent.upgrade, ou l'app, jusqu'au protocole %d.",
 		EN: "Update the agent with agent.upgrade, or the app, up to protocol %d.",
 	},
 	"protocol.app.too_old": {
@@ -76,7 +76,7 @@ var catalog = map[string]Message{
 		EN: "app %s is too old: this agent %s serves apps %s and newer",
 	},
 	"protocol.app.too_old.fix": {
-		FR: "Mets à jour Pupitre jusqu'à la version %s, puis rouvre ce serveur.",
+		FR: "Mettez à jour Pupitre jusqu'à la version %s, puis rouvrez ce serveur.",
 		EN: "Update Pupitre to version %s, then open this server again.",
 	},
 	"protocol.agent.too_old": {
@@ -84,7 +84,7 @@ var catalog = map[string]Message{
 		EN: "agent %s is too old: app %s drives agents %s and newer",
 	},
 	"protocol.agent.too_old.fix": {
-		FR: "Mets à jour cet agent jusqu'à la version %s depuis le bandeau de mise à jour de l'app.",
+		FR: "Mettez à jour cet agent jusqu'à la version %s depuis le bandeau de mise à jour de l'app.",
 		EN: "Update this agent to version %s from the app's update banner.",
 	},
 }

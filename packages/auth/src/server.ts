@@ -155,6 +155,29 @@ export function createAuth({
     rateLimit: { enabled: true },
     user: {
       deleteUser: { enabled: true },
+      // The address that signs you in only moves once the address that holds
+      // the account has said so: the link goes to the current one, never to
+      // the new one, so a stolen session cannot walk the account away.
+      changeEmail: {
+        enabled: true,
+        sendChangeEmailVerification: async (
+          {
+            user,
+            newEmail,
+            url,
+          }: { user: { email: string }; newEmail: string; url: string },
+          request: unknown
+        ) => {
+          await sendEmail(
+            await authEmailRenderer().emailChange({
+              to: user.email,
+              newEmail,
+              url,
+              acceptLanguage: acceptLanguageOf(request),
+            })
+          )
+        },
+      },
       additionalFields: {
         locale: {
           type: [...LOCALES],

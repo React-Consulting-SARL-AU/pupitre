@@ -83,7 +83,7 @@ func asset() string {
 	return assetURL + "x64"
 }
 
-// The key lands in /etc/pupitre/env, where every shell of the machine reads it: the CLI authenticates itself without a login.
+// The key lands in /etc/pupitre/env, readable by root alone. neonctl has no token login: it takes a key through --api-key or NEON_API_KEY, so what reads this file hands it over.
 func (Module) Configure(ctx *modules.Context) error {
 	return ctx.Step("store-key", func() (modules.Outcome, error) {
 		changed, err := env.Set(ctx, keyKey, ctx.Secret("api_key"))

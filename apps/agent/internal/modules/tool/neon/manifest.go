@@ -28,7 +28,6 @@ func manifest() contract.Manifest {
 				Required: true,
 			},
 		},
-		Provides:  []string{"tool:neon"},
 		Mandatory: false,
 		Since:     "0.3.0",
 	}

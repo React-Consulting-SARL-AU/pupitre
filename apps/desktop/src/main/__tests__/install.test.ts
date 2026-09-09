@@ -7,6 +7,7 @@ import {
   enrolAgent,
   type InstallDeps,
   type InstallUpdate,
+  runCheck,
   runInstall,
 } from "../install-run";
 import {
@@ -732,5 +733,68 @@ describe("un enrôlement repris", () => {
       error: { code: "entitlement_required" },
       ok: false,
     });
+  });
+});
+
+describe("la configuration pesée avant l'installation", () => {
+  it("porte ce que la machine seule sait, et aucun secret", async () => {
+    const client = agent("install-check.jsonl");
+
+    const answer = await runCheck(
+      SERVER,
+      ["db.postgres"],
+      { "db.postgres": { port: 5432 } },
+      deps(client)
+    );
+
+    expect(answer).toEqual({
+      ok: true,
+      result: {
+        problems: [
+          {
+            module: "db.postgres",
+            field: "port",
+            code: "max",
+            message: "le port 5432 est déjà écouté",
+          },
+        ],
+        warnings: [],
+      },
+    });
+    expect(fake?.written().join("\n")).not.toContain("secrets_stdin");
+
+    client.closeAll();
+  });
+
+  it("refuse un module que l'agent ne déclare pas, sans toucher au canal", async () => {
+    const client = agent("install-check.jsonl");
+
+    const answer = await runCheck(
+      SERVER,
+      ["db.oracle"],
+      { "db.oracle": {} },
+      deps(client)
+    );
+
+    expect(answer).toMatchObject({
+      ok: false,
+      error: { code: "module_not_found" },
+    });
+
+    client.closeAll();
+  });
+
+  it("ne demande rien quand rien n'est choisi", async () => {
+    const client = agent("install-check.jsonl");
+
+    const answer = await runCheck(SERVER, [], {}, deps(client));
+
+    expect(answer).toEqual({
+      ok: true,
+      result: { problems: [], warnings: [] },
+    });
+    expect(fake?.started()).toBe(0);
+
+    client.closeAll();
   });
 });

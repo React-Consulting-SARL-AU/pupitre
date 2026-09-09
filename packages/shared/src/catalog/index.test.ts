@@ -48,7 +48,6 @@ const manifest = {
   resources: { ram_mb: 512, disk_mb: 800 },
   arch: ["amd64", "arm64"],
   fields: [secretField, { ...secretField, key: "remote_password" }],
-  provides: ["db:postgres"],
   mandatory: false,
   since: "0.1.0",
 }
@@ -305,7 +304,14 @@ describe("presets", () => {
       PresetSchema.safeParse({
         id: "web-js",
         name: "Web JavaScript",
-        modules: ["core.unknown"],
+        modules: ["runtime.elixir"],
+      }).success
+    ).toBe(true)
+    expect(
+      PresetSchema.safeParse({
+        id: "web-js",
+        name: "Web JavaScript",
+        modules: ["Runtime Elixir"],
       }).success
     ).toBe(false)
     expect(

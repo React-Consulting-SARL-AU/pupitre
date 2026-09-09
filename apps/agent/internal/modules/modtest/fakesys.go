@@ -3,6 +3,7 @@ package modtest
 import (
 	"fmt"
 	"io/fs"
+	"path/filepath"
 	"slices"
 	"sort"
 	"strconv"
@@ -177,6 +178,11 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 		return sys.Output{Stdout: f.Answers[best]}, nil
 	}
 
+	// The Claude Code binary, run from where it was downloaded, installs itself under ~/.local like the real one.
+	if strings.HasPrefix(base(program), "claude-") && len(cmd.Argv) > 1 && cmd.Argv[1] == "install" {
+		return f.claudeInstall(cmd.User)
+	}
+
 	// A program is recognised by its name, whether the caller gave a path or relied on PATH.
 	switch base(program) {
 	case "dpkg-query":
@@ -230,6 +236,22 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 	}
 
 	return sys.Output{Stdout: f.Replies[program]}, nil
+}
+
+func (f *FakeSys) claudeInstall(owner string) (sys.Output, error) {
+	home := f.Users[owner]
+	if home == "" {
+		home = "/home/" + owner
+	}
+
+	path := home + "/.local/bin/claude"
+	if err := f.WriteFile(path, []byte("claude"), 0o755); err != nil {
+		return f.fail("claude", err.Error())
+	}
+
+	f.Owners[path] = owner + ":" + owner
+
+	return sys.Output{Stdout: "Claude Code installed\n"}, nil
 }
 
 // A download to -o leaves a file behind; without it a step that fetches a binary could never be skipped on a replay.
@@ -696,6 +718,8 @@ func (f *FakeSys) useradd(args []string) (sys.Output, error) {
 	}
 
 	f.Users[name] = "/home/" + name
+	f.Dirs["/home/"+name] = true
+	f.Owners["/home/"+name] = name + ":" + name
 	f.mutate("useradd " + name)
 
 	return sys.Output{}, nil
@@ -879,7 +903,7 @@ func (f *FakeSys) Exists(path string) (bool, error) {
 }
 
 func (f *FakeSys) Chown(path, owner, group string) error {
-	if _, ok := f.Files[path]; !ok && !f.Dirs[path] {
+	if !f.known(path) {
 		return &fs.PathError{Op: "chown", Path: path, Err: fs.ErrNotExist}
 	}
 
@@ -889,16 +913,42 @@ func (f *FakeSys) Chown(path, owner, group string) error {
 	return nil
 }
 
+// A folder a seeded file lives in exists, even when no test declared it.
+func (f *FakeSys) known(path string) bool {
+	if exists, _ := f.Exists(path); exists {
+		return true
+	}
+
+	return f.hasChild(strings.TrimSuffix(path, "/") + "/")
+}
+
 func (f *FakeSys) MkdirAll(path string, mode fs.FileMode) error {
 	if f.Dirs[path] {
 		return nil
 	}
 
-	f.Dirs[path] = true
+	for dir := path; dir != "/" && dir != "." && !f.Dirs[dir]; dir = filepath.Dir(dir) {
+		f.Dirs[dir] = true
+	}
+
 	f.Modes[path] = mode
 	f.mutate("mkdir " + path)
 
 	return nil
+}
+
+// A path nobody chowned belongs to root, as everything the agent writes does.
+func (f *FakeSys) Owner(path string) (string, error) {
+	if !f.known(path) {
+		return "", &fs.PathError{Op: "lstat", Path: path, Err: fs.ErrNotExist}
+	}
+
+	owner, _, _ := strings.Cut(f.Owners[path], ":")
+	if owner == "" {
+		return "root", nil
+	}
+
+	return owner, nil
 }
 
 func (f *FakeSys) mutate(description string) {

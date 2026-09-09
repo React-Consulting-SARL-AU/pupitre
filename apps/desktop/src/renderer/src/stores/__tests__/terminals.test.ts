@@ -113,3 +113,62 @@ describe("la connexion d'un agent", () => {
     expect(useTerminals.getState().login).toBeNull();
   });
 });
+
+describe("la fin d'une session", () => {
+  it("garde l'onglet avec son code de sortie", async () => {
+    stubPupitre({
+      openTerminal: () =>
+        Promise.resolve({ ok: true, result: { session: "claude-app" } }),
+    });
+
+    await useTerminals.getState().start("t4", SERVER, "claude", "app");
+    useTerminals.getState().noteExit("t4", 130);
+
+    expect(useTerminals.getState().sessions.t4).toEqual({
+      code: 130,
+      session: "claude-app",
+      status: "ended",
+    });
+  });
+
+  it("ignore une sortie pour une session qui n'était pas ouverte", () => {
+    useTerminals.getState().noteExit("t-ghost", 0);
+
+    expect(useTerminals.getState().sessions["t-ghost"]).toBeUndefined();
+  });
+
+  it("rouvre un processus neuf dans le même onglet", async () => {
+    let opened = 0;
+
+    stubPupitre({
+      openTerminal: () => {
+        opened += 1;
+
+        return Promise.resolve({ ok: true, result: { session: null } });
+      },
+    });
+
+    await useTerminals.getState().start("t5", SERVER, "shell", null);
+    useTerminals.getState().noteExit("t5", 0);
+    await useTerminals.getState().restart("t5", SERVER, "shell", null);
+
+    expect(opened).toBe(2);
+    expect(useTerminals.getState().sessions.t5).toEqual({
+      session: null,
+      status: "open",
+    });
+  });
+});
+
+describe("la recherche dans une session", () => {
+  it("n'est ouverte que sur une session à la fois, et se ferme avec elle", () => {
+    useTerminals.getState().openSearch("t1");
+    useTerminals.getState().openSearch("t2");
+
+    expect(useTerminals.getState().search).toBe("t2");
+
+    useTerminals.getState().forget("t2");
+
+    expect(useTerminals.getState().search).toBeNull();
+  });
+});

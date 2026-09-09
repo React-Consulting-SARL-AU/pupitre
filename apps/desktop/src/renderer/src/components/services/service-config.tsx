@@ -22,6 +22,8 @@ import { RefreshCw } from "lucide-react";
  */
 export function ServiceConfig({
   manifest,
+  catalogHeld = false,
+  onReloadCatalog,
   config,
   apply,
   values,
@@ -35,6 +37,9 @@ export function ServiceConfig({
   onApply,
 }: {
   manifest: Manifest | null;
+  /** The whole catalogue is refused, not this module's own settings. */
+  catalogHeld?: boolean;
+  onReloadCatalog?: () => void;
   config: ConfigState;
   apply: ApplyState;
   values: Record<string, unknown>;
@@ -49,8 +54,29 @@ export function ServiceConfig({
 }) {
   const t = useTranslations();
 
+  // The settings of a module are its manifest's, which comes from the server's
+  // catalogue. Without it the form cannot be drawn, and a section that simply
+  // disappeared left the reader looking for what a service can be told.
   if (!manifest) {
-    return null;
+    return (
+      <section className="flex flex-col gap-3" data-config="unknown">
+        <Label>{t("services.config.title")}</Label>
+
+        <Callout
+          action={
+            catalogHeld || !onReloadCatalog ? null : (
+              <Button icon={RefreshCw} onClick={onReloadCatalog} size="sm">
+                {t("services.config.reread")}
+              </Button>
+            )
+          }
+        >
+          {t(
+            catalogHeld ? "services.config.heldBack" : "services.config.unread"
+          )}
+        </Callout>
+      </section>
+    );
   }
 
   // A `managed` value is derived from a connection by the app, never typed.

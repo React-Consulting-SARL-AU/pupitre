@@ -46,6 +46,16 @@ var elsewhere = map[string]string{
 	"tool.github":         "its key is born of ssh-keygen and registered with GitHub",
 }
 
+// A module that reads a release index answers it here, as the network would.
+var served = map[string]func(fake *modtest.FakeSys){
+	"ai.claude": func(fake *modtest.FakeSys) {
+		checksum := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+		fake.Answer("claude-code-releases/latest", "2.1.263\n")
+		fake.Answer("/2.1.263/manifest.json", `{"platforms":{"linux-x64":{"checksum":"`+checksum+`"},"linux-arm64":{"checksum":"`+checksum+`"}}}`)
+		fake.Replies["sha256sum"] = checksum + "  claude\n"
+	},
+}
+
 // answers fills in what the form would have: the manifest defaults, plus a value for whatever it declares required.
 func answers(manifest contract.Manifest) (modtest.Values, modtest.Secrets) {
 	values := modtest.Values{}
@@ -108,6 +118,9 @@ func TestASecondInstallLeavesTheMachineAlone(t *testing.T) {
 
 		t.Run(id, func(t *testing.T) {
 			fake := modtest.NewFakeSys()
+			if serve, listed := served[id]; listed {
+				serve(fake)
+			}
 
 			pass(t, module, fake)
 

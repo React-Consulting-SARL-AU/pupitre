@@ -18,6 +18,7 @@ import {
   shaped,
   stepOf,
 } from "../lib/module-progress";
+import { useChannel } from "./channel";
 
 /**
  * The installation as the screen watches it happen.
@@ -65,6 +66,8 @@ interface InstallStore {
     moduleId: string,
     config?: ModuleConfig
   ) => Promise<void>;
+  /** Runs every module that failed again, with the configuration it was given. */
+  replayFailed: (serverId: string) => Promise<void>;
   /** Reads the report back, which is what a channel that dropped left behind. */
   reload: (serverId: string) => Promise<void>;
   reset: () => void;
@@ -88,6 +91,7 @@ function fromReport(reports: readonly ModuleReport[]): ModuleProgress[] {
         status: step.status,
         step: step.step,
         ...(step.replay ? { replay: step.replay } : {}),
+        ...(step.message ? { message: step.message } : {}),
       }))
     )
   );
@@ -125,6 +129,44 @@ function logLine(update: InstallUpdate): string | null {
 
 const EMPTY: Requested = { config: {}, modules: [] };
 
+/**
+ * Nothing waits once the agent has answered. A module it said nothing about
+ * — an agent that emits no steps, a channel that swallowed them — takes the
+ * fate the result gives it, so the list agrees with the sentence under it.
+ */
+function settled(
+  modules: readonly ModuleProgress[],
+  ran: readonly string[],
+  result: InstallResult
+): ModuleProgress[] {
+  return modules.map((module) => {
+    if (module.status !== "pending" || !ran.includes(module.id)) {
+      return module;
+    }
+
+    return {
+      ...module,
+      status: result.failed.includes(module.id) ? "fail" : "ok",
+    };
+  });
+}
+
+/** The earlier result, with the replayed modules judged again. */
+function merged(
+  before: InstallResult,
+  after: InstallResult,
+  replayed: readonly string[]
+): InstallResult {
+  const others = (ids: readonly string[]) =>
+    ids.filter((id) => !replayed.includes(id));
+
+  return {
+    failed: [...others(before.failed), ...after.failed],
+    report_path: after.report_path,
+    warned: [...others(before.warned), ...after.warned],
+  };
+}
+
 export const useInstall = create<InstallStore>((set, get) => {
   function note(update: InstallUpdate): void {
     const line = logLine(update);
@@ -159,16 +201,29 @@ export const useInstall = create<InstallStore>((set, get) => {
     }));
   }
 
+  /**
+   * A replay runs in the list it came from: the module goes back to pending
+   * where it stands, the others keep what the agent said of them, and the
+   * result is the earlier one with this module's fate corrected.
+   */
   async function run(
     serverId: string,
     modules: readonly string[],
-    config: ModuleConfig
+    config: ModuleConfig,
+    again = false
   ): Promise<void> {
-    set({
+    const before = get().install;
+    const kept = before.status === "done" ? before.result : null;
+
+    set((state) => ({
       install: { serverId, status: "running" },
-      log: [],
-      modules: pending(modules),
-    });
+      log: again ? state.log : [],
+      modules: again
+        ? state.modules.map((module) =>
+            modules.includes(module.id) ? pending([module.id])[0] : module
+          )
+        : pending(modules),
+    }));
 
     const answer = await window.pupitre.startInstall(
       serverId,
@@ -177,11 +232,29 @@ export const useInstall = create<InstallStore>((set, get) => {
       note
     );
 
-    set({
+    set((state) => ({
       install: answer.ok
-        ? { result: answer.result, serverId, status: "done" }
+        ? {
+            result: kept ? merged(kept, answer.result, modules) : answer.result,
+            serverId,
+            status: "done",
+          }
         : { error: answer.error, serverId, status: "failed" },
-    });
+      modules: answer.ok
+        ? settled(state.modules, modules, answer.result)
+        : state.modules,
+    }));
+  }
+
+  function replayOf(modules: readonly string[]): ModuleConfig {
+    const { requested } = get();
+    const config: ModuleConfig = {};
+
+    for (const id of modules) {
+      config[id] = { ...requested.config[id] };
+    }
+
+    return config;
   }
 
   return {
@@ -197,15 +270,28 @@ export const useInstall = create<InstallStore>((set, get) => {
     },
 
     async replay(serverId, moduleId, config) {
-      const { requested } = get();
-
-      if (!requested.modules.includes(moduleId)) {
+      if (!get().requested.modules.includes(moduleId)) {
         return;
       }
 
-      await run(serverId, [moduleId], {
-        [moduleId]: { ...(config?.[moduleId] ?? requested.config[moduleId]) },
-      });
+      await run(
+        serverId,
+        [moduleId],
+        config?.[moduleId]
+          ? { [moduleId]: { ...config[moduleId] } }
+          : replayOf([moduleId]),
+        true
+      );
+    },
+
+    async replayFailed(serverId) {
+      const modules = get().failed();
+
+      if (modules.length === 0) {
+        return;
+      }
+
+      await run(serverId, modules, replayOf(modules), true);
     },
 
     async reload(serverId) {
@@ -255,9 +341,15 @@ export const useInstall = create<InstallStore>((set, get) => {
     },
 
     failed() {
-      const { install } = get();
+      const { install, modules } = get();
 
-      return install.status === "done" ? install.result.failed : [];
+      if (install.status === "done") {
+        return install.result.failed;
+      }
+
+      return modules
+        .filter((module) => module.status === "fail")
+        .map((module) => module.id);
     },
 
     warned() {
@@ -266,4 +358,23 @@ export const useInstall = create<InstallStore>((set, get) => {
       return install.status === "done" ? install.result.warned : [];
     },
   };
+});
+
+/**
+ * A link that comes back finds the report where the install left it. The app
+ * only ever lost sight of the machine, never the machine itself: what the
+ * agent did while nobody watched is read back rather than done twice.
+ */
+useChannel.subscribe((now, before) => {
+  const { install, touched, reload } = useInstall.getState();
+
+  if (install.status !== "failed" || !touched()) {
+    return;
+  }
+
+  const { serverId } = install;
+
+  if (before.states[serverId] === "lost" && now.states[serverId] === "open") {
+    reload(serverId);
+  }
 });

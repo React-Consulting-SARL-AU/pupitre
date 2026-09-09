@@ -22,7 +22,6 @@ func manifest() contract.Manifest {
 			{Key: "composer", Kind: contract.FieldBoolean, Label: i18n.T("module.runtime.php.composer.label"), Help: i18n.T("module.runtime.php.composer.help"), Required: false, Default: true},
 			{Key: "memory_limit", Kind: contract.FieldText, Label: i18n.T("module.runtime.php.memory_limit.label"), Help: i18n.T("module.runtime.php.memory_limit.help"), HintText: i18n.T("module.runtime.php.memory_limit.hint"), Format: contract.FormatSize, Required: false},
 		},
-		Provides:  []string{"runtime:php"},
 		Mandatory: false,
 		Since:     "0.3.0",
 	}

@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { humanBytes } from "../../lib/duration";
 import { useOnboarding } from "../../stores/onboarding";
 import { Button } from "../ui/button";
+import { Details } from "../ui/details";
 import { PageHeader } from "../ui/page-header";
 import { StatusDot } from "../ui/status-dot";
 import { StepFailure } from "../ui/step-failure";
@@ -64,14 +65,13 @@ export function OnboardingAgentScreen({
               <p className="font-medium text-ink">
                 {t("onboarding.agent.inPlace")}
               </p>
-              <p className="mt-1 text-ink-3 leading-relaxed">
-                <code className="font-data">{delivery.delivery.path}</code> ·{" "}
-                linux-{delivery.delivery.arch} ·{" "}
-                {humanBytes(delivery.delivery.bytes)}
-              </p>
-              <p className="mt-2 break-all font-data text-[12px] text-ink-4">
-                sha256 {delivery.delivery.sha256}
-              </p>
+              <Details className="mt-1">
+                <span className="font-data">
+                  {delivery.delivery.path} · linux-{delivery.delivery.arch} ·{" "}
+                  {humanBytes(delivery.delivery.bytes)} · sha256{" "}
+                  {delivery.delivery.sha256}
+                </span>
+              </Details>
             </div>
           </div>
         </>

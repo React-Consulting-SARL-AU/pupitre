@@ -1,4 +1,4 @@
-import { Field, fieldControlClass } from "@renderer/components/ui/field";
+import { Field, proseControlClass } from "@renderer/components/ui/field";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { LOCALE_PREFERENCES, useLocale } from "@renderer/stores/locale";
 import { useTheme } from "@renderer/stores/theme";
@@ -48,7 +48,7 @@ export function SettingsAppearance() {
           name="settings.theme"
         >
           <select
-            className={fieldControlClass}
+            className={proseControlClass}
             id="settings.theme"
             onChange={(event) =>
               setPreference(event.target.value as ThemePreference)
@@ -71,7 +71,7 @@ export function SettingsAppearance() {
           name="settings.language"
         >
           <select
-            className={fieldControlClass}
+            className={proseControlClass}
             id="settings.language"
             onChange={(event) =>
               setLocalePreference(

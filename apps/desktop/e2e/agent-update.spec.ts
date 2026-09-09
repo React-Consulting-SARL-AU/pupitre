@@ -5,6 +5,7 @@ import {
   test,
 } from "@playwright/test";
 import type { AgentUpdateState } from "@shared/agent-update";
+import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
 /**
@@ -87,6 +88,8 @@ test.describe("mise à jour de l'agent", () => {
     await expect(
       banner.getByRole("button", { name: "Mettre l'agent à jour" })
     ).toBeEnabled();
+
+    await assertAccessible(running.page, "tableau-de-bord/mise-a-jour");
   });
 
   test("une app en retard le dit et laisse le tableau de bord vivant", async () => {

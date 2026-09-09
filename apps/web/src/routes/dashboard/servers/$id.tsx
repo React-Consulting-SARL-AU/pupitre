@@ -2,6 +2,7 @@ import { ApiError } from "@pupitre/api/client"
 import type { QueryClient } from "@tanstack/react-query"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, notFound } from "@tanstack/react-router"
+import { RotateCw } from "lucide-react"
 import { ServerActions } from "@/components/dashboard/server-actions"
 import { ServerAlerts } from "@/components/dashboard/server-alerts"
 import { ServerAssignment } from "@/components/dashboard/server-assignment"
@@ -9,6 +10,7 @@ import { ServerDevices } from "@/components/dashboard/server-devices"
 import { ServerEvents } from "@/components/dashboard/server-events"
 import { ServerMetrics } from "@/components/dashboard/server-metrics"
 import { ServerModules } from "@/components/dashboard/server-modules"
+import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
 import { PageHeader } from "@/components/ui/page-header"
@@ -86,6 +88,18 @@ function ServerPage() {
   if (server.isError) {
     return (
       <Callout
+        action={
+          <Button
+            icon={RotateCw}
+            loading={server.isFetching}
+            onClick={() => {
+              server.refetch()
+            }}
+            size="sm"
+          >
+            {t("common.retry")}
+          </Button>
+        }
         fix={t("route.failedFix")}
         title={t("route.failed")}
         tone="danger"

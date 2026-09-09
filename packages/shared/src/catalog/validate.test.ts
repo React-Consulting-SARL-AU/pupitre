@@ -19,7 +19,6 @@ function manifest(over: Partial<Manifest> = {}): Manifest {
     id: MODULE,
     mandatory: false,
     name: "Demo",
-    provides: [],
     requires: [],
     resources: { disk_mb: 0, ram_mb: 0 },
     since: "0.1.0",

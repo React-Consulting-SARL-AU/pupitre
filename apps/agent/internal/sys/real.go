@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 )
 
@@ -20,14 +22,15 @@ func (Real) Run(cmd Command) (Output, error) {
 		return Output{}, errors.New("empty command")
 	}
 
-	ctx := context.Background()
-	if cmd.Timeout > 0 {
-		limited, cancel := context.WithTimeout(ctx, cmd.Timeout)
-		defer cancel()
-		ctx = limited
+	timeout := cmd.Timeout
+	if timeout <= 0 {
+		timeout = DefaultTimeout
 	}
 
-	process := exec.CommandContext(ctx, cmd.Argv[0], cmd.Argv[1:]...)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	process := exec.CommandContext(ctx, program(cmd), cmd.Argv[1:]...)
 	process.Env = append(os.Environ(), cmd.Env...)
 	process.Dir = cmd.Dir
 	if len(cmd.Stdin) > 0 {
@@ -59,6 +62,10 @@ func (Real) Run(cmd Command) (Output, error) {
 	err := process.Run()
 	out := Output{Stdout: stdout.String(), Stderr: stderr.String()}
 
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		return out, fmt.Errorf("%s: no answer after %s", cmd.Argv[0], timeout)
+	}
+
 	var exit *exec.ExitError
 	if errors.As(err, &exit) {
 		out.Code = exit.ExitCode()
@@ -70,6 +77,44 @@ func (Real) Run(cmd Command) (Output, error) {
 	}
 
 	return out, nil
+}
+
+// Go looks a bare program up in this process's PATH, and the PATH the command
+// carries for its user is only handed to the child: a tool in ~dev/.local/bin
+// has to be found on the latter, or it is not found at all.
+func program(cmd Command) string {
+	name := cmd.Argv[0]
+	if strings.Contains(name, string(os.PathSeparator)) {
+		return name
+	}
+
+	path, given := ownPath(cmd.Env)
+	if !given {
+		return name
+	}
+
+	for _, dir := range filepath.SplitList(path) {
+		if dir == "" {
+			continue
+		}
+
+		candidate := filepath.Join(dir, name)
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() && info.Mode()&0o111 != 0 {
+			return candidate
+		}
+	}
+
+	return filepath.Join(filepath.SplitList(path)[0], name)
+}
+
+func ownPath(env []string) (string, bool) {
+	for i := len(env) - 1; i >= 0; i-- {
+		if path, found := strings.CutPrefix(env[i], "PATH="); found {
+			return path, true
+		}
+	}
+
+	return "", false
 }
 
 func credentialOf(name string) (*syscall.Credential, error) {
@@ -212,7 +257,26 @@ func (Real) Chown(path, owner, group string) error {
 		}
 	}
 
-	return os.Chown(path, uid, gid)
+	return os.Lchown(path, uid, gid)
+}
+
+func (Real) Owner(path string) (string, error) {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return "", err
+	}
+
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok {
+		return "", errors.New("owner unavailable on this platform")
+	}
+
+	account, err := user.LookupId(strconv.FormatUint(uint64(stat.Uid), 10))
+	if err != nil {
+		return "", err
+	}
+
+	return account.Username, nil
 }
 
 func (Real) MkdirAll(path string, mode fs.FileMode) error {

@@ -34,7 +34,7 @@ export function ShotRow({
         {weight(shot.size_bytes)}
       </span>
 
-      <span className="w-24 shrink-0 text-right text-[12px] text-ink-4">
+      <span className="w-24 shrink-0 text-right text-[12px] text-ink-3">
         {Number.isNaN(taken) ? shot.created_at : since(taken)}
       </span>
 

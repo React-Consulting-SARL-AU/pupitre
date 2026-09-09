@@ -223,6 +223,8 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 		return urlResult{URL: address}, nil
 	}))
 
+	server.Register("project.debug", named(func(name string) (any, error) { return reader.Debug(name) }))
+
 	server.Register("project.sync", named(func(name string) (any, error) { return reader.Sync(name) }))
 	server.Register("project.branches", named(func(name string) (any, error) { return reader.Branches(name) }))
 	server.Register("project.git_status", named(func(name string) (any, error) { return reader.GitStatus(name) }))

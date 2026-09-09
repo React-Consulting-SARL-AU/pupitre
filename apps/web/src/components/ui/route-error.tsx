@@ -13,23 +13,23 @@ export function RouteError({ error, reset }: ErrorComponentProps) {
   const failure = apiFailure(error)
 
   return (
-    <div className="flex flex-col items-start gap-3">
-      <Callout
-        className="w-full"
-        fix={failure?.fix ?? t("route.failedFix")}
-        title={failure?.message ?? t("route.failed")}
-        tone="danger"
-      />
-      <Button
-        icon={RotateCw}
-        onClick={() => {
-          reset()
-          router.invalidate()
-        }}
-      >
-        {t("common.retry")}
-      </Button>
-    </div>
+    <Callout
+      action={
+        <Button
+          icon={RotateCw}
+          onClick={() => {
+            reset()
+            router.invalidate()
+          }}
+          size="sm"
+        >
+          {t("common.retry")}
+        </Button>
+      }
+      fix={failure?.fix ?? t("route.failedFix")}
+      title={failure?.message ?? t("route.failed")}
+      tone="danger"
+    />
   )
 }
 

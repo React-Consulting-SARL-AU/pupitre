@@ -83,6 +83,28 @@ func TestTheModuleInstallsNoService(t *testing.T) {
 	}
 }
 
+// sshd is on every server the app reaches: only the declared mode makes this exposure the machine's.
+func TestAServerWithSshdIsNotAnInstalledExposure(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Packages[pkg] = "1:9.6p1-3"
+
+	status, err := (Module{}).Check(newContext(t, fake))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if status.Installed {
+		t.Fatal("sshd alone must not count as the ssh exposure")
+	}
+
+	fake.Files[modePath] = mode
+
+	status, err = (Module{}).Check(newContext(t, fake))
+	if err != nil || !status.Installed || !status.Configured {
+		t.Fatalf("declared mode must count: %+v, %v", status, err)
+	}
+}
+
 func TestFailedStepReportsReplay(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.FailPackage(pkg, "E: Unable to locate package openssh-server")

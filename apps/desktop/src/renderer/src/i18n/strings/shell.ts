@@ -8,11 +8,13 @@ export const shell = {
     "shell.sidebar.noProjects": "No project declared.",
     "shell.sidebar.noServer": "No server",
     "shell.sidebar.projects": "Projects",
-    "shell.sidebar.secrets": "Secrets",
     "shell.sidebar.server": "Server",
     "shell.sidebar.services": "Services",
     "shell.sidebar.settings": "Settings",
     "shell.sidebar.terminals": "Terminals",
+    "shell.failure.message":
+      "This screen could not be drawn. Nothing on the server changed.",
+    "shell.failure.retry": "Draw it again",
     "shell.restricted.console": "Open the console",
     "shell.restricted.repair": "Re-enrol this server",
     "shell.restricted.repairTitle":
@@ -44,6 +46,9 @@ export const shell = {
     "shell.unready.notRespondingBody":
       "The agent did not answer on this machine. If it isn't there yet, the installation puts it in place; otherwise, here is what the connection returned.",
     "shell.unready.notRespondingTitle": "{name} isn't responding yet",
+    "shell.unready.reachingTitle": "Reaching {name}",
+    "shell.unready.reachingBody":
+      "The app is opening its link to the machine and asking the agent how things stand.",
   },
   fr: {
     "shell.sidebar.activity": "Processus et sessions",
@@ -54,11 +59,13 @@ export const shell = {
     "shell.sidebar.noProjects": "Aucun projet déclaré.",
     "shell.sidebar.noServer": "Aucun serveur",
     "shell.sidebar.projects": "Projets",
-    "shell.sidebar.secrets": "Secrets",
     "shell.sidebar.server": "Serveur",
     "shell.sidebar.services": "Services",
     "shell.sidebar.settings": "Réglages",
     "shell.sidebar.terminals": "Terminaux",
+    "shell.failure.message":
+      "Cet écran n'a pas pu être dessiné. Rien n'a changé sur le serveur.",
+    "shell.failure.retry": "Le dessiner à nouveau",
     "shell.restricted.console": "Ouvrir la console",
     "shell.restricted.repair": "Ré-enrôler ce serveur",
     "shell.restricted.repairTitle":
@@ -90,5 +97,8 @@ export const shell = {
     "shell.unready.notRespondingBody":
       "L'agent n'a pas répondu sur cette machine. S'il n'y est pas encore, l'installation le pose ; sinon, voici ce que la connexion a renvoyé.",
     "shell.unready.notRespondingTitle": "{name} ne répond pas encore",
+    "shell.unready.reachingTitle": "Connexion à {name}",
+    "shell.unready.reachingBody":
+      "L'app ouvre son lien vers la machine et demande à l'agent où en sont les choses.",
   },
 } as const;

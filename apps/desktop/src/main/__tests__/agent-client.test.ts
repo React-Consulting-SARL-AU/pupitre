@@ -194,22 +194,6 @@ describe("le canal", () => {
     agent.closeAll();
   });
 
-  it("écrit le secret sur l'entrée standard, juste après la requête", async () => {
-    const { agent, fake } = client("secrets-stream.jsonl");
-
-    const done = await agent.call(
-      SERVER,
-      "secrets.set",
-      { key: "API_KEY", secrets_stdin: true },
-      { secrets: { API_KEY: "s3cret-de-test" } }
-    );
-
-    expect(done).toEqual({ done: true });
-    expect(fake.trace().join("\n")).not.toContain("s3cret-de-test");
-
-    agent.closeAll();
-  });
-
   it("installe avec sa ligne de secrets, sans qu'un secret ressorte", async () => {
     const { agent, fake } = client("install-secrets.jsonl");
 
@@ -289,6 +273,123 @@ describe("la détection d'un projet", () => {
     expect(fake.started()).toBe(2);
 
     agent.closeAll();
+  });
+});
+
+/**
+ * A channel carries one command at a time. A screen that shows nothing while a
+ * request waits its turn is the difference between a machine at work and a
+ * request that never left, and the caller is the only one who can say it.
+ */
+describe("une commande qui attend son tour", () => {
+  it("le dit à qui l'a demandée, et pas à celle qui part tout de suite", async () => {
+    const { agent } = client("snapshot-loop.jsonl");
+    const queued: string[] = [];
+
+    const first = agent.call(SERVER, "snapshot", undefined, {
+      onQueued: () => queued.push("first"),
+    });
+    const second = agent.call(SERVER, "snapshot", undefined, {
+      onQueued: () => queued.push("second"),
+    });
+
+    await Promise.all([first, second]);
+
+    expect(queued).toEqual(["second"]);
+
+    const third = await agent.call(SERVER, "snapshot", undefined, {
+      onQueued: () => queued.push("third"),
+    });
+
+    expect(third).toBeTruthy();
+    expect(queued).toEqual(["second"]);
+
+    agent.closeAll();
+  });
+});
+
+describe("ce que la fenêtre apprend du lien", () => {
+  function watched(): {
+    changes: string[];
+    onChannel: NonNullable<AgentClientOptions["onChannel"]>;
+  } {
+    const changes: string[] = [];
+
+    return {
+      changes,
+      onChannel: (serverId, state) => changes.push(`${serverId} ${state}`),
+    };
+  }
+
+  it("n'annonce aucune perte pour un canal qui n'a jamais répondu", async () => {
+    const seen = watched();
+    const agent = createAgentClient({
+      spawn: (() =>
+        spawnChild("sh", ["-c", "exit 127"], {
+          stdio: ["pipe", "pipe", "pipe"],
+        })) as never,
+      backoff: { firstMs: 1, maxMs: 5, attempts: 2 },
+      connectMs: 200,
+      onChannel: seen.onChannel,
+    });
+
+    const answer = await agent.request(SERVER, "ping");
+
+    expect(answer.ok).toBe(false);
+    expect(seen.changes).toEqual([]);
+
+    agent.closeAll();
+  });
+
+  it("annonce la perte d'un canal qui, lui, était ouvert", async () => {
+    const seen = watched();
+    const fake = fakeAgent(["install-cut.jsonl", "install-resume.jsonl"]);
+    const agent = createAgentClient({
+      spawn: fake.spawn,
+      appVersion: "0.1.0",
+      backoff: { firstMs: 5, maxMs: 20, attempts: 3 },
+      onChannel: seen.onChannel,
+    });
+
+    await agent.stream(
+      SERVER,
+      "install",
+      {
+        modules: ["db.postgres"],
+        config: { "db.postgres": { version: "17" } },
+        secrets_stdin: true,
+      },
+      () => undefined,
+      { secrets: { "db.postgres": { app_password: "s3cret-de-test" } } }
+    );
+
+    expect(seen.changes).toEqual([
+      `${SERVER} open`,
+      `${SERVER} lost`,
+      `${SERVER} open`,
+    ]);
+
+    agent.closeAll();
+    fake.killAll();
+  });
+
+  it("ne dit pas perdu ce que l'app a fermé elle-même", async () => {
+    const seen = watched();
+    const fake = fakeAgent("hello-then-ping.jsonl");
+    const agent = createAgentClient({
+      spawn: fake.spawn,
+      appVersion: "0.1.0",
+      backoff: { firstMs: 5, maxMs: 20, attempts: 3 },
+      onChannel: seen.onChannel,
+    });
+
+    await agent.call(SERVER, "ping");
+    agent.closeAll();
+
+    expect(await until(() => fake.live() === 0)).toBe(true);
+    expect(seen.changes).toEqual([`${SERVER} open`]);
+
+    fake.killAll();
   });
 });
 

@@ -5,13 +5,15 @@ import type { AgentError } from "@shared/agent";
 /**
  * What the hardening says about itself while it runs.
  *
- * The `step` events are the agent's own, passed on untouched. The other one
- * belongs to the app: rewriting its SSH configuration and reopening the channel
- * on the new account is work no agent can report on, since the session that
- * would report it is the one being replaced.
+ * The `step` events are the agent's own, passed on untouched. The other two
+ * belong to the app: a command still waiting for the channel of a longer one,
+ * and rewriting its SSH configuration to reopen on the new account — work no
+ * agent can report on, since the session that would report it is the one being
+ * replaced.
  */
 export type HardenUpdate =
   | { kind: "event"; event: Event }
+  | { kind: "queued" }
   | { kind: "switching"; user: string };
 
 /**

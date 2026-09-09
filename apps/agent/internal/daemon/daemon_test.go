@@ -71,7 +71,6 @@ func (p *fakePlatform) serve() *httptest.Server {
 				"authorized_keys": p.authorized,
 				"target_version":  p.target,
 				"hostname":        "vps",
-				"module_params":   map[string]any{},
 			})
 		case "/agent/heartbeat":
 			var beat platform.Heartbeat
@@ -319,6 +318,33 @@ func TestEnrollTradesTheTokenAndWritesTheServerToken(t *testing.T) {
 	token, err := platform.LoadToken(b.fake, platform.DefaultTokenPath)
 	if err != nil || token != "jeton-de-serveur" {
 		t.Fatalf("jeton = %q, err = %v", token, err)
+	}
+}
+
+// The heartbeat and the entitlement run without the app: the only thing that
+// can tell them which platform to answer is what the enrolment wrote down.
+func TestEnrollWritesThePlatformItTradedWith(t *testing.T) {
+	b := newBench(t, false)
+	console := b.server.URL
+
+	if err := b.agent().Enroll("jeton-d-enrolement", console); err != nil {
+		t.Fatalf("Enroll: %v", err)
+	}
+
+	if kept := platform.LoadBaseURL(b.fake, platform.DefaultBaseURLPath); kept != console {
+		t.Fatalf("platform kept = %q, want %q", kept, console)
+	}
+}
+
+func TestAnEnrolmentThatNamesNoPlatformWritesNone(t *testing.T) {
+	b := newBench(t, false)
+
+	if err := b.agent().Enroll("jeton-d-enrolement", ""); err != nil {
+		t.Fatalf("Enroll: %v", err)
+	}
+
+	if kept := platform.LoadBaseURL(b.fake, platform.DefaultBaseURLPath); kept != "" {
+		t.Fatalf("nothing was named, %q was kept", kept)
 	}
 }
 

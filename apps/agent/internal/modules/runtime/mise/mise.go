@@ -14,7 +14,8 @@ import (
 const (
 	BinDir   = shell.Home + "/.local/bin"
 	Path     = BinDir + "/mise"
-	ShimsDir = shell.Home + "/.local/share/mise/shims"
+	DataDir  = shell.Home + "/.local/share/mise"
+	ShimsDir = DataDir + "/shims"
 
 	Latest = "latest"
 
@@ -41,12 +42,10 @@ func Ensure(ctx *modules.Context) error {
 			return modules.Skipped, nil
 		}
 
-		if err := ctx.Sys().MkdirAll(BinDir, 0o755); err != nil {
-			return modules.Failed, err
-		}
-
-		if err := file.Chown(ctx, BinDir, shell.User, shell.User); err != nil {
-			return modules.Failed, err
+		for _, dir := range []string{BinDir, DataDir} {
+			if _, err := file.EnsureOwned(ctx, dir, shell.User, shell.User, 0o755); err != nil {
+				return modules.Failed, err
+			}
 		}
 
 		if _, err := user.Run(ctx, shell.User, "curl", "-fsSL", "--proto", "=https", "--tlsv1.2", "-o", Path, downloadURL()); err != nil {

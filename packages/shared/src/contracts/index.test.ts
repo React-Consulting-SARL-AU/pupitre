@@ -29,7 +29,6 @@ const EXPECTED = [
   "ProjectUpResult",
   "ProjectGitStatusResult",
   "AgentOpenParams",
-  "SecretsSetParams",
   "DbDumpParams",
   "AgentUpgradeParams",
   "EnrollParams",

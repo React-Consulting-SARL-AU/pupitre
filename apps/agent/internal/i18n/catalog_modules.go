@@ -31,7 +31,7 @@ var moduleCatalog = map[string]Message{
 		EN: "Model providers",
 	},
 	"module.ai.hermes.summary": {
-		FR: "L'agent Hermes de Nous Research, posé par Python, avec les fournisseurs de modèles de ton choix et, si tu le veux, un service qui le garde en marche.",
+		FR: "L'agent Hermes de Nous Research, posé par Python, avec les fournisseurs de modèles de votre choix et, si tu le veux, un service qui le garde en marche.",
 		EN: "The Hermes agent from Nous Research, installed through Python, with the model providers of your choice and, if you want one, a service that keeps it running.",
 	},
 	"module.core.hardening.keep_root.help": {
@@ -91,7 +91,7 @@ var moduleCatalog = map[string]Message{
 		EN: "Timezone",
 	},
 	"module.db.mongodb.app_password.help": {
-		FR: "Celui que tes applications et ton poste utilisent, à travers le tunnel SSH.",
+		FR: "Celui que vos applications et votre poste utilisent, à travers le tunnel SSH.",
 		EN: "The one your applications and your laptop use, through the SSH tunnel.",
 	},
 	"module.db.mongodb.app_password.label": {
@@ -99,7 +99,7 @@ var moduleCatalog = map[string]Message{
 		EN: "Application user password",
 	},
 	"module.db.mongodb.app_user.help": {
-		FR: "Celui que tes applications et ton poste utilisent.",
+		FR: "Celui que vos applications et votre poste utilisent.",
 		EN: "The one your applications and your laptop use.",
 	},
 	"module.db.mongodb.app_user.label": {
@@ -127,7 +127,7 @@ var moduleCatalog = map[string]Message{
 		EN: "Application account password",
 	},
 	"module.db.mysql.app_user.help": {
-		FR: "Celui que tes applications utilisent en TCP sur la boucle locale.",
+		FR: "Celui que vos applications utilisent en TCP sur la boucle locale.",
 		EN: "The one your applications use over TCP on the loopback.",
 	},
 	"module.db.mysql.app_user.label": {
@@ -163,7 +163,7 @@ var moduleCatalog = map[string]Message{
 		EN: "Port",
 	},
 	"module.db.mysql.remote_password.help": {
-		FR: "Celui que ton poste utilise à travers le tunnel SSH.",
+		FR: "Celui que votre poste utilise à travers le tunnel SSH.",
 		EN: "The one your laptop uses through the SSH tunnel.",
 	},
 	"module.db.mysql.remote_password.label": {
@@ -171,7 +171,7 @@ var moduleCatalog = map[string]Message{
 		EN: "Remote account password",
 	},
 	"module.db.mysql.remote_user.help": {
-		FR: "Celui que ton poste utilise à travers le tunnel SSH.",
+		FR: "Celui que votre poste utilise à travers le tunnel SSH.",
 		EN: "The one your laptop uses through the SSH tunnel.",
 	},
 	"module.db.mysql.remote_user.label": {
@@ -179,7 +179,7 @@ var moduleCatalog = map[string]Message{
 		EN: "Remote account",
 	},
 	"module.db.mysql.summary": {
-		FR: "Le moteur choisi, lié à 127.0.0.1 sur le port voulu, root sur socket, un compte pour les applications, un pour ton poste à travers SSH, et les dumps de ~/dumps importés.",
+		FR: "Le moteur choisi, lié à 127.0.0.1 sur le port voulu, root sur socket, un compte pour les applications, un pour votre poste à travers SSH, et les dumps de ~/dumps importés.",
 		EN: "The engine you pick, bound to 127.0.0.1 on the port you want, root on socket, one account for applications, one for your laptop through SSH, and the dumps in ~/dumps imported.",
 	},
 	"module.db.postgres.app_password.label": {
@@ -187,7 +187,7 @@ var moduleCatalog = map[string]Message{
 		EN: "Application role password",
 	},
 	"module.db.postgres.app_role.help": {
-		FR: "Celui que tes applications utilisent, et qui possède les bases importées.",
+		FR: "Celui que vos applications utilisent, et qui possède les bases importées.",
 		EN: "The one your applications use, and the owner of the imported databases.",
 	},
 	"module.db.postgres.app_role.label": {
@@ -203,7 +203,7 @@ var moduleCatalog = map[string]Message{
 		EN: "Port",
 	},
 	"module.db.postgres.remote_password.help": {
-		FR: "Celui que ton poste utilise à travers le tunnel SSH.",
+		FR: "Celui que votre poste utilise à travers le tunnel SSH.",
 		EN: "The one your laptop uses through the SSH tunnel.",
 	},
 	"module.db.postgres.remote_password.label": {
@@ -211,7 +211,7 @@ var moduleCatalog = map[string]Message{
 		EN: "Remote role password",
 	},
 	"module.db.postgres.remote_role.help": {
-		FR: "Celui que ton poste utilise à travers le tunnel SSH.",
+		FR: "Celui que votre poste utilise à travers le tunnel SSH.",
 		EN: "The one your laptop uses through the SSH tunnel.",
 	},
 	"module.db.postgres.remote_role.label": {
@@ -219,7 +219,7 @@ var moduleCatalog = map[string]Message{
 		EN: "Remote role",
 	},
 	"module.db.postgres.summary": {
-		FR: "PostgreSQL à la version choisie, lié à 127.0.0.1 sur le port voulu, un rôle pour les applications, un pour ton poste à travers SSH, les extensions courantes et les dumps de ~/dumps importés.",
+		FR: "PostgreSQL à la version choisie, lié à 127.0.0.1 sur le port voulu, un rôle pour les applications, un pour votre poste à travers SSH, les extensions couranvos et les dumps de ~/dumps importés.",
 		EN: "PostgreSQL at the chosen version, bound to 127.0.0.1 on the port you want, one role for applications, one for your laptop through SSH, the usual extensions and the dumps in ~/dumps imported.",
 	},
 	"module.db.postgres.version.label": {
@@ -539,8 +539,8 @@ var moduleCatalog = map[string]Message{
 		EN: "API key",
 	},
 	"module.tool.neon.summary": {
-		FR: "Le CLI Neon posé et authentifié : les projets parlent au compte Neon du client, qui décide de ses bases.",
-		EN: "The Neon CLI installed and authenticated: your projects talk to your own Neon account, which stays yours to shape.",
+		FR: "Le CLI Neon posé, et la clé gardée sur la machine : les projets parlent au compte Neon du client, qui décide de ses bases.",
+		EN: "The Neon CLI installed, and the key kept on the machine: your projects talk to your own Neon account, which stays yours to shape.",
 	},
 	"module.ai.hermes.providers.help": {
 		FR: "Une entrée par fournisseur, sous la forme fournisseur:clé, par exemple openai:sk-…",
@@ -551,7 +551,7 @@ var moduleCatalog = map[string]Message{
 		EN: "The one you open from Gateway; one backend per IDE.",
 	},
 	"module.editor.jetbrains.version.help": {
-		FR: "latest, ou une version majeure comme 2026.2 ; le backend doit rester compatible avec ton Gateway.",
+		FR: "latest, ou une version majeure comme 2026.2 ; le backend doit rester compatible avec votre Gateway.",
 		EN: "latest, or a major version such as 2026.2; the backend has to stay compatible with your Gateway.",
 	},
 	"module.editor.vscode.extensions.help": {
@@ -563,7 +563,7 @@ var moduleCatalog = map[string]Message{
 		EN: "A service keeps the VS Code tunnel open; it asks for one sign-in once installed.",
 	},
 	"module.editor.zed.version.help": {
-		FR: "latest, ou la version exacte de ton Zed (menu Zed, À propos) : le serveur distant doit correspondre au client.",
+		FR: "latest, ou la version exacte de votre Zed (menu Zed, À propos) : le serveur distant doit correspondre au client.",
 		EN: "latest, or the exact version of your Zed (Zed menu, About): the remote server has to match the client.",
 	},
 	"protocol.request.unreadable": {

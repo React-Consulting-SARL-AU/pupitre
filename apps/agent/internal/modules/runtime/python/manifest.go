@@ -20,7 +20,6 @@ func manifest() contract.Manifest {
 		Fields: []contract.Field{
 			{Key: "python_version", Kind: contract.FieldVersion, Label: i18n.T("module.runtime.python.python_version.label"), Options: []string{"3.13", "3.12", "3.11"}, Default: "3.12"},
 		},
-		Provides:  []string{"runtime:python"},
 		Mandatory: false,
 		Since:     "0.1.0",
 	}

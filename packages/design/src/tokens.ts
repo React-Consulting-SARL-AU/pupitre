@@ -153,6 +153,8 @@ export interface Motion {
   /** The interval between two siblings of one cascade. */
   stagger: string
   breathe: string
+  /** The turn of the disc that says a gesture is still working. */
+  spinner: string
 }
 
 export const MOTION: Motion = {
@@ -162,4 +164,5 @@ export const MOTION: Motion = {
   exit: "160ms cubic-bezier(.4,0,1,1)",
   stagger: "40ms",
   breathe: "1.6s ease-in-out infinite",
+  spinner: "0.9s linear infinite",
 }

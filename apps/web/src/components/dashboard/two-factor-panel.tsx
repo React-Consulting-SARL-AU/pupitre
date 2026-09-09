@@ -1,13 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { ShieldCheck } from "lucide-react"
+import { RotateCw, ShieldCheck } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { LoadingState } from "@/components/ui/loading-state"
 import { QrCode } from "@/components/ui/qr-code"
+import { SkeletonLines } from "@/components/ui/skeleton"
 import { StatusDot } from "@/components/ui/status-dot"
 import { useTranslations } from "@/hooks/use-locale"
 import { useRequestCycle } from "@/hooks/use-request-cycle"
@@ -91,7 +91,27 @@ export function TwoFactorPanel() {
       </div>
 
       {enabled.isPending ? (
-        <LoadingState label={t("twoFactor.reading")} />
+        <SkeletonLines label={t("twoFactor.reading")} rows={1} />
+      ) : null}
+
+      {enabled.isError ? (
+        <Callout
+          action={
+            <Button
+              icon={RotateCw}
+              loading={enabled.isFetching}
+              onClick={() => {
+                enabled.refetch()
+              }}
+              size="sm"
+            >
+              {t("common.retry")}
+            </Button>
+          }
+          fix={t("twoFactor.readFailedFix")}
+          title={t("twoFactor.readFailed")}
+          tone="danger"
+        />
       ) : null}
 
       {enabled.data && !setup ? (

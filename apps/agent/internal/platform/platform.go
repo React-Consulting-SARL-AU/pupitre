@@ -16,8 +16,13 @@ import (
 const (
 	DefaultBaseURL   = "https://app.pupitre.studio/api/v1"
 	DefaultTokenPath = "/etc/pupitre/server.token"
-	DefaultMaxBytes  = 128 << 20
-	DefaultTimeout   = 5 * time.Minute
+
+	// Where the platform this server answers to is kept. The enrolment names
+	// it, and everything the server does alone afterwards — the heartbeat, the
+	// entitlement it renews, the keys it reads — has no one to ask otherwise.
+	DefaultBaseURLPath = "/etc/pupitre/platform.url"
+	DefaultMaxBytes    = 128 << 20
+	DefaultTimeout     = 5 * time.Minute
 	// Two exchanges fit under the timeout the app grants a command: the agent must answer before the app gives up.
 	DefaultControlTimeout = 20 * time.Second
 	maxRedirects          = 5
@@ -66,13 +71,12 @@ func (e *Error) Unauthorized() bool {
 
 // What the platform knows of this server: the entitlement, the keys that open it, the version it should run.
 type State struct {
-	Entitlement    string         `json:"entitlement"`
-	ValidUntil     time.Time      `json:"valid_until"`
-	AuthorizedKeys []string       `json:"authorized_keys"`
-	TargetVersion  string         `json:"target_version"`
-	MinimumVersion string         `json:"minimum_version"`
-	Hostname       string         `json:"hostname"`
-	ModuleParams   map[string]any `json:"module_params"`
+	Entitlement    string    `json:"entitlement"`
+	ValidUntil     time.Time `json:"valid_until"`
+	AuthorizedKeys []string  `json:"authorized_keys"`
+	TargetVersion  string    `json:"target_version"`
+	MinimumVersion string    `json:"minimum_version"`
+	Hostname       string    `json:"hostname"`
 }
 
 type Enrollment struct {

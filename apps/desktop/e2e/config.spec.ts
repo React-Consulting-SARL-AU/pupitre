@@ -5,6 +5,7 @@ import { answerOnboarding, reachConfig } from "./harness/onboarding";
 
 const TIMEZONE_HINT = /À propos de Fuseau/;
 const IANA = /Europe\/Paris/;
+const ADVANCED = /^Réglages avancés/;
 
 /**
  * The configuration screen: what it refuses, where it says so, and what a
@@ -36,7 +37,7 @@ test.describe("configuration", () => {
 
     await test.step("l'index nomme les modules choisis", async () => {
       await expect(
-        page.getByRole("navigation", { name: "Les modules choisis" })
+        page.getByRole("navigation", { name: "Les services choisis" })
       ).toBeVisible();
     });
 
@@ -57,7 +58,7 @@ test.describe("configuration", () => {
     });
 
     await test.step("l'action est en bas de l'écran", async () => {
-      const bar = page.locator("[data-testid='config-actions']");
+      const bar = page.locator("[data-actions='config']");
 
       await expect(
         bar.getByRole("button", { name: "Installer" })
@@ -76,6 +77,12 @@ test.describe("configuration", () => {
 
       expect(order.length).toBeGreaterThan(0);
       expect(order.at(-1)).toContain("Installer");
+    });
+
+    await test.step("les réglages déjà faits attendent derrière un pli", async () => {
+      await expect(page.locator("#core\\.system\\.timezone")).toBeHidden();
+      await page.getByText(ADVANCED).click();
+      await expect(page.locator("#core\\.system\\.timezone")).toBeVisible();
     });
 
     await test.step("la bulle s'ouvre au clavier", async () => {

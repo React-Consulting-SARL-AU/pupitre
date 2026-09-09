@@ -8,7 +8,7 @@ export const dashboard = {
     "dashboard.card.stop": "Stop",
     "dashboard.machine.diskDetail": "{free} free",
     "dashboard.machine.diskTitle": "Disk",
-    "dashboard.machine.loadDetail": "{cores} cores · up for {uptime}",
+    "dashboard.machine.loadDetail": "{cores} cores · up {uptime}",
     "dashboard.machine.loadTitle": "Load",
     "dashboard.machine.memoryDetail": "{free} available",
     "dashboard.machine.memoryTitle": "Memory",
@@ -32,8 +32,7 @@ export const dashboard = {
     "dashboard.panel.title": "{projects} online",
     "dashboard.project.one": "{count} project",
     "dashboard.project.other": "{count} projects",
-    "dashboard.services.empty":
-      "The agent has not installed any module on this machine.",
+    "dashboard.services.empty": "No service installed on this machine.",
     "dashboard.services.emptyTitle": "No service",
   },
   fr: {
@@ -45,7 +44,7 @@ export const dashboard = {
     "dashboard.card.stop": "Arrêter",
     "dashboard.machine.diskDetail": "{free} libres",
     "dashboard.machine.diskTitle": "Disque",
-    "dashboard.machine.loadDetail": "{cores} cœurs · en route depuis {uptime}",
+    "dashboard.machine.loadDetail": "{cores} cœurs · depuis {uptime}",
     "dashboard.machine.loadTitle": "Charge",
     "dashboard.machine.memoryDetail": "{free} disponibles",
     "dashboard.machine.memoryTitle": "Mémoire",
@@ -68,8 +67,7 @@ export const dashboard = {
     "dashboard.panel.title": "{projects} en ligne",
     "dashboard.project.one": "{count} projet",
     "dashboard.project.other": "{count} projets",
-    "dashboard.services.empty":
-      "L'agent n'a installé aucun module sur cette machine.",
+    "dashboard.services.empty": "Aucun service installé sur cette machine.",
     "dashboard.services.emptyTitle": "Aucun service",
   },
 } as const;

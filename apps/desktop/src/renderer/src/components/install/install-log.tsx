@@ -1,4 +1,5 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { Details } from "../ui/details";
 /**
  * Everything that was said, folded away.
  *
@@ -13,14 +14,14 @@ export function InstallLog({ lines }: { lines: readonly string[] }) {
   }
 
   return (
-    <details className="elevation-raised overflow-hidden rounded-md border border-line bg-surface">
-      <summary className="clickable cursor-pointer px-4 py-3 text-ink-2 transition-soft hover:text-ink">
-        {t.plural("install.journal.lines", lines.length)}
-      </summary>
-
-      <pre className="max-h-72 overflow-auto border-line border-t bg-sunken px-4 py-3 font-data text-[12px] text-ink-3 leading-relaxed">
+    <Details
+      className="elevation-raised rounded-md border border-line bg-surface px-4 py-2"
+      label={t.plural("install.journal.lines", lines.length)}
+      name="journal"
+    >
+      <pre className="-mx-4 mt-1 max-h-72 overflow-auto border-line border-t bg-sunken px-4 py-3 font-data text-[12px] text-ink-3 leading-relaxed">
         {lines.join("\n")}
       </pre>
-    </details>
+    </Details>
   );
 }

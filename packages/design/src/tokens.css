@@ -57,6 +57,7 @@
   --motion-exit: 160ms cubic-bezier(0.4, 0, 1, 1);
   --motion-stagger: 40ms;
   --motion-breathe: 1.6s ease-in-out infinite;
+  --motion-spinner: 0.9s linear infinite;
 
   color-scheme: light;
 }

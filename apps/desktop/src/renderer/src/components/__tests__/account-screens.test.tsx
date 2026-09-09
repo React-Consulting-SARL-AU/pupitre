@@ -109,7 +109,7 @@ describe("le droit d'usage", () => {
       new Date().toISOString()
     );
 
-    expect(text(html)).toContain("sept jours sans la console");
+    expect(text(html)).toContain("sept jours sans connexion");
     expect(html).toContain('data-usage="granted"');
   });
 
@@ -280,8 +280,8 @@ describe("l'écran de compte", () => {
       },
     });
 
-    expect(text(html)).toContain("Droit d'usage expiré");
-    expect(text(html)).toContain("Dernière réponse de la console");
+    expect(text(html)).toContain("Vérification expirée");
+    expect(text(html)).toContain("Dernière vérification");
     expect(text(html)).toContain(
       `Reconnecte cet appareil, ou vérifie l'état du compte : ${CONSOLE_URL}`
     );
@@ -341,7 +341,7 @@ describe("l'enrôlement", () => {
       />
     );
 
-    expect(text(html)).toContain("Serveur enrôlé");
+    expect(text(html)).toContain("Serveur déclaré");
     expect(text(html)).toContain("srv-platform-1");
     expect(text(html)).toContain("pupitred 1.4.0");
   });

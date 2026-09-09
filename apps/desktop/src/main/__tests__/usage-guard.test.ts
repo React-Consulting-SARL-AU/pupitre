@@ -136,7 +136,6 @@ describe("ce que le droit d'usage laisse passer", () => {
           "shots.url",
           "snapshot",
           "status",
-          "secrets.status",
           "tunnel.status",
         ] as CommandName[]
       ).sort()

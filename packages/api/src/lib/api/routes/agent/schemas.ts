@@ -22,7 +22,6 @@ export const agentStateSchema = t.Object(
     target_version: t.Nullable(t.String()),
     minimum_version: t.Nullable(t.String()),
     hostname: t.String(),
-    module_params: t.Record(t.String(), t.Unknown()),
   },
   { $id: "AgentState" }
 )

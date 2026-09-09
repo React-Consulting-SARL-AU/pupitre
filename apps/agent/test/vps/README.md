@@ -55,6 +55,25 @@ Host 192.168.1.42
 
 Depuis l'app desktop : ajoute le serveur avec l'hôte `192.168.1.42` et le port `2222`.
 
+## La même machine sur le MacBook
+
+Rien n'oblige à passer par le PC : Docker Desktop ou OrbStack sur un Mac Apple silicon lance le même `compose.yaml`, en `arm64`.
+
+```bash
+cd apps/agent/test/vps
+cp ~/.ssh/id_ed25519.pub authorized_keys
+docker compose up -d --build
+
+export VPS=root@127.0.0.1
+bun --cwd=apps/agent run build:dev:linux-arm64
+ssh -p 2222 $VPS 'install -m 755 /dev/stdin /usr/local/bin/pupitred' < apps/agent/dist/dev/pupitred-linux-arm64
+ssh -p 2222 $VPS pupitred install --only=runtime.node,ai.claude
+```
+
+Ce que le conteneur ne reproduit pas reste le même qu'en bas de cette page, à quoi s'ajoute l'architecture : un Mac teste `arm64`, jamais `amd64`. Un module qui télécharge un binaire par architecture — mise, Claude Code, les éditeurs — n'est éprouvé que pour l'une des deux. La boucle courte se joue ici ; le VPS de staging, `amd64`, tranche avant une release.
+
+Remise à zéro comme sur le PC : `docker compose down -v && docker compose up -d --build`.
+
 ## La sonde doit voir une machine vierge
 
 Deux détails la feraient conclure « serveur déjà utilisé », et aucun ne dit quoi que ce soit du vrai serveur :

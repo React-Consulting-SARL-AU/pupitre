@@ -1,0 +1,44 @@
+---
+title: Signing in
+description: How you open the console and the app, passkeys, the second factor, and what to do when a device is lost.
+locale: en
+section: account
+sectionOrder: 3
+order: 1
+---
+
+There is no password to choose and none to lose. An account is created the first time you sign in.
+
+## The console
+
+Four ways in, and you can mix them: a link sent to your email address, GitHub, Google, or a passkey. The sign-in page only offers the social providers the platform actually has configured, so what you see there is what works.
+
+## Passkeys
+
+A passkey is Touch ID, Windows Hello or a hardware key. Register one from **Settings**, name it after the machine it lives on, and it opens the session on its own — no link to wait for. One registered key is already two factors: the device, and you.
+
+Registering asks for a recent session; if yours is old the console says so and sends you round again. Revoking a key takes that one machine out and leaves the others, along with the link and the social providers.
+
+## The second factor
+
+Turn on the second factor from **Settings** and the console shows a QR code for your authentication app, plus ten recovery codes. Keep those somewhere that is not the phone: each works once, and they are what stands in for the app if you lose it.
+
+Once it is on, a code is asked after the email link and after GitHub or Google. Never after a passkey, which is already a second factor. Turning the second factor off erases the recovery codes.
+
+## The desktop app
+
+The app does not ask for your credentials. It shows a code, you open the console, you type that code and confirm that it matches — then the app takes over a few seconds later. That is the whole pairing: the app ends up with its own session, and your password manager never comes near it.
+
+## Changing your address
+
+From **Settings**. The confirmation link goes to the address you use today, never to the new one, and the account moves only once that link is opened. A session someone else got hold of therefore cannot walk your account away.
+
+## When a device is lost
+
+Three things are separate, and you can act on each without touching the others.
+
+A **laptop** holds an SSH key. Revoke that device from the console and its key stops being pushed to your servers; the machines you still work from keep working.
+
+A **passkey** is revoked from the settings page, one key at a time.
+
+A **phone** with the authentication app on it is replaced by a recovery code: sign in with one, turn the second factor off, then turn it on again against the new phone.

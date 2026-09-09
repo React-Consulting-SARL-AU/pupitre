@@ -8,34 +8,35 @@ export const refusals = {
   en: {
     "refusal.project.command.unknown": "Unknown project command: {cmd}.",
     "refusal.module.undeclared":
-      "This server's catalogue does not declare {module}.",
+      "This server does not offer the service {module}.",
     "refusal.harden.account":
-      "The server is hardened, but the app could not move its connection to {user}.",
+      "The server is secured, but the app could not reconnect with the account {user}.",
     "refusal.binary.arch":
       "This app carries no agent for the {arch} architecture.",
     "refusal.binary.checksum":
-      "The embedded binary {file} does not match its checksum.",
+      "The agent embedded in the app ({file}) is damaged.",
     "refusal.binary.timeout":
-      "Sending the agent did not finish within {seconds} s.",
+      "The agent did not finish reaching the server within {seconds} s.",
     "refusal.binary.send":
       "The agent could not be sent to the server: {detail}",
     "refusal.binary.install":
       "The agent could not be installed on the server: {detail}",
-    "refusal.probe.timeout": "The probe did not answer within {seconds} s.",
-    "refusal.probe.failed": "The probe could not run on the server.",
+    "refusal.probe.timeout":
+      "The server did not answer the inspection within {seconds} s.",
+    "refusal.probe.failed": "The inspection could not run on the server.",
     "refusal.probe.failed.detail":
-      "The probe could not run on the server: {detail}",
+      "The inspection could not run on the server: {detail}",
     "refusal.command.timeout":
-      "Command {cmd} did not answer within {seconds} s.",
+      "The server did not answer within {seconds} s ({cmd}).",
     "refusal.platform.silent": "The console did not answer: {reason}.",
     "refusal.platform.refused": "The console refused the request ({status}).",
     "refusal.release.unpublished":
-      "The console has no downloadable binary for {version}.",
+      "The console has no downloadable agent for {version}.",
     "refusal.reach.refused": "Nothing listens on port {port} of {host}.",
     "refusal.reach.unreachable": "{host} is not reachable from this computer.",
     "refusal.reach.timeout": "{host}:{port} did not answer in time.",
     "refusal.reach.wrongPort":
-      "{host}:{port} answers, but it is not an SSH server.",
+      "{host}:{port} answers, but it is not an SSH access.",
     "refusal.project.unknown":
       "This server has declared no project named {name}.",
     "refusal.project.action.unknown": "Unknown action: {action}.",
@@ -48,32 +49,27 @@ export const refusals = {
       "Reconnect this computer, or check the account's state: {console}",
     "refusal.account.required.fix":
       "Sign in from the settings, or open the console: {console}",
-    "refusal.binary.write.fix":
-      "Check that the account in use may write to {path}, then run the installation again.",
-    "refusal.enroll.consumed": "This enrolment token has already been used.",
     "refusal.agent.dropped": "The connection to the server was interrupted.",
     "refusal.agent.dropped.detail":
       "The connection to the server was interrupted: {detail}",
     "refusal.agent.dropped.fix":
       "Check that the server answers, then run the command again.",
-    "refusal.command.timeout.fix":
-      "Run the command again, or open a diagnosis with doctor.",
+    "refusal.command.timeout.fix": "Run the command again, or run a diagnosis.",
     "refusal.platform.silent.local": "The console did not answer: {reason}.",
     "refusal.platform.silent.local.fix":
       "No console answers on {baseUrl}: run `bun run dev:web`.",
     "refusal.platform.silent.fix":
-      "Check your connection. Pupitre stays usable for seven days without the console.",
+      "Check your connection. Pupitre stays usable for seven days offline.",
     "refusal.platform.refused.fix":
       "Sign in again from the settings, then try again.",
     "refusal.account.signedOut": "No account is signed in on this computer.",
     "refusal.account.signedOut.fix":
       "Sign in from the account screen, then try again.",
     "refusal.account.stale":
-      "The console has not answered for more than seven days: the usage right has expired.",
-    "refusal.enrollment.none":
-      "The console handed no enrolment token for this server.",
+      "The console has not answered for more than seven days: the subscription has to be checked again.",
+    "refusal.enrollment.none": "The console handed no token for this server.",
     "refusal.binary.mismatch":
-      "The server does not have the same checksum as the binary that was sent.",
+      "The agent the server received does not match the one sent.",
     "refusal.setup.host": "« {host} » does not look like a server address.",
     "refusal.setup.host.fix":
       "An IP address or a host name, with no space and no punctuation — « 203.0.113.10 » or « vps.example.net ».",
@@ -166,16 +162,13 @@ export const refusals = {
       "The console has not pushed your key on this server yet.",
     "refusal.fleet.pending.fix":
       "Leave the window open: the app tries again on its own.",
-    "refusal.module.none": "This module has no name.",
+    "refusal.module.none": "This service has no name.",
     "refusal.module.none.fix": "Pick a service in the list.",
     "refusal.module.notDatabase": "{module} is not a database.",
-    "refusal.module.notDatabase.fix":
-      "This action exists for the modules of the « databases » category only.",
+    "refusal.module.notDatabase.fix": "This action exists for databases only.",
     "refusal.params.invalid": "Invalid parameters for {cmd}.",
-    "refusal.bridge.credential":
-      "{cmd} answers with a credential and does not cross this bridge.",
-    "refusal.bridge.secret":
-      "{cmd} carries a secret and does not cross this bridge.",
+    "refusal.bridge.credential": "{cmd} cannot be called from here.",
+    "refusal.bridge.secret": "{cmd} cannot be called from here.",
     "refusal.agent.project": "An agent opens on a project.",
     "refusal.agent.project.fix": "Open the agent from a project's page.",
     "refusal.channel.closed": "The connection to the server was closed.",
@@ -203,33 +196,21 @@ export const refusals = {
       "No zone of the connected account carries {domain}.",
     "refusal.cloudflare.zone.unknown.fix":
       "Pick a domain under one of the account's zones, or add that zone to Cloudflare.",
-    "refusal.cloudflare.zone.none": "This zone is incomplete.",
-    "refusal.cloudflare.zone.none.fix":
-      "Give the account, the zone and the domain the projects are published under.",
-    "refusal.project.name.none": "This project has no name.",
-    "refusal.project.name.none.fix": "Name the project before publishing it.",
     "refusal.server.unknown": "This server is no longer in the list.",
     "refusal.server.unknown.fix": "Pick a server in the settings.",
-    "refusal.modules.none": "No module to install.",
-    "refusal.modules.none.fix": "Pick at least one module in the catalogue.",
-    "refusal.modules.unreadable": "The module list cannot be read.",
+    "refusal.modules.none": "No service to install.",
+    "refusal.modules.none.fix": "Pick at least one service.",
+    "refusal.modules.unreadable": "The list of services cannot be read.",
     "refusal.modules.unreadable.fix":
-      "Reload the catalogue, then make your selection again.",
-    "refusal.modules.stale.fix":
-      "Reload the list of services, then run the update again.",
-    "refusal.selection.unreadable": "The module list cannot be read.",
+      "Reload the list of services, then make your selection again.",
+    "refusal.selection.unreadable": "The list of services cannot be read.",
     "refusal.selection.unreadable.fix":
-      "Go back to the catalogue and make your selection again.",
-    "refusal.repair.failed.fix":
-      "Run the repair again, or reconnect this computer from the settings.",
+      "Go back to the services and make your selection again.",
     "refusal.command.unknown": "Unknown command: {cmd}.",
     "refusal.harden.account.fix":
       "Open the settings, fix this server's account, then sign in again.",
-    "refusal.account.none": "No account is signed in on this computer.",
-    "refusal.account.none.fix":
-      "Sign in from the account screen, then try again.",
     "refusal.account.suspended":
-      "This organization's usage right is suspended.",
+      "This organization's subscription is suspended.",
     "refusal.account.required":
       "Installing a server asks for a Pupitre account.",
     "refusal.signIn.denied": "The request was denied in the browser.",
@@ -244,38 +225,23 @@ export const refusals = {
       "This computer is signed in to no Pupitre account.",
     "refusal.device.none.console.fix":
       "Sign in from the settings, or open the console: {console}",
-    "refusal.probe.unreachable.fix":
-      "Check that the server answers over SSH, then run the inspection again.",
-    "refusal.probe.unreadable": "The probe returned no readable report.",
+    "refusal.probe.unreadable":
+      "The server sent back no readable inspection report.",
     "refusal.probe.unreadable.fix":
-      "Run the inspection again; if the server answers with a banner, take it out of the connection profile.",
-    "refusal.probe.slow.fix":
-      "Run the inspection again, or check the latency of the connection to the server.",
+      "Run the inspection again; if the server prints a welcome message on connection, remove it.",
     "refusal.binary.missing.fix":
       "Build the agent with bun --cwd=apps/agent run build, then build the app again.",
-    "refusal.binary.stale.fix":
-      "Build the app again: bun --cwd=apps/desktop run build.",
-    "refusal.binary.slow.fix":
-      "Check the throughput of the connection to the server, then run the installation again.",
-    "refusal.binary.unreachable.fix":
-      "Check that the server answers over SSH, then run the installation again.",
     "refusal.binary.mismatch.fix":
       "Run the installation again; if the gap stays, check the server's disk space.",
     "refusal.release.none": "No agent version is published for this machine.",
     "refusal.release.none.fix":
       "Publish an agent version from the console before installing a server.",
     "refusal.binary.missing": "This app carries no agent binary.",
-    "refusal.agent.unreachable.fix":
-      "Check that the server answers, then run the command again.",
-    "refusal.agent.retry.fix":
-      "Run the command again, or open a diagnosis with doctor.",
     "refusal.server.added": "This server could not be added.",
     "refusal.server.added.fix":
       "Try again; if it happens once more, generate the key rather than importing it.",
     "refusal.terminal.unknown": "This terminal has no identifier.",
     "refusal.terminal.unknown.fix": "Close this tab and open another one.",
-    "refusal.session.expired.fix":
-      "Sign in again from the settings, then try again.",
     "refusal.release.unpublished.fix":
       "Publish an agent version, or stay on a development build.",
     "refusal.port.invalid": "The port has to be a number between 1 and 65535.",
@@ -306,43 +272,40 @@ export const refusals = {
     "refusal.secret.value.invalid.fix": "Give a value on a single line.",
     "refusal.secrets.stale.fix":
       "Reload the list of secrets, then start again.",
-    "refusal.secret.screen.fix":
-      "Use the Services screen, which keeps the value in the main process.",
-    "refusal.install.screen.fix":
-      "Use the installation screen, which sends the secret from the main process.",
   },
   fr: {
     "refusal.project.command.unknown": "Commande de projet inconnue : {cmd}.",
     "refusal.module.undeclared":
-      "Le catalogue de ce serveur ne déclare pas {module}.",
+      "Ce serveur ne propose pas le service {module}.",
     "refusal.harden.account":
-      "Le serveur est durci, mais l'app n'a pas pu passer sa connexion sur {user}.",
+      "Le serveur est sécurisé, mais l'app n'a pas pu se reconnecter avec le compte {user}.",
     "refusal.binary.arch":
       "Cette app ne porte pas d'agent pour l'architecture {arch}.",
     "refusal.binary.checksum":
-      "Le binaire {file} embarqué ne correspond pas à sa somme de contrôle.",
+      "L'agent embarqué dans l'app ({file}) est abîmé.",
     "refusal.binary.timeout":
-      "L'envoi de l'agent n'a pas abouti en {seconds} s.",
+      "L'agent n'a pas fini d'arriver sur le serveur en {seconds} s.",
     "refusal.binary.send":
       "L'agent n'a pas pu être envoyé sur le serveur : {detail}",
     "refusal.binary.install":
       "L'agent n'a pas pu être installé sur le serveur : {detail}",
-    "refusal.probe.timeout": "La sonde n'a pas répondu en {seconds} s.",
-    "refusal.probe.failed": "La sonde n'a pas pu s'exécuter sur le serveur.",
+    "refusal.probe.timeout":
+      "Le serveur n'a pas répondu à l'inspection en {seconds} s.",
+    "refusal.probe.failed": "L'inspection n'a pas pu se faire sur le serveur.",
     "refusal.probe.failed.detail":
-      "La sonde n'a pas pu s'exécuter sur le serveur : {detail}",
+      "L'inspection n'a pas pu se faire sur le serveur : {detail}",
     "refusal.command.timeout":
-      "La commande {cmd} n'a pas répondu en {seconds} s.",
+      "Le serveur n'a pas répondu en {seconds} s ({cmd}).",
     "refusal.platform.silent": "La console n'a pas répondu : {reason}.",
     "refusal.platform.refused": "La console a refusé la demande ({status}).",
     "refusal.release.unpublished":
-      "La console n'a pas de binaire téléchargeable pour {version}.",
+      "La console n'a pas d'agent téléchargeable pour {version}.",
     "refusal.reach.refused": "Rien n'écoute sur le port {port} de {host}.",
     "refusal.reach.unreachable":
       "{host} n'est pas joignable depuis cet ordinateur.",
     "refusal.reach.timeout": "{host}:{port} n'a pas répondu à temps.",
     "refusal.reach.wrongPort":
-      "{host}:{port} répond, mais ce n'est pas un serveur SSH.",
+      "{host}:{port} répond, mais ce n'est pas un accès SSH.",
     "refusal.project.unknown":
       "Ce serveur n'a pas déclaré de projet nommé {name}.",
     "refusal.project.action.unknown": "Action inconnue : {action}.",
@@ -350,38 +313,35 @@ export const refusals = {
     "refusal.secret.unknown": "Clé invalide : {key}.",
     "refusal.secrets.stale": "Ce serveur n'a pas déclaré de clé nommée {key}.",
     "refusal.account.suspended.fix":
-      "Régularise l'abonnement dans la console : {console}",
+      "Régularisez l'abonnement dans la console : {console}",
     "refusal.account.stale.fix":
-      "Reconnecte cet appareil, ou vérifie l'état du compte : {console}",
+      "Reconnectez cet appareil, ou vérifiez l'état du compte : {console}",
     "refusal.account.required.fix":
-      "Connecte-toi depuis les réglages, ou ouvre la console : {console}",
-    "refusal.binary.write.fix":
-      "Vérifie que le compte utilisé peut écrire dans {path}, puis relance l'installation.",
-    "refusal.enroll.consumed": "Ce jeton d'enrôlement a déjà servi.",
+      "Connectez-vous depuis les réglages, ou ouvrez la console : {console}",
     "refusal.agent.dropped": "La connexion au serveur s'est interrompue.",
     "refusal.agent.dropped.detail":
       "La connexion au serveur s'est interrompue : {detail}",
     "refusal.agent.dropped.fix":
-      "Vérifie que le serveur répond, puis relance la commande.",
+      "Vérifiez que le serveur répond, puis relancez la commande.",
     "refusal.command.timeout.fix":
-      "Relance la commande, ou ouvre un diagnostic avec doctor.",
+      "Relancez la commande, ou lancez un diagnostic.",
     "refusal.platform.silent.local": "La console n'a pas répondu : {reason}.",
     "refusal.platform.silent.local.fix":
       "Aucune console ne répond sur {baseUrl} : lance `bun run dev:web`.",
     "refusal.platform.silent.fix":
-      "Vérifie ta connexion. Pupitre reste utilisable sept jours sans la console.",
+      "Vérifiez votre connexion. Pupitre reste utilisable sept jours sans connexion.",
     "refusal.platform.refused.fix":
-      "Reconnecte-toi depuis les réglages, puis réessaie.",
+      "Reconnectez-vous depuis les réglages, puis réessayez.",
     "refusal.account.signedOut":
       "Aucun compte n'est connecté sur cet appareil.",
     "refusal.account.signedOut.fix":
-      "Connecte-toi depuis l'écran de compte, puis réessaie.",
+      "Connectez-vous depuis l'écran de compte, puis réessayez.",
     "refusal.account.stale":
-      "La console n'a pas répondu depuis plus de sept jours : le droit d'usage a expiré.",
+      "La console n'a pas répondu depuis plus de sept jours : l'abonnement doit être vérifié à nouveau.",
     "refusal.enrollment.none":
-      "La console n'a remis aucun jeton d'enrôlement pour ce serveur.",
+      "La console n'a remis aucun jeton pour ce serveur.",
     "refusal.binary.mismatch":
-      "Le serveur n'a pas la même somme de contrôle que le binaire envoyé.",
+      "L'agent reçu par le serveur ne correspond pas à celui envoyé.",
     "refusal.setup.host":
       "« {host} » ne ressemble pas à une adresse de serveur.",
     "refusal.setup.host.fix":
@@ -454,142 +414,114 @@ export const refusals = {
     "refusal.release.checksum":
       "Le binaire téléchargé ne correspond pas à la somme annoncée pour {version}.",
     "refusal.release.checksum.fix":
-      "Relance l'installation : la console a peut-être servi un fichier tronqué.",
+      "Relancez l'installation : la console a peut-être servi un fichier tronqué.",
     "refusal.release.unsigned":
       "La console n'a pas signé la version {version} de l'agent.",
     "refusal.release.unsigned.fix":
-      "Publie une version signée de l'agent avant de l'installer sur un serveur.",
+      "Publiez une version signée de l'agent avant de l'installer sur un serveur.",
     "refusal.release.key":
       "Cette app ne porte pas la clé publique qui valide les binaires de l'agent.",
     "refusal.release.key.fix":
-      "Reconstruis l'app avec la clé de signature des releases.",
+      "Reconstruisez l'app avec la clé de signature des releases.",
     "refusal.release.signature":
       "La signature de la version {version} de l'agent est invalide.",
     "refusal.release.signature.fix":
-      "N'installe pas ce binaire : signale-le, puis réessaie depuis la console.",
+      "N'installez pas ce binaire : signalez-le, puis réessayez depuis la console.",
     "refusal.fleet.unknown.fix":
-      "Recharge les serveurs de ton organisation depuis les réglages.",
-    "refusal.fleet.withdrawn": "Ce serveur ne t'est plus attribué.",
+      "Rechargez les serveurs de votre organisation depuis les réglages.",
+    "refusal.fleet.withdrawn": "Ce serveur ne vous est plus attribué.",
     "refusal.fleet.withdrawn.fix":
-      "Demande à un administrateur de ton organisation de te l'attribuer à nouveau.",
+      "Demandez à un administrateur de votre organisation de vous l'attribuer à nouveau.",
     "refusal.fleet.pending":
-      "La console n'a pas encore posé ta clé sur ce serveur.",
+      "La console n'a pas encore posé votre clé sur ce serveur.",
     "refusal.fleet.pending.fix":
-      "Laisse la fenêtre ouverte : l'app réessaie toute seule.",
-    "refusal.module.none": "Ce module n'a pas de nom.",
-    "refusal.module.none.fix": "Choisis un service dans la liste.",
+      "Laissez la fenêtre ouverte : l'app réessayez toute seule.",
+    "refusal.module.none": "Ce service n'a pas de nom.",
+    "refusal.module.none.fix": "Choisissez un service dans la liste.",
     "refusal.module.notDatabase": "{module} n'est pas une base de données.",
     "refusal.module.notDatabase.fix":
-      "Cette action n'existe que pour les modules de la catégorie « bases de données ».",
+      "Cette action n'existe que pour les bases de données.",
     "refusal.params.invalid": "Paramètres invalides pour {cmd}.",
-    "refusal.bridge.credential":
-      "{cmd} répond avec un identifiant et ne passe pas par ce pont.",
-    "refusal.bridge.secret":
-      "{cmd} porte un secret et ne passe pas par ce pont.",
+    "refusal.bridge.credential": "{cmd} ne peut pas être appelé d'ici.",
+    "refusal.bridge.secret": "{cmd} ne peut pas être appelé d'ici.",
     "refusal.agent.project": "Un agent s'ouvre sur un projet.",
-    "refusal.agent.project.fix": "Ouvre l'agent depuis la page d'un projet.",
+    "refusal.agent.project.fix": "Ouvrez l'agent depuis la page d'un projet.",
     "refusal.channel.closed": "La connexion au serveur a été fermée.",
-    "refusal.channel.closed.fix": "Rouvre le serveur, ou relance la commande.",
+    "refusal.channel.closed.fix":
+      "Rouvrez le serveur, ou relancez la commande.",
     "refusal.port.range": "Ce port n'existe pas.",
     "refusal.port.range.fix":
       "Un port va de 1 à 65535 ; celui du service est dans sa fiche.",
     "refusal.terminal.kind": "Genre de terminal inconnu : {kind}.",
     "refusal.terminal.kind.fix":
-      "Ouvre un terminal, ou l'onglet d'un agent installé.",
+      "Ouvrez un terminal, ou l'onglet d'un agent installé.",
     "refusal.cloudflare.absent": "Aucun compte Cloudflare n'est connecté.",
     "refusal.cloudflare.absent.fix":
-      "Connecte ton compte Cloudflare dans les réglages avant d'exposer des projets.",
+      "Connectez votre compte Cloudflare dans les réglages avant d'exposer des projets.",
     "refusal.cloudflare.call": "Cloudflare a refusé : {reason}.",
     "refusal.cloudflare.call.fix":
-      "Vérifie que le jeton porte toujours les droits Tunnel et DNS de la zone.",
+      "Vérifiez que le jeton porte toujours les droits Tunnel et DNS de la zone.",
     "refusal.cloudflare.token.none": "Ce jeton est vide.",
     "refusal.cloudflare.token.none.fix":
-      "Colle un jeton de compte avec les droits Cloudflare Tunnel et DNS de la zone.",
+      "Collez un jeton de compte avec les droits Cloudflare Tunnel et DNS de la zone.",
     "refusal.cloudflare.account.none": "Ce jeton n'ouvre aucun compte.",
     "refusal.cloudflare.account.none.fix":
-      "Crée le jeton sur le compte Cloudflare qui porte ta zone, puis redonne-le.",
+      "Créez le jeton sur le compte Cloudflare qui porte votre zone, puis redonnez-le.",
     "refusal.cloudflare.zone.unknown":
       "Aucune zone du compte connecté ne porte {domain}.",
     "refusal.cloudflare.zone.unknown.fix":
-      "Choisis un domaine sous une des zones du compte, ou ajoute cette zone à Cloudflare.",
-    "refusal.cloudflare.zone.none": "Cette zone est incomplète.",
-    "refusal.cloudflare.zone.none.fix":
-      "Donne le compte, la zone et le domaine sous lequel les projets sont publiés.",
-    "refusal.project.name.none": "Ce projet n'a pas de nom.",
-    "refusal.project.name.none.fix": "Nomme le projet avant de le publier.",
+      "Choisissez un domaine sous une des zones du compte, ou ajoutez cette zone à Cloudflare.",
     "refusal.server.unknown": "Ce serveur n'est plus dans la liste.",
-    "refusal.server.unknown.fix": "Choisis un serveur dans les réglages.",
-    "refusal.modules.none": "Aucun module à installer.",
-    "refusal.modules.none.fix": "Choisis au moins un module dans le catalogue.",
-    "refusal.modules.unreadable": "La liste des modules est illisible.",
+    "refusal.server.unknown.fix": "Choisissez un serveur dans les réglages.",
+    "refusal.modules.none": "Aucun service à installer.",
+    "refusal.modules.none.fix": "Choisissez au moins un service.",
+    "refusal.modules.unreadable": "La liste des services est illisible.",
     "refusal.modules.unreadable.fix":
-      "Recharge le catalogue, puis refais ta sélection.",
-    "refusal.modules.stale.fix":
-      "Recharge la liste des services, puis relance la mise à jour.",
-    "refusal.selection.unreadable": "La liste des modules est illisible.",
+      "Rechargez la liste des services, puis refaites votre sélection.",
+    "refusal.selection.unreadable": "La liste des services est illisible.",
     "refusal.selection.unreadable.fix":
-      "Reviens au catalogue et refais ta sélection.",
-    "refusal.repair.failed.fix":
-      "Relance la réparation, ou reconnecte cet appareil depuis les réglages.",
+      "Revenez aux services et refaites votre sélection.",
     "refusal.command.unknown": "Commande inconnue : {cmd}.",
     "refusal.harden.account.fix":
-      "Ouvre les réglages et corrige le compte de ce serveur, puis reconnecte-toi.",
-    "refusal.account.none": "Aucun compte n'est connecté sur cet appareil.",
-    "refusal.account.none.fix":
-      "Connecte-toi depuis l'écran de compte, puis réessaie.",
+      "Ouvrez les réglages et corrigez le compte de ce serveur, puis reconnectezz-vous.",
     "refusal.account.suspended":
-      "Le droit d'usage de cette organisation est suspendu.",
+      "L'abonnement de cette organisation est suspendu.",
     "refusal.account.required":
       "Installer un serveur demande un compte Pupitre.",
     "refusal.signIn.denied": "La demande a été refusée dans le navigateur.",
     "refusal.signIn.denied.fix":
-      "Relance la connexion et approuve le code affiché.",
+      "Relancez la connexion et approuvez le code affiché.",
     "refusal.signIn.expired": "Le code affiché a expiré avant d'être approuvé.",
     "refusal.signIn.expired.fix":
-      "Relance la connexion pour obtenir un nouveau code.",
+      "Relancez la connexion pour obtenir un nouveau code.",
     "refusal.device.none":
       "Cet appareil n'est connecté à aucun compte Pupitre.",
     "refusal.device.none.fix":
-      "Connecte-toi depuis les réglages, puis relance la réparation.",
+      "Connectez-vous depuis les réglages, puis relancez la réparation.",
     "refusal.device.none.console":
       "Cet appareil n'est connecté à aucun compte Pupitre.",
     "refusal.device.none.console.fix":
-      "Connecte-toi depuis les réglages, ou ouvre la console : {console}",
-    "refusal.probe.unreachable.fix":
-      "Vérifie que le serveur répond en SSH, puis relance l'inspection.",
-    "refusal.probe.unreadable": "La sonde n'a pas renvoyé de rapport lisible.",
+      "Connectez-vous depuis les réglages, ou ouvrez la console : {console}",
+    "refusal.probe.unreadable":
+      "Le serveur n'a pas renvoyé de rapport d'inspection lisible.",
     "refusal.probe.unreadable.fix":
-      "Relance l'inspection ; si le serveur répond avec une bannière, retire-la du profil de connexion.",
-    "refusal.probe.slow.fix":
-      "Relance l'inspection, ou vérifie la latence de la connexion au serveur.",
+      "Relancez l'inspection ; si le serveur affiche un message d'accueil à la connexion, retirez-le.",
     "refusal.binary.missing.fix":
-      "Construis l'agent avec bun --cwd=apps/agent run build, puis reconstruis l'app.",
-    "refusal.binary.stale.fix":
-      "Reconstruis l'app : bun --cwd=apps/desktop run build.",
-    "refusal.binary.slow.fix":
-      "Vérifie le débit de la connexion au serveur, puis relance l'installation.",
-    "refusal.binary.unreachable.fix":
-      "Vérifie que le serveur répond en SSH, puis relance l'installation.",
+      "Construisez l'agent avec bun --cwd=apps/agent run build, puis reconstruis l'app.",
     "refusal.binary.mismatch.fix":
-      "Relance l'installation ; si l'écart persiste, vérifie l'espace disque du serveur.",
+      "Relancez l'installation ; si l'écart persiste, vérifiez l'espace disque du serveur.",
     "refusal.release.none":
       "Aucune version de l'agent n'est publiée pour cette machine.",
     "refusal.release.none.fix":
-      "Publie une version de l'agent depuis la console avant d'installer un serveur.",
+      "Publiez une version de l'agent depuis la console avant d'installer un serveur.",
     "refusal.binary.missing": "Cette app ne porte pas de binaire d'agent.",
-    "refusal.agent.unreachable.fix":
-      "Vérifie que le serveur répond, puis relance la commande.",
-    "refusal.agent.retry.fix":
-      "Relance la commande, ou ouvre un diagnostic avec doctor.",
     "refusal.server.added": "Ce serveur n'a pas pu être ajouté.",
     "refusal.server.added.fix":
       "Réessayez ; si cela recommence, générez la clé plutôt que de l'importer.",
     "refusal.terminal.unknown": "Ce terminal n'a pas d'identifiant.",
-    "refusal.terminal.unknown.fix": "Ferme cet onglet et ouvre-en un autre.",
-    "refusal.session.expired.fix":
-      "Reconnecte-toi depuis les réglages, puis réessaie.",
+    "refusal.terminal.unknown.fix": "Fermez cet onglet et ouvre-en un autre.",
     "refusal.release.unpublished.fix":
-      "Publie une version de l'agent, ou reste sur un build de développement.",
+      "Publiez une version de l'agent, ou restez sur un build de développement.",
     "refusal.port.invalid": "Le port doit être un nombre entre 1 et 65535.",
     "refusal.port.invalid.fix": "SSH écoute en général sur le port 22.",
     "refusal.reach.refused.fix":
@@ -604,25 +536,22 @@ export const refusals = {
     "refusal.hostKey.changed.fix":
       "Si vous venez de réinstaller ce serveur, remplacez l'empreinte épinglée. Sinon, ne vous connectez pas : vérifiez la machine avant tout.",
     "refusal.project.unreadable": "La description du projet est incomplète.",
-    "refusal.project.unreadable.fix": "Reprends le formulaire.",
+    "refusal.project.unreadable.fix": "Reprenez le formulaire.",
     "refusal.project.unknown.fix":
-      "Recharge la liste des projets, puis reprends.",
+      "Rechargez la liste des projets, puis reprenez.",
     "refusal.project.action.unknown.fix":
-      "Choisis démarrer, arrêter ou redémarrer.",
+      "Choisissez démarrer, arrêter ou redémarrer.",
     "refusal.file.none": "Aucun fichier n'a été désigné.",
-    "refusal.file.none.fix": "Choisis un fichier de l'arbre de travail.",
+    "refusal.file.none.fix": "Choisissez un fichier de l'arbre de travail.",
     "refusal.branch.unknown.fix":
-      "Choisis une branche dans la liste que le serveur a donnée.",
+      "Choisissez une branche dans la liste que le serveur a donnée.",
     "refusal.secret.unknown.fix":
-      "Choisis une clé de la liste que le serveur a donnée.",
+      "Choisissez une clé de la liste que le serveur a donnée.",
     "refusal.secret.value.invalid":
       "La valeur est vide ou tient sur plusieurs lignes.",
-    "refusal.secret.value.invalid.fix": "Donne une valeur sur une seule ligne.",
+    "refusal.secret.value.invalid.fix":
+      "Donnez une valeur sur une seule ligne.",
     "refusal.secrets.stale.fix":
-      "Recharge la liste des secrets, puis reprends.",
-    "refusal.secret.screen.fix":
-      "Utilise l'écran Services, qui garde la valeur dans le processus principal.",
-    "refusal.install.screen.fix":
-      "Utilise l'écran d'installation, qui envoie le secret depuis le processus principal.",
+      "Rechargez la liste des secrets, puis reprenez.",
   },
 } as const;

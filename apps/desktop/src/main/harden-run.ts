@@ -41,7 +41,10 @@ export async function runHarden(
     serverId,
     "harden",
     { user: "dev" },
-    { onEvent: (event) => update({ event, kind: "event" }) }
+    {
+      onEvent: (event) => update({ event, kind: "event" }),
+      onQueued: () => update({ kind: "queued" }),
+    }
   );
 
   if (!answer.ok) {

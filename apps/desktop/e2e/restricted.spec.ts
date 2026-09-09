@@ -1,5 +1,6 @@
 import type { ElectronApplication } from "@playwright/test";
 import { expect, test } from "@playwright/test";
+import { assertAccessible } from "./harness/accessible";
 import { ANSWERS } from "./harness/fixtures";
 import { launchPupitre, type Running } from "./harness/launch";
 
@@ -149,6 +150,8 @@ test.describe("serveur en mode restreint", () => {
       page.getByRole("button", { name: "Tableau de bord" })
     ).toBeVisible();
     await expect(page.getByText("flymate-api").first()).toBeVisible();
+
+    await assertAccessible(page, "serveur/restreint");
   });
 
   // The account has nothing to get a token with: the platform would refuse,

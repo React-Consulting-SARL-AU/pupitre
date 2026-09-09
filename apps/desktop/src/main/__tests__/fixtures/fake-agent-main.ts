@@ -1,4 +1,5 @@
 import { readFileSync, writeSync } from "node:fs";
+import { RESTRICTED_COMMANDS as CONTRACT_RESTRICTED } from "@pupitre/shared/agent-protocol";
 
 /**
  * The fake agent: it replays a transcript, and nothing else.
@@ -28,22 +29,15 @@ const RESTRICTED = "restricted";
 const ENTITLEMENT_DIRECTIVE = "@entitlement ";
 
 /**
- * The seven commands a restricted server still answers.
+ * The commands a restricted server still answers.
  *
- * The list is `RestrictedCommands` of `apps/agent/internal/entitlement`, and it
- * has to stay its copy: `enroll` is in it because a re-enrolment is how a lost
- * or revoked token is repaired, and a transcript that forgot it would let the
- * app test a repair the real agent refuses.
+ * The list is `RESTRICTED_COMMANDS` of `@pupitre/shared/agent-protocol`, itself
+ * the copy of `RestrictedCommands` in `apps/agent/internal/entitlement`:
+ * `enroll` is in it because a re-enrolment is how a lost or revoked token is
+ * repaired, and a transcript that forgot one would let the app test a repair
+ * the real agent refuses.
  */
-const RESTRICTED_COMMANDS = new Set([
-  "hello",
-  "ping",
-  "snapshot",
-  "status",
-  "diag",
-  "agent.upgrade",
-  "enroll",
-]);
+const RESTRICTED_COMMANDS = new Set<string>(CONTRACT_RESTRICTED);
 
 /**
  * The host key this fake server declares. A transcript that enrols trades it

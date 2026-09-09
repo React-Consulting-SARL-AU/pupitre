@@ -9,6 +9,7 @@ import (
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys"
+	"pupitre.studio/agent/internal/sys/env"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/user"
 	"pupitre.studio/agent/internal/tmux"
@@ -79,6 +80,10 @@ func (r *Reader) Restart(target string) (contract.ProjectActionResult, error) {
 }
 
 func (r *Reader) start(project registry.Project) error {
+	return r.startWith(project, project.Cmd)
+}
+
+func (r *Reader) startWith(project registry.Project, command string) error {
 	ctx := r.ctx()
 	if tmux.Running(ctx, r.options.Tmux, project.Name) {
 		return nil
@@ -90,7 +95,7 @@ func (r *Reader) start(project registry.Project) error {
 			WithFix(i18n.T("state.project.sync.fix", project.Name))
 	}
 
-	return tmux.Start(ctx, r.options.Tmux, tmux.Job{Project: project.Name, Dir: dir, Cmd: project.Cmd})
+	return tmux.Start(ctx, r.options.Tmux, tmux.Job{Project: project.Name, Dir: dir, Cmd: command})
 }
 
 func (r *Reader) stop(project registry.Project) error {
@@ -274,4 +279,75 @@ func head(ctx sys.Context, root string) string {
 	}
 
 	return text
+}
+
+// The Gradle property the JVM rows read, and the one the shell stack passed before this binary existed.
+const debugFlag = "-PdebugPort="
+
+// A project restarted under its debug agent, on the port the machine declared for it.
+//
+// That port listens on the loopback alone: it comes back through the SSH
+// session like the database, and nothing new opens on the firewall. Which
+// project is debuggable is read from the machine rather than guessed from its
+// package manager — a gradle row is not necessarily a JVM server, and two of
+// them cannot share one port. project.restart puts it back on a normal start;
+// there is no second parameter for that.
+func (r *Reader) Debug(name string) (contract.ProjectDebug, error) {
+	project, known := r.registry().Get(name)
+	if !known {
+		return contract.ProjectDebug{}, registry.NotFound(name)
+	}
+
+	if project.IsService() {
+		return contract.ProjectDebug{}, protocol.NewError(contract.ErrorBadRequest, i18n.T("state.debug.service", name)).
+			WithFix(i18n.T("state.debug.service.fix"))
+	}
+
+	port, declared := r.debugPort(name)
+	if !declared {
+		return contract.ProjectDebug{}, protocol.NewError(contract.ErrorBadRequest, i18n.T("state.debug.undeclared", name)).
+			WithFix(i18n.T("state.debug.undeclared.fix", env.DebugPortsKey, name))
+	}
+
+	if err := r.stop(project); err != nil {
+		return contract.ProjectDebug{}, err
+	}
+
+	if err := r.startWith(project, project.Cmd+" "+debugFlag+strconv.Itoa(port)); err != nil {
+		return contract.ProjectDebug{}, err
+	}
+
+	current, err := r.one(name)
+	if err != nil {
+		return contract.ProjectDebug{}, err
+	}
+
+	return contract.ProjectDebug{State: current.State, Port: current.Port, DebugPort: port}, nil
+}
+
+// PUPITRE_DEBUG_PORTS, in the format the stack has always written: "project:port project:port".
+func (r *Reader) debugPort(name string) (int, bool) {
+	value, _, err := env.Get(r.ctx(), env.DebugPortsKey)
+	if err != nil {
+		return 0, false
+	}
+
+	// systemd reads this file as an EnvironmentFile, where a value holding
+	// spaces has to be quoted to stay one variable; env.Get hands back the line
+	// as written, quotes included.
+	for _, entry := range strings.Fields(strings.Trim(value, `"'`)) {
+		declared, raw, split := strings.Cut(entry, ":")
+		if !split || declared != name {
+			continue
+		}
+
+		port, convErr := strconv.Atoi(raw)
+		if convErr != nil || port < 1 || port > registry.LastPort {
+			return 0, false
+		}
+
+		return port, true
+	}
+
+	return 0, false
 }

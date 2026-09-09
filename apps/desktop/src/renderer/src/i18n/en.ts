@@ -6,14 +6,12 @@ import { common } from "./strings/common";
 import { config } from "./strings/config";
 import { connections } from "./strings/connections";
 import { dashboard } from "./strings/dashboard";
-import { firstProject } from "./strings/first-project";
 import { fleet } from "./strings/fleet";
 import { format } from "./strings/format";
 import { install } from "./strings/install";
 import { onboarding } from "./strings/onboarding";
 import { project } from "./strings/project";
 import { refusals } from "./strings/refusals";
-import { secrets } from "./strings/secrets";
 import { servers } from "./strings/servers";
 import { services } from "./strings/services";
 import { settings } from "./strings/settings";
@@ -36,12 +34,10 @@ export const en = {
   ...config.en,
   ...connections.en,
   ...dashboard.en,
-  ...firstProject.en,
   ...fleet.en,
   ...install.en,
   ...onboarding.en,
   ...project.en,
-  ...secrets.en,
   ...servers.en,
   ...services.en,
   ...settings.en,

@@ -87,7 +87,7 @@ export function ProjectOverview({
               />
             </div>
           ) : (
-            <span className="text-ink-4">
+            <span className="text-ink-3">
               {t("project.overview.notPublished")}
             </span>
           )}

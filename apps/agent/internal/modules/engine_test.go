@@ -116,9 +116,19 @@ func TestFailedModuleDoesNotStopTheNext(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	want := []string{"db.broken · install-package : E: Unable to locate package db-broken · rejeu : sudo pupitred install --only=db.broken"}
+	want := []string{"db.broken"}
 	if !reflect.DeepEqual(result.Failed, want) {
 		t.Fatalf("failed = %q, want %q", result.Failed, want)
+	}
+
+	var broken *contract.StepEvent
+	for i := range events {
+		if events[i].Module == "db.broken" && events[i].Status == contract.StepFail {
+			broken = &events[i]
+		}
+	}
+	if broken == nil || broken.Message != "E: Unable to locate package db-broken" || broken.Replay != "sudo pupitred install --only=db.broken" {
+		t.Fatalf("the fail event must carry the message and the replay: %+v", broken)
 	}
 
 	if fake.Packages["tool-demo"] == "" || fake.Units["demo"] != modtest.UnitActive {
@@ -348,8 +358,18 @@ func TestPanicAndBareErrorsAreFailuresOfTheModuleOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(result.Failed) != 1 || !strings.Contains(result.Failed[0], "ai.panic · write-config : panique") {
+	if !reflect.DeepEqual(result.Failed, []string{"ai.panic"}) {
 		t.Fatalf("failed = %v", result.Failed)
+	}
+
+	var panicked *contract.ReportStep
+	for _, step := range readReport(t, engine).Modules[0].Steps {
+		if step.Status == contract.StepFail {
+			panicked = &step
+		}
+	}
+	if panicked == nil || !strings.Contains(panicked.Message, "panique") {
+		t.Fatalf("the report must keep the panic: %+v", panicked)
 	}
 
 	if fake.Packages["tool-demo"] == "" {
@@ -365,12 +385,23 @@ func TestWarningsAreAccountedWithoutFailing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(result.Failed) != 0 || !reflect.DeepEqual(result.Warned, []string{"tool.noisy : port 8080 is already taken"}) {
+	if len(result.Failed) != 0 || !reflect.DeepEqual(result.Warned, []string{"tool.noisy"}) {
 		t.Fatalf("result = %+v", result)
 	}
 
-	if report := readReport(t, engine); report.Modules[0].Status != contract.ModuleWarn {
+	report := readReport(t, engine)
+	if report.Modules[0].Status != contract.ModuleWarn {
 		t.Fatalf("module status = %s, want warn", report.Modules[0].Status)
+	}
+
+	var said []string
+	for _, step := range report.Modules[0].Steps {
+		if step.Message != "" {
+			said = append(said, step.Message)
+		}
+	}
+	if !reflect.DeepEqual(said, []string{"port 8080 is already taken"}) {
+		t.Fatalf("the warning must ride on a step of the report: %v", said)
 	}
 }
 
@@ -473,8 +504,14 @@ func TestSecretsNeverLeak(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(result.Failed) != 1 || !strings.Contains(result.Failed[0], "[secret]") {
-		t.Fatalf("expected the failure to carry the redacted stderr: %v", result.Failed)
+	if !reflect.DeepEqual(result.Failed, []string{"tool.demo"}) {
+		t.Fatalf("failed = %v", result.Failed)
+	}
+
+	for _, event := range events {
+		if event.Status == contract.StepFail && (strings.Contains(event.Message, secret) || !strings.Contains(event.Message, "[secret]")) {
+			t.Fatalf("the fail event must carry the redacted stderr: %+v", event)
+		}
 	}
 
 	for _, path := range []string{engine.ReportPath, engine.LogPath} {

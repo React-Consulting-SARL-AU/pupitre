@@ -2,10 +2,7 @@ export const fleet = {
   en: {
     "fleet.heading": "Granted by your organization",
     "fleet.intro":
-      "The address, the account and the key come from the console. There is nothing to type and no key to carry: this computer is already registered as a device.",
-
-    "fleet.reading.title": "Reading your organization's servers",
-    "fleet.reading.detail": "Assignments, addresses and key readiness",
+      "The servers your organization assigned to you from the console. Nothing to type.",
 
     "fleet.empty.title": "No server granted to you",
     "fleet.empty.detail":
@@ -20,8 +17,6 @@ export const fleet = {
     "fleet.dismissed.other":
       "{count} granted servers are hidden on this computer.",
     "fleet.restore": "Put them back",
-
-    "fleet.row.address": "Address",
     "fleet.row.platformState": "Console",
     "fleet.row.open": "Open",
     "fleet.row.reopen": "Drive it",
@@ -44,10 +39,7 @@ export const fleet = {
   fr: {
     "fleet.heading": "Attribués par votre organisation",
     "fleet.intro":
-      "L'adresse, le compte et la clé viennent de la console. Rien à saisir, aucune clé à porter : cet ordinateur est déjà enregistré comme appareil.",
-
-    "fleet.reading.title": "Lecture des serveurs de votre organisation",
-    "fleet.reading.detail": "Attributions, adresses et clés posées",
+      "Les serveurs que votre organisation vous a attribués depuis la console. Rien à saisir.",
 
     "fleet.empty.title": "Aucun serveur ne vous est attribué",
     "fleet.empty.detail":
@@ -63,8 +55,6 @@ export const fleet = {
     "fleet.dismissed.other":
       "{count} serveurs attribués sont masqués sur cet ordinateur.",
     "fleet.restore": "Les remettre",
-
-    "fleet.row.address": "Adresse",
     "fleet.row.platformState": "Console",
     "fleet.row.open": "Ouvrir",
     "fleet.row.reopen": "Le piloter",

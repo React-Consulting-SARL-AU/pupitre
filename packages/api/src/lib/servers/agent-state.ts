@@ -23,7 +23,6 @@ export interface AgentState {
   target_version: string | null
   minimum_version: string | null
   hostname: string
-  module_params: Record<string, unknown>
 }
 
 export interface HeartbeatInput {
@@ -59,7 +58,6 @@ export async function readAgentState(input: Server): Promise<AgentState> {
     target_version: targetVersion,
     minimum_version: server.agentVersion,
     hostname: server.host ?? server.name,
-    module_params: {},
   }
 }
 

@@ -6,8 +6,6 @@ import {
   DbShellResultSchema,
   DbUrlResultSchema,
   SecretEventSchema,
-  SecretsSetParamsSchema,
-  SecretsStatusResultSchema,
   SecretsSyncParamsSchema,
   ServiceSecretParamsSchema,
   ServiceSecretResultSchema,
@@ -15,33 +13,7 @@ import {
 } from "./secrets"
 
 describe("secrets", () => {
-  it("list keys without values", () => {
-    expect(
-      SecretsStatusResultSchema.safeParse({
-        secrets: [
-          { key: "GITHUB_TOKEN", set: true },
-          { key: "OP_SERVICE_ACCOUNT_TOKEN", set: false },
-        ],
-      }).success
-    ).toBe(true)
-    expect(
-      SecretsStatusResultSchema.safeParse({
-        secrets: [{ key: "GITHUB_TOKEN", set: true, value: "ghp_x" }],
-      }).success
-    ).toBe(false)
-  })
-
-  it("set announces the secret stream and never carries the value", () => {
-    expect(
-      SecretsSetParamsSchema.safeParse({
-        key: "GITHUB_TOKEN",
-        secrets_stdin: true,
-      }).success
-    ).toBe(true)
-    expect(
-      SecretsSetParamsSchema.safeParse({ key: "GITHUB_TOKEN", value: "ghp_x" })
-        .success
-    ).toBe(false)
+  it("sync names the project whose environment file is rebuilt", () => {
     expect(
       SecretsSyncParamsSchema.safeParse({ project: "flymate-api" }).success
     ).toBe(true)

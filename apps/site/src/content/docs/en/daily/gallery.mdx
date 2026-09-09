@@ -1,0 +1,30 @@
+---
+title: Gallery
+description: The screenshots agents take while working, where they are filed, and how the app shows them.
+locale: en
+section: daily
+sectionOrder: 2
+order: 7
+---
+
+An agent that drives a browser produces images. `ai.browser` installs the headless Chrome and the `shot` command that files them; the gallery is where you look at what came out.
+
+## Taking one
+
+On the server, `shot <url|file> [name]` captures a page or copies an image into the gallery. `--mobile` or `--size LxH` set the viewport, `--wait` gives a slow page time to settle, `shot --list` prints what is filed. An agent working in a terminal calls the same command you would.
+
+## Where the files are
+
+Under `/home/dev/shots`, in a folder per day. They stay there: the gallery is the server's, not the platform's, and nothing is uploaded anywhere.
+
+## Reading one from the app
+
+The gallery screen lists what is filed, with its weight. Opening one brings its bytes over the channel the app already holds, and checks them against the fingerprint the server sent with them. If the two disagree the app says so rather than showing you half an image.
+
+## The server's own gallery
+
+The agent also serves the folder as a plain read-only page, on the loopback, reachable through the SSH session the app holds. `Open the gallery` opens it in your browser — useful for scrolling a day's work rather than one capture at a time.
+
+## Emptying it
+
+One button deletes the server's screenshots. It asks first, and it takes nothing else with it.

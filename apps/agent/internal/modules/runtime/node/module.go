@@ -159,5 +159,5 @@ func block(bun bool) []byte {
 		dirs = append(dirs, shell.BunBin)
 	}
 
-	return []byte(shell.PathLines(dirs...) + "export COREPACK_ENABLE_DOWNLOAD_PROMPT=0\n")
+	return []byte(shell.PathLines(dirs...) + "export COREPACK_ENABLE_DOWNLOAD_PROMPT=0\nexport MISE_NPM_PACKAGE_MANAGER=npm\n")
 }

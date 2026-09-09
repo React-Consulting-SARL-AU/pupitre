@@ -36,6 +36,14 @@ export function OnboardingHardenScreen({
         title={serverName ?? t("onboarding.thisServer")}
       />
 
+      {harden.status === "queued" ? (
+        <WaitingNotice
+          detail={t("onboarding.harden.queuedDetail")}
+          note={t("onboarding.harden.queuedNote")}
+          title={t("onboarding.harden.queuedTitle")}
+        />
+      ) : null}
+
       {harden.status === "running" ? (
         <WaitingNotice
           detail={t("onboarding.harden.runningDetail")}

@@ -2,7 +2,7 @@ import { Button } from "@renderer/components/ui/button";
 import { EmptyState } from "@renderer/components/ui/empty-state";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { Label } from "@renderer/components/ui/label";
-import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
+import { SkeletonRows } from "@renderer/components/ui/skeleton";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { accountOf, useAccount } from "@renderer/stores/account";
 import {
@@ -87,12 +87,7 @@ export function FleetPanel({
 
       <FleetOrganizations identity={identity} />
 
-      {state.status === "reading" ? (
-        <WaitingNotice
-          detail={t("fleet.reading.detail")}
-          title={t("fleet.reading.title")}
-        />
-      ) : null}
+      {state.status === "reading" ? <SkeletonRows rows={2} /> : null}
 
       {state.status === "failed" ? (
         <ErrorNotice error={state.error} onRetry={read} />
@@ -129,7 +124,7 @@ export function FleetPanel({
 
       {dismissed > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[12px] text-ink-4 leading-relaxed">
+          <p className="text-[12px] text-ink-3 leading-relaxed">
             {t.plural("fleet.dismissed", dismissed)}
           </p>
           <Button icon={Undo2} onClick={restore} size="sm" variant="discreet">
@@ -139,7 +134,7 @@ export function FleetPanel({
       ) : null}
 
       {unreachable > 0 ? (
-        <p className="text-[12px] text-ink-4 leading-relaxed">
+        <p className="text-[12px] text-ink-3 leading-relaxed">
           {t.plural("fleet.noAddress", unreachable)}
         </p>
       ) : null}

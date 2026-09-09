@@ -7,14 +7,12 @@ import { common } from "./strings/common";
 import { config } from "./strings/config";
 import { connections } from "./strings/connections";
 import { dashboard } from "./strings/dashboard";
-import { firstProject } from "./strings/first-project";
 import { fleet } from "./strings/fleet";
 import { format } from "./strings/format";
 import { install } from "./strings/install";
 import { onboarding } from "./strings/onboarding";
 import { project } from "./strings/project";
 import { refusals } from "./strings/refusals";
-import { secrets } from "./strings/secrets";
 import { servers } from "./strings/servers";
 import { services } from "./strings/services";
 import { settings } from "./strings/settings";
@@ -37,12 +35,10 @@ export const fr: Dictionary = {
   ...config.fr,
   ...connections.fr,
   ...dashboard.fr,
-  ...firstProject.fr,
   ...fleet.fr,
   ...install.fr,
   ...onboarding.fr,
   ...project.fr,
-  ...secrets.fr,
   ...servers.fr,
   ...services.fr,
   ...settings.fr,

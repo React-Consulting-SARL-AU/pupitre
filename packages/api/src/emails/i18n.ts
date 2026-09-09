@@ -23,6 +23,17 @@ export const EMAIL_FR = {
   "label.disk": "Disque",
   "label.last_seen": "Dernier signe de vie",
   "label.latest_version": "Dernière version publiée",
+  "label.new_email": "Nouvelle adresse",
+
+  "email_change.subject": "Confirmez le changement d'adresse",
+  "email_change.preview":
+    "Une nouvelle adresse a été demandée pour votre compte Pupitre.",
+  "email_change.title": "Changement d'adresse",
+  "email_change.body":
+    "Une nouvelle adresse a été demandée pour votre compte. Ce message part à l'adresse actuelle : tant que personne n'ouvre ce lien, rien ne change et vous continuez à vous connecter comme avant.",
+  "email_change.cta": "Confirmer la nouvelle adresse",
+  "email_change.footnote":
+    "Vous n'avez rien demandé ? Ignorez ce message, et changez de second facteur ou révoquez vos clés d'accès si vous doutez de votre session.",
 
   "magic_link.subject": "Votre lien de connexion Pupitre",
   "magic_link.preview":
@@ -166,6 +177,17 @@ export const EMAIL_EN: Record<EmailMessageKey, string> = {
   "label.disk": "Disk",
   "label.last_seen": "Last sign of life",
   "label.latest_version": "Latest published version",
+  "label.new_email": "New address",
+
+  "email_change.subject": "Confirm the address change",
+  "email_change.preview":
+    "A new address has been asked for on your Pupitre account.",
+  "email_change.title": "Address change",
+  "email_change.body":
+    "A new address has been asked for on your account. This message goes to the current one: until someone opens this link nothing moves, and you keep signing in as before.",
+  "email_change.cta": "Confirm the new address",
+  "email_change.footnote":
+    "Did not ask for this? Ignore the message, and rotate your second factor or revoke your passkeys if you have any doubt about your session.",
 
   "magic_link.subject": "Your Pupitre sign-in link",
   "magic_link.preview":

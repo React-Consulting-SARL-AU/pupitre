@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react"
 import type { ButtonHTMLAttributes, ReactNode } from "react"
+import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils/cn"
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger"
@@ -46,7 +47,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant
   size?: ButtonSize
   icon?: LucideIcon
-  /** While it works the button breathes in place of its icon, and takes no second click. */
+  /** While it works the spinner sits in place of the icon, and the button takes no second click. */
   loading?: boolean
 }
 
@@ -64,12 +65,7 @@ export function Button({
   let glyph: ReactNode = null
 
   if (loading) {
-    glyph = (
-      <span
-        aria-hidden="true"
-        className="size-[10px] shrink-0 animate-breathe rounded-full bg-current"
-      />
-    )
+    glyph = <Spinner size={14} />
   } else if (Icon) {
     glyph = <Icon className="size-4 shrink-0" strokeWidth={1.5} />
   }
@@ -77,7 +73,11 @@ export function Button({
   return (
     <button
       aria-busy={loading || undefined}
-      className={buttonClassName({ variant, size, className })}
+      className={buttonClassName({
+        variant,
+        size,
+        className: cn(loading && "disabled:cursor-progress", className),
+      })}
       disabled={disabled || loading}
       type={type}
       {...props}

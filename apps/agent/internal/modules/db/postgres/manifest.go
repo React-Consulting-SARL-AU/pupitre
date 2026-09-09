@@ -25,7 +25,6 @@ func manifest() contract.Manifest {
 			{Key: "app_password", Kind: contract.FieldSecret, Label: i18n.T("module.db.postgres.app_password.label"), Required: true, Generate: true},
 			{Key: "remote_password", Kind: contract.FieldSecret, Label: i18n.T("module.db.postgres.remote_password.label"), Help: i18n.T("module.db.postgres.remote_password.help"), Required: true, Generate: true},
 		},
-		Provides:  []string{"db:postgres"},
 		Mandatory: false,
 		Since:     "0.1.0",
 	}

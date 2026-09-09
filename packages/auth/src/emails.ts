@@ -23,6 +23,13 @@ export interface InvitationEmailInput {
   acceptLanguage: string | null
 }
 
+export interface EmailChangeEmailInput {
+  to: string
+  newEmail: string
+  url: string
+  acceptLanguage: string | null
+}
+
 /**
  * The templates live in `packages/api/src/emails`, which already depends on
  * this package: they reach Better Auth through this port rather than the other
@@ -31,6 +38,7 @@ export interface InvitationEmailInput {
 export interface AuthEmailRenderer {
   magicLink(input: MagicLinkEmailInput): Promise<EmailMessage>
   invitation(input: InvitationEmailInput): Promise<EmailMessage>
+  emailChange(input: EmailChangeEmailInput): Promise<EmailMessage>
 }
 
 export class AuthEmailsNotConfiguredError extends Error {

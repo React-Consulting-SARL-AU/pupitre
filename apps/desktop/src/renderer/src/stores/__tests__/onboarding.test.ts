@@ -16,6 +16,7 @@ import {
   ONBOARDING_STEPS,
   type OnboardingStep,
 } from "../onboarding-machine";
+import { useServers } from "../servers";
 
 function catalogue(): void {
   useCatalog.setState({
@@ -57,7 +58,6 @@ const ONWARD: Record<OnboardingStep, Event> = {
   config: { type: "configured" },
   install: { type: "installed" },
   harden: { type: "hardened" },
-  project: { type: "projectDone" },
   done: { type: "close" },
 };
 
@@ -96,6 +96,26 @@ function server(probe: ProbeResult): void {
   });
 }
 
+/** The list of machines as the app has just read it. */
+function knownServers(ids: readonly string[]): void {
+  useServers.setState({
+    config: {
+      active: ids[0] ?? null,
+      dismissed: [],
+      servers: ids.map((id) => ({
+        host: "203.0.113.10",
+        id,
+        keyPath: `/data/keys/${id}`,
+        name: id,
+        origin: "app" as const,
+        port: 22,
+        user: "root",
+      })),
+    },
+    status: "ready",
+  });
+}
+
 /** A relaunch: every store is new, and only the shelf crossed over. */
 function relaunch(): void {
   useOnboarding.setState({
@@ -121,6 +141,7 @@ beforeEach(() => {
   useCatalog.getState().reset();
   useInspection.setState({ inspection: { status: "idle" }, probes: {} });
   useInstall.getState().reset();
+  useServers.setState({ config: null, status: "idle" });
 });
 
 describe("l'ordre de l'onboarding", () => {
@@ -142,18 +163,8 @@ describe("l'ordre de l'onboarding", () => {
     expect(useOnboarding.getState().step).toBe("harden");
   });
 
-  it("place le premier projet entre le durcissement et l'écran de fin", () => {
-    expect(ONBOARDING_STEPS.slice(-3)).toEqual(["harden", "project", "done"]);
-  });
-
-  it("saute le premier projet et termine quand même l'onboarding", () => {
-    const store = useOnboarding.getState();
-
-    store.begin("srv-1");
-    walkTo("project");
-    walkTo("done");
-
-    expect(useOnboarding.getState().step).toBe("done");
+  it("finit sur l'écran de fin, sitôt le durcissement passé", () => {
+    expect(ONBOARDING_STEPS.slice(-2)).toEqual(["harden", "done"]);
   });
 
   it("revient en arrière tant que rien n'est installé", () => {
@@ -179,6 +190,54 @@ describe("l'ordre de l'onboarding", () => {
 
     store.back();
     expect(useOnboarding.getState().step).toBe("install");
+  });
+});
+
+describe("une machine qui quitte la liste", () => {
+  it("ne rouvre pas une reprise dont le serveur a disparu", async () => {
+    server(machine([]));
+
+    useOnboarding.getState().begin("srv-1");
+    walkTo("catalog");
+
+    relaunch();
+    knownServers(["srv-2"]);
+    await useOnboarding.getState().resume();
+
+    expect(useOnboarding.getState().step).toBe("closed");
+    expect(savedOnboarding()).toBeNull();
+  });
+
+  it("reprend comme avant quand la liste la tient toujours", async () => {
+    server(machine([]));
+
+    useOnboarding.getState().begin("srv-1");
+    walkTo("catalog");
+
+    relaunch();
+    knownServers(["srv-1"]);
+    await useOnboarding.getState().resume();
+
+    expect(useOnboarding.getState().step).toBe("catalog");
+  });
+
+  it("ramène au choix quand elle est retirée en cours de route", () => {
+    server(machine([]));
+
+    useOnboarding.getState().begin("srv-1");
+    walkTo("catalog");
+
+    knownServers(["srv-2"]);
+
+    expect(useOnboarding.getState().step).toBe("server");
+    expect(useOnboarding.getState().serverId).toBeNull();
+  });
+
+  it("laisse le choix ouvert sur la liste qu'elle vient de lire", () => {
+    useOnboarding.getState().open();
+    knownServers([]);
+
+    expect(useOnboarding.getState().step).toBe("server");
   });
 });
 
@@ -317,12 +376,12 @@ describe("une app qui redémarre", () => {
     server(machine(["core.system", "exposure.cloudflare"]));
 
     useOnboarding.getState().begin("srv-1");
-    walkTo("project");
+    walkTo("harden");
 
     relaunch();
     await useOnboarding.getState().resume();
 
-    expect(useOnboarding.getState().step).toBe("project");
+    expect(useOnboarding.getState().step).toBe("harden");
     expect(useInspection.getState().probes["srv-1"]?.installed_modules).toEqual(
       ["core.system", "exposure.cloudflare"]
     );

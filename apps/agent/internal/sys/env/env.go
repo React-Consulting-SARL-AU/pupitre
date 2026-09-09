@@ -17,6 +17,10 @@ const (
 
 	// DomainKey is the key project.url and the gallery read to know whether the machine has a public domain.
 	DomainKey = "PUPITRE_DOMAIN"
+
+	// DebugPortsKey names the projects that can be restarted under a debug agent, as "project:port project:port".
+	// Which project runs on a JVM, and on which port, is a property of the machine — never something this binary guesses.
+	DebugPortsKey = "PUPITRE_DEBUG_PORTS"
 )
 
 var keyPattern = regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)

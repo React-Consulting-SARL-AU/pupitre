@@ -1,7 +1,10 @@
 import { useQuery } from "@tanstack/react-query"
+import { RotateCw } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Callout } from "@/components/ui/callout"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
-import { LoadingState } from "@/components/ui/loading-state"
+import { SkeletonLines } from "@/components/ui/skeleton"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { useOptimisticMutation } from "@/hooks/use-optimistic-mutation"
@@ -62,10 +65,32 @@ export function ServerDevices({
       </CardHeader>
 
       {mine && devices.isPending ? (
-        <LoadingState label={t("servers.devices.reading")} />
+        <SkeletonLines label={t("servers.devices.reading")} rows={2} />
       ) : null}
 
-      {mine && !devices.isPending && list.length > 0 ? (
+      {mine && devices.isError ? (
+        <CardBody>
+          <Callout
+            action={
+              <Button
+                icon={RotateCw}
+                loading={devices.isFetching}
+                onClick={() => {
+                  devices.refetch()
+                }}
+                size="sm"
+              >
+                {t("common.retry")}
+              </Button>
+            }
+            fix={t("servers.devices.readFailedFix")}
+            title={t("servers.devices.readFailed")}
+            tone="danger"
+          />
+        </CardBody>
+      ) : null}
+
+      {mine && devices.isSuccess && list.length > 0 ? (
         <ul>
           {list.map((device) => (
             <li
@@ -105,7 +130,7 @@ export function ServerDevices({
         </ul>
       ) : null}
 
-      {mine && !devices.isPending && list.length === 0 ? (
+      {mine && devices.isSuccess && list.length === 0 ? (
         <CardBody>
           <p className="text-[13px] text-ink-3">{t("servers.devices.empty")}</p>
         </CardBody>

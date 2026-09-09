@@ -22,6 +22,9 @@ export const servers = {
     "servers.events.empty": "No event yet.",
     "servers.devices.title": "Authorised devices",
     "servers.devices.reading": "Reading the authorised devices…",
+    "servers.devices.readFailed": "The authorised devices could not be read.",
+    "servers.devices.readFailedFix":
+      "The platform did not answer. Try again in a moment.",
     "servers.devices.revokeFailed": "The removal failed.",
     "servers.devices.revokeFailedFix": "Try again in a moment.",
     "servers.devices.removing": "Removing…",
@@ -100,6 +103,10 @@ export const servers = {
     "servers.events.empty": "Aucun événement pour l'instant.",
     "servers.devices.title": "Appareils autorisés",
     "servers.devices.reading": "Lecture des appareils autorisés…",
+    "servers.devices.readFailed":
+      "Les appareils autorisés n'ont pas pu être lus.",
+    "servers.devices.readFailedFix":
+      "La plateforme n'a pas répondu. Réessayez dans un instant.",
     "servers.devices.revokeFailed": "Le retrait a échoué.",
     "servers.devices.revokeFailedFix": "Réessayez dans un instant.",
     "servers.devices.removing": "Retrait…",

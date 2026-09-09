@@ -11,7 +11,7 @@ var probeCatalog = map[string]Message{
 		EN: "Unsupported distribution: %s. Pupitre asks for Ubuntu 22.04 or 24.04.",
 	},
 	"probe.os.unsupported.fix": {
-		FR: "Réinstalle le serveur depuis une image Ubuntu 24.04 LTS, puis relance l'inspection.",
+		FR: "Réinstalle le serveur depuis une image Ubuntu 24.04 LTS, puis relancez l'inspection.",
 		EN: "Reinstall the server from an Ubuntu 24.04 LTS image, then run the inspection again.",
 	},
 	"probe.arch.unsupported": {
@@ -19,7 +19,7 @@ var probeCatalog = map[string]Message{
 		EN: "Unsupported architecture: %s. Pupitre ships amd64 and arm64 binaries only.",
 	},
 	"probe.arch.unsupported.fix": {
-		FR: "Choisis un serveur amd64 (x86_64) ou arm64 (aarch64).",
+		FR: "Choisissez un serveur amd64 (x86_64) ou arm64 (aarch64).",
 		EN: "Pick an amd64 (x86_64) or arm64 (aarch64) server.",
 	},
 	"probe.ram.low": {
@@ -27,7 +27,7 @@ var probeCatalog = map[string]Message{
 		EN: "Not enough memory: %d MB. Pupitre asks for %d MB at least.",
 	},
 	"probe.ram.low.fix": {
-		FR: "Passe le serveur à une offre d'au moins 4 Go de mémoire.",
+		FR: "Passez le serveur à une offre d'au moins 4 Go de mémoire.",
 		EN: "Move the server to a plan with at least 4 GB of memory.",
 	},
 	"probe.sudo.missing": {
@@ -35,7 +35,7 @@ var probeCatalog = map[string]Message{
 		EN: "Passwordless sudo is not available for the current user.",
 	},
 	"probe.sudo.missing.fix": {
-		FR: "Connecte-toi en root, ou donne NOPASSWD à ce compte dans /etc/sudoers.d/.",
+		FR: "Connectez-vous en root, ou donnez NOPASSWD à ce compte dans /etc/sudoers.d/.",
 		EN: "Sign in as root, or give this account NOPASSWD in /etc/sudoers.d/.",
 	},
 	"probe.managed.upToDate": {
@@ -47,7 +47,7 @@ var probeCatalog = map[string]Message{
 		EN: "Pupitre is already installed: agent %s, the current version is %s.",
 	},
 	"probe.managed.behind.fix": {
-		FR: "Mets l'agent à jour depuis l'app avant d'installer des services.",
+		FR: "Mettez l'agent à jour depuis l'app avant d'installer des services.",
 		EN: "Update the agent from the app before installing any service.",
 	},
 	"probe.docker.present": {
@@ -55,7 +55,7 @@ var probeCatalog = map[string]Message{
 		EN: "Docker is installed: its containers, its networks and its firewall rules would stay in place.",
 	},
 	"probe.docker.present.fix": {
-		FR: "Retire Docker pour une machine dédiée, ou installe quand même : Pupitre n'y touchera pas.",
+		FR: "Retirez Docker pour une machine dédiée, ou installez quand même : Pupitre n'y touchera pas.",
 		EN: "Remove Docker for a dedicated machine, or install anyway: Pupitre will not touch it.",
 	},
 	"probe.panel.present": {
@@ -63,7 +63,7 @@ var probeCatalog = map[string]Message{
 		EN: "A hosting panel was found: %s. It fights Pupitre over nginx, the users and the firewall.",
 	},
 	"probe.panel.present.fix": {
-		FR: "Choisis un serveur sans panneau d'hébergement.",
+		FR: "Choisissez un serveur sans panneau d'hébergement.",
 		EN: "Pick a server without a hosting panel.",
 	},
 	"probe.port.taken": {
@@ -75,15 +75,15 @@ var probeCatalog = map[string]Message{
 		EN: "Port %d is already listened on by %s.",
 	},
 	"probe.ports.web.fix": {
-		FR: "Libère les ports 80 et 443, ou installe quand même : l'exposition par tunnel ne les utilise pas.",
+		FR: "Libère les ports 80 et 443, ou installez quand même : l'exposition par tunnel ne les utilise pas.",
 		EN: "Free ports 80 and 443, or install anyway: tunnel exposure does not use them.",
 	},
 	"probe.users.present": {
-		FR: "Des comptes non système existent déjà : %s.",
+		FR: "Des compvos non système existent déjà : %s.",
 		EN: "Non-system accounts already exist: %s.",
 	},
 	"probe.users.present.fix": {
-		FR: "Vérifie que ces comptes cohabitent avec l'utilisateur dev créé par Pupitre.",
+		FR: "Vérifiez que ces compvos cohabitent avec l'utilisateur dev créé par Pupitre.",
 		EN: "Check that these accounts live alongside the dev user Pupitre creates.",
 	},
 }

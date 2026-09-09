@@ -34,7 +34,6 @@ export const COMMAND_TIMEOUTS_MS: Partial<Record<CommandName, number>> = {
   "project.list": QUICK_MS,
   "project.sync": LONG_MS,
   report: QUICK_MS,
-  "secrets.status": QUICK_MS,
   "service.status": QUICK_MS,
   snapshot: QUICK_MS,
   status: QUICK_MS,

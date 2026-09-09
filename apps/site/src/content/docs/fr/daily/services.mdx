@@ -4,7 +4,7 @@ description: Ajouter, configurer, mettre à jour et retirer un module après la 
 locale: fr
 section: daily
 sectionOrder: 2
-order: 6
+order: 9
 ---
 
 Le catalogue ne se ferme pas après l’onboarding. Ajouter un module plus tard, c’est le même écran, sans le reste du parcours.
@@ -17,6 +17,22 @@ Le catalogue ne se ferme pas après l’onboarding. Ajouter un module plus tard,
 
 L’écran des services affiche ce que l’agent rapporte : le module, sa version, s’il tourne, et quand il a été vérifié pour la dernière fois. Il n’affiche rien que l’agent n’ait envoyé — aucune supposition en cache, aucun état optimiste.
 
+## Ce que porte la page d’un service
+
+Ouvrir un service montre ce que l’agent en a répondu : son état, sa version, le port sur lequel il écoute et l’unité `systemd` derrière lui.
+
+**Identifiants.** Un module qui a créé un compte en montre les libellés, et laisse révéler ou copier une valeur. Les valeurs restent dans le processus principal de l’app — jamais stockées, jamais journalisées — et le presse-papiers est écrit de ce côté-là.
+
+**Configuration.** Les valeurs que l’agent a gardées de la dernière installation, dans le même formulaire que la première fois. Appliquer rejoue le module avec elles ; un secret laissé vide reste celui que le serveur détient. C’est ainsi qu’on change proprement un mot de passe de base : des deux côtés à la fois.
+
+**Un tunnel vers le port.** Un clic ouvre un tunnel local par la session SSH que l’app tient, pour que le port du serveur réponde sur votre propre machine. C’est ainsi qu’une base sur `127.0.0.1` rejoint le client posé sur votre bureau sans qu’un port s’ouvre sur le serveur.
+
+## Bases de données
+
+Un module de base ajoute trois gestes. **Exporter** écrit un dump dans `/home/dev/dumps` sur le serveur et vous en dit le poids. **Importer** charge les dumps que vous avez laissés dans ce même dossier, une fois chacun, quel que soit le moteur — un fichier déjà importé ne l’est pas deux fois. **Ouvrir un shell** vous donne la commande exacte à lancer sur le serveur, plutôt que de faire semblant d’être un client de base.
+
+L’URL de connexion est sur la même page, à côté des identifiants.
+
 ## Mettre à jour
 
 Mettre à jour un module lance son étape `Upgrade`. Mettre à jour l’agent lui-même est une opération distincte : l’agent télécharge son propre binaire signé en HTTPS sortant, vérifie la signature, et se remplace. Il ne lance jamais rien que vous n’ayez demandé.
@@ -24,6 +40,8 @@ Mettre à jour un module lance son étape `Upgrade`. Mettre à jour l’agent lu
 ## Désinstaller
 
 `Uninstall` retire ce que le module a installé, et rien d’autre. Un module ne touche jamais à ce qu’il n’a pas posé — une base que vous avez installée à la main reste exactement où elle est.
+
+L’app dit ce qui est perdu avant d’agir, et demande de confirmer contre cette liste. Rien n’est sauvegardé au passage : exportez d’abord ce qui compte.
 
 ## Ce qui reste si vous arrêtez de payer
 

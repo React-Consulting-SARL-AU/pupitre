@@ -5,6 +5,7 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { SERVICE_LOOK } from "@renderer/lib/project-state";
 import type { ServiceDetail } from "@shared/services";
 import { ArrowLeft, RefreshCw } from "lucide-react";
+import { Details } from "../ui/details";
 
 /** What the agent says of this module right now, above everything it can do. */
 export function ServicePanelHeader({
@@ -24,8 +25,11 @@ export function ServicePanelHeader({
   const facts = [
     detail.version,
     detail.port ? `port ${detail.port}` : null,
-    detail.unit,
   ].filter(Boolean);
+
+  // What names the module on the machine decides nothing for the reader, and
+  // decides everything for whoever goes looking on the server itself.
+  const named = [detail.id, detail.unit].filter(Boolean).join(" · ");
 
   return (
     <header className="flex flex-wrap items-start justify-between gap-4">
@@ -40,13 +44,19 @@ export function ServicePanelHeader({
             <StatePill look={SERVICE_LOOK[detail.state]} name={detail.state} />
           </div>
 
-          <p className="mt-0.5 font-data text-[12px] text-ink-3">
-            {[detail.id, ...facts].join(" · ")}
-          </p>
+          {facts.length > 0 ? (
+            <p className="mt-0.5 font-data text-[12px] text-ink-3">
+              {facts.join(" · ")}
+            </p>
+          ) : null}
 
           {summary ? (
             <p className="mt-1 text-ink-3 leading-relaxed">{summary}</p>
           ) : null}
+
+          <Details className="mt-1" name="service">
+            <span className="font-data">{named}</span>
+          </Details>
         </div>
       </div>
 

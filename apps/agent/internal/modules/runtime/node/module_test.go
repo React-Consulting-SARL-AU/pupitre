@@ -74,6 +74,7 @@ func TestInstallOnAMachineWithoutMise(t *testing.T) {
 		`export PATH="$HOME/.local/share/mise/shims:$PATH"`,
 		`export PATH="$HOME/.bun/bin:$PATH"`,
 		"export COREPACK_ENABLE_DOWNLOAD_PROMPT=0",
+		"export MISE_NPM_PACKAGE_MANAGER=npm",
 		"# <<< pupitre runtime.node <<<",
 	} {
 		if !strings.Contains(env, want) {
@@ -238,3 +239,20 @@ func TestUninstallLeavesMiseAndTheOtherBlocks(t *testing.T) {
 }
 
 var _ modules.Module = Module{}
+
+// mise runs as dev and writes under ~/.local: nothing the module creates there may belong to root.
+func TestInstallLeavesNoRootFolderInHome(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Users[shell.User] = shell.Home
+	fake.Dirs[shell.Home] = true
+	fake.Owners[shell.Home] = "dev:dev"
+	ctx := newContext(t, fake, everything)
+
+	run(t, ctx)
+
+	for _, dir := range []string{shell.Home + "/.local", mise.BinDir, shell.Home + "/.local/share", mise.DataDir} {
+		if !fake.Dirs[dir] || fake.Owners[dir] != "dev:dev" {
+			t.Errorf("%s: exists %v, owner %q", dir, fake.Dirs[dir], fake.Owners[dir])
+		}
+	}
+}

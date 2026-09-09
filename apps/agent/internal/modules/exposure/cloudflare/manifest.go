@@ -33,7 +33,6 @@ func manifest() contract.Manifest {
 			{Key: "tunnel_id", Kind: contract.FieldText, Label: i18n.T("module.exposure.cloudflare.tunnel_id.label"), Required: true, Managed: true},
 			{Key: "tunnel_secret", Kind: contract.FieldSecret, Label: i18n.T("module.exposure.cloudflare.tunnel_secret.label"), Required: true, Managed: true},
 		},
-		Provides:   []string{"exposure:cloudflare", "public-url"},
 		Connection: contract.ConnectionCloudflare,
 		Mandatory:  false,
 		Since:      "0.1.0",

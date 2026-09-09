@@ -51,8 +51,6 @@ const CONTRACT_COMMANDS = [
   "shots.url",
   "shots.read",
   "shots.clean",
-  "secrets.status",
-  "secrets.set",
   "secrets.sync",
   "db.dump",
   "db.import",

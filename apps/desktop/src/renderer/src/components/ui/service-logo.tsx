@@ -14,6 +14,11 @@ import type { ButtonIcon } from "./button";
 const PLATE =
   "inline-flex shrink-0 items-center justify-center rounded-sm border border-line bg-surface";
 
+/** The plate's edge, for a line that wants to sit level with the logo. */
+export function plateOf(size: number): number {
+  return Math.round(size * 1.5);
+}
+
 export function ServiceLogo({
   moduleId,
   name,
@@ -27,7 +32,7 @@ export function ServiceLogo({
   fallback?: ButtonIcon;
 }) {
   const logo = moduleId ? logoFor(moduleId) : null;
-  const plate = Math.round(size * 1.5);
+  const plate = plateOf(size);
   const style = { height: plate, width: plate };
 
   if (!logo) {

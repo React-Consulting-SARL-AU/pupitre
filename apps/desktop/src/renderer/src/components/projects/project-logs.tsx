@@ -1,5 +1,5 @@
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
-import { StatusDot } from "@renderer/components/ui/status-dot";
+import { WaitingLine } from "@renderer/components/ui/waiting-line";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AgentError } from "@shared/agent";
 import { useEffect, useRef, useState } from "react";
@@ -117,10 +117,9 @@ export function ProjectLogs({
         }}
       >
         {lines.length === 0 && !error ? (
-          <span className="flex items-center gap-2 text-ink-3">
-            <StatusDot shape="breathing" size={11} />
+          <WaitingLine>
             {t("project.logs.waiting", { name: project })}
-          </span>
+          </WaitingLine>
         ) : (
           lines.map((line, index) => (
             <div

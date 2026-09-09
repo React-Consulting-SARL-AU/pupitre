@@ -7,7 +7,7 @@ var selfupdateCatalog = map[string]Message{
 		EN: "the binary of version %s does not match its signature: nothing was installed",
 	},
 	"selfupdate.signature.bad.fix": {
-		FR: "Relance la mise à jour depuis l'app ; si le refus persiste, signale-le, le binaire publié est en cause.",
+		FR: "Relancez la mise à jour depuis l'app ; si le refus persiste, signale-le, le binaire publié est en cause.",
 		EN: "Run the update again from the app; if it keeps refusing, report it, the published binary is at fault.",
 	},
 	"selfupdate.signature.unverifiable": {
@@ -15,7 +15,7 @@ var selfupdateCatalog = map[string]Message{
 		EN: "the signature cannot be verified: %s",
 	},
 	"selfupdate.signature.unverifiable.fix": {
-		FR: "Relance la mise à jour ; la signature vient de la plateforme, qui publie celle de la version demandée.",
+		FR: "Relancez la mise à jour ; la signature vient de la plateforme, qui publie celle de la version demandée.",
 		EN: "Run the update again; the signature comes from the platform, which publishes the one of the version asked for.",
 	},
 	"selfupdate.corrupted": {
@@ -23,7 +23,7 @@ var selfupdateCatalog = map[string]Message{
 		EN: "the binary of version %s has digest %s, the platform announces %s: nothing was installed",
 	},
 	"selfupdate.corrupted.fix": {
-		FR: "Relance la mise à jour ; si le refus persiste, signale-le, le téléchargement de cette version est en cause.",
+		FR: "Relancez la mise à jour ; si le refus persiste, signale-le, le téléchargement de cette version est en cause.",
 		EN: "Run the update again; if it keeps refusing, report it, the download of this version is at fault.",
 	},
 	"selfupdate.downgrade.refused": {
@@ -31,7 +31,7 @@ var selfupdateCatalog = map[string]Message{
 		EN: "version %s is older than %s, which this server does not go below: nothing was installed",
 	},
 	"selfupdate.downgrade.refused.fix": {
-		FR: "Installe %s ou plus récent ; pour revenir en arrière malgré tout, relance avec allow_downgrade.",
+		FR: "Installez %s ou plus récent ; pour revenir en arrière malgré tout, relancez avec allow_downgrade.",
 		EN: "Install %s or newer; to go back anyway, run again with allow_downgrade.",
 	},
 	"selfupdate.metadata.unreadable": {
@@ -39,7 +39,7 @@ var selfupdateCatalog = map[string]Message{
 		EN: "the digest of version %s cannot be read: %s",
 	},
 	"selfupdate.platform.unreachable.fix": {
-		FR: "Vérifie que le serveur joint la plateforme en HTTPS sortant, puis relance la mise à jour.",
+		FR: "Vérifiez que le serveur joint la plateforme en HTTPS sortant, puis relancez la mise à jour.",
 		EN: "Check that the server reaches the platform over outbound HTTPS, then run the update again.",
 	},
 	"selfupdate.version.unpublished": {
@@ -47,7 +47,7 @@ var selfupdateCatalog = map[string]Message{
 		EN: "the platform does not publish version %s for this architecture",
 	},
 	"selfupdate.version.unpublished.fix": {
-		FR: "Choisis une version publiée, ou laisse l'app demander la dernière.",
+		FR: "Choisissez une version publiée, ou laisse l'app demander la dernière.",
 		EN: "Pick a published version, or let the app ask for the latest.",
 	},
 	"selfupdate.token.refused": {
@@ -55,7 +55,7 @@ var selfupdateCatalog = map[string]Message{
 		EN: "the platform refuses this server's token: %s",
 	},
 	"selfupdate.token.refused.fix": {
-		FR: "Ouvre https://app.pupitre.studio pour rétablir le droit d'usage de ce serveur.",
+		FR: "Ouvrez https://app.pupitre.studio pour rétablir l'abonnement de ce serveur.",
 		EN: "Open https://app.pupitre.studio to restore this server's usage right.",
 	},
 	"selfupdate.download.failed": {
@@ -67,7 +67,7 @@ var selfupdateCatalog = map[string]Message{
 		EN: "the target version cannot be read: %s",
 	},
 	"selfupdate.state.unreadable.fix": {
-		FR: "Passe la version à installer dans les paramètres de agent.upgrade.",
+		FR: "Passez la version à installer dans les paramètres de agent.upgrade.",
 		EN: "Pass the version to install in the parameters of agent.upgrade.",
 	},
 	"selfupdate.restart.failed": {
@@ -75,7 +75,7 @@ var selfupdateCatalog = map[string]Message{
 		EN: "version %s could not restart: %s",
 	},
 	"selfupdate.restart.failed.fix": {
-		FR: "Regarde journalctl -u pupitred sur le serveur, puis relance la mise à jour.",
+		FR: "Regardez journalctl -u pupitred sur le serveur, puis relancez la mise à jour.",
 		EN: "Look at journalctl -u pupitred on the server, then run the update again.",
 	},
 	"selfupdate.silent": {
@@ -91,7 +91,7 @@ var selfupdateCatalog = map[string]Message{
 		EN: "Reinstall this server from the app to give it a server token back.",
 	},
 	"selfupdate.root.required.fix": {
-		FR: "Vérifie que la commande tourne en root sur le serveur.",
+		FR: "Vérifiez que la commande tourne en root sur le serveur.",
 		EN: "Check that the command runs as root on the server.",
 	},
 	"selfupdate.replace.failed": {
@@ -99,7 +99,7 @@ var selfupdateCatalog = map[string]Message{
 		EN: "%s was not replaced: %s",
 	},
 	"selfupdate.replace.failed.fix": {
-		FR: "Vérifie l'espace disque du serveur, puis relance la mise à jour.",
+		FR: "Vérifiez l'espace disque du serveur, puis relancez la mise à jour.",
 		EN: "Check the server's disk space, then run the update again.",
 	},
 	"selfupdate.rollback.failed": {

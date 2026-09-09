@@ -30,8 +30,11 @@ func (Module) Manifest() contract.Manifest {
 	return manifest()
 }
 
+// Every server the app reaches carries sshd: the package proves nothing. The
+// module is on the machine only where the marker says the machine is exposed
+// by ssh alone — otherwise every other exposure would be refused everywhere.
 func (Module) Check(ctx *modules.Context) (modules.Status, error) {
-	if !apt.Installed(ctx, pkg) {
+	if !(apt.Installed(ctx, pkg) && file.Same(ctx, modePath, mode)) {
 		return modules.Status{}, nil
 	}
 
@@ -40,7 +43,7 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 		return modules.Status{}, err
 	}
 
-	return modules.Status{Installed: true, Version: version, Configured: file.Same(ctx, modePath, mode)}, nil
+	return modules.Status{Installed: true, Version: version, Configured: true}, nil
 }
 
 // The only channel the app has is the SSH session it already holds, and the server it runs on already carries sshd.

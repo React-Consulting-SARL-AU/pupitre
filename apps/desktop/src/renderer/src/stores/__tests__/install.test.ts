@@ -5,6 +5,7 @@ import type {
 } from "@pupitre/shared/agent-protocol/install";
 import type { InstallUpdate } from "@shared/install";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
+import { useChannel } from "../channel";
 import { useInstall } from "../install";
 
 const SERVER = "srv-1";
@@ -235,18 +236,78 @@ describe("un module en échec", () => {
     await useInstall.getState().replay(SERVER, "db.mysql");
 
     expect(sent).toHaveLength(1);
-    expect(useInstall.getState().modules).toEqual([
-      {
-        id: "db.mysql",
-        status: "ok",
-        ms: 8300,
-        steps: [{ step: "apt", status: "ok", ms: 8300 }],
-      },
+    expect(useInstall.getState().modules.map((one) => one.id)).toEqual([
+      "core.system",
+      "db.mysql",
+      "runtime.node",
     ]);
+    expect(
+      useInstall.getState().modules.find((one) => one.id === "db.mysql")
+    ).toEqual({
+      id: "db.mysql",
+      status: "ok",
+      ms: 8300,
+      steps: [{ step: "apt", status: "ok", ms: 8300 }],
+    });
+    expect(
+      useInstall.getState().modules.find((one) => one.id === "core.system")
+        ?.status
+    ).toBe("ok");
     expect(useInstall.getState().install).toMatchObject({
       status: "done",
       result: { failed: [] },
     });
+  });
+
+  it("garde les autres échecs quand un seul module est rejoué", async () => {
+    agent(script, { ...result, failed: ["db.mysql", "runtime.node"] });
+
+    await useInstall
+      .getState()
+      .start(SERVER, ["core.system", "db.mysql", "runtime.node"], {});
+
+    agent([step("db.mysql", "apt", "ok", 8300)], {
+      failed: [],
+      warned: ["db.mysql"],
+      report_path: REPORT,
+    });
+
+    await useInstall.getState().replay(SERVER, "db.mysql");
+
+    expect(useInstall.getState().failed()).toEqual(["runtime.node"]);
+    expect(useInstall.getState().warned()).toEqual(["db.mysql"]);
+  });
+
+  it("rejoue tout ce qui a échoué, avec la configuration donnée", async () => {
+    const { sent } = agent(script, {
+      ...result,
+      failed: ["db.mysql", "runtime.node"],
+    });
+
+    await useInstall
+      .getState()
+      .start(SERVER, ["core.system", "db.mysql", "runtime.node"], {
+        "core.system": { timezone: "Europe/Paris" },
+        "db.mysql": { version: "8.4" },
+        "runtime.node": { node_version: "22" },
+      });
+
+    const again = agent([], { failed: [], warned: [], report_path: REPORT });
+
+    await useInstall.getState().replayFailed(SERVER);
+
+    expect(sent).toHaveLength(1);
+    expect(again.sent).toEqual([
+      {
+        serverId: SERVER,
+        modules: ["db.mysql", "runtime.node"],
+        config: {
+          "db.mysql": { version: "8.4" },
+          "runtime.node": { node_version: "22" },
+        },
+      },
+    ]);
+    expect(useInstall.getState().failed()).toEqual([]);
   });
 
   it("passe le seul module et sa configuration au processus principal", async () => {
@@ -439,5 +500,73 @@ describe("ce que l'installation a touché", () => {
     await useInstall.getState().start(SERVER, ["core.system"], {});
 
     expect(useInstall.getState().touched()).toBe(true);
+  });
+});
+
+describe("une liaison qui revient", () => {
+  it("relit le rapport de ce qui s'est fait sans elle", async () => {
+    let reads = 0;
+
+    stubPupitre({
+      installReport: () => {
+        reads += 1;
+
+        return Promise.resolve({
+          ok: true,
+          result: {
+            agent_version: "0.2.0",
+            failed: [],
+            finished_at: "2026-09-09T10:00:10Z",
+            modules: [
+              {
+                id: "core.system",
+                status: "ok",
+                steps: [{ step: "paquets", status: "ok", ms: 12_400 }],
+              },
+            ],
+            report_path: REPORT,
+            started_at: "2026-09-09T10:00:00Z",
+            warned: [],
+          },
+        });
+      },
+      startInstall: (_serverId, _modules, _config, onUpdate) => {
+        onUpdate(step("core.system", "paquets", "start", 0));
+
+        return Promise.resolve({
+          ok: false,
+          error: { code: "disconnected", message: "Liaison perdue." },
+        });
+      },
+    });
+
+    await useInstall.getState().start(SERVER, ["core.system"], {});
+    expect(useInstall.getState().install.status).toBe("failed");
+
+    useChannel.getState().note(SERVER, "lost");
+    useChannel.getState().note(SERVER, "open");
+    await Promise.resolve();
+
+    expect(reads).toBe(1);
+    expect(useInstall.getState().install).toMatchObject({
+      status: "done",
+      result: { failed: [] },
+    });
+  });
+});
+
+describe("un agent qui finit sans avoir rien dit", () => {
+  it("ne laisse aucun module en attente une fois le résultat arrivé", async () => {
+    agent([], { failed: ["db.mysql"], warned: [], report_path: REPORT });
+
+    await useInstall.getState().start(SERVER, ["core.system", "db.mysql"], {});
+
+    expect(
+      useInstall.getState().modules.map((module) => [module.id, module.status])
+    ).toEqual([
+      ["core.system", "ok"],
+      ["db.mysql", "fail"],
+    ]);
+    expect(useInstall.getState().counts()).toEqual({ done: 2, total: 2 });
   });
 });

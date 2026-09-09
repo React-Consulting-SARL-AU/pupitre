@@ -25,7 +25,6 @@ interface StateBody {
   authorized_keys: string[]
   target_version: string | null
   hostname: string
-  module_params: Record<string, unknown>
 }
 
 const HOUR_MS = 3_600_000
@@ -222,7 +221,6 @@ describe("GET /agent/state", () => {
     expect(response.status).toBe(200)
     expect(response.json.entitlement).toBe("valid")
     expect(response.json.hostname).toBe("vps.test")
-    expect(response.json.module_params).toEqual({})
     expect([...response.json.authorized_keys].sort()).toEqual(
       [ED25519_KEY, SECOND_ED25519_KEY].sort()
     )

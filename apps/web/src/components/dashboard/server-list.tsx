@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
+import { RotateCw } from "lucide-react"
 import { AlertBanner } from "@/components/dashboard/alert-banner"
 import { ServerRow } from "@/components/dashboard/server-row"
 import { StartChecklist } from "@/components/dashboard/start-checklist"
+import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { SkeletonRows } from "@/components/ui/skeleton"
 import { useTranslations } from "@/hooks/use-locale"
@@ -55,6 +57,18 @@ export function ServerList() {
   if (servers.isError) {
     return (
       <Callout
+        action={
+          <Button
+            icon={RotateCw}
+            loading={servers.isFetching}
+            onClick={() => {
+              servers.refetch()
+            }}
+            size="sm"
+          >
+            {t("common.retry")}
+          </Button>
+        }
         fix={t("serverList.failedFix")}
         title={t("serverList.failed")}
         tone="danger"

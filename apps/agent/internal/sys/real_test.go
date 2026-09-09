@@ -3,9 +3,11 @@ package sys
 import (
 	"errors"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestRealRunCapturesOutputAndExitCode(t *testing.T) {
@@ -44,6 +46,35 @@ func TestRealRunPassesEnvDirAndStdin(t *testing.T) {
 	resolved, _ := filepath.EvalSymlinks(dir)
 	if !strings.HasPrefix(out.Stdout, "yes|") || !strings.Contains(out.Stdout, resolved) || !strings.HasSuffix(out.Stdout, "|from-stdin") {
 		t.Fatalf("unexpected output %q", out.Stdout)
+	}
+}
+
+// mise lives in ~dev/.local/bin, a folder this process's own PATH has never heard of.
+func TestRealRunFindsTheProgramOnTheCommandsOwnPath(t *testing.T) {
+	bin := t.TempDir()
+	script := filepath.Join(bin, "pupitre-probe")
+	if err := os.WriteFile(script, []byte("#!/bin/sh\necho found\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := Real{}.Run(Command{
+		Argv: []string{"pupitre-probe"},
+		Env:  []string{"PATH=" + bin + ":/usr/bin:/bin"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.TrimSpace(out.Stdout) != "found" {
+		t.Fatalf("unexpected output %q", out.Stdout)
+	}
+
+	if _, err := (Real{}).Run(Command{Argv: []string{"pupitre-probe"}}); err == nil {
+		t.Fatal("without that PATH the program must stay unknown")
+	}
+
+	if _, err := (Real{}).Run(Command{Argv: []string{"pupitre-probe"}, Env: []string{"PATH=" + t.TempDir()}}); err == nil {
+		t.Fatal("a PATH without the program must not find it elsewhere")
 	}
 }
 
@@ -154,5 +185,44 @@ func TestRealReadDirNamesFoldersAndLeavesSymlinksAlone(t *testing.T) {
 
 	if _, err := (Real{}).ReadDir(filepath.Join(dir, "absent")); err == nil {
 		t.Fatal("a missing folder must fail")
+	}
+}
+
+func TestRealOwnerReadsTheLinkNotItsTarget(t *testing.T) {
+	dir := t.TempDir()
+	target := filepath.Join(dir, "target")
+	link := filepath.Join(dir, "link")
+	if err := os.WriteFile(target, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatal(err)
+	}
+
+	me, err := user.Current()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, path := range []string{dir, target, link} {
+		owner, err := Real{}.Owner(path)
+		if err != nil || owner != me.Username {
+			t.Fatalf("Owner(%s) = %q, %v; want %q", path, owner, err, me.Username)
+		}
+	}
+
+	if _, err := (Real{}).Owner(filepath.Join(dir, "absent")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("absent path: %v", err)
+	}
+
+	if err := (Real{}).Chown(link, me.Username, ""); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRealRunGivesUpOnACommandThatNeverAnswers(t *testing.T) {
+	_, err := Real{}.Run(Command{Argv: []string{"sleep", "5"}, Timeout: 200 * time.Millisecond})
+	if err == nil || !strings.Contains(err.Error(), "no answer after") {
+		t.Fatalf("a command past its time must fail and say so, got %v", err)
 	}
 }

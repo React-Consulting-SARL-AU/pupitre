@@ -4,7 +4,7 @@ description: What Pupitre can and cannot do on your server, and how to check eac
 locale: en
 section: account
 sectionOrder: 3
-order: 3
+order: 4
 ---
 
 Four rules hold the product together. Each one is stated so you can verify it rather than believe it.
@@ -34,6 +34,8 @@ Support sees that a server is enrolled and which agent version it runs. There is
 ## Hardening, in order
 
 `core.hardening` closes root **last**, and only after the app has verified that your key opens `dev`. If that verification fails, nothing is closed and the app tells you what to fix. This is the one step that could lock you out, and it is written so it cannot.
+
+If you would rather keep a second door onto your own machine, the module's “Keep root access” option leaves root reachable by SSH key. Never by password: password authentication goes off either way, and so does everything else the hardening does.
 
 ## What Pupitre does not protect you from
 

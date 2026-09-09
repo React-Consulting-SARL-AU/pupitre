@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import type {
+  InstallCheckResult,
   InstallReport,
   InstallResult,
   ModuleConfig,
@@ -23,6 +24,7 @@ import {
   type EnrollmentGrant,
   enrolAgent,
   type InstallUpdate,
+  runCheck,
   runInstall,
 } from "./install-run";
 import { takeSecrets } from "./install-secrets";
@@ -220,6 +222,32 @@ export function registerInstall(): void {
           secrets: takeSecrets,
         }
       );
+    }
+  );
+
+  /*
+    Weighing touches nothing, so it passes no usage guard: the right to install
+    is opposed once, to the install itself, and a reader without one still gets
+    told what their form gets wrong.
+  */
+  ipcMain.handle(
+    "install:check",
+    async (
+      _event,
+      serverId: unknown,
+      modules: unknown,
+      config: unknown
+    ): Promise<AgentResponse<InstallCheckResult>> => {
+      const call = checked(serverId, modules);
+
+      if ("ok" in call) {
+        return call;
+      }
+
+      return await runCheck(call.serverId, call.modules, configOf(config), {
+        client: agentClient,
+        declared: declaredModules,
+      });
     }
   );
 

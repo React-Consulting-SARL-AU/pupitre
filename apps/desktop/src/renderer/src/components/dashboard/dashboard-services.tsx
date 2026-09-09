@@ -44,9 +44,9 @@ export function DashboardServices({
               {service.name}
             </p>
             <p className="truncate font-data text-[11px] text-ink-3">
-              {service.id}
-              {service.version ? ` · ${service.version}` : ""}
-              {service.port ? ` · port ${service.port}` : ""}
+              {[service.version, service.port ? `port ${service.port}` : null]
+                .filter(Boolean)
+                .join(" · ")}
             </p>
           </div>
 

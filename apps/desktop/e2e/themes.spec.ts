@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { DARK, LIGHT } from "@pupitre/design/tokens";
+import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
 const HEADING = "1 projet en ligne";
@@ -31,7 +32,17 @@ test.describe("thèmes", () => {
   });
 
   // Both captures come from one launch: the only difference between them is
-  // the theme.
+  // the theme. They are compared pixel for pixel, and only where their
+  // references are kept: on macOS, the machine the product is looked at on. A
+  // Linux runner draws other pixels, and checks the theme without an image.
+  const compared = process.platform === "darwin";
+
+  async function looksLike(page: Page, name: string): Promise<void> {
+    if (compared) {
+      await expect(page).toHaveScreenshot(name);
+    }
+  }
+
   test("le tableau de bord se rend en clair puis en sombre", async () => {
     const { page } = running;
 
@@ -47,14 +58,19 @@ test.describe("thèmes", () => {
       }
     });
 
+    // The contrast floor is a property of the palette, so it is measured in
+    // both themes rather than once: an ink that passes on white can fail on the
+    // dark ground it was paired with.
     await test.step("en clair", async () => {
       await dashboardIn(page, "light");
-      await expect(page).toHaveScreenshot("tableau-de-bord-clair.png");
+      await looksLike(page, "tableau-de-bord-clair.png");
+      await assertAccessible(page, "tableau-de-bord/clair");
     });
 
     await test.step("en sombre", async () => {
       await dashboardIn(page, "dark");
-      await expect(page).toHaveScreenshot("tableau-de-bord-sombre.png");
+      await looksLike(page, "tableau-de-bord-sombre.png");
+      await assertAccessible(page, "tableau-de-bord/sombre");
     });
   });
 

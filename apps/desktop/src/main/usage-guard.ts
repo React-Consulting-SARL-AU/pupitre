@@ -40,7 +40,6 @@ export const READING_COMMANDS: ReadonlySet<CommandName> = new Set([
   "shots.list",
   "shots.url",
   "shots.read",
-  "secrets.status",
   "db.url",
   "tunnel.status",
   "keys.list",

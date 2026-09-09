@@ -30,6 +30,7 @@ function screen(
     <CatalogChoice
       blocked={blocked(catalog.modules, selected, probe)}
       catalog={catalog}
+      probe={probe}
       selected={selected}
       warnings={resourceWarnings(catalog.modules, selected, probe)}
     />
@@ -98,15 +99,23 @@ describe("les catégories et leurs modules", () => {
     ]);
   });
 
-  it("montre le nom, le résumé et les ressources de chaque module", () => {
+  it("montre le nom et le résumé de chaque module, sans ses chiffres", () => {
     const readable = text(html);
 
     expect(readable).toContain("PostgreSQL 17");
     expect(readable).toContain(
       "Local seulement, rôles applicatif et distant, import de dumps."
     );
-    expect(readable).toContain("1024 Mo");
-    expect(readable).toContain("900 Mo");
+    expect(tag(html, "data-module", "db.postgres")).not.toContain("900");
+  });
+
+  it("dit ce que le choix pèse, une fois, contre la machine", () => {
+    expect(html).toContain('data-resources="true"');
+    expect(text(html)).toContain("Mémoire 320 Mo sur");
+  });
+
+  it("nomme ce qu'un préréglage apporte plutôt que de le compter", () => {
+    expect(text(html)).toContain("Node.js, MySQL 8, VS Code Remote");
   });
 
   it("pose le logo en couleurs quand le module en a un", () => {
@@ -147,7 +156,7 @@ describe("ce qui est hors de portée", () => {
       'data-blocked="true"'
     );
     expect(text(html)).toContain(
-      "Ce module n'existe pas pour l'architecture arm64."
+      "Ce service n'existe pas pour l'architecture arm64."
     );
   });
 });
@@ -169,7 +178,7 @@ describe("les ressources cumulées", () => {
 
     expect(html).toContain('data-tone="warn"');
     expect(text(html)).toContain(
-      "Les modules choisis demandent 4928 Mo de mémoire ; cette machine en a 4096."
+      "Les services choisis demandent 4928 Mo de mémoire ; cette machine en a 4096."
     );
   });
 });

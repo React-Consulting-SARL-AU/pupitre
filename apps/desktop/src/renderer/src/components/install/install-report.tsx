@@ -1,71 +1,102 @@
 import type { InstallResult } from "@pupitre/shared/agent-protocol/install";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { ArrowRight, RotateCcw } from "lucide-react";
-import type { ModuleProgress } from "../../stores/install";
+import { RotateCcw } from "lucide-react";
+import type { ModuleProgress, StepEntry } from "../../stores/install";
 import { Button } from "../ui/button";
+import { Details } from "../ui/details";
 import { StatusDot } from "../ui/status-dot";
 
 /**
  * What the agent concluded, and what can still be done about it.
  *
  * `failed` and `warned` are its own lists, printed in its own order. A module
- * that failed gets the button that runs `install` again for it alone; the way
- * out stays open unless what failed was something the rest depends on.
+ * that failed says so in plain words, says what it means for the reader, and
+ * keeps the agent's own line and the repair command under Details; its button
+ * runs `install` again for it alone. The way out is the bar the screen ends on.
  */
 export function InstallReport({
   result,
   modules,
-  blocking,
   nameOf,
   onReplay,
-  onContinue,
   replaying,
 }: {
   result: InstallResult;
   modules: readonly ModuleProgress[];
-  /** Failed modules the catalogue calls mandatory: the ones that bar the way. */
-  blocking: readonly string[];
   nameOf: (moduleId: string) => string;
-  onReplay?: (moduleId: string) => void;
-  onContinue?: () => void;
+  onReplay?: (moduleId: string) => Promise<void> | void;
   replaying?: string | null;
 }) {
   const t = useTranslations();
 
-  function replayOf(moduleId: string): string | undefined {
-    return modules
-      .find((module) => module.id === moduleId)
-      ?.steps.find((step) => step.replay)?.replay;
+  function warningsOf(moduleId: string): string[] {
+    return (
+      modules
+        .find((module) => module.id === moduleId)
+        ?.steps.filter((step) => step.status !== "fail" && step.message)
+        .map((step) => step.message as string) ?? []
+    );
+  }
+
+  function failedStepOf(moduleId: string): StepEntry | undefined {
+    const steps = modules.find((module) => module.id === moduleId)?.steps;
+
+    return (
+      steps?.find((step) => step.status === "fail") ??
+      steps?.find((step) => step.replay)
+    );
   }
 
   return (
     <section className="flex flex-col gap-gutter">
       {result.failed.length > 0 ? (
-        <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-danger/40 bg-surface">
-          {result.failed.map((moduleId) => (
-            <li
-              className="flex flex-wrap items-center gap-3 px-4 py-3"
-              data-failed={moduleId}
-              key={moduleId}
-            >
-              <StatusDot shape="struck" size={10} tone="danger" />
-              <div className="min-w-0 flex-1">
-                <p className="text-ink">{nameOf(moduleId)}</p>
-                {replayOf(moduleId) ? (
-                  <code className="mt-0.5 block break-all font-data text-[12px] text-ink-3">
-                    {replayOf(moduleId)}
-                  </code>
-                ) : null}
-              </div>
-              <Button
-                icon={RotateCcw}
-                loading={replaying === moduleId}
-                onClick={() => onReplay?.(moduleId)}
+        <ul className="flex flex-col gap-gutter">
+          {result.failed.map((moduleId) => {
+            const step = failedStepOf(moduleId);
+
+            return (
+              <li
+                className="elevation-raised flex flex-wrap items-start gap-3 rounded-md border border-danger/40 bg-surface px-4 py-3"
+                data-failed={moduleId}
+                key={moduleId}
               >
-                {t("install.replay")}
-              </Button>
-            </li>
-          ))}
+                <span className="translate-y-1">
+                  <StatusDot shape="struck" size={10} tone="danger" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-ink">
+                    {t("install.failed", { name: nameOf(moduleId) })}
+                  </p>
+                  {step ? (
+                    <p className="mt-0.5 text-[12px] text-ink-3 leading-relaxed">
+                      {t("install.failedAt", { step: step.step })}
+                    </p>
+                  ) : null}
+                  {step?.message || step?.replay ? (
+                    <Details className="mt-1">
+                      {step.message ? (
+                        <span className="block font-data">
+                          {step.step} : {step.message}
+                        </span>
+                      ) : null}
+                      {step.replay ? (
+                        <code className="mt-1 block break-all font-data text-ink-3">
+                          {step.replay}
+                        </code>
+                      ) : null}
+                    </Details>
+                  ) : null}
+                </div>
+                <Button
+                  icon={RotateCcw}
+                  loading={replaying === moduleId}
+                  onClick={() => onReplay?.(moduleId)}
+                >
+                  {t("install.replay")}
+                </Button>
+              </li>
+            );
+          })}
         </ul>
       ) : null}
 
@@ -73,32 +104,39 @@ export function InstallReport({
         <ul className="flex flex-col gap-1.5">
           {result.warned.map((moduleId) => (
             <li
-              className="flex items-center gap-2 text-ink-2"
+              className="flex items-start gap-2 text-ink-2"
               data-warned={moduleId}
               key={moduleId}
             >
-              <StatusDot shape="ringed" size={10} tone="warn" />
-              <span>{t("install.warned", { name: nameOf(moduleId) })}</span>
+              <span className="translate-y-1">
+                <StatusDot shape="ringed" size={10} tone="warn" />
+              </span>
+              <span className="flex min-w-0 flex-col">
+                <span>{t("install.warned", { name: nameOf(moduleId) })}</span>
+                {warningsOf(moduleId).map((warning) => (
+                  <span
+                    className="text-[12px] text-ink-3 leading-relaxed"
+                    key={warning}
+                  >
+                    {warning}
+                  </span>
+                ))}
+              </span>
             </li>
           ))}
         </ul>
       ) : null}
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <code className="font-data text-[12px] text-ink-3">
-          {result.report_path}
-        </code>
+      {result.failed.length === 0 && result.warned.length === 0 ? (
+        <p className="flex items-center gap-2 text-ink" data-all-done="true">
+          <StatusDot shape="filled" size={10} tone="ok" />
+          {t("install.allDone")}
+        </p>
+      ) : null}
 
-        {blocking.length === 0 ? (
-          <Button icon={ArrowRight} onClick={onContinue} variant="inverse">
-            {t("install.continue")}
-          </Button>
-        ) : (
-          <p className="text-danger">
-            {t("install.blocking", { names: blocking.map(nameOf).join(", ") })}
-          </p>
-        )}
-      </div>
+      <Details>
+        <span className="break-all font-data">{result.report_path}</span>
+      </Details>
     </section>
   );
 }

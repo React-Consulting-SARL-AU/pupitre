@@ -1,6 +1,6 @@
 import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { measured } from "@renderer/lib/format";
+import { measured, memory } from "@renderer/lib/format";
 import { Label } from "../ui/label";
 
 /**
@@ -21,7 +21,7 @@ export function OnboardingInspectionSummary({ probe }: { probe: ProbeResult }) {
     { label: t("onboarding.summary.architecture"), value: probe.arch },
     {
       label: t("onboarding.summary.memory"),
-      value: `${probe.ram_mb} ${t("format.unit.mb")}`,
+      value: memory(probe.ram_mb),
     },
     {
       label: t("onboarding.summary.diskFree"),

@@ -5,7 +5,6 @@ import type {
   ProjectGitStatusResult,
   ProjectWorkingTreeResult,
 } from "@pupitre/shared/agent-protocol/projects";
-import type { SecretStatus } from "@pupitre/shared/agent-protocol/secrets";
 import type { SnapshotResult } from "@pupitre/shared/agent-protocol/state";
 
 /**
@@ -195,8 +194,3 @@ export const DIFF: ProjectDiffResult = {
   path: "src/lib/tva.ts",
   problem: "",
 };
-
-export const SECRETS: SecretStatus[] = [
-  { key: "GITHUB_TOKEN", set: true },
-  { key: "CLOUDFLARE_TOKEN", set: false },
-];

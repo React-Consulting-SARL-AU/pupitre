@@ -3,6 +3,7 @@ import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { Field, proseControlClass } from "@renderer/components/ui/field";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { useConnections } from "@renderer/stores/connections";
+import { Unplug } from "lucide-react";
 import { useEffect, useState } from "react";
 
 /**
@@ -55,11 +56,18 @@ export function ConnectionCloudflare({
           )}
         </div>
 
+        {/*
+          Disconnecting takes the account away from every server that publishes
+          through it, so it is drawn as what it is: an outline that reads as a
+          button on the panel it sits on, and the tone of what it undoes as the
+          hand comes near.
+        */}
         <Button
+          icon={Unplug}
           loading={busy}
           onClick={() => forget("cloudflare")}
           size="sm"
-          variant="discreet"
+          variant="danger"
         >
           {t("connections.cloudflare.forget")}
         </Button>

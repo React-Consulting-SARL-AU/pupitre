@@ -60,6 +60,7 @@ func environment(name, home string) []string {
 		"LOGNAME=" + name,
 		"PATH=" + home + "/.local/bin:" + home + "/.local/share/mise/shims:" + home + "/.bun/bin:" + basePath,
 		"MISE_YES=1",
+		"MISE_NPM_PACKAGE_MANAGER=npm",
 		"COREPACK_ENABLE_DOWNLOAD_PROMPT=0",
 	}
 }

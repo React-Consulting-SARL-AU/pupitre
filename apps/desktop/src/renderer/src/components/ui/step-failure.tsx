@@ -23,7 +23,7 @@ export function StepFailure({
 }: {
   error: AgentError;
   onRetry?: () => void;
-  /** The retry is under way: the button breathes rather than waiting silently. */
+  /** The retry is under way: the button spins rather than waiting silently. */
   retrying?: boolean;
   retryLabel?: string;
   /** What was said before it stopped, folded away until it is asked for. */

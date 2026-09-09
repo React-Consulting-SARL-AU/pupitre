@@ -247,8 +247,8 @@ export const useCatalog = create<CatalogStore>((set, get) => {
       // A preset that names exclusive modules carries none of them: the one the
       // reader picked joins its list, and the others stay out.
       const asked =
-        chosen && preset.choose_one?.includes(chosen as never)
-          ? { ...preset, modules: [...preset.modules, chosen as never] }
+        chosen && preset.choose_one?.includes(chosen)
+          ? { ...preset, modules: [...preset.modules, chosen] }
           : preset;
 
       reselect(fromPreset(get().modules(), asked, get().installed));
@@ -400,14 +400,20 @@ export const useCatalog = create<CatalogStore>((set, get) => {
 
       set({
         attempted: true,
-        refused: problems.map((problem) => {
+        refused: problems.flatMap((problem) => {
           const manifest = known.get(problem.module) as Manifest;
+          const declared = manifest?.fields.find(
+            (one) => one.key === problem.field
+          );
 
-          return {
-            ...problem,
-            declared: manifest?.fields.find((one) => one.key === problem.field),
-            manifest,
-          };
+          // A managed value is written on the way out, from a connected
+          // account: a server that calls it missing is saying it has not been
+          // given it yet, and no field on this screen could answer that.
+          if (declared?.managed === true) {
+            return [];
+          }
+
+          return [{ ...problem, declared, manifest }];
         }),
       });
     },
@@ -425,13 +431,13 @@ export const useCatalog = create<CatalogStore>((set, get) => {
         return [];
       }
 
-      const answer = await window.pupitre.checkInstall(
-        serverId,
-        modules,
-        get().config()
-      );
+      // A bridge that does not answer must not leave the button turning: the
+      // agent weighs the same configuration again before it touches anything.
+      const answer = await window.pupitre
+        .checkInstall(serverId, modules, get().config())
+        .catch(() => null);
 
-      if (!answer.ok) {
+      if (!answer?.ok) {
         return [];
       }
 

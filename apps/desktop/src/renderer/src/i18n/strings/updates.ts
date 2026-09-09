@@ -22,7 +22,7 @@ export const updates = {
 
     "updates.modules.title": "Updating services",
     "updates.modules.intro":
-      "The agent replays the install steps of the {count} modules it placed on this machine.",
+      "Pupitre updates the {count} services installed on this machine.",
     "updates.modules.upgradeAll": "Update everything",
     "updates.modules.failed": "{name}: the update failed.",
     "updates.modules.warned": "{name}: updated, with a warning.",
@@ -52,7 +52,7 @@ export const updates = {
 
     "updates.modules.title": "Mise à jour des services",
     "updates.modules.intro":
-      "L'agent rejoue les étapes d'installation des {count} modules qu'il a posés sur cette machine.",
+      "Pupitre met à jour les {count} services installés sur cette machine.",
     "updates.modules.upgradeAll": "Tout mettre à jour",
     "updates.modules.failed": "{name} : la mise à jour a échoué.",
     "updates.modules.warned": "{name} : mis à jour, avec un avertissement.",

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/exposure/cloudflared"
 	"pupitre.studio/agent/internal/modules/modtest"
@@ -106,8 +107,11 @@ func TestInstallAndConfigureAreIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// verify-tunnel reads what the daemon says of itself: it changes nothing,
+	// and it runs on every pass because a tunnel Cloudflare dropped since the
+	// last one is exactly what a replay is there to find.
 	for _, event := range ctx.Events() {
-		if event.Status != contract.StepSkip {
+		if event.Step != "verify-tunnel" && event.Status != contract.StepSkip {
 			t.Errorf("step %s: want skip, got %s", event.Step, event.Status)
 		}
 	}
@@ -236,3 +240,78 @@ func TestTheSecretNeverLeaves(t *testing.T) {
 }
 
 var _ modules.Module = Module{}
+
+// systemctl only ever says the job failed; what the client can act on is in the daemon's own journal.
+func TestAStartThatNeverComesUpNamesWhatTheDaemonSaid(t *testing.T) {
+	fake := equipped(t)
+	fake.Files[registry.DefaultConf] = []byte(projects + "shop|flymate/apps/shop|-|bun|shop.localhost|3002|-|bun run shop\n")
+	fake.FailProgram("systemctl", "Job for cloudflared.service failed because a timeout was exceeded.")
+	fake.Answer("journalctl", `ERR Register tunnel error from server side error="Unauthorized: Tunnel not found"`)
+	ctx := newContext(t, fake, modtest.Secrets{"tunnel_secret": secret})
+
+	err := (Module{}).Configure(ctx)
+	if err == nil {
+		t.Fatal("a unit that will not come up must fail the step")
+	}
+
+	if !strings.Contains(err.Error(), i18n.T("cloudflared.tunnel.unknown")) {
+		t.Fatalf("the step must name the cause: %v", err)
+	}
+
+	last := ctx.Events()[len(ctx.Events())-1]
+	if last.Step != "enable-service" || last.Status != contract.StepFail {
+		t.Fatalf("unexpected event: %+v", last)
+	}
+}
+
+// cloudflared answers systemd that it started long before it knows whether the
+// tunnel is still there, so the step asks the machine rather than the command.
+func TestATunnelCloudflareDroppedIsRefused(t *testing.T) {
+	fake := equipped(t)
+	fake.Units[Unit] = modtest.UnitInactive
+	fake.Answer("journalctl", `ERR Register tunnel error from server side error="Unauthorized: Tunnel not found"`)
+
+	err := cloudflared.Registered(newContext(t, fake, modtest.Secrets{}))
+	if err == nil || !strings.Contains(err.Error(), i18n.T("cloudflared.tunnel.unknown")) {
+		t.Fatalf("a tunnel the account no longer holds must be refused, and say so: %v", err)
+	}
+}
+
+// A tunnel that has not connected yet is not a failed install: the machine may
+// be a second away from it, and the step says so rather than refusing.
+func TestATunnelThatHasNotConnectedYetOnlyWarns(t *testing.T) {
+	fake := equipped(t)
+	fake.Units[Unit] = modtest.UnitInactive
+	fake.Answer("journalctl", `INF Retrying connection in up to 16s connIndex=0`)
+	ctx := newContext(t, fake, modtest.Secrets{"tunnel_secret": secret})
+
+	serving, said := cloudflared.Serving(ctx)
+	if serving || !strings.Contains(said, "Retrying connection") {
+		t.Fatalf("serving = %v, said = %q", serving, said)
+	}
+
+	if err := cloudflared.Registered(ctx); err != nil {
+		t.Fatalf("only a tunnel Cloudflare dropped is refused: %v", err)
+	}
+}
+
+// The daemon says it carries a connection long before systemd is asked about it.
+func TestATunnelThatOpenedAConnectionIsServing(t *testing.T) {
+	fake := equipped(t)
+	fake.Units[Unit] = modtest.UnitInactive
+	fake.Answer("journalctl", `INF Registered tunnel connection connIndex=0 location=cdg07`)
+
+	serving, _ := cloudflared.Serving(newContext(t, fake, modtest.Secrets{"tunnel_secret": secret}))
+	if !serving {
+		t.Fatal("a tunnel that registered a connection carries something")
+	}
+}
+
+// A tunnel that serves is a unit systemd calls active, and nothing else is asked of it.
+func TestATunnelThatServesIsAccepted(t *testing.T) {
+	fake := equipped(t)
+
+	if err := cloudflared.Registered(newContext(t, fake, modtest.Secrets{})); err != nil {
+		t.Fatalf("an active unit must pass: %v", err)
+	}
+}

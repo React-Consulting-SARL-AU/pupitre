@@ -79,7 +79,7 @@ var fieldCatalog = map[string]Message{
 		EN: "the configuration is refused: %s",
 	},
 	"field.invalid.config.fix": {
-		FR: "Corrige les champs signalés dans l'écran de configuration, puis relance l'installation.",
+		FR: "Corrige les champs signalés dans l'écran de configuration, puis relancez l'installation.",
 		EN: "Fix the fields marked on the configuration screen, then run the installation again.",
 	},
 	"field.invalid.one": {
@@ -91,7 +91,7 @@ var fieldCatalog = map[string]Message{
 		EN: "%s: field %s is managed, and this module declares no connection",
 	},
 	"field.managed.refused.fix": {
-		FR: "Retire ce champ de la requête : seul un module qui déclare une connexion en porte un.",
+		FR: "Retirez ce champ de la requête : seul un module qui déclare une connexion en porte un.",
 		EN: "Drop that field from the request: only a module that declares a connection carries one.",
 	},
 	"field.port.taken": {

@@ -66,6 +66,22 @@ var stateCatalog = map[string]Message{
 		FR: "%s : %s a échoué",
 		EN: "%s: %s failed",
 	},
+	"state.debug.service": {
+		FR: "%s est un service : systemd le tient, pas une fenêtre tmux",
+		EN: "%s is a service: systemd holds it, not a tmux window",
+	},
+	"state.debug.service.fix": {
+		FR: "Déboguer ne vaut que pour un projet lancé par la pile.",
+		EN: "Debugging only applies to a project the stack starts.",
+	},
+	"state.debug.undeclared": {
+		FR: "%s n'expose aucun port de débogage",
+		EN: "%s exposes no debug port",
+	},
+	"state.debug.undeclared.fix": {
+		FR: "Déclare-le dans /etc/pupitre/env : %s=\"%s:5005\".",
+		EN: "Declare it in /etc/pupitre/env: %s=\"%s:5005\".",
+	},
 	"state.project.install.failed.fix": {
 		FR: "Ouvre le journal du projet, ou corrige la colonne install du registre.",
 		EN: "Open the project's journal, or fix the install column of the registry.",
