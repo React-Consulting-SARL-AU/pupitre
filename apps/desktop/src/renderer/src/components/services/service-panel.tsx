@@ -134,6 +134,7 @@ export function ServicePanel({
         apply={apply}
         catalogHeld={catalogHeld}
         config={config}
+        configured={detail.detail.configured}
         manifest={manifest}
         name={detail.detail.name}
         onApply={() => store.reconfigure(serverId, moduleId)}

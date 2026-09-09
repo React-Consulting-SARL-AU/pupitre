@@ -1,7 +1,7 @@
 import type { Service } from "@pupitre/shared/agent-protocol/state";
 import { ServiceLogo } from "@renderer/components/ui/service-logo";
 import { StatePill } from "@renderer/components/ui/state-pill";
-import { SERVICE_LOOK } from "@renderer/lib/project-state";
+import { SERVICE_LOOK, UNCONFIGURED_LOOK } from "@renderer/lib/project-state";
 import { ChevronRight } from "lucide-react";
 
 /**
@@ -38,7 +38,15 @@ export function ServiceRow({
           </span>
         </span>
 
-        <StatePill look={SERVICE_LOOK[service.state]} name={service.state} />
+        {/*
+          What a module still owes the reader comes before how it is running: a
+          service nobody has configured is not a service that went wrong.
+        */}
+        {service.configured ? (
+          <StatePill look={SERVICE_LOOK[service.state]} name={service.state} />
+        ) : (
+          <StatePill look={UNCONFIGURED_LOOK} name="unconfigured" />
+        )}
 
         <ChevronRight
           className="shrink-0 text-ink-4"

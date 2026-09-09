@@ -32,10 +32,18 @@ export const ServiceStateSchema = z.enum(SERVICE_STATES)
 
 export type ServiceState = z.infer<typeof ServiceStateSchema>
 
+/**
+ * `configured` says whether the module has been through its own settings.
+ *
+ * A module can sit on a machine without having been configured: the reader
+ * asked to answer its questions later, and the install put it there and stopped.
+ * The screen has to be able to say so, and to offer the form that finishes it.
+ */
 export const ServiceSchema = z.object({
   id: z.string(),
   name: z.string(),
   state: ServiceStateSchema,
+  configured: z.boolean().default(true),
   version: z.string().optional(),
   port: z.int().min(1).max(65_535).optional(),
   unit: z.string().optional(),

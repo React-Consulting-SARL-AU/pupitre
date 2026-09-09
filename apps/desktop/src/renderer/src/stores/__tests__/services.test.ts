@@ -10,6 +10,7 @@ const SERVER = "srv-1";
 const PASSWORD = "mot-de-passe-de-la-base";
 
 const DETAIL: ServiceDetail = {
+  configured: true,
   credentials: ["Rôle applicatif", "Rôle distant"],
   id: "db.postgres",
   name: "PostgreSQL 17",

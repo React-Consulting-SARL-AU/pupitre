@@ -148,7 +148,7 @@ describe("install", () => {
     const installed = await guarded.request(
       SERVER,
       "install",
-      { modules: ["tool.github"], config: {}, secrets_stdin: true },
+      { modules: ["tool.github"], config: {}, defer: [], secrets_stdin: true },
       { secrets: { "tool.github": { token: "ghp_de_test" } } }
     );
 

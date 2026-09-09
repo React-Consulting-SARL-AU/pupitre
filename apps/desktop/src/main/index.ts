@@ -122,6 +122,18 @@ function nativeBackground(): string {
   return windowBackground(nativeTheme.shouldUseDarkColors ? "dark" : "light");
 }
 
+/**
+ * A scenario run must not take the screen.
+ *
+ * Playwright drives the window over the debugger, not over the desktop, so the
+ * app has nothing to gain from coming to the front — and whoever is working on
+ * the machine has everything to lose from eighteen windows stealing the focus
+ * in a row. Under the harness, macOS is told the app is an accessory: no Dock
+ * icon, never the active application, and the window shown without being
+ * focused. It is still drawn, so the captures are the same picture.
+ */
+const HARNESSED = process.env.PUPITRE_E2E === "1";
+
 function createWindow(): void {
   window = new BrowserWindow({
     width: 1280,
@@ -140,7 +152,9 @@ function createWindow(): void {
     },
   });
 
-  window.on("ready-to-show", () => window?.show());
+  window.on("ready-to-show", () =>
+    HARNESSED ? window?.showInactive() : window?.show()
+  );
 
   // The trace follows the window that exists now: a reopened window on macOS
   // gets the lines, and a closed one is not written to.
@@ -560,6 +574,10 @@ app
   .then(() => {
     enableTrace(!app.isPackaged);
     trace("app", "ready", { packaged: app.isPackaged, platform: current() });
+
+    if (HARNESSED) {
+      app.setActivationPolicy?.("accessory");
+    }
 
     registerChannels();
     startUpdater();

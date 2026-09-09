@@ -47,6 +47,8 @@ export type InstallState =
 interface Requested {
   modules: readonly string[];
   config: ModuleConfig;
+  /** What this installation left unconfigured, so a replay leaves it alone too. */
+  defer: readonly string[];
 }
 
 interface InstallStore {
@@ -58,7 +60,9 @@ interface InstallStore {
   start: (
     serverId: string,
     modules: readonly string[],
-    config: ModuleConfig
+    config: ModuleConfig,
+    /** Modules to put on the machine without configuring: their questions wait. */
+    defer?: readonly string[]
   ) => Promise<void>;
   /** The configuration is given again when the reader has just retyped it. */
   replay: (
@@ -127,7 +131,7 @@ function logLine(update: InstallUpdate): string | null {
   return `${step.module} · ${step.entry.step} · ${step.entry.status} · ${humanMs(step.entry.ms)}`;
 }
 
-const EMPTY: Requested = { config: {}, modules: [] };
+const EMPTY: Requested = { config: {}, defer: [], modules: [] };
 
 /**
  * Nothing waits once the agent has answered. A module it said nothing about
@@ -210,7 +214,8 @@ export const useInstall = create<InstallStore>((set, get) => {
     serverId: string,
     modules: readonly string[],
     config: ModuleConfig,
-    again = false
+    again = false,
+    defer: readonly string[] = []
   ): Promise<void> {
     const before = get().install;
     const kept = before.status === "done" ? before.result : null;
@@ -229,7 +234,8 @@ export const useInstall = create<InstallStore>((set, get) => {
       serverId,
       modules,
       config,
-      note
+      note,
+      defer
     );
 
     set((state) => ({
@@ -263,10 +269,10 @@ export const useInstall = create<InstallStore>((set, get) => {
     modules: [],
     requested: EMPTY,
 
-    async start(serverId, modules, config) {
-      set({ requested: { config, modules } });
+    async start(serverId, modules, config, defer = []) {
+      set({ requested: { config, defer, modules } });
 
-      await run(serverId, modules, config);
+      await run(serverId, modules, config, false, defer);
     },
 
     async replay(serverId, moduleId, config) {

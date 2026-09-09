@@ -46,6 +46,8 @@ export function ConfigScreen({
 
   const groups = useCatalog((state) => state.groups);
   const problems = useCatalog((state) => state.problems);
+  const deferred = useCatalog((state) => state.deferred);
+  const defer = useCatalog((state) => state.defer);
   const shown = useCatalog((state) => state.shown);
   const values = useCatalog((state) => state.values);
   const secrets = useCatalog((state) => state.secrets);
@@ -188,11 +190,13 @@ export function ConfigScreen({
                     <ConfigConnectionBlock module={current.module} />
                   ) : null
                 }
+                deferred={deferred.includes(current.module.id)}
                 focus={moved}
                 group={current}
                 handlers={handlersFor(current.module.id)}
                 key={current.module.id}
                 marks={secrets[current.module.id]}
+                onDefer={(later) => defer(current.module.id, later)}
                 position={{ index: index + 1, total: asked.length }}
                 problems={marked
                   .filter((one) => one.module === current.module.id)

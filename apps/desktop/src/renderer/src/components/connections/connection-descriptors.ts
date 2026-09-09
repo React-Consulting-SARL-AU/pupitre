@@ -11,6 +11,8 @@ import type { DictionaryKey } from "../../i18n/en";
  */
 export interface ConnectionDescriptor {
   kind: ConnectionKind;
+  /** The module whose brand this account wears, for the logo the row shows. */
+  logo: string;
   title: DictionaryKey;
   intro: DictionaryKey;
   label: DictionaryKey;
@@ -24,6 +26,7 @@ export const CONNECTIONS: readonly ConnectionDescriptor[] = [
   {
     intro: "connections.cloudflare.intro",
     kind: "cloudflare",
+    logo: "exposure.cloudflare",
     named: true,
     title: "connections.cloudflare.title",
     help: "connections.cloudflare.tokenHelp",
@@ -34,6 +37,7 @@ export const CONNECTIONS: readonly ConnectionDescriptor[] = [
   {
     intro: "connections.github.intro",
     kind: "github",
+    logo: "tool.github",
     named: true,
     title: "connections.github.title",
     help: "connections.github.tokenHelp",
@@ -44,6 +48,7 @@ export const CONNECTIONS: readonly ConnectionDescriptor[] = [
   {
     intro: "connections.1password.intro",
     kind: "1password",
+    logo: "tool.1password",
     named: false,
     title: "connections.1password.title",
     help: "connections.1password.tokenHelp",
@@ -54,6 +59,7 @@ export const CONNECTIONS: readonly ConnectionDescriptor[] = [
   {
     intro: "connections.neon.intro",
     kind: "neon",
+    logo: "tool.neon",
     named: true,
     title: "connections.neon.title",
     help: "connections.neon.tokenHelp",

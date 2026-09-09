@@ -69,6 +69,12 @@ interface CatalogStore {
   attempted: boolean;
   /** What the server refused when the app asked it to weigh the configuration. */
   refused: readonly FieldProblemView[];
+  /**
+   * The modules to install without configuring: the reader said they would
+   * answer their questions later. Nothing of theirs is weighed, and the server
+   * stops after putting them on the machine.
+   */
+  deferred: readonly string[];
 
   load: (serverId: string, installed?: Installed) => Promise<void>;
   /** Puts back the choice an interrupted onboarding had written down. */
@@ -77,6 +83,8 @@ interface CatalogStore {
     values: Record<string, Record<string, unknown>>
   ) => void;
   toggle: (moduleId: string) => void;
+  /** Puts a service's questions off, or takes them back up. */
+  defer: (moduleId: string, later: boolean) => void;
   /** `chosen` is the one of the preset's exclusive modules the reader picked. */
   usePreset: (presetId: string, chosen?: string) => void;
   setValue: (moduleId: string, key: string, value: unknown) => void;
@@ -178,6 +186,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
   return {
     attempted: false,
     catalog: { status: "idle" },
+    deferred: [],
     installed: [],
     problem: null,
     refused: [],
@@ -200,6 +209,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
       set({
         attempted: false,
         catalog: { catalog: answer.result, serverId, status: "ready" },
+        deferred: [],
         problem: null,
         refused: [],
         secrets: {},
@@ -223,6 +233,30 @@ export const useCatalog = create<CatalogStore>((set, get) => {
 
       set({ values: { ...values } });
       reselect(restored(get().modules(), selected, get().installed));
+    },
+
+    /**
+     * Putting a service off is a decision about this installation, not about the
+     * service: what was already typed stays typed, and taking the questions back
+     * up finds the form as it was left.
+     */
+    defer(moduleId, later) {
+      const held = get().deferred;
+
+      if (later === held.includes(moduleId)) {
+        return;
+      }
+
+      set({
+        deferred: later
+          ? [...held, moduleId]
+          : held.filter((one) => one !== moduleId),
+        // A refusal the server sent about a module nobody answers any more says
+        // nothing: it was about values this install no longer carries.
+        refused: later
+          ? get().refused.filter((one) => one.module !== moduleId)
+          : get().refused,
+      });
     },
 
     toggle(moduleId) {
@@ -347,7 +381,8 @@ export const useCatalog = create<CatalogStore>((set, get) => {
           get().selected,
           get().values,
           get().secrets,
-          (kind) => useConnections.getState().holds(kind)
+          (kind) => useConnections.getState().holds(kind),
+          get().deferred
         ),
         ...get().refused,
       ];
@@ -434,7 +469,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
       // A bridge that does not answer must not leave the button turning: the
       // agent weighs the same configuration again before it touches anything.
       const answer = await window.pupitre
-        .checkInstall(serverId, modules, get().config())
+        .checkInstall(serverId, modules, get().config(), get().deferred)
         .catch(() => null);
 
       if (!answer?.ok) {

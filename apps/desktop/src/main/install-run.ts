@@ -138,6 +138,19 @@ function only(config: ModuleConfig, modules: readonly string[]): ModuleConfig {
   return kept;
 }
 
+/**
+ * `defer` is left out when it names nobody.
+ *
+ * An agent older than the field refuses a request that carries it — its
+ * parameters are a closed shape, and rightly so. Sending nothing when there is
+ * nothing to say keeps every ordinary install working against the agent already
+ * on the machine; asking to defer against such an agent still gets refused, and
+ * that refusal is the truth.
+ */
+function deferring(defer: readonly string[]): { defer?: string[] } {
+  return defer.length > 0 ? { defer: [...defer] } : {};
+}
+
 /** What the platform provided wins: the form never had these keys to fill in. */
 function merged<T extends ModuleConfig | InstallSecrets>(
   asked: T,
@@ -174,7 +187,9 @@ export async function runInstall(
   modules: readonly string[],
   config: ModuleConfig,
   update: (change: InstallUpdate) => void,
-  deps: InstallDeps
+  deps: InstallDeps,
+  /** Modules to put on the machine without configuring: their questions wait. */
+  defer: readonly string[] = []
 ): Promise<AgentResponse<InstallResult>> {
   if (modules.length === 0) {
     return {
@@ -233,7 +248,10 @@ export async function runInstall(
     };
   }
 
-  const managed = await deps.managed(serverId, modules);
+  // A module nobody is configuring wants nothing filled in for it, an account
+  // token least of all: the whole point is that it goes on without one.
+  const asked = modules.filter((id) => !defer.includes(id));
+  const managed = await deps.managed(serverId, asked);
 
   if (!managed.ok) {
     return managed;
@@ -249,7 +267,8 @@ export async function runInstall(
     serverId,
     "install",
     {
-      config: only(merged(config, managed.result.config), modules),
+      config: only(merged(config, managed.result.config), asked),
+      ...deferring(defer),
       modules: [...modules],
       secrets_stdin: carries,
     },
@@ -273,7 +292,8 @@ export async function runCheck(
   serverId: string,
   modules: readonly string[],
   config: ModuleConfig,
-  deps: Pick<InstallDeps, "client" | "declared">
+  deps: Pick<InstallDeps, "client" | "declared">,
+  defer: readonly string[] = []
 ): Promise<AgentResponse<InstallCheckResult>> {
   if (modules.length === 0) {
     return { ok: true, result: { problems: [], warnings: [] } };
@@ -295,6 +315,7 @@ export async function runCheck(
 
   return await deps.client.request(serverId, "install.check", {
     config: only(config, modules),
+    ...deferring(defer),
     modules: [...modules],
   });
 }

@@ -18,6 +18,8 @@ export interface ServiceDetail {
   id: string;
   name: string;
   state: ServiceState;
+  /** False for a module put on the machine with its questions left unanswered. */
+  configured: boolean;
   version?: string;
   port?: number;
   unit?: string;

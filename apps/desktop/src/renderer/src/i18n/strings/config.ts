@@ -13,6 +13,11 @@ export const config = {
     "config.previous": "Previous",
     "config.next": "Next",
     "config.install": "Install",
+    "config.later.defer": "Configure later",
+    "config.later.undo": "Answer now",
+    "config.later.notice":
+      "This service will be put on the machine without being configured. Nothing of it is started, and its settings wait for you on the services screen.",
+    "config.later.index": "later",
     "config.problem.required": "This field is required.",
     "config.problem.type": "A {expected} is expected.",
     "config.problem.min": "Too small: {expected} expected.",
@@ -71,6 +76,11 @@ export const config = {
     "config.previous": "Précédent",
     "config.next": "Suivant",
     "config.install": "Installer",
+    "config.later.defer": "Configurer plus tard",
+    "config.later.undo": "Répondre maintenant",
+    "config.later.notice":
+      "Ce service sera posé sur la machine sans être configuré. Rien de lui n'est démarré, et ses réglages vous attendent sur l'écran des services.",
+    "config.later.index": "plus tard",
     "config.problem.required": "Ce champ est obligatoire.",
     "config.problem.type": "Une valeur de type {expected} est attendue.",
     "config.problem.min": "Trop petit : attendu {expected}.",

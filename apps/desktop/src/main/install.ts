@@ -131,6 +131,13 @@ function configOf(value: unknown): ModuleConfig {
   return value && typeof value === "object" ? (value as ModuleConfig) : {};
 }
 
+/** The modules the window asked to leave unconfigured, taken as names and nothing else. */
+function deferredOf(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((one): one is string => typeof one === "string")
+    : [];
+}
+
 /**
  * The binary, put on the machine before anything is asked of it.
  *
@@ -185,7 +192,8 @@ export function registerInstall(): void {
       token: unknown,
       serverId: unknown,
       modules: unknown,
-      config: unknown
+      config: unknown,
+      defer: unknown
     ): Promise<AgentResponse<InstallResult>> => {
       const call = checked(serverId, modules);
 
@@ -220,7 +228,8 @@ export function registerInstall(): void {
           managed: managedValues,
           probe: inspect,
           secrets: takeSecrets,
-        }
+        },
+        deferredOf(defer)
       );
     }
   );
@@ -236,7 +245,8 @@ export function registerInstall(): void {
       _event,
       serverId: unknown,
       modules: unknown,
-      config: unknown
+      config: unknown,
+      defer: unknown
     ): Promise<AgentResponse<InstallCheckResult>> => {
       const call = checked(serverId, modules);
 
@@ -244,10 +254,13 @@ export function registerInstall(): void {
         return call;
       }
 
-      return await runCheck(call.serverId, call.modules, configOf(config), {
-        client: agentClient,
-        declared: declaredModules,
-      });
+      return await runCheck(
+        call.serverId,
+        call.modules,
+        configOf(config),
+        { client: agentClient, declared: declaredModules },
+        deferredOf(defer)
+      );
     }
   );
 

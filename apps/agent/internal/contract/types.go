@@ -382,9 +382,12 @@ const (
 )
 
 type ServiceStatus struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	State       ServiceState      `json:"state"`
+	ID    string       `json:"id"`
+	Name  string       `json:"name"`
+	State ServiceState `json:"state"`
+	// Configured says whether the module has been through its own settings: a
+	// module the client asked to answer later sits installed and unconfigured.
+	Configured  bool              `json:"configured"`
 	Version     string            `json:"version,omitempty"`
 	Port        int               `json:"port,omitempty"`
 	Unit        string            `json:"unit,omitempty"`
