@@ -66,6 +66,7 @@ export function InstallScreen({
   const selected = useCatalog((state) => state.selected);
   const config = useCatalog((state) => state.config);
   const settled = useCatalog((state) => state.settled);
+  const deferred = useCatalog((state) => state.deferred);
 
   const [replaying, setReplaying] = useState<string | null>(null);
 
@@ -77,8 +78,16 @@ export function InstallScreen({
    * on it.
    */
   const run = useCallback(
-    () => settled().then(() => start(serverId, asked, config())),
-    [asked, config, serverId, settled, start]
+    () =>
+      settled().then(() =>
+        start(
+          serverId,
+          asked,
+          config(),
+          deferred.filter((one) => asked.includes(one))
+        )
+      ),
+    [asked, config, deferred, serverId, settled, start]
   );
 
   useEffect(() => {

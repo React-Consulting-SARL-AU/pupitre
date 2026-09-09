@@ -76,6 +76,7 @@ export const SNAPSHOT: SnapshotResult = {
   ],
   services: [
     {
+      configured: true,
       id: "db.postgres",
       name: "PostgreSQL",
       port: 5432,
@@ -83,9 +84,32 @@ export const SNAPSHOT: SnapshotResult = {
       unit: "postgresql.service",
       version: "17.2",
     },
-    { id: "ai.claude", name: "Claude Code", state: "running" },
-    { id: "editor.jetbrains", name: "JetBrains Remote Dev", state: "stopped" },
-    { id: "exposure.cloudflare", name: "Cloudflare Tunnel", state: "failed" },
+    {
+      configured: true,
+      id: "ai.claude",
+      name: "Claude Code",
+      state: "running",
+    },
+    {
+      configured: true,
+      id: "editor.jetbrains",
+      name: "JetBrains Remote Dev",
+      state: "stopped",
+    },
+    {
+      configured: true,
+      id: "exposure.cloudflare",
+      name: "Cloudflare Tunnel",
+      state: "failed",
+    },
+    // Put on the machine and left for later: not a failure, and the screen has
+    // to say which of the two it is.
+    {
+      configured: false,
+      id: "tool.github",
+      name: "GitHub",
+      state: "stopped",
+    },
   ],
   sessions: [
     {

@@ -254,6 +254,12 @@ export interface ValidateOptions {
   connected?: (kind: string) => boolean
   /** Fields the caller supplies itself — the app fills every `managed` one. */
   skipManaged?: boolean
+  /**
+   * Modules to be installed without being configured. Nothing of theirs is
+   * weighed: there is no answer to judge, and the point of deferring is that
+   * the reader has not given one yet.
+   */
+  deferred?: readonly string[]
 }
 
 /**
@@ -270,10 +276,11 @@ export function validateConfig(
   options: ValidateOptions = {}
 ): FieldProblem[] {
   const chosen = new Set(selection)
+  const later = new Set(options.deferred ?? [])
   const problems: FieldProblem[] = []
 
   for (const manifest of manifests) {
-    if (!chosen.has(manifest.id)) {
+    if (!chosen.has(manifest.id) || later.has(manifest.id)) {
       continue
     }
 

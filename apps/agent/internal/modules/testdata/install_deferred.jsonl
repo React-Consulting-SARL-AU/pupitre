@@ -1,0 +1,15 @@
+# Un module remis à plus tard : il est posé sur la machine et pas configuré.
+# Ses champs ne sont pas pesés — il n'y a pas de réponse à juger — et son étape
+# configure ne tourne pas, si bien que rien de lui ne peut être à moitié fait.
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+> {"id":2,"cmd":"install.check","params":{"modules":["tool.demo"],"config":{},"defer":["tool.demo"]}}
+> {"id":3,"cmd":"install","params":{"modules":["tool.demo"],"config":{},"defer":["tool.demo"],"secrets_stdin":false}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
+< {"id":2,"ok":true,"result":{"problems":[],"warnings":[]}}
+< {"event":"step","id":3,"module":"core.system","ms":0,"status":"start","step":"install-package"}
+< {"event":"step","id":3,"module":"core.system","ms":0,"status":"ok","step":"install-package"}
+< {"event":"step","id":3,"module":"core.system","ms":0,"status":"start","step":"write-config"}
+< {"event":"step","id":3,"module":"core.system","ms":0,"status":"ok","step":"write-config"}
+< {"event":"step","id":3,"module":"tool.demo","ms":0,"status":"start","step":"install-package"}
+< {"event":"step","id":3,"module":"tool.demo","ms":0,"status":"ok","step":"install-package"}
+< {"id":3,"ok":true,"result":{"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}

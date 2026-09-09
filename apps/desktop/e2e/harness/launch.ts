@@ -101,6 +101,10 @@ export async function launchPupitre(): Promise<Running> {
 
   const app = await electron.launch({
     args: [ENTRY, `--user-data-dir=${userData}`],
+    // The app stays out of the way: no Dock icon, never the active application,
+    // and a window shown without being focused. It is still drawn, so the
+    // captures do not change.
+    env: { ...process.env, PUPITRE_E2E: "1" },
   });
 
   const page = await app.firstWindow();

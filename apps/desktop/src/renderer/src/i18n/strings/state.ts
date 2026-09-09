@@ -11,6 +11,7 @@ export const state = {
     "state.service.running": "running",
     "state.service.stopped": "stopped",
     "state.service.unknown": "unknown",
+    "state.service.unconfigured": "to configure",
   },
   fr: {
     "state.project.down": "tombé",
@@ -24,5 +25,6 @@ export const state = {
     "state.service.running": "actif",
     "state.service.stopped": "arrêté",
     "state.service.unknown": "inconnu",
+    "state.service.unconfigured": "à configurer",
   },
 } as const;

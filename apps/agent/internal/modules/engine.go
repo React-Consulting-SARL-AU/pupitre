@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"pupitre.studio/agent/internal/i18n"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -39,10 +40,19 @@ type Engine struct {
 }
 
 type Request struct {
-	Modules []string                     `json:"modules"`
-	Config  map[string]map[string]any    `json:"config"`
+	Modules []string                  `json:"modules"`
+	Config  map[string]map[string]any `json:"config"`
+	// Defer names the modules to install without configuring: their fields are
+	// not weighed, their Configure step does not run, and they report themselves
+	// installed and not configured until someone finishes them.
+	Defer   []string                     `json:"defer,omitempty"`
 	Secrets map[string]map[string]string `json:"secrets,omitempty"`
 	Persist bool                         `json:"-"`
+}
+
+// Deferred says whether this module is one the caller asked to leave unconfigured.
+func (r Request) Deferred(id string) bool {
+	return slices.Contains(r.Defer, id)
 }
 
 type Sink func(contract.StepEvent)
@@ -91,7 +101,10 @@ func (e *Engine) Install(request Request, sink Sink) (contract.InstallResult, er
 		ctx := r.context(module.Manifest(), request.Config[module.Manifest().ID], request.Secrets[module.Manifest().ID])
 
 		execute(ctx, "install", func() error { return module.Install(ctx) })
-		if !ctx.failed {
+
+		// A module left for later is put on the machine and no further: nothing
+		// of it is configured, so nothing of it can be half-configured.
+		if !(ctx.failed || request.Deferred(module.Manifest().ID)) {
 			execute(ctx, "configure", func() error { return module.Configure(ctx) })
 		}
 

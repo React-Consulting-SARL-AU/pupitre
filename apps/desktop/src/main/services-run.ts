@@ -83,6 +83,7 @@ function detailOf(
   vault: Map<string, Held>
 ): ServiceDetail {
   return {
+    configured: status.configured,
     credentials: [...vault.keys()],
     id: status.id,
     name: status.name,

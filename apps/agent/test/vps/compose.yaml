@@ -1,6 +1,10 @@
 services:
   vps:
-    build: .
+    build:
+      context: .
+      args:
+        # Empty unless you export it: `PUPITRE_VPS_KEY="$(cat ~/.ssh/id_ed25519.pub)"`.
+        AUTHORIZED_KEY: ${PUPITRE_VPS_KEY:-}
     image: pupitre-vps:ubuntu-24.04
     container_name: pupitre-vps
     hostname: pupitre-vps
@@ -12,5 +16,13 @@ services:
       - /run
       - /run/lock
       - /tmp
+    volumes:
+      # The machine's identity, kept apart from the image: rebuilding gives the
+      # app the same server rather than one it has never seen. `down -v` drops
+      # it, which is what makes a genuinely new machine.
+      - hostkeys:/etc/ssh/hostkeys
     ports:
       - "2222:22"
+
+volumes:
+  hostkeys:

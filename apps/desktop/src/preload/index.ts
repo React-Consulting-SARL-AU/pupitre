@@ -220,7 +220,9 @@ const api = {
     serverId: string,
     modules: readonly string[],
     config: ModuleConfig,
-    onUpdate: (update: InstallUpdate) => void
+    onUpdate: (update: InstallUpdate) => void,
+    /** Modules to put on the machine without configuring: their questions wait. */
+    defer: readonly string[] = []
   ): Promise<AgentResponse<InstallResult>> =>
     streamed<AgentResponse<InstallResult>, { update: InstallUpdate }>(
       "install:start",
@@ -228,7 +230,8 @@ const api = {
       (payload) => onUpdate(payload.update),
       serverId,
       modules,
-      config
+      config,
+      defer
     ),
 
   /**
@@ -303,9 +306,10 @@ const api = {
   checkInstall: (
     serverId: string,
     modules: readonly string[],
-    config: ModuleConfig
+    config: ModuleConfig,
+    defer: readonly string[] = []
   ): Promise<AgentResponse<InstallCheckResult>> =>
-    ipcRenderer.invoke("install:check", serverId, modules, config),
+    ipcRenderer.invoke("install:check", serverId, modules, config, defer),
   /**
    * The link to a server, as it drops and comes back.
    *

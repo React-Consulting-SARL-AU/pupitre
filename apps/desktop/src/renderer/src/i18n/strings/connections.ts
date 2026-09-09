@@ -1,5 +1,9 @@
 export const connections = {
   en: {
+    "connections.lead":
+      "An account is given once and serves every server. A service that needs one cannot be installed until it is connected.",
+    "connections.state.on": "connected",
+    "connections.state.off": "not connected",
     "connections.connected": "Connected as {account}.",
     "connections.held": "Token in place.",
     "connections.unsealed":
@@ -51,6 +55,10 @@ export const connections = {
     "connections.zone.pick": "Choose a zone",
   },
   fr: {
+    "connections.lead":
+      "Un compte se donne une fois et sert tous les serveurs. Un service qui en a besoin ne s'installe pas tant qu'il n'est pas connecté.",
+    "connections.state.on": "connecté",
+    "connections.state.off": "non connecté",
     "connections.connected": "Connecté en tant que {account}.",
     "connections.held": "Jeton en place.",
     "connections.unsealed":

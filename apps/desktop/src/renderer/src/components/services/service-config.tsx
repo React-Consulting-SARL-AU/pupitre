@@ -23,6 +23,7 @@ import { RefreshCw } from "lucide-react";
  */
 export function ServiceConfig({
   manifest,
+  configured = true,
   catalogHeld = false,
   onReloadCatalog,
   config,
@@ -38,6 +39,8 @@ export function ServiceConfig({
   onApply,
 }: {
   manifest: Manifest | null;
+  /** False for a module put on the machine with its questions left unanswered. */
+  configured?: boolean;
   /** The whole catalogue is refused, not this module's own settings. */
   catalogHeld?: boolean;
   onReloadCatalog?: () => void;
@@ -92,6 +95,7 @@ export function ServiceConfig({
   }
 
   const running = apply.status === "running";
+  const unconfigured = !configured;
   const held = config.status === "ready" ? config.held : [];
   const failed = apply.status === "done" ? apply.result.failed : [];
 
@@ -110,6 +114,10 @@ export function ServiceConfig({
           {t("services.config.apply")}
         </Button>
       </div>
+
+      {unconfigured ? (
+        <Callout tone="warn">{t("services.config.unconfigured")}</Callout>
+      ) : null}
 
       {config.status === "failed" ? <ErrorNotice error={config.error} /> : null}
 

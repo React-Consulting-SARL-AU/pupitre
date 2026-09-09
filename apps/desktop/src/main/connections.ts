@@ -13,6 +13,7 @@ import { accountSecrets } from "./account-secrets";
 import { accountOfToken } from "./account-tokens";
 import type { Sealer } from "./account-vault";
 import { agentClient } from "./agent";
+import { declaredManifests } from "./catalog";
 import { type CloudflareApi, cloudflareApi } from "./cloudflare-api";
 import { createConnectionVault } from "./connection-vault";
 import { refuseWith } from "./refusal";
@@ -102,7 +103,18 @@ export async function managedValues(
   serverId: string,
   modules: readonly string[]
 ): Promise<AgentResponse<ManagedValues>> {
-  const accounts = accountSecrets(modules, (kind) => vault.token(kind));
+  const declared = await declaredManifests(serverId);
+
+  if (!declared.ok) {
+    return declared;
+  }
+
+  const accounts = accountSecrets(
+    modules,
+    declared.result,
+    (kind) => vault.token(kind),
+    [CLOUDFLARE_EXPOSURE]
+  );
 
   if (!accounts.ok) {
     return accounts;

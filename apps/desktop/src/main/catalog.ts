@@ -1,4 +1,5 @@
 import type { CatalogResult } from "@pupitre/shared/agent-protocol/install";
+import type { Manifest } from "@pupitre/shared/catalog";
 import type { AgentResponse } from "@shared/agent";
 import type { SecretMarks } from "@shared/secrets";
 import { ipcMain } from "electron";
@@ -62,6 +63,27 @@ export async function catalogOf(
   }
 
   return answer;
+}
+
+/**
+ * The manifests this server's agent stands behind, as it last declared them.
+ *
+ * Whoever needs to know what a module asks for reads it here rather than
+ * holding a list of its own: the catalogue belongs to the agent, and an app
+ * that kept a second copy would refuse what a newer agent accepts.
+ */
+export async function declaredManifests(
+  serverId: string
+): Promise<AgentResponse<readonly Manifest[]>> {
+  const cached = declared.get(serverId);
+
+  if (cached) {
+    return { ok: true, result: cached.modules };
+  }
+
+  const answer = await catalogOf(serverId);
+
+  return answer.ok ? { ok: true, result: answer.result.modules } : answer;
 }
 
 /**

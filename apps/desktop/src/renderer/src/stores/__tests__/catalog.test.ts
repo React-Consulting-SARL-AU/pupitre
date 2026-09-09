@@ -181,6 +181,47 @@ describe("la sélection", () => {
     });
   });
 
+  /**
+   * Deferring is the reader saying they will answer later: the questions stop
+   * being weighed, and the install goes on without them rather than refusing.
+   */
+  it("cesse de peser un service remis à plus tard, et le reprend", async () => {
+    await ready();
+
+    useCatalog.getState().toggle("db.mysql");
+    useCatalog.getState().setValue("db.mysql", "app_password", "");
+
+    const before = useCatalog
+      .getState()
+      .problems()
+      .filter((one) => one.module === "db.mysql");
+
+    expect(before.length).toBeGreaterThan(0);
+
+    useCatalog.getState().defer("db.mysql", true);
+
+    expect(useCatalog.getState().deferred).toEqual(["db.mysql"]);
+    expect(
+      useCatalog
+        .getState()
+        .problems()
+        .filter((one) => one.module === "db.mysql")
+    ).toEqual([]);
+
+    // What was typed stays typed: taking the questions back up finds the form
+    // as it was left.
+    useCatalog.getState().defer("db.mysql", false);
+
+    expect(useCatalog.getState().deferred).toEqual([]);
+    expect(useCatalog.getState().values["db.mysql"]?.engine).toBe("mysql");
+    expect(
+      useCatalog
+        .getState()
+        .problems()
+        .filter((one) => one.module === "db.mysql").length
+    ).toBe(before.length);
+  });
+
   it("part d'un préréglage du catalogue", async () => {
     await ready();
 

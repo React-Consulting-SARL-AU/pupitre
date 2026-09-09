@@ -167,7 +167,12 @@ describe("un droit d'usage absent ou expiré", () => {
       const answer = await client("restricted.jsonl", gateOf(refused)).request(
         "srv-1",
         "install",
-        { config: {}, modules: ["core.system"], secrets_stdin: false }
+        {
+          config: {},
+          defer: [],
+          modules: ["core.system"],
+          secrets_stdin: false,
+        }
       );
 
       expect(answer).toEqual({ ok: false, error: refusalOf(refused) });

@@ -577,6 +577,13 @@
             "additionalProperties": {}
           }
         },
+        "defer": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
         "secrets_stdin": {
           "type": "boolean"
         }
@@ -635,6 +642,13 @@
               "type": "string"
             },
             "additionalProperties": {}
+          }
+        },
+        "defer": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
           }
         }
       },
@@ -1029,6 +1043,10 @@
                   "unknown"
                 ]
               },
+              "configured": {
+                "default": true,
+                "type": "boolean"
+              },
               "version": {
                 "type": "string"
               },
@@ -1146,6 +1164,10 @@
                   "unknown"
                 ]
               },
+              "configured": {
+                "default": true,
+                "type": "boolean"
+              },
               "version": {
                 "type": "string"
               },
@@ -1207,6 +1229,10 @@
             "failed",
             "unknown"
           ]
+        },
+        "configured": {
+          "default": true,
+          "type": "boolean"
         },
         "version": {
           "type": "string"

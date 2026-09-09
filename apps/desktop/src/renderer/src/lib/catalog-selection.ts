@@ -369,12 +369,14 @@ export function problemsOf(
   selected: Selection,
   values: Record<string, Record<string, unknown>>,
   secrets: Record<string, Marks>,
-  connected?: (kind: string) => boolean
+  connected?: (kind: string) => boolean,
+  deferred?: readonly string[]
 ): FieldProblemView[] {
   const known = index(modules);
 
   return validateConfig(modules, selected, values, heldSecrets(secrets), {
     connected,
+    deferred,
     skipManaged: true,
   }).map((problem) => {
     const manifest = known.get(problem.module) as Manifest;

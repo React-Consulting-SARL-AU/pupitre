@@ -74,6 +74,7 @@ async function catalogReady(): Promise<void> {
 }
 
 const POSTGRES: Service = {
+  configured: true,
   id: "db.postgres",
   name: "PostgreSQL 17",
   port: 5432,
@@ -327,6 +328,7 @@ describe("ajouter un module à un serveur déjà installé", () => {
 });
 
 const DETAIL = {
+  configured: true,
   credentials: [],
   id: "db.postgres",
   name: "PostgreSQL 17",

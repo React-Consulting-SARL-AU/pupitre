@@ -148,6 +148,23 @@ describe("une sélection entière", () => {
 
     expect(problems.map((one) => one.code)).toEqual(["required"])
   })
+
+  /**
+   * Deferring is the reader saying they will answer later: weighing an answer
+   * they have not given, and refusing the install for it, is the thing being
+   * undone here.
+   */
+  it("ne pèse ni les champs ni le compte d'un module remis à plus tard", () => {
+    const problems = validateConfig(
+      [manifest({ connection: "cloudflare", fields: [port] })],
+      [MODULE],
+      {},
+      () => 0,
+      { connected: () => false, deferred: [MODULE] }
+    )
+
+    expect(problems).toEqual([])
+  })
 })
 
 describe("la valeur qu'un module lira", () => {

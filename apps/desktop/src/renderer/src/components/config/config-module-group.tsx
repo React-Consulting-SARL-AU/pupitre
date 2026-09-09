@@ -1,8 +1,11 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { FieldProblemView } from "@renderer/lib/catalog-selection";
 import type { SecretMark } from "@shared/secrets";
+import { Clock, Undo2 } from "lucide-react";
 import { type ReactNode, useEffect, useRef } from "react";
 import { type FieldGroup, splitFields } from "../../lib/catalog-selection";
+import { Button } from "../ui/button";
+import { Callout } from "../ui/callout";
 import { Details } from "../ui/details";
 import { ServiceLogo } from "../ui/service-logo";
 import { ConfigFieldControl, type FieldHandlers } from "./config-field-control";
@@ -25,6 +28,8 @@ export function ConfigModuleGroup({
   before,
   position,
   focus = false,
+  deferred = false,
+  onDefer,
   handlers,
 }: {
   group: FieldGroup;
@@ -38,6 +43,9 @@ export function ConfigModuleGroup({
   position?: { index: number; total: number };
   /** The reader just moved here: the heading takes the focus, and says so. */
   focus?: boolean;
+  /** The reader put this service's questions off: nothing of it is asked. */
+  deferred?: boolean;
+  onDefer?: (later: boolean) => void;
   handlers: FieldHandlers;
 }) {
   const t = useTranslations();
@@ -102,31 +110,43 @@ export function ConfigModuleGroup({
         ) : null}
       </header>
 
-      {before}
+      {deferred ? (
+        <div className="flex flex-col gap-3" data-deferred="true">
+          <Callout tone="info">{t("config.later.notice")}</Callout>
 
-      {group.fields.length === 0 ? (
+          <div>
+            <Button icon={Undo2} onClick={() => onDefer?.(false)} size="sm">
+              {t("config.later.undo")}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {deferred ? null : before}
+
+      {!deferred && group.fields.length === 0 ? (
         <p className="text-[12px] text-ink-3">{t("config.module.nothing")}</p>
       ) : null}
 
-      {group.fields.length > 0 && asked.length === 0 ? (
+      {!deferred && group.fields.length > 0 && asked.length === 0 ? (
         <p className="text-[12px] text-ink-3" data-defaults="true">
           {t("config.module.defaults")}
         </p>
       ) : null}
 
-      {asked.length > 0 ? (
+      {!deferred && asked.length > 0 ? (
         <div className="grid @lg/module:grid-cols-2 gap-4" data-asked="true">
           {asked.map(control)}
         </div>
       ) : null}
 
-      {asksSecret ? (
+      {!deferred && asksSecret ? (
         <p className="text-[12px] text-ink-3 leading-relaxed">
           {t("config.secretsNotice")}
         </p>
       ) : null}
 
-      {kept.length > 0 ? (
+      {!deferred && kept.length > 0 ? (
         <Details
           className="border-line border-t pt-3"
           label={t("config.advanced", { count: kept.length })}
@@ -137,6 +157,24 @@ export function ConfigModuleGroup({
             {kept.map(control)}
           </div>
         </Details>
+      ) : null}
+
+      {/*
+        Putting a service off is a decision about this installation, not about
+        the service: it sits at the foot of its own panel, discreet, and never
+        offered for a module the machine cannot do without.
+      */}
+      {!(deferred || group.module.mandatory) && onDefer ? (
+        <div className="border-line border-t pt-3">
+          <Button
+            icon={Clock}
+            onClick={() => onDefer(true)}
+            size="sm"
+            variant="discreet"
+          >
+            {t("config.later.defer")}
+          </Button>
+        </div>
       ) : null}
     </section>
   );

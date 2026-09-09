@@ -16,6 +16,8 @@ export const services = {
       "The settings of this service cannot be shown while the server is held back.",
     "services.config.reread": "Read the catalogue again",
     "services.config.title": "Configuration",
+    "services.config.unconfigured":
+      "This service was put on the machine without being configured. Answer its questions and apply: that is what finishes it.",
     "services.config.apply": "Apply",
     "services.config.note":
       "These are the values the agent kept from the last installation. Applying replays the module with them; a secret left empty stays the one the server holds.",
@@ -119,6 +121,8 @@ export const services = {
       "Les réglages de ce service ne peuvent pas être montrés tant que le serveur est retenu.",
     "services.config.reread": "Relire le catalogue",
     "services.config.title": "Configuration",
+    "services.config.unconfigured":
+      "Ce service a été posé sur la machine sans être configuré. Répondez à ses questions et appliquez : c'est ce qui le termine.",
     "services.config.apply": "Appliquer",
     "services.config.note":
       "Ce sont les valeurs que l'agent a gardées de la dernière installation. Appliquer rejoue le module avec elles ; un secret laissé vide reste celui que le serveur détient.",

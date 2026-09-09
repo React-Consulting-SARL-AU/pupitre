@@ -59,6 +59,13 @@ func fieldProblems(modules []Module, request Request) []contract.FieldProblem {
 
 	for _, module := range modules {
 		manifest := module.Manifest()
+
+		// Nothing to weigh on a module nobody has answered yet, and refusing the
+		// install for it is exactly what deferring undoes.
+		if request.Deferred(manifest.ID) {
+			continue
+		}
+
 		problems = append(problems, contract.ValidateModule(manifest, request.Config[manifest.ID], counting)...)
 	}
 
@@ -130,7 +137,7 @@ func (e *Engine) Check(request Request, sink Sink) (contract.InstallCheck, error
 
 	for _, module := range modules {
 		looking, ok := module.(Preflighter)
-		if !ok {
+		if !ok || request.Deferred(module.Manifest().ID) {
 			continue
 		}
 
