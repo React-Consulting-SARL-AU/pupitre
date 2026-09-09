@@ -201,7 +201,12 @@ export function answerOnboarding(
         },
       }));
 
-      answer("connections:state", () => ({ cloudflare: { status: "absent" } }));
+      answer("connections:state", () => ({
+        "1password": { status: "absent" },
+        cloudflare: { status: "absent" },
+        github: { status: "absent" },
+        neon: { status: "absent" },
+      }));
       answer("connections:zones", () => ({ ok: true, result: [] }));
     },
     { catalog: CATALOG, probe: PROBE, problems: options.problems ?? [] }

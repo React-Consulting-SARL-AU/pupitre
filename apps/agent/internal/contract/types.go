@@ -28,10 +28,13 @@ var Categories = []string{"core", "runtime", "database", "ai", "editor", "exposu
 var Architectures = []string{"amd64", "arm64"}
 
 const (
-	ConnectionCloudflare = "cloudflare"
+	ConnectionCloudflare  = "cloudflare"
+	ConnectionGitHub      = "github"
+	ConnectionOnePassword = "1password"
+	ConnectionNeon        = "neon"
 )
 
-var Connections = []string{ConnectionCloudflare}
+var Connections = []string{ConnectionCloudflare, ConnectionGitHub, ConnectionOnePassword, ConnectionNeon}
 
 const (
 	// PatternVersionOrLatest holds an editor's free version field: `latest`, or a version the client reads off their own client.

@@ -14,7 +14,7 @@ func manifest() contract.Manifest {
 		Name:      "Caddy",
 		Summary:   i18n.T("module.exposure.caddy.summary"),
 		Requires:  []string{"core.system"},
-		Conflicts: []string{"exposure.cloudflare", "exposure.ssh"},
+		Conflicts: []string{"exposure.cloudflare"},
 		Resources: contract.Resources{RAMMB: 128, DiskMB: 128},
 		Arch:      []string{"amd64", "arm64"},
 		Fields: []contract.Field{

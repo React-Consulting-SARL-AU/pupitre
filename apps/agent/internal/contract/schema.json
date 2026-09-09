@@ -2854,8 +2854,7 @@
               "type": "string",
               "enum": [
                 "cloudflare",
-                "caddy",
-                "ssh"
+                "caddy"
               ]
             },
             {
@@ -2918,8 +2917,7 @@
               "type": "string",
               "enum": [
                 "cloudflare",
-                "caddy",
-                "ssh"
+                "caddy"
               ]
             },
             {
@@ -2982,8 +2980,7 @@
               "type": "string",
               "enum": [
                 "cloudflare",
-                "caddy",
-                "ssh"
+                "caddy"
               ]
             },
             {
@@ -3384,7 +3381,10 @@
         "connection": {
           "type": "string",
           "enum": [
-            "cloudflare"
+            "cloudflare",
+            "github",
+            "1password",
+            "neon"
           ]
         },
         "mandatory": {
@@ -3938,8 +3938,7 @@
             "db.mysql",
             "ai.claude",
             "ai.browser",
-            "editor.vscode",
-            "exposure.ssh"
+            "editor.vscode"
           ]
         },
         {
@@ -3971,7 +3970,6 @@
             "tool.neon"
           ],
           "choose_one": [
-            "exposure.ssh",
             "exposure.caddy",
             "exposure.cloudflare"
           ]

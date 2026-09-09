@@ -33,7 +33,7 @@ Versions, ports, comptes, secrets. Chaque champ dit ce qu'il attend et refuse ce
 
 Un secret passe par l'entrée standard de la session SSH ; il n'est jamais écrit dans un fichier que vous n'avez pas demandé, et jamais réaffiché après saisie.
 
-Un module qui publie par votre compte Cloudflare demande ce compte ici, au-dessus de ses propres questions, et non trois écrans plus loin. Vous donnez un jeton, une fois pour tous vos serveurs ; l'app lit elle-même le compte qu'il ouvre et les zones qu'il porte. Le domaine sous lequel ce serveur publie est un choix par serveur.
+Un module qui passe par un de vos comptes — Cloudflare, GitHub, 1Password, Neon — demande ce compte ici, au-dessus de ses propres questions, et non trois écrans plus loin. Vous donnez chaque jeton une fois, pour tous vos serveurs, et l'app le vérifie à la seconde où vous le collez : elle lit le compte qu'il ouvre plutôt que de vous faire recopier un identifiant. Le jeton reste dans le trousseau de votre ordinateur ; ce qu'un serveur en a besoin s'écrit sur la ligne de secrets de l'installation, et nulle part ailleurs. Ce qui reste un choix par serveur est ce qui l'est vraiment — le domaine sous lequel cette machine publie, par exemple.
 
 Avant de lancer, l'app demande au serveur de peser la configuration : un port que quelque chose écoute déjà, un dossier qui est un fichier, un fuseau que cette machine ignore. Ce qu'il refuse revient sur le champ concerné.
 

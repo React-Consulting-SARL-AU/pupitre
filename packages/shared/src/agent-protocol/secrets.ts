@@ -89,7 +89,7 @@ export const TunnelRouteSchema = z.object({
 
 export type TunnelRoute = z.infer<typeof TunnelRouteSchema>
 
-export const EXPOSURE_PROVIDERS = ["cloudflare", "caddy", "ssh"] as const
+export const EXPOSURE_PROVIDERS = ["cloudflare", "caddy"] as const
 
 export const ExposureProviderSchema = z.enum(EXPOSURE_PROVIDERS)
 

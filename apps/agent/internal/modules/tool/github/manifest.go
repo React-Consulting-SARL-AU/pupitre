@@ -22,13 +22,12 @@ func manifest() contract.Manifest {
 				Key:      "token",
 				Kind:     contract.FieldSecret,
 				Label:    i18n.T("module.tool.github.token.label"),
-				Help:     i18n.T("module.tool.github.token.help"),
-				HintText: i18n.T("module.tool.github.token.hint"),
-				HintURL:  "https://github.com/settings/personal-access-tokens/new",
 				Required: true,
+				Managed:  true,
 			},
 		},
-		Mandatory: false,
-		Since:     "0.1.0",
+		Connection: contract.ConnectionGitHub,
+		Mandatory:  false,
+		Since:      "0.1.0",
 	}
 }

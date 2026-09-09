@@ -1,6 +1,7 @@
 import type { Manifest } from "@pupitre/shared/catalog";
 import { ConfigFieldControl } from "@renderer/components/config/config-field-control";
-import { ConnectionCloudflare } from "@renderer/components/connections/connection-cloudflare";
+import { ConnectionCard } from "@renderer/components/connections/connection-card";
+import { descriptorOf } from "@renderer/components/connections/connection-descriptors";
 import { InstallProgress } from "@renderer/components/install/install-progress";
 import { Button } from "@renderer/components/ui/button";
 import { Callout } from "@renderer/components/ui/callout";
@@ -81,6 +82,7 @@ export function ServiceConfig({
 
   // A `managed` value is derived from a connection by the app, never typed.
   const fields = manifest.fields.filter((field) => field.managed !== true);
+  const connection = descriptorOf(manifest.connection ?? "");
 
   // A module that publishes through an account has that account to show, even
   // when everything else about it is derived: it used to be the one installed
@@ -132,7 +134,7 @@ export function ServiceConfig({
         </div>
       ) : null}
 
-      {manifest.connection ? <ConnectionCloudflare compact /> : null}
+      {connection ? <ConnectionCard compact connection={connection} /> : null}
 
       <p className="text-[12px] text-ink-3 leading-relaxed">
         {t("services.config.note")}

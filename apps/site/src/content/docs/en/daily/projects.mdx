@@ -39,4 +39,4 @@ If `tool.1password` is installed, a project that carries an `.env.local` templat
 
 ## Exposure
 
-By default a project listens on localhost and the app reaches it through the SSH session — `exposure.ssh`. With `exposure.cloudflare` installed, you can give a project a route on your domain: one tunnel for the machine, one route per project, DNS and certificate handled.
+By default a project listens on localhost and the app reaches it through the SSH session it already holds. That is a state, not a module: tick no exposure and nothing is published. With `exposure.cloudflare` installed, you can give a project a route on your domain — one tunnel for the machine, one route per project, DNS and certificate handled; `exposure.caddy` does the same for a domain outside Cloudflare.

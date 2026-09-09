@@ -46,11 +46,16 @@ export interface TunnelDeps {
 const EMPTY: ManagedValues = { config: {}, secrets: {} };
 
 function notConnected(): AgentResponse<never> {
-  return refuseWith("bad_request", "refusal.cloudflare.absent");
+  return refuseWith("bad_request", "refusal.connection.absent", {
+    kind: "cloudflare",
+  });
 }
 
 function callFailed(reason: string): AgentResponse<never> {
-  return refuseWith("bad_request", "refusal.cloudflare.call", { reason });
+  return refuseWith("bad_request", "refusal.connection.call", {
+    kind: "cloudflare",
+    reason,
+  });
 }
 
 function tunnelName(serverId: string): string {

@@ -152,7 +152,7 @@ Le catalogue, l'écran Services et les cartes de projet montrent **le vrai logo*
 - **Une marque hors catalogue** — un produit qu'un module installe sous un autre nom, comme Bun dans `runtime.node` — vit dans le même dossier sous `mark-<id>.svg`, servie par `markFor`. Le site s'en sert pour nommer ce que Pupitre installe ; le reste du produit n'affiche que des logos de modules.
 - **Interdits** : un logo comme icône d'action, dans un bouton, ou en filigrane derrière du texte.
 - **Une exception, sur le site seulement** : une constellation de logos flotte dans les marges du bloc d'accueil et de l'appel final, hors de la colonne de texte, sur la pastille habituelle, à pleine opacité et sans teinte. Elle est décorative — `aria-hidden`, sans nom lisible — et disparaît sous 1280 px, où la marge n'existe plus. Elle ne remplace pas le mur nommé qui suit : c'est là que les services se lisent.
-- **Sans logo licite, pas de logo inventé.** Trois modules n'ont pas de marque à montrer : `core.system` et `core.hardening` ne nomment aucun produit, `exposure.ssh` n'a pas de source. La retombée doit être aussi soignée que les autres : une icône Lucide dans l'app et la console, un monogramme sur le site.
+- **Sans logo licite, pas de logo inventé.** Deux modules n'ont pas de marque à montrer : `core.system` et `core.hardening` ne nomment aucun produit. La retombée doit être aussi soignée que les autres : une icône Lucide dans l'app et la console, un monogramme sur le site.
 
 ## Palette ANSI du terminal
 
