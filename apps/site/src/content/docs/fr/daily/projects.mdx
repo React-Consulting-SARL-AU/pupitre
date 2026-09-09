@@ -39,4 +39,4 @@ Si `tool.1password` est installé, un projet qui porte un gabarit `.env.local` v
 
 ## Exposition
 
-Par défaut un projet écoute en local et l’app l’atteint par la session SSH — `exposure.ssh`. Avec `exposure.cloudflare` installé, vous pouvez donner à un projet une route sur votre domaine : un tunnel pour la machine, une route par projet, DNS et certificat gérés.
+Par défaut un projet écoute en local et l’app l’atteint par la session SSH qu’elle tient déjà. C’est un état, pas un module : ne cochez aucune exposition et rien n’est publié. Avec `exposure.cloudflare` installé, vous pouvez donner à un projet une route sur votre domaine — un tunnel pour la machine, une route par projet, DNS et certificat gérés ; `exposure.caddy` fait de même pour un domaine hors Cloudflare.

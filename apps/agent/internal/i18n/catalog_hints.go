@@ -62,16 +62,4 @@ var hintCatalog = map[string]Message{
 		FR: "Une entrée par fournisseur, sous la forme fournisseur=clé : openai=sk-…, anthropic=sk-ant-…, openrouter=sk-or-…. Chaque clé se crée sur le tableau de bord du fournisseur. Elles partent sur le flux secret et sont écrivos sur le serveur en 0600, jamais dans un journal.",
 		EN: "One entry per provider, in the form provider=key: openai=sk-…, anthropic=sk-ant-…, openrouter=sk-or-…. Each key is created on that provider's dashboard. They leave on the secret stream and are written on the server at 0600, never in a journal.",
 	},
-	"module.tool.github.token.hint": {
-		FR: "Un jeton d'accès personnel fin (fine-grained), limité aux dépôts que ce serveur doit cloner. Permissions minimales : Contents en lecture, et Administration en écriture si vous voulez que l'app enregistre la clé du serveur sur le compte. Un jeton classique fonctionne aussi, avec la portée repo.",
-		EN: "A fine-grained personal access token, limited to the repositories this server must clone. Minimum permissions: Contents read, and Administration write if you want the app to register the server's key on the account. A classic token works too, with the repo scope.",
-	},
-	"module.tool.1password.service_account_token.hint": {
-		FR: "Un jeton de compte de service, pas votre mot de passe principal. Créez-le dans Développeur › Comptes de service, et n'autorisez que le coffre qui porte les secrets de vos projets. Le serveur ne peut lire que ce coffre-là.",
-		EN: "A service account token, not your main password. Create it in Developer › Service Accounts, and grant it only the vault that holds your projects' secrets. The server can read that vault and nothing else.",
-	},
-	"module.tool.neon.api_key.hint": {
-		FR: "Une clé d'API personnelle ou d'organisation, créée dans les réglages du compte Neon. Elle est gardée dans le fichier d'environnement du serveur, lisible par root seul : le CLI la reçoit par NEON_API_KEY quand vous la lui donnez. Les projets et les bases restent votre décision, le module n'en crée aucun.",
-		EN: "A personal or organisation API key, created in the Neon account settings. It is kept in the server's environment file, readable by root alone: the CLI takes it through NEON_API_KEY when you hand it over. Projects and databases remain your decision, the module creates none.",
-	},
 }

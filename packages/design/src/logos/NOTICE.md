@@ -65,4 +65,3 @@ Le catalogue retombe sur une icône Lucide.
 | --- | --- |
 | `core.system` | Socle système : aucun produit de marque à nommer. |
 | `core.hardening` | Durcissement du système : aucun produit de marque à nommer. |
-| `exposure.ssh` | OpenSSH ne publie pas de marque figurative, et ni Simple Icons ni svgl n'en portent une. |

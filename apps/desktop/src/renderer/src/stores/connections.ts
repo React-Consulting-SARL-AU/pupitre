@@ -1,10 +1,7 @@
 import type { AgentError } from "@shared/agent";
-import type {
-  CloudflareZone,
-  ConnectionKind,
-  ConnectionsState,
-} from "@shared/cloudflare";
-import { NO_CONNECTIONS } from "@shared/cloudflare";
+import type { CloudflareZone } from "@shared/cloudflare";
+import type { ConnectionKind, ConnectionsState } from "@shared/connections";
+import { NO_CONNECTIONS } from "@shared/connections";
 import { create } from "zustand";
 
 /**
@@ -41,10 +38,10 @@ export const useConnections = create<ConnectionStore>((set, get) => ({
     set({ state: await window.pupitre.connectionsState() });
   },
 
-  async connect(_kind, token) {
+  async connect(kind, token) {
     set({ busy: true, problem: null });
 
-    const answer = await window.pupitre.connectAccount(token);
+    const answer = await window.pupitre.connectAccount(kind, token);
 
     if (!answer.ok) {
       set({ busy: false, problem: answer.error });
@@ -58,10 +55,10 @@ export const useConnections = create<ConnectionStore>((set, get) => ({
     return true;
   },
 
-  async forget(_kind) {
+  async forget(kind) {
     set({ busy: true, problem: null });
 
-    const state = await window.pupitre.forgetAccount();
+    const state = await window.pupitre.forgetAccount(kind);
 
     set({ busy: false, state, zones: [], zonesFor: null });
   },
@@ -73,18 +70,16 @@ export const useConnections = create<ConnectionStore>((set, get) => ({
    */
   async loadZones() {
     const held = get().state.cloudflare;
+    const account = held.status === "connected" ? held.account : null;
 
-    if (
-      held.status !== "connected" ||
-      get().zonesFor === held.connection.accountId
-    ) {
+    if (!account || get().zonesFor === account.id) {
       return;
     }
 
     const answer = await window.pupitre.connectionZones();
 
     if (answer.ok) {
-      set({ zones: answer.result, zonesFor: held.connection.accountId });
+      set({ zones: answer.result, zonesFor: account.id });
     }
   },
 

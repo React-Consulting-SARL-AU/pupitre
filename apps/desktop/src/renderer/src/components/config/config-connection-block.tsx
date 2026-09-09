@@ -3,7 +3,8 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { useConnections } from "@renderer/stores/connections";
 import { useEffect } from "react";
 import { useCatalog } from "../../stores/catalog";
-import { ConnectionCloudflare } from "../connections/connection-cloudflare";
+import { ConnectionCard } from "../connections/connection-card";
+import { descriptorOf } from "../connections/connection-descriptors";
 import { Field, fieldControlClass } from "../ui/field";
 
 /**
@@ -18,19 +19,30 @@ import { Field, fieldControlClass } from "../ui/field";
 export function ConfigConnectionBlock({ module }: { module: Manifest }) {
   const t = useTranslations();
 
-  const state = useConnections((store) => store.state.cloudflare);
+  const connection = descriptorOf(module.connection ?? "");
+  const state = useConnections((store) =>
+    connection ? store.state[connection.kind] : null
+  );
   const zones = useConnections((store) => store.zones);
   const loadZones = useConnections((store) => store.loadZones);
   const setValue = useCatalog((store) => store.setValue);
   const domain = useCatalog((store) => store.values[module.id]?.domain);
 
-  const connected = state.status === "connected";
+  const connected = state?.status === "connected";
+  const picksZone = connection?.kind === "cloudflare" && connected;
 
   useEffect(() => {
-    if (connected) {
+    if (picksZone) {
       loadZones();
     }
-  }, [connected, loadZones]);
+  }, [picksZone, loadZones]);
+
+  // A module naming a connection this app has never heard of comes from an
+  // agent that is ahead of it: nothing is drawn rather than a block that would
+  // ask for a token it could not place.
+  if (!connection) {
+    return null;
+  }
 
   return (
     <div
@@ -39,13 +51,13 @@ export function ConfigConnectionBlock({ module }: { module: Manifest }) {
     >
       {connected ? null : (
         <p className="text-[12px] text-ink-2 leading-relaxed">
-          {t("connections.cloudflare.required")}
+          {t("connections.required")}
         </p>
       )}
 
-      <ConnectionCloudflare compact />
+      <ConnectionCard compact connection={connection} />
 
-      {connected && zones.length > 0 ? (
+      {picksZone && zones.length > 0 ? (
         <Field
           help={t("connections.zone.help")}
           label={t("connections.zone.label")}
@@ -74,7 +86,7 @@ export function ConfigConnectionBlock({ module }: { module: Manifest }) {
         </Field>
       ) : null}
 
-      {connected && zones.length === 0 ? (
+      {picksZone && zones.length === 0 ? (
         <p className="text-[12px] text-warn">{t("connections.zone.none")}</p>
       ) : null}
     </div>

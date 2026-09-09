@@ -219,14 +219,6 @@ export const CATALOG: CatalogGroup[] = [
         },
       },
       {
-        id: "exposure.ssh",
-        name: { en: "SSH only", fr: "SSH seul" },
-        detail: {
-          en: "No public exposure: each project on its port, through the SSH session the app holds.",
-          fr: "Sans exposition publique : chaque projet sur son port, à travers la session SSH que l’app tient.",
-        },
-      },
-      {
         id: "exposure.caddy",
         name: { en: "Caddy", fr: "Caddy" },
         detail: {

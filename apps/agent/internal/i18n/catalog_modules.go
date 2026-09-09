@@ -374,14 +374,6 @@ var moduleCatalog = map[string]Message{
 		FR: "Secret du tunnel",
 		EN: "Tunnel secret",
 	},
-	"module.exposure.ssh.name": {
-		FR: "Accès par SSH",
-		EN: "SSH access",
-	},
-	"module.exposure.ssh.summary": {
-		FR: "Sans exposition publique : chaque projet reste sur son port, et l'app y accède par la session SSH qu'elle tient déjà.",
-		EN: "No public exposure: every project stays on its port, and the app reaches it through the SSH session it already holds.",
-	},
 	"module.runtime.docker.compose.help": {
 		FR: "Le plugin docker compose, et buildx avec lui.",
 		EN: "The docker compose plugin, and buildx with it.",
@@ -506,10 +498,6 @@ var moduleCatalog = map[string]Message{
 		FR: "Ruby compilé par mise à la version choisie, Bundler en option, actifs dans tous les shells.",
 		EN: "Ruby compiled by mise at the chosen version, Bundler optional, active in every shell.",
 	},
-	"module.tool.1password.service_account_token.help": {
-		FR: "Le jeton d'un compte de service qui voit les coffres des projets.",
-		EN: "The token of a service account that can see the projects' vaults.",
-	},
 	"module.tool.1password.service_account_token.label": {
 		FR: "Jeton du compte de service",
 		EN: "Service account token",
@@ -522,17 +510,9 @@ var moduleCatalog = map[string]Message{
 		FR: "La commande gh, le clone HTTPS sans clé grâce au jeton, et la clé publique du serveur enregistrée sur le compte.",
 		EN: "The gh command, HTTPS clones without a key thanks to the token, and the server's public key registered on the account.",
 	},
-	"module.tool.github.token.help": {
-		FR: "Un jeton avec les droits repo, read:org et admin:public_key pour enregistrer la clé du serveur.",
-		EN: "A token with the repo, read:org and admin:public_key rights, to register the server's key.",
-	},
 	"module.tool.github.token.label": {
 		FR: "Jeton d'accès",
 		EN: "Access token",
-	},
-	"module.tool.neon.api_key.help": {
-		FR: "Une clé personnelle ou d'organisation, depuis la console Neon.",
-		EN: "A personal or organisation key, from the Neon console.",
 	},
 	"module.tool.neon.api_key.label": {
 		FR: "Clé d'API",

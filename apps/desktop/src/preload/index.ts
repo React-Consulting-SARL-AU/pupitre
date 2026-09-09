@@ -40,7 +40,8 @@ import type {
 import type { AgentResponse } from "@shared/agent";
 import type { AgentUpdateState } from "@shared/agent-update";
 import type { Appearance } from "@shared/appearance";
-import type { CloudflareZone, ConnectionsState } from "@shared/cloudflare";
+import type { CloudflareZone } from "@shared/cloudflare";
+import type { ConnectionKind, ConnectionsState } from "@shared/connections";
 import type { RemoteEditorId } from "@shared/editors";
 import type { HardenOutcome, HardenUpdate } from "@shared/harden";
 import type {
@@ -283,10 +284,13 @@ const api = {
    */
   connectionsState: (): Promise<ConnectionsState> =>
     ipcRenderer.invoke("connections:state"),
-  connectAccount: (token: string): Promise<AgentResponse<ConnectionsState>> =>
-    ipcRenderer.invoke("connections:connect", token),
-  forgetAccount: (): Promise<ConnectionsState> =>
-    ipcRenderer.invoke("connections:forget"),
+  connectAccount: (
+    kind: ConnectionKind,
+    token: string
+  ): Promise<AgentResponse<ConnectionsState>> =>
+    ipcRenderer.invoke("connections:connect", kind, token),
+  forgetAccount: (kind: ConnectionKind): Promise<ConnectionsState> =>
+    ipcRenderer.invoke("connections:forget", kind),
   /** The zones the connected account carries, read fresh rather than remembered. */
   connectionZones: (): Promise<AgentResponse<CloudflareZone[]>> =>
     ipcRenderer.invoke("connections:zones"),

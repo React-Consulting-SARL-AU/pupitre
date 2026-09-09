@@ -517,19 +517,6 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       fr: "Votre jeton ne quitte jamais votre ordinateur : l’app crée le tunnel et écrit le DNS, et votre serveur ne reçoit que de quoi faire tourner ce tunnel-là — c’est pourquoi le tunnel appartient au serveur. Un poste réinstallé, ou un collègue à qui vous confiez la machine, le retrouve avec le seul jeton du compte. Un tunnel est une connexion sortante : il n’ouvre aucun port sur votre serveur, et le pare-feu reste fermé sur tout sauf SSH.",
     },
   },
-  "exposure.ssh": {
-    installs: [
-      {
-        en: "Nothing public. Each project listens on its own port on localhost, and the app reaches it through the SSH session it already holds.",
-        fr: "Rien de public. Chaque projet écoute sur son port en local, et l’app l’atteint à travers la session SSH qu’elle tient déjà.",
-      },
-    ],
-    asks: [],
-    notes: {
-      en: "The default, and the right one while a project is not ready to be seen.",
-      fr: "Le choix par défaut, et le bon tant qu’un projet n’est pas prêt à être vu.",
-    },
-  },
   "exposure.caddy": {
     installs: [
       {
@@ -581,8 +568,8 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
     ],
     asks: [
       {
-        en: "A GitHub token. It travels over the SSH session and lands in a file only root can read.",
-        fr: "Un jeton GitHub. Il passe par la session SSH et atterrit dans un fichier que seul root peut lire.",
+        en: "Nothing, once your GitHub account is connected. The token is given once, in the app, and kept in your computer’s keychain; each server you install this on takes it from there, over the SSH session, into a file only root can read.",
+        fr: "Rien, une fois votre compte GitHub connecté. Le jeton est donné une seule fois, dans l’app, et gardé dans le trousseau de votre ordinateur ; chaque serveur où vous posez ce module le prend de là, par la session SSH, dans un fichier que seul root peut lire.",
       },
     ],
   },
@@ -599,8 +586,8 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
     ],
     asks: [
       {
-        en: "A service account token, scoped to the vaults you want the server to read.",
-        fr: "Un jeton de compte de service, limité aux coffres que le serveur doit lire.",
+        en: "Nothing, once your 1Password account is connected. The service account token is given once, in the app, scoped to the vaults you want the server to read.",
+        fr: "Rien, une fois votre compte 1Password connecté. Le jeton de compte de service est donné une seule fois, dans l’app, limité aux coffres que le serveur doit lire.",
       },
     ],
     notes: {
@@ -621,8 +608,8 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
     ],
     asks: [
       {
-        en: "A Neon API key, personal or organisation.",
-        fr: "Une clé d’API Neon, personnelle ou d’organisation.",
+        en: "Nothing, once your Neon account is connected. The API key — personal or organisation — is given once, in the app.",
+        fr: "Rien, une fois votre compte Neon connecté. La clé d’API — personnelle ou d’organisation — est donnée une seule fois, dans l’app.",
       },
     ],
     notes: {

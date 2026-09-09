@@ -180,18 +180,18 @@ export const refusals = {
     "refusal.terminal.kind": "Unknown terminal kind: {kind}.",
     "refusal.terminal.kind.fix":
       "Open a terminal, or the tab of an installed agent.",
-    "refusal.cloudflare.absent": "No Cloudflare account is connected.",
-    "refusal.cloudflare.absent.fix":
-      "Connect your Cloudflare account in the settings before exposing projects.",
-    "refusal.cloudflare.call": "Cloudflare refused: {reason}.",
-    "refusal.cloudflare.call.fix":
-      "Check that the token still carries the tunnel and zone DNS rights.",
-    "refusal.cloudflare.token.none": "This token is empty.",
-    "refusal.cloudflare.token.none.fix":
-      "Paste an account token with the Cloudflare Tunnel and zone DNS rights.",
-    "refusal.cloudflare.account.none": "This token opens no account.",
-    "refusal.cloudflare.account.none.fix":
-      "Create the token on the Cloudflare account that carries your zone, then give it again.",
+    "refusal.connection.absent": "No {kind} account is connected.",
+    "refusal.connection.absent.fix":
+      "Connect the account in the settings: a service that needs it cannot be installed without it.",
+    "refusal.connection.call": "{kind} refused: {reason}.",
+    "refusal.connection.call.fix":
+      "Check that the token is still valid and still carries the rights the service asks for.",
+    "refusal.connection.token.none": "This token is empty.",
+    "refusal.connection.token.none.fix":
+      "Paste the token of the account, with the rights the service asks for.",
+    "refusal.connection.kind": "Unknown account: {kind}.",
+    "refusal.connection.kind.fix":
+      "Connect one of the accounts the settings list.",
     "refusal.cloudflare.zone.unknown":
       "No zone of the connected account carries {domain}.",
     "refusal.cloudflare.zone.unknown.fix":
@@ -455,18 +455,18 @@ export const refusals = {
     "refusal.terminal.kind": "Genre de terminal inconnu : {kind}.",
     "refusal.terminal.kind.fix":
       "Ouvrez un terminal, ou l'onglet d'un agent installé.",
-    "refusal.cloudflare.absent": "Aucun compte Cloudflare n'est connecté.",
-    "refusal.cloudflare.absent.fix":
-      "Connectez votre compte Cloudflare dans les réglages avant d'exposer des projets.",
-    "refusal.cloudflare.call": "Cloudflare a refusé : {reason}.",
-    "refusal.cloudflare.call.fix":
-      "Vérifiez que le jeton porte toujours les droits Tunnel et DNS de la zone.",
-    "refusal.cloudflare.token.none": "Ce jeton est vide.",
-    "refusal.cloudflare.token.none.fix":
-      "Collez un jeton de compte avec les droits Cloudflare Tunnel et DNS de la zone.",
-    "refusal.cloudflare.account.none": "Ce jeton n'ouvre aucun compte.",
-    "refusal.cloudflare.account.none.fix":
-      "Créez le jeton sur le compte Cloudflare qui porte votre zone, puis redonnez-le.",
+    "refusal.connection.absent": "Aucun compte {kind} n'est connecté.",
+    "refusal.connection.absent.fix":
+      "Connectez le compte dans les réglages : un service qui en a besoin ne s'installe pas sans lui.",
+    "refusal.connection.call": "{kind} a refusé : {reason}.",
+    "refusal.connection.call.fix":
+      "Vérifiez que le jeton est toujours valide et porte toujours les droits que le service demande.",
+    "refusal.connection.token.none": "Ce jeton est vide.",
+    "refusal.connection.token.none.fix":
+      "Collez le jeton du compte, avec les droits que le service demande.",
+    "refusal.connection.kind": "Compte inconnu : {kind}.",
+    "refusal.connection.kind.fix":
+      "Connectez l'un des comptes que les réglages listent.",
     "refusal.cloudflare.zone.unknown":
       "Aucune zone du compte connecté ne porte {domain}.",
     "refusal.cloudflare.zone.unknown.fix":

@@ -221,7 +221,6 @@ describe("module ids", () => {
       "editor.vscode",
       "editor.zed",
       "exposure.cloudflare",
-      "exposure.ssh",
       "exposure.caddy",
       "tool.github",
       "tool.1password",
@@ -264,13 +263,11 @@ describe("presets", () => {
       "ai.claude",
       "ai.browser",
       "editor.vscode",
-      "exposure.ssh",
     ])
     expect(getPreset("full").modules).toEqual(
       MODULE_IDS.filter((id) => !id.startsWith("exposure."))
     )
     expect(getPreset("full").choose_one).toEqual([
-      "exposure.ssh",
       "exposure.caddy",
       "exposure.cloudflare",
     ])

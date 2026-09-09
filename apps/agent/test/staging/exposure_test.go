@@ -138,14 +138,11 @@ func TestASubdomainGetsARoute(t *testing.T) {
 	}
 }
 
-// Without a tunnel a project stays on its port, and the subdomain column of the registry is simply ignored.
+// No exposure is a state, not a module: taking the tunnel back leaves the project on its port, and the subdomain column of the registry is simply ignored.
 func TestWithoutATunnelTheUrlIsLocal(t *testing.T) {
 	host := stagingHost(t)
 
 	agent(t, host, request{Cmd: "uninstall", Params: map[string]any{"modules": []string{"exposure.cloudflare"}}})
-	agent(t, host, request{Cmd: "install", Params: map[string]any{
-		"secrets_stdin": false, "modules": []string{"exposure.ssh"}, "config": map[string]any{},
-	}})
 
 	url := agent(t, host, request{Cmd: "project.url", Params: map[string]any{"name": "fixture"}})[0]
 	if address := decode[struct {
