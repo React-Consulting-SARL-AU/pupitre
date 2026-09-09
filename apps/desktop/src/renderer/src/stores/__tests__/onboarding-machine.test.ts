@@ -31,7 +31,6 @@ describe("l'ordre des étapes", () => {
       { type: "configured" } as const,
       { type: "installed" } as const,
       { type: "hardened" } as const,
-      { type: "projectDone" } as const,
     ];
 
     const seen = steps.reduce<{ state: MachineState; path: OnboardingStep[] }>(
@@ -54,7 +53,6 @@ describe("l'ordre des étapes", () => {
       "config",
       "install",
       "harden",
-      "project",
       "done",
     ]);
   });
@@ -121,7 +119,7 @@ describe("ce qu'une étape déclenche en y entrant", () => {
 
   it("recharge la flotte quand l'onboarding est fini", () => {
     expect(
-      effectsOf({ ...OPENED, step: "project" }, { type: "projectDone" })
+      effectsOf({ ...OPENED, step: "harden" }, { type: "hardened" })
     ).toContain("reloadFleet");
   });
 
@@ -130,6 +128,54 @@ describe("ce qu'une étape déclenche en y entrant", () => {
     expect(effectsOf(OPENED, { serverId: "srv-2", type: "begin" })).toContain(
       "forget"
     );
+  });
+});
+
+describe("un serveur qui quitte la liste", () => {
+  it("ramène au choix, sans machine et sans chemin de retour", () => {
+    const state = walk(OPENED, { type: "serverLost" });
+
+    expect(state.step).toBe("server");
+    expect(state.serverId).toBeNull();
+    expect(canGoBack(state)).toBe(false);
+  });
+
+  it("rend au choix son événement, refusé à l'étape d'avant", () => {
+    const lost = walk(OPENED, { type: "serverLost" });
+
+    expect(walk(lost, { serverId: "srv-2", type: "serverChosen" }).step).toBe(
+      "inspection"
+    );
+    expect(walk(OPENED, { serverId: "srv-2", type: "serverChosen" }).step).toBe(
+      "inspection"
+    );
+  });
+
+  it("efface l'étagère, qui parlait d'une machine disparue", () => {
+    expect(effectsOf(OPENED, { type: "serverLost" })).toContain("forget");
+  });
+
+  it("ramène au choix même une fois la machine touchée", () => {
+    const state = walk(
+      { ...OPENED, installed: true, step: "install" },
+      { type: "serverLost" }
+    );
+
+    expect(state.step).toBe("server");
+    expect(state.installed).toBe(false);
+  });
+
+  it("ferme une séquence déjà finie plutôt que de la recommencer", () => {
+    const state = walk({ ...OPENED, step: "done" }, { type: "serverLost" });
+
+    expect(state.step).toBe("closed");
+  });
+
+  it("ne bouge pas quand le choix est déjà à l'écran", () => {
+    const choosing = walk(CLOSED, { type: "open" });
+
+    expect(walk(choosing, { type: "serverLost" }).step).toBe("server");
+    expect(walk(CLOSED, { type: "serverLost" }).step).toBe("closed");
   });
 });
 
@@ -211,7 +257,7 @@ describe("une reprise", () => {
 
 describe("les étapes déclarées", () => {
   it("sont celles que le rail compte", () => {
-    expect(ONBOARDING_STEPS.length).toBe(9);
+    expect(ONBOARDING_STEPS.length).toBe(8);
     expect(ONBOARDING_STEPS[0]).toBe("server");
     expect(ONBOARDING_STEPS.at(-1)).toBe("done");
   });

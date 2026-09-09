@@ -5,6 +5,7 @@ import { InstallScreen } from "@renderer/components/install/install-screen";
 import { Button } from "@renderer/components/ui/button";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { carriesSecret } from "@renderer/lib/catalog-selection";
+import { STEP_COLUMN } from "@renderer/lib/layout";
 import { useCatalog } from "@renderer/stores/catalog";
 import { useInstall } from "@renderer/stores/install";
 import { X } from "lucide-react";
@@ -76,8 +77,8 @@ export function ServicesAddFlow({
   }
 
   return (
-    <section className="flex flex-col gap-gutter">
-      <div className="flex justify-end">
+    <section className="flex min-h-full flex-col gap-gutter">
+      <div className={`${STEP_COLUMN} flex justify-end`}>
         <Button icon={X} onClick={onDone} variant="discreet">
           {t("services.add.quit")}
         </Button>

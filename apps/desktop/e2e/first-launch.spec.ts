@@ -1,5 +1,6 @@
 import type { ElectronApplication } from "@playwright/test";
 import { expect, test } from "@playwright/test";
+import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
 /**
@@ -82,6 +83,8 @@ test.describe("premier lancement", () => {
     ).toBeVisible();
     await expect(page.getByText(NO_ACCOUNT.refusal.fix)).toBeVisible();
 
+    await assertAccessible(page, "compte/porte");
+
     await expect(
       page.getByRole("button", { name: "Tableau de bord" })
     ).toHaveCount(0);
@@ -113,7 +116,7 @@ test.describe("premier lancement", () => {
     await expect(
       page.getByRole("heading", { name: "Connectez-vous pour ouvrir Pupitre" })
     ).toBeVisible();
-    await expect(page.getByText("Droit d'usage expiré")).toBeVisible();
+    await expect(page.getByText("Vérification expirée")).toBeVisible();
     await expect(page.getByText(EIGHTH_DAY.refusal.message)).toBeVisible();
     await expect(page.getByText(EIGHTH_DAY.refusal.fix)).toBeVisible();
   });

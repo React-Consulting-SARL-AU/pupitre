@@ -30,8 +30,10 @@ export const account = {
     "profile.name": "Name",
     "profile.email": "Email address",
     "profile.emailHelp":
-      "The address is what signs you in: changing it will ask for an email verification, which is not wired yet.",
+      "The address is what signs you in. Changing it sends a link to the address you use today: the account moves only once that link is opened.",
     "profile.saved": "Name saved.",
+    "profile.emailAsked":
+      "A confirmation link has been sent to your current address.",
     "profile.failed": "The name could not be saved.",
     "profile.failedFix": "Try again in a moment.",
 
@@ -86,8 +88,10 @@ export const account = {
     "profile.name": "Nom",
     "profile.email": "Adresse email",
     "profile.emailHelp":
-      "L'adresse sert à vous connecter : la changer demandera une vérification par email, qui n'est pas encore branchée.",
+      "L'adresse sert à vous connecter. La changer envoie un lien à l'adresse que vous utilisez aujourd'hui : le compte ne bouge qu'une fois ce lien ouvert.",
     "profile.saved": "Nom enregistré.",
+    "profile.emailAsked":
+      "Un lien de confirmation est parti vers votre adresse actuelle.",
     "profile.failed": "Le nom n'a pas pu être enregistré.",
     "profile.failedFix": "Réessayez dans un instant.",
 

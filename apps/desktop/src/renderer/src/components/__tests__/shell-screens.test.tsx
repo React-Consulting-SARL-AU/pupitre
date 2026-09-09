@@ -3,14 +3,9 @@ import type { AccountState } from "@shared/account";
 import type { Server } from "@shared/servers";
 import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import {
-  PROCESSES,
-  SECRETS,
-  SNAPSHOT,
-} from "../../__tests__/snapshot-fixtures";
+import { PROCESSES, SNAPSHOT } from "../../__tests__/snapshot-fixtures";
 import { type ReenrollState, repairable } from "../../stores/reenroll";
 import { ActivityPanel } from "../activity/activity-panel";
-import { SecretsPanel } from "../secrets/secrets-panel";
 import { AppSidebar } from "../shell/app-sidebar";
 import { FirstRunScreen } from "../shell/first-run-screen";
 import { ServerRestrictedNotice } from "../shell/server-restricted-notice";
@@ -181,51 +176,6 @@ describe("processus et sessions", () => {
   });
 });
 
-describe("les secrets", () => {
-  it("montre les clés et leur état, jamais une valeur", () => {
-    const html = renderToStaticMarkup(
-      <SecretsPanel
-        onOpen={NOOP}
-        onReload={NOOP}
-        onSave={NOOP}
-        open={null}
-        problem={null}
-        saved={null}
-        saving={null}
-        state={{ secrets: SECRETS, status: "read" }}
-      />
-    );
-
-    expect(html).toContain("GITHUB_TOKEN");
-    expect(html).toContain("CLOUDFLARE_TOKEN");
-    expect(html).toContain("en place");
-    expect(html).toContain("absente");
-    expect(html).toContain("1 sur 2 en place");
-  });
-
-  it("dit le remède de l'agent quand il refuse une valeur", () => {
-    const html = renderToStaticMarkup(
-      <SecretsPanel
-        onOpen={NOOP}
-        onReload={NOOP}
-        onSave={NOOP}
-        open={null}
-        problem={{
-          code: "bad_request",
-          fix: "Donne une valeur sur une seule ligne.",
-          message: "La valeur tient sur plusieurs lignes.",
-        }}
-        saved={null}
-        saving={null}
-        state={{ secrets: SECRETS, status: "read" }}
-      />
-    );
-
-    expect(html).toContain("plusieurs lignes");
-    expect(html).toContain("une seule ligne");
-  });
-});
-
 describe("le mode restreint de l'agent", () => {
   const IDLE: ReenrollState = { status: "idle" };
 
@@ -367,5 +317,25 @@ describe("qui peut réparer un serveur restreint", () => {
         })
       )
     ).toBe(false);
+  });
+});
+
+describe("un serveur qu'on n'a pas encore joint", () => {
+  it("dit qu'on le joint, sans parler de refus", () => {
+    const html = renderToStaticMarkup(
+      <ServerUnreadyScreen
+        error={null}
+        onInstall={NOOP}
+        onRetry={NOOP}
+        onSettings={NOOP}
+        server={SERVER}
+      />
+    );
+
+    expect(html).toContain('data-unready="reaching"');
+    expect(html).toContain("Connexion à Atelier");
+    expect(html).toContain("dev@atelier.example.net:22");
+    expect(html).not.toContain("ne répond pas");
+    expect(html).not.toContain("Installer l&#x27;agent");
   });
 });

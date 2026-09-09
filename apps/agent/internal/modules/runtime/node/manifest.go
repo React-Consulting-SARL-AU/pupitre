@@ -22,7 +22,6 @@ func manifest() contract.Manifest {
 			{Key: "bun", Kind: contract.FieldBoolean, Label: i18n.T("module.runtime.node.bun.label"), Help: i18n.T("module.runtime.node.bun.help"), Required: false, Default: true},
 			{Key: "pnpm", Kind: contract.FieldBoolean, Label: i18n.T("module.runtime.node.pnpm.label"), Help: i18n.T("module.runtime.node.pnpm.help"), Required: false, Default: true},
 		},
-		Provides:  []string{"runtime:node"},
 		Mandatory: false,
 		Since:     "0.1.0",
 	}

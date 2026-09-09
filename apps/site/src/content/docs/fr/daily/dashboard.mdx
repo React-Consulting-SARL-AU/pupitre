@@ -1,0 +1,36 @@
+---
+title: Tableau de bord et activité
+description: Ce que l’app montre d’une machine entre deux travaux, et ce qu’elle laisse arrêter.
+locale: fr
+section: daily
+sectionOrder: 2
+order: 1
+---
+
+Une fois un serveur prêt, l’app s’ouvre sur son tableau de bord. Une page, une question : cette machine peut-elle en prendre une de plus ?
+
+## Une commande, une page
+
+Tout ce que porte le tableau de bord vient d’un seul `snapshot` que l’agent répond : la machine, les services, les projets, les sessions. Une commande, quel que soit le nombre de projets, rafraîchie toutes les quelques secondes. Rien n’est mis en cache et rien n’est deviné — un chiffre que vous lisez est un chiffre que le serveur a envoyé.
+
+## Les quatre chiffres
+
+La mémoire, la charge, le disque, et ce que pèsent les projets ensemble. La charge est la charge moyenne Unix divisée par le nombre de cœurs, parce que c’est ce que la machine rapporte réellement ; il n’y a pas de pourcentage de processeur dans le protocole, et l’app n’en invente pas. Chaque chiffre prend une forme d’alerte quand il passe la limite qui compte : moins d’un gigaoctet de mémoire libre, plus de un de charge par cœur, plus de quatre-vingt-dix pour cent du disque occupé.
+
+Dessous, en texte simple : la distribution, sa version, l’architecture, et la version de l’agent que la machine fait tourner.
+
+## Services et projets
+
+Les services sont les modules que l’agent rapporte comme installés, avec leur état. Les projets sont des cartes : l’état, la mémoire, et les trois gestes — ouvrir, démarrer ou arrêter, redémarrer. `Tout démarrer` et `Tout arrêter` sont en haut ; tout arrêter demande confirmation.
+
+## Sessions en arrière-plan
+
+Une session `tmux` survit à ce qui l’a lancée. Un agent IA laissé en marche, un backend JetBrains dont vous avez fermé la fenêtre : ils continuent, et ils gardent leur mémoire. Le tableau de bord les liste, dit lesquelles ont encore un onglet ouvert dans l’app, et laisse en arrêter une, ou arrêter celles qui traînent depuis longtemps. Un backend JetBrains pèse à lui seul plusieurs gigaoctets ; c’est la liste qu’on regarde quand la machine a ralenti sans raison visible.
+
+## Processus et sessions
+
+L’écran d’activité descend d’un cran : la liste complète des processus, telle que `ps` la rapporte, sur un rythme plus lent que le tableau de bord parce qu’elle coûte davantage. Vous voyez ce qui pèse, et vous pouvez arrêter un processus par son nom et son pid. Les mêmes sessions en arrière-plan sont listées en dessous.
+
+## Redémarrer la machine
+
+En bas du tableau de bord, à l’écart du reste, un bouton redémarre le serveur. C’est le seul geste de la page qui interrompt tout le monde et ne s’annule pas : il est posé seul et demande confirmation. La machine revient une minute plus tard environ : `systemd` relance l’agent, les bases et tout ce qu’un module a installé en unité. Un projet qui tourne dans une session `tmux` ne repart pas tout seul — on le relance d’ici.

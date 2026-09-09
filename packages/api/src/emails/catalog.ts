@@ -7,6 +7,7 @@ import {
   renderAlertEntitlementGraceEmail,
   renderAlertServerUnreachableEmail,
   renderDeviceAddedEmail,
+  renderEmailChangeEmail,
   renderEntitlementGraceEmail,
   renderInvitationEmail,
   renderMagicLinkEmail,
@@ -21,6 +22,8 @@ export const SAMPLE = {
   consoleUrl: consoleUrl(),
   magicLinkUrl: `${consoleUrl()}/api/auth/magic-link/verify?token=8f3c1d94a0b74e2f&callbackURL=%2Fdashboard`,
   invitationUrl: `${consoleUrl()}/auth/invitation/inv_7a1c2e`,
+  emailChangeUrl: `${consoleUrl()}/api/auth/verify-email?token=1b7d0e5c9a24f8&callbackURL=%2Fdashboard%2Fsettings`,
+  newEmail: "camille@ferrand.studio",
   organizationName: "Atelier Ferrand",
   inviterEmail: "camille@atelier-ferrand.fr",
   serverName: "vps-paris-01",
@@ -49,6 +52,12 @@ const RENDERERS: Record<
 > = {
   magic_link: (locale) =>
     renderMagicLinkEmail({ locale, url: SAMPLE.magicLinkUrl }),
+  email_change: (locale) =>
+    renderEmailChangeEmail({
+      locale,
+      url: SAMPLE.emailChangeUrl,
+      newEmail: SAMPLE.newEmail,
+    }),
   invitation: (locale) =>
     renderInvitationEmail({
       locale,

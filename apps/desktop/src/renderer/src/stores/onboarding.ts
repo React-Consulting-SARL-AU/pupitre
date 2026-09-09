@@ -20,6 +20,7 @@ import {
   type OnboardingStep,
   transition,
 } from "./onboarding-machine";
+import { useServers } from "./servers";
 
 export type DeliveryState =
   | { status: "idle" }
@@ -128,8 +129,6 @@ interface OnboardingStore extends MachineState {
   noteDraft: () => void;
   open: () => void;
   begin: (serverId: string) => void;
-  /** The first opening of a server the platform granted, already installed. */
-  personalise: (serverId: string) => void;
   back: () => void;
   canGoBack: () => boolean;
   replay: (moduleId: string) => OnboardingStep;
@@ -172,6 +171,16 @@ function ownDraft(serverId: string | null): Draft | null {
   }
 
   return { selected: catalog.selected, values: catalog.values };
+}
+
+/**
+ * A server the list has read and does not hold. A list not yet read holds
+ * nothing, and says nothing about the machine either.
+ */
+function unknownServer(serverId: string): boolean {
+  const config = useServers.getState().config;
+
+  return Boolean(config) && !config?.servers.some(({ id }) => id === serverId);
 }
 
 export const useOnboarding = create<OnboardingStore>((set, get) => {
@@ -392,11 +401,6 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
       send({ serverId, type: "begin" });
     },
 
-    personalise(serverId) {
-      set({ delivery: { status: "idle" } });
-      send({ serverId, type: "personalise" });
-    },
-
     canGoBack() {
       return allowedBack(get());
     },
@@ -458,6 +462,15 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
         return;
       }
 
+      // A sequence about a machine the app no longer knows is not offered back:
+      // every step after the choice would ask something of a server that is
+      // gone. The list is only consulted once it has been read.
+      if (saved.serverId && unknownServer(saved.serverId)) {
+        keep(null);
+
+        return;
+      }
+
       set({ delivery: { status: "idle" } });
       send({
         installed: saved.installed,
@@ -474,6 +487,26 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
       set({ ...CLOSED, delivery: { status: "idle" }, recovering: false });
     },
   };
+});
+
+/**
+ * A machine that leaves the list takes the sequence about it with it.
+ *
+ * It is removed from the settings, or a relaunch reads a list it is no longer
+ * in: either way the steps that follow the choice have nothing to run on, and
+ * the onboarding goes back to the choice rather than showing a screen whose
+ * only answer the machine would refuse.
+ */
+useServers.subscribe(() => {
+  const { step, serverId } = useOnboarding.getState();
+
+  if (step === "closed" || step === "server") {
+    return;
+  }
+
+  if (!serverId || unknownServer(serverId)) {
+    useOnboarding.getState().send({ type: "serverLost" });
+  }
 });
 
 /**

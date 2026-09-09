@@ -61,9 +61,10 @@ function tunnelName(serverId: string): string {
  * What the installation asks nobody for.
  *
  * The three managed fields come from here. A server that already runs a tunnel
- * keeps it and receives no secret at all — Cloudflare never gives one back, and
- * the agent leaves a secret it was not sent exactly as it was. Only a server
- * with no tunnel gets a new one made for it.
+ * the account still holds keeps it and receives no secret at all — Cloudflare
+ * never gives one back, and the agent leaves a secret it was not sent exactly
+ * as it was. A server with no tunnel, or one naming a tunnel that has since
+ * gone, gets a new one made for it.
  */
 export async function managedValues(
   serverId: string,
@@ -84,7 +85,9 @@ export async function managedValues(
   try {
     const held = await deps.exposureOf(serverId);
 
-    if (held?.tunnelId) {
+    // A tunnel the account no longer holds is one cloudflared refuses to run:
+    // handing it back would install a service that can never carry anything.
+    if (held?.tunnelId && (await api.hasTunnel(held.tunnelId))) {
       return {
         ok: true,
         result: {
@@ -120,7 +123,14 @@ export async function managedValues(
   }
 }
 
-/** A same-named tunnel that survived a reinstall is unusable: its secret left with the machine that ran it. */
+const NAME_TAKEN = /already have a tunnel with this name/i;
+
+/**
+ * A same-named tunnel that survived a reinstall is unusable: its secret left
+ * with the machine that ran it. It is looked for and removed first; a name
+ * Cloudflare still refuses after that is looked for once more, because its
+ * listing lags behind its refusals.
+ */
 async function createTunnel(
   serverId: string,
   api: CloudflareApi
@@ -134,7 +144,23 @@ async function createTunnel(
     await api.deleteTunnel(orphan);
   }
 
-  return { id: await api.createTunnel(name, secret), secret };
+  try {
+    return { id: await api.createTunnel(name, secret), secret };
+  } catch (failure) {
+    if (!(failure instanceof Error && NAME_TAKEN.test(failure.message))) {
+      throw failure;
+    }
+
+    const survivor = await api.findTunnel(name);
+
+    if (!survivor) {
+      throw failure;
+    }
+
+    await api.deleteTunnel(survivor);
+
+    return { id: await api.createTunnel(name, secret), secret };
+  }
 }
 
 /**

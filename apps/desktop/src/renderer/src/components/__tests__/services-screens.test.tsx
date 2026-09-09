@@ -11,11 +11,14 @@ import { removalOf } from "../../lib/service-removal";
 import { useCatalog } from "../../stores/catalog";
 import { CatalogChoice } from "../catalog/catalog-choice";
 import { ConfigModuleGroup } from "../config/config-module-group";
+import { ServiceConfig } from "../services/service-config";
 import { ServiceCredentials } from "../services/service-credentials";
 import { ServiceForward } from "../services/service-forward";
+import { ServicePanelHeader } from "../services/service-panel-header";
 import { ServiceRemovalLosses } from "../services/service-removal-losses";
 import { ServiceRow } from "../services/service-row";
 import { ServicesTunnel } from "../services/services-tunnel";
+import { ScreenFailure } from "../shell/screen-failure";
 
 const SERVER = "srv-1";
 
@@ -84,11 +87,9 @@ describe("la ligne d'un service", () => {
     <ServiceRow onOpen={() => undefined} service={POSTGRES} />
   );
 
-  it("dit l'état, la version, le port et l'unité", () => {
+  it("dit l'état, la version et le port", () => {
     expect(text(html)).toContain("PostgreSQL 17");
-    expect(text(html)).toContain(
-      "db.postgres · 17.2 · port 5432 · postgresql.service"
-    );
+    expect(text(html)).toContain("17.2 · port 5432");
   });
 
   it("porte l'état par sa forme avant sa couleur", () => {
@@ -321,6 +322,117 @@ describe("ajouter un module à un serveur déjà installé", () => {
     );
     expect(readdirSync(join(import.meta.dir, "..", "services"))).not.toContain(
       "services-config-screen.tsx"
+    );
+  });
+});
+
+const DETAIL = {
+  credentials: [],
+  id: "db.postgres",
+  name: "PostgreSQL 17",
+  port: 5432,
+  state: "running" as const,
+  unit: "postgresql",
+  version: "17.2",
+};
+
+describe("l'en-tête d'un service", () => {
+  const html = renderToStaticMarkup(
+    <ServicePanelHeader
+      detail={DETAIL}
+      onBack={() => undefined}
+      onReload={() => undefined}
+      summary="Local seulement."
+    />
+  );
+
+  it("montre ce qui décide : le nom, l'état, la version, le port", () => {
+    expect(text(html)).toContain("PostgreSQL 17");
+    expect(text(html)).toContain("17.2");
+    expect(text(html)).toContain("port 5432");
+  });
+
+  /** What names the module on the machine decides nothing for the reader, and everything for whoever goes looking on the server. */
+  it("range l'identifiant et l'unité systemd sous Détails", () => {
+    const details = html.slice(html.indexOf("<details"));
+
+    expect(details).toContain("db.postgres");
+    expect(details).toContain("postgresql");
+    expect(html).not.toMatch(/<h1[^>]*>[^<]*db\.postgres/);
+  });
+
+  it("ne laisse pas une ligne vide pour un service sans version ni port", () => {
+    const bare = renderToStaticMarkup(
+      <ServicePanelHeader
+        detail={{ ...DETAIL, port: undefined, version: undefined }}
+        onBack={() => undefined}
+        onReload={() => undefined}
+      />
+    );
+
+    expect(bare).not.toContain('class="mt-0.5 font-data');
+  });
+});
+
+describe("les réglages d'un service dont le catalogue manque", () => {
+  const props = {
+    apply: { status: "idle" } as const,
+    config: { status: "idle" } as const,
+    name: "PostgreSQL 17",
+    onApply: () => undefined,
+    onGenerate: () => undefined,
+    onReveal: () => Promise.resolve(null),
+    onSecret: () => undefined,
+    onValue: () => undefined,
+    secrets: {},
+    steps: [],
+    values: {},
+  };
+
+  /** A section that simply vanished left the reader looking for what a service can be told. */
+  it("dit pourquoi ils manquent, et propose de relire le catalogue", () => {
+    const html = renderToStaticMarkup(
+      <ServiceConfig
+        {...props}
+        manifest={null}
+        onReloadCatalog={() => undefined}
+      />
+    );
+
+    expect(html).toContain('data-config="unknown"');
+    expect(text(html)).toContain("catalogue du serveur n'a pas répondu");
+    expect(text(html)).toContain("Relire le catalogue");
+  });
+
+  it("ne propose pas de relire quand c'est le serveur entier qui est retenu", () => {
+    const html = renderToStaticMarkup(
+      <ServiceConfig
+        {...props}
+        catalogHeld
+        manifest={null}
+        onReloadCatalog={() => undefined}
+      />
+    );
+
+    expect(text(html)).toContain("tant que le serveur est retenu");
+    expect(text(html)).not.toContain("Relire le catalogue");
+  });
+});
+
+describe("un écran que l'app n'a pas su dessiner", () => {
+  it("le dit, garde ce qui a été levé sous Détails, et propose de recommencer", () => {
+    const html = renderToStaticMarkup(
+      <ScreenFailure
+        detail="Cannot read properties of undefined"
+        onRetry={() => undefined}
+      />
+    );
+
+    expect(html).toContain('data-screen-failure="true"');
+    expect(text(html)).toContain("Rien n'a changé sur le serveur");
+    expect(text(html)).toContain("Le dessiner à nouveau");
+    expect(html.slice(html.indexOf("<details"))).toContain(
+      "Cannot read properties"
     );
   });
 });

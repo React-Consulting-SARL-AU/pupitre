@@ -97,7 +97,7 @@ export function ProjectGitState({
           ) : null}
         </div>
 
-        <span className="font-data text-[11px] text-ink-4">
+        <span className="font-data text-[11px] text-ink-3">
           {t("project.git.readAt", { when: since(state.at) })}
         </span>
         <IconButton

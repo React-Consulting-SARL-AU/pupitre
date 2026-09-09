@@ -23,11 +23,11 @@ var hintCatalog = map[string]Message{
 		EN: "An absolute path, with no space, owned by the dev account. The default suits almost everyone; you change it to put the projects on a larger disk mounted elsewhere. The directory is created if absent, and never emptied if it exists.",
 	},
 	"module.core.hardening.ssh_443.hint": {
-		FR: "Ouvre SSH sur le port 443 en plus du 22. Utile depuis un réseau d'entreprise ou un wifi public qui ne laisse sortir que le web. Le port 22 reste ouvert, et aucune des deux portes n'accepte de mot de passe une fois le durcissement passé.",
+		FR: "Ouvrez SSH sur le port 443 en plus du 22. Utile depuis un réseau d'entreprise ou un wifi public qui ne laisse sortir que le web. Le port 22 reste ouvert, et aucune des deux porvos n'accepte de mot de passe une fois le durcissement passé.",
 		EN: "Opens SSH on port 443 as well as 22. Useful from a corporate network or a public wifi that only lets the web out. Port 22 stays open, and neither door accepts a password once the hardening has run.",
 	},
 	"module.core.hardening.keep_root.hint": {
-		FR: "Laisse root joignable par clé SSH, jamais par mot de passe, et applique tout le reste du durcissement. Pour qui veut garder une seconde porte sur sa machine. Sans cette option, root est fermé, et le compte dev devient le seul accès — l'app vérifie qu'une clé l'ouvre avant de fermer quoi que ce soit.",
+		FR: "Laissez root joignable par clé SSH, jamais par mot de passe, et appliquez tout le reste du durcissement. Pour qui veut garder une seconde porte sur sa machine. Sans cette option, root est fermé, et le compte dev devient le seul accès — l'app vérifie qu'une clé l'ouvre avant de fermer quoi que ce soit.",
 		EN: "Leaves root reachable by SSH key, never by password, and applies the whole rest of the hardening. For whoever wants to keep a second door onto their machine. Without it root is closed and the dev account becomes the only way in — the app checks a key opens it before closing anything.",
 	},
 	"module.db.remote.hint": {
@@ -59,7 +59,7 @@ var hintCatalog = map[string]Message{
 		EN: "One identifier per line, in the form publisher.extension — biomejs.biome, golang.go. You read it in the marketplace URL, or through `Copy Extension ID` in VS Code's context menu. They are installed on the server side, where the code lives.",
 	},
 	"module.ai.hermes.providers.hint": {
-		FR: "Une entrée par fournisseur, sous la forme fournisseur=clé : openai=sk-…, anthropic=sk-ant-…, openrouter=sk-or-…. Chaque clé se crée sur le tableau de bord du fournisseur. Elles partent sur le flux secret et sont écrites sur le serveur en 0600, jamais dans un journal.",
+		FR: "Une entrée par fournisseur, sous la forme fournisseur=clé : openai=sk-…, anthropic=sk-ant-…, openrouter=sk-or-…. Chaque clé se crée sur le tableau de bord du fournisseur. Elles partent sur le flux secret et sont écrivos sur le serveur en 0600, jamais dans un journal.",
 		EN: "One entry per provider, in the form provider=key: openai=sk-…, anthropic=sk-ant-…, openrouter=sk-or-…. Each key is created on that provider's dashboard. They leave on the secret stream and are written on the server at 0600, never in a journal.",
 	},
 	"module.tool.github.token.hint": {
@@ -71,7 +71,7 @@ var hintCatalog = map[string]Message{
 		EN: "A service account token, not your main password. Create it in Developer › Service Accounts, and grant it only the vault that holds your projects' secrets. The server can read that vault and nothing else.",
 	},
 	"module.tool.neon.api_key.hint": {
-		FR: "Une clé d'API personnelle ou d'organisation, créée dans les réglages du compte Neon. Elle authentifie le CLI posé sur le serveur ; les projets et les bases restent votre décision, le module n'en crée aucun.",
-		EN: "A personal or organisation API key, created in the Neon account settings. It authenticates the CLI installed on the server; projects and databases remain your decision, the module creates none.",
+		FR: "Une clé d'API personnelle ou d'organisation, créée dans les réglages du compte Neon. Elle est gardée dans le fichier d'environnement du serveur, lisible par root seul : le CLI la reçoit par NEON_API_KEY quand vous la lui donnez. Les projets et les bases restent votre décision, le module n'en crée aucun.",
+		EN: "A personal or organisation API key, created in the Neon account settings. It is kept in the server's environment file, readable by root alone: the CLI takes it through NEON_API_KEY when you hand it over. Projects and databases remain your decision, the module creates none.",
 	},
 }

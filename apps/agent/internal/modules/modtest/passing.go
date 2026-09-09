@@ -39,7 +39,6 @@ func (m Passing) Manifest() contract.Manifest {
 		Resources: contract.Resources{RAMMB: 16, DiskMB: 8},
 		Arch:      []string{"amd64", "arm64"},
 		Fields:    fields,
-		Provides:  []string{"demo:" + m.ID},
 		Since:     "0.0.0",
 	}
 }

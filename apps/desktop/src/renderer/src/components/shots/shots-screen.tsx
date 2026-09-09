@@ -3,6 +3,8 @@ import { ConfirmButton } from "@renderer/components/ui/confirm-button";
 import { EmptyState } from "@renderer/components/ui/empty-state";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { PageHeader } from "@renderer/components/ui/page-header";
+import { SkeletonRows } from "@renderer/components/ui/skeleton";
+import { WaitingLine } from "@renderer/components/ui/waiting-line";
 import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { weight } from "@renderer/lib/format";
@@ -76,10 +78,12 @@ export function ShotsScreen({ serverId }: { serverId: string }) {
         {problem ? <ErrorNotice error={problem} /> : null}
 
         {state.status === "loading" ? (
-          <WaitingNotice
-            detail={t("shots.loadingDetail")}
-            title={t("shots.title")}
-          />
+          <section className="flex flex-col gap-3">
+            <WaitingLine className="font-data text-[12px]">
+              {t("shots.loadingDetail")}
+            </WaitingLine>
+            <SkeletonRows rows={3} />
+          </section>
         ) : null}
 
         {state.status === "failed" ? (

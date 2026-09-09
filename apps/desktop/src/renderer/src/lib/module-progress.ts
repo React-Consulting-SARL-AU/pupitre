@@ -16,6 +16,8 @@ export interface StepEntry {
   status: StepStatus;
   ms: number;
   replay?: string;
+  /** What the agent said of the step: the raw line behind a `fail`, or the warning an `ok` carries. */
+  message?: string;
 }
 
 export type ModuleStatus = "pending" | "running" | "ok" | "skip" | "fail";
@@ -120,6 +122,7 @@ export function stepOf(
     status?: unknown;
     ms?: unknown;
     replay?: unknown;
+    message?: unknown;
   };
 
   if (typeof raw.module !== "string" || typeof raw.step !== "string") {
@@ -132,6 +135,7 @@ export function stepOf(
       status: raw.status as StepStatus,
       step: raw.step,
       ...(typeof raw.replay === "string" ? { replay: raw.replay } : {}),
+      ...(typeof raw.message === "string" ? { message: raw.message } : {}),
     },
     module: raw.module,
   };

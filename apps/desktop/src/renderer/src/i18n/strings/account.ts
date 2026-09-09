@@ -45,17 +45,17 @@ export const account = {
     "account.signIn.reopenBrowser": "Reopen the browser",
 
     "account.usage.look.development": "Development build",
-    "account.usage.look.valid": "Usage right valid",
-    "account.usage.look.cached": "Usage right cached",
-    "account.usage.look.suspended": "Usage right suspended",
-    "account.usage.look.stale": "Usage right expired",
+    "account.usage.look.valid": "Subscription active",
+    "account.usage.look.cached": "Subscription checked offline",
+    "account.usage.look.suspended": "Subscription suspended",
+    "account.usage.look.stale": "Check expired",
     "account.usage.look.none": "No account connected",
     "account.usage.development":
       "Without an account, Pupitre works in development mode. A production build requires an account.",
     "account.usage.checked":
-      "Checked {since}. Pupitre stays usable for seven days without the console.",
+      "Checked {since}. Pupitre stays usable for seven days offline.",
     "account.usage.stale":
-      "Last response from the console {since}, beyond the seven days of tolerance.",
+      "Last check {since}, beyond the seven days of tolerance.",
     "account.usage.suspended":
       "This organisation's servers can no longer be installed or updated.",
     "account.usage.none":
@@ -108,17 +108,17 @@ export const account = {
     "account.signIn.reopenBrowser": "Rouvrir le navigateur",
 
     "account.usage.look.development": "Build de développement",
-    "account.usage.look.valid": "Droit d'usage valide",
-    "account.usage.look.cached": "Droit d'usage en cache",
-    "account.usage.look.suspended": "Droit d'usage suspendu",
-    "account.usage.look.stale": "Droit d'usage expiré",
+    "account.usage.look.valid": "Abonnement actif",
+    "account.usage.look.cached": "Abonnement vérifié hors ligne",
+    "account.usage.look.suspended": "Abonnement suspendu",
+    "account.usage.look.stale": "Vérification expirée",
     "account.usage.look.none": "Aucun compte connecté",
     "account.usage.development":
       "Sans compte, Pupitre travaille en mode développement. Un build de production demande un compte.",
     "account.usage.checked":
-      "Vérifié {since}. Pupitre reste utilisable sept jours sans la console.",
+      "Vérifié {since}. Pupitre reste utilisable sept jours sans connexion.",
     "account.usage.stale":
-      "Dernière réponse de la console {since}, au-delà des sept jours de tolérance.",
+      "Dernière vérification {since}, au-delà des sept jours de tolérance.",
     "account.usage.suspended":
       "Les serveurs de cette organisation ne peuvent plus être installés ni mis à jour.",
     "account.usage.none":

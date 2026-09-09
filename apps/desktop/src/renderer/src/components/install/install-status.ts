@@ -33,6 +33,13 @@ export const MODULE_LOOK: Record<ModuleStatus, Look> = {
   },
 };
 
+/** A step that went through, but had something to say. */
+export const WARNED_STEP: Look = {
+  label: "install.stepStatus.warned",
+  shape: "ringed",
+  tone: "warn",
+};
+
 export const STEP_LOOK: Record<StepStatus, Look> = {
   start: {
     label: "install.stepStatus.start",

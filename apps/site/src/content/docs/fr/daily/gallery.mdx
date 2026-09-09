@@ -1,0 +1,30 @@
+---
+title: Galerie
+description: Les captures que les agents prennent en travaillant, où elles sont rangées, et comment l’app les montre.
+locale: fr
+section: daily
+sectionOrder: 2
+order: 7
+---
+
+Un agent qui pilote un navigateur produit des images. `ai.browser` installe le Chrome headless et la commande `shot` qui les range ; la galerie est l’endroit où l’on regarde ce qui en sort.
+
+## En prendre une
+
+Sur le serveur, `shot <url|fichier> [nom]` capture une page ou copie une image dans la galerie. `--mobile` ou `--size LxH` règlent la fenêtre, `--wait` laisse à une page lente le temps de se poser, `shot --list` imprime ce qui est rangé. Un agent qui travaille dans un terminal appelle la même commande que vous.
+
+## Où sont les fichiers
+
+Sous `/home/dev/shots`, dans un dossier par jour. Ils y restent : la galerie est celle du serveur, pas celle de la plateforme, et rien n’est téléversé nulle part.
+
+## En lire une depuis l’app
+
+L’écran de la galerie liste ce qui est rangé, avec son poids. En ouvrir une fait passer ses octets par le canal que l’app tient déjà, et les vérifie contre l’empreinte que le serveur a envoyée avec. Si les deux ne s’accordent pas, l’app le dit plutôt que de vous montrer une demi-image.
+
+## La galerie du serveur
+
+L’agent sert aussi le dossier comme une page en lecture seule, sur la boucle locale, joignable par la session SSH que l’app tient. `Ouvrir la galerie` l’ouvre dans votre navigateur — pratique pour parcourir une journée de travail plutôt qu’une capture à la fois.
+
+## La vider
+
+Un bouton supprime les captures du serveur. Il demande confirmation, et il n’emporte rien d’autre.

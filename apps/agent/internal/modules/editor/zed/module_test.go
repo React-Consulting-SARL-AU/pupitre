@@ -20,7 +20,7 @@ func newContext(t *testing.T, fake *modtest.FakeSys, values modtest.Values) *mod
 func machine() *modtest.FakeSys {
 	fake := modtest.NewFakeSys()
 	fake.Users["dev"] = "/home/dev"
-	fake.Answer("url_effective", latestRedirect)
+	fake.Answer("redirect_url", latestRedirect)
 	fake.Replies["curl"] = "\x1f\x8b compressed binary"
 
 	return fake
@@ -76,7 +76,7 @@ func TestAPinnedVersionIsDownloadedAsAsked(t *testing.T) {
 		t.Fatalf("a pinned version is fetched without resolving anything:\n%s", commands)
 	}
 
-	if strings.Contains(commands, "url_effective") {
+	if strings.Contains(commands, "redirect_url") {
 		t.Fatalf("only latest needs the redirect resolved:\n%s", commands)
 	}
 

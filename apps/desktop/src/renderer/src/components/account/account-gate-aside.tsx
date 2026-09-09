@@ -59,7 +59,7 @@ export function AccountGateAside({ platform }: { platform: string }) {
 
       <div className="rise min-w-0" style={riseAt(5)}>
         <Label>{t("account.gate.platform")}</Label>
-        <p className="mt-1 truncate font-data text-[12px] text-ink-4">
+        <p className="mt-1 truncate font-data text-[12px] text-ink-3">
           {platform}
         </p>
       </div>

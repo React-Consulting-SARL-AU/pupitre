@@ -15,7 +15,6 @@ import {
   Activity,
   Boxes,
   Images,
-  KeyRound,
   LayoutDashboard,
   Plus,
   Server as ServerIcon,
@@ -124,18 +123,11 @@ export function AppSidebar({
         >
           {t("shell.sidebar.gallery")}
         </SidebarEntry>
-        <SidebarEntry
-          active={view === "secrets"}
-          bullet={<KeyRound size={14} strokeWidth={1.5} />}
-          onClick={() => onView("secrets")}
-        >
-          {t("shell.sidebar.secrets")}
-        </SidebarEntry>
       </SidebarGroup>
 
       <SidebarGroup title={t("shell.sidebar.projects")}>
         {projects.length === 0 ? (
-          <p className="px-3 py-2 text-[12px] text-ink-4 leading-relaxed">
+          <p className="px-3 py-2 text-[12px] text-ink-3 leading-relaxed">
             {t("shell.sidebar.noProjects")}
           </p>
         ) : null}

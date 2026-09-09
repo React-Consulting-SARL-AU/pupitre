@@ -1,5 +1,6 @@
 import type { ElectronApplication } from "@playwright/test";
 import { expect, test } from "@playwright/test";
+import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
 /**
@@ -140,8 +141,10 @@ test.describe("compte", () => {
     await page.getByRole("button", { name: "Compte" }).click();
 
     await expect(page.getByText("ada@pupitre.studio")).toBeVisible();
-    await expect(page.getByText("Droit d'usage valide")).toBeVisible();
+    await expect(page.getByText("Abonnement actif")).toBeVisible();
     await expect(page.getByText("Atelier Ada")).toBeVisible();
+
+    await assertAccessible(page, "reglages/compte");
 
     await page.getByRole("button", { name: "Se déconnecter" }).click();
 

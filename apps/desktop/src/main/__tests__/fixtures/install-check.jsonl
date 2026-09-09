@@ -1,0 +1,5 @@
+# La configuration pesée : aucun secret n'est annoncé, rien n'est touché.
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","ping","catalog","install","install.check"]}}
+> {"id":2,"cmd":"install.check","params":{"modules":["db.postgres"],"config":{"db.postgres":{"port":5432}}}}
+< {"id":2,"ok":true,"result":{"problems":[{"module":"db.postgres","field":"port","code":"max","message":"le port 5432 est déjà écouté"}],"warnings":[]}}

@@ -58,7 +58,7 @@ L'ordre ne se contourne pas : chaque étape suppose la précédente.
 
 ## Le MVP
 
-Une app desktop complète, que le propriétaire utilise sur son propre VPS avec ses projets réels, depuis un compte et un abonnement en cours comme n'importe quel client. L'onboarding en sept étapes : ajouter un serveur, inspecter, choisir les services, configurer, installer, durcir et basculer de root vers `dev`, premier projet. Puis le quotidien : tableau de bord, projets, terminaux, agents, services, mise à jour.
+Une app desktop complète, que le propriétaire utilise sur son propre VPS avec ses projets réels, depuis un compte et un abonnement en cours comme n'importe quel client. L'onboarding en six étapes : ajouter un serveur, inspecter, choisir les services, configurer, installer, durcir et basculer de root vers `dev`. Les projets se créent ensuite, au fil des besoins. Puis le quotidien : tableau de bord, projets, terminaux, agents, services, mise à jour.
 
 Le MVP est réussi quand le propriétaire travaille tous les jours avec ses projets sur un serveur que l'app a entièrement installé, sans ouvrir un terminal hors de l'app.
 

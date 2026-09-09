@@ -71,7 +71,7 @@ func newTestServer(granted contract.Entitlement) *Server {
 		return map[string]any{"lines": 2}, nil
 	})
 
-	server.Register("secrets.set", func(ctx *Context, _ json.RawMessage) (any, error) {
+	server.Register("install", func(ctx *Context, _ json.RawMessage) (any, error) {
 		var secrets map[string]json.RawMessage
 		if err := json.Unmarshal(ctx.Secrets, &secrets); err != nil {
 			return nil, err
@@ -231,7 +231,7 @@ func TestTheSecretLineReachesTheHandlerAndNothingElse(t *testing.T) {
 	var out bytes.Buffer
 	input := strings.NewReader(strings.Join([]string{
 		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}`,
-		`{"id":2,"cmd":"secrets.set","params":{"key":"API_KEY","secrets_stdin":true}}`,
+		`{"id":2,"cmd":"install","params":{"modules":["tool.github"],"config":{},"secrets_stdin":true}}`,
 		`{"API_KEY":"s3cret-de-test"}`,
 	}, "\n") + "\n")
 
@@ -292,7 +292,7 @@ func assertPanics(t *testing.T, label string, fn func()) {
 
 func TestCapabilitiesAreSorted(t *testing.T) {
 	got := newTestServer(contract.EntitlementDev).Capabilities()
-	want := []string{"enroll", "hello", "ping", "probe", "project.logs", "reboot", "secrets.set"}
+	want := []string{"enroll", "hello", "install", "ping", "probe", "project.logs", "reboot"}
 
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("capabilities = %v, want %v", got, want)

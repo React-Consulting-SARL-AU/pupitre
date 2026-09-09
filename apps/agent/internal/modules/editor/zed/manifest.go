@@ -26,7 +26,6 @@ func manifest() contract.Manifest {
 				Required: false, Default: latest,
 			},
 		},
-		Provides:  []string{"editor:zed"},
 		Mandatory: false,
 		Since:     "0.1.0",
 	}

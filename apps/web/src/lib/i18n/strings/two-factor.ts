@@ -5,6 +5,9 @@ export const twoFactor = {
     "twoFactor.lead":
       "A one-time code, asked after the magic link and after GitHub. Not after a passkey: that is already a second factor.",
     "twoFactor.reading": "Reading your second factor…",
+    "twoFactor.readFailed": "Your second factor could not be read.",
+    "twoFactor.readFailedFix":
+      "The platform did not answer. Try again in a moment.",
     "twoFactor.activeLead":
       "Active. Your recovery codes stand in for the app if you lose the phone.",
     "twoFactor.disable": "Turn off",
@@ -39,6 +42,9 @@ export const twoFactor = {
     "twoFactor.lead":
       "Un code à usage unique, demandé après le lien magique et après GitHub. Pas après une clé d'accès : elle est déjà un second facteur.",
     "twoFactor.reading": "Lecture de votre second facteur…",
+    "twoFactor.readFailed": "Votre second facteur n'a pas pu être lu.",
+    "twoFactor.readFailedFix":
+      "La plateforme n'a pas répondu. Réessayez dans un instant.",
     "twoFactor.activeLead":
       "Actif. Vos codes de récupération remplacent l'application si vous perdez le téléphone.",
     "twoFactor.disable": "Désactiver",

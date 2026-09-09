@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query"
-import { PackageOpen } from "lucide-react"
+import { PackageOpen, RotateCw } from "lucide-react"
 import { StartChecklist } from "@/components/dashboard/start-checklist"
 import { DownloadOfferRow } from "@/components/download/download-offer-row"
 import { ReleaseNotesCard } from "@/components/download/release-notes-card"
 import { RequirementsCard } from "@/components/download/requirements-card"
+import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -27,6 +28,18 @@ export function DownloadPanel() {
   if (release.isError) {
     return (
       <Callout
+        action={
+          <Button
+            icon={RotateCw}
+            loading={release.isFetching}
+            onClick={() => {
+              release.refetch()
+            }}
+            size="sm"
+          >
+            {t("common.retry")}
+          </Button>
+        }
         fix={t("download.failedFix")}
         title={t("download.failed")}
         tone="danger"

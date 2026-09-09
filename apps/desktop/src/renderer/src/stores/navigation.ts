@@ -18,7 +18,6 @@ export const VIEWS = [
   "services",
   "activity",
   "shots",
-  "secrets",
   "terminals",
   "settings",
 ] as const;

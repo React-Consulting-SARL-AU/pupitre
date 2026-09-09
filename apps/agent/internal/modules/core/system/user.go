@@ -73,6 +73,8 @@ func grantSudo(ctx *modules.Context) error {
 	return writeIfChanged(ctx, "grant-sudo", sudoersPath, []byte(sudoers), 0o440)
 }
 
+// The tools the dev user installs land under ~/.local; a folder there that
+// root made on an earlier run keeps every one of them from installing.
 func prepareHome(ctx *modules.Context) error {
 	return ctx.Step("prepare-home", func() (modules.Outcome, error) {
 		outcome := modules.Skipped
@@ -85,6 +87,17 @@ func prepareHome(ctx *modules.Context) error {
 				return modules.Failed, err
 			}
 			outcome = modules.Done
+		}
+
+		for _, dir := range []string{localDir, localBinDir, localShareDir} {
+			changed, err := file.EnsureOwned(ctx, dir, User, User, 0o755)
+			if err != nil {
+				return modules.Failed, err
+			}
+
+			if changed {
+				outcome = modules.Done
+			}
 		}
 
 		return outcome, nil
@@ -285,13 +298,7 @@ func ownedFile(ctx *modules.Context, path string, content []byte, mode uint32) e
 }
 
 func ownedDir(ctx *modules.Context, path string, mode uint32) error {
-	if err := ctx.Sys().MkdirAll(path, fsMode(mode)); err != nil {
-		return err
-	}
-
-	ctx.Logf("mkdir %s (%o)", path, mode)
-
-	return file.Chown(ctx, path, User, User)
+	return file.MkdirOwned(ctx, path, User, User, fsMode(mode))
 }
 
 func fsMode(mode uint32) fs.FileMode {

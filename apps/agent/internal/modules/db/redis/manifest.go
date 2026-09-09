@@ -23,7 +23,6 @@ func manifest() contract.Manifest {
 			{Key: "persistence", Kind: contract.FieldBoolean, Label: i18n.T("module.db.redis.persistence.label"), Help: i18n.T("module.db.redis.persistence.help"), Required: false, Default: true},
 			{Key: "maxmemory_mb", Kind: contract.FieldNumber, Label: i18n.T("module.db.redis.maxmemory_mb.label"), Help: i18n.T("module.db.redis.maxmemory_mb.help"), Required: false, Default: 0, Min: 0, Max: 262144},
 		},
-		Provides:  []string{"db:redis"},
 		Mandatory: false,
 		Since:     "0.3.0",
 	}

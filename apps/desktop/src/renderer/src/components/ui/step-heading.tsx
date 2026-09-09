@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 
 /**
  * The title of a step, and where the focus lands when that step arrives.
@@ -17,7 +17,7 @@ export function StepHeading({
 }: {
   eyebrow?: string;
   title: string;
-  description?: string;
+  description?: ReactNode;
   step: string;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);

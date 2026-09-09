@@ -32,6 +32,9 @@ const (
 	gitconfigPath      = Home + "/.gitconfig"
 	sshDir             = Home + "/.ssh"
 	configDir          = Home + "/.config"
+	localDir           = Home + "/.local"
+	localBinDir        = localDir + "/bin"
+	localShareDir      = localDir + "/share"
 	authorizedKeysPath = sshDir + "/authorized_keys"
 	rootKeysPath       = "/root/.ssh/authorized_keys"
 )

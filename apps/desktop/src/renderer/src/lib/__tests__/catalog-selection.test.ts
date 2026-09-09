@@ -8,6 +8,7 @@ import {
   SMALL_MACHINE,
 } from "../../__tests__/catalog-fixtures";
 import {
+  asked,
   blocked,
   byCategory,
   carriesSecret,
@@ -19,6 +20,7 @@ import {
   resourceWarnings,
   restored,
   select,
+  splitFields,
   totals,
 } from "../catalog-selection";
 
@@ -73,7 +75,7 @@ describe("conflits", () => {
     const why = blocked(MODULES, [], ARM_MACHINE);
 
     expect(why.get("tool.legacy")).toBe(
-      "Ce module n'existe pas pour l'architecture arm64."
+      "Ce service n'existe pas pour l'architecture arm64."
     );
     expect(blocked(MODULES, [], SMALL_MACHINE).has("tool.legacy")).toBe(false);
   });
@@ -118,7 +120,7 @@ describe("ressources cumulées", () => {
     expect(warnings).toHaveLength(1);
     expect(warnings[0]?.kind).toBe("ram");
     expect(warnings[0]?.message).toBe(
-      "Les modules choisis demandent 4928 Mo de mémoire ; cette machine en a 4096."
+      "Les services choisis demandent 4928 Mo de mémoire ; cette machine en a 4096."
     );
   });
 
@@ -132,7 +134,7 @@ describe("ressources cumulées", () => {
     expect(warnings).toHaveLength(1);
     expect(warnings[0]?.kind).toBe("disk");
     expect(warnings[0]?.message).toBe(
-      "Les modules choisis demandent 6,0 Go de disque ; il en reste 3,5 sur cette machine."
+      "Les services choisis demandent 6,0 Go de disque ; il en reste 3,5 sur cette machine."
     );
   });
 
@@ -201,6 +203,18 @@ describe("un catalogue ouvert sur un serveur déjà installé", () => {
       "runtime.java",
       "editor.jetbrains",
     ]);
+  });
+
+  it("grise ce qui se dispute la machine avec un module déjà en place", () => {
+    const running = [...INSTALLED, "exposure.caddy"];
+    const why = blocked(CATALOG.modules, [], null, running);
+
+    expect(why.get("exposure.cloudflare")).toBe(
+      "En conflit avec « Caddy », déjà sur ce serveur : retirez-le d'abord, depuis Services."
+    );
+    expect(select(CATALOG.modules, [], "exposure.cloudflare", running)).toEqual(
+      []
+    );
   });
 
   it("dit d'un module présent qu'il est déjà là, plutôt que de le proposer", () => {
@@ -330,5 +344,69 @@ describe("ce que la sélection refuse", () => {
     );
 
     expect(problems.map((entry) => entry.code)).toEqual(["connection"]);
+  });
+});
+
+describe("ce qui est demandé, et ce qui est déjà réglé", () => {
+  const core = CATALOG.modules.find((one) => one.id === "core.system");
+  const postgres = CATALOG.modules.find((one) => one.id === "db.postgres");
+  const node = CATALOG.modules.find((one) => one.id === "runtime.node");
+
+  it("demande un champ requis sans valeur, laisse ce qui a un défaut", () => {
+    if (!core) {
+      throw new Error("core.system manque au catalogue de test");
+    }
+
+    const split = splitFields(core.fields);
+
+    expect(split.asked.map((field) => field.key)).toEqual([
+      "git_name",
+      "git_email",
+    ]);
+    expect(split.kept.map((field) => field.key)).toEqual([
+      "timezone",
+      "projects_dir",
+    ]);
+  });
+
+  it("demande toujours un secret, généré ou non", () => {
+    if (!postgres) {
+      throw new Error("db.postgres manque au catalogue de test");
+    }
+
+    const split = splitFields(postgres.fields);
+
+    expect(split.asked.map((field) => field.key)).toEqual([
+      "app_password",
+      "remote_password",
+    ]);
+    expect(split.kept).toEqual([]);
+  });
+
+  it("ne demande rien d'un runtime dont tout a un défaut", () => {
+    if (!node) {
+      throw new Error("runtime.node manque au catalogue de test");
+    }
+
+    const split = splitFields(node.fields);
+
+    expect(split.asked).toEqual([]);
+    expect(split.kept.length).toBe(node.fields.length);
+  });
+
+  it("ne déplace pas une question une fois répondue", () => {
+    if (!core) {
+      throw new Error("core.system manque au catalogue de test");
+    }
+
+    const name = core.fields.find((field) => field.key === "git_name");
+    const timezone = core.fields.find((field) => field.key === "timezone");
+
+    if (!(name && timezone)) {
+      throw new Error("le socle de test manque de champs");
+    }
+
+    expect(asked(name)).toBe(true);
+    expect(asked(timezone)).toBe(false);
   });
 });

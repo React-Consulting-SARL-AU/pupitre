@@ -5,7 +5,7 @@ import { ArrowRight, Download, ExternalLink } from "lucide-react"
 import { TrialOffer } from "@/components/dashboard/trial-offer"
 import { buttonClassName } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
-import { LoadingState } from "@/components/ui/loading-state"
+import { SkeletonLines } from "@/components/ui/skeleton"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useLocale, useTranslations } from "@/hooks/use-locale"
 import { usePermission } from "@/hooks/use-permission"
@@ -55,7 +55,7 @@ export function StartStepAction({ step }: StartStepActionProps) {
     }
 
     if (members.isPending) {
-      return <LoadingState label={t("start.reading")} />
+      return <SkeletonLines label={t("start.reading")} rows={1} />
     }
 
     const owner = ownerEmailOf(members.data?.members)

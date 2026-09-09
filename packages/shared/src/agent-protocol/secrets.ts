@@ -5,32 +5,6 @@ import { ProjectNameSchema } from "./state"
 
 export const SecretKeySchema = z.string().regex(/^[A-Z][A-Z0-9_]*$/)
 
-export const SecretStatusSchema = z.strictObject({
-  key: SecretKeySchema,
-  set: z.boolean(),
-})
-
-export type SecretStatus = z.infer<typeof SecretStatusSchema>
-
-export const SecretsStatusResultSchema = z.object({
-  secrets: z.array(SecretStatusSchema),
-})
-
-export type SecretsStatusResult = z.infer<typeof SecretsStatusResultSchema>
-
-export const SecretsSetParamsSchema = z.strictObject({
-  key: SecretKeySchema,
-  secrets_stdin: z.literal(true),
-})
-
-export type SecretsSetParams = z.infer<typeof SecretsSetParamsSchema>
-
-export const SecretsSetSecretsSchema = z
-  .record(SecretKeySchema, z.string().min(1))
-  .refine((values) => Object.keys(values).length === 1)
-
-export type SecretsSetSecrets = z.infer<typeof SecretsSetSecretsSchema>
-
 export const ServiceSecretParamsSchema = z.strictObject({
   id: z.string().min(1),
   key: SecretKeySchema,

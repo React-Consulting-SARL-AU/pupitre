@@ -1,5 +1,6 @@
 import type { DictionaryKey } from "@renderer/i18n/en";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { type Gesture, usePending } from "@renderer/lib/use-pending";
 import type { Server } from "@shared/servers";
 import { grantGone } from "@shared/servers";
 import { KeyRound, OctagonAlert, Trash2 } from "lucide-react";
@@ -9,7 +10,7 @@ import { CopyField } from "../ui/copy-field";
 import { fieldControlClass } from "../ui/field";
 import { IconButton } from "../ui/icon-button";
 import { Label } from "../ui/label";
-import { StatusDot } from "../ui/status-dot";
+import { StatusDot, type StatusShape } from "../ui/status-dot";
 
 /**
  * One server, and everything that can be done to it from a list.
@@ -18,6 +19,9 @@ import { StatusDot } from "../ui/status-dot";
  * this machine leaves with the server, and no other copy of it exists. A
  * server the platform grants offers the two gestures apart — removed from here
  * it stays granted; erased everywhere it does not come back.
+ *
+ * Either deletion holds the confirmation open while it runs: the spinner turns
+ * on the button that was clicked, and its neighbour cannot be pressed meanwhile.
  */
 export function ServerRow({
   server,
@@ -30,10 +34,10 @@ export function ServerRow({
 }: {
   server: Server;
   active: boolean;
-  onActivate: () => void;
+  onActivate: Gesture;
   onRename: (name: string) => void;
-  onRemove: () => void;
-  onForget: () => void;
+  onRemove: Gesture;
+  onForget: Gesture;
   /** What the platform objected to the removal with, in its own words. */
   refusal?: ReactNode;
 }) {
@@ -42,6 +46,17 @@ export function ServerRow({
   const [name, setName] = useState(server.name);
   const [confirming, setConfirming] = useState(false);
   const [publicKey, setPublicKey] = useState<string | null>(null);
+
+  const [activate, activating] = usePending(onActivate);
+  const [remove, removing] = usePending(onRemove);
+  const [forget, forgetting] = usePending(onForget);
+
+  const deleting = removing || forgetting;
+
+  let activeShape: StatusShape = active ? "filled" : "empty";
+  if (activating) {
+    activeShape = "breathing";
+  }
 
   function commitName() {
     const clean = name.trim();
@@ -66,13 +81,15 @@ export function ServerRow({
     >
       <div className="flex items-center gap-3">
         <button
+          aria-busy={activating}
           aria-current={active}
           aria-label={t("servers.row.activate", { name: server.name })}
-          className="clickable shrink-0 rounded-sm p-0.5 text-ink"
-          onClick={onActivate}
+          className="clickable shrink-0 rounded-sm p-0.5 text-ink disabled:opacity-40"
+          disabled={activating}
+          onClick={activate}
           type="button"
         >
-          <StatusDot shape={active ? "filled" : "empty"} size={13} />
+          <StatusDot shape={activeShape} size={13} />
         </button>
 
         <input
@@ -140,8 +157,10 @@ export function ServerRow({
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Button
+                disabled={forgetting}
                 icon={Trash2}
-                onClick={onRemove}
+                loading={removing}
+                onClick={remove}
                 size="sm"
                 variant="destructive"
               >
@@ -149,8 +168,10 @@ export function ServerRow({
               </Button>
               {granted(server) ? (
                 <Button
+                  disabled={removing}
                   icon={Trash2}
-                  onClick={onForget}
+                  loading={forgetting}
+                  onClick={forget}
                   size="sm"
                   variant="destructive"
                 >
@@ -158,6 +179,7 @@ export function ServerRow({
                 </Button>
               ) : null}
               <Button
+                disabled={deleting}
                 onClick={() => setConfirming(false)}
                 size="sm"
                 variant="discreet"

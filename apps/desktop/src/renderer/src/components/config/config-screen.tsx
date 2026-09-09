@@ -1,9 +1,9 @@
 import { problemText } from "@renderer/i18n/field-problem";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { riseAt } from "@renderer/lib/motion";
-import { ArrowLeft, Download } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { ArrowLeft, ArrowRight, Download } from "lucide-react";
+import { type ReactNode, useEffect, useState } from "react";
 import type { FieldProblemView } from "../../lib/catalog-selection";
+import { STEP_COLUMN } from "../../lib/layout";
 import { useCatalog } from "../../stores/catalog";
 import { ActionBar } from "../ui/action-bar";
 import { Button } from "../ui/button";
@@ -14,15 +14,16 @@ import { ConfigIndex } from "./config-index";
 import { ConfigModuleGroup } from "./config-module-group";
 
 /**
- * The questions the chosen modules ask, and the answers on their way out.
+ * The questions the chosen services ask, one service at a time.
  *
  * Ordinary values stay in the store, where the install will read them. Secrets
  * never land there: each keystroke goes to the main process, which keeps it
  * until the install writes it on the protocol's secret line.
  *
- * The page reads from top to bottom and ends on the gesture: the index says
- * where each module is, every field carries its own refusal, and the bar at the
- * bottom says what stands in the way of the button next to it.
+ * The index says which service is open and which ones still wait; the panel
+ * asks what that service needs and keeps its other settings folded; the bar at
+ * the bottom says what stands in the way of the button next to it, and a
+ * refused field anywhere brings its service back on screen.
  */
 export function ConfigScreen({
   serverName,
@@ -35,7 +36,7 @@ export function ConfigScreen({
   serverName?: string;
   /** Said above the questions when something explains why they are asked. */
   notice?: ReactNode;
-  /** The modules to ask about, when the screen is opened for one of them. */
+  /** The services to ask about, when the screen is opened for some of them. */
   only?: readonly string[];
   submitLabel?: string;
   onBack?: () => void;
@@ -55,12 +56,19 @@ export function ConfigScreen({
   const attempt = useCatalog((state) => state.attempt);
 
   const [checking, setChecking] = useState(false);
+  const [open, setOpen] = useState<string | null>(null);
+  const [moved, setMoved] = useState(false);
+  const [wanted, setWanted] = useState<FieldProblemView | null>(null);
 
-  function asked() {
-    return only
-      ? groups().filter((group) => only.includes(group.module.id))
-      : groups();
-  }
+  const asked = only
+    ? groups().filter((group) => only.includes(group.module.id))
+    : groups();
+
+  const index = Math.max(
+    0,
+    asked.findIndex((group) => group.module.id === open)
+  );
+  const current = asked[index] ?? null;
 
   function mine(list: readonly FieldProblemView[]) {
     return list.filter((one) => !only || only.includes(one.module));
@@ -79,8 +87,36 @@ export function ConfigScreen({
     };
   }
 
+  function show(moduleId: string): void {
+    setOpen(moduleId);
+    setMoved(true);
+  }
+
+  /** The refused field takes the focus once its service is on screen. */
+  useEffect(() => {
+    if (!wanted || wanted.module !== current?.module.id) {
+      return;
+    }
+
+    const control = document.getElementById(`${wanted.module}.${wanted.field}`);
+
+    control?.scrollIntoView({ behavior: "smooth", block: "center" });
+    control?.focus({ preventScroll: true });
+    setWanted(null);
+  }, [wanted, current]);
+
+  function goTo(problem: FieldProblemView | undefined): void {
+    if (!problem) {
+      return;
+    }
+
+    setWanted(problem);
+    show(problem.module);
+  }
+
   const left = mine(problems());
   const marked = mine(shown());
+  const last = index >= asked.length - 1;
 
   /**
    * The gesture answers where it was made. A refusal stops the screen and puts
@@ -89,7 +125,7 @@ export function ConfigScreen({
   async function submit(): Promise<void> {
     if (left.length > 0) {
       attempt();
-      focusFirst(left);
+      goTo(left[0]);
 
       return;
     }
@@ -97,11 +133,11 @@ export function ConfigScreen({
     setChecking(true);
     const refused = await useCatalog
       .getState()
-      .check(asked().map((one) => one.module.id));
+      .check(asked.map((one) => one.module.id));
     setChecking(false);
 
     if (refused.length > 0) {
-      focusFirst(refused);
+      goTo(refused[0]);
 
       return;
     }
@@ -109,87 +145,101 @@ export function ConfigScreen({
     onInstall?.();
   }
 
+  const install = (
+    <Button
+      icon={Download}
+      loading={checking}
+      onClick={() => submit()}
+      title={left.length > 0 ? t("config.remaining.goTo") : undefined}
+      variant={left.length === 0 || last ? "inverse" : "default"}
+    >
+      {submitLabel ?? t("config.install")}
+    </Button>
+  );
+
   return (
-    <section className="flex flex-col gap-section">
-      <StepHeading
-        description={t("config.description")}
-        eyebrow={t("config.eyebrow")}
-        step="config"
-        title={serverName ?? t("config.thisServer")}
-      />
+    <section className="flex flex-1 flex-col">
+      <div className={`${STEP_COLUMN} flex flex-1 flex-col gap-section pb-6`}>
+        <StepHeading
+          description={t("config.description")}
+          eyebrow={t("config.eyebrow")}
+          step="config"
+          title={serverName ?? t("config.thisServer")}
+        />
 
-      {notice}
+        {notice}
 
-      <div className="grid gap-gutter md:grid-cols-[12rem_1fr]">
-        <div className="md:sticky md:top-4 md:self-start">
-          <ConfigIndex groups={asked()} problems={left} shown={marked} />
-        </div>
+        <div className="grid gap-gutter lg:grid-cols-[13rem_minmax(0,1fr)]">
+          <div className="lg:sticky lg:top-4 lg:self-start">
+            <ConfigIndex
+              current={current?.module.id ?? null}
+              groups={asked}
+              onPick={show}
+              problems={left}
+              shown={marked}
+            />
+          </div>
 
-        <div className="flex min-w-0 flex-col gap-gutter">
-          <p className="text-[12px] text-ink-3 leading-relaxed">
-            {t("config.secretsNotice")}
-          </p>
-
-          {asked().map((group, index) => (
-            <div className="rise" key={group.module.id} style={riseAt(index)}>
+          <div className="flex min-w-0 flex-col gap-gutter">
+            {current ? (
               <ConfigModuleGroup
                 before={
-                  group.module.connection ? (
-                    <ConfigConnectionBlock module={group.module} />
+                  current.module.connection ? (
+                    <ConfigConnectionBlock module={current.module} />
                   ) : null
                 }
-                group={group}
-                handlers={handlersFor(group.module.id)}
-                marks={secrets[group.module.id]}
+                focus={moved}
+                group={current}
+                handlers={handlersFor(current.module.id)}
+                key={current.module.id}
+                marks={secrets[current.module.id]}
+                position={{ index: index + 1, total: asked.length }}
                 problems={marked
-                  .filter((one) => one.module === group.module.id)
+                  .filter((one) => one.module === current.module.id)
                   .map((one) => ({ ...one, message: problemText(t, one) }))}
-                values={values[group.module.id] ?? {}}
+                values={values[current.module.id] ?? {}}
               />
-            </div>
-          ))}
+            ) : null}
+          </div>
         </div>
       </div>
 
-      <ActionBar note={note(t, left, marked, checking)}>
-        {onBack ? (
+      <ActionBar name="config" note={note(t, left, marked, checking, goTo)}>
+        {index > 0 ? (
+          <Button
+            icon={ArrowLeft}
+            onClick={() => show(asked[index - 1].module.id)}
+            variant="discreet"
+          >
+            {t("config.previous")}
+          </Button>
+        ) : null}
+        {index === 0 && onBack ? (
           <Button icon={ArrowLeft} onClick={onBack} variant="discreet">
             {t("config.back")}
           </Button>
         ) : null}
-        <Button
-          icon={Download}
-          loading={checking}
-          onClick={() => submit()}
-          title={left.length > 0 ? t("config.remaining.goTo") : undefined}
-          variant="inverse"
-        >
-          {submitLabel ?? t("config.install")}
-        </Button>
+        {last ? null : (
+          <Button
+            icon={ArrowRight}
+            onClick={() => show(asked[index + 1].module.id)}
+            variant={left.length > 0 ? "inverse" : "default"}
+          >
+            {t("config.next")}
+          </Button>
+        )}
+        {install}
       </ActionBar>
     </section>
   );
-}
-
-/** The first refused field takes the focus, and the page scrolls to it. */
-function focusFirst(problems: readonly FieldProblemView[]): void {
-  const first = problems[0];
-
-  if (!first) {
-    return;
-  }
-
-  const control = document.getElementById(`${first.module}.${first.field}`);
-
-  control?.scrollIntoView({ behavior: "smooth", block: "center" });
-  control?.focus({ preventScroll: true });
 }
 
 function note(
   t: ReturnType<typeof useTranslations>,
   left: readonly FieldProblemView[],
   marked: readonly FieldProblemView[],
-  checking: boolean
+  checking: boolean,
+  goTo: (problem: FieldProblemView | undefined) => void
 ): ReactNode {
   if (checking) {
     return t("config.checking");
@@ -202,7 +252,7 @@ function note(
   return (
     <button
       className="clickable text-left underline underline-offset-2"
-      onClick={() => focusFirst(marked.length > 0 ? marked : left)}
+      onClick={() => goTo(marked[0] ?? left[0])}
       type="button"
     >
       {t.plural("config.remaining", left.length)}

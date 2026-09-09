@@ -12,7 +12,6 @@ type Manifest struct {
 	Resources Resources `json:"resources"`
 	Arch      []string  `json:"arch"`
 	Fields    []Field   `json:"fields"`
-	Provides  []string  `json:"provides"`
 	// Connection names the third-party account the app must hold for this module; only such a module may carry a managed field.
 	Connection string `json:"connection,omitempty"`
 	Mandatory  bool   `json:"mandatory"`
@@ -219,7 +218,6 @@ func (m Manifest) MarshalJSON() ([]byte, error) {
 	normalized.Requires = emptyIfNil(m.Requires)
 	normalized.Conflicts = emptyIfNil(m.Conflicts)
 	normalized.Arch = emptyIfNil(m.Arch)
-	normalized.Provides = emptyIfNil(m.Provides)
 	if normalized.Fields == nil {
 		normalized.Fields = []Field{}
 	}
@@ -263,11 +261,12 @@ const (
 )
 
 type StepEvent struct {
-	Module string     `json:"module"`
-	Step   string     `json:"step"`
-	Status StepStatus `json:"status"`
-	Ms     int64      `json:"ms"`
-	Replay string     `json:"replay,omitempty"`
+	Module  string     `json:"module"`
+	Step    string     `json:"step"`
+	Status  StepStatus `json:"status"`
+	Ms      int64      `json:"ms"`
+	Replay  string     `json:"replay,omitempty"`
+	Message string     `json:"message,omitempty"`
 }
 
 // ModuleConfig is what the agent kept from the last request for a module: plain values, and the names of the secrets it holds — never their value.
@@ -541,6 +540,12 @@ type ProjectBranches struct {
 
 type ProjectCheckout struct {
 	Branch string `json:"branch"`
+}
+
+type ProjectDebug struct {
+	State     ProjectState `json:"state"`
+	Port      int          `json:"port,omitempty"`
+	DebugPort int          `json:"debug_port"`
 }
 
 type ProjectGitStatus struct {

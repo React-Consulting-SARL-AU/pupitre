@@ -109,3 +109,43 @@ describe("harden", () => {
     });
   });
 });
+
+describe("une sécurisation qui attend le canal", () => {
+  it("dit qu'elle attend, puis qu'elle travaille dès la première étape", async () => {
+    const seen: string[] = [];
+
+    stubPupitre({
+      harden: (_serverId, onUpdate: (update: HardenUpdate) => void) => {
+        onUpdate({ kind: "queued" });
+        seen.push(useHarden.getState().harden.status);
+
+        onUpdate({
+          event: {
+            event: "step",
+            id: 2,
+            module: "core.hardening",
+            ms: 0,
+            status: "start",
+            step: "compte dev",
+          },
+          kind: "event",
+        });
+        seen.push(useHarden.getState().harden.status);
+
+        return Promise.resolve({
+          ok: true,
+          result: {
+            harden: { next_user: "dev", root_closed: true, root_kept: false },
+            reconnected: true,
+            user: "dev",
+          },
+        });
+      },
+    });
+
+    await useHarden.getState().start("srv-1");
+
+    expect(seen).toEqual(["queued", "running"]);
+    expect(useHarden.getState().harden.status).toBe("done");
+  });
+});

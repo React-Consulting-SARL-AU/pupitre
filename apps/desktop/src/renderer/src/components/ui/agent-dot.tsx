@@ -29,6 +29,11 @@ const APPEARANCE: Record<
   finished: { shape: "struck", title: "ui.agent.finished", tone: "neutral" },
 };
 
+/** The words for a state, for the places that write it next to the dot. */
+export function agentStateLabel(state: AgentState): DictionaryKey {
+  return APPEARANCE[state].title;
+}
+
 export function AgentDot({
   state,
   size = 9,

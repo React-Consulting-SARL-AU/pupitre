@@ -10,7 +10,7 @@ export function InstallSending({ arch }: { arch: string }) {
   return (
     <WaitingNotice
       detail={t("install.sending.detail", { arch })}
-      note={t("install.sending.note")}
+      note={t("install.sending.note", { arch })}
       title={t("install.sending.title")}
     />
   );

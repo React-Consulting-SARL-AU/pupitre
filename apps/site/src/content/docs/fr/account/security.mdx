@@ -4,7 +4,7 @@ description: Ce que Pupitre peut et ne peut pas faire sur votre serveur, et comm
 locale: fr
 section: account
 sectionOrder: 3
-order: 3
+order: 4
 ---
 
 Quatre règles tiennent le produit. Chacune est énoncée pour que vous puissiez la vérifier plutôt que la croire.
@@ -34,6 +34,8 @@ Le support voit qu’un serveur est enrôlé et quelle version de l’agent il f
 ## Le durcissement, dans l’ordre
 
 `core.hardening` ferme root **en dernier**, et seulement après que l’app a vérifié que votre clé ouvre `dev`. Si cette vérification échoue, rien n’est fermé et l’app dit quoi corriger. C’est la seule étape qui pourrait vous enfermer dehors, et elle est écrite pour ne pas le pouvoir.
+
+Si vous préférez garder une seconde porte sur votre propre machine, l’option « Garder l’accès root » du module laisse root joignable par clé SSH. Jamais par mot de passe : l’authentification par mot de passe tombe dans les deux cas, comme tout le reste de ce que fait le durcissement.
 
 ## Ce dont Pupitre ne vous protège pas
 

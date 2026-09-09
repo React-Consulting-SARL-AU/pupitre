@@ -111,7 +111,7 @@ export function AccountUsageNotice({
           {detailOf(usage, checkedAt, t)}
         </p>
         {usage.status === "granted" && usage.validUntil ? (
-          <p className="mt-1.5 font-data text-[12px] text-ink-4">
+          <p className="mt-1.5 font-data text-[12px] text-ink-3">
             {t("account.usage.validUntil", {
               date: new Date(usage.validUntil).toLocaleDateString("fr-FR"),
             })}

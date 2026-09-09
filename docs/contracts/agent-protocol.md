@@ -67,7 +67,7 @@ Deux remèdes existent. `invalid_fields` accompagne `invalid_config` et porte le
 | `reasons[]` | `string[]` | ce qui a été observé |
 | `fixes[]` | `string[]` | comment y remédier, un fix par raison quand `kind` vaut `incompatible` ou `occupied` ; vide sur une machine `bare` ou un agent `managed` à jour |
 | `catalog` | — | `{ modules: Manifest[], presets: Preset[] }` d'après [service-catalog.md](./service-catalog.md) ; un `Preset` porte son `id`, son `name` affichable et ses `modules`, si bien que l'app n'a rien à traduire |
-| `install` | `{ modules[], config: Record<moduleId, values>, secrets_stdin: true }` | événements `step` `{ module, step, status: "start" \| "ok" \| "skip" \| "fail", ms, replay? }` puis `{ failed[], warned[], report_path }`. Les secrets sont lus sur un flux séparé, jamais dans `params`. `config` remplace la configuration du module ; un secret absent du flux n'est pas effacé, l'agent garde celui qu'il détient, si bien que changer un port ne vide pas un mot de passe. **Toute la configuration est validée avant la première étape** : un refus est `invalid_config`, porte la liste complète dans son remède `invalid_fields`, et rien n'est touché sur la machine |
+| `install` | `{ modules[], config: Record<moduleId, values>, secrets_stdin: true }` | événements `step` `{ module, step, status: "start" \| "ok" \| "skip" \| "fail", ms, replay?, message? }` — `replay` est la commande qui rejoue le module, `message` ce que l'agent a à dire de l'étape — la ligne brute (expurgée) d'un `fail`, ou l'avertissement que porte une étape `ok`/`skip` — puis `{ failed[], warned[], report_path }`, où `failed` et `warned` sont des identifiants de module, une fois chacun. Les secrets sont lus sur un flux séparé, jamais dans `params`. `config` remplace la configuration du module ; un secret absent du flux n'est pas effacé, l'agent garde celui qu'il détient, si bien que changer un port ne vide pas un mot de passe. **Toute la configuration est validée avant la première étape** : un refus est `invalid_config`, porte la liste complète dans son remède `invalid_fields`, et rien n'est touché sur la machine |
 | `install.check` | `{ modules[], config }` | `{ problems: FieldProblem[], warnings[] }` d'après [service-catalog.md](./service-catalog.md). Aucun secret ne l'accompagne et rien n'est touché : elle rejoue la validation des champs et y ajoute ce que seule la machine sait — un port déjà écouté, un dossier qui est un fichier, un fuseau que ce noyau ignore. Elle ne juge jamais un secret, que l'app est seule à détenir avant l'installation |
 | `uninstall` | `{ modules[] }` | événements `step`, puis `{ failed[] }` |
 | `harden` | `{ user: "dev" }` | événements `step`, puis `{ root_closed: boolean, root_kept: boolean, next_user, reason? }`. Ne ferme root que si une clé ouvre `dev`. `root_kept` dit que root reste ouvert parce que `keep_root` le demande, jamais parce que le durcissement a renoncé : les deux drapeaux ne sont jamais vrais ensemble, et un refus est `root_closed: false` avec sa `reason` |
@@ -122,7 +122,19 @@ Le chemin absolu vit sur le projet, pas sur la machine : `status`, `project.list
 | `project.working_tree` | `{ name }` : fichiers changés |
 | `project.diff` | `{ name, path }` : le patch brut |
 | `project.url` | `{ name }` |
-| `project.debug` | `{ name }` : redémarrage avec l'agent de débogage JVM |
+| `project.debug` | `{ name }` : redémarrage avec l'agent de débogage JVM → `{ state, port?, debug_port }` |
+
+#### Le port de débogage vient de la machine
+
+`project.debug` arrête le projet puis le relance en ajoutant `-PdebugPort=<port>` à sa propre commande, et répond l'état, le port du projet et le port de débogage. Ce port n'écoute que sur la boucle locale : il revient par la session SSH comme la base de données, rien de neuf ne s'ouvre sur le pare-feu. `project.restart` remet le projet sur un démarrage normal ; il n'y a pas de second paramètre pour ça.
+
+Quels projets sont débogables et sur quel port se lit dans `/etc/pupitre/env`, jamais dans le binaire :
+
+```
+PUPITRE_DEBUG_PORTS="api:5005 worker:5006"
+```
+
+Les guillemets sont ceux de systemd, qui lit ce fichier comme `EnvironmentFile` : sans eux, une valeur à espaces ne serait plus une seule variable. Un projet absent de la liste est refusé en `bad_request`, avec la ligne à écrire dans le `fix` ; une ligne `service`, qui appartient à systemd et non à une fenêtre tmux, l'est aussi.
 
 #### Ce qu'un dépôt demande, avant de l'ajouter
 
@@ -155,8 +167,6 @@ Rien de tout cela n'est une décision : la détection propose, le client corrige
 
 | Commande | Paramètres |
 | --- | --- |
-| `secrets.status` | — : les clés présentes dans `/etc/pupitre/env`, jamais leurs valeurs |
-| `secrets.set` | `{ key }` : valeur lue sur le flux secret |
 | `service.secret` | `{ id, key }` : révèle la valeur d'un identifiant du module `id` ; voir [La valeur d'un identifiant](#la-valeur-dun-identifiant) |
 | `secrets.sync` | `{ project }` |
 | `db.dump` / `db.import` / `db.shell` / `db.url` | `{ engine, name? }` |
@@ -166,7 +176,7 @@ Rien de tout cela n'est une décision : la détection propose, le client corrige
 
 | Commande | Paramètres |
 | --- | --- |
-| `enroll` | `{ platform_url, secrets_stdin: true }` : le jeton d'enrôlement est lu sur le flux secret ; l'agent l'échange contre son jeton de serveur, puis lit `/agent/state` une première fois. Résultat `{ enrolled: true, entitlement, synced_at? }`. Répond aussi en [mode restreint](#mode-restreint), et c'est la commande qui en sort |
+| `enroll` | `{ platform_url, secrets_stdin: true }` : le jeton d'enrôlement est lu sur le flux secret ; l'agent l'échange contre son jeton de serveur, écrit `platform_url` dans `/etc/pupitre/platform.url` — le battement de cœur et le droit d'usage tournent sans l'app, et rien d'autre ne leur dirait où répondre — puis lit `/agent/state` une première fois. Résultat `{ enrolled: true, entitlement, synced_at? }`. Répond aussi en [mode restreint](#mode-restreint), et c'est la commande qui en sort |
 | `keys.list` | — : les clés du bloc balisé |
 | `keys.sync` | — : force une lecture de `/api/v1/agent/state` |
 | `platform.sync` | — : la même lecture, suivie du heartbeat. `{ synced_at, heartbeat_at? }`. L'app la demande à la fin d'une installation et d'un durcissement, pour que la console montre les modules au lieu d'un serveur vide pendant cinq minutes. Elle lit et rapporte, ne touche à rien de la machine, et reste donc ouverte en mode restreint : un serveur dont la plateforme n'a pas confirmé le droit d'usage est exactement celui qui doit redemander. Un `heartbeat_at` absent dit que l'état a été lu et que le battement n'est pas passé ; le daemon le refera |
@@ -177,7 +187,7 @@ Rien de tout cela n'est une décision : la détection propose, le client corrige
 
 ## Le flux secret
 
-Une commande qui porte un secret (`install`, `secrets.set`) annonce `secrets_stdin: true`. L'app écrit alors **la ligne suivante de l'entrée standard** avec les secrets en JSON, immédiatement après la requête ; l'agent la consomme avant d'appeler le handler, sans la journaliser ni la renvoyer. Aucun secret n'apparaît dans `params`, dans un événement ou dans un rapport.
+Une commande qui porte un secret (`install`, `enroll`) annonce `secrets_stdin: true`. L'app écrit alors **la ligne suivante de l'entrée standard** avec les secrets en JSON, immédiatement après la requête ; l'agent la consomme avant d'appeler le handler, sans la journaliser ni la renvoyer. Aucun secret n'apparaît dans `params`, dans un événement ou dans un rapport.
 
 C'est bien l'entrée standard et non un descripteur séparé : `ssh` ne transmet que les descripteurs 0, 1 et 2, si bien qu'un `fd 3` ouvert par l'app n'atteindrait jamais l'agent. Comme les requêtes sont sérialisées, la ligne qui suit une requête à `secrets_stdin: true` est sans ambiguïté sa ligne de secrets.
 
@@ -188,14 +198,6 @@ Pour `install`, la ligne a la forme de `params.config`, groupée par identifiant
 ```
 
 Un module absent de la ligne n'a aucun secret. Une ligne absente, illisible ou qui ne respecte pas cette forme renvoie `bad_request` avec le `fix` qui montre la forme attendue, avant toute installation ; la requête suivante reste lue comme une requête.
-
-Pour `secrets.set`, la ligne est un objet plat d'une seule entrée, dont la clé est exactement le `key` de la requête (schéma `SecretsSetSecrets`) :
-
-```jsonc
-{ "OPENAI_API_KEY": "sk-…" }
-```
-
-Une valeur vide vaut une valeur absente : l'agent refuse en `bad_request` plutôt que d'écrire un secret vide.
 
 Pour `enroll`, la ligne porte le seul jeton d'enrôlement (schéma `EnrollSecrets`) :
 

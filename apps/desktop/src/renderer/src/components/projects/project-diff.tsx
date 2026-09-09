@@ -1,7 +1,7 @@
 import { EmptyState } from "@renderer/components/ui/empty-state";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { IconButton } from "@renderer/components/ui/icon-button";
-import { StatusDot } from "@renderer/components/ui/status-dot";
+import { WaitingLine } from "@renderer/components/ui/waiting-line";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { DiffState, TreeState } from "@renderer/stores/project";
 import { Check, FileDiff, RefreshCw } from "lucide-react";
@@ -37,10 +37,9 @@ export function ProjectDiff({
   if (tree.status === "idle" || tree.status === "reading") {
     return (
       <div className="grid h-full place-items-center">
-        <span className="flex items-center gap-2 text-[13px] text-ink-3">
-          <StatusDot shape="breathing" size={11} />
+        <WaitingLine className="text-[13px]">
           {t("project.diff.readingTree")}
-        </span>
+        </WaitingLine>
       </div>
     );
   }

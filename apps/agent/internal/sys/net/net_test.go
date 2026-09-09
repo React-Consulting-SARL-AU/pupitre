@@ -32,6 +32,7 @@ func (machine) WriteFile(string, []byte, fs.FileMode) error { return nil }
 func (machine) Remove(string) error                         { return nil }
 func (machine) Exists(string) (bool, error)                 { return false, nil }
 func (machine) Chown(string, string, string) error          { return nil }
+func (machine) Owner(string) (string, error)                { return "root", nil }
 func (machine) MkdirAll(string, fs.FileMode) error          { return nil }
 
 const table = `  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode

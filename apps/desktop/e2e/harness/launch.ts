@@ -57,7 +57,10 @@ function answerFromFixtures(app: ElectronApplication): Promise<void> {
         withdrawn: [],
       },
     }));
-    answer("completion-catalog", () => null);
+    answer("completions", () => ({
+      ok: false,
+      error: { code: "internal", message: "no agent in this test" },
+    }));
     answer("server-host-key", () => ({
       ok: true,
       result: { fingerprint: "SHA256:pupitre-e2e", status: "trusted" },

@@ -26,7 +26,6 @@ func manifest() contract.Manifest {
 			},
 			{Key: "always_on", Kind: contract.FieldBoolean, Label: i18n.T("module.ai.hermes.always_on.label"), Help: i18n.T("module.ai.hermes.always_on.help"), Required: false, Default: false},
 		},
-		Provides:  []string{"agent:hermes"},
 		Mandatory: false,
 		Since:     "0.1.0",
 	}

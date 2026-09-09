@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test"
-import { PageSkeleton, Skeleton } from "@/components/ui/skeleton"
+import { PageSkeleton, Skeleton, SkeletonLines } from "@/components/ui/skeleton"
 import { render, withRouter } from "@/testing/render"
 
 const mounted: (() => void)[] = []
@@ -45,5 +45,22 @@ describe("PageSkeleton", () => {
     expect(view.container.querySelectorAll("[aria-hidden=true]")).toHaveLength(
       3
     )
+  })
+})
+
+describe("SkeletonLines", () => {
+  it("draws the asked rows without a frame, and says what it reads", async () => {
+    const view = await render(
+      withRouter(<SkeletonLines label="Reading the devices…" rows={2} />)
+    )
+
+    mounted.push(view.unmount)
+
+    const status = view.container.querySelector("[role=status]")
+
+    expect(status?.getAttribute("aria-busy")).toBe("true")
+    expect(status?.className).not.toContain("shadow-raised")
+    expect(status?.textContent).toContain("Reading the devices…")
+    expect(status?.children).toHaveLength(3)
   })
 })

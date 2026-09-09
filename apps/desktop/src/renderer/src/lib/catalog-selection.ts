@@ -189,8 +189,8 @@ export function fromPreset(
 
 /**
  * Why a module cannot be chosen right now, in the words the reader needs: it is
- * already there, it collides with another, or the architecture the probe
- * measured has nothing to run it.
+ * already there, it collides with one the server already runs or with one just
+ * chosen, or the architecture the probe measured has nothing to run it.
  */
 export function blocked(
   modules: readonly Manifest[],
@@ -220,11 +220,23 @@ export function blocked(
       continue;
     }
 
-    const against = [...chosen].find(
-      (other) =>
-        module.conflicts.includes(other) ||
-        (known.get(other)?.conflicts ?? []).includes(module.id)
-    );
+    const collides = (other: string) =>
+      module.conflicts.includes(other) ||
+      (known.get(other)?.conflicts ?? []).includes(module.id);
+
+    const running = installed.find(collides);
+
+    if (running) {
+      why.set(
+        module.id,
+        translate()("catalog.blocked.conflictInstalled", {
+          name: known.get(running)?.name ?? running,
+        })
+      );
+      continue;
+    }
+
+    const against = [...chosen].find(collides);
 
     if (against) {
       why.set(
@@ -373,6 +385,45 @@ export function problemsOf(
       manifest,
     };
   });
+}
+
+/**
+ * Whether a field has to be answered before the install, or can be left as
+ * the manifest set it.
+ *
+ * A secret is always shown: typed, it is the one thing the reader must supply;
+ * generated, the line saying so is what tells them no password is theirs to
+ * invent. Everything that came with a default is a setting, not a question —
+ * and a question stays one once answered, so nothing moves under the reader.
+ */
+export function asked(field: Field): boolean {
+  if (field.kind === "secret") {
+    return true;
+  }
+
+  if (field.kind === "list") {
+    return field.items === "secret" || (field.min ?? 0) > 0;
+  }
+
+  if (field.kind === "boolean" || field.kind === "version") {
+    return false;
+  }
+
+  return field.required && field.default === undefined;
+}
+
+export interface SplitFields {
+  /** What the reader has to answer. */
+  asked: readonly Field[];
+  /** What the manifest already answered, and can be changed. */
+  kept: readonly Field[];
+}
+
+export function splitFields(fields: readonly Field[]): SplitFields {
+  return {
+    asked: fields.filter((field) => asked(field)),
+    kept: fields.filter((field) => !asked(field)),
+  };
 }
 
 /** What a field is worth before anyone touches it, per its manifest. */

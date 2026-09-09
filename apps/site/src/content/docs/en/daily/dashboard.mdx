@@ -1,0 +1,36 @@
+---
+title: Dashboard and activity
+description: What the app shows of a machine between two pieces of work, and what it lets you stop.
+locale: en
+section: daily
+sectionOrder: 2
+order: 1
+---
+
+Once a server is set up, the app opens on its dashboard. It is one page and one question: can this machine take one more thing?
+
+## One command, one page
+
+Everything on the dashboard comes from a single `snapshot` the agent answers: the machine, the services, the projects, the sessions. One command, however many projects the machine holds, refreshed every few seconds. Nothing is cached and nothing is guessed — a figure you read is a figure the server sent.
+
+## The four figures
+
+Memory, load, disk, and what the projects weigh together. The load is the Unix load average divided by the number of cores, because that is what the machine actually reports; there is no processor percentage in the protocol, and the app does not invent one. Each figure turns to an alert shape when it crosses the line that matters: under a gigabyte of memory left, more than one of load per core, more than ninety per cent of the disk taken.
+
+Under them, in plain text: the distribution, its version, the architecture, and the agent version the machine runs.
+
+## Services and projects
+
+The services are the modules the agent reports as installed, with their state. The projects are cards: state, memory, and the three gestures — open, start or stop, restart. `Start all` and `Stop all` sit at the top; stopping everything asks first.
+
+## Background sessions
+
+A `tmux` session outlives whatever started it. An AI agent left running, a JetBrains backend whose window you closed — they keep going, and they keep their memory. The dashboard lists them, says which ones still have a tab open in the app, and lets you stop one, or stop the ones that have been idle a long time. A JetBrains backend alone weighs several gigabytes; this is the list you look at when the machine has slowed down for no visible reason.
+
+## Processes and sessions
+
+The activity screen goes one level lower: a full process list, as `ps` reports it, on a slower beat than the dashboard because it costs more. You see what weighs, and you can stop a process by name and pid. The same background sessions are listed underneath.
+
+## Restarting the machine
+
+At the bottom of the dashboard, apart from everything else, one button restarts the server. It is the only gesture on the page that interrupts everyone and cannot be undone, so it is placed alone and asks first. The machine comes back about a minute later: `systemd` brings up the agent, the databases and anything a module installed as a unit. A project running in a `tmux` session does not restart by itself — start it again from here.

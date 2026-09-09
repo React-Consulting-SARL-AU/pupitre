@@ -111,8 +111,7 @@ export const servers = {
     "servers.row.confirmForget": "Delete everywhere",
 
     "servers.panel.heading": "Your servers",
-    "servers.panel.intro":
-      "The app keeps an SSH configuration of its own, one key per server in its folder, and each machine's fingerprint from the first contact.",
+    "servers.panel.intro": "The machines this computer knows.",
     "servers.panel.emptyDetail":
       "An address, an account, and a key the app generates for this computer.",
     "servers.panel.emptyTitle": "No server yet",
@@ -230,8 +229,7 @@ export const servers = {
     "servers.row.confirmForget": "Supprimer partout",
 
     "servers.panel.heading": "Vos serveurs",
-    "servers.panel.intro":
-      "L'app garde une configuration SSH à elle, une clé par serveur dans son dossier, et l'empreinte de chaque machine dès le premier contact.",
+    "servers.panel.intro": "Les machines que cet ordinateur connaît.",
     "servers.panel.emptyDetail":
       "Une adresse, un compte, et une clé que l'app génère pour cet ordinateur.",
     "servers.panel.emptyTitle": "Aucun serveur pour l'instant",

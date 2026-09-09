@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io/fs"
+	"path/filepath"
 	"strings"
 
 	"pupitre.studio/agent/internal/sys"
@@ -62,6 +63,87 @@ func Chown(ctx sys.Context, path, owner, group string) error {
 	ctx.Logf("chown %s:%s %s", owner, group, path)
 
 	return ctx.Sys().Chown(path, owner, group)
+}
+
+func Owner(ctx sys.Context, path string) (string, error) {
+	return ctx.Sys().Owner(path)
+}
+
+// MkdirOwned creates the folder and hands the owner every folder it had to
+// create on the way: a folder made by root inside a user's home locks that
+// user out of everything under it.
+func MkdirOwned(ctx sys.Context, path, owner, group string, mode fs.FileMode) error {
+	var created []string
+	for dir := path; dir != "/" && dir != "." && !Exists(ctx, dir); dir = filepath.Dir(dir) {
+		created = append(created, dir)
+	}
+
+	if len(created) == 0 {
+		return nil
+	}
+
+	ctx.Logf("mkdir %s (%o)", path, mode)
+
+	if err := ctx.Sys().MkdirAll(path, mode); err != nil {
+		return err
+	}
+
+	for _, dir := range created {
+		if err := Chown(ctx, dir, owner, group); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// EnsureOwned creates the folder for its owner, or gives it back to them,
+// everything inside included, when a previous run left it to root. It says
+// whether it changed anything, so the step around it can be skipped on a replay.
+func EnsureOwned(ctx sys.Context, path, owner, group string, mode fs.FileMode) (bool, error) {
+	if !Exists(ctx, path) {
+		return true, MkdirOwned(ctx, path, owner, group, mode)
+	}
+
+	current, err := Owner(ctx, path)
+	if err != nil {
+		return false, err
+	}
+
+	if current == owner {
+		return false, nil
+	}
+
+	return true, ChownAll(ctx, path, owner, group)
+}
+
+// ChownAll never follows a symlink: the link itself changes hands, what it points at does not.
+func ChownAll(ctx sys.Context, path, owner, group string) error {
+	if err := Chown(ctx, path, owner, group); err != nil {
+		return err
+	}
+
+	entries, err := ctx.Sys().ReadDir(path)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		child := filepath.Join(path, entry.Name)
+		if entry.Dir {
+			if err := ChownAll(ctx, child, owner, group); err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		if err := Chown(ctx, child, owner, group); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func Remove(ctx sys.Context, path string) (bool, error) {

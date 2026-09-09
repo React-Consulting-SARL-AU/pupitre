@@ -143,3 +143,60 @@ func TestRemoveBlock(t *testing.T) {
 		t.Fatalf("absent RemoveBlock = %v, %v", removed, err)
 	}
 }
+
+func TestMkdirOwnedHandsOverOnlyWhatItCreated(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Dirs["/home/dev"] = true
+	fake.Owners["/home/dev"] = "dev:dev"
+	ctx := modtest.NewContext(t, fake, modtest.Options{})
+
+	if err := file.MkdirOwned(ctx, "/home/dev/.local/bin", "dev", "dev", 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, dir := range []string{"/home/dev/.local", "/home/dev/.local/bin"} {
+		if !fake.Dirs[dir] || fake.Owners[dir] != "dev:dev" {
+			t.Errorf("%s: exists %v, owner %q", dir, fake.Dirs[dir], fake.Owners[dir])
+		}
+	}
+
+	if _, touched := fake.Owners["/home"]; touched {
+		t.Error("a folder that already existed must keep its owner")
+	}
+
+	if err := file.MkdirOwned(ctx, "/home/dev/.local/bin", "dev", "dev", 0o755); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestEnsureOwnedGivesARootTreeBackToItsUser(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Dirs["/home/dev"] = true
+	fake.Dirs["/home/dev/.local"] = true
+	fake.Dirs["/home/dev/.local/share/mise"] = true
+	fake.Files["/home/dev/.local/share/mise/config.toml"] = []byte("")
+	fake.Files["/home/dev/.local/bin/mise"] = []byte("elf")
+	fake.Owners["/home/dev/.local/bin/mise"] = "dev:dev"
+	ctx := modtest.NewContext(t, fake, modtest.Options{})
+
+	changed, err := file.EnsureOwned(ctx, "/home/dev/.local", "dev", "dev", 0o755)
+	if err != nil || !changed {
+		t.Fatalf("changed = %v, err = %v", changed, err)
+	}
+
+	for _, path := range []string{"/home/dev/.local", "/home/dev/.local/share", "/home/dev/.local/share/mise", "/home/dev/.local/share/mise/config.toml", "/home/dev/.local/bin"} {
+		if fake.Owners[path] != "dev:dev" {
+			t.Errorf("%s owned by %q", path, fake.Owners[path])
+		}
+	}
+
+	changed, err = file.EnsureOwned(ctx, "/home/dev/.local", "dev", "dev", 0o755)
+	if err != nil || changed {
+		t.Fatalf("second pass: changed = %v, err = %v", changed, err)
+	}
+
+	changed, err = file.EnsureOwned(ctx, "/home/dev/.config", "dev", "dev", 0o700)
+	if err != nil || !changed || fake.Owners["/home/dev/.config"] != "dev:dev" || fake.Modes["/home/dev/.config"] != 0o700 {
+		t.Fatalf("missing folder: changed = %v, err = %v, owner %q, mode %o", changed, err, fake.Owners["/home/dev/.config"], fake.Modes["/home/dev/.config"])
+	}
+}

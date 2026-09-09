@@ -9,6 +9,7 @@ import { AlertDiskHighEmail } from "./templates/alert-disk-high"
 import { AlertEntitlementGraceEmail } from "./templates/alert-entitlement-grace"
 import { AlertServerUnreachableEmail } from "./templates/alert-server-unreachable"
 import { DeviceAddedEmail } from "./templates/device-added"
+import { EmailChangeEmail } from "./templates/email-change"
 import { EntitlementGraceEmail } from "./templates/entitlement-grace"
 import { InvitationEmail } from "./templates/invitation"
 import { MagicLinkEmail } from "./templates/magic-link"
@@ -52,6 +53,25 @@ export function renderMagicLinkEmail({
     "magic_link.subject",
     {},
     <MagicLinkEmail locale={locale} url={url} />
+  )
+}
+
+export interface EmailChangeInput {
+  locale: Locale
+  url: string
+  newEmail: string
+}
+
+export function renderEmailChangeEmail({
+  locale,
+  url,
+  newEmail,
+}: EmailChangeInput): Promise<RenderedEmail> {
+  return compose(
+    locale,
+    "email_change.subject",
+    {},
+    <EmailChangeEmail locale={locale} newEmail={newEmail} url={url} />
   )
 }
 

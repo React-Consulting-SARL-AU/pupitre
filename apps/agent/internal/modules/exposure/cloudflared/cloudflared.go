@@ -3,15 +3,18 @@ package cloudflared
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/exposure/routes"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/sys/systemd"
 )
 
 const (
@@ -41,6 +44,7 @@ Type=notify
 ExecStart=/usr/bin/cloudflared --no-autoupdate --config ` + ConfigPath + ` tunnel run
 Restart=always
 RestartSec=5
+TimeoutStartSec=45
 
 [Install]
 WantedBy=multi-user.target
@@ -70,6 +74,75 @@ func Recorded(ctx *modules.Context) Credentials {
 	}
 
 	return found
+}
+
+// What cloudflared answers when the credentials name a tunnel the account no longer holds.
+const unknownTunnel = "Tunnel not found"
+
+// What it says the moment the tunnel carries a connection.
+const registered = "Registered tunnel connection"
+
+// A retry cycle of cloudflared runs to about a dozen lines; three of them hold
+// the answer whatever the connection was doing when the verification asked.
+const verifiedLines = 60
+
+// What the daemon last said, for a wait that ended on nothing else.
+const keptSaidLines = 2
+
+// StartFailure turns a unit that would not come up into a sentence naming the
+// cause. systemctl only says the job failed; the daemon's own journal says why,
+// and the one cause the client can act on is a tunnel that no longer exists.
+func StartFailure(ctx *modules.Context, err error) error {
+	said := systemd.Diagnose(ctx, Unit)
+
+	if strings.Contains(said, unknownTunnel) {
+		return fmt.Errorf("%s : %s", err, i18n.T("cloudflared.tunnel.unknown"))
+	}
+
+	if said == "" {
+		return err
+	}
+
+	return fmt.Errorf("%s : %s", err, said)
+}
+
+// Registered refuses the one verdict the machine gives for certain: a tunnel
+// whose credentials name something the account no longer holds. cloudflared
+// says that on its first attempts and repeats it at every retry.
+func Registered(ctx *modules.Context) error {
+	if !strings.Contains(systemd.Recent(ctx, Unit, verifiedLines), unknownTunnel) {
+		return nil
+	}
+
+	return errors.New(i18n.T("cloudflared.tunnel.unknown"))
+}
+
+// Serving says whether the tunnel carries anything yet, and what the daemon
+// last said if it does not.
+//
+// cloudflared answers systemd that it started before it has registered, so a
+// unit that came up proves nothing on its own; a tunnel that opened a
+// connection says so in its journal. Neither is a verdict on the install: a
+// machine on a slow link reaches the same place ten seconds later, and failing
+// the step for that would refuse an installation that worked.
+func Serving(ctx *modules.Context) (bool, string) {
+	said := systemd.Recent(ctx, Unit, verifiedLines)
+
+	if strings.Contains(said, registered) || systemd.Active(ctx, Unit) {
+		return true, ""
+	}
+
+	return false, lastSaid(said)
+}
+
+func lastSaid(said string) string {
+	lines := strings.Split(said, " / ")
+
+	if len(lines) > keptSaidLines {
+		lines = lines[len(lines)-keptSaidLines:]
+	}
+
+	return strings.Join(lines, " / ")
 }
 
 func Installed(ctx *modules.Context) bool {

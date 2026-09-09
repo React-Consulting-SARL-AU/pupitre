@@ -1,19 +1,21 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { FieldProblemView } from "@renderer/lib/catalog-selection";
 import type { SecretMark } from "@shared/secrets";
-import type { ReactNode } from "react";
-import type { FieldGroup } from "../../lib/catalog-selection";
+import { type ReactNode, useEffect, useRef } from "react";
+import { type FieldGroup, splitFields } from "../../lib/catalog-selection";
+import { Details } from "../ui/details";
 import { ServiceLogo } from "../ui/service-logo";
 import { ConfigFieldControl, type FieldHandlers } from "./config-field-control";
 
 /**
- * One module's questions, under its own name and logo.
+ * One service's questions, under its own name and logo.
  *
- * A module with no field still gets its heading: seeing it listed and asked
- * nothing is what tells the reader there is nothing to decide, rather than
- * leaving them looking for a section that is not there. What a module needs
- * before its own questions — an account it publishes through — is said above
- * them, because being asked for a domain without it helps nobody.
+ * What has to be answered is asked first; what the manifest already answered
+ * waits behind « Advanced settings », closed — unless one of those settings is
+ * refused, in which case it opens on its own so the refusal is read. A service
+ * with nothing to decide says so, rather than leaving the reader looking for a
+ * question that is not there. What a service needs before its own questions —
+ * an account it publishes through — is said above them.
  */
 export function ConfigModuleGroup({
   group,
@@ -21,27 +23,58 @@ export function ConfigModuleGroup({
   marks,
   problems,
   before,
+  position,
+  focus = false,
   handlers,
 }: {
   group: FieldGroup;
   values: Record<string, unknown>;
   marks?: Record<string, SecretMark>;
-  /** What this module gets wrong, already filtered to what may be shown. */
+  /** What this service gets wrong, already filtered to what may be shown. */
   problems: readonly FieldProblemView[];
-  /** The connection this module declares, when it declares one. */
+  /** The connection this service declares, when it declares one. */
   before?: ReactNode;
+  /** Where the service stands in the sequence; said only when there is one. */
+  position?: { index: number; total: number };
+  /** The reader just moved here: the heading takes the focus, and says so. */
+  focus?: boolean;
   handlers: FieldHandlers;
 }) {
   const t = useTranslations();
+  const heading = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (focus) {
+      heading.current?.focus({ preventScroll: true });
+    }
+  }, [focus]);
 
   function problemOf(key: string): string | undefined {
     return problems.find((one) => one.field === key)?.message;
   }
 
+  const { asked, kept } = splitFields(group.fields);
+  const keptRefused = kept.some((field) => problemOf(field.key));
+  const asksSecret = asked.some((field) => field.kind === "secret");
+
+  function control(field: FieldGroup["fields"][number]) {
+    return (
+      <ConfigFieldControl
+        field={field}
+        handlers={handlers}
+        key={field.key}
+        marks={marks}
+        moduleId={group.module.id}
+        problem={problemOf(field.key)}
+        value={values[field.key]}
+      />
+    );
+  }
+
   return (
     <section
       aria-labelledby={`group-${group.module.id}`}
-      className="elevation-raised flex scroll-mt-4 flex-col gap-gutter rounded-md border border-line bg-surface p-5"
+      className="@container/module elevation-raised flex scroll-mt-4 flex-col gap-gutter rounded-md border border-line bg-surface p-5"
       data-group={group.module.id}
       id={`config-${group.module.id}`}
     >
@@ -51,33 +84,60 @@ export function ConfigModuleGroup({
           name={group.module.name}
           size={20}
         />
-        <div className="min-w-0">
-          <h2 className="font-medium text-ink" id={`group-${group.module.id}`}>
+        <div className="min-w-0 flex-1">
+          <h2
+            className="font-medium text-ink outline-none"
+            id={`group-${group.module.id}`}
+            ref={heading}
+            tabIndex={-1}
+          >
             {group.module.name}
           </h2>
           <p className="text-[12px] text-ink-3">{group.module.summary}</p>
         </div>
+        {position && position.total > 1 ? (
+          <span className="shrink-0 font-data text-[12px] text-ink-3 tabular-nums">
+            {t("config.module.position", position)}
+          </span>
+        ) : null}
       </header>
 
       {before}
 
       {group.fields.length === 0 ? (
-        <p className="text-[12px] text-ink-4">{t("config.module.nothing")}</p>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {group.fields.map((field) => (
-            <ConfigFieldControl
-              field={field}
-              handlers={handlers}
-              key={field.key}
-              marks={marks}
-              moduleId={group.module.id}
-              problem={problemOf(field.key)}
-              value={values[field.key]}
-            />
-          ))}
+        <p className="text-[12px] text-ink-3">{t("config.module.nothing")}</p>
+      ) : null}
+
+      {group.fields.length > 0 && asked.length === 0 ? (
+        <p className="text-[12px] text-ink-3" data-defaults="true">
+          {t("config.module.defaults")}
+        </p>
+      ) : null}
+
+      {asked.length > 0 ? (
+        <div className="grid @lg/module:grid-cols-2 gap-4" data-asked="true">
+          {asked.map(control)}
         </div>
-      )}
+      ) : null}
+
+      {asksSecret ? (
+        <p className="text-[12px] text-ink-3 leading-relaxed">
+          {t("config.secretsNotice")}
+        </p>
+      ) : null}
+
+      {kept.length > 0 ? (
+        <Details
+          className="border-line border-t pt-3"
+          label={t("config.advanced", { count: kept.length })}
+          name="advanced"
+          open={keptRefused}
+        >
+          <div className="mt-2 grid @lg/module:grid-cols-2 gap-4">
+            {kept.map(control)}
+          </div>
+        </Details>
+      ) : null}
     </section>
   );
 }

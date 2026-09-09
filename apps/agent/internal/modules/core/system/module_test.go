@@ -418,3 +418,43 @@ func TestUninstallTakesTheAgentServiceAway(t *testing.T) {
 		t.Fatal("the unit stayed in place")
 	}
 }
+
+// A folder root made under ~/.local on an earlier run locks dev out of mise, node and every agent CLI.
+func TestPrepareHomeGivesLocalBackToDev(t *testing.T) {
+	fake := bareMachine()
+	fake.Users["dev"] = Home
+	fake.Dirs[Home] = true
+	fake.Owners[Home] = "dev:dev"
+	fake.Dirs[sshDir] = true
+	fake.Dirs[configDir] = true
+	fake.Dirs[localDir] = true
+	fake.Dirs[localBinDir] = true
+	fake.Owners[localBinDir] = "dev:dev"
+	fake.Files[localBinDir+"/mise"] = []byte("elf")
+	fake.Owners[localBinDir+"/mise"] = "dev:dev"
+	ctx := newContext(t, fake)
+
+	if err := prepareHome(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, dir := range []string{localDir, localBinDir, localShareDir} {
+		if !fake.Dirs[dir] || fake.Owners[dir] != "dev:dev" {
+			t.Errorf("%s: exists %v, owner %q", dir, fake.Dirs[dir], fake.Owners[dir])
+		}
+	}
+
+	last := ctx.Events()[len(ctx.Events())-1]
+	if last.Step != "prepare-home" || last.Status != contract.StepOK {
+		t.Fatalf("event = %+v", last)
+	}
+
+	if err := prepareHome(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	last = ctx.Events()[len(ctx.Events())-1]
+	if last.Status != contract.StepSkip {
+		t.Fatalf("second pass must skip, got %+v", last)
+	}
+}

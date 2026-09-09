@@ -18,7 +18,6 @@ func manifest() contract.Manifest {
 		Resources: contract.Resources{RAMMB: 0, DiskMB: 0},
 		Arch:      []string{"amd64", "arm64"},
 		Fields:    []contract.Field{},
-		Provides:  []string{"exposure:ssh"},
 		Mandatory: false,
 		Since:     "0.1.0",
 	}

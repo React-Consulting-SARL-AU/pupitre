@@ -32,6 +32,7 @@ type Options struct {
 	AgentVersion      string
 	Arch              string
 	TokenPath         string
+	BaseURLPath       string
 	KeysPath          string
 	KeysOwner         string
 	HostKeyPath       string
@@ -61,6 +62,9 @@ func New(options Options) *Daemon {
 	}
 	if options.TokenPath == "" {
 		options.TokenPath = platform.DefaultTokenPath
+	}
+	if options.BaseURLPath == "" {
+		options.BaseURLPath = platform.DefaultBaseURLPath
 	}
 	if options.KeysPath == "" {
 		options.KeysPath = DefaultKeysPath
@@ -207,6 +211,14 @@ func (d *Daemon) Enroll(token, platformURL string) error {
 		return err
 	}
 
+	// The platform is written down with the token: the heartbeat and the
+	// entitlement run without the app, and nothing else would tell them where
+	// to answer — a development console would be traded with once and then
+	// looked for at the hosted address for ever.
+	if err := platform.SaveBaseURL(d.options.Sys, d.options.BaseURLPath, platformURL); err != nil {
+		return err
+	}
+
 	journal.Logf("server enrolled, token written to %s", d.options.TokenPath)
 
 	return nil
@@ -272,8 +284,16 @@ func (d *Daemon) client(platformURL string) (platform.Client, error) {
 	return client, nil
 }
 
+// The address the caller names wins; a caller that names none — the heartbeat,
+// a sync of its own accord — falls back to the one the enrolment wrote down,
+// then to whatever this build was told at launch.
 func (d *Daemon) platform(platformURL string) platform.Client {
 	client := d.options.Platform
+
+	if platformURL == "" {
+		platformURL = platform.LoadBaseURL(d.options.Sys, d.options.BaseURLPath)
+	}
+
 	if platformURL != "" {
 		client.BaseURL = platformURL
 	}

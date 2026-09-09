@@ -1,6 +1,6 @@
 import { Callout } from "@renderer/components/ui/callout";
 import { fieldControlClass } from "@renderer/components/ui/field";
-import { StatusDot } from "@renderer/components/ui/status-dot";
+import { WaitingLine } from "@renderer/components/ui/waiting-line";
 import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { BranchState } from "@renderer/stores/project";
@@ -28,10 +28,9 @@ export function ProjectBranches({
 
   if (state.status === "idle" || state.status === "reading") {
     return (
-      <p className="flex items-center gap-2 font-data text-[12px] text-ink-3">
-        <StatusDot shape="breathing" size={11} />
+      <WaitingLine className="font-data text-[12px]">
         {t("project.branches.reading")}
-      </p>
+      </WaitingLine>
     );
   }
 

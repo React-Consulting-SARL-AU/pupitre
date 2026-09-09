@@ -26,7 +26,6 @@ func manifest() contract.Manifest {
 			{Key: "remote_password", Kind: contract.FieldSecret, Label: i18n.T("module.db.mysql.remote_password.label"), Help: i18n.T("module.db.mysql.remote_password.help"), Required: true, Generate: true},
 			{Key: "buffer_pool", Kind: contract.FieldText, Label: i18n.T("module.db.mysql.buffer_pool.label"), Help: i18n.T("module.db.mysql.buffer_pool.help"), HintText: i18n.T("module.db.mysql.buffer_pool.hint"), Format: contract.FormatSize, Required: false},
 		},
-		Provides:  []string{"db:mysql"},
 		Mandatory: false,
 		Since:     "0.1.0",
 	}

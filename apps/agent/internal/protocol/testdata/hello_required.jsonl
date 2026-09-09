@@ -1,8 +1,8 @@
 > {"id":1,"cmd":"ping"}
-< {"id":1,"ok":false,"error":{"code":"hello_required","message":"hello is expected before any command","fix":"Send hello {app_version, protocol} first."}}
 > {"id":2,"cmd":"snapshot"}
-< {"id":2,"ok":false,"error":{"code":"hello_required","message":"hello is expected before any command","fix":"Send hello {app_version, protocol} first."}}
 > {"id":3,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
-< {"id":3,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["enroll","hello","ping","probe","project.logs","reboot","secrets.set"]}}
 > {"id":4,"cmd":"ping"}
+< {"id":1,"ok":false,"error":{"code":"hello_required","message":"hello is expected before any command","fix":"Send hello {app_version, protocol} first."}}
+< {"id":2,"ok":false,"error":{"code":"hello_required","message":"hello is expected before any command","fix":"Send hello {app_version, protocol} first."}}
+< {"id":3,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["enroll","hello","install","ping","probe","project.logs","reboot"]}}
 < {"id":4,"ok":true,"result":{"ts":"2026-09-04T12:00:00Z"}}

@@ -141,18 +141,18 @@ describe("project:on et project:checkout", () => {
   });
 });
 
-describe("secrets:set", () => {
-  it("refuse d'écrire une clé, et la valeur ne quitte jamais l'app", async () => {
+describe("install", () => {
+  it("refuse l'installation, et le secret ne quitte jamais l'app", async () => {
     const guarded = client();
 
-    const written = await guarded.request(
+    const installed = await guarded.request(
       SERVER,
-      "secrets.set",
-      { key: "STRIPE_SECRET_KEY", secrets_stdin: true },
-      { secrets: { STRIPE_SECRET_KEY: "sk_live_de_test" } }
+      "install",
+      { modules: ["tool.github"], config: {}, secrets_stdin: true },
+      { secrets: { "tool.github": { token: "ghp_de_test" } } }
     );
 
-    expect(written).toMatchObject(REFUSED);
+    expect(installed).toMatchObject(REFUSED);
     expect(agent?.started()).toBe(0);
     expect(agent?.written()).toEqual([]);
   });

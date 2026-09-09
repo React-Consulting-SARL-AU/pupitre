@@ -75,6 +75,12 @@ export interface CallOptions {
   onSecret?: (secret: SecretEvent) => void;
   /** Written on the line that follows the request, never in `params`, never kept. */
   secrets?: SecretPayload;
+  /**
+   * Called when the command cannot leave yet: a channel carries one command at
+   * a time, and a screen owes the reader the difference between a machine that
+   * is working and a request that has not been sent.
+   */
+  onQueued?: () => void;
   timeoutMs?: number;
 }
 
@@ -121,6 +127,12 @@ export interface AgentClientOptions {
    */
   onChannel?: (serverId: string, state: ChannelState) => void;
 }
+
+/**
+ * Nothing is lost that was never held: a channel that never answered a hello
+ * has failed to open, and that failure is the caller's error to show, with its
+ * remedy — not a link the window announces as dropped.
+ */
 
 export type ChannelState = "open" | "lost";
 
@@ -275,9 +287,13 @@ class AgentChannel {
   private pending: Pending | null = null;
   private nextId = 1;
   private queue: Promise<unknown> = Promise.resolve();
+  /** How many commands hold or await this channel, this one included. */
+  private waiting = 0;
   private failures = 0;
   private greeting: HelloResult | null = null;
   private refusal: AgentCallError | null = null;
+  /** The window was told this channel is open, so it is owed the loss of it. */
+  private announced = false;
 
   private readonly serverId: string;
   private readonly purpose: ChannelPurpose;
@@ -302,11 +318,23 @@ class AgentChannel {
     params: CommandParams<C> | undefined,
     call: CallOptions
   ): Promise<CommandResult<C>> {
+    if (this.waiting > 0) {
+      trace("agent", "queued", {
+        channel: this.purpose,
+        cmd,
+        server: this.serverId,
+      });
+      call.onQueued?.();
+    }
+
+    this.waiting += 1;
+
     const next = this.queue.then(() => this.exchange(cmd, params, call));
-    this.queue = next.then(
-      () => undefined,
-      () => undefined
-    );
+    const done = () => {
+      this.waiting -= 1;
+    };
+
+    this.queue = next.then(done, done);
 
     return next;
   }
@@ -516,6 +544,7 @@ class AgentChannel {
         { timeoutMs: this.options.timeouts.hello ?? HELLO_MS }
       )) as HelloResult;
 
+      this.announced = true;
       this.options.onChannel(this.serverId, "open");
 
       trace("agent", "hello", {
@@ -559,7 +588,12 @@ class AgentChannel {
       return;
     }
     this.proc = null;
-    this.options.onChannel(this.serverId, "lost");
+
+    if (this.announced) {
+      this.announced = false;
+      this.options.onChannel(this.serverId, "lost");
+    }
+
     this.settlePending(
       disconnected(this.stderr.trim().split("\n").at(-1) ?? "")
     );
@@ -568,6 +602,7 @@ class AgentChannel {
   private destroy(): void {
     const proc = this.proc;
     this.proc = null;
+    this.announced = false;
     proc?.kill();
   }
 

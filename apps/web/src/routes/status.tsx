@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
+import { RotateCw } from "lucide-react"
 import { FreshnessNotice } from "@/components/status/freshness-notice"
+import { Button } from "@/components/ui/button"
+import { SkeletonLines } from "@/components/ui/skeleton"
 import { StatusDot } from "@/components/ui/status-dot"
 import { useTranslations } from "@/hooks/use-locale"
 import { statusQueryOptions } from "@/lib/api/queries"
@@ -68,7 +71,9 @@ function StatusPage() {
         </header>
 
         {status.isPending ? (
-          <p className="text-[13px] text-ink-3">{t("statusPage.reading")}</p>
+          <div className="overflow-hidden rounded-md bg-surface shadow-raised">
+            <SkeletonLines label={t("statusPage.reading")} rows={3} />
+          </div>
         ) : null}
 
         {status.isError ? (
@@ -76,9 +81,21 @@ function StatusPage() {
             <ul>
               <Row label={t("statusPage.api")} look={healthLook("down")} />
             </ul>
-            <p className="border-line border-t px-4 py-3 text-[13px] text-ink-2">
-              {t("statusPage.unreachable")}
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-4 border-line border-t px-4 py-3">
+              <p className="text-[13px] text-ink-2">
+                {t("statusPage.unreachable")}
+              </p>
+              <Button
+                icon={RotateCw}
+                loading={status.isFetching}
+                onClick={() => {
+                  status.refetch()
+                }}
+                size="sm"
+              >
+                {t("common.retry")}
+              </Button>
+            </div>
           </div>
         ) : null}
 

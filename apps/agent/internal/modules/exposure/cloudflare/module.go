@@ -168,16 +168,41 @@ func service(ctx *modules.Context, ingressChanged bool) error {
 		return err
 	}
 
-	return ctx.Step("enable-service", func() (modules.Outcome, error) {
-		if systemd.Active(ctx, Unit) && !written && !ingressChanged {
+	if err := ctx.Step("enable-service", func() (modules.Outcome, error) {
+		running := systemd.Active(ctx, Unit)
+
+		if running && !written && !ingressChanged {
 			return modules.Skipped, nil
 		}
 
 		if err := systemd.Enable(ctx, Unit); err != nil {
+			return modules.Failed, cloudflared.StartFailure(ctx, err)
+		}
+
+		// A unit already running keeps its old configuration until it is
+		// restarted; one that was down was just started by enable --now, and
+		// restarting it again would only make a failed start be waited twice.
+		if running {
+			if err := systemd.Restart(ctx, Unit); err != nil {
+				return modules.Failed, cloudflared.StartFailure(ctx, err)
+			}
+		}
+
+		return modules.Done, nil
+	}); err != nil {
+		return err
+	}
+
+	return ctx.Step("verify-tunnel", func() (modules.Outcome, error) {
+		if err := cloudflared.Registered(ctx); err != nil {
 			return modules.Failed, err
 		}
 
-		return modules.Done, systemd.Restart(ctx, Unit)
+		if serving, said := cloudflared.Serving(ctx); !serving {
+			ctx.Warn(i18n.T("warn.cloudflare.tunnel.unready", said))
+		}
+
+		return modules.Done, nil
 	})
 }
 

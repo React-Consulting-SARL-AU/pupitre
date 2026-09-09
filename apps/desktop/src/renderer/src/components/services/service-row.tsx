@@ -18,7 +18,6 @@ export function ServiceRow({
   const facts = [
     service.version,
     service.port ? `port ${service.port}` : null,
-    service.unit,
   ].filter(Boolean);
 
   return (
@@ -35,7 +34,7 @@ export function ServiceRow({
             {service.name}
           </span>
           <span className="block truncate font-data text-[11.5px] text-ink-3">
-            {[service.id, ...facts].join(" · ")}
+            {facts.join(" · ")}
           </span>
         </span>
 

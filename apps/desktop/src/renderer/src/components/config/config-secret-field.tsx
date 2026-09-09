@@ -85,7 +85,7 @@ export function ConfigSecretField({
         ) : null}
 
         {revealed && !shown ? (
-          <span className="text-[12px] text-ink-4">
+          <span className="text-[12px] text-ink-3">
             {t("config.secret.shown")}
           </span>
         ) : null}

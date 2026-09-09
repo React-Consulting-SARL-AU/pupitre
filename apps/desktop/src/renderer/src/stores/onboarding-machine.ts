@@ -20,7 +20,6 @@ export const ONBOARDING_STEPS = [
   "config",
   "install",
   "harden",
-  "project",
   "done",
 ] as const;
 
@@ -80,7 +79,6 @@ export type Effect =
 export type Event =
   | { type: "open" }
   | { type: "begin"; serverId: string }
-  | { type: "personalise"; serverId: string }
   | { type: "serverChosen"; serverId: string }
   | { type: "inspected" }
   | { type: "needsAgent" }
@@ -90,7 +88,6 @@ export type Event =
   | { type: "touched" }
   | { type: "installed" }
   | { type: "hardened" }
-  | { type: "projectDone" }
   | { type: "replay"; moduleId: string; carriesSecret: boolean }
   | { type: "replayConfigured" }
   | {
@@ -102,6 +99,7 @@ export type Event =
   | { type: "resumeAt"; step: OnboardingStep; remaining: readonly string[] }
   | { type: "back" }
   | { type: "pickAnother" }
+  | { type: "serverLost" }
   | { type: "usageLost" }
   | { type: "usageBack" }
   | { type: "close" };
@@ -130,7 +128,6 @@ const ANSWERED_AT: Partial<Record<Event["type"], readonly OnboardingStep[]>> = {
   installed: ["install"],
   needsAgent: ["inspection"],
   pickAnother: ["server", "inspection"],
-  projectDone: ["project"],
   replay: ["install"],
   replayConfigured: ["config"],
   serverChosen: ["server"],
@@ -227,22 +224,28 @@ export function transition(state: MachineState, event: Event): Transition {
     case "begin":
       return start({ ...CLOSED, serverId: event.serverId }, "inspection");
 
-    /**
-     * A server the platform granted, already installed: there is nothing to
-     * inspect and nothing to send, only a first project to open. The way back
-     * into the steps that changed the machine is closed from the start.
-     */
-    case "personalise":
-      return start(
-        { ...CLOSED, installed: true, serverId: event.serverId },
-        "project"
-      );
-
     case "serverChosen":
       return move({ ...state, serverId: event.serverId }, "inspection");
 
     case "pickAnother":
       return move({ ...state, serverId: null }, "server");
+
+    /**
+     * The machine this sequence was about is not one the app knows any more: it
+     * was removed, or the list came back without it. Nothing that follows has
+     * anything to run on, so the choice starts over rather than the sequence
+     * holding on a screen whose only answer it would refuse. A sequence already
+     * finished has nothing to start over, and closes.
+     */
+    case "serverLost": {
+      if (state.step === "closed" || state.step === "server") {
+        return { effects: [], state };
+      }
+
+      return state.step === "done"
+        ? { effects: [{ kind: "forget" }], state: { ...CLOSED } }
+        : start({ ...CLOSED }, "server");
+    }
 
     case "inspected":
       return move(state, "catalog");
@@ -269,14 +272,11 @@ export function transition(state: MachineState, event: Event): Transition {
     case "installed":
       return withSync(move({ ...state, installed: true }, "harden"));
 
-    case "hardened":
-      return withSync(move(state, "project"));
+    case "hardened": {
+      const done = withSync(move(state, "done"));
 
-    case "projectDone":
-      return {
-        ...move(state, "done"),
-        effects: [{ kind: "reloadFleet" }, { kind: "persist" }],
-      };
+      return { ...done, effects: [...done.effects, { kind: "reloadFleet" }] };
+    }
 
     /**
      * The vault was emptied when the secrets left, so a module that carried one

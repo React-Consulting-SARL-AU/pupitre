@@ -59,7 +59,7 @@ export function AccountIdentityCard({
               t("account.identity.noOrganization")}
           </p>
           {identity.role ? (
-            <p className="mt-0.5 font-data text-[12px] text-ink-4">
+            <p className="mt-0.5 font-data text-[12px] text-ink-3">
               {identity.role}
             </p>
           ) : null}
@@ -71,7 +71,7 @@ export function AccountIdentityCard({
             {device?.name ?? t("account.identity.deviceUnregistered")}
           </p>
           {device ? (
-            <p className="mt-0.5 break-all font-data text-[12px] text-ink-4">
+            <p className="mt-0.5 break-all font-data text-[12px] text-ink-3">
               {device.fingerprint}
             </p>
           ) : null}

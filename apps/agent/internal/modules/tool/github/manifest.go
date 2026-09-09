@@ -28,7 +28,6 @@ func manifest() contract.Manifest {
 				Required: true,
 			},
 		},
-		Provides:  []string{"tool:gh", "git:github"},
 		Mandatory: false,
 		Since:     "0.1.0",
 	}

@@ -308,6 +308,57 @@ func TestInstallRunsTheDerivedCommandInTheProjectFolder(t *testing.T) {
 	}
 }
 
+func TestDebugRestartsTheProjectUnderTheDeclaredPort(t *testing.T) {
+	fake, reader := fixture(t)
+	fake.Files["/etc/pupitre/env"] = []byte("PUPITRE_DEBUG_PORTS=\"web:5005 api:5006\"\n")
+
+	if _, err := reader.Up("web"); err != nil {
+		t.Fatal(err)
+	}
+
+	debug, err := reader.Debug("web")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := contract.ValidateValue("ProjectDebugResult", debug); err != nil {
+		t.Fatalf("the result violates the contract: %v", err)
+	}
+	if debug.DebugPort != 5005 || debug.Port != 3000 || debug.State != contract.ProjectOnline {
+		t.Fatalf("unexpected result: %+v", debug)
+	}
+
+	sent := strings.Join(fake.Commands(), "\n")
+	if !strings.Contains(sent, "bun run dev --port 3000 -PdebugPort=5005") {
+		t.Fatalf("the debug agent must be passed to the project's own command:\n%s", sent)
+	}
+}
+
+func TestDebugRefusesAProjectTheMachineDeclaresNoPortFor(t *testing.T) {
+	fake, reader := fixture(t)
+	fake.Files["/etc/pupitre/env"] = []byte("PUPITRE_DEBUG_PORTS=\"api:5006\"\n")
+
+	_, err := reader.Debug("web")
+
+	if got := code(t, err); got != contract.ErrorBadRequest {
+		t.Fatalf("got %v", got)
+	}
+	if _, opened := fake.Windows["web"]; opened {
+		t.Fatal("a refused debug must leave the project exactly as it was")
+	}
+}
+
+func TestDebugLeavesTheServiceRowsToSystemd(t *testing.T) {
+	fake, reader := fixture(t)
+	fake.Files["/etc/pupitre/env"] = []byte("PUPITRE_DEBUG_PORTS=\"shots:5005\"\n")
+
+	_, err := reader.Debug("shots")
+
+	if got := code(t, err); got != contract.ErrorBadRequest {
+		t.Fatalf("got %v", got)
+	}
+}
+
 func TestAnUnknownProjectIsRefusedEverywhere(t *testing.T) {
 	_, reader := fixture(t)
 
@@ -316,8 +367,9 @@ func TestAnUnknownProjectIsRefusedEverywhere(t *testing.T) {
 	_, logsErr := reader.Logs("ghost", 0)
 	_, urlErr := reader.URL("ghost")
 	_, removeErr := reader.Remove("ghost")
+	_, debugErr := reader.Debug("ghost")
 
-	for label, err := range map[string]error{"up": upErr, "down": downErr, "logs": logsErr, "url": urlErr, "remove": removeErr} {
+	for label, err := range map[string]error{"up": upErr, "down": downErr, "logs": logsErr, "url": urlErr, "remove": removeErr, "debug": debugErr} {
 		if got := code(t, err); got != contract.ErrorProjectNotFound {
 			t.Errorf("%s: got %v", label, got)
 		}

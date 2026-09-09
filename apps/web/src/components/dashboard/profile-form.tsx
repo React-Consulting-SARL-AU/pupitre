@@ -12,12 +12,37 @@ import { queryKeys } from "@/lib/api/queries"
 import { authClient } from "@/lib/auth/client"
 import { type ProfileInput, profileSchema } from "@/lib/schemas/profile"
 
-async function updateName(name: string): Promise<void> {
-  const { error } = await authClient().updateUser({ name })
+const SETTINGS_PATH = "/dashboard/settings"
+
+/** What the save actually did, so the confirmation names the right thing. */
+interface Saved {
+  addressAsked: boolean
+}
+
+async function saveProfile(
+  values: ProfileInput,
+  currentEmail: string
+): Promise<Saved> {
+  const { error } = await authClient().updateUser({ name: values.name })
 
   if (error) {
     throw new Error(error.message ?? "profile_update_failed")
   }
+
+  if (values.email === currentEmail) {
+    return { addressAsked: false }
+  }
+
+  const change = await authClient().changeEmail({
+    newEmail: values.email,
+    callbackURL: SETTINGS_PATH,
+  })
+
+  if (change.error) {
+    throw new Error(change.error.message ?? "profile_email_failed")
+  }
+
+  return { addressAsked: true }
 }
 
 export function ProfileForm() {
@@ -25,13 +50,14 @@ export function ProfileForm() {
   const { user } = useDashboardContext()
   const form = useForm<ProfileInput>({
     schema: profileSchema(t),
-    defaultValues: { name: user.name },
+    defaultValues: { name: user.name, email: user.email },
   })
-  const save = useOptimisticMutation<ProfileInput, void>({
-    mutationFn: (values) => updateName(values.name),
+  const save = useOptimisticMutation<ProfileInput, Saved>({
+    mutationFn: (values) => saveProfile(values, user.email),
     invalidate: [queryKeys.me],
     toast: {
-      done: () => t("profile.saved"),
+      done: (saved) =>
+        saved.addressAsked ? t("profile.emailAsked") : t("profile.saved"),
       failed: () => ({
         title: t("profile.failed"),
         fix: t("profile.failedFix"),
@@ -65,12 +91,12 @@ export function ProfileForm() {
           <div className="flex flex-col gap-2">
             <Label htmlFor="email">{t("profile.email")}</Label>
             <Input
-              disabled
+              autoComplete="email"
               id="email"
-              readOnly
               type="email"
-              value={user.email}
+              {...form.register("email")}
             />
+            <FieldError>{form.formState.errors.email?.message}</FieldError>
             <p className="text-[12px] text-ink-3">{t("profile.emailHelp")}</p>
           </div>
 

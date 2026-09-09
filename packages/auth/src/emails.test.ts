@@ -70,6 +70,12 @@ describe("le port des gabarits", () => {
             subject: `Invitation ${input.organizationName}`,
             text: input.url,
           }),
+        emailChange: (input) =>
+          Promise.resolve({
+            to: input.to,
+            subject: `Adresse ${input.newEmail}`,
+            text: input.url,
+          }),
       },
       sendEmail: (message) => {
         sent.push(message)

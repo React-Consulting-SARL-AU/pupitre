@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { Server, ServerReach } from "@shared/servers";
+import { Trash2 } from "lucide-react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { OnboardingServerChoice } from "../onboarding/onboarding-server-choice";
 import { serverStage } from "../onboarding/onboarding-server-screen";
@@ -67,7 +68,7 @@ describe("le test d'une adresse", () => {
       reached: false,
     });
 
-    expect(text(html)).toContain("ce n'est pas un serveur SSH");
+    expect(text(html)).toContain("ce n'est pas un accès SSH");
     expect(text(html)).toContain("c'est en général 22");
     expect(html).toContain('data-reach="not-ssh"');
   });
@@ -111,6 +112,39 @@ describe("le bouton d'un geste irréversible", () => {
     );
 
     expect(html).not.toContain("bg-danger");
+  });
+});
+
+describe("un bouton qui travaille", () => {
+  const working = (): string =>
+    renderToStaticMarkup(
+      <Button icon={Trash2} loading variant="destructive">
+        Supprimer définitivement
+      </Button>
+    );
+
+  it("tourne à la place de son icône, donc à gauche du libellé", () => {
+    const html = working();
+
+    expect(html).toContain('data-spinner="true"');
+    expect(html).not.toContain("lucide-trash");
+    expect(html.indexOf("data-spinner")).toBeLessThan(
+      html.indexOf("Supprimer")
+    );
+  });
+
+  it("ne prend pas un second clic, et le dit à qui lit à voix haute", () => {
+    const html = working();
+
+    expect(html).toContain('aria-busy="true"');
+    expect(html).toContain("disabled");
+  });
+
+  it("garde son encre : une attente n'est pas un bouton éteint", () => {
+    expect(working()).not.toContain("opacity-40");
+    expect(renderToStaticMarkup(<Button disabled>Supprimer</Button>)).toContain(
+      "opacity-40"
+    );
   });
 });
 

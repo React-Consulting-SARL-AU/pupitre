@@ -19,7 +19,6 @@ type Manifest = {
   resources: { ram_mb: number; disk_mb: number }
   arch: ("amd64" | "arm64")[]
   fields: Field[]                // ce que l'écran de configuration demande
-  provides: string[]             // "db:postgres", "editor:jetbrains" — pour les préréglages et les projets
   connection?: "cloudflare"      // le compte tiers que ce module exige de l'app
   mandatory: boolean             // true pour core.system et core.hardening
   since: string                  // version de l'agent
@@ -153,6 +152,8 @@ Les trois modules d'exposition sont exclusifs : chacun déclare les deux autres 
 | `web-js` | Web JavaScript | `core.*`, `runtime.node`, `db.mysql`, `ai.claude`, `ai.browser`, `editor.vscode`, `exposure.ssh` |
 | `full` | Tout le catalogue | tout le catalogue moins les expositions, qui se contredisent : le préréglage porte les trois en `choose_one` et l'écran demande laquelle |
 | `minimal` | Minimal | `core.*`, un agent au choix |
+
+Les identifiants de modules d'un préréglage suivent la même forme ouverte que celui d'un manifeste : un module que l'agent gagne avant que `packages/shared` ne le connaisse peut entrer dans un préréglage sans version de ce paquet.
 
 ## Source des étapes
 

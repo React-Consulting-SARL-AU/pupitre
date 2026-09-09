@@ -88,7 +88,7 @@ export function FirstRunScreen({
         </div>
 
         <p
-          className="rise mt-6 text-[12px] text-ink-4 leading-relaxed"
+          className="rise mt-6 text-[12px] text-ink-3 leading-relaxed"
           style={riseAt(7)}
         >
           {t("shell.firstRun.note")}

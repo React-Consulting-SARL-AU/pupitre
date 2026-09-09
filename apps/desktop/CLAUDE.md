@@ -22,7 +22,7 @@ Electron 42 · electron-vite (bytecode sur main et preload) · React 19 · Tailw
 - **Le compte décide de l'installation.** Le jeton bearer vit dans `safeStorage` et ne traverse jamais le pont ; le serveur est enrôlé auprès de la plateforme, puis le binaire de l'agent est téléchargé depuis elle, somme et signature vérifiées, avant d'être poussé. Sans compte, seul un build de développement installe. Un build de développement parle à la console locale — `http://localhost:3000`, celle que `bun run dev:web` sert — et un build empaqueté à `app.pupitre.studio` ; `PUPITRE_PLATFORM_URL` désigne une autre plateforme.
 - **Chaque attente dit ce qui se passe, chaque erreur dit le remède.** Le `fix` renvoyé par l'agent est affiché tel quel.
 - **L'ordre de l'onboarding est une machine, les écrans dessinent.** `stores/onboarding-machine.ts` dit quelle étape suit quelle réponse et ce qu'entrer dans une étape déclenche ; le store exécute les effets. Aucun écran n'agit dans un `useEffect`, et une étape ne se rejoint que par un événement qui la justifie.
-- **Chaque geste répond là où il a été fait** et **l'accessibilité est une exigence**, toutes deux spécifiées dans [DESIGN.md](../../docs/product/DESIGN.md). Un bouton qui déclenche un travail passe en `loading` ; un champ refusé porte sa phrase, `aria-invalid` et `aria-describedby`.
+- **Chaque geste répond là où il a été fait** et **l'accessibilité est une exigence**, toutes deux spécifiées dans [DESIGN.md](../../docs/product/DESIGN.md). Un bouton qui déclenche un travail passe en `loading` — `Button`, `IconButton` et `ConfirmButton` le font seuls dès que le gestionnaire rend la promesse du travail (`usePending`), donc un gestionnaire asynchrone retourne toujours sa promesse ; un champ refusé porte sa phrase, `aria-invalid` et `aria-describedby`.
 
 ## Architecture
 
@@ -31,7 +31,7 @@ src/main/        index.ts · agent-client.ts · servers.ts · keys.ts · key-ins
 src/preload/     index.ts — la surface IPC, typée
 src/renderer/src/
   components/ui/          Base UI + shadcn, un composant par fichier
-  components/onboarding/  onboarding-machine (l'ordre, pur) · shell + corps · server · inspection · agent · catalog · config · install · harden · first-project
+  components/onboarding/  onboarding-machine (l'ordre, pur) · shell + corps · server · inspection · agent · catalog · config · install · harden
   components/connections/ les comptes tiers que l'app tient pour le client
   components/dashboard, projects, terminals, agents, services, shots, settings, account
   stores/                 servers · snapshot · onboarding · theme · account
@@ -42,7 +42,7 @@ Fichiers `{feature}-{context}-{type}.tsx`. Hors `components/ui/`, un composant R
 
 ## Tests
 
-`bun test` pour le main et les stores (agent factice qui rejoue des transcriptions dans `src/main/__tests__/fixtures/`), Playwright pour Electron dans `e2e/` : l'onboarding complet et la configuration contre le harnais de `e2e/harness/onboarding.ts`, captures des thèmes, et une passe axe sur chaque écran couvert (`e2e/harness/accessible.ts`). Assertions dans `it()`, `async/await`, pas de `.only` committé.
+`bun test` pour le main et les stores (agent factice qui rejoue des transcriptions dans `src/main/__tests__/fixtures/`), Playwright pour Electron dans `e2e/` : l'onboarding complet et la configuration contre le harnais de `e2e/harness/onboarding.ts`, captures des thèmes, et une passe axe sur chaque écran couvert (`e2e/harness/accessible.ts`). Assertions dans `it()`, `async/await`, pas de `.only` committé. Les captures du tableau de bord ne sont comparées que sur macOS, où vivent leurs références (`e2e/references/*-darwin.png`) ; elles se régénèrent avec `bunx playwright test e2e/themes.spec.ts --update-snapshots` quand l'écran change exprès. Sur Linux, le scénario vérifie le thème sans image.
 
 ## Commandes
 

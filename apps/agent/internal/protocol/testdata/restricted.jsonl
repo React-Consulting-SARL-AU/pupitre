@@ -1,21 +1,21 @@
 @entitlement restricted
 > {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"restricted","capabilities":["enroll","hello","ping","probe","project.logs","reboot","secrets.set"]}}
 > {"id":2,"cmd":"ping"}
-< {"id":2,"ok":true,"result":{"ts":"2026-09-04T12:00:00Z"}}
 # Un serveur restreint se répare par un ré-enrôlement, jeton perdu ou droit d'usage à rétablir.
 > {"id":3,"cmd":"enroll","params":{"platform_url":"https://app.pupitre.studio/api/v1","secrets_stdin":true}}
 $ {"enrollment_token":"enr-jeton-tres-secret"}
-< {"id":3,"ok":true,"result":{"enrolled":true,"entitlement":"valid"}}
 > {"id":4,"cmd":"probe"}
-< {"id":4,"ok":false,"error":{"code":"entitlement_required","message":"a usage right is required: this server is in restricted mode","fix":"Open https://app.pupitre.studio to renew this server's usage right."}}
 > {"id":5,"cmd":"secrets.set","params":{"key":"API_KEY","secrets_stdin":true}}
-< {"id":5,"ok":false,"error":{"code":"entitlement_required","message":"a usage right is required: this server is in restricted mode","fix":"Open https://app.pupitre.studio to renew this server's usage right."}}
 > {"id":6,"cmd":"project.logs","params":{}}
-< {"id":6,"ok":false,"error":{"code":"entitlement_required","message":"a usage right is required: this server is in restricted mode","fix":"Open https://app.pupitre.studio to renew this server's usage right."}}
 > {"id":7,"cmd":"reboot","params":{}}
-< {"id":7,"ok":false,"error":{"code":"entitlement_required","message":"a usage right is required: this server is in restricted mode","fix":"Open https://app.pupitre.studio to renew this server's usage right."}}
 > {"id":8,"cmd":"snapshot"}
-< {"id":8,"ok":false,"error":{"code":"unknown_command","message":"unknown command: snapshot"}}
 > {"id":9,"cmd":"ping"}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"restricted","capabilities":["enroll","hello","install","ping","probe","project.logs","reboot"]}}
+< {"id":2,"ok":true,"result":{"ts":"2026-09-04T12:00:00Z"}}
+< {"id":3,"ok":true,"result":{"enrolled":true,"entitlement":"valid"}}
+< {"id":4,"ok":false,"error":{"code":"entitlement_required","message":"a usage right is required: this server is in restricted mode","fix":"Open https://app.pupitre.studio to renew this server's usage right."}}
+< {"id":5,"ok":false,"error":{"code":"unknown_command","message":"unknown command: secrets.set"}}
+< {"id":6,"ok":false,"error":{"code":"entitlement_required","message":"a usage right is required: this server is in restricted mode","fix":"Open https://app.pupitre.studio to renew this server's usage right."}}
+< {"id":7,"ok":false,"error":{"code":"entitlement_required","message":"a usage right is required: this server is in restricted mode","fix":"Open https://app.pupitre.studio to renew this server's usage right."}}
+< {"id":8,"ok":false,"error":{"code":"unknown_command","message":"unknown command: snapshot"}}
 < {"id":9,"ok":true,"result":{"ts":"2026-09-04T12:00:00Z"}}

@@ -7,7 +7,7 @@ var commandCatalog = map[string]Message{
 		EN: "no exposure is installed on this server",
 	},
 	"exposure.none.fix": {
-		FR: "Ajoute une exposition depuis le catalogue de l'app : Cloudflare Tunnel, Caddy, ou l'accès par SSH seul.",
+		FR: "Ajoutez une exposition depuis le catalogue de l'app : Cloudflare Tunnel, Caddy, ou l'accès par SSH seul.",
 		EN: "Add an exposure from the app's catalogue: Cloudflare Tunnel, Caddy, or SSH-only access.",
 	},
 
@@ -16,7 +16,7 @@ var commandCatalog = map[string]Message{
 		EN: "the platform refuses this enrolment token: %s",
 	},
 	"daemon.enroll.refused.fix": {
-		FR: "Relance l'installation depuis l'app pour obtenir un jeton neuf.",
+		FR: "Relancez l'installation depuis l'app pour obtenir un jeton neuf.",
 		EN: "Run the installation again from the app to get a fresh token.",
 	},
 	"daemon.enroll.failed": {
@@ -24,7 +24,7 @@ var commandCatalog = map[string]Message{
 		EN: "enrolment failed: %s",
 	},
 	"daemon.enroll.failed.fix": {
-		FR: "Vérifie que le serveur joint la plateforme en HTTPS sortant, puis relance l'installation.",
+		FR: "Vérifiez que le serveur joint la plateforme en HTTPS sortant, puis relancez l'installation.",
 		EN: "Check that the server reaches the platform over outbound HTTPS, then run the installation again.",
 	},
 	"daemon.token.missing.fix": {
@@ -36,7 +36,7 @@ var commandCatalog = map[string]Message{
 		EN: "the platform refuses this server's token: %s",
 	},
 	"daemon.token.refused.fix": {
-		FR: "Ouvre https://app.pupitre.studio pour rétablir le droit d'usage de ce serveur.",
+		FR: "Ouvrez https://app.pupitre.studio pour rétablir l'abonnement de ce serveur.",
 		EN: "Open https://app.pupitre.studio to restore this server's usage right.",
 	},
 	"daemon.keys.failed": {
@@ -44,7 +44,7 @@ var commandCatalog = map[string]Message{
 		EN: "the keys were not synchronised: %s",
 	},
 	"daemon.keys.failed.fix": {
-		FR: "Vérifie que le serveur joint la plateforme en HTTPS sortant, puis relance keys.sync.",
+		FR: "Vérifiez que le serveur joint la plateforme en HTTPS sortant, puis relancez keys.sync.",
 		EN: "Check that the server reaches the platform over outbound HTTPS, then run keys.sync again.",
 	},
 	"tmux.journal.none": {
@@ -60,7 +60,7 @@ var commandCatalog = map[string]Message{
 		EN: "%s comes from the repository's registry, not from this server",
 	},
 	"registry.project.versioned.fix": {
-		FR: "Retire sa ligne de projects.conf dans le dépôt, puis redéploie.",
+		FR: "Retirez sa ligne de projects.conf dans le dépôt, puis redéployez.",
 		EN: "Remove its line from projects.conf in the repository, then deploy again.",
 	},
 	"registry.project.unknown": {
@@ -80,7 +80,7 @@ var commandCatalog = map[string]Message{
 		EN: "a database engine is expected",
 	},
 	"devcli.engine.expected.fix": {
-		FR: "Donne le moteur : pupitred dev db %s postgres.",
+		FR: "Donnez le moteur : pupitred dev db %s postgres.",
 		EN: "Name the engine: pupitred dev db %s postgres.",
 	},
 	"db.engine.unknown": {
@@ -88,7 +88,7 @@ var commandCatalog = map[string]Message{
 		EN: "unknown engine: %s",
 	},
 	"db.engine.unknown.fix": {
-		FR: "Choisis mysql, postgres ou mongodb.",
+		FR: "Choisissez mysql, postgres ou mongodb.",
 		EN: "Pick mysql, postgres or mongodb.",
 	},
 	"onepassword.template.none": {
@@ -104,7 +104,7 @@ var commandCatalog = map[string]Message{
 		EN: "%s: op inject produced nothing",
 	},
 	"onepassword.inject.empty.fix": {
-		FR: "Vérifie que le compte de service voit le coffre du projet : sudo -u %s op vault list.",
+		FR: "Vérifiez que le compte de service voit le coffre du projet : sudo -u %s op vault list.",
 		EN: "Check that the service account sees the project's vault: sudo -u %s op vault list.",
 	},
 	"onepassword.inject.fallback": {
@@ -126,18 +126,6 @@ var commandCatalog = map[string]Message{
 	"secrets.install.fix": {
 		FR: "Écris les secrets groupés par identifiant de module, comme config : {\"<module id>\": {\"<clé>\": \"<valeur>\"}}.",
 		EN: "Write the secrets grouped by module identifier, like config: {\"<module id>\": {\"<key>\": \"<value>\"}}.",
-	},
-	"secrets.line.unreadable": {
-		FR: "ligne de secrets illisible",
-		EN: "the secrets line cannot be read",
-	},
-	"secrets.line.missing": {
-		FR: "la ligne de secrets ne porte pas de valeur pour %s",
-		EN: "the secrets line carries no value for %s",
-	},
-	"secrets.line.fix": {
-		FR: "Écris la valeur sur la ligne suivante, sous la forme {\"%s\": \"<valeur>\"}.",
-		EN: "Write the value on the next line, as {\"%s\": \"<value>\"}.",
 	},
 	"daemon.enroll.token.fix": {
 		FR: "Écris le jeton d'enrôlement sur la ligne suivante, sous la forme {\"enrollment_token\": \"<jeton>\"}.",

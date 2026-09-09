@@ -18,6 +18,12 @@ const LOOK: Record<Kind, { shape: StatusShape; tone: StatusTone }> = {
 };
 
 /**
+ * A verdict whose one reason is the verdict itself: the title and the summary
+ * above already say it, and saying it a third time reads as a fault.
+ */
+const RESTATED: readonly Kind[] = ["bare", "managed"];
+
+/**
  * The verdict, then what led to it, then what lifts it.
  *
  * `reasons` and `fixes` are printed exactly as the probe phrased them: they
@@ -64,7 +70,7 @@ export function OnboardingInspectionVerdict({ probe }: { probe: ProbeResult }) {
         </p>
       ) : null}
 
-      {verdict.reasons.length > 0 ? (
+      {verdict.reasons.length > 0 && !RESTATED.includes(verdict.kind) ? (
         <section className="flex flex-col gap-2">
           <Label>{t("onboarding.verdict.reasonsLabel")}</Label>
           <ul className="flex flex-col gap-2">

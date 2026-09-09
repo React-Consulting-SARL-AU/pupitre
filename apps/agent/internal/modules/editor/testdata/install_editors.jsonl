@@ -3,7 +3,7 @@
 @file /proc/meminfo MemTotal:\t8388608\tkB
 @answer data.services.jetbrains.com {"IIU":[{"version":"2026.2.2","build":"262.12345.67","downloads":{"linux":{"link":"https://download.jetbrains.com/idea/idea-2026.2.2.tar.gz"},"linuxARM64":{"link":"https://download.jetbrains.com/idea/idea-2026.2.2-aarch64.tar.gz"}}}]}
 @answer update.code.visualstudio.com/api/update {"name":"1.136.1","version":"a44adf7f53e00964ab890f9f8758a334f1fc15bc","productVersion":"1.136.1"}
-@answer url_effective https://github.com/zed-industries/zed/releases/download/v1.18.1/zed-remote-server-linux-x86_64.gz
+@answer redirect_url https://github.com/zed-industries/zed/releases/download/v1.18.1/zed-remote-server-linux-x86_64.gz
 @archive /tmp/pupitre-jetbrains-idea.tar.gz build.txt bin/remote-dev-server.sh
 @archive /tmp/pupitre-code-server.tar.gz bin/code-server product.json
 @archive /tmp/pupitre-code-cli.tar.gz code
@@ -39,7 +39,7 @@
 < {"event":"step","id":1,"module":"editor.zed","ms":0,"status":"ok","step":"install-remote-server"}
 < {"event":"step","id":1,"module":"editor.zed","ms":0,"status":"start","step":"record-release"}
 < {"event":"step","id":1,"module":"editor.zed","ms":0,"status":"ok","step":"record-release"}
-< {"id":1,"ok":true,"result":{"failed":[],"warned":["editor.vscode : the VS Code tunnel expects one sign-in: sudo -u dev /usr/local/bin/code tunnel user login"],"report_path":"%REPORT_PATH%"}}
+< {"id":1,"ok":true,"result":{"failed":[],"warned":["editor.vscode"],"report_path":"%REPORT_PATH%"}}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"install-package"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"skip","step":"install-package"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"write-config"}

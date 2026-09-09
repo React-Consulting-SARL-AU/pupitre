@@ -31,7 +31,9 @@ export function ServicePanel({
   moduleId,
   manifest,
   installed,
+  catalogHeld = false,
   onBack,
+  onReloadCatalog,
   onTerminal,
 }: {
   serverId: string;
@@ -39,7 +41,10 @@ export function ServicePanel({
   /** The manifest this server declares for the module, when it declares one. */
   manifest: Manifest | null;
   installed: readonly Manifest[];
+  /** The catalogue is refused for the whole server, not lost for this module. */
+  catalogHeld?: boolean;
   onBack: () => void;
+  onReloadCatalog?: () => void;
   onTerminal?: () => void;
 }) {
   const t = useTranslations();
@@ -127,11 +132,13 @@ export function ServicePanel({
 
       <ServiceConfig
         apply={apply}
+        catalogHeld={catalogHeld}
         config={config}
         manifest={manifest}
         name={detail.detail.name}
         onApply={() => store.reconfigure(serverId, moduleId)}
         onGenerate={(key) => store.generate(serverId, moduleId, key)}
+        onReloadCatalog={onReloadCatalog}
         onReveal={(key) => store.revealSecret(serverId, moduleId, key)}
         onSecret={(key, value) => {
           store.setSecret(serverId, moduleId, key, value);

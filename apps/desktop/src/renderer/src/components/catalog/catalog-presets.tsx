@@ -8,6 +8,8 @@ import { CatalogPresetChoice } from "./catalog-preset-choice";
 /**
  * The shortcuts, ahead of the twenty-odd modules.
  *
+ * A preset says what it brings by name, not by count: the reader picks between
+ * « Node.js, MySQL, Claude Code » and « everything », not between 7 and 23.
  * A preset that carries `choose_one` names modules that contradict each other —
  * the three exposures, the agents — and asks which one before it is applied.
  * Applying it silently would either install none of them or install two that
@@ -41,6 +43,18 @@ export function CatalogPresets({
     onPick?.(preset.id);
   }
 
+  /** What the preset adds to the core, in the catalogue's own words. */
+  function brings(preset: Preset): string {
+    const names = preset.modules
+      .map((id) => modules.find((module) => module.id === id))
+      .filter((module) => module && !module.mandatory)
+      .map((module) => (module as Manifest).name);
+
+    return names.length > 0
+      ? t("catalog.presets.includes", { names: names.join(", ") })
+      : t.plural("catalog.presets.modules", preset.modules.length);
+  }
+
   return (
     <section className="flex flex-col gap-3">
       <Label>{t("catalog.presets.title")}</Label>
@@ -58,8 +72,8 @@ export function CatalogPresets({
               <Layers className="text-ink-3" size={13} strokeWidth={1.5} />
               {preset.name}
             </span>
-            <span className="font-data text-[12px] text-ink-3 tabular-nums">
-              {t.plural("catalog.presets.modules", preset.modules.length)}
+            <span className="text-[12px] text-ink-3 leading-relaxed">
+              {brings(preset)}
             </span>
           </button>
         ))}

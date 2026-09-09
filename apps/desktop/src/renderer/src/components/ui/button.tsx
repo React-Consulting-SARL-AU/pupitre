@@ -1,5 +1,6 @@
+import { type Gesture, usePending } from "@renderer/lib/use-pending";
 import type { ComponentType, ReactNode } from "react";
-import { StatusDot } from "./status-dot";
+import { Spinner } from "./spinner";
 
 export type ButtonVariant =
   | "default"
@@ -36,7 +37,19 @@ const SIZE = {
 };
 
 const SHARED =
-  "clickable inline-flex shrink-0 items-center whitespace-nowrap rounded-full transition-soft disabled:opacity-40";
+  "clickable inline-flex shrink-0 items-center whitespace-nowrap rounded-full transition-soft";
+
+/**
+ * A button that waits is not a button that is off: it keeps its full ink and
+ * turns its spinner, and only a control that really cannot be pressed fades.
+ */
+function stateClass(waiting: boolean, disabled: boolean): string {
+  if (waiting) {
+    return "cursor-progress";
+  }
+
+  return disabled ? "opacity-40" : "";
+}
 
 export function Button({
   children,
@@ -51,30 +64,35 @@ export function Button({
   className = "",
 }: {
   children: ReactNode;
-  onClick?: () => void;
+  /** Answer with the promise of the work started and the button waits on it. */
+  onClick?: Gesture;
   variant?: ButtonVariant;
   size?: keyof typeof SIZE;
   icon?: ButtonIcon;
-  /** While it works the button breathes: the one animation the system grants. */
+  /** While it works the button spins in place of its icon, and takes no click. */
   loading?: boolean;
   disabled?: boolean;
   submit?: boolean;
   title?: string;
   className?: string;
 }) {
+  const [click, pending] = usePending(onClick);
+
+  const waiting = loading || pending;
+
   let glyph: ReactNode = null;
-  if (loading) {
-    glyph = <StatusDot shape="breathing" size={13} />;
+  if (waiting) {
+    glyph = <Spinner size={14} />;
   } else if (Icon) {
     glyph = <Icon size={13} strokeWidth={1.5} />;
   }
 
   return (
     <button
-      aria-busy={loading}
-      className={`${SHARED} ${VARIANT[variant]} ${SIZE[size]} ${className}`}
-      disabled={disabled || loading}
-      onClick={onClick}
+      aria-busy={waiting}
+      className={`${SHARED} ${VARIANT[variant]} ${SIZE[size]} ${stateClass(waiting, disabled)} ${className}`}
+      disabled={disabled || waiting}
+      onClick={click}
       title={title}
       type={submit ? "submit" : "button"}
     >

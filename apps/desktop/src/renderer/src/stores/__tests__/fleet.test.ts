@@ -139,7 +139,7 @@ describe("la lecture des serveurs attribués", () => {
 });
 
 describe("la première ouverture d'un serveur attribué", () => {
-  it("le pilote et propose la personnalisation", async () => {
+  it("le pilote, et n'ouvre aucun assistant : il est déjà installé", async () => {
     stub({ fleet: { ok: true, result: view() } });
 
     await useFleet.getState().read();
@@ -149,8 +149,7 @@ describe("la première ouverture d'un serveur attribué", () => {
       serverId: "srv-platform-1",
       status: "opened",
     });
-    expect(useOnboarding.getState().step).toBe("project");
-    expect(useOnboarding.getState().serverId).toBe("srv-platform-1");
+    expect(useOnboarding.getState().step).toBe("closed");
   });
 
   it("n'ouvre plus la personnalisation la seconde fois", async () => {

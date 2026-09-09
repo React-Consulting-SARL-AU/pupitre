@@ -111,6 +111,9 @@
         },
         "replay": {
           "type": "string"
+        },
+        "message": {
+          "type": "string"
         }
       },
       "required": [
@@ -2664,69 +2667,6 @@
         "removed"
       ]
     },
-    "SecretsStatusParams": {
-      "type": "object",
-      "properties": {},
-      "additionalProperties": false
-    },
-    "SecretsStatusResult": {
-      "type": "object",
-      "properties": {
-        "secrets": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "key": {
-                "type": "string",
-                "pattern": "^[A-Z][A-Z0-9_]*$"
-              },
-              "set": {
-                "type": "boolean"
-              }
-            },
-            "required": [
-              "key",
-              "set"
-            ],
-            "additionalProperties": false
-          }
-        }
-      },
-      "required": [
-        "secrets"
-      ]
-    },
-    "SecretsSetParams": {
-      "type": "object",
-      "properties": {
-        "key": {
-          "type": "string",
-          "pattern": "^[A-Z][A-Z0-9_]*$"
-        },
-        "secrets_stdin": {
-          "type": "boolean",
-          "const": true
-        }
-      },
-      "required": [
-        "key",
-        "secrets_stdin"
-      ],
-      "additionalProperties": false
-    },
-    "SecretsSetResult": {
-      "type": "object",
-      "properties": {
-        "done": {
-          "type": "boolean",
-          "const": true
-        }
-      },
-      "required": [
-        "done"
-      ]
-    },
     "SecretsSyncParams": {
       "type": "object",
       "properties": {
@@ -3441,12 +3381,6 @@
             "$ref": "#/$defs/Field"
           }
         },
-        "provides": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
         "connection": {
           "type": "string",
           "enum": [
@@ -3471,7 +3405,6 @@
         "resources",
         "arch",
         "fields",
-        "provides",
         "mandatory",
         "since"
       ]
@@ -3971,34 +3904,7 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": [
-              "core.system",
-              "core.hardening",
-              "runtime.node",
-              "runtime.java",
-              "runtime.python",
-              "runtime.go",
-              "runtime.php",
-              "runtime.ruby",
-              "runtime.docker",
-              "db.mysql",
-              "db.postgres",
-              "db.mongodb",
-              "db.redis",
-              "ai.claude",
-              "ai.codex",
-              "ai.hermes",
-              "ai.browser",
-              "editor.jetbrains",
-              "editor.vscode",
-              "editor.zed",
-              "exposure.cloudflare",
-              "exposure.ssh",
-              "exposure.caddy",
-              "tool.github",
-              "tool.1password",
-              "tool.neon"
-            ]
+            "pattern": "^[a-z]+\\.[a-z0-9-]+$"
           }
         },
         "choose_one": {
@@ -4006,34 +3912,7 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": [
-              "core.system",
-              "core.hardening",
-              "runtime.node",
-              "runtime.java",
-              "runtime.python",
-              "runtime.go",
-              "runtime.php",
-              "runtime.ruby",
-              "runtime.docker",
-              "db.mysql",
-              "db.postgres",
-              "db.mongodb",
-              "db.redis",
-              "ai.claude",
-              "ai.codex",
-              "ai.hermes",
-              "ai.browser",
-              "editor.jetbrains",
-              "editor.vscode",
-              "editor.zed",
-              "exposure.cloudflare",
-              "exposure.ssh",
-              "exposure.caddy",
-              "tool.github",
-              "tool.1password",
-              "tool.neon"
-            ]
+            "pattern": "^[a-z]+\\.[a-z0-9-]+$"
           }
         }
       },

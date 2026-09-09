@@ -5,6 +5,7 @@ import { create } from "zustand";
 export type SessionState =
   | { status: "opening" }
   | { status: "open"; session: string | null }
+  | { status: "ended"; session: string | null; code: number }
   | { status: "failed"; error: AgentError };
 
 interface TerminalsStore {
@@ -13,6 +14,8 @@ interface TerminalsStore {
   links: Record<string, string>;
   /** The session whose provider page is open over its terminal. */
   login: string | null;
+  /** The session whose search bar is open. */
+  search: string | null;
 
   start: (
     id: string,
@@ -20,11 +23,21 @@ interface TerminalsStore {
     kind: TerminalKind,
     project: string | null
   ) => Promise<void>;
+  /** The same tab, a fresh process: what the reader asks for when one has ended. */
+  restart: (
+    id: string,
+    serverId: string,
+    kind: TerminalKind,
+    project: string | null
+  ) => Promise<void>;
+  noteExit: (id: string, code: number) => void;
   noteLink: (id: string, host: string) => void;
   openLogin: (id: string, bounds: ViewBounds) => Promise<void>;
   moveLogin: (bounds: ViewBounds) => void;
   closeLogin: () => void;
   noteLoginClosed: (id: string) => void;
+  openSearch: (id: string) => void;
+  closeSearch: () => void;
   forget: (id: string) => void;
   reset: () => void;
 }
@@ -41,6 +54,7 @@ function without<T>(held: Record<string, T>, id: string): Record<string, T> {
 export const useTerminals = create<TerminalsStore>((set, get) => ({
   links: {},
   login: null,
+  search: null,
   sessions: {},
 
   // A tab that mounts twice must not start two sessions on the machine.
@@ -68,6 +82,28 @@ export const useTerminals = create<TerminalsStore>((set, get) => ({
         [id]: answer.ok
           ? { session: answer.result.session, status: "open" }
           : { error: answer.error, status: "failed" },
+      },
+    }));
+  },
+
+  restart(id, serverId, kind, project) {
+    get().forget(id);
+
+    return get().start(id, serverId, kind, project);
+  },
+
+  /** The process is gone; the tab stays, with what it printed and the way out. */
+  noteExit(id, code) {
+    const current = get().sessions[id];
+
+    if (current?.status !== "open") {
+      return;
+    }
+
+    set((state) => ({
+      sessions: {
+        ...state.sessions,
+        [id]: { code, session: current.session, status: "ended" },
       },
     }));
   },
@@ -101,15 +137,24 @@ export const useTerminals = create<TerminalsStore>((set, get) => ({
     }));
   },
 
+  openSearch(id) {
+    set({ search: id });
+  },
+
+  closeSearch() {
+    set({ search: null });
+  },
+
   forget(id) {
     set((state) => ({
       links: without(state.links, id),
       login: state.login === id ? null : state.login,
+      search: state.search === id ? null : state.search,
       sessions: without(state.sessions, id),
     }));
   },
 
   reset() {
-    set({ links: {}, login: null, sessions: {} });
+    set({ links: {}, login: null, search: null, sessions: {} });
   },
 }));

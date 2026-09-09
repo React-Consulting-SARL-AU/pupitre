@@ -62,7 +62,6 @@ const CORE_SYSTEM = {
   id: "core.system",
   mandatory: true,
   name: "Socle système",
-  provides: ["system"],
   requires: [],
   resources: { disk_mb: 1200, ram_mb: 256 },
   since: "0.1.0",
@@ -102,7 +101,6 @@ const POSTGRES = {
   id: "db.postgres",
   mandatory: false,
   name: "PostgreSQL",
-  provides: ["db:postgres"],
   requires: ["core.system"],
   resources: { disk_mb: 900, ram_mb: 512 },
   since: "0.1.0",
@@ -211,7 +209,7 @@ export function answerOnboarding(
 }
 
 const INSTALL = /^Installer$/;
-const CONFIGURE = /^Configurer/;
+const CONFIGURE = /^Continuer avec/;
 
 /**
  * The walk from the servers screen to the configuration.
@@ -220,17 +218,26 @@ const CONFIGURE = /^Configurer/;
  * the words the screens use, so a label that changes fails here rather than in
  * five scenarios at once.
  */
-export async function reachConfig(page: Page): Promise<void> {
+export async function reachConfig(
+  page: Page,
+  options: { pick?: readonly string[] } = {}
+): Promise<void> {
   await page.getByRole("button", { name: "Réglages" }).click();
   await page.getByRole("button", { name: "Serveurs" }).click();
   await page.getByRole("button", { name: "Installer Pupitre" }).click();
 
-  await expect(page.getByText("Machine nue")).toBeVisible();
+  await expect(page.getByText("Prête à être installée")).toBeVisible();
   await page.getByRole("button", { name: INSTALL }).first().click();
 
   await expect(page.getByText("Agent en place")).toBeVisible();
-  await page.getByRole("button", { name: "Lire le catalogue" }).click();
+  await page.getByRole("button", { name: "Choisir les services" }).click();
 
   await expect(page.getByText("Socle système").first()).toBeVisible();
+
+  // The services the scenario adds to the core, ticked on their own card.
+  for (const name of options.pick ?? []) {
+    await page.getByLabel(name, { exact: true }).check();
+  }
+
   await page.getByRole("button", { name: CONFIGURE }).click();
 }

@@ -1,4 +1,7 @@
 # Une machine sans agent : les trois agents et le navigateur s'installent, puis le rejeu ne touche à rien.
+@answer claude-code-releases/latest 2.1.263
+@answer /2.1.263/manifest.json {"platforms":{"linux-x64":{"checksum":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","size":1},"linux-arm64":{"checksum":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","size":1}}}
+@reply sha256sum 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef  /home/dev/.claude/downloads/claude
 > {"id":0,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
 > {"id":1,"cmd":"install","params":{"secrets_stdin":true,"modules":["ai.claude","ai.codex","ai.hermes","ai.browser"],"config":{"ai.hermes":{"always_on":true}}}}
 $ {"ai.hermes":{"providers.0":"openai:s3cret-de-test"}}
@@ -29,8 +32,6 @@ $ {"ai.hermes":{"providers.0":"openai:s3cret-de-test"}}
 < {"event":"step","id":1,"module":"ai.browser","ms":0,"status":"ok","step":"write-gallery-service"}
 < {"event":"step","id":1,"module":"ai.browser","ms":0,"status":"start","step":"enable-gallery-service"}
 < {"event":"step","id":1,"module":"ai.browser","ms":0,"status":"ok","step":"enable-gallery-service"}
-< {"event":"step","id":1,"module":"ai.claude","ms":0,"status":"start","step":"install-mise"}
-< {"event":"step","id":1,"module":"ai.claude","ms":0,"status":"ok","step":"install-mise"}
 < {"event":"step","id":1,"module":"ai.claude","ms":0,"status":"start","step":"install-cli"}
 < {"event":"step","id":1,"module":"ai.claude","ms":0,"status":"ok","step":"install-cli"}
 < {"event":"step","id":1,"module":"ai.claude","ms":0,"status":"start","step":"write-context"}
@@ -40,7 +41,7 @@ $ {"ai.hermes":{"providers.0":"openai:s3cret-de-test"}}
 < {"event":"step","id":1,"module":"ai.claude","ms":0,"status":"start","step":"write-subagents"}
 < {"event":"step","id":1,"module":"ai.claude","ms":0,"status":"ok","step":"write-subagents"}
 < {"event":"step","id":1,"module":"ai.codex","ms":0,"status":"start","step":"install-mise"}
-< {"event":"step","id":1,"module":"ai.codex","ms":0,"status":"skip","step":"install-mise"}
+< {"event":"step","id":1,"module":"ai.codex","ms":0,"status":"ok","step":"install-mise"}
 < {"event":"step","id":1,"module":"ai.codex","ms":0,"status":"start","step":"install-cli"}
 < {"event":"step","id":1,"module":"ai.codex","ms":0,"status":"ok","step":"install-cli"}
 < {"event":"step","id":1,"module":"ai.codex","ms":0,"status":"start","step":"write-context"}
@@ -88,8 +89,6 @@ $ {"ai.hermes":{"providers.0":"openai:s3cret-de-test"}}
 < {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"skip","step":"write-gallery-service"}
 < {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"start","step":"enable-gallery-service"}
 < {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"skip","step":"enable-gallery-service"}
-< {"event":"step","id":2,"module":"ai.claude","ms":0,"status":"start","step":"install-mise"}
-< {"event":"step","id":2,"module":"ai.claude","ms":0,"status":"skip","step":"install-mise"}
 < {"event":"step","id":2,"module":"ai.claude","ms":0,"status":"start","step":"install-cli"}
 < {"event":"step","id":2,"module":"ai.claude","ms":0,"status":"skip","step":"install-cli"}
 < {"event":"step","id":2,"module":"ai.claude","ms":0,"status":"start","step":"write-context"}

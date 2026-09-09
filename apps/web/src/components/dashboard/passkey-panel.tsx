@@ -1,12 +1,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Fingerprint } from "lucide-react"
+import { Fingerprint, RotateCw } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { LoadingState } from "@/components/ui/loading-state"
+import { SkeletonLines } from "@/components/ui/skeleton"
 import { useTranslations } from "@/hooks/use-locale"
 import { useRequestCycle } from "@/hooks/use-request-cycle"
 import { authClient } from "@/lib/auth/client"
@@ -80,11 +80,23 @@ export function PasskeyPanel() {
       </div>
 
       {passkeys.isPending ? (
-        <LoadingState label={t("passkeys.reading")} />
+        <SkeletonLines label={t("passkeys.reading")} rows={2} />
       ) : null}
 
       {passkeys.isError ? (
         <Callout
+          action={
+            <Button
+              icon={RotateCw}
+              loading={passkeys.isFetching}
+              onClick={() => {
+                passkeys.refetch()
+              }}
+              size="sm"
+            >
+              {t("common.retry")}
+            </Button>
+          }
           fix={t("passkeys.readFailedFix")}
           title={t("passkeys.readFailed")}
           tone="danger"

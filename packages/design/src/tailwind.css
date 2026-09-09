@@ -52,6 +52,7 @@
 
 @theme {
   --animate-breathe: breathe var(--motion-breathe);
+  --animate-spinner: spinner var(--motion-spinner);
 
   @keyframes breathe {
     0%,
@@ -60,6 +61,12 @@
     }
     50% {
       opacity: 0.35;
+    }
+  }
+
+  @keyframes spinner {
+    to {
+      transform: rotate(360deg);
     }
   }
 }

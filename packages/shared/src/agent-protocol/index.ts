@@ -60,8 +60,6 @@ import {
   DbParamsSchema,
   DbShellResultSchema,
   DbUrlResultSchema,
-  SecretsSetParamsSchema,
-  SecretsStatusResultSchema,
   SecretsSyncParamsSchema,
   SecretsSyncResultSchema,
   ServiceSecretParamsSchema,
@@ -219,11 +217,6 @@ export const COMMANDS = {
     result: ShotsReadResultSchema,
   },
   "shots.clean": { params: EmptyParamsSchema, result: ShotsCleanResultSchema },
-  "secrets.status": {
-    params: EmptyParamsSchema,
-    result: SecretsStatusResultSchema,
-  },
-  "secrets.set": { params: SecretsSetParamsSchema, result: DoneResultSchema },
   "secrets.sync": {
     params: SecretsSyncParamsSchema,
     result: SecretsSyncResultSchema,

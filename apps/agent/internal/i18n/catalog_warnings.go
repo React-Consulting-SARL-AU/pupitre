@@ -6,6 +6,14 @@ var warningCatalog = map[string]Message{
 		FR: "état illisible, mise à jour ignorée : %s",
 		EN: "the state cannot be read, the update was skipped: %s",
 	},
+	"cloudflared.tunnel.unknown": {
+		FR: "Cloudflare ne connaît plus ce tunnel. Rejouez ce service depuis l'app : elle en refera un et réécrira les identifiants du serveur.",
+		EN: "Cloudflare no longer knows this tunnel. Replay this service from the app: it makes a new one and rewrites the server's credentials.",
+	},
+	"warn.cloudflare.tunnel.unready": {
+		FR: "le tunnel n'est pas encore connecté à Cloudflare, il continue d'essayer : %s",
+		EN: "the tunnel is not connected to Cloudflare yet and keeps trying: %s",
+	},
 	"warn.cloudflare.dns.refused": {
 		FR: "%d enregistrement(s) DNS refusé(s) par Cloudflare : vérifie les droits DNS du jeton sur la zone %s",
 		EN: "%d DNS record(s) refused by Cloudflare: check the token's DNS rights on zone %s",
@@ -39,7 +47,7 @@ var warningCatalog = map[string]Message{
 		EN: "no headless browser: shot <url> stays unavailable, shot <file> works",
 	},
 	"warn.browser.libraries.missing": {
-		FR: "bibliothèques Playwright absentes de cette version d'Ubuntu : %s",
+		FR: "bibliothèques Playwright absenvos de cette version d'Ubuntu : %s",
 		EN: "Playwright libraries missing from this Ubuntu version: %s",
 	},
 	"warn.dumps.dir.unreadable": {

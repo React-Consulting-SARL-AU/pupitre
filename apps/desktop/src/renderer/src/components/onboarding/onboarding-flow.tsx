@@ -4,9 +4,7 @@ import { useStepShift } from "@renderer/lib/use-step-shift";
 import type { HardenOutcome } from "@shared/harden";
 import { useEffect, useState } from "react";
 import { useCatalog } from "../../stores/catalog";
-import { hasCloudflare } from "../../stores/first-project";
 import { useHarden } from "../../stores/harden";
-import { probeOf } from "../../stores/inspection";
 import { useInstall } from "../../stores/install";
 import { useOnboarding } from "../../stores/onboarding";
 import {
@@ -15,7 +13,6 @@ import {
 } from "../../stores/onboarding-machine";
 import { useServers } from "../../stores/servers";
 import { CatalogScreen } from "../catalog/catalog-screen";
-import { FirstProjectScreen } from "../first-project/first-project-screen";
 import { InstallScreen } from "../install/install-screen";
 import { WaitingNotice } from "../ui/waiting-notice";
 import { OnboardingAgentScreen } from "./onboarding-agent-screen";
@@ -26,6 +23,17 @@ import { OnboardingHardenScreen } from "./onboarding-harden-screen";
 import { OnboardingInspectionScreen } from "./onboarding-inspection-screen";
 import { OnboardingServerScreen } from "./onboarding-server-screen";
 import { OnboardingShell } from "./onboarding-shell";
+
+/**
+ * Every step is read as one column. The ones that end on a bar — the services,
+ * the configuration, the installation — draw the column themselves, so the bar
+ * can run from one edge of the panel to the other under it.
+ */
+function panel(step: string | null): string {
+  return step === "catalog" || step === "config" || step === "install"
+    ? "flex min-h-full w-full flex-col pt-10"
+    : "mx-auto w-full max-w-3xl px-8 py-10";
+}
 
 function rootState(outcome: HardenOutcome | null): "closed" | "kept" | "open" {
   if (outcome?.harden.root_closed) {
@@ -56,8 +64,6 @@ export function OnboardingFlow() {
   const canGoBack = useOnboarding((state) => state.canGoBack);
   const close = useOnboarding((state) => state.close);
 
-  const install = useInstall((state) => state.install);
-  const requested = useInstall((state) => state.requested);
   const touched = useInstall((state) => state.touched());
 
   const config = useServers((state) => state.config);
@@ -86,10 +92,6 @@ export function OnboardingFlow() {
   const outcome = useHarden((state) =>
     state.harden.status === "done" ? state.harden.outcome : null
   );
-
-  const present = probeOf(serverId)?.installed_modules ?? [];
-  const failed = install.status === "done" ? install.result.failed : [];
-  const cloudflare = hasCloudflare(present, requested.modules, failed);
 
   function configOf(moduleId: string): ModuleConfig {
     return { [moduleId]: useCatalog.getState().config()[moduleId] ?? {} };
@@ -202,18 +204,6 @@ export function OnboardingFlow() {
       );
     }
 
-    if (shown === "project") {
-      return (
-        <FirstProjectScreen
-          cloudflare={cloudflare}
-          onFinish={() => send({ type: "projectDone" })}
-          onSkip={() => send({ type: "projectDone" })}
-          serverId={serverId}
-          serverName={server.name}
-        />
-      );
-    }
-
     return (
       <OnboardingDoneScreen
         onClose={close}
@@ -241,7 +231,7 @@ export function OnboardingFlow() {
       step={step}
     >
       <div
-        className={`mx-auto w-full max-w-3xl px-8 py-10 ${motion}`}
+        className={`${panel(recovering ? null : shown)} ${motion}`}
         key={shown}
       >
         {/*

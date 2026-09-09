@@ -6,6 +6,7 @@ import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { PageHeader } from "@renderer/components/ui/page-header";
 import { ModuleUpgradePanel } from "@renderer/components/updates/module-upgrade-panel";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { heldForUsage } from "@renderer/lib/refusals";
 import { useAgentUpdate } from "@renderer/stores/agent-update";
 import { useCatalog } from "@renderer/stores/catalog";
 import { useServices } from "@renderer/stores/services";
@@ -98,7 +99,7 @@ export function ServicesScreen({
 
   if (view.kind === "add") {
     return (
-      <div className="h-full overflow-y-auto px-8 py-6">
+      <div className="h-full overflow-y-auto py-6">
         <ServicesAddFlow
           installed={installed}
           onDone={() => setView({ kind: "list" })}
@@ -113,12 +114,16 @@ export function ServicesScreen({
     return (
       <div className="h-full overflow-y-auto px-8 py-6">
         <ServicePanel
+          catalogHeld={heldForUsage(
+            catalog.status === "failed" ? catalog.error : null
+          )}
           installed={manifestsOf()}
           manifest={
             modules().find((manifest) => manifest.id === view.moduleId) ?? null
           }
           moduleId={view.moduleId}
           onBack={back}
+          onReloadCatalog={() => loadCatalog(serverId, installed)}
           onTerminal={onTerminal}
           serverId={serverId}
         />
@@ -144,14 +149,21 @@ export function ServicesScreen({
           title={serverName ?? t("services.screen.fallbackName")}
         />
 
-        {catalog.status === "failed" ? (
+        {/*
+          A server held for its usage right refuses the catalogue, the tunnel
+          and every service with the same sentence; the notice at the top of
+          the window already says it, and where to answer it.
+        */}
+        {catalog.status === "failed" && !heldForUsage(catalog.error) ? (
           <ErrorNotice
             error={catalog.error}
             onRetry={() => loadCatalog(serverId, installed)}
           />
         ) : null}
 
-        {tunnel.problem ? <ErrorNotice error={tunnel.problem} /> : null}
+        {tunnel.problem && !heldForUsage(tunnel.problem) ? (
+          <ErrorNotice error={tunnel.problem} />
+        ) : null}
 
         {services.length === 0 ? (
           <EmptyState

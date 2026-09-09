@@ -13,6 +13,7 @@ export function profileSchema(t: Translate) {
         MAX_NAME_LENGTH,
         t("validation.nameTooLong", { max: MAX_NAME_LENGTH })
       ),
+    email: z.email(t("validation.email")),
   })
 }
 

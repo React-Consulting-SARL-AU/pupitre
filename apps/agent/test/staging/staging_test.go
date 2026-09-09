@@ -136,14 +136,15 @@ func converse(t *testing.T, host string, requests ...request) []response {
 	scanner.Buffer(make([]byte, 1<<20), 1<<20)
 	for scanner.Scan() {
 		var line struct {
-			ID     int             `json:"id"`
-			Event  string          `json:"event"`
-			OK     bool            `json:"ok"`
-			Result json.RawMessage `json:"result"`
-			Error  json.RawMessage `json:"error"`
-			Module string          `json:"module"`
-			Step   string          `json:"step"`
-			Status string          `json:"status"`
+			ID      int             `json:"id"`
+			Event   string          `json:"event"`
+			OK      bool            `json:"ok"`
+			Result  json.RawMessage `json:"result"`
+			Error   json.RawMessage `json:"error"`
+			Module  string          `json:"module"`
+			Step    string          `json:"step"`
+			Status  string          `json:"status"`
+			Message string          `json:"message"`
 		}
 		if err := json.Unmarshal(scanner.Bytes(), &line); err != nil || line.ID < 1 || line.ID > len(all) {
 			t.Fatalf("unreadable line from the agent: %s", scanner.Text())
@@ -151,7 +152,7 @@ func converse(t *testing.T, host string, requests ...request) []response {
 
 		current := &responses[line.ID-1]
 		if line.Event == "step" {
-			current.Events = append(current.Events, contract.StepEvent{Module: line.Module, Step: line.Step, Status: contract.StepStatus(line.Status)})
+			current.Events = append(current.Events, contract.StepEvent{Module: line.Module, Step: line.Step, Status: contract.StepStatus(line.Status), Message: line.Message})
 			continue
 		}
 
@@ -190,6 +191,17 @@ func decode[T any](t *testing.T, raw json.RawMessage) T {
 	}
 
 	return value
+}
+
+func messages(resp response) []string {
+	var said []string
+	for _, event := range resp.Events {
+		if event.Message != "" {
+			said = append(said, event.Message)
+		}
+	}
+
+	return said
 }
 
 func steps(resp response, status contract.StepStatus) []string {

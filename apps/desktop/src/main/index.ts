@@ -49,7 +49,6 @@ import { reachSsh } from "./reach";
 import { registerReenroll } from "./reenroll";
 import { refusalOf } from "./refusal";
 import { relayTo } from "./relay";
-import { registerSecrets } from "./secrets";
 import { SetupError } from "./server-setup";
 import {
   activate as activateServer,
@@ -520,7 +519,6 @@ function registerChannels(): void {
   registerProjects();
   registerConnections();
   registerPlatformSync();
-  registerSecrets();
   registerServices();
   registerServerChannels();
   registerTerminalChannels();

@@ -20,6 +20,7 @@ const CONNECTION: CloudflareConnection = {
 const ZONE: CloudflareZone = { id: "zone-1234", name: "flymate.dev" };
 
 interface Harness {
+  api: CloudflareApi;
   deps: TunnelDeps;
   calls: string[];
   records: Map<string, DnsRecord>;
@@ -29,6 +30,7 @@ function harness({
   connected = true,
   exposure = null,
   orphan = null,
+  gone = [],
   zones = [ZONE],
   records = new Map<string, DnsRecord>(),
 }: {
@@ -36,6 +38,8 @@ function harness({
   /** What the server itself says it runs, which is the only record of it. */
   exposure?: ServerExposure | null;
   orphan?: string | null;
+  /** The tunnels the account has lost since the server was told about them. */
+  gone?: string[];
   zones?: CloudflareZone[];
   records?: Map<string, DnsRecord>;
 } = {}): Harness {
@@ -79,6 +83,11 @@ function harness({
 
       return Promise.resolve(orphan);
     },
+    hasTunnel(id) {
+      calls.push(`hasTunnel ${id}`);
+
+      return Promise.resolve(!gone.includes(id));
+    },
     updateRecord(zoneId, id, content) {
       calls.push(`updateRecord ${zoneId} ${id}`);
 
@@ -103,6 +112,7 @@ function harness({
   };
 
   return {
+    api,
     calls,
     deps: {
       api: () => (connected ? api : null),
@@ -203,6 +213,27 @@ describe("les valeurs que l'app calcule", () => {
     expect(calls).not.toContain("createTunnel pupitre-srv-1");
   });
 
+  /** cloudflared answers "Tunnel not found" for ever on a tunnel the account has dropped. */
+  it("refait le tunnel que le serveur nomme quand Cloudflare ne l'a plus", async () => {
+    const { deps, calls } = harness({
+      exposure: { domain: "flymate.dev", tunnelId: "t-gone" },
+      gone: ["t-gone"],
+    });
+
+    const values = await managedValues("srv-1", [CLOUDFLARE_EXPOSURE], deps);
+
+    expect(calls).toContain("hasTunnel t-gone");
+    expect(values).toMatchObject({
+      ok: true,
+      result: {
+        config: { [CLOUDFLARE_EXPOSURE]: { tunnel_id: "t-1" } },
+        secrets: {
+          [CLOUDFLARE_EXPOSURE]: { tunnel_secret: expect.any(String) },
+        },
+      },
+    });
+  });
+
   /** A tunnel of the same name whose secret left with the old machine is unusable. */
   it("supprime un tunnel homonyme laissé derrière", async () => {
     const { deps, calls } = harness({ orphan: "t-orphan" });
@@ -210,6 +241,45 @@ describe("les valeurs que l'app calcule", () => {
     await managedValues("srv-1", [CLOUDFLARE_EXPOSURE], deps);
 
     expect(calls).toContain("deleteTunnel t-orphan");
+  });
+
+  /** Cloudflare refuses a name its own listing did not return: the tunnel is looked for again, removed, and the name taken. */
+  it("reprend un nom que Cloudflare refuse encore après la recherche", async () => {
+    let refusals = 1;
+    let looked = 0;
+    const { deps, calls, api } = harness();
+
+    api.findTunnel = (name: string) => {
+      looked += 1;
+      calls.push(`findTunnel ${name}`);
+
+      return Promise.resolve(looked > 1 ? "t-late" : null);
+    };
+    api.createTunnel = (name: string) => {
+      calls.push(`createTunnel ${name}`);
+
+      if (refusals > 0) {
+        refusals -= 1;
+
+        return Promise.reject(
+          new Error(
+            "You already have a tunnel with this name. Delete the existing tunnel, or choose a different name for your new tunnel."
+          )
+        );
+      }
+
+      return Promise.resolve("t-fresh");
+    };
+
+    const answer = await managedValues("srv-1", [CLOUDFLARE_EXPOSURE], deps);
+
+    expect(calls).toContain("deleteTunnel t-late");
+    expect(answer).toMatchObject({
+      ok: true,
+      result: {
+        config: { [CLOUDFLARE_EXPOSURE]: { tunnel_id: "t-fresh" } },
+      },
+    });
   });
 });
 

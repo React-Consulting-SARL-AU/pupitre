@@ -136,7 +136,7 @@ func TestStateReadsEverythingTheAgentPolls(t *testing.T) {
 		if r.URL.Path != "/agent/state" || r.Method != http.MethodGet {
 			t.Errorf("%s %s", r.Method, r.URL.Path)
 		}
-		w.Write([]byte(`{"entitlement":"grace","valid_until":"2026-09-05T12:00:00.000Z","authorized_keys":["ssh-ed25519 AAAA jordan@laptop"],"target_version":"1.4.0","hostname":"vps","module_params":{}}`))
+		w.Write([]byte(`{"entitlement":"grace","valid_until":"2026-09-05T12:00:00.000Z","authorized_keys":["ssh-ed25519 AAAA jordan@laptop"],"target_version":"1.4.0","hostname":"vps"}`))
 	}))
 	defer server.Close()
 
@@ -156,7 +156,7 @@ func TestStateReadsEverythingTheAgentPolls(t *testing.T) {
 
 func TestStateCarriesTheVersionFloorOfTheServer(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Write([]byte(`{"entitlement":"valid","valid_until":"2026-09-05T12:00:00.000Z","authorized_keys":[],"target_version":"1.4.0","minimum_version":"1.2.0","hostname":"vps","module_params":{}}`))
+		w.Write([]byte(`{"entitlement":"valid","valid_until":"2026-09-05T12:00:00.000Z","authorized_keys":[],"target_version":"1.4.0","minimum_version":"1.2.0","hostname":"vps"}`))
 	}))
 	defer server.Close()
 
@@ -207,7 +207,7 @@ func TestReleaseMetadataRefusesAnAnswerWithoutASignature(t *testing.T) {
 // The platform leaves target_version null while no release is published for this architecture.
 func TestStateAcceptsANullTargetVersion(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Write([]byte(`{"entitlement":"valid","valid_until":"2026-09-05T12:00:00.000Z","authorized_keys":[],"target_version":null,"hostname":"vps","module_params":{}}`))
+		w.Write([]byte(`{"entitlement":"valid","valid_until":"2026-09-05T12:00:00.000Z","authorized_keys":[],"target_version":null,"hostname":"vps"}`))
 	}))
 	defer server.Close()
 

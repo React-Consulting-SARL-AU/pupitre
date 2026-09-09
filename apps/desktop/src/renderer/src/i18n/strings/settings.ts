@@ -7,7 +7,7 @@ export const settings = {
     "settings.section.connections": "Connections",
     "settings.section.appearance": "Appearance",
     "settings.appearance.intro":
-      "The interface is monochrome on purpose: no accent colour, and colour only for the state of things. The theme applies at once, terminals included.",
+      "Light, dark, or whatever the system uses. The theme applies at once, terminals included.",
     "settings.appearance.themeLabel": "Theme",
     "settings.appearance.currently": "currently shown in {theme}",
     "settings.theme.system": "Follow the system",
@@ -30,7 +30,7 @@ export const settings = {
     "settings.section.connections": "Connexions",
     "settings.section.appearance": "Apparence",
     "settings.appearance.intro":
-      "L'interface est monochrome par choix : aucune couleur d'accent, et de la couleur seulement pour l'état des choses. Le thème s'applique aussitôt, terminaux compris.",
+      "Clair, sombre, ou comme le système. Le thème s'applique aussitôt, terminaux compris.",
     "settings.appearance.themeLabel": "Thème",
     "settings.appearance.currently": "actuellement affichée en {theme}",
     "settings.theme.system": "Suivre le système",

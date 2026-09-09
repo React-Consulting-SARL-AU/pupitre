@@ -1,13 +1,13 @@
 import { useQuery } from "@tanstack/react-query"
-import { ScrollText } from "lucide-react"
+import { RotateCw, ScrollText } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Label } from "@/components/ui/label"
-import { LoadingState } from "@/components/ui/loading-state"
 import { Select } from "@/components/ui/select"
+import { SkeletonRows } from "@/components/ui/skeleton"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { eventsQueryOptions } from "@/lib/api/queries"
@@ -83,10 +83,22 @@ export function AuditLog() {
         </div>
       </div>
 
-      {page.isPending ? <LoadingState label={t("auditUi.reading")} /> : null}
+      {page.isPending ? <SkeletonRows label={t("auditUi.reading")} /> : null}
 
       {page.isError ? (
         <Callout
+          action={
+            <Button
+              icon={RotateCw}
+              loading={page.isFetching}
+              onClick={() => {
+                page.refetch()
+              }}
+              size="sm"
+            >
+              {t("common.retry")}
+            </Button>
+          }
           fix={t("auditUi.failedFix")}
           title={t("auditUi.failed")}
           tone="danger"

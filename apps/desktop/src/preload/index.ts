@@ -23,10 +23,7 @@ import type {
   ProjectUrlResult,
   ProjectWorkingTreeResult,
 } from "@pupitre/shared/agent-protocol/projects";
-import type {
-  SecretsStatusResult,
-  TunnelRoute,
-} from "@pupitre/shared/agent-protocol/secrets";
+import type { TunnelRoute } from "@pupitre/shared/agent-protocol/secrets";
 import type { HelloResult } from "@pupitre/shared/agent-protocol/session";
 import type { CompletionsResult } from "@pupitre/shared/agent-protocol/state";
 import type {
@@ -445,23 +442,6 @@ const api = {
       lines,
       follow
     ),
-
-  /**
-   * The server's environment keys, and the one way a value reaches them.
-   *
-   * The value crosses once, on its way in, and is written on the protocol's
-   * secret line by the main process. Nothing of it ever comes back.
-   */
-  secretsStatus: (
-    serverId: string
-  ): Promise<AgentResponse<SecretsStatusResult>> =>
-    ipcRenderer.invoke("secrets:status", serverId),
-  setSecret: (
-    serverId: string,
-    key: string,
-    value: string
-  ): Promise<AgentResponse<DoneResult>> =>
-    ipcRenderer.invoke("secrets:set", serverId, key, value),
 
   /**
    * One installed module, as its own agent describes it.

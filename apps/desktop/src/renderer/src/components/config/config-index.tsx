@@ -6,23 +6,29 @@ import type {
 import { StatusDot } from "../ui/status-dot";
 
 /**
- * Where a module's questions are, in the order they are asked.
+ * The chosen services, in the order they are asked about, and which one is
+ * open.
  *
- * Twelve modules on one page is a long scroll with no landmark. The shape
- * carries the state, as it does everywhere else: a full dot for a module with
- * nothing left to answer, a struck one for a module that is refused, a hollow
- * one for what is still empty.
+ * The shape carries the state, as it does everywhere else: a full dot for a
+ * service with nothing left to answer, a struck one for a service that is
+ * refused, a hollow one for what is still empty. Beside a rail on a wide
+ * window, above the questions on a narrow one.
  */
 export function ConfigIndex({
   groups,
+  current,
   problems,
   shown,
+  onPick,
 }: {
   groups: readonly FieldGroup[];
-  /** Everything wrong, so a module reads as complete only when it really is. */
+  /** The service whose questions are open. */
+  current: string | null;
+  /** Everything wrong, so a service reads as complete only when it really is. */
   problems: readonly FieldProblemView[];
-  /** What may be shown, so a module is only struck once it has been answered. */
+  /** What may be shown, so a service is only struck once it has been answered. */
   shown: readonly FieldProblemView[];
+  onPick?: (moduleId: string) => void;
 }) {
   const t = useTranslations();
 
@@ -30,10 +36,14 @@ export function ConfigIndex({
   const refused = new Set(shown.map((one) => one.module));
 
   return (
-    <nav aria-label={t("config.index.label")} className="flex flex-col gap-0.5">
+    <nav
+      aria-label={t("config.index.label")}
+      className="flex gap-0.5 overflow-x-auto lg:flex-col"
+    >
       {groups.map((group) => {
         const wrong = refused.has(group.module.id);
         const done = !left.has(group.module.id);
+        const open = group.module.id === current;
 
         let shape: "filled" | "struck" | "empty" = "empty";
         if (wrong) {
@@ -43,12 +53,16 @@ export function ConfigIndex({
         }
 
         return (
-          <a
-            className="clickable flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[12px] text-ink-3 transition-fast hover:bg-raised hover:text-ink"
+          <button
+            aria-current={open ? "true" : undefined}
+            className={`clickable flex shrink-0 items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[12px] transition-fast hover:bg-raised hover:text-ink ${
+              open ? "bg-raised font-medium text-ink" : "text-ink-3"
+            }`}
             data-index={group.module.id}
             data-state={shape}
-            href={`#config-${group.module.id}`}
             key={group.module.id}
+            onClick={() => onPick?.(group.module.id)}
+            type="button"
           >
             <StatusDot
               shape={shape}
@@ -56,7 +70,7 @@ export function ConfigIndex({
               tone={wrong ? "danger" : "neutral"}
             />
             <span className="min-w-0 truncate">{group.module.name}</span>
-          </a>
+          </button>
         );
       })}
     </nav>

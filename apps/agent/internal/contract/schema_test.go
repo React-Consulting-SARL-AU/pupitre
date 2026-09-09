@@ -35,7 +35,7 @@ func TestSchemaDeclaresTheContract(t *testing.T) {
 		"Request", "Event", "LogEvent", "StepEvent", "Response", "ProtocolError", "ErrorCode", "RestrictedCommands",
 		"HelloParams", "HelloResult", "PingResult", "ProbeResult", "CatalogResult",
 		"InstallParams", "InstallSecrets", "InstallResult", "SnapshotResult", "StatusResult",
-		"ProjectUpParams", "ProjectAddParams", "AgentOpenParams", "SecretsSetParams",
+		"ProjectUpParams", "ProjectAddParams", "AgentOpenParams", "ServiceSecretParams",
 		"DbDumpParams", "AgentUpgradeParams", "DoctorResult", "DiagResult",
 		"Manifest", "Field", "Preset", "Presets",
 	} {

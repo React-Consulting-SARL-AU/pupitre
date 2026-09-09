@@ -62,14 +62,18 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
         fr: "AllowUsers dev et un réglage ClientAlive qui empêche la session de l’app de tomber en silence.",
       },
       {
-        en: "Root login closed and password authentication disabled — last, and only after the app has verified that your key opens dev.",
-        fr: "La connexion root fermée et l’authentification par mot de passe désactivée — en dernier, et seulement après que l’app a vérifié que votre clé ouvre dev.",
+        en: "Password authentication disabled, and root login closed unless you keep it — last, and only after the app has verified that your key opens dev.",
+        fr: "L’authentification par mot de passe désactivée, et la connexion root fermée sauf si vous la gardez — en dernier, et seulement après que l’app a vérifié que votre clé ouvre dev.",
       },
     ],
     asks: [
       {
         en: "Whether SSH should also listen on 443.",
         fr: "Si SSH doit aussi écouter sur le 443.",
+      },
+      {
+        en: "Whether to keep root access. Off, root is closed and dev becomes the only way in; on, root stays reachable by SSH key — never by password — and the rest of the hardening applies unchanged.",
+        fr: "S’il faut garder l’accès root. Décoché, root est fermé et dev devient la seule entrée ; coché, root reste joignable par clé SSH — jamais par mot de passe — et tout le reste du durcissement s’applique à l’identique.",
       },
     ],
     notes: {
@@ -500,13 +504,17 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
     ],
     asks: [
       {
-        en: "A Cloudflare API token, your account id, the zone and the domain — given once, in the app, and kept in your computer’s keychain.",
-        fr: "Un jeton d’API Cloudflare, votre identifiant de compte, la zone et le domaine — donnés une fois, dans l’app, et gardés dans le trousseau de votre ordinateur.",
+        en: "A Cloudflare API token, once, for the account rather than for a server. The app checks it as you paste it, reads which account it opens and which zones it carries, and keeps it in your computer’s keychain. You copy no identifier by hand.",
+        fr: "Un jeton d’API Cloudflare, une fois, pour le compte et non pour un serveur. L’app le vérifie à la seconde où vous le collez, lit le compte qu’il ouvre et les zones qu’il porte, et le garde dans le trousseau de votre ordinateur. Vous ne recopiez aucun identifiant.",
+      },
+      {
+        en: "The domain this server publishes under, chosen among those zones. It is a per-server field: the account is shared, the domain is not.",
+        fr: "Le domaine sous lequel ce serveur publie, choisi parmi ces zones. C’est un champ par serveur : le compte est commun, le domaine non.",
       },
     ],
     notes: {
-      en: "Your token never leaves your computer: the app creates the tunnel and writes the DNS, and your server only ever receives what it needs to run that one tunnel. A tunnel is an outbound connection: it opens no port on your server, and the firewall stays closed on everything but SSH.",
-      fr: "Votre jeton ne quitte jamais votre ordinateur : l’app crée le tunnel et écrit le DNS, et votre serveur ne reçoit que de quoi faire tourner ce tunnel-là. Un tunnel est une connexion sortante : il n’ouvre aucun port sur votre serveur, et le pare-feu reste fermé sur tout sauf SSH.",
+      en: "Your token never leaves your computer: the app creates the tunnel and writes the DNS, and your server only ever receives what it needs to run that one tunnel — which is why the tunnel belongs to the server. A laptop you reinstall, or a colleague you hand the machine to, finds it again from the account token alone. A tunnel is an outbound connection: it opens no port on your server, and the firewall stays closed on everything but SSH.",
+      fr: "Votre jeton ne quitte jamais votre ordinateur : l’app crée le tunnel et écrit le DNS, et votre serveur ne reçoit que de quoi faire tourner ce tunnel-là — c’est pourquoi le tunnel appartient au serveur. Un poste réinstallé, ou un collègue à qui vous confiez la machine, le retrouve avec le seul jeton du compte. Un tunnel est une connexion sortante : il n’ouvre aucun port sur votre serveur, et le pare-feu reste fermé sur tout sauf SSH.",
     },
   },
   "exposure.ssh": {
@@ -603,8 +611,8 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
   "tool.neon": {
     installs: [
       {
-        en: "The Neon CLI on the machine, authenticated by the key you gave, ready in every shell and for every agent.",
-        fr: "Le CLI Neon sur la machine, authentifié par la clé que vous donnez, prêt dans tous les shells et pour tous les agents.",
+        en: "The Neon CLI on the machine, and the key you gave kept in the server’s environment file, readable by root alone.",
+        fr: "Le CLI Neon sur la machine, et la clé que vous donnez rangée dans le fichier d’environnement du serveur, lisible par root seul.",
       },
       {
         en: "Nothing else: your projects, your branches and your databases stay yours to create.",
@@ -618,8 +626,8 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       },
     ],
     notes: {
-      en: "Uninstalling takes back the CLI and the key it stored, and never touches your Neon account.",
-      fr: "La désinstallation reprend le CLI et la clé qu’il rangeait, et ne touche jamais à votre compte Neon.",
+      en: "The CLI has no token sign-in of its own: it reads a key from --api-key or NEON_API_KEY, so a shell that wants it has to be given it. Uninstalling takes back the CLI and the key it stored, and never touches your Neon account.",
+      fr: "Le CLI n’a pas de connexion par jeton : il lit une clé dans --api-key ou NEON_API_KEY, donc un shell qui la veut doit la recevoir. La désinstallation reprend le CLI et la clé qu’il rangeait, et ne touche jamais à votre compte Neon.",
     },
   },
 }

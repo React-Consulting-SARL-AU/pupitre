@@ -10,6 +10,11 @@ export const services = {
     "services.credentials.note":
       "The values stay in the main process: they are neither stored nor logged, and the clipboard is written on that side.",
 
+    "services.config.unread":
+      "The settings of this service cannot be shown: the server's catalogue did not answer.",
+    "services.config.heldBack":
+      "The settings of this service cannot be shown while the server is held back.",
+    "services.config.reread": "Read the catalogue again",
     "services.config.title": "Configuration",
     "services.config.apply": "Apply",
     "services.config.note":
@@ -53,13 +58,12 @@ export const services = {
       "{name} has been removed from this server.",
     "services.removal.outcome.back": "Back to services",
 
-    "services.screen.add": "Add a module",
+    "services.screen.add": "Add a service",
     "services.screen.description":
-      "What the agent installed on this machine, and what it says about it.",
+      "What is installed on this machine, and how it is doing.",
     "services.screen.eyebrow": "Services",
     "services.screen.fallbackName": "This server",
-    "services.screen.emptyDetail":
-      "The agent has installed no module on this machine.",
+    "services.screen.emptyDetail": "No service installed on this machine yet.",
     "services.screen.emptyTitle": "No service",
 
     "services.add.quit": "Exit adding",
@@ -109,6 +113,11 @@ export const services = {
     "services.credentials.note":
       "Les valeurs restent dans le processus principal : elles ne sont ni enregistrées, ni journalisées, et le presse-papiers est écrit de ce côté-là.",
 
+    "services.config.unread":
+      "Les réglages de ce service ne peuvent pas être montrés : le catalogue du serveur n'a pas répondu.",
+    "services.config.heldBack":
+      "Les réglages de ce service ne peuvent pas être montrés tant que le serveur est retenu.",
+    "services.config.reread": "Relire le catalogue",
     "services.config.title": "Configuration",
     "services.config.apply": "Appliquer",
     "services.config.note":
@@ -153,13 +162,13 @@ export const services = {
     "services.removal.outcome.done": "{name} a été retiré de ce serveur.",
     "services.removal.outcome.back": "Revenir aux services",
 
-    "services.screen.add": "Ajouter un module",
+    "services.screen.add": "Ajouter un service",
     "services.screen.description":
-      "Ce que l'agent a installé sur cette machine, et ce qu'il en dit.",
+      "Ce qui est installé sur cette machine, et comment ça va.",
     "services.screen.eyebrow": "Services",
     "services.screen.fallbackName": "Ce serveur",
     "services.screen.emptyDetail":
-      "L'agent n'a installé aucun module sur cette machine.",
+      "Aucun service installé sur cette machine pour l'instant.",
     "services.screen.emptyTitle": "Aucun service",
 
     "services.add.quit": "Quitter l'ajout",
