@@ -11,7 +11,7 @@
  * (private windows, site data blocked), and a navigation convenience must never
  * be the reason the app fails to start.
  */
-const KEY = "pupitre.navigation.v1";
+const STORAGE_ENTRY = "pupitre.navigation.v1";
 
 /**
  * A tab as the last run left it, read back as it was written.
@@ -70,7 +70,7 @@ export interface Navigation {
 
 export function readNavigation(): Navigation {
   try {
-    const raw = window.localStorage.getItem(KEY);
+    const raw = window.localStorage.getItem(STORAGE_ENTRY);
     if (!raw) {
       return {};
     }
@@ -88,7 +88,7 @@ export function readNavigation(): Navigation {
 export function writeNavigation(patch: Navigation): void {
   try {
     const merged = { ...readNavigation(), ...patch };
-    window.localStorage.setItem(KEY, JSON.stringify(merged));
+    window.localStorage.setItem(STORAGE_ENTRY, JSON.stringify(merged));
   } catch {
     // Storage unavailable or full: the app simply forgets, which is the state it
     // was in before this file existed.
