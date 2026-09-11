@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync, mkdirSync, readFileSync } from "node:fs"
 import { arch as hostArch, platform as hostPlatform } from "node:os"
 import path from "node:path"
 import { hasFlag, say, variable } from "./cli"
@@ -7,13 +7,17 @@ import {
   declareAgent,
   platformFromEnv,
 } from "./platform"
-import { bucket, keys, put } from "./r2"
+import { type Bucket, bucket, get, keys, put } from "./r2"
 import { run } from "./shell"
 
 /**
  * The agent: one static binary per architecture, obfuscated, signed with the
  * release key, then kept in the private bucket with the manifest the app
  * embeds and the rows the platform is told.
+ *
+ * A version is built once. garble does not reproduce a binary, so a second
+ * build would carry other digests than the ones the platform already holds:
+ * when the bucket has the version, the build step takes it from there.
  */
 
 const ROOT = path.resolve(import.meta.dir, "../..")
@@ -103,8 +107,37 @@ function smoke(version: string, publicKey: string): void {
 const HELLO =
   '{"id":1,"cmd":"hello","params":{"app_version":"0.0.0","protocol":1}}'
 
-export function buildAgent(env: NodeJS.ProcessEnv, dryRun: boolean): void {
+async function alreadyBuilt(version: string, vault: Bucket): Promise<boolean> {
+  if (!vault.client) {
+    return false
+  }
+
+  return await vault.client.exists(keys.agent(version, "publications.json"))
+}
+
+async function takeBuilt(version: string, vault: Bucket): Promise<void> {
+  mkdirSync(AGENT_DIST, { recursive: true })
+
+  for (const file of AGENT_FILES) {
+    await get(vault, keys.agent(version, file), path.join(AGENT_DIST, file))
+  }
+}
+
+export async function buildAgent(
+  env: NodeJS.ProcessEnv,
+  dryRun: boolean
+): Promise<void> {
   const version = variable(env, "version")
+  const vault = bucket(variable(env, "agentBucket"), env, dryRun)
+
+  if (await alreadyBuilt(version, vault)) {
+    say(
+      `agent ${version} is already built: taken from ${vault.name}, not rebuilt`
+    )
+    await takeBuilt(version, vault)
+
+    return
+  }
 
   run(["bun", "run", "garble:install"], { cwd: AGENT_DIR, dryRun })
   run(["bun", "run", "release"], { cwd: AGENT_DIR, dryRun })
@@ -172,7 +205,7 @@ export async function agentCommand(
 
   switch (step) {
     case "build":
-      buildAgent(env, dryRun)
+      await buildAgent(env, dryRun)
       return
     case "publish":
       await publishAgent(env, dryRun)
