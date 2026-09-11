@@ -174,7 +174,7 @@ describe("the app on a system", () => {
     )
   })
 
-  it("signs and notarizes on macOS only with all five Apple values, and says so otherwise", () => {
+  it("notarizes on macOS with the three App Store Connect values, and says so otherwise", () => {
     const written: string[] = []
     const keyFile = (content: string) => {
       written.push(content)
@@ -185,22 +185,16 @@ describe("the app on a system", () => {
       APPLE_API_ISSUER: "issuer",
       APPLE_API_KEY_CONTENT: "cGVt",
       APPLE_API_KEY_ID: "KEYID12345",
-      APPLE_CERTIFICATE: "cert",
-      APPLE_CERTIFICATE_PASSWORD: "pass",
     }
 
     expect(macSigning(full, keyFile)).toEqual({
       APPLE_API_ISSUER: "issuer",
       APPLE_API_KEY: "/tmp/key.p8",
       APPLE_API_KEY_ID: "KEYID12345",
-      CSC_KEY_PASSWORD: "pass",
-      CSC_LINK: "cert",
     })
     expect(written).toEqual(["cGVt"])
 
-    const partial = { ...full, APPLE_API_ISSUER: "" }
-
-    expect(macSigning(partial, keyFile)).toEqual({
+    expect(macSigning({ ...full, APPLE_API_ISSUER: "" }, keyFile)).toEqual({
       CSC_IDENTITY_AUTO_DISCOVERY: "false",
     })
     expect(written).toHaveLength(1)
