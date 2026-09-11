@@ -105,29 +105,31 @@ export function systemsToBuild(
   return [systemOfHost(host)]
 }
 
-/** macOS signs with a Developer ID and notarizes with an App Store Connect key; both, or neither. */
+/**
+ * macOS signs with the Developer ID identity of this Mac's keychain — that is
+ * where a Mac keeps it, and importing a `.p12` into a throwaway keychain is
+ * what a bare runner does — and notarizes with the App Store Connect key,
+ * given as a file for as long as the build lasts. Without the key, the build
+ * is neither signed nor notarized, and says so.
+ */
 export function macSigning(
   env: NodeJS.ProcessEnv,
   keyFile: (content: string) => string
 ): NodeJS.ProcessEnv {
-  const certificate = env.APPLE_CERTIFICATE
-  const password = env.APPLE_CERTIFICATE_PASSWORD
   const keyContent = env.APPLE_API_KEY_CONTENT
   const keyId = env.APPLE_API_KEY_ID
   const issuer = env.APPLE_API_ISSUER
 
-  if (certificate && password && keyContent && keyId && issuer) {
+  if (keyContent && keyId && issuer) {
     return {
       APPLE_API_ISSUER: issuer,
       APPLE_API_KEY: keyFile(keyContent),
       APPLE_API_KEY_ID: keyId,
-      CSC_KEY_PASSWORD: password,
-      CSC_LINK: certificate,
     }
   }
 
   say(
-    "Apple signing is not configured: the macOS build is neither signed nor notarized."
+    "Apple notarization is not configured: the macOS build is neither signed nor notarized."
   )
 
   return { CSC_IDENTITY_AUTO_DISCOVERY: "false" }

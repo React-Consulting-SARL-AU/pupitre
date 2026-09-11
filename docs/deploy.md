@@ -265,12 +265,10 @@ La chaîne de release ne tourne pas sur GitHub : elle tourne sur le Mac du propr
 | `PUPITRE_PUBLISH_TOKEN` | la même valeur qu'à l'étape 3, mot pour mot | la version se construit et ne se déclare pas |
 | `PUPITRE_RELEASE_PRIVATE_KEY` | `cd apps/agent && go run ./tools/release keygen`, une seule fois | rien ne se construit |
 | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | le second jeton R2 de l'étape 3, *Object Read & Write* sur les deux seaux | rien ne monte sur les seaux |
-| `APPLE_CERTIFICATE` | `base64 -i DeveloperID.p12 \| pbcopy` | l'app macOS sort non signée |
-| `APPLE_CERTIFICATE_PASSWORD` | choisi à l'export du certificat | idem |
 | `APPLE_API_KEY_CONTENT` | `base64 -i AuthKey_<id>.p8 \| pbcopy` | pas de notarisation |
 | `APPLE_API_KEY_ID`, `APPLE_API_ISSUER` | la page *Keys* d'App Store Connect | idem |
 
-Les trois premières lignes suffisent pour publier. Les autres n'évitent que l'avertissement de macOS au premier lancement. Windows sort non signé : Azure Trusted Signing n'existe que sur Windows.
+Les trois premières lignes suffisent pour publier. Les autres notarisent l'app macOS ; sa **signature** vient du certificat Developer ID du trousseau du Mac, qu'electron-builder trouve seul — il ne s'importe pas depuis un fichier. Windows sort non signé : Azure Trusted Signing n'existe que sur Windows.
 
 **La clé de publication mérite une phrase.** Une seule paire de clés signe tout ce que Pupitre publie, pour toujours. Sa moitié privée est dans cette note et nulle part ailleurs ; sa moitié publique est déjà écrite dans le code de l'app. Les deux vont ensemble : une app qui connaît une clé publique et un agent signé avec une autre refusent toute mise à jour, sans message utile. Ne la régénère pas.
 
