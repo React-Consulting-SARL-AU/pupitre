@@ -261,11 +261,14 @@ Le squash est interdit parce qu'il réécrit les commits : le commit tagué d'un
 Publiques, pas des secrets :
 
 ```bash
-gh variable set PUPITRE_PLATFORM_URL     --body "https://app.pupitre.studio"
-gh variable set PUPITRE_DOWNLOADS_URL    --body "https://dl.pupitre.studio"
-gh variable set PUPITRE_DOWNLOADS_BUCKET --body "ppt-downloads"
-gh variable set PUPITRE_R2_BUCKET        --body "ppt-agent"
+gh variable set PUPITRE_PLATFORM_URL         --env release --body "https://app.pupitre.studio"
+gh variable set PUPITRE_STAGING_PLATFORM_URL --env release --body "https://staging-app.pupitre.studio"
+gh variable set PUPITRE_DOWNLOADS_URL        --env release --body "https://dl.pupitre.studio"
+gh variable set PUPITRE_DOWNLOADS_BUCKET     --env release --body "ppt-downloads"
+gh variable set PUPITRE_R2_BUCKET            --env release --body "ppt-agent"
 ```
+
+Deux plateformes, une par branche : un tag sur `staging` se déclare à `PUPITRE_STAGING_PLATFORM_URL`, un tag sur `main` à `PUPITRE_PLATFORM_URL`, et c'est `promote.yml` qui porte une version de la première à la seconde quand `main` la reçoit.
 
 ### Les secrets de publication
 
@@ -300,7 +303,7 @@ git push origin v0.1.0
 
 Le push du tag est l'acte de publication. La chaîne refuse de commencer si le tag n'est pas sur `staging` ou `main`, si le changelog ne couvre pas la version, ou si l'app ne déclare pas ce numéro.
 
-Une version sort toujours en canal **`beta`**. Elle passe en `stable` quand la pull request `staging` → `main` est fusionnée : c'est **le même fichier**, celui qui a été éprouvé, qui devient la version stable — rien n'est reconstruit. Un second build donnerait d'autres signatures pour le même numéro.
+Une version sort toujours en canal **`beta`**, déclarée à la plateforme de la branche qui porte le tag — le staging, donc. Elle arrive en production et passe en `stable` quand la pull request `staging` → `main` est fusionnée : `promote.yml` déclare à la production les lignes gardées avec les artefacts, puis promeut. C'est **le même fichier**, celui qui a été éprouvé, qui devient la version stable — rien n'est reconstruit. Un second build donnerait d'autres signatures pour le même numéro.
 
 ## 10. Vérifier que tout tient
 

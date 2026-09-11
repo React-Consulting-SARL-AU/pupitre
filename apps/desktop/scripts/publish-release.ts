@@ -19,7 +19,10 @@ import {
  * with their signature alongside; electron-updater's feeds go up next, into
  * the channel's folder, rewritten to point at this version. The version
  * table is filled in only afterward: a row that exists is a row whose file
- * is already there.
+ * is already there. The rows declared are also written to `publications.json`
+ * next to the artefacts, so that `--declare=<file>` can say the same thing to
+ * another platform later — production, once `main` has taken the version —
+ * without rebuilding or re-signing anything.
  *
  * Nothing in this script runs from a workstation: the release key and the
  * admin token live in CI's secrets.
@@ -138,7 +141,10 @@ function upload(path: string, key: string, options: Options): void {
   );
 }
 
-async function declare(body: unknown, options: Options): Promise<void> {
+async function declare(
+  body: unknown,
+  options: Pick<Options, "dryRun" | "platform">
+): Promise<void> {
   const token = required(
     PUBLISH_TOKEN_VARIABLE,
     process.env[PUBLISH_TOKEN_VARIABLE] ?? ""
@@ -173,11 +179,11 @@ async function publishArtefact(
   file: string,
   settings: Options,
   key: ReturnType<typeof privateKey>
-): Promise<void> {
+): Promise<unknown> {
   const artefact = artefactOf(file);
 
   if (!artefact) {
-    return;
+    return null;
   }
 
   const path = join(settings.dir, file);
@@ -194,20 +200,45 @@ async function publishArtefact(
   upload(path, objectKey(settings.version, file), settings);
   upload(`${path}.sig`, objectKey(settings.version, `${file}.sig`), settings);
 
-  await declare(
-    {
-      arch: artefact.arch,
-      bytes: content.byteLength,
-      channel: settings.channel,
-      format: artefact.format,
-      notes: settings.notes,
-      os: artefact.os,
-      sha256,
-      signature,
-      r2_key: objectKey(settings.version, file),
-      version: settings.version,
-    },
-    settings
+  const body = {
+    arch: artefact.arch,
+    bytes: content.byteLength,
+    channel: settings.channel,
+    format: artefact.format,
+    notes: settings.notes,
+    os: artefact.os,
+    sha256,
+    signature,
+    r2_key: objectKey(settings.version, file),
+    version: settings.version,
+  };
+
+  await declare(body, settings);
+
+  return body;
+}
+
+/** The rows of an earlier publication, said again to the platform named by `--api`. */
+async function declareFrom(file: string): Promise<void> {
+  const settings = {
+    dryRun: process.argv.includes("--dry-run"),
+    platform: required(
+      "--api",
+      argumentOf("api", process.env.PUPITRE_PLATFORM_URL ?? "")
+    ),
+  };
+  const bodies = JSON.parse(readFileSync(file, "utf8")) as unknown[];
+
+  if (!Array.isArray(bodies) || bodies.length === 0) {
+    throw new Error(`${file} ne déclare aucun artefact.`);
+  }
+
+  for (const body of bodies) {
+    await declare(body, settings);
+  }
+
+  process.stdout.write(
+    `${bodies.length} artefacts déclarés à ${settings.platform}\n`
   );
 }
 
@@ -226,6 +257,14 @@ function publishFeed(file: string, settings: Options): void {
 }
 
 async function main(): Promise<void> {
+  const declarations = argumentOf("declare");
+
+  if (declarations) {
+    await declareFrom(declarations);
+
+    return;
+  }
+
   const settings = options();
   const key = privateKey();
   const files = readdirSync(settings.dir).sort();
@@ -237,9 +276,16 @@ async function main(): Promise<void> {
     );
   }
 
+  const published: unknown[] = [];
+
   for (const file of artefacts) {
-    await publishArtefact(file, settings, key);
+    published.push(await publishArtefact(file, settings, key));
   }
+
+  writeFileSync(
+    join(settings.dir, "publications.json"),
+    `${JSON.stringify(published, null, 2)}\n`
+  );
 
   for (const file of files.filter(isBlockmap)) {
     upload(

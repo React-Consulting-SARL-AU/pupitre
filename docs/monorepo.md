@@ -71,7 +71,7 @@ Un push sur `staging` est vérifié une fois, sur son SHA ; la pull request `sta
 | `quality` | PR vers `staging`, push sur `staging` et `main` | lint, typecheck, tests, build hors desktop. L'app desktop et les packages tournent avec `--coverage`, et leurs `lcov.info` montent dans l'artefact `coverage-<sha>` — aucun seuil, on lit |
 | `console-e2e` | idem | Playwright sur la console, non bloquant |
 | `desktop-e2e` | idem | Playwright sur l'app, sous xvfb |
-| `gitleaks` | idem | l'historique entier relu par gitleaks |
+| `gitleaks` | idem | l'historique entier relu par le binaire `gitleaks`, épinglé par empreinte — pas l'action, qui exige une licence dès qu'une organisation porte le dépôt ; `.gitleaks.toml` exclut les fixtures de test et les valeurs factices de la CI |
 | `agent` | idem | `gofmt`, `go vet`, `staticcheck`, `govulncheck`, `go test -race` avec son profil de couverture dans l'artefact `coverage-agent-<sha>`, build multi-arch ; sur `staging` et `main`, le build de release avec une clé jetable |
 
 `desktop-smoke.yml` tourne à part, sur `macos-15` seulement, au push sur `staging` quand l'app, l'agent, les packages ou le lockfile ont changé, et à la main : tests unitaires de l'app, bundle avec l'agent embarqué, capture des thèmes non bloquante — un runner n'a pas les polices du poste où les références ont été prises. Windows n'y est pas : le modèle SSH de l'app — une session maître multiplexée par serveur, clés et sockets en 0600 — n'a pas d'équivalent sur OpenSSH pour Windows, et le job ne faisait que le répéter à chaque push. Il revient quand le support de Windows est une tâche.
@@ -226,7 +226,8 @@ Un bucket R2 `ppt-downloads`, **accès public activé** par le domaine personnal
 
 | Variable GitHub | Ce que c'est |
 | --- | --- |
-| `PUPITRE_PLATFORM_URL` | `https://app.pupitre.studio` |
+| `PUPITRE_PLATFORM_URL` | `https://app.pupitre.studio` — la plateforme d'un tag sur `main`, et celle que `promote.yml` sert |
+| `PUPITRE_STAGING_PLATFORM_URL` | `https://staging-app.pupitre.studio` — la plateforme d'un tag sur `staging` |
 | `PUPITRE_DOWNLOADS_URL` | `https://dl.pupitre.studio` |
 | `PUPITRE_DOWNLOADS_BUCKET` | `ppt-downloads` |
 | `PUPITRE_R2_BUCKET` | `ppt-agent`, le bucket privé des binaires de l'agent |
@@ -248,7 +249,7 @@ Un tag `v*` déclenche `release.yml`, en trois temps :
 | `desktop` | sur les trois systèmes : reprend l'agent signé du job précédent, compile le processus principal en bytecode V8, empaquette, retourne les fusibles (`onlyLoadAppFromAsar`, intégrité de l'asar, `runAsNode` coupé), signe et notarise sur macOS, signe par Azure sur Windows. |
 | `publish` | rassemble les artefacts des trois systèmes, les signe avec la clé de release, les dépose sur le bucket **public** avec leur `.sig`, réécrit les flux de mise à jour, et déclare chaque fichier par `POST /api/v1/admin/app-releases`. |
 
-Le tag est posé sur `staging` : une version sort donc toujours en **`beta`**, et c'est cet artefact-là, celui qui a été éprouvé, qui finit en production. Elle passe en `stable` quand la pull request `staging` → `main` est fusionnée : le push sur `main` déclenche `promote.yml`, qui reprend les tags que le merge vient de rendre accessibles, change le canal de l'agent et de l'app sur la plateforme et recopie les flux du canal. Rien n'est reconstruit ni re-signé — un second build donnerait d'autres binaires, d'autres signatures et d'autres sommes de contrôle pour le même numéro de version. Le même workflow s'appelle aussi à la main, sur une version précise, pour revenir en arrière.
+Le tag est posé sur `staging` : une version sort donc toujours en **`beta`**, déclarée à **la plateforme de la branche qui porte le tag** — `staging-app` pour `staging`, `app` pour `main` — et c'est cet artefact-là, celui qui a été éprouvé, qui finit en production. Les lignes déclarées sont gardées avec les binaires, en `agent/<version>/publications.json` et `app/<version>/publications.json` dans le seau privé. Elle passe en `stable` quand la pull request `staging` → `main` est fusionnée : le push sur `main` déclenche `promote.yml`, qui reprend les tags que le merge vient de rendre accessibles, **déclare la version à la production** depuis ces deux fichiers — mêmes empreintes, mêmes clés, appels idempotents — puis change le canal de l'agent et de l'app et recopie les flux du canal. Rien n'est reconstruit ni re-signé — un second build donnerait d'autres binaires, d'autres signatures et d'autres sommes de contrôle pour le même numéro de version. Le même workflow s'appelle aussi à la main, sur une version précise, pour revenir en arrière.
 
 Un build sans identité de signature ne s'arrête pas : electron-builder le dit et produit un artefact non signé — c'est ce qui rend `bun --cwd=apps/desktop run build:mac` utilisable sur la machine du propriétaire.
 

@@ -37,9 +37,9 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       channel: ${{ steps.version.outputs.channel }}
+      platform: ${{ steps.branch.outputs.platform }}
     env:
       PUPITRE_RELEASE_CHANNEL: ${{ inputs.channel || 'beta' }}
-      PUPITRE_PLATFORM_URL: ${{ vars.PUPITRE_PLATFORM_URL }}
       R2_BUCKET: ${{ vars.PUPITRE_R2_BUCKET }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -68,22 +68,35 @@ jobs:
 
       # A tag posed on a branch nobody merges would publish code that never
       # reaches production, under a version number that can never be promoted.
-      - name: Check the tag sits on staging or main
-        if: github.ref_type == 'tag'
+      # The branch also names the platform the version is declared to: `main`
+      # speaks to production, anything else on `staging` speaks to staging, and
+      # `promote.yml` carries the version to production when `main` takes it.
+      - name: Resolve the branch and its platform
+        id: branch
+        env:
+          STAGING_PLATFORM_URL: ${{ vars.PUPITRE_STAGING_PLATFORM_URL }}
+          PRODUCTION_PLATFORM_URL: ${{ vars.PUPITRE_PLATFORM_URL }}
         run: |
           set -euo pipefail
           git fetch --no-tags --quiet origin \
             "+refs/heads/staging:refs/remotes/origin/staging" \
             "+refs/heads/main:refs/remotes/origin/main" || true
-          for branch in origin/staging origin/main; do
-            if git rev-parse --verify --quiet "$branch" >/dev/null &&
-              git merge-base --is-ancestor HEAD "$branch"; then
-              echo "$GITHUB_REF_NAME est sur $branch"
-              exit 0
-            fi
-          done
-          echo "$GITHUB_REF_NAME n'est ni sur staging ni sur main : rien à publier depuis là."
-          exit 1
+          platform=""
+          if git rev-parse --verify --quiet origin/main >/dev/null &&
+            git merge-base --is-ancestor HEAD origin/main; then
+            echo "$GITHUB_REF_NAME est sur main : plateforme de production"
+            platform="$PRODUCTION_PLATFORM_URL"
+          elif git rev-parse --verify --quiet origin/staging >/dev/null &&
+            git merge-base --is-ancestor HEAD origin/staging; then
+            echo "$GITHUB_REF_NAME est sur staging : plateforme de staging"
+            platform="$STAGING_PLATFORM_URL"
+          else
+            echo "$GITHUB_REF_NAME n'est ni sur staging ni sur main : rien à publier depuis là."
+            exit 1
+          fi
+          test -n "$platform" || { echo "la variable de plateforme de cette branche est vide"; exit 1; }
+          echo "PUPITRE_PLATFORM_URL=$platform" >> "$GITHUB_ENV"
+          echo "platform=$platform" >> "$GITHUB_OUTPUT"
 
       # The notes of the version are its changelog entry, in every locale the
       # site serves: no entry, no release.
@@ -153,6 +166,9 @@ jobs:
               "$R2_BUCKET/agent/$PUPITRE_RELEASE_VERSION/pupitred-linux-$arch" \
               --file="apps/agent/dist/release/pupitred-linux-$arch" --remote
           done
+          bun x wrangler r2 object put \
+            "$R2_BUCKET/agent/$PUPITRE_RELEASE_VERSION/publications.json" \
+            --file="apps/agent/dist/release/publications.json" --remote
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -299,9 +315,10 @@ jobs:
     env:
       PUPITRE_RELEASE_VERSION: ${{ needs.agent.outputs.version }}
       PUPITRE_RELEASE_CHANNEL: ${{ needs.agent.outputs.channel }}
-      PUPITRE_PLATFORM_URL: ${{ vars.PUPITRE_PLATFORM_URL }}
+      PUPITRE_PLATFORM_URL: ${{ needs.agent.outputs.platform }}
       PUPITRE_DOWNLOADS_URL: ${{ vars.PUPITRE_DOWNLOADS_URL }}
       R2_BUCKET: ${{ vars.PUPITRE_DOWNLOADS_BUCKET }}
+      AGENT_BUCKET: ${{ vars.PUPITRE_R2_BUCKET }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -339,6 +356,17 @@ jobs:
         env:
           PUPITRE_RELEASE_PRIVATE_KEY: ${{ secrets.PUPITRE_RELEASE_PRIVATE_KEY }}
           PUPITRE_PUBLISH_TOKEN: ${{ secrets.PUPITRE_PUBLISH_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # What `promote.yml` re-declares to production: the same rows, kept with
+      # the agent's in the private bucket, never rebuilt.
+      - name: Keep the declarations with the artefacts
+        run: |
+          bun x wrangler r2 object put \
+            "$AGENT_BUCKET/app/$PUPITRE_RELEASE_VERSION/publications.json" \
+            --file="$GITHUB_WORKSPACE/artefacts/publications.json" --remote
+        env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
