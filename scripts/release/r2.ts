@@ -1,4 +1,5 @@
-import { file as bunFile, write as bunWrite, S3Client } from "bun"
+import { readFileSync, writeFileSync } from "node:fs"
+import { S3Client } from "bun"
 import { say } from "./cli"
 
 /**
@@ -12,6 +13,10 @@ import { say } from "./cli"
  * bucket the account has. `put` is idempotent: the same key written twice
  * holds the same bytes, so a step run again after a failure rewrites what it
  * had written.
+ *
+ * Objects pass through memory rather than being streamed to and from disk:
+ * Bun's streaming to a file crashes on Windows, and nothing here is larger
+ * than an installer.
  */
 
 export const R2_VARIABLES = {
@@ -68,7 +73,7 @@ export async function put(
     return
   }
 
-  await bucket.client.write(key, bunFile(file))
+  await bucket.client.write(key, readFileSync(file))
 }
 
 export async function get(
@@ -88,7 +93,7 @@ export async function get(
     throw new Error(`${bucket.name}/${key} does not exist.`)
   }
 
-  await bunWrite(file, object)
+  writeFileSync(file, Buffer.from(await object.arrayBuffer()))
 }
 
 /** The folder of a version in the private bucket, one subfolder per producer. */

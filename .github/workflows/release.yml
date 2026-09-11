@@ -79,10 +79,14 @@ jobs:
       - name: Check the changelog and the app version
         run: bun scripts/release/index.ts check
 
+      # A version the bucket already holds is taken from there, not rebuilt.
       - name: Build, sign and smoke the agent
         run: bun scripts/release/index.ts agent build
         env:
           PUPITRE_RELEASE_PRIVATE_KEY: ${{ secrets.PUPITRE_RELEASE_PRIVATE_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
 
       - name: Publish the agent
         run: bun scripts/release/index.ts agent publish
