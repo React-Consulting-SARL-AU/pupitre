@@ -1,0 +1,19 @@
+# What the secret scanner may skip: fixtures a test writes on purpose, and the
+# placeholders the CI hands to a Worker that never talks to anyone. Everything
+# else in the history is judged by the default rules.
+title = "pupitre"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Test fixtures and CI placeholders"
+paths = [
+  '''(^|/)__tests__/''',
+  '''_test\.go$''',
+  '''\.test\.ts$''',
+]
+regexes = [
+  '''placeholder''',
+  '''pupitre\.navigation\.v\d+''',
+]

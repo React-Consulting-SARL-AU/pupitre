@@ -82,6 +82,7 @@ jobs:
       PUPITRE_RELEASE_CHANNEL: ${{ needs.resolve.outputs.channel }}
       PUPITRE_PLATFORM_URL: ${{ vars.PUPITRE_PLATFORM_URL }}
       R2_BUCKET: ${{ vars.PUPITRE_DOWNLOADS_BUCKET }}
+      AGENT_BUCKET: ${{ vars.PUPITRE_R2_BUCKET }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -96,6 +97,31 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      # A version tagged on `staging` was declared to the staging platform;
+      # production learns of it here, from the rows kept with the artefacts —
+      # the same digests, the same keys in the buckets, nothing rebuilt. Both
+      # declarations are idempotent: a version already known is left as it is.
+      - name: Read the declarations kept with the artefacts
+        run: |
+          set -euo pipefail
+          bun x wrangler r2 object get \
+            "$AGENT_BUCKET/agent/$PUPITRE_RELEASE_VERSION/publications.json" \
+            --file="$RUNNER_TEMP/agent-publications.json" --remote
+          bun x wrangler r2 object get \
+            "$AGENT_BUCKET/app/$PUPITRE_RELEASE_VERSION/publications.json" \
+            --file="$RUNNER_TEMP/app-publications.json" --remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Declare the version to production
+        run: |
+          set -euo pipefail
+          (cd apps/agent && go run ./tools/release publish "$RUNNER_TEMP/agent-publications.json")
+          bun --cwd=apps/desktop run release:publish --declare="$RUNNER_TEMP/app-publications.json"
+        env:
+          PUPITRE_PUBLISH_TOKEN: ${{ secrets.PUPITRE_PUBLISH_TOKEN }}
 
       - name: Promote the agent
         working-directory: apps/agent
