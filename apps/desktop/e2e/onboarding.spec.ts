@@ -94,8 +94,9 @@ test.describe("onboarding", () => {
     });
 
     await test.step("le serveur est prêt, sans projet imposé", async () => {
-      await expect(page.getByText("Le serveur est prêt.")).toBeVisible();
+      await expect(page.getByRole("banner").getByText("Prêt")).toBeVisible();
       await expect(page.getByText("Connecté en dev")).toBeVisible();
+      await expect(page.getByText("L'accès root est fermé")).toBeVisible();
       await assertAccessible(page, "onboarding/done");
     });
   });

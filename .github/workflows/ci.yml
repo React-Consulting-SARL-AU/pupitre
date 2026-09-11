@@ -1,7 +1,13 @@
 name: CI
 
+# A push to `staging` is checked once, on its own SHA. The pull request from
+# `staging` to `main` carries that same SHA, so GitHub shows the push's checks
+# on it: listing `main` under `pull_request` would run everything a second
+# time for nothing. Feature branches reach `staging` by pull request, and that
+# is where they are checked.
 on:
   pull_request:
+    branches: [staging]
   push:
     branches: [main, staging]
 
@@ -174,70 +180,6 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: playwright-desktop-${{ github.sha }}
-          path: .playwright/desktop
-          retention-days: 7
-          if-no-files-found: ignore
-
-  # The systems the app ships on, without the release chain: the unit tests,
-  # the bundle with the agent embedded, and the theme captures where their
-  # references live. Only on staging — one runner per system is what it costs.
-  desktop-smoke:
-    name: Desktop smoke ${{ matrix.os }}
-    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-15, windows-2025]
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version-file: package.json
-
-      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
-        with:
-          go-version-file: apps/agent/go.mod
-          cache-dependency-path: apps/agent/go.mod
-
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: 22
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Install the Electron binary
-        run: node node_modules/electron/install.js
-        working-directory: apps/desktop
-
-      - name: Test
-        run: bun --cwd=apps/desktop run test
-
-      # Through turbo, so the agent is built and embedded before the bundle.
-      - name: Build
-        run: bun run build -- --filter=@pupitre/desktop
-
-      # The dashboard captures are compared on macOS only, where their
-      # references were taken; a runner's fonts may still draw other pixels,
-      # so the report is read and the push is not held on it.
-      - name: Playwright themes
-        id: themes
-        if: runner.os == 'macOS'
-        continue-on-error: true
-        run: bunx playwright test e2e/themes.spec.ts
-        working-directory: apps/desktop
-
-      - name: Upload the failure artifacts
-        if: failure() || steps.themes.outcome == 'failure'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: playwright-smoke-${{ matrix.os }}-${{ github.sha }}
           path: .playwright/desktop
           retention-days: 7
           if-no-files-found: ignore

@@ -64,16 +64,17 @@ bun run test
 bun run build
 ```
 
-Les PR font tourner les tâches affectées ; `staging` et `main` font tout. Les jobs de `ci.yml` :
+Un push sur `staging` est vérifié une fois, sur son SHA ; la pull request `staging` → `main` porte ce même SHA et affiche ces vérifications sans rien relancer — `pull_request` ne vise donc que `staging`, où arrivent les branches de travail. Les minutes GitHub Actions se paient : macOS compte dix fois une minute Ubuntu, Windows deux fois. Les jobs de `ci.yml` :
 
 | Job | Quand | Ce qu'il fait |
 | --- | --- | --- |
-| `quality` | PR, `staging`, `main` | lint, typecheck, tests, build hors desktop. L'app desktop et les packages tournent avec `--coverage`, et leurs `lcov.info` montent dans l'artefact `coverage-<sha>` — aucun seuil, on lit |
+| `quality` | PR vers `staging`, push sur `staging` et `main` | lint, typecheck, tests, build hors desktop. L'app desktop et les packages tournent avec `--coverage`, et leurs `lcov.info` montent dans l'artefact `coverage-<sha>` — aucun seuil, on lit |
 | `console-e2e` | idem | Playwright sur la console, non bloquant |
 | `desktop-e2e` | idem | Playwright sur l'app, sous xvfb |
-| `desktop-smoke` | push sur `staging` | `macos-15` et `windows-2025` : tests unitaires de l'app, bundle avec l'agent embarqué, et sur macOS la capture des thèmes, non bloquante — un runner n'a pas les polices du poste où les références ont été prises |
-| `gitleaks` | PR, `staging`, `main` | l'historique entier relu par gitleaks |
+| `gitleaks` | idem | l'historique entier relu par gitleaks |
 | `agent` | idem | `gofmt`, `go vet`, `staticcheck`, `govulncheck`, `go test -race` avec son profil de couverture dans l'artefact `coverage-agent-<sha>`, build multi-arch ; sur `staging` et `main`, le build de release avec une clé jetable |
+
+`desktop-smoke.yml` tourne à part, sur `macos-15` seulement, au push sur `staging` quand l'app, l'agent, les packages ou le lockfile ont changé, et à la main : tests unitaires de l'app, bundle avec l'agent embarqué, capture des thèmes non bloquante — un runner n'a pas les polices du poste où les références ont été prises. Windows n'y est pas : le modèle SSH de l'app — une session maître multiplexée par serveur, clés et sockets en 0600 — n'a pas d'équivalent sur OpenSSH pour Windows, et le job ne faisait que le répéter à chaque push. Il revient quand le support de Windows est une tâche.
 
 Les actions des workflows sont épinglées par SHA, la version en commentaire à côté ; Dependabot (`github-actions`) les fait avancer.
 
