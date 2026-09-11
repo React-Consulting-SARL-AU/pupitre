@@ -14,7 +14,7 @@ import {
 } from "../../apps/desktop/scripts/release-artefacts"
 import { AGENT_DIST, ARCHES } from "./agent"
 import { hasFlag, say, variable } from "./cli"
-import { type Bucket, get, keys, put } from "./r2"
+import { type Bucket, bucket, get, keys, put } from "./r2"
 import { run } from "./shell"
 
 /**
@@ -107,14 +107,14 @@ export function windowsSigning(env: NodeJS.ProcessEnv): string[] {
   return []
 }
 
-function fetchAgent(version: string, bucket: Bucket): void {
+async function fetchAgent(version: string, vault: Bucket): Promise<void> {
   mkdirSync(AGENT_DIST, { recursive: true })
 
   for (const file of [
     ...ARCHES.map((arch) => `pupitred-linux-${arch}`),
     "release.json",
   ]) {
-    get(bucket, keys.agent(version, file), path.join(AGENT_DIST, file))
+    await get(vault, keys.agent(version, file), path.join(AGENT_DIST, file))
   }
 }
 
@@ -167,10 +167,14 @@ function build(system: System, env: NodeJS.ProcessEnv, dryRun: boolean): void {
   run(["bun", "run", "build:linux"], { cwd: DESKTOP_DIR, dryRun, env: shared })
 }
 
-function stage(system: System, version: string, bucket: Bucket): void {
-  const files = publishable(bucket.dryRun ? [] : readdirSync(DESKTOP_DIST))
+async function stage(
+  system: System,
+  version: string,
+  vault: Bucket
+): Promise<void> {
+  const files = publishable(vault.dryRun ? [] : readdirSync(DESKTOP_DIST))
 
-  if (files.length === 0 && !bucket.dryRun) {
+  if (files.length === 0 && !vault.dryRun) {
     throw new Error(
       `${DESKTOP_DIST} holds nothing publishable: the build produced no installer.`
     )
@@ -178,28 +182,32 @@ function stage(system: System, version: string, bucket: Bucket): void {
 
   const index = path.join(DESKTOP_DIST, WORK_INDEX)
 
-  if (!bucket.dryRun) {
+  if (!vault.dryRun) {
     writeFileSync(index, `${JSON.stringify(files, null, 2)}\n`)
   }
 
   for (const file of files) {
-    put(bucket, keys.work(version, system, file), path.join(DESKTOP_DIST, file))
+    await put(
+      vault,
+      keys.work(version, system, file),
+      path.join(DESKTOP_DIST, file)
+    )
   }
 
-  put(bucket, keys.work(version, system, WORK_INDEX), index)
+  await put(vault, keys.work(version, system, WORK_INDEX), index)
   say(`${system}: ${files.length} files staged for ${version}`)
 }
 
-export function desktopCommand(
+export async function desktopCommand(
   argv: readonly string[],
   env: NodeJS.ProcessEnv = process.env
-): void {
+): Promise<void> {
   const dryRun = hasFlag(argv, "dry-run")
   const version = variable(env, "version")
-  const bucket: Bucket = { dryRun, name: variable(env, "agentBucket") }
+  const vault = bucket(variable(env, "agentBucket"), env, dryRun)
   const system = systemOfHost(process.platform)
 
-  fetchAgent(version, bucket)
+  await fetchAgent(version, vault)
   build(system, env, dryRun)
-  stage(system, version, bucket)
+  await stage(system, version, vault)
 }

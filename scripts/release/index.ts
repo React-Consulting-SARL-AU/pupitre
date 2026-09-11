@@ -38,7 +38,7 @@ async function main(argv: readonly string[]): Promise<void> {
       await agentCommand(rest)
       return
     case "desktop":
-      desktopCommand(rest)
+      await desktopCommand(rest)
       return
     case "app":
       await appCommand(rest)

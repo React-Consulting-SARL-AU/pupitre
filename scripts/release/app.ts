@@ -14,7 +14,7 @@ import { NOTES_LOCALE, readEntry } from "../release-notes"
 import { hasFlag, say, VARIABLES, variable } from "./cli"
 import { SYSTEMS, type System, WORK_INDEX } from "./desktop"
 import { type AppPublication, declareApp, platformFromEnv } from "./platform"
-import { type Bucket, get, keys, put } from "./r2"
+import { type Bucket, bucket, get, keys, put } from "./r2"
 
 /**
  * The app, made public: every installer the three systems left in the private
@@ -76,7 +76,7 @@ interface Publish {
   vault: Bucket
 }
 
-function fetchWork(version: string, vault: Bucket): string[] {
+async function fetchWork(version: string, vault: Bucket): Promise<string[]> {
   mkdirSync(WORK_DIR, { recursive: true })
 
   const files: string[] = []
@@ -84,14 +84,18 @@ function fetchWork(version: string, vault: Bucket): string[] {
   for (const system of Object.values(SYSTEMS) as System[]) {
     const index = path.join(WORK_DIR, `${system}-${WORK_INDEX}`)
 
-    get(vault, keys.work(version, system, WORK_INDEX), index)
+    await get(vault, keys.work(version, system, WORK_INDEX), index)
 
     const listed = vault.dryRun
       ? []
       : (JSON.parse(readFileSync(index, "utf8")) as string[])
 
     for (const file of listed) {
-      get(vault, keys.work(version, system, file), path.join(WORK_DIR, file))
+      await get(
+        vault,
+        keys.work(version, system, file),
+        path.join(WORK_DIR, file)
+      )
       files.push(file)
     }
   }
@@ -99,10 +103,10 @@ function fetchWork(version: string, vault: Bucket): string[] {
   return files.sort()
 }
 
-function publishInstaller(
+async function publishInstaller(
   file: string,
   settings: Publish
-): AppPublication | null {
+): Promise<AppPublication | null> {
   const artefact = artefactOf(file)
 
   if (!artefact) {
@@ -123,8 +127,8 @@ function publishInstaller(
     : ""
 
   writeFileSync(`${local}.sig`, `${signature}\n`)
-  put(settings.bucket, objectKey(settings.version, file), local)
-  put(
+  await put(settings.bucket, objectKey(settings.version, file), local)
+  await put(
     settings.bucket,
     objectKey(settings.version, `${file}.sig`),
     `${local}.sig`
@@ -144,15 +148,15 @@ function publishInstaller(
   }
 }
 
-function publishFeed(file: string, settings: Publish): void {
+async function publishFeed(file: string, settings: Publish): Promise<void> {
   const local = path.join(WORK_DIR, file)
 
   writeFileSync(
     local,
     absoluteFeed(readFileSync(local, "utf8"), settings.base, settings.version)
   )
-  put(settings.bucket, objectKey(settings.version, file), local)
-  put(settings.bucket, feedKey(settings.channel, file), local)
+  await put(settings.bucket, objectKey(settings.version, file), local)
+  await put(settings.bucket, feedKey(settings.channel, file), local)
 }
 
 export async function publishApp(
@@ -160,10 +164,10 @@ export async function publishApp(
   dryRun: boolean
 ): Promise<void> {
   const version = variable(env, "version")
-  const vault: Bucket = { dryRun, name: variable(env, "agentBucket") }
+  const vault = bucket(variable(env, "agentBucket"), env, dryRun)
   const settings: Publish = {
     base: variable(env, "downloadsUrl"),
-    bucket: { dryRun, name: variable(env, "downloadsBucket") },
+    bucket: bucket(variable(env, "downloadsBucket"), env, dryRun),
     channel: variable(env, "channel"),
     key:
       dryRun && !env[VARIABLES.privateKey]
@@ -174,7 +178,7 @@ export async function publishApp(
     version,
   }
   const platform = platformFromEnv(variable(env, "platform"), env, dryRun)
-  const files = fetchWork(version, vault)
+  const files = await fetchWork(version, vault)
 
   if (files.length === 0 && !dryRun) {
     throw new Error(`no system left an installer for ${version}.`)
@@ -183,7 +187,7 @@ export async function publishApp(
   const publications: AppPublication[] = []
 
   for (const file of files) {
-    const publication = publishInstaller(file, settings)
+    const publication = await publishInstaller(file, settings)
 
     if (publication) {
       publications.push(publication)
@@ -191,11 +195,15 @@ export async function publishApp(
   }
 
   for (const file of files.filter(isBlockmap)) {
-    put(settings.bucket, objectKey(version, file), path.join(WORK_DIR, file))
+    await put(
+      settings.bucket,
+      objectKey(version, file),
+      path.join(WORK_DIR, file)
+    )
   }
 
   for (const file of files.filter((one) => FEEDS.includes(one))) {
-    publishFeed(file, settings)
+    await publishFeed(file, settings)
   }
 
   for (const publication of publications) {
@@ -205,7 +213,7 @@ export async function publishApp(
   const declarations = path.join(WORK_DIR, "publications.json")
 
   writeFileSync(declarations, `${JSON.stringify(publications, null, 2)}\n`)
-  put(vault, keys.appDeclarations(version), declarations)
+  await put(vault, keys.appDeclarations(version), declarations)
 
   say(
     `app ${version}: ${publications.length} installers published in ${settings.channel} to ${platform.url}`

@@ -7,7 +7,7 @@ import {
   declareAgent,
   platformFromEnv,
 } from "./platform"
-import { type Bucket, keys, put } from "./r2"
+import { bucket, keys, put } from "./r2"
 import { run } from "./shell"
 
 /**
@@ -145,11 +145,11 @@ export async function publishAgent(
   dryRun: boolean
 ): Promise<void> {
   const version = variable(env, "version")
-  const bucket: Bucket = { dryRun, name: variable(env, "agentBucket") }
+  const vault = bucket(variable(env, "agentBucket"), env, dryRun)
   const platform = platformFromEnv(variable(env, "platform"), env, dryRun)
 
   for (const file of AGENT_FILES) {
-    put(bucket, keys.agent(version, file), path.join(AGENT_DIST, file))
+    await put(vault, keys.agent(version, file), path.join(AGENT_DIST, file))
   }
 
   const declarations = path.join(AGENT_DIST, "publications.json")
