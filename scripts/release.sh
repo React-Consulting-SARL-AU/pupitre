@@ -31,20 +31,20 @@ test -z "$(git status --porcelain --untracked-files=no)" || {
   exit 1
 }
 
-bun scripts/release/index.ts next "$@"
-eval "$(bun scripts/release/index.ts resolve | sed 's/^/export /')"
+step next "$@"
+eval "$(step resolve | sed 's/^/export /')"
 echo "release $PUPITRE_RELEASE_VERSION from $PUPITRE_RELEASE_BRANCH to $PUPITRE_PLATFORM_URL"
 
-if ! bun scripts/release/index.ts check >/dev/null 2>&1; then
-  bun scripts/release/index.ts notes
+if ! step check >/dev/null 2>&1; then
+  step notes
   echo
   echo "Read the two entries, fix what needs it, then run scripts/release.sh again."
   exit 0
 fi
 
-bun scripts/release/index.ts check
+step check
 step agent build
 step agent publish
 step desktop
 step app publish
-bun scripts/release/index.ts ship
+step ship
