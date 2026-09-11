@@ -1,0 +1,183 @@
+import { existsSync, readFileSync } from "node:fs"
+import { arch as hostArch, platform as hostPlatform } from "node:os"
+import path from "node:path"
+import { hasFlag, say, variable } from "./cli"
+import {
+  type AgentPublication,
+  declareAgent,
+  platformFromEnv,
+} from "./platform"
+import { type Bucket, keys, put } from "./r2"
+import { run } from "./shell"
+
+/**
+ * The agent: one static binary per architecture, obfuscated, signed with the
+ * release key, then kept in the private bucket with the manifest the app
+ * embeds and the rows the platform is told.
+ */
+
+const ROOT = path.resolve(import.meta.dir, "../..")
+
+export const AGENT_DIR = path.join(ROOT, "apps/agent")
+
+export const AGENT_DIST = path.join(AGENT_DIR, "dist/release")
+
+export const ARCHES = ["amd64", "arm64"] as const
+
+export const AGENT_FILES = [
+  ...ARCHES.map((arch) => `pupitred-linux-${arch}`),
+  "release.json",
+  "publications.json",
+]
+
+/** Above this, garble left something readable behind. */
+const READABLE_LIMIT = 10
+
+const NEEDLE = Buffer.from("pupitre")
+
+export function readableOccurrences(binary: Buffer): number {
+  let count = 0
+  let at = binary.indexOf(NEEDLE)
+
+  while (at !== -1) {
+    count += 1
+    at = binary.indexOf(NEEDLE, at + NEEDLE.length)
+  }
+
+  return count
+}
+
+function binaryPath(arch: string): string {
+  return path.join(AGENT_DIST, `pupitred-linux-${arch}`)
+}
+
+/** The host runs what it built only when it is that machine: Linux, same architecture. */
+function hostCanRun(arch: string): boolean {
+  const host = hostArch() === "x64" ? "amd64" : hostArch()
+
+  return hostPlatform() === "linux" && host === arch
+}
+
+function smoke(version: string, publicKey: string): void {
+  for (const arch of ARCHES) {
+    const binary = binaryPath(arch)
+    const bytes = readFileSync(binary)
+    const readable = readableOccurrences(bytes)
+
+    say(`${binary}: ${readable} readable occurrences of the name`)
+
+    if (readable > READABLE_LIMIT) {
+      throw new Error(`${binary} is not obfuscated enough.`)
+    }
+
+    if (!bytes.includes(publicKey)) {
+      throw new Error(
+        `${binary} does not carry the release public key: it could never be updated.`
+      )
+    }
+
+    if (!hostCanRun(arch)) {
+      say(`${binary}: not run here (${hostPlatform()}/${hostArch()})`)
+
+      continue
+    }
+
+    const said = run([binary, "version"], { capture: true }).trim()
+
+    if (said !== `pupitred ${version}`) {
+      throw new Error(
+        `${binary} says "${said}", expected "pupitred ${version}".`
+      )
+    }
+
+    const hello = run(["sh", "-c", `echo '${HELLO}' | ${binary} serve`], {
+      capture: true,
+    })
+
+    if (!hello.includes('"ok":true')) {
+      throw new Error(`${binary} does not answer hello.`)
+    }
+  }
+}
+
+const HELLO =
+  '{"id":1,"cmd":"hello","params":{"app_version":"0.0.0","protocol":1}}'
+
+export function buildAgent(env: NodeJS.ProcessEnv, dryRun: boolean): void {
+  const version = variable(env, "version")
+
+  run(["bun", "run", "garble:install"], { cwd: AGENT_DIR, dryRun })
+  run(["bun", "run", "release"], { cwd: AGENT_DIR, dryRun })
+
+  if (dryRun) {
+    return
+  }
+
+  for (const file of AGENT_FILES) {
+    if (!existsSync(path.join(AGENT_DIST, file))) {
+      throw new Error(`${file} was not produced by the agent build.`)
+    }
+  }
+
+  const publicKey = run(["go", "run", "./tools/release", "public-key"], {
+    capture: true,
+    cwd: AGENT_DIR,
+  }).trim()
+
+  smoke(version, publicKey)
+}
+
+export function readAgentPublications(file: string): AgentPublication[] {
+  const publications = JSON.parse(
+    readFileSync(file, "utf8")
+  ) as AgentPublication[]
+
+  if (!Array.isArray(publications) || publications.length === 0) {
+    throw new Error(`${file} declares no binary.`)
+  }
+
+  return publications
+}
+
+/** The bucket first: the platform hands out a signed URL as soon as the row exists. */
+export async function publishAgent(
+  env: NodeJS.ProcessEnv,
+  dryRun: boolean
+): Promise<void> {
+  const version = variable(env, "version")
+  const bucket: Bucket = { dryRun, name: variable(env, "agentBucket") }
+  const platform = platformFromEnv(variable(env, "platform"), env, dryRun)
+
+  for (const file of AGENT_FILES) {
+    put(bucket, keys.agent(version, file), path.join(AGENT_DIST, file))
+  }
+
+  const declarations = path.join(AGENT_DIST, "publications.json")
+
+  for (const publication of dryRun && !existsSync(declarations)
+    ? []
+    : readAgentPublications(declarations)) {
+    await declareAgent(platform, publication)
+  }
+
+  say(`agent ${version} published to ${platform.url}`)
+}
+
+export async function agentCommand(
+  argv: readonly string[],
+  env: NodeJS.ProcessEnv = process.env
+): Promise<void> {
+  const dryRun = hasFlag(argv, "dry-run")
+  const step = argv.find((value) => !value.startsWith("--"))
+
+  switch (step) {
+    case "build":
+      buildAgent(env, dryRun)
+      return
+    case "publish":
+      await publishAgent(env, dryRun)
+      return
+    default:
+      throw new Error("usage: release agent <build|publish> [--dry-run]")
+  }
+}
