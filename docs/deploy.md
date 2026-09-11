@@ -11,11 +11,11 @@ Quatre choses, sur deux environnements.
 | Ce qui est publié | Où | Ce qui le déclenche |
 | --- | --- | --- |
 | La console et l'API — un seul Worker Cloudflare | `staging-app.pupitre.studio`, puis `app.pupitre.studio` | un push sur la branche `staging`, puis sur `main` |
-| Le site marketing | `staging.pupitre.studio`, puis `pupitre.studio` | les mêmes branches, sur Cloudflare Pages |
+| Le site marketing — un Worker à assets statiques | `staging.pupitre.studio`, puis `pupitre.studio` | les mêmes branches |
 | L'app desktop (macOS, Windows, Linux) | le seau public `ppt-downloads`, servi par `dl.pupitre.studio` | un tag `vX.Y.Z` posé sur `staging` |
 | L'agent `pupitred`, installé sur le serveur du client | le seau privé `ppt-agent`, que rien n'atteint directement | le même tag |
 
-**Staging d'abord, production ensuite.** Les deux environnements sont identiques en tout sauf leurs valeurs : même code, mêmes douze secrets, mêmes vérifications. Ce que tu apprends sur l'un s'applique à l'autre.
+**Staging d'abord, production ensuite.** Les deux environnements sont identiques en tout sauf leurs valeurs : même code, mêmes seize secrets, mêmes vérifications. Ce que tu apprends sur l'un s'applique à l'autre.
 
 Les branches : `staging` est la branche de travail, `main` est la production et ne change que par une pull request depuis `staging`. Les hooks du dépôt refusent d'y committer en local. Voir [`monorepo.md`](./monorepo.md#branches).
 
@@ -47,11 +47,11 @@ gh auth status              # doit afficher le compte propriétaire du dépôt
 
 **Aucune valeur ne se tape à la main dans un fichier du dépôt.** Chaque secret est déposé dans 1Password — coffre et note nommés dans [`op.config.json`](../op.config.json) — et `bun run dev:prepare` va l'y chercher pour le développement local. Le dépôt ne contient que des références ; un hook refuse le commit qui porterait une valeur.
 
-## 3. Les douze secrets
+## 3. Les seize secrets
 
 C'est la partie qui bloque tout le monde. Elle est ici en entier.
 
-Le Worker exige **les douze**, dans les deux environnements. La liste vit dans [`apps/web/wrangler.jsonc`](../apps/web/wrangler.jsonc) sous `secrets.required`, et `deploy:staging` comme `deploy:production` refusent de partir s'il en manque un : c'est un garde-fou, pas une préférence. Il n'y a donc pas de « déployer d'abord, compléter ensuite ».
+Le Worker exige **les seize**, dans les deux environnements. La liste vit dans [`apps/web/wrangler.jsonc`](../apps/web/wrangler.jsonc) sous `secrets.required`, et `deploy:staging` comme `deploy:production` refusent de partir s'il en manque un : c'est un garde-fou, pas une préférence. Il n'y a donc pas de « déployer d'abord, compléter ensuite ».
 
 En revanche tu peux les obtenir dans l'ordre, et trois d'entre eux se fabriquent en une commande.
 
@@ -72,7 +72,10 @@ En revanche tu peux les obtenir dans l'ordre, et trois d'entre eux se fabriquent
 | `R2_SECRET_ACCESS_KEY` | idem | Cloudflare | même valeur des deux côtés |
 | `R2_BUCKET_NAME` | idem — vaut `ppt-agent` | c'est le nom du seau | même valeur des deux côtés |
 
-**Quatre secrets n'apparaissent pas ici et n'apparaîtront jamais en ligne** : `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Ils n'existent que dans la liste locale, pour le développement, et sont **facultatifs par conception** : l'écran de connexion n'affiche que les fournisseurs configurés, et sans eux il reste le lien par email et la clé d'accès. Ne les cherche pas pour un déploiement.
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | la connexion par GitHub | l'OAuth App GitHub | **une OAuth App par hôte** : GitHub n'accepte qu'une adresse de retour par app |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | la connexion par Google | Google Cloud, identifiant OAuth « application Web » | même client possible, une URI de redirection par hôte |
+
+**Les quatre secrets de connexion sociale sont requis, mais le produit s'en passe** : l'écran de connexion n'affiche que les fournisseurs dont l'identifiant et le secret sont là, et sans eux il reste le lien par email et la clé d'accès. Ils sont dans la liste pour que la console en ligne les offre, et pour qu'une valeur oubliée se voie au déploiement plutôt qu'à l'écran. L'adresse de retour est `https://<hôte>/api/auth/callback/github` et `…/callback/google` ; une OAuth App GitHub ne connaît qu'un hôte, il en faut donc une pour `localhost:3000`, une pour le staging et une pour la production.
 
 ### Ce qui casse si l'un est faux
 
@@ -172,7 +175,7 @@ Une seule chose à savoir : `MIGRATE_DATABASE_URL` doit désigner le point de co
 
 ## 6. Le premier déploiement, à la main
 
-Un Worker naît avec ses douze secrets, ou ne naît pas : `wrangler deploy` refuse de créer un Worker dont un secret de `secrets.required` manque, et `wrangler secret put` ne sait rien attacher à un Worker qui n'existe pas encore. Le premier déploiement fournit donc les douze d'un coup, par `--secrets-file`. On le fait une fois, sans passer par la construction automatique.
+Un Worker naît avec ses seize secrets, ou ne naît pas : `wrangler deploy` refuse de créer un Worker dont un secret de `secrets.required` manque, et `wrangler secret put` ne sait rien attacher à un Worker qui n'existe pas encore. Le premier déploiement fournit donc les seize d'un coup, par `--secrets-file`. On le fait une fois, sans passer par la construction automatique.
 
 Les valeurs vivent dans 1Password, dans le même coffre que la note de développement : un item par environnement, `pupitre-staging` et `pupitre-production`, un champ par secret, nommé exactement comme le Worker l'attend. Le fichier de secrets n'existe jamais sur le disque : il est composé à la volée depuis 1Password et remis à `wrangler` par une substitution de processus.
 
@@ -223,17 +226,22 @@ curl -sI https://staging-app.pupitre.studio/status | head -1    # 200, sans êtr
 
 La construction migre la base **avant** de construire, et le déploiement refuse de partir s'il manque un secret : les deux échouent avant d'avoir touché au Worker en place.
 
-**Un projet Pages** pour le site marketing.
+**Deux projets Workers Builds de plus** pour le site marketing, sur les Workers `ppt-site-staging` et `ppt-site`. Un projet Pages relié à Git ne se crée que dans le tableau de bord et ne se convertit jamais ; le site est donc un Worker à assets statiques comme la console, déployable d'ici avant que l'automatique existe.
 
-| Champ | Valeur |
-| --- | --- |
-| Nom | `ppt-site` |
-| Commande | `bun install --frozen-lockfile && bun --cwd=apps/site run build` |
-| Dossier de sortie | `apps/site/dist` |
-| Branche de production | `main` → `pupitre.studio` |
-| Branche de prévisualisation | `staging`, à aliaser en `staging.pupitre.studio` |
+| | staging | production |
+| --- | --- | --- |
+| Branche surveillée | `staging` | `main` |
+| Commande de construction | `bun install --frozen-lockfile && bun --cwd=apps/site run build:staging` | `bun install --frozen-lockfile && bun --cwd=apps/site run build:production` |
+| Commande de déploiement | `bun --cwd=apps/site run deploy:staging` | `bun --cwd=apps/site run deploy:production` |
 
-Une seule variable de construction est utile : `PUBLIC_RELEASES_URL=https://app.pupitre.studio/api/v1/releases/app`, que la page de téléchargement lit pour nommer les versions publiées. Si elle manque ou si l'API ne répond pas, la construction n'échoue pas : la page part avec une liste écrite dans le dépôt et un avertissement. Les redirections et les en-têtes de sécurité sont dans `apps/site/public/`, rien à saisir.
+Les deux scripts de construction portent `PUBLIC_RELEASES_URL` — la liste des versions que la page de téléchargement lit — et celui de production pose `PUPITRE_ENV=production`, ce qui fait refuser au garde légal un `TODO` dans une page légale. Si l'API ne répond pas, la construction n'échoue pas : la page part avec une liste écrite dans le dépôt et un avertissement. Les redirections et les en-têtes de sécurité sont dans `apps/site/public/`, lus par le calque d'assets ; `www` est renvoyé vers l'apex par `apps/site/worker/index.ts`, la seule chose que ce calque ne sait pas dire.
+
+Le premier déploiement de chaque Worker du site se fait à la main, sans secret à fournir :
+
+```bash
+bun --cwd=apps/site run build:staging && bun --cwd=apps/site run deploy:staging
+bun --cwd=apps/site run build:production && bun --cwd=apps/site run deploy:production
+```
 
 ## 8. GitHub
 
@@ -316,7 +324,7 @@ Puis, à la main : ouvrir le `.dmg` sur un Mac qui n'a jamais vu le certificat, 
 | L'app dit qu'il n'y a rien à télécharger | les quatre `R2_*` sont faux : la plateforme rend une adresse locale et le dit dans un en-tête |
 | La construction échoue sur la migration | `MIGRATE_DATABASE_URL` désigne un point poolé, ou la mauvaise branche |
 | `wrangler deploy` refuse `legacy_env` dans la configuration générée | `@cloudflare/vite-plugin` et `wrangler` ne sont plus au même niveau : le plugin écrit la configuration que wrangler lit, les deux se mettent à jour ensemble |
-| Le premier déploiement refuse en nommant les douze secrets | c'est un Worker qui n'existe pas encore : il naît avec `--secrets-file`, étape 6 |
+| Le premier déploiement refuse en nommant les seize secrets | c'est un Worker qui n'existe pas encore : il naît avec `--secrets-file`, étape 6 |
 | La CI publie mais la plateforme refuse | `PUPITRE_PUBLISH_TOKEN` diffère entre GitHub et le Worker, ou a perdu son préfixe |
 | Une version publiée ne devient jamais stable | la pull request a été fusionnée en squash, et le commit tagué a quitté l'historique |
 
@@ -325,6 +333,6 @@ Un retour arrière du Worker se fait sur ses versions : `bun x wrangler rollback
 ## 12. Ce que rien n'automatise
 
 - **Un secret ou un certificat.** Aucun n'entre dans le dépôt, dans un journal de construction ou dans une conversation.
-- **La création des projets Cloudflare Builds et Pages**, qui passe par une autorisation GitHub dans le tableau de bord.
+- **La création des projets Workers Builds**, qui passe par une autorisation GitHub dans le tableau de bord.
 - **La vérification d'identité d'Azure Trusted Signing**, qui prend quelques jours.
 - **La mise à jour de ce document.** Quand un réglage change dans un tableau de bord, il change ici dans la même passe : c'est la seule trace qu'en garde le dépôt.

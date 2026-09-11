@@ -30,6 +30,10 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { title: "Pupitre" },
     ],
     links: [
+      { href: "/favicon.ico", rel: "icon", sizes: "32x32" },
+      { href: "/favicon.svg", rel: "icon", type: "image/svg+xml" },
+      { href: "/apple-touch-icon.png", rel: "apple-touch-icon" },
+      { href: "/site.webmanifest", rel: "manifest" },
       { href: "https://fonts.googleapis.com", rel: "preconnect" },
       {
         crossOrigin: "anonymous",

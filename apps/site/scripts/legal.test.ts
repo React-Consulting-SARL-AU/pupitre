@@ -41,8 +41,7 @@ Binding wording, see the [licence](/legal/licence/).
 describe("isProduction", () => {
   it("recognises the production build of the site and nothing else", () => {
     expect(isProduction({ PUPITRE_ENV: "production" })).toBe(true)
-    expect(isProduction({ CF_PAGES_BRANCH: "main" })).toBe(true)
-    expect(isProduction({ CF_PAGES_BRANCH: "feat/legal" })).toBe(false)
+    expect(isProduction({ PUPITRE_ENV: "staging" })).toBe(false)
     expect(isProduction({})).toBe(false)
   })
 })

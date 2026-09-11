@@ -6,6 +6,10 @@
   "scripts": {
     "dev": "astro dev --port 4321",
     "build": "astro build",
+    "build:staging": "PUBLIC_RELEASES_URL=https://staging-app.pupitre.studio/api/v1/releases/app astro build",
+    "build:production": "PUPITRE_ENV=production PUBLIC_RELEASES_URL=https://app.pupitre.studio/api/v1/releases/app astro build",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:production": "wrangler deploy --env production",
     "preview": "astro preview --port 4321",
     "lint": "ultracite check && bun run check:content",
     "lint:fix": "ultracite fix",
@@ -32,6 +36,6 @@
     "typescript": "^6.0.3",
     "ultracite": "7.8.3",
     "vitest": "^3.2.7",
-    "wrangler": "^4.125.0"
+    "wrangler": "^4.131.1"
   }
 }

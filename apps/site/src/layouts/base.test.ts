@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs"
-import { MARK } from "@pupitre/design/brand"
+import { COMPACT, MARK } from "@pupitre/design/brand"
 import { copyrightHolder, developmentNotice } from "@pupitre/shared/legal"
 import { describe, expect, it } from "vitest"
 import { render } from "../test/render"
@@ -58,7 +58,8 @@ describe("Base layout", () => {
   })
 
   // Byte equality would only measure the formatter: it sorts the attributes of
-  // an SVG and reindents the stylesheet. What must not drift is the drawing.
+  // an SVG and reindents the stylesheet. What must not drift is the drawing —
+  // the small cut, since a tab shows it under twenty-four pixels.
   it("serves the brand mark itself as the favicon", () => {
     const favicon = readFileSync(
       new URL("../../public/favicon.svg", import.meta.url),
@@ -67,7 +68,10 @@ describe("Base layout", () => {
 
     expect(favicon).toContain(`d="${MARK.chevron}"`)
     expect(favicon).toContain(`d="${MARK.underscore}"`)
-    expect(favicon).toContain(`stroke-width="${MARK.stroke}"`)
+    expect(favicon).toContain(
+      `stroke-width="${Math.round(MARK.stroke * COMPACT.stroke * 1000) / 1000}"`
+    )
+    expect(favicon).toContain(`scale(${COMPACT.glyph})`)
     expect(favicon).toContain(`rx="${MARK.radius}"`)
     expect(favicon).toContain(`viewBox="0 0 ${MARK.grid} ${MARK.grid}"`)
     expect(favicon).toContain("prefers-color-scheme: dark")

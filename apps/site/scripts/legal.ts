@@ -31,7 +31,7 @@ export interface LegalStage {
 export function isProduction(
   env: Record<string, string | undefined> = process.env
 ): boolean {
-  return env.PUPITRE_ENV === "production" || env.CF_PAGES_BRANCH === "main"
+  return env.PUPITRE_ENV === "production"
 }
 
 function walk(dir: string, out: string[] = []): string[] {

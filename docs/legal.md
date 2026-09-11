@@ -38,7 +38,7 @@ Les pages légales du site rendent les sous-traitants par `<SubProcessors />`, j
 - dès que l'étape vaut `public`, un brouillon ou un crochet à compléter fait échouer le build de production ;
 - passer l'étape à `public` alors que l'éditeur n'est pas immatriculé fait échouer le build.
 
-Un build de production, c'est `CF_PAGES_BRANCH=main` ou `PUPITRE_ENV=production`.
+Un build de production, c'est `PUPITRE_ENV=production`, que `build:production` pose.
 
 ## À faire à l'immatriculation
 
