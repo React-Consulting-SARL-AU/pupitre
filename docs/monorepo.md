@@ -64,7 +64,7 @@ bun run test
 bun run build
 ```
 
-Un push sur `staging` est vérifié une fois, sur son SHA ; la pull request `staging` → `main` porte ce même SHA et affiche ces vérifications sans rien relancer — `pull_request` ne vise donc que `staging`, où arrivent les branches de travail. Les minutes GitHub Actions se paient : macOS compte dix fois une minute Ubuntu, Windows deux fois. Les jobs de `ci.yml` :
+Un push sur `staging` est vérifié une fois, sur son SHA ; la pull request `staging` → `main` porte ce même SHA et affiche ces vérifications sans rien relancer — `pull_request` ne vise donc que `staging`, où arrivent les branches de travail. Les minutes GitHub Actions se paient, et GitHub ne fait que vérifier : la release se fait depuis le Mac du propriétaire (voir plus bas), rien ne s'y construit pour être publié. Les jobs de `ci.yml`, tous sur Ubuntu :
 
 | Job | Quand | Ce qu'il fait |
 | --- | --- | --- |
@@ -72,9 +72,9 @@ Un push sur `staging` est vérifié une fois, sur son SHA ; la pull request `sta
 | `console-e2e` | idem | Playwright sur la console, non bloquant |
 | `desktop-e2e` | idem | Playwright sur l'app, sous xvfb |
 | `gitleaks` | idem | l'historique entier relu par le binaire `gitleaks`, épinglé par empreinte — pas l'action, qui exige une licence dès qu'une organisation porte le dépôt ; `.gitleaks.toml` exclut les fixtures de test et les valeurs factices de la CI |
-| `agent` | idem | `gofmt`, `go vet`, `staticcheck`, `govulncheck`, `go test -race` avec son profil de couverture dans l'artefact `coverage-agent-<sha>`, build multi-arch ; sur `staging` et `main`, le build de release avec une clé jetable |
+| `agent` | idem | `gofmt`, `go vet`, `staticcheck`, `govulncheck`, `go test -race` avec son profil de couverture dans l'artefact `coverage-agent-<sha>`, build multi-arch |
 
-`desktop-smoke.yml` tourne à part, sur `macos-15` seulement, au push sur `staging` quand l'app, l'agent, les packages ou le lockfile ont changé, et à la main : tests unitaires de l'app, bundle avec l'agent embarqué, capture des thèmes non bloquante — un runner n'a pas les polices du poste où les références ont été prises. Windows n'y est pas : le modèle SSH de l'app — une session maître multiplexée par serveur, clés et sockets en 0600 — n'a pas d'équivalent sur OpenSSH pour Windows, et le job ne faisait que le répéter à chaque push. Il revient quand le support de Windows est une tâche.
+Ni macOS ni Windows n'ont de runner : l'app se construit sur les trois systèmes depuis le Mac du propriétaire au moment de la release, et c'est là qu'elle se voit. Windows n'est de toute façon pas éprouvé : le modèle SSH de l'app — une session maître multiplexée par serveur, clés et sockets en 0600 — n'a pas d'équivalent sur OpenSSH pour Windows ; ça devient une tâche le jour où Windows en est une.
 
 Les actions des workflows sont épinglées par SHA, la version en commentaire à côté ; Dependabot (`github-actions`) les fait avancer.
 
@@ -97,7 +97,7 @@ Trois workspaces passent `--timeout=60000` à `bun test` : `apps/web`, `apps/des
 - `.env.local` est écrit en 0600 et lié en `apps/web/.dev.vars` (que le Worker lit) et `apps/web/.env.local` (que Vite lit) : une seule valeur à tenir à jour. `.env.example` reste la liste de référence des noms.
 - Déployés : secrets Wrangler, un jeu par environnement. `apps/web/wrangler.jsonc` déclare `env.<environnement>.secrets.required` ; `scripts/check-worker-secrets.ts <environnement>` compare cette liste avec ce qui est lié au Worker et refuse le déploiement en nommant ce qui manque. Il refuse aussi un secret requis déclaré en clair dans `vars`.
 - Le script lit les secrets liés par `wrangler secret list`. `PUPITRE_WORKER_SECRETS` (liste de noms) ou `--bound-from <fichier|->` remplacent cette lecture, pour les tests et pour une CI qui a déjà la liste.
-- Signature : certificats Apple et Azure Trusted Signing dans les secrets GitHub Actions uniquement.
+- Signature : le certificat Apple et la clé de notarisation dans la note 1Password de la release, injectés par `op run` le temps d'une release, jamais dans un fichier.
 
 ## Branches
 
@@ -109,7 +109,7 @@ Deux branches longues, et rien d'autre qui vive plus qu'une pull request.
 | `main` | la production, et rien d'autre : elle ne change que par une pull request depuis `staging` | `app.pupitre.studio`, `pupitre.studio` |
 
 - **`main` ne se commite ni ne se pousse en local.** `.husky/pre-commit` et `.husky/pre-push` appellent `scripts/assert-branch-writable.ts`, qui refuse l'un et l'autre et dit quoi faire à la place. `PUPITRE_ALLOW_MAIN=1` ouvre l'exception, une fois, en le sachant. Le vrai garde-fou reste la protection de branche GitHub : un hook local ne protège que celui qui l'a installé.
-- **La pull request `staging` → `main` se fusionne par un merge commit.** Ni squash, ni rebase : ils réécrivent les commits, et le commit tagué d'une version sortirait de l'historique de `main` — `git describe` ne le verrait plus, et `promote.yml` ne le compterait pas. Le réglage se pose une fois dans *Settings* → *General* → *Pull Requests*, et la protection de `main` ne laisse passer que `merge`.
+- **La pull request `staging` → `main` se fusionne par un merge commit.** Ni squash, ni rebase : ils réécrivent les commits, et le commit tagué d'une version sortirait de l'historique de `main` — `git describe` ne le verrait plus, et `next` compterait depuis le mauvais tag. Le réglage se pose une fois dans *Settings* → *General* → *Pull Requests*, et la protection de `main` ne laisse passer que `merge`.
 - **Un correctif urgent** part de `main`, y revient par une pull request, et `main` est refusionnée dans `staging` dans la foulée. Sans ce retour, la promotion suivante défait le correctif.
 - **Les tags n'appartiennent à aucune branche.** `git push origin vX.Y.Z` les rend visibles partout, tout de suite : une pull request n'a rien à « rapatrier ». La seule question qui compte est de savoir si le commit tagué est accessible depuis `main`, ce que le merge commit garantit et que le squash casse.
 - Dependabot ouvre ses pull requests sur `staging`.
@@ -191,7 +191,7 @@ Webhook `https://app.pupitre.studio/api/v1/webhooks/stripe`, un endpoint et un s
 | Ce qui est créé | Où | Nom exact |
 | --- | --- | --- |
 | Identifiant de l'app | `apps/desktop/electron-builder.yml` | `dev.pupitre.app` |
-| Déclencheur | GitHub Actions `.github/workflows/release.yml` | un tag `v*`, posé sur `staging` |
+| Déclencheur | `scripts/release.sh`, sur le Mac du propriétaire | la version suivante, puis un tag `v*` posé sur `staging` une fois tout publié |
 | Bucket public | Cloudflare R2 | `ppt-downloads`, domaine public `dl.pupitre.studio` |
 | Bucket privé | Cloudflare R2 | `ppt-agent`, les binaires de l'agent, jamais public |
 | Artefacts macOS | `dl.pupitre.studio/app/<version>/` | `Pupitre-<version>-arm64.dmg`, `Pupitre-<version>-x64.dmg` |
@@ -204,53 +204,53 @@ Webhook `https://app.pupitre.studio/api/v1/webhooks/stripe`, un endpoint et un s
 
 Chaque artefact monte avec un fichier `.sig` à côté : la signature Ed25519 de la clé de release, la même que celle de l'agent, sur `pupitre-app\n<version>\n<système>\n<architecture>\n<sha256>\n`. Elle est aussi enregistrée dans la table `AppRelease`, avec la somme et la taille du fichier. Sur macOS et Windows, c'est la signature du système qui protège l'installation ; sur Linux, celle-ci est la seule, et elle se vérifie à la main.
 
-Les trois `latest*.yml` sont ce que lit `electron-updater`. `electron-builder` les écrit, l'étape `app publish` de `scripts/release` réécrit les liens qu'ils contiennent en URL absolues — les artefacts vivent dans le dossier de leur version, les flux dans celui de leur canal — puis les dépose sous `app/beta/`. `promote.yml` les recopie sous `app/stable/`.
+Les trois `latest*.yml` sont ce que lit `electron-updater`. `electron-builder` les écrit, l'étape `app publish` de `scripts/release` réécrit les liens qu'ils contiennent en URL absolues — les artefacts vivent dans le dossier de leur version, les flux dans celui de leur canal — puis les dépose sous `app/beta/`. `promote` les recopie sous `app/stable/`.
 
 ### Le bucket public
 
 Un bucket R2 `ppt-downloads`, **accès public activé** par le domaine personnalisé `dl.pupitre.studio`, TLS 1.2 au minimum. Il ne contient que des artefacts de l'app, leurs `.sig`, leurs `.blockmap` et les flux de mise à jour. Le binaire de l'agent n'y entre jamais : il reste dans le bucket privé, servi par une URL signée de cinq minutes à un serveur qui présente son jeton (voir [`security.md`](./security.md)).
 
-### Les secrets et les variables du dépôt
+### Les secrets de la release
 
-| Secret GitHub | Ce que c'est | Comment l'obtenir |
+Ils vivent dans **une note 1Password**, `pupitre-GitHub` dans le coffre partagé, un champ par nom ; `scripts/release/release.env.tpl` les référence et `op run` les injecte dans l'environnement de chaque étape. Aucun n'est écrit sur le disque, aucun n'est dans GitHub.
+
+| Champ | Ce que c'est | Comment l'obtenir |
 | --- | --- | --- |
 | `PUPITRE_RELEASE_PRIVATE_KEY` | la moitié privée de la clé Ed25519 qui signe l'agent et les artefacts de l'app | `cd apps/agent && go run ./tools/release keygen`, une seule fois, hors de toute session d'agent |
-| `PUPITRE_PUBLISH_TOKEN` | le jeton du pipeline de release, préfixé `pupitre_pub_` : il n'ouvre que les quatre routes de version, n'expire pas et n'appartient à personne | tiré une fois, posé sur le Worker et ici — voir [`deploy.md`](./deploy.md), étapes 6.2 et 10.3 |
-| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | l'accès R2 de la chaîne, en S3, limité aux deux seaux — un jeton d'API Cloudflare ouvrirait tous ceux du compte | Cloudflare → *R2* → *Manage API tokens*, *Object Read & Write* sur `ppt-agent` et `ppt-downloads` |
+| `PUPITRE_PUBLISH_TOKEN` | le jeton de publication, préfixé `pupitre_pub_` : il n'ouvre que les quatre routes de version, n'expire pas et n'appartient à personne | tiré une fois, posé sur les deux Workers et ici — voir [`deploy.md`](./deploy.md) |
+| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | l'accès R2 de la chaîne, en S3, limité aux deux seaux — un jeton d'API Cloudflare ouvrirait tous ceux du compte | Cloudflare → *R2* → *Manage API tokens*, *Object Read & Write* sur `ppt-agent` et `ppt-downloads` |
 | `APPLE_CERTIFICATE` | le `.p12` du certificat Developer ID, en base 64 | `base64 -i DeveloperID.p12 \| pbcopy` |
 | `APPLE_CERTIFICATE_PASSWORD` | le mot de passe de ce `.p12` | choisi à l'export depuis Trousseau d'accès |
 | `APPLE_API_KEY_CONTENT` | le `.p8` de la clé de notarisation, en base 64 | `base64 -i AuthKey_<KeyID>.p8 \| pbcopy` |
 | `APPLE_API_KEY_ID` | l'identifiant de la clé | la colonne *Key ID* dans App Store Connect |
 | `APPLE_API_ISSUER` | l'identifiant de l'émetteur | en haut de la page *Keys* d'App Store Connect |
-| `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` | l'application Entra ID qui signe | Azure → *App registrations*, un secret client, puis le rôle *Trusted Signing Certificate Profile Signer* sur le compte de signature |
 
-| Variable GitHub | Ce que c'est |
-| --- | --- |
-| `PUPITRE_PLATFORM_URL` | `https://app.pupitre.studio` — la plateforme d'un tag sur `main`, et celle que `promote.yml` sert |
-| `PUPITRE_STAGING_PLATFORM_URL` | `https://staging-app.pupitre.studio` — la plateforme d'un tag sur `staging` |
-| `PUPITRE_DOWNLOADS_URL` | `https://dl.pupitre.studio` |
-| `PUPITRE_DOWNLOADS_BUCKET` | `ppt-downloads` |
-| `PUPITRE_R2_BUCKET` | `ppt-agent`, le bucket privé : binaires de l'agent, déclarations, et le travail des builds de l'app en attente de publication |
-| `RUNNER_LINUX`, `RUNNER_MACOS`, `RUNNER_WINDOWS` | les runners des trois systèmes ; absents, `ubuntu-24.04`, `macos-15`, `windows-2025`. C'est ce qui change le jour où la chaîne tourne sur nos machines |
-| `AZURE_SIGNING_ENDPOINT`, `AZURE_SIGNING_ACCOUNT`, `AZURE_SIGNING_PROFILE` | les trois noms du compte Azure Trusted Signing, lus dans le portail |
+Les valeurs qui ne sont pas des secrets — les deux plateformes, l'adresse et le nom des seaux, l'identifiant du compte R2 — sont écrites en clair dans le même gabarit. Windows n'est pas signé : Azure Trusted Signing n'existe que sur Windows, et la chaîne tourne sur macOS.
 
-Les secrets et les variables vivent dans l'environnement **`release`**, que le propriétaire approuve à chaque exécution. Aucun jeton n'entre dans le binaire de l'app : les artefacts sont publics, et l'app n'a rien à présenter pour se mettre à jour.
+Aucun jeton n'entre dans le binaire de l'app : les artefacts sont publics, et l'app n'a rien à présenter pour se mettre à jour.
 
 ### L'ordre de création
 
-La clé de release, les buckets, le compte Apple, la clé de notarisation, Azure Trusted Signing, les secrets du dépôt : [`deploy.md`](./deploy.md), étapes 3 et 10.
+La clé de release, les buckets, le compte Apple, la clé de notarisation, la note 1Password : [`deploy.md`](./deploy.md), étapes 3 et 8.
 
 ### Ce que fait chaque release
 
-Un tag `v*` déclenche `release.yml`, en trois temps. Chaque temps est une étape de **`scripts/release`** — `bun scripts/release/index.ts <étape>`, idempotente, pilotée par l'environnement, essayable avec `--dry-run` — et le YAML ne fait qu'installer les outils et la nommer : la même chaîne tourne sur un runner GitHub aujourd'hui et sur une machine à nous demain, en changeant `RUNNER_LINUX`, `RUNNER_MACOS` et `RUNNER_WINDOWS`. Les jobs ne se passent rien par GitHub : le seau privé est leur seul bus.
+`scripts/release.sh` enchaîne, sur le Mac du propriétaire, les étapes de **`scripts/release`** — `bun scripts/release/index.ts <étape>`, idempotentes, pilotées par l'environnement que `op run` remplit, essayables avec `--dry-run`. Le seau privé est le seul lieu où une étape passe quelque chose à la suivante : n'importe quelle machine qui tient la clé reprend n'importe quelle étape.
 
-| Job | Étapes | Ce qu'elles font |
-| --- | --- | --- |
-| `agent` | `resolve`, `check`, `agent build`, `agent publish` | la version depuis le tag et la plateforme depuis la branche ; le changelog dans chaque langue et la version que l'app déclare ; `pupitred` pour `linux/amd64` et `linux/arm64` avec garble, signé, éprouvé (clé publique embarquée, presque aucune chaîne lisible, `hello` quand l'hôte peut l'exécuter) ; déposé sous `agent/<version>/` du seau **privé** avec `release.json` et `publications.json`, puis déclaré par `POST /api/v1/admin/releases`. |
-| `desktop` | `desktop` | sur les trois systèmes : reprend l'agent depuis le seau, compile le processus principal en bytecode V8, empaquette, retourne les fusibles (`onlyLoadAppFromAsar`, intégrité de l'asar, `runAsNode` coupé), signe et notarise sur macOS, signe par Azure sur Windows — quand leurs valeurs sont là, et le dit sinon — puis laisse installateurs, blockmaps et flux sous `work/<version>/<système>/` du seau privé, avec l'`index.json` qui les nomme. |
-| `publish` | `app publish` | reprend les trois index, signe chaque installateur avec la clé de release, dépose fichiers et `.sig` sur le bucket **public**, réécrit les flux de mise à jour, déclare chaque fichier par `POST /api/v1/admin/app-releases`, et garde ces lignes en `app/<version>/publications.json` du seau privé. |
+| Étape | Ce qu'elle fait |
+| --- | --- |
+| `next` | la version suivante depuis le dernier tag (`--patch` par défaut, `--minor`, `--major`, ou `--version=`), écrite dans `apps/desktop/package.json` |
+| `resolve` | la version depuis ce manifeste, la plateforme depuis la branche courante (`main` → production, `staging` → staging), le canal |
+| `notes` | l'entrée de changelog des deux langues, rédigée par `claude -p` depuis les commits depuis le dernier tag ; **le script s'arrête là pour qu'elle soit lue**, et repart quand on le relance |
+| `check` | le changelog dans chaque langue et la version que l'app déclare |
+| `agent build` | `pupitred` pour `linux/amd64` et `linux/arm64` avec garble, signé, éprouvé — clé publique embarquée, presque aucune chaîne lisible, `hello` dans un conteneur — ou **repris du seau** s'il y est déjà : garble ne reproduit pas un binaire, et la plateforme tient les empreintes de la première déclaration |
+| `agent publish` | `agent/<version>/` du seau **privé** — binaires, `release.json`, `publications.json` — puis `POST /api/v1/admin/releases` |
+| `desktop` | les trois systèmes depuis macOS : le sien signé et notarisé, Linux, Windows non signé ; chacun reprend l'agent depuis le seau, compile le processus principal en bytecode V8, empaquette, retourne les fusibles, et laisse installateurs, blockmaps et flux sous `work/<version>/<système>/` du seau privé avec l'`index.json` qui les nomme |
+| `app publish` | signe chaque installateur avec la clé de release, dépose fichiers et `.sig` sur le bucket **public**, réécrit les flux de mise à jour, déclare chaque fichier par `POST /api/v1/admin/app-releases`, et garde ces lignes en `app/<version>/publications.json` du seau privé |
+| `ship` | commit `chore(release): vX.Y.Z` de la version et des notes, tag, push de la branche et du tag — **en dernier**, pour que le site et la console reconstruits par ce push nomment des fichiers déjà téléchargeables |
+| `promote` | après le merge `staging` → `main` : déclare la version à la production depuis les deux `publications.json`, la passe en `stable`, pointe les flux du canal ; `scripts/release.sh promote X.Y.Z` |
 
-Le tag est posé sur `staging` : une version sort donc toujours en **`beta`**, déclarée à **la plateforme de la branche qui porte le tag** — `staging-app` pour `staging`, `app` pour `main` — et c'est cet artefact-là, celui qui a été éprouvé, qui finit en production. Les lignes déclarées sont gardées avec les binaires, en `agent/<version>/publications.json` et `app/<version>/publications.json` dans le seau privé. Elle passe en `stable` quand la pull request `staging` → `main` est fusionnée : le push sur `main` déclenche `promote.yml`, qui reprend les tags que le merge vient de rendre accessibles, **déclare la version à la production** depuis ces deux fichiers — mêmes empreintes, mêmes clés, appels idempotents — puis change le canal de l'agent et de l'app et recopie les flux du canal. Rien n'est reconstruit ni re-signé — un second build donnerait d'autres binaires, d'autres signatures et d'autres sommes de contrôle pour le même numéro de version. Le même workflow s'appelle aussi à la main, sur une version précise, pour revenir en arrière.
+Une version sort donc toujours en **`beta`**, déclarée à **la plateforme de la branche** — `staging-app` depuis `staging`, `app` depuis `main` — et c'est cet artefact-là, celui qui a été éprouvé, qui finit en production : `promote` redit à la production les lignes gardées avec les binaires — mêmes empreintes, mêmes clés, appels idempotents — puis change le canal. Rien n'est reconstruit ni re-signé — un second build donnerait d'autres binaires, d'autres signatures et d'autres sommes de contrôle pour le même numéro de version. La même commande, sur une version précise, sert à revenir en arrière.
 
 Un build sans identité de signature ne s'arrête pas : electron-builder le dit et produit un artefact non signé — c'est ce qui rend `bun --cwd=apps/desktop run build:mac` utilisable sur la machine du propriétaire.
 
@@ -263,7 +263,7 @@ Un retour arrière se fait en promouvant la version précédente : `electron-upd
 | Qui le lit | Ce qu'il en fait |
 | --- | --- |
 | Le site | la page `/changelog`, son flux RSS, et la version française sous `/fr/changelog` |
-| `release.yml` | refuse de construire si l'entrée manque dans une des langues, puis passe le corps de l'entrée anglaise en notes de version |
+| La chaîne de release | `notes` la rédige par `claude -p` pour que le propriétaire la relise, `check` refuse de construire si elle manque dans une des langues, `app publish` passe le corps de l'entrée anglaise en notes de version |
 | La plateforme | l'enregistre dans `AppRelease.notes`, d'où la console et l'app desktop le tirent par `GET /api/v1/releases/app/:version` |
 
 `scripts/release-notes.ts` fait les deux : `--check` vérifie qu'une version est couverte partout, sans argument il écrit le corps de l'entrée. Les notes stockées sont anglaises parce que `AppRelease.notes` est une seule chaîne et que l'anglais est la langue que le site sert sans préfixe.

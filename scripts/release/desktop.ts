@@ -13,15 +13,19 @@ import {
   isFeed,
 } from "../../apps/desktop/scripts/release-artefacts"
 import { AGENT_DIST, ARCHES } from "./agent"
-import { hasFlag, say, variable } from "./cli"
+import { argumentOf, hasFlag, say, variable } from "./cli"
 import { type Bucket, bucket, get, keys, put } from "./r2"
 import { run } from "./shell"
 
 /**
- * The app on the system this step runs on: built with the agent that was just
- * published embedded, signed where the system asks for it, then left in the
- * private bucket for the publish step — which runs anywhere, and signs every
- * file with the release key before anything becomes public.
+ * The app for a system: built with the agent that was just published
+ * embedded, signed where the system asks for it, then left in the private
+ * bucket for the publish step — which runs anywhere, and signs every file
+ * with the release key before anything becomes public.
+ *
+ * macOS builds all three: its own, signed and notarized; Linux; and Windows,
+ * unsigned — Azure Trusted Signing only runs on Windows. Another host builds
+ * its own system only.
  */
 
 const ROOT = path.resolve(import.meta.dir, "../..")
@@ -41,6 +45,13 @@ export type System = (typeof SYSTEMS)[keyof typeof SYSTEMS]
 /** The files a system's build hands to the publish step, listed for it. */
 export const WORK_INDEX = "index.json"
 
+/** The updater feed each system reads. */
+const FEED_OF: Record<System, string> = {
+  linux: "latest-linux.yml",
+  macos: "latest-mac.yml",
+  windows: "latest.yml",
+}
+
 export function systemOfHost(platform: string): System {
   const system = SYSTEMS[platform as keyof typeof SYSTEMS]
 
@@ -51,13 +62,47 @@ export function systemOfHost(platform: string): System {
   return system
 }
 
-/** What a build leaves that the publish step wants: installers, their blockmaps, the feeds. */
-export function publishable(files: readonly string[]): string[] {
+/** What a build leaves for the publish step, for one system: its installers, their blockmaps, its feed. */
+export function publishable(
+  system: System,
+  files: readonly string[]
+): string[] {
+  const ofSystem = (file: string) => artefactOf(file)?.os === system
+
   return files
     .filter(
-      (file) => artefactOf(file) !== null || isBlockmap(file) || isFeed(file)
+      (file) =>
+        ofSystem(file) ||
+        (isBlockmap(file) && ofSystem(file.slice(0, -".blockmap".length))) ||
+        (isFeed(file) && file === FEED_OF[system])
     )
     .sort()
+}
+
+/** The systems this host builds: all three from macOS, its own elsewhere. */
+export function systemsToBuild(
+  argv: readonly string[],
+  host: string
+): System[] {
+  const asked = argumentOf(argv, "system")
+
+  if (asked) {
+    const system = (Object.values(SYSTEMS) as System[]).find(
+      (one) => one === asked
+    )
+
+    if (!system) {
+      throw new Error(`${asked} is not a system the app ships on.`)
+    }
+
+    return [system]
+  }
+
+  if (host === "darwin") {
+    return ["macos", "linux", "windows"]
+  }
+
+  return [systemOfHost(host)]
 }
 
 /** macOS signs with a Developer ID and notarizes with an App Store Connect key; both, or neither. */
@@ -172,7 +217,10 @@ async function stage(
   version: string,
   vault: Bucket
 ): Promise<void> {
-  const files = publishable(vault.dryRun ? [] : readdirSync(DESKTOP_DIST))
+  const files = publishable(
+    system,
+    vault.dryRun ? [] : readdirSync(DESKTOP_DIST)
+  )
 
   if (files.length === 0 && !vault.dryRun) {
     throw new Error(
@@ -205,9 +253,11 @@ export async function desktopCommand(
   const dryRun = hasFlag(argv, "dry-run")
   const version = variable(env, "version")
   const vault = bucket(variable(env, "agentBucket"), env, dryRun)
-  const system = systemOfHost(process.platform)
 
   await fetchAgent(version, vault)
-  build(system, env, dryRun)
-  await stage(system, version, vault)
+
+  for (const system of systemsToBuild(argv, process.platform)) {
+    build(system, env, dryRun)
+    await stage(system, version, vault)
+  }
 }

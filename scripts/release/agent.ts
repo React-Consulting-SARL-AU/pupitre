@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process"
 import { existsSync, mkdirSync, readFileSync } from "node:fs"
 import { arch as hostArch, platform as hostPlatform } from "node:os"
 import path from "node:path"
@@ -55,11 +56,32 @@ function binaryPath(arch: string): string {
   return path.join(AGENT_DIST, `pupitred-linux-${arch}`)
 }
 
-/** The host runs what it built only when it is that machine: Linux, same architecture. */
-function hostCanRun(arch: string): boolean {
+/** The host runs what it built when it is that machine — Linux, same architecture — or through Docker. */
+function runner(arch: string): ((argv: string[]) => string) | null {
   const host = hostArch() === "x64" ? "amd64" : hostArch()
 
-  return hostPlatform() === "linux" && host === arch
+  if (hostPlatform() === "linux" && host === arch) {
+    return (argv) => run(argv, { capture: true })
+  }
+
+  if (spawnSync("docker", ["version"], { stdio: "ignore" }).status !== 0) {
+    return null
+  }
+
+  return (argv) =>
+    run(
+      [
+        "docker",
+        "run",
+        "--rm",
+        `--platform=linux/${arch}`,
+        "-v",
+        `${AGENT_DIST}:/dist:ro`,
+        "alpine:3.20",
+        ...argv.map((one) => one.replace(AGENT_DIST, "/dist")),
+      ],
+      { capture: true }
+    )
 }
 
 function smoke(version: string, publicKey: string): void {
@@ -80,13 +102,17 @@ function smoke(version: string, publicKey: string): void {
       )
     }
 
-    if (!hostCanRun(arch)) {
-      say(`${binary}: not run here (${hostPlatform()}/${hostArch()})`)
+    const exec = runner(arch)
+
+    if (!exec) {
+      say(
+        `${binary}: not run here (${hostPlatform()}/${hostArch()}, no docker)`
+      )
 
       continue
     }
 
-    const said = run([binary, "version"], { capture: true }).trim()
+    const said = exec([binary, "version"]).trim()
 
     if (said !== `pupitred ${version}`) {
       throw new Error(
@@ -94,9 +120,7 @@ function smoke(version: string, publicKey: string): void {
       )
     }
 
-    const hello = run(["sh", "-c", `echo '${HELLO}' | ${binary} serve`], {
-      capture: true,
-    })
+    const hello = exec(["sh", "-c", `echo '${HELLO}' | ${binary} serve`])
 
     if (!hello.includes('"ok":true')) {
       throw new Error(`${binary} does not answer hello.`)

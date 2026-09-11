@@ -13,8 +13,9 @@ Un client est root sur son serveur : il peut copier tout fichier qui s'y trouve,
 | Jeton d'enrôlement | mémoire de l'app, une fois, à l'installation ; remis à l'agent par la commande `enroll` du protocole, sur le flux secret | l'app, puis l'agent qui l'échange |
 | Jeton de serveur | `/etc/pupitre/server.token`, 0600 root ; haché en base | l'agent. Ne donne accès qu'à l'état de son propre serveur. Rotation à chaque réinstallation |
 | Adresse de la plateforme | `/etc/pupitre/platform.url`, 0644 root | l'agent. Ce n'est pas un secret : c'est la console que ce serveur a acceptée à l'enrôlement, et celle à laquelle il répond seul |
-| Jetons Stripe, Neon, R2, clé de signature des binaires | secrets Wrangler, un jeu par environnement, et secrets GitHub Actions | l'API, la CI |
-| Jeton de publication (`PUPITRE_PUBLISH_TOKEN`) | secret Wrangler des deux environnements, et secret GitHub de l'environnement `release` | la CI. Il n'ouvre que les routes de version : ni un client, ni une organisation, ni un serveur |
+| Jetons Stripe, Neon, R2 | secrets Wrangler, un jeu par environnement | l'API |
+| Clé de signature des binaires, clé R2 en écriture, certificat Apple | la note 1Password de la release, injectée par `op run` sur le Mac du propriétaire le temps d'une release, jamais dans un fichier | la chaîne de release. C'est le seul poste qui signe : un Mac compromis signe une release, et c'est le coût accepté d'une chaîne sans CI |
+| Jeton de publication (`PUPITRE_PUBLISH_TOKEN`) | secret Wrangler des deux environnements, et la même note 1Password | la chaîne de release. Il n'ouvre que les routes de version : ni un client, ni une organisation, ni un serveur |
 | Secrets du client (mots de passe de bases, jetons Cloudflare, 1Password) | `/etc/pupitre/env`, 0600, sur son serveur ; les jetons qu'un CLI lit dans son environnement (Neon, 1Password) aussi dans `/home/dev/.config/pupitre/env`, 0600 `dev` | lui seul. Ils ne remontent jamais |
 
 ## Sur le serveur du client

@@ -12,8 +12,8 @@ Quatre choses, sur deux environnements.
 | --- | --- | --- |
 | La console et l'API — un seul Worker Cloudflare | `staging-app.pupitre.studio`, puis `app.pupitre.studio` | un push sur la branche `staging`, puis sur `main` |
 | Le site marketing — un Worker à assets statiques | `staging.pupitre.studio`, puis `pupitre.studio` | les mêmes branches |
-| L'app desktop (macOS, Windows, Linux) | le seau public `ppt-downloads`, servi par `dl.pupitre.studio` | un tag `vX.Y.Z` posé sur `staging` |
-| L'agent `pupitred`, installé sur le serveur du client | le seau privé `ppt-agent`, que rien n'atteint directement | le même tag |
+| L'app desktop (macOS, Windows, Linux) | le seau public `ppt-downloads`, servi par `dl.pupitre.studio` | `scripts/release.sh` sur le Mac du propriétaire, qui pose le tag `vX.Y.Z` sur `staging` une fois tout publié |
+| L'agent `pupitred`, installé sur le serveur du client | le seau privé `ppt-agent`, que rien n'atteint directement | la même commande |
 
 **Staging d'abord, production ensuite.** Les deux environnements sont identiques en tout sauf leurs valeurs : même code, mêmes seize secrets, mêmes vérifications. Ce que tu apprends sur l'un s'applique à l'autre.
 
@@ -28,7 +28,7 @@ Les branches : `staging` est la branche de travail, `main` est la production et 
 | **Cloudflare** | le domaine, le Worker, le site, les deux seaux de fichiers | gratuit pour commencer | immédiat |
 | **Neon** | la base de données Postgres | gratuit pour commencer | immédiat |
 | **Stripe** | le produit et ses deux prix | commission par vente | quelques jours de vérification |
-| **GitHub** | le dépôt et la chaîne de publication | gratuit | immédiat |
+| **GitHub** | le dépôt et sa CI — la publication se fait depuis le Mac | gratuit | immédiat |
 | Apple Developer | la signature de l'app macOS | 99 $/an | quelques jours |
 | Azure Trusted Signing | la signature de l'app Windows | à l'usage | quelques jours de vérification |
 
@@ -104,7 +104,7 @@ openssl rand -base64 32
 echo "pupitre_pub_$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '=')"
 ```
 
-Le préfixe `pupitre_pub_` est ce à quoi la plateforme reconnaît un jeton de publication ; sans lui elle le prend pour une session et le refuse. Ce jeton va à trois endroits, mot pour mot identique : 1Password, les secrets du Worker, et les secrets GitHub de l'étape 8.
+Le préfixe `pupitre_pub_` est ce à quoi la plateforme reconnaît un jeton de publication ; sans lui elle le prend pour une session et le refuse. Ce jeton va à deux endroits, mot pour mot identique : les secrets des deux Workers, et la note 1Password de la release (étape 8).
 
 ### `DATABASE_URL` — Neon
 
@@ -130,7 +130,7 @@ Cloudflare → **R2** → *Manage API tokens* → *Create API token*. Permission
 | `R2_SECRET_ACCESS_KEY` | le secret, montré une seule fois |
 | `R2_BUCKET_NAME` | `ppt-agent` |
 
-Crée **un second jeton** au même endroit, celui-là en **Object Read & Write** sur les deux seaux : sa clé et son secret deviennent `R2_ACCESS_KEY_ID` et `R2_SECRET_ACCESS_KEY` dans GitHub à l'étape 8. La chaîne de release parle S3 directement, avec ce jeton-là, et rien d'autre : un jeton d'API Cloudflare ouvrirait tous les seaux du compte, celui-ci n'ouvre que les deux. Ne réutilise pas le premier — celui du Worker n'a pas à pouvoir écrire.
+Crée **un second jeton** au même endroit, celui-là en **Object Read & Write** sur les deux seaux : sa clé et son secret deviennent `R2_ACCESS_KEY_ID` et `R2_SECRET_ACCESS_KEY` dans la note 1Password de la release, étape 8. La chaîne de release parle S3 directement, avec ce jeton-là, et rien d'autre : un jeton d'API Cloudflare ouvrirait tous les seaux du compte, celui-ci n'ouvre que les deux. Ne réutilise pas le premier — celui du Worker n'a pas à pouvoir écrire.
 
 ### Les quatre `STRIPE_*` — Stripe
 
@@ -256,54 +256,38 @@ Le squash est interdit parce qu'il réécrit les commits : le commit tagué d'un
 
 **Ce dépôt est privé sur un plan GitHub gratuit**, qui refuse la protection de branche et les relecteurs obligatoires. `main` n'a donc **aucune protection côté serveur** : les hooks du dépôt sont la seule barrière, et ils ne protègent que la machine sur laquelle `bun install` est passé. GitHub Pro lève les deux.
 
-### Les variables
+## 8 bis. La note 1Password de la release
 
-Publiques, pas des secrets :
+La chaîne de release ne tourne pas sur GitHub : elle tourne sur le Mac du propriétaire, `scripts/release.sh`, et lit ses valeurs dans **une note 1Password**, `pupitre-GitHub` dans le coffre partagé, par `op run` — rien n'est jamais écrit dans un fichier. `scripts/release/release.env.tpl` dit quels champs elle attend ; les valeurs publiques (les deux plateformes, les seaux, l'identifiant du compte R2) y sont en clair.
 
-```bash
-gh variable set PUPITRE_PLATFORM_URL         --env release --body "https://app.pupitre.studio"
-gh variable set PUPITRE_STAGING_PLATFORM_URL --env release --body "https://staging-app.pupitre.studio"
-gh variable set PUPITRE_DOWNLOADS_URL        --env release --body "https://dl.pupitre.studio"
-gh variable set PUPITRE_DOWNLOADS_BUCKET     --env release --body "ppt-downloads"
-gh variable set PUPITRE_R2_BUCKET            --env release --body "ppt-agent"
-```
-
-Deux plateformes, une par branche : un tag sur `staging` se déclare à `PUPITRE_STAGING_PLATFORM_URL`, un tag sur `main` à `PUPITRE_PLATFORM_URL`, et c'est `promote.yml` qui porte une version de la première à la seconde quand `main` la reçoit.
-
-### Les secrets de publication
-
-Ils vivent dans un environnement nommé `release` et ne servent qu'à publier l'app et l'agent.
-
-| Secret | D'où il vient | Sans lui |
+| Champ | D'où il vient | Sans lui |
 | --- | --- | --- |
 | `PUPITRE_PUBLISH_TOKEN` | la même valeur qu'à l'étape 3, mot pour mot | la version se construit et ne se déclare pas |
 | `PUPITRE_RELEASE_PRIVATE_KEY` | `cd apps/agent && go run ./tools/release keygen`, une seule fois | rien ne se construit |
 | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | le second jeton R2 de l'étape 3, *Object Read & Write* sur les deux seaux | rien ne monte sur les seaux |
-| `R2_ACCOUNT_ID` | l'identifiant du compte, dans l'adresse S3 du seau | idem |
 | `APPLE_CERTIFICATE` | `base64 -i DeveloperID.p12 \| pbcopy` | l'app macOS sort non signée |
 | `APPLE_CERTIFICATE_PASSWORD` | choisi à l'export du certificat | idem |
 | `APPLE_API_KEY_CONTENT` | `base64 -i AuthKey_<id>.p8 \| pbcopy` | pas de notarisation |
 | `APPLE_API_KEY_ID`, `APPLE_API_ISSUER` | la page *Keys* d'App Store Connect | idem |
-| `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` | l'application Entra ID du compte de signature | l'installateur Windows sort non signé |
 
-Les quatre premières lignes suffisent pour publier. Les autres n'évitent que les avertissements des systèmes au premier lancement.
+Les trois premières lignes suffisent pour publier. Les autres n'évitent que l'avertissement de macOS au premier lancement. Windows sort non signé : Azure Trusted Signing n'existe que sur Windows.
 
-**La clé de publication mérite une phrase.** Une seule paire de clés signe tout ce que Pupitre publie, pour toujours. Sa moitié privée va dans 1Password puis dans le secret GitHub ; sa moitié publique est déjà écrite dans le code de l'app. Les deux vont ensemble : une app qui connaît une clé publique et un agent signé avec une autre refusent toute mise à jour, sans message utile. Ne la régénère pas.
+**La clé de publication mérite une phrase.** Une seule paire de clés signe tout ce que Pupitre publie, pour toujours. Sa moitié privée est dans cette note et nulle part ailleurs ; sa moitié publique est déjà écrite dans le code de l'app. Les deux vont ensemble : une app qui connaît une clé publique et un agent signé avec une autre refusent toute mise à jour, sans message utile. Ne la régénère pas.
 
-**Faire tourner le jeton de publication ne coupe rien**, dans cet ordre : poser le nouveau sur le Worker sous `PUPITRE_PUBLISH_TOKEN` et l'ancien sous `PUPITRE_PUBLISH_TOKEN_PREVIOUS`, changer le secret GitHub, puis retirer l'ancien. La plateforme accepte les deux entre-temps.
+**Faire tourner le jeton de publication ne coupe rien**, dans cet ordre : poser le nouveau sur le Worker sous `PUPITRE_PUBLISH_TOKEN` et l'ancien sous `PUPITRE_PUBLISH_TOKEN_PREVIOUS`, changer le champ de la note, puis retirer l'ancien. La plateforme accepte les deux entre-temps.
 
 ## 9. La première version publiée
 
 ```bash
 git switch staging && git pull --ff-only
-bun scripts/release-notes.ts 0.1.0 --check   # l'entrée de changelog existe en anglais et en français
-git tag -a v0.1.0 -m "Pupitre 0.1.0"
-git push origin v0.1.0
+scripts/release.sh --version=0.1.0     # écrit la version, rédige les notes, s'arrête
+# relis apps/site/src/content/changelog/{en,fr}/0-1-0.mdx
+scripts/release.sh                      # vérifie, construit, publie, commite, tague, pousse
 ```
 
-Le push du tag est l'acte de publication. La chaîne refuse de commencer si le tag n'est pas sur `staging` ou `main`, si le changelog ne couvre pas la version, ou si l'app ne déclare pas ce numéro.
+Le second passage est l'acte de publication : l'agent puis l'app sur les seaux, la déclaration à la plateforme de la branche, et enfin le commit `chore(release): v0.1.0`, le tag et le push. La chaîne refuse de commencer si le changelog ne couvre pas la version dans les deux langues, ou si la branche n'est ni `staging` ni `main`.
 
-Une version sort toujours en canal **`beta`**, déclarée à la plateforme de la branche qui porte le tag — le staging, donc. Elle arrive en production et passe en `stable` quand la pull request `staging` → `main` est fusionnée : `promote.yml` déclare à la production les lignes gardées avec les artefacts, puis promeut. C'est **le même fichier**, celui qui a été éprouvé, qui devient la version stable — rien n'est reconstruit. Un second build donnerait d'autres signatures pour le même numéro.
+Une version sort toujours en canal **`beta`**, déclarée à la plateforme de la branche — le staging, donc. Elle arrive en production et passe en `stable` quand la pull request `staging` → `main` est fusionnée, puis `scripts/release.sh promote 0.1.0` : les lignes gardées avec les artefacts sont dites à la production, puis promues. C'est **le même fichier**, celui qui a été éprouvé, qui devient la version stable — rien n'est reconstruit. Un second build donnerait d'autres signatures pour le même numéro.
 
 ## 10. Vérifier que tout tient
 
@@ -328,7 +312,7 @@ Puis, à la main : ouvrir le `.dmg` sur un Mac qui n'a jamais vu le certificat, 
 | La construction échoue sur la migration | `MIGRATE_DATABASE_URL` désigne un point poolé, ou la mauvaise branche |
 | `wrangler deploy` refuse `legacy_env` dans la configuration générée | `@cloudflare/vite-plugin` et `wrangler` ne sont plus au même niveau : le plugin écrit la configuration que wrangler lit, les deux se mettent à jour ensemble |
 | Le premier déploiement refuse en nommant les seize secrets | c'est un Worker qui n'existe pas encore : il naît avec `--secrets-file`, étape 6 |
-| La CI publie mais la plateforme refuse | `PUPITRE_PUBLISH_TOKEN` diffère entre GitHub et le Worker, ou a perdu son préfixe |
+| La chaîne publie mais la plateforme refuse | `PUPITRE_PUBLISH_TOKEN` diffère entre la note 1Password et le Worker, ou a perdu son préfixe |
 | Une version publiée ne devient jamais stable | la pull request a été fusionnée en squash, et le commit tagué a quitté l'historique |
 
 Un retour arrière du Worker se fait sur ses versions : `bun x wrangler rollback --config apps/web/dist/server/wrangler.json`. Une migration de base, elle, ne se rejoue pas à l'envers — une migration qui casse se corrige par une migration suivante.
@@ -337,5 +321,6 @@ Un retour arrière du Worker se fait sur ses versions : `bun x wrangler rollback
 
 - **Un secret ou un certificat.** Aucun n'entre dans le dépôt, dans un journal de construction ou dans une conversation.
 - **La création des projets Workers Builds**, qui passe par une autorisation GitHub dans le tableau de bord.
-- **La vérification d'identité d'Azure Trusted Signing**, qui prend quelques jours.
+- **La signature Windows** : Azure Trusted Signing n'existe que sur Windows, et la chaîne tourne sur macOS.
+- **La relecture des notes de version** : `claude -p` les rédige, le propriétaire les lit avant qu'elles soient commitées.
 - **La mise à jour de ce document.** Quand un réglage change dans un tableau de bord, il change ici dans la même passe : c'est la seule trace qu'en garde le dépôt.
