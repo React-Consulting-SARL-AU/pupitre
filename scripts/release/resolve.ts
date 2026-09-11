@@ -37,7 +37,8 @@ export function platformFor(
   branch: Branch,
   env: NodeJS.ProcessEnv
 ): string | null {
-  const key = branch === "main" ? VARIABLES.platform : VARIABLES.stagingPlatform
+  const key =
+    branch === "main" ? VARIABLES.productionPlatform : VARIABLES.stagingPlatform
 
   return env[key] || null
 }
@@ -111,7 +112,7 @@ export function resolve(
 
   if (!platform) {
     throw new Error(
-      `${branch} has no platform: set ${branch === "main" ? VARIABLES.platform : VARIABLES.stagingPlatform}.`
+      `${branch} has no platform: set ${branch === "main" ? VARIABLES.productionPlatform : VARIABLES.stagingPlatform}.`
     )
   }
 

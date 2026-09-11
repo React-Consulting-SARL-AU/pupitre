@@ -64,7 +64,11 @@ async function promoteVersion(
 ): Promise<void> {
   const vault = bucket(variable(env, "agentBucket"), env, dryRun)
   const downloads = bucket(variable(env, "downloadsBucket"), env, dryRun)
-  const platform = platformFromEnv(variable(env, "platform"), env, dryRun)
+  const platform = platformFromEnv(
+    variable(env, "productionPlatform"),
+    env,
+    dryRun
+  )
   const temp = mkdtempSync(path.join(tmpdir(), "pupitre-promote-"))
 
   try {

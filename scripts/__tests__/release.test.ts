@@ -50,13 +50,15 @@ describe("what a tag and a branch say", () => {
 
   it("sends main to production and staging to staging", () => {
     const env = {
-      PUPITRE_PLATFORM_URL: "https://app.example",
+      PUPITRE_PRODUCTION_PLATFORM_URL: "https://app.example",
       PUPITRE_STAGING_PLATFORM_URL: "https://staging.example",
     }
 
     expect(platformFor("main", env)).toBe("https://app.example")
     expect(platformFor("staging", env)).toBe("https://staging.example")
-    expect(platformFor("staging", { PUPITRE_PLATFORM_URL: "x" })).toBeNull()
+    expect(
+      platformFor("staging", { PUPITRE_PRODUCTION_PLATFORM_URL: "x" })
+    ).toBeNull()
   })
 
   it("writes the resolution as the lines a runner appends to its environment", () => {
