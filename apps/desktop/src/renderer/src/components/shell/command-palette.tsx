@@ -60,13 +60,19 @@ export function CommandPalette({
   const shown = useMemo(() => filterEntries(entries, term), [entries, term]);
   const selected = shown[Math.min(index, shown.length - 1)] ?? null;
 
+  // What was typed belongs to this opening, and only to it: a re-render of the
+  // shell — a snapshot tick — must not empty the field under the reader.
+  useEffect(() => {
+    if (open) {
+      setTerm("");
+      setIndex(0);
+    }
+  }, [open]);
+
   useEffect(() => {
     if (!open) {
       return;
     }
-
-    setTerm("");
-    setIndex(0);
 
     const onEscape = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") {

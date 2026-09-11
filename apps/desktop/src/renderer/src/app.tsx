@@ -147,6 +147,7 @@ export function App() {
   useHistoryShortcuts();
 
   const openPalette = useCallback(() => setPaletteOpen(true), []);
+  const closePalette = useCallback(() => setPaletteOpen(false), []);
 
   usePaletteShortcut(openPalette);
 
@@ -377,7 +378,7 @@ export function App() {
   return (
     <div className="relative grid h-full grid-cols-[224px_1fr]">
       <AppPalette
-        onClose={() => setPaletteOpen(false)}
+        onClose={closePalette}
         onSwitchServer={switchServer}
         open={paletteOpen}
         projects={snapshot.projects}
