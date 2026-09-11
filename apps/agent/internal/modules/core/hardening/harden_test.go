@@ -198,16 +198,36 @@ func TestReloadFailureIsRevertedAndRootStays(t *testing.T) {
 
 	result, steps := events(fake, t, Options{}, "dev")
 
-	if result.RootClosed || !strings.Contains(result.Reason, "reloading sshd failed") {
+	if result.RootClosed || !strings.Contains(result.Reason, "reloading sshd failed") || !strings.Contains(result.Reason, "could not be reloaded either") {
 		t.Fatalf("result = %+v", result)
 	}
 
-	if steps[len(steps)-2] != "reload-sshd=fail" || steps[len(steps)-1] != "revert-sshd-fragment=ok" {
+	if strings.Join(steps[len(steps)-3:], " ") != "reload-sshd=fail revert-sshd-fragment=ok restore-sshd=ok" {
 		t.Fatalf("steps = %v", steps)
 	}
 
 	if _, present := fake.Files[FragmentPath]; present {
 		t.Fatal("fragment must be removed when sshd cannot reload")
+	}
+}
+
+// The fragment going back on disk is not enough: sshd must be reloaded on it, or it keeps running on the configuration that was just refused.
+func TestReloadFailureReloadsSshdOnThePreviousFragment(t *testing.T) {
+	fake := hardenedMachine(t)
+	fake.FailOnce("systemctl", "Job for ssh.service failed because the control process exited with error code.")
+
+	result, steps := events(fake, t, Options{}, "dev")
+
+	if result.RootClosed || !strings.Contains(result.Reason, "sshd reloaded on the previous configuration") || strings.Contains(result.Reason, "either") {
+		t.Fatalf("result = %+v", result)
+	}
+
+	if strings.Join(steps[len(steps)-3:], " ") != "reload-sshd=fail revert-sshd-fragment=ok restore-sshd=ok" {
+		t.Fatalf("steps = %v", steps)
+	}
+
+	if _, present := fake.Files[FragmentPath]; present || fake.Restarts["ssh"] != 1 {
+		t.Fatalf("fragment present %v, ssh reloaded %d time(s): sshd must be reloaded once the fragment is reverted", present, fake.Restarts["ssh"])
 	}
 }
 

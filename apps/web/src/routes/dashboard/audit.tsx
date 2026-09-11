@@ -17,11 +17,7 @@ function AuditPage() {
 
   return (
     <>
-      <PageHeader
-        description={t("page.audit.description")}
-        parents={parents}
-        title={t(title)}
-      />
+      <PageHeader parents={parents} title={t(title)} />
       <AuditLog />
     </>
   )

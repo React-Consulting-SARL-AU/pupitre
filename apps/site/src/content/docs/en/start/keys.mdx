@@ -1,17 +1,31 @@
 ---
 title: Your key
-description: How Pupitre generates and uses an SSH key, where the private half lives, and what the platform sees of it.
+description: The SSH keys Pupitre generates, where the private halves live on your computer, what reaches the server, and how to reuse them elsewhere.
 locale: en
 section: start
 sectionOrder: 0
 order: 2
 ---
 
-Pupitre generates an ed25519 key pair the first time you open it. The private half never leaves your laptop. Everything the app and the agent do afterwards rests on that one fact.
+Pupitre works with ed25519 keys it generates itself. The private halves never leave your computer. Everything the app and the agent do afterwards rests on that one fact.
 
-## Where the key lives
+## Which keys exist
 
-The app keeps its own SSH configuration inside its data directory: a `config` file and one key per server, in mode `0600`. Your `~/.ssh/config` is not modified. If you already keep a host entry there and would rather use it, you can point the app at that host instead of letting it manage its own.
+- **One key for this computer**, made the first time it is needed. Its public half goes up to the platform, which hands it to the agents of the servers your account may open — so a machine your organisation assigns to you needs no key of its own.
+- **One key per server you add yourself**, generated when you add it. You can import a key you already have instead; it is copied into the app's folder rather than referenced where it sits, so deleting the server really takes the key with it.
+- **None at all** for a host you already declared in your `~/.ssh/config` and asked the app to use as it is. The app then writes nothing anywhere.
+
+## Where the private halves live
+
+In the app's own data folder, in mode `0600`, next to the SSH configuration it passes to `ssh` with `-F`. Your `~/.ssh/config` is read — to offer the hosts already declared there — and never written.
+
+| System | Folder |
+| --- | --- |
+| macOS | `~/Library/Application Support/Pupitre` |
+| Windows | `%APPDATA%\Pupitre` |
+| Linux | `~/.config/Pupitre` |
+
+The `keys` folder holds `device` for this computer and one `srv-…` per server, each with its `.pub` beside it. The `ssh/config` file says which is which. If you want your terminal, your editor or a coding agent to use the same key, point it at that path: see [your own client](/docs/daily/clients/).
 
 ## What goes to the server
 
@@ -19,11 +33,11 @@ The public half, and only the public half, lands in `authorized_keys` for the `d
 
 ## What the platform sees
 
-If you sign in, the platform stores the public half so it can hand it to the agents of servers you own. It never sees the private half, and it never connects to your server: the agent pulls what it needs over outbound HTTPS.
+If you sign in, the platform stores the public half so it can hand it to the agents of servers you own. It never sees a private half, and it never connects to your server: the agent pulls what it needs over outbound HTTPS.
 
 ## One key per device
 
-Each device you install the app on generates its own key. That is what makes revocation useful: removing a device removes one key, and the other machines you work from keep working. A laptop that is lost is a key you revoke, not a password you rotate everywhere.
+Each computer you install the app on has its own key. That is what makes revocation useful: removing a device removes one key, and the other machines you work from keep working. A laptop that is lost is a key you revoke, not a password you rotate everywhere. It also means a client you pointed at that key loses the server at the same moment — which is the behaviour you want.
 
 ## If you lose the key
 

@@ -19,9 +19,9 @@ function manifest(over: Partial<Manifest> = {}): Manifest {
     id: MODULE,
     mandatory: false,
     name: "Demo",
-    provides: [],
     requires: [],
     resources: { disk_mb: 0, ram_mb: 0 },
+    runs: false,
     since: "0.1.0",
     summary: "A module for the tests",
     ...over,
@@ -48,6 +48,35 @@ describe("les cas partagés avec l'agent", () => {
       )
     })
   }
+})
+
+describe("une liste de secrets", () => {
+  const providers = FieldSchema.parse({
+    items: "secret",
+    key: "providers",
+    kind: "list",
+    label: "Fournisseurs",
+    max: 8,
+    min: 1,
+    pattern: "^[A-Za-z0-9 ._-]+:.+$",
+    required: true,
+  })
+
+  it("pèse les valeurs contre le motif quand l'appelant les tient", () => {
+    const wrong = validateField(MODULE, providers, undefined, () => [
+      "openai:sk-1",
+      "sk-2",
+    ])
+
+    expect(wrong?.code).toBe("pattern")
+  })
+
+  it("ne juge qu'un compte quand c'est tout ce que l'appelant sait", () => {
+    expect(validateField(MODULE, providers, undefined, () => 2)).toBeNull()
+    expect(validateField(MODULE, providers, undefined, () => 0)?.code).toBe(
+      "required"
+    )
+  })
 })
 
 describe("les formats", () => {
@@ -148,6 +177,23 @@ describe("une sélection entière", () => {
     )
 
     expect(problems.map((one) => one.code)).toEqual(["required"])
+  })
+
+  /**
+   * Deferring is the reader saying they will answer later: weighing an answer
+   * they have not given, and refusing the install for it, is the thing being
+   * undone here.
+   */
+  it("ne pèse ni les champs ni le compte d'un module remis à plus tard", () => {
+    const problems = validateConfig(
+      [manifest({ connection: "cloudflare", fields: [port] })],
+      [MODULE],
+      {},
+      () => 0,
+      { connected: () => false, deferred: [MODULE] }
+    )
+
+    expect(problems).toEqual([])
   })
 })
 

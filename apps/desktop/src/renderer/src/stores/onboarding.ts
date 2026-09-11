@@ -4,6 +4,7 @@ import type { AgentDelivery, AgentSendPhase } from "@shared/install";
 import { create } from "zustand";
 import { translate } from "../i18n/translate";
 import { carriesSecret, restored } from "../lib/catalog-selection";
+import { accountOf, useAccount } from "./account";
 import { announce } from "./announcements";
 import { useCatalog } from "./catalog";
 import { useFleet } from "./fleet";
@@ -20,6 +21,7 @@ import {
   type OnboardingStep,
   transition,
 } from "./onboarding-machine";
+import { useServers } from "./servers";
 
 export type DeliveryState =
   | { status: "idle" }
@@ -128,8 +130,6 @@ interface OnboardingStore extends MachineState {
   noteDraft: () => void;
   open: () => void;
   begin: (serverId: string) => void;
-  /** The first opening of a server the platform granted, already installed. */
-  personalise: (serverId: string) => void;
   back: () => void;
   canGoBack: () => boolean;
   replay: (moduleId: string) => OnboardingStep;
@@ -174,6 +174,16 @@ function ownDraft(serverId: string | null): Draft | null {
   return { selected: catalog.selected, values: catalog.values };
 }
 
+/**
+ * A server the list has read and does not hold. A list not yet read holds
+ * nothing, and says nothing about the machine either.
+ */
+function unknownServer(serverId: string): boolean {
+  const config = useServers.getState().config;
+
+  return Boolean(config) && !config?.servers.some(({ id }) => id === serverId);
+}
+
 export const useOnboarding = create<OnboardingStore>((set, get) => {
   /**
    * The choice as it stood when it was last this server's.
@@ -183,6 +193,9 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
    * changed, not whatever the catalogue happens to hold when the timer fires.
    */
   let pending: { serverId: string | null; draft: Draft } | null = null;
+
+  /** Which sequence is under way: what an earlier one left waiting is dropped. */
+  let sequence = 0;
 
   /** A step is written down the moment it changes: it is what a resume reads first. */
   function persist(): void {
@@ -223,6 +236,36 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
     }, DRAFT_PAUSE_MS);
   }
 
+  /**
+   * The install the step asks for: what a resumed onboarding still owes the
+   * machine, or else the catalogue's choice. Nothing chosen is not an install
+   * to run, and an install already under way is not started twice.
+   */
+  function startInstall(serverId: string, owed: readonly string[]): void {
+    const catalog = useCatalog.getState();
+    const asked = owed.length > 0 ? owed : catalog.selected;
+    const own = sequence;
+
+    if (asked.length === 0 || useInstall.getState().install.status !== "idle") {
+      return;
+    }
+
+    // The generated secrets are made in the main process, one round trip each:
+    // starting before they have landed would install a database without one.
+    catalog.settled().then(() => {
+      if (own !== sequence) {
+        return;
+      }
+
+      useInstall.getState().start(
+        serverId,
+        asked,
+        catalog.config(),
+        catalog.deferred.filter((one) => asked.includes(one))
+      );
+    });
+  }
+
   function run(effect: Effect): void {
     switch (effect.kind) {
       case "persist":
@@ -232,8 +275,14 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
         pending = null;
         keep(null);
         break;
+      case "inspect":
+        useInspection.getState().inspect(effect.serverId);
+        break;
       case "sendAgent":
         get().sendAgent();
+        break;
+      case "startInstall":
+        startInstall(effect.serverId, effect.modules);
         break;
       case "startHarden":
         useHarden.getState().start(effect.serverId);
@@ -256,8 +305,6 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
         useFleet.getState().read();
         break;
       default:
-        // `inspect` and `startInstall` are the screens' own: they show what they
-        // are doing while they do it, and would only be started twice here.
         break;
     }
   }
@@ -335,6 +382,7 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
     set({ recovering: true });
 
     try {
+      // The `resume` event already asked for the probe: this waits on that one.
       await useInspection.getState().inspect(serverId);
 
       const probe = probeOf(serverId);
@@ -383,18 +431,15 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
     noteDraft: persistSoon,
 
     open() {
+      sequence += 1;
       set({ delivery: { status: "idle" } });
       send({ type: "open" });
     },
 
     begin(serverId) {
+      sequence += 1;
       set({ delivery: { status: "idle" } });
       send({ serverId, type: "begin" });
-    },
-
-    personalise(serverId) {
-      set({ delivery: { status: "idle" } });
-      send({ serverId, type: "personalise" });
     },
 
     canGoBack() {
@@ -458,6 +503,16 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
         return;
       }
 
+      // A sequence about a machine the app no longer knows is not offered back:
+      // every step after the choice would ask something of a server that is
+      // gone. The list is only consulted once it has been read.
+      if (saved.serverId && unknownServer(saved.serverId)) {
+        keep(null);
+
+        return;
+      }
+
+      sequence += 1;
       set({ delivery: { status: "idle" } });
       send({
         installed: saved.installed,
@@ -470,10 +525,44 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
     },
 
     reset() {
+      sequence += 1;
       keep(null);
       set({ ...CLOSED, delivery: { status: "idle" }, recovering: false });
     },
   };
+});
+
+/**
+ * A machine that leaves the list takes the sequence about it with it.
+ *
+ * It is removed from the settings, or a relaunch reads a list it is no longer
+ * in: either way the steps that follow the choice have nothing to run on, and
+ * the onboarding goes back to the choice rather than showing a screen whose
+ * only answer the machine would refuse.
+ */
+useServers.subscribe(() => {
+  const { step, serverId } = useOnboarding.getState();
+
+  if (step === "closed" || step === "server") {
+    return;
+  }
+
+  if (!serverId || unknownServer(serverId)) {
+    useOnboarding.getState().send({ type: "serverLost" });
+  }
+});
+
+/**
+ * A usage right the platform stopped confirming freezes the step rather than
+ * failing it: the machine holds, and takes up again when the account does.
+ */
+useAccount.subscribe((now, before) => {
+  const lost = Boolean(accountOf(now.view)?.refusal);
+  const had = Boolean(accountOf(before.view)?.refusal);
+
+  if (lost !== had) {
+    useOnboarding.getState().send({ type: lost ? "usageLost" : "usageBack" });
+  }
 });
 
 /**

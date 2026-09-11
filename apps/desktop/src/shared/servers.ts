@@ -153,6 +153,33 @@ export interface ServerDraft {
   port: number;
   user: string;
   key: KeyChoice;
+  /**
+   * The remote account's password, when the knock said the machine takes one.
+   *
+   * It crosses the bridge with the draft and is held nowhere: the main process
+   * puts its key on the machine with it, once, and forgets it. A refused
+   * password creates nothing — no key, no entry — and comes back as a refusal
+   * of the form.
+   */
+  password?: string | null;
+}
+
+/** What may change on a server the app reaches: its address, its port, its account. */
+export interface ServerChanges {
+  host?: string;
+  port?: number;
+  user?: string;
+}
+
+export interface ServerUpdated {
+  server: Server;
+  config: ServersConfig;
+  /**
+   * The pinned host key went with the old address: a machine at another
+   * address is another machine until it has answered once. The next
+   * connection pins what answers there, as a first contact does.
+   */
+  hostKeyDropped: boolean;
 }
 
 export interface ServerAdded {
@@ -161,6 +188,22 @@ export interface ServerAdded {
   /** The public half, and only that. Null for a host of the system. */
   publicKey: string | null;
   copyId: string | null;
+  /** What came of installing the key with the password, when one was given. */
+  keyInstall: KeyInstall | null;
+}
+
+/**
+ * What the form asks the main process to knock on, before anything exists.
+ *
+ * The file is the key a reader pointed at to import: it is offered along with
+ * what this computer already holds, so a machine that key opens is not asked
+ * for a password it may not even have.
+ */
+export interface ServerKnock {
+  host: string;
+  port: number;
+  user: string;
+  keyFile: string | null;
 }
 
 /**
@@ -172,7 +215,7 @@ export interface ServerAdded {
  * Nothing is sent and nothing is written: the banner a server volunteers is
  * read, and the socket is hung up.
  */
-export interface ServerReachOk {
+export interface ServerBanner {
   reached: true;
   /** How the address introduced itself, e.g. `OpenSSH_9.6p1`. */
   software: string;
@@ -180,8 +223,28 @@ export interface ServerReachOk {
   ms: number;
 }
 
+export interface ServerReachOk extends ServerBanner {
+  access: ServerAccess;
+}
+
+/**
+ * What the account answered when this computer knocked with what it holds.
+ *
+ * "opens": an agent, a key of ~/.ssh or the file to import already opens it,
+ * and the key will install without a word. "password": nothing here opens it
+ * and the machine takes a password — the one thing worth asking before the key
+ * is made. "manual": the app will not be able to put its key there by itself,
+ * for the reason the phrase gives, and says so before the server exists.
+ */
+export type ServerAccess =
+  | { access: "opens" }
+  | { access: "password" }
+  | { access: "manual"; phrase: ErrorPhrase };
+
 export type ReachFailure =
+  | "bad-host"
   | "bad-port"
+  | "bad-user"
   | "refused"
   | "unreachable"
   | "timeout"
@@ -193,6 +256,9 @@ export interface ServerReachFailed {
   /** What the screen must render: the main process names it, it doesn't write it. */
   phrase: ErrorPhrase;
 }
+
+/** The address alone: what listens there, before the account is asked anything. */
+export type AddressReach = ServerBanner | ServerReachFailed;
 
 export type ServerReach = ServerReachOk | ServerReachFailed;
 

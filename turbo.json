@@ -35,7 +35,14 @@
     "PUPITRE_AGENT_PLATFORM_URL",
     "PUPITRE_TUNNEL_NAME",
     "PUPITRE_TUNNEL_HOSTNAME",
-    "PUPITRE_TUNNEL_SERVICE"
+    "PUPITRE_TUNNEL_SERVICE",
+    "PUPITRE_DEV_SERVER_NAME",
+    "PUPITRE_DEV_SERVER_HOST",
+    "PUPITRE_DEV_SERVER_PORT",
+    "PUPITRE_DEV_SERVER_USER",
+    "PUPITRE_DEV_SERVER_PASSWORD",
+    "PUPITRE_DEV_GIT_NAME",
+    "PUPITRE_DEV_GIT_EMAIL"
   ],
   "tasks": {
     "build": {
@@ -48,6 +55,10 @@
       "dependsOn": ["^build"],
       "passThroughEnv": ["DATABASE_URL"],
       "outputs": ["dist/**", ".wrangler/dry-run/**"]
+    },
+    "@pupitre/agent#build": {
+      "cache": false,
+      "dependsOn": ["^build"]
     },
     "@pupitre/db#build": {
       "outputs": ["src/generated/**"]
@@ -83,15 +94,28 @@
       "cache": false,
       "persistent": true
     },
-    // Le CLI Stripe signe avec le secret que `dev:prepare` a dérivé : les deux
-    // lisent le même endpoint de ce compte.
+    // The app embeds the agent from `apps/agent/dist` when it starts: without
+    // this dependency it pushes whatever the last manual build left there,
+    // which may predate the contract its own screens expect.
+    "@pupitre/desktop#dev": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["@pupitre/agent#build"]
+    },
+    "@pupitre/desktop#build": {
+      "dependsOn": ["^build", "@pupitre/agent#build"],
+      "env": ["VITE_*"],
+      "outputs": ["out/**", "resources/agent/**"]
+    },
+    // The Stripe CLI signs with the secret `dev:prepare` derived: both read the
+    // same endpoint of this account.
     "dev:stripe": {
       "cache": false,
       "persistent": true,
       "passThroughEnv": ["STRIPE_SECRET_KEY"]
     },
-    // Le tunnel nommé qui donne à la console locale l'adresse stable par
-    // laquelle un VPS l'atteint. Il ne sert que /api/v1/agent/.
+    // The named tunnel that gives the local console the stable address a VPS
+    // reaches it at. It serves /api/v1/agent/ and nothing else.
     "dev:tunnel": {
       "cache": false,
       "persistent": true

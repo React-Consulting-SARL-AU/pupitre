@@ -7,6 +7,7 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/modules/runtime/shell"
 )
 
 const key = "napi_s3cret-de-test"
@@ -66,6 +67,10 @@ func TestTheCliLandsAndTheKeyIsStored(t *testing.T) {
 		t.Fatalf("%s = %q", keyKey, fake.EnvValue(keyKey))
 	}
 
+	if fake.Links[LinkPath] != BinaryPath {
+		t.Fatalf("neonctl must answer too: %v", fake.Links)
+	}
+
 	status, err := (Module{}).Status(ctx)
 	if err != nil || !status.Installed || !status.Configured || status.Version != "2.27.0" {
 		t.Fatalf("status = %+v, %v", status, err)
@@ -90,6 +95,26 @@ func TestNoStepTalksToTheNeonConsole(t *testing.T) {
 		if strings.Contains(command, "console.neon.tech") {
 			t.Fatalf("the module called the Neon API: %s", command)
 		}
+	}
+}
+
+// The CLI runs in the dev shell, so the key must reach that shell: root's env file alone leaves `neon me` asking for a browser login.
+func TestTheKeyReachesTheDevShell(t *testing.T) {
+	fake := machine()
+	ctx := newContext(t, fake)
+
+	run(t, ctx)
+
+	if got := string(fake.Files[shell.UserEnvPath]); got != "export "+keyKey+"='"+key+"'\n" {
+		t.Fatalf("dev env = %q", got)
+	}
+
+	if fake.Modes[shell.UserEnvPath] != 0o600 || fake.Owners[shell.UserEnvPath] != "dev:dev" {
+		t.Fatalf("dev env: mode %o, owner %s", fake.Modes[shell.UserEnvPath], fake.Owners[shell.UserEnvPath])
+	}
+
+	if !strings.Contains(string(fake.Files[shell.EnvPath]), "source \"$HOME/.config/pupitre/env\"") {
+		t.Fatalf(".zshenv never reads it: %q", fake.Files[shell.EnvPath])
 	}
 }
 
@@ -148,12 +173,20 @@ func TestUninstallForgetsEveryNeonKey(t *testing.T) {
 	if _, posed := fake.Files[BinaryPath]; posed {
 		t.Fatal("the binary must go with the module")
 	}
+
+	if _, linked := fake.Links[LinkPath]; linked {
+		t.Fatal("the neonctl name must go with the binary")
+	}
+
+	if _, kept := fake.Files[shell.UserEnvPath]; kept {
+		t.Fatalf("the dev shell keeps the key: %q", fake.Files[shell.UserEnvPath])
+	}
 }
 
 // The engine refuses a configuration before the first step, so the module never
 // sees a missing secret. What this module owes is the declaration it is refused on.
 func TestTheSecretIsRequiredByTheContract(t *testing.T) {
-	held := func(string, string) int { return 0 }
+	held := func(string, string) []string { return nil }
 
 	for _, field := range manifest().Fields {
 		if field.Key != "api_key" {

@@ -1,3 +1,4 @@
+import type { DictionaryKey } from "@renderer/i18n/en";
 import type { TerminalKind } from "@shared/terminals";
 
 /**
@@ -10,8 +11,10 @@ import type { TerminalKind } from "@shared/terminals";
 
 export const PROJECT_TABS = [
   "overview",
+  "configuration",
   "logs",
   "diff",
+  "files",
   "shell",
   "claude",
   "codex",
@@ -38,14 +41,16 @@ export function isProjectTab(value: string | undefined): value is ProjectTab {
   );
 }
 
-export const TAB_LABEL: Record<ProjectTab, string> = {
-  claude: "Claude",
-  codex: "Codex",
-  diff: "Diff",
-  hermes: "Hermes",
-  logs: "Journal",
-  overview: "Vue d'ensemble",
-  shell: "Terminal",
+export const TAB_LABEL: Record<ProjectTab, DictionaryKey> = {
+  claude: "project.tab.claude",
+  codex: "project.tab.codex",
+  configuration: "project.tab.configuration",
+  diff: "project.tab.diff",
+  files: "project.tab.files",
+  hermes: "project.tab.hermes",
+  logs: "project.tab.logs",
+  overview: "project.tab.overview",
+  shell: "project.tab.shell",
 };
 
 /**

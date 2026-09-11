@@ -1,8 +1,8 @@
 # Un projet ouvert : la liste, les branches, l'écart distant, l'arbre, un diff.
 > {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","project.list","project.branches","project.git_status","project.working_tree","project.diff","project.checkout","project.restart","project.remove"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","project.down","project.list","project.branches","project.git_status","project.working_tree","project.diff","project.checkout","project.restart","project.remove"]}}
 > {"id":2,"cmd":"project.list"}
-< {"id":2,"ok":true,"result":{"projects":[{"name":"flymate-api","dir":"flymate","pkgmgr":"bun","host":"127.0.0.1","port":3000,"cmd":"bun run dev","state":"online"}]}}
+< {"id":2,"ok":true,"result":{"projects":[{"name":"flymate-api","dir":"flymate/api","path":"/home/dev/projects/flymate/api","pkgmgr":"bun","host":"127.0.0.1","port":3000,"routes":[],"cmd":"bun run dev","state":"online"}]}}
 > {"id":3,"cmd":"project.branches","params":{"name":"flymate-api"}}
 < {"id":3,"ok":true,"result":{"repo":true,"root":"/home/dev/projects/flymate","current":"main","dirty":false,"local":["main"],"remote":["origin/main"]}}
 > {"id":4,"cmd":"project.git_status","params":{"name":"flymate-api"}}
@@ -12,7 +12,7 @@
 > {"id":6,"cmd":"project.diff","params":{"name":"flymate-api","path":"src/tva.ts"}}
 < {"id":6,"ok":true,"result":{"path":"src/tva.ts","patch":"@@ -1 +1 @@\n-a\n+b\n","binary":false,"problem":""}}
 > {"id":7,"cmd":"project.checkout","params":{"name":"flymate-api","branch":"feat/tarifs"}}
-< {"id":7,"ok":false,"error":{"code":"module_failed","message":"Des changements non commités bloquent le changement de branche.","fix":"Commite ou remise tes changements, puis réessaie."}}
+< {"id":7,"ok":false,"error":{"code":"bad_request","message":"Des changements non commités bloquent le changement de branche.","fix":"Commite ou remise tes changements, puis réessaie."}}
 > {"id":8,"cmd":"project.restart","params":{"name":"flymate-api"}}
 < {"id":8,"ok":true,"result":{"state":"online","port":3000}}
 > {"id":9,"cmd":"project.down","params":{"name":"all"}}

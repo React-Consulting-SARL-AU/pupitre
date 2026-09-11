@@ -1,0 +1,87 @@
+name: Desktop smoke
+
+# The system the app ships on first, without the release chain: the unit tests,
+# the bundle with the agent embedded, and the theme captures where their
+# references live. A macOS minute is billed ten times an Ubuntu one, so this
+# runs on `staging` only, and only when something the bundle is made of has
+# changed — the app, the agent it embeds, the packages, or this file.
+#
+# Windows is not here. The app's SSH model — one multiplexed master session per
+# server, keys and sockets kept in 0600 files — has no equivalent on Windows
+# OpenSSH yet, and the unit tests say so on every run. It comes back when
+# Windows support is a task, not before.
+on:
+  push:
+    branches: [staging]
+    paths:
+      - apps/desktop/**
+      - apps/agent/**
+      - packages/**
+      - bun.lock
+      - package.json
+      - turbo.json
+      - .github/workflows/desktop-smoke.yml
+  workflow_dispatch:
+
+concurrency:
+  group: desktop-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  TURBO_TELEMETRY_DISABLED: "1"
+
+jobs:
+  smoke:
+    name: macOS
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: apps/agent/go.mod
+          cache-dependency-path: apps/agent/go.mod
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install the Electron binary
+        run: node node_modules/electron/install.js
+        working-directory: apps/desktop
+
+      - name: Test
+        run: bun --cwd=apps/desktop run test
+
+      # Through turbo, so the agent is built and embedded before the bundle.
+      - name: Build
+        run: bun run build -- --filter=@pupitre/desktop
+
+      # The dashboard captures are compared here, where their references were
+      # taken; a runner's fonts may still draw other pixels, so the report is
+      # read and the push is not held on it.
+      - name: Playwright themes
+        id: themes
+        continue-on-error: true
+        run: bunx playwright test e2e/themes.spec.ts
+        working-directory: apps/desktop
+
+      - name: Upload the failure artifacts
+        if: failure() || steps.themes.outcome == 'failure'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-smoke-macos-${{ github.sha }}
+          path: .playwright/desktop
+          retention-days: 7
+          if-no-files-found: ignore

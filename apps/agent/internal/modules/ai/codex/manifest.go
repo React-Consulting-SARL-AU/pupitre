@@ -18,7 +18,7 @@ func manifest() contract.Manifest {
 		Resources: contract.Resources{RAMMB: 512, DiskMB: 512},
 		Arch:      []string{"amd64", "arm64"},
 		Fields:    []contract.Field{},
-		Provides:  []string{"agent:codex"},
+		Runs:      true,
 		Mandatory: false,
 		Since:     "0.1.0",
 	}

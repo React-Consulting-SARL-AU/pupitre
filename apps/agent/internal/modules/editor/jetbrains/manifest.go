@@ -32,7 +32,7 @@ func manifest() contract.Manifest {
 				Required: false, Default: latest,
 			},
 		},
-		Provides:  []string{"editor:jetbrains"},
+		Runs:      true,
 		Mandatory: false,
 		Since:     "0.1.0",
 	}

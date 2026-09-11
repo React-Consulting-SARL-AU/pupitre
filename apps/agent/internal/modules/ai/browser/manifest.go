@@ -18,7 +18,7 @@ func manifest() contract.Manifest {
 		Resources: contract.Resources{RAMMB: 512, DiskMB: 1024},
 		Arch:      []string{"amd64", "arm64"},
 		Fields:    []contract.Field{},
-		Provides:  []string{"tool:shot", "gallery"},
+		Runs:      true,
 		Mandatory: false,
 		Since:     "0.1.0",
 	}

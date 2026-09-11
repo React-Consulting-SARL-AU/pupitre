@@ -3,7 +3,7 @@ import type { Locale } from "@pupitre/shared/i18n"
 import type { OrgRole } from "@pupitre/shared/permissions"
 import { keepPreviousData, queryOptions } from "@tanstack/react-query"
 import { api } from "@/lib/api/client"
-import type { BillingIntervalName } from "@/lib/domain/billing"
+import type { BillingIntervalName, CheckoutReturn } from "@/lib/domain/billing"
 
 export const SERVERS_POLL_INTERVAL_MS = 5000
 
@@ -196,6 +196,7 @@ export async function pollSubscription(
 export interface CheckoutInput {
   quantity: number
   interval: BillingIntervalName
+  return_to?: CheckoutReturn
 }
 
 export function startCheckout(

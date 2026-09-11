@@ -19,6 +19,9 @@ type Passing struct {
 	Unit      string
 	EnvKey    string
 	Port      int
+	Mandatory bool
+	// Asks adds fields to the manifest: a required one without a default is what a real core module asks.
+	Asks []contract.Field
 }
 
 func (m Passing) Manifest() contract.Manifest {
@@ -28,6 +31,7 @@ func (m Passing) Manifest() contract.Manifest {
 	if m.EnvKey != "" {
 		fields = append(fields, contract.Field{Key: "password", Kind: contract.FieldSecret, Label: "Mot de passe", Required: true, Generate: true})
 	}
+	fields = append(fields, m.Asks...)
 
 	return contract.Manifest{
 		ID:        m.ID,
@@ -39,7 +43,9 @@ func (m Passing) Manifest() contract.Manifest {
 		Resources: contract.Resources{RAMMB: 16, DiskMB: 8},
 		Arch:      []string{"amd64", "arm64"},
 		Fields:    fields,
-		Provides:  []string{"demo:" + m.ID},
+		// A demo module runs exactly when it carries a unit, which is what a real one that holds a process does.
+		Runs:      m.Unit != "",
+		Mandatory: m.Mandatory,
 		Since:     "0.0.0",
 	}
 }

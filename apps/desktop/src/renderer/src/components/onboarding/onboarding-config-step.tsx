@@ -41,6 +41,7 @@ export function OnboardingConfigStep({
         notice={<OnboardingReplayNotice moduleName={nameOf(replaying)} />}
         onInstall={() => onReplay(replaying)}
         only={[replaying]}
+        plain
         serverName={serverName}
         submitLabel={t("onboarding.config.replaySubmit")}
       />
@@ -53,6 +54,7 @@ export function OnboardingConfigStep({
         notice={<OnboardingResumeNotice names={remaining.map(nameOf)} />}
         onInstall={onInstall}
         only={remaining}
+        plain
         serverName={serverName}
         submitLabel={t("onboarding.config.resumeSubmit")}
       />
@@ -63,6 +65,7 @@ export function OnboardingConfigStep({
     <ConfigScreen
       onBack={onBack}
       onInstall={onInstall}
+      plain
       serverName={serverName}
     />
   );

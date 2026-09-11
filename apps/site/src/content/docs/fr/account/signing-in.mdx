@@ -1,0 +1,44 @@
+---
+title: Se connecter
+description: Comment on ouvre la console et l’app, les clés d’accès, le second facteur, et quoi faire quand un appareil est perdu.
+locale: fr
+section: account
+sectionOrder: 3
+order: 1
+---
+
+Il n’y a pas de mot de passe à choisir, donc aucun à perdre. Un compte se crée à votre première connexion.
+
+## La console
+
+Quatre entrées, et elles se mélangent : un lien envoyé à votre adresse email, GitHub, Google, ou une clé d’accès. La page de connexion ne propose que les fournisseurs que la plateforme a réellement configurés : ce que vous y voyez est ce qui marche.
+
+## Les clés d’accès
+
+Une clé d’accès, c’est Touch ID, Windows Hello ou une clé matérielle. Enregistrez-en une depuis les **Réglages**, donnez-lui le nom de la machine où elle vit, et elle ouvre la session seule — aucun lien à attendre. Une clé enregistrée vaut déjà deux facteurs : l’appareil, et vous.
+
+L’enregistrement demande une session récente ; si la vôtre est ancienne, la console le dit et vous fait repasser. Révoquer une clé retire cette machine-là et laisse les autres, avec le lien et les fournisseurs sociaux.
+
+## Le second facteur
+
+Activez le second facteur depuis les **Réglages** : la console affiche un QR code pour votre application d’authentification, et dix codes de récupération. Gardez-les ailleurs que sur le téléphone : chacun sert une fois, et ce sont eux qui remplacent l’application si vous la perdez.
+
+Une fois actif, un code est demandé après le lien par email et après GitHub ou Google. Jamais après une clé d’accès, qui est déjà un second facteur. Désactiver le second facteur efface les codes de récupération.
+
+## L’app desktop
+
+L’app ne demande pas vos identifiants. Elle affiche un code, vous ouvrez la console, vous tapez ce code et vous confirmez qu’il correspond — l’app prend la suite quelques secondes plus tard. C’est tout l’appairage : l’app se retrouve avec sa propre session, et votre gestionnaire de mots de passe n’en approche jamais.
+
+## Changer d’adresse
+
+Depuis les **Réglages**. Le lien de confirmation part vers l’adresse que vous utilisez aujourd’hui, jamais vers la nouvelle, et le compte ne bascule qu’une fois ce lien ouvert. Une session dont quelqu’un se serait emparé ne peut donc pas emporter votre compte.
+
+## Quand un appareil est perdu
+
+Trois choses sont distinctes, et chacune se traite sans toucher aux autres.
+
+Un **laptop** porte une clé SSH. Révoquez cet appareil depuis la console et sa clé cesse d’être poussée sur vos serveurs ; les machines depuis lesquelles vous travaillez encore continuent de marcher.
+
+Une **clé d’accès** se révoque depuis la page des réglages, une clé à la fois.
+
+Un **téléphone** qui portait l’application d’authentification se remplace par un code de récupération : connectez-vous avec, désactivez le second facteur, puis réactivez-le contre le nouveau téléphone.

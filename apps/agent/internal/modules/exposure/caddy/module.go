@@ -1,9 +1,11 @@
 package caddy
 
 import (
-	"pupitre.studio/agent/internal/i18n"
 	"strconv"
 	"strings"
+	"time"
+
+	"pupitre.studio/agent/internal/i18n"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
@@ -40,6 +42,9 @@ const (
 
 var mode = []byte(Provider + "\n")
 
+// ufw rewrites the whole rule set through iptables and can sit there for ever on a kernel that refuses it; a minute is more than it ever needs.
+const ufwTimeout = time.Minute
+
 type Module struct{}
 
 func init() {
@@ -58,8 +63,13 @@ func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
 	)
 }
 
+// The package alone is not this module: the marker says which exposure holds the machine, and a caddy the client put there for something else is not ours to report or to sync.
+func ours(ctx *modules.Context) bool {
+	return apt.Installed(ctx, pkg) && file.Same(ctx, modePath, mode)
+}
+
 func (Module) Check(ctx *modules.Context) (modules.Status, error) {
-	if !apt.Installed(ctx, pkg) {
+	if !ours(ctx) {
 		return modules.Status{}, nil
 	}
 
@@ -68,7 +78,7 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 		return modules.Status{}, err
 	}
 
-	return modules.Status{Installed: true, Version: version, Configured: file.Same(ctx, modePath, mode)}, nil
+	return modules.Status{Installed: true, Version: version, Configured: file.Exists(ctx, configPath)}, nil
 }
 
 // Ubuntu's own caddy trails the project by a long way: the module adds Caddy's repository, key first.
@@ -82,7 +92,7 @@ func (Module) Install(ctx *modules.Context) error {
 			return modules.Failed, err
 		}
 
-		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"curl", "-fsSL", "--proto", "=https", "--tlsv1.2", "-o", keyringPath, keyURL}}); err != nil {
+		if err := apt.DownloadKey(ctx, keyURL, keyringPath); err != nil {
 			return modules.Failed, err
 		}
 
@@ -108,17 +118,18 @@ func (Module) Install(ctx *modules.Context) error {
 	})
 }
 
+// The mode and the domain are declared before the Caddyfile is written: the registry resolves the routes of the repository's rows against the domain.
 func (Module) Configure(ctx *modules.Context) error {
+	if err := declareMode(ctx); err != nil {
+		return err
+	}
+
 	changed, err := writeCaddyfile(ctx)
 	if err != nil {
 		return err
 	}
 
 	if err := openFirewall(ctx); err != nil {
-		return err
-	}
-
-	if err := declareMode(ctx); err != nil {
 		return err
 	}
 
@@ -163,7 +174,7 @@ func openFirewall(ctx *modules.Context) error {
 		}
 
 		for _, rule := range missing {
-			if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"ufw", "allow", rule, "comment", "caddy"}}); err != nil {
+			if _, err := ufw(ctx, "allow", rule, "comment", "caddy"); err != nil {
 				ctx.Warn(i18n.T("warn.caddy.ufw.refused", rule))
 
 				return modules.Done, nil
@@ -272,7 +283,7 @@ func (Module) Uninstall(ctx *modules.Context) error {
 				continue
 			}
 
-			if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"ufw", "delete", "allow", rule}}); err != nil {
+			if _, err := ufw(ctx, "delete", "allow", rule); err != nil {
 				continue
 			}
 
@@ -388,10 +399,14 @@ func domainOf(ctx *modules.Context) string {
 	return domain
 }
 
+func ufw(ctx *modules.Context, args ...string) (sys.Output, error) {
+	return sys.Exec(ctx, sys.Command{Argv: append([]string{"ufw"}, args...), Timeout: ufwTimeout})
+}
+
 func allowed(ctx *modules.Context) map[string]bool {
 	rules := map[string]bool{}
 
-	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"ufw", "status"}})
+	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"ufw", "status"}, Timeout: ufwTimeout})
 	if err != nil {
 		return rules
 	}

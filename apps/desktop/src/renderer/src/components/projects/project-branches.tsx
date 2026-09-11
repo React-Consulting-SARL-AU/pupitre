@@ -1,17 +1,24 @@
+import { Button } from "@renderer/components/ui/button";
 import { Callout } from "@renderer/components/ui/callout";
 import { fieldControlClass } from "@renderer/components/ui/field";
-import { StatusDot } from "@renderer/components/ui/status-dot";
+import { WaitingLine } from "@renderer/components/ui/waiting-line";
 import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { BranchState } from "@renderer/stores/project";
-import { GitBranchPlus } from "lucide-react";
+import { ArrowRightLeft, GitBranchPlus } from "lucide-react";
+import { useState } from "react";
+import { ProjectBranchCreate } from "./project-branch-create";
 
 /**
  * The branches of the project, and the one it is on.
  *
- * Both lists come from the agent, local and remote; taking a branch is
- * `project.checkout`, and a refused switch comes back with the agent's own
- * reason rather than one written here.
+ * Both lists come from the agent, local and remote, and the list keeps them
+ * apart: a remote branch is one the machine has not taken yet. Taking a branch
+ * is `project.checkout`, and a refused switch comes back with the agent's own
+ * reason rather than one written here. Choosing a branch in the list is not
+ * yet taking it: the switch is a button of its own, so a tree with uncommitted
+ * changes reads the warning before the agent refuses, not after. A branch that
+ * does not exist yet is named in the form that opens under the list.
  */
 export function ProjectBranches({
   state,
@@ -26,12 +33,14 @@ export function ProjectBranches({
 }) {
   const t = useTranslations();
 
+  const [picked, setPicked] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+
   if (state.status === "idle" || state.status === "reading") {
     return (
-      <p className="flex items-center gap-2 font-data text-[12px] text-ink-3">
-        <StatusDot shape="breathing" size={11} />
+      <WaitingLine className="font-data text-[12px]">
         {t("project.branches.reading")}
-      </p>
+      </WaitingLine>
     );
   }
 
@@ -61,35 +70,101 @@ export function ProjectBranches({
     );
   }
 
-  const all = [
-    ...branches.local,
-    ...branches.remote.filter((name) => !branches.local.includes(name)),
-  ];
+  const remoteOnly = branches.remote.filter(
+    (name) => !branches.local.includes(name)
+  );
+  const chosen = picked !== null && picked !== branches.current ? picked : null;
+  const selectId = "project-branch";
 
   return (
     <div className="flex flex-col gap-2">
-      <select
-        className={fieldControlClass}
-        disabled={switching}
-        onChange={(event) => onCheckout(event.target.value)}
-        value={branches.current}
-      >
-        {all.map((branch) => (
-          <option key={branch} value={branch}>
-            {branch}
-            {branches.local.includes(branch)
-              ? ""
-              : t("project.branches.remoteSuffix")}
-          </option>
-        ))}
-      </select>
+      <div className="flex items-center gap-2">
+        <label className="sr-only" htmlFor={selectId}>
+          {t("project.overview.branch")}
+        </label>
+        <select
+          className={fieldControlClass}
+          disabled={switching || creating}
+          id={selectId}
+          onChange={(event) => setPicked(event.target.value)}
+          value={chosen ?? branches.current}
+        >
+          <optgroup label={t("project.branches.local")}>
+            {branches.local.map((branch) => (
+              <option key={branch} value={branch}>
+                {branch}
+              </option>
+            ))}
+          </optgroup>
+          {remoteOnly.length > 0 ? (
+            <optgroup label={t("project.branches.remote")}>
+              {remoteOnly.map((branch) => (
+                <option key={branch} value={branch}>
+                  {branch}
+                </option>
+              ))}
+            </optgroup>
+          ) : null}
+        </select>
 
-      {branches.dirty ? (
+        {chosen ? (
+          <Button
+            icon={ArrowRightLeft}
+            loading={switching}
+            onClick={() => {
+              onCheckout(chosen);
+              setPicked(null);
+            }}
+            size="sm"
+            variant={branches.dirty ? "danger" : "inverse"}
+          >
+            {t("project.branches.switch")}
+          </Button>
+        ) : null}
+
+        {chosen || creating ? null : (
+          <Button
+            disabled={switching}
+            icon={GitBranchPlus}
+            onClick={() => setCreating(true)}
+            size="sm"
+            title={t("project.branches.newHint")}
+            variant="discreet"
+          >
+            {t("project.branches.new")}
+          </Button>
+        )}
+      </div>
+
+      {creating ? (
+        <ProjectBranchCreate
+          branches={branches}
+          onCancel={() => setCreating(false)}
+          onCreate={(branch) => {
+            onCheckout(branch);
+            setCreating(false);
+          }}
+          switching={switching}
+        />
+      ) : null}
+
+      {chosen && branches.dirty ? (
+        <Callout tone="warn">
+          {t("project.branches.dirtySwitch", { branch: chosen })}
+        </Callout>
+      ) : null}
+
+      {branches.dirty && !chosen && !creating ? (
         <Callout tone="warn">{t("project.branches.dirty")}</Callout>
-      ) : (
+      ) : null}
+
+      {branches.dirty ? null : (
         <p className="truncate font-data text-[12px] text-ink-3">
           {branches.root} ·{" "}
           {t.plural("project.branches.localCount", branches.local.length)}
+          {remoteOnly.length > 0
+            ? ` · ${t.plural("project.branches.remoteCount", remoteOnly.length)}`
+            : ""}
         </p>
       )}
     </div>

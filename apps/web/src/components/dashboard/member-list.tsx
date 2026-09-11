@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
+import { RotateCw } from "lucide-react"
 import { InvitationRow } from "@/components/dashboard/invitation-row"
 import { InviteForm } from "@/components/dashboard/invite-form"
 import { MemberRow } from "@/components/dashboard/member-row"
+import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
 import { SkeletonCards } from "@/components/ui/skeleton"
@@ -89,6 +91,18 @@ export function MemberList() {
   if (members.isError) {
     return (
       <Callout
+        action={
+          <Button
+            icon={RotateCw}
+            loading={members.isFetching}
+            onClick={() => {
+              members.refetch()
+            }}
+            size="sm"
+          >
+            {t("common.retry")}
+          </Button>
+        }
         fix={t("memberList.failedFix")}
         title={t("memberList.failed")}
         tone="danger"

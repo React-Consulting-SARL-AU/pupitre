@@ -69,6 +69,12 @@ interface CatalogStore {
   attempted: boolean;
   /** What the server refused when the app asked it to weigh the configuration. */
   refused: readonly FieldProblemView[];
+  /**
+   * The modules to install without configuring: the reader said they would
+   * answer their questions later. Nothing of theirs is weighed, and the server
+   * stops after putting them on the machine.
+   */
+  deferred: readonly string[];
 
   load: (serverId: string, installed?: Installed) => Promise<void>;
   /** Puts back the choice an interrupted onboarding had written down. */
@@ -77,6 +83,8 @@ interface CatalogStore {
     values: Record<string, Record<string, unknown>>
   ) => void;
   toggle: (moduleId: string) => void;
+  /** Puts a service's questions off, or takes them back up. */
+  defer: (moduleId: string, later: boolean) => void;
   /** `chosen` is the one of the preset's exclusive modules the reader picked. */
   usePreset: (presetId: string, chosen?: string) => void;
   setValue: (moduleId: string, key: string, value: unknown) => void;
@@ -158,6 +166,33 @@ export const useCatalog = create<CatalogStore>((set, get) => {
     }
   }
 
+  /**
+   * What a development build types for the developer: a field the manifest
+   * declares, on a module just chosen, and only where nothing was answered.
+   */
+  let prefilled: Record<string, Record<string, string>> = {};
+
+  async function readDevDefaults(): Promise<void> {
+    const defaults = await window.pupitre.devDefaults().catch(() => null);
+
+    prefilled = defaults?.fields ?? {};
+  }
+
+  function prefill(module: Manifest, values: Record<string, unknown>) {
+    const given = prefilled[module.id] ?? {};
+    const filled = { ...values };
+
+    for (const field of module.fields) {
+      const value = given[field.key];
+
+      if (value && !filled[field.key]) {
+        filled[field.key] = value;
+      }
+    }
+
+    return filled;
+  }
+
   function reselect(next: readonly string[]): void {
     const previous = get().selected;
     const added = next.filter((id) => !previous.includes(id));
@@ -165,7 +200,10 @@ export const useCatalog = create<CatalogStore>((set, get) => {
 
     for (const module of catalogOf(get().catalog).modules) {
       if (added.includes(module.id)) {
-        values[module.id] = { ...defaultsOf(module), ...values[module.id] };
+        values[module.id] = prefill(module, {
+          ...defaultsOf(module),
+          ...values[module.id],
+        });
       } else if (!next.includes(module.id)) {
         delete values[module.id];
       }
@@ -178,6 +216,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
   return {
     attempted: false,
     catalog: { status: "idle" },
+    deferred: [],
     installed: [],
     problem: null,
     refused: [],
@@ -189,7 +228,14 @@ export const useCatalog = create<CatalogStore>((set, get) => {
     async load(serverId, installed = []) {
       set({ catalog: { serverId, status: "loading" }, installed });
 
-      const answer = await window.pupitre.catalog(serverId);
+      // The accounts are weighed with the fields, so they are read with the
+      // catalogue rather than when a card happens to be on screen: a module
+      // used to be called unconnected until its own panel had been visited.
+      const [answer] = await Promise.all([
+        window.pupitre.catalog(serverId),
+        useConnections.getState().read(),
+        readDevDefaults(),
+      ]);
 
       if (!answer.ok) {
         set({ catalog: { error: answer.error, serverId, status: "failed" } });
@@ -200,6 +246,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
       set({
         attempted: false,
         catalog: { catalog: answer.result, serverId, status: "ready" },
+        deferred: [],
         problem: null,
         refused: [],
         secrets: {},
@@ -225,13 +272,39 @@ export const useCatalog = create<CatalogStore>((set, get) => {
       reselect(restored(get().modules(), selected, get().installed));
     },
 
-    toggle(moduleId) {
-      if (get().unreachable().has(moduleId)) {
+    /**
+     * Putting a service off is a decision about this installation, not about the
+     * service: what was already typed stays typed, and taking the questions back
+     * up finds the form as it was left.
+     */
+    defer(moduleId, later) {
+      const held = get().deferred;
+
+      if (later === held.includes(moduleId)) {
         return;
       }
 
+      set({
+        deferred: later
+          ? [...held, moduleId]
+          : held.filter((one) => one !== moduleId),
+        // A refusal the server sent about a module nobody answers any more says
+        // nothing: it was about values this install no longer carries.
+        refused: later
+          ? get().refused.filter((one) => one.module !== moduleId)
+          : get().refused,
+      });
+    },
+
+    toggle(moduleId) {
       reselect(
-        toggleIn(get().modules(), get().selected, moduleId, get().installed)
+        toggleIn(
+          get().modules(),
+          get().selected,
+          moduleId,
+          get().installed,
+          probeOf(serverOf(get().catalog))
+        )
       );
     },
 
@@ -247,11 +320,18 @@ export const useCatalog = create<CatalogStore>((set, get) => {
       // A preset that names exclusive modules carries none of them: the one the
       // reader picked joins its list, and the others stay out.
       const asked =
-        chosen && preset.choose_one?.includes(chosen as never)
-          ? { ...preset, modules: [...preset.modules, chosen as never] }
+        chosen && preset.choose_one?.includes(chosen)
+          ? { ...preset, modules: [...preset.modules, chosen] }
           : preset;
 
-      reselect(fromPreset(get().modules(), asked, get().installed));
+      reselect(
+        fromPreset(
+          get().modules(),
+          asked,
+          get().installed,
+          probeOf(serverOf(get().catalog))
+        )
+      );
     },
 
     setValue(moduleId, key, value) {
@@ -347,7 +427,8 @@ export const useCatalog = create<CatalogStore>((set, get) => {
           get().selected,
           get().values,
           get().secrets,
-          (kind) => useConnections.getState().holds(kind)
+          (kind) => useConnections.getState().holds(kind),
+          get().deferred
         ),
         ...get().refused,
       ];
@@ -400,14 +481,20 @@ export const useCatalog = create<CatalogStore>((set, get) => {
 
       set({
         attempted: true,
-        refused: problems.map((problem) => {
+        refused: problems.flatMap((problem) => {
           const manifest = known.get(problem.module) as Manifest;
+          const declared = manifest?.fields.find(
+            (one) => one.key === problem.field
+          );
 
-          return {
-            ...problem,
-            declared: manifest?.fields.find((one) => one.key === problem.field),
-            manifest,
-          };
+          // A managed value is written on the way out, from a connected
+          // account: a server that calls it missing is saying it has not been
+          // given it yet, and no field on this screen could answer that.
+          if (declared?.managed === true) {
+            return [];
+          }
+
+          return [{ ...problem, declared, manifest }];
         }),
       });
     },
@@ -425,13 +512,13 @@ export const useCatalog = create<CatalogStore>((set, get) => {
         return [];
       }
 
-      const answer = await window.pupitre.checkInstall(
-        serverId,
-        modules,
-        get().config()
-      );
+      // A bridge that does not answer must not leave the button turning: the
+      // agent weighs the same configuration again before it touches anything.
+      const answer = await window.pupitre
+        .checkInstall(serverId, modules, get().config(), get().deferred)
+        .catch(() => null);
 
-      if (!answer.ok) {
+      if (!answer?.ok) {
         return [];
       }
 

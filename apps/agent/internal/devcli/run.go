@@ -2,31 +2,17 @@ package devcli
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
-	"pupitre.studio/agent/internal/i18n"
 	"strconv"
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/tmux"
 )
-
-const Usage = `usage: pupitred dev <commande> [arguments] [--json]
-
-  up|down|restart <projet|all>   démarre, arrête, redémarre
-  status                         ce qui tourne, les ports, les services
-  logs <projet> [-f] [-n N]      les dernières lignes du journal
-  sync <projet>                  git pull puis dépendances
-  attach <projet>                la commande tmux qui ouvre sa fenêtre
-  branch [projet] [branche]      les branches, ou change de branche
-  db <url|shell|dump|import> [moteur]
-  doctor                         diagnostic court
-
---json rend la réponse du protocole telle quelle. doctor sort en 1 si un point
-est à corriger.
-`
 
 type Options struct {
 	Server *protocol.Server
@@ -46,21 +32,21 @@ func Run(options Options, args []string, stdout, stderr io.Writer) int {
 	asked, err := parse(args)
 	if err != nil {
 		fmt.Fprintln(stderr, err)
-		fmt.Fprint(stderr, Usage)
+		fmt.Fprint(stderr, Usage())
 
 		return 2
 	}
 
 	if asked.verb == "" {
-		fmt.Fprint(stderr, Usage)
+		fmt.Fprint(stderr, Usage())
 
 		return 2
 	}
 
 	run, known := verbs[asked.verb]
 	if !known {
-		fmt.Fprintf(stderr, "unknown command: %s\n", asked.verb)
-		fmt.Fprint(stderr, Usage)
+		fmt.Fprintln(stderr, i18n.T("devcli.command.unknown", asked.verb))
+		fmt.Fprint(stderr, Usage())
 
 		return 2
 	}
@@ -83,11 +69,11 @@ func parse(args []string) (request, error) {
 			index++
 			count, err := strconv.Atoi(at(args, index))
 			if err != nil {
-				return asked, fmt.Errorf("-n attend un nombre de lignes")
+				return asked, errors.New(i18n.T("devcli.lines.expected"))
 			}
 			asked.lines = count
 		case strings.HasPrefix(argument, "-"):
-			return asked, fmt.Errorf("option inconnue : %s", argument)
+			return asked, errors.New(i18n.T("cli.option.unknown", argument))
 		case asked.verb == "":
 			asked.verb = argument
 		default:
@@ -177,7 +163,7 @@ func runSync(options Options, asked request, out *printer) int {
 	}
 
 	return render(out, result, func(value contract.ProjectSync) {
-		out.line(fmt.Sprintf("%s · %s · %s · %s", name, done(value.Pulled, "pull", "already up to date"), done(value.Installed, "dependencies", "dependencies unchanged"), value.State))
+		out.line(fmt.Sprintf("%s · %s · %s · %s", name, done(value.Pulled, i18n.T("devcli.sync.pulled"), i18n.T("devcli.sync.uptodate")), done(value.Installed, i18n.T("devcli.sync.installed"), i18n.T("devcli.sync.unchanged")), value.State))
 	})
 }
 
@@ -248,12 +234,12 @@ func branchesOf(options Options, name string, out *printer) int {
 
 	return render(out, result, func(value contract.ProjectBranches) {
 		if !value.Repo {
-			out.line(name + " is not in a git repository")
+			out.line(i18n.T("devcli.branch.norepo", name))
 
 			return
 		}
 
-		out.line(fmt.Sprintf("%s · %s%s", name, value.Current, when(value.Dirty, " · uncommitted changes")))
+		out.line(fmt.Sprintf("%s · %s%s", name, value.Current, when(value.Dirty, " · "+i18n.T("devcli.branch.dirty"))))
 		for _, branch := range value.Local {
 			out.line("  " + current(branch == value.Current) + " " + branch)
 		}
@@ -280,12 +266,12 @@ var databases = map[string]string{
 
 func runDB(options Options, asked request, out *printer) int {
 	if len(asked.words) == 0 {
-		return out.usage(fmt.Errorf("db attend url, shell, dump ou import"))
+		return out.usage(errors.New(i18n.T("devcli.db.expected")))
 	}
 
 	cmd, known := databases[asked.words[0]]
 	if !known {
-		return out.usage(fmt.Errorf("db %s : choisis url, shell, dump ou import", asked.words[0]))
+		return out.usage(errors.New(i18n.T("devcli.db.unknown", asked.words[0])))
 	}
 
 	engine, err := engineOf(options, asked)
@@ -384,7 +370,7 @@ func failed(checks []contract.DoctorCheck) int {
 
 func target(asked request) (string, error) {
 	if len(asked.words) == 0 {
-		return "", fmt.Errorf("%s expects a project", asked.verb)
+		return "", errors.New(i18n.T("devcli.project.expected", asked.verb))
 	}
 
 	return asked.words[0], nil

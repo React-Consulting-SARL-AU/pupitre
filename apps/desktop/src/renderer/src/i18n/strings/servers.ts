@@ -2,6 +2,18 @@ export const servers = {
   en: {
     "servers.addServer": "Add a server",
     "servers.field.address": "Address",
+    "servers.field.host": "Host",
+    "servers.field.port": "Port",
+    "servers.field.user": "Account",
+    "servers.row.edit": "Change the address of {name}",
+    "servers.edit.save": "Save",
+    "servers.edit.note":
+      "The connections to this server are reopened on the new address.",
+    "servers.edit.done": "The server's address was changed.",
+    "servers.edit.hostKeyDropped":
+      "The address changed, so the pinned host key was dropped.",
+    "servers.edit.hostKeyDroppedFix":
+      "The next connection pins the key the server presents there.",
     "servers.field.publicKey": "Public key",
 
     "servers.hostKey.title": "Connection refused to {name}",
@@ -12,18 +24,14 @@ export const servers = {
 
     "servers.mode.generate.title": "Generate a key",
     "servers.mode.generate.detail":
-      "An ed25519 key of its own for this computer, in the app's folder. Nothing to prepare.",
+      "An ed25519 key of its own for this computer, in the app's folder.",
     "servers.mode.import.title": "Import a key",
     "servers.mode.import.detail":
-      "A key you already have. It is copied into the app's folder, never read in place.",
+      "A key you already have, copied into the app's folder.",
     "servers.mode.system.title": "Use a system host",
     "servers.mode.system.detail":
       "A host already described in your ~/.ssh/config. The app then writes nothing at all.",
 
-    "servers.add.introBefore":
-      "The app writes its own SSH configuration and keeps the key in its folder. Your",
-    "servers.add.introAfter": "is never modified.",
-    "servers.add.name.help": "What the sidebar will show",
     "servers.add.name.label": "Name",
     "servers.add.name.placeholder": "Development server",
     "servers.add.systemHost.label": "System host",
@@ -32,6 +40,7 @@ export const servers = {
     "servers.add.noHosts": "No host in ~/.ssh/config",
     "servers.add.address.help": "An IP address or a hostname",
     "servers.add.port.help": "22 on an ordinary SSH server",
+    "servers.add.port.problem": "A port is a whole number from 1 to {max}.",
     "servers.add.port.label": "Port",
     "servers.add.user.help":
       "root at first contact, dev once the machine is hardened",
@@ -44,31 +53,33 @@ export const servers = {
     "servers.add.test": "Test the connection",
     "servers.add.retest": "Test again",
     "servers.add.reached": "{software} answered in {ms} ms.",
-    "servers.add.reachedHelp":
-      "The address answers and speaks SSH. Whether the key opens it is what the inspection settles, right after.",
+    "servers.add.access.opens":
+      "A key on this computer already opens the account: nothing to type.",
+    "servers.add.access.password": "The account asks for its password.",
+    "servers.add.access.manualHelp":
+      "The server can still be added: the app will then hand you the key and the line to paste.",
+    "servers.add.password.label": "Password of the remote account",
+    "servers.add.password.help":
+      "Used for this one connection, held nowhere, and never written to a file or a log.",
+    "servers.add.installing": "Installing the key…",
+    "servers.add.submitWithPassword": "Add and install the key",
     "servers.add.submitAnyway": "Add anyway",
     "servers.add.submit": "Add",
     "servers.add.recommended": "Recommended",
 
     "servers.key.installing.title": "Installing the key",
     "servers.key.installing.detail":
-      "The app is putting the public half on {name} itself. Nothing to paste, nothing to type.",
-    "servers.key.installing.note":
-      "The private half never leaves this computer's folder, at 0600.",
+      "The app is putting the public half on {name}.",
     "servers.key.phase.reaching": "Knocking with the key",
     "servers.key.phase.authorizing": "Writing it into authorized_keys",
     "servers.key.phase.verifying": "Signing in with it alone",
 
     "servers.key.installed.title": "{name} opens with its key",
-    "servers.key.installed.detail":
-      "The public half is on the machine and the app has just signed in with it.",
     "servers.key.alreadyOpen.title": "{name} already opens",
-    "servers.key.alreadyOpen.detail":
-      "The key was in place: nothing was written on the machine.",
 
     "servers.key.password.title": "{name} asks for its password",
     "servers.key.password.intro":
-      "Nothing this computer holds opens {user}@{host} yet. The password of that account lets the app put its key there, once.",
+      "No key on this computer opens {user}@{host}. Its password lets the app install one, once.",
     "servers.key.password.label": "Password of the remote account",
     "servers.key.password.help":
       "Used for this one connection, held nowhere, and never written to a file or a log.",
@@ -79,7 +90,7 @@ export const servers = {
 
     "servers.key.title": "{name} is ready to receive its key",
     "servers.key.intro":
-      "The private key stays in the app's folder, at 0600. The app could not install the public half by itself, so here it is, along with the line that installs it.",
+      "The app could not install the public key by itself. Here it is, with the line that installs it.",
     "servers.key.publicHelp":
       "To add to the server's ~/.ssh/authorized_keys if you prefer to do it by hand.",
     "servers.key.commandHelp":
@@ -111,15 +122,23 @@ export const servers = {
     "servers.row.confirmForget": "Delete everywhere",
 
     "servers.panel.heading": "Your servers",
-    "servers.panel.intro":
-      "The app keeps an SSH configuration of its own, one key per server in its folder, and each machine's fingerprint from the first contact.",
-    "servers.panel.emptyDetail":
-      "An address, an account, and a key the app generates for this computer.",
     "servers.panel.emptyTitle": "No server yet",
   },
   fr: {
     "servers.addServer": "Ajouter un serveur",
     "servers.field.address": "Adresse",
+    "servers.field.host": "Hôte",
+    "servers.field.port": "Port",
+    "servers.field.user": "Compte",
+    "servers.row.edit": "Modifier l'adresse de {name}",
+    "servers.edit.save": "Enregistrer",
+    "servers.edit.note":
+      "Les connexions à ce serveur se rouvrent sur la nouvelle adresse.",
+    "servers.edit.done": "L'adresse du serveur a été changée.",
+    "servers.edit.hostKeyDropped":
+      "L'adresse a changé, la clé d'hôte épinglée a donc été oubliée.",
+    "servers.edit.hostKeyDroppedFix":
+      "La prochaine connexion épingle la clé que le serveur présente là.",
     "servers.field.publicKey": "Clé publique",
 
     "servers.hostKey.title": "Connexion refusée à {name}",
@@ -131,18 +150,14 @@ export const servers = {
 
     "servers.mode.generate.title": "Générer une clé",
     "servers.mode.generate.detail":
-      "Une clé ed25519 propre à cet ordinateur, dans le dossier de l'app. Rien à préparer.",
+      "Une clé ed25519 propre à cet ordinateur, dans le dossier de l'app.",
     "servers.mode.import.title": "Importer une clé",
     "servers.mode.import.detail":
-      "Une clé que vous avez déjà. Elle est recopiée dans le dossier de l'app, jamais lue sur place.",
+      "Une clé que vous avez déjà, recopiée dans le dossier de l'app.",
     "servers.mode.system.title": "Utiliser un hôte du système",
     "servers.mode.system.detail":
       "Un hôte déjà décrit dans votre ~/.ssh/config. L'app n'écrit alors rien du tout.",
 
-    "servers.add.introBefore":
-      "L'app écrit sa propre configuration SSH et garde la clé dans son dossier. Votre",
-    "servers.add.introAfter": "n'est jamais modifié.",
-    "servers.add.name.help": "Ce que la barre latérale affichera",
     "servers.add.name.label": "Nom",
     "servers.add.name.placeholder": "Serveur de développement",
     "servers.add.systemHost.label": "Hôte du système",
@@ -151,6 +166,7 @@ export const servers = {
     "servers.add.noHosts": "Aucun hôte dans ~/.ssh/config",
     "servers.add.address.help": "Une adresse IP ou un nom d'hôte",
     "servers.add.port.help": "22 sur un serveur SSH ordinaire",
+    "servers.add.port.problem": "Un port est un nombre entier de 1 à {max}.",
     "servers.add.port.label": "Port",
     "servers.add.user.help":
       "root au premier contact, dev une fois la machine durcie",
@@ -163,31 +179,33 @@ export const servers = {
     "servers.add.test": "Tester la connexion",
     "servers.add.retest": "Retester",
     "servers.add.reached": "{software} a répondu en {ms} ms.",
-    "servers.add.reachedHelp":
-      "L'adresse répond et parle SSH. Que la clé l'ouvre, c'est l'inspection qui le dira, juste après.",
+    "servers.add.access.opens":
+      "Une clé de cet ordinateur ouvre déjà le compte : rien à taper.",
+    "servers.add.access.password": "Le compte demande son mot de passe.",
+    "servers.add.access.manualHelp":
+      "Le serveur peut quand même être ajouté : l'app vous donnera alors la clé et la ligne à coller.",
+    "servers.add.password.label": "Mot de passe du compte distant",
+    "servers.add.password.help":
+      "Il sert à cette seule connexion, n'est gardé nulle part et n'est jamais écrit dans un fichier ni un journal.",
+    "servers.add.installing": "Installation de la clé…",
+    "servers.add.submitWithPassword": "Ajouter et installer la clé",
     "servers.add.submitAnyway": "Ajouter quand même",
     "servers.add.submit": "Ajouter",
     "servers.add.recommended": "Recommandé",
 
     "servers.key.installing.title": "Installation de la clé",
     "servers.key.installing.detail":
-      "L'app pose elle-même la moitié publique sur {name}. Rien à coller, rien à taper.",
-    "servers.key.installing.note":
-      "La moitié privée ne quitte pas le dossier de cet ordinateur, en 0600.",
+      "L'app pose la moitié publique sur {name}.",
     "servers.key.phase.reaching": "On frappe avec la clé",
     "servers.key.phase.authorizing": "On l'écrit dans authorized_keys",
     "servers.key.phase.verifying": "On se connecte avec elle seule",
 
     "servers.key.installed.title": "{name} s'ouvre avec sa clé",
-    "servers.key.installed.detail":
-      "La moitié publique est sur la machine, et l'app vient de s'y connecter avec.",
     "servers.key.alreadyOpen.title": "{name} s'ouvre déjà",
-    "servers.key.alreadyOpen.detail":
-      "La clé était en place : rien n'a été écrit sur la machine.",
 
     "servers.key.password.title": "{name} demande son mot de passe",
     "servers.key.password.intro":
-      "Rien de ce que cet ordinateur détient n'ouvre encore {user}@{host}. Le mot de passe de ce compte permet à l'app d'y poser sa clé, une fois.",
+      "Aucune clé de cet ordinateur n'ouvre {user}@{host}. Son mot de passe permet à l'app d'en poser une, une fois.",
     "servers.key.password.label": "Mot de passe du compte distant",
     "servers.key.password.help":
       "Utilisé pour cette seule connexion, gardé nulle part, jamais écrit dans un fichier ni dans un journal.",
@@ -198,7 +216,7 @@ export const servers = {
 
     "servers.key.title": "{name} est prêt à recevoir sa clé",
     "servers.key.intro":
-      "La clé privée reste dans le dossier de l'app, en 0600. L'app n'a pas pu poser la moitié publique elle-même : la voici, avec la ligne qui l'installe.",
+      "L'app n'a pas pu poser la clé publique elle-même. La voici, avec la ligne qui l'installe.",
     "servers.key.publicHelp":
       "À ajouter dans ~/.ssh/authorized_keys du serveur si vous préférez le faire à la main.",
     "servers.key.commandHelp":
@@ -230,10 +248,6 @@ export const servers = {
     "servers.row.confirmForget": "Supprimer partout",
 
     "servers.panel.heading": "Vos serveurs",
-    "servers.panel.intro":
-      "L'app garde une configuration SSH à elle, une clé par serveur dans son dossier, et l'empreinte de chaque machine dès le premier contact.",
-    "servers.panel.emptyDetail":
-      "Une adresse, un compte, et une clé que l'app génère pour cet ordinateur.",
     "servers.panel.emptyTitle": "Aucun serveur pour l'instant",
   },
 } as const;

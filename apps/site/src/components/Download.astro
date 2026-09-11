@@ -24,8 +24,7 @@ import Section from "./Section.astro"
 const locale = localeFromPath(Astro.url.pathname)
 const t = translator(locale)
 const content = downloadContent(locale)
-const { releases, stale } = await loadReleases()
-const release = latestRelease(releases)
+const release = latestRelease(await loadReleases())
 const verifiable = (release?.assets ?? []).some((asset) => asset.sha256)
 
 const published = release
@@ -98,14 +97,6 @@ const trail = jsonLd(
         </a>
       </p>
     </Callout>
-
-    {
-      stale && (
-        <Callout kind="warn" title={content.stale.title}>
-          <p>{content.stale.body}</p>
-        </Callout>
-      )
-    }
 
     {verifiable && <p class="mt-8 text-ink-2">{content.assets.verify}</p>}
 

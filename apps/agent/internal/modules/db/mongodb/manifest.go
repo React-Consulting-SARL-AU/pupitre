@@ -22,8 +22,9 @@ func manifest() contract.Manifest {
 			{Key: "port", Kind: contract.FieldNumber, Label: i18n.T("module.db.mongodb.port.label"), Help: i18n.T("module.db.mongodb.port.help"), Format: contract.FormatPort, Required: true, Default: DefaultPort, Min: 1024, Max: 65535},
 			{Key: "app_user", Kind: contract.FieldText, Label: i18n.T("module.db.mongodb.app_user.label"), Help: i18n.T("module.db.mongodb.app_user.help"), Format: contract.FormatIdentifier, Required: true, Default: defaultAppUser},
 			{Key: "app_password", Kind: contract.FieldSecret, Label: i18n.T("module.db.mongodb.app_password.label"), Help: i18n.T("module.db.mongodb.app_password.help"), Required: true, Generate: true},
+			{Key: "cache_mb", Kind: contract.FieldNumber, Label: i18n.T("module.db.mongodb.cache_mb.label"), Help: i18n.T("module.db.mongodb.cache_mb.help"), HintText: i18n.T("module.db.mongodb.cache_mb.hint"), Required: false, Default: 0, Min: 0, Max: 262144},
 		},
-		Provides:  []string{"db:mongodb"},
+		Runs:      true,
 		Mandatory: false,
 		Since:     "0.1.0",
 	}

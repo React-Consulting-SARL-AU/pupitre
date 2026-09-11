@@ -25,7 +25,7 @@ func TestRunAsDevUsesArgvAndAFullEnvironment(t *testing.T) {
 	}
 
 	env := strings.Join(call.Env, "\n")
-	for _, want := range []string{"HOME=/home/dev", "USER=dev", "MISE_YES=1", "COREPACK_ENABLE_DOWNLOAD_PROMPT=0", "PATH=/home/dev/.local/bin:/home/dev/.local/share/mise/shims:/home/dev/.bun/bin:"} {
+	for _, want := range []string{"HOME=/home/dev", "USER=dev", "MISE_YES=1", "MISE_NPM_PACKAGE_MANAGER=npm", "COREPACK_ENABLE_DOWNLOAD_PROMPT=0", "PATH=/home/dev/.local/bin:/home/dev/.local/share/mise/shims:/home/dev/.bun/bin:"} {
 		if !strings.Contains(env, want) {
 			t.Errorf("env lacks %s:\n%s", want, env)
 		}

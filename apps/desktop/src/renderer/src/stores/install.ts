@@ -15,9 +15,13 @@ import {
   pending,
   record,
   type StepEntry,
+  settledBy,
   shaped,
   stepOf,
+  TERMINAL_STATUSES,
 } from "../lib/module-progress";
+import { useCatalog } from "./catalog";
+import { useChannel } from "./channel";
 
 /**
  * The installation as the screen watches it happen.
@@ -46,6 +50,8 @@ export type InstallState =
 interface Requested {
   modules: readonly string[];
   config: ModuleConfig;
+  /** What this installation left unconfigured, so a replay leaves it alone too. */
+  defer: readonly string[];
 }
 
 interface InstallStore {
@@ -53,19 +59,30 @@ interface InstallStore {
   modules: ModuleProgress[];
   log: string[];
   requested: Requested;
+  /** How long to wait between two readings of a report still being written. */
+  pollMs: number;
 
   start: (
     serverId: string,
     modules: readonly string[],
-    config: ModuleConfig
+    config: ModuleConfig,
+    /** Modules to put on the machine without configuring: their questions wait. */
+    defer?: readonly string[]
   ) => Promise<void>;
+  /** The catalogue's choice, once its generated secrets have landed. */
+  startChosen: (serverId: string) => Promise<void>;
   /** The configuration is given again when the reader has just retyped it. */
   replay: (
     serverId: string,
     moduleId: string,
     config?: ModuleConfig
   ) => Promise<void>;
-  /** Reads the report back, which is what a channel that dropped left behind. */
+  /** Runs every module that failed again, with the configuration it was given. */
+  replayFailed: (serverId: string) => Promise<void>;
+  /**
+   * Reads the report back, which is what a channel that dropped left behind —
+   * and reads it again while the machine is still writing it.
+   */
   reload: (serverId: string) => Promise<void>;
   reset: () => void;
 
@@ -79,6 +96,14 @@ interface InstallStore {
 
 const LOG_KEPT = 500;
 
+const REPORT_POLL_MS = 3000;
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
 function fromReport(reports: readonly ModuleReport[]): ModuleProgress[] {
   return reports.map((report) =>
     shaped(
@@ -88,6 +113,7 @@ function fromReport(reports: readonly ModuleReport[]): ModuleProgress[] {
         status: step.status,
         step: step.step,
         ...(step.replay ? { replay: step.replay } : {}),
+        ...(step.message ? { message: step.message } : {}),
       }))
     )
   );
@@ -123,9 +149,103 @@ function logLine(update: InstallUpdate): string | null {
   return `${step.module} · ${step.entry.step} · ${step.entry.status} · ${humanMs(step.entry.ms)}`;
 }
 
-const EMPTY: Requested = { config: {}, modules: [] };
+const EMPTY: Requested = { config: {}, defer: [], modules: [] };
+
+/**
+ * Nothing waits once the agent has answered. A module it said little of — an
+ * agent that emits no steps, a channel that swallowed them, a step whose end
+ * never came back — takes the fate the result gives it, so the list agrees with
+ * the sentence under it and no step is left turning under an install that is
+ * over.
+ */
+function settled(
+  modules: readonly ModuleProgress[],
+  ran: readonly string[],
+  result: InstallResult
+): ModuleProgress[] {
+  return modules.map((module) => {
+    if (TERMINAL_STATUSES.includes(module.status) || !ran.includes(module.id)) {
+      return module;
+    }
+
+    return settledBy(module, result.failed.includes(module.id));
+  });
+}
+
+/** The earlier result, with the replayed modules judged again. */
+function merged(
+  before: InstallResult,
+  after: InstallResult,
+  replayed: readonly string[]
+): InstallResult {
+  const others = (ids: readonly string[]) =>
+    ids.filter((id) => !replayed.includes(id));
+
+  return {
+    failed: [...others(before.failed), ...after.failed],
+    report_path: after.report_path,
+    warned: [...others(before.warned), ...after.warned],
+  };
+}
 
 export const useInstall = create<InstallStore>((set, get) => {
+  /** Which reading of the report is the current one: an older one stops. */
+  let reading = 0;
+
+  /**
+   * The report, read until it is finished.
+   *
+   * An empty `finished_at` is a machine still at work — after a channel the
+   * app gave up on, or on an install another session of the app left running.
+   * The screen shows what the report says, then asks again, and settles only
+   * on the report of a run that is over.
+   */
+  async function follow(serverId: string): Promise<void> {
+    reading += 1;
+    const turn = reading;
+
+    for (;;) {
+      const answer = await window.pupitre.installReport(serverId);
+
+      if (turn !== reading) {
+        return;
+      }
+
+      if (!answer.ok) {
+        set({ install: { error: answer.error, serverId, status: "failed" } });
+
+        return;
+      }
+
+      const finished = answer.result.finished_at !== "";
+
+      set({
+        install: finished
+          ? {
+              result: {
+                failed: answer.result.failed,
+                report_path: answer.result.report_path,
+                warned: answer.result.warned,
+              },
+              serverId,
+              status: "done",
+            }
+          : { serverId, status: "running" },
+        modules: fromReport(answer.result.modules),
+      });
+
+      if (finished) {
+        return;
+      }
+
+      await delay(get().pollMs);
+
+      if (turn !== reading) {
+        return;
+      }
+    }
+  }
+
   function note(update: InstallUpdate): void {
     const line = logLine(update);
 
@@ -159,79 +279,139 @@ export const useInstall = create<InstallStore>((set, get) => {
     }));
   }
 
+  /**
+   * A replay runs in the list it came from: the module goes back to pending
+   * where it stands, the others keep what the agent said of them, and the
+   * result is the earlier one with this module's fate corrected.
+   */
   async function run(
     serverId: string,
     modules: readonly string[],
-    config: ModuleConfig
+    config: ModuleConfig,
+    again = false,
+    defer: readonly string[] = []
   ): Promise<void> {
-    set({
+    const before = get().install;
+    const kept = before.status === "done" ? before.result : null;
+
+    reading += 1;
+
+    set((state) => ({
       install: { serverId, status: "running" },
-      log: [],
-      modules: pending(modules),
-    });
+      log: again ? state.log : [],
+      modules: again
+        ? state.modules.map((module) =>
+            modules.includes(module.id) ? pending([module.id])[0] : module
+          )
+        : pending(modules),
+    }));
 
     const answer = await window.pupitre.startInstall(
       serverId,
       modules,
       config,
-      note
+      note,
+      defer
     );
 
-    set({
+    // A machine already installing is not a machine that refused: the run this
+    // app started before it was closed, or another session's, is followed to
+    // its end rather than reported as a failure.
+    if (!answer.ok && answer.error.code === "busy") {
+      await follow(serverId);
+
+      return;
+    }
+
+    // A configuration the agent refused names its fields: the form marks them,
+    // as it would have had `install.check` caught them first.
+    if (!answer.ok && answer.error.remedy?.code === "invalid_fields") {
+      useCatalog.getState().noteProblems(answer.error.remedy.problems);
+    }
+
+    set((state) => ({
       install: answer.ok
-        ? { result: answer.result, serverId, status: "done" }
+        ? {
+            result: kept ? merged(kept, answer.result, modules) : answer.result,
+            serverId,
+            status: "done",
+          }
         : { error: answer.error, serverId, status: "failed" },
-    });
+      modules: answer.ok
+        ? settled(state.modules, modules, answer.result)
+        : state.modules,
+    }));
+  }
+
+  function replayOf(modules: readonly string[]): ModuleConfig {
+    const { requested } = get();
+    const config: ModuleConfig = {};
+
+    for (const id of modules) {
+      config[id] = { ...requested.config[id] };
+    }
+
+    return config;
   }
 
   return {
     install: { status: "idle" },
     log: [],
     modules: [],
+    pollMs: REPORT_POLL_MS,
     requested: EMPTY,
 
-    async start(serverId, modules, config) {
-      set({ requested: { config, modules } });
+    async start(serverId, modules, config, defer = []) {
+      set({ requested: { config, defer, modules } });
 
-      await run(serverId, modules, config);
+      await run(serverId, modules, config, false, defer);
     },
 
     async replay(serverId, moduleId, config) {
-      const { requested } = get();
-
-      if (!requested.modules.includes(moduleId)) {
+      if (!get().requested.modules.includes(moduleId)) {
         return;
       }
 
-      await run(serverId, [moduleId], {
-        [moduleId]: { ...(config?.[moduleId] ?? requested.config[moduleId]) },
-      });
+      await run(
+        serverId,
+        [moduleId],
+        config?.[moduleId]
+          ? { [moduleId]: { ...config[moduleId] } }
+          : replayOf([moduleId]),
+        true
+      );
     },
 
-    async reload(serverId) {
-      const answer = await window.pupitre.installReport(serverId);
+    async replayFailed(serverId) {
+      const modules = get().failed();
 
-      if (!answer.ok) {
-        set({ install: { error: answer.error, serverId, status: "failed" } });
-
+      if (modules.length === 0) {
         return;
       }
 
-      set({
-        install: {
-          result: {
-            failed: answer.result.failed,
-            report_path: answer.result.report_path,
-            warned: answer.result.warned,
-          },
-          serverId,
-          status: "done",
-        },
-        modules: fromReport(answer.result.modules),
-      });
+      await run(serverId, modules, replayOf(modules), true);
+    },
+
+    reload(serverId) {
+      return follow(serverId);
+    },
+
+    async startChosen(serverId) {
+      const catalog = useCatalog.getState();
+      const asked = catalog.selected;
+
+      await catalog.settled();
+      await get().start(
+        serverId,
+        asked,
+        catalog.config(),
+        catalog.deferred.filter((one) => asked.includes(one))
+      );
     },
 
     reset() {
+      reading += 1;
+
       set({
         install: { status: "idle" },
         log: [],
@@ -255,9 +435,15 @@ export const useInstall = create<InstallStore>((set, get) => {
     },
 
     failed() {
-      const { install } = get();
+      const { install, modules } = get();
 
-      return install.status === "done" ? install.result.failed : [];
+      if (install.status === "done") {
+        return install.result.failed;
+      }
+
+      return modules
+        .filter((module) => module.status === "fail")
+        .map((module) => module.id);
     },
 
     warned() {
@@ -266,4 +452,23 @@ export const useInstall = create<InstallStore>((set, get) => {
       return install.status === "done" ? install.result.warned : [];
     },
   };
+});
+
+/**
+ * A link that comes back finds the report where the install left it. The app
+ * only ever lost sight of the machine, never the machine itself: what the
+ * agent did while nobody watched is read back rather than done twice.
+ */
+useChannel.subscribe((now, before) => {
+  const { install, touched, reload } = useInstall.getState();
+
+  if (install.status !== "failed" || !touched()) {
+    return;
+  }
+
+  const { serverId } = install;
+
+  if (before.states[serverId] === "lost" && now.states[serverId] === "open") {
+    reload(serverId);
+  }
 });

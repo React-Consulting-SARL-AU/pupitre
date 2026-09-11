@@ -48,7 +48,6 @@ const manifest = {
   resources: { ram_mb: 512, disk_mb: 800 },
   arch: ["amd64", "arm64"],
   fields: [secretField, { ...secretField, key: "remote_password" }],
-  provides: ["db:postgres"],
   mandatory: false,
   since: "0.1.0",
 }
@@ -67,6 +66,11 @@ describe("ManifestSchema", () => {
         fields: [listField, booleanField],
       }).success
     ).toBe(true)
+  })
+
+  it("takes a module that says nothing about running as one that runs", () => {
+    expect(ManifestSchema.parse(manifest).runs).toBe(true)
+    expect(ManifestSchema.parse({ ...manifest, runs: false }).runs).toBe(false)
   })
 
   it("rejects an unknown category, a bad id and a missing resource", () => {
@@ -222,7 +226,6 @@ describe("module ids", () => {
       "editor.vscode",
       "editor.zed",
       "exposure.cloudflare",
-      "exposure.ssh",
       "exposure.caddy",
       "tool.github",
       "tool.1password",
@@ -265,13 +268,11 @@ describe("presets", () => {
       "ai.claude",
       "ai.browser",
       "editor.vscode",
-      "exposure.ssh",
     ])
     expect(getPreset("full").modules).toEqual(
       MODULE_IDS.filter((id) => !id.startsWith("exposure."))
     )
     expect(getPreset("full").choose_one).toEqual([
-      "exposure.ssh",
       "exposure.caddy",
       "exposure.cloudflare",
     ])
@@ -305,7 +306,14 @@ describe("presets", () => {
       PresetSchema.safeParse({
         id: "web-js",
         name: "Web JavaScript",
-        modules: ["core.unknown"],
+        modules: ["runtime.elixir"],
+      }).success
+    ).toBe(true)
+    expect(
+      PresetSchema.safeParse({
+        id: "web-js",
+        name: "Web JavaScript",
+        modules: ["Runtime Elixir"],
       }).success
     ).toBe(false)
     expect(

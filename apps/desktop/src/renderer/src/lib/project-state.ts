@@ -70,6 +70,19 @@ export const PROJECT_LOOK: Record<ProjectState, StateLook> = {
   },
 };
 
+/**
+ * A module put on the machine and left unconfigured.
+ *
+ * It is not a failure and not a service that stopped: nobody has answered its
+ * questions yet, and the shape has to say that rather than borrow an alarm.
+ */
+export const UNCONFIGURED_LOOK: StateLook = {
+  frame: "border-warn/40",
+  label: "state.service.unconfigured",
+  shape: "ringed",
+  tone: "warn",
+};
+
 export const SERVICE_LOOK: Record<ServiceState, StateLook> = {
   failed: {
     frame: "border-danger/40",

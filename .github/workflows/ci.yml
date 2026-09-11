@@ -1,7 +1,13 @@
 name: CI
 
+# A push to `staging` is checked once, on its own SHA. The pull request from
+# `staging` to `main` carries that same SHA, so GitHub shows the push's checks
+# on it: listing `main` under `pull_request` would run everything a second
+# time for nothing. Feature branches reach `staging` by pull request, and that
+# is where they are checked.
 on:
   pull_request:
+    branches: [staging]
   push:
     branches: [main, staging]
 
@@ -44,19 +50,19 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: package.json
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: apps/agent/go.mod
           cache-dependency-path: apps/agent/go.mod
 
       - name: Restore turbo cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: .turbo/cache
           key: turbo-${{ runner.os }}-Quality-${{ github.sha }}
@@ -66,6 +72,9 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Install the Go tools
+        run: bun --cwd=apps/agent run tools:install
 
       - name: Generate Prisma client
         run: bun run db:generate
@@ -81,8 +90,26 @@ jobs:
       - name: Typecheck
         run: bun run check:types
 
+      # The desktop app and the packages run once, below, with coverage on.
       - name: Test
-        run: bun run test
+        run: bun run test -- --filter='!@pupitre/desktop' --filter='!./packages/*'
+
+      - name: Test the desktop app and the packages with coverage
+        run: |
+          set -euo pipefail
+          for workspace in apps/desktop packages/*; do
+            bun --cwd="$workspace" run test --coverage --coverage-reporter=lcov --coverage-dir=coverage
+          done
+
+      - name: Upload the coverage reports
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-${{ github.sha }}
+          path: |
+            apps/desktop/coverage/lcov.info
+            packages/*/coverage/lcov.info
+          retention-days: 14
+          if-no-files-found: error
 
       # electron-builder has nothing to prove here; the desktop workspace still
       # goes through lint, typecheck and test above.
@@ -97,9 +124,9 @@ jobs:
     # pull request is not held on it.
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: package.json
 
@@ -114,7 +141,7 @@ jobs:
 
       - name: Upload the failure artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: playwright-${{ github.sha }}
           path: .playwright/artifacts
@@ -126,11 +153,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: package.json
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -146,12 +177,25 @@ jobs:
 
       - name: Upload the failure artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: playwright-desktop-${{ github.sha }}
           path: .playwright/desktop
           retention-days: 7
           if-no-files-found: ignore
+
+  gitleaks:
+    name: Secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   agent:
     name: Agent
@@ -161,28 +205,42 @@ jobs:
       run:
         working-directory: apps/agent
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: apps/agent/go.mod
           cache-dependency-path: apps/agent/go.mod
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: package.json
 
-      - name: Vet
+      - name: Install the Go tools
+        run: bun run tools:install
+
+      - name: Lint
         run: bun run lint
 
+      - name: Vulnerabilities
+        run: govulncheck ./...
+
       - name: Test
-        run: bun run test
+        run: go test -race -coverprofile=coverage.out ./...
+
+      - name: Upload the coverage profile
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-agent-${{ github.sha }}
+          path: apps/agent/coverage.out
+          retention-days: 14
+          if-no-files-found: error
 
       - name: Build linux/amd64 and linux/arm64
         run: bun run build
 
       - name: Upload binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: pupitred-${{ github.sha }}
           path: apps/agent/dist/pupitred-linux-*
@@ -191,7 +249,7 @@ jobs:
 
       - name: Install garble
         if: github.event_name == 'push' && (github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/main')
-        run: go install mvdan.cc/garble@latest
+        run: bun run garble:install
 
       # A throwaway key proves the release build compiles, obfuscates and stays
       # verifiable without touching the signing secret: real publication is the
@@ -213,7 +271,7 @@ jobs:
 
       - name: Upload release binaries
         if: github.event_name == 'push' && (github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/main')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: pupitred-release-${{ github.sha }}
           path: apps/agent/dist/release/pupitred-linux-*

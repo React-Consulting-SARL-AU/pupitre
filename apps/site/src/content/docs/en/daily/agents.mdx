@@ -1,38 +1,54 @@
 ---
 title: AI agents
-description: Running Claude Code, Codex and Hermes on the server, with your own subscriptions.
+description: Claude Code, Codex and Hermes on the server — how they are installed, what context they get, and where you sign in.
 locale: en
 section: daily
 sectionOrder: 2
-order: 4
+order: 6
 ---
 
 Pupitre installs the agents; you bring the subscriptions. Nothing is resold, and no token of yours is stored on the platform.
 
+## What gets installed
+
+`ai.claude` puts down the native binary Anthropic publishes, for this architecture, and refuses it unless its checksum matches the one the release manifest announces. `ai.codex` goes through `mise`, which pins and upgrades Codex the way it does a runtime and drops it on the path of every shell. `ai.hermes` runs the Nous Research agent on the Python runtime, with the model providers you configure.
+
+All three land in the `dev` account, on the same machine, and can live side by side.
+
 ## Signing in
 
-`ai.claude` and `ai.codex` sign in the way they do anywhere: the tool prints a URL in the terminal, you open it in your browser, you approve. The app shows that terminal, so the flow is the same one you already know — it just happens on the server.
+`ai.claude` and `ai.codex` sign in the way they do anywhere: the tool prints a URL, you open it in your browser, you approve. The app shows the terminal where that happens, so the flow is the one you already know — it just happens on the server, and the credentials stay there.
+
+`ai.hermes` has no such flow: it talks to the providers whose keys you gave at install time, and those keys sit in a file only root can read.
+
+## The context they read
+
+Every agent module writes the same machine context, under the name its tool reads — `CLAUDE.md` for Claude Code, `AGENTS.md` for Codex and Hermes. It says the plain things an agent working here needs to know: that this is a Linux server and not a workstation, where the projects live, that servers are driven with the `dev` command rather than started by hand, and that secrets come from the machine's own secret store rather than from a committed file.
+
+Beside it come the Pupitre skills, in `~/.agents/skills` and in the tool's own folder:
+
+- `server-dev` — register, start and diagnose a project with `dev`;
+- `capture` — take a screenshot and answer with a URL somebody else can open, not a local path;
+- `branch`, `pr`, `ship` — commit, push, open a pull request, in the repository's own convention.
+
+Claude Code also gets the `git-shipper` subagent. Updating a module rewrites the context and the skills; uninstalling takes back what the module wrote and leaves your conversations, your credentials and the skills you added yourself.
 
 ## From your own client
 
-You do not have to open an agent from Pupitre. The Claude desktop app and the ChatGPT desktop app both open a session on a remote machine over SSH: point one at your server and the agent runs there, in your projects, on the runtimes the modules installed. See [your own client](/docs/daily/clients/).
+You do not have to open an agent from Pupitre. The Claude desktop app takes an SSH connection with the key the app generated, and the ChatGPT desktop app reads the host aliases of your `~/.ssh/config` to run Codex there. Either way the agent runs on the server, in your projects, on the runtimes the modules installed. The whole setup is on [your own client](/docs/daily/clients/).
 
-## Context
+## Where an agent opens
 
-The app opens an agent in the project folder, not in a home directory. The project's own instruction files are there, and so are the Pupitre skills: take a screenshot, open a branch, open a pull request, ship.
+The app opens an agent in the project folder, not in a home directory. The project's own instruction files are there, and so are the skills above.
 
 ## Screenshots
 
-With `ai.browser` installed, an agent can drive headless Chrome and file the images in the project gallery. That is what lets it look at the page it just changed instead of describing what it thinks it did.
+With `ai.browser` installed, an agent can drive headless Chrome, file the image under `~/shots` and hand back a URL served on the loopback. That is what lets it look at the page it just changed instead of describing what it thinks it did. See [gallery](/docs/daily/gallery/).
 
 ## Running overnight
 
 An agent started in a `tmux` session keeps working when you close the app. That is the point of the machine: a long task does not need your laptop to stay open, and a build does not need your fans.
 
-## Hermes
-
-`ai.hermes` runs the Nous Research agent on the Python runtime, with the model providers you configure. If you ask for it to be always on, it gets a `systemd` unit. Provider keys land in a file only root can read.
-
 ## What Pupitre does not do
 
-It does not choose a model for you, does not proxy your requests, and does not read your conversations. It installs the tools, opens them in the right folder, and shows you the terminal.
+It does not choose a model for you, does not proxy your requests, and does not read your conversations. It installs the tools, gives them the context of the machine, opens them in the right folder, and shows you the terminal.

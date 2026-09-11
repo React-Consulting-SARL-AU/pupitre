@@ -37,8 +37,8 @@ Jobs-to-be-done :
 
 | Offre | Pour qui | Contenu | Prix HT |
 | --- | --- | --- | --- |
-| **Solo** | un utilisateur | jusqu'à deux serveurs apportés | 19 $ par serveur et par mois |
-| **Team** | une organisation | serveurs apportés, membres, rôles, attribution d'un serveur à une personne, audit, facture unique | 19 $ par serveur et par mois |
+| **Solo** | un utilisateur | jusqu'à deux serveurs apportés | 10 $ par serveur et par mois |
+| **Team** | une organisation | serveurs apportés, membres, rôles, attribution d'un serveur à une personne, audit, facture unique | 10 $ par serveur et par mois |
 | **Hosted** | qui ne veut pas louer | serveur fourni par Pupitre. Plus tard, après 100 serveurs payants | à partir de 29 $ par mois |
 
 Prix en dollars, la LLC vendant depuis les États-Unis ; Stripe convertit dans la devise du client au moment du paiement et ajoute la taxe applicable. Annuel avec deux mois offerts. Essai de 14 jours sans carte. Le prix par serveur est identique pour Solo et Team : l'agence achète l'organisation, pas un tarif. Noms en anglais sur toutes les surfaces publiques ; en français, Solo, Équipe, Hébergé.
@@ -58,7 +58,7 @@ L'ordre ne se contourne pas : chaque étape suppose la précédente.
 
 ## Le MVP
 
-Une app desktop complète, que le propriétaire utilise sur son propre VPS avec ses projets réels, depuis un compte et un abonnement en cours comme n'importe quel client. L'onboarding en sept étapes : ajouter un serveur, inspecter, choisir les services, configurer, installer, durcir et basculer de root vers `dev`, premier projet. Puis le quotidien : tableau de bord, projets, terminaux, agents, services, mise à jour.
+Une app desktop complète, que le propriétaire utilise sur son propre VPS avec ses projets réels, depuis un compte et un abonnement en cours comme n'importe quel client. L'onboarding en six étapes : ajouter un serveur, inspecter, choisir les services, configurer, installer, durcir et basculer de root vers `dev`. Les projets se créent ensuite, au fil des besoins. Puis le quotidien : tableau de bord, projets, terminaux, agents, services, mise à jour.
 
 Le MVP est réussi quand le propriétaire travaille tous les jours avec ses projets sur un serveur que l'app a entièrement installé, sans ouvrir un terminal hors de l'app.
 

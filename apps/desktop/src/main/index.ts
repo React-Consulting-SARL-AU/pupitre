@@ -7,54 +7,76 @@ import type {
   KeyInstall,
   KeyInstallPhase,
   ServerAdded,
+  ServerChanges,
   ServerDraft,
+  ServerKnock,
   ServerReach,
   ServersConfig,
+  ServerUpdated,
 } from "@shared/servers";
+import type { DeepLink, MenuCommand } from "@shared/shell";
+import type { StartupState } from "@shared/startup";
 import type { TerminalOpened } from "@shared/terminals";
 import {
   app,
   BrowserWindow,
   dialog,
   ipcMain,
+  Menu,
+  Notification,
   nativeTheme,
-  shell,
+  session,
 } from "electron";
 import { account, registerAccount } from "./account";
 import {
   agentClient,
+  currentLanguage,
   registerAgentChannels,
   registerLanguage,
   registerPlatformSync,
 } from "./agent";
 import { registerAgentUpdate } from "./agent-update";
 import { registerAppearance } from "./appearance";
-import { broadcastTo } from "./broadcast";
+import { attentionWatcher } from "./attention";
+import { broadcast, broadcastTo } from "./broadcast";
 import { registerCatalog } from "./catalog";
 import { completions } from "./completion";
 import { registerConnections } from "./connections";
-import { dialogText } from "./dialogs";
+import { releaseShell, reservedShell } from "./db-shell";
+import { deepLinkArgument, parseDeepLink } from "./deep-link";
+import { registerDevDefaults } from "./dev-defaults";
+import { dialogTextIn } from "./dialogs";
 import { asAgentError } from "./enrollment-run";
 import { registerFleet } from "./fleet";
+import { HARNESSED, openOutside, stayBehind } from "./foreground";
+import { githubRepos } from "./github";
 import { registerHarden } from "./harden";
 import { registerInspection } from "./inspection";
 import { registerInstall } from "./install";
 import { installKey } from "./key-install";
-import { closeLogin, moveLogin, openLogin } from "./login-view";
+import { knock } from "./knock";
+import { menuTemplate } from "./menu";
+import { openable, ownPage } from "./navigation";
 import { current, windowChrome } from "./platform";
-import { isLocalPlatform } from "./platform-client";
+import { awaitListening, closeForward, openForward } from "./port-forward";
+import { type PreferencesStore, preferencesStore } from "./preferences";
 import { registerProjects } from "./projects";
-import { declaresProject, forgetProjects, projectFolder } from "./projects-run";
-import { reachSsh } from "./reach";
+import {
+  declaresProject,
+  forgetProjects,
+  projectFolder,
+  projectPath,
+} from "./projects-run";
 import { registerReenroll } from "./reenroll";
 import { refusalOf } from "./refusal";
 import { relayTo } from "./relay";
-import { registerSecrets } from "./secrets";
+import { addServerRun } from "./server-add-run";
 import { SetupError } from "./server-setup";
 import {
   activate as activateServer,
   add as addServer,
   byId,
+  forgetOrphanPin,
   hostKey,
   publicKey,
   read,
@@ -62,25 +84,42 @@ import {
   rename as renameServer,
   sshHosts,
   paths as sshPaths,
+  sshPathsWritten,
   trustReinstalled,
-  write as writeConfig,
+  update as updateServer,
 } from "./servers";
-import { forgetServiceCredentials, registerServices } from "./services";
+import {
+  forgetServiceCredentials,
+  forwardDeps,
+  registerServices,
+} from "./services";
+import { registerShots } from "./shots";
+import {
+  type LoginDeps,
+  openFromTerminal,
+  openPendingLogin,
+  releaseForwards,
+  rememberForward,
+} from "./terminal-login";
 import { terminalCommand } from "./terminal-run";
 import {
   close,
   closeAll,
+  describeSession,
+  endSession,
   forgetLogin,
+  onStates,
   open,
   pendingLogin,
   resize,
+  serverOf,
   terminalDiagnostics,
   write,
 } from "./terminals";
 import { enableTrace, trace, tracesTo } from "./trace";
-import { startUpdater } from "./updater";
+import { registerTransfers, shutdownTransfers } from "./transfers";
+import { checkForUpdates, startUpdater } from "./updater";
 import { usageRefusal } from "./usage-guard";
-import { readBounds } from "./view-bounds";
 
 let window: BrowserWindow | null = null;
 
@@ -106,7 +145,6 @@ function settle(config: ServersConfig): ServersConfig {
   agentClient.closeAll();
   forgetProjects();
   forgetServiceCredentials();
-  closeLogin();
   closeAll();
 
   return config;
@@ -123,6 +161,111 @@ function nativeBackground(): string {
   return windowBackground(nativeTheme.shouldUseDarkColors ? "dark" : "light");
 }
 
+// Said at import, not on ready: macOS has already made the app the active one
+// by then, and a suite of scenarios would take the screen once per file.
+stayBehind();
+
+/**
+ * One instance of the app, and one only.
+ *
+ * A second launch — a double click, a link handed to the app by the system —
+ * hands over to the first, which comes to the front and reads what the second
+ * was launched with. Under the harness every scenario is its own instance on
+ * its own data folder, and none of them takes the screen.
+ */
+if (!(HARNESSED || app.requestSingleInstanceLock())) {
+  app.quit();
+}
+
+/**
+ * The link the app was opened with, kept until the page asks for it.
+ *
+ * A page that has not mounted yet listens to nothing: what arrives before it
+ * asks is held here, and handed over on `deep-link:pending`, once.
+ */
+let pendingLink: DeepLink | null = null;
+let pageListens = false;
+
+function bringToFront(): void {
+  if (HARNESSED || !window) {
+    return;
+  }
+
+  if (window.isMinimized()) {
+    window.restore();
+  }
+
+  window.show();
+  window.focus();
+}
+
+function relayMenu(command: MenuCommand): void {
+  bringToFront();
+  broadcast("menu:command", command);
+}
+
+/**
+ * A `pupitre://` link, checked against what this computer knows before it
+ * becomes a navigation; an unknown one is traced and goes nowhere.
+ */
+function openDeepLink(raw: string): void {
+  const link: DeepLink | null = parseDeepLink(raw, {
+    declares: declaresProject,
+    knows: (serverId) => byId(serverId) !== null,
+  });
+
+  if (!link) {
+    trace("app", "deep-link-refused", { url: raw });
+
+    return;
+  }
+
+  trace("app", "deep-link", { kind: link.kind });
+  bringToFront();
+
+  if (pageListens) {
+    broadcast("deep-link", link);
+  } else {
+    pendingLink = link;
+  }
+}
+
+app.on("second-instance", (_event, argv) => {
+  const link = deepLinkArgument(argv);
+
+  bringToFront();
+
+  if (link) {
+    openDeepLink(link);
+  }
+});
+
+app.on("open-url", (event, url) => {
+  event.preventDefault();
+  openDeepLink(url);
+});
+
+const DEV_URL = process.env.ELECTRON_RENDERER_URL;
+
+/**
+ * The renderer is a page the app ships, and stays one.
+ *
+ * It never navigates: a link it carries goes to the system browser through
+ * `openable`, or nowhere. The sandbox keeps the preload to what the bridge
+ * needs, and no permission — camera, notifications, geolocation — is granted
+ * to a page that never asks for one on purpose.
+ */
+function pageRules(): { devUrl: string | undefined; indexFile: string } {
+  return { devUrl: DEV_URL, indexFile: beside("../renderer/index.html") };
+}
+
+function hardenSession(): void {
+  session.defaultSession.setPermissionRequestHandler((_c, _p, callback) =>
+    callback(false)
+  );
+  session.defaultSession.setPermissionCheckHandler(() => false);
+}
+
 function createWindow(): void {
   window = new BrowserWindow({
     width: 1280,
@@ -136,12 +279,21 @@ function createWindow(): void {
     webPreferences: {
       preload: beside("../preload/index.cjs"),
       contextIsolation: true,
+      devTools: !app.isPackaged,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
     },
   });
 
-  window.on("ready-to-show", () => window?.show());
+  // Under the harness the window is never shown at all. Playwright reaches the
+  // page over the debugger, which draws and captures a window nobody displays;
+  // showing it — even without the focus — would drop it over whatever the
+  // person at this machine is doing, once per scenario file.
+  window.on("ready-to-show", () => {
+    if (!HARNESSED) {
+      window?.show();
+    }
+  });
 
   // The trace follows the window that exists now: a reopened window on macOS
   // gets the lines, and a closed one is not written to.
@@ -152,22 +304,134 @@ function createWindow(): void {
     broadcastTo(null);
   });
 
-  nativeTheme.on("updated", () =>
-    window?.setBackgroundColor(nativeBackground())
-  );
+  const rules = pageRules();
+
+  window.webContents.on("will-navigate", (event, url) => {
+    if (!ownPage(url, rules)) {
+      trace("app", "navigation-refused", { url });
+      event.preventDefault();
+    }
+  });
 
   window.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    if (openable(url, app.isPackaged)) {
+      openOutside(url);
+    }
+
     return { action: "deny" };
   });
 
-  const devUrl = process.env.ELECTRON_RENDERER_URL;
-  if (devUrl) {
-    window.loadURL(devUrl);
+  window.on("closed", () => {
+    pageListens = false;
+  });
+
+  if (DEV_URL) {
+    window.loadURL(DEV_URL);
   } else {
-    window.loadFile(beside("../renderer/index.html"));
+    window.loadFile(rules.indexFile);
   }
 }
+
+let preferences: PreferencesStore | null = null;
+
+/** Read once the data folder is settled, which is after the command line is. */
+function preferencesOf(): PreferencesStore {
+  preferences ??= preferencesStore(
+    join(app.getPath("userData"), "preferences.json")
+  );
+
+  return preferences;
+}
+
+const STARTUP_PLATFORMS: NodeJS.Platform[] = ["darwin", "win32"];
+
+function startupState(): StartupState {
+  return {
+    enabled: preferencesOf().read().launchAtLogin,
+    supported: STARTUP_PLATFORMS.includes(process.platform),
+  };
+}
+
+/**
+ * The file is the wish, the system's list of login items is where it lands.
+ * Under the harness nothing is registered: a suite is a dozen launches, and
+ * none of them should leave the test app in the reader's login items.
+ */
+function setStartup(enabled: boolean): StartupState {
+  preferencesOf().set({ launchAtLogin: enabled });
+
+  if (!HARNESSED && STARTUP_PLATFORMS.includes(process.platform)) {
+    app.setLoginItemSettings({ openAtLogin: enabled });
+  }
+
+  return startupState();
+}
+
+function registerPreferences(): void {
+  ipcMain.handle(
+    "notifications:enabled",
+    () => preferencesOf().read().notifications
+  );
+  ipcMain.handle(
+    "notifications:set",
+    (_e, enabled: unknown) =>
+      preferencesOf().set({ notifications: enabled === true }).notifications
+  );
+  ipcMain.handle("startup:state", () => startupState());
+  ipcMain.handle("startup:set", (_e, enabled: unknown) =>
+    setStartup(enabled === true)
+  );
+}
+
+function paintBadge(count: number): void {
+  if (process.platform === "darwin") {
+    app.dock?.setBadge(count > 0 ? String(count) : "");
+  } else {
+    app.setBadgeCount(count);
+  }
+}
+
+/**
+ * A session that starts waiting while the reader is elsewhere says so once,
+ * outside the window. The Dock counts the ones still waiting. Neither happens
+ * under the harness, where nothing may reach the screen.
+ */
+function watchAttention(): void {
+  if (HARNESSED) {
+    return;
+  }
+
+  onStates(
+    attentionWatcher({
+      allowed: () => preferencesOf().read().notifications,
+      badge: paintBadge,
+      focused: () => window?.isFocused() ?? false,
+      notify: (id) => {
+        const session = describeSession(id);
+
+        if (!(session && Notification.isSupported())) {
+          return;
+        }
+
+        const language = currentLanguage();
+        const notice = new Notification({
+          body: dialogTextIn(language, "attentionBody", {
+            title: [session.kind, session.project].filter(Boolean).join(" · "),
+          }),
+          title: dialogTextIn(language, "attentionTitle"),
+        });
+
+        notice.on("click", () => {
+          bringToFront();
+          broadcast("terminal-wanted", { id });
+        });
+        notice.show();
+      },
+    })
+  );
+}
+
+nativeTheme.on("updated", () => window?.setBackgroundColor(nativeBackground()));
 
 function registerServerChannels(): void {
   ipcMain.handle("servers", (): ServersConfig => read());
@@ -175,51 +439,39 @@ function registerServerChannels(): void {
 
   ipcMain.handle(
     "server-reach",
-    (_e, host: string, port: number): Promise<ServerReach> =>
-      reachSsh(host, port)
-  );
-  ipcMain.handle("servers-write", (_e, config: ServersConfig) =>
-    settle(writeConfig(config))
+    (_e, target: ServerKnock): Promise<ServerReach> =>
+      knock(target, sshPathsWritten(), {
+        forgetStalePin: () => forgetOrphanPin(target),
+      })
   );
 
+  /**
+   * The password, when the knock asked for one, crosses here with the draft
+   * and goes straight to one `ssh`: the server is added and opened in the same
+   * gesture, or not added at all when the machine refuses it.
+   */
   ipcMain.handle(
     "server-add",
-    async (_e, draft: ServerDraft): Promise<AgentResponse<ServerAdded>> => {
+    (_e, draft: ServerDraft): Promise<AgentResponse<ServerAdded>> => {
       const refused = usageRefusal(() => account.guard());
 
       if (refused) {
-        return refused;
+        return Promise.resolve(refused);
       }
 
-      try {
-        const created = await addServer(draft);
-
-        return {
-          ok: true,
-          result: {
-            config: settle(read()),
-            copyId: created.copyId,
-            publicKey: created.publicKey,
-            server: created.server,
-          },
-        };
-      } catch (error) {
-        return error instanceof SetupError
-          ? {
-              ok: false,
-              error: {
-                code: "bad_request",
-                message: error.message,
-                phrase: error.phrase,
-              },
-            }
-          : {
-              ok: false,
-              error: {
-                ...refusalOf("internal", "refusal.server.added"),
-              },
-            };
-      }
+      return addServerRun(draft, {
+        add: addServer,
+        config: () => settle(read()),
+        install: (server, half, password) =>
+          installKey({
+            freshKey: true,
+            password,
+            paths: sshPaths(),
+            publicKey: half,
+            server,
+          }),
+        remove: (id) => removeServer(id).then(() => undefined),
+      });
     }
   );
 
@@ -231,14 +483,57 @@ function registerServerChannels(): void {
   ipcMain.handle("server-activate", (_e, id: unknown) =>
     typeof id === "string" ? settle(activateServer(id)) : read()
   );
-  ipcMain.handle("server-remove", (_e, id: unknown) => {
+
+  /**
+   * The address, the port or the account of a server, as the reader typed
+   * them. Each is checked here before it becomes a line of the SSH file; the
+   * channels are dropped, since the ones open reach the old address.
+   */
+  ipcMain.handle(
+    "server-update",
+    async (
+      _e,
+      id: unknown,
+      changes: unknown
+    ): Promise<AgentResponse<ServerUpdated>> => {
+      if (typeof id !== "string" || !byId(id)) {
+        return {
+          ok: false,
+          error: { ...refusalOf("bad_request", "refusal.server.unknown") },
+        };
+      }
+
+      try {
+        const updated = await updateServer(id, serverChanges(changes));
+
+        agentClient.close(id);
+        settle(updated.config);
+
+        return { ok: true, result: updated };
+      } catch (failure) {
+        if (failure instanceof SetupError) {
+          return {
+            ok: false,
+            error: {
+              code: "bad_request",
+              message: failure.message,
+              phrase: failure.phrase,
+            },
+          };
+        }
+
+        throw failure;
+      }
+    }
+  );
+  ipcMain.handle("server-remove", async (_e, id: unknown) => {
     if (typeof id !== "string") {
       return read();
     }
 
     agentClient.close(id);
 
-    return settle(removeServer(id));
+    return settle(await removeServer(id));
   });
 
   /**
@@ -271,7 +566,7 @@ function registerServerChannels(): void {
 
       agentClient.close(server.id);
 
-      return { ok: true, result: settle(removeServer(server.id)) };
+      return { ok: true, result: settle(await removeServer(server.id)) };
     }
   );
 
@@ -358,18 +653,46 @@ function registerServerChannels(): void {
    */
   ipcMain.handle("key-file-pick", async (): Promise<string | null> => {
     const picked = await dialog.showOpenDialog({
-      buttonLabel: dialogText("import"),
+      buttonLabel: dialogTextIn(currentLanguage(), "import"),
       defaultPath: join(app.getPath("home"), ".ssh"),
       properties: ["openFile", "showHiddenFiles"],
-      title: dialogText("pickKey"),
+      title: dialogTextIn(currentLanguage(), "pickKey"),
     });
 
     return picked.canceled ? null : (picked.filePaths[0] ?? null);
   });
 }
 
+/** What the renderer may change on a server, read field by field and nothing else. */
+function serverChanges(value: unknown): ServerChanges {
+  const held = (value ?? {}) as Record<string, unknown>;
+
+  return {
+    ...(typeof held.host === "string" ? { host: held.host } : {}),
+    ...(typeof held.port === "number" ? { port: held.port } : {}),
+    ...(typeof held.user === "string" ? { user: held.user } : {}),
+  };
+}
+
 const DEFAULT_COLS = 100;
 const DEFAULT_ROWS = 30;
+
+/**
+ * The root of the server's files, as the agent's own completions name it: the
+ * folder above the projects root. It is what a folder of the server view
+ * counts from, and it is never a string the renderer chose.
+ */
+async function workRoot(serverId: string): Promise<string | null> {
+  const named = await completions(serverId, "");
+
+  if (!named.ok) {
+    return null;
+  }
+
+  const at = named.result.root.lastIndexOf("/");
+
+  return at > 0 ? named.result.root.slice(0, at) : null;
+}
 
 function size(value: unknown, fallback: number): number {
   return typeof value === "number" && value > 1 ? Math.floor(value) : fallback;
@@ -386,8 +709,10 @@ function registerTerminalChannels(): void {
       serverId: unknown,
       kind: unknown,
       project: unknown,
+      session: unknown,
       cols: unknown,
-      rows: unknown
+      rows: unknown,
+      dir: unknown
     ): Promise<AgentResponse<TerminalOpened>> => {
       if (typeof id !== "string") {
         return {
@@ -398,12 +723,24 @@ function registerTerminalChannels(): void {
         };
       }
 
-      const decided = await terminalCommand(serverId, kind, project, {
-        client: agentClient,
-        declares: declaresProject,
-        folder: projectFolder,
-        knows: (candidate) => read().servers.some((s) => s.id === candidate),
-      });
+      // A tab the Services screen asked for runs the command the agent gave
+      // for that database, held here under the tab's identifier: what the
+      // renderer names for it is read no further.
+      const held = reservedShell(id, serverId);
+      const decided = held
+        ? { ok: true as const, result: held }
+        : await terminalCommand(
+            { dir, id, kind, project, serverId, session },
+            {
+              client: agentClient,
+              declares: declaresProject,
+              folder: projectFolder,
+              knows: (candidate) =>
+                read().servers.some((s) => s.id === candidate),
+              path: projectPath,
+              root: workRoot,
+            }
+          );
 
       if (!decided.ok) {
         return decided;
@@ -445,64 +782,71 @@ function registerTerminalChannels(): void {
     }
   );
 
-  ipcMain.on("terminal-close", (_e, id: unknown) => {
+  ipcMain.on("terminal-close", (_e, id: unknown, end: unknown) => {
     if (typeof id === "string") {
-      closeLogin();
+      releaseForwards(id, closeForward);
+      releaseShell(id);
       close(id);
+      endSession(end);
     }
   });
-}
-
-/** The renderer names a session and a rectangle; the address is the one it printed. */
-function registerLoginChannels(): void {
-  ipcMain.handle("login-open", (event, id: unknown, box: unknown): boolean => {
-    const bounds = readBounds(box);
-    const address = typeof id === "string" ? pendingLogin(id) : null;
-
-    if (!(window && bounds && address && typeof id === "string")) {
-      return false;
-    }
-
-    openLogin({
-      bounds,
-      onClosed: (terminalId) => {
-        forgetLogin(terminalId);
-
-        if (!event.sender.isDestroyed()) {
-          event.sender.send("login-closed", terminalId);
-        }
-      },
-      onCode: (terminalId, code) => write(terminalId, `${code}\r`),
-      terminalId: id,
-      url: address.url,
-      window,
-    });
-
-    return true;
-  });
-
-  ipcMain.on("login-move", (_e, box: unknown) => {
-    const bounds = readBounds(box);
-
-    if (bounds) {
-      moveLogin(bounds);
-    }
-  });
-
-  ipcMain.on("login-close", () => closeLogin());
 }
 
 /**
- * A development build also opens the console running beside it, which speaks
- * plain HTTP on this computer. Everywhere else the browser only ever leaves for
- * an https address.
+ * A sign-in that comes back to a port of the machine is carried here on the
+ * same port, and held for as long as the session that asked for it.
  */
-function openable(url: string): boolean {
-  if (url.startsWith("https://")) {
-    return true;
+async function forwardLogin(
+  id: string,
+  serverId: string,
+  port: number
+): Promise<boolean> {
+  const answer = await openForward(serverId, port, "login", forwardDeps, {
+    localPort: port,
+  });
+
+  if (!answer.ok) {
+    trace("login", `port ${port}: ${answer.error.message}`);
+
+    return false;
   }
 
-  return !app.isPackaged && url.startsWith("http://") && isLocalPlatform(url);
+  rememberForward(id, answer.result.id);
+
+  return awaitListening(port);
+}
+
+const loginDeps: LoginDeps = {
+  forward: forwardLogin,
+  openExternal: openOutside,
+  openable: (url) => openable(url, app.isPackaged),
+  pending: pendingLogin,
+  serverOf,
+};
+
+/** The renderer names a session; the address it opens is the one that session printed. */
+function registerLoginChannels(): void {
+  ipcMain.handle(
+    "login-open",
+    (_e, id: unknown): Promise<boolean> =>
+      typeof id === "string"
+        ? openPendingLogin(id, loginDeps)
+        : Promise.resolve(false)
+  );
+
+  ipcMain.on("login-dismiss", (_e, id: unknown) => {
+    if (typeof id === "string") {
+      forgetLogin(id);
+    }
+  });
+
+  ipcMain.handle(
+    "terminal-open-url",
+    (_e, id: unknown, url: unknown): Promise<boolean> =>
+      typeof id === "string" && typeof url === "string"
+        ? openFromTerminal(id, url, loginDeps)
+        : Promise.resolve(false)
+  );
 }
 
 function registerChannels(): void {
@@ -519,21 +863,36 @@ function registerChannels(): void {
   registerLanguage();
   registerProjects();
   registerConnections();
+
+  ipcMain.handle("github:repos", (_event, refresh: unknown) =>
+    githubRepos(refresh === true)
+  );
+  registerDevDefaults();
   registerPlatformSync();
-  registerSecrets();
   registerServices();
   registerServerChannels();
   registerTerminalChannels();
   registerLoginChannels();
+  registerTransfers({ root: workRoot });
+  registerShots();
 
   ipcMain.handle("completions", (_e, serverId: unknown, path: unknown) =>
     completions(serverId, path)
   );
 
   ipcMain.handle("open-url", (_e, url: unknown) => {
-    if (typeof url === "string" && openable(url)) {
-      shell.openExternal(url);
+    if (typeof url === "string" && openable(url, app.isPackaged)) {
+      openOutside(url);
     }
+  });
+
+  ipcMain.handle("deep-link:pending", (): DeepLink | null => {
+    const link = pendingLink;
+
+    pageListens = true;
+    pendingLink = null;
+
+    return link;
   });
 }
 
@@ -563,9 +922,34 @@ app
     enableTrace(!app.isPackaged);
     trace("app", "ready", { packaged: app.isPackaged, platform: current() });
 
+    hardenSession();
+    Menu.setApplicationMenu(
+      Menu.buildFromTemplate(
+        menuTemplate(process.platform, app.isPackaged, app.getLocale(), {
+          checkUpdates: checkForUpdates,
+          goToProject: () => relayMenu("palette"),
+          newTerminal: () => relayMenu("new-terminal"),
+          preferences: () => relayMenu("preferences"),
+          signOut: () => relayMenu("sign-out"),
+        })
+      )
+    );
+
+    if (app.isPackaged) {
+      app.setAsDefaultProtocolClient("pupitre");
+    }
+
     registerChannels();
+    registerPreferences();
     startUpdater();
+    watchAttention();
     createWindow();
+
+    const opened = deepLinkArgument(process.argv);
+
+    if (opened) {
+      openDeepLink(opened);
+    }
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();
@@ -573,6 +957,10 @@ app
     });
   })
   .catch((failure: unknown) => stumbled("start-failed", failure));
+
+app.on("before-quit", () => {
+  shutdownTransfers();
+});
 
 app.on("window-all-closed", () => {
   closeAll();

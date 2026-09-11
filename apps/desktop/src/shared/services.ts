@@ -18,6 +18,8 @@ export interface ServiceDetail {
   id: string;
   name: string;
   state: ServiceState;
+  /** False for a module put on the machine with its questions left unanswered. */
+  configured: boolean;
   version?: string;
   port?: number;
   unit?: string;
@@ -76,4 +78,18 @@ export interface PortForward {
   localPort: number;
   /** What it was opened for — a module identifier, or a bare port. */
   label: string;
+  /** The local port this forward took last time, when something else held it now. */
+  movedFrom?: number;
+}
+
+/**
+ * A database shell the main process has opened the way to.
+ *
+ * The renderer named a module; the command the agent composed for it stays on
+ * the other side of the bridge, under the identifier of the tab that will run
+ * it. What crosses is that identifier and the tmux session it attaches to.
+ */
+export interface DatabaseShell {
+  id: string;
+  session: string;
 }

@@ -38,7 +38,7 @@ export function SeatBalanceCard({ balance, paidSeats }: SeatBalanceCardProps) {
 
         {verdict === "unused" ? (
           <Callout
-            fix={paidSeats ? t("seats.spareFixPaid") : t("seats.spareFixFree")}
+            fix={paidSeats ? t("seats.spareFixPaid") : undefined}
             title={t.plural("seats.spare", spare)}
             tone={paidSeats ? "danger" : "neutral"}
           />

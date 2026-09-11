@@ -10,7 +10,7 @@ export const localeSchema = t.UnionEnum([...LOCALES])
 
 export const localeInputBody = t.Object({ locale: localeSchema })
 
-/** La langue, l'organisation active, ou les deux : ce que l'appelant tait ne bouge pas. */
+/** The locale, the active organization, or both: what the caller leaves out does not move. */
 export const meInputBody = t.Object({
   locale: t.Optional(localeSchema),
   organization_id: t.Optional(t.String({ minLength: 1 })),
@@ -21,6 +21,16 @@ const organizationSummary = {
   name: t.String(),
   slug: t.String(),
 }
+
+export const meSubscriptionSchema = t.Object(
+  {
+    status: t.String(),
+    trial_ends_at: t.Nullable(dateTime),
+    current_period_end: t.Nullable(dateTime),
+    servers: t.Object({ used: t.Integer(), limit: t.Integer() }),
+  },
+  { $id: "MeSubscription" }
+)
 
 export const meSchema = t.Object(
   {
@@ -38,6 +48,7 @@ export const meSchema = t.Object(
     active_organization: t.Nullable(t.Object(organizationSummary)),
     role: t.Nullable(t.UnionEnum([...ORG_ROLES])),
     entitlement: t.UnionEnum([...ME_ENTITLEMENTS]),
+    subscription: t.Nullable(meSubscriptionSchema),
   },
   { $id: "Me" }
 )

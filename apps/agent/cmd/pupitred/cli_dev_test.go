@@ -29,7 +29,7 @@ func TestInstallRunsOnADevBuild(t *testing.T) {
 	for _, want := range []string{
 		"✓ tool.demo · install-package",
 		"✗ db.broken · install-package",
-		"rejeu : sudo pupitred install --only=db.broken",
+		"replay: sudo pupitred install --only=db.broken",
 		"1 failed step(s)",
 	} {
 		if !strings.Contains(stderr, want) {
@@ -61,7 +61,10 @@ func TestInstallRunsOnADevBuild(t *testing.T) {
 
 func TestInstallOnlyAndSkipFilterTheRequest(t *testing.T) {
 	fake, dir := setupCLI(t)
-	writeInstallJSON(t, dir, modules.Request{Modules: []string{"tool.demo", "db.broken"}})
+	writeInstallJSON(t, dir, modules.Request{
+		Modules: []string{"tool.demo", "db.broken"},
+		Secrets: map[string]map[string]string{"tool.demo": {"password": "s3cret-de-test"}},
+	})
 
 	code, _, stderr := runCLI(t, "install", "--skip=db.broken")
 	if code != 0 || strings.Contains(stderr, "db.broken") || !strings.Contains(stderr, "No failed step") {
@@ -109,4 +112,33 @@ func decodeReport(t *testing.T, stdout string) contract.Report {
 	}
 
 	return report
+}
+
+// The app left a module for later; naming it on the machine is what answers for it.
+func TestInstallOnlyAnswersForAModuleLeftForLater(t *testing.T) {
+	fake, dir := setupCLI(t)
+	writeInstallJSON(t, dir, modules.Request{
+		Modules: []string{"tool.demo"},
+		Defer:   []string{"tool.demo"},
+		Secrets: map[string]map[string]string{"tool.demo": {"password": "s3cret-de-test"}},
+	})
+
+	code, _, stderr := runCLI(t, "install")
+	if code != 0 || strings.Contains(stderr, "tool.demo · write-config") {
+		t.Fatalf("a plain replay must leave a deferred module unconfigured, code = %d:\n%s", code, stderr)
+	}
+
+	code, _, stderr = runCLI(t, "install", "--only=tool.demo")
+	if code != 0 || !strings.Contains(stderr, "✓ tool.demo · write-config") {
+		t.Fatalf("code = %d, stderr:\n%s", code, stderr)
+	}
+
+	if fake.EnvValue("DEMO_PASSWORD") != "s3cret-de-test" {
+		t.Fatal("the named replay did not configure the module")
+	}
+
+	// The engine writes through the machine it was given, not through the file the CLI read.
+	if raw := fake.Files[filepath.Join(dir, "install.json")]; strings.Contains(string(raw), `"defer"`) {
+		t.Fatalf("install.json still defers tool.demo:\n%s", raw)
+	}
 }

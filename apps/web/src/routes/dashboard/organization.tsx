@@ -19,11 +19,7 @@ function OrganizationPage() {
 
   return (
     <>
-      <PageHeader
-        description={t("page.organization.description")}
-        parents={parents}
-        title={t(title)}
-      />
+      <PageHeader parents={parents} title={t(title)} />
       <OrganizationCard />
     </>
   )

@@ -1,0 +1,22 @@
+# Un projet JVM redémarré sous son agent de débogage, et un projet sans port déclaré.
+@file /etc/hostname pupitre-staging
+@file /etc/os-release ID=ubuntu\nVERSION_ID="24.04"
+@file /proc/meminfo MemTotal: 8127744 kB\nMemAvailable: 6291456 kB\nSwapTotal: 2097152 kB\nSwapFree: 2097152 kB
+@file /proc/loadavg 0.12 0.34 0.56 1/512 900
+@file /proc/uptime 98765.43 700000.00
+@file /etc/pupitre/env PUPITRE_DEBUG_PORTS="api:5005"
+@file /etc/pupitre/projects.conf api|api/server|https://github.com/me/api|gradle|127.0.0.1|8080|api|SERVER_PORT=8080 ./gradlew bootRun\nweb|web|-|bun|127.0.0.1|3000|web|bun run dev --port 3000
+@dir /home/dev/projects/api/server
+@dir /home/dev/projects/web
+@reply nproc 4
+@answer uname -m :: aarch64
+@answer df -P -B1 Filesystem 1B-blocks Used Available Capacity Mounted\n/dev/sda1 85899345920 21474836480 64424509440 25% /
+@serves api 8080
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+> {"id":2,"cmd":"project.up","params":{"name":"api"}}
+> {"id":3,"cmd":"project.debug","params":{"name":"api"}}
+> {"id":4,"cmd":"project.debug","params":{"name":"web"}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["agent.open","catalog","completions","diag","doctor","fs.list","fs.mkdir","fs.read","fs.remove","fs.rename","fs.stat","fs.write","hello","install","install.check","module.config","ping","process.kill","processes.list","project.add","project.branches","project.checkout","project.debug","project.detect","project.diff","project.down","project.git_status","project.install","project.list","project.logs","project.remove","project.restart","project.sync","project.up","project.update","project.url","project.working_tree","reboot","report","service.logs","service.restart","service.secret","service.start","service.status","service.stop","sessions.clean","sessions.list","shots.clean","shots.list","shots.read","shots.url","snapshot","status","uninstall","upgrade"]}}
+< {"id":2,"ok":true,"result":{"state":"online","port":8080}}
+< {"id":3,"ok":true,"result":{"state":"online","port":8080,"debug_port":5005}}
+< {"id":4,"ok":false,"error":{"code":"bad_request","message":"web exposes no debug port","fix":"Declare it in /etc/pupitre/env: PUPITRE_DEBUG_PORTS=\"web:5005\"."}}

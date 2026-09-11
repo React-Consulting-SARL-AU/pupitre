@@ -44,6 +44,8 @@ export const StepEventSchema = z.object({
   status: StepStatusSchema,
   ms: z.int().nonnegative(),
   replay: z.string().optional(),
+  /** What the agent has to say about the step: why a `fail` failed (raw, redacted), or the warning an `ok` carries. */
+  message: z.string().optional(),
 })
 
 export type StepEvent = z.infer<typeof StepEventSchema>

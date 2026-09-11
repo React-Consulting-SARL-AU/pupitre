@@ -5,7 +5,6 @@ import type {
   ProjectGitStatusResult,
   ProjectWorkingTreeResult,
 } from "@pupitre/shared/agent-protocol/projects";
-import type { SecretStatus } from "@pupitre/shared/agent-protocol/secrets";
 import type { SnapshotResult } from "@pupitre/shared/agent-protocol/state";
 
 /**
@@ -47,8 +46,11 @@ export const SNAPSHOT: SnapshotResult = {
       port: 3000,
       ram_mb: 412,
       repo: "https://example.org/moi/flymate.git",
+      routes: [
+        { hostname: "flymate.example.org", label: "web", port: 3000 },
+        { hostname: "api-flymate.example.org", label: "api", port: 3001 },
+      ],
       state: "online",
-      subdomain: "flymate",
       uptime_s: 5400,
       url: "https://flymate.example.org",
     },
@@ -60,6 +62,7 @@ export const SNAPSHOT: SnapshotResult = {
       path: "/home/dev/projects/atlas",
       pkgmgr: "pnpm",
       port: 3100,
+      routes: [{ label: "web", port: 3100 }],
       state: "stopped",
     },
     {
@@ -72,21 +75,51 @@ export const SNAPSHOT: SnapshotResult = {
       pkgmgr: "gradle",
       port: 3200,
       ram_mb: 1536,
+      routes: [],
       state: "failed",
     },
   ],
   services: [
     {
+      configured: true,
       id: "db.postgres",
       name: "PostgreSQL",
       port: 5432,
+      runs: true,
       state: "running",
       unit: "postgresql.service",
       version: "17.2",
     },
-    { id: "ai.claude", name: "Claude Code", state: "running" },
-    { id: "editor.jetbrains", name: "JetBrains Remote Dev", state: "stopped" },
-    { id: "exposure.cloudflare", name: "Cloudflare Tunnel", state: "failed" },
+    {
+      configured: true,
+      id: "ai.claude",
+      name: "Claude Code",
+      runs: true,
+      state: "running",
+    },
+    {
+      configured: true,
+      id: "editor.jetbrains",
+      name: "JetBrains Remote Dev",
+      runs: true,
+      state: "stopped",
+    },
+    {
+      configured: true,
+      id: "exposure.cloudflare",
+      name: "Cloudflare Tunnel",
+      runs: true,
+      state: "failed",
+    },
+    // Put on the machine and left for later: not a failure, and the screen has
+    // to say which of the two it is.
+    {
+      configured: false,
+      id: "tool.github",
+      name: "GitHub",
+      runs: false,
+      state: "stopped",
+    },
   ],
   sessions: [
     {
@@ -142,7 +175,7 @@ export const BRANCHES: ProjectBranchesResult = {
   current: "main",
   dirty: true,
   local: ["main", "feat/tarifs"],
-  remote: ["origin/main", "origin/feat/tarifs", "origin/release"],
+  remote: ["main", "feat/tarifs", "release"],
   repo: true,
   root: "/home/dev/projects/flymate",
 };
@@ -195,8 +228,3 @@ export const DIFF: ProjectDiffResult = {
   path: "src/lib/tva.ts",
   problem: "",
 };
-
-export const SECRETS: SecretStatus[] = [
-  { key: "GITHUB_TOKEN", set: true },
-  { key: "CLOUDFLARE_TOKEN", set: false },
-];

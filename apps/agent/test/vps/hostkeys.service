@@ -1,0 +1,15 @@
+[Unit]
+Description=Host keys of the test VPS, kept on their own volume
+Before=ssh.service ssh.socket
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Written out one key at a time, with no shell variable: systemd expands `$name`
+# and `${name}` in ExecStart itself, so a loop over key kinds would hand sshd a
+# path with a hole in it — and sshd with no host key does not start at all.
+ExecStart=/bin/sh -c 'test -f /etc/ssh/hostkeys/ssh_host_ed25519_key || ssh-keygen -q -t ed25519 -f /etc/ssh/hostkeys/ssh_host_ed25519_key -N ""'
+ExecStart=/bin/sh -c 'test -f /etc/ssh/hostkeys/ssh_host_rsa_key || ssh-keygen -q -t rsa -b 4096 -f /etc/ssh/hostkeys/ssh_host_rsa_key -N ""'
+
+[Install]
+WantedBy=multi-user.target ssh.socket

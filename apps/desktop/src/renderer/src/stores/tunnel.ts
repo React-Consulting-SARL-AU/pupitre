@@ -29,7 +29,12 @@ interface TunnelStore {
   read: (serverId: string) => Promise<void>;
   sync: (serverId: string) => Promise<void>;
   restart: (serverId: string) => Promise<void>;
-  readForwards: (serverId: string) => Promise<void>;
+  /**
+   * Starts listening to the main process, which holds every forward of this
+   * computer and says so each time one opens, closes or dies on its own.
+   */
+  follow: () => () => void;
+  readForwards: () => Promise<void>;
   forward: (
     serverId: string,
     remotePort: number,
@@ -39,7 +44,15 @@ interface TunnelStore {
   forget: () => void;
 }
 
-export const useTunnel = create<TunnelStore>((set) => {
+/** The forwards of one server, out of the whole list the main process holds. */
+export function forwardsOf(
+  forwards: readonly PortForward[],
+  serverId: string | null
+): PortForward[] {
+  return forwards.filter((forward) => forward.serverId === serverId);
+}
+
+export const useTunnel = create<TunnelStore>((set, get) => {
   async function drive(serverId: string, cmd: TunnelCommand): Promise<void> {
     set({ busy: cmd, problem: null });
 
@@ -73,16 +86,49 @@ export const useTunnel = create<TunnelStore>((set) => {
       await drive(serverId, "tunnel.status");
     },
 
-    sync(serverId) {
-      return drive(serverId, "tunnel.sync");
+    /**
+     * The routes are the agent's, the names that reach them are the app's: it
+     * holds the account token, so the records that point each hostname at the
+     * tunnel are written from here once the agent has said which ones it serves.
+     */
+    async sync(serverId) {
+      await drive(serverId, "tunnel.sync");
+
+      const { tunnel } = get();
+
+      if (
+        tunnel.status !== "ready" ||
+        tunnel.tunnel.provider !== "cloudflare"
+      ) {
+        return;
+      }
+
+      set({ busy: "tunnel.sync" });
+
+      const written = await window.pupitre.syncTunnelRecords(
+        serverId,
+        tunnel.tunnel.routes
+      );
+
+      set({ busy: null, problem: written.ok ? null : written.error });
     },
 
     restart(serverId) {
       return drive(serverId, "tunnel.restart");
     },
 
-    async readForwards(serverId) {
-      set({ forwards: await window.pupitre.portForwards(serverId) });
+    follow() {
+      const stop = window.pupitre.onPortForwards((forwards) =>
+        set({ forwards })
+      );
+
+      get().readForwards();
+
+      return stop;
+    },
+
+    async readForwards() {
+      set({ forwards: await window.pupitre.portForwards() });
     },
 
     async forward(serverId, remotePort, label) {
@@ -100,7 +146,7 @@ export const useTunnel = create<TunnelStore>((set) => {
         return;
       }
 
-      set({ forwards: await window.pupitre.portForwards(serverId) });
+      set({ forwards: await window.pupitre.portForwards() });
     },
 
     async closeForward(id) {

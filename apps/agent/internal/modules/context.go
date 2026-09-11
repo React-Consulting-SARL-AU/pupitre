@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/sys"
 )
 
@@ -21,6 +22,10 @@ type Context struct {
 	steps  []contract.ReportStep
 	failed bool
 	warned bool
+	// What the module had to say since the last step closed: it rides on that step.
+	warning string
+	// The step under way, which the report in progress shows as started.
+	open string
 }
 
 type ContextOptions struct {
@@ -176,14 +181,15 @@ func (c *Context) SecretList(key string) []string {
 
 func (c *Context) Step(name string, fn func() (Outcome, error)) error {
 	started := c.run.now()
-	c.emit(name, contract.StepStart, 0, "")
+	c.open = name
+	c.emit(name, contract.StepStart, 0, "", "")
 
 	outcome, err := guard(fn)
 	ms := c.run.now().Sub(started).Milliseconds()
 
 	if err != nil || outcome == Failed {
 		if err == nil {
-			err = errors.New("step failed")
+			err = errors.New(i18n.T("modules.step.failed"))
 		}
 
 		return c.fail(name, ms, err)
@@ -194,8 +200,10 @@ func (c *Context) Step(name string, fn func() (Outcome, error)) error {
 		status = contract.StepSkip
 	}
 
-	c.steps = append(c.steps, contract.ReportStep{Step: name, Status: status, Ms: ms})
-	c.emit(name, status, ms, "")
+	warning := c.takeWarning()
+	c.open = ""
+	c.steps = append(c.steps, contract.ReportStep{Step: name, Status: status, Ms: ms, Message: warning})
+	c.emit(name, status, ms, "", warning)
 	c.Logf("%s %s", marker(status), name)
 
 	return nil
@@ -206,18 +214,30 @@ func (c *Context) fail(name string, ms int64, err error) error {
 	replay := c.Replay()
 
 	c.failed = true
+	c.open = ""
 	c.steps = append(c.steps, contract.ReportStep{Step: name, Status: contract.StepFail, Ms: ms, Replay: replay, Message: message})
-	c.emit(name, contract.StepFail, ms, replay)
+	c.emit(name, contract.StepFail, ms, replay, message)
 	c.Logf("✗ %s : %s", name, message)
-	c.Logf("  rejeu : %s", replay)
+	c.Logf("%s", i18n.T("modules.step.replay", replay))
 
 	return &StepError{Module: c.manifest.ID, Step: name, Message: message, Replay: replay}
 }
 
 func (c *Context) Warn(message string) {
+	if !c.warned {
+		c.run.warned = append(c.run.warned, c.manifest.ID)
+	}
+
 	c.warned = true
-	c.run.warned = append(c.run.warned, c.manifest.ID+" : "+c.run.journal.redact(message))
+	c.warning = strings.TrimSpace(c.warning + "\n" + c.run.journal.redact(message))
 	c.Logf("! %s", message)
+}
+
+func (c *Context) takeWarning() string {
+	warning := c.warning
+	c.warning = ""
+
+	return warning
 }
 
 func (c *Context) Events() []contract.StepEvent {
@@ -228,19 +248,41 @@ func (c *Context) Output() []string {
 	return c.run.journal.lines()
 }
 
-func (c *Context) emit(step string, status contract.StepStatus, ms int64, replay string) {
-	event := contract.StepEvent{Module: c.manifest.ID, Step: step, Status: status, Ms: ms, Replay: replay}
+func (c *Context) emit(step string, status contract.StepStatus, ms int64, replay, message string) {
+	event := contract.StepEvent{Module: c.manifest.ID, Step: step, Status: status, Ms: ms, Replay: replay, Message: message}
 
 	if status != contract.StepStart {
 		c.run.events = append(c.run.events, event)
 	}
+
+	c.run.progress(c)
 
 	if c.run.emit != nil {
 		c.run.emit(event)
 	}
 }
 
+// The module as it stands, the step under way included: what the report says
+// of it while it is still at work.
+func (c *Context) snapshot() contract.ModuleReport {
+	steps := append([]contract.ReportStep{}, c.steps...)
+	if c.open != "" {
+		steps = append(steps, contract.ReportStep{Step: c.open, Status: contract.StepStart})
+	}
+
+	return contract.ModuleReport{ID: c.manifest.ID, Status: c.status(), Steps: steps}
+}
+
+// A warning said after the last step still reaches the report: on that step, or on one of its own.
 func (c *Context) report() contract.ModuleReport {
+	if warning := c.takeWarning(); warning != "" {
+		if last := len(c.steps) - 1; last >= 0 && c.steps[last].Message == "" {
+			c.steps[last].Message = warning
+		} else {
+			c.steps = append(c.steps, contract.ReportStep{Step: "warning", Status: contract.StepOK, Message: warning})
+		}
+	}
+
 	steps := c.steps
 	if steps == nil {
 		steps = []contract.ReportStep{}
@@ -272,21 +314,10 @@ func (c *Context) allSkipped() bool {
 	return true
 }
 
-func (c *Context) failures() []string {
-	var lines []string
-	for _, step := range c.steps {
-		if step.Status == contract.StepFail {
-			lines = append(lines, fmt.Sprintf("%s · %s : %s · rejeu : %s", c.manifest.ID, step.Step, step.Message, step.Replay))
-		}
-	}
-
-	return lines
-}
-
 func guard(fn func() (Outcome, error)) (outcome Outcome, err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
-			outcome, err = Failed, fmt.Errorf("panique : %v", recovered)
+			outcome, err = Failed, errors.New(i18n.T("engine.step.panic", recovered))
 		}
 	}()
 
@@ -309,6 +340,51 @@ type run struct {
 	done    map[string]bool
 	events  []contract.StepEvent
 	warned  []string
+
+	// The report as the modules already settled left it, the one at work, and
+	// how the two reach the disk: before every step event, so the report is
+	// never behind what the channel was told.
+	written contract.Report
+	current *Context
+	persist func(contract.Report)
+}
+
+func (r *run) following(ctx *Context) {
+	r.current = ctx
+}
+
+func (r *run) settled(report contract.Report) {
+	r.written = report
+	r.current = nil
+
+	if r.persist != nil {
+		r.persist(r.inProgress())
+	}
+}
+
+func (r *run) progress(ctx *Context) {
+	if r.persist == nil || r.current != ctx {
+		return
+	}
+
+	r.persist(r.inProgress())
+}
+
+// FinishedAt stays empty: this report is the one of a run still under way.
+func (r *run) inProgress() contract.Report {
+	report := r.written
+	report.Modules = append([]contract.ModuleReport{}, report.Modules...)
+	report.Failed = append([]string{}, report.Failed...)
+	report.Warned = append([]string{}, r.warned...)
+
+	if r.current != nil {
+		report.Modules = append(report.Modules, r.current.snapshot())
+		if r.current.failed {
+			report.Failed = append(report.Failed, r.current.manifest.ID)
+		}
+	}
+
+	return report
 }
 
 type runOptions struct {

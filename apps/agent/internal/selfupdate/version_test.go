@@ -34,14 +34,18 @@ func TestCompareVersionsOrdersSemver(t *testing.T) {
 	}
 }
 
-// A version that is not semver still has to order somehow, and it must never read as newer than one that is.
+// A version that is not semver still has to order somehow, so the order stays total; whether such a version may serve as a floor is the upgrader's decision, not this one's.
 func TestCompareVersionsFallsBackOnTheStringOrder(t *testing.T) {
 	if selfupdate.CompareVersions("nightly", "nightly") != 0 {
 		t.Fatal("two identical non-semver versions must compare equal")
 	}
 
-	if !selfupdate.Older("1.0.0", "nightly") {
-		t.Fatal("l'ordre de secours doit rester total")
+	if !selfupdate.Older("1.0.0", "nightly") || !selfupdate.Older("1.4.0", "dev") {
+		t.Fatal("the fallback order must stay total")
+	}
+
+	if selfupdate.Older("nightly", "1.0.0") {
+		t.Fatal("the fallback order must stay antisymmetric")
 	}
 }
 

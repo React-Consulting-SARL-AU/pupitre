@@ -4,14 +4,14 @@ description: Adding a project, what the agent does with it, and how it reaches a
 locale: en
 section: daily
 sectionOrder: 2
-order: 1
+order: 2
 ---
 
 A project is a git repository or a folder on the server. The agent keeps a registry of them, and the app shows what the registry says. Nothing is inferred.
 
 ## Adding one
 
-Give a git URL or point at a folder that already exists. The agent then:
+“New project”, on the dashboard or in the sidebar. Give a git URL or point at a folder that already exists under the projects directory; the agent reads the source before declaring anything — the package manager it locks, the script that starts it, the port it asks for if that port is free — and the form proposes the rest: a name taken from the address, a port no declared project holds, the start command. Everything stays editable; the server decides what it accepts and says so. Once created, the agent:
 
 1. clones the repository into your projects directory, or adopts the folder;
 2. detects the package manager and installs dependencies;
@@ -39,4 +39,4 @@ If `tool.1password` is installed, a project that carries an `.env.local` templat
 
 ## Exposure
 
-By default a project listens on localhost and the app reaches it through the SSH session — `exposure.ssh`. With `exposure.cloudflare` installed, you can give a project a route on your domain: one tunnel for the machine, one route per project, DNS and certificate handled.
+By default a project listens on localhost and the app reaches it through the SSH session it already holds. That is a state, not a module: tick no exposure and nothing is published. With `exposure.cloudflare` installed, you can give a project a route on your domain — one tunnel for the machine, one route per project, DNS and certificate handled; `exposure.caddy` does the same for a domain outside Cloudflare.

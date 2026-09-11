@@ -1,3 +1,4 @@
+import { Details } from "@renderer/components/ui/details";
 import { StatusDot } from "@renderer/components/ui/status-dot";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { EnrollmentSummary } from "@shared/account";
@@ -32,13 +33,12 @@ export function OnboardingEnrollmentNote({
         <p className="font-medium text-ink">
           {t("onboarding.enrollment.title")}
         </p>
-        <p className="mt-1 text-ink-3 leading-relaxed">
-          {t("onboarding.enrollment.detail")}
-        </p>
-        <p className="mt-2 break-all font-data text-[12px] text-ink-4">
-          {enrollment.serverId} · pupitred {enrollment.release.version} ·{" "}
-          {enrollment.release.channel}
-        </p>
+        <Details className="mt-1">
+          <span className="font-data">
+            {enrollment.serverId} · pupitred {enrollment.release.version} ·{" "}
+            {enrollment.release.channel}
+          </span>
+        </Details>
       </div>
     </div>
   );

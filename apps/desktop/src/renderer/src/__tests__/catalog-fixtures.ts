@@ -58,8 +58,8 @@ export const CORE_SYSTEM: Manifest = {
       default: "/home/dev/projects",
     },
   ],
-  provides: ["system"],
   mandatory: true,
+  runs: false,
   since: "0.1.0",
 };
 
@@ -82,8 +82,8 @@ export const CORE_HARDENING: Manifest = {
       default: false,
     },
   ],
-  provides: ["hardening"],
   mandatory: true,
+  runs: false,
   since: "0.1.0",
 };
 
@@ -105,8 +105,8 @@ export const RUNTIME_JAVA: Manifest = {
       default: "21",
     },
   ],
-  provides: ["runtime:java"],
   mandatory: false,
+  runs: false,
   since: "0.1.0",
 };
 
@@ -135,8 +135,8 @@ export const RUNTIME_NODE: Manifest = {
       default: true,
     },
   ],
-  provides: ["runtime:node"],
   mandatory: false,
+  runs: false,
   since: "0.1.0",
 };
 
@@ -166,8 +166,8 @@ export const DB_POSTGRES: Manifest = {
       generate: true,
     },
   ],
-  provides: ["db:postgres"],
   mandatory: false,
+  runs: true,
   since: "0.1.0",
 };
 
@@ -204,8 +204,8 @@ export const DB_MYSQL: Manifest = {
       generate: true,
     },
   ],
-  provides: ["db:mysql"],
   mandatory: false,
+  runs: true,
   since: "0.1.0",
 };
 
@@ -231,8 +231,8 @@ export const DB_MONGODB: Manifest = {
       generate: true,
     },
   ],
-  provides: ["db:mongodb"],
   mandatory: false,
+  runs: true,
   since: "0.1.0",
 };
 
@@ -262,8 +262,8 @@ export const EDITOR_JETBRAINS: Manifest = {
       default: "2026.2",
     },
   ],
-  provides: ["editor:jetbrains"],
   mandatory: false,
+  runs: true,
   since: "0.1.0",
 };
 
@@ -295,8 +295,8 @@ export const EDITOR_VSCODE: Manifest = {
       default: false,
     },
   ],
-  provides: ["editor:vscode"],
   mandatory: false,
+  runs: true,
   since: "0.1.0",
 };
 
@@ -327,8 +327,8 @@ export const AI_HERMES: Manifest = {
       default: false,
     },
   ],
-  provides: ["agent:hermes"],
   mandatory: false,
+  runs: true,
   since: "0.1.0",
 };
 
@@ -365,8 +365,8 @@ export const EXPOSURE_CLOUDFLARE: Manifest = {
       required: true,
     },
   ],
-  provides: ["exposure:public"],
   mandatory: false,
+  runs: true,
   since: "0.1.0",
 };
 
@@ -380,8 +380,8 @@ export const EXPOSURE_CADDY: Manifest = {
   resources: { ram_mb: 128, disk_mb: 100 },
   arch: [...BOTH],
   fields: [{ key: "domain", kind: "text", label: "Domaine", required: true }],
-  provides: ["exposure:public"],
   mandatory: false,
+  runs: true,
   since: "0.1.0",
 };
 
@@ -396,8 +396,8 @@ export const TOOL_LEGACY: Manifest = {
   resources: { ram_mb: 64, disk_mb: 200 },
   arch: ["amd64"],
   fields: [],
-  provides: ["tool:legacy"],
   mandatory: false,
+  runs: false,
   since: "0.2.0",
 };
 
@@ -477,8 +477,8 @@ export const DB_CLICKHOUSE: Manifest = {
       generate: true,
     },
   ],
-  provides: ["db:clickhouse"],
   mandatory: false,
+  runs: true,
   since: "0.5.0",
 };
 

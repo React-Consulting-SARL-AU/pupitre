@@ -1,5 +1,11 @@
 import { z } from "zod"
-import { COMMAND_NAMES, COMMANDS, RESTRICTED_COMMANDS } from "../agent-protocol"
+import {
+  COMMAND_NAMES,
+  COMMANDS,
+  MIGRATION_COMMANDS,
+  RESTRICTED_COMMANDS,
+  UNENROLLED_COMMANDS,
+} from "../agent-protocol"
 import {
   EventSchema,
   LogEventSchema,
@@ -12,11 +18,19 @@ import {
   ProtocolErrorCodeSchema,
   ProtocolErrorSchema,
 } from "../agent-protocol/errors"
+import { FileEventSchema } from "../agent-protocol/files"
 import { InstallSecretsSchema } from "../agent-protocol/install"
+import { ConfigRevisionSchema } from "../agent-protocol/migrate"
 import { ShotEventSchema } from "../agent-protocol/processes"
 import { SecretEventSchema } from "../agent-protocol/secrets"
 import { EnrollSecretsSchema } from "../agent-protocol/system"
-import { FieldSchema, ManifestSchema, PRESETS, PresetSchema } from "../catalog"
+import {
+  FieldSchema,
+  MANDATORY_MODULE_IDS,
+  ManifestSchema,
+  PRESETS,
+  PresetSchema,
+} from "../catalog"
 import { FORMAT_PATTERNS } from "../catalog/formats"
 import { FieldProblemSchema } from "../catalog/validate"
 import { GENERATIONS, type Generation } from "../compat"
@@ -64,10 +78,14 @@ export const CONTRACT_DEFINITIONS: Readonly<Record<string, z.ZodType>> = {
   StepEvent: StepEventSchema,
   SecretEvent: SecretEventSchema,
   ShotEvent: ShotEventSchema,
+  FileEvent: FileEventSchema,
   Response: ResponseSchema,
   ProtocolError: ProtocolErrorSchema,
   ErrorCode: ProtocolErrorCodeSchema,
   RestrictedCommands: z.enum(RESTRICTED_COMMANDS),
+  UnenrolledCommands: z.enum(UNENROLLED_COMMANDS),
+  MigrationCommands: z.enum(MIGRATION_COMMANDS),
+  ConfigRevision: ConfigRevisionSchema,
   ...commandDefinitions(),
   InstallSecrets: InstallSecretsSchema,
   EnrollSecrets: EnrollSecretsSchema,
@@ -78,6 +96,11 @@ export const CONTRACT_DEFINITIONS: Readonly<Record<string, z.ZodType>> = {
 }
 
 export const CONTRACT_CONSTANTS: Readonly<Record<string, JsonObject>> = {
+  MandatoryModules: {
+    type: "array",
+    items: { type: "string" },
+    const: MANDATORY_MODULE_IDS,
+  },
   Presets: {
     type: "array",
     items: { $ref: "#/$defs/Preset" },

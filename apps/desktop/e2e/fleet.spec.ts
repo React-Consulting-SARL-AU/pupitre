@@ -1,5 +1,6 @@
 import type { ElectronApplication } from "@playwright/test";
 import { expect, test } from "@playwright/test";
+import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
 /**
@@ -132,9 +133,13 @@ test.describe("serveur attribué", () => {
     await expect(page.getByText(ADDRESS).first()).toBeVisible();
     await expect(page.getByText("Atelier Ada").first()).toBeVisible();
 
+    await assertAccessible(page, "reglages/flotte");
+
     await page.getByRole("button", { exact: true, name: "Ouvrir" }).click();
 
-    await expect(page.getByText("Premier projet")).toBeVisible();
+    // Already installed by the organisation: the app opens on it, and no
+    // assistant stands in the way.
     await expect(page.getByText("atelier partagé").first()).toBeVisible();
+    await expect(page.getByText("Quitter l'assistant")).toHaveCount(0);
   });
 });

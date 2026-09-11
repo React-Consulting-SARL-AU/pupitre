@@ -131,6 +131,7 @@ describe("l'ajout d'un serveur", () => {
           result: {
             config: { active: "srv-a", servers: [STAGING] },
             copyId: "ssh-copy-id -i /data/keys/srv-a.pub root@203.0.113.10",
+            keyInstall: null,
             publicKey: "ssh-ed25519 AAAAC3Nz pupitre srv-a",
             server: STAGING,
           },
@@ -145,6 +146,30 @@ describe("l'ajout d'un serveur", () => {
       status: "added",
     });
     expect(useServers.getState().config?.servers).toEqual([STAGING]);
+    expect(useServers.getState().keyInstall).toEqual({ status: "idle" });
+  });
+
+  it("arrive avec sa clé posée quand le mot de passe est parti avec le brouillon", async () => {
+    stubPupitre({
+      addServer: () =>
+        Promise.resolve({
+          ok: true,
+          result: {
+            config: { active: "srv-a", servers: [STAGING] },
+            copyId: "ssh-copy-id -i /data/keys/srv-a.pub root@203.0.113.10",
+            keyInstall: { installed: true, status: "opened" },
+            publicKey: "ssh-ed25519 AAAAC3Nz pupitre srv-a",
+            server: STAGING,
+          },
+        }),
+    });
+
+    await useServers.getState().add({ ...DRAFT, password: "hunter2" });
+
+    expect(useServers.getState().keyInstall).toEqual({
+      installed: true,
+      status: "opened",
+    });
   });
 
   it("garde le remède du refus tel quel", async () => {

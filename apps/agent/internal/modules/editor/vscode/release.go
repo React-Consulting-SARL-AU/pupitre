@@ -2,14 +2,14 @@ package vscode
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"runtime"
 	"strings"
 
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
-	"pupitre.studio/agent/internal/modules/runtime/shell"
+	"pupitre.studio/agent/internal/modules/download"
 	"pupitre.studio/agent/internal/sys/file"
-	"pupitre.studio/agent/internal/sys/user"
 )
 
 const updateURL = "https://update.code.visualstudio.com"
@@ -18,23 +18,37 @@ const updateURL = "https://update.code.visualstudio.com"
 type release struct {
 	Commit  string `json:"commit"`
 	Version string `json:"version"`
+
+	url    string
+	sha256 string
 }
 
-func resolve(ctx *modules.Context) (release, error) {
-	out, err := user.Run(ctx, shell.User, "curl", "-fsSL", "--proto", "=https", "--tlsv1.2", updateURL+"/api/update/linux-"+arch()+"/stable/latest")
+// The update service answers one build at a time — the server, the CLI — with the archive to fetch and its SHA-256.
+func latest(ctx *modules.Context, build string) (release, error) {
+	out, err := download.Text(ctx, updateURL+"/api/update/"+build+"/stable/latest")
 	if err != nil {
 		return release{}, err
 	}
 
 	var answer struct {
+		URL            string `json:"url"`
 		Version        string `json:"version"`
 		ProductVersion string `json:"productVersion"`
+		SHA256         string `json:"sha256hash"`
 	}
-	if err := json.Unmarshal([]byte(out), &answer); err != nil || answer.Version == "" {
-		return release{}, fmt.Errorf("unreadable answer from %s", updateURL)
+	if err := json.Unmarshal([]byte(out), &answer); err != nil || answer.Version == "" || answer.URL == "" || len(answer.SHA256) != 64 {
+		return release{}, errors.New(i18n.T("modules.vscode.update_unreadable", updateURL))
 	}
 
-	return release{Commit: answer.Version, Version: answer.ProductVersion}, nil
+	return release{Commit: answer.Version, Version: answer.ProductVersion, url: answer.URL, sha256: answer.SHA256}, nil
+}
+
+func resolve(ctx *modules.Context) (release, error) {
+	return latest(ctx, "server-linux-"+arch())
+}
+
+func cli(ctx *modules.Context) (release, error) {
+	return latest(ctx, "cli-linux-"+arch())
 }
 
 func recorded(ctx *modules.Context) release {
@@ -68,14 +82,6 @@ func (r release) serverCLI() string {
 // Remote SSH of the last releases looks under cli/servers, older ones under bin: one extraction, both layouts.
 func (r release) serverLink() string {
 	return cliServers + "/Stable-" + r.Commit + "/server"
-}
-
-func serverURL(commit string) string {
-	return updateURL + "/commit:" + commit + "/server-linux-" + arch() + "/stable"
-}
-
-func cliURL() string {
-	return updateURL + "/latest/cli-linux-" + arch() + "/stable"
 }
 
 func arch() string {

@@ -263,7 +263,7 @@ test.describe("console", () => {
       )
 
       await expect(
-        page.getByText("C'est ici que l'app Pupitre se lie à votre compte")
+        page.getByRole("heading", { level: 1, name: "Confirmer un appareil" })
       ).toBeVisible()
 
       await page.getByRole("button", { name: "Vérifier le code" }).click()

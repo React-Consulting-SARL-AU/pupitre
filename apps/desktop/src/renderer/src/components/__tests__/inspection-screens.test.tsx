@@ -43,16 +43,18 @@ describe("machine nue", () => {
 
   it("porte le verdict bare et le résumé de la machine", () => {
     expect(html).toContain('data-kind="bare"');
-    expect(text(html)).toContain("Machine nue");
+    expect(text(html)).toContain("Prête à être installée");
     expect(text(html)).toContain("Distribution ubuntu 24.04");
     expect(text(html)).toContain("Architecture amd64");
-    expect(text(html)).toContain("Mémoire 8192 Mo");
+    expect(text(html)).toContain("Mémoire 8,0 Go");
     expect(text(html)).toContain("Disque libre 38,4 Go");
-    expect(text(html)).toContain("8192 Mo · 38,4 Go libres");
   });
 
-  it("propose l'installation", () => {
+  it("propose l'installation, sur la barre où l'étape finit", () => {
     expect(buttons(html)).toEqual(["Installer", "Choisir un autre serveur"]);
+    expect(html.indexOf('data-actions="inspection"')).toBeLessThan(
+      html.indexOf(">Installer<")
+    );
   });
 });
 
@@ -152,11 +154,25 @@ describe("les quatre verdicts", () => {
   });
 
   it("n'inventent aucune phrase que la sonde n'a pas dite", () => {
-    for (const probe of [BARE, MANAGED, OCCUPIED, INCOMPATIBLE]) {
+    for (const probe of [OCCUPIED, INCOMPATIBLE]) {
       const rendered = text(screen(probe));
 
       for (const line of [...probe.verdict.reasons, ...probe.verdict.fixes]) {
         expect(rendered).toContain(text(line).trim());
+      }
+    }
+  });
+
+  it("ne répètent pas un verdict que le titre dit déjà", () => {
+    for (const probe of [BARE, MANAGED]) {
+      const rendered = text(screen(probe));
+
+      for (const line of probe.verdict.reasons) {
+        expect(rendered).not.toContain(text(line).trim());
+      }
+
+      for (const fix of probe.verdict.fixes) {
+        expect(rendered).toContain(text(fix).trim());
       }
     }
   });

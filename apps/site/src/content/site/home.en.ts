@@ -10,6 +10,7 @@ export const homeEn: HomeContent = {
     eyebrow: "For Mac, Windows and Linux",
     headline:
       "Your AI agents get a machine of their own. Your laptop cools down.",
+    cooled: "cools down",
     lead: "Rent a server that stays on day and night, and let Pupitre set it up for you. Your tools, your databases and your agents install themselves, and you watch it all from an app on your desk.",
     signUp: "Create an account",
     download: "Download the app",
@@ -30,7 +31,6 @@ export const homeEn: HomeContent = {
       "The school desk. The sloping wooden lid you lifted to find your books, two to a bench, at the back of a classroom.",
       "By extension, the stand a conductor reads from, and the console an engineer sits at.",
     ],
-    note: "We gave one to your agents. Yours is the laptop you have just closed.",
   },
   steps: {
     label: "How it works",
@@ -123,7 +123,7 @@ export const homeEn: HomeContent = {
         ],
       },
     ],
-    note: "You connect each tool once. After that, the Pupitre app is where the install, the services and the alerts live — not a window you are made to work in.",
+    note: "You connect each tool once.",
   },
   catalog: {
     label: "Catalogue",
@@ -152,7 +152,7 @@ export const homeEn: HomeContent = {
       {
         statement: "You keep everything if you leave.",
         proof:
-          "Stop the subscription and the server keeps running, with your projects, your databases and your data. You lose the app, nothing else. It is written in the terms.",
+          "Stop the subscription and the server keeps running, with your projects, your databases and your data. You lose the app, nothing else.",
       },
     ],
   },

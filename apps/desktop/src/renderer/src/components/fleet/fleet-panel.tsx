@@ -2,7 +2,7 @@ import { Button } from "@renderer/components/ui/button";
 import { EmptyState } from "@renderer/components/ui/empty-state";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { Label } from "@renderer/components/ui/label";
-import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
+import { SkeletonRows } from "@renderer/components/ui/skeleton";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { accountOf, useAccount } from "@renderer/stores/account";
 import {
@@ -12,7 +12,7 @@ import {
   unreachableGrants,
   useFleet,
 } from "@renderer/stores/fleet";
-import { Undo2, Users } from "lucide-react";
+import { ExternalLink, Undo2, Users } from "lucide-react";
 import { useEffect } from "react";
 import { FleetOrganizations } from "./fleet-organizations";
 import { FleetServerRow } from "./fleet-server-row";
@@ -80,19 +80,22 @@ export function FleetPanel({
 
   return (
     <section className="flex flex-col gap-4">
-      <div>
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <Label>{t("fleet.heading")}</Label>
-        <p className="mt-1 text-ink-3 leading-relaxed">{t("fleet.intro")}</p>
+
+        {/* Members, assignment and revocation live on the console, not here. */}
+        <Button
+          icon={ExternalLink}
+          onClick={() => window.pupitre.openUrl(account.consoleUrl)}
+          size="sm"
+        >
+          {t("fleet.console.open")}
+        </Button>
       </div>
 
       <FleetOrganizations identity={identity} />
 
-      {state.status === "reading" ? (
-        <WaitingNotice
-          detail={t("fleet.reading.detail")}
-          title={t("fleet.reading.title")}
-        />
-      ) : null}
+      {state.status === "reading" ? <SkeletonRows rows={2} /> : null}
 
       {state.status === "failed" ? (
         <ErrorNotice error={state.error} onRetry={read} />
@@ -129,7 +132,7 @@ export function FleetPanel({
 
       {dismissed > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[12px] text-ink-4 leading-relaxed">
+          <p className="text-[12px] text-ink-3 leading-relaxed">
             {t.plural("fleet.dismissed", dismissed)}
           </p>
           <Button icon={Undo2} onClick={restore} size="sm" variant="discreet">
@@ -139,7 +142,7 @@ export function FleetPanel({
       ) : null}
 
       {unreachable > 0 ? (
-        <p className="text-[12px] text-ink-4 leading-relaxed">
+        <p className="text-[12px] text-ink-3 leading-relaxed">
           {t.plural("fleet.noAddress", unreachable)}
         </p>
       ) : null}

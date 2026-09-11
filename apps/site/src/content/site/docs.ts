@@ -64,8 +64,8 @@ export const MODULE_LABELS: ModulePageLabels = {
   },
   overviewTitle: { en: "The catalogue", fr: "Le catalogue" },
   overviewLead: {
-    en: "Twenty-six modules across seven categories. Each one knows how to install itself, check itself, configure itself, update itself, uninstall itself and report its state, on Ubuntu 22.04 and 24.04, amd64 and arm64.",
-    fr: "Vingt-six modules répartis en sept catégories. Chacun sait s’installer, se vérifier, se configurer, se mettre à jour, se désinstaller et rapporter son état, sur Ubuntu 22.04 et 24.04, amd64 et arm64.",
+    en: "Twenty-five modules across seven categories. Each one knows how to install itself, check itself, configure itself, update itself, uninstall itself and report its state, on Ubuntu 22.04 and 24.04, amd64 and arm64.",
+    fr: "Vingt-cinq modules répartis en sept catégories. Chacun sait s’installer, se vérifier, se configurer, se mettre à jour, se désinstaller et rapporter son état, sur Ubuntu 22.04 et 24.04, amd64 et arm64.",
   },
   backToServices: { en: "All services", fr: "Tous les services" },
 }

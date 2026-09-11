@@ -1,6 +1,8 @@
 import { Button } from "@renderer/components/ui/button";
+import { ConfirmButton } from "@renderer/components/ui/confirm-button";
 import { Label } from "@renderer/components/ui/label";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { roleLabel } from "@renderer/lib/roles";
 import type { AccountState } from "@shared/account";
 import { LogOut, RotateCw } from "lucide-react";
 
@@ -16,7 +18,8 @@ export function AccountIdentityCard({
 }: {
   account: AccountState;
   onRefresh: () => void;
-  onDisconnect: () => void;
+  /** Answer with the promise of the sign-out and the button waits on it. */
+  onDisconnect: () => unknown;
 }) {
   const t = useTranslations();
 
@@ -40,14 +43,15 @@ export function AccountIdentityCard({
           <Button icon={RotateCw} onClick={onRefresh} size="sm">
             {t("account.identity.refresh")}
           </Button>
-          <Button
+          <ConfirmButton
+            confirmLabel={t("account.identity.disconnect")}
             icon={LogOut}
-            onClick={onDisconnect}
+            onConfirm={onDisconnect}
+            question={t("account.identity.disconnectQuestion")}
             size="sm"
-            variant="danger"
           >
             {t("account.identity.disconnect")}
-          </Button>
+          </ConfirmButton>
         </div>
       </div>
 
@@ -59,8 +63,8 @@ export function AccountIdentityCard({
               t("account.identity.noOrganization")}
           </p>
           {identity.role ? (
-            <p className="mt-0.5 font-data text-[12px] text-ink-4">
-              {identity.role}
+            <p className="mt-0.5 text-[12px] text-ink-3">
+              {roleLabel(t, identity.role)}
             </p>
           ) : null}
         </div>
@@ -71,7 +75,7 @@ export function AccountIdentityCard({
             {device?.name ?? t("account.identity.deviceUnregistered")}
           </p>
           {device ? (
-            <p className="mt-0.5 break-all font-data text-[12px] text-ink-4">
+            <p className="mt-0.5 break-all font-data text-[12px] text-ink-3">
               {device.fingerprint}
             </p>
           ) : null}

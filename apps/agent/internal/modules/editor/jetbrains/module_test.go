@@ -6,10 +6,11 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/download"
 	"pupitre.studio/agent/internal/modules/modtest"
 )
 
-const releases = `{"IIU":[{"date":"2026-09-02","type":"release","version":"2026.2.2","build":"262.12345.67","downloads":{"linux":{"link":"https://download.jetbrains.com/idea/idea-2026.2.2.tar.gz"},"linuxARM64":{"link":"https://download.jetbrains.com/idea/idea-2026.2.2-aarch64.tar.gz"}}}]}`
+const releases = `{"IIU":[{"date":"2026-09-02","type":"release","version":"2026.2.2","build":"262.12345.67","downloads":{"linux":{"link":"https://download.jetbrains.com/idea/idea-2026.2.2.tar.gz","checksumLink":"https://download.jetbrains.com/idea/idea-2026.2.2.tar.gz.sha256"},"linuxARM64":{"link":"https://download.jetbrains.com/idea/idea-2026.2.2-aarch64.tar.gz","checksumLink":"https://download.jetbrains.com/idea/idea-2026.2.2-aarch64.tar.gz.sha256"}}}]}`
 
 func newContext(t *testing.T, fake *modtest.FakeSys, values modtest.Values) *modules.Context {
 	t.Helper()
@@ -22,7 +23,7 @@ func machine(memTotalKB string) *modtest.FakeSys {
 	fake.Users["dev"] = "/home/dev"
 	fake.Files[meminfoPath] = []byte("MemTotal:       " + memTotalKB + " kB\nMemFree: 1024 kB\n")
 	fake.Answer("data.services.jetbrains.com", releases)
-	fake.Archives["/tmp/pupitre-jetbrains-idea.tar.gz"] = []string{"bin/remote-dev-server.sh", "build.txt", "product-info.json"}
+	fake.Archives[download.Dir+"/jetbrains-idea.tar.gz"] = []string{"bin/remote-dev-server.sh", "build.txt", "product-info.json"}
 
 	return fake
 }
@@ -94,7 +95,7 @@ func TestTheJVMIsSizedFromTheMachineMemory(t *testing.T) {
 func TestEachIDEHasItsOwnCodeAndOptionsFile(t *testing.T) {
 	fake := machine("8388608")
 	fake.Answer("data.services.jetbrains.com", strings.ReplaceAll(releases, "IIU", "GO"))
-	fake.Archives["/tmp/pupitre-jetbrains-goland.tar.gz"] = []string{"build.txt"}
+	fake.Archives[download.Dir+"/jetbrains-goland.tar.gz"] = []string{"build.txt"}
 
 	install(t, fake, modtest.Values{"ide": "goland", "version": "2026.2"})
 

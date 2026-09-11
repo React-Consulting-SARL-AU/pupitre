@@ -1,6 +1,7 @@
 import type {
   ProjectBranchesResult,
   ProjectDiffResult,
+  ProjectEnvResult,
   ProjectGitStatusResult,
   ProjectWorkingTreeResult,
 } from "@pupitre/shared/agent-protocol/projects";
@@ -14,6 +15,10 @@ import { create } from "zustand";
  * asked whenever the project opens or a tab does. `project.git_status` is not —
  * it queries the remote repository over the network — so it is asked once, on
  * opening, and then only when the reader asks again. It never sits in a loop.
+ *
+ * Every read lands only on the project it was asked for: a slow answer from a
+ * project the reader has since left would otherwise paint its branches or its
+ * tree on the one now open.
  */
 
 export type GitState =
@@ -34,6 +39,12 @@ export type TreeState =
   | { status: "read"; tree: ProjectWorkingTreeResult }
   | { status: "failed"; error: AgentError };
 
+export type EnvState =
+  | { status: "idle" }
+  | { status: "reading" }
+  | { status: "read"; env: ProjectEnvResult }
+  | { status: "failed"; error: AgentError };
+
 export type DiffState =
   | { status: "idle" }
   | { status: "reading"; path: string }
@@ -47,6 +58,7 @@ interface ProjectStore {
   branches: BranchState;
   tree: TreeState;
   diff: DiffState;
+  env: EnvState;
   /** True while a branch is being taken: the selector waits for the answer. */
   switching: boolean;
   problem: AgentError | null;
@@ -56,6 +68,8 @@ interface ProjectStore {
   readBranches: (serverId: string, name: string) => Promise<void>;
   readTree: (serverId: string, name: string) => Promise<void>;
   readDiff: (serverId: string, name: string, path: string) => Promise<void>;
+  /** The keys of `.env.local`; `force` asks the agent to write it again. */
+  readEnv: (serverId: string, name: string, force?: boolean) => Promise<void>;
   checkout: (serverId: string, name: string, branch: string) => Promise<void>;
   sync: (serverId: string, name: string) => Promise<void>;
   clearDiff: () => void;
@@ -65,6 +79,7 @@ interface ProjectStore {
 const EMPTY = {
   branches: { status: "idle" } as BranchState,
   diff: { status: "idle" } as DiffState,
+  env: { status: "idle" } as EnvState,
   git: { status: "idle" } as GitState,
   problem: null,
   switching: false,
@@ -92,6 +107,10 @@ export const useProject = create<ProjectStore>((set, get) => ({
 
     const answer = await window.pupitre.projectGitStatus(serverId, name);
 
+    if (get().name !== name) {
+      return;
+    }
+
     set({
       git: answer.ok
         ? { at: Date.now(), git: answer.result, status: "read" }
@@ -103,6 +122,10 @@ export const useProject = create<ProjectStore>((set, get) => ({
     set({ branches: { status: "reading" } });
 
     const answer = await window.pupitre.projectBranches(serverId, name);
+
+    if (get().name !== name) {
+      return;
+    }
 
     set({
       branches: answer.ok
@@ -116,6 +139,10 @@ export const useProject = create<ProjectStore>((set, get) => ({
 
     const answer = await window.pupitre.projectWorkingTree(serverId, name);
 
+    if (get().name !== name) {
+      return;
+    }
+
     set({
       tree: answer.ok
         ? { status: "read", tree: answer.result }
@@ -128,10 +155,30 @@ export const useProject = create<ProjectStore>((set, get) => ({
 
     const answer = await window.pupitre.projectDiff(serverId, name, path);
 
+    if (get().name !== name) {
+      return;
+    }
+
     set({
       diff: answer.ok
         ? { diff: answer.result, path, status: "read" }
         : { error: answer.error, path, status: "failed" },
+    });
+  },
+
+  async readEnv(serverId, name, force = false) {
+    set({ env: { status: "reading" } });
+
+    const answer = await window.pupitre.projectEnv(serverId, name, force);
+
+    if (get().name !== name) {
+      return;
+    }
+
+    set({
+      env: answer.ok
+        ? { env: answer.result, status: "read" }
+        : { error: answer.error, status: "failed" },
     });
   },
 

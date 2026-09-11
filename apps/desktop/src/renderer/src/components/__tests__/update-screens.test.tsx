@@ -1,7 +1,9 @@
 import { describe, expect, it } from "bun:test";
+import type { ConfigRevision } from "@pupitre/shared/agent-protocol/migrate";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { ModuleProgress } from "../../lib/module-progress";
 import type {
+  MigrationState,
   ModulesState,
   UpdateState,
   UpgradeState,
@@ -22,12 +24,14 @@ const OFFER = {
 function ready(
   order: "ahead" | "behind" | "same" | "unknown",
   offer = OFFER,
-  platform = true
+  platform = true,
+  config: ConfigRevision | null = null
 ): UpdateState {
   return {
     serverId: "srv-1",
     status: "ready",
     update: {
+      config,
       floor: "0.1.0",
       installed: "0.3.0",
       offer,
@@ -41,12 +45,15 @@ function ready(
 function banner(
   state: UpdateState,
   upgrade: UpgradeState = { status: "idle" },
-  journal: string[] = []
+  journal: string[] = [],
+  migration: MigrationState = { status: "idle" }
 ): string {
   return renderToStaticMarkup(
     <AgentUpdateBanner
       journal={journal}
+      migration={migration}
       onHide={NOOP}
+      onMigrate={NOOP}
       onUpgrade={NOOP}
       state={state}
       upgrade={upgrade}
@@ -71,7 +78,7 @@ describe("le bandeau de mise à jour", () => {
 
     expect(html).toContain("Mettez l&#x27;app à jour");
     expect(html).not.toContain("Mettre l&#x27;agent à jour");
-    expect(html).toContain("continue de fonctionner");
+    expect(html).toContain("ne connaît pas encore");
   });
 
   it("dit qu'un serveur d'une autre génération se répare, sans rien proposer", () => {
@@ -79,6 +86,7 @@ describe("le bandeau de mise à jour", () => {
       serverId: "srv-1",
       status: "ready",
       update: {
+        config: null,
         floor: "0.1.0",
         installed: "0.0.9",
         offer: OFFER,
@@ -143,9 +151,12 @@ describe("le bandeau de mise à jour", () => {
   it("dit ce que l'agent a remplacé quand il a réussi", () => {
     const html = banner(ready("ahead"), {
       result: {
-        previous_version: "0.3.0",
-        restarting: true,
-        version: "0.4.0",
+        migration: null,
+        upgrade: {
+          previous_version: "0.3.0",
+          restarting: true,
+          version: "0.4.0",
+        },
       },
       status: "done",
     });
@@ -153,6 +164,74 @@ describe("le bandeau de mise à jour", () => {
     expect(html).toContain(
       "Agent 0.3.0 remplacé par 0.4.0, service redémarré."
     );
+  });
+
+  it("dit la révision atteinte quand la migration a porté quelque chose", () => {
+    const html = banner(ready("ahead"), {
+      result: {
+        migration: {
+          applied: [{ id: 1, ms: 12, slug: "rename-tz" }],
+          expected: 1,
+          pending: [],
+          restored: false,
+          revision: 1,
+          state: "current",
+        },
+        upgrade: {
+          previous_version: "0.3.0",
+          restarting: true,
+          version: "0.4.0",
+        },
+      },
+      status: "done",
+    });
+
+    expect(html).toContain("Configuration migrée en révision 1.");
+  });
+});
+
+describe("une configuration qui n'est pas la forme que l'agent lit", () => {
+  const OWED: ConfigRevision = { expected: 4, revision: 3, state: "pending" };
+
+  it("passe devant toute question de version", () => {
+    const html = banner(ready("ahead", OFFER, true, OWED));
+
+    expect(html).toContain("Configuration à migrer");
+    expect(html).not.toContain("Mise à jour disponible");
+  });
+
+  it("dit la migration qui a refusé et ce qui a été remis en place", () => {
+    const html = banner(
+      ready("ahead", OFFER, true, { ...OWED, state: "failed" }),
+      { status: "idle" },
+      [],
+      {
+        result: {
+          applied: [],
+          backup: "20260911T100000Z-r3",
+          expected: 4,
+          failure: { id: 4, message: "install.json illisible", slug: "split" },
+          pending: [4],
+          restored: true,
+          revision: 3,
+          state: "failed",
+        },
+        status: "done",
+      }
+    );
+
+    expect(html).toContain(
+      "Migration 4 (split) refusée : install.json illisible"
+    );
+    expect(html).toContain("ont été remis en place");
+  });
+
+  it("renvoie vers la mise à jour quand l'agent est plus ancien que sa configuration", () => {
+    const html = banner(
+      ready("same", OFFER, true, { expected: 3, revision: 5, state: "ahead" })
+    );
+
+    expect(html).toContain("Configuration plus récente que cet agent");
   });
 });
 

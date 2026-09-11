@@ -41,17 +41,12 @@ export const downloadEn: DownloadContent = {
     label: "Every build",
     title: "All three systems",
     lead: "Every file below is the same release. The app checks its own updates against the signature.",
-    verify:
-      "Every build here is published with its size and its SHA-256. Check one against the file you downloaded if you care to.",
+    verify: "Every build is published with its size and its SHA-256.",
     download: "Download",
     size: "Size",
     digest: "SHA-256",
     format: "Format",
     empty: "No build published for this system yet.",
-  },
-  stale: {
-    title: "This list may be behind",
-    body: "The build could not read the release list from the platform, so this page shows the last list the repository knows. The links stay valid; the version may not be the newest, and neither a size nor a digest is published for it, because the repository does not know them.",
   },
   release: {
     label: "Release",

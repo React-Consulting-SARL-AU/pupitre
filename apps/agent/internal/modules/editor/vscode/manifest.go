@@ -32,7 +32,7 @@ func manifest() contract.Manifest {
 				Required: false, Default: false,
 			},
 		},
-		Provides:  []string{"editor:vscode"},
+		Runs:      true,
 		Mandatory: false,
 		Since:     "0.1.0",
 	}

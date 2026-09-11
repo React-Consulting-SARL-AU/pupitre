@@ -23,11 +23,11 @@ var hintCatalog = map[string]Message{
 		EN: "An absolute path, with no space, owned by the dev account. The default suits almost everyone; you change it to put the projects on a larger disk mounted elsewhere. The directory is created if absent, and never emptied if it exists.",
 	},
 	"module.core.hardening.ssh_443.hint": {
-		FR: "Ouvre SSH sur le port 443 en plus du 22. Utile depuis un réseau d'entreprise ou un wifi public qui ne laisse sortir que le web. Le port 22 reste ouvert, et aucune des deux portes n'accepte de mot de passe une fois le durcissement passé.",
+		FR: "Ouvrez SSH sur le port 443 en plus du 22. Utile depuis un réseau d'entreprise ou un wifi public qui ne laisse sortir que le web. Le port 22 reste ouvert, et aucune des deux portes n'accepte de mot de passe une fois le durcissement passé.",
 		EN: "Opens SSH on port 443 as well as 22. Useful from a corporate network or a public wifi that only lets the web out. Port 22 stays open, and neither door accepts a password once the hardening has run.",
 	},
 	"module.core.hardening.keep_root.hint": {
-		FR: "Laisse root joignable par clé SSH, jamais par mot de passe, et applique tout le reste du durcissement. Pour qui veut garder une seconde porte sur sa machine. Sans cette option, root est fermé, et le compte dev devient le seul accès — l'app vérifie qu'une clé l'ouvre avant de fermer quoi que ce soit.",
+		FR: "Laissez root joignable par clé SSH, jamais par mot de passe, et appliquez tout le reste du durcissement. Pour qui veut garder une seconde porte sur sa machine. Sans cette option, root est fermé, et le compte dev devient le seul accès — l'app vérifie qu'une clé l'ouvre avant de fermer quoi que ce soit.",
 		EN: "Leaves root reachable by SSH key, never by password, and applies the whole rest of the hardening. For whoever wants to keep a second door onto their machine. Without it root is closed and the dev account becomes the only way in — the app checks a key opens it before closing anything.",
 	},
 	"module.db.remote.hint": {
@@ -37,6 +37,14 @@ var hintCatalog = map[string]Message{
 	"module.db.mysql.buffer_pool.hint": {
 		FR: "La mémoire que le moteur garde pour ses pages, comme 512M ou 2G. Laissé vide, le module dimensionne au quart de la mémoire de la machine, ce qui convient à un serveur qui fait aussi tourner des projets. On l'augmente pour une base qui devient le poste de travail principal.",
 		EN: "The memory the engine keeps for its pages, like 512M or 2G. Left empty, the module sizes it at a quarter of the machine's memory, which suits a server that also runs projects. You raise it for a database that becomes the main workload.",
+	},
+	"module.db.mongodb.cache_mb.hint": {
+		FR: "La mémoire que le moteur garde pour ses pages. Laissé à 0, le module dimensionne au quart de la mémoire de la machine, ce qui convient à un serveur qui fait aussi tourner des projets — MongoDB laissé seul en prendrait la moitié. On l'augmente pour une base qui devient le poste de travail principal.",
+		EN: "The memory the engine keeps for its pages. Left at 0, the module sizes it at a quarter of the machine's memory, which suits a server that also runs projects — MongoDB left alone would take half. You raise it for a database that becomes the main workload.",
+	},
+	"module.db.postgres.shared_buffers.hint": {
+		FR: "La mémoire que le cluster garde pour ses pages, comme 512MB ou 2GB. Laissé vide, le module dimensionne au quart de la mémoire de la machine, ce qui convient à un serveur qui fait aussi tourner des projets. On l'augmente pour une base qui devient le poste de travail principal.",
+		EN: "The memory the cluster keeps for its pages, like 512MB or 2GB. Left empty, the module sizes it at a quarter of the machine's memory, which suits a server that also runs projects. You raise it for a database that becomes the main workload.",
 	},
 	"module.runtime.php.memory_limit.hint": {
 		FR: "La limite de mémoire d'un script PHP, comme 256M ou 1G. Laissé vide, la valeur compilée par défaut s'applique. Un « memory_limit » atteint se voit dans les journaux du projet, pas dans une page blanche.",
@@ -61,17 +69,5 @@ var hintCatalog = map[string]Message{
 	"module.ai.hermes.providers.hint": {
 		FR: "Une entrée par fournisseur, sous la forme fournisseur=clé : openai=sk-…, anthropic=sk-ant-…, openrouter=sk-or-…. Chaque clé se crée sur le tableau de bord du fournisseur. Elles partent sur le flux secret et sont écrites sur le serveur en 0600, jamais dans un journal.",
 		EN: "One entry per provider, in the form provider=key: openai=sk-…, anthropic=sk-ant-…, openrouter=sk-or-…. Each key is created on that provider's dashboard. They leave on the secret stream and are written on the server at 0600, never in a journal.",
-	},
-	"module.tool.github.token.hint": {
-		FR: "Un jeton d'accès personnel fin (fine-grained), limité aux dépôts que ce serveur doit cloner. Permissions minimales : Contents en lecture, et Administration en écriture si vous voulez que l'app enregistre la clé du serveur sur le compte. Un jeton classique fonctionne aussi, avec la portée repo.",
-		EN: "A fine-grained personal access token, limited to the repositories this server must clone. Minimum permissions: Contents read, and Administration write if you want the app to register the server's key on the account. A classic token works too, with the repo scope.",
-	},
-	"module.tool.1password.service_account_token.hint": {
-		FR: "Un jeton de compte de service, pas votre mot de passe principal. Créez-le dans Développeur › Comptes de service, et n'autorisez que le coffre qui porte les secrets de vos projets. Le serveur ne peut lire que ce coffre-là.",
-		EN: "A service account token, not your main password. Create it in Developer › Service Accounts, and grant it only the vault that holds your projects' secrets. The server can read that vault and nothing else.",
-	},
-	"module.tool.neon.api_key.hint": {
-		FR: "Une clé d'API personnelle ou d'organisation, créée dans les réglages du compte Neon. Elle authentifie le CLI posé sur le serveur ; les projets et les bases restent votre décision, le module n'en crée aucun.",
-		EN: "A personal or organisation API key, created in the Neon account settings. It authenticates the CLI installed on the server; projects and databases remain your decision, the module creates none.",
 	},
 }

@@ -60,7 +60,7 @@ func detectFixture(t *testing.T, files map[string]string) *state.Reader {
 func TestDetectReadsAFolderWithoutInstallingAnything(t *testing.T) {
 	reader := detectFixture(t, map[string]string{"package.json": vitePackage, "vite.config.ts": viteConfig})
 
-	detected, err := reader.Detect("", "candidate")
+	detected, err := reader.Detect("", "candidate", "")
 	if err != nil {
 		t.Fatalf("detect: %v", err)
 	}
@@ -120,7 +120,7 @@ func TestDetectNamesTheManagerTheRepositoryProves(t *testing.T) {
 		},
 	} {
 		t.Run(want.name, func(t *testing.T) {
-			detected, err := detectFixture(t, want.files).Detect("", "candidate")
+			detected, err := detectFixture(t, want.files).Detect("", "candidate", "")
 			if err != nil {
 				t.Fatalf("detect: %v", err)
 			}
@@ -155,7 +155,7 @@ func TestDetectTakesThePortTheRepositoryAsksFor(t *testing.T) {
 		},
 	} {
 		t.Run(want.name, func(t *testing.T) {
-			detected, err := detectFixture(t, want.files).Detect("", "candidate")
+			detected, err := detectFixture(t, want.files).Detect("", "candidate", "")
 			if err != nil {
 				t.Fatalf("detect: %v", err)
 			}
@@ -181,7 +181,7 @@ func TestDetectRefusesWhatItCannotRead(t *testing.T) {
 		{name: "neither of the two"},
 	} {
 		t.Run(want.name, func(t *testing.T) {
-			_, err := reader.Detect(want.repo, want.dir)
+			_, err := reader.Detect(want.repo, want.dir, "")
 
 			failure, ok := err.(*protocol.Error)
 			if !ok || failure.Code != contract.ErrorBadRequest {
@@ -226,7 +226,7 @@ func TestDetectClonesARepositoryAndLeavesNothingBehind(t *testing.T) {
 	})
 
 	// file:// keeps the depth honoured: git ignores --depth on a plain local path.
-	detected, err := reader.Detect("file://"+origin, "")
+	detected, err := reader.Detect("file://"+origin, "", "")
 	if err != nil {
 		t.Fatalf("detect: %v", err)
 	}
@@ -249,6 +249,67 @@ func TestDetectClonesARepositoryAndLeavesNothingBehind(t *testing.T) {
 
 	if !cloned(calls, "--depth", "1") {
 		t.Fatalf("the clone must stay in surface: %v", calls)
+	}
+}
+
+// The shallow clone follows the branch the screen asked for, so what is read is what will be started.
+func TestDetectReadsTheBranchItIsGiven(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git is not installed")
+	}
+
+	base := t.TempDir()
+	origin := filepath.Join(base, "flymate.git")
+	run(t, base, "git", "init", "--quiet", "--bare", "--initial-branch=main", origin)
+
+	seed := filepath.Join(base, "seed")
+	run(t, base, "git", "clone", "--quiet", origin, seed)
+	write(t, filepath.Join(seed, "package.json"), `{"scripts":{"dev":"vite --port 4321"}}`)
+	run(t, seed, "git", "add", "-A")
+	run(t, seed, "git", "commit", "--quiet", "-m", "create-vite")
+	run(t, seed, "git", "push", "--quiet", "origin", "main")
+
+	run(t, seed, "git", "checkout", "--quiet", "-b", "release/2.0")
+	write(t, filepath.Join(seed, "package.json"), `{"scripts":{"dev":"vite --port 4200"}}`)
+	run(t, seed, "git", "add", "-A")
+	run(t, seed, "git", "commit", "--quiet", "-m", "la deux")
+	run(t, seed, "git", "push", "--quiet", "origin", "release/2.0")
+
+	var calls []sys.Command
+
+	reader := state.New(state.Options{
+		Sys:          recorder{calls: &calls},
+		Now:          modtest.NewClock(time.Millisecond).Now,
+		Registry:     modules.NewRegistry(),
+		AgentVersion: "0.0.0-test",
+		Paths:        registry.Paths{Conf: filepath.Join(base, "projects.conf"), Local: filepath.Join(base, "projects.local.conf"), Projects: filepath.Join(base, "projects")},
+		Tmux:         tmux.Options{User: "root", LogDir: filepath.Join(base, "logs")},
+		Detect:       state.DetectOptions{Cache: filepath.Join(base, "cache"), Name: func() string { return "detection" }},
+		Sleep:        func(time.Duration) {},
+	})
+
+	detected, err := reader.Detect("file://"+origin, "", "release/2.0")
+	if err != nil {
+		t.Fatalf("detect: %v", err)
+	}
+
+	if detected.PortHint != 4200 {
+		t.Fatalf("the branch's own port must be the one read: %+v", detected)
+	}
+
+	if !cloned(calls, "--branch", "release/2.0") {
+		t.Fatalf("the clone must name the branch: %v", calls)
+	}
+}
+
+func TestDetectRefusesABranchGitMustNeverSee(t *testing.T) {
+	reader := detectFixture(t, map[string]string{"package.json": vitePackage})
+
+	_, err := reader.Detect("https://example.invalid/x.git", "", "--upload-pack=touch")
+
+	failure, ok := err.(*protocol.Error)
+	if !ok || failure.Code != contract.ErrorBadRequest {
+		t.Fatalf("expected a bad_request, got %v", err)
 	}
 }
 
@@ -282,7 +343,7 @@ func TestDetectRefusesARepositoryItCannotClone(t *testing.T) {
 		Sleep:        func(time.Duration) {},
 	})
 
-	_, err := reader.Detect("file://"+filepath.Join(base, "ghost.git"), "")
+	_, err := reader.Detect("file://"+filepath.Join(base, "ghost.git"), "", "")
 
 	failure, ok := err.(*protocol.Error)
 	if !ok || failure.Code != contract.ErrorInternal {

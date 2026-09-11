@@ -25,17 +25,17 @@ type Preflighter interface {
 	Preflight(ctx *Context) []contract.FieldProblem
 }
 
-// held counts what the secret line carries for one field: one value, or the ranks of a secret list.
+// held is what the secret line carries for one field: one value, or the ranks of a secret list.
 func held(secrets map[string]map[string]string) contract.SecretsHeld {
-	return func(module, key string) int {
+	return func(module, key string) []string {
 		values := secrets[module]
 		if values == nil {
-			return 0
+			return nil
 		}
 
-		count := 0
+		var kept []string
 		if strings.TrimSpace(values[key]) != "" {
-			count++
+			kept = append(kept, values[key])
 		}
 
 		for rank := 0; ; rank++ {
@@ -45,21 +45,28 @@ func held(secrets map[string]map[string]string) contract.SecretsHeld {
 			}
 
 			if strings.TrimSpace(value) != "" {
-				count++
+				kept = append(kept, value)
 			}
 		}
 
-		return count
+		return kept
 	}
 }
 
 func fieldProblems(modules []Module, request Request) []contract.FieldProblem {
-	counting := held(request.Secrets)
+	kept := held(request.Secrets)
 	problems := []contract.FieldProblem{}
 
 	for _, module := range modules {
 		manifest := module.Manifest()
-		problems = append(problems, contract.ValidateModule(manifest, request.Config[manifest.ID], counting)...)
+
+		// Nothing to weigh on a module nobody has answered yet, and refusing the
+		// install for it is exactly what deferring undoes.
+		if request.Deferred(manifest.ID) {
+			continue
+		}
+
+		problems = append(problems, contract.ValidateModule(manifest, request.Config[manifest.ID], kept)...)
 	}
 
 	return problems
@@ -121,7 +128,11 @@ func (e *Engine) Check(request Request, sink Sink) (contract.InstallCheck, error
 
 	// The secrets the server already holds count as filled: a port changed on an
 	// installed module must not read as a password that went missing.
-	request.Secrets = mergeSecrets(e.recall(r).Secrets, request.Secrets)
+	request = request.completedBy(e.recall(r))
+
+	if err := refuseDeferringMandatory(modules, request); err != nil {
+		return contract.InstallCheck{}, err
+	}
 
 	// A secret is judged by whoever holds it. The app has its vault and will
 	// write the secret line at install time; the server can only see the ones it
@@ -130,7 +141,7 @@ func (e *Engine) Check(request Request, sink Sink) (contract.InstallCheck, error
 
 	for _, module := range modules {
 		looking, ok := module.(Preflighter)
-		if !ok {
+		if !ok || request.Deferred(module.Manifest().ID) {
 			continue
 		}
 

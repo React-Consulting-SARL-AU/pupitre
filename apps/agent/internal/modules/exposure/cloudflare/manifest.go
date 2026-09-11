@@ -15,7 +15,7 @@ func manifest() contract.Manifest {
 		Name:      "Cloudflare Tunnel",
 		Summary:   i18n.T("module.exposure.cloudflare.summary"),
 		Requires:  []string{"core.system"},
-		Conflicts: []string{"exposure.ssh", "exposure.caddy"},
+		Conflicts: []string{"exposure.caddy"},
 		Resources: contract.Resources{RAMMB: 128, DiskMB: 128},
 		Arch:      []string{"amd64", "arm64"},
 		Fields: []contract.Field{
@@ -33,8 +33,8 @@ func manifest() contract.Manifest {
 			{Key: "tunnel_id", Kind: contract.FieldText, Label: i18n.T("module.exposure.cloudflare.tunnel_id.label"), Required: true, Managed: true},
 			{Key: "tunnel_secret", Kind: contract.FieldSecret, Label: i18n.T("module.exposure.cloudflare.tunnel_secret.label"), Required: true, Managed: true},
 		},
-		Provides:   []string{"exposure:cloudflare", "public-url"},
 		Connection: contract.ConnectionCloudflare,
+		Runs:       true,
 		Mandatory:  false,
 		Since:      "0.1.0",
 	}

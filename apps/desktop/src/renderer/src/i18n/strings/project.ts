@@ -1,6 +1,15 @@
 export const project = {
   en: {
     "project.clean": "clean",
+    "project.tab.overview": "Overview",
+    "project.tab.logs": "Logs",
+    "project.tab.diff": "Diff",
+    "project.tab.files": "Files",
+    "project.tab.shell": "Terminal",
+    "project.tab.claude": "Claude",
+    "project.tab.codex": "Codex",
+    "project.tab.hermes": "Hermes",
+    "project.editors.open": "Open {root} in {editor}",
     "project.file.one": "{count} file",
     "project.file.other": "{count} files",
     "project.commit.one": "{count} commit",
@@ -13,9 +22,28 @@ export const project = {
     "project.branches.reading": "reading branches…",
     "project.branches.noRepoTitle": "No git repository",
     "project.branches.notVersioned": "{folder} is not versioned",
-    "project.branches.remoteSuffix": "  (remote)",
+    "project.branches.local": "Local",
+    "project.branches.remote": "Remote",
+    "project.branches.remoteCount.one": "{count} remote branch not taken yet",
+    "project.branches.remoteCount.other":
+      "{count} remote branches not taken yet",
+    "project.branches.new": "New branch",
+    "project.branches.newHint":
+      "Create a branch from the current one and take it",
+    "project.branches.newName": "Name of the new branch",
+    "project.branches.newPlaceholder": "feat/my-change",
+    "project.branches.newFrom": "created from {branch}",
+    "project.branches.create": "Create",
+    "project.branches.invalidName":
+      "git will not take this name: letters, digits, dots, dashes, underscores and slashes, starting with a letter or a digit.",
+    "project.branches.exists": "{branch} already exists: pick it in the list.",
+    "project.branches.dirtyCreate":
+      "Creating {branch} will be refused while changes are uncommitted: commit or stash them first.",
     "project.branches.dirty":
       "uncommitted changes — the branch switch will be refused",
+    "project.branches.dirtySwitch":
+      "Switching to {branch} will be refused while changes are uncommitted: commit or stash them first.",
+    "project.branches.switch": "Switch",
     "project.branches.localCount.one": "{count} local branch",
     "project.branches.localCount.other": "{count} local branches",
 
@@ -31,10 +59,13 @@ export const project = {
     "project.diff.nothingToCompare": "there is nothing to compare",
     "project.diff.notRepo": "This project is not a git repository.",
     "project.diff.detachedHead": "detached head",
-    "project.diff.readOnlyHint": "This view never writes to the repository",
     "project.diff.readOnly": "read only",
     "project.diff.reloadTree": "Reload the working tree",
     "project.diff.nothingChanged": "Nothing changed since the last commit.",
+    "project.diff.filesList":
+      "Changed files — arrows or j and k move the selection",
+    "project.diff.copyPatch": "Copy the patch",
+    "project.diff.copyPatchHint": "Copy the diff of {path}",
 
     "project.git.noUpstream": "no remote branch tracked",
     "project.git.behind": "{commits} to pull",
@@ -45,6 +76,7 @@ export const project = {
     "project.git.querying": "querying the remote repository…",
     "project.git.notRepo": "this folder is not a git repository",
     "project.git.queryLabel": "Query the remote repository",
+    "project.git.pull": "Pull and reinstall",
 
     "project.header.seeDiff": "See changed files",
     "project.header.restart": "Restart",
@@ -52,17 +84,36 @@ export const project = {
     "project.header.stop": "Stop",
     "project.header.syncHint": "git pull then reinstall dependencies",
     "project.header.sync": "Sync",
+    "project.header.eyebrow": "Project",
 
     "project.logs.journal": "journal of {name}",
     "project.logs.follow": "follow the tail",
     "project.logs.waiting": "waiting for the first line of {name}…",
+    "project.logs.search": "Search the lines",
+    "project.logs.matches.one": "{count} line",
+    "project.logs.matches.other": "{count} lines",
+    "project.logs.noMatch": "No line carries that text.",
+    "project.logs.copyAll": "Copy all",
+    "project.logs.copyAllHint": "Copy every line shown, search aside",
+    "project.logs.cut":
+      "Only the last {count} lines are kept: what came before has left this view.",
 
-    "project.overview.publicAddress": "Public address",
     "project.overview.addressCopied": "Address copied",
     "project.overview.copyAddress": "Copy the address",
-    "project.overview.notPublished": "Not published",
-    "project.overview.local": "local",
     "project.overview.branch": "Branch",
+    "project.overview.env": "Environment",
+    "project.env.reading": "reading the environment file…",
+    "project.env.noKeys": "The file carries no key.",
+    "project.env.keyCount.one": "{count} key",
+    "project.env.keyCount.other": "{count} keys",
+    "project.env.more": "+{count}",
+    "project.env.showAll": "Show all",
+    "project.env.showLess": "Show less",
+    "project.env.writtenNow": "written just now",
+    "project.env.readAsIs": "read as it stands on the server",
+    "project.env.regenerate": "Regenerate",
+    "project.env.regenerateQuestion":
+      "The file is written again from the vault; what was edited by hand in it is lost.",
     "project.overview.activity": "Activity",
     "project.overview.running": "running",
     "project.overview.stopped": "stopped",
@@ -73,11 +124,20 @@ export const project = {
     "project.overview.memory": "Memory",
     "project.overview.remove": "Remove",
     "project.overview.removeQuestion":
-      "The project leaves the registry; its folder stays on the server.",
+      "The project leaves the registry and its public addresses stop answering; its folder stays on the server.",
     "project.overview.removeFromRegistry": "Remove from registry",
   },
   fr: {
     "project.clean": "propre",
+    "project.tab.overview": "Vue d'ensemble",
+    "project.tab.logs": "Journal",
+    "project.tab.diff": "Diff",
+    "project.tab.files": "Fichiers",
+    "project.tab.shell": "Terminal",
+    "project.tab.claude": "Claude",
+    "project.tab.codex": "Codex",
+    "project.tab.hermes": "Hermes",
+    "project.editors.open": "Ouvrir {root} dans {editor}",
     "project.file.one": "{count} fichier",
     "project.file.other": "{count} fichiers",
     "project.commit.one": "{count} commit",
@@ -90,9 +150,28 @@ export const project = {
     "project.branches.reading": "lecture des branches…",
     "project.branches.noRepoTitle": "Aucun dépôt git",
     "project.branches.notVersioned": "{folder} n'est pas versionné",
-    "project.branches.remoteSuffix": "  (distante)",
+    "project.branches.local": "Locales",
+    "project.branches.remote": "Distantes",
+    "project.branches.remoteCount.one": "{count} distante pas encore prise",
+    "project.branches.remoteCount.other": "{count} distantes pas encore prises",
+    "project.branches.new": "Nouvelle branche",
+    "project.branches.newHint":
+      "Créer une branche depuis la branche courante et s'y placer",
+    "project.branches.newName": "Nom de la nouvelle branche",
+    "project.branches.newPlaceholder": "feat/mon-changement",
+    "project.branches.newFrom": "créée depuis {branch}",
+    "project.branches.create": "Créer",
+    "project.branches.invalidName":
+      "git refusera ce nom : lettres, chiffres, points, tirets, soulignés et barres obliques, en commençant par une lettre ou un chiffre.",
+    "project.branches.exists":
+      "{branch} existe déjà : choisissez-la dans la liste.",
+    "project.branches.dirtyCreate":
+      "Créer {branch} sera refusé tant que des changements ne sont pas commités : commitez-les ou remisez-les d'abord.",
     "project.branches.dirty":
       "changements non commités — le changement de branche sera refusé",
+    "project.branches.dirtySwitch":
+      "Passer sur {branch} sera refusé tant que des changements ne sont pas commités : commitez-les ou remisez-les d'abord.",
+    "project.branches.switch": "Changer",
     "project.branches.localCount.one": "{count} locale",
     "project.branches.localCount.other": "{count} locales",
 
@@ -109,10 +188,13 @@ export const project = {
     "project.diff.nothingToCompare": "il n'y a rien à comparer",
     "project.diff.notRepo": "Ce projet n'est pas un dépôt git.",
     "project.diff.detachedHead": "tête détachée",
-    "project.diff.readOnlyHint": "Cette vue n'écrit jamais dans le dépôt",
     "project.diff.readOnly": "lecture seule",
     "project.diff.reloadTree": "Relire l'arbre de travail",
     "project.diff.nothingChanged": "Rien n'a changé depuis le dernier commit.",
+    "project.diff.filesList":
+      "Fichiers changés — les flèches ou j et k déplacent la sélection",
+    "project.diff.copyPatch": "Copier le patch",
+    "project.diff.copyPatchHint": "Copier le diff de {path}",
 
     "project.git.noUpstream": "aucune branche distante suivie",
     "project.git.behind": "{commits} à récupérer",
@@ -123,6 +205,7 @@ export const project = {
     "project.git.querying": "interrogation du dépôt distant…",
     "project.git.notRepo": "ce dossier n'est pas un dépôt git",
     "project.git.queryLabel": "Interroger le dépôt distant",
+    "project.git.pull": "Tirer et réinstaller",
 
     "project.header.seeDiff": "Voir les fichiers changés",
     "project.header.restart": "Redémarrer",
@@ -130,17 +213,37 @@ export const project = {
     "project.header.stop": "Arrêter",
     "project.header.syncHint": "git pull puis réinstallation des dépendances",
     "project.header.sync": "Synchroniser",
+    "project.header.eyebrow": "Projet",
 
     "project.logs.journal": "journal de {name}",
     "project.logs.follow": "suivre la fin",
     "project.logs.waiting": "en attente de la première ligne de {name}…",
+    "project.logs.search": "Chercher dans les lignes",
+    "project.logs.matches.one": "{count} ligne",
+    "project.logs.matches.other": "{count} lignes",
+    "project.logs.noMatch": "Aucune ligne ne porte ce texte.",
+    "project.logs.copyAll": "Copier tout",
+    "project.logs.copyAllHint":
+      "Copier toutes les lignes affichées, recherche mise à part",
+    "project.logs.cut":
+      "Seules les {count} dernières lignes sont gardées : ce qui précède a quitté cette vue.",
 
-    "project.overview.publicAddress": "Adresse publique",
     "project.overview.addressCopied": "Adresse copiée",
     "project.overview.copyAddress": "Copier l'adresse",
-    "project.overview.notPublished": "Non publié",
-    "project.overview.local": "local",
     "project.overview.branch": "Branche",
+    "project.overview.env": "Environnement",
+    "project.env.reading": "lecture du fichier d'environnement…",
+    "project.env.noKeys": "Le fichier ne porte aucune clé.",
+    "project.env.keyCount.one": "{count} clé",
+    "project.env.keyCount.other": "{count} clés",
+    "project.env.more": "+{count}",
+    "project.env.showAll": "Tout afficher",
+    "project.env.showLess": "Réduire",
+    "project.env.writtenNow": "écrit à l'instant",
+    "project.env.readAsIs": "lu tel qu'il est sur le serveur",
+    "project.env.regenerate": "Régénérer",
+    "project.env.regenerateQuestion":
+      "Le fichier est réécrit depuis le coffre ; ce qui y a été modifié à la main est perdu.",
     "project.overview.activity": "Activité",
     "project.overview.running": "en cours",
     "project.overview.stopped": "arrêté",
@@ -151,7 +254,7 @@ export const project = {
     "project.overview.memory": "Mémoire",
     "project.overview.remove": "Retirer",
     "project.overview.removeQuestion":
-      "Le projet quitte le registre ; son dossier reste sur le serveur.",
+      "Le projet quitte le registre et ses adresses publiques meurent avec ; son dossier reste sur le serveur.",
     "project.overview.removeFromRegistry": "Retirer du registre",
   },
 } as const;

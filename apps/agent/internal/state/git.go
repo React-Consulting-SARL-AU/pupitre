@@ -11,6 +11,7 @@ import (
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys"
+	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/user"
 )
 
@@ -22,10 +23,7 @@ const (
 	subjectLimit = 120
 )
 
-var (
-	branchPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._/-]{0,200}$`)
-	repoPathOK    = regexp.MustCompile(`^[\w.\-/ +@#%,=()\[\]{}!~^&$:;]{1,300}$`)
-)
+var repoPathOK = regexp.MustCompile(`^[\w.\-/ +@#%,=()\[\]{}!~^&$:;]{1,300}$`)
 
 func (r *Reader) gitCommand(dir string, argv []string) sys.Command {
 	owner := r.options.Tmux.Resolved().User
@@ -153,7 +151,7 @@ func (r *Reader) refs(top, namespace, prefix string) []string {
 }
 
 func (r *Reader) Checkout(name, branch string) (string, error) {
-	if !branchPattern.MatchString(branch) {
+	if !registry.BranchPattern.MatchString(branch) {
 		return "", bad(i18n.T("state.branch.invalid", branch), i18n.T("state.branch.invalid.fix"))
 	}
 
@@ -459,10 +457,22 @@ func (r *Reader) pull(project registry.Project, root string) (bool, error) {
 			return false, nil
 		}
 
+		owner := r.options.Tmux.User
+		if _, err := file.EnsureOwned(ctx, root, owner, owner, 0o755); err != nil {
+			return false, err
+		}
+
 		projects := r.options.Paths.Resolved().Projects
-		if _, err := r.gitWrite(projects, "clone", "--recurse-submodules", project.Repo, root); err != nil {
+
+		argv := []string{"clone", "--recurse-submodules"}
+		if project.Branch != "" {
+			argv = append(argv, "--branch", project.Branch)
+		}
+		argv = append(argv, "--", project.Repo, root)
+
+		if out, err := r.gitWrite(projects, argv...); err != nil {
 			return false, protocol.NewError(contract.ErrorInternal, i18n.T("state.project.clone.failed", project.Name, project.Repo)).
-				WithFix(i18n.T("state.repo.unreadable.fix"))
+				WithFix(cloneFix(out))
 		}
 
 		return true, nil
@@ -474,6 +484,18 @@ func (r *Reader) pull(project registry.Project, root string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// The last thing git said is why the clone failed; the SSH hint only stands when git said nothing at all.
+func cloneFix(out sys.Output) string {
+	lines := strings.Split(strings.TrimSpace(out.Stderr), "\n")
+
+	said := strings.TrimSpace(lines[len(lines)-1])
+	if said == "" {
+		return i18n.T("state.repo.unreadable.fix")
+	}
+
+	return i18n.T("state.git.said", cut(said, problemLimit))
 }
 
 func (r *Reader) dirty(top string) bool {

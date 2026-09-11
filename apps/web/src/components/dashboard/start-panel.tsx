@@ -96,9 +96,6 @@ export function StartPanel({ returningFromCheckout = false }: StartPanelProps) {
         <h1 className="font-bold font-display text-[24px] text-ink leading-[1.2] tracking-[-0.01em]">
           {t("start.heroTitle")}
         </h1>
-        <p className="max-w-[46ch] text-[13px] text-ink-2">
-          {t("start.heroLead")}
-        </p>
       </header>
 
       <StartChecklist />

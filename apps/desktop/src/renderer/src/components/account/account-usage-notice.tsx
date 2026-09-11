@@ -1,12 +1,15 @@
+import { Button } from "@renderer/components/ui/button";
 import type {
   StatusShape,
   StatusTone,
 } from "@renderer/components/ui/status-dot";
 import { StatusDot } from "@renderer/components/ui/status-dot";
 import type { Translate } from "@renderer/i18n/i18n";
+import { currentLocale } from "@renderer/i18n/translate";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { since } from "@renderer/lib/format";
 import type { UsageRight } from "@shared/account";
+import { ExternalLink } from "lucide-react";
 
 /**
  * The right to work, told by a shape.
@@ -86,16 +89,24 @@ function detailOf(
   return t("account.usage.none");
 }
 
+/** Where the console sends the reader to settle the right, when it does not stand. */
+function consoleOf(usage: UsageRight): string | null {
+  return usage.status === "granted" ? null : usage.consoleUrl;
+}
+
 export function AccountUsageNotice({
   usage,
   checkedAt,
+  onOpenConsole,
 }: {
   usage: UsageRight;
   checkedAt: string | null;
+  onOpenConsole?: (url: string) => void;
 }) {
   const t = useTranslations();
 
   const look = lookOf(usage, t);
+  const console = consoleOf(usage);
 
   return (
     <div
@@ -111,13 +122,29 @@ export function AccountUsageNotice({
           {detailOf(usage, checkedAt, t)}
         </p>
         {usage.status === "granted" && usage.validUntil ? (
-          <p className="mt-1.5 font-data text-[12px] text-ink-4">
+          <p className="mt-1.5 font-data text-[12px] text-ink-3">
             {t("account.usage.validUntil", {
-              date: new Date(usage.validUntil).toLocaleDateString("fr-FR"),
+              date: new Intl.DateTimeFormat(currentLocale()).format(
+                new Date(usage.validUntil)
+              ),
             })}
           </p>
         ) : null}
       </div>
+
+      {console && onOpenConsole ? (
+        <Button
+          className="shrink-0 self-center"
+          icon={ExternalLink}
+          onClick={() => onOpenConsole(console)}
+          size="sm"
+          variant="inverse"
+        >
+          {usage.status === "suspended"
+            ? t("account.usage.manageSubscription")
+            : t("account.usage.openConsole")}
+        </Button>
+      ) : null}
     </div>
   );
 }

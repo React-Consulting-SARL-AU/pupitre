@@ -22,11 +22,7 @@ function SettingsPage() {
 
   return (
     <>
-      <PageHeader
-        description={t("page.settings.description")}
-        parents={parents}
-        title={t(title)}
-      />
+      <PageHeader parents={parents} title={t(title)} />
       <div className="flex flex-col gap-section">
         <ProfileForm />
         <AppearanceCard />

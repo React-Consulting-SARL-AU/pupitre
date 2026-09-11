@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -116,9 +117,19 @@ func TestFailedModuleDoesNotStopTheNext(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	want := []string{"db.broken · install-package : E: Unable to locate package db-broken · rejeu : sudo pupitred install --only=db.broken"}
+	want := []string{"db.broken"}
 	if !reflect.DeepEqual(result.Failed, want) {
 		t.Fatalf("failed = %q, want %q", result.Failed, want)
+	}
+
+	var broken *contract.StepEvent
+	for i := range events {
+		if events[i].Module == "db.broken" && events[i].Status == contract.StepFail {
+			broken = &events[i]
+		}
+	}
+	if broken == nil || broken.Message != "E: Unable to locate package db-broken" || broken.Replay != "sudo pupitred install --only=db.broken" {
+		t.Fatalf("the fail event must carry the message and the replay: %+v", broken)
 	}
 
 	if fake.Packages["tool-demo"] == "" || fake.Units["demo"] != modtest.UnitActive {
@@ -348,8 +359,18 @@ func TestPanicAndBareErrorsAreFailuresOfTheModuleOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(result.Failed) != 1 || !strings.Contains(result.Failed[0], "ai.panic · write-config : panique") {
+	if !reflect.DeepEqual(result.Failed, []string{"ai.panic"}) {
 		t.Fatalf("failed = %v", result.Failed)
+	}
+
+	var panicked *contract.ReportStep
+	for _, step := range readReport(t, engine).Modules[0].Steps {
+		if step.Status == contract.StepFail {
+			panicked = &step
+		}
+	}
+	if panicked == nil || !strings.Contains(panicked.Message, "panique") {
+		t.Fatalf("the report must keep the panic: %+v", panicked)
 	}
 
 	if fake.Packages["tool-demo"] == "" {
@@ -365,12 +386,23 @@ func TestWarningsAreAccountedWithoutFailing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(result.Failed) != 0 || !reflect.DeepEqual(result.Warned, []string{"tool.noisy : port 8080 is already taken"}) {
+	if len(result.Failed) != 0 || !reflect.DeepEqual(result.Warned, []string{"tool.noisy"}) {
 		t.Fatalf("result = %+v", result)
 	}
 
-	if report := readReport(t, engine); report.Modules[0].Status != contract.ModuleWarn {
+	report := readReport(t, engine)
+	if report.Modules[0].Status != contract.ModuleWarn {
 		t.Fatalf("module status = %s, want warn", report.Modules[0].Status)
+	}
+
+	var said []string
+	for _, step := range report.Modules[0].Steps {
+		if step.Message != "" {
+			said = append(said, step.Message)
+		}
+	}
+	if !reflect.DeepEqual(said, []string{"port 8080 is already taken"}) {
+		t.Fatalf("the warning must ride on a step of the report: %v", said)
 	}
 }
 
@@ -473,8 +505,14 @@ func TestSecretsNeverLeak(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(result.Failed) != 1 || !strings.Contains(result.Failed[0], "[secret]") {
-		t.Fatalf("expected the failure to carry the redacted stderr: %v", result.Failed)
+	if !reflect.DeepEqual(result.Failed, []string{"tool.demo"}) {
+		t.Fatalf("failed = %v", result.Failed)
+	}
+
+	for _, event := range events {
+		if event.Status == contract.StepFail && (strings.Contains(event.Message, secret) || !strings.Contains(event.Message, "[secret]")) {
+			t.Fatalf("the fail event must carry the redacted stderr: %+v", event)
+		}
 	}
 
 	for _, path := range []string{engine.ReportPath, engine.LogPath} {
@@ -617,5 +655,282 @@ func TestCheckNeverCallsASecretMissing(t *testing.T) {
 	failure, isProtocol := err.(*protocol.Error)
 	if !isProtocol || failure.Code != contract.ErrorInvalidConfig {
 		t.Fatalf("want invalid_config on a missing password, got %#v", err)
+	}
+}
+
+func TestADeferredModuleWaitsForTheRequestThatAnswersForIt(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	registry := demoRegistry(
+		modtest.Passing{ID: "core.system"},
+		modtest.Passing{ID: "tool.demo", Requires: []string{"core.system"}, Unit: "demo", EnvKey: "DEMO_PASSWORD"},
+	)
+	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+
+	var events []contract.StepEvent
+	if _, err := engine.Install(modules.Request{Modules: []string{"tool.demo"}, Defer: []string{"tool.demo"}, Persist: true}, collect(&events)); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, event := range events {
+		if event.Module == "tool.demo" && event.Step == "write-config" {
+			t.Fatal("the configure step ran on a module put off for later")
+		}
+	}
+	if fake.EnvValue("DEMO_PASSWORD") != "" || fake.Units["demo"] != modtest.UnitAbsent {
+		t.Fatal("a deferred module must be put on the machine and no further")
+	}
+	if !reflect.DeepEqual(engine.Deferred(), []string{"tool.demo"}) {
+		t.Fatalf("the engine must remember what it left unconfigured, got %v", engine.Deferred())
+	}
+
+	// Its requirement was answered for by the same request: it is not deferred.
+	fake.Upgrades["tool-demo"] = "2.0"
+	events = nil
+	if _, err := engine.Upgrade(modules.Request{}, collect(&events)); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, event := range events {
+		if event.Module == "tool.demo" {
+			t.Fatal("an upgrade must leave a module nobody configured alone")
+		}
+	}
+	if fake.Packages["tool-demo"] == "2.0" {
+		t.Fatal("the deferred module was upgraded")
+	}
+
+	// A replay from the machine names it without answering: refused before its first step.
+	if _, err := engine.Install(modules.Request{Modules: []string{"tool.demo"}, Persist: true}, nil); protocolCode(t, err) != contract.ErrorInvalidConfig {
+		t.Fatalf("got %v", err)
+	}
+	if !reflect.DeepEqual(engine.Deferred(), []string{"tool.demo"}) {
+		t.Fatalf("a refused request must not change what is deferred, got %v", engine.Deferred())
+	}
+
+	// The request that names it with its answers is the one that configures it.
+	request := modules.Request{Modules: []string{"tool.demo"}, Secrets: map[string]map[string]string{"tool.demo": {"password": secret}}, Persist: true}
+	if _, err := engine.Install(request, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(engine.Deferred()) != 0 {
+		t.Fatalf("an answered module is deferred no more, got %v", engine.Deferred())
+	}
+	if fake.EnvValue("DEMO_PASSWORD") != secret || fake.Units["demo"] != modtest.UnitActive {
+		t.Fatal("the answering request did not configure the module")
+	}
+}
+
+func TestDeferringAMandatoryModuleIsRefused(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	registry := demoRegistry(modtest.Passing{ID: "core.system", Mandatory: true})
+	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+	request := modules.Request{Modules: []string{"core.system"}, Defer: []string{"core.system"}, Persist: true}
+
+	if _, err := engine.Install(request, nil); protocolCode(t, err) != contract.ErrorBadRequest {
+		t.Fatalf("got %v", err)
+	}
+	if _, err := engine.Check(request, nil); protocolCode(t, err) != contract.ErrorBadRequest {
+		t.Fatalf("got %v", err)
+	}
+	if _, present := fake.Packages["core-system"]; present {
+		t.Fatal("a refused request must not touch the machine")
+	}
+}
+
+func TestUninstallForgetsThatAModuleWasDeferred(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	registry := demoRegistry(modtest.Passing{ID: "tool.demo", Unit: "demo", EnvKey: "DEMO_PASSWORD"})
+	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+
+	if _, err := engine.Install(modules.Request{Modules: []string{"tool.demo"}, Defer: []string{"tool.demo"}, Persist: true}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := engine.Uninstall([]string{"tool.demo"}, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(engine.Deferred()) != 0 {
+		t.Fatalf("got %v", engine.Deferred())
+	}
+}
+
+// A real core module asks a name nobody types twice: adding a service later
+// names that service alone, and the machine's own answers must not be asked again.
+func TestAddingAModuleKeepsWhatItsRequirementWasToldBefore(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	identity := contract.Field{Key: "git_name", Kind: contract.FieldText, Label: "Nom git", Required: true, MinLength: 2}
+	registry := demoRegistry(
+		modtest.Passing{ID: "core.system", Mandatory: true, Asks: []contract.Field{identity}},
+		modtest.Passing{ID: "tool.demo", Requires: []string{"core.system"}, Unit: "demo"},
+	)
+	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+
+	first := modules.Request{Modules: []string{"core.system"}, Config: map[string]map[string]any{"core.system": {"git_name": "Ada"}}, Persist: true}
+	if _, err := engine.Install(first, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	later := modules.Request{Modules: []string{"tool.demo"}, Config: map[string]map[string]any{"tool.demo": {"port": 9000}}, Persist: true}
+	if _, err := engine.Check(later, nil); err != nil {
+		t.Fatalf("weighing the addition must not ask the core's questions again: %v", err)
+	}
+	if _, err := engine.Install(later, nil); err != nil {
+		t.Fatalf("adding a module must not ask the core's questions again: %v", err)
+	}
+
+	kept, err := engine.Config("core.system")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if kept.Values["git_name"] != "Ada" {
+		t.Fatalf("the core's answers were lost: %v", kept.Values)
+	}
+	if string(fake.Files["/etc/pupitre/demo/tool.demo.conf"]) != "port=9000\n" {
+		t.Fatalf("the added module did not get its own values: %s", fake.Files["/etc/pupitre/demo/tool.demo.conf"])
+	}
+
+	// Naming the core again replaces its configuration whole, as the contract says.
+	again := modules.Request{Modules: []string{"core.system"}, Config: map[string]map[string]any{"core.system": {"git_name": "Grace"}}, Persist: true}
+	if _, err := engine.Install(again, nil); err != nil {
+		t.Fatal(err)
+	}
+	if kept, _ = engine.Config("core.system"); kept.Values["git_name"] != "Grace" {
+		t.Fatalf("got %v", kept.Values)
+	}
+}
+
+// A module put off for later stays put off when another module merely requires it.
+func TestARequirementLeftForLaterStaysForLater(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	registry := demoRegistry(
+		modtest.Passing{ID: "tool.base", Unit: "base", EnvKey: "BASE_PASSWORD"},
+		modtest.Passing{ID: "tool.top", Requires: []string{"tool.base"}},
+	)
+	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+
+	if _, err := engine.Install(modules.Request{Modules: []string{"tool.base"}, Defer: []string{"tool.base"}, Persist: true}, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	var events []contract.StepEvent
+	if _, err := engine.Install(modules.Request{Modules: []string{"tool.top"}, Persist: true}, collect(&events)); err != nil {
+		t.Fatalf("the requirement's unanswered questions must not refuse the addition: %v", err)
+	}
+
+	for _, event := range events {
+		if event.Module == "tool.base" && event.Step == "write-config" {
+			t.Fatal("a requirement left for later was configured on the way")
+		}
+	}
+	if !reflect.DeepEqual(engine.Deferred(), []string{"tool.base"}) {
+		t.Fatalf("got %v", engine.Deferred())
+	}
+}
+
+func TestTheReportIsOnDiskBeforeEveryStepEvent(t *testing.T) {
+	engine := newEngine(t, modtest.NewFakeSys(), demoRegistry(modtest.Passing{ID: "tool.demo"}, modtest.Passing{ID: "tool.other"}), entitled(contract.EntitlementDev))
+
+	var seen []string
+	sink := func(event contract.StepEvent) {
+		report := readReport(t, engine)
+		if report.FinishedAt != "" {
+			t.Errorf("%s %s %s: the report says finished while the run goes on", event.Module, event.Step, event.Status)
+		}
+
+		last := report.Modules[len(report.Modules)-1]
+		if last.ID != event.Module {
+			t.Errorf("%s %s %s: the report ends on %s", event.Module, event.Step, event.Status, last.ID)
+		}
+
+		step := last.Steps[len(last.Steps)-1]
+		if step.Step != event.Step || step.Status != event.Status {
+			t.Errorf("%s %s %s: the report's last step is %s %s", event.Module, event.Step, event.Status, step.Step, step.Status)
+		}
+
+		seen = append(seen, event.Module+" "+event.Step+" "+string(event.Status))
+	}
+
+	if _, err := engine.Install(modules.Request{Modules: []string{"tool.demo", "tool.other"}}, sink); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(seen) == 0 {
+		t.Fatal("no step event")
+	}
+
+	report := readReport(t, engine)
+	if report.FinishedAt == "" || len(report.Modules) != 2 {
+		t.Fatalf("the finished report is not whole: %+v", report)
+	}
+
+	for _, module := range report.Modules {
+		for _, step := range module.Steps {
+			if step.Status == contract.StepStart {
+				t.Errorf("%s: a finished report keeps an open step %s", module.ID, step.Step)
+			}
+		}
+	}
+}
+
+func TestUninstallRefusesAModuleAnotherInstalledOneStillRequires(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	registry := demoRegistry(
+		modtest.Passing{ID: "core.system"},
+		modtest.Passing{ID: "tool.demo", Requires: []string{"core.system"}, Unit: "demo", EnvKey: "DEMO_PASSWORD"},
+	)
+	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+
+	if _, err := engine.Install(modules.Request{Modules: []string{"tool.demo"}, Secrets: map[string]map[string]string{"tool.demo": {"password": secret}}, Persist: true}, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	mutations := len(fake.Mutations)
+	_, err := engine.Uninstall([]string{"core.system"}, nil)
+
+	var refusal *protocol.Error
+	if !errors.As(err, &refusal) || refusal.Code != contract.ErrorBadRequest || !strings.Contains(refusal.Message, "tool.demo") || !strings.Contains(refusal.Fix, "tool.demo") {
+		t.Fatalf("uninstall of a requirement got %v, want a refusal naming tool.demo", err)
+	}
+
+	if len(fake.Mutations) != mutations || fake.Packages["core-system"] == "" {
+		t.Fatalf("a refused uninstall must touch nothing: %v", fake.Mutations[mutations:])
+	}
+
+	if _, err := engine.Uninstall([]string{"core.system", "tool.demo"}, nil); err != nil {
+		t.Fatalf("removing both together must pass: %v", err)
+	}
+}
+
+func TestInspectAnswersWhileAnotherProcessHoldsTheLock(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Packages["tool-demo"] = "1.0"
+	registry := demoRegistry(modtest.Passing{ID: "tool.demo"})
+	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+	engine.LockPath = filepath.Join(t.TempDir(), "install.lock")
+
+	held, err := os.OpenFile(engine.LockPath, os.O_CREATE|os.O_RDWR, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer held.Close()
+	if err := syscall.Flock(int(held.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+		t.Fatal(err)
+	}
+
+	var refusal *protocol.Error
+	if err := engine.Command("tool.demo", nil, func(*modules.Context) error { return nil }); !errors.As(err, &refusal) || refusal.Code != contract.ErrorBusy {
+		t.Fatalf("a command under a held lock got %v, want busy", err)
+	}
+
+	module, _ := registry.Get("tool.demo")
+	installed := false
+	if err := engine.Inspect("tool.demo", func(ctx *modules.Context) error {
+		status, err := module.Check(ctx)
+		installed = status.Installed
+
+		return err
+	}); err != nil || !installed {
+		t.Fatalf("a read under a held lock must still answer: installed %v, err %v", installed, err)
 	}
 }

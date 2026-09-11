@@ -3,7 +3,6 @@ package caddy
 import (
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/exposure/routes"
-	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/systemd"
 )
@@ -11,7 +10,7 @@ import (
 type Report = routes.Report
 
 func Status(ctx *modules.Context) (Report, error) {
-	installed := apt.Installed(ctx, pkg)
+	installed := ours(ctx)
 
 	report := Report{
 		Installed: installed,
@@ -28,7 +27,7 @@ func Status(ctx *modules.Context) (Report, error) {
 
 // The Caddyfile is regenerated from the project registry, which is the only place a subdomain is ever declared.
 func Sync(ctx *modules.Context) (Report, error) {
-	if !apt.Installed(ctx, pkg) {
+	if !ours(ctx) {
 		return Report{}, modules.NotInstalled(ID, manifest().Name)
 	}
 
@@ -53,7 +52,7 @@ func Sync(ctx *modules.Context) (Report, error) {
 }
 
 func Restart(ctx *modules.Context) (Report, error) {
-	if !apt.Installed(ctx, pkg) {
+	if !ours(ctx) {
 		return Report{}, modules.NotInstalled(ID, manifest().Name)
 	}
 

@@ -8,7 +8,7 @@ export const dashboard = {
     "dashboard.card.stop": "Stop",
     "dashboard.machine.diskDetail": "{free} free",
     "dashboard.machine.diskTitle": "Disk",
-    "dashboard.machine.loadDetail": "{cores} cores · up for {uptime}",
+    "dashboard.machine.loadDetail": "{cores} cores · up {uptime}",
     "dashboard.machine.loadTitle": "Load",
     "dashboard.machine.memoryDetail": "{free} available",
     "dashboard.machine.memoryTitle": "Memory",
@@ -16,6 +16,7 @@ export const dashboard = {
     "dashboard.machine.projectsDeclared.other": "{count} projects declared",
     "dashboard.machine.projectsTitle": "Projects",
     "dashboard.panel.backgroundSessions": "Background sessions",
+    "dashboard.panel.newProject": "New project",
     "dashboard.panel.noProjects":
       "This server has not declared any project yet.",
     "dashboard.panel.projects": "Projects",
@@ -24,6 +25,20 @@ export const dashboard = {
       "Everything stops; the machine comes back in about a minute.",
     "dashboard.panel.rebootServer": "Restart the server",
     "dashboard.panel.services": "Services",
+    "dashboard.remedy.openTerminal": "Open a terminal",
+    "dashboard.remedy.stopProject": "Stop a project",
+    "dashboard.remedy.cleanSessions": "Clean the sessions",
+    "dashboard.remedy.memoryProjects":
+      "Less than a gigabyte is left: a project stopped gives its memory back.",
+    "dashboard.remedy.memory":
+      "Less than a gigabyte is left, and no project is running: a terminal shows what holds it.",
+    "dashboard.remedy.loadProjects":
+      "The processor is behind on its work: a project stopped lets it catch up.",
+    "dashboard.remedy.load":
+      "The processor is behind on its work, and no project is running: a terminal shows what keeps it busy.",
+    "dashboard.remedy.disk":
+      "The disk is over nine tenths full: the finished sessions still hold their logs and their files.",
+    "dashboard.services.open": "Open {name}",
     "dashboard.panel.startAll": "Start all",
     "dashboard.panel.stopAll": "Stop all",
     "dashboard.panel.stopAllQuestion": "Every running project stops.",
@@ -32,9 +47,7 @@ export const dashboard = {
     "dashboard.panel.title": "{projects} online",
     "dashboard.project.one": "{count} project",
     "dashboard.project.other": "{count} projects",
-    "dashboard.services.empty":
-      "The agent has not installed any module on this machine.",
-    "dashboard.services.emptyTitle": "No service",
+    "dashboard.services.emptyTitle": "Nothing running",
   },
   fr: {
     "dashboard.broken.one": "{count} en échec",
@@ -45,7 +58,7 @@ export const dashboard = {
     "dashboard.card.stop": "Arrêter",
     "dashboard.machine.diskDetail": "{free} libres",
     "dashboard.machine.diskTitle": "Disque",
-    "dashboard.machine.loadDetail": "{cores} cœurs · en route depuis {uptime}",
+    "dashboard.machine.loadDetail": "{cores} cœurs · depuis {uptime}",
     "dashboard.machine.loadTitle": "Charge",
     "dashboard.machine.memoryDetail": "{free} disponibles",
     "dashboard.machine.memoryTitle": "Mémoire",
@@ -53,6 +66,7 @@ export const dashboard = {
     "dashboard.machine.projectsDeclared.other": "{count} projets déclarés",
     "dashboard.machine.projectsTitle": "Projets",
     "dashboard.panel.backgroundSessions": "Sessions en arrière-plan",
+    "dashboard.panel.newProject": "Nouveau projet",
     "dashboard.panel.noProjects": "Ce serveur n'a encore déclaré aucun projet.",
     "dashboard.panel.projects": "Projets",
     "dashboard.panel.reboot": "Redémarrer",
@@ -60,6 +74,20 @@ export const dashboard = {
       "Tout s'arrête ; la machine revient en une minute environ.",
     "dashboard.panel.rebootServer": "Redémarrer le serveur",
     "dashboard.panel.services": "Services",
+    "dashboard.remedy.openTerminal": "Ouvrir un terminal",
+    "dashboard.remedy.stopProject": "Arrêter un projet",
+    "dashboard.remedy.cleanSessions": "Nettoyer les sessions",
+    "dashboard.remedy.memoryProjects":
+      "Il reste moins d'un gigaoctet : un projet arrêté rend sa mémoire.",
+    "dashboard.remedy.memory":
+      "Il reste moins d'un gigaoctet, et aucun projet ne tourne : un terminal montre ce qui la tient.",
+    "dashboard.remedy.loadProjects":
+      "Le processeur est en retard sur son travail : un projet arrêté le laisse rattraper.",
+    "dashboard.remedy.load":
+      "Le processeur est en retard sur son travail, et aucun projet ne tourne : un terminal montre ce qui l'occupe.",
+    "dashboard.remedy.disk":
+      "Le disque est plein à plus de neuf dixièmes : les sessions terminées gardent encore leurs journaux et leurs fichiers.",
+    "dashboard.services.open": "Ouvrir {name}",
     "dashboard.panel.startAll": "Tout démarrer",
     "dashboard.panel.stopAll": "Tout arrêter",
     "dashboard.panel.stopAllQuestion": "Chaque projet en cours s'arrête.",
@@ -68,8 +96,6 @@ export const dashboard = {
     "dashboard.panel.title": "{projects} en ligne",
     "dashboard.project.one": "{count} projet",
     "dashboard.project.other": "{count} projets",
-    "dashboard.services.empty":
-      "L'agent n'a installé aucun module sur cette machine.",
-    "dashboard.services.emptyTitle": "Aucun service",
+    "dashboard.services.emptyTitle": "Rien en marche",
   },
 } as const;

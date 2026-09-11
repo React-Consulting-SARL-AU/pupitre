@@ -75,8 +75,12 @@ func TestWithoutItsCredentialsTheConfigurationIsRefusedNotTheInstall(t *testing.
 	}})[0]
 
 	result := decode[contract.InstallResult](t, refused.Result)
-	if len(result.Failed) != 1 || !strings.Contains(result.Failed[0], "champ requis manquant") {
-		t.Fatalf("the refusal must name the missing field: %v", result.Failed)
+	if len(result.Failed) != 1 || result.Failed[0] != "exposure.cloudflare" {
+		t.Fatalf("the refusal must name the module: %v", result.Failed)
+	}
+
+	if !strings.Contains(strings.Join(messages(refused), " "), "champ requis manquant") {
+		t.Fatalf("the refusal must name the missing field: %v", messages(refused))
 	}
 
 	if !strings.Contains(strings.Join(steps(refused, contract.StepOK), " "), "install-cloudflared") {
@@ -134,14 +138,11 @@ func TestASubdomainGetsARoute(t *testing.T) {
 	}
 }
 
-// Without a tunnel a project stays on its port, and the subdomain column of the registry is simply ignored.
+// No exposure is a state, not a module: taking the tunnel back leaves the project on its port, and the subdomain column of the registry is simply ignored.
 func TestWithoutATunnelTheUrlIsLocal(t *testing.T) {
 	host := stagingHost(t)
 
 	agent(t, host, request{Cmd: "uninstall", Params: map[string]any{"modules": []string{"exposure.cloudflare"}}})
-	agent(t, host, request{Cmd: "install", Params: map[string]any{
-		"secrets_stdin": false, "modules": []string{"exposure.ssh"}, "config": map[string]any{},
-	}})
 
 	url := agent(t, host, request{Cmd: "project.url", Params: map[string]any{"name": "fixture"}})[0]
 	if address := decode[struct {
@@ -153,27 +154,6 @@ func TestWithoutATunnelTheUrlIsLocal(t *testing.T) {
 	status := agent(t, host, request{Cmd: "tunnel.status"})[0]
 	if !strings.Contains(string(status.Result), `"state":"absent"`) {
 		t.Fatalf("no tunnel, no state: %s", status.Result)
-	}
-}
-
-func TestSecretsStatusNeverCarriesAValue(t *testing.T) {
-	host := stagingHost(t)
-
-	agentWithSecrets(t, host, `{"CHECK_KEY":"s3cret-de-staging"}`,
-		request{Cmd: "secrets.set", Params: map[string]any{"key": "CHECK_KEY", "secrets_stdin": true}})
-
-	status := agent(t, host, request{Cmd: "secrets.status"})[0]
-	if !strings.Contains(string(status.Result), `"key":"CHECK_KEY"`) {
-		t.Fatalf("the key must be listed: %s", status.Result)
-	}
-
-	if strings.Contains(string(status.Result), "s3cret-de-staging") {
-		t.Fatalf("a value must never leave the machine: %s", status.Result)
-	}
-
-	stored := ssh(t, host, "sudo", "grep", "CHECK_KEY", "/etc/pupitre/env")
-	if !strings.Contains(stored, "s3cret-de-staging") {
-		t.Fatalf("the value belongs in /etc/pupitre/env:\n%s", stored)
 	}
 }
 
@@ -203,8 +183,8 @@ func TestGithubClonesOverHttpsWithoutAKey(t *testing.T) {
 	}
 }
 
-// The module poses the CLI and authenticates it; the client's account decides the rest.
-func TestNeonPosesTheAuthenticatedCli(t *testing.T) {
+// The module poses the CLI and hands the key to the dev shell, where `neon` runs; root's file stays root's.
+func TestNeonPosesTheCliAndKeepsTheKey(t *testing.T) {
 	host := stagingHost(t)
 
 	key := os.Getenv("PUPITRE_STAGING_NEON_KEY")
@@ -222,13 +202,24 @@ func TestNeonPosesTheAuthenticatedCli(t *testing.T) {
 		t.Fatalf("install failed: %v", result.Failed)
 	}
 
-	if out := ssh(t, "dev@"+address(host), "neon", "projects", "list"); strings.TrimSpace(out) == "" {
-		t.Fatalf("the CLI must answer with the stored key alone:\n%s", out)
+	if out := ssh(t, "dev@"+address(host), "neon", "--version"); strings.TrimSpace(out) == "" {
+		t.Fatalf("the CLI must be on the path of dev:\n%s", out)
 	}
 
-	status := agent(t, host, request{Cmd: "secrets.status"})[0]
-	if strings.Contains(string(status.Result), key) {
-		t.Fatal("the api key must never leave the machine")
+	if out := ssh(t, host, "sudo", "grep", "NEON_API_KEY", "/etc/pupitre/env"); !strings.Contains(out, key) {
+		t.Fatalf("the key belongs in /etc/pupitre/env:\n%s", out)
+	}
+
+	if out := ssh(t, "dev@"+address(host), "cat", "/etc/pupitre/env"); strings.Contains(out, key) {
+		t.Fatal("root's file must not be readable by dev")
+	}
+
+	if out := ssh(t, "dev@"+address(host), "zsh", "-c", "'echo $NEON_API_KEY'"); !strings.Contains(out, key) {
+		t.Fatalf("the dev shell must carry the key:\n%s", out)
+	}
+
+	if out := ssh(t, "dev@"+address(host), "neonctl", "--version"); strings.TrimSpace(out) == "" {
+		t.Fatalf("the name the CLI prints for itself must answer:\n%s", out)
 	}
 
 	replay := agentWithSecrets(t, host, `{"tool.neon":{"api_key":"`+key+`"}}`, install)[0]

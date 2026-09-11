@@ -4,22 +4,33 @@ import { dirname, join } from "node:path";
 import type {
   HostKeyDecision,
   Server,
+  ServerChanges,
   ServerDraft,
   ServerGrant,
   ServersConfig,
+  ServerUpdated,
 } from "@shared/servers";
 import { app } from "electron";
-import { hostKeyDecision, observedFingerprint } from "./host-keys";
+import {
+  forgetHostKey,
+  hostKeyDecision,
+  liveFingerprints,
+  observedFingerprint,
+} from "./host-keys";
 import { readPublicKey } from "./keys";
 import {
   addServer,
+  changeServer,
   pinFingerprint,
   removeServer,
   type ServerCreation,
+  sharesAddress,
   untrustHost,
   withAccount,
 } from "./server-setup";
+import { SERVERS_BASELINE, SERVERS_MIGRATIONS } from "./servers-migrations";
 import {
+  type Address,
   alias,
   appSshPaths,
   readSystemHosts,
@@ -27,6 +38,12 @@ import {
   sshArgs,
   writeSshConfig,
 } from "./ssh-config";
+import {
+  expectedRevision,
+  type JsonObject,
+  keepCopy,
+  migrate,
+} from "./store-migrations";
 import { trace } from "./trace";
 
 /**
@@ -48,8 +65,13 @@ type Configuration = Required<
  * address, its port, its account and its key rather than pointing at a block of
  * the system configuration. An older entry did point at one, so it is read back
  * as what it was — a system host — and nothing of the user's is touched.
+ *
+ * From there on the ledger carries the shapes, one entry per change.
  */
-const VERSION = 3;
+const VERSION = Math.max(
+  SERVERS_BASELINE,
+  expectedRevision(SERVERS_MIGRATIONS)
+);
 const DEFAULT_PORT = 22;
 const NAME_LIMIT = 60;
 const HOST_LIMIT = 120;
@@ -115,15 +137,23 @@ export function read(): Configuration {
   }
 
   try {
-    const data = JSON.parse(readFileSync(path(), "utf8")) as ServersConfig;
-    if (Array.isArray(data.servers)) {
-      const clean = normalise(data);
+    const raw = JSON.parse(readFileSync(path(), "utf8")) as JsonObject;
+    const held = raw as unknown as ServersConfig;
+
+    if (Array.isArray(held.servers)) {
+      const from = typeof raw.version === "number" ? raw.version : 1;
+      const migrated = migrate(raw, SERVERS_MIGRATIONS);
+      const clean = normalise(migrated.document as unknown as ServersConfig);
+
       // An older configuration goes back to disk completed, once: otherwise
       // every launch would complete it in memory, and the day the defaults
-      // changed it would change with them.
-      if ((data.version ?? 1) < VERSION) {
+      // changed it would change with them. The file as it was stays beside it,
+      // for a reader who has to go back to the version they came from.
+      if (from < VERSION) {
+        keepCopy(path(), from);
         save(clean);
       }
+
       cache = clean;
       return clean;
     }
@@ -175,6 +205,19 @@ export function activeHost(): string {
   return server ? alias(server) : "";
 }
 
+/**
+ * The app's SSH files, made to exist before a first server does.
+ *
+ * A knock on an account passes `-F` to `ssh`, which refuses a file it cannot
+ * open, and pins the host key into a known_hosts that has to be there: on a
+ * first launch neither is until something is saved.
+ */
+export function sshPathsWritten(): SshPaths {
+  writeSshConfig(read().servers, paths());
+
+  return paths();
+}
+
 export function sshHosts(): string[] {
   return readSystemHosts(join(homedir(), ".ssh", "config"));
 }
@@ -208,6 +251,46 @@ export function rename(id: string, name: string): Configuration {
         : server
     ),
   });
+}
+
+/**
+ * The address, the port or the account of a server, changed by the reader.
+ *
+ * The configuration is written before anything else: `save` rewrites the SSH
+ * file, so the next `ssh -F` reaches the new address. A pin left for the old
+ * address is dropped from the app's known_hosts too, unless another server of
+ * the list still answers there — it is theirs as much as it was this one's.
+ */
+export async function update(
+  id: string,
+  changes: ServerChanges
+): Promise<ServerUpdated> {
+  const config = read();
+  const before = config.servers.find((server) => server.id === id) ?? null;
+  const changed = changeServer(config.servers, id, changes);
+  const written = write({ ...config, servers: changed.servers });
+
+  if (
+    before &&
+    changed.hostKeyDropped &&
+    !sharesAddress(changed.servers, before)
+  ) {
+    await untrustHost(before, paths());
+  }
+
+  trace("servers", "changed", {
+    host: changed.server.host,
+    hostKeyDropped: changed.hostKeyDropped,
+    port: changed.server.port,
+    server: id,
+    user: changed.server.user,
+  });
+
+  return {
+    config: written,
+    hostKeyDropped: changed.hostKeyDropped,
+    server: changed.server,
+  };
 }
 
 /**
@@ -304,11 +387,15 @@ export function activate(id: string): Configuration {
  * no way to tell a removal from a first encounter — so its platform id is
  * recorded. `restore` is the way back, and the only one.
  */
-export function remove(id: string): Configuration {
+export async function remove(id: string): Promise<Configuration> {
   const config = read();
   const going = config.servers.find((server) => server.id === id);
   const left = removeServer(config.servers, id, paths());
   const grantId = going?.grant?.id;
+
+  if (going && !sharesAddress(left, going)) {
+    await untrustHost(going, paths());
+  }
 
   return write({
     active: config.active === id ? (left[0]?.id ?? null) : config.active,
@@ -338,8 +425,11 @@ export async function hostKey(id: string): Promise<HostKeyDecision> {
     return { status: "first_contact" };
   }
 
-  const observed = await observedFingerprint(server, paths());
-  const decision = hostKeyDecision(server.hostFingerprint, observed);
+  const [observed, live] = await Promise.all([
+    observedFingerprint(server, paths()),
+    liveFingerprints(server),
+  ]);
+  const decision = hostKeyDecision(server.hostFingerprint, observed, live);
 
   if (decision.status === "first_contact" && observed) {
     const config = read();
@@ -369,6 +459,20 @@ export async function trustReinstalled(id: string): Promise<Configuration> {
       s.id === id ? { ...s, hostFingerprint: undefined } : s
     ),
   });
+}
+
+/**
+ * A pin at an address no listed server reaches is a leftover: the machine that
+ * earned it left the list, or was rebuilt before this version cleared it.
+ */
+export async function forgetOrphanPin(address: Address): Promise<boolean> {
+  if (sharesAddress(read().servers, address)) {
+    return false;
+  }
+
+  await forgetHostKey(address, paths());
+
+  return true;
 }
 
 export function publicKey(id: string): string | null {

@@ -3,6 +3,7 @@ import type { SecretMarks } from "@shared/secrets";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CATALOG, CATALOG_NEXT } from "../../__tests__/catalog-fixtures";
 import {
+  defaultsOf,
   type FieldProblemView,
   fieldsOf,
   select,
@@ -297,5 +298,79 @@ describe("un module que l'agent vient d'ajouter", () => {
     expect(field(html, "db.clickhouse.app_password")).toContain(
       'data-kind="secret"'
     );
+  });
+});
+
+describe("ce qui est demandé d'abord, et ce qui attend derrière", () => {
+  const withDefaults = Object.fromEntries(
+    CATALOG.modules.map((module) => [module.id, defaultsOf(module)])
+  );
+
+  it("pose les questions du socle et range ses réglages derrière un pli fermé", () => {
+    const html = form(CATALOG.modules, ["core.system"], {
+      values: withDefaults,
+    });
+    const asked = html.slice(
+      html.indexOf('data-asked="true"'),
+      html.indexOf('data-details="advanced"')
+    );
+
+    expect(asked).toContain('data-field="core.system.git_name"');
+    expect(asked).toContain('data-field="core.system.git_email"');
+    expect(asked).not.toContain('data-field="core.system.timezone"');
+
+    const advanced = html.slice(html.indexOf('data-details="advanced"'));
+
+    expect(advanced.startsWith("<details")).toBe(false);
+    expect(html).toMatch(/<details[^>]*data-details="advanced"[^>]*>/);
+    expect(html).not.toMatch(/<details[^>]*data-details="advanced"[^>]*open/);
+    expect(advanced).toContain('data-field="core.system.timezone"');
+    expect(advanced).toContain('data-field="core.system.projects_dir"');
+    expect(text(html)).toContain("Réglages avancés (2)");
+  });
+
+  it("dit d'un service dont tout a un défaut qu'il n'y a rien à décider", () => {
+    const html = form(CATALOG.modules, ["runtime.node"], {
+      values: withDefaults,
+    });
+
+    expect(html).toContain('data-defaults="true"');
+    expect(text(html)).toContain("Rien à décider");
+    expect(html).not.toContain('data-asked="true"');
+  });
+
+  it("ouvre le pli de lui-même quand un réglage rangé est refusé", () => {
+    const problems = [
+      {
+        code: "format" as const,
+        declared: undefined,
+        expected: "path",
+        field: "projects_dir",
+        manifest: CATALOG.modules[0],
+        message: "Un chemin absolu est attendu.",
+        module: "core.system",
+      },
+    ];
+    const html = form(CATALOG.modules, ["core.system"], {
+      problems,
+      values: withDefaults,
+    });
+
+    expect(html).toMatch(/<details[^>]*data-details="advanced"[^>]*open/);
+  });
+
+  it("dit où le service se trouve dans la suite", () => {
+    const group = fieldsOf(CATALOG.modules, ["core.system"])[0];
+    const html = renderToStaticMarkup(
+      <ConfigModuleGroup
+        group={group}
+        handlers={{}}
+        position={{ index: 2, total: 5 }}
+        problems={[]}
+        values={withDefaults["core.system"]}
+      />
+    );
+
+    expect(text(html)).toContain("2 sur 5");
   });
 });

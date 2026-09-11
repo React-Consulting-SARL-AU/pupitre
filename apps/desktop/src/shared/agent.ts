@@ -10,13 +10,15 @@ import type {
  * `@pupitre/shared/agent-protocol` and are never redeclared here. What lives
  * here is the envelope itself, plus the failures that belong to the channel
  * rather than to the agent: a command that never answered, a link that dropped,
- * and the subscription this app refuses to act without — the agent has
- * `entitlement_required` for its own side of that rule, never this one.
+ * one the caller gave up on, and the subscription this app refuses to act
+ * without — the agent has `entitlement_required` for its own side of that
+ * rule, never this one.
  */
 export type AgentErrorCode =
   | ProtocolErrorCode
   | "timeout"
   | "disconnected"
+  | "cancelled"
   | "server_suspended";
 
 /**

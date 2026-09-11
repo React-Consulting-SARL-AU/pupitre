@@ -86,9 +86,25 @@ export const ModuleConfigResultSchema = z.object({
 
 export type ModuleConfigResult = z.infer<typeof ModuleConfigResultSchema>
 
+/**
+ * `defer` names the modules to put on the machine without configuring them.
+ *
+ * It is optional, and the app leaves it out when it names nobody: an agent
+ * older than the field refuses a request that carries it, its parameters being
+ * a closed shape, so an ordinary install goes on working against the agent
+ * already on the machine.
+ *
+ * A service whose settings are not ready yet — a token nobody has minted, an
+ * account nobody has connected — no longer holds the whole installation back.
+ * The agent runs its install step and stops there: nothing of it is configured,
+ * nothing of it is started by us, and its own fields are not validated, since
+ * there is nothing to validate. It reports itself installed and not configured,
+ * and the configuration finishes it later.
+ */
 export const InstallParamsSchema = z.strictObject({
   modules: z.array(z.string().min(1)).min(1),
   config: ModuleConfigSchema,
+  defer: z.array(z.string().min(1)).optional(),
   secrets_stdin: z.boolean(),
 })
 
@@ -104,6 +120,7 @@ export type InstallParams = z.infer<typeof InstallParamsSchema>
 export const InstallCheckParamsSchema = z.strictObject({
   modules: z.array(z.string().min(1)).min(1),
   config: ModuleConfigSchema,
+  defer: z.array(z.string().min(1)).optional(),
 })
 
 export type InstallCheckParams = z.infer<typeof InstallCheckParamsSchema>

@@ -32,10 +32,22 @@ export const ServiceStateSchema = z.enum(SERVICE_STATES)
 
 export type ServiceState = z.infer<typeof ServiceStateSchema>
 
+/**
+ * `configured` says whether the module has been through its own settings.
+ *
+ * A module can sit on a machine without having been configured: the reader
+ * asked to answer its questions later, and the install put it there and stopped.
+ * The screen has to be able to say so, and to offer the form that finishes it.
+ *
+ * `runs` is the manifest's own answer, carried here so that a screen showing
+ * what the machine is doing never has to read the catalogue to know it.
+ */
 export const ServiceSchema = z.object({
   id: z.string(),
   name: z.string(),
   state: ServiceStateSchema,
+  configured: z.boolean().default(true),
+  runs: z.boolean().default(true),
   version: z.string().optional(),
   port: z.int().min(1).max(65_535).optional(),
   unit: z.string().optional(),
@@ -76,26 +88,129 @@ export const ProjectNameSchema = z
   .min(1)
   .regex(/^[a-z0-9][a-z0-9._-]*$/)
 
-export const ProjectRegistrationSchema = z.object({
+/**
+ * The name a project answers to under the server's domain.
+ *
+ * One label is what a Cloudflare universal certificate covers, and it stays
+ * what the app proposes. Several, separated by dots, are the client's own call
+ * — their zone, their certificate — so the contract accepts them and the screen
+ * says what it costs. Each label is a DNS label: it opens and closes on a
+ * letter or a digit, dashes live in between.
+ */
+export const SUBDOMAIN_LABEL = "[a-z0-9](?:[a-z0-9-]*[a-z0-9])?"
+
+export const SUBDOMAIN_PATTERN = new RegExp(
+  `^${SUBDOMAIN_LABEL}(?:\\.${SUBDOMAIN_LABEL})*$`
+)
+
+/** What is left of the 253 octets of a name once a zone is put after it. */
+export const SUBDOMAIN_MAX = 190
+
+export const ProjectSubdomainSchema = z
+  .string()
+  .min(1)
+  .max(SUBDOMAIN_MAX)
+  .regex(SUBDOMAIN_PATTERN)
+
+/**
+ * A full name on the web, as the registry stores it: the labels of a
+ * subdomain, then the labels of the server's domain. Two labels at the least —
+ * a bare domain is not something a project answers to.
+ */
+export const HOSTNAME_PATTERN = new RegExp(
+  `^${SUBDOMAIN_LABEL}(?:\\.${SUBDOMAIN_LABEL})+$`
+)
+
+export const HOSTNAME_MAX = 253
+
+export const HostnameSchema = z
+  .string()
+  .min(1)
+  .max(HOSTNAME_MAX)
+  .regex(HOSTNAME_PATTERN)
+
+/**
+ * The short name of one port of a project — `web`, `api`, `docs`.
+ *
+ * It is one DNS label, because it is what the app puts in front of the
+ * subdomain to name the other ports: `api-shop.example.org`.
+ */
+export const ROUTE_LABEL_MAX = 63
+
+export const RouteLabelSchema = z
+  .string()
+  .min(1)
+  .max(ROUTE_LABEL_MAX)
+  .regex(new RegExp(`^${SUBDOMAIN_LABEL}$`))
+
+/**
+ * One port a project listens on, and the name it answers to on the web when it
+ * has one.
+ *
+ * The hostname is stored whole, resolved once by the agent when the route is
+ * declared: a name on the web does not move because the server's domain did.
+ * A route without a hostname is a port the screen lists and nobody publishes.
+ */
+export const RouteSchema = z.object({
+  label: RouteLabelSchema,
+  port: PortSchema,
+  hostname: HostnameSchema.optional(),
+})
+
+export type Route = z.infer<typeof RouteSchema>
+
+/**
+ * A route as the app declares it: a subdomain, which the agent completes with
+ * the domain it knows, or nothing, for a port that stays local.
+ */
+export const RouteRequestSchema = z.strictObject({
+  label: RouteLabelSchema,
+  port: PortSchema,
+  subdomain: ProjectSubdomainSchema.optional(),
+})
+
+export type RouteRequest = z.infer<typeof RouteRequestSchema>
+
+/** A git branch, as git itself will accept it on a clone or a checkout. */
+export const GitBranchSchema = z
+  .string()
+  .min(1)
+  .max(200)
+  .regex(/^[A-Za-z0-9][A-Za-z0-9._/-]*$/)
+
+const ProjectBaseSchema = z.object({
   name: ProjectNameSchema,
   dir: z.string().min(1),
   repo: z.string().optional(),
+  /** The branch to clone; absent, the repository's own default is taken. */
+  branch: GitBranchSchema.optional(),
   pkgmgr: PackageManagerSchema,
   host: z.string().min(1),
+  /** The main port: the one that decides the state, and the local address. */
   port: PortSchema,
-  subdomain: z.string().optional(),
   cmd: z.string().min(1),
   install: z.string().optional(),
+})
+
+/**
+ * `routes` lists every port the screen showed, the main one first when it is
+ * among them: the agent resolves each name on the web once, and stores it.
+ */
+export const ProjectRegistrationSchema = ProjectBaseSchema.extend({
+  routes: z.array(RouteRequestSchema),
 })
 
 export type ProjectRegistration = z.infer<typeof ProjectRegistrationSchema>
 
 export const AbsolutePathSchema = z.string().regex(/^\//)
 
-export const ProjectSchema = ProjectRegistrationSchema.extend({
+export const ProjectSchema = ProjectBaseSchema.extend({
   path: AbsolutePathSchema,
+  routes: z.array(RouteSchema),
   state: ProjectStateSchema,
   url: z.string().optional(),
+  // Here the branch is what HEAD reads as, which a detached checkout makes a
+  // hash rather than a name: looser than the branch a registration asks for.
   branch: z.string().optional(),
   pid: z.int().positive().optional(),
   ram_mb: z.int().nonnegative().optional(),
@@ -155,6 +270,29 @@ export const ServiceStatusResultSchema = ServiceSchema.extend({
 })
 
 export type ServiceStatusResult = z.infer<typeof ServiceStatusResultSchema>
+
+/**
+ * `service.start`, `service.stop` and `service.restart` address the systemd
+ * unit the module declares, and answer with the state the unit is actually in
+ * once systemd has had its say — never with the intention.
+ */
+export const ServiceActionParamsSchema = ServiceStatusParamsSchema
+
+export type ServiceActionParams = z.infer<typeof ServiceActionParamsSchema>
+
+export const ServiceLogsParamsSchema = z.strictObject({
+  id: z.string().min(1),
+  lines: z.int().positive().optional(),
+  follow: z.boolean().optional(),
+})
+
+export type ServiceLogsParams = z.infer<typeof ServiceLogsParamsSchema>
+
+export const ServiceLogsResultSchema = z.object({
+  lines: z.array(z.string()),
+})
+
+export type ServiceLogsResult = z.infer<typeof ServiceLogsResultSchema>
 
 export const SubCommandSchema = z.object({
   name: z.string(),

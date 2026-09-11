@@ -1,11 +1,11 @@
 import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { RefreshCw } from "lucide-react";
-import { useEffect } from "react";
+import { RefreshCw, Server } from "lucide-react";
 import { useInspection } from "../../stores/inspection";
+import { ActionBar } from "../ui/action-bar";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
-import { PageHeader } from "../ui/page-header";
+import { Screen } from "../ui/screen";
 import { WaitingNotice } from "../ui/waiting-notice";
 import type { InspectionActions } from "./onboarding-inspection-actions";
 import { OnboardingInspectionResult } from "./onboarding-inspection-result";
@@ -15,7 +15,9 @@ import { OnboardingInspectionResult } from "./onboarding-inspection-result";
  *
  * The probe only reads: it is sent on standard input and runs from memory, so a
  * server we decide against is left exactly as it was found. The screen says so,
- * because that is the promise being made while the reader waits.
+ * because that is the promise being made while the reader waits. The probe is
+ * asked for by the onboarding on entering the step; this only draws its answer
+ * and offers to ask again.
  */
 export function OnboardingInspectionScreen({
   serverId,
@@ -26,10 +28,6 @@ export function OnboardingInspectionScreen({
 
   const inspection = useInspection((state) => state.inspection);
   const inspect = useInspection((state) => state.inspect);
-
-  useEffect(() => {
-    inspect(serverId);
-  }, [serverId, inspect]);
 
   if (inspection.status === "done" && inspection.serverId === serverId) {
     return (
@@ -47,13 +45,27 @@ export function OnboardingInspectionScreen({
       : null;
 
   return (
-    <section className="flex flex-col gap-section">
-      <PageHeader
-        description={t("onboarding.inspection.waitingDescription")}
-        eyebrow={t("onboarding.inspection.eyebrow")}
-        title={serverName ?? t("onboarding.thisServer")}
-      />
-
+    <Screen
+      column
+      eyebrow={t("onboarding.inspection.eyebrow")}
+      footer={
+        <ActionBar
+          name="inspection"
+          note={failed ? null : t("onboarding.inspection.waitingTitle")}
+        >
+          <Button
+            icon={Server}
+            onClick={actions.onPickAnother}
+            variant="discreet"
+          >
+            {t("onboarding.inspection.pickAnother")}
+          </Button>
+        </ActionBar>
+      }
+      plain
+      step="inspection"
+      title={serverName ?? t("onboarding.thisServer")}
+    >
       {failed ? (
         <Callout
           action={
@@ -69,10 +81,9 @@ export function OnboardingInspectionScreen({
       ) : (
         <WaitingNotice
           detail={t("onboarding.inspection.waitingDetail")}
-          note={t("onboarding.inspection.waitingNote")}
           title={t("onboarding.inspection.waitingTitle")}
         />
       )}
-    </section>
+    </Screen>
   );
 }

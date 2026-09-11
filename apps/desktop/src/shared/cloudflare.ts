@@ -14,15 +14,3 @@ export interface CloudflareZone {
   id: string;
   name: string;
 }
-
-export type ConnectionKind = "cloudflare";
-
-export type ConnectionState =
-  | { status: "absent" }
-  | { status: "connected"; connection: CloudflareConnection; sealed: boolean };
-
-export type ConnectionsState = Record<ConnectionKind, ConnectionState>;
-
-export const NO_CONNECTIONS: ConnectionsState = {
-  cloudflare: { status: "absent" },
-};

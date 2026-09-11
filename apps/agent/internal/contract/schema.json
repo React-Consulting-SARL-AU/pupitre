@@ -111,6 +111,9 @@
         },
         "replay": {
           "type": "string"
+        },
+        "message": {
+          "type": "string"
         }
       },
       "required": [
@@ -160,6 +163,34 @@
         "event": {
           "type": "string",
           "const": "shot"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "bytes": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "event",
+        "seq",
+        "bytes"
+      ]
+    },
+    "FileEvent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "event": {
+          "type": "string",
+          "const": "file"
         },
         "seq": {
           "type": "integer",
@@ -293,12 +324,11 @@
         "entitlement_required",
         "project_not_found",
         "module_not_found",
-        "module_failed",
         "no_report",
         "service_not_found",
-        "secrets_required",
         "bad_signature",
         "downgrade_refused",
+        "migration_required",
         "busy",
         "internal"
       ]
@@ -312,8 +342,63 @@
         "status",
         "diag",
         "agent.upgrade",
+        "agent.migrate",
         "enroll",
         "platform.sync"
+      ]
+    },
+    "UnenrolledCommands": {
+      "type": "string",
+      "enum": [
+        "hello",
+        "ping",
+        "diag",
+        "enroll"
+      ]
+    },
+    "MigrationCommands": {
+      "type": "string",
+      "enum": [
+        "hello",
+        "ping",
+        "snapshot",
+        "status",
+        "report",
+        "diag",
+        "doctor",
+        "agent.upgrade",
+        "agent.migrate",
+        "enroll",
+        "platform.sync"
+      ]
+    },
+    "ConfigRevision": {
+      "type": "object",
+      "properties": {
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "expected": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "current",
+            "pending",
+            "failed",
+            "ahead"
+          ]
+        }
+      },
+      "required": [
+        "revision",
+        "expected",
+        "state"
       ]
     },
     "HelloParams": {
@@ -371,6 +456,9 @@
           "items": {
             "type": "string"
           }
+        },
+        "config": {
+          "$ref": "#/$defs/ConfigRevision"
         }
       },
       "required": [
@@ -574,6 +662,13 @@
             "additionalProperties": {}
           }
         },
+        "defer": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
         "secrets_stdin": {
           "type": "boolean"
         }
@@ -632,6 +727,13 @@
               "type": "string"
             },
             "additionalProperties": {}
+          }
+        },
+        "defer": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
           }
         }
       },
@@ -1026,6 +1128,14 @@
                   "unknown"
                 ]
               },
+              "configured": {
+                "default": true,
+                "type": "boolean"
+              },
+              "runs": {
+                "default": true,
+                "type": "boolean"
+              },
               "version": {
                 "type": "string"
               },
@@ -1048,7 +1158,7 @@
         "projects": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/ProjectAddResult"
+            "$ref": "#/$defs/ProjectUpdateResult"
           }
         },
         "sessions": {
@@ -1143,6 +1253,14 @@
                   "unknown"
                 ]
               },
+              "configured": {
+                "default": true,
+                "type": "boolean"
+              },
+              "runs": {
+                "default": true,
+                "type": "boolean"
+              },
               "version": {
                 "type": "string"
               },
@@ -1165,7 +1283,7 @@
         "projects": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/ProjectAddResult"
+            "$ref": "#/$defs/ProjectUpdateResult"
           }
         }
       },
@@ -1204,6 +1322,14 @@
             "failed",
             "unknown"
           ]
+        },
+        "configured": {
+          "default": true,
+          "type": "boolean"
+        },
+        "runs": {
+          "default": true,
+          "type": "boolean"
         },
         "version": {
           "type": "string"
@@ -1260,6 +1386,239 @@
       },
       "required": [
         "key"
+      ]
+    },
+    "ServiceStartParams": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "ServiceStartResult": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "running",
+            "stopped",
+            "failed",
+            "unknown"
+          ]
+        },
+        "configured": {
+          "default": true,
+          "type": "boolean"
+        },
+        "runs": {
+          "default": true,
+          "type": "boolean"
+        },
+        "version": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "unit": {
+          "type": "string"
+        },
+        "credentials": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "state"
+      ]
+    },
+    "ServiceStopParams": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "ServiceStopResult": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "running",
+            "stopped",
+            "failed",
+            "unknown"
+          ]
+        },
+        "configured": {
+          "default": true,
+          "type": "boolean"
+        },
+        "runs": {
+          "default": true,
+          "type": "boolean"
+        },
+        "version": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "unit": {
+          "type": "string"
+        },
+        "credentials": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "state"
+      ]
+    },
+    "ServiceRestartParams": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "ServiceRestartResult": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "running",
+            "stopped",
+            "failed",
+            "unknown"
+          ]
+        },
+        "configured": {
+          "default": true,
+          "type": "boolean"
+        },
+        "runs": {
+          "default": true,
+          "type": "boolean"
+        },
+        "version": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "unit": {
+          "type": "string"
+        },
+        "credentials": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "state"
+      ]
+    },
+    "ServiceLogsParams": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lines": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "follow": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "ServiceLogsResult": {
+      "type": "object",
+      "properties": {
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "lines"
       ]
     },
     "CompletionsParams": {
@@ -1344,7 +1703,7 @@
         "projects": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/ProjectAddResult"
+            "$ref": "#/$defs/ProjectUpdateResult"
           }
         }
       },
@@ -1367,6 +1726,12 @@
         "repo": {
           "type": "string"
         },
+        "branch": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+        },
         "pkgmgr": {
           "type": "string",
           "enum": [
@@ -1388,15 +1753,42 @@
           "minimum": 1,
           "maximum": 65535
         },
-        "subdomain": {
-          "type": "string"
-        },
         "cmd": {
           "type": "string",
           "minLength": 1
         },
         "install": {
           "type": "string"
+        },
+        "routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 63,
+                "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              },
+              "subdomain": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 190,
+                "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$"
+              }
+            },
+            "required": [
+              "label",
+              "port"
+            ],
+            "additionalProperties": false
+          }
         }
       },
       "required": [
@@ -1405,7 +1797,8 @@
         "pkgmgr",
         "host",
         "port",
-        "cmd"
+        "cmd",
+        "routes"
       ],
       "additionalProperties": false
     },
@@ -1424,6 +1817,9 @@
         "repo": {
           "type": "string"
         },
+        "branch": {
+          "type": "string"
+        },
         "pkgmgr": {
           "type": "string",
           "enum": [
@@ -1445,9 +1841,6 @@
           "minimum": 1,
           "maximum": 65535
         },
-        "subdomain": {
-          "type": "string"
-        },
         "cmd": {
           "type": "string",
           "minLength": 1
@@ -1458,6 +1851,35 @@
         "path": {
           "type": "string",
           "pattern": "^\\/"
+        },
+        "routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 63,
+                "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              },
+              "hostname": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 253,
+                "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$"
+              }
+            },
+            "required": [
+              "label",
+              "port"
+            ]
+          }
         },
         "state": {
           "type": "string",
@@ -1472,9 +1894,6 @@
           ]
         },
         "url": {
-          "type": "string"
-        },
-        "branch": {
           "type": "string"
         },
         "pid": {
@@ -1501,6 +1920,7 @@
         "port",
         "cmd",
         "path",
+        "routes",
         "state"
       ]
     },
@@ -1512,6 +1932,12 @@
             "repo": {
               "type": "string",
               "minLength": 1
+            },
+            "branch": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
             }
           },
           "required": [
@@ -1559,10 +1985,225 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 65535
+        },
+        "routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 63,
+                "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              }
+            },
+            "required": [
+              "label",
+              "port"
+            ]
+          }
         }
       },
       "required": [
         "pkgmgr"
+      ]
+    },
+    "ProjectUpdateParams": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "patch": {
+          "type": "object",
+          "properties": {
+            "cmd": {
+              "type": "string",
+              "minLength": 1
+            },
+            "install": {
+              "type": "string"
+            },
+            "branch": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
+            },
+            "routes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 63,
+                    "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+                  },
+                  "port": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                  },
+                  "subdomain": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 190,
+                    "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$"
+                  },
+                  "hostname": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 253,
+                    "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$"
+                  }
+                },
+                "required": [
+                  "label",
+                  "port"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "name",
+        "patch"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectUpdateResult": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "dir": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repo": {
+          "type": "string"
+        },
+        "branch": {
+          "type": "string"
+        },
+        "pkgmgr": {
+          "type": "string",
+          "enum": [
+            "bun",
+            "pnpm",
+            "npm",
+            "gradle",
+            "uv",
+            "service",
+            "none"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "cmd": {
+          "type": "string",
+          "minLength": 1
+        },
+        "install": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^\\/"
+        },
+        "routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 63,
+                "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              },
+              "hostname": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 253,
+                "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$"
+              }
+            },
+            "required": [
+              "label",
+              "port"
+            ]
+          }
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "online",
+            "starting",
+            "failed",
+            "stopped",
+            "down",
+            "external",
+            "service"
+          ]
+        },
+        "url": {
+          "type": "string"
+        },
+        "pid": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "ram_mb": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "uptime_s": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "name",
+        "dir",
+        "pkgmgr",
+        "host",
+        "port",
+        "cmd",
+        "path",
+        "routes",
+        "state"
       ]
     },
     "ProjectRemoveParams": {
@@ -2648,7 +3289,12 @@
     },
     "ShotsCleanParams": {
       "type": "object",
-      "properties": {},
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
       "additionalProperties": false
     },
     "ShotsCleanResult": {
@@ -2664,67 +3310,320 @@
         "removed"
       ]
     },
-    "SecretsStatusParams": {
-      "type": "object",
-      "properties": {},
-      "additionalProperties": false
-    },
-    "SecretsStatusResult": {
+    "FsListParams": {
       "type": "object",
       "properties": {
-        "secrets": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "FsListResult": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "entries": {
           "type": "array",
           "items": {
             "type": "object",
             "properties": {
-              "key": {
-                "type": "string",
-                "pattern": "^[A-Z][A-Z0-9_]*$"
+              "name": {
+                "type": "string"
               },
-              "set": {
-                "type": "boolean"
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "file",
+                  "dir",
+                  "link"
+                ]
+              },
+              "size_bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "modified_at": {
+                "type": "string"
+              },
+              "mode": {
+                "type": "string",
+                "pattern": "^[0-7]{4}$"
               }
             },
             "required": [
-              "key",
-              "set"
-            ],
-            "additionalProperties": false
+              "name",
+              "kind",
+              "size_bytes",
+              "modified_at",
+              "mode"
+            ]
           }
+        },
+        "truncated": {
+          "type": "boolean"
         }
       },
       "required": [
-        "secrets"
+        "path",
+        "entries",
+        "truncated"
       ]
     },
-    "SecretsSetParams": {
+    "FsStatParams": {
       "type": "object",
       "properties": {
-        "key": {
-          "type": "string",
-          "pattern": "^[A-Z][A-Z0-9_]*$"
+        "path": {
+          "type": "string"
         },
-        "secrets_stdin": {
-          "type": "boolean",
-          "const": true
+        "hash": {
+          "type": "boolean"
         }
       },
       "required": [
-        "key",
-        "secrets_stdin"
+        "path"
       ],
       "additionalProperties": false
     },
-    "SecretsSetResult": {
+    "FsStatResult": {
       "type": "object",
       "properties": {
-        "done": {
-          "type": "boolean",
-          "const": true
+        "path": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "file",
+            "dir",
+            "link"
+          ]
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "modified_at": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string",
+          "pattern": "^[0-7]{4}$"
+        },
+        "media_type": {
+          "type": "string",
+          "enum": [
+            "text/plain",
+            "image/png",
+            "image/jpeg",
+            "image/gif",
+            "image/webp",
+            "image/avif",
+            "image/svg+xml"
+          ]
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         }
       },
       "required": [
-        "done"
+        "path",
+        "kind",
+        "size_bytes",
+        "modified_at",
+        "mode"
+      ]
+    },
+    "FsReadParams": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "FsReadResult": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "media_type": {
+          "type": "string",
+          "enum": [
+            "text/plain",
+            "image/png",
+            "image/jpeg",
+            "image/gif",
+            "image/webp",
+            "image/avif",
+            "image/svg+xml"
+          ]
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "chunks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "path",
+        "media_type",
+        "size_bytes",
+        "sha256",
+        "chunks"
+      ]
+    },
+    "FsWriteParams": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "path",
+        "content"
+      ],
+      "additionalProperties": false
+    },
+    "FsWriteResult": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1048576
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "path",
+        "size_bytes",
+        "sha256"
+      ]
+    },
+    "FsMkdirParams": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "FsMkdirResult": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ]
+    },
+    "FsRenameParams": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "path",
+        "to"
+      ],
+      "additionalProperties": false
+    },
+    "FsRenameResult": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ]
+    },
+    "FsRemoveParams": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recursive": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "FsRemoveResult": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "removed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "path",
+        "removed"
       ]
     },
     "SecretsSyncParams": {
@@ -2914,8 +3813,7 @@
               "type": "string",
               "enum": [
                 "cloudflare",
-                "caddy",
-                "ssh"
+                "caddy"
               ]
             },
             {
@@ -2978,8 +3876,7 @@
               "type": "string",
               "enum": [
                 "cloudflare",
-                "caddy",
-                "ssh"
+                "caddy"
               ]
             },
             {
@@ -3042,8 +3939,7 @@
               "type": "string",
               "enum": [
                 "cloudflare",
-                "caddy",
-                "ssh"
+                "caddy"
               ]
             },
             {
@@ -3262,6 +4158,104 @@
         "restarting"
       ]
     },
+    "AgentMigrateParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "AgentMigrateResult": {
+      "type": "object",
+      "properties": {
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "expected": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "current",
+            "pending",
+            "failed",
+            "ahead"
+          ]
+        },
+        "applied": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "slug": {
+                "type": "string"
+              },
+              "ms": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "id",
+              "slug",
+              "ms"
+            ]
+          }
+        },
+        "pending": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "backup": {
+          "type": "string"
+        },
+        "failure": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "slug": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "slug",
+            "message"
+          ]
+        },
+        "restored": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "revision",
+        "expected",
+        "state",
+        "applied",
+        "pending"
+      ]
+    },
     "RebootParams": {
       "type": "object",
       "properties": {},
@@ -3441,17 +4435,18 @@
             "$ref": "#/$defs/Field"
           }
         },
-        "provides": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
         "connection": {
           "type": "string",
           "enum": [
-            "cloudflare"
+            "cloudflare",
+            "github",
+            "1password",
+            "neon"
           ]
+        },
+        "runs": {
+          "default": true,
+          "type": "boolean"
         },
         "mandatory": {
           "type": "boolean"
@@ -3471,7 +4466,6 @@
         "resources",
         "arch",
         "fields",
-        "provides",
         "mandatory",
         "since"
       ]
@@ -3971,34 +4965,7 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": [
-              "core.system",
-              "core.hardening",
-              "runtime.node",
-              "runtime.java",
-              "runtime.python",
-              "runtime.go",
-              "runtime.php",
-              "runtime.ruby",
-              "runtime.docker",
-              "db.mysql",
-              "db.postgres",
-              "db.mongodb",
-              "db.redis",
-              "ai.claude",
-              "ai.codex",
-              "ai.hermes",
-              "ai.browser",
-              "editor.jetbrains",
-              "editor.vscode",
-              "editor.zed",
-              "exposure.cloudflare",
-              "exposure.ssh",
-              "exposure.caddy",
-              "tool.github",
-              "tool.1password",
-              "tool.neon"
-            ]
+            "pattern": "^[a-z]+\\.[a-z0-9-]+$"
           }
         },
         "choose_one": {
@@ -4006,34 +4973,7 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": [
-              "core.system",
-              "core.hardening",
-              "runtime.node",
-              "runtime.java",
-              "runtime.python",
-              "runtime.go",
-              "runtime.php",
-              "runtime.ruby",
-              "runtime.docker",
-              "db.mysql",
-              "db.postgres",
-              "db.mongodb",
-              "db.redis",
-              "ai.claude",
-              "ai.codex",
-              "ai.hermes",
-              "ai.browser",
-              "editor.jetbrains",
-              "editor.vscode",
-              "editor.zed",
-              "exposure.cloudflare",
-              "exposure.ssh",
-              "exposure.caddy",
-              "tool.github",
-              "tool.1password",
-              "tool.neon"
-            ]
+            "pattern": "^[a-z]+\\.[a-z0-9-]+$"
           }
         }
       },
@@ -4041,6 +4981,16 @@
         "id",
         "name",
         "modules"
+      ]
+    },
+    "MandatoryModules": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "const": [
+        "core.system",
+        "core.hardening"
       ]
     },
     "Presets": {
@@ -4059,8 +5009,7 @@
             "db.mysql",
             "ai.claude",
             "ai.browser",
-            "editor.vscode",
-            "exposure.ssh"
+            "editor.vscode"
           ]
         },
         {
@@ -4092,7 +5041,6 @@
             "tool.neon"
           ],
           "choose_one": [
-            "exposure.ssh",
             "exposure.caddy",
             "exposure.cloudflare"
           ]

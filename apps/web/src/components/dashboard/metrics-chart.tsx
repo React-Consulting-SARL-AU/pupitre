@@ -5,6 +5,8 @@ export interface MetricsChartProps {
   label: string
   values: number[]
   latest: number | null
+  /** What the percentage is a percentage of, when the agent measured it. */
+  detail?: string | null
 }
 
 function polyline(values: number[]): string {
@@ -25,10 +27,15 @@ function polyline(values: number[]): string {
     .join(" ")
 }
 
-export function MetricsChart({ label, values, latest }: MetricsChartProps) {
+export function MetricsChart({
+  label,
+  values,
+  latest,
+  detail = null,
+}: MetricsChartProps) {
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-baseline justify-between gap-2">
         <span className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
           {label}
         </span>
@@ -36,6 +43,11 @@ export function MetricsChart({ label, values, latest }: MetricsChartProps) {
           {latest === null ? "—" : `${Math.round(latest)} %`}
         </span>
       </div>
+      {detail ? (
+        <p className="font-data text-[11px] text-ink-3 tabular-nums">
+          {detail}
+        </p>
+      ) : null}
       <svg
         aria-hidden="true"
         className="h-[48px] w-full rounded-sm bg-sunken text-ink-3"

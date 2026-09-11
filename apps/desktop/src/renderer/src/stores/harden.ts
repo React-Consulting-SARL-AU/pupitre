@@ -15,6 +15,8 @@ import type { StepEntry } from "./install";
 
 export type HardenState =
   | { status: "idle" }
+  /** Sent, but behind a longer command on the same channel. */
+  | { status: "queued"; serverId: string }
   | { status: "running"; serverId: string }
   | { status: "switching"; serverId: string; user: string }
   | { status: "done"; serverId: string; outcome: HardenOutcome }
@@ -53,6 +55,12 @@ export const useHarden = create<HardenStore>((set) => ({
     set({ harden: { serverId, status: "running" }, steps: [] });
 
     const answer = await window.pupitre.harden(serverId, (update) => {
+      if (update.kind === "queued") {
+        set({ harden: { serverId, status: "queued" } });
+
+        return;
+      }
+
       if (update.kind === "switching") {
         set({ harden: { serverId, status: "switching", user: update.user } });
 
@@ -62,7 +70,10 @@ export const useHarden = create<HardenStore>((set) => ({
       const entry = stepOf(update);
 
       if (entry) {
-        set((state) => ({ steps: withStep(state.steps, entry) }));
+        set((state) => ({
+          harden: { serverId, status: "running" },
+          steps: withStep(state.steps, entry),
+        }));
       }
     });
 

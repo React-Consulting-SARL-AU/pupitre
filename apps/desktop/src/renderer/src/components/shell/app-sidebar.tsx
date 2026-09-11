@@ -14,17 +14,20 @@ import type { AgentState, Terminal } from "@shared/terminals";
 import {
   Activity,
   Boxes,
+  Files,
+  FolderPlus,
   Images,
-  KeyRound,
   LayoutDashboard,
   Plus,
-  Server as ServerIcon,
   Settings as SettingsIcon,
   SquareTerminal,
   X,
 } from "lucide-react";
+import { ForwardsPanel } from "./forwards-panel";
+import { ServerSwitch } from "./server-switch";
 import { SidebarEntry } from "./sidebar-entry";
 import { SidebarGroup } from "./sidebar-group";
+import { TransfersPanel } from "./transfers-panel";
 
 /**
  * The three planes of the menu: the group caption, the entries, the active one.
@@ -37,6 +40,9 @@ import { SidebarGroup } from "./sidebar-group";
 interface Props {
   view: View;
   server: Server | null;
+  /** Every server this computer knows, for the switch at the head. */
+  servers: readonly Server[];
+  onSwitchServer: (id: string) => void;
   projects: readonly Project[];
   selection: string | null;
   /** The server's own terminals; a project's live on its page. */
@@ -47,6 +53,7 @@ interface Props {
   activeTerminal: string | null;
   onView: (view: View) => void;
   onProject: (name: string) => void;
+  onAddProject: () => void;
   onTerminal: (id: string) => void;
   onCloseTerminal: (id: string) => void;
   onNewTerminal: () => void;
@@ -55,6 +62,8 @@ interface Props {
 export function AppSidebar({
   view,
   server,
+  servers,
+  onSwitchServer,
   projects,
   selection,
   terminals,
@@ -63,6 +72,7 @@ export function AppSidebar({
   activeTerminal,
   onView,
   onProject,
+  onAddProject,
   onTerminal,
   onCloseTerminal,
   onNewTerminal,
@@ -75,25 +85,12 @@ export function AppSidebar({
         <Logo size={17} />
       </WindowBand>
 
-      <button
-        className="clickable mx-2 mb-1 flex items-center gap-2.5 rounded-md border border-line bg-base px-3 py-2.5 text-left transition-soft hover:border-line-strong hover:bg-raised"
-        onClick={() => onView("settings")}
-        type="button"
-      >
-        <ServerIcon
-          className="shrink-0 text-ink-3"
-          size={15}
-          strokeWidth={1.5}
-        />
-        <span className="min-w-0 flex-1">
-          <span className="block truncate font-medium text-[13px]">
-            {server?.name ?? t("shell.sidebar.noServer")}
-          </span>
-          <span className="block truncate font-data text-[11px] text-ink-3">
-            {server?.host ?? "—"}
-          </span>
-        </span>
-      </button>
+      <ServerSwitch
+        onActivate={onSwitchServer}
+        onSettings={() => onView("settings")}
+        server={server}
+        servers={servers}
+      />
 
       <SidebarGroup title={t("shell.sidebar.server")}>
         <SidebarEntry
@@ -125,17 +122,28 @@ export function AppSidebar({
           {t("shell.sidebar.gallery")}
         </SidebarEntry>
         <SidebarEntry
-          active={view === "secrets"}
-          bullet={<KeyRound size={14} strokeWidth={1.5} />}
-          onClick={() => onView("secrets")}
+          active={view === "files"}
+          bullet={<Files size={14} strokeWidth={1.5} />}
+          onClick={() => onView("files")}
         >
-          {t("shell.sidebar.secrets")}
+          {t("shell.sidebar.files")}
         </SidebarEntry>
       </SidebarGroup>
 
-      <SidebarGroup title={t("shell.sidebar.projects")}>
+      <SidebarGroup
+        action={
+          <IconButton
+            icon={FolderPlus}
+            label={t("shell.sidebar.newProject")}
+            onClick={onAddProject}
+            size={12}
+            variant="discreet"
+          />
+        }
+        title={t("shell.sidebar.projects")}
+      >
         {projects.length === 0 ? (
-          <p className="px-3 py-2 text-[12px] text-ink-4 leading-relaxed">
+          <p className="px-3 py-2 text-[12px] text-ink-3 leading-relaxed">
             {t("shell.sidebar.noProjects")}
           </p>
         ) : null}
@@ -218,14 +226,19 @@ export function AppSidebar({
         ))}
       </SidebarGroup>
 
-      <div className="mt-auto flex flex-col gap-0.5 px-2 pt-6">
-        <SidebarEntry
-          active={view === "settings"}
-          bullet={<SettingsIcon size={14} strokeWidth={1.5} />}
-          onClick={() => onView("settings")}
-        >
-          {t("shell.sidebar.settings")}
-        </SidebarEntry>
+      <div className="mt-auto flex flex-col pt-6">
+        <TransfersPanel />
+        <ForwardsPanel />
+
+        <div className="flex flex-col gap-0.5 px-2 pt-4">
+          <SidebarEntry
+            active={view === "settings"}
+            bullet={<SettingsIcon size={14} strokeWidth={1.5} />}
+            onClick={() => onView("settings")}
+          >
+            {t("shell.sidebar.settings")}
+          </SidebarEntry>
+        </div>
       </div>
     </nav>
   );

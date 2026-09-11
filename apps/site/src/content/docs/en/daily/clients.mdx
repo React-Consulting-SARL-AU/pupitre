@@ -1,13 +1,15 @@
 ---
 title: Your own client
-description: Attaching the Claude desktop app, the ChatGPT desktop app or any SSH client to a Pupitre server, and working there instead of in the app.
+description: Connecting Claude Code, Codex, your terminal and your editor to a Pupitre server over SSH, with the private key the app generated.
 locale: en
 section: daily
 sectionOrder: 2
-order: 3
+order: 5
 ---
 
-Once the machine is set up, Pupitre is not where you have to work. The server is an ordinary Ubuntu box reached over SSH as `dev`, and anything that speaks SSH can attach to it — including the desktop apps of Claude and ChatGPT.
+Once the machine is set up, Pupitre is not where you have to work. The server is an ordinary Ubuntu box reached over SSH as `dev`, and anything that speaks SSH attaches to it — the Claude desktop app, the ChatGPT desktop app and its Codex, your terminal, your editor.
+
+This page is the practical part: where the key is, how to declare the host once, and what to fill in for each client.
 
 ## What the server offers a client
 
@@ -16,42 +18,146 @@ Nothing special, on purpose:
 - an SSH endpoint on port 22 — or 443 as well, if you asked `core.hardening` for it;
 - the `dev` user, whose `authorized_keys` holds the public half of every device on your account;
 - your projects under the directory you chose, owned by `dev`;
-- the runtimes activated in **non-interactive** shells too, so a client that runs a command without a login shell finds the same `node`, `python` and `java` you do;
-- `tmux`, `systemd`, and the databases on `127.0.0.1`.
+- the runtimes activated in **non-interactive** shells too, so a client that runs a command without a login shell finds the same `node`, `python` and `claude` you do;
+- `tmux`, `systemd`, the `dev` command, and the databases on `127.0.0.1`.
 
-That last point is the one that decides whether a remote client is pleasant or maddening. `runtime.node` writes its activation into `.zshenv` for exactly this reason.
+That last point about non-interactive shells is what decides whether a remote client is pleasant or maddening. The runtime modules write their activation into `.zshenv`, which `zsh` reads for every shell, for exactly this reason.
 
-## Claude
+## Where the app keeps the key
 
-The Claude desktop app can open a session on a remote machine over SSH. Give it your server and Claude Code runs there: in the project folder, with the project's own instruction files, with the Pupitre skills the `ai.claude` module installed, and with the database the project expects listening on localhost.
+Pupitre generates an ed25519 key per server and keeps it in its own data folder, in mode `0600`. It writes nothing to your `~/.ssh/config`.
 
-You sign in once, from whichever session you are in — the tool prints a URL, you approve it in your browser. It is your subscription; Pupitre resells nothing and stores no token for you.
+| System | Folder |
+| --- | --- |
+| macOS | `~/Library/Application Support/Pupitre` |
+| Windows | `%APPDATA%\Pupitre` |
+| Linux | `~/.config/Pupitre` |
 
-## ChatGPT and Codex
+Inside it:
 
-The same, from the ChatGPT desktop app: Codex runs on the server, on your own subscription. `ai.claude` and `ai.codex` can be installed side by side; they see the same projects, the same runtimes and the same databases, because there is only one machine.
+```
+ssh/config        one Host block per server, passed to ssh with -F
+ssh/known_hosts   the host keys the app pinned
+keys/device       this computer's key, the one a server granted by your organisation opens with
+keys/srv-xxxxxxx  the key of a server you added yourself, mode 0600
+```
 
-## Editors
+Each key has its `.pub` beside it. Open `ssh/config` to find out which server is which: each block carries its address, its port, its user and the path of its key — which is `keys/device` for a granted server, and `keys/srv-…` for one you added.
 
-VS Code, Cursor and Windsurf connect over Remote SSH, Zed through `zed://ssh`, JetBrains IDEs through Gateway. The `editor.*` modules preinstall the remote backends so the first connection is immediate rather than a ten-minute download. See [remote editors](/docs/daily/editors/).
+```
+Host pupitre-srv-m9k2p1
+  HostName 203.0.113.10
+  Port 22
+  User dev
+  IdentityFile "/Users/you/Library/Application Support/Pupitre/keys/srv-m9k2p1"
+  IdentitiesOnly yes
+```
 
-## Plain ssh
+Point clients at that file rather than copying it somewhere else. Deleting the server in the app takes its key with it, and a copy you made elsewhere would be an orphan that still opens your machine.
 
-`ssh dev@your-server` works, and the agent binary is also linked as `dev`, so the operations the app performs exist in a bare terminal with the same handlers and the same refusals.
+## Declare the host once
 
-## Which key
+Everything below works better when your own `~/.ssh/config` has one entry for the server. Some clients — Codex among them — only read hosts from that file.
 
-Pupitre keeps its own SSH configuration in the app's data directory — a `config` file and one key per server, in mode `0600`. It never writes to your `~/.ssh/config`.
+```
+Host pupitre
+  HostName 203.0.113.10
+  Port 22
+  User dev
+  IdentityFile "/Users/you/Library/Application Support/Pupitre/keys/srv-m9k2p1"
+  IdentitiesOnly yes
+```
 
-That means a third-party client does not automatically inherit Pupitre's key. Two ways round it, both fine:
+Copy the values from the app's own block. Quotes around the path are required when it contains a space, which it does on macOS and on Windows. Then check it:
 
-1. **Point the client at Pupitre's key.** The server screen shows the host, the port, the user and the key path; paste them into the client, or into your own `~/.ssh/config` as a host entry.
-2. **Use a key you already have.** Add its public half to `dev`, or let Pupitre adopt an existing host entry instead of managing its own — that is the option on the server screen when you add the machine.
+```
+ssh pupitre "dev status"
+```
 
-Either way, revocation still works the way it should: a device removed in the console loses its key on the server at the agent's next check-in.
+A machine that answers with its projects is a machine every client on this page can now reach. If it asks for a password instead, the key is not the one `dev` accepts — reveal the public key on the server screen and compare it with `~/.ssh/authorized_keys` on the machine.
+
+## Claude Code
+
+Two ways, and they end up in the same place: `ai.claude` has already installed Claude Code for `dev`, with the machine context and the Pupitre skills.
+
+**From the Claude desktop app.** Open the environment dropdown before starting a session and choose **Add SSH connection**. It asks for four things:
+
+| Field | What to put |
+| --- | --- |
+| Name | Whatever you call the machine |
+| SSH Host | `pupitre`, or `dev@203.0.113.10` |
+| SSH Port | 22, or the one you chose |
+| Identity File | The path of the app's key, from the table above |
+
+The Identity File field is why the app's key works here with no further ceremony: give the path and nothing else has to move. Leave the field empty if the host already resolves through your `~/.ssh/config`.
+
+**From a terminal.** Open a session, keep it in `tmux` so it survives the network, and start the tool where the project is:
+
+```
+ssh pupitre
+tmux new -A -s claude
+cd ~/projects/your-project && claude
+```
+
+Either way you sign in once, from whichever session you are in: the tool prints a URL, you approve it in your browser. It is your subscription; Pupitre resells nothing and stores no token for you.
+
+## Codex
+
+`ai.codex` installs Codex through `mise`, and the shims are on the path of every shell — including the non-interactive one a remote client opens. That is the requirement the app has of the machine: it starts Codex on the remote host through your login shell.
+
+**From the ChatGPT desktop app.** Codex there adds a remote project from an SSH host: it reads the concrete host aliases of your `~/.ssh/config` and resolves them with OpenSSH, so the entry you wrote above is what it offers you. There is no field for a key: the `IdentityFile` line of that entry is what points at the app's key.
+
+**From a terminal.** Same shape as Claude Code:
+
+```
+ssh pupitre
+tmux new -A -s codex
+cd ~/projects/your-project && codex
+```
+
+Claude Code and Codex live on the same machine without argument. They see the same projects, the same runtimes and the same databases, because there is only one machine.
+
+## Your terminal
+
+`ssh pupitre` is enough, and the agent binary is also linked as `dev`, so the operations the app performs exist in a bare terminal:
+
+```
+dev status                    what runs, on what port, with what memory
+dev up my-project             start it in its tmux session
+dev restart all
+dev logs my-project -f
+dev sync my-project           git pull, then dependencies
+dev attach my-project         prints the tmux line to paste in your own terminal
+dev branch                    the branch each project sits on
+dev branch my-project main    switch that project to another branch
+dev db url                    the connection string, for a client on your laptop
+dev doctor                    a short diagnosis of the machine
+```
+
+The agent reads its enrolment and its entitlement from files only root can open, so the command re-runs itself under the passwordless `sudo` the hardening leaves the `dev` user. Typing `sudo dev …` yourself changes nothing.
+
+`dev db` also takes `shell`, `dump` and `import`, and the engine goes without saying when the machine holds one database — `dev db url postgres` when it holds two.
+
+Add `--json` to any of them and you get the agent's own answer rather than a rendering of it, which is what makes these commands usable by a script, or by an agent working in a terminal.
+
+## Your editor
+
+VS Code, Cursor and Windsurf connect over Remote SSH, Zed through `zed://ssh`, JetBrains IDEs through Gateway. They read the same `~/.ssh/config` entry, and the `editor.*` modules preinstall the remote backends so the first connection is immediate rather than a ten-minute download. See [remote editors](/docs/daily/editors/).
+
+## When it does not open
+
+- **It asks for a password.** The key is not in `dev`'s `authorized_keys`. Copy the public half from the server screen in the app.
+- **`Permissions 0644 for ... are too open`.** The private key has to be readable by you alone: `chmod 600` on macOS and Linux. On Windows, keeping it in `%APPDATA%` is enough — a copy dropped in a shared folder is not.
+- **Nothing answers on port 22.** If your network filters it, `core.hardening` can put SSH on 443 as well; change `Port` in your entry.
+- **The host key changed.** Reinstalling a machine changes it. The app asks you about it on its side; in your own `~/.ssh/known_hosts`, remove the old line.
+- **`codex: command not found` from a remote client.** The client opened a shell that did not read `.zshenv`. Check with `ssh pupitre 'which codex'`.
+
+## Revocation still works
+
+A device removed in the console loses its key on the server at the agent's next check-in — whatever was using that key. That is the reason to point your clients at the app's key rather than at a copy of it.
 
 ## What stays in the app
 
-Pupitre remains the place for the things a chat client has no business doing: inspecting the machine, installing and configuring services, hardening, the live install report, project registration, the service status the agent reports, updates and alerts.
+Pupitre remains the place for the things a chat client has no business doing: inspecting the machine, installing and configuring services, hardening, the live install report, project registration, secrets, the service status the agent reports, updates and alerts.
 
 Its terminal is there for the day you want it — the first sign-in, a log you want to watch, a command you would rather run where the install happened. It is not the price of admission.

@@ -4,40 +4,35 @@ export const onboarding = {
     "onboarding.finish": "Finish",
 
     "onboarding.agent.eyebrow": "Agent",
-    "onboarding.agent.description":
-      "The services catalogue is the agent's own: it goes to the server before anything at all is asked of it.",
-    "onboarding.agent.readCatalog": "Read the catalogue",
+    "onboarding.agent.readCatalog": "Choose the services",
     "onboarding.agent.inPlace": "Agent in place",
-    "onboarding.agent.sendingTitle": "Enrolling and sending the agent",
-    "onboarding.agent.sendingDetail":
-      "The server is enrolled, then the signed binary goes over the already-open SSH channel and installs into /usr/local/bin.",
-    "onboarding.agent.sendingNote":
-      "The checksum of what the server received is compared with the app's before going on.",
+    "onboarding.agent.sendingTitle": "Installing the agent",
+    "onboarding.agent.sendingDetail": "A minute at most.",
 
-    "onboarding.agent.phase.reading": "Reading the machine's architecture",
-    "onboarding.agent.phase.enrolling": "Enrolling with the console",
-    "onboarding.agent.phase.sending": "Writing the binary on the server",
-    "onboarding.agent.phase.starting": "Handing the agent its token",
+    "onboarding.agent.phase.reading": "Looking at the machine",
+    "onboarding.agent.phase.enrolling": "Declaring it to your account",
+    "onboarding.agent.phase.sending": "Copying the agent",
+    "onboarding.agent.phase.starting": "Starting it",
 
     "onboarding.done.eyebrow": "Ready",
-    "onboarding.done.description":
-      "The server is installed, and the app drives it through its agent.",
     "onboarding.done.connectedAs": "Connected as",
     "onboarding.done.rootClosed":
-      "Root is closed: no one else gets onto this machine with this account.",
+      "Root access is closed: no one gets onto this machine with that account.",
     "onboarding.done.rootKept":
-      "Root stayed open, as you asked: by key only, never by password.",
+      "Root access stayed open, as you asked: by key only.",
     "onboarding.done.rootOpen":
-      "Root stayed open: resume hardening once the reason the agent gave is gone.",
+      "Root access stayed open: run the securing again once the cause is settled.",
 
-    "onboarding.enrollment.title": "Server enrolled",
-    "onboarding.enrollment.detail":
-      "It shows up in the console with its heartbeat as soon as the agent reports in.",
+    "onboarding.organization.title": "Enrolled for {organization}",
+    "onboarding.organization.role": "Your role there: {role}.",
+    "onboarding.organization.none": "No active organization",
+    "onboarding.organization.noneDetail":
+      "Pick an organization in the console before enrolling a server.",
+    "onboarding.organization.switchLabel": "Enrol for another organization",
+    "onboarding.enrollment.title": "Server declared",
 
     "onboarding.entry.unfinished": "The install of {name} isn't finished.",
-    "onboarding.entry.noAgent": "No known Pupitre agent on {name}.",
-    "onboarding.entry.detail":
-      "The assistant inspects the machine, puts the agent on it, installs the chosen services, then closes root.",
+    "onboarding.entry.noAgent": "{name} is not installed yet.",
     "onboarding.entry.resume": "Resume the install",
     "onboarding.entry.install": "Install Pupitre",
 
@@ -46,59 +41,55 @@ export const onboarding = {
     "onboarding.flow.progress": "Progress",
     "onboarding.flow.stepCount": "Step {index} of {total}",
 
-    "onboarding.harden.eyebrow": "Hardening",
+    "onboarding.harden.eyebrow": "Security",
     "onboarding.harden.description":
-      "The agent opens the dev account, checks a key gets in, then closes root. The app follows with its own SSH configuration.",
-    "onboarding.harden.runningTitle": "Hardening in progress",
+      "Pupitre creates a working account, checks it can get in, then closes root access.",
+    "onboarding.harden.queuedTitle": "Waiting for the previous step",
+    "onboarding.harden.queuedDetail":
+      "Securing starts as soon as the server answers.",
+    "onboarding.harden.runningTitle": "Securing the server",
     "onboarding.harden.runningDetail":
-      "Dev account, keys copied over, connection checked, passwords and root closed.",
-    "onboarding.harden.runningNote":
-      "Root is only closed if a key opens dev: otherwise the agent stops and says so.",
-    "onboarding.harden.switchingTitle": "Switching the connection",
+      "Working account, keys copied over, connection checked, root access closed.",
+    "onboarding.harden.switchingTitle": "Switching account",
     "onboarding.harden.switchingDetail":
-      "The app rewrites its SSH configuration to User {user} and reopens the channel.",
-    "onboarding.harden.rootClosedTitle": "Root is closed on this server.",
+      "The app reconnects with the account {user}.",
+    "onboarding.harden.rootClosedTitle": "Root access is closed.",
     "onboarding.harden.rootKeptTitle":
-      "This server is hardened, and root keeps its own way in.",
+      "The server is secured, and root access stays open.",
     "onboarding.harden.rootKeptDetail":
-      "You chose to keep root: it opens with an SSH key, never with a password.",
+      "You chose to keep it: it opens with a key, never with a password.",
     "onboarding.harden.connectedPrefix":
       "The app now connects to it with the account",
-    "onboarding.harden.connectedSuffix": ", through its own SSH configuration.",
+    "onboarding.harden.connectedSuffix": ".",
     "onboarding.harden.noReason":
-      "The agent didn't close root, without giving a reason.",
+      "Root access was not closed, and no reason was given.",
     "onboarding.harden.rootOpenPrefix":
-      "Root stays open and nothing was changed on the machine: the account",
+      "Root access stays open and nothing changed on the machine: the account",
     "onboarding.harden.rootOpenSuffix": "is the one the app keeps using.",
-    "onboarding.harden.continueOpen": "Continue without closing root",
+    "onboarding.harden.continueOpen": "Continue without closing it",
+    "onboarding.harden.failedOpen":
+      "The machine is installed and root is still open: the app keeps using that account, and everything else works. You can retry above, or go on now and leave it open.",
 
     "onboarding.inspection.eyebrow": "Inspection",
-    "onboarding.inspection.diskFree": "{disk} free",
     "onboarding.inspection.pickAnother": "Choose another server",
     "onboarding.inspection.install": "Install",
     "onboarding.inspection.update": "Update",
     "onboarding.inspection.continue": "Continue",
     "onboarding.inspection.installAnyway": "Install anyway",
     "onboarding.inspection.rerun": "Run again",
-    "onboarding.inspection.waitingDescription":
-      "What the machine is, before touching it.",
-    "onboarding.inspection.waitingTitle": "Inspection in progress",
-    "onboarding.inspection.waitingDetail":
-      "Distribution, architecture, memory, disk, listening ports, existing accounts, agent already installed.",
-    "onboarding.inspection.waitingNote":
-      "The probe is read from standard input: nothing is written on the server.",
+    "onboarding.inspection.waitingTitle": "Looking at the machine",
+    "onboarding.inspection.waitingDetail": "A few seconds.",
 
     "onboarding.summary.distribution": "Distribution",
     "onboarding.summary.architecture": "Architecture",
     "onboarding.summary.memory": "Memory",
     "onboarding.summary.diskFree": "Free disk",
 
-    "onboarding.verdict.bare.title": "Bare machine",
-    "onboarding.verdict.bare.lead":
-      "Nothing is installed on this server: Pupitre can take it in hand.",
+    "onboarding.verdict.bare.title": "Ready to be installed",
+    "onboarding.verdict.bare.lead": "Nothing is installed on this server.",
     "onboarding.verdict.managed.title": "Already managed by Pupitre",
     "onboarding.verdict.managed.lead": "The agent answers on this server.",
-    "onboarding.verdict.occupied.title": "Server in use",
+    "onboarding.verdict.occupied.title": "Server already in use",
     "onboarding.verdict.occupied.lead":
       "Other software already lives here. Pupitre won't touch it, but it will stay.",
     "onboarding.verdict.incompatible.title": "Incompatible server",
@@ -107,8 +98,8 @@ export const onboarding = {
     "onboarding.verdict.updateAvailable":
       "A newer version of the agent is available.",
     "onboarding.verdict.upToDate": "The agent is up to date.",
-    "onboarding.verdict.reasonsLabel": "What the probe saw",
-    "onboarding.verdict.fixesLabel": "What lifts these reservations",
+    "onboarding.verdict.reasonsLabel": "What we saw",
+    "onboarding.verdict.fixesLabel": "What would let us go on",
 
     "onboarding.stage.pick": "Choose",
     "onboarding.stage.add": "Add",
@@ -118,85 +109,70 @@ export const onboarding = {
     "onboarding.channel.retrying": "Trying again…",
     "onboarding.channel.back": "Connection to {name} is back.",
     "onboarding.usage.held":
-      "The console has not confirmed this account's usage right: the step is holding where it is.",
+      "Your subscription could not be checked: the install is waiting.",
     "onboarding.step.agent": "Agent",
-    "onboarding.step.catalog": "Catalogue",
+    "onboarding.step.catalog": "Services",
     "onboarding.step.config": "Configuration",
     "onboarding.step.done": "Ready",
-    "onboarding.step.harden": "Hardening",
+    "onboarding.step.harden": "Security",
     "onboarding.step.install": "Installation",
     "onboarding.step.inspection": "Inspection",
-    "onboarding.step.project": "Project",
     "onboarding.step.server": "Server",
 
     "onboarding.replay.notice":
-      "{name} carried a secret. The app didn't keep it: it left on the secret stream at install time, then was forgotten. Enter it again, or have one generated, before replaying the module.",
+      "{name} had a password or a key the app did not keep. Enter it again, or let the app generate one, before running it again.",
 
     "onboarding.server.eyebrow": "Server",
     "onboarding.server.pick.title": "The machine to install",
-    "onboarding.server.pick.description":
-      "Pick the machine to take in hand. The assistant goes on with it right away.",
     "onboarding.server.add.title": "The machine to install",
-    "onboarding.server.add.description":
-      "An address, an account, and a key the app generates for this computer — and installs on the server itself.",
     "onboarding.server.key.title": "The key that opens it",
-    "onboarding.server.key.description":
-      "The app puts the public half on the machine, then signs in with it. The inspection follows on its own.",
     "onboarding.server.knownHeading": "Your servers",
-    "onboarding.server.knownIntro":
-      "The app keeps an SSH configuration of its own, one key per server in its folder, and each machine's fingerprint from the first contact.",
 
     "onboarding.config.replaySubmit": "Replay this module",
     "onboarding.config.resumeSubmit": "Resume the install",
 
-    "onboarding.resume.readingTitle": "Reading the server again",
+    "onboarding.resume.readingTitle": "Checking where the server stands",
     "onboarding.resume.readingDetail":
-      "The install was interrupted: the machine says what it already runs before the assistant picks up where it left off.",
-    "onboarding.resume.readingNote":
-      "Nothing is installed on the strength of what the app remembers.",
+      "The install had been interrupted: what is already in place is checked before going on.",
     "onboarding.resume.notice":
-      "The install stopped before {modules} reached the server. Their secrets left with the app, which never kept them: enter them again, or have them generated, and the install resumes with those modules only.",
+      "The install stopped before {modules}. Their passwords were not kept: enter them again, or let the app generate them, and the install picks up where it stopped.",
   },
   fr: {
     "onboarding.thisServer": "Ce serveur",
     "onboarding.finish": "Terminer",
 
     "onboarding.agent.eyebrow": "Agent",
-    "onboarding.agent.description":
-      "Le catalogue des services est celui de l'agent : il part sur le serveur avant qu'on lui demande quoi que ce soit.",
-    "onboarding.agent.readCatalog": "Lire le catalogue",
+    "onboarding.agent.readCatalog": "Choisir les services",
     "onboarding.agent.inPlace": "Agent en place",
-    "onboarding.agent.sendingTitle": "Enrôlement et envoi de l'agent",
-    "onboarding.agent.sendingDetail":
-      "Le serveur est enrôlé, puis le binaire signé part sur le canal SSH déjà ouvert et s'installe dans /usr/local/bin.",
-    "onboarding.agent.sendingNote":
-      "La somme de contrôle de ce que le serveur a reçu est comparée à celle de l'app avant la suite.",
+    "onboarding.agent.sendingTitle": "Installation de l'agent",
+    "onboarding.agent.sendingDetail": "Une minute au plus.",
 
-    "onboarding.agent.phase.reading": "Lecture de l'architecture de la machine",
-    "onboarding.agent.phase.enrolling": "Enrôlement auprès de la console",
-    "onboarding.agent.phase.sending": "Écriture du binaire sur le serveur",
-    "onboarding.agent.phase.starting": "Remise de son jeton à l'agent",
+    "onboarding.agent.phase.reading": "On regarde la machine",
+    "onboarding.agent.phase.enrolling": "On la déclare à votre compte",
+    "onboarding.agent.phase.sending": "On copie l'agent",
+    "onboarding.agent.phase.starting": "On le démarre",
 
     "onboarding.done.eyebrow": "Prêt",
-    "onboarding.done.description":
-      "Le serveur est installé, et l'app le pilote par son agent.",
     "onboarding.done.connectedAs": "Connecté en",
     "onboarding.done.rootClosed":
-      "Root est fermé : plus personne n'entre sur cette machine avec ce compte.",
+      "L'accès root est fermé : plus personne n'entre sur cette machine avec ce compte.",
     "onboarding.done.rootKept":
-      "Root est resté ouvert, comme demandé : par clé seulement, jamais par mot de passe.",
+      "L'accès root est resté ouvert, comme demandé : par clé seulement.",
     "onboarding.done.rootOpen":
-      "Root est resté ouvert : reprends le durcissement quand la raison donnée par l'agent aura disparu.",
+      "L'accès root est resté ouvert : relancez la sécurisation une fois la cause réglée.",
 
-    "onboarding.enrollment.title": "Serveur enrôlé",
-    "onboarding.enrollment.detail":
-      "Il apparaît dans la console avec son heartbeat dès que l'agent s'y annonce.",
+    "onboarding.organization.title": "Enrôlé pour {organization}",
+    "onboarding.organization.role": "Votre rôle : {role}.",
+    "onboarding.organization.none": "Aucune organisation active",
+    "onboarding.organization.noneDetail":
+      "Choisissez une organisation dans la console avant d'enrôler un serveur.",
+    "onboarding.organization.switchLabel":
+      "Enrôler pour une autre organisation",
+    "onboarding.enrollment.title": "Serveur déclaré",
 
     "onboarding.entry.unfinished":
       "L'installation de {name} n'est pas terminée.",
-    "onboarding.entry.noAgent": "Aucun agent Pupitre connu sur {name}.",
-    "onboarding.entry.detail":
-      "L'assistant inspecte la machine, y pose l'agent, installe les services choisis, puis ferme root.",
+    "onboarding.entry.noAgent": "{name} n'est pas encore installé.",
     "onboarding.entry.resume": "Reprendre l'installation",
     "onboarding.entry.install": "Installer Pupitre",
 
@@ -205,60 +181,56 @@ export const onboarding = {
     "onboarding.flow.progress": "Avancement",
     "onboarding.flow.stepCount": "Étape {index} sur {total}",
 
-    "onboarding.harden.eyebrow": "Durcissement",
+    "onboarding.harden.eyebrow": "Sécurité",
     "onboarding.harden.description":
-      "L'agent ouvre le compte dev, vérifie qu'une clé y entre, puis ferme root. L'app suit avec sa propre configuration SSH.",
-    "onboarding.harden.runningTitle": "Durcissement en cours",
+      "Pupitre crée un compte de travail, vérifie qu'il peut y entrer, puis ferme l'accès root.",
+    "onboarding.harden.queuedTitle": "On attend l'étape précédente",
+    "onboarding.harden.queuedDetail":
+      "La sécurisation commence dès que le serveur répond.",
+    "onboarding.harden.runningTitle": "On sécurise le serveur",
     "onboarding.harden.runningDetail":
-      "Compte dev, clés recopiées, connexion vérifiée, mots de passe et root fermés.",
-    "onboarding.harden.runningNote":
-      "Root ne sera fermé que si une clé ouvre dev : sinon l'agent s'arrête et le dit.",
-    "onboarding.harden.switchingTitle": "Bascule de la connexion",
+      "Compte de travail, clés recopiées, connexion vérifiée, accès root fermé.",
+    "onboarding.harden.switchingTitle": "On change de compte",
     "onboarding.harden.switchingDetail":
-      "L'app réécrit sa configuration SSH en User {user} et rouvre le canal.",
-    "onboarding.harden.rootClosedTitle": "Root est fermé sur ce serveur.",
+      "L'app se reconnecte avec le compte {user}.",
+    "onboarding.harden.rootClosedTitle": "L'accès root est fermé.",
     "onboarding.harden.rootKeptTitle":
-      "Ce serveur est durci, et root garde son accès.",
+      "Le serveur est sécurisé, et l'accès root reste ouvert.",
     "onboarding.harden.rootKeptDetail":
-      "Tu as choisi de garder l'accès root : il s'ouvre par clé SSH, jamais par mot de passe.",
+      "Vous avez choisi de le garder : il s'ouvre avec une clé, jamais avec un mot de passe.",
     "onboarding.harden.connectedPrefix":
       "L'app s'y connecte maintenant avec le compte",
-    "onboarding.harden.connectedSuffix": ", par sa propre configuration SSH.",
+    "onboarding.harden.connectedSuffix": ".",
     "onboarding.harden.noReason":
-      "L'agent n'a pas fermé root, sans en donner la raison.",
+      "L'accès root n'a pas été fermé, sans raison donnée.",
     "onboarding.harden.rootOpenPrefix":
-      "Root reste ouvert et rien n'a été changé sur la machine : le compte",
+      "L'accès root reste ouvert et rien n'a changé sur la machine : le compte",
     "onboarding.harden.rootOpenSuffix":
       "est celui que l'app continue d'utiliser.",
-    "onboarding.harden.continueOpen": "Continuer sans fermer root",
+    "onboarding.harden.continueOpen": "Continuer sans le fermer",
+    "onboarding.harden.failedOpen":
+      "La machine est installée et root est encore ouvert : l'app continue d'utiliser ce compte, et tout le reste fonctionne. Vous pouvez réessayer au-dessus, ou continuer maintenant en le laissant ouvert.",
 
     "onboarding.inspection.eyebrow": "Inspection",
-    "onboarding.inspection.diskFree": "{disk} libres",
     "onboarding.inspection.pickAnother": "Choisir un autre serveur",
     "onboarding.inspection.install": "Installer",
     "onboarding.inspection.update": "Mettre à jour",
     "onboarding.inspection.continue": "Continuer",
     "onboarding.inspection.installAnyway": "Installer quand même",
     "onboarding.inspection.rerun": "Relancer",
-    "onboarding.inspection.waitingDescription":
-      "Ce que la machine est, avant d'y toucher.",
-    "onboarding.inspection.waitingTitle": "Inspection en cours",
-    "onboarding.inspection.waitingDetail":
-      "Distribution, architecture, mémoire, disque, ports écoutés, comptes existants, agent déjà installé.",
-    "onboarding.inspection.waitingNote":
-      "La sonde est lue depuis l'entrée standard : rien n'est écrit sur le serveur.",
+    "onboarding.inspection.waitingTitle": "On regarde la machine",
+    "onboarding.inspection.waitingDetail": "Quelques secondes.",
 
     "onboarding.summary.distribution": "Distribution",
     "onboarding.summary.architecture": "Architecture",
     "onboarding.summary.memory": "Mémoire",
     "onboarding.summary.diskFree": "Disque libre",
 
-    "onboarding.verdict.bare.title": "Machine nue",
-    "onboarding.verdict.bare.lead":
-      "Rien n'est installé sur ce serveur : Pupitre peut le prendre en main.",
+    "onboarding.verdict.bare.title": "Prête à être installée",
+    "onboarding.verdict.bare.lead": "Rien n'est installé sur ce serveur.",
     "onboarding.verdict.managed.title": "Déjà géré par Pupitre",
     "onboarding.verdict.managed.lead": "L'agent répond sur ce serveur.",
-    "onboarding.verdict.occupied.title": "Serveur occupé",
+    "onboarding.verdict.occupied.title": "Serveur déjà utilisé",
     "onboarding.verdict.occupied.lead":
       "D'autres logiciels vivent déjà ici. Pupitre n'y touchera pas, mais ils resteront.",
     "onboarding.verdict.incompatible.title": "Serveur incompatible",
@@ -267,8 +239,8 @@ export const onboarding = {
     "onboarding.verdict.updateAvailable":
       "Une version plus récente de l'agent est disponible.",
     "onboarding.verdict.upToDate": "L'agent est à jour.",
-    "onboarding.verdict.reasonsLabel": "Ce que la sonde a vu",
-    "onboarding.verdict.fixesLabel": "Ce qui lève ces réserves",
+    "onboarding.verdict.reasonsLabel": "Ce qu'on a vu",
+    "onboarding.verdict.fixesLabel": "Ce qui permettrait de continuer",
 
     "onboarding.stage.pick": "Choisir",
     "onboarding.stage.add": "Ajouter",
@@ -278,43 +250,32 @@ export const onboarding = {
     "onboarding.channel.retrying": "Nouvelle tentative…",
     "onboarding.channel.back": "Connexion à {name} rétablie.",
     "onboarding.usage.held":
-      "La console n'a pas confirmé le droit d'usage de ce compte : l'étape reste où elle est.",
+      "Votre abonnement n'a pas pu être vérifié : l'installation attend.",
     "onboarding.step.agent": "Agent",
-    "onboarding.step.catalog": "Catalogue",
+    "onboarding.step.catalog": "Services",
     "onboarding.step.config": "Configuration",
     "onboarding.step.done": "Prêt",
-    "onboarding.step.harden": "Durcissement",
+    "onboarding.step.harden": "Sécurité",
     "onboarding.step.install": "Installation",
     "onboarding.step.inspection": "Inspection",
-    "onboarding.step.project": "Projet",
     "onboarding.step.server": "Serveur",
 
     "onboarding.replay.notice":
-      "{name} portait un secret. L'app ne l'a pas gardé : il est parti sur le flux secret au moment de l'installation, puis oublié. Saisis-le à nouveau, ou fais-en générer un, avant de rejouer le module.",
+      "{name} avait un mot de passe ou une clé que l'app n'a pas gardés. Saisissez-le à nouveau, ou laissez l'app en générer un, avant de relancer.",
 
     "onboarding.server.eyebrow": "Serveur",
     "onboarding.server.pick.title": "La machine à installer",
-    "onboarding.server.pick.description":
-      "Choisissez la machine à prendre en main. L'assistant continue avec elle aussitôt.",
     "onboarding.server.add.title": "La machine à installer",
-    "onboarding.server.add.description":
-      "Une adresse, un compte, et une clé que l'app génère pour cet ordinateur — et qu'elle pose elle-même sur le serveur.",
     "onboarding.server.key.title": "La clé qui l'ouvre",
-    "onboarding.server.key.description":
-      "L'app pose la moitié publique sur la machine, puis s'y connecte avec. L'inspection suit toute seule.",
     "onboarding.server.knownHeading": "Vos serveurs",
-    "onboarding.server.knownIntro":
-      "L'app garde une configuration SSH à elle, une clé par serveur dans son dossier, et l'empreinte de chaque machine dès le premier contact.",
 
     "onboarding.config.replaySubmit": "Rejouer ce module",
     "onboarding.config.resumeSubmit": "Reprendre l'installation",
 
-    "onboarding.resume.readingTitle": "Relecture du serveur",
+    "onboarding.resume.readingTitle": "On regarde où en est le serveur",
     "onboarding.resume.readingDetail":
-      "L'installation a été interrompue : la machine dit ce qu'elle fait déjà tourner avant que l'assistant ne reprenne où il s'était arrêté.",
-    "onboarding.resume.readingNote":
-      "Rien n'est installé sur la foi de ce que l'app se rappelle.",
+      "L'installation avait été interrompue : on vérifie ce qui est déjà en place avant de reprendre.",
     "onboarding.resume.notice":
-      "L'installation s'est arrêtée avant que {modules} n'arrive sur le serveur. Leurs secrets sont partis avec l'app, qui ne les a jamais gardés : saisis-les à nouveau, ou fais-en générer, et l'installation reprend sur ces modules seuls.",
+      "L'installation s'est arrêtée avant {modules}. Leurs mots de passe n'ont pas été conservés : saisissez-les à nouveau, ou laissez l'app en générer, et l'installation reprend là où elle s'était arrêtée.",
   },
 } as const;

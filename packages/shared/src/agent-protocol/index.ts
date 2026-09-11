@@ -1,6 +1,21 @@
 import type { z } from "zod"
 
 import {
+  FsListParamsSchema,
+  FsListResultSchema,
+  FsMkdirParamsSchema,
+  FsPathResultSchema,
+  FsReadParamsSchema,
+  FsReadResultSchema,
+  FsRemoveParamsSchema,
+  FsRemoveResultSchema,
+  FsRenameParamsSchema,
+  FsStatParamsSchema,
+  FsStatResultSchema,
+  FsWriteParamsSchema,
+  FsWriteResultSchema,
+} from "./files"
+import {
   CatalogResultSchema,
   HardenParamsSchema,
   HardenResultSchema,
@@ -16,6 +31,7 @@ import {
   UninstallResultSchema,
   UpgradeParamsSchema,
 } from "./install"
+import { AgentMigrateResultSchema } from "./migrate"
 import {
   AgentOpenParamsSchema,
   AgentOpenResultSchema,
@@ -23,6 +39,7 @@ import {
   ProcessKillParamsSchema,
   SessionsCleanResultSchema,
   SessionsListResultSchema,
+  ShotsCleanParamsSchema,
   ShotsCleanResultSchema,
   ShotsListResultSchema,
   ShotsReadParamsSchema,
@@ -51,6 +68,8 @@ import {
   ProjectRemoveResultSchema,
   ProjectSyncResultSchema,
   ProjectTargetParamsSchema,
+  ProjectUpdateParamsSchema,
+  ProjectUpdateResultSchema,
   ProjectUrlResultSchema,
   ProjectWorkingTreeResultSchema,
 } from "./projects"
@@ -60,8 +79,6 @@ import {
   DbParamsSchema,
   DbShellResultSchema,
   DbUrlResultSchema,
-  SecretsSetParamsSchema,
-  SecretsStatusResultSchema,
   SecretsSyncParamsSchema,
   SecretsSyncResultSchema,
   ServiceSecretParamsSchema,
@@ -77,6 +94,9 @@ import {
 import {
   CompletionsParamsSchema,
   CompletionsResultSchema,
+  ServiceActionParamsSchema,
+  ServiceLogsParamsSchema,
+  ServiceLogsResultSchema,
   ServiceStatusParamsSchema,
   ServiceStatusResultSchema,
   SnapshotResultSchema,
@@ -122,6 +142,22 @@ export const COMMANDS = {
     params: ServiceSecretParamsSchema,
     result: ServiceSecretResultSchema,
   },
+  "service.start": {
+    params: ServiceActionParamsSchema,
+    result: ServiceStatusResultSchema,
+  },
+  "service.stop": {
+    params: ServiceActionParamsSchema,
+    result: ServiceStatusResultSchema,
+  },
+  "service.restart": {
+    params: ServiceActionParamsSchema,
+    result: ServiceStatusResultSchema,
+  },
+  "service.logs": {
+    params: ServiceLogsParamsSchema,
+    result: ServiceLogsResultSchema,
+  },
   completions: {
     params: CompletionsParamsSchema,
     result: CompletionsResultSchema,
@@ -137,6 +173,10 @@ export const COMMANDS = {
   "project.detect": {
     params: ProjectDetectParamsSchema,
     result: ProjectDetectResultSchema,
+  },
+  "project.update": {
+    params: ProjectUpdateParamsSchema,
+    result: ProjectUpdateResultSchema,
   },
   "project.remove": {
     params: ProjectParamsSchema,
@@ -218,12 +258,17 @@ export const COMMANDS = {
     params: ShotsReadParamsSchema,
     result: ShotsReadResultSchema,
   },
-  "shots.clean": { params: EmptyParamsSchema, result: ShotsCleanResultSchema },
-  "secrets.status": {
-    params: EmptyParamsSchema,
-    result: SecretsStatusResultSchema,
+  "shots.clean": {
+    params: ShotsCleanParamsSchema,
+    result: ShotsCleanResultSchema,
   },
-  "secrets.set": { params: SecretsSetParamsSchema, result: DoneResultSchema },
+  "fs.list": { params: FsListParamsSchema, result: FsListResultSchema },
+  "fs.stat": { params: FsStatParamsSchema, result: FsStatResultSchema },
+  "fs.read": { params: FsReadParamsSchema, result: FsReadResultSchema },
+  "fs.write": { params: FsWriteParamsSchema, result: FsWriteResultSchema },
+  "fs.mkdir": { params: FsMkdirParamsSchema, result: FsPathResultSchema },
+  "fs.rename": { params: FsRenameParamsSchema, result: FsPathResultSchema },
+  "fs.remove": { params: FsRemoveParamsSchema, result: FsRemoveResultSchema },
   "secrets.sync": {
     params: SecretsSyncParamsSchema,
     result: SecretsSyncResultSchema,
@@ -254,6 +299,10 @@ export const COMMANDS = {
   "agent.upgrade": {
     params: AgentUpgradeParamsSchema,
     result: AgentUpgradeResultSchema,
+  },
+  "agent.migrate": {
+    params: EmptyParamsSchema,
+    result: AgentMigrateResultSchema,
   },
   reboot: { params: EmptyParamsSchema, result: DoneResultSchema },
   doctor: { params: EmptyParamsSchema, result: DoctorResultSchema },
@@ -288,6 +337,7 @@ export const RESTRICTED_COMMANDS = [
   "status",
   "diag",
   "agent.upgrade",
+  "agent.migrate",
   "enroll",
   "platform.sync",
 ] as const satisfies readonly CommandName[]
@@ -298,4 +348,58 @@ export function isAllowedInRestrictedMode(
   cmd: string
 ): cmd is RestrictedCommandName {
   return (RESTRICTED_COMMANDS as readonly string[]).includes(cmd)
+}
+
+/**
+ * A binary on a server that was never enrolled has no state to show and no
+ * server to upgrade: it says who it is, answers a ping, hands out a diagnostic,
+ * and takes the enrolment that gives it a server.
+ */
+/**
+ * What a server answers while its configuration is not at the revision the
+ * binary expects.
+ *
+ * The agent migrates itself at start-up, so this list is normally never
+ * reached. It is reached when a migration refused: the files were put back as
+ * they were, and a binary that reads a shape it does not understand would get
+ * it wrong in ways nobody sees. Refusing is the safe answer — but a server one
+ * cannot look at is a server one cannot repair, so what remains open is the
+ * view of the machine, the diagnostic, the ways out (another version of the
+ * agent, another attempt at the migration) and the platform.
+ */
+export const MIGRATION_COMMANDS = [
+  "hello",
+  "ping",
+  "snapshot",
+  "status",
+  "report",
+  "diag",
+  "doctor",
+  "agent.upgrade",
+  "agent.migrate",
+  "enroll",
+  "platform.sync",
+] as const satisfies readonly CommandName[]
+
+export type MigrationCommandName = (typeof MIGRATION_COMMANDS)[number]
+
+export function isAllowedWhileMigrating(
+  cmd: string
+): cmd is MigrationCommandName {
+  return (MIGRATION_COMMANDS as readonly string[]).includes(cmd)
+}
+
+export const UNENROLLED_COMMANDS = [
+  "hello",
+  "ping",
+  "diag",
+  "enroll",
+] as const satisfies readonly CommandName[]
+
+export type UnenrolledCommandName = (typeof UNENROLLED_COMMANDS)[number]
+
+export function isAllowedWithoutEnrolment(
+  cmd: string
+): cmd is UnenrolledCommandName {
+  return (UNENROLLED_COMMANDS as readonly string[]).includes(cmd)
 }

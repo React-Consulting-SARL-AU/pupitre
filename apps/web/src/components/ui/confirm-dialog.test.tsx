@@ -56,7 +56,7 @@ describe("ConfirmDialog", () => {
     expect(confirmed).toBe(1)
   })
 
-  it("laisse le déclencheur respirer tant que l'action court", async () => {
+  it("garde le déclencheur au travail tant que l'action court", async () => {
     const view = await render(dialog({ busy: true }))
 
     mounted.push(view.unmount)
@@ -66,6 +66,6 @@ describe("ConfirmDialog", () => {
     expect(button.disabled).toBe(true)
     expect(button.getAttribute("aria-busy")).toBe("true")
     expect(button.textContent).toContain("Deleting…")
-    expect(button.querySelector(".animate-breathe")).not.toBeNull()
+    expect(button.querySelector("[data-spinner]")).not.toBeNull()
   })
 })

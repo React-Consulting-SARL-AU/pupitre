@@ -9,15 +9,10 @@ import (
 const (
 	Program = "claude"
 
-	tool      = "npm:@anthropic-ai/claude-code"
 	configDir = agents.Home + "/.claude"
 )
 
-var (
-	cli = agents.CLI{Tool: tool, Program: Program}
-
-	target = agents.Target{ConfigDir: configDir, ContextFile: "CLAUDE.md", Skills: true, Subagents: true}
-)
+var target = agents.Target{ConfigDir: configDir, ContextFile: "CLAUDE.md", Skills: true, Subagents: true}
 
 type Module struct{}
 
@@ -30,19 +25,20 @@ func (Module) Manifest() contract.Manifest {
 }
 
 func (Module) Check(ctx *modules.Context) (modules.Status, error) {
-	if !cli.Present(ctx) {
+	version := installedVersion(ctx)
+	if version == "" {
 		return modules.Status{}, nil
 	}
 
 	return modules.Status{
 		Installed:  true,
 		Configured: agents.Configured(ctx, target),
-		Version:    cli.Version(ctx),
+		Version:    version,
 	}, nil
 }
 
 func (Module) Install(ctx *modules.Context) error {
-	return cli.Install(ctx)
+	return installCLI(ctx)
 }
 
 // Nothing to sign in: Claude Code prints its own connection URL on first launch, and the app relays it to the client's browser.
@@ -51,7 +47,7 @@ func (Module) Configure(ctx *modules.Context) error {
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
-	if err := cli.Upgrade(ctx); err != nil {
+	if err := upgradeCLI(ctx); err != nil {
 		return err
 	}
 
@@ -60,7 +56,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 
 // The conversations, the credentials and the skills the client added himself stay: only the CLI and the context this module wrote go.
 func (Module) Uninstall(ctx *modules.Context) error {
-	if err := cli.Remove(ctx); err != nil {
+	if err := removeCLI(ctx); err != nil {
 		return err
 	}
 

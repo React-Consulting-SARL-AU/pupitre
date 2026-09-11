@@ -97,12 +97,16 @@ describe("les commandes d'un projet ouvert", () => {
     expect(diff).toMatchObject({ ok: true, result: { path: "src/tva.ts" } });
   });
 
-  it("retient le dossier absolu que git a nommé, pour l'éditeur", async () => {
+  it("préfère la racine que git a nommée au dossier du registre", async () => {
     const shared = deps();
 
     await listProjects(SERVER, shared);
 
-    expect(projectFolder(SERVER, "flymate-api")).toBeNull();
+    // The registry folder is what the list gives, and it is enough to open a
+    // terminal; the repository sits one level above it.
+    expect(projectFolder(SERVER, "flymate-api")).toBe(
+      "/home/dev/projects/flymate/api"
+    );
 
     await onProject("project.branches", SERVER, "flymate-api", shared);
     await onProject("project.git_status", SERVER, "flymate-api", shared);
@@ -131,7 +135,7 @@ describe("les commandes d'un projet ouvert", () => {
     expect(answer).toMatchObject({
       ok: false,
       error: {
-        code: "module_failed",
+        code: "bad_request",
         fix: "Commite ou remise tes changements, puis réessaie.",
       },
     });

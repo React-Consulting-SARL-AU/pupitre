@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"pupitre.studio/agent/internal/daemon"
+	"pupitre.studio/agent/internal/i18n"
 )
 
 func runDaemon(agent *daemon.Daemon, stderr io.Writer) int {
@@ -27,19 +28,19 @@ func runDaemon(agent *daemon.Daemon, stderr io.Writer) int {
 func runEnroll(agent *daemon.Daemon, stdin io.Reader, stderr io.Writer) int {
 	token, err := bufio.NewReader(stdin).ReadString('\n')
 	if err != nil && token == "" {
-		fmt.Fprintln(stderr, "enrolment token expected on standard input")
+		fmt.Fprintln(stderr, i18n.T("cli.enroll.token.expected"))
 		return 2
 	}
 
-	if err := agent.Enroll(token, ""); err != nil {
+	if err := agent.Enroll(context.Background(), token, ""); err != nil {
 		fmt.Fprintln(stderr, err)
 		return 1
 	}
 
-	fmt.Fprintln(stderr, "server enrolled")
+	fmt.Fprintln(stderr, i18n.T("cli.enroll.done"))
 
-	if _, err := agent.Sync(); err != nil {
-		fmt.Fprintf(stderr, "first state not read, the agent will retry: %s\n", err)
+	if _, err := agent.Sync(context.Background()); err != nil {
+		fmt.Fprintln(stderr, i18n.T("cli.enroll.sync.failed", err.Error()))
 	}
 
 	return 0

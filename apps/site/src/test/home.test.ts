@@ -33,7 +33,7 @@ describe("home", () => {
     const html = await render(En, { path: "/" })
 
     expect(html).toContain(
-      ">Your AI agents get a machine of their own. Your laptop cools down.</h1>"
+      '>Your AI agents get a machine of their own. Your laptop<span class="frost">cools down</span>.</h1>'
     )
     expect(actions(html)).toContainEqual({
       href: SIGNUP_URL,
@@ -52,7 +52,7 @@ describe("home", () => {
 
     expect(html).toContain('<html lang="fr"')
     expect(html).toContain(
-      ">Vos agents IA travaillent sur une machine à eux. Votre laptop respire.</h1>"
+      '>Vos agents IA travaillent sur une machine à eux. Votre laptop<span class="frost">respire</span>.</h1>'
     )
     expect(actions(html)).toContainEqual({
       href: SIGNUP_URL,

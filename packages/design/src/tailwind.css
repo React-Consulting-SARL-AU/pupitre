@@ -22,6 +22,8 @@
   --color-ok: var(--ok);
   --color-warn: var(--warn);
   --color-danger: var(--danger);
+  --color-frost: var(--frost);
+  --color-frost-soft: var(--frost-soft);
 
   --font-ui: var(--font-ui);
   --font-data: var(--font-data);
@@ -52,6 +54,7 @@
 
 @theme {
   --animate-breathe: breathe var(--motion-breathe);
+  --animate-spinner: spinner var(--motion-spinner);
 
   @keyframes breathe {
     0%,
@@ -60,6 +63,12 @@
     }
     50% {
       opacity: 0.35;
+    }
+  }
+
+  @keyframes spinner {
+    to {
+      transform: rotate(360deg);
     }
   }
 }

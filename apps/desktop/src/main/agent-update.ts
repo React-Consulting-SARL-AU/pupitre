@@ -1,9 +1,12 @@
 import type { Event } from "@pupitre/shared/agent-protocol/envelope";
 import type { InstallResult } from "@pupitre/shared/agent-protocol/install";
-import type { AgentUpgradeResult } from "@pupitre/shared/agent-protocol/system";
+import type { AgentMigrateResult } from "@pupitre/shared/agent-protocol/migrate";
 import type { AgentResponse } from "@shared/agent";
-import type { AgentUpdateState } from "@shared/agent-update";
-import { app, ipcMain, type WebContents } from "electron";
+import type {
+  AgentUpdateState,
+  AgentUpgradeOutcome,
+} from "@shared/agent-update";
+import { ipcMain, type WebContents } from "electron";
 import { account } from "./account";
 import { agentClient } from "./agent";
 import { carriedRelease } from "./agent-binary";
@@ -11,8 +14,10 @@ import {
   type AgentUpdateDeps,
   readAgentUpdate,
   runAgentUpgrade,
+  runMigrate,
   runModuleUpgrade,
 } from "./agent-update-run";
+import { appVersion } from "./app-version";
 import { declaredModules } from "./catalog";
 import { inspect } from "./inspection";
 import { agentResourcesDir } from "./install";
@@ -31,7 +36,7 @@ import { byId } from "./servers";
 
 function deps(): AgentUpdateDeps {
   return {
-    appVersion: app.getVersion(),
+    appVersion: appVersion(),
     carried: (arch) => carriedRelease(agentResourcesDir(), arch),
     client: agentClient,
     declared: declaredModules,
@@ -84,12 +89,24 @@ export function registerAgentUpdate(): void {
       event,
       token: unknown,
       serverId: unknown
-    ): Promise<AgentResponse<AgentUpgradeResult>> => {
+    ): Promise<AgentResponse<AgentUpgradeOutcome>> => {
       const server = known(serverId);
 
       return server
         ? await runAgentUpgrade(server, relay(event.sender, token), deps())
         : unknownServer();
+    }
+  );
+
+  ipcMain.handle(
+    "agent-update:migrate",
+    async (
+      _event,
+      serverId: unknown
+    ): Promise<AgentResponse<AgentMigrateResult | null>> => {
+      const server = known(serverId);
+
+      return server ? await runMigrate(server, deps()) : unknownServer();
     }
   );
 

@@ -1,21 +1,21 @@
 import type { ModuleConfig } from "@pupitre/shared/agent-protocol/install";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { STEP_COLUMN } from "@renderer/lib/layout";
 import { useStepShift } from "@renderer/lib/use-step-shift";
 import type { HardenOutcome } from "@shared/harden";
 import { useEffect, useState } from "react";
 import { useCatalog } from "../../stores/catalog";
-import { hasCloudflare } from "../../stores/first-project";
 import { useHarden } from "../../stores/harden";
-import { probeOf } from "../../stores/inspection";
+import { useInspection } from "../../stores/inspection";
 import { useInstall } from "../../stores/install";
 import { useOnboarding } from "../../stores/onboarding";
 import {
   ONBOARDING_STEPS,
+  plannedSteps,
   type ServerStage,
 } from "../../stores/onboarding-machine";
 import { useServers } from "../../stores/servers";
 import { CatalogScreen } from "../catalog/catalog-screen";
-import { FirstProjectScreen } from "../first-project/first-project-screen";
 import { InstallScreen } from "../install/install-screen";
 import { WaitingNotice } from "../ui/waiting-notice";
 import { OnboardingAgentScreen } from "./onboarding-agent-screen";
@@ -47,6 +47,7 @@ export function OnboardingFlow() {
   const t = useTranslations();
 
   const step = useOnboarding((state) => state.step);
+  const trail = useOnboarding((state) => state.trail);
   const serverId = useOnboarding((state) => state.serverId);
   const replaying = useOnboarding((state) => state.replaying);
   const remaining = useOnboarding((state) => state.remaining);
@@ -56,8 +57,6 @@ export function OnboardingFlow() {
   const canGoBack = useOnboarding((state) => state.canGoBack);
   const close = useOnboarding((state) => state.close);
 
-  const install = useInstall((state) => state.install);
-  const requested = useInstall((state) => state.requested);
   const touched = useInstall((state) => state.touched());
 
   const config = useServers((state) => state.config);
@@ -83,13 +82,13 @@ export function OnboardingFlow() {
   }, [touched]);
 
   const server = config?.servers.find((candidate) => candidate.id === serverId);
+  const verdict = useInspection((state) =>
+    serverId ? (state.probes[serverId]?.verdict ?? null) : null
+  );
+  const steps = plannedSteps({ step, trail }, verdict);
   const outcome = useHarden((state) =>
     state.harden.status === "done" ? state.harden.outcome : null
   );
-
-  const present = probeOf(serverId)?.installed_modules ?? [];
-  const failed = install.status === "done" ? install.result.failed : [];
-  const cloudflare = hasCloudflare(present, requested.modules, failed);
 
   function configOf(moduleId: string): ModuleConfig {
     return { [moduleId]: useCatalog.getState().config()[moduleId] ?? {} };
@@ -158,6 +157,7 @@ export function OnboardingFlow() {
       return (
         <CatalogScreen
           onConfigure={() => send({ type: "chosen" })}
+          plain
           serverId={serverId}
           serverName={server.name}
         />
@@ -186,6 +186,7 @@ export function OnboardingFlow() {
           modules={remaining.length > 0 ? remaining : undefined}
           onContinue={() => send({ type: "installed" })}
           onReplay={replayModule}
+          plain
           serverId={serverId}
           serverName={server.name}
         />
@@ -196,18 +197,6 @@ export function OnboardingFlow() {
       return (
         <OnboardingHardenScreen
           onContinue={() => send({ type: "hardened" })}
-          serverId={serverId}
-          serverName={server.name}
-        />
-      );
-    }
-
-    if (shown === "project") {
-      return (
-        <FirstProjectScreen
-          cloudflare={cloudflare}
-          onFinish={() => send({ type: "projectDone" })}
-          onSkip={() => send({ type: "projectDone" })}
           serverId={serverId}
           serverName={server.name}
         />
@@ -239,21 +228,20 @@ export function OnboardingFlow() {
       serverName={server?.name}
       stage={step === "server" ? stage : undefined}
       step={step}
+      steps={steps}
     >
-      <div
-        className={`mx-auto w-full max-w-3xl px-8 py-10 ${motion}`}
-        key={shown}
-      >
+      <div className={`h-full ${motion}`} key={shown}>
         {/*
           While the machine is being read again, no screen acts: a server whose
           state the app has only remembered is one it must not touch.
         */}
         {recovering ? (
-          <WaitingNotice
-            detail={t("onboarding.resume.readingDetail")}
-            note={t("onboarding.resume.readingNote")}
-            title={t("onboarding.resume.readingTitle")}
-          />
+          <div className={`${STEP_COLUMN} h-full py-10`}>
+            <WaitingNotice
+              detail={t("onboarding.resume.readingDetail")}
+              title={t("onboarding.resume.readingTitle")}
+            />
+          </div>
         ) : (
           screen()
         )}

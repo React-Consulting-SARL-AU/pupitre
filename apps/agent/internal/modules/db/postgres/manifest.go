@@ -24,8 +24,9 @@ func manifest() contract.Manifest {
 			{Key: "remote_role", Kind: contract.FieldText, Label: i18n.T("module.db.postgres.remote_role.label"), Help: i18n.T("module.db.postgres.remote_role.help"), HintText: i18n.T("module.db.remote.hint"), Format: contract.FormatIdentifier, Required: true, Default: defaultRemoteRole},
 			{Key: "app_password", Kind: contract.FieldSecret, Label: i18n.T("module.db.postgres.app_password.label"), Required: true, Generate: true},
 			{Key: "remote_password", Kind: contract.FieldSecret, Label: i18n.T("module.db.postgres.remote_password.label"), Help: i18n.T("module.db.postgres.remote_password.help"), Required: true, Generate: true},
+			{Key: "shared_buffers", Kind: contract.FieldText, Label: i18n.T("module.db.postgres.shared_buffers.label"), Help: i18n.T("module.db.postgres.shared_buffers.help"), HintText: i18n.T("module.db.postgres.shared_buffers.hint"), Format: contract.FormatSize, Required: false},
 		},
-		Provides:  []string{"db:postgres"},
+		Runs:      true,
 		Mandatory: false,
 		Since:     "0.1.0",
 	}

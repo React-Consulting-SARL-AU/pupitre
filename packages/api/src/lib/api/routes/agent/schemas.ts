@@ -22,7 +22,6 @@ export const agentStateSchema = t.Object(
     target_version: t.Nullable(t.String()),
     minimum_version: t.Nullable(t.String()),
     hostname: t.String(),
-    module_params: t.Record(t.String(), t.Unknown()),
   },
   { $id: "AgentState" }
 )
@@ -35,4 +34,11 @@ export const heartbeatBody = t.Object({
   stack_version: t.String(),
   modules: t.Array(t.String()),
   agent_version: t.Optional(t.String({ minLength: 1, maxLength: 40 })),
+
+  // The quantities behind the percentages. Optional: an agent older than this
+  // field sends none, and the console then has only the percentage to show.
+  disk_total_gb: t.Optional(t.Number({ minimum: 0 })),
+  disk_free_gb: t.Optional(t.Number({ minimum: 0 })),
+  ram_total_mb: t.Optional(t.Number({ minimum: 0 })),
+  ram_used_mb: t.Optional(t.Number({ minimum: 0 })),
 })

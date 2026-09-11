@@ -1,38 +1,54 @@
 ---
 title: Agents IA
-description: Faire tourner Claude Code, Codex et Hermes sur le serveur, avec vos propres abonnements.
+description: Claude Code, Codex et Hermes sur le serveur — comment ils sont installés, quel contexte ils lisent, et où l’on se connecte.
 locale: fr
 section: daily
 sectionOrder: 2
-order: 4
+order: 6
 ---
 
 Pupitre installe les agents ; vous apportez les abonnements. Rien n’est revendu, et aucun de vos jetons n’est stocké sur la plateforme.
 
-## Se connecter
+## Ce qui est installé
 
-`ai.claude` et `ai.codex` se connectent comme partout ailleurs : l’outil affiche une URL dans le terminal, vous l’ouvrez dans votre navigateur, vous approuvez. L’app montre ce terminal : le flux est celui que vous connaissez déjà — il se passe simplement sur le serveur.
+`ai.claude` pose le binaire natif publié par Anthropic, pour cette architecture, et le refuse si sa somme de contrôle ne correspond pas à celle qu’annonce le manifeste de la version. `ai.codex` passe par `mise`, qui épingle et met à jour Codex comme un runtime et le dépose sur le PATH de tous les shells. `ai.hermes` fait tourner l’agent de Nous Research sur le runtime Python, avec les fournisseurs de modèles que vous configurez.
+
+Les trois s’installent dans le compte `dev`, sur la même machine, et peuvent cohabiter.
+
+## La connexion
+
+`ai.claude` et `ai.codex` se connectent comme partout ailleurs : l’outil affiche une URL, vous l’ouvrez dans votre navigateur, vous approuvez. L’app montre le terminal où cela se passe, si bien que le geste est celui que vous connaissez déjà — il a simplement lieu sur le serveur, et les identifiants y restent.
+
+`ai.hermes` n’a pas ce flux : il parle aux fournisseurs dont vous avez donné les clés à l’installation, et ces clés vivent dans un fichier que seul root peut lire.
+
+## Le contexte qu’ils lisent
+
+Chaque module d’agent écrit le même contexte machine, sous le nom que son outil lit — `CLAUDE.md` pour Claude Code, `AGENTS.md` pour Codex et Hermes. Il dit les choses simples qu’un agent qui travaille ici doit savoir : que c’est un serveur Linux et non un poste de travail, où vivent les projets, que les serveurs se pilotent avec la commande `dev` plutôt qu’en les lançant à la main, et que les secrets viennent du gestionnaire de secrets de la machine plutôt que d’un fichier commité.
+
+À côté viennent les skills Pupitre, dans `~/.agents/skills` et dans le dossier propre à l’outil :
+
+- `server-dev` — enregistrer, démarrer et diagnostiquer un projet avec `dev` ;
+- `capture` — prendre une capture et répondre par une URL que quelqu’un d’autre peut ouvrir, pas par un chemin local ;
+- `branch`, `pr`, `ship` — commiter, pousser, ouvrir une pull request, dans la convention du dépôt.
+
+Claude Code reçoit en plus le sous-agent `git-shipper`. Mettre à jour un module réécrit le contexte et les skills ; le désinstaller reprend ce que le module a écrit et laisse vos conversations, vos identifiants et les skills que vous avez ajoutés.
 
 ## Depuis votre propre client
 
-Vous n’êtes pas obligé d’ouvrir un agent depuis Pupitre. L’app Claude et l’app ChatGPT ouvrent toutes deux une session sur une machine distante en SSH : pointez-en une vers votre serveur et l’agent y tourne, dans vos projets, sur les runtimes qu’ont installés les modules. Voir [votre propre client](/fr/docs/daily/clients/).
+Vous n’êtes pas obligé d’ouvrir un agent depuis Pupitre. L’app Claude accepte une connexion SSH avec la clé que l’app a générée, et l’app ChatGPT lit les alias d’hôte de votre `~/.ssh/config` pour y faire tourner Codex. Dans les deux cas l’agent tourne sur le serveur, dans vos projets, sur les runtimes que les modules ont installés. Tout le réglage est sur [votre propre client](/fr/docs/daily/clients/).
 
-## Contexte
+## Où s’ouvre un agent
 
-L’app ouvre un agent dans le dossier du projet, pas dans un dossier personnel. Les fichiers d’instructions du projet sont là, et les skills Pupitre aussi : prendre une capture, ouvrir une branche, ouvrir une pull request, livrer.
+L’app ouvre un agent dans le dossier du projet, pas dans un répertoire personnel. Les fichiers d’instructions du projet y sont, et les skills ci-dessus aussi.
 
-## Captures
+## Les captures
 
-Avec `ai.browser` installé, un agent peut piloter Chrome headless et ranger les images dans la galerie du projet. C’est ce qui lui permet de regarder la page qu’il vient de modifier au lieu de décrire ce qu’il croit avoir fait.
+Avec `ai.browser` installé, un agent pilote Chrome sans interface, range l’image sous `~/shots` et rend une URL servie sur la boucle locale. C’est ce qui lui permet de regarder la page qu’il vient de modifier au lieu de décrire ce qu’il croit avoir fait. Voir [galerie](/fr/docs/daily/gallery/).
 
 ## Travailler la nuit
 
-Un agent démarré dans une session `tmux` continue quand vous fermez l’app. C’est l’intérêt de la machine : une tâche longue n’a pas besoin que votre laptop reste ouvert, et un build n’a pas besoin de vos ventilateurs.
-
-## Hermes
-
-`ai.hermes` fait tourner l’agent de Nous Research sur le runtime Python, avec les fournisseurs de modèles que vous configurez. Si vous le voulez toujours actif, il reçoit une unité `systemd`. Les clés des fournisseurs atterrissent dans un fichier que seul root peut lire.
+Un agent démarré dans une session `tmux` continue quand vous fermez l’app. C’est tout l’intérêt de la machine : une tâche longue n’a pas besoin que votre portable reste ouvert, et un build n’a pas besoin de vos ventilateurs.
 
 ## Ce que Pupitre ne fait pas
 
-Il ne choisit pas de modèle pour vous, ne relaie pas vos requêtes, et ne lit pas vos conversations. Il installe les outils, les ouvre dans le bon dossier, et vous montre le terminal.
+Il ne choisit pas de modèle à votre place, ne relaie pas vos requêtes, et ne lit pas vos conversations. Il installe les outils, leur donne le contexte de la machine, les ouvre dans le bon dossier, et vous montre le terminal.

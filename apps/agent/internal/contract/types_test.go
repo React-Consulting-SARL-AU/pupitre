@@ -23,7 +23,6 @@ func sampleManifest() Manifest {
 			{Key: "version", Kind: FieldVersion, Label: "Version", Options: []string{"7", "8"}, Default: "7"},
 			{Key: "providers", Kind: FieldList, Label: "Fournisseurs", Required: true, Items: ItemsSecret, Min: 1, Max: 6},
 		},
-		Provides:  []string{"db:redis"},
 		Mandatory: false,
 		Since:     "0.2.0",
 	}
@@ -92,7 +91,7 @@ func TestReportAndResultsValidateAgainstTheSchema(t *testing.T) {
 			{ID: "core.system", Status: ModuleOK, Steps: []ReportStep{{Step: "install-packages", Status: StepOK, Ms: 12}}},
 			{ID: "db.redis", Status: ModuleFail, Steps: []ReportStep{{Step: "install-package", Status: StepFail, Ms: 3, Replay: "sudo pupitred install --only=db.redis", Message: "E: Unable to locate package"}}},
 		},
-		Failed:     []string{"db.redis · install-package : E: Unable to locate package · rejeu : sudo pupitred install --only=db.redis"},
+		Failed:     []string{"db.redis"},
 		ReportPath: "/var/lib/pupitre/report.json",
 	}
 
@@ -167,6 +166,17 @@ func TestPresetsComeFromTheSchema(t *testing.T) {
 		if !seen[id] {
 			t.Errorf("preset %s is in the schema but not in Presets", id)
 		}
+	}
+
+	var mandatory struct {
+		Const []string `json:"const"`
+	}
+	if err := json.Unmarshal(mustDefinition(t, "MandatoryModules"), &mandatory); err != nil {
+		t.Fatalf("decode MandatoryModules: %v", err)
+	}
+
+	if len(mandatory.Const) == 0 || !reflect.DeepEqual(MandatoryModules, mandatory.Const) {
+		t.Fatalf("MandatoryModules = %v, schema.json says %v", MandatoryModules, mandatory.Const)
 	}
 
 	for _, id := range MandatoryModules {

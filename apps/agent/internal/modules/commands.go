@@ -17,6 +17,7 @@ func RegisterCommands(server *protocol.Server, engine *Engine) {
 		var params struct {
 			Modules      []string                  `json:"modules"`
 			Config       map[string]map[string]any `json:"config"`
+			Defer        []string                  `json:"defer"`
 			SecretsStdin bool                      `json:"secrets_stdin"`
 		}
 		if err := json.Unmarshal(raw, &params); err != nil {
@@ -28,7 +29,7 @@ func RegisterCommands(server *protocol.Server, engine *Engine) {
 			return nil, err
 		}
 
-		return engine.Install(Request{Modules: params.Modules, Config: params.Config, Secrets: secrets, Persist: true}, Emitter(ctx))
+		return engine.Install(Request{Modules: params.Modules, Config: params.Config, Defer: params.Defer, Secrets: secrets, Persist: true}, Emitter(ctx))
 	})
 
 	// No secret, no lock, nothing touched: it answers what an install would refuse.
@@ -36,12 +37,13 @@ func RegisterCommands(server *protocol.Server, engine *Engine) {
 		var params struct {
 			Modules []string                  `json:"modules"`
 			Config  map[string]map[string]any `json:"config"`
+			Defer   []string                  `json:"defer"`
 		}
 		if err := json.Unmarshal(raw, &params); err != nil {
 			return nil, protocol.NewError(contract.ErrorBadRequest, i18n.T("command.params.unreadable", err.Error()))
 		}
 
-		return engine.Check(Request{Modules: params.Modules, Config: params.Config}, Emitter(ctx))
+		return engine.Check(Request{Modules: params.Modules, Config: params.Config, Defer: params.Defer}, Emitter(ctx))
 	})
 
 	server.Register("uninstall", func(ctx *protocol.Context, raw json.RawMessage) (any, error) {
@@ -109,6 +111,9 @@ func Emitter(ctx *protocol.Context) Sink {
 		fields := map[string]any{"module": event.Module, "step": event.Step, "status": string(event.Status), "ms": event.Ms}
 		if event.Replay != "" {
 			fields["replay"] = event.Replay
+		}
+		if event.Message != "" {
+			fields["message"] = event.Message
 		}
 
 		ctx.Emit("step", fields)

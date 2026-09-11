@@ -2,8 +2,10 @@ import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { accountOf, useAccount } from "@renderer/stores/account";
 import { useEffect } from "react";
+import { AccountDevices } from "./account-devices";
 import { AccountIdentityCard } from "./account-identity-card";
 import { AccountSignInCard } from "./account-sign-in-card";
+import { AccountSubscriptionCard } from "./account-subscription-card";
 import { AccountUsageNotice } from "./account-usage-notice";
 
 /**
@@ -30,24 +32,33 @@ export function AccountPanel() {
   const account = accountOf(view);
 
   if (!account) {
-    return (
-      <WaitingNotice
-        detail={t("account.reading.detail")}
-        title={t("account.reading.title")}
-      />
-    );
+    return <WaitingNotice title={t("account.reading.title")} />;
   }
 
   return (
     <section className="flex flex-col gap-4">
-      <AccountUsageNotice checkedAt={account.checkedAt} usage={account.usage} />
+      <AccountUsageNotice
+        checkedAt={account.checkedAt}
+        onOpenConsole={(url) => window.pupitre.openUrl(url)}
+        usage={account.usage}
+      />
 
       {account.identity ? (
-        <AccountIdentityCard
-          account={account}
-          onDisconnect={disconnect}
-          onRefresh={refresh}
-        />
+        <>
+          <AccountIdentityCard
+            account={account}
+            onDisconnect={disconnect}
+            onRefresh={refresh}
+          />
+          {account.identity.subscription ? (
+            <AccountSubscriptionCard
+              consoleUrl={account.consoleUrl}
+              onOpenConsole={(url) => window.pupitre.openUrl(url)}
+              subscription={account.identity.subscription}
+            />
+          ) : null}
+          <AccountDevices current={account.device} />
+        </>
       ) : (
         <AccountSignInCard
           consoleUrl={account.consoleUrl}

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs"
 import { MARK } from "@pupitre/design/brand"
-import { developmentNotice, legalEntityLabel } from "@pupitre/shared/legal"
+import { copyrightHolder, developmentNotice } from "@pupitre/shared/legal"
 import { describe, expect, it } from "vitest"
 import { render } from "../test/render"
 import Base from "./Base.astro"
@@ -147,7 +147,7 @@ describe("Base layout", () => {
     expect(html).toContain("</footer>")
     expect(html).toContain('href="/legal/terms/"')
     expect(html).toContain('href="/legal/privacy/"')
-    expect(html).toContain(legalEntityLabel("en"))
+    expect(html).toContain(`© ${new Date().getFullYear()} ${copyrightHolder()}`)
     expect(html).toContain(developmentNotice("en").short)
     expect(html).toContain('<main id="main"')
   })

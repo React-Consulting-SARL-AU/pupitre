@@ -20,6 +20,10 @@ type helloResult struct {
 	ServerID     string               `json:"server_id,omitempty"`
 	Entitlement  contract.Entitlement `json:"entitlement"`
 	Capabilities []string             `json:"capabilities"`
+	// An agent from before the ledger answers without this field, and the app
+	// takes that server for one whose configuration is current — which it is,
+	// since nothing had changed shape yet.
+	Config *contract.ConfigRevision `json:"config,omitempty"`
 }
 
 type pingResult struct {
@@ -41,14 +45,28 @@ func (s *Server) hello(ctx *Context, raw json.RawMessage) (any, error) {
 		i18n.Use(params.Locale)
 	}
 
-	ctx.session.greeted = true
+	// A direct Call carries no session: nothing to greet, the answer is the same.
+	if ctx.session != nil {
+		ctx.session.greeted = true
+	}
 
 	return helloResult{
 		AgentVersion: s.options.AgentVersion,
 		Protocol:     contract.ProtocolVersion,
 		Entitlement:  s.Entitlement().Entitlement,
 		Capabilities: s.Capabilities(),
+		Config:       s.config(),
 	}, nil
+}
+
+func (s *Server) config() *contract.ConfigRevision {
+	if s.options.Config == nil {
+		return nil
+	}
+
+	config := s.Config()
+
+	return &config
 }
 
 // mismatch: the compatibility sheet says which side is behind; without it — a dev build on both sides — only the protocol number is left, which does not say what to update.

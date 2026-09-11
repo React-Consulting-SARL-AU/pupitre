@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { type AccountView, accountOf, useAccount } from "../stores/account";
+import { useAgentUpdate } from "../stores/agent-update";
 import { useFleet } from "../stores/fleet";
 
 /**
@@ -13,6 +14,10 @@ import { useFleet } from "../stores/fleet";
  *
  * A backgrounded window asks for nothing — what nobody is looking at need not
  * be fresh — and coming back to the foreground re-reads at once.
+ *
+ * The agent's update state rides the same beat for the active server: what
+ * the app carries does not change while it runs, but what the platform
+ * publishes and what the server runs both can, and the banner has to follow.
  */
 const BEAT_MS = 15_000;
 
@@ -27,7 +32,7 @@ export function syncKey(view: AccountView): string | null {
   return accountOf(view)?.identity?.email ?? null;
 }
 
-export function usePlatformSync(): void {
+export function usePlatformSync(serverId: string | null = null): void {
   const key = useAccount((store) => syncKey(store.view));
 
   useEffect(() => {
@@ -42,6 +47,10 @@ export function usePlatformSync(): void {
 
       useAccount.getState().refresh();
       useFleet.getState().read();
+
+      if (serverId) {
+        useAgentUpdate.getState().refresh(serverId);
+      }
     }
 
     follow();
@@ -56,5 +65,5 @@ export function usePlatformSync(): void {
       window.removeEventListener("focus", follow);
       document.removeEventListener("visibilitychange", follow);
     };
-  }, [key]);
+  }, [key, serverId]);
 }

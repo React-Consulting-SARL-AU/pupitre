@@ -14,7 +14,7 @@ func manifest() contract.Manifest {
 		Name:      "Caddy",
 		Summary:   i18n.T("module.exposure.caddy.summary"),
 		Requires:  []string{"core.system"},
-		Conflicts: []string{"exposure.cloudflare", "exposure.ssh"},
+		Conflicts: []string{"exposure.cloudflare"},
 		Resources: contract.Resources{RAMMB: 128, DiskMB: 128},
 		Arch:      []string{"amd64", "arm64"},
 		Fields: []contract.Field{
@@ -39,7 +39,7 @@ func manifest() contract.Manifest {
 			{Key: "http_port", Kind: contract.FieldNumber, Label: i18n.T("module.exposure.caddy.http_port.label"), Help: i18n.T("module.exposure.caddy.http_port.help"), Format: contract.FormatPort, Required: true, Default: DefaultHTTPPort, Min: 1, Max: 65535},
 			{Key: "https_port", Kind: contract.FieldNumber, Label: i18n.T("module.exposure.caddy.https_port.label"), Help: i18n.T("module.exposure.caddy.https_port.help"), Format: contract.FormatPort, Required: true, Default: DefaultHTTPSPort, Min: 1, Max: 65535},
 		},
-		Provides:  []string{"exposure:caddy", "public-url"},
+		Runs:      true,
 		Mandatory: false,
 		Since:     "0.3.0",
 	}

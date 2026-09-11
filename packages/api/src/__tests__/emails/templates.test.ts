@@ -17,8 +17,8 @@ describe("le catalogue des gabarits", () => {
     )
   })
 
-  it("compte les huit moments et les quatre alertes", () => {
-    expect(EMAIL_TEMPLATE_IDS).toHaveLength(12)
+  it("compte les neuf moments et les quatre alertes", () => {
+    expect(EMAIL_TEMPLATE_IDS).toHaveLength(13)
     expect(EMAIL_TEMPLATE_IDS.filter((id) => id.startsWith("alert_"))).toEqual([
       "alert_server_unreachable",
       "alert_disk_high",

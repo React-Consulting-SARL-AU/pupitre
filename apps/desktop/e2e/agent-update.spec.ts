@@ -5,6 +5,7 @@ import {
   test,
 } from "@playwright/test";
 import type { AgentUpdateState } from "@shared/agent-update";
+import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
 /**
@@ -18,6 +19,7 @@ import { launchPupitre, type Running } from "./harness/launch";
 // The state the main process answers, taken from the contract rather than
 // written out here: a field renamed there has to fail the typecheck, not the run.
 const AHEAD: AgentUpdateState = {
+  config: null,
   floor: null,
   installed: "0.3.0",
   offer: {
@@ -33,6 +35,7 @@ const AHEAD: AgentUpdateState = {
 };
 
 const BEHIND: AgentUpdateState = {
+  config: null,
   floor: null,
   installed: "0.9.0",
   offer: {
@@ -87,6 +90,8 @@ test.describe("mise à jour de l'agent", () => {
     await expect(
       banner.getByRole("button", { name: "Mettre l'agent à jour" })
     ).toBeEnabled();
+
+    await assertAccessible(running.page, "tableau-de-bord/mise-a-jour");
   });
 
   test("une app en retard le dit et laisse le tableau de bord vivant", async () => {

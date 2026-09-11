@@ -1,6 +1,7 @@
 import type { Manifest } from "@pupitre/shared/catalog";
 import { ConfigFieldControl } from "@renderer/components/config/config-field-control";
-import { ConnectionCloudflare } from "@renderer/components/connections/connection-cloudflare";
+import { ConnectionCard } from "@renderer/components/connections/connection-card";
+import { descriptorOf } from "@renderer/components/connections/connection-descriptors";
 import { InstallProgress } from "@renderer/components/install/install-progress";
 import { Button } from "@renderer/components/ui/button";
 import { Callout } from "@renderer/components/ui/callout";
@@ -22,6 +23,9 @@ import { RefreshCw } from "lucide-react";
  */
 export function ServiceConfig({
   manifest,
+  configured = true,
+  catalogHeld = false,
+  onReloadCatalog,
   config,
   apply,
   values,
@@ -35,6 +39,11 @@ export function ServiceConfig({
   onApply,
 }: {
   manifest: Manifest | null;
+  /** False for a module put on the machine with its questions left unanswered. */
+  configured?: boolean;
+  /** The whole catalogue is refused, not this module's own settings. */
+  catalogHeld?: boolean;
+  onReloadCatalog?: () => void;
   config: ConfigState;
   apply: ApplyState;
   values: Record<string, unknown>;
@@ -49,12 +58,34 @@ export function ServiceConfig({
 }) {
   const t = useTranslations();
 
+  // The settings of a module are its manifest's, which comes from the server's
+  // catalogue. Without it the form cannot be drawn, and a section that simply
+  // disappeared left the reader looking for what a service can be told.
   if (!manifest) {
-    return null;
+    return (
+      <section className="flex flex-col gap-3" data-config="unknown">
+        <Label>{t("services.config.title")}</Label>
+
+        <Callout
+          action={
+            catalogHeld || !onReloadCatalog ? null : (
+              <Button icon={RefreshCw} onClick={onReloadCatalog} size="sm">
+                {t("services.config.reread")}
+              </Button>
+            )
+          }
+        >
+          {t(
+            catalogHeld ? "services.config.heldBack" : "services.config.unread"
+          )}
+        </Callout>
+      </section>
+    );
   }
 
   // A `managed` value is derived from a connection by the app, never typed.
   const fields = manifest.fields.filter((field) => field.managed !== true);
+  const connection = descriptorOf(manifest.connection ?? "");
 
   // A module that publishes through an account has that account to show, even
   // when everything else about it is derived: it used to be the one installed
@@ -64,6 +95,7 @@ export function ServiceConfig({
   }
 
   const running = apply.status === "running";
+  const unconfigured = !configured;
   const held = config.status === "ready" ? config.held : [];
   const failed = apply.status === "done" ? apply.result.failed : [];
 
@@ -82,6 +114,10 @@ export function ServiceConfig({
           {t("services.config.apply")}
         </Button>
       </div>
+
+      {unconfigured ? (
+        <Callout tone="warn">{t("services.config.unconfigured")}</Callout>
+      ) : null}
 
       {config.status === "failed" ? <ErrorNotice error={config.error} /> : null}
 
@@ -106,7 +142,7 @@ export function ServiceConfig({
         </div>
       ) : null}
 
-      {manifest.connection ? <ConnectionCloudflare compact /> : null}
+      {connection ? <ConnectionCard compact connection={connection} /> : null}
 
       <p className="text-[12px] text-ink-3 leading-relaxed">
         {t("services.config.note")}

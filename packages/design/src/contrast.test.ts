@@ -70,6 +70,7 @@ const INK_FLOORS: Record<string, Floors> = {
   ok: { onText: READABLE, onRaised: LARGE },
   warn: { onText: READABLE, onRaised: LARGE },
   danger: { onText: READABLE, onRaised: LARGE },
+  frost: { onText: READABLE, onRaised: LARGE },
 }
 
 function floorOf(floors: Floors, surface: string): number {

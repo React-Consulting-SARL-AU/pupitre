@@ -31,7 +31,6 @@ export interface DownloadContent {
     format: string
     empty: string
   }
-  stale: { title: string; body: string }
   release: {
     label: string
     title: string

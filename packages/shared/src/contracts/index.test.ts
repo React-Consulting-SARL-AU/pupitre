@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test"
-import { RESTRICTED_COMMANDS } from "../agent-protocol"
-import { PRESETS } from "../catalog"
+import { RESTRICTED_COMMANDS, UNENROLLED_COMMANDS } from "../agent-protocol"
+import { MANDATORY_MODULE_IDS, PRESETS } from "../catalog"
 import {
   buildContractSchema,
   CONTRACT_CONSTANTS,
@@ -16,6 +16,7 @@ const EXPECTED = [
   "ProtocolError",
   "ErrorCode",
   "RestrictedCommands",
+  "UnenrolledCommands",
   "HelloParams",
   "HelloResult",
   "PingParams",
@@ -29,7 +30,6 @@ const EXPECTED = [
   "ProjectUpResult",
   "ProjectGitStatusResult",
   "AgentOpenParams",
-  "SecretsSetParams",
   "DbDumpParams",
   "AgentUpgradeParams",
   "EnrollParams",
@@ -71,6 +71,18 @@ describe("buildContractSchema", () => {
     expect(schema.$defs.RestrictedCommands).toEqual({
       type: "string",
       enum: [...RESTRICTED_COMMANDS],
+    })
+  })
+
+  it("exports the unenrolled commands and the mandatory modules", () => {
+    expect(schema.$defs.UnenrolledCommands).toEqual({
+      type: "string",
+      enum: [...UNENROLLED_COMMANDS],
+    })
+    expect(schema.$defs.MandatoryModules).toEqual({
+      type: "array",
+      items: { type: "string" },
+      const: [...MANDATORY_MODULE_IDS],
     })
   })
 

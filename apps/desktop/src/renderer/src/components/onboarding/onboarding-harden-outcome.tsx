@@ -1,7 +1,7 @@
 import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { HardenOutcome } from "@shared/harden";
-import { ArrowRight, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
 import { StatusDot } from "../ui/status-dot";
@@ -14,16 +14,14 @@ import { StatusDot } from "../ui/status-dot";
  * same ending, said otherwise: the machine is hardened, root simply keeps a key
  * of its own. A refusal prints the reason exactly as it came — the agent is the
  * one that looked at `authorized_keys`, not us — with the button that tries
- * again once the reason is gone.
+ * again once the reason is gone. The way on is the screen's bar, not this.
  */
 export function OnboardingHardenOutcome({
   outcome,
   onRetry,
-  onContinue,
 }: {
   outcome: HardenOutcome;
   onRetry?: () => void;
-  onContinue?: () => void;
 }) {
   const t = useTranslations();
 
@@ -97,14 +95,6 @@ export function OnboardingHardenOutcome({
           {agentText(t, outcome.error).message}
         </Callout>
       ) : null}
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Button icon={ArrowRight} onClick={onContinue} variant="inverse">
-          {hardened
-            ? t("onboarding.finish")
-            : t("onboarding.harden.continueOpen")}
-        </Button>
-      </div>
     </section>
   );
 }

@@ -33,11 +33,7 @@ export function AccountSignInCard({
   if (signIn.status === "idle") {
     return (
       <div className="elevation-raised rounded-md border border-line bg-surface px-5 py-5">
-        <p className="text-ink-2 leading-relaxed">
-          {t("account.signIn.howItWorks")}
-        </p>
-
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button icon={LogIn} onClick={onConnect} variant="inverse">
             {t("account.signIn.connect")}
           </Button>

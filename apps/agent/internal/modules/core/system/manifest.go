@@ -23,7 +23,7 @@ func manifest() contract.Manifest {
 			{Key: "git_email", Kind: contract.FieldText, Label: i18n.T("module.core.system.git_email.label"), Help: i18n.T("module.core.system.git_email.help"), Format: contract.FormatEmail, Required: true},
 			{Key: "projects_dir", Kind: contract.FieldText, Label: i18n.T("module.core.system.projects_dir.label"), Help: i18n.T("module.core.system.projects_dir.help"), HintText: i18n.T("module.core.system.projects_dir.hint"), Format: contract.FormatPath, Required: true, Default: ProjectsDir},
 		},
-		Provides:  []string{"user:dev", "shell:zsh"},
+		Runs:      false,
 		Mandatory: true,
 		Since:     "0.1.0",
 	}

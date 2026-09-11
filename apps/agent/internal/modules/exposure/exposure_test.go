@@ -11,7 +11,6 @@ import (
 	"pupitre.studio/agent/internal/modules/exposure"
 	"pupitre.studio/agent/internal/modules/exposure/caddy"
 	"pupitre.studio/agent/internal/modules/exposure/cloudflare"
-	"pupitre.studio/agent/internal/modules/exposure/ssh"
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/state"
@@ -23,7 +22,6 @@ func registry(t *testing.T) *modules.Registry {
 	registry := modules.NewRegistry()
 	registry.Register(modtest.Passing{ID: "core.system"})
 	registry.Register(cloudflare.Module{})
-	registry.Register(ssh.Module{})
 	registry.Register(caddy.Module{})
 
 	return registry
@@ -47,7 +45,6 @@ func TestTranscripts(t *testing.T) {
 func TestTheManifestsMatchTheCatalog(t *testing.T) {
 	fields := map[string][]string{
 		cloudflare.ID: {"domain", "account_tag", "tunnel_id", "tunnel_secret"},
-		ssh.ID:        {},
 		caddy.ID:      {"domain", "email", "http_port", "https_port"},
 	}
 
@@ -78,9 +75,9 @@ func TestTheManifestsMatchTheCatalog(t *testing.T) {
 	}
 }
 
-// One exposure at a time: the engine refuses the second one, and each manifest names the two others.
-func TestTheThreeExposuresConflict(t *testing.T) {
-	all := []string{cloudflare.ID, ssh.ID, caddy.ID}
+// One exposure at a time: the engine refuses the second one, and each manifest names the other. Ticking neither is the third state, which no module carries.
+func TestTheTwoExposuresConflict(t *testing.T) {
+	all := []string{cloudflare.ID, caddy.ID}
 
 	for _, id := range all {
 		module, _ := registry(t).Get(id)

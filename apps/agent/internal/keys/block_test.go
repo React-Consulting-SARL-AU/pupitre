@@ -144,6 +144,37 @@ func TestListedAnswersNothingWithoutABlock(t *testing.T) {
 	}
 }
 
+// dev owns authorized_keys and the daemon reads it as root: a link planted there must neither be read nor be copied into the file.
+func TestSyncRefusesALinkPlantedInPlaceOfTheFile(t *testing.T) {
+	fake, ctx := machine(t, "")
+	fake.Files["/etc/shadow"] = []byte("root:$6$hash\n")
+	fake.Files[path] = []byte("root:$6$hash\n")
+	fake.Links[path] = "/etc/shadow"
+	before := len(fake.Mutations)
+
+	changed, err := keys.Sync(ctx, keys.Target{Path: path, Owner: "dev"}, parse(t, laptop))
+	if err == nil || changed || len(fake.Mutations) != before {
+		t.Fatalf("Sync = %v, %v, mutations %d → %d", changed, err, before, len(fake.Mutations))
+	}
+
+	if listed := keys.Listed(ctx, path); listed != nil {
+		t.Fatalf("the link was read: %v", listed)
+	}
+}
+
+func TestSyncCreatesTheFileWhenThereIsNone(t *testing.T) {
+	fake, ctx := machine(t, "")
+
+	changed, err := keys.Sync(ctx, keys.Target{Path: path, Owner: "dev"}, parse(t, laptop))
+	if err != nil || !changed {
+		t.Fatalf("Sync = %v, %v", changed, err)
+	}
+
+	if !strings.Contains(string(fake.Files[path]), laptop) || fake.Owners[path] != "dev:dev" {
+		t.Fatalf("content = %q, owner = %q", fake.Files[path], fake.Owners[path])
+	}
+}
+
 func TestParseAllSetsAsideWhatItCannotRead(t *testing.T) {
 	parsed, refused := keys.ParseAll([]string{laptop, "", "ssh-ed25519 broken", "  "})
 

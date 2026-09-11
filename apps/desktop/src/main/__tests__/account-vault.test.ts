@@ -98,6 +98,7 @@ describe("le coffre du jeton", () => {
           { id: "org-1", name: "Ada", role: "owner", slug: "ada" },
         ],
         role: "owner",
+        subscription: null,
       },
     });
 

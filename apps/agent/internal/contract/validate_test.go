@@ -66,9 +66,9 @@ func TestValidateAgainstDefinitions(t *testing.T) {
 		{"ping extra", "PingParams", `{"x":1}`, "/x"},
 		{"enum ok", "DbDumpParams", `{"engine":"postgres"}`, ""},
 		{"enum unknown", "DbDumpParams", `{"engine":"sqlite"}`, "/engine"},
-		{"pattern ok", "SecretsSetParams", `{"key":"API_KEY","secrets_stdin":true}`, ""},
-		{"pattern rejected", "SecretsSetParams", `{"key":"api_key","secrets_stdin":true}`, "/key"},
-		{"const rejected", "SecretsSetParams", `{"key":"API_KEY","secrets_stdin":false}`, "/secrets_stdin"},
+		{"pattern ok", "ServiceSecretParams", `{"id":"tool.github","key":"API_KEY"}`, ""},
+		{"pattern rejected", "ServiceSecretParams", `{"id":"tool.github","key":"api_key"}`, "/key"},
+		{"const rejected", "EnrollParams", `{"platform_url":"https://app.pupitre.studio","secrets_stdin":false}`, "/secrets_stdin"},
 		{"anyOf name", "ProjectUpParams", `{"name":"flymate-api"}`, ""},
 		{"anyOf all", "ProjectUpParams", `{"name":"all"}`, ""},
 		{"anyOf none", "ProjectUpParams", `{"name":"Flymate"}`, "/name"},
@@ -162,7 +162,7 @@ func TestResponseOneOfMessageIsExact(t *testing.T) {
 		t.Fatal("expected an error, got nil")
 	}
 
-	if got, want := err.Error(), "/error/code: must be one of hello_required, protocol_mismatch, bad_request, invalid_config, unknown_command, entitlement_required, project_not_found, module_not_found, module_failed, no_report, service_not_found, secrets_required, bad_signature, downgrade_refused, busy, internal"; got != want {
+	if got, want := err.Error(), "/error/code: must be one of hello_required, protocol_mismatch, bad_request, invalid_config, unknown_command, entitlement_required, project_not_found, module_not_found, no_report, service_not_found, bad_signature, downgrade_refused, migration_required, busy, internal"; got != want {
 		t.Fatalf("message = %q, want %q", got, want)
 	}
 }

@@ -1,7 +1,7 @@
 import type { Service } from "@pupitre/shared/agent-protocol/state";
 import { ServiceLogo } from "@renderer/components/ui/service-logo";
 import { StatePill } from "@renderer/components/ui/state-pill";
-import { SERVICE_LOOK } from "@renderer/lib/project-state";
+import { SERVICE_LOOK, UNCONFIGURED_LOOK } from "@renderer/lib/project-state";
 import { ChevronRight } from "lucide-react";
 
 /**
@@ -18,7 +18,6 @@ export function ServiceRow({
   const facts = [
     service.version,
     service.port ? `port ${service.port}` : null,
-    service.unit,
   ].filter(Boolean);
 
   return (
@@ -35,11 +34,20 @@ export function ServiceRow({
             {service.name}
           </span>
           <span className="block truncate font-data text-[11.5px] text-ink-3">
-            {[service.id, ...facts].join(" · ")}
+            {facts.join(" · ")}
           </span>
         </span>
 
-        <StatePill look={SERVICE_LOOK[service.state]} name={service.state} />
+        {/*
+          What a module still owes the reader comes before how it is running: a
+          service nobody has configured is not a service that went wrong. An
+          agent older than the field says nothing of it, and owes nothing.
+        */}
+        {service.configured === false ? (
+          <StatePill look={UNCONFIGURED_LOOK} name="unconfigured" />
+        ) : (
+          <StatePill look={SERVICE_LOOK[service.state]} name={service.state} />
+        )}
 
         <ChevronRight
           className="shrink-0 text-ink-4"

@@ -1,5 +1,6 @@
+import { type Gesture, usePending } from "@renderer/lib/use-pending";
 import type { ButtonIcon, ButtonVariant } from "./button";
-import { StatusDot } from "./status-dot";
+import { Spinner } from "./spinner";
 
 const VARIANT: Record<ButtonVariant, string> = {
   default:
@@ -27,28 +28,37 @@ export function IconButton({
   disabled = false,
   size = 13,
   className = "",
+  expanded,
 }: {
   icon: ButtonIcon;
   label: string;
-  onClick?: () => void;
+  /** Answer with the promise of the work started and the button waits on it. */
+  onClick?: Gesture;
   variant?: ButtonVariant;
   loading?: boolean;
   disabled?: boolean;
   size?: number;
   className?: string;
+  /** For a button that folds something: what it currently shows. */
+  expanded?: boolean;
 }) {
+  const [click, pending] = usePending(onClick);
+
+  const waiting = loading || pending;
+
   return (
     <button
-      aria-busy={loading}
+      aria-busy={waiting}
+      aria-expanded={expanded}
       aria-label={label}
-      className={`clickable inline-flex shrink-0 items-center justify-center rounded-sm p-1.5 transition-soft disabled:opacity-40 ${VARIANT[variant]} ${className}`}
-      disabled={disabled || loading}
-      onClick={onClick}
+      className={`clickable inline-flex shrink-0 items-center justify-center rounded-sm p-1.5 transition-soft ${waiting ? "cursor-progress" : ""} ${disabled && !waiting ? "opacity-40" : ""} ${VARIANT[variant]} ${className}`}
+      disabled={disabled || waiting}
+      onClick={click}
       title={label}
       type="button"
     >
-      {loading ? (
-        <StatusDot shape="breathing" size={size} />
+      {waiting ? (
+        <Spinner size={size} />
       ) : (
         <Icon size={size} strokeWidth={1.5} />
       )}

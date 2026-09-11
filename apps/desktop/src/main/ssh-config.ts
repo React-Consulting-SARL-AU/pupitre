@@ -1,7 +1,7 @@
-import { createHash } from "node:crypto";
 import {
   chmodSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   readFileSync,
   writeFileSync,
@@ -9,6 +9,7 @@ import {
 import { join } from "node:path";
 import type { Server } from "@shared/servers";
 import { current, multiplexes, type Platform } from "./platform";
+import { trace } from "./trace";
 
 /**
  * The SSH configuration the app owns, and only that one.
@@ -23,9 +24,17 @@ import { current, multiplexes, type Platform } from "./platform";
 /** The length a Unix domain socket path cannot exceed, on Linux and on macOS. */
 export const CONTROL_PATH_LIMIT = 104;
 
+/** `%C` in a ControlPath: the sha1 of host, port, user and local host, in hex. */
+const CONTROL_HASH_LENGTH = 40;
+
+/** ssh binds the socket under `<path>.XXXXXXXXXX` first, then renames it. */
+const CONTROL_TEMP_SUFFIX = 11;
+
 const DEFAULT_PORT = 22;
-const SOCKET_PRINT = 12;
 const DIR_MODE = 0o700;
+/** `mode % PERMISSION_BITS` keeps rwx for user, group and others; `% SHARED_BITS` what group and others got. */
+const PERMISSION_BITS = 0o1000;
+const SHARED_BITS = 0o100;
 const FILE_MODE = 0o600;
 const HOST_LINE = /^\s*Host\s+(.+)$/i;
 const SPACES = /\s+/;
@@ -59,31 +68,106 @@ export function alias(server: Server): string {
   return server.origin === "system" ? server.host : `pupitre-${server.id}`;
 }
 
-export function knownHostsKey(server: Server): string {
+export type Address = Pick<Server, "host" | "port">;
+
+export function knownHostsKey(server: Address): string {
   return server.port === DEFAULT_PORT
     ? server.host
     : `[${server.host}]:${server.port}`;
 }
 
 /**
- * The multiplexing socket, kept short on purpose.
+ * The folder the multiplexing sockets live in: one per user, and theirs alone.
  *
  * A socket path over 104 characters is refused by the kernel, and the app's own
  * data folder — "~/Library/Application Support/Pupitre Desktop/ssh" — eats most
- * of that budget before the file name starts. So the socket lives in /tmp under
- * a print of the data folder, the server and the account: short, unique per
- * server, and unique per installation, so two accounts on the same machine
- * never share one. The account is part of the print because `ssh` picks a
- * master by its socket alone: a session opened as root would go on serving the
- * calls made as dev, and would answer for a door that has just been closed.
+ * of that budget before the file name starts; so does the per-user temporary
+ * folder macOS hands out. So the sockets live in /tmp, in a folder named after
+ * the user and opened to nobody else, the way ssh keeps its own agent sockets.
+ * A folder squatted by another account is refused rather than used: the
+ * connection then runs without a master, which is slower and still safe.
  */
-export function controlPath(paths: SshPaths, server: Server): string {
-  const print = createHash("sha256")
-    .update(`${paths.dir} ${server.id} ${server.user}`)
-    .digest("hex")
-    .slice(0, SOCKET_PRINT);
+export function controlDir(uid: number, tmp = "/tmp"): string {
+  return join(tmp, `pupitre-${uid}`);
+}
 
-  return join("/tmp", `pupitre-${print}`);
+/**
+ * The socket itself, named by ssh from the host, the port and the account.
+ *
+ * The account is part of the name because `ssh` picks a master by its socket
+ * alone: a session opened as root would go on serving the calls made as dev,
+ * and would answer for a door that has just been closed.
+ */
+export function controlPath(dir: string): string {
+  return join(dir, "%C");
+}
+
+/** Whether a socket in this folder, temporary name included, fits the kernel's limit. */
+export function controlPathFits(dir: string): boolean {
+  return (
+    controlPath(dir).length -
+      "%C".length +
+      CONTROL_HASH_LENGTH +
+      CONTROL_TEMP_SUFFIX <
+    CONTROL_PATH_LIMIT
+  );
+}
+
+/**
+ * The folder, made or checked: a directory, not a link, owned by this user and
+ * closed to the others. Anything else is someone else's, and is left alone.
+ */
+export function ensureControlDir(dir: string, uid: number): boolean {
+  try {
+    mkdirSync(dir, { mode: DIR_MODE });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
+      return false;
+    }
+  }
+
+  try {
+    const stat = lstatSync(dir);
+
+    if (!stat.isDirectory() || stat.uid !== uid) {
+      return false;
+    }
+
+    if ((stat.mode % PERMISSION_BITS) % SHARED_BITS !== 0) {
+      chmodSync(dir, DIR_MODE);
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function currentUid(): number | null {
+  return process.getuid ? process.getuid() : null;
+}
+
+/** Where this user's sockets go, or nothing when the folder cannot be theirs. */
+function usableControlDir(): string | null {
+  const uid = currentUid();
+
+  if (uid === null) {
+    return null;
+  }
+
+  const dir = controlDir(uid);
+
+  if (!controlPathFits(dir)) {
+    return null;
+  }
+
+  if (!ensureControlDir(dir, uid)) {
+    trace("ssh", "control-dir-refused", { dir });
+
+    return null;
+  }
+
+  return dir;
 }
 
 /**
@@ -94,11 +178,16 @@ export function controlPath(paths: SshPaths, server: Server): string {
  * the rest garbage and refuses the whole file. Quotes are what its parser
  * accepts, and only where they are needed, so a plain path stays plain.
  */
-function argument(value: string): string {
+export function argument(value: string): string {
   return WHITESPACE.test(value) ? `"${value}"` : value;
 }
 
-function block(server: Server, paths: SshPaths, platform: Platform): string {
+function block(
+  server: Server,
+  paths: SshPaths,
+  platform: Platform,
+  control: string | null
+): string {
   const lines = [
     `Host ${alias(server)}`,
     `  HostName ${server.host}`,
@@ -116,10 +205,10 @@ function block(server: Server, paths: SshPaths, platform: Platform): string {
     `  StrictHostKeyChecking ${server.hostFingerprint ? "yes" : "accept-new"}`
   );
 
-  if (multiplexes(platform)) {
+  if (multiplexes(platform) && control) {
     lines.push(
       "  ControlMaster auto",
-      `  ControlPath ${argument(controlPath(paths, server))}`,
+      `  ControlPath ${argument(controlPath(control))}`,
       "  ControlPersist 10m"
     );
   }
@@ -136,11 +225,12 @@ function block(server: Server, paths: SshPaths, platform: Platform): string {
 export function renderSshConfig(
   servers: Server[],
   paths: SshPaths,
-  platform: Platform = current()
+  platform: Platform = current(),
+  control: string | null = controlDir(currentUid() ?? 0)
 ): string {
   const blocks = servers
     .filter((server) => server.origin === "app")
-    .map((server) => block(server, paths, platform));
+    .map((server) => block(server, paths, platform, control));
 
   return `${HEADER}${blocks.join("\n")}`;
 }
@@ -149,9 +239,11 @@ export function writeSshConfig(servers: Server[], paths: SshPaths): void {
   mkdirSync(paths.dir, { mode: DIR_MODE, recursive: true });
   chmodSync(paths.dir, DIR_MODE);
 
-  writeFileSync(paths.configPath, renderSshConfig(servers, paths), {
-    mode: FILE_MODE,
-  });
+  writeFileSync(
+    paths.configPath,
+    renderSshConfig(servers, paths, current(), usableControlDir()),
+    { mode: FILE_MODE }
+  );
   chmodSync(paths.configPath, FILE_MODE);
 
   if (!existsSync(paths.knownHostsPath)) {

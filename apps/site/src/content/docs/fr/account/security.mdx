@@ -4,7 +4,7 @@ description: Ce que Pupitre peut et ne peut pas faire sur votre serveur, et comm
 locale: fr
 section: account
 sectionOrder: 3
-order: 3
+order: 4
 ---
 
 Quatre règles tiennent le produit. Chacune est énoncée pour que vous puissiez la vérifier plutôt que la croire.
@@ -19,7 +19,7 @@ Vérifiez : `sudo ufw status` montre SSH, et rien d’autre sauf si vous avez in
 
 L’app garde ses clés ed25519 dans son dossier, en `0600` : une pour cet ordinateur, et une par serveur pour lequel vous lui avez demandé d’en générer une. Une clé que vous importez y est recopiée ; un hôte déclaré dans votre `~/.ssh/config` n’y met rien du tout. Seules les moitiés publiques sortent : vers l’`authorized_keys` du serveur, et vers la plateforme, qui les transmet aux machines de votre organisation.
 
-Vérifiez : `cat ~/.ssh/authorized_keys` sur le serveur ne montre que des clés publiques, et le dossier de clés de l’app sur votre laptop est le seul endroit où existe une moitié privée.
+Vérifiez : `cat ~/.ssh/authorized_keys` sur le serveur ne montre que des clés publiques, et le dossier de clés de l’app sur votre laptop est le seul endroit où existe une moitié privée. Où se trouve ce dossier, et comment y pointer vos propres outils, c’est sur [votre clé](/fr/docs/start/keys/).
 
 ## Rien de lisible n’est laissé sur le serveur
 
@@ -34,6 +34,8 @@ Le support voit qu’un serveur est enrôlé et quelle version de l’agent il f
 ## Le durcissement, dans l’ordre
 
 `core.hardening` ferme root **en dernier**, et seulement après que l’app a vérifié que votre clé ouvre `dev`. Si cette vérification échoue, rien n’est fermé et l’app dit quoi corriger. C’est la seule étape qui pourrait vous enfermer dehors, et elle est écrite pour ne pas le pouvoir.
+
+Si vous préférez garder une seconde porte sur votre propre machine, l’option « Garder l’accès root » du module laisse root joignable par clé SSH. Jamais par mot de passe : l’authentification par mot de passe tombe dans les deux cas, comme tout le reste de ce que fait le durcissement.
 
 ## Ce dont Pupitre ne vous protège pas
 

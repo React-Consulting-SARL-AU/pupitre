@@ -1,13 +1,14 @@
 package postgres
 
 import (
+	"errors"
 	"fmt"
-	"pupitre.studio/agent/internal/i18n"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/db/dumps"
 	"pupitre.studio/agent/internal/sys"
@@ -105,7 +106,7 @@ func (Module) Install(ctx *modules.Context) error {
 			return modules.Failed, err
 		}
 
-		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"curl", "-fsSL", "-o", keyringPath, keyURL}}); err != nil {
+		if err := apt.DownloadKey(ctx, keyURL, keyringPath); err != nil {
 			return modules.Failed, err
 		}
 
@@ -254,7 +255,7 @@ func createRoles(ctx *modules.Context, rotated bool) error {
 
 		sql := renderRoles(appRole(ctx), remoteRole(ctx), ctx.Secret("app_password"), ctx.Secret("remote_password"))
 		if _, err := psql(ctx, []string{"psql", "-v", "ON_ERROR_STOP=1", "--quiet", "--no-psqlrc"}, sql); err != nil {
-			return modules.Failed, fmt.Errorf("role creation refused: journalctl -u %s -n 40 · %w", unit, err)
+			return modules.Failed, errors.New(i18n.T("modules.postgres.roles_refused", unit, err.Error()))
 		}
 
 		return modules.Done, nil
@@ -279,6 +280,7 @@ func installExtensions(ctx *modules.Context) error {
 	})
 }
 
+// ~dev is closed to the postgres account, so the dump goes in on a standard input root opened, exactly as mysql reads its own.
 func importDumps(ctx *modules.Context, options dumps.Options) ([]string, error) {
 	options.Patterns = []string{"*.sql", "*.sql.gz", "*.dump"}
 	options.Load = func(dump dumps.File) error {
@@ -286,12 +288,12 @@ func importDumps(ctx *modules.Context, options dumps.Options) ([]string, error) 
 			return err
 		}
 
-		argv := []string{"psql", "-v", "ON_ERROR_STOP=1", "--dbname=" + dump.Database, "--file=" + dump.Path}
+		argv := []string{"psql", "-v", "ON_ERROR_STOP=1", "--dbname=" + dump.Database}
 		if strings.HasSuffix(dump.Path, ".dump") {
-			argv = []string{"pg_restore", "--no-owner", "--dbname=" + dump.Database, dump.Path}
+			argv = []string{"pg_restore", "--no-owner", "--dbname=" + dump.Database}
 		}
 
-		_, err := psql(ctx, argv, "")
+		_, err := sys.Exec(ctx, sys.Command{User: "postgres", Dir: dataHome, Argv: argv, StdinPath: dump.Path})
 
 		return err
 	}
@@ -591,7 +593,12 @@ func quote(value string) string {
 	return strings.ReplaceAll(value, "'", "''")
 }
 
+// Buffers sized above the machine get the cluster killed by the memory guard, which reads as a database that will not start.
 func sharedBuffers(ctx *modules.Context) string {
+	if chosen := strings.TrimSpace(ctx.String("shared_buffers")); chosen != "" {
+		return chosen
+	}
+
 	mb := totalKB(ctx) / 1024 / bufferDivisor
 
 	switch {

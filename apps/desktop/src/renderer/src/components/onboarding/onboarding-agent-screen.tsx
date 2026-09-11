@@ -4,8 +4,10 @@ import { AGENT_SEND_PHASES } from "@shared/install";
 import { ArrowRight } from "lucide-react";
 import { humanBytes } from "../../lib/duration";
 import { useOnboarding } from "../../stores/onboarding";
+import { ActionBar } from "../ui/action-bar";
 import { Button } from "../ui/button";
-import { PageHeader } from "../ui/page-header";
+import { Details } from "../ui/details";
+import { Screen } from "../ui/screen";
 import { StatusDot } from "../ui/status-dot";
 import { StepFailure } from "../ui/step-failure";
 import { WaitingNotice } from "../ui/waiting-notice";
@@ -31,21 +33,35 @@ export function OnboardingAgentScreen({
   const delivery = useOnboarding((state) => state.delivery);
   const sendAgent = useOnboarding((state) => state.sendAgent);
 
-  return (
-    <section className="flex flex-col gap-section">
-      <PageHeader
-        actions={
-          delivery.status === "sent" ? (
-            <Button icon={ArrowRight} onClick={onContinue} variant="inverse">
-              {t("onboarding.agent.readCatalog")}
-            </Button>
-          ) : null
-        }
-        description={t("onboarding.agent.description")}
-        eyebrow={t("onboarding.agent.eyebrow")}
-        title={serverName ?? t("onboarding.thisServer")}
-      />
+  const sent = delivery.status === "sent";
 
+  // The card above already says the agent is in place, and the failure its
+  // own words: the bar only has to say what the wait is on.
+  const note =
+    sent || delivery.status === "failed"
+      ? null
+      : t("onboarding.agent.sendingTitle");
+
+  return (
+    <Screen
+      column
+      eyebrow={t("onboarding.agent.eyebrow")}
+      footer={
+        <ActionBar name="agent" note={note}>
+          <Button
+            disabled={!sent}
+            icon={ArrowRight}
+            onClick={onContinue}
+            variant="inverse"
+          >
+            {t("onboarding.agent.readCatalog")}
+          </Button>
+        </ActionBar>
+      }
+      plain
+      step="agent"
+      title={serverName ?? t("onboarding.thisServer")}
+    >
       {delivery.status === "failed" ? (
         <StepFailure error={delivery.error} onRetry={sendAgent} />
       ) : null}
@@ -64,14 +80,13 @@ export function OnboardingAgentScreen({
               <p className="font-medium text-ink">
                 {t("onboarding.agent.inPlace")}
               </p>
-              <p className="mt-1 text-ink-3 leading-relaxed">
-                <code className="font-data">{delivery.delivery.path}</code> ·{" "}
-                linux-{delivery.delivery.arch} ·{" "}
-                {humanBytes(delivery.delivery.bytes)}
-              </p>
-              <p className="mt-2 break-all font-data text-[12px] text-ink-4">
-                sha256 {delivery.delivery.sha256}
-              </p>
+              <Details className="mt-1">
+                <span className="font-data">
+                  {delivery.delivery.path} · linux-{delivery.delivery.arch} ·{" "}
+                  {humanBytes(delivery.delivery.bytes)} · sha256{" "}
+                  {delivery.delivery.sha256}
+                </span>
+              </Details>
             </div>
           </div>
         </>
@@ -80,7 +95,6 @@ export function OnboardingAgentScreen({
       {delivery.status === "sending" || delivery.status === "idle" ? (
         <WaitingNotice
           detail={t("onboarding.agent.sendingDetail")}
-          note={t("onboarding.agent.sendingNote")}
           phases={phasesAt(
             AGENT_SEND_PHASES,
             delivery.status === "sending" ? delivery.phase : "reading",
@@ -89,6 +103,6 @@ export function OnboardingAgentScreen({
           title={t("onboarding.agent.sendingTitle")}
         />
       ) : null}
-    </section>
+    </Screen>
   );
 }

@@ -2,22 +2,41 @@ package contract
 
 import "encoding/json"
 
-var Presets = loadPresets()
+var Presets = constOf[[]Preset]("Presets")
 
-var MandatoryModules = []string{"core.system", "core.hardening"}
+var MandatoryModules = constOf[[]string]("MandatoryModules")
 
-func loadPresets() []Preset {
-	raw, ok := Definition("Presets")
-	if !ok {
-		panic("contract: schema.json has no Presets definition")
-	}
-
+// The value a definition pins with const: the schema is the one copy, the Go side only reads it.
+func constOf[T any](name string) T {
 	var exported struct {
-		Const []Preset `json:"const"`
+		Const T `json:"const"`
 	}
-	if err := json.Unmarshal(raw, &exported); err != nil {
-		panic("contract: Presets definition is unreadable: " + err.Error())
-	}
+	unmarshalDefinition(name, &exported)
 
 	return exported.Const
+}
+
+// The values a string definition admits with enum, in the schema's order.
+func Enum(name string) []string {
+	var exported struct {
+		Enum []string `json:"enum"`
+	}
+	unmarshalDefinition(name, &exported)
+
+	if len(exported.Enum) == 0 {
+		panic("contract: " + name + " definition has no enum")
+	}
+
+	return exported.Enum
+}
+
+func unmarshalDefinition(name string, into any) {
+	raw, ok := Definition(name)
+	if !ok {
+		panic("contract: schema.json has no " + name + " definition")
+	}
+
+	if err := json.Unmarshal(raw, into); err != nil {
+		panic("contract: " + name + " definition is unreadable: " + err.Error())
+	}
 }

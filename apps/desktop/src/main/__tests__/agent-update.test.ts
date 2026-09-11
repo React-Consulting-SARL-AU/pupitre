@@ -237,7 +237,13 @@ describe("agent.upgrade", () => {
 
     expect(answer).toMatchObject({
       ok: true,
-      result: { previous_version: "0.3.0", restarting: true, version: "0.4.0" },
+      result: {
+        upgrade: {
+          previous_version: "0.3.0",
+          restarting: true,
+          version: "0.4.0",
+        },
+      },
     });
     expect(events).toHaveLength(2);
   });
@@ -257,11 +263,57 @@ describe("agent.upgrade", () => {
 
     expect(answer).toMatchObject({
       ok: true,
-      result: { version: "0.4.0" },
+      result: { upgrade: { version: "0.4.0" } },
     });
     expect(fake?.trace().some((line) => line.includes("signature"))).toBe(
       false
     );
+  });
+
+  it("migre la configuration sur le binaire qui vient d'être installé", async () => {
+    const client = agent([
+      "agent-update-control.jsonl",
+      "agent-upgrade-ok.jsonl",
+      "agent-migrate-ok.jsonl",
+    ]);
+    const { note } = collected();
+
+    const answer = await runAgentUpgrade(SERVER, note, deps(client));
+
+    expect(answer).toMatchObject({
+      ok: true,
+      result: {
+        migration: { applied: [{ slug: "rename-tz" }], revision: 2 },
+        upgrade: { version: "0.4.0" },
+      },
+    });
+  });
+
+  // The process still answering us runs the binary the rename replaced: only a
+  // new session reaches the version that was just installed.
+  it("ne demande la migration qu'après avoir rouvert le canal", async () => {
+    const client = agent([
+      "agent-update-control.jsonl",
+      "agent-upgrade-ok.jsonl",
+      "agent-migrate-ok.jsonl",
+    ]);
+    const { note } = collected();
+
+    await runAgentUpgrade(SERVER, note, deps(client));
+
+    expect(fake?.started()).toBe(3);
+  });
+
+  it("dit qu'il n'y avait rien à migrer quand l'agent ignore la commande", async () => {
+    const client = agent([
+      "agent-update-control.jsonl",
+      "agent-upgrade-ok.jsonl",
+    ]);
+    const { note } = collected();
+
+    const answer = await runAgentUpgrade(SERVER, note, deps(client));
+
+    expect(answer).toMatchObject({ ok: true, result: { migration: null } });
   });
 
   it("rend le refus de vérification tel quel, avec son remède", async () => {
@@ -299,7 +351,13 @@ describe("agent.upgrade", () => {
 
     expect(answer).toMatchObject({
       ok: true,
-      result: { previous_version: "0.3.0", restarting: true, version: "0.4.0" },
+      result: {
+        upgrade: {
+          previous_version: "0.3.0",
+          restarting: true,
+          version: "0.4.0",
+        },
+      },
     });
     expect(events).toHaveLength(1);
   });

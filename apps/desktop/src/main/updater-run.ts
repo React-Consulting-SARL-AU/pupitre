@@ -1,7 +1,11 @@
+import { createHash } from "node:crypto";
+import { basename } from "node:path";
 import {
   RELEASE_CHANNELS,
   type ReleaseChannel,
 } from "@pupitre/shared/releases";
+import { artefactOf, signedAppMessage } from "../../scripts/release-artefacts";
+import { signatureHolds } from "./agent-release";
 
 /**
  * Whether this copy of the app may replace itself, and where it looks.
@@ -58,6 +62,55 @@ export function feedUrl(
   downloads?: string | undefined
 ): string {
   return `${updateBaseUrl(downloads)}/${channel}`;
+}
+
+export interface DownloadedArtefact {
+  bytes: Uint8Array;
+  /** The artefact's file name, which says which system and chip it is for. */
+  file: string;
+  version: string;
+  /** The base64 Ed25519 signature published next to the artefact. */
+  signature: string;
+}
+
+/**
+ * Whether a downloaded artefact is the one the release key signed.
+ *
+ * The signature binds the digest to the version, the system and the chip, the
+ * way `scripts/publish-release.ts` wrote it: an authentic AppImage of another
+ * version, or of another architecture, is refused too. macOS and Windows have
+ * their platform's own signature checked by electron-updater; Linux has none,
+ * and this is what stands in for it.
+ */
+export function checkAppArtefact(
+  downloaded: DownloadedArtefact,
+  publicKey: string
+): boolean {
+  const artefact = artefactOf(basename(downloaded.file));
+
+  if (!artefact) {
+    return false;
+  }
+
+  const sha256 = createHash("sha256").update(downloaded.bytes).digest("hex");
+  const message = signedAppMessage(
+    downloaded.version,
+    artefact.os,
+    artefact.arch,
+    sha256
+  );
+
+  return signatureHolds(message, downloaded.signature.trim(), publicKey);
+}
+
+/**
+ * Where the signature of an artefact sits: next to it, under the same name.
+ *
+ * The feed names its files relatively or, once the publishing script has
+ * rewritten it, absolutely; both resolve against the feed's own folder.
+ */
+export function signatureUrl(fileUrl: string, feedUrl: string): string {
+  return `${new URL(fileUrl, `${feedUrl.replace(TRAILING_SLASHES, "")}/`).toString()}.sig`;
 }
 
 /**

@@ -12,6 +12,15 @@ export interface MetricSample {
   sessions: string[]
   stack_version: string | null
   modules: string[]
+  /**
+   * What the machine measured, beside the percentages derived from it. Null for
+   * a sample an older agent sent: the console shows the percentage alone rather
+   * than a machine with no disk.
+   */
+  disk_total_gb: number | null
+  disk_free_gb: number | null
+  ram_total_mb: number | null
+  ram_used_mb: number | null
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -22,6 +31,11 @@ function toStringArray(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter((entry): entry is string => typeof entry === "string")
     : []
+}
+
+/** A quantity the sample carried, or null: zero is a measurement, absence is not. */
+function toQuantity(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null
 }
 
 function toSample(value: unknown): MetricSample | null {
@@ -44,6 +58,10 @@ function toSample(value: unknown): MetricSample | null {
     stack_version:
       typeof value.stack_version === "string" ? value.stack_version : null,
     modules: toStringArray(value.modules),
+    disk_total_gb: toQuantity(value.disk_total_gb),
+    disk_free_gb: toQuantity(value.disk_free_gb),
+    ram_total_mb: toQuantity(value.ram_total_mb),
+    ram_used_mb: toQuantity(value.ram_used_mb),
   }
 }
 

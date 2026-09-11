@@ -23,6 +23,8 @@ export interface ThemeColors {
   ok: string
   warn: string
   danger: string
+  frost: string
+  "frost-soft": string
 }
 
 export const LIGHT: ThemeColors = {
@@ -41,6 +43,8 @@ export const LIGHT: ThemeColors = {
   ok: "#1f7a45",
   warn: "#8a5f00",
   danger: "#b3362a",
+  frost: "#2f6cae",
+  "frost-soft": "#bfdcf3",
 }
 
 export const DARK: ThemeColors = {
@@ -59,6 +63,8 @@ export const DARK: ThemeColors = {
   ok: "#4fbe85",
   warn: "#d9a320",
   danger: "#e8705a",
+  frost: "#a6d4f2",
+  "frost-soft": "#5a97cf",
 }
 
 export interface Typography {
@@ -153,6 +159,8 @@ export interface Motion {
   /** The interval between two siblings of one cascade. */
   stagger: string
   breathe: string
+  /** The turn of the disc that says a gesture is still working. */
+  spinner: string
 }
 
 export const MOTION: Motion = {
@@ -162,4 +170,5 @@ export const MOTION: Motion = {
   exit: "160ms cubic-bezier(.4,0,1,1)",
   stagger: "40ms",
   breathe: "1.6s ease-in-out infinite",
+  spinner: "0.9s linear infinite",
 }

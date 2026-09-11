@@ -4,14 +4,14 @@ description: Ajouter un projet, ce que l’agent en fait, et comment il arrive d
 locale: fr
 section: daily
 sectionOrder: 2
-order: 1
+order: 2
 ---
 
 Un projet est un dépôt git ou un dossier sur le serveur. L’agent en tient un registre, et l’app affiche ce que dit le registre. Rien n’est deviné.
 
 ## En ajouter un
 
-Donnez une URL git ou pointez un dossier qui existe déjà. L’agent alors :
+« Nouveau projet », sur le tableau de bord ou dans la barre latérale. Donnez une URL git ou pointez un dossier qui existe déjà sous le dossier des projets ; l’agent lit la source avant de déclarer quoi que ce soit — le gestionnaire de paquets qu’elle verrouille, le script qui la démarre, le port qu’elle demande s’il est libre — et le formulaire propose le reste : un nom tiré de l’adresse, un port qu’aucun projet déclaré ne tient, la commande de démarrage. Tout reste modifiable ; le serveur décide de ce qu’il accepte et le dit. Une fois créé, l’agent :
 
 1. clone le dépôt dans votre dossier de projets, ou adopte le dossier ;
 2. détecte le gestionnaire de paquets et installe les dépendances ;
@@ -39,4 +39,4 @@ Si `tool.1password` est installé, un projet qui porte un gabarit `.env.local` v
 
 ## Exposition
 
-Par défaut un projet écoute en local et l’app l’atteint par la session SSH — `exposure.ssh`. Avec `exposure.cloudflare` installé, vous pouvez donner à un projet une route sur votre domaine : un tunnel pour la machine, une route par projet, DNS et certificat gérés.
+Par défaut un projet écoute en local et l’app l’atteint par la session SSH qu’elle tient déjà. C’est un état, pas un module : ne cochez aucune exposition et rien n’est publié. Avec `exposure.cloudflare` installé, vous pouvez donner à un projet une route sur votre domaine — un tunnel pour la machine, une route par projet, DNS et certificat gérés ; `exposure.caddy` fait de même pour un domaine hors Cloudflare.

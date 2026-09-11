@@ -22,8 +22,9 @@ func manifest() contract.Manifest {
 			{Key: "port", Kind: contract.FieldNumber, Label: i18n.T("module.db.redis.port.label"), Help: i18n.T("module.db.redis.port.help"), Format: contract.FormatPort, Required: true, Default: DefaultPort, Min: 1024, Max: 65535},
 			{Key: "persistence", Kind: contract.FieldBoolean, Label: i18n.T("module.db.redis.persistence.label"), Help: i18n.T("module.db.redis.persistence.help"), Required: false, Default: true},
 			{Key: "maxmemory_mb", Kind: contract.FieldNumber, Label: i18n.T("module.db.redis.maxmemory_mb.label"), Help: i18n.T("module.db.redis.maxmemory_mb.help"), Required: false, Default: 0, Min: 0, Max: 262144},
+			{Key: "maxmemory_policy", Kind: contract.FieldSelect, Label: i18n.T("module.db.redis.maxmemory_policy.label"), Help: i18n.T("module.db.redis.maxmemory_policy.help"), Required: true, Default: DefaultPolicy, Options: policies},
 		},
-		Provides:  []string{"db:redis"},
+		Runs:      true,
 		Mandatory: false,
 		Since:     "0.3.0",
 	}

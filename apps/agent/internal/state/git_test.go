@@ -45,6 +45,11 @@ func (a asMe) Run(cmd sys.Command) (sys.Output, error) {
 	return out, err
 }
 
+// Handing a folder to another user is root's move, like the user switch: here everything already belongs to whoever runs go test.
+func (asMe) Chown(string, string, string) error {
+	return nil
+}
+
 type fixtureRepo struct {
 	origin   string
 	projects string
@@ -363,6 +368,66 @@ func TestSyncClonesWhatIsMissingAndPullsWhatIsThere(t *testing.T) {
 
 	if after.Behind != 0 || after.Ahead != 1 {
 		t.Fatalf("the pull rebased the local commit onto the remote: %+v", after)
+	}
+}
+
+// A row that names a branch clones that branch: the working tree opens on it, not on the repository's default.
+func TestSyncClonesTheBranchTheRegistryNames(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git is not installed")
+	}
+
+	base := t.TempDir()
+	origin := filepath.Join(base, "origin.git")
+	projects := filepath.Join(base, "projects")
+
+	run(t, base, "git", "init", "--quiet", "--bare", "--initial-branch=main", origin)
+
+	seed := filepath.Join(base, "seed")
+	run(t, base, "git", "clone", "--quiet", origin, seed)
+	write(t, filepath.Join(seed, "README.md"), "flymate\n")
+	run(t, seed, "git", "add", "-A")
+	run(t, seed, "git", "commit", "--quiet", "-m", "premier jet")
+	run(t, seed, "git", "push", "--quiet", "origin", "main")
+
+	run(t, seed, "git", "checkout", "--quiet", "-b", "release/2.0")
+	write(t, filepath.Join(seed, "VERSION"), "2.0\n")
+	run(t, seed, "git", "add", "-A")
+	run(t, seed, "git", "commit", "--quiet", "-m", "la deux")
+	run(t, seed, "git", "push", "--quiet", "origin", "release/2.0")
+
+	if err := os.MkdirAll(projects, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	conf := filepath.Join(base, "projects.conf")
+	write(t, conf, "two|two|"+origin+"|none|127.0.0.1|3000|-|sleep 1|-|release/2.0\n")
+
+	reader := state.New(state.Options{
+		Sys:          asMe{t: t},
+		Now:          modtest.NewClock(time.Millisecond).Now,
+		Registry:     modules.NewRegistry(),
+		AgentVersion: "0.0.0-test",
+		Paths:        registry.Paths{Conf: conf, Local: filepath.Join(base, "projects.local.conf"), Projects: projects},
+		Tmux:         tmux.Options{User: "root", LogDir: filepath.Join(base, "logs")},
+		Sleep:        func(time.Duration) {},
+	})
+
+	if _, err := reader.Sync("two"); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := os.Stat(filepath.Join(projects, "two", "VERSION")); err != nil {
+		t.Fatalf("the branch's own file must be there: %v", err)
+	}
+
+	branches, err := reader.Branches("two")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if branches.Current != "release/2.0" {
+		t.Fatalf("got branch %q, want release/2.0", branches.Current)
 	}
 }
 

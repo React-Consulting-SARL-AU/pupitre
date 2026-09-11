@@ -3,15 +3,19 @@ package cloudflared
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/exposure/routes"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/sys/systemd"
 )
 
 const (
@@ -27,9 +31,19 @@ const (
 	KeyringPath = "/usr/share/keyrings/cloudflare-main.gpg"
 	SourceLine  = "deb [signed-by=" + KeyringPath + "] https://pkg.cloudflare.com/cloudflared any main\n"
 
-	keyURL      = "https://pkg.cloudflare.com/cloudflare-main.gpg"
-	keyTempPath = "/tmp/pupitre-cloudflare.gpg"
+	keyURL = "https://pkg.cloudflare.com/cloudflare-main.gpg"
 )
+
+// How long systemd waits for the tunnel to carry something, in seconds.
+//
+// cloudflared answers a notify unit only once a connection is registered, and a
+// tunnel Cloudflare was told about seconds earlier is refused by the edge until
+// it has been propagated — a minute, sometimes more. The old forty-five seconds
+// killed the daemon in the middle of that wait, at the very moment its retries
+// were backing off, and left the install judging a tunnel that was about to
+// work. This is shorter than the three minutes the agent gives systemctl, so
+// the unit's own verdict is what ends the wait rather than a clock that beat it.
+const startSeconds = 150
 
 var UnitFile = []byte(`[Unit]
 Description=Cloudflare Tunnel (Pupitre)
@@ -41,6 +55,7 @@ Type=notify
 ExecStart=/usr/bin/cloudflared --no-autoupdate --config ` + ConfigPath + ` tunnel run
 Restart=always
 RestartSec=5
+TimeoutStartSec=` + strconv.Itoa(startSeconds) + `
 
 [Install]
 WantedBy=multi-user.target
@@ -72,6 +87,95 @@ func Recorded(ctx *modules.Context) Credentials {
 	return found
 }
 
+// What cloudflared answers when the credentials name a tunnel the account no longer holds.
+const unknownTunnel = "Tunnel not found"
+
+// What it says the moment the tunnel carries a connection.
+const registered = "Registered tunnel connection"
+
+// A retry cycle of cloudflared runs to about a dozen lines; three of them hold
+// the answer whatever the connection was doing when the verification asked.
+const verifiedLines = 60
+
+// What the daemon last said, for a wait that ended on nothing else.
+const keptSaidLines = 2
+
+// StartFailure turns a unit that would not come up into a sentence naming the
+// cause. systemctl only says the job failed; the daemon's own journal says why,
+// and the one cause the client can act on is a tunnel that no longer exists.
+func StartFailure(ctx *modules.Context, err error) error {
+	said := systemd.Diagnose(ctx, Unit)
+
+	if strings.Contains(said, unknownTunnel) {
+		return errors.New(i18n.T("modules.cloudflared.start_failed", err.Error(), i18n.T("cloudflared.tunnel.unknown")))
+	}
+
+	if said == "" {
+		return err
+	}
+
+	return errors.New(i18n.T("modules.cloudflared.start_failed", err.Error(), said))
+}
+
+// Registered refuses the one verdict the machine gives for certain: a tunnel
+// whose credentials name something the account no longer holds. cloudflared
+// says that on its first attempts and repeats it at every retry.
+//
+// A unit systemd calls active has already answered the question: this one
+// notifies its start only once a connection is registered, so an active unit is
+// a tunnel the edge took, whatever it said of it while it was being propagated.
+// Only a daemon that never got there is judged on its words.
+func Registered(ctx *modules.Context) error {
+	if systemd.Active(ctx, Unit) {
+		return nil
+	}
+
+	said := systemd.Recent(ctx, Unit, verifiedLines)
+
+	refused := strings.LastIndex(said, unknownTunnel)
+	if refused < 0 {
+		return nil
+	}
+
+	// A tunnel that carried a connection after the refusal is a tunnel that
+	// exists: the first attempts on a freshly made one can reach an edge that
+	// has not been told about it yet. Only a refusal nothing answered is a
+	// verdict, and the journal is in the order the daemon spoke.
+	if strings.LastIndex(said, registered) > refused {
+		return nil
+	}
+
+	return errors.New(i18n.T("cloudflared.tunnel.unknown"))
+}
+
+// Serving says whether the tunnel carries anything yet, and what the daemon
+// last said if it does not.
+//
+// cloudflared answers systemd that it started before it has registered, so a
+// unit that came up proves nothing on its own; a tunnel that opened a
+// connection says so in its journal. Neither is a verdict on the install: a
+// machine on a slow link reaches the same place ten seconds later, and failing
+// the step for that would refuse an installation that worked.
+func Serving(ctx *modules.Context) (bool, string) {
+	said := systemd.Recent(ctx, Unit, verifiedLines)
+
+	if strings.Contains(said, registered) || systemd.Active(ctx, Unit) {
+		return true, ""
+	}
+
+	return false, lastSaid(said)
+}
+
+func lastSaid(said string) string {
+	lines := strings.Split(said, " / ")
+
+	if len(lines) > keptSaidLines {
+		lines = lines[len(lines)-keptSaidLines:]
+	}
+
+	return strings.Join(lines, " / ")
+}
+
 func Installed(ctx *modules.Context) bool {
 	return apt.Installed(ctx, Pkg)
 }
@@ -90,15 +194,7 @@ func Install(ctx *modules.Context) error {
 
 func addRepository(ctx *modules.Context) error {
 	if !file.Exists(ctx, KeyringPath) {
-		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"curl", "-fsSL", "--proto", "=https", "--tlsv1.2", "-o", keyTempPath, keyURL}}); err != nil {
-			return err
-		}
-
-		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"gpg", "--batch", "--yes", "--dearmor", "-o", KeyringPath, keyTempPath}}); err != nil {
-			return err
-		}
-
-		if _, err := file.Remove(ctx, keyTempPath); err != nil {
+		if err := apt.DearmorKey(ctx, keyURL, KeyringPath); err != nil {
 			return err
 		}
 	}

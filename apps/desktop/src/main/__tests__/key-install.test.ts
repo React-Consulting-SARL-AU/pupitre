@@ -1,6 +1,4 @@
 import { describe, expect, it } from "bun:test";
-import type { ChildProcess } from "node:child_process";
-import { EventEmitter } from "node:events";
 import {
   mkdirSync,
   mkdtempSync,
@@ -10,7 +8,6 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { PassThrough } from "node:stream";
 import type { KeyInstallPhase, Server } from "@shared/servers";
 import {
   authorizeScript,
@@ -21,10 +18,10 @@ import {
   ownIdentities,
   passwordArgs,
   rebuffOf,
-  type ShellSpawn,
   writeAskpass,
 } from "../key-install";
 import { appSshPaths } from "../ssh-config";
+import { type Answer, recorder } from "./ssh-recorder";
 
 const SERVER: Server = {
   host: "203.0.113.10",
@@ -39,56 +36,6 @@ const SERVER: Server = {
 const PUBLIC_KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample pupitre srv-a";
 
 const PATHS = appSshPaths(mkdtempSync(join(tmpdir(), "pupitre-install-")));
-
-interface Call {
-  args: string[];
-  stdin: string;
-  env?: NodeJS.ProcessEnv;
-}
-
-type Answer = { code: number; stderr?: string };
-
-function recorder(answers: Answer[]): {
-  spawn: ShellSpawn;
-  calls: Call[];
-} {
-  const calls: Call[] = [];
-
-  const spawn: ShellSpawn = (_command, args, options) => {
-    const child = new EventEmitter() as EventEmitter & {
-      stdin: PassThrough;
-      stdout: PassThrough;
-      stderr: PassThrough;
-      kill: () => void;
-    };
-
-    child.stdin = new PassThrough();
-    child.stdout = new PassThrough();
-    child.stderr = new PassThrough();
-    child.kill = () => undefined;
-
-    const call: Call = { args, env: options.env, stdin: "" };
-    calls.push(call);
-
-    child.stdin.on("data", (chunk: Buffer) => {
-      call.stdin += chunk.toString("utf8");
-    });
-
-    child.stdin.on("finish", () => {
-      const answer = answers.shift() ?? { code: 255 };
-
-      if (answer.stderr) {
-        child.stderr.write(answer.stderr);
-      }
-
-      setTimeout(() => child.emit("close", answer.code), 0);
-    });
-
-    return child as unknown as ChildProcess;
-  };
-
-  return { calls, spawn };
-}
 
 function install(
   answers: Answer[],
@@ -185,6 +132,30 @@ describe("l'installation de la clé", () => {
     expect(calls[1].args).toContain("IdentitiesOnly=no");
     expect(calls[2].args.at(-1)).toBe("true");
     expect(phases).toEqual(["reaching", "authorizing", "verifying"]);
+  });
+
+  it("ne frappe pas d'abord avec une clé qui vient d'être faite", async () => {
+    const phases: KeyInstallPhase[] = [];
+    const { calls, spawn } = recorder([{ code: 0 }, { code: 0 }]);
+
+    const answer = await installKey({
+      freshKey: true,
+      onPhase: (phase) => phases.push(phase),
+      password: "hunter2",
+      paths: PATHS,
+      platform: "darwin",
+      publicKey: PUBLIC_KEY,
+      server: SERVER,
+      spawn,
+    });
+
+    expect(answer).toEqual({
+      ok: true,
+      result: { installed: true, status: "opened" },
+    });
+    expect(calls).toHaveLength(2);
+    expect(calls[0].args).toContain("PubkeyAuthentication=no");
+    expect(phases).toEqual(["authorizing", "verifying"]);
   });
 
   it("demande le mot de passe quand la machine en offre un", async () => {

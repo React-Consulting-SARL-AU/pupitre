@@ -20,7 +20,6 @@ export const ONBOARDING_STEPS = [
   "config",
   "install",
   "harden",
-  "project",
   "done",
 ] as const;
 
@@ -80,7 +79,6 @@ export type Effect =
 export type Event =
   | { type: "open" }
   | { type: "begin"; serverId: string }
-  | { type: "personalise"; serverId: string }
   | { type: "serverChosen"; serverId: string }
   | { type: "inspected" }
   | { type: "needsAgent" }
@@ -90,7 +88,6 @@ export type Event =
   | { type: "touched" }
   | { type: "installed" }
   | { type: "hardened" }
-  | { type: "projectDone" }
   | { type: "replay"; moduleId: string; carriesSecret: boolean }
   | { type: "replayConfigured" }
   | {
@@ -102,6 +99,7 @@ export type Event =
   | { type: "resumeAt"; step: OnboardingStep; remaining: readonly string[] }
   | { type: "back" }
   | { type: "pickAnother" }
+  | { type: "serverLost" }
   | { type: "usageLost" }
   | { type: "usageBack" }
   | { type: "close" };
@@ -109,6 +107,45 @@ export type Event =
 export interface Transition {
   state: MachineState;
   effects: readonly Effect[];
+}
+
+/**
+ * The steps a sequence walks, as far as the machine can tell.
+ *
+ * The agent step is the one that is not always there: a machine already
+ * running the agent skips it. Past the inspection the trail says whether it
+ * was walked; before it, the verdict says whether it will be — a managed
+ * machine that is up to date never enters it, a bare one always does, and one
+ * whose agent is behind may go either way, so it is counted until the reader
+ * decides. Without a verdict every step is counted.
+ */
+export function plannedSteps(
+  state: Pick<MachineState, "step" | "trail">,
+  verdict: { kind: string; up_to_date?: boolean } | null
+): readonly OnboardingStep[] {
+  const here = ONBOARDING_STEPS.indexOf(state.step as OnboardingStep);
+  const pastInspection = here > ONBOARDING_STEPS.indexOf("inspection");
+
+  let withAgent = true;
+
+  if (pastInspection) {
+    withAgent = state.step === "agent" || state.trail.includes("agent");
+  } else if (verdict) {
+    withAgent = !(verdict.kind === "managed" && verdict.up_to_date !== false);
+  }
+
+  return ONBOARDING_STEPS.filter((step) => step !== "agent" || withAgent);
+}
+
+/**
+ * The steps a resumed sequence stands on: everything before the resumed step,
+ * the agent step aside — a machine resumed past it already runs the agent, and
+ * a way back to a delivery screen with nothing to deliver would be a lie.
+ */
+export function walkedBefore(step: OnboardingStep): readonly OnboardingStep[] {
+  return ONBOARDING_STEPS.slice(0, ONBOARDING_STEPS.indexOf(step)).filter(
+    (walked) => walked !== "agent"
+  );
 }
 
 export function canGoBack(state: MachineState): boolean {
@@ -130,7 +167,6 @@ const ANSWERED_AT: Partial<Record<Event["type"], readonly OnboardingStep[]>> = {
   installed: ["install"],
   needsAgent: ["inspection"],
   pickAnother: ["server", "inspection"],
-  projectDone: ["project"],
   replay: ["install"],
   replayConfigured: ["config"],
   serverChosen: ["server"],
@@ -227,22 +263,28 @@ export function transition(state: MachineState, event: Event): Transition {
     case "begin":
       return start({ ...CLOSED, serverId: event.serverId }, "inspection");
 
-    /**
-     * A server the platform granted, already installed: there is nothing to
-     * inspect and nothing to send, only a first project to open. The way back
-     * into the steps that changed the machine is closed from the start.
-     */
-    case "personalise":
-      return start(
-        { ...CLOSED, installed: true, serverId: event.serverId },
-        "project"
-      );
-
     case "serverChosen":
       return move({ ...state, serverId: event.serverId }, "inspection");
 
     case "pickAnother":
       return move({ ...state, serverId: null }, "server");
+
+    /**
+     * The machine this sequence was about is not one the app knows any more: it
+     * was removed, or the list came back without it. Nothing that follows has
+     * anything to run on, so the choice starts over rather than the sequence
+     * holding on a screen whose only answer it would refuse. A sequence already
+     * finished has nothing to start over, and closes.
+     */
+    case "serverLost": {
+      if (state.step === "closed" || state.step === "server") {
+        return { effects: [], state };
+      }
+
+      return state.step === "done"
+        ? { effects: [{ kind: "forget" }], state: { ...CLOSED } }
+        : start({ ...CLOSED }, "server");
+    }
 
     case "inspected":
       return move(state, "catalog");
@@ -269,14 +311,11 @@ export function transition(state: MachineState, event: Event): Transition {
     case "installed":
       return withSync(move({ ...state, installed: true }, "harden"));
 
-    case "hardened":
-      return withSync(move(state, "project"));
+    case "hardened": {
+      const done = withSync(move(state, "done"));
 
-    case "projectDone":
-      return {
-        ...move(state, "done"),
-        effects: [{ kind: "reloadFleet" }, { kind: "persist" }],
-      };
+      return { ...done, effects: [...done.effects, { kind: "reloadFleet" }] };
+    }
 
     /**
      * The vault was emptied when the secrets left, so a module that carried one
@@ -298,9 +337,10 @@ export function transition(state: MachineState, event: Event): Transition {
       const back = state.trail.at(-1) as OnboardingStep;
       const walked = state.trail.slice(0, -1);
 
+      // A step walked back to was already entered and already acted: nothing
+      // is sent or read again, and the trail does not count it twice.
       return {
-        ...move({ ...state, trail: walked }, back),
-        // A step walked back to is not walked twice: the trail keeps its length.
+        effects: [{ kind: "persist" }],
         state: { ...state, step: back, trail: walked },
       };
     }
@@ -320,17 +360,36 @@ export function transition(state: MachineState, event: Event): Transition {
           installed: event.installed,
           serverId: event.serverId,
           step: event.step,
-          // A resumed onboarding walked its steps in another run: what it may
-          // go back to is what this one has walked, which is nothing yet.
-          trail: [],
+          // A resumed onboarding walked its steps in another run: the trail is
+          // put back as that run must have walked it, so the way back stands.
+          trail: walkedBefore(event.step),
         },
       };
 
-    case "resumeAt":
-      return move({ ...state, remaining: event.remaining }, event.step);
+    /**
+     * The machine, read again, says where the sequence really stands: the
+     * trail follows that step rather than the one the shelf remembered.
+     */
+    case "resumeAt": {
+      const moved = move({ ...state, remaining: event.remaining }, event.step);
 
+      return {
+        ...moved,
+        state: { ...moved.state, trail: walkedBefore(event.step) },
+      };
+    }
+
+    /**
+     * Leaving keeps the progress, so the servers screen can offer it back —
+     * except from `done`, where there is nothing left to come back to. A
+     * finished sequence left on the shelf is read as an install that stopped
+     * half-way, under a button whose only answer is to refuse to resume it.
+     */
     case "close":
-      return { effects: [], state: { ...state, step: "closed" } };
+      return {
+        effects: state.step === "done" ? [{ kind: "forget" }] : [],
+        state: { ...state, step: "closed" },
+      };
 
     default:
       return { effects: [], state };

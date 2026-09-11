@@ -4,7 +4,7 @@ description: Adding, configuring, updating and removing a module after the first
 locale: en
 section: daily
 sectionOrder: 2
-order: 6
+order: 9
 ---
 
 The catalogue does not close after onboarding. Adding a module later is the same screen, without the rest of the walkthrough.
@@ -17,6 +17,22 @@ The catalogue does not close after onboarding. Adding a module later is the same
 
 The services screen shows what the agent reports: the module, its version, whether it is running, and when it was last checked. It shows nothing the agent did not send — no cached guess, no optimistic state.
 
+## What a service page holds
+
+Opening a service shows what the agent answered about it: its state, its version, the port it listens on and the `systemd` unit behind it.
+
+**Credentials.** A module that generated an account shows its labels, and lets you reveal or copy a value. The values stay in the app's main process — never stored, never logged — and the clipboard is written from that side.
+
+**Configuration.** The values the agent kept from the last installation, in the same form you filled in the first time. Applying replays the module with them; a secret left empty stays the one the server already holds. This is how you change a database password properly: on both sides at once.
+
+**A tunnel to the port.** One click opens a local tunnel through the SSH session the app holds, so the server's port answers on your own machine. It is how a database on `127.0.0.1` reaches the client on your desk without a port being opened on the server.
+
+## Databases
+
+A database module adds three gestures. **Export** writes a dump into `/home/dev/dumps` on the server and tells you its size. **Import** loads the dumps you left in that same folder, once each, whatever the engine — a file already imported is not imported again. **Open a shell** hands you the exact command to run on the server, rather than pretending to be a database client.
+
+The connection URL is on the same page, next to the credentials.
+
 ## Updating
 
 Updating a module runs its `Upgrade` step. Updating the agent itself is a separate operation: the agent downloads its own signed binary over outbound HTTPS, checks the signature, and swaps itself. It never runs anything you did not ask for.
@@ -24,6 +40,8 @@ Updating a module runs its `Upgrade` step. Updating the agent itself is a separa
 ## Uninstalling
 
 `Uninstall` removes what the module installed, and only that. A module never touches what it did not put there — a database you installed by hand stays exactly where it is.
+
+The app says what is lost before it does anything, and asks you to confirm against that list. Nothing is backed up along the way: export what matters first.
 
 ## What stays if you stop paying
 

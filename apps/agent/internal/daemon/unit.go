@@ -18,6 +18,11 @@ Restart=always
 RestartSec=10s
 NoNewPrivileges=true
 PrivateTmp=true
+ProtectSystem=strict
+StateDirectory=pupitre
+ReadWritePaths=/var/log /home/dev/.ssh
+ProtectKernelTunables=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 
 [Install]
 WantedBy=multi-user.target

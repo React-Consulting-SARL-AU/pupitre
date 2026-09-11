@@ -1,15 +1,15 @@
-import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useState } from "react";
+import { carriesSecret } from "../../lib/catalog-selection";
 import { humanMs } from "../../lib/duration";
 import { riseAt } from "../../lib/motion";
 import { useCatalog } from "../../stores/catalog";
 import { useInstall } from "../../stores/install";
-import { Button } from "../ui/button";
-import { Callout } from "../ui/callout";
-import { PageHeader } from "../ui/page-header";
+import { LiveDuration } from "../ui/live-duration";
+import { Screen } from "../ui/screen";
+import { StepFailure } from "../ui/step-failure";
 import { InstallLog } from "./install-log";
+import { InstallOutcomeBar } from "./install-outcome-bar";
 import { InstallProgress } from "./install-progress";
 import { InstallReport } from "./install-report";
 import { InstallSending } from "./install-sending";
@@ -21,16 +21,26 @@ import { InstallSending } from "./install-sending";
  * and what the reader typed as a secret stays in the main process until the
  * install writes it on the protocol's secret line. Nothing on this screen ever
  * held it.
+ *
+ * A module that fails is retried where it stands, in the same list; a request
+ * the agent refused before touching anything is asked again whole; a report
+ * left behind by a link that dropped is read back rather than replayed.
  */
 export function InstallScreen({
   serverId,
   serverName,
   modules: wanted,
+  actions,
+  plain,
   onContinue,
   onReplay,
 }: {
   serverId: string;
   serverName?: string;
+  /** What the header offers on the whole sequence: a way out of it. */
+  actions?: ReactNode;
+  /** The header sits on the page, as the onboarding's steps read theirs. */
+  plain?: boolean;
   /**
    * What to install, when it is not simply the catalogue selection: a resumed
    * onboarding installs what the machine is still missing, not what it already
@@ -53,6 +63,7 @@ export function InstallScreen({
   const elapsed = useInstall((state) => state.elapsed);
   const start = useInstall((state) => state.start);
   const replay = useInstall((state) => state.replay);
+  const replayFailed = useInstall((state) => state.replayFailed);
   const reload = useInstall((state) => state.reload);
   const touched = useInstall((state) => state.touched);
 
@@ -60,44 +71,50 @@ export function InstallScreen({
   const selected = useCatalog((state) => state.selected);
   const config = useCatalog((state) => state.config);
   const settled = useCatalog((state) => state.settled);
+  const deferred = useCatalog((state) => state.deferred);
 
   const [replaying, setReplaying] = useState<string | null>(null);
 
   const asked = wanted ?? selected;
 
   /**
-   * The generated secrets are made in the main process, one round trip each:
-   * starting before they have landed would install a database with no password
-   * on it.
+   * The install itself is started by the onboarding on entering the step; this
+   * is the same ask, for a run the agent refused before touching anything. The
+   * generated secrets are made in the main process, one round trip each, so
+   * nothing starts before they have landed.
    */
   const run = useCallback(
-    () => settled().then(() => start(serverId, asked, config())),
-    [asked, config, serverId, settled, start]
+    () =>
+      settled().then(() =>
+        start(
+          serverId,
+          asked,
+          config(),
+          deferred.filter((one) => asked.includes(one))
+        )
+      ),
+    [asked, config, deferred, serverId, settled, start]
   );
 
-  useEffect(() => {
-    // Nothing chosen is not an install to run: an app that comes back before
-    // the catalogue has answered would otherwise ask the agent for nothing and
-    // be told so, on a screen that has nothing to do with it.
-    if (useInstall.getState().install.status !== "idle" || asked.length === 0) {
-      return;
-    }
-
-    run();
-  }, [asked, run]);
+  function manifestOf(moduleId: string) {
+    return catalog().find((manifest) => manifest.id === moduleId);
+  }
 
   function nameOf(moduleId: string): string {
-    return (
-      catalog().find((manifest) => manifest.id === moduleId)?.name ?? moduleId
-    );
+    return manifestOf(moduleId)?.name ?? moduleId;
   }
 
   function blockingOf(failed: readonly string[]): string[] {
-    const mandatory = catalog()
-      .filter((manifest) => manifest.mandatory)
-      .map((manifest) => manifest.id);
+    return failed.filter((id) => manifestOf(id)?.mandatory);
+  }
 
-    return failed.filter((id) => mandatory.includes(id));
+  /** Every failed module can run again as it is: none of them carried a secret. */
+  function plainFailures(failed: readonly string[]): boolean {
+    return failed.every((id) => {
+      const manifest = manifestOf(id);
+
+      return manifest ? !carriesSecret(manifest) : true;
+    });
   }
 
   async function replayOne(moduleId: string): Promise<void> {
@@ -106,54 +123,74 @@ export function InstallScreen({
     setReplaying(null);
   }
 
+  async function replayAll(): Promise<void> {
+    setReplaying("*");
+    await replayFailed(serverId);
+    setReplaying(null);
+  }
+
   const { done, total } = counts();
   const spent = elapsed();
+  const working = install.status === "sending" || install.status === "running";
 
-  const header = (
-    <PageHeader
-      description={
-        total > 0
-          ? `${t.plural("install.progress", done, { total })}${spent > 0 ? ` · ${humanMs(spent)}` : ""}`
-          : t("install.streaming")
-      }
-      eyebrow={t("install.eyebrow")}
-      title={serverName ?? t("install.thisServer")}
-    />
-  );
+  const description =
+    total > 0 ? (
+      <>
+        {t.plural("install.progress", done, { total })}
+        {working ? (
+          <>
+            {" · "}
+            <LiveDuration className="tabular-nums" />
+          </>
+        ) : null}
+        {!working && spent > 0 ? ` · ${humanMs(spent)}` : null}
+      </>
+    ) : undefined;
 
   return (
-    <section className="flex flex-col gap-section">
-      {header}
-
-      {install.status === "sending" ? (
-        <InstallSending arch={install.arch} />
-      ) : null}
+    <Screen
+      actions={actions}
+      column
+      description={description}
+      eyebrow={t("install.eyebrow")}
+      footer={
+        install.status === "done" ? (
+          <InstallOutcomeBar
+            blocking={blockingOf(install.result.failed)}
+            nameOf={nameOf}
+            onContinue={onContinue}
+            onReplayAll={
+              plainFailures(install.result.failed) ? replayAll : undefined
+            }
+            replaying={replaying}
+            result={install.result}
+          />
+        ) : null
+      }
+      plain={plain}
+      step="install"
+      title={serverName ?? t("install.thisServer")}
+    >
+      {install.status === "sending" ? <InstallSending /> : null}
 
       {install.status === "failed" ? (
-        <Callout
-          action={
-            /*
-              A run that never reached a module left no report to read: what it
-              refused, it refused before touching the machine, so the way out is
-              to ask again rather than to read what was done. Nothing to ask
-              again for — a resumed screen that found the machine already done —
-              and the report is all there is.
-            */
-            touched() || asked.length === 0 ? (
-              <Button icon={RefreshCw} onClick={() => reload(serverId)}>
-                {t("install.rereadReport")}
-              </Button>
-            ) : (
-              <Button icon={RefreshCw} onClick={run}>
-                {t("install.retry")}
-              </Button>
-            )
+        /*
+          A run that never reached a module left no report to read: what it
+          refused, it refused before touching the machine, so the way out is to
+          ask again rather than to read what was done. A run that did touch it
+          has a report, and that is what a link that dropped left behind.
+        */
+        <StepFailure
+          error={install.error}
+          onRetry={
+            touched() || asked.length === 0 ? () => reload(serverId) : run
           }
-          fix={agentText(t, install.error).fix}
-          tone="danger"
-        >
-          {agentText(t, install.error).message}
-        </Callout>
+          retryLabel={
+            touched() || asked.length === 0
+              ? t("install.rereadReport")
+              : t("install.retry")
+          }
+        />
       ) : null}
 
       {modules.length > 0 ? (
@@ -162,23 +199,21 @@ export function InstallScreen({
         </div>
       ) : null}
 
+      <div className="rise" style={riseAt(1)}>
+        <InstallLog lines={log} />
+      </div>
+
       {install.status === "done" ? (
-        <div className="rise" style={riseAt(1)}>
+        <div className="rise" style={riseAt(2)}>
           <InstallReport
-            blocking={blockingOf(install.result.failed)}
             modules={modules}
             nameOf={nameOf}
-            onContinue={onContinue}
             onReplay={replayOne}
             replaying={replaying}
             result={install.result}
           />
         </div>
       ) : null}
-
-      <div className="rise" style={riseAt(2)}>
-        <InstallLog lines={log} />
-      </div>
-    </section>
+    </Screen>
   );
 }

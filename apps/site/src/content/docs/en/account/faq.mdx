@@ -4,12 +4,16 @@ description: The questions that come back, answered without hedging.
 locale: en
 section: account
 sectionOrder: 3
-order: 4
+order: 5
 ---
 
 ## Why not Claude Code on the web?
 
 The web version fits an isolated task on one repository. It does not give you a machine: no database next to the code, no headless browser, no service running overnight, nothing that persists once the session ends. Pupitre gives you the machine, and your subscription works there as it is.
+
+## Do I have to work inside the app?
+
+No. The server is an ordinary Ubuntu machine reached over SSH as `dev`. The Claude desktop app takes an SSH connection with the key Pupitre generated, the ChatGPT desktop app reads the host aliases of your `~/.ssh/config` to run Codex there, and `ssh` works the way it always has. The app stays the place for installing, configuring and watching the machine. See [your own client](/docs/daily/clients/).
 
 ## Can I use my existing server?
 

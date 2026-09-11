@@ -1,6 +1,6 @@
 # API de la plateforme
 
-Elysia, montée sur `/api/v1` dans `packages/api/src/server.ts`. Trois consommateurs : la console (cookie de session), l'app desktop (bearer), l'agent (jeton de serveur). Le client typé est Eden Treaty via `@pupitre/api/client`. Better Auth est montée à part sur `/api/auth/*` par `packages/auth`.
+Elysia, montée sur `/api/v1` dans `packages/api/src/server.ts`. Trois consommateurs : la console (cookie de session), l'app desktop (bearer), l'agent (jeton de serveur). La console consomme l'API par le client typé Eden Treaty de `@pupitre/api/client` ; l'app desktop, par son propre client `fetch` (`apps/desktop/src/main/platform-client.ts`). Better Auth est montée à part sur `/api/auth/*` par `packages/auth`.
 
 ## Authentification
 
@@ -17,6 +17,8 @@ Guards Elysia dans `packages/api/src/lib/api/plugins/` : `authPlugin` (résout s
 
 `requireEntitlement` se compose après `requireOrg` et exige un abonnement en cours, fût-il en essai : il refuse en 403 `entitlement_required` quand l'organisation n'a aucun abonnement, et `server_suspended` quand celui qu'elle a est suspendu, avec un `fix` vers `/dashboard/billing`. Il garde `POST /servers/enroll` et les routes d'attribution.
 
+L'adresse de connexion se change depuis les réglages de la console, par `POST /api/auth/change-email` : Better Auth envoie le lien de confirmation à l'adresse **actuelle**, jamais à la nouvelle, et la bascule n'a lieu qu'une fois ce lien ouvert. Le gabarit est `email_change`.
+
 Une clé d'accès enregistrée ouvre la session seule : le relying party est le domaine enregistrable de `BETTER_AUTH_URL` (`pupitre.studio` en production, `localhost` en développement) et les origines de confiance sont celles de la console. Le second facteur, quand il est activé, est exigé après le lien magique et après la connexion sociale, jamais après une clé d'accès, qui est déjà un second facteur : la vérification renvoie sur `/auth/two-factor`, où un code TOTP ou l'un des dix codes de récupération — à usage unique — ouvre la session. L'app desktop passe par le device flow et ne porte aucun de ces deux plugins.
 
 ## Routes
@@ -25,7 +27,7 @@ Une clé d'accès enregistrée ouvre la session seule : le relying party est le 
 
 | Méthode | Route | Corps | Réponse |
 | --- | --- | --- | --- |
-| GET | `/me` | — | `{ user, organizations[], active_organization, role, entitlement }`. `user.locale` vaut `fr` ou `en`. `entitlement` vaut `none` sans organisation active, sinon le droit d'usage de l'organisation : `valid`, `grace` ou `suspended`. Une organisation sans aucun abonnement rend `suspended`, avec un `valid_until` à l'instant présent : aucun droit d'usage ne naît hors d'un abonnement, et l'essai en est un |
+| GET | `/me` | — | `{ user, organizations[], active_organization, role, entitlement, subscription }`. `user.locale` vaut `fr` ou `en`. `entitlement` vaut `none` sans organisation active, sinon le droit d'usage de l'organisation : `valid`, `grace` ou `suspended`. Une organisation sans aucun abonnement rend `suspended`, avec un `valid_until` à l'instant présent : aucun droit d'usage ne naît hors d'un abonnement, et l'essai en est un. `subscription` est le miroir Stripe de l'organisation active tel que l'app le montre sous le compte — `{ status, trial_ends_at, current_period_end, servers: { used, limit } }` — ou `null` sans organisation active ou sans abonnement. `status` est le mot de Stripe (`trialing`, `active`, `past_due`…) ; `trial_ends_at` est `current_period_end` tant que le statut est `trialing`, Stripe fermant la première période avec l'essai, et `null` sinon ; `servers.limit` est la quantité de l'abonnement, `servers.used` le nombre de serveurs de l'organisation qui occupent un siège (`enrolling`, `active`, `grace`, `suspended`). Aucune offre n'y figure : Solo et Équipe partagent un seul produit Stripe, et le miroir ne nomme ni l'une ni l'autre. Le type vit dans `@pupitre/shared/plans` (`MeSubscription`) |
 | PATCH | `/me` | `{ locale?, organization_id? }` | le même corps que `GET /me`. Ce que l'appelant tait ne bouge pas. La langue enregistrée décide de celle des emails, y compris ceux qu'une tâche planifiée envoie sans en-tête `Accept-Language` à lire. `organization_id` doit nommer une organisation dont l'appelant est membre, sinon `forbidden` (403) sans dire si elle existe ; la bascule ne touche que la session qui la demande — la console ouverte à côté garde la sienne — et la réponse porte aussitôt le nouveau rôle et le droit d'usage qui va avec |
 | GET | `/me/devices` | — | `{ data: Device[] }` |
 | POST | `/me/devices` | `{ name, public_key }` | `{ data: Device }`. La clé est poussée sur tous les serveurs que l'utilisateur peut ouvrir |
@@ -55,14 +57,16 @@ Une clé d'accès enregistrée ouvre la session seule : le relying party est le 
 | Méthode | Route | Corps | Réponse |
 | --- | --- | --- | --- |
 | POST | `/agent/exchange` | `{ enrollment_token, host_public_key, agent_version, arch }` | `{ server_token }`. Le jeton d'enrôlement est brûlé — son échéance tombe sous la même écriture conditionnelle, donc deux échanges concurrents n'en font qu'un et le second est refusé en 409 `enrollment_used`. Le serveur passe `active` avec son nouveau jeton, celui qu'il portait avant ne vaut plus |
-| GET | `/agent/state` | — | `{ entitlement: "valid" \| "grace" \| "suspended", valid_until, authorized_keys[], target_version, minimum_version, hostname, module_params }`. `target_version` est la dernière version publiée du canal du serveur (`Server.channel`, `stable` par défaut ; un serveur `beta` voit aussi les versions `stable`) pour son architecture, jamais plus ancienne que celle qu'il porte déjà. `minimum_version` est le plancher que la plateforme retient pour ce serveur : la dernière version d'agent qu'elle l'a vu exécuter, `null` tant qu'elle n'en a vu aucune |
-| POST | `/agent/heartbeat` | `{ disk, ram, load, sessions[], stack_version, modules[], agent_version? }` | 204. L'échantillon rejoint `Server.metrics`, fenêtre glissante de 7 jours |
+| GET | `/agent/state` | — | `{ entitlement: "valid" \| "grace" \| "suspended", valid_until, authorized_keys[], target_version, minimum_version, hostname }`. `target_version` est la dernière version publiée du canal du serveur (`Server.channel`, `stable` par défaut ; un serveur `beta` voit aussi les versions `stable`) pour son architecture, jamais plus ancienne que celle qu'il porte déjà. `minimum_version` est le plancher que la plateforme retient pour ce serveur : la dernière version d'agent qu'elle l'a vu exécuter, `null` tant qu'elle n'en a vu aucune |
+| POST | `/agent/heartbeat` | `{ disk, ram, load, sessions[], stack_version, modules[], agent_version?, disk_total_gb?, disk_free_gb?, ram_total_mb?, ram_used_mb? }` | 204. L'échantillon rejoint `Server.metrics`, fenêtre glissante de 7 jours |
 | GET | `/agent/release/:version` | — | 303 vers une URL R2 signée, valable 5 minutes, pour l'architecture du serveur. `release_not_found` (404) si la version n'existe pas pour cette architecture |
 | GET | `/agent/release/:version/metadata` | — | `{ version, arch, sha256, signature, channel }` pour l'architecture du serveur : l'empreinte attendue et la signature Ed25519 de cette version, telles que la chaîne de publication les a déposées. `release_not_found` (404) si la version n'existe pas pour cette architecture |
 
 L'agent lit la métadonnée avant de télécharger : il y prend l'empreinte et la signature au lieu de les recevoir de l'app, et le plancher de `/agent/state` lui dit s'il a le droit d'installer cette version. Un refus coûte alors un appel, pas un binaire.
 
 `stack_version` porte la version de l'agent lui-même, la même valeur qu'`agent_version`. Le nom vient de la stack bash d'origine, où les deux différaient ; il n'y a plus qu'un binaire.
+
+`disk` et `ram` sont des pourcentages ; les quatre champs facultatifs portent les quantités que la machine a réellement mesurées, seules capables de dire « 1,8 Go sur 556 Go ». Ils sont facultatifs parce qu'un agent antérieur ne les envoie pas : la console retombe alors sur le pourcentage seul, et un serveur qui n'a pas encore été mis à jour n'affiche pas zéro octet. `usage` et `metrics` les rendent tels quels, à `null` quand l'échantillon ne les portait pas.
 
 ### Releases, côté appareil
 
@@ -77,7 +81,7 @@ Les deux redirections portent l'en-tête `x-pupitre-release-storage` : `r2` quan
 
 | Méthode | Route | Auth | Réponse |
 | --- | --- | --- | --- |
-| GET | `/releases/app?channel=stable&limit=10` | aucune | `{ data: AppRelease[] }`, de la plus récente à la plus ancienne : ce que la page de téléchargement du site lit au build. Liste vide, jamais 404 |
+| GET | `/releases/app?channel=stable&limit=10` | aucune | `{ data: AppRelease[] }`, de la plus récente à la plus ancienne : ce que la page de téléchargement du site lit au build, puis à nouveau depuis le navigateur de chaque visiteur. Liste vide, jamais 404 |
 | GET | `/releases/app/latest?channel=stable` | aucune | `{ data: AppRelease }` : la version la plus haute du canal, ses notes et un `build` par artefact publié. `channel` vaut `stable` par défaut ; un canal `beta` voit aussi les versions `stable`. `app_release_not_found` (404) tant que rien n'est publié — la console dit alors qu'il n'y a rien à télécharger plutôt que d'afficher un lien mort |
 | GET | `/releases/app/:version` | aucune | `{ data: AppRelease }` pour une version précise, quel que soit son canal ; `app_release_not_found` (404) sinon |
 | GET | `/releases/app/:version/:os/:arch` | aucune | 303 vers l'artefact, le lien stable que le site et les pages d'aide écrivent ; `app_release_not_found` (404) pour une architecture que personne n'a construite |
@@ -85,6 +89,8 @@ Les deux redirections portent l'en-tête `x-pupitre-release-storage` : `r2` quan
 `AppRelease` vaut `{ version, channel, notes, published_at, builds: [{ os, arch, format, url, bytes, sha256, signature }] }`, une entrée de `builds` par fichier téléchargeable. L'`url` rendue ici est **composée par la plateforme** à partir de la clé stockée et de `PUPITRE_DOWNLOADS_URL` : la publication n'envoie qu'une clé (`r2_key`), la lecture rend une adresse — deux sur macOS, une par architecture. `arch` vaut `arm64`, `x64` ou `universal` : le vocabulaire d'Electron, qui n'est pas celui du catalogue de l'agent (`amd64`, `arm64`). Les notes appartiennent à la version : la ligne publiée en premier les porte pour toute la version.
 
 Ces quatre routes ne demandent aucune session, contrairement à celles de l'agent : les artefacts de l'app sont publics — ils vivent sur `dl.pupitre.studio` — là où le binaire de l'agent ne l'est pas.
+
+Étant ouvertes à tout le monde, elles répondent `access-control-allow-origin: *` et `cache-control: public, max-age=300` — le site les lit depuis le navigateur, sur une autre origine que la console — et portent une limite de débit à elles : 60 requêtes par minute et par `cf-connecting-ip` (`PUBLIC_RELEASES_RATE_LIMIT`), au-dessus de laquelle elles rendent `rate_limited` (429) avec `retry-after`. Ce budget est distinct du budget global : une adresse qui martèle la liste des versions ne consomme pas celui dont elle a besoin pour la console.
 
 ### Organisation
 

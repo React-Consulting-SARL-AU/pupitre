@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query"
-import { Lock } from "lucide-react"
+import { Lock, RotateCw } from "lucide-react"
 import { CheckoutForm } from "@/components/dashboard/checkout-form"
 import { SeatBalanceCard } from "@/components/dashboard/seat-balance-card"
 import { SubscriptionCard } from "@/components/dashboard/subscription-card"
+import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { EmptyState } from "@/components/ui/empty-state"
-import { LoadingState } from "@/components/ui/loading-state"
+import { SkeletonCards } from "@/components/ui/skeleton"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { usePermission } from "@/hooks/use-permission"
@@ -75,12 +76,24 @@ export function BillingPanel() {
   }
 
   if (subscription.isPending || servers.isPending) {
-    return <LoadingState label={t("billingPanel.reading")} />
+    return <SkeletonCards label={t("billingPanel.reading")} />
   }
 
   if (subscription.isError) {
     return (
       <Callout
+        action={
+          <Button
+            icon={RotateCw}
+            loading={subscription.isFetching}
+            onClick={() => {
+              subscription.refetch()
+            }}
+            size="sm"
+          >
+            {t("common.retry")}
+          </Button>
+        }
         fix={t("billingPanel.failedFix")}
         title={t("billingPanel.failed")}
         tone="danger"

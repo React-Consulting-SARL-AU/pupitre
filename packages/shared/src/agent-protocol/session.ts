@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { LocaleSchema } from "../i18n/locale"
 import { ProtocolVersionSchema } from "./envelope"
+import { ConfigRevisionSchema } from "./migrate"
 
 export const EmptyParamsSchema = z.strictObject({})
 
@@ -29,12 +30,19 @@ export const HelloParamsSchema = z.strictObject({
 
 export type HelloParams = z.infer<typeof HelloParamsSchema>
 
+/**
+ * `config` says where the configuration on the machine stands against the
+ * binary now reading it. An agent from before the ledger answers without it,
+ * and the app takes that server for one whose configuration is current — which
+ * it is, since nothing had changed shape yet.
+ */
 export const HelloResultSchema = z.object({
   agent_version: z.string().min(1),
   protocol: ProtocolVersionSchema,
   server_id: z.string().optional(),
   entitlement: EntitlementSchema,
   capabilities: z.array(z.string()),
+  config: ConfigRevisionSchema.optional(),
 })
 
 export type HelloResult = z.infer<typeof HelloResultSchema>

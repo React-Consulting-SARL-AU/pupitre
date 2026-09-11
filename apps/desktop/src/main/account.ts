@@ -1,12 +1,16 @@
 import { hostname } from "node:os";
 import type {
+  AccountDevice,
   AccountResponse,
   AccountState,
   SignInProgress,
 } from "@shared/account";
-import { app, ipcMain, safeStorage, shell } from "electron";
+import type { AgentResponse } from "@shared/agent";
+import { app, ipcMain, safeStorage } from "electron";
 import { type Account, createAccount } from "./account-run";
 import { createTokenVault, type Sealer } from "./account-vault";
+import { asAgentError } from "./enrollment-run";
+import { openOutside } from "./foreground";
 import { generateKey, keyPaths, readPublicKey } from "./keys";
 import {
   agentBaseUrl,
@@ -14,6 +18,7 @@ import {
   DEFAULT_PLATFORM_URL,
   LOCAL_PLATFORM_URL,
 } from "./platform-client";
+import { refuseWith } from "./refusal";
 import { relayTo } from "./relay";
 import { paths } from "./servers";
 
@@ -21,7 +26,7 @@ import { paths } from "./servers";
  * The account, wired to this computer.
  *
  * The token goes through `safeStorage`, the device key through the app's own
- * key folder, and the browser through `shell.openExternal`. Everything that can
+ * key folder, and the browser through `openOutside`. Everything that can
  * be reasoned about without Electron lives in `account-run.ts`.
  */
 
@@ -93,9 +98,7 @@ export const account: Account = createAccount({
   deviceKey,
   deviceName: () => hostname(),
   now: () => Date.now(),
-  openUrl: (url) => {
-    shell.openExternal(url);
-  },
+  openUrl: openOutside,
   platform: createPlatformClient({ baseUrl: platformUrl() }),
   vault: createTokenVault({ dir: app.getPath("userData"), sealer }),
   wait: (ms) =>
@@ -121,6 +124,32 @@ export function registerAccount(): void {
   );
 
   ipcMain.handle("account:sign-out", (): AccountState => account.signOut());
+
+  ipcMain.handle(
+    "account:devices",
+    async (): Promise<AgentResponse<AccountDevice[]>> => {
+      const answer = await account.devices();
+
+      return answer.ok
+        ? answer
+        : { error: asAgentError(answer.error), ok: false };
+    }
+  );
+
+  ipcMain.handle(
+    "account:device-revoke",
+    async (_event, deviceId: unknown): Promise<AgentResponse<null>> => {
+      if (typeof deviceId !== "string" || deviceId.length === 0) {
+        return refuseWith("bad_request", "refusal.device.unknown");
+      }
+
+      const answer = await account.revokeDevice(deviceId);
+
+      return answer.ok
+        ? answer
+        : { error: asAgentError(answer.error), ok: false };
+    }
+  );
 
   ipcMain.handle(
     "account:sign-in",

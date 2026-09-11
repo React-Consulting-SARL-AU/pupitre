@@ -46,6 +46,22 @@ describe("la décision sur la clé d'hôte", () => {
     }
   });
 
+  it("croit la machine telle qu'elle répond aujourd'hui plutôt que le fichier de l'app", () => {
+    expect(hostKeyDecision(PINNED, PINNED, [OTHER])).toMatchObject({
+      expected: PINNED,
+      observed: OTHER,
+      status: "changed",
+    });
+    expect(hostKeyDecision(PINNED, PINNED, ["SHA256:rsa", PINNED])).toEqual({
+      fingerprint: PINNED,
+      status: "trusted",
+    });
+    expect(hostKeyDecision(PINNED, PINNED, [])).toEqual({
+      fingerprint: PINNED,
+      status: "trusted",
+    });
+  });
+
   it("propose de remplacer l'empreinte, et rien d'autre", () => {
     const decision = hostKeyDecision(PINNED, OTHER);
 

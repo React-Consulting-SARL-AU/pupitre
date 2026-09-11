@@ -15,7 +15,7 @@ var runtimeInstall = request{Cmd: "install", Params: map[string]any{
 	"secrets_stdin": false,
 	"config": map[string]any{
 		"core.system":    map[string]any{"timezone": "Europe/Paris", "git_name": "Pupitre Staging", "git_email": "staging@pupitre.studio"},
-		"runtime.node":   map[string]any{"node_version": "22", "bun": true, "pnpm": true},
+		"runtime.node":   map[string]any{"node_version": "22", "bun": true, "pnpm": true, "yarn": true},
 		"runtime.java":   map[string]any{"java_version": "21"},
 		"runtime.python": map[string]any{"python_version": "3.12"},
 		"runtime.go":     map[string]any{"go_version": "1.25"},
@@ -47,8 +47,8 @@ func TestRuntimesAnswerInANonInteractiveShell(t *testing.T) {
 		t.Fatalf("a runtime stayed silent:\n%s", out)
 	}
 
-	if out := ssh(t, dev, "pnpm -v && python3 -V"); !strings.Contains(out, "Python 3.12") {
-		t.Fatalf("pnpm and python must answer too:\n%s", out)
+	if out := ssh(t, dev, "pnpm -v && yarn -v && python3 -V"); !strings.Contains(out, "Python 3.12") {
+		t.Fatalf("pnpm, yarn and python must answer too:\n%s", out)
 	}
 }
 

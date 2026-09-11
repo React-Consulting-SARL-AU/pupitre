@@ -1,5 +1,4 @@
 import { Button } from "@renderer/components/ui/button";
-import { Callout } from "@renderer/components/ui/callout";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { Removal } from "@renderer/lib/service-removal";
 import { Trash2 } from "lucide-react";
@@ -9,8 +8,10 @@ import { ServiceRemovalLosses } from "./service-removal-losses";
 /**
  * Retiring a module, asked twice, the second time with the bill.
  *
- * A module the catalogue calls mandatory has no button at all: the machine
- * depends on it, and offering the gesture only to refuse it would be a lie.
+ * The gesture stands in the page's header with the other things done to the
+ * module as a whole. A module the catalogue calls mandatory has no button at
+ * all: the machine depends on it, and offering the gesture only to refuse it
+ * would be a lie — the header's facts say so instead.
  */
 export function ServiceRemoval({
   name,
@@ -26,11 +27,15 @@ export function ServiceRemoval({
   const [asking, setAsking] = useState(false);
 
   if (!removal.allowed) {
-    return <Callout tone="info">{removal.refusal}</Callout>;
+    return null;
   }
 
-  if (asking) {
-    return (
+  return (
+    <>
+      <Button icon={Trash2} onClick={() => setAsking(true)} variant="danger">
+        {t("services.removal.button")}
+      </Button>
+
       <ServiceRemovalLosses
         losses={removal.losses}
         name={name}
@@ -39,15 +44,8 @@ export function ServiceRemoval({
           setAsking(false);
           onRemove();
         }}
+        open={asking}
       />
-    );
-  }
-
-  return (
-    <div>
-      <Button icon={Trash2} onClick={() => setAsking(true)} variant="danger">
-        {t("services.removal.button")}
-      </Button>
-    </div>
+    </>
   );
 }

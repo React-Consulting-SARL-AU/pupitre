@@ -5,11 +5,14 @@ import {
   addProject,
   forgetProjects,
   listProjects,
+  onProject,
   type ProjectDeps,
+  projectHostnames,
   projectLogs,
   projectUrl,
   startProject,
   syncProject,
+  updateProject,
 } from "../projects-run";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 
@@ -31,11 +34,30 @@ const VITE: ProjectAddParams = {
   pkgmgr: "bun",
   port: 3000,
   repo: "https://github.com/moi/vite-starter.git",
+  routes: [{ label: "web", port: 3000 }],
+};
+
+const SHOP: ProjectAddParams = {
+  cmd: "bunx turbo run dev",
+  dir: "shop",
+  host: "127.0.0.1",
+  name: "shop",
+  pkgmgr: "bun",
+  port: 3100,
+  repo: "https://github.com/ada/shop.git",
+  routes: [
+    { label: "web", port: 3100, subdomain: "shop" },
+    { label: "api", port: 3101, subdomain: "api-shop" },
+    { label: "docs", port: 3102 },
+  ],
 };
 
 let agent: FakeAgent | null = null;
 
-function deps(fixtures: string[]): ProjectDeps {
+function deps(
+  fixtures: string[],
+  release?: ProjectDeps["release"]
+): ProjectDeps {
   agent = fakeAgent(fixtures);
 
   const client: AgentClient = createAgentClient({
@@ -43,7 +65,11 @@ function deps(fixtures: string[]): ProjectDeps {
     spawn: agent.spawn,
   });
 
-  return { client, knows: (id) => id === SERVER };
+  return {
+    client,
+    knows: (id) => id === SERVER,
+    ...(release ? { release } : {}),
+  };
 }
 
 beforeEach(() => {
@@ -95,6 +121,123 @@ describe("un dépôt du formulaire au journal", () => {
   });
 });
 
+describe("un projet à plusieurs ports", () => {
+  it("retient chaque nom d'hôte, relâche ceux qu'une configuration retire, puis tous au retrait", async () => {
+    const released: string[] = [];
+    const calls = deps(
+      ["project-routes-control.jsonl", "project-routes-work.jsonl"],
+      (_serverId, hostname) => {
+        released.push(hostname);
+
+        return Promise.resolve();
+      }
+    );
+
+    await listProjects(SERVER, calls);
+    const added = await addProject(SERVER, SHOP, calls);
+
+    expect(added.ok).toBe(true);
+    expect(projectHostnames(SERVER, "shop")).toEqual([
+      "shop.flymate.dev",
+      "api-shop.flymate.dev",
+    ]);
+
+    const renamed = await updateProject(
+      SERVER,
+      {
+        name: "shop",
+        patch: {
+          routes: [
+            { label: "web", port: 3100, subdomain: "boutique" },
+            { label: "docs", port: 3102 },
+          ],
+        },
+      },
+      calls
+    );
+
+    expect(renamed.ok && renamed.result.url).toBe(
+      "https://boutique.flymate.dev"
+    );
+    expect(released).toEqual(["shop.flymate.dev", "api-shop.flymate.dev"]);
+    expect(projectHostnames(SERVER, "shop")).toEqual(["boutique.flymate.dev"]);
+
+    const command = await updateProject(
+      SERVER,
+      { name: "shop", patch: { cmd: "bunx turbo run dev --filter=web..." } },
+      calls
+    );
+
+    expect(command.ok && command.result.cmd).toBe(
+      "bunx turbo run dev --filter=web..."
+    );
+    expect(released).toHaveLength(2);
+
+    const removed = await onProject("project.remove", SERVER, "shop", calls);
+
+    expect(removed.ok).toBe(true);
+    expect(released).toEqual([
+      "shop.flymate.dev",
+      "api-shop.flymate.dev",
+      "boutique.flymate.dev",
+    ]);
+    expect(projectHostnames(SERVER, "shop")).toEqual([]);
+  });
+
+  it("refuse une configuration pour un projet que l'agent n'a pas nommé, et une forme hors contrat", async () => {
+    const calls = deps(["project-routes-control.jsonl"]);
+
+    const unknown = await updateProject(
+      SERVER,
+      { name: "ghost", patch: {} },
+      calls
+    );
+    const malformed = await updateProject(
+      SERVER,
+      { name: "shop", patch: { dir: "elsewhere" } },
+      calls
+    );
+
+    expect(!unknown.ok && unknown.error.code).toBe("project_not_found");
+    expect(!malformed.ok && malformed.error.code).toBe("bad_request");
+  });
+});
+
+describe("un journal suivi", () => {
+  it("porte le signal de qui le suit jusqu'au canal", async () => {
+    const seen: (AbortSignal | undefined)[] = [];
+    const control = new AbortController();
+
+    const client: ProjectDeps["client"] = {
+      request: (_serverId, cmd, _params, options) => {
+        seen.push(options?.signal);
+
+        return Promise.resolve({
+          ok: true,
+          result:
+            cmd === "project.list"
+              ? ({ projects: [{ dir: "web", name: "web" }] } as never)
+              : ({ lines: [] } as never),
+        });
+      },
+    };
+    const calls: ProjectDeps = { client, knows: (id) => id === SERVER };
+
+    await listProjects(SERVER, calls);
+    await projectLogs(
+      SERVER,
+      "web",
+      50,
+      true,
+      () => undefined,
+      calls,
+      control.signal
+    );
+
+    expect(seen).toEqual([undefined, control.signal]);
+  });
+});
+
 describe("un port déjà pris", () => {
   it("rend le remède de l'agent, qui porte le port libre", async () => {
     const calls = deps([
@@ -114,6 +257,7 @@ describe("un port déjà pris", () => {
         pkgmgr: "bun",
         port: 3000,
         repo: "https://github.com/moi/shop.git",
+        routes: [{ label: "web", port: 3000 }],
       },
       calls
     );
@@ -146,6 +290,7 @@ describe("un port déjà pris", () => {
         pkgmgr: "bun",
         port: 3000,
         repo: "https://github.com/moi/shop.git",
+        routes: [{ label: "web", port: 3000 }],
       },
       calls
     );
@@ -160,6 +305,7 @@ describe("un port déjà pris", () => {
         pkgmgr: "bun",
         port: 3001,
         repo: "https://github.com/moi/shop.git",
+        routes: [{ label: "web", port: 3001 }],
       },
       calls
     );

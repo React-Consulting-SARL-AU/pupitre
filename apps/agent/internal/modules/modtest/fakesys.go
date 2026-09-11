@@ -1,12 +1,18 @@
 package modtest
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/fs"
+	"path"
+	"path/filepath"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"pupitre.studio/agent/internal/sys"
@@ -33,6 +39,7 @@ type FakeSys struct {
 	Replies    map[string]string
 	Answers    map[string]string
 	Failures   map[string]string
+	Once       map[string]string
 	Users      map[string]string
 	Groups     map[string][]string
 	Tools      map[string]string
@@ -80,6 +87,7 @@ func NewFakeSys() *FakeSys {
 		Replies:    map[string]string{},
 		Answers:    map[string]string{},
 		Failures:   map[string]string{},
+		Once:       map[string]string{},
 		Users:      map[string]string{"root": "/root"},
 		Groups:     map[string][]string{},
 		Tools:      map[string]string{},
@@ -128,6 +136,11 @@ func (f *FakeSys) FailProgram(program, stderr string) {
 	f.Failures[program] = stderr
 }
 
+// FailOnce refuses the next call of a program and answers the ones after: a reload that fails, then succeeds on the previous configuration.
+func (f *FakeSys) FailOnce(program, stderr string) {
+	f.Once[program] = stderr
+}
+
 func (f *FakeSys) EnvValue(key string) string {
 	for _, line := range strings.Split(string(f.Files["/etc/pupitre/env"]), "\n") {
 		if name, value, ok := strings.Cut(line, "="); ok && name == key {
@@ -159,6 +172,12 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 		return f.fail(program, stderr)
 	}
 
+	if stderr, once := f.Once[program]; once {
+		delete(f.Once, program)
+
+		return f.fail(program, stderr)
+	}
+
 	line := strings.Join(cmd.Argv, " ")
 
 	// A reply keyed by the whole argv wins: some programs answer differently per argument, like df on two paths.
@@ -175,6 +194,11 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 	}
 	if best != "" {
 		return sys.Output{Stdout: f.Answers[best]}, nil
+	}
+
+	// The Claude Code binary, run from where it was downloaded, installs itself under ~/.local like the real one.
+	if strings.HasPrefix(base(program), "claude-") && len(cmd.Argv) > 1 && cmd.Argv[1] == "install" {
+		return f.claudeInstall(cmd.User)
 	}
 
 	// A program is recognised by its name, whether the caller gave a path or relied on PATH.
@@ -203,12 +227,8 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 		return f.ss()
 	case "ps":
 		return f.ps(cmd.Argv[1:])
-	case "tee":
-		return f.tee(cmd.Argv[1:], cmd.Stdin)
 	case "find":
 		return f.find(cmd.Argv[1:])
-	case "kill":
-		return f.kill(cmd.Argv[1:])
 	case "ln":
 		return f.ln(cmd.Argv[1:])
 	case "readlink":
@@ -223,6 +243,10 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 		return f.chmod(cmd.Argv[1:])
 	case "rm":
 		return f.rm(cmd.Argv[1:])
+	case "sha256sum":
+		return f.sha256sum(cmd.Argv[1:])
+	case "fallocate":
+		return f.fallocate(cmd.Argv[1:])
 	case "code-server":
 		return f.codeServer(cmd.Argv[1:])
 	case "google-chrome-stable", "chromium", "chromium-browser":
@@ -232,6 +256,51 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 	return sys.Output{Stdout: f.Replies[program]}, nil
 }
 
+// Stream plays the command's whole answer line by line, then ends: the fake journal has nothing more to say.
+func (f *FakeSys) Stream(cmd sys.Command, emit func(string)) error {
+	out, err := f.Run(cmd)
+	if err != nil {
+		return err
+	}
+
+	for _, line := range strings.Split(strings.TrimRight(out.Stdout, "\n"), "\n") {
+		if line != "" {
+			emit(line)
+		}
+	}
+
+	return nil
+}
+
+func (f *FakeSys) claudeInstall(owner string) (sys.Output, error) {
+	home := f.Users[owner]
+	if home == "" {
+		home = "/home/" + owner
+	}
+
+	path := home + "/.local/bin/claude"
+	if err := f.WriteFile(path, []byte("claude"), 0o755); err != nil {
+		return f.fail("claude", err.Error())
+	}
+
+	f.Owners[path] = owner + ":" + owner
+
+	return sys.Output{Stdout: "Claude Code installed\n"}, nil
+}
+
+// Downloaded is what curl writes when no test chose a body; a digest of it is what the fake's vendors publish.
+const Downloaded = "downloaded\n"
+
+// MiseVersion is the release the fake's mise index announces.
+const MiseVersion = "2026.9.4"
+
+// Digest is the SHA-256 of a body as sha256sum prints it, for a test that publishes a checksum itself.
+func Digest(body string) string {
+	sum := sha256.Sum256([]byte(body))
+
+	return hex.EncodeToString(sum[:])
+}
+
 // A download to -o leaves a file behind; without it a step that fetches a binary could never be skipped on a replay.
 func (f *FakeSys) curl(args []string) (sys.Output, error) {
 	for i := 0; i < len(args)-1; i++ {
@@ -239,15 +308,62 @@ func (f *FakeSys) curl(args []string) (sys.Output, error) {
 			continue
 		}
 
-		body := f.Replies["curl"]
-		if body == "" {
-			body = "downloaded\n"
-		}
+		return sys.Output{}, f.WriteFile(args[i+1], []byte(f.downloaded()), 0o755)
+	}
 
-		return sys.Output{}, f.WriteFile(args[i+1], []byte(body), 0o755)
+	if body, published := f.published(args[len(args)-1]); published {
+		return sys.Output{Stdout: body}, nil
 	}
 
 	return sys.Output{Stdout: f.Replies["curl"]}, nil
+}
+
+func (f *FakeSys) downloaded() string {
+	if body := f.Replies["curl"]; body != "" {
+		return body
+	}
+
+	return Downloaded
+}
+
+// The fake's vendors publish honest checksums: a .sha256 sidecar, or mise's version and SHASUMS256.txt, name the digest of what curl serves, so a module that verifies a download finds the figures agree. An Answer keyed on the same URL wins, which is how a test publishes a wrong one.
+func (f *FakeSys) published(url string) (string, bool) {
+	name := path.Base(url)
+
+	switch {
+	case strings.HasSuffix(name, ".sha256"):
+		return Digest(f.downloaded()) + "  " + strings.TrimSuffix(name, ".sha256") + "\n", true
+	case strings.HasSuffix(url, "mise.jdx.dev/VERSION"):
+		return MiseVersion + "\n", true
+	case name == "SHASUMS256.txt":
+		version := strings.TrimPrefix(path.Base(path.Dir(url)), "v")
+		digest := Digest(f.downloaded())
+
+		return digest + "  ./mise-v" + version + "-linux-x64\n" + digest + "  ./mise-v" + version + "-linux-arm64\n", true
+	}
+
+	return "", false
+}
+
+// sha256sum reads the file it is given; a mismatch is staged by publishing a wrong digest, never by lying about the file.
+func (f *FakeSys) sha256sum(args []string) (sys.Output, error) {
+	target := args[len(args)-1]
+
+	content, err := f.ReadFile(target)
+	if err != nil {
+		return f.fail("sha256sum", "sha256sum: "+target+": No such file or directory")
+	}
+
+	return sys.Output{Stdout: Digest(string(content)) + "  " + target + "\n"}, nil
+}
+
+// fallocate leaves the file behind even when a later step fails, as the real one does on a file system that refuses it.
+func (f *FakeSys) fallocate(args []string) (sys.Output, error) {
+	if len(args) == 0 {
+		return f.fail("fallocate", "fallocate: no filename specified")
+	}
+
+	return sys.Output{}, f.WriteFile(args[len(args)-1], nil, 0o644)
 }
 
 // An extraction leaves a folder behind, and the entries seeded in Archives; without them a step that unpacks an archive could never be skipped on a replay.
@@ -615,6 +731,14 @@ func (f *FakeSys) systemctl(args []string) (sys.Output, error) {
 
 	switch action {
 	case "show":
+		if slices.Contains(args, "InvocationID") {
+			if f.Units[unit] == UnitAbsent {
+				return sys.Output{Stdout: "\n"}, nil
+			}
+
+			return sys.Output{Stdout: "run-" + unit + "\n"}, nil
+		}
+
 		if f.Units[unit] == UnitAbsent {
 			return sys.Output{Stdout: "not-found\n"}, nil
 		}
@@ -696,6 +820,8 @@ func (f *FakeSys) useradd(args []string) (sys.Output, error) {
 	}
 
 	f.Users[name] = "/home/" + name
+	f.Dirs["/home/"+name] = true
+	f.Owners["/home/"+name] = name + ":" + name
 	f.mutate("useradd " + name)
 
 	return sys.Output{}, nil
@@ -798,6 +924,319 @@ func (f *FakeSys) ReadFile(path string) ([]byte, error) {
 	return append([]byte(nil), content...), nil
 }
 
+// A link planted with ln is followed only when it stays under the root, as os.Root does.
+func (f *FakeSys) ReadFileIn(root, rel string) ([]byte, error) {
+	path, err := f.inside(root, rel)
+	if err != nil {
+		return nil, err
+	}
+
+	target, err := f.follow(root, path)
+	if err != nil {
+		return nil, err
+	}
+
+	return f.ReadFile(target)
+}
+
+func (f *FakeSys) ListIn(root, rel string) ([]sys.Node, error) {
+	path, err := f.inside(root, rel)
+	if err != nil {
+		return nil, err
+	}
+
+	entries, err := f.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+
+	nodes := make([]sys.Node, 0, len(entries))
+	for _, entry := range entries {
+		nodes = append(nodes, f.node(entry.Name, filepath.Join(path, entry.Name)))
+	}
+
+	return nodes, nil
+}
+
+func (f *FakeSys) StatIn(root, rel string) (sys.Node, error) {
+	path, err := f.inside(root, rel)
+	if err != nil {
+		return sys.Node{}, err
+	}
+
+	if _, linked := f.Links[path]; !linked && !f.known(path) {
+		return sys.Node{}, &fs.PathError{Op: "lstat", Path: rel, Err: fs.ErrNotExist}
+	}
+
+	node := f.node(base(path), path)
+	if node.Kind != sys.NodeLink {
+		return node, nil
+	}
+
+	target, err := f.follow(root, path)
+	if err != nil {
+		return sys.Node{}, err
+	}
+
+	if !f.known(target) {
+		return sys.Node{}, &fs.PathError{Op: "stat", Path: rel, Err: fs.ErrNotExist}
+	}
+
+	node.SizeBytes = int64(len(f.Files[target]))
+	node.ModifiedAt = f.when(target)
+	node.Mode = f.mode(target)
+
+	return node, nil
+}
+
+func (f *FakeSys) WriteFileIn(root, rel, owner string, data []byte) error {
+	path, err := f.inside(root, rel)
+	if err != nil {
+		return err
+	}
+
+	if _, replaced := f.Files[path]; !replaced && owner != "" {
+		f.Owners[path] = owner + ":" + owner
+	}
+
+	if err := f.WriteFile(path, data, f.mode(path)); err != nil {
+		return err
+	}
+
+	f.Times[path] = f.Now
+
+	return nil
+}
+
+func (f *FakeSys) MkdirIn(root, rel, owner string) error {
+	path, err := f.inside(root, rel)
+	if err != nil {
+		return err
+	}
+
+	if _, taken := f.Files[path]; taken {
+		return &fs.PathError{Op: "mkdir", Path: rel, Err: fs.ErrExist}
+	}
+
+	var created []string
+	for dir := path; dir != "/" && dir != "." && !f.Dirs[dir]; dir = filepath.Dir(dir) {
+		created = append(created, dir)
+	}
+
+	if err := f.MkdirAll(path, 0o755); err != nil {
+		return err
+	}
+
+	for _, dir := range created {
+		if owner != "" {
+			f.Owners[dir] = owner + ":" + owner
+		}
+	}
+
+	return nil
+}
+
+func (f *FakeSys) RenameIn(root, from, to string) error {
+	source, err := f.inside(root, from)
+	if err != nil {
+		return err
+	}
+
+	target, err := f.inside(root, to)
+	if err != nil {
+		return err
+	}
+
+	if _, linked := f.Links[source]; !linked && !f.known(source) {
+		return &fs.PathError{Op: "rename", Path: from, Err: fs.ErrNotExist}
+	}
+
+	for _, known := range f.tree(source) {
+		f.rekey(known, target+strings.TrimPrefix(known, source))
+	}
+
+	f.mutate("rename " + source + " -> " + target)
+
+	return nil
+}
+
+func (f *FakeSys) RemoveIn(root, rel string, recursive bool) error {
+	path, err := f.inside(root, rel)
+	if err != nil {
+		return err
+	}
+
+	if !recursive && f.hasChild(path+"/") {
+		return &fs.PathError{Op: "remove", Path: rel, Err: syscall.ENOTEMPTY}
+	}
+
+	for _, known := range f.tree(path) {
+		f.forget(known)
+	}
+
+	f.mutate("remove " + path)
+
+	return nil
+}
+
+// The path a root-scoped call reaches, or the refusal os.Root would give: nothing is named from outside the root it belongs to.
+func (f *FakeSys) inside(root, rel string) (string, error) {
+	base := strings.TrimSuffix(root, "/")
+	path := filepath.Join(base, rel)
+
+	if filepath.IsAbs(rel) || (path != base && !strings.HasPrefix(path, base+"/")) {
+		return "", &fs.PathError{Op: "openat", Path: rel, Err: errEscapes}
+	}
+
+	return path, nil
+}
+
+func (f *FakeSys) follow(root, path string) (string, error) {
+	target, linked := f.Links[path]
+	if !linked {
+		return path, nil
+	}
+
+	if !filepath.IsAbs(target) {
+		target = filepath.Join(filepath.Dir(path), target)
+	}
+
+	base := strings.TrimSuffix(root, "/")
+	if target != base && !strings.HasPrefix(target, base+"/") {
+		return "", &fs.PathError{Op: "openat", Path: path, Err: errEscapes}
+	}
+
+	return target, nil
+}
+
+func (f *FakeSys) node(name, path string) sys.Node {
+	node := sys.Node{
+		Name:       name,
+		Kind:       sys.NodeFile,
+		SizeBytes:  int64(len(f.Files[path])),
+		ModifiedAt: f.when(path),
+		Mode:       f.mode(path),
+	}
+
+	if _, linked := f.Links[path]; linked {
+		node.Kind = sys.NodeLink
+
+		return node
+	}
+
+	if _, isFile := f.Files[path]; !isFile && f.known(path) {
+		node.Kind = sys.NodeDir
+	}
+
+	return node
+}
+
+func (f *FakeSys) mode(path string) fs.FileMode {
+	if mode, set := f.Modes[path]; set {
+		return mode
+	}
+
+	if _, isFile := f.Files[path]; isFile {
+		return 0o644
+	}
+
+	return 0o755
+}
+
+func (f *FakeSys) when(path string) time.Time {
+	if at, dated := f.Times[path]; dated {
+		return at
+	}
+
+	return f.Now
+}
+
+// An entry and everything under it, deepest first, so a folder goes after what it held.
+func (f *FakeSys) tree(path string) []string {
+	var found []string
+	for _, known := range append(f.paths(), f.links()...) {
+		if known == path || strings.HasPrefix(known, path+"/") {
+			found = append(found, known)
+		}
+	}
+
+	sort.Slice(found, func(a, b int) bool { return len(found[a]) > len(found[b]) })
+
+	return found
+}
+
+func (f *FakeSys) links() []string {
+	paths := make([]string, 0, len(f.Links))
+	for path := range f.Links {
+		paths = append(paths, path)
+	}
+
+	return paths
+}
+
+func (f *FakeSys) rekey(from, to string) {
+	if content, isFile := f.Files[from]; isFile {
+		f.Files[to] = content
+	}
+	if f.Dirs[from] {
+		f.Dirs[to] = true
+	}
+	if target, linked := f.Links[from]; linked {
+		f.Links[to] = target
+	}
+	if mode, set := f.Modes[from]; set {
+		f.Modes[to] = mode
+	}
+	if at, dated := f.Times[from]; dated {
+		f.Times[to] = at
+	}
+	if owner, owned := f.Owners[from]; owned {
+		f.Owners[to] = owner
+	}
+
+	f.forget(from)
+}
+
+func (f *FakeSys) forget(path string) {
+	delete(f.Files, path)
+	delete(f.Dirs, path)
+	delete(f.Links, path)
+	delete(f.Modes, path)
+	delete(f.Times, path)
+	delete(f.Owners, path)
+}
+
+var errEscapes = errors.New("path escapes from parent")
+
+func (f *FakeSys) AppendFile(path string, data []byte, owner string) error {
+	if _, exists := f.Files[path]; !exists {
+		f.Modes[path] = 0o644
+		f.Times[path] = f.Now
+		if owner != "" {
+			f.Owners[path] = owner + ":" + owner
+		}
+	}
+
+	f.Files[path] = append(f.Files[path], data...)
+	f.mutate("append " + path)
+
+	return nil
+}
+
+func (f *FakeSys) Stat(path string) (int64, time.Time, error) {
+	content, ok := f.Files[path]
+	if _, linked := f.Links[path]; !ok || linked {
+		return 0, time.Time{}, &fs.PathError{Op: "stat", Path: path, Err: fs.ErrNotExist}
+	}
+
+	when := f.Times[path]
+	if when.IsZero() {
+		when = f.Now
+	}
+
+	return int64(len(content)), when, nil
+}
+
 // The fake holds a flat map of paths, so a folder's entries are the names that begin with it and go no deeper.
 func (f *FakeSys) ReadDir(path string) ([]sys.Entry, error) {
 	prefix := strings.TrimSuffix(path, "/") + "/"
@@ -879,7 +1318,7 @@ func (f *FakeSys) Exists(path string) (bool, error) {
 }
 
 func (f *FakeSys) Chown(path, owner, group string) error {
-	if _, ok := f.Files[path]; !ok && !f.Dirs[path] {
+	if !f.known(path) {
 		return &fs.PathError{Op: "chown", Path: path, Err: fs.ErrNotExist}
 	}
 
@@ -889,16 +1328,76 @@ func (f *FakeSys) Chown(path, owner, group string) error {
 	return nil
 }
 
+// A folder a seeded file lives in exists, even when no test declared it.
+func (f *FakeSys) known(path string) bool {
+	if exists, _ := f.Exists(path); exists {
+		return true
+	}
+
+	return f.hasChild(strings.TrimSuffix(path, "/") + "/")
+}
+
 func (f *FakeSys) MkdirAll(path string, mode fs.FileMode) error {
 	if f.Dirs[path] {
 		return nil
 	}
 
-	f.Dirs[path] = true
+	for dir := path; dir != "/" && dir != "." && !f.Dirs[dir]; dir = filepath.Dir(dir) {
+		f.Dirs[dir] = true
+	}
+
 	f.Modes[path] = mode
 	f.mutate("mkdir " + path)
 
 	return nil
+}
+
+// A path nobody chowned belongs to root, as everything the agent writes does.
+func (f *FakeSys) Owner(path string) (string, error) {
+	if !f.known(path) {
+		return "", &fs.PathError{Op: "lstat", Path: path, Err: fs.ErrNotExist}
+	}
+
+	owner, _, _ := strings.Cut(f.Owners[path], ":")
+	if owner == "" {
+		return "root", nil
+	}
+
+	return owner, nil
+}
+
+// A process that ignores SIGTERM is the whole point of force: it must still be there when the grace period is over.
+func (f *FakeSys) Signal(pid int, sig syscall.Signal) error {
+	if _, running := f.Procs[pid]; !running {
+		return syscall.ESRCH
+	}
+
+	if sig == 0 {
+		return nil
+	}
+
+	name := signalNames[sig]
+	if name == "" {
+		name = strconv.Itoa(int(sig))
+	}
+
+	f.Signals = append(f.Signals, name+" "+strconv.Itoa(pid))
+	f.mutate("signal " + name + " " + strconv.Itoa(pid))
+
+	if sig == syscall.SIGTERM && f.Stubborn[pid] {
+		return nil
+	}
+
+	delete(f.Procs, pid)
+
+	return nil
+}
+
+var signalNames = map[syscall.Signal]string{
+	syscall.SIGTERM: "TERM",
+	syscall.SIGKILL: "KILL",
+	syscall.SIGHUP:  "HUP",
+	syscall.SIGINT:  "INT",
 }
 
 func (f *FakeSys) mutate(description string) {

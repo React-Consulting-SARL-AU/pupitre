@@ -23,6 +23,7 @@ export type EntityStatus = z.infer<typeof EntityStatusSchema>
 export const LegalEntitySchema = z.object({
   status: EntityStatusSchema,
   tradingName: z.string().min(1),
+  owner: z.string().min(1),
   legalName: z.string().min(1).nullable(),
   form: z.string().min(1).nullable(),
   jurisdiction: z.string().min(1).nullable(),
@@ -40,6 +41,7 @@ export type LegalEntity = z.infer<typeof LegalEntitySchema>
 export const LEGAL_ENTITY: LegalEntity = {
   status: "in-formation",
   tradingName: "Pupitre",
+  owner: "Jordan Monier",
   legalName: null,
   form: null,
   jurisdiction: null,
@@ -86,8 +88,8 @@ export const LegalDocumentSchema = z.object({
 export type LegalDocument = z.infer<typeof LegalDocumentSchema>
 
 export const LEGAL_DOCUMENTS: readonly LegalDocument[] = [
-  { slug: "terms", order: 1, updated: "2026-09-06", status: "draft" },
-  { slug: "licence", order: 2, updated: "2026-09-06", status: "draft" },
+  { slug: "terms", order: 1, updated: "2026-09-10", status: "draft" },
+  { slug: "licence", order: 2, updated: "2026-09-10", status: "draft" },
   { slug: "acceptable-use", order: 3, updated: "2026-09-06", status: "draft" },
   { slug: "privacy", order: 4, updated: "2026-09-06", status: "draft" },
   { slug: "data-processing", order: 5, updated: "2026-09-06", status: "draft" },
@@ -164,7 +166,7 @@ const NOTICES: Record<Locale, DevelopmentNotice> = {
     title: "Projet en développement — ce document n’engage personne",
     body: "Pupitre est en cours de développement. Le service n’est pas ouvert au public, aucun abonnement n’est vendu et aucun compte client n’est servi. Ce texte est un brouillon de travail, publié pour être lu et corrigé : il n’a aucune valeur contractuelle.",
     entity:
-      "L’éditeur n’est pas encore immatriculé. L’identité légale, l’adresse du siège, les numéros d’immatriculation et les mentions fiscales seront ajoutés à la constitution de la société, et chaque document sera relu par un avocat avant d’engager qui que ce soit.",
+      "L’éditeur n’est pas encore immatriculé. Jusqu’à la constitution de la société, Pupitre — le code, la marque, les noms de domaine et la plateforme — appartient personnellement à Jordan Monier, seul titulaire des droits. L’identité légale, l’adresse du siège, les numéros d’immatriculation et les mentions fiscales seront ajoutés à la constitution de la société, à laquelle le projet sera apporté, et chaque document sera relu par un avocat avant d’engager qui que ce soit.",
     short:
       "Projet en développement : documents en brouillon, sans valeur contractuelle.",
   },
@@ -173,7 +175,7 @@ const NOTICES: Record<Locale, DevelopmentNotice> = {
     title: "Project under development — this document binds no one",
     body: "Pupitre is under development. The service is not open to the public, no subscription is sold and no customer account is served. This text is a working draft, published so it can be read and corrected: it has no contractual value.",
     entity:
-      "The publisher is not incorporated yet. The legal identity, registered address, registration numbers and tax details will be added when the company is formed, and every document will be reviewed by a lawyer before it binds anyone.",
+      "The publisher is not incorporated yet. Until the company is formed, Pupitre — the code, the brand, the domain names and the platform — belongs personally to Jordan Monier, its sole rights holder. The legal identity, registered address, registration numbers and tax details will be added when the company is formed and the project is transferred to it, and every document will be reviewed by a lawyer before it binds anyone.",
     short:
       "Project under development: draft documents, with no contractual value.",
   },
@@ -191,15 +193,11 @@ export function isIncorporated(entity: LegalEntity = LEGAL_ENTITY): boolean {
   return entity.status === "incorporated"
 }
 
-export function legalEntityLabel(
-  locale: Locale,
-  entity: LegalEntity = LEGAL_ENTITY
-): string {
-  if (entity.legalName) {
+/** Who holds the rights today: the person, until the company exists to receive them. */
+export function copyrightHolder(entity: LegalEntity = LEGAL_ENTITY): string {
+  if (isIncorporated(entity) && entity.legalName) {
     return entity.legalName
   }
 
-  return locale === "fr"
-    ? `${entity.tradingName} — société en cours de constitution`
-    : `${entity.tradingName} — company being formed`
+  return entity.owner
 }

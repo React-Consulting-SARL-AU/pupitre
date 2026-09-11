@@ -7,7 +7,6 @@ import type {
 } from "@shared/servers";
 import { grantGone, grantPending } from "@shared/servers";
 import { create } from "zustand";
-import { useOnboarding } from "./onboarding";
 import { useServers } from "./servers";
 
 /**
@@ -161,7 +160,6 @@ export const useFleet = create<FleetStore>((set, get) => ({
       return;
     }
 
-    const first = !server.grant.opened;
     const answer = await window.pupitre.openGrantedServer(serverId);
 
     if (!answer.ok) {
@@ -171,10 +169,6 @@ export const useFleet = create<FleetStore>((set, get) => ({
 
     await useServers.getState().load();
     set({ opening: { serverId, status: "opened" } });
-
-    if (first) {
-      useOnboarding.getState().personalise(serverId);
-    }
   },
 
   async restore() {

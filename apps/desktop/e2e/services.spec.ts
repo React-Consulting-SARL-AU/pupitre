@@ -1,0 +1,157 @@
+import { expect, test } from "@playwright/test";
+import { assertAccessible } from "./harness/accessible";
+import { launchPupitre, type Running } from "./harness/launch";
+
+/**
+ * A service, opened from the list and driven from its page.
+ *
+ * The panel used to be reachable by no scenario at all, which is how it came
+ * to show a reader an empty page: everything it draws comes from two answers,
+ * and a screen with neither said nothing rather than saying so. The unit's
+ * gestures and its journal come from the harness too: the state shown after
+ * a stop is the one the answer carried, never the one the click hoped for.
+ */
+const HELD_BACK = /tant que le serveur est retenu/;
+
+const RESTART_QUESTION = /Redémarrer PostgreSQL/;
+
+const DATABASE_TAB = /PostgreSQL/;
+
+test.describe("services", () => {
+  let running: Running;
+
+  test.beforeAll(async () => {
+    running = await launchPupitre();
+
+    await running.app.evaluate(({ ipcMain }) => {
+      const answer = (
+        channel: string,
+        reply: (...args: unknown[]) => unknown
+      ) => {
+        ipcMain.removeHandler(channel);
+        ipcMain.handle(channel, (_event, ...args: unknown[]) => reply(...args));
+      };
+
+      answer("service:detail", () => ({
+        ok: true,
+        result: {
+          configured: true,
+          credentials: ["Mot de passe applicatif"],
+          id: "db.postgres",
+          name: "PostgreSQL",
+          port: 5432,
+          state: "running",
+          unit: "postgresql.service",
+          version: "17.2",
+        },
+      }));
+
+      answer("catalog:list", () => ({
+        ok: false,
+        error: {
+          code: "entitlement_required",
+          fix: "Ouvrez la console.",
+          message: "abonnement requis : ce serveur est en mode restreint",
+        },
+      }));
+    });
+  });
+
+  test.afterAll(async () => {
+    await running.app.close();
+  });
+
+  test("ouvre une fiche qui dit ce que le serveur a répondu", async () => {
+    const { page } = running;
+
+    await page.getByRole("button", { name: "Services" }).click();
+
+    await test.step("la liste vient du snapshot", async () => {
+      await expect(page.locator('[data-service="db.postgres"]')).toBeVisible();
+    });
+
+    await test.step("la fiche nomme le service et son état", async () => {
+      await page.locator('[data-service="db.postgres"]').click();
+
+      await expect(
+        page.getByRole("heading", { name: "PostgreSQL" })
+      ).toBeVisible();
+      await expect(page.getByText("17.2")).toBeVisible();
+      await expect(page.getByText("port 5432").first()).toBeVisible();
+    });
+
+    await test.step("elle nomme l'identifiant sans le montrer", async () => {
+      await expect(page.getByText("Mot de passe applicatif")).toBeVisible();
+    });
+
+    /** A catalogue the server refuses used to take the whole Configuration section with it. */
+    await test.step("elle dit pourquoi les réglages manquent", async () => {
+      await expect(page.locator('[data-config="unknown"]')).toBeVisible();
+      await expect(page.getByText(HELD_BACK)).toBeVisible();
+    });
+
+    await test.step("le journal de l'unité arrive ligne par ligne", async () => {
+      const journal = page.locator('[data-service-journal="db.postgres"]');
+
+      await expect(journal).toBeVisible();
+      await expect(
+        journal.getByText("ready to accept connections")
+      ).toBeVisible();
+      await expect(journal.getByText("checkpoint complete")).toBeVisible();
+    });
+
+    await test.step("arrêter montre l'état que l'agent a répondu, et offre alors le démarrage", async () => {
+      const controls = page.locator('[data-service-controls="db.postgres"]');
+
+      await controls.getByRole("button", { name: "Arrêter" }).click();
+
+      await expect(
+        controls.getByRole("button", { exact: true, name: "Démarrer" })
+      ).toBeVisible();
+      await expect(
+        page.locator('[data-state="stopped"]').first()
+      ).toBeVisible();
+
+      await controls
+        .getByRole("button", { exact: true, name: "Démarrer" })
+        .click();
+
+      await expect(
+        controls.getByRole("button", { name: "Arrêter" })
+      ).toBeVisible();
+    });
+
+    await test.step("redémarrer se confirme en nommant le service", async () => {
+      const controls = page.locator('[data-service-controls="db.postgres"]');
+
+      await controls
+        .getByRole("button", { exact: true, name: "Redémarrer" })
+        .click();
+
+      await expect(controls.getByText(RESTART_QUESTION)).toBeVisible();
+
+      await controls
+        .getByRole("button", { name: "Redémarrer maintenant" })
+        .click();
+
+      await expect(
+        controls.getByRole("button", { name: "Arrêter" })
+      ).toBeVisible();
+    });
+
+    await test.step("le shell de la base ouvre un onglet de terminal", async () => {
+      await page.getByRole("button", { name: "Ouvrir un shell" }).click();
+
+      await expect(page.getByRole("tab", { name: DATABASE_TAB })).toBeVisible();
+    });
+
+    await test.step("l'accessibilité de la fiche tient", async () => {
+      await page.getByRole("button", { name: "Services" }).click();
+      await page.locator('[data-service="db.postgres"]').click();
+      await expect(
+        page.getByRole("heading", { name: "PostgreSQL" })
+      ).toBeVisible();
+      await assertAccessible(page, "services/panel");
+    });
+  });
+});

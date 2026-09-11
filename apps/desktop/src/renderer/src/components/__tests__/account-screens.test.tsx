@@ -4,6 +4,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { AccountGateScreen } from "../account/account-gate-screen";
 import { AccountIdentityCard } from "../account/account-identity-card";
 import { AccountSignInCard } from "../account/account-sign-in-card";
+import {
+  AccountSubscriptionCard,
+  billingUrlOf,
+} from "../account/account-subscription-card";
 import { AccountUsageNotice } from "../account/account-usage-notice";
 import { OnboardingEnrollmentNote } from "../onboarding/onboarding-enrollment-note";
 
@@ -41,6 +45,7 @@ const SIGNED_IN: AccountState = {
       { id: "org-1", name: "Atelier Ada", role: "owner", slug: "ada" },
     ],
     role: "owner",
+    subscription: null,
   },
   refusal: null,
   sealed: true,
@@ -109,7 +114,7 @@ describe("le droit d'usage", () => {
       new Date().toISOString()
     );
 
-    expect(text(html)).toContain("sept jours sans la console");
+    expect(text(html)).toContain("sept jours sans connexion");
     expect(html).toContain('data-usage="granted"');
   });
 
@@ -280,8 +285,8 @@ describe("l'écran de compte", () => {
       },
     });
 
-    expect(text(html)).toContain("Droit d'usage expiré");
-    expect(text(html)).toContain("Dernière réponse de la console");
+    expect(text(html)).toContain("Vérification expirée");
+    expect(text(html)).toContain("Dernière vérification");
     expect(text(html)).toContain(
       `Reconnecte cet appareil, ou vérifie l'état du compte : ${CONSOLE_URL}`
     );
@@ -300,6 +305,8 @@ describe("l'identité", () => {
 
     expect(text(html)).toContain("ada@pupitre.studio");
     expect(text(html)).toContain("Atelier Ada");
+    expect(text(html)).toContain("Propriétaire");
+    expect(text(html)).not.toContain("owner");
     expect(text(html)).toContain("SHA256:mac");
     expect(text(html)).toContain("Se déconnecter");
   });
@@ -341,7 +348,7 @@ describe("l'enrôlement", () => {
       />
     );
 
-    expect(text(html)).toContain("Serveur enrôlé");
+    expect(text(html)).toContain("Serveur déclaré");
     expect(text(html)).toContain("srv-platform-1");
     expect(text(html)).toContain("pupitred 1.4.0");
   });
@@ -350,5 +357,85 @@ describe("l'enrôlement", () => {
     expect(
       renderToStaticMarkup(<OnboardingEnrollmentNote enrollment={null} />)
     ).toBe("");
+  });
+});
+
+describe("l'abonnement sous le compte", () => {
+  const NOW = new Date("2026-09-11T10:00:00.000Z");
+
+  function card(
+    subscription: Parameters<typeof AccountSubscriptionCard>[0]["subscription"]
+  ): string {
+    return renderToStaticMarkup(
+      <AccountSubscriptionCard
+        consoleUrl={CONSOLE_URL}
+        now={NOW}
+        onOpenConsole={NOOP}
+        subscription={subscription}
+      />
+    );
+  }
+
+  it("compte les jours d'un essai, et les sièges occupés", () => {
+    const html = card({
+      current_period_end: "2026-09-16T09:00:00.000Z",
+      servers: { limit: 2, used: 1 },
+      status: "trialing",
+      trial_ends_at: "2026-09-16T09:00:00.000Z",
+    });
+
+    expect(text(html)).toContain("Essai en cours");
+    expect(text(html)).toContain("5 jours restants");
+    expect(text(html)).toContain("1 sièges sur 2 occupés");
+    expect(text(html)).toContain("Gérer l'abonnement");
+    expect(html).toContain('data-trial-tone="ok"');
+    expect(html).toContain('data-shape="breathing"');
+  });
+
+  it("passe en avertissement sous trois jours, avec le remède", () => {
+    const html = card({
+      current_period_end: "2026-09-13T09:00:00.000Z",
+      servers: { limit: 2, used: 2 },
+      status: "trialing",
+      trial_ends_at: "2026-09-13T09:00:00.000Z",
+    });
+
+    expect(text(html)).toContain("2 jours restants");
+    expect(text(html)).toContain("Choisissez une offre dans la console");
+    expect(html).toContain('data-trial-tone="warn"');
+    expect(html).toContain("text-warn");
+  });
+
+  it("dit la date de renouvellement d'un abonnement payé, sans compter de jours", () => {
+    const html = card({
+      current_period_end: "2026-10-01T00:00:00.000Z",
+      servers: { limit: 3, used: 1 },
+      status: "active",
+      trial_ends_at: null,
+    });
+
+    expect(text(html)).toContain("Abonnement actif");
+    expect(text(html)).toContain("Renouvellement le");
+    expect(text(html)).not.toContain("restant");
+    expect(html).not.toContain("data-trial-tone");
+    expect(html).toContain('data-shape="filled"');
+  });
+
+  it("garde le mot de Stripe pour un statut qu'elle ne nomme pas", () => {
+    const html = card({
+      current_period_end: null,
+      servers: { limit: 1, used: 0 },
+      status: "incomplete_expired",
+      trial_ends_at: null,
+    });
+
+    expect(text(html)).toContain("incomplete_expired");
+    expect(text(html)).not.toContain("Renouvellement");
+  });
+
+  it("envoie à la facturation de la console, sous l'adresse du compte", () => {
+    expect(billingUrlOf("https://app.pupitre.test/dashboard")).toBe(
+      "https://app.pupitre.test/dashboard/billing"
+    );
   });
 });

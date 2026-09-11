@@ -1,6 +1,6 @@
 # Catalogue de services
 
-Le catalogue est une **bibliothèque des stacks les plus utilisées**, choisies parce qu'elles s'installent et se gèrent proprement. Il est complet : vingt-six modules, tous livrés. Il ne cherche pas l'exhaustivité : ce qui n'y est pas, le client l'installe lui-même sur sa machine, et Pupitre ne s'y oppose pas. La sonde signale ce qu'elle trouve, les modules ne touchent qu'à ce qu'ils ont installé.
+Le catalogue est une **bibliothèque des stacks les plus utilisées**, choisies parce qu'elles s'installent et se gèrent proprement. Il est complet : vingt-cinq modules, tous livrés. Il ne cherche pas l'exhaustivité : ce qui n'y est pas, le client l'installe lui-même sur sa machine, et Pupitre ne s'y oppose pas. La sonde signale ce qu'elle trouve, les modules ne touchent qu'à ce qu'ils ont installé.
 
 Un service est un **module** de l'agent : une unité Go qui sait s'installer, se vérifier, se configurer, se mettre à jour, se désinstaller et rapporter son état, sur Ubuntu 22.04 et 24.04, amd64 et arm64. L'app ne connaît aucun service par son nom : elle affiche les manifestes que l'agent déclare.
 
@@ -19,8 +19,8 @@ type Manifest = {
   resources: { ram_mb: number; disk_mb: number }
   arch: ("amd64" | "arm64")[]
   fields: Field[]                // ce que l'écran de configuration demande
-  provides: string[]             // "db:postgres", "editor:jetbrains" — pour les préréglages et les projets
-  connection?: "cloudflare"      // le compte tiers que ce module exige de l'app
+  connection?: "cloudflare" | "github" | "1password" | "neon"  // le compte tiers que ce module exige de l'app
+  runs: boolean                  // le module tient un processus, ou en lance un à tout moment
   mandatory: boolean             // true pour core.system et core.hardening
   since: string                  // version de l'agent
 }
@@ -40,11 +40,22 @@ type Field =
   | { kind: "list"; required: boolean; items: "text" | "secret"; min?: number; max?: number }  // une liste de valeurs du même genre
 ```
 
+**`runs` dit ce qui a un état à regarder.** Une base, un tunnel, un serveur d'éditeur, un agent de code tiennent un processus ou en lancent un à tout moment ; un langage, un CLI et la passe de durcissement ne laissent rien derrière eux. Le tableau de bord ne montre que les premiers — les autres vivent sur l'écran des services, où on les configure et les met à niveau. Une unité systemd n'est pas la règle : le durcissement en tient une et n'a rien à montrer. Un module antérieur au champ ne le rend pas, et l'app le tient alors pour un module qui tourne, ce que le tableau de bord faisait avant que le champ existe.
+
 ## Connexions
 
 Une **connexion** est un compte tiers que l'app détient pour le client, sur son poste, et qui vaut pour tous ses serveurs. Un **module** est une unité que l'agent installe sur un serveur. Un module qui exige une connexion le déclare, et l'écran de configuration la demande au-dessus de ses propres questions plutôt que trois écrans plus loin.
 
-Une seule connexion existe : **Cloudflare**. L'app en retient le jeton, dans le trousseau système ; elle lit auprès de Cloudflare le compte qu'il ouvre, et ne demande donc aucun identifiant. Elle en dérive les trois champs `managed` de `exposure.cloudflare` — `account_tag`, `tunnel_id`, `tunnel_secret` — au moment de l'installation.
+Quatre connexions existent : **Cloudflare**, **GitHub**, **1Password** et **Neon**. L'app retient le jeton de chacune dans le trousseau système, un fichier par fournisseur, et le chiffré seul touche le disque.
+
+| Connexion | Vérifiée à la saisie | Ce qu'elle remplit |
+| --- | --- | --- |
+| `cloudflare` | `GET /accounts` : le compte qu'ouvre le jeton, et les zones qu'il porte | les trois champs `managed` d'`exposure.cloudflare` — `account_tag`, `tunnel_id`, `tunnel_secret` |
+| `github` | `GET /user` : le compte qu'ouvre le jeton | le champ `managed` `token` de `tool.github` |
+| `1password` | rien : un jeton de compte de service ne répond à aucun appel depuis le poste. Il est retenu sans nom, et le serveur dit à l'installation s'il ouvre un coffre | le champ `managed` `service_account_token` de `tool.1password` |
+| `neon` | `GET /users/me` : le compte qu'ouvre la clé | le champ `managed` `api_key` de `tool.neon` |
+
+**Rien ne change sur le fil** pour un jeton passé d'un formulaire à une connexion. Il atteint la machine sur la ligne de secrets de l'`install`, groupé par identifiant de module comme les autres, écrit par le processus principal de l'app, et se range dans `/etc/pupitre/env` sous root seul. Un jeton qu'un CLI lit lui-même dans son environnement (`NEON_API_KEY`, `OP_SERVICE_ACCOUNT_TOKEN`) est aussi exporté dans `/home/dev/.config/pupitre/env`, 0600 sous `dev`, que `~/.zshenv` lit : sans quoi `neon me` ou `op whoami` dans un terminal ne voient aucun compte. Ce qui change est d'où l'app le tient : un compte connecté une fois, au lieu d'un champ retapé pour chaque serveur. Un module dont le compte n'est pas connecté est refusé **avant la première étape**, avec le problème `connection`.
 
 - **Un champ `managed` est dérivé d'une connexion par l'app, jamais par la plateforme.** L'agent refuse d'enregistrer un manifeste qui en porte un sans déclarer de connexion.
 - **Le tunnel appartient au serveur.** L'app le crée une fois sur le compte du client, en pousse l'identifiant et le secret, puis n'en garde rien : `module.config` le lui rend quand elle en a besoin. Un poste réinstallé, ou un serveur confié à un collègue, retrouve le tunnel avec le seul jeton du compte.
@@ -83,14 +94,14 @@ Chaque module implémente `Check`, `Install`, `Configure`, `Upgrade`, `Uninstall
 
 | Id | Fait | Champs |
 | --- | --- | --- |
-| `core.system` | paquets de base, fuseau, mises à jour de sécurité automatiques sans redémarrage, swap dimensionné, garde-fou mémoire (`systemd-oomd` ou `earlyoom`), utilisateur `dev` avec sudo, dont `authorized_keys` reçoit les clés non restreintes de root pour qu'une clé l'ouvre avant le durcissement, tmux, zsh et bash avec les marqueurs de prompt (OSC 133) lus par l'app, commande `dev` liée au binaire, identité git | `timezone`, `git_name`, `git_email`, `projects_dir` |
+| `core.system` | paquets de base — dont `rsync`, que l'app emploie pour transférer des fichiers avec reprise ; une machine installée avant lui le reçoit à la mise à niveau suivante des modules — fuseau, mises à jour de sécurité automatiques sans redémarrage, swap dimensionné, garde-fou mémoire (`systemd-oomd` ou `earlyoom`), utilisateur `dev` avec sudo, dont `authorized_keys` reçoit les clés non restreintes de root pour qu'une clé l'ouvre avant le durcissement, tmux, zsh et bash avec les marqueurs de prompt (OSC 133) lus par l'app, commande `dev` liée au binaire, identité git | `timezone`, `git_name`, `git_email`, `projects_dir` |
 | `core.hardening` | ufw sur SSH seul (22, et 443 en option), fail2ban, root fermé et mots de passe désactivés **après** vérification qu'une clé ouvre `dev`, `AllowUsers dev`, `ClientAlive`. Avec `keep_root`, root garde sa place dans `AllowUsers` et passe en `PermitRootLogin prohibit-password` : par clé, jamais par mot de passe | `ssh_443` (boolean), `keep_root` (boolean) |
 
 ### Runtimes
 
 | Id | Fait | Champs |
 | --- | --- | --- |
-| `runtime.node` | mise ; Node, Bun, pnpm aux versions choisies ; activés dans tous les shells y compris non interactifs par un bloc balisé du `.zshenv` | `node_version`, `bun` (boolean), `pnpm` (boolean) |
+| `runtime.node` | mise ; Node, Bun, pnpm, Yarn aux versions choisies ; pnpm et Yarn par corepack ; activés dans tous les shells y compris non interactifs par un bloc balisé du `.zshenv` | `node_version`, `bun` (boolean), `pnpm` (boolean), `yarn` (boolean, décoché) |
 | `runtime.java` | Temurin via mise, daemon Gradle dimensionné pour la RAM | `java_version` |
 | `runtime.python` | uv et une version Python ; base des agents en Python | `python_version` |
 | `runtime.go` | Go via mise, `GOPATH` et son `bin` sur le `PATH` | `go_version`, `gopath` |
@@ -103,9 +114,9 @@ Chaque module implémente `Check`, `Install`, `Configure`, `Upgrade`, `Uninstall
 | Id | Fait | Champs |
 | --- | --- | --- |
 | `db.mysql` | MySQL 8 ou MariaDB, lié à `127.0.0.1` sur le port choisi, root sur socket, compte applicatif, compte distant pour le laptop à travers SSH, buffer pool dimensionné, import automatique des dumps déposés dans `~/dumps/` | `engine: mysql \| mariadb`, `port`, `app_user`, `remote_user`, `app_password` (généré), `remote_password` (généré), `buffer_pool` |
-| `db.postgres` | PostgreSQL à la version majeure choisie depuis le dépôt du projet, local seulement, rôles applicatif et distant, extensions courantes, import de dumps | `version`, `port`, `app_role`, `remote_role`, `app_password`, `remote_password` |
-| `db.mongodb` | MongoDB à la version majeure choisie, local seulement, utilisateur applicatif, import de `mongodump` | `version`, `port`, `app_user`, `app_password` |
-| `db.redis` | local seulement, mot de passe exigé, persistance et plafond mémoire au choix | `port`, `password`, `persistence` (boolean), `maxmemory_mb` |
+| `db.postgres` | PostgreSQL à la version majeure choisie depuis le dépôt du projet, local seulement, rôles applicatif et distant, mémoire partagée dimensionnée, extensions courantes, import de dumps | `version`, `port`, `app_role`, `remote_role`, `app_password`, `remote_password`, `shared_buffers` |
+| `db.mongodb` | MongoDB à la version majeure choisie, local seulement, utilisateur applicatif, cache WiredTiger dimensionné, import de `mongodump` | `version`, `port`, `app_user`, `app_password`, `cache_mb` |
+| `db.redis` | local seulement, mot de passe exigé, persistance, plafond mémoire et politique d'éviction au choix | `port`, `password`, `persistence` (boolean), `maxmemory_mb`, `maxmemory_policy` |
 
 ### Agents IA
 
@@ -128,12 +139,11 @@ Visual Studio n'a pas de backend Linux : l'app le dit et renvoie vers `editor.vs
 
 ### Exposition
 
-Les trois modules d'exposition sont exclusifs : chacun déclare les deux autres en `conflicts`. Les commandes `tunnel.status`, `tunnel.sync` et `tunnel.restart` s'adressent à celui qui est installé, jamais à un fournisseur nommé — `/etc/pupitre/exposure` dit lequel tient la machine, et le rapport le nomme dans `provider`. Une machine que rien n'expose répond `absent` avec `provider: null` ; `tunnel.sync` et `tunnel.restart` y refusent en `service_not_found` plutôt que de répondre pour un module absent.
+Les deux modules d'exposition sont exclusifs : chacun déclare l'autre en `conflicts`. N'en cocher aucun est le troisième état, et il ne porte pas de module : la machine répond par la session SSH que l'app tient déjà, et rien n'est publié. Les commandes `tunnel.status`, `tunnel.sync` et `tunnel.restart` s'adressent à celui qui est installé, jamais à un fournisseur nommé — `/etc/pupitre/exposure` dit lequel tient la machine, et le rapport le nomme dans `provider`. Une machine que rien n'expose répond `absent` avec `provider: null` ; `tunnel.sync` et `tunnel.restart` y refusent en `service_not_found` plutôt que de répondre pour un module absent.
 
 | Id | Fait | Champs |
 | --- | --- | --- |
 | `exposure.cloudflare` | un tunnel, une route par projet, DNS et certificat gérés, sous-domaines depuis le registre, sur le compte Cloudflare du client. **L'app tient le jeton** : elle crée le tunnel et écrit le DNS depuis le laptop, le serveur ne reçoit que de quoi le faire tourner, et le garde | `domain`, choisi par serveur ; trois champs `managed` dérivés de la connexion : `account_tag`, `tunnel_id`, `tunnel_secret` |
-| `exposure.ssh` | sans exposition publique : chaque projet sur son port, à travers la session SSH que l'app tient | — |
 | `exposure.caddy` | reverse proxy avec certificats Let's Encrypt automatiques pour un domaine sans Cloudflare, une route par projet qui déclare un sous-domaine, ses deux ports ouverts dans ufw sous la forme `<port>/tcp` | `domain`, `email`, `http_port`, `https_port` |
 
 `core.hardening` gouverne les règles nues `22` et `443` — SSH — et n'y touche jamais autrement ; `exposure.caddy` écrit les siennes en `<port>/tcp`. Les deux ne se marchent pas dessus.
@@ -142,17 +152,19 @@ Les trois modules d'exposition sont exclusifs : chacun déclare les deux autres 
 
 | Id | Fait | Champs |
 | --- | --- | --- |
-| `tool.github` | `gh`, clone HTTPS sans clé, clé du serveur enregistrée sur le compte | `token` (secret) |
-| `tool.1password` | CLI et compte de service, génération des `.env.local` depuis les gabarits des dépôts | `service_account_token` (secret) |
-| `tool.neon` | le CLI Neon dans `/usr/local/bin/neon`, authentifié par la clé rangée dans `/etc/pupitre/env` ; les projets et les bases restent la décision du client | `api_key` (secret) |
+| `tool.github` | `gh`, clone HTTPS sans clé, clé du serveur enregistrée sur le compte | `token` (secret, `managed` par la connexion `github`) |
+| `tool.1password` | CLI et compte de service, `OP_SERVICE_ACCOUNT_TOKEN` exporté dans le shell de `dev`, génération des `.env.local` depuis les gabarits des dépôts | `service_account_token` (secret, `managed` par la connexion `1password`) |
+| `tool.neon` | le CLI Neon dans `/usr/local/bin/neon`, `neonctl` en lien vers lui (c'est le nom que son aide imprime), et la clé rangée dans `/etc/pupitre/env` puis exportée dans le shell de `dev` — `neonctl` n'a pas de connexion par jeton, il la prend par `NEON_API_KEY`, et sans elle il lance une connexion par navigateur ; les projets et les bases restent la décision du client | `api_key` (secret, `managed` par la connexion `neon`) |
 
 ## Préréglages
 
 | Preset | Nom | Modules |
 | --- | --- | --- |
-| `web-js` | Web JavaScript | `core.*`, `runtime.node`, `db.mysql`, `ai.claude`, `ai.browser`, `editor.vscode`, `exposure.ssh` |
-| `full` | Tout le catalogue | tout le catalogue moins les expositions, qui se contredisent : le préréglage porte les trois en `choose_one` et l'écran demande laquelle |
+| `web-js` | Web JavaScript | `core.*`, `runtime.node`, `db.mysql`, `ai.claude`, `ai.browser`, `editor.vscode` — aucune exposition, qui est l'état par défaut |
+| `full` | Tout le catalogue | tout le catalogue moins les expositions, qui se contredisent : le préréglage porte les deux en `choose_one` et l'écran demande laquelle |
 | `minimal` | Minimal | `core.*`, un agent au choix |
+
+Les identifiants de modules d'un préréglage suivent la même forme ouverte que celui d'un manifeste : un module que l'agent gagne avant que `packages/shared` ne le connaisse peut entrer dans un préréglage sans version de ce paquet.
 
 ## Source des étapes
 

@@ -1,12 +1,14 @@
 package vscode
 
 import (
+	"errors"
 	"fmt"
-	"pupitre.studio/agent/internal/i18n"
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/download"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/systemd"
@@ -23,8 +25,9 @@ const (
 	pointerPath   = ServerRoot + "/pupitre-release.json"
 
 	cliPath       = "/usr/local/bin/code"
-	cliArchive    = "/tmp/pupitre-code-cli.tar.gz"
-	serverArchive = "/tmp/pupitre-code-server.tar.gz"
+	cliDir        = "/usr/local/bin"
+	cliArchive    = "code-cli.tar.gz"
+	serverArchive = "code-server.tar.gz"
 	unitPath      = "/etc/systemd/system/" + Unit + ".service"
 
 	hostnamePath = "/etc/hostname"
@@ -88,11 +91,18 @@ func installCLI(ctx *modules.Context) error {
 }
 
 func fetchCLI(ctx *modules.Context) error {
-	if _, err := user.Run(ctx, shell.User, "curl", "-fsSL", "--proto", "=https", "--tlsv1.2", "-o", cliArchive, cliURL()); err != nil {
+	found, err := cli(ctx)
+	if err != nil {
 		return err
 	}
 
-	if _, err := user.Run(ctx, "root", "tar", "-x", "-z", "-f", cliArchive, "-C", "/usr/local/bin"); err != nil {
+	staged, done, err := download.Verified(ctx, cliArchive, found.url, found.sha256)
+	if err != nil {
+		return err
+	}
+	defer done()
+
+	if err := download.Extract(ctx, staged, cliDir, 0, "root"); err != nil {
 		return err
 	}
 
@@ -100,12 +110,8 @@ func fetchCLI(ctx *modules.Context) error {
 		return err
 	}
 
-	if _, err := file.Remove(ctx, cliArchive); err != nil {
-		return err
-	}
-
 	if !file.Exists(ctx, cliPath) {
-		return fmt.Errorf("the code command is missing from %s after extraction", cliPath)
+		return errors.New(i18n.T("modules.vscode.cli_missing", cliPath))
 	}
 
 	return nil
@@ -145,20 +151,18 @@ func unpackServer(ctx *modules.Context, found release) error {
 		}
 	}
 
-	if _, err := user.Run(ctx, shell.User, "curl", "-fsSL", "--proto", "=https", "--tlsv1.2", "-o", serverArchive, serverURL(found.Commit)); err != nil {
+	staged, done, err := download.Verified(ctx, serverArchive, found.url, found.sha256)
+	if err != nil {
 		return err
 	}
+	defer done()
 
-	if _, err := user.Run(ctx, shell.User, "tar", "-x", "-z", "-f", serverArchive, "-C", found.serverDir(), "--strip-components=1"); err != nil {
-		return err
-	}
-
-	if _, err := file.Remove(ctx, serverArchive); err != nil {
+	if err := download.Extract(ctx, staged, found.serverDir(), 1, shell.User); err != nil {
 		return err
 	}
 
 	if !file.Exists(ctx, found.serverCLI()) {
-		return fmt.Errorf("the remote server is missing from %s after extraction", found.serverDir())
+		return errors.New(i18n.T("modules.vscode.server_missing", found.serverDir()))
 	}
 
 	return nil
@@ -230,7 +234,7 @@ func installExtensions(ctx *modules.Context) error {
 
 		installed := recorded(ctx)
 		if installed.Commit == "" {
-			return modules.Failed, fmt.Errorf("no remote server installed to place the extensions")
+			return modules.Failed, errors.New(i18n.T("modules.vscode.no_server"))
 		}
 
 		missing := absent(ctx, installed, wanted)

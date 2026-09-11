@@ -1,14 +1,14 @@
 import type { Manifest } from "@pupitre/shared/catalog";
-import { useTranslations } from "@renderer/i18n/use-translations";
 import { CheckBox } from "../ui/check-box";
 import { ServiceLogo } from "../ui/service-logo";
 
 /**
  * One module, as its manifest describes it.
  *
- * Name, summary and figures are the agent's words; the app adds the logo, the
- * shape of the checkbox and — when something stands in the way — the reason,
- * printed under the summary rather than hidden in a tooltip.
+ * Name and summary are the agent's words; the app adds the logo, the shape of
+ * the checkbox and — when something stands in the way — the reason, printed
+ * under the summary rather than hidden in a tooltip. What the module weighs
+ * decides nothing card by card: the sum is said once, against the machine.
  */
 export function CatalogModuleCard({
   module,
@@ -22,8 +22,6 @@ export function CatalogModuleCard({
   reason?: string;
   onToggle?: (moduleId: string) => void;
 }) {
-  const t = useTranslations();
-
   const locked = module.mandatory;
   const unreachable = Boolean(reason) && !selected;
 
@@ -53,12 +51,7 @@ export function CatalogModuleCard({
         <ServiceLogo moduleId={module.id} name={module.name} size={20} />
 
         <span className="flex min-w-0 flex-col gap-1">
-          <span className="flex flex-wrap items-baseline gap-2">
-            <span className="font-medium text-ink">{module.name}</span>
-            <code className="font-data text-[11.5px] text-ink-4">
-              {module.id}
-            </code>
-          </span>
+          <span className="font-medium text-ink">{module.name}</span>
 
           <span className="text-[12px] text-ink-3 leading-relaxed">
             {module.summary}
@@ -69,15 +62,6 @@ export function CatalogModuleCard({
               {reason}
             </span>
           ) : null}
-
-          <span className="flex gap-3 font-data text-[11.5px] text-ink-4 tabular-nums">
-            <span>
-              {t("catalog.module.ram", { mb: module.resources.ram_mb })}
-            </span>
-            <span>
-              {t("catalog.module.disk", { mb: module.resources.disk_mb })}
-            </span>
-          </span>
         </span>
       </label>
     </li>

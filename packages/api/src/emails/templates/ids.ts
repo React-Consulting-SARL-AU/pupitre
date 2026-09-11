@@ -1,5 +1,6 @@
 export const EMAIL_TEMPLATE_IDS = [
   "magic_link",
+  "email_change",
   "invitation",
   "server_enrolled",
   "server_assigned",

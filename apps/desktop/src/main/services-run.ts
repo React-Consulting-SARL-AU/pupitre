@@ -1,5 +1,8 @@
 import type { DbEngine } from "@pupitre/shared/agent-protocol/secrets";
-import type { ServiceStatusResult } from "@pupitre/shared/agent-protocol/state";
+import type {
+  ServiceLogsResult,
+  ServiceStatusResult,
+} from "@pupitre/shared/agent-protocol/state";
 import type { AgentResponse } from "@shared/agent";
 import {
   CONNECTION_LABEL,
@@ -24,6 +27,11 @@ export interface ServicesDeps {
   /** Whether this identifier still names a server of the app's configuration. */
   knows: (serverId: string) => boolean;
 }
+
+/** The same quarter of an hour a followed project journal is allowed. */
+const FOLLOW_MS = 1_800_000;
+
+const DEFAULT_LINES = 120;
 
 /** What the app holds for a credential: the key that names it, or the value. */
 type Held = { key: string } | { value: string };
@@ -56,7 +64,7 @@ function refuse(
   return refuseWith("bad_request", id, values);
 }
 
-function named(
+export function namedService(
   serverId: unknown,
   moduleId: unknown,
   deps: ServicesDeps
@@ -72,7 +80,7 @@ function named(
   return { moduleId, serverId };
 }
 
-function isRefusal<T>(
+export function isServiceRefusal<T>(
   value: T | AgentResponse<never>
 ): value is AgentResponse<never> {
   return typeof value === "object" && value !== null && "ok" in value;
@@ -83,6 +91,9 @@ function detailOf(
   vault: Map<string, Held>
 ): ServiceDetail {
   return {
+    // An agent older than the field says nothing of it, and a module it never
+    // put off is a module it configured.
+    configured: status.configured !== false,
     credentials: [...vault.keys()],
     id: status.id,
     name: status.name,
@@ -104,9 +115,9 @@ export async function readService(
   moduleId: unknown,
   deps: ServicesDeps
 ): Promise<AgentResponse<ServiceDetail>> {
-  const call = named(serverId, moduleId, deps);
+  const call = namedService(serverId, moduleId, deps);
 
-  if (isRefusal(call)) {
+  if (isServiceRefusal(call)) {
     return call;
   }
 
@@ -148,9 +159,9 @@ export async function readDatabaseUrl(
   name: unknown,
   deps: ServicesDeps
 ): Promise<AgentResponse<{ label: string }>> {
-  const call = named(serverId, moduleId, deps);
+  const call = namedService(serverId, moduleId, deps);
 
-  if (isRefusal(call)) {
+  if (isServiceRefusal(call)) {
     return call;
   }
 
@@ -247,4 +258,48 @@ export function forgetCredentials(serverId?: string, moduleId?: string): void {
   }
 
   vaults.delete(serverId);
+}
+
+/**
+ * The unit's journal, read once or followed line by line.
+ *
+ * The renderer names a module; the unit that journal belongs to is the agent's
+ * to resolve, and the lines come back on `log` events exactly as a project's
+ * do. A follow holds the work channel, and the signal is how the reader lets
+ * go of it before the agent's own quarter of an hour.
+ */
+export async function serviceLogs(
+  serverId: unknown,
+  moduleId: unknown,
+  lines: unknown,
+  follow: boolean,
+  onLine: (line: string) => void,
+  deps: ServicesDeps,
+  signal?: AbortSignal
+): Promise<AgentResponse<ServiceLogsResult>> {
+  const call = namedService(serverId, moduleId, deps);
+
+  if (isServiceRefusal(call)) {
+    return call;
+  }
+
+  const count =
+    typeof lines === "number" && lines > 0 ? Math.floor(lines) : DEFAULT_LINES;
+
+  return await deps.client.request(
+    call.serverId,
+    "service.logs",
+    { follow, id: call.moduleId, lines: count },
+    {
+      onEvent: (event) => {
+        const line = (event as { line?: unknown }).line;
+
+        if (event.event === "log" && typeof line === "string") {
+          onLine(line);
+        }
+      },
+      ...(follow ? { timeoutMs: FOLLOW_MS } : {}),
+      ...(signal ? { signal } : {}),
+    }
+  );
 }

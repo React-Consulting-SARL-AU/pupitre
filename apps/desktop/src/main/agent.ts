@@ -1,14 +1,14 @@
-import {
-  COMMANDS,
-  type CommandName,
-  isCommandName,
-} from "@pupitre/shared/agent-protocol";
 import type { Event } from "@pupitre/shared/agent-protocol/envelope";
-import type { AgentResponse } from "@shared/agent";
-import { carriesCredential } from "@shared/services";
 import { app, ipcMain } from "electron";
 import { account } from "./account";
-import { createAgentClient, type SshTarget, sshSpawn } from "./agent-client";
+import { checkedCall, isRefusal } from "./agent-bridge";
+import {
+  createAgentClient,
+  type SshTarget,
+  serveAs,
+  sshSpawn,
+} from "./agent-client";
+import { appVersion } from "./app-version";
 import { broadcast } from "./broadcast";
 import { refuseWith } from "./refusal";
 import { relayTo } from "./relay";
@@ -26,7 +26,11 @@ import { usageError } from "./usage-guard";
 function target(serverId: string): SshTarget | null {
   const server = read().servers.find((s) => s.id === serverId);
 
-  return server ? { args: sshArgs(server, paths()) } : null;
+  if (!server) {
+    return null;
+  }
+
+  return { args: sshArgs(server, paths()), serveCommand: serveAs(server.user) };
 }
 
 /**
@@ -50,76 +54,15 @@ export function currentLanguage(): string {
 export const agentClient = createAgentClient({
   onChannel: (serverId, state) =>
     broadcast("agent:channel", { serverId, state }),
-  appVersion: app.getVersion(),
+  appVersion: appVersion(),
   locale: () => language,
   gate: () => usageError(() => account.guard()),
   spawn: sshSpawn(target),
+  validateResults: !app.isPackaged,
 });
 
-function refuse(
-  code: "bad_request" | "unknown_command",
-  id: string,
-  values?: Record<string, string | number>
-): AgentResponse<never> {
-  return refuseWith(code, id, values);
-}
-
-/**
- * What the renderer is allowed to ask, checked before it becomes a request.
- *
- * The renderer names a server and a command of the protocol; the main process
- * checks the server against the configuration, the command against `COMMANDS`,
- * and the parameters against that command's own schema. Nothing free-form
- * reaches the channel.
- */
-function checked(
-  serverId: unknown,
-  cmd: unknown,
-  params: unknown
-):
-  | { serverId: string; cmd: CommandName; params: unknown }
-  | AgentResponse<never> {
-  const known =
-    typeof serverId === "string" &&
-    read().servers.some((s) => s.id === serverId)
-      ? serverId
-      : null;
-
-  if (!known) {
-    return refuse("bad_request", "refusal.server.unknown");
-  }
-
-  if (typeof cmd !== "string" || !isCommandName(cmd)) {
-    return refuse("unknown_command", "refusal.command.unknown", {
-      cmd: String(cmd),
-    });
-  }
-
-  const parsed = COMMANDS[cmd].params.safeParse(params ?? {});
-
-  if (!parsed.success) {
-    return refuse("bad_request", "refusal.params.invalid", { cmd });
-  }
-
-  // A credential is not something a store may hold: those results are read by
-  // the Services channels, which keep the values on this side.
-  if (carriesCredential(cmd)) {
-    return refuse("bad_request", "refusal.bridge.credential", { cmd });
-  }
-
-  // A secret never crosses the bridge: the flows that carry one send it from the
-  // main process, on the line that follows the request.
-  if ((parsed.data as { secrets_stdin?: unknown }).secrets_stdin === true) {
-    return refuse("bad_request", "refusal.bridge.secret", { cmd });
-  }
-
-  return { serverId: known, cmd, params: parsed.data };
-}
-
-function isRefusal(
-  value: ReturnType<typeof checked>
-): value is AgentResponse<never> {
-  return "ok" in value;
+function knows(serverId: string): boolean {
+  return read().servers.some((server) => server.id === serverId);
 }
 
 export function registerLanguage(): void {
@@ -151,7 +94,7 @@ export function registerAgentChannels(): void {
   ipcMain.handle(
     "agent:call",
     (_event, serverId: unknown, cmd: unknown, params: unknown) => {
-      const call = checked(serverId, cmd, params);
+      const call = checkedCall(serverId, cmd, params, knows);
 
       return isRefusal(call)
         ? Promise.resolve(call)
@@ -159,19 +102,24 @@ export function registerAgentChannels(): void {
     }
   );
 
+  /**
+   * The answer of an invoke can overtake the events sent just before it — they
+   * travel on another pipe — so the last thing on the event channel says the
+   * stream is over, and the renderer waits for it before trusting the answer.
+   */
   ipcMain.handle(
     "agent:stream",
-    (
+    async (
       event,
       token: unknown,
       serverId: unknown,
       cmd: unknown,
       params: unknown
     ) => {
-      const call = checked(serverId, cmd, params);
+      const call = checkedCall(serverId, cmd, params, knows);
 
       if (isRefusal(call)) {
-        return Promise.resolve(call);
+        return call;
       }
 
       const onEvent = relayTo<Event>(
@@ -181,12 +129,16 @@ export function registerAgentChannels(): void {
         "event"
       );
 
-      return agentClient.request(
+      const answer = await agentClient.request(
         call.serverId,
         call.cmd,
         call.params as never,
         { onEvent }
       );
+
+      relayTo<boolean>(event.sender, token, "agent:event", "end")(true);
+
+      return answer;
     }
   );
 

@@ -6,12 +6,20 @@ var warningCatalog = map[string]Message{
 		FR: "état illisible, mise à jour ignorée : %s",
 		EN: "the state cannot be read, the update was skipped: %s",
 	},
+	"cloudflared.tunnel.unknown": {
+		FR: "Cloudflare ne connaît plus ce tunnel. Rejouez ce service depuis l'app : elle en refera un et réécrira les identifiants du serveur.",
+		EN: "Cloudflare no longer knows this tunnel. Replay this service from the app: it makes a new one and rewrites the server's credentials.",
+	},
+	"warn.cloudflare.tunnel.unready": {
+		FR: "le tunnel n'est pas encore connecté à Cloudflare, il continue d'essayer : %s",
+		EN: "the tunnel is not connected to Cloudflare yet and keeps trying: %s",
+	},
 	"warn.cloudflare.dns.refused": {
-		FR: "%d enregistrement(s) DNS refusé(s) par Cloudflare : vérifie les droits DNS du jeton sur la zone %s",
+		FR: "%d enregistrement(s) DNS refusé(s) par Cloudflare : vérifiez les droits DNS du jeton sur la zone %s",
 		EN: "%d DNS record(s) refused by Cloudflare: check the token's DNS rights on zone %s",
 	},
 	"warn.caddy.ufw.refused": {
-		FR: "règle ufw %s refusée : ouvre-la à la main, sinon les certificats ne seront pas émis",
+		FR: "règle ufw %s refusée : ouvrez-la à la main, sinon les certificats ne seront pas émis",
 		EN: "ufw rule %s was refused: open it by hand, or no certificate will be issued",
 	},
 	"warn.system.swap.failed": {
@@ -27,8 +35,8 @@ var warningCatalog = map[string]Message{
 		EN: "JAVA_HOME was not found, worth checking before building a JVM project",
 	},
 	"warn.node.corepack.missing": {
-		FR: "corepack indisponible, pnpm gardera sa version globale : %s",
-		EN: "corepack is unavailable, pnpm will keep its global version: %s",
+		FR: "corepack indisponible, %s gardera sa version globale : %s",
+		EN: "corepack is unavailable, %s will keep its global version: %s",
 	},
 	"warn.ruby.bundler.failed": {
 		FR: "bundler non installé, la version livrée avec Ruby reste en place : %s",

@@ -37,3 +37,17 @@ export function isAttached(
     attached.includes(key(session.kind, session.project))
   );
 }
+
+/** An agent session with a project and no tab: one a tab can be opened on again. */
+export function reattachable(
+  attached: readonly string[],
+  session: Session
+): boolean {
+  return (
+    session.kind !== "shell" &&
+    session.kind !== "ide" &&
+    session.project !== undefined &&
+    session.project !== "" &&
+    !isAttached(attached, session)
+  );
+}

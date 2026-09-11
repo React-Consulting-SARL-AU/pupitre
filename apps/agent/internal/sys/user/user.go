@@ -6,7 +6,12 @@ import (
 	"pupitre.studio/agent/internal/sys"
 )
 
-const basePath = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+const (
+	basePath = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+	// Shell is the login shell the agent gives its user; tmux and every command run as that user open it, whatever root runs.
+	Shell = "/usr/bin/zsh"
+)
 
 func Home(name string) string {
 	if name == "" || name == "root" {
@@ -47,21 +52,34 @@ func RunWith(ctx sys.Context, name string, input Input, argv ...string) (string,
 		Argv:  argv,
 		Dir:   dir,
 		Stdin: input.Stdin,
-		Env:   append(environment(name, home), input.Env...),
+		Env:   append(Environment(name), input.Env...),
 	})
 
 	return out.Stdout, err
 }
 
-func environment(name, home string) []string {
-	return []string{
+// Environment is what a process of that user must see, whoever started it: a child of the root daemon inherits root's HOME and SHELL otherwise.
+func Environment(name string) []string {
+	home := Home(name)
+	if name == "" {
+		name = "root"
+	}
+
+	env := []string{
 		"HOME=" + home,
 		"USER=" + name,
 		"LOGNAME=" + name,
 		"PATH=" + home + "/.local/bin:" + home + "/.local/share/mise/shims:" + home + "/.bun/bin:" + basePath,
 		"MISE_YES=1",
+		"MISE_NPM_PACKAGE_MANAGER=npm",
 		"COREPACK_ENABLE_DOWNLOAD_PROMPT=0",
 	}
+
+	if name != "root" {
+		env = append(env, "SHELL="+Shell)
+	}
+
+	return env
 }
 
 func Exists(ctx sys.Context, name string) bool {

@@ -7,15 +7,23 @@ var engineCatalog = map[string]Message{
 		EN: "%s is not installed on this server",
 	},
 	"module.notInstalled.fix": {
-		FR: "Installe %s depuis le catalogue de l'app.",
+		FR: "Installez %s depuis le catalogue de l'app.",
 		EN: "Install %s from the app's catalogue.",
+	},
+	"engine.report.unreadable": {
+		FR: "rapport illisible %s : %s",
+		EN: "the report cannot be read %s: %s",
+	},
+	"engine.step.panic": {
+		FR: "panique : %v",
+		EN: "panic: %v",
 	},
 	"engine.report.none": {
 		FR: "aucun rapport : aucune installation n'a encore eu lieu sur ce serveur",
 		EN: "no report: no installation has happened on this server yet",
 	},
 	"engine.report.none.fix": {
-		FR: "Lance install depuis l'app, ou sudo pupitred install sur le serveur.",
+		FR: "Lancez install depuis l'app, ou sudo pupitred install sur le serveur.",
 		EN: "Run install from the app, or sudo pupitred install on the server.",
 	},
 	"engine.remembered.unreadable": {
@@ -23,7 +31,7 @@ var engineCatalog = map[string]Message{
 		EN: "%s cannot be read: %s",
 	},
 	"engine.remembered.unreadable.fix": {
-		FR: "Corrige ou supprime %s sur le serveur, puis relance l'installation depuis l'app.",
+		FR: "Corrigez ou supprimez %s sur le serveur, puis relancez l'installation depuis l'app.",
 		EN: "Fix or delete %s on the server, then run the installation again from the app.",
 	},
 	"engine.busy": {
@@ -31,7 +39,7 @@ var engineCatalog = map[string]Message{
 		EN: "an installation is already running",
 	},
 	"engine.busy.fix": {
-		FR: "Attends la fin de l'installation en cours.",
+		FR: "Attendez la fin de l'installation en cours.",
 		EN: "Wait for the running installation to finish.",
 	},
 	"engine.conflict.installed": {
@@ -39,15 +47,23 @@ var engineCatalog = map[string]Message{
 		EN: "%s conflicts with %s, which is already installed",
 	},
 	"engine.conflict.installed.fix": {
-		FR: "Désinstalle %s d'abord.",
+		FR: "Désinstallez %s d'abord.",
 		EN: "Uninstall %s first.",
+	},
+	"engine.defer.mandatory": {
+		FR: "%s ne peut pas être remis à plus tard : la machine ne fonctionne pas sans lui",
+		EN: "%s cannot be put off: the machine does not work without it",
+	},
+	"engine.defer.mandatory.fix": {
+		FR: "Répondez aux questions de %s avant d'installer.",
+		EN: "Answer the questions of %s before installing.",
 	},
 	"resolve.conflict": {
 		FR: "les modules %s et %s sont en conflit",
 		EN: "modules %s and %s conflict",
 	},
 	"resolve.conflict.fix": {
-		FR: "Retire l'un des deux de la sélection.",
+		FR: "Retirez l'un des deux de la sélection.",
 		EN: "Take one of the two out of the selection.",
 	},
 	"resolve.cycle": {
@@ -59,7 +75,7 @@ var engineCatalog = map[string]Message{
 		EN: "unknown module: %s",
 	},
 	"resolve.module.unknown.fix": {
-		FR: "Demande catalog pour la liste des modules de cet agent.",
+		FR: "Demandez catalog pour la liste des modules de cet agent.",
 		EN: "Ask catalog for the list of this agent's modules.",
 	},
 }

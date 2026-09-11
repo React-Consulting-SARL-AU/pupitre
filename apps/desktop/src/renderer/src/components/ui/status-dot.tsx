@@ -54,7 +54,7 @@ export function StatusDot({
 
       {solid ? (
         <circle
-          className={shape === "breathing" ? "breathe" : undefined}
+          className={shape === "breathing" ? "animate-breathe" : undefined}
           cx="6"
           cy="6"
           fill="currentColor"

@@ -13,6 +13,7 @@ import (
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/state"
+	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/tmux"
 )
 
@@ -91,7 +92,7 @@ func TestAddThenUpBringsTheProjectOnlineAndDownStopsIt(t *testing.T) {
 	fake, reader := fixture(t)
 	fake.Serves("api", 5173)
 
-	added, err := reader.Add(registry.Project{Name: "api", Dir: "api", PkgMgr: "bun", Host: "127.0.0.1", Port: 5173, Cmd: "bun run dev --port 5173"})
+	added, err := reader.Add(registry.Project{Name: "api", Dir: "api", PkgMgr: "bun", Host: "127.0.0.1", Port: 5173, Cmd: "bun run dev --port 5173"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -256,6 +257,33 @@ func TestServiceStatusNamesTheCredentialKeysAndSnapshotDoesNot(t *testing.T) {
 	}
 }
 
+func TestAServiceSaysWhetherItHoldsAProcess(t *testing.T) {
+	fake, _ := fixture(t)
+	catalog := modules.NewRegistry()
+	catalog.Register(modtest.Passing{ID: "db.redis", Package: "redis-server", Unit: "redis-server", Port: 6379})
+	catalog.Register(modtest.Passing{ID: "runtime.node"})
+	fake.Packages["redis-server"] = "7.0.15"
+	fake.Packages["runtime-node"] = "22.11.0"
+	fake.Units["redis-server"] = modtest.UnitActive
+	reader := newReader(t, fake, catalog, func(time.Duration) {})
+
+	runs := map[string]bool{}
+	for _, service := range reader.Snapshot().Services {
+		runs[service.ID] = service.Runs
+	}
+	if !runs["db.redis"] || runs["runtime.node"] {
+		t.Fatalf("runs is the manifest's own answer, got %v", runs)
+	}
+
+	status, err := reader.ServiceStatus("runtime.node")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.Runs {
+		t.Fatal("service.status must agree with the snapshot")
+	}
+}
+
 func TestServiceStatusRefusesWhatIsNotInstalled(t *testing.T) {
 	fake, _ := fixture(t)
 	catalog := modules.NewRegistry()
@@ -308,6 +336,57 @@ func TestInstallRunsTheDerivedCommandInTheProjectFolder(t *testing.T) {
 	}
 }
 
+func TestDebugRestartsTheProjectUnderTheDeclaredPort(t *testing.T) {
+	fake, reader := fixture(t)
+	fake.Files["/etc/pupitre/env"] = []byte("PUPITRE_DEBUG_PORTS=\"web:5005 api:5006\"\n")
+
+	if _, err := reader.Up("web"); err != nil {
+		t.Fatal(err)
+	}
+
+	debug, err := reader.Debug("web")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := contract.ValidateValue("ProjectDebugResult", debug); err != nil {
+		t.Fatalf("the result violates the contract: %v", err)
+	}
+	if debug.DebugPort != 5005 || debug.Port != 3000 || debug.State != contract.ProjectOnline {
+		t.Fatalf("unexpected result: %+v", debug)
+	}
+
+	sent := strings.Join(fake.Commands(), "\n")
+	if !strings.Contains(sent, "bun run dev --port 3000 -PdebugPort=5005") {
+		t.Fatalf("the debug agent must be passed to the project's own command:\n%s", sent)
+	}
+}
+
+func TestDebugRefusesAProjectTheMachineDeclaresNoPortFor(t *testing.T) {
+	fake, reader := fixture(t)
+	fake.Files["/etc/pupitre/env"] = []byte("PUPITRE_DEBUG_PORTS=\"api:5006\"\n")
+
+	_, err := reader.Debug("web")
+
+	if got := code(t, err); got != contract.ErrorBadRequest {
+		t.Fatalf("got %v", got)
+	}
+	if _, opened := fake.Windows["web"]; opened {
+		t.Fatal("a refused debug must leave the project exactly as it was")
+	}
+}
+
+func TestDebugLeavesTheServiceRowsToSystemd(t *testing.T) {
+	fake, reader := fixture(t)
+	fake.Files["/etc/pupitre/env"] = []byte("PUPITRE_DEBUG_PORTS=\"shots:5005\"\n")
+
+	_, err := reader.Debug("shots")
+
+	if got := code(t, err); got != contract.ErrorBadRequest {
+		t.Fatalf("got %v", got)
+	}
+}
+
 func TestAnUnknownProjectIsRefusedEverywhere(t *testing.T) {
 	_, reader := fixture(t)
 
@@ -316,8 +395,9 @@ func TestAnUnknownProjectIsRefusedEverywhere(t *testing.T) {
 	_, logsErr := reader.Logs("ghost", 0)
 	_, urlErr := reader.URL("ghost")
 	_, removeErr := reader.Remove("ghost")
+	_, debugErr := reader.Debug("ghost")
 
-	for label, err := range map[string]error{"up": upErr, "down": downErr, "logs": logsErr, "url": urlErr, "remove": removeErr} {
+	for label, err := range map[string]error{"up": upErr, "down": downErr, "logs": logsErr, "url": urlErr, "remove": removeErr, "debug": debugErr} {
 		if got := code(t, err); got != contract.ErrorProjectNotFound {
 			t.Errorf("%s: got %v", label, got)
 		}
@@ -347,4 +427,86 @@ func code(t *testing.T, err error) contract.ErrorCode {
 	}
 
 	return failure.Code
+}
+
+func TestAServiceIsUnconfiguredWhenTheEngineLeftItForLater(t *testing.T) {
+	fake, _ := fixture(t)
+	catalog := modules.NewRegistry()
+	catalog.Register(modtest.Passing{ID: "db.redis", Package: "redis-server", Unit: "redis-server", EnvKey: "REDIS_PASSWORD", Port: 6379})
+	catalog.Register(modtest.Passing{ID: "tool.demo"})
+	fake.Packages["redis-server"] = "7.0.15"
+	fake.Packages["tool-demo"] = "1.0"
+	fake.Units["redis-server"] = modtest.UnitActive
+
+	reader := state.New(state.Options{
+		Sys:          fake,
+		Now:          modtest.NewClock(time.Millisecond).Now,
+		Registry:     catalog,
+		Entitlement:  func() contract.Entitlement { return contract.EntitlementDev },
+		AgentVersion: "0.0.0-test",
+		Deferred:     func() []string { return []string{"tool.demo"} },
+	})
+
+	configured := map[string]bool{}
+	for _, service := range reader.Snapshot().Services {
+		configured[service.ID] = service.Configured
+	}
+	if !configured["db.redis"] || configured["tool.demo"] {
+		t.Fatalf("configured says what the engine left for later, got %v", configured)
+	}
+
+	status, err := reader.ServiceStatus("tool.demo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.Configured {
+		t.Fatal("service.status must agree with the snapshot")
+	}
+
+	// A reader without an engine behind it has nothing deferred to report.
+	if _, reader = fixture(t); reader.Snapshot().Services == nil {
+		t.Fatal("a snapshot always lists services")
+	}
+}
+
+func TestAddHandsTheProjectFoldersToTheirUser(t *testing.T) {
+	fake, reader := fixture(t)
+
+	if _, err := reader.Add(registry.Project{Name: "api", Dir: "api", PkgMgr: "bun", Host: "127.0.0.1", Port: 5173, Cmd: "bun run dev --port 5173"}, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, dir := range []string{"/home/dev/projects", "/home/dev/projects/api"} {
+		if !fake.Dirs[dir] || fake.Owners[dir] != "dev:dev" {
+			t.Fatalf("%s must exist and belong to dev, got exists=%v owner=%q", dir, fake.Dirs[dir], fake.Owners[dir])
+		}
+	}
+}
+
+// A folder a previous agent created as root would refuse the clone git runs as dev: it changes hands first.
+func TestSyncHandsARootOwnedFolderBackBeforeCloning(t *testing.T) {
+	fake, reader := fixture(t)
+	fake.Files[registry.DefaultConf] = []byte("api|api|https://github.com/me/api|none|127.0.0.1|5173|-|sleep 1\n")
+	fake.Dirs["/home/dev/projects/api"] = true
+	fake.Owners["/home/dev/projects/api"] = "root:root"
+
+	synced, err := reader.Sync("api")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !synced.Pulled || fake.Owners["/home/dev/projects/api"] != "dev:dev" {
+		t.Fatalf("the folder must belong to dev before the clone: pulled=%v owner=%q", synced.Pulled, fake.Owners["/home/dev/projects/api"])
+	}
+
+	var clone sys.Command
+	for _, call := range fake.Calls {
+		if len(call.Argv) > 3 && call.Argv[0] == "git" && call.Argv[3] == "clone" {
+			clone = call
+		}
+	}
+
+	if clone.User != "dev" || clone.Argv[len(clone.Argv)-1] != "/home/dev/projects/api" {
+		t.Fatalf("the clone runs as dev into the project folder, got %+v", clone)
+	}
 }

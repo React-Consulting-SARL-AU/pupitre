@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/platform"
 )
 
@@ -18,8 +19,8 @@ func (d *Daemon) Run(ctx context.Context) error {
 
 	d.journal.Logf("agent %s idling, platform read every %s", d.options.AgentVersion, d.options.StateInterval)
 
-	d.syncOnce()
-	d.beatOnce()
+	d.syncOnce(ctx)
+	d.beatOnce(ctx)
 
 	for {
 		select {
@@ -28,15 +29,15 @@ func (d *Daemon) Run(ctx context.Context) error {
 
 			return nil
 		case <-states.C:
-			d.syncOnce()
+			d.syncOnce(ctx)
 		case <-beats.C:
-			d.beatOnce()
+			d.beatOnce(ctx)
 		}
 	}
 }
 
-func (d *Daemon) syncOnce() {
-	synced, err := d.Sync()
+func (d *Daemon) syncOnce(ctx context.Context) {
+	synced, err := d.Sync(ctx)
 	if err != nil {
 		d.report("state", err)
 
@@ -48,8 +49,8 @@ func (d *Daemon) syncOnce() {
 	}
 }
 
-func (d *Daemon) beatOnce() {
-	if err := d.Beat(); err != nil {
+func (d *Daemon) beatOnce(ctx context.Context) {
+	if err := d.Beat(ctx); err != nil {
 		d.report("heartbeat", err)
 	}
 }
@@ -85,7 +86,7 @@ func (d *Daemon) once(what, message string) {
 
 func orNone(version string) string {
 	if version == "" {
-		return "aucune"
+		return i18n.T("daemon.version.none")
 	}
 
 	return version

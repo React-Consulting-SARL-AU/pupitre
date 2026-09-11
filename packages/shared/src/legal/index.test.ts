@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test"
 import { LOCALES } from "../i18n/locale"
 import {
+  copyrightHolder,
   developmentNotice,
   isIncorporated,
   isPublicStage,
@@ -9,7 +10,6 @@ import {
   LEGAL_ENTITY,
   LegalDocumentSchema,
   LegalEntitySchema,
-  legalEntityLabel,
   PROJECT_STAGE,
   SUB_PROCESSORS,
   SubProcessorSchema,
@@ -23,22 +23,26 @@ describe("l'éditeur", () => {
     expect(LEGAL_ENTITY.registeredAddress).toBeNull()
   })
 
-  it("se nomme sans revendiquer une forme juridique qui n'existe pas", () => {
-    expect(legalEntityLabel("fr")).toBe(
-      "Pupitre — société en cours de constitution"
-    )
-    expect(legalEntityLabel("en")).toBe("Pupitre — company being formed")
+  it("appartient à une personne tant que la société n'existe pas", () => {
+    expect(LEGAL_ENTITY.owner).toBe("Jordan Monier")
+    expect(copyrightHolder()).toBe("Jordan Monier")
   })
 
-  it("prend son nom légal dès qu'il en a un", () => {
+  it("passe les droits à la société dès qu'elle est immatriculée", () => {
     const incorporated = {
       ...LEGAL_ENTITY,
       status: "incorporated" as const,
       legalName: "Pupitre Inc.",
     }
 
-    expect(legalEntityLabel("fr", incorporated)).toBe("Pupitre Inc.")
     expect(isIncorporated(incorporated)).toBe(true)
+    expect(copyrightHolder(incorporated)).toBe("Pupitre Inc.")
+  })
+
+  it("garde la personne tant que la société n'a pas de nom légal", () => {
+    const named = { ...LEGAL_ENTITY, legalName: "Pupitre Inc." }
+
+    expect(copyrightHolder(named)).toBe("Jordan Monier")
   })
 })
 
@@ -84,7 +88,7 @@ describe("l'avertissement de développement", () => {
 
       expect(notice.title.length).toBeGreaterThan(0)
       expect(notice.body.length).toBeGreaterThan(0)
-      expect(notice.entity.length).toBeGreaterThan(0)
+      expect(notice.entity).toContain(LEGAL_ENTITY.owner)
       expect(notice.short.length).toBeGreaterThan(0)
     }
   })

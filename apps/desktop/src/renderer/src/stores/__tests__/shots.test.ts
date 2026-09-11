@@ -6,7 +6,7 @@ import type {
   ShotsReadResult,
 } from "@pupitre/shared/agent-protocol/processes";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
-import { useShots } from "../shots";
+import { shotsByDay, useShots } from "../shots";
 
 const SERVER = "srv-1";
 
@@ -16,6 +16,27 @@ const SHOTS = [
     name: "accueil.png",
     path: "/var/lib/pupitre/shots/accueil.png",
     size_bytes: 240_000,
+  },
+];
+
+const TWO_DAYS: Shot[] = [
+  {
+    created_at: "2026-09-05T10:00:00Z",
+    name: "panier.png",
+    path: "2026-09-05/panier.png",
+    size_bytes: 10,
+  },
+  {
+    created_at: "2026-09-05T11:00:00Z",
+    name: "paiement.png",
+    path: "2026-09-05/paiement.png",
+    size_bytes: 10,
+  },
+  {
+    created_at: "2026-09-04T10:00:00Z",
+    name: "accueil.png",
+    path: "2026-09-04/accueil.png",
+    size_bytes: 10,
   },
 ];
 
@@ -71,6 +92,74 @@ describe("la galerie", () => {
       shots: [],
       status: "read",
     });
+  });
+
+  it("supprime une capture par son chemin, puis relit la liste", async () => {
+    const asked: unknown[] = [];
+
+    stubPupitre({
+      agentCall: (_serverId: string, cmd: CommandName, params?: unknown) => {
+        asked.push([cmd, params]);
+
+        return Promise.resolve(
+          cmd === "shots.clean"
+            ? { ok: true, result: { removed: 1 } }
+            : { ok: true, result: { shots: [] } }
+        );
+      },
+    });
+
+    await useShots.getState().remove(SERVER, SHOTS[0]?.path ?? "");
+
+    expect(asked).toContainEqual([
+      "shots.clean",
+      { path: "/var/lib/pupitre/shots/accueil.png" },
+    ]);
+    expect(useShots.getState().removing).toBeNull();
+    expect(useShots.getState().removed).toBe(1);
+    expect(useShots.getState().state).toMatchObject({
+      shots: [],
+      status: "read",
+    });
+  });
+
+  it("garde le refus d'une suppression sur la capture, et la liste telle quelle", async () => {
+    agent({ "shots.list": { shots: SHOTS } });
+
+    await useShots.getState().read(SERVER);
+
+    stubPupitre({
+      agentCall: (_serverId: string, cmd: CommandName) =>
+        Promise.resolve(
+          cmd === "shots.clean"
+            ? {
+                error: { code: "bad_request", message: "pas de ce nom" },
+                ok: false,
+              }
+            : { ok: true, result: { shots: SHOTS } }
+        ),
+    });
+
+    await useShots.getState().remove(SERVER, "2026-09-04/ailleurs.png");
+
+    expect(useShots.getState().problem).toMatchObject({ code: "bad_request" });
+    expect(useShots.getState().state).toMatchObject({
+      shots: [{ name: "accueil.png" }],
+      status: "read",
+    });
+  });
+
+  it("groupe les captures par le jour de leur dossier, dans l'ordre de la liste", () => {
+    const days = shotsByDay(TWO_DAYS);
+
+    expect(days.map((group) => group.day)).toEqual([
+      "2026-09-05",
+      "2026-09-04",
+    ]);
+    expect(days[0]?.shots.map((shot) => shot.name)).toEqual([
+      "panier.png",
+      "paiement.png",
+    ]);
   });
 
   it("ouvre l'adresse que le serveur donne, jamais une adresse construite", async () => {
@@ -278,6 +367,213 @@ describe("une capture affichée dans l'app", () => {
     await useShots.getState().show(SERVER, SHOT);
     useShots.getState().hide();
 
+    expect(useShots.getState().view).toEqual({ status: "idle" });
+  });
+});
+
+describe("les vignettes et la visionneuse", () => {
+  it("lit une vignette une fois, et la garde pour la visionneuse", async () => {
+    let reads = 0;
+
+    stubPupitre({
+      agentCall: () => Promise.resolve({ ok: true, result: { shots: SHOTS } }),
+      agentStream: async (
+        _serverId: string,
+        _cmd: CommandName,
+        _params: unknown,
+        onEvent: (event: Event) => void
+      ) => {
+        reads += 1;
+
+        for (const chunk of numbered(PNG, 12)) {
+          onEvent({ ...chunk, event: "shot", id: 2 });
+        }
+
+        return {
+          ok: true,
+          result: {
+            chunks: numbered(PNG, 12).length,
+            media_type: "image/png",
+            path: SHOT.path,
+            sha256: await digest(PNG),
+            size_bytes: PNG.length,
+          },
+        };
+      },
+    });
+
+    await useShots.getState().read(SERVER);
+    await useShots.getState().readThumbnail(SERVER, SHOT);
+    await useShots.getState().readThumbnail(SERVER, SHOT);
+
+    expect(reads).toBe(1);
+    expect(useShots.getState().thumbnails[SHOT.path]).toMatchObject({
+      mediaType: "image/png",
+      status: "ready",
+    });
+
+    await useShots.getState().show(SERVER, SHOT);
+
+    expect(reads).toBe(1);
+    expect(useShots.getState().view.status).toBe("shown");
+  });
+
+  it("passe à la capture suivante et à la précédente dans l'ordre de la liste", async () => {
+    const shown: string[] = [];
+
+    stubPupitre({
+      agentCall: () =>
+        Promise.resolve({ ok: true, result: { shots: TWO_DAYS } }),
+      agentStream: (_serverId: string, _cmd: CommandName, params: unknown) => {
+        shown.push((params as { path: string }).path);
+
+        return Promise.resolve({
+          error: { code: "internal", message: "pas d'octets ici" },
+          ok: false,
+        });
+      },
+    });
+
+    await useShots.getState().read(SERVER);
+    await useShots.getState().show(SERVER, TWO_DAYS[0] as Shot);
+    await useShots.getState().step(SERVER, 1);
+    await useShots.getState().step(SERVER, 1);
+    await useShots.getState().step(SERVER, 1);
+    await useShots.getState().step(SERVER, -1);
+
+    expect(shown).toEqual([
+      "2026-09-05/panier.png",
+      "2026-09-05/paiement.png",
+      "2026-09-04/accueil.png",
+      "2026-09-05/paiement.png",
+    ]);
+  });
+});
+
+describe("une visionneuse fermée pendant la lecture", () => {
+  it("ne se rouvre pas quand la taille de l'image arrive après la fermeture", async () => {
+    reader(numbered(PNG, 12), {});
+
+    const showing = useShots.getState().show(SERVER, SHOT);
+
+    useShots.getState().hide();
+    await showing;
+
+    expect(useShots.getState().view).toEqual({ status: "idle" });
+  });
+});
+
+describe("une capture enregistrée sur ce disque", () => {
+  function shown(): void {
+    useShots.setState({
+      saveProblem: null,
+      saved: null,
+      view: {
+        blob: new Blob([PNG], { type: "image/png" }),
+        mediaType: "image/png",
+        shot: SHOT,
+        size: null,
+        status: "shown",
+        url: "blob:shown",
+      },
+    });
+  }
+
+  it("demande la boîte, puis passe les octets et le chemin rendu, jamais un autre", async () => {
+    const asked: string[] = [];
+    const written: { path: string; bytes: Uint8Array }[] = [];
+
+    stubPupitre({
+      pickSavePath: (name: string) => {
+        asked.push(name);
+
+        return Promise.resolve("/Users/ada/Downloads/accueil.png");
+      },
+      saveShot: (path: string, bytes: Uint8Array) => {
+        written.push({ bytes, path });
+
+        return Promise.resolve({ ok: true, result: { path } });
+      },
+    });
+    shown();
+
+    await useShots.getState().save();
+
+    expect(asked).toEqual(["accueil.png"]);
+    expect(written).toHaveLength(1);
+    expect(written[0]?.path).toBe("/Users/ada/Downloads/accueil.png");
+    expect([...(written[0]?.bytes ?? [])]).toEqual([...PNG]);
+    expect(useShots.getState().saved).toBe("/Users/ada/Downloads/accueil.png");
+    expect(useShots.getState().saveProblem).toBeNull();
+  });
+
+  it("n'écrit rien quand la boîte est refermée", async () => {
+    let written = 0;
+
+    stubPupitre({
+      pickSavePath: () => Promise.resolve(null),
+      saveShot: () => {
+        written += 1;
+
+        return Promise.resolve({ ok: true, result: { path: "" } });
+      },
+    });
+    shown();
+
+    await useShots.getState().save();
+
+    expect(written).toBe(0);
+    expect(useShots.getState().saved).toBeNull();
+  });
+
+  it("garde le refus du processus principal dans la visionneuse", async () => {
+    stubPupitre({
+      pickSavePath: () => Promise.resolve("/Users/ada/Downloads/accueil.png"),
+      saveShot: () =>
+        Promise.resolve({
+          error: {
+            code: "internal",
+            message: "refusal.shots.saveFailed",
+            phrase: {
+              id: "refusal.shots.saveFailed",
+              values: {
+                path: "/Users/ada/Downloads/accueil.png",
+                reason: "EACCES",
+              },
+            },
+          },
+          ok: false,
+        }),
+    });
+    shown();
+
+    await useShots.getState().save();
+
+    expect(useShots.getState().saved).toBeNull();
+    expect(useShots.getState().saveProblem).toMatchObject({
+      phrase: { id: "refusal.shots.saveFailed" },
+    });
+
+    useShots.getState().hide();
+
+    expect(useShots.getState().saveProblem).toBeNull();
+  });
+
+  it("ne dit rien d'une capture que la visionneuse a quittée pendant la boîte", async () => {
+    stubPupitre({
+      pickSavePath: () => {
+        useShots.getState().hide();
+
+        return Promise.resolve("/Users/ada/Downloads/accueil.png");
+      },
+      saveShot: (path: string) =>
+        Promise.resolve({ ok: true, result: { path } }),
+    });
+    shown();
+
+    await useShots.getState().save();
+
+    expect(useShots.getState().saved).toBeNull();
     expect(useShots.getState().view).toEqual({ status: "idle" });
   });
 });

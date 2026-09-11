@@ -1,5 +1,6 @@
 import type { ElectronApplication } from "@playwright/test";
 import { expect, test } from "@playwright/test";
+import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
 /**
@@ -13,6 +14,13 @@ const USER_CODE = "WDJB-MJHT";
 const CONSOLE_URL = "https://app.pupitre.test/dashboard";
 
 const APPROVAL_MS = 300;
+
+const MS_PER_DAY = 86_400_000;
+
+/** A trial ending in `days` days, counted the way Stripe does: a day begun still counts. */
+function trialEndingIn(days: number): string {
+  return new Date(Date.now() + days * MS_PER_DAY - 3_600_000).toISOString();
+}
 
 function stubAccount(app: ElectronApplication): Promise<void> {
   return app.evaluate(
@@ -49,6 +57,12 @@ function stubAccount(app: ElectronApplication): Promise<void> {
             { id: "org-1", name: "Atelier Ada", role: "owner", slug: "ada" },
           ],
           role: "owner",
+          subscription: {
+            current_period_end: fixtures.trialEndsAt,
+            servers: { limit: 2, used: 1 },
+            status: "trialing",
+            trial_ends_at: fixtures.trialEndsAt,
+          },
         },
         refusal: null,
         usage: {
@@ -69,8 +83,37 @@ function stubAccount(app: ElectronApplication): Promise<void> {
         ipcMain.handle(channel, (_event, ...args: unknown[]) => reply(...args));
       };
 
+      const withTrial = (state: Record<string, unknown>, endsAt: string) => {
+        const identity = state.identity as Record<string, unknown> | null;
+
+        return identity
+          ? {
+              ...state,
+              identity: {
+                ...identity,
+                subscription: {
+                  current_period_end: endsAt,
+                  servers: { limit: 2, used: 1 },
+                  status: "trialing",
+                  trial_ends_at: endsAt,
+                },
+              },
+            }
+          : state;
+      };
+
+      const clock = globalThis as { trialEndingSoon?: boolean };
+
       answer("account:state", () => current);
-      answer("account:refresh", () => current);
+      // Once the scenario says so, the platform answers a trial about to end:
+      // the card is read again from what it said, not from what it kept.
+      answer("account:refresh", () => {
+        if (clock.trialEndingSoon) {
+          current = withTrial(current, fixtures.trialEndingSoon);
+        }
+
+        return current;
+      });
       answer("account:sign-out", () => {
         current = signedOut;
 
@@ -99,7 +142,13 @@ function stubAccount(app: ElectronApplication): Promise<void> {
         });
       });
     },
-    { approvalMs: APPROVAL_MS, consoleUrl: CONSOLE_URL, userCode: USER_CODE }
+    {
+      approvalMs: APPROVAL_MS,
+      consoleUrl: CONSOLE_URL,
+      trialEndingSoon: trialEndingIn(2),
+      trialEndsAt: trialEndingIn(5),
+      userCode: USER_CODE,
+    }
   );
 }
 
@@ -140,10 +189,38 @@ test.describe("compte", () => {
     await page.getByRole("button", { name: "Compte" }).click();
 
     await expect(page.getByText("ada@pupitre.studio")).toBeVisible();
-    await expect(page.getByText("Droit d'usage valide")).toBeVisible();
+    await expect(page.getByText("Abonnement actif")).toBeVisible();
     await expect(page.getByText("Atelier Ada")).toBeVisible();
 
+    // The trial is the headline of the subscription: its days, in a calm tone
+    // while there are enough of them.
+    const subscription = page.locator("[data-subscription]");
+
+    await expect(subscription).toHaveAttribute("data-subscription", "trialing");
+    await expect(subscription.getByText("5 jours restants")).toBeVisible();
+    await expect(subscription).toHaveAttribute("data-trial-tone", "ok");
+    await expect(
+      subscription.getByRole("button", { name: "Gérer l'abonnement" })
+    ).toBeVisible();
+
+    await assertAccessible(page, "reglages/compte");
+
+    // Two days left: the same card turns to a warning and says what to do.
+    await running.app.evaluate(() => {
+      (globalThis as { trialEndingSoon?: boolean }).trialEndingSoon = true;
+    });
+    await page.getByRole("button", { name: "Actualiser" }).click();
+
+    await expect(subscription.getByText("2 jours restants")).toBeVisible();
+    await expect(subscription).toHaveAttribute("data-trial-tone", "warn");
+    await expect(
+      subscription.getByText("Choisissez une offre dans la console")
+    ).toBeVisible();
+
+    // Signing out is asked twice: the question says the terminals close too.
     await page.getByRole("button", { name: "Se déconnecter" }).click();
+    await expect(page.getByText("chaque terminal ouvert")).toBeVisible();
+    await page.getByRole("button", { name: "Se déconnecter" }).last().click();
 
     // Settings stay in front: it's where the account gets repaired.
     await page.getByRole("button", { name: "Compte" }).click();

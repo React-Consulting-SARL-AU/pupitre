@@ -13,6 +13,9 @@ import type { CloudflareConnection, CloudflareZone } from "@shared/cloudflare";
 
 const ENDPOINT = "https://api.cloudflare.com/client/v4";
 
+/** A call that has not answered by then is not going to: the screen is owed a refusal. */
+const CALL_MS = 20_000;
+
 export interface DnsRecord {
   id: string;
   content: string;
@@ -21,6 +24,8 @@ export interface DnsRecord {
 export interface CloudflareApi {
   createTunnel: (name: string, secret: string) => Promise<string>;
   findTunnel: (name: string) => Promise<string | null>;
+  /** Whether the account still holds this tunnel: a server can name one it lost. */
+  hasTunnel: (id: string) => Promise<boolean>;
   deleteTunnel: (id: string) => Promise<void>;
   zones: () => Promise<CloudflareZone[]>;
   /** The zone a domain belongs to: the app never asks the client for an identifier. */
@@ -74,6 +79,7 @@ export async function verifyToken(
 ): Promise<TokenAccount[]> {
   const response = await fetcher(`${ENDPOINT}/accounts`, {
     headers: { authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(CALL_MS),
   });
 
   const answer = (await response.json().catch(() => null)) as Answer<
@@ -107,6 +113,7 @@ export function cloudflareApi(
         "content-type": "application/json",
       },
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(CALL_MS),
     });
 
     const answer = (await response
@@ -166,19 +173,46 @@ export function cloudflareApi(
       return created.id;
     },
 
-    async findTunnel(name) {
-      const found = await call<{ id: string }[]>(
-        "GET",
-        `/accounts/${account}/cfd_tunnel?name=${encodeURIComponent(name)}&is_deleted=false`
-      );
+    /**
+     * A tunnel the account deleted still answers, with the day it went: what
+     * the server names has to be one that can still carry something.
+     */
+    async hasTunnel(id) {
+      try {
+        const found = await call<{ deleted_at?: string | null }>(
+          "GET",
+          `/accounts/${account}/cfd_tunnel/${encodeURIComponent(id)}`
+        );
 
-      return found[0]?.id ?? null;
+        return !found.deleted_at;
+      } catch (failure) {
+        if (failure instanceof CloudflareError && failure.status === 404) {
+          return false;
+        }
+
+        throw failure;
+      }
     },
 
+    /**
+     * The name filter of the API is not trusted alone: a tunnel it did not
+     * return still refuses its name to a new one. What the account holds is
+     * read whole and matched here.
+     */
+    async findTunnel(name) {
+      const found = await call<{ id: string; name: string }[]>(
+        "GET",
+        `/accounts/${account}/cfd_tunnel?is_deleted=false&per_page=1000`
+      );
+
+      return found.find((tunnel) => tunnel.name === name)?.id ?? null;
+    },
+
+    /** `cascade` takes the connections down with it: a tunnel still spoken to by a vanished machine refuses to go otherwise. */
     async deleteTunnel(id) {
       await call(
         "DELETE",
-        `/accounts/${account}/cfd_tunnel/${encodeURIComponent(id)}`
+        `/accounts/${account}/cfd_tunnel/${encodeURIComponent(id)}?cascade=true`
       );
     },
 

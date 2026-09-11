@@ -6,7 +6,7 @@ import {
 import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { AgentResponse } from "@shared/agent";
+import type { AgentResponse, ErrorPhrase } from "@shared/agent";
 import type { KeyInstall, KeyInstallPhase, Server } from "@shared/servers";
 import { current, type Platform } from "./platform";
 import { refusalOf } from "./refusal";
@@ -29,8 +29,8 @@ import { trace } from "./trace";
  * `authorized_keys` if it is not already a line of it.
  */
 
-const CONNECT_TIMEOUT_S = 10;
-const RUN_TIMEOUT_MS = 30_000;
+export const CONNECT_TIMEOUT_S = 10;
+export const RUN_TIMEOUT_MS = 30_000;
 const HELPER_MODE = 0o700;
 const DIR_MODE = 0o700;
 
@@ -128,7 +128,7 @@ fi
  * when it was the password that opened the door. So each attempt connects for
  * itself alone, and leaves no master behind it.
  */
-const ALONE = ["-o", "ControlPath=none", "-o", "ControlMaster=no"];
+export const ALONE = ["-o", "ControlPath=none", "-o", "ControlMaster=no"];
 
 /** Signing in with the app's key alone, which is the whole question here. */
 export function opensArgs(server: Server, paths: SshPaths): string[] {
@@ -237,12 +237,12 @@ export function installsWithPassword(platform: Platform): boolean {
   return platform !== "win32";
 }
 
-interface Ran {
+export interface Ran {
   code: number | null;
   stderr: string;
 }
 
-function run(
+export function runSsh(
   args: string[],
   {
     stdin,
@@ -309,20 +309,22 @@ const PHRASES: Record<Rebuff, string> = {
   other: "refusal.keyInstall.failed",
 };
 
-function manual(rebuff: Rebuff, detail: string): AgentResponse<KeyInstall> {
+/** The dictionary entry a refusal reads as, with what `ssh` said when it says something. */
+export function rebuffPhrase(rebuff: Rebuff, detail: string): ErrorPhrase {
   const id = PHRASES[rebuff];
 
+  return detail ? { id: `${id}.detail`, values: { detail } } : { id };
+}
+
+function manual(rebuff: Rebuff, detail: string): AgentResponse<KeyInstall> {
   return {
     ok: true,
-    result: {
-      status: "manual",
-      phrase: detail ? { id: `${id}.detail`, values: { detail } } : { id },
-    },
+    result: { status: "manual", phrase: rebuffPhrase(rebuff, detail) },
   };
 }
 
 /** The last line of what `ssh` complained about, which is the one that names it. */
-function lastLine(stderr: string): string {
+export function lastLine(stderr: string): string {
   return (
     stderr
       .split("\n")
@@ -338,6 +340,12 @@ export interface KeyInstallOptions {
   publicKey: string;
   /** Typed once by the reader, held nowhere, gone when this call returns. */
   password?: string | null;
+  /**
+   * The key was made a moment ago and the form already knocked with everything
+   * else: nothing opens the machine yet, and asking it again would only cost
+   * the reader a connection.
+   */
+  freshKey?: boolean;
   onPhase?: (phase: KeyInstallPhase) => void;
   spawn?: ShellSpawn;
   platform?: Platform;
@@ -349,6 +357,7 @@ export async function installKey({
   paths,
   publicKey,
   password = null,
+  freshKey = false,
   onPhase = () => undefined,
   spawn = spawnChild as ShellSpawn,
   platform = current(),
@@ -386,26 +395,31 @@ export async function installKey({
     with: password ? "password" : "keys",
   });
 
-  onPhase("reaching");
+  if (!freshKey) {
+    onPhase("reaching");
 
-  const already = await run(opensArgs(server, paths), { spawn, timeoutMs });
+    const already = await runSsh(opensArgs(server, paths), {
+      spawn,
+      timeoutMs,
+    });
 
-  if (already.code === 0) {
-    trace("key", "install.opened", { already: true, server: server.id });
+    if (already.code === 0) {
+      trace("key", "install.opened", { already: true, server: server.id });
 
-    return { ok: true, result: { installed: false, status: "opened" } };
+      return { ok: true, result: { installed: false, status: "opened" } };
+    }
   }
 
   onPhase("authorizing");
 
   const pushed = password
-    ? await run(passwordArgs(server, paths), {
+    ? await runSsh(passwordArgs(server, paths), {
         env: askpassEnv(paths, password),
         spawn,
         stdin: script,
         timeoutMs,
       })
-    : await run(offeredArgs(server, paths), {
+    : await runSsh(offeredArgs(server, paths), {
         spawn,
         stdin: script,
         timeoutMs,
@@ -428,7 +442,7 @@ export async function installKey({
 
   onPhase("verifying");
 
-  const opened = await run(opensArgs(server, paths), { spawn, timeoutMs });
+  const opened = await runSsh(opensArgs(server, paths), { spawn, timeoutMs });
 
   trace("key", "install.verified", {
     opened: opened.code === 0,

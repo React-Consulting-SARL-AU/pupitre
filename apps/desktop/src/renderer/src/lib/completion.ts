@@ -3,6 +3,7 @@ import type { Candidate } from "@shared/completion";
 import type { IMarker, Terminal as XTerm } from "@xterm/xterm";
 import { useSyncExternalStore } from "react";
 import { readHistory, writeHistory } from "./memory";
+import { noteStatus } from "./terminal-status";
 
 export const TERMINAL_FONT = '"JetBrains Mono", ui-monospace, Menlo, monospace';
 
@@ -691,6 +692,7 @@ export function attach(id: string, xterm: XTerm): () => void {
   const osc7 = xterm.parser.registerOscHandler(7, (data) => {
     try {
       item.dir = decodeURIComponent(new URL(data).pathname);
+      noteStatus(id, { dir: item.dir });
     } catch {
       // A malformed URL: we keep the previous folder.
     }
@@ -698,7 +700,6 @@ export function attach(id: string, xterm: XTerm): () => void {
   });
 
   const scroll = xterm.onScroll(() => recompute(id));
-  xterm.attachCustomKeyEventHandler((ev) => handleKey(id, item, ev));
 
   return () => {
     osc133.dispose();
@@ -733,4 +734,11 @@ export function useCompletion(id: string): CompletionState {
     (callback) => subscribe(id, callback),
     () => tracked.get(id)?.state ?? NOTHING
   );
+}
+
+/** The keys completion answers for a terminal, when it is wired on it. */
+export function completionKey(id: string, event: KeyboardEvent): boolean {
+  const item = tracked.get(id);
+
+  return item ? handleKey(id, item, event) : true;
 }

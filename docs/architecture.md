@@ -32,6 +32,7 @@ Pupitre Desktop ──── ssh, clé du client ────▶ pupitred (VPS d
 4. **Rien de lisible n'est déposé sur le serveur.** Un binaire, des unités systemd générées, des fichiers de configuration. Pas de script.
 5. **L'app exige une première connexion réussie, puis reste utilisable sans la plateforme pendant sept jours** : le droit d'usage est mis en cache, puis l'agent passe en mode restreint sans rien casser de ce qui tourne. L'exposition ne dépend pas d'elle du tout : le tunnel est sur le compte Cloudflare du client, monté par l'app depuis son laptop, et rien de la plateforme n'est sur le chemin.
 6. **Le contrat avant l'implémentation.** Ce qui traverse une frontière est typé dans `packages/shared` et documenté dans `docs/contracts/` avant d'exister des deux côtés.
+7. **Une mise à jour ne réinstalle rien.** Un binaire ne lit jamais une configuration qu'il n'a pas migrée : chaque changement de forme d'un fichier de `/etc/pupitre` ou d'un fichier de l'app est une migration numérotée, rejouée dans l'ordre, sauvegardée avant et remise en l'état si elle refuse. L'app enchaîne mise à jour du binaire, migration, puis modules ; l'agent migre aussi tout seul au démarrage. Voir [migrations de configuration](./contracts/config-migrations.md).
 
 ## Desktop
 
@@ -44,6 +45,8 @@ Le compte est requis. L'app demande une connexion au premier lancement, puis lit
 ## Agent
 
 `apps/agent` produit `pupitred`, un binaire Go statique pour `linux/amd64` et `linux/arm64`, installé en `/usr/local/bin/pupitred`, avec `/etc/pupitre/` en 0600 root et une unité systemd. Il contient la sonde, les modules du catalogue, le registre des projets, le pilotage de tmux, les commandes de l'app, la synchronisation des clés, le heartbeat et sa propre mise à jour.
+
+Il porte aussi le registre de migrations de sa propre configuration : `pupitred migrate` sur la machine, `agent.migrate` sur le protocole.
 
 Deux interfaces : le protocole JSON sur SSH pour l'app (un processus `pupitred serve` par session), et l'API de la plateforme en HTTPS sortant pour le droit d'usage, les clés et les mises à jour. La sous-commande `pupitred dev` — aussi appelable `dev`, un lien vers le binaire — donne les mêmes commandes à un humain dans un terminal SSH : elle passe par les mêmes gestionnaires, avec les mêmes refus. Le durcissement ferme root en dernier, après avoir vérifié que `dev` accepte une clé.
 

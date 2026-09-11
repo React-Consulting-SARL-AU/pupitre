@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import type { SecretMarks } from "@shared/secrets";
 import {
+  ARM_MACHINE,
   CATALOG,
   CATALOG_NEXT,
   SMALL_MACHINE,
@@ -181,6 +182,47 @@ describe("la sélection", () => {
     });
   });
 
+  /**
+   * Deferring is the reader saying they will answer later: the questions stop
+   * being weighed, and the install goes on without them rather than refusing.
+   */
+  it("cesse de peser un service remis à plus tard, et le reprend", async () => {
+    await ready();
+
+    useCatalog.getState().toggle("db.mysql");
+    useCatalog.getState().setValue("db.mysql", "app_password", "");
+
+    const before = useCatalog
+      .getState()
+      .problems()
+      .filter((one) => one.module === "db.mysql");
+
+    expect(before.length).toBeGreaterThan(0);
+
+    useCatalog.getState().defer("db.mysql", true);
+
+    expect(useCatalog.getState().deferred).toEqual(["db.mysql"]);
+    expect(
+      useCatalog
+        .getState()
+        .problems()
+        .filter((one) => one.module === "db.mysql")
+    ).toEqual([]);
+
+    // What was typed stays typed: taking the questions back up finds the form
+    // as it was left.
+    useCatalog.getState().defer("db.mysql", false);
+
+    expect(useCatalog.getState().deferred).toEqual([]);
+    expect(useCatalog.getState().values["db.mysql"]?.engine).toBe("mysql");
+    expect(
+      useCatalog
+        .getState()
+        .problems()
+        .filter((one) => one.module === "db.mysql").length
+    ).toBe(before.length);
+  });
+
   it("part d'un préréglage du catalogue", async () => {
     await ready();
 
@@ -193,6 +235,35 @@ describe("la sélection", () => {
       "editor.vscode",
       "runtime.node",
     ]);
+  });
+
+  /** A preset ticking what the machine cannot run is an install refused later. */
+  it("ne coche pas, par préréglage, ce que l'architecture ne porte pas", async () => {
+    await ready({
+      ...CATALOG,
+      presets: [
+        {
+          id: "full",
+          modules: ["core.system", "core.hardening", "tool.legacy"],
+          name: "Tout le catalogue",
+        },
+      ],
+    });
+    useInspection.setState({ probes: { "srv-1": ARM_MACHINE } });
+
+    useCatalog.getState().usePreset("full");
+
+    expect(useCatalog.getState().selected).not.toContain("tool.legacy");
+  });
+
+  it("ne coche pas non plus ce qui se dispute la machine avec un module déjà posé", async () => {
+    const main = fakeMain(CATALOG);
+    stubPupitre(main.api);
+    await useCatalog.getState().load("srv-1", ["exposure.caddy"]);
+
+    useCatalog.getState().usePreset("full", "exposure.cloudflare");
+
+    expect(useCatalog.getState().selected).not.toContain("exposure.cloudflare");
   });
 });
 
@@ -211,7 +282,7 @@ describe("les ressources cumulées face à la sonde", () => {
 
     expect(warnings).toHaveLength(1);
     expect(warnings[0]?.message).toBe(
-      "Les modules choisis demandent 4928 Mo de mémoire ; cette machine en a 4096."
+      "Les services choisis demandent 4928 Mo de mémoire ; cette machine en a 4096."
     );
   });
 });
@@ -294,5 +365,157 @@ describe("les secrets ne vivent pas ici", () => {
       "généré-1"
     );
     expect(main.kept.size).toBe(2);
+  });
+});
+
+describe("la configuration pesée par le serveur", () => {
+  it("pose sur les champs ce que la machine seule savait", async () => {
+    const main = await ready();
+    stubPupitre({
+      ...main.api,
+      checkInstall: () =>
+        Promise.resolve({
+          ok: true as const,
+          result: {
+            problems: [
+              {
+                module: "db.mysql",
+                field: "buffer_pool",
+                code: "max" as const,
+              },
+            ],
+            warnings: [],
+          },
+        }),
+    });
+
+    const refused = await useCatalog.getState().check(["db.mysql"]);
+
+    expect(refused.map((one) => one.field)).toEqual(["buffer_pool"]);
+    expect(refused[0]?.declared?.key).toBe("buffer_pool");
+  });
+
+  it("ignore un champ que l'app remplit elle-même à la sortie", async () => {
+    const main = await ready();
+    stubPupitre({
+      ...main.api,
+      checkInstall: () =>
+        Promise.resolve({
+          ok: true as const,
+          result: {
+            problems: [
+              {
+                module: "exposure.cloudflare",
+                field: "tunnel_id",
+                code: "required" as const,
+              },
+            ],
+            warnings: [],
+          },
+        }),
+    });
+
+    const refused = await useCatalog.getState().check(["exposure.cloudflare"]);
+
+    expect(refused).toEqual([]);
+  });
+
+  it("laisse passer l'installation quand le pont ne répond pas", async () => {
+    const main = await ready();
+    stubPupitre({
+      ...main.api,
+      checkInstall: () => Promise.reject(new Error("no handler")),
+    });
+
+    const refused = await useCatalog.getState().check(["db.postgres"]);
+
+    expect(refused).toEqual([]);
+  });
+});
+
+describe("les comptes et les valeurs lues avec le catalogue", () => {
+  /**
+   * The accounts used to be read when a connection card was on screen, so the
+   * configuration weighed a module as unconnected until its own panel had been
+   * visited — and said three services were still to be configured.
+   */
+  it("sait dès le chargement quels comptes sont connectés", async () => {
+    stubPupitre({
+      ...fakeMain().api,
+      connectionsState: () =>
+        Promise.resolve({
+          "1password": { status: "absent" },
+          cloudflare: {
+            account: { id: "acc-1", name: "Ada" },
+            sealed: true,
+            status: "connected",
+          },
+          github: { status: "absent" },
+          neon: { status: "absent" },
+        }),
+    });
+
+    await useCatalog.getState().load("srv-1");
+    useCatalog.getState().toggle("exposure.cloudflare");
+
+    expect(
+      useCatalog
+        .getState()
+        .problems()
+        .filter((one) => one.code === "connection")
+    ).toEqual([]);
+  });
+
+  it("dit ce qui manque quand le compte n'est pas connecté", async () => {
+    stubPupitre(fakeMain().api);
+
+    await useCatalog.getState().load("srv-1");
+    useCatalog.getState().toggle("exposure.cloudflare");
+
+    expect(
+      useCatalog
+        .getState()
+        .problems()
+        .map((one) => `${one.module}:${one.code}`)
+    ).toContain("exposure.cloudflare:connection");
+  });
+
+  it("préremplit ce qu'un build de développement sait, sans écraser une réponse", async () => {
+    stubPupitre({
+      ...fakeMain().api,
+      devDefaults: () =>
+        Promise.resolve({
+          fields: {
+            "core.system": {
+              git_email: "ada@pupitre.studio",
+              git_name: "Ada Lovelace",
+              nobody_declares_this: "ignored",
+            },
+          },
+          server: { host: "", name: "", password: "", port: null, user: "" },
+        }),
+    });
+
+    await useCatalog.getState().load("srv-1");
+
+    expect(useCatalog.getState().values["core.system"]).toMatchObject({
+      git_email: "ada@pupitre.studio",
+      git_name: "Ada Lovelace",
+    });
+    expect(useCatalog.getState().values["core.system"]).not.toHaveProperty(
+      "nobody_declares_this"
+    );
+    expect(
+      useCatalog
+        .getState()
+        .problems()
+        .filter((one) => one.module === "core.system")
+    ).toEqual([]);
+
+    useCatalog.getState().restore(["core.system"], {
+      "core.system": { git_name: "Grace" },
+    });
+
+    expect(useCatalog.getState().values["core.system"]?.git_name).toBe("Grace");
   });
 });

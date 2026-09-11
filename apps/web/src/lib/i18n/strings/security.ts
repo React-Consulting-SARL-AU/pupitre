@@ -2,7 +2,7 @@ export const security = {
   en: {
     "passkeys.title": "Passkeys",
     "passkeys.lead":
-      "Touch ID, Windows Hello or a hardware key open the session without a magic link. One registered key is two factors on its own: the device and you.",
+      "Touch ID, Windows Hello or a hardware key open the session without a magic link.",
     "passkeys.reading": "Reading your passkeys…",
     "passkeys.readFailed": "Your passkeys could not be read.",
     "passkeys.readFailedFix": "Reload the page; if it persists, sign in again.",
@@ -35,7 +35,7 @@ export const security = {
   fr: {
     "passkeys.title": "Clés d'accès (passkeys)",
     "passkeys.lead":
-      "Touch ID, Windows Hello ou une clé matérielle ouvrent la session sans lien magique. Une clé enregistrée vaut à elle seule deux facteurs : l'appareil et vous.",
+      "Touch ID, Windows Hello ou une clé matérielle ouvrent la session sans lien magique.",
     "passkeys.reading": "Lecture de vos clés d'accès…",
     "passkeys.readFailed": "Vos clés d'accès n'ont pas pu être lues.",
     "passkeys.readFailedFix":

@@ -20,7 +20,7 @@ func manifest() contract.Manifest {
 		Fields: []contract.Field{
 			{Key: "java_version", Kind: contract.FieldVersion, Label: i18n.T("module.runtime.java.java_version.label"), Options: []string{"25", "21", "17"}, Default: "21"},
 		},
-		Provides:  []string{"runtime:java"},
+		Runs:      false,
 		Mandatory: false,
 		Since:     "0.1.0",
 	}

@@ -6,11 +6,11 @@ import { StatusDot } from "./status-dot";
 /**
  * A wait that says what is happening, where it is, and how long it has taken.
  *
- * `detail` names what is being read right now, and `note` what the wait costs
- * the machine: a spinner alone would leave the reader with nothing but the fact
- * that something is slow. `phases` goes further where the app actually knows —
- * the shapes then carry the progress, a done phase full, the current one
- * breathing, what is ahead hollow, exactly as the rail of the onboarding does.
+ * `detail` says what is happening in the reader's own words: a spinner alone
+ * would leave the reader with nothing but the fact that something is slow.
+ * `phases` goes further where the app actually knows — the shapes then carry
+ * the progress, a done phase full, the current one breathing, what is ahead
+ * hollow, exactly as the rail of the onboarding does.
  *
  * The elapsed time only appears once the wait has become one: under a couple of
  * seconds a counter would flash and say nothing.
@@ -41,12 +41,10 @@ const COUNTED_FROM_MS = 2000;
 export function WaitingNotice({
   title,
   detail,
-  note,
   phases,
 }: {
   title: string;
   detail?: ReactNode;
-  note?: ReactNode;
   /** The named steps of the wait, when the app knows them. */
   phases?: readonly WaitingPhase[];
 }) {
@@ -70,7 +68,7 @@ export function WaitingNotice({
         </div>
 
         {elapsed >= COUNTED_FROM_MS ? (
-          <span className="shrink-0 font-data text-[12px] text-ink-4 tabular-nums">
+          <span className="shrink-0 font-data text-[12px] text-ink-3 tabular-nums">
             {humanMs(elapsed)}
           </span>
         ) : null}
@@ -95,10 +93,6 @@ export function WaitingNotice({
             </li>
           ))}
         </ol>
-      ) : null}
-
-      {note ? (
-        <p className="mt-3 text-[12px] text-ink-4 leading-relaxed">{note}</p>
       ) : null}
     </div>
   );

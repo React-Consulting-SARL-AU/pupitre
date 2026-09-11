@@ -2,15 +2,31 @@ package state
 
 import (
 	"encoding/json"
-	"pupitre.studio/agent/internal/i18n"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
 )
 
 type listResult struct {
 	Projects []contract.Project `json:"projects"`
+}
+
+type routeRequest struct {
+	Label     string `json:"label"`
+	Port      int    `json:"port"`
+	Subdomain string `json:"subdomain"`
+	Hostname  string `json:"hostname"`
+}
+
+func requested(routes []routeRequest) []registry.RouteRequest {
+	requests := make([]registry.RouteRequest, 0, len(routes))
+	for _, route := range routes {
+		requests = append(requests, registry.RouteRequest{Label: route.Label, Port: route.Port, Subdomain: route.Subdomain, Hostname: route.Hostname})
+	}
+
+	return requests
 }
 
 type removeResult struct {
@@ -85,16 +101,7 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 		return reader.Status(), nil
 	})
 
-	server.Register("service.status", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
-		params, err := decode[struct {
-			ID string `json:"id"`
-		}](raw)
-		if err != nil {
-			return nil, err
-		}
-
-		return reader.ServiceStatus(params.ID)
-	})
+	server.Register("service.status", identified(func(id string) (any, error) { return reader.ServiceStatus(id) }))
 
 	server.Register("service.secret", func(ctx *protocol.Context, raw json.RawMessage) (any, error) {
 		params, err := decode[struct {
@@ -115,6 +122,37 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 		return secretResult{Key: params.Key}, nil
 	})
 
+	server.Register("service.start", identified(func(id string) (any, error) { return reader.StartService(id) }))
+	server.Register("service.stop", identified(func(id string) (any, error) { return reader.StopService(id) }))
+	server.Register("service.restart", identified(func(id string) (any, error) { return reader.RestartService(id) }))
+
+	server.Register("service.logs", func(ctx *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			ID     string `json:"id"`
+			Lines  int    `json:"lines"`
+			Follow bool   `json:"follow"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		if !params.Follow {
+			lines, err := reader.ServiceLogs(params.ID, params.Lines)
+			if err != nil {
+				return nil, err
+			}
+
+			return logsResult{Lines: lines}, nil
+		}
+
+		emit := func(line string) { ctx.Emit("log", map[string]any{"line": line}) }
+		if err := reader.FollowService(params.ID, params.Lines, emit); err != nil {
+			return nil, err
+		}
+
+		return logsResult{Lines: []string{}}, nil
+	})
+
 	server.Register("completions", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
 		params, err := decode[struct {
 			Path string `json:"path"`
@@ -132,37 +170,62 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 
 	server.Register("project.add", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
 		params, err := decode[struct {
-			Name      string `json:"name"`
-			Dir       string `json:"dir"`
-			Repo      string `json:"repo"`
-			PkgMgr    string `json:"pkgmgr"`
-			Host      string `json:"host"`
-			Port      int    `json:"port"`
-			Subdomain string `json:"subdomain"`
-			Cmd       string `json:"cmd"`
-			Install   string `json:"install"`
+			Name    string         `json:"name"`
+			Dir     string         `json:"dir"`
+			Repo    string         `json:"repo"`
+			Branch  string         `json:"branch"`
+			PkgMgr  string         `json:"pkgmgr"`
+			Host    string         `json:"host"`
+			Port    int            `json:"port"`
+			Routes  []routeRequest `json:"routes"`
+			Cmd     string         `json:"cmd"`
+			Install string         `json:"install"`
 		}](raw)
 		if err != nil {
 			return nil, err
 		}
 
 		return reader.Add(registry.Project{
-			Name: params.Name, Dir: params.Dir, Repo: params.Repo, PkgMgr: params.PkgMgr,
-			Host: params.Host, Port: params.Port, Subdomain: params.Subdomain,
+			Name: params.Name, Dir: params.Dir, Repo: params.Repo, Branch: params.Branch,
+			PkgMgr: params.PkgMgr, Host: params.Host, Port: params.Port,
 			Cmd: params.Cmd, Install: params.Install,
-		})
+		}, requested(params.Routes))
 	})
 
-	server.Register("project.detect", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
+	server.Register("project.update", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
 		params, err := decode[struct {
-			Repo string `json:"repo"`
-			Dir  string `json:"dir"`
+			Name  string `json:"name"`
+			Patch struct {
+				Cmd     *string         `json:"cmd"`
+				Install *string         `json:"install"`
+				Branch  *string         `json:"branch"`
+				Routes  *[]routeRequest `json:"routes"`
+			} `json:"patch"`
 		}](raw)
 		if err != nil {
 			return nil, err
 		}
 
-		return reader.Detect(params.Repo, params.Dir)
+		patch := UpdatePatch{Cmd: params.Patch.Cmd, Install: params.Patch.Install, Branch: params.Patch.Branch}
+		if params.Patch.Routes != nil {
+			routes := requested(*params.Patch.Routes)
+			patch.Routes = &routes
+		}
+
+		return reader.Update(params.Name, patch)
+	})
+
+	server.Register("project.detect", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			Repo   string `json:"repo"`
+			Dir    string `json:"dir"`
+			Branch string `json:"branch"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		return reader.Detect(params.Repo, params.Dir, params.Branch)
 	})
 
 	server.Register("project.remove", named(func(name string) (any, error) {
@@ -222,6 +285,8 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 
 		return urlResult{URL: address}, nil
 	}))
+
+	server.Register("project.debug", named(func(name string) (any, error) { return reader.Debug(name) }))
 
 	server.Register("project.sync", named(func(name string) (any, error) { return reader.Sync(name) }))
 	server.Register("project.branches", named(func(name string) (any, error) { return reader.Branches(name) }))
@@ -337,8 +402,121 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 		}, nil
 	})
 
-	server.Register("shots.clean", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
-		return removedResult{Removed: reader.CleanShots()}, nil
+	server.Register("shots.clean", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			Path string `json:"path"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		if params.Path == "" {
+			return removedResult{Removed: reader.CleanShots()}, nil
+		}
+
+		if err := reader.RemoveShot(params.Path); err != nil {
+			return nil, err
+		}
+
+		return removedResult{Removed: 1}, nil
+	})
+
+	server.Register("fs.list", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			Path string `json:"path"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		return reader.ListFiles(params.Path)
+	})
+
+	server.Register("fs.stat", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			Path string `json:"path"`
+			Hash bool   `json:"hash"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		return reader.StatFile(params.Path, params.Hash)
+	})
+
+	server.Register("fs.read", func(ctx *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			Path string `json:"path"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		content, err := reader.ReadFile(params.Path)
+		if err != nil {
+			return nil, err
+		}
+
+		chunks := ChunkFile(content.Bytes)
+		for seq, encoded := range chunks {
+			ctx.Emit("file", map[string]any{"seq": seq, "bytes": encoded})
+		}
+
+		return contract.FileRead{
+			Path:      content.Path,
+			MediaType: content.MediaType,
+			SizeBytes: content.SizeBytes,
+			SHA256:    content.Digest,
+			Chunks:    len(chunks),
+		}, nil
+	})
+
+	server.Register("fs.write", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			Path    string `json:"path"`
+			Content string `json:"content"`
+			SHA256  string `json:"sha256"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		return reader.WriteFile(params.Path, params.Content, params.SHA256)
+	})
+
+	server.Register("fs.mkdir", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			Path string `json:"path"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		return reader.MakeFolder(params.Path)
+	})
+
+	server.Register("fs.rename", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			Path string `json:"path"`
+			To   string `json:"to"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		return reader.MoveFile(params.Path, params.To)
+	})
+
+	server.Register("fs.remove", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			Path      string `json:"path"`
+			Recursive bool   `json:"recursive"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		return reader.RemoveFile(params.Path, params.Recursive)
 	})
 
 	server.Register("reboot", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
@@ -356,6 +534,19 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 	server.Register("diag", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
 		return reader.Diag(), nil
 	})
+}
+
+func identified(run func(string) (any, error)) protocol.Handler {
+	return func(_ *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			ID string `json:"id"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		return run(params.ID)
+	}
 }
 
 func named(run func(string) (any, error)) protocol.Handler {

@@ -25,6 +25,8 @@
 < {"event":"step","id":2,"module":"runtime.node","ms":0,"status":"ok","step":"install-bun"}
 < {"event":"step","id":2,"module":"runtime.node","ms":0,"status":"start","step":"install-pnpm"}
 < {"event":"step","id":2,"module":"runtime.node","ms":0,"status":"ok","step":"install-pnpm"}
+< {"event":"step","id":2,"module":"runtime.node","ms":0,"status":"start","step":"install-yarn"}
+< {"event":"step","id":2,"module":"runtime.node","ms":0,"status":"skip","step":"install-yarn"}
 < {"event":"step","id":2,"module":"runtime.node","ms":0,"status":"start","step":"enable-corepack"}
 < {"event":"step","id":2,"module":"runtime.node","ms":0,"status":"ok","step":"enable-corepack"}
 < {"event":"step","id":2,"module":"runtime.node","ms":0,"status":"start","step":"write-shell-env"}
@@ -58,6 +60,8 @@
 < {"event":"step","id":3,"module":"runtime.node","ms":0,"status":"skip","step":"install-bun"}
 < {"event":"step","id":3,"module":"runtime.node","ms":0,"status":"start","step":"install-pnpm"}
 < {"event":"step","id":3,"module":"runtime.node","ms":0,"status":"skip","step":"install-pnpm"}
+< {"event":"step","id":3,"module":"runtime.node","ms":0,"status":"start","step":"install-yarn"}
+< {"event":"step","id":3,"module":"runtime.node","ms":0,"status":"skip","step":"install-yarn"}
 < {"event":"step","id":3,"module":"runtime.node","ms":0,"status":"start","step":"enable-corepack"}
 < {"event":"step","id":3,"module":"runtime.node","ms":0,"status":"skip","step":"enable-corepack"}
 < {"event":"step","id":3,"module":"runtime.node","ms":0,"status":"start","step":"write-shell-env"}
@@ -71,4 +75,4 @@
 < {"event":"step","id":3,"module":"runtime.python","ms":0,"status":"start","step":"write-shell-env"}
 < {"event":"step","id":3,"module":"runtime.python","ms":0,"status":"skip","step":"write-shell-env"}
 < {"id":3,"ok":true,"result":{"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}
-< {"id":4,"ok":true,"result":{"started_at":"2026-09-04T12:00:00Z","finished_at":"2026-09-04T12:00:00Z","agent_version":"0.0.0-test","modules":[{"id":"core.system","status":"skip","steps":[{"step":"install-package","status":"skip","ms":0},{"step":"write-config","status":"skip","ms":0}]},{"id":"runtime.java","status":"skip","steps":[{"step":"install-mise","status":"skip","ms":0},{"step":"install-java","status":"skip","ms":0},{"step":"write-shell-env","status":"skip","ms":0},{"step":"write-gradle-properties","status":"skip","ms":0}]},{"id":"runtime.node","status":"skip","steps":[{"step":"install-mise","status":"skip","ms":0},{"step":"install-node","status":"skip","ms":0},{"step":"install-bun","status":"skip","ms":0},{"step":"install-pnpm","status":"skip","ms":0},{"step":"enable-corepack","status":"skip","ms":0},{"step":"write-shell-env","status":"skip","ms":0}]},{"id":"runtime.python","status":"skip","steps":[{"step":"install-mise","status":"skip","ms":0},{"step":"install-uv","status":"skip","ms":0},{"step":"install-python","status":"skip","ms":0},{"step":"write-shell-env","status":"skip","ms":0}]}],"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}
+< {"id":4,"ok":true,"result":{"started_at":"2026-09-04T12:00:00Z","finished_at":"2026-09-04T12:00:00Z","agent_version":"0.0.0-test","modules":[{"id":"core.system","status":"skip","steps":[{"step":"install-package","status":"skip","ms":0},{"step":"write-config","status":"skip","ms":0}]},{"id":"runtime.java","status":"skip","steps":[{"step":"install-mise","status":"skip","ms":0},{"step":"install-java","status":"skip","ms":0},{"step":"write-shell-env","status":"skip","ms":0},{"step":"write-gradle-properties","status":"skip","ms":0}]},{"id":"runtime.node","status":"skip","steps":[{"step":"install-mise","status":"skip","ms":0},{"step":"install-node","status":"skip","ms":0},{"step":"install-bun","status":"skip","ms":0},{"step":"install-pnpm","status":"skip","ms":0},{"step":"install-yarn","status":"skip","ms":0},{"step":"enable-corepack","status":"skip","ms":0},{"step":"write-shell-env","status":"skip","ms":0}]},{"id":"runtime.python","status":"skip","steps":[{"step":"install-mise","status":"skip","ms":0},{"step":"install-uv","status":"skip","ms":0},{"step":"install-python","status":"skip","ms":0},{"step":"write-shell-env","status":"skip","ms":0}]}],"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}

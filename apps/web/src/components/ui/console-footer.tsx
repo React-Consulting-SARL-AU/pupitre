@@ -1,5 +1,5 @@
 import { LOCALES, type Locale } from "@pupitre/shared/i18n"
-import { developmentNotice, legalEntityLabel } from "@pupitre/shared/legal"
+import { copyrightHolder, developmentNotice } from "@pupitre/shared/legal"
 import type { LucideIcon } from "lucide-react"
 import { Languages, Monitor, Moon, Sun } from "lucide-react"
 import {
@@ -43,7 +43,7 @@ export function ConsoleFooter() {
         <p>
           {t("footer.company", {
             year: new Date().getFullYear(),
-            entity: legalEntityLabel(locale),
+            entity: copyrightHolder(),
           })}
         </p>
 
@@ -75,7 +75,11 @@ export function ConsoleFooter() {
 
         <div className="ms-auto flex items-center gap-1">
           <MenuRoot>
-            <MenuTrigger aria-label={t("footer.theme")} className={TRIGGER}>
+            <MenuTrigger
+              aria-label={t("footer.theme")}
+              className={TRIGGER}
+              title={t("footer.theme")}
+            >
               <ThemeIcon className="size-4" strokeWidth={1.5} />
             </MenuTrigger>
             <MenuPopup>

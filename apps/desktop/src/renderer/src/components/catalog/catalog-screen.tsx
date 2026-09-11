@@ -1,12 +1,12 @@
-import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { ArrowRight, RefreshCw } from "lucide-react";
-import { useEffect } from "react";
+import { ArrowRight } from "lucide-react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useCatalog } from "../../stores/catalog";
 import { probeOf } from "../../stores/inspection";
+import { ActionBar } from "../ui/action-bar";
 import { Button } from "../ui/button";
-import { Callout } from "../ui/callout";
-import { PageHeader } from "../ui/page-header";
+import { Screen } from "../ui/screen";
+import { StepFailure } from "../ui/step-failure";
 import { WaitingNotice } from "../ui/waiting-notice";
 import { CatalogChoice } from "./catalog-choice";
 
@@ -16,18 +16,26 @@ import { CatalogChoice } from "./catalog-choice";
  * The screen asks `catalog` and draws the answer. It weighs the selection
  * against the report the probe left behind on the previous screen, which is why
  * a machine that was never inspected simply gets no warning rather than a
- * guessed one.
+ * guessed one. The screen ends on the gesture, with the count beside it.
  */
 export function CatalogScreen({
   serverId,
   serverName,
+  actions,
+  plain,
   onConfigure,
 }: {
   serverId: string;
   serverName?: string;
+  /** What the header offers on the whole sequence: a way out of it. */
+  actions?: ReactNode;
+  /** The header sits on the page, as the onboarding's steps read theirs. */
+  plain?: boolean;
   onConfigure?: () => void;
 }) {
   const t = useTranslations();
+
+  const [query, setQuery] = useState("");
 
   const catalog = useCatalog((state) => state.catalog);
   const selected = useCatalog((state) => state.selected);
@@ -36,6 +44,7 @@ export function CatalogScreen({
   const usePreset = useCatalog((state) => state.usePreset);
   const unreachable = useCatalog((state) => state.unreachable);
   const warnings = useCatalog((state) => state.warnings);
+  const installed = useCatalog((state) => state.installed);
 
   useEffect(() => {
     // A catalogue already read for this server is kept: coming back from the
@@ -50,67 +59,61 @@ export function CatalogScreen({
     load(serverId, probeOf(serverId)?.installed_modules ?? []);
   }, [serverId, load]);
 
-  const header = (
-    <PageHeader
-      description={t("catalog.screen.description")}
-      eyebrow={t("catalog.screen.eyebrow")}
-      title={serverName ?? t("catalog.screen.defaultServer")}
-    />
-  );
+  const frame = {
+    actions,
+    column: true,
+    plain,
+    eyebrow: t("catalog.screen.eyebrow"),
+    step: "catalog",
+    title: serverName ?? t("catalog.screen.defaultServer"),
+  };
 
   if (catalog.status === "failed" && catalog.serverId === serverId) {
     return (
-      <section className="flex flex-col gap-section">
-        {header}
-        <Callout
-          action={
-            <Button icon={RefreshCw} onClick={() => load(serverId)}>
-              {t("catalog.screen.reload")}
-            </Button>
-          }
-          fix={agentText(t, catalog.error).fix}
-          tone="danger"
-        >
-          {agentText(t, catalog.error).message}
-        </Callout>
-      </section>
+      <Screen {...frame}>
+        <StepFailure
+          error={catalog.error}
+          onRetry={() => load(serverId)}
+          retryLabel={t("catalog.screen.reload")}
+        />
+      </Screen>
     );
   }
 
   if (catalog.status !== "ready" || catalog.serverId !== serverId) {
     return (
-      <section className="flex flex-col gap-section">
-        {header}
-        <WaitingNotice
-          detail={t("catalog.screen.waitingDetail")}
-          title={t("catalog.screen.waitingTitle")}
-        />
-      </section>
+      <Screen {...frame}>
+        <WaitingNotice title={t("catalog.screen.waitingTitle")} />
+      </Screen>
     );
   }
 
   return (
-    <section className="flex flex-col gap-section">
-      <PageHeader
-        actions={
+    <Screen
+      {...frame}
+      footer={
+        <ActionBar
+          name="catalog"
+          note={t.plural("catalog.screen.chosen", selected.length)}
+        >
           <Button icon={ArrowRight} onClick={onConfigure} variant="inverse">
-            {t("catalog.screen.configure", { count: selected.length })}
+            {t.plural("catalog.screen.configure", selected.length)}
           </Button>
-        }
-        description={t("catalog.screen.description")}
-        eyebrow={t("catalog.screen.eyebrow")}
-        title={serverName ?? t("catalog.screen.defaultServer")}
-      />
-
+        </ActionBar>
+      }
+    >
       <CatalogChoice
         blocked={unreachable()}
         catalog={catalog.catalog}
+        installed={installed}
         onPreset={usePreset}
+        onQuery={setQuery}
         onToggle={toggle}
         probe={probeOf(serverId)}
+        query={query}
         selected={selected}
         warnings={warnings()}
       />
-    </section>
+    </Screen>
   );
 }

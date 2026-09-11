@@ -4,9 +4,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { humanBytes, humanMs } from "../../lib/duration";
 import type { ModuleProgress } from "../../stores/install";
 import { InstallLog } from "../install/install-log";
+import { InstallOutcomeBar } from "../install/install-outcome-bar";
 import { InstallProgress } from "../install/install-progress";
 import { InstallReport } from "../install/install-report";
 import { InstallSending } from "../install/install-sending";
+import { InstallStepRow } from "../install/install-step-row";
 
 const NAMES: Record<string, string> = {
   "core.system": "Socle système",
@@ -36,7 +38,12 @@ function module_(
 const MODULES: ModuleProgress[] = [
   module_("core.system", "ok", [
     { step: "paquets", status: "ok", ms: 12_400 },
-    { step: "fuseau", status: "skip", ms: 12 },
+    {
+      step: "fuseau",
+      status: "skip",
+      ms: 12,
+      message: "Le fuseau demandé est inconnu : Etc/UTC a été gardé.",
+    },
   ]),
   module_("db.mysql", "fail", [
     {
@@ -44,6 +51,7 @@ const MODULES: ModuleProgress[] = [
       status: "fail",
       ms: 9100,
       replay: "pupitred install db.mysql",
+      message: "E: Unable to locate package mysql-server",
     },
   ]),
   module_("runtime.node", "running", [
@@ -88,6 +96,17 @@ describe("les modules pendant l'installation", () => {
     expect(text(html)).toContain(humanMs(9100));
   });
 
+  it("compte l'attente de ce qui tourne encore, module et étape", () => {
+    const running = html.slice(html.indexOf('data-module="runtime.node"'));
+
+    expect(running.match(/data-live="duration"/g)?.length).toBe(2);
+  });
+
+  it("aligne le titre sur la plaque du logo, puces comprises", () => {
+    expect(html).toContain("min-height:30px");
+    expect(html).not.toContain("items-baseline");
+  });
+
   it("distingue les états par la forme avant la couleur", () => {
     expect(tag(html, "data-module", "core.system")).toContain(
       'data-status="ok"'
@@ -109,18 +128,64 @@ describe("les modules pendant l'installation", () => {
   });
 });
 
+describe("ce qu'une étape a dit", () => {
+  const rows = (step: ModuleProgress["steps"][number]) =>
+    renderToStaticMarkup(
+      <ul>
+        <InstallStepRow step={step} />
+      </ul>
+    );
+
+  it("montre la ligne d'un échec telle que l'agent l'a écrite", () => {
+    const html = rows({
+      message: "E: Unable to locate package mysql-server",
+      ms: 9100,
+      status: "fail",
+      step: "apt",
+    });
+
+    expect(tag(html, "data-step-message", "fail")).toBeTruthy();
+    expect(text(html)).toContain("E: Unable to locate package mysql-server");
+  });
+
+  it("montre l'avertissement d'une étape passée, sous son nom", () => {
+    const html = rows({
+      message: "Le fuseau demandé est inconnu : Etc/UTC a été gardé.",
+      ms: 12,
+      status: "skip",
+      step: "fuseau",
+    });
+
+    expect(tag(html, "data-step-message", "warn")).toBeTruthy();
+    expect(text(html)).toContain("Etc/UTC a été gardé");
+  });
+
+  it("ne dit rien sous une étape qui n'avait rien à dire", () => {
+    const html = rows({ ms: 12_400, status: "ok", step: "paquets" });
+
+    expect(html).not.toContain("data-step-message");
+  });
+
+  it("ne répète pas la ligne d'un échec dans la liste des modules", () => {
+    const html = renderToStaticMarkup(
+      <InstallProgress modules={MODULES} nameOf={nameOf} />
+    );
+
+    expect(text(html).match(/Unable to locate package/g)).toHaveLength(1);
+  });
+});
+
 describe("l'envoi de l'agent", () => {
   it("dit ce qui part et où, plutôt qu'un point qui tourne", () => {
-    const html = renderToStaticMarkup(<InstallSending arch="arm64" />);
+    const html = renderToStaticMarkup(<InstallSending />);
 
-    expect(text(html)).toContain("arm64");
+    expect(text(html)).toContain("L'agent est copié sur le serveur.");
     expect(html).toContain('data-shape="breathing"');
   });
 
   it("dit clairement que l'app ne porte aucun binaire", () => {
     const html = renderToStaticMarkup(
       <InstallReport
-        blocking={[]}
         modules={[]}
         nameOf={nameOf}
         result={{
@@ -144,62 +209,75 @@ describe("le rapport final", () => {
 
   it("liste failed et warned tels que l'agent les renvoie", () => {
     const html = renderToStaticMarkup(
-      <InstallReport
-        blocking={[]}
-        modules={MODULES}
-        nameOf={nameOf}
-        result={result}
-      />
+      <InstallReport modules={MODULES} nameOf={nameOf} result={result} />
     );
 
     expect(tag(html, "data-failed", "db.mysql")).toBeTruthy();
     expect(tag(html, "data-warned", "core.system")).toBeTruthy();
+    expect(text(html)).toContain("Etc/UTC a été gardé");
   });
 
-  it("porte un bouton Rejouer par module en échec", () => {
+  it("dit l'échec en clair, garde la ligne de l'agent sous Détails", () => {
     const html = renderToStaticMarkup(
-      <InstallReport
+      <InstallReport modules={MODULES} nameOf={nameOf} result={result} />
+    );
+
+    expect(text(html)).toContain("MySQL n'a pas pu être installé.");
+    expect(text(html)).toContain("pupitred install db.mysql");
+    expect(html).toMatch(
+      /<details[^>]*>.*apt : E: Unable to locate package mysql-server/s
+    );
+  });
+
+  it("porte un bouton Réessayer par module en échec, et dit ce que ça change", () => {
+    const html = renderToStaticMarkup(
+      <InstallReport modules={MODULES} nameOf={nameOf} result={result} />
+    );
+
+    expect(html.match(/>Réessayer</g)).toHaveLength(1);
+    expect(text(html)).toContain("les autres services ne sont pas concernés");
+  });
+
+  it("propose de tout réessayer d'un coup quand plusieurs modules ont échoué", () => {
+    const html = renderToStaticMarkup(
+      <InstallOutcomeBar
         blocking={[]}
-        modules={MODULES}
         nameOf={nameOf}
-        result={result}
+        onReplayAll={() => undefined}
+        result={{ ...result, failed: ["db.mysql", "runtime.node"] }}
       />
     );
 
-    expect(html.match(/Rejouer/g)).toHaveLength(1);
+    expect(text(html)).toContain("Réessayer les 2 services");
   });
 
   it("propose de continuer quand rien de bloquant n'a échoué", () => {
     const html = renderToStaticMarkup(
-      <InstallReport
-        blocking={[]}
-        modules={MODULES}
-        nameOf={nameOf}
-        result={result}
-      />
+      <InstallOutcomeBar blocking={[]} nameOf={nameOf} result={result} />
     );
 
     expect(text(html)).toContain("Continuer");
+    expect(text(html)).toContain("vous pourrez réessayer plus tard");
   });
 
   it("ne propose pas de continuer quand un module obligatoire a échoué", () => {
     const html = renderToStaticMarkup(
-      <InstallReport
+      <InstallOutcomeBar
         blocking={["core.system"]}
-        modules={MODULES}
         nameOf={nameOf}
         result={{ ...result, failed: ["core.system"] }}
       />
     );
 
-    expect(text(html)).not.toContain("Continuer");
-    expect(text(html)).toContain("Socle système");
+    const button = html.match(/<button[^>]*>[^<]*(?:<[^>]+>)*Continuer/)?.[0];
+
+    expect(button).toContain('disabled=""');
+    expect(text(html)).toContain("Socle système : la suite en dépend.");
   });
 
   it("se tait quand rien n'a échoué ni averti", () => {
     const html = renderToStaticMarkup(
       <InstallReport
-        blocking={[]}
         modules={MODULES}
         nameOf={nameOf}
         result={{
@@ -212,7 +290,7 @@ describe("le rapport final", () => {
 
     expect(html).not.toContain("data-failed");
     expect(html).not.toContain("data-warned");
-    expect(text(html)).toContain("Continuer");
+    expect(text(html)).toContain("Tout est installé.");
   });
 });
 

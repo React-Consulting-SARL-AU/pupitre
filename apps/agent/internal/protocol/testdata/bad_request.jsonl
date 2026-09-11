@@ -1,22 +1,22 @@
 > not json
-< {"id":0,"ok":false,"error":{"code":"bad_request","message":"the request cannot be read: one JSON object {id, cmd, params?} per line is expected"}}
 > [1,2]
-< {"id":0,"ok":false,"error":{"code":"bad_request","message":"the request cannot be read: one JSON object {id, cmd, params?} per line is expected"}}
 > {"cmd":"ping"}
-< {"id":0,"ok":false,"error":{"code":"bad_request","message":"the id is missing or invalid: an integer >= 0 is expected"}}
 > {"id":"1","cmd":"ping"}
-< {"id":0,"ok":false,"error":{"code":"bad_request","message":"the id is missing or invalid: an integer >= 0 is expected"}}
 > {"id":1.5,"cmd":"ping"}
-< {"id":0,"ok":false,"error":{"code":"bad_request","message":"the id is missing or invalid: an integer >= 0 is expected"}}
 > {"id":-1,"cmd":"ping"}
-< {"id":0,"ok":false,"error":{"code":"bad_request","message":"the id is missing or invalid: an integer >= 0 is expected"}}
 > {"id":1}
-< {"id":1,"ok":false,"error":{"code":"bad_request","message":"invalid request: /cmd: required field"}}
 > {"id":2,"cmd":""}
-< {"id":2,"ok":false,"error":{"code":"bad_request","message":"invalid request: /cmd: must hold at least 1 character"}}
 > {"id":3,"cmd":"ping","params":"x"}
-< {"id":3,"ok":false,"error":{"code":"bad_request","message":"invalid request: /params: must be an object"}}
 > {"id":4,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
-< {"id":4,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["enroll","hello","ping","probe","project.logs","reboot","secrets.set"]}}
 > {"id":5,"cmd":"ping"}
+< {"id":0,"ok":false,"error":{"code":"bad_request","message":"the request cannot be read: one JSON object {id, cmd, params?} per line is expected"}}
+< {"id":0,"ok":false,"error":{"code":"bad_request","message":"the request cannot be read: one JSON object {id, cmd, params?} per line is expected"}}
+< {"id":0,"ok":false,"error":{"code":"bad_request","message":"the id is missing or invalid: an integer >= 0 is expected"}}
+< {"id":0,"ok":false,"error":{"code":"bad_request","message":"the id is missing or invalid: an integer >= 0 is expected"}}
+< {"id":0,"ok":false,"error":{"code":"bad_request","message":"the id is missing or invalid: an integer >= 0 is expected"}}
+< {"id":0,"ok":false,"error":{"code":"bad_request","message":"the id is missing or invalid: an integer >= 0 is expected"}}
+< {"id":1,"ok":false,"error":{"code":"bad_request","message":"invalid request: /cmd: required field"}}
+< {"id":2,"ok":false,"error":{"code":"bad_request","message":"invalid request: /cmd: must hold at least 1 character"}}
+< {"id":3,"ok":false,"error":{"code":"bad_request","message":"invalid request: /params: must be an object"}}
+< {"id":4,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["enroll","hello","install","ping","probe","project.logs","reboot"]}}
 < {"id":5,"ok":true,"result":{"ts":"2026-09-04T12:00:00Z"}}

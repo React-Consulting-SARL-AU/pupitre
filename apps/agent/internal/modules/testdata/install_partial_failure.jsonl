@@ -9,7 +9,7 @@ $ {"tool.demo":{"password":"s3cret-de-test"}}
 < {"id":2,"event":"step","module":"db.broken","step":"prepare","status":"start","ms":0}
 < {"id":2,"event":"step","module":"db.broken","step":"prepare","status":"ok","ms":0}
 < {"id":2,"event":"step","module":"db.broken","step":"install-package","status":"start","ms":0}
-< {"id":2,"event":"step","module":"db.broken","step":"install-package","status":"fail","ms":0,"replay":"sudo pupitred install --only=db.broken"}
+< {"event":"step","id":2,"message":"E: Unable to locate package db-broken","module":"db.broken","ms":0,"replay":"sudo pupitred install --only=db.broken","status":"fail","step":"install-package"}
 < {"id":2,"event":"step","module":"tool.demo","step":"install-package","status":"start","ms":0}
 < {"id":2,"event":"step","module":"tool.demo","step":"install-package","status":"ok","ms":0}
 < {"id":2,"event":"step","module":"tool.demo","step":"write-config","status":"start","ms":0}
@@ -18,6 +18,6 @@ $ {"tool.demo":{"password":"s3cret-de-test"}}
 < {"id":2,"event":"step","module":"tool.demo","step":"store-password","status":"ok","ms":0}
 < {"id":2,"event":"step","module":"tool.demo","step":"enable-service","status":"start","ms":0}
 < {"id":2,"event":"step","module":"tool.demo","step":"enable-service","status":"ok","ms":0}
-< {"id":2,"ok":true,"result":{"failed":["db.broken · install-package : E: Unable to locate package db-broken · rejeu : sudo pupitred install --only=db.broken"],"warned":[],"report_path":"%REPORT_PATH%"}}
+< {"id":2,"ok":true,"result":{"failed":["db.broken"],"warned":[],"report_path":"%REPORT_PATH%"}}
 > {"id":3,"cmd":"report"}
-< {"id":3,"ok":true,"result":{"started_at":"2026-09-04T12:00:00Z","finished_at":"2026-09-04T12:00:00Z","agent_version":"0.0.0-test","modules":[{"id":"core.system","status":"ok","steps":[{"step":"install-package","status":"ok","ms":0},{"step":"write-config","status":"ok","ms":0}]},{"id":"db.broken","status":"fail","steps":[{"step":"prepare","status":"ok","ms":0},{"step":"install-package","status":"fail","ms":0,"replay":"sudo pupitred install --only=db.broken","message":"E: Unable to locate package db-broken"}]},{"id":"tool.demo","status":"ok","steps":[{"step":"install-package","status":"ok","ms":0},{"step":"write-config","status":"ok","ms":0},{"step":"store-password","status":"ok","ms":0},{"step":"enable-service","status":"ok","ms":0}]}],"failed":["db.broken · install-package : E: Unable to locate package db-broken · rejeu : sudo pupitred install --only=db.broken"],"warned":[],"report_path":"%REPORT_PATH%"}}
+< {"id":3,"ok":true,"result":{"started_at":"2026-09-04T12:00:00Z","finished_at":"2026-09-04T12:00:00Z","agent_version":"0.0.0-test","modules":[{"id":"core.system","status":"ok","steps":[{"step":"install-package","status":"ok","ms":0},{"step":"write-config","status":"ok","ms":0}]},{"id":"db.broken","status":"fail","steps":[{"step":"prepare","status":"ok","ms":0},{"step":"install-package","status":"fail","ms":0,"replay":"sudo pupitred install --only=db.broken","message":"E: Unable to locate package db-broken"}]},{"id":"tool.demo","status":"ok","steps":[{"step":"install-package","status":"ok","ms":0},{"step":"write-config","status":"ok","ms":0},{"step":"store-password","status":"ok","ms":0},{"step":"enable-service","status":"ok","ms":0}]}],"failed":["db.broken"],"warned":[],"report_path":"%REPORT_PATH%"}}

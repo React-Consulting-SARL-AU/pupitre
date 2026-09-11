@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
-import { Laptop } from "lucide-react"
+import { Laptop, RotateCw } from "lucide-react"
 import { DeviceRow } from "@/components/dashboard/device-row"
+import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { EmptyState } from "@/components/ui/empty-state"
 import { SkeletonRows } from "@/components/ui/skeleton"
@@ -50,6 +51,18 @@ export function DeviceList() {
   if (devices.isError) {
     return (
       <Callout
+        action={
+          <Button
+            icon={RotateCw}
+            loading={devices.isFetching}
+            onClick={() => {
+              devices.refetch()
+            }}
+            size="sm"
+          >
+            {t("common.retry")}
+          </Button>
+        }
         fix={t("deviceList.failedFix")}
         title={t("deviceList.failed")}
         tone="danger"

@@ -1,0 +1,11 @@
+# Le canal de lecture : la liste, la configuration rouverte, le retrait.
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","project.add","project.list","project.remove","project.update"]}}
+> {"id":2,"cmd":"project.list"}
+< {"id":2,"ok":true,"result":{"projects":[]}}
+> {"id":3,"cmd":"project.update","params":{"name":"shop","patch":{"routes":[{"label":"web","port":3100,"subdomain":"boutique"},{"label":"docs","port":3102}]}}}
+< {"id":3,"ok":true,"result":{"name":"shop","dir":"shop","path":"/home/dev/projects/shop","repo":"https://github.com/ada/shop.git","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[{"label":"web","port":3100,"hostname":"boutique.flymate.dev"},{"label":"docs","port":3102}],"cmd":"bunx turbo run dev","install":"bun install","state":"stopped","url":"https://boutique.flymate.dev"}}
+> {"id":4,"cmd":"project.update","params":{"name":"shop","patch":{"cmd":"bunx turbo run dev --filter=web..."}}}
+< {"id":4,"ok":true,"result":{"name":"shop","dir":"shop","path":"/home/dev/projects/shop","repo":"https://github.com/ada/shop.git","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[{"label":"web","port":3100,"hostname":"boutique.flymate.dev"},{"label":"docs","port":3102}],"cmd":"bunx turbo run dev --filter=web...","install":"bun install","state":"stopped","url":"https://boutique.flymate.dev"}}
+> {"id":5,"cmd":"project.remove","params":{"name":"shop"}}
+< {"id":5,"ok":true,"result":{"name":"shop","dir":"shop"}}

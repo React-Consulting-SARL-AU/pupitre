@@ -1,13 +1,16 @@
 export const activity = {
   en: {
-    "activity.description":
-      "What weighs on the machine, and what keeps going when you close the window.",
     "activity.eyebrow": "Server",
     "activity.title": "Processes and sessions",
     "activity.weighs": "What weighs",
     "activity.sessions.title": "Background sessions",
     "activity.processes.empty": "No notable process",
-    "activity.process.stop": "Stop {command} (pid {pid})",
+    "activity.process.question": "Sends SIGTERM to {command} (pid {pid}).",
+    "activity.process.forceQuestion":
+      "{command} (pid {pid}) ignored the stop: SIGKILL ends it at once, and nothing it held is saved.",
+    "activity.force": "Force stop",
+    "activity.session.reattach": "Reattach",
+    "activity.session.reattachHint": "Reattach {project}",
     "activity.kind.agent": "agent",
     "activity.kind.ide": "remote editor",
     "activity.kind.shell": "shell",
@@ -15,20 +18,23 @@ export const activity = {
     "activity.session.one": "{count} session",
     "activity.session.other": "{count} sessions",
     "activity.session.tab": "tab open",
-    "activity.session.stop": "Stop session {pid}",
+    "activity.session.question": "Kills session {pid}, {command}.",
     "activity.stop": "Stop",
     "activity.clean.question": "Sessions idle for a long time are killed.",
     "activity.clean.action": "Stop the ones that linger",
   },
   fr: {
-    "activity.description":
-      "Ce qui pèse sur la machine, et ce qui continue quand vous fermez la fenêtre.",
     "activity.eyebrow": "Serveur",
     "activity.title": "Processus et sessions",
     "activity.weighs": "Ce qui pèse",
     "activity.sessions.title": "Sessions en arrière-plan",
     "activity.processes.empty": "Aucun processus notable",
-    "activity.process.stop": "Arrêter {command} (pid {pid})",
+    "activity.process.question": "Envoie SIGTERM à {command} (pid {pid}).",
+    "activity.process.forceQuestion":
+      "{command} (pid {pid}) a ignoré l'arrêt : SIGKILL le termine sur-le-champ, et rien de ce qu'il tenait n'est sauvé.",
+    "activity.force": "Forcer l'arrêt",
+    "activity.session.reattach": "Rattacher",
+    "activity.session.reattachHint": "Rattacher {project}",
     "activity.kind.agent": "agent",
     "activity.kind.ide": "éditeur distant",
     "activity.kind.shell": "shell",
@@ -36,7 +42,7 @@ export const activity = {
     "activity.session.one": "{count} session",
     "activity.session.other": "{count} sessions",
     "activity.session.tab": "onglet ouvert",
-    "activity.session.stop": "Arrêter la session {pid}",
+    "activity.session.question": "Tue la session {pid}, {command}.",
     "activity.stop": "Arrêter",
     "activity.clean.question":
       "Les sessions inactives depuis longtemps sont tuées.",

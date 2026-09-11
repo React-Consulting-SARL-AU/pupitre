@@ -3,6 +3,7 @@ package hardening
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
@@ -24,6 +25,8 @@ const (
 )
 
 var Packages = []string{"ufw", "fail2ban", "python3-systemd"}
+
+const ufwTimeout = time.Minute
 
 const fragmentTemplate = `PermitRootLogin %s
 PasswordAuthentication no
@@ -169,6 +172,10 @@ func (Module) Uninstall(ctx *modules.Context) error {
 			return modules.Skipped, nil
 		}
 
+		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"sshd", "-t"}}); err != nil {
+			return modules.Failed, err
+		}
+
 		return modules.Done, reloadSSHD(ctx)
 	}); err != nil {
 		return err
@@ -303,7 +310,7 @@ type firewall struct {
 }
 
 func firewallStatus(ctx *modules.Context) firewall {
-	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"ufw", "status", "verbose"}})
+	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"ufw", "status", "verbose"}, Timeout: ufwTimeout})
 	if err != nil {
 		return firewall{}
 	}
@@ -366,6 +373,9 @@ func (f firewall) matches(wanted []string) bool {
 	return len(wanted) > 1 || !f.allows(altPort)
 }
 
+// ufw rewrites the whole rule set through iptables; on a machine whose kernel
+// refuses it, the command can sit there for ever. A minute is more than it ever
+// needs, and past that the step says so instead of holding the install.
 func ufw(ctx *modules.Context, args ...string) (sys.Output, error) {
-	return sys.Exec(ctx, sys.Command{Argv: append([]string{"ufw"}, args...)})
+	return sys.Exec(ctx, sys.Command{Argv: append([]string{"ufw"}, args...), Timeout: ufwTimeout})
 }

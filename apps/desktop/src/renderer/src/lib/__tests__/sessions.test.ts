@@ -6,13 +6,31 @@ import { attachedSessions, isAttached } from "../sessions";
 const TABS: Terminal[] = [
   {
     dir: null,
+    dormant: false,
     id: "t1",
     kind: "claude",
     project: "flymate-api",
+    session: "claude-flymate-api",
     title: "Claude",
   },
-  { dir: null, id: "t2", kind: "shell", project: "flymate-api", title: "T" },
-  { dir: null, id: "t3", kind: "codex", project: null, title: "Codex" },
+  {
+    dir: null,
+    dormant: false,
+    id: "t2",
+    kind: "shell",
+    project: "flymate-api",
+    session: null,
+    title: "T",
+  },
+  {
+    dir: null,
+    dormant: false,
+    id: "t3",
+    kind: "codex",
+    project: null,
+    session: null,
+    title: "Codex",
+  },
 ];
 
 function session(patch: Partial<Session>): Session {

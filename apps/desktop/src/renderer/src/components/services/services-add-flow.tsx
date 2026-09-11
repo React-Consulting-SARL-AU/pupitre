@@ -38,10 +38,17 @@ export function ServicesAddFlow({
   const [step, setStep] = useState<Step>("catalog");
   const [replaying, setReplaying] = useState<string | null>(null);
 
+  // The snapshot is polled, so the prop is a new array every few seconds while
+  // the reader is choosing. The flow reads the machine as it stood when it
+  // opened, and nothing under the reader moves until they leave.
+  const [entered] = useState(() => installed.join(" "));
+
   useEffect(() => {
     useInstall.getState().reset();
-    useCatalog.getState().load(serverId, installed);
-  }, [serverId, installed]);
+    useCatalog
+      .getState()
+      .load(serverId, entered.length > 0 ? entered.split(" ") : []);
+  }, [serverId, entered]);
 
   function configOf(moduleId: string): ModuleConfig {
     return { [moduleId]: useCatalog.getState().config()[moduleId] ?? {} };
@@ -75,16 +82,23 @@ export function ServicesAddFlow({
     await useInstall.getState().replay(serverId, moduleId, configOf(moduleId));
   }
 
-  return (
-    <section className="flex flex-col gap-gutter">
-      <div className="flex justify-end">
-        <Button icon={X} onClick={onDone} variant="discreet">
-          {t("services.add.quit")}
-        </Button>
-      </div>
+  async function install(): Promise<void> {
+    setStep("install");
 
+    await useInstall.getState().startChosen(serverId);
+  }
+
+  const quit = (
+    <Button icon={X} onClick={onDone} variant="discreet">
+      {t("services.add.quit")}
+    </Button>
+  );
+
+  return (
+    <>
       {step === "catalog" ? (
         <CatalogScreen
+          actions={quit}
           onConfigure={() => setStep("config")}
           serverId={serverId}
           serverName={serverName}
@@ -93,10 +107,9 @@ export function ServicesAddFlow({
 
       {step === "config" ? (
         <ConfigScreen
+          actions={quit}
           onBack={replaying ? undefined : () => setStep("catalog")}
-          onInstall={() =>
-            replaying ? confirmReplay(replaying) : setStep("install")
-          }
+          onInstall={() => (replaying ? confirmReplay(replaying) : install())}
           only={replaying ? [replaying] : undefined}
           serverName={serverName}
           submitLabel={
@@ -107,12 +120,13 @@ export function ServicesAddFlow({
 
       {step === "install" ? (
         <InstallScreen
+          actions={quit}
           onContinue={onDone}
           onReplay={replay}
           serverId={serverId}
           serverName={serverName}
         />
       ) : null}
-    </section>
+    </>
   );
 }

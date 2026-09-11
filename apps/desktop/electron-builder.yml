@@ -12,6 +12,14 @@ directories:
   buildResources: build
   output: dist
 
+# `pupitre://server/<id>`, `pupitre://project/<serverId>/<name>` and the
+# account callback open the app, or bring it to the front. The main process
+# checks what a link names before the window hears of it.
+protocols:
+  - name: Pupitre
+    schemes:
+      - pupitre
+
 files:
   - "!src/**"
   - "!electron.vite.config.{js,ts,mjs,cjs,d.ts}"

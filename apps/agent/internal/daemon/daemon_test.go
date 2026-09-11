@@ -71,7 +71,6 @@ func (p *fakePlatform) serve() *httptest.Server {
 				"authorized_keys": p.authorized,
 				"target_version":  p.target,
 				"hostname":        "vps",
-				"module_params":   map[string]any{},
 			})
 		case "/agent/heartbeat":
 			var beat platform.Heartbeat
@@ -175,7 +174,7 @@ func TestAKeyAddedInTheConsoleOpensTheServer(t *testing.T) {
 	b := newBench(t, true)
 	b.platform.allow(laptop)
 
-	synced, err := b.agent().Sync()
+	synced, err := b.agent().Sync(context.Background())
 	if err != nil {
 		t.Fatalf("Sync: %v", err)
 	}
@@ -199,10 +198,10 @@ func TestAKeyWithdrawnInTheConsoleClosesTheServer(t *testing.T) {
 	agent := b.agent()
 
 	b.platform.allow(laptop, desktop)
-	agent.Sync()
+	agent.Sync(context.Background())
 
 	b.platform.allow(laptop)
-	synced, err := agent.Sync()
+	synced, err := agent.Sync(context.Background())
 	if err != nil || !synced.KeysChanged {
 		t.Fatalf("synced = %+v, err = %v", synced, err)
 	}
@@ -220,7 +219,7 @@ func TestSyncIgnoresAKeyItCannotRead(t *testing.T) {
 	b := newBench(t, true)
 	b.platform.allow(laptop, "ssh-ed25519 broken")
 
-	synced, err := b.agent().Sync()
+	synced, err := b.agent().Sync(context.Background())
 	if err != nil || len(synced.Keys) != 1 {
 		t.Fatalf("synced = %+v, err = %v", synced, err)
 	}
@@ -235,7 +234,7 @@ func TestKeysListReadsTheBlockWithItsFingerprints(t *testing.T) {
 	b.platform.allow(laptop, desktop)
 
 	agent := b.agent()
-	agent.Sync()
+	agent.Sync(context.Background())
 
 	listed := agent.Keys()
 	if len(listed) != 2 {
@@ -256,7 +255,7 @@ func TestKeysListReadsTheBlockWithItsFingerprints(t *testing.T) {
 func TestSyncRefusesWithoutAServerToken(t *testing.T) {
 	b := newBench(t, false)
 
-	if _, err := b.agent().Sync(); err != platform.ErrNoToken {
+	if _, err := b.agent().Sync(context.Background()); err != platform.ErrNoToken {
 		t.Fatalf("erreur = %v", err)
 	}
 
@@ -270,11 +269,11 @@ func TestARefusedTokenLeavesTheKeysInPlace(t *testing.T) {
 	b := newBench(t, true)
 	b.platform.allow(laptop)
 	agent := b.agent()
-	agent.Sync()
+	agent.Sync(context.Background())
 
 	b.platform.suspend(http.StatusUnauthorized)
 
-	if _, err := agent.Sync(); err == nil {
+	if _, err := agent.Sync(context.Background()); err == nil {
 		t.Fatal("a refused token should surface")
 	}
 
@@ -286,7 +285,7 @@ func TestARefusedTokenLeavesTheKeysInPlace(t *testing.T) {
 func TestBeatSendsWhatTheMachineIs(t *testing.T) {
 	b := newBench(t, true)
 
-	if err := b.agent().Beat(); err != nil {
+	if err := b.agent().Beat(context.Background()); err != nil {
 		t.Fatalf("Beat: %v", err)
 	}
 
@@ -303,7 +302,7 @@ func TestBeatSendsWhatTheMachineIs(t *testing.T) {
 func TestEnrollTradesTheTokenAndWritesTheServerToken(t *testing.T) {
 	b := newBench(t, false)
 
-	if err := b.agent().Enroll(" jeton-d-enrolement \n", ""); err != nil {
+	if err := b.agent().Enroll(context.Background(), " jeton-d-enrolement \n", ""); err != nil {
 		t.Fatalf("Enroll: %v", err)
 	}
 
@@ -322,15 +321,65 @@ func TestEnrollTradesTheTokenAndWritesTheServerToken(t *testing.T) {
 	}
 }
 
+// The heartbeat and the entitlement run without the app: the only thing that
+// can tell them which platform to answer is what the enrolment wrote down, so
+// it lands before the token does.
+func TestEnrollWritesThePlatformItTradedWithBeforeTheToken(t *testing.T) {
+	b := newBench(t, false)
+	console := b.server.URL
+
+	if err := b.agent().Enroll(context.Background(), "jeton-d-enrolement", console); err != nil {
+		t.Fatalf("Enroll: %v", err)
+	}
+
+	if kept := platform.LoadBaseURL(b.fake, platform.DefaultBaseURLPath); kept != console {
+		t.Fatalf("platform kept = %q, want %q", kept, console)
+	}
+
+	writes := strings.Join(b.fake.Mutations, "\n")
+	url, token := strings.Index(writes, "write "+platform.DefaultBaseURLPath), strings.Index(writes, "write "+platform.DefaultTokenPath)
+	if url < 0 || token < 0 || url > token {
+		t.Fatalf("the platform must be written before the token:\n%s", writes)
+	}
+}
+
+func TestTheUnitConfinesTheDaemon(t *testing.T) {
+	for _, directive := range []string{
+		"ProtectSystem=strict",
+		"StateDirectory=pupitre",
+		"ReadWritePaths=/var/log /home/dev/.ssh",
+		"ProtectKernelTunables=true",
+		"RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX",
+		"NoNewPrivileges=true",
+		"PrivateTmp=true",
+	} {
+		if !strings.Contains(daemon.UnitFile, directive+"\n") {
+			t.Errorf("the unit lacks %s", directive)
+		}
+	}
+}
+
+func TestAnEnrolmentThatNamesNoPlatformWritesNone(t *testing.T) {
+	b := newBench(t, false)
+
+	if err := b.agent().Enroll(context.Background(), "jeton-d-enrolement", ""); err != nil {
+		t.Fatalf("Enroll: %v", err)
+	}
+
+	if kept := platform.LoadBaseURL(b.fake, platform.DefaultBaseURLPath); kept != "" {
+		t.Fatalf("nothing was named, %q was kept", kept)
+	}
+}
+
 func TestEnrollRefusesAnEmptyTokenAndAnUnreadableHostKey(t *testing.T) {
 	b := newBench(t, false)
 
-	if err := b.agent().Enroll("  \n", ""); err == nil {
+	if err := b.agent().Enroll(context.Background(), "  \n", ""); err == nil {
 		t.Fatal("an empty token was exchanged")
 	}
 
 	delete(b.fake.Files, daemon.DefaultHostKeyPath)
-	if err := b.agent().Enroll("jeton", ""); err == nil || !strings.Contains(err.Error(), "host key") {
+	if err := b.agent().Enroll(context.Background(), "jeton", ""); err == nil || !strings.Contains(err.Error(), "host key") {
 		t.Fatalf("erreur = %v", err)
 	}
 }

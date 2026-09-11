@@ -928,6 +928,36 @@
       },
       "held": 3,
       "expect": "max"
+    },
+    {
+      "name": "list/secret/pattern/refused",
+      "field": {
+        "key": "providers",
+        "kind": "list",
+        "label": "Fournisseurs",
+        "required": true,
+        "items": "secret",
+        "min": 1,
+        "max": 8,
+        "pattern": "^[A-Za-z0-9 ._-]+:.+$"
+      },
+      "held": ["openai:sk-live-1", "sk-live-2"],
+      "expect": "pattern"
+    },
+    {
+      "name": "list/secret/pattern/ok",
+      "field": {
+        "key": "providers",
+        "kind": "list",
+        "label": "Fournisseurs",
+        "required": true,
+        "items": "secret",
+        "min": 1,
+        "max": 8,
+        "pattern": "^[A-Za-z0-9 ._-]+:.+$"
+      },
+      "held": ["openai:sk-live-1", " anthropic:sk-ant-2 ", ""],
+      "expect": null
     }
   ]
 }

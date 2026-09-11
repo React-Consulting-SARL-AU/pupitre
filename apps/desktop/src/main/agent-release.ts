@@ -70,7 +70,7 @@ function keyObjectOf(publicKey: string) {
   });
 }
 
-function signatureHolds(
+export function signatureHolds(
   message: Uint8Array,
   signature: string,
   publicKey: string

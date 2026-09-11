@@ -7,7 +7,7 @@ var commandCatalog = map[string]Message{
 		EN: "no exposure is installed on this server",
 	},
 	"exposure.none.fix": {
-		FR: "Ajoute une exposition depuis le catalogue de l'app : Cloudflare Tunnel, Caddy, ou l'accès par SSH seul.",
+		FR: "Ajoutez une exposition depuis le catalogue de l'app : Cloudflare Tunnel, Caddy, ou l'accès par SSH seul.",
 		EN: "Add an exposure from the app's catalogue: Cloudflare Tunnel, Caddy, or SSH-only access.",
 	},
 
@@ -16,7 +16,7 @@ var commandCatalog = map[string]Message{
 		EN: "the platform refuses this enrolment token: %s",
 	},
 	"daemon.enroll.refused.fix": {
-		FR: "Relance l'installation depuis l'app pour obtenir un jeton neuf.",
+		FR: "Relancez l'installation depuis l'app pour obtenir un jeton neuf.",
 		EN: "Run the installation again from the app to get a fresh token.",
 	},
 	"daemon.enroll.failed": {
@@ -24,11 +24,11 @@ var commandCatalog = map[string]Message{
 		EN: "enrolment failed: %s",
 	},
 	"daemon.enroll.failed.fix": {
-		FR: "Vérifie que le serveur joint la plateforme en HTTPS sortant, puis relance l'installation.",
+		FR: "Vérifiez que le serveur joint la plateforme en HTTPS sortant, puis relancez l'installation.",
 		EN: "Check that the server reaches the platform over outbound HTTPS, then run the installation again.",
 	},
 	"daemon.token.missing.fix": {
-		FR: "Réinstalle ce serveur depuis l'app pour lui rendre un jeton de serveur.",
+		FR: "Réinstallez ce serveur depuis l'app pour lui rendre un jeton de serveur.",
 		EN: "Reinstall this server from the app to give it a server token back.",
 	},
 	"daemon.token.refused": {
@@ -36,7 +36,7 @@ var commandCatalog = map[string]Message{
 		EN: "the platform refuses this server's token: %s",
 	},
 	"daemon.token.refused.fix": {
-		FR: "Ouvre https://app.pupitre.studio pour rétablir le droit d'usage de ce serveur.",
+		FR: "Ouvrez https://app.pupitre.studio pour rétablir l'abonnement de ce serveur.",
 		EN: "Open https://app.pupitre.studio to restore this server's usage right.",
 	},
 	"daemon.keys.failed": {
@@ -44,7 +44,7 @@ var commandCatalog = map[string]Message{
 		EN: "the keys were not synchronised: %s",
 	},
 	"daemon.keys.failed.fix": {
-		FR: "Vérifie que le serveur joint la plateforme en HTTPS sortant, puis relance keys.sync.",
+		FR: "Vérifiez que le serveur joint la plateforme en HTTPS sortant, puis relancez keys.sync.",
 		EN: "Check that the server reaches the platform over outbound HTTPS, then run keys.sync again.",
 	},
 	"tmux.journal.none": {
@@ -52,7 +52,7 @@ var commandCatalog = map[string]Message{
 		EN: "no journal for %s",
 	},
 	"tmux.journal.none.fix": {
-		FR: "Démarre-le avec project.up : le journal naît au premier démarrage.",
+		FR: "Démarrez-le avec project.up : le journal naît au premier démarrage.",
 		EN: "Start it with project.up: the journal is born at the first start.",
 	},
 	"registry.project.versioned": {
@@ -60,7 +60,7 @@ var commandCatalog = map[string]Message{
 		EN: "%s comes from the repository's registry, not from this server",
 	},
 	"registry.project.versioned.fix": {
-		FR: "Retire sa ligne de projects.conf dans le dépôt, puis redéploie.",
+		FR: "Retirez sa ligne de projects.conf dans le dépôt, puis redéployez.",
 		EN: "Remove its line from projects.conf in the repository, then deploy again.",
 	},
 	"registry.project.unknown": {
@@ -68,11 +68,11 @@ var commandCatalog = map[string]Message{
 		EN: "unknown project: %s",
 	},
 	"registry.project.unknown.fix": {
-		FR: "Appelle project.list pour la liste des projets déclarés.",
+		FR: "Appelez project.list pour la liste des projets déclarés.",
 		EN: "Call project.list for the list of declared projects.",
 	},
 	"devcli.project.unknown.fix": {
-		FR: "Liste les projets avec pupitred dev status.",
+		FR: "Listez les projets avec pupitred dev status.",
 		EN: "List the projects with pupitred dev status.",
 	},
 	"devcli.engine.expected": {
@@ -80,7 +80,7 @@ var commandCatalog = map[string]Message{
 		EN: "a database engine is expected",
 	},
 	"devcli.engine.expected.fix": {
-		FR: "Donne le moteur : pupitred dev db %s postgres.",
+		FR: "Donnez le moteur : pupitred dev db %s postgres.",
 		EN: "Name the engine: pupitred dev db %s postgres.",
 	},
 	"db.engine.unknown": {
@@ -88,7 +88,7 @@ var commandCatalog = map[string]Message{
 		EN: "unknown engine: %s",
 	},
 	"db.engine.unknown.fix": {
-		FR: "Choisis mysql, postgres ou mongodb.",
+		FR: "Choisissez mysql, postgres ou mongodb.",
 		EN: "Pick mysql, postgres or mongodb.",
 	},
 	"onepassword.template.none": {
@@ -96,7 +96,7 @@ var commandCatalog = map[string]Message{
 		EN: "%s: neither %s nor %s in the repository",
 	},
 	"onepassword.template.none.fix": {
-		FR: "Versionne un %s dans %s, ou un %s si le projet garde ses secrets dans 1Password.",
+		FR: "Versionnez un %s dans %s, ou un %s si le projet garde ses secrets dans 1Password.",
 		EN: "Version a %s in %s, or a %s if the project keeps its secrets in 1Password.",
 	},
 	"onepassword.inject.empty": {
@@ -104,7 +104,7 @@ var commandCatalog = map[string]Message{
 		EN: "%s: op inject produced nothing",
 	},
 	"onepassword.inject.empty.fix": {
-		FR: "Vérifie que le compte de service voit le coffre du projet : sudo -u %s op vault list.",
+		FR: "Vérifiez que le compte de service voit le coffre du projet : sudo -u %s op vault list.",
 		EN: "Check that the service account sees the project's vault: sudo -u %s op vault list.",
 	},
 	"onepassword.inject.fallback": {
@@ -124,24 +124,56 @@ var commandCatalog = map[string]Message{
 		EN: "the secret stream passed validation but cannot be read: %s",
 	},
 	"secrets.install.fix": {
-		FR: "Écris les secrets groupés par identifiant de module, comme config : {\"<module id>\": {\"<clé>\": \"<valeur>\"}}.",
+		FR: "Écrivez les secrets groupés par identifiant de module, comme config : {\"<module id>\": {\"<clé>\": \"<valeur>\"}}.",
 		EN: "Write the secrets grouped by module identifier, like config: {\"<module id>\": {\"<key>\": \"<value>\"}}.",
 	},
-	"secrets.line.unreadable": {
-		FR: "ligne de secrets illisible",
-		EN: "the secrets line cannot be read",
-	},
-	"secrets.line.missing": {
-		FR: "la ligne de secrets ne porte pas de valeur pour %s",
-		EN: "the secrets line carries no value for %s",
-	},
-	"secrets.line.fix": {
-		FR: "Écris la valeur sur la ligne suivante, sous la forme {\"%s\": \"<valeur>\"}.",
-		EN: "Write the value on the next line, as {\"%s\": \"<value>\"}.",
-	},
 	"daemon.enroll.token.fix": {
-		FR: "Écris le jeton d'enrôlement sur la ligne suivante, sous la forme {\"enrollment_token\": \"<jeton>\"}.",
+		FR: "Écrivez le jeton d'enrôlement sur la ligne suivante, sous la forme {\"enrollment_token\": \"<jeton>\"}.",
 		EN: "Write the enrolment token on the next line, as {\"enrollment_token\": \"<token>\"}.",
+	},
+	"devcli.usage": {
+		FR: "usage : pupitred dev <commande> [arguments] [--json]",
+		EN: "usage: pupitred dev <command> [arguments] [--json]",
+	},
+	"devcli.usage.json": {
+		FR: "--json rend la réponse du protocole telle quelle. doctor sort en 1 si un point est à corriger.",
+		EN: "--json hands back the protocol's answer as it stands. doctor exits 1 when a point needs fixing.",
+	},
+	"devcli.command.unknown": {
+		FR: "commande inconnue : %s",
+		EN: "unknown command: %s",
+	},
+	"devcli.lines.expected": {
+		FR: "-n attend un nombre de lignes",
+		EN: "-n expects a number of lines",
+	},
+	"devcli.project.expected": {
+		FR: "%s attend un projet",
+		EN: "%s expects a project",
+	},
+	"devcli.db.expected": {
+		FR: "db attend url, shell, dump ou import",
+		EN: "db expects url, shell, dump or import",
+	},
+	"devcli.db.unknown": {
+		FR: "db %s : choisissez url, shell, dump ou import",
+		EN: "db %s: pick url, shell, dump or import",
+	},
+	"devcli.elevate.required": {
+		FR: "cette commande lit l'enrôlement et le droit d'usage du serveur, deux fichiers que seul root ouvre",
+		EN: "this command reads the server's enrolment and entitlement, two files only root opens",
+	},
+	"devcli.elevate.password.fix": {
+		FR: "Relancez-la par sudo : sudo dev <commande>.",
+		EN: "Run it through sudo: sudo dev <command>.",
+	},
+	"devcli.elevate.root.fix": {
+		FR: "Cette machine n'a pas sudo : ouvrez une session root.",
+		EN: "This machine has no sudo: open a root session.",
+	},
+	"devcli.elevate.binary": {
+		FR: "le binaire de l'agent est introuvable : %s",
+		EN: "the agent's own binary cannot be found: %s",
 	},
 	"devcli.up.help": {
 		FR: "démarre un projet",
@@ -182,5 +214,33 @@ var commandCatalog = map[string]Message{
 	"devcli.doctor.help": {
 		FR: "diagnostic court",
 		EN: "a short diagnosis",
+	},
+	"devcli.sync.pulled": {
+		FR: "pull",
+		EN: "pull",
+	},
+	"devcli.sync.uptodate": {
+		FR: "déjà à jour",
+		EN: "already up to date",
+	},
+	"devcli.sync.installed": {
+		FR: "dépendances",
+		EN: "dependencies",
+	},
+	"devcli.sync.unchanged": {
+		FR: "dépendances inchangées",
+		EN: "dependencies unchanged",
+	},
+	"devcli.branch.norepo": {
+		FR: "%s n'est pas dans un dépôt git",
+		EN: "%s is not in a git repository",
+	},
+	"devcli.branch.dirty": {
+		FR: "modifications non commitées",
+		EN: "uncommitted changes",
+	},
+	"daemon.version.none": {
+		FR: "aucune",
+		EN: "none",
 	},
 }

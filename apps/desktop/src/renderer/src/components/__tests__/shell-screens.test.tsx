@@ -3,16 +3,13 @@ import type { AccountState } from "@shared/account";
 import type { Server } from "@shared/servers";
 import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import {
-  PROCESSES,
-  SECRETS,
-  SNAPSHOT,
-} from "../../__tests__/snapshot-fixtures";
+import { PROCESSES, SNAPSHOT } from "../../__tests__/snapshot-fixtures";
 import { type ReenrollState, repairable } from "../../stores/reenroll";
 import { ActivityPanel } from "../activity/activity-panel";
-import { SecretsPanel } from "../secrets/secrets-panel";
 import { AppSidebar } from "../shell/app-sidebar";
 import { FirstRunScreen } from "../shell/first-run-screen";
+import { HistoryArrows } from "../shell/history-arrows";
+import { ServerLinkNotice } from "../shell/server-link-notice";
 import { ServerRestrictedNotice } from "../shell/server-restricted-notice";
 import { ServerUnreadyScreen } from "../shell/server-unready-screen";
 
@@ -38,14 +35,17 @@ describe("la barre latérale", () => {
       <AppSidebar
         activeTerminal={null}
         allTerminals={[]}
+        onAddProject={() => undefined}
         onCloseTerminal={NOOP}
         onNewTerminal={NOOP}
         onProject={NOOP}
+        onSwitchServer={NOOP}
         onTerminal={NOOP}
         onView={NOOP}
         projects={SNAPSHOT.projects}
         selection="flymate-api"
         server={SERVER}
+        servers={[SERVER]}
         states={{}}
         terminals={[]}
         view="project"
@@ -61,19 +61,60 @@ describe("la barre latérale", () => {
     expect(html).toContain("atelier.example.net");
   });
 
+  it("nomme l'organisation à laquelle la console rattache le serveur", () => {
+    const granted: Server = {
+      ...SERVER,
+      grant: {
+        adopted: false,
+        id: "platform-1",
+        keyReady: true,
+        listed: true,
+        opened: true,
+        organization: { id: "org-1", name: "Atelier Ada" },
+        status: "active",
+      },
+    };
+
+    const html = renderToStaticMarkup(
+      <AppSidebar
+        activeTerminal={null}
+        allTerminals={[]}
+        onAddProject={NOOP}
+        onCloseTerminal={NOOP}
+        onNewTerminal={NOOP}
+        onProject={NOOP}
+        onSwitchServer={NOOP}
+        onTerminal={NOOP}
+        onView={NOOP}
+        projects={[]}
+        selection={null}
+        server={granted}
+        servers={[granted]}
+        states={{}}
+        terminals={[]}
+        view="dashboard"
+      />
+    );
+
+    expect(html).toContain("Atelier Ada");
+  });
+
   it("liste les projets du snapshot avec leur état et leur mémoire", () => {
     const html = renderToStaticMarkup(
       <AppSidebar
         activeTerminal={null}
         allTerminals={[]}
+        onAddProject={() => undefined}
         onCloseTerminal={NOOP}
         onNewTerminal={NOOP}
         onProject={NOOP}
+        onSwitchServer={NOOP}
         onTerminal={NOOP}
         onView={NOOP}
         projects={SNAPSHOT.projects}
         selection={null}
         server={SERVER}
+        servers={[SERVER]}
         states={{}}
         terminals={[]}
         view="dashboard"
@@ -139,10 +180,14 @@ describe("processus et sessions", () => {
     const html = renderToStaticMarkup(
       <ActivityPanel
         attached={["claude:flymate-api"]}
+        lingering={[]}
         onCleanSessions={NOOP}
+        onReattach={NOOP}
+        onRetryProcesses={NOOP}
         onStopProcess={NOOP}
         onStopSession={NOOP}
         processes={PROCESSES}
+        processesProblem={null}
         sessions={SNAPSHOT.sessions}
       />
     );
@@ -158,71 +203,34 @@ describe("processus et sessions", () => {
     const attached = renderToStaticMarkup(
       <ActivityPanel
         attached={["claude:flymate-api"]}
+        lingering={[]}
         onCleanSessions={NOOP}
+        onReattach={NOOP}
+        onRetryProcesses={NOOP}
         onStopProcess={NOOP}
         onStopSession={NOOP}
         processes={PROCESSES}
+        processesProblem={null}
         sessions={SNAPSHOT.sessions}
       />
     );
     const alone = renderToStaticMarkup(
       <ActivityPanel
         attached={[]}
+        lingering={[]}
         onCleanSessions={NOOP}
+        onReattach={NOOP}
+        onRetryProcesses={NOOP}
         onStopProcess={NOOP}
         onStopSession={NOOP}
         processes={PROCESSES}
+        processesProblem={null}
         sessions={SNAPSHOT.sessions}
       />
     );
 
     expect(attached).toContain("onglet ouvert");
     expect(alone).not.toContain("onglet ouvert");
-  });
-});
-
-describe("les secrets", () => {
-  it("montre les clés et leur état, jamais une valeur", () => {
-    const html = renderToStaticMarkup(
-      <SecretsPanel
-        onOpen={NOOP}
-        onReload={NOOP}
-        onSave={NOOP}
-        open={null}
-        problem={null}
-        saved={null}
-        saving={null}
-        state={{ secrets: SECRETS, status: "read" }}
-      />
-    );
-
-    expect(html).toContain("GITHUB_TOKEN");
-    expect(html).toContain("CLOUDFLARE_TOKEN");
-    expect(html).toContain("en place");
-    expect(html).toContain("absente");
-    expect(html).toContain("1 sur 2 en place");
-  });
-
-  it("dit le remède de l'agent quand il refuse une valeur", () => {
-    const html = renderToStaticMarkup(
-      <SecretsPanel
-        onOpen={NOOP}
-        onReload={NOOP}
-        onSave={NOOP}
-        open={null}
-        problem={{
-          code: "bad_request",
-          fix: "Donne une valeur sur une seule ligne.",
-          message: "La valeur tient sur plusieurs lignes.",
-        }}
-        saved={null}
-        saving={null}
-        state={{ secrets: SECRETS, status: "read" }}
-      />
-    );
-
-    expect(html).toContain("plusieurs lignes");
-    expect(html).toContain("une seule ligne");
   });
 });
 
@@ -367,5 +375,112 @@ describe("qui peut réparer un serveur restreint", () => {
         })
       )
     ).toBe(false);
+  });
+});
+
+describe("un serveur qu'on n'a pas encore joint", () => {
+  it("dit qu'on le joint, sans parler de refus", () => {
+    const html = renderToStaticMarkup(
+      <ServerUnreadyScreen
+        error={null}
+        onInstall={NOOP}
+        onRetry={NOOP}
+        onSettings={NOOP}
+        server={SERVER}
+      />
+    );
+
+    expect(html).toContain('data-unready="reaching"');
+    expect(html).toContain("Connexion à Atelier");
+    expect(html).toContain("dev@atelier.example.net:22");
+    expect(html).not.toContain("ne répond pas");
+    expect(html).not.toContain("Installer l&#x27;agent");
+  });
+});
+
+describe("les flèches de l'historique", () => {
+  it("nomment les deux sens avec leur raccourci et éteignent celui sans suite", () => {
+    const html = renderToStaticMarkup(
+      <HistoryArrows
+        canGoBack={true}
+        canGoForward={false}
+        onBack={NOOP}
+        onForward={NOOP}
+      />
+    );
+
+    expect(html).toContain('aria-label="Retour (');
+    expect(html).toContain('title="Retour (');
+    expect(html).toContain('aria-label="Avancer (');
+    expect(html).toMatch(/aria-label="Avancer \([^"]*\)"[^>]*disabled=""/);
+    expect(html).not.toMatch(/aria-label="Retour \([^"]*\)"[^>]*disabled=""/);
+  });
+});
+
+describe("ce qui se dit au-dessus des écrans", () => {
+  it("dit qu'un lien est perdu, et qu'il se rouvre", () => {
+    const html = renderToStaticMarkup(
+      <ServerLinkNotice
+        channel="lost"
+        onRetry={() => Promise.resolve()}
+        serverName="Atelier"
+        stale={null}
+      />
+    );
+
+    expect(html).toContain("Connexion à Atelier perdue.");
+    expect(html).toContain("Nouvelle tentative");
+  });
+
+  it("dit qu'un tableau de bord ne bouge plus, avec le mot de l'agent et une relecture", () => {
+    const html = renderToStaticMarkup(
+      <ServerLinkNotice
+        channel="open"
+        onRetry={() => Promise.resolve()}
+        serverName="Atelier"
+        stale={{
+          code: "disconnected",
+          message: "La session SSH s'est fermée.",
+          fix: "Vérifie que la machine répond.",
+        }}
+      />
+    );
+
+    expect(html).toContain("Atelier ne répond plus.");
+    expect(html).toContain("Vérifie que la machine répond.");
+    expect(html).toContain("Relire");
+  });
+
+  it("ne dit rien quand le lien tient et que le relevé est frais", () => {
+    const html = renderToStaticMarkup(
+      <ServerLinkNotice
+        channel="open"
+        onRetry={() => Promise.resolve()}
+        serverName="Atelier"
+        stale={null}
+      />
+    );
+
+    expect(html).toBe("");
+  });
+
+  it("demande confirmation avant de tuer un processus ou une session", () => {
+    const html = renderToStaticMarkup(
+      <ActivityPanel
+        attached={[]}
+        lingering={[]}
+        onCleanSessions={NOOP}
+        onReattach={NOOP}
+        onRetryProcesses={NOOP}
+        onStopProcess={NOOP}
+        onStopSession={NOOP}
+        processes={PROCESSES}
+        processesProblem={null}
+        sessions={SNAPSHOT.sessions}
+      />
+    );
+
+    expect(html).toContain(">Arrêter<");
+    expect(html).not.toContain("Envoie SIGTERM");
   });
 });

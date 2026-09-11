@@ -1,4 +1,5 @@
 import type {
+  InstallCheckResult,
   InstallResult,
   InstallSecrets,
   ModuleConfig,
@@ -10,7 +11,7 @@ import type { AgentResponse } from "@shared/agent";
 import type { InstallUpdate } from "@shared/install";
 import type { AgentDelivery } from "./agent-binary";
 import type { AgentClient } from "./agent-client";
-import { refusalOf } from "./refusal";
+import { refusalOf, refuseWith } from "./refusal";
 import type { ManagedValues } from "./tunnel-run";
 
 export type { InstallUpdate } from "@shared/install";
@@ -137,6 +138,19 @@ function only(config: ModuleConfig, modules: readonly string[]): ModuleConfig {
   return kept;
 }
 
+/**
+ * `defer` is left out when it names nobody.
+ *
+ * An agent older than the field refuses a request that carries it — its
+ * parameters are a closed shape, and rightly so. Sending nothing when there is
+ * nothing to say keeps every ordinary install working against the agent already
+ * on the machine; asking to defer against such an agent still gets refused, and
+ * that refusal is the truth.
+ */
+function deferring(defer: readonly string[]): { defer?: string[] } {
+  return defer.length > 0 ? { defer: [...defer] } : {};
+}
+
 /** What the platform provided wins: the form never had these keys to fill in. */
 function merged<T extends ModuleConfig | InstallSecrets>(
   asked: T,
@@ -173,7 +187,9 @@ export async function runInstall(
   modules: readonly string[],
   config: ModuleConfig,
   update: (change: InstallUpdate) => void,
-  deps: InstallDeps
+  deps: InstallDeps,
+  /** Modules to put on the machine without configuring: their questions wait. */
+  defer: readonly string[] = []
 ): Promise<AgentResponse<InstallResult>> {
   if (modules.length === 0) {
     return {
@@ -232,7 +248,10 @@ export async function runInstall(
     };
   }
 
-  const managed = await deps.managed(serverId, modules);
+  // A module nobody is configuring wants nothing filled in for it, an account
+  // token least of all: the whole point is that it goes on without one.
+  const asked = modules.filter((id) => !defer.includes(id));
+  const managed = await deps.managed(serverId, asked);
 
   if (!managed.ok) {
     return managed;
@@ -248,7 +267,8 @@ export async function runInstall(
     serverId,
     "install",
     {
-      config: only(merged(config, managed.result.config), modules),
+      config: only(merged(config, managed.result.config), asked),
+      ...deferring(defer),
       modules: [...modules],
       secrets_stdin: carries,
     },
@@ -257,4 +277,45 @@ export async function runInstall(
       ...(carries ? { secrets } : {}),
     }
   );
+}
+
+/**
+ * The same request, weighed rather than run.
+ *
+ * Nothing leaves and nothing is created: no binary, no enrolment, no tunnel,
+ * and above all no secret — a screen that opened an account's tunnel to weigh a
+ * form would bill the reader for looking at it. What comes back is what the
+ * machine alone knows, and an agent too old to answer refuses, which the screen
+ * reads as nothing to add.
+ */
+export async function runCheck(
+  serverId: string,
+  modules: readonly string[],
+  config: ModuleConfig,
+  deps: Pick<InstallDeps, "client" | "declared">,
+  defer: readonly string[] = []
+): Promise<AgentResponse<InstallCheckResult>> {
+  if (modules.length === 0) {
+    return { ok: true, result: { problems: [], warnings: [] } };
+  }
+
+  const declared = await deps.declared(serverId);
+
+  if (!declared.ok) {
+    return declared;
+  }
+
+  const stranger = modules.find((id) => !declared.result.includes(id));
+
+  if (stranger) {
+    return refuseWith("module_not_found", "refusal.module.undeclared", {
+      module: stranger,
+    });
+  }
+
+  return await deps.client.request(serverId, "install.check", {
+    config: only(config, modules),
+    ...deferring(defer),
+    modules: [...modules],
+  });
 }

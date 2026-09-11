@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import type {
+  InstallCheckResult,
   InstallReport,
   InstallResult,
   ModuleConfig,
@@ -23,6 +24,7 @@ import {
   type EnrollmentGrant,
   enrolAgent,
   type InstallUpdate,
+  runCheck,
   runInstall,
 } from "./install-run";
 import { takeSecrets } from "./install-secrets";
@@ -129,6 +131,13 @@ function configOf(value: unknown): ModuleConfig {
   return value && typeof value === "object" ? (value as ModuleConfig) : {};
 }
 
+/** The modules the window asked to leave unconfigured, taken as names and nothing else. */
+function deferredOf(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((one): one is string => typeof one === "string")
+    : [];
+}
+
 /**
  * The binary, put on the machine before anything is asked of it.
  *
@@ -183,7 +192,8 @@ export function registerInstall(): void {
       token: unknown,
       serverId: unknown,
       modules: unknown,
-      config: unknown
+      config: unknown,
+      defer: unknown
     ): Promise<AgentResponse<InstallResult>> => {
       const call = checked(serverId, modules);
 
@@ -218,7 +228,38 @@ export function registerInstall(): void {
           managed: managedValues,
           probe: inspect,
           secrets: takeSecrets,
-        }
+        },
+        deferredOf(defer)
+      );
+    }
+  );
+
+  /*
+    Weighing touches nothing, so it passes no usage guard: the right to install
+    is opposed once, to the install itself, and a reader without one still gets
+    told what their form gets wrong.
+  */
+  ipcMain.handle(
+    "install:check",
+    async (
+      _event,
+      serverId: unknown,
+      modules: unknown,
+      config: unknown,
+      defer: unknown
+    ): Promise<AgentResponse<InstallCheckResult>> => {
+      const call = checked(serverId, modules);
+
+      if ("ok" in call) {
+        return call;
+      }
+
+      return await runCheck(
+        call.serverId,
+        call.modules,
+        configOf(config),
+        { client: agentClient, declared: declaredModules },
+        deferredOf(defer)
       );
     }
   );

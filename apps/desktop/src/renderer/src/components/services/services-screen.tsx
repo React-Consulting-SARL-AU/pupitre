@@ -3,9 +3,10 @@ import type { Manifest } from "@pupitre/shared/catalog";
 import { Button } from "@renderer/components/ui/button";
 import { EmptyState } from "@renderer/components/ui/empty-state";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
-import { PageHeader } from "@renderer/components/ui/page-header";
+import { Screen } from "@renderer/components/ui/screen";
 import { ModuleUpgradePanel } from "@renderer/components/updates/module-upgrade-panel";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { heldForUsage } from "@renderer/lib/refusals";
 import { useAgentUpdate } from "@renderer/stores/agent-update";
 import { useCatalog } from "@renderer/stores/catalog";
 import { useServices } from "@renderer/stores/services";
@@ -34,17 +35,20 @@ export function ServicesScreen({
   serverId,
   serverName,
   services,
-  onTerminal,
+  openAt = null,
 }: {
   serverId: string;
   serverName?: string;
   services: readonly Service[];
   onMachineName?: (name: string) => void;
-  onTerminal?: () => void;
+  /** A service to land on, for a screen that sent the reader to its page. */
+  openAt?: string | null;
 }) {
   const t = useTranslations();
 
-  const [view, setView] = useState<View>({ kind: "list" });
+  const [view, setView] = useState<View>(
+    openAt ? { kind: "service", moduleId: openAt } : { kind: "list" }
+  );
 
   const catalog = useCatalog((state) => state.catalog);
   const modules = useCatalog((state) => state.modules);
@@ -98,105 +102,103 @@ export function ServicesScreen({
 
   if (view.kind === "add") {
     return (
-      <div className="h-full overflow-y-auto px-8 py-6">
-        <ServicesAddFlow
-          installed={installed}
-          onDone={() => setView({ kind: "list" })}
-          serverId={serverId}
-          serverName={serverName}
-        />
-      </div>
+      <ServicesAddFlow
+        installed={installed}
+        onDone={() => setView({ kind: "list" })}
+        serverId={serverId}
+        serverName={serverName}
+      />
     );
   }
 
   if (view.kind === "service") {
     return (
-      <div className="h-full overflow-y-auto px-8 py-6">
-        <ServicePanel
-          installed={manifestsOf()}
-          manifest={
-            modules().find((manifest) => manifest.id === view.moduleId) ?? null
-          }
-          moduleId={view.moduleId}
-          onBack={back}
-          onTerminal={onTerminal}
-          serverId={serverId}
-        />
-      </div>
+      <ServicePanel
+        catalogHeld={heldForUsage(
+          catalog.status === "failed" ? catalog.error : null
+        )}
+        installed={manifestsOf()}
+        manifest={
+          modules().find((manifest) => manifest.id === view.moduleId) ?? null
+        }
+        moduleId={view.moduleId}
+        onBack={back}
+        onReloadCatalog={() => loadCatalog(serverId, installed)}
+        serverId={serverId}
+      />
     );
   }
 
   return (
-    <div className="h-full overflow-y-auto px-8 py-6">
-      <section className="flex flex-col gap-section">
-        <PageHeader
-          actions={
-            <Button
-              icon={Plus}
-              onClick={() => setView({ kind: "add" })}
-              variant="inverse"
-            >
+    <Screen
+      actions={
+        <Button
+          icon={Plus}
+          onClick={() => setView({ kind: "add" })}
+          variant="inverse"
+        >
+          {t("services.screen.add")}
+        </Button>
+      }
+      eyebrow={t("services.screen.eyebrow")}
+      title={serverName ?? t("services.screen.fallbackName")}
+    >
+      {/*
+          A server held for its usage right refuses the catalogue, the tunnel
+          and every service with the same sentence; the notice at the top of
+          the window already says it, and where to answer it.
+        */}
+      {catalog.status === "failed" && !heldForUsage(catalog.error) ? (
+        <ErrorNotice
+          error={catalog.error}
+          onRetry={() => loadCatalog(serverId, installed)}
+        />
+      ) : null}
+
+      {tunnel.problem && !heldForUsage(tunnel.problem) ? (
+        <ErrorNotice error={tunnel.problem} />
+      ) : null}
+
+      {services.length === 0 ? (
+        <EmptyState
+          action={
+            <Button icon={Plus} onClick={() => setView({ kind: "add" })}>
               {t("services.screen.add")}
             </Button>
           }
-          description={t("services.screen.description")}
-          eyebrow={t("services.screen.eyebrow")}
-          title={serverName ?? t("services.screen.fallbackName")}
+          icon={Boxes}
+          title={t("services.screen.emptyTitle")}
         />
+      ) : (
+        <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
+          {services.map((service) => (
+            <ServiceRow
+              key={service.id}
+              onOpen={() => setView({ kind: "service", moduleId: service.id })}
+              service={service}
+            />
+          ))}
+        </ul>
+      )}
 
-        {catalog.status === "failed" ? (
-          <ErrorNotice
-            error={catalog.error}
-            onRetry={() => loadCatalog(serverId, installed)}
-          />
-        ) : null}
+      {services.length > 0 ? (
+        <ModuleUpgradePanel
+          modules={installed}
+          nameOf={nameOf}
+          onUpgrade={() => update.upgradeModules(serverId, installed)}
+          state={update.modules}
+          steps={update.steps}
+        />
+      ) : null}
 
-        {tunnel.problem ? <ErrorNotice error={tunnel.problem} /> : null}
-
-        {services.length === 0 ? (
-          <EmptyState
-            action={
-              <Button icon={Plus} onClick={() => setView({ kind: "add" })}>
-                {t("services.screen.add")}
-              </Button>
-            }
-            detail={t("services.screen.emptyDetail")}
-            icon={Boxes}
-            title={t("services.screen.emptyTitle")}
-          />
-        ) : (
-          <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
-            {services.map((service) => (
-              <ServiceRow
-                key={service.id}
-                onOpen={() =>
-                  setView({ kind: "service", moduleId: service.id })
-                }
-                service={service}
-              />
-            ))}
-          </ul>
-        )}
-
-        {services.length > 0 ? (
-          <ModuleUpgradePanel
-            modules={installed}
-            nameOf={nameOf}
-            onUpgrade={() => update.upgradeModules(serverId, installed)}
-            state={update.modules}
-            steps={update.steps}
-          />
-        ) : null}
-
-        {tunnel.tunnel.status === "ready" ? (
-          <ServicesTunnel
-            busy={tunnel.busy}
-            onRestart={() => tunnel.restart(serverId)}
-            onSync={() => tunnel.sync(serverId)}
-            tunnel={tunnel.tunnel.tunnel}
-          />
-        ) : null}
-      </section>
-    </div>
+      {tunnel.tunnel.status === "ready" ? (
+        <ServicesTunnel
+          busy={tunnel.busy}
+          onRestart={() => tunnel.restart(serverId)}
+          onSync={() => tunnel.sync(serverId)}
+          tunnel={tunnel.tunnel.tunnel}
+        />
+      ) : null}
+    </Screen>
   );
 }

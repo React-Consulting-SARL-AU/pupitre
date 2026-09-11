@@ -6,7 +6,7 @@ import { type AgentClient, createAgentClient } from "../agent-client";
 import { runHarden } from "../harden-run";
 import { runInstall } from "../install-run";
 import { withAccount } from "../server-setup";
-import { appSshPaths, controlPath, renderSshConfig } from "../ssh-config";
+import { appSshPaths, controlDir, renderSshConfig } from "../ssh-config";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 
 const SERVER = "staging";
@@ -284,13 +284,21 @@ describe("le parcours d'un serveur atteint en root", () => {
 });
 
 describe("le socket de multiplexage", () => {
-  it("change avec le compte, pour ne pas réutiliser la session de root", () => {
+  /**
+   * `%C` is ssh's own hash of the host, the port and the account: a session
+   * opened as root and one opened as dev never share a socket, so closing root
+   * never leaves a master answering for it.
+   */
+  it("est nommé par ssh d'après le compte, pour ne pas réutiliser la session de root", () => {
     const paths = appSshPaths("/data");
-    const server = asRoot();
-
-    expect(controlPath(paths, server)).not.toBe(
-      controlPath(paths, { ...server, user: "dev" })
+    const rendered = renderSshConfig(
+      [asRoot()],
+      paths,
+      "darwin",
+      controlDir(501)
     );
+
+    expect(rendered).toContain("  ControlPath /tmp/pupitre-501/%C");
   });
 });
 
