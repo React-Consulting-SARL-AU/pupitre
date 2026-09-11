@@ -77,7 +77,7 @@ export interface DownloadedArtefact {
  * Whether a downloaded artefact is the one the release key signed.
  *
  * The signature binds the digest to the version, the system and the chip, the
- * way `scripts/publish-release.ts` wrote it: an authentic AppImage of another
+ * way the release chain wrote it: an authentic AppImage of another
  * version, or of another architecture, is refused too. macOS and Windows have
  * their platform's own signature checked by electron-updater; Linux has none,
  * and this is what stands in for it.
