@@ -162,7 +162,7 @@ Vérifie : `curl -I https://dl.pupitre.studio` répond **404 servi par Cloudflar
 
 **`ppt-agent`, privé.** Ni adresse publique, ni URL `r2.dev`. Rien ne l'atteint depuis internet : c'est ce qui garde le binaire de l'agent hors de portée. La plateforme en sert le contenu par une adresse signée valable cinq minutes, qu'elle calcule elle-même, et seulement à un serveur qui présente son jeton.
 
-**Email.** Active Email Routing sur la zone et fais vérifier `no-reply@pupitre.studio`. Sans lui aucun lien de connexion ne part, donc personne ne se connecte.
+**Email.** Le Worker envoie par le binding `send_email` d'Email Sending : active Email Sending sur le compte et fais vérifier le domaine `pupitre.studio` comme expéditeur (les enregistrements DKIM et SPF sont posés sur la zone). Rien à recevoir, donc pas d'Email Routing. Sans domaine vérifié aucun lien de connexion ne part, donc personne ne se connecte.
 
 ## 5. La base de données
 
@@ -312,7 +312,7 @@ Puis, à la main : ouvrir le `.dmg` sur un Mac qui n'a jamais vu le certificat, 
 | --- | --- |
 | Le déploiement refuse de partir en nommant des secrets | il en manque un : `check:secrets <environnement>` les liste |
 | Le site répond mais aucune connexion n'aboutit | `BETTER_AUTH_SECRET` absent, ou différent de celui qui a signé les sessions |
-| Aucun email ne part | Email Routing pas activé, ou `no-reply@pupitre.studio` pas vérifié |
+| Aucun email ne part | Email Sending pas activé, ou `pupitre.studio` pas vérifié comme domaine expéditeur |
 | L'app dit qu'il n'y a rien à télécharger | les quatre `R2_*` sont faux : la plateforme rend une adresse locale et le dit dans un en-tête |
 | La construction échoue sur la migration | `MIGRATE_DATABASE_URL` désigne un point poolé, ou la mauvaise branche |
 | `wrangler deploy` refuse `legacy_env` dans la configuration générée | `@cloudflare/vite-plugin` et `wrangler` ne sont plus au même niveau : le plugin écrit la configuration que wrangler lit, les deux se mettent à jour ensemble |

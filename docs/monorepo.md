@@ -136,7 +136,7 @@ Le nom du Worker n'est pas choisi : Wrangler est en environnements *legacy*, il 
 
 ### L'ordre de création
 
-Les étapes, dans l'ordre où elles se tiennent, sont dans [`deploy.md`](./deploy.md) : zone, Neon, buckets, Email Routing, Stripe, premier déploiement à la main, secrets, projets Cloudflare Builds, Pages. Les tableaux ci-dessus disent les noms ; ce document-là dit les gestes.
+Les étapes, dans l'ordre où elles se tiennent, sont dans [`deploy.md`](./deploy.md) : zone, Neon, buckets, Email Sending, Stripe, premier déploiement à la main, secrets, projets Cloudflare Builds, Pages. Les tableaux ci-dessus disent les noms ; ce document-là dit les gestes.
 
 ### Ce que fait chaque déploiement
 
@@ -305,4 +305,4 @@ Les `overrides` du `package.json` racine sont la seule source de vérité de l'a
 
 ## Dashboards externes
 
-Cloudflare Builds, Cloudflare Email Routing, R2 (les deux buckets, dont `ppt-downloads` et son domaine public), Stripe, Neon (projet `pupitre`), Apple Developer, Azure Trusted Signing. Ce document est ce qui les décrit ; rien dans le dépôt ne peut vérifier ce qu'ils exécutent. Quand un tableau ci-dessus change, le dashboard change dans la même passe.
+Cloudflare Builds, Cloudflare Email Sending, R2 (les deux buckets, dont `ppt-downloads` et son domaine public), Stripe, Neon (projet `pupitre`), Apple Developer, Azure Trusted Signing. Ce document est ce qui les décrit ; rien dans le dépôt ne peut vérifier ce qu'ils exécutent. Quand un tableau ci-dessus change, le dashboard change dans la même passe.
