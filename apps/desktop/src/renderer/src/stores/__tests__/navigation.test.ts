@@ -3,7 +3,7 @@ import type { Navigation } from "@renderer/lib/memory";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
 import { restoredTerminals, useNavigation } from "../navigation";
 
-const KEY = "pupitre.navigation.v1";
+const STORAGE_ENTRY = "pupitre.navigation.v1";
 
 const held = new Map<string, string>();
 
@@ -20,7 +20,7 @@ Object.defineProperty(globalThis, "localStorage", {
 /** What a previous run left on the disk, as this one will read it. */
 function remembered(memory: Navigation & { terminals?: unknown[] }): void {
   held.clear();
-  held.set(KEY, JSON.stringify(memory));
+  held.set(STORAGE_ENTRY, JSON.stringify(memory));
 }
 
 function where() {
@@ -271,7 +271,7 @@ describe("les onglets d'un lancement à l'autre", () => {
       .getState()
       .renameTerminal(useNavigation.getState().terminals[0].id, "Le build");
 
-    const written = JSON.parse(held.get(KEY) ?? "{}") as Navigation;
+    const written = JSON.parse(held.get(STORAGE_ENTRY) ?? "{}") as Navigation;
 
     expect(written.terminals).toMatchObject([
       { kind: "shell", title: "Le build" },
