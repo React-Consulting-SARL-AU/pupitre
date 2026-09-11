@@ -131,7 +131,7 @@ Crée **un second jeton** au même endroit, celui-là en **Object Read & Write**
 
 ### Les quatre `STRIPE_*` — Stripe
 
-Un produit et deux prix, à créer **deux fois** : en sandbox pour le staging, en live pour la production.
+Un produit et deux prix, à créer **deux fois** : en sandbox pour le staging, en live pour la production. Tant que la production reste volontairement en sandbox — c'est le cas au premier déploiement, le temps que le compte Stripe soit vérifié — les deux environnements partagent la clé et les prix, et chacun a son propre webhook.
 
 | | |
 | --- | --- |
@@ -172,24 +172,33 @@ Une seule chose à savoir : `MIGRATE_DATABASE_URL` doit désigner le point de co
 
 ## 6. Le premier déploiement, à la main
 
-Un secret ne s'attache qu'à un Worker qui existe. On le crée donc une fois sans passer par la construction automatique. Depuis une branche de travail, avec les deux adresses de la branche Neon `staging` dans l'environnement :
+Un Worker naît avec ses douze secrets, ou ne naît pas : `wrangler deploy` refuse de créer un Worker dont un secret de `secrets.required` manque, et `wrangler secret put` ne sait rien attacher à un Worker qui n'existe pas encore. Le premier déploiement fournit donc les douze d'un coup, par `--secrets-file`. On le fait une fois, sans passer par la construction automatique.
+
+Les valeurs vivent dans 1Password, dans le même coffre que la note de développement : un item par environnement, `pupitre-staging` et `pupitre-production`, un champ par secret, nommé exactement comme le Worker l'attend. Le fichier de secrets n'existe jamais sur le disque : il est composé à la volée depuis 1Password et remis à `wrangler` par une substitution de processus.
+
+Depuis une branche de travail, avec les deux adresses de la branche Neon `staging` dans l'environnement :
 
 ```bash
 bun --cwd=apps/web run build:staging
-bun x wrangler deploy --config apps/web/dist/server/wrangler.json --keep-vars
+bun x wrangler deploy --config apps/web/dist/server/wrangler.json --keep-vars \
+  --secrets-file <(op item get pupitre-staging --vault "DEV - React Consulting" --format json \
+    | jq '[.fields[] | select(.label and .value)] | map({(.label): .value}) | add')
 ```
 
 Le Worker s'appelle `ppt-web-staging`. Rien ne se saisit dans le tableau de bord : l'adresse, les tâches planifiées et les liens de service viennent tous de `wrangler.jsonc`.
 
-Puis les douze secrets, un par un ou d'un coup depuis un fichier JSON gardé hors du dépôt :
+Ensuite, un secret qui change se pose seul, ou tous d'un coup, par le même canal :
 
 ```bash
-bun x wrangler secret put DATABASE_URL --config apps/web/wrangler.jsonc --env staging
-bun x wrangler secret bulk ~/secrets/pupitre-staging.json --config apps/web/wrangler.jsonc --env staging
+op read "op://DEV - React Consulting/pupitre-staging/STRIPE_WEBHOOK_SECRET" \
+  | bun x wrangler secret put STRIPE_WEBHOOK_SECRET --config apps/web/wrangler.jsonc --env staging
+bun x wrangler secret bulk --config apps/web/wrangler.jsonc --env staging <(op item get pupitre-staging \
+  --vault "DEV - React Consulting" --format json \
+  | jq '[.fields[] | select(.label and .value)] | map({(.label): .value}) | add')
 bun --cwd=apps/web run check:secrets staging     # doit dire que tout est là
 ```
 
-**Recommence l'étape entière pour `production`**, avec `build:production`, `--env production` et `check:secrets production`. Les valeurs diffèrent : branche Neon `production`, Stripe en live. Ne recopie rien depuis le staging sauf les quatre `R2_*` et le jeton de publication.
+**Recommence l'étape entière pour `production`**, avec `build:production`, `--env production` et `check:secrets production`. Les valeurs diffèrent : branche Neon `production`, ses propres `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET`, son propre webhook Stripe. Les quatre `R2_*`, le jeton de publication et — tant que Stripe reste en sandbox — les trois autres `STRIPE_*` sont les mêmes qu'en staging.
 
 Vérifie :
 
@@ -306,6 +315,8 @@ Puis, à la main : ouvrir le `.dmg` sur un Mac qui n'a jamais vu le certificat, 
 | Aucun email ne part | Email Routing pas activé, ou `no-reply@pupitre.studio` pas vérifié |
 | L'app dit qu'il n'y a rien à télécharger | les quatre `R2_*` sont faux : la plateforme rend une adresse locale et le dit dans un en-tête |
 | La construction échoue sur la migration | `MIGRATE_DATABASE_URL` désigne un point poolé, ou la mauvaise branche |
+| `wrangler deploy` refuse `legacy_env` dans la configuration générée | `@cloudflare/vite-plugin` et `wrangler` ne sont plus au même niveau : le plugin écrit la configuration que wrangler lit, les deux se mettent à jour ensemble |
+| Le premier déploiement refuse en nommant les douze secrets | c'est un Worker qui n'existe pas encore : il naît avec `--secrets-file`, étape 6 |
 | La CI publie mais la plateforme refuse | `PUPITRE_PUBLISH_TOKEN` diffère entre GitHub et le Worker, ou a perdu son préfixe |
 | Une version publiée ne devient jamais stable | la pull request a été fusionnée en squash, et le commit tagué a quitté l'historique |
 
