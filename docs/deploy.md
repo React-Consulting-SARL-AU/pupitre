@@ -130,7 +130,7 @@ Cloudflare → **R2** → *Manage API tokens* → *Create API token*. Permission
 | `R2_SECRET_ACCESS_KEY` | le secret, montré une seule fois |
 | `R2_BUCKET_NAME` | `ppt-agent` |
 
-Crée **un second jeton** au même endroit, celui-là en **Object Read & Write** sur les deux seaux : il devient `CLOUDFLARE_API_TOKEN` dans GitHub à l'étape 8. Ne réutilise pas le premier — celui du Worker n'a pas à pouvoir écrire.
+La chaîne de release, elle, n'écrit pas en S3 : `wrangler r2 object put` passe par l'API Cloudflare, que ces jetons S3 n'ouvrent pas (ils répondent 403). Il lui faut un **jeton d'API de compte** : *Manage Account* → *Account API Tokens* → *Create Token* → *Custom*, nom `ppt-release`, une seule permission **Account · Workers R2 Storage · Edit**, ressource limitée au compte. Sa valeur devient `CLOUDFLARE_API_TOKEN` dans GitHub à l'étape 8. Le jeton du Worker, lui, reste en lecture seule.
 
 ### Les quatre `STRIPE_*` — Stripe
 
@@ -278,7 +278,7 @@ Ils vivent dans un environnement nommé `release` et ne servent qu'à publier l'
 | --- | --- | --- |
 | `PUPITRE_PUBLISH_TOKEN` | la même valeur qu'à l'étape 3, mot pour mot | la version se construit et ne se déclare pas |
 | `PUPITRE_RELEASE_PRIVATE_KEY` | `cd apps/agent && go run ./tools/release keygen`, une seule fois | rien ne se construit |
-| `CLOUDFLARE_API_TOKEN` | le second jeton R2 de l'étape 3 | rien ne monte sur les seaux |
+| `CLOUDFLARE_API_TOKEN` | le jeton d'API de compte `ppt-release` de l'étape 3, permission *Workers R2 Storage · Edit* | rien ne monte sur les seaux |
 | `CLOUDFLARE_ACCOUNT_ID` | l'identifiant du compte | idem |
 | `APPLE_CERTIFICATE` | `base64 -i DeveloperID.p12 \| pbcopy` | l'app macOS sort non signée |
 | `APPLE_CERTIFICATE_PASSWORD` | choisi à l'export du certificat | idem |
