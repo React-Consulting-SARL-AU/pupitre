@@ -17,7 +17,7 @@ import {
   promoteAgent,
   promoteApp,
 } from "./platform"
-import { type Bucket, get, keys, put } from "./r2"
+import { bucket, get, keys, put } from "./r2"
 import { versionOfTag } from "./resolve"
 
 /**
@@ -62,8 +62,8 @@ async function promoteVersion(
   env: NodeJS.ProcessEnv,
   dryRun: boolean
 ): Promise<void> {
-  const vault: Bucket = { dryRun, name: variable(env, "agentBucket") }
-  const bucket: Bucket = { dryRun, name: variable(env, "downloadsBucket") }
+  const vault = bucket(variable(env, "agentBucket"), env, dryRun)
+  const downloads = bucket(variable(env, "downloadsBucket"), env, dryRun)
   const platform = platformFromEnv(variable(env, "platform"), env, dryRun)
   const temp = mkdtempSync(path.join(tmpdir(), "pupitre-promote-"))
 
@@ -71,8 +71,8 @@ async function promoteVersion(
     const agentFile = path.join(temp, "agent.json")
     const appFile = path.join(temp, "app.json")
 
-    get(vault, keys.agent(version, "publications.json"), agentFile)
-    get(vault, keys.appDeclarations(version), appFile)
+    await get(vault, keys.agent(version, "publications.json"), agentFile)
+    await get(vault, keys.appDeclarations(version), appFile)
 
     if (!dryRun) {
       for (const publication of readAgentPublications(agentFile)) {
@@ -92,8 +92,8 @@ async function promoteVersion(
     for (const feed of FEEDS) {
       const local = path.join(temp, feed)
 
-      get(bucket, objectKey(version, feed), local)
-      put(bucket, feedKey(channel, feed), local)
+      await get(downloads, objectKey(version, feed), local)
+      await put(downloads, feedKey(channel, feed), local)
     }
   } finally {
     rmSync(temp, { force: true, recursive: true })

@@ -130,7 +130,7 @@ Cloudflare → **R2** → *Manage API tokens* → *Create API token*. Permission
 | `R2_SECRET_ACCESS_KEY` | le secret, montré une seule fois |
 | `R2_BUCKET_NAME` | `ppt-agent` |
 
-La chaîne de release, elle, n'écrit pas en S3 : `wrangler r2 object put` passe par l'API Cloudflare, que ces jetons S3 n'ouvrent pas (ils répondent 403). Il lui faut un **jeton d'API de compte** : *Manage Account* → *Account API Tokens* → *Create Token* → *Custom*, nom `ppt-release`, une seule permission **Account · Workers R2 Storage · Edit**, ressource limitée au compte. Sa valeur devient `CLOUDFLARE_API_TOKEN` dans GitHub à l'étape 8. Le jeton du Worker, lui, reste en lecture seule.
+Crée **un second jeton** au même endroit, celui-là en **Object Read & Write** sur les deux seaux : sa clé et son secret deviennent `R2_ACCESS_KEY_ID` et `R2_SECRET_ACCESS_KEY` dans GitHub à l'étape 8. La chaîne de release parle S3 directement, avec ce jeton-là, et rien d'autre : un jeton d'API Cloudflare ouvrirait tous les seaux du compte, celui-ci n'ouvre que les deux. Ne réutilise pas le premier — celui du Worker n'a pas à pouvoir écrire.
 
 ### Les quatre `STRIPE_*` — Stripe
 
@@ -278,15 +278,15 @@ Ils vivent dans un environnement nommé `release` et ne servent qu'à publier l'
 | --- | --- | --- |
 | `PUPITRE_PUBLISH_TOKEN` | la même valeur qu'à l'étape 3, mot pour mot | la version se construit et ne se déclare pas |
 | `PUPITRE_RELEASE_PRIVATE_KEY` | `cd apps/agent && go run ./tools/release keygen`, une seule fois | rien ne se construit |
-| `CLOUDFLARE_API_TOKEN` | le jeton d'API de compte `ppt-release` de l'étape 3, permission *Workers R2 Storage · Edit* | rien ne monte sur les seaux |
-| `CLOUDFLARE_ACCOUNT_ID` | l'identifiant du compte | idem |
+| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | le second jeton R2 de l'étape 3, *Object Read & Write* sur les deux seaux | rien ne monte sur les seaux |
+| `R2_ACCOUNT_ID` | l'identifiant du compte, dans l'adresse S3 du seau | idem |
 | `APPLE_CERTIFICATE` | `base64 -i DeveloperID.p12 \| pbcopy` | l'app macOS sort non signée |
 | `APPLE_CERTIFICATE_PASSWORD` | choisi à l'export du certificat | idem |
 | `APPLE_API_KEY_CONTENT` | `base64 -i AuthKey_<id>.p8 \| pbcopy` | pas de notarisation |
 | `APPLE_API_KEY_ID`, `APPLE_API_ISSUER` | la page *Keys* d'App Store Connect | idem |
 | `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` | l'application Entra ID du compte de signature | l'installateur Windows sort non signé |
 
-Les quatre premiers suffisent pour publier. Les autres n'évitent que les avertissements des systèmes au premier lancement.
+Les quatre premières lignes suffisent pour publier. Les autres n'évitent que les avertissements des systèmes au premier lancement.
 
 **La clé de publication mérite une phrase.** Une seule paire de clés signe tout ce que Pupitre publie, pour toujours. Sa moitié privée va dans 1Password puis dans le secret GitHub ; sa moitié publique est déjà écrite dans le code de l'app. Les deux vont ensemble : une app qui connaît une clé publique et un agent signé avec une autre refusent toute mise à jour, sans message utile. Ne la régénère pas.
 

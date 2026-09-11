@@ -216,7 +216,7 @@ Un bucket R2 `ppt-downloads`, **accès public activé** par le domaine personnal
 | --- | --- | --- |
 | `PUPITRE_RELEASE_PRIVATE_KEY` | la moitié privée de la clé Ed25519 qui signe l'agent et les artefacts de l'app | `cd apps/agent && go run ./tools/release keygen`, une seule fois, hors de toute session d'agent |
 | `PUPITRE_PUBLISH_TOKEN` | le jeton du pipeline de release, préfixé `pupitre_pub_` : il n'ouvre que les quatre routes de version, n'expire pas et n'appartient à personne | tiré une fois, posé sur le Worker et ici — voir [`deploy.md`](./deploy.md), étapes 6.2 et 10.3 |
-| `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | l'accès R2 de la CI, par l'API Cloudflare que `wrangler` appelle — pas un jeton S3 de la page R2, qui répond 403 | Cloudflare → *Manage Account* → *Account API Tokens*, jeton `ppt-release`, permission *Workers R2 Storage · Edit* sur le compte |
+| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | l'accès R2 de la chaîne, en S3, limité aux deux seaux — un jeton d'API Cloudflare ouvrirait tous ceux du compte | Cloudflare → *R2* → *Manage API tokens*, *Object Read & Write* sur `ppt-agent` et `ppt-downloads` |
 | `APPLE_CERTIFICATE` | le `.p12` du certificat Developer ID, en base 64 | `base64 -i DeveloperID.p12 \| pbcopy` |
 | `APPLE_CERTIFICATE_PASSWORD` | le mot de passe de ce `.p12` | choisi à l'export depuis Trousseau d'accès |
 | `APPLE_API_KEY_CONTENT` | le `.p8` de la clé de notarisation, en base 64 | `base64 -i AuthKey_<KeyID>.p8 \| pbcopy` |
