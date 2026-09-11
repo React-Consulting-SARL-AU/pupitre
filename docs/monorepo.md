@@ -12,7 +12,7 @@ Même outillage que React-Box, mêmes versions quand elles sont compatibles : ce
 | tsgo | typecheck | `@typescript/native-preview`, TypeScript 6 |
 | Husky + commitlint | hooks | pre-commit : `ultracite fix` par workspace sur les fichiers indexés, et seul un fichier entièrement indexé est ré-indexé après la passe — un fichier indexé en partie est formaté sur le disque sans que ses morceaux laissés de côté entrent dans le commit ; pre-push : lint, `check:types`, `test` affectés, que `SKIP_PREPUSH=1` saute quand on sait ce qu'on fait ; commits conventionnels |
 | Prisma 7 | schéma et migrations | client généré committé, empreinte `packages/db/src/generated/.prisma-inputs.sha256` vérifiée au lint par `scripts/check-prisma-client-freshness.ts` ; `db:migrate` et `db:migrate:reset` exigent `PUPITRE_ALLOW_MIGRATE_ON=staging` ou `local` |
-| Wrangler 4 | Workers, Pages, R2, secrets | `secrets.required` déclarés dans `wrangler.jsonc`, vérifiés avant déploiement |
+| Wrangler 4 | Workers, R2, secrets | `secrets.required` déclarés dans `wrangler.jsonc`, vérifiés avant déploiement |
 | Go 1.26+ (`apps/agent/go.mod`) | l'agent | `gofmt`, `go vet` et `staticcheck` au lint, `govulncheck` et `go test -race` en CI, `garble` en release. Les trois outils sont épinglés dans `apps/agent/package.json` : `bun --cwd=apps/agent run tools:install` installe `staticcheck` et `govulncheck`, `garble:install` installe garble, tous dans le bin de Go, à mettre dans le `PATH`. Go lui-même est installé par Homebrew sur la machine du propriétaire |
 | electron-vite, electron-builder | l'app desktop | bytecode du processus principal, fusibles, signature et notarisation ; un runner par système |
 
@@ -91,7 +91,7 @@ Trois workspaces passent `--timeout=60000` à `bun test` : `apps/web`, `apps/des
 - **Ce qui se dérive n'est pas stocké.** `DATABASE_URL` et `MIGRATE_DATABASE_URL` viennent de `neonctl`, poolé et direct, sur la branche Neon que la branche Git désigne ; `.env.local` garde à côté `NEON_PROJECT_ID` et `NEON_BRANCH`, qui disent d'où elles viennent. `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` sont tirés au hasard par poste, puisqu'ils n'ont pas à être partagés.
 - **Ce qui ne se dérive pas vient de 1Password.** `.env.1password.tpl` est le modèle committé, avec des références `op://` et aucune valeur ; le coffre et l'élément sont dans `op.config.json`, surchargeables par `OP_VAULT` et `OP_ITEM`. `op inject` échoue en bloc si un champ manque, donc une clé reste **en commentaire** tant que son champ n'existe pas dans la note.
 - **Rien n'est bloquant.** `op` absent, session fermée, champ manquant ou `neonctl` sans session : le script le dit et retombe sur ce que `.env.local` porte déjà.
-- **`secrets.required` de `wrangler.jsonc` fait deux choses à la fois**, et c'est un piège : Cloudflare ne charge dans le Worker local **que** les clés qui y figurent — tout ce que `.dev.vars` porte en plus est silencieusement ignoré — et `wrangler deploy` refuse de partir si l'une d'elles manque. Il n'existe pas de liste « facultative ». Une variable dont le produit peut se passer, comme les identifiants de connexion sociale, se déclare donc **dans la liste racine seulement** : les blocs `env.staging` et `env.production` portent chacun leur propre liste complète et l'emportent entièrement, si bien que la variable atteint le développement local sans devenir obligatoire au déploiement. Un secret qui n'apparaît nulle part n'atteint jamais le Worker, quoi qu'il y ait dans `.env.local` — le symptôme est une fonctionnalité qui se croit non configurée alors que la valeur est bien là.
+- **`secrets.required` de `wrangler.jsonc` fait deux choses à la fois**, et c'est un piège : Cloudflare ne charge dans le Worker local **que** les clés qui y figurent — tout ce que `.dev.vars` porte en plus est silencieusement ignoré — et `wrangler deploy` refuse de partir si l'une d'elles manque. Il n'existe pas de liste « facultative ». Une variable que seul le développement local doit voir se déclare **dans la liste racine seulement** : les blocs `env.staging` et `env.production` portent chacun leur propre liste complète et l'emportent entièrement. Les identifiants de connexion sociale figurent dans les trois listes : le produit s'en passe à l'écran, mais la console en ligne les offre. Un secret qui n'apparaît nulle part n'atteint jamais le Worker, quoi qu'il y ait dans `.env.local` — le symptôme est une fonctionnalité qui se croit non configurée alors que la valeur est bien là.
 - `STRIPE_WEBHOOK_SECRET` **se dérive** en local, comme la base : `dev:prepare` le lit par `stripe listen --print-secret`, c'est-à-dire le secret de l'endpoint que le CLI tient pour ce compte, et avec lequel `bun run dev:stripe` signe. Il diffère de celui du tableau de bord et n'a donc rien à faire dans 1Password. Sans le CLI, ou sans `stripe login`, le script le dit et ne bloque rien. Il reste requis en staging et en production, par secret Wrangler, où le webhook vérifie ses signatures.
 - Les valeurs **non secrètes** du développement (`BETTER_AUTH_URL`, `VITE_APP_URL`, `EMAIL_FROM`, `PUPITRE_DOWNLOADS_URL`) ne sont ni dans 1Password ni écrites à la main : elles vivent dans `vars` de `apps/web/wrangler.jsonc`, et `dev:prepare` les recopie dans `.env.local` quand elles y sont vides. Sans cette copie, `.dev.vars` masquerait `vars` clé par clé et le Worker local démarrerait avec un `BETTER_AUTH_URL` vide.
 - `.env.local` est écrit en 0600 et lié en `apps/web/.dev.vars` (que le Worker lit) et `apps/web/.env.local` (que Vite lit) : une seule valeur à tenir à jour. `.env.example` reste la liste de référence des noms.
@@ -118,7 +118,7 @@ Deux branches longues, et rien d'autre qui vive plus qu'une pull request.
 
 ### Le préfixe des ressources Cloudflare
 
-**Toute ressource créée sur le compte Cloudflare porte le préfixe `ppt-`** : Workers, Workflows, projets Pages, buckets R2, KV, files. Le compte héberge plusieurs produits, chacun avec son préfixe court ; sans lui, une ressource de Pupitre ne se distingue de celle d'un autre projet que par la mémoire de qui la lit. Le nom du domaine, lui, ne change pas : `pupitre.studio` reste ce qu'il est.
+**Toute ressource créée sur le compte Cloudflare porte le préfixe `ppt-`** : Workers, Workflows, buckets R2, KV, files. Le compte héberge plusieurs produits, chacun avec son préfixe court ; sans lui, une ressource de Pupitre ne se distingue de celle d'un autre projet que par la mémoire de qui la lit. Le nom du domaine, lui, ne change pas : `pupitre.studio` reste ce qu'il est.
 
 ### Les noms exacts
 
@@ -136,7 +136,7 @@ Le nom du Worker n'est pas choisi : Wrangler est en environnements *legacy*, il 
 
 ### L'ordre de création
 
-Les étapes, dans l'ordre où elles se tiennent, sont dans [`deploy.md`](./deploy.md) : zone, Neon, buckets, Email Sending, Stripe, premier déploiement à la main, secrets, projets Cloudflare Builds, Pages. Les tableaux ci-dessus disent les noms ; ce document-là dit les gestes.
+Les étapes, dans l'ordre où elles se tiennent, sont dans [`deploy.md`](./deploy.md) : zone, Neon, buckets, Email Sending, Stripe, premier déploiement à la main, secrets, projets Workers Builds. Les tableaux ci-dessus disent les noms ; ce document-là dit les gestes.
 
 ### Ce que fait chaque déploiement
 
@@ -154,20 +154,19 @@ Un retour arrière se fait sur les versions du Worker (`bun x wrangler rollback 
 | --- | --- | --- |
 | web (staging) | `bun install --frozen-lockfile && bun --cwd=apps/web run build:staging` | `bun --cwd=apps/web run deploy:staging` |
 | web (production) | `bun install --frozen-lockfile && bun --cwd=apps/web run build:production` | `bun --cwd=apps/web run deploy:production` |
-| site | `bun install --frozen-lockfile && bun --cwd=apps/site run build` | Pages, `apps/site/dist` |
+| site (staging) | `bun install --frozen-lockfile && bun --cwd=apps/site run build:staging` | `bun --cwd=apps/site run deploy:staging` |
+| site (production) | `bun install --frozen-lockfile && bun --cwd=apps/site run build:production` | `bun --cwd=apps/site run deploy:production` |
 
 Deux environnements : `staging`, déployé par la branche `staging` (`staging.pupitre.studio`, `staging-app.pupitre.studio`, Stripe en mode test, branche Neon `staging`), et `production`, déployé par la branche `main` (`app.pupitre.studio`, branche Neon `production`). L'app desktop de développement pointe sur `staging`.
 
-### Le site sur Pages
+### Le site, un Worker à assets statiques
 
-Projet Pages `ppt-site`, relié au dépôt, branche de production `main` :
+`apps/site/wrangler.jsonc` : `ppt-site-staging` sur `staging.pupitre.studio`, `ppt-site` sur `pupitre.studio` et `www.pupitre.studio`. Le calque d'assets sert `dist/` et lit `_headers` et `_redirects` ; `worker/index.ts` ne fait que renvoyer `www` vers l'apex, que ce calque refuse d'écrire (URL relatives seulement).
 
-- `main` publie sur `pupitre.studio` ; toute autre branche obtient une URL de prévisualisation, et `staging` est aliasée en `staging.pupitre.studio`.
-- Domaines : `pupitre.studio` en apex, `www.pupitre.studio` redirigé en 301 par `apps/site/public/_redirects`.
 - En-têtes de sécurité et de cache dans `apps/site/public/_headers` : `HSTS`, `CSP`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, et un an d'immuable sur `/_astro/*` et `/og/*`.
 - Variables de build : `PUBLIC_POSTHOG_KEY` et `PUBLIC_POSTHOG_HOST` en production seulement — sans clé, le site ne charge aucun analytics et n'affiche pas de bandeau de consentement.
-- Le garde légal (`apps/site/scripts/legal.ts`) fait échouer le build de production — `CF_PAGES_BRANCH=main` ou `PUPITRE_ENV=production` — quand une page de `src/content/legal/` porte un `TODO`, et, dès que `PROJECT_STAGE` de `@pupitre/shared/legal` vaut `public`, quand elle est encore un brouillon ou porte un passage à compléter. Tant que le projet se déclare en développement, les brouillons se publient avec leur avertissement. Voir [`legal.md`](./legal.md).
-- La liste des releases de l'app est lue au build depuis `PUBLIC_RELEASES_URL`, qui vaut `https://app.pupitre.studio/api/v1/releases/app` — une route publique, sans session : ce sont des fichiers publics. Variable absente ou API injoignable n'échoue pas le build : la page de téléchargement part avec `apps/site/src/content/site/releases.ts` et un avertissement de build. En local et en test, la variable n'est pas posée, donc le build ne sort jamais sur le réseau.
+- Le garde légal (`apps/site/scripts/legal.ts`) fait échouer le build de production — `PUPITRE_ENV=production`, posé par `build:production` — quand une page de `src/content/legal/` porte un `TODO`, et, dès que `PROJECT_STAGE` de `@pupitre/shared/legal` vaut `public`, quand elle est encore un brouillon ou porte un passage à compléter. Tant que le projet se déclare en développement, les brouillons se publient avec leur avertissement. Voir [`legal.md`](./legal.md).
+- La liste des releases de l'app est lue au build depuis `PUBLIC_RELEASES_URL`, posée par `build:staging` et `build:production` sur la console de l'environnement — une route publique, sans session : ce sont des fichiers publics. API injoignable n'échoue pas le build : la page de téléchargement part avec `apps/site/src/content/site/releases.ts` et un avertissement de build. En local et en test, la variable n'est pas posée, donc le build ne sort jamais sur le réseau.
 
 ## Stripe
 
