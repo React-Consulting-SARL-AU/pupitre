@@ -26,6 +26,7 @@
     "check:prisma-client": "bun scripts/check-prisma-client-freshness.ts",
     "check:secrets": "bun scripts/check-worker-secrets.ts",
     "workflows:run": "bun scripts/run-workflow.ts",
+    "release": "bun scripts/release/index.ts",
     "test": "bun run test:root && turbo run test",
     "test:root": "bun test scripts",
     "test:affected": "turbo run test --affected",

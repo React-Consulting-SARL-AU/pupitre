@@ -204,7 +204,7 @@ Webhook `https://app.pupitre.studio/api/v1/webhooks/stripe`, un endpoint et un s
 
 Chaque artefact monte avec un fichier `.sig` à côté : la signature Ed25519 de la clé de release, la même que celle de l'agent, sur `pupitre-app\n<version>\n<système>\n<architecture>\n<sha256>\n`. Elle est aussi enregistrée dans la table `AppRelease`, avec la somme et la taille du fichier. Sur macOS et Windows, c'est la signature du système qui protège l'installation ; sur Linux, celle-ci est la seule, et elle se vérifie à la main.
 
-Les trois `latest*.yml` sont ce que lit `electron-updater`. `electron-builder` les écrit, `apps/desktop/scripts/publish-release.ts` réécrit les liens qu'ils contiennent en URL absolues — les artefacts vivent dans le dossier de leur version, les flux dans celui de leur canal — puis les dépose sous `app/beta/`. `promote.yml` les recopie sous `app/stable/`.
+Les trois `latest*.yml` sont ce que lit `electron-updater`. `electron-builder` les écrit, l'étape `app publish` de `scripts/release` réécrit les liens qu'ils contiennent en URL absolues — les artefacts vivent dans le dossier de leur version, les flux dans celui de leur canal — puis les dépose sous `app/beta/`. `promote.yml` les recopie sous `app/stable/`.
 
 ### Le bucket public
 
@@ -230,7 +230,8 @@ Un bucket R2 `ppt-downloads`, **accès public activé** par le domaine personnal
 | `PUPITRE_STAGING_PLATFORM_URL` | `https://staging-app.pupitre.studio` — la plateforme d'un tag sur `staging` |
 | `PUPITRE_DOWNLOADS_URL` | `https://dl.pupitre.studio` |
 | `PUPITRE_DOWNLOADS_BUCKET` | `ppt-downloads` |
-| `PUPITRE_R2_BUCKET` | `ppt-agent`, le bucket privé des binaires de l'agent |
+| `PUPITRE_R2_BUCKET` | `ppt-agent`, le bucket privé : binaires de l'agent, déclarations, et le travail des builds de l'app en attente de publication |
+| `RUNNER_LINUX`, `RUNNER_MACOS`, `RUNNER_WINDOWS` | les runners des trois systèmes ; absents, `ubuntu-24.04`, `macos-15`, `windows-2025`. C'est ce qui change le jour où la chaîne tourne sur nos machines |
 | `AZURE_SIGNING_ENDPOINT`, `AZURE_SIGNING_ACCOUNT`, `AZURE_SIGNING_PROFILE` | les trois noms du compte Azure Trusted Signing, lus dans le portail |
 
 Les secrets et les variables vivent dans l'environnement **`release`**, que le propriétaire approuve à chaque exécution. Aucun jeton n'entre dans le binaire de l'app : les artefacts sont publics, et l'app n'a rien à présenter pour se mettre à jour.
@@ -241,13 +242,13 @@ La clé de release, les buckets, le compte Apple, la clé de notarisation, Azure
 
 ### Ce que fait chaque release
 
-Un tag `v*` déclenche `release.yml`, en trois temps :
+Un tag `v*` déclenche `release.yml`, en trois temps. Chaque temps est une étape de **`scripts/release`** — `bun scripts/release/index.ts <étape>`, idempotente, pilotée par l'environnement, essayable avec `--dry-run` — et le YAML ne fait qu'installer les outils et la nommer : la même chaîne tourne sur un runner GitHub aujourd'hui et sur une machine à nous demain, en changeant `RUNNER_LINUX`, `RUNNER_MACOS` et `RUNNER_WINDOWS`. Les jobs ne se passent rien par GitHub : le seau privé est leur seul bus.
 
-| Job | Ce qu'il fait |
-| --- | --- |
-| `agent` | construit `pupitred` pour `linux/amd64` et `linux/arm64` avec garble, le signe, vérifie qu'il répond `hello` et qu'il ne laisse presque aucune chaîne lisible, le dépose sur le bucket **privé**, déclare la version par `POST /api/v1/admin/releases`, et publie les binaires signés et leur `release.json` en artefact de CI. Il refuse de continuer si `apps/desktop/package.json` ne porte pas la version du tag. |
-| `desktop` | sur les trois systèmes : reprend l'agent signé du job précédent, compile le processus principal en bytecode V8, empaquette, retourne les fusibles (`onlyLoadAppFromAsar`, intégrité de l'asar, `runAsNode` coupé), signe et notarise sur macOS, signe par Azure sur Windows. |
-| `publish` | rassemble les artefacts des trois systèmes, les signe avec la clé de release, les dépose sur le bucket **public** avec leur `.sig`, réécrit les flux de mise à jour, et déclare chaque fichier par `POST /api/v1/admin/app-releases`. |
+| Job | Étapes | Ce qu'elles font |
+| --- | --- | --- |
+| `agent` | `resolve`, `check`, `agent build`, `agent publish` | la version depuis le tag et la plateforme depuis la branche ; le changelog dans chaque langue et la version que l'app déclare ; `pupitred` pour `linux/amd64` et `linux/arm64` avec garble, signé, éprouvé (clé publique embarquée, presque aucune chaîne lisible, `hello` quand l'hôte peut l'exécuter) ; déposé sous `agent/<version>/` du seau **privé** avec `release.json` et `publications.json`, puis déclaré par `POST /api/v1/admin/releases`. |
+| `desktop` | `desktop` | sur les trois systèmes : reprend l'agent depuis le seau, compile le processus principal en bytecode V8, empaquette, retourne les fusibles (`onlyLoadAppFromAsar`, intégrité de l'asar, `runAsNode` coupé), signe et notarise sur macOS, signe par Azure sur Windows — quand leurs valeurs sont là, et le dit sinon — puis laisse installateurs, blockmaps et flux sous `work/<version>/<système>/` du seau privé, avec l'`index.json` qui les nomme. |
+| `publish` | `app publish` | reprend les trois index, signe chaque installateur avec la clé de release, dépose fichiers et `.sig` sur le bucket **public**, réécrit les flux de mise à jour, déclare chaque fichier par `POST /api/v1/admin/app-releases`, et garde ces lignes en `app/<version>/publications.json` du seau privé. |
 
 Le tag est posé sur `staging` : une version sort donc toujours en **`beta`**, déclarée à **la plateforme de la branche qui porte le tag** — `staging-app` pour `staging`, `app` pour `main` — et c'est cet artefact-là, celui qui a été éprouvé, qui finit en production. Les lignes déclarées sont gardées avec les binaires, en `agent/<version>/publications.json` et `app/<version>/publications.json` dans le seau privé. Elle passe en `stable` quand la pull request `staging` → `main` est fusionnée : le push sur `main` déclenche `promote.yml`, qui reprend les tags que le merge vient de rendre accessibles, **déclare la version à la production** depuis ces deux fichiers — mêmes empreintes, mêmes clés, appels idempotents — puis change le canal de l'agent et de l'app et recopie les flux du canal. Rien n'est reconstruit ni re-signé — un second build donnerait d'autres binaires, d'autres signatures et d'autres sommes de contrôle pour le même numéro de version. Le même workflow s'appelle aussi à la main, sur une version précise, pour revenir en arrière.
 

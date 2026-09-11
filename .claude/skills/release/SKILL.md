@@ -14,13 +14,15 @@ Le tag se pose sur **`staging`**, jamais sur `main`. Une version est donc toujou
 | Fichier | Rôle | Existe ? |
 | --- | --- | --- |
 | `.github/workflows/ci.yml` | CI des pull requests, de `staging` et de `main`, y compris un build de release de l'agent avec une clé jetable | oui |
-| `.github/workflows/release.yml` | le pipeline du tag : `agent` → `desktop` → `publish` | oui |
+| `scripts/release/` | **la chaîne elle-même** : `resolve`, `check`, `agent build`, `agent publish`, `desktop`, `app publish`, `promote` — chaque étape est une commande `bun scripts/release/index.ts <étape>`, idempotente, pilotée par l'environnement, avec `--dry-run` ; les workflows ne font que l'appeler | oui |
+| `.github/workflows/release.yml` | le pipeline du tag : `agent` → `desktop` (trois systèmes) → `publish`, un job par étape, R2 pour seul bus d'artefacts, runners nommés par `vars.RUNNER_*` | oui |
 | `.github/workflows/release-agent.yml` | l'agent seul, à la main, entre deux versions de l'app | oui |
-| `.github/workflows/promote.yml` | au push sur `main` : déclare la version à la production depuis les `publications.json` gardés dans le seau privé, puis `beta` → `stable`, sans rien reconstruire ; s'appelle aussi à la main sur une version précise | oui |
-| `apps/desktop/package.json` | `version` de l'app, `build:mac`, `build:win`, `build:linux`, `release:publish` | oui |
+| `.github/workflows/promote.yml` | au push sur `main` : `promote --since` déclare chaque version nouvelle à la production depuis les `publications.json` gardés dans le seau privé, puis `beta` → `stable`, sans rien reconstruire ; s'appelle aussi à la main sur une version précise | oui |
+| `apps/desktop/package.json` | `version` de l'app, `build:mac`, `build:win`, `build:linux` | oui |
 | `apps/desktop/electron-builder.yml` | cibles, noms d'artefacts, `asarUnpack`, fusibles, signature, flux générique | oui |
-| `apps/desktop/scripts/publish-release.ts` | signature Ed25519 des artefacts, envoi sur R2, déclaration à la plateforme | oui |
-| `apps/agent/package.json` | `release` (garble, `-X main.version`, signature), `release:publish`, `release:promote` | oui |
+| `apps/desktop/scripts/release-artefacts.ts` | ce qu'un fichier d'artefact est, sa clé dans le seau, le message que la clé de release signe, la réécriture des flux — partagé par la chaîne et par l'app qui vérifie | oui |
+| `apps/agent/package.json` | `release` (garble, `-X main.version`, signature) | oui |
+| `apps/agent/tools/release` | `keygen`, `public-key`, `sign` — la cryptographie de l'agent, rien d'autre | oui |
 | `packages/shared/src/compat` | la feuille de compatibilité app ↔ agent | oui |
 | `packages/api/src/lib/releases/publish-token.ts` | le jeton que la CI présente, et sa rotation à deux valeurs | oui |
 | `apps/site/src/content/changelog/` | une entrée par version et par langue — la seule source des notes de version | oui |
@@ -114,13 +116,15 @@ Les deux moitiés vont ensemble : une app qui embarque une clé publique et un a
 
 ### 4. Ce que la CI construit
 
-`release.yml` enchaîne trois jobs, tous dans l'environnement `release` pour les secrets :
+`release.yml` enchaîne trois jobs, tous dans l'environnement `release` pour les secrets. Chacun installe les outils et appelle une étape de `scripts/release` ; **aucune logique ne vit dans le YAML**, pour que la même chaîne tourne demain sur une machine à nous — `RUNNER_LINUX`, `RUNNER_MACOS`, `RUNNER_WINDOWS` nomment les runners, et le seau privé est le seul lieu où les jobs se passent quelque chose.
 
-| Job | Fait | Secrets |
-| --- | --- | --- |
-| `agent` | vérifie la version de l'app contre le tag, résout la plateforme d'après la branche du tag (`staging` → `PUPITRE_STAGING_PLATFORM_URL`, `main` → `PUPITRE_PLATFORM_URL`), construit `amd64` et `arm64` avec garble, signe, éprouve le binaire (`version`, `hello`, moins de dix chaînes lisibles), l'envoie sur le bucket **privé** avec son `publications.json`, déclare la version par `POST /admin/releases`, et publie binaires et `release.json` en artefact de CI | `PUPITRE_RELEASE_PRIVATE_KEY`, `CLOUDFLARE_*`, `PUPITRE_PUBLISH_TOKEN` |
-| `desktop` | sur `macos-15`, `windows-2025`, `ubuntu-24.04` : reprend l'agent signé, compile le processus principal en bytecode, empaquette, retourne les fusibles, signe et notarise sur macOS, signe par Azure sur Windows | certificat Apple, clé de notarisation, application Entra ID |
-| `publish` | rassemble les artefacts, les signe avec la clé de release, les dépose sur le bucket **public** avec leur `.sig`, réécrit les flux `latest*.yml` en URL absolues, les dépose sous `app/beta/`, et déclare chaque fichier par `POST /admin/app-releases` — en envoyant sa **clé** dans le seau, `app/<version>/<fichier>`, jamais une adresse : la plateforme compose l'URL, et la signature est obligatoire | `PUPITRE_RELEASE_PRIVATE_KEY`, `CLOUDFLARE_*`, `PUPITRE_PUBLISH_TOKEN` |
+| Job | Étapes | Ce qu'elles font | Secrets |
+| --- | --- | --- | --- |
+| `agent` | `resolve`, `check`, `agent build`, `agent publish` | la version depuis le tag, la plateforme depuis la branche (`staging` → `PUPITRE_STAGING_PLATFORM_URL`, `main` → `PUPITRE_PLATFORM_URL`) ; le changelog et la version de l'app ; garble, signature, épreuve du binaire (clé publique embarquée, moins de dix chaînes lisibles, `version` et `hello` quand l'hôte peut l'exécuter) ; dépôt sous `agent/<version>/` du seau **privé** — binaires, `release.json`, `publications.json` — puis `POST /admin/releases` | `PUPITRE_RELEASE_PRIVATE_KEY`, `CLOUDFLARE_*`, `PUPITRE_PUBLISH_TOKEN` |
+| `desktop` | `desktop` | sur chaque système : reprend l'agent depuis le seau, compile le processus principal en bytecode, empaquette, retourne les fusibles, signe et notarise sur macOS, signe par Azure sur Windows — l'un et l'autre seulement si leurs valeurs sont là, et le dit sinon — puis laisse installateurs, blockmaps et flux sous `work/<version>/<système>/` du seau privé, avec un `index.json` qui les nomme | certificat Apple, clé de notarisation, application Entra ID, `CLOUDFLARE_*` |
+| `publish` | `app publish` | reprend les trois `index.json`, signe chaque installateur avec la clé de release, dépose fichiers et `.sig` sur le seau **public**, réécrit les flux `latest*.yml` en URL absolues et les dépose sous `app/<version>/` et `app/<canal>/`, déclare chaque fichier par `POST /admin/app-releases` — en envoyant sa **clé** dans le seau, jamais une adresse — et garde ces lignes en `app/<version>/publications.json` du seau privé | `PUPITRE_RELEASE_PRIVATE_KEY`, `CLOUDFLARE_*`, `PUPITRE_PUBLISH_TOKEN` |
+
+Chaque étape se rejoue : un `put` réécrit le même objet, une déclaration déjà connue répond 200. Pour essayer une étape sur un poste : les variables de `docs/deploy.md` §8 dans l'environnement, puis `bun scripts/release/index.ts <étape> --dry-run`, qui imprime chaque commande et chaque requête sans rien faire.
 
 Le binaire de l'agent n'entre **jamais** dans le bucket public : il n'est pas public, l'app le télécharge depuis la plateforme avec le jeton de l'appareil (`docs/security.md`). Les certificats et les clés ne vivent que dans les secrets GitHub Actions et les dashboards listés dans `docs/monorepo.md` ; rien dans le dépôt, jamais dans un log de CI.
 

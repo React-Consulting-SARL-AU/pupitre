@@ -1,8 +1,8 @@
 name: Release agent
 
-# L'agent seul, sans l'app : republier une version que la plateforme a perdue,
-# ou en sortir une entre deux versions de l'app. Le tag, lui, passe par
-# `release.yml`, qui publie les deux dans le même geste.
+# The agent alone, without the app: publish again a version the platform has
+# lost, or ship one between two versions of the app. A tag goes through
+# `release.yml`, which publishes both in one gesture. Same steps, same tool.
 on:
   workflow_dispatch:
     inputs:
@@ -23,97 +23,49 @@ concurrency:
   group: release-agent-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  TURBO_TELEMETRY_DISABLED: "1"
+  PUPITRE_PLATFORM_URL: ${{ vars.PUPITRE_PLATFORM_URL }}
+  PUPITRE_STAGING_PLATFORM_URL: ${{ vars.PUPITRE_STAGING_PLATFORM_URL }}
+  PUPITRE_R2_BUCKET: ${{ vars.PUPITRE_R2_BUCKET }}
+
 jobs:
   release:
-    name: Construire, signer, publier
-    runs-on: ubuntu-latest
+    name: Build, sign, publish
+    runs-on: ${{ vars.RUNNER_LINUX || 'ubuntu-24.04' }}
     timeout-minutes: 30
-    # The signing key and the platform token live in this environment: the owner
-    # gates the run, nothing here reads a secret's value.
     environment: release
-    env:
-      PUPITRE_RELEASE_CHANNEL: ${{ inputs.channel || 'beta' }}
-      PUPITRE_PLATFORM_URL: ${{ vars.PUPITRE_PLATFORM_URL }}
-      R2_BUCKET: ${{ vars.PUPITRE_R2_BUCKET }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
 
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: apps/agent/go.mod
           cache-dependency-path: apps/agent/go.mod
 
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version-file: package.json
-
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Install garble
-        run: bun --cwd=apps/agent run garble:install
-
-      # The tag carries the v, the platform stores plain semver.
-      - name: Resolve the published version
+      - name: Resolve the release
+        run: bun scripts/release/index.ts resolve "--version=$VERSION" "--channel=$CHANNEL" | tee -a "$GITHUB_ENV"
         env:
-          REQUESTED: ${{ inputs.version }}
-        run: echo "PUPITRE_RELEASE_VERSION=$REQUESTED" >> "$GITHUB_ENV"
+          VERSION: ${{ inputs.version }}
+          CHANNEL: ${{ inputs.channel }}
 
-      - name: Build and sign
-        working-directory: apps/agent
-        run: bun run release
+      - name: Build, sign and smoke the agent
+        run: bun scripts/release/index.ts agent build
         env:
           PUPITRE_RELEASE_PRIVATE_KEY: ${{ secrets.PUPITRE_RELEASE_PRIVATE_KEY }}
 
-      # A binary that cannot answer hello, or that carries no key, would install
-      # itself on a server and never be replaceable again.
-      - name: Smoke the built binary
-        working-directory: apps/agent
-        run: |
-          set -euo pipefail
-          binary=dist/release/pupitred-linux-amd64
-          test "$($binary version)" = "pupitred $PUPITRE_RELEASE_VERSION"
-          echo '{"id":1,"cmd":"hello","params":{"app_version":"0.0.0","protocol":1}}' | $binary serve | grep -q '"ok":true'
-          grep -qF "$(go run ./tools/release public-key)" "$binary"
-        env:
-          PUPITRE_RELEASE_PRIVATE_KEY: ${{ secrets.PUPITRE_RELEASE_PRIVATE_KEY }}
-
-      - name: Check the obfuscation
-        working-directory: apps/agent
-        run: |
-          set -euo pipefail
-          for binary in dist/release/pupitred-linux-*; do
-            readable=$(strings -a "$binary" | grep -c pupitre || true)
-            echo "$binary : $readable chaînes lisibles"
-            test "$readable" -le 10
-          done
-
-      # R2 first: the platform hands out a signed URL as soon as the row exists,
-      # so the object has to be there before the version is declared.
-      - name: Upload to R2
-        run: |
-          set -euo pipefail
-          for arch in amd64 arm64; do
-            bun x wrangler r2 object put \
-              "$R2_BUCKET/agent/$PUPITRE_RELEASE_VERSION/pupitred-linux-$arch" \
-              --file="apps/agent/dist/release/pupitred-linux-$arch" --remote
-          done
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: Declare the version to the platform
-        working-directory: apps/agent
-        run: bun run release:publish
+      - name: Publish the agent
+        run: bun scripts/release/index.ts agent publish
         env:
           PUPITRE_PUBLISH_TOKEN: ${{ secrets.PUPITRE_PUBLISH_TOKEN }}
-
-      - name: Upload the signed binaries
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: pupitred-${{ env.PUPITRE_RELEASE_VERSION }}
-          path: |
-            apps/agent/dist/release/pupitred-linux-*
-            apps/agent/dist/release/publications.json
-          retention-days: 30
-          if-no-files-found: error
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
