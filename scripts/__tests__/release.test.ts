@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test"
 import { createPublicKey, generateKeyPairSync, verify } from "node:crypto"
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { signedAppMessage } from "../../apps/desktop/scripts/release-artefacts"
@@ -12,10 +12,17 @@ import {
   macSigning,
   publishable,
   systemOfHost,
+  systemsToBuild,
   windowsSigning,
 } from "../release/desktop"
+import { nextVersion, partOf, writeAppVersion } from "../release/next"
 import { keys } from "../release/r2"
-import { formatRelease, platformFor, versionOfTag } from "../release/resolve"
+import {
+  bump,
+  formatRelease,
+  platformFor,
+  versionOfTag,
+} from "../release/resolve"
 
 describe("the command line of a step", () => {
   it("reads a flag's value, a bare flag, and refuses an empty variable", () => {
@@ -70,6 +77,35 @@ describe("what a tag and a branch say", () => {
   })
 })
 
+describe("the next version", () => {
+  it("follows the last tag by the part asked, or takes the version given", () => {
+    expect(bump("0.1.0", "patch")).toBe("0.1.1")
+    expect(bump("0.1.9", "minor")).toBe("0.2.0")
+    expect(bump("1.4.2", "major")).toBe("2.0.0")
+    expect(() => bump("v1", "patch")).toThrow("semver")
+    expect(partOf(["--minor"])).toBe("minor")
+    expect(partOf([])).toBe("patch")
+    expect(nextVersion(["--minor"], "0.1.0", "0.0.0")).toBe("0.2.0")
+    expect(nextVersion([], null, "0.1.0")).toBe("0.1.0")
+    expect(nextVersion(["--version=3.0.0"], "0.1.0", "0.0.0")).toBe("3.0.0")
+  })
+
+  it("rewrites the version line of the manifest and nothing else", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "pupitre-next-"))
+    const manifest = path.join(dir, "package.json")
+
+    writeFileSync(
+      manifest,
+      '{\n  "name": "@pupitre/desktop",\n  "version": "0.1.0",\n  "private": true\n}\n'
+    )
+    writeAppVersion("0.2.0", manifest)
+
+    expect(readFileSync(manifest, "utf8")).toBe(
+      '{\n  "name": "@pupitre/desktop",\n  "version": "0.2.0",\n  "private": true\n}\n'
+    )
+  })
+})
+
 describe("what must be true before a build", () => {
   it("reads the version the app declares", () => {
     const root = mkdtempSync(path.join(tmpdir(), "pupitre-release-"))
@@ -99,22 +135,41 @@ describe("the app on a system", () => {
     expect(() => systemOfHost("freebsd")).toThrow("freebsd")
   })
 
-  it("stages the installers, their blockmaps and the feeds, nothing else", () => {
-    expect(
-      publishable([
-        "builder-debug.yml",
-        "Pupitre-0.1.0-arm64.dmg",
-        "Pupitre-0.1.0-arm64.dmg.blockmap",
-        "latest-mac.yml",
-        "mac-arm64",
-        "Pupitre-0.1.0-x64.exe",
-      ])
-    ).toEqual([
+  it("stages one system's installers, their blockmaps and its feed, nothing else", () => {
+    const files = [
+      "builder-debug.yml",
       "Pupitre-0.1.0-arm64.dmg",
       "Pupitre-0.1.0-arm64.dmg.blockmap",
+      "latest-mac.yml",
+      "latest.yml",
+      "mac-arm64",
       "Pupitre-0.1.0-x64.exe",
+      "Pupitre-0.1.0-x64.AppImage",
+      "latest-linux.yml",
+    ]
+
+    expect(publishable("macos", files)).toEqual([
+      "Pupitre-0.1.0-arm64.dmg",
+      "Pupitre-0.1.0-arm64.dmg.blockmap",
       "latest-mac.yml",
     ])
+    expect(publishable("windows", files)).toEqual([
+      "Pupitre-0.1.0-x64.exe",
+      "latest.yml",
+    ])
+    expect(publishable("linux", files)).toEqual([
+      "Pupitre-0.1.0-x64.AppImage",
+      "latest-linux.yml",
+    ])
+  })
+
+  it("builds the three systems from macOS, one elsewhere, or the one asked", () => {
+    expect(systemsToBuild([], "darwin")).toEqual(["macos", "linux", "windows"])
+    expect(systemsToBuild([], "linux")).toEqual(["linux"])
+    expect(systemsToBuild(["--system=windows"], "darwin")).toEqual(["windows"])
+    expect(() => systemsToBuild(["--system=freebsd"], "darwin")).toThrow(
+      "freebsd"
+    )
   })
 
   it("signs and notarizes on macOS only with all five Apple values, and says so otherwise", () => {

@@ -259,34 +259,3 @@ jobs:
           path: apps/agent/dist/pupitred-linux-*
           retention-days: 14
           if-no-files-found: error
-
-      - name: Install garble
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/main')
-        run: bun run garble:install
-
-      # A throwaway key proves the release build compiles, obfuscates and stays
-      # verifiable without touching the signing secret: real publication is the
-      # release-agent workflow's job, gated on the release environment.
-      - name: Release build, signing and verification with a throwaway key
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/main')
-        env:
-          PUPITRE_RELEASE_VERSION: 0.0.0-ci
-        run: |
-          set -euo pipefail
-          export PUPITRE_RELEASE_PRIVATE_KEY="$(go run ./tools/release keygen | awk '/^private/{print $2}')"
-          bun run release
-          for binary in dist/release/pupitred-linux-*; do
-            readable=$(strings -a "$binary" | grep -c pupitre || true)
-            echo "$binary : $readable chaînes lisibles"
-            test "$readable" -le 10
-          done
-          go test ./internal/release/... ./tools/release/...
-
-      - name: Upload release binaries
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/main')
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: pupitred-release-${{ github.sha }}
-          path: apps/agent/dist/release/pupitred-linux-*
-          retention-days: 14
-          if-no-files-found: error

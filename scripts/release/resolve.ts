@@ -1,14 +1,16 @@
 import { spawnSync } from "node:child_process"
+import { appVersion } from "./check"
 import { argumentOf, say, VARIABLES } from "./cli"
 
 /**
- * What a release is, read from git and nothing else.
+ * What a release is, read from git and the app's manifest, nothing else.
  *
- * The version is the tag at HEAD; the branch that carries HEAD names the
- * platform the version is declared to — `main` speaks to production, `staging`
- * to staging — and a tag on any other branch releases nothing. The channel is
- * `beta` unless the caller says otherwise: a version always goes out to be
- * tried, and `promote` is what makes it stable.
+ * The version is the one the app declares — `next` wrote it there, and `ship`
+ * tags it once everything is published. The branch the release is made from
+ * names the platform the version is declared to: `main` speaks to production,
+ * `staging` to staging, and nothing is released from anywhere else. The
+ * channel is `beta` unless the caller says otherwise: a version always goes
+ * out to be tried, and `promote` is what makes it stable.
  */
 
 export const BRANCHES = ["main", "staging"] as const
@@ -24,6 +26,8 @@ export interface Release {
 
 const TAG_RE = /^v(\d+\.\d+\.\d+)$/
 
+const VERSION_RE = /^(\d+)\.(\d+)\.(\d+)$/
+
 export function versionOfTag(tag: string): string | null {
   return tag.match(TAG_RE)?.[1] ?? null
 }
@@ -38,65 +42,68 @@ export function platformFor(
   return env[key] || null
 }
 
-function git(argv: string[]): string | null {
+export function git(argv: string[]): string | null {
   const result = spawnSync("git", argv, { encoding: "utf8" })
 
   return result.status === 0 ? result.stdout.trim() : null
 }
 
-/** The first of `main` and `staging` that contains HEAD; `main` wins, it contains everything. */
-export function branchOfHead(): Branch | null {
-  for (const branch of BRANCHES) {
-    git([
-      "fetch",
-      "--no-tags",
-      "--quiet",
-      "origin",
-      `+refs/heads/${branch}:refs/remotes/origin/${branch}`,
-    ])
+export function currentBranch(): Branch | null {
+  const name = git(["rev-parse", "--abbrev-ref", "HEAD"])
 
-    if (
-      git(["merge-base", "--is-ancestor", "HEAD", `origin/${branch}`]) !== null
-    ) {
-      return branch
-    }
-  }
-
-  return null
+  return BRANCHES.find((branch) => branch === name) ?? null
 }
 
-export function versionAtHead(): string | null {
-  const tags = git(["tag", "--points-at", "HEAD", "--list", "v*"])
+/** The highest v* tag reachable from HEAD, or nothing before the first release. */
+export function lastVersion(): string | null {
+  const described = git(["describe", "--tags", "--abbrev=0", "--match", "v*"])
 
-  if (!tags) {
-    return null
+  return described ? versionOfTag(described) : null
+}
+
+export function bump(
+  version: string,
+  part: "major" | "minor" | "patch"
+): string {
+  const match = version.match(VERSION_RE)
+
+  if (!match) {
+    throw new Error(`${version} is not a semver version.`)
   }
 
-  const versions = tags
-    .split("\n")
-    .map(versionOfTag)
-    .filter((one): one is string => one !== null)
+  const [major, minor, patch] = match.slice(1).map(Number) as [
+    number,
+    number,
+    number,
+  ]
 
-  return versions[0] ?? null
+  switch (part) {
+    case "major":
+      return `${major + 1}.0.0`
+    case "minor":
+      return `${major}.${minor + 1}.0`
+    default:
+      return `${major}.${minor}.${patch + 1}`
+  }
 }
 
 export function resolve(
   argv: readonly string[],
   env: NodeJS.ProcessEnv = process.env
 ): Release {
-  const version = argumentOf(argv, "version") ?? versionAtHead()
+  const version = argumentOf(argv, "version") ?? appVersion()
 
-  if (!version) {
+  if (!VERSION_RE.test(version)) {
     throw new Error(
-      "HEAD carries no v* tag and --version was not given: nothing to release."
+      `apps/desktop/package.json declares "${version}", which is not a version.`
     )
   }
 
-  const branch = branchOfHead()
+  const branch = currentBranch()
 
   if (!branch) {
     throw new Error(
-      `${version} is neither on main nor on staging: nothing is released from there.`
+      `${git(["rev-parse", "--abbrev-ref", "HEAD"])} is neither main nor staging: nothing is released from there.`
     )
   }
 
@@ -116,7 +123,7 @@ export function resolve(
   }
 }
 
-/** The lines a runner appends to its environment file, or a JSON document. */
+/** The lines a shell exports, or a JSON document. */
 export function formatRelease(release: Release, format: string): string {
   if (format === "json") {
     return JSON.stringify(release)

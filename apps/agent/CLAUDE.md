@@ -70,5 +70,5 @@ bun run build:dev        # même chose avec -tags dev : droit d'usage intégré,
 bun run test
 bun run lint             # gofmt, go vet, staticcheck
 bun run tools:install    # staticcheck et govulncheck, épinglés ; le bin de Go doit être dans le PATH
-bun run release          # garble + signature, CI seulement
+bun run release          # garble + signature, appelé par scripts/release depuis le Mac du propriétaire
 ```
