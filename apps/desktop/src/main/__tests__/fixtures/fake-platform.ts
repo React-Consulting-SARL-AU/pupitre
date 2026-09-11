@@ -28,6 +28,7 @@ export const IDENTITY: AccountIdentity = {
   organization: { id: "org-1", name: "Ada", slug: "ada" },
   organizations: [{ id: "org-1", name: "Ada", role: "owner", slug: "ada" }],
   role: "owner",
+  subscription: null,
 };
 
 export const DEVICE: AccountDevice = {
@@ -67,6 +68,8 @@ export interface FakePlatform extends PlatformClient {
   switched: string[];
   /** One call per stage of deletion: the first revokes, the second erases. */
   deletions: string[];
+  /** The devices revoked, in order. */
+  revokedDevices: string[];
 }
 
 const READY_RELEASE: EnrollBody["release"] = {
@@ -85,6 +88,7 @@ export function fakePlatform(options: FakePlatformOptions = {}): FakePlatform {
   const seenTokens: string[] = [];
   const switched: string[] = [];
   const deletions: string[] = [];
+  const revokedDevices: string[] = [];
 
   function seen<T>(token: string, result: T) {
     seenTokens.push(token);
@@ -97,6 +101,7 @@ export function fakePlatform(options: FakePlatformOptions = {}): FakePlatform {
     baseUrl: "https://app.pupitre.test",
     deletions,
     enrolled,
+    revokedDevices,
     seenTokens,
     switched,
 
@@ -149,6 +154,24 @@ export function fakePlatform(options: FakePlatformOptions = {}): FakePlatform {
     },
 
     devices: (token) => Promise.resolve(seen(token, devices)),
+
+    removeDevice: (token, deviceId) => {
+      const at = devices.findIndex((device) => device.id === deviceId);
+
+      if (at === -1) {
+        seenTokens.push(token);
+
+        return Promise.resolve({
+          error: { code: "not_found", message: "device_not_found" },
+          ok: false as const,
+        });
+      }
+
+      devices.splice(at, 1);
+      revokedDevices.push(deviceId);
+
+      return Promise.resolve(seen(token, null));
+    },
 
     servers: (token) => Promise.resolve(seen(token, options.servers ?? [])),
 

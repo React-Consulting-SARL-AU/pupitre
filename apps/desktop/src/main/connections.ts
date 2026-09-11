@@ -1,8 +1,8 @@
-import type { TunnelRoute } from "@pupitre/shared/agent-protocol/secrets";
 import type { AgentResponse } from "@shared/agent";
 import type { CloudflareZone } from "@shared/cloudflare";
 import type {
   ConnectionAccount,
+  ConnectionCheck,
   ConnectionKind,
   ConnectionState,
   ConnectionsState,
@@ -10,7 +10,7 @@ import type {
 import { CONNECTION_KINDS, NO_CONNECTIONS } from "@shared/connections";
 import { app, ipcMain, safeStorage } from "electron";
 import { accountSecrets } from "./account-secrets";
-import { accountOfToken } from "./account-tokens";
+import { accountOfToken, checkToken } from "./account-tokens";
 import type { Sealer } from "./account-vault";
 import { agentClient } from "./agent";
 import { declaredManifests } from "./catalog";
@@ -19,7 +19,9 @@ import { createConnectionVault } from "./connection-vault";
 import { refuseWith } from "./refusal";
 import {
   CLOUDFLARE_EXPOSURE,
+  checkedRoutes,
   dropTunnel as drop,
+  ExposureUnreadable,
   dropRecord as forgetRecord,
   type ManagedValues,
   syncRecords as reconcile,
@@ -82,8 +84,17 @@ async function exposureOf(serverId: string): Promise<ServerExposure | null> {
     id: CLOUDFLARE_EXPOSURE,
   });
 
+  /**
+   * A server that has never run the module answers this command all the same,
+   * with empty values: the agent keeps a configuration per module of its
+   * catalogue, installed or not. So a refusal here never means "no tunnel", it
+   * means the machine could not be asked — and the caller must not read silence
+   * as absence. It used to: a channel that was down made the install create a
+   * second tunnel, which deletes the one of that name the server is running,
+   * and cloudflared then answered "Tunnel not found" until someone noticed.
+   */
   if (!answer.ok) {
-    return null;
+    throw new ExposureUnreadable(answer.error.message);
   }
 
   const values = answer.result.values;
@@ -139,11 +150,22 @@ export function dropTunnel(serverId: string): Promise<void> {
   return drop(serverId, deps);
 }
 
-export function releaseSubdomain(
+export function releaseHostname(
   serverId: string,
-  subdomain: string
+  hostname: string
 ): Promise<void> {
-  return forgetRecord(serverId, subdomain, deps);
+  return forgetRecord(serverId, hostname, deps);
+}
+
+/**
+ * The token of a connection, for the main-process clients that call a provider.
+ *
+ * It is exported to this process alone: everything that reads it — the tunnel,
+ * the GitHub client — lives beside it, and nothing of it is ever returned
+ * across the bridge.
+ */
+export function connectionToken(kind: ConnectionKind): string | null {
+  return vault.token(kind);
 }
 
 function stateOf(kind: ConnectionKind): ConnectionState {
@@ -193,6 +215,28 @@ async function connect(
   vault.connect(kind, token, account);
 
   return { ok: true, result: connectionsState() };
+}
+
+/**
+ * The token, weighed again: what the provider says today replaces the name
+ * the vault remembered, so the row reads as the account stands.
+ */
+async function verify(
+  kind: ConnectionKind
+): Promise<AgentResponse<ConnectionCheck>> {
+  const token = vault.token(kind);
+
+  if (!token) {
+    return refuseWith("bad_request", "refusal.connection.absent", { kind });
+  }
+
+  const checked = await checkToken(kind, token);
+
+  if (checked.ok && checked.result.status === "answered") {
+    vault.connect(kind, token, checked.result.account);
+  }
+
+  return checked;
 }
 
 async function zones(): Promise<AgentResponse<CloudflareZone[]>> {
@@ -252,6 +296,16 @@ export function registerConnections(): void {
     return connectionsState();
   });
 
+  ipcMain.handle("connections:verify", (_event, kind: unknown) => {
+    if (!known(kind)) {
+      return refuseWith("bad_request", "refusal.connection.kind", {
+        kind: String(kind),
+      });
+    }
+
+    return verify(kind);
+  });
+
   ipcMain.handle("connections:zones", () => zones());
 
   ipcMain.handle(
@@ -261,7 +315,15 @@ export function registerConnections(): void {
         return refuseWith("bad_request", "refusal.server.unknown");
       }
 
-      return reconcile(serverId, (routes ?? []) as TunnelRoute[], deps);
+      const checked = checkedRoutes(routes ?? []);
+
+      if (!checked) {
+        return refuseWith("bad_request", "refusal.params.invalid", {
+          cmd: "tunnel:records",
+        });
+      }
+
+      return reconcile(serverId, checked, deps);
     }
   );
 }

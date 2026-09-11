@@ -3,6 +3,7 @@ package redis
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -19,6 +20,10 @@ import (
 const (
 	DefaultPort = 6379
 
+	// What Redis evicts once the cap is reached; without a cap it evicts nothing, whatever the policy says.
+	DefaultPolicy = "allkeys-lru"
+	noEviction    = "noeviction"
+
 	pkg      = "redis-server"
 	unit     = "redis-server"
 	confPath = "/etc/redis/redis.conf"
@@ -26,6 +31,8 @@ const (
 
 	passwordKey = "REDIS_PASSWORD"
 )
+
+var policies = []string{DefaultPolicy, "allkeys-lfu", "allkeys-random", "volatile-lru", "volatile-lfu", "volatile-ttl", noEviction}
 
 type Module struct{}
 
@@ -88,7 +95,7 @@ func (m Module) Configure(ctx *modules.Context) error {
 }
 
 func writeConfig(ctx *modules.Context) (bool, error) {
-	content := renderConfig(port(ctx), ctx.Secret("password"), ctx.Bool("persistence"), ctx.Int("maxmemory_mb"))
+	content := renderConfig(port(ctx), ctx.Secret("password"), ctx.Bool("persistence"), ctx.Int("maxmemory_mb"), policy(ctx))
 	changed := false
 
 	err := ctx.Step("write-config", func() (modules.Outcome, error) {
@@ -158,10 +165,11 @@ func restart(ctx *modules.Context, changed bool) error {
 	})
 }
 
-// The password travels as an argv, where the journal masks it; the point is to prove the server really refuses anyone without it.
+// The password reaches redis-cli through REDISCLI_AUTH, never through an argv ps shows; the point is to prove the server really refuses anyone without it.
 func verify(ctx *modules.Context) error {
 	return ctx.Step("verify-auth", func() (modules.Outcome, error) {
-		out, err := user.Run(ctx, "root", "redis-cli", "-p", strconv.Itoa(port(ctx)), "-a", ctx.Secret("password"), "--no-auth-warning", "ping")
+		input := user.Input{Env: []string{"REDISCLI_AUTH=" + ctx.Secret("password")}}
+		out, err := user.RunWith(ctx, "root", input, "redis-cli", "-p", strconv.Itoa(port(ctx)), "--no-auth-warning", "ping")
 		if err != nil || strings.TrimSpace(out) != "PONG" {
 			return modules.Failed, errors.New(i18n.T("module.db.redis.auth.refused", unit))
 		}
@@ -263,7 +271,16 @@ func port(ctx *modules.Context) int {
 	return chosen
 }
 
-func renderConfig(port int, password string, persistence bool, maxmemoryMB int) []byte {
+func policy(ctx *modules.Context) string {
+	chosen := strings.TrimSpace(ctx.String("maxmemory_policy"))
+	if !slices.Contains(policies, chosen) {
+		return DefaultPolicy
+	}
+
+	return chosen
+}
+
+func renderConfig(port int, password string, persistence bool, maxmemoryMB int, policy string) []byte {
 	var out strings.Builder
 
 	out.WriteString("bind 127.0.0.1 ::1\n")
@@ -278,9 +295,9 @@ func renderConfig(port int, password string, persistence bool, maxmemoryMB int) 
 	}
 
 	if maxmemoryMB > 0 {
-		fmt.Fprintf(&out, "maxmemory %dmb\nmaxmemory-policy allkeys-lru\n", maxmemoryMB)
+		fmt.Fprintf(&out, "maxmemory %dmb\nmaxmemory-policy %s\n", maxmemoryMB, policy)
 	} else {
-		out.WriteString("maxmemory-policy noeviction\n")
+		out.WriteString("maxmemory-policy " + noEviction + "\n")
 	}
 
 	return []byte(out.String())

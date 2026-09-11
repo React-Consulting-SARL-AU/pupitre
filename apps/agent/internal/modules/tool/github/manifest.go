@@ -27,6 +27,7 @@ func manifest() contract.Manifest {
 			},
 		},
 		Connection: contract.ConnectionGitHub,
+		Runs:       false,
 		Mandatory:  false,
 		Since:      "0.1.0",
 	}

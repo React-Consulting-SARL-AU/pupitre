@@ -1,6 +1,12 @@
 import { describe, expect, it } from "bun:test"
 import { translator } from "@/lib/i18n/i18n"
-import { formatBytes, formatRatio, formatRelative } from "@/lib/utils/format"
+import {
+  formatBytes,
+  formatRatio,
+  formatRelative,
+  formatUsed,
+  gigabytesToBytes,
+} from "@/lib/utils/format"
 
 const fr = translator("fr")
 const en = translator("en")
@@ -8,13 +14,34 @@ const en = translator("en")
 describe("formatBytes", () => {
   it("climbs the units and keeps the numbers short", () => {
     expect(formatBytes(512, fr)).toBe("512 o")
-    expect(formatBytes(2048, fr)).toBe("2.0 ko")
+    expect(formatBytes(2048, fr)).toBe("2,0 ko")
     expect(formatBytes(20 * 1024 * 1024, fr)).toBe("20 Mo")
   })
 
   it("names the units in the reader's language", () => {
     expect(formatBytes(512, en)).toBe("512 B")
     expect(formatBytes(20 * 1024 * 1024, en)).toBe("20 MB")
+    expect(formatBytes(2048, en)).toBe("2.0 kB")
+  })
+})
+
+describe("formatUsed", () => {
+  it("says what is taken of what the machine holds", () => {
+    expect(formatUsed(gigabytesToBytes(1.8), gigabytesToBytes(556), fr)).toBe(
+      "1,8 Go / 556 Go"
+    )
+  })
+
+  it("climbs to terabytes on a machine that has them", () => {
+    expect(formatUsed(gigabytesToBytes(900), gigabytesToBytes(2048), en)).toBe(
+      "900 GB / 2.0 TB"
+    )
+  })
+
+  /** A sample an older agent sent carries no quantity: the percentage stands alone. */
+  it("says nothing when the agent measured nothing", () => {
+    expect(formatUsed(null, gigabytesToBytes(556), fr)).toBeNull()
+    expect(formatUsed(gigabytesToBytes(1), null, fr)).toBeNull()
   })
 })
 

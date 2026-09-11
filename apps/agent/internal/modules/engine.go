@@ -24,6 +24,7 @@ const (
 	DefaultReportPath  = "/var/lib/pupitre/report.json"
 	DefaultLogPath     = "/var/log/pupitre.log"
 	DefaultInstallPath = "/etc/pupitre/install.json"
+	DefaultLockPath    = "/var/lib/pupitre/install.lock"
 )
 
 type Engine struct {
@@ -35,6 +36,10 @@ type Engine struct {
 	ReportPath   string
 	LogPath      string
 	InstallPath  string
+	// LockPath is held for the length of a run, across processes: the serve a
+	// dropped channel left behind is still installing, and the serve that
+	// replaces it must be told so rather than start over on top of it.
+	LockPath string
 
 	mu sync.Mutex
 }
@@ -44,7 +49,8 @@ type Request struct {
 	Config  map[string]map[string]any `json:"config"`
 	// Defer names the modules to install without configuring: their fields are
 	// not weighed, their Configure step does not run, and they report themselves
-	// installed and not configured until someone finishes them.
+	// installed and not configured until a request names them without deferring
+	// them — that request is the one that configures them.
 	Defer   []string                     `json:"defer,omitempty"`
 	Secrets map[string]map[string]string `json:"secrets,omitempty"`
 	Persist bool                         `json:"-"`
@@ -53,6 +59,37 @@ type Request struct {
 // Deferred says whether this module is one the caller asked to leave unconfigured.
 func (r Request) Deferred(id string) bool {
 	return slices.Contains(r.Defer, id)
+}
+
+// completedBy fills in what the request does not say from what the machine
+// remembers. A module the request names is the request's alone: its
+// configuration is replaced whole, and naming it without deferring it is what
+// configures it. A module it does not name — a requirement another module
+// pulled in — keeps the configuration it was given, stays deferred if it was,
+// and a secret the app does not send back is a secret left unchanged:
+// reconfiguring a port must not clear a password, and adding a service must
+// not ask the machine's own questions again.
+func (r Request) completedBy(kept Request) Request {
+	config := map[string]map[string]any{}
+	for id, values := range kept.Config {
+		config[id] = values
+	}
+	for id, values := range r.Config {
+		config[id] = values
+	}
+
+	later := append([]string(nil), r.Defer...)
+	for _, id := range kept.Defer {
+		if !slices.Contains(r.Modules, id) && !slices.Contains(later, id) {
+			later = append(later, id)
+		}
+	}
+
+	r.Config = config
+	r.Defer = later
+	r.Secrets = mergeSecrets(kept.Secrets, r.Secrets)
+
+	return r
 }
 
 type Sink func(contract.StepEvent)
@@ -80,9 +117,12 @@ func (e *Engine) Install(request Request, sink Sink) (contract.InstallResult, er
 		return contract.InstallResult{}, err
 	}
 
-	// A secret the app does not send back is a secret left unchanged: reconfiguring a port must not clear the password.
-	request.Secrets = mergeSecrets(e.recall(r).Secrets, request.Secrets)
+	request = request.completedBy(e.recall(r))
 	r.redactAll(request.Secrets)
+
+	if err := refuseDeferringMandatory(modules, request); err != nil {
+		return contract.InstallResult{}, err
+	}
 
 	// Nothing is touched on a configuration that would not hold: a module used to
 	// find its own missing field halfway through, and left the machine there.
@@ -91,7 +131,7 @@ func (e *Engine) Install(request Request, sink Sink) (contract.InstallResult, er
 	}
 
 	if request.Persist {
-		if err := e.remember(r, request); err != nil {
+		if err := e.remember(r, request, ids(modules)); err != nil {
 			return contract.InstallResult{}, err
 		}
 	}
@@ -99,6 +139,7 @@ func (e *Engine) Install(request Request, sink Sink) (contract.InstallResult, er
 	report := e.start(r, "install", modules)
 	for _, module := range modules {
 		ctx := r.context(module.Manifest(), request.Config[module.Manifest().ID], request.Secrets[module.Manifest().ID])
+		r.following(ctx)
 
 		execute(ctx, "install", func() error { return module.Install(ctx) })
 
@@ -112,6 +153,7 @@ func (e *Engine) Install(request Request, sink Sink) (contract.InstallResult, er
 		if ctx.failed {
 			report.Failed = append(report.Failed, ctx.manifest.ID)
 		}
+		r.settled(report)
 	}
 
 	return e.finish(r, report)
@@ -148,17 +190,21 @@ func (e *Engine) Upgrade(request Request, sink Sink) (contract.InstallResult, er
 		r.redactAll(request.Secrets)
 	}
 
-	modules := e.installedAmong(r, candidates)
+	// A module nobody has configured has nothing to be upgraded into: its
+	// Configure step would run on no answer at all, so it waits for one.
+	modules := withoutDeferred(e.installedAmong(r, candidates), recalled.Defer)
 	report := e.start(r, "upgrade", modules)
 
 	for _, module := range modules {
 		ctx := r.context(module.Manifest(), request.Config[module.Manifest().ID], request.Secrets[module.Manifest().ID])
+		r.following(ctx)
 		execute(ctx, "upgrade", func() error { return module.Upgrade(ctx) })
 
 		report.Modules = append(report.Modules, ctx.report())
 		if ctx.failed {
 			report.Failed = append(report.Failed, ctx.manifest.ID)
 		}
+		r.settled(report)
 	}
 
 	return e.finish(r, report)
@@ -184,6 +230,10 @@ func (e *Engine) Uninstall(ids []string, sink Sink) (contract.UninstallResult, e
 	r := e.newRun(Request{}, sink)
 	defer r.close()
 	r.redactAll(e.recall(r).Secrets)
+
+	if err := e.refuseStillRequired(r, modules); err != nil {
+		return contract.UninstallResult{}, err
+	}
 
 	result := contract.UninstallResult{Failed: []string{}}
 	var removed []string
@@ -229,6 +279,34 @@ func (e *Engine) Command(id string, sink Sink, fn func(ctx *Context) error) erro
 	r.redactAll(recalled.Secrets)
 
 	return fn(r.context(module.Manifest(), recalled.Config[id], recalled.Secrets[id]))
+}
+
+// Inspect reads through a module without the lock or the right of use: a status
+// asked while an install runs is still a status, and answering absent instead
+// would send the app looking for an exposure the machine holds.
+func (e *Engine) Inspect(id string, fn func(ctx *Context) error) error {
+	module, ok := e.Registry.Get(id)
+	if !ok {
+		return moduleNotFound(id)
+	}
+
+	r := e.newRun(Request{}, nil)
+	defer r.close()
+
+	recalled := e.recall(r)
+	r.redactAll(recalled.Secrets)
+
+	return fn(r.context(module.Manifest(), recalled.Config[id], recalled.Secrets[id]))
+}
+
+// Deferred names the modules put on the machine without being configured, as the requests so far left them.
+func (e *Engine) Deferred() []string {
+	kept, err := e.remembered()
+	if err != nil {
+		return nil
+	}
+
+	return kept.Defer
 }
 
 // Config returns what should be put back into the form for an already-installed module.
@@ -282,11 +360,25 @@ func (e *Engine) acquire() (func(), error) {
 	}
 
 	if !e.mu.TryLock() {
-		return nil, protocol.NewError(contract.ErrorBusy, i18n.T("engine.busy")).
-			WithFix(i18n.T("engine.busy.fix"))
+		return nil, busy()
 	}
 
-	return e.mu.Unlock, nil
+	release, err := lockFile(e.LockPath)
+	if err != nil {
+		e.mu.Unlock()
+
+		return nil, err
+	}
+
+	return func() {
+		release()
+		e.mu.Unlock()
+	}, nil
+}
+
+func busy() error {
+	return protocol.NewError(contract.ErrorBusy, i18n.T("engine.busy")).
+		WithFix(i18n.T("engine.busy.fix"))
 }
 
 func (e *Engine) entitled() bool {
@@ -310,16 +402,28 @@ func (e *Engine) newRun(request Request, sink Sink) *run {
 	return r
 }
 
+// The report is on disk from the first line: an app whose channel drops reads
+// it back to find where the machine is, and an install nobody watches any more
+// still leaves the same trace as one that was watched to the end.
 func (e *Engine) start(r *run, action string, modules []Module) contract.Report {
 	r.journal.logf("pupitred", "%s : %s", action, idsOf(modules))
 
-	return contract.Report{
+	report := contract.Report{
 		StartedAt:    r.now().UTC().Format(time.RFC3339),
 		AgentVersion: e.AgentVersion,
 		Modules:      []contract.ModuleReport{},
 		Failed:       []string{},
 		ReportPath:   e.reportPath(),
 	}
+
+	r.persist = func(report contract.Report) {
+		if err := e.writeReport(report); err != nil {
+			r.journal.logf("pupitred", "report not written: %s", err)
+		}
+	}
+	r.settled(report)
+
+	return report
 }
 
 func (e *Engine) finish(r *run, report contract.Report) (contract.InstallResult, error) {
@@ -349,13 +453,56 @@ func (e *Engine) writeReport(report contract.Report) error {
 }
 
 // install.json accumulates what the app asked for, so a replay from the CLI has every module, value and secret.
-func (e *Engine) remember(r *run, request Request) error {
+func (e *Engine) remember(r *run, request Request, resolved []string) error {
 	kept := e.recall(r)
 	kept.Modules = union(kept.Modules, request.Modules)
 	kept.Config = merge(kept.Config, request.Config)
 	kept.Secrets = mergeSecrets(kept.Secrets, request.Secrets)
+	kept.Defer = deferredAfter(kept.Defer, request, resolved)
 
 	return e.store(r, kept)
+}
+
+// A module stays deferred until a request names it without deferring it. That
+// request is the one that configures it, and it is judged like any other: a
+// replay from the machine with nothing to answer is refused before its first
+// step rather than run on empty values.
+func deferredAfter(before []string, request Request, resolved []string) []string {
+	var later, answered []string
+	for _, id := range resolved {
+		if request.Deferred(id) {
+			later = append(later, id)
+		} else {
+			answered = append(answered, id)
+		}
+	}
+
+	return union(without(before, answered), later)
+}
+
+// The machine cannot do without a mandatory module: the app never offers to put
+// its questions off, and the engine refuses should anyone else ask.
+func refuseDeferringMandatory(modules []Module, request Request) error {
+	for _, module := range modules {
+		manifest := module.Manifest()
+		if manifest.Mandatory && request.Deferred(manifest.ID) {
+			return protocol.NewError(contract.ErrorBadRequest, i18n.T("engine.defer.mandatory", manifest.ID)).
+				WithFix(i18n.T("engine.defer.mandatory.fix", manifest.ID))
+		}
+	}
+
+	return nil
+}
+
+func withoutDeferred(modules []Module, deferred []string) []Module {
+	kept := make([]Module, 0, len(modules))
+	for _, module := range modules {
+		if !slices.Contains(deferred, module.Manifest().ID) {
+			kept = append(kept, module)
+		}
+	}
+
+	return kept
 }
 
 func (e *Engine) forget(r *run, ids []string) error {
@@ -365,6 +512,7 @@ func (e *Engine) forget(r *run, ids []string) error {
 
 	kept := e.recall(r)
 	kept.Modules = without(kept.Modules, ids)
+	kept.Defer = without(kept.Defer, ids)
 	for _, id := range ids {
 		delete(kept.Config, id)
 		delete(kept.Secrets, id)
@@ -450,6 +598,37 @@ func (e *Engine) refuseInstalledConflicts(r *run, selected []Module) error {
 	return nil
 }
 
+// A module another installed module still names in its requires stays put: removing it alone would leave the other standing on nothing.
+func (e *Engine) refuseStillRequired(r *run, leaving []Module) error {
+	going := map[string]bool{}
+	for _, module := range leaving {
+		going[module.Manifest().ID] = true
+	}
+
+	for _, module := range e.Registry.All() {
+		manifest := module.Manifest()
+		if going[manifest.ID] {
+			continue
+		}
+
+		for _, required := range manifest.Requires {
+			if !going[required] {
+				continue
+			}
+
+			status, err := module.Check(r.context(manifest, nil, nil))
+			if err != nil || !status.Installed {
+				break
+			}
+
+			return protocol.NewError(contract.ErrorBadRequest, i18n.T("modules.uninstall.required", required, manifest.ID)).
+				WithFix(i18n.T("modules.uninstall.required.fix", manifest.ID))
+		}
+	}
+
+	return nil
+}
+
 func (e *Engine) installedAmong(r *run, candidates []Module) []Module {
 	var installed []Module
 	for _, module := range candidates {
@@ -511,13 +690,17 @@ func asMap(modules []Module) map[string]Module {
 	return byID
 }
 
-func idsOf(modules []Module) string {
-	ids := make([]string, 0, len(modules))
+func ids(modules []Module) []string {
+	named := make([]string, 0, len(modules))
 	for _, module := range modules {
-		ids = append(ids, module.Manifest().ID)
+		named = append(named, module.Manifest().ID)
 	}
 
-	return strings.Join(ids, ", ")
+	return named
+}
+
+func idsOf(modules []Module) string {
+	return strings.Join(ids(modules), ", ")
 }
 
 func union(base, extra []string) []string {

@@ -63,7 +63,7 @@ describe("les toasts", () => {
 
     await view.click(
       document.querySelector(
-        "[data-testid=toasts] [aria-label=Close]"
+        "[data-testid=toasts] [aria-label=Close][title=Close]"
       ) as Element
     )
     await waitUntil(() => !stack().includes("Server revoked."))

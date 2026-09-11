@@ -1,7 +1,9 @@
 package mongodb
 
 import (
+	"errors"
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -28,6 +30,9 @@ const (
 	markerPath = "/var/lib/pupitre/mongodb-app-user"
 	markerDir  = "/var/lib/pupitre"
 
+	toolsConfigDir  = "/etc/pupitre"
+	toolsConfigPath = toolsConfigDir + "/mongodb-tools.yaml"
+
 	keyringDir = "/etc/apt/keyrings"
 
 	osReleasePath   = "/etc/os-release"
@@ -39,10 +44,19 @@ const (
 	defaultDatabase = "admin"
 
 	appPasswordKey = "MONGODB_APP_PASSWORD"
+
+	meminfoPath   = "/proc/meminfo"
+	cacheDivisor  = 4
+	minCacheMB    = 256
+	maxCacheMB    = 8192
+	fallbackRAMKB = 2 * 1024 * 1024
 )
 
 const configTemplate = `storage:
   dbPath: /var/lib/mongodb
+  wiredTiger:
+    engineConfig:
+      cacheSizeGB: %s
 systemLog:
   destination: file
   logAppend: true
@@ -99,7 +113,7 @@ func (Module) Install(ctx *modules.Context) error {
 			return modules.Failed, err
 		}
 
-		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"curl", "-fsSL", "-o", keyringPath(ctx), keyURL(ctx)}}); err != nil {
+		if err := apt.DownloadKey(ctx, keyURL(ctx), keyringPath(ctx)); err != nil {
 			return modules.Failed, err
 		}
 
@@ -148,7 +162,7 @@ func (Module) Configure(ctx *modules.Context) error {
 func writeConfig(ctx *modules.Context) (bool, error) {
 	changed := false
 
-	content := renderConfig(port(ctx))
+	content := renderConfig(port(ctx), cacheSizeGB(ctx))
 
 	err := ctx.Step("write-config", func() (modules.Outcome, error) {
 		if file.Same(ctx, confPath, content) {
@@ -207,7 +221,7 @@ func createAppUser(ctx *modules.Context, rotated bool) error {
 		script := renderUser(appUser(ctx), ctx.Secret("app_password"))
 		argv := []string{"mongosh", "--quiet", "--host", loopback, "--port", strconv.Itoa(port(ctx))}
 		if _, err := sys.Exec(ctx, sys.Command{Argv: argv, Stdin: []byte(script)}); err != nil {
-			return modules.Failed, fmt.Errorf("application user creation refused: journalctl -u %s -n 40 · %w", unit, err)
+			return modules.Failed, errors.New(i18n.T("modules.mongodb.user_refused", unit, err.Error()))
 		}
 
 		if err := ctx.Sys().MkdirAll(markerDir, 0o755); err != nil {
@@ -222,14 +236,16 @@ func importDumps(ctx *modules.Context, options dumps.Options) ([]string, error) 
 	options.Patterns = []string{"*.archive", "*.archive.gz"}
 	options.NativeGzip = true
 	options.Load = func(dump dumps.File) error {
-		argv := append(credentials(ctx), "--archive="+dump.Path)
-		if dump.Gzip {
-			argv = append(argv, "--gzip")
-		}
+		return withCredentials(ctx, func(credentials []string) error {
+			argv := append(credentials, "--archive="+dump.Path)
+			if dump.Gzip {
+				argv = append(argv, "--gzip")
+			}
 
-		_, err := sys.Exec(ctx, sys.Command{Argv: append([]string{"mongorestore"}, argv...)})
+			_, err := sys.Exec(ctx, sys.Command{Argv: append([]string{"mongorestore"}, argv...)})
 
-		return err
+			return err
+		})
 	}
 
 	return dumps.Import(ctx, options)
@@ -352,8 +368,13 @@ func Dump(ctx *modules.Context, name string) (string, int64, error) {
 		return "", 0, err
 	}
 
-	argv := append(credentials(ctx), "--db="+database(name), "--archive="+path, "--gzip")
-	if _, err := sys.Exec(ctx, sys.Command{Argv: append([]string{"mongodump"}, argv...)}); err != nil {
+	err := withCredentials(ctx, func(credentials []string) error {
+		argv := append(credentials, "--db="+database(name), "--archive="+path, "--gzip")
+		_, err := sys.Exec(ctx, sys.Command{Argv: append([]string{"mongodump"}, argv...)})
+
+		return err
+	})
+	if err != nil {
 		return "", 0, err
 	}
 
@@ -376,13 +397,22 @@ func requireInstalled(ctx *modules.Context) error {
 	return nil
 }
 
-// mongodump and mongorestore read their credentials from the command line and from nowhere else; the journal masks them.
-func credentials(ctx *modules.Context) []string {
-	return []string{
-		"--host=" + loopback, "--port=" + strconv.Itoa(port(ctx)),
-		"--username=" + appUser(ctx), "--password=" + ctx.Secret("app_password"),
-		"--authenticationDatabase=" + authDatabase,
+// The password reaches mongodump and mongorestore through the --config file they accept for it, never through an argv ps shows; the file is root's alone and lives for one command.
+func withCredentials(ctx *modules.Context, run func(credentials []string) error) error {
+	if err := ctx.Sys().MkdirAll(toolsConfigDir, 0o700); err != nil {
+		return err
 	}
+
+	if err := file.WriteAtomic(ctx, toolsConfigPath, []byte("password: "+strconv.Quote(ctx.Secret("app_password"))+"\n"), 0o600); err != nil {
+		return err
+	}
+	defer file.Remove(ctx, toolsConfigPath)
+
+	return run([]string{
+		"--config=" + toolsConfigPath,
+		"--host=" + loopback, "--port=" + strconv.Itoa(port(ctx)),
+		"--username=" + appUser(ctx), "--authenticationDatabase=" + authDatabase,
+	})
 }
 
 func size(ctx *modules.Context, path string) int64 {
@@ -459,8 +489,45 @@ func marker(ctx *modules.Context) []byte {
 	return []byte(appUser(ctx) + "\n")
 }
 
-func renderConfig(port int) []byte {
-	return []byte(fmt.Sprintf(configTemplate, port))
+func renderConfig(port int, cacheGB string) []byte {
+	return []byte(fmt.Sprintf(configTemplate, cacheGB, port))
+}
+
+// WiredTiger left alone takes half of what the machine has: on a server that also runs projects, that is the memory guard waiting to happen.
+func cacheSizeGB(ctx *modules.Context) string {
+	mb := ctx.Int("cache_mb")
+	if mb <= 0 {
+		mb = totalKB(ctx) / 1024 / cacheDivisor
+	}
+
+	switch {
+	case mb < minCacheMB:
+		mb = minCacheMB
+	case mb > maxCacheMB:
+		mb = maxCacheMB
+	}
+
+	return strconv.FormatFloat(math.Round(float64(mb)/1024*100)/100, 'f', -1, 64)
+}
+
+func totalKB(ctx *modules.Context) int {
+	raw, err := file.Read(ctx, meminfoPath)
+	if err != nil {
+		return fallbackRAMKB
+	}
+
+	for _, line := range strings.Split(string(raw), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 2 || fields[0] != "MemTotal:" {
+			continue
+		}
+
+		if kb, err := strconv.Atoi(fields[1]); err == nil {
+			return kb
+		}
+	}
+
+	return fallbackRAMKB
 }
 
 func codename(ctx *modules.Context) string {

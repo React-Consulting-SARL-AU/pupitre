@@ -1,71 +1,42 @@
-import type { AgentState, TerminalKind } from "@shared/terminals";
+import { spawn as spawnChild } from "node:child_process";
+import type { AgentState, TerminalEnd, TerminalKind } from "@shared/terminals";
 import type { WebContents } from "electron";
 import * as pty from "node-pty";
 
 import { current, terminalOptions } from "./platform";
 import { targetOf } from "./servers";
-import { loginAddress } from "./terminal-links";
+import { type LoginAddress, loginAddress } from "./terminal-links";
+import { isSessionName } from "./terminal-run";
+import {
+  type Activity,
+  freshActivity,
+  noteKeystroke,
+  noteOutput,
+  stateOf,
+} from "./terminal-state";
 
-interface Session {
+interface Session extends Activity {
   proc: pty.IPty;
-  kind: TerminalKind;
+  serverId: string;
   project: string | null;
-  /** Last byte received from the PTY. */
-  seenAt: number;
-  /** Bytes received since the last keystroke: what the agent produced for you. */
-  sinceKeystroke: number;
-  /** A bell arrived and you have not answered yet. */
-  bell: boolean;
-  finished: boolean;
   /** The end of the stream, so an address cut between two chunks is still read. */
   tail: string;
   /** The login address this session last printed, kept out of the renderer. */
-  login: { url: string; host: string } | null;
+  login: LoginAddress | null;
 }
 
 const sessions = new Map<string, Session>();
 
-const STREAM_MS = 1200;
-const ASLEEP_MS = 5 * 60 * 1000;
-/** Below this, it is a keystroke echo or a redraw, not work. */
-const MINIMUM_WORK = 200;
 /** Long enough to hold the longest address an agent prints. */
-const TAIL = 800;
+const TAIL = 4096;
 const BELL = "\u0007";
-
-/**
- * A session's state, without ever reading what it displays.
- *
- * The bell is the clean signal — agents ring it when they hand back control. It
- * is not guaranteed, though: an agent may not ring it, or the setting may be
- * off. Hence the fallback on the stream: an agent that produced something and
- * then went quiet is waiting for you, bell or no bell.
- *
- * This reasoning only holds for an agent. A shell also goes quiet after writing,
- * and that means nothing more than "the command is done".
- */
-function stateOf(session: Session): AgentState {
-  if (session.finished) {
-    return "finished";
-  }
-
-  const silence = Date.now() - session.seenAt;
-  if (silence < STREAM_MS) {
-    return "working";
-  }
-
-  const isAgent = session.kind !== "shell";
-  if (isAgent && (session.bell || session.sinceKeystroke > MINIMUM_WORK)) {
-    return "attention";
-  }
-
-  return silence > ASLEEP_MS ? "asleep" : "idle";
-}
 
 export function states(): Record<string, AgentState> {
   const all: Record<string, AgentState> = {};
+  const now = Date.now();
+
   for (const [id, session] of sessions) {
-    all[id] = stateOf(session);
+    all[id] = stateOf(session, now);
   }
   return all;
 }
@@ -83,7 +54,7 @@ export interface OpenTerminal {
 
 /** The address stays here: only its host crosses the bridge. */
 function noteLogin(id: string, session: Session, recipient: WebContents): void {
-  const found = loginAddress(session.tail);
+  const found = loginAddress(session.tail, session.login ?? null);
 
   if (!found || found.url === session.login?.url) {
     return;
@@ -117,8 +88,7 @@ export function open(request: OpenTerminal, recipient: WebContents): void {
   proc.onData((data) => {
     const session = sessions.get(id);
     if (session) {
-      session.seenAt = Date.now();
-      session.sinceKeystroke += data.length;
+      noteOutput(session, data.length, Date.now());
       session.tail = (session.tail + data).slice(-TAIL);
       if (data.includes(BELL)) {
         session.bell = true;
@@ -141,13 +111,10 @@ export function open(request: OpenTerminal, recipient: WebContents): void {
   });
 
   sessions.set(id, {
+    ...freshActivity(request.kind, Date.now()),
     proc,
-    kind: request.kind,
+    serverId: request.serverId,
     project: request.project,
-    seenAt: Date.now(),
-    sinceKeystroke: 0,
-    bell: false,
-    finished: false,
     tail: "",
     login: null,
   });
@@ -155,11 +122,24 @@ export function open(request: OpenTerminal, recipient: WebContents): void {
 }
 
 /** The address this session is waiting on, for whoever opens it. */
-export function pendingLogin(id: string): { url: string; host: string } | null {
+export function pendingLogin(id: string): LoginAddress | null {
   return sessions.get(id)?.login ?? null;
 }
 
-/** Once used, an address is spent: a second click would replay a dead round. */
+export function serverOf(id: string): string | null {
+  return sessions.get(id)?.serverId ?? null;
+}
+
+/** What a session runs and for which project, for a notice painted outside the window. */
+export function describeSession(
+  id: string
+): { kind: TerminalKind; project: string | null } | null {
+  const session = sessions.get(id);
+
+  return session ? { kind: session.kind, project: session.project } : null;
+}
+
+/** The reader dismissed the bar: the address stays out of sight until a new one is printed. */
 export function forgetLogin(id: string): void {
   const session = sessions.get(id);
 
@@ -170,12 +150,35 @@ export function forgetLogin(id: string): void {
 
 let watcher: NodeJS.Timeout | null = null;
 let lastSignature = "";
+/** The window the states go to: the one that last opened a session, not the first. */
+let audience: WebContents | null = null;
+
+type StatesListener = (states: Record<string, AgentState>) => void;
+
+const listeners = new Set<StatesListener>();
+
+/** Told what moved, on the same beat as the window: the badge and the notification read it. */
+export function onStates(listener: StatesListener): () => void {
+  listeners.add(listener);
+
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function tell(all: Record<string, AgentState>): void {
+  for (const listener of listeners) {
+    listener(all);
+  }
+}
 
 /**
  * Not every state change comes from an event: "working" becomes "idle" through
  * the passage of time alone. So we recompute them, but only send what moved.
  */
 function watch(recipient: WebContents): void {
+  audience = recipient;
+
   if (watcher) {
     return;
   }
@@ -184,13 +187,16 @@ function watch(recipient: WebContents): void {
       clearInterval(watcher as NodeJS.Timeout);
       watcher = null;
       lastSignature = "";
+      audience = null;
+      tell({});
       return;
     }
     const all = states();
     const signature = JSON.stringify(all);
-    if (signature !== lastSignature && !recipient.isDestroyed()) {
+    if (signature !== lastSignature && audience && !audience.isDestroyed()) {
       lastSignature = signature;
-      recipient.send("terminal-states", all);
+      audience.send("terminal-states", all);
+      tell(all);
     }
   }, 600);
 }
@@ -203,10 +209,7 @@ export function write(id: string, data: string): void {
     return;
   }
   keystrokesReceived += data.length;
-  // You have just answered: what the agent produced has been read, the ball is
-  // in its court.
-  session.bell = false;
-  session.sinceKeystroke = 0;
+  noteKeystroke(session, Date.now());
   session.proc.write(data);
 }
 
@@ -247,4 +250,58 @@ export function closeAll(): void {
   for (const id of [...sessions.keys()]) {
     close(id);
   }
+}
+
+function isEnd(value: unknown): value is TerminalEnd {
+  const end = value as TerminalEnd | null;
+
+  return (
+    typeof end === "object" &&
+    end !== null &&
+    typeof end.serverId === "string" &&
+    isSessionName(end.session)
+  );
+}
+
+/**
+ * The tab is closed for good, so the session it held goes with it.
+ *
+ * Closing the window or quitting only lets go of the pipe — that is the whole
+ * point of running under tmux. Closing a tab is the reader saying they are done
+ * with that session, and a session nobody will come back to would otherwise sit
+ * on the machine for ever.
+ *
+ * The renderer names it; nothing runs until the name has passed the grammar and
+ * the server is one of ours.
+ */
+export function endSession(end: unknown): void {
+  if (!isEnd(end)) {
+    return;
+  }
+
+  const target = targetOf(end.serverId);
+
+  if (target.length === 0) {
+    return;
+  }
+
+  const killer = spawnChild(
+    "ssh",
+    [
+      "-o",
+      "BatchMode=yes",
+      ...target,
+      "tmux",
+      "kill-session",
+      "-t",
+      end.session,
+    ],
+    { stdio: "ignore" }
+  );
+
+  killer.on("error", () => {
+    // The machine is out of reach: the session outlives the tab, and the next
+    // attach on that name would find it.
+  });
+  killer.unref();
 }

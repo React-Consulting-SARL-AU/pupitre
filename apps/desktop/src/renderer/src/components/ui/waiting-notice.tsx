@@ -1,18 +1,16 @@
 import { useElapsed } from "@renderer/lib/use-elapsed";
 import type { ReactNode } from "react";
 import { humanMs } from "../../lib/duration";
-import { Details } from "./details";
 import { StatusDot } from "./status-dot";
 
 /**
  * A wait that says what is happening, where it is, and how long it has taken.
  *
- * `detail` says what is happening in the reader's own words, and `note` how
- * the app goes about it — folded under Details, closed, for whoever wants it:
- * a spinner alone would leave the reader with nothing but the fact that
- * something is slow, and the how in plain sight would leave them a manual. `phases` goes further where the app actually knows —
- * the shapes then carry the progress, a done phase full, the current one
- * breathing, what is ahead hollow, exactly as the rail of the onboarding does.
+ * `detail` says what is happening in the reader's own words: a spinner alone
+ * would leave the reader with nothing but the fact that something is slow.
+ * `phases` goes further where the app actually knows — the shapes then carry
+ * the progress, a done phase full, the current one breathing, what is ahead
+ * hollow, exactly as the rail of the onboarding does.
  *
  * The elapsed time only appears once the wait has become one: under a couple of
  * seconds a counter would flash and say nothing.
@@ -43,12 +41,10 @@ const COUNTED_FROM_MS = 2000;
 export function WaitingNotice({
   title,
   detail,
-  note,
   phases,
 }: {
   title: string;
   detail?: ReactNode;
-  note?: ReactNode;
   /** The named steps of the wait, when the app knows them. */
   phases?: readonly WaitingPhase[];
 }) {
@@ -98,8 +94,6 @@ export function WaitingNotice({
           ))}
         </ol>
       ) : null}
-
-      {note ? <Details className="mt-3">{note}</Details> : null}
     </div>
   );
 }

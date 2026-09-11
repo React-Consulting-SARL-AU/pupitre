@@ -12,6 +12,7 @@ package i18n
 
 import (
 	"fmt"
+	"strings"
 	"sync/atomic"
 )
 
@@ -34,7 +35,7 @@ var current atomic.Value
 func init() {
 	current.Store(Default)
 
-	for _, part := range []map[string]Message{moduleCatalog, selfupdateCatalog, probeCatalog, hardenCatalog, engineCatalog, stateCatalog, commandCatalog, warningCatalog, validateCatalog, registryCatalog, fieldCatalog, hintCatalog} {
+	for _, part := range []map[string]Message{moduleCatalog, selfupdateCatalog, probeCatalog, hardenCatalog, engineCatalog, stateCatalog, commandCatalog, cliCatalog, warningCatalog, validateCatalog, registryCatalog, fieldCatalog, hintCatalog, filesCatalog, migrateCatalog} {
 		for key, message := range part {
 			catalog[key] = message
 		}
@@ -51,6 +52,28 @@ func Use(locale string) Locale {
 	}
 
 	return Current()
+}
+
+// FromEnv is the locale a login shell states. `dev` is typed outside any
+// protocol session, so no `hello` has named a language by then; ssh forwards
+// LANG and LC_* by default, which leaves the reader's own shell as the one
+// thing that knows. A machine that would rather pin it sets PUPITRE_LOCALE.
+func FromEnv(getenv func(string) string) Locale {
+	for _, name := range []string{"PUPITRE_LOCALE", "LC_ALL", "LC_MESSAGES", "LANG"} {
+		if language := languageOf(getenv(name)); Known(language) {
+			return Use(language)
+		}
+	}
+
+	return Current()
+}
+
+// fr_FR.UTF-8 is French; C and POSIX name no language at all.
+func languageOf(value string) string {
+	value, _, _ = strings.Cut(value, ".")
+	value, _, _ = strings.Cut(value, "_")
+
+	return strings.ToLower(value)
 }
 
 func Current() Locale {
@@ -98,14 +121,4 @@ func Count(count int, one, many string) string {
 	}
 
 	return T(one, count)
-}
-
-// In renders the phrase in a given locale, without touching the session's own.
-func In(locale Locale, key string, args ...any) string {
-	held := Current()
-	defer current.Store(held)
-
-	current.Store(locale)
-
-	return T(key, args...)
 }

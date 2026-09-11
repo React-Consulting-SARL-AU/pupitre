@@ -15,6 +15,7 @@ import {
   pinFingerprint,
   removeServer,
   SetupError,
+  sharesAddress,
   untrustHost,
 } from "../server-setup";
 import { appSshPaths, writeSshConfig } from "../ssh-config";
@@ -217,5 +218,32 @@ describe("la suppression d'un serveur", () => {
 
     expect(left).toEqual([]);
     expect(existsSync(keyPath)).toBe(false);
+  });
+});
+
+describe("l'adresse qu'une épingle appartient à", () => {
+  const atelier = {
+    host: "203.0.113.10",
+    id: "srv-a",
+    name: "Atelier",
+    origin: "app" as const,
+    port: 22,
+    user: "root",
+  };
+
+  it("est partagée par un autre serveur de l'app au même hôte et au même port", () => {
+    const twin = { ...atelier, id: "srv-b", user: "dev" };
+
+    expect(sharesAddress([atelier, twin], atelier, "srv-a")).toBe(true);
+    expect(sharesAddress([atelier], atelier, "srv-a")).toBe(false);
+    expect(
+      sharesAddress([atelier, { ...twin, port: 2222 }], atelier, "srv-a")
+    ).toBe(false);
+  });
+
+  it("ne compte pas un hôte du système, dont l'app n'épingle rien", () => {
+    const declared = { ...atelier, id: "srv-c", origin: "system" as const };
+
+    expect(sharesAddress([declared], atelier)).toBe(false);
   });
 });

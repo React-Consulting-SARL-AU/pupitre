@@ -15,12 +15,25 @@ export const catalog = {
     "catalog.category.runtime": "Runtimes",
     "catalog.category.tool": "Tools",
     "catalog.presets.title": "To get started",
-    "catalog.presets.includes": "{names}",
-    "catalog.presets.modules.one": "1 service",
-    "catalog.presets.modules.other": "{count} services",
+    "catalog.presets.chooses.one": "One service to choose",
+    "catalog.presets.chooses.other": "One of {count} services to choose",
+    "catalog.presets.coreOnly": "The core alone, nothing else.",
+    "catalog.presets.nothing":
+      "Everything it brings is already on this server.",
     "catalog.presets.chooseOne":
       "{preset} — one of these, they refuse each other",
+    "catalog.presets.none": "None of them",
+    "catalog.presets.noneDetail":
+      "Take the rest of the preset and leave this choice out; you can make it later.",
     "catalog.presets.apply": "Apply the preset",
+    "catalog.search.label": "Search the catalogue",
+    "catalog.search.placeholder": "Search a service",
+    "catalog.search.clear": "Clear the search",
+    "catalog.search.found.one": "{count} service found",
+    "catalog.search.found.other": "{count} services found",
+    "catalog.search.emptyTitle": "No service matches « {query} ».",
+    "catalog.search.emptyDetail":
+      "Try the name of the software, or clear the search to see the whole catalogue.",
     "catalog.resources.line":
       "Memory {ram} of {ramHas} · Disk {disk} of {diskHas} free",
     "catalog.resources.unmeasured":
@@ -30,12 +43,8 @@ export const catalog = {
     "catalog.screen.configure.one": "Continue with 1 service",
     "catalog.screen.configure.other": "Continue with {count} services",
     "catalog.screen.defaultServer": "This server",
-    "catalog.screen.description":
-      "Choose what Pupitre installs on this server. You can add more later.",
     "catalog.screen.eyebrow": "Services",
     "catalog.screen.reload": "Reload",
-    "catalog.screen.waitingDetail":
-      "What can go on this server, and what it needs.",
     "catalog.screen.waitingTitle": "Reading what this server can receive",
     "catalog.warning.disk":
       "The chosen services ask for {asked} GB of disk; {has} remain on this machine.",
@@ -57,12 +66,24 @@ export const catalog = {
     "catalog.category.runtime": "Runtimes",
     "catalog.category.tool": "Outils",
     "catalog.presets.title": "Pour commencer",
-    "catalog.presets.includes": "{names}",
-    "catalog.presets.modules.one": "1 service",
-    "catalog.presets.modules.other": "{count} services",
+    "catalog.presets.chooses.one": "Un service à choisir",
+    "catalog.presets.chooses.other": "Un service à choisir parmi {count}",
+    "catalog.presets.coreOnly": "Le socle seul, rien d'autre.",
+    "catalog.presets.nothing": "Tout ce qu'il apporte est déjà sur ce serveur.",
     "catalog.presets.chooseOne":
       "{preset} — l'un de ceux-ci, ils se refusent l'un l'autre",
+    "catalog.presets.none": "Aucun",
+    "catalog.presets.noneDetail":
+      "Prendre le reste du préréglage et laisser ce choix de côté ; il se fera plus tard.",
     "catalog.presets.apply": "Appliquer le préréglage",
+    "catalog.search.label": "Chercher dans le catalogue",
+    "catalog.search.placeholder": "Chercher un service",
+    "catalog.search.clear": "Effacer la recherche",
+    "catalog.search.found.one": "{count} service trouvé",
+    "catalog.search.found.other": "{count} services trouvés",
+    "catalog.search.emptyTitle": "Aucun service ne répond à « {query} ».",
+    "catalog.search.emptyDetail":
+      "Essayez le nom du logiciel, ou effacez la recherche pour revoir tout le catalogue.",
     "catalog.resources.line":
       "Mémoire {ram} sur {ramHas} · Disque {disk} sur {diskHas} libres",
     "catalog.resources.unmeasured":
@@ -72,12 +93,8 @@ export const catalog = {
     "catalog.screen.configure.one": "Continuer avec 1 service",
     "catalog.screen.configure.other": "Continuer avec {count} services",
     "catalog.screen.defaultServer": "Ce serveur",
-    "catalog.screen.description":
-      "Choisissez ce que Pupitre installe sur ce serveur. Vous pourrez en ajouter plus tard.",
     "catalog.screen.eyebrow": "Services",
     "catalog.screen.reload": "Relancer",
-    "catalog.screen.waitingDetail":
-      "Ce qui peut s'installer ici, et ce que ça demande.",
     "catalog.screen.waitingTitle": "On lit ce que ce serveur peut recevoir",
     "catalog.warning.disk":
       "Les services choisis demandent {asked} Go de disque ; il en reste {has} sur cette machine.",

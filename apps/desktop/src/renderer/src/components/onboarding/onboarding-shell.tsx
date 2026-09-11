@@ -1,4 +1,3 @@
-import { LiveRegion } from "@renderer/components/ui/live-region";
 import { WindowBand } from "@renderer/components/ui/window-band";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { ArrowLeft, X } from "lucide-react";
@@ -20,6 +19,7 @@ import { OnboardingRail } from "./onboarding-rail";
  */
 export function OnboardingShell({
   step,
+  steps,
   stage,
   serverName,
   canGoBack,
@@ -29,6 +29,8 @@ export function OnboardingShell({
   children,
 }: {
   step: OnboardingStep;
+  /** The steps this sequence walks, for the rail and its count. */
+  steps: readonly OnboardingStep[];
   /** Where the first step is within itself, which the rail shows in place. */
   stage?: ServerStage;
   serverName?: string;
@@ -43,9 +45,12 @@ export function OnboardingShell({
 
   return (
     <div className="grid h-full grid-cols-1 bg-base md:grid-cols-[15rem_1fr]">
-      <LiveRegion />
-
-      <OnboardingRail serverName={serverName} stage={stage} step={step} />
+      <OnboardingRail
+        serverName={serverName}
+        stage={stage}
+        step={step}
+        steps={steps}
+      />
 
       <div className="flex min-h-0 min-w-0 flex-col">
         {/*
@@ -71,7 +76,8 @@ export function OnboardingShell({
 
         {banner ? <div className="shrink-0 px-8 pt-3">{banner}</div> : null}
 
-        <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+        {/* A step leaves and arrives sideways: the panel must not offer to follow it. */}
+        <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
       </div>
     </div>
   );

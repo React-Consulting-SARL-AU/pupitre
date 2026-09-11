@@ -3,11 +3,10 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { ArrowLeft, ArrowRight, Download } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import type { FieldProblemView } from "../../lib/catalog-selection";
-import { STEP_COLUMN } from "../../lib/layout";
 import { useCatalog } from "../../stores/catalog";
 import { ActionBar } from "../ui/action-bar";
 import { Button } from "../ui/button";
-import { StepHeading } from "../ui/step-heading";
+import { Screen } from "../ui/screen";
 import { ConfigConnectionBlock } from "./config-connection-block";
 import type { FieldHandlers } from "./config-field-control";
 import { ConfigIndex } from "./config-index";
@@ -30,10 +29,16 @@ export function ConfigScreen({
   notice,
   only,
   submitLabel,
+  actions,
+  plain,
   onBack,
   onInstall,
 }: {
   serverName?: string;
+  /** What the header offers on the whole sequence: a way out of it. */
+  actions?: ReactNode;
+  /** The header sits on the page, as the onboarding's steps read theirs. */
+  plain?: boolean;
   /** Said above the questions when something explains why they are asked. */
   notice?: ReactNode;
   /** The services to ask about, when the screen is opened for some of them. */
@@ -160,81 +165,80 @@ export function ConfigScreen({
   );
 
   return (
-    <section className="flex flex-1 flex-col">
-      <div className={`${STEP_COLUMN} flex flex-1 flex-col gap-section pb-6`}>
-        <StepHeading
-          description={t("config.description")}
-          eyebrow={t("config.eyebrow")}
-          step="config"
-          title={serverName ?? t("config.thisServer")}
-        />
+    <Screen
+      actions={actions}
+      column
+      eyebrow={t("config.eyebrow")}
+      footer={
+        <ActionBar name="config" note={note(t, left, marked, checking, goTo)}>
+          {index > 0 ? (
+            <Button
+              icon={ArrowLeft}
+              onClick={() => show(asked[index - 1].module.id)}
+              variant="discreet"
+            >
+              {t("config.previous")}
+            </Button>
+          ) : null}
+          {index === 0 && onBack ? (
+            <Button icon={ArrowLeft} onClick={onBack} variant="discreet">
+              {t("config.back")}
+            </Button>
+          ) : null}
+          {last ? null : (
+            <Button
+              icon={ArrowRight}
+              onClick={() => show(asked[index + 1].module.id)}
+              variant={left.length > 0 ? "inverse" : "default"}
+            >
+              {t("config.next")}
+            </Button>
+          )}
+          {install}
+        </ActionBar>
+      }
+      plain={plain}
+      step="config"
+      title={serverName ?? t("config.thisServer")}
+    >
+      {notice}
 
-        {notice}
+      <div className="grid gap-gutter lg:grid-cols-[13rem_minmax(0,1fr)]">
+        <div className="lg:sticky lg:top-4 lg:self-start">
+          <ConfigIndex
+            current={current?.module.id ?? null}
+            groups={asked}
+            onPick={show}
+            problems={left}
+            shown={marked}
+          />
+        </div>
 
-        <div className="grid gap-gutter lg:grid-cols-[13rem_minmax(0,1fr)]">
-          <div className="lg:sticky lg:top-4 lg:self-start">
-            <ConfigIndex
-              current={current?.module.id ?? null}
-              groups={asked}
-              onPick={show}
-              problems={left}
-              shown={marked}
+        <div className="flex min-w-0 flex-col gap-gutter">
+          {current ? (
+            <ConfigModuleGroup
+              before={
+                current.module.connection ? (
+                  <ConfigConnectionBlock module={current.module} />
+                ) : null
+              }
+              deferred={deferred.includes(current.module.id)}
+              focus={moved}
+              group={current}
+              handlers={handlersFor(current.module.id)}
+              key={current.module.id}
+              marks={secrets[current.module.id]}
+              onDefer={(later) => defer(current.module.id, later)}
+              position={{ index: index + 1, total: asked.length }}
+              problems={marked
+                .filter((one) => one.module === current.module.id)
+                .map((one) => ({ ...one, message: problemText(t, one) }))}
+              values={values[current.module.id] ?? {}}
             />
-          </div>
-
-          <div className="flex min-w-0 flex-col gap-gutter">
-            {current ? (
-              <ConfigModuleGroup
-                before={
-                  current.module.connection ? (
-                    <ConfigConnectionBlock module={current.module} />
-                  ) : null
-                }
-                deferred={deferred.includes(current.module.id)}
-                focus={moved}
-                group={current}
-                handlers={handlersFor(current.module.id)}
-                key={current.module.id}
-                marks={secrets[current.module.id]}
-                onDefer={(later) => defer(current.module.id, later)}
-                position={{ index: index + 1, total: asked.length }}
-                problems={marked
-                  .filter((one) => one.module === current.module.id)
-                  .map((one) => ({ ...one, message: problemText(t, one) }))}
-                values={values[current.module.id] ?? {}}
-              />
-            ) : null}
-          </div>
+          ) : null}
         </div>
       </div>
-
-      <ActionBar name="config" note={note(t, left, marked, checking, goTo)}>
-        {index > 0 ? (
-          <Button
-            icon={ArrowLeft}
-            onClick={() => show(asked[index - 1].module.id)}
-            variant="discreet"
-          >
-            {t("config.previous")}
-          </Button>
-        ) : null}
-        {index === 0 && onBack ? (
-          <Button icon={ArrowLeft} onClick={onBack} variant="discreet">
-            {t("config.back")}
-          </Button>
-        ) : null}
-        {last ? null : (
-          <Button
-            icon={ArrowRight}
-            onClick={() => show(asked[index + 1].module.id)}
-            variant={left.length > 0 ? "inverse" : "default"}
-          >
-            {t("config.next")}
-          </Button>
-        )}
-        {install}
-      </ActionBar>
-    </section>
+    </Screen>
   );
 }
 

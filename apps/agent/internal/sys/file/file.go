@@ -36,6 +36,12 @@ func WriteAtomic(ctx sys.Context, path string, content []byte, mode fs.FileMode)
 	return ctx.Sys().WriteFile(path, content, mode)
 }
 
+func Append(ctx sys.Context, path string, content []byte, owner string) error {
+	ctx.Logf("append to %s", path)
+
+	return ctx.Sys().AppendFile(path, content, owner)
+}
+
 func EnsureLine(ctx sys.Context, path, line string) (bool, error) {
 	current, err := ctx.Sys().ReadFile(path)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
@@ -166,14 +172,14 @@ func EnsureBlockMode(ctx sys.Context, path, name string, content []byte, mode fs
 		return false, err
 	}
 
-	updated := withBlock(string(current), blockStart(name), blockEnd(name), string(content))
-	if updated == string(current) {
+	updated := WithBlock(current, name, content)
+	if bytes.Equal(updated, current) {
 		return false, nil
 	}
 
 	ctx.Logf("write block %s in %s", name, path)
 
-	return true, ctx.Sys().WriteFile(path, []byte(updated), mode)
+	return true, ctx.Sys().WriteFile(path, updated, mode)
 }
 
 func ReadBlock(ctx sys.Context, path, name string) ([]byte, bool) {
@@ -182,6 +188,11 @@ func ReadBlock(ctx sys.Context, path, name string) ([]byte, bool) {
 		return nil, false
 	}
 
+	return BlockOf(current, name)
+}
+
+// BlockOf is what lies between the markers of a block, when the file carries them.
+func BlockOf(current []byte, name string) ([]byte, bool) {
 	start, end := blockStart(name)+"\n", blockEnd(name)+"\n"
 	from := strings.Index(string(current), start)
 	to := strings.Index(string(current), end)
@@ -190,6 +201,11 @@ func ReadBlock(ctx sys.Context, path, name string) ([]byte, bool) {
 	}
 
 	return current[from+len(start) : to], true
+}
+
+// WithBlock is the file with its block replaced, or appended when it had none; every line outside the markers stays as it was.
+func WithBlock(current []byte, name string, content []byte) []byte {
+	return []byte(withBlock(string(current), blockStart(name), blockEnd(name), string(content)))
 }
 
 func HasBlock(ctx sys.Context, path, name string) bool {

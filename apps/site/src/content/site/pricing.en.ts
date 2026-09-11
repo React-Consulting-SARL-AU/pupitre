@@ -29,8 +29,7 @@ export const pricingEn: PricingContent = {
     serversUpTo: "Up to {count} servers you bring",
     serversUnlimited: "As many servers as you bring",
     trial: "Start the {days}-day trial",
-    sameRate:
-      "The price per server is the same on Solo and Team: an agency buys the organisation, not a discount.",
+    sameRate: "The price per server is the same on Solo and Team.",
     download: "Download the app",
     items: {
       solo: {
@@ -86,7 +85,7 @@ export const pricingEn: PricingContent = {
         "Support",
       ],
     },
-    note: "Pupitre leaves one binary and a few configuration files, which you can delete. Subscribe again and the app picks up where it left off. It is written in the terms.",
+    note: "Pupitre leaves one binary and a few configuration files, which you can delete. Subscribe again and the app picks up where it left off.",
   },
   diy: {
     label: "Doing it yourself",
@@ -107,14 +106,13 @@ export const pricingEn: PricingContent = {
       lines: [
         "The VPS: you rent it where you like and pay the host directly",
         "Your Claude, Codex or Hermes subscriptions: the agents run on your accounts",
-        "Your judgement: Pupitre runs what you ask, on the machine you chose",
       ],
     },
   },
   catalog: {
     label: "Catalogue",
     title: "Included in every offer",
-    lead: "The whole catalogue comes with each server, whatever the offer. Twenty-six modules, all available, by category.",
+    lead: "The whole catalogue comes with each server, whatever the offer. Twenty-five modules, all available, by category.",
     available: "{count} available",
     link: "See the full catalogue",
   },

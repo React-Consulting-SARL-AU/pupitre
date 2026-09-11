@@ -15,9 +15,12 @@ import {
   pending,
   record,
   type StepEntry,
+  settledBy,
   shaped,
   stepOf,
+  TERMINAL_STATUSES,
 } from "../lib/module-progress";
+import { useCatalog } from "./catalog";
 import { useChannel } from "./channel";
 
 /**
@@ -56,6 +59,8 @@ interface InstallStore {
   modules: ModuleProgress[];
   log: string[];
   requested: Requested;
+  /** How long to wait between two readings of a report still being written. */
+  pollMs: number;
 
   start: (
     serverId: string,
@@ -64,6 +69,8 @@ interface InstallStore {
     /** Modules to put on the machine without configuring: their questions wait. */
     defer?: readonly string[]
   ) => Promise<void>;
+  /** The catalogue's choice, once its generated secrets have landed. */
+  startChosen: (serverId: string) => Promise<void>;
   /** The configuration is given again when the reader has just retyped it. */
   replay: (
     serverId: string,
@@ -72,7 +79,10 @@ interface InstallStore {
   ) => Promise<void>;
   /** Runs every module that failed again, with the configuration it was given. */
   replayFailed: (serverId: string) => Promise<void>;
-  /** Reads the report back, which is what a channel that dropped left behind. */
+  /**
+   * Reads the report back, which is what a channel that dropped left behind —
+   * and reads it again while the machine is still writing it.
+   */
   reload: (serverId: string) => Promise<void>;
   reset: () => void;
 
@@ -85,6 +95,14 @@ interface InstallStore {
 }
 
 const LOG_KEPT = 500;
+
+const REPORT_POLL_MS = 3000;
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
 
 function fromReport(reports: readonly ModuleReport[]): ModuleProgress[] {
   return reports.map((report) =>
@@ -134,9 +152,11 @@ function logLine(update: InstallUpdate): string | null {
 const EMPTY: Requested = { config: {}, defer: [], modules: [] };
 
 /**
- * Nothing waits once the agent has answered. A module it said nothing about
- * — an agent that emits no steps, a channel that swallowed them — takes the
- * fate the result gives it, so the list agrees with the sentence under it.
+ * Nothing waits once the agent has answered. A module it said little of — an
+ * agent that emits no steps, a channel that swallowed them, a step whose end
+ * never came back — takes the fate the result gives it, so the list agrees with
+ * the sentence under it and no step is left turning under an install that is
+ * over.
  */
 function settled(
   modules: readonly ModuleProgress[],
@@ -144,14 +164,11 @@ function settled(
   result: InstallResult
 ): ModuleProgress[] {
   return modules.map((module) => {
-    if (module.status !== "pending" || !ran.includes(module.id)) {
+    if (TERMINAL_STATUSES.includes(module.status) || !ran.includes(module.id)) {
       return module;
     }
 
-    return {
-      ...module,
-      status: result.failed.includes(module.id) ? "fail" : "ok",
-    };
+    return settledBy(module, result.failed.includes(module.id));
   });
 }
 
@@ -172,6 +189,63 @@ function merged(
 }
 
 export const useInstall = create<InstallStore>((set, get) => {
+  /** Which reading of the report is the current one: an older one stops. */
+  let reading = 0;
+
+  /**
+   * The report, read until it is finished.
+   *
+   * An empty `finished_at` is a machine still at work — after a channel the
+   * app gave up on, or on an install another session of the app left running.
+   * The screen shows what the report says, then asks again, and settles only
+   * on the report of a run that is over.
+   */
+  async function follow(serverId: string): Promise<void> {
+    reading += 1;
+    const turn = reading;
+
+    for (;;) {
+      const answer = await window.pupitre.installReport(serverId);
+
+      if (turn !== reading) {
+        return;
+      }
+
+      if (!answer.ok) {
+        set({ install: { error: answer.error, serverId, status: "failed" } });
+
+        return;
+      }
+
+      const finished = answer.result.finished_at !== "";
+
+      set({
+        install: finished
+          ? {
+              result: {
+                failed: answer.result.failed,
+                report_path: answer.result.report_path,
+                warned: answer.result.warned,
+              },
+              serverId,
+              status: "done",
+            }
+          : { serverId, status: "running" },
+        modules: fromReport(answer.result.modules),
+      });
+
+      if (finished) {
+        return;
+      }
+
+      await delay(get().pollMs);
+
+      if (turn !== reading) {
+        return;
+      }
+    }
+  }
+
   function note(update: InstallUpdate): void {
     const line = logLine(update);
 
@@ -220,6 +294,8 @@ export const useInstall = create<InstallStore>((set, get) => {
     const before = get().install;
     const kept = before.status === "done" ? before.result : null;
 
+    reading += 1;
+
     set((state) => ({
       install: { serverId, status: "running" },
       log: again ? state.log : [],
@@ -237,6 +313,21 @@ export const useInstall = create<InstallStore>((set, get) => {
       note,
       defer
     );
+
+    // A machine already installing is not a machine that refused: the run this
+    // app started before it was closed, or another session's, is followed to
+    // its end rather than reported as a failure.
+    if (!answer.ok && answer.error.code === "busy") {
+      await follow(serverId);
+
+      return;
+    }
+
+    // A configuration the agent refused names its fields: the form marks them,
+    // as it would have had `install.check` caught them first.
+    if (!answer.ok && answer.error.remedy?.code === "invalid_fields") {
+      useCatalog.getState().noteProblems(answer.error.remedy.problems);
+    }
 
     set((state) => ({
       install: answer.ok
@@ -267,6 +358,7 @@ export const useInstall = create<InstallStore>((set, get) => {
     install: { status: "idle" },
     log: [],
     modules: [],
+    pollMs: REPORT_POLL_MS,
     requested: EMPTY,
 
     async start(serverId, modules, config, defer = []) {
@@ -300,30 +392,26 @@ export const useInstall = create<InstallStore>((set, get) => {
       await run(serverId, modules, replayOf(modules), true);
     },
 
-    async reload(serverId) {
-      const answer = await window.pupitre.installReport(serverId);
+    reload(serverId) {
+      return follow(serverId);
+    },
 
-      if (!answer.ok) {
-        set({ install: { error: answer.error, serverId, status: "failed" } });
+    async startChosen(serverId) {
+      const catalog = useCatalog.getState();
+      const asked = catalog.selected;
 
-        return;
-      }
-
-      set({
-        install: {
-          result: {
-            failed: answer.result.failed,
-            report_path: answer.result.report_path,
-            warned: answer.result.warned,
-          },
-          serverId,
-          status: "done",
-        },
-        modules: fromReport(answer.result.modules),
-      });
+      await catalog.settled();
+      await get().start(
+        serverId,
+        asked,
+        catalog.config(),
+        catalog.deferred.filter((one) => asked.includes(one))
+      );
     },
 
     reset() {
+      reading += 1;
+
       set({
         install: { status: "idle" },
         log: [],

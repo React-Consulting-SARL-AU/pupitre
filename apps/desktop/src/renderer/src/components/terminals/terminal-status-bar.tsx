@@ -1,7 +1,13 @@
 import { AgentDot, agentStateLabel } from "@renderer/components/ui/agent-dot";
+import { IconButton } from "@renderer/components/ui/icon-button";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { useTerminalStatus } from "@renderer/lib/terminal-status";
+import { copyWholeOutput } from "@renderer/lib/terminals";
 import type { AgentState, TerminalKind } from "@shared/terminals";
+import { Check, ClipboardCopy } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+
+const FEEDBACK_MS = 1600;
 
 /**
  * The line under a session: what it is, where it stands, how big it is.
@@ -26,6 +32,29 @@ export function TerminalStatusBar({
   const status = useTerminalStatus(id);
   const place = project ?? t("terminals.status.server");
 
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (timer.current) {
+        clearTimeout(timer.current);
+      }
+    },
+    []
+  );
+
+  async function copyAll(): Promise<void> {
+    await copyWholeOutput(id);
+    setCopied(true);
+
+    if (timer.current) {
+      clearTimeout(timer.current);
+    }
+
+    timer.current = setTimeout(() => setCopied(false), FEEDBACK_MS);
+  }
+
   return (
     <div
       className="flex shrink-0 items-center gap-3 border-line border-t bg-surface px-3 py-1 font-data text-[11px] text-ink-3"
@@ -47,6 +76,14 @@ export function TerminalStatusBar({
           {status.cols}×{status.rows}
         </span>
       ) : null}
+
+      <IconButton
+        icon={copied ? Check : ClipboardCopy}
+        label={copied ? t("common.copied") : t("terminals.status.copyAll")}
+        onClick={copyAll}
+        size={12}
+        variant="discreet"
+      />
     </div>
   );
 }

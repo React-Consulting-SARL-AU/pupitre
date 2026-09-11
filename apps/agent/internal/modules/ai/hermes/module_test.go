@@ -1,6 +1,7 @@
 package hermes
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -148,20 +149,24 @@ func TestProviderKeysNeverLeak(t *testing.T) {
 	}
 }
 
-func TestConfigureRefusesAnUnreadableProviderList(t *testing.T) {
-	fake := modtest.NewFakeSys()
-	ctx := modtest.NewContext(t, fake, modtest.Options{
-		Manifest: manifest(),
-		Secrets:  modtest.Secrets{"providers.0": "sans-separateur"},
-	})
-
-	if err := (Module{}).Configure(ctx); err == nil {
-		t.Fatal("expected the configuration to fail")
+// The shape of an entry is the manifest's to state and the form's to hold; the module no longer reads its own field twice.
+func TestTheManifestHoldsEachProviderToItsShape(t *testing.T) {
+	var providers contract.Field
+	for _, field := range manifest().Fields {
+		if field.Key == "providers" {
+			providers = field
+		}
 	}
 
-	last := ctx.Events()[len(ctx.Events())-1]
-	if last.Status != contract.StepFail || last.Replay != "sudo pupitred install --only="+ID {
-		t.Fatalf("unexpected event: %+v", last)
+	shape, err := regexp.Compile(providers.Pattern)
+	if err != nil || providers.Pattern == "" {
+		t.Fatalf("providers pattern = %q: %v", providers.Pattern, err)
+	}
+
+	for entry, accepted := range map[string]bool{"openai:sk-abc": true, "Anthropic:key with spaces": true, "sans-separateur": false, ":nokey": false, "novalue:": false} {
+		if shape.MatchString(entry) != accepted {
+			t.Errorf("%q accepted = %v, want %v", entry, !accepted, accepted)
+		}
 	}
 }
 

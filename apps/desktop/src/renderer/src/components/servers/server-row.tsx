@@ -1,16 +1,18 @@
 import type { DictionaryKey } from "@renderer/i18n/en";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { type Gesture, usePending } from "@renderer/lib/use-pending";
-import type { Server } from "@shared/servers";
+import type { EditState } from "@renderer/stores/servers";
+import type { Server, ServerChanges } from "@shared/servers";
 import { grantGone } from "@shared/servers";
-import { KeyRound, OctagonAlert, Trash2 } from "lucide-react";
+import { KeyRound, OctagonAlert, Pencil, Trash2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Button } from "../ui/button";
 import { CopyField } from "../ui/copy-field";
 import { fieldControlClass } from "../ui/field";
 import { IconButton } from "../ui/icon-button";
-import { Label } from "../ui/label";
 import { StatusDot, type StatusShape } from "../ui/status-dot";
+import { ServerRowDetail } from "./server-row-detail";
+import { ServerRowEditing } from "./server-row-editing";
 
 /**
  * One server, and everything that can be done to it from a list.
@@ -28,6 +30,9 @@ export function ServerRow({
   active,
   onActivate,
   onRename,
+  onUpdate,
+  onForgetEdit,
+  edit = { status: "idle" },
   onRemove,
   onForget,
   refusal,
@@ -36,6 +41,11 @@ export function ServerRow({
   active: boolean;
   onActivate: Gesture;
   onRename: (name: string) => void;
+  /** The address, the port or the account, changed in place. */
+  onUpdate?: (changes: ServerChanges) => Promise<void>;
+  onForgetEdit?: () => void;
+  /** Where the last change stands, for whichever row asked for it. */
+  edit?: EditState;
   onRemove: Gesture;
   onForget: Gesture;
   /** What the platform objected to the removal with, in its own words. */
@@ -45,7 +55,19 @@ export function ServerRow({
 
   const [name, setName] = useState(server.name);
   const [confirming, setConfirming] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [publicKey, setPublicKey] = useState<string | null>(null);
+
+  const editable = server.origin === "app" && onUpdate !== undefined;
+
+  function change(changes: ServerChanges): void {
+    onUpdate?.(changes);
+  }
+
+  function closeEdit(): void {
+    setEditing(false);
+    onForgetEdit?.();
+  }
 
   const [activate, activating] = usePending(onActivate);
   const [remove, removing] = usePending(onRemove);
@@ -87,6 +109,7 @@ export function ServerRow({
           className="clickable shrink-0 rounded-sm p-0.5 text-ink disabled:opacity-40"
           disabled={activating}
           onClick={activate}
+          title={t("servers.row.activate", { name: server.name })}
           type="button"
         >
           <StatusDot shape={activeShape} size={13} />
@@ -99,6 +122,16 @@ export function ServerRow({
           onChange={(e) => setName(e.target.value)}
           value={name}
         />
+
+        {editable ? (
+          <IconButton
+            expanded={editing}
+            icon={Pencil}
+            label={t("servers.row.edit", { name: server.name })}
+            onClick={() => (editing ? closeEdit() : setEditing(true))}
+            variant="discreet"
+          />
+        ) : null}
 
         {server.origin === "app" && !server.grant?.adopted ? (
           <IconButton
@@ -122,18 +155,27 @@ export function ServerRow({
       </div>
 
       <dl className="mt-4 flex flex-wrap items-baseline gap-x-6 gap-y-2 pl-7">
-        <Detail label={t("servers.field.address")}>
+        <ServerRowDetail label={t("servers.field.address")}>
           {server.origin === "system"
             ? server.host
             : `${server.user}@${server.host}:${server.port}`}
-        </Detail>
-        <Detail label={t("servers.row.configLabel")}>
+        </ServerRowDetail>
+        <ServerRowDetail label={t("servers.row.configLabel")}>
           {t(configLabel(server))}
-        </Detail>
-        <Detail label={t("servers.row.hostKeyLabel")}>
+        </ServerRowDetail>
+        <ServerRowDetail label={t("servers.row.hostKeyLabel")}>
           {server.hostFingerprint ?? t("servers.row.notPinned")}
-        </Detail>
+        </ServerRowDetail>
       </dl>
+
+      {editing ? (
+        <ServerRowEditing
+          edit={edit}
+          onClose={closeEdit}
+          onSubmit={change}
+          server={server}
+        />
+      ) : null}
 
       {publicKey ? (
         <div className="mt-5 pl-7">
@@ -231,15 +273,4 @@ function confirmLabel(server: Server): DictionaryKey {
   return server.origin === "app"
     ? "servers.row.confirmApp"
     : "servers.row.confirmSystem";
-}
-
-function Detail({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="min-w-0">
-      <dt>
-        <Label>{label}</Label>
-      </dt>
-      <dd className="break-all font-data text-[12px] text-ink-2">{children}</dd>
-    </div>
-  );
 }

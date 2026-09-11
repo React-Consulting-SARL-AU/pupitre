@@ -221,6 +221,48 @@ describe("le droit d'usage", () => {
     });
   });
 
+  it("refuse tout de suite une session que la plateforme ne reconnaît plus", async () => {
+    const { account, deps, platform } = harness({ build: "production" });
+    const { report } = progressOf();
+
+    await account.signIn(report);
+    expect(account.guard().ok).toBe(true);
+
+    platform.me = () =>
+      Promise.resolve({
+        ok: false,
+        error: { code: "unauthenticated", message: "refusal.platform.refused" },
+      });
+
+    const refreshed = await account.refresh();
+
+    expect(refreshed.usage).toMatchObject({ status: "absent" });
+    expect(refreshed.identity).toBeNull();
+    expect(deps.vault.token()).toBeNull();
+    expect(account.guard()).toMatchObject({
+      ok: false,
+      error: { code: "entitlement_required" },
+    });
+  });
+
+  it("garde le droit en cache quand la plateforme est seulement injoignable", async () => {
+    const { account, deps, platform } = harness({ build: "production" });
+    const { report } = progressOf();
+
+    await account.signIn(report);
+
+    platform.me = () =>
+      Promise.resolve({
+        ok: false,
+        error: { code: "offline", message: "refusal.platform.silent" },
+      });
+
+    const refreshed = await account.refresh();
+
+    expect(refreshed.usage).toMatchObject({ status: "granted" });
+    expect(deps.vault.token()).toBe(FAKE_TOKEN);
+  });
+
   it("refuse tout de suite une organisation suspendue", async () => {
     const { account } = harness({
       build: "production",
@@ -434,5 +476,53 @@ describe("l'organisation active de cet appareil", () => {
     await account.switchOrganization("org-2");
 
     expect(platform.switched).toEqual([]);
+  });
+});
+
+describe("les appareils du compte", () => {
+  it("liste ce que la plateforme tient, et révoque un autre appareil", async () => {
+    const other = { ...DEVICE, id: "device-2", name: "Vieux portable" };
+    const { account, platform } = harness({ devices: [DEVICE, other] });
+
+    await account.signIn(() => undefined);
+
+    const listed = await account.devices();
+
+    expect(listed).toMatchObject({ ok: true });
+    expect(listed.ok && listed.result.map((device) => device.id)).toEqual([
+      "device-1",
+      "device-2",
+    ]);
+
+    const revoked = await account.revokeDevice("device-2");
+    const after = await account.devices();
+
+    expect(revoked).toEqual({ ok: true, result: null });
+    expect(platform.revokedDevices).toEqual(["device-2"]);
+    expect(after.ok && after.result.map((device) => device.id)).toEqual([
+      "device-1",
+    ]);
+  });
+
+  it("refuse que cet ordinateur se révoque lui-même", async () => {
+    const { account, platform } = harness({ devices: [DEVICE] });
+
+    await account.signIn(() => undefined);
+
+    const answer = await account.revokeDevice(DEVICE.id);
+
+    expect(answer).toMatchObject({
+      ok: false,
+      error: { phrase: { id: "refusal.device.self" } },
+    });
+    expect(platform.revokedDevices).toEqual([]);
+  });
+
+  it("ne demande rien sans session", async () => {
+    const { account } = harness({ devices: [DEVICE] });
+
+    const listed = await account.devices();
+
+    expect(listed).toMatchObject({ ok: false, error: { code: "signed_out" } });
   });
 });

@@ -64,11 +64,10 @@ describe("download", () => {
     }
   })
 
-  it("warns when the release list came from the fallback", async () => {
+  it("never tells the visitor the list may be behind", async () => {
     const html = await render(Download, { path: paths.en })
 
-    expect(html).toContain(downloadContent("en").stale.title)
-    expect(html).toContain('data-kind="warn"')
+    expect(html).not.toContain('data-kind="warn"')
   })
 
   it("publishes a digest and a size only for a release the platform served", async () => {

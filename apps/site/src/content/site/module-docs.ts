@@ -11,24 +11,24 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
   "core.system": {
     installs: [
       {
-        en: "Base packages, the time zone you pick, and unattended security updates that never reboot the machine on their own.",
-        fr: "Les paquets de base, le fuseau que vous choisissez, et les mises à jour de sécurité automatiques qui ne redémarrent jamais la machine d’elles-mêmes.",
+        en: "Base packages — curl, git, jq, tmux, zsh, unzip, build-essential, ufw, fail2ban — the time zone you pick, and unattended security updates that never reboot the machine on their own.",
+        fr: "Les paquets de base — curl, git, jq, tmux, zsh, unzip, build-essential, ufw, fail2ban —, le fuseau que vous choisissez, et les mises à jour de sécurité automatiques qui ne redémarrent jamais la machine d’elles-mêmes.",
       },
       {
-        en: "A swap file sized for the RAM, and a memory guard — systemd-oomd or earlyoom — so a runaway build does not take the machine down.",
-        fr: "Un fichier d’échange dimensionné pour la RAM, et un garde-fou mémoire — systemd-oomd ou earlyoom — pour qu’un build emballé n’emporte pas la machine.",
+        en: "A swap file sized for the RAM — 2 GB, 4 GB above eight of memory — a memory guard, systemd-oomd or earlyoom, and raised inotify limits so a watcher does not run out of them mid-build.",
+        fr: "Un fichier d’échange dimensionné pour la RAM — 2 Go, 4 Go au-delà de huit de mémoire —, un garde-fou mémoire, systemd-oomd ou earlyoom, et des limites inotify relevées pour qu’un watcher n’en manque pas en plein build.",
       },
       {
         en: "A dev user with sudo, whose authorized_keys receives the unrestricted keys already on root, so a key opens it before hardening closes root.",
         fr: "Un utilisateur dev avec sudo, dont authorized_keys reçoit les clés non restreintes déjà posées sur root, pour qu’une clé l’ouvre avant que le durcissement ne ferme root.",
       },
       {
-        en: "tmux, zsh and bash with the OSC 133 prompt markers the app reads to tell one command from the next.",
-        fr: "tmux, zsh et bash avec les marqueurs de prompt OSC 133 que l’app lit pour distinguer une commande de la suivante.",
+        en: "zsh as the login shell, a tmux configuration, and OSC 133 prompt markers in zsh and bash that let the app tell one command from the next.",
+        fr: "zsh comme shell de connexion, une configuration tmux, et les marqueurs de prompt OSC 133 dans zsh et bash qui permettent à l’app de distinguer une commande de la suivante.",
       },
       {
-        en: "The dev command, linked to the agent binary, so the same operations exist in a plain SSH terminal.",
-        fr: "La commande dev, liée au binaire de l’agent, pour que les mêmes opérations existent dans un terminal SSH ordinaire.",
+        en: "The agent’s own systemd unit, and the dev command, linked to the agent binary, so the same operations exist in a plain SSH terminal.",
+        fr: "L’unité systemd de l’agent, et la commande dev, liée au binaire de l’agent, pour que les mêmes opérations existent dans un terminal SSH ordinaire.",
       },
     ],
     asks: [
@@ -43,8 +43,8 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       },
     ],
     notes: {
-      en: "This module is mandatory. Everything else assumes the dev user, the projects directory and the shells it sets up.",
-      fr: "Ce module est obligatoire. Tout le reste suppose l’utilisateur dev, le dossier des projets et les shells qu’il installe.",
+      en: "This module is mandatory. Everything else assumes the dev user, the projects directory and the shells it sets up. Its shell block lives in .zshenv, which zsh reads for every shell — including the one an ssh command opens without logging in.",
+      fr: "Ce module est obligatoire. Tout le reste suppose l’utilisateur dev, le dossier des projets et les shells qu’il installe. Son bloc de shell vit dans .zshenv, que zsh lit pour tous les shells — y compris celui qu’ouvre une commande ssh sans connexion.",
     },
   },
   "core.hardening": {
@@ -77,8 +77,8 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       },
     ],
     notes: {
-      en: "This module is mandatory, and it is the one that can lock you out. It refuses to close root until a key has actually opened dev; if that check fails, nothing is closed and the app tells you why.",
-      fr: "Ce module est obligatoire, et c’est celui qui peut vous enfermer dehors. Il refuse de fermer root tant qu’une clé n’a pas réellement ouvert dev ; si cette vérification échoue, rien n’est fermé et l’app dit pourquoi.",
+      en: "This module is mandatory, and it is the one that can lock you out. It refuses to close root until a key has actually opened dev; if that check fails, nothing is closed and the app tells you why. An exposure module that needs ports 80 and 443 opens them under rules of its own, which this one never takes back.",
+      fr: "Ce module est obligatoire, et c’est celui qui peut vous enfermer dehors. Il refuse de fermer root tant qu’une clé n’a pas réellement ouvert dev ; si cette vérification échoue, rien n’est fermé et l’app dit pourquoi. Un module d’exposition qui a besoin des ports 80 et 443 les ouvre sous des règles à lui, que celui-ci ne reprend jamais.",
     },
   },
   "runtime.node": {
@@ -88,30 +88,34 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
         fr: "mise, comme gestionnaire de versions.",
       },
       {
-        en: "Node at the version you choose, plus Bun and pnpm if you want them.",
-        fr: "Node à la version choisie, et Bun et pnpm si vous les voulez.",
+        en: "Node at the version you choose, plus Bun, pnpm and Yarn if you want them; pnpm and Yarn come through corepack, so a repository that pins its own version keeps it.",
+        fr: "Node à la version choisie, et Bun, pnpm et Yarn si vous les voulez ; pnpm et Yarn passent par corepack, pour qu’un dépôt qui épingle sa propre version la garde.",
       },
       {
-        en: "A marked block in .zshenv that activates them in every shell, including the non-interactive ones an agent uses.",
-        fr: "Un bloc balisé dans .zshenv qui les active dans tous les shells, y compris les non interactifs qu’utilise un agent.",
+        en: "A marked block in .zshenv that puts the shims and ~/.local/bin on the path of every shell, including the non-interactive ones an agent uses.",
+        fr: "Un bloc balisé dans .zshenv qui place les shims et ~/.local/bin sur le PATH de tous les shells, y compris les non interactifs qu’utilise un agent.",
       },
     ],
     asks: [
       { en: "The Node version.", fr: "La version de Node." },
       { en: "Bun, yes or no.", fr: "Bun, oui ou non." },
       { en: "pnpm, yes or no.", fr: "pnpm, oui ou non." },
+      {
+        en: "Yarn, yes or no. Off by default: few recent repositories still ask for it.",
+        fr: "Yarn, oui ou non. Décoché par défaut : peu de dépôts récents le réclament encore.",
+      },
     ],
     notes: {
-      en: "The non-interactive activation is the point: an agent that runs npm through ssh without a login shell finds the same versions you do.",
-      fr: "L’activation non interactive est l’essentiel : un agent qui lance npm par ssh sans shell de connexion trouve les mêmes versions que vous.",
+      en: "The non-interactive activation is the point: an agent that runs npm through ssh without a login shell finds the same versions you do. It is also what puts codex on the path of a remote client. Any other Node version is one mise command away in a terminal, and the same gesture covers Java, Python, Go, PHP and Ruby.",
+      fr: "L’activation non interactive est l’essentiel : un agent qui lance npm par ssh sans shell de connexion trouve les mêmes versions que vous. C’est aussi ce qui met codex sur le PATH d’un client distant. Toute autre version de Node s’installe par une commande mise dans un terminal, et le même geste vaut pour Java, Python, Go, PHP et Ruby.",
     },
   },
   "runtime.java": {
     installs: [
       { en: "Temurin through mise.", fr: "Temurin via mise." },
       {
-        en: "A Gradle daemon sized for the RAM the machine actually has.",
-        fr: "Un daemon Gradle dimensionné pour la RAM dont la machine dispose réellement.",
+        en: "JAVA_HOME in every shell, and a Gradle daemon sized for the RAM the machine actually has.",
+        fr: "JAVA_HOME dans tous les shells, et un daemon Gradle dimensionné pour la RAM dont la machine dispose réellement.",
       },
     ],
     asks: [{ en: "The Java version.", fr: "La version de Java." }],
@@ -119,12 +123,12 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
   "runtime.python": {
     installs: [
       {
-        en: "uv, and one Python version.",
-        fr: "uv, et une version de Python.",
+        en: "uv, and one Python version, both through mise.",
+        fr: "uv, et une version de Python, tous deux via mise.",
       },
       {
-        en: "The base every Python agent on the machine builds on.",
-        fr: "La base sur laquelle s’appuie tout agent Python de la machine.",
+        en: "The base every Python agent on the machine builds on, Hermes included.",
+        fr: "La base sur laquelle s’appuie tout agent Python de la machine, Hermes compris.",
       },
     ],
     asks: [{ en: "The Python version.", fr: "La version de Python." }],
@@ -244,11 +248,11 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       },
       {
         en: "Root on the socket, an application account, and a separate remote account your laptop uses through the SSH session.",
-        fr: "Root sur la socket, un compte applicatif, et un compte distant séparé que votre laptop utilise à travers la session SSH.",
+        fr: "Root sur la socket, un compte applicatif, et un compte distant séparé que votre poste utilise à travers la session SSH.",
       },
       {
-        en: "A buffer pool sized for the machine, and an import of any dump you drop in ~/dumps/.",
-        fr: "Un buffer pool dimensionné pour la machine, et l’import de tout dump déposé dans ~/dumps/.",
+        en: "A buffer pool sized for the machine, and an import of any dump you drop in ~/dumps — once each, whatever the engine.",
+        fr: "Un buffer pool dimensionné pour la machine, et l’import de tout dump déposé dans ~/dumps — une fois chacun, quel que soit le moteur.",
       },
     ],
     asks: [
@@ -265,23 +269,27 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       { en: "The buffer pool size.", fr: "La taille du buffer pool." },
     ],
     notes: {
-      en: "Nothing listens on a public interface. A database client on your laptop reaches the server through the SSH session the app already holds.",
-      fr: "Rien n’écoute sur une interface publique. Un client de base sur votre laptop atteint le serveur à travers la session SSH que l’app tient déjà.",
+      en: "Nothing listens on a public interface. A database client on your laptop reaches the server through a tunnel the app opens on the SSH session it already holds — one click on the service page.",
+      fr: "Rien n’écoute sur une interface publique. Un client de base sur votre poste atteint le serveur par un tunnel que l’app ouvre sur la session SSH qu’elle tient déjà — un clic sur la page du service.",
     },
   },
   "db.postgres": {
     installs: [
       {
-        en: "PostgreSQL at the major version you pick, from the project’s own repository, listening on localhost only.",
-        fr: "PostgreSQL à la version majeure choisie, depuis le dépôt du projet, en écoute sur localhost uniquement.",
+        en: "PostgreSQL at the major version you pick, from the project’s own repository, listening on 127.0.0.1 only.",
+        fr: "PostgreSQL à la version majeure choisie, depuis le dépôt du projet, en écoute sur 127.0.0.1 uniquement.",
       },
       {
-        en: "An application role and a remote role, and the extensions most projects reach for.",
-        fr: "Un rôle applicatif et un rôle distant, et les extensions dont la plupart des projets ont besoin.",
+        en: "An application role that owns the imported databases, a remote role for your laptop, and the pg_trgm, uuid-ossp and citext extensions.",
+        fr: "Un rôle applicatif qui possède les bases importées, un rôle distant pour votre poste, et les extensions pg_trgm, uuid-ossp et citext.",
       },
       {
-        en: "An import of the dumps you drop in ~/dumps/.",
-        fr: "L’import des dumps que vous déposez dans ~/dumps/.",
+        en: "Shared buffers sized for the machine, unless you give a size of your own.",
+        fr: "Une mémoire partagée dimensionnée pour la machine, sauf si vous donnez une taille à vous.",
+      },
+      {
+        en: "An import of the dumps you drop in ~/dumps.",
+        fr: "L’import des dumps que vous déposez dans ~/dumps.",
       },
     ],
     asks: [
@@ -295,18 +303,30 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
         en: "The application password and the remote password, generated if you like.",
         fr: "Le mot de passe applicatif et le mot de passe distant, générés si vous le souhaitez.",
       },
+      {
+        en: "The shared buffers size.",
+        fr: "La taille de la mémoire partagée.",
+      },
     ],
+    notes: {
+      en: "Uninstalling takes back the packages and the configuration. The cluster’s data directory stays where PostgreSQL wrote it.",
+      fr: "La désinstallation reprend les paquets et la configuration. Le dossier de données du cluster reste là où PostgreSQL l’a écrit.",
+    },
   },
   "db.mongodb": {
     installs: [
       {
-        en: "MongoDB at the major version you pick, local only, with authentication on.",
-        fr: "MongoDB à la version majeure choisie, local seulement, authentification active.",
+        en: "MongoDB at the major version you pick, bound to 127.0.0.1, with authentication on.",
+        fr: "MongoDB à la version majeure choisie, lié à 127.0.0.1, authentification active.",
       },
       { en: "An application user.", fr: "Un utilisateur applicatif." },
       {
-        en: "An import of mongodump archives.",
-        fr: "L’import d’archives mongodump.",
+        en: "A WiredTiger cache sized for the machine — a quarter of its memory, where MongoDB left alone would take half.",
+        fr: "Un cache WiredTiger dimensionné pour la machine — un quart de sa mémoire, là où MongoDB laissé seul en prendrait la moitié.",
+      },
+      {
+        en: "An import of the mongodump archives you drop in ~/dumps.",
+        fr: "L’import des archives mongodump que vous déposez dans ~/dumps.",
       },
     ],
     asks: [
@@ -317,6 +337,10 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
         fr: "Le nom de l’utilisateur applicatif.",
       },
       { en: "The application password.", fr: "Le mot de passe applicatif." },
+      {
+        en: "The cache size in megabytes. Zero follows the machine.",
+        fr: "La taille du cache en mégaoctets. Zéro suit la machine.",
+      },
     ],
   },
   "db.redis": {
@@ -344,48 +368,52 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
         en: "The memory ceiling in megabytes. Zero means no ceiling.",
         fr: "Le plafond mémoire en mégaoctets. Zéro veut dire aucun plafond.",
       },
+      {
+        en: "What gets evicted once the ceiling is reached. Without a ceiling, nothing is.",
+        fr: "Ce qui est évincé une fois le plafond atteint. Sans plafond, rien ne l’est.",
+      },
     ],
     notes: {
-      en: "Uninstalling takes back the package and the configuration. What Redis wrote under /var/lib/redis stays: it is your data.",
-      fr: "La désinstallation reprend le paquet et la configuration. Ce que Redis a écrit sous /var/lib/redis reste : ce sont vos données.",
+      en: "The install ends by checking that the password actually opens the server, rather than assuming it. Uninstalling takes back the package and the configuration; what Redis wrote under /var/lib/redis stays.",
+      fr: "L’installation se termine en vérifiant que le mot de passe ouvre réellement le serveur, plutôt que de le supposer. La désinstallation reprend le paquet et la configuration ; ce que Redis a écrit sous /var/lib/redis reste.",
     },
   },
   "ai.claude": {
     installs: [
       {
-        en: "Claude Code, ready to sign in through the URL it prints in the app terminal.",
-        fr: "Claude Code, prêt à se connecter par l’URL qu’il affiche dans le terminal de l’app.",
+        en: "Claude Code as the native binary Anthropic publishes, downloaded for this architecture and refused unless its checksum matches the one the release manifest announces.",
+        fr: "Claude Code sous la forme du binaire natif publié par Anthropic, téléchargé pour cette architecture et refusé si sa somme de contrôle ne correspond pas à celle qu’annonce le manifeste de la version.",
       },
       {
-        en: "The project context: the app opens it in the right folder, with the files that describe the project.",
-        fr: "Le contexte du projet : l’app l’ouvre dans le bon dossier, avec les fichiers qui décrivent le projet.",
+        en: "The machine context in ~/.claude/CLAUDE.md: this is a Linux server and not a workstation, where the projects live, and that servers are driven with the dev command rather than started by hand.",
+        fr: "Le contexte machine dans ~/.claude/CLAUDE.md : cette machine est un serveur Linux et non un poste de travail, où vivent les projets, et que les serveurs se pilotent avec la commande dev plutôt qu’en les lançant à la main.",
       },
       {
-        en: "The Pupitre skills — capture a screenshot, open a branch, open a pull request, ship.",
-        fr: "Les skills Pupitre — prendre une capture, ouvrir une branche, ouvrir une pull request, livrer.",
+        en: "The Pupitre skills — server-dev, capture, branch, pr, ship — in ~/.agents/skills and in the tool’s own folder, plus the git-shipper subagent.",
+        fr: "Les skills Pupitre — server-dev, capture, branch, pr, ship — dans ~/.agents/skills et dans le dossier propre à l’outil, ainsi que le sous-agent git-shipper.",
       },
     ],
     asks: [],
     notes: {
-      en: "Your own subscription. Pupitre resells nothing and stores no token for you: you sign in on the server the same way you would in any terminal. You can also skip Pupitre’s terminal entirely and attach the Claude desktop app to the server over SSH.",
-      fr: "Votre propre abonnement. Pupitre ne revend rien et ne stocke aucun jeton pour vous : vous vous connectez sur le serveur comme vous le feriez dans n’importe quel terminal. Vous pouvez aussi vous passer complètement du terminal de Pupitre et brancher l’app Claude sur le serveur en SSH.",
+      en: "Your own subscription. Pupitre resells nothing and stores no token for you: the tool prints its sign-in URL on first run, you approve it in your browser, and the credentials stay on the server. Uninstalling takes back the binary and the context this module wrote; the conversations, the credentials and the skills you added yourself stay. You can also skip Pupitre’s terminal entirely and attach the Claude desktop app to the server over SSH, with the key the app generated.",
+      fr: "Votre propre abonnement. Pupitre ne revend rien et ne stocke aucun jeton pour vous : l’outil affiche son URL de connexion au premier lancement, vous l’approuvez dans votre navigateur, et les identifiants restent sur le serveur. La désinstallation reprend le binaire et le contexte que ce module a écrit ; les conversations, les identifiants et les skills que vous avez ajoutés restent. Vous pouvez aussi vous passer du terminal de Pupitre et brancher l’app Claude sur le serveur en SSH, avec la clé que l’app a générée.",
     },
   },
   "ai.codex": {
     installs: [
       {
-        en: "Codex, with the same sign-in flow as Claude Code.",
-        fr: "Codex, avec le même flux de connexion que Claude Code.",
+        en: "Codex through mise, which pins and upgrades it the way it does a runtime and puts it on the path of every shell — including the non-interactive one a remote client opens.",
+        fr: "Codex via mise, qui l’épingle et le met à jour comme un runtime et le place sur le PATH de tous les shells — y compris le shell non interactif qu’ouvre un client distant.",
       },
       {
-        en: "The same project context and the same skills.",
-        fr: "Le même contexte de projet et les mêmes skills.",
+        en: "The same machine context, in ~/.codex/AGENTS.md, and the same Pupitre skills.",
+        fr: "Le même contexte machine, dans ~/.codex/AGENTS.md, et les mêmes skills Pupitre.",
       },
     ],
     asks: [],
     notes: {
-      en: "Your own subscription, again. Claude Code and Codex can live on the same machine, and the ChatGPT desktop app can attach to the server over SSH instead of Pupitre’s terminal.",
-      fr: "Votre propre abonnement, là encore. Claude Code et Codex peuvent cohabiter sur la même machine, et l’app ChatGPT peut se brancher sur le serveur en SSH plutôt que de passer par le terminal de Pupitre.",
+      en: "Your own subscription, again, and the same sign-in through a URL printed on first run. Claude Code and Codex can live on the same machine: they see the same projects, the same runtimes and the same databases, because there is only one machine. In the ChatGPT desktop app, Codex adds a remote project from a host alias of your ~/.ssh/config, so a Pupitre server reaches it through one host entry.",
+      fr: "Votre propre abonnement, là encore, et la même connexion par une URL affichée au premier lancement. Claude Code et Codex peuvent cohabiter sur la même machine : ils voient les mêmes projets, les mêmes runtimes et les mêmes bases, parce qu’il n’y a qu’une machine. Dans l’app ChatGPT, Codex ajoute un projet distant depuis un alias d’hôte de votre ~/.ssh/config : un serveur Pupitre s’y branche par une entrée d’hôte.",
     },
   },
   "ai.hermes": {
@@ -395,40 +423,48 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
         fr: "Hermes Agent, de Nous Research, sur le runtime Python.",
       },
       {
-        en: "The model providers you configure, and a systemd service if you want it always on.",
-        fr: "Les fournisseurs de modèles que vous configurez, et un service systemd si vous le voulez toujours actif.",
+        en: "The model providers you configure, the same machine context and skills as the other agents, and a systemd service if you want it always on.",
+        fr: "Les fournisseurs de modèles que vous configurez, le même contexte machine et les mêmes skills que les autres agents, et un service systemd si vous le voulez toujours actif.",
       },
     ],
     asks: [
       {
-        en: "One key per model provider. They are written to a file only root can read.",
-        fr: "Une clé par fournisseur de modèles. Elles sont écrites dans un fichier que seul root peut lire.",
+        en: "One key per model provider, as provider:key. They are written to a file only root can read.",
+        fr: "Une clé par fournisseur de modèles, sous la forme fournisseur:clé. Elles sont écrites dans un fichier que seul root peut lire.",
       },
       { en: "Always on, yes or no.", fr: "Toujours actif, oui ou non." },
     ],
+    notes: {
+      en: "This one is not signed in through a subscription: it talks to the providers whose keys you gave, and those keys stay on the machine.",
+      fr: "Celui-ci ne se connecte pas par un abonnement : il parle aux fournisseurs dont vous avez donné les clés, et ces clés restent sur la machine.",
+    },
   },
   "ai.browser": {
     installs: [
       {
-        en: "Headless Chrome and the Playwright dependencies Ubuntu does not ship.",
-        fr: "Chrome headless et les dépendances Playwright qu’Ubuntu ne fournit pas.",
+        en: "Google Chrome on amd64, the distribution’s Chromium elsewhere, and the libraries Playwright needs that Ubuntu does not ship.",
+        fr: "Google Chrome sur amd64, le Chromium de la distribution ailleurs, et les bibliothèques dont Playwright a besoin et qu’Ubuntu ne fournit pas.",
       },
       {
-        en: "A capture command that files its images in the project gallery, where the app shows them.",
-        fr: "Une commande de capture qui range ses images dans la galerie du projet, là où l’app les affiche.",
+        en: "The shot command, linked to the agent binary: it captures a page or files an image under ~/shots, in a folder per day, desktop or mobile viewport.",
+        fr: "La commande shot, liée au binaire de l’agent : elle capture une page ou range une image sous ~/shots, dans un dossier par jour, en fenêtre bureau ou mobile.",
+      },
+      {
+        en: "A read-only gallery served on the loopback alone, as a systemd unit, so a capture has a URL an agent can hand back instead of a local path nobody else can open.",
+        fr: "Une galerie en lecture seule servie sur la boucle locale uniquement, en unité systemd, pour qu’une capture ait une URL qu’un agent peut rendre plutôt qu’un chemin local que personne d’autre ne peut ouvrir.",
       },
     ],
     asks: [],
     notes: {
-      en: "This is what lets an agent look at the page it just changed instead of guessing.",
-      fr: "C’est ce qui permet à un agent de regarder la page qu’il vient de modifier au lieu de la deviner.",
+      en: "This is what lets an agent look at the page it just changed instead of guessing. The gallery answers on 127.0.0.1 and nowhere else: the app reaches it through the SSH session it already holds, and no port is opened on the server.",
+      fr: "C’est ce qui permet à un agent de regarder la page qu’il vient de modifier au lieu de la deviner. La galerie répond sur 127.0.0.1 et nulle part ailleurs : l’app l’atteint par la session SSH qu’elle tient déjà, et aucun port n’est ouvert sur le serveur.",
     },
   },
   "editor.jetbrains": {
     installs: [
       {
-        en: "The remote development backend for the IDE you choose, in the cache JetBrains Gateway expects, so the first connection is not a ten-minute download.",
-        fr: "Le backend de développement distant de l’IDE choisi, dans le cache qu’attend JetBrains Gateway, pour que la première connexion ne soit pas un téléchargement de dix minutes.",
+        en: "The remote development backend for the IDE you choose, in the cache JetBrains Gateway inspects, so the first connection is not a ten-minute download.",
+        fr: "Le backend de développement distant de l’IDE choisi, dans le cache qu’inspecte JetBrains Gateway, pour que la première connexion ne soit pas un téléchargement de dix minutes.",
       },
       {
         en: "A JVM and a heap sized for the RAM the machine has.",
@@ -441,8 +477,8 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
         fr: "Quel IDE : IntelliJ IDEA, WebStorm, PyCharm, PhpStorm ou GoLand.",
       },
       {
-        en: "The version, which has to match your Gateway.",
-        fr: "La version, qui doit correspondre à votre Gateway.",
+        en: "The version — latest, or a major version such as 2026.2 — which has to stay compatible with your Gateway.",
+        fr: "La version — latest, ou une version majeure comme 2026.2 — qui doit rester compatible avec votre Gateway.",
       },
     ],
     notes: {
@@ -453,53 +489,61 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
   "editor.vscode": {
     installs: [
       {
-        en: "The code CLI and the remote server, preinstalled so the first Remote SSH connection is immediate.",
-        fr: "La CLI code et le serveur distant, préinstallés pour que la première connexion Remote SSH soit immédiate.",
+        en: "The code CLI and the remote server for the release it names, preinstalled so the first Remote SSH connection is immediate.",
+        fr: "La CLI code et le serveur distant de la version qu’elle désigne, préinstallés pour que la première connexion Remote SSH soit immédiate.",
       },
       {
-        en: "The extensions you list, and a Remote Tunnel if you ask for one.",
-        fr: "Les extensions que vous listez, et un Remote Tunnel si vous en demandez un.",
+        en: "The extensions you list, and a Remote Tunnel as a systemd service if you ask for one.",
+        fr: "Les extensions que vous listez, et un Remote Tunnel en service systemd si vous en demandez un.",
       },
       {
-        en: "The same mechanism for Cursor and Windsurf, which use the same remote server.",
-        fr: "Le même mécanisme pour Cursor et Windsurf, qui utilisent le même serveur distant.",
+        en: "The same ground for Cursor and Windsurf, which lay their own server the same way.",
+        fr: "Le même terrain pour Cursor et Windsurf, qui posent leur propre serveur de la même façon.",
       },
     ],
     asks: [
       {
-        en: "The extensions to preinstall.",
-        fr: "Les extensions à préinstaller.",
+        en: "The extensions to preinstall, one identifier per line.",
+        fr: "Les extensions à préinstaller, un identifiant par ligne.",
       },
       { en: "Remote Tunnel, yes or no.", fr: "Remote Tunnel, oui ou non." },
     ],
     notes: {
-      en: "Visual Studio has no Linux backend. If you ask for it the app says so and points you here.",
-      fr: "Visual Studio n’a pas de backend Linux. Si vous le demandez, l’app le dit et vous renvoie ici.",
+      en: "The tunnel asks for one sign-in once installed; Remote SSH asks for nothing beyond the key you already use. Visual Studio has no Linux backend: if you ask for it the app says so and points you here.",
+      fr: "Le tunnel demande une authentification une fois posé ; Remote SSH ne demande rien de plus que la clé que vous utilisez déjà. Visual Studio n’a pas de backend Linux : si vous le demandez, l’app le dit et vous renvoie ici.",
     },
   },
   "editor.zed": {
     installs: [
       {
-        en: "The Zed remote server for your version, so zed://ssh opens straight away.",
-        fr: "Le serveur distant Zed pour votre version, pour que zed://ssh ouvre immédiatement.",
+        en: "The Zed remote server for the version you name, where Zed looks for it before uploading or downloading one, so a zed://ssh link opens straight away.",
+        fr: "Le serveur distant de Zed pour la version indiquée, là où Zed le cherche avant d’en envoyer ou d’en télécharger un, pour qu’un lien zed://ssh ouvre immédiatement.",
       },
     ],
     asks: [
       {
-        en: "The version. Zed requires the remote server to match your client exactly.",
-        fr: "La version. Zed exige que le serveur distant corresponde exactement à votre client.",
+        en: "The version. latest, or the exact version of your Zed: the remote server has to match the client.",
+        fr: "La version. latest, ou la version exacte de votre Zed : le serveur distant doit correspondre au client.",
       },
     ],
+    notes: {
+      en: "Uninstalling takes back the server this module downloaded, and only that one: another version you put there yourself is not ours to remove.",
+      fr: "La désinstallation reprend le serveur que ce module a téléchargé, et lui seul : une autre version que vous avez posée vous-même n’est pas à nous de la retirer.",
+    },
   },
   "exposure.cloudflare": {
     installs: [
       {
-        en: "One tunnel for the machine, and one route per project you choose to expose.",
-        fr: "Un tunnel pour la machine, et une route par projet que vous choisissez d’exposer.",
+        en: "cloudflared as a systemd service, running one tunnel for the machine, with one ingress rule per project that declares a subdomain.",
+        fr: "cloudflared en service systemd, faisant tourner un tunnel pour la machine, avec une règle d’ingress par projet qui déclare un sous-domaine.",
       },
       {
-        en: "The DNS record and the certificate, managed for you, on a subdomain taken from the project registry.",
-        fr: "L’enregistrement DNS et le certificat, gérés pour vous, sur un sous-domaine tiré du registre des projets.",
+        en: "The DNS record and the certificate, managed for you by Cloudflare, on a subdomain taken from the project registry.",
+        fr: "L’enregistrement DNS et le certificat, gérés pour vous par Cloudflare, sur un sous-domaine tiré du registre des projets.",
+      },
+      {
+        en: "A marker saying this module holds the machine’s exposure, and a check that the tunnel really came up before the install is called done.",
+        fr: "Un marqueur disant que ce module tient l’exposition de la machine, et une vérification que le tunnel est réellement monté avant de déclarer l’installation faite.",
       },
     ],
     asks: [
@@ -513,8 +557,8 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       },
     ],
     notes: {
-      en: "Your token never leaves your computer: the app creates the tunnel and writes the DNS, and your server only ever receives what it needs to run that one tunnel — which is why the tunnel belongs to the server. A laptop you reinstall, or a colleague you hand the machine to, finds it again from the account token alone. A tunnel is an outbound connection: it opens no port on your server, and the firewall stays closed on everything but SSH.",
-      fr: "Votre jeton ne quitte jamais votre ordinateur : l’app crée le tunnel et écrit le DNS, et votre serveur ne reçoit que de quoi faire tourner ce tunnel-là — c’est pourquoi le tunnel appartient au serveur. Un poste réinstallé, ou un collègue à qui vous confiez la machine, le retrouve avec le seul jeton du compte. Un tunnel est une connexion sortante : il n’ouvre aucun port sur votre serveur, et le pare-feu reste fermé sur tout sauf SSH.",
+      en: "Your token never leaves your computer: the app creates the tunnel and writes the DNS, and your server only ever receives what it needs to run that one tunnel. A tunnel is an outbound connection: it opens no port on your server, and the firewall stays closed on everything but SSH. This module and Caddy contradict each other — a machine has one exposure, or none.",
+      fr: "Votre jeton ne quitte jamais votre ordinateur : l’app crée le tunnel et écrit le DNS, et votre serveur ne reçoit que de quoi faire tourner ce tunnel-là. Un tunnel est une connexion sortante : il n’ouvre aucun port sur votre serveur, et le pare-feu reste fermé sur tout sauf SSH. Ce module et Caddy se contredisent — une machine a une exposition, ou aucune.",
     },
   },
   "exposure.caddy": {
@@ -534,12 +578,12 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
     ],
     asks: [
       {
-        en: "The domain the projects answer under. Its DNS record must already point at this server.",
-        fr: "Le domaine sous lequel les projets répondent. Son enregistrement DNS doit déjà pointer sur ce serveur.",
+        en: "The domain the projects answer under. Its A record, and the wildcard beside it, must already point at this server: Let’s Encrypt checks that path before issuing anything.",
+        fr: "Le domaine sous lequel les projets répondent. Son enregistrement A, et le joker à côté, doivent déjà pointer sur ce serveur : Let’s Encrypt vérifie ce chemin avant d’émettre quoi que ce soit.",
       },
       {
-        en: "The address Let’s Encrypt writes to about expiring certificates.",
-        fr: "L’adresse à laquelle Let’s Encrypt écrit au sujet des certificats qui expirent.",
+        en: "The address Let’s Encrypt writes to about expiring certificates. It is never published and never leaves the server.",
+        fr: "L’adresse à laquelle Let’s Encrypt écrit au sujet des certificats qui expirent. Elle n’est jamais publiée et ne quitte pas le serveur.",
       },
       {
         en: "The HTTP and HTTPS ports. 80 and 443 unless something else already has them.",
@@ -554,16 +598,16 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
   "tool.github": {
     installs: [
       {
-        en: "gh, signed in with your token.",
-        fr: "gh, connecté avec votre jeton.",
+        en: "gh from GitHub’s own repository, signed in with your token, which travels on standard input and appears in no journal.",
+        fr: "gh depuis le dépôt de GitHub, connecté avec votre jeton, qui passe par l’entrée standard et n’apparaît dans aucun journal.",
       },
       {
-        en: "HTTPS cloning that needs no key on the server.",
-        fr: "Le clone HTTPS qui n’a besoin d’aucune clé sur le serveur.",
+        en: "The git credential helper that turns an HTTPS clone into a clone needing no key at all.",
+        fr: "L’assistant d’identifiants git qui transforme un clone HTTPS en clone n’ayant besoin d’aucune clé.",
       },
       {
-        en: "The server’s own key, registered on your account, for the operations that want SSH.",
-        fr: "La clé propre au serveur, enregistrée sur votre compte, pour les opérations qui veulent SSH.",
+        en: "A key of the server’s own, registered on your account, for the operations that want SSH.",
+        fr: "Une clé propre au serveur, enregistrée sur votre compte, pour les opérations qui veulent SSH.",
       },
     ],
     asks: [
@@ -572,16 +616,20 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
         fr: "Rien, une fois votre compte GitHub connecté. Le jeton est donné une seule fois, dans l’app, et gardé dans le trousseau de votre ordinateur ; chaque serveur où vous posez ce module le prend de là, par la session SSH, dans un fichier que seul root peut lire.",
       },
     ],
+    notes: {
+      en: "Uninstalling takes back gh and the token. The server’s SSH key and the key registered on your account outlive the module: they are yours, and other hosts use them.",
+      fr: "La désinstallation reprend gh et le jeton. La clé SSH du serveur et la clé enregistrée sur votre compte survivent au module : elles sont à vous, et d’autres hôtes s’en servent.",
+    },
   },
   "tool.1password": {
     installs: [
       {
-        en: "The 1Password CLI and a service account.",
-        fr: "La CLI 1Password et un compte de service.",
+        en: "The 1Password CLI from its own repository, and the service account token in the server’s environment file and in the dev shell, which is the only place op reads it.",
+        fr: "La CLI 1Password depuis son propre dépôt, et le jeton du compte de service dans le fichier d’environnement du serveur et dans le shell de dev, seul endroit où op le lit.",
       },
       {
-        en: "Generation of .env.local from the templates your repositories already carry.",
-        fr: "La génération des .env.local depuis les gabarits que vos dépôts portent déjà.",
+        en: "A check, at install time, that the token really opens a vault — rather than letting a project’s env file fail much later, far from the cause.",
+        fr: "Une vérification, à l’installation, que le jeton ouvre réellement un coffre — plutôt que de laisser le fichier d’environnement d’un projet échouer bien plus tard, loin de la cause.",
       },
     ],
     asks: [
@@ -591,15 +639,19 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       },
     ],
     notes: {
-      en: "Secrets stay in your vault. The server reads them when it builds an env file; it stores no copy of the vault.",
-      fr: "Les secrets restent dans votre coffre. Le serveur les lit au moment de construire un fichier d’environnement ; il ne garde aucune copie du coffre.",
+      en: "Secrets stay in your vault. A project that carries an env template gets its file built from the vault when it starts; the server keeps no copy of the vault. Uninstalling takes back the CLI and the token, never a project’s environment file.",
+      fr: "Les secrets restent dans votre coffre. Un projet qui porte un gabarit d’environnement voit son fichier construit depuis le coffre à son démarrage ; le serveur ne garde aucune copie du coffre. La désinstallation reprend la CLI et le jeton, jamais le fichier d’environnement d’un projet.",
     },
   },
   "tool.neon": {
     installs: [
       {
-        en: "The Neon CLI on the machine, and the key you gave kept in the server’s environment file, readable by root alone.",
-        fr: "Le CLI Neon sur la machine, et la clé que vous donnez rangée dans le fichier d’environnement du serveur, lisible par root seul.",
+        en: "The Neon CLI, the binary Neon publishes for this architecture, answering to both names it uses for itself.",
+        fr: "Le CLI Neon, le binaire que Neon publie pour cette architecture, qui répond aux deux noms sous lesquels il se désigne.",
+      },
+      {
+        en: "The key you gave, in the server’s environment file and in the dev shell, so the CLI answers from a terminal without being handed anything.",
+        fr: "La clé que vous donnez, dans le fichier d’environnement du serveur et dans le shell de dev, pour que le CLI réponde depuis un terminal sans rien recevoir de plus.",
       },
       {
         en: "Nothing else: your projects, your branches and your databases stay yours to create.",
@@ -613,8 +665,8 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       },
     ],
     notes: {
-      en: "The CLI has no token sign-in of its own: it reads a key from --api-key or NEON_API_KEY, so a shell that wants it has to be given it. Uninstalling takes back the CLI and the key it stored, and never touches your Neon account.",
-      fr: "Le CLI n’a pas de connexion par jeton : il lit une clé dans --api-key ou NEON_API_KEY, donc un shell qui la veut doit la recevoir. La désinstallation reprend le CLI et la clé qu’il rangeait, et ne touche jamais à votre compte Neon.",
+      en: "The CLI has no token sign-in of its own: it reads a key from its own flag or from the environment, so a shell that wants it has to be given it. Uninstalling takes back the CLI and the key it stored, and never touches your Neon account.",
+      fr: "Le CLI n’a pas de connexion par jeton : il lit une clé dans son propre drapeau ou dans l’environnement, donc un shell qui la veut doit la recevoir. La désinstallation reprend le CLI et la clé qu’il rangeait, et ne touche jamais à votre compte Neon.",
     },
   },
 }

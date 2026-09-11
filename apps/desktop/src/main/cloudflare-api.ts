@@ -13,6 +13,9 @@ import type { CloudflareConnection, CloudflareZone } from "@shared/cloudflare";
 
 const ENDPOINT = "https://api.cloudflare.com/client/v4";
 
+/** A call that has not answered by then is not going to: the screen is owed a refusal. */
+const CALL_MS = 20_000;
+
 export interface DnsRecord {
   id: string;
   content: string;
@@ -76,6 +79,7 @@ export async function verifyToken(
 ): Promise<TokenAccount[]> {
   const response = await fetcher(`${ENDPOINT}/accounts`, {
     headers: { authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(CALL_MS),
   });
 
   const answer = (await response.json().catch(() => null)) as Answer<
@@ -109,6 +113,7 @@ export function cloudflareApi(
         "content-type": "application/json",
       },
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(CALL_MS),
     });
 
     const answer = (await response

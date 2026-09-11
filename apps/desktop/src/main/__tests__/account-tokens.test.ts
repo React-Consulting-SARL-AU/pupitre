@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { accountOfToken, TokenError } from "../account-tokens";
+import { accountOfToken, checkToken, TokenError } from "../account-tokens";
 
 /**
  * What a token opens, asked of the provider from the laptop.
@@ -82,5 +82,48 @@ describe("ce qu'un jeton ouvre", () => {
       await accountOfToken("1password", "ops_de_test", fetcher)
     ).toBeNull();
     expect(seen).toHaveLength(0);
+  });
+});
+
+describe("un jeton déjà tenu, pesé de nouveau", () => {
+  it("nomme le compte tel qu'il est aujourd'hui", async () => {
+    const { fetcher } = answering({ id: 42, login: "ada-renamed" });
+
+    const checked = await checkToken("github", "ghp_de_test", fetcher);
+
+    expect(checked).toEqual({
+      ok: true,
+      result: {
+        account: { id: "42", name: "ada-renamed" },
+        status: "answered",
+      },
+    });
+  });
+
+  it("dit qu'un jeton révoqué ne répond plus, avec les mots du fournisseur", async () => {
+    const { fetcher } = answering({ message: "Bad credentials" }, 401);
+
+    const checked = await checkToken("github", "ghp_revoque", fetcher);
+
+    expect(checked).toMatchObject({
+      ok: false,
+      error: {
+        code: "bad_request",
+        phrase: {
+          id: "refusal.connection.revoked",
+          values: { kind: "github", reason: "Bad credentials" },
+        },
+      },
+    });
+    expect(JSON.stringify(checked)).not.toContain("ghp_revoque");
+  });
+
+  it("dit qu'un fournisseur muet ne peut pas être interrogé", async () => {
+    const { fetcher, seen } = answering({});
+
+    const checked = await checkToken("1password", "ops_de_test", fetcher);
+
+    expect(checked).toEqual({ ok: true, result: { status: "unaskable" } });
+    expect(seen).toEqual([]);
   });
 });

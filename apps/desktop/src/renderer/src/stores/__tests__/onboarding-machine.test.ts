@@ -6,7 +6,9 @@ import {
   type MachineState,
   ONBOARDING_STEPS,
   type OnboardingStep,
+  plannedSteps,
   transition,
+  walkedBefore,
 } from "../onboarding-machine";
 
 /** The sequence, with nothing around it: no store, no screen, no server. */
@@ -94,6 +96,15 @@ describe("le chemin du retour", () => {
     expect(canGoBack(walk(CLOSED, { type: "open" }))).toBe(false);
     expect(canGoBack({ ...OPENED, step: "done" })).toBe(false);
   });
+
+  /** A step walked back to was already entered: the binary is not sent twice, the machine not read again. */
+  it("ne rejoue pas ce qu'entrer dans l'étape avait déclenché", () => {
+    const onAgent = walk(OPENED, { type: "needsAgent" });
+    const onCatalog = walk(onAgent, { type: "agentSent" });
+
+    expect(effectsOf(onCatalog, { type: "back" })).toEqual(["persist"]);
+    expect(effectsOf(onAgent, { type: "back" })).toEqual(["persist"]);
+  });
 });
 
 describe("ce qu'une étape déclenche en y entrant", () => {
@@ -169,6 +180,23 @@ describe("un serveur qui quitte la liste", () => {
     const state = walk({ ...OPENED, step: "done" }, { type: "serverLost" });
 
     expect(state.step).toBe("closed");
+  });
+
+  /**
+   * Quitting keeps the progress so the servers screen can offer it back — but a
+   * finished sequence has nothing to come back to, and one left on the shelf was
+   * read there as an install that stopped half-way.
+   */
+  it("efface l'étagère en quittant une séquence finie", () => {
+    expect(effectsOf({ ...OPENED, step: "done" }, { type: "close" })).toContain(
+      "forget"
+    );
+  });
+
+  it("garde l'étagère en quittant une séquence en cours", () => {
+    expect(
+      effectsOf({ ...OPENED, step: "config" }, { type: "close" })
+    ).not.toContain("forget");
   });
 
   it("ne bouge pas quand le choix est déjà à l'écran", () => {
@@ -260,5 +288,96 @@ describe("les étapes déclarées", () => {
     expect(ONBOARDING_STEPS.length).toBe(8);
     expect(ONBOARDING_STEPS[0]).toBe("server");
     expect(ONBOARDING_STEPS.at(-1)).toBe("done");
+  });
+});
+
+describe("les étapes qu'une séquence parcourt", () => {
+  it("compte l'agent tant que rien ne dit qu'il est déjà là", () => {
+    expect(plannedSteps({ step: "server", trail: [] }, null)).toEqual(
+      ONBOARDING_STEPS
+    );
+    expect(
+      plannedSteps({ step: "inspection", trail: ["server"] }, { kind: "bare" })
+    ).toContain("agent");
+  });
+
+  it("retire l'agent d'une machine gérée et à jour, avant même d'y entrer", () => {
+    const steps = plannedSteps(
+      { step: "inspection", trail: ["server"] },
+      { kind: "managed", up_to_date: true }
+    );
+
+    expect(steps).not.toContain("agent");
+    expect(steps.length).toBe(7);
+  });
+
+  it("garde l'agent d'une machine gérée en retard : le lecteur décide", () => {
+    expect(
+      plannedSteps(
+        { step: "inspection", trail: ["server"] },
+        { kind: "managed", up_to_date: false }
+      )
+    ).toContain("agent");
+  });
+
+  it("suit la trace une fois l'inspection passée, quoi que dise le verdict", () => {
+    const skipped = walk(OPENED, { type: "inspected" });
+    const walked = walk(OPENED, { type: "needsAgent" }, { type: "agentSent" });
+
+    expect(plannedSteps(skipped, { kind: "bare" })).not.toContain("agent");
+    expect(
+      plannedSteps(walked, { kind: "managed", up_to_date: true })
+    ).toContain("agent");
+    expect(plannedSteps(skipped, null).indexOf("catalog")).toBe(2);
+  });
+});
+
+describe("la trace d'une reprise", () => {
+  it("est reconstituée jusqu'à l'étape reprise, l'agent mis à part", () => {
+    expect(walkedBefore("config")).toEqual(["server", "inspection", "catalog"]);
+    expect(walkedBefore("agent")).toEqual(["server", "inspection"]);
+    expect(walkedBefore("server")).toEqual([]);
+  });
+
+  it("rend le bouton Retour à une reprise avant l'installation", () => {
+    const state = transition(CLOSED, {
+      installed: false,
+      serverId: "srv-1",
+      step: "config",
+      type: "resume",
+    }).state;
+
+    expect(canGoBack(state)).toBe(true);
+
+    const back = walk(state, { type: "back" });
+
+    expect(back.step).toBe("catalog");
+    expect(back.trail).toEqual(["server", "inspection"]);
+  });
+
+  it("suit l'étape que la machine relue impose", () => {
+    const state = walk(
+      transition(CLOSED, {
+        installed: false,
+        serverId: "srv-1",
+        step: "config",
+        type: "resume",
+      }).state,
+      { remaining: [], step: "agent", type: "resumeAt" }
+    );
+
+    expect(state.step).toBe("agent");
+    expect(state.trail).toEqual(["server", "inspection"]);
+  });
+
+  it("ne rend pas le Retour à une reprise après l'installation", () => {
+    const state = transition(CLOSED, {
+      installed: true,
+      serverId: "srv-1",
+      step: "harden",
+      type: "resume",
+    }).state;
+
+    expect(canGoBack(state)).toBe(false);
   });
 });

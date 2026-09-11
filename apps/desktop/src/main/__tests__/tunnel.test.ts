@@ -4,8 +4,10 @@ import type { CloudflareConnection, CloudflareZone } from "@shared/cloudflare";
 import type { CloudflareApi, DnsRecord } from "../cloudflare-api";
 import {
   CLOUDFLARE_EXPOSURE,
+  checkedRoutes,
   dropRecord,
   dropTunnel,
+  ExposureUnreadable,
   managedValues,
   type ServerExposure,
   syncRecords,
@@ -29,6 +31,7 @@ interface Harness {
 function harness({
   connected = true,
   exposure = null,
+  unreadable = false,
   orphan = null,
   gone = [],
   zones = [ZONE],
@@ -37,6 +40,8 @@ function harness({
   connected?: boolean;
   /** What the server itself says it runs, which is the only record of it. */
   exposure?: ServerExposure | null;
+  /** The server could not be asked at all: not the same as answering nothing. */
+  unreadable?: boolean;
   orphan?: string | null;
   /** The tunnels the account has lost since the server was told about them. */
   gone?: string[];
@@ -117,7 +122,10 @@ function harness({
     deps: {
       api: () => (connected ? api : null),
       connection: () => (connected ? CONNECTION : null),
-      exposureOf: () => Promise.resolve(exposure),
+      exposureOf: () =>
+        unreadable
+          ? Promise.reject(new ExposureUnreadable("le canal est fermé"))
+          : Promise.resolve(exposure),
     },
     records,
   };
@@ -146,6 +154,22 @@ describe("les valeurs que l'app calcule", () => {
     const values = await managedValues("srv-1", [CLOUDFLARE_EXPOSURE], deps);
 
     expect(values.ok).toBe(false);
+  });
+
+  /**
+   * The tunnel's name is this server's own, so making one deletes what that
+   * name already points at. A server that could not be asked used to look
+   * exactly like a server without a tunnel: the install then made a second one,
+   * cut the tunnel the machine was running that instant, and cloudflared
+   * answered "Tunnel not found" until someone went to look.
+   */
+  it("ne touche à rien quand le serveur n'a pas pu être interrogé", async () => {
+    const { deps, calls } = harness({ unreadable: true });
+
+    const values = await managedValues("srv-1", [CLOUDFLARE_EXPOSURE], deps);
+
+    expect(values.ok).toBe(false);
+    expect(calls).toEqual([]);
   });
 
   it("fait le tunnel du serveur qui n'en a pas, et livre son secret une fois", async () => {
@@ -283,7 +307,52 @@ describe("les valeurs que l'app calcule", () => {
   });
 });
 
+describe("les routes que le renderer nomme", () => {
+  it("passent quand chacune a la forme du contrat", () => {
+    expect(checkedRoutes([])).toEqual([]);
+    expect(checkedRoutes(ROUTES)).toEqual([...ROUTES]);
+  });
+
+  it("sont refusées en bloc dès qu'une n'a pas la forme", () => {
+    expect(checkedRoutes(null)).toBeNull();
+    expect(checkedRoutes("app.flymate.dev")).toBeNull();
+    expect(checkedRoutes([{ hostname: "app.flymate.dev" }])).toBeNull();
+    expect(checkedRoutes([{ hostname: 42, service: "http://x" }])).toBeNull();
+  });
+});
+
 describe("les enregistrements DNS", () => {
+  it("restent sous le domaine que le serveur publie", async () => {
+    const { deps, records, calls } = harness({
+      exposure: { domain: "flymate.dev", tunnelId: "t-1" },
+    });
+
+    const answer = await syncRecords(
+      "srv-1",
+      [
+        ...ROUTES,
+        { hostname: "app.flymate.dev.evil.test", service: "http://x" },
+      ],
+      deps
+    );
+
+    expect(answer).toMatchObject({
+      ok: false,
+      error: {
+        code: "bad_request",
+        phrase: {
+          id: "refusal.tunnel.route.foreign",
+          values: {
+            domain: "flymate.dev",
+            hostname: "app.flymate.dev.evil.test",
+          },
+        },
+      },
+    });
+    expect(records.size).toBe(0);
+    expect(calls).toEqual([]);
+  });
+
   it("suivent la zone du domaine que le serveur publie", async () => {
     const { deps, records } = harness({
       exposure: { domain: "flymate.dev", tunnelId: "t-1" },
@@ -353,18 +422,34 @@ describe("les enregistrements DNS", () => {
     expect((await syncRecords("srv-1", ROUTES, deps)).ok).toBe(false);
   });
 
-  it("partent avec le projet qui les portait", async () => {
+  it("partent avec le nom que le projet ne porte plus", async () => {
     const records = new Map<string, DnsRecord>([
       ["app.flymate.dev", { content: "t-1.cfargotunnel.com", id: "r-1" }],
+      ["api-app.flymate.dev", { content: "t-1.cfargotunnel.com", id: "r-2" }],
     ]);
     const { deps } = harness({
       exposure: { domain: "flymate.dev", tunnelId: "t-1" },
       records,
     });
 
-    await dropRecord("srv-1", "app", deps);
+    await dropRecord("srv-1", "api-app.flymate.dev", deps);
 
-    expect(records.size).toBe(0);
+    expect([...records.keys()]).toEqual(["app.flymate.dev"]);
+  });
+
+  it("ne cherchent rien hors du domaine que le serveur publie", async () => {
+    const records = new Map<string, DnsRecord>([
+      ["app.flymate.dev", { content: "t-1.cfargotunnel.com", id: "r-1" }],
+    ]);
+    const { deps, calls } = harness({
+      exposure: { domain: "flymate.dev", tunnelId: "t-1" },
+      records,
+    });
+
+    await dropRecord("srv-1", "app.elsewhere.org", deps);
+
+    expect(records.size).toBe(1);
+    expect(calls).toEqual([]);
   });
 });
 
@@ -382,6 +467,19 @@ describe("le tunnel d'un serveur qu'on relâche", () => {
   /** A machine already gone answers nothing; its name is the app's own and finds the tunnel again. */
   it("est retrouvé par son nom quand le serveur ne répond plus", async () => {
     const { deps, calls } = harness({ orphan: "t-orphan" });
+
+    await dropTunnel("srv-1", deps);
+
+    expect(calls).toContain("deleteTunnel t-orphan");
+  });
+
+  /**
+   * Releasing a machine that will not answer is the ordinary case here, so an
+   * unreachable server falls back on the name rather than leaving a tunnel
+   * alive with nothing behind it.
+   */
+  it("est retrouvé par son nom quand le serveur ne peut plus être interrogé", async () => {
+    const { deps, calls } = harness({ orphan: "t-orphan", unreadable: true });
 
     await dropTunnel("srv-1", deps);
 

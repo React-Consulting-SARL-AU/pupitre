@@ -40,7 +40,10 @@ export function OnboardingEntry({ server }: { server: Server }) {
   }, [server.id]);
 
   const saved = savedOnboarding();
-  const unfinished = saved?.serverId === server.id;
+
+  // A sequence that reached its end is not one to come back to: `resume` refuses
+  // a finished shelf, so offering it would put a button here that answers nothing.
+  const unfinished = saved?.serverId === server.id && saved.step !== "done";
 
   if (step !== "closed" || (managed && !unfinished)) {
     return null;
@@ -54,9 +57,6 @@ export function OnboardingEntry({ server }: { server: Server }) {
           {unfinished
             ? t("onboarding.entry.unfinished", { name: server.name })
             : t("onboarding.entry.noAgent", { name: server.name })}
-        </p>
-        <p className="mt-0.5 text-[12px] text-ink-3 leading-relaxed">
-          {t("onboarding.entry.detail")}
         </p>
       </div>
       <Button

@@ -12,19 +12,12 @@ import (
 
 // Files that legitimately hold French outside the catalogue, and why.
 //
-// Both are artefacts written to the client's disk, not phrases answered to the
-// app: their content is compared byte for byte to decide whether the machine is
+// An artefact written to the client's disk, not a phrase answered to the app:
+// its content is compared byte for byte to decide whether the machine is
 // already configured, so making it follow the session locale would break
 // idempotence.
 var frenchIsAllowed = map[string]string{
 	"internal/modules/ai/agents/context.go": "the context corpus deployed for the client's AI agents",
-	"internal/registry/registry.go":         "the header written into projects.conf",
-
-	// Typed by hand in a login shell, outside any protocol session: nothing has
-	// stated a locale by then. Making these follow the reader would mean holding
-	// the language on the machine, or forwarding it over SSH — an open decision.
-	"cmd/pupitred/cli_shot.go": "the shot command's usage text",
-	"internal/devcli/run.go":   "the dev command's usage text",
 }
 
 // Unambiguous French words, for the phrases that carry no accent at all.
@@ -33,6 +26,9 @@ var frenchWords = map[string]bool{
 	"dans": true, "pour": true, "avec": true, "que": true,
 	"qui": true, "est": true, "sont": true, "cette": true, "aux": true,
 	"leur": true, "elle": true, "nous": true, "vous": true, "chaque": true,
+	"invalide": true, "inconnu": true, "inconnue": true, "introuvable": true,
+	"illisible": true, "aucun": true, "aucune": true, "rejeu": true,
+	"fichier": true, "dossier": true, "manquante": true, "attend": true,
 }
 
 func TestFrenchLivesOnlyInTheCatalogue(t *testing.T) {

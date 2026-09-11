@@ -200,11 +200,15 @@ export function TerminalTabs({
           >
             <TerminalPane
               active={session.id === active}
+              dir={session.dir}
+              dormant={session.dormant}
               id={session.id}
               kind={kind}
               onClose={() => onClose(session.id)}
+              onResume={() => onActivate(session.id)}
               onShortcut={(shortcut) => answer(session.id, shortcut)}
               project={project}
+              session={session.session}
               state={states[session.id]}
             />
           </div>

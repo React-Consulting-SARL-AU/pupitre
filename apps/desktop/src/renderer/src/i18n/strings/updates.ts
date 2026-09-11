@@ -4,7 +4,7 @@ export const updates = {
     "updates.agent.behindDetail":
       "pupitred {installed} on the server, {offered} in this app",
     "updates.agent.behindBody":
-      "This server has moved to a version this app does not know yet. Everything it knows how to ask keeps working.",
+      "This server has moved to a version this app does not know yet.",
     "updates.agent.aheadTitle": "Update available",
     "updates.agent.staleTitle": "This server is too far behind",
     "updates.agent.staleDetail":
@@ -20,6 +20,22 @@ export const updates = {
       "Agent {previous} replaced by {version}, service restarted.",
     "updates.agent.upgradeButton": "Update the agent",
 
+    "updates.config.pendingTitle": "Configuration to migrate",
+    "updates.config.pendingDetail":
+      "configuration at revision {revision}, agent {agent} reads {expected}",
+    "updates.config.pendingBody":
+      "The agent was replaced; the files it reads have not been brought to the shape it expects. Nothing can be driven on this server until they are.",
+    "updates.config.failedTitle": "Configuration migration failed",
+    "updates.config.failedBody": "Migration {id} ({slug}) refused: {message}",
+    "updates.config.restored":
+      "The files from before the migration were put back. Nothing on the server was left half-changed.",
+    "updates.config.aheadTitle": "Configuration newer than this agent",
+    "updates.config.aheadBody":
+      "This server was configured by a more recent agent. Update the agent again rather than let this one read a shape it does not know.",
+    "updates.config.migrateButton": "Migrate the configuration",
+    "updates.config.migrated": "Configuration migrated to revision {revision}.",
+    "updates.config.upToDate": "Configuration already at revision {revision}.",
+
     "updates.modules.title": "Updating services",
     "updates.modules.intro":
       "Pupitre updates the {count} services installed on this machine.",
@@ -34,7 +50,7 @@ export const updates = {
     "updates.agent.behindDetail":
       "pupitred {installed} sur le serveur, {offered} dans cette app",
     "updates.agent.behindBody":
-      "Ce serveur est passé à une version que cette app ne connaît pas encore. Tout ce qu'elle sait demander continue de fonctionner.",
+      "Ce serveur est passé à une version que cette app ne connaît pas encore.",
     "updates.agent.aheadTitle": "Mise à jour disponible",
     "updates.agent.staleTitle": "Ce serveur est trop en arrière",
     "updates.agent.staleDetail":
@@ -49,6 +65,22 @@ export const updates = {
     "updates.agent.upgradedRestarted":
       "Agent {previous} remplacé par {version}, service redémarré.",
     "updates.agent.upgradeButton": "Mettre l'agent à jour",
+
+    "updates.config.pendingTitle": "Configuration à migrer",
+    "updates.config.pendingDetail":
+      "configuration en révision {revision}, l'agent {agent} en lit {expected}",
+    "updates.config.pendingBody":
+      "L'agent a été remplacé ; les fichiers qu'il lit n'ont pas encore été portés à la forme qu'il attend. Rien ne sera piloté sur ce serveur avant que ce soit fait.",
+    "updates.config.failedTitle": "La migration de configuration a échoué",
+    "updates.config.failedBody": "Migration {id} ({slug}) refusée : {message}",
+    "updates.config.restored":
+      "Les fichiers d'avant la migration ont été remis en place. Rien n'est resté à moitié changé sur le serveur.",
+    "updates.config.aheadTitle": "Configuration plus récente que cet agent",
+    "updates.config.aheadBody":
+      "Ce serveur a été configuré par un agent plus récent. Remets l'agent à jour plutôt que de le laisser lire une forme qu'il ne connaît pas.",
+    "updates.config.migrateButton": "Migrer la configuration",
+    "updates.config.migrated": "Configuration migrée en révision {revision}.",
+    "updates.config.upToDate": "Configuration déjà en révision {revision}.",
 
     "updates.modules.title": "Mise à jour des services",
     "updates.modules.intro":

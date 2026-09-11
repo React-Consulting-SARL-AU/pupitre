@@ -1,0 +1,6 @@
+{
+  "name": "@atlas/ui",
+  "scripts": {
+    "build": "tsc"
+  }
+}

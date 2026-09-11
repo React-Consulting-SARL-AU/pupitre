@@ -153,7 +153,7 @@ func TestGoogleRepositoryIsWrittenOnce(t *testing.T) {
 		t.Fatalf("the keyring and the source must be written: %q", fake.Files[sourcePath])
 	}
 
-	if len(fake.Files[keyTempPath]) != 0 {
+	if len(fake.Files[keyringPath+".asc"]) != 0 {
 		t.Error("the downloaded key must not stay behind")
 	}
 

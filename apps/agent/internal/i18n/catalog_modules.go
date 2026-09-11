@@ -15,7 +15,7 @@ var moduleCatalog = map[string]Message{
 		EN: "Claude Code installed for dev, with the machine's context and the Pupitre skills. Signing in happens through the URL the tool prints on first run.",
 	},
 	"module.ai.codex.summary": {
-		FR: "Codex installé pour dev, avec le contexte de la machine et les skills Pupitre. La connexion passe par l'URL affichée au premier lancement et l'abonnement du client.",
+		FR: "Codex installé pour dev, avec le contexte de la machine et les skills Pupitre. La connexion passe par l'URL affichée au premier lancement et votre abonnement.",
 		EN: "Codex installed for dev, with the machine's context and the Pupitre skills. Signing in goes through the URL printed on first run and your own subscription.",
 	},
 	"module.ai.hermes.always_on.help": {
@@ -31,7 +31,7 @@ var moduleCatalog = map[string]Message{
 		EN: "Model providers",
 	},
 	"module.ai.hermes.summary": {
-		FR: "L'agent Hermes de Nous Research, posé par Python, avec les fournisseurs de modèles de votre choix et, si tu le veux, un service qui le garde en marche.",
+		FR: "L'agent Hermes de Nous Research, posé par Python, avec les fournisseurs de modèles de votre choix et, si vous le voulez, un service qui le garde en marche.",
 		EN: "The Hermes agent from Nous Research, installed through Python, with the model providers of your choice and, if you want one, a service that keeps it running.",
 	},
 	"module.core.hardening.keep_root.help": {
@@ -57,10 +57,6 @@ var moduleCatalog = map[string]Message{
 	"module.core.hardening.summary": {
 		FR: "Pare-feu ufw sur SSH seul, fail2ban, puis fermeture de root et des mots de passe une fois qu'une clé ouvre dev.",
 		EN: "ufw on SSH alone, fail2ban, then root and passwords closed once a key opens dev.",
-	},
-	"module.core.system.git_identity.required": {
-		FR: "git_name et git_email sont requis",
-		EN: "git_name and git_email are required",
 	},
 	"module.core.system.git_email.label": {
 		FR: "Email pour git",
@@ -105,6 +101,14 @@ var moduleCatalog = map[string]Message{
 	"module.db.mongodb.app_user.label": {
 		FR: "Utilisateur applicatif",
 		EN: "Application user",
+	},
+	"module.db.mongodb.cache_mb.help": {
+		FR: "0 : un quart de la mémoire de la machine.",
+		EN: "0: a quarter of the machine's memory.",
+	},
+	"module.db.mongodb.cache_mb.label": {
+		FR: "Cache WiredTiger (Mo)",
+		EN: "WiredTiger cache (MB)",
 	},
 	"module.db.mongodb.port.help": {
 		FR: "Sur 127.0.0.1 seulement.",
@@ -218,8 +222,16 @@ var moduleCatalog = map[string]Message{
 		FR: "Rôle distant",
 		EN: "Remote role",
 	},
+	"module.db.postgres.shared_buffers.help": {
+		FR: "Vide : un quart de la mémoire de la machine. Sinon une taille PostgreSQL, par exemple 2GB.",
+		EN: "Empty: a quarter of the machine's memory. Otherwise a PostgreSQL size, for example 2GB.",
+	},
+	"module.db.postgres.shared_buffers.label": {
+		FR: "Mémoire partagée",
+		EN: "Shared buffers",
+	},
 	"module.db.postgres.summary": {
-		FR: "PostgreSQL à la version choisie, lié à 127.0.0.1 sur le port voulu, un rôle pour les applications, un pour votre poste à travers SSH, les extensions couranvos et les dumps de ~/dumps importés.",
+		FR: "PostgreSQL à la version choisie, lié à 127.0.0.1 sur le port voulu, un rôle pour les applications, un pour votre poste à travers SSH, les extensions courantes et les dumps de ~/dumps importés.",
 		EN: "PostgreSQL at the chosen version, bound to 127.0.0.1 on the port you want, one role for applications, one for your laptop through SSH, the usual extensions and the dumps in ~/dumps imported.",
 	},
 	"module.db.postgres.version.label": {
@@ -233,6 +245,14 @@ var moduleCatalog = map[string]Message{
 	"module.db.redis.maxmemory_mb.label": {
 		FR: "Mémoire maximale (Mo)",
 		EN: "Maximum memory (MB)",
+	},
+	"module.db.redis.maxmemory_policy.help": {
+		FR: "Ce que Redis évince une fois le plafond atteint. Sans plafond, il n'évince rien.",
+		EN: "What Redis evicts once the cap is reached. Without a cap it evicts nothing.",
+	},
+	"module.db.redis.maxmemory_policy.label": {
+		FR: "Politique d'éviction",
+		EN: "Eviction policy",
 	},
 	"module.db.redis.auth.refused": {
 		FR: "redis refuse le mot de passe : journalctl -u %s -n 40",
@@ -267,7 +287,7 @@ var moduleCatalog = map[string]Message{
 		EN: "IDE",
 	},
 	"module.editor.jetbrains.summary": {
-		FR: "Le backend de développement distant posé d'avance là où JetBrains Gateway le cherche, JVM taillée pour la mémoire de la machine ; la licence reste la tienne, rien à activer ici.",
+		FR: "Le backend de développement distant posé d'avance là où JetBrains Gateway le cherche, JVM taillée pour la mémoire de la machine ; la licence reste la vôtre, rien à activer ici.",
 		EN: "The remote development backend put where JetBrains Gateway looks for it, with a JVM sized for the machine's memory; the licence stays yours, nothing to activate here.",
 	},
 	"module.editor.jetbrains.version.label": {
@@ -287,7 +307,7 @@ var moduleCatalog = map[string]Message{
 		EN: "Remote Tunnel",
 	},
 	"module.editor.zed.summary": {
-		FR: "Le serveur distant de Zed posé d'avance pour la version que tu utilises ; le projet s'ouvre par un lien zed://ssh, sans rien télécharger à la connexion.",
+		FR: "Le serveur distant de Zed posé d'avance pour la version que vous utilisez ; le projet s'ouvre par un lien zed://ssh, sans rien télécharger à la connexion.",
 		EN: "Zed's remote server put in place ahead of time for the version you run; the project opens through a zed://ssh link, with nothing to download on connection.",
 	},
 	"module.editor.zed.version.label": {
@@ -447,8 +467,16 @@ var moduleCatalog = map[string]Message{
 		EN: "pnpm",
 	},
 	"module.runtime.node.summary": {
-		FR: "mise, Node à la version choisie, Bun et pnpm en option, actifs dans tous les shells y compris ceux d'une commande ssh.",
-		EN: "mise, Node at the chosen version, Bun and pnpm optional, active in every shell including those of an ssh command.",
+		FR: "mise, Node à la version choisie, Bun, pnpm et Yarn en option, actifs dans tous les shells y compris ceux d'une commande ssh.",
+		EN: "mise, Node at the chosen version, Bun, pnpm and Yarn optional, active in every shell including those of an ssh command.",
+	},
+	"module.runtime.node.yarn.help": {
+		FR: "Par corepack, comme pnpm. Peu de dépôts récents en ont encore besoin.",
+		EN: "Through corepack, like pnpm. Few recent repositories still need it.",
+	},
+	"module.runtime.node.yarn.label": {
+		FR: "Yarn",
+		EN: "Yarn",
 	},
 	"module.runtime.php.composer.help": {
 		FR: "Le gestionnaire de dépendances de l'écosystème PHP.",
@@ -519,7 +547,7 @@ var moduleCatalog = map[string]Message{
 		EN: "API key",
 	},
 	"module.tool.neon.summary": {
-		FR: "Le CLI Neon posé, et la clé gardée sur la machine : les projets parlent au compte Neon du client, qui décide de ses bases.",
+		FR: "Le CLI Neon posé, et la clé gardée sur la machine : vos projets parlent à votre compte Neon, et vous décidez de vos bases.",
 		EN: "The Neon CLI installed, and the key kept on the machine: your projects talk to your own Neon account, which stays yours to shape.",
 	},
 	"module.ai.hermes.providers.help": {
@@ -527,7 +555,7 @@ var moduleCatalog = map[string]Message{
 		EN: "One entry per provider, as provider:key, for example openai:sk-…",
 	},
 	"module.editor.jetbrains.ide.help": {
-		FR: "Celui que tu ouvres depuis Gateway ; un backend par IDE.",
+		FR: "Celui que vous ouvrez depuis Gateway ; un backend par IDE.",
 		EN: "The one you open from Gateway; one backend per IDE.",
 	},
 	"module.editor.jetbrains.version.help": {
@@ -553,5 +581,121 @@ var moduleCatalog = map[string]Message{
 	"protocol.id.invalid": {
 		FR: "id manquant ou invalide : entier ≥ 0 attendu",
 		EN: "the id is missing or invalid: an integer >= 0 is expected",
+	},
+	"modules.step.failed": {
+		FR: "étape en échec",
+		EN: "step failed",
+	},
+	"modules.step.replay": {
+		FR: "  rejeu : %s",
+		EN: "  replay: %s",
+	},
+	"modules.uninstall.required": {
+		FR: "%s ne peut pas être retiré : %s en dépend encore",
+		EN: "%s cannot be removed: %s still requires it",
+	},
+	"modules.uninstall.required.fix": {
+		FR: "Retirez d'abord %s, ou retirez les deux dans la même commande.",
+		EN: "Remove %s first, or remove both in the same command.",
+	},
+	"modules.download.checksum_mismatch": {
+		FR: "la somme SHA-256 de %s n'est pas celle publiée : %s",
+		EN: "the SHA-256 of %s is not the published one: %s",
+	},
+	"modules.download.checksum_missing": {
+		FR: "sha256sum n'a rien dit de %s",
+		EN: "sha256sum said nothing of %s",
+	},
+	"modules.download.checksum_unpublished": {
+		FR: "aucune somme publiée pour %s dans %s",
+		EN: "no published checksum for %s in %s",
+	},
+	"modules.system.packages_refused": {
+		FR: "paquets introuvables ou refusés : %s",
+		EN: "packages not found or refused: %s",
+	},
+	"modules.mise.missing_after_download": {
+		FR: "mise absent de %s après le téléchargement",
+		EN: "mise missing from %s after the download",
+	},
+	"modules.mise.tool_not_installed": {
+		FR: "mise est revenu sans installer %s@%s",
+		EN: "mise returned without installing %s@%s",
+	},
+	"modules.mise.version_unreadable": {
+		FR: "mise.jdx.dev a répondu %q au lieu d'une version",
+		EN: "mise.jdx.dev answered %q instead of a version",
+	},
+	"modules.claude.version_unreadable": {
+		FR: "downloads.claude.ai a répondu %q au lieu d'une version",
+		EN: "downloads.claude.ai answered %q instead of a version",
+	},
+	"modules.claude.manifest_unreadable": {
+		FR: "manifeste de Claude Code %s illisible : %s",
+		EN: "manifest of Claude Code %s unreadable: %s",
+	},
+	"modules.claude.build_missing": {
+		FR: "aucune version %s de Claude Code %s dans le manifeste",
+		EN: "no %s build of Claude Code %s in the manifest",
+	},
+	"modules.claude.checksum_mismatch": {
+		FR: "la somme de Claude Code %s n'est pas celle du manifeste : %s",
+		EN: "checksum of Claude Code %s differs from the manifest: %s",
+	},
+	"modules.claude.missing_after_install": {
+		FR: "%s absent après l'installation de Claude Code %s",
+		EN: "%s missing after the install of Claude Code %s",
+	},
+	"modules.cloudflared.start_failed": {
+		FR: "%s : %s",
+		EN: "%s: %s",
+	},
+	"modules.mongodb.user_refused": {
+		FR: "création de l'utilisateur applicatif refusée : journalctl -u %s -n 40 · %s",
+		EN: "application user creation refused: journalctl -u %s -n 40 · %s",
+	},
+	"modules.postgres.roles_refused": {
+		FR: "création des rôles refusée : journalctl -u %s -n 40 · %s",
+		EN: "role creation refused: journalctl -u %s -n 40 · %s",
+	},
+	"modules.mysql.accounts_refused": {
+		FR: "création des comptes refusée : journalctl -u %s -n 40 · %s",
+		EN: "account creation refused: journalctl -u %s -n 40 · %s",
+	},
+	"modules.zed.missing_after_download": {
+		FR: "le serveur distant Zed %s est absent de %s après décompression",
+		EN: "the Zed remote server %s is missing from %s after decompression",
+	},
+	"modules.zed.version_unreadable": {
+		FR: "version de Zed illisible dans %q",
+		EN: "unreadable Zed version in %q",
+	},
+	"modules.jetbrains.missing_after_extract": {
+		FR: "le backend %s est absent de %s après extraction",
+		EN: "the %s backend is missing from %s after extraction",
+	},
+	"modules.jetbrains.index_unreadable": {
+		FR: "index des versions JetBrains illisible pour %s",
+		EN: "unreadable JetBrains version index for %s",
+	},
+	"modules.jetbrains.version_missing": {
+		FR: "aucune version %s de %s pour cette machine",
+		EN: "no %s version of %s for this machine",
+	},
+	"modules.vscode.cli_missing": {
+		FR: "la commande code est absente de %s après extraction",
+		EN: "the code command is missing from %s after extraction",
+	},
+	"modules.vscode.server_missing": {
+		FR: "le serveur distant est absent de %s après extraction",
+		EN: "the remote server is missing from %s after extraction",
+	},
+	"modules.vscode.no_server": {
+		FR: "aucun serveur distant installé pour y poser les extensions",
+		EN: "no remote server installed to place the extensions",
+	},
+	"modules.vscode.update_unreadable": {
+		FR: "réponse illisible de %s",
+		EN: "unreadable answer from %s",
 	},
 }

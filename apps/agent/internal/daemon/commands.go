@@ -1,12 +1,13 @@
 package daemon
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
-	"pupitre.studio/agent/internal/i18n"
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/platform"
 	"pupitre.studio/agent/internal/protocol"
 )
@@ -52,14 +53,14 @@ func RegisterCommands(server *protocol.Server, options Options) {
 			return nil, refusal
 		}
 
-		if err := agent.Enroll(token, params.PlatformURL); err != nil {
+		if err := agent.Enroll(context.Background(), token, params.PlatformURL); err != nil {
 			return nil, enrollFailed(err)
 		}
 
 		result := enrollResult{Enrolled: true, Entitlement: contract.EntitlementRestricted}
 
 		// The exchange is what enrols; a first state that does not come back is retried by the daemon rather than undoing it.
-		if synced, err := agent.SyncAt(params.PlatformURL); err == nil {
+		if synced, err := agent.SyncAt(context.Background(), params.PlatformURL); err == nil {
 			result.Entitlement = synced.Entitlement
 			result.SyncedAt = synced.SyncedAt.UTC().Format(time.RFC3339)
 		}
@@ -68,7 +69,7 @@ func RegisterCommands(server *protocol.Server, options Options) {
 	})
 
 	server.Register("keys.sync", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
-		if _, err := agent.Sync(); err != nil {
+		if _, err := agent.Sync(context.Background()); err != nil {
 			return nil, syncFailed(err)
 		}
 
@@ -79,7 +80,7 @@ func RegisterCommands(server *protocol.Server, options Options) {
 	// at the daemon's next turn: the console shows the modules instead of an
 	// empty server for the following five minutes.
 	server.Register("platform.sync", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
-		synced, err := agent.Sync()
+		synced, err := agent.Sync(context.Background())
 		if err != nil {
 			return nil, syncFailed(err)
 		}
@@ -88,7 +89,7 @@ func RegisterCommands(server *protocol.Server, options Options) {
 
 		// The heartbeat is what carries the module list. Its failure is not the
 		// command's: the state was read, and the daemon beats again on its own.
-		if err := agent.Beat(); err == nil {
+		if err := agent.Beat(context.Background()); err == nil {
 			result.HeartbeatAt = agent.options.Now().UTC().Format(time.RFC3339)
 		}
 

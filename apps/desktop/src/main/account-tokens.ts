@@ -1,5 +1,11 @@
-import type { ConnectionAccount, ConnectionKind } from "@shared/connections";
+import type { AgentResponse } from "@shared/agent";
+import type {
+  ConnectionAccount,
+  ConnectionCheck,
+  ConnectionKind,
+} from "@shared/connections";
 import { verifyToken as verifyCloudflare } from "./cloudflare-api";
+import { refuseWith } from "./refusal";
 
 /**
  * What a token opens, asked of the provider the moment it is given.
@@ -19,6 +25,9 @@ const GITHUB = "https://api.github.com/user";
 
 const NEON = "https://console.neon.tech/api/v2/users/me";
 
+/** A provider that has not answered by then is not going to: the field is owed a refusal. */
+const CALL_MS = 20_000;
+
 /** The provider's own message, never the token, and never a stack. */
 export class TokenError extends Error {
   constructor(message: string) {
@@ -34,6 +43,7 @@ async function read(
 ): Promise<Record<string, unknown>> {
   const response = await fetcher(url, {
     headers: { accept: "application/json", authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(CALL_MS),
   });
 
   const body = (await response.json().catch(() => null)) as Record<
@@ -127,4 +137,33 @@ export function accountOfToken(
     default:
       return Promise.resolve(null);
   }
+}
+
+/**
+ * A held token, weighed again.
+ *
+ * A token revoked on the provider's side says nothing until an install fails
+ * on it; asking from the settings is how a reader learns it first. The refusal
+ * carries the provider's own words, never the token.
+ */
+export async function checkToken(
+  kind: ConnectionKind,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<AgentResponse<ConnectionCheck>> {
+  let account: ConnectionAccount | null;
+
+  try {
+    account = await accountOfToken(kind, token, fetcher);
+  } catch (failure) {
+    return refuseWith("bad_request", "refusal.connection.revoked", {
+      kind,
+      reason: failure instanceof Error ? failure.message : String(failure),
+    });
+  }
+
+  return {
+    ok: true,
+    result: account ? { account, status: "answered" } : { status: "unaskable" },
+  };
 }

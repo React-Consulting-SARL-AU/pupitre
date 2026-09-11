@@ -1,0 +1,6 @@
+{
+  "name": "@atlas/api",
+  "scripts": {
+    "start": "node server.js -p 3001"
+  }
+}

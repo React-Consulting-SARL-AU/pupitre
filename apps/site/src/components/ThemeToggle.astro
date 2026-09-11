@@ -14,6 +14,7 @@ const t = translator(localeFromPath(Astro.url.pathname))
 <details class="relative" data-theme-menu>
   <summary
     aria-label={t("theme.label")}
+    title={t("theme.label")}
     class="grid size-8 cursor-pointer list-none place-items-center rounded-full border border-line text-ink-2 hover:bg-raised hover:text-ink [&::-webkit-details-marker]:hidden"
   >
     {

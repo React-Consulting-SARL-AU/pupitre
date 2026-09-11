@@ -31,7 +31,7 @@ var engineCatalog = map[string]Message{
 		EN: "%s cannot be read: %s",
 	},
 	"engine.remembered.unreadable.fix": {
-		FR: "Corrige ou supprime %s sur le serveur, puis relancez l'installation depuis l'app.",
+		FR: "Corrigez ou supprimez %s sur le serveur, puis relancez l'installation depuis l'app.",
 		EN: "Fix or delete %s on the server, then run the installation again from the app.",
 	},
 	"engine.busy": {
@@ -47,8 +47,16 @@ var engineCatalog = map[string]Message{
 		EN: "%s conflicts with %s, which is already installed",
 	},
 	"engine.conflict.installed.fix": {
-		FR: "Désinstalle %s d'abord.",
+		FR: "Désinstallez %s d'abord.",
 		EN: "Uninstall %s first.",
+	},
+	"engine.defer.mandatory": {
+		FR: "%s ne peut pas être remis à plus tard : la machine ne fonctionne pas sans lui",
+		EN: "%s cannot be put off: the machine does not work without it",
+	},
+	"engine.defer.mandatory.fix": {
+		FR: "Répondez aux questions de %s avant d'installer.",
+		EN: "Answer the questions of %s before installing.",
 	},
 	"resolve.conflict": {
 		FR: "les modules %s et %s sont en conflit",
@@ -67,7 +75,7 @@ var engineCatalog = map[string]Message{
 		EN: "unknown module: %s",
 	},
 	"resolve.module.unknown.fix": {
-		FR: "Demande catalog pour la liste des modules de cet agent.",
+		FR: "Demandez catalog pour la liste des modules de cet agent.",
 		EN: "Ask catalog for the list of this agent's modules.",
 	},
 }

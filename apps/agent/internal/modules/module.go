@@ -39,7 +39,7 @@ func (s Status) Service(manifest contract.Manifest) contract.ServiceStatus {
 		ID:          manifest.ID,
 		Name:        manifest.Name,
 		State:       state,
-		Configured:  s.Configured,
+		Runs:        manifest.Runs,
 		Version:     s.Version,
 		Port:        s.Port,
 		Unit:        s.Unit,

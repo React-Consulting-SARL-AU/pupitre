@@ -16,7 +16,7 @@ var catalog = map[string]Message{
 		EN: "hello is expected before any command",
 	},
 	"protocol.hello.required.fix": {
-		FR: "Envoie hello {app_version, protocol} en premier.",
+		FR: "Envoyez hello {app_version, protocol} en premier.",
 		EN: "Send hello {app_version, protocol} first.",
 	},
 	"protocol.command.unknown": {

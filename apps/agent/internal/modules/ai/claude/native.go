@@ -2,11 +2,12 @@ package claude
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"regexp"
 	"runtime"
 	"strings"
 
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/ai/agents"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
@@ -72,7 +73,7 @@ func latestVersion(ctx *modules.Context) (string, error) {
 	}
 
 	if !versionShape.MatchString(version) {
-		return "", fmt.Errorf("downloads.claude.ai answered %q instead of a version", version)
+		return "", errors.New(i18n.T("modules.claude.version_unreadable", version))
 	}
 
 	return version, nil
@@ -86,12 +87,12 @@ func expectedChecksum(ctx *modules.Context, version string) (string, error) {
 
 	var parsed releaseManifest
 	if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
-		return "", fmt.Errorf("manifest of Claude Code %s unreadable: %w", version, err)
+		return "", errors.New(i18n.T("modules.claude.manifest_unreadable", version, err.Error()))
 	}
 
 	checksum := strings.ToLower(parsed.Platforms[platform()].Checksum)
 	if len(checksum) != 64 {
-		return "", fmt.Errorf("no %s build of Claude Code %s in the manifest", platform(), version)
+		return "", errors.New(i18n.T("modules.claude.build_missing", platform(), version))
 	}
 
 	return checksum, nil
@@ -105,7 +106,7 @@ func checksumOf(ctx *modules.Context, path string) (string, error) {
 
 	fields := strings.Fields(out)
 	if len(fields) == 0 {
-		return "", fmt.Errorf("sha256sum said nothing of %s", path)
+		return "", errors.New(i18n.T("modules.download.checksum_missing", path))
 	}
 
 	return strings.ToLower(fields[0]), nil
@@ -140,7 +141,7 @@ func installVersion(ctx *modules.Context, version string) error {
 	}
 
 	if actual != checksum {
-		return fmt.Errorf("checksum of Claude Code %s differs from the manifest: %s", version, actual)
+		return errors.New(i18n.T("modules.claude.checksum_mismatch", version, actual))
 	}
 
 	if _, err := user.Run(ctx, shell.User, "chmod", "0755", path); err != nil {
@@ -152,7 +153,7 @@ func installVersion(ctx *modules.Context, version string) error {
 	}
 
 	if !file.Exists(ctx, BinPath) {
-		return fmt.Errorf("%s missing after the install of Claude Code %s", BinPath, version)
+		return errors.New(i18n.T("modules.claude.missing_after_install", BinPath, version))
 	}
 
 	return nil

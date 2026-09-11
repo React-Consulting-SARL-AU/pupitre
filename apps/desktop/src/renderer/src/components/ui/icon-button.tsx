@@ -28,6 +28,7 @@ export function IconButton({
   disabled = false,
   size = 13,
   className = "",
+  expanded,
 }: {
   icon: ButtonIcon;
   label: string;
@@ -38,6 +39,8 @@ export function IconButton({
   disabled?: boolean;
   size?: number;
   className?: string;
+  /** For a button that folds something: what it currently shows. */
+  expanded?: boolean;
 }) {
   const [click, pending] = usePending(onClick);
 
@@ -46,6 +49,7 @@ export function IconButton({
   return (
     <button
       aria-busy={waiting}
+      aria-expanded={expanded}
       aria-label={label}
       className={`clickable inline-flex shrink-0 items-center justify-center rounded-sm p-1.5 transition-soft ${waiting ? "cursor-progress" : ""} ${disabled && !waiting ? "opacity-40" : ""} ${VARIANT[variant]} ${className}`}
       disabled={disabled || waiting}

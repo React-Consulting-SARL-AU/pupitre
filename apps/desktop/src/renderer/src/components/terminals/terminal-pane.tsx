@@ -11,14 +11,17 @@ import {
   focus,
   obtain,
   onShortcut,
+  proposeSize,
   scrollToBottom,
 } from "@renderer/lib/terminals";
+import { useNavigation } from "@renderer/stores/navigation";
 import { useServers } from "@renderer/stores/servers";
 import { useTerminals } from "@renderer/stores/terminals";
-import type { AgentState, TerminalKind, ViewBounds } from "@shared/terminals";
+import type { AgentState, TerminalKind } from "@shared/terminals";
 import { ArrowDown } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { CompletionList } from "./completion-list";
+import { TerminalDormantNotice } from "./terminal-dormant-notice";
 import { TerminalEndedBar } from "./terminal-ended-bar";
 import { TerminalLoginBar } from "./terminal-login-bar";
 import { TerminalSearchBar } from "./terminal-search-bar";
@@ -28,10 +31,17 @@ interface Props {
   id: string;
   kind: TerminalKind;
   project: string | null;
-  /** The tab in front: the only one a page may be laid over. */
+  /** The folder under the project's the shell opens in, when the tab named one. */
+  dir?: string | null;
+  /** The session the tab was attached to, handed back so it finds it again. */
+  session: string | null;
+  /** A tab the last run left: it draws, but nothing is attached until asked. */
+  dormant: boolean;
+  /** The tab in front: the only one whose search bar stays open. */
   active: boolean;
   state: AgentState | undefined;
   onClose: () => void;
+  onResume: () => void;
   /** The shortcuts that move between tabs, answered by whoever holds the row. */
   onShortcut: (shortcut: TerminalShortcut) => void;
 }
@@ -42,21 +52,6 @@ const OPENING_KEY: Record<TerminalKind, DictionaryKey> = {
   hermes: "terminals.openingHermes",
   shell: "terminals.openingShell",
 };
-
-function boxOf(element: HTMLElement | null): ViewBounds | null {
-  if (!element) {
-    return null;
-  }
-
-  const rect = element.getBoundingClientRect();
-
-  return {
-    height: rect.height,
-    width: rect.width,
-    x: rect.x,
-    y: rect.y,
-  };
-}
 
 /**
  * A window onto a living terminal.
@@ -70,9 +65,13 @@ export function TerminalPane({
   id,
   kind,
   project,
+  dir = null,
+  session: attached,
+  dormant,
   active,
   state,
   onClose,
+  onResume,
   onShortcut: answer,
 }: Props) {
   const t = useTranslations();
@@ -81,62 +80,64 @@ export function TerminalPane({
   const stage = useRef<HTMLDivElement | null>(null);
   const answerRef = useRef(answer);
   answerRef.current = answer;
+  // Read when the session opens, never a reason to open it again: the name comes
+  // back from the machine and is written on the tab a moment later.
+  const attachedRef = useRef(attached);
+  attachedRef.current = attached;
 
   const serverId = useServers((s) => s.config?.active ?? null);
+  const noteSession = useNavigation((s) => s.noteSession);
 
   const session = useTerminals((s) => s.sessions[id]);
-  const loginHost = useTerminals((s) => s.links[id]);
-  const loginOpen = useTerminals((s) => s.login === id);
+  const login = useTerminals((s) => s.links[id]);
   const searchOpen = useTerminals((s) => s.search === id);
   const start = useTerminals((s) => s.start);
   const restart = useTerminals((s) => s.restart);
   const openLogin = useTerminals((s) => s.openLogin);
-  const closeLogin = useTerminals((s) => s.closeLogin);
-  const moveLogin = useTerminals((s) => s.moveLogin);
+  const dismissLogin = useTerminals((s) => s.dismissLogin);
   const closeSearch = useTerminals((s) => s.closeSearch);
 
   const atBottom = useTerminalStatus(id).atBottom;
 
   useEffect(() => {
     const container = host.current;
-    if (!(container && serverId)) {
+    if (!(container && serverId) || dormant) {
       return;
     }
 
     const entry = obtain(id, kind);
     container.appendChild(entry.host);
     onShortcut(id, (shortcut) => answerRef.current(shortcut));
-    start(id, serverId, kind, project);
-
-    const observer = new ResizeObserver(() => {
-      fitTerminal(id);
-
-      const bounds = boxOf(stage.current);
-
-      if (bounds) {
-        moveLogin(bounds);
+    // Measured once the host is in the page, so the PTY opens at the size it
+    // will actually have rather than at 80×24 and a resize a frame later.
+    start(
+      id,
+      serverId,
+      kind,
+      project,
+      attachedRef.current,
+      dir,
+      proposeSize(id)
+    ).then((named) => {
+      if (named) {
+        noteSession(id, named);
       }
     });
+
+    const observer = new ResizeObserver(() => fitTerminal(id));
     observer.observe(container);
-    requestAnimationFrame(() => {
+    const frame = requestAnimationFrame(() => {
       fitTerminal(id);
       focus(id);
     });
 
     return () => {
+      cancelAnimationFrame(frame);
       observer.disconnect();
       onShortcut(id, null);
       entry.host.remove();
     };
-  }, [id, serverId, kind, project, start, moveLogin]);
-
-  // A page laid over a tab that is no longer in front would float over another
-  // one: it goes away with the tab, and the button that opened it stays.
-  useEffect(() => {
-    if (!active && loginOpen) {
-      closeLogin();
-    }
-  }, [active, loginOpen, closeLogin]);
+  }, [id, serverId, kind, project, dir, dormant, start, noteSession]);
 
   useEffect(() => {
     if (!active && searchOpen) {
@@ -144,33 +145,28 @@ export function TerminalPane({
     }
   }, [active, searchOpen, closeSearch]);
 
-  useEffect(
-    () => () => {
-      if (useTerminals.getState().login === id) {
-        useTerminals.getState().closeLogin();
-      }
-    },
-    [id]
-  );
-
-  function reopen(): Promise<void> | undefined {
-    return serverId ? restart(id, serverId, kind, project) : undefined;
+  function reopen(): Promise<unknown> | undefined {
+    return serverId
+      ? restart(
+          id,
+          serverId,
+          kind,
+          project,
+          attachedRef.current,
+          dir,
+          proposeSize(id)
+        )
+      : undefined;
   }
 
   return (
     <div className="flex h-full w-full flex-col bg-surface" data-terminal={id}>
-      {loginHost ? (
+      {login ? (
         <TerminalLoginBar
-          host={loginHost}
-          onClose={closeLogin}
-          onOpen={() => {
-            const bounds = boxOf(stage.current);
-
-            if (bounds) {
-              openLogin(id, bounds);
-            }
-          }}
-          open={loginOpen}
+          host={login.host}
+          onDismiss={() => dismissLogin(id)}
+          onOpen={() => openLogin(id)}
+          opened={login.opened}
         />
       ) : null}
 
@@ -200,6 +196,12 @@ export function TerminalPane({
             />
           </div>
         )}
+
+        {dormant ? (
+          <div className="absolute inset-0 grid place-items-center bg-sunken p-6">
+            <TerminalDormantNotice onResume={onResume} />
+          </div>
+        ) : null}
 
         {session?.status === "opening" ? (
           <div className="absolute inset-0 grid place-items-center bg-sunken p-6">

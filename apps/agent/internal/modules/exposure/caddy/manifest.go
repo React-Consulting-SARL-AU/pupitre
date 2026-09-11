@@ -39,6 +39,7 @@ func manifest() contract.Manifest {
 			{Key: "http_port", Kind: contract.FieldNumber, Label: i18n.T("module.exposure.caddy.http_port.label"), Help: i18n.T("module.exposure.caddy.http_port.help"), Format: contract.FormatPort, Required: true, Default: DefaultHTTPPort, Min: 1, Max: 65535},
 			{Key: "https_port", Kind: contract.FieldNumber, Label: i18n.T("module.exposure.caddy.https_port.label"), Help: i18n.T("module.exposure.caddy.https_port.help"), Format: contract.FormatPort, Required: true, Default: DefaultHTTPSPort, Min: 1, Max: 65535},
 		},
+		Runs:      true,
 		Mandatory: false,
 		Since:     "0.3.0",
 	}

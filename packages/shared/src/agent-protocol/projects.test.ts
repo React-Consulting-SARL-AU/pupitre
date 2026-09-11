@@ -19,6 +19,7 @@ import {
   ProjectRemoveResultSchema,
   ProjectSyncResultSchema,
   ProjectTargetParamsSchema,
+  ProjectUpdateParamsSchema,
   ProjectUrlResultSchema,
   ProjectWorkingTreeResultSchema,
 } from "./projects"
@@ -46,11 +47,82 @@ describe("ProjectAddParamsSchema", () => {
         pkgmgr: "bun",
         host: "127.0.0.1",
         port: 5173,
-        subdomain: "flymate",
+        routes: [{ label: "web", port: 5173, subdomain: "flymate" }],
         cmd: "bun run dev",
         install: "bun install",
       }).success
     ).toBe(true)
+  })
+
+  it("takes the branch to clone, and refuses one git would not", () => {
+    const base = {
+      name: "flymate-api",
+      dir: "flymate/api",
+      pkgmgr: "bun",
+      host: "127.0.0.1",
+      port: 5173,
+      routes: [],
+      cmd: "bun run dev",
+    }
+
+    expect(
+      ProjectAddParamsSchema.safeParse({ ...base, branch: "release/2.0" })
+        .success
+    ).toBe(true)
+    expect(
+      ProjectAddParamsSchema.safeParse({ ...base, branch: "" }).success
+    ).toBe(false)
+    expect(
+      ProjectAddParamsSchema.safeParse({ ...base, branch: "-force" }).success
+    ).toBe(false)
+  })
+
+  it("takes a subdomain of one level or several on a route, and refuses what DNS would", () => {
+    const base = {
+      name: "flymate-api",
+      dir: "flymate/api",
+      pkgmgr: "bun",
+      host: "127.0.0.1",
+      port: 5173,
+      cmd: "bun run dev",
+    }
+
+    for (const subdomain of ["shop", "api.shop", "a-b.c-d.e"]) {
+      expect(
+        ProjectAddParamsSchema.safeParse({
+          ...base,
+          routes: [{ label: "web", port: 5173, subdomain }],
+        }).success
+      ).toBe(true)
+    }
+
+    for (const subdomain of ["", "-shop", "shop-", ".shop", "shop.", "a..b"]) {
+      expect(
+        ProjectAddParamsSchema.safeParse({
+          ...base,
+          routes: [{ label: "web", port: 5173, subdomain }],
+        }).success
+      ).toBe(false)
+    }
+  })
+
+  it("requires the list of routes, and refuses a hostname in it", () => {
+    const base = {
+      name: "flymate-api",
+      dir: "flymate/api",
+      pkgmgr: "bun",
+      host: "127.0.0.1",
+      port: 5173,
+      cmd: "bun run dev",
+    }
+
+    expect(ProjectAddParamsSchema.safeParse(base).success).toBe(false)
+    expect(
+      ProjectAddParamsSchema.safeParse({
+        ...base,
+        routes: [{ label: "web", port: 5173, hostname: "web.example.org" }],
+      }).success
+    ).toBe(false)
   })
 
   it("rejects an unknown package manager and a port out of range", () => {
@@ -60,6 +132,7 @@ describe("ProjectAddParamsSchema", () => {
       pkgmgr: "bun",
       host: "127.0.0.1",
       port: 5173,
+      routes: [],
       cmd: "bun run dev",
     }
     expect(
@@ -67,6 +140,83 @@ describe("ProjectAddParamsSchema", () => {
     ).toBe(false)
     expect(
       ProjectAddParamsSchema.safeParse({ ...base, port: 70_000 }).success
+    ).toBe(false)
+  })
+})
+
+describe("ProjectUpdateParamsSchema", () => {
+  it("takes a patch of the command, the install line, the branch and the routes", () => {
+    expect(
+      ProjectUpdateParamsSchema.safeParse({
+        name: "flymate-api",
+        patch: {
+          cmd: "turbo run dev",
+          install: "",
+          branch: "release/2.0",
+          routes: [
+            { label: "web", port: 3000, subdomain: "shop" },
+            { label: "api", port: 3001, hostname: "api.shop.example.org" },
+            { label: "docs", port: 3002 },
+          ],
+        },
+      }).success
+    ).toBe(true)
+    expect(
+      ProjectUpdateParamsSchema.safeParse({ name: "flymate-api", patch: {} })
+        .success
+    ).toBe(true)
+  })
+
+  it("refuses a route naming a subdomain and a hostname at once, and an empty command", () => {
+    expect(
+      ProjectUpdateParamsSchema.safeParse({
+        name: "flymate-api",
+        patch: {
+          routes: [
+            {
+              label: "web",
+              port: 3000,
+              subdomain: "shop",
+              hostname: "shop.example.org",
+            },
+          ],
+        },
+      }).success
+    ).toBe(false)
+    expect(
+      ProjectUpdateParamsSchema.safeParse({
+        name: "flymate-api",
+        patch: { cmd: "" },
+      }).success
+    ).toBe(false)
+    expect(
+      ProjectUpdateParamsSchema.safeParse({
+        name: "flymate-api",
+        patch: { dir: "elsewhere" },
+      }).success
+    ).toBe(false)
+  })
+})
+
+describe("ProjectDetectResultSchema", () => {
+  it("carries the routes of a monorepo, labelled after their workspace", () => {
+    expect(
+      ProjectDetectResultSchema.safeParse({
+        pkgmgr: "bun",
+        install: "bun install",
+        cmd: "bun run turbo run dev",
+        port_hint: 3000,
+        routes: [
+          { label: "web", port: 3000 },
+          { label: "api", port: 3001 },
+        ],
+      }).success
+    ).toBe(true)
+    expect(
+      ProjectDetectResultSchema.safeParse({
+        pkgmgr: "bun",
+        routes: [{ label: "Web", port: 3000 }],
+      }).success
     ).toBe(false)
   })
 })
@@ -264,6 +414,27 @@ describe("ProjectDetectParamsSchema", () => {
       ProjectDetectParamsSchema.safeParse({ repo: "x", dir: "y" }).success
     ).toBe(false)
     expect(ProjectDetectParamsSchema.safeParse({}).success).toBe(false)
+  })
+
+  it("takes a branch with a repository, and never with a folder", () => {
+    expect(
+      ProjectDetectParamsSchema.safeParse({
+        repo: "https://github.com/acme/flymate.git",
+        branch: "release/2.0",
+      }).success
+    ).toBe(true)
+    expect(
+      ProjectDetectParamsSchema.safeParse({
+        dir: "flymate/api",
+        branch: "main",
+      }).success
+    ).toBe(false)
+    expect(
+      ProjectDetectParamsSchema.safeParse({
+        repo: "https://github.com/acme/flymate.git",
+        branch: "-wat",
+      }).success
+    ).toBe(false)
   })
 })
 

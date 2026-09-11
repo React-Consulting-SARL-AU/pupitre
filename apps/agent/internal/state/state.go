@@ -42,11 +42,17 @@ type Options struct {
 	AgentVersion string
 	Paths        registry.Paths
 	Tmux         tmux.Options
-	Follow       FollowOptions
-	Shots        ShotOptions
-	Detect       DetectOptions
-	Self         func() int
-	Sleep        func(time.Duration)
+	// Deferred names the modules put on the machine without their settings: what
+	// the contract calls unconfigured, and the one thing a module cannot tell of itself.
+	Deferred func() []string
+	// Command runs one action on a module under the run lock and the right of
+	// use, as the engine runs install: what drives a unit takes the same door.
+	Command func(id string, sink modules.Sink, fn func(*modules.Context) error) error
+	Follow  FollowOptions
+	Shots   ShotOptions
+	Detect  DetectOptions
+	Self    func() int
+	Sleep   func(time.Duration)
 }
 
 // The reader of the machine's state: the project registry, the tmux session and the installed modules, and nothing that writes on its own.
@@ -117,6 +123,14 @@ func (r *Reader) registry() *registry.File {
 	return registry.Load(r.ctx(), r.options.Paths)
 }
 
+func (r *Reader) deferred() []string {
+	if r.options.Deferred == nil {
+		return nil
+	}
+
+	return r.options.Deferred()
+}
+
 func (r *Reader) domain() string {
 	value, _, err := env.Get(r.ctx(), DomainKey)
 	if err != nil {
@@ -163,6 +177,12 @@ func FromEngine(engine *modules.Engine, options Options) *Reader {
 	}
 	if options.AgentVersion == "" {
 		options.AgentVersion = engine.AgentVersion
+	}
+	if options.Deferred == nil {
+		options.Deferred = engine.Deferred
+	}
+	if options.Command == nil {
+		options.Command = engine.Command
 	}
 
 	return New(options)

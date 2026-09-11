@@ -32,6 +32,11 @@ export interface ServerUsage {
   disk: number
   ram: number
   load: number
+  /** The quantities behind the percentages; null for a sample an older agent sent. */
+  disk_total_gb: number | null
+  disk_free_gb: number | null
+  ram_total_mb: number | null
+  ram_used_mb: number | null
 }
 
 export interface ServerView {
@@ -85,7 +90,16 @@ function lastUsage(server: Server): ServerUsage | null {
   const last = samples.at(-1)
 
   return last
-    ? { at: last.at, disk: last.disk, ram: last.ram, load: last.load }
+    ? {
+        at: last.at,
+        disk: last.disk,
+        ram: last.ram,
+        load: last.load,
+        disk_total_gb: last.disk_total_gb,
+        disk_free_gb: last.disk_free_gb,
+        ram_total_mb: last.ram_total_mb,
+        ram_used_mb: last.ram_used_mb,
+      }
     : null
 }
 

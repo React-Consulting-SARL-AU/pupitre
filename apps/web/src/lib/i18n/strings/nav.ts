@@ -30,24 +30,6 @@ export const nav = {
     "route.notFoundTitle": "Nothing at this address",
     "route.notFoundDescription":
       "This page no longer exists, or it never belonged to this organisation.",
-    "page.download.description":
-      "The app runs on your machine and talks to your servers over SSH. No private key leaves your laptop.",
-    "page.audit.description":
-      "What the organisation did, who did it and when. The log is read-only and is never cleared.",
-    "page.billing.description":
-      "One seat per server. Payment and invoices live in a secure billing area; what you see here mirrors them.",
-    "page.devices.description":
-      "The devices carrying one of your keys. The Pupitre app registers them; here, you can revoke them.",
-    "page.members.description":
-      "Who works in this organisation, and in what capacity. A member only sees the servers assigned to them; an administrator sees them all and assigns them.",
-    "page.settings.description":
-      "Your account, its appearance and its security. What belongs to the organisation lives elsewhere.",
-    "page.servers.description":
-      "The enrolled servers of the active organisation. The list refreshes itself.",
-    "page.start.description":
-      "Four steps, from the account to the first server.",
-    "page.organization.description":
-      "The name this organisation carries, and what belongs to it. Its members and its billing live on their own pages.",
   },
   fr: {
     "nav.dashboard": "Tableau de bord",
@@ -81,22 +63,5 @@ export const nav = {
     "route.notFoundTitle": "Rien à cette adresse",
     "route.notFoundDescription":
       "Cette page n'existe plus, ou elle n'a jamais appartenu à cette organisation.",
-    "page.download.description":
-      "L'app tourne sur votre machine et parle à vos serveurs en SSH. Aucune clé privée ne quitte votre laptop.",
-    "page.audit.description":
-      "Ce que l'organisation a fait, qui l'a fait et quand. Le journal est en lecture seule et ne s'efface pas.",
-    "page.billing.description":
-      "Un siège par serveur. Le paiement et les factures vivent dans un espace de facturation sécurisé ; ce que vous voyez ici en est le miroir.",
-    "page.devices.description":
-      "Les appareils qui portent une de vos clés. C'est l'app Pupitre qui les enregistre ; ici, vous pouvez les révoquer.",
-    "page.members.description":
-      "Qui travaille dans cette organisation, et à quel titre. Un membre ne voit que les serveurs qui lui sont attribués ; un administrateur les voit tous et les attribue.",
-    "page.settings.description":
-      "Votre compte, son apparence et sa sécurité. Ce qui touche à l'organisation vit ailleurs.",
-    "page.servers.description":
-      "Les serveurs enrôlés de l'organisation active. La liste se rafraîchit toute seule.",
-    "page.start.description": "Quatre pas, du compte au premier serveur.",
-    "page.organization.description":
-      "Le nom que porte cette organisation, et ce qui lui appartient. Ses membres et sa facturation vivent sur leurs propres pages.",
   },
 }

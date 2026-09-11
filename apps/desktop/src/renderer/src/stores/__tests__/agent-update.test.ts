@@ -13,7 +13,7 @@ const OFFER = {
   version: "0.4.0",
 };
 
-const SHEET = { floor: "0.1.0", verdict: "ok" as const };
+const SHEET = { config: null, floor: "0.1.0", verdict: "ok" as const };
 
 function log(line: string): Event {
   return { event: "log", id: 2, line } as unknown as Event;
@@ -107,9 +107,12 @@ describe("la mise à jour de l'agent", () => {
         return Promise.resolve({
           ok: true,
           result: {
-            previous_version: "0.3.0",
-            restarting: true,
-            version: "0.4.0",
+            migration: null,
+            upgrade: {
+              previous_version: "0.3.0",
+              restarting: true,
+              version: "0.4.0",
+            },
           },
         });
       },
@@ -189,6 +192,75 @@ describe("la mise à jour des modules", () => {
   });
 });
 
+describe("la migration de la configuration", () => {
+  it("garde ce que l'agent a porté, et relit l'écart", async () => {
+    stubPupitre({
+      agentUpdateState: () =>
+        Promise.resolve({
+          ok: true,
+          result: {
+            ...SHEET,
+            installed: "0.4.0",
+            offer: OFFER,
+            order: "same" as const,
+            platform: true,
+          },
+        }),
+      migrateAgentConfig: () =>
+        Promise.resolve({
+          ok: true,
+          result: {
+            applied: [{ id: 2, ms: 11, slug: "rename-tz" }],
+            expected: 2,
+            pending: [],
+            restored: false,
+            revision: 2,
+            state: "current" as const,
+          },
+        }),
+    });
+
+    await useAgentUpdate.getState().migrateConfig(SERVER);
+
+    expect(useAgentUpdate.getState().migration).toMatchObject({
+      result: { revision: 2 },
+      status: "done",
+    });
+  });
+
+  it("garde le remède quand la migration est refusée", async () => {
+    stubPupitre({
+      agentUpdateState: () =>
+        Promise.resolve({
+          ok: true,
+          result: {
+            ...SHEET,
+            installed: "0.4.0",
+            offer: OFFER,
+            order: "same" as const,
+            platform: true,
+          },
+        }),
+      migrateAgentConfig: () =>
+        Promise.resolve({
+          ok: false,
+          error: {
+            code: "busy",
+            fix: "Relance la migration quand l'installation est finie.",
+            message: "une installation est en cours",
+          },
+        }),
+    });
+
+    await useAgentUpdate.getState().migrateConfig(SERVER);
+
+    expect(useAgentUpdate.getState().migration).toMatchObject({
+      error: { code: "busy" },
+      status: "failed",
+    });
+  });
+});
+
 describe("ce que le bandeau annonce", () => {
   it("se tait tant que la comparaison n'est pas revenue", () => {
     expect(announces({ status: "idle" }, null)).toBe(false);
@@ -215,6 +287,23 @@ describe("ce que le bandeau annonce", () => {
     expect(announces(behind, null)).toBe(true);
   });
 
+  it("parle toujours d'une configuration que l'agent ne lit pas, même masquée", () => {
+    const state = {
+      serverId: SERVER,
+      status: "ready" as const,
+      update: {
+        ...SHEET,
+        config: { expected: 4, revision: 3, state: "pending" as const },
+        installed: "0.4.0",
+        offer: OFFER,
+        order: "same" as const,
+        platform: true,
+      },
+    };
+
+    expect(announces(state, "0.4.0")).toBe(true);
+  });
+
   it("se tait sur la version que le lecteur a masquée, pas sur la suivante", () => {
     const state = {
       serverId: SERVER,
@@ -230,5 +319,69 @@ describe("ce que le bandeau annonce", () => {
 
     expect(announces(state, "0.4.0")).toBe(false);
     expect(announces(state, "0.3.5")).toBe(true);
+  });
+});
+
+describe("la relecture sur le battement", () => {
+  it("relit l'écart comme une lecture ordinaire", async () => {
+    let reads = 0;
+
+    stubPupitre({
+      agentUpdateState: () => {
+        reads += 1;
+
+        return Promise.resolve({
+          ok: true,
+          result: {
+            ...SHEET,
+            installed: `0.${reads}.0`,
+            offer: null,
+            order: "same",
+            platform: true,
+          },
+        });
+      },
+    });
+
+    await useAgentUpdate.getState().read(SERVER);
+    await useAgentUpdate.getState().refresh(SERVER);
+
+    expect(reads).toBe(2);
+    expect(useAgentUpdate.getState().state).toMatchObject({
+      status: "ready",
+      update: { installed: "0.2.0" },
+    });
+  });
+
+  it("s'efface pendant une mise à jour ou une migration en cours", async () => {
+    let reads = 0;
+
+    stubPupitre({
+      agentUpdateState: () => {
+        reads += 1;
+
+        return Promise.resolve({
+          ok: true,
+          result: {
+            ...SHEET,
+            installed: "0.3.0",
+            offer: null,
+            order: "same",
+            platform: true,
+          },
+        });
+      },
+    });
+
+    useAgentUpdate.setState({ upgrade: { status: "running" } });
+    await useAgentUpdate.getState().refresh(SERVER);
+
+    useAgentUpdate.setState({
+      migration: { status: "running" },
+      upgrade: { status: "idle" },
+    });
+    await useAgentUpdate.getState().refresh(SERVER);
+
+    expect(reads).toBe(0);
   });
 });

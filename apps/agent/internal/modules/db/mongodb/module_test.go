@@ -27,9 +27,13 @@ func newContext(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	})
 }
 
+// A quarter of the 3.83 GB the fake machine reports.
+const memorySizedCache = "0.96"
+
 func newFakeSys() *modtest.FakeSys {
 	fake := modtest.NewFakeSys()
 	fake.Files[osReleasePath] = []byte("ID=ubuntu\nVERSION_CODENAME=noble\n")
+	fake.Files[meminfoPath] = []byte("MemTotal:       4015000 kB\n")
 
 	return fake
 }
@@ -42,7 +46,7 @@ func installedSys(t *testing.T) *modtest.FakeSys {
 	fake.Units[unit] = modtest.UnitActive
 	fake.Files[defaultKeyring] = []byte("-----BEGIN PGP PUBLIC KEY BLOCK-----\n")
 	fake.Files[defaultList] = repository(DefaultVersion, "noble")
-	fake.Files[confPath] = renderConfig(DefaultPort)
+	fake.Files[confPath] = renderConfig(DefaultPort, memorySizedCache)
 	fake.Files[markerPath] = []byte(defaultAppUser + "\n")
 	fake.Files[env.Path] = []byte(appPasswordKey + "=" + appPassword + "\n")
 
@@ -216,16 +220,28 @@ func TestMongodumpArchivesAreImportedAndNamedInTheReport(t *testing.T) {
 		}
 	}
 
-	for _, want := range []string{"--archive=" + dumps.Dir + "/dump_shop_20260101.archive.gz", "--gzip", "--username=app"} {
+	for _, want := range []string{"--archive=" + dumps.Dir + "/dump_shop_20260101.archive.gz", "--gzip", "--username=app", "--config=" + toolsConfigPath} {
 		if !strings.Contains(restore, want) {
 			t.Errorf("mongorestore lacks %q: %q", want, restore)
 		}
 	}
 
-	// The mongo tools take their credentials on the command line and nowhere else; the journal is what must not carry them.
+	if strings.Contains(restore, appPassword) || strings.Contains(restore, "--password") {
+		t.Fatalf("the password must reach mongorestore through its config file, never through the argv ps shows: %q", restore)
+	}
+
+	if _, present := fake.Files[toolsConfigPath]; present {
+		t.Fatal("the config file carrying the password must not outlive the command")
+	}
+
+	mutations := strings.Join(fake.Mutations, "\n")
+	if !strings.Contains(mutations, "write "+toolsConfigPath+"\nremove "+toolsConfigPath) {
+		t.Fatalf("the config file is written for the command and removed right after:\n%s", mutations)
+	}
+
 	for _, line := range ctx.Output() {
 		if strings.Contains(line, appPassword) {
-			t.Fatalf("the journal must mask the password of mongorestore: %s", line)
+			t.Fatalf("the journal must not carry the password: %s", line)
 		}
 	}
 }
@@ -355,6 +371,30 @@ func newContextWith(t *testing.T, fake *modtest.FakeSys, values modtest.Values) 
 		Values:   values,
 		Secrets:  modtest.Secrets{"app_password": appPassword},
 	})
+}
+
+// Left at zero the cache follows the machine; a figure given follows the client, whose database may be the whole point of the server.
+func TestTheCacheFollowsTheMachineUntilTheClientSizesIt(t *testing.T) {
+	fake := newFakeSys()
+	install(t, newContext(t, fake))
+
+	if !strings.Contains(string(fake.Files[confPath]), "cacheSizeGB: "+memorySizedCache) {
+		t.Fatalf("an unsized cache follows the memory:\n%s", fake.Files[confPath])
+	}
+
+	chosen := newFakeSys()
+	install(t, newContextWith(t, chosen, modtest.Values{"cache_mb": 2048}))
+
+	if !strings.Contains(string(chosen.Files[confPath]), "cacheSizeGB: 2") {
+		t.Fatalf("the chosen size must reach the configuration:\n%s", chosen.Files[confPath])
+	}
+
+	floored := newFakeSys()
+	install(t, newContextWith(t, floored, modtest.Values{"cache_mb": 64}))
+
+	if !strings.Contains(string(floored.Files[confPath]), "cacheSizeGB: 0.25") {
+		t.Fatalf("WiredTiger refuses less than a quarter of a gigabyte:\n%s", floored.Files[confPath])
+	}
 }
 
 // The version, the port and the user name are the client's call; the repository, the configuration and the url follow.

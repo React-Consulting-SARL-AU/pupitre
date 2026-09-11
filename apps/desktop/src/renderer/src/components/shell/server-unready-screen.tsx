@@ -56,11 +56,11 @@ export function ServerUnreadyScreen({
             : t("shell.unready.reachingTitle", { name: server.name })}
         </h1>
 
-        <p className="mt-2 text-ink-3 leading-relaxed">
-          {error
-            ? t("shell.unready.notRespondingBody")
-            : t("shell.unready.reachingBody")}
-        </p>
+        {error ? (
+          <p className="mt-2 text-ink-3 leading-relaxed">
+            {t("shell.unready.notRespondingBody")}
+          </p>
+        ) : null}
 
         {error ? (
           <div className="mt-6">

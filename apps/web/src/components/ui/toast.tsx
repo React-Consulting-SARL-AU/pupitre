@@ -102,6 +102,7 @@ function ToastStack() {
               <Toast.Close
                 aria-label={t("common.close")}
                 className="-mt-1 -mr-2 flex size-7 shrink-0 items-center justify-center rounded-full text-ink-3 transition-fast hover:bg-raised hover:text-ink focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
+                title={t("common.close")}
               >
                 <X className="size-4" strokeWidth={1.5} />
               </Toast.Close>

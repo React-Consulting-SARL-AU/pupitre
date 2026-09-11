@@ -45,7 +45,7 @@ export const billingUi = {
     "checkout.order": "Order",
     "checkout.opening": "Opening the payment…",
     "checkout.lead":
-      "The payment happens in a secure area. The subscription lands here as soon as it is confirmed.",
+      "The subscription lands here as soon as the payment is confirmed.",
     "checkout.failed": "The payment could not be opened.",
     "checkout.failedFix":
       "Try again; if it persists, check that you own this organisation.",
@@ -97,7 +97,7 @@ export const billingUi = {
     "checkout.order": "Commander",
     "checkout.opening": "Ouverture du paiement…",
     "checkout.lead":
-      "Le paiement se fait dans un espace sécurisé. L'abonnement arrive ici dès qu'il est confirmé.",
+      "L'abonnement arrive ici dès que le paiement est confirmé.",
     "checkout.failed": "Le paiement n'a pas pu être ouvert.",
     "checkout.failedFix":
       "Réessayez ; si cela persiste, vérifiez que vous êtes bien propriétaire de cette organisation.",

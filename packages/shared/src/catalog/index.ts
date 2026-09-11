@@ -196,6 +196,15 @@ export const ConnectionKindSchema = z.enum(CONNECTION_KINDS)
 
 export type ConnectionKind = z.infer<typeof ConnectionKindSchema>
 
+/**
+ * `runs` says whether the module holds a process on the machine, or spawns one
+ * at any moment: a database, a tunnel, an editor server, a coding agent.
+ *
+ * A language, a CLI or a hardening pass leaves nothing to watch, and the
+ * dashboard has no row to give it. An agent older than the field says nothing,
+ * and everything it installed is taken to run, which is what the dashboard did
+ * before the field existed.
+ */
 export const ManifestSchema = z.object({
   id: ModuleIdPatternSchema,
   category: ModuleCategorySchema,
@@ -207,6 +216,7 @@ export const ManifestSchema = z.object({
   arch: z.array(ArchitectureSchema).min(1),
   fields: z.array(FieldSchema),
   connection: ConnectionKindSchema.optional(),
+  runs: z.boolean().default(true),
   mandatory: z.boolean(),
   since: z.string().min(1),
 })

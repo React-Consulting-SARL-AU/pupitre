@@ -7,7 +7,7 @@ var selfupdateCatalog = map[string]Message{
 		EN: "the binary of version %s does not match its signature: nothing was installed",
 	},
 	"selfupdate.signature.bad.fix": {
-		FR: "Relancez la mise à jour depuis l'app ; si le refus persiste, signale-le, le binaire publié est en cause.",
+		FR: "Relancez la mise à jour depuis l'app ; si le refus persiste, signalez-le, le binaire publié est en cause.",
 		EN: "Run the update again from the app; if it keeps refusing, report it, the published binary is at fault.",
 	},
 	"selfupdate.signature.unverifiable": {
@@ -23,7 +23,7 @@ var selfupdateCatalog = map[string]Message{
 		EN: "the binary of version %s has digest %s, the platform announces %s: nothing was installed",
 	},
 	"selfupdate.corrupted.fix": {
-		FR: "Relancez la mise à jour ; si le refus persiste, signale-le, le téléchargement de cette version est en cause.",
+		FR: "Relancez la mise à jour ; si le refus persiste, signalez-le, le téléchargement de cette version est en cause.",
 		EN: "Run the update again; if it keeps refusing, report it, the download of this version is at fault.",
 	},
 	"selfupdate.downgrade.refused": {
@@ -47,7 +47,7 @@ var selfupdateCatalog = map[string]Message{
 		EN: "the platform does not publish version %s for this architecture",
 	},
 	"selfupdate.version.unpublished.fix": {
-		FR: "Choisissez une version publiée, ou laisse l'app demander la dernière.",
+		FR: "Choisissez une version publiée, ou laissez l'app demander la dernière.",
 		EN: "Pick a published version, or let the app ask for the latest.",
 	},
 	"selfupdate.token.refused": {
@@ -83,11 +83,11 @@ var selfupdateCatalog = map[string]Message{
 		EN: "version %s does not answer the protocol (%s): agent %s was restored",
 	},
 	"selfupdate.silent.fix": {
-		FR: "Reste sur cette version ; signale l'incident pour que la version publiée soit corrigée.",
+		FR: "Restez sur cette version ; signalez l'incident pour que la version publiée soit corrigée.",
 		EN: "Stay on this version; report the incident so the published one gets fixed.",
 	},
 	"selfupdate.token.missing.fix": {
-		FR: "Réinstalle ce serveur depuis l'app pour lui rendre un jeton de serveur.",
+		FR: "Réinstallez ce serveur depuis l'app pour lui rendre un jeton de serveur.",
 		EN: "Reinstall this server from the app to give it a server token back.",
 	},
 	"selfupdate.root.required.fix": {
@@ -107,8 +107,12 @@ var selfupdateCatalog = map[string]Message{
 		EN: "%s; going back to the previous version failed too: %s",
 	},
 	"selfupdate.rollback.failed.fix": {
-		FR: "Pousse le binaire de l'agent depuis l'app pour rétablir le serveur.",
+		FR: "Poussez le binaire de l'agent depuis l'app pour rétablir le serveur.",
 		EN: "Push the agent's binary from the app to bring the server back.",
+	},
+	"selfupdate.binary.unreadable": {
+		FR: "%s illisible : %s",
+		EN: "%s cannot be read: %s",
 	},
 	"selfupdate.params.unreadable": {
 		FR: "paramètres illisibles : %s",

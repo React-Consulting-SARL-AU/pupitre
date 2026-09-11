@@ -2,7 +2,7 @@ export const account = {
   en: {
     "billingPanel.lockedTitle": "Billing is for the owner",
     "billingPanel.lockedDescription":
-      "Only the owner of the organisation sees the subscription, the amount and the payment portal. Ask them for one more seat if you are short of one.",
+      "Only the owner of the organisation sees the subscription and the payment portal.",
     "billingPanel.noOrganizationTitle": "No active organisation",
     "billingPanel.noOrganizationDescription":
       "Pick an organisation in the sidebar to see its subscription.",
@@ -21,7 +21,6 @@ export const account = {
     "seats.spare.other": "{count} seats are empty.",
     "seats.spareFixPaid":
       "Lower the number of servers in the subscription above: you are paying for seats nobody uses.",
-    "seats.spareFixFree": "You can enrol more servers without paying anything.",
     "seats.fullTitle": "Every seat is taken.",
     "seats.fullFix":
       "Raise the number of servers in the subscription above to enrol one more.",
@@ -30,7 +29,7 @@ export const account = {
     "profile.name": "Name",
     "profile.email": "Email address",
     "profile.emailHelp":
-      "The address is what signs you in. Changing it sends a link to the address you use today: the account moves only once that link is opened.",
+      "Changing it sends a confirmation link to your current address.",
     "profile.saved": "Name saved.",
     "profile.emailAsked":
       "A confirmation link has been sent to your current address.",
@@ -39,7 +38,7 @@ export const account = {
 
     "deleteAccount.title": "Delete the account",
     "deleteAccount.lead":
-      "Deleting removes your account, your devices and their public keys. It is final and cannot be undone. Your servers stay yours: it is your VPS, at your host.",
+      "Deleting removes your account, your devices and their public keys. It cannot be undone. Your servers stay yours.",
     "deleteAccount.subscription":
       "A running subscription must be cancelled first, from the billing area, and a server still assigned must be released.",
     "deleteAccount.trigger": "Delete my account",
@@ -57,7 +56,7 @@ export const account = {
   fr: {
     "billingPanel.lockedTitle": "La facturation est réservée au propriétaire",
     "billingPanel.lockedDescription":
-      "Seul le propriétaire de l'organisation voit l'abonnement, le montant et le portail de paiement. Demandez-lui un siège de plus si vous en manquez un.",
+      "Seul le propriétaire de l'organisation voit l'abonnement et le portail de paiement.",
     "billingPanel.noOrganizationTitle": "Aucune organisation active",
     "billingPanel.noOrganizationDescription":
       "Choisissez une organisation dans la barre latérale pour voir son abonnement.",
@@ -78,8 +77,6 @@ export const account = {
     "seats.spare.other": "{count} sièges sont inoccupés.",
     "seats.spareFixPaid":
       "Réduisez le nombre de serveurs dans l'abonnement ci-dessus : vous payez des sièges que personne n'utilise.",
-    "seats.spareFixFree":
-      "Vous pouvez enrôler encore des serveurs sans rien payer.",
     "seats.fullTitle": "Tous les sièges sont occupés.",
     "seats.fullFix":
       "Augmentez le nombre de serveurs dans l'abonnement ci-dessus pour en enrôler un de plus.",
@@ -88,7 +85,7 @@ export const account = {
     "profile.name": "Nom",
     "profile.email": "Adresse email",
     "profile.emailHelp":
-      "L'adresse sert à vous connecter. La changer envoie un lien à l'adresse que vous utilisez aujourd'hui : le compte ne bouge qu'une fois ce lien ouvert.",
+      "La changer envoie un lien de confirmation à votre adresse actuelle.",
     "profile.saved": "Nom enregistré.",
     "profile.emailAsked":
       "Un lien de confirmation est parti vers votre adresse actuelle.",
@@ -97,7 +94,7 @@ export const account = {
 
     "deleteAccount.title": "Supprimer le compte",
     "deleteAccount.lead":
-      "La suppression retire votre compte, vos appareils et leurs clés publiques. Elle est définitive et ne se rattrape pas. Vos serveurs restent les vôtres : c'est votre VPS, chez votre hébergeur.",
+      "La suppression retire votre compte, vos appareils et leurs clés publiques. Elle ne se rattrape pas. Vos serveurs restent les vôtres.",
     "deleteAccount.subscription":
       "Un abonnement en cours doit être résilié avant, depuis l'espace de facturation, et un serveur encore attribué doit être retiré.",
     "deleteAccount.trigger": "Supprimer mon compte",

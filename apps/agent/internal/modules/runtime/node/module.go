@@ -11,7 +11,20 @@ import (
 	"pupitre.studio/agent/internal/sys/user"
 )
 
-var tools = []string{"node", "bun", "pnpm"}
+// pnpm and yarn come from the npm registry: mise's default aqua source verifies GitHub attestations that their releases no longer match.
+const (
+	pnpmSpec = "npm:pnpm"
+	yarnSpec = "npm:yarn"
+)
+
+type tool struct {
+	field string
+	spec  string
+}
+
+var tools = []tool{{"node", "node"}, {"bun", "bun"}, {"pnpm", pnpmSpec}, {"yarn", yarnSpec}}
+
+var corepacked = []tool{{"pnpm", pnpmSpec}, {"yarn", yarnSpec}}
 
 type Module struct{}
 
@@ -49,23 +62,30 @@ func (Module) Install(ctx *modules.Context) error {
 		return err
 	}
 
-	if _, err := optional(ctx, "install-bun", "bun"); err != nil {
+	if _, err := optional(ctx, "install-bun", "bun", "bun"); err != nil {
 		return err
 	}
 
-	pnpmAdded, err := optional(ctx, "install-pnpm", "pnpm")
-	if err != nil {
-		return err
+	var added []string
+	for _, manager := range corepacked {
+		installed, err := optional(ctx, "install-"+manager.field, manager.field, manager.spec)
+		if err != nil {
+			return err
+		}
+
+		if installed {
+			added = append(added, manager.field)
+		}
 	}
 
-	// corepack is enabled for pnpm alone: enabled globally it rejects the repositories that declare bun as their package manager.
+	// corepack is enabled for the chosen managers alone: enabled globally it rejects the repositories that declare bun as their package manager.
 	return ctx.Step("enable-corepack", func() (modules.Outcome, error) {
-		if !pnpmAdded {
+		if len(added) == 0 {
 			return modules.Skipped, nil
 		}
 
-		if _, err := user.Run(ctx, shell.User, "corepack", "enable", "pnpm"); err != nil {
-			ctx.Warn(i18n.T("warn.node.corepack.missing", err.Error()))
+		if _, err := user.Run(ctx, shell.User, append([]string{"corepack", "enable"}, added...)...); err != nil {
+			ctx.Warn(i18n.T("warn.node.corepack.missing", strings.Join(added, ", "), err.Error()))
 		}
 
 		return modules.Done, nil
@@ -82,8 +102,8 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 
 		present := []string{}
 		for _, tool := range tools {
-			if before[tool] != "" {
-				present = append(present, tool)
+			if before[tool.spec] != "" {
+				present = append(present, tool.spec)
 			}
 		}
 
@@ -109,8 +129,8 @@ func (Module) Uninstall(ctx *modules.Context) error {
 		return err
 	}
 
-	for _, tool := range []string{"pnpm", "bun", "node"} {
-		if err := mise.Remove(ctx, "remove-"+tool, tool); err != nil {
+	for i := len(tools) - 1; i >= 0; i-- {
+		if err := mise.Remove(ctx, "remove-"+tools[i].field, tools[i].spec); err != nil {
 			return err
 		}
 	}
@@ -132,21 +152,21 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	return status, nil
 }
 
-func optional(ctx *modules.Context, step, tool string) (bool, error) {
-	if !ctx.Bool(tool) {
+func optional(ctx *modules.Context, step, field, spec string) (bool, error) {
+	if !ctx.Bool(field) {
 		return false, ctx.Step(step, func() (modules.Outcome, error) {
 			return modules.Skipped, nil
 		})
 	}
 
-	return mise.Add(ctx, step, tool, mise.Latest)
+	return mise.Add(ctx, step, spec, mise.Latest)
 }
 
 func describe(installed map[string]string) string {
 	var parts []string
 	for _, tool := range tools {
-		if installed[tool] != "" {
-			parts = append(parts, tool+" "+installed[tool])
+		if installed[tool.spec] != "" {
+			parts = append(parts, tool.field+" "+installed[tool.spec])
 		}
 	}
 

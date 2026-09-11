@@ -1,11 +1,13 @@
 package jetbrains
 
 import (
-	"fmt"
+	"errors"
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/download"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/user"
@@ -17,7 +19,6 @@ const (
 
 	markerName = ".installed.txt"
 	buildName  = "build.txt"
-	archiveDir = "/tmp"
 )
 
 type Module struct{}
@@ -54,12 +55,11 @@ func (Module) Install(ctx *modules.Context) error {
 			return modules.Failed, err
 		}
 
-		return modules.Done, download(ctx, found)
+		return modules.Done, installBackend(ctx, found)
 	})
 }
 
-func download(ctx *modules.Context, found release) error {
-	archive := archivePath(ctx)
+func installBackend(ctx *modules.Context, found release) error {
 	dist := distDir(ctx)
 
 	for _, dir := range []string{CacheDir, dist} {
@@ -72,20 +72,23 @@ func download(ctx *modules.Context, found release) error {
 		}
 	}
 
-	if _, err := user.Run(ctx, shell.User, "curl", "-fsSL", "--proto", "=https", "--tlsv1.2", "-o", archive, found.link); err != nil {
+	digest, err := publishedDigest(ctx, found)
+	if err != nil {
 		return err
 	}
 
-	if _, err := user.Run(ctx, shell.User, "tar", "-x", "-z", "-f", archive, "-C", dist, "--strip-components=1"); err != nil {
+	staged, done, err := download.Verified(ctx, archiveName(ctx), found.link, digest)
+	if err != nil {
 		return err
 	}
+	defer done()
 
-	if _, err := file.Remove(ctx, archive); err != nil {
+	if err := download.Extract(ctx, staged, dist, 1, shell.User); err != nil {
 		return err
 	}
 
 	if !file.Exists(ctx, dist) {
-		return fmt.Errorf("the %s backend is missing from %s after extraction", found.version, dist)
+		return errors.New(i18n.T("modules.jetbrains.missing_after_extract", found.version, dist))
 	}
 
 	return nil
@@ -154,7 +157,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 			return modules.Failed, err
 		}
 
-		return modules.Done, download(ctx, found)
+		return modules.Done, installBackend(ctx, found)
 	}); err != nil {
 		return err
 	}
@@ -199,16 +202,11 @@ func distDir(ctx *modules.Context) string {
 }
 
 func optionsPath(ctx *modules.Context) string {
-	selected, err := chosen(ctx)
-	if err != nil {
-		return distDir(ctx) + "/bin/idea64.vmoptions"
-	}
-
-	return distDir(ctx) + "/bin/" + selected.product + "64.vmoptions"
+	return distDir(ctx) + "/bin/" + chosen(ctx).product + "64.vmoptions"
 }
 
-func archivePath(ctx *modules.Context) string {
-	return archiveDir + "/pupitre-jetbrains-" + ctx.String("ide") + ".tar.gz"
+func archiveName(ctx *modules.Context) string {
+	return "jetbrains-" + ctx.String("ide") + ".tar.gz"
 }
 
 func installedBuild(ctx *modules.Context) string {

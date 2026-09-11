@@ -23,6 +23,7 @@ Un service du catalogue est un **module** : une unité Go qui sait se vérifier,
 | `server/bootstrap.sh`, `server/bin/dev`, `docs/SETUP.md` | la spécification des étapes, en bash ; jamais une dépendance |
 | `docs/contracts/service-catalog.md` | manifeste, catégories, champs, préréglages |
 | `docs/contracts/agent-protocol.md` | `install`, `uninstall`, `upgrade`, `report`, événements `step`, flux secret |
+| `docs/contracts/config-migrations.md` | ce que coûte le renommage d'un champ déjà répondu sur une machine |
 
 ## État du dépôt
 

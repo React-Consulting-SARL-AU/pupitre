@@ -62,7 +62,7 @@
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"start","step":"write-sshd-fragment"}
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"ok","step":"write-sshd-fragment"}
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"start","step":"validate-sshd-config"}
-< {"event":"step","id":3,"module":"core.hardening","ms":0,"replay":"sudo pupitred install --only=core.hardening","status":"fail","step":"validate-sshd-config"}
+< {"event":"step","id":3,"message":"sshd: exit 1: /etc/ssh/sshd_config.d/10-pupitre.conf line 5: Bad configuration option: AllowUsers","module":"core.hardening","ms":0,"replay":"sudo pupitred install --only=core.hardening","status":"fail","step":"validate-sshd-config"}
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"start","step":"revert-sshd-fragment"}
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"ok","step":"revert-sshd-fragment"}
 < {"id":3,"ok":true,"result":{"root_closed":false,"root_kept":false,"next_user":"root","reason":"the sshd configuration is invalid, the fragment was removed, root stays open: sshd: exit 1: /etc/ssh/sshd_config.d/10-pupitre.conf line 5: Bad configuration option: AllowUsers"}}

@@ -76,3 +76,27 @@ func TestWriteUnitReloadsTheDaemon(t *testing.T) {
 		t.Fatalf("daemon-reload missing: %v", fake.Commands())
 	}
 }
+
+func TestRecentReadsTheCurrentRunOfTheUnitAlone(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Units["cloudflared"] = modtest.UnitActive
+	fake.Answer("journalctl", "INF Registered tunnel connection\n")
+	ctx := modtest.NewContext(t, fake, modtest.Options{})
+
+	if said := systemd.Recent(ctx, "cloudflared", 5); said != "INF Registered tunnel connection" {
+		t.Fatalf("Recent = %q", said)
+	}
+
+	read := fake.Calls[len(fake.Calls)-1].Argv
+	if !reflect.DeepEqual(read, []string{"journalctl", "-n", "5", "--no-pager", "-o", "cat", "_SYSTEMD_INVOCATION_ID=run-cloudflared"}) {
+		t.Fatalf("a unit that ran is read by its current invocation, got %v", read)
+	}
+
+	// A unit that never ran has no invocation: its whole journal is the only thing to read.
+	systemd.Recent(ctx, "ghost", 5)
+
+	read = fake.Calls[len(fake.Calls)-1].Argv
+	if !reflect.DeepEqual(read, []string{"journalctl", "-n", "5", "--no-pager", "-o", "cat", "-u", "ghost"}) {
+		t.Fatalf("got %v", read)
+	}
+}

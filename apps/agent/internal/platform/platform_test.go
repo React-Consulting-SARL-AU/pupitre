@@ -1,6 +1,8 @@
 package platform_test
 
 import (
+	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -21,13 +23,56 @@ func TestReleaseCarriesTheServerToken(t *testing.T) {
 	}))
 	defer server.Close()
 
-	body, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.Release("1.2.3")
+	body, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.Release(context.Background(), "1.2.3")
 	if err != nil {
 		t.Fatalf("Release: %v", err)
 	}
 
 	if string(body) != "ELF" || seen != "Bearer jeton" {
 		t.Fatalf("body %q, header %q", body, seen)
+	}
+}
+
+func TestEveryCallSaysWhichAgentMakesIt(t *testing.T) {
+	var seen string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seen = r.Header.Get("User-Agent")
+	}))
+	defer server.Close()
+
+	if _, err := (platform.Client{BaseURL: server.URL, Token: "jeton", Version: "1.4.0"}).Release(context.Background(), "1.2.3"); err != nil {
+		t.Fatalf("Release: %v", err)
+	}
+
+	if seen != "pupitred/1.4.0" {
+		t.Fatalf("User-Agent = %q", seen)
+	}
+}
+
+func TestACancelledContextStopsTheCall(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-r.Context().Done()
+	}))
+	defer server.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	if _, err := (platform.Client{BaseURL: server.URL, Token: "jeton"}).State(ctx); err == nil || !errors.Is(err, context.Canceled) {
+		t.Fatalf("got %v, want the cancellation", err)
+	}
+}
+
+// The platform is only ever spoken to over a modern TLS: a downgraded handshake is refused before any token leaves.
+func TestTheClientRefusesATlsBelowOneDotTwo(t *testing.T) {
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	server.TLS = &tls.Config{MaxVersion: tls.VersionTLS11}
+	server.StartTLS()
+	defer server.Close()
+
+	_, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.State(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "protocol version") {
+		t.Fatalf("got %v, want a refused handshake", err)
 	}
 }
 
@@ -38,7 +83,7 @@ func TestReleaseAsksForTheVersionOfTheRequest(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if _, err := (platform.Client{BaseURL: server.URL + "/api/v1", Token: "jeton"}).Release("1.2.3"); err != nil {
+	if _, err := (platform.Client{BaseURL: server.URL + "/api/v1", Token: "jeton"}).Release(context.Background(), "1.2.3"); err != nil {
 		t.Fatalf("Release: %v", err)
 	}
 
@@ -62,7 +107,7 @@ func TestReleaseFollowsTheRedirectWithoutLeakingTheToken(t *testing.T) {
 	}))
 	defer server.Close()
 
-	body, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.Release("1.2.3")
+	body, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.Release(context.Background(), "1.2.3")
 	if err != nil {
 		t.Fatalf("Release: %v", err)
 	}
@@ -78,7 +123,7 @@ func TestReleaseTellsAnUnknownVersionApartFromAFailure(t *testing.T) {
 	}))
 	defer server.Close()
 
-	_, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.Release("9.9.9")
+	_, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.Release(context.Background(), "9.9.9")
 
 	var failure *platform.Error
 	if !errors.As(err, &failure) || !failure.NotFound() {
@@ -92,21 +137,21 @@ func TestReleaseRefusesABodyBeyondTheCap(t *testing.T) {
 	}))
 	defer server.Close()
 
-	_, err := platform.Client{BaseURL: server.URL, Token: "jeton", MaxBytes: 16}.Release("1.2.3")
+	_, err := platform.Client{BaseURL: server.URL, Token: "jeton", MaxBytes: 16}.Release(context.Background(), "1.2.3")
 	if err == nil || !strings.Contains(err.Error(), "beyond 16 bytes") {
 		t.Fatalf("error = %v", err)
 	}
 }
 
 func TestClientRefusesAPlaintextPlatform(t *testing.T) {
-	_, err := platform.Client{BaseURL: "http://pupitre.example", Token: "jeton"}.Release("1.2.3")
+	_, err := platform.Client{BaseURL: "http://pupitre.example", Token: "jeton"}.Release(context.Background(), "1.2.3")
 	if err == nil || !strings.Contains(err.Error(), "plaintext platform address") {
 		t.Fatalf("error = %v", err)
 	}
 }
 
 func TestClientRefusesToCallWithoutAToken(t *testing.T) {
-	_, err := platform.Client{BaseURL: "https://pupitre.example"}.Release("1.2.3")
+	_, err := platform.Client{BaseURL: "https://pupitre.example"}.Release(context.Background(), "1.2.3")
 	if err == nil || !strings.Contains(err.Error(), "no server token") {
 		t.Fatalf("error = %v", err)
 	}
@@ -140,7 +185,7 @@ func TestStateReadsEverythingTheAgentPolls(t *testing.T) {
 	}))
 	defer server.Close()
 
-	state, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.State()
+	state, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.State(context.Background())
 	if err != nil {
 		t.Fatalf("State: %v", err)
 	}
@@ -160,7 +205,7 @@ func TestStateCarriesTheVersionFloorOfTheServer(t *testing.T) {
 	}))
 	defer server.Close()
 
-	state, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.State()
+	state, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.State(context.Background())
 	if err != nil || state.MinimumVersion != "1.2.0" {
 		t.Fatalf("state = %+v, err = %v", state, err)
 	}
@@ -178,7 +223,7 @@ func TestReleaseMetadataReadsTheFingerprintAndTheSignature(t *testing.T) {
 	}))
 	defer server.Close()
 
-	info, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.ReleaseMetadata("1.4.0")
+	info, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.ReleaseMetadata(context.Background(), "1.4.0")
 	if err != nil {
 		t.Fatalf("ReleaseMetadata: %v", err)
 	}
@@ -199,7 +244,7 @@ func TestReleaseMetadataRefusesAnAnswerWithoutASignature(t *testing.T) {
 	}))
 	defer server.Close()
 
-	if _, err := (platform.Client{BaseURL: server.URL, Token: "jeton"}).ReleaseMetadata("1.4.0"); err == nil {
+	if _, err := (platform.Client{BaseURL: server.URL, Token: "jeton"}).ReleaseMetadata(context.Background(), "1.4.0"); err == nil {
 		t.Fatal("empty metadata must be refused")
 	}
 }
@@ -211,7 +256,7 @@ func TestStateAcceptsANullTargetVersion(t *testing.T) {
 	}))
 	defer server.Close()
 
-	state, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.State()
+	state, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.State(context.Background())
 	if err != nil || state.TargetVersion != "" {
 		t.Fatalf("state = %+v, err = %v", state, err)
 	}
@@ -231,7 +276,7 @@ func TestExchangeTradesTheEnrolmentTokenWithoutAServerToken(t *testing.T) {
 	}))
 	defer server.Close()
 
-	token, err := platform.Client{BaseURL: server.URL}.Exchange(platform.Enrollment{
+	token, err := platform.Client{BaseURL: server.URL}.Exchange(context.Background(), platform.Enrollment{
 		Token:         "jeton-d-enrolement",
 		HostPublicKey: "ssh-ed25519 AAAA root@vps",
 		AgentVersion:  "1.2.3",
@@ -253,7 +298,7 @@ func TestExchangeCarriesTheRefusalOfThePlatform(t *testing.T) {
 	}))
 	defer server.Close()
 
-	_, err := platform.Client{BaseURL: server.URL}.Exchange(platform.Enrollment{Token: "x"})
+	_, err := platform.Client{BaseURL: server.URL}.Exchange(context.Background(), platform.Enrollment{Token: "x"})
 
 	var failure *platform.Error
 	if !errors.As(err, &failure) || failure.Code != "enrollment_used" || failure.Status != http.StatusConflict {
@@ -276,7 +321,7 @@ func TestBeatSendsTheSampleAndAcceptsAnEmptyAnswer(t *testing.T) {
 	}))
 	defer server.Close()
 
-	err := platform.Client{BaseURL: server.URL, Token: "jeton"}.Beat(platform.Heartbeat{
+	err := platform.Client{BaseURL: server.URL, Token: "jeton"}.Beat(context.Background(), platform.Heartbeat{
 		Disk: 41, RAM: 62, Load: 0.4, StackVersion: "1.2.3", AgentVersion: "1.2.3",
 	})
 	if err != nil {
@@ -297,7 +342,7 @@ func TestBeatSendsTheSampleAndAcceptsAnEmptyAnswer(t *testing.T) {
 }
 
 func TestBeatRefusesWithoutAToken(t *testing.T) {
-	if err := (platform.Client{BaseURL: "https://pupitre.example"}).Beat(platform.Heartbeat{}); err == nil || !strings.Contains(err.Error(), "no server token") {
+	if err := (platform.Client{BaseURL: "https://pupitre.example"}).Beat(context.Background(), platform.Heartbeat{}); err == nil || !strings.Contains(err.Error(), "no server token") {
 		t.Fatalf("error = %v", err)
 	}
 }
@@ -342,7 +387,7 @@ func TestExchangeGivesUpOnAPlatformThatDoesNotAnswer(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		_, err := client.Exchange(platform.Enrollment{Token: "jeton", HostPublicKey: "ssh-ed25519 AAAA"})
+		_, err := client.Exchange(context.Background(), platform.Enrollment{Token: "jeton", HostPublicKey: "ssh-ed25519 AAAA"})
 		done <- err
 	}()
 
@@ -364,7 +409,7 @@ func TestReleaseKeepsTheLongTimeout(t *testing.T) {
 	}))
 	defer server.Close()
 
-	body, err := platform.Client{BaseURL: server.URL, Token: "jeton", ControlTimeout: time.Millisecond}.Release("1.2.3")
+	body, err := platform.Client{BaseURL: server.URL, Token: "jeton", ControlTimeout: time.Millisecond}.Release(context.Background(), "1.2.3")
 	if err != nil || string(body) != "ELF" {
 		t.Fatalf("body %q, err = %v", body, err)
 	}

@@ -1,8 +1,6 @@
 export const start = {
   en: {
     "start.heroTitle": "Four steps, and your server works for you.",
-    "start.heroLead":
-      "The account exists. What is left: start the trial, install the app, plug in a server.",
     "start.trialTitle": "Fourteen days, no card",
     "start.trialBadge": "{days} days",
     "start.gives.enrol":
@@ -15,20 +13,16 @@ export const start = {
       "No card is asked for. At the end of the {days} days, without one, the subscription stops and nothing is charged.",
     "start.action": "Start the trial",
     "start.actionPending": "Opening the trial…",
-    "start.lead":
-      "The subscription lands here as soon as it is confirmed, and the console opens with it.",
     "start.failed": "The trial could not be opened.",
     "start.failedFix":
       "Try again; if it persists, check that you own this organisation.",
     "start.waitingTitle": "Waiting for the confirmation…",
-    "start.waitingLead":
-      "The trial has just been opened and is being confirmed to us. The console creates nothing on its own; it waits for that confirmation.",
+    "start.waitingLead": "The trial is being confirmed.",
     "start.confirmedTitle": "The trial is open.",
     "start.confirmedLead":
       "Next step: download the app for your system, then link it to your account.",
     "start.pendingFailed": "The trial is not confirmed yet.",
-    "start.pendingFailedFix":
-      "Reload this page in a moment. Nothing is lost: a subscription only opens once.",
+    "start.pendingFailedFix": "Reload this page in a moment; nothing is lost.",
     "start.lockedTitle": "The owner starts the trial",
     "start.lockedDescription":
       "{owner} owns this organisation, and starts its {days}-day trial. Until then, no server can be enrolled.",
@@ -47,16 +41,13 @@ export const start = {
     "onboarding.app.lead":
       "The app runs on your computer. When it opens, it shows a code: enter it here, on the linking page.",
     "onboarding.server.title": "Rent a server and add it",
-    "onboarding.server.lead":
-      "Then, in the app: Add a server. The assistant does the rest in seven steps.",
+    "onboarding.server.lead": "Then, in the app: Add a server.",
     "onboarding.server.guide": "Which server to rent, and where",
     "onboarding.server.enrolling":
       "Enrolment under way: the server shows up here at its first contact.",
   },
   fr: {
     "start.heroTitle": "Quatre pas, et votre serveur travaille pour vous.",
-    "start.heroLead":
-      "Le compte est créé. Il reste à démarrer l'essai, installer l'app et brancher un serveur.",
     "start.trialTitle": "Quatorze jours, sans carte",
     "start.trialBadge": "{days} jours",
     "start.gives.enrol":
@@ -69,20 +60,17 @@ export const start = {
       "Aucune carte n'est demandée. À la fin des {days} jours, sans carte, l'abonnement s'arrête et rien n'est prélevé.",
     "start.action": "Démarrer l'essai",
     "start.actionPending": "Ouverture de l'essai…",
-    "start.lead":
-      "L'abonnement arrive ici dès qu'il est confirmé, et la console s'ouvre avec lui.",
     "start.failed": "L'essai n'a pas pu être ouvert.",
     "start.failedFix":
       "Réessayez ; si cela persiste, vérifiez que vous êtes bien propriétaire de cette organisation.",
     "start.waitingTitle": "Attente de la confirmation…",
-    "start.waitingLead":
-      "L'essai vient d'être ouvert et nous est confirmé dans l'instant. La console ne crée rien d'elle-même ; elle attend cette confirmation.",
+    "start.waitingLead": "L'essai est en cours de confirmation.",
     "start.confirmedTitle": "L'essai est ouvert.",
     "start.confirmedLead":
       "Étape suivante : téléchargez l'app pour votre système, puis liez-la à votre compte.",
     "start.pendingFailed": "L'essai n'est pas encore confirmé.",
     "start.pendingFailedFix":
-      "Rechargez cette page dans un instant. Rien n'est perdu : un abonnement ne s'ouvre qu'une fois.",
+      "Rechargez cette page dans un instant ; rien n'est perdu.",
     "start.lockedTitle": "L'essai se démarre par le propriétaire",
     "start.lockedDescription":
       "{owner} est propriétaire de cette organisation, et démarre son essai de {days} jours. D'ici là, aucun serveur ne peut être enrôlé.",
@@ -101,8 +89,7 @@ export const start = {
     "onboarding.app.lead":
       "L'app tourne sur votre ordinateur. À l'ouverture, elle affiche un code : entrez-le ici, sur la page de liaison.",
     "onboarding.server.title": "Louer un serveur et l'ajouter",
-    "onboarding.server.lead":
-      "Puis, dans l'app : Ajouter un serveur. L'assistant fait le reste en sept étapes.",
+    "onboarding.server.lead": "Puis, dans l'app : Ajouter un serveur.",
     "onboarding.server.guide": "Quel serveur louer, et où",
     "onboarding.server.enrolling":
       "Enrôlement en cours : le serveur apparaît ici à son premier contact.",

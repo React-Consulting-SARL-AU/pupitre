@@ -7,6 +7,8 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/download"
+	"pupitre.studio/agent/internal/modules/runtime/shell"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/env"
 	"pupitre.studio/agent/internal/sys/file"
@@ -14,8 +16,10 @@ import (
 
 const (
 	BinaryPath = "/usr/local/bin/neon"
+	// The help the CLI prints names itself neonctl; both names must answer.
+	LinkPath = "/usr/local/bin/neonctl"
 
-	stagePath = "/tmp/pupitre-neonctl"
+	assetName = "neonctl"
 	assetURL  = "https://github.com/neondatabase/neonctl/releases/latest/download/neonctl-linux-"
 
 	keyKey    = "NEON_API_KEY"
@@ -55,23 +59,45 @@ func version(ctx *modules.Context) string {
 }
 
 func (Module) Install(ctx *modules.Context) error {
-	return ctx.Step("install-neonctl", func() (modules.Outcome, error) {
+	if err := ctx.Step("install-neonctl", func() (modules.Outcome, error) {
 		if file.Exists(ctx, BinaryPath) {
 			return modules.Skipped, nil
 		}
 
-		return modules.Done, download(ctx, BinaryPath)
-	})
-}
+		staged, done, err := fetch(ctx)
+		if err != nil {
+			return modules.Failed, err
+		}
+		defer done()
 
-func download(ctx *modules.Context, destination string) error {
-	if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"curl", "-fsSL", "--proto", "=https", "--tlsv1.2", "-o", destination, asset()}}); err != nil {
+		return modules.Done, download.Install(ctx, staged, BinaryPath, 0o755, "root")
+	}); err != nil {
 		return err
 	}
 
-	_, err := sys.Exec(ctx, sys.Command{Argv: []string{"chmod", "0755", destination}})
+	return ctx.Step("link-neonctl", func() (modules.Outcome, error) {
+		if linkTarget(ctx) == BinaryPath {
+			return modules.Skipped, nil
+		}
 
-	return err
+		_, err := sys.Exec(ctx, sys.Command{Argv: []string{"ln", "-sfn", BinaryPath, LinkPath}})
+
+		return modules.Done, err
+	})
+}
+
+func linkTarget(ctx *modules.Context) string {
+	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"readlink", LinkPath}})
+	if err != nil {
+		return ""
+	}
+
+	return strings.TrimSpace(out.Stdout)
+}
+
+// Neon publishes no checksum beside its binaries: the transport is the only guarantee, so the download at least stays root's until it is in place.
+func fetch(ctx *modules.Context) (string, func(), error) {
+	return download.Fetch(ctx, assetName, asset())
 }
 
 // Neon publishes one binary per architecture, under the name Node gives it rather than the one Go uses.
@@ -83,10 +109,25 @@ func asset() string {
 	return assetURL + "x64"
 }
 
-// The key lands in /etc/pupitre/env, readable by root alone. neonctl has no token login: it takes a key through --api-key or NEON_API_KEY, so what reads this file hands it over.
+// neonctl has no token login: it takes the key through NEON_API_KEY, so the dev shell must carry it, not only /etc/pupitre/env.
 func (Module) Configure(ctx *modules.Context) error {
-	return ctx.Step("store-key", func() (modules.Outcome, error) {
+	if err := ctx.Step("store-key", func() (modules.Outcome, error) {
 		changed, err := env.Set(ctx, keyKey, ctx.Secret("api_key"))
+		if err != nil {
+			return modules.Failed, err
+		}
+
+		if !changed {
+			return modules.Skipped, nil
+		}
+
+		return modules.Done, nil
+	}); err != nil {
+		return err
+	}
+
+	return ctx.Step("export-key", func() (modules.Outcome, error) {
+		changed, err := shell.SetUserEnv(ctx, keyKey, ctx.Secret("api_key"))
 		if err != nil {
 			return modules.Failed, err
 		}
@@ -101,30 +142,22 @@ func (Module) Configure(ctx *modules.Context) error {
 
 func (m Module) Upgrade(ctx *modules.Context) error {
 	if err := ctx.Step("upgrade-neonctl", func() (modules.Outcome, error) {
-		if err := download(ctx, stagePath); err != nil {
+		staged, done, err := fetch(ctx)
+		if err != nil {
 			return modules.Failed, err
 		}
+		defer done()
 
-		staged, err := file.Read(ctx, stagePath)
+		fetched, err := file.Read(ctx, staged)
 		if err != nil {
 			return modules.Failed, err
 		}
 
-		if file.Same(ctx, BinaryPath, staged) {
-			_, err := file.Remove(ctx, stagePath)
-
-			return modules.Skipped, err
+		if file.Same(ctx, BinaryPath, fetched) {
+			return modules.Skipped, nil
 		}
 
-		if err := file.WriteAtomic(ctx, BinaryPath, staged, 0o755); err != nil {
-			return modules.Failed, err
-		}
-
-		if _, err := file.Remove(ctx, stagePath); err != nil {
-			return modules.Failed, err
-		}
-
-		return modules.Done, nil
+		return modules.Done, file.WriteAtomic(ctx, BinaryPath, fetched, 0o755)
 	}); err != nil {
 		return err
 	}
@@ -149,13 +182,28 @@ func (Module) Uninstall(ctx *modules.Context) error {
 		return err
 	}
 
+	if err := ctx.Step("unlink-neonctl", func() (modules.Outcome, error) {
+		if linkTarget(ctx) == "" {
+			return modules.Skipped, nil
+		}
+
+		_, err := sys.Exec(ctx, sys.Command{Argv: []string{"rm", "-f", LinkPath}})
+
+		return modules.Done, err
+	}); err != nil {
+		return err
+	}
+
 	return ctx.Step("forget-key", func() (modules.Outcome, error) {
 		keys, err := env.Keys(ctx)
 		if err != nil {
 			return modules.Failed, err
 		}
 
-		forgotten := false
+		forgotten, err := shell.UnsetUserEnv(ctx, keyKey)
+		if err != nil {
+			return modules.Failed, err
+		}
 
 		for _, key := range keys {
 			if !strings.HasPrefix(key, keyPrefix) {

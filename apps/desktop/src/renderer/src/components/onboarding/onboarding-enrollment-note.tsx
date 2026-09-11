@@ -33,9 +33,6 @@ export function OnboardingEnrollmentNote({
         <p className="font-medium text-ink">
           {t("onboarding.enrollment.title")}
         </p>
-        <p className="mt-1 text-ink-3 leading-relaxed">
-          {t("onboarding.enrollment.detail")}
-        </p>
         <Details className="mt-1">
           <span className="font-data">
             {enrollment.serverId} · pupitred {enrollment.release.version} ·{" "}

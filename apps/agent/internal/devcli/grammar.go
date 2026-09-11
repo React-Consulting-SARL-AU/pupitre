@@ -2,6 +2,9 @@
 package devcli
 
 import (
+	"fmt"
+	"strings"
+
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
 )
@@ -37,4 +40,31 @@ func grammar() []contract.SubCommand {
 
 func Grammar() []contract.SubCommand {
 	return grammar()
+}
+
+// The arguments of each verb, as a terminal takes them. The grammar above
+// describes what the app completes, which knows nothing of `-n` nor of a second
+// positional; the placeholders stay in English, the sentence beside them comes
+// from the catalogue.
+var forms = map[string]string{
+	"up":      "<project|all>",
+	"down":    "<project|all>",
+	"restart": "<project|all>",
+	"logs":    "<project> [-f] [-n N]",
+	"sync":    "<project>",
+	"attach":  "<project>",
+	"branch":  "[project] [branch]",
+	"db":      "<url|shell|dump|import> [engine]",
+}
+
+func Usage() string {
+	var lines strings.Builder
+
+	fmt.Fprintf(&lines, "%s\n\n", i18n.T("devcli.usage"))
+	for _, verb := range grammar() {
+		fmt.Fprintf(&lines, "  %-35s %s\n", strings.TrimSpace(verb.Name+" "+forms[verb.Name]), verb.Help)
+	}
+	fmt.Fprintf(&lines, "\n%s\n", i18n.T("devcli.usage.json"))
+
+	return lines.String()
 }

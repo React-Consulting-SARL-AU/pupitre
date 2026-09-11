@@ -10,10 +10,10 @@ Même outillage que React-Box, mêmes versions quand elles sont compatibles : ce
 | Turbo 2 | graphe de tâches, cache, `--affected` | `envMode` strict : une variable non déclarée dans `globalPassThroughEnv` n'atteint aucune tâche |
 | Biome via Ultracite | lint et format | `biome.jsonc` racine étend `ultracite/biome/core`, `semicolons: "asNeeded"`. Même épingle qu'React-Box (`7.8.3`) tant que la mise à niveau n'a pas été faite là-bas |
 | tsgo | typecheck | `@typescript/native-preview`, TypeScript 6 |
-| Husky + commitlint | hooks | pre-commit : `ultracite fix` par workspace sur les fichiers indexés ; pre-push : lint, `check:types`, `test` affectés ; commits conventionnels |
+| Husky + commitlint | hooks | pre-commit : `ultracite fix` par workspace sur les fichiers indexés, et seul un fichier entièrement indexé est ré-indexé après la passe — un fichier indexé en partie est formaté sur le disque sans que ses morceaux laissés de côté entrent dans le commit ; pre-push : lint, `check:types`, `test` affectés, que `SKIP_PREPUSH=1` saute quand on sait ce qu'on fait ; commits conventionnels |
 | Prisma 7 | schéma et migrations | client généré committé, empreinte `packages/db/src/generated/.prisma-inputs.sha256` vérifiée au lint par `scripts/check-prisma-client-freshness.ts` ; `db:migrate` et `db:migrate:reset` exigent `PUPITRE_ALLOW_MIGRATE_ON=staging` ou `local` |
 | Wrangler 4 | Workers, Pages, R2, secrets | `secrets.required` déclarés dans `wrangler.jsonc`, vérifiés avant déploiement |
-| Go 1.25+ | l'agent | `gofmt`, `go vet`, `go test`, `garble` en release. Installé par Homebrew sur la machine du propriétaire |
+| Go 1.26+ (`apps/agent/go.mod`) | l'agent | `gofmt`, `go vet` et `staticcheck` au lint, `govulncheck` et `go test -race` en CI, `garble` en release. Les trois outils sont épinglés dans `apps/agent/package.json` : `bun --cwd=apps/agent run tools:install` installe `staticcheck` et `govulncheck`, `garble:install` installe garble, tous dans le bin de Go, à mettre dans le `PATH`. Go lui-même est installé par Homebrew sur la machine du propriétaire |
 | electron-vite, electron-builder | l'app desktop | bytecode du processus principal, fusibles, signature et notarisation ; un runner par système |
 
 ## Développement local
@@ -23,6 +23,8 @@ bun install
 bun dev              # site sur :4321, web sur :3000, tunnel de l'agent
 bun run dev:desktop  # l'app, pointée sur la console locale
 ```
+
+`dev:desktop` et le `build` du desktop construisent d'abord l'agent (`@pupitre/agent#build`, que turbo ne met jamais en cache : le binaire embarque `git describe`, que turbo ne hache pas, et un build repris du cache porterait la version d'un autre commit) : l'app embarque `apps/agent/dist` au démarrage, et c'est ce binaire qu'elle pousse sur un serveur nu. Sans cette dépendance, elle poussait le dernier build manuel, et un écran pouvait attendre un contrat que l'agent installé ne parlait pas encore.
 
 `bun run dev:web` lance Vite et TanStack Start sous le plugin Cloudflare, avec les bindings locaux. Neon local via `neonctl` ou une branche de dev ; `DATABASE_URL` dans `.env.local`. L'agent se teste sur un VPS réinstallable, jamais sur la machine du propriétaire : `PUPITRE_STAGING_HOST=root@<adresse> go test -tags staging ./test/staging/...` depuis `apps/agent`. Sans la variable, ces tests se sautent.
 
@@ -62,7 +64,18 @@ bun run test
 bun run build
 ```
 
-Les PR font tourner les tâches affectées ; `staging` et `main` font tout.
+Les PR font tourner les tâches affectées ; `staging` et `main` font tout. Les jobs de `ci.yml` :
+
+| Job | Quand | Ce qu'il fait |
+| --- | --- | --- |
+| `quality` | PR, `staging`, `main` | lint, typecheck, tests, build hors desktop. L'app desktop et les packages tournent avec `--coverage`, et leurs `lcov.info` montent dans l'artefact `coverage-<sha>` — aucun seuil, on lit |
+| `console-e2e` | idem | Playwright sur la console, non bloquant |
+| `desktop-e2e` | idem | Playwright sur l'app, sous xvfb |
+| `desktop-smoke` | push sur `staging` | `macos-15` et `windows-2025` : tests unitaires de l'app, bundle avec l'agent embarqué, et sur macOS la capture des thèmes, non bloquante — un runner n'a pas les polices du poste où les références ont été prises |
+| `gitleaks` | PR, `staging`, `main` | l'historique entier relu par gitleaks |
+| `agent` | idem | `gofmt`, `go vet`, `staticcheck`, `govulncheck`, `go test -race` avec son profil de couverture dans l'artefact `coverage-agent-<sha>`, build multi-arch ; sur `staging` et `main`, le build de release avec une clé jetable |
+
+Les actions des workflows sont épinglées par SHA, la version en commentaire à côté ; Dependabot (`github-actions`) les fait avancer.
 
 Trois workspaces passent `--timeout=60000` à `bun test` : `apps/web`, `apps/desktop` et `packages/api`. Leurs tests démarrent un Postgres en WebAssembly et lui appliquent les migrations avant le premier cas, ce qu'un runner froid met une vingtaine de secondes à faire — au-delà des cinq secondes que `bun test` accorde par défaut, et le hook tombe avant que le premier cas ait pu tourner.
 
@@ -72,7 +85,7 @@ Trois workspaces passent `--timeout=60000` à `bun test` : `apps/web`, `apps/des
 
 ## Secrets
 
-- Jamais dans le dépôt. Le hook pre-commit refuse toute chaîne ressemblant à une clé API, un jeton ou une clé privée.
+- Jamais dans le dépôt. Le hook pre-commit refuse toute chaîne ressemblant à une clé API, un jeton ou une clé privée, et le job `gitleaks` de la CI relit tout l'historique. La *push protection* de GitHub se pose dans les réglages du dépôt — *Settings* → *Code security* → *Secret scanning* — et nulle part ici : elle refuse un push qui porte un secret avant que la CI ne le voie.
 - Local : `bun run dev:prepare` prépare `.env.local` et les liens que chaque outil attend. Les trois commandes de développement l'appellent d'abord, donc il n'y a rien à lancer à la main. Il ne remplace jamais une valeur déjà écrite : un `.env.local` renseigné reste tel quel.
 - **Ce qui se dérive n'est pas stocké.** `DATABASE_URL` et `MIGRATE_DATABASE_URL` viennent de `neonctl`, poolé et direct, sur la branche Neon que la branche Git désigne ; `.env.local` garde à côté `NEON_PROJECT_ID` et `NEON_BRANCH`, qui disent d'où elles viennent. `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` sont tirés au hasard par poste, puisqu'ils n'ont pas à être partagés.
 - **Ce qui ne se dérive pas vient de 1Password.** `.env.1password.tpl` est le modèle committé, avec des références `op://` et aucune valeur ; le coffre et l'élément sont dans `op.config.json`, surchargeables par `OP_VAULT` et `OP_ITEM`. `op inject` échoue en bloc si un champ manque, donc une clé reste **en commentaire** tant que son champ n'existe pas dans la note.
@@ -164,8 +177,8 @@ Un produit et deux prix, créés à l'identique en sandbox et en live :
 | | |
 | --- | --- |
 | Produit | `Pupitre Server`, code fiscal `txcd_10103001` (SaaS, business use) |
-| Prix mensuel | 19 $, `tax_behavior` `exclusive` → `STRIPE_PRICE_SERVER_MONTH` |
-| Prix annuel | 190 $, deux mois offerts → `STRIPE_PRICE_SERVER_YEAR` |
+| Prix mensuel | 10 $, `tax_behavior` `exclusive` → `STRIPE_PRICE_SERVER_MONTH` |
+| Prix annuel | 100 $, deux mois offerts → `STRIPE_PRICE_SERVER_YEAR` |
 
 Réglages du dashboard : email de support à jour dans [Business details](https://dashboard.stripe.com/settings/business-details) (Stripe y escalade, et sans réponse sous 48 h il rembourse) ; logo, CGU et confidentialité dans [Checkout settings](https://dashboard.stripe.com/settings/checkout) ; portail client limité au moyen de paiement, aux factures et à la résiliation, jamais à la quantité : les sièges se changent depuis la console par `POST /orgs/:id/seats`, et `ReconcileSeats` ne fait que rapporter l'écart avec le nombre de serveurs.
 

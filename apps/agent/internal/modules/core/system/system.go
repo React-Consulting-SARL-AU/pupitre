@@ -1,11 +1,11 @@
 package system
 
 import (
-	"fmt"
-	"pupitre.studio/agent/internal/i18n"
+	"errors"
 	"strconv"
 	"strings"
 
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/apt"
@@ -53,13 +53,14 @@ func installPackages(ctx *modules.Context) error {
 		}
 
 		if len(failed) > 0 {
-			return modules.Failed, fmt.Errorf("packages not found or refused: %s", strings.Join(failed, ", "))
+			return modules.Failed, errors.New(i18n.T("modules.system.packages_refused", strings.Join(failed, ", ")))
 		}
 
 		return modules.Done, nil
 	})
 }
 
+// A swap file half made — allocated but never formatted or enabled — is removed on the spot: left there, every replay would take it for a swap and skip it for ever.
 func createSwap(ctx *modules.Context) error {
 	return ctx.Step("create-swap", func() (modules.Outcome, error) {
 		if swapPresent(ctx) {
@@ -74,7 +75,9 @@ func createSwap(ctx *modules.Context) error {
 			{"swapon", swapPath},
 		} {
 			if _, err := sys.Exec(ctx, sys.Command{Argv: argv}); err != nil {
+				_, _ = file.Remove(ctx, swapPath)
 				ctx.Warn(i18n.T("warn.system.swap.failed", err.Error()))
+
 				return modules.Done, nil
 			}
 		}
@@ -85,12 +88,9 @@ func createSwap(ctx *modules.Context) error {
 	})
 }
 
+// A swap is present when the kernel uses one or fstab enables ours at boot; a bare file at the path proves nothing.
 func swapPresent(ctx *modules.Context) bool {
 	if raw, err := file.Read(ctx, "/proc/swaps"); err == nil && len(strings.Split(strings.TrimSpace(string(raw)), "\n")) > 1 {
-		return true
-	}
-
-	if file.Exists(ctx, swapPath) {
 		return true
 	}
 

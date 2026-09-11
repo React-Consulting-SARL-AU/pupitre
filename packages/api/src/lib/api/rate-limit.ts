@@ -17,6 +17,17 @@ export const GLOBAL_RATE_LIMIT: RateLimitOptions = {
   windowMs: 60_000,
 }
 
+/**
+ * What one address may take from the routes that answer without a session.
+ *
+ * The download page of the site reads the list once per visit, and the answer
+ * is cacheable for five minutes: a human never comes close, a script does.
+ */
+export const PUBLIC_RELEASES_RATE_LIMIT: RateLimitOptions = {
+  limit: 60,
+  windowMs: 60_000,
+}
+
 const PRUNE_ABOVE_ENTRIES = 10_000
 
 interface Window {

@@ -12,17 +12,17 @@ import { translator } from "@/lib/i18n/i18n"
 
 describe("amountUsd", () => {
   it("bills a monthly subscription per seat", () => {
-    expect(SEAT_PRICE_USD_PER_MONTH).toBe(19)
-    expect(amountUsd(3, "month")).toBe(57)
+    expect(SEAT_PRICE_USD_PER_MONTH).toBe(10)
+    expect(amountUsd(3, "month")).toBe(30)
   })
 
   it("offers two months on the annual interval", () => {
-    expect(amountUsd(1, "year")).toBe(190)
-    expect(amountUsd(4, "year")).toBe(760)
+    expect(amountUsd(1, "year")).toBe(100)
+    expect(amountUsd(4, "year")).toBe(400)
   })
 
   it("falls back to the monthly price without an interval", () => {
-    expect(amountUsd(2, null)).toBe(38)
+    expect(amountUsd(2, null)).toBe(20)
   })
 })
 

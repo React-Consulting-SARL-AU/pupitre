@@ -13,7 +13,9 @@ fi
 STAGED_LIST=$(mktemp)
 SECRET_SCAN_LIST=$(mktemp)
 WORKSPACE_LIST=$(mktemp)
-trap 'rm -f "$STAGED_LIST" "$SECRET_SCAN_LIST" "$WORKSPACE_LIST"' EXIT
+UNSTAGED_LIST=$(mktemp)
+RESTAGE_LIST=$(mktemp)
+trap 'rm -f "$STAGED_LIST" "$SECRET_SCAN_LIST" "$WORKSPACE_LIST" "$UNSTAGED_LIST" "$RESTAGE_LIST"' EXIT
 
 printf '%s\n' "$STAGED_FILES" |
   while IFS= read -r file; do
@@ -31,6 +33,16 @@ grep -E '\.([cm]?[jt]sx?|jsonc?|css)$' "$SECRET_SCAN_LIST" > "$STAGED_LIST" || t
 if [ ! -s "$STAGED_LIST" ]; then
   echo "No lintable staged files"
   exit 0
+fi
+
+# A partially staged file is formatted but not re-added: re-adding it would
+# stage the hunks the author chose to leave out.
+git diff --name-only > "$UNSTAGED_LIST"
+
+if [ -s "$UNSTAGED_LIST" ]; then
+  grep -vxF -f "$UNSTAGED_LIST" "$STAGED_LIST" > "$RESTAGE_LIST" || true
+else
+  cp "$STAGED_LIST" "$RESTAGE_LIST"
 fi
 
 # Each workspace has its own biome config, so the fixer has to run from its directory.
@@ -64,7 +76,11 @@ done < "$WORKSPACE_LIST"
 
 while IFS= read -r file; do
   git add "$file"
-done < "$STAGED_LIST"
+done < "$RESTAGE_LIST"
+
+if [ -s "$UNSTAGED_LIST" ] && grep -qxF -f "$UNSTAGED_LIST" "$STAGED_LIST"; then
+  echo "Partially staged files were formatted on disk but not re-added; stage them again if you want the formatting in this commit."
+fi
 
 if [ "$FIX_EXIT_CODE" -ne 0 ]; then
   echo "Lint fix found issues that could not be auto-fixed."

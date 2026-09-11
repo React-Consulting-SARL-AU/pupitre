@@ -2,13 +2,14 @@ package jetbrains
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
+	"path"
 	"runtime"
 	"strings"
 
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
-	"pupitre.studio/agent/internal/modules/runtime/shell"
-	"pupitre.studio/agent/internal/sys/user"
+	"pupitre.studio/agent/internal/modules/download"
 )
 
 const (
@@ -31,28 +32,24 @@ var ides = map[string]ide{
 }
 
 type release struct {
-	version string
-	build   string
-	link    string
+	version  string
+	build    string
+	link     string
+	checksum string
 }
 
 type indexEntry struct {
 	Version   string `json:"version"`
 	Build     string `json:"build"`
 	Downloads map[string]struct {
-		Link string `json:"link"`
+		Link         string `json:"link"`
+		ChecksumLink string `json:"checksumLink"`
 	} `json:"downloads"`
 }
 
-func chosen(ctx *modules.Context) (ide, error) {
-	key := ctx.String("ide")
-
-	found, known := ides[key]
-	if !known {
-		return ide{}, fmt.Errorf("IDE inconnu : %s", key)
-	}
-
-	return found, nil
+// The engine holds the field to the manifest's options before the first step, so the key is always one of the five.
+func chosen(ctx *modules.Context) ide {
+	return ides[ctx.String("ide")]
 }
 
 func wantedVersion(ctx *modules.Context) string {
@@ -65,21 +62,17 @@ func wantedVersion(ctx *modules.Context) string {
 }
 
 func resolve(ctx *modules.Context) (release, error) {
-	selected, err := chosen(ctx)
-	if err != nil {
-		return release{}, err
-	}
-
+	selected := chosen(ctx)
 	wanted := wantedVersion(ctx)
 
-	out, err := user.Run(ctx, shell.User, "curl", "-fsSL", "--proto", "=https", "--tlsv1.2", indexURL(selected, wanted))
+	out, err := download.Text(ctx, indexURL(selected, wanted))
 	if err != nil {
 		return release{}, err
 	}
 
 	var index map[string][]indexEntry
 	if err := json.Unmarshal([]byte(out), &index); err != nil {
-		return release{}, fmt.Errorf("unreadable JetBrains version index for %s", selected.code)
+		return release{}, errors.New(i18n.T("modules.jetbrains.index_unreadable", selected.code))
 	}
 
 	for _, entry := range index[selected.code] {
@@ -87,15 +80,34 @@ func resolve(ctx *modules.Context) (release, error) {
 			continue
 		}
 
-		link := entry.Downloads[platform()].Link
-		if link == "" {
+		found := entry.Downloads[platform()]
+		if found.Link == "" {
 			continue
 		}
 
-		return release{version: entry.Version, build: entry.Build, link: link}, nil
+		return release{version: entry.Version, build: entry.Build, link: found.Link, checksum: found.ChecksumLink}, nil
 	}
 
-	return release{}, fmt.Errorf("no %s version of %s for this machine", wanted, selected.code)
+	return release{}, errors.New(i18n.T("modules.jetbrains.version_missing", wanted, selected.code))
+}
+
+// JetBrains publishes a .sha256 beside every archive; an entry without one is refused rather than trusted on the transport alone.
+func publishedDigest(ctx *modules.Context, found release) (string, error) {
+	if found.checksum == "" {
+		return "", errors.New(i18n.T("modules.download.checksum_unpublished", path.Base(found.link), releasesURL))
+	}
+
+	document, err := download.Text(ctx, found.checksum)
+	if err != nil {
+		return "", err
+	}
+
+	digest, published := download.Published(document, "")
+	if !published {
+		return "", errors.New(i18n.T("modules.download.checksum_unpublished", path.Base(found.link), found.checksum))
+	}
+
+	return digest, nil
 }
 
 func indexURL(selected ide, wanted string) string {

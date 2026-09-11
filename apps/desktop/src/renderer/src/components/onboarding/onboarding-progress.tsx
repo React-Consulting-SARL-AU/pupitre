@@ -1,6 +1,5 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
 import {
-  ONBOARDING_STEPS,
   type OnboardingStep,
   SERVER_STAGES,
   type ServerStage,
@@ -13,24 +12,28 @@ import { StatusDot } from "../ui/status-dot";
  * The shape carries it: a done step is a full dot, the current one breathes,
  * what is still ahead is a hollow circle. The segment between two dots darkens
  * as the rail is walked, so the progress reads as one line rather than nine
- * marks, and it reads in pure greys.
+ * marks, and it reads in pure greys. The steps drawn are the ones this
+ * sequence walks: a machine that already runs the agent never shows that step.
  */
 export function OnboardingProgress({
   step,
+  steps,
   stage,
 }: {
   step: OnboardingStep;
+  /** The steps this sequence walks, in order. */
+  steps: readonly OnboardingStep[];
   /** The sub-steps of the first one, shown in place rather than left implicit. */
   stage?: ServerStage;
 }) {
   const t = useTranslations();
 
-  const here = ONBOARDING_STEPS.indexOf(step);
-  const last = ONBOARDING_STEPS.length - 1;
+  const here = steps.indexOf(step);
+  const last = steps.length - 1;
 
   return (
     <ol className="flex flex-col">
-      {ONBOARDING_STEPS.map((candidate, index) => {
+      {steps.map((candidate, index) => {
         const done = index < here;
         const current = index === here;
 
@@ -53,11 +56,17 @@ export function OnboardingProgress({
             data-step={candidate}
             key={candidate}
           >
+            {/*
+              Twelve pixels for a twelve-unit drawing, and a two-pixel segment:
+              both land on whole pixels, so the full dots, the hollow ones and
+              the line between them share one axis instead of drifting apart
+              by the half pixel an odd size leaves.
+            */}
             <div className="flex flex-col items-center self-stretch pt-1.5">
-              <StatusDot shape={shape} size={11} />
+              <StatusDot shape={shape} size={12} />
               {index === last ? null : (
                 <span
-                  className={`w-px flex-1 transition-soft ${done ? "bg-ink-3" : "bg-line"}`}
+                  className={`w-0.5 flex-1 transition-soft ${done ? "bg-ink-3" : "bg-line"}`}
                 />
               )}
             </div>

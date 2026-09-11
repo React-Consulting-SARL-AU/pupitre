@@ -1,19 +1,28 @@
 import type { Session } from "@pupitre/shared/agent-protocol/state";
+import { Button } from "@renderer/components/ui/button";
 import { ConfirmButton } from "@renderer/components/ui/confirm-button";
 import { EmptyState } from "@renderer/components/ui/empty-state";
-import { IconButton } from "@renderer/components/ui/icon-button";
 import type { DictionaryKey } from "@renderer/i18n/en";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { memory, uptime } from "@renderer/lib/format";
-import { isAttached } from "@renderer/lib/sessions";
-import { Braces, Sparkles, SquareTerminal, Trash2, X } from "lucide-react";
+import { isAttached, reattachable } from "@renderer/lib/sessions";
+import type { TerminalAgent } from "@shared/terminals";
+import {
+  Braces,
+  PlugZap,
+  Sparkles,
+  SquareTerminal,
+  Trash2,
+  X,
+} from "lucide-react";
 
 /**
  * What outlives whatever started it.
  *
  * An agent or a remote IDE backend keeps living when its terminal disappears —
  * app closed, IntelliJ window shut — and holds its memory for nobody. A
- * JetBrains backend alone weighs several gigabytes.
+ * JetBrains backend alone weighs several gigabytes. An agent that still has a
+ * project can be taken back: its tab reopens on the tmux session it runs in.
  */
 
 const HEAVY_MB = 1024;
@@ -36,12 +45,15 @@ export function ActivitySessions({
   attached,
   onStop,
   onClean,
+  onReattach,
 }: {
   sessions: readonly Session[];
   /** The sessions the app still has a tab on: the others are the strays. */
   attached: readonly string[];
   onStop: (pid: number) => void;
   onClean: () => void;
+  /** Opens a tab on the session's project and kind: the agent reattaches to it. */
+  onReattach?: (project: string, kind: TerminalAgent) => void;
 }) {
   const t = useTranslations();
 
@@ -109,12 +121,36 @@ export function ActivitySessions({
                   {memory(session.ram_mb)}
                 </span>
 
-                <IconButton
+                {onReattach && reattachable(attached, session) ? (
+                  <Button
+                    icon={PlugZap}
+                    onClick={() =>
+                      onReattach(
+                        session.project as string,
+                        session.kind as TerminalAgent
+                      )
+                    }
+                    size="sm"
+                    title={t("activity.session.reattachHint", {
+                      project: session.project ?? "",
+                    })}
+                  >
+                    {t("activity.session.reattach")}
+                  </Button>
+                ) : null}
+
+                <ConfirmButton
+                  confirmLabel={t("activity.stop")}
                   icon={X}
-                  label={t("activity.session.stop", { pid: session.pid })}
-                  onClick={() => onStop(session.pid)}
-                  variant="danger"
-                />
+                  onConfirm={() => onStop(session.pid)}
+                  question={t("activity.session.question", {
+                    command: session.command,
+                    pid: session.pid,
+                  })}
+                  size="sm"
+                >
+                  {t("activity.stop")}
+                </ConfirmButton>
               </div>
             );
           })}

@@ -269,15 +269,20 @@ func TestDumpsLeftBeforeTheInstallAreImportedAndNamedInTheReport(t *testing.T) {
 		t.Fatalf("the report must name each imported database: %+v", ctx.Events())
 	}
 
+	// ~dev is 0750: the postgres account cannot open the dump itself, so root opens it on the standard input.
 	joined := strings.Join(fake.Commands(), "\n")
 	for _, want := range []string{
 		"createdb --owner=app shop",
-		"psql -v ON_ERROR_STOP=1 --dbname=shop --file=" + dumps.Dir + "/fulldump_shop_20260101.sql",
-		"pg_restore --no-owner --dbname=intranet " + dumps.Dir + "/intranet.dump",
+		"(postgres) psql -v ON_ERROR_STOP=1 --dbname=shop < " + dumps.Dir + "/fulldump_shop_20260101.sql",
+		"(postgres) pg_restore --no-owner --dbname=intranet < " + dumps.Dir + "/intranet.dump",
 	} {
 		if !strings.Contains(joined, want) {
 			t.Errorf("%q missing from:\n%s", want, joined)
 		}
+	}
+
+	if strings.Contains(joined, "--file=") || strings.Contains(joined, "--dbname=intranet "+dumps.Dir) {
+		t.Fatalf("a dump path must never reach the argv of the postgres account:\n%s", joined)
 	}
 }
 
@@ -447,6 +452,20 @@ func TestTheChosenVersionPortAndRolesReachTheCluster(t *testing.T) {
 	url, err := URL(ctx, "shop")
 	if err != nil || url != "postgresql://laptop@127.0.0.1:5433/shop" {
 		t.Fatalf("url = %q, %v", url, err)
+	}
+}
+
+// Buffers left empty follow the machine; a size given follows the client, whose database may be the whole point of the server.
+func TestTheChosenSharedBuffersOverrideTheMemorySizing(t *testing.T) {
+	fake := newFakeSys()
+	fake.Answer("FROM pg_roles", "0\n")
+	ctx := newContextWith(t, fake, modtest.Values{"shared_buffers": "3GB"})
+
+	install(t, ctx)
+
+	written := string(fake.Files[defaultConf])
+	if !strings.Contains(written, "shared_buffers = 3GB") {
+		t.Fatalf("the chosen size must reach the configuration:\n%s", written)
 	}
 }
 

@@ -11,12 +11,11 @@ const (
 	ErrorEntitlementRequired ErrorCode = "entitlement_required"
 	ErrorProjectNotFound     ErrorCode = "project_not_found"
 	ErrorModuleNotFound      ErrorCode = "module_not_found"
-	ErrorModuleFailed        ErrorCode = "module_failed"
 	ErrorNoReport            ErrorCode = "no_report"
 	ErrorServiceNotFound     ErrorCode = "service_not_found"
-	ErrorSecretsRequired     ErrorCode = "secrets_required"
 	ErrorBadSignature        ErrorCode = "bad_signature"
 	ErrorDowngradeRefused    ErrorCode = "downgrade_refused"
+	ErrorMigrationRequired   ErrorCode = "migration_required"
 	ErrorBusy                ErrorCode = "busy"
 	ErrorInternal            ErrorCode = "internal"
 )
@@ -30,12 +29,11 @@ var ErrorCodes = []ErrorCode{
 	ErrorEntitlementRequired,
 	ErrorProjectNotFound,
 	ErrorModuleNotFound,
-	ErrorModuleFailed,
 	ErrorNoReport,
 	ErrorServiceNotFound,
-	ErrorSecretsRequired,
 	ErrorBadSignature,
 	ErrorDowngradeRefused,
+	ErrorMigrationRequired,
 	ErrorBusy,
 	ErrorInternal,
 }

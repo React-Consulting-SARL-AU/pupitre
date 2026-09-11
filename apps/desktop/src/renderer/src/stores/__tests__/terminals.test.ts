@@ -18,7 +18,9 @@ describe("l'ouverture d'une session", () => {
         }),
     });
 
-    await useTerminals.getState().start("t1", SERVER, "claude", "flymate-api");
+    await useTerminals
+      .getState()
+      .start("t1", SERVER, "claude", "flymate-api", null);
 
     expect(useTerminals.getState().sessions.t1).toEqual({
       session: "claude-flymate-api",
@@ -39,7 +41,9 @@ describe("l'ouverture d'une session", () => {
         }),
     });
 
-    await useTerminals.getState().start("t2", SERVER, "hermes", "flymate-api");
+    await useTerminals
+      .getState()
+      .start("t2", SERVER, "hermes", "flymate-api", null);
 
     expect(useTerminals.getState().sessions.t2).toMatchObject({
       error: { fix: "Ajoute le module ai.hermes depuis l'écran Services." },
@@ -61,8 +65,8 @@ describe("l'ouverture d'une session", () => {
     const store = useTerminals.getState();
 
     await Promise.all([
-      store.start("t3", SERVER, "shell", null),
-      store.start("t3", SERVER, "shell", null),
+      store.start("t3", SERVER, "shell", null, null),
+      store.start("t3", SERVER, "shell", null, null),
     ]);
 
     expect(asked).toBe(1);
@@ -73,44 +77,67 @@ describe("la connexion d'un agent", () => {
   it("n'expose que l'hôte de la page, jamais son adresse", () => {
     useTerminals.getState().noteLink("t1", "claude.ai");
 
-    expect(useTerminals.getState().links).toEqual({ t1: "claude.ai" });
+    expect(useTerminals.getState().links).toEqual({
+      t1: { host: "claude.ai", opened: false },
+    });
   });
 
-  it("ouvre la page dans l'onglet et la referme quand le retour arrive", async () => {
-    const asked: { id: string; bounds: unknown }[] = [];
+  it("l'ouvre dans le navigateur en nommant la session, et le retient", async () => {
+    const asked: string[] = [];
 
     stubPupitre({
-      openLogin: (id, bounds) => {
-        asked.push({ bounds, id });
+      openLogin: (id) => {
+        asked.push(id);
 
         return Promise.resolve(true);
       },
     });
 
     useTerminals.getState().noteLink("t1", "claude.ai");
-    await useTerminals
-      .getState()
-      .openLogin("t1", { height: 400, width: 600, x: 10, y: 20 });
+    await useTerminals.getState().openLogin("t1");
 
-    expect(asked).toEqual([
-      { bounds: { height: 400, width: 600, x: 10, y: 20 }, id: "t1" },
-    ]);
-    expect(useTerminals.getState().login).toBe("t1");
-
-    useTerminals.getState().noteLoginClosed("t1");
-
-    expect(useTerminals.getState().login).toBeNull();
-    expect(useTerminals.getState().links.t1).toBeUndefined();
+    expect(asked).toEqual(["t1"]);
+    expect(useTerminals.getState().links.t1).toEqual({
+      host: "claude.ai",
+      opened: true,
+    });
   });
 
   it("ne se dit pas ouverte quand le processus principal a refusé", async () => {
     stubPupitre({ openLogin: () => Promise.resolve(false) });
 
-    await useTerminals
-      .getState()
-      .openLogin("t9", { height: 10, width: 10, x: 0, y: 0 });
+    useTerminals.getState().noteLink("t9", "claude.ai");
+    await useTerminals.getState().openLogin("t9");
 
-    expect(useTerminals.getState().login).toBeNull();
+    expect(useTerminals.getState().links.t9?.opened).toBe(false);
+  });
+
+  it("repart de zéro quand la session imprime une adresse neuve", async () => {
+    stubPupitre({ openLogin: () => Promise.resolve(true) });
+
+    useTerminals.getState().noteLink("t1", "claude.ai");
+    await useTerminals.getState().openLogin("t1");
+    useTerminals.getState().noteLink("t1", "claude.ai");
+
+    expect(useTerminals.getState().links.t1?.opened).toBe(false);
+  });
+
+  it("s'oublie quand on l'ignore, et quand la session se termine", () => {
+    const dismissed: string[] = [];
+
+    stubPupitre({
+      dismissLogin: (id) => {
+        dismissed.push(id);
+      },
+      openTerminal: () =>
+        Promise.resolve({ ok: true, result: { session: null } }),
+    });
+
+    useTerminals.getState().noteLink("t1", "claude.ai");
+    useTerminals.getState().dismissLogin("t1");
+
+    expect(dismissed).toEqual(["t1"]);
+    expect(useTerminals.getState().links.t1).toBeUndefined();
   });
 });
 
@@ -121,7 +148,7 @@ describe("la fin d'une session", () => {
         Promise.resolve({ ok: true, result: { session: "claude-app" } }),
     });
 
-    await useTerminals.getState().start("t4", SERVER, "claude", "app");
+    await useTerminals.getState().start("t4", SERVER, "claude", "app", null);
     useTerminals.getState().noteExit("t4", 130);
 
     expect(useTerminals.getState().sessions.t4).toEqual({
@@ -148,9 +175,9 @@ describe("la fin d'une session", () => {
       },
     });
 
-    await useTerminals.getState().start("t5", SERVER, "shell", null);
+    await useTerminals.getState().start("t5", SERVER, "shell", null, null);
     useTerminals.getState().noteExit("t5", 0);
-    await useTerminals.getState().restart("t5", SERVER, "shell", null);
+    await useTerminals.getState().restart("t5", SERVER, "shell", null, null);
 
     expect(opened).toBe(2);
     expect(useTerminals.getState().sessions.t5).toEqual({
@@ -170,5 +197,37 @@ describe("la recherche dans une session", () => {
     useTerminals.getState().forget("t2");
 
     expect(useTerminals.getState().search).toBeNull();
+  });
+});
+
+describe("la taille d'ouverture", () => {
+  it("ouvre le PTY à la taille mesurée, sinon au 80×24 classique", async () => {
+    const opened: { cols: number; rows: number }[] = [];
+
+    stubPupitre({
+      openTerminal: (
+        _id: string,
+        _serverId: string,
+        _kind: string,
+        _project: string | null,
+        _session: string | null,
+        cols: number,
+        rows: number
+      ) => {
+        opened.push({ cols, rows });
+
+        return Promise.resolve({ ok: true, result: { session: "s" } });
+      },
+    });
+
+    await useTerminals
+      .getState()
+      .start("t1", SERVER, "shell", null, null, null, { cols: 132, rows: 40 });
+    await useTerminals.getState().start("t2", SERVER, "shell", null, null);
+
+    expect(opened).toEqual([
+      { cols: 132, rows: 40 },
+      { cols: 80, rows: 24 },
+    ]);
   });
 });

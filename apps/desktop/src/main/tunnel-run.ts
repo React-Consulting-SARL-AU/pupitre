@@ -3,7 +3,10 @@ import type {
   InstallSecrets,
   ModuleConfig,
 } from "@pupitre/shared/agent-protocol/install";
-import type { TunnelRoute } from "@pupitre/shared/agent-protocol/secrets";
+import {
+  type TunnelRoute,
+  TunnelRouteSchema,
+} from "@pupitre/shared/agent-protocol/secrets";
 
 import type { AgentResponse } from "@shared/agent";
 import type { CloudflareConnection } from "@shared/cloudflare";
@@ -39,9 +42,17 @@ export interface ServerExposure {
 export interface TunnelDeps {
   connection: () => CloudflareConnection | null;
   api: () => CloudflareApi | null;
-  /** Reads `module.config` on the server: the tunnel it runs, and what it publishes. */
+  /**
+   * Reads `module.config` on the server: the tunnel it runs, and what it
+   * publishes. `null` says the server answered and runs no tunnel; a server
+   * that could not be asked raises `ExposureUnreadable` rather than answering
+   * `null`, because the two lead to opposite gestures.
+   */
   exposureOf: (serverId: string) => Promise<ServerExposure | null>;
 }
+
+/** The server could not be asked what it publishes. It is not an empty answer. */
+export class ExposureUnreadable extends Error {}
 
 const EMPTY: ManagedValues = { config: {}, secrets: {} };
 
@@ -60,6 +71,34 @@ function callFailed(reason: string): AgentResponse<never> {
 
 function tunnelName(serverId: string): string {
   return `pupitre-${serverId}`;
+}
+
+/** The routes as the renderer handed them, each held to the contract's shape, or nothing. */
+export function checkedRoutes(raw: unknown): TunnelRoute[] | null {
+  if (!Array.isArray(raw)) {
+    return null;
+  }
+
+  const routes: TunnelRoute[] = [];
+
+  for (const candidate of raw) {
+    const parsed = TunnelRouteSchema.safeParse(candidate);
+
+    if (!parsed.success) {
+      return null;
+    }
+
+    routes.push(parsed.data);
+  }
+
+  return routes;
+}
+
+function under(hostname: string, domain: string): boolean {
+  const host = hostname.toLowerCase();
+  const zone = domain.toLowerCase();
+
+  return host === zone || host.endsWith(`.${zone}`);
 }
 
 /**
@@ -124,6 +163,18 @@ export async function managedValues(
       },
     };
   } catch (failure) {
+    /**
+     * Making a tunnel is destructive: its name is this server's own, and a new
+     * one deletes what that name already points at. Doing that because the
+     * server could not be asked would take down the tunnel it is running at
+     * that very moment, so the install stops and says so instead.
+     */
+    if (failure instanceof ExposureUnreadable) {
+      return refuseWith("bad_request", "refusal.cloudflare.exposure.unread", {
+        reason: failure.message,
+      });
+    }
+
     return callFailed(reasonOf(failure));
   }
 }
@@ -192,6 +243,20 @@ export async function syncRecords(
       return notConnected();
     }
 
+    // A record is only ever written under the domain the server publishes:
+    // the app holds the whole account's zones, and a route naming another one
+    // would let a screen write into it.
+    const foreign = routes.find(
+      (route) => !under(route.hostname, exposure.domain)
+    );
+
+    if (foreign) {
+      return refuseWith("bad_request", "refusal.tunnel.route.foreign", {
+        domain: exposure.domain,
+        hostname: foreign.hostname,
+      });
+    }
+
     const zone = await api.zoneOf(exposure.domain);
 
     if (!zone) {
@@ -225,10 +290,15 @@ export async function syncRecords(
   }
 }
 
-/** A project that leaves takes its record with it: leaving it behind is a name answering into the void. */
+/**
+ * A name a project stops answering to takes its record with it: leaving it
+ * behind is a name answering into the void. The hostname is the whole one the
+ * agent stored, and only a name under the domain the server publishes is
+ * looked for — the zone of that domain is the only one this app writes into.
+ */
 export async function dropRecord(
   serverId: string,
-  subdomain: string,
+  hostname: string,
   deps: TunnelDeps
 ): Promise<void> {
   const api = deps.api();
@@ -240,7 +310,7 @@ export async function dropRecord(
   try {
     const exposure = await deps.exposureOf(serverId);
 
-    if (!exposure?.domain) {
+    if (!(exposure?.domain && under(hostname, exposure.domain))) {
       return;
     }
 
@@ -250,10 +320,7 @@ export async function dropRecord(
       return;
     }
 
-    const existing = await api.findRecord(
-      zone.id,
-      `${subdomain}.${exposure.domain}`
-    );
+    const existing = await api.findRecord(zone.id, hostname);
 
     if (existing) {
       await api.deleteRecord(zone.id, existing.id);
@@ -261,8 +328,8 @@ export async function dropRecord(
   } catch (failure) {
     trace("tunnel", "record-kept", {
       fix: "delete the record from the Cloudflare dashboard",
+      hostname,
       reason: reasonOf(failure),
-      subdomain,
     });
   }
 }
@@ -280,8 +347,20 @@ export async function dropTunnel(
 
   try {
     // The server is the one that knows; a machine already gone leaves the name,
-    // which is this app's own and enough to find the tunnel again.
-    const exposure = await deps.exposureOf(serverId);
+    // which is this app's own and enough to find the tunnel again. Releasing a
+    // server it cannot reach is the ordinary case here, so a machine that will
+    // not answer falls back on that name rather than keeping a tunnel alive
+    // with nothing behind it.
+    const exposure = await deps
+      .exposureOf(serverId)
+      .catch((failure: unknown) => {
+        if (failure instanceof ExposureUnreadable) {
+          return null;
+        }
+
+        throw failure;
+      });
+
     const id =
       exposure?.tunnelId ?? (await api.findTunnel(tunnelName(serverId)));
 

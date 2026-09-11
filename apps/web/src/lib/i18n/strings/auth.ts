@@ -20,8 +20,7 @@ export const auth = {
     "auth.signIn.github": "Continue with GitHub",
 
     "auth.device.title": "Confirm a device",
-    "auth.device.description":
-      "This is where the Pupitre app is linked to your account. Enter the code the app shows, then confirm: that is what opens its session.",
+    "auth.device.description": "Enter the code the app shows, then confirm.",
     "auth.device.codeLabel": "Code shown by the device",
     "auth.device.check": "Check the code",
     "auth.device.confirmLead":
@@ -36,7 +35,7 @@ export const auth = {
 
     "auth.twoFactor.title": "Second factor",
     "auth.twoFactor.description":
-      "Your link was recognised. Enter the code from your authentication app to open the session.",
+      "Enter the code from your authentication app.",
     "auth.twoFactor.codeLabel": "Code from the app",
     "auth.twoFactor.recoveryLabel": "Recovery code",
     "auth.twoFactor.pending": "Checking…",
@@ -81,7 +80,7 @@ export const auth = {
 
     "auth.device.title": "Confirmer un appareil",
     "auth.device.description":
-      "C'est ici que l'app Pupitre se lie à votre compte. Entrez le code qu'elle affiche, puis confirmez : c'est ce qui ouvre sa session.",
+      "Entrez le code que l'app affiche, puis confirmez.",
     "auth.device.codeLabel": "Code affiché par l'appareil",
     "auth.device.check": "Vérifier le code",
     "auth.device.confirmLead":
@@ -97,7 +96,7 @@ export const auth = {
 
     "auth.twoFactor.title": "Second facteur",
     "auth.twoFactor.description":
-      "Votre lien a été reconnu. Entrez le code de votre application d'authentification pour ouvrir la session.",
+      "Entrez le code de votre application d'authentification.",
     "auth.twoFactor.codeLabel": "Code de l'application",
     "auth.twoFactor.recoveryLabel": "Code de récupération",
     "auth.twoFactor.pending": "Vérification…",

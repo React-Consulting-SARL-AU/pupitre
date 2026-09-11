@@ -88,12 +88,12 @@ describe("pricing page follows @pupitre/shared/plans", () => {
       expect(html).toContain("$41")
       expect(html).toContain("21")
       expect(html).toContain("3 serv")
-      expect(html).not.toContain("$19")
-      expect(html).not.toContain("$190")
+      expect(html).not.toContain("$10")
+      expect(html).not.toContain("$100")
       expect(html).not.toContain("$29")
       expect(html).toContain('"price":"23"')
       expect(html).toContain('"price":"230"')
-      expect(html).not.toContain('"price":"19"')
+      expect(html).not.toContain('"price":"10"')
     }
   })
 

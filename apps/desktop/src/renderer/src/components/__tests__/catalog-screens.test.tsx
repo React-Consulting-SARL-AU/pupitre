@@ -11,7 +11,13 @@ import {
   LARGE_MACHINE,
   SMALL_MACHINE,
 } from "../../__tests__/catalog-fixtures";
-import { blocked, resourceWarnings, select } from "../../lib/catalog-selection";
+import {
+  blocked,
+  fromPreset,
+  presetOffer,
+  resourceWarnings,
+  select,
+} from "../../lib/catalog-selection";
 import { CatalogChoice } from "../catalog/catalog-choice";
 import { CatalogPresetChoice } from "../catalog/catalog-preset-choice";
 
@@ -24,13 +30,16 @@ import { CatalogPresetChoice } from "../catalog/catalog-preset-choice";
 function screen(
   catalog: CatalogResult,
   selected: readonly string[],
-  probe: ProbeResult
+  probe: ProbeResult,
+  { query = "", installed = [] as readonly string[] } = {}
 ): string {
   return renderToStaticMarkup(
     <CatalogChoice
-      blocked={blocked(catalog.modules, selected, probe)}
+      blocked={blocked(catalog.modules, selected, probe, installed)}
       catalog={catalog}
+      installed={installed}
       probe={probe}
+      query={query}
       selected={selected}
       warnings={resourceWarnings(catalog.modules, selected, probe)}
     />
@@ -118,6 +127,48 @@ describe("les catégories et leurs modules", () => {
     expect(text(html)).toContain("Node.js, MySQL 8, VS Code Remote");
   });
 
+  it("ne promet pas à un serveur ce qu'il fait déjà tourner", () => {
+    const again = screen(CATALOG, [], LARGE_MACHINE, {
+      installed: ["core.system", "core.hardening", "runtime.node"],
+    });
+
+    expect(text(again)).toContain("MySQL 8, VS Code Remote");
+    expect(text(again)).not.toContain("Node.js, MySQL 8");
+  });
+
+  it("grise le préréglage qui n'apporte plus rien, et dit pourquoi", () => {
+    const done = screen(CATALOG, [], LARGE_MACHINE, {
+      installed: [
+        "core.system",
+        "core.hardening",
+        "runtime.node",
+        "db.mysql",
+        "editor.vscode",
+      ],
+    });
+
+    expect(tag(done, "data-preset", "web-js")).toContain("disabled");
+    expect(text(done)).toContain(
+      "Tout ce qu'il apporte est déjà sur ce serveur."
+    );
+  });
+
+  it("marque celui qui est appliqué plutôt que de laisser le clic sans réponse", () => {
+    const preset = CATALOG.presets.find((one) => one.id === "web-js");
+    const applied = screen(
+      CATALOG,
+      preset ? fromPreset(CATALOG.modules, preset, [], LARGE_MACHINE) : [],
+      LARGE_MACHINE
+    );
+
+    expect(tag(applied, "data-preset", "web-js")).toContain(
+      'aria-pressed="true"'
+    );
+    expect(tag(applied, "data-preset", "minimal")).toContain(
+      'aria-pressed="false"'
+    );
+  });
+
   it("pose le logo en couleurs quand le module en a un", () => {
     expect(html).toContain('data-logo="db.postgres"');
     expect(html).toContain("PostgreSQL");
@@ -201,25 +252,49 @@ describe("un module que l'agent vient d'ajouter", () => {
 describe("un préréglage qui nomme des modules exclusifs", () => {
   const preset = CATALOG.presets.find((one) => one.choose_one);
 
-  it("demande lequel prendre plutôt que de choisir à la place du lecteur", () => {
+  function question(installed: readonly string[] = []): string {
     if (!preset) {
       throw new Error(
         "le catalogue de test ne porte aucun préréglage exclusif"
       );
     }
 
-    const html = renderToStaticMarkup(
+    const offer = presetOffer(
+      CATALOG.modules,
+      preset,
+      [],
+      installed,
+      LARGE_MACHINE
+    );
+
+    return renderToStaticMarkup(
       <CatalogPresetChoice
-        modules={CATALOG.modules}
+        choices={offer.choices}
         onCancel={() => undefined}
         onChoose={() => undefined}
         preset={preset}
       />
     );
+  }
 
-    for (const id of preset.choose_one ?? []) {
+  it("demande lequel prendre plutôt que de choisir à la place du lecteur", () => {
+    const html = question();
+
+    for (const id of preset?.choose_one ?? []) {
       expect(html).toContain(`value="${id}"`);
     }
+  });
+
+  /** Exposing nothing is a state of its own, not a reason to cancel the preset. */
+  it("laisse n'en prendre aucun sans abandonner le préréglage", () => {
+    expect(question()).toContain('data-preset-option="none"');
+  });
+
+  it("n'oppose pas un module que le serveur fait déjà tourner", () => {
+    const html = question(["exposure.caddy"]);
+
+    expect(html).not.toContain('value="exposure.caddy"');
+    expect(html).not.toContain('value="exposure.cloudflare"');
   });
 
   /** A preset that carried one of them would be choosing; one that carried none would leave a hole. */
@@ -227,5 +302,40 @@ describe("un préréglage qui nomme des modules exclusifs", () => {
     for (const id of preset?.choose_one ?? []) {
       expect(preset?.modules).not.toContain(id);
     }
+  });
+});
+
+describe("chercher un service dans le catalogue", () => {
+  it("offre le champ, et compte ce qu'il laisse", () => {
+    const html = screen(CATALOG, [], LARGE_MACHINE, { query: "mysql" });
+
+    expect(html).toContain('data-catalog-search="true"');
+    expect(html).toContain('data-search-found="1"');
+  });
+
+  it("ne garde que les catégories qui ont encore quelque chose", () => {
+    const html = screen(CATALOG, [], LARGE_MACHINE, { query: "sql" });
+
+    expect(
+      [...html.matchAll(/data-category="([^"]+)"/g)].map((m) => m[1])
+    ).toEqual(["database"]);
+    expect(html).toContain('data-module="db.mysql"');
+    expect(html).toContain('data-module="db.postgres"');
+    expect(html).not.toContain('data-module="runtime.node"');
+  });
+
+  /** The presets answer « what should I install »; a name already answers it. */
+  it("retire les préréglages tant qu'une phrase est tapée", () => {
+    expect(screen(CATALOG, [], LARGE_MACHINE)).toContain('data-preset="full"');
+    expect(
+      screen(CATALOG, [], LARGE_MACHINE, { query: "mysql" })
+    ).not.toContain('data-preset="full"');
+  });
+
+  it("dit qu'il n'a rien trouvé, avec la phrase cherchée", () => {
+    const html = screen(CATALOG, [], LARGE_MACHINE, { query: "kubernetes" });
+
+    expect(text(html)).toContain("Aucun service ne répond à « kubernetes ».");
+    expect(html).not.toContain("data-category=");
   });
 });

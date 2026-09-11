@@ -52,6 +52,23 @@ func TestShotsAreListedNewestFirstWithTheirGalleryPath(t *testing.T) {
 	}
 }
 
+// A link planted in the gallery would be read as root by shots.read: it is neither listed nor followed.
+func TestShotsLeaveASymlinkOutOfTheGallery(t *testing.T) {
+	fake, reader := shotFixture(t)
+	fake.Files["/home/dev/shots/2026-09-04/shadow.png"] = []byte("root:x\n")
+	fake.Links["/home/dev/shots/2026-09-04/shadow.png"] = "/etc/shadow"
+
+	for _, listed := range reader.Shots() {
+		if listed.Name == "shadow.png" {
+			t.Fatalf("the link is listed: %+v", listed)
+		}
+	}
+
+	if _, err := reader.ReadShot("2026-09-04/shadow.png"); err == nil {
+		t.Fatal("the link was read")
+	}
+}
+
 func TestShotsURLComesFromTheGalleryRow(t *testing.T) {
 	fake, reader := shotFixture(t)
 

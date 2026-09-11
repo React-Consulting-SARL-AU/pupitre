@@ -35,6 +35,18 @@ func Disable(ctx sys.Context, unit string) error {
 	return err
 }
 
+func Start(ctx sys.Context, unit string) error {
+	_, err := sys.Exec(ctx, started("start", unit))
+
+	return err
+}
+
+func Stop(ctx sys.Context, unit string) error {
+	_, err := sys.Exec(ctx, started("stop", unit))
+
+	return err
+}
+
 func Restart(ctx sys.Context, unit string) error {
 	_, err := sys.Exec(ctx, started("restart", unit))
 
@@ -54,12 +66,19 @@ func Diagnose(ctx sys.Context, unit string) string {
 	return Recent(ctx, unit, diagnosedLines)
 }
 
-// Recent is the unit's own last words, as many as asked for. A daemon that
-// retries drowns the one line that says why in the ones that say it again, so
-// what reads a verdict asks for a window wide enough to hold a whole cycle.
+// Recent is the unit's own last words, as many as asked for, from its current
+// run alone: a daemon restarted on new credentials would otherwise be judged
+// on what it said of the old ones. A daemon that retries drowns the one line
+// that says why in the ones that say it again, so what reads a verdict asks
+// for a window wide enough to hold a whole cycle.
 func Recent(ctx sys.Context, unit string, lines int) string {
+	scope := []string{"-u", unit}
+	if id := invocation(ctx, unit); id != "" {
+		scope = []string{"_SYSTEMD_INVOCATION_ID=" + id}
+	}
+
 	out, err := ctx.Sys().Run(sys.Command{
-		Argv:    []string{"journalctl", "-u", unit, "-n", strconv.Itoa(lines), "--no-pager", "-o", "cat"},
+		Argv:    append([]string{"journalctl", "-n", strconv.Itoa(lines), "--no-pager", "-o", "cat"}, scope...),
 		Timeout: diagnoseTimeout,
 	})
 	if err != nil {
@@ -74,6 +93,46 @@ func Recent(ctx sys.Context, unit string, lines int) string {
 	}
 
 	return strings.Join(kept, " / ")
+}
+
+// Journal is the unit's last lines, every run included, as the reader of a service page asks for them.
+func Journal(ctx sys.Context, unit string, lines int) ([]string, error) {
+	out, err := ctx.Sys().Run(sys.Command{Argv: journalctl(unit, lines), Timeout: diagnoseTimeout})
+	if err != nil {
+		return nil, err
+	}
+
+	return split(out.Stdout), nil
+}
+
+// Follow hands the tail over, then every line the unit writes until limit has passed: the stream ends on its own, never with an error for having ended.
+func Follow(ctx sys.Context, unit string, lines int, limit time.Duration, emit func(string)) error {
+	return ctx.Sys().Stream(sys.Command{Argv: append(journalctl(unit, lines), "-f"), Timeout: limit}, emit)
+}
+
+func journalctl(unit string, lines int) []string {
+	return []string{"journalctl", "-u", unit, "-n", strconv.Itoa(lines), "--no-pager", "-o", "cat"}
+}
+
+func split(text string) []string {
+	lines := []string{}
+	for _, line := range strings.Split(strings.TrimRight(text, "\n"), "\n") {
+		if line != "" {
+			lines = append(lines, line)
+		}
+	}
+
+	return lines
+}
+
+// invocation is the identifier systemd gave the unit's current run, empty for a unit that never ran.
+func invocation(ctx sys.Context, unit string) string {
+	out, err := ctx.Sys().Run(systemctl("show", "-p", "InvocationID", "--value", unit))
+	if err != nil {
+		return ""
+	}
+
+	return strings.TrimSpace(out.Stdout)
 }
 
 func Loaded(ctx sys.Context, unit string) bool {

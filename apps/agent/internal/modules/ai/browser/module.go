@@ -23,7 +23,6 @@ const (
 
 	keyURL      = "https://dl.google.com/linux/linux_signing_key.pub"
 	keyringPath = "/usr/share/keyrings/google-chrome.gpg"
-	keyTempPath = "/tmp/pupitre-google-chrome.key"
 	sourcePath  = "/etc/apt/sources.list.d/google-chrome.list"
 	sourceLine  = "deb [arch=amd64 signed-by=" + keyringPath + "] https://dl.google.com/linux/chrome/deb/ stable main\n"
 
@@ -115,15 +114,7 @@ func installBrowser(ctx *modules.Context) error {
 
 func addGoogleRepository(ctx *modules.Context) error {
 	if !file.Exists(ctx, keyringPath) {
-		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"curl", "-fsSL", "--proto", "=https", "--tlsv1.2", "-o", keyTempPath, keyURL}}); err != nil {
-			return err
-		}
-
-		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"gpg", "--batch", "--yes", "--dearmor", "-o", keyringPath, keyTempPath}}); err != nil {
-			return err
-		}
-
-		if _, err := file.Remove(ctx, keyTempPath); err != nil {
+		if err := apt.DearmorKey(ctx, keyURL, keyringPath); err != nil {
 			return err
 		}
 	}

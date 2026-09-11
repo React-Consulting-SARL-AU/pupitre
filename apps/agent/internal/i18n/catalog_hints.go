@@ -23,7 +23,7 @@ var hintCatalog = map[string]Message{
 		EN: "An absolute path, with no space, owned by the dev account. The default suits almost everyone; you change it to put the projects on a larger disk mounted elsewhere. The directory is created if absent, and never emptied if it exists.",
 	},
 	"module.core.hardening.ssh_443.hint": {
-		FR: "Ouvrez SSH sur le port 443 en plus du 22. Utile depuis un réseau d'entreprise ou un wifi public qui ne laisse sortir que le web. Le port 22 reste ouvert, et aucune des deux porvos n'accepte de mot de passe une fois le durcissement passé.",
+		FR: "Ouvrez SSH sur le port 443 en plus du 22. Utile depuis un réseau d'entreprise ou un wifi public qui ne laisse sortir que le web. Le port 22 reste ouvert, et aucune des deux portes n'accepte de mot de passe une fois le durcissement passé.",
 		EN: "Opens SSH on port 443 as well as 22. Useful from a corporate network or a public wifi that only lets the web out. Port 22 stays open, and neither door accepts a password once the hardening has run.",
 	},
 	"module.core.hardening.keep_root.hint": {
@@ -37,6 +37,14 @@ var hintCatalog = map[string]Message{
 	"module.db.mysql.buffer_pool.hint": {
 		FR: "La mémoire que le moteur garde pour ses pages, comme 512M ou 2G. Laissé vide, le module dimensionne au quart de la mémoire de la machine, ce qui convient à un serveur qui fait aussi tourner des projets. On l'augmente pour une base qui devient le poste de travail principal.",
 		EN: "The memory the engine keeps for its pages, like 512M or 2G. Left empty, the module sizes it at a quarter of the machine's memory, which suits a server that also runs projects. You raise it for a database that becomes the main workload.",
+	},
+	"module.db.mongodb.cache_mb.hint": {
+		FR: "La mémoire que le moteur garde pour ses pages. Laissé à 0, le module dimensionne au quart de la mémoire de la machine, ce qui convient à un serveur qui fait aussi tourner des projets — MongoDB laissé seul en prendrait la moitié. On l'augmente pour une base qui devient le poste de travail principal.",
+		EN: "The memory the engine keeps for its pages. Left at 0, the module sizes it at a quarter of the machine's memory, which suits a server that also runs projects — MongoDB left alone would take half. You raise it for a database that becomes the main workload.",
+	},
+	"module.db.postgres.shared_buffers.hint": {
+		FR: "La mémoire que le cluster garde pour ses pages, comme 512MB ou 2GB. Laissé vide, le module dimensionne au quart de la mémoire de la machine, ce qui convient à un serveur qui fait aussi tourner des projets. On l'augmente pour une base qui devient le poste de travail principal.",
+		EN: "The memory the cluster keeps for its pages, like 512MB or 2GB. Left empty, the module sizes it at a quarter of the machine's memory, which suits a server that also runs projects. You raise it for a database that becomes the main workload.",
 	},
 	"module.runtime.php.memory_limit.hint": {
 		FR: "La limite de mémoire d'un script PHP, comme 256M ou 1G. Laissé vide, la valeur compilée par défaut s'applique. Un « memory_limit » atteint se voit dans les journaux du projet, pas dans une page blanche.",
@@ -59,7 +67,7 @@ var hintCatalog = map[string]Message{
 		EN: "One identifier per line, in the form publisher.extension — biomejs.biome, golang.go. You read it in the marketplace URL, or through `Copy Extension ID` in VS Code's context menu. They are installed on the server side, where the code lives.",
 	},
 	"module.ai.hermes.providers.hint": {
-		FR: "Une entrée par fournisseur, sous la forme fournisseur=clé : openai=sk-…, anthropic=sk-ant-…, openrouter=sk-or-…. Chaque clé se crée sur le tableau de bord du fournisseur. Elles partent sur le flux secret et sont écrivos sur le serveur en 0600, jamais dans un journal.",
+		FR: "Une entrée par fournisseur, sous la forme fournisseur=clé : openai=sk-…, anthropic=sk-ant-…, openrouter=sk-or-…. Chaque clé se crée sur le tableau de bord du fournisseur. Elles partent sur le flux secret et sont écrites sur le serveur en 0600, jamais dans un journal.",
 		EN: "One entry per provider, in the form provider=key: openai=sk-…, anthropic=sk-ant-…, openrouter=sk-or-…. Each key is created on that provider's dashboard. They leave on the secret stream and are written on the server at 0600, never in a journal.",
 	},
 }

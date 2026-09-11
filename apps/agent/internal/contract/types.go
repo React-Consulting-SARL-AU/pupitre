@@ -14,8 +14,10 @@ type Manifest struct {
 	Fields    []Field   `json:"fields"`
 	// Connection names the third-party account the app must hold for this module; only such a module may carry a managed field.
 	Connection string `json:"connection,omitempty"`
-	Mandatory  bool   `json:"mandatory"`
-	Since      string `json:"since"`
+	// Runs says whether the module holds a process on the machine, or spawns one at any moment; a language or a CLI leaves nothing to watch.
+	Runs      bool   `json:"runs"`
+	Mandatory bool   `json:"mandatory"`
+	Since     string `json:"since"`
 }
 
 type Resources struct {
@@ -387,7 +389,9 @@ type ServiceStatus struct {
 	State ServiceState `json:"state"`
 	// Configured says whether the module has been through its own settings: a
 	// module the client asked to answer later sits installed and unconfigured.
-	Configured  bool              `json:"configured"`
+	Configured bool `json:"configured"`
+	// Runs carries the manifest's own answer, so that a screen showing what the machine is doing never has to read the catalogue.
+	Runs        bool              `json:"runs"`
 	Version     string            `json:"version,omitempty"`
 	Port        int               `json:"port,omitempty"`
 	Unit        string            `json:"unit,omitempty"`
@@ -444,30 +448,43 @@ var ProjectStates = []ProjectState{
 
 var PackageManagers = []string{"bun", "pnpm", "npm", "gradle", "uv", "service", "none"}
 
+// A Route is one port a project listens on, and the whole name it answers to on the web when it has one.
+type Route struct {
+	Label    string `json:"label"`
+	Port     int    `json:"port"`
+	Hostname string `json:"hostname,omitempty"`
+}
+
 type Project struct {
-	Name      string       `json:"name"`
-	Dir       string       `json:"dir"`
-	Path      string       `json:"path"`
-	Repo      string       `json:"repo,omitempty"`
-	PkgMgr    string       `json:"pkgmgr"`
-	Host      string       `json:"host"`
-	Port      int          `json:"port"`
-	Subdomain string       `json:"subdomain,omitempty"`
-	Cmd       string       `json:"cmd"`
-	Install   string       `json:"install,omitempty"`
-	State     ProjectState `json:"state"`
-	URL       string       `json:"url,omitempty"`
-	Branch    string       `json:"branch,omitempty"`
-	PID       int          `json:"pid,omitempty"`
-	RAMMB     int          `json:"ram_mb,omitempty"`
-	UptimeS   int          `json:"uptime_s,omitempty"`
+	Name    string       `json:"name"`
+	Dir     string       `json:"dir"`
+	Path    string       `json:"path"`
+	Repo    string       `json:"repo,omitempty"`
+	PkgMgr  string       `json:"pkgmgr"`
+	Host    string       `json:"host"`
+	Port    int          `json:"port"`
+	Routes  []Route      `json:"routes"`
+	Cmd     string       `json:"cmd"`
+	Install string       `json:"install,omitempty"`
+	State   ProjectState `json:"state"`
+	URL     string       `json:"url,omitempty"`
+	Branch  string       `json:"branch,omitempty"`
+	PID     int          `json:"pid,omitempty"`
+	RAMMB   int          `json:"ram_mb,omitempty"`
+	UptimeS int          `json:"uptime_s,omitempty"`
+}
+
+type DetectedRoute struct {
+	Label string `json:"label"`
+	Port  int    `json:"port"`
 }
 
 type ProjectDetect struct {
-	PkgMgr   string `json:"pkgmgr"`
-	Install  string `json:"install,omitempty"`
-	Cmd      string `json:"cmd,omitempty"`
-	PortHint int    `json:"port_hint,omitempty"`
+	PkgMgr   string          `json:"pkgmgr"`
+	Install  string          `json:"install,omitempty"`
+	Cmd      string          `json:"cmd,omitempty"`
+	PortHint int             `json:"port_hint,omitempty"`
+	Routes   []DetectedRoute `json:"routes,omitempty"`
 }
 
 type ProjectStateEntry struct {
@@ -533,6 +550,60 @@ type Shot struct {
 	Path      string `json:"path"`
 	SizeBytes int64  `json:"size_bytes"`
 	CreatedAt string `json:"created_at"`
+}
+
+const (
+	FileKindFile = "file"
+	FileKindDir  = "dir"
+	FileKindLink = "link"
+)
+
+// The permission bits as an octal string, `0644`: a number would read as decimal on both sides of the channel.
+type FileEntry struct {
+	Name       string `json:"name"`
+	Kind       string `json:"kind"`
+	SizeBytes  int64  `json:"size_bytes"`
+	ModifiedAt string `json:"modified_at"`
+	Mode       string `json:"mode"`
+}
+
+type FileList struct {
+	Path      string      `json:"path"`
+	Entries   []FileEntry `json:"entries"`
+	Truncated bool        `json:"truncated"`
+}
+
+type FileStat struct {
+	Path       string `json:"path"`
+	Kind       string `json:"kind"`
+	SizeBytes  int64  `json:"size_bytes"`
+	ModifiedAt string `json:"modified_at"`
+	Mode       string `json:"mode"`
+	MediaType  string `json:"media_type,omitempty"`
+	SHA256     string `json:"sha256,omitempty"`
+}
+
+type FileRead struct {
+	Path      string `json:"path"`
+	MediaType string `json:"media_type"`
+	SizeBytes int64  `json:"size_bytes"`
+	SHA256    string `json:"sha256"`
+	Chunks    int    `json:"chunks"`
+}
+
+type FileWritten struct {
+	Path      string `json:"path"`
+	SizeBytes int64  `json:"size_bytes"`
+	SHA256    string `json:"sha256"`
+}
+
+type FilePath struct {
+	Path string `json:"path"`
+}
+
+type FileRemoved struct {
+	Path    string `json:"path"`
+	Removed int    `json:"removed"`
 }
 
 type ProjectBranches struct {
@@ -655,4 +726,27 @@ type DoctorCheck struct {
 type Diag struct {
 	GeneratedAt string `json:"generated_at"`
 	Report      string `json:"report"`
+}
+
+// ConfigState says where the configuration on a machine stands against the
+// binary reading it. `pending` is a machine whose migrations have not run yet,
+// `failed` one whose configuration was put back as it was because a migration
+// refused, `ahead` one configured by a newer agent than the one now running.
+type ConfigState string
+
+const (
+	ConfigCurrent ConfigState = "current"
+	ConfigPending ConfigState = "pending"
+	ConfigFailed  ConfigState = "failed"
+	ConfigAhead   ConfigState = "ahead"
+)
+
+type ConfigRevision struct {
+	Revision int         `json:"revision"`
+	Expected int         `json:"expected"`
+	State    ConfigState `json:"state"`
+}
+
+func (c ConfigRevision) Current() bool {
+	return c.State == ConfigCurrent
 }

@@ -105,7 +105,7 @@ func TestSecretNeverLeaks(t *testing.T) {
 // The engine refuses a configuration before the first step, so the module never
 // sees a missing secret. What this module owes is the declaration it is refused on.
 func TestTheSecretIsRequiredByTheContract(t *testing.T) {
-	held := func(string, string) int { return 0 }
+	held := func(string, string) []string { return nil }
 
 	for _, field := range manifest().Fields {
 		if field.Key != "token" {

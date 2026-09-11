@@ -7,6 +7,7 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/modules/runtime/shell"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys/env"
@@ -50,8 +51,39 @@ func configuredMachine() *modtest.FakeSys {
 	fake.Files[keyringPath] = []byte("keyring")
 	fake.Files[sourcePath] = []byte(sourceLine())
 	fake.Files[env.Path] = []byte(envKey + "=" + token + "\n")
+	fake.Files[shell.UserEnvPath] = []byte("export " + envKey + "='" + token + "'\n")
+	fake.Files[shell.EnvPath] = []byte("# >>> pupitre pupitre-env >>>\n[[ -r \"$HOME/.config/pupitre/env\" ]] && source \"$HOME/.config/pupitre/env\"\n# <<< pupitre pupitre-env <<<\n")
 
 	return fake
+}
+
+// `op whoami` in a terminal runs as dev and reads OP_SERVICE_ACCOUNT_TOKEN from its own shell, never from root's file.
+func TestTheTokenReachesTheDevShellAndLeavesWithTheModule(t *testing.T) {
+	fake := machine()
+	ctx := newContext(t, fake, modtest.Secrets{"service_account_token": token})
+
+	if err := (Module{}).Install(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := (Module{}).Configure(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if got := string(fake.Files[shell.UserEnvPath]); got != "export "+envKey+"='"+token+"'\n" {
+		t.Fatalf("dev env = %q", got)
+	}
+
+	if fake.Modes[shell.UserEnvPath] != 0o600 || fake.Owners[shell.UserEnvPath] != "dev:dev" {
+		t.Fatalf("dev env: mode %o, owner %s", fake.Modes[shell.UserEnvPath], fake.Owners[shell.UserEnvPath])
+	}
+
+	if err := (Module{}).Uninstall(newContext(t, fake, modtest.Secrets{})); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, kept := fake.Files[shell.UserEnvPath]; kept || fake.EnvValue(envKey) != "" {
+		t.Fatalf("the token survives: %q / %q", fake.Files[shell.UserEnvPath], fake.EnvValue(envKey))
+	}
 }
 
 func TestInstallAndConfigureAreIdempotent(t *testing.T) {
@@ -79,7 +111,7 @@ func TestInstallAndConfigureAreIdempotent(t *testing.T) {
 // The engine refuses a configuration before the first step, so the module never
 // sees a missing secret. What this module owes is the declaration it is refused on.
 func TestTheSecretIsRequiredByTheContract(t *testing.T) {
-	held := func(string, string) int { return 0 }
+	held := func(string, string) []string { return nil }
 
 	for _, field := range manifest().Fields {
 		if field.Key != "service_account_token" {

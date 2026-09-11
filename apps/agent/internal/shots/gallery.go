@@ -3,13 +3,15 @@ package shots
 import (
 	"fmt"
 	"html"
+	"io/fs"
 	"net/http"
 	"os"
 	"path"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
+
+	"pupitre.studio/agent/internal/i18n"
 )
 
 const galleryStyle = `:root{color-scheme:light dark;--bg:#fafafa;--fg:#141414;--dim:#6b6b6b;--line:#e0e0e0;--card:#fff}
@@ -45,32 +47,52 @@ func MediaType(name string) string {
 
 // Read-only, on the loopback alone: the gallery is reached through the SSH session the app already holds, never from outside.
 func Serve(dir string, port int) error {
+	handler, err := Handler(dir)
+	if err != nil {
+		return err
+	}
+
 	server := &http.Server{
 		Addr:              fmt.Sprintf("127.0.0.1:%d", port),
-		Handler:           Handler(dir),
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
 	return server.ListenAndServe()
 }
 
-func Handler(dir string) http.Handler {
-	files := http.FileServer(http.Dir(dir))
+// The gallery never leaves its folder: a symlink dropped there points nowhere a browser can follow.
+func Handler(dir string) (http.Handler, error) {
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	files := http.FileServerFS(root.FS())
 
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		if request.Method != http.MethodGet && request.Method != http.MethodHead {
-			http.Error(writer, "lecture seule", http.StatusMethodNotAllowed)
+			http.Error(writer, i18n.T("shots.gallery.readonly"), http.StatusMethodNotAllowed)
 			return
 		}
 
 		clean := path.Clean("/" + request.URL.Path)
-		if info, err := os.Stat(path.Join(dir, clean)); err == nil && info.IsDir() {
-			index(writer, dir, clean)
+		if info, err := root.Stat(inside(clean)); err == nil && info.IsDir() {
+			index(writer, root, clean)
 			return
 		}
 
 		files.ServeHTTP(writer, request)
-	})
+	}), nil
+}
+
+func inside(clean string) string {
+	relative := strings.TrimPrefix(clean, "/")
+	if relative == "" {
+		return "."
+	}
+
+	return relative
 }
 
 type entry struct {
@@ -81,10 +103,10 @@ type entry struct {
 	image bool
 }
 
-func index(writer http.ResponseWriter, root, relative string) {
-	entries, err := listing(path.Join(root, relative))
+func index(writer http.ResponseWriter, root *os.Root, relative string) {
+	entries, err := listing(root, inside(relative))
 	if err != nil {
-		http.Error(writer, "unreadable folder", http.StatusNotFound)
+		http.Error(writer, i18n.T("shots.gallery.unreadable"), http.StatusNotFound)
 		return
 	}
 
@@ -93,7 +115,7 @@ func index(writer http.ResponseWriter, root, relative string) {
 	fmt.Fprintf(writer, "<h1><a href=\"/\">shots</a>%s</h1><div class=g>", crumb(relative))
 
 	if len(entries) == 0 {
-		fmt.Fprint(writer, "<p class=e>No capture yet.</p>")
+		fmt.Fprintf(writer, "<p class=e>%s</p>", html.EscapeString(i18n.T("shots.gallery.empty")))
 	}
 
 	for _, found := range entries {
@@ -111,14 +133,14 @@ func card(writer http.ResponseWriter, relative string, found entry) {
 	if found.image {
 		fmt.Fprintf(writer, "<img loading=lazy alt=\"%s\" src=\"%s\">", label, href)
 	} else {
-		fmt.Fprint(writer, "<span class=e>dossier</span>")
+		fmt.Fprintf(writer, "<span class=e>%s</span>", html.EscapeString(i18n.T("shots.gallery.folder")))
 	}
 
 	fmt.Fprintf(writer, "</div><div class=m><b>%s</b><span>%s · %s</span></div></a>", label, found.when.Format("2006-01-02 15:04"), size(found.size))
 }
 
-func listing(dir string) ([]entry, error) {
-	found, err := os.ReadDir(dir)
+func listing(root *os.Root, relative string) ([]entry, error) {
+	found, err := fs.ReadDir(root.FS(), relative)
 	if err != nil {
 		return nil, err
 	}
@@ -152,8 +174,8 @@ func crumb(relative string) string {
 
 func size(bytes int64) string {
 	if bytes < 1024 {
-		return strconv.FormatInt(bytes, 10) + " o"
+		return i18n.T("shots.size.bytes", bytes)
 	}
 
-	return strconv.FormatInt(bytes/1024, 10) + " Ko"
+	return i18n.T("shots.size.kilobytes", bytes/1024)
 }

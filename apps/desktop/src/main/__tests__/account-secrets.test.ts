@@ -37,6 +37,7 @@ function manifest(
     name: id,
     requires: [],
     resources: { disk_mb: 0, ram_mb: 0 },
+    runs: false,
     since: "0.1.0",
     summary: id,
   };

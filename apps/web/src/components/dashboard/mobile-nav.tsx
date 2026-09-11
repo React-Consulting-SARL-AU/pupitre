@@ -34,6 +34,7 @@ export function MobileNav() {
               aria-label={t("nav.openMenu")}
               className="w-9 px-0"
               icon={Menu}
+              title={t("nav.openMenu")}
               variant="ghost"
             />
           }

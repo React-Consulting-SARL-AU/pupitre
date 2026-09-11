@@ -62,7 +62,7 @@ func (p *printer) logEvent(event string, fields map[string]any) {
 
 func (p *printer) usage(err error) int {
 	fmt.Fprintln(p.err, err)
-	fmt.Fprint(p.err, Usage)
+	fmt.Fprint(p.err, Usage())
 
 	return 2
 }

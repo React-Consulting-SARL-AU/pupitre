@@ -22,6 +22,8 @@
   --color-ok: var(--ok);
   --color-warn: var(--warn);
   --color-danger: var(--danger);
+  --color-frost: var(--frost);
+  --color-frost-soft: var(--frost-soft);
 
   --font-ui: var(--font-ui);
   --font-data: var(--font-data);

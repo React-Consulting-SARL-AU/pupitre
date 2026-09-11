@@ -78,6 +78,17 @@ export const ShotsUrlResultSchema = z.object({
 
 export type ShotsUrlResult = z.infer<typeof ShotsUrlResultSchema>
 
+/**
+ * Without a path, the gallery is swept of what is older than it keeps. With
+ * one, that single capture goes — and the path is looked up in what
+ * `shots.list` names, never resolved on the disk, exactly as `shots.read`.
+ */
+export const ShotsCleanParamsSchema = z.strictObject({
+  path: z.string().min(1).optional(),
+})
+
+export type ShotsCleanParams = z.infer<typeof ShotsCleanParamsSchema>
+
 export const ShotsCleanResultSchema = z.object({
   removed: z.int().nonnegative(),
 })

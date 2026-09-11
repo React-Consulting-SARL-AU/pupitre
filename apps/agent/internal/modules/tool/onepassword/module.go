@@ -7,7 +7,6 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
-	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/env"
 	"pupitre.studio/agent/internal/sys/file"
@@ -19,7 +18,6 @@ const (
 	program = "op"
 
 	keyURL      = "https://downloads.1password.com/linux/keys/1password.asc"
-	keyTempPath = "/tmp/pupitre-1password.asc"
 	keyringPath = "/usr/share/keyrings/1password.gpg"
 	sourcePath  = "/etc/apt/sources.list.d/1password.list"
 
@@ -74,15 +72,7 @@ func (Module) Install(ctx *modules.Context) error {
 
 func addRepository(ctx *modules.Context) error {
 	if !file.Exists(ctx, keyringPath) {
-		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"curl", "-fsSL", "--proto", "=https", "--tlsv1.2", "-o", keyTempPath, keyURL}}); err != nil {
-			return err
-		}
-
-		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"gpg", "--batch", "--yes", "--dearmor", "-o", keyringPath, keyTempPath}}); err != nil {
-			return err
-		}
-
-		if _, err := file.Remove(ctx, keyTempPath); err != nil {
+		if err := apt.DearmorKey(ctx, keyURL, keyringPath); err != nil {
 			return err
 		}
 	}
@@ -101,6 +91,10 @@ func (Module) Configure(ctx *modules.Context) error {
 		return err
 	}
 
+	if err := exportToken(ctx); err != nil {
+		return err
+	}
+
 	return verifyAccount(ctx)
 }
 
@@ -112,6 +106,22 @@ func storeToken(ctx *modules.Context) error {
 		}
 
 		if !stored {
+			return modules.Skipped, nil
+		}
+
+		return modules.Done, nil
+	})
+}
+
+// op reads OP_SERVICE_ACCOUNT_TOKEN and nothing else: without it in the dev shell, `op whoami` in a terminal finds no account.
+func exportToken(ctx *modules.Context) error {
+	return ctx.Step("export-token", func() (modules.Outcome, error) {
+		exported, err := shell.SetUserEnv(ctx, envKey, ctx.Secret("service_account_token"))
+		if err != nil {
+			return modules.Failed, err
+		}
+
+		if !exported {
 			return modules.Skipped, nil
 		}
 
@@ -168,7 +178,12 @@ func (Module) Uninstall(ctx *modules.Context) error {
 			return modules.Failed, err
 		}
 
-		if !removed {
+		exported, err := shell.UnsetUserEnv(ctx, envKey)
+		if err != nil {
+			return modules.Failed, err
+		}
+
+		if !(removed || exported) {
 			return modules.Skipped, nil
 		}
 

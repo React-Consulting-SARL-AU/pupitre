@@ -21,26 +21,79 @@ func (r *Reader) List() []contract.Project {
 	return r.projects()
 }
 
-func (r *Reader) Add(project registry.Project) (contract.Project, error) {
+// Add declares a project, resolving each name on the web once, from the domain this machine publishes under.
+func (r *Reader) Add(project registry.Project, routes []registry.RouteRequest) (contract.Project, error) {
 	ctx := r.ctx()
-	file := r.registry()
+	reg := r.registry()
 
 	if project.Host == "" {
 		project.Host = "127.0.0.1"
 	}
 
-	if err := file.Add(ctx, project); err != nil {
+	resolved, err := registry.ResolveRoutes(reg.Domain, routes)
+	if err != nil {
+		return contract.Project{}, err
+	}
+	project.Routes = resolved
+
+	if err := reg.Add(ctx, project); err != nil {
 		return contract.Project{}, err
 	}
 
+	owner := r.options.Tmux.User
 	paths := r.options.Paths.Resolved()
 	for _, dir := range []string{project.RootPath(paths.Projects), project.Path(paths.Projects)} {
-		if err := ctx.Sys().MkdirAll(dir, 0o755); err != nil {
+		if err := file.MkdirOwned(ctx, dir, owner, owner, 0o755); err != nil {
 			return contract.Project{}, err
 		}
 	}
 
 	return r.one(project.Name)
+}
+
+// An UpdatePatch is what project.update carries: a nil field is left as it was, and a routes list replaces the whole of the last one.
+type UpdatePatch struct {
+	Cmd     *string
+	Install *string
+	Branch  *string
+	Routes  *[]registry.RouteRequest
+}
+
+// Update rewrites the row, and restarts the project only when its command changed and it was running: a route or a branch changes nothing of what runs.
+func (r *Reader) Update(name string, patch UpdatePatch) (contract.Project, error) {
+	ctx := r.ctx()
+	file := r.registry()
+
+	current, known := file.Get(name)
+	if !known {
+		return contract.Project{}, registry.NotFound(name)
+	}
+
+	change := registry.Patch{Cmd: patch.Cmd, Install: patch.Install, Branch: patch.Branch}
+	if patch.Routes != nil {
+		resolved, err := registry.ResolveRoutes(file.Domain, *patch.Routes)
+		if err != nil {
+			return contract.Project{}, err
+		}
+		change.Routes = &resolved
+	}
+
+	updated, err := file.Update(ctx, name, change)
+	if err != nil {
+		return contract.Project{}, err
+	}
+
+	if updated.Cmd != current.Cmd && tmux.Running(ctx, r.options.Tmux, name) {
+		if err := r.stop(updated); err != nil {
+			return contract.Project{}, err
+		}
+
+		if err := r.start(updated); err != nil {
+			return contract.Project{}, err
+		}
+	}
+
+	return r.one(name)
 }
 
 func (r *Reader) Remove(name string) (contract.Project, error) {
@@ -251,13 +304,13 @@ func (r *Reader) URL(name string) (string, error) {
 		return "", registry.NotFound(name)
 	}
 
-	return url(project, r.domain()), nil
+	return url(project), nil
 }
 
-// A project only has a public address if the machine has a domain and the row gives it a subdomain; printing "https://…" otherwise would be an address that does not answer.
-func url(project registry.Project, domain string) string {
-	if sub := project.Sub(); sub != "" && domain != "" {
-		return "https://" + sub + "." + domain
+// A project only has a public address if the route of its main port carries a name on the web, stored when it was declared; printing "https://…" otherwise would be an address that does not answer.
+func url(project registry.Project) string {
+	if route, published := project.Primary(); published {
+		return "https://" + route.Hostname
 	}
 
 	return "http://" + project.Host + ":" + strconv.Itoa(project.Port)

@@ -32,14 +32,7 @@ function MembersPending() {
   const t = useTranslations()
   const { title, parents } = pageTitle(ROUTE_ID)
 
-  return (
-    <PageSkeleton
-      description={t("page.members.description")}
-      parents={parents}
-      shape="cards"
-      title={t(title)}
-    />
-  )
+  return <PageSkeleton parents={parents} shape="cards" title={t(title)} />
 }
 
 function MembersPage() {
@@ -48,11 +41,7 @@ function MembersPage() {
 
   return (
     <>
-      <PageHeader
-        description={t("page.members.description")}
-        parents={parents}
-        title={t(title)}
-      />
+      <PageHeader parents={parents} title={t(title)} />
       <MemberList />
     </>
   )

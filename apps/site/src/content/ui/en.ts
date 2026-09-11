@@ -34,8 +34,6 @@ export const en = {
   "footer.acceptableUse": "Acceptable use",
   "footer.dpa": "Data processing",
   "footer.status": "Status",
-  "footer.builtBy":
-    "Built by someone who runs his own agents on a VPS every day.",
 
   "callout.info": "Note",
   "callout.warn": "Warning",
@@ -66,7 +64,7 @@ export const en = {
     "Notes on running AI agents on a server of your own: setup, trade-offs, and what we learned building Pupitre.",
   "blog.headline": "Notes from a machine that is not a laptop.",
   "blog.lead":
-    "What we learned putting agents on a machine that is not a laptop. Long, specific, no announcements.",
+    "What we learned putting agents on a machine that is not a laptop.",
   "blog.by": "By",
   "blog.rss": "RSS",
   "blog.back": "All posts",
@@ -79,7 +77,7 @@ export const en = {
     "Every release of the Pupitre desktop app and of the agent, with what changed and what it means for your server.",
   "changelog.headline": "One entry per release.",
   "changelog.lead":
-    "One entry per release. What changed in the app, what changed in the agent, and what you have to do about it.",
+    "What changed in the app, what changed in the agent, and what you have to do about it.",
   "changelog.beta": "Beta",
   "changelog.stable": "Stable",
   "changelog.rss": "RSS",
@@ -91,8 +89,7 @@ export const en = {
   "legal.description":
     "Terms, licence, acceptable use, privacy and data processing for Pupitre.",
   "legal.headline": "The rules, written to be read.",
-  "legal.lead":
-    "The rules of the product, written to be read. Nothing here contradicts what the app does on your machine.",
+  "legal.lead": "Nothing here contradicts what the app does on your machine.",
   "legal.updated": "Updated",
   "legal.draft": "Draft",
   "legal.subProcessor": "Sub-processor",
@@ -102,8 +99,7 @@ export const en = {
   "notFound.title": "Not found — Pupitre",
   "notFound.description": "This page does not exist.",
   "notFound.headline": "This page does not exist.",
-  "notFound.lead":
-    "The link is wrong, or the page moved. The docs and the home page are still where you left them.",
+  "notFound.lead": "The link is wrong, or the page moved.",
   "notFound.home": "Home",
   "notFound.docs": "Read the docs",
 

@@ -35,6 +35,14 @@ export type ConnectionState =
 
 export type ConnectionsState = Record<ConnectionKind, ConnectionState>;
 
+/**
+ * What asking the provider again says of a held token: the account it opens
+ * today, or that this provider answers no call from here.
+ */
+export type ConnectionCheck =
+  | { status: "answered"; account: ConnectionAccount }
+  | { status: "unaskable" };
+
 export const CONNECTION_KINDS = [
   "cloudflare",
   "github",

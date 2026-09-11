@@ -79,7 +79,7 @@ func TestSessionsCleanStopsOnlyTheOldOnes(t *testing.T) {
 		t.Fatalf("got %d killed, want the eight-hour IDE backend alone", killed)
 	}
 
-	if strings.Join(fake.Signals, " ") != "-TERM 5300" {
+	if strings.Join(fake.Signals, " ") != "TERM 5300" {
 		t.Fatalf("unexpected signals %v", fake.Signals)
 	}
 
@@ -179,7 +179,7 @@ func TestKillTermsThenKillsWhenForced(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if strings.Join(fake.Signals, " ") != "-TERM 7300 -TERM 7400 -KILL 7400" {
+	if strings.Join(fake.Signals, " ") != "TERM 7300 TERM 7400 KILL 7400" {
 		t.Fatalf("unexpected signals %v", fake.Signals)
 	}
 }

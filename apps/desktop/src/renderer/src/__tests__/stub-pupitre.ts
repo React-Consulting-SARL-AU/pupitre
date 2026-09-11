@@ -12,6 +12,15 @@ import type { PupitreApi } from "../../../preload";
  * and change nothing; a test that cares about one of them replaces it.
  */
 const QUIET: Partial<PupitreApi> = {
+  closeTerminal: () => undefined,
+  connectionsState: () =>
+    Promise.resolve({
+      "1password": { status: "absent" },
+      cloudflare: { status: "absent" },
+      github: { status: "absent" },
+      neon: { status: "absent" },
+    }),
+  devDefaults: () => Promise.resolve(null),
   fleet: () =>
     Promise.resolve({
       error: { code: "internal", message: "no platform in this test" },
@@ -22,7 +31,17 @@ const QUIET: Partial<PupitreApi> = {
       error: { code: "internal", message: "no agent in this test" },
       ok: false,
     }),
+  inspect: () =>
+    Promise.resolve({
+      error: { code: "internal", message: "no agent in this test" },
+      ok: false,
+    }),
   sendAgent: () =>
+    Promise.resolve({
+      error: { code: "internal", message: "no agent in this test" },
+      ok: false,
+    }),
+  startInstall: () =>
     Promise.resolve({
       error: { code: "internal", message: "no agent in this test" },
       ok: false,

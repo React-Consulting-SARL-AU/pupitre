@@ -3,13 +3,19 @@ import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
 /**
- * A service, opened from the list.
+ * A service, opened from the list and driven from its page.
  *
  * The panel used to be reachable by no scenario at all, which is how it came
  * to show a reader an empty page: everything it draws comes from two answers,
- * and a screen with neither said nothing rather than saying so.
+ * and a screen with neither said nothing rather than saying so. The unit's
+ * gestures and its journal come from the harness too: the state shown after
+ * a stop is the one the answer carried, never the one the click hoped for.
  */
 const HELD_BACK = /tant que le serveur est retenu/;
+
+const RESTART_QUESTION = /Redémarrer PostgreSQL/;
+
+const DATABASE_TAB = /PostgreSQL/;
 
 test.describe("services", () => {
   let running: Running;
@@ -29,6 +35,7 @@ test.describe("services", () => {
       answer("service:detail", () => ({
         ok: true,
         result: {
+          configured: true,
           credentials: ["Mot de passe applicatif"],
           id: "db.postgres",
           name: "PostgreSQL",
@@ -47,8 +54,6 @@ test.describe("services", () => {
           message: "abonnement requis : ce serveur est en mode restreint",
         },
       }));
-
-      answer("service:forwards", () => []);
     });
   });
 
@@ -85,7 +90,67 @@ test.describe("services", () => {
       await expect(page.getByText(HELD_BACK)).toBeVisible();
     });
 
+    await test.step("le journal de l'unité arrive ligne par ligne", async () => {
+      const journal = page.locator('[data-service-journal="db.postgres"]');
+
+      await expect(journal).toBeVisible();
+      await expect(
+        journal.getByText("ready to accept connections")
+      ).toBeVisible();
+      await expect(journal.getByText("checkpoint complete")).toBeVisible();
+    });
+
+    await test.step("arrêter montre l'état que l'agent a répondu, et offre alors le démarrage", async () => {
+      const controls = page.locator('[data-service-controls="db.postgres"]');
+
+      await controls.getByRole("button", { name: "Arrêter" }).click();
+
+      await expect(
+        controls.getByRole("button", { exact: true, name: "Démarrer" })
+      ).toBeVisible();
+      await expect(
+        page.locator('[data-state="stopped"]').first()
+      ).toBeVisible();
+
+      await controls
+        .getByRole("button", { exact: true, name: "Démarrer" })
+        .click();
+
+      await expect(
+        controls.getByRole("button", { name: "Arrêter" })
+      ).toBeVisible();
+    });
+
+    await test.step("redémarrer se confirme en nommant le service", async () => {
+      const controls = page.locator('[data-service-controls="db.postgres"]');
+
+      await controls
+        .getByRole("button", { exact: true, name: "Redémarrer" })
+        .click();
+
+      await expect(controls.getByText(RESTART_QUESTION)).toBeVisible();
+
+      await controls
+        .getByRole("button", { name: "Redémarrer maintenant" })
+        .click();
+
+      await expect(
+        controls.getByRole("button", { name: "Arrêter" })
+      ).toBeVisible();
+    });
+
+    await test.step("le shell de la base ouvre un onglet de terminal", async () => {
+      await page.getByRole("button", { name: "Ouvrir un shell" }).click();
+
+      await expect(page.getByRole("tab", { name: DATABASE_TAB })).toBeVisible();
+    });
+
     await test.step("l'accessibilité de la fiche tient", async () => {
+      await page.getByRole("button", { name: "Services" }).click();
+      await page.locator('[data-service="db.postgres"]').click();
+      await expect(
+        page.getByRole("heading", { name: "PostgreSQL" })
+      ).toBeVisible();
       await assertAccessible(page, "services/panel");
     });
   });

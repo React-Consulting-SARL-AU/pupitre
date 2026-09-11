@@ -14,26 +14,21 @@ export const organization = {
       "Check that the identifier is free, then try again.",
     "organization.lockedTitle": "An administrator renames the organisation",
     "organization.lockedDescription":
-      "You are a member of this organisation. Its name and its identifier belong to its administrators.",
+      "Its name and its identifier belong to its administrators.",
     "organization.noneTitle": "No active organisation",
     "organization.noneDescription":
       "Create one, or accept an invitation, and it opens here.",
     "organization.manage": "Manage the organisation",
     "organization.create": "New organisation",
     "organization.createTitle": "Create an organisation",
-    "organization.createDescription":
-      "An organisation carries its own servers, its members and its subscription. You own the one you create.",
+    "organization.createDescription": "You own the organisation you create.",
     "organization.createAction": "Create",
     "organization.creating": "Creating…",
     "organization.createFailed": "The organisation could not be created.",
     "organization.createFailedFix":
       "Choose another name; its identifier may already be taken.",
     "organization.members": "Members",
-    "organization.membersLead":
-      "Who works here, and in what capacity. Invitations live on that page.",
     "organization.billing": "Billing",
-    "organization.billingLead":
-      "One seat per server, and the invoices that go with them.",
   },
   fr: {
     "organization.identity": "Identité",
@@ -50,7 +45,7 @@ export const organization = {
       "Vérifiez que l'identifiant est libre, puis réessayez.",
     "organization.lockedTitle": "Un administrateur renomme l'organisation",
     "organization.lockedDescription":
-      "Vous êtes membre de cette organisation. Son nom et son identifiant appartiennent à ses administrateurs.",
+      "Son nom et son identifiant appartiennent à ses administrateurs.",
     "organization.noneTitle": "Aucune organisation active",
     "organization.noneDescription":
       "Créez-en une, ou acceptez une invitation, et elle s'ouvre ici.",
@@ -58,17 +53,13 @@ export const organization = {
     "organization.create": "Nouvelle organisation",
     "organization.createTitle": "Créer une organisation",
     "organization.createDescription":
-      "Une organisation porte ses propres serveurs, ses membres et son abonnement. Vous êtes propriétaire de celle que vous créez.",
+      "Vous êtes propriétaire de l'organisation que vous créez.",
     "organization.createAction": "Créer",
     "organization.creating": "Création…",
     "organization.createFailed": "L'organisation n'a pas pu être créée.",
     "organization.createFailedFix":
       "Choisissez un autre nom ; son identifiant est peut-être déjà pris.",
     "organization.members": "Membres",
-    "organization.membersLead":
-      "Qui travaille ici, et à quel titre. Les invitations vivent sur cette page.",
     "organization.billing": "Facturation",
-    "organization.billingLead":
-      "Un siège par serveur, et les factures qui vont avec.",
   },
 }

@@ -11,8 +11,7 @@ import (
 )
 
 const (
-	latest   = "2.1.263"
-	checksum = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	latest = "2.1.263"
 )
 
 var download = "/home/dev/.claude/downloads/claude-" + latest + "-" + platform()
@@ -20,8 +19,10 @@ var download = "/home/dev/.claude/downloads/claude-" + latest + "-" + platform()
 func releases(fake *modtest.FakeSys, version string) {
 	fake.Answer("claude-code-releases/latest", version+"\n")
 	fake.Answer("/"+version+"/manifest.json", `{"platforms":{"linux-x64":{"checksum":"`+checksum+`","size":1},"linux-arm64":{"checksum":"`+checksum+`","size":1}}}`)
-	fake.Replies["sha256sum"] = checksum + "  " + download + "\n"
 }
+
+// The manifest announces the digest of what the fake serves; a module that verifies its download finds the two agree.
+var checksum = modtest.Digest(modtest.Downloaded)
 
 func newContext(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	t.Helper()
@@ -132,7 +133,7 @@ func TestReplayMutatesNothing(t *testing.T) {
 func TestABinaryWhoseChecksumDiffersIsRefusedAndRemoved(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	releases(fake, latest)
-	fake.Replies["sha256sum"] = strings.Repeat("f", 64) + "  " + download + "\n"
+	fake.Answer("/"+latest+"/manifest.json", `{"platforms":{"linux-x64":{"checksum":"`+strings.Repeat("f", 64)+`","size":1},"linux-arm64":{"checksum":"`+strings.Repeat("f", 64)+`","size":1}}}`)
 
 	err := (Module{}).Install(newContext(t, fake))
 	if err == nil || !strings.Contains(err.Error(), "checksum") {
@@ -178,7 +179,6 @@ func TestUpgradeInstallsOnlyWhenANewerVersionExists(t *testing.T) {
 	}
 
 	releases(fake, "2.2.0")
-	fake.Replies["sha256sum"] = checksum + "  /home/dev/.claude/downloads/claude-2.2.0-" + platform() + "\n"
 
 	ctx = newContext(t, fake)
 	if err := (Module{}).Upgrade(ctx); err != nil {

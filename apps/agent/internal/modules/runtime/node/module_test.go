@@ -11,7 +11,7 @@ import (
 	"pupitre.studio/agent/internal/modules/runtime/shell"
 )
 
-var everything = modtest.Values{"node_version": "22", "bun": true, "pnpm": true}
+var everything = modtest.Values{"node_version": "22", "bun": true, "pnpm": true, "yarn": true}
 
 func newContext(t *testing.T, fake *modtest.FakeSys, values modtest.Values) *modules.Context {
 	t.Helper()
@@ -47,24 +47,31 @@ func TestInstallOnAMachineWithoutMise(t *testing.T) {
 
 	commands := strings.Join(fake.Commands(), "\n")
 	for _, want := range []string{
-		"(dev) curl -fsSL --proto =https --tlsv1.2 -o /home/dev/.local/bin/mise https://mise.jdx.dev/mise-latest-linux-",
-		"(dev) chmod 0755 /home/dev/.local/bin/mise",
+		"curl -fsSL --proto =https --tlsv1.2 https://mise.jdx.dev/VERSION",
+		"curl -fsSL --proto =https --tlsv1.2 https://github.com/jdx/mise/releases/download/v" + modtest.MiseVersion + "/SHASUMS256.txt",
+		"curl -fsSL --proto =https --tlsv1.2 -o /var/lib/pupitre/downloads/mise https://github.com/jdx/mise/releases/download/v" + modtest.MiseVersion + "/mise-v" + modtest.MiseVersion + "-linux-",
+		"sha256sum /var/lib/pupitre/downloads/mise",
 		"(dev) mise use -g -y node@22",
 		"(dev) mise use -g -y bun@latest",
-		"(dev) mise use -g -y pnpm@latest",
-		"(dev) corepack enable pnpm",
+		"(dev) mise use -g -y npm:pnpm@latest",
+		"(dev) mise use -g -y npm:yarn@latest",
+		"(dev) corepack enable pnpm yarn",
 	} {
 		if !strings.Contains(commands, want) {
 			t.Errorf("command %q not run:\n%s", want, commands)
 		}
 	}
 
-	if fake.Tools["node"] != "22" || fake.Tools["bun"] != "latest" || fake.Tools["pnpm"] != "latest" {
+	if fake.Tools["node"] != "22" || fake.Tools["bun"] != "latest" || fake.Tools["npm:pnpm"] != "latest" || fake.Tools["npm:yarn"] != "latest" {
 		t.Fatalf("tools = %v", fake.Tools)
 	}
 
-	if fake.Owners[shell.EnvPath] != "dev:dev" || fake.Owners[mise.Path] != "dev:dev" {
-		t.Errorf("owners = %v", fake.Owners)
+	if fake.Owners[shell.EnvPath] != "dev:dev" || fake.Owners[mise.Path] != "dev:dev" || fake.Modes[mise.Path] != 0o755 {
+		t.Errorf("owners = %v, mise mode = %o", fake.Owners, fake.Modes[mise.Path])
+	}
+
+	if _, staged := fake.Files["/var/lib/pupitre/downloads/mise"]; staged || strings.Contains(commands, "(dev) curl") {
+		t.Fatal("mise is fetched by root into its staging folder and removed once installed; nothing is downloaded as dev")
 	}
 
 	env := string(fake.Files[shell.EnvPath])
@@ -93,7 +100,7 @@ func TestInstallOnAMachineWithoutMise(t *testing.T) {
 		t.Fatalf("status = %+v, %v", status, err)
 	}
 
-	if status.Version != "node 22 · bun latest · pnpm latest" {
+	if status.Version != "node 22 · bun latest · pnpm latest · yarn latest" {
 		t.Fatalf("status must report what mise carries, got %q", status.Version)
 	}
 
@@ -123,28 +130,27 @@ func TestReplayOnAnInstalledMachineChangesNothing(t *testing.T) {
 	t.Logf("first run: %d calls, %d mutations; replay: %d calls, 0 mutations", calls, mutations, len(fake.Calls)-calls)
 }
 
-func TestBunAndPnpmDisabledInstallNothing(t *testing.T) {
+func TestTheOptionalManagersDisabledInstallNothing(t *testing.T) {
 	fake := modtest.NewFakeSys()
-	ctx := newContext(t, fake, modtest.Values{"node_version": "22", "bun": false, "pnpm": false})
+	ctx := newContext(t, fake, modtest.Values{"node_version": "22", "bun": false, "pnpm": false, "yarn": false})
 
 	run(t, ctx)
 
-	if _, present := fake.Tools["bun"]; present {
-		t.Error("bun must not be installed when the field is false")
-	}
-	if _, present := fake.Tools["pnpm"]; present {
-		t.Error("pnpm must not be installed when the field is false")
+	for _, spec := range []string{"bun", "npm:pnpm", "npm:yarn"} {
+		if _, present := fake.Tools[spec]; present {
+			t.Errorf("%s must not be installed when its field is false", spec)
+		}
 	}
 
 	commands := strings.Join(fake.Commands(), "\n")
-	for _, forbidden := range []string{"bun@", "pnpm@", "corepack"} {
+	for _, forbidden := range []string{"bun@", "pnpm@", "yarn@", "corepack"} {
 		if strings.Contains(commands, forbidden) {
 			t.Errorf("command mentioning %q was run:\n%s", forbidden, commands)
 		}
 	}
 
 	steps := statuses(ctx)
-	for _, step := range []string{"install-bun", "install-pnpm", "enable-corepack"} {
+	for _, step := range []string{"install-bun", "install-pnpm", "install-yarn", "enable-corepack"} {
 		if steps[step] != contract.StepSkip {
 			t.Errorf("%s = %s, want skip", step, steps[step])
 		}
@@ -156,6 +162,27 @@ func TestBunAndPnpmDisabledInstallNothing(t *testing.T) {
 	}
 	if !strings.Contains(env, "mise/shims") || !strings.Contains(env, "COREPACK_ENABLE_DOWNLOAD_PROMPT") {
 		t.Errorf(".zshenv block is incoherent:\n%s", env)
+	}
+}
+
+// Yarn is off by default: whoever turns it on gets corepack enabled for it and for nothing they left off.
+func TestYarnAloneEnablesCorepackForYarnAlone(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	ctx := newContext(t, fake, modtest.Values{"node_version": "22", "bun": false, "pnpm": false, "yarn": true})
+
+	run(t, ctx)
+
+	if fake.Tools["npm:yarn"] != "latest" {
+		t.Fatalf("tools = %v", fake.Tools)
+	}
+
+	commands := strings.Join(fake.Commands(), "\n")
+	if !strings.Contains(commands, "(dev) corepack enable yarn") || strings.Contains(commands, "corepack enable pnpm") {
+		t.Fatalf("corepack must be enabled for yarn alone:\n%s", commands)
+	}
+
+	if defaulted := manifest().Fields[3]; defaulted.Key != "yarn" || defaulted.Default != false {
+		t.Fatalf("yarn must be offered off by default, got %+v", defaulted)
 	}
 }
 
@@ -223,8 +250,8 @@ func TestUninstallLeavesMiseAndTheOtherBlocks(t *testing.T) {
 	}
 
 	for _, tool := range tools {
-		if _, present := fake.Tools[tool]; present {
-			t.Errorf("%s still installed", tool)
+		if _, present := fake.Tools[tool.spec]; present {
+			t.Errorf("%s still installed", tool.spec)
 		}
 	}
 

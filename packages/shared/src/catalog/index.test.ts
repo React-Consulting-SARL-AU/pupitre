@@ -68,6 +68,11 @@ describe("ManifestSchema", () => {
     ).toBe(true)
   })
 
+  it("takes a module that says nothing about running as one that runs", () => {
+    expect(ManifestSchema.parse(manifest).runs).toBe(true)
+    expect(ManifestSchema.parse({ ...manifest, runs: false }).runs).toBe(false)
+  })
+
   it("rejects an unknown category, a bad id and a missing resource", () => {
     expect(
       ManifestSchema.safeParse({ ...manifest, category: "storage" }).success

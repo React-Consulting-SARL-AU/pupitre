@@ -8,6 +8,7 @@ import type {
   ModuleConfig,
   ProbeResult,
 } from "@pupitre/shared/agent-protocol/install";
+import type { AgentMigrateResult } from "@pupitre/shared/agent-protocol/migrate";
 import type {
   ProjectActionResult,
   ProjectAddParams,
@@ -15,34 +16,50 @@ import type {
   ProjectBranchesResult,
   ProjectCheckoutResult,
   ProjectDiffResult,
+  ProjectEnvResult,
   ProjectGitStatusResult,
   ProjectListResult,
   ProjectLogsResult,
   ProjectRemoveResult,
   ProjectSyncResult,
+  ProjectUpdateParams,
+  ProjectUpdateResult,
   ProjectUrlResult,
   ProjectWorkingTreeResult,
 } from "@pupitre/shared/agent-protocol/projects";
 import type { TunnelRoute } from "@pupitre/shared/agent-protocol/secrets";
 import type { HelloResult } from "@pupitre/shared/agent-protocol/session";
-import type { CompletionsResult } from "@pupitre/shared/agent-protocol/state";
 import type {
-  AgentUpgradeResult,
+  CompletionsResult,
+  ServiceLogsResult,
+} from "@pupitre/shared/agent-protocol/state";
+import type {
   DoneResult,
   EnrollResult,
   PlatformSyncResult,
 } from "@pupitre/shared/agent-protocol/system";
 import type {
+  AccountDevice,
   AccountResponse,
   AccountState,
   SignInProgress,
 } from "@shared/account";
 import type { AgentResponse } from "@shared/agent";
-import type { AgentUpdateState } from "@shared/agent-update";
+import type {
+  AgentUpdateState,
+  AgentUpgradeOutcome,
+} from "@shared/agent-update";
+import type { AppAbout, AppUpdateState } from "@shared/app-update";
 import type { Appearance } from "@shared/appearance";
 import type { CloudflareZone } from "@shared/cloudflare";
-import type { ConnectionKind, ConnectionsState } from "@shared/connections";
+import type {
+  ConnectionCheck,
+  ConnectionKind,
+  ConnectionsState,
+} from "@shared/connections";
+import type { DevDefaults } from "@shared/dev";
 import type { RemoteEditorId } from "@shared/editors";
+import type { GithubRepo } from "@shared/github";
 import type { HardenOutcome, HardenUpdate } from "@shared/harden";
 import type {
   AgentDelivery,
@@ -56,20 +73,30 @@ import type {
   KeyInstall,
   KeyInstallPhase,
   ServerAdded,
+  ServerChanges,
   ServerDraft,
+  ServerKnock,
   ServerReach,
   ServersConfig,
+  ServerUpdated,
 } from "@shared/servers";
-import type { PortForward, ServiceDetail } from "@shared/services";
+import type {
+  DatabaseShell,
+  PortForward,
+  ServiceDetail,
+} from "@shared/services";
+import type { DeepLink, MenuCommand } from "@shared/shell";
+import type { StartupState } from "@shared/startup";
 import type {
   AgentState,
+  TerminalEnd,
   TerminalKind,
   TerminalLink,
   TerminalOpened,
-  ViewBounds,
 } from "@shared/terminals";
 import type { TraceEntry } from "@shared/trace";
-import { contextBridge, ipcRenderer } from "electron";
+import type { TransferList } from "@shared/transfers";
+import { contextBridge, ipcRenderer, webUtils } from "electron";
 
 /**
  * The surface exposed to the renderer, and nothing more.
@@ -108,6 +135,92 @@ function streamed<Result, Payload>(
     .finally(() => ipcRenderer.removeListener(events, listener));
 }
 
+/**
+ * A stream whose events must all have landed before its answer is trusted.
+ *
+ * The answer of an invoke travels on another pipe than the events and can
+ * overtake the ones sent just before it. The main process says `end` on the
+ * event channel once the last event is out; an answered stream waits for that
+ * word before it settles, so a receipt never counts chunks that are still on
+ * their way. A refused stream sent nothing and is not waited on.
+ */
+function streamedToEnd<Result extends { ok: boolean }, Payload>(
+  call: string,
+  events: string,
+  onPayload: (payload: Payload) => void,
+  ...args: unknown[]
+): Promise<Result> {
+  const token = crypto.randomUUID();
+  let ended: () => void = () => undefined;
+  const end = new Promise<void>((resolve) => {
+    ended = resolve;
+  });
+  const listener = (
+    _e: unknown,
+    payload: (Payload | { end: true }) & { token: string }
+  ) => {
+    if (payload.token !== token) {
+      return;
+    }
+
+    if ("end" in payload) {
+      ended();
+    } else {
+      onPayload(payload);
+    }
+  };
+
+  ipcRenderer.on(events, listener);
+
+  return ipcRenderer
+    .invoke(call, token, ...args)
+    .then(async (answer: Result) => {
+      if (answer.ok) {
+        await end;
+      }
+
+      return answer;
+    })
+    .finally(() => ipcRenderer.removeListener(events, listener));
+}
+
+/**
+ * A stream the caller can end: what `done` settles with, and a way to say
+ * "enough" before the machine has said its last word.
+ *
+ * Two fields rather than a promise with a method on it: the bridge copies a
+ * promise into a new one and keeps nothing else, so a `cancel` hung on it
+ * would never reach the page.
+ */
+export interface Followed<Result> {
+  done: Promise<Result>;
+  cancel: () => void;
+}
+
+function followed<Result, Payload>(
+  call: string,
+  events: string,
+  cancel: string,
+  onPayload: (payload: Payload) => void,
+  ...args: unknown[]
+): Followed<Result> {
+  const token = crypto.randomUUID();
+  const listener = (_e: unknown, payload: Payload & { token: string }) => {
+    if (payload.token === token) {
+      onPayload(payload);
+    }
+  };
+
+  ipcRenderer.on(events, listener);
+
+  return {
+    cancel: () => ipcRenderer.send(cancel, token),
+    done: ipcRenderer
+      .invoke(call, token, ...args)
+      .finally(() => ipcRenderer.removeListener(events, listener)),
+  };
+}
+
 const api = {
   /**
    * The account, without its token.
@@ -125,6 +238,12 @@ const api = {
   refreshAccount: (): Promise<AccountState> =>
     ipcRenderer.invoke("account:refresh"),
   signOut: (): Promise<AccountState> => ipcRenderer.invoke("account:sign-out"),
+  /** The devices the platform holds for this account; the keys never come down. */
+  accountDevices: (): Promise<AgentResponse<AccountDevice[]>> =>
+    ipcRenderer.invoke("account:devices"),
+  /** Revokes another device: its key stops opening the granted servers. */
+  revokeDevice: (deviceId: string): Promise<AgentResponse<null>> =>
+    ipcRenderer.invoke("account:device-revoke", deviceId),
 
   /**
    * The device flow: a code to read out, a browser that opens on it, and the
@@ -158,7 +277,7 @@ const api = {
     params: unknown,
     onEvent: (event: Event) => void
   ): Promise<AgentResponse<unknown>> =>
-    streamed<AgentResponse<unknown>, { event: Event }>(
+    streamedToEnd<AgentResponse<unknown>, { event: Event }>(
       "agent:stream",
       "agent:event",
       (payload) => onEvent(payload.event),
@@ -294,9 +413,23 @@ const api = {
     ipcRenderer.invoke("connections:connect", kind, token),
   forgetAccount: (kind: ConnectionKind): Promise<ConnectionsState> =>
     ipcRenderer.invoke("connections:forget", kind),
+  /** Asks the provider again whether the held token still opens an account. */
+  verifyAccount: (
+    kind: ConnectionKind
+  ): Promise<AgentResponse<ConnectionCheck>> =>
+    ipcRenderer.invoke("connections:verify", kind),
   /** The zones the connected account carries, read fresh rather than remembered. */
   connectionZones: (): Promise<AgentResponse<CloudflareZone[]>> =>
     ipcRenderer.invoke("connections:zones"),
+  /**
+   * The repositories of the connected GitHub account.
+   *
+   * The token that reads them stays in the main process; what comes down is a
+   * list to pick from. It is held there for a few minutes, and `refresh` is the
+   * reader asking for it again.
+   */
+  githubRepos: (refresh = false): Promise<AgentResponse<GithubRepo[]>> =>
+    ipcRenderer.invoke("github:repos", refresh),
   /**
    * The configuration weighed on the server before it is installed.
    *
@@ -352,6 +485,11 @@ const api = {
     params: ProjectAddParams
   ): Promise<AgentResponse<ProjectAddResult>> =>
     ipcRenderer.invoke("project:add", serverId, params),
+  updateProject: (
+    serverId: string,
+    params: ProjectUpdateParams
+  ): Promise<AgentResponse<ProjectUpdateResult>> =>
+    ipcRenderer.invoke("project:update", serverId, params),
   removeProject: (
     serverId: string,
     name: string
@@ -405,6 +543,13 @@ const api = {
     branch: string
   ): Promise<AgentResponse<ProjectCheckoutResult>> =>
     ipcRenderer.invoke("project:checkout", serverId, name, branch),
+  /** The keys of a project's environment file, never a value; `force` writes it again. */
+  projectEnv: (
+    serverId: string,
+    name: string,
+    force = false
+  ): Promise<AgentResponse<ProjectEnvResult>> =>
+    ipcRenderer.invoke("project:env", serverId, name, force),
 
   /** Start, stop or restart one project — or "all", the agent's own word. */
   actOnProject: (
@@ -441,14 +586,39 @@ const api = {
     follow: boolean,
     onLine: (line: string) => void
   ): Promise<AgentResponse<ProjectLogsResult>> =>
-    streamed<AgentResponse<ProjectLogsResult>, { line: string }>(
+    followed<AgentResponse<ProjectLogsResult>, { line: string }>(
       "project:logs",
       "project:log-line",
+      "project:logs-cancel",
       (payload) => onLine(payload.line),
       serverId,
       name,
       lines,
       follow
+    ).done,
+
+  /**
+   * The journal followed until the reader leaves it.
+   *
+   * `done` settles when the project stops, when the link drops, or with a
+   * `cancelled` refusal once `cancel` is called — and the agent is cut short
+   * then, rather than left writing for nobody.
+   */
+  followProjectJournal: (
+    serverId: string,
+    name: string,
+    lines: number,
+    onLine: (line: string) => void
+  ): Followed<AgentResponse<ProjectLogsResult>> =>
+    followed<AgentResponse<ProjectLogsResult>, { line: string }>(
+      "project:logs",
+      "project:log-line",
+      "project:logs-cancel",
+      (payload) => onLine(payload.line),
+      serverId,
+      name,
+      lines,
+      true
     ),
 
   /**
@@ -505,8 +675,113 @@ const api = {
     ipcRenderer.invoke("service:forward-open", serverId, remotePort, label),
   closePortForward: (id: string): Promise<PortForward[]> =>
     ipcRenderer.invoke("service:forward-close", id),
-  portForwards: (serverId: string): Promise<PortForward[]> =>
-    ipcRenderer.invoke("service:forwards", serverId),
+  /** Every forward open on this computer, or those of one server. */
+  portForwards: (serverId?: string): Promise<PortForward[]> =>
+    ipcRenderer.invoke("service:forwards", serverId ?? null),
+  /** The list whole, every time it changes — a forward can die on its own. */
+  onPortForwards: (
+    listener: (forwards: PortForward[]) => void
+  ): (() => void) => {
+    const handler = (_e: unknown, list: PortForward[]) => listener(list);
+
+    ipcRenderer.on("service:forwards-changed", handler);
+
+    return () =>
+      ipcRenderer.removeListener("service:forwards-changed", handler);
+  },
+
+  /**
+   * The shell of a database, as a terminal tab rather than a line to paste.
+   *
+   * The renderer names the module and, at most, a database; the command the
+   * agent composes stays in the main process under the tab it answers with,
+   * and `openTerminal` on that tab runs it.
+   */
+  openDatabaseShell: (
+    serverId: string,
+    moduleId: string,
+    name?: string
+  ): Promise<AgentResponse<DatabaseShell>> =>
+    ipcRenderer.invoke("service:db-shell", serverId, moduleId, name ?? null),
+
+  /** A service's journal, followed until the reader leaves it. */
+  followServiceJournal: (
+    serverId: string,
+    moduleId: string,
+    lines: number,
+    onLine: (line: string) => void
+  ): Followed<AgentResponse<ServiceLogsResult>> =>
+    followed<AgentResponse<ServiceLogsResult>, { line: string }>(
+      "service:logs",
+      "service:log-line",
+      "service:logs-cancel",
+      (payload) => onLine(payload.line),
+      serverId,
+      moduleId,
+      lines,
+      true
+    ),
+
+  /**
+   * The files on their way between this computer and a server.
+   *
+   * They ride their own `rsync` — or `scp` — on the app's SSH configuration,
+   * never the agent's channel. The renderer names a server and a path under
+   * the agent's root; the local path is always one the user pointed at, in a
+   * dialog opened here or by dropping a file, and never a string of its own.
+   */
+  transfers: (): Promise<TransferList> => ipcRenderer.invoke("transfer:list"),
+  startUpload: (
+    serverId: string,
+    remoteDir: string,
+    localPaths: readonly string[]
+  ): Promise<AgentResponse<TransferList>> =>
+    ipcRenderer.invoke("transfer:upload", serverId, remoteDir, localPaths),
+  startDownload: (
+    serverId: string,
+    remotePath: string,
+    localPath: string
+  ): Promise<AgentResponse<TransferList>> =>
+    ipcRenderer.invoke("transfer:download", serverId, remotePath, localPath),
+  pauseTransfer: (id: string): Promise<TransferList> =>
+    ipcRenderer.invoke("transfer:pause", id),
+  resumeTransfer: (id: string): Promise<TransferList> =>
+    ipcRenderer.invoke("transfer:resume", id),
+  cancelTransfer: (id: string): Promise<TransferList> =>
+    ipcRenderer.invoke("transfer:cancel", id),
+  dismissTransfer: (id: string): Promise<TransferList> =>
+    ipcRenderer.invoke("transfer:dismiss", id),
+  onTransfers: (listener: (list: TransferList) => void): (() => void) => {
+    const handler = (_e: unknown, list: TransferList) => listener(list);
+
+    ipcRenderer.on("transfer:changed", handler);
+
+    return () => ipcRenderer.removeListener("transfer:changed", handler);
+  },
+  /**
+   * The path of a file dropped on the window.
+   *
+   * The sandboxed page sees a `File` with no path; this side reads it and
+   * tells the main process, which accepts a local path only once it was
+   * pointed at this way or through one of its dialogs.
+   */
+  pathOfDroppedFile: (file: File): Promise<string | null> =>
+    ipcRenderer.invoke("transfer:dropped", webUtils.getPathForFile(file)),
+  pickUploadPaths: (): Promise<string[]> =>
+    ipcRenderer.invoke("transfer:pick-upload"),
+  pickSavePath: (name: string): Promise<string | null> =>
+    ipcRenderer.invoke("transfer:pick-save", name),
+  pickFolder: (): Promise<string | null> =>
+    ipcRenderer.invoke("transfer:pick-folder"),
+  /**
+   * A capture written where the save dialog pointed: the bytes the window
+   * already holds, and the path `pickSavePath` just returned — no other.
+   */
+  saveShot: (
+    path: string,
+    bytes: Uint8Array
+  ): Promise<AgentResponse<{ path: string }>> =>
+    ipcRenderer.invoke("shots:save", path, bytes),
 
   /** The last report the agent wrote, whatever happened to the channel. */
   installReport: (serverId: string): Promise<AgentResponse<InstallReport>> =>
@@ -529,13 +804,25 @@ const api = {
   upgradeAgent: (
     serverId: string,
     onEvent: (event: Event) => void
-  ): Promise<AgentResponse<AgentUpgradeResult>> =>
-    streamed<AgentResponse<AgentUpgradeResult>, { event: Event }>(
+  ): Promise<AgentResponse<AgentUpgradeOutcome>> =>
+    streamed<AgentResponse<AgentUpgradeOutcome>, { event: Event }>(
       "agent-update:agent",
       "agent-update:event",
       (payload) => onEvent(payload.event),
       serverId
     ),
+
+  /**
+   * The configuration on the server brought to the shape the agent now reads.
+   *
+   * `upgradeAgent` already asks for it, right after the binary changed. This is
+   * the second attempt after a migration refused, and the answer is null for an
+   * agent from before the ledger.
+   */
+  migrateAgentConfig: (
+    serverId: string
+  ): Promise<AgentResponse<AgentMigrateResult | null>> =>
+    ipcRenderer.invoke("agent-update:migrate", serverId),
 
   upgradeModules: (
     serverId: string,
@@ -582,8 +869,6 @@ const api = {
     ipcRenderer.invoke("fleet:restore"),
 
   sshHosts: (): Promise<string[]> => ipcRenderer.invoke("ssh-hosts"),
-  saveServers: (config: ServersConfig): Promise<ServersConfig> =>
-    ipcRenderer.invoke("servers-write", config),
 
   /**
    * Adding a server, and everything that follows from it.
@@ -594,11 +879,12 @@ const api = {
    * app's folder by the main process alone.
    */
   /**
-   * Whether an address answers, and answers SSH. It runs before a server is
-   * declared, so it takes the two values the form has rather than an id.
+   * Whether an address answers, answers SSH, and what would open the account.
+   * It runs before a server is declared, so it takes what the form has rather
+   * than an id, and the password it may call for goes with `addServer`.
    */
-  reachServer: (host: string, port: number): Promise<ServerReach> =>
-    ipcRenderer.invoke("server-reach", host, port),
+  reachServer: (target: ServerKnock): Promise<ServerReach> =>
+    ipcRenderer.invoke("server-reach", target),
 
   addServer: (draft: ServerDraft): Promise<AgentResponse<ServerAdded>> =>
     ipcRenderer.invoke("server-add", draft),
@@ -606,6 +892,15 @@ const api = {
     ipcRenderer.invoke("server-rename", id, name),
   activateServer: (id: string): Promise<ServersConfig> =>
     ipcRenderer.invoke("server-activate", id),
+  /**
+   * The address, the port or the account of a server, changed in place. The
+   * pinned host key goes with the old address, and the answer says so.
+   */
+  updateServer: (
+    id: string,
+    changes: ServerChanges
+  ): Promise<AgentResponse<ServerUpdated>> =>
+    ipcRenderer.invoke("server-update", id, changes),
   removeServer: (id: string): Promise<ServersConfig> =>
     ipcRenderer.invoke("server-remove", id),
 
@@ -658,6 +953,73 @@ const api = {
   openUrl: (url: string): Promise<void> => ipcRenderer.invoke("open-url", url),
 
   /**
+   * A gesture the native menu asked for: the window performs it as it would a
+   * click, with its own confirmation where one exists.
+   */
+  onMenuCommand: (listener: (command: MenuCommand) => void): (() => void) => {
+    const handler = (_e: unknown, command: MenuCommand) => listener(command);
+
+    ipcRenderer.on("menu:command", handler);
+
+    return () => ipcRenderer.removeListener("menu:command", handler);
+  },
+
+  /** A `pupitre://` link the main process has already checked, as a navigation. */
+  onDeepLink: (listener: (link: DeepLink) => void): (() => void) => {
+    const handler = (_e: unknown, link: DeepLink) => listener(link);
+
+    ipcRenderer.on("deep-link", handler);
+
+    return () => ipcRenderer.removeListener("deep-link", handler);
+  },
+  /** The link the app was opened with, before this page could listen; handed over once. */
+  pendingDeepLink: (): Promise<DeepLink | null> =>
+    ipcRenderer.invoke("deep-link:pending"),
+
+  /**
+   * The app's own update: where it stands, and the two gestures it takes.
+   *
+   * Checking asks the feed now rather than at the next round; installing quits
+   * the app and relaunches it on the downloaded version.
+   */
+  /** The version of this build and the channel it follows, as the About screen says them. */
+  appAbout: (): Promise<AppAbout> => ipcRenderer.invoke("app:about"),
+  appUpdateState: (): Promise<AppUpdateState> =>
+    ipcRenderer.invoke("app-update:state"),
+  checkAppUpdate: (): Promise<AppUpdateState> =>
+    ipcRenderer.invoke("app-update:check"),
+  installAppUpdate: (): Promise<AppUpdateState> =>
+    ipcRenderer.invoke("app-update:install"),
+  onAppUpdate: (listener: (state: AppUpdateState) => void): (() => void) => {
+    const handler = (_e: unknown, state: AppUpdateState) => listener(state);
+
+    ipcRenderer.on("app-update:changed", handler);
+
+    return () => ipcRenderer.removeListener("app-update:changed", handler);
+  },
+
+  /**
+   * Whether a session that waits for the reader may say so outside the window.
+   *
+   * The main process is the one that paints the badge and posts the
+   * notification, so it is the one that keeps the preference.
+   */
+  notificationsEnabled: (): Promise<boolean> =>
+    ipcRenderer.invoke("notifications:enabled"),
+  setNotificationsEnabled: (enabled: boolean): Promise<boolean> =>
+    ipcRenderer.invoke("notifications:set", enabled),
+
+  /** Whether the app opens with the session; the main process writes the login item. */
+  startupState: (): Promise<StartupState> =>
+    ipcRenderer.invoke("startup:state"),
+  setStartupEnabled: (enabled: boolean): Promise<StartupState> =>
+    ipcRenderer.invoke("startup:set", enabled),
+
+  /** What a development build fills in for the developer; null in a packaged one. */
+  devDefaults: (): Promise<DevDefaults | null> =>
+    ipcRenderer.invoke("dev:defaults"),
+
+  /**
    * The theme the renderer just resolved, on its way to the native frame.
    *
    * Without it the window paints its edges from the system while the settings
@@ -678,14 +1040,20 @@ const api = {
     keystrokesReceived: number;
   }> => ipcRenderer.invoke("terminal-diagnostics"),
 
-  /** The renderer names a kind and a project; the command is decided over there. */
+  /**
+   * The renderer names a kind, a project, the session a remembered tab left and
+   * a folder under the project's; the command is decided over there, and every
+   * name checked again.
+   */
   openTerminal: (
     id: string,
     serverId: string,
     kind: TerminalKind,
     project: string | null,
+    session: string | null,
     cols: number,
-    rows: number
+    rows: number,
+    dir: string | null = null
   ): Promise<AgentResponse<TerminalOpened>> =>
     ipcRenderer.invoke(
       "terminal-open",
@@ -693,14 +1061,18 @@ const api = {
       serverId,
       kind,
       project,
+      session,
       cols,
-      rows
+      rows,
+      dir
     ),
   writeTerminal: (id: string, data: string): void =>
     ipcRenderer.send("terminal-write", id, data),
   resizeTerminal: (id: string, cols: number, rows: number): void =>
     ipcRenderer.send("terminal-resize", id, cols, rows),
-  closeTerminal: (id: string): void => ipcRenderer.send("terminal-close", id),
+  /** `end` names the session to kill: a tab closed for good takes it with it. */
+  closeTerminal: (id: string, end: TerminalEnd | null = null): void =>
+    ipcRenderer.send("terminal-close", id, end),
   onTerminalData: (
     callback: (payload: { id: string; data: string }) => void
   ): (() => void) => {
@@ -726,22 +1098,25 @@ const api = {
     return () => ipcRenderer.removeListener("terminal-exit", listener);
   },
 
-  /** The address never crosses: this side names a session and a rectangle. */
+  /** The address never crosses: this side names a session, and the browser opens it. */
   onTerminalLink: (callback: (link: TerminalLink) => void): (() => void) => {
     const listener = (_e: unknown, link: TerminalLink) => callback(link);
     ipcRenderer.on("terminal-link", listener);
     return () => ipcRenderer.removeListener("terminal-link", listener);
   },
-  openLogin: (id: string, bounds: ViewBounds): Promise<boolean> =>
-    ipcRenderer.invoke("login-open", id, bounds),
-  moveLogin: (bounds: ViewBounds): void =>
-    ipcRenderer.send("login-move", bounds),
-  closeLogin: (): void => ipcRenderer.send("login-close"),
-  onLoginClosed: (callback: (id: string) => void): (() => void) => {
-    const listener = (_e: unknown, id: string) => callback(id);
-    ipcRenderer.on("login-closed", listener);
-    return () => ipcRenderer.removeListener("login-closed", listener);
+  /** A notification was clicked: the session it named is the one to bring up. */
+  onTerminalWanted: (callback: (id: string) => void): (() => void) => {
+    const listener = (_e: unknown, payload: { id: string }) =>
+      callback(payload.id);
+    ipcRenderer.on("terminal-wanted", listener);
+    return () => ipcRenderer.removeListener("terminal-wanted", listener);
   },
+  openLogin: (id: string): Promise<boolean> =>
+    ipcRenderer.invoke("login-open", id),
+  dismissLogin: (id: string): void => ipcRenderer.send("login-dismiss", id),
+  /** An address clicked in a session: what it needs from the server travels with it. */
+  openTerminalUrl: (id: string, url: string): Promise<boolean> =>
+    ipcRenderer.invoke("terminal-open-url", id, url),
 };
 
 export type PupitreApi = typeof api;

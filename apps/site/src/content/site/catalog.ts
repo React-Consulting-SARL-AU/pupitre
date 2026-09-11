@@ -24,8 +24,8 @@ export const CATALOG: CatalogGroup[] = [
         id: "core.system",
         name: { en: "System", fr: "Système" },
         detail: {
-          en: "Base packages, sized swap, memory guard, a dev user with sudo, tmux, zsh, git identity.",
-          fr: "Paquets de base, swap dimensionné, garde-fou mémoire, utilisateur dev avec sudo, tmux, zsh, identité git.",
+          en: "Base packages, sized swap, memory guard, a dev user with sudo, zsh, tmux, git identity, the dev command.",
+          fr: "Paquets de base, swap dimensionné, garde-fou mémoire, utilisateur dev avec sudo, zsh, tmux, identité git, la commande dev.",
         },
       },
       {
@@ -46,8 +46,8 @@ export const CATALOG: CatalogGroup[] = [
         id: "runtime.node",
         name: { en: "Node.js", fr: "Node.js" },
         detail: {
-          en: "Node, Bun and pnpm through mise, at the versions you choose, in every shell.",
-          fr: "Node, Bun et pnpm via mise, aux versions choisies, dans tous les shells.",
+          en: "Node, Bun, pnpm and Yarn through mise, at the versions you choose, in every shell.",
+          fr: "Node, Bun, pnpm et Yarn via mise, aux versions choisies, dans tous les shells.",
         },
       },
       {
@@ -108,8 +108,8 @@ export const CATALOG: CatalogGroup[] = [
         id: "db.mysql",
         name: { en: "MySQL or MariaDB", fr: "MySQL ou MariaDB" },
         detail: {
-          en: "Bound to 127.0.0.1 on the port you pick, app and remote accounts you name, dumps in ~/dumps/ imported for you.",
-          fr: "Lié à 127.0.0.1 sur le port choisi, comptes applicatif et distant que vous nommez, dumps déposés dans ~/dumps/ importés pour vous.",
+          en: "Bound to 127.0.0.1 on the port you pick, app and remote accounts you name, dumps in ~/dumps imported for you.",
+          fr: "Lié à 127.0.0.1 sur le port choisi, comptes applicatif et distant que vous nommez, dumps déposés dans ~/dumps importés pour vous.",
         },
       },
       {
@@ -146,32 +146,32 @@ export const CATALOG: CatalogGroup[] = [
         id: "ai.claude",
         name: { en: "Claude Code", fr: "Claude Code" },
         detail: {
-          en: "Sign in with the URL shown in the app terminal, project context, Pupitre skills.",
-          fr: "Connexion par l’URL affichée dans le terminal de l’app, contexte du projet, skills Pupitre.",
+          en: "The native binary, checksum verified, with the machine context, the Pupitre skills and your own subscription.",
+          fr: "Le binaire natif, somme de contrôle vérifiée, avec le contexte machine, les skills Pupitre et votre propre abonnement.",
         },
       },
       {
         id: "ai.codex",
         name: { en: "Codex", fr: "Codex" },
         detail: {
-          en: "Same mechanism as Claude Code, with your own subscription.",
-          fr: "Même mécanisme que Claude Code, avec votre propre abonnement.",
+          en: "Installed through mise, same machine context and same skills, on your own subscription.",
+          fr: "Posé par mise, même contexte machine et mêmes skills, sur votre propre abonnement.",
         },
       },
       {
         id: "ai.hermes",
         name: { en: "Hermes Agent", fr: "Hermes Agent" },
         detail: {
-          en: "Nous Research’s agent through Python, model providers configured, a systemd service if always on.",
-          fr: "L’agent de Nous Research via Python, fournisseurs de modèles configurés, service systemd si toujours actif.",
+          en: "Nous Research’s agent through Python, the model providers you configure, a systemd service if always on.",
+          fr: "L’agent de Nous Research via Python, les fournisseurs de modèles que vous configurez, service systemd si toujours actif.",
         },
       },
       {
         id: "ai.browser",
-        name: { en: "Headless Chrome", fr: "Chrome headless" },
+        name: { en: "Browser and gallery", fr: "Navigateur et galerie" },
         detail: {
-          en: "Playwright dependencies, a capture command that files images in the gallery.",
-          fr: "Dépendances Playwright, commande de capture qui range les images dans la galerie.",
+          en: "Headless Chrome and the Playwright libraries, the shot command, and a gallery served on the loopback.",
+          fr: "Chrome sans interface et les bibliothèques Playwright, la commande shot, et une galerie servie sur la boucle locale.",
         },
       },
     ],
@@ -182,7 +182,7 @@ export const CATALOG: CatalogGroup[] = [
     entries: [
       {
         id: "editor.jetbrains",
-        name: { en: "JetBrains Gateway", fr: "JetBrains Gateway" },
+        name: { en: "JetBrains Remote Dev", fr: "JetBrains Remote Dev" },
         detail: {
           en: "Remote backend preinstalled for IntelliJ IDEA, WebStorm, PyCharm, PhpStorm or GoLand, JVM sized, your licence.",
           fr: "Backend distant préinstallé pour IntelliJ IDEA, WebStorm, PyCharm, PhpStorm ou GoLand, JVM dimensionnée, votre licence.",
@@ -198,7 +198,7 @@ export const CATALOG: CatalogGroup[] = [
       },
       {
         id: "editor.zed",
-        name: { en: "Zed", fr: "Zed" },
+        name: { en: "Zed Remote Server", fr: "Zed Remote Server" },
         detail: {
           en: "Remote server preinstalled for your version, opened through zed://ssh.",
           fr: "Serveur distant préinstallé pour votre version, ouverture par zed://ssh.",
@@ -244,16 +244,16 @@ export const CATALOG: CatalogGroup[] = [
         id: "tool.1password",
         name: { en: "1Password", fr: "1Password" },
         detail: {
-          en: "CLI and service account, .env.local generated from the templates in your repositories.",
-          fr: "CLI et compte de service, .env.local générés depuis les gabarits de vos dépôts.",
+          en: "CLI and service account token, checked at install time, so a project builds its env file from your vault.",
+          fr: "CLI et jeton de compte de service, vérifié à l’installation, pour qu’un projet construise son fichier d’environnement depuis votre coffre.",
         },
       },
       {
         id: "tool.neon",
         name: { en: "Neon", fr: "Neon" },
         detail: {
-          en: "One Neon branch per project you name, its connection string filed with the server’s secrets.",
-          fr: "Une branche Neon par projet que vous nommez, sa chaîne de connexion rangée avec les secrets du serveur.",
+          en: "The Neon CLI and your API key in the dev shell; your projects and branches stay yours to create.",
+          fr: "Le CLI Neon et votre clé d’API dans le shell de dev ; vos projets et vos branches restent les vôtres à créer.",
         },
       },
     ],

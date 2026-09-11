@@ -34,6 +34,10 @@ func setupCLI(t *testing.T) (*modtest.FakeSys, string) {
 	t.Setenv("PUPITRE_REPORT_PATH", filepath.Join(dir, "report.json"))
 	t.Setenv("PUPITRE_LOG_PATH", filepath.Join(dir, "pupitre.log"))
 	t.Setenv("PUPITRE_INSTALL_PATH", filepath.Join(dir, "install.json"))
+
+	// `dev` follows the shell that types it, and the locale lives at the package
+	// level: without this, a French laptop renders every phrase below in French.
+	t.Setenv("PUPITRE_LOCALE", "en")
 	enrol(t, fake)
 
 	return fake, dir
@@ -77,7 +81,7 @@ func TestInstallWithoutConfigurationNorOnly(t *testing.T) {
 	}
 
 	code, _, stderr = runCLI(t, "install", "--bogus")
-	if code != 2 || !strings.Contains(stderr, "argument inconnu") {
+	if code != 2 || !strings.Contains(stderr, "unknown argument") {
 		t.Fatalf("code = %d, stderr = %s", code, stderr)
 	}
 }
@@ -126,7 +130,7 @@ func TestProbeWritesTheContractResultAndTheScript(t *testing.T) {
 	}
 
 	code, _, stderr = runCLI(t, "probe", "--bogus")
-	if code != 2 || !strings.Contains(stderr, "argument inconnu") {
+	if code != 2 || !strings.Contains(stderr, "unknown argument") {
 		t.Fatalf("code = %d, stderr = %s", code, stderr)
 	}
 }

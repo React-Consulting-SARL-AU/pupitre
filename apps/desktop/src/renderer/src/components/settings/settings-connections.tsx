@@ -1,5 +1,8 @@
-import { useTranslations } from "@renderer/i18n/use-translations";
+import { installedModules } from "@renderer/lib/modules";
+import { useCatalog } from "@renderer/stores/catalog";
 import { useConnections } from "@renderer/stores/connections";
+import { useServers } from "@renderer/stores/servers";
+import { snapshotOf, useSnapshot } from "@renderer/stores/snapshot";
 import { useEffect } from "react";
 import { CONNECTIONS } from "../connections/connection-descriptors";
 import { ConnectionRow } from "../connections/connection-row";
@@ -10,12 +13,24 @@ import { ConnectionRow } from "../connections/connection-row";
  * One line per account, its form folded under it — the same card the
  * configuration screen shows above the module that needs one, so connecting an
  * account there and looking at it here are one thing, not two screens that
- * could disagree.
+ * could disagree. Forgetting an account names what it takes away: the modules
+ * of the active server that declare it, by the manifests the catalogue read.
  */
 export function SettingsConnections() {
-  const t = useTranslations();
-
   const read = useConnections((store) => store.read);
+  const server = useServers((store) =>
+    store.config?.servers.find((one) => one.id === store.config?.active)
+  );
+  const snapshot = useSnapshot((store) =>
+    snapshotOf(store.state, server?.id ?? null)
+  );
+  const catalog = useCatalog((store) => store.catalog);
+
+  const installed = snapshot ? installedModules(snapshot.services) : [];
+  const manifests =
+    catalog.status === "ready" && server && catalog.serverId === server.id
+      ? catalog.catalog.modules
+      : null;
 
   useEffect(() => {
     read();
@@ -23,8 +38,6 @@ export function SettingsConnections() {
 
   return (
     <div>
-      <p className="text-ink-3 leading-relaxed">{t("connections.lead")}</p>
-
       {/*
         The rows run edge to edge inside the card: an inset would draw a second
         frame within the one already there, and each line already carries its
@@ -32,7 +45,13 @@ export function SettingsConnections() {
       */}
       <div className="elevation-raised mt-4 overflow-hidden rounded-md border border-line bg-surface">
         {CONNECTIONS.map((connection) => (
-          <ConnectionRow connection={connection} key={connection.kind} />
+          <ConnectionRow
+            connection={connection}
+            installed={installed}
+            key={connection.kind}
+            manifests={manifests}
+            serverName={server?.name ?? null}
+          />
         ))}
       </div>
     </div>

@@ -1,13 +1,24 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Server } from "@shared/servers";
 import {
   alias,
   appSshPaths,
-  CONTROL_PATH_LIMIT,
+  controlDir,
   controlPath,
+  controlPathFits,
+  ensureControlDir,
   knownHostsKey,
   readSystemHosts,
   renderSshConfig,
@@ -156,24 +167,75 @@ describe("les chemins que chaque système impose", () => {
 });
 
 describe("le chemin de multiplexage", () => {
-  it("tient dans la limite d'un socket Unix, dossier de données compris", () => {
-    const long = join(
-      "/Users/quelquun/Library/Application Support/Pupitre Desktop"
+  it("tient dans la limite d'un socket Unix, nom temporaire de ssh compris", () => {
+    const dir = controlDir(501);
+
+    expect(controlPath(dir)).toBe("/tmp/pupitre-501/%C");
+    expect(controlPathFits(dir)).toBe(true);
+    expect(controlPathFits(`/private/var/folders/${"x".repeat(60)}`)).toBe(
+      false
     );
-    const paths = appSshPaths(long);
-
-    const path = controlPath(paths, APP_SERVER);
-
-    expect(path.length).toBeLessThan(CONTROL_PATH_LIMIT);
-    expect(path.startsWith(paths.dir)).toBe(false);
   });
 
-  it("donne à chaque serveur un socket qui lui est propre", () => {
-    const paths = appSshPaths("/data");
+  it("donne à chaque compte de la machine un dossier qui lui est propre", () => {
+    expect(controlDir(501)).not.toBe(controlDir(502));
+  });
 
-    expect(controlPath(paths, APP_SERVER)).not.toBe(
-      controlPath(paths, { ...APP_SERVER, id: "srv-c" })
+  it("crée le dossier fermé aux autres, et le referme s'il s'était ouvert", () => {
+    const base = mkdtempSync(join(tmpdir(), "pupitre-control-"));
+    const dir = controlDir(process.getuid?.() ?? 0, base);
+
+    try {
+      expect(ensureControlDir(dir, process.getuid?.() ?? 0)).toBe(true);
+      expect(statSync(dir).mode % 0o1000).toBe(0o700);
+
+      chmodSync(dir, 0o755);
+      expect(ensureControlDir(dir, process.getuid?.() ?? 0)).toBe(true);
+      expect(statSync(dir).mode % 0o1000).toBe(0o700);
+    } finally {
+      rmSync(base, { force: true, recursive: true });
+    }
+  });
+
+  it("refuse un lien, un fichier, ou le dossier d'un autre compte", () => {
+    const base = mkdtempSync(join(tmpdir(), "pupitre-control-"));
+    const uid = process.getuid?.() ?? 0;
+
+    try {
+      const linked = join(base, "linked");
+      symlinkSync(base, linked);
+      expect(ensureControlDir(linked, uid)).toBe(false);
+
+      const file = join(base, "file");
+      writeFileSync(file, "");
+      expect(ensureControlDir(file, uid)).toBe(false);
+
+      const theirs = join(base, "theirs");
+      mkdirSync(theirs);
+      expect(ensureControlDir(theirs, uid + 1)).toBe(false);
+    } finally {
+      rmSync(base, { force: true, recursive: true });
+    }
+  });
+
+  it("laisse la connexion sans maître quand aucun dossier ne peut être le sien", () => {
+    const paths = appSshPaths("/data");
+    const config = renderSshConfig([APP_SERVER], paths, "darwin", null);
+
+    expect(config).not.toContain("ControlMaster");
+    expect(config).not.toContain("ControlPath");
+  });
+
+  it("nomme le socket par ce que ssh sait du serveur et du compte", () => {
+    const paths = appSshPaths("/data");
+    const config = renderSshConfig(
+      [APP_SERVER],
+      paths,
+      "darwin",
+      "/tmp/pupitre-501"
     );
+
+    expect(config).toContain("  ControlPath /tmp/pupitre-501/%C");
   });
 });
 

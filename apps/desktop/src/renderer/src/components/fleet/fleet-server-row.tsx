@@ -7,6 +7,8 @@ import type {
 } from "@renderer/components/ui/status-dot";
 import { StatusDot } from "@renderer/components/ui/status-dot";
 import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
+import type { DictionaryKey } from "@renderer/i18n/en";
+import type { Translate } from "@renderer/i18n/i18n";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { FleetOpening, GrantedServer } from "@renderer/stores/fleet";
 import { grantPending, grantWithdrawn } from "@shared/servers";
@@ -41,6 +43,21 @@ const WITHDRAWN: Look = {
   shape: "struck",
   tone: "danger",
 };
+
+/** The platform's own word for a server, said in the reader's language; an unknown one is said as it came. */
+const STATUS_KEYS: Record<string, DictionaryKey> = {
+  active: "fleet.status.active",
+  enrolling: "fleet.status.enrolling",
+  grace: "fleet.status.grace",
+  revoked: "fleet.status.revoked",
+  suspended: "fleet.status.suspended",
+};
+
+export function grantStatusLabel(t: Translate, status: string): string {
+  const key = STATUS_KEYS[status];
+
+  return key ? t(key) : status;
+}
 
 export function FleetServerRow({
   server,
@@ -97,7 +114,7 @@ export function FleetServerRow({
             <Label>{t("fleet.row.platformState")}</Label>
           </dt>
           <dd className="font-data text-[12px] text-ink-2">
-            {t(look.label)} · {server.grant.status}
+            {t(look.label)} · {grantStatusLabel(t, server.grant.status)}
           </dd>
         </div>
         <div className="min-w-0">

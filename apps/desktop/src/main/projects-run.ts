@@ -5,15 +5,22 @@ import type {
   ProjectBranchesResult,
   ProjectCheckoutResult,
   ProjectDiffResult,
+  ProjectEnvResult,
   ProjectGitStatusResult,
   ProjectListResult,
   ProjectLogsResult,
   ProjectRemoveResult,
   ProjectSyncResult,
+  ProjectUpdateParams,
+  ProjectUpdateResult,
   ProjectUrlResult,
   ProjectWorkingTreeResult,
 } from "@pupitre/shared/agent-protocol/projects";
-import { ProjectAddParamsSchema } from "@pupitre/shared/agent-protocol/projects";
+import {
+  ProjectAddParamsSchema,
+  ProjectUpdateParamsSchema,
+} from "@pupitre/shared/agent-protocol/projects";
+import type { Route } from "@pupitre/shared/agent-protocol/state";
 import type { DoneResult } from "@pupitre/shared/agent-protocol/system";
 import type { AgentError, AgentResponse } from "@shared/agent";
 import type { AgentClient } from "./agent-client";
@@ -39,10 +46,11 @@ export interface ProjectDeps {
   /** Whether this identifier still names a server of the app's configuration. */
   knows: (serverId: string) => boolean;
   /**
-   * Removes the DNS record for the subdomain of a project that's leaving: a
-   * name left behind still answers, with nothing behind it anymore.
+   * Removes the DNS record of a name a project no longer answers to — because
+   * the project leaves, or because its configuration dropped the route. A name
+   * left behind still answers, with nothing behind it anymore.
    */
-  release?: (serverId: string, subdomain: string) => Promise<unknown>;
+  release?: (serverId: string, hostname: string) => Promise<unknown>;
 }
 
 /**
@@ -59,8 +67,8 @@ interface Declared {
   dir: string;
   path: string | null;
   root: string | null;
-  /** The project's subdomain, to hand back to the platform if it came from there. */
-  subdomain: string | null;
+  /** The names on the web the project answers to, as the agent stored them: what a removal or a rewrite has to hand back. */
+  hostnames: readonly string[];
 }
 
 const declared = new Map<string, Map<string, Declared>>();
@@ -78,6 +86,11 @@ export function projectFolder(serverId: string, name: string): string | null {
   const held = declared.get(serverId)?.get(name);
 
   return held?.root ?? held?.path ?? null;
+}
+
+/** The folder the agent registered for a project: what its files are browsed from, git's root or not. */
+export function projectPath(serverId: string, name: string): string | null {
+  return declared.get(serverId)?.get(name)?.path ?? null;
 }
 
 /** Whether this server has declared a project under that name. */
@@ -111,13 +124,25 @@ function known(serverId: unknown, deps: ProjectDeps): string | null {
   return typeof serverId === "string" && deps.knows(serverId) ? serverId : null;
 }
 
+function hostnamesOf(routes: readonly Route[] | undefined): string[] {
+  return (routes ?? []).flatMap((route) => route.hostname ?? []);
+}
+
+/** The names the agent holds for a project, as it last answered them. */
+export function projectHostnames(
+  serverId: string,
+  name: string
+): readonly string[] {
+  return declared.get(serverId)?.get(name)?.hostnames ?? [];
+}
+
 function remember(
   serverId: string,
   projects: readonly {
     name: string;
     dir: string;
     path?: string;
-    subdomain?: string;
+    routes?: readonly Route[];
   }[]
 ): void {
   const held = declared.get(serverId) ?? new Map<string, Declared>();
@@ -131,9 +156,9 @@ function remember(
 
     held.set(project.name, {
       dir: project.dir,
+      hostnames: hostnamesOf(project.routes),
       path: absolute,
       root: known?.root ?? null,
-      subdomain: project.subdomain ?? known?.subdomain ?? null,
     });
   }
 
@@ -184,6 +209,58 @@ export async function addProject(
 
   if (answer.ok) {
     remember(server, [answer.result]);
+  }
+
+  return answer;
+}
+
+/**
+ * A project rewritten in place, and the names it stops answering to released.
+ *
+ * The agent replaces the routes and answers the project as it stands; the
+ * records are the app's, so the names of before are read against the names of
+ * after, and a name that went is dropped from the zone before the tunnel is
+ * asked to sync. The renderer names a project the list gave it, never one it
+ * made up, and the patch is held to the contract before it becomes a request.
+ */
+export async function updateProject(
+  serverId: unknown,
+  params: unknown,
+  deps: ProjectDeps
+): Promise<AgentResponse<ProjectUpdateResult>> {
+  const parsed = ProjectUpdateParamsSchema.safeParse(params);
+
+  if (!parsed.success) {
+    return refuse("bad_request", "refusal.project.unreadable");
+  }
+
+  const call = target(serverId, parsed.data.name, deps);
+
+  if (isRefusal(call)) {
+    return call;
+  }
+
+  const before = projectHostnames(call.serverId, call.name);
+  const answer = await deps.client.request(
+    call.serverId,
+    "project.update",
+    parsed.data as ProjectUpdateParams
+  );
+
+  if (!answer.ok) {
+    return answer;
+  }
+
+  remember(call.serverId, [answer.result]);
+
+  const kept = new Set(hostnamesOf(answer.result.routes));
+
+  if (deps.release) {
+    for (const hostname of before) {
+      if (!kept.has(hostname)) {
+        await deps.release(call.serverId, hostname);
+      }
+    }
   }
 
   return answer;
@@ -266,12 +343,14 @@ export async function onProject<C extends PlainProjectCommand>(
 
   if (answer.ok) {
     if (cmd === "project.remove") {
-      const label = declared.get(call.serverId)?.get(call.name)?.subdomain;
+      const hostnames = projectHostnames(call.serverId, call.name);
 
       declared.get(call.serverId)?.delete(call.name);
 
-      if (label && deps.release) {
-        await deps.release(call.serverId, label);
+      if (deps.release) {
+        for (const hostname of hostnames) {
+          await deps.release(call.serverId, hostname);
+        }
       }
     } else {
       noteRoot(
@@ -415,6 +494,31 @@ export async function diffProject(
 }
 
 /**
+ * The environment file of a project: its keys, never a value.
+ *
+ * Without `force` the agent reads the file it already wrote, or writes it once
+ * from the project's template; with it, the file is written again from the
+ * vault. Only the names of the keys come back, which is all a screen may show.
+ */
+export async function projectEnv(
+  serverId: unknown,
+  name: unknown,
+  force: boolean,
+  deps: ProjectDeps
+): Promise<AgentResponse<ProjectEnvResult>> {
+  const call = target(serverId, name, deps);
+
+  if (isRefusal(call)) {
+    return call;
+  }
+
+  return await deps.client.request(call.serverId, "project.env", {
+    name: call.name,
+    ...(force ? { force: true } : {}),
+  });
+}
+
+/**
  * The journal of a project, read once or followed.
  *
  * A followed journal holds its channel until the project stops, so it gets the
@@ -426,7 +530,8 @@ export async function projectLogs(
   lines: unknown,
   follow: boolean,
   onLine: (line: string) => void,
-  deps: ProjectDeps
+  deps: ProjectDeps,
+  signal?: AbortSignal
 ): Promise<AgentResponse<ProjectLogsResult>> {
   const call = target(serverId, name, deps);
 
@@ -450,6 +555,7 @@ export async function projectLogs(
         }
       },
       ...(follow ? { timeoutMs: FOLLOW_MS } : {}),
+      ...(signal ? { signal } : {}),
     }
   );
 }

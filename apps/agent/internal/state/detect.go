@@ -4,17 +4,18 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	"pupitre.studio/agent/internal/i18n"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/sys/net"
 	"pupitre.studio/agent/internal/sys/user"
 )
 
@@ -59,14 +60,14 @@ func randomName() string {
 }
 
 // What a repository asks for, before anything of it is installed: a folder already on the server, or a shallow clone that leaves nothing behind.
-func (r *Reader) Detect(repo, dir string) (contract.ProjectDetect, error) {
+func (r *Reader) Detect(repo, dir, branch string) (contract.ProjectDetect, error) {
 	switch {
 	case repo != "" && dir != "":
 		return contract.ProjectDetect{}, bad(i18n.T("state.detect.bothSources"), i18n.T("state.detect.source.fix"))
 	case dir != "":
 		return r.detectDir(dir)
 	case repo != "":
-		return r.detectRepo(repo)
+		return r.detectRepo(repo, branch)
 	}
 
 	return contract.ProjectDetect{}, bad(i18n.T("state.detect.noSource"), i18n.T("state.detect.source.fix"))
@@ -86,9 +87,13 @@ func (r *Reader) detectDir(dir string) (contract.ProjectDetect, error) {
 }
 
 // The clone lands in the cache of the projects user, never in the projects root: a half-clone must not be able to pass for a project.
-func (r *Reader) detectRepo(repo string) (contract.ProjectDetect, error) {
+func (r *Reader) detectRepo(repo, branch string) (contract.ProjectDetect, error) {
 	if strings.HasPrefix(repo, "-") {
 		return contract.ProjectDetect{}, bad(i18n.T("state.repo.invalid", repo), i18n.T("state.repo.invalid.fix"))
+	}
+
+	if branch != "" && !registry.BranchPattern.MatchString(branch) {
+		return contract.ProjectDetect{}, bad(i18n.T("registry.branch.invalid", branch), i18n.T("registry.branch.invalid.fix"))
 	}
 
 	cache := r.options.Detect
@@ -97,22 +102,28 @@ func (r *Reader) detectRepo(repo string) (contract.ProjectDetect, error) {
 	r.sweep(cache.Cache)
 	defer r.discard(target)
 
-	if _, err := r.clone(repo, target); err != nil {
+	if out, err := r.clone(repo, branch, target); err != nil {
 		return contract.ProjectDetect{}, protocol.NewError(contract.ErrorInternal, i18n.T("state.clone.failed", repo)).
-			WithFix(i18n.T("state.repo.unreadable.fix"))
+			WithFix(cloneFix(out))
 	}
 
 	return r.read(target), nil
 }
 
-func (r *Reader) clone(repo, target string) (sys.Output, error) {
+func (r *Reader) clone(repo, branch, target string) (sys.Output, error) {
 	owner := r.options.Tmux.Resolved().User
+
+	argv := []string{"git", "clone", "--depth", "1", "--no-tags", "--quiet"}
+	if branch != "" {
+		argv = append(argv, "--branch", branch)
+	}
+	argv = append(argv, "--", repo, target)
 
 	return r.ctx().Sys().Run(sys.Command{
 		User: owner,
 		// git creates the leading folders of the target itself, so the only directory these commands need to start in is the one every machine has.
 		Dir:     anywhere,
-		Argv:    []string{"git", "clone", "--depth", "1", "--no-tags", "--quiet", "--", repo, target},
+		Argv:    argv,
 		Env:     gitEnv(owner),
 		Timeout: cloneTimeout,
 	})
@@ -137,27 +148,41 @@ func (r *Reader) sweep(cache string) {
 func (r *Reader) read(root string) contract.ProjectDetect {
 	files := sources{ctx: r.ctx(), root: root}
 	manifest := files.packageJSON()
-
 	pkgmgr := detectPkgMgr(files, manifest)
+
+	if detected, monorepo := r.monorepo(files, manifest, pkgmgr); monorepo {
+		return detected
+	}
+
 	script := manifest.startScript()
-	port := r.freePort(declaredPort(files, manifest.Scripts[script]))
+	port := r.freePort(declaredPort(files, manifest.Scripts[script]), nil)
 
 	return contract.ProjectDetect{
 		PkgMgr:   pkgmgr,
-		Install:  registry.Project{PkgMgr: pkgmgr}.InstallCommand(),
+		Install:  installCommandOf(pkgmgr),
 		Cmd:      startCommand(pkgmgr, script, port),
 		PortHint: port,
 	}
 }
 
-func (r *Reader) freePort(wanted int) int {
-	declared := r.registry()
+func installCommandOf(pkgmgr string) string {
+	return registry.Project{PkgMgr: pkgmgr}.InstallCommand()
+}
 
-	if wanted >= 1024 && wanted <= registry.LastPort && !declared.Ports()[wanted] {
+// The port the repository asks for, if nothing declared and nothing listening holds it; the next free one otherwise.
+func (r *Reader) freePort(wanted int, taken map[int]bool) int {
+	declared := r.registry()
+	busy := net.Listening(r.ctx())
+
+	if wanted >= 1024 && wanted <= registry.LastPort && !declared.Ports()[wanted] && !busy[wanted] && !taken[wanted] {
 		return wanted
 	}
 
-	return declared.FreePort(wanted, nil)
+	for port := range taken {
+		busy[port] = true
+	}
+
+	return declared.FreePort(wanted, busy)
 }
 
 type sources struct {
@@ -189,9 +214,11 @@ func (s sources) first(names ...string) string {
 }
 
 type packageJSON struct {
-	Present bool
-	Manager string            `json:"packageManager"`
-	Scripts map[string]string `json:"scripts"`
+	Present    bool
+	Name       string            `json:"name"`
+	Manager    string            `json:"packageManager"`
+	Scripts    map[string]string `json:"scripts"`
+	Workspaces json.RawMessage   `json:"workspaces"`
 }
 
 func (p packageJSON) startScript() string {

@@ -163,6 +163,37 @@ func TestReplayOnAnInstalledMachineChangesNothing(t *testing.T) {
 	t.Logf("first run: %d calls, %d mutations; replay: %d calls, 0 mutations", calls, mutations, len(fake.Calls)-calls)
 }
 
+// A machine installed before rsync joined the list still reads as installed, and the next upgrade is what brings the package: once, then never again.
+func TestUpgradeBringsAPackageAddedSinceTheInstall(t *testing.T) {
+	fake := bareMachine()
+	run(t, newContext(t, fake))
+	fake.Files[passwdPath] = []byte("root:x:0:0:root:/root:/bin/bash\ndev:x:1000:1000::/home/dev:/usr/bin/zsh\n")
+	delete(fake.Packages, "rsync")
+
+	status, err := (Module{}).Check(newContext(t, fake))
+	if err != nil || !status.Installed {
+		t.Fatalf("a machine missing a package added since must still read as installed: %+v, %v", status, err)
+	}
+
+	ctx := newContext(t, fake)
+	if err := (Module{}).Upgrade(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if fake.Packages["rsync"] == "" || statuses(ctx)["install-packages"] != contract.StepOK {
+		t.Fatalf("upgrade must install rsync: packages %v, steps %v", fake.Packages, statuses(ctx))
+	}
+
+	again := newContext(t, fake)
+	if err := (Module{}).Upgrade(again); err != nil {
+		t.Fatal(err)
+	}
+
+	if statuses(again)["install-packages"] != contract.StepSkip {
+		t.Fatalf("a second upgrade must find nothing missing: %v", statuses(again))
+	}
+}
+
 func TestSwapAndMemoryGuardFollowTheMachine(t *testing.T) {
 	fake := bareMachine()
 	fake.Files["/proc/meminfo"] = []byte("MemTotal:       16318000 kB\n")
@@ -267,13 +298,30 @@ func TestExistingUserGetsZshAndSudo(t *testing.T) {
 	}
 }
 
-func TestMissingGitIdentityFailsTheStep(t *testing.T) {
+// A swap file allocated but never enabled must not survive the failure: left there, the next run would take it for a swap.
+func TestAHalfMadeSwapFileIsRemovedAndTheNextRunTriesAgain(t *testing.T) {
 	fake := bareMachine()
-	ctx := modtest.NewContext(t, fake, modtest.Options{Manifest: manifest(), Values: modtest.Values{"git_name": "Jordan"}})
+	fake.FailProgram("mkswap", "mkswap: /swapfile: insecure permissions 0644")
+	ctx := newContext(t, fake)
 
-	err := (Module{}).Configure(ctx)
-	if err == nil || !strings.Contains(err.Error(), "set-git-identity : git_name and git_email are required") {
-		t.Fatalf("unexpected error: %v", err)
+	if err := (Module{}).Install(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, present := fake.Files["/swapfile"]; present || statuses(ctx)["create-swap"] != contract.StepOK {
+		t.Fatalf("swapfile present %v, create-swap = %s", present, statuses(ctx)["create-swap"])
+	}
+
+	delete(fake.Failures, "mkswap")
+	ctx = newContext(t, fake)
+
+	if err := (Module{}).Install(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	commands := strings.Join(fake.Commands(), "\n")
+	if statuses(ctx)["create-swap"] != contract.StepOK || strings.Count(commands, "fallocate -l 2G /swapfile") != 2 || !strings.Contains(string(fake.Files["/etc/fstab"]), "/swapfile") {
+		t.Fatalf("create-swap = %s, fstab = %q:\n%s", statuses(ctx)["create-swap"], fake.Files["/etc/fstab"], commands)
 	}
 }
 

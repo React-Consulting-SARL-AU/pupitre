@@ -2,10 +2,10 @@ package selfupdate
 
 import (
 	"bytes"
+	"context"
 	"crypto/ed25519"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"runtime"
 	"time"
 
@@ -81,7 +81,7 @@ func (u *Upgrader) Upgrade(request Request) (Result, error) {
 	client := u.options.Platform
 	client.Token = token
 
-	state, stateErr := client.State()
+	state, stateErr := client.State(context.Background())
 
 	version, err := u.resolve(request.Version, state, stateErr)
 	if err != nil {
@@ -97,7 +97,7 @@ func (u *Upgrader) Upgrade(request Request) (Result, error) {
 		return Result{}, err
 	}
 
-	binary, err := client.Release(version)
+	binary, err := client.Release(context.Background(), version)
 	if err != nil {
 		return Result{}, downloadFailed(version, err)
 	}
@@ -118,7 +118,7 @@ func (u *Upgrader) Upgrade(request Request) (Result, error) {
 
 // The platform's own word beats what the caller hands over; the parameter is the way back for an agent whose platform is out of reach.
 func (u *Upgrader) published(ctx sys.Context, client platform.Client, version, offered string) (published, error) {
-	info, err := client.ReleaseMetadata(version)
+	info, err := client.ReleaseMetadata(context.Background(), version)
 	if err == nil {
 		signature, decodeErr := DecodeSignature(info.Signature)
 		if decodeErr != nil {
@@ -159,9 +159,12 @@ func (u *Upgrader) holdTheFloor(ctx sys.Context, request Request, version string
 	return refusedDowngrade(version, floor)
 }
 
-// The running version is known without asking anyone, which is what makes it the floor that holds when the platform is out of reach; what the platform remembers can only raise it.
+// The running version is known without asking anyone, which is what makes it the floor that holds when the platform is out of reach; what the platform remembers can only raise it. A build that is not a version — dev — is no floor at all.
 func (u *Upgrader) floor(state platform.State, stateErr error) string {
-	floor := u.options.Version
+	floor := ""
+	if _, semver := parseVersion(u.options.Version); semver {
+		floor = u.options.Version
+	}
 
 	if stateErr != nil || state.MinimumVersion == "" {
 		return floor
@@ -178,7 +181,7 @@ func (u *Upgrader) floor(state platform.State, stateErr error) string {
 func (u *Upgrader) install(ctx sys.Context, version string, binary []byte) (Result, error) {
 	previous, err := ctx.Sys().ReadFile(u.binaryPath())
 	if err != nil {
-		return Result{}, protocol.NewError(contract.ErrorInternal, fmt.Sprintf("%s illisible : %s", u.binaryPath(), err)).
+		return Result{}, protocol.NewError(contract.ErrorInternal, i18n.T("selfupdate.binary.unreadable", u.binaryPath(), err)).
 			WithFix(i18n.T("selfupdate.root.required.fix"))
 	}
 

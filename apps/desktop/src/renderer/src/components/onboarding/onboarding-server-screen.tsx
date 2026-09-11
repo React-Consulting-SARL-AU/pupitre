@@ -2,6 +2,7 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import type { Server, ServerDraft } from "@shared/servers";
 import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
+import { accountOf, useAccount } from "../../stores/account";
 import type { ServerStage } from "../../stores/onboarding-machine";
 import { useServers } from "../../stores/servers";
 import { FleetPanel } from "../fleet/fleet-panel";
@@ -10,7 +11,8 @@ import { ServerAddForm } from "../servers/server-add-form";
 import { ServerKeyInstall } from "../servers/server-key-install";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
-import { PageHeader } from "../ui/page-header";
+import { Screen } from "../ui/screen";
+import { OnboardingOrganizationNote } from "./onboarding-organization-note";
 import { OnboardingServerChoice } from "./onboarding-server-choice";
 
 /**
@@ -51,6 +53,9 @@ export function OnboardingServerScreen({
     status,
     trustReinstalled,
   } = useServers();
+
+  const identity = useAccount((s) => accountOf(s.view)?.identity ?? null);
+  const switchOrganization = useAccount((s) => s.switchOrganization);
 
   const [stage, setStage] = useState<Stage | null>(null);
   const [trusting, setTrusting] = useState(false);
@@ -118,13 +123,13 @@ export function OnboardingServerScreen({
   const refusedServer = servers.find((s) => s.id === refused?.serverId);
 
   return (
-    <section className="flex flex-col gap-section">
-      <PageHeader
-        description={t(`onboarding.server.${here ?? "pick"}.description`)}
-        eyebrow={t("onboarding.server.eyebrow")}
-        title={t(`onboarding.server.${here ?? "pick"}.title`)}
-      />
-
+    <Screen
+      column
+      eyebrow={t("onboarding.server.eyebrow")}
+      plain
+      step={`server:${here ?? "pick"}`}
+      title={t(`onboarding.server.${here ?? "pick"}.title`)}
+    >
       {refused ? (
         <HostKeyAlert
           busy={trusting}
@@ -135,16 +140,18 @@ export function OnboardingServerScreen({
         />
       ) : null}
 
+      {identity && here !== "key" ? (
+        <OnboardingOrganizationNote
+          identity={identity}
+          onSwitch={switchOrganization}
+        />
+      ) : null}
+
       {here === "key" ? null : <FleetPanel silentWhenEmpty />}
 
       {here === "pick" ? (
         <section className="flex flex-col gap-4">
-          <div>
-            <Label>{t("onboarding.server.knownHeading")}</Label>
-            <p className="mt-1 text-ink-3 leading-relaxed">
-              {t("onboarding.server.knownIntro")}
-            </p>
-          </div>
+          <Label>{t("onboarding.server.knownHeading")}</Label>
 
           {servers.map((server) => (
             <OnboardingServerChoice
@@ -187,7 +194,7 @@ export function OnboardingServerScreen({
           server={added.server}
         />
       ) : null}
-    </section>
+    </Screen>
   );
 }
 

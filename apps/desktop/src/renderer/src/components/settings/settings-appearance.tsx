@@ -35,11 +35,7 @@ export function SettingsAppearance() {
 
   return (
     <div className="max-w-sm">
-      <p className="text-ink-3 leading-relaxed">
-        {t("settings.appearance.intro")}
-      </p>
-
-      <div className="mt-4">
+      <div>
         <Field
           help={t("settings.appearance.currently", {
             theme: t(`settings.resolved.${resolved}`),

@@ -49,10 +49,9 @@ var elsewhere = map[string]string{
 // A module that reads a release index answers it here, as the network would.
 var served = map[string]func(fake *modtest.FakeSys){
 	"ai.claude": func(fake *modtest.FakeSys) {
-		checksum := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+		checksum := modtest.Digest(modtest.Downloaded)
 		fake.Answer("claude-code-releases/latest", "2.1.263\n")
 		fake.Answer("/2.1.263/manifest.json", `{"platforms":{"linux-x64":{"checksum":"`+checksum+`"},"linux-arm64":{"checksum":"`+checksum+`"}}}`)
-		fake.Replies["sha256sum"] = checksum + "  claude\n"
 	},
 }
 

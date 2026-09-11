@@ -1,13 +1,12 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { ArrowRight } from "lucide-react";
-import { useEffect } from "react";
-import { STEP_COLUMN } from "../../lib/layout";
+import { type ReactNode, useEffect, useState } from "react";
 import { useCatalog } from "../../stores/catalog";
 import { probeOf } from "../../stores/inspection";
 import { ActionBar } from "../ui/action-bar";
 import { Button } from "../ui/button";
+import { Screen } from "../ui/screen";
 import { StepFailure } from "../ui/step-failure";
-import { StepHeading } from "../ui/step-heading";
 import { WaitingNotice } from "../ui/waiting-notice";
 import { CatalogChoice } from "./catalog-choice";
 
@@ -22,13 +21,21 @@ import { CatalogChoice } from "./catalog-choice";
 export function CatalogScreen({
   serverId,
   serverName,
+  actions,
+  plain,
   onConfigure,
 }: {
   serverId: string;
   serverName?: string;
+  /** What the header offers on the whole sequence: a way out of it. */
+  actions?: ReactNode;
+  /** The header sits on the page, as the onboarding's steps read theirs. */
+  plain?: boolean;
   onConfigure?: () => void;
 }) {
   const t = useTranslations();
+
+  const [query, setQuery] = useState("");
 
   const catalog = useCatalog((state) => state.catalog);
   const selected = useCatalog((state) => state.selected);
@@ -37,6 +44,7 @@ export function CatalogScreen({
   const usePreset = useCatalog((state) => state.usePreset);
   const unreachable = useCatalog((state) => state.unreachable);
   const warnings = useCatalog((state) => state.warnings);
+  const installed = useCatalog((state) => state.installed);
 
   useEffect(() => {
     // A catalogue already read for this server is kept: coming back from the
@@ -51,64 +59,61 @@ export function CatalogScreen({
     load(serverId, probeOf(serverId)?.installed_modules ?? []);
   }, [serverId, load]);
 
-  const header = (
-    <StepHeading
-      description={t("catalog.screen.description")}
-      eyebrow={t("catalog.screen.eyebrow")}
-      step="catalog"
-      title={serverName ?? t("catalog.screen.defaultServer")}
-    />
-  );
+  const frame = {
+    actions,
+    column: true,
+    plain,
+    eyebrow: t("catalog.screen.eyebrow"),
+    step: "catalog",
+    title: serverName ?? t("catalog.screen.defaultServer"),
+  };
 
   if (catalog.status === "failed" && catalog.serverId === serverId) {
     return (
-      <section className={`${STEP_COLUMN} flex flex-col gap-section`}>
-        {header}
+      <Screen {...frame}>
         <StepFailure
           error={catalog.error}
           onRetry={() => load(serverId)}
           retryLabel={t("catalog.screen.reload")}
         />
-      </section>
+      </Screen>
     );
   }
 
   if (catalog.status !== "ready" || catalog.serverId !== serverId) {
     return (
-      <section className={`${STEP_COLUMN} flex flex-col gap-section`}>
-        {header}
-        <WaitingNotice
-          detail={t("catalog.screen.waitingDetail")}
-          title={t("catalog.screen.waitingTitle")}
-        />
-      </section>
+      <Screen {...frame}>
+        <WaitingNotice title={t("catalog.screen.waitingTitle")} />
+      </Screen>
     );
   }
 
   return (
-    <section className="flex flex-1 flex-col">
-      <div className={`${STEP_COLUMN} flex flex-1 flex-col gap-section pb-6`}>
-        {header}
-
-        <CatalogChoice
-          blocked={unreachable()}
-          catalog={catalog.catalog}
-          onPreset={usePreset}
-          onToggle={toggle}
-          probe={probeOf(serverId)}
-          selected={selected}
-          warnings={warnings()}
-        />
-      </div>
-
-      <ActionBar
-        name="catalog"
-        note={t.plural("catalog.screen.chosen", selected.length)}
-      >
-        <Button icon={ArrowRight} onClick={onConfigure} variant="inverse">
-          {t.plural("catalog.screen.configure", selected.length)}
-        </Button>
-      </ActionBar>
-    </section>
+    <Screen
+      {...frame}
+      footer={
+        <ActionBar
+          name="catalog"
+          note={t.plural("catalog.screen.chosen", selected.length)}
+        >
+          <Button icon={ArrowRight} onClick={onConfigure} variant="inverse">
+            {t.plural("catalog.screen.configure", selected.length)}
+          </Button>
+        </ActionBar>
+      }
+    >
+      <CatalogChoice
+        blocked={unreachable()}
+        catalog={catalog.catalog}
+        installed={installed}
+        onPreset={usePreset}
+        onQuery={setQuery}
+        onToggle={toggle}
+        probe={probeOf(serverId)}
+        query={query}
+        selected={selected}
+        warnings={warnings()}
+      />
+    </Screen>
   );
 }

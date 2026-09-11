@@ -2,6 +2,10 @@ package i18n
 
 // The probe: what it found on the machine, and what should be done about it.
 var probeCatalog = map[string]Message{
+	"probe.label.unknown": {
+		FR: "inconnue",
+		EN: "unknown",
+	},
 	"probe.bare": {
 		FR: "Machine nue : %s %s %s, %d Mo de mémoire, %s Go libres.",
 		EN: "A bare machine: %s %s %s, %d MB of memory, %s GB free.",
@@ -11,7 +15,7 @@ var probeCatalog = map[string]Message{
 		EN: "Unsupported distribution: %s. Pupitre asks for Ubuntu 22.04 or 24.04.",
 	},
 	"probe.os.unsupported.fix": {
-		FR: "Réinstalle le serveur depuis une image Ubuntu 24.04 LTS, puis relancez l'inspection.",
+		FR: "Réinstallez le serveur depuis une image Ubuntu 24.04 LTS, puis relancez l'inspection.",
 		EN: "Reinstall the server from an Ubuntu 24.04 LTS image, then run the inspection again.",
 	},
 	"probe.arch.unsupported": {
@@ -75,15 +79,15 @@ var probeCatalog = map[string]Message{
 		EN: "Port %d is already listened on by %s.",
 	},
 	"probe.ports.web.fix": {
-		FR: "Libère les ports 80 et 443, ou installez quand même : l'exposition par tunnel ne les utilise pas.",
+		FR: "Libérez les ports 80 et 443, ou installez quand même : l'exposition par tunnel ne les utilise pas.",
 		EN: "Free ports 80 and 443, or install anyway: tunnel exposure does not use them.",
 	},
 	"probe.users.present": {
-		FR: "Des compvos non système existent déjà : %s.",
+		FR: "Des comptes non système existent déjà : %s.",
 		EN: "Non-system accounts already exist: %s.",
 	},
 	"probe.users.present.fix": {
-		FR: "Vérifiez que ces compvos cohabitent avec l'utilisateur dev créé par Pupitre.",
+		FR: "Vérifiez que ces comptes cohabitent avec l'utilisateur dev créé par Pupitre.",
 		EN: "Check that these accounts live alongside the dev user Pupitre creates.",
 	},
 }

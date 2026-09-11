@@ -182,4 +182,38 @@ func TestUninstallRevertsWhatTheModuleDid(t *testing.T) {
 	}
 }
 
+// Reopening root goes through the same gate as closing it: a configuration sshd refuses is never reloaded.
+func TestUninstallValidatesSshdBeforeReloading(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Units["ssh"] = modtest.UnitActive
+	run(t, newContext(t, fake, Options{}))
+	fake.Files[FragmentPath] = Fragment(Options{})
+	fake.FailProgram("sshd", "/etc/ssh/sshd_config: line 12: Bad configuration option: Foo")
+
+	err := (Module{}).Uninstall(newContext(t, fake, Options{}))
+	if err == nil || !strings.Contains(err.Error(), "reopen-sshd") {
+		t.Fatalf("uninstall = %v, want reopen-sshd to fail on sshd -t", err)
+	}
+
+	if fake.Restarts["ssh"] != 0 {
+		t.Fatalf("ssh reloaded %d time(s) on a configuration sshd refused", fake.Restarts["ssh"])
+	}
+}
+
+func TestEveryFirewallCallIsBounded(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Units["ssh"] = modtest.UnitActive
+	run(t, newContext(t, fake, Options{}))
+
+	if err := (Module{}).Uninstall(newContext(t, fake, Options{})); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, call := range fake.Calls {
+		if call.Argv[0] == "ufw" && call.Timeout != ufwTimeout {
+			t.Fatalf("ufw call without the timeout: %v", call.Argv)
+		}
+	}
+}
+
 var _ modules.Module = Module{}

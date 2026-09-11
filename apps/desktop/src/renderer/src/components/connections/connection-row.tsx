@@ -1,3 +1,4 @@
+import type { Manifest } from "@pupitre/shared/catalog";
 import { ServiceLogo } from "@renderer/components/ui/service-logo";
 import { StatusDot } from "@renderer/components/ui/status-dot";
 import { useTranslations } from "@renderer/i18n/use-translations";
@@ -18,8 +19,14 @@ import type { ConnectionDescriptor } from "./connection-descriptors";
  */
 export function ConnectionRow({
   connection,
+  installed,
+  manifests,
+  serverName,
 }: {
   connection: ConnectionDescriptor;
+  installed: readonly string[];
+  manifests: readonly Manifest[] | null;
+  serverName: string | null;
 }) {
   const t = useTranslations();
 
@@ -66,7 +73,12 @@ export function ConnectionRow({
       </summary>
 
       <div className="px-4 pt-1 pb-4">
-        <ConnectionCard connection={connection} />
+        <ConnectionCard
+          connection={connection}
+          installed={installed}
+          manifests={manifests}
+          serverName={serverName}
+        />
       </div>
     </details>
   );

@@ -272,7 +272,7 @@ trim() {
 label() {
   trimmed=$(trim "$1")
   if [ -z "$trimmed" ]; then
-    printf 'inconnue'
+    printf 'unknown'
   else
     printf '%s' "$trimmed"
   fi

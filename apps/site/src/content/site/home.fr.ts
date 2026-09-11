@@ -10,6 +10,7 @@ export const homeFr: HomeContent = {
     eyebrow: "Pour Mac, Windows et Linux",
     headline:
       "Vos agents IA travaillent sur une machine à eux. Votre laptop respire.",
+    cooled: "respire",
     lead: "Louez un serveur qui reste allumé jour et nuit, et laissez Pupitre le préparer à votre place. Vos outils, vos bases de données et vos agents s’installent tout seuls, et vous suivez tout depuis une app posée sur votre bureau.",
     signUp: "Créer un compte",
     download: "Télécharger l’app",
@@ -30,7 +31,6 @@ export const homeFr: HomeContent = {
       "Le banc d’écolier. Le couvercle en pente qu’on soulevait pour retrouver ses livres, deux par table, au fond de la classe.",
       "Par extension, le lutrin où lit un chef d’orchestre, et la console où s’assoit un ingénieur.",
     ],
-    note: "On en a donné un à vos agents. Le vôtre, c’est le laptop que vous venez de refermer.",
   },
   steps: {
     label: "Comment ça marche",
@@ -123,7 +123,7 @@ export const homeFr: HomeContent = {
         ],
       },
     ],
-    note: "Vous connectez chaque outil une fois. Ensuite, l’app Pupitre est là où vivent l’installation, les services et les alertes — pas une fenêtre dans laquelle on vous force à travailler.",
+    note: "Vous connectez chaque outil une fois.",
   },
   catalog: {
     label: "Catalogue",
@@ -152,7 +152,7 @@ export const homeFr: HomeContent = {
       {
         statement: "Vous gardez tout si vous partez.",
         proof:
-          "Arrêtez l’abonnement et le serveur continue de tourner, avec vos projets, vos bases et vos données. Vous perdez l’app, rien d’autre. C’est écrit dans les conditions.",
+          "Arrêtez l’abonnement et le serveur continue de tourner, avec vos projets, vos bases et vos données. Vous perdez l’app, rien d’autre.",
       },
     ],
   },

@@ -40,12 +40,13 @@ export function ServiceRow({
 
         {/*
           What a module still owes the reader comes before how it is running: a
-          service nobody has configured is not a service that went wrong.
+          service nobody has configured is not a service that went wrong. An
+          agent older than the field says nothing of it, and owes nothing.
         */}
-        {service.configured ? (
-          <StatePill look={SERVICE_LOOK[service.state]} name={service.state} />
-        ) : (
+        {service.configured === false ? (
           <StatePill look={UNCONFIGURED_LOOK} name="unconfigured" />
+        ) : (
+          <StatePill look={SERVICE_LOOK[service.state]} name={service.state} />
         )}
 
         <ChevronRight

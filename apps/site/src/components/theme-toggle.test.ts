@@ -37,6 +37,7 @@ describe("ThemeToggle", () => {
     const html = await render(ThemeToggle, { path: "/fr/" })
 
     expect(html).toContain('aria-label="Thème"')
+    expect(html).toContain('title="Thème"')
     expect(html).toContain(">Système<")
     expect(html).toContain(">Clair<")
     expect(html).toContain(">Sombre<")

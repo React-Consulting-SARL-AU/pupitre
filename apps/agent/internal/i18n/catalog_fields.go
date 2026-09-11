@@ -79,7 +79,7 @@ var fieldCatalog = map[string]Message{
 		EN: "the configuration is refused: %s",
 	},
 	"field.invalid.config.fix": {
-		FR: "Corrige les champs signalés dans l'écran de configuration, puis relancez l'installation.",
+		FR: "Corrigez les champs signalés dans l'écran de configuration, puis relancez l'installation.",
 		EN: "Fix the fields marked on the configuration screen, then run the installation again.",
 	},
 	"field.invalid.one": {

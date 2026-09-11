@@ -30,7 +30,7 @@ export const PLANS: readonly Plan[] = [
     id: "solo",
     name: "Solo",
     nameFr: "Solo",
-    monthlyPriceUsd: 19,
+    monthlyPriceUsd: 10,
     billedPer: "server",
     startingAt: false,
     maxServers: 2,
@@ -40,7 +40,7 @@ export const PLANS: readonly Plan[] = [
     id: "team",
     name: "Team",
     nameFr: "Équipe",
-    monthlyPriceUsd: 19,
+    monthlyPriceUsd: 10,
     billedPer: "server",
     startingAt: false,
     maxServers: null,
@@ -85,4 +85,48 @@ const USD = new Intl.NumberFormat("en-US", {
 
 export function formatUsd(amount: number): string {
   return USD.format(amount)
+}
+
+/**
+ * The subscription of the active organization, as `GET /me` tells the app.
+ *
+ * It carries what the Stripe mirror holds and nothing more: the status in
+ * Stripe's own words, the end of the period, the seats paid against the
+ * servers that occupy one. While a trial runs, Stripe ends the first period
+ * with it, so `trial_ends_at` is that date and null otherwise. The plan is not
+ * here: Solo and Team share one product, and the mirror does not name either.
+ */
+export const MeSubscriptionSchema = z.object({
+  status: z.string().min(1),
+  trial_ends_at: z.string().nullable(),
+  current_period_end: z.string().nullable(),
+  servers: z.object({
+    used: z.int().nonnegative(),
+    limit: z.int().nonnegative(),
+  }),
+})
+
+export type MeSubscription = z.infer<typeof MeSubscriptionSchema>
+
+/** Under this, a trial is about to end and the app says so in a warning tone. */
+export const TRIAL_WARN_DAYS = 3
+
+const MS_PER_DAY = 86_400_000
+
+/** A day that has begun still counts: Stripe bills at the end of the last one. */
+export function trialDaysLeft(
+  endsAt: string | Date | null,
+  now: Date = new Date()
+): number | null {
+  if (!endsAt) {
+    return null
+  }
+
+  const end = new Date(endsAt).getTime()
+
+  if (Number.isNaN(end)) {
+    return null
+  }
+
+  return Math.max(0, Math.ceil((end - now.getTime()) / MS_PER_DAY))
 }

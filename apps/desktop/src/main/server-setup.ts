@@ -1,5 +1,10 @@
 import type { ErrorPhrase } from "@shared/agent";
-import type { KeyChoice, Server, ServerDraft } from "@shared/servers";
+import type {
+  KeyChoice,
+  Server,
+  ServerChanges,
+  ServerDraft,
+} from "@shared/servers";
 import { forgetHostKey } from "./host-keys";
 import {
   copyIdCommand,
@@ -8,7 +13,7 @@ import {
   KeyError,
   removeKey,
 } from "./keys";
-import type { SshPaths } from "./ssh-config";
+import type { Address, SshPaths } from "./ssh-config";
 
 /**
  * Adding, pinning and removing a server, without ever leaving the app's folder.
@@ -22,6 +27,16 @@ import type { SshPaths } from "./ssh-config";
 
 const HOST = /^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$/;
 const USER = /^[a-z_][a-z0-9_-]{0,31}\$?$/i;
+
+/** What may become an `ssh` argument: an address that cannot read as an option. */
+export function isHost(value: string): boolean {
+  return HOST.test(value);
+}
+
+export function isUser(value: string): boolean {
+  return USER.test(value);
+}
+
 const MIN_PORT = 1;
 const MAX_PORT = 65_535;
 const NAME_LIMIT = 60;
@@ -95,7 +110,7 @@ export async function addServer(
   const user = draft.user.trim();
   const name = draft.name.trim().slice(0, NAME_LIMIT) || host;
 
-  refuse(HOST.test(host), "refusal.setup.host", { host });
+  refuse(isHost(host), "refusal.setup.host", { host });
   refuse(
     Number.isInteger(draft.port) &&
       draft.port >= MIN_PORT &&
@@ -124,7 +139,7 @@ export async function addServer(
     };
   }
 
-  refuse(USER.test(user), "refusal.setup.user", { user });
+  refuse(isUser(user), "refusal.setup.user", { user });
 
   const pair = await keyFor(draft.key, id, paths);
   const server: Server = {
@@ -182,6 +197,28 @@ export function withAccount(
   );
 }
 
+/**
+ * Whether another server of the app answers at the same address and port.
+ *
+ * A pinned host key belongs to the servers that reach it: the day the last one
+ * leaves the list, the pin is nobody's, and a machine rebuilt behind that
+ * address would otherwise be refused on its way back in, with no one to say
+ * "reinstalled" for it.
+ */
+export function sharesAddress(
+  servers: Server[],
+  address: Address,
+  except?: string
+): boolean {
+  return servers.some(
+    (server) =>
+      server.id !== except &&
+      server.origin === "app" &&
+      server.host === address.host &&
+      server.port === address.port
+  );
+}
+
 /** Forgetting a server takes the key the app made for it, and nothing else. */
 export function removeServer(
   servers: Server[],
@@ -201,4 +238,54 @@ export function untrustHost(server: Server, paths: SshPaths): Promise<void> {
   return server.origin === "system"
     ? Promise.resolve()
     : forgetHostKey(server, paths);
+}
+
+/**
+ * A server's address, port or account, changed in place.
+ *
+ * Only a server the app reaches can change: a host of the system configuration
+ * is that file's, and the app writes nothing for it. The same checks as an
+ * addition apply — what becomes a `HostName`, a `Port` or a `User` line of the
+ * app's SSH file cannot read as an option or as two words. The pinned key goes
+ * when the address does: it belonged to the machine that answered there.
+ */
+export function changeServer(
+  servers: Server[],
+  id: string,
+  changes: ServerChanges
+): { servers: Server[]; server: Server; hostKeyDropped: boolean } {
+  const target = servers.find((server) => server.id === id);
+
+  refuse(Boolean(target), "refusal.server.unknown");
+
+  const held = target as Server;
+
+  refuse(held.origin === "app", "refusal.setup.system");
+
+  const host = (changes.host ?? held.host).trim();
+  const port = changes.port ?? held.port;
+  const user = (changes.user ?? held.user).trim();
+
+  refuse(isHost(host), "refusal.setup.host", { host });
+  refuse(
+    Number.isInteger(port) && port >= MIN_PORT && port <= MAX_PORT,
+    "refusal.setup.port",
+    { port }
+  );
+  refuse(isUser(user), "refusal.setup.user", { user });
+
+  const moved = host !== held.host || port !== held.port;
+  const server: Server = {
+    ...held,
+    host,
+    hostFingerprint: moved ? undefined : held.hostFingerprint,
+    port,
+    user,
+  };
+
+  return {
+    hostKeyDropped: moved && held.hostFingerprint !== undefined,
+    server,
+    servers: servers.map((one) => (one.id === id ? server : one)),
+  };
 }

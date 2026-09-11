@@ -1,14 +1,17 @@
 import type { ModuleConfig } from "@pupitre/shared/agent-protocol/install";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { STEP_COLUMN } from "@renderer/lib/layout";
 import { useStepShift } from "@renderer/lib/use-step-shift";
 import type { HardenOutcome } from "@shared/harden";
 import { useEffect, useState } from "react";
 import { useCatalog } from "../../stores/catalog";
 import { useHarden } from "../../stores/harden";
+import { useInspection } from "../../stores/inspection";
 import { useInstall } from "../../stores/install";
 import { useOnboarding } from "../../stores/onboarding";
 import {
   ONBOARDING_STEPS,
+  plannedSteps,
   type ServerStage,
 } from "../../stores/onboarding-machine";
 import { useServers } from "../../stores/servers";
@@ -23,17 +26,6 @@ import { OnboardingHardenScreen } from "./onboarding-harden-screen";
 import { OnboardingInspectionScreen } from "./onboarding-inspection-screen";
 import { OnboardingServerScreen } from "./onboarding-server-screen";
 import { OnboardingShell } from "./onboarding-shell";
-
-/**
- * Every step is read as one column. The ones that end on a bar — the services,
- * the configuration, the installation — draw the column themselves, so the bar
- * can run from one edge of the panel to the other under it.
- */
-function panel(step: string | null): string {
-  return step === "catalog" || step === "config" || step === "install"
-    ? "flex min-h-full w-full flex-col pt-10"
-    : "mx-auto w-full max-w-3xl px-8 py-10";
-}
 
 function rootState(outcome: HardenOutcome | null): "closed" | "kept" | "open" {
   if (outcome?.harden.root_closed) {
@@ -55,6 +47,7 @@ export function OnboardingFlow() {
   const t = useTranslations();
 
   const step = useOnboarding((state) => state.step);
+  const trail = useOnboarding((state) => state.trail);
   const serverId = useOnboarding((state) => state.serverId);
   const replaying = useOnboarding((state) => state.replaying);
   const remaining = useOnboarding((state) => state.remaining);
@@ -89,6 +82,10 @@ export function OnboardingFlow() {
   }, [touched]);
 
   const server = config?.servers.find((candidate) => candidate.id === serverId);
+  const verdict = useInspection((state) =>
+    serverId ? (state.probes[serverId]?.verdict ?? null) : null
+  );
+  const steps = plannedSteps({ step, trail }, verdict);
   const outcome = useHarden((state) =>
     state.harden.status === "done" ? state.harden.outcome : null
   );
@@ -160,6 +157,7 @@ export function OnboardingFlow() {
       return (
         <CatalogScreen
           onConfigure={() => send({ type: "chosen" })}
+          plain
           serverId={serverId}
           serverName={server.name}
         />
@@ -188,6 +186,7 @@ export function OnboardingFlow() {
           modules={remaining.length > 0 ? remaining : undefined}
           onContinue={() => send({ type: "installed" })}
           onReplay={replayModule}
+          plain
           serverId={serverId}
           serverName={server.name}
         />
@@ -229,21 +228,20 @@ export function OnboardingFlow() {
       serverName={server?.name}
       stage={step === "server" ? stage : undefined}
       step={step}
+      steps={steps}
     >
-      <div
-        className={`${panel(recovering ? null : shown)} ${motion}`}
-        key={shown}
-      >
+      <div className={`h-full ${motion}`} key={shown}>
         {/*
           While the machine is being read again, no screen acts: a server whose
           state the app has only remembered is one it must not touch.
         */}
         {recovering ? (
-          <WaitingNotice
-            detail={t("onboarding.resume.readingDetail")}
-            note={t("onboarding.resume.readingNote")}
-            title={t("onboarding.resume.readingTitle")}
-          />
+          <div className={`${STEP_COLUMN} h-full py-10`}>
+            <WaitingNotice
+              detail={t("onboarding.resume.readingDetail")}
+              title={t("onboarding.resume.readingTitle")}
+            />
+          </div>
         ) : (
           screen()
         )}

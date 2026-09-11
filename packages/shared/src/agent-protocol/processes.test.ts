@@ -9,6 +9,7 @@ import {
   SHOT_CHUNK_BYTES,
   SHOT_MAX_BYTES,
   ShotEventSchema,
+  ShotsCleanParamsSchema,
   ShotsCleanResultSchema,
   ShotsListResultSchema,
   ShotsReadParamsSchema,
@@ -105,6 +106,15 @@ describe("shots", () => {
       ShotsUrlResultSchema.safeParse({ url: "http://127.0.0.1:7777/" }).success
     ).toBe(true)
     expect(ShotsCleanResultSchema.safeParse({ removed: 3 }).success).toBe(true)
+  })
+
+  it("sweep the gallery, or take one capture by its listed path", () => {
+    expect(ShotsCleanParamsSchema.safeParse({}).success).toBe(true)
+    expect(
+      ShotsCleanParamsSchema.safeParse({ path: "2026-09-04/login.png" }).success
+    ).toBe(true)
+    expect(ShotsCleanParamsSchema.safeParse({ path: "" }).success).toBe(false)
+    expect(ShotsCleanParamsSchema.safeParse({ all: true }).success).toBe(false)
   })
 
   it("reject a shot without path", () => {

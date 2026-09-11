@@ -7,8 +7,7 @@ export const servers = {
     "servers.alerts.none": "none",
     "servers.alerts.count.one": "{count} active",
     "servers.alerts.count.other": "{count} active",
-    "servers.alerts.empty":
-      "Nothing to report: the agent answers, the disk breathes, the version is current.",
+    "servers.alerts.empty": "Nothing to report.",
     "servers.unknownHost": "unknown host",
     "servers.decommissionOn": "Disappears on {date}",
     "servers.disk": "Disk",
@@ -41,8 +40,7 @@ export const servers = {
     "servers.devices.unassigned":
       "This server is assigned to nobody: no key is placed on it.",
     "releases.notes.title": "Release notes",
-    "releases.notes.empty":
-      "No version has been published yet, so there is nothing to tell here.",
+    "releases.notes.empty": "No version has been published yet.",
     "assign.title": "Assignment",
     "assign.assigned": "Assigned",
     "assign.pending": "Pending",
@@ -88,8 +86,7 @@ export const servers = {
     "servers.alerts.none": "aucune",
     "servers.alerts.count.one": "{count} active",
     "servers.alerts.count.other": "{count} actives",
-    "servers.alerts.empty":
-      "Rien à signaler : l'agent répond, le disque respire, la version est à jour.",
+    "servers.alerts.empty": "Rien à signaler.",
     "servers.unknownHost": "hôte inconnu",
     "servers.decommissionOn": "Disparaît le {date}",
     "servers.disk": "Disque",
@@ -123,8 +120,7 @@ export const servers = {
     "servers.devices.unassigned":
       "Ce serveur n'est attribué à personne : aucune clé n'y est déposée.",
     "releases.notes.title": "Notes de version",
-    "releases.notes.empty":
-      "Aucune version n'a encore été publiée : il n'y a donc rien à raconter ici.",
+    "releases.notes.empty": "Aucune version n'a encore été publiée.",
     "assign.title": "Attribution",
     "assign.assigned": "Attribué",
     "assign.pending": "En attente",

@@ -15,7 +15,7 @@ const (
 	User        = "dev"
 	Home        = "/home/dev"
 	ProjectsDir = Home + "/projects"
-	Shell       = "/usr/bin/zsh"
+	Shell       = user.Shell
 
 	sudoersPath        = "/etc/sudoers.d/90-dev"
 	sysctlPath         = "/etc/sysctl.d/99-pupitre.conf"
@@ -40,7 +40,7 @@ const (
 )
 
 var Packages = []string{
-	"ca-certificates", "curl", "jq", "git", "tmux", "zsh", "unzip",
+	"ca-certificates", "curl", "jq", "git", "tmux", "zsh", "unzip", "rsync",
 	"build-essential", "ufw", "fail2ban", "unattended-upgrades",
 }
 
@@ -62,8 +62,11 @@ func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
 	)
 }
 
+// The dev user is what the first install leaves and nothing takes away; a
+// package added to the list since is what the next upgrade brings, and must not
+// read as a machine never installed — or that upgrade would never reach it.
 func (Module) Check(ctx *modules.Context) (modules.Status, error) {
-	if len(apt.Missing(ctx, Packages...)) > 0 || !user.Exists(ctx, User) {
+	if !user.Exists(ctx, User) {
 		return modules.Status{}, nil
 	}
 
@@ -83,6 +86,10 @@ func (Module) Configure(ctx *modules.Context) error {
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
+	if err := installPackages(ctx); err != nil {
+		return err
+	}
+
 	if err := ctx.Step("upgrade-packages", func() (modules.Outcome, error) {
 		outcome := modules.Skipped
 		for _, pkg := range Packages {

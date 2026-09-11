@@ -20,7 +20,9 @@
     "release:public-key": "go run ./tools/release public-key",
     "release:keygen": "go run ./tools/release keygen",
     "test": "go test ./...",
-    "lint": "test -z \"$(gofmt -l .)\" && go vet ./...",
+    "lint": "test -z \"$(gofmt -l .)\" && go vet ./... && { command -v staticcheck >/dev/null || { echo 'staticcheck est absent : bun --cwd=apps/agent run tools:install, et le bin de Go dans le PATH'; exit 1; }; } && staticcheck ./...",
+    "tools:install": "go install honnef.co/go/tools/cmd/staticcheck@v0.8.1 && go install golang.org/x/vuln/cmd/govulncheck@v1.8.0",
+    "garble:install": "go install mvdan.cc/garble@v0.17.0",
     "check:types": "true"
   }
 }

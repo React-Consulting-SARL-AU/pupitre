@@ -114,6 +114,9 @@ describe("ce que le droit d'usage laisse passer", () => {
           "db.url",
           "diag",
           "doctor",
+          "fs.list",
+          "fs.read",
+          "fs.stat",
           "hello",
           "keys.list",
           "module.config",
@@ -128,6 +131,7 @@ describe("ce que le droit d'usage laisse passer", () => {
           "project.url",
           "project.working_tree",
           "report",
+          "service.logs",
           "service.secret",
           "service.status",
           "sessions.list",
@@ -152,6 +156,10 @@ describe("ce que le droit d'usage laisse passer", () => {
     expect(mutates("install")).toBe(true);
     expect(mutates("project.down")).toBe(true);
     expect(mutates("sessions.clean")).toBe(true);
+    expect(mutates("service.start")).toBe(true);
+    expect(mutates("service.stop")).toBe(true);
+    expect(mutates("service.restart")).toBe(true);
+    expect(mutates("shots.clean")).toBe(true);
   });
 });
 

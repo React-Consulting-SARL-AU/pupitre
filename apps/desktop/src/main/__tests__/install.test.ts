@@ -60,6 +60,8 @@ function agent(fixtures: string | string[]): AgentClient {
   return createAgentClient({
     appVersion: "0.1.0",
     backoff: { attempts: 3, firstMs: 5, maxMs: 20 },
+    // The transcripts stamp their reports on this day: the client's clock has to agree.
+    now: () => Date.parse("2026-09-04T12:00:00Z"),
     spawn: fake.spawn,
   });
 }

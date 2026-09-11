@@ -41,17 +41,12 @@ export const downloadFr: DownloadContent = {
     label: "Tous les fichiers",
     title: "Les trois systèmes",
     lead: "Chaque fichier ci-dessous est la même version. L’app vérifie ses propres mises à jour contre la signature.",
-    verify:
-      "Chaque build est publié ici avec sa taille et son SHA-256. Vérifiez-en un contre le fichier que vous avez téléchargé si vous le souhaitez.",
+    verify: "Chaque build est publié avec sa taille et son SHA-256.",
     download: "Télécharger",
     size: "Taille",
     digest: "SHA-256",
     format: "Format",
     empty: "Aucun build publié pour ce système.",
-  },
-  stale: {
-    title: "Cette liste peut être en retard",
-    body: "Le build n’a pas pu lire la liste des versions sur la plateforme : cette page affiche la dernière liste connue du dépôt. Les liens restent valides ; la version n’est peut-être pas la plus récente, et ni taille ni empreinte ne sont publiées pour elle, parce que le dépôt ne les connaît pas.",
   },
   release: {
     label: "Version",

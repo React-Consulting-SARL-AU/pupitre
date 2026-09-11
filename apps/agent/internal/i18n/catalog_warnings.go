@@ -15,11 +15,11 @@ var warningCatalog = map[string]Message{
 		EN: "the tunnel is not connected to Cloudflare yet and keeps trying: %s",
 	},
 	"warn.cloudflare.dns.refused": {
-		FR: "%d enregistrement(s) DNS refusé(s) par Cloudflare : vérifie les droits DNS du jeton sur la zone %s",
+		FR: "%d enregistrement(s) DNS refusé(s) par Cloudflare : vérifiez les droits DNS du jeton sur la zone %s",
 		EN: "%d DNS record(s) refused by Cloudflare: check the token's DNS rights on zone %s",
 	},
 	"warn.caddy.ufw.refused": {
-		FR: "règle ufw %s refusée : ouvre-la à la main, sinon les certificats ne seront pas émis",
+		FR: "règle ufw %s refusée : ouvrez-la à la main, sinon les certificats ne seront pas émis",
 		EN: "ufw rule %s was refused: open it by hand, or no certificate will be issued",
 	},
 	"warn.system.swap.failed": {
@@ -35,8 +35,8 @@ var warningCatalog = map[string]Message{
 		EN: "JAVA_HOME was not found, worth checking before building a JVM project",
 	},
 	"warn.node.corepack.missing": {
-		FR: "corepack indisponible, pnpm gardera sa version globale : %s",
-		EN: "corepack is unavailable, pnpm will keep its global version: %s",
+		FR: "corepack indisponible, %s gardera sa version globale : %s",
+		EN: "corepack is unavailable, %s will keep its global version: %s",
 	},
 	"warn.ruby.bundler.failed": {
 		FR: "bundler non installé, la version livrée avec Ruby reste en place : %s",
@@ -47,7 +47,7 @@ var warningCatalog = map[string]Message{
 		EN: "no headless browser: shot <url> stays unavailable, shot <file> works",
 	},
 	"warn.browser.libraries.missing": {
-		FR: "bibliothèques Playwright absenvos de cette version d'Ubuntu : %s",
+		FR: "bibliothèques Playwright absentes de cette version d'Ubuntu : %s",
 		EN: "Playwright libraries missing from this Ubuntu version: %s",
 	},
 	"warn.dumps.dir.unreadable": {

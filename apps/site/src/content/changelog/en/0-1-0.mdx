@@ -1,38 +1,70 @@
 ---
 title: The first build
-description: The desktop app onboards a server end to end, the agent installs the MVP catalogue, and the console signs you in.
+description: Everything Pupitre does today — the desktop app, the agent on your server, the console and the site.
 locale: en
 version: 0.1.0
 channel: beta
-date: 2026-09-01
+date: 2026-09-11
 order: 1
 ---
 
-The first build anyone outside the project can install. It does the whole onboarding: add a server, inspect it, choose services, configure, install, harden, first project.
+The first version of Pupitre. It takes a bare Ubuntu VPS to a workshop for AI agents, then stays the window on that machine: projects, terminals, agents, services, files. Everything in it is new, so this entry says what the product does.
 
 ## The app
 
-- Servers, with one ed25519 key generated per device and an SSH configuration the app owns.
-- The inspection screen: distribution, memory, disk, architecture, and what is already installed.
-- The catalogue and its configuration screens, driven by the manifests the agent declares.
-- Live install with the module, the step, the counter and the elapsed time, and the replay command on failure.
-- Hardening, and the switch from root to `dev` — root closed last, after the key is verified.
-- First project: clone, dependencies, `tmux`, port, URL, logs.
-- The dashboard, and projects on the new protocol.
+### Onboarding
+
+- Add a server by address. The app checks that the address speaks SSH, generates one ed25519 key per device and installs it itself — with a key your computer already holds, or with the account password, asked once and never written anywhere. The `ssh-copy-id` line only appears when the app cannot do the work.
+- The app owns its SSH configuration: its own config file, keys in 0600, host key pinned and any change announced. Your `~/.ssh/config` is never touched. An existing host can be designated.
+- Inspection before anything is written: distribution, architecture, memory, disk, sudo, listening ports, what is already installed, and a verdict — ready, warning or blocked.
+- The catalogue, drawn from the manifests the agent declares: twenty-five modules, three presets, resources summed as you pick. Configuration screens are generated from each manifest and validated before the first step: a wrong value is refused with the field named, never replaced by a default.
+- Third-party accounts given once and kept in the system keychain — Cloudflare, GitHub, 1Password, Neon — and reused on every server, instead of a token retyped per machine. The Cloudflare tunnel is created from the app on your account; the server only receives what it needs to run it.
+- Live install: module, step, counter, elapsed time and log. A failed step names its replay command. A connection that drops during the install reopens, and the report is read back until the end.
+- Hardening, and the switch from root to `dev`: root is closed last, only after a key is verified to open `dev`. `keep_root` leaves root open by key.
+- The onboarding resumes where it stopped. A service can be configured later.
+
+### Every day
+
+- Dashboard: machine, running services and projects, from one snapshot refreshed every three seconds.
+- Projects: add one from a folder, a git URL or a repository of the connected GitHub account. The app detects the package manager, the start command and the port, Turborepo and pnpm workspaces included. Then start, stop, restart, logs, sync, dependencies, `.env.local` from 1Password, branches and checkout, diff by file, ports and URLs, JVM debugging, and open in VS Code, Cursor, JetBrains Gateway or Zed.
+- Terminals: tabs per server, status bar, completion of the `dev` command and of paths, search. A sign-in a CLI prints opens in your own browser and lands back on the CLI that waits for it.
+- Agents: Claude Code, Codex and Hermes opened in a project's tmux session. Sessions and processes are listed, with their memory, and can be ended.
+- Services: state, version, port and unit; credentials revealed on demand; start, stop, restart and logs; database dumps, imports and a database shell; a port of the server forwarded through SSH so your desktop clients reach a database that stays on the loopback; tunnel status and repair; uninstall, with what will be lost said first.
+- Files: a browser over the projects root, preview, a basic editor, create, rename and delete. Heavy files go through `rsync` with resume and progress, two at a time, retried after a network cut and resumed at the next launch.
+- Gallery: the captures your agents take on the server, viewed from the app.
+- Fleet: your organisations and their servers, switching between servers, and a restricted or unready server repaired from the app.
+- Updates: the agent is updated from a banner with its notes, its configuration migrated in the same gesture, modules upgraded afterwards. The app updates itself on macOS, Windows and AppImage; every artefact is checked against the release signature before it is installed.
+- Command palette, navigation history, `pupitre://` links, system menu, notifications, start at login.
+- Settings: appearance and the system's corner radius, connections, terminal, notifications, startup, about. Light and dark themes. French and English throughout, including what the agent answers.
+- Account: link the app with the code shown on the console, devices, usage, subscription. Without a subscription in progress the app enrols nothing.
 
 ## The agent
 
-- The probe, the module engine and the end-of-install report.
-- The base and hardening modules, the runtimes, the databases, the AI agents, the remote editors, exposure and tools.
-- The project registry, and driving `tmux` sessions, processes, captures, secrets and databases.
+- One static binary, `pupitred`, for Ubuntu 22.04 and 24.04 on amd64 and arm64. No inbound connection: it only answers on the SSH session the app holds, and speaks HTTPS outward to the platform. Nothing readable is left on the server — the binary, `/etc/pupitre` under root, generated systemd units.
+- Probe, module engine, validation before the first step, idempotent steps, a report written before every step, one install at a time.
+- The catalogue: base and hardening; Node, Java, Python, Go, PHP, Ruby and Docker; MySQL or MariaDB, PostgreSQL, MongoDB and Redis; Claude Code, Codex, Hermes and a headless browser; JetBrains, VS Code and Zed remote backends; a Cloudflare tunnel or Caddy for exposure; the GitHub, 1Password and Neon CLIs. Every service listens on the loopback only.
+- The `dev` command on the server: projects, sessions, services, databases, secrets, captures — the grammar the app completes in its terminals.
+- Enrolment through the secret stream, server token, heartbeat with metrics, keys synced from the platform, entitlement with a seven-day tolerance offline, restricted mode when it runs out.
+- Self-update from a signed binary with a version floor; no downgrade without an explicit gesture. Numbered configuration migrations, with backup and restore.
+- Every message in French and English.
 
 ## The platform
 
-- Accounts, devices, enrolment, agent tokens and heartbeat.
-- Signed binary distribution, subscriptions, organisations, transactional email, alerts, passkeys.
+- Account by magic link, GitHub or Google; passkeys; TOTP second factor with recovery codes; email address change confirmed from the current address.
+- Fourteen-day trial without a card. Subscriptions per server through Stripe Checkout and the customer portal; seats changed from the console; grace then suspension on a failed payment. When a subscription stops, your server keeps working as a normal server — it loses Pupitre, nothing else.
+- Organisations: members, roles, invitations, a server assigned to a person, audit log.
+- Devices: one key per device, pushed to the servers it may open, revoked from one server or from all of them.
+- Servers: enrolment, status, seven days of metrics, events, decommission in two steps.
+- Signed distribution of the agent to enrolled servers; public distribution of the app with its notes, on stable and beta channels.
+- A public status page. An admin console for support, without any access to client machines.
+- French and English, light and dark.
+
+## The site
+
+- pupitre.studio: what Pupitre does, pricing, download, documentation, blog, changelog and legal pages, in French and English.
 
 ## Known limits
 
-- The app is beta. It is signed and notarised on macOS, signed on Windows, and an AppImage on Linux.
-- Automatic updates are not on yet: this version is downloaded by hand.
+- The app is beta: signed and notarised on macOS, signed on Windows, AppImage and `.deb` on Linux. The `.deb` does not update itself; apt does.
 - `Hosted` does not exist. You bring the server.
+- Visual Studio has no Linux backend; the app says so and points to VS Code.

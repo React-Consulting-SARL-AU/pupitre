@@ -1,20 +1,25 @@
 import type { Manifest } from "@pupitre/shared/catalog";
 import { Button } from "@renderer/components/ui/button";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
+import { Screen } from "@renderer/components/ui/screen";
+import { ServiceLogo } from "@renderer/components/ui/service-logo";
+import { StatePill } from "@renderer/components/ui/state-pill";
 import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { defaultsOf } from "@renderer/lib/catalog-selection";
+import { SERVICE_LOOK } from "@renderer/lib/project-state";
 import { removalOf } from "@renderer/lib/service-removal";
 import { useServices } from "@renderer/stores/services";
-import { useTunnel } from "@renderer/stores/tunnel";
+import { forwardsOf, useTunnel } from "@renderer/stores/tunnel";
 import { databaseEngineOf } from "@shared/services";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 import { useEffect } from "react";
 import { ServiceConfig } from "./service-config";
+import { ServiceControls } from "./service-controls";
 import { ServiceCredentials } from "./service-credentials";
 import { ServiceDatabase } from "./service-database";
 import { ServiceForward } from "./service-forward";
-import { ServicePanelHeader } from "./service-panel-header";
+import { ServiceJournal } from "./service-journal";
+import { ServicePanelFacts } from "./service-panel-facts";
 import { ServiceRemoval } from "./service-removal";
 import { ServiceRemovalOutcome } from "./service-removal-outcome";
 
@@ -34,7 +39,6 @@ export function ServicePanel({
   catalogHeld = false,
   onBack,
   onReloadCatalog,
-  onTerminal,
 }: {
   serverId: string;
   moduleId: string;
@@ -45,26 +49,22 @@ export function ServicePanel({
   catalogHeld?: boolean;
   onBack: () => void;
   onReloadCatalog?: () => void;
-  onTerminal?: () => void;
 }) {
   const t = useTranslations();
 
   const store = useServices();
   const tunnel = useTunnel();
 
-  const { open, readConfig } = store;
-  const { readForwards } = tunnel;
+  const { open } = store;
 
   // Leaving the page is enough to drop the values, whichever way it is left.
   useEffect(() => {
-    open(serverId, moduleId);
-    readConfig(serverId, moduleId, manifest ? defaultsOf(manifest) : {});
-    readForwards(serverId);
+    open(serverId, moduleId, manifest);
 
     return () => {
       window.pupitre.forgetCredentials(serverId, moduleId);
     };
-  }, [serverId, moduleId, manifest, open, readConfig, readForwards]);
+  }, [serverId, moduleId, manifest, open]);
 
   const {
     detail,
@@ -83,43 +83,95 @@ export function ServicePanel({
     return installed.find((module) => module.id === id)?.name ?? id;
   }
 
+  const reload = () => open(serverId, moduleId, manifest);
+  const ready = detail.status === "ready" && detail.moduleId === moduleId;
+  const name = ready ? detail.detail.name : (manifest?.name ?? moduleId);
+
+  // The frame stands before the agent answers: the name, the way back and the
+  // reread do not move while the module is being read, or when it was not.
+  const frame = {
+    actions: (
+      <>
+        <Button icon={ArrowLeft} onClick={onBack} variant="discreet">
+          {t("services.panel.back")}
+        </Button>
+        <Button icon={RefreshCw} onClick={reload} variant="discreet">
+          {t("services.panel.reload")}
+        </Button>
+      </>
+    ),
+    eyebrow: t("services.screen.eyebrow"),
+    leading: <ServiceLogo moduleId={moduleId} name={name} size={32} />,
+    title: name,
+  };
+
   if (detail.status === "failed") {
     return (
-      <section className="flex flex-col gap-gutter">
-        <ErrorNotice
-          error={detail.error}
-          onRetry={() => open(serverId, moduleId)}
-        />
-        <div>
-          <Button icon={ArrowLeft} onClick={onBack} variant="discreet">
-            {t("services.panel.back")}
-          </Button>
-        </div>
-      </section>
+      <Screen {...frame}>
+        <ErrorNotice error={detail.error} onRetry={reload} />
+      </Screen>
     );
   }
 
-  if (detail.status !== "ready" || detail.moduleId !== moduleId) {
+  if (!ready) {
     return (
-      <WaitingNotice
-        detail={t("services.panel.waitingDetail")}
-        title={t("services.panel.waitingTitle")}
-      />
+      <Screen {...frame}>
+        <WaitingNotice title={t("services.panel.waitingTitle")} />
+      </Screen>
     );
   }
 
   const isDatabase = databaseEngineOf(moduleId) !== null;
+  const retirement = removalOf(
+    { id: moduleId, manifest, name: detail.detail.name },
+    installed
+  );
 
   return (
-    <section className="flex flex-col gap-section">
-      <ServicePanelHeader
-        detail={detail.detail}
+    <Screen
+      {...frame}
+      actions={
+        <>
+          {frame.actions}
+          {removal.status === "idle" ? (
+            <ServiceRemoval
+              name={detail.detail.name}
+              onRemove={() => store.remove(serverId, moduleId)}
+              removal={retirement}
+            />
+          ) : null}
+        </>
+      }
+      description={
+        <ServicePanelFacts
+          detail={detail.detail}
+          refusal={retirement.refusal}
+          summary={manifest?.summary}
+        />
+      }
+      meta={
+        <StatePill
+          look={SERVICE_LOOK[detail.detail.state]}
+          name={detail.detail.state}
+        />
+      }
+    >
+      <ServiceRemovalOutcome
+        nameOf={nameOf}
         onBack={onBack}
-        onReload={() => open(serverId, moduleId)}
-        summary={manifest?.summary}
+        removal={removal}
+        steps={steps}
       />
 
       {problem ? <ErrorNotice error={problem} /> : null}
+
+      {detail.detail.unit ? (
+        <ServiceControls
+          busy={busy}
+          detail={detail.detail}
+          onControl={(cmd) => store.control(serverId, moduleId, cmd)}
+        />
+      ) : null}
 
       <ServiceCredentials
         database={isDatabase}
@@ -153,16 +205,34 @@ export function ServicePanel({
       {isDatabase ? (
         <ServiceDatabase
           busy={busy}
+          dumps={store.dumps}
+          onDownloadDump={() => store.downloadDump(serverId)}
           onDump={() => store.dump(serverId, moduleId)}
           onImport={() => store.importDumps(serverId, moduleId)}
+          onImportFromComputer={() =>
+            store.importFromComputer(serverId, moduleId)
+          }
+          onReadDumps={() => store.readDumps(serverId)}
+          onRemoveDump={(fileName) => store.removeDump(serverId, fileName)}
+          onRestoreDump={(fileName) =>
+            store.restoreDump(serverId, moduleId, fileName)
+          }
           onShell={() => store.shell(serverId, moduleId)}
-          onTerminal={onTerminal}
           outcome={database}
+          pendingImports={store.pendingImports}
+        />
+      ) : null}
+
+      {detail.detail.unit ? (
+        <ServiceJournal
+          moduleId={moduleId}
+          name={detail.detail.name}
+          serverId={serverId}
         />
       ) : null}
 
       <ServiceForward
-        forwards={tunnel.forwards}
+        forwards={forwardsOf(tunnel.forwards, serverId)}
         onClose={(id) => tunnel.closeForward(id)}
         onOpen={() =>
           detail.detail.port === undefined
@@ -171,24 +241,6 @@ export function ServicePanel({
         }
         port={detail.detail.port}
       />
-
-      {removal.status === "idle" ? (
-        <ServiceRemoval
-          name={detail.detail.name}
-          onRemove={() => store.remove(serverId, moduleId)}
-          removal={removalOf(
-            { id: moduleId, manifest, name: detail.detail.name },
-            installed
-          )}
-        />
-      ) : (
-        <ServiceRemovalOutcome
-          nameOf={nameOf}
-          onBack={onBack}
-          removal={removal}
-          steps={steps}
-        />
-      )}
-    </section>
+    </Screen>
   );
 }

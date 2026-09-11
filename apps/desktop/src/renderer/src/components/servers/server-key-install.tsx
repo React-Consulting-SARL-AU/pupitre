@@ -63,6 +63,16 @@ export function ServerKeyInstall({
     }
   }, [server.id, installKey]);
 
+  // The throwaway machine's password, typed by a development build so the
+  // developer does not: it lands where a typed one would, and nowhere else.
+  useEffect(() => {
+    window.pupitre.devDefaults().then((defaults) => {
+      if (defaults?.server.password) {
+        setPassword((current) => current || defaults.server.password);
+      }
+    });
+  }, []);
+
   // The key opens the machine: there is nothing left to read here, and holding
   // the reader on a green tick would only be a click asking to be made.
   useEffect(() => {
@@ -92,7 +102,6 @@ export function ServerKeyInstall({
     return (
       <WaitingNotice
         detail={t("servers.key.installing.detail", { name: server.name })}
-        note={t("servers.key.installing.note")}
         phases={phasesAt(KEY_INSTALL_PHASES, phase, (id) =>
           t(`servers.key.phase.${id}`)
         )}
@@ -114,13 +123,6 @@ export function ServerKeyInstall({
                 ? "servers.key.installed.title"
                 : "servers.key.alreadyOpen.title",
               { name: server.name }
-            )}
-          </p>
-          <p className="mt-1 text-ink-3 leading-relaxed">
-            {t(
-              keyInstall.installed
-                ? "servers.key.installed.detail"
-                : "servers.key.alreadyOpen.detail"
             )}
           </p>
         </div>

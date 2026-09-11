@@ -258,7 +258,7 @@ function scan(file) {
 function main() {
   const files = [];
   walk(RENDERER, files);
-  // Le processus principal ne rédige plus : il nomme une entrée du dictionnaire.
+  // The main process no longer phrases anything: it names a dictionary entry.
   walk(MAIN, files);
 
   const found = [];

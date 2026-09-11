@@ -121,7 +121,7 @@ describe("DownloadPanel", () => {
     expect(links).toEqual([])
     expect(container.textContent).not.toContain("Download for")
     expect(container.textContent).toContain("Not published yet")
-    expect(container.textContent).toContain("so there is nothing to tell here")
+    expect(container.textContent).toContain("No version has been published yet")
   })
 
   it("puts what is left in order, and drops what is done", async () => {

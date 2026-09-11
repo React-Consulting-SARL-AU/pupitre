@@ -2,6 +2,8 @@ package platform
 
 import (
 	"bytes"
+	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -32,9 +34,19 @@ const (
 type Client struct {
 	BaseURL        string
 	Token          string
+	Version        string
 	HTTP           *http.Client
 	MaxBytes       int64
 	ControlTimeout time.Duration
+}
+
+var transport = newTransport()
+
+func newTransport() *http.Transport {
+	cloned := http.DefaultTransport.(*http.Transport).Clone()
+	cloned.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+
+	return cloned
 }
 
 type Error struct {
@@ -94,6 +106,15 @@ type Heartbeat struct {
 	StackVersion string   `json:"stack_version"`
 	Modules      []string `json:"modules"`
 	AgentVersion string   `json:"agent_version,omitempty"`
+
+	// What the machine measured, beside the percentages computed from it: a
+	// console can say "1.8 GB of 556 GB" only if it is told both numbers. Left
+	// out when the sonde read nothing, so the platform keeps null rather than
+	// recording a machine with no disk at all.
+	DiskTotalGB float64 `json:"disk_total_gb,omitempty"`
+	DiskFreeGB  float64 `json:"disk_free_gb,omitempty"`
+	RAMTotalMB  float64 `json:"ram_total_mb,omitempty"`
+	RAMUsedMB   float64 `json:"ram_used_mb,omitempty"`
 }
 
 // What the publication chain deposited for a version: the platform's own word on what the binary must hash to, and the signature that binds it.
@@ -106,14 +127,14 @@ type ReleaseInfo struct {
 }
 
 // The binary of a version, for the architecture the platform knows this server by.
-func (c Client) Release(version string) ([]byte, error) {
-	return c.do(http.MethodGet, "/agent/release/"+url.PathEscape(version), nil, true, DefaultTimeout)
+func (c Client) Release(ctx context.Context, version string) ([]byte, error) {
+	return c.do(ctx, http.MethodGet, "/agent/release/"+url.PathEscape(version), nil, true, DefaultTimeout)
 }
 
-func (c Client) ReleaseMetadata(version string) (ReleaseInfo, error) {
+func (c Client) ReleaseMetadata(ctx context.Context, version string) (ReleaseInfo, error) {
 	path := "/agent/release/" + url.PathEscape(version) + "/metadata"
 
-	raw, err := c.get(path)
+	raw, err := c.get(ctx, path)
 	if err != nil {
 		return ReleaseInfo{}, err
 	}
@@ -130,8 +151,8 @@ func (c Client) ReleaseMetadata(version string) (ReleaseInfo, error) {
 	return info, nil
 }
 
-func (c Client) State() (State, error) {
-	raw, err := c.get("/agent/state")
+func (c Client) State(ctx context.Context) (State, error) {
+	raw, err := c.get(ctx, "/agent/state")
 	if err != nil {
 		return State{}, err
 	}
@@ -145,13 +166,13 @@ func (c Client) State() (State, error) {
 }
 
 // The only call made without a server token: it is the one that hands one out.
-func (c Client) Exchange(enrollment Enrollment) (string, error) {
+func (c Client) Exchange(ctx context.Context, enrollment Enrollment) (string, error) {
 	body, err := json.Marshal(enrollment)
 	if err != nil {
 		return "", &Error{Path: "/agent/exchange", Cause: err}
 	}
 
-	raw, err := c.do(http.MethodPost, "/agent/exchange", body, false, c.control())
+	raw, err := c.do(ctx, http.MethodPost, "/agent/exchange", body, false, c.control())
 	if err != nil {
 		return "", err
 	}
@@ -166,7 +187,7 @@ func (c Client) Exchange(enrollment Enrollment) (string, error) {
 	return answer.ServerToken, nil
 }
 
-func (c Client) Beat(beat Heartbeat) error {
+func (c Client) Beat(ctx context.Context, beat Heartbeat) error {
 	if beat.Sessions == nil {
 		beat.Sessions = []string{}
 	}
@@ -179,16 +200,16 @@ func (c Client) Beat(beat Heartbeat) error {
 		return &Error{Path: "/agent/heartbeat", Cause: err}
 	}
 
-	_, err = c.do(http.MethodPost, "/agent/heartbeat", body, true, c.control())
+	_, err = c.do(ctx, http.MethodPost, "/agent/heartbeat", body, true, c.control())
 
 	return err
 }
 
-func (c Client) get(path string) ([]byte, error) {
-	return c.do(http.MethodGet, path, nil, true, c.control())
+func (c Client) get(ctx context.Context, path string) ([]byte, error) {
+	return c.do(ctx, http.MethodGet, path, nil, true, c.control())
 }
 
-func (c Client) do(method, path string, body []byte, authenticated bool, timeout time.Duration) ([]byte, error) {
+func (c Client) do(ctx context.Context, method, path string, body []byte, authenticated bool, timeout time.Duration) ([]byte, error) {
 	base, err := c.base()
 	if err != nil {
 		return nil, &Error{Path: path, Cause: err}
@@ -203,7 +224,7 @@ func (c Client) do(method, path string, body []byte, authenticated bool, timeout
 		payload = bytes.NewReader(body)
 	}
 
-	request, err := http.NewRequest(method, base+path, payload)
+	request, err := http.NewRequestWithContext(ctx, method, base+path, payload)
 	if err != nil {
 		return nil, &Error{Path: path, Cause: err}
 	}
@@ -215,6 +236,7 @@ func (c Client) do(method, path string, body []byte, authenticated bool, timeout
 		request.Header.Set("Content-Type", "application/json")
 	}
 	request.Header.Set("Accept", "*/*")
+	request.Header.Set("User-Agent", c.userAgent())
 
 	response, err := c.client(timeout).Do(request)
 	if err != nil {
@@ -262,8 +284,16 @@ func refusal(path string, response *http.Response) *Error {
 	return failure
 }
 
+func (c Client) userAgent() string {
+	if c.Version == "" {
+		return "pupitred"
+	}
+
+	return "pupitred/" + c.Version
+}
+
 func (c Client) client(timeout time.Duration) *http.Client {
-	client := &http.Client{Timeout: timeout}
+	client := &http.Client{Timeout: timeout, Transport: transport}
 	if c.HTTP != nil {
 		copied := *c.HTTP
 		client = &copied

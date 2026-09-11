@@ -21,6 +21,7 @@ func manifest() contract.Manifest {
 			{Key: "ssh_443", Kind: contract.FieldBoolean, Label: i18n.T("module.core.hardening.ssh_443.label"), Help: i18n.T("module.core.hardening.ssh_443.help"), HintText: i18n.T("module.core.hardening.ssh_443.hint"), Required: false, Default: false},
 			{Key: "keep_root", Kind: contract.FieldBoolean, Label: i18n.T("module.core.hardening.keep_root.label"), Help: i18n.T("module.core.hardening.keep_root.help"), HintText: i18n.T("module.core.hardening.keep_root.hint"), Required: false, Default: false},
 		},
+		Runs:      false,
 		Mandatory: true,
 		Since:     "0.1.0",
 	}

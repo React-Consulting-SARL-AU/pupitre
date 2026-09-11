@@ -25,11 +25,11 @@ interface InspectionStore {
   forget: () => void;
 }
 
-export const useInspection = create<InspectionStore>((set) => ({
-  inspection: { status: "idle" },
-  probes: {},
+export const useInspection = create<InspectionStore>((set) => {
+  /** The probe under way, so a second ask for the same machine waits on it. */
+  let running: { serverId: string; answer: Promise<void> } | null = null;
 
-  async inspect(serverId) {
+  async function probe(serverId: string): Promise<void> {
     set({ inspection: { serverId, status: "running" } });
 
     const answer = await window.pupitre.inspect(serverId);
@@ -43,13 +43,34 @@ export const useInspection = create<InspectionStore>((set) => ({
       inspection: { probe: answer.result, serverId, status: "done" },
       probes: { ...state.probes, [serverId]: answer.result },
     }));
-  },
+  }
 
-  /** The screen closes; the reports stay, they describe machines. */
-  forget() {
-    set({ inspection: { status: "idle" } });
-  },
-}));
+  return {
+    inspection: { status: "idle" },
+    probes: {},
+
+    inspect(serverId) {
+      if (running?.serverId === serverId) {
+        return running.answer;
+      }
+
+      const answer = probe(serverId).finally(() => {
+        if (running?.answer === answer) {
+          running = null;
+        }
+      });
+      running = { answer, serverId };
+
+      return answer;
+    },
+
+    /** The screen closes; the reports stay, they describe machines. */
+    forget() {
+      running = null;
+      set({ inspection: { status: "idle" } });
+    },
+  };
+});
 
 export function probeOf(serverId: string | null): ProbeResult | null {
   return serverId ? (useInspection.getState().probes[serverId] ?? null) : null;

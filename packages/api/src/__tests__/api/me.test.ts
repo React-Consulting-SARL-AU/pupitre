@@ -1,7 +1,11 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
 import { ApiError, createApiClient, unwrap } from "../../client"
 import { bootApiTestServer, resetDb, TEST_BASE_URL } from "../../testing"
-import { createOrganizationWithMembers } from "../../testing/factories"
+import {
+  createOrganizationWithMembers,
+  createServer,
+  subscribeOrganization,
+} from "../../testing/factories"
 import { apiRequest } from "../../testing/request"
 import { createSession, createUser } from "../../testing/session"
 
@@ -11,6 +15,12 @@ interface MeBody {
   active_organization: { id: string; slug: string } | null
   role: string | null
   entitlement: string
+  subscription: {
+    status: string
+    trial_ends_at: string | null
+    current_period_end: string | null
+    servers: { used: number; limit: number }
+  } | null
 }
 
 describe("GET /me", () => {
@@ -119,6 +129,70 @@ describe("GET /me", () => {
     const suspended = await apiRequest<MeBody>("/me", { session })
 
     expect(suspended.json.entitlement).toBe("suspended")
+  })
+
+  it("rend l'abonnement de l'organisation active, ou null sans abonnement", async () => {
+    const { user, organization } = await createUser({
+      email: "ada@test.local",
+    })
+    const session = await createSession({ userId: user.id })
+
+    const without = await apiRequest<MeBody>("/me", { session })
+
+    expect(without.json.subscription).toBeNull()
+
+    const trialEnd = new Date("2026-09-25T00:00:00.000Z")
+
+    await subscribeOrganization({
+      organizationId: organization.id,
+      quantity: 2,
+      status: "trialing",
+      currentPeriodEnd: trialEnd,
+    })
+    await createServer({ organizationId: organization.id, status: "active" })
+    await createServer({ organizationId: organization.id, status: "revoked" })
+
+    const inTrial = await apiRequest<MeBody>("/me", { session })
+
+    expect(inTrial.json.subscription).toEqual({
+      status: "trialing",
+      trial_ends_at: trialEnd.toISOString(),
+      current_period_end: trialEnd.toISOString(),
+      servers: { used: 1, limit: 2 },
+    })
+
+    const { prisma } = await bootApiTestServer()
+
+    await prisma.subscription.updateMany({
+      where: { organizationId: organization.id },
+      data: { status: "active" },
+    })
+
+    const paying = await apiRequest<MeBody>("/me", { session })
+
+    expect(paying.json.subscription).toMatchObject({
+      status: "active",
+      trial_ends_at: null,
+      current_period_end: trialEnd.toISOString(),
+    })
+  })
+
+  it("ne compte que les serveurs de l'organisation active", async () => {
+    const own = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: { quantity: 3, status: "active" },
+    })
+    const other = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: { quantity: 1, status: "active" },
+    })
+    const [owner] = own.members
+
+    await createServer({ organizationId: other.organization.id })
+
+    const me = await apiRequest<MeBody>("/me", { session: owner })
+
+    expect(me.json.subscription?.servers).toEqual({ used: 0, limit: 3 })
   })
 
   it("is reachable through the typed Eden client", async () => {
