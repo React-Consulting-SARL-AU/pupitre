@@ -296,13 +296,12 @@ func listProblem(module string, field Field, value any, held SecretsHeld) *Field
 	var items []string
 
 	if field.Items == ItemsSecret {
-		items = make([]string, held(module, field.Key))
+		items = nonBlank(held(module, field.Key))
 	} else if declared, ok := value.([]any); ok {
 		for _, item := range declared {
-			if text := strings.TrimSpace(stringOf(item)); text != "" {
-				items = append(items, text)
-			}
+			items = append(items, stringOf(item))
 		}
+		items = nonBlank(items)
 	}
 
 	if len(items) < least {
@@ -311,10 +310,6 @@ func listProblem(module string, field Field, value any, held SecretsHeld) *Field
 
 	if field.Max > 0 && len(items) > field.Max {
 		return problemOf(module, field.Key, ProblemMax, strconv.Itoa(field.Max))
-	}
-
-	if field.Items == ItemsSecret {
-		return nil
 	}
 
 	for _, item := range items {
@@ -326,8 +321,19 @@ func listProblem(module string, field Field, value any, held SecretsHeld) *Field
 	return nil
 }
 
-// SecretsHeld says how many values are held for a secret field: 0, 1, or the length of a list.
-type SecretsHeld func(module, key string) int
+func nonBlank(items []string) []string {
+	kept := make([]string, 0, len(items))
+	for _, item := range items {
+		if text := strings.TrimSpace(item); text != "" {
+			kept = append(kept, text)
+		}
+	}
+
+	return kept
+}
+
+// SecretsHeld is what is held for a secret field: one value, or the ranks of a secret list.
+type SecretsHeld func(module, key string) []string
 
 // ValidateField weighs one field against one value, by the rules the app applies to the same pair.
 func ValidateField(module string, field Field, value any, held SecretsHeld) *FieldProblem {
@@ -345,7 +351,7 @@ func ValidateField(module string, field Field, value any, held SecretsHeld) *Fie
 
 		return nil
 	case FieldSecret:
-		if field.Required && held(module, field.Key) == 0 {
+		if field.Required && len(nonBlank(held(module, field.Key))) == 0 {
 			return problemOf(module, field.Key, ProblemRequired, "")
 		}
 

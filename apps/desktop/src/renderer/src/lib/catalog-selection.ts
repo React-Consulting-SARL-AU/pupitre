@@ -86,39 +86,45 @@ export function byCategory(modules: readonly Manifest[]): CategoryGroup[] {
   })).filter((group) => group.modules.length > 0);
 }
 
-function withRequirements(
-  known: Map<string, Manifest>,
-  chosen: Set<string>,
-  id: string,
-  installed: Installed
-): void {
-  if (chosen.has(id) || installed.includes(id)) {
-    return;
-  }
-
-  chosen.add(id);
-
-  for (const required of known.get(id)?.requires ?? []) {
-    withRequirements(known, chosen, required, installed);
-  }
-}
-
+/**
+ * A module and everything it requires, or nothing at all.
+ *
+ * A requirement the machine cannot run makes the whole choice impossible: half
+ * of it would be a module installed without what it needs. The probe is weighed
+ * here rather than by the caller, so a preset cannot tick what a click cannot.
+ */
 export function select(
   modules: readonly Manifest[],
   selected: Selection,
   id: string,
-  installed: Installed = []
+  installed: Installed = [],
+  probe: ProbeResult | null = null
 ): string[] {
   const known = index(modules);
+  const chosen = new Set(selected);
+  const adding: string[] = [];
+  const queue = [id];
 
-  if (!known.has(id) || blocked(modules, selected, null, installed).has(id)) {
-    return [...selected];
+  while (queue.length > 0) {
+    const next = queue.shift() as string;
+    const manifest = known.get(next);
+
+    if (chosen.has(next) || adding.includes(next) || installed.includes(next)) {
+      continue;
+    }
+
+    if (
+      !manifest ||
+      blocked(modules, [...chosen, ...adding], probe, installed).has(next)
+    ) {
+      return [...selected];
+    }
+
+    adding.push(next);
+    queue.push(...manifest.requires);
   }
 
-  const chosen = new Set(selected);
-  withRequirements(known, chosen, id, installed);
-
-  return ordered(modules, chosen);
+  return ordered(modules, [...chosen, ...adding]);
 }
 
 export function deselect(
@@ -163,25 +169,32 @@ export function toggle(
   modules: readonly Manifest[],
   selected: Selection,
   id: string,
-  installed: Installed = []
+  installed: Installed = [],
+  probe: ProbeResult | null = null
 ): string[] {
   return selected.includes(id)
     ? deselect(modules, selected, id)
-    : select(modules, selected, id, installed);
+    : select(modules, selected, id, installed, probe);
 }
 
+/**
+ * What a preset amounts to on this machine.
+ *
+ * A preset names modules for a catalogue, not for a server: on an arm64 box, or
+ * on one that already runs something its list contradicts, part of it simply
+ * cannot happen. Those parts are dropped rather than ticked, so applying a
+ * preset never leaves a selection the install would refuse.
+ */
 export function fromPreset(
   modules: readonly Manifest[],
   preset: Preset,
-  installed: Installed = []
+  installed: Installed = [],
+  probe: ProbeResult | null = null
 ): string[] {
-  const known = index(modules);
-  const chosen = new Set<string>();
+  let chosen: Selection = [];
 
-  for (const id of [...mandatory(modules), ...preset.modules]) {
-    if (known.has(id)) {
-      withRequirements(known, chosen, id, installed);
-    }
+  for (const id of [...mandatory(modules, installed), ...preset.modules]) {
+    chosen = select(modules, chosen, id, installed, probe);
   }
 
   return ordered(modules, chosen);
@@ -249,6 +262,131 @@ export function blocked(
   }
 
   return why;
+}
+
+/**
+ * A preset, weighed against this machine before it is offered.
+ *
+ * The catalogue's presets are written for the catalogue: the same three are
+ * shown on a fresh server and on one that already runs half of them. What they
+ * are worth here is not — hence `adds`, which names what applying it would
+ * actually put on the machine, and `applied`, which is how the reader sees that
+ * the click landed.
+ */
+export interface PresetOffer {
+  preset: Preset;
+  /** Everything it would install here, the core it implies included. */
+  installs: readonly Manifest[];
+  /** What it would add on top of that core: the promise its card carries. */
+  adds: readonly Manifest[];
+  /** The exclusive modules still open, once the machine has had its say. */
+  choices: readonly Manifest[];
+  /** True when what is selected is exactly what this preset yields. */
+  applied: boolean;
+}
+
+function same(a: Selection, b: Selection): boolean {
+  const held = new Set(b);
+
+  return a.length === b.length && a.every((id) => held.has(id));
+}
+
+export function presetOffer(
+  modules: readonly Manifest[],
+  preset: Preset,
+  selected: Selection,
+  installed: Installed = [],
+  probe: ProbeResult | null = null
+): PresetOffer {
+  const known = index(modules);
+  const base = fromPreset(modules, preset, installed, probe);
+  const unreachable = blocked(modules, base, probe, installed);
+
+  const choices: Manifest[] = [];
+
+  for (const id of preset.choose_one ?? []) {
+    const manifest = known.get(id);
+
+    if (manifest && !installed.includes(id) && !unreachable.has(id)) {
+      choices.push(manifest);
+    }
+  }
+
+  const installs: Manifest[] = [];
+
+  for (const id of base) {
+    const manifest = known.get(id);
+
+    if (manifest) {
+      installs.push(manifest);
+    }
+  }
+
+  const outcomes = [
+    base,
+    ...choices.map((one) => select(modules, base, one.id, installed, probe)),
+  ];
+
+  return {
+    adds: installs.filter((one) => !one.mandatory),
+    applied: outcomes.some((outcome) => same(outcome, selected)),
+    choices,
+    installs,
+    preset,
+  };
+}
+
+export function presetOffers(
+  modules: readonly Manifest[],
+  presets: readonly Preset[],
+  selected: Selection,
+  installed: Installed = [],
+  probe: ProbeResult | null = null
+): PresetOffer[] {
+  return presets.map((preset) =>
+    presetOffer(modules, preset, selected, installed, probe)
+  );
+}
+
+/**
+ * A preset with nothing left to install: the server already runs all of it,
+ * the core included. « Only the core » is not that — it is a choice, and one
+ * a reader comes back to after ticking too much.
+ */
+export function bringsNothing(offer: PresetOffer): boolean {
+  return offer.installs.length === 0 && offer.choices.length === 0;
+}
+
+const DIACRITICS = /\p{Diacritic}/gu;
+const SPACES = /\s+/;
+
+/** Lower case and without accents, so « préréglage » is found by "prereglage". */
+function plain(value: string): string {
+  return value.normalize("NFD").replace(DIACRITICS, "").toLowerCase();
+}
+
+/**
+ * The modules a search phrase leaves.
+ *
+ * The phrase is weighed against the words the agent gave — name, summary,
+ * identifier — because those are what the reader sees on the cards. Every term
+ * has to land somewhere, so a second word narrows rather than widens.
+ */
+export function matching(
+  modules: readonly Manifest[],
+  query: string
+): readonly Manifest[] {
+  const terms = plain(query).split(SPACES).filter(Boolean);
+
+  if (terms.length === 0) {
+    return modules;
+  }
+
+  return modules.filter((module) => {
+    const words = plain(`${module.name} ${module.summary} ${module.id}`);
+
+    return terms.every((term) => words.includes(term));
+  });
 }
 
 export function totals(

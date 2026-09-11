@@ -18,7 +18,7 @@ export const download = {
     "download.failedFix": "Reload the page; if it persists, sign in again.",
     "download.emptyTitle": "Nothing to download yet",
     "download.emptyDescription":
-      "No version of the app has been published yet. This page will show the installers for the three systems, and their notes, from the first signed release.",
+      "No version of the app has been published yet.",
     "download.appTitle": "The Pupitre app",
     "download.version": "Version {version}",
     "download.yourSystem": "Your system",
@@ -48,7 +48,7 @@ export const download = {
       "Rechargez la page ; si cela persiste, reconnectez-vous.",
     "download.emptyTitle": "Rien à télécharger pour l'instant",
     "download.emptyDescription":
-      "Aucune version de l'app n'a encore été publiée. Cette page affichera les installateurs des trois systèmes, et leurs notes, dès la première release signée.",
+      "Aucune version de l'app n'a encore été publiée.",
     "download.appTitle": "L'app Pupitre",
     "download.version": "Version {version}",
     "download.yourSystem": "Votre système",

@@ -1,8 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./app";
+import { LiveRegion } from "./components/ui/live-region";
 import { watchTrace } from "./lib/trace";
 import { startLocaleWatch } from "./stores/locale";
+import { startTerminalSettings } from "./stores/terminal-settings";
 import { startThemeWatch } from "./stores/theme";
 import "./styles.css";
 
@@ -10,12 +12,14 @@ import "./styles.css";
 // flashes the wrong theme on launch.
 startThemeWatch();
 startLocaleWatch();
+startTerminalSettings();
 watchTrace();
 
 const root = document.getElementById("root");
 if (root) {
   createRoot(root).render(
     <StrictMode>
+      <LiveRegion />
       <App />
     </StrictMode>
   );

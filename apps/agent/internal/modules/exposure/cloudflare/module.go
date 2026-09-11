@@ -66,12 +66,9 @@ func (Module) Install(ctx *modules.Context) error {
 	})
 }
 
+// The domain is stored before the ingress is written: the registry resolves the routes of the repository's rows against it.
 func (m Module) Configure(ctx *modules.Context) error {
-	if err := writeCredentials(ctx); err != nil {
-		return err
-	}
-
-	changed, err := writeIngress(ctx)
+	credentials, err := writeCredentials(ctx)
 	if err != nil {
 		return err
 	}
@@ -80,15 +77,22 @@ func (m Module) Configure(ctx *modules.Context) error {
 		return err
 	}
 
+	ingress, err := writeIngress(ctx)
+	if err != nil {
+		return err
+	}
+
 	if err := declareMode(ctx); err != nil {
 		return err
 	}
 
-	return service(ctx, changed)
+	return service(ctx, credentials || ingress)
 }
 
-func writeCredentials(ctx *modules.Context) error {
-	return ctx.Step("write-credentials", func() (modules.Outcome, error) {
+func writeCredentials(ctx *modules.Context) (bool, error) {
+	changed := false
+
+	err := ctx.Step("write-credentials", func() (modules.Outcome, error) {
 		wanted := cloudflared.Credentials{
 			AccountTag:   ctx.String("account_tag"),
 			TunnelID:     ctx.String("tunnel_id"),
@@ -99,8 +103,12 @@ func writeCredentials(ctx *modules.Context) error {
 			return modules.Skipped, nil
 		}
 
+		changed = true
+
 		return modules.Done, cloudflared.WriteCredentials(ctx, wanted)
 	})
+
+	return changed, err
 }
 
 func writeIngress(ctx *modules.Context) (bool, error) {
@@ -153,7 +161,10 @@ func declareMode(ctx *modules.Context) error {
 	})
 }
 
-func service(ctx *modules.Context, ingressChanged bool) error {
+// A daemon already running keeps the credentials and the ingress it read at
+// start: whichever of the two was rewritten, the tunnel it carries is not the
+// one this run configured until it has been restarted.
+func service(ctx *modules.Context, configChanged bool) error {
 	written := false
 
 	if err := ctx.Step("write-service", func() (modules.Outcome, error) {
@@ -171,7 +182,7 @@ func service(ctx *modules.Context, ingressChanged bool) error {
 	if err := ctx.Step("enable-service", func() (modules.Outcome, error) {
 		running := systemd.Active(ctx, Unit)
 
-		if running && !written && !ingressChanged {
+		if running && !written && !configChanged {
 			return modules.Skipped, nil
 		}
 

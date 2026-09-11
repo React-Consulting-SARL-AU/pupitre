@@ -19,11 +19,7 @@ function BillingPage() {
 
   return (
     <>
-      <PageHeader
-        description={t("page.billing.description")}
-        parents={parents}
-        title={t(title)}
-      />
+      <PageHeader parents={parents} title={t(title)} />
       <BillingPanel />
     </>
   )

@@ -1,7 +1,9 @@
 import { describe, expect, it } from "bun:test";
+import type { AccountIdentity } from "@shared/account";
 import type { Server, ServerReach } from "@shared/servers";
 import { Trash2 } from "lucide-react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { OnboardingOrganizationNote } from "../onboarding/onboarding-organization-note";
 import { OnboardingServerChoice } from "../onboarding/onboarding-server-choice";
 import { serverStage } from "../onboarding/onboarding-server-screen";
 import { ServerReachNotice } from "../servers/server-reach-notice";
@@ -38,7 +40,12 @@ describe("le test d'une adresse", () => {
     renderToStaticMarkup(<ServerReachNotice reach={reach} />);
 
   it("distingue une adresse qui répond d'une qui refuse, par la forme", () => {
-    const answered = notice({ ms: 42, reached: true, software: "OpenSSH_9.6" });
+    const answered = notice({
+      access: { access: "opens" },
+      ms: 42,
+      reached: true,
+      software: "OpenSSH_9.6",
+    });
     const refused = notice({
       code: "refused",
       phrase: {
@@ -53,9 +60,48 @@ describe("le test d'une adresse", () => {
   });
 
   it("nomme le logiciel qui a répondu et le temps qu'il a mis", () => {
-    const html = notice({ ms: 42, reached: true, software: "OpenSSH_9.6" });
+    const html = notice({
+      access: { access: "opens" },
+      ms: 42,
+      reached: true,
+      software: "OpenSSH_9.6",
+    });
 
     expect(text(html)).toContain("OpenSSH_9.6 a répondu en 42 ms");
+  });
+
+  it("dit ce qui ouvrira le compte, par la forme et par la phrase", () => {
+    const answered = (access: ServerReach & { reached: true }) =>
+      notice(access);
+    const opens = answered({
+      access: { access: "opens" },
+      ms: 42,
+      reached: true,
+      software: "OpenSSH_9.6",
+    });
+    const password = answered({
+      access: { access: "password" },
+      ms: 42,
+      reached: true,
+      software: "OpenSSH_9.6",
+    });
+    const manual = answered({
+      access: {
+        access: "manual",
+        phrase: { id: "refusal.keyInstall.keysOnly" },
+      },
+      ms: 42,
+      reached: true,
+      software: "OpenSSH_9.6",
+    });
+
+    expect(opens).toContain('data-access="opens"');
+    expect(text(opens)).toContain("rien à taper");
+    expect(password).toContain('data-access="password"');
+    expect(text(password)).toContain("demande son mot de passe");
+    expect(manual).toContain('data-shape="empty"');
+    expect(text(manual)).toContain("n'accepte que des clés");
+    expect(text(manual)).toContain("peut quand même être ajouté");
   });
 
   it("rend le refus et son remède tels que le processus principal les a dits", () => {
@@ -245,5 +291,56 @@ describe("l'étape que l'assistant ouvre", () => {
   it("respecte l'étape qu'on a demandée", () => {
     expect(serverStage("add", "ready", 3)).toBe("add");
     expect(serverStage("pick", "ready", 0)).toBe("pick");
+  });
+});
+
+describe("l'organisation de l'enrôlement", () => {
+  const identity: AccountIdentity = {
+    email: "ada@pupitre.studio",
+    entitlement: "valid",
+    name: "Ada Lovelace",
+    organization: { id: "org-1", name: "Atelier Ada", slug: "ada" },
+    organizations: [
+      { id: "org-1", name: "Atelier Ada", role: "admin", slug: "ada" },
+      { id: "org-2", name: "Fonderie", role: "member", slug: "fonderie" },
+    ],
+    role: "admin",
+    subscription: null,
+  };
+
+  const note = (given: AccountIdentity): string =>
+    renderToStaticMarkup(
+      <OnboardingOrganizationNote
+        identity={given}
+        onSwitch={() => Promise.resolve()}
+      />
+    );
+
+  it("dit pour quelle organisation le serveur sera enrôlé, et le rôle en français", () => {
+    const html = note(identity);
+
+    expect(html).toContain('data-enrolling-for="org-1"');
+    expect(text(html)).toContain("Enrôlé pour Atelier Ada");
+    expect(text(html)).toContain("Administrateur");
+    expect(text(html)).not.toContain("admin");
+  });
+
+  it("offre la bascule seulement quand il y a le choix", () => {
+    const several = note(identity);
+    const one = note({
+      ...identity,
+      organizations: identity.organizations.slice(0, 1),
+    });
+
+    expect(several).toContain("<select");
+    expect(several).toContain('value="org-1"');
+    expect(text(several)).toContain("Fonderie · Membre");
+    expect(one).not.toContain("<select");
+  });
+
+  it("prévient quand aucune organisation n'est active", () => {
+    const html = note({ ...identity, organization: null, role: null });
+
+    expect(text(html)).toContain("Aucune organisation active");
   });
 });

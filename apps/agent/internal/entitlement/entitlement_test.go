@@ -42,6 +42,24 @@ func TestRestrictedCommandsMatchTheContract(t *testing.T) {
 	}
 }
 
+func TestUnenrolledCommandsMatchTheContract(t *testing.T) {
+	raw, ok := contract.Definition("UnenrolledCommands")
+	if !ok {
+		t.Fatal("schema.json has no UnenrolledCommands definition")
+	}
+
+	var definition struct {
+		Enum []string `json:"enum"`
+	}
+	if err := json.Unmarshal(raw, &definition); err != nil {
+		t.Fatalf("decode UnenrolledCommands: %v", err)
+	}
+
+	if len(definition.Enum) == 0 || !reflect.DeepEqual(UnenrolledCommands, definition.Enum) {
+		t.Fatalf("UnenrolledCommands = %v, schema says %v", UnenrolledCommands, definition.Enum)
+	}
+}
+
 // A restricted server repairs itself by enrolling again: a lost token, a revoked one, or an entitlement to restore.
 func TestRestrictedModeLetsAServerEnrolAgain(t *testing.T) {
 	if !AllowedInRestrictedMode("enroll") {

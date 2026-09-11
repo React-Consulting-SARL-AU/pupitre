@@ -6,14 +6,17 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/download"
 	"pupitre.studio/agent/internal/modules/modtest"
 )
 
 const (
 	commit  = "a44adf7f53e00964ab890f9f8758a334f1fc15bc"
 	product = "1.136.1"
-	update  = `{"url":"https://vscode.download.prss.microsoft.com/stable/code.tar.gz","name":"1.136.1","version":"` + commit + `","productVersion":"` + product + `"}`
 )
+
+// The update service names the archive and its SHA-256; the fake serves a body whose digest is exactly that.
+var update = `{"url":"https://vscode.download.prss.microsoft.com/stable/code.tar.gz","name":"1.136.1","version":"` + commit + `","productVersion":"` + product + `","sha256hash":"` + modtest.Digest(modtest.Downloaded) + `"}`
 
 var serverDir = binRoot + "/" + commit
 
@@ -27,8 +30,8 @@ func machine() *modtest.FakeSys {
 	fake := modtest.NewFakeSys()
 	fake.Users["dev"] = "/home/dev"
 	fake.Answer("update.code.visualstudio.com/api/update", update)
-	fake.Archives[serverArchive] = []string{"bin/code-server", "product.json"}
-	fake.Archives[cliArchive] = []string{"code"}
+	fake.Archives[download.Dir+"/"+serverArchive] = []string{"bin/code-server", "product.json"}
+	fake.Archives[download.Dir+"/"+cliArchive] = []string{"code"}
 
 	return fake
 }

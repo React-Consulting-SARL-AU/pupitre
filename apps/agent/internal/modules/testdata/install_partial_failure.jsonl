@@ -9,7 +9,7 @@ $ {"tool.demo":{"password":"s3cret-de-test"}}
 < {"id":2,"event":"step","module":"db.broken","step":"prepare","status":"start","ms":0}
 < {"id":2,"event":"step","module":"db.broken","step":"prepare","status":"ok","ms":0}
 < {"id":2,"event":"step","module":"db.broken","step":"install-package","status":"start","ms":0}
-< {"id":2,"event":"step","module":"db.broken","step":"install-package","status":"fail","ms":0,"replay":"sudo pupitred install --only=db.broken"}
+< {"event":"step","id":2,"message":"E: Unable to locate package db-broken","module":"db.broken","ms":0,"replay":"sudo pupitred install --only=db.broken","status":"fail","step":"install-package"}
 < {"id":2,"event":"step","module":"tool.demo","step":"install-package","status":"start","ms":0}
 < {"id":2,"event":"step","module":"tool.demo","step":"install-package","status":"ok","ms":0}
 < {"id":2,"event":"step","module":"tool.demo","step":"write-config","status":"start","ms":0}

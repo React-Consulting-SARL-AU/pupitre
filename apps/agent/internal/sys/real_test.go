@@ -2,10 +2,13 @@ package sys
 
 import (
 	"errors"
+	"io/fs"
 	"os"
+	"os/exec"
 	"os/user"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -224,5 +227,357 @@ func TestRealRunGivesUpOnACommandThatNeverAnswers(t *testing.T) {
 	_, err := Real{}.Run(Command{Argv: []string{"sleep", "5"}, Timeout: 200 * time.Millisecond})
 	if err == nil || !strings.Contains(err.Error(), "no answer after") {
 		t.Fatalf("a command past its time must fail and say so, got %v", err)
+	}
+}
+
+// A grandchild that outlives the shell holds the pipes open; the timeout has to take the whole group with it.
+func TestRealRunTakesTheGrandchildrenWithTheTimedOutCommand(t *testing.T) {
+	started := time.Now()
+
+	_, err := Real{}.Run(Command{Argv: []string{"sh", "-c", "sleep 30 & wait"}, Timeout: 200 * time.Millisecond})
+	if err == nil || !strings.Contains(err.Error(), "no answer after") {
+		t.Fatalf("got %v", err)
+	}
+
+	if elapsed := time.Since(started); elapsed > 5*time.Second {
+		t.Fatalf("Run waited %s for the grandchild", elapsed)
+	}
+}
+
+func TestRealRunSurvivesAnEmptyPath(t *testing.T) {
+	if _, err := (Real{}).Run(Command{Argv: []string{"sh", "-c", "true"}, Env: []string{"PATH="}}); err != nil {
+		t.Fatalf("an empty PATH must leave the lookup to the process's own, got %v", err)
+	}
+}
+
+func TestRealWriteFileKeepsTheModeAndOwnerOfAnExistingFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "authorized_keys")
+	if err := os.WriteFile(path, []byte("old\n"), 0o640); err != nil {
+		t.Fatal(err)
+	}
+
+	before, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := (Real{}).WriteFile(path, []byte("new\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if info.Mode().Perm() != 0o640 {
+		t.Fatalf("mode = %o, want the existing 640", info.Mode().Perm())
+	}
+
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok {
+		t.Skip("no uid on this platform")
+	}
+
+	was, _ := before.Sys().(*syscall.Stat_t)
+	if stat.Uid != was.Uid || stat.Gid != was.Gid {
+		t.Fatalf("owner = %d:%d, want the existing %d:%d", stat.Uid, stat.Gid, was.Uid, was.Gid)
+	}
+
+	if content, _ := os.ReadFile(path); string(content) != "new\n" {
+		t.Fatalf("content = %q", content)
+	}
+}
+
+func TestRealReadFileInRefusesALinkThatLeavesTheRoot(t *testing.T) {
+	outside := t.TempDir()
+	secret := filepath.Join(outside, "shadow")
+	if err := os.WriteFile(secret, []byte("root:x\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "authorized_keys"), []byte("ssh-ed25519 AAAA\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(secret, filepath.Join(root, "planted")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("authorized_keys", filepath.Join(root, "inside")); err != nil {
+		t.Fatal(err)
+	}
+
+	content, err := Real{}.ReadFileIn(root, "authorized_keys")
+	if err != nil || string(content) != "ssh-ed25519 AAAA\n" {
+		t.Fatalf("ReadFileIn = %q, %v", content, err)
+	}
+
+	content, err = Real{}.ReadFileIn(root, "inside")
+	if err != nil || string(content) != "ssh-ed25519 AAAA\n" {
+		t.Fatalf("a link that stays inside the root must be followed: %q, %v", content, err)
+	}
+
+	for _, rel := range []string{"planted", "../" + filepath.Base(outside) + "/shadow", secret} {
+		if content, err := (Real{}).ReadFileIn(root, rel); err == nil {
+			t.Fatalf("%q read %q through the root", rel, content)
+		}
+	}
+
+	if _, err := (Real{}).ReadFileIn(root, "absent"); !errors.Is(err, fs.ErrNotExist) {
+		t.Fatalf("absent file: %v", err)
+	}
+}
+
+func TestRealAppendFileCreatesThenAdds(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "web.log")
+
+	me, err := user.Current()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := (Real{}).AppendFile(path, []byte("first\n"), me.Username); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := (Real{}).AppendFile(path, []byte("second\n"), me.Username); err != nil {
+		t.Fatal(err)
+	}
+
+	content, err := os.ReadFile(path)
+	if err != nil || string(content) != "first\nsecond\n" {
+		t.Fatalf("content = %q, %v", content, err)
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if info.Mode().Perm() != 0o644 {
+		t.Fatalf("mode = %o, want 644", info.Mode().Perm())
+	}
+
+	if err := (Real{}).AppendFile(filepath.Join(t.TempDir(), "missing", "web.log"), []byte("x"), ""); err == nil {
+		t.Fatal("a missing folder must fail")
+	}
+}
+
+func TestRealStatDescribesARegularFileAndRefusesTheRest(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "login.png")
+	if err := os.WriteFile(path, make([]byte, 24_000), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	when := time.Date(2026, time.September, 4, 11, 0, 0, 0, time.UTC)
+	if err := os.Chtimes(path, when, when); err != nil {
+		t.Fatal(err)
+	}
+
+	size, mtime, err := Real{}.Stat(path)
+	if err != nil || size != 24_000 || !mtime.Equal(when) {
+		t.Fatalf("Stat = %d, %s, %v", size, mtime, err)
+	}
+
+	if err := os.Symlink(path, filepath.Join(dir, "link.png")); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, refused := range []string{dir, filepath.Join(dir, "link.png"), filepath.Join(dir, "absent")} {
+		if _, _, err := (Real{}).Stat(refused); err == nil {
+			t.Fatalf("%s must not be described as a file", refused)
+		}
+	}
+}
+
+func TestRealSignalReachesTheProcessAndSaysWhenItIsGone(t *testing.T) {
+	process := exec.Command("sleep", "30")
+	if err := process.Start(); err != nil {
+		t.Fatal(err)
+	}
+	pid := process.Process.Pid
+
+	if err := (Real{}).Signal(pid, 0); err != nil {
+		t.Fatalf("a running process must answer signal 0: %v", err)
+	}
+
+	if err := (Real{}).Signal(pid, syscall.SIGTERM); err != nil {
+		t.Fatal(err)
+	}
+
+	process.Wait()
+
+	if err := (Real{}).Signal(pid, 0); err == nil {
+		t.Fatal("a reaped process must not answer signal 0")
+	}
+}
+
+func TestRealListInAndStatInDescribeWhatIsOnTheDisk(t *testing.T) {
+	outside := t.TempDir()
+	if err := os.WriteFile(filepath.Join(outside, "shadow"), []byte("root:x\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "notes"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "notes", "readme.md"), []byte("# flymate\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("readme.md", filepath.Join(root, "notes", "inside")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(outside, "shadow"), filepath.Join(root, "notes", "planted")); err != nil {
+		t.Fatal(err)
+	}
+
+	nodes, err := Real{}.ListIn(root, "notes")
+	if err != nil || len(nodes) != 3 {
+		t.Fatalf("ListIn = %+v, %v", nodes, err)
+	}
+
+	kinds := map[string]string{}
+	for _, node := range nodes {
+		kinds[node.Name] = node.Kind
+	}
+
+	if kinds["readme.md"] != NodeFile || kinds["inside"] != NodeLink || kinds["planted"] != NodeLink {
+		t.Fatalf("unexpected kinds %v", kinds)
+	}
+
+	file, err := Real{}.StatIn(root, "notes/readme.md")
+	if err != nil || file.Kind != NodeFile || file.SizeBytes != 10 || file.Mode.Perm() != 0o644 {
+		t.Fatalf("StatIn = %+v, %v", file, err)
+	}
+
+	folder, err := Real{}.StatIn(root, "")
+	if err != nil || folder.Kind != NodeDir {
+		t.Fatalf("the root describes itself: %+v, %v", folder, err)
+	}
+
+	link, err := Real{}.StatIn(root, "notes/inside")
+	if err != nil || link.Kind != NodeLink || link.SizeBytes != 10 {
+		t.Fatalf("a link inside the root is described by its target: %+v, %v", link, err)
+	}
+
+	if _, err := (Real{}).StatIn(root, "notes/planted"); err == nil {
+		t.Fatal("a link leaving the root was described")
+	}
+
+	if _, err := (Real{}).ListIn(root, "../"+filepath.Base(outside)); err == nil {
+		t.Fatal("a folder outside the root was listed")
+	}
+}
+
+func TestRealWriteFileInReplacesAtomicallyAndKeepsTheMode(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "notes"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "notes", "readme.md"), []byte("# flymate\n"), 0o640); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := (Real{}).WriteFileIn(root, "notes/readme.md", "", []byte("réécrit\n")); err != nil {
+		t.Fatalf("WriteFileIn: %v", err)
+	}
+
+	content, err := os.ReadFile(filepath.Join(root, "notes", "readme.md"))
+	if err != nil || string(content) != "réécrit\n" {
+		t.Fatalf("read back %q, %v", content, err)
+	}
+
+	info, err := os.Lstat(filepath.Join(root, "notes", "readme.md"))
+	if err != nil || info.Mode().Perm() != 0o640 {
+		t.Fatalf("the mode of the replaced file changed: %v, %v", info.Mode(), err)
+	}
+
+	if err := (Real{}).WriteFileIn(root, "notes/todo.md", "", []byte("- rien\n")); err != nil {
+		t.Fatalf("WriteFileIn on a new file: %v", err)
+	}
+
+	entries, err := os.ReadDir(filepath.Join(root, "notes"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(entries) != 2 {
+		t.Fatalf("the write left something behind: %+v", entries)
+	}
+
+	if err := (Real{}).WriteFileIn(root, "../escape.md", "", nil); err == nil {
+		t.Fatal("a write left the root")
+	}
+}
+
+func TestRealMkdirRenameAndRemoveStayInsideTheRoot(t *testing.T) {
+	root := t.TempDir()
+
+	if err := (Real{}).MkdirIn(root, "notes/drafts", ""); err != nil {
+		t.Fatalf("MkdirIn: %v", err)
+	}
+
+	if err := (Real{}).MkdirIn(root, "notes/drafts", ""); err != nil {
+		t.Fatalf("a folder already there is not an error: %v", err)
+	}
+
+	if err := (Real{}).WriteFileIn(root, "notes/drafts/one.md", "", []byte("un\n")); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := (Real{}).RenameIn(root, "notes/drafts/one.md", "notes/one.md"); err != nil {
+		t.Fatalf("RenameIn: %v", err)
+	}
+
+	if _, err := os.Lstat(filepath.Join(root, "notes", "one.md")); err != nil {
+		t.Fatalf("the entry did not travel: %v", err)
+	}
+
+	if err := (Real{}).RemoveIn(root, "notes", false); err == nil {
+		t.Fatal("a folder that is not empty was removed")
+	}
+
+	if err := (Real{}).RemoveIn(root, "notes", true); err != nil {
+		t.Fatalf("RemoveIn: %v", err)
+	}
+
+	if _, err := os.Lstat(filepath.Join(root, "notes")); !errors.Is(err, fs.ErrNotExist) {
+		t.Fatalf("the folder is still there: %v", err)
+	}
+
+	if err := (Real{}).RemoveIn(root, "../escape", true); err == nil {
+		t.Fatal("a removal left the root")
+	}
+}
+
+func TestRealStreamHandsLinesOverAndEndsOnItsOwnTime(t *testing.T) {
+	var lines []string
+	err := Real{}.Stream(Command{Argv: []string{"sh", "-c", "echo one; echo two; sleep 5"}, Timeout: 300 * time.Millisecond}, func(line string) {
+		lines = append(lines, line)
+	})
+	if err != nil {
+		t.Fatalf("a stream that ran out of time is not an error: %v", err)
+	}
+
+	if strings.Join(lines, ",") != "one,two" {
+		t.Fatalf("lines = %v, want one,two", lines)
+	}
+}
+
+func TestRealStreamReportsTheExitOfACommandThatFailed(t *testing.T) {
+	var lines []string
+	err := Real{}.Stream(Command{Argv: []string{"sh", "-c", "echo one; echo why >&2; exit 3"}}, func(line string) {
+		lines = append(lines, line)
+	})
+
+	var exit *ExitError
+	if !errors.As(err, &exit) || exit.Code != 3 || !strings.Contains(exit.Stderr, "why") {
+		t.Fatalf("unexpected error %v", err)
+	}
+
+	if strings.Join(lines, ",") != "one" {
+		t.Fatalf("lines = %v, want one", lines)
 	}
 }

@@ -154,7 +154,7 @@ func occupants(machine Machine) (reasons, fixes []string) {
 func label(value string) string {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == "" {
-		return "inconnue"
+		return i18n.T("probe.label.unknown")
 	}
 
 	return trimmed

@@ -1,14 +1,15 @@
 package state
 
 import (
-	"pupitre.studio/agent/internal/i18n"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/tmux"
@@ -192,7 +193,7 @@ func (r *Reader) CleanSessions() int {
 			continue
 		}
 
-		if err := r.signal(session.PID, "-TERM"); err == nil {
+		if err := r.signal(session.PID, syscall.SIGTERM); err == nil {
 			killed++
 		}
 	}
@@ -254,25 +255,25 @@ func (r *Reader) Kill(pid int, force bool) error {
 		return badPID(i18n.T("state.pid.ancestor", strconv.Itoa(pid)), i18n.T("state.pid.ancestor.fix"))
 	}
 
-	if err := r.signal(pid, "-TERM"); err != nil {
+	if err := r.signal(pid, syscall.SIGTERM); err != nil {
 		return protocol.NewError(contract.ErrorInternal, i18n.T("state.process.kill.failed", strconv.Itoa(pid))).
 			WithFix(i18n.T("state.process.kill.failed.fix"))
 	}
 
 	if force {
 		r.sleep(KillGrace)
-		if _, alive := r.ctx().Sys().Run(sys.Command{Argv: []string{"kill", "-0", strconv.Itoa(pid)}}); alive == nil {
-			return r.signal(pid, "-KILL")
+		if alive := r.ctx().Sys().Signal(pid, 0); alive == nil {
+			return r.signal(pid, syscall.SIGKILL)
 		}
 	}
 
 	return nil
 }
 
-func (r *Reader) signal(pid int, name string) error {
-	_, err := sys.Exec(r.ctx(), sys.Command{Argv: []string{"kill", name, strconv.Itoa(pid)}})
+func (r *Reader) signal(pid int, sig syscall.Signal) error {
+	r.ctx().Logf("kill -%d %d", sig, pid)
 
-	return err
+	return r.ctx().Sys().Signal(pid, sig)
 }
 
 func (r *Reader) panes() map[int]string {

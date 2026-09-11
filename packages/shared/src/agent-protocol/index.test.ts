@@ -3,7 +3,9 @@ import {
   COMMAND_NAMES,
   COMMANDS,
   isAllowedInRestrictedMode,
+  isAllowedWhileMigrating,
   isCommandName,
+  MIGRATION_COMMANDS,
   RESTRICTED_COMMANDS,
 } from "./index"
 
@@ -23,10 +25,15 @@ const CONTRACT_COMMANDS = [
   "status",
   "service.status",
   "service.secret",
+  "service.start",
+  "service.stop",
+  "service.restart",
+  "service.logs",
   "completions",
   "project.list",
   "project.add",
   "project.detect",
+  "project.update",
   "project.remove",
   "project.up",
   "project.down",
@@ -51,6 +58,13 @@ const CONTRACT_COMMANDS = [
   "shots.url",
   "shots.read",
   "shots.clean",
+  "fs.list",
+  "fs.stat",
+  "fs.read",
+  "fs.write",
+  "fs.mkdir",
+  "fs.rename",
+  "fs.remove",
   "secrets.sync",
   "db.dump",
   "db.import",
@@ -64,6 +78,7 @@ const CONTRACT_COMMANDS = [
   "keys.sync",
   "platform.sync",
   "agent.upgrade",
+  "agent.migrate",
   "reboot",
   "doctor",
   "diag",
@@ -94,9 +109,10 @@ describe("COMMANDS", () => {
 })
 
 describe("restricted mode", () => {
-  it("only lets the eight contract commands through", () => {
+  it("only lets the nine contract commands through", () => {
     expect(([...RESTRICTED_COMMANDS] as string[]).sort()).toEqual(
       [
+        "agent.migrate",
         "agent.upgrade",
         "diag",
         "enroll",
@@ -113,6 +129,28 @@ describe("restricted mode", () => {
 
   it("lets a restricted server re-enrol, the gesture that repairs it", () => {
     expect(isAllowedInRestrictedMode("enroll")).toBe(true)
+  })
+})
+
+describe("a configuration that is not at the expected revision", () => {
+  it("keeps open the view of the machine and the ways out", () => {
+    for (const cmd of ["snapshot", "diag", "agent.upgrade", "agent.migrate"]) {
+      expect(isAllowedWhileMigrating(cmd)).toBe(true)
+    }
+  })
+
+  it("closes everything that reads or writes a configuration", () => {
+    for (const cmd of ["install", "upgrade", "module.config", "project.add"]) {
+      expect(isAllowedWhileMigrating(cmd)).toBe(false)
+    }
+  })
+
+  it("lets a restricted server migrate too, since it can still update", () => {
+    for (const cmd of RESTRICTED_COMMANDS) {
+      expect(isAllowedWhileMigrating(cmd)).toBe(true)
+    }
+
+    expect(MIGRATION_COMMANDS).toContain("agent.migrate")
   })
 })
 

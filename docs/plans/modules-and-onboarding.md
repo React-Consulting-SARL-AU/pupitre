@@ -16,5 +16,5 @@ Le chantier décrit ici est **livré**, sauf ce que cette page garde. Le détail
 
 ## Suites
 
-- `tool.neon` pose le CLI et garde la clé en `0600 root` ; `neonctl` n'a pas de connexion par jeton, donc un shell de `dev` n'est pas authentifié tant que personne ne lui passe `NEON_API_KEY`. Le résumé du module et la page du site le disent ; reste à décider si l'app doit offrir le geste qui la donne à un shell, et ce que ça coûte à la promesse « lisible par root seul ».
+- `tool.neon` et `tool.1password` gardent le jeton en `0600 root` et l'exportent aussi dans `/home/dev/.config/pupitre/env`, `0600 dev`, lu par `~/.zshenv` : un shell de `dev` est authentifié sans geste. Décidé en septembre 2026, quand `neon me` et `op whoami` dans un terminal de l'app ne trouvaient aucun compte ; la promesse « lisible par root seul » tient pour `/etc/pupitre/env`, pas pour ce que l'utilisateur `dev` doit lui-même utiliser (`gh` faisait déjà de même par `gh auth login`).
 - Le texte d'usage de `shot` et de `dev` est en français, quelle que soit la langue de la session : la décision est notée dans `internal/i18n/french_test.go` et attend d'être tranchée. Le message d'erreur de `shots.Take` la suit sans y être déclaré.

@@ -15,15 +15,19 @@ var stateCatalog = map[string]Message{
 		EN: "cloning %s failed",
 	},
 	"state.repo.unreadable.fix": {
-		FR: "Vérifie que la machine a le droit de lire ce dépôt : ssh -T git@github.com.",
+		FR: "Vérifiez que la machine a le droit de lire ce dépôt : ssh -T git@github.com.",
 		EN: "Check that the machine may read this repository: ssh -T git@github.com.",
+	},
+	"state.git.said": {
+		FR: "git répond : %s",
+		EN: "git says: %s",
 	},
 	"state.checkout.failed": {
 		FR: "%s : le passage sur %s a échoué",
 		EN: "%s: switching to %s failed",
 	},
 	"state.git.read.fix": {
-		FR: "Ouvre un terminal sur %s et lis ce que git répond.",
+		FR: "Ouvrez un terminal sur %s et lisez ce que git répond.",
 		EN: "Open a terminal on %s and read what git answers.",
 	},
 	"state.project.clone.failed": {
@@ -35,7 +39,7 @@ var stateCatalog = map[string]Message{
 		EN: "%s: the pull left a conflict",
 	},
 	"state.pull.conflict.fix": {
-		FR: "Ouvre un terminal sur %s et résous-le à la main.",
+		FR: "Ouvrez un terminal sur %s et résolvez-le à la main.",
 		EN: "Open a terminal on %s and resolve it by hand.",
 	},
 	"state.project.notInGit": {
@@ -43,7 +47,7 @@ var stateCatalog = map[string]Message{
 		EN: "%s is not in a git repository",
 	},
 	"state.project.sync.fix": {
-		FR: "Récupère les sources avec project.sync %s.",
+		FR: "Récupérez les sources avec project.sync %s.",
 		EN: "Fetch the sources with project.sync %s.",
 	},
 	"state.process.kill.failed": {
@@ -51,7 +55,7 @@ var stateCatalog = map[string]Message{
 		EN: "%s could not be stopped",
 	},
 	"state.process.kill.failed.fix": {
-		FR: "Regarde s'il s'est terminé seul avec processes.list.",
+		FR: "Regardez s'il s'est terminé seul avec processes.list.",
 		EN: "Check with processes.list whether it ended on its own.",
 	},
 	"state.pid.refused": {
@@ -79,11 +83,11 @@ var stateCatalog = map[string]Message{
 		EN: "%s exposes no debug port",
 	},
 	"state.debug.undeclared.fix": {
-		FR: "Déclare-le dans /etc/pupitre/env : %s=\"%s:5005\".",
+		FR: "Déclarez-le dans /etc/pupitre/env : %s=\"%s:5005\".",
 		EN: "Declare it in /etc/pupitre/env: %s=\"%s:5005\".",
 	},
 	"state.project.install.failed.fix": {
-		FR: "Ouvre le journal du projet, ou corrige la colonne install du registre.",
+		FR: "Ouvrez le journal du projet, ou corrigez la colonne install du registre.",
 		EN: "Open the project's journal, or fix the install column of the registry.",
 	},
 	"state.service.unknown": {
@@ -91,15 +95,35 @@ var stateCatalog = map[string]Message{
 		EN: "unknown service: %s",
 	},
 	"state.service.unknown.fix": {
-		FR: "Appelle catalog pour la liste des modules de ce serveur.",
+		FR: "Appelez catalog pour la liste des modules de ce serveur.",
 		EN: "Call catalog for the list of this server's modules.",
+	},
+	"state.service.noUnit": {
+		FR: "%s ne tient aucun service : rien à démarrer, arrêter ou lire",
+		EN: "%s holds no service: nothing to start, stop or read",
+	},
+	"state.service.noUnit.fix": {
+		FR: "Seuls les modules qui déclarent une unité dans service.status répondent à ces commandes.",
+		EN: "Only the modules that declare a unit in service.status answer these commands.",
+	},
+	"state.service.refused": {
+		FR: "%s : systemd a refusé l'action : %s",
+		EN: "%s: systemd refused the action: %s",
+	},
+	"state.service.refused.fix": {
+		FR: "Lisez service.logs %s pour ce que l'unité a dit.",
+		EN: "Read service.logs %s for what the unit said.",
+	},
+	"state.service.journal.unreadable": {
+		FR: "%s : le journal de l'unité est illisible : %s",
+		EN: "%s: the unit's journal cannot be read: %s",
 	},
 	"state.secret.foreign": {
 		FR: "la clé %s n'appartient pas à %s",
 		EN: "the key %s does not belong to %s",
 	},
 	"state.secret.foreign.fix": {
-		FR: "Appelle service.status %s pour la liste de ses identifiants.",
+		FR: "Appelez service.status %s pour la liste de ses identifiants.",
 		EN: "Call service.status %s for the list of its credentials.",
 	},
 	"state.secret.missing": {
@@ -107,7 +131,7 @@ var stateCatalog = map[string]Message{
 		EN: "no value stored for %s",
 	},
 	"state.secret.missing.fix": {
-		FR: "Enregistre la valeur avec secrets.set, ou réinstalle %s.",
+		FR: "Enregistrez la valeur avec secrets.set, ou réinstallez %s.",
 		EN: "Store the value with secrets.set, or reinstall %s.",
 	},
 	"state.shot.unknown": {
@@ -115,7 +139,7 @@ var stateCatalog = map[string]Message{
 		EN: "unknown capture: %s",
 	},
 	"state.shot.unknown.fix": {
-		FR: "Appelle shots.list et reprends le path d'une de ses entrées, tel quel.",
+		FR: "Appelez shots.list et reprenez le path d'une de ses entrées, tel quel.",
 		EN: "Call shots.list and take the path of one of its entries, as it is.",
 	},
 	"state.shot.notImage": {
@@ -131,19 +155,23 @@ var stateCatalog = map[string]Message{
 		EN: "the capture is too heavy: %d bytes for a maximum of %d",
 	},
 	"state.shot.tooLarge.fix": {
-		FR: "Ouvre la galerie sur le serveur pour cette capture, ou reprends-en une plus légère.",
+		FR: "Ouvrez la galerie sur le serveur pour cette capture, ou reprenez-en une plus légère.",
 		EN: "Open the gallery on the server for this capture, or take a lighter one.",
 	},
 	"state.shot.unreadable": {
 		FR: "capture illisible : %s",
 		EN: "the capture cannot be read: %s",
 	},
+	"state.shot.removeFailed": {
+		FR: "la capture %s n'a pas pu être supprimée : %s",
+		EN: "the capture %s could not be removed: %s",
+	},
 	"state.reboot.refused": {
 		FR: "le redémarrage a été refusé",
 		EN: "the restart was refused",
 	},
 	"state.reboot.refused.fix": {
-		FR: "Connecte-toi en SSH et lance sudo systemctl reboot.",
+		FR: "Connectez-vous en SSH et lancez sudo systemctl reboot.",
 		EN: "Sign in over SSH and run sudo systemctl reboot.",
 	},
 	"state.path.unreadable": {
@@ -151,7 +179,7 @@ var stateCatalog = map[string]Message{
 		EN: "the path cannot be read",
 	},
 	"state.path.unreadable.fix": {
-		FR: "Donne un chemin relatif à la racine des projets.",
+		FR: "Donnez un chemin relatif à la racine des projets.",
 		EN: "Give a path relative to the projects root.",
 	},
 	"state.path.absolute": {
@@ -159,7 +187,7 @@ var stateCatalog = map[string]Message{
 		EN: "absolute path refused: %s",
 	},
 	"state.path.absolute.fix": {
-		FR: "Donne un chemin relatif à la racine des projets, par exemple flymate/api.",
+		FR: "Donnez un chemin relatif à la racine des projets, par exemple flymate/api.",
 		EN: "Give a path relative to the projects root, for example flymate/api.",
 	},
 	"state.path.outside": {
@@ -167,7 +195,7 @@ var stateCatalog = map[string]Message{
 		EN: "the path leaves the projects root: %s",
 	},
 	"state.path.outside.fix": {
-		FR: "Reste sous la racine des projets, sans « .. ».",
+		FR: "Restez sous la racine des projets, sans « .. ».",
 		EN: `Stay under the projects root, without "..".`,
 	},
 	"state.detect.bothSources": {
@@ -179,7 +207,7 @@ var stateCatalog = map[string]Message{
 		EN: "neither repo nor dir",
 	},
 	"state.detect.source.fix": {
-		FR: "Donne le dépôt à cloner, ou le dossier déjà présent sur le serveur.",
+		FR: "Donnez le dépôt à cloner, ou le dossier déjà présent sur le serveur.",
 		EN: "Give the repository to clone, or the folder already on the server.",
 	},
 	"state.dir.outside": {
@@ -187,7 +215,7 @@ var stateCatalog = map[string]Message{
 		EN: "the folder is outside the projects root: %s",
 	},
 	"state.dir.outside.fix": {
-		FR: "Donne un chemin relatif à la racine des projets, sans « .. ».",
+		FR: "Donnez un chemin relatif à la racine des projets, sans « .. ».",
 		EN: `Give a path relative to the projects root, without "..".`,
 	},
 	"state.dir.absent": {
@@ -195,7 +223,7 @@ var stateCatalog = map[string]Message{
 		EN: "folder missing: %s",
 	},
 	"state.dir.absent.fix": {
-		FR: "Vérifie le chemin avec completions, ou donne le dépôt à cloner.",
+		FR: "Vérifiez le chemin avec completions, ou donnez le dépôt à cloner.",
 		EN: "Check the path with completions, or give the repository to clone.",
 	},
 	"state.repo.invalid": {
@@ -203,7 +231,7 @@ var stateCatalog = map[string]Message{
 		EN: "invalid repository: %s",
 	},
 	"state.repo.invalid.fix": {
-		FR: "Donne une adresse de dépôt, pas une option de git.",
+		FR: "Donnez une adresse de dépôt, pas une option de git.",
 		EN: "Give a repository address, not a git option.",
 	},
 	"state.branch.invalid": {
@@ -219,7 +247,7 @@ var stateCatalog = map[string]Message{
 		EN: "%s has uncommitted changes",
 	},
 	"state.tree.dirty.fix": {
-		FR: "Valide-les, mets-les de côté avec git stash, ou annule-les avant de changer de branche.",
+		FR: "Validez-les, mettez-les de côté avec git stash, ou annulez-les avant de changer de branche.",
 		EN: "Commit them, set them aside with git stash, or drop them before switching branch.",
 	},
 	"state.remote.unreachable": {
@@ -235,15 +263,15 @@ var stateCatalog = map[string]Message{
 		EN: "this file name cannot be passed to git",
 	},
 	"state.diff.truncated": {
-		FR: "patch tronqué — ouvre-le dans un terminal pour le lire en entier",
+		FR: "patch tronqué — ouvrez-le dans un terminal pour le lire en entier",
 		EN: "the patch is truncated — open it in a terminal to read it in full",
 	},
 	"state.pid.refused.fix": {
-		FR: "Donne le pid d'une ligne de processes.list.",
+		FR: "Donnez le pid d'une ligne de processes.list.",
 		EN: "Give the pid of a row of processes.list.",
 	},
 	"state.pid.gone.fix": {
-		FR: "Rafraîchis la liste : ce processus n'existe plus.",
+		FR: "Rafraîchissez la liste : ce processus n'existe plus.",
 		EN: "Refresh the list: this process no longer exists.",
 	},
 	"state.pid.foreign": {
@@ -259,7 +287,7 @@ var stateCatalog = map[string]Message{
 		EN: "%s carries the session",
 	},
 	"state.pid.carrier.fix": {
-		FR: "Arrête le projet avec project.down, ou ferme le terminal.",
+		FR: "Arrêtez le projet avec project.down, ou fermez le terminal.",
 		EN: "Stop the project with project.down, or close the terminal.",
 	},
 	"state.pid.ancestor": {
@@ -271,11 +299,11 @@ var stateCatalog = map[string]Message{
 		EN: "Stopping it would cut the channel the order arrived through.",
 	},
 	"state.doctor.tool.fix": {
-		FR: "Installe le module qui fournit %s, la liste vient de catalog.",
+		FR: "Installez le module qui fournit %s, la liste vient de catalog.",
 		EN: "Install the module that provides %s, the list comes from catalog.",
 	},
 	"state.doctor.service.fix": {
-		FR: "Lis son état avec service.status %s.",
+		FR: "Lisez son état avec service.status %s.",
 		EN: "Read its state with service.status %s.",
 	},
 	"state.doctor.session": {

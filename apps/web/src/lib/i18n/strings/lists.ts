@@ -30,7 +30,7 @@ export const lists = {
     "deviceList.failedFix": "Reload the page; if it persists, sign in again.",
     "deviceList.emptyTitle": "No device registered",
     "deviceList.emptyDescription":
-      "The Pupitre app registers your device at its first connection: its key stays on your machine, only the public half arrives here.",
+      "The Pupitre app registers your device at its first connection.",
     "deviceList.revokeFailed": "The revocation failed.",
     "deviceList.revokeFailedFix": "Try again in a moment.",
     "deviceList.revoked":
@@ -82,7 +82,7 @@ export const lists = {
       "Rechargez la page ; si cela persiste, reconnectez-vous.",
     "deviceList.emptyTitle": "Aucun appareil enregistré",
     "deviceList.emptyDescription":
-      "L'app Pupitre enregistre votre appareil à sa première connexion : sa clé reste sur votre machine, seule la partie publique arrive ici.",
+      "L'app Pupitre enregistre votre appareil à sa première connexion.",
     "deviceList.revokeFailed": "La révocation a échoué.",
     "deviceList.revokeFailedFix": "Réessayez dans un instant.",
     "deviceList.revoked":

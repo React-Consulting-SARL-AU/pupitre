@@ -62,10 +62,6 @@ export function ServiceCredentials({
           ))}
         </ul>
       )}
-
-      <p className="text-[12px] text-ink-3 leading-relaxed">
-        {t("services.credentials.note")}
-      </p>
     </section>
   );
 }

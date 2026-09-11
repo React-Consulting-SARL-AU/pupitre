@@ -11,12 +11,11 @@ export const PROTOCOL_ERROR_CODES = [
   "entitlement_required",
   "project_not_found",
   "module_not_found",
-  "module_failed",
   "no_report",
   "service_not_found",
-  "secrets_required",
   "bad_signature",
   "downgrade_refused",
+  "migration_required",
   "busy",
   "internal",
 ] as const

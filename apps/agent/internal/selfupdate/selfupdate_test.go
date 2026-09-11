@@ -458,6 +458,31 @@ func TestUpgradeRefusesAVersionOlderThanTheRunningOne(t *testing.T) {
 	assertUntouched(t, b, before)
 }
 
+// "dev" sorts above every number, and an agent built that way must still take the version the platform publishes.
+func TestADevBuildIsNoFloor(t *testing.T) {
+	b := newBench(t)
+	b.options.Version = "dev"
+
+	if _, err := b.upgrade(t, olderAgent); err != nil {
+		t.Fatalf("Upgrade: %v", err)
+	}
+
+	if string(b.fake.Files[binaryPath]) != string(newBinary) {
+		t.Fatalf("binary in place: %q", b.fake.Files[binaryPath])
+	}
+}
+
+func TestADevBuildStillHoldsTheFloorThePlatformRemembers(t *testing.T) {
+	b := newBench(t)
+	b.options.Version = "dev"
+	b.minimum = currentAgent
+
+	_, err := b.upgrade(t, olderAgent)
+	if code := codeOf(t, err); code != contract.ErrorDowngradeRefused {
+		t.Fatalf("code = %s, err = %v", code, err)
+	}
+}
+
 func TestUpgradeRefusesAVersionBelowTheFloorThePlatformRemembers(t *testing.T) {
 	b := newBench(t)
 	b.minimum = "1.2.0"

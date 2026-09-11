@@ -10,7 +10,9 @@ import {
 } from "../../releases/app-releases"
 import { apiError } from "../errors"
 import { dataResponse, errorResponse } from "../openapi-models"
+import { rateLimit } from "../plugins/rate-limit"
 import { serializeData } from "../prisma"
+import { PUBLIC_RELEASES_RATE_LIMIT } from "../rate-limit"
 import {
   appReleaseBuildParams,
   appReleaseListQuery,
@@ -26,7 +28,12 @@ import {
  * page lists them and the app updates from there without asking the
  * platform for anything. What stays private is the agent binary — a
  * different family of routes, with a token.
+ *
+ * Being open to anyone, they answer any origin, stay cacheable for five
+ * minutes, and carry a budget of their own on top of the global one.
  */
+
+const PUBLIC_CACHE = "public, max-age=300"
 
 const appReleaseEnvelope = dataResponse(appReleaseSchema)
 
@@ -39,6 +46,11 @@ export const appReleasesRoutes = new Elysia({
   name: "app-releases-routes",
   tags: ["Releases"],
 })
+  .onBeforeHandle({ as: "scoped" }, ({ set }) => {
+    set.headers["access-control-allow-origin"] = "*"
+    set.headers["cache-control"] = PUBLIC_CACHE
+  })
+  .use(rateLimit("public-releases", PUBLIC_RELEASES_RATE_LIMIT))
   .get(
     "/releases/app",
     async ({ query }) => ({
@@ -49,7 +61,11 @@ export const appReleasesRoutes = new Elysia({
     {
       query: appReleaseListQuery,
       detail: { summary: "Les versions publiées de l'app" },
-      response: { 200: appReleaseListEnvelope, 422: errorResponse },
+      response: {
+        200: appReleaseListEnvelope,
+        422: errorResponse,
+        429: errorResponse,
+      },
     }
   )
   .get(
@@ -78,6 +94,7 @@ export const appReleasesRoutes = new Elysia({
         200: appReleaseEnvelope,
         404: errorResponse,
         422: errorResponse,
+        429: errorResponse,
       },
     }
   )
@@ -107,6 +124,7 @@ export const appReleasesRoutes = new Elysia({
         200: appReleaseEnvelope,
         404: errorResponse,
         422: errorResponse,
+        429: errorResponse,
       },
     }
   )
@@ -142,7 +160,6 @@ export const appReleasesRoutes = new Elysia({
 
       set.status = 303
       set.headers.location = url
-      set.headers["cache-control"] = "public, max-age=300"
 
       return url
     },
@@ -153,6 +170,7 @@ export const appReleasesRoutes = new Elysia({
         303: t.String(),
         404: errorResponse,
         422: errorResponse,
+        429: errorResponse,
       },
     }
   )

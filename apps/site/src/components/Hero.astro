@@ -8,6 +8,9 @@ import StackWall from "./StackWall.astro"
 
 const locale = localeFromPath(Astro.url.pathname)
 const { hero } = homeContent(locale)
+const cooledAt = hero.headline.lastIndexOf(hero.cooled)
+const headlineBefore = hero.headline.slice(0, cooledAt)
+const headlineAfter = hero.headline.slice(cooledAt + hero.cooled.length)
 ---
 
 <section class="pt-16 pb-20 text-center md:pt-24 md:pb-28">
@@ -16,7 +19,9 @@ const { hero } = homeContent(locale)
 
     <div class="shell enter-group relative">
       <p class="pill">{hero.eyebrow}</p>
-      <h1 class="display-1 mx-auto mt-8 max-w-4xl">{hero.headline}</h1>
+      <h1 class="display-1 mx-auto mt-8 max-w-4xl">
+        {headlineBefore}<span class="frost">{hero.cooled}</span>{headlineAfter}
+      </h1>
       <p class="lead mx-auto mt-8 max-w-2xl text-ink-2">{hero.lead}</p>
 
       <CtaPair

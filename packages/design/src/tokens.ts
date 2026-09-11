@@ -23,6 +23,8 @@ export interface ThemeColors {
   ok: string
   warn: string
   danger: string
+  frost: string
+  "frost-soft": string
 }
 
 export const LIGHT: ThemeColors = {
@@ -41,6 +43,8 @@ export const LIGHT: ThemeColors = {
   ok: "#1f7a45",
   warn: "#8a5f00",
   danger: "#b3362a",
+  frost: "#2f6cae",
+  "frost-soft": "#bfdcf3",
 }
 
 export const DARK: ThemeColors = {
@@ -59,6 +63,8 @@ export const DARK: ThemeColors = {
   ok: "#4fbe85",
   warn: "#d9a320",
   danger: "#e8705a",
+  frost: "#a6d4f2",
+  "frost-soft": "#5a97cf",
 }
 
 export interface Typography {

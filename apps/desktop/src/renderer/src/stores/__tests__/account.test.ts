@@ -35,6 +35,7 @@ const SIGNED_IN: AccountState = {
     organization: { id: "org-1", name: "Ada", slug: "ada" },
     organizations: [{ id: "org-1", name: "Ada", role: "owner", slug: "ada" }],
     role: "owner",
+    subscription: null,
   },
   usage: {
     entitlement: "valid",
@@ -76,7 +77,65 @@ const STALE: AccountState = {
   },
 };
 
+describe("un pont qui ne répond pas", () => {
+  it("garde l'échec et ce qui a été levé, puis relit quand on le lui demande", async () => {
+    stubPupitre({
+      account: () => Promise.reject(new Error("keychain locked")),
+    });
+
+    await useAccount.getState().read();
+
+    expect(useAccount.getState().view).toEqual({
+      error: {
+        code: "internal",
+        message: "keychain locked",
+        phrase: { id: "account.read.failed" },
+      },
+      status: "failed",
+    });
+    expect(accountOf(useAccount.getState().view)).toBeNull();
+
+    stubPupitre({ account: () => Promise.resolve(SIGNED_IN) });
+
+    await useAccount.getState().read();
+
+    expect(accountOf(useAccount.getState().view)).toEqual(SIGNED_IN);
+  });
+});
+
 describe("la lecture du compte", () => {
+  it("porte l'abonnement tel que le processus principal l'a rendu, sans le relire", async () => {
+    const trialing: AccountState = {
+      ...SIGNED_IN,
+      identity: SIGNED_IN.identity && {
+        ...SIGNED_IN.identity,
+        subscription: {
+          current_period_end: "2026-09-25T00:00:00.000Z",
+          servers: { limit: 2, used: 1 },
+          status: "trialing",
+          trial_ends_at: "2026-09-25T00:00:00.000Z",
+        },
+      },
+    };
+
+    stubPupitre({
+      account: () => Promise.resolve(trialing),
+      refreshAccount: () => Promise.resolve(SIGNED_IN),
+    });
+
+    await useAccount.getState().read();
+
+    expect(
+      accountOf(useAccount.getState().view)?.identity?.subscription
+    ).toEqual(trialing.identity?.subscription ?? null);
+
+    await useAccount.getState().refresh();
+
+    expect(
+      accountOf(useAccount.getState().view)?.identity?.subscription
+    ).toBeNull();
+  });
+
   it("garde l'état que le processus principal a rendu", async () => {
     stubPupitre({ account: () => Promise.resolve(SIGNED_IN) });
 
@@ -220,5 +279,70 @@ describe("la déconnexion", () => {
     await useAccount.getState().disconnect();
 
     expect(accountOf(useAccount.getState().view)).toEqual(SIGNED_OUT);
+  });
+});
+
+describe("les appareils du compte", () => {
+  it("liste ce que la plateforme tient, et relit après une révocation", async () => {
+    const revoked: string[] = [];
+    let held = [
+      {
+        fingerprint: "SHA256:mac",
+        id: "device-1",
+        name: "MacBook",
+        publicKey: "a",
+      },
+      {
+        fingerprint: "SHA256:old",
+        id: "device-2",
+        name: "Vieux",
+        publicKey: "b",
+      },
+    ];
+
+    stubPupitre({
+      accountDevices: () => Promise.resolve({ ok: true, result: held }),
+      revokeDevice: (id: string) => {
+        revoked.push(id);
+        held = held.filter((device) => device.id !== id);
+
+        return Promise.resolve({ ok: true, result: null });
+      },
+    });
+
+    await useAccount.getState().readDevices();
+
+    expect(useAccount.getState().devices).toMatchObject({
+      devices: [{ id: "device-1" }, { id: "device-2" }],
+      status: "read",
+    });
+
+    await useAccount.getState().revokeDevice("device-2");
+
+    expect(revoked).toEqual(["device-2"]);
+    expect(useAccount.getState().revoking).toBeNull();
+    expect(useAccount.getState().devices).toMatchObject({
+      devices: [{ id: "device-1" }],
+      status: "read",
+    });
+  });
+
+  it("garde le refus d'une révocation, la liste telle quelle", async () => {
+    stubPupitre({
+      accountDevices: () => Promise.resolve({ ok: true, result: [] }),
+      revokeDevice: () =>
+        Promise.resolve({
+          error: { code: "bad_request", message: "refusal.device.self" },
+          ok: false,
+        }),
+    });
+
+    await useAccount.getState().readDevices();
+    await useAccount.getState().revokeDevice("device-1");
+
+    expect(useAccount.getState().deviceProblem).toMatchObject({
+      message: "refusal.device.self",
+    });
+    expect(useAccount.getState().devices).toMatchObject({ status: "read" });
   });
 });

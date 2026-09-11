@@ -47,3 +47,8 @@ test-results/
 # tooling session state
 .impeccable/live/
 .shipstudio/
+
+# editor and merge leftovers
+*.keep
+*.orig
+*.bak

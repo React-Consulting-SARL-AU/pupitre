@@ -166,6 +166,33 @@ export const useCatalog = create<CatalogStore>((set, get) => {
     }
   }
 
+  /**
+   * What a development build types for the developer: a field the manifest
+   * declares, on a module just chosen, and only where nothing was answered.
+   */
+  let prefilled: Record<string, Record<string, string>> = {};
+
+  async function readDevDefaults(): Promise<void> {
+    const defaults = await window.pupitre.devDefaults().catch(() => null);
+
+    prefilled = defaults?.fields ?? {};
+  }
+
+  function prefill(module: Manifest, values: Record<string, unknown>) {
+    const given = prefilled[module.id] ?? {};
+    const filled = { ...values };
+
+    for (const field of module.fields) {
+      const value = given[field.key];
+
+      if (value && !filled[field.key]) {
+        filled[field.key] = value;
+      }
+    }
+
+    return filled;
+  }
+
   function reselect(next: readonly string[]): void {
     const previous = get().selected;
     const added = next.filter((id) => !previous.includes(id));
@@ -173,7 +200,10 @@ export const useCatalog = create<CatalogStore>((set, get) => {
 
     for (const module of catalogOf(get().catalog).modules) {
       if (added.includes(module.id)) {
-        values[module.id] = { ...defaultsOf(module), ...values[module.id] };
+        values[module.id] = prefill(module, {
+          ...defaultsOf(module),
+          ...values[module.id],
+        });
       } else if (!next.includes(module.id)) {
         delete values[module.id];
       }
@@ -198,7 +228,14 @@ export const useCatalog = create<CatalogStore>((set, get) => {
     async load(serverId, installed = []) {
       set({ catalog: { serverId, status: "loading" }, installed });
 
-      const answer = await window.pupitre.catalog(serverId);
+      // The accounts are weighed with the fields, so they are read with the
+      // catalogue rather than when a card happens to be on screen: a module
+      // used to be called unconnected until its own panel had been visited.
+      const [answer] = await Promise.all([
+        window.pupitre.catalog(serverId),
+        useConnections.getState().read(),
+        readDevDefaults(),
+      ]);
 
       if (!answer.ok) {
         set({ catalog: { error: answer.error, serverId, status: "failed" } });
@@ -260,12 +297,14 @@ export const useCatalog = create<CatalogStore>((set, get) => {
     },
 
     toggle(moduleId) {
-      if (get().unreachable().has(moduleId)) {
-        return;
-      }
-
       reselect(
-        toggleIn(get().modules(), get().selected, moduleId, get().installed)
+        toggleIn(
+          get().modules(),
+          get().selected,
+          moduleId,
+          get().installed,
+          probeOf(serverOf(get().catalog))
+        )
       );
     },
 
@@ -285,7 +324,14 @@ export const useCatalog = create<CatalogStore>((set, get) => {
           ? { ...preset, modules: [...preset.modules, chosen] }
           : preset;
 
-      reselect(fromPreset(get().modules(), asked, get().installed));
+      reselect(
+        fromPreset(
+          get().modules(),
+          asked,
+          get().installed,
+          probeOf(serverOf(get().catalog))
+        )
+      );
     },
 
     setValue(moduleId, key, value) {

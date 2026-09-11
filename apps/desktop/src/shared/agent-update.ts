@@ -1,4 +1,9 @@
+import type {
+  AgentMigrateResult,
+  ConfigRevision,
+} from "@pupitre/shared/agent-protocol/migrate";
 import type { Entitlement } from "@pupitre/shared/agent-protocol/session";
+import type { AgentUpgradeResult } from "@pupitre/shared/agent-protocol/system";
 import {
   agentFloorFor,
   type CompatibilityVerdict,
@@ -34,9 +39,32 @@ export interface AgentOffer extends CarriedAgent {
 
 export type VersionOrder = "ahead" | "same" | "behind" | "unknown";
 
+/**
+ * Updating a server is two gestures, in this order and never the other.
+ *
+ * `agent.upgrade` replaces the binary. The configuration it reads stays where
+ * it is, so a release that changed the shape of a file under /etc/pupitre would
+ * leave the new binary reading the old shape. `agent.migrate` closes that gap,
+ * and the agent has already run it by the time the app asks: what the app adds
+ * is the moment — right after the binary changed — and somewhere to show the
+ * answer.
+ *
+ * `migration` is null for an agent from before the ledger: it has no command to
+ * answer, and no shape to carry over.
+ */
+export interface AgentUpgradeOutcome {
+  upgrade: AgentUpgradeResult;
+  migration: AgentMigrateResult | null;
+}
+
 export interface AgentUpdateState {
   /** The version the server answered, or nothing on a machine without agent. */
   installed: string | null;
+  /**
+   * Where the configuration on the server stands against the agent reading it,
+   * as `hello` said it. Null for an agent from before the ledger.
+   */
+  config: ConfigRevision | null;
   offer: AgentOffer | null;
   order: VersionOrder;
   /** Whether the platform still answers this server, and can sign for it. */
@@ -53,6 +81,16 @@ export interface AgentUpdateState {
  * app. `restricted` is a server that lost it seven days ago, `dev` one that
  * never had it, and an agent too old to speak the protocol answers neither.
  */
+/**
+ * Whether the server owes a migration before anything can be driven on it.
+ *
+ * The agent refuses on its own — this is only what lets the app say why before
+ * the reader presses a button that would be refused.
+ */
+export function owesMigration(config: ConfigRevision | null): boolean {
+  return config !== null && config.state !== "current";
+}
+
 export function platformAnswers(entitlement: Entitlement | null): boolean {
   return entitlement === "valid" || entitlement === "grace";
 }

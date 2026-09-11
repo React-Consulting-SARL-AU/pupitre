@@ -1,6 +1,8 @@
 package state
 
 import (
+	"slices"
+
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
@@ -43,7 +45,10 @@ func (r *Reader) ServiceStatus(id string) (contract.ServiceStatus, error) {
 		return contract.ServiceStatus{}, modules.NotInstalled(id, module.Manifest().Name)
 	}
 
-	return status.Service(module.Manifest()), nil
+	service := status.Service(module.Manifest())
+	service.Configured = !slices.Contains(r.deferred(), id)
+
+	return service, nil
 }
 
 func (r *Reader) module(id string) (modules.Module, bool) {
@@ -63,11 +68,17 @@ func (r *Reader) moduleContext(module modules.Module) *modules.Context {
 }
 
 // Credentials name the keys of /etc/pupitre/env, never their values, and even those belong to service.status alone.
+//
+// Configured is not a module's own verdict: a module can only say what sits on
+// the disk, and drift from an upgrade would read as questions nobody answered.
+// It says whether the requests so far left the module for later.
 func (r *Reader) services(withCredentials bool) []contract.ServiceStatus {
 	services := []contract.ServiceStatus{}
 	if r.options.Registry == nil {
 		return services
 	}
+
+	deferred := r.deferred()
 
 	for _, module := range r.options.Registry.All() {
 		status, err := module.Status(r.moduleContext(module))
@@ -76,6 +87,7 @@ func (r *Reader) services(withCredentials bool) []contract.ServiceStatus {
 		}
 
 		service := status.Service(module.Manifest())
+		service.Configured = !slices.Contains(deferred, service.ID)
 		if !withCredentials {
 			service.Credentials = nil
 		}
@@ -98,15 +110,17 @@ func (r *Reader) list(collected tmux.Collection, table processTable) []contract.
 	ctx := r.ctx()
 	file := r.registry()
 	memory := table.ram(collected.Panes())
-	domain := r.domain()
 	branches := map[string]string{}
 
 	projects := make([]contract.Project, 0, len(file.Projects))
 	for _, declared := range file.Projects {
 		project := declared.Contract(r.options.Paths.Resolved().Projects)
 		project.State = tmux.State(ctx, r.options.Tmux, project, collected)
-		project.URL = url(declared, domain)
-		project.Branch = r.branch(branches, declared)
+		project.URL = url(declared)
+		// The registry's branch stands until there is a working tree to read: a project cloned on release/2.0 says so before its first clone.
+		if head := r.branch(branches, declared); head != "" {
+			project.Branch = head
+		}
 		project.PID = collected.PID(declared.Name)
 		project.RAMMB = memory[declared.Name]
 		project.UptimeS = collected.Seconds(declared.Name)

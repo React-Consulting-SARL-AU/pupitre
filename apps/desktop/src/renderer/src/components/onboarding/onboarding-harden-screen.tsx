@@ -1,9 +1,13 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { ArrowRight } from "lucide-react";
+import { hardenAction } from "../../lib/harden-action";
 import { useHarden } from "../../stores/harden";
 import { InstallStepRow } from "../install/install-step-row";
-import { PageHeader } from "../ui/page-header";
-import { StepFailure } from "../ui/step-failure";
+import { ActionBar } from "../ui/action-bar";
+import { Button } from "../ui/button";
+import { Screen } from "../ui/screen";
 import { WaitingNotice } from "../ui/waiting-notice";
+import { OnboardingHardenFailed } from "./onboarding-harden-failed";
 import { OnboardingHardenOutcome } from "./onboarding-harden-outcome";
 
 /**
@@ -28,18 +32,32 @@ export function OnboardingHardenScreen({
   const steps = useHarden((state) => state.steps);
   const start = useHarden((state) => state.start);
 
-  return (
-    <section className="flex flex-col gap-section">
-      <PageHeader
-        description={t("onboarding.harden.description")}
-        eyebrow={t("onboarding.harden.eyebrow")}
-        title={serverName ?? t("onboarding.thisServer")}
-      />
+  const action = hardenAction(harden);
 
+  return (
+    <Screen
+      column
+      description={t("onboarding.harden.description")}
+      eyebrow={t("onboarding.harden.eyebrow")}
+      footer={
+        <ActionBar name="harden" note={action.note ? t(action.note) : null}>
+          <Button
+            disabled={!action.enabled}
+            icon={ArrowRight}
+            onClick={onContinue}
+            variant="inverse"
+          >
+            {t(action.label)}
+          </Button>
+        </ActionBar>
+      }
+      plain
+      step="harden"
+      title={serverName ?? t("onboarding.thisServer")}
+    >
       {harden.status === "queued" ? (
         <WaitingNotice
           detail={t("onboarding.harden.queuedDetail")}
-          note={t("onboarding.harden.queuedNote")}
           title={t("onboarding.harden.queuedTitle")}
         />
       ) : null}
@@ -47,7 +65,6 @@ export function OnboardingHardenScreen({
       {harden.status === "running" ? (
         <WaitingNotice
           detail={t("onboarding.harden.runningDetail")}
-          note={t("onboarding.harden.runningNote")}
           title={t("onboarding.harden.runningTitle")}
         />
       ) : null}
@@ -70,16 +87,18 @@ export function OnboardingHardenScreen({
       ) : null}
 
       {harden.status === "failed" ? (
-        <StepFailure error={harden.error} onRetry={() => start(serverId)} />
+        <OnboardingHardenFailed
+          error={harden.error}
+          onRetry={() => start(serverId)}
+        />
       ) : null}
 
       {harden.status === "done" ? (
         <OnboardingHardenOutcome
-          onContinue={onContinue}
           onRetry={() => start(serverId)}
           outcome={harden.outcome}
         />
       ) : null}
-    </section>
+    </Screen>
   );
 }

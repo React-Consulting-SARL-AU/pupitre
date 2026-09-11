@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { spawn as spawnChild } from "node:child_process";
+import { type ChildProcess, spawn as spawnChild } from "node:child_process";
 import { EventEmitter } from "node:events";
 import type { Event } from "@pupitre/shared/agent-protocol/envelope";
 import type { InstallResult } from "@pupitre/shared/agent-protocol/install";
@@ -9,11 +9,16 @@ import {
   type AgentClientOptions,
   createAgentClient,
   defaultTimeout,
+  serveAs,
   sshSpawn,
 } from "../agent-client";
+import { enableTrace, type TraceEntry, tracesTo } from "../trace";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 
 const SERVER = "staging";
+
+/** The transcripts stamp their reports on this day: the client's clock has to agree. */
+const TODAY = Date.parse("2026-09-04T12:00:00Z");
 
 function client(
   fixtures: string | string[],
@@ -24,10 +29,45 @@ function client(
     spawn: fake.spawn,
     appVersion: "0.1.0",
     backoff: { firstMs: 5, maxMs: 20, attempts: 3 },
+    now: () => TODAY,
+    pollMs: 5,
     ...options,
   });
 
   return { agent, fake };
+}
+
+const INSTALL_PARAMS = {
+  modules: ["db.postgres"],
+  config: { "db.postgres": { version: "17" } },
+  secrets_stdin: true,
+};
+
+const INSTALL_SECRETS = {
+  secrets: { "db.postgres": { app_password: "s3cret-de-test" } },
+};
+
+function install(
+  agent: AgentClient,
+  steps: string[] = [],
+  timeoutMs?: number
+): Promise<InstallResult | AgentCallError> {
+  return agent
+    .stream(
+      SERVER,
+      "install",
+      INSTALL_PARAMS,
+      (event: Event) => {
+        steps.push(
+          `${String(event.module)} ${String(event.step)} ${String(event.status)}`
+        );
+      },
+      { ...INSTALL_SECRETS, ...(timeoutMs ? { timeoutMs } : {}) }
+    )
+    .then(
+      (result) => result as InstallResult,
+      (error: AgentCallError) => error
+    );
 }
 
 async function until(
@@ -42,6 +82,10 @@ async function until(
   }
 
   return condition();
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function ids(fake: FakeAgent): number[] {
@@ -161,6 +205,142 @@ describe("le canal", () => {
     ]);
 
     agent.closeAll();
+  });
+
+  it("suit le rapport tant que la machine travaille encore", async () => {
+    const { agent, fake } = client([
+      "install-cut.jsonl",
+      "install-resume-running.jsonl",
+    ]);
+
+    const steps: string[] = [];
+    const result = await install(agent, steps);
+
+    expect(steps).toEqual([
+      "db.postgres apt start",
+      "db.postgres apt ok",
+      "db.postgres cluster start",
+      "db.postgres cluster ok",
+    ]);
+    expect(result).toEqual({
+      failed: [],
+      warned: ["db.postgres"],
+      report_path: "/var/lib/pupitre/report.json",
+    });
+    expect(fake.trace()).toEqual([
+      "id=1 cmd=hello",
+      "id=2 cmd=install",
+      "id=3 cmd=hello",
+      "id=4 cmd=report",
+      "id=5 cmd=report",
+    ]);
+
+    agent.closeAll();
+  });
+
+  it("rouvre le canal autant de fois qu'il retombe pendant la relecture", async () => {
+    const { agent, fake } = client([
+      "install-cut.jsonl",
+      "install-resume-cut-again.jsonl",
+      "install-resume.jsonl",
+    ]);
+
+    const steps: string[] = [];
+    const result = await install(agent, steps);
+
+    expect(steps).toEqual([
+      "db.postgres apt start",
+      "db.postgres apt ok",
+      "db.postgres cluster start",
+      "db.postgres cluster ok",
+    ]);
+    expect(result).toMatchObject({ warned: ["db.postgres"] });
+    expect(fake.started()).toBe(3);
+    expect(fake.trace()).toEqual([
+      "id=1 cmd=hello",
+      "id=2 cmd=install",
+      "id=3 cmd=hello",
+      "id=4 cmd=report",
+      "id=5 cmd=hello",
+      "id=6 cmd=report",
+    ]);
+
+    agent.closeAll();
+  });
+
+  it("insiste au-delà de la fenêtre de connexion tant que la commande a du temps", async () => {
+    const { agent, fake } = client(
+      [
+        "install-cut.jsonl",
+        "dies-at-hello.jsonl",
+        "dies-at-hello.jsonl",
+        "dies-at-hello.jsonl",
+        "dies-at-hello.jsonl",
+        "install-resume.jsonl",
+      ],
+      { backoff: { firstMs: 1, maxMs: 5, attempts: 2 }, connectMs: 200 }
+    );
+
+    const result = await install(agent, [], 10_000);
+
+    expect(result).toMatchObject({ warned: ["db.postgres"] });
+    expect(fake.started()).toBe(6);
+
+    agent.closeAll();
+  });
+
+  it("renonce à l'échéance de la commande, avec ce que ssh a dit en dernier", async () => {
+    const { agent } = client(["install-cut.jsonl", "dies-at-hello.jsonl"], {
+      backoff: { firstMs: 1, maxMs: 5, attempts: 2 },
+      connectMs: 500,
+    });
+
+    const started = Date.now();
+    const result = await install(agent, [], 1500);
+
+    expect(result).toBeInstanceOf(AgentCallError);
+    expect((result as AgentCallError).code).toBe("disconnected");
+    expect(Date.now() - started).toBeLessThan(5000);
+
+    agent.closeAll();
+  });
+
+  it("ne prend pas le rapport d'une installation d'avant pour le sien", async () => {
+    const { agent, fake } = client([
+      "install-cut.jsonl",
+      "install-resume-stale.jsonl",
+    ]);
+
+    const result = await install(agent);
+
+    expect(result).toBeInstanceOf(AgentCallError);
+    expect((result as AgentCallError).code).toBe("disconnected");
+    expect(fake.trace()).toEqual([
+      "id=1 cmd=hello",
+      "id=2 cmd=install",
+      "id=3 cmd=hello",
+      "id=4 cmd=report",
+    ]);
+
+    agent.closeAll();
+  });
+
+  it("ne rouvre pas un canal que l'app a fermé elle-même", async () => {
+    const { agent, fake } = client("install-hangs.jsonl");
+
+    const pending = install(agent);
+    await until(() => fake.trace().includes("id=2 cmd=install"));
+    agent.close(SERVER);
+
+    const result = await pending;
+
+    expect(result).toBeInstanceOf(AgentCallError);
+    expect((result as AgentCallError).phrase?.id).toBe(
+      "refusal.channel.closed"
+    );
+    expect(fake.started()).toBe(1);
+
+    fake.killAll();
   });
 
   it("remonte protocol_mismatch et ne rouvre pas le canal", async () => {
@@ -348,6 +528,7 @@ describe("ce que la fenêtre apprend du lien", () => {
       spawn: fake.spawn,
       appVersion: "0.1.0",
       backoff: { firstMs: 5, maxMs: 20, attempts: 3 },
+      now: () => TODAY,
       onChannel: seen.onChannel,
     });
 
@@ -450,6 +631,23 @@ describe("un canal qui refuse de s'ouvrir", () => {
   });
 });
 
+describe("la commande serve selon le compte", () => {
+  /**
+   * `pupitred serve` is a root process. Once hardening has closed root, the app
+   * logs in as dev, where a bare serve reads neither the token nor the
+   * entitlement cache — both 0600 root — and answers entitlement_required for
+   * every command. dev holds passwordless sudo, so the channel asks for it.
+   */
+  it("passe par sudo pour un compte non-root", () => {
+    expect(serveAs("dev")).toBe("sudo -n pupitred serve");
+    expect(serveAs("deploy")).toBe("sudo -n pupitred serve");
+  });
+
+  it("n'ajoute pas sudo pour root, qui n'en a pas besoin", () => {
+    expect(serveAs("root")).toBe("pupitred serve");
+  });
+});
+
 describe("le serveur d'un canal", () => {
   /**
    * A channel belongs to its machine and no other.
@@ -508,7 +706,7 @@ describe("un ssh qui meurt vite", () => {
       exitCode: null as number | null,
       kill: () => undefined,
       stderr,
-      stdin: { write: () => true },
+      stdin: Object.assign(new EventEmitter(), { write: () => true }),
       stdout,
     });
 
@@ -547,6 +745,348 @@ describe("un ssh qui meurt vite", () => {
     expect(answer.ok ? "" : answer.error.phrase?.values?.detail).toContain(
       "Operation timed out"
     );
+
+    agent.closeAll();
+  });
+});
+
+/**
+ * A process standing in for `ssh`: the test decides what it writes and when.
+ *
+ * `written` is what the app sent it, line by line; `say` answers on its output,
+ * `die` ends it. Nothing here is a transcript, which is the point — these are
+ * the shapes no transcript can replay: silence, floods, a broken pipe.
+ */
+function scripted(): {
+  child: ChildProcess;
+  written: string[];
+  say: (line: string) => void;
+  write: (chunk: string) => void;
+  die: () => void;
+  stdin: EventEmitter;
+  killed: () => boolean;
+} {
+  const written: string[] = [];
+  let killed = false;
+
+  const stream = () => {
+    const emitter = new EventEmitter() as EventEmitter & {
+      setEncoding: () => void;
+    };
+    emitter.setEncoding = () => undefined;
+
+    return emitter;
+  };
+
+  const stdout = stream();
+  const stderr = stream();
+  const stdin = Object.assign(new EventEmitter(), {
+    write: (chunk: string) => {
+      written.push(chunk.trim());
+
+      return true;
+    },
+  });
+
+  const child = Object.assign(new EventEmitter(), {
+    exitCode: null as number | null,
+    kill: () => {
+      killed = true;
+      child.exitCode = 137;
+      child.emit("close", 137);
+
+      return true;
+    },
+    stderr,
+    stdin,
+    stdout,
+  });
+
+  return {
+    child: child as unknown as ChildProcess,
+    die: () => {
+      child.exitCode = 255;
+      child.emit("exit", 255);
+      child.emit("close", 255);
+    },
+    killed: () => killed,
+    say: (line) => stdout.emit("data", `${line}\n`),
+    stdin,
+    write: (chunk) => stdout.emit("data", chunk),
+    written,
+  };
+}
+
+const GREETING = JSON.stringify({
+  id: 1,
+  ok: true,
+  result: {
+    agent_version: "0.0.0-test",
+    protocol: 1,
+    entitlement: "dev",
+    capabilities: ["hello", "ping", "snapshot", "project.logs"],
+  },
+});
+
+function scriptedClient(options: Partial<AgentClientOptions> = {}): {
+  agent: AgentClient;
+  ssh: ReturnType<typeof scripted>;
+} {
+  const ssh = scripted();
+  const agent = createAgentClient({
+    spawn: () => ssh.child,
+    backoff: { firstMs: 1, maxMs: 2, attempts: 1 },
+    connectMs: 200,
+    ...options,
+  });
+
+  return { agent, ssh };
+}
+
+async function untilWritten(
+  ssh: ReturnType<typeof scripted>,
+  count: number
+): Promise<void> {
+  expect(await until(() => ssh.written.length >= count)).toBe(true);
+}
+
+describe("le message d'une étape", () => {
+  it("traverse en direct, tel que l'agent l'a écrit", async () => {
+    const { agent } = client("install-fail-message.jsonl");
+    const failed: Event[] = [];
+
+    await agent.stream(
+      SERVER,
+      "install",
+      {
+        modules: ["db.mysql"],
+        config: { "db.mysql": {} },
+        secrets_stdin: false,
+      },
+      (event) => {
+        if (event.status === "fail") {
+          failed.push(event);
+        }
+      }
+    );
+
+    expect(failed).toHaveLength(1);
+    expect(failed[0]?.message).toBe("E: Unable to locate package mysql-server");
+
+    agent.closeAll();
+  });
+
+  it("survit au rejeu depuis le rapport, après une coupure", async () => {
+    const { agent } = client([
+      "install-fail-message-cut.jsonl",
+      "install-fail-message-resume.jsonl",
+    ]);
+    const seen: string[] = [];
+
+    const result = (await agent.stream(
+      SERVER,
+      "install",
+      {
+        modules: ["db.mysql"],
+        config: { "db.mysql": {} },
+        secrets_stdin: false,
+      },
+      (event) => {
+        seen.push(
+          `${String(event.step)} ${String(event.status)} ${String(event.message ?? "")}`.trim()
+        );
+      }
+    )) as InstallResult;
+
+    expect(result.failed).toEqual(["db.mysql"]);
+    expect(seen).toEqual([
+      "apt start",
+      "apt fail E: Unable to locate package mysql-server",
+    ]);
+
+    agent.closeAll();
+  });
+});
+
+describe("les capacités de l'agent", () => {
+  it("refusent une commande que le hello n'a pas déclarée, sans l'envoyer", async () => {
+    const { agent, fake } = client("hello-reduced.jsonl", {
+      appVersion: "0.1.0",
+    });
+
+    expect((await agent.call(SERVER, "ping")).ts).toBe("2026-09-04T12:00:00Z");
+
+    const answer = await agent.request(SERVER, "snapshot");
+
+    expect(answer).toMatchObject({
+      ok: false,
+      error: {
+        code: "unknown_command",
+        phrase: {
+          id: "refusal.capability.missing",
+          values: { agent: "0.0.0-test", cmd: "snapshot", floor: "0.1.0" },
+        },
+      },
+    });
+    expect(fake.trace()).toEqual(["id=1 cmd=hello", "id=2 cmd=ping"]);
+
+    agent.closeAll();
+  });
+});
+
+describe("la robustesse du canal", () => {
+  it("compte le délai du hello depuis le premier octet, pas depuis le spawn", async () => {
+    const { agent, ssh } = scriptedClient({
+      connectMs: 1000,
+      timeouts: { hello: 40 },
+    });
+
+    const answer = agent.request(SERVER, "ping");
+
+    await untilWritten(ssh, 1);
+    await delay(120);
+    ssh.say(GREETING);
+    await untilWritten(ssh, 2);
+    ssh.say(JSON.stringify({ id: 2, ok: true, result: { ts: "now" } }));
+
+    expect(await answer).toEqual({ ok: true, result: { ts: "now" } });
+
+    agent.closeAll();
+  });
+
+  it("borne quand même un ssh qui ne dit jamais rien", async () => {
+    const { agent } = scriptedClient({
+      connectMs: 60,
+      timeouts: { hello: 60_000 },
+    });
+
+    const started = Date.now();
+    const answer = await agent.request(SERVER, "ping");
+
+    expect(answer).toMatchObject({ ok: false, error: { code: "timeout" } });
+    expect(Date.now() - started).toBeLessThan(2000);
+
+    agent.closeAll();
+  });
+
+  it("rend un refus quand le tuyau casse, plutôt que de tuer le processus", async () => {
+    const { agent, ssh } = scriptedClient();
+
+    const answer = agent.request(SERVER, "ping");
+
+    await untilWritten(ssh, 1);
+    ssh.stdin.emit("error", new Error("write EPIPE"));
+
+    expect(await answer).toMatchObject({
+      ok: false,
+      error: {
+        code: "disconnected",
+        phrase: {
+          id: "refusal.agent.dropped.detail",
+          values: { detail: "write EPIPE" },
+        },
+      },
+    });
+
+    agent.closeAll();
+  });
+
+  it("coupe un canal qui déverse sans jamais finir sa ligne", async () => {
+    const { agent, ssh } = scriptedClient();
+
+    const answer = agent.request(SERVER, "ping");
+
+    await untilWritten(ssh, 1);
+    ssh.write("x".repeat(3 * 1024 * 1024));
+    ssh.write("x".repeat(2 * 1024 * 1024));
+
+    expect(await answer).toMatchObject({
+      ok: false,
+      error: {
+        code: "disconnected",
+        phrase: { id: "refusal.channel.flooded", values: { limit: 4 } },
+      },
+    });
+    expect(ssh.killed()).toBe(true);
+
+    agent.closeAll();
+  });
+
+  it("se laisse annuler par qui a lancé la commande, et coupe l'agent", async () => {
+    const { agent, ssh } = scriptedClient();
+    const control = new AbortController();
+
+    const answer = agent.request(
+      SERVER,
+      "project.logs",
+      { follow: true, lines: 10, name: "web" },
+      { signal: control.signal }
+    );
+
+    await untilWritten(ssh, 1);
+    ssh.say(GREETING);
+    await untilWritten(ssh, 2);
+    control.abort();
+
+    expect(await answer).toMatchObject({
+      ok: false,
+      error: {
+        code: "cancelled",
+        phrase: {
+          id: "refusal.command.cancelled",
+          values: { cmd: "project.logs" },
+        },
+      },
+    });
+    expect(ssh.killed()).toBe(true);
+
+    agent.closeAll();
+  });
+
+  it("ne part même pas quand le signal est déjà levé", async () => {
+    const { agent, ssh } = scriptedClient();
+    const control = new AbortController();
+
+    control.abort();
+
+    const answer = await agent.request(SERVER, "ping", undefined, {
+      signal: control.signal,
+    });
+
+    expect(answer).toMatchObject({ ok: false, error: { code: "cancelled" } });
+    expect(ssh.written).toEqual([]);
+
+    agent.closeAll();
+  });
+});
+
+describe("la forme des réponses, en développement", () => {
+  it("trace un résultat que le contrat ne décrit pas, sans faire échouer l'appel", async () => {
+    const entries: TraceEntry[] = [];
+    const { agent, ssh } = scriptedClient({ validateResults: true });
+
+    enableTrace(true);
+    tracesTo((entry) => entries.push(entry));
+
+    try {
+      const answer = agent.request(SERVER, "ping");
+
+      await untilWritten(ssh, 1);
+      ssh.say(GREETING);
+      await untilWritten(ssh, 2);
+      ssh.say(JSON.stringify({ id: 2, ok: true, result: { when: "now" } }));
+
+      expect(await answer).toEqual({
+        ok: true,
+        result: { when: "now" },
+      } as never);
+      expect(
+        entries.find((entry) => entry.event === "ping.shape")?.detail?.issues
+      ).toEqual(["ts: Invalid input: expected string, received undefined"]);
+    } finally {
+      enableTrace(false);
+      tracesTo(null);
+    }
 
     agent.closeAll();
   });

@@ -52,23 +52,23 @@ describe("le retrait d'un serveur", () => {
     write({ active: null, dismissed: [], servers: [GRANTED, TYPED] });
   });
 
-  it("note l'identifiant de plateforme du serveur attribué", () => {
-    expect(remove(GRANTED.id).dismissed).toEqual(["srv-platform-1"]);
+  it("note l'identifiant de plateforme du serveur attribué", async () => {
+    expect((await remove(GRANTED.id)).dismissed).toEqual(["srv-platform-1"]);
   });
 
-  it("ne note rien pour un serveur que la plateforme n'attribue pas", () => {
-    expect(remove(TYPED.id).dismissed).toEqual([]);
+  it("ne note rien pour un serveur que la plateforme n'attribue pas", async () => {
+    expect((await remove(TYPED.id)).dismissed).toEqual([]);
   });
 
-  it("survit à la relecture du fichier", () => {
-    remove(GRANTED.id);
+  it("survit à la relecture du fichier", async () => {
+    await remove(GRANTED.id);
 
     expect(read().dismissed).toEqual(["srv-platform-1"]);
     expect(read().servers.map((server) => server.id)).toEqual(["srv-local-1"]);
   });
 
-  it("s'efface quand on redemande les serveurs attribués", () => {
-    remove(GRANTED.id);
+  it("s'efface quand on redemande les serveurs attribués", async () => {
+    await remove(GRANTED.id);
 
     expect(restore().dismissed).toEqual([]);
   });
@@ -76,7 +76,7 @@ describe("le retrait d'un serveur", () => {
   it("n'est pas perdu par un renommage ni par un changement de serveur piloté", async () => {
     const { activate, rename } = await import("../servers");
 
-    remove(GRANTED.id);
+    await remove(GRANTED.id);
     rename(TYPED.id, "Atelier");
     activate(TYPED.id);
 

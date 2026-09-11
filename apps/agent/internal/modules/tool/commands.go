@@ -2,17 +2,13 @@ package tool
 
 import (
 	"encoding/json"
-	"pupitre.studio/agent/internal/i18n"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/tool/onepassword"
 	"pupitre.studio/agent/internal/protocol"
 )
-
-type doneResult struct {
-	Done bool `json:"done"`
-}
 
 func RegisterCommands(server *protocol.Server, runner *modules.Engine) {
 	server.Register("secrets.sync", command(runner, func(ctx *modules.Context, raw json.RawMessage) (any, error) {

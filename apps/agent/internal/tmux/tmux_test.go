@@ -50,6 +50,52 @@ func TestStartOpensAWindowAndItsLog(t *testing.T) {
 	}
 }
 
+func TestEveryTmuxCommandRunsAsTheProjectsUser(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Serves("web", 3000)
+	ctx := newContext(fake)
+
+	if err := tmux.Start(ctx, options, web()); err != nil {
+		t.Fatal(err)
+	}
+	if err := tmux.Stop(ctx, options, "web"); err != nil {
+		t.Fatal(err)
+	}
+	tmux.Collect(ctx, options)
+	tmux.Running(ctx, options, "web")
+
+	seen := 0
+	for _, call := range fake.Calls {
+		if call.Argv[0] != "tmux" {
+			continue
+		}
+
+		seen++
+		if call.User != "dev" {
+			t.Errorf("tmux ran as %q: %v", call.User, call.Argv)
+		}
+
+		env := strings.Join(call.Env, "\n")
+		for _, want := range []string{"HOME=/home/dev", "USER=dev", "SHELL=/usr/bin/zsh"} {
+			if !strings.Contains(env, want) {
+				t.Errorf("tmux %v lacks %s: the server keeps the environment it was started with", call.Argv, want)
+			}
+		}
+	}
+
+	if seen < 6 {
+		t.Fatalf("only %d tmux call(s) recorded", seen)
+	}
+
+	if owner, _ := fake.Owner("/home/dev/.pupitre/logs"); owner != "dev" {
+		t.Fatalf("the log folder belongs to %s, want dev", owner)
+	}
+
+	if owner, _ := fake.Owner(logPath); owner != "dev" {
+		t.Fatalf("the log belongs to %s, want dev: the markers are appended as the project's user", owner)
+	}
+}
+
 func TestStopClosesTheWindowAndTracesIt(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Serves("web", 3000)

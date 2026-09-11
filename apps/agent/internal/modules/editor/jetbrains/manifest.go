@@ -32,6 +32,7 @@ func manifest() contract.Manifest {
 				Required: false, Default: latest,
 			},
 		},
+		Runs:      true,
 		Mandatory: false,
 		Since:     "0.1.0",
 	}

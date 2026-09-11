@@ -29,6 +29,16 @@ describe("dictionary", () => {
       }
     }
   });
+
+  /** A value filled in one language and missing in the other would throw at render. */
+  it("asks for the same placeholders in both languages", () => {
+    const placeholders = (template: string) =>
+      [...template.matchAll(/\{(\w+)\}/g)].map((match) => match[1]).sort();
+
+    for (const key of Object.keys(en) as (keyof typeof en)[]) {
+      expect(placeholders(fr[key]), key).toEqual(placeholders(en[key]));
+    }
+  });
 });
 
 describe("translator", () => {

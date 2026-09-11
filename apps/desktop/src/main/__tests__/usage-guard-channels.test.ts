@@ -190,7 +190,16 @@ describe("terminal-open", () => {
       knows: (id) => id === SERVER,
     };
 
-    const opened = await terminalCommand(SERVER, "claude", "api", deps);
+    const opened = await terminalCommand(
+      {
+        id: "t1",
+        kind: "claude",
+        project: "api",
+        serverId: SERVER,
+        session: null,
+      },
+      deps
+    );
 
     expect(opened).toMatchObject(REFUSED);
     expect(agent?.started()).toBe(0);
@@ -204,7 +213,16 @@ describe("terminal-open", () => {
       knows: (id) => id === SERVER,
     };
 
-    const opened = await terminalCommand(SERVER, "shell", "api", deps);
+    const opened = await terminalCommand(
+      {
+        id: "t2",
+        kind: "shell",
+        project: "api",
+        serverId: SERVER,
+        session: null,
+      },
+      deps
+    );
 
     expect(opened).toMatchObject({ ok: true, result: { kind: "shell" } });
     expect(agent?.started()).toBe(0);

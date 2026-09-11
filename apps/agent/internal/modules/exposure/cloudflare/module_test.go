@@ -59,6 +59,36 @@ func equipped(t *testing.T) *modtest.FakeSys {
 	return fake
 }
 
+// A project of several ports gets one ingress rule per name on the web, each to its own port.
+func TestTheIngressCarriesEveryRouteOfAProject(t *testing.T) {
+	fake := bareMachine()
+	fake.Files[registry.DefaultLocal] = []byte(`{"projects":[{"name":"shop","dir":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[{"label":"web","port":3100,"hostname":"shop.` + domain + `"},{"label":"api","port":3101,"hostname":"api-shop.` + domain + `"},{"label":"docs","port":3102}],"cmd":"bunx turbo run dev"}]}`)
+	ctx := newContext(t, fake, modtest.Secrets{"tunnel_secret": secret})
+
+	if err := (Module{}).Install(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := (Module{}).Configure(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	ingress := string(fake.Files[cloudflared.ConfigPath])
+	for _, want := range []string{"hostname: shop." + domain, "service: http://127.0.0.1:3100", "hostname: api-shop." + domain, "service: http://127.0.0.1:3101", "httpHostHeader: 127.0.0.1:3101"} {
+		if !strings.Contains(ingress, want) {
+			t.Errorf("ingress lacks %q:\n%s", want, ingress)
+		}
+	}
+
+	if strings.Contains(ingress, "127.0.0.1:3102") {
+		t.Fatalf("a port without a name on the web is not exposed:\n%s", ingress)
+	}
+
+	report, err := Status(ctx)
+	if err != nil || len(report.Routes) != 3 {
+		t.Fatalf("report = %+v, %v", report, err)
+	}
+}
+
 func TestTheTunnelOfThePlatformIsRunNotCreated(t *testing.T) {
 	fake := equipped(t)
 
@@ -207,7 +237,7 @@ func TestTheManifestSeparatesWhatIsDerivedFromWhatIsChosen(t *testing.T) {
 }
 
 func TestTheMissingTunnelSecretIsRefusedByTheContract(t *testing.T) {
-	held := func(string, string) int { return 0 }
+	held := func(string, string) []string { return nil }
 
 	for _, field := range manifest().Fields {
 		if field.Kind != contract.FieldSecret {
@@ -275,6 +305,83 @@ func TestATunnelCloudflareDroppedIsRefused(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), i18n.T("cloudflared.tunnel.unknown")) {
 		t.Fatalf("a tunnel the account no longer holds must be refused, and say so: %v", err)
 	}
+}
+
+// The first attempts of a freshly made tunnel can reach an edge that has not
+// been told about it yet. Refusing on that line alone failed an install whose
+// tunnel was carrying connections by the time anyone read the report.
+func TestATunnelThatRegisteredAfterTheRefusalIsAccepted(t *testing.T) {
+	fake := equipped(t)
+	fake.Units[Unit] = modtest.UnitInactive
+	fake.Answer("journalctl", `ERR Register tunnel error from server side error="Unauthorized: Tunnel not found"
+INF Registered tunnel connection connIndex=0 location=mrs04 protocol=quic`)
+
+	if err := cloudflared.Registered(newContext(t, fake, modtest.Secrets{})); err != nil {
+		t.Fatalf("a tunnel that registered after the refusal must be accepted: %v", err)
+	}
+}
+
+// The order is the daemon's own: a tunnel deleted while it ran registered first
+// and was refused after, and that is the machine saying the tunnel is gone.
+func TestATunnelRefusedAfterItRegisteredIsStillRefused(t *testing.T) {
+	fake := equipped(t)
+	fake.Units[Unit] = modtest.UnitInactive
+	fake.Answer("journalctl", `INF Registered tunnel connection connIndex=0 location=mrs04 protocol=quic
+ERR Register tunnel error from server side error="Unauthorized: Tunnel not found"`)
+
+	err := cloudflared.Registered(newContext(t, fake, modtest.Secrets{}))
+	if err == nil || !strings.Contains(err.Error(), i18n.T("cloudflared.tunnel.unknown")) {
+		t.Fatalf("a tunnel refused after it registered must still be refused: %v", err)
+	}
+}
+
+// The edge refuses a tunnel it has not been told about yet, and cloudflared
+// backs off between its attempts: a daemon killed at forty-five seconds was
+// killed in the middle of a wait that ends well.
+func TestTheUnitLetsTheTunnelReachAnEdgeThatDoesNotKnowItYet(t *testing.T) {
+	if !strings.Contains(string(cloudflared.UnitFile), "TimeoutStartSec=150") {
+		t.Fatalf("unit = %s", cloudflared.UnitFile)
+	}
+}
+
+// The daemon notifies its start only once a connection is registered, so an
+// active unit has already answered: the refusals it said while the tunnel was
+// being propagated are not a verdict on it.
+func TestATunnelTheEdgeTookIsAcceptedWhateverItSaidFirst(t *testing.T) {
+	fake := equipped(t)
+	fake.Units[Unit] = modtest.UnitActive
+	fake.Answer("journalctl", `INF Registered tunnel connection connIndex=0 location=mrs07 protocol=quic
+ERR Register tunnel error from server side error="Unauthorized: Tunnel not found" connIndex=1`)
+
+	if err := cloudflared.Registered(newContext(t, fake, modtest.Secrets{})); err != nil {
+		t.Fatalf("a unit systemd calls active carries the tunnel: %v", err)
+	}
+}
+
+// A secret rewritten on a tunnel the daemon already runs reaches it only at the
+// next start: skipping that restart leaves the machine on credentials nobody holds.
+func TestCredentialsRewrittenOnARunningDaemonRestartIt(t *testing.T) {
+	fake := equipped(t)
+	fake.Files[cloudflared.CredentialsPath] = []byte("{}\n")
+	ctx := newContext(t, fake, modtest.Secrets{"tunnel_secret": secret})
+
+	if err := (Module{}).Configure(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if !restarted(ctx) {
+		t.Fatal("the daemon must be restarted on credentials it has not read")
+	}
+}
+
+func restarted(ctx *modules.Context) bool {
+	for _, event := range ctx.Events() {
+		if event.Step == "enable-service" {
+			return event.Status != contract.StepSkip
+		}
+	}
+
+	return false
 }
 
 // A tunnel that has not connected yet is not a failed install: the machine may

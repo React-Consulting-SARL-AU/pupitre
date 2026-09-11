@@ -11,7 +11,7 @@ Un projet est un dépôt git ou un dossier sur le serveur. L’agent en tient un
 
 ## En ajouter un
 
-Donnez une URL git ou pointez un dossier qui existe déjà. L’agent alors :
+« Nouveau projet », sur le tableau de bord ou dans la barre latérale. Donnez une URL git ou pointez un dossier qui existe déjà sous le dossier des projets ; l’agent lit la source avant de déclarer quoi que ce soit — le gestionnaire de paquets qu’elle verrouille, le script qui la démarre, le port qu’elle demande s’il est libre — et le formulaire propose le reste : un nom tiré de l’adresse, un port qu’aucun projet déclaré ne tient, la commande de démarrage. Tout reste modifiable ; le serveur décide de ce qu’il accepte et le dit. Une fois créé, l’agent :
 
 1. clone le dépôt dans votre dossier de projets, ou adopte le dossier ;
 2. détecte le gestionnaire de paquets et installe les dépendances ;

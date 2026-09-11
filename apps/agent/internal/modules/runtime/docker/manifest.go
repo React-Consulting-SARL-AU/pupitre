@@ -22,6 +22,7 @@ func manifest() contract.Manifest {
 			{Key: "data_root", Kind: contract.FieldText, Label: i18n.T("module.runtime.docker.data_root.label"), Help: i18n.T("module.runtime.docker.data_root.help"), HintText: i18n.T("module.runtime.docker.data_root.hint"), Format: contract.FormatPath, Required: false},
 			{Key: "log_max_size", Kind: contract.FieldText, Label: i18n.T("module.runtime.docker.log_max_size.label"), Help: i18n.T("module.runtime.docker.log_max_size.help"), Format: contract.FormatSize, Required: false},
 		},
+		Runs:      true,
 		Mandatory: false,
 		Since:     "0.3.0",
 	}

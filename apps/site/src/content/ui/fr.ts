@@ -36,8 +36,6 @@ export const fr: Dictionary = {
   "footer.acceptableUse": "Usage acceptable",
   "footer.dpa": "Traitement des données",
   "footer.status": "Statut",
-  "footer.builtBy":
-    "Construit par quelqu’un qui fait tourner ses propres agents sur un VPS tous les jours.",
 
   "callout.info": "Note",
   "callout.warn": "Attention",
@@ -69,7 +67,7 @@ export const fr: Dictionary = {
     "Notes sur les agents IA qui tournent sur une machine à soi : installation, arbitrages, et ce qu’on a appris en construisant Pupitre.",
   "blog.headline": "Notes d’une machine qui n’est pas un laptop.",
   "blog.lead":
-    "Ce qu’on a appris en mettant des agents sur une machine qui n’est pas un laptop. Long, précis, sans annonce.",
+    "Ce qu’on a appris en mettant des agents sur une machine qui n’est pas un laptop.",
   "blog.by": "Par",
   "blog.rss": "RSS",
   "blog.back": "Tous les articles",
@@ -82,7 +80,7 @@ export const fr: Dictionary = {
     "Chaque version de l’app Pupitre et de l’agent, ce qui change et ce que cela signifie pour votre serveur.",
   "changelog.headline": "Une entrée par version.",
   "changelog.lead":
-    "Une entrée par version. Ce qui change dans l’app, ce qui change dans l’agent, et ce que vous avez à faire.",
+    "Ce qui change dans l’app, ce qui change dans l’agent, et ce que vous avez à faire.",
   "changelog.beta": "Bêta",
   "changelog.stable": "Stable",
   "changelog.rss": "RSS",
@@ -94,8 +92,7 @@ export const fr: Dictionary = {
   "legal.description":
     "Conditions, licence, usage acceptable, confidentialité et traitement des données de Pupitre.",
   "legal.headline": "Les règles, écrites pour être lues.",
-  "legal.lead":
-    "Les règles du produit, écrites pour être lues. Rien ici ne contredit ce que l’app fait sur votre machine.",
+  "legal.lead": "Rien ici ne contredit ce que l’app fait sur votre machine.",
   "legal.updated": "Mise à jour",
   "legal.draft": "Brouillon",
   "legal.subProcessor": "Sous-traitant",
@@ -105,8 +102,7 @@ export const fr: Dictionary = {
   "notFound.title": "Introuvable — Pupitre",
   "notFound.description": "Cette page n’existe pas.",
   "notFound.headline": "Cette page n’existe pas.",
-  "notFound.lead":
-    "Le lien est faux, ou la page a bougé. La doc et l’accueil sont restés là où vous les aviez laissés.",
+  "notFound.lead": "Le lien est faux, ou la page a bougé.",
   "notFound.home": "Accueil",
   "notFound.docs": "Lire la doc",
 

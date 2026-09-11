@@ -1,4 +1,5 @@
 import { Button } from "@renderer/components/ui/button";
+import { Dialog } from "@renderer/components/ui/dialog";
 import { StatusDot } from "@renderer/components/ui/status-dot";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { Trash2 } from "lucide-react";
@@ -8,14 +9,17 @@ import { Trash2 } from "lucide-react";
  *
  * Each line is something this machine will not have any more, drawn from the
  * manifest of the module itself. The question is never "are you sure": it is
- * the list.
+ * the list. It floats over the page because the gesture that opens it stands
+ * in the header, and the answer has to be given before anything else is read.
  */
 export function ServiceRemovalLosses({
+  open,
   name,
   losses,
   onConfirm,
   onCancel,
 }: {
+  open: boolean;
   name: string;
   losses: readonly string[];
   onConfirm: () => void;
@@ -24,35 +28,43 @@ export function ServiceRemovalLosses({
   const t = useTranslations();
 
   return (
-    <section
-      className="elevation-raised flex flex-col gap-3 rounded-md border border-danger/40 bg-surface px-4 py-4"
-      data-confirm="uninstall"
+    <Dialog
+      actions={
+        <>
+          <Button onClick={onCancel} size="sm" variant="discreet">
+            {t("common.cancel")}
+          </Button>
+          <Button
+            icon={Trash2}
+            onClick={onConfirm}
+            size="sm"
+            variant="destructive"
+          >
+            {t("services.removal.losses.confirm")}
+          </Button>
+        </>
+      }
+      name="uninstall"
+      onClose={onCancel}
+      open={open}
+      title={t("services.removal.losses.intro", { name })}
     >
-      <p className="text-ink">{t("services.removal.losses.intro", { name })}</p>
+      <div className="flex flex-col gap-3" data-confirm="uninstall">
+        <ul className="flex flex-col gap-1.5">
+          {losses.map((loss) => (
+            <li className="flex items-start gap-2 text-ink-2" key={loss}>
+              <span className="pt-1">
+                <StatusDot shape="struck" size={9} tone="danger" />
+              </span>
+              <span className="text-[13px] leading-relaxed">{loss}</span>
+            </li>
+          ))}
+        </ul>
 
-      <ul className="flex flex-col gap-1.5">
-        {losses.map((loss) => (
-          <li className="flex items-start gap-2 text-ink-2" key={loss}>
-            <span className="pt-1">
-              <StatusDot shape="struck" size={9} tone="danger" />
-            </span>
-            <span className="leading-relaxed">{loss}</span>
-          </li>
-        ))}
-      </ul>
-
-      <p className="text-[12px] text-ink-3 leading-relaxed">
-        {t("services.removal.losses.note")}
-      </p>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Button icon={Trash2} onClick={onConfirm} variant="danger">
-          {t("services.removal.losses.confirm")}
-        </Button>
-        <Button onClick={onCancel} variant="discreet">
-          {t("common.cancel")}
-        </Button>
+        <p className="text-[12px] text-ink-3 leading-relaxed">
+          {t("services.removal.losses.note")}
+        </p>
       </div>
-    </section>
+    </Dialog>
   );
 }

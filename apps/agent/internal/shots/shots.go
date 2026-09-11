@@ -2,12 +2,14 @@
 package shots
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"regexp"
 	"strings"
 	"time"
 
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/file"
 )
@@ -83,7 +85,7 @@ func Take(ctx sys.Context, options Options, request Request) (Capture, error) {
 	folder := options.Dir + "/" + day
 
 	if err := ctx.Sys().MkdirAll(folder, 0o755); err != nil {
-		return Capture{}, fmt.Errorf("galerie inaccessible : %s", options.Dir)
+		return Capture{}, errors.New(i18n.T("shots.gallery.unwritable", options.Dir))
 	}
 
 	target := folder + "/" + name(options, request)
@@ -97,7 +99,7 @@ func Take(ctx sys.Context, options Options, request Request) (Capture, error) {
 	}
 
 	if !file.Exists(ctx, target) {
-		return Capture{}, fmt.Errorf("capture manquante : %s", target)
+		return Capture{}, errors.New(i18n.T("shots.capture.missing", target))
 	}
 
 	return Capture{Path: target, URL: options.Base + "/" + day + "/" + path.Base(target)}, nil
@@ -106,7 +108,7 @@ func Take(ctx sys.Context, options Options, request Request) (Capture, error) {
 func shoot(ctx sys.Context, request Request, target string) error {
 	browser := Browser(ctx)
 	if browser == "" {
-		return fmt.Errorf("no headless browser installed — shot <file> is still available")
+		return errors.New(i18n.T("shots.browser.none"))
 	}
 
 	size := request.Size
@@ -129,7 +131,7 @@ func shoot(ctx sys.Context, request Request, target string) error {
 
 	// No user is forced: shot is invoked by dev through the link, and it captures under the identity that called it.
 	if _, err := sys.Exec(ctx, sys.Command{Argv: argv}); err != nil {
-		return fmt.Errorf("capture impossible : %s", request.Source)
+		return errors.New(i18n.T("shots.capture.failed", request.Source))
 	}
 
 	return nil
@@ -138,7 +140,7 @@ func shoot(ctx sys.Context, request Request, target string) error {
 func copyFile(ctx sys.Context, source, target string) error {
 	content, err := file.Read(ctx, source)
 	if err != nil {
-		return fmt.Errorf("file not found: %s", source)
+		return errors.New(i18n.T("shots.file.unreadable", source))
 	}
 
 	return file.WriteAtomic(ctx, target, content, 0o644)

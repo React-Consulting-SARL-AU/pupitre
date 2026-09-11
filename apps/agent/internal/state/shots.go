@@ -4,16 +4,15 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"pupitre.studio/agent/internal/i18n"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/shots"
-	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/user"
 )
@@ -64,7 +63,7 @@ func (r *Reader) Shots() []contract.Shot {
 // The gallery is served by the "shots" row of the registry: it carries the port and the subdomain, and nothing here has to guess them.
 func (r *Reader) ShotsURL() string {
 	if project, declared := r.registry().Get(ShotsProject); declared {
-		return url(project, r.domain())
+		return url(project)
 	}
 
 	if domain := r.domain(); domain != "" {
@@ -91,32 +90,52 @@ func (r *Reader) CleanShots() int {
 	return removed
 }
 
+// One capture goes, and only one the listing names: the same door as reading it.
+func (r *Reader) RemoveShot(relative string) error {
+	listed, found := r.shot(relative)
+	if !found {
+		return protocol.NewError(contract.ErrorBadRequest, i18n.T("state.shot.unknown", relative)).
+			WithFix(i18n.T("state.shot.unknown.fix"))
+	}
+
+	if err := r.ctx().Sys().Remove(r.options.Shots.Dir + "/" + listed.Path); err != nil {
+		return protocol.NewError(contract.ErrorInternal, i18n.T("state.shot.removeFailed", relative, err.Error()))
+	}
+
+	return nil
+}
+
 // Newest first, the order shot --list prints and the order a gallery is read in.
 func (r *Reader) gallery() []shot {
-	out, err := r.ctx().Sys().Run(sys.Command{
-		Argv: []string{"find", r.options.Shots.Dir, "-type", "f", "-printf", `%T@\t%s\t%p\n`},
-	})
+	found := r.walk(r.options.Shots.Dir)
+
+	sort.Slice(found, func(i, j int) bool { return found[i].when.After(found[j].when) })
+
+	return found
+}
+
+// A symlink is neither a folder to descend nor a file to describe: the gallery never reaches out of its own tree.
+func (r *Reader) walk(dir string) []shot {
+	entries, err := file.List(r.ctx(), dir)
 	if err != nil {
 		return nil
 	}
 
 	var found []shot
-	for _, line := range strings.Split(out.Stdout, "\n") {
-		columns := strings.SplitN(strings.TrimRight(line, "\r"), "\t", 3)
-		if len(columns) < 3 {
+	for _, entry := range entries {
+		path := dir + "/" + entry.Name
+		if entry.Dir {
+			found = append(found, r.walk(path)...)
 			continue
 		}
 
-		seconds, secondsErr := strconv.ParseFloat(columns[0], 64)
-		size, sizeErr := strconv.ParseInt(columns[1], 10, 64)
-		if secondsErr != nil || sizeErr != nil || columns[2] == "" {
+		size, when, err := r.ctx().Sys().Stat(path)
+		if err != nil {
 			continue
 		}
 
-		found = append(found, shot{path: columns[2], size: size, when: time.Unix(int64(seconds), 0)})
+		found = append(found, shot{path: path, size: size, when: when})
 	}
-
-	sort.Slice(found, func(i, j int) bool { return found[i].when.After(found[j].when) })
 
 	return found
 }

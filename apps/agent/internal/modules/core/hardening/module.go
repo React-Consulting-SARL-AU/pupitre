@@ -172,6 +172,10 @@ func (Module) Uninstall(ctx *modules.Context) error {
 			return modules.Skipped, nil
 		}
 
+		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"sshd", "-t"}}); err != nil {
+			return modules.Failed, err
+		}
+
 		return modules.Done, reloadSSHD(ctx)
 	}); err != nil {
 		return err
@@ -306,7 +310,7 @@ type firewall struct {
 }
 
 func firewallStatus(ctx *modules.Context) firewall {
-	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"ufw", "status", "verbose"}})
+	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"ufw", "status", "verbose"}, Timeout: ufwTimeout})
 	if err != nil {
 		return firewall{}
 	}

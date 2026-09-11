@@ -1,14 +1,7 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { accept, TERMINAL_FONT, useCompletion } from "@renderer/lib/completion";
-import type { Candidate, CandidateKind } from "@shared/completion";
 import type { RefObject } from "react";
-
-const MARK: Record<CandidateKind, string> = {
-  command: "$",
-  argument: "·",
-  path: "/",
-  history: "↺",
-};
+import { CompletionListRow } from "./completion-list-row";
 
 const LIST_HEIGHT = 260;
 
@@ -72,7 +65,7 @@ export function CompletionList({ id, frame }: Props) {
         >
           <ul className="max-h-[220px] overflow-y-auto py-1">
             {state.candidates.map((candidate, i) => (
-              <Row
+              <CompletionListRow
                 active={i === state.selection}
                 candidate={candidate}
                 key={`${candidate.kind}:${candidate.text}`}
@@ -88,50 +81,5 @@ export function CompletionList({ id, frame }: Props) {
         </div>
       ) : null}
     </>
-  );
-}
-
-function Row({
-  candidate,
-  active,
-  onChoose,
-}: {
-  candidate: Candidate;
-  active: boolean;
-  onChoose: () => void;
-}) {
-  return (
-    <li>
-      <button
-        aria-selected={active}
-        className={`flex w-full items-center gap-2.5 px-3 py-1 text-left transition-soft ${
-          active
-            ? "bg-sunken font-medium text-ink"
-            : "text-ink-2 hover:bg-sunken"
-        }`}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          onChoose();
-        }}
-        role="option"
-        type="button"
-      >
-        <span
-          className={`w-3 shrink-0 text-center font-data text-[11px] ${
-            active ? "text-ink" : "text-ink-3"
-          }`}
-        >
-          {MARK[candidate.kind]}
-        </span>
-        <span className="min-w-0 flex-1 truncate font-data text-[12.5px]">
-          {candidate.text}
-        </span>
-        {candidate.help ? (
-          <span className="shrink-0 truncate text-[11.5px] text-ink-3">
-            {candidate.help}
-          </span>
-        ) : null}
-      </button>
-    </li>
   );
 }

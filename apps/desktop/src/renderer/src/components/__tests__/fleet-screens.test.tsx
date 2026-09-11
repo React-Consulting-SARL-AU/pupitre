@@ -129,6 +129,7 @@ describe("les organisations", () => {
       { id: "org-2", name: "Fonderie", role: "owner", slug: "fonderie" },
     ],
     role: "member",
+    subscription: null,
   };
 
   it("marque l'organisation active par une forme pleine", () => {
@@ -139,6 +140,8 @@ describe("les organisations", () => {
     expect(html.match(/data-shape="filled"/g)).toHaveLength(1);
     expect(text(html)).toContain("Atelier Ada");
     expect(text(html)).toContain("Fonderie");
+    expect(text(html)).toContain("Membre");
+    expect(text(html)).toContain("Propriétaire");
   });
 
   it("n'offre la bascule qu'aux organisations qui ne sont pas actives", () => {

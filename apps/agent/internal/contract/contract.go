@@ -3,6 +3,8 @@ package contract
 import (
 	_ "embed"
 	"encoding/json"
+	"maps"
+	"slices"
 	"strings"
 )
 
@@ -34,8 +36,16 @@ func Definition(name string) (json.RawMessage, bool) {
 	return def, ok
 }
 
+func DefinitionNames() []string {
+	return slices.Sorted(maps.Keys(spec.Defs))
+}
+
 func ParamsDefinition(cmd string) string {
 	return definitionName(cmd) + "Params"
+}
+
+func ResultDefinition(cmd string) string {
+	return definitionName(cmd) + "Result"
 }
 
 func definitionName(cmd string) string {

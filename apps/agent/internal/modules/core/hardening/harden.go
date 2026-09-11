@@ -67,10 +67,29 @@ func Harden(ctx *modules.Context, name string) Result {
 		return modules.Done, reloadSSHD(ctx)
 	}); err != nil {
 		revertFragment(ctx, previous)
-		return rootStays(i18n.T("harden.sshd.reload.failed", message(err)))
+		return rootStays(restoreSSHD(ctx, message(err)))
 	}
 
 	return hardened(keepRoot, name)
+}
+
+// The previous fragment is back on disk, but sshd still runs on the refused one until it reloads again; that second reload is best effort, and its outcome is what the reader is told.
+func restoreSSHD(ctx *modules.Context, cause string) string {
+	var again error
+
+	_ = ctx.Step("restore-sshd", func() (modules.Outcome, error) {
+		if again = reloadSSHD(ctx); again != nil {
+			ctx.Warn(i18n.T("harden.sshd.unrestored", again.Error()))
+		}
+
+		return modules.Done, nil
+	})
+
+	if again != nil {
+		return i18n.T("harden.sshd.reload.unrestored", cause, again.Error())
+	}
+
+	return i18n.T("harden.sshd.reload.failed", cause)
 }
 
 func checkAuthorizedKeys(ctx *modules.Context, name string) (string, error) {

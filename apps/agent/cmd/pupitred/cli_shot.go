@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -8,16 +9,10 @@ import (
 	"strings"
 
 	"pupitre.studio/agent/internal/devcli"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/shots"
 	"pupitre.studio/agent/internal/state"
 )
-
-const shotUsage = `usage: shot [--mobile|--size LxH] [--wait ms] <fichier|url> [nom]
-       shot --list
-
-La dernière ligne écrite est toujours l'URL de la capture, prête à coller ;
-le chemin local part sur la sortie d'erreur.
-`
 
 // Installed as symlinks named shot and dev, the agent answers to those names: the driving commands are the binary itself, never a script laid on the client's disk.
 func arguments(argv []string) []string {
@@ -36,7 +31,7 @@ func runShot(reader *state.Reader, args []string, stdout, stderr io.Writer) int 
 	request, list, err := parseShot(args)
 	if err != nil {
 		fmt.Fprintln(stderr, err)
-		fmt.Fprint(stderr, shotUsage)
+		fmt.Fprint(stderr, i18n.T("shot.usage"))
 
 		return 2
 	}
@@ -56,7 +51,7 @@ func runShot(reader *state.Reader, args []string, stdout, stderr io.Writer) int 
 		return 1
 	}
 
-	fmt.Fprintf(stderr, "fichier : %s\n", capture.Path)
+	fmt.Fprintln(stderr, i18n.T("shot.file", capture.Path))
 	fmt.Fprintln(stdout, capture.URL)
 
 	return 0
@@ -77,25 +72,25 @@ func parseShot(args []string) (shots.Request, bool, error) {
 		case argument == "-s" || argument == "--size":
 			index++
 			if index >= len(args) {
-				return request, false, fmt.Errorf("--size expects a size, for example 1024x768")
+				return request, false, errors.New(i18n.T("shot.size.expected"))
 			}
 			request.Size = strings.ReplaceAll(args[index], "x", ",")
 		case argument == "-w" || argument == "--wait":
 			index++
 			milliseconds, err := strconv.Atoi(argumentAt(args, index))
 			if err != nil {
-				return request, false, fmt.Errorf("--wait attend un nombre de millisecondes")
+				return request, false, errors.New(i18n.T("shot.wait.expected"))
 			}
 			request.Wait = milliseconds
 		case strings.HasPrefix(argument, "-"):
-			return request, false, fmt.Errorf("option inconnue : %s", argument)
+			return request, false, errors.New(i18n.T("cli.option.unknown", argument))
 		default:
 			positional = append(positional, argument)
 		}
 	}
 
 	if len(positional) == 0 {
-		return request, false, fmt.Errorf("the file or URL to capture is missing")
+		return request, false, errors.New(i18n.T("shot.source.expected"))
 	}
 
 	request.Source = positional[0]
@@ -124,13 +119,13 @@ func runGallery(args []string, stderr io.Writer) int {
 		case strings.HasPrefix(argument, "--port="):
 			parsed, err := strconv.Atoi(strings.TrimPrefix(argument, "--port="))
 			if err != nil {
-				fmt.Fprintf(stderr, "port illisible : %s\n", argument)
+				fmt.Fprintln(stderr, i18n.T("cli.port.unreadable", argument))
 
 				return 2
 			}
 			port = parsed
 		default:
-			fmt.Fprintf(stderr, "argument inconnu : %s\n", argument)
+			fmt.Fprintln(stderr, i18n.T("cli.argument.unknown", argument))
 
 			return 2
 		}

@@ -1,11 +1,14 @@
 package mise
 
 import (
-	"fmt"
+	"errors"
+	"regexp"
 	"runtime"
 	"strings"
 
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/download"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/user"
@@ -19,23 +22,19 @@ const (
 
 	Latest = "latest"
 
-	program = "mise"
-	baseURL = "https://mise.jdx.dev/mise-latest-linux-"
+	program     = "mise"
+	versionURL  = "https://mise.jdx.dev/VERSION"
+	releasesURL = "https://github.com/jdx/mise/releases/download/v"
+	sumsName    = "SHASUMS256.txt"
 )
 
-// mise publishes one static binary per architecture; fetching it keeps the install to an argv and leaves no script on the client's disk.
-func downloadURL() string {
-	if runtime.GOARCH == "arm64" {
-		return baseURL + "arm64"
-	}
-
-	return baseURL + "x64"
-}
+var versionShape = regexp.MustCompile(`^[0-9]{4}\.[0-9]{1,2}\.[0-9]+$`)
 
 func Present(ctx *modules.Context) bool {
 	return file.Exists(ctx, Path)
 }
 
+// mise publishes one static binary per release and the SHA-256 of each beside it, the way its own installer reads them: the binary is refused unless the two agree.
 func Ensure(ctx *modules.Context) error {
 	return ctx.Step("install-mise", func() (modules.Outcome, error) {
 		if Present(ctx) {
@@ -48,20 +47,67 @@ func Ensure(ctx *modules.Context) error {
 			}
 		}
 
-		if _, err := user.Run(ctx, shell.User, "curl", "-fsSL", "--proto", "=https", "--tlsv1.2", "-o", Path, downloadURL()); err != nil {
+		version, err := latestVersion(ctx)
+		if err != nil {
 			return modules.Failed, err
 		}
 
-		if _, err := user.Run(ctx, shell.User, "chmod", "0755", Path); err != nil {
+		digest, err := publishedDigest(ctx, version)
+		if err != nil {
+			return modules.Failed, err
+		}
+
+		staged, done, err := download.Verified(ctx, program, releasesURL+version+"/"+asset(version), digest)
+		if err != nil {
+			return modules.Failed, err
+		}
+		defer done()
+
+		if err := download.Install(ctx, staged, Path, 0o755, shell.User); err != nil {
 			return modules.Failed, err
 		}
 
 		if !Present(ctx) {
-			return modules.Failed, fmt.Errorf("mise missing from %s after the download", Path)
+			return modules.Failed, errors.New(i18n.T("modules.mise.missing_after_download", Path))
 		}
 
-		return modules.Done, file.Chown(ctx, Path, shell.User, shell.User)
+		return modules.Done, nil
 	})
+}
+
+func latestVersion(ctx *modules.Context) (string, error) {
+	version, err := download.Text(ctx, versionURL)
+	if err != nil {
+		return "", err
+	}
+
+	if !versionShape.MatchString(version) {
+		return "", errors.New(i18n.T("modules.mise.version_unreadable", version))
+	}
+
+	return version, nil
+}
+
+func publishedDigest(ctx *modules.Context, version string) (string, error) {
+	sums, err := download.Text(ctx, releasesURL+version+"/"+sumsName)
+	if err != nil {
+		return "", err
+	}
+
+	digest, published := download.Published(sums, asset(version))
+	if !published {
+		return "", errors.New(i18n.T("modules.download.checksum_unpublished", asset(version), sumsName))
+	}
+
+	return digest, nil
+}
+
+func asset(version string) string {
+	if runtime.GOARCH == "arm64" {
+		return "mise-v" + version + "-linux-arm64"
+	}
+
+	return "mise-v" + version + "-linux-x64"
 }
 
 // What the machine really carries, read back from mise rather than from what the app asked for.
@@ -141,7 +187,7 @@ func Add(ctx *modules.Context, step, tool, wanted string) (bool, error) {
 		}
 
 		if !Matches(Installed(ctx)[tool], wanted) {
-			return modules.Failed, fmt.Errorf("mise returned without installing %s@%s", tool, wanted)
+			return modules.Failed, errors.New(i18n.T("modules.mise.tool_not_installed", tool, wanted))
 		}
 
 		added = true

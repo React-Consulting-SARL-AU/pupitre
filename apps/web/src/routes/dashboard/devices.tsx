@@ -24,14 +24,7 @@ function DevicesPending() {
   const t = useTranslations()
   const { title, parents } = pageTitle(ROUTE_ID)
 
-  return (
-    <PageSkeleton
-      description={t("page.devices.description")}
-      parents={parents}
-      shape="rows"
-      title={t(title)}
-    />
-  )
+  return <PageSkeleton parents={parents} shape="rows" title={t(title)} />
 }
 
 function DevicesPage() {
@@ -40,11 +33,7 @@ function DevicesPage() {
 
   return (
     <>
-      <PageHeader
-        description={t("page.devices.description")}
-        parents={parents}
-        title={t(title)}
-      />
+      <PageHeader parents={parents} title={t(title)} />
       <DeviceList />
     </>
   )

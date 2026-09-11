@@ -19,6 +19,8 @@ $ {"tool.github":{"token":"s3cret-de-test"},"tool.1password":{"service_account_t
 < {"event":"step","id":2,"module":"tool.1password","ms":0,"status":"ok","step":"install-op"}
 < {"event":"step","id":2,"module":"tool.1password","ms":0,"status":"start","step":"store-token"}
 < {"event":"step","id":2,"module":"tool.1password","ms":0,"status":"ok","step":"store-token"}
+< {"event":"step","id":2,"module":"tool.1password","ms":0,"status":"start","step":"export-token"}
+< {"event":"step","id":2,"module":"tool.1password","ms":0,"status":"ok","step":"export-token"}
 < {"event":"step","id":2,"module":"tool.1password","ms":0,"status":"start","step":"verify-service-account"}
 < {"event":"step","id":2,"module":"tool.1password","ms":0,"status":"ok","step":"verify-service-account"}
 < {"event":"step","id":2,"module":"tool.github","ms":0,"status":"start","step":"install-gh"}
@@ -42,6 +44,8 @@ $ {"tool.github":{"token":"s3cret-de-test"},"tool.1password":{"service_account_t
 < {"event":"step","id":3,"module":"tool.1password","ms":0,"status":"skip","step":"install-op"}
 < {"event":"step","id":3,"module":"tool.1password","ms":0,"status":"start","step":"store-token"}
 < {"event":"step","id":3,"module":"tool.1password","ms":0,"status":"skip","step":"store-token"}
+< {"event":"step","id":3,"module":"tool.1password","ms":0,"status":"start","step":"export-token"}
+< {"event":"step","id":3,"module":"tool.1password","ms":0,"status":"skip","step":"export-token"}
 < {"event":"step","id":3,"module":"tool.1password","ms":0,"status":"start","step":"verify-service-account"}
 < {"event":"step","id":3,"module":"tool.1password","ms":0,"status":"ok","step":"verify-service-account"}
 < {"event":"step","id":3,"module":"tool.github","ms":0,"status":"start","step":"install-gh"}

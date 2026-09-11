@@ -42,8 +42,31 @@ export const FieldProblemSchema = z.object({
 
 export type FieldProblem = z.infer<typeof FieldProblemSchema>
 
-/** How many values are held for a secret field: 0, 1, or the length of a list. */
-export type SecretsHeld = (moduleId: string, key: string) => number
+/**
+ * What is held for a secret field: the values themselves when the caller has
+ * them, or how many when it only knows that. A count says nothing of the
+ * values, so only the values can be weighed against the field's pattern.
+ */
+export type SecretsHeld = (
+  moduleId: string,
+  key: string
+) => number | readonly string[]
+
+function heldItems(
+  held: SecretsHeld,
+  moduleId: string,
+  key: string
+): { count: number; items: string[] } {
+  const kept = held(moduleId, key)
+
+  if (typeof kept === "number") {
+    return { count: kept, items: [] }
+  }
+
+  const items = kept.map((item) => item.trim()).filter((item) => item !== "")
+
+  return { count: items.length, items }
+}
 
 export type ConfigValues = Record<string, Record<string, unknown>>
 
@@ -104,6 +127,14 @@ function textProblem(
   return null
 }
 
+function textItems(value: unknown): { count: number; items: string[] } {
+  const items = (Array.isArray(value) ? value : [])
+    .map((item) => String(item).trim())
+    .filter((item) => item !== "")
+
+  return { count: items.length, items }
+}
+
 function listProblem(
   moduleId: string,
   field: Field,
@@ -116,23 +147,17 @@ function listProblem(
 
   const least = Math.max(field.min ?? 0, field.required ? 1 : 0)
 
-  const items =
+  const { count, items } =
     field.items === "secret"
-      ? new Array<string>(held(moduleId, field.key)).fill("held")
-      : (Array.isArray(value) ? value : [])
-          .map((item) => String(item).trim())
-          .filter((item) => item !== "")
+      ? heldItems(held, moduleId, field.key)
+      : textItems(value)
 
-  if (items.length < least) {
+  if (count < least) {
     return problem(moduleId, field.key, "required", String(least))
   }
 
-  if (field.max !== undefined && items.length > field.max) {
+  if (field.max !== undefined && count > field.max) {
     return problem(moduleId, field.key, "max", String(field.max))
-  }
-
-  if (field.items === "secret") {
-    return null
   }
 
   for (const item of items) {
@@ -211,7 +236,7 @@ export function validateField(
   }
 
   if (field.kind === "secret") {
-    return field.required && held(moduleId, field.key) === 0
+    return field.required && heldItems(held, moduleId, field.key).count === 0
       ? problem(moduleId, field.key, "required")
       : null
   }

@@ -25,9 +25,9 @@ var dbInstall = request{Cmd: "install", Params: map[string]any{
 	"config": map[string]any{
 		"core.system": map[string]any{"timezone": "Europe/Paris", "git_name": "Pupitre Staging", "git_email": "staging@pupitre.studio"},
 		"db.mysql":    map[string]any{"engine": "mysql", "port": 3306, "app_user": "root", "remote_user": "dev"},
-		"db.postgres": map[string]any{"version": "17", "port": 5432, "app_role": "app", "remote_role": "dev"},
-		"db.mongodb":  map[string]any{"version": "8.0", "port": 27017, "app_user": "app"},
-		"db.redis":    map[string]any{"port": 6379, "persistence": true, "maxmemory_mb": 256},
+		"db.postgres": map[string]any{"version": "17", "port": 5432, "app_role": "app", "remote_role": "dev", "shared_buffers": "256MB"},
+		"db.mongodb":  map[string]any{"version": "8.0", "port": 27017, "app_user": "app", "cache_mb": 512},
+		"db.redis":    map[string]any{"port": 6379, "persistence": true, "maxmemory_mb": 256, "maxmemory_policy": "allkeys-lfu"},
 	},
 }}
 
@@ -100,8 +100,28 @@ func TestRedisRefusesAnyoneWithoutThePassword(t *testing.T) {
 		t.Fatalf("redis must require a password, got %q", out)
 	}
 
-	if conf := ssh(t, host, "sudo", "cat", "/etc/redis/pupitre.conf"); !strings.Contains(conf, "maxmemory 256mb") {
-		t.Errorf("the chosen memory limit must reach the configuration:\n%s", conf)
+	conf := ssh(t, host, "sudo", "cat", "/etc/redis/pupitre.conf")
+	for _, want := range []string{"maxmemory 256mb", "maxmemory-policy allkeys-lfu"} {
+		if !strings.Contains(conf, want) {
+			t.Errorf("the configuration lacks %q:\n%s", want, conf)
+		}
+	}
+}
+
+// A machine that also runs projects cannot let an engine size itself: what the client asked for is what the engine must report back.
+func TestTheChosenMemoryReachesTheRunningEngines(t *testing.T) {
+	host := stagingHost(t)
+
+	if buffers := ssh(t, host, "sudo", "-u", "postgres", "psql", "-tAc", `"SHOW shared_buffers"`); strings.TrimSpace(buffers) != "256MB" {
+		t.Errorf("postgres reports shared_buffers = %q", buffers)
+	}
+
+	if conf := ssh(t, host, "sudo", "cat", "/etc/mongod.conf"); !strings.Contains(conf, "cacheSizeGB: 0.5") {
+		t.Errorf("the chosen WiredTiger cache must reach the configuration:\n%s", conf)
+	}
+
+	if policy := ssh(t, host, "redis-cli", "-a", dbSecret, "--no-auth-warning", "config", "get", "maxmemory-policy"); !strings.Contains(policy, "allkeys-lfu") {
+		t.Errorf("redis reports maxmemory-policy = %q", policy)
 	}
 }
 
@@ -117,6 +137,24 @@ func TestADumpLeftBeforeTheInstallIsImportedAndReported(t *testing.T) {
 		"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'shop'")
 	if strings.TrimSpace(tables) == "0" {
 		t.Fatalf("the dump must have reached the shop database: %q", tables)
+	}
+}
+
+// The same dump feeds PostgreSQL when asked for: ~dev is closed to the postgres account, so root opens the file on the standard input, as mysql reads its own.
+func TestAPostgresDumpIsImportedOnDemand(t *testing.T) {
+	host := stagingHost(t)
+
+	answer := agent(t, host, request{Cmd: "db.import", Params: map[string]any{"engine": "postgres", "name": "shop"}})[0]
+	imported := decode[struct {
+		Imported []string `json:"imported"`
+	}](t, answer.Result).Imported
+	if len(imported) != 1 || imported[0] != "shop" {
+		t.Fatalf("imported = %v, want [shop]", imported)
+	}
+
+	tables := ssh(t, host, "sudo", "-u", "postgres", "psql", "-tAc", `"SELECT count(*) FROM information_schema.tables WHERE table_name = 'article'"`, "shop")
+	if strings.TrimSpace(tables) != "1" {
+		t.Fatalf("the dump must have reached the shop database of postgres: %q", tables)
 	}
 }
 

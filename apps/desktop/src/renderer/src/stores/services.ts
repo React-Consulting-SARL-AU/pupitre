@@ -1,23 +1,36 @@
 import type { Event } from "@pupitre/shared/agent-protocol/envelope";
 import type {
+  FileEntry,
+  FsListResult,
+  FsRemoveResult,
+} from "@pupitre/shared/agent-protocol/files";
+import type {
   InstallResult,
   ModuleConfigResult,
 } from "@pupitre/shared/agent-protocol/install";
 import type {
   DbDumpResult,
   DbImportResult,
-  DbShellResult,
 } from "@pupitre/shared/agent-protocol/secrets";
+import type { ServiceStatusResult } from "@pupitre/shared/agent-protocol/state";
+import type { Manifest } from "@pupitre/shared/catalog";
 import type { AgentError, AgentResponse } from "@shared/agent";
 import type { SecretMarks } from "@shared/secrets";
 import { databaseEngineOf, type ServiceDetail } from "@shared/services";
+import { settled } from "@shared/transfers";
 import { create } from "zustand";
+import { agentCall as call } from "../lib/agent-call";
+import { defaultsOf, generatedKeysOf } from "../lib/catalog-selection";
+import { databaseOfDump } from "../lib/dumps";
+import { dirnameOf, under, within } from "../lib/files";
 import {
   type ModuleProgress,
   pending,
   record,
   stepOf,
 } from "../lib/module-progress";
+import { useNavigation } from "./navigation";
+import { useTransfers } from "./transfers";
 
 /**
  * One service of the machine, as the screen works with it day to day.
@@ -59,10 +72,40 @@ export type RemovalState =
 
 /** What the last database gesture produced, in the agent's own words. */
 export interface DatabaseOutcome {
-  kind: "dump" | "import" | "shell";
+  kind: "dump" | "import";
   lines: string[];
   bytes?: number;
 }
+
+/** The unit's three gestures, as the protocol names them. */
+export type ServiceControl =
+  | "service.start"
+  | "service.stop"
+  | "service.restart";
+
+/** The dumps present in the server's folder, as `fs.list` describes them. */
+export type DumpsState =
+  | { status: "idle" }
+  | { status: "reading" }
+  | { status: "ready"; dumps: FileEntry[] }
+  | { status: "failed"; error: AgentError };
+
+/**
+ * A dump on its way up from this computer, imported the moment it lands.
+ *
+ * The file rides its own transfer, outside the agent's channel — a dump of
+ * several gigabytes is the reason transfers exist — and `db.import` is asked
+ * by name once the transfer says done.
+ */
+export interface PendingImport {
+  transferId: string;
+  name: string;
+  serverId: string;
+  moduleId: string;
+}
+
+/** The folder under the agent's root where `db.dump` writes and `db.import` reads. */
+export const DUMPS_DIR = "dumps";
 
 interface ServicesStore {
   detail: DetailState;
@@ -73,10 +116,20 @@ interface ServicesStore {
   removal: RemovalState;
   steps: ModuleProgress[];
   database: DatabaseOutcome | null;
+  dumps: DumpsState;
+  pendingImports: PendingImport[];
   busy: string | null;
   problem: AgentError | null;
 
-  open: (serverId: string, moduleId: string) => Promise<void>;
+  /**
+   * Opens the panel: the state, and, given the manifest, the form under it —
+   * with the secrets a module left unconfigured still owes made on the way.
+   */
+  open: (
+    serverId: string,
+    moduleId: string,
+    manifest?: Manifest | null
+  ) => Promise<void>;
   readConfig: (
     serverId: string,
     moduleId: string,
@@ -105,25 +158,43 @@ interface ServicesStore {
   copy: (serverId: string, moduleId: string, label: string) => Promise<boolean>;
   connectionUrl: (serverId: string, moduleId: string) => Promise<void>;
   remove: (serverId: string, moduleId: string) => Promise<void>;
+  /** Starts, stops or restarts the unit; what comes back is the state it is in. */
+  control: (
+    serverId: string,
+    moduleId: string,
+    cmd: ServiceControl
+  ) => Promise<void>;
   dump: (serverId: string, moduleId: string, name?: string) => Promise<void>;
   importDumps: (
     serverId: string,
     moduleId: string,
     name?: string
   ) => Promise<void>;
+  /** The dumps on the server, listed from the folder `db.dump` writes to. */
+  readDumps: (serverId: string) => Promise<void>;
+  /** Feeds one dump, chosen by its file, to the database its name says. */
+  restoreDump: (
+    serverId: string,
+    moduleId: string,
+    fileName: string
+  ) => Promise<void>;
+  removeDump: (serverId: string, fileName: string) => Promise<void>;
+  /** Opens the database's shell in a terminal tab the main process commands. */
   shell: (serverId: string, moduleId: string) => Promise<void>;
+  /** Brings the last dump to this computer, on its own transfer. */
+  downloadDump: (serverId: string) => Promise<void>;
+  /** Sends dumps chosen on this computer to the server, then imports each one. */
+  importFromComputer: (serverId: string, moduleId: string) => Promise<void>;
   announce: (error: AgentError | null) => void;
   forget: () => void;
 }
 
-function call<T>(
-  serverId: string,
-  cmd: Parameters<Window["pupitre"]["agentCall"]>[1],
-  params?: unknown
-): Promise<AgentResponse<T>> {
-  return window.pupitre.agentCall(serverId, cmd, params) as Promise<
-    AgentResponse<T>
-  >;
+function outsideRoot(): AgentError {
+  return {
+    code: "bad_request",
+    message: "",
+    phrase: { id: "files.outsideRoot" },
+  };
 }
 
 function engineParams(
@@ -136,6 +207,48 @@ function engineParams(
 }
 
 export const useServices = create<ServicesStore>((set, get) => {
+  /** The dump's path as the agent's `fs.*` names it: under the root the agent holds. */
+  async function relativeDump(
+    serverId: string,
+    absolute: string
+  ): Promise<string | null> {
+    const named = await window.pupitre.completions(serverId);
+
+    if (!named.ok) {
+      set({ problem: named.error });
+
+      return null;
+    }
+
+    return within(dirnameOf(named.result.root), absolute);
+  }
+
+  useTransfers.subscribe((state) => {
+    const { pendingImports } = get();
+
+    if (pendingImports.length === 0) {
+      return;
+    }
+
+    const kept: PendingImport[] = [];
+
+    for (const waiting of pendingImports) {
+      const transfer = state.transfers.find(
+        (one) => one.id === waiting.transferId
+      );
+
+      if (transfer?.status === "done") {
+        get().importDumps(waiting.serverId, waiting.moduleId, waiting.name);
+      } else if (transfer && !settled(transfer)) {
+        kept.push(waiting);
+      }
+    }
+
+    if (kept.length !== pendingImports.length) {
+      set({ pendingImports: kept });
+    }
+  });
+
   function note(event: Event): void {
     const step = stepOf(event);
 
@@ -149,7 +262,7 @@ export const useServices = create<ServicesStore>((set, get) => {
   async function database<T>(
     serverId: string,
     moduleId: string,
-    cmd: "db.dump" | "db.import" | "db.shell",
+    cmd: "db.dump" | "db.import",
     kind: DatabaseOutcome["kind"],
     name: string | undefined,
     shape: (result: T) => Omit<DatabaseOutcome, "kind">
@@ -168,6 +281,29 @@ export const useServices = create<ServicesStore>((set, get) => {
       busy: null,
       database: answer.ok ? { kind, ...shape(answer.result) } : null,
       problem: answer.ok ? null : answer.error,
+    });
+  }
+
+  async function readDumps(serverId: string): Promise<void> {
+    set((state) =>
+      state.dumps.status === "ready"
+        ? state
+        : { ...state, dumps: { status: "reading" } }
+    );
+
+    const answer = await call<FsListResult>(serverId, "fs.list", {
+      path: DUMPS_DIR,
+    });
+
+    set({
+      dumps: answer.ok
+        ? {
+            dumps: answer.result.entries.filter(
+              (entry) => entry.kind === "file"
+            ),
+            status: "ready",
+          }
+        : { error: answer.error, status: "failed" },
     });
   }
 
@@ -220,23 +356,47 @@ export const useServices = create<ServicesStore>((set, get) => {
     config: { status: "idle" },
     database: null,
     detail: { status: "idle" },
+    dumps: { status: "idle" },
+    pendingImports: [],
     problem: null,
     removal: { status: "idle" },
     secrets: {},
     steps: [],
     values: {},
 
-    async open(serverId, moduleId) {
+    async open(serverId, moduleId, manifest = null) {
       set({
         apply: { status: "idle" },
         database: null,
         detail: { moduleId, status: "reading" },
+        dumps: { status: "idle" },
         problem: null,
         removal: { status: "idle" },
         steps: [],
       });
 
       await readDetail(serverId, moduleId);
+
+      if (!manifest) {
+        return;
+      }
+
+      await read(serverId, moduleId, defaultsOf(manifest));
+
+      // A module put on the machine for later was never given the passwords
+      // its manifest says to generate: they are made now, as the catalogue
+      // would have, so that applying the form is all that finishes it.
+      const { detail, config } = get();
+      const owed =
+        detail.status === "ready" && !detail.detail.configured
+          ? generatedKeysOf(manifest).filter(
+              (key) => !(config.status === "ready" && config.held.includes(key))
+            )
+          : [];
+
+      for (const key of owed) {
+        await get().generate(serverId, moduleId, key);
+      }
     },
 
     readConfig: read,
@@ -385,8 +545,44 @@ export const useServices = create<ServicesStore>((set, get) => {
       });
     },
 
-    dump(serverId, moduleId, name) {
-      return database<DbDumpResult>(
+    /**
+     * The answer is the state, not the intention: the agent waits for systemd's
+     * verdict and answers what `service.status` would. The credentials it does
+     * not carry are the ones already on the page.
+     */
+    async control(serverId, moduleId, cmd) {
+      set({ busy: cmd, problem: null });
+
+      const answer = await call<ServiceStatusResult>(serverId, cmd, {
+        id: moduleId,
+      });
+
+      set((state) => ({
+        busy: null,
+        detail:
+          answer.ok &&
+          state.detail.status === "ready" &&
+          state.detail.moduleId === moduleId
+            ? {
+                ...state.detail,
+                detail: {
+                  ...state.detail.detail,
+                  state: answer.result.state,
+                  ...(answer.result.version === undefined
+                    ? {}
+                    : { version: answer.result.version }),
+                  ...(answer.result.port === undefined
+                    ? {}
+                    : { port: answer.result.port }),
+                },
+              }
+            : state.detail,
+        problem: answer.ok ? null : answer.error,
+      }));
+    },
+
+    async dump(serverId, moduleId, name) {
+      await database<DbDumpResult>(
         serverId,
         moduleId,
         "db.dump",
@@ -394,6 +590,11 @@ export const useServices = create<ServicesStore>((set, get) => {
         name,
         (result) => ({ bytes: result.size_bytes, lines: [result.path] })
       );
+
+      // The list, when the reader has it open, shows the file that just landed.
+      if (get().database?.kind === "dump" && get().dumps.status !== "idle") {
+        await readDumps(serverId);
+      }
     },
 
     importDumps(serverId, moduleId, name) {
@@ -402,20 +603,105 @@ export const useServices = create<ServicesStore>((set, get) => {
         moduleId,
         "db.import",
         "import",
-        name,
+        name === undefined ? undefined : databaseOfDump(name),
         (result) => ({ lines: result.imported })
       );
     },
 
-    shell(serverId, moduleId) {
-      return database<DbShellResult>(
-        serverId,
-        moduleId,
-        "db.shell",
-        "shell",
-        undefined,
-        (result) => ({ lines: [result.command] })
-      );
+    readDumps,
+
+    restoreDump(serverId, moduleId, fileName) {
+      return get().importDumps(serverId, moduleId, fileName);
+    },
+
+    async removeDump(serverId, fileName) {
+      set({ busy: "fs.remove", problem: null });
+
+      const answer = await call<FsRemoveResult>(serverId, "fs.remove", {
+        path: under(DUMPS_DIR, fileName),
+      });
+
+      set({ busy: null, problem: answer.ok ? null : answer.error });
+
+      if (answer.ok) {
+        await readDumps(serverId);
+      }
+    },
+
+    /**
+     * The tab is opened on an identifier the main process chose: the command
+     * the agent composed waits there, under that identifier, and the terminal
+     * that mounts on it runs it without this side ever reading the line.
+     */
+    async shell(serverId, moduleId) {
+      set({ busy: "db.shell", problem: null });
+
+      const answer = await window.pupitre.openDatabaseShell(serverId, moduleId);
+
+      set({ busy: null, problem: answer.ok ? null : answer.error });
+
+      if (!answer.ok) {
+        return;
+      }
+
+      const { detail } = get();
+      const title =
+        detail.status === "ready" && detail.moduleId === moduleId
+          ? detail.detail.name
+          : moduleId;
+
+      useNavigation
+        .getState()
+        .openTerminal(null, "shell", null, { id: answer.result.id, title });
+    },
+
+    async downloadDump(serverId) {
+      const { database } = get();
+      const absolute =
+        database?.kind === "dump" ? database.lines[0] : undefined;
+
+      if (!absolute) {
+        return;
+      }
+
+      const relative = await relativeDump(serverId, absolute);
+
+      if (relative === null) {
+        set({ problem: outsideRoot() });
+
+        return;
+      }
+
+      await useTransfers.getState().pickAndDownload(serverId, relative, "file");
+    },
+
+    async importFromComputer(serverId, moduleId) {
+      if (!engineParams(moduleId)) {
+        return;
+      }
+
+      const paths = await window.pupitre.pickUploadPaths();
+      const started = await useTransfers
+        .getState()
+        .upload(serverId, DUMPS_DIR, paths);
+
+      if (started.length === 0) {
+        return;
+      }
+
+      set({
+        database: null,
+        pendingImports: [
+          ...get().pendingImports,
+          ...started.map((transfer) => ({
+            moduleId,
+            name: transfer.name,
+            serverId,
+            transferId: transfer.id,
+          })),
+        ],
+        problem: null,
+      });
     },
 
     announce(error) {
@@ -429,6 +715,8 @@ export const useServices = create<ServicesStore>((set, get) => {
         config: { status: "idle" },
         database: null,
         detail: { status: "idle" },
+        dumps: { status: "idle" },
+        pendingImports: [],
         problem: null,
         removal: { status: "idle" },
         secrets: {},

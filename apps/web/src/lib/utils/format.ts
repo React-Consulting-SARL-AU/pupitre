@@ -17,7 +17,38 @@ export function formatBytes(bytes: number, t: Translate): string {
     unit += 1
   }
 
-  return `${value.toFixed(value >= 10 || unit === 0 ? 0 : 1)} ${units[unit]}`
+  const written = value.toFixed(value >= 10 || unit === 0 ? 0 : 1)
+
+  return `${t.locale === "fr" ? written.replace(".", ",") : written} ${units[unit]}`
+}
+
+const BYTES_PER_GB = 1024 ** 3
+
+const BYTES_PER_MB = 1024 ** 2
+
+/**
+ * What a machine holds and how much of it is taken, in the unit that suits the
+ * figure — a percentage says the disk is at 94 %, this says how many gigabytes
+ * are left to work with. Null for a server whose agent measured neither.
+ */
+export function formatUsed(
+  used: number | null,
+  total: number | null,
+  t: Translate
+): string | null {
+  if (used === null || total === null || total <= 0) {
+    return null
+  }
+
+  return `${formatBytes(used, t)} / ${formatBytes(total, t)}`
+}
+
+export function gigabytesToBytes(gb: number | null): number | null {
+  return gb === null ? null : gb * BYTES_PER_GB
+}
+
+export function megabytesToBytes(mb: number | null): number | null {
+  return mb === null ? null : mb * BYTES_PER_MB
 }
 
 export function formatRatio(ratio: number, t: Translate): string {

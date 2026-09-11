@@ -12,7 +12,7 @@ import {
   unreachableGrants,
   useFleet,
 } from "@renderer/stores/fleet";
-import { Undo2, Users } from "lucide-react";
+import { ExternalLink, Undo2, Users } from "lucide-react";
 import { useEffect } from "react";
 import { FleetOrganizations } from "./fleet-organizations";
 import { FleetServerRow } from "./fleet-server-row";
@@ -80,9 +80,17 @@ export function FleetPanel({
 
   return (
     <section className="flex flex-col gap-4">
-      <div>
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <Label>{t("fleet.heading")}</Label>
-        <p className="mt-1 text-ink-3 leading-relaxed">{t("fleet.intro")}</p>
+
+        {/* Members, assignment and revocation live on the console, not here. */}
+        <Button
+          icon={ExternalLink}
+          onClick={() => window.pupitre.openUrl(account.consoleUrl)}
+          size="sm"
+        >
+          {t("fleet.console.open")}
+        </Button>
       </div>
 
       <FleetOrganizations identity={identity} />

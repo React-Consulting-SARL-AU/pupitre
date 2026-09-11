@@ -202,22 +202,6 @@
     transform var(--motion-enter);
 }
 
-@keyframes breathe {
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.3;
-  }
-}
-
-/* The only animation the system allows, and it means one thing: in progress. */
-@utility breathe {
-  animation: breathe var(--motion-breathe);
-}
-
 /* Read out loud and never drawn: the live regions, and the caption of a control that carries only a glyph. */
 @utility sr-only {
   position: absolute;

@@ -24,14 +24,7 @@ function DownloadPending() {
   const t = useTranslations()
   const { title, parents } = pageTitle(ROUTE_ID)
 
-  return (
-    <PageSkeleton
-      description={t("page.download.description")}
-      parents={parents}
-      shape="cards"
-      title={t(title)}
-    />
-  )
+  return <PageSkeleton parents={parents} shape="cards" title={t(title)} />
 }
 
 function DownloadPage() {
@@ -40,11 +33,7 @@ function DownloadPage() {
 
   return (
     <>
-      <PageHeader
-        description={t("page.download.description")}
-        parents={parents}
-        title={t(title)}
-      />
+      <PageHeader parents={parents} title={t(title)} />
       <DownloadPanel />
     </>
   )

@@ -1,18 +1,19 @@
 import { Button } from "@renderer/components/ui/button";
+import { IconButton } from "@renderer/components/ui/icon-button";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { LogIn, X } from "lucide-react";
+import { ExternalLink, LogIn, X } from "lucide-react";
 
-/** The host is shown, not the address: the reader sees where the page leads. */
+/** The host is shown, not the address: the reader sees where the browser will go. */
 export function TerminalLoginBar({
   host,
-  open,
+  opened,
   onOpen,
-  onClose,
+  onDismiss,
 }: {
   host: string;
-  open: boolean;
-  onOpen: () => void;
-  onClose: () => void;
+  opened: boolean;
+  onOpen: () => Promise<void>;
+  onDismiss: () => void;
 }) {
   const t = useTranslations();
 
@@ -21,19 +22,25 @@ export function TerminalLoginBar({
       <LogIn className="shrink-0 text-ink-3" size={14} strokeWidth={1.5} />
 
       <p className="min-w-0 flex-1 text-[13px] text-ink-2">
-        {open ? t("terminals.loginActive") : t("terminals.loginWaiting")}
+        {opened ? t("terminals.loginOpened") : t("terminals.loginWaiting")}
         <span className="font-data text-ink">{host}</span>
       </p>
 
-      {open ? (
-        <Button icon={X} onClick={onClose} size="sm" variant="discreet">
-          {t("terminals.closePage")}
-        </Button>
-      ) : (
-        <Button icon={LogIn} onClick={onOpen} size="sm" variant="inverse">
-          {t("terminals.loginHere")}
-        </Button>
-      )}
+      <Button
+        icon={ExternalLink}
+        onClick={onOpen}
+        size="sm"
+        variant={opened ? "discreet" : "inverse"}
+      >
+        {opened ? t("terminals.loginAgain") : t("terminals.loginOpen")}
+      </Button>
+
+      <IconButton
+        icon={X}
+        label={t("terminals.loginDismiss")}
+        onClick={onDismiss}
+        size={13}
+      />
     </div>
   );
 }

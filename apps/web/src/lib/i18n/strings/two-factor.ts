@@ -9,7 +9,7 @@ export const twoFactor = {
     "twoFactor.readFailedFix":
       "The platform did not answer. Try again in a moment.",
     "twoFactor.activeLead":
-      "Active. Your recovery codes stand in for the app if you lose the phone.",
+      "Your recovery codes stand in for the app if you lose the phone.",
     "twoFactor.disable": "Turn off",
     "twoFactor.disableTitle": "Turn off the second factor?",
     "twoFactor.disableDescription":
@@ -46,7 +46,7 @@ export const twoFactor = {
     "twoFactor.readFailedFix":
       "La plateforme n'a pas répondu. Réessayez dans un instant.",
     "twoFactor.activeLead":
-      "Actif. Vos codes de récupération remplacent l'application si vous perdez le téléphone.",
+      "Vos codes de récupération remplacent l'application si vous perdez le téléphone.",
     "twoFactor.disable": "Désactiver",
     "twoFactor.disableTitle": "Désactiver le second facteur ?",
     "twoFactor.disableDescription":

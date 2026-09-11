@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"
-import { LEGAL_DOCUMENTS } from "@pupitre/shared/legal"
+import { LEGAL_DOCUMENTS, LEGAL_ENTITY } from "@pupitre/shared/legal"
 import { describe, expect, it } from "vitest"
 import { LOCALES } from "../lib/i18n"
 
@@ -53,6 +53,14 @@ describe("les pages légales", () => {
 
         expect(content, document.slug).not.toContain("LLC")
         expect(content, document.slug).not.toContain("Inc.")
+      }
+    }
+  })
+
+  it("nomment le titulaire des droits tant que la société n'existe pas", () => {
+    for (const locale of LOCALES) {
+      for (const slug of ["terms", "licence"]) {
+        expect(read(locale, slug), slug).toContain(LEGAL_ENTITY.owner)
       }
     }
   })

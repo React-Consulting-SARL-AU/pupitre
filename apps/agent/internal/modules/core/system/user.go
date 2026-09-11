@@ -2,7 +2,6 @@ package system
 
 import (
 	"errors"
-	"fmt"
 	"io/fs"
 	"strings"
 
@@ -20,10 +19,6 @@ import (
 func setTimezone(ctx *modules.Context) error {
 	return ctx.Step("set-timezone", func() (modules.Outcome, error) {
 		zone := ctx.String("timezone")
-		if zone == "" || strings.HasPrefix(zone, "/") || strings.Contains(zone, "..") {
-			return modules.Failed, fmt.Errorf("fuseau horaire invalide : %q", zone)
-		}
-
 		if file.Same(ctx, timezonePath, []byte(zone+"\n")) {
 			return modules.Skipped, nil
 		}
@@ -158,10 +153,6 @@ func readKeys(ctx *modules.Context, path string) (keys.Parsed, error) {
 func createProjectsDir(ctx *modules.Context) error {
 	return ctx.Step("create-projects-dir", func() (modules.Outcome, error) {
 		dir := ctx.String("projects_dir")
-		if !strings.HasPrefix(dir, "/") || strings.Contains(dir, "\n") {
-			return modules.Failed, fmt.Errorf("invalid projects folder: %q", dir)
-		}
-
 		if file.Exists(ctx, dir) {
 			return modules.Skipped, nil
 		}
@@ -172,12 +163,7 @@ func createProjectsDir(ctx *modules.Context) error {
 
 func setGitIdentity(ctx *modules.Context) error {
 	return ctx.Step("set-git-identity", func() (modules.Outcome, error) {
-		name, email := ctx.String("git_name"), ctx.String("git_email")
-		if name == "" || email == "" || strings.ContainsAny(name+email, "\n\r") {
-			return modules.Failed, errors.New(i18n.T("module.core.system.git_identity.required"))
-		}
-
-		return ensureOwnedBlock(ctx, gitconfigPath, gitIdentity(name, email))
+		return ensureOwnedBlock(ctx, gitconfigPath, gitIdentity(ctx.String("git_name"), ctx.String("git_email")))
 	})
 }
 

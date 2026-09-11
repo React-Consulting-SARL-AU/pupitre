@@ -70,9 +70,6 @@ export function TrialOffer({ organizationId }: TrialOfferProps) {
             <Rocket className="size-4" strokeWidth={1.5} />
             {order.isPending ? t("start.actionPending") : t("start.action")}
           </Button>
-          <p className="text-center text-[12px] text-ink-3">
-            {t("start.lead")}
-          </p>
         </div>
 
         {order.isError ? (

@@ -18,7 +18,11 @@ import (
 type Options struct {
 	AgentVersion string
 	Entitlement  func() entitlement.State
-	Now          func() time.Time
+	// Config says where the configuration on the machine stands against this
+	// binary. Nil is a server with no ledger to consult — a test, a direct
+	// call — and its commands are gated by the entitlement alone.
+	Config func() contract.ConfigRevision
+	Now    func() time.Time
 }
 
 type Server struct {
@@ -59,6 +63,22 @@ func (s *Server) Entitlement() entitlement.State {
 	return s.options.Entitlement()
 }
 
+// Config is asked again for every command, like the entitlement: a migration
+// that goes through mid-session reopens the agent without a reconnection.
+func (s *Server) Config() contract.ConfigRevision {
+	if s.options.Config == nil {
+		return contract.ConfigRevision{State: contract.ConfigCurrent}
+	}
+
+	return s.options.Config()
+}
+
+func (s *Server) gate(cmd string) (contract.ConfigRevision, bool) {
+	config := s.Config()
+
+	return config, !(config.Current() || allowedWhileMigrating(cmd))
+}
+
 func (s *Server) Capabilities() []string {
 	capabilities := make([]string, 0, len(s.handlers))
 	for cmd := range s.handlers {
@@ -80,6 +100,10 @@ func (s *Server) Call(cmd string, params any, emit func(event string, fields map
 
 	if !s.Entitlement().Allows(cmd) {
 		return nil, EntitlementRequired()
+	}
+
+	if config, gated := s.gate(cmd); gated {
+		return nil, migrationRequired(config)
 	}
 
 	if params == nil {
@@ -210,6 +234,10 @@ func (s *session) dispatch(id int64, cmd string, params any, line []byte) (any, 
 
 	if !s.server.Entitlement().Allows(cmd) {
 		return nil, EntitlementRequired()
+	}
+
+	if config, gated := s.server.gate(cmd); gated {
+		return nil, migrationRequired(config)
 	}
 
 	if err := contract.Validate(contract.ParamsDefinition(cmd), params); err != nil {

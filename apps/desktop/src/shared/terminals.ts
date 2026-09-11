@@ -37,7 +37,24 @@ export interface Terminal {
   kind: TerminalKind;
   title: string;
   project: string | null;
+  /** A folder under the project's, or under the server's root, the shell opened in. */
   dir: string | null;
+  /** The tmux session the tab attaches to, named by the main process. */
+  session: string | null;
+  /**
+   * A tab the last run left behind.
+   *
+   * It is drawn, it can be renamed and closed, but nothing is attached until
+   * the reader comes back to it: a relaunch must not open ten sessions on the
+   * machine for tabs nobody has asked for yet.
+   */
+  dormant: boolean;
+}
+
+/** What a tab that closes for good takes with it: the session it held. */
+export interface TerminalEnd {
+  serverId: string;
+  session: string;
 }
 
 /** What the main process answers once a session is up. */
@@ -55,12 +72,4 @@ export interface TerminalOpened {
 export interface TerminalLink {
   id: string;
   host: string;
-}
-
-/** Where the in-app browser sits, in the window's own coordinates. */
-export interface ViewBounds {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
 }

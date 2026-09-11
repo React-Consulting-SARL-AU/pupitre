@@ -2,6 +2,7 @@ import { Button } from "@renderer/components/ui/button";
 import { Label } from "@renderer/components/ui/label";
 import { StatusDot } from "@renderer/components/ui/status-dot";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { roleLabel } from "@renderer/lib/roles";
 import { useAccount } from "@renderer/stores/account";
 import type { AccountIdentity } from "@shared/account";
 
@@ -39,8 +40,8 @@ export function FleetOrganizations({
               <span className="min-w-0 flex-1 truncate text-ink-2">
                 {organization.name}
               </span>
-              <span className="font-data text-[12px] text-ink-3">
-                {organization.role}
+              <span className="text-[12px] text-ink-3">
+                {roleLabel(t, organization.role)}
               </span>
 
               {active ? (
@@ -60,10 +61,6 @@ export function FleetOrganizations({
           );
         })}
       </ul>
-
-      <p className="mt-3 border-line border-t pt-3 text-[12px] text-ink-3 leading-relaxed">
-        {t("fleet.organizations.note")}
-      </p>
     </div>
   );
 }

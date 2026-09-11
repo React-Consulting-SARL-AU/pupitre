@@ -1,7 +1,8 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { Check } from "lucide-react";
+import { ActionBar } from "../ui/action-bar";
 import { Button } from "../ui/button";
-import { PageHeader } from "../ui/page-header";
+import { Screen } from "../ui/screen";
 import { StatusDot } from "../ui/status-dot";
 
 const ROOT_LINE = {
@@ -31,18 +32,20 @@ export function OnboardingDoneScreen({
   const hardened = root !== "open";
 
   return (
-    <section className="flex flex-col gap-section">
-      <PageHeader
-        actions={
+    <Screen
+      column
+      eyebrow={t("onboarding.done.eyebrow")}
+      footer={
+        <ActionBar name="done">
           <Button icon={Check} onClick={onClose} variant="inverse">
             {t("onboarding.finish")}
           </Button>
-        }
-        description={t("onboarding.done.description")}
-        eyebrow={t("onboarding.done.eyebrow")}
-        title={serverName ?? t("onboarding.thisServer")}
-      />
-
+        </ActionBar>
+      }
+      plain
+      step="done"
+      title={serverName ?? t("onboarding.thisServer")}
+    >
       <div className="elevation-raised flex items-start gap-3 rounded-md border border-line bg-surface px-4 py-4">
         <span className="translate-y-1">
           <StatusDot
@@ -61,6 +64,6 @@ export function OnboardingDoneScreen({
           </p>
         </div>
       </div>
-    </section>
+    </Screen>
   );
 }

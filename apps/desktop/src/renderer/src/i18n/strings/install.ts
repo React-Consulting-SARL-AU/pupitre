@@ -8,7 +8,6 @@ export const install = {
     "install.warned": "{name}: installed, with a warning.",
     "install.continue": "Continue",
     "install.allDone": "Everything is installed.",
-    "install.ready": "The server is ready for what comes next.",
     "install.leftFailed.one":
       "1 service could not be installed; you can try again later from Services.",
     "install.leftFailed.other":
@@ -16,17 +15,14 @@ export const install = {
     "install.blocking": "{names}: the rest depends on it.",
     "install.progress.one": "{count} service of {total}",
     "install.progress.other": "{count} services of {total}",
-    "install.streaming": "Steps show up as they happen.",
     "install.stepAt": "Step {index}",
     "install.stepLong":
-      "This is taking longer than usual. A download or a package install can; if nothing moves after a while, reread the report once the link is back.",
+      "This is taking longer than usual. If nothing moves after a while, reread the report once the link is back.",
     "install.eyebrow": "Installation",
     "install.thisServer": "This server",
     "install.rereadReport": "Reread the report",
     "install.retry": "Try again",
     "install.sending.detail": "The agent is copied onto the server.",
-    "install.sending.note":
-      "pupitred linux-{arch} travels over the SSH connection and installs into /usr/local/bin; its checksum is verified before the first command.",
     "install.sending.title": "Installing the agent",
     "install.moduleStatus.pending": "waiting",
     "install.moduleStatus.running": "installing",
@@ -52,7 +48,6 @@ export const install = {
     "install.warned": "{name} : installé, avec un avertissement.",
     "install.continue": "Continuer",
     "install.allDone": "Tout est installé.",
-    "install.ready": "Le serveur est prêt pour la suite.",
     "install.leftFailed.one":
       "1 service n'a pas pu être installé ; vous pourrez réessayer plus tard depuis Services.",
     "install.leftFailed.other":
@@ -60,17 +55,14 @@ export const install = {
     "install.blocking": "{names} : la suite en dépend.",
     "install.progress.one": "{count} service sur {total}",
     "install.progress.other": "{count} services sur {total}",
-    "install.streaming": "Les étapes s'affichent au fur et à mesure.",
     "install.stepAt": "Étape {index}",
     "install.stepLong":
-      "C'est plus long que d'habitude. Un téléchargement ou un paquet peuvent l'être ; si rien ne bouge au bout d'un moment, relisez le rapport une fois la liaison rétablie.",
+      "C'est plus long que d'habitude. Si rien ne bouge au bout d'un moment, relisez le rapport une fois la liaison rétablie.",
     "install.eyebrow": "Installation",
     "install.thisServer": "Ce serveur",
     "install.rereadReport": "Relire le rapport",
     "install.retry": "Réessayer",
     "install.sending.detail": "L'agent est copié sur le serveur.",
-    "install.sending.note":
-      "pupitred linux-{arch} passe par la connexion SSH et s'installe dans /usr/local/bin ; sa somme de contrôle est vérifiée avant la première commande.",
     "install.sending.title": "Installation de l'agent",
     "install.moduleStatus.pending": "en attente",
     "install.moduleStatus.running": "installation",

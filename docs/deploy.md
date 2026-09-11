@@ -136,8 +136,8 @@ Un produit et deux prix, à créer **deux fois** : en sandbox pour le staging, e
 | | |
 | --- | --- |
 | Produit | `Pupitre Server`, code fiscal `txcd_10103001` (logiciel en ligne, usage professionnel) |
-| Prix mensuel | 19 $, taxe en sus → `STRIPE_PRICE_SERVER_MONTH` |
-| Prix annuel | 190 $, deux mois offerts → `STRIPE_PRICE_SERVER_YEAR` |
+| Prix mensuel | 10 $, taxe en sus → `STRIPE_PRICE_SERVER_MONTH` |
+| Prix annuel | 100 $, deux mois offerts → `STRIPE_PRICE_SERVER_YEAR` |
 
 `STRIPE_SECRET_KEY` se relève dans *Developers* → *API keys*.
 

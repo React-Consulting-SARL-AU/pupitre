@@ -32,7 +32,7 @@ export function InstallOutcomeBar({
 
   const blocked = blocking.length > 0;
 
-  function note(): string {
+  function note(): string | undefined {
     if (blocked) {
       return t("install.blocking", { names: blocking.map(nameOf).join(", ") });
     }
@@ -41,7 +41,7 @@ export function InstallOutcomeBar({
       return t.plural("install.leftFailed", result.failed.length);
     }
 
-    return t("install.ready");
+    return undefined;
   }
 
   return (

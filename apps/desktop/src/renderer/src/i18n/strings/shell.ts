@@ -4,6 +4,8 @@ export const shell = {
     "shell.sidebar.closeTerminal": "Close {title}",
     "shell.sidebar.dashboard": "Dashboard",
     "shell.sidebar.gallery": "Gallery",
+    "shell.sidebar.files": "Files",
+    "shell.sidebar.newProject": "Add a project",
     "shell.sidebar.newTerminal": "Open a terminal on the server",
     "shell.sidebar.noProjects": "No project declared.",
     "shell.sidebar.noServer": "No server",
@@ -12,13 +14,33 @@ export const shell = {
     "shell.sidebar.services": "Services",
     "shell.sidebar.settings": "Settings",
     "shell.sidebar.terminals": "Terminals",
+    "shell.switch.label": "Driving {name}. Switch server",
+    "shell.signOut.title": "Sign out of this account?",
+    "shell.signOut.detail":
+      "The servers stay on this computer; what needs the account waits for the next sign-in.",
+    "shell.signOut.confirm": "Sign out",
+    "palette.title": "Go to",
+    "palette.search": "Search a view, a project, a terminal or a server",
+    "palette.placeholder": "Go to a view, a project, a terminal, a server",
+    "palette.empty": "Nothing named {term}.",
+    "palette.count.one": "{count} result",
+    "palette.count.other": "{count} results",
+    "palette.kind.view": "view",
+    "palette.kind.project": "project",
+    "palette.kind.terminal": "terminal",
+    "palette.kind.server": "server",
+    "palette.escape": "esc",
+    "palette.close": "Close the palette",
+    "shell.switch.menu": "Servers",
+    "shell.switch.manage": "Manage the servers",
+    "shell.history.label": "History",
+    "shell.history.back": "Back ({shortcut})",
+    "shell.history.forward": "Forward ({shortcut})",
     "shell.failure.message":
       "This screen could not be drawn. Nothing on the server changed.",
     "shell.failure.retry": "Draw it again",
     "shell.restricted.console": "Open the console",
     "shell.restricted.repair": "Re-enrol this server",
-    "shell.restricted.repairTitle":
-      "Ask the console for a fresh enrolment token and hand it to the agent. Nothing running on the server is stopped.",
     "shell.restricted.message":
       "This server no longer holds a valid usage right: it can be read, and refuses everything else. Nothing that was running on it has been stopped.",
     "shell.restricted.fix":
@@ -26,35 +48,41 @@ export const shell = {
     "shell.firstRun.eyebrow": "First server",
     "shell.firstRun.title": "Take a machine in hand",
     "shell.firstRun.body":
-      "Pupitre drives a server you own. Give it an address and an account; it does the rest, and says what it is doing at every step.",
+      "Give Pupitre the address of a server you own and an account on it.",
     "shell.firstRun.step.inspect.title": "It inspects the machine",
     "shell.firstRun.step.inspect.detail":
-      "Distribution, memory, disk, listening ports, existing accounts. Nothing is written on the server: the probe only reads.",
+      "Distribution, memory, disk, listening ports, existing accounts. Nothing is written on the server.",
     "shell.firstRun.step.install.title": "It installs what you choose",
     "shell.firstRun.step.install.detail":
-      "Databases, runtimes, editors, AI agents. Each service is a module of the catalogue, installed by the agent, replayable if it fails.",
+      "Databases, runtimes, editors, AI agents, each replayable if it fails.",
     "shell.firstRun.step.harden.title": "It closes the door behind it",
     "shell.firstRun.step.harden.detail":
-      "A dev account, a firewall, then root and passwords closed — but only once a key has been proven to open the machine.",
+      "A dev account, a firewall, then root and passwords closed once a key opens the machine.",
     "shell.firstRun.addServer": "Add a server",
     "shell.firstRun.settings": "Open the settings",
-    "shell.firstRun.note":
-      "The private key stays on this computer. The server only ever receives a signed binary and its configuration files.",
+    "shell.rebooting.eyebrow": "Server",
+    "shell.rebooting.title": "Restarting {name}",
+    "shell.rebooting.waiting": "Waiting for {name} to answer",
+    "shell.rebooting.detail":
+      "A restart usually takes about a minute. Nothing needs doing on your side.",
     "shell.unready.eyebrow": "Connection",
     "shell.unready.installAgent": "Install the agent",
     "shell.unready.manageServers": "Manage servers",
     "shell.unready.notRespondingBody":
-      "The agent did not answer on this machine. If it isn't there yet, the installation puts it in place; otherwise, here is what the connection returned.",
+      "The agent did not answer. Here is what the connection returned.",
     "shell.unready.notRespondingTitle": "{name} isn't responding yet",
     "shell.unready.reachingTitle": "Reaching {name}",
-    "shell.unready.reachingBody":
-      "The app is opening its link to the machine and asking the agent how things stand.",
+    "shell.stale.message":
+      "{name} has stopped answering. What is shown is the last reading that came through.",
+    "shell.stale.retry": "Read again",
   },
   fr: {
     "shell.sidebar.activity": "Processus et sessions",
     "shell.sidebar.closeTerminal": "Fermer {title}",
     "shell.sidebar.dashboard": "Tableau de bord",
     "shell.sidebar.gallery": "Galerie",
+    "shell.sidebar.files": "Fichiers",
+    "shell.sidebar.newProject": "Ajouter un projet",
     "shell.sidebar.newTerminal": "Ouvrir un terminal sur le serveur",
     "shell.sidebar.noProjects": "Aucun projet déclaré.",
     "shell.sidebar.noServer": "Aucun serveur",
@@ -63,13 +91,34 @@ export const shell = {
     "shell.sidebar.services": "Services",
     "shell.sidebar.settings": "Réglages",
     "shell.sidebar.terminals": "Terminaux",
+    "shell.switch.label": "{name} est piloté. Changer de serveur",
+    "shell.signOut.title": "Se déconnecter de ce compte ?",
+    "shell.signOut.detail":
+      "Les serveurs restent sur cet ordinateur ; ce qui a besoin du compte attend la prochaine connexion.",
+    "shell.signOut.confirm": "Se déconnecter",
+    "palette.title": "Aller à",
+    "palette.search": "Chercher une vue, un projet, un terminal ou un serveur",
+    "palette.placeholder":
+      "Aller à une vue, un projet, un terminal, un serveur",
+    "palette.empty": "Rien qui s'appelle {term}.",
+    "palette.count.one": "{count} résultat",
+    "palette.count.other": "{count} résultats",
+    "palette.kind.view": "vue",
+    "palette.kind.project": "projet",
+    "palette.kind.terminal": "terminal",
+    "palette.kind.server": "serveur",
+    "palette.escape": "échap",
+    "palette.close": "Fermer la palette",
+    "shell.switch.menu": "Serveurs",
+    "shell.switch.manage": "Gérer les serveurs",
+    "shell.history.label": "Historique",
+    "shell.history.back": "Retour ({shortcut})",
+    "shell.history.forward": "Avancer ({shortcut})",
     "shell.failure.message":
       "Cet écran n'a pas pu être dessiné. Rien n'a changé sur le serveur.",
     "shell.failure.retry": "Le dessiner à nouveau",
     "shell.restricted.console": "Ouvrir la console",
     "shell.restricted.repair": "Ré-enrôler ce serveur",
-    "shell.restricted.repairTitle":
-      "Demande un jeton d'enrôlement neuf à la console et le remet à l'agent. Rien de ce qui tourne sur le serveur ne s'arrête.",
     "shell.restricted.message":
       "Ce serveur n'a plus de droit d'usage valide : il se laisse lire, et refuse tout le reste. Rien de ce qui tournait dessus ne s'est arrêté.",
     "shell.restricted.fix":
@@ -77,28 +126,32 @@ export const shell = {
     "shell.firstRun.eyebrow": "Premier serveur",
     "shell.firstRun.title": "Prenez une machine en main",
     "shell.firstRun.body":
-      "Pupitre pilote un serveur qui est à vous. Donnez-lui une adresse et un compte ; il fait le reste, et dit ce qu'il fait à chaque étape.",
+      "Donnez à Pupitre l'adresse d'un serveur qui est à vous et un compte dessus.",
     "shell.firstRun.step.inspect.title": "Il inspecte la machine",
     "shell.firstRun.step.inspect.detail":
-      "Distribution, mémoire, disque, ports écoutés, comptes existants. Rien n'est écrit sur le serveur : la sonde ne fait que lire.",
+      "Distribution, mémoire, disque, ports écoutés, comptes existants. Rien n'est écrit sur le serveur.",
     "shell.firstRun.step.install.title": "Il installe ce que vous choisissez",
     "shell.firstRun.step.install.detail":
-      "Bases de données, runtimes, éditeurs, agents IA. Chaque service est un module du catalogue, installé par l'agent, rejouable s'il échoue.",
+      "Bases de données, runtimes, éditeurs, agents IA, chacun rejouable s'il échoue.",
     "shell.firstRun.step.harden.title": "Il referme la porte derrière lui",
     "shell.firstRun.step.harden.detail":
-      "Un compte dev, un pare-feu, puis root et les mots de passe fermés — mais seulement une fois qu'une clé a fait la preuve qu'elle ouvre la machine.",
+      "Un compte dev, un pare-feu, puis root et les mots de passe fermés une fois qu'une clé ouvre la machine.",
     "shell.firstRun.addServer": "Ajouter un serveur",
     "shell.firstRun.settings": "Ouvrir les réglages",
-    "shell.firstRun.note":
-      "La clé privée reste sur cet ordinateur. Le serveur ne reçoit jamais qu'un binaire signé et ses fichiers de configuration.",
+    "shell.rebooting.eyebrow": "Serveur",
+    "shell.rebooting.title": "Redémarrage de {name}",
+    "shell.rebooting.waiting": "En attente que {name} réponde",
+    "shell.rebooting.detail":
+      "Un redémarrage prend en général une minute. Rien à faire de votre côté.",
     "shell.unready.eyebrow": "Connexion",
     "shell.unready.installAgent": "Installer l'agent",
     "shell.unready.manageServers": "Gérer les serveurs",
     "shell.unready.notRespondingBody":
-      "L'agent n'a pas répondu sur cette machine. S'il n'y est pas encore, l'installation le pose ; sinon, voici ce que la connexion a renvoyé.",
+      "L'agent n'a pas répondu. Voici ce que la connexion a renvoyé.",
     "shell.unready.notRespondingTitle": "{name} ne répond pas encore",
     "shell.unready.reachingTitle": "Connexion à {name}",
-    "shell.unready.reachingBody":
-      "L'app ouvre son lien vers la machine et demande à l'agent où en sont les choses.",
+    "shell.stale.message":
+      "{name} ne répond plus. Ce qui est affiché est le dernier relevé reçu.",
+    "shell.stale.retry": "Relire",
   },
 } as const;

@@ -1,11 +1,15 @@
 import { z } from "zod"
 import { PortSchema } from "./ports"
 import {
+  GitBranchSchema,
+  HostnameSchema,
   PackageManagerSchema,
   ProjectNameSchema,
   ProjectRegistrationSchema,
   ProjectSchema,
   ProjectStateSchema,
+  ProjectSubdomainSchema,
+  RouteLabelSchema,
 } from "./state"
 
 export const ProjectParamsSchema = z.strictObject({
@@ -39,19 +43,81 @@ export const ProjectAddResultSchema = ProjectSchema
 
 export type ProjectAddResult = z.infer<typeof ProjectAddResultSchema>
 
-/** A repository, or a folder relative to the projects root — one of the two, never both. */
+/**
+ * A route as the configuration screen sends it back: a subdomain for the agent
+ * to complete with the server's domain, or a whole hostname for a reader who
+ * wants another one — never both, and neither for a port that stays local.
+ */
+export const RoutePatchSchema = z
+  .strictObject({
+    label: RouteLabelSchema,
+    port: PortSchema,
+    subdomain: ProjectSubdomainSchema.optional(),
+    hostname: HostnameSchema.optional(),
+  })
+  .refine((route) => !(route.subdomain && route.hostname), {
+    message: "a route names a subdomain or a hostname, not both",
+  })
+
+export type RoutePatch = z.infer<typeof RoutePatchSchema>
+
+/**
+ * What can change about a declared project without removing it.
+ *
+ * `routes` replaces the whole list: the screen sends what it shows, and a route
+ * missing from it is a route that goes. An empty `install` hands the command
+ * back to the package manager.
+ */
+export const ProjectPatchSchema = z.strictObject({
+  cmd: z.string().min(1).optional(),
+  install: z.string().optional(),
+  branch: GitBranchSchema.optional(),
+  routes: z.array(RoutePatchSchema).optional(),
+})
+
+export type ProjectPatch = z.infer<typeof ProjectPatchSchema>
+
+export const ProjectUpdateParamsSchema = z.strictObject({
+  name: ProjectNameSchema,
+  patch: ProjectPatchSchema,
+})
+
+export type ProjectUpdateParams = z.infer<typeof ProjectUpdateParamsSchema>
+
+export const ProjectUpdateResultSchema = ProjectSchema
+
+export type ProjectUpdateResult = z.infer<typeof ProjectUpdateResultSchema>
+
+/**
+ * A repository, or a folder relative to the projects root — one of the two,
+ * never both. A branch only means something for a repository: a folder already
+ * on the machine is read as it stands.
+ */
 export const ProjectDetectParamsSchema = z.union([
-  z.strictObject({ repo: z.string().min(1) }),
+  z.strictObject({
+    repo: z.string().min(1),
+    branch: GitBranchSchema.optional(),
+  }),
   z.strictObject({ dir: z.string().min(1) }),
 ])
 
 export type ProjectDetectParams = z.infer<typeof ProjectDetectParamsSchema>
+
+/** One port a workspace of a monorepo asks for, named after that workspace. */
+export const DetectedRouteSchema = z.object({
+  label: RouteLabelSchema,
+  port: PortSchema,
+})
+
+export type DetectedRoute = z.infer<typeof DetectedRouteSchema>
 
 export const ProjectDetectResultSchema = z.object({
   pkgmgr: PackageManagerSchema,
   install: z.string().optional(),
   cmd: z.string().optional(),
   port_hint: PortSchema.optional(),
+  /** The ports of a monorepo's workspaces, when the root runs them all at once. */
+  routes: z.array(DetectedRouteSchema).optional(),
 })
 
 export type ProjectDetectResult = z.infer<typeof ProjectDetectResultSchema>

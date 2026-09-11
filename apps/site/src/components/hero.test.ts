@@ -13,7 +13,9 @@ describe("Hero", () => {
       const html = await render(Hero, { path: paths[locale] })
       const { hero } = homeContent(locale)
 
-      expect(html, locale).toContain(`>${hero.headline}</h1>`)
+      expect(html, locale).toContain(
+        `${hero.headline.slice(0, -hero.cooled.length - 2)}<span class="frost">${hero.cooled}</span>.</h1>`
+      )
       expect(html, locale).toContain(hero.lead)
       expect(html, locale).toContain(hero.note)
       expect(html, locale).toContain(`>${hero.signUp}</a>`)

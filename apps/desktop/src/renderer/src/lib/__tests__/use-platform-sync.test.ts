@@ -17,6 +17,7 @@ function view(email: string | null): AccountView {
           organization: null,
           organizations: [],
           role: null,
+          subscription: null,
         }
       : null,
     refusal: null,

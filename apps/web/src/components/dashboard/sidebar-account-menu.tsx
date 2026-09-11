@@ -1,5 +1,5 @@
 import { LOCALES, type Locale } from "@pupitre/shared/i18n"
-import { developmentNotice, legalEntityLabel } from "@pupitre/shared/legal"
+import { copyrightHolder, developmentNotice } from "@pupitre/shared/legal"
 import { useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import type { LucideIcon } from "lucide-react"
@@ -171,7 +171,7 @@ export function SidebarAccountMenu() {
         <p className="px-3 pt-2 pb-1 text-[11px] text-ink-3 leading-[1.5]">
           {t("footer.company", {
             year: new Date().getFullYear(),
-            entity: legalEntityLabel(locale),
+            entity: copyrightHolder(),
           })}
           {" · "}
           {developmentNotice(locale).short}

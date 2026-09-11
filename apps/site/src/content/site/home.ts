@@ -54,6 +54,7 @@ export interface HomeContent {
   hero: {
     eyebrow: string
     headline: string
+    cooled: string
     lead: string
     signUp: string
     download: string
@@ -66,7 +67,6 @@ export interface HomeContent {
     pronunciation: string
     grammar: string
     senses: string[]
-    note: string
   }
   steps: { label: string; title: string; lead: string; items: StepItem[] }
   features: { label: string; title: string; items: FeatureItem[] }

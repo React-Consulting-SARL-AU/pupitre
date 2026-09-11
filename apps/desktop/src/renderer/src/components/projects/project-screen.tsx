@@ -1,16 +1,27 @@
 import type { Project, Service } from "@pupitre/shared/agent-protocol/state";
 import { TerminalTabs } from "@renderer/components/terminals/terminal-tabs";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
-import { agentsFrom, remoteEditors } from "@renderer/lib/modules";
+import { Screen } from "@renderer/components/ui/screen";
+import { ServiceLogo } from "@renderer/components/ui/service-logo";
+import { useTranslations } from "@renderer/i18n/use-translations";
+import {
+  agentsFrom,
+  remoteEditors,
+  runtimeModuleOf,
+} from "@renderer/lib/modules";
 import { group, useNavigation } from "@renderer/stores/navigation";
 import { useProject } from "@renderer/stores/project";
 import { useSnapshot } from "@renderer/stores/snapshot";
+import { Package } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ProjectActions } from "./project-actions";
 import { ProjectBody } from "./project-body";
+import { ProjectConfigScreen } from "./project-config-screen";
 import { ProjectDiff } from "./project-diff";
 import { ProjectEditors } from "./project-editors";
-import { ProjectHeader } from "./project-header";
+import { ProjectFiles } from "./project-files";
 import { ProjectLogs } from "./project-logs";
+import { ProjectMeta } from "./project-meta";
 import { ProjectOverview } from "./project-overview";
 import { ProjectTabBar } from "./project-tab-bar";
 import {
@@ -33,6 +44,8 @@ interface Props {
   serverId: string;
   project: Project;
   services: readonly Service[];
+  /** The server's address, said on the configuration when a Caddy exposure asks the reader to point their DNS at it. */
+  host?: string;
   onRemoved: () => void;
 }
 
@@ -40,8 +53,11 @@ export function ProjectScreen({
   serverId,
   project,
   services,
+  host,
   onRemoved,
 }: Props) {
+  const t = useTranslations();
+
   const [tab, setTabState] = useState<ProjectTab>("overview");
   const [syncing, setSyncing] = useState(false);
 
@@ -64,6 +80,12 @@ export function ProjectScreen({
   const name = project.name;
   const open = store.open;
   const readTree = store.readTree;
+  const readEnv = store.readEnv;
+
+  const readKeys = useCallback(
+    () => readEnv(serverId, name),
+    [readEnv, serverId, name]
+  );
 
   /**
    * Switching tabs writes it down, so coming back to this project reopens the
@@ -116,6 +138,7 @@ export function ProjectScreen({
 
   const git = store.git.status === "read" ? store.git.git : null;
   const root = git?.root || null;
+  const editors = remoteEditors(services);
 
   async function sync() {
     setSyncing(true);
@@ -134,25 +157,43 @@ export function ProjectScreen({
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <ProjectHeader
-        busy={busy}
-        editors={
-          <ProjectEditors
-            editors={remoteEditors(services)}
-            onOpen={(editor, path) =>
-              window.pupitre.openInEditor(serverId, editor, path)
-            }
-            root={root}
-          />
-        }
-        git={git}
-        onAct={(action, target) => act(action, serverId, target)}
-        onSeeDiff={() => setTab("diff")}
-        onSync={sync}
-        project={project}
-        syncing={syncing}
-      >
+    <Screen
+      actions={
+        <ProjectActions
+          busy={busy}
+          editors={
+            <ProjectEditors
+              editors={editors}
+              onOpen={(editor, path) =>
+                window.pupitre.openInEditor(serverId, editor, path)
+              }
+              root={root}
+            />
+          }
+          onAct={(action, target) => act(action, serverId, target)}
+          onSync={sync}
+          project={project}
+          syncing={syncing}
+        />
+      }
+      eyebrow={t("project.header.eyebrow")}
+      fill
+      leading={
+        <ServiceLogo
+          fallback={Package}
+          moduleId={runtimeModuleOf(project.pkgmgr)}
+          name={project.pkgmgr}
+          size={20}
+        />
+      }
+      meta={
+        <ProjectMeta
+          git={git}
+          onSeeDiff={() => setTab("diff")}
+          project={project}
+        />
+      }
+      tabs={
         <ProjectTabBar
           active={tab}
           counts={{ diff: git?.changed ?? 0 }}
@@ -166,58 +207,86 @@ export function ProjectScreen({
           states={terminalStates}
           tabs={tabs}
         />
-      </ProjectHeader>
+      }
+      title={project.name}
+    >
+      <div className="flex h-full min-h-0 flex-col">
+        {store.problem ? (
+          <div className="shrink-0 px-8 pt-4">
+            <ErrorNotice error={store.problem} />
+          </div>
+        ) : null}
 
-      {store.problem ? (
-        <div className="px-8 pt-4">
-          <ErrorNotice error={store.problem} />
+        <div className="min-h-0 flex-1">
+          <ProjectBody
+            configuration={
+              <ProjectConfigScreen
+                host={host}
+                project={project}
+                serverId={serverId}
+                services={services}
+              />
+            }
+            diff={
+              <ProjectDiff
+                diff={store.diff}
+                onReload={() => store.readTree(serverId, name)}
+                onRetryDiff={() => {
+                  if (store.diff.status !== "idle") {
+                    store.readDiff(serverId, name, store.diff.path);
+                  }
+                }}
+                onSelect={(path) => store.readDiff(serverId, name, path)}
+                selected={store.diff.status === "idle" ? null : store.diff.path}
+                tree={store.tree}
+              />
+            }
+            files={
+              <ProjectFiles
+                onTerminal={(dir) => {
+                  openTerminal(name, "shell", dir);
+                  setTab("shell");
+                }}
+                project={project}
+                serverId={serverId}
+                services={services}
+              />
+            }
+            logs={<ProjectLogs project={name} serverId={serverId} />}
+            overview={
+              <ProjectOverview
+                branches={store.branches}
+                env={store.env}
+                git={store.git}
+                onCheckGit={() => store.readGit(serverId, name)}
+                onCheckout={(branch) => store.checkout(serverId, name, branch)}
+                onConfigure={() => setTab("configuration")}
+                onReadEnv={readKeys}
+                onRegenerateEnv={() => readEnv(serverId, name, true)}
+                onRemove={remove}
+                onSync={sync}
+                project={project}
+                switching={store.switching}
+                syncing={syncing}
+              />
+            }
+            tab={tab}
+            terminals={(kind) => (
+              <TerminalTabs
+                active={activeTabs[`${name}:${kind}`] ?? null}
+                kind={kind}
+                onActivate={activateTerminal}
+                onClose={closeTerminal}
+                onNew={() => openTerminal(name, kind)}
+                onRename={renameTerminal}
+                project={name}
+                sessions={group(terminals, name, kind)}
+                states={terminalStates}
+              />
+            )}
+          />
         </div>
-      ) : null}
-
-      <div className="min-h-0 flex-1">
-        <ProjectBody
-          diff={
-            <ProjectDiff
-              diff={store.diff}
-              onReload={() => store.readTree(serverId, name)}
-              onRetryDiff={() => {
-                if (store.diff.status !== "idle") {
-                  store.readDiff(serverId, name, store.diff.path);
-                }
-              }}
-              onSelect={(path) => store.readDiff(serverId, name, path)}
-              selected={store.diff.status === "idle" ? null : store.diff.path}
-              tree={store.tree}
-            />
-          }
-          logs={<ProjectLogs project={name} serverId={serverId} />}
-          overview={
-            <ProjectOverview
-              branches={store.branches}
-              git={store.git}
-              onCheckGit={() => store.readGit(serverId, name)}
-              onCheckout={(branch) => store.checkout(serverId, name, branch)}
-              onRemove={remove}
-              project={project}
-              switching={store.switching}
-            />
-          }
-          tab={tab}
-          terminals={(kind) => (
-            <TerminalTabs
-              active={activeTabs[`${name}:${kind}`] ?? null}
-              kind={kind}
-              onActivate={activateTerminal}
-              onClose={closeTerminal}
-              onNew={() => openTerminal(name, kind)}
-              onRename={renameTerminal}
-              project={name}
-              sessions={group(terminals, name, kind)}
-              states={terminalStates}
-            />
-          )}
-        />
       </div>
-    </div>
+    </Screen>
   );
 }

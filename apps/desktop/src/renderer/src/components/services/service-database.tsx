@@ -1,41 +1,72 @@
 import { Button } from "@renderer/components/ui/button";
-import { CopyField } from "@renderer/components/ui/copy-field";
+import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { Label } from "@renderer/components/ui/label";
 import type { DictionaryKey } from "@renderer/i18n/en";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { humanBytes } from "@renderer/lib/duration";
-import type { DatabaseOutcome } from "@renderer/stores/services";
-import { Download, SquareTerminal, Upload } from "lucide-react";
+import type {
+  DatabaseOutcome,
+  DumpsState,
+  PendingImport,
+} from "@renderer/stores/services";
+import {
+  Download,
+  HardDriveDownload,
+  HardDriveUpload,
+  SquareTerminal,
+  Upload,
+} from "lucide-react";
+import { WaitingLine } from "../ui/waiting-line";
+import { ServiceDumpRow } from "./service-dump-row";
 
 /**
- * The three gestures a database accepts, and what each one answered.
+ * The gestures a database accepts, and what each one answered.
  *
- * The shell is a command the agent composed for its own machine: the app shows
- * it to be pasted in a terminal rather than running it here, because a shell is
- * a session and this panel is a page.
+ * The shell opens as a terminal tab: the main process asks the agent for the
+ * command and runs it there, and this page never sees the line. A dump written
+ * on the server comes to this computer on its own transfer, and a dump of this
+ * computer goes up the same way before it is imported: a file of several
+ * gigabytes never rides the agent's channel. The dumps already on the server
+ * are listed from the folder they live in, each with its way back.
+ *
+ * The databases themselves are not listed: the contract has no command that
+ * names them, and the app invents nothing the agent did not say.
  */
 
 const TITLES: Record<DatabaseOutcome["kind"], DictionaryKey> = {
   dump: "services.database.outcome.dump",
   import: "services.database.outcome.import",
-  shell: "services.database.outcome.shell",
 };
 
 export function ServiceDatabase({
   outcome,
+  dumps,
   busy,
+  pendingImports,
   onShell,
   onDump,
   onImport,
-  onTerminal,
+  onDownloadDump,
+  onImportFromComputer,
+  onReadDumps,
+  onRestoreDump,
+  onRemoveDump,
 }: {
   outcome: DatabaseOutcome | null;
+  dumps: DumpsState;
   /** The command in flight, as the protocol names it. */
   busy: string | null;
-  onShell: () => void;
-  onDump: () => void;
-  onImport: () => void;
-  onTerminal?: () => void;
+  /** The dumps still on their way up, imported when they land. */
+  pendingImports: readonly PendingImport[];
+  onShell: () => Promise<void>;
+  onDump: () => Promise<void>;
+  onImport: () => Promise<void>;
+  /** Answers once the dialog closed and the transfer is queued, or was declined. */
+  onDownloadDump: () => Promise<void>;
+  onImportFromComputer: () => Promise<void>;
+  onReadDumps: () => Promise<void>;
+  onRestoreDump: (fileName: string) => Promise<void>;
+  onRemoveDump: (fileName: string) => Promise<void>;
 }) {
   const t = useTranslations();
 
@@ -49,6 +80,7 @@ export function ServiceDatabase({
           loading={busy === "db.shell"}
           onClick={onShell}
           size="sm"
+          title={t("services.database.shellHint")}
         >
           {t("services.database.shell")}
         </Button>
@@ -68,52 +100,106 @@ export function ServiceDatabase({
         >
           {t("services.database.import")}
         </Button>
+        <Button
+          icon={HardDriveUpload}
+          onClick={onImportFromComputer}
+          size="sm"
+          title={t("transfers.dump.import.help")}
+        >
+          {t("transfers.dump.import")}
+        </Button>
       </div>
 
+      {pendingImports.length > 0 ? (
+        <WaitingLine className="text-[12px]">
+          {t("transfers.dump.importing")}
+          {" · "}
+          <span className="font-data">
+            {pendingImports.map((one) => one.name).join(", ")}
+          </span>
+        </WaitingLine>
+      ) : null}
+
       {outcome ? (
-        <div className="flex flex-col gap-2" data-outcome={outcome.kind}>
-          {outcome.kind === "shell" && outcome.lines[0] ? (
-            <>
-              <CopyField label={t(TITLES.shell)} value={outcome.lines[0]} />
-              {onTerminal ? (
-                <div>
-                  <Button
-                    icon={SquareTerminal}
-                    onClick={onTerminal}
-                    size="sm"
-                    variant="discreet"
-                  >
-                    {t("services.database.terminal")}
-                  </Button>
-                </div>
-              ) : null}
-            </>
+        <div
+          className="elevation-raised rounded-md border border-line bg-surface p-3"
+          data-outcome={outcome.kind}
+        >
+          <Label>{t(TITLES[outcome.kind])}</Label>
+          {outcome.lines.length === 0 ? (
+            <p className="mt-1 text-[12px] text-ink-3">
+              {t("services.database.empty")}
+            </p>
           ) : (
-            <div className="elevation-raised rounded-md border border-line bg-surface p-3">
-              <Label>{t(TITLES[outcome.kind])}</Label>
-              {outcome.lines.length === 0 ? (
-                <p className="mt-1 text-[12px] text-ink-3">
-                  {t("services.database.empty")}
-                </p>
-              ) : (
-                <ul className="mt-1 flex flex-col gap-1">
-                  {outcome.lines.map((line) => (
-                    <li
-                      className="break-all font-data text-[12px] text-ink-2"
-                      key={line}
-                    >
-                      {line}
-                      {outcome.bytes === undefined
-                        ? null
-                        : ` · ${humanBytes(outcome.bytes)}`}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <ul className="mt-1 flex flex-col gap-1">
+              {outcome.lines.map((line) => (
+                <li
+                  className="break-all font-data text-[12px] text-ink-2"
+                  key={line}
+                >
+                  {line}
+                  {outcome.bytes === undefined
+                    ? null
+                    : ` · ${humanBytes(outcome.bytes)}`}
+                </li>
+              ))}
+            </ul>
           )}
+
+          {outcome.kind === "dump" && outcome.lines[0] ? (
+            <div className="mt-3">
+              <Button
+                icon={HardDriveDownload}
+                onClick={onDownloadDump}
+                size="sm"
+                title={t("transfers.download.title")}
+              >
+                {t("transfers.dump.download")}
+              </Button>
+            </div>
+          ) : null}
         </div>
       ) : null}
+
+      <div className="flex flex-col gap-2" data-dumps={dumps.status}>
+        <div className="flex items-center gap-3">
+          <span className="text-[12px] text-ink-3">
+            {t("services.dumps.title")}
+          </span>
+          <Button
+            loading={dumps.status === "reading"}
+            onClick={onReadDumps}
+            size="sm"
+            variant="discreet"
+          >
+            {dumps.status === "idle"
+              ? t("services.dumps.read")
+              : t("services.dumps.reread")}
+          </Button>
+        </div>
+
+        {dumps.status === "failed" ? (
+          <ErrorNotice error={dumps.error} onRetry={onReadDumps} />
+        ) : null}
+
+        {dumps.status === "ready" && dumps.dumps.length === 0 ? (
+          <p className="text-[12px] text-ink-3">{t("services.dumps.none")}</p>
+        ) : null}
+
+        {dumps.status === "ready" && dumps.dumps.length > 0 ? (
+          <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
+            {dumps.dumps.map((dump) => (
+              <ServiceDumpRow
+                busy={busy !== null}
+                dump={dump}
+                key={dump.name}
+                onRemove={() => onRemoveDump(dump.name)}
+                onRestore={() => onRestoreDump(dump.name)}
+              />
+            ))}
+          </ul>
+        ) : null}
+      </div>
     </section>
   );
 }

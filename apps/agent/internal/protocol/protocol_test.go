@@ -227,6 +227,47 @@ func TestHelloResultMatchesTheContract(t *testing.T) {
 	}
 }
 
+// pupitred dev greets nobody: hello through Call has no session to mark, and must still answer.
+func TestHelloAnswersADirectCallWithoutASession(t *testing.T) {
+	result, err := newTestServer(contract.EntitlementDev).Call("hello", map[string]any{"app_version": "0.2.0", "protocol": contract.ProtocolVersion}, nil)
+	if err != nil {
+		t.Fatalf("Call(hello): %v", err)
+	}
+
+	if err := contract.ValidateValue("HelloResult", result); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAnIdThatDoesNotGrowIsRefused(t *testing.T) {
+	var out bytes.Buffer
+	input := strings.NewReader(strings.Join([]string{
+		`{"id":7,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}`,
+		`{"id":7,"cmd":"ping"}`,
+		`{"id":3,"cmd":"ping"}`,
+		`{"id":8,"cmd":"ping"}`,
+	}, "\n") + "\n")
+
+	if err := newTestServer(contract.EntitlementDev).Serve(input, &out); err != nil {
+		t.Fatal(err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+	if len(lines) != 4 {
+		t.Fatalf("got %d lines:\n%s", len(lines), out.String())
+	}
+
+	for _, line := range lines[1:3] {
+		if !strings.Contains(line, `"bad_request"`) || !strings.Contains(line, "last id received 7") {
+			t.Fatalf("an id that does not grow must be refused and say so: %s", line)
+		}
+	}
+
+	if !strings.Contains(lines[3], `"ok":true`) {
+		t.Fatalf("the next growing id must be served: %s", lines[3])
+	}
+}
+
 func TestTheSecretLineReachesTheHandlerAndNothingElse(t *testing.T) {
 	var out bytes.Buffer
 	input := strings.NewReader(strings.Join([]string{
@@ -305,5 +346,51 @@ func TestErrorUnwrapsAsProtocolError(t *testing.T) {
 	var protocolErr *Error
 	if !errors.As(err, &protocolErr) || protocolErr.Code != contract.ErrorBusy {
 		t.Fatalf("errors.As failed on %v", err)
+	}
+}
+
+// A writer that goes the way of a dropped SSH session: it takes a few lines,
+// then refuses every one that follows.
+type droppingWriter struct {
+	keep   int
+	buffer bytes.Buffer
+}
+
+func (w *droppingWriter) Write(p []byte) (int, error) {
+	if w.keep == 0 {
+		return 0, errors.New("write: broken pipe")
+	}
+	w.keep--
+
+	return w.buffer.Write(p)
+}
+
+func TestACommandOutlivesTheChannelThatCarriedIt(t *testing.T) {
+	server := NewServer(Options{AgentVersion: testAgentVersion, Entitlement: entitlement.Fixed(contract.EntitlementDev), Now: fixedNow})
+
+	steps := 0
+	server.Register("install", func(ctx *Context, _ json.RawMessage) (any, error) {
+		for _, step := range []string{"apt", "cluster", "role"} {
+			ctx.Emit("step", map[string]any{"module": "db.postgres", "step": step, "status": "ok", "ms": 1})
+			steps++
+		}
+
+		return map[string]any{"failed": []string{}, "warned": []string{}, "report_path": "/var/lib/pupitre/report.json"}, nil
+	})
+
+	input := strings.NewReader(strings.Join([]string{
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}`,
+		`{"id":2,"cmd":"install","params":{"modules":["db.postgres"],"config":{},"secrets_stdin":false}}`,
+	}, "\n") + "\n")
+
+	out := &droppingWriter{keep: 2}
+	err := server.Serve(input, out)
+
+	if err == nil || !strings.Contains(err.Error(), "broken pipe") {
+		t.Fatalf("serve returned %v, want the write failure", err)
+	}
+
+	if steps != 3 {
+		t.Fatalf("the command stopped with the channel: %d step(s) of 3", steps)
 	}
 }

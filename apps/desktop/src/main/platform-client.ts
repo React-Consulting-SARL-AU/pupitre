@@ -5,6 +5,7 @@ import {
   startDeviceFlow,
 } from "@pupitre/auth/client/desktop";
 import { PUPITRE_ORIGINS } from "@pupitre/shared/legal";
+import type { MeSubscription } from "@pupitre/shared/plans";
 import type {
   AccountDevice,
   AccountError,
@@ -63,6 +64,7 @@ export interface MeBody {
   active_organization: { id: string; name: string; slug: string } | null;
   role: string | null;
   entitlement: Entitlement;
+  subscription?: MeSubscription | null;
 }
 
 export interface ServerForUserBody {
@@ -129,6 +131,11 @@ export interface PlatformClient {
     organizationId: string
   ) => Promise<AccountResponse<AccountIdentity>>;
   devices: (token: string) => Promise<AccountResponse<AccountDevice[]>>;
+  /** Revokes a device: its key stops opening the granted servers at the platform's next push. */
+  removeDevice: (
+    token: string,
+    deviceId: string
+  ) => Promise<AccountResponse<null>>;
   addDevice: (
     token: string,
     name: string,
@@ -179,14 +186,26 @@ export function agentBaseUrl(platform: string): string {
 }
 
 export function offlineError(error: unknown, baseUrl?: string): AccountError {
-  const reason =
-    error instanceof Error ? error.message : "connexion impossible";
+  const local = baseUrl ? isLocalPlatform(baseUrl) : false;
+
+  if (!(error instanceof Error)) {
+    return {
+      code: "offline",
+      message: "refusal.platform.unreachable",
+      phrase:
+        local && baseUrl
+          ? { id: "refusal.platform.unreachable.local", values: { baseUrl } }
+          : { id: "refusal.platform.unreachable" },
+    };
+  }
+
+  const reason = error.message;
 
   return {
     code: "offline",
     message: "refusal.platform.silent",
     phrase:
-      baseUrl && isLocalPlatform(baseUrl)
+      local && baseUrl
         ? { id: "refusal.platform.silent.local", values: { reason, baseUrl } }
         : { id: "refusal.platform.silent", values: { reason } },
   };
@@ -219,6 +238,7 @@ function identityOf(body: MeBody): AccountIdentity {
     organization: body.active_organization,
     organizations: body.organizations,
     role: body.role,
+    subscription: body.subscription ?? null,
   };
 }
 
@@ -307,8 +327,9 @@ export function createPlatformClient({
     version: string,
     arch: string
   ): Promise<AccountResponse<ReleaseDownload>> {
+    const query = new URLSearchParams({ arch });
     const redirect = await fetchImpl(
-      url(`/releases/agent/${encodeURIComponent(version)}?arch=${arch}`),
+      url(`/releases/agent/${encodeURIComponent(version)}?${query.toString()}`),
       {
         headers: { authorization: `Bearer ${token}` },
         redirect: "manual",
@@ -405,6 +426,12 @@ export function createPlatformClient({
       return answer.ok
         ? { ok: true, result: answer.result.data.map(deviceOf) }
         : answer;
+    },
+
+    removeDevice(token, deviceId) {
+      return call<null>(token, `/me/devices/${encodeURIComponent(deviceId)}`, {
+        method: "DELETE",
+      });
     },
 
     async addDevice(token, name, publicKey) {

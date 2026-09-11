@@ -2,8 +2,14 @@ import { describe, expect, it } from "bun:test"
 import {
   CompletionsParamsSchema,
   CompletionsResultSchema,
+  HostnameSchema,
   MachineSchema,
   ProjectSchema,
+  RouteRequestSchema,
+  RouteSchema,
+  ServiceActionParamsSchema,
+  ServiceLogsParamsSchema,
+  ServiceLogsResultSchema,
   ServiceSchema,
   ServiceStatusParamsSchema,
   ServiceStatusResultSchema,
@@ -45,7 +51,7 @@ const project = {
   pkgmgr: "bun",
   host: "127.0.0.1",
   port: 5173,
-  subdomain: "flymate",
+  routes: [{ label: "web", port: 5173, hostname: "flymate.example.org" }],
   cmd: "bun run dev",
   install: "bun install",
   state: "online",
@@ -110,6 +116,13 @@ describe("MachineSchema, ServiceSchema, ProjectSchema, SessionSchema", () => {
     )
   })
 
+  it("takes a service from an agent that says nothing as one that runs", () => {
+    const parsed = ServiceSchema.parse(service)
+
+    expect(parsed.runs).toBe(true)
+    expect(ServiceSchema.parse({ ...service, runs: false }).runs).toBe(false)
+  })
+
   it("reject a three-value load with a string and an unknown session kind", () => {
     expect(
       MachineSchema.safeParse({ ...machine, load: "0.12 0.2 0.25" }).success
@@ -128,6 +141,54 @@ describe("MachineSchema, ServiceSchema, ProjectSchema, SessionSchema", () => {
     expect(ProjectSchema.safeParse(withoutPath).success).toBe(false)
     expect(
       ProjectSchema.safeParse({ ...project, path: "flymate/api" }).success
+    ).toBe(false)
+  })
+})
+
+describe("RouteSchema, RouteRequestSchema and HostnameSchema", () => {
+  it("store a whole hostname, and declare a subdomain", () => {
+    expect(
+      RouteSchema.safeParse({
+        label: "api",
+        port: 3001,
+        hostname: "api-shop.example.org",
+      }).success
+    ).toBe(true)
+    expect(RouteSchema.safeParse({ label: "api", port: 3001 }).success).toBe(
+      true
+    )
+    expect(
+      RouteRequestSchema.safeParse({
+        label: "api",
+        port: 3001,
+        subdomain: "api-shop",
+      }).success
+    ).toBe(true)
+    expect(
+      RouteRequestSchema.safeParse({
+        label: "api",
+        port: 3001,
+        hostname: "api-shop.example.org",
+      }).success
+    ).toBe(false)
+  })
+
+  it("refuse a label that is not one DNS label, and a hostname of one", () => {
+    for (const label of ["", "Api", "api.shop", "-api", "api-"]) {
+      expect(RouteSchema.safeParse({ label, port: 3001 }).success).toBe(false)
+    }
+
+    expect(HostnameSchema.safeParse("example").success).toBe(false)
+    expect(HostnameSchema.safeParse("shop.example.org").success).toBe(true)
+    expect(HostnameSchema.safeParse("a..example.org").success).toBe(false)
+  })
+
+  it("keep a project's routes as a list, empty included", () => {
+    expect(ProjectSchema.safeParse({ ...project, routes: [] }).success).toBe(
+      true
+    )
+    expect(
+      ProjectSchema.safeParse({ ...project, routes: undefined }).success
     ).toBe(false)
   })
 })
@@ -162,6 +223,49 @@ describe("ServiceStatusParamsSchema and ServiceStatusResultSchema", () => {
         ...service,
         credentials: { app_password: 42 },
       }).success
+    ).toBe(false)
+  })
+})
+
+describe("ServiceActionParamsSchema", () => {
+  it("names the module whose unit is driven, and nothing else", () => {
+    expect(
+      ServiceActionParamsSchema.safeParse({ id: "db.postgres" }).success
+    ).toBe(true)
+    expect(ServiceActionParamsSchema.safeParse({}).success).toBe(false)
+    expect(
+      ServiceActionParamsSchema.safeParse({ id: "db.postgres", force: true })
+        .success
+    ).toBe(false)
+  })
+})
+
+describe("ServiceLogsParamsSchema and ServiceLogsResultSchema", () => {
+  it("read a tail of the unit's journal, and follow it on demand", () => {
+    expect(
+      ServiceLogsParamsSchema.safeParse({ id: "db.postgres" }).success
+    ).toBe(true)
+    expect(
+      ServiceLogsParamsSchema.safeParse({
+        id: "db.postgres",
+        lines: 50,
+        follow: true,
+      }).success
+    ).toBe(true)
+    expect(
+      ServiceLogsResultSchema.safeParse({ lines: ["ready", "listening"] })
+        .success
+    ).toBe(true)
+  })
+
+  it("reject a missing id, a non-positive tail and an unknown key", () => {
+    expect(ServiceLogsParamsSchema.safeParse({ lines: 10 }).success).toBe(false)
+    expect(
+      ServiceLogsParamsSchema.safeParse({ id: "db.postgres", lines: 0 }).success
+    ).toBe(false)
+    expect(
+      ServiceLogsParamsSchema.safeParse({ id: "db.postgres", unit: "x" })
+        .success
     ).toBe(false)
   })
 })

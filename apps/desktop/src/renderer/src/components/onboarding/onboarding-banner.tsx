@@ -1,8 +1,6 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { accountOf, useAccount } from "@renderer/stores/account";
 import { useChannel } from "@renderer/stores/channel";
-import { useOnboarding } from "@renderer/stores/onboarding";
-import { useEffect } from "react";
 import { Callout } from "../ui/callout";
 
 /**
@@ -10,7 +8,8 @@ import { Callout } from "../ui/callout";
  *
  * A link that dropped and a usage right the platform stopped confirming are not
  * failures of the step the reader is on: the step stands where it is, reading
- * goes on, and this says why nothing is moving. Both come back on their own.
+ * goes on, and this says why nothing is moving. Both come back on their own;
+ * the onboarding store is what holds and releases the step, this only says so.
  */
 export function OnboardingBanner({
   serverId,
@@ -22,17 +21,7 @@ export function OnboardingBanner({
   const t = useTranslations();
 
   const channel = useChannel((store) => store.stateOf(serverId));
-  const listen = useChannel((store) => store.listen);
   const refusal = useAccount((store) => accountOf(store.view)?.refusal ?? null);
-  const send = useOnboarding((store) => store.send);
-
-  useEffect(() => listen(), [listen]);
-
-  // A usage right the platform stopped confirming freezes the step rather than
-  // failing it: the machine holds, and takes up again when the account does.
-  useEffect(() => {
-    send({ type: refusal ? "usageLost" : "usageBack" });
-  }, [refusal, send]);
 
   if (refusal) {
     return (

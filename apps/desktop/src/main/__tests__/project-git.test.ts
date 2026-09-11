@@ -135,7 +135,7 @@ describe("les commandes d'un projet ouvert", () => {
     expect(answer).toMatchObject({
       ok: false,
       error: {
-        code: "module_failed",
+        code: "bad_request",
         fix: "Commite ou remise tes changements, puis réessaie.",
       },
     });

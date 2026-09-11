@@ -6,17 +6,28 @@ import (
 	"go/token"
 	"io/fs"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
+	"unicode"
 )
 
-// The places through which a phrase reaches the app. Anything passing through here comes from the catalogue, or nowhere.
+// The places through which a phrase reaches the app or the terminal. Anything passing through here comes from the catalogue, or nowhere.
 var sinks = map[string]bool{
 	"NewError":   true,
 	"WithFix":    true,
 	"Warn":       true,
 	"badRequest": true,
+	"line":       true,
 }
+
+// An error built inside a module step is what the report shows for that step.
+var stepErrors = map[string]bool{
+	"Errorf": true,
+	"New":    true,
+}
+
+var verbs = regexp.MustCompile(`%[-+# 0-9.]*[a-zA-Z%]`)
 
 var sinkFields = map[string]bool{
 	"Summary":  true,
@@ -60,6 +71,10 @@ func check(t *testing.T, path string) error {
 					blame(t, path, arg)
 				}
 			}
+
+			if name(value.Fun) == "Step" {
+				blameStepErrors(t, path, value)
+			}
 		case *ast.KeyValueExpr:
 			if key, ok := value.Key.(*ast.Ident); ok && sinkFields[key.Name] {
 				blame(t, path, value.Value)
@@ -72,21 +87,52 @@ func check(t *testing.T, path string) error {
 	return nil
 }
 
-// blame: a phrase is recognized by a space — "db.postgres" is an identifier, "Mot de passe" is interface text.
+// A step's closure is where a failure gets its words: an error built there lands in the report as it is.
+func blameStepErrors(t *testing.T, path string, step *ast.CallExpr) {
+	t.Helper()
+
+	for _, arg := range step.Args {
+		closure, ok := arg.(*ast.FuncLit)
+		if !ok {
+			continue
+		}
+
+		ast.Inspect(closure.Body, func(node ast.Node) bool {
+			if call, ok := node.(*ast.CallExpr); ok && stepErrors[name(call.Fun)] && len(call.Args) > 0 {
+				blame(t, path, call.Args[0])
+			}
+
+			return true
+		})
+	}
+}
+
+// blame: a phrase is recognized by a space between words — "db.postgres" is an identifier, "%-24s %s" a layout, "Mot de passe" interface text. It looks through concatenations and formatting to the literal underneath.
 func blame(t *testing.T, path string, node ast.Node) {
 	t.Helper()
 
-	literal, ok := node.(*ast.BasicLit)
-	if !ok || literal.Kind != token.STRING {
-		return
+	switch value := node.(type) {
+	case *ast.BinaryExpr:
+		blame(t, path, value.X)
+		blame(t, path, value.Y)
+	case *ast.CallExpr:
+		if (name(value.Fun) == "Sprintf" || name(value.Fun) == "Errorf") && len(value.Args) > 0 {
+			blame(t, path, value.Args[0])
+		}
+	case *ast.BasicLit:
+		if value.Kind == token.STRING && phrase(strings.Trim(value.Value, "`\"")) {
+			t.Errorf("%s: a visible phrase outside the catalogue — %q", path, strings.Trim(value.Value, "`\""))
+		}
+	}
+}
+
+func phrase(text string) bool {
+	words := strings.TrimSpace(verbs.ReplaceAllString(text, ""))
+	if !strings.Contains(words, " ") {
+		return false
 	}
 
-	text := strings.Trim(literal.Value, "`\"")
-	if !strings.Contains(strings.TrimSpace(text), " ") {
-		return
-	}
-
-	t.Errorf("%s: a visible phrase outside the catalogue — %q", path, text)
+	return strings.ContainsFunc(words, unicode.IsLetter)
 }
 
 func name(expr ast.Expr) string {

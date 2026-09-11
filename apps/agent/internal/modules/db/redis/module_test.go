@@ -1,12 +1,14 @@
 package redis
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/sys"
 )
 
 const password = "s3cret-de-test"
@@ -90,6 +92,26 @@ func TestChosenPortPersistenceAndMemoryReachTheConfiguration(t *testing.T) {
 	}
 }
 
+// The policy only decides what goes when the cap is reached; a Redis without a cap evicts nothing at all.
+func TestTheChosenPolicyOnlyAppliesUnderACap(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	ctx := newContext(t, fake, modtest.Values{"port": DefaultPort, "persistence": true, "maxmemory_mb": 256, "maxmemory_policy": "volatile-ttl"})
+
+	run(t, ctx)
+
+	if config := string(fake.Files[dropIn]); !strings.Contains(config, "maxmemory-policy volatile-ttl") {
+		t.Errorf("configuration lacks the chosen policy:\n%s", config)
+	}
+
+	uncapped := modtest.NewFakeSys()
+	run(t, newContext(t, uncapped, modtest.Values{"port": DefaultPort, "persistence": true, "maxmemory_mb": 0, "maxmemory_policy": "volatile-ttl"}))
+
+	config := string(uncapped.Files[dropIn])
+	if !strings.Contains(config, "maxmemory-policy "+noEviction) || strings.Contains(config, "maxmemory ") {
+		t.Errorf("without a cap nothing is evicted:\n%s", config)
+	}
+}
+
 func TestSecretNeverLeaves(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	ctx := newContext(t, fake, values)
@@ -142,3 +164,33 @@ func TestFailedStepReportsItsReplayCommand(t *testing.T) {
 }
 
 var _ modules.Module = Module{}
+
+func TestVerifyAuthKeepsThePasswordOutOfTheArgv(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Packages[pkg] = "7.0.15"
+	fake.Replies["redis-cli"] = "PONG\n"
+	ctx := newContext(t, fake, nil)
+
+	if err := (Module{}).Configure(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	var ping *sys.Command
+	for i := range fake.Calls {
+		if fake.Calls[i].Argv[0] == "redis-cli" {
+			ping = &fake.Calls[i]
+		}
+	}
+
+	if ping == nil {
+		t.Fatal("redis-cli was never run")
+	}
+
+	if strings.Contains(strings.Join(ping.Argv, " "), password) || slices.Contains(ping.Argv, "-a") {
+		t.Fatalf("the password must not reach the argv ps shows: %v", ping.Argv)
+	}
+
+	if !slices.Contains(ping.Env, "REDISCLI_AUTH="+password) {
+		t.Fatalf("redis-cli reads its password from REDISCLI_AUTH, env = %v", ping.Env)
+	}
+}

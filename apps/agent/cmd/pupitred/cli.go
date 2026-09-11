@@ -11,9 +11,21 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/devcli"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/probe"
 )
+
+// Typed in a login shell rather than negotiated by `hello`: the locale comes
+// from the reader's own shell, and the command becomes root itself when the
+// account it runs under cannot read what the answer depends on.
+func runDev(engine *modules.Engine, args []string, stdout, stderr io.Writer) int {
+	if err := devcli.RealElevation(engine.Sys, tokenPath(), entitlementPath()).Run(args); err != nil {
+		return devcli.PrintFailure(stderr, err)
+	}
+
+	return devcli.Run(devcli.Options{Server: newServer(engine), Tmux: stateOptions().Tmux}, args, stdout, stderr)
+}
 
 func runInstall(engine *modules.Engine, args []string, stderr io.Writer) int {
 	var only, skip []string
@@ -24,7 +36,7 @@ func runInstall(engine *modules.Engine, args []string, stderr io.Writer) int {
 		case strings.HasPrefix(arg, "--skip="):
 			skip = splitIDs(strings.TrimPrefix(arg, "--skip="))
 		default:
-			fmt.Fprintf(stderr, "argument inconnu : %s\n", arg)
+			fmt.Fprintln(stderr, i18n.T("cli.argument.unknown", arg))
 			usage(stderr)
 			return 2
 		}
@@ -36,13 +48,20 @@ func runInstall(engine *modules.Engine, args []string, stderr io.Writer) int {
 		return 1
 	}
 
+	// Naming a module is answering for it: a replay asked for by name configures
+	// a module the app had left for later, on the values the machine remembers,
+	// and that answer is written down like the app's would be.
 	if len(only) > 0 {
+		answered := without(request.Defer, without(request.Defer, only))
 		request.Modules = only
+		request.Defer = without(request.Defer, only)
+		request.Persist = len(answered) > 0
 	}
 	request.Modules = without(request.Modules, skip)
 
 	if len(request.Modules) == 0 {
-		fmt.Fprintf(stderr, "no module to install: %s is absent and --only is not given.\nStart the installation from the app, or pass --only=<id>.\n", engine.InstallPath)
+		fmt.Fprintln(stderr, i18n.T("cli.install.nothing", engine.InstallPath))
+		fmt.Fprintln(stderr, i18n.T("cli.install.nothing.fix"))
 		return 2
 	}
 
@@ -66,7 +85,7 @@ func runProbe(options probe.Options, args []string, stdout, stderr io.Writer) in
 		case strings.HasPrefix(arg, "--projects="):
 			options.ProjectsDir = strings.TrimPrefix(arg, "--projects=")
 		default:
-			fmt.Fprintf(stderr, "argument inconnu : %s\n", arg)
+			fmt.Fprintln(stderr, i18n.T("cli.argument.unknown", arg))
 			usage(stderr)
 			return 2
 		}
@@ -114,7 +133,7 @@ func loadRequest(path string) (modules.Request, error) {
 
 	var request modules.Request
 	if err := json.Unmarshal(raw, &request); err != nil {
-		return modules.Request{}, fmt.Errorf("%s illisible : %w", path, err)
+		return modules.Request{}, errors.New(i18n.T("cli.install.unreadable", path, err.Error()))
 	}
 
 	return request, nil
@@ -126,9 +145,9 @@ func printStep(stderr io.Writer) modules.Sink {
 		case contract.StepOK:
 			fmt.Fprintf(stderr, "  ✓ %s · %s (%d ms)\n", event.Module, event.Step, event.Ms)
 		case contract.StepSkip:
-			fmt.Fprintf(stderr, "  · %s · %s (already done)\n", event.Module, event.Step)
+			fmt.Fprintf(stderr, "  · %s · %s (%s)\n", event.Module, event.Step, i18n.T("cli.step.done"))
 		case contract.StepFail:
-			fmt.Fprintf(stderr, "  ✗ %s · %s\n    rejeu : %s\n", event.Module, event.Step, event.Replay)
+			fmt.Fprintf(stderr, "  ✗ %s · %s\n    %s\n", event.Module, event.Step, i18n.T("cli.step.replay", event.Replay))
 		}
 	}
 }
@@ -141,15 +160,15 @@ func printSummary(stderr io.Writer, result contract.InstallResult) int {
 	}
 
 	if len(result.Failed) == 0 {
-		fmt.Fprintf(stderr, "No failed step. Report: %s\n", result.ReportPath)
+		fmt.Fprintln(stderr, i18n.T("cli.summary.clean", result.ReportPath))
 		return 0
 	}
 
-	fmt.Fprintf(stderr, "%d failed step(s):\n", len(result.Failed))
+	fmt.Fprintln(stderr, i18n.T("cli.summary.failed", len(result.Failed)))
 	for _, failure := range result.Failed {
 		fmt.Fprintf(stderr, "  ✗ %s\n", failure)
 	}
-	fmt.Fprintf(stderr, "Rapport : %s\n", result.ReportPath)
+	fmt.Fprintln(stderr, i18n.T("cli.summary.report", result.ReportPath))
 
 	return 1
 }

@@ -59,6 +59,10 @@ export const serverUsageSchema = t.Object(
     disk: t.Number(),
     ram: t.Number(),
     load: t.Number(),
+    disk_total_gb: t.Nullable(t.Number()),
+    disk_free_gb: t.Nullable(t.Number()),
+    ram_total_mb: t.Nullable(t.Number()),
+    ram_used_mb: t.Nullable(t.Number()),
   },
   { $id: "ServerUsage" }
 )
@@ -114,6 +118,10 @@ export const metricSampleSchema = t.Object(
     sessions: t.Array(t.String()),
     stack_version: t.Nullable(t.String()),
     modules: t.Array(t.String()),
+    disk_total_gb: t.Nullable(t.Number()),
+    disk_free_gb: t.Nullable(t.Number()),
+    ram_total_mb: t.Nullable(t.Number()),
+    ram_used_mb: t.Nullable(t.Number()),
   },
   { $id: "ServerMetricSample" }
 )

@@ -202,17 +202,17 @@ func render(proc Proc, columns []string) []string {
 	return values
 }
 
-// Only the shape shot --list uses: the files under a root, newest time first, one line each.
+// The files under a root, one path per line, as a bare find prints them.
 func (f *FakeSys) find(args []string) (sys.Output, error) {
 	if seeded, ok := f.Replies["find"]; ok {
 		return sys.Output{Stdout: seeded}, nil
 	}
 
-	root := args[0]
+	root := strings.TrimSuffix(args[0], "/") + "/"
 
 	paths := make([]string, 0, len(f.Files))
 	for path := range f.Files {
-		if strings.HasPrefix(path, strings.TrimSuffix(root, "/")+"/") {
+		if strings.HasPrefix(path, root) {
 			paths = append(paths, path)
 		}
 	}
@@ -220,47 +220,10 @@ func (f *FakeSys) find(args []string) (sys.Output, error) {
 
 	var out strings.Builder
 	for _, path := range paths {
-		when := f.Times[path]
-		if when.IsZero() {
-			when = f.Now
-		}
-
-		fmt.Fprintf(&out, "%d\t%d\t%s\n", when.Unix(), len(f.Files[path]), path)
+		fmt.Fprintln(&out, path)
 	}
 
 	return sys.Output{Stdout: out.String()}, nil
-}
-
-func (f *FakeSys) kill(args []string) (sys.Output, error) {
-	signal, pid := "-TERM", 0
-	for _, arg := range args {
-		if strings.HasPrefix(arg, "-") {
-			signal = arg
-			continue
-		}
-
-		pid = atoi(arg)
-	}
-
-	if _, running := f.Procs[pid]; !running {
-		return f.fail("kill", "kill: ("+strconv.Itoa(pid)+") - No such process")
-	}
-
-	if signal == "-0" {
-		return sys.Output{}, nil
-	}
-
-	f.Signals = append(f.Signals, signal+" "+strconv.Itoa(pid))
-	f.mutate("kill " + signal + " " + strconv.Itoa(pid))
-
-	// A process that ignores SIGTERM is the whole point of force: it must still be there when the grace period is over.
-	if signal == "-TERM" && f.Stubborn[pid] {
-		return sys.Output{}, nil
-	}
-
-	delete(f.Procs, pid)
-
-	return sys.Output{}, nil
 }
 
 func base(path string) string {
@@ -278,14 +241,6 @@ func field(line string, index int) string {
 	}
 
 	return fields[index]
-}
-
-func (f *FakeSys) tee(args []string, stdin []byte) (sys.Output, error) {
-	path := args[len(args)-1]
-	f.Files[path] = append(f.Files[path], stdin...)
-	f.mutate("append " + path)
-
-	return sys.Output{Stdout: string(stdin)}, nil
 }
 
 func parseTmux(args []string) (action, target, name string) {

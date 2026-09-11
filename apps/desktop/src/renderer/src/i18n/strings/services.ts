@@ -7,8 +7,6 @@ export const services = {
     "services.credentials.connectionUrl": "Request the connection URL",
     "services.credentials.connectionLabel": "Connection URL",
     "services.credentials.empty": "This module declares no credentials.",
-    "services.credentials.note":
-      "The values stay in the main process: they are neither stored nor logged, and the clipboard is written on that side.",
 
     "services.config.unread":
       "The settings of this service cannot be shown: the server's catalogue did not answer.",
@@ -17,10 +15,10 @@ export const services = {
     "services.config.reread": "Read the catalogue again",
     "services.config.title": "Configuration",
     "services.config.unconfigured":
-      "This service was put on the machine without being configured. Answer its questions and apply: that is what finishes it.",
+      "This service was installed without being configured. Answer its questions and apply.",
     "services.config.apply": "Apply",
     "services.config.note":
-      "These are the values the agent kept from the last installation. Applying replays the module with them; a secret left empty stays the one the server holds.",
+      "Applying replays the module with these values; a secret left empty stays the one the server holds.",
     "services.config.done": "{name} was reconfigured on this server.",
     "services.config.failed":
       "{name}: the server did not apply everything. The steps say where it stopped.",
@@ -29,25 +27,56 @@ export const services = {
     "services.database.shell": "Open a shell",
     "services.database.dump": "Export",
     "services.database.import": "Import the dropped dumps",
-    "services.database.terminal": "Open a terminal on the server",
     "services.database.empty": "No dump to import in the server folder.",
     "services.database.outcome.dump": "Export written to the server",
     "services.database.outcome.import": "Imported dumps",
-    "services.database.outcome.shell": "Command to run on the server",
+    "services.database.shellHint":
+      "Open a terminal on the database's own client",
+
+    "services.control.title": "Service",
+    "services.control.start": "Start",
+    "services.control.stop": "Stop",
+    "services.control.restart": "Restart",
+    "services.control.restartQuestion":
+      "Restart {name}? Whoever is connected to it is cut off for a moment.",
+    "services.control.restartConfirm": "Restart now",
+    "services.control.failedHint":
+      "{name} stopped on an error. Start it again; if it falls again, the journal below says why.",
+
+    "services.journal.title": "Journal",
+    "services.journal.follow": "Follow",
+    "services.journal.copyAll": "Copy",
+    "services.journal.copyAllHint": "Copy the journal of {name}",
+    "services.journal.waiting": "Waiting for the first lines of {name}",
+    "services.journal.cut":
+      "Only the last {count} lines are kept: older ones have been dropped.",
+
+    "services.dumps.title": "Dumps on the server",
+    "services.dumps.read": "List the dumps",
+    "services.dumps.reread": "List again",
+    "services.dumps.none": "No dump in the server folder yet.",
+    "services.dumps.feeds": "feeds {database}",
+    "services.dumps.restore": "Restore",
+    "services.dumps.restoreQuestion":
+      "Restore into {database}? What that database holds now is replaced.",
+    "services.dumps.restoreConfirm": "Restore",
+    "services.dumps.remove": "Delete",
+    "services.dumps.removeQuestion":
+      "Delete {name} from the server? Nothing brings it back.",
+    "services.dumps.removeConfirm": "Delete",
 
     "services.forward.title": "Tunnel to this port",
     "services.forward.open": "Open a tunnel to {port}",
-    "services.forward.empty":
-      "No tunnel open. Once open, the server's port {port} answers on this machine.",
+    "services.forward.empty": "No tunnel open.",
     "services.forward.help": "The server's port {port}, on this machine.",
+    "services.forward.moved":
+      "The server's port {port}, on this machine. Its usual local port, {from}, was taken by something else.",
     "services.forward.address": "Local address",
     "services.forward.close": "Close this tunnel",
 
     "services.panel.reload": "Reread",
     "services.panel.back": "All services",
     "services.panel.waitingTitle": "Reading the service",
-    "services.panel.waitingDetail":
-      "State, version, port, systemd unit and the module's credentials.",
 
     "services.removal.button": "Remove this module",
     "services.removal.losses.intro": "Removing {name} from this server loses:",
@@ -61,11 +90,8 @@ export const services = {
     "services.removal.outcome.back": "Back to services",
 
     "services.screen.add": "Add a service",
-    "services.screen.description":
-      "What is installed on this machine, and how it is doing.",
     "services.screen.eyebrow": "Services",
     "services.screen.fallbackName": "This server",
-    "services.screen.emptyDetail": "No service installed on this machine yet.",
     "services.screen.emptyTitle": "No service",
 
     "services.add.quit": "Exit adding",
@@ -112,8 +138,6 @@ export const services = {
     "services.credentials.connectionUrl": "Demander l'URL de connexion",
     "services.credentials.connectionLabel": "URL de connexion",
     "services.credentials.empty": "Ce module ne déclare aucun identifiant.",
-    "services.credentials.note":
-      "Les valeurs restent dans le processus principal : elles ne sont ni enregistrées, ni journalisées, et le presse-papiers est écrit de ce côté-là.",
 
     "services.config.unread":
       "Les réglages de ce service ne peuvent pas être montrés : le catalogue du serveur n'a pas répondu.",
@@ -122,10 +146,10 @@ export const services = {
     "services.config.reread": "Relire le catalogue",
     "services.config.title": "Configuration",
     "services.config.unconfigured":
-      "Ce service a été posé sur la machine sans être configuré. Répondez à ses questions et appliquez : c'est ce qui le termine.",
+      "Ce service a été installé sans être configuré. Répondez à ses questions et appliquez.",
     "services.config.apply": "Appliquer",
     "services.config.note":
-      "Ce sont les valeurs que l'agent a gardées de la dernière installation. Appliquer rejoue le module avec elles ; un secret laissé vide reste celui que le serveur détient.",
+      "Appliquer rejoue le module avec ces valeurs ; un secret laissé vide reste celui que le serveur détient.",
     "services.config.done": "{name} a été reconfiguré sur ce serveur.",
     "services.config.failed":
       "{name} : le serveur n'a pas tout appliqué. Les étapes disent où il s'est arrêté.",
@@ -134,26 +158,58 @@ export const services = {
     "services.database.shell": "Ouvrir un shell",
     "services.database.dump": "Exporter",
     "services.database.import": "Importer les dumps déposés",
-    "services.database.terminal": "Ouvrir un terminal sur le serveur",
     "services.database.empty":
       "Aucun dump à importer dans le dossier du serveur.",
     "services.database.outcome.dump": "Export écrit sur le serveur",
     "services.database.outcome.import": "Dumps importés",
-    "services.database.outcome.shell": "Commande à lancer sur le serveur",
+    "services.database.shellHint":
+      "Ouvrir un terminal sur le client de la base",
+
+    "services.control.title": "Service",
+    "services.control.start": "Démarrer",
+    "services.control.stop": "Arrêter",
+    "services.control.restart": "Redémarrer",
+    "services.control.restartQuestion":
+      "Redémarrer {name} ? Ce qui y est connecté est coupé un instant.",
+    "services.control.restartConfirm": "Redémarrer maintenant",
+    "services.control.failedHint":
+      "{name} s'est arrêté sur une erreur. Redémarrez-le ; s'il retombe, le journal ci-dessous dit pourquoi.",
+
+    "services.journal.title": "Journal",
+    "services.journal.follow": "Suivre",
+    "services.journal.copyAll": "Copier",
+    "services.journal.copyAllHint": "Copier le journal de {name}",
+    "services.journal.waiting": "En attente des premières lignes de {name}",
+    "services.journal.cut":
+      "Seules les {count} dernières lignes sont gardées : les plus anciennes ont été retirées.",
+
+    "services.dumps.title": "Dumps sur le serveur",
+    "services.dumps.read": "Lister les dumps",
+    "services.dumps.reread": "Relister",
+    "services.dumps.none":
+      "Aucun dump dans le dossier du serveur pour l'instant.",
+    "services.dumps.feeds": "nourrit {database}",
+    "services.dumps.restore": "Restaurer",
+    "services.dumps.restoreQuestion":
+      "Restaurer dans {database} ? Ce que cette base contient est remplacé.",
+    "services.dumps.restoreConfirm": "Restaurer",
+    "services.dumps.remove": "Supprimer",
+    "services.dumps.removeQuestion":
+      "Supprimer {name} du serveur ? Rien ne le ramène.",
+    "services.dumps.removeConfirm": "Supprimer",
 
     "services.forward.title": "Tunnel vers ce port",
     "services.forward.open": "Ouvrir un tunnel vers {port}",
-    "services.forward.empty":
-      "Aucun tunnel ouvert. Une fois ouvert, le port {port} du serveur répond sur cette machine.",
+    "services.forward.empty": "Aucun tunnel ouvert.",
     "services.forward.help": "Le port {port} du serveur, sur cette machine.",
+    "services.forward.moved":
+      "Le port {port} du serveur, sur cette machine. Son port local habituel, {from}, était pris par autre chose.",
     "services.forward.address": "Adresse locale",
     "services.forward.close": "Fermer ce tunnel",
 
     "services.panel.reload": "Relire",
     "services.panel.back": "Tous les services",
     "services.panel.waitingTitle": "Lecture du service",
-    "services.panel.waitingDetail":
-      "État, version, port, unité systemd et identifiants du module.",
 
     "services.removal.button": "Retirer ce module",
     "services.removal.losses.intro":
@@ -167,12 +223,8 @@ export const services = {
     "services.removal.outcome.back": "Revenir aux services",
 
     "services.screen.add": "Ajouter un service",
-    "services.screen.description":
-      "Ce qui est installé sur cette machine, et comment ça va.",
     "services.screen.eyebrow": "Services",
     "services.screen.fallbackName": "Ce serveur",
-    "services.screen.emptyDetail":
-      "Aucun service installé sur cette machine pour l'instant.",
     "services.screen.emptyTitle": "Aucun service",
 
     "services.add.quit": "Quitter l'ajout",

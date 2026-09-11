@@ -47,8 +47,6 @@ export const config = {
     "config.remaining.goTo": "Go to the first",
     "config.checking": "Checking with the server…",
     "config.ready": "Everything is answered.",
-    "config.description":
-      "A few questions before the install, one service at a time. Everything can be changed later.",
     "config.eyebrow": "Configuration",
     "config.thisServer": "This server",
     "config.secretsNotice": "Passwords are never stored on this computer.",
@@ -111,8 +109,6 @@ export const config = {
     "config.remaining.goTo": "Aller au premier",
     "config.checking": "Vérification avec le serveur…",
     "config.ready": "Tout est renseigné.",
-    "config.description":
-      "Quelques questions avant l'installation, un service à la fois. Tout pourra être changé plus tard.",
     "config.eyebrow": "Configuration",
     "config.thisServer": "Ce serveur",
     "config.secretsNotice":

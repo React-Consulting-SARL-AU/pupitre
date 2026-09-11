@@ -1,27 +1,24 @@
 import type { Project } from "@pupitre/shared/agent-protocol/state";
 import { ConfirmButton } from "@renderer/components/ui/confirm-button";
-import { IconButton } from "@renderer/components/ui/icon-button";
 import { Label } from "@renderer/components/ui/label";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { memory, uptime } from "@renderer/lib/format";
 import { isRunning } from "@renderer/lib/project-state";
-import type { BranchState, GitState } from "@renderer/stores/project";
+import type { BranchState, EnvState, GitState } from "@renderer/stores/project";
 import {
-  Check,
-  Copy,
-  ExternalLink,
   GitBranch,
+  KeyRound,
   MemoryStick,
   Terminal,
   Timer,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect } from "react";
+import { ProjectAddresses } from "./project-addresses";
 import { ProjectBranches } from "./project-branches";
+import { ProjectEnv } from "./project-env";
 import { ProjectGitState } from "./project-git-state";
 import { ProjectPanel } from "./project-panel";
-
-const COPY_MS = 1600;
 
 const HEAVY_MB = 2048;
 
@@ -37,64 +34,45 @@ export function ProjectOverview({
   project,
   git,
   branches,
+  env,
   switching,
+  syncing,
   onCheckout,
   onCheckGit,
+  onSync,
+  onReadEnv,
+  onRegenerateEnv,
+  onConfigure,
   onRemove,
 }: {
   project: Project;
   git: GitState;
   branches: BranchState;
+  env: EnvState;
   switching: boolean;
+  syncing: boolean;
   onCheckout: (branch: string) => void;
   onCheckGit: () => void;
+  /** Pull, then reinstall: what the header's Sync does, offered where the lead is read. */
+  onSync: () => void;
+  onReadEnv: () => void;
+  onRegenerateEnv: () => Promise<void>;
+  /** Opens the configuration tab, where the ports and their names live. */
+  onConfigure: () => void;
   onRemove: () => void;
 }) {
   const t = useTranslations();
 
-  const [copied, setCopied] = useState(false);
-
-  function copyAddress(url: string) {
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), COPY_MS);
-  }
+  // The keys are read on arrival: the agent answers what it holds, and writes
+  // the file only when the project has a template and no file yet.
+  useEffect(() => {
+    onReadEnv();
+  }, [onReadEnv]);
 
   return (
     <div className="h-full overflow-y-auto px-8 py-6">
       <div className="grid gap-gutter md:grid-cols-2">
-        <ProjectPanel
-          icon={ExternalLink}
-          label={t("project.overview.publicAddress")}
-        >
-          {project.url ? (
-            <div className="flex items-center gap-2">
-              <button
-                className="min-w-0 flex-1 truncate text-left font-data text-[13px] text-ink hover:underline"
-                onClick={() => window.pupitre.openUrl(project.url ?? "")}
-                type="button"
-              >
-                {project.url.replace("https://", "")}
-              </button>
-              <IconButton
-                icon={copied ? Check : Copy}
-                label={
-                  copied
-                    ? t("project.overview.addressCopied")
-                    : t("project.overview.copyAddress")
-                }
-                onClick={() => copyAddress(project.url ?? "")}
-              />
-            </div>
-          ) : (
-            <span className="text-ink-3">
-              {t("project.overview.notPublished")}
-            </span>
-          )}
-          <p className="mt-2 font-data text-[12px] text-ink-3">
-            {t("project.overview.local")} · {project.host}:{project.port}
-          </p>
-        </ProjectPanel>
+        <ProjectAddresses onPublish={onConfigure} project={project} />
 
         <ProjectPanel icon={GitBranch} label={t("project.overview.branch")}>
           <div className="flex flex-col gap-2.5">
@@ -104,8 +82,21 @@ export function ProjectOverview({
               state={branches}
               switching={switching}
             />
-            <ProjectGitState onCheck={onCheckGit} state={git} />
+            <ProjectGitState
+              onCheck={onCheckGit}
+              onPull={onSync}
+              pulling={syncing}
+              state={git}
+            />
           </div>
+        </ProjectPanel>
+
+        <ProjectPanel icon={KeyRound} label={t("project.overview.env")}>
+          <ProjectEnv
+            onRead={onReadEnv}
+            onRegenerate={onRegenerateEnv}
+            state={env}
+          />
         </ProjectPanel>
 
         <ProjectPanel icon={Timer} label={t("project.overview.activity")}>

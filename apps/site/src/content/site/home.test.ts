@@ -33,6 +33,14 @@ describe("home content", () => {
     )
   })
 
+  it("ends the headline on the word that cools, so the hero can frost it", () => {
+    for (const locale of LOCALES) {
+      const { headline, cooled } = homeContent(locale).hero
+
+      expect(headline, locale).toMatch(new RegExp(` ${cooled}\\.$`))
+    }
+  })
+
   it("has the same shape and no empty string in both languages", () => {
     const [en, fr] = LOCALES.map((locale) => leaves(homeContent(locale)))
 

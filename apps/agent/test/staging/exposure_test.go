@@ -183,7 +183,7 @@ func TestGithubClonesOverHttpsWithoutAKey(t *testing.T) {
 	}
 }
 
-// The module poses the CLI and keeps the key where root alone reads it; neonctl has no token login of its own.
+// The module poses the CLI and hands the key to the dev shell, where `neon` runs; root's file stays root's.
 func TestNeonPosesTheCliAndKeepsTheKey(t *testing.T) {
 	host := stagingHost(t)
 
@@ -211,7 +211,15 @@ func TestNeonPosesTheCliAndKeepsTheKey(t *testing.T) {
 	}
 
 	if out := ssh(t, "dev@"+address(host), "cat", "/etc/pupitre/env"); strings.Contains(out, key) {
-		t.Fatal("the key must not be readable by dev")
+		t.Fatal("root's file must not be readable by dev")
+	}
+
+	if out := ssh(t, "dev@"+address(host), "zsh", "-c", "'echo $NEON_API_KEY'"); !strings.Contains(out, key) {
+		t.Fatalf("the dev shell must carry the key:\n%s", out)
+	}
+
+	if out := ssh(t, "dev@"+address(host), "neonctl", "--version"); strings.TrimSpace(out) == "" {
+		t.Fatalf("the name the CLI prints for itself must answer:\n%s", out)
 	}
 
 	replay := agentWithSecrets(t, host, `{"tool.neon":{"api_key":"`+key+`"}}`, install)[0]

@@ -103,7 +103,18 @@ export function weight(bytes: number): string {
     return `${bytes} ${t("format.unit.byte")}`;
   }
 
-  return kb < BYTES_PER_KB
-    ? `${Math.round(kb)} ${t("format.unit.kb")}`
-    : `${decimal(kb / BYTES_PER_KB)} ${t("format.unit.mb")}`;
+  if (kb < BYTES_PER_KB) {
+    return `${Math.round(kb)} ${t("format.unit.kb")}`;
+  }
+
+  const mb = kb / BYTES_PER_KB;
+
+  return mb < BYTES_PER_KB
+    ? `${decimal(mb)} ${t("format.unit.mb")}`
+    : `${decimal(mb / BYTES_PER_KB, 2)} ${t("format.unit.gb")}`;
+}
+
+/** A transfer's pace, a weight per second. */
+export function rate(bytesPerSecond: number): string {
+  return `${weight(bytesPerSecond)}/${translate()("format.unit.second")}`;
 }

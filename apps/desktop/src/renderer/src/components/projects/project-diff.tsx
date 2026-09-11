@@ -1,3 +1,5 @@
+import { Callout } from "@renderer/components/ui/callout";
+import { CopyButton } from "@renderer/components/ui/copy-button";
 import { EmptyState } from "@renderer/components/ui/empty-state";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { IconButton } from "@renderer/components/ui/icon-button";
@@ -71,6 +73,7 @@ export function ProjectDiff({
     { added: 0, removed: 0 }
   );
   const change = files.find((file) => file.path === selected) ?? null;
+  const read = diff.status === "read" ? diff.diff : null;
 
   return (
     <div className="flex h-full flex-col">
@@ -87,10 +90,7 @@ export function ProjectDiff({
             : t.plural("project.file", files.length)}
         </span>
         <ProjectDiffCount added={total.added} removed={total.removed} />
-        <span
-          className="ml-auto font-data text-[11px] text-ink-3"
-          title={t("project.diff.readOnlyHint")}
-        >
+        <span className="ml-auto font-data text-[11px] text-ink-3">
           {t("project.diff.readOnly")}
         </span>
         <IconButton
@@ -123,7 +123,22 @@ export function ProjectDiff({
                     removed={change.removed}
                   />
                 )}
+                {read && !read.binary && read.patch ? (
+                  <CopyButton
+                    onCopy={() => navigator.clipboard.writeText(read.patch)}
+                    title={t("project.diff.copyPatchHint", {
+                      path: change.path,
+                    })}
+                  >
+                    {t("project.diff.copyPatch")}
+                  </CopyButton>
+                ) : null}
               </p>
+            ) : null}
+            {read?.problem ? (
+              <div className="shrink-0 border-line border-b px-4 py-2">
+                <Callout tone="warn">{read.problem}</Callout>
+              </div>
             ) : null}
             <div className="min-h-0 flex-1 overflow-auto">
               <ProjectDiffPatch onRetry={onRetryDiff} state={diff} />

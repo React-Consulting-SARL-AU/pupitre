@@ -6,6 +6,8 @@ import {
   expect,
   it,
 } from "bun:test"
+import { CLIENT_IP_HEADER } from "@pupitre/auth/server"
+import { PUBLIC_RELEASES_RATE_LIMIT } from "../../lib/api/rate-limit"
 import {
   PUBLISH_TOKEN_PREFIX,
   PUBLISH_TOKEN_VARIABLE,
@@ -525,6 +527,63 @@ describe("app releases", () => {
       expect(response.status).toBe(200)
       expect(response.json.data.version).toBe("1.3.0")
       expect(response.json.data.builds).toHaveLength(4)
+    })
+  })
+
+  describe("la lecture publique", () => {
+    it("répond à n'importe quelle origine et se laisse mettre en cache", async () => {
+      const response = await apiRequest<ReleaseListBody>("/releases/app")
+
+      expect(response.raw.headers.get("access-control-allow-origin")).toBe("*")
+      expect(response.raw.headers.get("cache-control")).toContain("max-age=300")
+    })
+
+    it("coupe une adresse qui dépasse son budget, sans toucher aux autres", async () => {
+      const flooding = { [CLIENT_IP_HEADER]: "203.0.113.7" }
+      const statuses = new Set<number>()
+
+      for (
+        let attempt = 0;
+        attempt < PUBLIC_RELEASES_RATE_LIMIT.limit;
+        attempt += 1
+      ) {
+        statuses.add(
+          (await apiRequest("/releases/app", { headers: flooding })).status
+        )
+      }
+
+      expect(statuses).toEqual(new Set([200]))
+
+      const limited = await apiRequest<ErrorBody>("/releases/app", {
+        headers: flooding,
+      })
+
+      expect(limited.status).toBe(429)
+      expect(limited.json.error.code).toBe("rate_limited")
+      expect(Number(limited.raw.headers.get("retry-after"))).toBeGreaterThan(0)
+      expect(limited.raw.headers.get("access-control-allow-origin")).toBe("*")
+
+      const neighbour = await apiRequest("/releases/app", {
+        headers: { [CLIENT_IP_HEADER]: "203.0.113.8" },
+      })
+
+      expect(neighbour.status).toBe(200)
+    })
+
+    it("garde son budget pour elle : la console reste joignable", async () => {
+      const flooding = { [CLIENT_IP_HEADER]: "203.0.113.9" }
+
+      for (
+        let attempt = 0;
+        attempt <= PUBLIC_RELEASES_RATE_LIMIT.limit;
+        attempt += 1
+      ) {
+        await apiRequest("/releases/app", { headers: flooding })
+      }
+
+      const health = await apiRequest("/health", { headers: flooding })
+
+      expect(health.status).toBe(200)
     })
   })
 })

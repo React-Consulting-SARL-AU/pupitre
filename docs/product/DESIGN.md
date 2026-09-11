@@ -1,6 +1,6 @@
 ---
 name: Pupitre
-description: Vos agents IA travaillent sur une machine à eux. Votre laptop respire.
+description: Vos agents IA travaillent sur une machine à eux. Votre laptop se rafraîchit.
 colors:
   light:
     base: "#ffffff"
@@ -18,6 +18,8 @@ colors:
     ok: "#1f7a45"
     warn: "#8a5f00"
     danger: "#b3362a"
+    frost: "#2f6cae"
+    frost-soft: "#bfdcf3"
   dark:
     base: "#0a0a0a"
     surface: "#111111"
@@ -34,6 +36,8 @@ colors:
     ok: "#4fbe85"
     warn: "#d9a320"
     danger: "#e8705a"
+    frost: "#a6d4f2"
+    frost-soft: "#5a97cf"
 typography:
   ui:
     fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Helvetica Neue', sans-serif"
@@ -80,7 +84,7 @@ motion:
 
 Une interface **monochrome mais accueillante**. Gris neutres, thème clair et thème sombre, aucune couleur d'accent : l'emphase vient du contraste, de la graisse et de l'inversion. Mais la sobriété n'est pas de la sécheresse — l'interface respire, ses surfaces sont posées les unes sur les autres par une ombre douce, ses coins sont arrondis, sa hiérarchie se lit d'un coup d'œil. On doit avoir envie de l'ouvrir.
 
-Deux exceptions à la monochromie, et deux seulement : **l'état** des choses, et **les logos des services** que le client installe, dans leurs couleurs d'origine. Le reste est gris.
+Trois exceptions à la monochromie, et trois seulement : **l'état** des choses, **les logos des services** que le client installe, dans leurs couleurs d'origine, et **le froid** qui gagne le dernier mot du titre du site. Le reste est gris.
 
 Ce document gouverne l'app desktop, la console web et le site. Un seul système, trois surfaces.
 
@@ -102,6 +106,7 @@ Une échelle de gris neutres, sans teinte. Quatre niveaux de surface pour l'él�
 | `line-strong` | bordures de champs, focus discret |
 | `inverse`, `inverse-ink` | bouton principal, badge fort : noir sur blanc en clair, blanc sur noir en sombre |
 | `ok`, `warn`, `danger` | points d'état, signes de diff. Rien d'autre |
+| `frost`, `frost-soft` | le mot qui se rafraîchit dans le titre du site : l'encre, puis la vitre givrée et la buée. Rien d'autre |
 
 **Interdit** : une couleur en dur (`#`, `rgb()`, `oklch()`) dans un composant. Tout passe par un token.
 
@@ -110,6 +115,7 @@ Une échelle de gris neutres, sans teinte. Quatre niveaux de surface pour l'él�
 - **L'état se lit à la forme d'abord.** En ligne : point plein. Arrêté : cercle vide. En échec : point barré. En cours : point qui respire. La couleur confirme ; l'interface reste lisible en gris purs.
 - **L'élévation est une ombre douce, jamais une bordure épaisse.** Trois niveaux seulement : `flat` pour ce qui est dans le flux, `raised` pour une carte ou un panneau posé sur le fond, `overlay` pour ce qui flotte — menu, popover, boîte de dialogue. En thème sombre, l'ombre est plus profonde et se double d'un pas de gris, l'ombre seule n'y suffisant pas. Une carte porte une ombre **ou** un trait, jamais les deux appuyés.
 - **Les coins sont arrondis.** `sm` pour un contrôle, `md` pour une carte ou un panneau, `lg` pour une boîte de dialogue ou une fenêtre, `xl` pour les grandes surfaces du site — bloc d'accueil, carte de section, tuile de logo —, `full` pour une pastille. Un rayon plus petit que son parent quand un élément est imbriqué.
+- **L'en-tête d'une page est un bandeau à part.** Dans l'app, la barre latérale, la bande de la fenêtre et l'en-tête de la page — logo, libellé, titre, état, faits, contrôles — partagent une même surface `surface` fermée par un trait ; le corps est un puits `base` qui défile sous eux. Ce qui concerne la chose entière — revenir, relire, retirer — se fait dans l'en-tête ; ce qui concerne une section se fait dans la section. L'onboarding, dont le rail dit déjà où l'on est, lit l'en-tête de chaque étape sur la page elle-même.
 - **L'espace fait la hiérarchie.** Échelle de 4 px. Une gouttière de 20 px entre les blocs d'un même groupe, 32 px entre deux sections. Un titre de section a plus d'air au-dessus qu'en dessous. Une liste dense reste aérée : 12 px de padding vertical minimum par ligne. Ne jamais serrer pour faire tenir : couper ou faire défiler.
 - **Les menus se hiérarchisent en trois plans** : le libellé de groupe en capitales espacées `ink-3`, les entrées en `ink`, l'entrée active sur `raised` avec un repère à gauche. Un séparateur avant une action destructrice. Jamais plus de deux niveaux d'imbrication.
 - **Typographie.** Police système pour l'interface à 14 px dans l'app, 13 px dans la console, 15 px sur le site, où le texte se lit de loin et sans clavier. L'app est lue à bout de bras sur un grand écran : elle monte d'un cran, et tout ce qui vit sous le texte courant monte avec. JetBrains Mono pour toute donnée : ports, chemins, commandes, durées, empreintes, versions. Libellés en capitales espacées à 10,5 px, 11,5 px dans l'app. Chiffres tabulaires partout où ils s'alignent. Bricolage Grotesque pour les titres. Interlignage généreux : 1,5 sur le texte courant, 1,2 sur les titres.
@@ -122,7 +128,7 @@ Une échelle de gris neutres, sans teinte. Quatre niveaux de surface pour l'él�
 - **Le diff** marque les lignes par le signe et par un fond `ok` ou `danger` à 10 % d'opacité. Lisible sans la couleur.
 - **Un QR code est monochrome, et jamais seul.** Modules en `ink` sur un fond `base`, coins `sm`, aucune marque au centre. La chaîne qu'il encode est toujours affichée à côté en `font-data` : un lecteur qui refuse le contraste inversé du thème sombre ne doit jamais bloquer la personne.
 - **Chaque geste répond là où il a été fait.** Le premier retour d'un clic est sur le contrôle cliqué, dans les cent millisecondes, et il y reste jusqu'à ce que la réponse soit à l'écran : le bouton passe en attente — le spinner à la place de l'icône, donc à gauche du libellé, `aria-busy`, le bouton indisponible et le curseur en `progress` — et n'en sort qu'une fois le résultat rendu ou l'erreur affichée. Un geste qui change d'écran garde son bouton en attente jusqu'au début de la sortie du panneau, si bien qu'on voit le bouton répondre puis l'écran partir. Un contrôle indisponible dit pourquoi à sa hauteur, jamais dans un bandeau en haut de page.
-- **Un écran qui se termine par un geste porte ce geste en bas.** La dernière chose lue est le dernier champ ; une barre collée au bas de la page tient l'action et, à sa gauche, ce qui s'y oppose. Un en-tête n'est pas un endroit où l'on agit.
+- **Un écran qui se termine par un geste porte ce geste en bas.** La dernière chose lue est le dernier champ ; une barre collée au bas de la page tient l'action et, à sa gauche, ce qui s'y oppose. Un en-tête ne porte jamais le geste qui termine un formulaire.
 - **Une bulle ne porte jamais ce qui décide.** Ce qui décide — un champ requis, une raison de blocage, une erreur — se lit sans geste, sous le champ ou sous la carte. La bulle porte le reste : où trouver une valeur, quelles permissions un jeton demande, ce qu'il en coûte de se tromper. Elle s'ouvre au clic et au clavier, jamais au survol seul, et sa cible fait vingt-huit pixels.
 - **L'interface parle à quelqu'un qui n'a jamais ouvert un terminal.** Elle vouvoie, dit ce qui arrive pour la personne et jamais comment l'app s'y prend. Trois plans : un titre de quelques mots qui dit ce qui se passe (« On regarde la machine »), une phrase qui dit ce que ça change pour elle, et un « Détails » replié, fermé par défaut, où vit le comment — chemins, protocoles, sommes de contrôle, canaux, comptes système. Les deux premiers plans n'emploient jamais un mot que la personne n'aurait pas employé : pas de binaire, de sonde, d'enrôlement, d'entrée standard, de heartbeat ; on dit l'agent, on regarde, on déclare, l'accès root. Une donnée technique qui décide — un port, une adresse, la commande qui répare — reste visible, en `font-data` ; celle qui ne décide de rien va sous Détails.
 - **Les écrans d'attente disent ce qui se passe** : le titre, ce que ça change, les phases nommées comme la personne les dirait, le compteur, la durée. Jamais un spinner seul, jamais le comment hors de Détails.

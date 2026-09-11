@@ -168,6 +168,17 @@ func TestPresetsComeFromTheSchema(t *testing.T) {
 		}
 	}
 
+	var mandatory struct {
+		Const []string `json:"const"`
+	}
+	if err := json.Unmarshal(mustDefinition(t, "MandatoryModules"), &mandatory); err != nil {
+		t.Fatalf("decode MandatoryModules: %v", err)
+	}
+
+	if len(mandatory.Const) == 0 || !reflect.DeepEqual(MandatoryModules, mandatory.Const) {
+		t.Fatalf("MandatoryModules = %v, schema.json says %v", MandatoryModules, mandatory.Const)
+	}
+
 	for _, id := range MandatoryModules {
 		if !strings.HasPrefix(id, "core.") {
 			t.Errorf("mandatory module %s is not a core module", id)

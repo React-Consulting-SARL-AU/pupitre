@@ -19,6 +19,7 @@ import { launchPupitre, type Running } from "./harness/launch";
 // The state the main process answers, taken from the contract rather than
 // written out here: a field renamed there has to fail the typecheck, not the run.
 const AHEAD: AgentUpdateState = {
+  config: null,
   floor: null,
   installed: "0.3.0",
   offer: {
@@ -34,6 +35,7 @@ const AHEAD: AgentUpdateState = {
 };
 
 const BEHIND: AgentUpdateState = {
+  config: null,
   floor: null,
   installed: "0.9.0",
   offer: {

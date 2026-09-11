@@ -1,3 +1,4 @@
+import type { Manifest } from "@pupitre/shared/catalog";
 import type { AgentError } from "@shared/agent";
 import type { CloudflareZone } from "@shared/cloudflare";
 import type { ConnectionKind, ConnectionsState } from "@shared/connections";
@@ -13,22 +14,59 @@ import { create } from "zustand";
  * connected, never with what.
  */
 
+/** What the provider said the last time it was asked about a held token. */
+export type ConnectionHealth =
+  | { status: "checking" }
+  | { status: "answered"; account: string; at: number }
+  | { status: "unaskable" }
+  | { status: "refused"; error: AgentError };
+
 interface ConnectionStore {
   state: ConnectionsState;
   busy: boolean;
   problem: AgentError | null;
   zones: readonly CloudflareZone[];
   zonesFor: string | null;
+  health: Partial<Record<ConnectionKind, ConnectionHealth>>;
 
   read: () => Promise<void>;
   connect: (kind: ConnectionKind, token: string) => Promise<boolean>;
   forget: (kind: ConnectionKind) => Promise<void>;
+  /** Asks the provider whether the token still opens an account. */
+  verify: (kind: ConnectionKind) => Promise<void>;
   loadZones: () => Promise<void>;
   holds: (kind: string) => boolean;
 }
 
+/**
+ * What forgetting an account takes away, said before it is taken: the installed
+ * modules of a server that declare this connection, by the manifests the
+ * agent gave. A catalogue not read answers no module, not none.
+ */
+export function forgetScope(
+  kind: ConnectionKind,
+  installed: readonly string[],
+  manifests: readonly Manifest[] | null
+): { modules: readonly string[]; known: boolean } {
+  if (!manifests) {
+    return { known: false, modules: [] };
+  }
+
+  const declaring = new Set(
+    manifests
+      .filter((manifest) => manifest.connection === kind)
+      .map((manifest) => manifest.id)
+  );
+
+  return {
+    known: true,
+    modules: installed.filter((id) => declaring.has(id)),
+  };
+}
+
 export const useConnections = create<ConnectionStore>((set, get) => ({
   busy: false,
+  health: {},
   problem: null,
   state: NO_CONNECTIONS,
   zones: [],
@@ -60,7 +98,56 @@ export const useConnections = create<ConnectionStore>((set, get) => ({
 
     const state = await window.pupitre.forgetAccount(kind);
 
-    set({ busy: false, state, zones: [], zonesFor: null });
+    set((held) => {
+      const { [kind]: _gone, ...health } = held.health;
+
+      return { busy: false, health, state, zones: [], zonesFor: null };
+    });
+  },
+
+  async verify(kind) {
+    set((held) => ({
+      health: { ...held.health, [kind]: { status: "checking" } },
+    }));
+
+    const answer = await window.pupitre.verifyAccount(kind);
+
+    if (!answer.ok) {
+      set((held) => ({
+        health: {
+          ...held.health,
+          [kind]: { error: answer.error, status: "refused" },
+        },
+      }));
+
+      return;
+    }
+
+    if (answer.result.status === "unaskable") {
+      set((held) => ({
+        health: { ...held.health, [kind]: { status: "unaskable" } },
+      }));
+
+      return;
+    }
+
+    const account = answer.result.account;
+
+    set((held) => {
+      const current = held.state[kind];
+
+      return {
+        health: {
+          ...held.health,
+          [kind]: { account: account.name, at: Date.now(), status: "answered" },
+        },
+        state: {
+          ...held.state,
+          [kind]:
+            current.status === "connected" ? { ...current, account } : current,
+        },
+      };
+    });
   },
 
   /**

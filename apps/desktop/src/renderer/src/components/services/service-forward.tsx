@@ -57,9 +57,14 @@ export function ServiceForward({
             >
               <span className="min-w-0 flex-1">
                 <CopyField
-                  help={t("services.forward.help", {
-                    port: forward.remotePort,
-                  })}
+                  help={
+                    forward.movedFrom === undefined
+                      ? t("services.forward.help", { port: forward.remotePort })
+                      : t("services.forward.moved", {
+                          from: forward.movedFrom,
+                          port: forward.remotePort,
+                        })
+                  }
                   label={t("services.forward.address")}
                   value={`127.0.0.1:${forward.localPort}`}
                 />

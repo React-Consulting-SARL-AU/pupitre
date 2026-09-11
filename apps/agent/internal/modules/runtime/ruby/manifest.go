@@ -21,6 +21,7 @@ func manifest() contract.Manifest {
 			{Key: "ruby_version", Kind: contract.FieldVersion, Label: i18n.T("module.runtime.ruby.ruby_version.label"), Options: []string{"3.4", "3.3", "3.2"}, Default: "3.4"},
 			{Key: "bundler", Kind: contract.FieldBoolean, Label: i18n.T("module.runtime.ruby.bundler.label"), Help: i18n.T("module.runtime.ruby.bundler.help"), Required: false, Default: true},
 		},
+		Runs:      false,
 		Mandatory: false,
 		Since:     "0.3.0",
 	}

@@ -8,6 +8,7 @@ import { InstallOutcomeBar } from "../install/install-outcome-bar";
 import { InstallProgress } from "../install/install-progress";
 import { InstallReport } from "../install/install-report";
 import { InstallSending } from "../install/install-sending";
+import { InstallStepRow } from "../install/install-step-row";
 
 const NAMES: Record<string, string> = {
   "core.system": "Socle système",
@@ -127,11 +128,58 @@ describe("les modules pendant l'installation", () => {
   });
 });
 
+describe("ce qu'une étape a dit", () => {
+  const rows = (step: ModuleProgress["steps"][number]) =>
+    renderToStaticMarkup(
+      <ul>
+        <InstallStepRow step={step} />
+      </ul>
+    );
+
+  it("montre la ligne d'un échec telle que l'agent l'a écrite", () => {
+    const html = rows({
+      message: "E: Unable to locate package mysql-server",
+      ms: 9100,
+      status: "fail",
+      step: "apt",
+    });
+
+    expect(tag(html, "data-step-message", "fail")).toBeTruthy();
+    expect(text(html)).toContain("E: Unable to locate package mysql-server");
+  });
+
+  it("montre l'avertissement d'une étape passée, sous son nom", () => {
+    const html = rows({
+      message: "Le fuseau demandé est inconnu : Etc/UTC a été gardé.",
+      ms: 12,
+      status: "skip",
+      step: "fuseau",
+    });
+
+    expect(tag(html, "data-step-message", "warn")).toBeTruthy();
+    expect(text(html)).toContain("Etc/UTC a été gardé");
+  });
+
+  it("ne dit rien sous une étape qui n'avait rien à dire", () => {
+    const html = rows({ ms: 12_400, status: "ok", step: "paquets" });
+
+    expect(html).not.toContain("data-step-message");
+  });
+
+  it("ne répète pas la ligne d'un échec dans la liste des modules", () => {
+    const html = renderToStaticMarkup(
+      <InstallProgress modules={MODULES} nameOf={nameOf} />
+    );
+
+    expect(text(html).match(/Unable to locate package/g)).toHaveLength(1);
+  });
+});
+
 describe("l'envoi de l'agent", () => {
   it("dit ce qui part et où, plutôt qu'un point qui tourne", () => {
-    const html = renderToStaticMarkup(<InstallSending arch="arm64" />);
+    const html = renderToStaticMarkup(<InstallSending />);
 
-    expect(text(html)).toContain("arm64");
+    expect(text(html)).toContain("L'agent est copié sur le serveur.");
     expect(html).toContain('data-shape="breathing"');
   });
 

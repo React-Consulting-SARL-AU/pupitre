@@ -8,9 +8,11 @@ import {
   WORKING_TREE,
 } from "../../__tests__/snapshot-fixtures";
 import { remoteEditors } from "../../lib/modules";
+import { ProjectActions } from "../projects/project-actions";
+import { ProjectAddresses } from "../projects/project-addresses";
 import { ProjectDiff } from "../projects/project-diff";
 import { ProjectEditors } from "../projects/project-editors";
-import { ProjectHeader } from "../projects/project-header";
+import { ProjectMeta } from "../projects/project-meta";
 import { ProjectOverview } from "../projects/project-overview";
 import { ProjectTabBar } from "../projects/project-tab-bar";
 import { tabsFor } from "../projects/project-tabs";
@@ -29,44 +31,52 @@ const STOPPED = SNAPSHOT.projects[1];
 describe("l'en-tête d'un projet", () => {
   it("montre l'état, la branche et l'écart avec le dépôt distant", () => {
     const html = renderToStaticMarkup(
-      <ProjectHeader
-        busy={false}
-        editors={null}
-        git={GIT_STATUS}
-        onAct={NOOP}
-        onSeeDiff={NOOP}
-        onSync={NOOP}
-        project={PROJECT}
-        syncing={false}
-      >
-        {null}
-      </ProjectHeader>
+      <ProjectMeta git={GIT_STATUS} onSeeDiff={NOOP} project={PROJECT} />
     );
 
-    expect(html).toContain("flymate-api");
     expect(html).toContain('data-state="online"');
     expect(html).toContain("main");
     expect(html).toContain("2 changements");
     expect(html).toContain("↓3");
     expect(html).toContain("↑1");
+  });
+
+  it("tait la branche d'un dossier qui n'est pas un dépôt", () => {
+    const html = renderToStaticMarkup(
+      <ProjectMeta git={null} onSeeDiff={NOOP} project={PROJECT} />
+    );
+
+    expect(html).toContain('data-state="online"');
+    expect(html).not.toContain("<button");
+  });
+
+  it("relance un projet en ligne et le synchronise", () => {
+    const html = renderToStaticMarkup(
+      <ProjectActions
+        busy={false}
+        editors={null}
+        onAct={NOOP}
+        onSync={NOOP}
+        project={PROJECT}
+        syncing={false}
+      />
+    );
+
     expect(html).toContain("Redémarrer");
+    expect(html).toContain("Arrêter");
     expect(html).toContain("Synchroniser");
   });
 
   it("propose de démarrer un projet arrêté, pas de l'arrêter", () => {
     const html = renderToStaticMarkup(
-      <ProjectHeader
+      <ProjectActions
         busy={false}
         editors={null}
-        git={null}
         onAct={NOOP}
-        onSeeDiff={NOOP}
         onSync={NOOP}
         project={STOPPED}
         syncing={false}
-      >
-        {null}
-      </ProjectHeader>
+      />
     );
 
     expect(html).toContain("Démarrer");
@@ -78,7 +88,15 @@ describe("les onglets d'un projet", () => {
   it("ne proposent que les agents installés sur cette machine", () => {
     const tabs = tabsFor({ agents: ["claude"], repo: true });
 
-    expect(tabs).toEqual(["overview", "logs", "diff", "shell", "claude"]);
+    expect(tabs).toEqual([
+      "overview",
+      "configuration",
+      "logs",
+      "diff",
+      "files",
+      "shell",
+      "claude",
+    ]);
   });
 
   it("retirent le diff d'un dossier qui n'est pas un dépôt", () => {
@@ -109,17 +127,25 @@ describe("la vue d'ensemble d'un projet", () => {
     const html = renderToStaticMarkup(
       <ProjectOverview
         branches={{ branches: BRANCHES, status: "read" }}
+        env={{ status: "idle" }}
         git={{ at: Date.now(), git: GIT_STATUS, status: "read" }}
         onCheckGit={NOOP}
         onCheckout={NOOP}
+        onConfigure={NOOP}
+        onReadEnv={NOOP}
+        onRegenerateEnv={() => Promise.resolve()}
         onRemove={NOOP}
+        onSync={NOOP}
         project={PROJECT}
         switching={false}
+        syncing={false}
       />
     );
 
     expect(html).toContain("flymate.example.org");
-    expect(html).toContain("127.0.0.1:3000");
+    expect(html).toContain("api-flymate.example.org");
+    expect(html).toContain('data-addresses="2"');
+    expect(html).toContain("Publier un autre port");
     expect(html).toContain("feat/tarifs");
     expect(html).toContain("bun run dev --port 3000");
     expect(html).toContain("412 Mo");
@@ -130,17 +156,40 @@ describe("la vue d'ensemble d'un projet", () => {
     const html = renderToStaticMarkup(
       <ProjectOverview
         branches={{ status: "idle" }}
+        env={{ status: "idle" }}
         git={{ status: "idle" }}
         onCheckGit={NOOP}
         onCheckout={NOOP}
+        onConfigure={NOOP}
+        onReadEnv={NOOP}
+        onRegenerateEnv={() => Promise.resolve()}
         onRemove={NOOP}
+        onSync={NOOP}
         project={PROJECT}
         switching={false}
+        syncing={false}
       />
     );
 
     expect(html).toContain("dérivée de bun");
     expect(html).toContain("interrogation du dépôt distant");
+  });
+});
+
+describe("les adresses d'un projet", () => {
+  it("montrent un port sans nom sur la boucle locale, et un port nommé comme un lien", () => {
+    const html = renderToStaticMarkup(
+      <ProjectAddresses onPublish={NOOP} project={STOPPED} />
+    );
+    const bare = renderToStaticMarkup(
+      <ProjectAddresses onPublish={NOOP} project={{ ...STOPPED, routes: [] }} />
+    );
+
+    expect(html).toContain("127.0.0.1:3100");
+    expect(html).toContain('data-published="false"');
+    expect(html).not.toContain("Ouvrir ");
+    expect(bare).toContain('data-addresses="1"');
+    expect(bare).toContain("127.0.0.1:3100");
   });
 });
 
@@ -211,6 +260,7 @@ describe("les éditeurs distants", () => {
     );
 
     expect(html).toContain("JetBrains Gateway");
+    expect(html).toContain(`Ouvrir ${GIT_STATUS.root} dans JetBrains Gateway`);
     expect(html).not.toContain("VS Code");
     expect(html).not.toContain("Zed");
   });

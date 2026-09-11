@@ -1,10 +1,11 @@
+import type { Manifest } from "@pupitre/shared/catalog";
 import { Button } from "@renderer/components/ui/button";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { Field, proseControlClass } from "@renderer/components/ui/field";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { useConnections } from "@renderer/stores/connections";
-import { Unplug } from "lucide-react";
+import { forgetScope, useConnections } from "@renderer/stores/connections";
 import { useEffect, useState } from "react";
+import { ConnectionConnected } from "./connection-connected";
 import type { ConnectionDescriptor } from "./connection-descriptors";
 
 /**
@@ -20,18 +21,28 @@ import type { ConnectionDescriptor } from "./connection-descriptors";
 export function ConnectionCard({
   connection,
   compact = false,
+  installed = [],
+  manifests = null,
+  serverName = null,
 }: {
   connection: ConnectionDescriptor;
   compact?: boolean;
+  /** The modules the active server runs, so forgetting names what it takes away. */
+  installed?: readonly string[];
+  /** The catalogue's manifests, when they have been read; null says nothing can be named. */
+  manifests?: readonly Manifest[] | null;
+  serverName?: string | null;
 }) {
   const t = useTranslations();
 
   const state = useConnections((store) => store.state[connection.kind]);
   const busy = useConnections((store) => store.busy);
   const problem = useConnections((store) => store.problem);
+  const health = useConnections((store) => store.health[connection.kind]);
   const read = useConnections((store) => store.read);
   const connect = useConnections((store) => store.connect);
   const forget = useConnections((store) => store.forget);
+  const verify = useConnections((store) => store.verify);
 
   const [token, setToken] = useState("");
 
@@ -41,41 +52,16 @@ export function ConnectionCard({
 
   if (state.status === "connected") {
     return (
-      <div
-        className="flex flex-wrap items-center justify-between gap-3"
-        data-connected="true"
-        data-connection={connection.kind}
-      >
-        <div className="min-w-0">
-          <p className="text-[13px] text-ink">
-            {state.account
-              ? t("connections.connected", { account: state.account.name })
-              : t("connections.held")}
-          </p>
-
-          {state.sealed ? null : (
-            <p className="mt-1 text-[12px] text-warn">
-              {t("connections.unsealed")}
-            </p>
-          )}
-        </div>
-
-        {/*
-          Disconnecting takes the account away from every server that uses it,
-          so it is drawn as what it is: an outline that reads as a button on the
-          panel it sits on, and the tone of what it undoes as the hand comes
-          near.
-        */}
-        <Button
-          icon={Unplug}
-          loading={busy}
-          onClick={() => forget(connection.kind)}
-          size="sm"
-          variant="danger"
-        >
-          {t("connections.forget")}
-        </Button>
-      </div>
+      <ConnectionConnected
+        busy={busy}
+        connection={connection}
+        health={health}
+        onForget={() => forget(connection.kind)}
+        onVerify={() => verify(connection.kind)}
+        scope={forgetScope(connection.kind, installed, manifests)}
+        serverName={serverName}
+        state={state}
+      />
     );
   }
 

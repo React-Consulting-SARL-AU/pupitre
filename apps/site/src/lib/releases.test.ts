@@ -139,14 +139,13 @@ describe("assets", () => {
 describe("loadReleases", () => {
   it("reads the platform when it answers", async () => {
     const warn = vi.fn()
-    const list = await loadReleases({
+    const releases = await loadReleases({
       fetcher: respondWith({ data: [served()] }),
       warn,
       endpoint: "https://example.test/releases",
     })
 
-    expect(list.stale).toBe(false)
-    expect(list.releases[0].version).toBe("1.2.0")
+    expect(releases[0].version).toBe("1.2.0")
     expect(warn).not.toHaveBeenCalled()
   })
 
@@ -154,9 +153,9 @@ describe("loadReleases", () => {
     const warn = vi.fn()
     const fetcher = vi.fn() as unknown as typeof fetch
 
-    const list = await loadReleases({ fetcher, warn, endpoint: undefined })
+    const releases = await loadReleases({ fetcher, warn, endpoint: undefined })
 
-    expect(list.stale).toBe(true)
+    expect(releases).toEqual(FALLBACK_RELEASES)
     expect(fetcher).not.toHaveBeenCalled()
     expect(warn.mock.calls[0][0]).toContain(ENDPOINT_VARIABLE)
   })
@@ -167,39 +166,38 @@ describe("loadReleases", () => {
       throw new Error("offline")
     }) as unknown as typeof fetch
 
-    const list = await loadReleases({
+    const releases = await loadReleases({
       fetcher,
       warn,
       endpoint: "https://example.test/releases",
     })
 
-    expect(list.stale).toBe(true)
-    expect(list.releases).toEqual(FALLBACK_RELEASES)
+    expect(releases).toEqual(FALLBACK_RELEASES)
     expect(warn).toHaveBeenCalledOnce()
     expect(warn.mock.calls[0][0]).toContain("last known list")
   })
 
   it("ships the last known list on an error status", async () => {
     const warn = vi.fn()
-    const list = await loadReleases({
+    const releases = await loadReleases({
       fetcher: respondWith({}, false),
       warn,
       endpoint: "https://example.test/releases",
     })
 
-    expect(list.stale).toBe(true)
+    expect(releases).toEqual(FALLBACK_RELEASES)
     expect(warn.mock.calls[0][0]).toContain("503")
   })
 
   it("ships the last known list when the shape does not match", async () => {
     const warn = vi.fn()
-    const list = await loadReleases({
+    const releases = await loadReleases({
       fetcher: respondWith({ data: [{ version: 1 }] }),
       warn,
       endpoint: "https://example.test/releases",
     })
 
-    expect(list.stale).toBe(true)
+    expect(releases).toEqual(FALLBACK_RELEASES)
     expect(warn.mock.calls[0][0]).toContain("expected shape")
   })
 })

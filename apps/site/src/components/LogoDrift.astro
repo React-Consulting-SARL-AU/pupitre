@@ -12,7 +12,10 @@ const drifts = driftFor(place)
 
 <div
   aria-hidden="true"
-  class="pointer-events-none absolute inset-0 hidden overflow-hidden xl:block"
+  class:list={[
+    "pointer-events-none absolute inset-0 hidden overflow-hidden xl:block",
+    place === "hero" && "drift-layer",
+  ]}
 >
   {
     drifts.map((drift) => (

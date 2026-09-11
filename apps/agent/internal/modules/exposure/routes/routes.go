@@ -3,6 +3,7 @@ package routes
 
 import (
 	"strconv"
+	"strings"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/registry"
@@ -42,7 +43,7 @@ func Declared(ctx sys.Context) []registry.Project {
 	return registry.Load(ctx, registry.Paths{}).Projects
 }
 
-// Only a project that declares a subdomain has a public address; the others stay on their port, behind the app's SSH session.
+// One route per port that carries a name on the web, under the domain the machine publishes; the other ports stay behind the app's SSH session.
 func For(domain string, projects []registry.Project) []Route {
 	list := []Route{}
 	if domain == "" {
@@ -50,16 +51,17 @@ func For(domain string, projects []registry.Project) []Route {
 	}
 
 	for _, project := range projects {
-		sub := project.Sub()
-		if sub == "" {
-			continue
-		}
+		for _, route := range project.Routes {
+			if route.Hostname == "" || !strings.HasSuffix(route.Hostname, "."+domain) {
+				continue
+			}
 
-		list = append(list, Route{
-			Hostname: sub + "." + domain,
-			Service:  "http://" + project.Host + ":" + strconv.Itoa(project.Port),
-			Project:  project.Name,
-		})
+			list = append(list, Route{
+				Hostname: route.Hostname,
+				Service:  "http://" + project.Host + ":" + strconv.Itoa(route.Port),
+				Project:  project.Name,
+			})
+		}
 	}
 
 	return list

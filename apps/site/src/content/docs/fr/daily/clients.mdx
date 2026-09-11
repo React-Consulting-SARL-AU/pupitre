@@ -1,57 +1,163 @@
 ---
 title: Votre propre client
-description: Brancher l’app Claude, l’app ChatGPT ou n’importe quel client SSH sur un serveur Pupitre, et travailler là plutôt que dans l’app.
+description: Brancher Claude Code, Codex, votre terminal et votre éditeur sur un serveur Pupitre en SSH, avec la clé privée que l’app a générée.
 locale: fr
 section: daily
 sectionOrder: 2
 order: 5
 ---
 
-Une fois la machine installée, Pupitre n’est pas l’endroit où vous devez travailler. Le serveur est une machine Ubuntu ordinaire, atteinte en SSH sous `dev`, et tout ce qui parle SSH peut s’y brancher — y compris les apps desktop de Claude et de ChatGPT.
+Une fois la machine prête, Pupitre n’est pas l’endroit où vous devez travailler. Le serveur est une machine Ubuntu ordinaire, jointe en SSH sous le compte `dev`, et tout ce qui parle SSH s’y branche — l’app Claude, l’app ChatGPT et son Codex, votre terminal, votre éditeur.
+
+Cette page est la partie pratique : où est la clé, comment déclarer l’hôte une fois pour toutes, et ce qu’il faut remplir pour chaque client.
 
 ## Ce que le serveur offre à un client
 
-Rien de spécial, et c’est voulu :
+Rien de particulier, et c’est voulu :
 
-- un point d’entrée SSH sur le port 22 — et sur le 443 aussi, si vous l’avez demandé à `core.hardening` ;
+- un accès SSH sur le port 22 — et sur le 443 aussi, si vous l’avez demandé à `core.hardening` ;
 - l’utilisateur `dev`, dont `authorized_keys` porte la moitié publique de chaque appareil de votre compte ;
-- vos projets sous le dossier que vous avez choisi, appartenant à `dev` ;
-- les runtimes activés dans les shells **non interactifs** aussi, pour qu’un client qui lance une commande sans shell de connexion trouve les mêmes `node`, `python` et `java` que vous ;
-- `tmux`, `systemd`, et les bases sur `127.0.0.1`.
+- vos projets sous le dossier que vous avez choisi, possédés par `dev` ;
+- les runtimes activés dans les shells **non interactifs** également, pour qu’un client qui lance une commande sans shell de connexion trouve les mêmes `node`, `python` et `claude` que vous ;
+- `tmux`, `systemd`, la commande `dev`, et les bases sur `127.0.0.1`.
 
-Ce dernier point est celui qui décide si un client distant est agréable ou exaspérant. `runtime.node` écrit son activation dans `.zshenv` exactement pour cette raison.
+Ce dernier point sur les shells non interactifs est ce qui décide qu’un client distant sera agréable ou insupportable. Les modules de runtime écrivent leur activation dans `.zshenv`, que `zsh` lit pour tous les shells, exactement pour cette raison.
 
-## Claude
+## Où l’app garde la clé
 
-L’app Claude sait ouvrir une session sur une machine distante en SSH. Donnez-lui votre serveur et Claude Code y tourne : dans le dossier du projet, avec les fichiers d’instructions du projet, avec les skills Pupitre qu’a installés le module `ai.claude`, et avec la base que le projet attend en écoute sur localhost.
+Pupitre génère une clé ed25519 par serveur et la garde dans son propre dossier de données, en mode `0600`. Elle n’écrit rien dans votre `~/.ssh/config`.
 
-Vous vous connectez une fois, depuis la session où vous êtes — l’outil affiche une URL, vous l’approuvez dans votre navigateur. C’est votre abonnement ; Pupitre ne revend rien et ne stocke aucun jeton pour vous.
+| Système | Dossier |
+| --- | --- |
+| macOS | `~/Library/Application Support/Pupitre` |
+| Windows | `%APPDATA%\Pupitre` |
+| Linux | `~/.config/Pupitre` |
 
-## ChatGPT et Codex
+À l’intérieur :
 
-Pareil depuis l’app ChatGPT : Codex tourne sur le serveur, sur votre propre abonnement. `ai.claude` et `ai.codex` peuvent cohabiter ; ils voient les mêmes projets, les mêmes runtimes et les mêmes bases, parce qu’il n’y a qu’une machine.
+```
+ssh/config        un bloc Host par serveur, passé à ssh avec -F
+ssh/known_hosts   les clés d’hôte que l’app a épinglées
+keys/device       la clé de cet ordinateur, celle qui ouvre un serveur confié par votre organisation
+keys/srv-xxxxxxx  la clé d’un serveur que vous avez ajouté vous-même, en mode 0600
+```
 
-## Éditeurs
+Chaque clé a son `.pub` à côté d’elle. Ouvrez `ssh/config` pour savoir quel serveur est lequel : chaque bloc porte son adresse, son port, son utilisateur et le chemin de sa clé — `keys/device` pour un serveur confié, `keys/srv-…` pour un serveur que vous avez ajouté.
 
-VS Code, Cursor et Windsurf se connectent en Remote SSH, Zed par `zed://ssh`, les IDE JetBrains par Gateway. Les modules `editor.*` préinstallent les backends distants pour que la première connexion soit immédiate au lieu d’un téléchargement de dix minutes. Voir [éditeurs distants](/fr/docs/daily/editors/).
+```
+Host pupitre-srv-m9k2p1
+  HostName 203.0.113.10
+  Port 22
+  User dev
+  IdentityFile "/Users/vous/Library/Application Support/Pupitre/keys/srv-m9k2p1"
+  IdentitiesOnly yes
+```
 
-## ssh tout court
+Pointez vos clients sur ce fichier plutôt que d’en faire une copie ailleurs. Supprimer le serveur dans l’app emporte sa clé, et une copie posée ailleurs serait une orpheline qui ouvre toujours votre machine.
 
-`ssh dev@votre-serveur` fonctionne, et le binaire de l’agent est aussi lié sous le nom `dev` : les opérations que l’app effectue existent dans un terminal nu, avec les mêmes gestionnaires et les mêmes refus.
+## Déclarer l’hôte une fois
 
-## Quelle clé
+Tout ce qui suit se passe mieux quand votre propre `~/.ssh/config` porte une entrée pour le serveur. Certains clients — Codex parmi eux — ne lisent les hôtes que dans ce fichier.
 
-Pupitre garde sa propre configuration SSH dans le dossier de données de l’app — un fichier `config` et une clé par serveur, en `0600`. Il n’écrit jamais dans votre `~/.ssh/config`.
+```
+Host pupitre
+  HostName 203.0.113.10
+  Port 22
+  User dev
+  IdentityFile "/Users/vous/Library/Application Support/Pupitre/keys/srv-m9k2p1"
+  IdentitiesOnly yes
+```
 
-Un client tiers n’hérite donc pas automatiquement de la clé de Pupitre. Deux façons de faire, également valables :
+Recopiez les valeurs depuis le bloc de l’app. Les guillemets autour du chemin sont nécessaires dès qu’il contient une espace, ce qui est le cas sur macOS et sur Windows. Vérifiez ensuite :
 
-1. **Pointer le client sur la clé de Pupitre.** L’écran du serveur affiche l’hôte, le port, l’utilisateur et le chemin de la clé ; collez-les dans le client, ou dans votre `~/.ssh/config` sous forme d’entrée d’hôte.
-2. **Utiliser une clé que vous avez déjà.** Ajoutez sa moitié publique à `dev`, ou laissez Pupitre adopter une entrée d’hôte existante au lieu de gérer la sienne — c’est l’option proposée sur l’écran du serveur au moment de l’ajouter.
+```
+ssh pupitre "dev status"
+```
 
-Dans les deux cas la révocation continue de faire son travail : un appareil retiré dans la console perd sa clé sur le serveur à la prochaine remontée de l’agent.
+Une machine qui répond avec ses projets est une machine que tous les clients de cette page peuvent désormais joindre. Si elle demande un mot de passe, la clé n’est pas celle que `dev` accepte : révélez la clé publique sur l’écran des serveurs et comparez-la à `~/.ssh/authorized_keys` sur la machine.
+
+## Claude Code
+
+Deux chemins, qui arrivent au même endroit : `ai.claude` a déjà installé Claude Code pour `dev`, avec le contexte machine et les skills Pupitre.
+
+**Depuis l’app Claude.** Ouvrez le menu d’environnement avant de démarrer une session et choisissez **Add SSH connection**. Elle demande quatre choses :
+
+| Champ | Ce qu’on met |
+| --- | --- |
+| Name | Le nom que vous donnez à la machine |
+| SSH Host | `pupitre`, ou `dev@203.0.113.10` |
+| SSH Port | 22, ou celui que vous avez choisi |
+| Identity File | Le chemin de la clé de l’app, d’après le tableau plus haut |
+
+C’est ce champ Identity File qui fait que la clé de l’app fonctionne ici sans cérémonie : donnez le chemin, rien d’autre n’a à bouger. Laissez-le vide si l’hôte se résout déjà par votre `~/.ssh/config`.
+
+**Depuis un terminal.** Ouvrez une session, gardez-la dans `tmux` pour qu’elle survive au réseau, et lancez l’outil là où est le projet :
+
+```
+ssh pupitre
+tmux new -A -s claude
+cd ~/projects/votre-projet && claude
+```
+
+Dans les deux cas vous vous connectez une fois, depuis la session où vous êtes : l’outil affiche une URL, vous l’approuvez dans votre navigateur. C’est votre abonnement ; Pupitre ne revend rien et ne stocke aucun jeton pour vous.
+
+## Codex
+
+`ai.codex` installe Codex par `mise`, et les shims sont sur le PATH de tous les shells — y compris le shell non interactif qu’ouvre un client distant. C’est exactement ce que l’app exige de la machine : elle démarre Codex sur l’hôte distant à travers votre shell de connexion.
+
+**Depuis l’app ChatGPT.** Codex y ajoute un projet distant depuis un hôte SSH : elle lit les alias d’hôte concrets de votre `~/.ssh/config` et les résout avec OpenSSH, si bien que l’entrée écrite plus haut est celle qu’elle vous propose. Il n’y a pas de champ pour une clé — c’est la ligne `IdentityFile` de cette entrée qui désigne celle de l’app.
+
+**Depuis un terminal.** Même forme que pour Claude Code :
+
+```
+ssh pupitre
+tmux new -A -s codex
+cd ~/projects/votre-projet && codex
+```
+
+Claude Code et Codex cohabitent sans discussion. Ils voient les mêmes projets, les mêmes runtimes et les mêmes bases, parce qu’il n’y a qu’une machine.
+
+## Votre terminal
+
+`ssh pupitre` suffit, et le binaire de l’agent est aussi lié sous le nom `dev` : les opérations que l’app effectue existent dans un terminal nu.
+
+```
+dev status                    ce qui tourne, sur quel port, avec quelle mémoire
+dev up mon-projet             le démarre dans sa session tmux
+dev restart all
+dev logs mon-projet -f
+dev sync mon-projet           git pull, puis les dépendances
+dev attach mon-projet         affiche la ligne tmux à coller dans votre terminal
+dev branch                    la branche de chaque projet
+dev branch mon-projet main    change ce projet de branche
+dev db url                    la chaîne de connexion, pour un client sur votre poste
+dev doctor                    un diagnostic court de la machine
+```
+
+L’agent lit son enrôlement et son droit d’usage dans des fichiers que seul root ouvre : la commande se relance donc elle-même sous le `sudo` sans mot de passe que le durcissement laisse à l’utilisateur `dev`. Taper `sudo dev …` vous-même ne change rien.
+
+`dev db` accepte aussi `shell`, `dump` et `import`, et le moteur va de soi quand la machine n’a qu’une base — `dev db url postgres` quand elle en a deux.
+
+Ajoutez `--json` à n’importe laquelle et vous obtenez la réponse de l’agent plutôt qu’un rendu de celle-ci, ce qui rend ces commandes utilisables par un script, ou par un agent qui travaille dans un terminal.
+
+## Votre éditeur
+
+VS Code, Cursor et Windsurf se connectent en Remote SSH, Zed par `zed://ssh`, les IDE JetBrains par Gateway. Ils lisent la même entrée de `~/.ssh/config`, et les modules `editor.*` préinstallent les backends distants pour que la première connexion soit immédiate plutôt qu’un téléchargement de dix minutes. Voir [éditeurs distants](/fr/docs/daily/editors/).
+
+## Quand ça n’ouvre pas
+
+- **On vous demande un mot de passe.** La clé n’est pas dans le `authorized_keys` de `dev`. Recopiez la moitié publique depuis l’écran des serveurs, dans l’app.
+- **`Permissions 0644 for ... are too open`.** La clé privée ne doit être lisible que par vous : `chmod 600` sur macOS et Linux. Sur Windows, la garder dans `%APPDATA%` suffit — une copie posée dans un dossier partagé, non.
+- **Rien ne répond sur le port 22.** Si votre réseau le filtre, `core.hardening` peut mettre SSH sur le 443 également ; changez `Port` dans votre entrée.
+- **La clé d’hôte a changé.** Réinstaller une machine la change. L’app vous le demande de son côté ; dans votre `~/.ssh/known_hosts`, retirez l’ancienne ligne.
+- **`codex: command not found` depuis un client distant.** Le client a ouvert un shell qui n’a pas lu `.zshenv`. Vérifiez avec `ssh pupitre 'which codex'`.
+
+## La révocation fonctionne toujours
+
+Un appareil retiré dans la console perd sa clé sur le serveur au prochain rendez-vous de l’agent — quoi que cette clé servait à ouvrir. C’est la raison de pointer vos clients sur la clé de l’app plutôt que sur une copie.
 
 ## Ce qui reste dans l’app
 
-Pupitre reste l’endroit des choses qu’un client de conversation n’a pas à faire : inspecter la machine, installer et configurer les services, durcir, le rapport d’installation en direct, l’enregistrement des projets, l’état des services que l’agent rapporte, les mises à jour et les alertes.
+Pupitre reste l’endroit des choses qu’un client de conversation n’a pas à faire : inspecter la machine, installer et configurer les services, durcir, le rapport d’installation en direct, l’enregistrement des projets, les secrets, l’état des services que l’agent rapporte, les mises à jour et les alertes.
 
-Son terminal est là pour le jour où vous en voulez un — la première connexion, un log à regarder, une commande que vous préférez lancer là où l’installation a eu lieu. Ce n’est pas un péage.
+Son terminal est là le jour où vous en voulez un — la première connexion, un journal à regarder, une commande que vous préférez lancer là où l’installation a eu lieu. Ce n’est pas le prix d’entrée.

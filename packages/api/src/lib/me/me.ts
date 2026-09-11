@@ -1,13 +1,53 @@
 import { type Locale, localeOrDefault } from "@pupitre/shared/i18n"
 import type { OrgRole } from "@pupitre/shared/permissions"
 import type { SessionUser } from "../api/plugins/auth"
-import { getPrisma } from "../api/prisma"
+import { getPrisma, withOrganization } from "../api/prisma"
 import { entitlementForOrganization } from "../billing/entitlement"
+import { countSeatedServers } from "../billing/seats"
 
 export interface MeInput {
   user: SessionUser
   organizationId: string | null
   role: OrgRole | null
+}
+
+export interface MeSubscriptionView {
+  status: string
+  trial_ends_at: Date | null
+  current_period_end: Date | null
+  servers: { used: number; limit: number }
+}
+
+/**
+ * The subscription the app shows under the account: the Stripe mirror as it
+ * stands, and the seats it pays against the servers that hold one. Stripe ends
+ * the first period with the trial, so that date is the trial's end while the
+ * status says so.
+ */
+export async function subscriptionForMe(
+  organizationId: string
+): Promise<MeSubscriptionView | null> {
+  const prisma = getPrisma()
+  const [subscription, used] = await Promise.all([
+    prisma.subscription.findFirst({
+      where: { organizationId },
+      orderBy: { updatedAt: "desc" },
+      select: { status: true, quantity: true, currentPeriodEnd: true },
+    }),
+    countSeatedServers(withOrganization(prisma, organizationId)),
+  ])
+
+  if (!subscription) {
+    return null
+  }
+
+  return {
+    status: subscription.status,
+    trial_ends_at:
+      subscription.status === "trialing" ? subscription.currentPeriodEnd : null,
+    current_period_end: subscription.currentPeriodEnd,
+    servers: { used, limit: subscription.quantity },
+  }
 }
 
 export async function loadMe({ user, organizationId, role }: MeInput) {
@@ -29,9 +69,12 @@ export async function loadMe({ user, organizationId, role }: MeInput) {
     memberships.find(
       (membership) => membership.organizationId === organizationId
     )?.organization ?? null
-  const entitlement = active
-    ? (await entitlementForOrganization(active.id)).state
-    : ("none" as const)
+  const [entitlement, subscription] = active
+    ? await Promise.all([
+        entitlementForOrganization(active.id).then((held) => held.state),
+        subscriptionForMe(active.id),
+      ])
+    : ["none" as const, null]
 
   return {
     user: {
@@ -49,6 +92,7 @@ export async function loadMe({ user, organizationId, role }: MeInput) {
     active_organization: active,
     role,
     entitlement,
+    subscription,
   }
 }
 

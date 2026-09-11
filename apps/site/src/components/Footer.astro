@@ -1,5 +1,5 @@
 ---
-import { developmentNotice, legalEntityLabel } from "@pupitre/shared/legal"
+import { copyrightHolder, developmentNotice } from "@pupitre/shared/legal"
 import { localeFromPath, localizePath, translator } from "../lib/i18n"
 import { STATUS_URL } from "../lib/urls"
 import Brand from "./Brand.astro"
@@ -46,7 +46,6 @@ const groups = [
     <div class="max-w-sm">
       <Brand />
       <p class="mt-5 text-ink-2">{t("footer.tagline")}</p>
-      <p class="mt-4 text-ink-3">{t("footer.builtBy")}</p>
     </div>
 
     <div class="grid gap-x-8 gap-y-10 sm:grid-cols-3">
@@ -79,7 +78,7 @@ const groups = [
     <div
       class="shell flex flex-wrap items-center gap-x-6 gap-y-4 py-6 text-ink-3"
     >
-      <p class="data">© {year} {legalEntityLabel(locale)}</p>
+      <p class="data">© {year} {copyrightHolder()}</p>
       <p class="data">{notice.short}</p>
       <div class="ms-auto flex items-center gap-2">
         <ThemeToggle placement="up" />

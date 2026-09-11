@@ -24,14 +24,7 @@ function ServersPending() {
   const t = useTranslations()
   const { title, parents } = pageTitle(ROUTE_ID)
 
-  return (
-    <PageSkeleton
-      description={t("page.servers.description")}
-      parents={parents}
-      shape="rows"
-      title={t(title)}
-    />
-  )
+  return <PageSkeleton parents={parents} shape="rows" title={t(title)} />
 }
 
 function ServersPage() {
@@ -40,11 +33,7 @@ function ServersPage() {
 
   return (
     <>
-      <PageHeader
-        description={t("page.servers.description")}
-        parents={parents}
-        title={t(title)}
-      />
+      <PageHeader parents={parents} title={t(title)} />
       <ServerList />
     </>
   )

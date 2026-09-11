@@ -106,11 +106,7 @@ export function AuditLog() {
       ) : null}
 
       {page.isSuccess && page.data.total === 0 ? (
-        <EmptyState
-          description={t("auditUi.emptyDescription")}
-          icon={ScrollText}
-          title={t("auditUi.emptyTitle")}
-        />
+        <EmptyState icon={ScrollText} title={t("auditUi.emptyTitle")} />
       ) : null}
 
       {page.isSuccess && page.data.total > 0 ? (

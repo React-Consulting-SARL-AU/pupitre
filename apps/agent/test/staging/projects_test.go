@@ -55,6 +55,7 @@ func addVite(name string, port int) request {
 		"pkgmgr": "bun",
 		"host":   "127.0.0.1",
 		"port":   port,
+		"routes": []map[string]any{{"label": "web", "port": port}},
 		"cmd":    fmt.Sprintf("bun run dev -- --host 127.0.0.1 --port %d", port),
 	}}
 }
@@ -267,12 +268,12 @@ func TestTheRegistryOfTheRepositoryIsNeverRewritten(t *testing.T) {
 	agent(t, host, addVite("fixture-local", 5400))
 
 	if after := ssh(t, host, "cat", "/etc/pupitre/projects.conf"); after != before {
-		t.Fatal("project.add writes /etc/pupitre/projects.local.conf and nothing else")
+		t.Fatal("project.add writes /etc/pupitre/projects.local.json and nothing else")
 	}
 
-	local := ssh(t, host, "cat", "/etc/pupitre/projects.local.conf")
-	if !strings.Contains(local, "fixture-local|fixture-local|-|bun|127.0.0.1|5400") {
-		t.Fatalf("the row must be in the local registry, in the format of projects.conf:\n%s", local)
+	local := ssh(t, host, "cat", "/etc/pupitre/projects.local.json")
+	if !strings.Contains(local, `"name": "fixture-local"`) || !strings.Contains(local, `"port": 5400`) {
+		t.Fatalf("the row must be in the local registry, as JSON:\n%s", local)
 	}
 
 	removed := agent(t, host, request{Cmd: "project.remove", Params: map[string]any{"name": "fixture-local"}})[0]

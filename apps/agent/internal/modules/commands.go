@@ -112,6 +112,9 @@ func Emitter(ctx *protocol.Context) Sink {
 		if event.Replay != "" {
 			fields["replay"] = event.Replay
 		}
+		if event.Message != "" {
+			fields["message"] = event.Message
+		}
 
 		ctx.Emit("step", fields)
 	}

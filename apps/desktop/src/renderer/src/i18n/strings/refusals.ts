@@ -79,6 +79,13 @@ export const refusals = {
     "refusal.setup.user": "« {user} » is not a user name.",
     "refusal.setup.user.fix":
       "The account to open on the server: « root » at first contact, « dev » once the machine is hardened.",
+    "refusal.setup.system":
+      "This server is a host of your own SSH configuration.",
+    "refusal.setup.system.fix":
+      "Change its address in ~/.ssh/config: the app writes nothing there.",
+    "refusal.setup.password": "{user}@{host} refused that password.",
+    "refusal.setup.password.fix":
+      "Nothing was created. It is the password of the remote account, the one your host gave you: type it again.",
     "refusal.key.name": "« {serverId} » cannot name a key.",
     "refusal.key.name.fix":
       "An identifier of letters, digits and dashes: nothing that could point at another folder.",
@@ -166,6 +173,13 @@ export const refusals = {
     "refusal.module.none.fix": "Pick a service in the list.",
     "refusal.module.notDatabase": "{module} is not a database.",
     "refusal.module.notDatabase.fix": "This action exists for databases only.",
+    "refusal.database.name": "{name} cannot name a database.",
+    "refusal.database.name.fix":
+      "Letters, digits, dashes and underscores only, up to 64 characters.",
+    "refusal.database.command":
+      "The server answered with a command the app refuses to run.",
+    "refusal.database.command.fix":
+      "Open a terminal on the server and run the shell of the database yourself.",
     "refusal.params.invalid": "Invalid parameters for {cmd}.",
     "refusal.bridge.credential": "{cmd} cannot be called from here.",
     "refusal.bridge.secret": "{cmd} cannot be called from here.",
@@ -180,10 +194,21 @@ export const refusals = {
     "refusal.terminal.kind": "Unknown terminal kind: {kind}.",
     "refusal.terminal.kind.fix":
       "Open a terminal, or the tab of an installed agent.",
+    "refusal.terminal.session":
+      "This session name is not one of ours: {session}.",
+    "refusal.terminal.session.fix":
+      "Close this tab and open another one: the new session will be named by the app.",
+    "refusal.terminal.folder": "This folder cannot open a terminal: {dir}.",
+    "refusal.terminal.folder.fix":
+      "Open the terminal from a folder of the project, or of the server's files.",
     "refusal.connection.absent": "No {kind} account is connected.",
     "refusal.connection.absent.fix":
       "Connect the account in the settings: a service that needs it cannot be installed without it.",
     "refusal.connection.call": "{kind} refused: {reason}.",
+    "refusal.connection.revoked":
+      "{kind} no longer answers to this token: {reason}.",
+    "refusal.connection.revoked.fix":
+      "Create a new token on the provider and connect it again here; every server that uses it takes the new one at its next install.",
     "refusal.connection.call.fix":
       "Check that the token is still valid and still carries the rights the service asks for.",
     "refusal.connection.token.none": "This token is empty.",
@@ -196,6 +221,10 @@ export const refusals = {
       "No zone of the connected account carries {domain}.",
     "refusal.cloudflare.zone.unknown.fix":
       "Pick a domain under one of the account's zones, or add that zone to Cloudflare.",
+    "refusal.cloudflare.exposure.unread":
+      "This server did not say which tunnel it runs: {reason}.",
+    "refusal.cloudflare.exposure.unread.fix":
+      "The tunnel was left as it is, because making another one takes down the one running. Wait for the server to answer, then install again.",
     "refusal.server.unknown": "This server is no longer in the list.",
     "refusal.server.unknown.fix": "Pick a server in the settings.",
     "refusal.modules.none": "No service to install.",
@@ -225,6 +254,11 @@ export const refusals = {
       "This computer is signed in to no Pupitre account.",
     "refusal.device.none.console.fix":
       "Sign in from the settings, or open the console: {console}",
+    "refusal.device.self": "This computer cannot revoke itself.",
+    "refusal.device.self.fix":
+      "Sign out instead: the servers close for this computer, and the terminals with them.",
+    "refusal.device.unknown": "No device was named.",
+    "refusal.device.unknown.fix": "Pick a device in the list.",
     "refusal.probe.unreadable":
       "The server sent back no readable inspection report.",
     "refusal.probe.unreadable.fix":
@@ -272,6 +306,42 @@ export const refusals = {
     "refusal.secret.value.invalid.fix": "Give a value on a single line.",
     "refusal.secrets.stale.fix":
       "Reload the list of secrets, then start again.",
+    "refusal.channel.unopened": "The connection to the server is not open.",
+    "refusal.channel.unopened.fix":
+      "Run the command again: the app reopens the connection on its own.",
+    "refusal.channel.flooded":
+      "The server sent more than {limit} MiB without a line break: the connection was closed.",
+    "refusal.channel.flooded.fix":
+      "Check that pupitred is what answers on this server, then run the command again.",
+    "refusal.command.cancelled": "{cmd} was stopped from here.",
+    "refusal.capability.missing":
+      "The agent {agent} on this server does not know the command {cmd}.",
+    "refusal.capability.missing.fix":
+      "Update the agent from the server's page: this app drives agents from {floor} up.",
+    "refusal.bridge.command": "{cmd} cannot be called from here.",
+    "refusal.bridge.command.fix":
+      "This command has a screen of its own, or none: nothing sends it from here.",
+    "refusal.forward.port.none": "No local port could be reserved.",
+    "refusal.forward.port.none.fix":
+      "Close a few connections on this computer, then try again.",
+    "refusal.platform.unreachable": "The console did not answer.",
+    "refusal.platform.unreachable.fix":
+      "Check your connection. Pupitre stays usable for seven days offline.",
+    "refusal.platform.unreachable.local": "The console did not answer.",
+    "refusal.platform.unreachable.local.fix":
+      "No console answers on {baseUrl}: run `bun run dev:web`.",
+    "refusal.agentUpdate.binary":
+      "This app carries no agent for the {arch} architecture, and the console publishes none for this server.",
+    "refusal.agentUpdate.binary.fix":
+      "Build the agent with bun --cwd=apps/agent run build, then rebuild the app.",
+    "refusal.agentUpdate.signature":
+      "This app carries no signature for the agent {version} on {arch}, and this server no longer reaches the console that serves it.",
+    "refusal.agentUpdate.signature.fix":
+      "Publish this version with bun --cwd=apps/agent run release, then rebuild the app.",
+    "refusal.tunnel.route.foreign":
+      "{hostname} is not under {domain}, the domain this server publishes.",
+    "refusal.tunnel.route.foreign.fix":
+      "A route lives under the server's domain: give the project a subdomain of {domain}.",
   },
   fr: {
     "refusal.project.command.unknown": "Commande de projet inconnue : {cmd}.",
@@ -352,6 +422,13 @@ export const refusals = {
     "refusal.setup.user": "« {user} » n'est pas un nom d'utilisateur.",
     "refusal.setup.user.fix":
       "Le compte à ouvrir sur le serveur : « root » au premier contact, « dev » une fois la machine durcie.",
+    "refusal.setup.system":
+      "Ce serveur est un hôte de votre propre configuration SSH.",
+    "refusal.setup.system.fix":
+      "Changez son adresse dans ~/.ssh/config : l'app n'y écrit rien.",
+    "refusal.setup.password": "{user}@{host} a refusé ce mot de passe.",
+    "refusal.setup.password.fix":
+      "Rien n'a été créé. C'est le mot de passe du compte distant, celui que votre hébergeur vous a donné : retapez-le.",
     "refusal.key.name": "« {serverId} » ne peut pas nommer une clé.",
     "refusal.key.name.fix":
       "Un identifiant de lettres, de chiffres et de tirets : rien qui puisse désigner un autre dossier.",
@@ -441,6 +518,13 @@ export const refusals = {
     "refusal.module.notDatabase": "{module} n'est pas une base de données.",
     "refusal.module.notDatabase.fix":
       "Cette action n'existe que pour les bases de données.",
+    "refusal.database.name": "{name} ne peut pas nommer une base de données.",
+    "refusal.database.name.fix":
+      "Lettres, chiffres, tirets et tirets bas seulement, 64 caractères au plus.",
+    "refusal.database.command":
+      "Le serveur a répondu une commande que l'app refuse de lancer.",
+    "refusal.database.command.fix":
+      "Ouvrez un terminal sur le serveur et lancez vous-même le shell de la base.",
     "refusal.params.invalid": "Paramètres invalides pour {cmd}.",
     "refusal.bridge.credential": "{cmd} ne peut pas être appelé d'ici.",
     "refusal.bridge.secret": "{cmd} ne peut pas être appelé d'ici.",
@@ -455,10 +539,22 @@ export const refusals = {
     "refusal.terminal.kind": "Genre de terminal inconnu : {kind}.",
     "refusal.terminal.kind.fix":
       "Ouvrez un terminal, ou l'onglet d'un agent installé.",
+    "refusal.terminal.session":
+      "Ce nom de session n'est pas des nôtres : {session}.",
+    "refusal.terminal.session.fix":
+      "Fermez cet onglet et ouvrez-en un autre : l'app nommera la nouvelle session.",
+    "refusal.terminal.folder":
+      "Ce dossier ne peut pas ouvrir un terminal : {dir}.",
+    "refusal.terminal.folder.fix":
+      "Ouvrez le terminal depuis un dossier du projet, ou des fichiers du serveur.",
     "refusal.connection.absent": "Aucun compte {kind} n'est connecté.",
     "refusal.connection.absent.fix":
       "Connectez le compte dans les réglages : un service qui en a besoin ne s'installe pas sans lui.",
     "refusal.connection.call": "{kind} a refusé : {reason}.",
+    "refusal.connection.revoked":
+      "{kind} ne répond plus à ce jeton : {reason}.",
+    "refusal.connection.revoked.fix":
+      "Créez un nouveau jeton chez le fournisseur et reconnectez-le ici ; chaque serveur qui l'utilise prend le nouveau à sa prochaine installation.",
     "refusal.connection.call.fix":
       "Vérifiez que le jeton est toujours valide et porte toujours les droits que le service demande.",
     "refusal.connection.token.none": "Ce jeton est vide.",
@@ -471,6 +567,10 @@ export const refusals = {
       "Aucune zone du compte connecté ne porte {domain}.",
     "refusal.cloudflare.zone.unknown.fix":
       "Choisissez un domaine sous une des zones du compte, ou ajoutez cette zone à Cloudflare.",
+    "refusal.cloudflare.exposure.unread":
+      "Ce serveur n'a pas dit quel tunnel il fait tourner : {reason}.",
+    "refusal.cloudflare.exposure.unread.fix":
+      "Le tunnel a été laissé tel quel, car en créer un autre coupe celui qui tourne. Attendez que le serveur réponde, puis relancez l'installation.",
     "refusal.server.unknown": "Ce serveur n'est plus dans la liste.",
     "refusal.server.unknown.fix": "Choisissez un serveur dans les réglages.",
     "refusal.modules.none": "Aucun service à installer.",
@@ -502,6 +602,11 @@ export const refusals = {
       "Cet appareil n'est connecté à aucun compte Pupitre.",
     "refusal.device.none.console.fix":
       "Connectez-vous depuis les réglages, ou ouvrez la console : {console}",
+    "refusal.device.self": "Cet ordinateur ne peut pas se révoquer lui-même.",
+    "refusal.device.self.fix":
+      "Déconnectez-vous plutôt : les serveurs se ferment pour cet ordinateur, et les terminaux avec eux.",
+    "refusal.device.unknown": "Aucun appareil n'a été nommé.",
+    "refusal.device.unknown.fix": "Choisissez un appareil dans la liste.",
     "refusal.probe.unreadable":
       "Le serveur n'a pas renvoyé de rapport d'inspection lisible.",
     "refusal.probe.unreadable.fix":
@@ -553,5 +658,41 @@ export const refusals = {
       "Donnez une valeur sur une seule ligne.",
     "refusal.secrets.stale.fix":
       "Rechargez la liste des secrets, puis reprenez.",
+    "refusal.channel.unopened": "La connexion au serveur n'est pas ouverte.",
+    "refusal.channel.unopened.fix":
+      "Relancez la commande : l'app rouvre la connexion toute seule.",
+    "refusal.channel.flooded":
+      "Le serveur a envoyé plus de {limit} Mio sans retour à la ligne : la connexion a été fermée.",
+    "refusal.channel.flooded.fix":
+      "Vérifiez que c'est bien pupitred qui répond sur ce serveur, puis relancez la commande.",
+    "refusal.command.cancelled": "{cmd} a été arrêté d'ici.",
+    "refusal.capability.missing":
+      "L'agent {agent} de ce serveur ne connaît pas la commande {cmd}.",
+    "refusal.capability.missing.fix":
+      "Mettez l'agent à jour depuis la page du serveur : cette app pilote les agents à partir de {floor}.",
+    "refusal.bridge.command": "{cmd} ne peut pas être appelé d'ici.",
+    "refusal.bridge.command.fix":
+      "Cette commande a un écran à elle, ou aucun : rien ne l'envoie d'ici.",
+    "refusal.forward.port.none": "Aucun port local n'a pu être réservé.",
+    "refusal.forward.port.none.fix":
+      "Fermez quelques connexions sur cet ordinateur, puis réessayez.",
+    "refusal.platform.unreachable": "La console n'a pas répondu.",
+    "refusal.platform.unreachable.fix":
+      "Vérifiez votre connexion. Pupitre reste utilisable sept jours hors ligne.",
+    "refusal.platform.unreachable.local": "La console n'a pas répondu.",
+    "refusal.platform.unreachable.local.fix":
+      "Aucune console ne répond sur {baseUrl} : lancez `bun run dev:web`.",
+    "refusal.agentUpdate.binary":
+      "Cette app ne porte pas d'agent pour l'architecture {arch}, et la console n'en publie pas pour ce serveur.",
+    "refusal.agentUpdate.binary.fix":
+      "Construisez l'agent avec bun --cwd=apps/agent run build, puis reconstruisez l'app.",
+    "refusal.agentUpdate.signature":
+      "Cette app ne porte pas la signature de l'agent {version} pour {arch}, et ce serveur n'atteint plus la console qui la sert.",
+    "refusal.agentUpdate.signature.fix":
+      "Publiez cette version avec bun --cwd=apps/agent run release, puis reconstruisez l'app.",
+    "refusal.tunnel.route.foreign":
+      "{hostname} n'est pas sous {domain}, le domaine que ce serveur publie.",
+    "refusal.tunnel.route.foreign.fix":
+      "Une route vit sous le domaine du serveur : donnez au projet un sous-domaine de {domain}.",
   },
 } as const;

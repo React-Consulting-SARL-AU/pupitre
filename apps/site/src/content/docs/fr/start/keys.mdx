@@ -1,30 +1,44 @@
 ---
 title: Votre clé
-description: Comment Pupitre génère et utilise une clé SSH, où vit la moitié privée, et ce que la plateforme en voit.
+description: Les clés SSH que Pupitre génère, où vivent les moitiés privées sur votre ordinateur, ce qui arrive sur le serveur, et comment les réutiliser ailleurs.
 locale: fr
 section: start
 sectionOrder: 0
 order: 2
 ---
 
-Pupitre génère une paire de clés ed25519 à sa première ouverture. La moitié privée ne quitte jamais votre laptop. Tout ce que font ensuite l’app et l’agent repose sur ce seul fait.
+Pupitre travaille avec des clés ed25519 qu’il génère lui-même. Les moitiés privées ne quittent jamais votre ordinateur. Tout ce que font ensuite l’app et l’agent repose sur ce seul fait.
 
-## Où vit la clé
+## Quelles clés existent
 
-L’app garde sa propre configuration SSH dans son dossier de données : un fichier `config` et une clé par serveur, en `0600`. Votre `~/.ssh/config` n’est pas modifié. Si vous y tenez déjà une entrée d’hôte et préférez l’utiliser, vous pouvez désigner cet hôte plutôt que de laisser l’app gérer le sien.
+- **Une clé pour cet ordinateur**, faite la première fois qu’elle sert. Sa moitié publique monte à la plateforme, qui la remet aux agents des serveurs que votre compte peut ouvrir — une machine que votre organisation vous confie n’a donc pas besoin d’une clé à elle.
+- **Une clé par serveur que vous ajoutez vous-même**, générée au moment de l’ajout. Vous pouvez à la place importer une clé que vous avez déjà : elle est copiée dans le dossier de l’app plutôt que référencée là où elle se trouve, pour que supprimer le serveur emporte réellement la clé avec lui.
+- **Aucune** pour un hôte déjà décrit dans votre `~/.ssh/config` et que vous demandez à l’app d’utiliser tel quel. L’app n’écrit alors rien nulle part.
+
+## Où vivent les moitiés privées
+
+Dans le dossier de données de l’app, en mode `0600`, à côté de la configuration SSH qu’elle passe à `ssh` avec `-F`. Votre `~/.ssh/config` est lu — pour vous proposer les hôtes qui y sont déjà déclarés — et jamais écrit.
+
+| Système | Dossier |
+| --- | --- |
+| macOS | `~/Library/Application Support/Pupitre` |
+| Windows | `%APPDATA%\Pupitre` |
+| Linux | `~/.config/Pupitre` |
+
+Le dossier `keys` porte `device` pour cet ordinateur et un `srv-…` par serveur, chacun avec son `.pub` à côté. Le fichier `ssh/config` dit lequel est lequel. Si vous voulez que votre terminal, votre éditeur ou un agent de code utilisent la même clé, pointez-les sur ce chemin : voir [votre propre client](/fr/docs/daily/clients/).
 
 ## Ce qui part sur le serveur
 
-La moitié publique, et elle seule, atterrit dans `authorized_keys` de l’utilisateur `dev`. Le module `core.system` recopie les clés non restreintes déjà posées sur root, pour qu’une clé ouvre `dev` **avant** que le durcissement ne ferme root. Cet ordre compte : c’est lui qui empêche une installation de vous enfermer dehors.
+La moitié publique, et elle seule, arrive dans `authorized_keys` de l’utilisateur `dev`. Le module `core.system` recopie les clés non restreintes déjà posées sur root, pour qu’une clé ouvre `dev` **avant** que le durcissement ne ferme root. Cet ordre compte : c’est lui qui empêche une installation de vous enfermer dehors de votre propre machine.
 
 ## Ce que voit la plateforme
 
-Si vous vous connectez, la plateforme stocke la moitié publique pour la transmettre aux agents des serveurs qui vous appartiennent. Elle ne voit jamais la moitié privée, et elle ne se connecte jamais à votre serveur : l’agent tire ce dont il a besoin en HTTPS sortant.
+Si vous vous connectez, la plateforme garde la moitié publique pour la remettre aux agents des serveurs qui vous appartiennent. Elle ne voit jamais une moitié privée, et elle ne se connecte jamais à votre serveur : c’est l’agent qui va chercher ce dont il a besoin, en HTTPS sortant.
 
 ## Une clé par appareil
 
-Chaque appareil sur lequel vous installez l’app génère sa propre clé. C’est ce qui rend la révocation utile : retirer un appareil retire une clé, et les autres machines depuis lesquelles vous travaillez continuent. Un laptop perdu est une clé qu’on révoque, pas un mot de passe qu’on change partout.
+Chaque ordinateur sur lequel vous installez l’app a sa propre clé. C’est ce qui rend la révocation utile : retirer un appareil retire une clé, et les autres machines depuis lesquelles vous travaillez continuent. Un portable perdu est une clé qu’on révoque, pas un mot de passe qu’on change partout. Cela veut dire aussi qu’un client que vous aviez pointé sur cette clé perd le serveur au même instant — et c’est le comportement voulu.
 
 ## Si vous perdez la clé
 
-Vous perdez l’entrée de l’app, pas la machine. Connectez-vous avec l’autre accès que vous avez gardé — la console de votre hébergeur, une autre clé déjà dans `authorized_keys` — et ajoutez la nouvelle clé publique à la main. L’app l’affiche sur l’écran du serveur pour que vous puissiez la coller.
+Vous perdez l’entrée de l’app, pas la machine. Connectez-vous avec l’autre accès que vous avez gardé — la console de votre hébergeur, une autre clé déjà dans `authorized_keys` — et ajoutez la nouvelle clé publique à la main. L’app l’affiche sur l’écran du serveur pour que vous la colliez.

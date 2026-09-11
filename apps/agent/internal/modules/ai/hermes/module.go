@@ -90,10 +90,6 @@ func (Module) Configure(ctx *modules.Context) error {
 
 func writeProviders(ctx *modules.Context, found []provider) error {
 	return ctx.Step("write-providers", func() (modules.Outcome, error) {
-		if len(found) == 0 {
-			return modules.Failed, fmt.Errorf("no readable provider: each entry is written provider:key")
-		}
-
 		content := renderEnvironment(found)
 		if file.Same(ctx, envPath, content) {
 			return modules.Skipped, nil

@@ -3,6 +3,7 @@ import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
 import { CATALOG } from "../../__tests__/catalog-fixtures";
 import { MANAGED } from "../../__tests__/probe-fixtures";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
+import { useAccount } from "../account";
 import { useCatalog } from "../catalog";
 import { useInspection } from "../inspection";
 import { useInstall } from "../install";
@@ -128,7 +129,8 @@ function relaunch(): void {
     step: "closed",
   });
   useCatalog.getState().reset();
-  useInspection.setState({ inspection: { status: "idle" }, probes: {} });
+  useInspection.getState().forget();
+  useInspection.setState({ probes: {} });
   useInstall.getState().reset();
 }
 
@@ -139,9 +141,11 @@ beforeEach(() => {
   forgetOnboarding();
   useOnboarding.getState().reset();
   useCatalog.getState().reset();
-  useInspection.setState({ inspection: { status: "idle" }, probes: {} });
+  useInspection.getState().forget();
+  useInspection.setState({ probes: {} });
   useInstall.getState().reset();
   useServers.setState({ config: null, status: "idle" });
+  useAccount.setState({ view: { status: "unknown" } });
 });
 
 describe("l'ordre de l'onboarding", () => {
@@ -190,6 +194,158 @@ describe("l'ordre de l'onboarding", () => {
 
     store.back();
     expect(useOnboarding.getState().step).toBe("install");
+  });
+});
+
+describe("ce que le store fait en entrant dans une étape", () => {
+  it("lit la machine dès le choix du serveur, une seule fois", () => {
+    let asked = 0;
+    stubPupitre({
+      inspect: () => {
+        asked += 1;
+
+        return Promise.resolve({ ok: true, result: machine([]) });
+      },
+    });
+
+    useOnboarding.getState().begin("srv-1");
+
+    expect(asked).toBe(1);
+    expect(useInspection.getState().inspection).toMatchObject({
+      serverId: "srv-1",
+      status: "running",
+    });
+  });
+
+  it("ne relit pas la machine en revenant sur l'inspection", () => {
+    let asked = 0;
+    stubPupitre({
+      inspect: () => {
+        asked += 1;
+
+        return Promise.resolve({ ok: true, result: machine([]) });
+      },
+    });
+
+    useOnboarding.getState().begin("srv-1");
+    walkTo("agent");
+    useOnboarding.getState().back();
+
+    expect(useOnboarding.getState().step).toBe("inspection");
+    expect(asked).toBe(1);
+  });
+
+  it("lance l'installation du choix du catalogue, avec sa configuration", async () => {
+    const sent: { modules: readonly string[]; config: unknown }[] = [];
+    stubPupitre({
+      startInstall: (_serverId, modules, config) => {
+        sent.push({ config, modules });
+
+        return Promise.resolve({
+          ok: true,
+          result: { failed: [], report_path: "/r.json", warned: [] },
+        });
+      },
+    });
+    catalogue();
+    useCatalog.setState({
+      values: { "db.postgres": { port: 5432 }, "runtime.node": {} },
+    });
+
+    useOnboarding.getState().begin("srv-1");
+    walkTo("install");
+    await useCatalog.getState().settled();
+    await Promise.resolve();
+
+    expect(sent).toEqual([
+      {
+        config: { "db.postgres": { port: 5432 }, "runtime.node": {} },
+        modules: ["db.postgres", "runtime.node"],
+      },
+    ]);
+  });
+
+  it("n'installe rien quand rien n'est choisi", async () => {
+    let asked = 0;
+    stubPupitre({
+      startInstall: () => {
+        asked += 1;
+
+        return Promise.resolve({
+          ok: true,
+          result: { failed: [], report_path: "/r.json", warned: [] },
+        });
+      },
+    });
+
+    useOnboarding.getState().begin("srv-1");
+    walkTo("install");
+    await Promise.resolve();
+
+    expect(asked).toBe(0);
+    expect(useInstall.getState().install.status).toBe("idle");
+  });
+
+  it("relit la machine une seule fois à la reprise", async () => {
+    let asked = 0;
+    stubPupitre({
+      catalog: () => Promise.resolve({ ok: true, result: CATALOG }),
+      generateInstallSecret: () => Promise.resolve({ ok: true, result: {} }),
+      inspect: () => {
+        asked += 1;
+
+        return Promise.resolve({ ok: true, result: machine([]) });
+      },
+    });
+
+    useOnboarding.getState().begin("srv-1");
+    walkTo("catalog");
+
+    relaunch();
+    asked = 0;
+    await useOnboarding.getState().resume();
+
+    expect(useOnboarding.getState().step).toBe("catalog");
+    expect(asked).toBe(1);
+  });
+});
+
+describe("un droit d'usage que la console ne confirme plus", () => {
+  const refused = {
+    build: "production" as const,
+    checkedAt: null,
+    consoleUrl: "https://app.pupitre.test/dashboard",
+    device: null,
+    identity: null,
+    refusal: {
+      code: "entitlement_required",
+      fix: "Ouvre la console.",
+      message: "Le droit d'usage a expiré.",
+    },
+    sealed: true,
+    usage: {
+      consoleUrl: "https://app.pupitre.test/dashboard",
+      status: "absent" as const,
+    },
+  };
+
+  it("gèle l'étape quand le compte perd son droit, la libère quand il revient", () => {
+    useOnboarding.getState().begin("srv-1");
+    walkTo("catalog");
+
+    useAccount.setState({ view: { account: refused, status: "read" } });
+
+    expect(useOnboarding.getState().frozen).toBe(true);
+    useOnboarding.getState().send({ type: "chosen" });
+    expect(useOnboarding.getState().step).toBe("catalog");
+
+    useAccount.setState({
+      view: { account: { ...refused, refusal: null }, status: "read" },
+    });
+
+    expect(useOnboarding.getState().frozen).toBe(false);
+    useOnboarding.getState().send({ type: "chosen" });
+    expect(useOnboarding.getState().step).toBe("config");
   });
 });
 

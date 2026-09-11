@@ -47,60 +47,80 @@ var registryCatalog = map[string]Message{
 		EN: "invalid subdomain: %s",
 	},
 	"registry.sub.invalid.fix": {
-		FR: "Un seul niveau, minuscules, chiffres et tirets — c'est ce que couvre le certificat joker.",
-		EN: "One level only, lower case, digits and dashes — that is what the wildcard certificate covers.",
+		FR: "Minuscules, chiffres et tirets, en commençant et en finissant par une lettre ou un chiffre. Plusieurs niveaux séparés par des points sont acceptés, mais le certificat joker ne couvre que le premier.",
+		EN: "Lower case, digits and dashes, starting and ending on a letter or a digit. Several levels separated by dots are accepted, but the wildcard certificate only covers the first.",
 	},
-	"registry.field.separator": {
-		FR: "%s : le caractère « | » et les retours à la ligne sont interdits",
-		EN: `%s: the "|" character and line breaks are not allowed`,
+	"registry.branch.invalid": {
+		FR: "branche invalide : %s",
+		EN: "invalid branch: %s",
 	},
-	"registry.field.separator.fix": {
-		FR: "Retire-les : « | » sépare les colonnes du registre.",
-		EN: `Remove them: "|" separates the columns of the registry.`,
-	},
-	"registry.field.name": {
-		FR: "nom",
-		EN: "name",
-	},
-	"registry.field.dir": {
-		FR: "dossier",
-		EN: "folder",
-	},
-	"registry.field.repo": {
-		FR: "dépôt",
-		EN: "repository",
-	},
-	"registry.field.host": {
-		FR: "hôte",
-		EN: "host",
-	},
-	"registry.field.sub": {
-		FR: "sous-domaine",
-		EN: "subdomain",
-	},
-	"registry.field.cmd": {
-		FR: "commande",
-		EN: "command",
-	},
-	"registry.field.install": {
-		FR: "installation",
-		EN: "install",
+	"registry.branch.invalid.fix": {
+		FR: "Donnez un nom de branche tel que git l'écrit, par exemple « main » ou « release/2.0 ».",
+		EN: `Give a branch name as git writes it, for example "main" or "release/2.0".`,
 	},
 	"registry.project.declared": {
 		FR: "%s est déjà déclaré",
 		EN: "%s is already declared",
 	},
 	"registry.project.declared.fix": {
-		FR: "Retire-le avec project.remove, ou choisis un autre nom.",
+		FR: "Retirez-le avec project.remove, ou choisissez un autre nom.",
 		EN: "Remove it with project.remove, or choose another name.",
 	},
-	"registry.sub.taken": {
-		FR: "le sous-domaine %s est déjà pris par %s",
-		EN: "subdomain %s is already taken by %s",
+	"registry.hostname.taken": {
+		FR: "l'adresse %s est déjà prise par %s",
+		EN: "the address %s is already taken by %s",
 	},
-	"registry.sub.taken.fix": {
-		FR: "Choisissez un autre sous-domaine.",
-		EN: "Choose another subdomain.",
+	"registry.hostname.taken.fix": {
+		FR: "Choisissez un autre sous-domaine pour cette route.",
+		EN: "Choose another subdomain for this route.",
+	},
+	"registry.hostname.invalid": {
+		FR: "nom d'hôte invalide : %s",
+		EN: "invalid hostname: %s",
+	},
+	"registry.hostname.invalid.fix": {
+		FR: "Un nom complet, minuscules, chiffres et tirets, au moins deux niveaux séparés par des points : api.shop.example.org.",
+		EN: "A whole name, lower case, digits and dashes, at least two levels separated by dots: api.shop.example.org.",
+	},
+	"registry.hostname.foreign": {
+		FR: "%s n'est pas sous le domaine de ce serveur (%s)",
+		EN: "%s is not under this server's domain (%s)",
+	},
+	"registry.hostname.foreign.fix": {
+		FR: "Donnez un nom sous %s : le tunnel et le DNS de ce serveur ne portent rien d'autre.",
+		EN: "Give a name under %s: the tunnel and the DNS of this server carry nothing else.",
+	},
+	"registry.route.noDomain": {
+		FR: "aucun domaine sur ce serveur pour publier %s",
+		EN: "no domain on this server to publish %s under",
+	},
+	"registry.route.noDomain.fix": {
+		FR: "Installez un module d'exposition (Cloudflare ou Caddy) avec son domaine, ou laissez ce port sans sous-domaine.",
+		EN: "Install an exposure module (Cloudflare or Caddy) with its domain, or leave this port without a subdomain.",
+	},
+	"registry.route.both": {
+		FR: "la route %s nomme un sous-domaine et un nom d'hôte à la fois",
+		EN: "route %s names a subdomain and a hostname at once",
+	},
+	"registry.route.both.fix": {
+		FR: "Donnez l'un ou l'autre : le sous-domaine, que l'agent complète, ou le nom d'hôte entier.",
+		EN: "Give one or the other: the subdomain, which the agent completes, or the whole hostname.",
+	},
+	"registry.route.label.invalid": {
+		FR: "libellé de route invalide : %s",
+		EN: "invalid route label: %s",
+	},
+	"registry.route.label.invalid.fix": {
+		FR: "Un mot court en minuscules, chiffres et tirets, comme « web » ou « api ».",
+		EN: `A short word in lower case, digits and dashes, like "web" or "api".`,
+	},
+	"registry.route.label.duplicate": {
+		FR: "deux routes portent le libellé %s",
+		EN: "two routes carry the label %s",
+	},
+	"registry.route.label.duplicate.fix": {
+		FR: "Donnez un libellé différent à chaque port du projet.",
+		EN: "Give each port of the project its own label.",
 	},
 	"registry.port.taken": {
 		FR: "le port %d est déjà pris par %s",

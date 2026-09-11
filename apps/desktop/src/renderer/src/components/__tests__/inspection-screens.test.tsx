@@ -48,11 +48,13 @@ describe("machine nue", () => {
     expect(text(html)).toContain("Architecture amd64");
     expect(text(html)).toContain("Mémoire 8,0 Go");
     expect(text(html)).toContain("Disque libre 38,4 Go");
-    expect(text(html)).toContain("Voici ce qu'on a trouvé.");
   });
 
-  it("propose l'installation", () => {
+  it("propose l'installation, sur la barre où l'étape finit", () => {
     expect(buttons(html)).toEqual(["Installer", "Choisir un autre serveur"]);
+    expect(html.indexOf('data-actions="inspection"')).toBeLessThan(
+      html.indexOf(">Installer<")
+    );
   });
 });
 

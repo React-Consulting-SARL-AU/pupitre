@@ -1,9 +1,10 @@
 import { type ChildProcess, spawn as spawnChild } from "node:child_process";
 import type { Writable } from "node:stream";
-import type {
-  CommandName,
-  CommandParams,
-  CommandResult,
+import {
+  COMMANDS,
+  type CommandName,
+  type CommandParams,
+  type CommandResult,
 } from "@pupitre/shared/agent-protocol";
 import {
   type Event,
@@ -24,6 +25,7 @@ import {
 import type { HelloResult } from "@pupitre/shared/agent-protocol/session";
 import { timeoutOf } from "@pupitre/shared/agent-protocol/timeouts";
 import type { AgentError, AgentResponse, ErrorPhrase } from "@shared/agent";
+import { floorOf } from "@shared/agent-update";
 import { refusalOf } from "./refusal";
 import { trace } from "./trace";
 import { mutates } from "./usage-guard";
@@ -82,6 +84,12 @@ export interface CallOptions {
    */
   onQueued?: () => void;
   timeoutMs?: number;
+  /**
+   * The caller's way out of a command that holds the channel: a followed
+   * journal ends when the reader leaves, not when the project stops. The
+   * channel is cut so the agent stops too, and reopens on the next command.
+   */
+  signal?: AbortSignal;
 }
 
 /**
@@ -126,6 +134,23 @@ export interface AgentClientOptions {
    * looking at a step that has stopped for no reason they can see.
    */
   onChannel?: (serverId: string, state: ChannelState) => void;
+  /** How often the report is read back while the machine is still at work after a cut. */
+  pollMs?: number;
+  /**
+   * How far the agent's clock may sit from this one before a report is taken
+   * for another run's: `started_at` is the machine's own stamp.
+   */
+  skewMs?: number;
+  /** The wall clock the agent's stamps are compared to; tests pin it. */
+  now?: () => number;
+  /**
+   * Every result weighed against the contract, and a mismatch traced.
+   *
+   * On in development and under test, off in a packaged build: the call is
+   * never failed for it, the screen shows what the agent said, and the trace
+   * is what tells a developer the two sides disagree.
+   */
+  validateResults?: boolean;
 }
 
 /**
@@ -136,8 +161,14 @@ export interface AgentClientOptions {
 
 export type ChannelState = "open" | "lost";
 
-/** The one timeout this file still names: the handshake that opens a channel. */
-const HELLO_MS = 10_000;
+/**
+ * The most the agent may write without a line break before the channel is cut.
+ *
+ * A line is one envelope: a capture crosses as a base64 event, a report as one
+ * answer, and neither comes near this. What does is a remote that is not the
+ * agent at all — and the process must not swell along with it.
+ */
+const LINE_LIMIT = 4 * 1024 * 1024;
 
 /**
  * Commands whose state survives the channel: the agent keeps working when the
@@ -152,6 +183,10 @@ const RESUMABLE_COMMANDS: readonly CommandName[] = [
 ];
 
 const DEFAULT_BACKOFF = { firstMs: 250, maxMs: 15_000, attempts: 4 };
+
+const DEFAULT_POLL_MS = 3000;
+
+const DEFAULT_SKEW_MS = 600_000;
 
 /**
  * A long command grants thirty minutes to its execution, never to its
@@ -181,7 +216,9 @@ export function defaultTimeout(cmd: CommandName): number {
  */
 const WORK_CHANNEL_COMMANDS: readonly CommandName[] = [
   "project.logs",
+  "service.logs",
   "shots.read",
+  "fs.read",
 ];
 
 /** A command allowed more than a minute holds the channel long enough to need its own. */
@@ -209,6 +246,112 @@ function disconnected(detail: string): AgentCallError {
       ? refusalOf("disconnected", "refusal.agent.dropped.detail", { detail })
       : refusalOf("disconnected", "refusal.agent.dropped")),
   });
+}
+
+function timedOut(cmd: CommandName, timeoutMs: number): AgentCallError {
+  return new AgentCallError({
+    ...refusalOf("timeout", "refusal.command.timeout", {
+      cmd,
+      seconds: Math.round(timeoutMs / 1000),
+    }),
+  });
+}
+
+function unopened(): AgentCallError {
+  return new AgentCallError(
+    refusalOf("disconnected", "refusal.channel.unopened")
+  );
+}
+
+function cancelled(cmd: CommandName): AgentCallError {
+  return new AgentCallError(
+    refusalOf("cancelled", "refusal.command.cancelled", { cmd })
+  );
+}
+
+function flooded(): AgentCallError {
+  return new AgentCallError(
+    refusalOf("disconnected", "refusal.channel.flooded", {
+      limit: LINE_LIMIT / (1024 * 1024),
+    })
+  );
+}
+
+/**
+ * A command the agent never registered: sending it would only bring back
+ * `unknown_command` in the agent's words, without the one thing the reader
+ * can act on — which agent this app expects.
+ */
+function unsupported(
+  cmd: CommandName,
+  greeting: HelloResult,
+  appVersion: string
+): AgentCallError {
+  return new AgentCallError(
+    refusalOf("unknown_command", "refusal.capability.missing", {
+      agent: greeting.agent_version,
+      cmd,
+      floor: floorOf(appVersion) ?? appVersion,
+    })
+  );
+}
+
+/** A report stamped before the request went out belongs to another run. */
+function begunAfter(
+  report: InstallReport,
+  sentAt: number,
+  skewMs: number
+): boolean {
+  const started = Date.parse(report.started_at);
+
+  return Number.isNaN(started) || started >= sentAt - skewMs;
+}
+
+/**
+ * The steps of the report the channel never carried, handed on as events.
+ *
+ * id 0: the event is rebuilt from the report, not received on a channel. An
+ * open `start` is a step the machine is on right now, and the screen shows it
+ * so.
+ */
+function replaySteps(
+  report: InstallReport,
+  delivered: Set<string>,
+  onEvent: ((event: Event) => void) | undefined
+): void {
+  for (const module of report.modules) {
+    for (const step of module.steps) {
+      const event: Event = {
+        id: 0,
+        event: "step",
+        module: module.id,
+        step: step.step,
+        status: step.status,
+        ms: step.ms,
+        ...(step.replay ? { replay: step.replay } : {}),
+        ...(step.message ? { message: step.message } : {}),
+      };
+      const key = stepKey(event);
+
+      if (key && !delivered.has(key)) {
+        delivered.add(key);
+        onEvent?.(event);
+      }
+    }
+  }
+}
+
+interface Resumption {
+  cmd: CommandName;
+  /** When the request left, on this side's clock: what the report's stamp is held against. */
+  sentAt: number;
+  /** The end of the time the command was granted, resumption included. */
+  deadline: number;
+  timeoutMs: number;
+  delivered: Set<string>;
+  onEvent?: (event: Event) => void;
+  /** The cut itself, which stays the answer when the machine has no report of this run. */
+  cut: AgentCallError;
 }
 
 /**
@@ -264,13 +407,38 @@ interface Pending {
   onSecret?: (secret: SecretEvent) => void;
   resolve: (value: unknown) => void;
   reject: (error: AgentCallError) => void;
-  timer: ReturnType<typeof setTimeout>;
+  /** The command's own timeout, armed at once — or at the agent's first byte for a hello. */
+  timer: ReturnType<typeof setTimeout> | null;
+  /** Arms `timer` if it is not yet: a connection that says nothing is bounded by `cap`. */
+  arm: () => void;
+  cap: ReturnType<typeof setTimeout> | null;
+  /** Lets go of the caller's abort signal once the command has settled. */
+  release: () => void;
+}
+
+interface SendOptions {
+  onEvent?: (event: Event) => void;
+  onSecret?: (secret: SecretEvent) => void;
+  timeoutMs: number;
+  /** `timeoutMs` counts from the agent's first byte, and `capMs` from the request. */
+  armOnOutput?: { capMs: number };
+  signal?: AbortSignal;
 }
 
 type ResolvedOptions = Required<Omit<AgentClientOptions, "timeouts">> & {
   timeouts: Partial<Record<CommandName, number>>;
   backoff: Required<NonNullable<AgentClientOptions["backoff"]>>;
 };
+
+function settled(pending: Pending): void {
+  if (pending.timer) {
+    clearTimeout(pending.timer);
+  }
+  if (pending.cap) {
+    clearTimeout(pending.cap);
+  }
+  pending.release();
+}
 
 /**
  * One SSH session running `pupitred serve`, and one command in flight.
@@ -294,6 +462,8 @@ class AgentChannel {
   private refusal: AgentCallError | null = null;
   /** The window was told this channel is open, so it is owed the loss of it. */
   private announced = false;
+  /** Whether the process now running has written anything on its output yet. */
+  private sawOutput = false;
 
   private readonly serverId: string;
   private readonly purpose: ChannelPurpose;
@@ -339,13 +509,19 @@ class AgentChannel {
     return next;
   }
 
+  /**
+   * A channel the app closed does not come back: the command it cut is not
+   * resumed, and the refusal stays so that nothing reopens it by mistake.
+   */
   close(): void {
-    this.settlePending(
-      new AgentCallError(refusalOf("disconnected", "refusal.channel.closed"))
+    const closed = new AgentCallError(
+      refusalOf("disconnected", "refusal.channel.closed")
     );
+
+    this.settlePending(closed);
     this.destroy();
     this.greeting = null;
-    this.refusal = null;
+    this.refusal = closed;
   }
 
   private async exchange<C extends CommandName>(
@@ -353,7 +529,23 @@ class AgentChannel {
     params: CommandParams<C> | undefined,
     call: CallOptions
   ): Promise<CommandResult<C>> {
+    if (call.signal?.aborted) {
+      throw cancelled(cmd);
+    }
+
     await this.ensure();
+
+    const greeting = this.greeting;
+    const capabilities = greeting?.capabilities;
+
+    if (
+      greeting &&
+      Array.isArray(capabilities) &&
+      capabilities.length > 0 &&
+      !capabilities.includes(cmd)
+    ) {
+      throw unsupported(cmd, greeting, this.options.appVersion);
+    }
 
     const delivered = new Set<string>();
     const onEvent = call.onEvent
@@ -370,6 +562,7 @@ class AgentChannel {
       call.timeoutMs ?? this.options.timeouts[cmd] ?? defaultTimeout(cmd);
 
     const started = Date.now();
+    const sentAt = this.options.now();
 
     trace("agent", cmd, { channel: this.purpose, server: this.serverId });
 
@@ -377,10 +570,15 @@ class AgentChannel {
       const result = await this.send(cmd, params, call.secrets, {
         onEvent,
         onSecret: call.onSecret,
+        signal: call.signal,
         timeoutMs,
       });
 
       trace("agent", `${cmd}.done`, { ms: Date.now() - started });
+
+      if (this.options.validateResults) {
+        this.weigh(cmd, result);
+      }
 
       return result as CommandResult<C>;
     } catch (error) {
@@ -393,11 +591,15 @@ class AgentChannel {
         error instanceof AgentCallError && error.code === "disconnected";
 
       if (cut && RESUMABLE_COMMANDS.includes(cmd)) {
-        return (await this.resume(
+        return (await this.resume({
+          cmd,
+          cut: error as AgentCallError,
+          deadline: started + timeoutMs,
           delivered,
-          call.onEvent,
-          error as AgentCallError
-        )) as CommandResult<C>;
+          onEvent: call.onEvent,
+          sentAt,
+          timeoutMs,
+        })) as CommandResult<C>;
       }
 
       throw error;
@@ -405,53 +607,101 @@ class AgentChannel {
   }
 
   /**
-   * What the agent did while the link was down, read back from its report.
+   * What the agent did while the link was down, read back from its report until
+   * that report says the run is over.
    *
-   * The install did not stop with the connection; replaying the steps we never
-   * received puts the screen back where the machine actually is, instead of
-   * showing a progress bar frozen at the moment of the cut.
+   * The install did not stop with the connection: the agent writes its report
+   * before every step, so the channel is reopened for as long as the command
+   * itself was allowed, the steps never received are replayed, and the report
+   * is read again until `finished_at` is set. A report stamped before the
+   * request, or none at all, means the machine has no trace of this run — and
+   * then the cut is the only true thing to say.
    */
-  private async resume(
-    delivered: Set<string>,
-    onEvent: ((event: Event) => void) | undefined,
-    cut: AgentCallError
-  ): Promise<InstallResult> {
-    await this.ensure();
+  private async resume(resumption: Resumption): Promise<InstallResult> {
+    const { cmd, cut, deadline, delivered, onEvent, sentAt } = resumption;
 
-    // An agent with no report simply didn't write one for that particular
-    // install: the disconnection remains the only true thing to say.
-    const report = (await this.send("report", undefined, undefined, {
-      timeoutMs: this.options.timeouts.report ?? timeoutOf("report"),
-    }).catch(() => {
-      throw cut;
-    })) as InstallReport;
+    for (;;) {
+      await this.reconnect(deadline);
 
-    for (const module of report.modules) {
-      for (const step of module.steps) {
-        // id 0: the event is rebuilt from the report, not received on a channel.
-        const event: Event = {
-          id: 0,
-          event: "step",
-          module: module.id,
-          step: step.step,
-          status: step.status,
-          ms: step.ms,
-          ...(step.replay ? { replay: step.replay } : {}),
-        };
-        const key = stepKey(event);
+      const report = await this.report().catch(
+        (error: AgentCallError) => error
+      );
 
-        if (key && !delivered.has(key)) {
-          delivered.add(key);
-          onEvent?.(event);
+      if (report instanceof AgentCallError) {
+        if (report.code === "disconnected") {
+          continue;
         }
+
+        throw cut;
+      }
+
+      if (!begunAfter(report, sentAt, this.options.skewMs)) {
+        throw cut;
+      }
+
+      replaySteps(report, delivered, onEvent);
+
+      if (report.finished_at) {
+        trace("agent", `${cmd}.resumed`, { server: this.serverId });
+
+        return {
+          failed: report.failed,
+          warned: report.warned,
+          report_path: report.report_path,
+        };
+      }
+
+      if (left(deadline) === 0) {
+        throw timedOut(cmd, resumption.timeoutMs);
+      }
+
+      trace("agent", `${cmd}.following`, { server: this.serverId });
+      await delay(Math.min(this.options.pollMs, left(deadline)));
+    }
+  }
+
+  /**
+   * The channel, reopened for as long as the command behind it may run: a
+   * machine restarting its sshd or a laptop changing networks takes longer than
+   * one connection window, and the install is still going.
+   */
+  private async reconnect(deadline: number): Promise<void> {
+    for (;;) {
+      try {
+        await this.ensure();
+
+        return;
+      } catch (error) {
+        if (this.refusal || left(deadline) === 0) {
+          throw error;
+        }
+
+        await delay(Math.min(this.options.backoff.maxMs, left(deadline)));
       }
     }
+  }
 
-    return {
-      failed: report.failed,
-      warned: report.warned,
-      report_path: report.report_path,
-    };
+  private report(): Promise<InstallReport> {
+    return this.send("report", undefined, undefined, {
+      timeoutMs: this.options.timeouts.report ?? timeoutOf("report"),
+    }) as Promise<InstallReport>;
+  }
+
+  /** A result the contract does not describe is traced, and handed on as it came. */
+  private weigh(cmd: CommandName, result: unknown): void {
+    const shape = COMMANDS[cmd].result.safeParse(result);
+
+    if (shape.success) {
+      return;
+    }
+
+    trace("agent", `${cmd}.shape`, {
+      channel: this.purpose,
+      issues: shape.error.issues.map(
+        (issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`
+      ),
+      server: this.serverId,
+    });
   }
 
   private alive(): boolean {
@@ -512,6 +762,7 @@ class AgentChannel {
     this.proc = proc;
     this.buffer = "";
     this.stderr = "";
+    this.sawOutput = false;
 
     proc.stdout?.setEncoding("utf8");
     proc.stdout?.on("data", (chunk: string) => this.read(chunk));
@@ -519,6 +770,12 @@ class AgentChannel {
     proc.stderr?.on("data", (chunk: string) => {
       this.stderr = (this.stderr + chunk).slice(-STDERR_KEPT);
       trace("agent", "stderr", { channel: this.purpose, line: chunk.trim() });
+    });
+    // A request written to an ssh that has just died is an EPIPE on its stdin,
+    // raised as an event: unheard, it takes the whole main process down.
+    proc.stdin?.on("error", (error: Error) => {
+      trace("agent", "stdin", { channel: this.purpose, why: error.message });
+      this.settlePending(disconnected(error.message));
     });
     proc.on("error", () => this.drop(proc));
     proc.on("exit", (code: number | null) => {
@@ -532,6 +789,9 @@ class AgentChannel {
     // complaint arrives after its death when that death is immediate.
     proc.on("close", () => this.drop(proc));
 
+    // The handshake is timed from the agent's first byte, not from the spawn:
+    // the seconds ssh spends connecting and authenticating are not the agent's
+    // to answer in. The connection window bounds a remote that never speaks.
     try {
       this.greeting = (await this.send(
         "hello",
@@ -541,7 +801,10 @@ class AgentChannel {
           protocol: PROTOCOL_VERSION,
         },
         undefined,
-        { timeoutMs: this.options.timeouts.hello ?? HELLO_MS }
+        {
+          armOnOutput: { capMs: this.options.connectMs },
+          timeoutMs: this.options.timeouts.hello ?? timeoutOf("hello"),
+        }
       )) as HelloResult;
 
       this.announced = true;
@@ -612,26 +875,58 @@ class AgentChannel {
       return;
     }
     this.pending = null;
-    clearTimeout(pending.timer);
+    settled(pending);
     pending.reject(error);
+  }
+
+  /**
+   * The link cut from this side, with the window told when it had been told
+   * of the opening: what the agent was writing is lost, and the next command
+   * opens a fresh channel.
+   */
+  private sever(error: AgentCallError): void {
+    this.settlePending(error);
+
+    if (this.announced) {
+      this.announced = false;
+      this.options.onChannel(this.serverId, "lost");
+    }
+
+    this.destroy();
+  }
+
+  /**
+   * The command in flight, given up by its caller.
+   *
+   * A channel carries one command at a time and the agent keeps writing until
+   * it is done, so leaving the request pending would only hold the channel for
+   * nobody: the process is cut, and the caller hears its own cancellation.
+   */
+  private cancel(id: number, cmd: CommandName): void {
+    if (this.pending?.id !== id) {
+      return;
+    }
+
+    trace("agent", `${cmd}.cancelled`, {
+      channel: this.purpose,
+      server: this.serverId,
+    });
+    this.settlePending(cancelled(cmd));
+    this.destroy();
   }
 
   private send(
     cmd: CommandName,
     params: unknown,
     secrets: SecretPayload | undefined,
-    options: {
-      onEvent?: (event: Event) => void;
-      onSecret?: (secret: SecretEvent) => void;
-      timeoutMs: number;
-    }
+    options: SendOptions
   ): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const proc = this.proc;
       const stdin = proc?.stdin;
 
       if (!(proc && stdin)) {
-        reject(disconnected("le canal n'est pas ouvert"));
+        reject(unopened());
 
         return;
       }
@@ -639,29 +934,42 @@ class AgentChannel {
       const id = this.nextId;
       this.nextId += 1;
 
-      const timer = setTimeout(() => {
+      const expire = () => {
         if (this.pending?.id !== id) {
           return;
         }
         this.pending = null;
-        reject(
-          new AgentCallError({
-            ...refusalOf("timeout", "refusal.command.timeout", {
-              cmd,
-              seconds: Math.round(options.timeoutMs / 1000),
-            }),
-          })
-        );
-      }, options.timeoutMs);
+        settled(pending);
+        reject(timedOut(cmd, options.timeoutMs));
+      };
 
-      this.pending = {
+      const onAbort = () => this.cancel(id, cmd);
+      const signal = options.signal;
+
+      const pending: Pending = {
         id,
         onEvent: options.onEvent,
         onSecret: options.onSecret,
         reject,
         resolve,
-        timer,
+        timer: options.armOnOutput
+          ? null
+          : setTimeout(expire, options.timeoutMs),
+        arm: () => {
+          pending.timer ??= setTimeout(expire, options.timeoutMs);
+        },
+        cap: options.armOnOutput
+          ? setTimeout(expire, options.armOnOutput.capMs)
+          : null,
+        release: () => signal?.removeEventListener("abort", onAbort),
       };
+
+      this.pending = pending;
+      signal?.addEventListener("abort", onAbort, { once: true });
+
+      if (this.sawOutput) {
+        pending.arm();
+      }
 
       const request =
         params && Object.keys(params).length > 0
@@ -680,6 +988,11 @@ class AgentChannel {
   }
 
   private read(chunk: string): void {
+    if (!this.sawOutput) {
+      this.sawOutput = true;
+      this.pending?.arm();
+    }
+
     this.buffer += chunk;
 
     let cut = this.buffer.indexOf("\n");
@@ -688,6 +1001,16 @@ class AgentChannel {
       this.buffer = this.buffer.slice(cut + 1);
       this.take(line);
       cut = this.buffer.indexOf("\n");
+    }
+
+    if (this.buffer.length > LINE_LIMIT) {
+      trace("agent", "flooded", {
+        bytes: this.buffer.length,
+        channel: this.purpose,
+        server: this.serverId,
+      });
+      this.buffer = "";
+      this.sever(flooded());
     }
   }
 
@@ -730,7 +1053,7 @@ class AgentChannel {
     }
 
     this.pending = null;
-    clearTimeout(pending.timer);
+    settled(pending);
 
     if (response.data.ok) {
       pending.resolve(response.data.result);
@@ -759,6 +1082,10 @@ export class AgentClient {
       connectMs: options.connectMs ?? CONNECT_MS,
       gate: options.gate ?? (() => null),
       onChannel: options.onChannel ?? (() => undefined),
+      pollMs: options.pollMs ?? DEFAULT_POLL_MS,
+      skewMs: options.skewMs ?? DEFAULT_SKEW_MS,
+      now: options.now ?? Date.now,
+      validateResults: options.validateResults ?? false,
     };
   }
 
@@ -888,6 +1215,23 @@ export interface SshTarget {
   serveCommand?: string;
 }
 
+export const SERVE_COMMAND = "pupitred serve";
+
+/**
+ * The serve command for the account the channel logs in as.
+ *
+ * `pupitred serve` is a root process: it drops to the dev user for the commands
+ * that belong to them and stays root for the rest — writing `/etc/pupitre`,
+ * reading the server token and the entitlement cache, both `0600 root`, driving
+ * systemd. Once hardening has closed root, the app logs in as `dev`, and a bare
+ * `serve` there reads none of that and answers `entitlement_required` for every
+ * command. `dev` holds passwordless sudo from hardening, so the channel asks
+ * for it; root needs none and may not have sudo at all.
+ */
+export function serveAs(user: string): string {
+  return user === "root" ? SERVE_COMMAND : `sudo -n ${SERVE_COMMAND}`;
+}
+
 /**
  * The channel as it opens on a real server: one `ssh`, one `pupitred serve`.
  *
@@ -919,7 +1263,7 @@ export function sshSpawn(
       "-o",
       "ServerAliveInterval=15",
       ...target.args,
-      target.serveCommand ?? "pupitred serve",
+      target.serveCommand ?? SERVE_COMMAND,
     ];
 
     trace("agent", "ssh", { args, server: serverId });

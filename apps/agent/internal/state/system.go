@@ -2,11 +2,11 @@ package state
 
 import (
 	"fmt"
-	"pupitre.studio/agent/internal/i18n"
 	"strings"
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/file"

@@ -59,6 +59,7 @@ export const CORE_SYSTEM: Manifest = {
     },
   ],
   mandatory: true,
+  runs: false,
   since: "0.1.0",
 };
 
@@ -82,6 +83,7 @@ export const CORE_HARDENING: Manifest = {
     },
   ],
   mandatory: true,
+  runs: false,
   since: "0.1.0",
 };
 
@@ -104,6 +106,7 @@ export const RUNTIME_JAVA: Manifest = {
     },
   ],
   mandatory: false,
+  runs: false,
   since: "0.1.0",
 };
 
@@ -133,6 +136,7 @@ export const RUNTIME_NODE: Manifest = {
     },
   ],
   mandatory: false,
+  runs: false,
   since: "0.1.0",
 };
 
@@ -163,6 +167,7 @@ export const DB_POSTGRES: Manifest = {
     },
   ],
   mandatory: false,
+  runs: true,
   since: "0.1.0",
 };
 
@@ -200,6 +205,7 @@ export const DB_MYSQL: Manifest = {
     },
   ],
   mandatory: false,
+  runs: true,
   since: "0.1.0",
 };
 
@@ -226,6 +232,7 @@ export const DB_MONGODB: Manifest = {
     },
   ],
   mandatory: false,
+  runs: true,
   since: "0.1.0",
 };
 
@@ -256,6 +263,7 @@ export const EDITOR_JETBRAINS: Manifest = {
     },
   ],
   mandatory: false,
+  runs: true,
   since: "0.1.0",
 };
 
@@ -288,6 +296,7 @@ export const EDITOR_VSCODE: Manifest = {
     },
   ],
   mandatory: false,
+  runs: true,
   since: "0.1.0",
 };
 
@@ -319,6 +328,7 @@ export const AI_HERMES: Manifest = {
     },
   ],
   mandatory: false,
+  runs: true,
   since: "0.1.0",
 };
 
@@ -356,6 +366,7 @@ export const EXPOSURE_CLOUDFLARE: Manifest = {
     },
   ],
   mandatory: false,
+  runs: true,
   since: "0.1.0",
 };
 
@@ -370,6 +381,7 @@ export const EXPOSURE_CADDY: Manifest = {
   arch: [...BOTH],
   fields: [{ key: "domain", kind: "text", label: "Domaine", required: true }],
   mandatory: false,
+  runs: true,
   since: "0.1.0",
 };
 
@@ -385,6 +397,7 @@ export const TOOL_LEGACY: Manifest = {
   arch: ["amd64"],
   fields: [],
   mandatory: false,
+  runs: false,
   since: "0.2.0",
 };
 
@@ -465,6 +478,7 @@ export const DB_CLICKHOUSE: Manifest = {
     },
   ],
   mandatory: false,
+  runs: true,
   since: "0.5.0",
 };
 

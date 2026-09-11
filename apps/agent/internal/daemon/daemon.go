@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"context"
 	"errors"
 	"runtime"
 	"strings"
@@ -100,18 +101,18 @@ func New(options Options) *Daemon {
 }
 
 // One read of /agent/state: it renews the cached entitlement and brings the marked block of authorized_keys in line with the console.
-func (d *Daemon) Sync() (Sync, error) {
-	return d.SyncAt("")
+func (d *Daemon) Sync(ctx context.Context) (Sync, error) {
+	return d.SyncAt(ctx, "")
 }
 
 // The same read, against the platform the caller names: an enrolment reads the state of the platform it just traded with.
-func (d *Daemon) SyncAt(platformURL string) (Sync, error) {
+func (d *Daemon) SyncAt(ctx context.Context, platformURL string) (Sync, error) {
 	client, err := d.client(platformURL)
 	if err != nil {
 		return Sync{}, err
 	}
 
-	answer, err := client.State()
+	answer, err := client.State(ctx)
 	if err != nil {
 		return Sync{}, err
 	}
@@ -143,13 +144,13 @@ func (d *Daemon) SyncAt(platformURL string) (Sync, error) {
 	}, nil
 }
 
-func (d *Daemon) Beat() error {
+func (d *Daemon) Beat(ctx context.Context) error {
 	client, err := d.client("")
 	if err != nil {
 		return err
 	}
 
-	return client.Beat(d.sample())
+	return client.Beat(ctx, d.sample())
 }
 
 // The platform learns how full the machine is and what kind of sessions run on it, never a project name nor a path.
@@ -168,6 +169,10 @@ func (d *Daemon) sample() platform.Heartbeat {
 	snapshot := d.options.Reader.Snapshot()
 	beat.Disk = percent(snapshot.Machine.DiskTotalGB-snapshot.Machine.DiskFreeGB, snapshot.Machine.DiskTotalGB)
 	beat.RAM = percent(float64(snapshot.Machine.RAMUsedMB), float64(snapshot.Machine.RAMTotalMB))
+	beat.DiskTotalGB = snapshot.Machine.DiskTotalGB
+	beat.DiskFreeGB = snapshot.Machine.DiskFreeGB
+	beat.RAMTotalMB = float64(snapshot.Machine.RAMTotalMB)
+	beat.RAMUsedMB = float64(snapshot.Machine.RAMUsedMB)
 	if len(snapshot.Machine.Load) > 0 {
 		beat.Load = snapshot.Machine.Load[0]
 	}
@@ -184,7 +189,7 @@ func (d *Daemon) sample() platform.Heartbeat {
 }
 
 // The enrolment token buys a server token and nothing else; it is read from the standard input and never lands on the disk.
-func (d *Daemon) Enroll(token, platformURL string) error {
+func (d *Daemon) Enroll(ctx context.Context, token, platformURL string) error {
 	token = strings.TrimSpace(token)
 	if token == "" {
 		return errors.New("empty enrolment token")
@@ -197,7 +202,7 @@ func (d *Daemon) Enroll(token, platformURL string) error {
 		return err
 	}
 
-	serverToken, err := d.platform(platformURL).Exchange(platform.Enrollment{
+	serverToken, err := d.platform(platformURL).Exchange(ctx, platform.Enrollment{
 		Token:         token,
 		HostPublicKey: hostKey,
 		AgentVersion:  d.options.AgentVersion,
@@ -207,15 +212,13 @@ func (d *Daemon) Enroll(token, platformURL string) error {
 		return redacted{message: journal.Redact(err.Error()), cause: err}
 	}
 
-	if err := platform.SaveToken(d.options.Sys, d.options.TokenPath, serverToken); err != nil {
-		return err
-	}
-
-	// The platform is written down with the token: the heartbeat and the
-	// entitlement run without the app, and nothing else would tell them where
-	// to answer — a development console would be traded with once and then
-	// looked for at the hosted address for ever.
-	if err := platform.SaveBaseURL(d.options.Sys, d.options.BaseURLPath, platformURL); err != nil {
+	// The platform is written down before the token: the heartbeat and the
+	// entitlement run without the app, and a token without its platform would
+	// have a development console traded with once and then looked for at the
+	// hosted address for ever.
+	urlErr := platform.SaveBaseURL(d.options.Sys, d.options.BaseURLPath, platformURL)
+	tokenErr := platform.SaveToken(d.options.Sys, d.options.TokenPath, serverToken)
+	if err := errors.Join(urlErr, tokenErr); err != nil {
 		return err
 	}
 

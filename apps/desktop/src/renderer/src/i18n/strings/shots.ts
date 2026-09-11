@@ -2,8 +2,6 @@ export const shots = {
   en: {
     "shots.title": "Gallery",
     "shots.eyebrow": "Server",
-    "shots.description":
-      "What the agents captured while working. The files stay on the server.",
     "shots.openGallery": "Open the gallery",
     "shots.clear": "Empty the gallery",
     "shots.clearConfirm": "Empty",
@@ -11,7 +9,6 @@ export const shots = {
     "shots.loadingDetail": "Reading the screenshots folder",
     "shots.none": "No screenshots",
     "shots.emptyTitle": "The gallery is empty",
-    "shots.emptyDetail": "An agent driving a browser drops them here.",
     "shots.cleaningTitle": "Cleaning up",
     "shots.cleaningDetail": "Deleting the server's screenshots",
     "shots.capture.one": "{count} screenshot",
@@ -19,7 +16,26 @@ export const shots = {
     "shots.removed.one": "{count} deleted",
     "shots.removed.other": "{count} deleted",
     "shots.view": "View",
+    "shots.viewNamed": "View {name}",
     "shots.close": "Close",
+    "shots.save": "Save…",
+    "shots.saved": "Saved to {path}",
+    "refusal.shots.savePath":
+      "The app only writes where you pointed in the save dialog.",
+    "refusal.shots.savePath.fix": "Use the Save button and choose a place.",
+    "refusal.shots.saveBytes": "There is no image to write.",
+    "refusal.shots.saveBytes.fix": "Open the capture again, then save it.",
+    "refusal.shots.saveFailed": "{path} could not be written: {reason}",
+    "refusal.shots.saveFailed.fix":
+      "Choose another folder, or free some space on this computer.",
+    "shots.remove": "Delete",
+    "shots.removeQuestion": "{name} is deleted from the server.",
+    "shots.previous": "Previous screenshot",
+    "shots.next": "Next screenshot",
+    "shots.position": "{index} / {total}",
+    "shots.copyImage": "Copy the image",
+    "shots.viewerLabel":
+      "Screenshot {name} — arrows walk the gallery, Escape closes",
     "shots.readingTitle": "Reading the screenshot",
     "shots.readingDetail": "{name} — {weight} over the server channel",
     "shots.alt": "Screenshot {name}",
@@ -31,8 +47,6 @@ export const shots = {
   fr: {
     "shots.title": "Galerie",
     "shots.eyebrow": "Serveur",
-    "shots.description":
-      "Ce que les agents ont capturé en travaillant. Les fichiers restent sur le serveur.",
     "shots.openGallery": "Ouvrir la galerie",
     "shots.clear": "Vider la galerie",
     "shots.clearConfirm": "Vider",
@@ -40,7 +54,6 @@ export const shots = {
     "shots.loadingDetail": "Lecture du dossier des captures",
     "shots.none": "Aucune capture",
     "shots.emptyTitle": "La galerie est vide",
-    "shots.emptyDetail": "Un agent qui pilote un navigateur en dépose ici.",
     "shots.cleaningTitle": "Nettoyage",
     "shots.cleaningDetail": "Suppression des captures du serveur",
     "shots.capture.one": "{count} capture",
@@ -48,7 +61,27 @@ export const shots = {
     "shots.removed.one": "{count} supprimée",
     "shots.removed.other": "{count} supprimées",
     "shots.view": "Voir",
+    "shots.viewNamed": "Voir {name}",
     "shots.close": "Fermer",
+    "shots.save": "Enregistrer…",
+    "shots.saved": "Enregistrée dans {path}",
+    "refusal.shots.savePath":
+      "L'app n'écrit que là où vous avez pointé dans la boîte d'enregistrement.",
+    "refusal.shots.savePath.fix":
+      "Passez par le bouton Enregistrer et choisissez un emplacement.",
+    "refusal.shots.saveBytes": "Il n'y a aucune image à écrire.",
+    "refusal.shots.saveBytes.fix": "Rouvrez la capture, puis enregistrez-la.",
+    "refusal.shots.saveFailed": "{path} n'a pas pu être écrit : {reason}",
+    "refusal.shots.saveFailed.fix":
+      "Choisissez un autre dossier, ou libérez de la place sur cet ordinateur.",
+    "shots.remove": "Supprimer",
+    "shots.removeQuestion": "{name} est supprimée du serveur.",
+    "shots.previous": "Capture précédente",
+    "shots.next": "Capture suivante",
+    "shots.position": "{index} / {total}",
+    "shots.copyImage": "Copier l'image",
+    "shots.viewerLabel":
+      "Capture {name} — les flèches parcourent la galerie, Échap ferme",
     "shots.readingTitle": "Lecture de la capture",
     "shots.readingDetail": "{name} — {weight} par le canal du serveur",
     "shots.alt": "Capture {name}",

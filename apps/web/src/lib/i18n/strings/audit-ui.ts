@@ -10,8 +10,6 @@ export const auditUi = {
     "auditUi.failedFix":
       "The log is for the administrators of the organisation.",
     "auditUi.emptyTitle": "Nothing in the log yet",
-    "auditUi.emptyDescription":
-      "Every enrolment, assignment, revocation and subscription change will land here, with its author and its timestamp.",
     "auditUi.title": "Log",
     "auditUi.range": "{from}–{to} of {total}",
     "auditUi.newer": "Newer",
@@ -29,8 +27,6 @@ export const auditUi = {
     "auditUi.failedFix":
       "Le journal est réservé aux administrateurs de l'organisation.",
     "auditUi.emptyTitle": "Rien dans le journal pour l'instant",
-    "auditUi.emptyDescription":
-      "Chaque enrôlement, attribution, révocation et changement d'abonnement viendra s'inscrire ici, avec son auteur et son horodatage.",
     "auditUi.title": "Journal",
     "auditUi.range": "{from}–{to} sur {total}",
     "auditUi.newer": "Plus récent",

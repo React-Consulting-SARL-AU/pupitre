@@ -2,10 +2,14 @@ import { describe, expect, it } from "bun:test";
 import {
   folderFromSource,
   freePort,
+  freeSubdomain,
   isGitSource,
   nameFromSource,
   portFromRemedy,
+  spansSeveralLevels,
   startCommand,
+  subdomainFromName,
+  validSubdomain,
 } from "../project-draft";
 
 describe("la source d'un projet", () => {
@@ -43,6 +47,55 @@ describe("la source d'un projet", () => {
   it("refuse un chemin absolu ou remontant et retombe sur le nom", () => {
     expect(folderFromSource("/etc/passwd", "site")).toBe("etc/passwd");
     expect(folderFromSource("../../etc", "site")).toBe("site");
+  });
+});
+
+describe("le sous-domaine proposé", () => {
+  it("replie le point et le souligné d'un nom sur un tiret", () => {
+    expect(subdomainFromName("my.site")).toBe("my-site");
+    expect(subdomainFromName("my_site")).toBe("my-site");
+    expect(subdomainFromName("pupitre.studio")).toBe("pupitre-studio");
+  });
+
+  it("ne rend ni double tiret ni tiret aux extrémités", () => {
+    expect(subdomainFromName("--mon..site__")).toBe("mon-site");
+    expect(subdomainFromName("...")).toBe("");
+  });
+
+  it("rend un sous-domaine que l'agent accepte à partir d'un nom qu'il accepte", () => {
+    for (const name of ["my.site", "my_site", "a.b.c", "x--y"]) {
+      expect(validSubdomain(subdomainFromName(name))).toBe(true);
+    }
+  });
+
+  it("suffixe tant que le nom est pris", () => {
+    expect(freeSubdomain("my.site", [])).toBe("my-site");
+    expect(freeSubdomain("my.site", ["my-site"])).toBe("my-site-2");
+    expect(freeSubdomain("my.site", ["my-site", "my-site-2"])).toBe(
+      "my-site-3"
+    );
+  });
+
+  it("ne propose rien quand le nom ne porte aucune lettre ni chiffre", () => {
+    expect(freeSubdomain("...", ["x"])).toBe("");
+  });
+});
+
+describe("un sous-domaine saisi", () => {
+  it("accepte une étiquette et plusieurs séparées par des points", () => {
+    expect(validSubdomain("shop")).toBe(true);
+    expect(validSubdomain("api.shop")).toBe(true);
+  });
+
+  it("refuse ce que le DNS ne porterait pas", () => {
+    for (const value of ["", "-shop", "shop-", ".shop", "shop.", "a..b", "A"]) {
+      expect(validSubdomain(value)).toBe(false);
+    }
+  });
+
+  it("signale plusieurs niveaux sans les refuser", () => {
+    expect(spansSeveralLevels("api.shop")).toBe(true);
+    expect(spansSeveralLevels("shop")).toBe(false);
   });
 });
 

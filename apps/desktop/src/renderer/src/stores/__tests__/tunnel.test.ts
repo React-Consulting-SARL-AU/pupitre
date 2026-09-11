@@ -3,7 +3,7 @@ import type { TunnelStatusResult } from "@pupitre/shared/agent-protocol/secrets"
 import type { AgentResponse } from "@shared/agent";
 import type { PortForward } from "@shared/services";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
-import { useTunnel } from "../tunnel";
+import { forwardsOf, useTunnel } from "../tunnel";
 
 const SERVER = "srv-1";
 
@@ -49,8 +49,9 @@ describe("le tunnel de l'agent", () => {
     expect(tunnel.status === "ready" && tunnel.tunnel.routes).toHaveLength(1);
   });
 
-  it("redemande son état après chaque geste", async () => {
+  it("redemande son état après chaque geste, et écrit les noms des routes", async () => {
     const sent: string[] = [];
+    const named: string[] = [];
 
     stubPupitre({
       agentCall: (_server, cmd) => {
@@ -61,13 +62,38 @@ describe("le tunnel de l'agent", () => {
           result: TUNNEL,
         } as AgentResponse<unknown>);
       },
+      syncTunnelRecords: (_server, routes) => {
+        named.push(...routes.map((route) => route.hostname));
+
+        return Promise.resolve({ ok: true, result: routes.length });
+      },
     });
 
     await useTunnel.getState().sync(SERVER);
     await useTunnel.getState().restart(SERVER);
 
     expect(sent).toEqual(["tunnel.sync", "tunnel.restart"]);
+    expect(named).toEqual(["flymate.example.org"]);
     expect(useTunnel.getState().busy).toBeNull();
+    expect(useTunnel.getState().problem).toBeNull();
+  });
+
+  /** A name the account refuses is said where the routes are, not lost in a trace. */
+  it("garde le refus de l'écriture des noms", async () => {
+    stubPupitre({
+      agentCall: () =>
+        Promise.resolve({ ok: true, result: TUNNEL } as AgentResponse<unknown>),
+      syncTunnelRecords: () =>
+        Promise.resolve({
+          error: { code: "bad_request", message: "zone inconnue" },
+          ok: false,
+        }),
+    });
+
+    await useTunnel.getState().sync(SERVER);
+
+    expect(useTunnel.getState().problem?.message).toBe("zone inconnue");
+    expect(useTunnel.getState().tunnel.status).toBe("ready");
   });
 
   it("garde le refus de l'agent avec son remède", async () => {
@@ -137,5 +163,42 @@ describe("le tunnel de l'app", () => {
     await useTunnel.getState().closeForward("f1");
 
     expect(useTunnel.getState().forwards).toEqual([]);
+  });
+});
+
+describe("la liste des redirections de cet ordinateur", () => {
+  it("suit ce que le processus principal dit, serveur par serveur", async () => {
+    const held: { push: ((forwards: PortForward[]) => void) | null } = {
+      push: null,
+    };
+    const other: PortForward = { ...FORWARD, id: "f2", serverId: "srv-2" };
+
+    stubPupitre({
+      onPortForwards: (listener) => {
+        held.push = listener;
+
+        return () => {
+          held.push = null;
+        };
+      },
+      portForwards: () => Promise.resolve([FORWARD]),
+    });
+
+    const stop = useTunnel.getState().follow();
+
+    await Promise.resolve();
+
+    expect(useTunnel.getState().forwards).toEqual([FORWARD]);
+
+    held.push?.([FORWARD, other]);
+
+    expect(forwardsOf(useTunnel.getState().forwards, SERVER)).toEqual([
+      FORWARD,
+    ]);
+    expect(forwardsOf(useTunnel.getState().forwards, "srv-2")).toEqual([other]);
+
+    stop();
+
+    expect(held.push).toBeNull();
   });
 });

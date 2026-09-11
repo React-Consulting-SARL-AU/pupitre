@@ -4,6 +4,7 @@ import type { AgentDelivery, AgentSendPhase } from "@shared/install";
 import { create } from "zustand";
 import { translate } from "../i18n/translate";
 import { carriesSecret, restored } from "../lib/catalog-selection";
+import { accountOf, useAccount } from "./account";
 import { announce } from "./announcements";
 import { useCatalog } from "./catalog";
 import { useFleet } from "./fleet";
@@ -193,6 +194,9 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
    */
   let pending: { serverId: string | null; draft: Draft } | null = null;
 
+  /** Which sequence is under way: what an earlier one left waiting is dropped. */
+  let sequence = 0;
+
   /** A step is written down the moment it changes: it is what a resume reads first. */
   function persist(): void {
     const { serverId, installed, step } = get();
@@ -232,6 +236,36 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
     }, DRAFT_PAUSE_MS);
   }
 
+  /**
+   * The install the step asks for: what a resumed onboarding still owes the
+   * machine, or else the catalogue's choice. Nothing chosen is not an install
+   * to run, and an install already under way is not started twice.
+   */
+  function startInstall(serverId: string, owed: readonly string[]): void {
+    const catalog = useCatalog.getState();
+    const asked = owed.length > 0 ? owed : catalog.selected;
+    const own = sequence;
+
+    if (asked.length === 0 || useInstall.getState().install.status !== "idle") {
+      return;
+    }
+
+    // The generated secrets are made in the main process, one round trip each:
+    // starting before they have landed would install a database without one.
+    catalog.settled().then(() => {
+      if (own !== sequence) {
+        return;
+      }
+
+      useInstall.getState().start(
+        serverId,
+        asked,
+        catalog.config(),
+        catalog.deferred.filter((one) => asked.includes(one))
+      );
+    });
+  }
+
   function run(effect: Effect): void {
     switch (effect.kind) {
       case "persist":
@@ -241,8 +275,14 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
         pending = null;
         keep(null);
         break;
+      case "inspect":
+        useInspection.getState().inspect(effect.serverId);
+        break;
       case "sendAgent":
         get().sendAgent();
+        break;
+      case "startInstall":
+        startInstall(effect.serverId, effect.modules);
         break;
       case "startHarden":
         useHarden.getState().start(effect.serverId);
@@ -265,8 +305,6 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
         useFleet.getState().read();
         break;
       default:
-        // `inspect` and `startInstall` are the screens' own: they show what they
-        // are doing while they do it, and would only be started twice here.
         break;
     }
   }
@@ -344,6 +382,7 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
     set({ recovering: true });
 
     try {
+      // The `resume` event already asked for the probe: this waits on that one.
       await useInspection.getState().inspect(serverId);
 
       const probe = probeOf(serverId);
@@ -392,11 +431,13 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
     noteDraft: persistSoon,
 
     open() {
+      sequence += 1;
       set({ delivery: { status: "idle" } });
       send({ type: "open" });
     },
 
     begin(serverId) {
+      sequence += 1;
       set({ delivery: { status: "idle" } });
       send({ serverId, type: "begin" });
     },
@@ -471,6 +512,7 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
         return;
       }
 
+      sequence += 1;
       set({ delivery: { status: "idle" } });
       send({
         installed: saved.installed,
@@ -483,6 +525,7 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
     },
 
     reset() {
+      sequence += 1;
       keep(null);
       set({ ...CLOSED, delivery: { status: "idle" }, recovering: false });
     },
@@ -506,6 +549,19 @@ useServers.subscribe(() => {
 
   if (!serverId || unknownServer(serverId)) {
     useOnboarding.getState().send({ type: "serverLost" });
+  }
+});
+
+/**
+ * A usage right the platform stopped confirming freezes the step rather than
+ * failing it: the machine holds, and takes up again when the account does.
+ */
+useAccount.subscribe((now, before) => {
+  const lost = Boolean(accountOf(now.view)?.refusal);
+  const had = Boolean(accountOf(before.view)?.refusal);
+
+  if (lost !== had) {
+    useOnboarding.getState().send({ type: lost ? "usageLost" : "usageBack" });
   }
 });
 

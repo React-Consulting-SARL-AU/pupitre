@@ -53,6 +53,7 @@ Commandes d'un seul workspace : `bun --cwd=<workspace> run <script>`.
 ## Rules
 
 - **Les règles qui ne bougent pas** (voir [`docs/architecture.md`](./docs/architecture.md)) : le serveur du client est la source de vérité de ce qui le concerne ; aucune clé privée hors du laptop du client ; aucune connexion entrante vers le serveur du client ; rien de lisible déposé sur le serveur, un binaire et des fichiers de configuration ; l'app reste utilisable sept jours sans la plateforme.
+- **Une mise à jour ne réinstalle rien.** Tout changement de forme d'un fichier de configuration — `/etc/pupitre` sur le VPS, les fichiers de l'app sur le laptop — s'accompagne d'une migration numérotée dans le registre correspondant, jamais d'un « le code lira les deux formes ». Les règles et la marche à suivre sont dans [`docs/contracts/config-migrations.md`](./docs/contracts/config-migrations.md), et le skill `config-migrations` les applique.
 - **Le contrat d'abord.** Tout ce qui traverse une frontière (app ↔ agent, app ↔ plateforme, console ↔ API) est typé dans `packages/shared` avant d'être implémenté des deux côtés. Un agent ne modifie pas un contrat au fil de l'eau : il s'arrête et le signale au propriétaire.
 - **Réutilise avant de créer.** Cherche une primitive existante (`components/ui`, `hooks`, `lib`) et étends-la par `variant`/prop plutôt que de la dupliquer.
 - **Le design est enforced** par [`DESIGN.md`](./docs/product/DESIGN.md) : monochrome, tokens sémantiques uniquement, jamais de couleur en dur, la couleur ne sert que l'état.

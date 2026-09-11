@@ -21,6 +21,21 @@ Chaque terminal est une session `tmux`. Fermez l’app, fermez le laptop, perdez
 
 Le binaire de l’agent est aussi lié sous le nom `dev`. Dans un terminal SSH ordinaire, `dev` donne les mêmes opérations que l’app — les mêmes gestionnaires, les mêmes refus. Rien de ce que fait l’app n’est caché derrière l’app.
 
+| Commande | Ce qu’elle fait |
+| --- | --- |
+| `dev status` | ce qui tourne, les ports, les services |
+| `dev up`, `down`, `restart` | un projet, ou `all` |
+| `dev logs mon-projet -f` | le journal du projet, suivi |
+| `dev sync mon-projet` | git pull, puis les dépendances |
+| `dev attach mon-projet` | affiche la ligne tmux qui ouvre sa fenêtre |
+| `dev branch` | la branche de chaque projet, ou en change |
+| `dev db url` | la chaîne de connexion, le shell, un dump, un import |
+| `dev doctor` | un diagnostic court de la machine |
+
+Rien à préfixer. L’agent lit son enrôlement et son droit d’usage dans des fichiers que seul root ouvre : quand `dev` est tapé par un compte qui ne peut pas les ouvrir, la commande se relance elle-même sous `sudo -n` — le sudo sans mot de passe que le durcissement laisse à l’utilisateur `dev`. Là où ce sudo manque, elle le dit, plutôt que de répondre par un refus qui nomme la mauvaise cause.
+
+`dev` sans argument imprime cette grammaire. Ajoutez `--json` à n’importe laquelle et c’est la réponse de l’agent qui revient, pas un rendu de celle-ci — ce que lit un agent, ou un script. Taper `dev` depuis votre propre terminal plutôt que depuis celui de l’app revient au même : voir [votre propre client](/fr/docs/daily/clients/).
+
 ## Couleurs
 
 Le terminal garde une vraie palette ANSI, parce que Claude Code, Codex et les outils autour en dépendent. Elle est désaturée et adaptée au thème que vous avez choisi. Tout ce qui entoure le terminal reste monochrome.

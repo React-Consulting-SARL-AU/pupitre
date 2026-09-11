@@ -4,6 +4,7 @@ import type {
   KeyInstallPhase,
   Server,
   ServerAdded,
+  ServerChanges,
   ServerDraft,
   ServersConfig,
 } from "@shared/servers";
@@ -56,6 +57,13 @@ export type HostKeyState =
       actions: HostKeyAction[];
     };
 
+/** Where the last change of address, port or account stands. */
+export type EditState =
+  | { status: "idle" }
+  | { status: "working"; serverId: string }
+  | { status: "refused"; serverId: string; error: AgentError }
+  | { status: "done"; serverId: string; hostKeyDropped: boolean };
+
 /** What the platform answered to the last "remove everywhere". */
 export type RemovalState =
   | { status: "idle" }
@@ -67,6 +75,7 @@ interface ServersStore {
   config: ServersConfig | null;
   addition: Addition;
   removal: RemovalState;
+  edit: EditState;
   /** The public half of the last key made, kept only while the screen shows it. */
   publicKey: string | null;
   hostKey: HostKeyState;
@@ -77,6 +86,9 @@ interface ServersStore {
   installKey: (id: string, password: string | null) => Promise<void>;
   forgetKeyInstall: () => void;
   rename: (id: string, name: string) => Promise<void>;
+  /** Changes the address, the port or the account; the main process checks each. */
+  update: (id: string, changes: ServerChanges) => Promise<void>;
+  forgetEdit: () => void;
   activate: (id: string) => Promise<void>;
   remove: (id: string) => Promise<void>;
   /** Removes the server from here and erases it from the platform, in one move. */
@@ -87,6 +99,13 @@ interface ServersStore {
   checkHostKey: (id: string) => Promise<void>;
   trustReinstalled: (id: string) => Promise<void>;
   dismissHostKey: () => void;
+}
+
+const NO_SERVERS: readonly Server[] = [];
+
+/** The list, or a stable empty one before the main process has answered. */
+export function serversIn(config: ServersConfig | null): readonly Server[] {
+  return config?.servers ?? NO_SERVERS;
 }
 
 function added(result: ServerAdded): Addition {
@@ -135,6 +154,7 @@ function settled(
 export const useServers = create<ServersStore>((set, get) => ({
   addition: { status: "idle" },
   config: null,
+  edit: { status: "idle" },
   hostKey: { status: "unknown" },
   keyInstall: { status: "idle" },
   publicKey: null,
@@ -162,7 +182,7 @@ export const useServers = create<ServersStore>((set, get) => ({
     set({
       addition: added(answer.result),
       config: answer.result.config,
-      keyInstall: { status: "idle" },
+      keyInstall: answer.result.keyInstall ?? { status: "idle" },
       publicKey: answer.result.publicKey,
       status: "ready",
     });
@@ -170,6 +190,30 @@ export const useServers = create<ServersStore>((set, get) => ({
 
   async rename(id, name) {
     set({ config: await window.pupitre.renameServer(id, name) });
+  },
+
+  async update(id, changes) {
+    set({ edit: { serverId: id, status: "working" } });
+
+    const answer = await window.pupitre.updateServer(id, changes);
+
+    set(
+      answer.ok
+        ? {
+            config: answer.result.config,
+            edit: {
+              hostKeyDropped: answer.result.hostKeyDropped,
+              serverId: id,
+              status: "done",
+            },
+            hostKey: { status: "unknown" },
+          }
+        : { edit: { error: answer.error, serverId: id, status: "refused" } }
+    );
+  },
+
+  forgetEdit() {
+    set({ edit: { status: "idle" } });
   },
 
   async activate(id) {

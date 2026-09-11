@@ -104,6 +104,8 @@ describe("la fin du parcours", () => {
       <OnboardingDoneScreen root="closed" serverName="Staging" user="dev" />
     );
 
+    expect(html).toContain('data-actions="done"');
+
     expect(text(html)).toContain("Connecté en dev");
     expect(text(html)).toContain("L'accès root est fermé");
   });

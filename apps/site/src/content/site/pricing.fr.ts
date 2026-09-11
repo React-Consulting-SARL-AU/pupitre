@@ -29,8 +29,7 @@ export const pricingFr: PricingContent = {
     serversUpTo: "Jusqu’à {count} serveurs apportés",
     serversUnlimited: "Autant de serveurs que vous en apportez",
     trial: "Démarrer l’essai de {days} jours",
-    sameRate:
-      "Le prix par serveur est le même en Solo et en Équipe : une agence achète l’organisation, pas une remise.",
+    sameRate: "Le prix par serveur est le même en Solo et en Équipe.",
     download: "Télécharger l’app",
     items: {
       solo: {
@@ -86,7 +85,7 @@ export const pricingFr: PricingContent = {
         "Le support",
       ],
     },
-    note: "Pupitre laisse un binaire et quelques fichiers de configuration, que vous pouvez supprimer. Réabonnez-vous et l’app reprend là où elle s’est arrêtée. C’est écrit dans les conditions.",
+    note: "Pupitre laisse un binaire et quelques fichiers de configuration, que vous pouvez supprimer. Réabonnez-vous et l’app reprend là où elle s’est arrêtée.",
   },
   diy: {
     label: "Faire soi-même",
@@ -107,14 +106,13 @@ export const pricingFr: PricingContent = {
       lines: [
         "Le VPS : vous le louez où vous voulez et payez l’hébergeur directement",
         "Vos abonnements Claude, Codex ou Hermes : les agents tournent sur vos comptes",
-        "Votre jugement : Pupitre exécute ce que vous demandez, sur la machine que vous avez choisie",
       ],
     },
   },
   catalog: {
     label: "Catalogue",
     title: "Compris dans chaque offre",
-    lead: "Tout le catalogue vient avec chaque serveur, quelle que soit l’offre. Vingt-six modules, tous disponibles, par catégorie.",
+    lead: "Tout le catalogue vient avec chaque serveur, quelle que soit l’offre. Vingt-cinq modules, tous disponibles, par catégorie.",
     available: "{count} disponibles",
     link: "Voir tout le catalogue",
   },

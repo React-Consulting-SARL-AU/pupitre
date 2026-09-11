@@ -1,5 +1,9 @@
 import { createConnection, type Socket } from "node:net";
-import type { ReachFailure, ServerReach } from "@shared/servers";
+import type {
+  AddressReach,
+  ReachFailure,
+  ServerReachFailed,
+} from "@shared/servers";
 import { trace } from "./trace";
 
 /**
@@ -19,19 +23,24 @@ const MAX_PORT = 65_535;
 const BANNER = /^SSH-\d+\.\d+-(\S+)/;
 
 const PHRASES: Record<ReachFailure, string> = {
+  "bad-host": "refusal.setup.host",
   "bad-port": "refusal.port.invalid",
+  "bad-user": "refusal.setup.user",
   refused: "refusal.reach.refused",
   unreachable: "refusal.reach.unreachable",
   timeout: "refusal.reach.timeout",
   "not-ssh": "refusal.reach.wrongPort",
 };
 
-function failed(code: ReachFailure, host: string, port: number): ServerReach {
-  return {
-    reached: false,
-    code,
-    phrase: { id: PHRASES[code], values: { host, port } },
-  };
+export function reachFailure(
+  code: ReachFailure,
+  values: Record<string, string | number>
+): ServerReachFailed {
+  return { code, phrase: { id: PHRASES[code], values }, reached: false };
+}
+
+function failed(code: ReachFailure, host: string, port: number): AddressReach {
+  return reachFailure(code, { host, port });
 }
 
 /** Node names every network refusal; these are the ones an address earns. */
@@ -53,7 +62,7 @@ export function reachSsh(
     timeoutMs = TIMEOUT_MS,
     now = () => Date.now(),
   }: { dial?: Dial; timeoutMs?: number; now?: () => number } = {}
-): Promise<ServerReach> {
+): Promise<AddressReach> {
   if (!(Number.isInteger(port) && port > 0 && port <= MAX_PORT)) {
     return Promise.resolve(failed("bad-port", host, port));
   }
@@ -65,7 +74,7 @@ export function reachSsh(
     let settled = false;
     let read = "";
 
-    const answer = (reach: ServerReach) => {
+    const answer = (reach: AddressReach) => {
       if (settled) {
         return;
       }

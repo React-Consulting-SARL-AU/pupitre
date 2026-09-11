@@ -1,8 +1,7 @@
 import type { FileChange } from "@pupitre/shared/agent-protocol/projects";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { splitPath } from "@renderer/lib/patch";
-import { FilePlus, FileX, Pencil } from "lucide-react";
-import { ProjectDiffCount } from "./project-diff-count";
+import type { KeyboardEvent } from "react";
+import { ProjectDiffFileRow } from "./project-diff-file-row";
 
 /**
  * The changed files, grouped as git groups them.
@@ -10,6 +9,10 @@ import { ProjectDiffCount } from "./project-diff-count";
  * `code` is the pair of letters `git status --porcelain` gives, kept verbatim
  * in the tooltip rather than interpreted: it says more than any word we could
  * put in its place, and git is the one who defines it.
+ *
+ * The list answers the keyboard as a list does: the arrows and `j`/`k` move
+ * the selection through the files in the order they are drawn, whichever
+ * group they sit in, and the diff follows.
  */
 
 export const STAGES = {
@@ -20,75 +23,32 @@ export const STAGES = {
 
 const ORDER = ["staged", "unstaged", "untracked"] as const;
 
-const TRAILING_SLASH = /\/$/;
-
-/** The icon follows git's letter, not our own reading of it. */
-function iconFor(change: FileChange) {
-  if (change.stage === "untracked" || change.code.includes("A")) {
-    return FilePlus;
-  }
-
-  if (change.code.includes("D")) {
-    return FileX;
-  }
-
-  return Pencil;
+/** The files in the order the list draws them: by stage, then as git listed them. */
+export function drawnOrder(files: readonly FileChange[]): readonly string[] {
+  return ORDER.flatMap((stage) =>
+    files.filter((file) => file.stage === stage).map((file) => file.path)
+  );
 }
 
-function FileRow({
-  change,
-  active,
-  onSelect,
-}: {
-  change: FileChange;
-  active: boolean;
-  onSelect: () => void;
-}) {
-  const t = useTranslations();
+/** The path a key moves to, or null when the key is not one of the list's. */
+export function pathAfterKey(
+  key: string,
+  order: readonly string[],
+  selected: string | null
+): string | null {
+  const step = { ArrowDown: 1, ArrowUp: -1, j: 1, k: -1 }[key];
 
-  const { dir, name } = splitPath(change.path);
-  const Icon = iconFor(change);
-  const stage = STAGES[change.stage];
+  if (step === undefined || order.length === 0) {
+    return null;
+  }
 
-  return (
-    <button
-      className={`flex w-full items-center gap-2 border-line border-b px-3 py-2 text-left last:border-b-0 ${
-        active ? "bg-raised" : "hover:bg-sunken"
-      }`}
-      onClick={onSelect}
-      title={`${change.path} · ${change.code.trim() || change.code}`}
-      type="button"
-    >
-      <Icon className={`shrink-0 ${stage.className}`} size={12} />
-      {/*
-        The file name first, the folder after it and dimmed. Written the other
-        way round — as the path reads — a deep folder eats the width and every
-        row truncates on the one word that tells them apart.
-      */}
-      <span className="min-w-0 flex-1 font-data text-[12px]">
-        <span
-          className={`block truncate ${active ? "text-ink" : "text-ink-2"}`}
-        >
-          {name}
-          {change.from ? (
-            <span className="text-ink-3"> ← {splitPath(change.from).name}</span>
-          ) : null}
-        </span>
-        {dir ? (
-          <span className="block truncate text-[11px] text-ink-3">
-            {dir.replace(TRAILING_SLASH, "")}
-          </span>
-        ) : null}
-      </span>
-      {change.binary ? (
-        <span className="shrink-0 font-data text-[11px] text-ink-3">
-          {t("project.diff.binary")}
-        </span>
-      ) : (
-        <ProjectDiffCount added={change.added} removed={change.removed} />
-      )}
-    </button>
-  );
+  const here = selected === null ? -1 : order.indexOf(selected);
+
+  if (here === -1) {
+    return step > 0 ? (order[0] ?? null) : (order.at(-1) ?? null);
+  }
+
+  return order[Math.min(order.length - 1, Math.max(0, here + step))] ?? null;
 }
 
 export function ProjectDiffFiles({
@@ -102,8 +62,23 @@ export function ProjectDiffFiles({
 }) {
   const t = useTranslations();
 
+  function onKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
+    const next = pathAfterKey(event.key, drawnOrder(files), selected);
+
+    if (next && next !== selected) {
+      event.preventDefault();
+      onSelect(next);
+    }
+  }
+
   return (
-    <div className="min-h-0 overflow-y-auto border-line border-r">
+    <div
+      aria-label={t("project.diff.filesList")}
+      className="min-h-0 overflow-y-auto border-line border-r"
+      onKeyDown={onKeyDown}
+      role="listbox"
+      tabIndex={0}
+    >
       {ORDER.map((stage) => {
         const group = files.filter((file) => file.stage === stage);
 
@@ -119,7 +94,7 @@ export function ProjectDiffFiles({
               {t(STAGES[stage].label)} · {group.length}
             </p>
             {group.map((file) => (
-              <FileRow
+              <ProjectDiffFileRow
                 active={file.path === selected}
                 change={file}
                 key={file.path}

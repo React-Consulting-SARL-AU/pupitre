@@ -1,3 +1,4 @@
+import type { MeSubscription } from "@pupitre/shared/plans";
 import type { ErrorPhrase } from "./agent";
 /**
  * What the two processes say to each other about the account.
@@ -41,6 +42,8 @@ export interface AccountIdentity {
   organizations: AccountMembership[];
   role: string | null;
   entitlement: Entitlement;
+  /** The Stripe mirror of the active organization; null without one. */
+  subscription: MeSubscription | null;
 }
 
 /** The device this computer is, as the platform knows it. Never its key file. */

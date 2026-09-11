@@ -27,6 +27,7 @@ func manifest() contract.Manifest {
 			},
 		},
 		Connection: contract.ConnectionNeon,
+		Runs:       false,
 		Mandatory:  false,
 		Since:      "0.3.0",
 	}

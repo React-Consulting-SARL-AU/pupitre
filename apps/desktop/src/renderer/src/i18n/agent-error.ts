@@ -8,7 +8,8 @@ import type { Translate } from "./i18n";
  * A refusal from the main process names a dictionary entry: it's rendered
  * here, in the viewer's own language. A refusal from the agent carries none,
  * and shows word for word — the server is the source of truth for what
- * concerns it, including its own phrasing.
+ * concerns it, including its own phrasing and its own casing: a project named
+ * `shop` stays `shop`.
  */
 /** Anything that carries a phrase: a refusal from the agent, from the account, or a warning. */
 interface Refusal {

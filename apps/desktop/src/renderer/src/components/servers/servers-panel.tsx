@@ -37,7 +37,9 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
     checkHostKey,
     config,
     dismissHostKey,
+    edit,
     forgetAddition,
+    forgetEdit,
     forget,
     hostKey,
     load,
@@ -45,6 +47,7 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
     removal,
     rename,
     trustReinstalled,
+    update,
   } = useServers();
 
   const [adding, setAdding] = useState(false);
@@ -116,12 +119,7 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
 
       <section>
         <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <div>
-            <Label>{t("servers.panel.heading")}</Label>
-            <p className="mt-1 text-ink-3 leading-relaxed">
-              {t("servers.panel.intro")}
-            </p>
-          </div>
+          <Label>{t("servers.panel.heading")}</Label>
           {servers.length > 0 && !adding ? (
             <Button icon={Plus} onClick={() => setAdding(true)}>
               {t("servers.addServer")}
@@ -143,7 +141,6 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
                   </Button>
                 )
               }
-              detail={t("servers.panel.emptyDetail")}
               icon={ServerIcon}
               title={t("servers.panel.emptyTitle")}
             />
@@ -155,10 +152,13 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
                 <OnboardingEntry server={server} />
                 <ServerRow
                   active={server.id === active}
+                  edit={edit}
                   onActivate={() => run(activate(server.id))}
                   onForget={() => run(forget(server.id))}
+                  onForgetEdit={forgetEdit}
                   onRemove={() => run(remove(server.id))}
-                  onRename={(name) => run(rename(server.id, name))}
+                  onRename={(name) => rename(server.id, name)}
+                  onUpdate={(changes) => run(update(server.id, changes))}
                   refusal={
                     removal.status === "refused" &&
                     removal.serverId === server.id ? (

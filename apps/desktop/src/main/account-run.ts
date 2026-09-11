@@ -94,6 +94,14 @@ export interface Account {
    * both. A row already gone answers `not_found`, which is the result sought.
    */
   forgetServer: (platformServerId: string) => Promise<AccountResponse<null>>;
+  /** The devices the platform holds for this account, this computer among them. */
+  devices: () => Promise<AccountResponse<AccountDevice[]>>;
+  /**
+   * Revokes a device other than this one: its key stops opening the granted
+   * servers. This computer's own device is refused here — signing out is the
+   * gesture for that, and it says what it costs.
+   */
+  revokeDevice: (deviceId: string) => Promise<AccountResponse<null>>;
 }
 
 function keyBody(line: string): string {
@@ -395,6 +403,10 @@ export function createAccount(deps: AccountDeps): Account {
         checkedAt: new Date(deps.now()).toISOString(),
         identity: identity.result,
       });
+    } else if (identity.error.code === "unauthenticated") {
+      // The platform said the session is gone: nothing cached may go on
+      // vouching for it, seven days or seven minutes.
+      deps.vault.clear();
     }
 
     return state();
@@ -573,6 +585,25 @@ export function createAccount(deps: AccountDeps): Account {
       enrollmentTokens.delete(serverId);
 
       return held;
+    },
+
+    devices() {
+      return withToken((token) => deps.platform.devices(token));
+    },
+
+    revokeDevice(deviceId) {
+      if (deviceId === state().device?.id) {
+        return Promise.resolve({
+          ok: false,
+          error: {
+            code: "bad_request",
+            message: "refusal.device.self",
+            phrase: { id: "refusal.device.self" },
+          },
+        });
+      }
+
+      return withToken((token) => deps.platform.removeDevice(token, deviceId));
     },
   };
 }

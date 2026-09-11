@@ -72,6 +72,7 @@ describe("l'élévation", () => {
         attached={[]}
         busy={null}
         onAct={NOOP}
+        onAddProject={() => undefined}
         onCleanSessions={NOOP}
         onOpenProject={NOOP}
         onReboot={NOOP}

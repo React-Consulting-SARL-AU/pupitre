@@ -21,7 +21,9 @@ func manifest() contract.Manifest {
 			{Key: "node_version", Kind: contract.FieldVersion, Label: i18n.T("module.runtime.node.node_version.label"), Options: []string{"24", "22", "20"}, Default: "22"},
 			{Key: "bun", Kind: contract.FieldBoolean, Label: i18n.T("module.runtime.node.bun.label"), Help: i18n.T("module.runtime.node.bun.help"), Required: false, Default: true},
 			{Key: "pnpm", Kind: contract.FieldBoolean, Label: i18n.T("module.runtime.node.pnpm.label"), Help: i18n.T("module.runtime.node.pnpm.help"), Required: false, Default: true},
+			{Key: "yarn", Kind: contract.FieldBoolean, Label: i18n.T("module.runtime.node.yarn.label"), Help: i18n.T("module.runtime.node.yarn.help"), Required: false, Default: false},
 		},
+		Runs:      false,
 		Mandatory: false,
 		Since:     "0.1.0",
 	}

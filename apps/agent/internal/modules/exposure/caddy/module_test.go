@@ -83,6 +83,31 @@ func TestCaddyfileRoutesOnlyTheProjectsThatDeclareASubdomain(t *testing.T) {
 	}
 }
 
+// A project of several ports gets one site block per name on the web, each proxied to its own port.
+func TestCaddyfileCarriesEveryRouteOfAProject(t *testing.T) {
+	fake := machine()
+	fake.Files[registry.DefaultLocal] = []byte(`{"projects":[{"name":"shop","dir":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[{"label":"web","port":3100,"hostname":"shop.` + domain + `"},{"label":"api","port":3101,"hostname":"api-shop.` + domain + `"},{"label":"docs","port":3102}],"cmd":"bunx turbo run dev"}]}`)
+	ctx := newContext(t, fake, values())
+
+	run(t, ctx)
+
+	config := string(fake.Files[configPath])
+	for _, want := range []string{"shop." + domain + " {", "reverse_proxy 127.0.0.1:3100", "api-shop." + domain + " {", "reverse_proxy 127.0.0.1:3101", "header_up Host 127.0.0.1:3101"} {
+		if !strings.Contains(config, want) {
+			t.Errorf("Caddyfile lacks %q:\n%s", want, config)
+		}
+	}
+
+	if strings.Contains(config, "127.0.0.1:3102") {
+		t.Fatalf("a port without a name on the web is not exposed:\n%s", config)
+	}
+
+	report, err := Status(ctx)
+	if err != nil || len(report.Routes) != 3 {
+		t.Fatalf("report = %+v, %v", report, err)
+	}
+}
+
 // core.hardening owns the bare 22 and 443 of SSH; Caddy writes <port>/tcp so the two never fight over the same rule.
 func TestFirewallOpensTheWebPortsUnderTheirOwnRules(t *testing.T) {
 	fake := machine()
@@ -144,7 +169,7 @@ func TestTheManifestHoldsTheDomainAndTheAddressToTheirShape(t *testing.T) {
 }
 
 func TestARequiredFieldLeftEmptyIsRefused(t *testing.T) {
-	held := func(string, string) int { return 0 }
+	held := func(string, string) []string { return nil }
 
 	for _, field := range manifest().Fields {
 		if !field.Required || field.Kind != contract.FieldText {
@@ -229,3 +254,45 @@ func TestUninstallGivesBackTheModeAndThePorts(t *testing.T) {
 }
 
 var _ modules.Module = Module{}
+
+// The package can be there for the client's own reasons; only the marker makes it this module's, exactly as the tunnel reads its own.
+func TestACaddyWithoutTheMarkerIsNotOurs(t *testing.T) {
+	fake := machine()
+	fake.Packages[pkg] = "2.10.0"
+	ctx := newContext(t, fake, values())
+
+	status, err := (Module{}).Status(ctx)
+	if err != nil || status.Installed {
+		t.Fatalf("status = %+v, %v: the package alone must not read as installed", status, err)
+	}
+
+	report, err := Status(ctx)
+	if err != nil || report.Installed || report.Provider != nil || report.State != "absent" {
+		t.Fatalf("report = %+v, %v", report, err)
+	}
+
+	if _, err := Sync(ctx); err == nil {
+		t.Fatal("syncing a caddy that is not ours must be refused")
+	}
+
+	fake.Files[modePath] = mode
+
+	if status, _ := (Module{}).Status(ctx); !status.Installed {
+		t.Fatal("the marker plus the package is this module")
+	}
+}
+
+func TestEveryFirewallCallIsBounded(t *testing.T) {
+	fake := machine()
+	run(t, newContext(t, fake, values()))
+
+	if err := (Module{}).Uninstall(newContext(t, fake, values())); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, call := range fake.Calls {
+		if call.Argv[0] == "ufw" && call.Timeout != ufwTimeout {
+			t.Fatalf("ufw call without the timeout: %v", call.Argv)
+		}
+	}
+}

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import type { Manifest, Preset } from "@pupitre/shared/catalog";
 import {
   ARM_MACHINE,
   CATALOG,
@@ -10,12 +11,15 @@ import {
 import {
   asked,
   blocked,
+  bringsNothing,
   byCategory,
   carriesSecret,
   deselect,
   fieldsOf,
   fromPreset,
   mandatory,
+  matching,
+  presetOffer,
   problemsOf,
   resourceWarnings,
   restored,
@@ -96,6 +100,170 @@ describe("préréglages", () => {
       "editor.vscode",
       "runtime.node",
     ]);
+  });
+});
+
+describe("un préréglage contre la machine qui le reçoit", () => {
+  const FULL = CATALOG.presets.find((p) => p.id === "full") as Preset;
+  const WEB = CATALOG.presets.find((p) => p.id === "web-js") as Preset;
+
+  it("laisse de côté ce que l'architecture ne porte pas", () => {
+    const wide: Preset = { ...FULL, modules: [...FULL.modules, "tool.legacy"] };
+
+    expect(fromPreset(MODULES, wide, [], LARGE_MACHINE)).toContain(
+      "tool.legacy"
+    );
+    expect(fromPreset(MODULES, wide, [], ARM_MACHINE)).not.toContain(
+      "tool.legacy"
+    );
+  });
+
+  it("laisse de côté ce qui se dispute la machine avec un module déjà posé", () => {
+    const exposing: Preset = {
+      ...WEB,
+      choose_one: undefined,
+      modules: [...WEB.modules, "exposure.cloudflare"],
+    };
+
+    expect(
+      fromPreset(MODULES, exposing, ["exposure.caddy"], LARGE_MACHINE)
+    ).not.toContain("exposure.cloudflare");
+  });
+
+  /** Half of a choice is a module installed without what it needs. */
+  it("refuse un module entier quand ce qu'il exige est hors de portée", () => {
+    const dashboard: Manifest = {
+      arch: ["amd64", "arm64"],
+      category: "tool",
+      conflicts: [],
+      fields: [],
+      id: "tool.dashboard",
+      mandatory: false,
+      name: "Tableau de bord",
+      requires: ["tool.legacy"],
+      resources: { disk_mb: 100, ram_mb: 64 },
+      runs: false,
+      since: "0.6.0",
+      summary: "S'appuie sur le binaire hérité.",
+    };
+    const wider = [...MODULES, dashboard];
+
+    expect(select(wider, [], "tool.dashboard", [], LARGE_MACHINE)).toEqual([
+      "core.system",
+      "tool.legacy",
+      "tool.dashboard",
+    ]);
+    expect(select(wider, [], "tool.dashboard", [], ARM_MACHINE)).toEqual([]);
+  });
+});
+
+describe("ce qu'un préréglage vaut ici", () => {
+  const WEB = CATALOG.presets.find((p) => p.id === "web-js") as Preset;
+  const FULL = CATALOG.presets.find((p) => p.id === "full") as Preset;
+
+  it("nomme ce qu'il ajoute, sans le socle que tout serveur reçoit", () => {
+    const offer = presetOffer(MODULES, WEB, [], [], LARGE_MACHINE);
+
+    expect(offer.adds.map((one) => one.id)).toEqual([
+      "runtime.node",
+      "db.mysql",
+      "editor.vscode",
+    ]);
+  });
+
+  it("ne promet pas ce que le serveur fait déjà tourner", () => {
+    const offer = presetOffer(
+      MODULES,
+      WEB,
+      [],
+      ["core.system", "core.hardening", "runtime.node"],
+      LARGE_MACHINE
+    );
+
+    expect(offer.adds.map((one) => one.id)).toEqual([
+      "db.mysql",
+      "editor.vscode",
+    ]);
+  });
+
+  it("dit qu'il n'apporte rien quand tout est déjà là", () => {
+    const offer = presetOffer(
+      MODULES,
+      WEB,
+      [],
+      [
+        "core.system",
+        "core.hardening",
+        "runtime.node",
+        "db.mysql",
+        "editor.vscode",
+      ],
+      LARGE_MACHINE
+    );
+
+    expect(bringsNothing(offer)).toBe(true);
+  });
+
+  it("n'oppose que les exclusifs que cette machine peut encore prendre", () => {
+    const offer = presetOffer(
+      MODULES,
+      FULL,
+      [],
+      ["exposure.caddy"],
+      LARGE_MACHINE
+    );
+
+    expect(offer.choices).toEqual([]);
+  });
+
+  it("se sait appliqué, avec ou sans l'exclusif choisi", () => {
+    const base = fromPreset(MODULES, FULL, [], LARGE_MACHINE);
+    const withOne = select(MODULES, base, "exposure.caddy", [], LARGE_MACHINE);
+
+    expect(presetOffer(MODULES, FULL, base, [], LARGE_MACHINE).applied).toBe(
+      true
+    );
+    expect(presetOffer(MODULES, FULL, withOne, [], LARGE_MACHINE).applied).toBe(
+      true
+    );
+    expect(
+      presetOffer(MODULES, FULL, base.slice(1), [], LARGE_MACHINE).applied
+    ).toBe(false);
+  });
+});
+
+describe("chercher un service", () => {
+  it("rend tout le catalogue quand la phrase est vide", () => {
+    expect(matching(MODULES, "   ")).toHaveLength(MODULES.length);
+  });
+
+  it("trouve par le nom, sans casse ni accents", () => {
+    expect(matching(MODULES, "MYSQL").map((one) => one.id)).toEqual([
+      "db.mysql",
+    ]);
+    expect(matching(MODULES, "durcissement").map((one) => one.id)).toEqual([
+      "core.hardening",
+    ]);
+  });
+
+  it("trouve par le résumé et par l'identifiant", () => {
+    expect(matching(MODULES, "fail2ban").map((one) => one.id)).toEqual([
+      "core.hardening",
+    ]);
+    expect(matching(MODULES, "exposure.").map((one) => one.id)).toEqual([
+      "exposure.cloudflare",
+      "exposure.caddy",
+    ]);
+  });
+
+  it("resserre à chaque mot au lieu d'élargir", () => {
+    expect(matching(MODULES, "base de donnees").length).toBeLessThan(
+      matching(MODULES, "base").length
+    );
+  });
+
+  it("ne rend rien plutôt que de deviner", () => {
+    expect(matching(MODULES, "kubernetes")).toEqual([]);
   });
 });
 

@@ -15,7 +15,6 @@ describe("ProtocolErrorCodeSchema", () => {
       "unknown_command",
       "entitlement_required",
       "project_not_found",
-      "module_failed",
       "no_report",
       "bad_signature",
       "downgrade_refused",

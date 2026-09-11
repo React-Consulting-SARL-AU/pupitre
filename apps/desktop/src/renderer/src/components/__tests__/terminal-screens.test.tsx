@@ -19,9 +19,11 @@ describe("un onglet de session", () => {
         onRename={NOOP}
         session={{
           dir: null,
+          dormant: false,
           id: "t1",
           kind: "claude",
           project: "flymate-api",
+          session: "claude-flymate-api",
           title: "Claude",
         }}
         state="attention"
@@ -44,9 +46,11 @@ describe("un onglet de session", () => {
         onRename={NOOP}
         session={{
           dir: null,
+          dormant: false,
           id: "t2",
           kind: "shell",
           project: null,
+          session: null,
           title: "Terminal 2",
         }}
         state={undefined}

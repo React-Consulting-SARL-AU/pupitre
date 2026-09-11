@@ -3,6 +3,7 @@ import type {
   InstallResult,
   ProbeResult,
 } from "@pupitre/shared/agent-protocol/install";
+import type { AgentMigrateResult } from "@pupitre/shared/agent-protocol/migrate";
 import type { Entitlement } from "@pupitre/shared/agent-protocol/session";
 import type { AgentUpgradeResult } from "@pupitre/shared/agent-protocol/system";
 import type { AccountResponse } from "@shared/account";
@@ -10,6 +11,7 @@ import type { AgentResponse } from "@shared/agent";
 import {
   type AgentOffer,
   type AgentUpdateState,
+  type AgentUpgradeOutcome,
   floorOf,
   orderOf,
   platformAnswers,
@@ -18,7 +20,7 @@ import {
 import type { PublishedAgent } from "./account-run";
 import type { CarriedRelease } from "./agent-binary";
 import type { AgentClient } from "./agent-client";
-import { refusalOf } from "./refusal";
+import { refusalOf, refuseWith } from "./refusal";
 
 /**
  * Updating the agent, and the modules it installed.
@@ -32,6 +34,13 @@ import { refusalOf } from "./refusal";
  * `upgrade` replays the install steps of modules already present, and only
  * names the agent's own catalogue can name.
  *
+ * Between the two comes a third, which is not a gesture the reader asks for:
+ * `agent.migrate`. The binary changed, the files it reads did not, and the new
+ * binary carries the migrations that bring them to the shape it expects. It
+ * runs them itself when it starts, so the app's call is normally a confirmation
+ * — but the app is the one that knows a binary has just been replaced, so it is
+ * the one that asks, and the one with somewhere to show the answer.
+ *
  * Neither is done from the renderer: a signature is not something an interface
  * gets to compose.
  */
@@ -43,7 +52,7 @@ export interface MachineFacts {
 }
 
 export interface AgentUpdateDeps {
-  client: Pick<AgentClient, "request">;
+  client: Pick<AgentClient, "request" | "close" | "session">;
   /** The last resort when the protocol refuses to answer: the shell probe. */
   probe: (serverId: string) => Promise<AgentResponse<ProbeResult>>;
   carried: (arch: string) => CarriedRelease | null;
@@ -52,10 +61,6 @@ export interface AgentUpdateDeps {
   declared: (serverId: string) => Promise<AgentResponse<readonly string[]>>;
   /** This app's version, the one the compatibility sheet judges. */
   appVersion: string;
-}
-
-function refuse(message: string, fix: string): AgentResponse<never> {
-  return { ok: false, error: { code: "internal", fix, message } };
 }
 
 /**
@@ -67,7 +72,10 @@ function refuse(message: string, fix: string): AgentResponse<never> {
  */
 export async function machineFacts(
   serverId: string,
-  deps: Pick<AgentUpdateDeps, "client" | "probe">
+  deps: {
+    client: Pick<AgentClient, "request">;
+    probe: (serverId: string) => Promise<AgentResponse<ProbeResult>>;
+  }
 ): Promise<AgentResponse<MachineFacts>> {
   const snapshot = await deps.client.request(serverId, "snapshot");
 
@@ -159,6 +167,7 @@ export async function readAgentUpdate(
   return {
     ok: true,
     result: {
+      config: deps.client.session(serverId)?.config ?? null,
       floor: floorOf(deps.appVersion),
       installed: facts.result.version,
       offer,
@@ -167,6 +176,28 @@ export async function readAgentUpdate(
       verdict: verdictOf(deps.appVersion, facts.result.version),
     },
   };
+}
+
+/**
+ * The configuration brought to the shape the agent now reads.
+ *
+ * `unknown_command` is an agent from before the ledger: it has no migration to
+ * run and no shape to carry over, so the answer is that there was nothing to
+ * do, not that something went wrong.
+ */
+export async function runMigrate(
+  serverId: string,
+  deps: { client: Pick<AgentClient, "request"> }
+): Promise<AgentResponse<AgentMigrateResult | null>> {
+  const answer = await deps.client.request(serverId, "agent.migrate");
+
+  if (answer.ok) {
+    return answer;
+  }
+
+  return answer.error.code === "unknown_command"
+    ? { ok: true, result: null }
+    : answer;
 }
 
 /**
@@ -179,7 +210,7 @@ export async function runAgentUpgrade(
   serverId: string,
   onEvent: (event: Event) => void,
   deps: AgentUpdateDeps
-): Promise<AgentResponse<AgentUpgradeResult>> {
+): Promise<AgentResponse<AgentUpgradeOutcome>> {
   const facts = await machineFacts(serverId, deps);
 
   if (!facts.ok) {
@@ -190,31 +221,24 @@ export async function runAgentUpgrade(
   const offer = await offerFor(facts.result.arch, platform, deps);
 
   if (!offer) {
-    return refuse(
-      `Cette app ne porte pas d'agent pour l'architecture ${facts.result.arch}, et la console n'en publie pas pour ce serveur.`,
-      "Construis l'agent avec bun --cwd=apps/agent run build, puis reconstruis l'app."
-    );
+    return refuseWith("internal", "refusal.agentUpdate.binary", {
+      arch: facts.result.arch,
+    });
   }
 
-  if (offer.source === "platform") {
-    return await deps.client.request(
-      serverId,
-      "agent.upgrade",
-      { version: offer.version },
-      { onEvent }
-    );
+  const signature =
+    offer.source === "platform"
+      ? null
+      : (deps.carried(facts.result.arch)?.signature ?? null);
+
+  if (offer.source === "app" && !(signature || platform)) {
+    return refuseWith("internal", "refusal.agentUpdate.signature", {
+      arch: facts.result.arch,
+      version: offer.version,
+    });
   }
 
-  const signature = deps.carried(facts.result.arch)?.signature ?? null;
-
-  if (!(signature || platform)) {
-    return refuse(
-      `Cette app ne porte pas la signature de l'agent ${offer.version} pour ${facts.result.arch}, et ce serveur n'atteint plus la console qui la sert.`,
-      "Publie cette version avec bun --cwd=apps/agent run release, puis reconstruis l'app."
-    );
-  }
-
-  return await deps.client.request(
+  const upgraded = await deps.client.request(
     serverId,
     "agent.upgrade",
     signature
@@ -222,6 +246,34 @@ export async function runAgentUpgrade(
       : { version: offer.version },
     { onEvent }
   );
+
+  if (!upgraded.ok) {
+    return upgraded;
+  }
+
+  return await migrated(serverId, upgraded.result, deps);
+}
+
+/**
+ * The session that asked for the upgrade is still on the old binary.
+ *
+ * The new one was put in place by a rename, so the `serve` process answering us
+ * keeps the file it opened; only a new session reaches the version that was
+ * just installed. Closing here is what makes the migration — and every read
+ * after it — a question asked of the agent that now runs the server.
+ */
+async function migrated(
+  serverId: string,
+  upgrade: AgentUpgradeResult,
+  deps: { client: Pick<AgentClient, "request" | "close"> }
+): Promise<AgentResponse<AgentUpgradeOutcome>> {
+  deps.client.close(serverId);
+
+  const migration = await runMigrate(serverId, deps);
+
+  return migration.ok
+    ? { ok: true, result: { migration: migration.result, upgrade } }
+    : migration;
 }
 
 export async function runModuleUpgrade(

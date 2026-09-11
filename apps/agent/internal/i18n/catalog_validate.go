@@ -64,7 +64,7 @@ var validateCatalog = map[string]Message{
 		EN: "must be one of %s",
 	},
 	"validate.oneof.ambiguous": {
-		FR: "correspond à plusieurs varianvos (oneOf)",
+		FR: "correspond à plusieurs variantes (oneOf)",
 		EN: "matches several variants (oneOf)",
 	},
 	"validate.field.required": {

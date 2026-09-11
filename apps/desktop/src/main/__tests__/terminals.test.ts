@@ -6,8 +6,9 @@ import {
   listProjects,
   type ProjectDeps,
   projectFolder,
+  projectPath,
 } from "../projects-run";
-import { authorizationCode, loginAddress } from "../terminal-links";
+import { loginAddress, loopbackRedirect } from "../terminal-links";
 import { type TerminalDeps, terminalCommand } from "../terminal-run";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 
@@ -33,6 +34,8 @@ function deps(): { terminals: TerminalDeps; projects: ProjectDeps } {
       declares: declaresProject,
       folder: projectFolder,
       knows,
+      path: projectPath,
+      root: () => Promise.resolve("/home/dev"),
     },
   };
 }
@@ -47,24 +50,33 @@ afterEach(() => {
   forgetProjects();
 });
 
+function shell(
+  project: string | null,
+  id: string,
+  session: string | null,
+  calls: TerminalDeps
+) {
+  return terminalCommand(
+    { id, kind: "shell", project, serverId: SERVER, session },
+    calls
+  );
+}
+
 describe("le terminal d'un projet", () => {
-  it("démarre dans le dossier absolu que le projet porte, sans passer par git", async () => {
+  it("démarre dans le dossier absolu que le projet porte, sous tmux", async () => {
     const calls = deps();
 
     await listProjects(SERVER, calls.projects);
 
-    const opened = await terminalCommand(
-      SERVER,
-      "shell",
-      "flymate-api",
-      calls.terminals
-    );
+    const opened = await shell("flymate-api", "tabc1", null, calls.terminals);
 
     expect(opened).toMatchObject({
       ok: true,
       result: {
-        command: "cd '/home/dev/projects/flymate/api' && exec $SHELL -l",
-        session: null,
+        command:
+          "tmux new-session -A -s shell-flymate-api-tabc1 -c /home/dev/projects/flymate/api ';' set-option -t shell-flymate-api-tabc1 status off",
+        kind: "shell",
+        session: "shell-flymate-api-tabc1",
       },
     });
   });
@@ -72,18 +84,181 @@ describe("le terminal d'un projet", () => {
   it("ouvre le shell de connexion quand aucun projet n'est nommé", async () => {
     const calls = deps();
 
-    const opened = await terminalCommand(
-      SERVER,
-      "shell",
-      null,
+    const opened = await shell(null, "tabc2", null, calls.terminals);
+
+    expect(opened).toMatchObject({
+      ok: true,
+      result: {
+        command:
+          "tmux new-session -A -s shell-server-tabc2 ';' set-option -t shell-server-tabc2 status off",
+        session: "shell-server-tabc2",
+      },
+    });
+    expect(fake?.started()).toBe(0);
+  });
+
+  it("rattache la session que l'onglet remémoré porte, plutôt qu'une neuve", async () => {
+    const calls = deps();
+
+    await listProjects(SERVER, calls.projects);
+
+    const opened = await shell(
+      "flymate-api",
+      "tabc3",
+      "shell-flymate-api-tabc1",
       calls.terminals
     );
 
     expect(opened).toMatchObject({
       ok: true,
-      result: { command: "exec $SHELL -l" },
+      result: {
+        command:
+          "tmux new-session -A -s shell-flymate-api-tabc1 -c /home/dev/projects/flymate/api ';' set-option -t shell-flymate-api-tabc1 status off",
+        session: "shell-flymate-api-tabc1",
+      },
+    });
+  });
+
+  it("donne un nom que tmux accepte à un projet qui porte un point", async () => {
+    const calls = deps();
+    const named = await shell(null, "tab.4:x", null, calls.terminals);
+
+    expect(named).toMatchObject({
+      ok: true,
+      result: { session: "shell-server-tab-4-x" },
+    });
+  });
+
+  it("refuse un nom de session que l'app n'aurait jamais écrit", async () => {
+    const calls = deps();
+
+    const refused = await shell(
+      null,
+      "tabc5",
+      "shell; rm -rf /",
+      calls.terminals
+    );
+
+    expect(refused).toMatchObject({
+      error: {
+        code: "bad_request",
+        phrase: { id: "refusal.terminal.session" },
+      },
+      ok: false,
     });
     expect(fake?.started()).toBe(0);
+  });
+
+  it("refuse un projet que l'agent n'a pas déclaré, même pour un simple shell", async () => {
+    const calls = deps();
+
+    const refused = await shell("jamais-vu", "tabc6", null, calls.terminals);
+
+    expect(refused).toMatchObject({
+      error: { code: "project_not_found" },
+      ok: false,
+    });
+  });
+});
+
+describe("le terminal ouvert dans un sous-dossier", () => {
+  it("recolle le dossier nommé sous celui du projet, jamais ailleurs", async () => {
+    const calls = deps();
+
+    await listProjects(SERVER, calls.projects);
+
+    const opened = await terminalCommand(
+      {
+        dir: "src/lib",
+        id: "tabd1",
+        kind: "shell",
+        project: "flymate-api",
+        serverId: SERVER,
+        session: null,
+      },
+      calls.terminals
+    );
+
+    expect(opened).toMatchObject({
+      ok: true,
+      result: {
+        command:
+          "tmux new-session -A -s shell-flymate-api-tabd1 -c /home/dev/projects/flymate/api/src/lib ';' set-option -t shell-flymate-api-tabd1 status off",
+      },
+    });
+  });
+
+  it("recolle un dossier du serveur sous la racine que l'agent a nommée", async () => {
+    const calls = deps();
+
+    const opened = await terminalCommand(
+      {
+        dir: "projects/flymate",
+        id: "tabd2",
+        kind: "shell",
+        project: null,
+        serverId: SERVER,
+        session: null,
+      },
+      calls.terminals
+    );
+
+    expect(opened).toMatchObject({
+      ok: true,
+      result: {
+        command:
+          "tmux new-session -A -s shell-server-tabd2 -c /home/dev/projects/flymate ';' set-option -t shell-server-tabd2 status off",
+      },
+    });
+  });
+
+  it("refuse un dossier qui remonte, un absolu, ou une forme qu'un shell lirait", async () => {
+    const calls = deps();
+
+    await listProjects(SERVER, calls.projects);
+
+    for (const dir of ["../secrets", "src/../../etc", "/etc", "a b; rm", ""]) {
+      const refused = await terminalCommand(
+        {
+          dir,
+          id: "tabd3",
+          kind: "shell",
+          project: "flymate-api",
+          serverId: SERVER,
+          session: null,
+        },
+        calls.terminals
+      );
+
+      expect(refused).toMatchObject({
+        error: {
+          code: "bad_request",
+          phrase: { id: "refusal.terminal.folder" },
+        },
+        ok: false,
+      });
+    }
+  });
+
+  it("refuse un dossier du serveur quand l'agent n'a pas nommé sa racine", async () => {
+    const calls = deps();
+
+    const refused = await terminalCommand(
+      {
+        dir: "projects",
+        id: "tabd4",
+        kind: "shell",
+        project: null,
+        serverId: SERVER,
+        session: null,
+      },
+      { ...calls.terminals, root: () => Promise.resolve(null) }
+    );
+
+    expect(refused).toMatchObject({
+      error: { phrase: { id: "refusal.terminal.folder" } },
+      ok: false,
+    });
   });
 });
 
@@ -94,9 +269,13 @@ describe("l'onglet d'un agent", () => {
     await listProjects(SERVER, calls.projects);
 
     const opened = await terminalCommand(
-      SERVER,
-      "claude",
-      "flymate-api",
+      {
+        id: "tag1",
+        kind: "claude",
+        project: "flymate-api",
+        serverId: SERVER,
+        session: null,
+      },
       calls.terminals
     );
 
@@ -115,12 +294,25 @@ describe("l'onglet d'un agent", () => {
     const calls = deps();
 
     await listProjects(SERVER, calls.projects);
-    await terminalCommand(SERVER, "claude", "flymate-api", calls.terminals);
+    await terminalCommand(
+      {
+        id: "tag2",
+        kind: "claude",
+        project: "flymate-api",
+        serverId: SERVER,
+        session: null,
+      },
+      calls.terminals
+    );
 
     const refused = await terminalCommand(
-      SERVER,
-      "hermes",
-      "flymate-api",
+      {
+        id: "tag3",
+        kind: "hermes",
+        project: "flymate-api",
+        serverId: SERVER,
+        session: null,
+      },
       calls.terminals
     );
 
@@ -137,9 +329,13 @@ describe("l'onglet d'un agent", () => {
     const calls = deps();
 
     const refused = await terminalCommand(
-      SERVER,
-      "claude",
-      "jamais-vu",
+      {
+        id: "tag4",
+        kind: "claude",
+        project: "jamais-vu",
+        serverId: SERVER,
+        session: null,
+      },
       calls.terminals
     );
 
@@ -154,9 +350,13 @@ describe("l'onglet d'un agent", () => {
     const calls = deps();
 
     const refused = await terminalCommand(
-      SERVER,
-      "bash -c 'rm -rf /'",
-      null,
+      {
+        id: "tag5",
+        kind: "bash -c 'rm -rf /'",
+        project: null,
+        serverId: SERVER,
+        session: null,
+      },
       calls.terminals
     );
 
@@ -171,9 +371,13 @@ describe("l'onglet d'un agent", () => {
     const calls = deps();
 
     const refused = await terminalCommand(
-      "srv-parti",
-      "shell",
-      null,
+      {
+        id: "tag6",
+        kind: "shell",
+        project: null,
+        serverId: "srv-parti",
+        session: null,
+      },
       calls.terminals
     );
 
@@ -192,6 +396,33 @@ describe("l'adresse de connexion d'un agent", () => {
     expect(loginAddress(drawn)).toMatchObject({ host: "claude.ai" });
   });
 
+  it("lit l'adresse entière d'un hyperlien dont le texte est plié sur plusieurs lignes", () => {
+    const url =
+      "https://claude.com/cai/oauth/authorize?code=true&client_id=abc&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile&state=xyz";
+    const linked = `\u001b]8;;${url}\u001b\\https://claude.com/cai/oauth/authorize?code=true&client_id=abc&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=org%3Acreate\r\n_api_key+user%3Aprofile&state=xyz\u001b]8;;\u001b\\`;
+
+    expect(loginAddress(linked)).toEqual({ host: "claude.com", url });
+  });
+
+  it("ne prend pas pour une nouvelle adresse un morceau de celle déjà connue", () => {
+    const known = {
+      host: "claude.com",
+      url: "https://claude.com/cai/oauth/authorize?code=true&state=xyz",
+    };
+
+    expect(
+      loginAddress(
+        "https://claude.com/cai/oauth/authorize?code=true\r\n&state=xyz",
+        known
+      )
+    ).toEqual(known);
+    expect(
+      loginAddress("https://claude.com/cai/oauth/authorize?state=abc", known)
+        ?.url
+    ).toContain("state=abc");
+    expect(loginAddress("Rien.", known)).toEqual(known);
+  });
+
   it("garde la dernière quand l'agent en réimprime une", () => {
     const twice =
       "https://claude.ai/oauth/authorize?state=un\nhttps://claude.ai/oauth/authorize?state=deux";
@@ -199,23 +430,53 @@ describe("l'adresse de connexion d'un agent", () => {
     expect(loginAddress(twice)?.url).toContain("state=deux");
   });
 
+  it("reconnaît un flux qui revient sur un port de la machine, quel que soit l'hôte", () => {
+    const neon =
+      "Auth Url: https://oauth2.neon.tech/oauth2/auth?client_id=neonctl&redirect_uri=http%3A%2F%2F127.0.0.1%3A41233%2Fcallback&state=x";
+    const other =
+      "https://auth.exemple.test/authorize?redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback";
+
+    expect(loginAddress(neon)).toMatchObject({ host: "oauth2.neon.tech" });
+    expect(loginAddress(other)).toMatchObject({ host: "auth.exemple.test" });
+  });
+
   it("n'en fait pas une d'une adresse quelconque", () => {
     expect(loginAddress("https://exemple.test/connexion")).toBeNull();
+    expect(
+      loginAddress(
+        "https://exemple.test/a?redirect_uri=https%3A%2F%2Fexemple.test%2Fretour"
+      )
+    ).toBeNull();
     expect(loginAddress("Rien à ouvrir ici.")).toBeNull();
   });
+});
 
-  it("lit le code du retour, même sur un port du serveur", () => {
+describe("le port sur lequel une connexion revient", () => {
+  it("se lit dans le redirect_uri quand il vise la boucle locale", () => {
     expect(
-      authorizationCode(
-        "http://localhost:54545/callback?code=ac_9f2b7d41&state=x"
+      loopbackRedirect(
+        "https://claude.ai/oauth/authorize?redirect_uri=http%3A%2F%2Flocalhost%3A54545%2Fcallback&state=x"
       )
-    ).toBe("ac_9f2b7d41");
-    expect(authorizationCode("https://claude.ai/oauth/authorize")).toBeNull();
+    ).toBe(54_545);
+    expect(
+      loopbackRedirect(
+        "https://oauth2.neon.tech/oauth2/auth?redirect_uri=http%3A%2F%2F127.0.0.1%3A41233%2Fcallback"
+      )
+    ).toBe(41_233);
   });
 
-  it("ne prend pas le code=true de l'adresse d'ouverture pour une réponse", () => {
+  it("n'existe pas pour un retour ailleurs, ni sans port", () => {
     expect(
-      authorizationCode("https://claude.ai/oauth/authorize?code=true&state=x")
+      loopbackRedirect(
+        "https://claude.ai/oauth/authorize?redirect_uri=https%3A%2F%2Fconsole.anthropic.com%2Foauth%2Fcode%2Fcallback"
+      )
     ).toBeNull();
+    expect(
+      loopbackRedirect(
+        "https://exemple.test/a?redirect_uri=http%3A%2F%2Flocalhost%2Fcallback"
+      )
+    ).toBeNull();
+    expect(loopbackRedirect("https://claude.ai/oauth/authorize")).toBeNull();
+    expect(loopbackRedirect("pas une adresse")).toBeNull();
   });
 });

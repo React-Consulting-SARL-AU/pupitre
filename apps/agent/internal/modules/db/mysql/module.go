@@ -1,13 +1,14 @@
 package mysql
 
 import (
+	"errors"
 	"fmt"
-	"pupitre.studio/agent/internal/i18n"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/db/dumps"
 	"pupitre.studio/agent/internal/sys"
@@ -208,7 +209,7 @@ func createAccounts(ctx *modules.Context, rotated bool) error {
 
 		sql := renderAccounts(engineOf(ctx), appAccount(ctx), remoteAccount(ctx), ctx.Secret("app_password"), ctx.Secret("remote_password"))
 		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"mysql", "--protocol=socket"}, Stdin: []byte(sql)}); err != nil {
-			return modules.Failed, fmt.Errorf("account creation refused: journalctl -u %s -n 40 · %w", unitOf(ctx), err)
+			return modules.Failed, errors.New(i18n.T("modules.mysql.accounts_refused", unitOf(ctx), err.Error()))
 		}
 
 		return modules.Done, nil

@@ -38,9 +38,12 @@ const preload = readFileSync(PRELOAD, "utf8");
 const main = sourcesOf(MAIN).join("\n");
 const harness = sourcesOf(HARNESS).join("\n");
 
-/** `streamed(call, events, …)`: one channel starts the work, the other carries it. */
-const STREAMED = /streamed<[\s\S]*?>\(\s*"([^"]+)",\s*"([^"]+)"/g;
-const streams = [...preload.matchAll(STREAMED)];
+/** `streamed(call, events, …)` and `streamedToEnd`: one channel starts the work, the other carries it. */
+const STREAMED = /streamed(?:ToEnd)?<[\s\S]*?>\(\s*"([^"]+)",\s*"([^"]+)"/g;
+/** `followed(call, events, cancel, …)`: the same, plus the channel that ends it. */
+const FOLLOWED = /followed<[\s\S]*?>\(\s*"([^"]+)",\s*"([^"]+)",\s*"([^"]+)"/g;
+const streams = [...preload.matchAll(STREAMED), ...preload.matchAll(FOLLOWED)];
+const follows = [...preload.matchAll(FOLLOWED)];
 
 const invoked = new Set([
   ...all(preload, /ipcRenderer\.invoke\(\s*"([^"]+)"/g),
@@ -52,7 +55,10 @@ const listened = new Set([
   ...streams.map((match) => match[2] as string),
 ]);
 
-const pushed = new Set(all(preload, /ipcRenderer\.send\(\s*"([^"]+)"/g));
+const pushed = new Set([
+  ...all(preload, /ipcRenderer\.send\(\s*"([^"]+)"/g),
+  ...follows.map((match) => match[3] as string),
+]);
 
 const handled = new Set(all(main, /ipcMain\.handle\(\s*\n?\s*"([^"]+)"/g));
 const heard = new Set(all(main, /ipcMain\.on\(\s*\n?\s*"([^"]+)"/g));

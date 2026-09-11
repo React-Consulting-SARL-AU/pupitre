@@ -168,7 +168,7 @@ describe("BillingPanel", () => {
     expect(container.textContent).toContain("3 servers")
     expect(container.textContent).toContain("Active")
     expect(container.textContent).toContain("Yearly")
-    expect(container.textContent).toContain("570")
+    expect(container.textContent).toContain("300")
     expect(container.textContent).not.toContain("Order")
 
     await click(trigger(container, "Manage the subscription"))

@@ -75,17 +75,58 @@ export function shaped(id: string, steps: StepEntry[]): ModuleProgress {
 /**
  * A step closes the one it opened rather than piling up next to it: `start` and
  * `ok` are the same step seen twice, and the list is what the reader counts.
+ *
+ * The one it closes is the last opened under that name, never an older one: a
+ * list holds several runs of the same module, and an event lost on the way back
+ * leaves a row open behind. Closing that one would answer the run before with
+ * the step of the run under way, and leave the reader watching a step that
+ * ended minutes ago.
  */
 export function withStep(steps: StepEntry[], entry: StepEntry): StepEntry[] {
-  const open = steps.findIndex(
-    (candidate) => candidate.step === entry.step && candidate.status === "start"
-  );
+  const open = lastOpen(steps, entry.step);
 
   if (entry.status === "start" || open === -1) {
     return [...steps, entry];
   }
 
   return steps.map((candidate, index) => (index === open ? entry : candidate));
+}
+
+function lastOpen(steps: readonly StepEntry[], step: string): number {
+  for (let index = steps.length - 1; index >= 0; index -= 1) {
+    const candidate = steps[index];
+
+    if (candidate.step === step && candidate.status === "start") {
+      return index;
+    }
+  }
+
+  return -1;
+}
+
+/**
+ * A module the answer catches still at work.
+ *
+ * The agent has spoken for the whole run, so nothing of it is running any more:
+ * the steps nobody closed are dropped, and what is left — or the answer itself,
+ * for a module it says failed — says how it went. Without this, one step event
+ * lost on the way back leaves a module turning under a screen that has already
+ * been told the install is over.
+ */
+export function settledBy(
+  module: ModuleProgress,
+  failed: boolean
+): ModuleProgress {
+  const closed = shaped(
+    module.id,
+    module.steps.filter((entry) => entry.status !== "start")
+  );
+
+  if (failed) {
+    return { ...closed, status: "fail" };
+  }
+
+  return closed.status === "pending" ? { ...closed, status: "ok" } : closed;
 }
 
 export function record(

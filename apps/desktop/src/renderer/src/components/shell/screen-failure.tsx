@@ -21,7 +21,7 @@ export function ScreenFailure({
   const t = useTranslations();
 
   return (
-    <div className="p-8" data-screen-failure="true">
+    <div className="h-full bg-base p-8" data-screen-failure="true">
       <Callout
         action={
           <Button icon={RefreshCw} onClick={onRetry}>

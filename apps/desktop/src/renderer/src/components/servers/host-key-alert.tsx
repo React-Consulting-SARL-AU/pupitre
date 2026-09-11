@@ -2,7 +2,7 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { ShieldAlert } from "lucide-react";
 import type { HostKeyState } from "../../stores/servers";
 import { Button } from "../ui/button";
-import { Label } from "../ui/label";
+import { HostKeyFingerprint } from "./host-key-fingerprint";
 
 /**
  * The refusal, and the only two ways out of it.
@@ -45,11 +45,11 @@ export function HostKeyAlert({
           </p>
 
           <div className="mt-5 grid gap-5 sm:grid-cols-2">
-            <Fingerprint
+            <HostKeyFingerprint
               label={t("servers.hostKey.expected")}
               value={state.expected}
             />
-            <Fingerprint
+            <HostKeyFingerprint
               label={t("servers.hostKey.observed")}
               value={state.observed ?? t("servers.hostKey.observedMissing")}
             />
@@ -69,17 +69,6 @@ export function HostKeyAlert({
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Fingerprint({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0">
-      <Label>{label}</Label>
-      <p className="mt-1 break-all font-data text-[12px] text-ink-2 leading-relaxed">
-        {value}
-      </p>
     </div>
   );
 }

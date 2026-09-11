@@ -26,7 +26,6 @@ export function ServerReenrollAction({
       loading={state.status === "running"}
       onClick={onRepair}
       size="sm"
-      title={t("shell.restricted.repairTitle")}
       variant="inverse"
     >
       {t("shell.restricted.repair")}

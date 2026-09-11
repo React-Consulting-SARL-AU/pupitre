@@ -2,13 +2,13 @@ package tmux
 
 import (
 	"fmt"
-	"pupitre.studio/agent/internal/i18n"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/file"
@@ -119,7 +119,7 @@ func Windows(ctx sys.Context, options Options) map[string]int {
 func windows(ctx sys.Context, options Options) map[string]int {
 	open := map[string]int{}
 
-	out, err := ctx.Sys().Run(tmux("list-panes", "-s", "-t", options.Session, "-F", "#{window_name} #{pane_pid}"))
+	out, err := ctx.Sys().Run(options.tmux("list-panes", "-s", "-t", options.Session, "-F", "#{window_name} #{pane_pid}"))
 	if err != nil {
 		return open
 	}
@@ -189,11 +189,11 @@ func uptimes(ctx sys.Context, pids []string) map[int]int {
 func EnsureSession(ctx sys.Context, options Options, dir string) error {
 	options = options.Resolved()
 
-	if _, err := ctx.Sys().Run(tmux("has-session", "-t", options.Session)); err == nil {
+	if _, err := ctx.Sys().Run(options.tmux("has-session", "-t", options.Session)); err == nil {
 		return nil
 	}
 
-	_, err := sys.Exec(ctx, tmux("new-session", "-d", "-s", options.Session, "-n", "scratch", "-c", dir))
+	_, err := sys.Exec(ctx, options.tmux("new-session", "-d", "-s", options.Session, "-n", "scratch", "-c", dir))
 
 	return err
 }
@@ -211,12 +211,12 @@ func Start(ctx sys.Context, options Options, job Job) error {
 		return err
 	}
 
-	if _, err := sys.Exec(ctx, tmux("new-window", "-d", "-t", options.Session, "-n", job.Project, "-c", job.Dir)); err != nil {
+	if _, err := sys.Exec(ctx, options.tmux("new-window", "-d", "-t", options.Session, "-n", job.Project, "-c", job.Dir)); err != nil {
 		return err
 	}
 
 	logPath := options.LogPath(job.Project)
-	if _, err := sys.Exec(ctx, tmux("pipe-pane", "-o", "-t", Target(options, job.Project), "cat >> "+logPath)); err != nil {
+	if _, err := sys.Exec(ctx, options.tmux("pipe-pane", "-o", "-t", Target(options, job.Project), "cat >> "+logPath)); err != nil {
 		return err
 	}
 
@@ -225,7 +225,7 @@ func Start(ctx sys.Context, options Options, job Job) error {
 		return err
 	}
 
-	_, err := sys.Exec(ctx, tmux("send-keys", "-t", Target(options, job.Project), job.Cmd, "C-m"))
+	_, err := sys.Exec(ctx, options.tmux("send-keys", "-t", Target(options, job.Project), job.Cmd, "C-m"))
 
 	return err
 }
@@ -237,7 +237,7 @@ func Stop(ctx sys.Context, options Options, project string) error {
 		return err
 	}
 
-	if _, err := sys.Exec(ctx, tmux("send-keys", "-t", Target(options, project), "C-c")); err != nil {
+	if _, err := sys.Exec(ctx, options.tmux("send-keys", "-t", Target(options, project), "C-c")); err != nil {
 		return err
 	}
 
@@ -245,7 +245,7 @@ func Stop(ctx sys.Context, options Options, project string) error {
 		time.Sleep(options.Grace)
 	}
 
-	_, err := sys.Exec(ctx, tmux("kill-window", "-t", Target(options, project)))
+	_, err := sys.Exec(ctx, options.tmux("kill-window", "-t", Target(options, project)))
 
 	return err
 }
@@ -313,17 +313,11 @@ func State(ctx sys.Context, options Options, project contract.Project, collected
 }
 
 func mark(ctx sys.Context, options Options, project, line string) error {
-	if err := ctx.Sys().MkdirAll(options.LogDir, 0o755); err != nil {
+	if err := file.MkdirOwned(ctx, options.LogDir, options.User, options.User, 0o755); err != nil {
 		return err
 	}
 
-	_, err := sys.Exec(ctx, sys.Command{
-		User:  options.User,
-		Argv:  []string{"tee", "-a", options.LogPath(project)},
-		Stdin: []byte("\n" + line + "\n"),
-	})
-
-	return err
+	return file.Append(ctx, options.LogPath(project), []byte("\n"+line+"\n"), options.User)
 }
 
 func tail(text string, lines int) []string {
@@ -344,14 +338,16 @@ func Target(options Options, project string) string {
 	return fmt.Sprintf("%s:%s", options.Resolved().Session, project)
 }
 
-func tmux(args ...string) sys.Command {
-	return sys.Command{Argv: append([]string{"tmux"}, args...)}
+// The session belongs to the user whose projects run in it: tmux as root would open a server nobody's shell can attach to,
+// and a server started with root's environment hands HOME=/root to every window and every shell attached later.
+func (o Options) tmux(args ...string) sys.Command {
+	return sys.Command{User: o.User, Argv: append([]string{"tmux"}, args...), Env: user.Environment(o.User)}
 }
 
 func Running(ctx sys.Context, options Options, project string) bool {
 	options = options.Resolved()
 
-	out, err := ctx.Sys().Run(tmux("list-windows", "-t", options.Session, "-F", "#{window_name}"))
+	out, err := ctx.Sys().Run(options.tmux("list-windows", "-t", options.Session, "-F", "#{window_name}"))
 	if err != nil {
 		return false
 	}

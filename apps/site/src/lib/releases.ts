@@ -30,12 +30,6 @@ export interface AppRelease {
   assets: AppAsset[]
 }
 
-export interface ReleaseList {
-  releases: AppRelease[]
-  /** True when the platform could not be read and the static list was used. */
-  stale: boolean
-}
-
 const SHA256_RE = /^[0-9a-f]{64}$/
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -158,22 +152,22 @@ export interface FetchOptions {
 export const ENDPOINT_VARIABLE = "PUBLIC_RELEASES_URL"
 
 /**
- * Read at build time. A platform that cannot be reached is not a build error:
- * the page ships with the last list the repository knows, plus a warning.
+ * Read at build time, once per release: a version reaches the page through the
+ * build that follows its publication, never through the visitor's browser. A
+ * platform that cannot be reached is not a build error — the page ships the
+ * last list the repository knows, and the build says so.
  */
 export async function loadReleases({
   fetcher = fetch,
   warn = (message) => process.emitWarning(message),
   endpoint = import.meta.env.PUBLIC_RELEASES_URL,
-}: FetchOptions = {}): Promise<ReleaseList> {
-  const fallback = { releases: FALLBACK_RELEASES, stale: true }
-
+}: FetchOptions = {}): Promise<AppRelease[]> {
   if (!endpoint) {
     warn(
       `${ENDPOINT_VARIABLE} is not set; the download page ships the last known list.`
     )
 
-    return fallback
+    return FALLBACK_RELEASES
   }
 
   try {
@@ -186,7 +180,7 @@ export async function loadReleases({
         `Release list unavailable (${response.status} from ${endpoint}); the download page ships the last known list.`
       )
 
-      return fallback
+      return FALLBACK_RELEASES
     }
 
     const releases = parseReleases(await response.json())
@@ -196,15 +190,15 @@ export async function loadReleases({
         `Release list from ${endpoint} did not match the expected shape; the download page ships the last known list.`
       )
 
-      return fallback
+      return FALLBACK_RELEASES
     }
 
-    return { releases: sortReleases(releases), stale: false }
+    return sortReleases(releases)
   } catch (error) {
     warn(
       `Release list could not be read from ${endpoint} (${String(error)}); the download page ships the last known list.`
     )
 
-    return fallback
+    return FALLBACK_RELEASES
   }
 }

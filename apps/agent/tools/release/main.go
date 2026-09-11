@@ -213,7 +213,7 @@ func runPromote(args []string, stdout, stderr io.Writer, env environment) int {
 	}
 
 	for _, publication := range promoted {
-		fmt.Fprintf(stdout, "promue %s %s %s\n", publication.Version, publication.Arch, publication.Channel)
+		fmt.Fprintf(stdout, "promoted %s %s %s\n", publication.Version, publication.Arch, publication.Channel)
 	}
 
 	return 0
@@ -241,11 +241,11 @@ func readPublications(path string) ([]release.Publication, error) {
 
 	var publications []release.Publication
 	if err := json.Unmarshal(content, &publications); err != nil {
-		return nil, fmt.Errorf("%s : %w", path, err)
+		return nil, fmt.Errorf("%s: %w", path, err)
 	}
 
 	if len(publications) == 0 {
-		return nil, fmt.Errorf("%s : aucune publication", path)
+		return nil, fmt.Errorf("%s: no publication", path)
 	}
 
 	return publications, nil

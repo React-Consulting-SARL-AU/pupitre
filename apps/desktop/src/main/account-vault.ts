@@ -8,6 +8,13 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import type { AccountDevice, AccountIdentity } from "@shared/account";
+import { ACCOUNT_MIGRATIONS } from "./account-migrations";
+import {
+  forgetCopies,
+  type JsonObject,
+  keepCopy,
+  migrate,
+} from "./store-migrations";
 
 /**
  * The session token, and the little that is not one.
@@ -51,17 +58,6 @@ export interface TokenVault {
   clear: () => void;
 }
 
-/** A record written before the organizations were read back carries none. */
-function healed(record: AccountRecord): AccountRecord {
-  const { identity } = record;
-
-  if (!identity || Array.isArray(identity.organizations)) {
-    return record;
-  }
-
-  return { ...record, identity: { ...identity, organizations: [] } };
-}
-
 function ensureDir(dir: string): void {
   mkdirSync(dir, { mode: DIR_MODE, recursive: true });
   chmodSync(dir, DIR_MODE);
@@ -103,7 +99,40 @@ export function createTokenVault({
     }
   }
 
+  function remember(record: AccountRecord): void {
+    ensureDir(dir);
+    writeFileSync(recordPath, `${JSON.stringify(record, null, 2)}\n`, {
+      mode: FILE_MODE,
+    });
+    chmodSync(recordPath, FILE_MODE);
+  }
+
+  /**
+   * A record written by an older version of the app goes back to disk in
+   * today's shape, once. Completing it in memory on every launch would mean
+   * that the day a default changed, every record already written changed
+   * with it.
+   */
+  function record(): AccountRecord {
+    try {
+      const raw = JSON.parse(readFileSync(recordPath, "utf8")) as JsonObject;
+      const migrated = migrate(raw, ACCOUNT_MIGRATIONS);
+      const held = { ...EMPTY_RECORD, ...migrated.document } as AccountRecord;
+
+      if (migrated.applied.length > 0) {
+        keepCopy(recordPath, 0);
+        remember(held);
+      }
+
+      return held;
+    } catch {
+      return EMPTY_RECORD;
+    }
+  }
+
   return {
+    record,
+    remember,
     sealed,
     token,
 
@@ -119,29 +148,11 @@ export function createTokenVault({
       chmodSync(tokenPath, FILE_MODE);
     },
 
-    record() {
-      try {
-        return healed({
-          ...EMPTY_RECORD,
-          ...(JSON.parse(readFileSync(recordPath, "utf8")) as AccountRecord),
-        });
-      } catch {
-        return EMPTY_RECORD;
-      }
-    },
-
-    remember(value) {
-      ensureDir(dir);
-      writeFileSync(recordPath, `${JSON.stringify(value, null, 2)}\n`, {
-        mode: FILE_MODE,
-      });
-      chmodSync(recordPath, FILE_MODE);
-    },
-
     clear() {
       held = null;
       rmSync(tokenPath, { force: true });
       rmSync(recordPath, { force: true });
+      forgetCopies(recordPath);
     },
   };
 }

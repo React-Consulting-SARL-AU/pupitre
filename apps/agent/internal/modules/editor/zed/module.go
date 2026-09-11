@@ -1,15 +1,17 @@
 package zed
 
 import (
-	"fmt"
+	"errors"
 	"runtime"
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/download"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
+	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/file"
-	"pupitre.studio/agent/internal/sys/user"
 )
 
 const (
@@ -57,11 +59,12 @@ func (Module) Install(ctx *modules.Context) error {
 			return modules.Skipped, nil
 		}
 
-		return modules.Done, download(ctx, version)
+		return modules.Done, installServer(ctx, version)
 	})
 }
 
-func download(ctx *modules.Context, version string) error {
+// Zed publishes no checksum beside its server: the transport is the only guarantee, so the download at least stays root's until it is in place.
+func installServer(ctx *modules.Context, version string) error {
 	binary := binaryPath(version)
 
 	if err := ctx.Sys().MkdirAll(ServerDir, 0o755); err != nil {
@@ -72,23 +75,28 @@ func download(ctx *modules.Context, version string) error {
 		return err
 	}
 
-	if _, err := user.Run(ctx, shell.User, "curl", "-fsSL", "--proto", "=https", "--tlsv1.2", "-o", binary+".gz", assetURL(version)); err != nil {
+	staged, done, err := download.Fetch(ctx, binaryName+version+".gz", assetURL(version))
+	if err != nil {
+		return err
+	}
+	defer done()
+
+	if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"gunzip", "-f", staged}}); err != nil {
 		return err
 	}
 
-	if _, err := user.Run(ctx, shell.User, "gunzip", "-f", binary+".gz"); err != nil {
+	plain := strings.TrimSuffix(staged, ".gz")
+	defer file.Remove(ctx, plain)
+
+	if err := download.Install(ctx, plain, binary, 0o755, shell.User); err != nil {
 		return err
 	}
 
 	if !file.Exists(ctx, binary) {
-		return fmt.Errorf("the Zed remote server %s is missing from %s after decompression", version, ServerDir)
+		return errors.New(i18n.T("modules.zed.missing_after_download", version, ServerDir))
 	}
 
-	if _, err := user.Run(ctx, shell.User, "chmod", "0755", binary); err != nil {
-		return err
-	}
-
-	return file.Chown(ctx, binary, shell.User, shell.User)
+	return nil
 }
 
 func (Module) Configure(ctx *modules.Context) error {
@@ -197,14 +205,14 @@ func resolve(ctx *modules.Context) (string, error) {
 		return strings.TrimPrefix(wanted, "v"), nil
 	}
 
-	out, err := user.Run(ctx, shell.User, "curl", "-fsS", "--proto", "=https", "--tlsv1.2", "-o", "/dev/null", "-w", "%{redirect_url}", assetURL(latest))
+	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"curl", "-fsS", "--proto", "=https", "--tlsv1.2", "-o", "/dev/null", "-w", "%{redirect_url}", assetURL(latest)}})
 	if err != nil {
 		return "", err
 	}
 
-	version := versionOf(out)
+	version := versionOf(out.Stdout)
 	if version == "" {
-		return "", fmt.Errorf("unreadable Zed version in %q", strings.TrimSpace(out))
+		return "", errors.New(i18n.T("modules.zed.version_unreadable", strings.TrimSpace(out.Stdout)))
 	}
 
 	return version, nil

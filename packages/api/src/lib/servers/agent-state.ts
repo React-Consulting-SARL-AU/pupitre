@@ -33,6 +33,10 @@ export interface HeartbeatInput {
   stack_version: string
   modules: string[]
   agent_version?: string
+  disk_total_gb?: number
+  disk_free_gb?: number
+  ram_total_mb?: number
+  ram_used_mb?: number
 }
 
 export async function readAgentState(input: Server): Promise<AgentState> {
@@ -74,6 +78,10 @@ export async function recordHeartbeat(
     sessions: input.sessions,
     stack_version: input.stack_version,
     modules: input.modules,
+    disk_total_gb: input.disk_total_gb ?? null,
+    disk_free_gb: input.disk_free_gb ?? null,
+    ram_total_mb: input.ram_total_mb ?? null,
+    ram_used_mb: input.ram_used_mb ?? null,
   }
 
   await getPrisma().server.update({

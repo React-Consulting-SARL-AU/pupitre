@@ -29,4 +29,4 @@ Visual Studio has no Linux backend. If you ask for it, the app says so and point
 
 ## What they share
 
-All three connect over the same SSH the app uses, with the same key. No editor gets its own credentials on the machine, and none of them open a port.
+All three reach the machine over SSH as `dev`, and none of them open a port or get credentials of their own on the server. What they do need is a host they can resolve: your editor reads your own `~/.ssh/config`, not the configuration file Pupitre keeps in its folder. Declaring the host once — with `IdentityFile` pointing at the key the app generated — is what makes all of them work, and it is the same entry Claude Code and Codex use. See [your own client](/docs/daily/clients/).

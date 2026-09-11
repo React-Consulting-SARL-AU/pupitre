@@ -1,9 +1,12 @@
 package keys
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"io/fs"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -34,8 +37,17 @@ type Target struct {
 
 // The block is the whole of what the platform owns in authorized_keys; every line outside it belongs to the client and is never touched.
 func Sync(ctx sys.Context, target Target, wanted []Key) (bool, error) {
-	changed, err := file.EnsureBlockMode(ctx, target.Path, Block, Render(wanted), FileMode)
-	if err != nil || !changed {
+	current, err := read(ctx, target.Path)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return false, err
+	}
+
+	updated := file.WithBlock(current, Block, Render(wanted))
+	if bytes.Equal(updated, current) {
+		return false, nil
+	}
+
+	if err := file.WriteAtomic(ctx, target.Path, updated, FileMode); err != nil {
 		return false, err
 	}
 
@@ -47,12 +59,22 @@ func Sync(ctx sys.Context, target Target, wanted []Key) (bool, error) {
 }
 
 func Listed(ctx sys.Context, path string) []Key {
-	raw, found := file.ReadBlock(ctx, path, Block)
+	current, err := read(ctx, path)
+	if err != nil {
+		return nil
+	}
+
+	raw, found := file.BlockOf(current, Block)
 	if !found {
 		return nil
 	}
 
 	return Parse(raw).Keys
+}
+
+// The file belongs to the user it opens for, and root reads it: a link they planted must not lead the read out of their .ssh folder.
+func read(ctx sys.Context, path string) ([]byte, error) {
+	return ctx.Sys().ReadFileIn(filepath.Dir(path), filepath.Base(path))
 }
 
 // Sorted and deduplicated, so a platform that answers in another order does not rewrite the file every thirty seconds.

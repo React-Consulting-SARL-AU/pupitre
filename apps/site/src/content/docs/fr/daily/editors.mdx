@@ -29,4 +29,4 @@ Visual Studio n’a pas de backend Linux. Si vous le demandez, l’app le dit et
 
 ## Ce qu’ils partagent
 
-Les trois passent par le même SSH que l’app, avec la même clé. Aucun éditeur n’obtient ses propres identifiants sur la machine, et aucun n’ouvre de port.
+Les trois joignent la machine en SSH sous le compte `dev`, et aucun n’ouvre de port ni n’obtient d’identifiants à lui sur le serveur. Ce dont ils ont besoin, c’est d’un hôte qu’ils sachent résoudre : votre éditeur lit votre propre `~/.ssh/config`, pas le fichier de configuration que Pupitre garde dans son dossier. Déclarer l’hôte une fois — avec `IdentityFile` pointant sur la clé que l’app a générée — est ce qui les fait tous fonctionner, et c’est la même entrée qu’utilisent Claude Code et Codex. Voir [votre propre client](/fr/docs/daily/clients/).

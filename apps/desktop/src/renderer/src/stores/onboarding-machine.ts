@@ -109,6 +109,45 @@ export interface Transition {
   effects: readonly Effect[];
 }
 
+/**
+ * The steps a sequence walks, as far as the machine can tell.
+ *
+ * The agent step is the one that is not always there: a machine already
+ * running the agent skips it. Past the inspection the trail says whether it
+ * was walked; before it, the verdict says whether it will be — a managed
+ * machine that is up to date never enters it, a bare one always does, and one
+ * whose agent is behind may go either way, so it is counted until the reader
+ * decides. Without a verdict every step is counted.
+ */
+export function plannedSteps(
+  state: Pick<MachineState, "step" | "trail">,
+  verdict: { kind: string; up_to_date?: boolean } | null
+): readonly OnboardingStep[] {
+  const here = ONBOARDING_STEPS.indexOf(state.step as OnboardingStep);
+  const pastInspection = here > ONBOARDING_STEPS.indexOf("inspection");
+
+  let withAgent = true;
+
+  if (pastInspection) {
+    withAgent = state.step === "agent" || state.trail.includes("agent");
+  } else if (verdict) {
+    withAgent = !(verdict.kind === "managed" && verdict.up_to_date !== false);
+  }
+
+  return ONBOARDING_STEPS.filter((step) => step !== "agent" || withAgent);
+}
+
+/**
+ * The steps a resumed sequence stands on: everything before the resumed step,
+ * the agent step aside — a machine resumed past it already runs the agent, and
+ * a way back to a delivery screen with nothing to deliver would be a lie.
+ */
+export function walkedBefore(step: OnboardingStep): readonly OnboardingStep[] {
+  return ONBOARDING_STEPS.slice(0, ONBOARDING_STEPS.indexOf(step)).filter(
+    (walked) => walked !== "agent"
+  );
+}
+
 export function canGoBack(state: MachineState): boolean {
   return (
     !state.installed &&
@@ -298,9 +337,10 @@ export function transition(state: MachineState, event: Event): Transition {
       const back = state.trail.at(-1) as OnboardingStep;
       const walked = state.trail.slice(0, -1);
 
+      // A step walked back to was already entered and already acted: nothing
+      // is sent or read again, and the trail does not count it twice.
       return {
-        ...move({ ...state, trail: walked }, back),
-        // A step walked back to is not walked twice: the trail keeps its length.
+        effects: [{ kind: "persist" }],
         state: { ...state, step: back, trail: walked },
       };
     }
@@ -320,17 +360,36 @@ export function transition(state: MachineState, event: Event): Transition {
           installed: event.installed,
           serverId: event.serverId,
           step: event.step,
-          // A resumed onboarding walked its steps in another run: what it may
-          // go back to is what this one has walked, which is nothing yet.
-          trail: [],
+          // A resumed onboarding walked its steps in another run: the trail is
+          // put back as that run must have walked it, so the way back stands.
+          trail: walkedBefore(event.step),
         },
       };
 
-    case "resumeAt":
-      return move({ ...state, remaining: event.remaining }, event.step);
+    /**
+     * The machine, read again, says where the sequence really stands: the
+     * trail follows that step rather than the one the shelf remembered.
+     */
+    case "resumeAt": {
+      const moved = move({ ...state, remaining: event.remaining }, event.step);
 
+      return {
+        ...moved,
+        state: { ...moved.state, trail: walkedBefore(event.step) },
+      };
+    }
+
+    /**
+     * Leaving keeps the progress, so the servers screen can offer it back —
+     * except from `done`, where there is nothing left to come back to. A
+     * finished sequence left on the shelf is read as an install that stopped
+     * half-way, under a button whose only answer is to refuse to resume it.
+     */
     case "close":
-      return { effects: [], state: { ...state, step: "closed" } };
+      return {
+        effects: state.step === "done" ? [{ kind: "forget" }] : [],
+        state: { ...state, step: "closed" },
+      };
 
     default:
       return { effects: [], state };

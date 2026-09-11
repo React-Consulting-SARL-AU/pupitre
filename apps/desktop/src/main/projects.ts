@@ -1,7 +1,8 @@
 import { editorById, remoteEditorUrl } from "@shared/editors";
-import { ipcMain, shell } from "electron";
+import { ipcMain } from "electron";
 import { agentClient } from "./agent";
-import { releaseSubdomain } from "./connections";
+import { releaseHostname } from "./connections";
+import { openOutside } from "./foreground";
 import {
   actOnProject,
   addProject,
@@ -11,7 +12,9 @@ import {
   onProject,
   type PlainProjectCommand,
   type ProjectDeps,
+  projectEnv,
   projectLogs,
+  updateProject,
 } from "./projects-run";
 import { refusalOf } from "./refusal";
 import { relayTo } from "./relay";
@@ -38,7 +41,7 @@ export function registerProjects(): void {
   const deps: ProjectDeps = {
     client: agentClient,
     knows: (serverId) => Boolean(byId(serverId)),
-    release: (serverId, subdomain) => releaseSubdomain(serverId, subdomain),
+    release: (serverId, hostname) => releaseHostname(serverId, hostname),
   };
 
   ipcMain.handle("project:list", (_event, serverId: unknown) =>
@@ -47,6 +50,12 @@ export function registerProjects(): void {
 
   ipcMain.handle("project:add", (_event, serverId: unknown, params: unknown) =>
     addProject(serverId, params, deps)
+  );
+
+  ipcMain.handle(
+    "project:update",
+    (_event, serverId: unknown, params: unknown) =>
+      updateProject(serverId, params, deps)
   );
 
   ipcMain.handle(
@@ -77,6 +86,12 @@ export function registerProjects(): void {
   );
 
   ipcMain.handle(
+    "project:env",
+    (_event, serverId: unknown, name: unknown, force: unknown) =>
+      projectEnv(serverId, name, force === true, deps)
+  );
+
+  ipcMain.handle(
     "project:diff",
     (_event, serverId: unknown, name: unknown, path: unknown) =>
       diffProject(serverId, name, path, deps)
@@ -102,28 +117,55 @@ export function registerProjects(): void {
       const url = remoteEditorUrl(editor, server, path);
 
       if (url) {
-        shell.openExternal(url);
+        openOutside(url);
       }
     }
   );
 
+  /**
+   * A followed journal is held by its token for as long as it runs: the
+   * renderer that opened it is the one that may end it, and it names it the
+   * way it named its events.
+   */
+  const followers = new Map<string, AbortController>();
+
   ipcMain.handle(
     "project:logs",
-    (
+    async (
       event,
       token: unknown,
       serverId: unknown,
       name: unknown,
       lines: unknown,
       follow: unknown
-    ) =>
-      projectLogs(
-        serverId,
-        name,
-        lines,
-        follow === true,
-        relayTo<string>(event.sender, token, "project:log-line", "line"),
-        deps
-      )
+    ) => {
+      const control = new AbortController();
+
+      if (typeof token === "string") {
+        followers.set(token, control);
+      }
+
+      try {
+        return await projectLogs(
+          serverId,
+          name,
+          lines,
+          follow === true,
+          relayTo<string>(event.sender, token, "project:log-line", "line"),
+          deps,
+          control.signal
+        );
+      } finally {
+        if (typeof token === "string") {
+          followers.delete(token);
+        }
+      }
+    }
   );
+
+  ipcMain.on("project:logs-cancel", (_event, token: unknown) => {
+    if (typeof token === "string") {
+      followers.get(token)?.abort();
+    }
+  });
 }
