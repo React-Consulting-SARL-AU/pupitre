@@ -406,7 +406,6 @@ export type ServerRevokedDeviceCreateOrConnectWithoutDeviceInput = {
 
 export type ServerRevokedDeviceCreateManyDeviceInputEnvelope = {
   data: Prisma.ServerRevokedDeviceCreateManyDeviceInput | Prisma.ServerRevokedDeviceCreateManyDeviceInput[]
-  skipDuplicates?: boolean
 }
 
 export type ServerRevokedDeviceUpsertWithWhereUniqueWithoutDeviceInput = {
@@ -454,7 +453,6 @@ export type ServerRevokedDeviceCreateOrConnectWithoutServerInput = {
 
 export type ServerRevokedDeviceCreateManyServerInputEnvelope = {
   data: Prisma.ServerRevokedDeviceCreateManyServerInput | Prisma.ServerRevokedDeviceCreateManyServerInput[]
-  skipDuplicates?: boolean
 }
 
 export type ServerRevokedDeviceUpsertWithWhereUniqueWithoutServerInput = {
@@ -1245,7 +1243,6 @@ export type ServerRevokedDeviceCreateManyArgs<ExtArgs extends runtime.Types.Exte
    * The data used to create many ServerRevokedDevices.
    */
   data: Prisma.ServerRevokedDeviceCreateManyInput | Prisma.ServerRevokedDeviceCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -1264,7 +1261,6 @@ export type ServerRevokedDeviceCreateManyAndReturnArgs<ExtArgs extends runtime.T
    * The data used to create many ServerRevokedDevices.
    */
   data: Prisma.ServerRevokedDeviceCreateManyInput | Prisma.ServerRevokedDeviceCreateManyInput[]
-  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

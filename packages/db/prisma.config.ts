@@ -1,21 +1,11 @@
-import "dotenv/config"
-import { config } from "dotenv"
 import { defineConfig } from "prisma/config"
 
-config({ path: "../../.env.local", override: false, quiet: true })
-
-const PLACEHOLDER_DATABASE_URL =
-  "postgresql://fake:fake@127.0.0.1:1/fake?sslmode=disable"
-
+// D1 has no address. The only database Prisma ever opens from here is the
+// shadow `scripts/new-migration.ts` builds from the migrations, to diff the
+// schema against it; nothing else reads this URL.
 export default defineConfig({
   schema: "prisma/schema.prisma",
-  migrations: {
-    path: "prisma/migrations",
-  },
   datasource: {
-    url:
-      process.env.MIGRATE_DATABASE_URL ||
-      process.env.DATABASE_URL ||
-      PLACEHOLDER_DATABASE_URL,
+    url: process.env.PUPITRE_MIGRATIONS_SHADOW ?? "file:./.shadow.sqlite",
   },
 })

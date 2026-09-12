@@ -1,20 +1,34 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "ppt-web",
+  "account_id": "455fb79f0597ba46bed6a877563540e0",
   "main": "src/worker.ts",
   "compatibility_date": "2026-06-19",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
   "preview_urls": false,
   "upload_source_maps": false,
+  // The database lives in Western Europe: smart placement runs the Worker
+  // beside it, instead of at the edge nearest the caller and an ocean away
+  // from every query.
   "placement": {
-    "mode": "targeted",
-    "region": "aws:us-east-1"
+    "mode": "smart"
   },
   "assets": {
     "directory": ".output/public",
     "binding": "ASSETS"
   },
+  // One D1 per environment, and the local one miniflare keeps under
+  // .wrangler/state. The migrations are the db package's: `bun run db:migrate
+  // <local|staging|production>` applies them through wrangler.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ppt-db-local",
+      "database_id": "ppt-db-local",
+      "migrations_dir": "../../packages/db/migrations"
+    }
+  ],
   "observability": {
     "enabled": true
   },
@@ -61,7 +75,6 @@
   },
   "secrets": {
     "required": [
-      "DATABASE_URL",
       "BETTER_AUTH_SECRET",
       "STRIPE_SECRET_KEY",
       "STRIPE_WEBHOOK_SECRET",
@@ -81,8 +94,7 @@
       "preview_urls": false,
       "upload_source_maps": true,
       "placement": {
-        "mode": "targeted",
-        "region": "aws:us-east-1"
+        "mode": "smart"
       },
       "routes": [
         {
@@ -94,6 +106,14 @@
         "directory": ".output/public",
         "binding": "ASSETS"
       },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "ppt-db-staging",
+          "database_id": "db24fc22-22ba-4120-aa37-78264c2e3cf7",
+          "migrations_dir": "../../packages/db/migrations"
+        }
+      ],
       "observability": {
         "enabled": true,
         "head_sampling_rate": 1,
@@ -146,7 +166,6 @@
       },
       "secrets": {
         "required": [
-          "DATABASE_URL",
           "BETTER_AUTH_SECRET",
           "INTERNAL_WORKFLOW_SECRET",
           "STRIPE_SECRET_KEY",
@@ -170,8 +189,7 @@
       "preview_urls": false,
       "upload_source_maps": true,
       "placement": {
-        "mode": "targeted",
-        "region": "aws:us-east-1"
+        "mode": "smart"
       },
       "routes": [
         {
@@ -183,6 +201,14 @@
         "directory": ".output/public",
         "binding": "ASSETS"
       },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "ppt-db",
+          "database_id": "8c4cd3b5-7375-4a69-8b84-b3b78c734cf5",
+          "migrations_dir": "../../packages/db/migrations"
+        }
+      ],
       "observability": {
         "enabled": true,
         "head_sampling_rate": 1,
@@ -235,7 +261,6 @@
       },
       "secrets": {
         "required": [
-          "DATABASE_URL",
           "BETTER_AUTH_SECRET",
           "INTERNAL_WORKFLOW_SECRET",
           "STRIPE_SECRET_KEY",

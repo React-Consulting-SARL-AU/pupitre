@@ -5,12 +5,8 @@ import { join } from "node:path"
 import {
   apply,
   GENERATED,
-  isUsableDatabaseUrl,
   localValues,
-  needsNeonRefresh,
-  neonTargetFor,
   parse,
-  slugify,
   stripeWebhookSecret,
   stripJsonComments,
   wranglerVars,
@@ -142,105 +138,6 @@ describe("stripeWebhookSecret", () => {
     )
 
     expect(values).toEqual({})
-  })
-})
-
-const NEON = {
-  branch: "staging",
-  projectId: "royal-morning-15862824",
-}
-
-const WRITTEN = {
-  DATABASE_URL: "postgresql://u:p@ep-x-pooler.us-east-1.aws.neon.tech/db",
-  MIGRATE_DATABASE_URL: "postgresql://u:p@ep-x.us-east-1.aws.neon.tech/db",
-  NEON_BRANCH: "staging",
-  NEON_PROJECT_ID: "royal-morning-15862824",
-}
-
-describe("slugify", () => {
-  test("réduit une branche Git à ce qu'une branche Neon accepte", () => {
-    expect(slugify("feat/écran_d'inspection")).toBe("feat-cran-d-inspection")
-  })
-
-  test("ne laisse jamais un tiret aux extrémités", () => {
-    expect(slugify("--wip--")).toBe("wip")
-  })
-})
-
-describe("neonTargetFor", () => {
-  test("staging travaille sur la branche partagée, qui existe déjà", () => {
-    expect(neonTargetFor("staging")).toEqual({
-      branch: "staging",
-      parent: null,
-      expiresAt: null,
-    })
-  })
-
-  test("main aussi, faute d'y travailler jamais", () => {
-    expect(neonTargetFor("main").branch).toBe("staging")
-  })
-
-  test("une branche détachée retombe sur la branche partagée", () => {
-    expect(neonTargetFor("").branch).toBe("staging")
-  })
-
-  test("toute autre branche obtient la sienne, tirée de la partagée", () => {
-    const now = new Date("2026-09-06T00:00:00.000Z")
-    const target = neonTargetFor("feat/us-east", now)
-
-    expect(target.branch).toBe("dev/feat-us-east")
-    expect(target.parent).toBe("staging")
-    expect(target.expiresAt).toBe("2026-09-20T00:00:00.000Z")
-  })
-})
-
-describe("isUsableDatabaseUrl", () => {
-  test("reconnaît une URL Postgres écrite", () => {
-    expect(isUsableDatabaseUrl(WRITTEN.DATABASE_URL)).toBe(true)
-  })
-
-  test("refuse le vide et le gabarit à remplir", () => {
-    expect(isUsableDatabaseUrl(undefined)).toBe(false)
-    expect(isUsableDatabaseUrl("")).toBe(false)
-    expect(isUsableDatabaseUrl("postgresql://<user>:<pass>@host/db")).toBe(
-      false
-    )
-  })
-})
-
-describe("needsNeonRefresh", () => {
-  test("ne redemande rien quand la provenance concorde", () => {
-    expect(needsNeonRefresh(WRITTEN, NEON)).toBe(false)
-  })
-
-  test("redemande tout quand le projet a changé — une base déplacée de région", () => {
-    expect(
-      needsNeonRefresh(WRITTEN, { ...NEON, projectId: "autre-projet" })
-    ).toBe(true)
-  })
-
-  test("redemande tout quand la branche Git a changé", () => {
-    expect(needsNeonRefresh(WRITTEN, { ...NEON, branch: "dev/feat-x" })).toBe(
-      true
-    )
-  })
-
-  test("redemande tout quand une URL manque, même l'URL de migration", () => {
-    expect(
-      needsNeonRefresh({ ...WRITTEN, MIGRATE_DATABASE_URL: "" }, NEON)
-    ).toBe(true)
-  })
-
-  test("redemande tout quand le fichier ne dit pas d'où viennent ses URL", () => {
-    expect(
-      needsNeonRefresh(
-        {
-          DATABASE_URL: WRITTEN.DATABASE_URL,
-          MIGRATE_DATABASE_URL: WRITTEN.MIGRATE_DATABASE_URL,
-        },
-        NEON
-      )
-    ).toBe(true)
   })
 })
 

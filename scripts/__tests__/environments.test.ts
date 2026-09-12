@@ -12,14 +12,8 @@ import {
 const CONFIG = JSON.stringify({
   vault: "Vault",
   environments: {
-    staging: {
-      item: "note",
-      neon: { project: "pupitre-staging", branch: "staging" },
-    },
-    production: {
-      item: "note-prod",
-      neon: { project: "pupitre", branch: "production" },
-    },
+    staging: { item: "note", database: "ppt-db-staging" },
+    production: { item: "note-prod", database: "ppt-db" },
   },
 })
 
@@ -32,14 +26,14 @@ function written(): string {
 }
 
 describe("the environments", () => {
-  it("names each one's note and Neon project, and refuses any other name", () => {
+  it("names each one's note and database, and refuses any other name", () => {
     const config = readEnvironments(written())
 
     expect(config.vault).toBe("Vault")
     expect(environmentOf("production", config)).toEqual({
+      database: "ppt-db",
       item: "note-prod",
       name: "production",
-      neon: { branch: "production", project: "pupitre" },
     })
     expect(() => environmentOf("prod", config)).toThrow(
       "prod is not an environment: staging or production."
@@ -53,8 +47,8 @@ describe("the environments", () => {
       "production",
       "staging",
     ])
-    expect(config.environments.staging?.neon.project).not.toBe(
-      config.environments.production?.neon.project
+    expect(config.environments.staging?.database).not.toBe(
+      config.environments.production?.database
     )
   })
 })

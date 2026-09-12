@@ -1,5 +1,5 @@
 import { passkey } from "@better-auth/passkey"
-import { scopedNeonPrismaClient, withNeonPrismaClient } from "@pupitre/db/neon"
+import { scopedPrismaClient } from "@pupitre/db/scope"
 import { DEFAULT_LOCALE, LOCALES, localeOf } from "@pupitre/shared/i18n"
 import { PLATFORM_ADMIN_ROLE } from "@pupitre/shared/permissions"
 import { betterAuth } from "better-auth"
@@ -146,7 +146,7 @@ export function createAuth({
     baseURL: env.BETTER_AUTH_URL,
     secret: env.BETTER_AUTH_SECRET,
     trustedOrigins: trustedOrigins(env),
-    database: prismaAdapter(prisma, { provider: "postgresql" }),
+    database: prismaAdapter(prisma, { provider: "sqlite" }),
     socialProviders: socialProviders(env),
     session: {
       expiresIn: SESSION_EXPIRES_IN,
@@ -314,7 +314,7 @@ let instance: Auth | null = null
 
 export function getAuth(): Auth {
   instance ??= createAuth({
-    prisma: scopedNeonPrismaClient(),
+    prisma: scopedPrismaClient(),
     env: readAuthEnv(process.env),
   })
 
@@ -322,10 +322,9 @@ export function getAuth(): Auth {
 }
 
 export const auth = {
-  handler: (request: Request): Promise<Response> =>
-    withNeonPrismaClient(() => getAuth().handler(request)),
+  handler: (request: Request): Promise<Response> => getAuth().handler(request),
 }
 
 export function getSession(headers: Headers): Promise<Session | null> {
-  return withNeonPrismaClient(() => getAuth().api.getSession({ headers }))
+  return getAuth().api.getSession({ headers })
 }

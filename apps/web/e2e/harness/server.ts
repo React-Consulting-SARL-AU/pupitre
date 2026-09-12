@@ -10,7 +10,7 @@ import { createServer } from "@pupitre/api/testing/factories"
 import { serve } from "bun"
 import { HARNESS_PORT, HARNESS_PREFIX, VITE_PORT } from "./ports"
 
-// One origin for the browser: the API and Better Auth answer here from PGlite,
+// One origin for the browser: the API and Better Auth answer here from SQLite,
 // everything else is the Vite dev server. The Worker never reaches a database.
 const VITE_ORIGIN = `http://127.0.0.1:${VITE_PORT}`
 const API_PREFIXES = ["/api/v1", "/api/auth"]

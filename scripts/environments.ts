@@ -3,9 +3,9 @@ import { join } from "node:path"
 
 /**
  * The two environments of the platform, read from `environments.json` at the
- * root: each one is a 1Password note and a Neon project, and nothing here
- * ever holds a value. The workstation lives in `staging` — its note, and a
- * branch of its project.
+ * root: each one is a 1Password note and a D1 database, and nothing here
+ * ever holds a value. The workstation lives in `staging` — its note — on the
+ * local database miniflare keeps.
  */
 
 const ROOT = join(import.meta.dir, "..")
@@ -14,15 +14,10 @@ export const CONFIG_FILE = join(ROOT, "environments.json")
 
 export const LOCAL_ENVIRONMENT = "staging"
 
-export interface Neon {
-  project: string
-  branch: string
-}
-
 export interface Environment {
   name: string
   item: string
-  neon: Neon
+  database: string
 }
 
 export interface Environments {

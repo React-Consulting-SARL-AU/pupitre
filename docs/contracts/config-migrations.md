@@ -14,7 +14,7 @@ Une mise à jour ne réinstalle rien. Le binaire de l'agent est remplacé, l'app
 Ce que le registre **ne** possède pas :
 
 - **Les fichiers qu'un module écrit** — la configuration de Caddy, une unité systemd, un fichier de service. Ils appartiennent au module, et c'est son `Upgrade` qui les porte à la forme d'aujourd'hui. Le registre ne s'en mêle pas : un module réécrit les siens depuis ses valeurs à chaque montée de version, alors que le registre, lui, porte les valeurs.
-- **La base de la plateforme.** Neon a ses migrations Prisma, qui n'ont rien à voir avec celles-ci et ne se croisent jamais.
+- **La base de la plateforme.** D1 a ses migrations SQL (`packages/db/migrations`), qui n'ont rien à voir avec celles-ci et ne se croisent jamais.
 - **Le code du client.** Les projets, les dépôts, les données des bases installées ne sont pas de la configuration Pupitre.
 
 ## La révision est un compteur, pas une version

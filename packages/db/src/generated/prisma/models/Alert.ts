@@ -408,7 +408,6 @@ export type AlertCreateOrConnectWithoutServerInput = {
 
 export type AlertCreateManyServerInputEnvelope = {
   data: Prisma.AlertCreateManyServerInput | Prisma.AlertCreateManyServerInput[]
-  skipDuplicates?: boolean
 }
 
 export type AlertUpsertWithWhereUniqueWithoutServerInput = {
@@ -1199,7 +1198,6 @@ export type AlertCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Interna
    * The data used to create many Alerts.
    */
   data: Prisma.AlertCreateManyInput | Prisma.AlertCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -1218,7 +1216,6 @@ export type AlertCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extension
    * The data used to create many Alerts.
    */
   data: Prisma.AlertCreateManyInput | Prisma.AlertCreateManyInput[]
-  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

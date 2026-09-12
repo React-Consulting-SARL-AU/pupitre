@@ -1180,7 +1180,6 @@ export type DeviceCodeCreateManyArgs<ExtArgs extends runtime.Types.Extensions.In
    * The data used to create many DeviceCodes.
    */
   data: Prisma.DeviceCodeCreateManyInput | Prisma.DeviceCodeCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -1199,7 +1198,6 @@ export type DeviceCodeCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Exte
    * The data used to create many DeviceCodes.
    */
   data: Prisma.DeviceCodeCreateManyInput | Prisma.DeviceCodeCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**

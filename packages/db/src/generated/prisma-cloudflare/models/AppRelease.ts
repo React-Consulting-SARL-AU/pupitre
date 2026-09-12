@@ -1215,7 +1215,6 @@ export type AppReleaseCreateManyArgs<ExtArgs extends runtime.Types.Extensions.In
    * The data used to create many AppReleases.
    */
   data: Prisma.AppReleaseCreateManyInput | Prisma.AppReleaseCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -1234,7 +1233,6 @@ export type AppReleaseCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Exte
    * The data used to create many AppReleases.
    */
   data: Prisma.AppReleaseCreateManyInput | Prisma.AppReleaseCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
