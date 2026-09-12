@@ -65,6 +65,12 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # The arm64 binary is tried in a container: the runner is x64 and needs
+      # binfmt to run it.
+      - uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4.3.0
+        with:
+          platforms: arm64
+
       # The addresses and the bucket names come from the template the owner's
       # Mac uses; the secrets are the same template's references, set once by
       # `release secrets`.
