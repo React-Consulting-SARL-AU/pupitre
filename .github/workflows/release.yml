@@ -65,12 +65,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # The arm64 binary is tried in a container: the runner is x64 and needs
-      # binfmt to run it.
-      - uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4.3.0
-        with:
-          platforms: arm64
-
       # The addresses and the bucket names come from the template the owner's
       # Mac uses; the secrets are the same template's references, set once by
       # `release secrets`.
@@ -96,6 +90,8 @@ jobs:
 
       # A version the bucket already holds is taken from there, not rebuilt:
       # garble does not reproduce a binary, and the platform keeps the digests.
+      # This runner tries the amd64 binary; the arm64 one is tried on its own
+      # machine below, never under emulation.
       - name: Build, sign and smoke the agent
         run: bun scripts/release/index.ts agent build
         env:
@@ -103,6 +99,53 @@ jobs:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
 
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: agent-${{ fromJSON(steps.resolve.outputs.release).version }}
+          path: apps/agent/dist/release
+          retention-days: 1
+          if-no-files-found: error
+
+  agent-arm64:
+    name: Agent on arm64
+    needs: agent
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    env:
+      PUPITRE_RELEASE_VERSION: ${{ fromJSON(needs.agent.outputs.release).version }}
+      PUPITRE_RELEASE_CHANNEL: ${{ fromJSON(needs.agent.outputs.release).channel }}
+      PUPITRE_PLATFORM_URL: ${{ fromJSON(needs.agent.outputs.release).platform }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: apps/agent/go.mod
+          cache-dependency-path: apps/agent/go.mod
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Read the release settings
+        run: grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl >> "$GITHUB_ENV"
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: agent-${{ fromJSON(needs.agent.outputs.release).version }}
+          path: apps/agent/dist/release
+
+      # The binary this machine can run, run: version and hello, natively.
+      - name: Smoke the arm64 agent
+        run: bun scripts/release/index.ts agent smoke
+        env:
+          PUPITRE_RELEASE_PRIVATE_KEY: ${{ secrets.PUPITRE_RELEASE_PRIVATE_KEY }}
+
+      # Both binaries tried on their own machine: the private bucket, then the
+      # platform of the branch.
       - name: Publish the agent
         run: bun scripts/release/index.ts agent publish
         env:
@@ -112,7 +155,7 @@ jobs:
 
   desktop:
     name: App ${{ matrix.system }}
-    needs: agent
+    needs: [agent, agent-arm64]
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     strategy:
