@@ -25,11 +25,8 @@ describe("la mise à jour de l'app", () => {
     const plan = updaterPlan(environment());
 
     expect(plan).toEqual({
-      feed: {
-        channel: "stable",
-        provider: "generic",
-        url: `${UPDATE_BASE_URL}/stable`,
-      },
+      channel: "stable",
+      feed: { provider: "generic", url: `${UPDATE_BASE_URL}/stable` },
       updates: true,
     });
   });
@@ -38,7 +35,8 @@ describe("la mise à jour de l'app", () => {
     const plan = updaterPlan(environment({ channel: "beta" }));
 
     expect(plan).toMatchObject({
-      feed: { channel: "beta", url: `${UPDATE_BASE_URL}/beta` },
+      channel: "beta",
+      feed: { url: `${UPDATE_BASE_URL}/beta` },
     });
   });
 
@@ -60,7 +58,7 @@ describe("la mise à jour de l'app", () => {
 
   it("ignore un canal qui n'en est pas un", () => {
     expect(updaterPlan(environment({ channel: "nightly" }))).toMatchObject({
-      feed: { channel: "stable" },
+      channel: "stable",
     });
   });
 
