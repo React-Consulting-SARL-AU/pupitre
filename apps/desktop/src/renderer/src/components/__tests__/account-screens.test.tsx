@@ -234,13 +234,12 @@ describe("l'écran de compte", () => {
     expect(text(html)).not.toContain("Terminaux");
   });
 
-  it("rend le message du garde et son remède tels quels", () => {
+  it("ne répète pas à qui n'a pas de compte qu'il lui en faut un : la carte de connexion le dit", () => {
     const html = gate(SIGNED_OUT);
 
-    expect(text(html)).toContain("Installer un serveur demande un compte");
-    expect(text(html)).toContain(
-      `Connecte-toi depuis les réglages, ou ouvre la console : ${CONSOLE_URL}`
-    );
+    expect(text(html)).not.toContain("Installer un serveur demande un compte");
+    expect(text(html)).not.toContain("Aucun compte connecté");
+    expect(text(html)).not.toContain("refuse d'installer un serveur");
   });
 
   it("nomme la console à laquelle on se connecte", () => {

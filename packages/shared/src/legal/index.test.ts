@@ -54,6 +54,17 @@ describe("l'étape du projet", () => {
   })
 })
 
+describe("l'avis de développement", () => {
+  it("tient en une ligne de bandeau dans chaque langue, et dit la même chose", () => {
+    expect(developmentNotice("fr").banner).toContain(
+      "en cours de développement"
+    )
+    expect(developmentNotice("en").banner).toContain("under development")
+    expect(developmentNotice("fr").banner.length).toBeLessThan(120)
+    expect(developmentNotice("en").banner.length).toBeLessThan(120)
+  })
+})
+
 describe("les documents légaux", () => {
   it("couvrent les cinq slugs, une fois chacun, dans l'ordre", () => {
     const slugs = LEGAL_DOCUMENTS.map((document) => document.slug)

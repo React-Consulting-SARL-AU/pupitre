@@ -55,6 +55,18 @@ describe("startDeviceFlow", () => {
     expect(started.interval).toBe(5)
   })
 
+  it("names the status of an answer that is not JSON, rather than a parser's words", async () => {
+    const promise = startDeviceFlow("https://app.pupitre.studio", {
+      fetch: () => Promise.resolve(new Response("", { status: 502 })),
+    })
+
+    await expect(promise).rejects.toBeInstanceOf(DeviceFlowError)
+    await expect(promise).rejects.toMatchObject({
+      code: "unexpected_answer",
+      message: "HTTP 502, no JSON body",
+    })
+  })
+
   it("throws a DeviceFlowError on a refused client", async () => {
     const promise = startDeviceFlow("https://app.pupitre.studio", {
       fetch: fakeFetch(
