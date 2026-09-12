@@ -4,9 +4,11 @@ import { say, variable } from "./cli"
 /**
  * What a customer meets once a version is published, checked from outside:
  * the platform describes the version, every installer it names is served
- * whole by the public bucket, and the channel's feeds point at the version.
- * A release is not done because every step returned: it is done when this
- * passes, and it passes again on any day the question comes up.
+ * whole by the public bucket, and the channel's feeds point at the version
+ * and at files that exist — a feed is what an installed app follows, and a
+ * file the platform never heard of is exactly what it would name. A release
+ * is not done because every step returned: it is done when this passes, and
+ * it passes again on any day the question comes up.
  */
 
 interface Build {
@@ -25,8 +27,14 @@ interface Release {
 
 const VERSION_LINE_RE = /^version:\s*(\S+)\s*$/m
 
+const FEED_URL_RE = /^\s*-\s+url:\s*(\S+)\s*$/gm
+
 export function feedNamesVersion(feed: string, version: string): boolean {
   return feed.match(VERSION_LINE_RE)?.[1] === version
+}
+
+export function feedUrls(feed: string): string[] {
+  return [...feed.matchAll(FEED_URL_RE)].map((match) => match[1] as string)
 }
 
 /** Nothing to say about a file served whole; else what is wrong with it. */
@@ -93,13 +101,23 @@ export async function verifyRelease(env: NodeJS.ProcessEnv): Promise<string[]> {
   for (const feed of FEEDS) {
     const url = `${downloads}/${feedKey(channel, feed)}`
     const response = await fetch(url)
-    const named =
-      response.ok && feedNamesVersion(await response.text(), version)
+    const content = response.ok ? await response.text() : ""
+    const named = feedNamesVersion(content, version)
 
     say(`- feed ${channel}/${feed}: ${named ? version : "not this version"}`)
 
     if (!named) {
       failures.push(`${url} does not name ${version}`)
+    }
+
+    for (const file of feedUrls(content)) {
+      const head = await fetch(file, { method: "HEAD" })
+
+      say(`  - ${file}: ${head.status}`)
+
+      if (!head.ok) {
+        failures.push(`${file}, named by ${feed}, answers ${head.status}`)
+      }
     }
   }
 

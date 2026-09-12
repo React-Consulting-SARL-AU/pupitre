@@ -196,7 +196,7 @@ Webhook `https://app.pupitre.studio/api/v1/webhooks/stripe`, un endpoint et un s
 | Bucket privé | Cloudflare R2 | `ppt-agent`, les binaires de l'agent, jamais public |
 | Artefacts macOS | `dl.pupitre.studio/app/<version>/` | `Pupitre-<version>-arm64.dmg`, `Pupitre-<version>-x64.dmg` |
 | Artefacts Windows | `dl.pupitre.studio/app/<version>/` | `Pupitre-Setup-<version>-x64.exe` |
-| Artefacts Linux | `dl.pupitre.studio/app/<version>/` | `Pupitre-<version>-x64.AppImage`, `pupitre_<version>_amd64.deb` |
+| Artefacts Linux | `dl.pupitre.studio/app/<version>/` | `Pupitre-<version>-x86_64.AppImage`, `pupitre_<version>_amd64.deb` |
 | Flux de mise à jour | `dl.pupitre.studio/app/<canal>/` | `latest.yml`, `latest-mac.yml`, `latest-linux.yml` |
 | Certificat macOS | Apple Developer | `Developer ID Application: <société marocaine> (<Team ID>)` |
 | Clé de notarisation | App Store Connect | clé d'API, rôle *Developer*, fichier `AuthKey_<KeyID>.p8` |

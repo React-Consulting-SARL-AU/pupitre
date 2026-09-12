@@ -24,7 +24,7 @@ import {
   versionOfTag,
 } from "../release/resolve"
 import { parseTemplate } from "../release/secrets"
-import { feedNamesVersion, verdictOf } from "../release/verify"
+import { feedNamesVersion, feedUrls, verdictOf } from "../release/verify"
 
 describe("the command line of a step", () => {
   it("reads a flag's value, a bare flag, and refuses an empty variable", () => {
@@ -130,6 +130,22 @@ describe("what a customer can download once a version is published", () => {
     expect(feedNamesVersion("version: 0.1.0\nfiles:\n", "0.1.0")).toBe(true)
     expect(feedNamesVersion("version: 0.1.10\n", "0.1.1")).toBe(false)
     expect(feedNamesVersion("", "0.1.0")).toBe(false)
+  })
+
+  it("lists every file a feed sends the updater to", () => {
+    const feed = [
+      "version: 0.1.0",
+      "files:",
+      "  - url: https://dl.example/app/0.1.0/Pupitre-0.1.0-x86_64.AppImage",
+      "    sha512: abc",
+      "  - url: https://dl.example/app/0.1.0/pupitre_0.1.0_amd64.deb",
+      "path: https://dl.example/app/0.1.0/Pupitre-0.1.0-x86_64.AppImage",
+    ].join("\n")
+
+    expect(feedUrls(feed)).toEqual([
+      "https://dl.example/app/0.1.0/Pupitre-0.1.0-x86_64.AppImage",
+      "https://dl.example/app/0.1.0/pupitre_0.1.0_amd64.deb",
+    ])
   })
 
   it("accepts a file the bucket serves whole, and names what is missing or short", () => {
