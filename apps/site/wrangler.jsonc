@@ -1,6 +1,7 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "ppt-site",
+  "account_id": "455fb79f0597ba46bed6a877563540e0",
   "main": "worker/index.ts",
   "compatibility_date": "2026-06-19",
   "workers_dev": false,
