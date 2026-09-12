@@ -1,11 +1,13 @@
 # Modèle de références 1Password, résolu par `op inject` pendant `bun run dev:prepare`.
 # Aucune valeur ici, seulement des références : ce fichier est committé.
 #
-# Le coffre et l'élément viennent de `op.config.json` ; {{OP_VAULT}} et {{OP_ITEM}}
-# sont remplacés à la lecture (surcharge par poste avec OP_VAULT / OP_ITEM).
+# Le coffre et la note viennent de `environments.json` — celle du staging, que le
+# poste partage ; {{OP_VAULT}} et {{OP_ITEM}} sont remplacés à la lecture
+# (surcharge par poste avec OP_VAULT / OP_ITEM).
 #
-# Modèle : un coffre partagé porte les secrets de tous les projets, et Pupitre est
-# une seule note sécurisée dans ce coffre, avec un champ par clé ci-dessous.
+# Modèle : un coffre partagé porte les secrets de tous les projets, et chaque
+# environnement de Pupitre est une note sécurisée dans ce coffre, avec un champ
+# par clé ci-dessous.
 #
 # NE METTRE ICI QUE CE QUI NE SE DÉRIVE PAS.
 #   - `DATABASE_URL` et `MIGRATE_DATABASE_URL` viennent de `neonctl`.

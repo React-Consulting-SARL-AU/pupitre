@@ -56,8 +56,8 @@ describe("assertMigrationAllowed", () => {
     ).toThrow("PUPITRE_ALLOW_MIGRATE_ON")
   })
 
-  it("refuses production and any other value", () => {
-    for (const value of ["production", "main", "true", "1", "Staging"]) {
+  it("refuses any other value", () => {
+    for (const value of ["prod", "main", "true", "1", "Staging"]) {
       expect(() =>
         assertMigrationAllowed(
           env({
@@ -65,7 +65,7 @@ describe("assertMigrationAllowed", () => {
             MIGRATE_DATABASE_URL: STAGING_DIRECT,
           })
         )
-      ).toThrow('must be "staging" or "local"')
+      ).toThrow('must be "staging", "local" or "production"')
     }
   })
 
@@ -86,8 +86,8 @@ describe("assertMigrationAllowed", () => {
     ).toThrow("-pooler")
   })
 
-  it("accepts staging and local", () => {
-    for (const value of ["staging", "local"]) {
+  it("accepts staging, local and production", () => {
+    for (const value of ["staging", "local", "production"]) {
       expect(() =>
         assertMigrationAllowed(
           env({

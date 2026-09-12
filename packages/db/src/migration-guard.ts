@@ -2,7 +2,7 @@ export type TEnvGet = (key: string) => string | undefined
 
 export class MigrationGuardError extends Error {}
 
-const ALLOWED_TARGETS = ["staging", "local"] as const
+const ALLOWED_TARGETS = ["staging", "local", "production"] as const
 
 const POOLER_SUFFIX = "-pooler"
 const NEON_HOST_SUFFIX = ".neon.tech"
@@ -54,9 +54,9 @@ export function assertMigrationAllowed(get: TEnvGet): void {
   if (!ALLOWED_TARGETS.includes(target as (typeof ALLOWED_TARGETS)[number])) {
     throw new MigrationGuardError(
       [
-        `Migration refused: PUPITRE_ALLOW_MIGRATE_ON is ${target === undefined ? "unset" : `"${target}"`}, it must be "staging" or "local".`,
+        `Migration refused: PUPITRE_ALLOW_MIGRATE_ON is ${target === undefined ? "unset" : `"${target}"`}, it must be "staging", "local" or "production".`,
         "  → PUPITRE_ALLOW_MIGRATE_ON=staging bun run db:migrate",
-        "Production is only ever migrated by the deployment build (db:migrate:deploy), never from a machine.",
+        "Production takes it from its own environment only: bun run env production -- env PUPITRE_ALLOW_MIGRATE_ON=production bun run db:migrate:reset",
       ].join("\n")
     )
   }

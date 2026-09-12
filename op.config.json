@@ -1,5 +1,0 @@
-{
-  "$comment": "Source 1Password des secrets de développement. « vault » est le coffre partagé qui porte les secrets de tous les projets ; « item » est la note sécurisée propre à Pupitre, avec un champ par secret. Aucune valeur ici, seulement des noms. Surcharge par poste avec OP_VAULT / OP_ITEM.",
-  "vault": "DEV - React Consulting",
-  "item": "pupitre"
-}

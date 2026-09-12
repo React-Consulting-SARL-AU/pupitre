@@ -10,6 +10,7 @@ import {
   writeFileSync,
 } from "node:fs"
 import { join } from "node:path"
+import { environmentOf, LOCAL_ENVIRONMENT } from "./environments"
 import { loadOnePasswordEnv } from "./op-env"
 
 const ROOT = join(import.meta.dir, "..")
@@ -18,10 +19,11 @@ const ENV_SOURCE = join(ROOT, ".env.example")
 const WRANGLER_FILE = join(ROOT, "apps/web/wrangler.jsonc")
 const ENV_LINE_RE = /^([A-Z0-9_]+)=/
 
-const NEON_PROJECT = process.env.PUPITRE_NEON_PROJECT ?? "pupitre"
-const NEON_PRODUCTION_BRANCH =
-  process.env.PUPITRE_NEON_PRODUCTION_BRANCH ?? "production"
-const NEON_SHARED_BRANCH = process.env.PUPITRE_NEON_SHARED_BRANCH ?? "staging"
+const LOCAL_NEON = environmentOf(LOCAL_ENVIRONMENT).neon
+const PRODUCTION_NEON = environmentOf("production").neon
+const NEON_PROJECT = process.env.PUPITRE_NEON_PROJECT ?? LOCAL_NEON.project
+const NEON_SHARED_BRANCH =
+  process.env.PUPITRE_NEON_SHARED_BRANCH ?? LOCAL_NEON.branch
 const NEON_BRANCH_OVERRIDE = process.env.PUPITRE_NEON_BRANCH ?? ""
 
 /** Une branche de développement s'efface d'elle-même : personne ne nettoie. */
@@ -270,10 +272,11 @@ export function needsNeonRefresh(
   )
 }
 
-function assertNotProduction(branch: string): void {
-  if (branch === NEON_PRODUCTION_BRANCH) {
+/** Production is another project: a workstation reaches it by `bun run env production`, never by its .env.local. */
+function assertNotProduction(project: string): void {
+  if (project === PRODUCTION_NEON.project) {
     throw new Error(
-      `Le développement local ne vise jamais la branche Neon « ${NEON_PRODUCTION_BRANCH} ».`
+      `Le développement local ne vise jamais le projet Neon « ${PRODUCTION_NEON.project} ».`
     )
   }
 }
@@ -429,7 +432,7 @@ function neonValues(current: Record<string, string>): Record<string, string> {
 
   const target = neonTargetFor(currentGitBranch())
 
-  assertNotProduction(target.branch)
+  assertNotProduction(NEON_PROJECT)
 
   if (!needsNeonRefresh(current, { projectId, branch: target.branch })) {
     return {}

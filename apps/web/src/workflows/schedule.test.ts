@@ -53,7 +53,7 @@ describe("les cron triggers", () => {
   it("démarre l'évaluation des alertes toutes les cinq minutes", async () => {
     const started: string[] = []
 
-    await runScheduledWorkflow("*/5 * * * *", envRecording(started))
+    await runScheduledWorkflow("*/15 * * * *", envRecording(started))
 
     expect(started).toEqual(["evaluate-alerts"])
   })

@@ -12,7 +12,7 @@ export const WORKFLOW_CRONS = {
   "0 * * * *": "expire-enrollments",
   "20 3 * * *": "decommission-server",
   "40 3 * * *": "reconcile-seats",
-  "*/5 * * * *": "evaluate-alerts",
+  "*/15 * * * *": "evaluate-alerts",
   "7 4 * * *": "suspend-expired-grace",
 } as const satisfies Record<string, WorkflowName>
 
