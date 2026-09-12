@@ -79,7 +79,7 @@ export const account = {
     "account.usage.suspended":
       "This organisation's servers can no longer be installed or updated.",
     "account.usage.none":
-      "A production build refuses to install a server without an account.",
+      "No server can be installed or updated until an account is connected.",
     "account.usage.validUntil": "valid until {date}",
   },
   fr: {
@@ -162,7 +162,7 @@ export const account = {
     "account.usage.suspended":
       "Les serveurs de cette organisation ne peuvent plus être installés ni mis à jour.",
     "account.usage.none":
-      "Un build de production refuse d'installer un serveur sans compte.",
+      "Aucun serveur ne peut être installé ni mis à jour tant qu'aucun compte n'est connecté.",
     "account.usage.validUntil": "valable jusqu'au {date}",
   },
 } as const;

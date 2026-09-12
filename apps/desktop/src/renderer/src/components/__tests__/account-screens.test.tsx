@@ -118,11 +118,12 @@ describe("le droit d'usage", () => {
     expect(html).toContain('data-usage="granted"');
   });
 
-  it("dit qu'un build de production refuse d'installer sans compte", () => {
+  it("dit ce qu'un compte absent empêche, sans parler du build", () => {
     const html = usage({ consoleUrl: CONSOLE_URL, status: "absent" });
 
     expect(text(html)).toContain("Aucun compte connecté");
-    expect(text(html)).toContain("refuse d'installer un serveur sans compte");
+    expect(text(html)).toContain("ni mis à jour tant qu'aucun compte");
+    expect(text(html)).not.toContain("build de production");
   });
 });
 
@@ -239,7 +240,7 @@ describe("l'écran de compte", () => {
 
     expect(text(html)).not.toContain("Installer un serveur demande un compte");
     expect(text(html)).not.toContain("Aucun compte connecté");
-    expect(text(html)).not.toContain("refuse d'installer un serveur");
+    expect(text(html)).not.toContain("tant qu'aucun compte n'est connecté");
   });
 
   it("nomme la console à laquelle on se connecte", () => {
