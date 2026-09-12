@@ -23,6 +23,7 @@ import { verifyCommand } from "./verify"
  *   check              the changelog and the app version, before any build
  *   ship               commit the version and the notes, tag, push
  *   agent build        garble, sign, smoke the agent — or take a version already built
+ *   agent smoke        try the binaries in place on this machine's architecture
  *   agent publish      the private bucket, then the platform of the branch
  *   desktop            build the app of this system into the private bucket
  *   app publish        sign every installer, the public bucket, the platform
