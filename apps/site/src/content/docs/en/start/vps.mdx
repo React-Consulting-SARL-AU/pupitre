@@ -33,6 +33,8 @@ Any host that gives you a plain Ubuntu image works: Hetzner, netcup, OVH, Scalew
 
 Avoid images that ship a control panel, a preinstalled web stack, or a locked-down kernel. Pupitre reports what it finds, but a machine that already has its own idea of how services are managed makes for a noisier install.
 
+Look at the processor as closely as the memory. Entry-level plans share slow or throttled cores, and everything you do from Pupitre — builds, tests, agents, terminals — runs on them. A slow CPU shows in every command: the experience will feel worse than your current machine, however much RAM you add. Compare processor generation and clock speed between two plans before comparing their price.
+
 ## Before you connect
 
 Boot the machine, note its address, and make sure you can open an SSH session as root or with sudo. That is the whole preparation. Pupitre generates its own key on your laptop at the next step, so you do not need to create one first.
