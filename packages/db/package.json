@@ -11,31 +11,29 @@
     "./cloudflare/client": "./src/generated/prisma-cloudflare/client.ts",
     "./cloudflare/enums": "./src/generated/prisma-cloudflare/enums.ts",
     "./cloudflare/models": "./src/generated/prisma-cloudflare/models.ts",
-    "./latest-migration": "./src/latest-migration.ts",
-    "./neon": "./src/neon.ts"
+    "./d1": "./src/d1.ts",
+    "./scope": "./src/scope.ts"
   },
   "scripts": {
     "build": "bun run db:generate",
     "db:generate": "prisma generate",
-    "db:migrate": "sh -c 'bun scripts/guard-migration-target.ts && prisma migrate dev \"$@\"' --",
-    "db:migrate:deploy": "sh -c 'bun scripts/require-migrate-database-url.ts && prisma migrate deploy'",
-    "db:migrate:reset": "sh -c 'bun scripts/guard-migration-target.ts && prisma migrate reset \"$@\"' --",
-    "db:studio": "prisma studio",
+    "db:migrate": "bun scripts/migrate.ts",
+    "db:migrate:new": "bun scripts/new-migration.ts",
+    "db:reset": "bun scripts/reset.ts",
     "lint": "ultracite check",
     "lint:fix": "ultracite fix",
     "check:types": "tsgo --noEmit",
     "test": "bun test"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.1.0",
-    "@prisma/adapter-neon": "^7.9.1",
+    "@prisma/adapter-d1": "^7.9.1",
     "@prisma/client": "^7.9.1"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "5.20260708.1",
     "@types/bun": "^1.4.0",
     "@types/node": "^26.2.0",
     "@typescript/native-preview": "^7.0.0-dev.20260707.2",
-    "dotenv": "^17.4.2",
     "prisma": "^7.9.1",
     "typescript": "^6.0.3",
     "ultracite": "7.8.3"

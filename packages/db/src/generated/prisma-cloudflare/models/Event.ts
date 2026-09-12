@@ -490,7 +490,6 @@ export type EventCreateOrConnectWithoutActorUserInput = {
 
 export type EventCreateManyActorUserInputEnvelope = {
   data: Prisma.EventCreateManyActorUserInput | Prisma.EventCreateManyActorUserInput[]
-  skipDuplicates?: boolean
 }
 
 export type EventUpsertWithWhereUniqueWithoutActorUserInput = {
@@ -550,7 +549,6 @@ export type EventCreateOrConnectWithoutOrganizationInput = {
 
 export type EventCreateManyOrganizationInputEnvelope = {
   data: Prisma.EventCreateManyOrganizationInput | Prisma.EventCreateManyOrganizationInput[]
-  skipDuplicates?: boolean
 }
 
 export type EventUpsertWithWhereUniqueWithoutOrganizationInput = {
@@ -1397,7 +1395,6 @@ export type EventCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Interna
    * The data used to create many Events.
    */
   data: Prisma.EventCreateManyInput | Prisma.EventCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -1416,7 +1413,6 @@ export type EventCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extension
    * The data used to create many Events.
    */
   data: Prisma.EventCreateManyInput | Prisma.EventCreateManyInput[]
-  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

@@ -932,7 +932,6 @@ export type StripeEventCreateManyArgs<ExtArgs extends runtime.Types.Extensions.I
    * The data used to create many StripeEvents.
    */
   data: Prisma.StripeEventCreateManyInput | Prisma.StripeEventCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -951,7 +950,6 @@ export type StripeEventCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Ext
    * The data used to create many StripeEvents.
    */
   data: Prisma.StripeEventCreateManyInput | Prisma.StripeEventCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**

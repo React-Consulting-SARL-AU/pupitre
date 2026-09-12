@@ -40,7 +40,7 @@ function main(args: readonly string[]): number {
   const values = fieldsToEnv(JSON.parse(note.stdout))
 
   process.stderr.write(
-    `${name}: ${Object.keys(values).length} variables from ${environment.item}, Neon ${environment.neon.project}\n`
+    `${name}: ${Object.keys(values).length} variables from ${environment.item}, database ${environment.database}\n`
   )
 
   const result = spawnSync(argv[0] as string, argv.slice(1), {

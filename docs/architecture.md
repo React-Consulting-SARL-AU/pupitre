@@ -12,7 +12,7 @@ Pupitre est un monorepo Bun. Trois surfaces et un agent : l'app desktop qui pilo
 | `apps/site` | Astro sur Cloudflare Pages | `pupitre.studio` : marketing, docs publiques, blog, légal, téléchargement |
 | `packages/api` | Elysia + Eden | Contrat `/api/v1`, client typé, harnais de test API/DB |
 | `packages/auth` | Better Auth | `createAuth` et ses plugins, clients web et desktop |
-| `packages/db` | Prisma 7 + Neon | Schéma, migrations, clients Node et Cloudflare |
+| `packages/db` | Prisma 7 + Cloudflare D1 | Schéma, migrations SQL, clients Bun et Cloudflare |
 | `packages/shared` | TypeScript + Zod | Contrats : protocole agent, catalogue, plans, permissions, erreurs |
 | `packages/design` | CSS + Tailwind 4 | Tokens monochrome partagés |
 
@@ -21,7 +21,7 @@ Pupitre Desktop ──── ssh, clé du client ────▶ pupitred (VPS d
        │                                            │
        │ https, bearer                              │ https sortant, jeton de serveur
        ▼                                            ▼
-                 apps/web : console + /api/v1 + /api/auth ── Neon, Stripe, R2
+                 apps/web : console + /api/v1 + /api/auth ── D1, Stripe, R2
 ```
 
 ## Les règles qui ne bougent pas
@@ -60,7 +60,7 @@ Elysia est montée sur `/api/v1` dans `packages/api/src/server.ts` et reste le c
 
 Better Auth vit dans `packages/auth` avec l'adaptateur Prisma : lien magique, GitHub, `deviceAuthorization` et `bearer` pour l'app desktop, `organization` avec les rôles `owner`, `admin`, `member`, `admin` pour le support, `openAPI`. Passkeys, `twoFactor` et `sso` s'ajoutent sans migration. Une organisation personnelle est créée à l'inscription : tout appartient à une organisation.
 
-Prisma 7 sur le driver serverless Neon ; `DATABASE_URL` pointe vers l'endpoint poolé ; le Worker est épinglé sur la région Neon. Cloudflare Workflows portent les tâches longues (réconciliation des sièges, décommission différée), R2 les binaires signés de l'agent, Cloudflare Email les transactionnels. Stripe Managed Payments encaisse en Merchant of Record par Checkout et Payment Links uniquement.
+Prisma 7 sur l'adaptateur Cloudflare D1, une base par environnement, liée au Worker sans adresse ni secret ; le Worker est en *smart placement*, exécuté à côté de sa base. Cloudflare Workflows portent les tâches longues (réconciliation des sièges, décommission différée), R2 les binaires signés de l'agent, Cloudflare Email les transactionnels. Stripe Managed Payments encaisse en Merchant of Record par Checkout et Payment Links uniquement.
 
 ## Site
 
@@ -80,4 +80,4 @@ Variables publiques du web en `VITE_*` ; secrets en variables runtime ou secrets
 
 ## Déploiement
 
-`apps/web` : deux environnements Wrangler, `staging` et `production`. Les deux partent de Cloudflare Builds sur un push de branche — `staging` pour le staging, `main` pour la production — et enchaînent `build:<environnement>` (migrations Neon puis build) et `deploy:<environnement>` (vérification des secrets requis puis `wrangler deploy --keep-vars`). Un tag ne déploie jamais la console : il ne sort que l'app et l'agent. Runbook dans [deploy.md](./deploy.md), noms exacts dans [monorepo.md](./monorepo.md). `apps/site` : Cloudflare Pages sur push. `apps/desktop` : GitHub Actions par tag, builds signés et notarisés, publication sur un bucket R2 public — `dl.pupitre.studio` — et déclaration à la plateforme, qui sert la page de téléchargement du site. `apps/agent` : le même tag, garble, signature, publication sur le bucket R2 privé via l'API de la plateforme.
+`apps/web` : deux environnements Wrangler, `staging` et `production`. Les deux partent de Cloudflare Builds sur un push de branche — `staging` pour le staging, `main` pour la production — et enchaînent `build:<environnement>` (migrations D1 puis build) et `deploy:<environnement>` (vérification des secrets requis puis `wrangler deploy --keep-vars`). Un tag ne déploie jamais la console : il ne sort que l'app et l'agent. Runbook dans [deploy.md](./deploy.md), noms exacts dans [monorepo.md](./monorepo.md). `apps/site` : Cloudflare Pages sur push. `apps/desktop` : GitHub Actions par tag, builds signés et notarisés, publication sur un bucket R2 public — `dl.pupitre.studio` — et déclaration à la plateforme, qui sert la page de téléchargement du site. `apps/agent` : le même tag, garble, signature, publication sur le bucket R2 privé via l'API de la plateforme.

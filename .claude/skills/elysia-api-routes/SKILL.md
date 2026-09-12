@@ -1,6 +1,6 @@
 ---
 name: elysia-api-routes
-description: Écrire ou modifier une route Elysia de `/api/v1` dans `packages/api/src/lib/api/routes` — routeur plat ou dossier, schémas `t` colocalisés, guards `authPlugin`, `requireAuth`, `requireOrg`, `requireRole`, `requireEntitlement`, `requireServer`, `requirePlatformAdmin`, `serializeData`, `withOrganization`, erreurs `{ error: { code, message, fix? } }`, enregistrement dans `routes/index.ts`, routes admin cachées par `hiddenRoutes`, test d'intégration sur le harnais PGlite. À utiliser dès qu'on ajoute, déplace ou touche un endpoint de l'API.
+description: Écrire ou modifier une route Elysia de `/api/v1` dans `packages/api/src/lib/api/routes` — routeur plat ou dossier, schémas `t` colocalisés, guards `authPlugin`, `requireAuth`, `requireOrg`, `requireRole`, `requireEntitlement`, `requireServer`, `requirePlatformAdmin`, `serializeData`, `withOrganization`, erreurs `{ error: { code, message, fix? } }`, enregistrement dans `routes/index.ts`, routes admin cachées par `hiddenRoutes`, test d'intégration sur le harnais SQLite. À utiliser dès qu'on ajoute, déplace ou touche un endpoint de l'API.
 ---
 
 # Routes Elysia — `/api/v1`
@@ -24,7 +24,7 @@ L'API vit dans `packages/api` et reste le contrat unique pour la console (`apps/
 | `packages/api/src/lib/api/rate-limit.ts` | `createRateLimiter`, `GLOBAL_RATE_LIMIT` |
 | `packages/api/src/lib/i18n/` | `resolveLocale(headers)`, `translate(locale, key, params)`, dictionnaire fr/en |
 | `packages/api/src/lib/<domaine>/` | la logique métier : `me/`, `servers/`, puis `devices/`, `entitlement/`, `billing/`, `releases/`, `audit/`, `emails/` |
-| `packages/api/src/testing/` | harnais PGlite : `bootApiTestServer`, `resetDb`, `request` (`apiRequest`, `authRequest`), `session` (`createUser`, `createSession`), `factories` (`createOrganizationWithMembers`, `createServer`) |
+| `packages/api/src/testing/` | harnais SQLite : `bootApiTestServer`, `resetDb`, `request` (`apiRequest`, `authRequest`), `session` (`createUser`, `createSession`), `factories` (`createOrganizationWithMembers`, `createServer`) |
 | `packages/api/src/__tests__/api/` | tests d'intégration des routes |
 | `packages/shared/src/api/errors.ts` | `API_ERROR_CODES`, les codes stables, `ApiErrorBodySchema` |
 | `packages/shared/src/permissions/` | rôles `owner`, `admin`, `member` et slugs `<scope>:<action>` |
@@ -32,7 +32,7 @@ L'API vit dans `packages/api` et reste le contrat unique pour la console (`apps/
 
 ## État du dépôt
 
-Le socle existe : `GET /health`, `GET /me` (les guards, et le droit d'usage de l'organisation active : `none` sans organisation, sinon `valid`, `grace` ou `suspended`, par `entitlementForOrganization`), les guards (dont `requireEntitlement` : sans abonnement en cours, une organisation n'enrôle ni n'attribue rien), `serializeData`, `withOrganization`, `apiError`, l'openapi sur `/api/v1/openapi` (document sur `/api/v1/openapi/json`), le harnais PGlite et le client Eden. Ce skill décrit ce qui est livré ; une passe qui change un nom met ce skill à jour en même temps.
+Le socle existe : `GET /health`, `GET /me` (les guards, et le droit d'usage de l'organisation active : `none` sans organisation, sinon `valid`, `grace` ou `suspended`, par `entitlementForOrganization`), les guards (dont `requireEntitlement` : sans abonnement en cours, une organisation n'enrôle ni n'attribue rien), `serializeData`, `withOrganization`, `apiError`, l'openapi sur `/api/v1/openapi` (document sur `/api/v1/openapi/json`), le harnais SQLite et le client Eden. Ce skill décrit ce qui est livré ; une passe qui change un nom met ce skill à jour en même temps.
 
 ## Règles
 
@@ -305,7 +305,7 @@ Puis `.use(devicesRoutes)` dans `routes/index.ts`, comme ci-dessus, et les clés
 
 ## Test d'intégration
 
-Le harnais (`@pupitre/api/testing`) démarre la même app Elysia sur PGlite en moins d'une seconde (`boot.test.ts` le mesure et exige moins de trois). Modèle : `bootApiTestServer` une fois par fichier, `resetDb` avant chaque test, un utilisateur par `createUser`, une session par `createSession` (organisation personnelle active par défaut, `activeOrganizationId: null` pour une session nue), des requêtes par `apiRequest(path, { method, body, session, bearer, headers, locale })`. Une organisation partagée avec ses membres et leurs sessions vient de `createOrganizationWithMembers({ roles })`, un serveur enrôlé avec son jeton en clair de `createServer({ organizationId, status })`. Les tests écrivent le comportement attendu, avant le code.
+Le harnais (`@pupitre/api/testing`) démarre la même app Elysia sur un SQLite construit par les migrations de D1, en quelques dizaines de millisecondes (`boot.test.ts` le mesure et exige moins de trois). Modèle : `bootApiTestServer` une fois par fichier, `resetDb` avant chaque test, un utilisateur par `createUser`, une session par `createSession` (organisation personnelle active par défaut, `activeOrganizationId: null` pour une session nue), des requêtes par `apiRequest(path, { method, body, session, bearer, headers, locale })`. Une organisation partagée avec ses membres et leurs sessions vient de `createOrganizationWithMembers({ roles })`, un serveur enrôlé avec son jeton en clair de `createServer({ organizationId, status })`. Les tests écrivent le comportement attendu, avant le code.
 
 `packages/api/src/__tests__/api/devices.test.ts` :
 
@@ -375,5 +375,5 @@ Les fichiers `*.test.ts` et `testing/**` ont leurs propres règles Biome (`biome
 3. Chaque code d'erreur renvoyé existe dans `packages/shared/src/api/errors.ts` ; chaque message a sa clé fr et en dans `src/lib/i18n` ; chaque `fix` dit un remède.
 4. Chaque statut renvoyé est déclaré dans `response`, et `errorResponse` couvre les statuts d'erreur.
 5. Le routeur est monté dans `routes/index.ts` ; une route admin est sous `hiddenRoutes` et derrière `requirePlatformAdmin`.
-6. Un test d'intégration sur PGlite couvre chaque comportement attendu, le cas sans session, et le cas d'un autre utilisateur ou d'une autre organisation qui ne voit pas la ressource.
+6. Un test d'intégration sur SQLite couvre chaque comportement attendu, le cas sans session, et le cas d'un autre utilisateur ou d'une autre organisation qui ne voit pas la ressource.
 7. `bun --cwd=packages/api run lint`, `check:types`, `test` verts, puis les mêmes à la racine.

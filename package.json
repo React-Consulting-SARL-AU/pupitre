@@ -34,10 +34,9 @@
     "contracts:export": "bun --cwd=packages/shared run contracts:export",
     "contracts:check": "bun --cwd=packages/shared run contracts:check",
     "db:generate": "turbo run db:generate --filter=@pupitre/db",
-    "db:migrate": "turbo run db:migrate --filter=@pupitre/db",
-    "db:migrate:deploy": "turbo run db:migrate:deploy --filter=@pupitre/db",
-    "db:migrate:reset": "turbo run db:migrate:reset --filter=@pupitre/db",
-    "db:studio": "turbo run db:studio --filter=@pupitre/db",
+    "db:migrate": "bun --cwd=packages/db run db:migrate",
+    "db:migrate:new": "bun --cwd=packages/db run db:migrate:new",
+    "db:reset": "bun --cwd=packages/db run db:reset",
     "prepare": "husky",
     "commitlint": "commitlint --edit",
     "dev:stripe": "bun run dev:prepare && turbo run dev:stripe --filter=@pupitre/web"

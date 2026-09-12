@@ -8,7 +8,7 @@ import { createSession, createUser } from "../../testing/session"
 const BOOT_BUDGET_MS = process.env.CI ? 10_000 : 3000
 
 describe("API test harness", () => {
-  it("boots the API on PGlite within its budget and serves GET /me with a test session", async () => {
+  it("boots the API on SQLite within its budget and serves GET /me with a test session", async () => {
     const warm = await bootApiTestServer()
 
     await warm.stop()
@@ -17,7 +17,7 @@ describe("API test harness", () => {
     const server = await bootApiTestServer()
     const bootMs = Math.round(performance.now() - started)
 
-    process.stdout.write(`\nAPI booted on PGlite in ${bootMs} ms\n`)
+    process.stdout.write(`\nAPI booted on SQLite in ${bootMs} ms\n`)
 
     expect(bootMs).toBeLessThan(BOOT_BUDGET_MS)
 

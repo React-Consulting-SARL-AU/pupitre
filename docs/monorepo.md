@@ -26,7 +26,7 @@ bun run dev:desktop  # l'app, pointée sur la console locale
 
 `dev:desktop` et le `build` du desktop construisent d'abord l'agent (`@pupitre/agent#build`, que turbo ne met jamais en cache : le binaire embarque `git describe`, que turbo ne hache pas, et un build repris du cache porterait la version d'un autre commit) : l'app embarque `apps/agent/dist` au démarrage, et c'est ce binaire qu'elle pousse sur un serveur nu. Sans cette dépendance, elle poussait le dernier build manuel, et un écran pouvait attendre un contrat que l'agent installé ne parlait pas encore.
 
-`bun run dev:web` lance Vite et TanStack Start sous le plugin Cloudflare, avec les bindings locaux. Neon local via `neonctl` ou une branche de dev ; `DATABASE_URL` dans `.env.local`. L'agent se teste sur un VPS réinstallable, jamais sur la machine du propriétaire : `PUPITRE_STAGING_HOST=root@<adresse> go test -tags staging ./test/staging/...` depuis `apps/agent`. Sans la variable, ces tests se sautent.
+`bun run dev:web` lance Vite et TanStack Start sous le plugin Cloudflare, avec les bindings locaux — la D1 comprise, un fichier SQLite que miniflare tient sous `apps/web/.wrangler/state` et que `dev:prepare` migre. L'agent se teste sur un VPS réinstallable, jamais sur la machine du propriétaire : `PUPITRE_STAGING_HOST=root@<adresse> go test -tags staging ./test/staging/...` depuis `apps/agent`. Sans la variable, ces tests se sautent.
 
 ### Lancer un workflow à la main
 
@@ -88,9 +88,9 @@ Trois workspaces passent `--timeout=60000` à `bun test` : `apps/web`, `apps/des
 
 - Jamais dans le dépôt. Le hook pre-commit refuse toute chaîne ressemblant à une clé API, un jeton ou une clé privée, et le job `gitleaks` de la CI relit tout l'historique. La *push protection* de GitHub se pose dans les réglages du dépôt — *Settings* → *Code security* → *Secret scanning* — et nulle part ici : elle refuse un push qui porte un secret avant que la CI ne le voie.
 - Local : `bun run dev:prepare` prépare `.env.local` et les liens que chaque outil attend. Les trois commandes de développement l'appellent d'abord, donc il n'y a rien à lancer à la main. Il ne remplace jamais une valeur déjà écrite : un `.env.local` renseigné reste tel quel.
-- **Ce qui se dérive n'est pas stocké.** `DATABASE_URL` et `MIGRATE_DATABASE_URL` viennent de `neonctl`, poolé et direct, sur la branche Neon que la branche Git désigne ; `.env.local` garde à côté `NEON_PROJECT_ID` et `NEON_BRANCH`, qui disent d'où elles viennent. `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` sont tirés au hasard par poste, puisqu'ils n'ont pas à être partagés.
+- **Ce qui se dérive n'est pas stocké.** La base n'a pas d'adresse : c'est un binding. `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` sont tirés au hasard par poste, puisqu'ils n'ont pas à être partagés.
 - **Ce qui ne se dérive pas vient de 1Password.** `.env.1password.tpl` est le modèle committé, avec des références `op://` et aucune valeur ; le coffre et la note de chaque environnement sont dans `environments.json` — le poste lit celle du staging — surchargeables par `OP_VAULT` et `OP_ITEM`. `op inject` échoue en bloc si un champ manque, donc une clé reste **en commentaire** tant que son champ n'existe pas dans la note.
-- **Rien n'est bloquant.** `op` absent, session fermée, champ manquant ou `neonctl` sans session : le script le dit et retombe sur ce que `.env.local` porte déjà.
+- **Rien n'est bloquant.** `op` absent, session fermée ou champ manquant : le script le dit et retombe sur ce que `.env.local` porte déjà.
 - **`secrets.required` de `wrangler.jsonc` fait deux choses à la fois**, et c'est un piège : Cloudflare ne charge dans le Worker local **que** les clés qui y figurent — tout ce que `.dev.vars` porte en plus est silencieusement ignoré — et `wrangler deploy` refuse de partir si l'une d'elles manque. Il n'existe pas de liste « facultative ». Une variable que seul le développement local doit voir se déclare **dans la liste racine seulement** : les blocs `env.staging` et `env.production` portent chacun leur propre liste complète et l'emportent entièrement. Les identifiants de connexion sociale figurent dans les trois listes : le produit s'en passe à l'écran, mais la console en ligne les offre. Un secret qui n'apparaît nulle part n'atteint jamais le Worker, quoi qu'il y ait dans `.env.local` — le symptôme est une fonctionnalité qui se croit non configurée alors que la valeur est bien là.
 - `STRIPE_WEBHOOK_SECRET` **se dérive** en local, comme la base : `dev:prepare` le lit par `stripe listen --print-secret`, c'est-à-dire le secret de l'endpoint que le CLI tient pour ce compte, et avec lequel `bun run dev:stripe` signe. Il diffère de celui du tableau de bord et n'a donc rien à faire dans 1Password. Sans le CLI, ou sans `stripe login`, le script le dit et ne bloque rien. Il reste requis en staging et en production, par secret Wrangler, où le webhook vérifie ses signatures.
 - Les valeurs **non secrètes** du développement (`BETTER_AUTH_URL`, `VITE_APP_URL`, `EMAIL_FROM`, `PUPITRE_DOWNLOADS_URL`) ne sont ni dans 1Password ni écrites à la main : elles vivent dans `vars` de `apps/web/wrangler.jsonc`, et `dev:prepare` les recopie dans `.env.local` quand elles y sont vides. Sans cette copie, `.dev.vars` masquerait `vars` clé par clé et le Worker local démarrerait avec un `BETTER_AUTH_URL` vide.
@@ -127,16 +127,16 @@ Deux branches longues, et rien d'autre qui vive plus qu'une pull request.
 | Worker | `ppt-web-staging` | `ppt-web-production` |
 | Domaine | `staging-app.pupitre.studio` | `app.pupitre.studio` |
 | Environnement Wrangler | `staging` | `production` |
-| Branche Neon | `staging` | `production` |
+| Base D1 | `ppt-db-staging` | `ppt-db` |
 | Workflows | `ppt-expire-enrollments-staging`, `ppt-decommission-server-staging`, `ppt-reconcile-seats-staging`, `ppt-evaluate-alerts-staging`, `ppt-suspend-expired-grace-staging` | les mêmes sans suffixe |
 | Déclencheur | Cloudflare Builds sur un push de `staging` | Cloudflare Builds sur un push de `main` |
 | Stripe | mode test | mode live |
 
-Le nom du Worker n'est pas choisi : Wrangler est en environnements *legacy*, il suffixe le nom racine (`ppt-web`) du nom de l'environnement. Les cinq Cron Triggers, les domaines, les bindings et la liste des secrets requis viennent tous de `apps/web/wrangler.jsonc` : le tableau de bord n'en déclare aucun.
+Le nom du Worker n'est pas choisi : Wrangler est en environnements *legacy*, il suffixe le nom racine (`ppt-web`) du nom de l'environnement. Les deux Cron Triggers, les domaines, les bindings — la D1 comprise — et la liste des secrets requis viennent tous de `apps/web/wrangler.jsonc` : le tableau de bord n'en déclare aucun.
 
 ### L'ordre de création
 
-Les étapes, dans l'ordre où elles se tiennent, sont dans [`deploy.md`](./deploy.md) : zone, Neon, buckets, Email Sending, Stripe, premier déploiement à la main, secrets, projets Workers Builds. Les tableaux ci-dessus disent les noms ; ce document-là dit les gestes.
+Les étapes, dans l'ordre où elles se tiennent, sont dans [`deploy.md`](./deploy.md) : zone, bases D1, buckets, Email Sending, Stripe, premier déploiement à la main, secrets, projets Workers Builds. Les tableaux ci-dessus disent les noms ; ce document-là dit les gestes.
 
 ### Ce que fait chaque déploiement
 
@@ -290,11 +290,13 @@ Tant qu'aucune ligne n'est ajoutée, toutes les versions d'app pilotent toutes l
 
 Le `.deb` est installé par apt et mis à jour par apt : l'app n'y touche pas, et le dit. L'AppImage, le `.dmg` et l'installateur Windows se remplacent seuls. Un build de développement ne cherche aucune mise à jour ; un build empaqueté suit le canal que `MAIN_VITE_UPDATE_CHANNEL` lui a donné, `stable` par défaut, sur le seau que `PUPITRE_DOWNLOADS_URL` lui a donné — la même variable que la publication lit, `https://dl.pupitre.studio` quand le build n'en reçoit aucune.
 
-## Neon
+## La base de données
 
-Projet `pupitre` (`plain-water-62675197`, [console](https://console.neon.tech/app/projects/plain-water-62675197)), région `aws-us-east-1`, Postgres 18. Le projet de Francfort qui l'a précédé n'existe plus : la région d'un projet Neon est figée à sa création, une migration de région est donc une recréation. C'est la région sur laquelle le Worker `apps/web` est épinglé (`placement` dans `wrangler.jsonc`). Branche `production` par défaut ; branche `staging` pour le staging et la CI de migration.
+Cloudflare **D1**, une base par environnement : `ppt-db-staging` (`db24fc22-22ba-4120-aa37-78264c2e3cf7`) et `ppt-db` (`8c4cd3b5-7375-4a69-8b84-b3b78c734cf5`), toutes deux en Europe de l'Ouest (`weur`), liées sous `DB` dans `apps/web/wrangler.jsonc` et nommées dans `environments.json`. Le Worker est en *smart placement* : il s'exécute à côté de la base, pas au bord le plus proche de l'appelant. Il n'y a ni adresse, ni secret, ni compute à réveiller : toute la plateforme est chez Cloudflare, et une base sans trafic ne coûte rien.
 
-**Deux projets Neon, une branche par branche Git.** La production et le staging sont deux projets, `pupitre` et `pupitre-staging`, nommés dans `environments.json` : une branche Neon se remet à zéro depuis son parent, et le staging, qui garde l'historique des versions publiées, ne doit pas pouvoir l'être depuis la production. `bun run dev:prepare` travaille dans le projet du staging et lit la branche Git courante pour en déduire la branche Neon : `staging` — et `main`, faute d'y travailler jamais — travaille sur la branche `staging`, toute autre branche obtient `dev/<slug>`, créée depuis `staging` et périmée au bout de quatorze jours — personne ne nettoie. Le projet de production n'est jamais visé par `.env.local`, le script refuse ; le poste l'atteint par `bun run env production -- <commande>`, qui donne à une commande les champs de la note de l'environnement sans rien écrire. Le projet se résout **par son nom**, jamais par un identifiant écrit quelque part : un projet recréé, dans une autre région par exemple, est retrouvé et les URL sont réécrites. `.env.local` garde `NEON_PROJECT_ID` et `NEON_BRANCH` : c'est cette provenance, et non la simple présence des URL, qui décide s'il faut les redemander. Pour viser une branche précise sans y toucher : `PUPITRE_NEON_BRANCH=staging bun run dev:prepare`. `DATABASE_URL` utilise l'endpoint poolé de la branche visée ; `MIGRATE_DATABASE_URL` l'endpoint direct (sans `-pooler`), le seul que Prisma Migrate accepte. `db:migrate:deploy` lit `MIGRATE_DATABASE_URL` et refuse de migrer une autre branche que celle de `DATABASE_URL`.
+**Prisma 7 sur l'adaptateur D1** (`@prisma/adapter-d1`), le schéma en `provider = "sqlite"`. Le Worker ouvre un client sur son binding à chaque requête et à chaque run de workflow (`withPrismaClient` dans `src/worker.ts`) ; tout ce qui est dessous le lit par `@pupitre/db/scope`, sans jamais voir un binding — et un test lui donne le sien, un fichier SQLite construit par les mêmes migrations que D1 applique (`@pupitre/api/testing`). SQLite tranche deux choses : pas de transaction interactive (aucune n'est écrite), et une comparaison de casse se fait en code, pas dans la requête.
+
+**Les migrations sont des fichiers SQL**, `packages/db/migrations/NNNN_<nom>.sql`, dans le registre de D1 (`d1_migrations`) et appliqués par wrangler : `bun run db:migrate <local|staging|production>`, production avec `PUPITRE_ALLOW_MIGRATE_ON=production` sur la ligne de commande. `bun run db:migrate:new <nom>` écrit le suivant : les migrations rejouées sur un SQLite jetable, le schéma diffé contre lui. `bun run db:reset <cible>` supprime toutes les tables puis rejoue tout. La construction (`build:staging`, `build:production`) migre avant de construire ; la CI applique les migrations sur une base locale vide, et les tests les rejouent. En local, `dev:prepare` migre la D1 de miniflare : la console démarre sur une base qui existe.
 
 ## Dépendances
 
@@ -306,4 +308,4 @@ Les `overrides` du `package.json` racine sont la seule source de vérité de l'a
 
 ## Dashboards externes
 
-Cloudflare Builds, Cloudflare Email Sending, R2 (les deux buckets, dont `ppt-downloads` et son domaine public), Stripe, Neon (projet `pupitre`), Apple Developer, Azure Trusted Signing. Ce document est ce qui les décrit ; rien dans le dépôt ne peut vérifier ce qu'ils exécutent. Quand un tableau ci-dessus change, le dashboard change dans la même passe.
+Cloudflare Builds, Cloudflare Email Sending, D1 (les deux bases), R2 (les deux buckets, dont `ppt-downloads` et son domaine public), Stripe, Apple Developer, Azure Trusted Signing. Ce document est ce qui les décrit ; rien dans le dépôt ne peut vérifier ce qu'ils exécutent. Quand un tableau ci-dessus change, le dashboard change dans la même passe.

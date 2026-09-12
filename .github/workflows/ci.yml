@@ -19,7 +19,6 @@ permissions:
   contents: read
 
 env:
-  DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?sslmode=disable
   BETTER_AUTH_SECRET: ci-placeholder-better-auth-secret-at-least-32-chars
   VITE_APP_URL: http://localhost:3000
   STRIPE_SECRET_KEY: sk_test_placeholder
@@ -35,20 +34,6 @@ jobs:
     timeout-minutes: 30
     env:
       WRANGLER_SEND_METRICS: "false"
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_USER: ci
-          POSTGRES_PASSWORD: ci
-          POSTGRES_DB: ci
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -79,10 +64,10 @@ jobs:
       - name: Generate Prisma client
         run: bun run db:generate
 
-      - name: Apply migrations on an empty database
-        run: bun run db:migrate:deploy
-        env:
-          MIGRATE_DATABASE_URL: ${{ env.DATABASE_URL }}
+      # The same files D1 applies, on the SQLite miniflare keeps: a migration
+      # that does not apply stops here, before any environment.
+      - name: Apply the migrations on an empty local database
+        run: bun run db:migrate local
 
       - name: Lint
         run: bun run lint

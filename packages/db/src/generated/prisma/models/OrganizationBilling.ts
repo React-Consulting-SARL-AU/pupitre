@@ -1114,7 +1114,6 @@ export type OrganizationBillingCreateManyArgs<ExtArgs extends runtime.Types.Exte
    * The data used to create many OrganizationBillings.
    */
   data: Prisma.OrganizationBillingCreateManyInput | Prisma.OrganizationBillingCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -1133,7 +1132,6 @@ export type OrganizationBillingCreateManyAndReturnArgs<ExtArgs extends runtime.T
    * The data used to create many OrganizationBillings.
    */
   data: Prisma.OrganizationBillingCreateManyInput | Prisma.OrganizationBillingCreateManyInput[]
-  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

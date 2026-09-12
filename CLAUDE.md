@@ -18,7 +18,7 @@ apps/web         TanStack Start sur Cloudflare Workers — app.pupitre.studio : 
 apps/desktop     Electron — l'app : onboarding d'un VPS, catalogue de services, projets, terminaux, agents
 apps/agent       Go — pupitred, l'agent compilé installé sur le VPS du client
 
-packages/db      schéma Prisma + migrations Neon + clients générés (Node et Cloudflare)
+packages/db      schéma Prisma + migrations SQL de D1 + clients générés (Bun et Cloudflare)
 packages/auth    Better Auth : configuration serveur, plugins, clients web et desktop
 packages/api     app Elysia /api/v1, client Eden, harnais de test API/DB
 packages/shared  contrats partagés : protocole agent, catalogue de services, plans, permissions, erreurs API
@@ -78,4 +78,4 @@ Commandes d'un seul workspace : `bun --cwd=<workspace> run <script>`.
 
 ## External Configs
 
-Cloudflare Builds, Stripe, Neon et les certificats de signature vivent dans des dashboards, hors du dépôt : garde [`docs/monorepo.md`](./docs/monorepo.md) synchronisé avec eux.
+Cloudflare Builds, D1, Stripe et les certificats de signature vivent dans des dashboards, hors du dépôt : garde [`docs/monorepo.md`](./docs/monorepo.md) synchronisé avec eux.

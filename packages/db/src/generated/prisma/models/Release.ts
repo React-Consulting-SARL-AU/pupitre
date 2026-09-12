@@ -1050,7 +1050,6 @@ export type ReleaseCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * The data used to create many Releases.
    */
   data: Prisma.ReleaseCreateManyInput | Prisma.ReleaseCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -1069,7 +1068,6 @@ export type ReleaseCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensi
    * The data used to create many Releases.
    */
   data: Prisma.ReleaseCreateManyInput | Prisma.ReleaseCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**

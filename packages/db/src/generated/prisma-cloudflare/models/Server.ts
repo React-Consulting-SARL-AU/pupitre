@@ -1045,7 +1045,6 @@ export type ServerCreateOrConnectWithoutAssignedUserInput = {
 
 export type ServerCreateManyAssignedUserInputEnvelope = {
   data: Prisma.ServerCreateManyAssignedUserInput | Prisma.ServerCreateManyAssignedUserInput[]
-  skipDuplicates?: boolean
 }
 
 export type ServerUpsertWithWhereUniqueWithoutAssignedUserInput = {
@@ -1160,7 +1159,6 @@ export type ServerCreateOrConnectWithoutOrganizationInput = {
 
 export type ServerCreateManyOrganizationInputEnvelope = {
   data: Prisma.ServerCreateManyOrganizationInput | Prisma.ServerCreateManyOrganizationInput[]
-  skipDuplicates?: boolean
 }
 
 export type ServerUpsertWithWhereUniqueWithoutOrganizationInput = {
@@ -1244,7 +1242,6 @@ export type ServerCreateOrConnectWithoutDeviceInput = {
 
 export type ServerCreateManyDeviceInputEnvelope = {
   data: Prisma.ServerCreateManyDeviceInput | Prisma.ServerCreateManyDeviceInput[]
-  skipDuplicates?: boolean
 }
 
 export type ServerUpsertWithWhereUniqueWithoutDeviceInput = {
@@ -2769,7 +2766,6 @@ export type ServerCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * The data used to create many Servers.
    */
   data: Prisma.ServerCreateManyInput | Prisma.ServerCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -2788,7 +2784,6 @@ export type ServerCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensio
    * The data used to create many Servers.
    */
   data: Prisma.ServerCreateManyInput | Prisma.ServerCreateManyInput[]
-  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

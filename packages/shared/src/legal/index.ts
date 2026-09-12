@@ -107,20 +107,12 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
   {
     name: "Cloudflare",
     purpose: {
-      fr: "Hébergement du site et de la console, stockage des binaires, envoi des emails transactionnels",
-      en: "Hosting of the site and the console, binary storage, transactional email delivery",
-    },
-    region: { fr: "Réseau mondial", en: "Global network" },
-  },
-  {
-    name: "Neon",
-    purpose: {
-      fr: "Base de données de la plateforme : comptes, organisations, serveurs, abonnements",
-      en: "Platform database: accounts, organisations, servers, subscriptions",
+      fr: "Hébergement du site et de la console, base de données de la plateforme (comptes, organisations, serveurs, abonnements), stockage des binaires, envoi des emails transactionnels",
+      en: "Hosting of the site and the console, platform database (accounts, organisations, servers, subscriptions), binary storage, transactional email delivery",
     },
     region: {
-      fr: "États-Unis à l’ouverture ; eu-central-1 aujourd’hui",
-      en: "United States at launch; eu-central-1 today",
+      fr: "Réseau mondial ; la base de données en Europe de l’Ouest",
+      en: "Global network; the database in Western Europe",
     },
   },
   {

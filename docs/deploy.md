@@ -15,7 +15,7 @@ Quatre choses, sur deux environnements.
 | L'app desktop (macOS, Windows, Linux) | le seau public `ppt-downloads`, servi par `dl.pupitre.studio` | un tag `vX.Y.Z` sur `staging`, posé par `scripts/release.sh` depuis le Mac du propriétaire, construit et publié par `release.yml` |
 | L'agent `pupitred`, installé sur le serveur du client | le seau privé `ppt-agent`, que rien n'atteint directement | le même tag |
 
-**Staging d'abord, production ensuite.** Les deux environnements sont identiques en tout sauf leurs valeurs : même code, mêmes seize secrets, mêmes vérifications. Ce que tu apprends sur l'un s'applique à l'autre.
+**Staging d'abord, production ensuite.** Les deux environnements sont identiques en tout sauf leurs valeurs : même code, mêmes quinze secrets, mêmes vérifications. Ce que tu apprends sur l'un s'applique à l'autre.
 
 Les branches : `staging` est la branche de travail, `main` est la production et ne change que par une pull request depuis `staging`. Les hooks du dépôt refusent d'y committer en local. Voir [`monorepo.md`](./monorepo.md#branches).
 
@@ -26,7 +26,6 @@ Les branches : `staging` est la branche de travail, `main` est la production et 
 | Compte | Ce qu'il porte | Coût | Délai |
 | --- | --- | --- | --- |
 | **Cloudflare** | le domaine, le Worker, le site, les deux seaux de fichiers | gratuit pour commencer | immédiat |
-| **Neon** | la base de données Postgres | gratuit pour commencer | immédiat |
 | **Stripe** | le produit et ses deux prix | commission par vente | quelques jours de vérification |
 | **GitHub** | le dépôt, sa CI, et les runners qui construisent et publient chaque version | gratuit, les minutes macOS et Windows comptées | immédiat |
 | Apple Developer | la signature de l'app macOS | 99 $/an | quelques jours |
@@ -38,8 +37,7 @@ Les quatre premiers suffisent pour mettre le service en ligne. Les deux derniers
 
 ```bash
 bun install                 # depuis la racine du dépôt
-bun x wrangler login        # ouvre le navigateur : choisir le compte qui porte le domaine
-neonctl auth                # idem, pour la base de données
+bun x wrangler login        # ouvre le navigateur : choisir le compte qui porte le domaine, les Workers et les bases
 gh auth status              # doit afficher le compte propriétaire du dépôt
 ```
 
@@ -47,11 +45,11 @@ gh auth status              # doit afficher le compte propriétaire du dépôt
 
 **Aucune valeur ne se tape à la main dans un fichier du dépôt.** Chaque secret est déposé dans 1Password — le coffre et la note de chaque environnement sont nommés dans [`environments.json`](../environments.json) — et `bun run dev:prepare` va chercher ceux du staging pour le développement local. Le dépôt ne contient que des références ; un hook refuse le commit qui porterait une valeur.
 
-## 3. Les seize secrets
+## 3. Les quinze secrets
 
 C'est la partie qui bloque tout le monde. Elle est ici en entier.
 
-Le Worker exige **les seize**, dans les deux environnements. La liste vit dans [`apps/web/wrangler.jsonc`](../apps/web/wrangler.jsonc) sous `secrets.required`, et `deploy:staging` comme `deploy:production` refusent de partir s'il en manque un : c'est un garde-fou, pas une préférence. Il n'y a donc pas de « déployer d'abord, compléter ensuite ».
+Le Worker exige **les quinze**, dans les deux environnements. La liste vit dans [`apps/web/wrangler.jsonc`](../apps/web/wrangler.jsonc) sous `secrets.required`, et `deploy:staging` comme `deploy:production` refusent de partir s'il en manque un : c'est un garde-fou, pas une préférence. Il n'y a donc pas de « déployer d'abord, compléter ensuite ».
 
 En revanche tu peux les obtenir dans l'ordre, et trois d'entre eux se fabriquent en une commande.
 
@@ -59,7 +57,6 @@ En revanche tu peux les obtenir dans l'ordre, et trois d'entre eux se fabriquent
 
 | Secret | À quoi il sert | Où le prendre | staging et production |
 | --- | --- | --- | --- |
-| `DATABASE_URL` | tout : sans base, rien ne répond | Neon | **valeurs différentes** |
 | `BETTER_AUTH_SECRET` | signe les sessions de connexion | tu le tires toi-même | **valeurs différentes** |
 | `INTERNAL_WORKFLOW_SECRET` | ferme le déclencheur interne des tâches de fond | tu le tires toi-même | **valeurs différentes** |
 | `PUPITRE_PUBLISH_TOKEN` | laisse la CI déclarer une version publiée | tu le tires toi-même | même valeur des deux côtés |
@@ -83,14 +80,13 @@ Un secret présent mais faux ne bloque pas le déploiement : le garde-fou compte
 
 | Faux ou factice | Ce qui marche quand même | Ce qui casse |
 | --- | --- | --- |
-| `DATABASE_URL` | rien | tout, dès la première page |
 | `BETTER_AUTH_SECRET` | les pages publiques | toute connexion |
 | `INTERNAL_WORKFLOW_SECRET` | tout, tâches planifiées comprises | seulement le déclenchement manuel d'une tâche de fond, qui ne sert qu'en développement |
 | `PUPITRE_PUBLISH_TOKEN` | tout le service | la CI ne peut plus déclarer de version publiée |
 | les quatre `STRIPE_*` | la connexion, la console, l'ajout d'un serveur | souscrire un abonnement |
 | les quatre `R2_*` | la console entière | l'app ne peut pas télécharger l'agent, donc aucune installation sur un serveur |
 
-Autrement dit : `DATABASE_URL` et `BETTER_AUTH_SECRET` sont les deux seuls dont une valeur fausse rend le service inutilisable. Les autres dégradent une fonction, et le disent.
+Autrement dit : `BETTER_AUTH_SECRET` est le seul dont une valeur fausse rend le service inutilisable. Les autres dégradent une fonction, et le disent. La base n'est pas un secret : c'est une D1 **liée** au Worker par `wrangler.jsonc`, sans adresse ni mot de passe.
 
 ### Les trois que tu fabriques toi-même
 
@@ -105,17 +101,6 @@ echo "pupitre_pub_$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '=')"
 ```
 
 Le préfixe `pupitre_pub_` est ce à quoi la plateforme reconnaît un jeton de publication ; sans lui elle le prend pour une session et le refuse. Ce jeton va à deux endroits, mot pour mot identique : les secrets des deux Workers, et la note 1Password de la release (étape 8).
-
-### `DATABASE_URL` — Neon
-
-Deux projets Neon, et non deux branches d'un même projet : `pupitre` porte la production et `pupitre-staging` le staging — [`environments.json`](../environments.json) les nomme. Une branche se remet à zéro depuis son parent d'un clic, et le staging, qui garde l'historique des versions publiées, ne doit pas pouvoir l'être. Dans la console Neon, ouvre la branche par défaut du projet, puis *Connection details*. Relève **deux** adresses, qui ne sont pas la même :
-
-| Variable | Quel point de connexion | Pourquoi |
-| --- | --- | --- |
-| `DATABASE_URL` | celui dont l'hôte contient `-pooler` | ce que le Worker ouvre, des centaines de fois |
-| `MIGRATE_DATABASE_URL` | celui **sans** `-pooler` | le seul que l'outil de migration accepte |
-
-`MIGRATE_DATABASE_URL` n'est pas un secret du Worker : il ne sert qu'à la construction, et se donne à Cloudflare Builds à l'étape 7.
 
 ### Les quatre `R2_*` — Cloudflare
 
@@ -169,20 +154,23 @@ Vérifie : `curl -I https://dl.pupitre.studio` répond **404 servi par Cloudflar
 
 ## 5. La base de données
 
-Deux projets Neon, `pupitre` pour la production et `pupitre-staging` pour le staging, chacun avec sa branche par défaut (`production`, `staging`). Ils existent déjà. Tu n'as rien à créer ni à migrer à la main — la construction applique les migrations avant de déployer, à chaque fois.
+Deux bases **Cloudflare D1**, `ppt-db-staging` et `ppt-db`, en Europe de l'Ouest, liées à leur Worker sous le nom `DB` dans `apps/web/wrangler.jsonc` — [`environments.json`](../environments.json) les nomme aussi. Elles existent déjà (`wrangler d1 create <nom> --location weur`, une fois). Rien à connecter : le Worker s'exécute à côté d'elles (*smart placement*), et il n'y a ni adresse, ni mot de passe, ni compute qui dorme ou se réveille — on paie des lignes lues et écrites, et le palier gratuit en donne des millions par jour.
 
-Agir sur l'un ou l'autre depuis ton poste passe par `bun run env <staging|production> -- <commande>` : la commande reçoit les champs de la note 1Password de l'environnement, et rien n'est écrit. Remettre une base à zéro, par exemple :
+Les migrations sont des fichiers SQL, `packages/db/migrations/NNNN_<nom>.sql`, que D1 tient dans son propre registre. La construction les applique **avant** de construire, à chaque fois ; depuis ton poste :
 
 ```bash
-bun run env staging -- env PUPITRE_ALLOW_MIGRATE_ON=staging bun run db:migrate:reset
-bun run env production -- env PUPITRE_ALLOW_MIGRATE_ON=production bun run db:migrate:reset
+bun run db:migrate local                                        # la D1 que miniflare tient sous apps/web/.wrangler/state
+bun run db:migrate staging
+PUPITRE_ALLOW_MIGRATE_ON=production bun run db:migrate production
+bun run db:migrate:new <nom>                                    # le prochain fichier, par diff du schéma Prisma contre les migrations
+bun run db:reset staging                                        # toutes les tables supprimées, puis toutes les migrations
 ```
 
-Une seule chose à savoir : `MIGRATE_DATABASE_URL` doit désigner le point de connexion **direct** de la branche visée. Un point poolé est refusé, avec un message qui le dit.
+`db:reset` sur production demande le même drapeau. Une base D1 revient aussi à n'importe quel instant des trente derniers jours par *Time Travel* : `wrangler d1 time-travel restore ppt-db --timestamp=<ISO>`.
 
 ## 6. Le premier déploiement, à la main
 
-Un Worker naît avec ses seize secrets, ou ne naît pas : `wrangler deploy` refuse de créer un Worker dont un secret de `secrets.required` manque, et `wrangler secret put` ne sait rien attacher à un Worker qui n'existe pas encore. Le premier déploiement fournit donc les seize d'un coup, par `--secrets-file`. On le fait une fois, sans passer par la construction automatique.
+Un Worker naît avec ses quinze secrets, ou ne naît pas : `wrangler deploy` refuse de créer un Worker dont un secret de `secrets.required` manque, et `wrangler secret put` ne sait rien attacher à un Worker qui n'existe pas encore. Le premier déploiement fournit donc les quinze d'un coup, par `--secrets-file`. On le fait une fois, sans passer par la construction automatique.
 
 Les valeurs vivent dans 1Password : une note par environnement, `pupitre` (le staging, et le poste de travail) et `pupitre-prod`, nommées dans [`environments.json`](../environments.json), un champ par secret, nommé exactement comme le Worker l'attend. Le fichier de secrets n'existe jamais sur le disque : il est composé à la volée depuis 1Password et remis à `wrangler` par une substitution de processus.
 
@@ -208,7 +196,7 @@ bun x wrangler secret bulk --config apps/web/wrangler.jsonc --env staging <(op i
 bun --cwd=apps/web run check:secrets staging     # doit dire que tout est là
 ```
 
-**Recommence l'étape entière pour `production`**, avec `build:production`, `--env production` et `check:secrets production`. Les valeurs diffèrent : branche Neon `production`, ses propres `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET`, son propre webhook Stripe. Les quatre `R2_*`, le jeton de publication et — tant que Stripe reste en sandbox — les trois autres `STRIPE_*` sont les mêmes qu'en staging.
+**Recommence l'étape entière pour `production`**, avec `build:production`, `--env production` et `check:secrets production`. Les valeurs diffèrent : ses propres `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET`, son propre webhook Stripe. Les quatre `R2_*`, le jeton de publication et — tant que Stripe reste en sandbox — les trois autres `STRIPE_*` sont les mêmes qu'en staging.
 
 Vérifie :
 
@@ -229,9 +217,9 @@ curl -sI https://staging-app.pupitre.studio/status | head -1    # 200, sans êtr
 | Commande de construction | `bun install --frozen-lockfile && bun --cwd=apps/web run build:staging` | `bun install --frozen-lockfile && bun --cwd=apps/web run build:production` |
 | Commande de déploiement | `bun --cwd=apps/web run deploy:staging` | `bun --cwd=apps/web run deploy:production` |
 | Variable de construction | `VITE_APP_URL=https://staging-app.pupitre.studio` | `VITE_APP_URL=https://app.pupitre.studio` |
-| Secrets de construction | `DATABASE_URL` et `MIGRATE_DATABASE_URL` de la branche Neon `staging` | les mêmes, de la branche `production` |
+| Secrets de construction | aucun : la base est liée, et wrangler migre avec le jeton du projet Builds | idem |
 
-La construction migre la base **avant** de construire, et le déploiement refuse de partir s'il manque un secret : les deux échouent avant d'avoir touché au Worker en place.
+La construction migre la D1 de l'environnement **avant** de construire, et le déploiement refuse de partir s'il manque un secret : les deux échouent avant d'avoir touché au Worker en place.
 
 **Deux projets Workers Builds de plus** pour le site marketing, sur les Workers `ppt-site-staging` et `ppt-site`. Un projet Pages relié à Git ne se crée que dans le tableau de bord et ne se convertit jamais ; le site est donc un Worker à assets statiques comme la console, déployable d'ici avant que l'automatique existe.
 
@@ -315,9 +303,9 @@ Puis, à la main : ouvrir le `.dmg` sur un Mac qui n'a jamais vu le certificat, 
 | Le site répond mais aucune connexion n'aboutit | `BETTER_AUTH_SECRET` absent, ou différent de celui qui a signé les sessions |
 | Aucun email ne part | Email Sending pas activé, ou `pupitre.studio` pas vérifié comme domaine expéditeur |
 | L'app dit qu'il n'y a rien à télécharger | les quatre `R2_*` sont faux : la plateforme rend une adresse locale et le dit dans un en-tête |
-| La construction échoue sur la migration | `MIGRATE_DATABASE_URL` désigne un point poolé, ou la mauvaise branche |
+| La construction échoue sur la migration | un fichier de `packages/db/migrations` ne s'applique pas sur D1 : il s'applique d'abord en local, `bun run db:migrate local`, et les tests le rejouent |
 | `wrangler deploy` refuse `legacy_env` dans la configuration générée | `@cloudflare/vite-plugin` et `wrangler` ne sont plus au même niveau : le plugin écrit la configuration que wrangler lit, les deux se mettent à jour ensemble |
-| Le premier déploiement refuse en nommant les seize secrets | c'est un Worker qui n'existe pas encore : il naît avec `--secrets-file`, étape 6 |
+| Le premier déploiement refuse en nommant les quinze secrets | c'est un Worker qui n'existe pas encore : il naît avec `--secrets-file`, étape 6 |
 | La chaîne publie mais la plateforme refuse | `PUPITRE_PUBLISH_TOKEN` diffère entre la note 1Password et le Worker, ou a perdu son préfixe |
 | Une version publiée ne devient jamais stable | la pull request a été fusionnée en squash, et le commit tagué a quitté l'historique |
 

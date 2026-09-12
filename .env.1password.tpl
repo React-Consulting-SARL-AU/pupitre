@@ -10,7 +10,8 @@
 # par clé ci-dessous.
 #
 # NE METTRE ICI QUE CE QUI NE SE DÉRIVE PAS.
-#   - `DATABASE_URL` et `MIGRATE_DATABASE_URL` viennent de `neonctl`.
+#   - La base n'a pas d'adresse : c'est la D1 liée au Worker, locale sous
+#     apps/web/.wrangler/state.
 #   - `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` sont tirés au hasard
 #     par poste.
 #   - `STRIPE_WEBHOOK_SECRET` vient du CLI Stripe.

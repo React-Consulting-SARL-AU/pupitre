@@ -496,7 +496,6 @@ export type InvitationCreateOrConnectWithoutUserInput = {
 
 export type InvitationCreateManyUserInputEnvelope = {
   data: Prisma.InvitationCreateManyUserInput | Prisma.InvitationCreateManyUserInput[]
-  skipDuplicates?: boolean
 }
 
 export type InvitationUpsertWithWhereUniqueWithoutUserInput = {
@@ -556,7 +555,6 @@ export type InvitationCreateOrConnectWithoutOrganizationInput = {
 
 export type InvitationCreateManyOrganizationInputEnvelope = {
   data: Prisma.InvitationCreateManyOrganizationInput | Prisma.InvitationCreateManyOrganizationInput[]
-  skipDuplicates?: boolean
 }
 
 export type InvitationUpsertWithWhereUniqueWithoutOrganizationInput = {
@@ -1403,7 +1401,6 @@ export type InvitationCreateManyArgs<ExtArgs extends runtime.Types.Extensions.In
    * The data used to create many Invitations.
    */
   data: Prisma.InvitationCreateManyInput | Prisma.InvitationCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -1422,7 +1419,6 @@ export type InvitationCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Exte
    * The data used to create many Invitations.
    */
   data: Prisma.InvitationCreateManyInput | Prisma.InvitationCreateManyInput[]
-  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

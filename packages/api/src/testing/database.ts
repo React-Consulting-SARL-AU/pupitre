@@ -1,125 +1,63 @@
-import { readdirSync, readFileSync } from "node:fs"
-import { createServer } from "node:net"
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs"
+import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { PGlite } from "@electric-sql/pglite"
-import { PGLiteSocketServer } from "@electric-sql/pglite-socket"
-import { PrismaPg } from "@prisma/adapter-pg"
+import { createClient } from "@libsql/client"
+import { PrismaLibSql } from "@prisma/adapter-libsql"
 import { PrismaClient } from "@pupitre/db/client"
 
-const MIGRATIONS_DIR = join(import.meta.dir, "../../../db/prisma/migrations")
-const MIGRATIONS_TABLE = "_prisma_migrations"
+/**
+ * The database of a test run: a SQLite file of the moment, built from the
+ * very files D1 applies, so a migration that fails here fails before it
+ * reaches an environment. One per process, emptied between tests.
+ */
+
+const MIGRATIONS_DIR = join(import.meta.dir, "../../../db/migrations")
+
+const MIGRATION_FILE_RE = /^\d{4}_.*\.sql$/
 
 export interface TestDatabase {
-  pglite: PGlite
   prisma: PrismaClient
   reset: () => Promise<void>
   stop: () => Promise<void>
 }
 
-interface Migration {
-  name: string
-  sql: string
-}
-
-function migrations(): Migration[] {
-  return readdirSync(MIGRATIONS_DIR, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
+function migrations(): string[] {
+  return readdirSync(MIGRATIONS_DIR)
+    .filter((file) => MIGRATION_FILE_RE.test(file))
     .sort()
-    .map((name) => ({
-      name,
-      sql: readFileSync(join(MIGRATIONS_DIR, name, "migration.sql"), "utf8"),
-    }))
-}
-
-function pickFreePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const probe = createServer()
-
-    probe.unref()
-    probe.on("error", reject)
-    probe.listen(0, "127.0.0.1", () => {
-      const address = probe.address()
-
-      if (!address || typeof address === "string") {
-        reject(new Error("could not pick a free port"))
-
-        return
-      }
-
-      probe.close(() => resolve(address.port))
-    })
-  })
-}
-
-async function applyMigrations(pglite: PGlite): Promise<void> {
-  for (const migration of migrations()) {
-    try {
-      await pglite.exec(migration.sql)
-    } catch (error) {
-      throw new Error(`migration ${migration.name} failed on PGlite`, {
-        cause: error,
-      })
-    }
-  }
-}
-
-async function truncateSql(pglite: PGlite): Promise<string> {
-  const result = await pglite.query<{ tablename: string }>(
-    "SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename"
-  )
-  const tables = result.rows
-    .map((row) => row.tablename)
-    .filter((table) => table !== MIGRATIONS_TABLE)
-    .map((table) => `"${table}"`)
-
-  return `TRUNCATE TABLE ${tables.join(", ")} RESTART IDENTITY CASCADE`
+    .map((file) => readFileSync(join(MIGRATIONS_DIR, file), "utf8"))
 }
 
 export async function bootTestDatabase(): Promise<TestDatabase> {
-  const pglite = new PGlite()
+  const dir = mkdtempSync(join(tmpdir(), "pupitre-test-db-"))
+  const url = `file:${join(dir, "test.sqlite")}`
+  const client = createClient({ url })
 
-  await pglite.waitReady
-  await applyMigrations(pglite)
+  for (const sql of migrations()) {
+    await client.executeMultiple(sql)
+  }
 
-  const port = await pickFreePort()
-  // PGlite serves one query at a time whatever the number of sockets, and the
-  // server queues them for it. Its default of one *connection*, though, makes it
-  // answer "Too many connections" and hang up on the second — which the pool
-  // reports as a connection terminated under a query it had already sent.
-  const server = new PGLiteSocketServer({
-    db: pglite,
-    host: "127.0.0.1",
-    maxConnections: 10,
-    port,
-  })
-
-  await server.start()
-
-  const prisma = new PrismaClient({
-    adapter: new PrismaPg({
-      host: "127.0.0.1",
-      port,
-      user: "postgres",
-      password: "postgres",
-      database: "postgres",
-      ssl: false,
-      max: 1,
-    }),
-    transactionOptions: { maxWait: 10_000, timeout: 15_000 },
-  })
-  const truncate = await truncateSql(pglite)
+  const tables = await client.execute(
+    "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+  )
+  const names = tables.rows.map((row) => String(row.name))
+  const prisma = new PrismaClient({ adapter: new PrismaLibSql({ url }) })
 
   return {
-    pglite,
     prisma,
     reset: async () => {
-      await prisma.$executeRawUnsafe(truncate)
+      await client.executeMultiple(
+        [
+          "PRAGMA foreign_keys = OFF;",
+          ...names.map((name) => `DELETE FROM "${name}";`),
+          "PRAGMA foreign_keys = ON;",
+        ].join(" ")
+      )
     },
     stop: async () => {
       await prisma.$disconnect()
-      await server.stop()
-      await pglite.close()
+      client.close()
+      rmSync(dir, { force: true, recursive: true })
     },
   }
 }

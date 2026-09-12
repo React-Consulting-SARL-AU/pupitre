@@ -1,6 +1,6 @@
 # 0004 — Elysia, Better Auth, Prisma 7, Neon
 
-Date : 2026-09-04 · Statut : acceptée
+Date : 2026-09-04 · Statut : acceptée, la base remplacée par [0011](./0011-cloudflare-d1.md)
 
 L'API est une app Elysia dans `packages/api`, consommée par Eden Treaty. L'authentification est Better Auth auto-hébergée dans `packages/auth`, avec l'adaptateur Prisma. Les données sont dans Neon Postgres via Prisma 7 et le driver serverless.
 
