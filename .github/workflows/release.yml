@@ -1,24 +1,30 @@
 name: Release
 
-# Un tag, une version : l'agent d'abord — il faut qu'il soit publié avant que
-# l'app puisse le proposer — puis l'app sur les trois systèmes, puis la mise en
-# ligne. Le tag est posé sur `staging` ; une version sort donc en `beta`, et le
-# merge de la pull request `staging` → `main` la passe en `stable` par
-# `promote.yml`, sans rien reconstruire.
+# One tag, one version. The owner's Mac wrote the version and the notes and
+# pushed the tag — `scripts/release.sh`; from here every step is a command of
+# `scripts/release`, run the same way on these runners or on a machine of ours.
+# This file installs the tools, names the step and hands it its secrets; the
+# buckets are the only thing the jobs share, and every step is idempotent, so
+# a failed job is re-run alone and the release resumes where it stood.
+#
+# The tag sits on `staging` — the version goes out in `beta`, declared to the
+# staging platform — or on `main`, declared to production. `promote.yml`
+# carries a version from the first to the second when `main` takes it.
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
     inputs:
       version:
-        description: Version semver à publier, sans le v
-        required: true
+        description: Version semver à publier, sans le v (défaut, celle du manifeste)
+        required: false
       channel:
         description: Canal de publication
         type: choice
         options: [beta, stable]
         default: beta
 
+# Two runs of one version would race for the same objects: they queue.
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
@@ -26,23 +32,24 @@ concurrency:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
+env:
+  TURBO_TELEMETRY_DISABLED: "1"
+  ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+  ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
+
 jobs:
   agent:
     name: Agent
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
-    # The signing key and the platform token live in this environment: the owner
-    # gates the run, nothing here reads a secret's value.
-    environment: release
     outputs:
-      version: ${{ steps.version.outputs.version }}
-      channel: ${{ steps.version.outputs.channel }}
-    env:
-      PUPITRE_RELEASE_CHANNEL: ${{ inputs.channel || 'beta' }}
-      PUPITRE_PLATFORM_URL: ${{ vars.PUPITRE_PLATFORM_URL }}
-      R2_BUCKET: ${{ vars.PUPITRE_R2_BUCKET }}
+      release: ${{ steps.resolve.outputs.release }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -50,58 +57,7 @@ jobs:
         with:
           bun-version-file: package.json
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: 22
-
-      # The tag carries the v, the platform stores plain semver.
-      - name: Resolve the published version
-        id: version
-        env:
-          REQUESTED: ${{ inputs.version }}
-        run: |
-          set -euo pipefail
-          version="${REQUESTED:-${GITHUB_REF_NAME#v}}"
-          echo "PUPITRE_RELEASE_VERSION=$version" >> "$GITHUB_ENV"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "channel=${PUPITRE_RELEASE_CHANNEL}" >> "$GITHUB_OUTPUT"
-
-      # A tag posed on a branch nobody merges would publish code that never
-      # reaches production, under a version number that can never be promoted.
-      - name: Check the tag sits on staging or main
-        if: github.ref_type == 'tag'
-        run: |
-          set -euo pipefail
-          git fetch --no-tags --quiet origin \
-            "+refs/heads/staging:refs/remotes/origin/staging" \
-            "+refs/heads/main:refs/remotes/origin/main" || true
-          for branch in origin/staging origin/main; do
-            if git rev-parse --verify --quiet "$branch" >/dev/null &&
-              git merge-base --is-ancestor HEAD "$branch"; then
-              echo "$GITHUB_REF_NAME est sur $branch"
-              exit 0
-            fi
-          done
-          echo "$GITHUB_REF_NAME n'est ni sur staging ni sur main : rien à publier depuis là."
-          exit 1
-
-      # The notes of the version are its changelog entry, in every locale the
-      # site serves: no entry, no release.
-      - name: Check the changelog covers the version
-        run: bun scripts/release-notes.ts "$PUPITRE_RELEASE_VERSION" --check
-
-      # The app carries the same version number as the agent: a build that says
-      # otherwise would publish artefacts nobody can pair with a release.
-      - name: Check the app version against the tag
-        run: |
-          set -euo pipefail
-          declared=$(node -p "require('./apps/desktop/package.json').version")
-          test "$declared" = "$PUPITRE_RELEASE_VERSION" || {
-            echo "apps/desktop/package.json déclare $declared, le tag dit $PUPITRE_RELEASE_VERSION"
-            exit 1
-          }
-
-      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: apps/agent/go.mod
           cache-dependency-path: apps/agent/go.mod
@@ -109,203 +65,119 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Install garble
-        run: bun --cwd=apps/agent run garble:install
+      # The addresses and the bucket names come from the template the owner's
+      # Mac uses; the secrets are the same template's references, set once by
+      # `release secrets`.
+      - name: Read the release settings
+        run: grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl >> "$GITHUB_ENV"
 
-      - name: Build and sign
-        working-directory: apps/agent
-        run: bun run release
+      # The version, the channel and the platform, from git; the other jobs
+      # read them from this job rather than resolving twice.
+      - name: Resolve the release
+        id: resolve
+        run: |
+          args=()
+          if [ -n "${VERSION:-}" ]; then args+=("--version=$VERSION"); fi
+          if [ -n "${CHANNEL:-}" ]; then args+=("--channel=$CHANNEL"); fi
+          bun scripts/release/index.ts resolve "${args[@]}" | tee -a "$GITHUB_ENV"
+          echo "release=$(bun scripts/release/index.ts resolve "${args[@]}" --format=json)" >> "$GITHUB_OUTPUT"
+        env:
+          VERSION: ${{ inputs.version }}
+          CHANNEL: ${{ inputs.channel }}
+
+      - name: Check the changelog and the app version
+        run: bun scripts/release/index.ts check
+
+      # A version the bucket already holds is taken from there, not rebuilt:
+      # garble does not reproduce a binary, and the platform keeps the digests.
+      - name: Build, sign and smoke the agent
+        run: bun scripts/release/index.ts agent build
         env:
           PUPITRE_RELEASE_PRIVATE_KEY: ${{ secrets.PUPITRE_RELEASE_PRIVATE_KEY }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
 
-      # A binary that cannot answer hello, or that carries no key, would install
-      # itself on a server and never be replaceable again.
-      - name: Smoke the built binary
-        working-directory: apps/agent
-        run: |
-          set -euo pipefail
-          binary=dist/release/pupitred-linux-amd64
-          test "$($binary version)" = "pupitred $PUPITRE_RELEASE_VERSION"
-          echo '{"id":1,"cmd":"hello","params":{"app_version":"0.0.0","protocol":1}}' | $binary serve | grep -q '"ok":true'
-          grep -qF "$(go run ./tools/release public-key)" "$binary"
-        env:
-          PUPITRE_RELEASE_PRIVATE_KEY: ${{ secrets.PUPITRE_RELEASE_PRIVATE_KEY }}
-
-      - name: Check the obfuscation
-        working-directory: apps/agent
-        run: |
-          set -euo pipefail
-          for binary in dist/release/pupitred-linux-*; do
-            readable=$(strings -a "$binary" | grep -c pupitre || true)
-            echo "$binary : $readable chaînes lisibles"
-            test "$readable" -le 10
-          done
-
-      # R2 first: the platform hands out a signed URL as soon as the row exists,
-      # so the object has to be there before the version is declared. This
-      # bucket is private — the agent is downloaded with a server token, never
-      # from a public link.
-      - name: Upload to R2
-        run: |
-          set -euo pipefail
-          for arch in amd64 arm64; do
-            bun x wrangler r2 object put \
-              "$R2_BUCKET/agent/$PUPITRE_RELEASE_VERSION/pupitred-linux-$arch" \
-              --file="apps/agent/dist/release/pupitred-linux-$arch" --remote
-          done
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: Declare the version to the platform
-        working-directory: apps/agent
-        run: bun run release:publish
+      - name: Publish the agent
+        run: bun scripts/release/index.ts agent publish
         env:
           PUPITRE_PUBLISH_TOKEN: ${{ secrets.PUPITRE_PUBLISH_TOKEN }}
-
-      # What the app build reads: the signed binaries, and the release.json that
-      # names their version and their signatures.
-      - name: Upload the signed binaries
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: agent-release
-          path: |
-            apps/agent/dist/release/pupitred-linux-*
-            apps/agent/dist/release/release.json
-            apps/agent/dist/release/publications.json
-          retention-days: 30
-          if-no-files-found: error
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
 
   desktop:
-    name: App ${{ matrix.os }}
+    name: App ${{ matrix.system }}
     needs: agent
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     strategy:
+      # One system failing does not stop the others: it is re-run alone.
       fail-fast: false
       matrix:
-        os: [macos-15, windows-2025, ubuntu-24.04]
+        include:
+          - system: macOS
+            runner: macos-15
+          - system: Windows
+            runner: windows-2025
+          - system: Linux
+            runner: ubuntu-24.04
     env:
-      # The channel the built app follows when it looks for its own updates.
-      MAIN_VITE_UPDATE_CHANNEL: ${{ needs.agent.outputs.channel }}
-      # The bucket the publish job below will write to: the app looks for its
-      # updates where its own artefacts were put, not somewhere named twice.
-      PUPITRE_DOWNLOADS_URL: ${{ vars.PUPITRE_DOWNLOADS_URL }}
-      # The agent the build embeds is the one that was just signed and published,
-      # not a fresh compilation of the same sources.
-      PUPITRE_AGENT_DIST: ../agent/dist/release
+      PUPITRE_RELEASE_VERSION: ${{ fromJSON(needs.agent.outputs.release).version }}
+      PUPITRE_RELEASE_CHANNEL: ${{ fromJSON(needs.agent.outputs.release).channel }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: package.json
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
+
+      # Electron and electron-builder's tools are downloaded once per version
+      # of each, not once per release.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache
+          key: electron-${{ runner.os }}-${{ hashFiles('apps/desktop/package.json') }}
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # Bun skips that install script often enough that the binary is missing on
-      # a fresh checkout, and electron-vite compiles the bytecode with it.
-      - name: Install the Electron binary
-        run: node node_modules/electron/install.js
-        working-directory: apps/desktop
+      - name: Read the release settings
+        run: grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl >> "$GITHUB_ENV"
 
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          name: agent-release
-          path: apps/agent/dist/release
-
-      - name: Prepare the notarization key
-        if: runner.os == 'macOS'
-        run: |
-          umask 077
-          printf '%s' "$APPLE_API_KEY_CONTENT" | base64 --decode > "$RUNNER_TEMP/apple-api-key.p8"
+      # The step reads the agent from the bucket, builds the app of this
+      # system, signs it where the system asks for it, and leaves the result
+      # in the bucket for the publish job.
+      - name: Build the app
+        run: bun scripts/release/index.ts desktop
         env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY_CONTENT }}
-
-      # macOS: Developer ID certificate, then notarization by App Store Connect
-      # key. Absent, electron-builder builds unsigned and says so.
-      - name: Build and sign for macOS
-        if: runner.os == 'macOS'
-        run: bun --cwd=apps/desktop run build:mac
-        env:
-          CSC_LINK: ${{ secrets.APPLE_CERTIFICATE }}
-          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_API_KEY: ${{ runner.temp }}/apple-api-key.p8
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-
-      # Windows: Azure Trusted Signing authenticates as an Entra ID application
-      # rather than holding a certificate file. The three names of the signing
-      # account are repository variables, not secrets; without them the build is
-      # unsigned, and SmartScreen will say so to whoever installs it.
-      - name: Build and sign for Windows
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -n "${AZURE_ENDPOINT:-}" ]; then
-            bun --cwd=apps/desktop run build:win \
-              "-c.win.azureSignOptions.endpoint=$AZURE_ENDPOINT" \
-              "-c.win.azureSignOptions.codeSigningAccountName=$AZURE_ACCOUNT" \
-              "-c.win.azureSignOptions.certificateProfileName=$AZURE_PROFILE"
-          else
-            echo "Azure Trusted Signing n'est pas configuré : build non signé."
-            bun --cwd=apps/desktop run build:win
-          fi
-        env:
-          AZURE_ENDPOINT: ${{ vars.AZURE_SIGNING_ENDPOINT }}
-          AZURE_ACCOUNT: ${{ vars.AZURE_SIGNING_ACCOUNT }}
-          AZURE_PROFILE: ${{ vars.AZURE_SIGNING_PROFILE }}
+          AZURE_SIGNING_ENDPOINT: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+          AZURE_SIGNING_ACCOUNT: ${{ vars.AZURE_SIGNING_ACCOUNT }}
+          AZURE_SIGNING_PROFILE: ${{ vars.AZURE_SIGNING_PROFILE }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 
-      # Linux has no signing authority to answer to: the AppImage and the .deb
-      # are signed with the release key, like the agent, and the publication
-      # records that signature next to the checksum.
-      - name: Build for Linux
-        if: runner.os == 'Linux'
-        run: bun --cwd=apps/desktop run build:linux
-
-      - name: Forget the notarization key
-        if: always() && runner.os == 'macOS'
-        run: rm -f "$RUNNER_TEMP/apple-api-key.p8"
-
-      - name: Upload the artefacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: desktop-${{ matrix.os }}
-          path: |
-            apps/desktop/dist/*.dmg
-            apps/desktop/dist/*.exe
-            apps/desktop/dist/*.AppImage
-            apps/desktop/dist/*.deb
-            apps/desktop/dist/*.blockmap
-            apps/desktop/dist/latest*.yml
-          retention-days: 30
-          if-no-files-found: error
-
   publish:
-    name: Publier l'app
+    name: Publish the app
     needs: [agent, desktop]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
-    environment: release
     env:
-      PUPITRE_RELEASE_VERSION: ${{ needs.agent.outputs.version }}
-      PUPITRE_RELEASE_CHANNEL: ${{ needs.agent.outputs.channel }}
-      PUPITRE_PLATFORM_URL: ${{ vars.PUPITRE_PLATFORM_URL }}
-      PUPITRE_DOWNLOADS_URL: ${{ vars.PUPITRE_DOWNLOADS_URL }}
-      R2_BUCKET: ${{ vars.PUPITRE_DOWNLOADS_BUCKET }}
+      PUPITRE_RELEASE_VERSION: ${{ fromJSON(needs.agent.outputs.release).version }}
+      PUPITRE_RELEASE_CHANNEL: ${{ fromJSON(needs.agent.outputs.release).channel }}
+      PUPITRE_PLATFORM_URL: ${{ fromJSON(needs.agent.outputs.release).platform }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -314,38 +186,21 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          pattern: desktop-*
-          merge-multiple: true
-          path: artefacts
+      - name: Read the release settings
+        run: grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl >> "$GITHUB_ENV"
 
-      # The notes of the version are its changelog entry, the same text the
-      # marketing site renders: one source, written once, read everywhere.
-      - name: Read the release notes
-        run: |
-          bun scripts/release-notes.ts "$PUPITRE_RELEASE_VERSION" --out="$RUNNER_TEMP/notes.md"
-          cat "$RUNNER_TEMP/notes.md"
-
-      # The bucket first, the platform after: a row that exists is a row whose
-      # file is already downloadable.
-      - name: Upload to R2 and declare the version
-        run: |
-          bun --cwd=apps/desktop run release:publish \
-            --dir="$GITHUB_WORKSPACE/artefacts" \
-            --version="$PUPITRE_RELEASE_VERSION" \
-            --channel="$PUPITRE_RELEASE_CHANNEL" \
-            --notes-file="$RUNNER_TEMP/notes.md"
+      # Every installer the three systems left: signed with the release key,
+      # put in the public bucket, declared to the platform of the branch.
+      - name: Sign, upload and declare
+        run: bun scripts/release/index.ts app publish
         env:
           PUPITRE_RELEASE_PRIVATE_KEY: ${{ secrets.PUPITRE_RELEASE_PRIVATE_KEY }}
           PUPITRE_PUBLISH_TOKEN: ${{ secrets.PUPITRE_PUBLISH_TOKEN }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
 
-      - name: Upload the published artefacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: pupitre-${{ needs.agent.outputs.version }}
-          path: artefacts
-          retention-days: 30
-          if-no-files-found: error
+      # The release is done when what a customer downloads is there: the
+      # platform describes the version, the bucket serves every file whole
+      # and the feeds point at it. The report is the run's summary.
+      - name: Verify what a customer downloads
+        run: bun scripts/release/index.ts verify | tee -a "$GITHUB_STEP_SUMMARY"

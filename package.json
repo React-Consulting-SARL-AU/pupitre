@@ -11,6 +11,7 @@
   ],
   "scripts": {
     "dev:prepare": "bun scripts/bootstrap-local.ts",
+    "env": "bun scripts/env-run.ts",
     "dev": "bun run dev:prepare && turbo run dev dev:stripe dev:tunnel --filter=@pupitre/site --filter=@pupitre/web",
     "dev:site": "bun run dev:prepare && turbo run dev --filter=@pupitre/site",
     "dev:web": "bun run dev:prepare && turbo run dev dev:stripe dev:tunnel --filter=@pupitre/web",
@@ -26,16 +27,16 @@
     "check:prisma-client": "bun scripts/check-prisma-client-freshness.ts",
     "check:secrets": "bun scripts/check-worker-secrets.ts",
     "workflows:run": "bun scripts/run-workflow.ts",
+    "release": "bun scripts/release/index.ts",
     "test": "bun run test:root && turbo run test",
     "test:root": "bun test scripts",
     "test:affected": "turbo run test --affected",
     "contracts:export": "bun --cwd=packages/shared run contracts:export",
     "contracts:check": "bun --cwd=packages/shared run contracts:check",
     "db:generate": "turbo run db:generate --filter=@pupitre/db",
-    "db:migrate": "turbo run db:migrate --filter=@pupitre/db",
-    "db:migrate:deploy": "turbo run db:migrate:deploy --filter=@pupitre/db",
-    "db:migrate:reset": "turbo run db:migrate:reset --filter=@pupitre/db",
-    "db:studio": "turbo run db:studio --filter=@pupitre/db",
+    "db:migrate": "bun --cwd=packages/db run db:migrate",
+    "db:migrate:new": "bun --cwd=packages/db run db:migrate:new",
+    "db:reset": "bun --cwd=packages/db run db:reset",
     "prepare": "husky",
     "commitlint": "commitlint --edit",
     "dev:stripe": "bun run dev:prepare && turbo run dev:stripe --filter=@pupitre/web"
@@ -52,7 +53,7 @@
     "turbo": "^2.10.11",
     "typescript": "^6.0.3",
     "ultracite": "7.8.3",
-    "wrangler": "^4.125.0"
+    "wrangler": "^4.131.1"
   },
   "trustedDependencies": [
     "@parcel/watcher",

@@ -4,6 +4,8 @@ import {
   type WorkflowStep,
 } from "cloudflare:workers"
 import { handleApiRequest } from "@pupitre/api/server"
+import { createD1PrismaClient } from "@pupitre/db/d1"
+import { withPrismaClient } from "@pupitre/db/scope"
 import serverEntry from "@tanstack/react-start/server-entry"
 import { API_PREFIX } from "./lib/config/urls"
 import { runDecommissionServer } from "./workflows/decommission-server"
@@ -14,40 +16,45 @@ import {
   INTERNAL_WORKFLOW_PREFIX,
 } from "./workflows/internal-trigger"
 import { runReconcileSeats } from "./workflows/reconcile-seats"
-import { runScheduledWorkflow } from "./workflows/schedule"
+import { runScheduledWorkflows } from "./workflows/schedule"
 import { runSuspendExpiredGrace } from "./workflows/suspend-expired-grace"
 
 type CronEvent = Readonly<WorkflowEvent<unknown>>
+
+/** Everything below reads the database of the request: a client on the D1 binding, for the span of one run. */
+function withDatabase<T>(env: CloudflareEnv, run: () => T | Promise<T>) {
+  return withPrismaClient(createD1PrismaClient(env.DB), run)
+}
 
 // Cloudflare resolves a workflow binding against a class exported by the
 // worker entry: these shells cannot move into `workflows/`.
 export class ExpireEnrollments extends WorkflowEntrypoint<CloudflareEnv> {
   override run(_event: CronEvent, step: WorkflowStep) {
-    return runExpireEnrollments(step)
+    return withDatabase(this.env, () => runExpireEnrollments(step))
   }
 }
 
 export class DecommissionServer extends WorkflowEntrypoint<CloudflareEnv> {
   override run(_event: CronEvent, step: WorkflowStep) {
-    return runDecommissionServer(step)
+    return withDatabase(this.env, () => runDecommissionServer(step))
   }
 }
 
 export class ReconcileSeats extends WorkflowEntrypoint<CloudflareEnv> {
   override run(_event: CronEvent, step: WorkflowStep) {
-    return runReconcileSeats(step)
+    return withDatabase(this.env, () => runReconcileSeats(step))
   }
 }
 
 export class EvaluateAlerts extends WorkflowEntrypoint<CloudflareEnv> {
   override run(_event: CronEvent, step: WorkflowStep) {
-    return runEvaluateAlerts(step)
+    return withDatabase(this.env, () => runEvaluateAlerts(step))
   }
 }
 
 export class SuspendExpiredGrace extends WorkflowEntrypoint<CloudflareEnv> {
   override run(_event: CronEvent, step: WorkflowStep) {
-    return runSuspendExpiredGrace(step)
+    return withDatabase(this.env, () => runSuspendExpiredGrace(step))
   }
 }
 
@@ -67,10 +74,10 @@ export default {
   fetch(request: Request, env: CloudflareEnv) {
     const { pathname } = new URL(request.url)
 
-    return route(request, env, pathname)
+    return withDatabase(env, () => route(request, env, pathname))
   },
 
   async scheduled(controller: ScheduledController, env: CloudflareEnv) {
-    await runScheduledWorkflow(controller.cron, env)
+    await runScheduledWorkflows(controller.cron, env)
   },
 } satisfies ExportedHandler<CloudflareEnv>

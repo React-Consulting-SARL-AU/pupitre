@@ -1,5 +1,5 @@
 import { Prisma, type PrismaClient } from "@pupitre/db/cloudflare/client"
-import { neonPrismaClient } from "@pupitre/db/neon"
+import { scopedPrismaClient } from "@pupitre/db/scope"
 
 export type ApiPrisma = PrismaClient
 
@@ -9,8 +9,9 @@ export function configurePrisma(client: ApiPrisma): void {
   configured = client
 }
 
+/** The test's client when one is configured; otherwise the request's, set by the Worker. */
 export function getPrisma(): ApiPrisma {
-  return configured ?? neonPrismaClient()
+  return configured ?? scopedPrismaClient()
 }
 
 export type Serialized<T> = T extends Date | bigint | Prisma.Decimal

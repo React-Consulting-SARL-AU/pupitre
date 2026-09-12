@@ -29,7 +29,7 @@ import { fakeAgent } from "./fixtures/fake-agent";
 import { memorySealer } from "./fixtures/fake-platform";
 
 /**
- * The account against the platform's own API, booted on PGlite.
+ * The account against the platform's own API, booted on SQLite.
  *
  * Nothing here reaches a remote service: `@pupitre/api/testing` is the same
  * Elysia app the console mounts. What it proves is the enrolment round trip —

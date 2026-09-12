@@ -1,6 +1,46 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "ppt-site",
+  "main": "worker/index.ts",
   "compatibility_date": "2026-06-19",
-  "pages_build_output_dir": "dist"
+  "workers_dev": false,
+  "preview_urls": false,
+  // `_headers` and `_redirects` in `dist/` are read by the assets layer; the
+  // script in front only sends `www` to the apex, which that layer cannot.
+  "assets": {
+    "directory": "dist",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  },
+  "env": {
+    "staging": {
+      "workers_dev": false,
+      "preview_urls": false,
+      "assets": {
+        "directory": "dist",
+        "binding": "ASSETS",
+        "run_worker_first": true,
+        "html_handling": "auto-trailing-slash",
+        "not_found_handling": "404-page"
+      },
+      "routes": [{ "pattern": "staging.pupitre.studio", "custom_domain": true }]
+    },
+    "production": {
+      "workers_dev": false,
+      "preview_urls": false,
+      "assets": {
+        "directory": "dist",
+        "binding": "ASSETS",
+        "run_worker_first": true,
+        "html_handling": "auto-trailing-slash",
+        "not_found_handling": "404-page"
+      },
+      "routes": [
+        { "pattern": "pupitre.studio", "custom_domain": true },
+        { "pattern": "www.pupitre.studio", "custom_domain": true }
+      ]
+    }
+  }
 }

@@ -486,7 +486,6 @@ export type DeviceCreateOrConnectWithoutUserInput = {
 
 export type DeviceCreateManyUserInputEnvelope = {
   data: Prisma.DeviceCreateManyUserInput | Prisma.DeviceCreateManyUserInput[]
-  skipDuplicates?: boolean
 }
 
 export type DeviceUpsertWithWhereUniqueWithoutUserInput = {
@@ -1460,7 +1459,6 @@ export type DeviceCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * The data used to create many Devices.
    */
   data: Prisma.DeviceCreateManyInput | Prisma.DeviceCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -1479,7 +1477,6 @@ export type DeviceCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensio
    * The data used to create many Devices.
    */
   data: Prisma.DeviceCreateManyInput | Prisma.DeviceCreateManyInput[]
-  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

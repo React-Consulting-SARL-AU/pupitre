@@ -4,7 +4,7 @@
 
 ## Stack imposée
 
-Astro 5 statique sur Cloudflare Pages · Tailwind 4 sur `@pupitre/design` · MDX pour docs, blog, changelog, légal · i18n par dossier, anglais en `/`, français en `/fr` · pas de framework client hors îlots ciblés · images AVIF et WebP à quatre largeurs avec dimensions intrinsèques.
+Astro 5 statique, servi par un Worker Cloudflare à assets statiques (`wrangler.jsonc`, un Worker par environnement, `worker/index.ts` ne fait que renvoyer `www` vers l'apex) · Tailwind 4 sur `@pupitre/design` · MDX pour docs, blog, changelog, légal · i18n par dossier, anglais en `/`, français en `/fr` · pas de framework client hors îlots ciblés · images AVIF et WebP à quatre largeurs avec dimensions intrinsèques.
 
 **Banned** : bibliothèques de composants, animations de fond, illustrations, icônes décoratives, couleurs en dur, toute chaîne en dur hors `src/content`.
 
@@ -28,7 +28,8 @@ src/components/  Nav · Footer · Hero · Steps · Section · PageHeader · Card
 src/lib/         releases.ts · docs.ts · docs-entries.ts · og.ts · og-pages.ts · feeds.ts · platform.ts · analytics.ts · i18n.ts · theme.ts · seo.ts · structured-data.ts
 src/assets/fonts Bricolage et JetBrains Mono, lues au build pour les images Open Graph seulement
 scripts/         check-content.ts (parité, mots interdits) · legal.ts (garde des TODO légaux, intégration Astro) · redirects.ts (chaque page de premier niveau a sa redirection)
-public/          robots.txt · _headers · _redirects · favicons
+worker/          index.ts — `www` → apex, puis les assets ; rien d'autre
+public/          robots.txt · _headers · _redirects · favicons et manifeste, copiés du kit `bun --cwd=packages/design run brand`
 ```
 
 Le design vit dans `src/styles/global.css` : des `@utility` Tailwind 4 posées sur les tokens de `@pupitre/design` (`shell`, `card`, `card-link`, `eyebrow`, `tag`, `mark-dot`, `prose`, `display-1`…). Un composant n'écrit jamais une valeur de couleur, de rayon ou d'ombre.
@@ -48,6 +49,10 @@ Les collections de contenu ne se chargent pas dans le conteneur Astro de Vitest 
 ```bash
 bun run dev
 bun run build
+bun run build:staging       # PUBLIC_RELEASES_URL du staging
+bun run build:production    # PUPITRE_ENV=production : le garde légal refuse un TODO
+bun run deploy:staging      # wrangler deploy --env staging → staging.pupitre.studio
+bun run deploy:production   # → pupitre.studio et www
 bun run test
 bun run check:content     # parité, mots interdits, TODO légaux
 ```

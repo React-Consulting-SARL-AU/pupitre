@@ -22,7 +22,7 @@ import { renderSshConfig, type SshPaths, sshArgs } from "../ssh-config";
 import { memorySealer } from "./fixtures/fake-platform";
 
 /**
- * The invited member, against the platform's own API booted on PGlite.
+ * The invited member, against the platform's own API booted on SQLite.
  *
  * The shared fleet, played end to end: an admin is
  * given a server, assigns it to someone else, and that someone opens it from

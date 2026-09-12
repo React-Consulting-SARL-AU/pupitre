@@ -576,7 +576,6 @@ export type PasskeyCreateOrConnectWithoutUserInput = {
 
 export type PasskeyCreateManyUserInputEnvelope = {
   data: Prisma.PasskeyCreateManyUserInput | Prisma.PasskeyCreateManyUserInput[]
-  skipDuplicates?: boolean
 }
 
 export type PasskeyUpsertWithWhereUniqueWithoutUserInput = {
@@ -1422,7 +1421,6 @@ export type PasskeyCreateManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * The data used to create many Passkeys.
    */
   data: Prisma.PasskeyCreateManyInput | Prisma.PasskeyCreateManyInput[]
-  skipDuplicates?: boolean
 }
 
 /**
@@ -1441,7 +1439,6 @@ export type PasskeyCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensi
    * The data used to create many Passkeys.
    */
   data: Prisma.PasskeyCreateManyInput | Prisma.PasskeyCreateManyInput[]
-  skipDuplicates?: boolean
   /**
    * Choose, which related nodes to fetch as well
    */

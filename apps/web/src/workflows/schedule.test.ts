@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test"
 import { WORKFLOW_BINDINGS, WORKFLOW_CRONS } from "./registry"
-import { runScheduledWorkflow } from "./schedule"
+import { runScheduledWorkflows } from "./schedule"
 
 function envRecording(started: string[]): CloudflareEnv {
   const workflow = (name: string) => ({
@@ -21,27 +21,26 @@ function envRecording(started: string[]): CloudflareEnv {
 }
 
 describe("les cron triggers", () => {
-  it("couvrent chaque workflow une fois", () => {
-    const scheduled: string[] = [...Object.values(WORKFLOW_CRONS)]
+  it("couvrent chaque workflow une fois, en deux réveils", () => {
+    const scheduled: string[] = Object.values(WORKFLOW_CRONS).flat()
 
     expect(scheduled.sort()).toEqual(Object.keys(WORKFLOW_BINDINGS).sort())
+    expect(Object.keys(WORKFLOW_CRONS)).toHaveLength(2)
   })
 
-  it("démarre l'horaire toutes les heures", async () => {
+  it("démarre les horaires ensemble, toutes les heures", async () => {
     const started: string[] = []
 
-    await runScheduledWorkflow("0 * * * *", envRecording(started))
-
-    expect(started).toEqual(["expire-enrollments"])
+    expect(
+      await runScheduledWorkflows("0 * * * *", envRecording(started))
+    ).toEqual(["instance-expire-enrollments", "instance-evaluate-alerts"])
+    expect(started).toEqual(["expire-enrollments", "evaluate-alerts"])
   })
 
-  it("démarre les quotidiens une fois par jour", async () => {
+  it("démarre les quotidiens ensemble, une fois par jour", async () => {
     const started: string[] = []
-    const env = envRecording(started)
 
-    await runScheduledWorkflow("20 3 * * *", env)
-    await runScheduledWorkflow("40 3 * * *", env)
-    await runScheduledWorkflow("7 4 * * *", env)
+    await runScheduledWorkflows("20 3 * * *", envRecording(started))
 
     expect(started).toEqual([
       "decommission-server",
@@ -50,20 +49,12 @@ describe("les cron triggers", () => {
     ])
   })
 
-  it("démarre l'évaluation des alertes toutes les cinq minutes", async () => {
-    const started: string[] = []
-
-    await runScheduledWorkflow("*/5 * * * *", envRecording(started))
-
-    expect(started).toEqual(["evaluate-alerts"])
-  })
-
   it("ne démarre rien sur un cron inconnu", async () => {
     const started: string[] = []
 
     expect(
-      await runScheduledWorkflow("* * * * *", envRecording(started))
-    ).toBeNull()
+      await runScheduledWorkflows("* * * * *", envRecording(started))
+    ).toEqual([])
     expect(started).toEqual([])
   })
 })

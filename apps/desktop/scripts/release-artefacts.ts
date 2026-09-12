@@ -36,6 +36,7 @@ const FORMATS: Record<string, DesktopSystem> = {
 const ARCHITECTURES: Record<string, DesktopArchitecture> = {
   x64: "x64",
   amd64: "x64",
+  x86_64: "x64",
   arm64: "arm64",
   aarch64: "arm64",
   universal: "universal",

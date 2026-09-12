@@ -6,7 +6,7 @@ La plateforme : console, API et authentification. Monorepo → [`../../CLAUDE.md
 
 ## Stack imposée
 
-TanStack Start (React 19) sur Cloudflare Workers via le plugin Vite · TS strict (`tsgo --noEmit`) · Elysia sur `/api/v1` + Eden Treaty (`@pupitre/api`) · Better Auth (`@pupitre/auth`) · Neon + Prisma 7 (`@pupitre/db`) · R2 pour les binaires · Cloudflare Email · Workflows pour les tâches longues · Stripe Managed Payments par Checkout et Payment Links uniquement.
+TanStack Start (React 19) sur Cloudflare Workers via le plugin Vite · TS strict (`tsgo --noEmit`) · Elysia sur `/api/v1` + Eden Treaty (`@pupitre/api`) · Better Auth (`@pupitre/auth`) · Cloudflare D1 + Prisma 7 (`@pupitre/db`) · R2 pour les binaires · Cloudflare Email · Workflows pour les tâches longues · Stripe Managed Payments par Checkout et Payment Links uniquement.
 
 **Ne pas dévier :**
 - UI : Tailwind 4 sur `@pupitre/design` + Base UI + shadcn/ui. Prop `render`, jamais `asChild`. Jamais Radix.
@@ -44,9 +44,9 @@ packages/auth/   createAuth, plugins, clients web et desktop
 
 ## Tests
 
-Intégration Elysia sur le harnais PGlite (`@pupitre/api/testing`) pour auth, guards, enrôlement, webhooks. Playwright dans `e2e/` pour connexion, device flow, serveurs, facturation en mode test. Assertions dans `it()`, pas de `.only` committé.
+Intégration Elysia sur le harnais SQLite (`@pupitre/api/testing`, les mêmes migrations que D1) pour auth, guards, enrôlement, webhooks. Playwright dans `e2e/` pour connexion, device flow, serveurs, facturation en mode test. Assertions dans `it()`, pas de `.only` committé.
 
-`test:e2e` sert tout depuis une seule origine locale : `e2e/harness/server.ts` répond aux appels `/api/v1` et `/api/auth` depuis le harnais PGlite et proxie le reste vers le serveur Vite. Aucune base ni aucun service distant.
+`test:e2e` sert tout depuis une seule origine locale : `e2e/harness/server.ts` répond aux appels `/api/v1` et `/api/auth` depuis le harnais SQLite et proxie le reste vers le serveur Vite. Aucune base ni aucun service distant.
 
 ## Commandes
 
@@ -55,6 +55,6 @@ bun run dev
 bun run build:cloudflare
 bun run test
 bun run test:e2e
-bun run db:migrate
+bun run db:migrate local
 bun run openapi:export
 ```

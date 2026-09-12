@@ -86,15 +86,18 @@ export async function findMemberUserIdByEmail(
   organizationId: string,
   email: string
 ): Promise<string | null> {
-  const member = await withOrganization(
+  const wanted = email.trim().toLowerCase()
+  const members = await withOrganization(
     getPrisma(),
     organizationId
-  ).member.findFirst({
-    where: { user: { email: { equals: email, mode: "insensitive" } } },
-    select: { userId: true },
+  ).member.findMany({
+    select: { userId: true, user: { select: { email: true } } },
   })
 
-  return member?.userId ?? null
+  return (
+    members.find((member) => member.user.email.toLowerCase() === wanted)
+      ?.userId ?? null
+  )
 }
 
 export async function createInvitation(

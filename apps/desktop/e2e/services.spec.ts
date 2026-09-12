@@ -151,6 +151,10 @@ test.describe("services", () => {
       await expect(
         page.getByRole("heading", { name: "PostgreSQL" })
       ).toBeVisible();
+      // The copy button fades in from its disabled shade once the journal answers; measured mid-fade it reads grey.
+      await expect(
+        page.getByTitle("Copier le journal de PostgreSQL")
+      ).toBeEnabled();
       await assertAccessible(page, "services/panel");
     });
   });

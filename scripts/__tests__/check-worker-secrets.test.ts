@@ -111,7 +111,7 @@ describe("the required secrets of an environment", () => {
     const config = readWranglerConfig(WEB_CONFIG)
 
     expect(environmentSecrets(config, "staging").required).toContain(
-      "DATABASE_URL"
+      "STRIPE_WEBHOOK_SECRET"
     )
     expect(environmentSecrets(config, "production").required).toContain(
       "R2_BUCKET_NAME"

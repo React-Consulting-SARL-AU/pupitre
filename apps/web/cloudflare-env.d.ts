@@ -2,6 +2,7 @@
 
 interface CloudflareEnv {
   ASSETS: Fetcher
+  DB: D1Database
   DECOMMISSION_SERVER: Workflow
   EVALUATE_ALERTS: Workflow
   EXPIRE_ENROLLMENTS: Workflow
@@ -9,7 +10,6 @@ interface CloudflareEnv {
   SUSPEND_EXPIRED_GRACE: Workflow
   BETTER_AUTH_SECRET?: string
   BETTER_AUTH_URL?: string
-  DATABASE_URL?: string
   EMAIL_FROM?: string
   INTERNAL_WORKFLOW_SECRET?: string
   PUPITRE_ENVIRONMENT?: string

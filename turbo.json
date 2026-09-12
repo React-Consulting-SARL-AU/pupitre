@@ -13,8 +13,6 @@
     "BETTER_AUTH_SECRET",
     "BETTER_AUTH_URL",
     "CLOUDFLARE_ENV",
-    "DATABASE_URL",
-    "MIGRATE_DATABASE_URL",
     "GITHUB_CLIENT_ID",
     "GITHUB_CLIENT_SECRET",
     "GOOGLE_CLIENT_ID",
@@ -53,7 +51,6 @@
     "build:cloudflare": {
       "cache": false,
       "dependsOn": ["^build"],
-      "passThroughEnv": ["DATABASE_URL"],
       "outputs": ["dist/**", ".wrangler/dry-run/**"]
     },
     "@pupitre/agent#build": {
@@ -72,23 +69,7 @@
       "outputs": []
     },
     "db:generate": {
-      "cache": false,
-      "passThroughEnv": ["DATABASE_URL"]
-    },
-    "db:migrate": {
-      "cache": false,
-      "passThroughEnv": ["PUPITRE_ALLOW_MIGRATE_ON"]
-    },
-    "db:migrate:deploy": {
       "cache": false
-    },
-    "db:migrate:reset": {
-      "cache": false,
-      "passThroughEnv": ["PUPITRE_ALLOW_MIGRATE_ON"]
-    },
-    "db:studio": {
-      "cache": false,
-      "persistent": true
     },
     "dev": {
       "cache": false,
