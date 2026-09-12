@@ -35,16 +35,16 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "5.20260708.1",
+    "@cloudflare/workers-types": "5.20260908.1",
     "@electric-sql/pglite": "^0.5.8",
     "@electric-sql/pglite-socket": "^0.2.11",
     "@prisma/adapter-pg": "^7.10.0",
-    "@types/bun": "^1.4.0",
-    "@types/node": "^26.2.0",
+    "@types/bun": "^1.4.2",
+    "@types/node": "^26.5.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@typescript/native-preview": "^7.0.0-dev.20260707.2",
-    "typescript": "^6.0.3",
-    "ultracite": "7.8.3"
+    "typescript": "^7.0.2",
+    "ultracite": "7.11.0"
   }
 }
