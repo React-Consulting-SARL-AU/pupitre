@@ -14,9 +14,9 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-while IFS= read -r line; do
-  export "$line"
-done < <(grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl)
+# Nothing here reads the release settings: they stay out of the environment,
+# where the pre-push hook's tests would otherwise find them.
+platform=$(grep -E '^PUPITRE_PLATFORM_URL=' scripts/release/release.env.tpl | cut -d= -f2-)
 
 step() {
   bun scripts/release/index.ts "$@"
@@ -31,7 +31,7 @@ test -z "$(git status --porcelain --untracked-files=no -- . ':!apps/desktop/pack
 
 step next "$@"
 eval "$(step resolve | sed 's/^/export /')"
-echo "release $PUPITRE_RELEASE_VERSION in $PUPITRE_RELEASE_CHANNEL to $PUPITRE_PLATFORM_URL"
+echo "release $PUPITRE_RELEASE_VERSION in $PUPITRE_RELEASE_CHANNEL to $platform"
 
 if ! step check >/dev/null 2>&1; then
   step notes
