@@ -52,3 +52,9 @@ test-results/
 *.keep
 *.orig
 *.bak
+
+# The Prisma CLI drops its own agent skills next to the schema when it runs.
+packages/db/.agents/
+packages/db/.claude/
+packages/db/.windsurf/
+packages/db/skills-lock.json

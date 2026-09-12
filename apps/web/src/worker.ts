@@ -14,7 +14,7 @@ import {
   INTERNAL_WORKFLOW_PREFIX,
 } from "./workflows/internal-trigger"
 import { runReconcileSeats } from "./workflows/reconcile-seats"
-import { runScheduledWorkflow } from "./workflows/schedule"
+import { runScheduledWorkflows } from "./workflows/schedule"
 import { runSuspendExpiredGrace } from "./workflows/suspend-expired-grace"
 
 type CronEvent = Readonly<WorkflowEvent<unknown>>
@@ -71,6 +71,6 @@ export default {
   },
 
   async scheduled(controller: ScheduledController, env: CloudflareEnv) {
-    await runScheduledWorkflow(controller.cron, env)
+    await runScheduledWorkflows(controller.cron, env)
   },
 } satisfies ExportedHandler<CloudflareEnv>

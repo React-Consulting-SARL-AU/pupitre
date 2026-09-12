@@ -8,20 +8,27 @@ export const WORKFLOW_BINDINGS = {
 
 export type WorkflowName = keyof typeof WORKFLOW_BINDINGS
 
+/**
+ * One cron starts several workflows: the database wakes once for the hour's
+ * work and once for the day's, and sleeps the rest of the time. An
+ * unreachable server is one without a heartbeat for thirty minutes, and an
+ * alert an hour later is the same alert.
+ */
 export const WORKFLOW_CRONS = {
-  "0 * * * *": "expire-enrollments",
-  "20 3 * * *": "decommission-server",
-  "40 3 * * *": "reconcile-seats",
-  "*/15 * * * *": "evaluate-alerts",
-  "7 4 * * *": "suspend-expired-grace",
-} as const satisfies Record<string, WorkflowName>
+  "0 * * * *": ["expire-enrollments", "evaluate-alerts"],
+  "20 3 * * *": [
+    "decommission-server",
+    "reconcile-seats",
+    "suspend-expired-grace",
+  ],
+} as const satisfies Record<string, readonly WorkflowName[]>
 
 export function workflowNamed(value: string): WorkflowName | null {
   return value in WORKFLOW_BINDINGS ? (value as WorkflowName) : null
 }
 
-export function workflowScheduledAt(cron: string): WorkflowName | null {
-  return WORKFLOW_CRONS[cron as keyof typeof WORKFLOW_CRONS] ?? null
+export function workflowsScheduledAt(cron: string): readonly WorkflowName[] {
+  return WORKFLOW_CRONS[cron as keyof typeof WORKFLOW_CRONS] ?? []
 }
 
 export async function startWorkflow(
