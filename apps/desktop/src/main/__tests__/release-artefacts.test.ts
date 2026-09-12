@@ -38,6 +38,14 @@ describe("artefactOf", () => {
     });
   });
 
+  it("traduit l'architecture qu'electron-builder donne à une AppImage", () => {
+    expect(artefactOf("Pupitre-1.4.0-x86_64.AppImage")).toMatchObject({
+      arch: "x64",
+      format: "AppImage",
+      os: "linux",
+    });
+  });
+
   it("ne publie ni un flux, ni une carte de blocs, ni un nom muet", () => {
     expect(artefactOf("latest-mac.yml")).toBeNull();
     expect(artefactOf("Pupitre-1.4.0-arm64.dmg.blockmap")).toBeNull();
