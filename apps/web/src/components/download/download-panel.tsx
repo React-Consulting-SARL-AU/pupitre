@@ -76,7 +76,7 @@ export function DownloadPanel() {
         <ul>
           {offers.map((offer) => (
             <DownloadOfferRow
-              key={`${offer.os}-${offer.arch ?? "none"}`}
+              key={`${offer.os}-${offer.arch ?? "none"}-${offer.format}`}
               offer={offer}
               suggested={offer.os === suggested}
             />

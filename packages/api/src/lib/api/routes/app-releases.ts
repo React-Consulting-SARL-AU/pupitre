@@ -15,6 +15,7 @@ import { serializeData } from "../prisma"
 import { PUBLIC_RELEASES_RATE_LIMIT } from "../rate-limit"
 import {
   appReleaseBuildParams,
+  appReleaseBuildQuery,
   appReleaseListQuery,
   appReleaseSchema,
   appReleaseVersionParams,
@@ -137,11 +138,12 @@ export const appReleasesRoutes = new Elysia({
    */
   .get(
     "/releases/app/:version/:os/:arch",
-    async ({ params, request, set }) => {
+    async ({ params, query, request, set }) => {
       const build = await findAppReleaseBuild(
         params.version,
         params.os,
-        params.arch
+        params.arch,
+        query.format
       )
 
       if (!build) {
@@ -165,6 +167,7 @@ export const appReleasesRoutes = new Elysia({
     },
     {
       params: appReleaseBuildParams,
+      query: appReleaseBuildQuery,
       detail: { summary: "Télécharger un artefact de l'app" },
       response: {
         303: t.String(),

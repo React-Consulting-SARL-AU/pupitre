@@ -281,7 +281,7 @@ export type AppReleaseOrderByWithRelationInput = {
 }
 
 export type AppReleaseWhereUniqueInput = Prisma.AtLeast<{
-  version_os_arch?: Prisma.AppReleaseVersionOsArchCompoundUniqueInput
+  version_os_arch_format?: Prisma.AppReleaseVersionOsArchFormatCompoundUniqueInput
   AND?: Prisma.AppReleaseWhereInput | Prisma.AppReleaseWhereInput[]
   OR?: Prisma.AppReleaseWhereInput[]
   NOT?: Prisma.AppReleaseWhereInput | Prisma.AppReleaseWhereInput[]
@@ -296,7 +296,7 @@ export type AppReleaseWhereUniqueInput = Prisma.AtLeast<{
   notes?: Prisma.StringFilter<"AppRelease"> | string
   channel?: Prisma.EnumReleaseChannelFilter<"AppRelease"> | $Enums.ReleaseChannel
   publishedAt?: Prisma.DateTimeFilter<"AppRelease"> | Date | string
-}, "version_os_arch">
+}, "version_os_arch_format">
 
 export type AppReleaseOrderByWithAggregationInput = {
   version?: Prisma.SortOrder
@@ -432,10 +432,11 @@ export type AppReleaseUncheckedUpdateManyInput = {
   publishedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
-export type AppReleaseVersionOsArchCompoundUniqueInput = {
+export type AppReleaseVersionOsArchFormatCompoundUniqueInput = {
   version: string
   os: $Enums.DesktopOs
   arch: string
+  format: string
 }
 
 export type AppReleaseCountOrderByAggregateInput = {

@@ -107,3 +107,7 @@ export const appReleaseBuildParams = t.Object({
   os: desktopSystemSchema,
   arch: desktopArchitectureSchema,
 })
+
+export const appReleaseBuildQuery = t.Object({
+  format: t.Optional(t.String({ minLength: 1, maxLength: 20 })),
+})

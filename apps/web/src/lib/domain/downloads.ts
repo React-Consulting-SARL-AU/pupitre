@@ -63,7 +63,13 @@ export function detectOs(userAgent: string): DesktopSystem | null {
 export interface PublishedBuild {
   os: string
   arch: string
+  format: string
   url: string
+}
+
+/** A system's usual format needs no name; Linux's second one does. */
+const FORMAT_LABELS: Record<string, DictionaryKey> = {
+  deb: "download.format.deb",
 }
 
 export interface PublishedAppRelease {
@@ -98,6 +104,7 @@ export function downloadOffers(
 
     return builds.map<DownloadOffer>((build) => ({
       ...TARGETS[os],
+      format: FORMAT_LABELS[build.format] ?? TARGETS[os].format,
       arch: build.arch,
       url: build.url,
     }))

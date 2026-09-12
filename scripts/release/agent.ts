@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process"
-import { existsSync, mkdirSync, readFileSync } from "node:fs"
+import { chmodSync, existsSync, mkdirSync, readFileSync } from "node:fs"
 import { arch as hostArch, platform as hostPlatform } from "node:os"
 import path from "node:path"
 import { hasFlag, say, variable } from "./cli"
@@ -56,12 +56,17 @@ function binaryPath(arch: string): string {
   return path.join(AGENT_DIST, `pupitred-linux-${arch}`)
 }
 
-/** The host runs what it built when it is that machine — Linux, same architecture — or through Docker. */
+/**
+ * The host runs what it built when it is that machine — Linux, same
+ * architecture. A Mac runs it through Docker. A Linux host of the other
+ * architecture runs nothing: a binary under emulation proves nothing, and
+ * the other architecture has its own runner for that.
+ */
 function runner(arch: string): ((argv: string[]) => string) | null {
   const host = hostArch() === "x64" ? "amd64" : hostArch()
 
-  if (hostPlatform() === "linux" && host === arch) {
-    return (argv) => run(argv, { capture: true })
+  if (hostPlatform() === "linux") {
+    return host === arch ? (argv) => run(argv, { capture: true }) : null
   }
 
   if (spawnSync("docker", ["version"], { stdio: "ignore" }).status !== 0) {
@@ -105,12 +110,12 @@ function smoke(version: string, publicKey: string): void {
     const exec = runner(arch)
 
     if (!exec) {
-      say(
-        `${binary}: not run here (${hostPlatform()}/${hostArch()}, no docker)`
-      )
+      say(`${binary}: not run here (${hostPlatform()}/${hostArch()})`)
 
       continue
     }
+
+    chmodSync(binary, 0o755)
 
     const said = exec([binary, "version"]).trim()
 
@@ -176,12 +181,17 @@ export async function buildAgent(
     }
   }
 
+  smokeAgent(env)
+}
+
+/** The binaries in place, tried on this machine: what it can run, it runs; the rest is another runner's. */
+export function smokeAgent(env: NodeJS.ProcessEnv): void {
   const publicKey = run(["go", "run", "./tools/release", "public-key"], {
     capture: true,
     cwd: AGENT_DIR,
   }).trim()
 
-  smoke(version, publicKey)
+  smoke(variable(env, "version"), publicKey)
 }
 
 export function readAgentPublications(file: string): AgentPublication[] {
@@ -231,10 +241,13 @@ export async function agentCommand(
     case "build":
       await buildAgent(env, dryRun)
       return
+    case "smoke":
+      smokeAgent(env)
+      return
     case "publish":
       await publishAgent(env, dryRun)
       return
     default:
-      throw new Error("usage: release agent <build|publish> [--dry-run]")
+      throw new Error("usage: release agent <build|smoke|publish> [--dry-run]")
   }
 }
