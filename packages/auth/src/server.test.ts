@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test"
 import type { AuthPrisma } from "./prisma"
-import { createAuth, mountedSocialProviders } from "./server"
+import {
+  createAuth,
+  mountedSocialProviders,
+  withoutInteractiveTransactions,
+} from "./server"
 
 const DAY = 60 * 60 * 24
 
@@ -179,5 +183,22 @@ describe("mountedSocialProviders", () => {
     expect(mounted).toEqual(
       Object.keys(auth.options.socialProviders ?? {}).sort()
     )
+  })
+})
+
+describe("withoutInteractiveTransactions", () => {
+  it("hides $transaction from the adapter and leaves every model in reach", () => {
+    const calls: string[] = []
+    const prisma = {
+      $transaction: () => Promise.resolve(),
+      user: { findFirst: () => calls.push("user.findFirst") },
+    }
+
+    const client = withoutInteractiveTransactions(prisma)
+
+    expect(client.$transaction).toBeUndefined()
+    expect(typeof client.$transaction).toBe("undefined")
+    client.user.findFirst()
+    expect(calls).toEqual(["user.findFirst"])
   })
 })

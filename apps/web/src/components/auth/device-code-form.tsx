@@ -174,18 +174,18 @@ function DeviceApproved() {
   }, [])
 
   return (
-    <Callout
-      action={
-        <a
-          className={buttonClassName({ variant: "primary" })}
-          href={APP_RETURN_LINK}
-        >
-          {t("auth.device.openApp")}
-        </a>
-      }
-      data-testid="device-approved"
-      fix={t("auth.device.approvedFix")}
-      title={t("auth.device.approved")}
-    />
+    <div className="flex flex-col gap-4" data-testid="device-approved">
+      <Callout
+        fix={t("auth.device.approvedFix")}
+        title={t("auth.device.approved")}
+        tone="ok"
+      />
+      <a
+        className={buttonClassName({ variant: "primary" })}
+        href={APP_RETURN_LINK}
+      >
+        {t("auth.device.openApp")}
+      </a>
+    </div>
   )
 }

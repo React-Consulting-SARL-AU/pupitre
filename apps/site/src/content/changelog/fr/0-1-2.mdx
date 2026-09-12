@@ -1,0 +1,28 @@
+---
+title: La connexion depuis l’app et les mises à jour passent
+description: L’échange du code d’appareil n’échoue plus sur la plateforme, l’app cherche le flux de mise à jour réellement publié, et deux écrans parlent plus simplement.
+locale: fr
+version: 0.1.2
+channel: stable
+date: 2026-09-12
+order: 3
+---
+
+Deux correctifs sur le chemin entre l’app et la plateforme, et deux formulations corrigées.
+
+## L’app
+
+- La recherche de mises à jour les trouve désormais. L’app demandait un fichier de flux nommé d’après le canal — `stable-mac.yml` — que personne ne publie ; elle lit maintenant `latest-mac.yml` dans le dossier du canal, comme il se doit.
+- Sans compte, les réglages disent ce que cela empêche — aucun serveur ne peut être installé ni mis à jour tant qu’aucun compte n’est connecté — au lieu de décrire ce qu’un build de production refuse.
+
+## La plateforme
+
+- La connexion depuis l’app n’échoue plus à l’échange du code d’appareil. La plateforme répondait à cette étape par une erreur, et l’app n’obtenait jamais sa confirmation.
+
+## La console
+
+- Une fois l’appareil confirmé, le bouton qui vous renvoie dans l’app se place sous le message, sur sa propre ligne, au lieu d’être coincé à côté.
+
+## Limites connues
+
+- Une app déjà installée — 0.1.0 ou 0.1.1 — porte l’ancien nom de flux et ne peut pas trouver cette version seule : installez la 0.1.2 depuis la page de téléchargement. À partir de là, les mises à jour arrivent d’elles-mêmes.

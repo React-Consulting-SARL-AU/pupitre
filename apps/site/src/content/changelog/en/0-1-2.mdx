@@ -1,0 +1,28 @@
+---
+title: Sign-in from the app and updates both go through
+description: The device-code exchange no longer fails on the platform, the app looks for the update feed that is actually published, and two screens say things more plainly.
+locale: en
+version: 0.1.2
+channel: stable
+date: 2026-09-12
+order: 3
+---
+
+Two fixes on the path between the app and the platform, and two wording corrections.
+
+## The app
+
+- Checking for updates now finds them. The app asked for a feed file named after the channel — `stable-mac.yml` — which nobody publishes; it now reads `latest-mac.yml` from the channel folder, as it should.
+- Without an account, the settings say what that prevents — no server can be installed or updated until an account is connected — instead of describing what a production build refuses.
+
+## The platform
+
+- Signing in from the app no longer fails at the device-code exchange. The platform answered that step with an error, so the app never got its confirmation.
+
+## The console
+
+- Once a device is confirmed, the button that sends you back to the app sits below the message, on its own line, instead of being squeezed beside it.
+
+## Known limits
+
+- An app already installed — 0.1.0 or 0.1.1 — carries the old feed name and cannot find this version by itself: install 0.1.2 from the download page. From there on, updates arrive on their own.
