@@ -45,14 +45,12 @@
       "class_name": "SuspendExpiredGrace"
     }
   ],
+  // Two wakes, not five: the hourly workflows start together and the daily ones
+  // together, so the database sleeps between two passes instead of being woken
+  // every quarter of an hour. Which workflows each cron starts is in
+  // src/workflows/registry.ts.
   "triggers": {
-    "crons": [
-      "0 * * * *",
-      "20 3 * * *",
-      "40 3 * * *",
-      "*/15 * * * *",
-      "7 4 * * *"
-    ]
+    "crons": ["0 * * * *", "20 3 * * *"]
   },
   // Valeurs locales du développement : staging et production les remplacent.
   "vars": {
@@ -137,13 +135,7 @@
         }
       ],
       "triggers": {
-        "crons": [
-          "0 * * * *",
-          "20 3 * * *",
-          "40 3 * * *",
-          "*/15 * * * *",
-          "7 4 * * *"
-        ]
+        "crons": ["0 * * * *", "20 3 * * *"]
       },
       "vars": {
         "PUPITRE_ENVIRONMENT": "staging",
@@ -232,13 +224,7 @@
         }
       ],
       "triggers": {
-        "crons": [
-          "0 * * * *",
-          "20 3 * * *",
-          "40 3 * * *",
-          "*/15 * * * *",
-          "7 4 * * *"
-        ]
+        "crons": ["0 * * * *", "20 3 * * *"]
       },
       "vars": {
         "PUPITRE_ENVIRONMENT": "production",
