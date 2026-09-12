@@ -1,0 +1,30 @@
+---
+title: The download page knows your machine
+description: The right installer is offered first, Linux gets its two formats, the console and the site say the project is in development, and the platform no longer sleeps.
+locale: en
+version: 0.1.1
+channel: stable
+date: 2026-09-12
+order: 2
+---
+
+A small version, mostly around getting the app onto your computer.
+
+## The console
+
+- The download page recognises your machine: the system from the browser, the processor when the browser says it — an Apple silicon Mac is offered the arm64 build first, an Intel one the x64 build.
+- Linux is listed twice, as it should be: the AppImage and the `.deb` for the same machine, each named by its format. Before, the second one was refused as a duplicate of the first.
+- The release notes of a version are rendered as text, not shown as raw Markdown.
+- When no stable version exists yet, the page offers the beta and says so.
+- After confirming a device from the console, the page sends you back to the app.
+- A banner on every page says that Pupitre is under development and that nothing is open to the public yet. The site carries the same banner.
+
+## The app
+
+- The sign-in screen no longer repeats that an account is needed.
+- A platform answer that is not what the app expected is reported with its status, instead of a generic failure.
+
+## The platform
+
+- The database no longer sleeps between two requests: the first request after a quiet period answers as fast as the others.
+- Versions now go out on the stable channel directly. The beta channel still exists, but nothing is published there.
