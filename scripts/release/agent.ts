@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process"
-import { existsSync, mkdirSync, readFileSync } from "node:fs"
+import { chmodSync, existsSync, mkdirSync, readFileSync } from "node:fs"
 import { arch as hostArch, platform as hostPlatform } from "node:os"
 import path from "node:path"
 import { hasFlag, say, variable } from "./cli"
@@ -110,12 +110,12 @@ function smoke(version: string, publicKey: string): void {
     const exec = runner(arch)
 
     if (!exec) {
-      say(
-        `${binary}: not run here (${hostPlatform()}/${hostArch()}, no docker)`
-      )
+      say(`${binary}: not run here (${hostPlatform()}/${hostArch()})`)
 
       continue
     }
+
+    chmodSync(binary, 0o755)
 
     const said = exec([binary, "version"]).trim()
 
