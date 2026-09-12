@@ -49,10 +49,8 @@ Les collections de contenu ne se chargent pas dans le conteneur Astro de Vitest 
 ```bash
 bun run dev
 bun run build
-bun run build:staging       # PUBLIC_RELEASES_URL du staging
-bun run build:production    # PUPITRE_ENV=production : le garde légal refuse un TODO
-bun run deploy:staging      # wrangler deploy --env staging → staging.pupitre.studio
-bun run deploy:production   # → pupitre.studio et www
+bun run build:production    # PUPITRE_ENV=production : le garde légal refuse un TODO, PUBLIC_RELEASES_URL de la console
+bun run deploy:production   # wrangler deploy --env production → pupitre.studio et www
 bun run test
 bun run check:content     # parité, mots interdits, TODO légaux
 ```

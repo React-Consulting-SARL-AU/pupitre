@@ -74,13 +74,10 @@ describe("the wrangler configuration is read as JSONC", () => {
     expect(config.vars?.URL).toBe("https://a.b//c")
   })
 
-  test("the shipped configuration declares both environments", () => {
+  test("the shipped configuration declares production and nothing else", () => {
     const config = readWranglerConfig(WEB_CONFIG)
 
-    expect(Object.keys(config.env ?? {}).sort()).toEqual([
-      "production",
-      "staging",
-    ])
+    expect(Object.keys(config.env ?? {})).toEqual(["production"])
   })
 })
 
@@ -107,15 +104,14 @@ describe("the required secrets of an environment", () => {
     )
   })
 
-  test("each shipped environment carries its own domain secrets", () => {
-    const config = readWranglerConfig(WEB_CONFIG)
+  test("the shipped production carries its domain secrets", () => {
+    const required = environmentSecrets(
+      readWranglerConfig(WEB_CONFIG),
+      "production"
+    ).required
 
-    expect(environmentSecrets(config, "staging").required).toContain(
-      "STRIPE_WEBHOOK_SECRET"
-    )
-    expect(environmentSecrets(config, "production").required).toContain(
-      "R2_BUCKET_NAME"
-    )
+    expect(required).toContain("STRIPE_WEBHOOK_SECRET")
+    expect(required).toContain("R2_BUCKET_NAME")
   })
 })
 
@@ -170,15 +166,15 @@ describe("the report names what is wrong", () => {
 describe("command line", () => {
   test("a missing secret refuses the deployment and names it", () => {
     const config = readWranglerConfig(WEB_CONFIG)
-    const required = environmentSecrets(config, "staging").required
+    const required = environmentSecrets(config, "production").required
     const withoutOne = required.filter((name) => name !== "R2_BUCKET_NAME")
 
-    const result = run(["staging"], withoutOne.join(","))
+    const result = run(["production"], withoutOne.join(","))
 
     expect(result.status).toBe(1)
     expect(result.stderr).toContain("Deployment refused")
     expect(result.stderr).toContain("R2_BUCKET_NAME")
-    expect(result.stderr).toContain("ppt-web-staging")
+    expect(result.stderr).toContain("ppt-web-production")
   })
 
   test("every missing secret is named", () => {
@@ -217,10 +213,14 @@ describe("command line", () => {
   })
 
   test("a list of bound secrets can be read from a file", () => {
-    const result = spawnSync("bun", [SCRIPT, "staging", "--bound-from", "-"], {
-      encoding: "utf8",
-      input: "DATABASE_URL",
-    })
+    const result = spawnSync(
+      "bun",
+      [SCRIPT, "production", "--bound-from", "-"],
+      {
+        encoding: "utf8",
+        input: "DATABASE_URL",
+      }
+    )
 
     expect(result.status).toBe(1)
     expect(result.stderr).toContain("BETTER_AUTH_SECRET")

@@ -9,7 +9,7 @@ Pupitre est un monorepo Bun. Trois surfaces et un agent : l'app desktop qui pilo
 | `apps/desktop` | Electron 42, React 19, node-pty, `ssh` système | Onboarding d'un serveur, catalogue de services, projets, terminaux, agents, compte |
 | `apps/agent` | Go, binaire statique, systemd | Sonde, modules d'installation, registre des projets, pilotage tmux, clés, heartbeat, mise à jour |
 | `apps/web` | TanStack Start sur Cloudflare Workers | Console `app.pupitre.studio`, montage de `/api/v1` (Elysia) et `/api/auth` (Better Auth), emails, Workflows |
-| `apps/site` | Astro sur Cloudflare Pages | `pupitre.studio` : marketing, docs publiques, blog, légal, téléchargement |
+| `apps/site` | Astro sur un Worker Cloudflare à assets statiques | `pupitre.studio` : marketing, docs publiques, blog, légal, téléchargement |
 | `packages/api` | Elysia + Eden | Contrat `/api/v1`, client typé, harnais de test API/DB |
 | `packages/auth` | Better Auth | `createAuth` et ses plugins, clients web et desktop |
 | `packages/db` | Prisma 7 + Cloudflare D1 | Schéma, migrations SQL, clients Bun et Cloudflare |
@@ -64,7 +64,7 @@ Prisma 7 sur l'adaptateur Cloudflare D1, une base par environnement, liée au Wo
 
 ## Site
 
-`apps/site` est un Astro statique déployé sur Cloudflare Pages : accueil, tarifs, docs publiques en MDX, blog, changelog, légal, téléchargement lisant les releases, `llms.txt`. Anglais par défaut, français en `/fr`. Mêmes tokens que la console.
+`apps/site` est un Astro statique déployé sur un Worker Cloudflare à assets statiques : accueil, tarifs, docs publiques en MDX, blog, changelog, légal, téléchargement lisant les releases, `llms.txt`. Anglais par défaut, français en `/fr`. Mêmes tokens que la console.
 
 ## Frontières
 
@@ -80,4 +80,4 @@ Variables publiques du web en `VITE_*` ; secrets en variables runtime ou secrets
 
 ## Déploiement
 
-`apps/web` : deux environnements Wrangler, `staging` et `production`. Les deux partent de Cloudflare Builds sur un push de branche — `staging` pour le staging, `main` pour la production — et enchaînent `build:<environnement>` (migrations D1 puis build) et `deploy:<environnement>` (vérification des secrets requis puis `wrangler deploy --keep-vars`). Un tag ne déploie jamais la console : il ne sort que l'app et l'agent. Runbook dans [deploy.md](./deploy.md), noms exacts dans [monorepo.md](./monorepo.md). `apps/site` : Cloudflare Pages sur push. `apps/desktop` : GitHub Actions par tag, builds signés et notarisés, publication sur un bucket R2 public — `dl.pupitre.studio` — et déclaration à la plateforme, qui sert la page de téléchargement du site. `apps/agent` : le même tag, garble, signature, publication sur le bucket R2 privé via l'API de la plateforme.
+`apps/web` : un seul environnement Wrangler en ligne, `production`, déployé par Cloudflare Builds sur un push de `main` — `build:production` (migrations D1 puis build) puis `deploy:production` (vérification des secrets requis puis `wrangler deploy --keep-vars`). Il n'y a pas de staging en ligne : tout s'essaie en local. `main` n'avance que par une release, dont le dernier job fusionne `staging` dans `main` une fois l'app et l'agent publiés. Runbook dans [deploy.md](./deploy.md), noms exacts dans [monorepo.md](./monorepo.md). `apps/site` : un Worker à assets statiques, Cloudflare Builds sur le même push de `main`. `apps/desktop` : GitHub Actions par tag, builds signés et notarisés, publication sur un bucket R2 public — `dl.pupitre.studio` — et déclaration à la plateforme, qui sert la page de téléchargement du site. `apps/agent` : le même tag, garble, signature, publication sur le bucket R2 privé via l'API de la plateforme.

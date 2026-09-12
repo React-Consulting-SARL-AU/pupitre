@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # A release, from this Mac: the next version, the notes, then the commit and
-# the tag. The tag has the runners build the agent and the app, publish them
-# and check what a customer downloads — `.github/workflows/release.yml`.
-# Nothing here needs a secret.
+# the tag. The tag has the runners build the agent and the app, publish them,
+# check what a customer downloads and merge `staging` into `main` —
+# `.github/workflows/release.yml`. Nothing here needs a secret.
 #
-#   scripts/release.sh                 # a patch release from the current branch
+#   scripts/release.sh                 # a patch release
 #   scripts/release.sh --minor         # a feature release
 #   scripts/release.sh --version=X.Y.Z # a version named outright
 #
@@ -29,7 +29,7 @@ test -z "$(git status --porcelain --untracked-files=no)" || {
 
 step next "$@"
 eval "$(step resolve | sed 's/^/export /')"
-echo "release $PUPITRE_RELEASE_VERSION from $PUPITRE_RELEASE_BRANCH to $PUPITRE_PLATFORM_URL"
+echo "release $PUPITRE_RELEASE_VERSION in $PUPITRE_RELEASE_CHANNEL to $PUPITRE_PLATFORM_URL"
 
 if ! step check >/dev/null 2>&1; then
   step notes
@@ -40,4 +40,4 @@ fi
 
 step check
 step ship
-echo "the runners take it from here: $(git remote get-url origin | sed -E 's#\.git$##; s#^git@github\.com:#https://github.com/#')/actions/workflows/release.yml"
+echo "the runners take it from here, up to the merge into main: $(git remote get-url origin | sed -E 's#\.git$##; s#^git@github\.com:#https://github.com/#')/actions/workflows/release.yml"

@@ -6,18 +6,18 @@ Compte une demi-journée la première fois, dont la moitié à attendre des vér
 
 ## 1. Ce que tu mets en ligne
 
-Quatre choses, sur deux environnements.
+Quatre choses, sur un seul environnement en ligne.
 
 | Ce qui est publié | Où | Ce qui le déclenche |
 | --- | --- | --- |
-| La console et l'API — un seul Worker Cloudflare | `staging-app.pupitre.studio`, puis `app.pupitre.studio` | un push sur la branche `staging`, puis sur `main` |
-| Le site marketing — un Worker à assets statiques | `staging.pupitre.studio`, puis `pupitre.studio` | les mêmes branches |
+| La console et l'API — un seul Worker Cloudflare | `app.pupitre.studio` | un push sur `main` |
+| Le site marketing — un Worker à assets statiques | `pupitre.studio` | le même push |
 | L'app desktop (macOS, Windows, Linux) | le seau public `ppt-downloads`, servi par `dl.pupitre.studio` | un tag `vX.Y.Z` sur `staging`, posé par `scripts/release.sh` depuis le Mac du propriétaire, construit et publié par `release.yml` |
 | L'agent `pupitred`, installé sur le serveur du client | le seau privé `ppt-agent`, que rien n'atteint directement | le même tag |
 
-**Staging d'abord, production ensuite.** Les deux environnements sont identiques en tout sauf leurs valeurs : même code, mêmes quinze secrets, mêmes vérifications. Ce que tu apprends sur l'un s'applique à l'autre.
+**Pas de staging en ligne.** Tout s'essaie en local, de bout en bout : la console sur la D1 de miniflare, l'app desktop de développement par le tunnel `dev-app.pupitre.studio`, l'agent sur un VPS jetable. Une release est ce qui fait avancer `main` : `release.yml` construit, publie, vérifie, puis fusionne `staging` dans `main`, et ce push déploie le site et la console.
 
-Les branches : `staging` est la branche de travail, `main` est la production et ne change que par une pull request depuis `staging`. Les hooks du dépôt refusent d'y committer en local. Voir [`monorepo.md`](./monorepo.md#branches).
+Les branches : `staging` est la branche de travail, `main` est la production et ne change que par la pull request `staging` → `main` qu'une release ouvre et fusionne. Les hooks du dépôt refusent d'y committer en local. Voir [`monorepo.md`](./monorepo.md#branches).
 
 ## 2. Avant de commencer
 
@@ -43,19 +43,19 @@ gh auth status              # doit afficher le compte propriétaire du dépôt
 
 ### La règle sur les secrets
 
-**Aucune valeur ne se tape à la main dans un fichier du dépôt.** Chaque secret est déposé dans 1Password — le coffre et la note de chaque environnement sont nommés dans [`environments.json`](../environments.json) — et `bun run dev:prepare` va chercher ceux du staging pour le développement local. Le dépôt ne contient que des références ; un hook refuse le commit qui porterait une valeur.
+**Aucune valeur ne se tape à la main dans un fichier du dépôt.** Chaque secret est déposé dans 1Password — le coffre et la note de chaque environnement sont nommés dans [`environments.json`](../environments.json) — et `bun run dev:prepare` va chercher ceux de la note `local` pour le développement. Le dépôt ne contient que des références ; un hook refuse le commit qui porterait une valeur.
 
 ## 3. Les quinze secrets
 
 C'est la partie qui bloque tout le monde. Elle est ici en entier.
 
-Le Worker exige **les quinze**, dans les deux environnements. La liste vit dans [`apps/web/wrangler.jsonc`](../apps/web/wrangler.jsonc) sous `secrets.required`, et `deploy:staging` comme `deploy:production` refusent de partir s'il en manque un : c'est un garde-fou, pas une préférence. Il n'y a donc pas de « déployer d'abord, compléter ensuite ».
+Le Worker exige **les quinze**. La liste vit dans [`apps/web/wrangler.jsonc`](../apps/web/wrangler.jsonc) sous `secrets.required`, et `deploy:production` refuse de partir s'il en manque un : c'est un garde-fou, pas une préférence. Il n'y a donc pas de « déployer d'abord, compléter ensuite ».
 
 En revanche tu peux les obtenir dans l'ordre, et trois d'entre eux se fabriquent en une commande.
 
 ### D'un coup d'œil
 
-| Secret | À quoi il sert | Où le prendre | staging et production |
+| Secret | À quoi il sert | Où le prendre | local et production |
 | --- | --- | --- | --- |
 | `BETTER_AUTH_SECRET` | signe les sessions de connexion | tu le tires toi-même | **valeurs différentes** |
 | `INTERNAL_WORKFLOW_SECRET` | ferme le déclencheur interne des tâches de fond | tu le tires toi-même | **valeurs différentes** |
@@ -72,7 +72,7 @@ En revanche tu peux les obtenir dans l'ordre, et trois d'entre eux se fabriquent
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | la connexion par GitHub | l'OAuth App GitHub | **une OAuth App par hôte** : GitHub n'accepte qu'une adresse de retour par app |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | la connexion par Google | Google Cloud, identifiant OAuth « application Web » | même client possible, une URI de redirection par hôte |
 
-**Les quatre secrets de connexion sociale sont requis, mais le produit s'en passe** : l'écran de connexion n'affiche que les fournisseurs dont l'identifiant et le secret sont là, et sans eux il reste le lien par email et la clé d'accès. Ils sont dans la liste pour que la console en ligne les offre, et pour qu'une valeur oubliée se voie au déploiement plutôt qu'à l'écran. L'adresse de retour est `https://<hôte>/api/auth/callback/github` et `…/callback/google` ; une OAuth App GitHub ne connaît qu'un hôte, il en faut donc une pour `localhost:3000`, une pour le staging et une pour la production.
+**Les quatre secrets de connexion sociale sont requis, mais le produit s'en passe** : l'écran de connexion n'affiche que les fournisseurs dont l'identifiant et le secret sont là, et sans eux il reste le lien par email et la clé d'accès. Ils sont dans la liste pour que la console en ligne les offre, et pour qu'une valeur oubliée se voie au déploiement plutôt qu'à l'écran. L'adresse de retour est `https://<hôte>/api/auth/callback/github` et `…/callback/google` ; une OAuth App GitHub ne connaît qu'un hôte, il en faut donc une pour `localhost:3000` et une pour la production.
 
 ### Ce qui casse si l'un est faux
 
@@ -119,7 +119,7 @@ Crée **un second jeton** au même endroit, celui-là en **Object Read & Write**
 
 ### Les quatre `STRIPE_*` — Stripe
 
-Un produit et deux prix, à créer **deux fois** : en sandbox pour le staging, en live pour la production. Tant que la production reste volontairement en sandbox — c'est le cas au premier déploiement, le temps que le compte Stripe soit vérifié — les deux environnements partagent la clé et les prix, et chacun a son propre webhook.
+Un produit et deux prix, à créer **deux fois** : en sandbox pour le poste de travail, en live pour la production. Tant que la production reste volontairement en sandbox — c'est le cas au premier déploiement, le temps que le compte Stripe soit vérifié — les deux notes partagent la clé et les prix, et la production a son propre webhook.
 
 | | |
 | --- | --- |
@@ -154,16 +154,15 @@ Vérifie : `curl -I https://dl.pupitre.studio` répond **404 servi par Cloudflar
 
 ## 5. La base de données
 
-Deux bases **Cloudflare D1**, `ppt-db-staging` et `ppt-db`, en Europe de l'Ouest, liées à leur Worker sous le nom `DB` dans `apps/web/wrangler.jsonc` — [`environments.json`](../environments.json) les nomme aussi. Elles existent déjà (`wrangler d1 create <nom> --location weur`, une fois). Rien à connecter : le Worker s'exécute à côté d'elles (*smart placement*), et il n'y a ni adresse, ni mot de passe, ni compute qui dorme ou se réveille — on paie des lignes lues et écrites, et le palier gratuit en donne des millions par jour.
+Une base **Cloudflare D1**, `ppt-db`, en Europe de l'Ouest, liée au Worker sous le nom `DB` dans `apps/web/wrangler.jsonc` — [`environments.json`](../environments.json) la nomme aussi. Elle existe déjà (`wrangler d1 create ppt-db --location weur`, une fois). Rien à connecter : le Worker s'exécute à côté d'elle (*smart placement*), et il n'y a ni adresse, ni mot de passe, ni compute qui dorme ou se réveille — on paie des lignes lues et écrites, et le palier gratuit en donne des millions par jour.
 
 Les migrations sont des fichiers SQL, `packages/db/migrations/NNNN_<nom>.sql`, que D1 tient dans son propre registre. La construction les applique **avant** de construire, à chaque fois ; depuis ton poste :
 
 ```bash
 bun run db:migrate local                                        # la D1 que miniflare tient sous apps/web/.wrangler/state
-bun run db:migrate staging
 PUPITRE_ALLOW_MIGRATE_ON=production bun run db:migrate production
 bun run db:migrate:new <nom>                                    # le prochain fichier, par diff du schéma Prisma contre les migrations
-bun run db:reset staging                                        # toutes les tables supprimées, puis toutes les migrations
+bun run db:reset local                                          # toutes les tables supprimées, puis toutes les migrations
 ```
 
 `db:reset` sur production demande le même drapeau. Une base D1 revient aussi à n'importe quel instant des trente derniers jours par *Time Travel* : `wrangler d1 time-travel restore ppt-db --timestamp=<ISO>`.
@@ -172,71 +171,72 @@ bun run db:reset staging                                        # toutes les tab
 
 Un Worker naît avec ses quinze secrets, ou ne naît pas : `wrangler deploy` refuse de créer un Worker dont un secret de `secrets.required` manque, et `wrangler secret put` ne sait rien attacher à un Worker qui n'existe pas encore. Le premier déploiement fournit donc les quinze d'un coup, par `--secrets-file`. On le fait une fois, sans passer par la construction automatique.
 
-Les valeurs vivent dans 1Password : une note par environnement, `pupitre` (le staging, et le poste de travail) et `pupitre-prod`, nommées dans [`environments.json`](../environments.json), un champ par secret, nommé exactement comme le Worker l'attend. Le fichier de secrets n'existe jamais sur le disque : il est composé à la volée depuis 1Password et remis à `wrangler` par une substitution de processus.
+Les valeurs vivent dans 1Password : une note par environnement, `pupitre` (`local`, le poste de travail) et `pupitre-prod`, nommées dans [`environments.json`](../environments.json), un champ par secret, nommé exactement comme le Worker l'attend. Le fichier de secrets n'existe jamais sur le disque : il est composé à la volée depuis 1Password et remis à `wrangler` par une substitution de processus.
 
 Depuis une branche de travail :
 
 ```bash
-bun run env staging -- bun --cwd=apps/web run build:staging
+bun run env production -- bun --cwd=apps/web run build:production
 bun x wrangler deploy --config apps/web/dist/server/wrangler.json --keep-vars \
-  --secrets-file <(op item get pupitre --vault "DEV - React Consulting" --format json \
+  --secrets-file <(op item get pupitre-prod --vault "DEV - React Consulting" --format json \
     | jq '[.fields[] | select(.label and .value)] | map({(.label): .value}) | add')
 ```
 
-Le Worker s'appelle `ppt-web-staging`. Rien ne se saisit dans le tableau de bord : l'adresse, les tâches planifiées et les liens de service viennent tous de `wrangler.jsonc`.
+Le Worker s'appelle `ppt-web-production`. Rien ne se saisit dans le tableau de bord : l'adresse, les tâches planifiées et les liens de service viennent tous de `wrangler.jsonc`.
 
 Ensuite, un secret qui change se pose seul, ou tous d'un coup, par le même canal :
 
 ```bash
-op read "op://DEV - React Consulting/pupitre/STRIPE_WEBHOOK_SECRET" \
-  | bun x wrangler secret put STRIPE_WEBHOOK_SECRET --config apps/web/wrangler.jsonc --env staging
-bun x wrangler secret bulk --config apps/web/wrangler.jsonc --env staging <(op item get pupitre \
+op read "op://DEV - React Consulting/pupitre-prod/STRIPE_WEBHOOK_SECRET" \
+  | bun x wrangler secret put STRIPE_WEBHOOK_SECRET --config apps/web/wrangler.jsonc --env production
+bun x wrangler secret bulk --config apps/web/wrangler.jsonc --env production <(op item get pupitre-prod \
   --vault "DEV - React Consulting" --format json \
   | jq '[.fields[] | select(.label and .value)] | map({(.label): .value}) | add')
-bun --cwd=apps/web run check:secrets staging     # doit dire que tout est là
+bun --cwd=apps/web run check:secrets production     # doit dire que tout est là
 ```
 
-**Recommence l'étape entière pour `production`**, avec `build:production`, `--env production` et `check:secrets production`. Les valeurs diffèrent : ses propres `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET`, son propre webhook Stripe. Les quatre `R2_*`, le jeton de publication et — tant que Stripe reste en sandbox — les trois autres `STRIPE_*` sont les mêmes qu'en staging.
+Les valeurs de la note `pupitre-prod` diffèrent de celles du poste : ses propres `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET`, son propre webhook Stripe. Les quatre `R2_*`, le jeton de publication et — tant que Stripe reste en sandbox — les trois autres `STRIPE_*` sont les mêmes dans les deux notes.
 
 Vérifie :
 
 ```bash
-curl -s https://staging-app.pupitre.studio/api/v1/health       # {"ok":true}
-curl -sI https://staging-app.pupitre.studio/status | head -1    # 200, sans être connecté
+curl -s https://app.pupitre.studio/api/v1/health       # {"ok":true}
+curl -sI https://app.pupitre.studio/status | head -1    # 200, sans être connecté
 ```
 
 ## 7. Les déploiements automatiques
 
 À partir d'ici, plus rien ne se déploie à la main.
 
-**Deux projets Workers Builds** sur le dépôt — un par environnement, c'est ainsi que Cloudflare les sépare. La création passe par une autorisation GitHub dans le tableau de bord ; elle ne s'automatise pas.
+**Un projet Workers Builds** sur le dépôt, pour le Worker `ppt-web-production`. La création passe par une autorisation GitHub dans le tableau de bord — *Workers & Pages* → le Worker → *Settings* → *Build* → *Connect to Git* ; elle ne s'automatise pas.
 
-| | staging | production |
-| --- | --- | --- |
-| Branche surveillée | `staging` | `main` |
-| Commande de construction | `bun install --frozen-lockfile && bun --cwd=apps/web run build:staging` | `bun install --frozen-lockfile && bun --cwd=apps/web run build:production` |
-| Commande de déploiement | `bun --cwd=apps/web run deploy:staging` | `bun --cwd=apps/web run deploy:production` |
-| Variable de construction | `VITE_APP_URL=https://staging-app.pupitre.studio` | `VITE_APP_URL=https://app.pupitre.studio` |
-| Secrets de construction | aucun : la base est liée, et wrangler migre avec le jeton du projet Builds | idem |
+| | production |
+| --- | --- |
+| Branche surveillée | `main` |
+| Commande de construction | `bun install --frozen-lockfile && bun --cwd=apps/web run build:production` |
+| Commande de déploiement | `bun --cwd=apps/web run deploy:production` |
+| Variable de construction | `VITE_APP_URL=https://app.pupitre.studio` |
+| Secrets de construction | aucun : la base est liée, et wrangler migre avec le jeton du projet Builds |
 
-La construction migre la D1 de l'environnement **avant** de construire, et le déploiement refuse de partir s'il manque un secret : les deux échouent avant d'avoir touché au Worker en place.
+La construction migre la D1 **avant** de construire, et le déploiement refuse de partir s'il manque un secret : les deux échouent avant d'avoir touché au Worker en place.
 
-**Deux projets Workers Builds de plus** pour le site marketing, sur les Workers `ppt-site-staging` et `ppt-site`. Un projet Pages relié à Git ne se crée que dans le tableau de bord et ne se convertit jamais ; le site est donc un Worker à assets statiques comme la console, déployable d'ici avant que l'automatique existe.
+**Un projet Workers Builds de plus** pour le site marketing, sur le Worker `ppt-site`. Un projet Pages relié à Git ne se crée que dans le tableau de bord et ne se convertit jamais ; le site est donc un Worker à assets statiques comme la console, déployable d'ici avant que l'automatique existe.
 
-| | staging | production |
-| --- | --- | --- |
-| Branche surveillée | `staging` | `main` |
-| Commande de construction | `bun install --frozen-lockfile && bun --cwd=apps/site run build:staging` | `bun install --frozen-lockfile && bun --cwd=apps/site run build:production` |
-| Commande de déploiement | `bun --cwd=apps/site run deploy:staging` | `bun --cwd=apps/site run deploy:production` |
+| | production |
+| --- | --- |
+| Branche surveillée | `main` |
+| Commande de construction | `bun install --frozen-lockfile && bun --cwd=apps/site run build:production` |
+| Commande de déploiement | `bun --cwd=apps/site run deploy:production` |
 
-Les deux scripts de construction portent `PUBLIC_RELEASES_URL` — la liste des versions que la page de téléchargement lit — et celui de production pose `PUPITRE_ENV=production`, ce qui fait refuser au garde légal un `TODO` dans une page légale. Si l'API ne répond pas, la construction n'échoue pas : la page part avec une liste écrite dans le dépôt et un avertissement. Les redirections et les en-têtes de sécurité sont dans `apps/site/public/`, lus par le calque d'assets ; `www` est renvoyé vers l'apex par `apps/site/worker/index.ts`, la seule chose que ce calque ne sait pas dire.
+Le script de construction porte `PUBLIC_RELEASES_URL` — la liste des versions que la page de téléchargement lit — et pose `PUPITRE_ENV=production`, ce qui fait refuser au garde légal un `TODO` dans une page légale. Si l'API ne répond pas, la construction n'échoue pas : la page part avec une liste écrite dans le dépôt et un avertissement. Les redirections et les en-têtes de sécurité sont dans `apps/site/public/`, lus par le calque d'assets ; `www` est renvoyé vers l'apex par `apps/site/worker/index.ts`, la seule chose que ce calque ne sait pas dire.
 
-Le premier déploiement de chaque Worker du site se fait à la main, sans secret à fournir :
+Le premier déploiement du site se fait à la main, sans secret à fournir :
 
 ```bash
-bun --cwd=apps/site run build:staging && bun --cwd=apps/site run deploy:staging
 bun --cwd=apps/site run build:production && bun --cwd=apps/site run deploy:production
 ```
+
+`main` n'avance que par une release, donc les deux projets ne construisent qu'à ce moment-là : la version est déjà déclarée à la plateforme et téléchargeable quand le site relit la liste des versions.
 
 ## 8. GitHub
 
@@ -245,15 +245,17 @@ bun --cwd=apps/site run build:production && bun --cwd=apps/site run deploy:produ
 ```bash
 gh repo edit <compte>/pupitre \
   --enable-squash-merge=false --enable-rebase-merge=false --enable-merge-commit
+gh api -X PUT repos/<compte>/pupitre/actions/permissions/workflow \
+  -f default_workflow_permissions=read -F can_approve_pull_request_reviews=true
 ```
 
-Le squash est interdit parce qu'il réécrit les commits : le commit tagué d'une version sortirait de l'historique de `main`, et la promotion de cette version ne le retrouverait plus.
+Le squash est interdit parce qu'il réécrit les commits : le commit tagué d'une version sortirait de l'historique de `main`, et `next` compterait depuis le mauvais tag. La seconde commande autorise GitHub Actions à ouvrir des pull requests — *Settings* → *Actions* → *General* → *Allow GitHub Actions to create and approve pull requests* : sans elle, le dernier job de `release.yml` construit tout et ne peut pas fusionner.
 
 **Ce dépôt est privé sur un plan GitHub gratuit**, qui refuse la protection de branche et les relecteurs obligatoires. `main` n'a donc **aucune protection côté serveur** : les hooks du dépôt sont la seule barrière, et ils ne protègent que la machine sur laquelle `bun install` est passé. GitHub Pro lève les deux.
 
 ## 8 bis. La note 1Password de la release
 
-Les runners de `release.yml` lisent leurs secrets dans ceux du dépôt GitHub, et ceux-ci viennent d'**une note 1Password**, `pupitre-GitHub` dans le coffre partagé : `scripts/release/release.env.tpl` dit quels champs elle attend, et `bun scripts/release/index.ts secrets` lit chacun par `op read` et le pose par `gh secret set` — à relancer à chaque valeur qui tourne. Rien n'est jamais écrit dans un fichier. Les valeurs publiques (les deux plateformes, les seaux, l'identifiant du compte R2) sont en clair dans le gabarit, et le workflow les y lit.
+Les runners de `release.yml` lisent leurs secrets dans ceux du dépôt GitHub, et ceux-ci viennent d'**une note 1Password**, `pupitre-GitHub` dans le coffre partagé : `scripts/release/release.env.tpl` dit quels champs elle attend, et `bun scripts/release/index.ts secrets` lit chacun par `op read` et le pose par `gh secret set` — à relancer à chaque valeur qui tourne. Rien n'est jamais écrit dans un fichier. Les valeurs publiques (la plateforme, les seaux, l'identifiant du compte R2) sont en clair dans le gabarit, et le workflow les y lit.
 
 | Champ | D'où il vient | Sans lui |
 | --- | --- | --- |
@@ -279,17 +281,16 @@ scripts/release.sh --version=0.1.0     # écrit la version, rédige les notes, s
 scripts/release.sh                      # vérifie, commite, tague, pousse
 ```
 
-Le second passage commite `chore(release): v0.1.0`, pose le tag et pousse ; le push du tag lance `release.yml`, qui construit et publie l'agent puis l'app sur les seaux, déclare la version à la plateforme de la branche, et vérifie de l'extérieur que tout se télécharge — le résumé du run dit quoi. La chaîne refuse de commencer si le changelog ne couvre pas la version dans les deux langues, ou si la branche n'est ni `staging` ni `main`. Un job qui échoue se relance seul depuis GitHub : chaque étape est idempotente.
+Le second passage commite `chore(release): v0.1.0`, pose le tag et pousse ; le push du tag lance `release.yml`, qui construit et publie l'agent puis l'app sur les seaux, déclare la version à la plateforme en `stable`, vérifie de l'extérieur que tout se télécharge — le résumé du run dit quoi — puis ouvre la pull request `staging` → `main` et la fusionne. Ce push de `main` reconstruit le site et la console. La chaîne refuse de commencer si le changelog ne couvre pas la version dans les deux langues, ou si le tag n'est pas sur `staging`. Un job qui échoue se relance seul depuis GitHub : chaque étape est idempotente, le merge compris.
 
-Une version sort toujours en canal **`beta`**, déclarée à la plateforme de la branche — le staging, donc. Elle arrive en production et passe en `stable` quand la pull request `staging` → `main` est fusionnée : `promote.yml` dit à la production les lignes gardées avec les artefacts, puis les promeut. C'est **le même fichier**, celui qui a été éprouvé, qui devient la version stable — rien n'est reconstruit. Un second build donnerait d'autres signatures pour le même numéro.
+Revenir en arrière, c'est promouvoir la version précédente : `gh workflow run promote.yml -f version=X.Y.Z`. C'est **le même fichier**, celui qui a été publié, que le canal désigne à nouveau — rien n'est reconstruit. Un second build donnerait d'autres signatures pour le même numéro.
 
 ## 10. Vérifier que tout tient
 
 ```bash
 curl -s https://app.pupitre.studio/api/v1/health                      # {"ok":true}
 curl -sI https://pupitre.studio | head -1                             # 200
-curl -sI https://staging.pupitre.studio | head -1                     # 200
-curl -s "https://app.pupitre.studio/api/v1/releases/app/latest?channel=beta" | head -c 200
+curl -s "https://app.pupitre.studio/api/v1/releases/app/latest" | head -c 200
 curl -sI https://dl.pupitre.studio/app/0.1.0/latest.yml | head -1     # 200
 ```
 
@@ -307,7 +308,8 @@ Puis, à la main : ouvrir le `.dmg` sur un Mac qui n'a jamais vu le certificat, 
 | `wrangler deploy` refuse `legacy_env` dans la configuration générée | `@cloudflare/vite-plugin` et `wrangler` ne sont plus au même niveau : le plugin écrit la configuration que wrangler lit, les deux se mettent à jour ensemble |
 | Le premier déploiement refuse en nommant les quinze secrets | c'est un Worker qui n'existe pas encore : il naît avec `--secrets-file`, étape 6 |
 | La chaîne publie mais la plateforme refuse | `PUPITRE_PUBLISH_TOKEN` diffère entre la note 1Password et le Worker, ou a perdu son préfixe |
-| Une version publiée ne devient jamais stable | la pull request a été fusionnée en squash, et le commit tagué a quitté l'historique |
+| La release construit tout et le job `Merge into main` échoue en ouvrant la pull request | GitHub Actions n'a pas le droit de créer des pull requests : étape 8 |
+| `next` propose une version déjà sortie | la pull request a été fusionnée en squash ou en rebase, et le commit tagué a quitté l'historique de `main` |
 
 Un retour arrière du Worker se fait sur ses versions : `bun x wrangler rollback --config apps/web/dist/server/wrangler.json`. Une migration de base, elle, ne se rejoue pas à l'envers — une migration qui casse se corrige par une migration suivante.
 
