@@ -1,6 +1,7 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "ppt-site",
+  "account_id": "455fb79f0597ba46bed6a877563540e0",
   "main": "worker/index.ts",
   "compatibility_date": "2026-06-19",
   "workers_dev": false,
@@ -15,18 +16,6 @@
     "not_found_handling": "404-page"
   },
   "env": {
-    "staging": {
-      "workers_dev": false,
-      "preview_urls": false,
-      "assets": {
-        "directory": "dist",
-        "binding": "ASSETS",
-        "run_worker_first": true,
-        "html_handling": "auto-trailing-slash",
-        "not_found_handling": "404-page"
-      },
-      "routes": [{ "pattern": "staging.pupitre.studio", "custom_domain": true }]
-    },
     "production": {
       "workers_dev": false,
       "preview_urls": false,

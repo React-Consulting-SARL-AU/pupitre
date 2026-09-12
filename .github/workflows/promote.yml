@@ -1,14 +1,10 @@
 name: Promote
 
-# A published version goes out in `beta`, from a tag on `staging`, declared to
-# the staging platform. When the pull request `staging` → `main` is merged — by
-# a merge commit, never a squash, or the tagged commit never enters `main` —
-# this workflow takes the tags the merge just brought in, declares each to
-# production from the rows kept with the artefacts, and moves it to `stable`.
-# Nothing is rebuilt, nothing is re-signed: the same version changes audience.
+# A version goes out `stable` by `release.yml`, on its own. This workflow is
+# the way back: run by hand on a version production already holds, it moves
+# the agent and the app of that version to the channel and points the
+# channel's feeds at its files. Nothing is rebuilt, nothing is re-signed.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       version:
@@ -21,7 +17,7 @@ on:
         default: stable
 
 concurrency:
-  group: promote-${{ github.ref }}
+  group: promote
   cancel-in-progress: false
 
 permissions:
@@ -37,8 +33,6 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -50,18 +44,11 @@ jobs:
       - name: Read the release settings
         run: grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl >> "$GITHUB_ENV"
 
-      # A push names what it brought through `since`; a dispatch names one version.
-      - name: Declare to production and promote
-        run: |
-          if [ -n "${VERSION:-}" ]; then
-            bun scripts/release/index.ts promote "--version=$VERSION" "--channel=$CHANNEL"
-          else
-            bun scripts/release/index.ts promote "--since=$BEFORE" --channel=stable
-          fi
+      - name: Promote
+        run: bun scripts/release/index.ts promote "--version=$VERSION" "--channel=$CHANNEL"
         env:
           VERSION: ${{ inputs.version }}
           CHANNEL: ${{ inputs.channel }}
-          BEFORE: ${{ github.event.before }}
           PUPITRE_PUBLISH_TOKEN: ${{ secrets.PUPITRE_PUBLISH_TOKEN }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}

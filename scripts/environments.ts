@@ -2,22 +2,22 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 
 /**
- * The two environments of the platform, read from `environments.json` at the
- * root: each one is a 1Password note and a D1 database, and nothing here
- * ever holds a value. The workstation lives in `staging` — its note — on the
- * local database miniflare keeps.
+ * The environments of the platform, read from `environments.json` at the
+ * root: each one is a 1Password note, production also a D1 database, and
+ * nothing here ever holds a value. The workstation is `local` — its note — on
+ * the database miniflare keeps.
  */
 
 const ROOT = join(import.meta.dir, "..")
 
 export const CONFIG_FILE = join(ROOT, "environments.json")
 
-export const LOCAL_ENVIRONMENT = "staging"
+export const LOCAL_ENVIRONMENT = "local"
 
 export interface Environment {
   name: string
   item: string
-  database: string
+  database?: string
 }
 
 export interface Environments {
@@ -73,7 +73,7 @@ export function commandOf(args: readonly string[]): {
 
   if (!(name && argv.length > 0)) {
     throw new Error(
-      "usage: bun run env <staging|production> -- <command> [arguments]"
+      "usage: bun run env <local|production> -- <command> [arguments]"
     )
   }
 

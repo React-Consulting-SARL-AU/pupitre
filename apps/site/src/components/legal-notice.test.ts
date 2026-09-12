@@ -1,6 +1,7 @@
 import { developmentNotice, SUB_PROCESSORS } from "@pupitre/shared/legal"
 import { describe, expect, it } from "vitest"
 import { render } from "../test/render"
+import DevelopmentBanner from "./DevelopmentBanner.astro"
 import LegalNotice from "./LegalNotice.astro"
 import SubProcessors from "./SubProcessors.astro"
 
@@ -19,6 +20,17 @@ describe("LegalNotice", () => {
     const html = await render(LegalNotice, { path: "/fr/legal/terms/" })
 
     expect(html).toContain(developmentNotice("fr").title)
+  })
+})
+
+describe("DevelopmentBanner", () => {
+  it("dit sur chaque page, dans sa langue, que le projet est en développement", async () => {
+    expect(await render(DevelopmentBanner, { path: "/" })).toContain(
+      developmentNotice("en").banner
+    )
+    expect(await render(DevelopmentBanner, { path: "/fr/pricing/" })).toContain(
+      developmentNotice("fr").banner
+    )
   })
 })
 

@@ -29,7 +29,8 @@ export const auth = {
     "auth.device.deny": "Refuse",
     "auth.device.approved": "Device confirmed.",
     "auth.device.approvedFix":
-      "Go back to the Pupitre app: it takes over in a few seconds.",
+      "The Pupitre app takes over in a few seconds; open it if the browser did not.",
+    "auth.device.openApp": "Open the Pupitre app",
     "auth.device.denied": "Request refused.",
     "auth.device.deniedFix": "If that was not you, no session was opened.",
 
@@ -89,7 +90,8 @@ export const auth = {
     "auth.device.deny": "Refuser",
     "auth.device.approved": "Appareil confirmé.",
     "auth.device.approvedFix":
-      "Retournez à l'app Pupitre : elle prend la main dans quelques secondes.",
+      "L'app Pupitre prend la main dans quelques secondes ; ouvrez-la si le navigateur ne l'a pas fait.",
+    "auth.device.openApp": "Ouvrir l'app Pupitre",
     "auth.device.denied": "Demande refusée.",
     "auth.device.deniedFix":
       "Si ce n'était pas vous, aucune session n'a été ouverte.",

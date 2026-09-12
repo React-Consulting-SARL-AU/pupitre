@@ -1,5 +1,6 @@
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { accountCallbackLink } from "@pupitre/shared/app-links"
+import { useEffect, useState } from "react"
+import { Button, buttonClassName } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { FieldError } from "@/components/ui/field-error"
 import { Input } from "@/components/ui/input"
@@ -15,11 +16,14 @@ import {
   lookupDeviceCode,
   normalizeUserCode,
 } from "@/lib/auth/device-flow"
-import { appOrigin } from "@/lib/config/urls"
+import { appOrigin, leaveFor } from "@/lib/config/urls"
 import type { DictionaryKey } from "@/lib/i18n/en"
 import { type DeviceCodeInput, deviceCodeSchema } from "@/lib/schemas/auth"
 
 export type DeviceStep = "code" | "confirm" | "approved" | "denied"
+
+/** Where a confirmed device is sent back: the app, which takes the session over. */
+export const APP_RETURN_LINK = accountCallbackLink({ device: "approved" })
 
 const DEVICE_ERRORS = new Set([
   "invalid_user_code",
@@ -83,13 +87,7 @@ export function DeviceCodeForm({ initialCode = "" }: DeviceCodeFormProps) {
   }
 
   if (step === "approved") {
-    return (
-      <Callout
-        data-testid="device-approved"
-        fix={t("auth.device.approvedFix")}
-        title={t("auth.device.approved")}
-      />
-    )
+    return <DeviceApproved />
   }
 
   if (step === "denied") {
@@ -161,5 +159,33 @@ export function DeviceCodeForm({ initialCode = "" }: DeviceCodeFormProps) {
       </Button>
       {cycle.error ? <Callout title={cycle.error} tone="danger" /> : null}
     </form>
+  )
+}
+
+/**
+ * The browser is asked to hand the reader back to the app; when it will not
+ * without a click, the button does it, and the app polls anyway.
+ */
+function DeviceApproved() {
+  const t = useTranslations()
+
+  useEffect(() => {
+    leaveFor(APP_RETURN_LINK)
+  }, [])
+
+  return (
+    <Callout
+      action={
+        <a
+          className={buttonClassName({ variant: "primary" })}
+          href={APP_RETURN_LINK}
+        >
+          {t("auth.device.openApp")}
+        </a>
+      }
+      data-testid="device-approved"
+      fix={t("auth.device.approvedFix")}
+      title={t("auth.device.approved")}
+    />
   )
 }

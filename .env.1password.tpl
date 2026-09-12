@@ -1,8 +1,8 @@
 # Modèle de références 1Password, résolu par `op inject` pendant `bun run dev:prepare`.
 # Aucune valeur ici, seulement des références : ce fichier est committé.
 #
-# Le coffre et la note viennent de `environments.json` — celle du staging, que le
-# poste partage ; {{OP_VAULT}} et {{OP_ITEM}} sont remplacés à la lecture
+# Le coffre et la note viennent de `environments.json` — celle de `local`, la
+# note du poste ; {{OP_VAULT}} et {{OP_ITEM}} sont remplacés à la lecture
 # (surcharge par poste avec OP_VAULT / OP_ITEM).
 #
 # Modèle : un coffre partagé porte les secrets de tous les projets, et chaque
@@ -28,14 +28,14 @@ STRIPE_PRICE_SERVER_YEAR="op://{{OP_VAULT}}/{{OP_ITEM}}/STRIPE_PRICE_SERVER_YEAR
 #
 # STRIPE_WEBHOOK_SECRET n'a pas sa place ici : `dev:prepare` le dérive par
 # `stripe listen --print-secret`, et il diffère de celui du tableau de bord.
-# Seuls staging et production en ont besoin, par secret Wrangler.
+# Seule la production en a besoin, par secret Wrangler.
 
 # --- Connexion par GitHub et par Google. Chaque fournisseur exige ses deux
 # variables ; sans aucune, la clé d'accès et le lien magique restent les chemins.
 # Les quatre sont déclarées dans la liste `secrets.required` racine de
 # apps/web/wrangler.jsonc, sans quoi Cloudflare ne les chargerait pas dans le
-# Worker local — et nulle part dans les listes de staging ni de production, pour
-# qu'un déploiement reste possible sans elles.
+# Worker local — et nulle part dans la liste de production, pour qu'un
+# déploiement reste possible sans elles.
 GITHUB_CLIENT_ID="op://{{OP_VAULT}}/{{OP_ITEM}}/GITHUB_CLIENT_ID"
 GITHUB_CLIENT_SECRET="op://{{OP_VAULT}}/{{OP_ITEM}}/GITHUB_CLIENT_SECRET"
 GOOGLE_CLIENT_ID="op://{{OP_VAULT}}/{{OP_ITEM}}/GOOGLE_CLIENT_ID"

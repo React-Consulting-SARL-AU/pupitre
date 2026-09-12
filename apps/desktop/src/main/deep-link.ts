@@ -1,3 +1,4 @@
+import { APP_LINK_SCHEME } from "@pupitre/shared/app-links";
 import type { DeepLink } from "@shared/shell";
 
 /**
@@ -10,7 +11,7 @@ import type { DeepLink } from "@shared/shell";
  * A link is a string somebody else wrote, and it is read here as one.
  */
 
-export const DEEP_LINK_SCHEME = "pupitre";
+export const DEEP_LINK_SCHEME = APP_LINK_SCHEME;
 
 const ID_OK = /^[A-Za-z0-9][A-Za-z0-9._-]{0,80}$/;
 

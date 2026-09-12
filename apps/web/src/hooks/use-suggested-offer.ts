@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query"
+import { useMachine } from "@/hooks/use-machine"
 import { latestAppReleaseQueryOptions } from "@/lib/api/queries"
 import {
   type DownloadOffer,
-  detectOs,
   downloadOffers,
+  isSuggested,
   type PublishedAppRelease,
 } from "@/lib/domain/downloads"
 
@@ -12,20 +13,16 @@ export interface SuggestedOffer {
   offer: DownloadOffer | null
 }
 
-function currentUserAgent(): string {
-  return typeof navigator === "undefined" ? "" : navigator.userAgent
-}
-
 export function useSuggestedOffer(): SuggestedOffer {
   const release = useQuery(latestAppReleaseQueryOptions())
   const published = release.data ?? null
-  const suggested = detectOs(currentUserAgent())
+  const machine = useMachine()
 
   return {
     published,
     offer:
-      downloadOffers(published).find(
-        (candidate) => candidate.os === suggested
+      downloadOffers(published).find((candidate) =>
+        isSuggested(candidate, machine)
       ) ?? null,
   }
 }

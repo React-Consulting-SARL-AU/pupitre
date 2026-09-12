@@ -38,9 +38,9 @@ export function AccountGateScreen({
   const development = account.build === "development";
 
   // A first launch has no account yet: that is the nominal state of this
-  // screen, not a fault, and it is told in the same grey as the rest. A right
-  // that expired or was suspended is a fault, and says so.
-  const tone = account.usage.status === "absent" ? "info" : "danger";
+  // screen, not a fault, and the sign-in card is the whole of what it has to
+  // say. A right that expired or was suspended is a fault, and says so.
+  const fault = account.usage.status !== "absent";
 
   return (
     <div className="grid h-full grid-cols-1 lg:grid-cols-[minmax(0,26rem)_1fr]">
@@ -79,16 +79,18 @@ export function AccountGateScreen({
               />
             </div>
 
-            <div className="rise" style={riseAt(4)}>
-              <AccountUsageNotice
-                checkedAt={account.checkedAt}
-                usage={account.usage}
-              />
-            </div>
+            {fault ? (
+              <div className="rise" style={riseAt(4)}>
+                <AccountUsageNotice
+                  checkedAt={account.checkedAt}
+                  usage={account.usage}
+                />
+              </div>
+            ) : null}
 
-            {account.refusal ? (
+            {fault && account.refusal ? (
               <div className="rise" style={riseAt(5)}>
-                <Callout fix={agentText(t, account.refusal).fix} tone={tone}>
+                <Callout fix={agentText(t, account.refusal).fix} tone="danger">
                   {agentText(t, account.refusal).message}
                 </Callout>
               </div>

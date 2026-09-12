@@ -44,6 +44,48 @@ const WINDOWS_RE = /windows nt/i
 const LINUX_RE = /linux|x11/i
 const MOBILE_RE = /android|iphone|ipad|ipod/i
 
+export type DetectedArch = "arm64" | "x64"
+
+export interface MachineHints {
+  /** What Chromium states through `navigator.userAgentData`. */
+  architecture?: string
+  bitness?: string
+  /** What WebGL names as the graphics card. */
+  renderer?: string
+}
+
+export interface Machine {
+  os: DesktopSystem | null
+  arch: DetectedArch | null
+}
+
+const APPLE_CHIP_RE = /\bapple m\d/i
+
+/**
+ * A browser does not say which processor it runs on, or barely: Chromium
+ * states it when asked, and a graphics card named after an Apple chip is one.
+ * "Apple GPU" alone is what Safari says on every Mac, so it decides nothing;
+ * an undecided machine is offered every build of its system.
+ */
+export function detectArch(hints: MachineHints): DetectedArch | null {
+  if (hints.architecture === "arm" && hints.bitness === "64") {
+    return "arm64"
+  }
+
+  if (hints.architecture === "x86" && hints.bitness === "64") {
+    return "x64"
+  }
+
+  return hints.renderer && APPLE_CHIP_RE.test(hints.renderer) ? "arm64" : null
+}
+
+export function isSuggested(offer: DownloadOffer, machine: Machine): boolean {
+  return (
+    offer.os === machine.os &&
+    (machine.arch === null || offer.arch === machine.arch)
+  )
+}
+
 export function detectOs(userAgent: string): DesktopSystem | null {
   if (MOBILE_RE.test(userAgent)) {
     return null
@@ -74,6 +116,7 @@ const FORMAT_LABELS: Record<string, DictionaryKey> = {
 
 export interface PublishedAppRelease {
   version: string
+  channel: string
   notes: string
   builds: PublishedBuild[]
 }

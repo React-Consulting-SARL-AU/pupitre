@@ -6,9 +6,7 @@
   "scripts": {
     "dev": "astro dev --port 4321",
     "build": "astro build",
-    "build:staging": "PUBLIC_RELEASES_URL=https://staging-app.pupitre.studio/api/v1/releases/app astro build",
     "build:production": "PUPITRE_ENV=production PUBLIC_RELEASES_URL=https://app.pupitre.studio/api/v1/releases/app astro build",
-    "deploy:staging": "wrangler deploy --env staging",
     "deploy:production": "wrangler deploy --env production",
     "preview": "astro preview --port 4321",
     "lint": "ultracite check && bun run check:content",

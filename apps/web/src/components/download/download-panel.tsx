@@ -10,16 +10,14 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
 import { SkeletonCards } from "@/components/ui/skeleton"
 import { useTranslations } from "@/hooks/use-locale"
+import { useMachine } from "@/hooks/use-machine"
 import { latestAppReleaseQueryOptions } from "@/lib/api/queries"
-import { detectOs, downloadOffers } from "@/lib/domain/downloads"
-
-function currentUserAgent(): string {
-  return typeof navigator === "undefined" ? "" : navigator.userAgent
-}
+import { downloadOffers, isSuggested } from "@/lib/domain/downloads"
 
 export function DownloadPanel() {
   const t = useTranslations()
   const release = useQuery(latestAppReleaseQueryOptions())
+  const machine = useMachine()
 
   if (release.isPending) {
     return <SkeletonCards />
@@ -49,7 +47,6 @@ export function DownloadPanel() {
 
   const published = release.data
   const offers = downloadOffers(published)
-  const suggested = detectOs(currentUserAgent())
   const downloadable = offers.some((offer) => offer.url !== null)
 
   return (
@@ -78,7 +75,7 @@ export function DownloadPanel() {
             <DownloadOfferRow
               key={`${offer.os}-${offer.arch ?? "none"}-${offer.format}`}
               offer={offer}
-              suggested={offer.os === suggested}
+              suggested={isSuggested(offer, machine)}
             />
           ))}
         </ul>

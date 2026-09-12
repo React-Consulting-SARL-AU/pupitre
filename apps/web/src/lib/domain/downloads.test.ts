@@ -1,8 +1,10 @@
 import { describe, expect, it } from "bun:test"
 import {
   APP_REQUIREMENTS,
+  detectArch,
   detectOs,
   downloadOffers,
+  isSuggested,
   type PublishedAppRelease,
   SERVER_REQUIREMENTS,
 } from "@/lib/domain/downloads"
@@ -17,6 +19,7 @@ const BASE = "https://downloads.pupitre.test/1.4.0"
 
 const RELEASE: PublishedAppRelease = {
   version: "1.4.0",
+  channel: "stable",
   notes: "Première version signée.",
   builds: [
     {
@@ -62,6 +65,37 @@ describe("detectOs", () => {
   it("stays silent on a phone or an unknown agent", () => {
     expect(detectOs(ANDROID)).toBeNull()
     expect(detectOs("")).toBeNull()
+  })
+})
+
+describe("detectArch", () => {
+  it("reads the architecture Chromium states, and an Apple chip the graphics card names", () => {
+    expect(detectArch({ architecture: "arm", bitness: "64" })).toBe("arm64")
+    expect(detectArch({ architecture: "x86", bitness: "64" })).toBe("x64")
+    expect(detectArch({ architecture: "x86", bitness: "32" })).toBeNull()
+    expect(
+      detectArch({ renderer: "ANGLE (Apple, ANGLE Metal Renderer: Apple M2)" })
+    ).toBe("arm64")
+    expect(detectArch({ renderer: "Apple M1 Pro" })).toBe("arm64")
+    expect(detectArch({ renderer: "Intel Iris Plus Graphics" })).toBeNull()
+    expect(detectArch({ renderer: "Apple GPU" })).toBeNull()
+    expect(detectArch({})).toBeNull()
+  })
+
+  it("marks one row when the machine is known, every row of the system otherwise", () => {
+    const offers = downloadOffers(RELEASE)
+    const known = offers.filter((offer) =>
+      isSuggested(offer, { os: "macos", arch: "arm64" })
+    )
+    const vague = offers.filter((offer) =>
+      isSuggested(offer, { os: "macos", arch: null })
+    )
+
+    expect(known.map((offer) => offer.arch)).toEqual(["arm64"])
+    expect(vague.map((offer) => offer.arch)).toEqual(["arm64", "x64"])
+    expect(
+      offers.filter((offer) => isSuggested(offer, { os: null, arch: null }))
+    ).toEqual([])
   })
 })
 

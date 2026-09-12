@@ -1,10 +1,9 @@
 {
-  "$comment": "The two environments, and what each one is made of: the 1Password note that holds its secrets (in `vault`, one field per variable, named as the Worker reads it) and the D1 database that holds its data, as apps/web/wrangler.jsonc binds it. The workstation is `staging`: dev:prepare reads its note; its data is the local D1 miniflare keeps. No value here, only names.",
+  "$comment": "The environments, and what each one is made of: the 1Password note that holds its secrets (in `vault`, one field per variable, named as the Worker reads it) and, for production, the D1 database that holds its data, as apps/web/wrangler.jsonc binds it. The workstation is `local`: dev:prepare reads its note; its data is the local D1 miniflare keeps. No value here, only names.",
   "vault": "DEV - React Consulting",
   "environments": {
-    "staging": {
-      "item": "pupitre",
-      "database": "ppt-db-staging"
+    "local": {
+      "item": "pupitre"
     },
     "production": {
       "item": "pupitre-prod",

@@ -4,8 +4,7 @@
 # value here. The note is `pupitre-GitHub` in the shared vault; rename both
 # here if it moves.
 
-PUPITRE_PRODUCTION_PLATFORM_URL=https://app.pupitre.studio
-PUPITRE_STAGING_PLATFORM_URL=https://staging-app.pupitre.studio
+PUPITRE_PLATFORM_URL=https://app.pupitre.studio
 PUPITRE_DOWNLOADS_URL=https://dl.pupitre.studio
 PUPITRE_DOWNLOADS_BUCKET=ppt-downloads
 PUPITRE_R2_BUCKET=ppt-agent

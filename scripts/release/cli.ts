@@ -10,10 +10,7 @@
 export const VARIABLES = {
   version: "PUPITRE_RELEASE_VERSION",
   channel: "PUPITRE_RELEASE_CHANNEL",
-  /** The platform of this release, resolved from the branch; never in a template. */
   platform: "PUPITRE_PLATFORM_URL",
-  productionPlatform: "PUPITRE_PRODUCTION_PLATFORM_URL",
-  stagingPlatform: "PUPITRE_STAGING_PLATFORM_URL",
   downloadsUrl: "PUPITRE_DOWNLOADS_URL",
   downloadsBucket: "PUPITRE_DOWNLOADS_BUCKET",
   agentBucket: "PUPITRE_R2_BUCKET",
