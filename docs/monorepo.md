@@ -76,7 +76,7 @@ Un push sur `staging` est vérifié une fois, sur son SHA. La pull request `stag
 
 Ni macOS ni Windows n'ont de job de CI : l'app s'y construit au moment de la release, `release.yml`, et c'est là qu'elle se voit. Windows n'est de toute façon pas éprouvé : le modèle SSH de l'app — une session maître multiplexée par serveur, clés et sockets en 0600 — n'a pas d'équivalent sur OpenSSH pour Windows ; ça devient une tâche le jour où Windows en est une.
 
-Les actions des workflows sont épinglées par SHA, la version en commentaire à côté ; Dependabot (`github-actions`) les fait avancer.
+Les actions des workflows sont épinglées par SHA, la version en commentaire à côté ; elles avancent à la main, quand on le décide. Il n'y a pas de Dependabot : ses pull requests n'étaient suivies par personne.
 
 Trois workspaces passent `--timeout=60000` à `bun test` : `apps/web`, `apps/desktop` et `packages/api`. Leurs tests démarrent un Postgres en WebAssembly et lui appliquent les migrations avant le premier cas, ce qu'un runner froid met une vingtaine de secondes à faire — au-delà des cinq secondes que `bun test` accorde par défaut, et le hook tombe avant que le premier cas ait pu tourner.
 
@@ -112,7 +112,6 @@ Deux branches longues, et rien d'autre qui vive plus qu'une pull request.
 - **`main` avance par release.** Le dernier job de `release.yml` ouvre la pull request `staging` → `main` et la fusionne, une fois la version téléchargeable ; il n'y a pas d'autre chemin vers `main`. Un correctif suit le même chemin : il arrive sur `staging` et sort avec la version suivante.
 - **La pull request `staging` → `main` se fusionne par un merge commit.** Ni squash, ni rebase : ils réécrivent les commits, et le commit tagué d'une version sortirait de l'historique de `main` — `git describe` ne le verrait plus, et `next` compterait depuis le mauvais tag. Le dépôt n'autorise que `merge` dans *Settings* → *General* → *Pull Requests*, et `gh pr merge --merge` le demande explicitement.
 - **Les tags n'appartiennent à aucune branche.** `git push origin vX.Y.Z` les rend visibles partout, tout de suite : une pull request n'a rien à « rapatrier ». La seule question qui compte est de savoir si le commit tagué est accessible depuis `main`, ce que le merge commit garantit et que le squash casse.
-- Dependabot ouvre ses pull requests sur `staging`.
 
 ## Déploiement de la plateforme
 
