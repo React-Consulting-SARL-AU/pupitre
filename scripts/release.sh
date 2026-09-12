@@ -22,7 +22,9 @@ step() {
   bun scripts/release/index.ts "$@"
 }
 
-test -z "$(git status --porcelain --untracked-files=no)" || {
+# The version and the notes are the release's own changes, left by the first
+# pass for the second: anything else in the tree does not belong in it.
+test -z "$(git status --porcelain --untracked-files=no -- . ':!apps/desktop/package.json' ':!apps/site/src/content/changelog')" || {
   echo "the working tree has changes: commit or stash them before a release." >&2
   exit 1
 }
