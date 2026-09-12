@@ -9,6 +9,7 @@ export const download = {
     "download.format.macos": "Signed and notarised disk image",
     "download.format.windows": "Signed installer",
     "download.format.linux": "AppImage",
+    "download.format.deb": "Debian package, updated by apt",
     "download.server.ubuntu": "A VPS on Ubuntu 22.04 or 24.04, 64-bit.",
     "download.server.memory":
       "4 GB of memory at least, 2 cores, 40 GB of disk.",
@@ -38,6 +39,7 @@ export const download = {
     "download.format.macos": "Image disque signée et notarisée",
     "download.format.windows": "Installateur signé",
     "download.format.linux": "AppImage",
+    "download.format.deb": "Paquet Debian, mis à jour par apt",
     "download.server.ubuntu": "Un VPS sous Ubuntu 22.04 ou 24.04, en 64 bits.",
     "download.server.memory":
       "4 Go de mémoire au minimum, 2 cœurs, 40 Go de disque.",

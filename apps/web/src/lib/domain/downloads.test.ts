@@ -19,10 +19,36 @@ const RELEASE: PublishedAppRelease = {
   version: "1.4.0",
   notes: "Première version signée.",
   builds: [
-    { os: "macos", arch: "arm64", url: `${BASE}/Pupitre-1.4.0-arm64.dmg` },
-    { os: "macos", arch: "x64", url: `${BASE}/Pupitre-1.4.0-x64.dmg` },
-    { os: "windows", arch: "x64", url: `${BASE}/Pupitre-Setup-1.4.0-x64.exe` },
-    { os: "linux", arch: "x64", url: `${BASE}/Pupitre-1.4.0-x64.AppImage` },
+    {
+      os: "macos",
+      arch: "arm64",
+      format: "dmg",
+      url: `${BASE}/Pupitre-1.4.0-arm64.dmg`,
+    },
+    {
+      os: "macos",
+      arch: "x64",
+      format: "dmg",
+      url: `${BASE}/Pupitre-1.4.0-x64.dmg`,
+    },
+    {
+      os: "windows",
+      arch: "x64",
+      format: "exe",
+      url: `${BASE}/Pupitre-Setup-1.4.0-x64.exe`,
+    },
+    {
+      os: "linux",
+      arch: "x64",
+      format: "AppImage",
+      url: `${BASE}/Pupitre-1.4.0-x86_64.AppImage`,
+    },
+    {
+      os: "linux",
+      arch: "x64",
+      format: "deb",
+      url: `${BASE}/pupitre_1.4.0_amd64.deb`,
+    },
   ],
 }
 
@@ -51,20 +77,29 @@ describe("downloadOffers", () => {
     expect(offers.every((offer) => offer.url === null)).toBe(true)
   })
 
-  it("takes one link per artefact from the published release", () => {
+  it("takes one link per artefact from the published release, named by its format", () => {
     const offers = downloadOffers(RELEASE)
 
     expect(offers.map((offer) => offer.url)).toEqual([
       `${BASE}/Pupitre-1.4.0-arm64.dmg`,
       `${BASE}/Pupitre-1.4.0-x64.dmg`,
       `${BASE}/Pupitre-Setup-1.4.0-x64.exe`,
-      `${BASE}/Pupitre-1.4.0-x64.AppImage`,
+      `${BASE}/Pupitre-1.4.0-x86_64.AppImage`,
+      `${BASE}/pupitre_1.4.0_amd64.deb`,
     ])
     expect(offers.map((offer) => offer.arch)).toEqual([
       "arm64",
       "x64",
       "x64",
       "x64",
+      "x64",
+    ])
+    expect(offers.map((offer) => offer.format)).toEqual([
+      "download.format.macos",
+      "download.format.macos",
+      "download.format.windows",
+      "download.format.linux",
+      "download.format.deb",
     ])
   })
 
@@ -79,6 +114,12 @@ describe("downloadOffers", () => {
       true,
       false,
       false,
+    ])
+    expect(offers.map((offer) => offer.format)).toEqual([
+      "download.format.macos",
+      "download.format.macos",
+      "download.format.windows",
+      "download.format.linux",
     ])
   })
 })
