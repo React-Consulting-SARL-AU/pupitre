@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router"
 import type { ReactNode } from "react"
 import { ConsoleFooter } from "@/components/ui/console-footer"
+import { DevelopmentBanner } from "@/components/ui/development-banner"
 import { LocaleProvider } from "@/hooks/use-locale"
 import { sidebarCarriesChrome } from "@/lib/domain/chrome"
 import { readLocale } from "@/lib/i18n/locale"
@@ -71,6 +72,7 @@ function RootDocument({ children }: { children: ReactNode }) {
       </head>
       <body className="flex min-h-dvh flex-col bg-base text-ink">
         <LocaleProvider initial={locale}>
+          <DevelopmentBanner />
           <div className="flex flex-1 flex-col">{children}</div>
           {sidebarCarriesChrome(pathname) ? null : <ConsoleFooter />}
         </LocaleProvider>

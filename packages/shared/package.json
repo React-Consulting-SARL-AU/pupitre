@@ -18,6 +18,7 @@
     "./agent-protocol/system": "./src/agent-protocol/system.ts",
     "./agent-protocol/timeouts": "./src/agent-protocol/timeouts.ts",
     "./api/errors": "./src/api/errors.ts",
+    "./app-links": "./src/app-links/index.ts",
     "./catalog": "./src/catalog/index.ts",
     "./catalog/formats": "./src/catalog/formats.ts",
     "./catalog/validate": "./src/catalog/validate.ts",

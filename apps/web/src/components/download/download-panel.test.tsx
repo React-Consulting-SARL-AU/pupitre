@@ -14,7 +14,8 @@ import { render, waitUntil, withDashboard } from "@/testing/render"
 
 const mounted: (() => void)[] = []
 
-const NOTES = "Onboarding en trois étapes.\nCatalogue de services complet."
+const NOTES =
+  "## The app\n\n- Onboarding en trois étapes.\n- Catalogue de services complet."
 
 const KEY_PREFIX = "app/1.4.0"
 
@@ -181,6 +182,16 @@ describe("DownloadPanel", () => {
     expect(container.textContent).toContain("Onboarding en trois étapes.")
     expect(container.textContent).toContain("Catalogue de services complet.")
     expect(container.textContent).not.toContain("Not published yet")
+    expect(container.textContent).not.toContain("beta")
+
+    const heading = [...container.querySelectorAll("h3")].find((node) =>
+      node.textContent?.includes("The app")
+    )
+
+    expect(heading).toBeDefined()
+    expect(container.querySelectorAll("li").length).toBeGreaterThanOrEqual(2)
+    expect(container.textContent).not.toContain("## ")
+    expect(container.textContent).not.toContain("- Onboarding")
 
     const links = offerLinks(container)
 
@@ -191,16 +202,16 @@ describe("DownloadPanel", () => {
     ])
   })
 
-  it("ignores a version that is only in the beta channel", async () => {
+  it("offers the beta, and says so, when nothing is stable yet", async () => {
     const { prisma } = await bootApiTestServer()
 
     await prisma.appRelease.create({
       data: {
-        version: "1.5.0-beta.1",
+        version: "1.5.0",
         os: "macos",
         arch: "arm64",
         format: "dmg",
-        r2Key: "app/1.5.0-beta.1/Pupitre-1.5.0-beta.1-arm64.dmg",
+        r2Key: "app/1.5.0/Pupitre-1.5.0-arm64.dmg",
         bytes: 118_000_000,
         sha256: "d".repeat(64),
         notes: "Canal beta.",
@@ -212,10 +223,37 @@ describe("DownloadPanel", () => {
 
     mounted.push(unmount)
 
-    await waitUntil(
-      () => container.textContent?.includes("Nothing to download yet") === true
-    )
+    await waitUntil(() => container.textContent?.includes("1.5.0") === true)
 
-    expect(container.textContent).not.toContain("1.5.0-beta.1")
+    expect(container.textContent).toContain("beta")
+    expect(container.textContent).toContain("Canal beta.")
+  })
+
+  it("keeps the stable version in front of a newer beta", async () => {
+    const { prisma } = await bootApiTestServer()
+
+    await publishEveryOs()
+    await prisma.appRelease.create({
+      data: {
+        version: "1.5.0",
+        os: "macos",
+        arch: "arm64",
+        format: "dmg",
+        r2Key: "app/1.5.0/Pupitre-1.5.0-arm64.dmg",
+        bytes: 118_000_000,
+        sha256: "d".repeat(64),
+        notes: "Canal beta.",
+        channel: "beta",
+      },
+    })
+
+    const { container, unmount } = await render(panel())
+
+    mounted.push(unmount)
+
+    await waitUntil(() => container.textContent?.includes("1.4.0") === true)
+
+    expect(container.textContent).not.toContain("1.5.0")
+    expect(container.textContent).not.toContain("beta")
   })
 })

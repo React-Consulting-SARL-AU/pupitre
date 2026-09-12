@@ -1,0 +1,21 @@
+---
+import { developmentNotice, isPublicStage } from "@pupitre/shared/legal"
+import { localeFromPath } from "../lib/i18n"
+
+const locale = localeFromPath(Astro.url.pathname)
+const notice = developmentNotice(locale)
+---
+
+{
+  isPublicStage() ? null : (
+    <p
+      role="status"
+      class="border-line border-b bg-raised px-4 py-2 text-center text-[12px] text-ink-2"
+    >
+      <span class="mr-2 rounded-full border border-line px-2 py-[1px] font-medium text-[10.5px] text-ink uppercase tracking-[0.08em]">
+        {notice.label}
+      </span>
+      {notice.banner}
+    </p>
+  )
+}

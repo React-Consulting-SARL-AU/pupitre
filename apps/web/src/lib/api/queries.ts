@@ -248,24 +248,26 @@ export function latestReleaseQueryOptions() {
   })
 }
 
+async function latestAppRelease(channel: "stable" | "beta") {
+  try {
+    return unwrap(
+      await api().api.v1.releases.app.latest.get({ query: { channel } })
+    ).data
+  } catch (error) {
+    if (error instanceof ApiError && error.status === NOT_FOUND) {
+      return null
+    }
+
+    throw error
+  }
+}
+
+/** The stable version; before the first one exists, the beta, which says its channel. */
 export function latestAppReleaseQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.latestAppRelease,
-    queryFn: async () => {
-      try {
-        return unwrap(
-          await api().api.v1.releases.app.latest.get({
-            query: { channel: "stable" },
-          })
-        ).data
-      } catch (error) {
-        if (error instanceof ApiError && error.status === NOT_FOUND) {
-          return null
-        }
-
-        throw error
-      }
-    },
+    queryFn: async () =>
+      (await latestAppRelease("stable")) ?? (await latestAppRelease("beta")),
     retry: false,
   })
 }

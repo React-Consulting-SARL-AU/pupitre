@@ -150,6 +150,8 @@ export interface DevelopmentNotice {
   body: string
   entity: string
   short: string
+  /** One line over every page, site and console, until the project is public. */
+  banner: string
 }
 
 const NOTICES: Record<Locale, DevelopmentNotice> = {
@@ -161,6 +163,8 @@ const NOTICES: Record<Locale, DevelopmentNotice> = {
       "L’éditeur n’est pas encore immatriculé. Jusqu’à la constitution de la société, Pupitre — le code, la marque, les noms de domaine et la plateforme — appartient personnellement à Jordan Monier, seul titulaire des droits. L’identité légale, l’adresse du siège, les numéros d’immatriculation et les mentions fiscales seront ajoutés à la constitution de la société, à laquelle le projet sera apporté, et chaque document sera relu par un avocat avant d’engager qui que ce soit.",
     short:
       "Projet en développement : documents en brouillon, sans valeur contractuelle.",
+    banner:
+      "Pupitre est en cours de développement : rien ici n’est encore ouvert au public, et tout peut changer.",
   },
   en: {
     label: "Draft",
@@ -170,6 +174,8 @@ const NOTICES: Record<Locale, DevelopmentNotice> = {
       "The publisher is not incorporated yet. Until the company is formed, Pupitre — the code, the brand, the domain names and the platform — belongs personally to Jordan Monier, its sole rights holder. The legal identity, registered address, registration numbers and tax details will be added when the company is formed and the project is transferred to it, and every document will be reviewed by a lawyer before it binds anyone.",
     short:
       "Project under development: draft documents, with no contractual value.",
+    banner:
+      "Pupitre is under development: nothing here is open to the public yet, and everything may change.",
   },
 }
 

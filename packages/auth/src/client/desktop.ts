@@ -59,10 +59,15 @@ async function postJson<T>(
     headers: { "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify(body),
   })
+  const text = await response.text()
 
-  return {
-    ok: response.ok,
-    payload: (await response.json()) as T & ErrorPayload,
+  try {
+    return { ok: response.ok, payload: JSON.parse(text) as T & ErrorPayload }
+  } catch {
+    throw new DeviceFlowError(
+      "unexpected_answer",
+      `HTTP ${response.status}, no JSON body`
+    )
   }
 }
 

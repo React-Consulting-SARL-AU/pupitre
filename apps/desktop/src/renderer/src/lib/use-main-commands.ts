@@ -31,7 +31,12 @@ export async function followLink(
 ): Promise<void> {
   if (link.kind === "account") {
     await handlers.readAccount();
-    handlers.openSettings("account");
+
+    // A device the console just confirmed: the sign-in that waits picks the
+    // account up by itself, and the settings would only get in its way.
+    if (link.query.device !== "approved") {
+      handlers.openSettings("account");
+    }
 
     return;
   }
