@@ -127,6 +127,19 @@ export function mountedSocialProviders(instance: Auth): SocialProviderId[] {
   return SOCIAL_PROVIDER_IDS.filter((provider) => provider in mounted)
 }
 
+/**
+ * D1 has no interactive transaction, and the adapter opens one around every
+ * claim and increment — consuming a device code, counting a poll — whenever
+ * the client offers `$transaction`. Without it, the same steps run one after
+ * the other, which is what D1 can do.
+ */
+export function withoutInteractiveTransactions<T extends object>(prisma: T): T {
+  return new Proxy(prisma, {
+    get: (target, key) =>
+      key === "$transaction" ? undefined : Reflect.get(target, key),
+  })
+}
+
 function activeOrganizationIdOf(session: object): string | null {
   const value = (session as { activeOrganizationId?: unknown })
     .activeOrganizationId
@@ -146,7 +159,9 @@ export function createAuth({
     baseURL: env.BETTER_AUTH_URL,
     secret: env.BETTER_AUTH_SECRET,
     trustedOrigins: trustedOrigins(env),
-    database: prismaAdapter(prisma, { provider: "sqlite" }),
+    database: prismaAdapter(withoutInteractiveTransactions(prisma), {
+      provider: "sqlite",
+    }),
     socialProviders: socialProviders(env),
     session: {
       expiresIn: SESSION_EXPIRES_IN,
