@@ -14,10 +14,9 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-set -a
-# shellcheck disable=SC1090
-source <(grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl)
-set +a
+while IFS= read -r line; do
+  export "$line"
+done < <(grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl)
 
 step() {
   bun scripts/release/index.ts "$@"
