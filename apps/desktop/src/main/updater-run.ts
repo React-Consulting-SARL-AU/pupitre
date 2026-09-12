@@ -34,15 +34,19 @@ export interface UpdaterEnvironment {
   appImage: string | undefined;
 }
 
+/**
+ * What electron-updater is handed, and nothing more: the channel is the
+ * folder the URL ends with, whose feed is `latest*.yml`. Named as a channel
+ * too, it would look for `<channel>-mac.yml` instead, which nobody publishes.
+ */
 export interface UpdateFeed {
   provider: "generic";
   url: string;
-  channel: ReleaseChannel;
 }
 
 export type UpdaterPlan =
   | { updates: false; reason: "development" | "unsupported" }
-  | { updates: true; feed: UpdateFeed };
+  | { updates: true; channel: ReleaseChannel; feed: UpdateFeed };
 
 function channelOf(wanted: string | undefined): ReleaseChannel {
   return RELEASE_CHANNELS.includes(wanted as ReleaseChannel)
@@ -131,11 +135,8 @@ export function updaterPlan(environment: UpdaterEnvironment): UpdaterPlan {
   const channel = channelOf(environment.channel);
 
   return {
-    feed: {
-      channel,
-      provider: "generic",
-      url: feedUrl(channel, environment.downloads),
-    },
+    channel,
+    feed: { provider: "generic", url: feedUrl(channel, environment.downloads) },
     updates: true,
   };
 }

@@ -127,7 +127,7 @@ export function startUpdater(): UpdaterPlan {
   ipcMain.handle(
     "app:about",
     (): AppAbout => ({
-      channel: plan.updates ? plan.feed.channel : null,
+      channel: plan.updates ? plan.channel : null,
       version: appVersion(),
     })
   );
