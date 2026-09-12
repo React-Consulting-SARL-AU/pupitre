@@ -43,16 +43,16 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.10",
-    "@cloudflare/workers-types": "5.20260708.1",
+    "@cloudflare/workers-types": "5.20260908.1",
     "@commitlint/cli": "^21.2.2",
     "@commitlint/config-conventional": "^21.2.2",
-    "@types/bun": "^1.4.0",
-    "@types/node": "^26.2.0",
+    "@types/bun": "^1.4.2",
+    "@types/node": "^26.5.0",
     "@typescript/native-preview": "^7.0.0-dev.20260707.2",
     "husky": "^9.1.7",
     "turbo": "^2.10.11",
-    "typescript": "^6.0.3",
-    "ultracite": "7.8.3",
+    "typescript": "^7.0.2",
+    "ultracite": "7.11.1",
     "wrangler": "^4.131.1"
   },
   "trustedDependencies": [

@@ -17,18 +17,18 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@better-auth/passkey": "1.6.23",
+    "@better-auth/passkey": "1.7.3",
     "@prisma/client": "^7.9.1",
     "@pupitre/db": "workspace:*",
     "@pupitre/shared": "workspace:*",
-    "better-auth": "1.6.23"
+    "better-auth": "1.7.3"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "5.20260708.1",
-    "@types/bun": "^1.4.0",
-    "@types/node": "^26.2.0",
+    "@cloudflare/workers-types": "5.20260908.1",
+    "@types/bun": "^1.4.2",
+    "@types/node": "^26.5.0",
     "@typescript/native-preview": "^7.0.0-dev.20260707.2",
-    "typescript": "^6.0.3",
-    "ultracite": "7.8.3"
+    "typescript": "^7.0.2",
+    "ultracite": "7.11.1"
   }
 }

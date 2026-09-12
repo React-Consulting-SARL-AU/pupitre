@@ -16,24 +16,24 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@astrojs/mdx": "^4",
+    "@astrojs/mdx": "^8",
     "@astrojs/rss": "^4.0.19",
     "@astrojs/sitemap": "^3.7.4",
     "@pupitre/design": "workspace:*",
     "@pupitre/shared": "workspace:*",
     "@resvg/resvg-js": "^2.6.2",
-    "astro": "^5.18.2",
-    "posthog-js": "^1.427.2",
+    "astro": "^7.3.2",
+    "posthog-js": "^1.428.11",
     "satori": "^0.33.4"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
     "@tailwindcss/vite": "^4.3.3",
-    "@types/bun": "^1.4.0",
+    "@types/bun": "^1.4.2",
     "tailwindcss": "^4.3.3",
-    "typescript": "^6.0.3",
-    "ultracite": "7.8.3",
-    "vitest": "^3.2.7",
+    "typescript": "^7.0.2",
+    "ultracite": "7.11.1",
+    "vitest": "^5.0.0",
     "wrangler": "^4.131.1"
   }
 }
