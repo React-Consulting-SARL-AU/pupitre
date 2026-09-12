@@ -8,24 +8,25 @@ import {
 } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import {
+  CONFIG_FILE,
+  environmentOf,
+  LOCAL_ENVIRONMENT,
+  readEnvironments,
+} from "./environments"
 
 const ROOT = join(import.meta.dir, "..")
 const TEMPLATE = join(ROOT, ".env.1password.tpl")
-const CONFIG_FILE = join(ROOT, "op.config.json")
 const ENV_LINE_RE = /^([A-Z0-9_]+)=(.*)$/
 
-interface OpConfig {
-  vault?: string
-  item?: string
-}
-
-function readConfig(): OpConfig {
-  if (!existsSync(CONFIG_FILE)) {
-    return {}
-  }
-
+function localNote(): { vault?: string; item?: string } {
   try {
-    return JSON.parse(readFileSync(CONFIG_FILE, "utf8")) as OpConfig
+    const config = readEnvironments()
+
+    return {
+      item: environmentOf(LOCAL_ENVIRONMENT, config).item,
+      vault: config.vault,
+    }
   } catch {
     return {}
   }
@@ -64,13 +65,13 @@ export function loadOnePasswordEnv(): Record<string, string> | null {
     return null
   }
 
-  const config = readConfig()
-  const vault = process.env.OP_VAULT ?? config.vault
-  const item = process.env.OP_ITEM ?? config.item
+  const note = localNote()
+  const vault = process.env.OP_VAULT ?? note.vault
+  const item = process.env.OP_ITEM ?? note.item
 
   if (!(vault && item)) {
     process.stdout.write(
-      `1Password ignoré : renseigne « vault » et « item » dans ${CONFIG_FILE}, ou OP_VAULT et OP_ITEM.\n`
+      `1Password ignoré : renseigne « vault » et l'« item » de ${LOCAL_ENVIRONMENT} dans ${CONFIG_FILE}, ou OP_VAULT et OP_ITEM.\n`
     )
 
     return null

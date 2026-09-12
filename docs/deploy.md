@@ -45,7 +45,7 @@ gh auth status              # doit afficher le compte propriétaire du dépôt
 
 ### La règle sur les secrets
 
-**Aucune valeur ne se tape à la main dans un fichier du dépôt.** Chaque secret est déposé dans 1Password — coffre et note nommés dans [`op.config.json`](../op.config.json) — et `bun run dev:prepare` va l'y chercher pour le développement local. Le dépôt ne contient que des références ; un hook refuse le commit qui porterait une valeur.
+**Aucune valeur ne se tape à la main dans un fichier du dépôt.** Chaque secret est déposé dans 1Password — le coffre et la note de chaque environnement sont nommés dans [`environments.json`](../environments.json) — et `bun run dev:prepare` va chercher ceux du staging pour le développement local. Le dépôt ne contient que des références ; un hook refuse le commit qui porterait une valeur.
 
 ## 3. Les seize secrets
 
@@ -108,7 +108,7 @@ Le préfixe `pupitre_pub_` est ce à quoi la plateforme reconnaît un jeton de p
 
 ### `DATABASE_URL` — Neon
 
-Le projet s'appelle `pupitre` et porte deux branches, `production` et `staging`. Dans la console Neon, ouvre la branche, puis *Connection details*. Relève **deux** adresses, qui ne sont pas la même :
+Deux projets Neon, et non deux branches d'un même projet : `pupitre` porte la production et `pupitre-staging` le staging — [`environments.json`](../environments.json) les nomme. Une branche se remet à zéro depuis son parent d'un clic, et le staging, qui garde l'historique des versions publiées, ne doit pas pouvoir l'être. Dans la console Neon, ouvre la branche par défaut du projet, puis *Connection details*. Relève **deux** adresses, qui ne sont pas la même :
 
 | Variable | Quel point de connexion | Pourquoi |
 | --- | --- | --- |
@@ -169,7 +169,14 @@ Vérifie : `curl -I https://dl.pupitre.studio` répond **404 servi par Cloudflar
 
 ## 5. La base de données
 
-Deux branches Neon dans le projet `pupitre` : `production` et `staging`. Elles existent déjà. Tu n'as rien à créer ni à migrer à la main — la construction applique les migrations avant de déployer, à chaque fois.
+Deux projets Neon, `pupitre` pour la production et `pupitre-staging` pour le staging, chacun avec sa branche par défaut (`production`, `staging`). Ils existent déjà. Tu n'as rien à créer ni à migrer à la main — la construction applique les migrations avant de déployer, à chaque fois.
+
+Agir sur l'un ou l'autre depuis ton poste passe par `bun run env <staging|production> -- <commande>` : la commande reçoit les champs de la note 1Password de l'environnement, et rien n'est écrit. Remettre une base à zéro, par exemple :
+
+```bash
+bun run env staging -- env PUPITRE_ALLOW_MIGRATE_ON=staging bun run db:migrate:reset
+bun run env production -- env PUPITRE_ALLOW_MIGRATE_ON=production bun run db:migrate:reset
+```
 
 Une seule chose à savoir : `MIGRATE_DATABASE_URL` doit désigner le point de connexion **direct** de la branche visée. Un point poolé est refusé, avec un message qui le dit.
 
@@ -177,14 +184,14 @@ Une seule chose à savoir : `MIGRATE_DATABASE_URL` doit désigner le point de co
 
 Un Worker naît avec ses seize secrets, ou ne naît pas : `wrangler deploy` refuse de créer un Worker dont un secret de `secrets.required` manque, et `wrangler secret put` ne sait rien attacher à un Worker qui n'existe pas encore. Le premier déploiement fournit donc les seize d'un coup, par `--secrets-file`. On le fait une fois, sans passer par la construction automatique.
 
-Les valeurs vivent dans 1Password, dans le même coffre que la note de développement : un item par environnement, `pupitre-staging` et `pupitre-production`, un champ par secret, nommé exactement comme le Worker l'attend. Le fichier de secrets n'existe jamais sur le disque : il est composé à la volée depuis 1Password et remis à `wrangler` par une substitution de processus.
+Les valeurs vivent dans 1Password : une note par environnement, `pupitre` (le staging, et le poste de travail) et `pupitre-prod`, nommées dans [`environments.json`](../environments.json), un champ par secret, nommé exactement comme le Worker l'attend. Le fichier de secrets n'existe jamais sur le disque : il est composé à la volée depuis 1Password et remis à `wrangler` par une substitution de processus.
 
-Depuis une branche de travail, avec les deux adresses de la branche Neon `staging` dans l'environnement :
+Depuis une branche de travail :
 
 ```bash
-bun --cwd=apps/web run build:staging
+bun run env staging -- bun --cwd=apps/web run build:staging
 bun x wrangler deploy --config apps/web/dist/server/wrangler.json --keep-vars \
-  --secrets-file <(op item get pupitre-staging --vault "DEV - React Consulting" --format json \
+  --secrets-file <(op item get pupitre --vault "DEV - React Consulting" --format json \
     | jq '[.fields[] | select(.label and .value)] | map({(.label): .value}) | add')
 ```
 
@@ -193,9 +200,9 @@ Le Worker s'appelle `ppt-web-staging`. Rien ne se saisit dans le tableau de bord
 Ensuite, un secret qui change se pose seul, ou tous d'un coup, par le même canal :
 
 ```bash
-op read "op://DEV - React Consulting/pupitre-staging/STRIPE_WEBHOOK_SECRET" \
+op read "op://DEV - React Consulting/pupitre/STRIPE_WEBHOOK_SECRET" \
   | bun x wrangler secret put STRIPE_WEBHOOK_SECRET --config apps/web/wrangler.jsonc --env staging
-bun x wrangler secret bulk --config apps/web/wrangler.jsonc --env staging <(op item get pupitre-staging \
+bun x wrangler secret bulk --config apps/web/wrangler.jsonc --env staging <(op item get pupitre \
   --vault "DEV - React Consulting" --format json \
   | jq '[.fields[] | select(.label and .value)] | map({(.label): .value}) | add')
 bun --cwd=apps/web run check:secrets staging     # doit dire que tout est là

@@ -1,0 +1,14 @@
+{
+  "$comment": "The two environments, and what each one is made of: the 1Password note that holds its secrets (in `vault`, one field per variable, named as the Worker reads it) and the Neon project that holds its data. Two projects and not two branches of one: a branch resets from its parent, and the staging that keeps the release history must not. The workstation is `staging`: dev:prepare reads its note, and takes a branch of its project. No value here, only names.",
+  "vault": "DEV - React Consulting",
+  "environments": {
+    "staging": {
+      "item": "pupitre",
+      "neon": { "project": "pupitre-staging", "branch": "staging" }
+    },
+    "production": {
+      "item": "pupitre-prod",
+      "neon": { "project": "pupitre", "branch": "production" }
+    }
+  }
+}
