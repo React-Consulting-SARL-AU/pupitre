@@ -64,7 +64,27 @@ function createTestFetch(auth: Auth): TestFetch {
   }
 }
 
+/**
+ * What the platform reads from the ambient environment, dropped before the
+ * first request: a workstation's `.env.local` carries the real bucket and the
+ * real publication token, and a test that saw them would assert on the
+ * machine it runs on. A test that needs one of these sets it itself.
+ */
+const AMBIENT_VARIABLES = [
+  "PUPITRE_DOWNLOADS_URL",
+  "PUPITRE_PUBLISH_TOKEN",
+  "PUPITRE_PUBLISH_TOKEN_PREVIOUS",
+  "R2_ACCOUNT_ID",
+  "R2_ACCESS_KEY_ID",
+  "R2_SECRET_ACCESS_KEY",
+  "R2_BUCKET_NAME",
+]
+
 async function boot(): Promise<ApiTestServer> {
+  for (const name of AMBIENT_VARIABLES) {
+    delete process.env[name]
+  }
+
   const database = await bootTestDatabase()
   const sentEmails: EmailMessage[] = []
   const auth = createAuth({
