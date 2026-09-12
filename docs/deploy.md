@@ -12,8 +12,8 @@ Quatre choses, sur deux environnements.
 | --- | --- | --- |
 | La console et l'API — un seul Worker Cloudflare | `staging-app.pupitre.studio`, puis `app.pupitre.studio` | un push sur la branche `staging`, puis sur `main` |
 | Le site marketing — un Worker à assets statiques | `staging.pupitre.studio`, puis `pupitre.studio` | les mêmes branches |
-| L'app desktop (macOS, Windows, Linux) | le seau public `ppt-downloads`, servi par `dl.pupitre.studio` | `scripts/release.sh` sur le Mac du propriétaire, qui pose le tag `vX.Y.Z` sur `staging` une fois tout publié |
-| L'agent `pupitred`, installé sur le serveur du client | le seau privé `ppt-agent`, que rien n'atteint directement | la même commande |
+| L'app desktop (macOS, Windows, Linux) | le seau public `ppt-downloads`, servi par `dl.pupitre.studio` | un tag `vX.Y.Z` sur `staging`, posé par `scripts/release.sh` depuis le Mac du propriétaire, construit et publié par `release.yml` |
+| L'agent `pupitred`, installé sur le serveur du client | le seau privé `ppt-agent`, que rien n'atteint directement | le même tag |
 
 **Staging d'abord, production ensuite.** Les deux environnements sont identiques en tout sauf leurs valeurs : même code, mêmes seize secrets, mêmes vérifications. Ce que tu apprends sur l'un s'applique à l'autre.
 
@@ -28,7 +28,7 @@ Les branches : `staging` est la branche de travail, `main` est la production et 
 | **Cloudflare** | le domaine, le Worker, le site, les deux seaux de fichiers | gratuit pour commencer | immédiat |
 | **Neon** | la base de données Postgres | gratuit pour commencer | immédiat |
 | **Stripe** | le produit et ses deux prix | commission par vente | quelques jours de vérification |
-| **GitHub** | le dépôt et sa CI — la publication se fait depuis le Mac | gratuit | immédiat |
+| **GitHub** | le dépôt, sa CI, et les runners qui construisent et publient chaque version | gratuit, les minutes macOS et Windows comptées | immédiat |
 | Apple Developer | la signature de l'app macOS | 99 $/an | quelques jours |
 | Azure Trusted Signing | la signature de l'app Windows | à l'usage | quelques jours de vérification |
 
@@ -258,17 +258,18 @@ Le squash est interdit parce qu'il réécrit les commits : le commit tagué d'un
 
 ## 8 bis. La note 1Password de la release
 
-La chaîne de release ne tourne pas sur GitHub : elle tourne sur le Mac du propriétaire, `scripts/release.sh`, et lit ses valeurs dans **une note 1Password**, `pupitre-GitHub` dans le coffre partagé, par `op run` — rien n'est jamais écrit dans un fichier. `scripts/release/release.env.tpl` dit quels champs elle attend ; les valeurs publiques (les deux plateformes, les seaux, l'identifiant du compte R2) y sont en clair.
+Les runners de `release.yml` lisent leurs secrets dans ceux du dépôt GitHub, et ceux-ci viennent d'**une note 1Password**, `pupitre-GitHub` dans le coffre partagé : `scripts/release/release.env.tpl` dit quels champs elle attend, et `bun scripts/release/index.ts secrets` lit chacun par `op read` et le pose par `gh secret set` — à relancer à chaque valeur qui tourne. Rien n'est jamais écrit dans un fichier. Les valeurs publiques (les deux plateformes, les seaux, l'identifiant du compte R2) sont en clair dans le gabarit, et le workflow les y lit.
 
 | Champ | D'où il vient | Sans lui |
 | --- | --- | --- |
 | `PUPITRE_PUBLISH_TOKEN` | la même valeur qu'à l'étape 3, mot pour mot | la version se construit et ne se déclare pas |
 | `PUPITRE_RELEASE_PRIVATE_KEY` | `cd apps/agent && go run ./tools/release keygen`, une seule fois | rien ne se construit |
 | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | le second jeton R2 de l'étape 3, *Object Read & Write* sur les deux seaux | rien ne monte sur les seaux |
+| `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD` | le certificat Developer ID exporté du trousseau en `.p12`, `base64 -i certificat.p12 \| pbcopy`, et son mot de passe | l'app macOS sort non signée |
 | `APPLE_API_KEY_CONTENT` | `base64 -i AuthKey_<id>.p8 \| pbcopy` | pas de notarisation |
 | `APPLE_API_KEY_ID`, `APPLE_API_ISSUER` | la page *Keys* d'App Store Connect | idem |
 
-Les trois premières lignes suffisent pour publier. Les autres notarisent l'app macOS ; sa **signature** vient du certificat Developer ID du trousseau du Mac, qu'electron-builder trouve seul — il ne s'importe pas depuis un fichier. Windows sort non signé : Azure Trusted Signing n'existe que sur Windows.
+Les trois premières lignes suffisent pour publier. Les autres signent et notarisent l'app macOS : le runner importe le certificat dans un trousseau jetable le temps du build. Windows sort non signé tant qu'Azure Trusted Signing n'est pas posé.
 
 **La clé de publication mérite une phrase.** Une seule paire de clés signe tout ce que Pupitre publie, pour toujours. Sa moitié privée est dans cette note et nulle part ailleurs ; sa moitié publique est déjà écrite dans le code de l'app. Les deux vont ensemble : une app qui connaît une clé publique et un agent signé avec une autre refusent toute mise à jour, sans message utile. Ne la régénère pas.
 
@@ -280,12 +281,12 @@ Les trois premières lignes suffisent pour publier. Les autres notarisent l'app 
 git switch staging && git pull --ff-only
 scripts/release.sh --version=0.1.0     # écrit la version, rédige les notes, s'arrête
 # relis apps/site/src/content/changelog/{en,fr}/0-1-0.mdx
-scripts/release.sh                      # vérifie, construit, publie, commite, tague, pousse
+scripts/release.sh                      # vérifie, commite, tague, pousse
 ```
 
-Le second passage est l'acte de publication : l'agent puis l'app sur les seaux, la déclaration à la plateforme de la branche, et enfin le commit `chore(release): v0.1.0`, le tag et le push. La chaîne refuse de commencer si le changelog ne couvre pas la version dans les deux langues, ou si la branche n'est ni `staging` ni `main`.
+Le second passage commite `chore(release): v0.1.0`, pose le tag et pousse ; le push du tag lance `release.yml`, qui construit et publie l'agent puis l'app sur les seaux, déclare la version à la plateforme de la branche, et vérifie de l'extérieur que tout se télécharge — le résumé du run dit quoi. La chaîne refuse de commencer si le changelog ne couvre pas la version dans les deux langues, ou si la branche n'est ni `staging` ni `main`. Un job qui échoue se relance seul depuis GitHub : chaque étape est idempotente.
 
-Une version sort toujours en canal **`beta`**, déclarée à la plateforme de la branche — le staging, donc. Elle arrive en production et passe en `stable` quand la pull request `staging` → `main` est fusionnée, puis `scripts/release.sh promote 0.1.0` : les lignes gardées avec les artefacts sont dites à la production, puis promues. C'est **le même fichier**, celui qui a été éprouvé, qui devient la version stable — rien n'est reconstruit. Un second build donnerait d'autres signatures pour le même numéro.
+Une version sort toujours en canal **`beta`**, déclarée à la plateforme de la branche — le staging, donc. Elle arrive en production et passe en `stable` quand la pull request `staging` → `main` est fusionnée : `promote.yml` dit à la production les lignes gardées avec les artefacts, puis les promeut. C'est **le même fichier**, celui qui a été éprouvé, qui devient la version stable — rien n'est reconstruit. Un second build donnerait d'autres signatures pour le même numéro.
 
 ## 10. Vérifier que tout tient
 

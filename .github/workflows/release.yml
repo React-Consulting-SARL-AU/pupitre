@@ -1,0 +1,206 @@
+name: Release
+
+# One tag, one version. The owner's Mac wrote the version and the notes and
+# pushed the tag — `scripts/release.sh`; from here every step is a command of
+# `scripts/release`, run the same way on these runners or on a machine of ours.
+# This file installs the tools, names the step and hands it its secrets; the
+# buckets are the only thing the jobs share, and every step is idempotent, so
+# a failed job is re-run alone and the release resumes where it stood.
+#
+# The tag sits on `staging` — the version goes out in `beta`, declared to the
+# staging platform — or on `main`, declared to production. `promote.yml`
+# carries a version from the first to the second when `main` takes it.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version semver à publier, sans le v (défaut, celle du manifeste)
+        required: false
+      channel:
+        description: Canal de publication
+        type: choice
+        options: [beta, stable]
+        default: beta
+
+# Two runs of one version would race for the same objects: they queue.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  TURBO_TELEMETRY_DISABLED: "1"
+  ELECTRON_CACHE: ${{ github.workspace }}/.cache/electron
+  ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
+
+jobs:
+  agent:
+    name: Agent
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      release: ${{ steps.resolve.outputs.release }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: apps/agent/go.mod
+          cache-dependency-path: apps/agent/go.mod
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # The addresses and the bucket names come from the template the owner's
+      # Mac uses; the secrets are the same template's references, set once by
+      # `release secrets`.
+      - name: Read the release settings
+        run: grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl >> "$GITHUB_ENV"
+
+      # The version, the channel and the platform, from git; the other jobs
+      # read them from this job rather than resolving twice.
+      - name: Resolve the release
+        id: resolve
+        run: |
+          args=()
+          if [ -n "${VERSION:-}" ]; then args+=("--version=$VERSION"); fi
+          if [ -n "${CHANNEL:-}" ]; then args+=("--channel=$CHANNEL"); fi
+          bun scripts/release/index.ts resolve "${args[@]}" | tee -a "$GITHUB_ENV"
+          echo "release=$(bun scripts/release/index.ts resolve "${args[@]}" --format=json)" >> "$GITHUB_OUTPUT"
+        env:
+          VERSION: ${{ inputs.version }}
+          CHANNEL: ${{ inputs.channel }}
+
+      - name: Check the changelog and the app version
+        run: bun scripts/release/index.ts check
+
+      # A version the bucket already holds is taken from there, not rebuilt:
+      # garble does not reproduce a binary, and the platform keeps the digests.
+      - name: Build, sign and smoke the agent
+        run: bun scripts/release/index.ts agent build
+        env:
+          PUPITRE_RELEASE_PRIVATE_KEY: ${{ secrets.PUPITRE_RELEASE_PRIVATE_KEY }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+
+      - name: Publish the agent
+        run: bun scripts/release/index.ts agent publish
+        env:
+          PUPITRE_PUBLISH_TOKEN: ${{ secrets.PUPITRE_PUBLISH_TOKEN }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+
+  desktop:
+    name: App ${{ matrix.system }}
+    needs: agent
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      # One system failing does not stop the others: it is re-run alone.
+      fail-fast: false
+      matrix:
+        include:
+          - system: macOS
+            runner: macos-15
+          - system: Windows
+            runner: windows-2025
+          - system: Linux
+            runner: ubuntu-24.04
+    env:
+      PUPITRE_RELEASE_VERSION: ${{ fromJSON(needs.agent.outputs.release).version }}
+      PUPITRE_RELEASE_CHANNEL: ${{ fromJSON(needs.agent.outputs.release).channel }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      # Electron and electron-builder's tools are downloaded once per version
+      # of each, not once per release.
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: .cache
+          key: electron-${{ runner.os }}-${{ hashFiles('apps/desktop/package.json') }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Read the release settings
+        run: grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl >> "$GITHUB_ENV"
+
+      # The step reads the agent from the bucket, builds the app of this
+      # system, signs it where the system asks for it, and leaves the result
+      # in the bucket for the publish job.
+      - name: Build the app
+        run: bun scripts/release/index.ts desktop
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY_CONTENT }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          AZURE_SIGNING_ENDPOINT: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+          AZURE_SIGNING_ACCOUNT: ${{ vars.AZURE_SIGNING_ACCOUNT }}
+          AZURE_SIGNING_PROFILE: ${{ vars.AZURE_SIGNING_PROFILE }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+
+  publish:
+    name: Publish the app
+    needs: [agent, desktop]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PUPITRE_RELEASE_VERSION: ${{ fromJSON(needs.agent.outputs.release).version }}
+      PUPITRE_RELEASE_CHANNEL: ${{ fromJSON(needs.agent.outputs.release).channel }}
+      PUPITRE_PLATFORM_URL: ${{ fromJSON(needs.agent.outputs.release).platform }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Read the release settings
+        run: grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl >> "$GITHUB_ENV"
+
+      # Every installer the three systems left: signed with the release key,
+      # put in the public bucket, declared to the platform of the branch.
+      - name: Sign, upload and declare
+        run: bun scripts/release/index.ts app publish
+        env:
+          PUPITRE_RELEASE_PRIVATE_KEY: ${{ secrets.PUPITRE_RELEASE_PRIVATE_KEY }}
+          PUPITRE_PUBLISH_TOKEN: ${{ secrets.PUPITRE_PUBLISH_TOKEN }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+
+      # The release is done when what a customer downloads is there: the
+      # platform describes the version, the bucket serves every file whole
+      # and the feeds point at it. The report is the run's summary.
+      - name: Verify what a customer downloads
+        run: bun scripts/release/index.ts verify | tee -a "$GITHUB_STEP_SUMMARY"

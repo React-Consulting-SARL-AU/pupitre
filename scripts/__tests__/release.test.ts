@@ -12,17 +12,19 @@ import {
   macSigning,
   publishable,
   systemOfHost,
-  systemsToBuild,
   windowsSigning,
 } from "../release/desktop"
 import { nextVersion, partOf, writeAppVersion } from "../release/next"
 import { keys } from "../release/r2"
 import {
+  branchHolding,
   bump,
   formatRelease,
   platformFor,
   versionOfTag,
 } from "../release/resolve"
+import { parseTemplate } from "../release/secrets"
+import { feedNamesVersion, verdictOf } from "../release/verify"
 
 describe("the command line of a step", () => {
   it("reads a flag's value, a bare flag, and refuses an empty variable", () => {
@@ -76,6 +78,64 @@ describe("what a tag and a branch say", () => {
       "PUPITRE_RELEASE_BRANCH=staging",
     ])
     expect(JSON.parse(formatRelease(release, "json"))).toEqual(release)
+  })
+})
+
+describe("the branch a runner releases from", () => {
+  it("is the one HEAD names, else staging when staging holds the commit, else main", () => {
+    expect(branchHolding("staging", () => false)).toBe("staging")
+    expect(branchHolding("main", () => true)).toBe("main")
+    expect(branchHolding("HEAD", (branch) => branch === "staging")).toBe(
+      "staging"
+    )
+    expect(branchHolding("HEAD", () => true)).toBe("staging")
+    expect(branchHolding("HEAD", (branch) => branch === "main")).toBe("main")
+    expect(branchHolding("HEAD", () => false)).toBeNull()
+    expect(branchHolding("feature", () => false)).toBeNull()
+  })
+})
+
+describe("the template of the release environment", () => {
+  it("tells a 1Password reference from a plain value, and skips comments", () => {
+    const source = [
+      "# what a release needs",
+      "",
+      "PUPITRE_DOWNLOADS_URL=https://dl.example",
+      'R2_SECRET_ACCESS_KEY="op://Vault/note/R2_SECRET_ACCESS_KEY"',
+      "PUPITRE_PUBLISH_TOKEN=op://Vault/note/PUPITRE_PUBLISH_TOKEN",
+    ].join("\n")
+
+    expect(parseTemplate(source)).toEqual([
+      {
+        name: "PUPITRE_DOWNLOADS_URL",
+        secret: false,
+        value: "https://dl.example",
+      },
+      {
+        name: "R2_SECRET_ACCESS_KEY",
+        secret: true,
+        value: "op://Vault/note/R2_SECRET_ACCESS_KEY",
+      },
+      {
+        name: "PUPITRE_PUBLISH_TOKEN",
+        secret: true,
+        value: "op://Vault/note/PUPITRE_PUBLISH_TOKEN",
+      },
+    ])
+  })
+})
+
+describe("what a customer can download once a version is published", () => {
+  it("reads a version out of a feed and nothing near it", () => {
+    expect(feedNamesVersion("version: 0.1.0\nfiles:\n", "0.1.0")).toBe(true)
+    expect(feedNamesVersion("version: 0.1.10\n", "0.1.1")).toBe(false)
+    expect(feedNamesVersion("", "0.1.0")).toBe(false)
+  })
+
+  it("accepts a file the bucket serves whole, and names what is missing or short", () => {
+    expect(verdictOf(200, "1234", 1234)).toBeNull()
+    expect(verdictOf(404, null, 1234)).toBe("answers 404")
+    expect(verdictOf(200, "12", 1234)).toBe("is 12 bytes, not 1234")
   })
 })
 
@@ -165,39 +225,43 @@ describe("the app on a system", () => {
     ])
   })
 
-  it("builds the three systems from macOS, one elsewhere, or the one asked", () => {
-    expect(systemsToBuild([], "darwin")).toEqual(["macos", "linux", "windows"])
-    expect(systemsToBuild([], "linux")).toEqual(["linux"])
-    expect(systemsToBuild(["--system=windows"], "darwin")).toEqual(["windows"])
-    expect(() => systemsToBuild(["--system=freebsd"], "darwin")).toThrow(
-      "freebsd"
-    )
-  })
-
-  it("notarizes on macOS with the three App Store Connect values, and says so otherwise", () => {
+  it("signs on macOS with the certificate given, or the keychain's, and notarizes with the App Store Connect key", () => {
     const written: string[] = []
     const keyFile = (content: string) => {
       written.push(content)
 
       return "/tmp/key.p8"
     }
-    const full = {
+    const notarizing = {
       APPLE_API_ISSUER: "issuer",
       APPLE_API_KEY_CONTENT: "cGVt",
       APPLE_API_KEY_ID: "KEYID12345",
     }
-
-    expect(macSigning(full, keyFile)).toEqual({
+    const notarized = {
       APPLE_API_ISSUER: "issuer",
       APPLE_API_KEY: "/tmp/key.p8",
       APPLE_API_KEY_ID: "KEYID12345",
-    })
+      DEBUG: "electron-notarize*",
+    }
+
+    expect(macSigning(notarizing, keyFile)).toEqual(notarized)
     expect(written).toEqual(["cGVt"])
 
-    expect(macSigning({ ...full, APPLE_API_ISSUER: "" }, keyFile)).toEqual({
-      CSC_IDENTITY_AUTO_DISCOVERY: "false",
-    })
-    expect(written).toHaveLength(1)
+    expect(
+      macSigning(
+        {
+          ...notarizing,
+          APPLE_CERTIFICATE: "cDEy",
+          APPLE_CERTIFICATE_PASSWORD: "secret",
+        },
+        keyFile
+      )
+    ).toEqual({ ...notarized, CSC_KEY_PASSWORD: "secret", CSC_LINK: "cDEy" })
+
+    expect(
+      macSigning({ ...notarizing, APPLE_API_ISSUER: "" }, keyFile)
+    ).toEqual({ CSC_IDENTITY_AUTO_DISCOVERY: "false" })
+    expect(written).toHaveLength(2)
   })
 
   it("passes the three Azure names to electron-builder, or none", () => {

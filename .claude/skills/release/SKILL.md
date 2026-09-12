@@ -1,21 +1,23 @@
 ---
 name: release
-description: "Sortir une version de Pupitre depuis le Mac du propriétaire — `scripts/release.sh` : version suivante, entrée de changelog rédigée par `claude -p` et relue, agent et app construits sur les trois systèmes, notarisation macOS, signature Ed25519 de tous les artefacts, publication sur les seaux R2 puis déclaration à la plateforme de la branche, commit et tag `vX.Y.Z` en dernier, promotion `beta` → `stable` en production après le merge `staging` → `main`, feuille de compatibilité app ↔ agent. À utiliser quand le propriétaire demande une release, un correctif à publier, ou quand on touche à la chaîne de release. Dit clairement ce qui n'existe pas encore."
+description: "Sortir une version de Pupitre — `scripts/release.sh` sur le Mac du propriétaire : version suivante, entrée de changelog rédigée par `claude -p` et relue, commit et tag `vX.Y.Z` ; puis `release.yml` sur GitHub : agent et app construits sur les trois systèmes, notarisation macOS, signature Ed25519 de tous les artefacts, publication sur les seaux R2, déclaration à la plateforme de la branche, vérification de l'extérieur ; promotion `beta` → `stable` en production après le merge `staging` → `main` par `promote.yml`, feuille de compatibilité app ↔ agent. À utiliser quand le propriétaire demande une release, un correctif à publier, ou quand on touche à la chaîne de release. Dit clairement ce qui n'existe pas encore."
 ---
 
 # Sortir une version
 
 Une release livre deux artefacts : l'app desktop (macOS, Windows, Linux) et l'agent `pupitred` (`linux/amd64`, `linux/arm64`). Les deux sortent sur le **même tag** `vX.Y.Z`, parce que le protocole les lie et que la feuille de compatibilité se lit avec leurs deux numéros.
 
-Tout se fait **depuis le Mac du propriétaire**, par `scripts/release.sh` : GitHub ne construit rien et ne publie rien. La release se fait depuis **`staging`** ; la version est déclarée à la plateforme de staging en `beta`, éprouvée, puis portée en production et promue en `stable` après le merge de la pull request `staging` → `main` — le même artefact, celui qui a été essayé, sans reconstruction. Voir [`docs/monorepo.md`](../../../docs/monorepo.md#branches).
+Le Mac du propriétaire écrit la version et les notes et pose le tag, par `scripts/release.sh`, sans aucun secret ; le tag fait construire, publier et vérifier la version par `.github/workflows/release.yml`, un runner par système. La release se fait depuis **`staging`** ; la version est déclarée à la plateforme de staging en `beta`, éprouvée, puis portée en production et promue en `stable` après le merge de la pull request `staging` → `main` — le même artefact, celui qui a été essayé, sans reconstruction. Voir [`docs/monorepo.md`](../../../docs/monorepo.md#branches).
 
 ## Fichiers gouvernés
 
 | Fichier | Rôle | Existe ? |
 | --- | --- | --- |
-| `scripts/release.sh` | l'enchaînement complet sous `op run`, qui s'arrête après les notes pour qu'elles soient lues et repart quand on le relance ; `promote X.Y.Z` après le merge | oui |
-| `scripts/release/release.env.tpl` | les références 1Password et les valeurs publiques que `op run` injecte — aucun secret dedans | oui |
-| `scripts/release/` | **la chaîne elle-même** : `next`, `resolve`, `notes`, `check`, `agent build`, `agent publish`, `desktop`, `app publish`, `ship`, `promote` — chaque étape est une commande `bun scripts/release/index.ts <étape>`, idempotente, pilotée par l'environnement, avec `--dry-run` ; R2 en S3 pour seul bus, avec une clé limitée aux deux seaux | oui |
+| `scripts/release.sh` | la part du Mac : `next`, `resolve`, `notes` — s'arrête là pour que les notes soient lues — puis `check` et `ship` quand on le relance | oui |
+| `.github/workflows/release.yml` | la part des runners, sur le tag : `agent build`, `agent publish`, puis `desktop` sur `macos-15`, `windows-2025`, `ubuntu-24.04`, puis `app publish` et `verify` | oui |
+| `.github/workflows/promote.yml` | sur un push de `main` : `promote --since` des versions que le merge apporte ; à la main, `gh workflow run promote.yml -f version=X.Y.Z` | oui |
+| `scripts/release/release.env.tpl` | les références 1Password et les valeurs publiques — aucun secret dedans ; `release secrets` en fait les secrets du dépôt, le workflow y lit les valeurs en clair | oui |
+| `scripts/release/` | **la chaîne elle-même** : `next`, `resolve`, `notes`, `check`, `ship`, `agent build`, `agent publish`, `desktop`, `app publish`, `verify`, `promote`, `secrets` — chaque étape est une commande `bun scripts/release/index.ts <étape>`, idempotente, pilotée par l'environnement, avec `--dry-run` ; R2 en S3 pour seul bus, avec une clé limitée aux deux seaux | oui |
 | `apps/desktop/package.json` | `version` de l'app, `build:mac`, `build:win`, `build:linux` | oui |
 | `apps/desktop/electron-builder.yml` | cibles, noms d'artefacts, `asarUnpack`, fusibles, signature, flux générique | oui |
 | `apps/desktop/scripts/release-artefacts.ts` | ce qu'un fichier d'artefact est, sa clé dans le seau, le message que la clé de release signe, la réécriture des flux — partagé par la chaîne et par l'app qui vérifie | oui |
@@ -54,7 +56,7 @@ Une release, c'est une commande, lancée deux fois :
 scripts/release.sh            # un correctif ; --minor pour une fonctionnalité, --major pour le protocole, --version=X.Y.Z pour nommer
 ```
 
-Avant : `staging` à jour, l'arbre propre, `bun run lint`, `bun run check:types`, `bun run test`, `bun run build` verts, et le propriétaire a fait tourner la version candidate sur son propre VPS. `op`, `docker`, `claude` et les outils de build dans le PATH.
+Avant : `staging` à jour, l'arbre propre, `bun run lint`, `bun run check:types`, `bun run test`, `bun run build` verts, et le propriétaire a fait tourner la version candidate sur son propre VPS. `claude` dans le PATH ; les secrets du dépôt à jour (`bun scripts/release/index.ts secrets` après toute rotation dans la note).
 
 ### 1. La version et les notes
 
@@ -69,21 +71,21 @@ Ce qu'une entrée dit, et ce que le propriétaire vérifie en la relisant :
 
 Le corps de l'entrée anglaise **est** la note de version enregistrée dans `AppRelease.notes` : elle finit sur la page de téléchargement de la console et dans l'app. Elle se relit pour ce lecteur-là. `bun scripts/release/index.ts notes --again` fait rédiger de nouveau.
 
-### 2. Construire, publier, taguer
+### 2. Taguer, puis laisser les runners construire et publier
 
-Le second passage vérifie (`check`) puis enchaîne, chaque étape sous `op run` :
+Le second passage vérifie (`check`) puis `ship` : commit `chore(release): vX.Y.Z`, tag annoté, push de `staging` et du tag. Le push du tag lance `release.yml`, dont les jobs enchaînent :
 
 | Étape | Fait |
 | --- | --- |
 | `agent build` | garble, signature, épreuve du binaire — clé publique embarquée, moins de dix chaînes lisibles, `version` et `hello` dans un conteneur Linux ; ou reprise depuis le seau si la version y est déjà, parce que garble ne reproduit pas un binaire et que la plateforme tient les empreintes de la première déclaration |
 | `agent publish` | `agent/<version>/` du seau **privé** — binaires, `release.json`, `publications.json` — puis `POST /admin/releases` à la plateforme de la branche |
-| `desktop` | les trois systèmes : macOS signé et notarisé, Linux, Windows non signé ; l'agent repris du seau et embarqué ; installateurs, blockmaps et flux sous `work/<version>/<système>/` du seau privé |
+| `desktop` | un job par système : macOS signé et notarisé en arm64 et x64, Windows non signé, Linux ; l'agent repris du seau et embarqué ; installateurs, blockmaps et flux sous `work/<version>/<système>/` du seau privé |
 | `app publish` | chaque installateur signé avec la clé de release, fichiers et `.sig` sur le seau **public**, flux `latest*.yml` réécrits en URL absolues sous `app/<version>/` et `app/<canal>/`, `POST /admin/app-releases` par fichier — en envoyant sa **clé** dans le seau, jamais une adresse — et les lignes gardées en `app/<version>/publications.json` |
-| `ship` | commit `chore(release): vX.Y.Z`, tag annoté, push de `staging` et du tag — en dernier, pour que le site et la console reconstruits par ce push nomment des fichiers déjà en ligne |
+| `verify` | de l'extérieur : la plateforme décrit la version, chaque fichier qu'elle nomme est servi entier par le seau public, les flux du canal la nomment — le rapport est le résumé du run |
 
 Si le protocole a changé, avant le second passage : une ligne de plus dans `packages/shared/src/compat`, puis `bun --cwd=packages/shared run contracts:export`, commités avant.
 
-Une étape qui échoue se relance : `bun scripts/release/index.ts <étape>` sous `op run --env-file=scripts/release/release.env.tpl`, ou simplement `scripts/release.sh` de nouveau — ce qui est déjà dans le seau y est réécrit à l'identique, ce qui est déjà déclaré répond 200.
+Un job qui échoue se relance seul depuis GitHub (*Re-run failed jobs*) — ce qui est déjà dans le seau y est réécrit à l'identique, ce qui est déjà déclaré répond 200. Une version à republier sans nouveau tag : `gh workflow run release.yml --ref vX.Y.Z`.
 
 ### 3 bis. La clé de release, une fois pour toutes
 
@@ -97,7 +99,7 @@ cd apps/agent && go run ./tools/release keygen
 
 La commande écrit `public <base64>` et `private <base64>` sur la sortie standard, et nulle part ailleurs. Ensuite, trois gestes :
 
-1. **La moitié privée** va dans la note 1Password de la release, champ `PUPITRE_RELEASE_PRIVATE_KEY`, d'où `op run` l'injecte le temps d'une release. Elle n'est jamais écrite dans un fichier.
+1. **La moitié privée** va dans la note 1Password de la release, champ `PUPITRE_RELEASE_PRIVATE_KEY`, d'où `release secrets` la recopie en secret du dépôt. Elle n'est jamais écrite dans un fichier.
 2. **La moitié publique** est recopiée dans `AGENT_RELEASE_PUBLIC_KEY` de `apps/desktop/src/main/agent-release.ts`. Le test `src/main/__tests__/agent-release.test.ts` vérifie qu'elle fait bien 32 octets ; il ne fige pas sa valeur, mais la changer répudie tout ce qui a été publié avant.
 3. **L'agent** ne la porte pas en dur : `apps/agent/package.json` l'injecte au build par `-X …/selfupdate.releasePublicKey=$(go run ./tools/release public-key)`, qui la dérive de la moitié privée. Rien à recopier là.
 
@@ -126,11 +128,7 @@ La publication rend la version **cible en `beta` seulement** : les serveurs dont
    ```
 
 3. La fusionner **par un merge commit** — `gh pr merge --merge`, jamais `--squash` ni `--rebase` : le commit tagué doit rester dans l'historique de `main`, sans quoi `git describe` ne le voit plus et `next` compte depuis le mauvais tag.
-4. Puis, depuis le Mac :
-
-   ```bash
-   scripts/release.sh promote X.Y.Z
-   ```
+4. Le push de `main` lance `promote.yml`, qui promeut chaque version que le merge apporte ; à la main, `gh workflow run promote.yml -f version=X.Y.Z -f channel=stable`.
 
 `promote` **déclare la version à la production** (`POST /admin/releases` et `/admin/app-releases`, depuis `agent/<version>/publications.json` et `app/<version>/publications.json` du seau privé — la version avait été déclarée au staging, plateforme de la branche), change le canal de l'agent (`POST /admin/releases/:version/promote`) et de l'app (`POST /admin/app-releases/:version/promote`), puis recopie les trois `latest*.yml` de la version sous `app/stable/`. Rien n'est reconstruit ni re-signé. La même commande, sur une version précédente, sert à revenir en arrière.
 
@@ -150,5 +148,5 @@ Le merge déploie aussi la console en production : Cloudflare Builds suit `main`
 - Un second build pour la production : c'est l'artefact éprouvé en `beta` qui est promu, pas une recompilation du même numéro.
 - Un secret, un certificat, un mot de passe dans le dépôt, un log, une transcription de session.
 - Une publication de l'agent ailleurs que sur le bucket privé, par l'API de la plateforme.
-- Un build de release sur GitHub : la chaîne tourne sur le Mac du propriétaire, les secrets ne quittent pas 1Password et sa mémoire.
+- Un build de release sur un Mac : `node-pty` ne se compile pas pour un autre système, et Windows et Linux ne se construisent que chez eux.
 - Une modification de `docs/monorepo.md` sans changer le dashboard dans la même passe, ou l'inverse.

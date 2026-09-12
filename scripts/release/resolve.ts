@@ -6,11 +6,11 @@ import { argumentOf, say, VARIABLES } from "./cli"
  * What a release is, read from git and the app's manifest, nothing else.
  *
  * The version is the one the app declares — `next` wrote it there, and `ship`
- * tags it once everything is published. The branch the release is made from
- * names the platform the version is declared to: `main` speaks to production,
- * `staging` to staging, and nothing is released from anywhere else. The
- * channel is `beta` unless the caller says otherwise: a version always goes
- * out to be tried, and `promote` is what makes it stable.
+ * tags it before the runners build it. The branch the tag sits on names the
+ * platform the version is declared to: `main` speaks to production, `staging`
+ * to staging, and nothing is released from anywhere else. The channel is
+ * `beta` unless the caller says otherwise: a version always goes out to be
+ * tried, and `promote` is what makes it stable.
  */
 
 export const BRANCHES = ["main", "staging"] as const
@@ -49,10 +49,39 @@ export function git(argv: string[]): string | null {
   return result.status === 0 ? result.stdout.trim() : null
 }
 
-export function currentBranch(): Branch | null {
-  const name = git(["rev-parse", "--abbrev-ref", "HEAD"])
+/**
+ * A runner checks a tag out detached: the branch is then the one that holds
+ * the commit, staging before main, since every commit of staging reaches
+ * main by the merge and a tag cut on staging stays a staging release.
+ */
+export function branchHolding(
+  head: string,
+  holds: (branch: Branch) => boolean
+): Branch | null {
+  const named = BRANCHES.find((branch) => branch === head)
 
-  return BRANCHES.find((branch) => branch === name) ?? null
+  if (named) {
+    return named
+  }
+
+  if (head !== "HEAD") {
+    return null
+  }
+
+  return (["staging", "main"] as const).find(holds) ?? null
+}
+
+export function currentBranch(): Branch | null {
+  return branchHolding(
+    git(["rev-parse", "--abbrev-ref", "HEAD"]) ?? "",
+    (branch) =>
+      git([
+        "merge-base",
+        "--is-ancestor",
+        "HEAD",
+        `refs/remotes/origin/${branch}`,
+      ]) !== null
+  )
 }
 
 /** The highest v* tag reachable from HEAD, or nothing before the first release. */

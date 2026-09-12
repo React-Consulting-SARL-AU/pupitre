@@ -64,7 +64,7 @@ bun run test
 bun run build
 ```
 
-Un push sur `staging` est vérifié une fois, sur son SHA ; la pull request `staging` → `main` porte ce même SHA et affiche ces vérifications sans rien relancer — `pull_request` ne vise donc que `staging`, où arrivent les branches de travail. Les minutes GitHub Actions se paient, et GitHub ne fait que vérifier : la release se fait depuis le Mac du propriétaire (voir plus bas), rien ne s'y construit pour être publié. Les jobs de `ci.yml`, tous sur Ubuntu :
+Un push sur `staging` est vérifié une fois, sur son SHA ; la pull request `staging` → `main` porte ce même SHA et affiche ces vérifications sans rien relancer — `pull_request` ne vise donc que `staging`, où arrivent les branches de travail. Les minutes GitHub Actions se paient : `ci.yml` ne fait que vérifier, tout sur Ubuntu, et seule une release — un tag `v*` — occupe un runner macOS ou Windows. Les jobs de `ci.yml` :
 
 | Job | Quand | Ce qu'il fait |
 | --- | --- | --- |
@@ -74,7 +74,7 @@ Un push sur `staging` est vérifié une fois, sur son SHA ; la pull request `sta
 | `gitleaks` | idem | l'historique entier relu par le binaire `gitleaks`, épinglé par empreinte — pas l'action, qui exige une licence dès qu'une organisation porte le dépôt ; `.gitleaks.toml` exclut les fixtures de test et les valeurs factices de la CI |
 | `agent` | idem | `gofmt`, `go vet`, `staticcheck`, `govulncheck`, `go test -race` avec son profil de couverture dans l'artefact `coverage-agent-<sha>`, build multi-arch |
 
-Ni macOS ni Windows n'ont de runner : l'app se construit sur les trois systèmes depuis le Mac du propriétaire au moment de la release, et c'est là qu'elle se voit. Windows n'est de toute façon pas éprouvé : le modèle SSH de l'app — une session maître multiplexée par serveur, clés et sockets en 0600 — n'a pas d'équivalent sur OpenSSH pour Windows ; ça devient une tâche le jour où Windows en est une.
+Ni macOS ni Windows n'ont de job de CI : l'app s'y construit au moment de la release, `release.yml`, et c'est là qu'elle se voit. Windows n'est de toute façon pas éprouvé : le modèle SSH de l'app — une session maître multiplexée par serveur, clés et sockets en 0600 — n'a pas d'équivalent sur OpenSSH pour Windows ; ça devient une tâche le jour où Windows en est une.
 
 Les actions des workflows sont épinglées par SHA, la version en commentaire à côté ; Dependabot (`github-actions`) les fait avancer.
 
@@ -97,7 +97,7 @@ Trois workspaces passent `--timeout=60000` à `bun test` : `apps/web`, `apps/des
 - `.env.local` est écrit en 0600 et lié en `apps/web/.dev.vars` (que le Worker lit) et `apps/web/.env.local` (que Vite lit) : une seule valeur à tenir à jour. `.env.example` reste la liste de référence des noms.
 - Déployés : secrets Wrangler, un jeu par environnement. `apps/web/wrangler.jsonc` déclare `env.<environnement>.secrets.required` ; `scripts/check-worker-secrets.ts <environnement>` compare cette liste avec ce qui est lié au Worker et refuse le déploiement en nommant ce qui manque. Il refuse aussi un secret requis déclaré en clair dans `vars`.
 - Le script lit les secrets liés par `wrangler secret list`. `PUPITRE_WORKER_SECRETS` (liste de noms) ou `--bound-from <fichier|->` remplacent cette lecture, pour les tests et pour une CI qui a déjà la liste.
-- Signature : le certificat Developer ID dans le trousseau du Mac du propriétaire ; la clé de notarisation dans la note 1Password de la release, injectée par `op run` le temps d'une release, jamais dans un fichier.
+- Signature : le certificat Developer ID et la clé de notarisation dans la note 1Password de la release, recopiés en secrets du dépôt par `release secrets` pour les runners — jamais dans un fichier du dépôt ni sur un disque.
 
 ## Branches
 
@@ -191,7 +191,7 @@ Webhook `https://app.pupitre.studio/api/v1/webhooks/stripe`, un endpoint et un s
 | Ce qui est créé | Où | Nom exact |
 | --- | --- | --- |
 | Identifiant de l'app | `apps/desktop/electron-builder.yml` | `dev.pupitre.app` |
-| Déclencheur | `scripts/release.sh`, sur le Mac du propriétaire | la version suivante, puis un tag `v*` posé sur `staging` une fois tout publié |
+| Déclencheur | `scripts/release.sh`, sur le Mac du propriétaire | la version suivante et ses notes, puis un tag `v*` posé sur `staging`, que `.github/workflows/release.yml` construit et publie |
 | Bucket public | Cloudflare R2 | `ppt-downloads`, domaine public `dl.pupitre.studio` |
 | Bucket privé | Cloudflare R2 | `ppt-agent`, les binaires de l'agent, jamais public |
 | Artefacts macOS | `dl.pupitre.studio/app/<version>/` | `Pupitre-<version>-arm64.dmg`, `Pupitre-<version>-x64.dmg` |
@@ -212,18 +212,19 @@ Un bucket R2 `ppt-downloads`, **accès public activé** par le domaine personnal
 
 ### Les secrets de la release
 
-Ils vivent dans **une note 1Password**, `pupitre-GitHub` dans le coffre partagé, un champ par nom ; `scripts/release/release.env.tpl` les référence et `op run` les injecte dans l'environnement de chaque étape. Aucun n'est écrit sur le disque, aucun n'est dans GitHub.
+Ils vivent dans **une note 1Password**, `pupitre-GitHub` dans le coffre partagé, un champ par nom ; `scripts/release/release.env.tpl` les référence, et `bun scripts/release/index.ts secrets` lit chaque référence par `op read` et la pose en secret du dépôt par `gh secret set` — à relancer quand une valeur tourne dans la note. Le workflow rend chaque secret à l'étape qui en a besoin, et lit les valeurs en clair du même gabarit. Rien n'est jamais écrit sur un disque.
 
 | Champ | Ce que c'est | Comment l'obtenir |
 | --- | --- | --- |
 | `PUPITRE_RELEASE_PRIVATE_KEY` | la moitié privée de la clé Ed25519 qui signe l'agent et les artefacts de l'app | `cd apps/agent && go run ./tools/release keygen`, une seule fois, hors de toute session d'agent |
 | `PUPITRE_PUBLISH_TOKEN` | le jeton de publication, préfixé `pupitre_pub_` : il n'ouvre que les quatre routes de version, n'expire pas et n'appartient à personne | tiré une fois, posé sur les deux Workers et ici — voir [`deploy.md`](./deploy.md) |
 | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | l'accès R2 de la chaîne, en S3, limité aux deux seaux — un jeton d'API Cloudflare ouvrirait tous ceux du compte | Cloudflare → *R2* → *Manage API tokens*, *Object Read & Write* sur `ppt-agent` et `ppt-downloads` |
+| `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD` | le certificat Developer ID en `.p12`, base 64, et son mot de passe ; le runner l'importe dans un trousseau jetable le temps du build | Trousseau d'accès → exporter le certificat et sa clé privée en `.p12`, puis `base64 -i certificat.p12 \| pbcopy` |
 | `APPLE_API_KEY_CONTENT` | le `.p8` de la clé de notarisation, en base 64 | `base64 -i AuthKey_<KeyID>.p8 \| pbcopy` |
 | `APPLE_API_KEY_ID` | l'identifiant de la clé | la colonne *Key ID* dans App Store Connect |
 | `APPLE_API_ISSUER` | l'identifiant de l'émetteur | en haut de la page *Keys* d'App Store Connect |
 
-Les valeurs qui ne sont pas des secrets — les deux plateformes, l'adresse et le nom des seaux, l'identifiant du compte R2 — sont écrites en clair dans le même gabarit. Windows n'est pas signé : Azure Trusted Signing n'existe que sur Windows, et la chaîne tourne sur macOS.
+Les valeurs qui ne sont pas des secrets — les deux plateformes, l'adresse et le nom des seaux, l'identifiant du compte R2 — sont écrites en clair dans le même gabarit. Windows n'est pas signé tant que les trois variables `AZURE_SIGNING_*` et les trois secrets `AZURE_*` d'Azure Trusted Signing ne sont pas posés — [`tasks/windows-signing.md`](./tasks/windows-signing.md).
 
 Aucun jeton n'entre dans le binaire de l'app : les artefacts sont publics, et l'app n'a rien à présenter pour se mettre à jour.
 
@@ -233,7 +234,7 @@ La clé de release, les buckets, le compte Apple, la clé de notarisation, la no
 
 ### Ce que fait chaque release
 
-`scripts/release.sh` enchaîne, sur le Mac du propriétaire, les étapes de **`scripts/release`** — `bun scripts/release/index.ts <étape>`, idempotentes, pilotées par l'environnement que `op run` remplit, essayables avec `--dry-run`. Le seau privé est le seul lieu où une étape passe quelque chose à la suivante : n'importe quelle machine qui tient la clé reprend n'importe quelle étape.
+Chaque étape est une commande de **`scripts/release`** — `bun scripts/release/index.ts <étape>`, idempotente, pilotée par son environnement, essayable avec `--dry-run`. `scripts/release.sh` enchaîne les premières sur le Mac du propriétaire, sans aucun secret, et pousse le tag ; `.github/workflows/release.yml` enchaîne les autres sur ses runners, un job par système. Le seau privé est le seul lieu où une étape passe quelque chose à la suivante : un job qui échoue se relance seul, et n'importe quelle machine qui tient la clé reprend n'importe quelle étape — le jour où les runners sont les nôtres, le workflow change d'hôte et rien d'autre.
 
 | Étape | Ce qu'elle fait |
 | --- | --- |
@@ -241,16 +242,17 @@ La clé de release, les buckets, le compte Apple, la clé de notarisation, la no
 | `resolve` | la version depuis ce manifeste, la plateforme depuis la branche courante (`main` → production, `staging` → staging), le canal |
 | `notes` | l'entrée de changelog des deux langues, rédigée par `claude -p` depuis les commits depuis le dernier tag ; **le script s'arrête là pour qu'elle soit lue**, et repart quand on le relance |
 | `check` | le changelog dans chaque langue et la version que l'app déclare |
+| `ship` | commit `chore(release): vX.Y.Z` de la version et des notes, tag, push de la branche et du tag ; c'est ce push qui lance `release.yml` |
 | `agent build` | `pupitred` pour `linux/amd64` et `linux/arm64` avec garble, signé, éprouvé — clé publique embarquée, presque aucune chaîne lisible, `hello` dans un conteneur — ou **repris du seau** s'il y est déjà : garble ne reproduit pas un binaire, et la plateforme tient les empreintes de la première déclaration |
 | `agent publish` | `agent/<version>/` du seau **privé** — binaires, `release.json`, `publications.json` — puis `POST /api/v1/admin/releases` |
-| `desktop` | les trois systèmes depuis macOS : le sien signé et notarisé, Linux, Windows non signé ; chacun reprend l'agent depuis le seau, compile le processus principal en bytecode V8, empaquette, retourne les fusibles, et laisse installateurs, blockmaps et flux sous `work/<version>/<système>/` du seau privé avec l'`index.json` qui les nomme |
+| `desktop` | l'app du système du runner — macOS signé et notarisé en arm64 et x64, Windows non signé, Linux ; l'agent repris du seau, le processus principal compilé en bytecode V8, les fusibles retournés ; installateurs, blockmaps et flux laissés sous `work/<version>/<système>/` du seau privé avec l'`index.json` qui les nomme |
 | `app publish` | signe chaque installateur avec la clé de release, dépose fichiers et `.sig` sur le bucket **public**, réécrit les flux de mise à jour, déclare chaque fichier par `POST /api/v1/admin/app-releases`, et garde ces lignes en `app/<version>/publications.json` du seau privé |
-| `ship` | commit `chore(release): vX.Y.Z` de la version et des notes, tag, push de la branche et du tag — **en dernier**, pour que le site et la console reconstruits par ce push nomment des fichiers déjà téléchargeables |
-| `promote` | après le merge `staging` → `main` : déclare la version à la production depuis les deux `publications.json`, la passe en `stable`, pointe les flux du canal ; `scripts/release.sh promote X.Y.Z` |
+| `verify` | de l'extérieur, ce qu'un client rencontre : la plateforme décrit la version, le seau public sert chaque fichier entier, les flux du canal la nomment — le rapport devient le résumé du run |
+| `promote` | après le merge `staging` → `main`, `promote.yml` : déclare à la production, depuis les deux `publications.json`, chaque version que le merge apporte, la passe en `stable`, pointe les flux du canal ; à la main, `gh workflow run promote.yml -f version=X.Y.Z` |
 
 Une version sort donc toujours en **`beta`**, déclarée à **la plateforme de la branche** — `staging-app` depuis `staging`, `app` depuis `main` — et c'est cet artefact-là, celui qui a été éprouvé, qui finit en production : `promote` redit à la production les lignes gardées avec les binaires — mêmes empreintes, mêmes clés, appels idempotents — puis change le canal. Rien n'est reconstruit ni re-signé — un second build donnerait d'autres binaires, d'autres signatures et d'autres sommes de contrôle pour le même numéro de version. La même commande, sur une version précise, sert à revenir en arrière.
 
-Un build sans identité de signature ne s'arrête pas : electron-builder le dit et produit un artefact non signé — c'est ce qui rend `bun --cwd=apps/desktop run build:mac` utilisable sur la machine du propriétaire.
+Un build sans identité de signature ne s'arrête pas : electron-builder le dit et produit un artefact non signé — c'est ce qui rend `bun --cwd=apps/desktop run build:mac` utilisable sur la machine du propriétaire. Sur un runner, `desktop` importe le certificat de la note dans un trousseau jetable ; sur un Mac qui a le certificat dans son trousseau, il s'en sert. Apple garde une notarisation plusieurs minutes sans un mot : `DEBUG=electron-notarize*` dit où elle en est.
 
 Un retour arrière se fait en promouvant la version précédente : `electron-updater` ne redescend pas de version, mais le flux du canal désigne à nouveau l'ancienne, et une app déjà à jour attend la suivante. Les artefacts d'une version publiée ne sont jamais supprimés.
 
@@ -268,7 +270,7 @@ Un retour arrière se fait en promouvant la version précédente : `electron-upd
 
 ### Ce qui se construit où
 
-Un module natif ne se compile pas pour un autre système : `node-pty` impose un runner par OS, et c'est la raison de la matrice `macos-15`, `windows-2025`, `ubuntu-24.04` du workflow. Depuis un Mac, `bun --cwd=apps/desktop run build:linux` s'arrête sur `node-gyp does not support cross-compiling native modules` — ce n'est pas une erreur de configuration.
+Un module natif ne se compile pas pour un autre système : `node-pty` impose un runner par OS, et c'est la raison de la matrice `macos-15`, `windows-2025`, `ubuntu-24.04` de `release.yml` — et la raison pour laquelle la release ne se fait pas depuis un Mac. Depuis un Mac, `bun --cwd=apps/desktop run build:linux` s'arrête sur `node-gyp does not support cross-compiling native modules` — ce n'est pas une erreur de configuration.
 
 | Système | Ce qui sort | Ce qui le signe |
 | --- | --- | --- |
