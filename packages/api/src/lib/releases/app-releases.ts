@@ -143,14 +143,30 @@ function hasSameFingerprint(
   )
 }
 
+/** Linux ships two files for one machine: the AppImage, which updates itself, is the one a bare link gets. */
+const PREFERRED_FORMATS: readonly string[] = ["AppImage"]
+
+function byPreference(left: AppRelease, right: AppRelease): number {
+  const rank = (release: AppRelease) => {
+    const index = PREFERRED_FORMATS.indexOf(release.format)
+
+    return index === -1 ? PREFERRED_FORMATS.length : index
+  }
+
+  return rank(left) - rank(right) || left.format.localeCompare(right.format)
+}
+
 export async function findAppReleaseBuild(
   version: string,
   os: DesktopSystem,
-  arch: DesktopArchitecture
+  arch: DesktopArchitecture,
+  format?: string
 ): Promise<AppRelease | null> {
-  return await getPrisma().appRelease.findUnique({
-    where: { version_os_arch: { version, os, arch } },
+  const builds = await getPrisma().appRelease.findMany({
+    where: { version, os, arch, ...(format ? { format } : {}) },
   })
+
+  return builds.sort(byPreference)[0] ?? null
 }
 
 export async function findAppRelease(
@@ -250,14 +266,15 @@ export async function publishAppRelease(
   }
 
   const { row, created } = await publishOnce<AppRelease>({
-    find: () => findAppReleaseBuild(input.version, input.os, input.arch),
+    find: () =>
+      findAppReleaseBuild(input.version, input.os, input.arch, input.format),
     create: () => getPrisma().appRelease.create({ data }),
     hasSameFingerprint: (release) => hasSameFingerprint(release, input),
     conflict: () =>
       new AppReleaseFingerprintConflictError(
         input.version,
         input.os,
-        input.arch
+        `${input.arch} ${input.format}`
       ),
   })
 

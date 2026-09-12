@@ -360,7 +360,7 @@ model AppRelease {
   channel     ReleaseChannel @default(beta)
   publishedAt DateTime       @default(now())
 
-  @@id([version, os, arch])
+  @@id([version, os, arch, format])
   @@index([channel, publishedAt])
 }
 

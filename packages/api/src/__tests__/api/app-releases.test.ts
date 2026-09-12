@@ -234,7 +234,30 @@ describe("app releases", () => {
       expect(stored).toHaveLength(2)
     })
 
-    it("is idempotent on (version, os, arch)", async () => {
+    it("keeps the two formats Linux ships for one machine apart", async () => {
+      const { prisma } = await bootApiTestServer()
+      const session = await platformAdmin()
+
+      const appImage = await publish(session, {
+        os: "linux",
+        arch: "x64",
+        format: "AppImage",
+        r2_key: "app/1.4.0/Pupitre-1.4.0-x86_64.AppImage",
+      })
+      const deb = await publish(session, {
+        os: "linux",
+        arch: "x64",
+        format: "deb",
+        r2_key: "app/1.4.0/pupitre_1.4.0_amd64.deb",
+        sha256: OTHER_SHA256,
+      })
+
+      expect(appImage.status).toBe(201)
+      expect(deb.status).toBe(201)
+      expect(await prisma.appRelease.findMany()).toHaveLength(2)
+    })
+
+    it("is idempotent on (version, os, arch, format)", async () => {
       const { prisma } = await bootApiTestServer()
       const session = await platformAdmin()
 
@@ -464,6 +487,39 @@ describe("app releases", () => {
       )
 
       expect(response.status).toBe(404)
+    })
+
+    it("sends Linux to the AppImage unless the .deb is asked for", async () => {
+      const admin = await platformAdmin()
+
+      await publishEveryOs(admin, "stable", "1.4.0")
+      await publish(admin, {
+        version: "1.4.0",
+        channel: "stable",
+        os: "linux",
+        arch: "x64",
+        format: "deb",
+        r2_key: "app/1.4.0/pupitre_1.4.0_amd64.deb",
+        sha256: OTHER_SHA256,
+      })
+
+      const appImage = await apiRequest<ErrorBody>(
+        "/releases/app/1.4.0/linux/x64"
+      )
+      const deb = await apiRequest<ErrorBody>(
+        "/releases/app/1.4.0/linux/x64?format=deb"
+      )
+      const unknown = await apiRequest<ErrorBody>(
+        "/releases/app/1.4.0/linux/x64?format=rpm"
+      )
+
+      expect(appImage.raw.headers.get("location")).toBe(
+        `${DOWNLOADS}/app/1.4.0/Pupitre-1.4.0.AppImage`
+      )
+      expect(deb.raw.headers.get("location")).toBe(
+        `${DOWNLOADS}/app/1.4.0/pupitre_1.4.0_amd64.deb`
+      )
+      expect(unknown.status).toBe(404)
     })
   })
 
