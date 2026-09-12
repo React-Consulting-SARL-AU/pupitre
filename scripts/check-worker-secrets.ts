@@ -285,7 +285,7 @@ export function parseArguments(argv: string[]): TArguments {
 
   if (!environment) {
     throw new WorkerSecretsError(
-      "Usage: bun scripts/check-worker-secrets.ts <staging|production> [--config <wrangler.jsonc>] [--bound-from <file|->]"
+      "Usage: bun scripts/check-worker-secrets.ts <environment> [--config <wrangler.jsonc>] [--bound-from <file|->]"
     )
   }
 

@@ -14,13 +14,13 @@ import {
   systemOfHost,
   windowsSigning,
 } from "../release/desktop"
+import { pullRequestTitle } from "../release/merge"
 import { nextVersion, partOf, writeAppVersion } from "../release/next"
 import { keys } from "../release/r2"
 import {
-  branchHolding,
   bump,
   formatRelease,
-  platformFor,
+  onReleaseBranch,
   versionOfTag,
 } from "../release/resolve"
 import { parseTemplate } from "../release/secrets"
@@ -50,48 +50,28 @@ describe("what a tag and a branch say", () => {
     expect(versionOfTag("v0.1.0-rc1")).toBeNull()
   })
 
-  it("sends main to production and staging to staging", () => {
-    const env = {
-      PUPITRE_PRODUCTION_PLATFORM_URL: "https://app.example",
-      PUPITRE_STAGING_PLATFORM_URL: "https://staging.example",
-    }
-
-    expect(platformFor("main", env)).toBe("https://app.example")
-    expect(platformFor("staging", env)).toBe("https://staging.example")
-    expect(
-      platformFor("staging", { PUPITRE_PRODUCTION_PLATFORM_URL: "x" })
-    ).toBeNull()
-  })
-
   it("writes the resolution as the lines a runner appends to its environment", () => {
-    const release = {
-      branch: "staging" as const,
-      channel: "beta",
-      platform: "https://staging.example",
-      version: "0.1.0",
-    }
+    const release = { channel: "stable", version: "0.1.0" }
 
     expect(formatRelease(release, "env").split("\n")).toEqual([
       "PUPITRE_RELEASE_VERSION=0.1.0",
-      "PUPITRE_RELEASE_CHANNEL=beta",
-      "PUPITRE_PLATFORM_URL=https://staging.example",
-      "PUPITRE_RELEASE_BRANCH=staging",
+      "PUPITRE_RELEASE_CHANNEL=stable",
     ])
     expect(JSON.parse(formatRelease(release, "json"))).toEqual(release)
   })
+
+  it("names the pull request after the tag", () => {
+    expect(pullRequestTitle("0.2.0")).toBe("release: v0.2.0")
+  })
 })
 
-describe("the branch a runner releases from", () => {
-  it("is the one HEAD names, else staging when staging holds the commit, else main", () => {
-    expect(branchHolding("staging", () => false)).toBe("staging")
-    expect(branchHolding("main", () => true)).toBe("main")
-    expect(branchHolding("HEAD", (branch) => branch === "staging")).toBe(
-      "staging"
-    )
-    expect(branchHolding("HEAD", () => true)).toBe("staging")
-    expect(branchHolding("HEAD", (branch) => branch === "main")).toBe("main")
-    expect(branchHolding("HEAD", () => false)).toBeNull()
-    expect(branchHolding("feature", () => false)).toBeNull()
+describe("the branch a release leaves from", () => {
+  it("is staging, named by HEAD or holding the commit a runner checked out", () => {
+    expect(onReleaseBranch("staging", () => false)).toBe(true)
+    expect(onReleaseBranch("HEAD", () => true)).toBe(true)
+    expect(onReleaseBranch("HEAD", () => false)).toBe(false)
+    expect(onReleaseBranch("main", () => true)).toBe(false)
+    expect(onReleaseBranch("feature", () => true)).toBe(false)
   })
 })
 

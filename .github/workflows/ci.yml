@@ -1,15 +1,15 @@
 name: CI
 
 # A push to `staging` is checked once, on its own SHA. The pull request from
-# `staging` to `main` carries that same SHA, so GitHub shows the push's checks
-# on it: listing `main` under `pull_request` would run everything a second
-# time for nothing. Feature branches reach `staging` by pull request, and that
+# `staging` to `main` is opened and merged by `release.yml`, on a commit this
+# workflow already checked, with a token that starts no workflow: `main` has
+# nothing to run. Feature branches reach `staging` by pull request, and that
 # is where they are checked.
 on:
   pull_request:
     branches: [staging]
   push:
-    branches: [main, staging]
+    branches: [staging]
 
 concurrency:
   group: ci-${{ github.ref }}

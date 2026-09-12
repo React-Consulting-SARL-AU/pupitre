@@ -1,23 +1,23 @@
 ---
 name: release
-description: "Sortir une version de Pupitre — `scripts/release.sh` sur le Mac du propriétaire : version suivante, entrée de changelog rédigée par `claude -p` et relue, commit et tag `vX.Y.Z` ; puis `release.yml` sur GitHub : agent et app construits sur les trois systèmes, notarisation macOS, signature Ed25519 de tous les artefacts, publication sur les seaux R2, déclaration à la plateforme de la branche, vérification de l'extérieur ; promotion `beta` → `stable` en production après le merge `staging` → `main` par `promote.yml`, feuille de compatibilité app ↔ agent. À utiliser quand le propriétaire demande une release, un correctif à publier, ou quand on touche à la chaîne de release. Dit clairement ce qui n'existe pas encore."
+description: "Sortir une version de Pupitre — `scripts/release.sh` sur le Mac du propriétaire : version suivante, entrée de changelog rédigée par `claude -p` et relue, commit et tag `vX.Y.Z` ; puis `release.yml` sur GitHub : agent et app construits sur les trois systèmes, notarisation macOS, signature Ed25519 de tous les artefacts, publication sur les seaux R2, déclaration à la plateforme en `stable`, vérification de l'extérieur, puis la pull request `staging` → `main` ouverte et fusionnée par le même run — ce qui déploie le site et la console ; `promote.yml` pour revenir en arrière, feuille de compatibilité app ↔ agent. À utiliser quand le propriétaire demande une release, un correctif à publier, ou quand on touche à la chaîne de release. Dit clairement ce qui n'existe pas encore."
 ---
 
 # Sortir une version
 
 Une release livre deux artefacts : l'app desktop (macOS, Windows, Linux) et l'agent `pupitred` (`linux/amd64`, `linux/arm64`). Les deux sortent sur le **même tag** `vX.Y.Z`, parce que le protocole les lie et que la feuille de compatibilité se lit avec leurs deux numéros.
 
-Le Mac du propriétaire écrit la version et les notes et pose le tag, par `scripts/release.sh`, sans aucun secret ; le tag fait construire, publier et vérifier la version par `.github/workflows/release.yml`, un runner par système. La release se fait depuis **`staging`** ; la version est déclarée à la plateforme de staging en `beta`, éprouvée, puis portée en production et promue en `stable` après le merge de la pull request `staging` → `main` — le même artefact, celui qui a été essayé, sans reconstruction. Voir [`docs/monorepo.md`](../../../docs/monorepo.md#branches).
+Le Mac du propriétaire écrit la version et les notes et pose le tag, par `scripts/release.sh`, sans aucun secret ; le tag fait construire, publier et vérifier la version par `.github/workflows/release.yml`, un runner par système, puis le même run ouvre la pull request `staging` → `main` et la fusionne. La release se fait depuis **`staging`** et sort directement en `stable` sur la production, `app.pupitre.studio` : il n'y a pas de staging en ligne, tout s'essaie en local avant. Le push de `main` est ce qui déploie le site et la console. Voir [`docs/monorepo.md`](../../../docs/monorepo.md#branches).
 
 ## Fichiers gouvernés
 
 | Fichier | Rôle | Existe ? |
 | --- | --- | --- |
 | `scripts/release.sh` | la part du Mac : `next`, `resolve`, `notes` — s'arrête là pour que les notes soient lues — puis `check` et `ship` quand on le relance | oui |
-| `.github/workflows/release.yml` | la part des runners, sur le tag : `agent build`, `agent publish`, puis `desktop` sur `macos-15`, `windows-2025`, `ubuntu-24.04`, puis `app publish` et `verify` | oui |
-| `.github/workflows/promote.yml` | sur un push de `main` : `promote --since` des versions que le merge apporte ; à la main, `gh workflow run promote.yml -f version=X.Y.Z` | oui |
+| `.github/workflows/release.yml` | la part des runners, sur le tag : `agent build`, `agent publish`, puis `desktop` sur `macos-15`, `windows-2025`, `ubuntu-24.04`, puis `app publish`, `verify` et `merge` | oui |
+| `.github/workflows/promote.yml` | à la main, `gh workflow run promote.yml -f version=X.Y.Z` : remet une version publiée dans un canal — le retour arrière | oui |
 | `scripts/release/release.env.tpl` | les références 1Password et les valeurs publiques — aucun secret dedans ; `release secrets` en fait les secrets du dépôt, le workflow y lit les valeurs en clair | oui |
-| `scripts/release/` | **la chaîne elle-même** : `next`, `resolve`, `notes`, `check`, `ship`, `agent build`, `agent publish`, `desktop`, `app publish`, `verify`, `promote`, `secrets` — chaque étape est une commande `bun scripts/release/index.ts <étape>`, idempotente, pilotée par l'environnement, avec `--dry-run` ; R2 en S3 pour seul bus, avec une clé limitée aux deux seaux | oui |
+| `scripts/release/` | **la chaîne elle-même** : `next`, `resolve`, `notes`, `check`, `ship`, `agent build`, `agent publish`, `desktop`, `app publish`, `verify`, `merge`, `promote`, `secrets` — chaque étape est une commande `bun scripts/release/index.ts <étape>`, idempotente, pilotée par l'environnement, avec `--dry-run` ; R2 en S3 pour seul bus, avec une clé limitée aux deux seaux | oui |
 | `apps/desktop/package.json` | `version` de l'app, `build:mac`, `build:win`, `build:linux` | oui |
 | `apps/desktop/electron-builder.yml` | cibles, noms d'artefacts, `asarUnpack`, fusibles, signature, flux générique | oui |
 | `apps/desktop/scripts/release-artefacts.ts` | ce qu'un fichier d'artefact est, sa clé dans le seau, le message que la clé de release signe, la réécriture des flux — partagé par la chaîne et par l'app qui vérifie | oui |
@@ -38,7 +38,7 @@ Le Mac du propriétaire écrit la version et les notes et pose le tag, par `scri
 | Brique | État |
 | --- | --- |
 | La signature Windows | Azure Trusted Signing n'existe que sur Windows, et la chaîne tourne sur macOS : l'installateur sort non signé, le changelog le dit. Revient avec une machine Windows dans la chaîne, ou jamais |
-| La protection de branche de `main` | à poser sur GitHub : pull request obligatoire, merge commit seul, `Quality` requis. Les hooks locaux ne remplacent pas ce réglage |
+| La protection de branche de `main` | refusée par GitHub Free sur un dépôt privé. Les hooks locaux et le merge par `release.yml` sont les seules barrières |
 
 ## Versionnage
 
@@ -46,7 +46,7 @@ Le Mac du propriétaire écrit la version et les notes et pose le tag, par `scri
 - La version est celle d'`apps/desktop/package.json`, que `next` écrit ; `check` refuse de continuer si le changelog ne la couvre pas dans les deux langues, et l'agent la reçoit au build par `-X main.version`.
 - L'entier `protocol` du contrat est indépendant de la version : il change seulement quand un champ est retiré ou renommé. Ce jour-là, une ligne s'ajoute à `packages/shared/src/compat` — l'entier, la première version d'app et la première version d'agent qui le parlent — et `bun run contracts:export` la porte jusqu'à l'agent.
 - **Une version qui change la forme d'un fichier posé sur une machine emporte sa migration.** Un champ d'`install.json` renommé, une clé de `/etc/pupitre/env` déplacée, un champ de `servers.json` qui bouge : l'entrée est dans le registre correspondant avant que le tag soit posé, sinon la mise à jour laisse un agent qui lit de travers ce qu'il trouve. Voir le skill `config-migrations` et [`docs/contracts/config-migrations.md`](../../../docs/contracts/config-migrations.md). La révision de configuration a son propre compteur : elle ne suit ni la version ni l'entier `protocol`.
-- Le tag est annoté, posé par `ship` en dernier, jamais réécrit. Son annotation ne sert qu'à l'historique : **les notes de version sont l'entrée de changelog**, lue par `app publish`, enregistrée dans `AppRelease` et affichée partout ailleurs. Une release qui a publié quelque chose donne un tag suivant ; une release arrêtée avant `ship` se reprend telle quelle, chaque étape est idempotente.
+- Le tag est annoté, posé par `ship` en dernier sur le Mac, jamais réécrit. Son annotation ne sert qu'à l'historique : **les notes de version sont l'entrée de changelog**, lue par `app publish`, enregistrée dans `AppRelease`, reprise en corps de la pull request et affichée partout ailleurs. Une release qui a publié quelque chose donne un tag suivant ; une release arrêtée avant `ship` se reprend telle quelle, chaque étape est idempotente.
 
 ## Procédure
 
@@ -56,7 +56,7 @@ Une release, c'est une commande, lancée deux fois :
 scripts/release.sh            # un correctif ; --minor pour une fonctionnalité, --major pour le protocole, --version=X.Y.Z pour nommer
 ```
 
-Avant : `staging` à jour, l'arbre propre, `bun run lint`, `bun run check:types`, `bun run test`, `bun run build` verts, et le propriétaire a fait tourner la version candidate sur son propre VPS. `claude` dans le PATH ; les secrets du dépôt à jour (`bun scripts/release/index.ts secrets` après toute rotation dans la note).
+Avant : `staging` à jour, l'arbre propre, `bun run lint`, `bun run check:types`, `bun run test`, `bun run build` verts, et le propriétaire a fait tourner la version candidate en local — l'app de dev sur la console de dev, l'agent sur son VPS. `claude` dans le PATH ; les secrets du dépôt à jour (`bun scripts/release/index.ts secrets` après toute rotation dans la note). Ce que le tag pousse est ce qui arrive sur `main` : rien d'inachevé ne traîne sur `staging` à ce moment-là.
 
 ### 1. La version et les notes
 
@@ -71,21 +71,22 @@ Ce qu'une entrée dit, et ce que le propriétaire vérifie en la relisant :
 
 Le corps de l'entrée anglaise **est** la note de version enregistrée dans `AppRelease.notes` : elle finit sur la page de téléchargement de la console et dans l'app. Elle se relit pour ce lecteur-là. `bun scripts/release/index.ts notes --again` fait rédiger de nouveau.
 
-### 2. Taguer, puis laisser les runners construire et publier
+### 2. Taguer, puis laisser les runners construire, publier et fusionner
 
-Le second passage vérifie (`check`) puis `ship` : commit `chore(release): vX.Y.Z`, tag annoté, push de `staging` et du tag. Le push du tag lance `release.yml`, dont les jobs enchaînent :
+Le second passage vérifie (`check`) puis `ship` : commit `chore(release): vX.Y.Z`, tag annoté, push de `staging` et du tag. Le push du tag lance `release.yml`, dont les jobs enchaînent — `gh run watch` le suit depuis le terminal :
 
 | Étape | Fait |
 | --- | --- |
 | `agent build` | garble, signature, épreuve du binaire — clé publique embarquée, moins de dix chaînes lisibles, `version` et `hello` sur la machine de chaque architecture — l'amd64 sur le runner qui construit, l'arm64 sur un runner arm64 (`agent smoke`), jamais sous émulation ; ou reprise depuis le seau si la version y est déjà, parce que garble ne reproduit pas un binaire et que la plateforme tient les empreintes de la première déclaration |
-| `agent publish` | `agent/<version>/` du seau **privé** — binaires, `release.json`, `publications.json` — puis `POST /admin/releases` à la plateforme de la branche |
+| `agent publish` | `agent/<version>/` du seau **privé** — binaires, `release.json`, `publications.json` — puis `POST /admin/releases` à la plateforme |
 | `desktop` | un job par système : macOS signé et notarisé en arm64 et x64, Windows non signé, Linux ; l'agent repris du seau et embarqué ; installateurs, blockmaps et flux sous `work/<version>/<système>/` du seau privé |
 | `app publish` | chaque installateur signé avec la clé de release, fichiers et `.sig` sur le seau **public**, flux `latest*.yml` réécrits en URL absolues sous `app/<version>/` et `app/<canal>/`, `POST /admin/app-releases` par fichier — en envoyant sa **clé** dans le seau, jamais une adresse — et les lignes gardées en `app/<version>/publications.json` |
 | `verify` | de l'extérieur : la plateforme décrit la version, chaque fichier qu'elle nomme est servi entier par le seau public, les flux du canal la nomment — le rapport est le résumé du run |
+| `merge` | la pull request `staging` → `main`, corps = l'entrée de changelog anglaise, fusionnée par un merge commit (`gh pr merge --merge`) ; une pull request restée ouverte est reprise, un `main` qui tient déjà le tag n'a rien à faire. Le push de `main` reconstruit le site et la console par Cloudflare Builds ; fait avec `GITHUB_TOKEN`, il ne lance aucun workflow |
 
 Si le protocole a changé, avant le second passage : une ligne de plus dans `packages/shared/src/compat`, puis `bun --cwd=packages/shared run contracts:export`, commités avant.
 
-Un job qui échoue se relance seul depuis GitHub (*Re-run failed jobs*) — ce qui est déjà dans le seau y est réécrit à l'identique, ce qui est déjà déclaré répond 200. Une version à republier sans nouveau tag : `gh workflow run release.yml --ref vX.Y.Z`.
+Un job qui échoue se relance seul depuis GitHub (*Re-run failed jobs*) — ce qui est déjà dans le seau y est réécrit à l'identique, ce qui est déjà déclaré répond 200, et le merge arrive au bout. Une version à republier sans nouveau tag : `gh workflow run release.yml --ref vX.Y.Z`. Le job `merge` exige que le dépôt autorise GitHub Actions à ouvrir des pull requests (`docs/deploy.md`, étape 8).
 
 ### 3 bis. La clé de release, une fois pour toutes
 
@@ -110,42 +111,32 @@ Les deux moitiés vont ensemble : une app qui embarque une clé publique et un a
 - macOS : le `.dmg` s'ouvre sur un Mac vierge sans avertissement Gatekeeper ; `spctl --assess --type open --context context:primary-signature Pupitre.dmg` accepte.
 - Windows : SmartScreen ne bloque pas l'installateur signé.
 - Agent : `strings pupitred-linux-amd64 | grep -c pupitre` proche de zéro ; `GET /api/v1/releases/agent/X.Y.Z` répond 401 sans jeton, une redirection signée avec.
-- App : `GET /api/v1/releases/app/latest?channel=beta` répond sans session et nomme les cinq artefacts ; `curl -I https://dl.pupitre.studio/app/X.Y.Z/<fichier>` répond 200.
-- Sur le staging réinstallé : l'app installe l'agent de la version, `hello` renvoie `agent_version: "X.Y.Z"`.
+- App : `GET /api/v1/releases/app/latest` répond sans session et nomme les cinq artefacts ; `curl -I https://dl.pupitre.studio/app/X.Y.Z/<fichier>` répond 200.
+- Sur un VPS réinstallé : l'app installe l'agent de la version, `hello` renvoie `agent_version: "X.Y.Z"`.
+- `main` porte le merge commit `release: vX.Y.Z`, et `pupitre.studio` liste la version.
 - Mise à jour : l'app précédente propose et installe la nouvelle ; un agent précédent est mis à jour par le bandeau de l'app.
 
-### 4. Promouvoir `beta` → `stable`
+### 4. Revenir en arrière
 
-La publication rend la version **cible en `beta` seulement** : les serveurs dont l'organisation est sur le canal `beta` la voient dans `/agent/state`, et une app construite pour `beta` la voit dans son flux. Après une semaine sans incident sur le staging et sur le VPS du propriétaire, la version part en production par une pull request :
+La version est sortie `stable` en une fois. Revenir en arrière, c'est remettre la précédente dans le canal :
 
-1. Basculer `channel: beta` → `channel: stable` dans les deux entrées de changelog, sur `staging`. C'est le badge que le site affiche ; il devient juste au moment où la version le devient.
-2. Ouvrir la pull request, sur demande du propriétaire :
+```bash
+gh workflow run promote.yml -f version=X.Y.Z -f channel=stable
+```
 
-   ```bash
-   gh pr create --base main --head staging \
-     --title "release: vX.Y.Z" \
-     --body "$(bun scripts/release-notes.ts X.Y.Z)"
-   ```
+`promote` change le canal de l'agent (`POST /admin/releases/:version/promote`) et de l'app (`POST /admin/app-releases/:version/promote`), puis recopie les trois `latest*.yml` de la version sous `app/stable/`. Rien n'est reconstruit ni re-signé.
 
-3. La fusionner **par un merge commit** — `gh pr merge --merge`, jamais `--squash` ni `--rebase` : le commit tagué doit rester dans l'historique de `main`, sans quoi `git describe` ne le voit plus et `next` compte depuis le mauvais tag.
-4. Le push de `main` lance `promote.yml`, qui promeut chaque version que le merge apporte ; à la main, `gh workflow run promote.yml -f version=X.Y.Z -f channel=stable`.
-
-`promote` **déclare la version à la production** (`POST /admin/releases` et `/admin/app-releases`, depuis `agent/<version>/publications.json` et `app/<version>/publications.json` du seau privé — la version avait été déclarée au staging, plateforme de la branche), change le canal de l'agent (`POST /admin/releases/:version/promote`) et de l'app (`POST /admin/app-releases/:version/promote`), puis recopie les trois `latest*.yml` de la version sous `app/stable/`. Rien n'est reconstruit ni re-signé. La même commande, sur une version précédente, sert à revenir en arrière.
-
-Le merge déploie aussi la console en production : Cloudflare Builds suit `main`.
-
-### 5. Revenir en arrière
-
-- Agent : promouvoir à nouveau la version précédente ; les agents déjà mis à jour restent sur la nouvelle version tant qu'une version plus récente n'est pas publiée (l'agent ne rétrograde pas sans un geste explicite du propriétaire).
-- App : promouvoir la version précédente remet son flux dans le canal ; `electron-updater` ne redescend pas, une app déjà à jour attend la version corrigée.
+- Agent : les agents déjà mis à jour restent sur la nouvelle version tant qu'une version plus récente n'est pas publiée (l'agent ne rétrograde pas sans un geste explicite du propriétaire).
+- App : `electron-updater` ne redescend pas, une app déjà à jour attend la version corrigée.
 - Les artefacts d'une version publiée ne sont jamais supprimés du bucket : un lien écrit ailleurs continue d'aboutir.
 - Un correctif sort sur un nouveau tag `vX.Y.Z+1`, jamais en réécrivant le tag.
 
 ## Ce qu'une release ne fait pas
 
-- Commit ou push sans demande explicite ; `--force` ; `--no-verify` ; `PUPITRE_ALLOW_MAIN=1`.
+- Commit ou push sans demande explicite ; `--force` ; `--no-verify` ; `PUPITRE_ALLOW_MAIN=1`. `scripts/release.sh` est la demande : son second passage commite, tague et pousse.
 - Un squash ou un rebase sur la pull request `staging` → `main` : le tag de la version sortirait de l'historique.
-- Un second build pour la production : c'est l'artefact éprouvé en `beta` qui est promu, pas une recompilation du même numéro.
+- Un merge de `staging` dans `main` à la main : c'est le job `merge` de la release qui le fait, une fois la version téléchargeable.
+- Un second build du même numéro : la version publiée est celle que le canal désigne, un retour arrière promeut la précédente.
 - Un secret, un certificat, un mot de passe dans le dépôt, un log, une transcription de session.
 - Une publication de l'agent ailleurs que sur le bucket privé, par l'API de la plateforme.
 - Un build de release sur un Mac : `node-pty` ne se compile pas pour un autre système, et Windows et Linux ne se construisent que chez eux.

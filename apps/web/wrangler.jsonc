@@ -20,7 +20,7 @@
   },
   // One D1 per environment, and the local one miniflare keeps under
   // .wrangler/state. The migrations are the db package's: `bun run db:migrate
-  // <local|staging|production>` applies them through wrangler.
+  // <local|production>` applies them through wrangler.
   "d1_databases": [
     {
       "binding": "DB",
@@ -66,7 +66,7 @@
   "triggers": {
     "crons": ["0 * * * *", "20 3 * * *"]
   },
-  // Valeurs locales du développement : staging et production les remplacent.
+  // Local development values: the production environment replaces them.
   "vars": {
     "BETTER_AUTH_URL": "http://localhost:3000",
     "VITE_APP_URL": "http://localhost:3000",
@@ -89,101 +89,6 @@
     ]
   },
   "env": {
-    "staging": {
-      "workers_dev": false,
-      "preview_urls": false,
-      "upload_source_maps": true,
-      "placement": {
-        "mode": "smart"
-      },
-      "routes": [
-        {
-          "pattern": "staging-app.pupitre.studio",
-          "custom_domain": true
-        }
-      ],
-      "assets": {
-        "directory": ".output/public",
-        "binding": "ASSETS"
-      },
-      "d1_databases": [
-        {
-          "binding": "DB",
-          "database_name": "ppt-db-staging",
-          "database_id": "db24fc22-22ba-4120-aa37-78264c2e3cf7",
-          "migrations_dir": "../../packages/db/migrations"
-        }
-      ],
-      "observability": {
-        "enabled": true,
-        "head_sampling_rate": 1,
-        "logs": {
-          "enabled": true,
-          "invocation_logs": true
-        }
-      },
-      "workflows": [
-        {
-          "name": "ppt-expire-enrollments-staging",
-          "binding": "EXPIRE_ENROLLMENTS",
-          "class_name": "ExpireEnrollments"
-        },
-        {
-          "name": "ppt-decommission-server-staging",
-          "binding": "DECOMMISSION_SERVER",
-          "class_name": "DecommissionServer"
-        },
-        {
-          "name": "ppt-reconcile-seats-staging",
-          "binding": "RECONCILE_SEATS",
-          "class_name": "ReconcileSeats"
-        },
-        {
-          "name": "ppt-evaluate-alerts-staging",
-          "binding": "EVALUATE_ALERTS",
-          "class_name": "EvaluateAlerts"
-        },
-        {
-          "name": "ppt-suspend-expired-grace-staging",
-          "binding": "SUSPEND_EXPIRED_GRACE",
-          "class_name": "SuspendExpiredGrace"
-        }
-      ],
-      "send_email": [
-        {
-          "name": "EMAIL"
-        }
-      ],
-      "triggers": {
-        "crons": ["0 * * * *", "20 3 * * *"]
-      },
-      "vars": {
-        "PUPITRE_ENVIRONMENT": "staging",
-        "VITE_APP_URL": "https://staging-app.pupitre.studio",
-        "BETTER_AUTH_URL": "https://staging-app.pupitre.studio",
-        "EMAIL_FROM": "no-reply@pupitre.studio",
-        "PUPITRE_DOWNLOADS_URL": "https://dl.pupitre.studio"
-      },
-      "secrets": {
-        "required": [
-          "BETTER_AUTH_SECRET",
-          "INTERNAL_WORKFLOW_SECRET",
-          "STRIPE_SECRET_KEY",
-          "STRIPE_WEBHOOK_SECRET",
-          "STRIPE_PRICE_SERVER_MONTH",
-          "STRIPE_PRICE_SERVER_YEAR",
-          "R2_ACCOUNT_ID",
-          "R2_ACCESS_KEY_ID",
-          "R2_SECRET_ACCESS_KEY",
-          "R2_BUCKET_NAME",
-          "PUPITRE_PUBLISH_TOKEN",
-          "GITHUB_CLIENT_ID",
-          "GITHUB_CLIENT_SECRET",
-          "GOOGLE_CLIENT_ID",
-          "GOOGLE_CLIENT_SECRET"
-        ]
-      }
-    },
     "production": {
       "workers_dev": false,
       "preview_urls": false,

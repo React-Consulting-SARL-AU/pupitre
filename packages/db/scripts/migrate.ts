@@ -9,7 +9,6 @@ import { BINDING, fail, wrangler } from "./wrangler"
  * Every migration the target has not applied yet, in order, through wrangler:
  *
  *   bun run db:migrate local
- *   bun run db:migrate staging
  *   PUPITRE_ALLOW_MIGRATE_ON=production bun run db:migrate production
  */
 

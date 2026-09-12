@@ -6,22 +6,19 @@ import { argumentOf, say, VARIABLES } from "./cli"
  * What a release is, read from git and the app's manifest, nothing else.
  *
  * The version is the one the app declares — `next` wrote it there, and `ship`
- * tags it before the runners build it. The branch the tag sits on names the
- * platform the version is declared to: `main` speaks to production, `staging`
- * to staging, and nothing is released from anywhere else. The channel is
- * `beta` unless the caller says otherwise: a version always goes out to be
- * tried, and `promote` is what makes it stable.
+ * tags it before the runners build it. Every release leaves from `staging`:
+ * the tag is cut there, and the same run merges the branch into `main` once
+ * what it built is downloadable. The channel is `stable` unless the caller
+ * says otherwise: nobody tries a version in between.
  */
 
-export const BRANCHES = ["main", "staging"] as const
+export const RELEASE_BRANCH = "staging"
 
-export type Branch = (typeof BRANCHES)[number]
+const DEFAULT_CHANNEL = "stable"
 
 export interface Release {
   version: string
   channel: string
-  branch: Branch
-  platform: string
 }
 
 const TAG_RE = /^v(\d+\.\d+\.\d+)$/
@@ -32,17 +29,6 @@ export function versionOfTag(tag: string): string | null {
   return tag.match(TAG_RE)?.[1] ?? null
 }
 
-/** The platform of a branch, from the two addresses the environment carries. */
-export function platformFor(
-  branch: Branch,
-  env: NodeJS.ProcessEnv
-): string | null {
-  const key =
-    branch === "main" ? VARIABLES.productionPlatform : VARIABLES.stagingPlatform
-
-  return env[key] || null
-}
-
 export function git(argv: string[]): string | null {
   const result = spawnSync("git", argv, { encoding: "utf8" })
 
@@ -50,37 +36,25 @@ export function git(argv: string[]): string | null {
 }
 
 /**
- * A runner checks a tag out detached: the branch is then the one that holds
- * the commit, staging before main, since every commit of staging reaches
- * main by the merge and a tag cut on staging stays a staging release.
+ * A runner checks a tag out detached: the release branch then has to hold
+ * the commit, since a tag cut anywhere else is not a release.
  */
-export function branchHolding(
-  head: string,
-  holds: (branch: Branch) => boolean
-): Branch | null {
-  const named = BRANCHES.find((branch) => branch === head)
-
-  if (named) {
-    return named
-  }
-
-  if (head !== "HEAD") {
-    return null
-  }
-
-  return (["staging", "main"] as const).find(holds) ?? null
+export function onReleaseBranch(head: string, holds: () => boolean): boolean {
+  return head === RELEASE_BRANCH || (head === "HEAD" && holds())
 }
 
-export function currentBranch(): Branch | null {
-  return branchHolding(
-    git(["rev-parse", "--abbrev-ref", "HEAD"]) ?? "",
-    (branch) =>
-      git([
-        "merge-base",
-        "--is-ancestor",
-        "HEAD",
-        `refs/remotes/origin/${branch}`,
-      ]) !== null
+function currentHead(): string {
+  return git(["rev-parse", "--abbrev-ref", "HEAD"]) ?? ""
+}
+
+function releaseBranchHoldsHead(): boolean {
+  return (
+    git([
+      "merge-base",
+      "--is-ancestor",
+      "HEAD",
+      `refs/remotes/origin/${RELEASE_BRANCH}`,
+    ]) !== null
   )
 }
 
@@ -129,26 +103,17 @@ export function resolve(
     )
   }
 
-  const branch = currentBranch()
+  const head = currentHead()
 
-  if (!branch) {
+  if (!onReleaseBranch(head, releaseBranchHoldsHead)) {
     throw new Error(
-      `${git(["rev-parse", "--abbrev-ref", "HEAD"])} is neither main nor staging: nothing is released from there.`
-    )
-  }
-
-  const platform = platformFor(branch, env)
-
-  if (!platform) {
-    throw new Error(
-      `${branch} has no platform: set ${branch === "main" ? VARIABLES.productionPlatform : VARIABLES.stagingPlatform}.`
+      `${head} is not ${RELEASE_BRANCH}: nothing is released from there.`
     )
   }
 
   return {
-    branch,
-    channel: argumentOf(argv, "channel") ?? env[VARIABLES.channel] ?? "beta",
-    platform,
+    channel:
+      argumentOf(argv, "channel") ?? env[VARIABLES.channel] ?? DEFAULT_CHANNEL,
     version,
   }
 }
@@ -162,8 +127,6 @@ export function formatRelease(release: Release, format: string): string {
   return [
     `${VARIABLES.version}=${release.version}`,
     `${VARIABLES.channel}=${release.channel}`,
-    `${VARIABLES.platform}=${release.platform}`,
-    `PUPITRE_RELEASE_BRANCH=${release.branch}`,
   ].join("\n")
 }
 

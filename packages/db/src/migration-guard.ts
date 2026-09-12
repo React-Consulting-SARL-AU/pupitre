@@ -2,8 +2,8 @@ export type TEnvGet = (key: string) => string | undefined
 
 export class MigrationGuardError extends Error {}
 
-/** The three databases, as `apps/web/wrangler.jsonc` names them: the local one miniflare keeps, and one D1 per environment. */
-export const TARGETS = ["local", "staging", "production"] as const
+/** The two databases, as `apps/web/wrangler.jsonc` names them: the local one miniflare keeps, and the production D1. */
+export const TARGETS = ["local", "production"] as const
 
 export type Target = (typeof TARGETS)[number]
 
@@ -14,7 +14,7 @@ export function targetOf(value: string | undefined): Target {
 
   if (!target) {
     throw new MigrationGuardError(
-      `${value ? `"${value}"` : "no target"} is not a database: local, staging or production.`
+      `${value ? `"${value}"` : "no target"} is not a database: local or production.`
     )
   }
 

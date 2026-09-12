@@ -39,8 +39,12 @@ function main(args: readonly string[]): number {
 
   const values = fieldsToEnv(JSON.parse(note.stdout))
 
+  const database = environment.database
+    ? `, database ${environment.database}`
+    : ""
+
   process.stderr.write(
-    `${name}: ${Object.keys(values).length} variables from ${environment.item}, database ${environment.database}\n`
+    `${name}: ${Object.keys(values).length} variables from ${environment.item}${database}\n`
   )
 
   const result = spawnSync(argv[0] as string, argv.slice(1), {

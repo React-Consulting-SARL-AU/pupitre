@@ -1,13 +1,12 @@
 import { hasFlag, say } from "./cli"
-import { git, resolve } from "./resolve"
+import { git, RELEASE_BRANCH, resolve } from "./resolve"
 import { run } from "./shell"
 
 /**
- * The last gesture: what the release changed in the repository — the version
- * the app declares and the changelog — is committed, the version is tagged,
- * and both go to the remote. It comes after the publication on purpose: when
- * the site and the console rebuild from this push, every file they will name
- * is already downloadable.
+ * The last gesture on this machine: what the release changed in the
+ * repository — the version the app declares and the changelog — is committed,
+ * the version is tagged, and both go to the remote. The tag is what the
+ * runners pick up; from here the release is theirs, up to the merge.
  */
 
 export function shipCommand(argv: readonly string[]): void {
@@ -36,7 +35,9 @@ export function shipCommand(argv: readonly string[]): void {
   }
 
   run(["git", "tag", "-a", tag, "-m", `Pupitre ${release.version}`], { dryRun })
-  run(["git", "push", "origin", release.branch], { dryRun })
+  run(["git", "push", "origin", RELEASE_BRANCH], { dryRun })
   run(["git", "push", "origin", tag], { dryRun })
-  say(`${tag} is on ${release.branch}, published to ${release.platform}`)
+  say(
+    `${tag} is on ${RELEASE_BRANCH}: the runners build, publish and merge it.`
+  )
 }

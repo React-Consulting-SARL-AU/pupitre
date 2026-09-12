@@ -7,9 +7,9 @@ name: Release
 # buckets are the only thing the jobs share, and every step is idempotent, so
 # a failed job is re-run alone and the release resumes where it stood.
 #
-# The tag sits on `staging` — the version goes out in `beta`, declared to the
-# staging platform — or on `main`, declared to production. `promote.yml`
-# carries a version from the first to the second when `main` takes it.
+# The tag sits on `staging`. The version is built, declared to the platform
+# and checked from outside; then `staging` is merged into `main`, which is
+# what deploys the site and the console. `promote.yml` is the way back.
 on:
   push:
     tags: ["v*"]
@@ -21,8 +21,8 @@ on:
       channel:
         description: Canal de publication
         type: choice
-        options: [beta, stable]
-        default: beta
+        options: [stable, beta]
+        default: stable
 
 # Two runs of one version would race for the same objects: they queue.
 concurrency:
@@ -71,7 +71,7 @@ jobs:
       - name: Read the release settings
         run: grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl >> "$GITHUB_ENV"
 
-      # The version, the channel and the platform, from git; the other jobs
+      # The version and the channel, from git and the manifest; the other jobs
       # read them from this job rather than resolving twice.
       - name: Resolve the release
         id: resolve
@@ -114,7 +114,6 @@ jobs:
     env:
       PUPITRE_RELEASE_VERSION: ${{ fromJSON(needs.agent.outputs.release).version }}
       PUPITRE_RELEASE_CHANNEL: ${{ fromJSON(needs.agent.outputs.release).channel }}
-      PUPITRE_PLATFORM_URL: ${{ fromJSON(needs.agent.outputs.release).platform }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -145,7 +144,7 @@ jobs:
           PUPITRE_RELEASE_PRIVATE_KEY: ${{ secrets.PUPITRE_RELEASE_PRIVATE_KEY }}
 
       # Both binaries tried on their own machine: the private bucket, then the
-      # platform of the branch.
+      # platform.
       - name: Publish the agent
         run: bun scripts/release/index.ts agent publish
         env:
@@ -224,7 +223,6 @@ jobs:
     env:
       PUPITRE_RELEASE_VERSION: ${{ fromJSON(needs.agent.outputs.release).version }}
       PUPITRE_RELEASE_CHANNEL: ${{ fromJSON(needs.agent.outputs.release).channel }}
-      PUPITRE_PLATFORM_URL: ${{ fromJSON(needs.agent.outputs.release).platform }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -239,7 +237,7 @@ jobs:
         run: grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl >> "$GITHUB_ENV"
 
       # Every installer the three systems left: signed with the release key,
-      # put in the public bucket, declared to the platform of the branch.
+      # put in the public bucket, declared to the platform.
       - name: Sign, upload and declare
         run: bun scripts/release/index.ts app publish
         env:
@@ -253,3 +251,37 @@ jobs:
       # and the feeds point at it. The report is the run's summary.
       - name: Verify what a customer downloads
         run: bun scripts/release/index.ts verify | tee -a "$GITHUB_STEP_SUMMARY"
+
+  merge:
+    name: Merge into main
+    needs: [agent, publish]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      PUPITRE_RELEASE_VERSION: ${{ fromJSON(needs.agent.outputs.release).version }}
+      PUPITRE_RELEASE_CHANNEL: ${{ fromJSON(needs.agent.outputs.release).channel }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Read the release settings
+        run: grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl >> "$GITHUB_ENV"
+
+      # Everything the version names is downloadable: `staging` goes into
+      # `main` by a pull request, merged with a merge commit so the tagged
+      # commit stays in its history. The push of `main` is what deploys the
+      # site and the console; made with this token, it runs no other workflow.
+      - name: Open the pull request and merge it
+        run: bun scripts/release/index.ts merge

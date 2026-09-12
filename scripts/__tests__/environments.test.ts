@@ -12,7 +12,7 @@ import {
 const CONFIG = JSON.stringify({
   vault: "Vault",
   environments: {
-    staging: { item: "note", database: "ppt-db-staging" },
+    local: { item: "note" },
     production: { item: "note-prod", database: "ppt-db" },
   },
 })
@@ -36,7 +36,7 @@ describe("the environments", () => {
       name: "production",
     })
     expect(() => environmentOf("prod", config)).toThrow(
-      "prod is not an environment: staging or production."
+      "prod is not an environment: local or production."
     )
   })
 
@@ -44,12 +44,11 @@ describe("the environments", () => {
     const config = readEnvironments()
 
     expect(Object.keys(config.environments).sort()).toEqual([
+      "local",
       "production",
-      "staging",
     ])
-    expect(config.environments.staging?.database).not.toBe(
-      config.environments.production?.database
-    )
+    expect(config.environments.local?.database).toBeUndefined()
+    expect(config.environments.production?.database).toBe("ppt-db")
   })
 })
 
@@ -77,11 +76,11 @@ describe("what a note gives a command", () => {
       argv: ["bun", "run", "x"],
       name: "production",
     })
-    expect(commandOf(["staging", "prisma", "studio"])).toEqual({
+    expect(commandOf(["local", "prisma", "studio"])).toEqual({
       argv: ["prisma", "studio"],
-      name: "staging",
+      name: "local",
     })
-    expect(() => commandOf(["staging"])).toThrow("usage")
+    expect(() => commandOf(["local"])).toThrow("usage")
     expect(() => commandOf([])).toThrow("usage")
   })
 })
