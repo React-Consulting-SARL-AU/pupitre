@@ -1,0 +1,67 @@
+name: Promote
+
+# A published version goes out in `beta`, from a tag on `staging`, declared to
+# the staging platform. When the pull request `staging` → `main` is merged — by
+# a merge commit, never a squash, or the tagged commit never enters `main` —
+# this workflow takes the tags the merge just brought in, declares each to
+# production from the rows kept with the artefacts, and moves it to `stable`.
+# Nothing is rebuilt, nothing is re-signed: the same version changes audience.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version semver à promouvoir, sans le v
+        required: true
+      channel:
+        description: Canal cible
+        type: choice
+        options: [stable, beta]
+        default: stable
+
+concurrency:
+  group: promote-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  TURBO_TELEMETRY_DISABLED: "1"
+
+jobs:
+  promote:
+    name: Promote
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Read the release settings
+        run: grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl >> "$GITHUB_ENV"
+
+      # A push names what it brought through `since`; a dispatch names one version.
+      - name: Declare to production and promote
+        run: |
+          if [ -n "${VERSION:-}" ]; then
+            bun scripts/release/index.ts promote "--version=$VERSION" "--channel=$CHANNEL"
+          else
+            bun scripts/release/index.ts promote "--since=$BEFORE" --channel=stable
+          fi
+        env:
+          VERSION: ${{ inputs.version }}
+          CHANNEL: ${{ inputs.channel }}
+          BEFORE: ${{ github.event.before }}
+          PUPITRE_PUBLISH_TOKEN: ${{ secrets.PUPITRE_PUBLISH_TOKEN }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
