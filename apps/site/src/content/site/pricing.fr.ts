@@ -38,7 +38,7 @@ export const pricingFr: PricingContent = {
           "L’app desktop, et l’agent sur chaque serveur",
           "Tout le catalogue : runtimes, bases, agents, éditeurs, exposition",
           "Les mises à jour et les alertes",
-          "Vos propres abonnements Claude, Codex ou Hermes",
+          "Vos propres abonnements Claude, ChatGPT, Cursor, Google ou Copilot",
         ],
         cta: "Démarrer l’essai",
       },
@@ -105,7 +105,7 @@ export const pricingFr: PricingContent = {
       title: "Ce qu’il ne remplace pas",
       lines: [
         "Le VPS : vous le louez où vous voulez et payez l’hébergeur directement",
-        "Vos abonnements Claude, Codex ou Hermes : les agents tournent sur vos comptes",
+        "Vos abonnements Claude, ChatGPT, Cursor, Google ou Copilot : les agents tournent sur vos comptes",
       ],
     },
   },

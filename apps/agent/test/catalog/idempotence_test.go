@@ -48,7 +48,6 @@ var elsewhere = map[string]string{
 	"runtime.docker":      "its group is read from the dev user core.system creates",
 	"tool.1password":      "its service account is checked against 1Password",
 	"tool.github":         "its key is born of ssh-keygen and registered with GitHub",
-	"exposure.tailscale":  "its node joins a tailnet through an auth key the form composes",
 }
 
 // A module that reads a release index answers it here, as the network would.

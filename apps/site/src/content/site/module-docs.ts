@@ -568,8 +568,8 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       },
     ],
     notes: {
-      en: "The channels — Telegram, Discord, WhatsApp — are wired with openclaw onboard in a terminal on the server: the wizard asks for the bot tokens and writes ~/.openclaw/openclaw.json, which the module never touches. Node 22 is the default of the Node.js module: pick Node 24 there before installing OpenClaw. Uninstalling takes back the CLI, the providers and the service; the workspace, the sessions and the channels stay under ~/.openclaw.",
-      fr: "Les canaux — Telegram, Discord, WhatsApp — se branchent par openclaw onboard dans un terminal sur le serveur : l’assistant demande les jetons des bots et écrit ~/.openclaw/openclaw.json, que le module ne touche jamais. Node 22 est le défaut du module Node.js : choisissez Node 24 avant d’installer OpenClaw. La désinstallation reprend le CLI, les fournisseurs et le service ; l’espace de travail, les sessions et les canaux restent sous ~/.openclaw.",
+      en: "The channels — Telegram, Discord, WhatsApp — are wired with openclaw onboard in a terminal on the server: the wizard asks for the bot tokens and writes ~/.openclaw/openclaw.json, which the module never touches. Node 24, the default of the Node.js module, is what it needs: a machine set to Node 22 or 20 has to move to 24 first, and the install says so before doing anything. Uninstalling takes back the CLI, the providers and the service; the workspace, the sessions and the channels stay under ~/.openclaw.",
+      fr: "Les canaux — Telegram, Discord, WhatsApp — se branchent par openclaw onboard dans un terminal sur le serveur : l’assistant demande les jetons des bots et écrit ~/.openclaw/openclaw.json, que le module ne touche jamais. Node 24, le défaut du module Node.js, est ce qu’il lui faut : une machine réglée sur Node 22 ou 20 doit passer à 24 d’abord, et l’installation le dit avant de rien faire. La désinstallation reprend le CLI, les fournisseurs et le service ; l’espace de travail, les sessions et les canaux restent sous ~/.openclaw.",
     },
   },
   "ai.browser": {
