@@ -1,6 +1,7 @@
 package catalog_test
 
 import (
+	"runtime"
 	"strings"
 	"testing"
 
@@ -35,6 +36,7 @@ const secret = "s3cret-de-test"
 
 var elsewhere = map[string]string{
 	"ai.hermes":           "its providers are a list of secrets that only the form composes",
+	"ai.openclaw":         "its providers are a list of secrets that only the form composes",
 	"db.mysql":            "its accounts are read by querying mysql",
 	"db.postgres":         "its roles and extensions are read by querying postgres",
 	"db.redis":            "its password is checked by opening a redis session",
@@ -46,6 +48,7 @@ var elsewhere = map[string]string{
 	"runtime.docker":      "its group is read from the dev user core.system creates",
 	"tool.1password":      "its service account is checked against 1Password",
 	"tool.github":         "its key is born of ssh-keygen and registered with GitHub",
+	"exposure.tailscale":  "its node joins a tailnet through an auth key the form composes",
 }
 
 // A module that reads a release index answers it here, as the network would.
@@ -59,6 +62,24 @@ var served = map[string]func(fake *modtest.FakeSys){
 		fake.Answer("cursor.com/install", "DOWNLOAD_URL=\"https://downloads.cursor.com/lab/2026.09.10-fd3934a/${OS}/${ARCH}/agent-cli-package.tar.gz\"\n")
 		fake.Archives[download.Dir+"/cursor-agent-2026.09.10-fd3934a.tar.gz"] = []string{"cursor-agent", "node", "index.js"}
 	},
+	"db.mailpit": func(fake *modtest.FakeSys) {
+		asset := "mailpit-linux-" + arch("amd64", "arm64") + ".tar.gz"
+		fake.Answer("-w %{redirect_url} https://github.com/axllent/mailpit/releases/latest/download/"+asset, "https://github.com/axllent/mailpit/releases/download/v1.31.1/"+asset)
+		fake.Answer("api.github.com/repos/axllent/mailpit/releases/tags/v1.31.1", `{"assets":[{"name":"`+asset+`","digest":"sha256:`+modtest.Digest(modtest.Downloaded)+`"}]}`)
+		fake.Archives[download.Dir+"/"+asset] = []string{"mailpit"}
+	},
+	"tool.supabase": func(fake *modtest.FakeSys) {
+		asset := "supabase_2.117.0_linux_" + arch("amd64", "arm64") + ".tar.gz"
+		fake.Answer("-w %{redirect_url} https://github.com/supabase/cli/releases/latest/download/checksums.txt", "https://github.com/supabase/cli/releases/download/v2.117.0/checksums.txt")
+		fake.Answer("releases/download/v2.117.0/checksums.txt", modtest.Digest(modtest.Downloaded)+"  "+asset+"\n")
+		fake.Archives[download.Dir+"/"+asset] = []string{"supabase"}
+	},
+	"tool.stripe": func(fake *modtest.FakeSys) {
+		asset := "stripe_1.50.11_linux_" + arch("x86_64", "arm64") + ".tar.gz"
+		fake.Answer("-w %{redirect_url} https://github.com/stripe/stripe-cli/releases/latest/download/stripe-linux-checksums.txt", "https://github.com/stripe/stripe-cli/releases/download/v1.50.11/stripe-linux-checksums.txt")
+		fake.Answer("releases/download/v1.50.11/stripe-linux-checksums.txt", modtest.Digest(modtest.Downloaded)+"  "+asset+"\n")
+		fake.Archives[download.Dir+"/"+asset] = []string{"stripe"}
+	},
 	"ai.opencode": func(fake *modtest.FakeSys) {
 		checksum := modtest.Digest(modtest.Downloaded)
 		assets := ""
@@ -69,6 +90,15 @@ var served = map[string]func(fake *modtest.FakeSys){
 		fake.Answer("releases/latest", `{"tag_name":"v1.18.30","assets":[`+strings.TrimSuffix(assets, ",")+`]}`)
 		fake.Archives[download.Dir+"/opencode-1.18.30.tar.gz"] = []string{"opencode"}
 	},
+}
+
+// The asset name of this machine, as each vendor spells the architecture.
+func arch(amd64, arm64 string) string {
+	if runtime.GOARCH == "arm64" {
+		return arm64
+	}
+
+	return amd64
 }
 
 // answers fills in what the form would have: the manifest defaults, plus a value for whatever it declares required.

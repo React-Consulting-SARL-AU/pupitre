@@ -3,6 +3,7 @@ package db
 
 import (
 	"pupitre.studio/agent/internal/modules"
+	_ "pupitre.studio/agent/internal/modules/db/mailpit"
 	"pupitre.studio/agent/internal/modules/db/mongodb"
 	"pupitre.studio/agent/internal/modules/db/mysql"
 	"pupitre.studio/agent/internal/modules/db/postgres"

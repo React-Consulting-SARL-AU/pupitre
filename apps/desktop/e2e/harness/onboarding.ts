@@ -206,6 +206,9 @@ export function answerOnboarding(
         cloudflare: { status: "absent" },
         github: { status: "absent" },
         neon: { status: "absent" },
+        stripe: { status: "absent" },
+        supabase: { status: "absent" },
+        vercel: { status: "absent" },
         wrangler: { status: "absent" },
       }));
       answer("connections:zones", () => ({ ok: true, result: [] }));

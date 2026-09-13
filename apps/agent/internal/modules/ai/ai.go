@@ -9,5 +9,6 @@ import (
 	_ "pupitre.studio/agent/internal/modules/ai/cursor"
 	_ "pupitre.studio/agent/internal/modules/ai/gemini"
 	_ "pupitre.studio/agent/internal/modules/ai/hermes"
+	_ "pupitre.studio/agent/internal/modules/ai/openclaw"
 	_ "pupitre.studio/agent/internal/modules/ai/opencode"
 )

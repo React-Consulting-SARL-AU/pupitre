@@ -8,7 +8,7 @@ import (
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/login"
 	"pupitre.studio/agent/internal/modules/runtime/mise"
-	"pupitre.studio/agent/internal/modules/runtime/shell"
+	"pupitre.studio/agent/internal/modules/tool/token"
 	"pupitre.studio/agent/internal/sys/env"
 )
 
@@ -53,49 +53,19 @@ func (Module) Install(ctx *modules.Context) error {
 
 // wrangler has no token login: it takes the token through CLOUDFLARE_API_TOKEN, so the dev shell must carry it, not only /etc/pupitre/env.
 func (Module) Configure(ctx *modules.Context) error {
-	if err := store(ctx, "store-token", tokenKey, ctx.Secret("api_token")); err != nil {
+	if err := token.Store(ctx, "store-token", tokenKey, ctx.Secret("api_token")); err != nil {
 		return err
 	}
 
-	if err := store(ctx, "store-account", accountKey, ctx.String("account_id")); err != nil {
+	if err := token.Store(ctx, "store-account", accountKey, ctx.String("account_id")); err != nil {
 		return err
 	}
 
-	if err := export(ctx, "export-token", tokenKey, ctx.Secret("api_token")); err != nil {
+	if err := token.Export(ctx, "export-token", tokenKey, ctx.Secret("api_token")); err != nil {
 		return err
 	}
 
-	return export(ctx, "export-account", accountKey, ctx.String("account_id"))
-}
-
-func store(ctx *modules.Context, step, key, value string) error {
-	return ctx.Step(step, func() (modules.Outcome, error) {
-		changed, err := env.Set(ctx, key, value)
-		if err != nil {
-			return modules.Failed, err
-		}
-
-		if !changed {
-			return modules.Skipped, nil
-		}
-
-		return modules.Done, nil
-	})
-}
-
-func export(ctx *modules.Context, step, key, value string) error {
-	return ctx.Step(step, func() (modules.Outcome, error) {
-		changed, err := shell.SetUserEnv(ctx, key, value)
-		if err != nil {
-			return modules.Failed, err
-		}
-
-		if !changed {
-			return modules.Skipped, nil
-		}
-
-		return modules.Done, nil
-	})
+	return token.Export(ctx, "export-account", accountKey, ctx.String("account_id"))
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
@@ -112,29 +82,7 @@ func (Module) Uninstall(ctx *modules.Context) error {
 		return err
 	}
 
-	return ctx.Step("forget-token", func() (modules.Outcome, error) {
-		forgotten := false
-
-		for _, key := range []string{tokenKey, accountKey} {
-			removed, err := env.Unset(ctx, key)
-			if err != nil {
-				return modules.Failed, err
-			}
-
-			exported, err := shell.UnsetUserEnv(ctx, key)
-			if err != nil {
-				return modules.Failed, err
-			}
-
-			forgotten = forgotten || removed || exported
-		}
-
-		if !forgotten {
-			return modules.Skipped, nil
-		}
-
-		return modules.Done, nil
-	})
+	return token.Forget(ctx, "forget-token", tokenKey, accountKey)
 }
 
 func (m Module) Status(ctx *modules.Context) (modules.Status, error) {

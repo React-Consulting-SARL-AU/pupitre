@@ -266,3 +266,25 @@ func TestReplayingTheDatabasesChangesNothing(t *testing.T) {
 		t.Fatalf("replay failed: %v", imported.Failed)
 	}
 }
+
+// Mailpit catches on 1025 and shows on 8025, both on the loopback, under dev.
+func TestMailpitCatchesMailOnTheLoopback(t *testing.T) {
+	host := stagingHost(t)
+	dev := "dev@" + address(host)
+
+	first := agent(t, host, request{Cmd: "install", Params: map[string]any{"modules": []string{"db.mailpit"}}})[0]
+	if result := decode[contract.InstallResult](t, first.Result); len(result.Failed) != 0 {
+		t.Fatalf("install failed: %v", result.Failed)
+	}
+
+	listening := ssh(t, host, "ss", "-ltn")
+	for _, port := range []string{"127.0.0.1:1025", "127.0.0.1:8025"} {
+		if !strings.Contains(listening, port) {
+			t.Fatalf("mailpit must listen on %s:\n%s", port, listening)
+		}
+	}
+
+	if out := ssh(t, dev, "curl", "-fsS", "http://127.0.0.1:8025/api/v1/info"); !strings.Contains(out, "Version") {
+		t.Fatalf("the interface must answer:\n%s", out)
+	}
+}

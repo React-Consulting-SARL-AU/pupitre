@@ -6,6 +6,7 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/ai/agents"
+	"pupitre.studio/agent/internal/modules/ai/providers"
 	"pupitre.studio/agent/internal/modules/runtime/mise"
 	"pupitre.studio/agent/internal/sys/env"
 	"pupitre.studio/agent/internal/sys/file"
@@ -14,6 +15,8 @@ import (
 
 const (
 	Program = "hermes"
+
+	envPrefix = "HERMES_"
 
 	Unit = "pupitre-hermes"
 
@@ -72,7 +75,7 @@ func (Module) Install(ctx *modules.Context) error {
 }
 
 func (Module) Configure(ctx *modules.Context) error {
-	found := providers(ctx.SecretList("providers"))
+	found := providers.Parse(ctx.SecretList("providers"))
 
 	if err := writeProviders(ctx, found); err != nil {
 		return err
@@ -89,9 +92,9 @@ func (Module) Configure(ctx *modules.Context) error {
 	return service(ctx, ctx.Bool("always_on"))
 }
 
-func writeProviders(ctx *modules.Context, found []provider) error {
+func writeProviders(ctx *modules.Context, found []providers.Provider) error {
 	return ctx.Step("write-providers", func() (modules.Outcome, error) {
-		content := renderEnvironment(found)
+		content := providers.Render(found, envPrefix)
 		if file.Same(ctx, envPath, content) {
 			return modules.Skipped, nil
 		}
@@ -112,11 +115,11 @@ func writeProviders(ctx *modules.Context, found []provider) error {
 	})
 }
 
-func storeProviders(ctx *modules.Context, found []provider) error {
+func storeProviders(ctx *modules.Context, found []providers.Provider) error {
 	return ctx.Step("store-providers", func() (modules.Outcome, error) {
 		stored := false
 		for _, entry := range found {
-			changed, err := env.Set(ctx, entry.envKey(), entry.key)
+			changed, err := env.Set(ctx, entry.EnvKey(envPrefix), entry.Key)
 			if err != nil {
 				return modules.Failed, err
 			}

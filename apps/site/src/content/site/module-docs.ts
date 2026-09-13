@@ -206,6 +206,23 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       fr: "Ruby est compilé depuis les sources : la première installation est la longue. Un Bundler qui refuse de s’installer est un avertissement, pas un échec : celui livré avec l’interpréteur reste en place.",
     },
   },
+  "runtime.rust": {
+    installs: [
+      {
+        en: "Rust at the chosen version through mise, which installs rustup and the toolchain and answers for cargo, rustc and rustup through its shims.",
+        fr: "Rust à la version choisie par mise, qui pose rustup et la toolchain et répond pour cargo, rustc et rustup par ses shims.",
+      },
+      {
+        en: "~/.cargo/bin on the path of every shell, so what cargo install builds is found like anything else.",
+        fr: "~/.cargo/bin sur le PATH de tous les shells, pour que ce que cargo install construit se trouve comme le reste.",
+      },
+    ],
+    asks: [{ en: "The version.", fr: "La version." }],
+    notes: {
+      en: "Any other version is one mise command away in a terminal. Uninstalling takes back the toolchain and the path; the registry cache and the binaries cargo install built stay.",
+      fr: "Toute autre version s’installe par une commande mise dans un terminal. La désinstallation reprend la toolchain et le PATH ; le cache du registre et les binaires que cargo install a construits restent.",
+    },
+  },
   "runtime.docker": {
     installs: [
       {
@@ -342,6 +359,28 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
         fr: "La taille du cache en mégaoctets. Zéro suit la machine.",
       },
     ],
+  },
+  "db.mailpit": {
+    installs: [
+      {
+        en: "Mailpit as the static binary of its GitHub release, for this architecture, refused unless its digest is the one GitHub publishes for the asset, then placed under /usr/local/bin.",
+        fr: "Mailpit sous la forme du binaire statique de sa release GitHub, pour cette architecture, refusé si sa somme n’est pas celle que GitHub publie pour l’artefact, puis posé sous /usr/local/bin.",
+      },
+      {
+        en: "A systemd service under the dev account, SMTP on 127.0.0.1:1025 and the interface on 127.0.0.1:8025 by default, the messages in a SQLite file under dev’s home.",
+        fr: "Un service systemd sous le compte dev, SMTP sur 127.0.0.1:1025 et l’interface sur 127.0.0.1:8025 par défaut, les messages dans un fichier SQLite sous le foyer de dev.",
+      },
+    ],
+    asks: [
+      {
+        en: "The two ports, when the defaults are taken on this machine.",
+        fr: "Les deux ports, quand ceux par défaut sont pris sur cette machine.",
+      },
+    ],
+    notes: {
+      en: "Point your projects’ mail configuration at the SMTP port and nothing leaves the machine: every message lands in the interface, which the app reaches through its own port forward. Uninstalling takes back the binary and the service; the messages it caught stay under dev’s home.",
+      fr: "Pointez la configuration de courrier de vos projets sur le port SMTP et rien ne quitte la machine : chaque message atterrit dans l’interface, que l’app joint par son propre transfert de port. La désinstallation reprend le binaire et le service ; les messages capturés restent sous le foyer de dev.",
+    },
   },
   "db.redis": {
     installs: [
@@ -507,6 +546,32 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       fr: "Celui-ci ne se connecte pas par un abonnement : il parle aux fournisseurs dont vous avez donné les clés, et ces clés restent sur la machine.",
     },
   },
+  "ai.openclaw": {
+    installs: [
+      {
+        en: "OpenClaw through mise on the machine’s Node — 24.16 or later, which the install checks before spending a minute on it — on the path of every shell.",
+        fr: "OpenClaw via mise sur le Node de la machine — 24.16 ou plus récent, ce que l’installation vérifie avant d’y passer une minute — sur le PATH de tous les shells.",
+      },
+      {
+        en: "The model providers you give, as the variables the gateway reads (ANTHROPIC_API_KEY, OPENAI_API_KEY…) in a file only dev can read, and the gateway as a systemd service on 127.0.0.1:18789 when always on.",
+        fr: "Les fournisseurs de modèles que vous donnez, sous les variables que la passerelle lit (ANTHROPIC_API_KEY, OPENAI_API_KEY…) dans un fichier que seul dev peut lire, et la passerelle en service systemd sur 127.0.0.1:18789 quand elle est toujours active.",
+      },
+      {
+        en: "The Pupitre skills in ~/.openclaw/skills and ~/.agents/skills, both of which OpenClaw reads. No machine context file: OpenClaw writes its own AGENTS.md in the workspace it bootstraps.",
+        fr: "Les skills Pupitre dans ~/.openclaw/skills et ~/.agents/skills, qu’OpenClaw lit tous deux. Pas de fichier de contexte machine : OpenClaw écrit son propre AGENTS.md dans l’espace de travail qu’il crée.",
+      },
+    ],
+    asks: [
+      {
+        en: "One line per provider, as name:key, and whether the gateway stays up between two sessions.",
+        fr: "Une ligne par fournisseur, sous la forme nom:clé, et si la passerelle reste en marche entre deux sessions.",
+      },
+    ],
+    notes: {
+      en: "The channels — Telegram, Discord, WhatsApp — are wired with openclaw onboard in a terminal on the server: the wizard asks for the bot tokens and writes ~/.openclaw/openclaw.json, which the module never touches. Node 22 is the default of the Node.js module: pick Node 24 there before installing OpenClaw. Uninstalling takes back the CLI, the providers and the service; the workspace, the sessions and the channels stay under ~/.openclaw.",
+      fr: "Les canaux — Telegram, Discord, WhatsApp — se branchent par openclaw onboard dans un terminal sur le serveur : l’assistant demande les jetons des bots et écrit ~/.openclaw/openclaw.json, que le module ne touche jamais. Node 22 est le défaut du module Node.js : choisissez Node 24 avant d’installer OpenClaw. La désinstallation reprend le CLI, les fournisseurs et le service ; l’espace de travail, les sessions et les canaux restent sous ~/.openclaw.",
+    },
+  },
   "ai.browser": {
     installs: [
       {
@@ -629,6 +694,28 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       fr: "Votre jeton ne quitte jamais votre ordinateur : l’app crée le tunnel et écrit le DNS, et votre serveur ne reçoit que de quoi faire tourner ce tunnel-là. Un tunnel est une connexion sortante : il n’ouvre aucun port sur votre serveur, et le pare-feu reste fermé sur tout sauf SSH. Ce module et Caddy se contredisent — une machine a une exposition, ou aucune.",
     },
   },
+  "exposure.tailscale": {
+    installs: [
+      {
+        en: "Tailscale from the vendor’s own apt repository, key first, then the node joined to your tailnet with the auth key you give — on the command line tailscale takes it, replaced by [secret] in the journal.",
+        fr: "Tailscale depuis le dépôt apt de l’éditeur, clé d’abord, puis le nœud joint à votre tailnet avec la clé d’authentification que vous donnez — sur la ligne de commande que tailscale attend, remplacée par [secret] dans le journal.",
+      },
+      {
+        en: "A ufw rule that lets the tailnet interface in, so SSH and the projects’ ports answer over Tailscale once the hardening has closed everything else.",
+        fr: "Une règle ufw qui laisse entrer l’interface du tailnet, pour que SSH et les ports des projets répondent par Tailscale une fois que le durcissement a fermé tout le reste.",
+      },
+    ],
+    asks: [
+      {
+        en: "An auth key minted in the Tailscale admin console, the name the machine takes on the tailnet if not its hostname, and whether Tailscale SSH opens the machine to tailnet members by their identity.",
+        fr: "Une clé d’authentification créée dans la console d’administration Tailscale, le nom que la machine prend sur le tailnet s’il diffère de son nom d’hôte, et si Tailscale SSH ouvre la machine aux membres du tailnet par leur identité.",
+      },
+    ],
+    notes: {
+      en: "The key is typed, not held by the app: it is minted for one machine and opens nothing from the laptop. The machine then keeps its own node key, and the dashboard says under which login it sits. Tailscale lives beside Caddy or the tunnel: it is the private way in, they are the public one. Uninstalling logs the node out of the tailnet before taking the package, the rule and the repository back.",
+      fr: "La clé est tapée, pas tenue par l’app : elle est créée pour une machine et n’ouvre rien depuis le portable. La machine garde ensuite sa propre clé de nœud, et le tableau de bord dit sous quel login elle est. Tailscale cohabite avec Caddy ou le tunnel : c’est l’entrée privée, eux sont l’entrée publique. La désinstallation déconnecte le nœud du tailnet avant de reprendre le paquet, la règle et le dépôt.",
+    },
+  },
   "exposure.caddy": {
     installs: [
       {
@@ -735,6 +822,72 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
     notes: {
       en: "The CLI has no token sign-in of its own: it reads a key from its own flag or from the environment, so a shell that wants it has to be given it. Uninstalling takes back the CLI and the key it stored, and never touches your Neon account.",
       fr: "Le CLI n’a pas de connexion par jeton : il lit une clé dans son propre drapeau ou dans l’environnement, donc un shell qui la veut doit la recevoir. La désinstallation reprend le CLI et la clé qu’il rangeait, et ne touche jamais à votre compte Neon.",
+    },
+  },
+  "tool.vercel": {
+    installs: [
+      {
+        en: "The Vercel CLI through mise, on the Node runtime, on the path of every shell.",
+        fr: "Le CLI Vercel via mise, sur le runtime Node, sur le PATH de tous les shells.",
+      },
+      {
+        en: "The token you gave, in the server’s environment file and in the dev shell as VERCEL_TOKEN, so vercel deploy, vercel env and vercel logs answer from a terminal without a sign-in.",
+        fr: "Le jeton que vous donnez, dans le fichier d’environnement du serveur et dans le shell de dev sous VERCEL_TOKEN, pour que vercel deploy, vercel env et vercel logs répondent depuis un terminal sans connexion.",
+      },
+    ],
+    asks: [
+      {
+        en: "Nothing, once your Vercel account is connected in the app. The token is given once, and the dashboard names the account it opens.",
+        fr: "Rien, une fois votre compte Vercel connecté dans l’app. Le jeton est donné une seule fois, et le tableau de bord nomme le compte qu’il ouvre.",
+      },
+    ],
+    notes: {
+      en: "Uninstalling takes back the CLI and the token it stored, and never touches a project or a deployment.",
+      fr: "La désinstallation reprend le CLI et le jeton qu’il rangeait, et ne touche jamais à un projet ou un déploiement.",
+    },
+  },
+  "tool.supabase": {
+    installs: [
+      {
+        en: "The Supabase CLI as the Go binary of its GitHub release, for this architecture, refused unless its checksum is the one the release publishes, then placed under /usr/local/bin.",
+        fr: "Le CLI Supabase sous la forme du binaire Go de sa release GitHub, pour cette architecture, refusé si sa somme n’est pas celle que la release publie, puis posé sous /usr/local/bin.",
+      },
+      {
+        en: "The access token you gave, in the server’s environment file and in the dev shell as SUPABASE_ACCESS_TOKEN.",
+        fr: "Le jeton d’accès que vous donnez, dans le fichier d’environnement du serveur et dans le shell de dev sous SUPABASE_ACCESS_TOKEN.",
+      },
+    ],
+    asks: [
+      {
+        en: "Nothing, once your Supabase account is connected in the app. The dashboard names the organisations the token opens.",
+        fr: "Rien, une fois votre compte Supabase connecté dans l’app. Le tableau de bord nomme les organisations que le jeton ouvre.",
+      },
+    ],
+    notes: {
+      en: "supabase link, db push and functions deploy work from the server as they do from your laptop; the local stack (supabase start) needs Docker, which is its own module. Uninstalling takes back the CLI and the token, never a project.",
+      fr: "supabase link, db push et functions deploy marchent depuis le serveur comme depuis votre portable ; la stack locale (supabase start) demande Docker, qui est un module à part. La désinstallation reprend le CLI et le jeton, jamais un projet.",
+    },
+  },
+  "tool.stripe": {
+    installs: [
+      {
+        en: "The Stripe CLI as the Go binary of its GitHub release, for this architecture, refused unless its checksum is the one the release publishes, then placed under /usr/local/bin.",
+        fr: "Le CLI Stripe sous la forme du binaire Go de sa release GitHub, pour cette architecture, refusé si sa somme n’est pas celle que la release publie, puis posé sous /usr/local/bin.",
+      },
+      {
+        en: "The key you gave, in the server’s environment file and in the dev shell as STRIPE_API_KEY.",
+        fr: "La clé que vous donnez, dans le fichier d’environnement du serveur et dans le shell de dev sous STRIPE_API_KEY.",
+      },
+    ],
+    asks: [
+      {
+        en: "Nothing, once your Stripe account is connected in the app with a restricted test-mode key. The dashboard names the account it opens.",
+        fr: "Rien, une fois votre compte Stripe connecté dans l’app avec une clé restreinte en mode test. Le tableau de bord nomme le compte qu’elle ouvre.",
+      },
+    ],
+    notes: {
+      en: "stripe listen --forward-to 127.0.0.1:3000/webhooks brings your test webhooks onto a project of the machine, and stripe trigger fires the events. Never give the live secret key: the CLI has no need of it. Uninstalling takes back the CLI and the key, never a customer or a webhook.",
+      fr: "stripe listen --forward-to 127.0.0.1:3000/webhooks amène vos webhooks de test sur un projet de la machine, et stripe trigger déclenche les événements. Ne donnez jamais la clé secrète de production : le CLI n’en a pas besoin. La désinstallation reprend le CLI et la clé, jamais un client ni un webhook.",
     },
   },
   "tool.wrangler": {

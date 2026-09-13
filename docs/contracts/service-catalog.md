@@ -1,6 +1,6 @@
 # Catalogue de services
 
-Le catalogue est une **bibliothèque des stacks les plus utilisées**, choisies parce qu'elles s'installent et se gèrent proprement. Il est complet : trente modules, tous livrés. Il ne cherche pas l'exhaustivité : ce qui n'y est pas, le client l'installe lui-même sur sa machine, et Pupitre ne s'y oppose pas. La sonde signale ce qu'elle trouve, les modules ne touchent qu'à ce qu'ils ont installé.
+Le catalogue est une **bibliothèque des stacks les plus utilisées**, choisies parce qu'elles s'installent et se gèrent proprement. Il est complet : trente-sept modules, tous livrés. Il ne cherche pas l'exhaustivité : ce qui n'y est pas, le client l'installe lui-même sur sa machine, et Pupitre ne s'y oppose pas. La sonde signale ce qu'elle trouve, les modules ne touchent qu'à ce qu'ils ont installé.
 
 Un service est un **module** de l'agent : une unité Go qui sait s'installer, se vérifier, se configurer, se mettre à jour, se désinstaller et rapporter son état, sur Ubuntu 22.04 et 24.04, amd64 et arm64. L'app ne connaît aucun service par son nom : elle affiche les manifestes que l'agent déclare.
 
@@ -46,7 +46,7 @@ type Field =
 
 Une **connexion** est un compte tiers que l'app détient pour le client, sur son poste, et qui vaut pour tous ses serveurs. Un **module** est une unité que l'agent installe sur un serveur. Un module qui exige une connexion le déclare, et l'écran de configuration la demande au-dessus de ses propres questions plutôt que trois écrans plus loin.
 
-Cinq connexions existent : **Cloudflare**, **Wrangler**, **GitHub**, **1Password** et **Neon**. L'app retient le jeton de chacune dans le trousseau système, un fichier par connexion, et le chiffré seul touche le disque.
+Huit connexions existent : **Cloudflare**, **Wrangler**, **GitHub**, **1Password**, **Neon**, **Vercel**, **Supabase** et **Stripe**. L'app retient le jeton de chacune dans le trousseau système, un fichier par connexion, et le chiffré seul touche le disque.
 
 Un jeton Cloudflare peut ouvrir plusieurs comptes. L'app n'agit que sur un — ses zones sont celles proposées pour un domaine, son tunnel celui qu'elle crée, son identifiant celui sur lequel Wrangler déploie — et ce compte est **choisi par le client** à la connexion quand il y en a plusieurs, jamais le premier que Cloudflare liste. `connections:connect` répond alors `{ status: "choose", accounts }` et rien n'est retenu tant que le jeton n'est pas renvoyé avec le compte choisi ; « Vérifier » pèse ensuite le jeton sur ce compte-là, et refuse un jeton qui ne l'ouvre plus.
 
@@ -109,6 +109,10 @@ Un module dont le CLI se connecte à un compte implémente en plus `Login` : il 
 | `tool.1password` | `op whoami --format=json` | l'email, sinon l'adresse du compte — un compte de service n'en a pas |
 | `tool.neon` | `neonctl me -o json` | l'email, sinon le login |
 | `tool.wrangler` | `wrangler whoami --json` | l'email, sinon le nom du compte de la connexion |
+| `tool.vercel` | `vercel whoami` | le nom d'utilisateur que le jeton ouvre |
+| `tool.supabase` | `supabase orgs list -o json` | les organisations que le jeton ouvre, séparées par des virgules — le CLI ne nomme pas la personne |
+| `tool.stripe` | `stripe get /v1/account` | le nom que le tableau de bord affiche, sinon l'identifiant du compte |
+| `exposure.tailscale` | `tailscale status --json` | le login qui possède le nœud, sinon son nom DNS sur le tailnet ; déconnecté quand le nœud n'est sur aucun tailnet |
 | `editor.vscode` | `code tunnel user show`, quand le tunnel est demandé | le fournisseur — `github`, `microsoft` — le CLI ne nomme pas le compte |
 
 ## Modules
@@ -131,6 +135,7 @@ Un module dont le CLI se connecte à un compte implémente en plus `Login` : il 
 | `runtime.php` | dépendances de compilation, PHP compilé par mise, Composer en option, un `php.ini` lu après celui de la compilation | `php_version`, `composer` (boolean), `memory_limit` |
 | `runtime.ruby` | dépendances de compilation, Ruby compilé par mise, Bundler rafraîchi quand l'interpréteur vient d'être posé | `ruby_version`, `bundler` (boolean) |
 | `runtime.docker` | Docker Engine et Compose depuis le dépôt de Docker, `dev` dans le groupe `docker`, rotation des logs de conteneurs | `compose` (boolean), `data_root`, `log_max_size` |
+| `runtime.rust` | Rust via mise, qui pose rustup et la toolchain ; `~/.cargo/bin` sur le PATH de tous les shells | `rust_version` (version) |
 
 ### Bases de données
 
@@ -140,6 +145,7 @@ Un module dont le CLI se connecte à un compte implémente en plus `Login` : il 
 | `db.postgres` | PostgreSQL à la version majeure choisie depuis le dépôt du projet, local seulement, rôles applicatif et distant, mémoire partagée dimensionnée, extensions courantes, import de dumps | `version`, `port`, `app_role`, `remote_role`, `app_password`, `remote_password`, `shared_buffers` |
 | `db.mongodb` | MongoDB à la version majeure choisie, local seulement, utilisateur applicatif, cache WiredTiger dimensionné, import de `mongodump` | `version`, `port`, `app_user`, `app_password`, `cache_mb` |
 | `db.redis` | local seulement, mot de passe exigé, persistance, plafond mémoire et politique d'éviction au choix | `port`, `password`, `persistence` (boolean), `maxmemory_mb`, `maxmemory_policy` |
+| `db.mailpit` | Mailpit, binaire de la release GitHub vérifié par le digest que GitHub publie, en service systemd `pupitre-mailpit` sous `dev` : SMTP et interface sur la boucle locale, messages dans `~/.local/share/mailpit` ; aucune commande `db.*`, ce n'est pas un moteur | `smtp_port`, `http_port` |
 
 ### Agents IA
 
@@ -152,6 +158,7 @@ Un module dont le CLI se connecte à un compte implémente en plus `Login` : il 
 | `ai.copilot` | GitHub Copilot CLI via mise, contexte machine dans `~/.copilot/copilot-instructions.md`, skills Pupitre dans `~/.copilot/skills` | — |
 | `ai.opencode` | OpenCode, binaire de la release GitHub vérifié par la somme que GitHub publie, `~/.local/bin/opencode`, contexte machine dans `~/.config/opencode/AGENTS.md`, skills Pupitre | — |
 | `ai.hermes` | Hermes Agent (Nous Research) via Python, configuration des fournisseurs de modèles, service systemd si toujours actif | `providers` (list de secrets), `always_on` (boolean) |
+| `ai.openclaw` | OpenClaw via mise sur le Node de `runtime.node` (24.16 ou plus, vérifié avant l'installation), fournisseurs de modèles dans `~/.openclaw/providers.env` sous les noms que la passerelle lit, passerelle `openclaw gateway` en service systemd `pupitre-openclaw` sur 127.0.0.1:18789 si toujours active, skills Pupitre ; les canaux se branchent par `openclaw onboard` dans un terminal | `providers` (list de secrets), `always_on` (boolean) |
 | `ai.browser` | Chrome headless, dépendances Playwright, commande de capture qui range les images dans la galerie | — |
 
 ### Éditeurs distants
@@ -172,6 +179,7 @@ Les deux modules d'exposition sont exclusifs : chacun déclare l'autre en `confl
 | --- | --- | --- |
 | `exposure.cloudflare` | un tunnel, une route par projet, DNS et certificat gérés, sous-domaines depuis le registre, sur le compte Cloudflare du client. **L'app tient le jeton** : elle crée le tunnel et écrit le DNS depuis le laptop, le serveur ne reçoit que de quoi le faire tourner, et le garde | `domain`, choisi par serveur ; trois champs `managed` dérivés de la connexion : `account_tag`, `tunnel_id`, `tunnel_secret` |
 | `exposure.caddy` | reverse proxy avec certificats Let's Encrypt automatiques pour un domaine sans Cloudflare, une route par projet qui déclare un sous-domaine, ses deux ports ouverts dans ufw sous la forme `<port>/tcp` | `domain`, `email`, `http_port`, `https_port` |
+| `exposure.tailscale` | Tailscale depuis le dépôt de l'éditeur, le nœud joint au tailnet par `tailscale up --auth-key` (la clé masquée dans le journal), `ufw allow in on tailscale0` ; ne contredit ni Caddy ni le tunnel, le preset « tout » l'inclut ; la désinstallation fait `tailscale logout` avant de reprendre le paquet | `auth_key` (secret, tapé : une clé de la console Tailscale, pas une connexion), `hostname`, `ssh` (boolean) |
 
 `core.hardening` gouverne les règles nues `22` et `443` — SSH — et n'y touche jamais autrement ; `exposure.caddy` écrit les siennes en `<port>/tcp`. Les deux ne se marchent pas dessus.
 
@@ -184,6 +192,9 @@ Le `domain` des deux modules se choisit parmi les zones du compte connecté quan
 | `tool.github` | `gh`, clone HTTPS sans clé, clé du serveur enregistrée sur le compte | `token` (secret, `managed` par la connexion `github`) |
 | `tool.1password` | CLI et compte de service, `OP_SERVICE_ACCOUNT_TOKEN` exporté dans le shell de `dev`, génération des `.env.local` depuis les gabarits des dépôts | `service_account_token` (secret, `managed` par la connexion `1password`) |
 | `tool.neon` | le CLI Neon dans `/usr/local/bin/neon`, `neonctl` en lien vers lui (c'est le nom que son aide imprime), et la clé rangée dans `/etc/pupitre/env` puis exportée dans le shell de `dev` — `neonctl` n'a pas de connexion par jeton, il la prend par `NEON_API_KEY`, et sans elle il lance une connexion par navigateur ; les projets et les bases restent la décision du client | `api_key` (secret, `managed` par la connexion `neon`) |
+| `tool.vercel` | le CLI Vercel posé par mise (`npm:vercel`) sur le Node de `runtime.node` ; le jeton rangé dans `/etc/pupitre/env` puis exporté dans le shell de `dev` en `VERCEL_TOKEN`, que le CLI lit lui-même | `token` (secret, `managed` par la connexion `vercel`) |
+| `tool.supabase` | le CLI Supabase dans `/usr/local/bin/supabase`, binaire de la release GitHub vérifié par `checksums.txt`, version enregistrée sous `/var/lib/pupitre/versions` ; le jeton rangé puis exporté en `SUPABASE_ACCESS_TOKEN` | `access_token` (secret, `managed` par la connexion `supabase`) |
+| `tool.stripe` | le CLI Stripe dans `/usr/local/bin/stripe`, binaire de la release GitHub vérifié par `stripe-linux-checksums.txt` ; la clé rangée puis exportée en `STRIPE_API_KEY` — une clé restreinte de test, jamais la clé secrète de production | `api_key` (secret, `managed` par la connexion `stripe`) |
 | `tool.wrangler` | Wrangler, le CLI de Cloudflare, posé par mise (`npm:wrangler`) sur le Node de `runtime.node` ; le jeton et l'identifiant du compte rangés dans `/etc/pupitre/env` puis exportés dans le shell de `dev` en `CLOUDFLARE_API_TOKEN` et `CLOUDFLARE_ACCOUNT_ID`, que Wrangler lit lui-même — pas de `wrangler login`, et un jeton qui ouvre plusieurs comptes déploie sur celui de la connexion ; les Workers, les bases D1 et les Pages restent la décision du client | `api_token` (secret, `managed` par la connexion `wrangler`), `account_id` (text, `managed` par la même connexion) |
 
 ## Préréglages

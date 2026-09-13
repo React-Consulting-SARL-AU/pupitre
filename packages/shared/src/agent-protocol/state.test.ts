@@ -130,7 +130,7 @@ describe("MachineSchema, ServiceSchema, ProjectSchema, SessionSchema", () => {
       ServiceSchema.parse({ ...service, connection: "cloudflare" }).connection
     ).toBe("cloudflare")
     expect(
-      ServiceSchema.safeParse({ ...service, connection: "vercel" }).success
+      ServiceSchema.safeParse({ ...service, connection: "railway" }).success
     ).toBe(false)
   })
 

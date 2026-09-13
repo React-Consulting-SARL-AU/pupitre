@@ -25,6 +25,12 @@ const GITHUB = "https://api.github.com/user";
 
 const NEON = "https://console.neon.tech/api/v2/users/me";
 
+const VERCEL = "https://api.vercel.com/v2/user";
+
+const SUPABASE = "https://api.supabase.com/v1/profile";
+
+const STRIPE = "https://api.stripe.com/v1/account";
+
 /** A provider that has not answered by then is not going to: the field is owed a refusal. */
 const CALL_MS = 20_000;
 
@@ -73,7 +79,8 @@ async function read(
   > | null;
 
   if (!(response.ok && body)) {
-    const said = body?.message;
+    const nested = body?.error as Record<string, unknown> | undefined;
+    const said = body?.message ?? nested?.message;
 
     throw new TokenError(
       typeof said === "string" && said
@@ -124,6 +131,62 @@ async function neon(
   return { id, name: named ?? id };
 }
 
+/** Vercel wraps the user; the username is what the CLI prints, the email what the client recognises. */
+async function vercel(
+  token: string,
+  fetcher: typeof fetch
+): Promise<ConnectionAccount> {
+  const body = await read(VERCEL, token, fetcher);
+  const user = (body.user ?? {}) as Record<string, unknown>;
+  const id = text(user.id);
+
+  if (!id) {
+    throw new TokenError("no user");
+  }
+
+  const named = [text(user.username), text(user.email)].find(Boolean);
+
+  return { id, name: named ?? id };
+}
+
+async function supabase(
+  token: string,
+  fetcher: typeof fetch
+): Promise<ConnectionAccount> {
+  const body = await read(SUPABASE, token, fetcher);
+  const id = text(body.gotrue_id);
+
+  if (!id) {
+    throw new TokenError("no profile");
+  }
+
+  const named = [text(body.username), text(body.primary_email)].find(Boolean);
+
+  return { id, name: named ?? id };
+}
+
+/** A Stripe key opens one account, named as its dashboard shows it. */
+async function stripe(
+  token: string,
+  fetcher: typeof fetch
+): Promise<ConnectionAccount> {
+  const body = await read(STRIPE, token, fetcher);
+  const id = text(body.id);
+
+  if (!id) {
+    throw new TokenError("no account");
+  }
+
+  const settings = (body.settings ?? {}) as Record<string, unknown>;
+  const dashboard = (settings.dashboard ?? {}) as Record<string, unknown>;
+  const profile = (body.business_profile ?? {}) as Record<string, unknown>;
+  const named = [text(dashboard.display_name), text(profile.name)].find(
+    Boolean
+  );
+
+  return { id, name: named ?? id };
+}
+
 /** One Cloudflare token may open several accounts; all of them come back, for the client to pick from. */
 async function cloudflare(
   token: string,
@@ -160,6 +223,12 @@ export async function accountsOfToken(
       return [await github(token, fetcher)];
     case "neon":
       return [await neon(token, fetcher)];
+    case "vercel":
+      return [await vercel(token, fetcher)];
+    case "supabase":
+      return [await supabase(token, fetcher)];
+    case "stripe":
+      return [await stripe(token, fetcher)];
     default:
       return null;
   }

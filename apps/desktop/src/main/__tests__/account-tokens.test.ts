@@ -65,6 +65,43 @@ describe("ce qu'un jeton ouvre", () => {
     ]);
   });
 
+  it("nomme les comptes Vercel, Supabase et Stripe comme leurs tableaux de bord", async () => {
+    const vercel = answering({
+      user: { email: "ada@test.local", id: "u-1", username: "ada" },
+    });
+    const supabase = answering({
+      gotrue_id: "g-1",
+      primary_email: "ada@test.local",
+      username: "ada",
+    });
+    const stripe = answering({
+      id: "acct_1",
+      settings: { dashboard: { display_name: "Ada SAS" } },
+    });
+
+    expect(await accountsOfToken("vercel", "k", vercel.fetcher)).toEqual([
+      { id: "u-1", name: "ada" },
+    ]);
+    expect(await accountsOfToken("supabase", "k", supabase.fetcher)).toEqual([
+      { id: "g-1", name: "ada" },
+    ]);
+    expect(await accountsOfToken("stripe", "k", stripe.fetcher)).toEqual([
+      { id: "acct_1", name: "Ada SAS" },
+    ]);
+    expect(vercel.seen[0]?.url).toBe("https://api.vercel.com/v2/user");
+  });
+
+  it("lit le refus que Stripe et Vercel emboîtent sous error", async () => {
+    const refused = answering(
+      { error: { message: "Invalid API Key provided", type: "invalid" } },
+      401
+    );
+
+    await expect(
+      accountsOfToken("stripe", "k", refused.fetcher)
+    ).rejects.toThrow("Invalid API Key provided");
+  });
+
   it("rend le refus du fournisseur, jamais le jeton", async () => {
     const { fetcher } = answering({ message: "Bad credentials" }, 401);
 

@@ -214,10 +214,12 @@ describe("module ids", () => {
       "runtime.php",
       "runtime.ruby",
       "runtime.docker",
+      "runtime.rust",
       "db.mysql",
       "db.postgres",
       "db.mongodb",
       "db.redis",
+      "db.mailpit",
       "ai.claude",
       "ai.codex",
       "ai.cursor",
@@ -225,23 +227,28 @@ describe("module ids", () => {
       "ai.copilot",
       "ai.opencode",
       "ai.hermes",
+      "ai.openclaw",
       "ai.browser",
       "editor.jetbrains",
       "editor.vscode",
       "editor.zed",
       "exposure.cloudflare",
       "exposure.caddy",
+      "exposure.tailscale",
       "tool.github",
       "tool.1password",
       "tool.neon",
       "tool.wrangler",
+      "tool.vercel",
+      "tool.supabase",
+      "tool.stripe",
     ])
     expect(new Set(MODULE_IDS).size).toBe(MODULE_IDS.length)
   })
 
   it("validate through ModuleIdSchema", () => {
     expect(ModuleIdSchema.safeParse("tool.neon").success).toBe(true)
-    expect(ModuleIdSchema.safeParse("tool.vercel").success).toBe(false)
+    expect(ModuleIdSchema.safeParse("tool.railway").success).toBe(false)
   })
 
   it("expose the categories and architectures of the contract", () => {
@@ -275,8 +282,11 @@ describe("presets", () => {
       "editor.vscode",
     ])
     expect(getPreset("full").modules).toEqual(
-      MODULE_IDS.filter((id) => !id.startsWith("exposure."))
+      MODULE_IDS.filter(
+        (id) => id !== "exposure.caddy" && id !== "exposure.cloudflare"
+      )
     )
+    expect(getPreset("full").modules).toContain("exposure.tailscale")
     expect(getPreset("full").choose_one).toEqual([
       "exposure.caddy",
       "exposure.cloudflare",

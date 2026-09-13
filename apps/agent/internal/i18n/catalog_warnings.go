@@ -18,6 +18,10 @@ var warningCatalog = map[string]Message{
 		FR: "%d enregistrement(s) DNS refusé(s) par Cloudflare : vérifiez les droits DNS du jeton sur la zone %s",
 		EN: "%d DNS record(s) refused by Cloudflare: check the token's DNS rights on zone %s",
 	},
+	"warn.tailscale.ufw.refused": {
+		FR: "règle ufw « allow in on %s » refusée : ouvrez-la à la main, sinon rien n'arrivera par le tailnet une fois le pare-feu levé",
+		EN: "ufw rule \"allow in on %s\" was refused: open it by hand, or nothing will arrive over the tailnet once the firewall is up",
+	},
 	"warn.caddy.ufw.refused": {
 		FR: "règle ufw %s refusée : ouvrez-la à la main, sinon les certificats ne seront pas émis",
 		EN: "ufw rule %s was refused: open it by hand, or no certificate will be issued",

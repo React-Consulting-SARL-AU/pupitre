@@ -133,3 +133,43 @@ func Extract(ctx *modules.Context, staged, dir string, strip int, owner string) 
 
 	return file.ChownAll(ctx, dir, owner, owner)
 }
+
+const versionsDir = "/var/lib/pupitre/versions"
+
+// Record keeps the version a module installed under its id, for a binary that is slow to say its own — a snapshot asks every few seconds.
+func Record(ctx *modules.Context, id, version string) error {
+	if err := ctx.Sys().MkdirAll(versionsDir, 0o700); err != nil {
+		return err
+	}
+
+	return file.WriteAtomic(ctx, versionsDir+"/"+id, []byte(version+"\n"), 0o600)
+}
+
+func Recorded(ctx *modules.Context, id string) string {
+	raw, err := file.Read(ctx, versionsDir+"/"+id)
+	if err != nil {
+		return ""
+	}
+
+	return strings.TrimSpace(string(raw))
+}
+
+func Forget(ctx *modules.Context, id string) (bool, error) {
+	return file.Remove(ctx, versionsDir+"/"+id)
+}
+
+// LatestVersion reads the version a vendor's "latest" link points at: GitHub answers with a redirect whose path names the tag.
+func LatestVersion(ctx *modules.Context, latestURL string) (string, error) {
+	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"curl", "-fsS", "--proto", "=https", "--tlsv1.2", "-o", "/dev/null", "-w", "%{redirect_url}", latestURL}})
+	if err != nil {
+		return "", err
+	}
+
+	for _, segment := range strings.Split(strings.TrimSpace(out.Stdout), "/") {
+		if strings.HasPrefix(segment, "v") && strings.Contains(segment, ".") {
+			return strings.TrimPrefix(segment, "v"), nil
+		}
+	}
+
+	return "", errors.New(i18n.T("modules.download.version_unreadable", latestURL, strings.TrimSpace(out.Stdout)))
+}

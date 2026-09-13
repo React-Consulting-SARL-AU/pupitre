@@ -50,6 +50,7 @@ type FakeSys struct {
 	Listen     map[int]bool
 	Uptimes    map[int]int
 	Firewall   Firewall
+	Tailnet    bool
 	Procs      map[int]Proc
 	Stubborn   map[int]bool
 	Links      map[string]string
@@ -264,6 +265,8 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 		return f.codeServer(cmd.Argv[1:])
 	case "google-chrome-stable", "chromium", "chromium-browser":
 		return f.chrome(cmd.Argv[1:])
+	case "tailscale":
+		return f.tailscale(cmd.Argv[1:])
 	}
 
 	return sys.Output{Stdout: f.Replies[program]}, nil
@@ -557,6 +560,29 @@ func (f *FakeSys) gpg(args []string) (sys.Output, error) {
 	}
 
 	return sys.Output{}, f.WriteFile(out, content, 0o644)
+}
+
+// Joined is what tailscale status answers once up has run: a node on a tailnet, under the login that minted its key.
+const Joined = `{"BackendState":"Running","Self":{"HostName":"pupitre-srv","DNSName":"pupitre-srv.tail1234.ts.net.","UserID":1},"User":{"1":{"LoginName":"jordan@example.org"}}}`
+
+// tailscale up joins, logout leaves, and status says which; a test that wants another answer keys one with Answer, which wins.
+func (f *FakeSys) tailscale(args []string) (sys.Output, error) {
+	switch next(args, -1) {
+	case "up":
+		f.Tailnet = true
+		f.mutate("tailscale up")
+	case "logout":
+		f.Tailnet = false
+		f.mutate("tailscale logout")
+	case "status":
+		if f.Tailnet {
+			return sys.Output{Stdout: Joined + "\n"}, nil
+		}
+
+		return sys.Output{Stdout: "{\"BackendState\":\"NeedsLogin\"}\n"}, nil
+	}
+
+	return sys.Output{}, nil
 }
 
 // The headless browser writes the image it was asked for, so a capture is a file the gallery can then list.
@@ -870,14 +896,16 @@ func (f *FakeSys) ufw(args []string) (sys.Output, error) {
 		}
 		f.mutate("ufw default " + words[1] + " " + words[2])
 	case "allow":
-		if f.Firewall.has(words[1]) {
+		rule := ruleOf(words[1:])
+		if f.Firewall.has(rule) {
 			return sys.Output{Stdout: "Skipping adding existing rule\n"}, nil
 		}
-		f.Firewall.Rules = append(f.Firewall.Rules, words[1])
-		f.mutate("ufw allow " + words[1])
+		f.Firewall.Rules = append(f.Firewall.Rules, rule)
+		f.mutate("ufw allow " + rule)
 	case "delete":
-		f.Firewall.remove(words[2])
-		f.mutate("ufw delete allow " + words[2])
+		rule := ruleOf(words[2:])
+		f.Firewall.remove(rule)
+		f.mutate("ufw delete allow " + rule)
 	case "enable":
 		f.Firewall.Active = true
 		f.mutate("ufw enable")
@@ -889,6 +917,15 @@ func (f *FakeSys) ufw(args []string) (sys.Output, error) {
 	}
 
 	return sys.Output{}, nil
+}
+
+// A port rule is printed as given; an interface rule — allow in on tailscale0 — as ufw prints it, "Anywhere on tailscale0".
+func ruleOf(words []string) string {
+	if len(words) >= 3 && words[0] == "in" && words[1] == "on" {
+		return "Anywhere on " + words[2]
+	}
+
+	return words[0]
 }
 
 func (w Firewall) status() string {

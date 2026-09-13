@@ -10,6 +10,10 @@ const LOGIN_HOSTS = [
   "google.com",
   "opencode.ai",
   "neon.tech",
+  "vercel.com",
+  "supabase.com",
+  "stripe.com",
+  "tailscale.com",
   "github.com",
 ];
 

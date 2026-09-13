@@ -35,9 +35,12 @@ const (
 	ConnectionGitHub      = "github"
 	ConnectionOnePassword = "1password"
 	ConnectionNeon        = "neon"
+	ConnectionVercel      = "vercel"
+	ConnectionSupabase    = "supabase"
+	ConnectionStripe      = "stripe"
 )
 
-var Connections = []string{ConnectionCloudflare, ConnectionWrangler, ConnectionGitHub, ConnectionOnePassword, ConnectionNeon}
+var Connections = []string{ConnectionCloudflare, ConnectionWrangler, ConnectionGitHub, ConnectionOnePassword, ConnectionNeon, ConnectionVercel, ConnectionSupabase, ConnectionStripe}
 
 const (
 	// PatternVersionOrLatest holds an editor's free version field: `latest`, or a version the client reads off their own client.

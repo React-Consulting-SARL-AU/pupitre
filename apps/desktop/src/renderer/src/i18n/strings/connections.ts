@@ -66,6 +66,30 @@ export const connections = {
     "connections.neon.tokenHint":
       "A personal or organisation API key, created in the Neon account settings.",
 
+    "connections.vercel.title": "Vercel account",
+    "connections.vercel.intro":
+      "The Vercel CLI on the server, and the token it takes through VERCEL_TOKEN.",
+    "connections.vercel.tokenLabel": "Token",
+    "connections.vercel.tokenHelp": "Kept in this computer's keychain.",
+    "connections.vercel.tokenHint":
+      "An account token, created in Account settings › Tokens. Scope it to the team the projects live in.",
+
+    "connections.supabase.title": "Supabase account",
+    "connections.supabase.intro":
+      "The Supabase CLI on the server, and the token it takes through SUPABASE_ACCESS_TOKEN.",
+    "connections.supabase.tokenLabel": "Access token",
+    "connections.supabase.tokenHelp": "Kept in this computer's keychain.",
+    "connections.supabase.tokenHint":
+      "A personal access token, created in Account › Access Tokens. It opens every organisation you belong to.",
+
+    "connections.stripe.title": "Stripe account",
+    "connections.stripe.intro":
+      "The Stripe CLI on the server, and the key it takes through STRIPE_API_KEY.",
+    "connections.stripe.tokenLabel": "API key",
+    "connections.stripe.tokenHelp": "Kept in this computer's keychain.",
+    "connections.stripe.tokenHint":
+      "A restricted key, in test mode, created in Developers › API keys. Never the live secret key: the CLI listens to webhooks and forwards them, nothing more.",
+
     "connections.accounts.label": "Account",
     "connections.accounts.help":
       "This token opens several accounts. Pupitre acts on one: its zones are offered for a domain, its tunnel is created, its identifier is what Wrangler deploys to.",
@@ -142,6 +166,33 @@ export const connections = {
     "connections.neon.tokenHelp": "Gardée dans le trousseau de cet ordinateur.",
     "connections.neon.tokenHint":
       "Une clé d'API personnelle ou d'organisation, créée dans les réglages du compte Neon.",
+
+    "connections.vercel.title": "Compte Vercel",
+    "connections.vercel.intro":
+      "Le CLI Vercel sur le serveur, et le jeton qu'il prend par VERCEL_TOKEN.",
+    "connections.vercel.tokenLabel": "Jeton",
+    "connections.vercel.tokenHelp":
+      "Gardé dans le trousseau de cet ordinateur.",
+    "connections.vercel.tokenHint":
+      "Un jeton de compte, créé dans Account settings › Tokens. Limitez-le à l'équipe où vivent les projets.",
+
+    "connections.supabase.title": "Compte Supabase",
+    "connections.supabase.intro":
+      "Le CLI Supabase sur le serveur, et le jeton qu'il prend par SUPABASE_ACCESS_TOKEN.",
+    "connections.supabase.tokenLabel": "Jeton d'accès",
+    "connections.supabase.tokenHelp":
+      "Gardé dans le trousseau de cet ordinateur.",
+    "connections.supabase.tokenHint":
+      "Un jeton d'accès personnel, créé dans Account › Access Tokens. Il ouvre toutes les organisations dont vous êtes membre.",
+
+    "connections.stripe.title": "Compte Stripe",
+    "connections.stripe.intro":
+      "Le CLI Stripe sur le serveur, et la clé qu'il prend par STRIPE_API_KEY.",
+    "connections.stripe.tokenLabel": "Clé d'API",
+    "connections.stripe.tokenHelp":
+      "Gardée dans le trousseau de cet ordinateur.",
+    "connections.stripe.tokenHint":
+      "Une clé restreinte, en mode test, créée dans Developers › API keys. Jamais la clé secrète de production : le CLI écoute les webhooks et les relaie, rien de plus.",
 
     "connections.accounts.label": "Compte",
     "connections.accounts.help":
