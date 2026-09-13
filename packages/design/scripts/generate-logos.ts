@@ -26,6 +26,11 @@ import {
   siPython,
   siRedis,
   siRuby,
+  siRust,
+  siStripe,
+  siSupabase,
+  siTailscale,
+  siVercel,
   siZedindustries,
 } from "simple-icons"
 import { EXEMPTIONS, SOURCES, VENDOR_SOURCES } from "./logo-sources"
@@ -62,6 +67,11 @@ const ICONS: Record<string, SimpleIcon> = {
   python: siPython,
   redis: siRedis,
   ruby: siRuby,
+  rust: siRust,
+  stripe: siStripe,
+  supabase: siSupabase,
+  tailscale: siTailscale,
+  vercel: siVercel,
   zedindustries: siZedindustries,
 }
 

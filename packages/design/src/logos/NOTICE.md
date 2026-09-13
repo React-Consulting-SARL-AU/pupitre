@@ -48,9 +48,16 @@ filigrane derrière du texte.
 | `exposure-caddy.svg` | `exposure.caddy` | Caddy | https://caddyserver.com | CC0-1.0 | 2026-09-04 |
 | `tool-neon.svg` | `tool.neon` | Neon | https://neon.com/brand | CC0-1.0 | 2026-09-04 |
 | `tool-wrangler.svg` | `tool.wrangler` | Cloudflare Workers | https://www.cloudflare.com/developer-platform/products/ | CC0-1.0 | 2026-09-04 |
+| `tool-vercel.svg` | `tool.vercel` | Vercel | https://vercel.com/geist/brands | CC0-1.0 | 2026-09-04 |
+| `tool-supabase.svg` | `tool.supabase` | Supabase | https://github.com/supabase/supabase/blob/4031a7549f5d46da7bc79c01d56be4177dc7c114/packages/common/assets/images/supabase-logo-wordmark--light.svg | CC0-1.0 | 2026-09-04 |
+| `tool-stripe.svg` | `tool.stripe` | Stripe | https://stripe.com/newsroom/information | CC0-1.0 | 2026-09-04 |
+| `exposure-tailscale.svg` | `exposure.tailscale` | Tailscale | https://tailscale.com/press | CC0-1.0 | 2026-09-04 |
+| `runtime-rust.svg` | `runtime.rust` | Rust | https://www.rust-lang.org | CC0-1.0 | 2026-09-04 |
 | `editor-vscode.svg` | `editor.vscode` | Visual Studio Code | https://svgl.app/library/vscode.svg | marque déposée, usage nominatif | 2026-09-04 |
 | `runtime-java.svg` | `runtime.java` | Java | https://svgl.app/library/java.svg | marque déposée, usage nominatif | 2026-09-04 |
 | `ai-codex.svg` | `ai.codex` | Codex | https://svgl.app/library/codex_light.svg | marque déposée, usage nominatif | 2026-09-04 |
+| `db-mailpit.svg` | `db.mailpit` | Mailpit | https://github.com/axllent/mailpit/blob/56999e97e220fa20f294cd2c51de404bfa5e67c0/server/ui/mailpit.svg | marque déposée, usage nominatif | 2026-09-13 |
+| `ai-openclaw.svg` | `ai.openclaw` | OpenClaw | https://svgl.app/library/openclaw.svg | marque déposée, usage nominatif | 2026-09-13 |
 | `ai-hermes.svg` | `ai.hermes` | Nous Research | https://lobehub.com/icons/nousresearch | marque déposée, usage nominatif | 2026-09-07 |
 
 ## Marques hors catalogue

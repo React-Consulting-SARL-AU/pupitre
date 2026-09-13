@@ -452,6 +452,9 @@ describe("les comptes et les valeurs lues avec le catalogue", () => {
           },
           github: { status: "absent" },
           neon: { status: "absent" },
+          stripe: { status: "absent" },
+          supabase: { status: "absent" },
+          vercel: { status: "absent" },
           wrangler: { status: "absent" },
         }),
     });

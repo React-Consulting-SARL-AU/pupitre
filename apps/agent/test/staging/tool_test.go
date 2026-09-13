@@ -56,3 +56,54 @@ func TestWranglerPosesTheCliAndNamesTheAccount(t *testing.T) {
 		t.Fatalf("a replay must change nothing: %v", changed)
 	}
 }
+
+// Each CLI lands on the path of dev with its variable, whether a real secret is at hand or a placeholder: only the account check needs the real one.
+func TestTheConnectedClisLandWithTheirVariables(t *testing.T) {
+	host := stagingHost(t)
+	dev := "dev@" + address(host)
+
+	tools := []struct {
+		id, program, field, key, variable string
+	}{
+		{"tool.vercel", "vercel", "token", "PUPITRE_STAGING_VERCEL_TOKEN", "VERCEL_TOKEN"},
+		{"tool.supabase", "supabase", "access_token", "PUPITRE_STAGING_SUPABASE_TOKEN", "SUPABASE_ACCESS_TOKEN"},
+		{"tool.stripe", "stripe", "api_key", "PUPITRE_STAGING_STRIPE_KEY", "STRIPE_API_KEY"},
+	}
+
+	for _, tool := range tools {
+		t.Run(tool.id, func(t *testing.T) {
+			secret := os.Getenv(tool.variable)
+			real := secret != ""
+			if !real {
+				secret = "placeholder-s3cret-de-test"
+			}
+
+			install := request{Cmd: "install", Params: map[string]any{"secrets_stdin": true, "modules": []string{tool.id}}}
+			secrets := `{"` + tool.id + `":{"` + tool.field + `":"` + secret + `"}}`
+
+			first := agentWithSecrets(t, host, secrets, install)[0]
+			if result := decode[contract.InstallResult](t, first.Result); len(result.Failed) != 0 {
+				t.Fatalf("install failed: %v", result.Failed)
+			}
+
+			if out := ssh(t, dev, tool.program, "--version"); strings.TrimSpace(out) == "" {
+				t.Fatalf("the CLI must be on the path of dev:\n%s", out)
+			}
+
+			if out := ssh(t, dev, "zsh", "-c", "'echo $"+tool.key+"'"); !strings.Contains(out, secret) {
+				t.Fatalf("the dev shell must carry %s:\n%s", tool.key, out)
+			}
+
+			status := agent(t, host, request{Cmd: "service.status", Params: map[string]any{"id": tool.id}})[0]
+			service := decode[contract.ServiceStatus](t, status.Result)
+			if service.Login == nil || (real && service.Login.State != contract.LoginSignedIn) || (!real && service.Login.State != contract.LoginUnknown) {
+				t.Fatalf("login = %+v (real secret: %v)", service.Login, real)
+			}
+
+			replay := agentWithSecrets(t, host, secrets, install)[0]
+			if changed := steps(replay, contract.StepOK); len(changed) != 0 {
+				t.Fatalf("a replay must change nothing: %v", changed)
+			}
+		})
+	}
+}

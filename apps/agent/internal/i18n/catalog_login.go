@@ -18,6 +18,10 @@ var loginCatalog = map[string]Message{
 		FR: "Ouvrez un terminal sur ce serveur et lancez opencode auth login : choisissez le fournisseur, puis l'abonnement ou la clé qui va avec.",
 		EN: "Open a terminal on this server and run opencode auth login: pick the provider, then the subscription or the key that goes with it.",
 	},
+	"login.tailscale.fix": {
+		FR: "La machine n'est sur aucun tailnet : appliquez la configuration de ce service avec une clé d'authentification valide, ou lancez sudo tailscale up dans un terminal sur ce serveur et ouvrez l'URL affichée.",
+		EN: "The machine is on no tailnet: apply this service's configuration with a valid auth key, or run sudo tailscale up in a terminal on this server and open the URL it prints.",
+	},
 	"login.github.fix": {
 		FR: "Reconnectez le compte GitHub dans l'app puis appliquez la configuration de ce service ; ou lancez gh auth login dans un terminal sur ce serveur.",
 		EN: "Reconnect the GitHub account in the app and apply this service's configuration; or run gh auth login in a terminal on this server.",

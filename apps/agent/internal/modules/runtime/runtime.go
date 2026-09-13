@@ -9,4 +9,5 @@ import (
 	_ "pupitre.studio/agent/internal/modules/runtime/php"
 	_ "pupitre.studio/agent/internal/modules/runtime/python"
 	_ "pupitre.studio/agent/internal/modules/runtime/ruby"
+	_ "pupitre.studio/agent/internal/modules/runtime/rust"
 )

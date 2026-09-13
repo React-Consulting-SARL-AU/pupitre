@@ -30,10 +30,12 @@ export const MODULE_IDS = [
   "runtime.php",
   "runtime.ruby",
   "runtime.docker",
+  "runtime.rust",
   "db.mysql",
   "db.postgres",
   "db.mongodb",
   "db.redis",
+  "db.mailpit",
   "ai.claude",
   "ai.codex",
   "ai.cursor",
@@ -41,16 +43,21 @@ export const MODULE_IDS = [
   "ai.copilot",
   "ai.opencode",
   "ai.hermes",
+  "ai.openclaw",
   "ai.browser",
   "editor.jetbrains",
   "editor.vscode",
   "editor.zed",
   "exposure.cloudflare",
   "exposure.caddy",
+  "exposure.tailscale",
   "tool.github",
   "tool.1password",
   "tool.neon",
   "tool.wrangler",
+  "tool.vercel",
+  "tool.supabase",
+  "tool.stripe",
 ] as const
 
 export const ModuleIdSchema = z.enum(MODULE_IDS)
@@ -201,6 +208,9 @@ export const CONNECTION_KINDS = [
   "github",
   "1password",
   "neon",
+  "vercel",
+  "supabase",
+  "stripe",
 ] as const
 
 export const ConnectionKindSchema = z.enum(CONNECTION_KINDS)
@@ -253,6 +263,11 @@ export const PresetSchema = z.object({
 
 export type Preset = z.infer<typeof PresetSchema>
 
+const EXCLUSIVE_EXPOSURES: readonly ModuleId[] = [
+  "exposure.caddy",
+  "exposure.cloudflare",
+]
+
 export const PRESETS: readonly Preset[] = [
   {
     id: "web-js",
@@ -268,13 +283,14 @@ export const PRESETS: readonly Preset[] = [
     ],
   },
   {
-    // The two exposure modules contradict each other, so the preset carries
+    // Caddy and the tunnel contradict each other, so the preset carries
     // neither and asks which one instead. Ticking none of them is a state of
-    // its own: the machine answers through the app's own session.
+    // its own: the machine answers through the app's own session. Tailscale
+    // is an exposure too, but a private one that lives beside either.
     id: "full",
     name: "Tout le catalogue",
-    modules: MODULE_IDS.filter((id) => !id.startsWith("exposure.")),
-    choose_one: ["exposure.caddy", "exposure.cloudflare"],
+    modules: MODULE_IDS.filter((id) => !EXCLUSIVE_EXPOSURES.includes(id)),
+    choose_one: [...EXCLUSIVE_EXPOSURES],
   },
   {
     id: "minimal",

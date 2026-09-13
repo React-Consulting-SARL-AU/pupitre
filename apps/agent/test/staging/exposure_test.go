@@ -310,3 +310,35 @@ func TestCaddyServesTheSameRoutesUnderItsOwnRules(t *testing.T) {
 		t.Fatalf("tunnel.status must answer for the exposure that is installed: %+v", report)
 	}
 }
+
+// Tailscale joins with the key the environment gives, and the node answers under the login that minted it; without a key only the package is checked.
+func TestTailscaleJoinsWithAnAuthKey(t *testing.T) {
+	host := stagingHost(t)
+
+	key := os.Getenv("PUPITRE_STAGING_TAILSCALE_KEY")
+	if key == "" {
+		t.Skip("PUPITRE_STAGING_TAILSCALE_KEY is not set")
+	}
+
+	install := request{Cmd: "install", Params: map[string]any{"secrets_stdin": true, "modules": []string{"exposure.tailscale"}, "config": map[string]any{"exposure.tailscale": map[string]any{"hostname": "pupitre-staging"}}}}
+	secrets := `{"exposure.tailscale":{"auth_key":"` + key + `"}}`
+
+	first := agentWithSecrets(t, host, secrets, install)[0]
+	if result := decode[contract.InstallResult](t, first.Result); len(result.Failed) != 0 {
+		t.Fatalf("install failed: %v", result.Failed)
+	}
+
+	status := agent(t, host, request{Cmd: "service.status", Params: map[string]any{"id": "exposure.tailscale"}})[0]
+	service := decode[contract.ServiceStatus](t, status.Result)
+	if service.Login == nil || service.Login.State != contract.LoginSignedIn {
+		t.Fatalf("the node must be on the tailnet: %+v", service.Login)
+	}
+
+	if out := ssh(t, host, "ufw", "status"); !strings.Contains(out, "Anywhere on tailscale0") {
+		t.Fatalf("the tailnet interface must be let in:\n%s", out)
+	}
+
+	if out := ssh(t, host, "cat", "/var/lib/pupitre/report.json", "/var/log/pupitre.log"); strings.Contains(out, key) {
+		t.Fatal("the auth key leaked into the report or the journal")
+	}
+}

@@ -30,6 +30,34 @@ var moduleCatalog = map[string]Message{
 		FR: "Le CLI de Cursor installé pour dev, avec les skills Pupitre. Cursor n'a pas de fichier de contexte global : vos règles restent dans votre compte. La connexion passe par l'URL affichée par cursor-agent login et votre abonnement Cursor.",
 		EN: "The Cursor CLI installed for dev, with the Pupitre skills. Cursor has no global context file: your rules stay in your account. Signing in goes through the URL cursor-agent login prints and your own Cursor subscription.",
 	},
+	"module.ai.openclaw.summary": {
+		FR: "OpenClaw posé par mise sur le Node 24 de la machine : l'assistant personnel joignable depuis Telegram, Discord ou WhatsApp, avec les fournisseurs de modèles de votre choix, sa passerelle en service systemd, et les skills Pupitre. Les canaux se branchent par openclaw onboard dans un terminal.",
+		EN: "OpenClaw installed through mise on the machine's Node 24: the personal assistant reached from Telegram, Discord or WhatsApp, with the model providers of your choice, its gateway as a systemd service, and the Pupitre skills. Channels are wired with openclaw onboard in a terminal.",
+	},
+	"module.ai.openclaw.providers.label": {
+		FR: "Fournisseurs de modèles",
+		EN: "Model providers",
+	},
+	"module.ai.openclaw.providers.help": {
+		FR: "Un fournisseur par ligne, sous la forme nom:clé — anthropic:sk-…, openai:sk-…",
+		EN: "One provider per line, as name:key — anthropic:sk-…, openai:sk-…",
+	},
+	"module.ai.openclaw.providers.hint": {
+		FR: "Le nom devient la variable que la passerelle lit : anthropic donne ANTHROPIC_API_KEY, openai OPENAI_API_KEY, gemini GEMINI_API_KEY. Les clés vivent dans un fichier que seul dev peut lire.",
+		EN: "The name becomes the variable the gateway reads: anthropic gives ANTHROPIC_API_KEY, openai OPENAI_API_KEY, gemini GEMINI_API_KEY. The keys live in a file only dev can read.",
+	},
+	"module.ai.openclaw.always_on.label": {
+		FR: "Passerelle toujours active",
+		EN: "Gateway always on",
+	},
+	"module.ai.openclaw.always_on.help": {
+		FR: "Un service systemd garde la passerelle en marche sur 127.0.0.1:18789 : c'est elle que les canaux joignent.",
+		EN: "A systemd service keeps the gateway running on 127.0.0.1:18789: it is what the channels reach.",
+	},
+	"modules.openclaw.node_too_old": {
+		FR: "OpenClaw demande Node 24.16 ou plus récent, la machine tient %q : choisissez Node 24 dans le module Node.js et appliquez sa configuration",
+		EN: "OpenClaw needs Node 24.16 or later, the machine holds %q: choose Node 24 in the Node.js module and apply its configuration",
+	},
 	"module.ai.opencode.summary": {
 		FR: "OpenCode installé pour dev, avec le contexte de la machine et les skills Pupitre. Open source et sans fournisseur imposé : opencode auth login branche un abonnement Claude, ChatGPT ou Copilot, ou la clé d'un des fournisseurs qu'il connaît.",
 		EN: "OpenCode installed for dev, with the machine's context and the Pupitre skills. Open source and tied to no provider: opencode auth login connects a Claude, ChatGPT or Copilot subscription, or the key of any provider it knows.",
@@ -133,6 +161,26 @@ var moduleCatalog = map[string]Message{
 	"module.db.mongodb.port.label": {
 		FR: "Port",
 		EN: "Port",
+	},
+	"module.db.mailpit.summary": {
+		FR: "Mailpit, binaire de la release GitHub vérifié par sa somme, en service systemd sous dev : un serveur SMTP local qui capture tout ce que vos projets envoient, et l'interface qui le montre, sur la boucle locale.",
+		EN: "Mailpit, the GitHub release binary checked against its digest, as a systemd service under dev: a local SMTP server that catches everything your projects send, and the interface that shows it, on the loopback.",
+	},
+	"module.db.mailpit.smtp_port.label": {
+		FR: "Port SMTP",
+		EN: "SMTP port",
+	},
+	"module.db.mailpit.smtp_port.help": {
+		FR: "Celui que vos projets mettent dans leur configuration de courrier.",
+		EN: "The one your projects put in their mail configuration.",
+	},
+	"module.db.mailpit.http_port.label": {
+		FR: "Port de l'interface",
+		EN: "Interface port",
+	},
+	"module.db.mailpit.http_port.help": {
+		FR: "L'interface qui liste les messages capturés, sur 127.0.0.1.",
+		EN: "The interface that lists the caught messages, on 127.0.0.1.",
 	},
 	"module.db.mongodb.summary": {
 		FR: "MongoDB à la version choisie, lié à 127.0.0.1 sur le port voulu, authentification active, un utilisateur applicatif et les archives mongodump de ~/dumps importées.",
@@ -374,6 +422,42 @@ var moduleCatalog = map[string]Message{
 		FR: "Port HTTPS",
 		EN: "HTTPS port",
 	},
+	"module.exposure.tailscale.summary": {
+		FR: "Tailscale depuis le dépôt de l'éditeur, la machine jointe à votre tailnet par une clé d'authentification : SSH et URL de preview depuis votre téléphone ou un autre poste, sans rien exposer publiquement.",
+		EN: "Tailscale from the vendor's repository, the machine joined to your tailnet with an auth key: SSH and preview URLs from your phone or another computer, with nothing exposed publicly.",
+	},
+	"module.exposure.tailscale.auth_key.label": {
+		FR: "Clé d'authentification",
+		EN: "Auth key",
+	},
+	"module.exposure.tailscale.auth_key.help": {
+		FR: "Elle ne sert qu'à joindre le tailnet une fois ; la machine garde ensuite sa propre clé de nœud.",
+		EN: "It only joins the tailnet once; the machine then keeps its own node key.",
+	},
+	"module.exposure.tailscale.auth_key.hint": {
+		FR: "Dans la console d'administration Tailscale, Settings › Keys › Generate auth key. Une clé pré-approuvée évite d'avoir à approuver la machine ensuite.",
+		EN: "In the Tailscale admin console, Settings › Keys › Generate auth key. A pre-approved key saves approving the machine afterwards.",
+	},
+	"module.exposure.tailscale.hostname.label": {
+		FR: "Nom sur le tailnet",
+		EN: "Name on the tailnet",
+	},
+	"module.exposure.tailscale.hostname.help": {
+		FR: "Vide, c'est le nom d'hôte du serveur.",
+		EN: "Empty, the server's own hostname.",
+	},
+	"module.exposure.tailscale.ssh.label": {
+		FR: "Tailscale SSH",
+		EN: "Tailscale SSH",
+	},
+	"module.exposure.tailscale.ssh.help": {
+		FR: "Ouvre SSH aux membres du tailnet par leur identité Tailscale, selon la politique d'accès du tailnet. La clé de l'app continue d'ouvrir dev.",
+		EN: "Opens SSH to tailnet members by their Tailscale identity, as the tailnet's access policy says. The app's key still opens dev.",
+	},
+	"modules.tailscale.not_running": {
+		FR: "tailscale up a répondu mais le nœud n'est pas en marche : tailscale status --json le dira",
+		EN: "tailscale up answered but the node is not running: tailscale status --json will say",
+	},
 	"module.exposure.caddy.summary": {
 		FR: "Reverse proxy avec certificats Let's Encrypt automatiques, une route par projet qui déclare un sous-domaine, pour un domaine qui n'est pas chez Cloudflare.",
 		EN: "A reverse proxy with automatic Let's Encrypt certificates, one route per project that declares a subdomain, for a domain that is not on Cloudflare.",
@@ -538,6 +622,14 @@ var moduleCatalog = map[string]Message{
 		FR: "Version de Ruby",
 		EN: "Ruby version",
 	},
+	"module.runtime.rust.summary": {
+		FR: "Rust par mise, qui pose rustup et la version choisie ; cargo, rustc et ce que cargo install construit sont sur le PATH de tous les shells.",
+		EN: "Rust through mise, which installs rustup and the chosen version; cargo, rustc and whatever cargo install builds are on the path of every shell.",
+	},
+	"module.runtime.rust.rust_version.label": {
+		FR: "Version de Rust",
+		EN: "Rust version",
+	},
 	"module.runtime.ruby.summary": {
 		FR: "Ruby compilé par mise à la version choisie, Bundler en option, actifs dans tous les shells.",
 		EN: "Ruby compiled by mise at the chosen version, Bundler optional, active in every shell.",
@@ -573,6 +665,30 @@ var moduleCatalog = map[string]Message{
 	"module.tool.wrangler.account_id.label": {
 		FR: "Identifiant du compte",
 		EN: "Account identifier",
+	},
+	"module.tool.vercel.summary": {
+		FR: "Le CLI Vercel posé par mise, avec le jeton de votre compte Vercel dans VERCEL_TOKEN : vercel deploy, vercel env et vercel logs répondent depuis le serveur sans connexion à refaire.",
+		EN: "The Vercel CLI installed through mise, with your Vercel account's token in VERCEL_TOKEN: vercel deploy, vercel env and vercel logs answer from the server with no sign-in to redo.",
+	},
+	"module.tool.vercel.token.label": {
+		FR: "Jeton Vercel",
+		EN: "Vercel token",
+	},
+	"module.tool.supabase.summary": {
+		FR: "Le CLI Supabase, binaire de la release GitHub vérifié par sa somme, avec le jeton de votre compte dans SUPABASE_ACCESS_TOKEN : migrations, types et fonctions se poussent depuis le serveur.",
+		EN: "The Supabase CLI, the GitHub release binary checked against its checksum, with your account's token in SUPABASE_ACCESS_TOKEN: migrations, types and functions push from the server.",
+	},
+	"module.tool.supabase.access_token.label": {
+		FR: "Jeton d'accès Supabase",
+		EN: "Supabase access token",
+	},
+	"module.tool.stripe.summary": {
+		FR: "Le CLI Stripe, binaire de la release GitHub vérifié par sa somme, avec une clé de votre compte dans STRIPE_API_KEY : stripe listen renvoie les webhooks sur un projet de cette machine.",
+		EN: "The Stripe CLI, the GitHub release binary checked against its checksum, with a key of your account in STRIPE_API_KEY: stripe listen forwards the webhooks to a project on this machine.",
+	},
+	"module.tool.stripe.api_key.label": {
+		FR: "Clé d'API Stripe",
+		EN: "Stripe API key",
 	},
 	"module.tool.wrangler.summary": {
 		FR: "Wrangler, le CLI de Cloudflare, et le jeton gardé sur la machine : vos Workers, vos bases D1 et vos Pages se déploient depuis le serveur.",
@@ -633,6 +749,14 @@ var moduleCatalog = map[string]Message{
 	"modules.download.checksum_missing": {
 		FR: "sha256sum n'a rien dit de %s",
 		EN: "sha256sum said nothing of %s",
+	},
+	"modules.download.version_unreadable": {
+		FR: "%s ne renvoie vers aucune version : %q",
+		EN: "%s points at no version: %q",
+	},
+	"modules.download.missing_after_extract": {
+		FR: "%s est absent de %s après extraction",
+		EN: "%s is missing from %s after extraction",
 	},
 	"modules.download.checksum_unpublished": {
 		FR: "aucune somme publiée pour %s dans %s",

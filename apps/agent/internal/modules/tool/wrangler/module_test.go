@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	token   = "cf_s3cret-de-test"
-	account = "407880e9a2f71d528020f4201d604548"
+	apiToken = "cf_s3cret-de-test"
+	account  = "407880e9a2f71d528020f4201d604548"
 )
 
 func newContext(t *testing.T, fake *modtest.FakeSys) *modules.Context {
@@ -25,7 +25,7 @@ func newContext(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	return modtest.NewContext(t, fake, modtest.Options{
 		Manifest: manifest(),
 		Values:   modtest.Values{"account_id": account},
-		Secrets:  modtest.Secrets{"api_token": token},
+		Secrets:  modtest.Secrets{"api_token": apiToken},
 	})
 }
 
@@ -48,8 +48,8 @@ func configuredMachine() *modtest.FakeSys {
 	fake := modtest.NewFakeSys()
 	fake.Files[mise.Path] = []byte("mise")
 	fake.Tools[tool] = "4.131.1"
-	fake.Files[env.Path] = []byte(tokenKey + "=" + token + "\n" + accountKey + "=" + account + "\n")
-	fake.Files[shell.UserEnvPath] = []byte("export " + accountKey + "='" + account + "'\nexport " + tokenKey + "='" + token + "'\n")
+	fake.Files[env.Path] = []byte(tokenKey + "=" + apiToken + "\n" + accountKey + "=" + account + "\n")
+	fake.Files[shell.UserEnvPath] = []byte("export " + accountKey + "='" + account + "'\nexport " + tokenKey + "='" + apiToken + "'\n")
 	fake.Files[shell.EnvPath] = []byte("# >>> pupitre pupitre-env >>>\n[[ -r \"$HOME/.config/pupitre/env\" ]] && source \"$HOME/.config/pupitre/env\"\n# <<< pupitre pupitre-env <<<\n")
 
 	return fake
@@ -64,12 +64,12 @@ func TestTheCliLandsAndTheTokenReachesTheDevShell(t *testing.T) {
 		t.Fatalf("the CLI must be installed by mise: %v", fake.Tools)
 	}
 
-	if fake.EnvValue(tokenKey) != token || fake.EnvValue(accountKey) != account {
+	if fake.EnvValue(tokenKey) != apiToken || fake.EnvValue(accountKey) != account {
 		t.Fatalf("root's file holds %q / %q", fake.EnvValue(tokenKey), fake.EnvValue(accountKey))
 	}
 
 	exported := string(fake.Files[shell.UserEnvPath])
-	if !strings.Contains(exported, "export "+tokenKey+"='"+token+"'") || !strings.Contains(exported, "export "+accountKey+"='"+account+"'") {
+	if !strings.Contains(exported, "export "+tokenKey+"='"+apiToken+"'") || !strings.Contains(exported, "export "+accountKey+"='"+account+"'") {
 		t.Fatalf("dev env = %q", exported)
 	}
 
@@ -108,13 +108,13 @@ func TestSecretNeverLeaks(t *testing.T) {
 	ctx := run(t, fake)
 
 	for _, line := range ctx.Output() {
-		if strings.Contains(line, token) {
+		if strings.Contains(line, apiToken) {
 			t.Fatalf("secret in output: %s", line)
 		}
 	}
 
 	for _, call := range fake.Calls {
-		if strings.Contains(strings.Join(call.Argv, " "), token) {
+		if strings.Contains(strings.Join(call.Argv, " "), apiToken) {
 			t.Fatalf("the token never travels in argv: %v", call.Argv)
 		}
 	}
@@ -158,7 +158,7 @@ func TestFailedInstallCarriesItsReplayCommand(t *testing.T) {
 	}
 }
 
-// The token travels in the CLI's environment, never on its command line; the account named is the one the token deploys to.
+// The apiToken travels in the CLI's environment, never on its command line; the account named is the one the apiToken deploys to.
 func TestLoginAsksWranglerWhoamiWithTheTokenTheMachineHolds(t *testing.T) {
 	bare := modtest.NewFakeSys()
 	if got, asked := (Module{}).Login(newContext(t, bare)); !asked || got.State != contract.LoginSignedOut || got.Fix == "" {
@@ -210,7 +210,7 @@ func TestLoginAsksWranglerWhoamiWithTheTokenTheMachineHolds(t *testing.T) {
 				t.Fatalf("the check runs as dev on the CLI's own command: %+v", last)
 			}
 
-			if !slices.Contains(last.Env, tokenKey+"="+token) || !slices.Contains(last.Env, accountKey+"="+account) {
+			if !slices.Contains(last.Env, tokenKey+"="+apiToken) || !slices.Contains(last.Env, accountKey+"="+account) {
 				t.Fatalf("the variables travel in the environment: %v", last.Env)
 			}
 		})

@@ -58,6 +58,9 @@ export const CONNECTION_KINDS = [
   "github",
   "1password",
   "neon",
+  "vercel",
+  "supabase",
+  "stripe",
 ] as const satisfies readonly ConnectionKind[];
 
 export const NO_CONNECTIONS: ConnectionsState = {
@@ -65,5 +68,8 @@ export const NO_CONNECTIONS: ConnectionsState = {
   cloudflare: { status: "absent" },
   github: { status: "absent" },
   neon: { status: "absent" },
+  stripe: { status: "absent" },
+  supabase: { status: "absent" },
+  vercel: { status: "absent" },
   wrangler: { status: "absent" },
 };

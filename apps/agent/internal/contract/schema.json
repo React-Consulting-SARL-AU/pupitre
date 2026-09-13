@@ -1143,7 +1143,10 @@
                   "wrangler",
                   "github",
                   "1password",
-                  "neon"
+                  "neon",
+                  "vercel",
+                  "supabase",
+                  "stripe"
                 ]
               },
               "version": {
@@ -1282,7 +1285,10 @@
                   "wrangler",
                   "github",
                   "1password",
-                  "neon"
+                  "neon",
+                  "vercel",
+                  "supabase",
+                  "stripe"
                 ]
               },
               "version": {
@@ -1362,7 +1368,10 @@
             "wrangler",
             "github",
             "1password",
-            "neon"
+            "neon",
+            "vercel",
+            "supabase",
+            "stripe"
           ]
         },
         "version": {
@@ -1490,7 +1499,10 @@
             "wrangler",
             "github",
             "1password",
-            "neon"
+            "neon",
+            "vercel",
+            "supabase",
+            "stripe"
           ]
         },
         "version": {
@@ -1588,7 +1600,10 @@
             "wrangler",
             "github",
             "1password",
-            "neon"
+            "neon",
+            "vercel",
+            "supabase",
+            "stripe"
           ]
         },
         "version": {
@@ -1686,7 +1701,10 @@
             "wrangler",
             "github",
             "1password",
-            "neon"
+            "neon",
+            "vercel",
+            "supabase",
+            "stripe"
           ]
         },
         "version": {
@@ -4657,7 +4675,10 @@
             "wrangler",
             "github",
             "1password",
-            "neon"
+            "neon",
+            "vercel",
+            "supabase",
+            "stripe"
           ]
         },
         "runs": {
@@ -5214,10 +5235,12 @@
         "runtime.php",
         "runtime.ruby",
         "runtime.docker",
+        "runtime.rust",
         "db.mysql",
         "db.postgres",
         "db.mongodb",
         "db.redis",
+        "db.mailpit",
         "ai.claude",
         "ai.codex",
         "ai.cursor",
@@ -5225,16 +5248,21 @@
         "ai.copilot",
         "ai.opencode",
         "ai.hermes",
+        "ai.openclaw",
         "ai.browser",
         "editor.jetbrains",
         "editor.vscode",
         "editor.zed",
         "exposure.cloudflare",
         "exposure.caddy",
+        "exposure.tailscale",
         "tool.github",
         "tool.1password",
         "tool.neon",
-        "tool.wrangler"
+        "tool.wrangler",
+        "tool.vercel",
+        "tool.supabase",
+        "tool.stripe"
       ]
     },
     "MandatoryModules": {
@@ -5279,10 +5307,12 @@
             "runtime.php",
             "runtime.ruby",
             "runtime.docker",
+            "runtime.rust",
             "db.mysql",
             "db.postgres",
             "db.mongodb",
             "db.redis",
+            "db.mailpit",
             "ai.claude",
             "ai.codex",
             "ai.cursor",
@@ -5290,14 +5320,19 @@
             "ai.copilot",
             "ai.opencode",
             "ai.hermes",
+            "ai.openclaw",
             "ai.browser",
             "editor.jetbrains",
             "editor.vscode",
             "editor.zed",
+            "exposure.tailscale",
             "tool.github",
             "tool.1password",
             "tool.neon",
-            "tool.wrangler"
+            "tool.wrangler",
+            "tool.vercel",
+            "tool.supabase",
+            "tool.stripe"
           ],
           "choose_one": [
             "exposure.caddy",
