@@ -3,10 +3,11 @@ export const services = {
     "services.credential.reveal": "Show",
     "services.credential.copy": "Copy",
 
+    "services.account.title": "Account",
+
     "services.credentials.title": "Credentials",
     "services.credentials.connectionUrl": "Request the connection URL",
     "services.credentials.connectionLabel": "Connection URL",
-    "services.credentials.empty": "This module declares no credentials.",
 
     "services.config.unread":
       "The settings of this service cannot be shown: the server's catalogue did not answer.",
@@ -17,8 +18,12 @@ export const services = {
     "services.config.unconfigured":
       "This service was installed without being configured. Answer its questions and apply.",
     "services.config.apply": "Apply",
+    "services.config.applying":
+      "The server is replaying {name} with these values…",
     "services.config.note":
       "Applying replays the module with these values; a secret left empty stays the one the server holds.",
+    "services.config.accountNote":
+      "Applying sends the connected account to the server again.",
     "services.config.done": "{name} was reconfigured on this server.",
     "services.config.failed":
       "{name}: the server did not apply everything. The steps say where it stopped.",
@@ -102,12 +107,8 @@ export const services = {
     "services.tunnel.absent":
       "No exposure module on this server: projects stay reachable through the app's SSH session.",
     "services.tunnel.sync": "Sync the routes",
-    "services.tunnel.restart": "Restart",
     "services.tunnel.noRoutes": "No route: no project has a subdomain yet.",
-    "services.tunnel.state.absent": "absent",
-    "services.tunnel.state.failed": "failed",
-    "services.tunnel.state.running": "running",
-    "services.tunnel.state.stopped": "stopped",
+    "services.routes.title": "Routes",
 
     "services.removal.category.ai":
       "The agent and its configuration on this machine.",
@@ -134,10 +135,11 @@ export const services = {
     "services.credential.reveal": "Montrer",
     "services.credential.copy": "Copier",
 
+    "services.account.title": "Compte",
+
     "services.credentials.title": "Identifiants",
     "services.credentials.connectionUrl": "Demander l'URL de connexion",
     "services.credentials.connectionLabel": "URL de connexion",
-    "services.credentials.empty": "Ce module ne déclare aucun identifiant.",
 
     "services.config.unread":
       "Les réglages de ce service ne peuvent pas être montrés : le catalogue du serveur n'a pas répondu.",
@@ -148,8 +150,11 @@ export const services = {
     "services.config.unconfigured":
       "Ce service a été installé sans être configuré. Répondez à ses questions et appliquez.",
     "services.config.apply": "Appliquer",
+    "services.config.applying": "Le serveur rejoue {name} avec ces valeurs…",
     "services.config.note":
       "Appliquer rejoue le module avec ces valeurs ; un secret laissé vide reste celui que le serveur détient.",
+    "services.config.accountNote":
+      "Appliquer renvoie le compte connecté au serveur.",
     "services.config.done": "{name} a été reconfiguré sur ce serveur.",
     "services.config.failed":
       "{name} : le serveur n'a pas tout appliqué. Les étapes disent où il s'est arrêté.",
@@ -235,13 +240,9 @@ export const services = {
     "services.tunnel.absent":
       "Aucun module d'exposition sur ce serveur : les projets restent joignables par la session SSH de l'app.",
     "services.tunnel.sync": "Synchroniser les routes",
-    "services.tunnel.restart": "Redémarrer",
     "services.tunnel.noRoutes":
       "Aucune route : aucun projet n'a encore de sous-domaine.",
-    "services.tunnel.state.absent": "absent",
-    "services.tunnel.state.failed": "en échec",
-    "services.tunnel.state.running": "actif",
-    "services.tunnel.state.stopped": "arrêté",
+    "services.routes.title": "Routes",
 
     "services.removal.category.ai":
       "L'agent et sa configuration sur cette machine.",

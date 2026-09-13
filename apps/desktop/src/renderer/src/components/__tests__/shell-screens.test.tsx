@@ -410,7 +410,7 @@ describe("les flèches de l'historique", () => {
     );
 
     expect(html).toContain('aria-label="Retour (');
-    expect(html).toContain('title="Retour (');
+    expect(html).toContain('data-tooltip="Retour (');
     expect(html).toContain('aria-label="Avancer (');
     expect(html).toMatch(/aria-label="Avancer \([^"]*\)"[^>]*disabled=""/);
     expect(html).not.toMatch(/aria-label="Retour \([^"]*\)"[^>]*disabled=""/);

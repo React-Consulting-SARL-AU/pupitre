@@ -39,6 +39,7 @@ const CONTRACT_COMMANDS = [
   "project.down",
   "project.restart",
   "project.logs",
+  "project.pull",
   "project.sync",
   "project.install",
   "project.env",

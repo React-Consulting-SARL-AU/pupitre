@@ -1,0 +1,201 @@
+package wrangler
+
+import (
+	"encoding/json"
+
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
+	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/login"
+	"pupitre.studio/agent/internal/modules/runtime/mise"
+	"pupitre.studio/agent/internal/modules/runtime/shell"
+	"pupitre.studio/agent/internal/sys/env"
+)
+
+const (
+	Program = "wrangler"
+
+	tool = "npm:wrangler"
+
+	// The two variables wrangler reads on its own: no sign-in of its own is needed once they are in the shell.
+	tokenKey   = "CLOUDFLARE_API_TOKEN"
+	accountKey = "CLOUDFLARE_ACCOUNT_ID"
+)
+
+var cli = mise.CLI{Tool: tool, Program: Program}
+
+type Module struct{}
+
+func init() {
+	modules.Register(Module{})
+}
+
+func (Module) Manifest() contract.Manifest {
+	return manifest()
+}
+
+func (Module) Check(ctx *modules.Context) (modules.Status, error) {
+	if !cli.Present(ctx) {
+		return modules.Status{}, nil
+	}
+
+	_, stored, err := env.Get(ctx, tokenKey)
+	if err != nil {
+		return modules.Status{}, err
+	}
+
+	return modules.Status{Installed: true, Configured: stored, Version: cli.Version(ctx)}, nil
+}
+
+func (Module) Install(ctx *modules.Context) error {
+	return cli.Install(ctx)
+}
+
+// wrangler has no token login: it takes the token through CLOUDFLARE_API_TOKEN, so the dev shell must carry it, not only /etc/pupitre/env.
+func (Module) Configure(ctx *modules.Context) error {
+	if err := store(ctx, "store-token", tokenKey, ctx.Secret("api_token")); err != nil {
+		return err
+	}
+
+	if err := store(ctx, "store-account", accountKey, ctx.String("account_id")); err != nil {
+		return err
+	}
+
+	if err := export(ctx, "export-token", tokenKey, ctx.Secret("api_token")); err != nil {
+		return err
+	}
+
+	return export(ctx, "export-account", accountKey, ctx.String("account_id"))
+}
+
+func store(ctx *modules.Context, step, key, value string) error {
+	return ctx.Step(step, func() (modules.Outcome, error) {
+		changed, err := env.Set(ctx, key, value)
+		if err != nil {
+			return modules.Failed, err
+		}
+
+		if !changed {
+			return modules.Skipped, nil
+		}
+
+		return modules.Done, nil
+	})
+}
+
+func export(ctx *modules.Context, step, key, value string) error {
+	return ctx.Step(step, func() (modules.Outcome, error) {
+		changed, err := shell.SetUserEnv(ctx, key, value)
+		if err != nil {
+			return modules.Failed, err
+		}
+
+		if !changed {
+			return modules.Skipped, nil
+		}
+
+		return modules.Done, nil
+	})
+}
+
+func (m Module) Upgrade(ctx *modules.Context) error {
+	if err := cli.Upgrade(ctx); err != nil {
+		return err
+	}
+
+	return m.Configure(ctx)
+}
+
+// The Cloudflare account belongs to the client: uninstalling gives back the machine and its variables, never a Worker.
+func (Module) Uninstall(ctx *modules.Context) error {
+	if err := cli.Remove(ctx); err != nil {
+		return err
+	}
+
+	return ctx.Step("forget-token", func() (modules.Outcome, error) {
+		forgotten := false
+
+		for _, key := range []string{tokenKey, accountKey} {
+			removed, err := env.Unset(ctx, key)
+			if err != nil {
+				return modules.Failed, err
+			}
+
+			exported, err := shell.UnsetUserEnv(ctx, key)
+			if err != nil {
+				return modules.Failed, err
+			}
+
+			forgotten = forgotten || removed || exported
+		}
+
+		if !forgotten {
+			return modules.Skipped, nil
+		}
+
+		return modules.Done, nil
+	})
+}
+
+func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
+	status, err := m.Check(ctx)
+	if err != nil {
+		return modules.Status{}, err
+	}
+
+	status.State = contract.ServiceStopped
+	if status.Installed {
+		status.State = contract.ServiceRunning
+	}
+
+	status.Credentials = map[string]string{i18n.T("module.tool.wrangler.api_token.label"): tokenKey}
+
+	return status, nil
+}
+
+type whoami struct {
+	LoggedIn bool   `json:"loggedIn"`
+	Email    string `json:"email"`
+	Accounts []struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	} `json:"accounts"`
+}
+
+// wrangler whoami is asked with the token the machine holds; a token scoped to an account carries no email, and the account it opens stands for it.
+func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
+	token, _, _ := env.Get(ctx, tokenKey)
+	if token == "" {
+		return login.SignedOut(i18n.T("login.token.absent", "Cloudflare"))
+	}
+
+	account, _, _ := env.Get(ctx, accountKey)
+	variables := []string{tokenKey + "=" + token, accountKey + "=" + account}
+
+	out, err := login.Ask(ctx, variables, Program, "whoami", "--json")
+
+	var who whoami
+	if err != nil || json.Unmarshal([]byte(out.Stdout), &who) != nil || !who.LoggedIn {
+		return login.Unknown(i18n.T("login.token.refused", "Cloudflare"))
+	}
+
+	return login.SignedIn(who.name(account))
+}
+
+func (w whoami) name(account string) string {
+	if w.Email != "" {
+		return w.Email
+	}
+
+	for _, held := range w.Accounts {
+		if held.ID == account {
+			return held.Name
+		}
+	}
+
+	if len(w.Accounts) > 0 {
+		return w.Accounts[0].Name
+	}
+
+	return ""
+}

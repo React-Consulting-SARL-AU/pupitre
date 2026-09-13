@@ -6,8 +6,10 @@ import (
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys"
+	"pupitre.studio/agent/internal/sys/env"
 	"pupitre.studio/agent/internal/sys/systemd"
 )
 
@@ -41,6 +43,34 @@ func Held(id string) *string {
 
 func Declared(ctx sys.Context) []registry.Project {
 	return registry.Load(ctx, registry.Paths{}).Projects
+}
+
+// MoveDomain carries every name the projects answer to from the domain the machine published so far to the one the module is now told, and answers the names that moved.
+func MoveDomain(ctx sys.Context, to string) ([]string, error) {
+	from, _, err := env.Get(ctx, env.DomainKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return registry.Load(ctx, registry.Paths{}).Rehost(ctx, from, to)
+}
+
+// MoveRoutes is the step both exposure modules run before storing another domain: a project may not go on answering under the old one.
+func MoveRoutes(ctx *modules.Context) error {
+	return ctx.Step("move-routes", func() (modules.Outcome, error) {
+		moved, err := MoveDomain(ctx, ctx.String("domain"))
+		if err != nil {
+			return modules.Failed, err
+		}
+
+		if len(moved) == 0 {
+			return modules.Skipped, nil
+		}
+
+		ctx.Logf("%d name(s) moved under %s", len(moved), ctx.String("domain"))
+
+		return modules.Done, nil
+	})
 }
 
 // One route per port that carries a name on the web, under the domain the machine publishes; the other ports stay behind the app's SSH session.

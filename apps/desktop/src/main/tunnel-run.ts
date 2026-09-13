@@ -10,7 +10,11 @@ import {
 
 import type { AgentResponse } from "@shared/agent";
 import type { CloudflareConnection } from "@shared/cloudflare";
-import type { CloudflareApi } from "./cloudflare-api";
+import {
+  type CloudflareApi,
+  type DnsRecord,
+  RECORD_COMMENT,
+} from "./cloudflare-api";
 import { refuseWith } from "./refusal";
 import { trace } from "./trace";
 
@@ -275,6 +279,12 @@ export async function syncRecords(
         continue;
       }
 
+      if (existing && !owned(existing)) {
+        return refuseWith("bad_request", "refusal.cloudflare.record.taken", {
+          hostname: route.hostname,
+        });
+      }
+
       if (existing) {
         await api.updateRecord(zone.id, existing.id, target);
       } else {
@@ -288,6 +298,15 @@ export async function syncRecords(
   } catch (failure) {
     return callFailed(reasonOf(failure));
   }
+}
+
+/**
+ * The zone may be the one the platform itself lives in, or carry names the
+ * client wrote by hand: only a record the app marked as its own is ever
+ * repointed or dropped, and a name held by any other record is refused.
+ */
+function owned(record: DnsRecord): boolean {
+  return record.comment === RECORD_COMMENT;
 }
 
 /**
@@ -322,7 +341,7 @@ export async function dropRecord(
 
     const existing = await api.findRecord(zone.id, hostname);
 
-    if (existing) {
+    if (existing && owned(existing)) {
       await api.deleteRecord(zone.id, existing.id);
     }
   } catch (failure) {
@@ -331,6 +350,41 @@ export async function dropRecord(
       hostname,
       reason: reasonOf(failure),
     });
+  }
+}
+
+/**
+ * The names a server stops publishing when its domain changes: each record the
+ * app wrote goes, in whatever zone of the account it sits, and the platform's
+ * own names — or anything else in that zone — are never touched.
+ */
+export async function releaseRecords(
+  _serverId: string,
+  hostnames: readonly string[],
+  deps: TunnelDeps
+): Promise<AgentResponse<number>> {
+  const api = deps.api();
+
+  if (!api) {
+    return notConnected();
+  }
+
+  try {
+    let dropped = 0;
+
+    for (const hostname of hostnames) {
+      const zone = await api.zoneOf(hostname);
+      const existing = zone ? await api.findRecord(zone.id, hostname) : null;
+
+      if (zone && existing && owned(existing)) {
+        await api.deleteRecord(zone.id, existing.id);
+        dropped += 1;
+      }
+    }
+
+    return { ok: true, result: dropped };
+  } catch (failure) {
+    return callFailed(reasonOf(failure));
   }
 }
 

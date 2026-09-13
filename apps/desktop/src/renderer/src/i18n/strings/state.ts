@@ -12,6 +12,9 @@ export const state = {
     "state.service.stopped": "stopped",
     "state.service.unknown": "unknown",
     "state.service.unconfigured": "to configure",
+    "state.login.signed_in": "signed in",
+    "state.login.signed_out": "not signed in",
+    "state.login.unknown": "no answer",
   },
   fr: {
     "state.project.down": "tombé",
@@ -26,5 +29,8 @@ export const state = {
     "state.service.stopped": "arrêté",
     "state.service.unknown": "inconnu",
     "state.service.unconfigured": "à configurer",
+    "state.login.signed_in": "connecté",
+    "state.login.signed_out": "non connecté",
+    "state.login.unknown": "sans réponse",
   },
 } as const;

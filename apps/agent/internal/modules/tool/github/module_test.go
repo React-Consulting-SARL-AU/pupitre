@@ -7,6 +7,7 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/modules/runtime/shell"
 	"pupitre.studio/agent/internal/sys/env"
 )
 
@@ -184,3 +185,53 @@ func TestUninstallLeavesTheServerKeyAlone(t *testing.T) {
 }
 
 var _ modules.Module = Module{}
+
+// The answer is gh's own, read signed in or not: a refused token is not an unreachable GitHub.
+func TestLoginReadsWhatGhAuthStatusSays(t *testing.T) {
+	cases := map[string]struct {
+		answer  string
+		refused bool
+		want    contract.Login
+	}{
+		"signed in": {
+			answer: `{"hosts":{"github.com":[{"state":"success","active":true,"host":"github.com","login":"flymate","tokenSource":"GITHUB_TOKEN"}]}}`,
+			want:   contract.Login{State: contract.LoginSignedIn, Account: "flymate"},
+		},
+		"nobody": {
+			answer:  `{"hosts":{}}`,
+			refused: true,
+			want:    contract.Login{State: contract.LoginSignedOut, Fix: "Reconnect the GitHub account in the app and apply this service's configuration; or run gh auth login in a terminal on this server."},
+		},
+		"revoked": {
+			answer:  `{"hosts":{"github.com":[{"state":"error","error":"non-200 OK status code: 401 Unauthorized","active":true,"host":"github.com","login":""}]}}`,
+			refused: true,
+			want:    contract.Login{State: contract.LoginSignedOut, Fix: "Reconnect the GitHub account in the app and apply this service's configuration; or run gh auth login in a terminal on this server."},
+		},
+		"unreachable": {
+			answer:  `{"hosts":{"github.com":[{"state":"error","error":"dial tcp: lookup api.github.com: no such host","active":true,"host":"github.com","login":""}]}}`,
+			refused: true,
+			want:    contract.Login{State: contract.LoginUnknown, Fix: "gh did not answer its own check: read this service again in a moment, or run gh auth status in a terminal on this server."},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			fake := configuredMachine()
+			if tc.refused {
+				fake.Refuse("gh auth status", tc.answer)
+			} else {
+				fake.Answer("gh auth status", tc.answer)
+			}
+
+			got, asked := (Module{}).Login(newContext(t, fake, modtest.Secrets{}))
+			if !asked || got != tc.want {
+				t.Fatalf("login = %+v (%v), want %+v", got, asked, tc.want)
+			}
+
+			last := fake.Calls[len(fake.Calls)-1]
+			if last.User != shell.User || strings.Join(last.Argv, " ") != "gh auth status --active --json hosts" {
+				t.Fatalf("the check runs as dev on gh's own command: %+v", last)
+			}
+		})
+	}
+}

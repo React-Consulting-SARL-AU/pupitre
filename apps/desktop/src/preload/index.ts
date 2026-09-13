@@ -18,8 +18,10 @@ import type {
   ProjectDiffResult,
   ProjectEnvResult,
   ProjectGitStatusResult,
+  ProjectInstallResult,
   ProjectListResult,
   ProjectLogsResult,
+  ProjectPullResult,
   ProjectRemoveResult,
   ProjectSyncResult,
   ProjectUpdateParams,
@@ -34,7 +36,6 @@ import type {
   ServiceLogsResult,
 } from "@pupitre/shared/agent-protocol/state";
 import type {
-  DoneResult,
   EnrollResult,
   PlatformSyncResult,
 } from "@pupitre/shared/agent-protocol/system";
@@ -55,6 +56,7 @@ import type { CloudflareZone } from "@shared/cloudflare";
 import type {
   ConnectionCheck,
   ConnectionKind,
+  ConnectionOutcome,
   ConnectionsState,
 } from "@shared/connections";
 import type { DevDefaults } from "@shared/dev";
@@ -270,6 +272,17 @@ const api = {
   ): Promise<AgentResponse<unknown>> =>
     ipcRenderer.invoke("agent:call", serverId, cmd, params),
 
+  /**
+   * The same command, read on a timer: it rides the beat channel, so a
+   * gesture never waits behind the dashboard's next read.
+   */
+  agentPoll: (
+    serverId: string,
+    cmd: CommandName,
+    params?: unknown
+  ): Promise<AgentResponse<unknown>> =>
+    ipcRenderer.invoke("agent:call", serverId, cmd, params, true),
+
   /** The same call, with the events of a long command as they arrive. */
   agentStream: (
     serverId: string,
@@ -406,11 +419,13 @@ const api = {
    */
   connectionsState: (): Promise<ConnectionsState> =>
     ipcRenderer.invoke("connections:state"),
+  /** A token that opens several accounts comes back as a choice; the pick is sent with the token again. */
   connectAccount: (
     kind: ConnectionKind,
-    token: string
-  ): Promise<AgentResponse<ConnectionsState>> =>
-    ipcRenderer.invoke("connections:connect", kind, token),
+    token: string,
+    accountId?: string
+  ): Promise<AgentResponse<ConnectionOutcome>> =>
+    ipcRenderer.invoke("connections:connect", kind, token, accountId),
   forgetAccount: (kind: ConnectionKind): Promise<ConnectionsState> =>
     ipcRenderer.invoke("connections:forget", kind),
   /** Asks the provider again whether the held token still opens an account. */
@@ -475,6 +490,11 @@ const api = {
   ): Promise<AgentResponse<PlatformSyncResult>> =>
     ipcRenderer.invoke("platform:sync", serverId),
   /** The records called for by the routes the agent just declared. */
+  releaseTunnelRecords: (
+    serverId: string,
+    hostnames: readonly string[]
+  ): Promise<AgentResponse<number>> =>
+    ipcRenderer.invoke("tunnel:release", serverId, hostnames),
   syncTunnelRecords: (
     serverId: string,
     routes: readonly TunnelRoute[]
@@ -495,6 +515,11 @@ const api = {
     name: string
   ): Promise<AgentResponse<ProjectRemoveResult>> =>
     ipcRenderer.invoke("project:on", "project.remove", serverId, name),
+  pullProject: (
+    serverId: string,
+    name: string
+  ): Promise<AgentResponse<ProjectPullResult>> =>
+    ipcRenderer.invoke("project:on", "project.pull", serverId, name),
   syncProject: (
     serverId: string,
     name: string
@@ -503,7 +528,7 @@ const api = {
   installProject: (
     serverId: string,
     name: string
-  ): Promise<AgentResponse<DoneResult>> =>
+  ): Promise<AgentResponse<ProjectInstallResult>> =>
     ipcRenderer.invoke("project:on", "project.install", serverId, name),
   projectAddress: (
     serverId: string,
@@ -1113,7 +1138,6 @@ const api = {
   },
   openLogin: (id: string): Promise<boolean> =>
     ipcRenderer.invoke("login-open", id),
-  dismissLogin: (id: string): void => ipcRenderer.send("login-dismiss", id),
   /** An address clicked in a session: what it needs from the server travels with it. */
   openTerminalUrl: (id: string, url: string): Promise<boolean> =>
     ipcRenderer.invoke("terminal-open-url", id, url),

@@ -31,6 +31,14 @@ describe("ThemeToggle", () => {
     expect(document.body.textContent).toContain("Theme")
   })
 
+  it("names its icon in a tooltip", async () => {
+    const { container, unmount } = await render(<ThemeToggle />)
+
+    mounted.push(unmount)
+
+    expect(trigger(container, "System").title).toBe("Theme")
+  })
+
   it("stamps the root and remembers the choice", async () => {
     const { container, unmount, click } = await render(<ThemeToggle />)
 

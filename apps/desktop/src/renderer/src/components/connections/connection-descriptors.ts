@@ -35,6 +35,17 @@ export const CONNECTIONS: readonly ConnectionDescriptor[] = [
     url: "https://dash.cloudflare.com/profile/api-tokens",
   },
   {
+    intro: "connections.wrangler.intro",
+    kind: "wrangler",
+    logo: "tool.wrangler",
+    named: true,
+    title: "connections.wrangler.title",
+    help: "connections.wrangler.tokenHelp",
+    hint: "connections.wrangler.tokenHint",
+    label: "connections.wrangler.tokenLabel",
+    url: "https://dash.cloudflare.com/profile/api-tokens",
+  },
+  {
     intro: "connections.github.intro",
     kind: "github",
     logo: "tool.github",

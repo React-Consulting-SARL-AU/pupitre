@@ -59,7 +59,9 @@ export interface AccountDevice {
  *
  * "platform" is a fresh answer, "cache" one that still holds within the seven
  * days the app is allowed to go without the platform, "development" the right a
- * development build carries on its own.
+ * development build carries on its own. The platform says "suspended" of an
+ * organization that never subscribed as well as of one whose subscription
+ * stopped; "unsubscribed" is the first, told apart by the missing mirror.
  */
 export type UsageRight =
   | {
@@ -70,6 +72,7 @@ export type UsageRight =
     }
   | { status: "stale"; since: string; consoleUrl: string }
   | { status: "suspended"; consoleUrl: string }
+  | { status: "unsubscribed"; consoleUrl: string }
   | { status: "absent"; consoleUrl: string };
 
 export interface AccountState {

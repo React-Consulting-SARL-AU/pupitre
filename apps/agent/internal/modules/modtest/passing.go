@@ -20,6 +20,8 @@ type Passing struct {
 	EnvKey    string
 	Port      int
 	Mandatory bool
+	// Connection names the account the manifest declares, as a real tunnel or tool module does.
+	Connection string
 	// Asks adds fields to the manifest: a required one without a default is what a real core module asks.
 	Asks []contract.Field
 }
@@ -44,9 +46,10 @@ func (m Passing) Manifest() contract.Manifest {
 		Arch:      []string{"amd64", "arm64"},
 		Fields:    fields,
 		// A demo module runs exactly when it carries a unit, which is what a real one that holds a process does.
-		Runs:      m.Unit != "",
-		Mandatory: m.Mandatory,
-		Since:     "0.0.0",
+		Runs:       m.Unit != "",
+		Connection: m.Connection,
+		Mandatory:  m.Mandatory,
+		Since:      "0.0.0",
 	}
 }
 

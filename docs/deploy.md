@@ -15,9 +15,9 @@ Quatre choses, sur un seul environnement en ligne.
 | L'app desktop (macOS, Windows, Linux) | le seau public `ppt-downloads`, servi par `dl.pupitre.studio` | un tag `vX.Y.Z` sur `staging`, posé par `scripts/release.sh` depuis le Mac du propriétaire, construit et publié par `release.yml` |
 | L'agent `pupitred`, installé sur le serveur du client | le seau privé `ppt-agent`, que rien n'atteint directement | le même tag |
 
-**Pas de staging en ligne.** Tout s'essaie en local, de bout en bout : la console sur la D1 de miniflare, l'app desktop de développement par le tunnel `dev-app.pupitre.studio`, l'agent sur un VPS jetable. Une release est ce qui fait avancer `main` : `release.yml` construit, publie, vérifie, puis fusionne `staging` dans `main`, et ce push déploie le site et la console.
+**Pas de staging en ligne.** Tout s'essaie en local, de bout en bout : la console sur la D1 de miniflare, l'app desktop de développement par le tunnel `dev.pupitre.studio`, l'agent sur un VPS jetable. Une release est ce qui fait avancer `main` : `release.yml` construit, publie, vérifie, puis fusionne `staging` dans `main`, et ce push déploie le site et la console.
 
-Les branches : `staging` est la branche de travail, `main` est la production et ne change que par la pull request `staging` → `main` qu'une release ouvre et fusionne. Les hooks du dépôt refusent d'y committer en local. Voir [`monorepo.md`](./monorepo.md#branches).
+Les branches : `staging` est la branche de travail, `main` est la production et ne change que par la pull request `staging` → `main` — celle qu'une release ouvre et fusionne, ou une à la main quand ni l'app ni l'agent ne changent, toujours en merge commit. Les hooks du dépôt refusent d'y committer en local. Voir [`monorepo.md`](./monorepo.md#branches).
 
 ## 2. Avant de commencer
 
@@ -88,19 +88,17 @@ Un secret présent mais faux ne bloque pas le déploiement : le garde-fou compte
 
 Autrement dit : `BETTER_AUTH_SECRET` est le seul dont une valeur fausse rend le service inutilisable. Les autres dégradent une fonction, et le disent. La base n'est pas un secret : c'est une D1 **liée** au Worker par `wrangler.jsonc`, sans adresse ni mot de passe.
 
-### Les trois que tu fabriques toi-même
+### Les trois que la machine tire elle-même
 
-Trente secondes, aucun compte tiers.
+Aucun compte tiers, et rien à taper : ils se tirent au hasard et se déposent directement dans les notes.
 
 ```bash
-# BETTER_AUTH_SECRET, puis INTERNAL_WORKFLOW_SECRET : une valeur par environnement
-openssl rand -base64 32
-
-# PUPITRE_PUBLISH_TOKEN : le préfixe fait partie du jeton, il n'est pas décoratif
-echo "pupitre_pub_$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '=')"
+bun run secrets:draw
 ```
 
-Le préfixe `pupitre_pub_` est ce à quoi la plateforme reconnaît un jeton de publication ; sans lui elle le prend pour une session et le refuse. Ce jeton va à deux endroits, mot pour mot identique : les secrets des deux Workers, et la note 1Password de la release (étape 8).
+`scripts/draw-secrets.ts` lit chaque note nommée dans `environments.json` et la note de la release, et remplit ce qui manque : `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` propres à chaque environnement en ligne (le poste tire les siens dans `dev:prepare`), et un seul `PUPITRE_PUBLISH_TOKEN`, mot pour mot identique dans les notes des environnements et dans celle de la release (étape 8) — s'il existe déjà dans l'une, c'est lui qui est recopié, et deux notes qui ne s'accordent pas arrêtent la commande. Un champ déjà rempli n'est jamais remplacé : tourner `BETTER_AUTH_SECRET` déconnecte tout le monde, alors pour retirer une valeur on vide le champ dans 1Password et on relance. Rien n'est imprimé que des noms.
+
+Le préfixe `pupitre_pub_` est ce à quoi la plateforme reconnaît un jeton de publication ; sans lui elle le prend pour une session et le refuse. Une valeur nouvelle se pose ensuite sur le Worker (étape 6) et dans les secrets GitHub (étape 8).
 
 ### Les quatre `R2_*` — Cloudflare
 
@@ -236,7 +234,7 @@ Le premier déploiement du site se fait à la main, sans secret à fournir :
 bun --cwd=apps/site run build:production && bun --cwd=apps/site run deploy:production
 ```
 
-`main` n'avance que par une release, donc les deux projets ne construisent qu'à ce moment-là : la version est déjà déclarée à la plateforme et téléchargeable quand le site relit la liste des versions.
+`main` avance par une release — la version est alors déjà déclarée à la plateforme et téléchargeable quand le site relit la liste des versions — ou par une pull request `staging` → `main` fusionnée en merge commit quand seuls la console, le site ou les mails changent.
 
 ## 8. GitHub
 

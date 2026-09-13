@@ -1,6 +1,7 @@
 import { type Gesture, usePending } from "@renderer/lib/use-pending";
 import type { ButtonIcon, ButtonVariant } from "./button";
 import { Spinner } from "./spinner";
+import { Tooltip } from "./tooltip";
 
 const VARIANT: Record<ButtonVariant, string> = {
   default:
@@ -12,13 +13,9 @@ const VARIANT: Record<ButtonVariant, string> = {
   destructive: "border border-danger bg-danger text-base hover:bg-danger/80",
 };
 
-/**
- * A square button whose label lives in its tooltip.
- *
- * The tooltip is the platform's own: these buttons sit inside scrolling panels
- * where a positioned bubble would be clipped by the first `overflow-hidden`
- * above it.
- */
+const PRESSED = "border-inverse bg-inverse text-inverse-ink hover:bg-ink-2";
+
+/** A square button whose label lives in its tooltip. */
 export function IconButton({
   icon: Icon,
   label,
@@ -29,6 +26,7 @@ export function IconButton({
   size = 13,
   className = "",
   expanded,
+  pressed,
 }: {
   icon: ButtonIcon;
   label: string;
@@ -41,27 +39,31 @@ export function IconButton({
   className?: string;
   /** For a button that folds something: what it currently shows. */
   expanded?: boolean;
+  /** For a button that switches something on: whether it is on, drawn filled. */
+  pressed?: boolean;
 }) {
   const [click, pending] = usePending(onClick);
 
   const waiting = loading || pending;
 
   return (
-    <button
-      aria-busy={waiting}
-      aria-expanded={expanded}
-      aria-label={label}
-      className={`clickable inline-flex shrink-0 items-center justify-center rounded-sm p-1.5 transition-soft ${waiting ? "cursor-progress" : ""} ${disabled && !waiting ? "opacity-40" : ""} ${VARIANT[variant]} ${className}`}
-      disabled={disabled || waiting}
-      onClick={click}
-      title={label}
-      type="button"
-    >
-      {waiting ? (
-        <Spinner size={size} />
-      ) : (
-        <Icon size={size} strokeWidth={1.5} />
-      )}
-    </button>
+    <Tooltip label={label}>
+      <button
+        aria-busy={waiting}
+        aria-expanded={expanded}
+        aria-label={label}
+        aria-pressed={pressed}
+        className={`clickable inline-flex shrink-0 items-center justify-center rounded-sm p-1.5 transition-soft ${waiting ? "cursor-progress" : ""} ${disabled && !waiting ? "opacity-40" : ""} ${pressed ? PRESSED : VARIANT[variant]} ${className}`}
+        disabled={disabled || waiting}
+        onClick={click}
+        type="button"
+      >
+        {waiting ? (
+          <Spinner size={size} />
+        ) : (
+          <Icon size={size} strokeWidth={1.5} />
+        )}
+      </button>
+    </Tooltip>
   );
 }

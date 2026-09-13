@@ -4,14 +4,15 @@ import { type AgentClient, createAgentClient } from "../agent-client";
 import {
   addProject,
   forgetProjects,
+  installProject,
   listProjects,
   onProject,
   type ProjectDeps,
   projectHostnames,
   projectLogs,
   projectUrl,
+  pullProject,
   startProject,
-  syncProject,
   updateProject,
 } from "../projects-run";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
@@ -90,7 +91,8 @@ describe("un dépôt du formulaire au journal", () => {
 
     const known = await listProjects(SERVER, calls);
     const added = await addProject(SERVER, VITE, calls);
-    const synced = await syncProject(SERVER, VITE.name, calls);
+    const pulled = await pullProject(SERVER, VITE.name, calls);
+    const installed = await installProject(SERVER, VITE.name, calls);
     const started = await startProject(SERVER, VITE.name, calls);
     const address = await projectUrl(SERVER, VITE.name, calls);
 
@@ -106,7 +108,11 @@ describe("un dépôt du formulaire au journal", () => {
 
     expect(known.ok && known.result.projects).toEqual([]);
     expect(added.ok && added.result.name).toBe("vite-starter");
-    expect(synced.ok && synced.result.installed).toBe(true);
+    expect(pulled.ok && pulled.result).toEqual({
+      pulled: true,
+      state: "stopped",
+    });
+    expect(installed.ok && installed.result.command).toBe("bun install");
     expect(started.ok && started.result).toMatchObject({
       port: 3000,
       state: "online",

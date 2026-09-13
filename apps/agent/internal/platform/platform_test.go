@@ -138,7 +138,7 @@ func TestReleaseRefusesABodyBeyondTheCap(t *testing.T) {
 	defer server.Close()
 
 	_, err := platform.Client{BaseURL: server.URL, Token: "jeton", MaxBytes: 16}.Release(context.Background(), "1.2.3")
-	if err == nil || !strings.Contains(err.Error(), "beyond 16 bytes") {
+	if !errors.Is(err, platform.ErrOversizedAnswer) || !strings.Contains(err.Error(), "16 bytes") {
 		t.Fatalf("error = %v", err)
 	}
 }

@@ -52,6 +52,7 @@ export function OrganizationSwitcher() {
         <MenuTrigger
           className="flex w-full items-center gap-2.5 rounded-md border border-line bg-sunken px-2 py-2 text-left transition-fast hover:bg-raised focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2 disabled:text-ink-4"
           disabled={switching}
+          title={t("nav.organizations")}
         >
           <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-inverse font-bold font-display text-[13px] text-inverse-ink">
             {initialOf(name)}

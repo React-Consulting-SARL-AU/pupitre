@@ -64,6 +64,11 @@ func TestDetectReadsATurborepoAsOneProjectWithSeveralPorts(t *testing.T) {
 		t.Fatalf("unexpected detection: %+v", detected)
 	}
 
+	// One host per project: the first workspace that freezes a .localhost name gives it, and here only web does.
+	if detected.HostHint != "atlas.localhost" {
+		t.Fatalf("host hint = %q, want atlas.localhost", detected.HostHint)
+	}
+
 	// The folders come in name order; web asks for 3000, which the declared project of the fixture holds, so the next free port is proposed instead.
 	want := []contract.DetectedRoute{{Label: "api", Port: 3001}, {Label: "docs", Port: 3002}, {Label: "web", Port: 3003}}
 	if len(detected.Routes) != len(want) {

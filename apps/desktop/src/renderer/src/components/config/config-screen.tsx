@@ -154,10 +154,10 @@ export function ConfigScreen({
 
   const install = (
     <Button
+      hint={left.length > 0 ? t("config.remaining.goTo") : undefined}
       icon={Download}
       loading={checking}
       onClick={() => submit()}
-      title={left.length > 0 ? t("config.remaining.goTo") : undefined}
       variant={left.length === 0 || last ? "inverse" : "default"}
     >
       {submitLabel ?? t("config.install")}

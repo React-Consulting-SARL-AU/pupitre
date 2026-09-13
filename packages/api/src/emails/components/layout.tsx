@@ -11,10 +11,16 @@ import {
 import type { ReactNode } from "react"
 import { consoleUrl, EMAIL_DOMAIN } from "../config"
 import type { EmailTranslator } from "../i18n"
-import { DARK_MODE_CSS, theme } from "../theme"
+import { theme } from "../theme"
 
+/**
+ * Gmail drops a whole `style` attribute at the first declaration it cannot
+ * parse, so nothing here goes beyond what every client reads: no shadow, no
+ * modern colour syntax. The width is both an attribute, for the clients that
+ * ignore `max-width`, and a style, for the ones that shrink on a phone.
+ */
 const OUTER: React.CSSProperties = {
-  maxWidth: theme.width,
+  maxWidth: `${theme.width}px`,
   width: "100%",
   margin: "0 auto",
 }
@@ -32,13 +38,9 @@ export function EmailLayout({
 }) {
   return (
     <Html lang={locale}>
-      <Head>
-        {/** biome-ignore lint/security/noDangerouslySetInnerHtml: a stylesheet is the only way an email carries a dark theme. */}
-        <style dangerouslySetInnerHTML={{ __html: DARK_MODE_CSS }} />
-      </Head>
+      <Head />
       <Preview>{preview}</Preview>
       <Body
-        className="pu-body"
         style={{
           margin: 0,
           padding: `${theme.space[12]} ${theme.space[4]}`,
@@ -55,14 +57,13 @@ export function EmailLayout({
           cellSpacing="0"
           role="presentation"
           style={{ ...OUTER, marginBottom: theme.space.gutter }}
-          width="100%"
+          width={theme.width}
         >
           <tr>
             <td style={{ verticalAlign: "middle", width: "28px" }}>
               <table cellPadding="0" cellSpacing="0" role="presentation">
                 <tr>
                   <td
-                    className="pu-mark"
                     style={{
                       width: "28px",
                       height: "28px",
@@ -85,7 +86,6 @@ export function EmailLayout({
               style={{ paddingLeft: theme.space[2], verticalAlign: "middle" }}
             >
               <Text
-                className="pu-ink"
                 style={{
                   margin: 0,
                   fontFamily: theme.displayFont,
@@ -106,16 +106,14 @@ export function EmailLayout({
           align="center"
           cellPadding="0"
           cellSpacing="0"
-          className="pu-card"
           role="presentation"
           style={{
             ...OUTER,
             backgroundColor: theme.color.surface,
             border: `1px solid ${theme.color.line}`,
             borderRadius: theme.radius.lg,
-            boxShadow: theme.shadow.raised,
           }}
-          width="100%"
+          width={theme.width}
         >
           <tr>
             <td>
@@ -134,12 +132,11 @@ export function EmailLayout({
           cellSpacing="0"
           role="presentation"
           style={{ ...OUTER, marginTop: theme.space.gutter }}
-          width="100%"
+          width={theme.width}
         >
           <tr>
             <td>
               <Text
-                className="pu-ink-3"
                 style={{
                   margin: 0,
                   fontSize: "12px",
@@ -150,7 +147,6 @@ export function EmailLayout({
                 {t("common.tagline")}
               </Text>
               <Text
-                className="pu-ink-4"
                 style={{
                   margin: `${theme.space[2]} 0 0`,
                   fontSize: "11px",

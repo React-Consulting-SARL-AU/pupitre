@@ -1,4 +1,7 @@
-import type { SnapshotResult } from "@pupitre/shared/agent-protocol/state";
+import type {
+  LoginState,
+  SnapshotResult,
+} from "@pupitre/shared/agent-protocol/state";
 import { ActivitySessions } from "@renderer/components/activity/activity-sessions";
 import { Button } from "@renderer/components/ui/button";
 import { ConfirmButton } from "@renderer/components/ui/confirm-button";
@@ -35,6 +38,8 @@ interface Props {
   busy: string | null;
   /** The sessions the app still has a tab on. */
   attached: readonly string[];
+  /** Whose account each service works as, for those that work as somebody. */
+  accounts?: Readonly<Record<string, LoginState>>;
   onOpenProject: (name: string) => void;
   onAddProject: () => void;
   onAct: (action: ProjectAction, name: string) => void;
@@ -50,6 +55,7 @@ export function DashboardPanel({
   snapshot,
   busy,
   attached,
+  accounts,
   onOpenProject,
   onAddProject,
   onAct,
@@ -140,6 +146,7 @@ export function DashboardPanel({
           <Label>{t("dashboard.panel.services")}</Label>
         </h2>
         <DashboardServices
+          accounts={accounts}
           onOpen={onOpenService}
           services={snapshot.services}
         />

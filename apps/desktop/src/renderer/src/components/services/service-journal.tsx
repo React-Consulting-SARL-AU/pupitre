@@ -128,12 +128,12 @@ export function ServiceJournal({
 
         <CopyButton
           disabled={lines.length === 0}
+          hint={t("services.journal.copyAllHint", { name })}
           onCopy={() =>
             navigator.clipboard.writeText(
               lines.map((line) => line.text).join("\n")
             )
           }
-          title={t("services.journal.copyAllHint", { name })}
         >
           {t("services.journal.copyAll")}
         </CopyButton>

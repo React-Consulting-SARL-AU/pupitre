@@ -31,12 +31,13 @@ var Architectures = []string{"amd64", "arm64"}
 
 const (
 	ConnectionCloudflare  = "cloudflare"
+	ConnectionWrangler    = "wrangler"
 	ConnectionGitHub      = "github"
 	ConnectionOnePassword = "1password"
 	ConnectionNeon        = "neon"
 )
 
-var Connections = []string{ConnectionCloudflare, ConnectionGitHub, ConnectionOnePassword, ConnectionNeon}
+var Connections = []string{ConnectionCloudflare, ConnectionWrangler, ConnectionGitHub, ConnectionOnePassword, ConnectionNeon}
 
 const (
 	// PatternVersionOrLatest holds an editor's free version field: `latest`, or a version the client reads off their own client.
@@ -383,6 +384,21 @@ const (
 	ServiceUnknown ServiceState = "unknown"
 )
 
+type LoginState string
+
+const (
+	LoginSignedIn  LoginState = "signed_in"
+	LoginSignedOut LoginState = "signed_out"
+	LoginUnknown   LoginState = "unknown"
+)
+
+// Login is what the CLI a module installs says of its own account: asked of the CLI, on service.status alone.
+type Login struct {
+	State   LoginState `json:"state"`
+	Account string     `json:"account,omitempty"`
+	Fix     string     `json:"fix,omitempty"`
+}
+
 type ServiceStatus struct {
 	ID    string       `json:"id"`
 	Name  string       `json:"name"`
@@ -390,12 +406,14 @@ type ServiceStatus struct {
 	// Configured says whether the module has been through its own settings: a
 	// module the client asked to answer later sits installed and unconfigured.
 	Configured bool `json:"configured"`
-	// Runs carries the manifest's own answer, so that a screen showing what the machine is doing never has to read the catalogue.
+	// Runs and Connection carry the manifest's own answers, so that a screen showing what the machine is doing never has to read the catalogue.
 	Runs        bool              `json:"runs"`
+	Connection  string            `json:"connection,omitempty"`
 	Version     string            `json:"version,omitempty"`
 	Port        int               `json:"port,omitempty"`
 	Unit        string            `json:"unit,omitempty"`
 	Credentials map[string]string `json:"credentials,omitempty"`
+	Login       *Login            `json:"login,omitempty"`
 }
 
 func emptyIfNil(values []string) []string {
@@ -484,6 +502,7 @@ type ProjectDetect struct {
 	Install  string          `json:"install,omitempty"`
 	Cmd      string          `json:"cmd,omitempty"`
 	PortHint int             `json:"port_hint,omitempty"`
+	HostHint string          `json:"host_hint,omitempty"`
 	Routes   []DetectedRoute `json:"routes,omitempty"`
 }
 
@@ -693,6 +712,11 @@ type ProjectDiff struct {
 	Patch   string `json:"patch"`
 	Binary  bool   `json:"binary"`
 	Problem string `json:"problem"`
+}
+
+type ProjectPull struct {
+	Pulled bool         `json:"pulled"`
+	State  ProjectState `json:"state"`
 }
 
 type ProjectSync struct {

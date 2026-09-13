@@ -101,6 +101,7 @@ function detailOf(
     ...(status.version === undefined ? {} : { version: status.version }),
     ...(status.port === undefined ? {} : { port: status.port }),
     ...(status.unit === undefined ? {} : { unit: status.unit }),
+    ...(status.login === undefined ? {} : { login: status.login }),
   };
 }
 

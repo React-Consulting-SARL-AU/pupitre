@@ -7,8 +7,10 @@ import type {
   ProjectDiffResult,
   ProjectEnvResult,
   ProjectGitStatusResult,
+  ProjectInstallResult,
   ProjectListResult,
   ProjectLogsResult,
+  ProjectPullResult,
   ProjectRemoveResult,
   ProjectSyncResult,
   ProjectUpdateParams,
@@ -21,7 +23,6 @@ import {
   ProjectUpdateParamsSchema,
 } from "@pupitre/shared/agent-protocol/projects";
 import type { Route } from "@pupitre/shared/agent-protocol/state";
-import type { DoneResult } from "@pupitre/shared/agent-protocol/system";
 import type { AgentError, AgentResponse } from "@shared/agent";
 import type { AgentClient } from "./agent-client";
 import { refuseWith } from "./refusal";
@@ -301,6 +302,7 @@ function isRefusal(
 /** The commands that take a project name and nothing else. */
 export type PlainProjectCommand =
   | "project.install"
+  | "project.pull"
   | "project.sync"
   | "project.url"
   | "project.branches"
@@ -309,7 +311,8 @@ export type PlainProjectCommand =
   | "project.remove";
 
 interface PlainResult {
-  "project.install": DoneResult;
+  "project.install": ProjectInstallResult;
+  "project.pull": ProjectPullResult;
   "project.sync": ProjectSyncResult;
   "project.url": ProjectUrlResult;
   "project.branches": ProjectBranchesResult;
@@ -364,6 +367,14 @@ export async function onProject<C extends PlainProjectCommand>(
   return answer as AgentResponse<PlainResult[C]>;
 }
 
+export function pullProject(
+  serverId: unknown,
+  name: unknown,
+  deps: ProjectDeps
+): Promise<AgentResponse<ProjectPullResult>> {
+  return onProject("project.pull", serverId, name, deps);
+}
+
 export function syncProject(
   serverId: unknown,
   name: unknown,
@@ -376,7 +387,7 @@ export function installProject(
   serverId: unknown,
   name: unknown,
   deps: ProjectDeps
-): Promise<AgentResponse<DoneResult>> {
+): Promise<AgentResponse<ProjectInstallResult>> {
   return onProject("project.install", serverId, name, deps);
 }
 

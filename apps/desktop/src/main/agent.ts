@@ -93,12 +93,20 @@ export function registerPlatformSync(): void {
 export function registerAgentChannels(): void {
   ipcMain.handle(
     "agent:call",
-    (_event, serverId: unknown, cmd: unknown, params: unknown) => {
+    (
+      _event,
+      serverId: unknown,
+      cmd: unknown,
+      params: unknown,
+      polled: unknown
+    ) => {
       const call = checkedCall(serverId, cmd, params, knows);
 
       return isRefusal(call)
         ? Promise.resolve(call)
-        : agentClient.request(call.serverId, call.cmd, call.params as never);
+        : agentClient.request(call.serverId, call.cmd, call.params as never, {
+            polled: polled === true,
+          });
     }
   );
 

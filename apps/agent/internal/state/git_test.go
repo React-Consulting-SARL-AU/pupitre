@@ -371,6 +371,28 @@ func TestSyncClonesWhatIsMissingAndPullsWhatIsThere(t *testing.T) {
 	}
 }
 
+// The app fetches and installs as two phases, so the clone must be askable on its own.
+func TestPullClonesWithoutInstalling(t *testing.T) {
+	repo := gitFixture(t)
+
+	pulled, err := repo.reader.Pull("fresh")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !pulled.Pulled || pulled.State != "stopped" {
+		t.Fatalf("unexpected %+v", pulled)
+	}
+
+	if _, err := os.Stat(filepath.Join(repo.projects, "fresh", ".git")); err != nil {
+		t.Fatalf("the repository must have been cloned: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(repo.projects, "fresh", "node_modules")); err == nil {
+		t.Fatal("a pull installs nothing")
+	}
+}
+
 // A row that names a branch clones that branch: the working tree opens on it, not on the repository's default.
 func TestSyncClonesTheBranchTheRegistryNames(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {

@@ -89,6 +89,49 @@ func TestTheIngressCarriesEveryRouteOfAProject(t *testing.T) {
 	}
 }
 
+// The client picks another zone: every name a project answered to follows, on the machine and in the ingress, before the app moves the records.
+func TestAnotherDomainMovesEveryNameTheProjectsAnswerTo(t *testing.T) {
+	fake := bareMachine()
+	fake.Files[env.Path] = []byte(env.DomainKey + "=old.example\n")
+	fake.Files[registry.DefaultLocal] = []byte(`{"projects":[{"name":"shop","dir":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[{"label":"web","port":3100,"hostname":"shop.old.example"},{"label":"api","port":3101,"hostname":"api-shop.old.example"},{"label":"docs","port":3102}],"cmd":"bunx turbo run dev"}]}`)
+	ctx := newContext(t, fake, modtest.Secrets{"tunnel_secret": secret})
+
+	if err := (Module{}).Install(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := (Module{}).Configure(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	local := string(fake.Files[registry.DefaultLocal])
+	for _, want := range []string{`"hostname": "shop.` + domain + `"`, `"hostname": "api-shop.` + domain + `"`} {
+		if !strings.Contains(local, want) {
+			t.Errorf("registry lacks %s:\n%s", want, local)
+		}
+	}
+	if strings.Contains(local, "old.example") {
+		t.Fatalf("a name under the old domain stayed:\n%s", local)
+	}
+
+	ingress := string(fake.Files[cloudflared.ConfigPath])
+	if !strings.Contains(ingress, "hostname: shop."+domain) || strings.Contains(ingress, "old.example") {
+		t.Fatalf("the ingress must carry the new names only:\n%s", ingress)
+	}
+	if fake.EnvValue(env.DomainKey) != domain {
+		t.Fatalf("%s = %q", env.DomainKey, fake.EnvValue(env.DomainKey))
+	}
+
+	moved := false
+	for _, event := range ctx.Events() {
+		if event.Step == "move-routes" {
+			moved = event.Status == contract.StepOK
+		}
+	}
+	if !moved {
+		t.Fatal("the move is a step of its own, so the report says it happened")
+	}
+}
+
 func TestTheTunnelOfThePlatformIsRunNotCreated(t *testing.T) {
 	fake := equipped(t)
 

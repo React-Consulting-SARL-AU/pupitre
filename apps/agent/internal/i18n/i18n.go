@@ -35,7 +35,7 @@ var current atomic.Value
 func init() {
 	current.Store(Default)
 
-	for _, part := range []map[string]Message{moduleCatalog, selfupdateCatalog, probeCatalog, hardenCatalog, engineCatalog, stateCatalog, commandCatalog, cliCatalog, warningCatalog, validateCatalog, registryCatalog, fieldCatalog, hintCatalog, filesCatalog, migrateCatalog} {
+	for _, part := range []map[string]Message{moduleCatalog, selfupdateCatalog, probeCatalog, hardenCatalog, engineCatalog, stateCatalog, commandCatalog, cliCatalog, warningCatalog, validateCatalog, registryCatalog, fieldCatalog, hintCatalog, filesCatalog, migrateCatalog, loginCatalog} {
 		for key, message := range part {
 			catalog[key] = message
 		}

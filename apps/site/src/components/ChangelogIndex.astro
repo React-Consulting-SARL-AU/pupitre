@@ -1,15 +1,17 @@
 ---
 import { getCollection, render } from "astro:content"
 import Base from "../layouts/Base.astro"
+import { byVersionDesc } from "../lib/changelog"
 import { localeFromPath, localizePath, translator } from "../lib/i18n"
 import { SIGNUP_URL } from "../lib/urls"
 import PageHeader from "./PageHeader.astro"
 
 const locale = localeFromPath(Astro.url.pathname)
 const t = translator(locale)
-const entries = (
-  await getCollection("changelog", (entry) => entry.data.locale === locale)
-).sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+const entries = byVersionDesc(
+  await getCollection("changelog", (entry) => entry.data.locale === locale),
+  (entry) => entry.data.version
+)
 const rendered = await Promise.all(
   entries.map(async (entry) => ({ entry, ...(await render(entry)) }))
 )

@@ -1,28 +1,26 @@
 import { Button } from "@renderer/components/ui/button";
-import { EmptyState } from "@renderer/components/ui/empty-state";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
-import { Label } from "@renderer/components/ui/label";
-import { SkeletonRows } from "@renderer/components/ui/skeleton";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { accountOf, useAccount } from "@renderer/stores/account";
 import {
   dismissedGrants,
-  fleetGroups,
   grantedServers,
   unreachableGrants,
   useFleet,
 } from "@renderer/stores/fleet";
-import { ExternalLink, Undo2, Users } from "lucide-react";
+import { Undo2 } from "lucide-react";
 import { useEffect } from "react";
 import { FleetOrganizations } from "./fleet-organizations";
-import { FleetServerRow } from "./fleet-server-row";
 
 /**
- * The servers your organization gave you, above the ones you added yourself.
+ * What the organization grants that the list of servers cannot show by itself.
  *
- * The list refreshes itself: the heartbeat that follows the platform lives
- * above the screens, because a grant lands while the app is open and the pushed
- * key is what turns a pending server into one that opens.
+ * A granted machine is a row of that list, like one typed here; this panel
+ * carries the rest — the organizations to choose between, a platform that did
+ * not answer, the grants removed from this computer and the ones with no
+ * address yet. It also asks for the first read that merges the platform's list
+ * into the local one; the heartbeat that follows the platform lives above the
+ * screens, because a grant lands while the app is open.
  */
 
 export function FleetPanel({
@@ -31,8 +29,8 @@ export function FleetPanel({
   /**
    * Say nothing as long as the organization grants nothing.
    *
-   * A "no server is granted to you" card is information in the settings, and
-   * an obstacle in the wizard: there, what has to be possible when nothing is
+   * "No server is granted to you" is information in the settings, and an
+   * obstacle in the wizard: there, what has to be possible when nothing is
    * granted is adding a machine.
    */
   silentWhenEmpty?: boolean;
@@ -43,9 +41,7 @@ export function FleetPanel({
   const readAccount = useAccount((store) => store.read);
 
   const state = useFleet((store) => store.state);
-  const opening = useFleet((store) => store.opening);
   const read = useFleet((store) => store.read);
-  const open = useFleet((store) => store.open);
   const restore = useFleet((store) => store.restore);
 
   const account = accountOf(view);
@@ -55,8 +51,6 @@ export function FleetPanel({
     readAccount();
   }, [readAccount]);
 
-  // The heartbeat that follows the platform lives above the screens; this
-  // panel only asks for a first read when it opens.
   useEffect(() => {
     if (identity) {
       read();
@@ -68,67 +62,36 @@ export function FleetPanel({
   }
 
   const servers = grantedServers(state);
-  const groups = fleetGroups(state);
-  const named = groups.length > 1;
   const unreachable = unreachableGrants(state);
   const dismissed = dismissedGrants(state).length;
-  const empty = servers.length === 0 && dismissed === 0 && unreachable === 0;
+  const several = identity.organizations.length > 1;
+  const failed = state.status === "failed";
+  const nothingGranted =
+    state.status === "read" &&
+    servers.length === 0 &&
+    dismissed === 0 &&
+    unreachable === 0 &&
+    !silentWhenEmpty;
 
-  if (silentWhenEmpty && empty && state.status !== "failed") {
+  if (
+    !(several || failed || nothingGranted || dismissed > 0 || unreachable > 0)
+  ) {
     return null;
   }
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <Label>{t("fleet.heading")}</Label>
-
-        {/* Members, assignment and revocation live on the console, not here. */}
-        <Button
-          icon={ExternalLink}
-          onClick={() => window.pupitre.openUrl(account.consoleUrl)}
-          size="sm"
-        >
-          {t("fleet.console.open")}
-        </Button>
-      </div>
-
       <FleetOrganizations identity={identity} />
-
-      {state.status === "reading" ? <SkeletonRows rows={2} /> : null}
 
       {state.status === "failed" ? (
         <ErrorNotice error={state.error} onRetry={read} />
       ) : null}
 
-      {state.status === "read" && servers.length === 0 && !silentWhenEmpty ? (
-        <div className="rounded-md border border-line border-dashed">
-          <EmptyState
-            detail={t("fleet.empty.detail")}
-            icon={Users}
-            title={t("fleet.empty.title")}
-          />
-        </div>
+      {nothingGranted ? (
+        <p className="text-[12px] text-ink-3 leading-relaxed">
+          {t("fleet.empty.detail")}
+        </p>
       ) : null}
-
-      {groups.map((group) => (
-        <div className="flex flex-col gap-4" key={group.id}>
-          {named && group.name ? <Label>{group.name}</Label> : null}
-
-          {group.servers.map((server) => (
-            <FleetServerRow
-              key={server.id}
-              onOpen={() => open(server.id)}
-              opening={
-                opening.status !== "idle" && opening.serverId === server.id
-                  ? opening
-                  : null
-              }
-              server={server}
-            />
-          ))}
-        </div>
-      ))}
 
       {dismissed > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-2">

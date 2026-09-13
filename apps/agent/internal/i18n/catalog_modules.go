@@ -550,6 +550,18 @@ var moduleCatalog = map[string]Message{
 		FR: "Le CLI Neon posé, et la clé gardée sur la machine : vos projets parlent à votre compte Neon, et vous décidez de vos bases.",
 		EN: "The Neon CLI installed, and the key kept on the machine: your projects talk to your own Neon account, which stays yours to shape.",
 	},
+	"module.tool.wrangler.api_token.label": {
+		FR: "Jeton d'API",
+		EN: "API token",
+	},
+	"module.tool.wrangler.account_id.label": {
+		FR: "Identifiant du compte",
+		EN: "Account identifier",
+	},
+	"module.tool.wrangler.summary": {
+		FR: "Wrangler, le CLI de Cloudflare, et le jeton gardé sur la machine : vos Workers, vos bases D1 et vos Pages se déploient depuis le serveur.",
+		EN: "Wrangler, Cloudflare's CLI, with the token kept on the machine: your Workers, D1 databases and Pages deploy from the server.",
+	},
 	"module.ai.hermes.providers.help": {
 		FR: "Une entrée par fournisseur, sous la forme fournisseur:clé, par exemple openai:sk-…",
 		EN: "One entry per provider, as provider:key, for example openai:sk-…",

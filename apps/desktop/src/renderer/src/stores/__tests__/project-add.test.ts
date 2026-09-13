@@ -1,8 +1,13 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import type { ProjectAddParams } from "@pupitre/shared/agent-protocol/projects";
+import { translate } from "@renderer/i18n/translate";
 import type { AgentError, AgentResponse } from "@shared/agent";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
-import { type Exposure, useProjectAdd } from "../project-add";
+import {
+  type DetectionState,
+  type Exposure,
+  useProjectAdd,
+} from "../project-add";
 import { useTunnel } from "../tunnel";
 
 /**
@@ -69,10 +74,15 @@ const QUIET_RUN = {
       ok: true as const,
       result: { port: 3000, state: "online" as const },
     }),
-  syncProject: () =>
+  pullProject: () =>
     Promise.resolve({
       ok: true as const,
-      result: { installed: true, pulled: true, state: "stopped" as const },
+      result: { pulled: true, state: "stopped" as const },
+    }),
+  installProject: () =>
+    Promise.resolve({
+      ok: true as const,
+      result: { command: "bun install", done: true as const },
     }),
 };
 
@@ -128,15 +138,61 @@ describe("un dépôt qui démarre", () => {
     expect(phase("publish")).toBe("skip");
   });
 
-  it("ne réinstalle pas ce que la récupération des sources a déjà installé", async () => {
-    stubPupitre(QUIET_RUN);
+  it("récupère les sources, puis installe les dépendances, en deux phases", async () => {
+    const order: string[] = [];
+
+    stubPupitre({
+      ...QUIET_RUN,
+      installProject: () => {
+        order.push("install");
+
+        return QUIET_RUN.installProject();
+      },
+      pullProject: () => {
+        order.push("pull");
+
+        return QUIET_RUN.pullProject();
+      },
+    });
 
     await useProjectAdd.getState().prepare("srv-1", null);
     useProjectAdd.getState().setSource(REPO);
     await useProjectAdd.getState().launch("srv-1");
 
-    expect(phase("sources")).toBe("ok");
-    expect(phase("install")).toBe("skip");
+    expect(order).toEqual(["pull", "install"]);
+    expect(
+      useProjectAdd.getState().phases.filter((entry) => entry.id !== "logs")
+    ).toEqual([
+      { detail: "vite-starter · port 3000", id: "add", status: "ok" },
+      { detail: REPO, id: "sources", status: "ok" },
+      { detail: "bun install", id: "install", status: "ok" },
+      { detail: "port 3000", id: "up", status: "ok" },
+      {
+        detail: translate()("projectAdd.publish.local"),
+        id: "publish",
+        status: "skip",
+      },
+    ]);
+  });
+
+  it("dit qu'un projet sans commande d'installation n'a rien eu à installer", async () => {
+    stubPupitre({
+      ...QUIET_RUN,
+      installProject: () =>
+        Promise.resolve({ ok: true as const, result: { done: true as const } }),
+    });
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(REPO);
+    await useProjectAdd.getState().launch("srv-1");
+
+    expect(
+      useProjectAdd.getState().phases.find((entry) => entry.id === "install")
+    ).toEqual({
+      detail: translate()("projectAdd.install.nothing"),
+      id: "install",
+      status: "skip",
+    });
   });
 
   it("propose un sous-domaine quand une exposition est là, et rien sinon", async () => {
@@ -340,6 +396,68 @@ describe("ce que l'agent lit dans la source", () => {
     // The reader keeps the last word on the port: the command follows it.
     useProjectAdd.getState().setRowPort(0, 5200);
     expect(useProjectAdd.getState().draft.cmd).toBe("pnpm dev --port 5200");
+  });
+
+  // The wait names what the agent is cloning, so a reader who just changed
+  // the branch sees that the change was taken rather than a line that did not move.
+  it("dit, pendant la lecture, quelle branche l'agent clone", async () => {
+    let seen: DetectionState | undefined;
+
+    stubPupitre({
+      listProjects: QUIET_RUN.listProjects,
+      agentCall: () => {
+        seen = useProjectAdd.getState().detection;
+
+        return Promise.resolve({
+          ok: true,
+          result: { install: "bun install", pkgmgr: "bun" },
+        });
+      },
+    });
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(REPO);
+    useProjectAdd.getState().setBranch(" release/2.0 ");
+    await useProjectAdd.getState().detect("srv-1");
+
+    expect(seen).toEqual({
+      branch: "release/2.0",
+      source: REPO,
+      status: "reading",
+    });
+
+    useProjectAdd.getState().setBranch("");
+    await useProjectAdd.getState().detect("srv-1");
+
+    expect(seen).toEqual({ source: REPO, status: "reading" });
+  });
+
+  // A script that freezes --host react-box.localhost binds to a name only the
+  // laptop resolves: declared as the host, the agent makes the server answer to it.
+  it("déclare le nom en .localhost que le dépôt fige, et la boucle locale sinon", async () => {
+    detecting({
+      ok: true,
+      result: {
+        cmd: "bun run dev --port 3000",
+        host_hint: "react-box.localhost",
+        install: "bun install",
+        pkgmgr: "bun",
+        port_hint: 3000,
+      },
+    });
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(REPO);
+
+    expect(useProjectAdd.getState().params().host).toBe("127.0.0.1");
+
+    await useProjectAdd.getState().detect("srv-1");
+
+    expect(useProjectAdd.getState().params().host).toBe("react-box.localhost");
+
+    useProjectAdd.getState().setSource(SHOP);
+
+    expect(useProjectAdd.getState().params().host).toBe("127.0.0.1");
   });
 
   it("prend les ports d'un monorepo, une ligne par workspace", async () => {
@@ -613,11 +731,7 @@ describe("un projet qui ne démarre pas", () => {
 
 describe("un dossier déjà présent sur le serveur", () => {
   it("ne récupère aucune source pour un dossier qui est déjà là", async () => {
-    stubPupitre({
-      ...QUIET_RUN,
-      installProject: () =>
-        Promise.resolve({ ok: true, result: { done: true } }),
-    });
+    stubPupitre(QUIET_RUN);
 
     await useProjectAdd.getState().prepare("srv-1", null);
     useProjectAdd.getState().setKind("dir");

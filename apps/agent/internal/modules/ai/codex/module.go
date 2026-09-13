@@ -1,9 +1,17 @@
 package codex
 
 import (
+	"encoding/base64"
+	"encoding/json"
+	"strings"
+
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/ai/agents"
+	"pupitre.studio/agent/internal/modules/login"
+	"pupitre.studio/agent/internal/modules/runtime/mise"
+	"pupitre.studio/agent/internal/sys/file"
 )
 
 const (
@@ -11,10 +19,11 @@ const (
 
 	tool      = "npm:@openai/codex"
 	configDir = agents.Home + "/.codex"
+	authPath  = configDir + "/auth.json"
 )
 
 var (
-	cli = agents.CLI{Tool: tool, Program: Program}
+	cli = mise.CLI{Tool: tool, Program: Program}
 
 	target = agents.Target{ConfigDir: configDir, ContextFile: "AGENTS.md", Skills: true}
 )
@@ -79,4 +88,55 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	}
 
 	return status, nil
+}
+
+// codex login status says whether it holds a session and exits 1 otherwise; it never reaches OpenAI.
+func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
+	out, err := login.Ask(ctx, nil, Program, "login", "status")
+	answer := strings.TrimSpace(out.Stdout + "\n" + out.Stderr)
+
+	switch {
+	case err == nil && strings.Contains(answer, "Logged in"):
+		return login.SignedIn(account(ctx))
+	case strings.Contains(answer, "Not logged in"):
+		return login.SignedOut(i18n.T("login.codex.fix"))
+	}
+
+	return login.Unknown(i18n.T("login.unanswered", "Codex", Program+" login status"))
+}
+
+// The status names no account: the email sits in the identity token the ChatGPT sign-in left, whose payload is plain JSON once decoded. A session opened with an API key has none, and stays unnamed.
+func account(ctx *modules.Context) string {
+	raw, err := file.Read(ctx, authPath)
+	if err != nil {
+		return ""
+	}
+
+	var auth struct {
+		Tokens struct {
+			IDToken string `json:"id_token"`
+		} `json:"tokens"`
+	}
+	if json.Unmarshal(raw, &auth) != nil {
+		return ""
+	}
+
+	parts := strings.Split(auth.Tokens.IDToken, ".")
+	if len(parts) != 3 {
+		return ""
+	}
+
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return ""
+	}
+
+	var claims struct {
+		Email string `json:"email"`
+	}
+	if json.Unmarshal(payload, &claims) != nil {
+		return ""
+	}
+
+	return claims.Email
 }

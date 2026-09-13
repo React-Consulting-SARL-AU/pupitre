@@ -115,6 +115,15 @@ func TestReportAndResultsValidateAgainstTheSchema(t *testing.T) {
 	if err := ValidateValue("ServiceStatusResult", status); err != nil {
 		t.Fatal(err)
 	}
+
+	signed := ServiceStatus{ID: "tool.github", Name: "GitHub", State: ServiceRunning, Login: &Login{State: LoginSignedIn, Account: "jordan"}}
+	if err := ValidateValue("ServiceStatusResult", signed); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ValidateValue("ServiceStatusResult", ServiceStatus{ID: "tool.github", Name: "GitHub", State: ServiceRunning, Login: &Login{State: "expired"}}); err == nil {
+		t.Fatal("a login state outside the contract must be refused")
+	}
 }
 
 func TestStepEventValidatesOnceWrappedByTheProtocol(t *testing.T) {

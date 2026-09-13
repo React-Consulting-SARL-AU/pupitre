@@ -1,3 +1,4 @@
+import type { MeSubscription } from "@pupitre/shared/plans";
 import type { AccountDevice, AccountIdentity } from "@shared/account";
 import type { FleetServer } from "@shared/servers";
 import type { Sealer } from "../../account-vault";
@@ -29,6 +30,14 @@ export const IDENTITY: AccountIdentity = {
   organizations: [{ id: "org-1", name: "Ada", role: "owner", slug: "ada" }],
   role: "owner",
   subscription: null,
+};
+
+/** The mirror of a plan that stopped: what tells a suspension from a plan never chosen. */
+export const CANCELED_SUBSCRIPTION: MeSubscription = {
+  current_period_end: "2026-08-31T00:00:00.000Z",
+  servers: { limit: 1, used: 1 },
+  status: "canceled",
+  trial_ends_at: null,
 };
 
 export const DEVICE: AccountDevice = {

@@ -7,6 +7,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
 import { FieldError } from "@/components/ui/field-error"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { SegmentedControl } from "@/components/ui/segmented-control"
 import { useForm } from "@/hooks/use-form"
 import { useTranslations } from "@/hooks/use-locale"
 import { startCheckout } from "@/lib/api/queries"
@@ -25,7 +26,6 @@ import {
   MAX_SEATS,
   MIN_SEATS,
 } from "@/lib/schemas/billing"
-import { cn } from "@/lib/utils/cn"
 
 export interface CheckoutFormProps {
   organizationId: string
@@ -98,27 +98,16 @@ export function CheckoutForm({
 
             <div className="flex flex-col gap-2">
               <Label>{t("checkout.period")}</Label>
-              <div className="flex h-9 items-center gap-1 rounded-sm border border-line-strong bg-sunken p-1">
-                {BILLING_INTERVALS.map((candidate) => (
-                  <button
-                    aria-pressed={interval === candidate}
-                    className={cn(
-                      "h-7 rounded-sm px-3 text-[13px] transition-fast",
-                      "focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2",
-                      interval === candidate
-                        ? "bg-inverse text-inverse-ink"
-                        : "text-ink-2 hover:bg-raised hover:text-ink"
-                    )}
-                    key={candidate}
-                    onClick={() => {
-                      form.setValue("interval", candidate)
-                    }}
-                    type="button"
-                  >
-                    {t(INTERVAL_KEYS[candidate])}
-                  </button>
-                ))}
-              </div>
+              <SegmentedControl
+                onValueChange={(next) => {
+                  form.setValue("interval", next)
+                }}
+                options={BILLING_INTERVALS.map((candidate) => ({
+                  value: candidate,
+                  label: t(INTERVAL_KEYS[candidate]),
+                }))}
+                value={interval}
+              />
             </div>
 
             <p className="flex flex-col gap-1">

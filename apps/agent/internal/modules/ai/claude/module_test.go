@@ -194,6 +194,32 @@ func TestUpgradeInstallsOnlyWhenANewerVersionExists(t *testing.T) {
 	}
 }
 
+func TestTheVersionIsReadOffTheLinkWithoutStartingTheCli(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	releases(fake, latest)
+	install(t, fake)
+	fake.Links[BinPath] = versionsDir + "/versions/" + latest
+	fake.FailProgram("claude", "the CLI must not be started for its version")
+
+	status, err := (Module{}).Status(newContext(t, fake))
+	if err != nil || status.Version != latest {
+		t.Fatalf("status = %+v, %v", status, err)
+	}
+}
+
+func TestABinaryThatIsNotALinkIsAskedItsVersion(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	releases(fake, latest)
+	install(t, fake)
+	fake.Links[BinPath] = versionsDir + "/latest"
+	fake.Replies["claude"] = latest + " (Claude Code)\n"
+
+	status, err := (Module{}).Status(newContext(t, fake))
+	if err != nil || status.Version != latest {
+		t.Fatalf("status = %+v, %v", status, err)
+	}
+}
+
 func TestUninstallRemovesTheCliAndKeepsTheConversations(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	releases(fake, latest)
@@ -243,3 +269,52 @@ func asStepError(err error, target **modules.StepError) bool {
 }
 
 var _ modules.Module = Module{}
+
+// claude auth status prints its JSON whether or not anyone is signed in, and exits 1 when nobody is.
+func TestLoginReadsWhatClaudeAuthStatusSays(t *testing.T) {
+	cases := map[string]struct {
+		answer  string
+		refused bool
+		want    contract.Login
+	}{
+		"signed in": {
+			answer: `{"loggedIn":true,"authMethod":"claude.ai","email":"jordan@example.org","orgName":"Flymate"}`,
+			want:   contract.Login{State: contract.LoginSignedIn, Account: "jordan@example.org"},
+		},
+		"an organisation without an email": {
+			answer: `{"loggedIn":true,"authMethod":"console","orgName":"Flymate"}`,
+			want:   contract.Login{State: contract.LoginSignedIn, Account: "Flymate"},
+		},
+		"nobody": {
+			answer:  `{"loggedIn":false,"authMethod":"none"}`,
+			refused: true,
+			want:    contract.Login{State: contract.LoginSignedOut, Fix: "Open a terminal on this server and run claude auth login: the URL it prints opens the sign-in in your browser."},
+		},
+		"no answer": {
+			answer:  "",
+			refused: true,
+			want:    contract.Login{State: contract.LoginUnknown, Fix: "Claude Code did not answer its own check: read this service again in a moment, or run claude auth status in a terminal on this server."},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			fake := modtest.NewFakeSys()
+			if tc.refused {
+				fake.Refuse("claude auth status", tc.answer)
+			} else {
+				fake.Answer("claude auth status", tc.answer)
+			}
+
+			got, asked := (Module{}).Login(newContext(t, fake))
+			if !asked || got != tc.want {
+				t.Fatalf("login = %+v (%v), want %+v", got, asked, tc.want)
+			}
+
+			last := fake.Calls[len(fake.Calls)-1]
+			if last.User != "dev" || strings.Join(last.Argv, " ") != "claude auth status" {
+				t.Fatalf("the check runs as dev on the CLI's own command: %+v", last)
+			}
+		})
+	}
+}

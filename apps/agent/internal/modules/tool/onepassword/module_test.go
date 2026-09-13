@@ -1,6 +1,7 @@
 package onepassword
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -282,3 +283,37 @@ func TestEnvRefusesAnUnknownProject(t *testing.T) {
 }
 
 var _ modules.Module = Module{}
+
+// op whoami is asked with the service account token the machine holds; a service account has no email, so its account stands for it.
+func TestLoginAsksOpWhoamiWithTheTokenTheMachineHolds(t *testing.T) {
+	bare := machine()
+	if got, asked := (Module{}).Login(newContext(t, bare, modtest.Secrets{})); !asked || got.State != contract.LoginSignedOut || got.Fix == "" {
+		t.Fatalf("without a token the login is signed out with a fix: %+v (%v)", got, asked)
+	}
+
+	for _, line := range bare.Commands() {
+		if strings.Contains(line, "whoami") {
+			t.Fatalf("op whoami ran without a token: %s", line)
+		}
+	}
+
+	fake := configuredMachine()
+	fake.Answer("op whoami", `{"url":"https://flymate.1password.com","user_type":"SERVICE_ACCOUNT","account_uuid":"A"}`)
+
+	got, asked := (Module{}).Login(newContext(t, fake, modtest.Secrets{}))
+	if want := (contract.Login{State: contract.LoginSignedIn, Account: "flymate.1password.com"}); !asked || got != want {
+		t.Fatalf("login = %+v (%v), want %+v", got, asked, want)
+	}
+
+	last := fake.Calls[len(fake.Calls)-1]
+	if last.User != shell.User || !slices.Contains(last.Env, envKey+"="+token) || strings.Contains(strings.Join(last.Argv, " "), token) {
+		t.Fatalf("the token travels in the environment alone: %+v", last)
+	}
+
+	refused := configuredMachine()
+	refused.Refuse("op whoami", "")
+
+	if got, _ := (Module{}).Login(newContext(t, refused, modtest.Secrets{})); got.State != contract.LoginUnknown || got.Fix == "" {
+		t.Fatalf("a token the account does not answer is unknown, with a fix: %+v", got)
+	}
+}

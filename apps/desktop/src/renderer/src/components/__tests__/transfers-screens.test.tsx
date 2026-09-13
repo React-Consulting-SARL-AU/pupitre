@@ -211,7 +211,7 @@ describe("la zone de dépôt du navigateur de fichiers", () => {
     expect(html).toContain('aria-label="Zone de dépôt du dossier"');
     expect(html).toContain("Envoyer…");
     expect(html).toContain(
-      'title="Envoyer des fichiers ou des dossiers dans ce dossier"'
+      'data-tooltip="Envoyer des fichiers ou des dossiers dans ce dossier"'
     );
     expect(html).not.toContain("data-dropping");
   });

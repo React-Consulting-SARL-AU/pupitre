@@ -125,6 +125,40 @@ describe("ProjectAddParamsSchema", () => {
     ).toBe(false)
   })
 
+  it("takes the loopback or a .localhost name as host, nothing else", () => {
+    const base = {
+      name: "react-box",
+      dir: "react-box",
+      pkgmgr: "bun",
+      port: 3000,
+      cmd: "bun dev:web",
+      routes: [],
+    }
+
+    for (const host of [
+      "127.0.0.1",
+      "react-box.localhost",
+      "api.shop.localhost",
+    ]) {
+      expect(ProjectAddParamsSchema.safeParse({ ...base, host }).success).toBe(
+        true
+      )
+    }
+
+    for (const host of [
+      "localhost",
+      "0.0.0.0",
+      "shop.example.org",
+      "React.localhost",
+      "-a.localhost",
+      "",
+    ]) {
+      expect(ProjectAddParamsSchema.safeParse({ ...base, host }).success).toBe(
+        false
+      )
+    }
+  })
+
   it("rejects an unknown package manager and a port out of range", () => {
     const base = {
       name: "flymate-api",

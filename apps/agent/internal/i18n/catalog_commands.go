@@ -27,6 +27,54 @@ var commandCatalog = map[string]Message{
 		FR: "Vérifiez que le serveur joint la plateforme en HTTPS sortant, puis relancez l'installation.",
 		EN: "Check that the server reaches the platform over outbound HTTPS, then run the installation again.",
 	},
+	"platform.down.fix": {
+		FR: "L'adresse répond, mais pas la plateforme derrière : réessayez dans quelques minutes, et si ça dure, vérifiez que ce serveur connaît la bonne adresse de plateforme.",
+		EN: "The address answers, but not the platform behind it: try again in a few minutes, and if it lasts, check that this server knows the right platform address.",
+	},
+	"platform.down": {
+		FR: "la plateforme ne répond pas derrière son adresse (HTTP %d)",
+		EN: "the platform does not answer behind its address (HTTP %d)",
+	},
+	"platform.answered": {
+		FR: "la plateforme a répondu %d",
+		EN: "the platform answered %d",
+	},
+	"platform.unresolved": {
+		FR: "%s n'a pas d'adresse connue du DNS de ce serveur",
+		EN: "%s has no address known to this server's DNS",
+	},
+	"platform.timeout": {
+		FR: "la plateforme n'a pas répondu à temps",
+		EN: "the platform did not answer in time",
+	},
+	"platform.connection.refused": {
+		FR: "rien n'écoute à l'adresse de la plateforme",
+		EN: "nothing listens at the platform's address",
+	},
+	"platform.certificate": {
+		FR: "le certificat de la plateforme n'est pas reconnu : %v",
+		EN: "the platform's certificate is not recognised: %v",
+	},
+	"platform.redirects": {
+		FR: "la plateforme renvoie de redirection en redirection",
+		EN: "the platform redirects from one address to the next without end",
+	},
+	"platform.token.none": {
+		FR: "ce serveur n'a pas de jeton : il n'est pas enrôlé",
+		EN: "this server has no token: it is not enrolled",
+	},
+	"platform.answer.unreadable": {
+		FR: "la réponse de la plateforme est illisible",
+		EN: "the platform's answer cannot be read",
+	},
+	"platform.answer.incomplete": {
+		FR: "la réponse de la plateforme est incomplète",
+		EN: "the platform's answer is incomplete",
+	},
+	"platform.unreachable": {
+		FR: "la plateforme est injoignable : %v",
+		EN: "the platform is unreachable: %v",
+	},
 	"daemon.token.missing.fix": {
 		FR: "Réinstallez ce serveur depuis l'app pour lui rendre un jeton de serveur.",
 		EN: "Reinstall this server from the app to give it a server token back.",

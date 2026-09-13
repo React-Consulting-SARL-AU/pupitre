@@ -1,8 +1,10 @@
 import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { ServerDraft } from "@shared/servers";
-import { Plus, Server as ServerIcon } from "lucide-react";
+import { ExternalLink, Plus, Server as ServerIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { accountOf, useAccount } from "../../stores/account";
+import { useFleet } from "../../stores/fleet";
 import { useServers } from "../../stores/servers";
 import { FleetPanel } from "../fleet/fleet-panel";
 import { OnboardingEntry } from "../onboarding/onboarding-entry";
@@ -24,8 +26,9 @@ import { ServerRow } from "./server-row";
  * nothing works.
  *
  * This is the panel of the settings, where a server is managed: renamed, made
- * active, deleted. The assistant has its own screen for the same machines,
- * because choosing one is not managing them.
+ * active, deleted. A machine the organization grants is one row of the same
+ * list, with the console's word among its facts. The assistant has its own
+ * screen for the same machines, because choosing one is not managing them.
  */
 export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
   const t = useTranslations();
@@ -49,6 +52,10 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
     trustReinstalled,
     update,
   } = useServers();
+
+  const consoleUrl = useAccount((s) => accountOf(s.view)?.consoleUrl ?? null);
+  const opening = useFleet((s) => s.opening);
+  const open = useFleet((s) => s.open);
 
   const [adding, setAdding] = useState(false);
   const [trusting, setTrusting] = useState(false);
@@ -115,16 +122,25 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
         />
       ) : null}
 
-      <FleetPanel />
-
       <section>
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <Label>{t("servers.panel.heading")}</Label>
-          {servers.length > 0 && !adding ? (
-            <Button icon={Plus} onClick={() => setAdding(true)}>
-              {t("servers.addServer")}
-            </Button>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Members, assignment and revocation live on the console, not here. */}
+            {consoleUrl ? (
+              <Button
+                icon={ExternalLink}
+                onClick={() => window.pupitre.openUrl(consoleUrl)}
+              >
+                {t("fleet.console.open")}
+              </Button>
+            ) : null}
+            {servers.length > 0 && !adding ? (
+              <Button icon={Plus} onClick={() => setAdding(true)}>
+                {t("servers.addServer")}
+              </Button>
+            ) : null}
+          </div>
         </div>
 
         {servers.length === 0 ? (
@@ -156,9 +172,15 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
                   onActivate={() => run(activate(server.id))}
                   onForget={() => run(forget(server.id))}
                   onForgetEdit={forgetEdit}
+                  onOpen={() => open(server.id)}
                   onRemove={() => run(remove(server.id))}
                   onRename={(name) => rename(server.id, name)}
                   onUpdate={(changes) => run(update(server.id, changes))}
+                  opening={
+                    opening.status !== "idle" && opening.serverId === server.id
+                      ? opening
+                      : null
+                  }
                   refusal={
                     removal.status === "refused" &&
                     removal.serverId === server.id ? (
@@ -177,6 +199,8 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
           </div>
         )}
       </section>
+
+      <FleetPanel />
 
       {adding ? (
         <ServerAddForm

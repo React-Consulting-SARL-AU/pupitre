@@ -40,6 +40,7 @@ import { useHistoryShortcuts } from "./lib/use-history-shortcuts";
 import { useMainCommands } from "./lib/use-main-commands";
 import { usePaletteShortcut } from "./lib/use-palette-shortcut";
 import { usePlatformSync } from "./lib/use-platform-sync";
+import { useServiceAccounts } from "./lib/use-service-accounts";
 import { accountOf, useAccount } from "./stores/account";
 import { announces, useAgentUpdate } from "./stores/agent-update";
 import { useChannel } from "./stores/channel";
@@ -95,7 +96,7 @@ export function App() {
   const historyLength = useNavigation((s) => s.history.length);
   const goTo = useNavigation((s) => s.goTo);
   const openService = useNavigation((s) => s.openService);
-  const serviceFocus = useNavigation((s) => s.serviceFocus);
+  const service = useNavigation((s) => s.service);
   const select = useNavigation((s) => s.select);
   const goBack = useNavigation((s) => s.back);
   const goForward = useNavigation((s) => s.forward);
@@ -145,6 +146,16 @@ export function App() {
 
   usePlatformSync(serverId);
   useHistoryShortcuts();
+
+  const runningServices = useMemo(
+    () => (snapshot?.services ?? []).filter((service) => service.runs),
+    [snapshot]
+  );
+  const accounts = useServiceAccounts(
+    serverId,
+    runningServices,
+    view === "dashboard"
+  );
 
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
@@ -467,6 +478,7 @@ export function App() {
             {view === "dashboard" ? (
               <div className="absolute inset-0">
                 <DashboardPanel
+                  accounts={accounts}
                   attached={attached}
                   busy={busy}
                   onAct={(action, name) => act(action, serverId, name)}
@@ -521,12 +533,14 @@ export function App() {
             {view === "services" ? (
               <div className="absolute inset-0">
                 <ServicesScreen
+                  onCloseService={() => goTo("services")}
                   onMachineName={(name) =>
                     serverId && useServers.getState().rename(serverId, name)
                   }
-                  openAt={serviceFocus}
+                  onOpenService={openService}
                   serverId={serverId}
                   serverName={server?.name}
+                  service={service}
                   services={snapshot.services}
                 />
               </div>

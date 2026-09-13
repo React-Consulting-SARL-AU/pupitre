@@ -7,6 +7,7 @@ import type {
   forgetScope,
 } from "@renderer/stores/connections";
 import type { ConnectionState } from "@shared/connections";
+import type { ReactNode } from "react";
 import type { ConnectionDescriptor } from "./connection-descriptors";
 import { ConnectionHealthLine } from "./connection-health-line";
 
@@ -48,6 +49,7 @@ export function ConnectionConnected({
   scope,
   serverName,
   busy,
+  status,
   onVerify,
   onForget,
 }: {
@@ -57,6 +59,8 @@ export function ConnectionConnected({
   scope: Scope;
   serverName: string | null;
   busy: boolean;
+  /** What stands for the account's state, when the screen says it in its own way. */
+  status?: ReactNode;
   onVerify: () => Promise<void>;
   onForget: () => Promise<void>;
 }) {
@@ -70,11 +74,13 @@ export function ConnectionConnected({
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[13px] text-ink">
-            {state.account
-              ? t("connections.connected", { account: state.account.name })
-              : t("connections.held")}
-          </p>
+          {status ?? (
+            <p className="text-[13px] text-ink">
+              {state.account
+                ? t("connections.connected", { account: state.account.name })
+                : t("connections.held")}
+            </p>
+          )}
 
           {state.sealed ? null : (
             <p className="mt-1 text-[12px] text-warn">

@@ -10,6 +10,7 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { since } from "@renderer/lib/format";
 import type { UsageRight } from "@shared/account";
 import { ExternalLink } from "lucide-react";
+import { billingUrlOf } from "./account-subscription-card";
 
 /**
  * The right to work, told by a shape.
@@ -60,6 +61,14 @@ function lookOf(usage: UsageRight, t: Translate): Look {
     };
   }
 
+  if (usage.status === "unsubscribed") {
+    return {
+      shape: "empty",
+      title: t("account.usage.look.unsubscribed"),
+      tone: "warn",
+    };
+  }
+
   return { shape: "empty", title: t("account.usage.look.none"), tone: "warn" };
 }
 
@@ -86,12 +95,34 @@ function detailOf(
     return t("account.usage.suspended");
   }
 
+  if (usage.status === "unsubscribed") {
+    return t("account.usage.unsubscribed");
+  }
+
   return t("account.usage.none");
 }
 
-/** Where the console sends the reader to settle the right, when it does not stand. */
+/** Where the console settles the right when it does not stand: billing for a plan, the dashboard otherwise. */
 function consoleOf(usage: UsageRight): string | null {
-  return usage.status === "granted" ? null : usage.consoleUrl;
+  if (usage.status === "granted") {
+    return null;
+  }
+
+  return usage.status === "suspended" || usage.status === "unsubscribed"
+    ? billingUrlOf(usage.consoleUrl)
+    : usage.consoleUrl;
+}
+
+function actionOf(usage: UsageRight, t: Translate): string {
+  if (usage.status === "suspended") {
+    return t("account.usage.manageSubscription");
+  }
+
+  if (usage.status === "unsubscribed") {
+    return t("account.usage.choosePlan");
+  }
+
+  return t("account.usage.openConsole");
 }
 
 export function AccountUsageNotice({
@@ -140,9 +171,7 @@ export function AccountUsageNotice({
           size="sm"
           variant="inverse"
         >
-          {usage.status === "suspended"
-            ? t("account.usage.manageSubscription")
-            : t("account.usage.openConsole")}
+          {actionOf(usage, t)}
         </Button>
       ) : null}
     </div>

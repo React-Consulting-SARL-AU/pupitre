@@ -1,17 +1,18 @@
 import type { Manifest } from "@pupitre/shared/catalog";
-import { ConfigFieldControl } from "@renderer/components/config/config-field-control";
-import { ConnectionCard } from "@renderer/components/connections/connection-card";
-import { descriptorOf } from "@renderer/components/connections/connection-descriptors";
 import { InstallProgress } from "@renderer/components/install/install-progress";
 import { Button } from "@renderer/components/ui/button";
 import { Callout } from "@renderer/components/ui/callout";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { Label } from "@renderer/components/ui/label";
+import { LiveDuration } from "@renderer/components/ui/live-duration";
+import { WaitingLine } from "@renderer/components/ui/waiting-line";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { ModuleProgress } from "@renderer/lib/module-progress";
 import type { ApplyState, ConfigState } from "@renderer/stores/services";
+import type { CloudflareZone } from "@shared/cloudflare";
 import type { SecretMarks } from "@shared/secrets";
 import { RefreshCw } from "lucide-react";
+import { ServiceConfigField } from "./service-config-field";
 
 /**
  * The configuration of an already installed module, as the agent kept it.
@@ -19,7 +20,9 @@ import { RefreshCw } from "lucide-react";
  * The fields are the manifest's, filled with what the agent answered: the app
  * knows none of them in advance. A secret left empty stays the one the server
  * holds; a secret retyped goes to the main process and joins the installation's
- * secret stream, without ever passing through here.
+ * secret stream, without ever passing through here. A module whose every value
+ * is derived from an account has nothing to type and one gesture left: apply,
+ * which sends that account to the server again.
  */
 export function ServiceConfig({
   manifest,
@@ -32,6 +35,8 @@ export function ServiceConfig({
   secrets,
   steps,
   name,
+  nameOf = (moduleId) => (moduleId === manifest?.id ? name : moduleId),
+  zones = [],
   onValue,
   onSecret,
   onGenerate,
@@ -50,6 +55,10 @@ export function ServiceConfig({
   secrets: SecretMarks;
   steps: readonly ModuleProgress[];
   name: string;
+  /** What to call a module the run brought along — a dependency the agent replays — rather than this one's name for every row. */
+  nameOf?: (moduleId: string) => string;
+  /** The zones of the account an exposure publishes through: its domain is picked among them. */
+  zones?: readonly CloudflareZone[];
   onValue: (key: string, value: unknown) => void;
   onSecret: (key: string, value: string) => void;
   onGenerate: (key: string) => void;
@@ -85,11 +94,7 @@ export function ServiceConfig({
 
   // A `managed` value is derived from a connection by the app, never typed.
   const fields = manifest.fields.filter((field) => field.managed !== true);
-  const connection = descriptorOf(manifest.connection ?? "");
 
-  // A module that publishes through an account has that account to show, even
-  // when everything else about it is derived: it used to be the one installed
-  // module with no panel at all.
   if (fields.length === 0 && !manifest.connection) {
     return null;
   }
@@ -119,12 +124,33 @@ export function ServiceConfig({
         <Callout tone="warn">{t("services.config.unconfigured")}</Callout>
       ) : null}
 
+      {running ? (
+        <WaitingLine className="text-[12px]">
+          <span>{t("services.config.applying", { name })}</span>
+          <LiveDuration className="font-data tabular-nums" />
+        </WaitingLine>
+      ) : null}
+
+      {running || apply.status === "done" ? (
+        <InstallProgress modules={steps} nameOf={nameOf} />
+      ) : null}
+
+      {apply.status === "failed" ? <ErrorNotice error={apply.error} /> : null}
+
+      {apply.status === "done" ? (
+        <Callout tone={failed.length > 0 ? "danger" : "info"}>
+          {failed.length > 0
+            ? t("services.config.failed", { name })
+            : t("services.config.done", { name })}
+        </Callout>
+      ) : null}
+
       {config.status === "failed" ? <ErrorNotice error={config.error} /> : null}
 
-      {config.status === "ready" ? (
+      {config.status === "ready" && fields.length > 0 ? (
         <div className="elevation-raised grid gap-4 rounded-md border border-line bg-surface p-5 sm:grid-cols-2">
           {fields.map((field) => (
-            <ConfigFieldControl
+            <ServiceConfigField
               field={field}
               handlers={{
                 onGenerate,
@@ -137,30 +163,19 @@ export function ServiceConfig({
               marks={secrets[manifest.id]}
               moduleId={manifest.id}
               value={values[field.key]}
+              zones={zones}
             />
           ))}
         </div>
       ) : null}
 
-      {connection ? <ConnectionCard compact connection={connection} /> : null}
-
       <p className="text-[12px] text-ink-3 leading-relaxed">
-        {t("services.config.note")}
+        {t(
+          fields.length > 0
+            ? "services.config.note"
+            : "services.config.accountNote"
+        )}
       </p>
-
-      {running || apply.status === "done" ? (
-        <InstallProgress modules={steps} nameOf={() => name} />
-      ) : null}
-
-      {apply.status === "failed" ? <ErrorNotice error={apply.error} /> : null}
-
-      {apply.status === "done" ? (
-        <Callout tone={failed.length > 0 ? "danger" : "info"}>
-          {failed.length > 0
-            ? t("services.config.failed", { name })
-            : t("services.config.done", { name })}
-        </Callout>
-      ) : null}
     </section>
   );
 }

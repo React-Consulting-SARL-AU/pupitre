@@ -225,7 +225,7 @@ describe("le menu d'une entrée", () => {
 
     expect(html).toContain('aria-haspopup="menu"');
     expect(html).toContain('aria-label="Actions sur src"');
-    expect(html).toContain('title="Actions sur src"');
+    expect(html).toContain('data-tooltip="Actions sur src"');
   });
 
   it("demande confirmation dans la ligne avant de supprimer, et nomme les entrées retenues", () => {
@@ -346,7 +346,7 @@ describe("l'aperçu d'un fichier", () => {
     expect(html).toContain("fichier trop lourd");
     expect(html).toContain("Téléchargez ce fichier au lieu de le lire.");
     expect(html).toMatch(
-      /<button[^>]*title="Enregistrer sur cet ordinateur"[^>]*>[^<]*<svg[^>]*>.*?<\/svg>Télécharger/
+      /<button[^>]*data-tooltip="Enregistrer sur cet ordinateur"[^>]*>[^<]*<svg[^>]*>.*?<\/svg>Télécharger/
     );
     expect(html).not.toMatch(
       /<button[^>]*disabled[^>]*>[^<]*<svg[^>]*>.*?<\/svg>Télécharger/

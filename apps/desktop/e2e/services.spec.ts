@@ -17,6 +17,8 @@ const RESTART_QUESTION = /Redémarrer PostgreSQL/;
 
 const DATABASE_TAB = /PostgreSQL/;
 
+const SIGN_IN_FIX = /Reconnectez le compte GitHub/;
+
 test.describe("services", () => {
   let running: Running;
 
@@ -32,19 +34,37 @@ test.describe("services", () => {
         ipcMain.handle(channel, (_event, ...args: unknown[]) => reply(...args));
       };
 
-      answer("service:detail", () => ({
-        ok: true,
-        result: {
-          configured: true,
-          credentials: ["Mot de passe applicatif"],
-          id: "db.postgres",
-          name: "PostgreSQL",
-          port: 5432,
-          state: "running",
-          unit: "postgresql.service",
-          version: "17.2",
-        },
-      }));
+      answer("service:detail", (_server, moduleId) =>
+        moduleId === "tool.github"
+          ? {
+              ok: true,
+              result: {
+                configured: true,
+                credentials: ["Jeton d'accès"],
+                id: "tool.github",
+                login: {
+                  fix: "Reconnectez le compte GitHub dans l'app puis appliquez la configuration de ce service.",
+                  state: "signed_out",
+                },
+                name: "GitHub",
+                state: "running",
+                version: "2.80.0",
+              },
+            }
+          : {
+              ok: true,
+              result: {
+                configured: true,
+                credentials: ["Mot de passe applicatif"],
+                id: "db.postgres",
+                name: "PostgreSQL",
+                port: 5432,
+                state: "running",
+                unit: "postgresql.service",
+                version: "17.2",
+              },
+            }
+      );
 
       answer("catalog:list", () => ({
         ok: false,
@@ -145,6 +165,20 @@ test.describe("services", () => {
       await expect(page.getByRole("tab", { name: DATABASE_TAB })).toBeVisible();
     });
 
+    await test.step("un CLI dit s'il est connecté, et comment l'être", async () => {
+      await page.getByRole("button", { name: "Services" }).click();
+      await page.locator('[data-service="tool.github"]').click();
+
+      const login = page.locator('[data-service-account="signed_out"]');
+
+      await expect(login).toBeVisible();
+      await expect(login.getByText("non connecté")).toBeVisible();
+      await expect(login.getByText(SIGN_IN_FIX)).toBeVisible();
+
+      await page.getByRole("button", { name: "Tous les services" }).click();
+      await expect(page.locator('[data-service="tool.github"]')).toBeVisible();
+    });
+
     await test.step("l'accessibilité de la fiche tient", async () => {
       await page.getByRole("button", { name: "Services" }).click();
       await page.locator('[data-service="db.postgres"]').click();
@@ -153,7 +187,7 @@ test.describe("services", () => {
       ).toBeVisible();
       // The copy button fades in from its disabled shade once the journal answers; measured mid-fade it reads grey.
       await expect(
-        page.getByTitle("Copier le journal de PostgreSQL")
+        page.locator('[data-tooltip="Copier le journal de PostgreSQL"]')
       ).toBeEnabled();
       await assertAccessible(page, "services/panel");
     });

@@ -29,10 +29,41 @@ const (
 
 var (
 	portFlag   = regexp.MustCompile(`(?:--port[= ]|-p )(\d{2,5})`)
+	runsScript = regexp.MustCompile(`^(?:bun|pnpm|npm|yarn)(?: run)? ([\w:.-]+)$`)
+	hostFlag   = regexp.MustCompile(`--host[= ]((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+localhost)(?:\s|$)`)
 	viteServer = regexp.MustCompile(`port\s*:\s*(\d{2,5})`)
 )
 
 var startScripts = []string{"dev", "start", "serve"}
+
+const (
+	maxScriptHops = 5
+
+	// A manifest weighs a few kilobytes; a lockfile, an asset or a bundle weighs more and says nothing a detection reads.
+	manifestBlobLimit = 65536
+
+	// A workspace member sits at most two folders down: apps/web/package.json.
+	manifestDepth = 3
+)
+
+// The files a detection reads or looks for, wherever they sit within the depth: the rest of the repository is never written.
+var manifestNames = map[string]bool{
+	"package.json":        true,
+	"turbo.json":          true,
+	"pnpm-workspace.yaml": true,
+	"vite.config.ts":      true,
+	"vite.config.js":      true,
+	"vite.config.mts":     true,
+	"vite.config.mjs":     true,
+	"bun.lock":            true,
+	"bun.lockb":           true,
+	"pnpm-lock.yaml":      true,
+	"package-lock.json":   true,
+	"npm-shrinkwrap.json": true,
+	"yarn.lock":           true,
+	"pyproject.toml":      true,
+	"gradlew":             true,
+}
 
 type DetectOptions struct {
 	Cache string
@@ -107,22 +138,65 @@ func (r *Reader) detectRepo(repo, branch string) (contract.ProjectDetect, error)
 			WithFix(cloneFix(out))
 	}
 
+	if out, err := r.materialize(target); err != nil {
+		return contract.ProjectDetect{}, protocol.NewError(contract.ErrorInternal, i18n.T("state.clone.failed", repo)).
+			WithFix(cloneFix(out))
+	}
+
 	return r.read(target), nil
 }
 
+// The trees and the small blobs come in one pack, the working tree stays empty: a detection reads a handful of manifests, and a repository heavy with assets or history must cost no more than an empty one. A server that knows no filter says so and sends everything, which reads the same.
 func (r *Reader) clone(repo, branch, target string) (sys.Output, error) {
-	owner := r.options.Tmux.Resolved().User
-
-	argv := []string{"git", "clone", "--depth", "1", "--no-tags", "--quiet"}
+	argv := []string{"git", "clone", "--depth", "1", "--no-tags", "--quiet", "--filter=blob:limit=" + strconv.Itoa(manifestBlobLimit), "--no-checkout"}
 	if branch != "" {
 		argv = append(argv, "--branch", branch)
 	}
 	argv = append(argv, "--", repo, target)
 
+	// git creates the leading folders of the target itself, so the only directory these commands need to start in is the one every machine has.
+	return r.gitDetect(anywhere, argv)
+}
+
+// Only the files a detection reads are written, at the depth a workspace member sits: what the listing of the trees names, nothing fetched for the rest.
+func (r *Reader) materialize(target string) (sys.Output, error) {
+	listed, err := r.gitDetect(target, []string{"git", "ls-tree", "-r", "--name-only", "HEAD"})
+	if err != nil {
+		return listed, err
+	}
+
+	wanted := manifestsAmong(strings.Split(listed.Stdout, "\n"))
+	if len(wanted) == 0 {
+		return listed, nil
+	}
+
+	return r.gitDetect(target, append([]string{"git", "checkout", "--quiet", "HEAD", "--"}, wanted...))
+}
+
+func manifestsAmong(paths []string) []string {
+	wanted := []string{}
+
+	for _, path := range paths {
+		path = strings.TrimSpace(path)
+		if path == "" || strings.Count(path, "/") >= manifestDepth {
+			continue
+		}
+
+		if manifestNames[path[strings.LastIndex(path, "/")+1:]] {
+			wanted = append(wanted, path)
+		}
+	}
+
+	return wanted
+}
+
+// The clone's own budget holds for what follows it: a checkout may still fetch a manifest the pack left out.
+func (r *Reader) gitDetect(dir string, argv []string) (sys.Output, error) {
+	owner := r.options.Tmux.Resolved().User
+
 	return r.ctx().Sys().Run(sys.Command{
-		User: owner,
-		// git creates the leading folders of the target itself, so the only directory these commands need to start in is the one every machine has.
-		Dir:     anywhere,
+		User:    owner,
+		Dir:     dir,
 		Argv:    argv,
 		Env:     gitEnv(owner),
 		Timeout: cloneTimeout,
@@ -155,14 +229,25 @@ func (r *Reader) read(root string) contract.ProjectDetect {
 	}
 
 	script := manifest.startScript()
-	port := r.freePort(declaredPort(files, manifest.Scripts[script]), nil)
+	line := manifest.resolved(script)
+	port := r.freePort(declaredPort(files, line), nil)
 
 	return contract.ProjectDetect{
 		PkgMgr:   pkgmgr,
 		Install:  installCommandOf(pkgmgr),
 		Cmd:      startCommand(pkgmgr, script, port),
 		PortHint: port,
+		HostHint: declaredHost(line),
 	}
+}
+
+// The .localhost name a script binds to, which a laptop resolves on its own and a server does not: declared as the host, the agent makes the machine answer to it.
+func declaredHost(script string) string {
+	if match := hostFlag.FindStringSubmatch(script); match != nil {
+		return match[1]
+	}
+
+	return ""
 }
 
 func installCommandOf(pkgmgr string) string {
@@ -229,6 +314,22 @@ func (p packageJSON) startScript() string {
 	}
 
 	return ""
+}
+
+// The line at the end of a chain of scripts that only run one another: "dev" → "dev:web" → "dev:app" says its port and its host on the last one alone.
+func (p packageJSON) resolved(script string) string {
+	line := p.Scripts[script]
+
+	for range maxScriptHops {
+		match := runsScript.FindStringSubmatch(strings.TrimSpace(line))
+		if match == nil || p.Scripts[match[1]] == "" {
+			return line
+		}
+
+		line = p.Scripts[match[1]]
+	}
+
+	return line
 }
 
 func (s sources) packageJSON() packageJSON {

@@ -50,7 +50,7 @@ export function MetricsChart({
       ) : null}
       <svg
         aria-hidden="true"
-        className="h-[48px] w-full rounded-sm bg-sunken text-ink-3"
+        className="mt-auto h-[48px] w-full rounded-sm bg-sunken text-ink-3"
         preserveAspectRatio="none"
         viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
       >

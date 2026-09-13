@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -141,11 +140,11 @@ func (c Client) ReleaseMetadata(ctx context.Context, version string) (ReleaseInf
 
 	var info ReleaseInfo
 	if err := json.Unmarshal(raw, &info); err != nil {
-		return ReleaseInfo{}, &Error{Path: path, Cause: errors.New("unreadable answer")}
+		return ReleaseInfo{}, &Error{Path: path, Cause: ErrUnreadableAnswer}
 	}
 
 	if info.SHA256 == "" || info.Signature == "" {
-		return ReleaseInfo{}, &Error{Path: path, Cause: errors.New("answer without hash or signature")}
+		return ReleaseInfo{}, &Error{Path: path, Cause: fmt.Errorf("%w: without hash or signature", ErrIncompleteAnswer)}
 	}
 
 	return info, nil
@@ -159,7 +158,7 @@ func (c Client) State(ctx context.Context) (State, error) {
 
 	var state State
 	if err := json.Unmarshal(raw, &state); err != nil {
-		return State{}, &Error{Path: "/agent/state", Cause: errors.New("unreadable answer")}
+		return State{}, &Error{Path: "/agent/state", Cause: ErrUnreadableAnswer}
 	}
 
 	return state, nil
@@ -181,7 +180,7 @@ func (c Client) Exchange(ctx context.Context, enrollment Enrollment) (string, er
 		ServerToken string `json:"server_token"`
 	}
 	if err := json.Unmarshal(raw, &answer); err != nil || answer.ServerToken == "" {
-		return "", &Error{Path: "/agent/exchange", Cause: errors.New("answer without a server token")}
+		return "", &Error{Path: "/agent/exchange", Cause: fmt.Errorf("%w: without a server token", ErrIncompleteAnswer)}
 	}
 
 	return answer.ServerToken, nil
@@ -216,7 +215,7 @@ func (c Client) do(ctx context.Context, method, path string, body []byte, authen
 	}
 
 	if authenticated && c.Token == "" {
-		return nil, &Error{Path: path, Cause: errors.New("no server token")}
+		return nil, &Error{Path: path, Cause: ErrNoToken}
 	}
 
 	var payload io.Reader
@@ -255,7 +254,7 @@ func (c Client) do(ctx context.Context, method, path string, body []byte, authen
 	}
 
 	if int64(len(answer)) > limit {
-		return nil, &Error{Path: path, Cause: fmt.Errorf("answer beyond %d bytes", limit)}
+		return nil, &Error{Path: path, Cause: fmt.Errorf("%w of %d bytes", ErrOversizedAnswer, limit)}
 	}
 
 	return answer, nil
@@ -306,7 +305,7 @@ func (c Client) client(timeout time.Duration) *http.Client {
 // The server token stops at the platform: what the redirect points at is a storage URL already signed for this download.
 func dropToken(request *http.Request, via []*http.Request) error {
 	if len(via) >= maxRedirects {
-		return errors.New("too many redirects")
+		return ErrTooManyRedirects
 	}
 
 	request.Header.Del("Authorization")

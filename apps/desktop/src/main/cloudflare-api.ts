@@ -19,6 +19,8 @@ const CALL_MS = 20_000;
 export interface DnsRecord {
   id: string;
   content: string;
+  /** Cloudflare's free-text note on the record: the one Pupitre writes marks the records it owns. */
+  comment: string | null;
 }
 
 export interface CloudflareApi {
@@ -62,7 +64,8 @@ interface Answer<T> {
   errors?: { code?: number; message?: string }[];
 }
 
-const COMMENT = "pupitre";
+/** Written on every record the app creates, and read back before one is repointed or dropped: the zone may carry names nobody here owns. */
+export const RECORD_COMMENT = "pupitre";
 
 /** The token never appears in an error: only Cloudflare's own message surfaces. */
 /**
@@ -231,7 +234,7 @@ export function cloudflareApi(
         name: fqdn,
         content,
         proxied: true,
-        comment: COMMENT,
+        comment: RECORD_COMMENT,
       });
     },
 
@@ -242,7 +245,7 @@ export function cloudflareApi(
         {
           content,
           proxied: true,
-          comment: COMMENT,
+          comment: RECORD_COMMENT,
         }
       );
     },

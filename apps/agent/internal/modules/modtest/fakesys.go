@@ -38,6 +38,7 @@ type FakeSys struct {
 	Restarts   map[string]int
 	Replies    map[string]string
 	Answers    map[string]string
+	Refusals   map[string]string
 	Failures   map[string]string
 	Once       map[string]string
 	Users      map[string]string
@@ -86,6 +87,7 @@ func NewFakeSys() *FakeSys {
 		Restarts:   map[string]int{},
 		Replies:    map[string]string{},
 		Answers:    map[string]string{},
+		Refusals:   map[string]string{},
 		Failures:   map[string]string{},
 		Once:       map[string]string{},
 		Users:      map[string]string{"root": "/root"},
@@ -130,6 +132,11 @@ func (f *FakeSys) FailPackage(pkg, stderr string) {
 // One program, several questions: an answer keyed by a fragment of the command line wins over the reply keyed by the program.
 func (f *FakeSys) Answer(fragment, stdout string) {
 	f.Answers[fragment] = stdout
+}
+
+// Refuse answers a command line and exits 1 all the same, as a sign-in check does when nobody is signed in.
+func (f *FakeSys) Refuse(fragment, stdout string) {
+	f.Refusals[fragment] = stdout
 }
 
 func (f *FakeSys) FailProgram(program, stderr string) {
@@ -194,6 +201,12 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 	}
 	if best != "" {
 		return sys.Output{Stdout: f.Answers[best]}, nil
+	}
+
+	for fragment, stdout := range f.Refusals {
+		if strings.Contains(line, fragment) {
+			return sys.Output{Stdout: stdout, Code: 1}, &sys.ExitError{Program: program, Code: 1}
+		}
 	}
 
 	// The Claude Code binary, run from where it was downloaded, installs itself under ~/.local like the real one.

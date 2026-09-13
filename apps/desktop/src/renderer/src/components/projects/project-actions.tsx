@@ -48,10 +48,10 @@ export function ProjectActions({
         </Button>
       ) : null}
       <Button
+        hint={t("project.header.syncHint")}
         icon={RefreshCw}
         loading={syncing}
         onClick={onSync}
-        title={t("project.header.syncHint")}
       >
         {t("project.header.sync")}
       </Button>

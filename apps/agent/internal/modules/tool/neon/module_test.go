@@ -1,13 +1,16 @@
 package neon
 
 import (
+	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
+	"pupitre.studio/agent/internal/sys/env"
 )
 
 const key = "napi_s3cret-de-test"
@@ -21,7 +24,12 @@ func newContext(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	})
 }
 
+// Every fake machine holds the same binary at the same date, so what one test learnt of it must not serve the next.
 func machine() *modtest.FakeSys {
+	known.Lock()
+	known.stamp = ""
+	known.Unlock()
+
 	fake := modtest.NewFakeSys()
 	fake.Answer("neon --version", "2.27.0\n")
 
@@ -78,6 +86,42 @@ func TestTheCliLandsAndTheKeyIsStored(t *testing.T) {
 
 	if err := contract.ValidateValue("ServiceStatusResult", status.Service(manifest())); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func versionAsked(fake *modtest.FakeSys) int {
+	asked := 0
+	for _, command := range fake.Commands() {
+		if command == BinaryPath+" --version" {
+			asked++
+		}
+	}
+
+	return asked
+}
+
+func TestTheVersionIsAskedOncePerBinary(t *testing.T) {
+	fake := machine()
+	run(t, newContext(t, fake))
+	asked := versionAsked(fake)
+
+	for range 3 {
+		status, err := (Module{}).Status(newContext(t, fake))
+		if err != nil || status.Version != "2.27.0" {
+			t.Fatalf("status = %+v, %v", status, err)
+		}
+	}
+
+	if versionAsked(fake) != asked+1 {
+		t.Fatalf("the CLI was started %d times for its version", versionAsked(fake)-asked)
+	}
+
+	fake.Times[BinaryPath] = fake.Now.Add(time.Hour)
+	fake.Answer("neon --version", "2.28.0\n")
+
+	status, err := (Module{}).Status(newContext(t, fake))
+	if err != nil || status.Version != "2.28.0" {
+		t.Fatalf("a replaced binary must be asked again: %+v, %v", status, err)
 	}
 }
 
@@ -209,3 +253,64 @@ func TestTheSecretIsRequiredByTheContract(t *testing.T) {
 }
 
 var _ modules.Module = Module{}
+
+// Without a key neonctl opens a sign-in in a browser and waits for it: the check never runs the CLI on such a machine.
+func TestLoginNeverAsksNeonctlWithoutAKey(t *testing.T) {
+	fake := machine()
+
+	got, asked := (Module{}).Login(newContext(t, fake))
+	if !asked || got.State != contract.LoginSignedOut || got.Fix == "" {
+		t.Fatalf("login = %+v (%v)", got, asked)
+	}
+
+	for _, line := range fake.Commands() {
+		if strings.Contains(line, " me") {
+			t.Fatalf("neonctl me ran without a key: %s", line)
+		}
+	}
+}
+
+// The key travels in the CLI's environment, never on its command line, and the account is what neonctl answers.
+func TestLoginAsksNeonctlWithTheKeyTheMachineHolds(t *testing.T) {
+	cases := map[string]struct {
+		answer  string
+		refused bool
+		want    contract.Login
+	}{
+		"signed in": {
+			answer: `{"login":"jordan","email":"jordan@example.org","plan":"free"}`,
+			want:   contract.Login{State: contract.LoginSignedIn, Account: "jordan@example.org"},
+		},
+		"refused": {
+			answer:  "INFO: Authentication failed, deleting credentials...\n",
+			refused: true,
+			want:    contract.Login{State: contract.LoginUnknown, Fix: "The Neon account did not answer the key the machine holds: reconnect it in the app and apply this service's configuration."},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			fake := machine()
+			fake.Files[env.Path] = []byte(keyKey + "=" + key + "\n")
+			if tc.refused {
+				fake.Refuse("neon me", tc.answer)
+			} else {
+				fake.Answer("neon me", tc.answer)
+			}
+
+			got, asked := (Module{}).Login(newContext(t, fake))
+			if !asked || got != tc.want {
+				t.Fatalf("login = %+v (%v), want %+v", got, asked, tc.want)
+			}
+
+			last := fake.Calls[len(fake.Calls)-1]
+			if last.User != shell.User || strings.Join(last.Argv, " ") != BinaryPath+" me -o json" {
+				t.Fatalf("the check runs as dev on the CLI's own command: %+v", last)
+			}
+
+			if !slices.Contains(last.Env, keyKey+"="+key) || strings.Contains(strings.Join(last.Argv, " "), key) {
+				t.Fatalf("the key travels in the environment alone: %+v", last)
+			}
+		})
+	}
+}

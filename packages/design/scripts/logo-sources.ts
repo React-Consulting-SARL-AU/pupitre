@@ -31,6 +31,7 @@ export const SOURCES: readonly LogoSource[] = [
   { id: "db.redis", slug: "redis", monochrome: false },
   { id: "exposure.caddy", slug: "caddy", monochrome: false },
   { id: "tool.neon", slug: "neon", monochrome: false },
+  { id: "tool.wrangler", slug: "cloudflareworkers", monochrome: false },
 ]
 
 export interface VendorSource {

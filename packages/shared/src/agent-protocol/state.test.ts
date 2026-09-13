@@ -3,6 +3,7 @@ import {
   CompletionsParamsSchema,
   CompletionsResultSchema,
   HostnameSchema,
+  LOGIN_STATES,
   MachineSchema,
   ProjectSchema,
   RouteRequestSchema,
@@ -123,6 +124,16 @@ describe("MachineSchema, ServiceSchema, ProjectSchema, SessionSchema", () => {
     expect(ServiceSchema.parse({ ...service, runs: false }).runs).toBe(false)
   })
 
+  it("carries the account a module declares, and only one the catalogue names", () => {
+    expect(ServiceSchema.parse(service).connection).toBeUndefined()
+    expect(
+      ServiceSchema.parse({ ...service, connection: "cloudflare" }).connection
+    ).toBe("cloudflare")
+    expect(
+      ServiceSchema.safeParse({ ...service, connection: "vercel" }).success
+    ).toBe(false)
+  })
+
   it("reject a three-value load with a string and an unknown session kind", () => {
     expect(
       MachineSchema.safeParse({ ...machine, load: "0.12 0.2 0.25" }).success
@@ -224,6 +235,28 @@ describe("ServiceStatusParamsSchema and ServiceStatusResultSchema", () => {
         credentials: { app_password: 42 },
       }).success
     ).toBe(false)
+  })
+
+  it("carry whether the CLI is signed in, and under which account", () => {
+    expect(
+      ServiceStatusResultSchema.safeParse({
+        ...service,
+        login: { state: "signed_in", account: "jordan@example.org" },
+      }).success
+    ).toBe(true)
+    expect(
+      ServiceStatusResultSchema.safeParse({
+        ...service,
+        login: { state: "signed_out", fix: "Run gh auth login." },
+      }).success
+    ).toBe(true)
+    expect(
+      ServiceStatusResultSchema.safeParse({
+        ...service,
+        login: { state: "expired" },
+      }).success
+    ).toBe(false)
+    expect(LOGIN_STATES).toEqual(["signed_in", "signed_out", "unknown"])
   })
 })
 

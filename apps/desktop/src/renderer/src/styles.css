@@ -49,7 +49,8 @@
   }
 
   ::selection {
-    background: var(--raised);
+    color: var(--inverse-ink);
+    background: var(--inverse);
   }
 
   ::-webkit-scrollbar {

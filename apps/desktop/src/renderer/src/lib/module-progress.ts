@@ -39,6 +39,11 @@ export function pending(modules: readonly string[]): ModuleProgress[] {
   return modules.map((id) => ({ id, ms: 0, status: "pending", steps: [] }));
 }
 
+/** The modules a gesture just sent to the agent: at work from the click, before their first step says so. */
+export function started(modules: readonly string[]): ModuleProgress[] {
+  return modules.map((id) => ({ id, ms: 0, status: "running", steps: [] }));
+}
+
 /**
  * A module's fate, read off its own steps.
  *

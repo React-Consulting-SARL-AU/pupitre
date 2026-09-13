@@ -38,8 +38,8 @@ func metadataFailed(version string, cause error) *protocol.Error {
 		return downloadFailed(version, cause)
 	}
 
-	return protocol.NewError(contract.ErrorInternal, i18n.T("selfupdate.metadata.unreadable", version, cause.Error())).
-		WithFix(i18n.T("selfupdate.platform.unreachable.fix"))
+	return protocol.NewError(contract.ErrorInternal, i18n.T("selfupdate.metadata.unreadable", version, platform.Describe(cause))).
+		WithFix(unreachableFix(cause))
 }
 
 func downloadFailed(version string, cause error) *protocol.Error {
@@ -50,23 +50,31 @@ func downloadFailed(version string, cause error) *protocol.Error {
 	}
 
 	if errors.As(cause, &failure) && failure.Unauthorized() {
-		return protocol.NewError(contract.ErrorEntitlementRequired, i18n.T("selfupdate.token.refused", cause.Error())).
+		return protocol.NewError(contract.ErrorEntitlementRequired, i18n.T("selfupdate.token.refused", platform.Describe(cause))).
 			WithFix(i18n.T("selfupdate.token.refused.fix"))
 	}
 
-	return protocol.NewError(contract.ErrorInternal, i18n.T("selfupdate.download.failed", cause.Error())).
-		WithFix(i18n.T("selfupdate.platform.unreachable.fix"))
+	return protocol.NewError(contract.ErrorInternal, i18n.T("selfupdate.download.failed", platform.Describe(cause))).
+		WithFix(unreachableFix(cause))
 }
 
 func stateFailed(cause error) *protocol.Error {
 	var failure *platform.Error
 	if errors.As(cause, &failure) && failure.Unauthorized() {
-		return protocol.NewError(contract.ErrorEntitlementRequired, i18n.T("selfupdate.token.refused", cause.Error())).
+		return protocol.NewError(contract.ErrorEntitlementRequired, i18n.T("selfupdate.token.refused", platform.Describe(cause))).
 			WithFix(i18n.T("selfupdate.token.refused.fix"))
 	}
 
-	return protocol.NewError(contract.ErrorInternal, i18n.T("selfupdate.state.unreadable", cause.Error())).
+	return protocol.NewError(contract.ErrorInternal, i18n.T("selfupdate.state.unreadable", platform.Describe(cause))).
 		WithFix(i18n.T("selfupdate.state.unreadable.fix"))
+}
+
+func unreachableFix(cause error) string {
+	if platform.Down(cause) {
+		return i18n.T("platform.down.fix")
+	}
+
+	return i18n.T("selfupdate.platform.unreachable.fix")
 }
 
 func restartFailed(version string, cause error) *protocol.Error {

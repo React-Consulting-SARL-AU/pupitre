@@ -169,7 +169,8 @@ export type KnownState =
  */
 export type DetectionState =
   | { status: "idle" }
-  | { status: "reading"; source: string }
+  /** `branch` is the one the clone asks for; absent, the repository's own. */
+  | { status: "reading"; source: string; branch?: string }
   | { status: "read"; source: string; result: ProjectDetectResult }
   | { status: "failed"; source: string; error: AgentError };
 
@@ -479,9 +480,10 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
   function step<T>(
     id: PhaseId,
     serverId: string,
-    call: () => Promise<AgentResponse<T>>
+    call: () => Promise<AgentResponse<T>>,
+    detail?: string
   ): Promise<AgentResponse<T>> {
-    mark(id, "running");
+    mark(id, "running", detail);
     set({
       run: { name: get().draft.name, phase: id, serverId, status: "running" },
     });
@@ -540,14 +542,14 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     return false;
   }
 
-  type Sources = "failed" | "installed" | "pulled" | "skipped";
+  type Sources = "failed" | "pulled" | "skipped";
 
   /**
    * The sources, when they are not on the machine yet.
    *
    * A folder the reader pointed at is already there; an address has to be
-   * cloned, and the agent's clone installs the dependencies on its way, which
-   * is why the next phase then has nothing left to do.
+   * cloned. The clone is all this phase does — the dependencies are the next
+   * one's, so each of the two says how long it took.
    */
   async function bringSources(
     serverId: string,
@@ -561,36 +563,23 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       return "skipped";
     }
 
-    const synced = await step("sources", serverId, () =>
-      window.pupitre.syncProject(serverId, name)
+    const pulled = await step("sources", serverId, () =>
+      window.pupitre.pullProject(serverId, name)
     );
 
-    if (!synced.ok) {
-      fail("sources", synced.error);
+    if (!pulled.ok) {
+      fail("sources", pulled.error);
 
       return "failed";
     }
 
-    mark("sources", "ok", synced.result.pulled ? source : undefined);
+    mark("sources", "ok", pulled.result.pulled ? source : undefined);
 
-    return synced.result.installed ? "installed" : "pulled";
+    return "pulled";
   }
 
-  async function installDeps(
-    serverId: string,
-    name: string,
-    already: boolean
-  ): Promise<boolean> {
-    if (already) {
-      mark(
-        "install",
-        "skip",
-        translate()("projectAdd.install.doneWithSources")
-      );
-
-      return true;
-    }
-
+  /** The install line the agent ran is the phase's detail; a project that declares none skips it. */
+  async function installDeps(serverId: string, name: string): Promise<boolean> {
     const installed = await step("install", serverId, () =>
       window.pupitre.installProject(serverId, name)
     );
@@ -602,7 +591,13 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       return false;
     }
 
-    mark("install", "ok");
+    const { command } = installed.result;
+
+    if (command) {
+      mark("install", "ok", command);
+    } else {
+      mark("install", "skip", translate()("projectAdd.install.nothing"));
+    }
 
     return true;
   }
@@ -753,7 +748,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
 
     if (
       start <= PHASES.indexOf("install") &&
-      !(await installDeps(serverId, name, sources === "installed"))
+      !(await installDeps(serverId, name))
     ) {
       return;
     }
@@ -1055,12 +1050,22 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
         return;
       }
 
-      set({ detection: { source, status: "reading" } });
+      const params = detectParams(get().draft);
+
+      set({
+        detection: {
+          source,
+          status: "reading",
+          ...("branch" in params && params.branch
+            ? { branch: params.branch }
+            : {}),
+        },
+      });
 
       const answer = (await window.pupitre.agentCall(
         serverId,
         "project.detect",
-        detectParams(get().draft)
+        params
       )) as AgentResponse<ProjectDetectResult>;
 
       // The reader moved on to another source while the agent was reading.
@@ -1139,13 +1144,15 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     },
 
     params() {
-      const { draft, exposure } = get();
+      const { draft, detection, exposure } = get();
       const branch = draft.branch.trim();
+      const host =
+        (detection.status === "read" && detection.result.host_hint) || HOST;
 
       return {
         cmd: draft.cmd.trim(),
         dir: draft.dir,
-        host: HOST,
+        host,
         name: draft.name,
         pkgmgr: draft.pkgmgr,
         port: mainPort(draft.rows),

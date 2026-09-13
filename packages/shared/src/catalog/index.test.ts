@@ -230,6 +230,7 @@ describe("module ids", () => {
       "tool.github",
       "tool.1password",
       "tool.neon",
+      "tool.wrangler",
     ])
     expect(new Set(MODULE_IDS).size).toBe(MODULE_IDS.length)
   })

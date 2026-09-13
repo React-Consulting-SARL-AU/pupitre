@@ -46,6 +46,7 @@ export const MODULE_IDS = [
   "tool.github",
   "tool.1password",
   "tool.neon",
+  "tool.wrangler",
 ] as const
 
 export const ModuleIdSchema = z.enum(MODULE_IDS)
@@ -184,9 +185,15 @@ export type Resources = z.infer<typeof ResourcesSchema>
  * A token that is the same on every machine belongs to the account, not to a
  * server: the app keeps it in the system keychain and fills the module's
  * managed field with it at install time.
+ *
+ * `cloudflare` and `wrangler` open the same account with two tokens: the first
+ * makes tunnels and DNS records from the laptop and never leaves it, the second
+ * is exported into the server's shell for Wrangler. One token for both would
+ * put the rights over the client's domain where their agents run.
  */
 export const CONNECTION_KINDS = [
   "cloudflare",
+  "wrangler",
   "github",
   "1password",
   "neon",

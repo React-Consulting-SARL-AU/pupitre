@@ -22,6 +22,8 @@ const START_RETURN_URL_RE = /\/dashboard\/start\?checkout=done$/
 const BILLING_URL_RE = /\/dashboard\/billing$/
 const SETTINGS_URL_RE = /\/dashboard\/settings$/
 const DOWNLOAD_URL_RE = /\/dashboard\/download$/
+const SIGN_IN_WITH_CALLBACK_RE = /\/auth\/sign-in\?callbackURL=.*auth.*device/
+const DEVICE_URL_RE = /\/auth\/device\?user_code=/
 const CHECKLIST_STEP_RE =
   /Installer l'app et la lier à votre compte|Louer un serveur et l'ajouter/
 const APP_STEP = "Installer l'app et la lier à votre compte"
@@ -60,6 +62,7 @@ test.describe("console", () => {
   })
 
   test("inscription, essai, téléchargement, liaison, serveurs", async ({
+    browser,
     page,
     request,
   }) => {
@@ -130,8 +133,9 @@ test.describe("console", () => {
       await expect(page).toHaveURL(SETTINGS_URL_RE)
     })
 
-    await test.step("une seule action ouvre un checkout d'un siège", async () => {
+    await test.step("l'essai part sur le rythme choisi, un siège", async () => {
       await page.goto("/dashboard/start")
+      await page.getByRole("button", { name: "Annuel" }).click()
       await page.getByRole("button", { name: "Démarrer l'essai" }).click()
 
       await expect
@@ -143,7 +147,7 @@ test.describe("console", () => {
 
           return checkouts
         })
-        .toEqual([expect.objectContaining({ quantity: 1, interval: "month" })])
+        .toEqual([expect.objectContaining({ quantity: 1, interval: "year" })])
 
       // The click sends the page to the payment provider. Waiting for it to
       // land is what keeps the next step from racing it — the harness answers
@@ -248,7 +252,7 @@ test.describe("console", () => {
       await expect(page.getByText("Pas encore publié")).toHaveCount(3)
     })
 
-    await test.step("le device flow lie l'app au compte", async () => {
+    await test.step("le device flow passe par la connexion, puis lie l'app au compte", async () => {
       const started = await request.post("/api/auth/device/code", {
         data: { client_id: DESKTOP_CLIENT_ID },
       })
@@ -256,20 +260,50 @@ test.describe("console", () => {
       expect(started.ok()).toBe(true)
 
       const codes = (await started.json()) as DeviceCodes
+      const devicePath = `/auth/device?user_code=${encodeURIComponent(codes.user_code)}`
 
-      await openHydrated(
-        page,
-        `/auth/device?user_code=${encodeURIComponent(codes.user_code)}`
-      )
+      // The app opens the system browser, which knows nothing of the console's session.
+      const fresh = await browser.newContext()
+      const tab = await fresh.newPage()
 
+      await stayLocal(tab)
+      await openHydrated(tab, devicePath)
+
+      await expect(tab).toHaveURL(SIGN_IN_WITH_CALLBACK_RE)
       await expect(
-        page.getByRole("heading", { level: 1, name: "Confirmer un appareil" })
+        tab.getByRole("heading", { name: "Connexion ou inscription" })
       ).toBeVisible()
 
-      await page.getByRole("button", { name: "Vérifier le code" }).click()
-      await page.getByRole("button", { name: "Confirmer cet appareil" }).click()
+      const previousLink = await magicLinkFor(request, EMAIL)
 
-      await expect(page.getByTestId("device-approved")).toBeVisible()
+      await tab.getByLabel("Adresse email").fill(EMAIL)
+      await tab
+        .getByRole("button", { name: "Recevoir un lien de connexion" })
+        .click()
+
+      await expect(
+        tab.getByText(`Un lien de connexion part vers ${EMAIL}`)
+      ).toBeVisible()
+      await expect
+        .poll(() => magicLinkFor(request, EMAIL))
+        .not.toBe(previousLink)
+
+      await tab.goto((await magicLinkFor(request, EMAIL)) ?? "/")
+
+      await expect(tab).toHaveURL(DEVICE_URL_RE)
+      await expect(
+        tab.getByRole("heading", { level: 1, name: "Confirmer un appareil" })
+      ).toBeVisible()
+      await expect(tab.getByLabel("Code affiché par l'appareil")).toHaveValue(
+        `${codes.user_code.slice(0, 4)}-${codes.user_code.slice(4)}`
+      )
+
+      await tab.getByRole("button", { name: "Vérifier le code" }).click()
+      await tab.getByRole("button", { name: "Confirmer cet appareil" }).click()
+
+      await expect(tab.getByTestId("device-approved")).toBeVisible()
+
+      await fresh.close()
 
       const granted = await request.post("/api/auth/device/token", {
         data: {

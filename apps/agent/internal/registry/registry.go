@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"path"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -32,6 +33,9 @@ const (
 	SubdomainMax = 190
 	HostnameMax  = 253
 	LabelMax     = 63
+
+	// Loopback is the host a project has unless its repository freezes a .localhost name.
+	Loopback = "127.0.0.1"
 )
 
 var (
@@ -42,6 +46,9 @@ var (
 
 	// BranchPattern is what git will take on a clone or a checkout, and the app refuses the rest before asking.
 	BranchPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._/-]{0,199}$`)
+
+	// LocalhostPattern is a name under .localhost: the one kind of host, besides the loopback, the agent makes the machine answer to.
+	LocalhostPattern = regexp.MustCompile(`^(?:` + subLabel + `\.)+localhost$`)
 
 	notLabel = regexp.MustCompile(`[^a-z0-9-]+`)
 	dashes   = regexp.MustCompile(`-{2,}`)
@@ -458,6 +465,39 @@ func (f *File) Update(ctx sys.Context, name string, patch Patch) (Project, error
 	return updated, nil
 }
 
+// Rehost moves every route named under `from` to `to`, and answers the names that moved, sorted: the rows of the repository follow the domain on their own, the local rows are rewritten here.
+func (f *File) Rehost(ctx sys.Context, from, to string) ([]string, error) {
+	moved := []string{}
+	if from == "" || from == to {
+		return moved, nil
+	}
+
+	var rows []Project
+	for _, project := range f.locals() {
+		for at, route := range project.Routes {
+			if !strings.HasSuffix(route.Hostname, "."+from) {
+				continue
+			}
+
+			moved = append(moved, route.Hostname)
+			project.Routes[at].Hostname = strings.TrimSuffix(route.Hostname, from) + to
+		}
+
+		rows = append(rows, project)
+	}
+
+	if len(moved) > 0 {
+		if err := f.write(ctx, rows); err != nil {
+			return nil, err
+		}
+	}
+
+	sort.Strings(moved)
+	f.Domain = to
+
+	return moved, nil
+}
+
 func (f *File) Remove(ctx sys.Context, name string) (Project, error) {
 	project, known := f.Get(name)
 	if !known {
@@ -579,6 +619,10 @@ func (f *File) validate(ctx sys.Context, project Project, self string) error {
 
 	if branch := value(project.Branch); branch != "" && !BranchPattern.MatchString(branch) {
 		return bad(i18n.T("registry.branch.invalid", branch), i18n.T("registry.branch.invalid.fix"))
+	}
+
+	if project.Host != Loopback && !LocalhostPattern.MatchString(project.Host) {
+		return bad(i18n.T("registry.host.invalid", project.Host), i18n.T("registry.host.invalid.fix"))
 	}
 
 	if err := f.validateRoutes(project.Routes); err != nil {

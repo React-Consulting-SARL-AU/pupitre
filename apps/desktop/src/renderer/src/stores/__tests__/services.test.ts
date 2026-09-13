@@ -196,6 +196,190 @@ describe("la configuration d'un module installé", () => {
   });
 });
 
+describe("l'attente d'une configuration appliquée", () => {
+  // The agent checks the machine before its first step says anything: a row
+  // that read "waiting" until then looked like a click that had done nothing.
+  it("montre le module au travail dès le geste, avant la première étape", async () => {
+    let seen: string | undefined;
+
+    stubPupitre({
+      agentCall: () =>
+        Promise.resolve({
+          ok: true,
+          result: { id: "db.mysql", values: { port: 3306 }, secrets: [] },
+        } as AgentResponse<unknown>),
+      serviceDetail: () => Promise.resolve({ ok: true, result: DETAIL }),
+      startInstall: () => {
+        seen = useServices.getState().steps[0]?.status;
+
+        return Promise.resolve({
+          ok: true,
+          result: {
+            failed: [],
+            report_path: "/var/lib/pupitre/report.json",
+            warned: [],
+          },
+        });
+      },
+    });
+
+    await useServices.getState().readConfig(SERVER, "db.mysql");
+    await useServices.getState().reconfigure(SERVER, "db.mysql");
+
+    expect(seen).toBe("running");
+  });
+});
+
+describe("le domaine d'une exposition", () => {
+  const web = (hostname: string) => ({
+    cmd: "bun run dev",
+    dir: "web",
+    host: "127.0.0.1",
+    name: "web",
+    path: "/home/dev/projects/web",
+    pkgmgr: "bun" as const,
+    port: 3000,
+    routes: [{ hostname, label: "web", port: 3000 }],
+    state: "online" as const,
+  });
+
+  // The agent moved the names; the records follow from here: the ones of
+  // before go, the ones of now are written, and nothing else in the zone moves.
+  it("retire les noms d'avant et écrit ceux du nouveau domaine", async () => {
+    const order: string[] = [];
+    let domain = "flymate.dev";
+
+    stubPupitre({
+      agentCall: (_server, cmd) => {
+        order.push(cmd);
+
+        if (cmd === "module.config") {
+          return Promise.resolve({
+            ok: true,
+            result: {
+              id: "exposure.cloudflare",
+              values: { domain },
+              secrets: [],
+            },
+          } as AgentResponse<unknown>);
+        }
+
+        return Promise.resolve({
+          ok: true,
+          result: {
+            installed: true,
+            provider: "cloudflare",
+            routes: [
+              {
+                hostname: `web.${domain}`,
+                project: "web",
+                service: "http://127.0.0.1:3000",
+              },
+            ],
+            state: "running",
+          },
+        } as AgentResponse<unknown>);
+      },
+      listProjects: () =>
+        Promise.resolve({
+          ok: true,
+          result: { projects: [web(`web.${domain}`)] },
+        }),
+      releaseTunnelRecords: (_server, hostnames) => {
+        order.push(`release ${hostnames.join(",")}`);
+
+        return Promise.resolve({ ok: true, result: hostnames.length });
+      },
+      serviceDetail: () => Promise.resolve({ ok: true, result: DETAIL }),
+      startInstall: () => {
+        order.push("install");
+        domain = "flymate.studio";
+
+        return Promise.resolve({
+          ok: true,
+          result: {
+            failed: [],
+            report_path: "/var/lib/pupitre/report.json",
+            warned: [],
+          },
+        });
+      },
+      syncTunnelRecords: (_server, routes) => {
+        order.push(
+          `records ${routes.map((route) => route.hostname).join(",")}`
+        );
+
+        return Promise.resolve({ ok: true, result: routes.length });
+      },
+    });
+
+    await useServices.getState().readConfig(SERVER, "exposure.cloudflare");
+    useServices.getState().setValue("domain", "flymate.studio");
+    await useServices.getState().reconfigure(SERVER, "exposure.cloudflare");
+
+    expect(
+      order.filter(
+        (step) => !step.startsWith("module.config") && step !== "service.status"
+      )
+    ).toEqual([
+      "install",
+      "release web.flymate.dev",
+      "tunnel.sync",
+      "records web.flymate.studio",
+    ]);
+  });
+
+  it("ne touche à aucun enregistrement quand le domaine ne change pas", async () => {
+    const order: string[] = [];
+
+    stubPupitre({
+      agentCall: (_server, cmd) => {
+        order.push(cmd);
+
+        return Promise.resolve({
+          ok: true,
+          result: {
+            id: "exposure.cloudflare",
+            values: { domain: "flymate.dev" },
+            secrets: [],
+          },
+        } as AgentResponse<unknown>);
+      },
+      listProjects: () =>
+        Promise.resolve({
+          ok: true,
+          result: { projects: [web("web.flymate.dev")] },
+        }),
+      releaseTunnelRecords: () => {
+        order.push("release");
+
+        return Promise.resolve({ ok: true, result: 0 });
+      },
+      serviceDetail: () => Promise.resolve({ ok: true, result: DETAIL }),
+      startInstall: () =>
+        Promise.resolve({
+          ok: true,
+          result: {
+            failed: [],
+            report_path: "/var/lib/pupitre/report.json",
+            warned: [],
+          },
+        }),
+      syncTunnelRecords: () => {
+        order.push("records");
+
+        return Promise.resolve({ ok: true, result: 0 });
+      },
+    });
+
+    await useServices.getState().readConfig(SERVER, "exposure.cloudflare");
+    await useServices.getState().reconfigure(SERVER, "exposure.cloudflare");
+
+    expect(order).not.toContain("release");
+    expect(order).not.toContain("records");
+  });
+});
+
 describe("un module posé sans ses réglages", () => {
   const MANIFEST: Manifest = {
     arch: ["amd64", "arm64"],

@@ -33,13 +33,13 @@ export function ProjectEditors({
     <>
       {editors.map((editor) => (
         <Button
-          icon={FolderCode}
-          key={editor.id}
-          onClick={() => onOpen(editor.id, root)}
-          title={t("project.editors.open", {
+          hint={t("project.editors.open", {
             editor: editor.name,
             root,
           })}
+          icon={FolderCode}
+          key={editor.id}
+          onClick={() => onOpen(editor.id, root)}
         >
           {editor.name}
         </Button>

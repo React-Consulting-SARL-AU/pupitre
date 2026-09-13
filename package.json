@@ -12,6 +12,7 @@
   "scripts": {
     "dev:prepare": "bun scripts/bootstrap-local.ts",
     "env": "bun scripts/env-run.ts",
+    "secrets:draw": "bun scripts/draw-secrets.ts",
     "dev": "bun run dev:prepare && turbo run dev dev:stripe dev:tunnel --filter=@pupitre/site --filter=@pupitre/web",
     "dev:site": "bun run dev:prepare && turbo run dev --filter=@pupitre/site",
     "dev:web": "bun run dev:prepare && turbo run dev dev:stripe dev:tunnel --filter=@pupitre/web",

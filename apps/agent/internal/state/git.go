@@ -425,13 +425,27 @@ func (r *Reader) Diff(name, path string) (contract.ProjectDiff, error) {
 	return diff, nil
 }
 
-func (r *Reader) Sync(name string) (contract.ProjectSync, error) {
+func (r *Reader) Pull(name string) (contract.ProjectPull, error) {
 	project, root, err := r.repo(name)
 	if err != nil {
-		return contract.ProjectSync{}, err
+		return contract.ProjectPull{}, err
 	}
 
 	pulled, err := r.pull(project, root)
+	if err != nil {
+		return contract.ProjectPull{}, err
+	}
+
+	current, err := r.one(name)
+	if err != nil {
+		return contract.ProjectPull{}, err
+	}
+
+	return contract.ProjectPull{Pulled: pulled, State: current.State}, nil
+}
+
+func (r *Reader) Sync(name string) (contract.ProjectSync, error) {
+	pulled, err := r.Pull(name)
 	if err != nil {
 		return contract.ProjectSync{}, err
 	}
@@ -446,7 +460,7 @@ func (r *Reader) Sync(name string) (contract.ProjectSync, error) {
 		return contract.ProjectSync{}, err
 	}
 
-	return contract.ProjectSync{Pulled: pulled, Installed: command != "", State: current.State}, nil
+	return contract.ProjectSync{Pulled: pulled.Pulled, Installed: command != "", State: current.State}, nil
 }
 
 func (r *Reader) pull(project registry.Project, root string) (bool, error) {

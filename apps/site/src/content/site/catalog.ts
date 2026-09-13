@@ -256,6 +256,14 @@ export const CATALOG: CatalogGroup[] = [
           fr: "Le CLI Neon et votre clé d’API dans le shell de dev ; vos projets et vos branches restent les vôtres à créer.",
         },
       },
+      {
+        id: "tool.wrangler",
+        name: { en: "Wrangler", fr: "Wrangler" },
+        detail: {
+          en: "Cloudflare’s CLI and your API token in the dev shell; Workers, D1 and Pages deploy from the server.",
+          fr: "Le CLI de Cloudflare et votre jeton d’API dans le shell de dev ; Workers, D1 et Pages se déploient depuis le serveur.",
+        },
+      },
     ],
   },
 ]

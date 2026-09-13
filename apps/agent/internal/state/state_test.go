@@ -284,6 +284,26 @@ func TestAServiceSaysWhetherItHoldsAProcess(t *testing.T) {
 	}
 }
 
+func TestAServiceNamesTheAccountItsManifestDeclares(t *testing.T) {
+	fake, _ := fixture(t)
+	catalog := modules.NewRegistry()
+	catalog.Register(modtest.Passing{ID: "exposure.tunnel", Package: "tunnel", Unit: "tunnel", Connection: contract.ConnectionCloudflare})
+	catalog.Register(modtest.Passing{ID: "db.redis", Package: "redis-server", Unit: "redis-server"})
+	fake.Packages["tunnel"] = "2025.1.0"
+	fake.Packages["redis-server"] = "7.0.15"
+	fake.Units["tunnel"] = modtest.UnitActive
+	fake.Units["redis-server"] = modtest.UnitActive
+	reader := newReader(t, fake, catalog, func(time.Duration) {})
+
+	connections := map[string]string{}
+	for _, service := range reader.Snapshot().Services {
+		connections[service.ID] = service.Connection
+	}
+	if connections["exposure.tunnel"] != contract.ConnectionCloudflare || connections["db.redis"] != "" {
+		t.Fatalf("connection is the manifest's own answer, got %v", connections)
+	}
+}
+
 func TestServiceStatusRefusesWhatIsNotInstalled(t *testing.T) {
 	fake, _ := fixture(t)
 	catalog := modules.NewRegistry()
@@ -480,6 +500,40 @@ func TestAddHandsTheProjectFoldersToTheirUser(t *testing.T) {
 		if !fake.Dirs[dir] || fake.Owners[dir] != "dev:dev" {
 			t.Fatalf("%s must exist and belong to dev, got exists=%v owner=%q", dir, fake.Dirs[dir], fake.Owners[dir])
 		}
+	}
+}
+
+// A repository that freezes --host react-box.localhost binds to a name the machine does not resolve: the agent makes it answer, in IPv4 only, where the port is probed and the tunnel knocks.
+func TestAddPointsALocalhostHostAtTheLoopbackAndRemoveForgetsIt(t *testing.T) {
+	fake, reader := fixture(t)
+	fake.Files["/etc/hosts"] = []byte("127.0.0.1 localhost\n::1 localhost ip6-localhost\n")
+
+	for _, project := range []registry.Project{
+		{Name: "shop", Dir: "shop", PkgMgr: "bun", Host: "shop.localhost", Port: 5173, Cmd: "bun run dev"},
+		{Name: "api", Dir: "api", PkgMgr: "bun", Host: "127.0.0.1", Port: 5174, Cmd: "bun run dev"},
+		{Name: "box", Dir: "box", PkgMgr: "bun", Host: "box.localhost", Port: 5175, Cmd: "bun run dev"},
+	} {
+		if _, err := reader.Add(project, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	want := "127.0.0.1 localhost\n::1 localhost ip6-localhost\n# >>> pupitre projects >>>\n127.0.0.1 box.localhost\n127.0.0.1 shop.localhost\n# <<< pupitre projects <<<\n"
+	if got := string(fake.Files["/etc/hosts"]); got != want {
+		t.Fatalf("/etc/hosts:\n%s\nwant:\n%s", got, want)
+	}
+
+	if _, err := reader.Remove("shop"); err != nil {
+		t.Fatal(err)
+	}
+
+	want = "127.0.0.1 localhost\n::1 localhost ip6-localhost\n# >>> pupitre projects >>>\n127.0.0.1 box.localhost\n# <<< pupitre projects <<<\n"
+	if got := string(fake.Files["/etc/hosts"]); got != want {
+		t.Fatalf("/etc/hosts after remove:\n%s\nwant:\n%s", got, want)
+	}
+
+	if _, err := reader.Add(registry.Project{Name: "out", Dir: "out", PkgMgr: "bun", Host: "shop.example.org", Port: 5176, Cmd: "bun run dev"}, nil); err == nil {
+		t.Fatal("a host that is neither the loopback nor a .localhost name must be refused")
 	}
 }
 

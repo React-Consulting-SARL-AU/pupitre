@@ -6,6 +6,7 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/ai/agents"
+	"pupitre.studio/agent/internal/modules/runtime/mise"
 	"pupitre.studio/agent/internal/sys/env"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/systemd"
@@ -39,7 +40,7 @@ WantedBy=multi-user.target
 )
 
 var (
-	cli = agents.CLI{Tool: tool, Program: Program}
+	cli = mise.CLI{Tool: tool, Program: Program}
 
 	target = agents.Target{ConfigDir: configDir, ContextFile: "AGENTS.md", Skills: true}
 )

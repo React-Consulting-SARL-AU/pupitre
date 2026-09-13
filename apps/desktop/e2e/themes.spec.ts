@@ -7,6 +7,14 @@ const HEADING = "1 projet en ligne";
 const BRANDED = ["db.postgres", "ai.claude", "exposure.cloudflare"];
 const BRAND_COLOUR = /^#[0-9a-f]{6}$/;
 
+function rgb(hex: string): string {
+  const channels = [1, 3, 5].map((at) =>
+    Number.parseInt(hex.slice(at, at + 2), 16)
+  );
+
+  return `rgb(${channels.join(", ")})`;
+}
+
 async function dashboardIn(page: Page, theme: "light" | "dark"): Promise<void> {
   await page.getByRole("button", { name: "Réglages" }).click();
   await page.getByRole("button", { name: "Apparence" }).click();
@@ -72,6 +80,39 @@ test.describe("thèmes", () => {
       await looksLike(page, "tableau-de-bord-sombre.png");
       await assertAccessible(page, "tableau-de-bord/sombre");
     });
+  });
+
+  // A selection painted a grey next to the grey of the field it sits in was
+  // invisible in the dark theme: the highlight has to be the inverse of the
+  // ground, in both themes.
+  test("une sélection dans un champ se voit dans les deux thèmes", async () => {
+    const { page } = running;
+
+    for (const [theme, tokens] of [
+      ["light", LIGHT],
+      ["dark", DARK],
+    ] as const) {
+      const field = page.getByLabel("Thème");
+
+      await page.getByRole("button", { name: "Réglages" }).click();
+      await page.getByRole("button", { name: "Apparence" }).click();
+      await field.selectOption(theme);
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+
+      const highlight = await field.evaluate((node) => {
+        const selection = getComputedStyle(node, "::selection");
+
+        return {
+          background: selection.backgroundColor,
+          color: selection.color,
+        };
+      });
+
+      expect(highlight).toEqual({
+        background: rgb(tokens.inverse),
+        color: rgb(tokens["inverse-ink"]),
+      });
+    }
   });
 
   // The colour the window paints on its own, before the page draws and while it
