@@ -2,7 +2,9 @@ import { AgentDot } from "@renderer/components/ui/agent-dot";
 import {
   ClaudeIcon,
   CodexIcon,
+  CursorIcon,
   type IconComponent,
+  OpencodeIcon,
 } from "@renderer/components/ui/agent-icons";
 import { TabBar, TabButton } from "@renderer/components/ui/tab-bar";
 import { useTranslations } from "@renderer/i18n/use-translations";
@@ -23,10 +25,12 @@ const ICONS: Record<ProjectTab, IconComponent> = {
   claude: ClaudeIcon,
   codex: CodexIcon,
   configuration: Settings2,
+  cursor: CursorIcon,
   diff: FileDiff,
   files: Files,
   hermes: Bot,
   logs: ScrollText,
+  opencode: OpencodeIcon,
   overview: LayoutGrid,
   shell: SquareTerminal,
 };

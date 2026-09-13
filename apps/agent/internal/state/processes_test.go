@@ -44,6 +44,8 @@ func sessionFixture(t *testing.T) (*modtest.FakeSys, *state.Reader) {
 	fake.Spawn(modtest.Proc{PID: 5200, PPID: 1, RSS: 256 * 1024, Etimes: 30, CPU: 1.5, Args: "/home/dev/.local/bin/codex exec"})
 	fake.Spawn(modtest.Proc{PID: 5300, PPID: 1, RSS: 3072 * 1024, Etimes: 8 * 3600, CPU: 0.5, Args: "/home/dev/.cache/JetBrains/RemoteDev/dist/idea/bin/remote-dev-server.sh run"})
 	fake.Spawn(modtest.Proc{PID: 5400, PPID: 1, RSS: 4 * 1024, Etimes: 12, Args: "/usr/bin/vim notes.md"})
+	fake.Spawn(modtest.Proc{PID: 5500, PPID: 1, RSS: 400 * 1024, Etimes: 20, CPU: 2, Args: "/home/dev/.local/bin/cursor-agent --use-system-ca /home/dev/.local/share/cursor-agent/versions/2026.09.10-fd3934a/index.js"})
+	fake.Spawn(modtest.Proc{PID: 5600, PPID: 1, RSS: 300 * 1024, Etimes: 15, CPU: 1, Args: "opencode"})
 
 	return fake, reader
 }
@@ -52,8 +54,8 @@ func TestSessionsTellTheKindsApartAndIgnoreEverythingElse(t *testing.T) {
 	_, reader := sessionFixture(t)
 
 	sessions := reader.Sessions()
-	if len(sessions) != 3 {
-		t.Fatalf("got %d sessions, want the agent, the assistant and the IDE backend: %+v", len(sessions), sessions)
+	if len(sessions) != 5 {
+		t.Fatalf("got %d sessions, want the four agents and the IDE backend: %+v", len(sessions), sessions)
 	}
 
 	kinds := map[int]string{}
@@ -61,7 +63,7 @@ func TestSessionsTellTheKindsApartAndIgnoreEverythingElse(t *testing.T) {
 		kinds[session.PID] = session.Kind
 	}
 
-	for pid, want := range map[int]string{5100: "claude", 5200: "codex", 5300: "ide"} {
+	for pid, want := range map[int]string{5100: "claude", 5200: "codex", 5300: "ide", 5500: "cursor", 5600: "opencode"} {
 		if kinds[pid] != want {
 			t.Errorf("pid %d: got kind %q, want %q", pid, kinds[pid], want)
 		}

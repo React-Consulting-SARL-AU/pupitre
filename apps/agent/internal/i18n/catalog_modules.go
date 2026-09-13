@@ -18,6 +18,14 @@ var moduleCatalog = map[string]Message{
 		FR: "Codex installé pour dev, avec le contexte de la machine et les skills Pupitre. La connexion passe par l'URL affichée au premier lancement et votre abonnement.",
 		EN: "Codex installed for dev, with the machine's context and the Pupitre skills. Signing in goes through the URL printed on first run and your own subscription.",
 	},
+	"module.ai.cursor.summary": {
+		FR: "Le CLI de Cursor installé pour dev, avec les skills Pupitre. Cursor n'a pas de fichier de contexte global : vos règles restent dans votre compte. La connexion passe par l'URL affichée par cursor-agent login et votre abonnement Cursor.",
+		EN: "The Cursor CLI installed for dev, with the Pupitre skills. Cursor has no global context file: your rules stay in your account. Signing in goes through the URL cursor-agent login prints and your own Cursor subscription.",
+	},
+	"module.ai.opencode.summary": {
+		FR: "OpenCode installé pour dev, avec le contexte de la machine et les skills Pupitre. Open source et sans fournisseur imposé : opencode auth login branche un abonnement Claude, ChatGPT ou Copilot, ou la clé d'un des fournisseurs qu'il connaît.",
+		EN: "OpenCode installed for dev, with the machine's context and the Pupitre skills. Open source and tied to no provider: opencode auth login connects a Claude, ChatGPT or Copilot subscription, or the key of any provider it knows.",
+	},
 	"module.ai.hermes.always_on.help": {
 		FR: "Un service systemd garde Hermes en marche entre deux sessions.",
 		EN: "A systemd service keeps Hermes running between two sessions.",
@@ -657,6 +665,26 @@ var moduleCatalog = map[string]Message{
 	"modules.claude.missing_after_install": {
 		FR: "%s absent après l'installation de Claude Code %s",
 		EN: "%s missing after the install of Claude Code %s",
+	},
+	"modules.cursor.version_unreadable": {
+		FR: "cursor.com/install ne nomme aucune version de Cursor CLI",
+		EN: "cursor.com/install names no Cursor CLI version",
+	},
+	"modules.cursor.missing_after_install": {
+		FR: "cursor-agent %s est absent de %s après extraction",
+		EN: "cursor-agent %s is missing from %s after extraction",
+	},
+	"modules.opencode.version_unreadable": {
+		FR: "GitHub a répondu %q au lieu d'une version d'OpenCode",
+		EN: "GitHub answered %q instead of an OpenCode version",
+	},
+	"modules.opencode.asset_missing": {
+		FR: "aucun %s dans la version %s d'OpenCode",
+		EN: "no %s in OpenCode release %s",
+	},
+	"modules.opencode.missing_after_install": {
+		FR: "opencode %s est absent de %s après extraction",
+		EN: "opencode %s is missing from %s after extraction",
 	},
 	"modules.cloudflared.start_failed": {
 		FR: "%s : %s",

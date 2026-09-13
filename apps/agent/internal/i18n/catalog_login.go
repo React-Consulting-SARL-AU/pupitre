@@ -10,6 +10,14 @@ var loginCatalog = map[string]Message{
 		FR: "Ouvrez un terminal sur ce serveur et lancez codex login --device-auth : le code affiché s'entre sur la page qu'il indique.",
 		EN: "Open a terminal on this server and run codex login --device-auth: the code it prints goes on the page it names.",
 	},
+	"login.cursor.fix": {
+		FR: "Ouvrez un terminal sur ce serveur et lancez NO_OPEN_BROWSER=1 cursor-agent login : l'URL affichée ouvre la connexion dans votre navigateur.",
+		EN: "Open a terminal on this server and run NO_OPEN_BROWSER=1 cursor-agent login: the URL it prints opens the sign-in in your browser.",
+	},
+	"login.opencode.fix": {
+		FR: "Ouvrez un terminal sur ce serveur et lancez opencode auth login : choisissez le fournisseur, puis l'abonnement ou la clé qui va avec.",
+		EN: "Open a terminal on this server and run opencode auth login: pick the provider, then the subscription or the key that goes with it.",
+	},
 	"login.github.fix": {
 		FR: "Reconnectez le compte GitHub dans l'app puis appliquez la configuration de ce service ; ou lancez gh auth login dans un terminal sur ce serveur.",
 		EN: "Reconnect the GitHub account in the app and apply this service's configuration; or run gh auth login in a terminal on this server.",

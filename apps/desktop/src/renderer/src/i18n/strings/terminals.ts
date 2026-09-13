@@ -11,6 +11,10 @@ export const terminals = {
     "terminals.openingClaude":
       "Claude is attaching to its session on the server",
     "terminals.openingCodex": "Codex is attaching to its session on the server",
+    "terminals.openingCursor":
+      "Cursor is attaching to its session on the server",
+    "terminals.openingOpencode":
+      "OpenCode is attaching to its session on the server",
     "terminals.openingHermes":
       "Hermes is attaching to its session on the server",
     "terminals.openingShell": "Opening a shell on the server",
@@ -44,6 +48,8 @@ export const terminals = {
     "terminals.kind.shell": "Terminal",
     "terminals.kind.claude": "Claude",
     "terminals.kind.codex": "Codex",
+    "terminals.kind.cursor": "Cursor",
+    "terminals.kind.opencode": "OpenCode",
     "terminals.kind.hermes": "Hermes",
     "terminals.kind.numbered": "{title} {rank}",
   },
@@ -59,6 +65,9 @@ export const terminals = {
     "terminals.loginDismiss": "Ignorer la connexion",
     "terminals.openingClaude": "Claude s'attache à sa session sur le serveur",
     "terminals.openingCodex": "Codex s'attache à sa session sur le serveur",
+    "terminals.openingCursor": "Cursor s'attache à sa session sur le serveur",
+    "terminals.openingOpencode":
+      "OpenCode s'attache à sa session sur le serveur",
     "terminals.openingHermes": "Hermes s'attache à sa session sur le serveur",
     "terminals.openingShell": "Ouverture d'un shell sur le serveur",
     "terminals.opening": "Ouverture de la session",
@@ -92,6 +101,8 @@ export const terminals = {
     "terminals.kind.shell": "Terminal",
     "terminals.kind.claude": "Claude",
     "terminals.kind.codex": "Codex",
+    "terminals.kind.cursor": "Cursor",
+    "terminals.kind.opencode": "OpenCode",
     "terminals.kind.hermes": "Hermes",
     "terminals.kind.numbered": "{title} {rank}",
   },

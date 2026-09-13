@@ -1,6 +1,7 @@
 package catalog_test
 
 import (
+	"strings"
 	"testing"
 
 	"pupitre.studio/agent/internal/contract"
@@ -8,6 +9,7 @@ import (
 	_ "pupitre.studio/agent/internal/modules/ai"
 	_ "pupitre.studio/agent/internal/modules/core"
 	_ "pupitre.studio/agent/internal/modules/db"
+	"pupitre.studio/agent/internal/modules/download"
 	_ "pupitre.studio/agent/internal/modules/editor"
 	_ "pupitre.studio/agent/internal/modules/exposure"
 	"pupitre.studio/agent/internal/modules/modtest"
@@ -52,6 +54,20 @@ var served = map[string]func(fake *modtest.FakeSys){
 		checksum := modtest.Digest(modtest.Downloaded)
 		fake.Answer("claude-code-releases/latest", "2.1.263\n")
 		fake.Answer("/2.1.263/manifest.json", `{"platforms":{"linux-x64":{"checksum":"`+checksum+`"},"linux-arm64":{"checksum":"`+checksum+`"}}}`)
+	},
+	"ai.cursor": func(fake *modtest.FakeSys) {
+		fake.Answer("cursor.com/install", "DOWNLOAD_URL=\"https://downloads.cursor.com/lab/2026.09.10-fd3934a/${OS}/${ARCH}/agent-cli-package.tar.gz\"\n")
+		fake.Archives[download.Dir+"/cursor-agent-2026.09.10-fd3934a.tar.gz"] = []string{"cursor-agent", "node", "index.js"}
+	},
+	"ai.opencode": func(fake *modtest.FakeSys) {
+		checksum := modtest.Digest(modtest.Downloaded)
+		assets := ""
+		for _, name := range []string{"opencode-linux-x64.tar.gz", "opencode-linux-x64-baseline.tar.gz", "opencode-linux-arm64.tar.gz"} {
+			assets += `{"name":"` + name + `","digest":"sha256:` + checksum + `","browser_download_url":"https://github.com/anomalyco/opencode/releases/download/v1.18.30/` + name + `"},`
+		}
+		fake.Files["/proc/cpuinfo"] = []byte("flags : avx2\n")
+		fake.Answer("releases/latest", `{"tag_name":"v1.18.30","assets":[`+strings.TrimSuffix(assets, ",")+`]}`)
+		fake.Archives[download.Dir+"/opencode-1.18.30.tar.gz"] = []string{"opencode"}
 	},
 }
 

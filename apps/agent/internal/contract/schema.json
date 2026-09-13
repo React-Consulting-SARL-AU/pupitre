@@ -1196,6 +1196,8 @@
                 "enum": [
                   "claude",
                   "codex",
+                  "cursor",
+                  "opencode",
                   "hermes",
                   "ide",
                   "shell"
@@ -3196,6 +3198,8 @@
           "enum": [
             "claude",
             "codex",
+            "cursor",
+            "opencode",
             "hermes"
           ]
         },
@@ -3259,6 +3263,8 @@
                 "enum": [
                   "claude",
                   "codex",
+                  "cursor",
+                  "opencode",
                   "hermes",
                   "ide",
                   "shell"
@@ -5187,6 +5193,42 @@
         "modules"
       ]
     },
+    "ModuleIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "const": [
+        "core.system",
+        "core.hardening",
+        "runtime.node",
+        "runtime.java",
+        "runtime.python",
+        "runtime.go",
+        "runtime.php",
+        "runtime.ruby",
+        "runtime.docker",
+        "db.mysql",
+        "db.postgres",
+        "db.mongodb",
+        "db.redis",
+        "ai.claude",
+        "ai.codex",
+        "ai.cursor",
+        "ai.opencode",
+        "ai.hermes",
+        "ai.browser",
+        "editor.jetbrains",
+        "editor.vscode",
+        "editor.zed",
+        "exposure.cloudflare",
+        "exposure.caddy",
+        "tool.github",
+        "tool.1password",
+        "tool.neon",
+        "tool.wrangler"
+      ]
+    },
     "MandatoryModules": {
       "type": "array",
       "items": {
@@ -5235,6 +5277,8 @@
             "db.redis",
             "ai.claude",
             "ai.codex",
+            "ai.cursor",
+            "ai.opencode",
             "ai.hermes",
             "ai.browser",
             "editor.jetbrains",
@@ -5260,6 +5304,8 @@
           "choose_one": [
             "ai.claude",
             "ai.codex",
+            "ai.cursor",
+            "ai.opencode",
             "ai.hermes"
           ]
         }

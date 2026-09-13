@@ -10,10 +10,10 @@
 > {"id":3,"cmd":"agent.open","params":{"kind":"codex","project":"api"}}
 > {"id":4,"cmd":"agent.open","params":{"kind":"hermes","project":"web"}}
 > {"id":5,"cmd":"agent.open","params":{"kind":"claude","project":"absent"}}
-> {"id":6,"cmd":"agent.open","params":{"kind":"cursor","project":"web"}}
+> {"id":6,"cmd":"agent.open","params":{"kind":"aider","project":"web"}}
 < {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["agent.open","catalog","completions","diag","doctor","fs.list","fs.mkdir","fs.read","fs.remove","fs.rename","fs.stat","fs.write","hello","install","install.check","module.config","ping","process.kill","processes.list","project.add","project.branches","project.checkout","project.debug","project.detect","project.diff","project.down","project.git_status","project.install","project.list","project.logs","project.pull","project.remove","project.restart","project.sync","project.up","project.update","project.url","project.working_tree","reboot","report","service.logs","service.restart","service.secret","service.start","service.status","service.stop","sessions.clean","sessions.list","shots.clean","shots.list","shots.read","shots.url","snapshot","status","uninstall","upgrade"]}}
 < {"id":2,"ok":true,"result":{"command":"tmux new-session -A -s claude-web -c /home/dev/projects/web claude","session":"claude-web"}}
 < {"id":3,"ok":true,"result":{"command":"tmux new-session -A -s codex-api -c /home/dev/projects/api/server codex","session":"codex-api"}}
 < {"id":4,"ok":false,"error":{"code":"service_not_found","message":"Hermes Agent is not installed on this server","fix":"Install ai.hermes from the app's catalogue."}}
 < {"id":5,"ok":false,"error":{"code":"project_not_found","message":"unknown project: absent","fix":"Call project.list for the list of declared projects."}}
-< {"id":6,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/kind: must be one of claude, codex, hermes"}}
+< {"id":6,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/kind: must be one of claude, codex, cursor, opencode, hermes"}}

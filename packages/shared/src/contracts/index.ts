@@ -28,6 +28,7 @@ import {
   FieldSchema,
   MANDATORY_MODULE_IDS,
   ManifestSchema,
+  MODULE_IDS,
   PRESETS,
   PresetSchema,
 } from "../catalog"
@@ -96,6 +97,12 @@ export const CONTRACT_DEFINITIONS: Readonly<Record<string, z.ZodType>> = {
 }
 
 export const CONTRACT_CONSTANTS: Readonly<Record<string, JsonObject>> = {
+  /** The whole catalogue, so the agent's registry can be held to it. */
+  ModuleIds: {
+    type: "array",
+    items: { type: "string" },
+    const: MODULE_IDS,
+  },
   MandatoryModules: {
     type: "array",
     items: { type: "string" },

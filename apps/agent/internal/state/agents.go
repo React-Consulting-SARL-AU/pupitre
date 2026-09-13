@@ -11,14 +11,16 @@ import (
 	"pupitre.studio/agent/internal/registry"
 )
 
-// The three agent kinds of the protocol, each with the module that installs it and the program it leaves on PATH.
+// The agent kinds of the protocol, each with the module that installs it and the program it leaves on PATH.
 var agentPrograms = map[string]struct {
 	Module  string
 	Program string
 }{
-	"claude": {"ai.claude", "claude"},
-	"codex":  {"ai.codex", "codex"},
-	"hermes": {"ai.hermes", "hermes"},
+	"claude":   {"ai.claude", "claude"},
+	"codex":    {"ai.codex", "codex"},
+	"cursor":   {"ai.cursor", "cursor-agent"},
+	"opencode": {"ai.opencode", "opencode"},
+	"hermes":   {"ai.hermes", "hermes"},
 }
 
 type AgentSession struct {

@@ -176,6 +176,10 @@ func sessionKind(row process) (string, bool) {
 		return "claude", true
 	case row.program() == "codex":
 		return "codex", true
+	case row.program() == "cursor-agent", strings.Contains(row.Args, "cursor-agent/versions/"):
+		return "cursor", true
+	case row.program() == "opencode":
+		return "opencode", true
 	case row.program() == "hermes":
 		return "hermes", true
 	}

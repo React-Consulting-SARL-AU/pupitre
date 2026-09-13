@@ -12,7 +12,7 @@ import (
 const providerKey = "sk-staging-s3cret-de-test"
 
 var aiInstall = request{Cmd: "install", Params: map[string]any{
-	"modules":       []string{"ai.claude", "ai.codex", "ai.hermes", "ai.browser"},
+	"modules":       []string{"ai.claude", "ai.codex", "ai.cursor", "ai.opencode", "ai.hermes", "ai.browser"},
 	"secrets_stdin": true,
 	"config": map[string]any{
 		"core.system":    map[string]any{"timezone": "Europe/Paris", "git_name": "Pupitre Staging", "git_email": "staging@pupitre.studio"},
@@ -35,13 +35,13 @@ func installAgents(t *testing.T, host string) response {
 	return first
 }
 
-func TestTheThreeAgentsAnswerForDev(t *testing.T) {
+func TestTheFiveAgentsAnswerForDev(t *testing.T) {
 	host := stagingHost(t)
 	dev := "dev@" + address(host)
 
 	installAgents(t, host)
 
-	for program, want := range map[string]string{"claude": "", "codex": "", "hermes": ""} {
+	for program, want := range map[string]string{"claude": "", "codex": "", "cursor-agent": "", "opencode": "", "hermes": ""} {
 		out := ssh(t, dev, program+" --version")
 		if strings.TrimSpace(out) == "" || (want != "" && !strings.Contains(out, want)) {
 			t.Errorf("%s --version said nothing:\n%s", program, out)
@@ -55,9 +55,29 @@ func TestTheThreeAgentsAnswerForDev(t *testing.T) {
 		}
 	}
 
-	for _, path := range []string{"~/.claude/CLAUDE.md", "~/.codex/AGENTS.md"} {
+	for _, path := range []string{"~/.claude/CLAUDE.md", "~/.codex/AGENTS.md", "~/.config/opencode/AGENTS.md"} {
 		if out := ssh(t, dev, "cat "+path); !strings.Contains(out, "serveur Linux") {
 			t.Errorf("%s does not carry the machine context:\n%s", path, out)
+		}
+	}
+
+	if out := ssh(t, dev, "ls ~/.cursor/skills ~/.config/opencode/skills"); !strings.Contains(out, "server-dev") {
+		t.Errorf("Cursor and OpenCode read the skills from their own folder:\n%s", out)
+	}
+}
+
+// Neither CLI holds an account on a fresh machine, and each says so through its own check rather than by guessing.
+func TestCursorAndOpencodeReportSignedOut(t *testing.T) {
+	host := stagingHost(t)
+
+	installAgents(t, host)
+
+	for id, fix := range map[string]string{"ai.cursor": "cursor-agent login", "ai.opencode": "opencode auth login"} {
+		answered := agent(t, host, request{Cmd: "service.status", Params: map[string]any{"id": id}})[0]
+		status := decode[contract.ServiceStatus](t, answered.Result)
+
+		if status.Login == nil || status.Login.State != contract.LoginSignedOut || !strings.Contains(status.Login.Fix, fix) {
+			t.Errorf("%s: login = %+v", id, status.Login)
 		}
 	}
 }

@@ -36,6 +36,8 @@ export const MODULE_IDS = [
   "db.redis",
   "ai.claude",
   "ai.codex",
+  "ai.cursor",
+  "ai.opencode",
   "ai.hermes",
   "ai.browser",
   "editor.jetbrains",
@@ -276,7 +278,13 @@ export const PRESETS: readonly Preset[] = [
     id: "minimal",
     name: "Minimal",
     modules: [...MANDATORY_MODULE_IDS],
-    choose_one: ["ai.claude", "ai.codex", "ai.hermes"],
+    choose_one: [
+      "ai.claude",
+      "ai.codex",
+      "ai.cursor",
+      "ai.opencode",
+      "ai.hermes",
+    ],
   },
 ]
 
