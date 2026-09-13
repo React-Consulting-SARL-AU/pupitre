@@ -141,9 +141,9 @@ describe("MachineSchema, ServiceSchema, ProjectSchema, SessionSchema", () => {
     expect(ServiceSchema.safeParse({ ...service, state: "on" }).success).toBe(
       false
     )
-    expect(
-      SessionSchema.safeParse({ ...session, kind: "cursor" }).success
-    ).toBe(false)
+    expect(SessionSchema.safeParse({ ...session, kind: "aider" }).success).toBe(
+      false
+    )
   })
 
   it("requires an absolute path on a project", () => {

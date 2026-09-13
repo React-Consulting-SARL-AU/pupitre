@@ -159,6 +159,22 @@ export const CATALOG: CatalogGroup[] = [
         },
       },
       {
+        id: "ai.cursor",
+        name: { en: "Cursor CLI", fr: "Cursor CLI" },
+        detail: {
+          en: "Cursor’s own package under its version, the agent and cursor-agent commands, the Pupitre skills, on your Cursor subscription.",
+          fr: "Le paquet de Cursor sous sa version, les commandes agent et cursor-agent, les skills Pupitre, sur votre abonnement Cursor.",
+        },
+      },
+      {
+        id: "ai.opencode",
+        name: { en: "OpenCode", fr: "OpenCode" },
+        detail: {
+          en: "The open-source agent, its binary checked against the digest GitHub publishes, tied to no provider: a Claude, ChatGPT or Copilot subscription, or any key.",
+          fr: "L’agent open source, binaire vérifié par la somme que GitHub publie, sans fournisseur imposé : un abonnement Claude, ChatGPT ou Copilot, ou n’importe quelle clé.",
+        },
+      },
+      {
         id: "ai.hermes",
         name: { en: "Hermes Agent", fr: "Hermes Agent" },
         detail: {

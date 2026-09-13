@@ -18,6 +18,8 @@ export const SOURCES: readonly LogoSource[] = [
   { id: "db.postgres", slug: "postgresql", monochrome: false },
   { id: "db.mongodb", slug: "mongodb", monochrome: false },
   { id: "ai.claude", slug: "claudecode", monochrome: false },
+  { id: "ai.cursor", slug: "cursor", monochrome: true },
+  { id: "ai.opencode", slug: "opencode", monochrome: true },
   { id: "ai.browser", slug: "googlechrome", monochrome: false },
   { id: "editor.jetbrains", slug: "jetbrains", monochrome: true },
   { id: "editor.zed", slug: "zedindustries", monochrome: true },

@@ -18,6 +18,8 @@ export const PROJECT_TABS = [
   "shell",
   "claude",
   "codex",
+  "cursor",
+  "opencode",
   "hermes",
 ] as const;
 
@@ -27,6 +29,16 @@ export const TERMINAL_TABS: readonly ProjectTab[] = [
   "shell",
   "claude",
   "codex",
+  "cursor",
+  "opencode",
+  "hermes",
+];
+
+const AGENT_TABS: readonly ProjectTab[] = [
+  "claude",
+  "codex",
+  "cursor",
+  "opencode",
   "hermes",
 ];
 
@@ -45,10 +57,12 @@ export const TAB_LABEL: Record<ProjectTab, DictionaryKey> = {
   claude: "project.tab.claude",
   codex: "project.tab.codex",
   configuration: "project.tab.configuration",
+  cursor: "project.tab.cursor",
   diff: "project.tab.diff",
   files: "project.tab.files",
   hermes: "project.tab.hermes",
   logs: "project.tab.logs",
+  opencode: "project.tab.opencode",
   overview: "project.tab.overview",
   shell: "project.tab.shell",
 };
@@ -72,7 +86,7 @@ export function tabsFor({
       return repo;
     }
 
-    if (tab === "claude" || tab === "codex" || tab === "hermes") {
+    if (AGENT_TABS.includes(tab)) {
       return agents.includes(tab);
     }
 

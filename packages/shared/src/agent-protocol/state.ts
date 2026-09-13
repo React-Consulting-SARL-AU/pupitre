@@ -233,6 +233,8 @@ export type Project = z.infer<typeof ProjectSchema>
 export const SESSION_KINDS = [
   "claude",
   "codex",
+  "cursor",
+  "opencode",
   "hermes",
   "ide",
   "shell",

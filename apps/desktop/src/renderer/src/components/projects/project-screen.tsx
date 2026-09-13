@@ -201,7 +201,9 @@ export function ProjectScreen({
           sessions={{
             claude: group(terminals, name, "claude"),
             codex: group(terminals, name, "codex"),
+            cursor: group(terminals, name, "cursor"),
             hermes: group(terminals, name, "hermes"),
+            opencode: group(terminals, name, "opencode"),
             shell: group(terminals, name, "shell"),
           }}
           states={terminalStates}

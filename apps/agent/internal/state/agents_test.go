@@ -17,7 +17,7 @@ func agentReader(t *testing.T, fake *modtest.FakeSys, installed ...string) *stat
 	t.Helper()
 
 	registry := modules.NewRegistry()
-	for _, id := range []string{"ai.claude", "ai.codex", "ai.hermes"} {
+	for _, id := range []string{"ai.claude", "ai.codex", "ai.cursor", "ai.opencode", "ai.hermes"} {
 		registry.Register(modtest.Passing{ID: id})
 	}
 
@@ -38,12 +38,14 @@ func agentMachine(t *testing.T) *modtest.FakeSys {
 }
 
 func TestEachAgentOpensInTheProjectFolder(t *testing.T) {
-	reader := agentReader(t, agentMachine(t), "ai.claude", "ai.codex", "ai.hermes")
+	reader := agentReader(t, agentMachine(t), "ai.claude", "ai.codex", "ai.cursor", "ai.opencode", "ai.hermes")
 
 	for kind, want := range map[string]string{
-		"claude": "tmux new-session -A -s claude-web -c /home/dev/projects/web claude",
-		"codex":  "tmux new-session -A -s codex-web -c /home/dev/projects/web codex",
-		"hermes": "tmux new-session -A -s hermes-web -c /home/dev/projects/web hermes",
+		"claude":   "tmux new-session -A -s claude-web -c /home/dev/projects/web claude",
+		"codex":    "tmux new-session -A -s codex-web -c /home/dev/projects/web codex",
+		"hermes":   "tmux new-session -A -s hermes-web -c /home/dev/projects/web hermes",
+		"cursor":   "tmux new-session -A -s cursor-web -c /home/dev/projects/web cursor-agent",
+		"opencode": "tmux new-session -A -s opencode-web -c /home/dev/projects/web opencode",
 	} {
 		opened, err := reader.OpenAgent(kind, "web")
 		if err != nil {
@@ -79,7 +81,7 @@ func TestOpeningRefusesWhatIsNotThere(t *testing.T) {
 		kind, project string
 		code          contract.ErrorCode
 	}{
-		{"cursor", "web", contract.ErrorBadRequest},
+		{"aider", "web", contract.ErrorBadRequest},
 		{"claude", "absent", contract.ErrorProjectNotFound},
 		{"codex", "web", contract.ErrorServiceNotFound},
 	} {

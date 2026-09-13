@@ -195,7 +195,7 @@ Le `subdomain` d'une route accepte **plusieurs étiquettes séparées par des po
 
 | Commande | Paramètres |
 | --- | --- |
-| `agent.open` | `{ kind: "claude" \| "codex" \| "hermes", project }` : renvoie la commande tmux que l'app attache dans un terminal |
+| `agent.open` | `{ kind: "claude" \| "codex" \| "cursor" \| "opencode" \| "hermes", project }` : renvoie la commande tmux que l'app attache dans un terminal |
 | `sessions.list` | — : pid, durée, RAM, kind, commande |
 | `sessions.clean` | — |
 | `processes.list` | — |

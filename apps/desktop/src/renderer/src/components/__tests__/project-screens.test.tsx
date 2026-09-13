@@ -103,6 +103,14 @@ describe("les onglets d'un projet", () => {
     expect(tabsFor({ agents: [], repo: false })).not.toContain("diff");
   });
 
+  it("donnent un onglet à chaque agent que la machine tient", () => {
+    const tabs = tabsFor({ agents: ["cursor", "opencode"], repo: false });
+
+    expect(tabs).toContain("cursor");
+    expect(tabs).toContain("opencode");
+    expect(tabs).not.toContain("claude");
+  });
+
   it("portent le nombre de fichiers changés", () => {
     const html = renderToStaticMarkup(
       <ProjectTabBar

@@ -27,6 +27,7 @@ const (
 //go:embed content
 var content embed.FS
 
+// A target without a ContextFile has no global instructions of its own — Cursor keeps its user rules in the account — and reads as configured once its skills are down.
 type Target struct {
 	ConfigDir   string
 	ContextFile string
@@ -51,10 +52,33 @@ func Deploy(ctx *modules.Context, target Target) error {
 }
 
 func Configured(ctx *modules.Context, target Target) bool {
+	if target.ContextFile == "" {
+		return skillsPresent(ctx, target)
+	}
+
 	return file.Same(ctx, target.contextPath(), machineContext())
 }
 
+func skillsPresent(ctx *modules.Context, target Target) bool {
+	for _, name := range names("content/skills") {
+		body, err := content.ReadFile("content/skills/" + name)
+		if err != nil || !file.Same(ctx, skillPath(target.ConfigDir+"/skills", name), body) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func skillPath(dir, name string) string {
+	return dir + "/" + strings.TrimSuffix(name, skillsSuffix) + "/SKILL.md"
+}
+
 func Forget(ctx *modules.Context, target Target) error {
+	if target.ContextFile == "" {
+		return nil
+	}
+
 	return ctx.Step("remove-context", func() (modules.Outcome, error) {
 		removed, err := file.Remove(ctx, target.contextPath())
 		if err != nil {
@@ -70,6 +94,10 @@ func Forget(ctx *modules.Context, target Target) error {
 }
 
 func writeContext(ctx *modules.Context, target Target) error {
+	if target.ContextFile == "" {
+		return nil
+	}
+
 	return ctx.Step("write-context", func() (modules.Outcome, error) {
 		return place(ctx, target.contextPath(), machineContext())
 	})
@@ -91,7 +119,7 @@ func writeSkills(ctx *modules.Context, target Target) error {
 			}
 
 			for _, dir := range []string{SkillsDir, target.ConfigDir + "/skills"} {
-				written, err := place(ctx, dir+"/"+strings.TrimSuffix(name, skillsSuffix)+"/SKILL.md", body)
+				written, err := place(ctx, skillPath(dir, name), body)
 				if err != nil {
 					return modules.Failed, err
 				}

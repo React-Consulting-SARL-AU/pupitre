@@ -220,6 +220,8 @@ describe("module ids", () => {
       "db.redis",
       "ai.claude",
       "ai.codex",
+      "ai.cursor",
+      "ai.opencode",
       "ai.hermes",
       "ai.browser",
       "editor.jetbrains",
@@ -284,6 +286,8 @@ describe("presets", () => {
     expect(getPreset("minimal").choose_one).toEqual([
       "ai.claude",
       "ai.codex",
+      "ai.cursor",
+      "ai.opencode",
       "ai.hermes",
     ])
   })

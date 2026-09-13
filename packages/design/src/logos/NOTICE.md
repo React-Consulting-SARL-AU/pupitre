@@ -30,6 +30,8 @@ filigrane derrière du texte.
 | `db-postgres.svg` | `db.postgres` | PostgreSQL | https://wiki.postgresql.org/wiki/Logo | CC0-1.0 | 2026-09-04 |
 | `db-mongodb.svg` | `db.mongodb` | MongoDB | https://www.mongodb.com/pressroom | CC0-1.0 | 2026-09-04 |
 | `ai-claude.svg` | `ai.claude` | Claude Code | https://code.claude.com | CC0-1.0 | 2026-09-04 |
+| `ai-cursor.svg` | `ai.cursor` | Cursor | https://cursor.com/brand | CC0-1.0 | 2026-09-04 |
+| `ai-opencode.svg` | `ai.opencode` | OpenCode | https://github.com/anomalyco/opencode/blob/1251a870cb384543c150c4a72fb101b55eec971b/packages/identity/mark.svg | CC0-1.0 | 2026-09-04 |
 | `ai-browser.svg` | `ai.browser` | Google Chrome | https://www.google.com/chrome | CC0-1.0 | 2026-09-04 |
 | `editor-jetbrains.svg` | `editor.jetbrains` | JetBrains | https://www.jetbrains.com/company/brand/logos/ | CC0-1.0 | 2026-09-04 |
 | `editor-zed.svg` | `editor.zed` | Zed Industries | https://github.com/zed-industries/zed/blob/ccc939124fa2f366b3029926447fd0a0c46a85c7/assets/icons/logo_96.svg | CC0-1.0 | 2026-09-04 |

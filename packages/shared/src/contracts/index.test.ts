@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test"
 import { RESTRICTED_COMMANDS, UNENROLLED_COMMANDS } from "../agent-protocol"
-import { MANDATORY_MODULE_IDS, PRESETS } from "../catalog"
+import { MANDATORY_MODULE_IDS, MODULE_IDS, PRESETS } from "../catalog"
 import {
   buildContractSchema,
   CONTRACT_CONSTANTS,
@@ -83,6 +83,11 @@ describe("buildContractSchema", () => {
       type: "array",
       items: { type: "string" },
       const: [...MANDATORY_MODULE_IDS],
+    })
+    expect(schema.$defs.ModuleIds).toEqual({
+      type: "array",
+      items: { type: "string" },
+      const: [...MODULE_IDS],
     })
   })
 

@@ -2,7 +2,13 @@ import { z } from "zod"
 import { RequestIdSchema } from "./envelope"
 import { ProjectNameSchema, SessionSchema } from "./state"
 
-export const AGENT_KINDS = ["claude", "codex", "hermes"] as const
+export const AGENT_KINDS = [
+  "claude",
+  "codex",
+  "cursor",
+  "opencode",
+  "hermes",
+] as const
 
 export const AgentKindSchema = z.enum(AGENT_KINDS)
 

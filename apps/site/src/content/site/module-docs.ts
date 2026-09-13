@@ -416,6 +416,40 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       fr: "Votre propre abonnement, là encore, et la même connexion par une URL affichée au premier lancement. Claude Code et Codex peuvent cohabiter sur la même machine : ils voient les mêmes projets, les mêmes runtimes et les mêmes bases, parce qu’il n’y a qu’une machine. Dans l’app ChatGPT, Codex ajoute un projet distant depuis un alias d’hôte de votre ~/.ssh/config : un serveur Pupitre s’y branche par une entrée d’hôte.",
     },
   },
+  "ai.cursor": {
+    installs: [
+      {
+        en: "The Cursor CLI as Cursor’s own installer lays it down: the package for this architecture under ~/.local/share/cursor-agent/versions, and the agent and cursor-agent commands linked from ~/.local/bin. The version is the one the installer names at that moment; nothing in the installer runs.",
+        fr: "Le CLI de Cursor tel que l’installeur de Cursor le pose : le paquet de cette architecture sous ~/.local/share/cursor-agent/versions, et les commandes agent et cursor-agent liées depuis ~/.local/bin. La version est celle que l’installeur nomme à ce moment ; rien de l’installeur ne s’exécute.",
+      },
+      {
+        en: "The Pupitre skills in ~/.cursor/skills and ~/.agents/skills, both of which Cursor reads. No machine context file: Cursor keeps its user rules in your account rather than on disk, so the skills carry what the machine has to say.",
+        fr: "Les skills Pupitre dans ~/.cursor/skills et ~/.agents/skills, que Cursor lit tous deux. Pas de fichier de contexte machine : Cursor garde vos règles dans votre compte plutôt que sur le disque, et ce sont les skills qui portent ce que la machine a à dire.",
+      },
+    ],
+    asks: [],
+    notes: {
+      en: "Your own Cursor subscription. Sign in from a terminal on the server with NO_OPEN_BROWSER=1 cursor-agent login: the URL it prints opens in your browser, and the app turns it into a button when Cursor prints it in one of its terminals. Cursor publishes no checksum beside its package, so the transport is the only guarantee, and the download stays root’s until it is in place. Uninstalling takes back the package and the links; ~/.cursor, with your credentials and conversations, stays.",
+      fr: "Votre propre abonnement Cursor. La connexion se fait depuis un terminal sur le serveur avec NO_OPEN_BROWSER=1 cursor-agent login : l’URL affichée s’ouvre dans votre navigateur, et l’app en fait un bouton quand Cursor l’imprime dans un de ses terminaux. Cursor ne publie aucune somme de contrôle à côté de son paquet : le transport est la seule garantie, et le téléchargement reste à root jusqu’à sa mise en place. La désinstallation reprend le paquet et les liens ; ~/.cursor, avec vos identifiants et vos conversations, reste.",
+    },
+  },
+  "ai.opencode": {
+    installs: [
+      {
+        en: "OpenCode as the static binary of its GitHub release, for this architecture — the baseline build on an x64 machine without AVX2 — refused unless its SHA-256 is the one GitHub publishes for the asset, then placed in ~/.local/bin.",
+        fr: "OpenCode sous la forme du binaire statique de sa release GitHub, pour cette architecture — la variante baseline sur une machine x64 sans AVX2 — refusé si sa somme SHA-256 n’est pas celle que GitHub publie pour l’artefact, puis posé dans ~/.local/bin.",
+      },
+      {
+        en: "The machine context in ~/.config/opencode/AGENTS.md and the Pupitre skills in ~/.config/opencode/skills and ~/.agents/skills.",
+        fr: "Le contexte machine dans ~/.config/opencode/AGENTS.md et les skills Pupitre dans ~/.config/opencode/skills et ~/.agents/skills.",
+      },
+    ],
+    asks: [],
+    notes: {
+      en: "OpenCode is open source and tied to no provider: it starts on the free models it ships with, and opencode auth login connects the account you already pay for — Claude, ChatGPT, GitHub Copilot — or the key of any of the providers it knows. The dashboard names the providers it holds a credential for. Uninstalling takes back the binary and the context this module wrote; ~/.local/share/opencode, with your credentials and sessions, stays.",
+      fr: "OpenCode est open source et n’impose aucun fournisseur : il démarre sur les modèles gratuits qu’il embarque, et opencode auth login branche le compte que vous payez déjà — Claude, ChatGPT, GitHub Copilot — ou la clé d’un des fournisseurs qu’il connaît. Le tableau de bord nomme les fournisseurs pour lesquels il tient un identifiant. La désinstallation reprend le binaire et le contexte que ce module a écrit ; ~/.local/share/opencode, avec vos identifiants et vos sessions, reste.",
+    },
+  },
   "ai.hermes": {
     installs: [
       {

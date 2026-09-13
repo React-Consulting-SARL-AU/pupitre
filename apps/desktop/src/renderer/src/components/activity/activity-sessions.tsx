@@ -35,7 +35,9 @@ const KINDS: Record<
 > = {
   claude: { icon: Sparkles, label: "activity.kind.agent" },
   codex: { icon: Sparkles, label: "activity.kind.agent" },
+  cursor: { icon: Sparkles, label: "activity.kind.agent" },
   hermes: { icon: Sparkles, label: "activity.kind.agent" },
+  opencode: { icon: Sparkles, label: "activity.kind.agent" },
   ide: { icon: Braces, label: "activity.kind.ide" },
   shell: { icon: SquareTerminal, label: "activity.kind.shell" },
 };

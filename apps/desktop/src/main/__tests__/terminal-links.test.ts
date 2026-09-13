@@ -107,6 +107,13 @@ describe("l'adresse de connexion d'un agent", () => {
     });
   });
 
+  it("reconnaît la connexion de Cursor", () => {
+    const cursor =
+      "Open a browser and navigate to this link: https://cursor.com/loginDeepControl?challenge=abc&uuid=67d2eb92&mode=login&redirectTarget=cli";
+
+    expect(loginAddress([cursor], 200)).toMatchObject({ host: "cursor.com" });
+  });
+
   it("n'en fait pas une d'une adresse quelconque", () => {
     expect(loginAddress(["https://exemple.test/connexion"], 80)).toBeNull();
     expect(
