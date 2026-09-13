@@ -35,7 +35,7 @@ describe("AgentOpenParamsSchema and AgentOpenResultSchema", () => {
 
   it("reject an unknown agent", () => {
     expect(
-      AgentOpenParamsSchema.safeParse({ kind: "copilot", project: "x" }).success
+      AgentOpenParamsSchema.safeParse({ kind: "aider", project: "x" }).success
     ).toBe(false)
   })
 })

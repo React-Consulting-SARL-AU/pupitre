@@ -16,4 +16,4 @@
 < {"id":3,"ok":true,"result":{"command":"tmux new-session -A -s codex-api -c /home/dev/projects/api/server codex","session":"codex-api"}}
 < {"id":4,"ok":false,"error":{"code":"service_not_found","message":"Hermes Agent is not installed on this server","fix":"Install ai.hermes from the app's catalogue."}}
 < {"id":5,"ok":false,"error":{"code":"project_not_found","message":"unknown project: absent","fix":"Call project.list for the list of declared projects."}}
-< {"id":6,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/kind: must be one of claude, codex, cursor, opencode, hermes"}}
+< {"id":6,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/kind: must be one of claude, codex, cursor, gemini, copilot, opencode, hermes"}}

@@ -10,6 +10,8 @@ export type TerminalAgent =
   | "claude"
   | "codex"
   | "cursor"
+  | "gemini"
+  | "copilot"
   | "opencode"
   | "hermes";
 
@@ -20,6 +22,8 @@ export const TERMINAL_KINDS: readonly TerminalKind[] = [
   "claude",
   "codex",
   "cursor",
+  "gemini",
+  "copilot",
   "opencode",
   "hermes",
 ];

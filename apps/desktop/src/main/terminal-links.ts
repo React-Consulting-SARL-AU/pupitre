@@ -7,6 +7,7 @@ const LOGIN_HOSTS = [
   "chatgpt.com",
   "nousresearch.com",
   "cursor.com",
+  "google.com",
   "opencode.ai",
   "neon.tech",
   "github.com",

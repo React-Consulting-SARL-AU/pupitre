@@ -18,6 +18,8 @@ const AGENT_MODULES: Record<string, TerminalAgent> = {
   "ai.claude": "claude",
   "ai.codex": "codex",
   "ai.cursor": "cursor",
+  "ai.gemini": "gemini",
+  "ai.copilot": "copilot",
   "ai.opencode": "opencode",
   "ai.hermes": "hermes",
 };

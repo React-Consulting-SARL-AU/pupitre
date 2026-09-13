@@ -1,6 +1,6 @@
 ---
 title: AI agents
-description: Claude Code, Codex, Cursor, OpenCode and Hermes on the server — how they are installed, what context they get, and where you sign in.
+description: Claude Code, Codex, Cursor, Gemini, Copilot, OpenCode and Hermes on the server — how they are installed, what context they get, and where you sign in.
 locale: en
 section: daily
 sectionOrder: 2
@@ -11,13 +11,13 @@ Pupitre installs the agents; you bring the subscriptions. Nothing is resold, and
 
 ## What gets installed
 
-`ai.claude` puts down the native binary Anthropic publishes, for this architecture, and refuses it unless its checksum matches the one the release manifest announces. `ai.codex` goes through `mise`, which pins and upgrades Codex the way it does a runtime and drops it on the path of every shell. `ai.cursor` puts down the Cursor CLI package the way Cursor's own installer does — under its version in `~/.local/share/cursor-agent`, the `agent` and `cursor-agent` commands linked from `~/.local/bin` — without running that installer. `ai.opencode` puts down the static binary of OpenCode's GitHub release and refuses it unless its digest is the one GitHub publishes for the asset. `ai.hermes` runs the Nous Research agent on the Python runtime, with the model providers you configure.
+`ai.claude` puts down the native binary Anthropic publishes, for this architecture, and refuses it unless its checksum matches the one the release manifest announces. `ai.codex` goes through `mise`, which pins and upgrades Codex the way it does a runtime and drops it on the path of every shell. `ai.cursor` puts down the Cursor CLI package the way Cursor's own installer does — under its version in `~/.local/share/cursor-agent`, the `agent` and `cursor-agent` commands linked from `~/.local/bin` — without running that installer. `ai.gemini` and `ai.copilot` go through `mise` like Codex, for Gemini CLI and the GitHub Copilot CLI. `ai.opencode` puts down the static binary of OpenCode's GitHub release and refuses it unless its digest is the one GitHub publishes for the asset. `ai.hermes` runs the Nous Research agent on the Python runtime, with the model providers you configure.
 
-All five land in the `dev` account, on the same machine, and can live side by side.
+All seven land in the `dev` account, on the same machine, and can live side by side.
 
 ## Signing in
 
-`ai.claude`, `ai.codex` and `ai.cursor` sign in the way they do anywhere: the tool prints a URL, you open it in your browser, you approve. The app shows the terminal where that happens, so the flow is the one you already know — it just happens on the server, and the credentials stay there. For Cursor the command is `NO_OPEN_BROWSER=1 cursor-agent login`; without it the CLI tries to open a browser the server does not have.
+`ai.claude`, `ai.codex` and `ai.cursor` sign in the way they do anywhere: the tool prints a URL, you open it in your browser, you approve. The app shows the terminal where that happens, so the flow is the one you already know — it just happens on the server, and the credentials stay there. For Cursor the command is `NO_OPEN_BROWSER=1 cursor-agent login`; without it the CLI tries to open a browser the server does not have. For Gemini it is `NO_BROWSER=true gemini`, which prints the URL and takes back the code you paste. `ai.copilot` goes through `copilot login` and the device code, on your Copilot subscription. The free tier of a Google account is enough for Gemini: it is the agent to try before paying for anything.
 
 `ai.opencode` is tied to no provider: it starts on the free models it ships with, and `opencode auth login` connects a Claude, ChatGPT or GitHub Copilot subscription, or the key of any provider it knows. The dashboard names the ones it holds a credential for.
 
@@ -25,7 +25,7 @@ All five land in the `dev` account, on the same machine, and can live side by si
 
 ## The context they read
 
-Every agent module writes the same machine context, under the name its tool reads — `CLAUDE.md` for Claude Code, `AGENTS.md` for Codex, OpenCode and Hermes. Cursor is the exception: it has no global rules file, your rules live in your account, and the skills carry what the machine has to say. It says the plain things an agent working here needs to know: that this is a Linux server and not a workstation, where the projects live, that servers are driven with the `dev` command rather than started by hand, and that secrets come from the machine's own secret store rather than from a committed file.
+Every agent module writes the same machine context, under the name its tool reads — `CLAUDE.md` for Claude Code, `GEMINI.md` for Gemini, `copilot-instructions.md` for Copilot, `AGENTS.md` for Codex, OpenCode and Hermes. Cursor is the exception: it has no global rules file, your rules live in your account, and the skills carry what the machine has to say. It says the plain things an agent working here needs to know: that this is a Linux server and not a workstation, where the projects live, that servers are driven with the `dev` command rather than started by hand, and that secrets come from the machine's own secret store rather than from a committed file.
 
 Beside it come the Pupitre skills, in `~/.agents/skills` and in the tool's own folder:
 

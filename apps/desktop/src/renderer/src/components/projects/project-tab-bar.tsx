@@ -2,7 +2,9 @@ import { AgentDot } from "@renderer/components/ui/agent-dot";
 import {
   ClaudeIcon,
   CodexIcon,
+  CopilotIcon,
   CursorIcon,
+  GeminiIcon,
   type IconComponent,
   OpencodeIcon,
 } from "@renderer/components/ui/agent-icons";
@@ -25,9 +27,11 @@ const ICONS: Record<ProjectTab, IconComponent> = {
   claude: ClaudeIcon,
   codex: CodexIcon,
   configuration: Settings2,
+  copilot: CopilotIcon,
   cursor: CursorIcon,
   diff: FileDiff,
   files: Files,
+  gemini: GeminiIcon,
   hermes: Bot,
   logs: ScrollText,
   opencode: OpencodeIcon,

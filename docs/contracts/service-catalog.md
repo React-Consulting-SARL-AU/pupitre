@@ -1,6 +1,6 @@
 # Catalogue de services
 
-Le catalogue est une **bibliothèque des stacks les plus utilisées**, choisies parce qu'elles s'installent et se gèrent proprement. Il est complet : vingt-huit modules, tous livrés. Il ne cherche pas l'exhaustivité : ce qui n'y est pas, le client l'installe lui-même sur sa machine, et Pupitre ne s'y oppose pas. La sonde signale ce qu'elle trouve, les modules ne touchent qu'à ce qu'ils ont installé.
+Le catalogue est une **bibliothèque des stacks les plus utilisées**, choisies parce qu'elles s'installent et se gèrent proprement. Il est complet : trente modules, tous livrés. Il ne cherche pas l'exhaustivité : ce qui n'y est pas, le client l'installe lui-même sur sa machine, et Pupitre ne s'y oppose pas. La sonde signale ce qu'elle trouve, les modules ne touchent qu'à ce qu'ils ont installé.
 
 Un service est un **module** de l'agent : une unité Go qui sait s'installer, se vérifier, se configurer, se mettre à jour, se désinstaller et rapporter son état, sur Ubuntu 22.04 et 24.04, amd64 et arm64. L'app ne connaît aucun service par son nom : elle affiche les manifestes que l'agent déclare.
 
@@ -102,6 +102,8 @@ Un module dont le CLI se connecte à un compte implémente en plus `Login` : il 
 | `ai.claude` | `claude auth status` | l'email, sinon le nom de l'organisation |
 | `ai.codex` | `codex login status` | l'email du jeton d'identité que la connexion ChatGPT a laissé ; vide pour une clé d'API |
 | `ai.cursor` | `cursor-agent status --format json` | l'email que Cursor rend ; vide quand il ne le donne pas |
+| `ai.gemini` | — | Gemini CLI n'a pas de commande qui réponde sans dépenser une requête : rien n'est rendu |
+| `ai.copilot` | — | même chose pour le CLI de Copilot |
 | `ai.opencode` | `opencode auth list` | les fournisseurs qui tiennent une clé ou un jeton, séparés par des virgules ; déconnecté quand il n'y en a aucun — OpenCode marche alors sur ses modèles gratuits |
 | `tool.github` | `gh auth status --active --json hosts` | le login |
 | `tool.1password` | `op whoami --format=json` | l'email, sinon l'adresse du compte — un compte de service n'en a pas |
@@ -146,6 +148,8 @@ Un module dont le CLI se connecte à un compte implémente en plus `Login` : il 
 | `ai.claude` | Claude Code, connexion par l'URL affichée dans le terminal de l'app, contexte du projet, skills Pupitre (capture, branche, PR, ship) | — |
 | `ai.codex` | Codex, idem | — |
 | `ai.cursor` | Cursor CLI (`cursor-agent`), archive de Cursor sous `~/.local/share/cursor-agent/versions`, liens `agent` et `cursor-agent` dans `~/.local/bin`, skills Pupitre dans `~/.cursor/skills` ; pas de contexte machine, Cursor n'a pas de fichier de règles global | — |
+| `ai.gemini` | Gemini CLI via mise, contexte machine dans `~/.gemini/GEMINI.md`, skills Pupitre dans `~/.gemini/skills` | — |
+| `ai.copilot` | GitHub Copilot CLI via mise, contexte machine dans `~/.copilot/copilot-instructions.md`, skills Pupitre dans `~/.copilot/skills` | — |
 | `ai.opencode` | OpenCode, binaire de la release GitHub vérifié par la somme que GitHub publie, `~/.local/bin/opencode`, contexte machine dans `~/.config/opencode/AGENTS.md`, skills Pupitre | — |
 | `ai.hermes` | Hermes Agent (Nous Research) via Python, configuration des fournisseurs de modèles, service systemd si toujours actif | `providers` (list de secrets), `always_on` (boolean) |
 | `ai.browser` | Chrome headless, dépendances Playwright, commande de capture qui range les images dans la galerie | — |

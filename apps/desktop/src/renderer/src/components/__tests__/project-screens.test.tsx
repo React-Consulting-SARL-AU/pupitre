@@ -104,9 +104,14 @@ describe("les onglets d'un projet", () => {
   });
 
   it("donnent un onglet à chaque agent que la machine tient", () => {
-    const tabs = tabsFor({ agents: ["cursor", "opencode"], repo: false });
+    const tabs = tabsFor({
+      agents: ["cursor", "gemini", "copilot", "opencode"],
+      repo: false,
+    });
 
     expect(tabs).toContain("cursor");
+    expect(tabs).toContain("gemini");
+    expect(tabs).toContain("copilot");
     expect(tabs).toContain("opencode");
     expect(tabs).not.toContain("claude");
   });

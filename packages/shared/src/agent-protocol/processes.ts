@@ -6,6 +6,8 @@ export const AGENT_KINDS = [
   "claude",
   "codex",
   "cursor",
+  "gemini",
+  "copilot",
   "opencode",
   "hermes",
 ] as const

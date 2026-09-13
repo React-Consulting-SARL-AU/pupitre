@@ -31,6 +31,8 @@ filigrane derrière du texte.
 | `db-mongodb.svg` | `db.mongodb` | MongoDB | https://www.mongodb.com/pressroom | CC0-1.0 | 2026-09-04 |
 | `ai-claude.svg` | `ai.claude` | Claude Code | https://code.claude.com | CC0-1.0 | 2026-09-04 |
 | `ai-cursor.svg` | `ai.cursor` | Cursor | https://cursor.com/brand | CC0-1.0 | 2026-09-04 |
+| `ai-gemini.svg` | `ai.gemini` | Google Gemini | https://gemini.google.com | CC0-1.0 | 2026-09-04 |
+| `ai-copilot.svg` | `ai.copilot` | GitHub Copilot | https://primer.style/foundations/icons/copilot-24 | CC0-1.0 | 2026-09-04 |
 | `ai-opencode.svg` | `ai.opencode` | OpenCode | https://github.com/anomalyco/opencode/blob/1251a870cb384543c150c4a72fb101b55eec971b/packages/identity/mark.svg | CC0-1.0 | 2026-09-04 |
 | `ai-browser.svg` | `ai.browser` | Google Chrome | https://www.google.com/chrome | CC0-1.0 | 2026-09-04 |
 | `editor-jetbrains.svg` | `editor.jetbrains` | JetBrains | https://www.jetbrains.com/company/brand/logos/ | CC0-1.0 | 2026-09-04 |

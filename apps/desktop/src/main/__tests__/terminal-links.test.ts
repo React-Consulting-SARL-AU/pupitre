@@ -114,6 +114,15 @@ describe("l'adresse de connexion d'un agent", () => {
     expect(loginAddress([cursor], 200)).toMatchObject({ host: "cursor.com" });
   });
 
+  it("reconnaît la connexion de Gemini par son compte Google", () => {
+    const gemini =
+      "Please visit the following URL to authorize the application:\n\nhttps://accounts.google.com/o/oauth2/v2/auth?client_id=abc&redirect_uri=https%3A%2F%2Fcodeassist.google.com%2Fauthcode&scope=x&state=y";
+
+    expect(loginAddress([gemini], 200)).toMatchObject({
+      host: "accounts.google.com",
+    });
+  });
+
   it("n'en fait pas une d'une adresse quelconque", () => {
     expect(loginAddress(["https://exemple.test/connexion"], 80)).toBeNull();
     expect(

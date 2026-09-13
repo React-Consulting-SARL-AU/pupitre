@@ -167,6 +167,22 @@ export const CATALOG: CatalogGroup[] = [
         },
       },
       {
+        id: "ai.gemini",
+        name: { en: "Gemini CLI", fr: "Gemini CLI" },
+        detail: {
+          en: "Google’s open-source agent through mise, same machine context and same skills, on your Google account — the free tier is enough — or an API key.",
+          fr: "L’agent open source de Google posé par mise, même contexte machine et mêmes skills, sur votre compte Google — le niveau gratuit suffit — ou une clé d’API.",
+        },
+      },
+      {
+        id: "ai.copilot",
+        name: { en: "GitHub Copilot CLI", fr: "GitHub Copilot CLI" },
+        detail: {
+          en: "Copilot’s terminal agent through mise, same machine context and same skills, on your Copilot subscription.",
+          fr: "L’agent de terminal de Copilot posé par mise, même contexte machine et mêmes skills, sur votre abonnement Copilot.",
+        },
+      },
+      {
         id: "ai.opencode",
         name: { en: "OpenCode", fr: "OpenCode" },
         detail: {

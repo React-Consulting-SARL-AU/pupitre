@@ -19,6 +19,8 @@ var agentPrograms = map[string]struct {
 	"claude":   {"ai.claude", "claude"},
 	"codex":    {"ai.codex", "codex"},
 	"cursor":   {"ai.cursor", "cursor-agent"},
+	"gemini":   {"ai.gemini", "gemini"},
+	"copilot":  {"ai.copilot", "copilot"},
 	"opencode": {"ai.opencode", "opencode"},
 	"hermes":   {"ai.hermes", "hermes"},
 }

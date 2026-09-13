@@ -180,6 +180,10 @@ func sessionKind(row process) (string, bool) {
 		return "cursor", true
 	case row.program() == "opencode":
 		return "opencode", true
+	case row.program() == "gemini", strings.Contains(row.Args, "gemini-cli"):
+		return "gemini", true
+	case row.program() == "copilot":
+		return "copilot", true
 	case row.program() == "hermes":
 		return "hermes", true
 	}

@@ -19,6 +19,8 @@ export const PROJECT_TABS = [
   "claude",
   "codex",
   "cursor",
+  "gemini",
+  "copilot",
   "opencode",
   "hermes",
 ] as const;
@@ -30,6 +32,8 @@ export const TERMINAL_TABS: readonly ProjectTab[] = [
   "claude",
   "codex",
   "cursor",
+  "gemini",
+  "copilot",
   "opencode",
   "hermes",
 ];
@@ -38,6 +42,8 @@ const AGENT_TABS: readonly ProjectTab[] = [
   "claude",
   "codex",
   "cursor",
+  "gemini",
+  "copilot",
   "opencode",
   "hermes",
 ];
@@ -57,9 +63,11 @@ export const TAB_LABEL: Record<ProjectTab, DictionaryKey> = {
   claude: "project.tab.claude",
   codex: "project.tab.codex",
   configuration: "project.tab.configuration",
+  copilot: "project.tab.copilot",
   cursor: "project.tab.cursor",
   diff: "project.tab.diff",
   files: "project.tab.files",
+  gemini: "project.tab.gemini",
   hermes: "project.tab.hermes",
   logs: "project.tab.logs",
   opencode: "project.tab.opencode",

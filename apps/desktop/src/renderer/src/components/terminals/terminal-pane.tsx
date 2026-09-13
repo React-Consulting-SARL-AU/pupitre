@@ -49,7 +49,9 @@ interface Props {
 const OPENING_KEY: Record<TerminalKind, DictionaryKey> = {
   claude: "terminals.openingClaude",
   codex: "terminals.openingCodex",
+  copilot: "terminals.openingCopilot",
   cursor: "terminals.openingCursor",
+  gemini: "terminals.openingGemini",
   hermes: "terminals.openingHermes",
   opencode: "terminals.openingOpencode",
   shell: "terminals.openingShell",
