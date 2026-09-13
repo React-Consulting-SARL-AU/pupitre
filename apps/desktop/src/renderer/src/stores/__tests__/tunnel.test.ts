@@ -49,7 +49,7 @@ describe("le tunnel de l'agent", () => {
     expect(tunnel.status === "ready" && tunnel.tunnel.routes).toHaveLength(1);
   });
 
-  it("redemande son état après chaque geste, et écrit les noms des routes", async () => {
+  it("redemande son état après la synchronisation, et écrit les noms des routes", async () => {
     const sent: string[] = [];
     const named: string[] = [];
 
@@ -70,9 +70,8 @@ describe("le tunnel de l'agent", () => {
     });
 
     await useTunnel.getState().sync(SERVER);
-    await useTunnel.getState().restart(SERVER);
 
-    expect(sent).toEqual(["tunnel.sync", "tunnel.restart"]);
+    expect(sent).toEqual(["tunnel.sync"]);
     expect(named).toEqual(["flymate.example.org"]);
     expect(useTunnel.getState().busy).toBeNull();
     expect(useTunnel.getState().problem).toBeNull();

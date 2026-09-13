@@ -43,8 +43,18 @@ export type ConnectionCheck =
   | { status: "answered"; account: ConnectionAccount }
   | { status: "unaskable" };
 
+/**
+ * What giving a token leads to. A token that opens several accounts is not
+ * connected yet: the app acts on one — its zones, its tunnel, its deployments —
+ * and which one is the client's to say, not the first the provider listed.
+ */
+export type ConnectionOutcome =
+  | { status: "connected"; state: ConnectionsState }
+  | { status: "choose"; accounts: ConnectionAccount[] };
+
 export const CONNECTION_KINDS = [
   "cloudflare",
+  "wrangler",
   "github",
   "1password",
   "neon",
@@ -55,4 +65,5 @@ export const NO_CONNECTIONS: ConnectionsState = {
   cloudflare: { status: "absent" },
   github: { status: "absent" },
   neon: { status: "absent" },
+  wrangler: { status: "absent" },
 };

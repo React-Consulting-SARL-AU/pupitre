@@ -235,10 +235,10 @@ export function FileList({
 
             <Button
               disabled={listing.status !== "read"}
+              hint={t("transfers.upload.title")}
               icon={Upload}
               onClick={() => onUpload(path)}
               size="sm"
-              title={t("transfers.upload.title")}
             >
               {t("transfers.upload")}
             </Button>

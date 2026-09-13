@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { useCatalog } from "../../stores/catalog";
 import { ConnectionCard } from "../connections/connection-card";
 import { descriptorOf } from "../connections/connection-descriptors";
-import { Field, fieldControlClass } from "../ui/field";
+import { ConfigZoneField } from "./config-zone-field";
 
 /**
  * The account a module publishes through, asked where the module is configured.
@@ -58,32 +58,12 @@ export function ConfigConnectionBlock({ module }: { module: Manifest }) {
       <ConnectionCard compact connection={connection} />
 
       {picksZone && zones.length > 0 ? (
-        <Field
-          help={t("connections.zone.help")}
-          label={t("connections.zone.label")}
-          name={`${module.id}.zone`}
-        >
-          <select
-            className={fieldControlClass}
-            id={`${module.id}.zone`}
-            onChange={(event) =>
-              setValue(module.id, "domain", event.target.value)
-            }
-            value={
-              typeof domain === "string" &&
-              zones.some((zone) => domain === zone.name)
-                ? domain
-                : ""
-            }
-          >
-            <option value="">{t("connections.zone.pick")}</option>
-            {zones.map((zone) => (
-              <option key={zone.id} value={zone.name}>
-                {zone.name}
-              </option>
-            ))}
-          </select>
-        </Field>
+        <ConfigZoneField
+          moduleId={module.id}
+          onChange={(picked) => setValue(module.id, "domain", picked)}
+          value={domain}
+          zones={zones}
+        />
       ) : null}
 
       {picksZone && zones.length === 0 ? (

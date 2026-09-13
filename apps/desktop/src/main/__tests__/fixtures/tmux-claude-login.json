@@ -1,0 +1,5 @@
+{
+  "cols": 150,
+  "rows": 40,
+  "data": "\u001b[18;1H\u001b[K\u001b[2B\u001b[K\r\n\u001b[K\r\n\u001b[K\r\n\u001b[K\r\n\u001b[K\u001b[6A\u001b[C\u001b[38;5;246mBrowser\u001b[Cdidn't\u001b[Copen?\u001b[CUse\u001b[Cthe\u001b[Curl\u001b[Cbelow\u001b[Cto\u001b[Csign\u001b[Cin\u001b[C(c\u001b[Cto\u001b[Ccopy)\u001b[20;1Hhttps://claude.com/cai/oauth/authorize?code=true&client_id=client-client-client-client-client-c&response_type=code&redirect_uri=https%3A%2F%2Fplatform\u001b[21;1H.claude.com%2Foauth%2Fcode%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile+user%3Ainference+user%3Asessions%3Aclaude_code+user%3Amcp_servers+user\u001b[22;1H%3Afile_upload&code_challenge=challenge-challenge-challenge-challenge-cha&code_challenge_method=S256&state=state-state-state-state-state-state-state-s\u001b[25;2H\u001b[39mPaste\u001b[Ccode\u001b[Chere\u001b[Cif\u001b[Cprompted\u001b[C>\r\n"
+}

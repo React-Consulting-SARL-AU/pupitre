@@ -88,11 +88,12 @@ test.describe("nouveau projet", () => {
         });
 
         answer("project:on", (cmd) => {
-          if (cmd === "project.sync") {
-            return {
-              ok: true,
-              result: { installed: true, pulled: true, state: "stopped" },
-            };
+          if (cmd === "project.pull") {
+            return { ok: true, result: { pulled: true, state: "stopped" } };
+          }
+
+          if (cmd === "project.install") {
+            return { ok: true, result: { command: "bun install", done: true } };
           }
 
           if (cmd === "project.url") {
@@ -245,8 +246,11 @@ test.describe("nouveau projet", () => {
         page.locator('[data-phase="add"][data-status="ok"]')
       ).toBeVisible();
       await expect(
-        page.locator('[data-phase="install"][data-status="skip"]')
+        page.locator('[data-phase="sources"][data-status="ok"]')
       ).toBeVisible();
+      await expect(
+        page.locator('[data-phase="install"][data-status="ok"]')
+      ).toContainText("bun install");
       await expect(
         page.locator('[data-phase="publish"][data-status="ok"]')
       ).toBeVisible();

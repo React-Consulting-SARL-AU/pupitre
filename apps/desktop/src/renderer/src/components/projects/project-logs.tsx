@@ -166,12 +166,12 @@ export function ProjectLogs({
 
         <CopyButton
           disabled={lines.length === 0}
+          hint={t("project.logs.copyAllHint")}
           onCopy={() =>
             navigator.clipboard.writeText(
               lines.map((line) => line.text).join("\n")
             )
           }
-          title={t("project.logs.copyAllHint")}
         >
           {t("project.logs.copyAll")}
         </CopyButton>

@@ -457,6 +457,55 @@ describe("la détection d'un projet", () => {
 });
 
 /**
+ * The dashboard reads the machine on a timer, and that read holds a channel
+ * for most of a second: a folder clicked meanwhile must not sit behind it.
+ */
+describe("une lecture sur minuterie", () => {
+  it("passe par le canal du battement, laissant un geste partir tout de suite", async () => {
+    const { agent, fake } = client([
+      "snapshot-loop.jsonl",
+      "hello-then-ping.jsonl",
+    ]);
+    const queued: string[] = [];
+
+    const beat = agent.call(SERVER, "snapshot", undefined, {
+      onQueued: () => queued.push("snapshot"),
+      polled: true,
+    });
+    const gesture = agent.call(SERVER, "ping", undefined, {
+      onQueued: () => queued.push("ping"),
+    });
+
+    await Promise.all([beat, gesture]);
+
+    expect(queued).toEqual([]);
+    expect(fake.started()).toBe(2);
+    // Each channel numbers from one: neither command waited for the other's hello.
+    expect(fake.trace().sort()).toEqual([
+      "id=1 cmd=hello",
+      "id=1 cmd=hello",
+      "id=2 cmd=ping",
+      "id=2 cmd=snapshot",
+    ]);
+
+    agent.closeAll();
+  });
+
+  it("suffit à dire ce que hello a répondu, avant tout geste", async () => {
+    const { agent, fake } = client("snapshot-loop.jsonl");
+
+    expect(agent.session(SERVER)).toBeNull();
+
+    await agent.call(SERVER, "snapshot", undefined, { polled: true });
+
+    expect(agent.session(SERVER)?.agent_version).toBe("0.0.0-test");
+    expect(fake.started()).toBe(1);
+
+    agent.closeAll();
+  });
+});
+
+/**
  * A channel carries one command at a time. A screen that shows nothing while a
  * request waits its turn is the difference between a machine at work and a
  * request that never left, and the caller is the only one who can say it.
@@ -1055,6 +1104,45 @@ describe("la robustesse du canal", () => {
 
     expect(answer).toMatchObject({ ok: false, error: { code: "cancelled" } });
     expect(ssh.written).toEqual([]);
+
+    agent.closeAll();
+  });
+
+  it("ne part pas non plus quand le signal est levé pendant que le canal s'ouvre", async () => {
+    const { agent, ssh } = scriptedClient();
+    const control = new AbortController();
+
+    const answer = agent.request(
+      SERVER,
+      "project.logs",
+      { follow: true, lines: 10, name: "web" },
+      { signal: control.signal }
+    );
+
+    await untilWritten(ssh, 1);
+    control.abort();
+    ssh.say(GREETING);
+
+    expect(await answer).toMatchObject({
+      ok: false,
+      error: { code: "cancelled" },
+    });
+    expect(ssh.written).toHaveLength(1);
+
+    const next = agent.request(SERVER, "project.logs", {
+      follow: false,
+      lines: 10,
+      name: "web",
+    });
+
+    await untilWritten(ssh, 2);
+    expect(JSON.parse(ssh.written[1] ?? "")).toMatchObject({
+      cmd: "project.logs",
+      id: 2,
+    });
+    ssh.say(JSON.stringify({ id: 2, ok: true, result: { lines: [] } }));
+
+    expect(await next).toMatchObject({ ok: true, result: { lines: [] } });
 
     agent.closeAll();
   });

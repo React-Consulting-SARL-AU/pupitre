@@ -17,14 +17,14 @@ export function CopyButton({
   size = "sm",
   variant = "default",
   disabled = false,
-  title,
+  hint,
 }: {
   children: string;
   onCopy: () => Promise<unknown> | unknown;
   size?: "sm" | "md";
   variant?: ButtonVariant;
   disabled?: boolean;
-  title?: string;
+  hint?: string;
 }) {
   const t = useTranslations();
 
@@ -59,10 +59,10 @@ export function CopyButton({
   return (
     <Button
       disabled={disabled}
+      hint={hint}
       icon={copied ? Check : Copy}
       onClick={copy}
       size={size}
-      title={title}
       variant={variant}
     >
       {copied ? t("common.copied") : children}

@@ -206,3 +206,49 @@ func skipped(ctx *modules.Context, step string) bool {
 }
 
 var _ modules.Module = Module{}
+
+// Only the tunnel signs in: a machine without the unit has nothing to say, and one with it says what code tunnel user show says.
+func TestLoginSpeaksForTheTunnelAlone(t *testing.T) {
+	bare := machine()
+	if _, asked := (Module{}).Login(newContext(t, bare, modtest.Values{})); asked {
+		t.Fatal("no tunnel, no login to report")
+	}
+
+	cases := map[string]struct {
+		answer  string
+		refused bool
+		want    contract.Login
+	}{
+		"signed in": {
+			answer: "logged in with provider github\n",
+			want:   contract.Login{State: contract.LoginSignedIn, Account: "github"},
+		},
+		"nobody": {
+			answer:  "not logged in\n",
+			refused: true,
+			want:    contract.Login{State: contract.LoginSignedOut, Fix: "Open a terminal on this server and run code tunnel user login: the code it prints goes on the page it names."},
+		},
+		"no answer": {
+			answer:  "",
+			refused: true,
+			want:    contract.Login{State: contract.LoginUnknown, Fix: "VS Code did not answer its own check: read this service again in a moment, or run code tunnel user show in a terminal on this server."},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			fake := machine()
+			fake.Files[unitPath] = []byte("[Unit]\n")
+			if tc.refused {
+				fake.Refuse("tunnel user show", tc.answer)
+			} else {
+				fake.Answer("tunnel user show", tc.answer)
+			}
+
+			got, asked := (Module{}).Login(newContext(t, fake, modtest.Values{}))
+			if !asked || got != tc.want {
+				t.Fatalf("login = %+v (%v), want %+v", got, asked, tc.want)
+			}
+		})
+	}
+}

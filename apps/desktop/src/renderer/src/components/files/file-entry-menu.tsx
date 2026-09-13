@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Fragment } from "react";
 import type { ButtonIcon } from "../ui/button";
+import { Tooltip } from "../ui/tooltip";
 
 /** Where a right click landed, so the menu opens under the pointer rather than under the button. */
 export interface MenuPoint {
@@ -79,14 +80,15 @@ export function FileEntryMenu({
 
   return (
     <Menu.Root modal={false} onOpenChange={onOpenChange} open={open}>
-      <Menu.Trigger
-        aria-label={label}
-        className="clickable inline-flex shrink-0 items-center justify-center rounded-sm border border-transparent p-1.5 text-ink-4 transition-soft hover:bg-raised hover:text-ink data-[popup-open]:bg-raised data-[popup-open]:text-ink"
-        data-entry-menu={entry.name}
-        title={label}
-      >
-        <Ellipsis size={13} strokeWidth={1.5} />
-      </Menu.Trigger>
+      <Tooltip label={label}>
+        <Menu.Trigger
+          aria-label={label}
+          className="clickable inline-flex shrink-0 items-center justify-center rounded-sm border border-transparent p-1.5 text-ink-4 transition-soft hover:bg-raised hover:text-ink data-[popup-open]:bg-raised data-[popup-open]:text-ink"
+          data-entry-menu={entry.name}
+        >
+          <Ellipsis size={13} strokeWidth={1.5} />
+        </Menu.Trigger>
+      </Tooltip>
 
       <Menu.Portal>
         <Menu.Positioner

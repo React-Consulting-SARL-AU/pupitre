@@ -73,6 +73,10 @@ func (m Module) Configure(ctx *modules.Context) error {
 		return err
 	}
 
+	if err := routes.MoveRoutes(ctx); err != nil {
+		return err
+	}
+
 	if err := storeDomain(ctx); err != nil {
 		return err
 	}

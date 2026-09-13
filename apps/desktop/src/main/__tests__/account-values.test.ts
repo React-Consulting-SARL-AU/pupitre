@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { Manifest } from "@pupitre/shared/catalog";
-import { accountSecrets } from "../account-secrets";
+import { accountValues, type HeldConnection } from "../account-values";
 
 /**
  * How an account token reaches the machine once it no longer comes from a form.
@@ -10,13 +10,25 @@ import { accountSecrets } from "../account-secrets";
  * through the window. Two things are watched beyond that — the app reads which
  * module wants one from the manifests the agent declared rather than from a
  * list of its own, and it refuses before the first step rather than on the
- * machine.
+ * machine. The account the token opened travels in the plain config, for the
+ * managed text field of a module that has to name it.
  */
 
-const HELD: Record<string, string> = {
-  "1password": "ops_de_test",
-  github: "ghp_de_test",
-  neon: "neon_de_test",
+const HELD: Record<string, HeldConnection> = {
+  "1password": { account: null, token: "ops_de_test" },
+  cloudflare: {
+    account: { id: "407880e9a2f71d528020f4201d604548", name: "Flymate" },
+    token: "cf_de_test",
+  },
+  github: {
+    account: { id: "70213307", name: "flymate" },
+    token: "ghp_de_test",
+  },
+  neon: { account: { id: "u_1", name: "flymate" }, token: "neon_de_test" },
+  wrangler: {
+    account: { id: "407880e9a2f71d528020f4201d604548", name: "Flymate" },
+    token: "cf_wrangler_de_test",
+  },
 };
 
 const token = (kind: string) => HELD[kind] ?? null;
@@ -54,6 +66,16 @@ const MANAGED = {
 const CATALOG: Manifest[] = [
   manifest("tool.github", "github", [MANAGED]),
   manifest("tool.neon", "neon", [{ ...MANAGED, key: "api_key", label: "Key" }]),
+  manifest("tool.wrangler", "wrangler", [
+    { ...MANAGED, key: "api_token", label: "Token" },
+    {
+      key: "account_id",
+      kind: "text",
+      label: "Account",
+      managed: true,
+      required: true,
+    },
+  ]),
   manifest("runtime.node", undefined, [
     {
       default: "22",
@@ -75,36 +97,73 @@ const CATALOG: Manifest[] = [
   ]),
 ];
 
-describe("les secrets de compte d'une installation", () => {
+describe("les valeurs de compte d'une installation", () => {
   it("ne porte que les modules dont le manifeste déclare une connexion", () => {
-    const answer = accountSecrets(
+    const answer = accountValues(
       ["runtime.node", "tool.github", "tool.neon"],
       CATALOG,
       token
     );
 
     expect(answer.ok && answer.result).toEqual({
-      "tool.github": { token: "ghp_de_test" },
-      "tool.neon": { api_key: "neon_de_test" },
+      config: {},
+      secrets: {
+        "tool.github": { token: "ghp_de_test" },
+        "tool.neon": { api_key: "neon_de_test" },
+      },
     });
+  });
+
+  /** The token goes on the secret line; the account it opened goes in the plain config, where the agent keeps it. */
+  it("remplit un champ texte géré avec l'identifiant du compte que le jeton ouvre", () => {
+    const answer = accountValues(["tool.wrangler"], CATALOG, token);
+
+    expect(answer.ok && answer.result).toEqual({
+      config: {
+        "tool.wrangler": { account_id: "407880e9a2f71d528020f4201d604548" },
+      },
+      secrets: { "tool.wrangler": { api_token: "cf_wrangler_de_test" } },
+    });
+  });
+
+  /** A provider the laptop cannot ask names no account: the field stays for the agent to refuse, never a made-up value. */
+  it("laisse vide un champ texte géré quand le compte n'a pas de nom", () => {
+    const unnamed = [
+      manifest("tool.wrangler", "wrangler", [
+        {
+          key: "account_id",
+          kind: "text",
+          label: "Account",
+          managed: true,
+          required: true,
+        },
+      ]),
+    ];
+
+    const answer = accountValues(["tool.wrangler"], unnamed, () => ({
+      account: null,
+      token: "cf_wrangler_de_test",
+    }));
+
+    expect(answer.ok && answer.result).toEqual({ config: {}, secrets: {} });
   });
 
   /** The catalogue belongs to the agent: an older one keeps asking in the form. */
   it("laisse un champ typé au formulaire, même sur un module qu'un compte pourrait servir", () => {
-    const answer = accountSecrets(["tool.1password"], CATALOG, token);
+    const answer = accountValues(["tool.1password"], CATALOG, token);
 
-    expect(answer.ok && answer.result).toEqual({});
+    expect(answer.ok && answer.result).toEqual({ config: {}, secrets: {} });
   });
 
   it("ne porte rien quand aucun module choisi n'en déclare", () => {
-    const answer = accountSecrets(["runtime.node"], CATALOG, token);
+    const answer = accountValues(["runtime.node"], CATALOG, token);
 
-    expect(answer.ok && answer.result).toEqual({});
+    expect(answer.ok && answer.result).toEqual({ config: {}, secrets: {} });
   });
 
   /** Refusing here leaves the machine untouched; refusing on it leaves half an install. */
   it("refuse avant la première étape quand le compte n'est pas connecté", () => {
-    const answer = accountSecrets(["tool.github"], CATALOG, () => null);
+    const answer = accountValues(["tool.github"], CATALOG, () => null);
 
     expect(answer.ok).toBe(false);
     expect(!answer.ok && answer.error.phrase).toEqual({
@@ -122,13 +181,13 @@ describe("les secrets de compte d'une installation", () => {
       ]),
     ];
 
-    const answer = accountSecrets(
+    const answer = accountValues(
       ["exposure.cloudflare"],
       withTunnel,
       () => null,
       ["exposure.cloudflare"]
     );
 
-    expect(answer.ok && answer.result).toEqual({});
+    expect(answer.ok && answer.result).toEqual({ config: {}, secrets: {} });
   });
 });

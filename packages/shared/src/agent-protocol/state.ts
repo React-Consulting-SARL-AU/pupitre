@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { ArchitectureSchema } from "../catalog"
+import { ArchitectureSchema, ConnectionKindSchema } from "../catalog"
 import { PortSchema } from "./ports"
 import { EntitlementSchema } from "./session"
 
@@ -39,8 +39,10 @@ export type ServiceState = z.infer<typeof ServiceStateSchema>
  * asked to answer its questions later, and the install put it there and stopped.
  * The screen has to be able to say so, and to offer the form that finishes it.
  *
- * `runs` is the manifest's own answer, carried here so that a screen showing
- * what the machine is doing never has to read the catalogue to know it.
+ * `runs` and `connection` are the manifest's own answers, carried here so that
+ * a screen showing what the machine is doing never has to read the catalogue
+ * to know it: whether the module holds a process, and which third-party
+ * account the app must hold for it.
  */
 export const ServiceSchema = z.object({
   id: z.string(),
@@ -48,6 +50,7 @@ export const ServiceSchema = z.object({
   state: ServiceStateSchema,
   configured: z.boolean().default(true),
   runs: z.boolean().default(true),
+  connection: ConnectionKindSchema.optional(),
   version: z.string().optional(),
   port: z.int().min(1).max(65_535).optional(),
   unit: z.string().optional(),
@@ -178,6 +181,12 @@ export const GitBranchSchema = z
   .max(200)
   .regex(/^[A-Za-z0-9][A-Za-z0-9._/-]*$/)
 
+/** A name under `.localhost`, the one kind of host the agent points at the machine itself. */
+export const LocalhostNameSchema = z
+  .string()
+  .max(253)
+  .regex(/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+localhost$/)
+
 const ProjectBaseSchema = z.object({
   name: ProjectNameSchema,
   dir: z.string().min(1),
@@ -197,6 +206,8 @@ const ProjectBaseSchema = z.object({
  * among them: the agent resolves each name on the web once, and stores it.
  */
 export const ProjectRegistrationSchema = ProjectBaseSchema.extend({
+  /** The loopback, or a `.localhost` name the agent points at it in /etc/hosts. */
+  host: z.union([z.literal("127.0.0.1"), LocalhostNameSchema]),
   routes: z.array(RouteRequestSchema),
 })
 
@@ -265,8 +276,37 @@ export const ServiceStatusParamsSchema = z.strictObject({
 
 export type ServiceStatusParams = z.infer<typeof ServiceStatusParamsSchema>
 
+export const LOGIN_STATES = ["signed_in", "signed_out", "unknown"] as const
+
+export const LoginStateSchema = z.enum(LOGIN_STATES)
+
+export type LoginState = z.infer<typeof LoginStateSchema>
+
+/**
+ * Whether the CLI a module installs is signed in to its account, asked of the
+ * CLI itself.
+ *
+ * `signed_in` names the account when the CLI does — a login, an email, an
+ * account name. `signed_out` is a CLI that holds nothing, or that its own
+ * check refuses. `unknown` is a CLI that could not be asked: the token is
+ * there but the provider did not answer. `fix` says how to sign in, in the
+ * session's language, when there is something to do.
+ *
+ * Asking can cost a network round trip, so only `service.status` carries it —
+ * never a snapshot read every few seconds. A module whose CLI has no account
+ * omits it.
+ */
+export const LoginSchema = z.object({
+  state: LoginStateSchema,
+  account: z.string().optional(),
+  fix: z.string().optional(),
+})
+
+export type Login = z.infer<typeof LoginSchema>
+
 export const ServiceStatusResultSchema = ServiceSchema.extend({
   credentials: z.record(z.string(), z.string()).optional(),
+  login: LoginSchema.optional(),
 })
 
 export type ServiceStatusResult = z.infer<typeof ServiceStatusResultSchema>

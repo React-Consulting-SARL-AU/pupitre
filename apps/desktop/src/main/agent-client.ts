@@ -90,12 +90,24 @@ export interface CallOptions {
    * channel is cut so the agent stops too, and reopens on the next command.
    */
   signal?: AbortSignal;
+  /**
+   * A read made on a timer, not on a gesture: it rides the beat channel.
+   *
+   * The dashboard reads the machine every few seconds, and that read costs the
+   * agent a good part of a second. On the channel the screens use, a folder
+   * clicked during it would sit behind it — and the reader would take a poll
+   * they never asked for as the slowness of their own click.
+   */
+  polled?: boolean;
 }
 
 /**
- * Two channels per server: the state reads must not wait behind an install.
+ * Three channels per server: a gesture must wait neither behind an install
+ * nor behind the dashboard's beat.
  */
-export type ChannelPurpose = "control" | "work";
+export type ChannelPurpose = "control" | "work" | "beat";
+
+const PURPOSES: readonly ChannelPurpose[] = ["control", "beat", "work"];
 
 export type AgentSpawn = (context: {
   serverId: string;
@@ -213,18 +225,26 @@ export function defaultTimeout(cmd: CommandName): number {
  * `shots.read` and `project.logs` sit here rather than falling out of the
  * timeout: they answer quickly but hold the channel for the length of a file,
  * and the dashboard's own reads must not queue behind a gallery.
+ * `project.git_status` fetches from the remote before it answers, and a
+ * repository on the other side of the world takes seconds: the tabs of the
+ * project just opened must not wait for it.
  */
 const WORK_CHANNEL_COMMANDS: readonly CommandName[] = [
   "project.logs",
   "service.logs",
   "shots.read",
   "fs.read",
+  "project.git_status",
 ];
 
 /** A command allowed more than a minute holds the channel long enough to need its own. */
 const WORK_CHANNEL_MS = 60_000;
 
-function usesWorkChannel(cmd: CommandName): ChannelPurpose {
+function purposeOf(cmd: CommandName, polled: boolean): ChannelPurpose {
+  if (polled) {
+    return "beat";
+  }
+
   return timeoutOf(cmd) > WORK_CHANNEL_MS || WORK_CHANNEL_COMMANDS.includes(cmd)
     ? "work"
     : "control";
@@ -931,6 +951,14 @@ class AgentChannel {
         return;
       }
 
+      // The caller may have given up while the channel was opening: a request
+      // written now would run on the agent for nobody, and hold the channel.
+      if (options.signal?.aborted) {
+        reject(cancelled(cmd));
+
+        return;
+      }
+
       const id = this.nextId;
       this.nextId += 1;
 
@@ -1139,9 +1167,22 @@ export class AgentClient {
     }
   }
 
-  /** What `hello` said about this server, or nothing if it never answered. */
+  /**
+   * What `hello` said about this server, or nothing if it never answered.
+   *
+   * Every channel greets the same agent, so the first one open speaks for the
+   * server: the beat may well be up before a gesture has opened control.
+   */
   session(serverId: string): HelloResult | null {
-    return this.channels.get(`${serverId}:control`)?.hello ?? null;
+    for (const purpose of PURPOSES) {
+      const greeting = this.channels.get(`${serverId}:${purpose}`)?.hello;
+
+      if (greeting) {
+        return greeting;
+      }
+    }
+
+    return null;
   }
 
   capabilities(serverId: string): readonly string[] {
@@ -1153,7 +1194,7 @@ export class AgentClient {
   }
 
   close(serverId: string): void {
-    for (const purpose of ["control", "work"] as const) {
+    for (const purpose of PURPOSES) {
       const key = `${serverId}:${purpose}`;
       this.channels.get(key)?.close();
       this.channels.delete(key);
@@ -1186,11 +1227,14 @@ export class AgentClient {
 
     return refused
       ? Promise.reject(new AgentCallError(refused))
-      : this.channel(serverId, cmd).run(cmd, params, options);
+      : this.channel(serverId, purposeOf(cmd, options.polled === true)).run(
+          cmd,
+          params,
+          options
+        );
   }
 
-  private channel(serverId: string, cmd: CommandName): AgentChannel {
-    const purpose = usesWorkChannel(cmd);
+  private channel(serverId: string, purpose: ChannelPurpose): AgentChannel {
     const key = `${serverId}:${purpose}`;
     const existing = this.channels.get(key);
     if (existing) {

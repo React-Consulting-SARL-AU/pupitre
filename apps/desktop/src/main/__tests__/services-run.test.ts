@@ -115,6 +115,29 @@ describe("l'état d'un service", () => {
     expect(answer.ok && answer.result.version).toBe("17.2");
   });
 
+  it("rend ce que le CLI dit de son compte, et rien quand il n'en a pas", async () => {
+    const signed = agent({
+      "service.status": {
+        ...STATUS,
+        id: "tool.github",
+        login: { account: "flymate", state: "signed_in" },
+      },
+    });
+
+    const answer = await readService(SERVER, "tool.github", signed.deps);
+
+    expect(answer.ok && answer.result.login).toEqual({
+      account: "flymate",
+      state: "signed_in",
+    });
+
+    const plain = agent({ "service.status": STATUS });
+
+    const silent = await readService(SERVER, "db.postgres", plain.deps);
+
+    expect(silent.ok && "login" in silent.result).toBe(false);
+  });
+
   it("nomme les identifiants sans en livrer un seul", async () => {
     const { deps } = agent({ "service.status": STATUS });
 

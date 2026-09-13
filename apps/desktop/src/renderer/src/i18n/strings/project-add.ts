@@ -4,7 +4,12 @@ export const projectAdd = {
     "projectAdd.form.sourceHelp":
       "The address of a git repository, or the path of a folder already on the server.",
     "projectAdd.form.sourcePlaceholder": "https://github.com/me/my-site.git",
-    "projectAdd.form.sourceReading": "The agent is reading the source…",
+    "projectAdd.form.sourceReading":
+      "The agent clones the repository and reads what it asks for…",
+    "projectAdd.form.sourceReadingBranch":
+      "The agent clones the {branch} branch and reads what it asks for…",
+    "projectAdd.form.sourceReadingDir":
+      "The agent reads the folder and what it asks for…",
     "projectAdd.form.sourceRead":
       "Read from the source: {pkgmgr}, port {port}.",
     "projectAdd.form.sourceReadNoPort": "Read from the source: {pkgmgr}.",
@@ -111,7 +116,7 @@ export const projectAdd = {
     "projectAdd.phaseStatus.fail": "failed",
 
     "projectAdd.sources.alreadyPresent": "the folder is already on the server",
-    "projectAdd.install.doneWithSources": "done with the source fetch",
+    "projectAdd.install.nothing": "the project declares no install command",
     "projectAdd.publish.local": "the project stays local",
     "projectAdd.up.notRunningFix":
       "Read the journal below, fix the start command, then try again.",
@@ -128,7 +133,12 @@ export const projectAdd = {
     "projectAdd.form.sourceHelp":
       "L'adresse d'un dépôt git, ou le chemin d'un dossier déjà présent sur le serveur.",
     "projectAdd.form.sourcePlaceholder": "https://github.com/moi/mon-site.git",
-    "projectAdd.form.sourceReading": "L'agent lit la source…",
+    "projectAdd.form.sourceReading":
+      "L'agent clone le dépôt et lit ce qu'il demande…",
+    "projectAdd.form.sourceReadingBranch":
+      "L'agent clone la branche {branch} et lit ce qu'elle demande…",
+    "projectAdd.form.sourceReadingDir":
+      "L'agent lit le dossier et ce qu'il demande…",
     "projectAdd.form.sourceRead": "Lu dans la source : {pkgmgr}, port {port}.",
     "projectAdd.form.sourceReadNoPort": "Lu dans la source : {pkgmgr}.",
     "projectAdd.form.nameLabel": "Nom",
@@ -235,8 +245,8 @@ export const projectAdd = {
     "projectAdd.phaseStatus.fail": "en échec",
 
     "projectAdd.sources.alreadyPresent": "le dossier est déjà sur le serveur",
-    "projectAdd.install.doneWithSources":
-      "faite avec la récupération des sources",
+    "projectAdd.install.nothing":
+      "le projet ne déclare aucune commande d'installation",
     "projectAdd.publish.local": "le projet reste local",
     "projectAdd.up.notRunningFix":
       "Lisez le journal ci-dessous, corrigez la commande de démarrage, puis réessayez.",

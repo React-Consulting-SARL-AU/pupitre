@@ -3,22 +3,36 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { TunnelStatusResult } from "@pupitre/shared/agent-protocol/secrets";
 import type { Service } from "@pupitre/shared/agent-protocol/state";
+import type { Manifest } from "@pupitre/shared/catalog";
 import type { PortForward } from "@shared/services";
 import { renderToStaticMarkup } from "react-dom/server";
-import { CATALOG, DB_MONGODB } from "../../__tests__/catalog-fixtures";
+import {
+  CATALOG,
+  DB_MONGODB,
+  EXPOSURE_CLOUDFLARE,
+} from "../../__tests__/catalog-fixtures";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
+import { LOGIN_LOOK } from "../../lib/project-state";
 import { removalOf } from "../../lib/service-removal";
 import { useCatalog } from "../../stores/catalog";
 import { CatalogChoice } from "../catalog/catalog-choice";
 import { ConfigModuleGroup } from "../config/config-module-group";
+import { ConnectionConnected } from "../connections/connection-connected";
+import {
+  type ConnectionDescriptor,
+  descriptorOf,
+} from "../connections/connection-descriptors";
+import { ServiceAccount } from "../services/service-account";
 import { ServiceConfig } from "../services/service-config";
 import { ServiceCredentials } from "../services/service-credentials";
 import { ServiceForward } from "../services/service-forward";
 import { ServicePanelFacts } from "../services/service-panel-facts";
 import { ServiceRemovalLosses } from "../services/service-removal-losses";
+import { ServiceRoutes } from "../services/service-routes";
 import { ServiceRow } from "../services/service-row";
 import { ServicesTunnel } from "../services/services-tunnel";
 import { ScreenFailure } from "../shell/screen-failure";
+import { StatePill } from "../ui/state-pill";
 
 const SERVER = "srv-1";
 
@@ -97,6 +111,21 @@ describe("la ligne d'un service", () => {
   it("porte l'état par sa forme avant sa couleur", () => {
     expect(tag(html, "data-state", "running")).toContain("data-state");
     expect(html).toContain('data-shape="filled"');
+    expect(html).not.toContain('data-state="signed_');
+  });
+
+  it("dit si le service est connecté quand il travaille pour un compte", () => {
+    const signedOut = renderToStaticMarkup(
+      <ServiceRow
+        account="signed_out"
+        onOpen={() => undefined}
+        service={{ ...POSTGRES, id: "ai.claude", name: "Claude Code" }}
+      />
+    );
+
+    expect(signedOut).toContain('data-state="running"');
+    expect(signedOut).toContain('data-state="signed_out"');
+    expect(text(signedOut)).toContain("non connecté");
   });
 });
 
@@ -135,6 +164,116 @@ describe("les identifiants d'un service", () => {
 
     expect(text(html)).toContain("Demander l'URL de connexion");
     expect(text(plain)).not.toContain("Demander l'URL de connexion");
+  });
+
+  /** A runtime has nothing to open it; a section saying so was noise on every such page. */
+  it("n'existe pas pour un module sans identifiant", () => {
+    const none = renderToStaticMarkup(
+      <ServiceCredentials
+        database={false}
+        labels={[]}
+        onCopy={() => Promise.resolve(true)}
+        onReveal={() => Promise.resolve(null)}
+      />
+    );
+
+    expect(none).toBe("");
+  });
+});
+
+describe("le compte d'un service", () => {
+  const WRANGLER: Manifest = {
+    ...EXPOSURE_CLOUDFLARE,
+    connection: "wrangler",
+    fields: [],
+    id: "tool.wrangler",
+    name: "Wrangler",
+  };
+
+  const github = descriptorOf("github") as ConnectionDescriptor;
+
+  it("dit l'état que l'agent a répondu, et le compte qu'il a nommé", () => {
+    const html = renderToStaticMarkup(
+      <ServiceAccount
+        installed={[]}
+        login={{ account: "jordan@example.org", state: "signed_in" }}
+        manifest={null}
+        serverName={null}
+      />
+    );
+
+    expect(tag(html, "data-service-account", "signed_in")).not.toBe("");
+    expect(text(html)).toContain("Compte");
+    expect(text(html)).toContain("connecté");
+    expect(text(html)).toContain("jordan@example.org");
+    expect(html).not.toContain("data-connection=");
+  });
+
+  it("dit comment se connecter quand le CLI ne tient rien", () => {
+    const html = renderToStaticMarkup(
+      <ServiceAccount
+        installed={[]}
+        login={{ fix: "Reconnectez le compte.", state: "signed_out" }}
+        manifest={null}
+        serverName={null}
+      />
+    );
+
+    expect(tag(html, "data-service-account", "signed_out")).not.toBe("");
+    expect(text(html)).toContain("non connecté");
+    expect(text(html)).toContain("Reconnectez le compte.");
+  });
+
+  /** The state the section says stands where the card's own sentence was: one state, the gestures beside it. */
+  it("met les gestes du compte sur la ligne de l'état, sans redire qu'il est connecté", () => {
+    const html = renderToStaticMarkup(
+      <ConnectionConnected
+        busy={false}
+        connection={github}
+        health={undefined}
+        onForget={() => Promise.resolve()}
+        onVerify={() => Promise.resolve()}
+        scope={{ known: true, modules: ["tool.github"] }}
+        serverName="atelier"
+        state={{
+          account: { id: "42", name: "ada" },
+          sealed: true,
+          status: "connected",
+        }}
+        status={<StatePill look={LOGIN_LOOK.signed_in} name="signed_in" />}
+      />
+    );
+
+    expect(tag(html, "data-state", "signed_in")).not.toBe("");
+    expect(text(html)).toContain("Vérifier");
+    expect(text(html)).toContain("Déconnecter");
+    expect(text(html)).not.toContain("Connecté en tant que");
+  });
+
+  /** A tunnel has no CLI to ask; the account it was made from is still an account. */
+  it("existe pour un module qui n'a qu'une connexion, et demande le jeton qui manque", () => {
+    stubPupitre({});
+
+    const html = renderToStaticMarkup(
+      <ServiceAccount
+        installed={[WRANGLER]}
+        manifest={WRANGLER}
+        serverName="atelier"
+      />
+    );
+
+    expect(tag(html, "data-service-account", "signed_out")).not.toBe("");
+    expect(text(html)).toContain("non connecté");
+    expect(html).toContain('data-connection="wrangler"');
+    expect(html).toContain('type="password"');
+  });
+
+  it("n'existe pas pour un module sans compte", () => {
+    const html = renderToStaticMarkup(
+      <ServiceAccount installed={[]} manifest={null} serverName={null} />
+    );
+
+    expect(html).toBe("");
   });
 });
 
@@ -188,7 +327,7 @@ describe("la confirmation d'un retrait", () => {
   });
 });
 
-describe("le tunnel du serveur", () => {
+describe("les routes du module d'exposition", () => {
   const tunnel: TunnelStatusResult = {
     provider: "cloudflare",
     installed: true,
@@ -202,34 +341,24 @@ describe("le tunnel du serveur", () => {
     state: "running",
   };
 
-  it("montre les routes que l'agent déclare", () => {
+  it("montre les routes que l'agent déclare, et le geste qui les réécrit", () => {
     const html = renderToStaticMarkup(
-      <ServicesTunnel
+      <ServiceRoutes
         busy={null}
-        onRestart={() => undefined}
         onSync={() => undefined}
+        problem={null}
         tunnel={tunnel}
       />
     );
 
     expect(html).toContain('data-route="flymate.example.org"');
     expect(text(html)).toContain("http://127.0.0.1:3000");
+    expect(text(html)).toContain("Synchroniser les routes");
+    expect(text(html)).not.toContain("Redémarrer");
   });
 
-  it("dit ce qui tient lieu de tunnel quand il n'y en a pas", () => {
-    const html = renderToStaticMarkup(
-      <ServicesTunnel
-        busy={null}
-        onRestart={() => undefined}
-        onSync={() => undefined}
-        tunnel={{
-          provider: null,
-          installed: false,
-          routes: [],
-          state: "absent",
-        }}
-      />
-    );
+  it("dit ce qui tient lieu de tunnel quand le serveur n'en a pas", () => {
+    const html = renderToStaticMarkup(<ServicesTunnel />);
 
     expect(text(html)).toContain("session SSH de l'app");
   });
@@ -436,6 +565,113 @@ describe("les réglages d'un service dont le catalogue manque", () => {
     expect(html).toContain('data-config="unknown"');
     expect(text(html)).toContain("catalogue du serveur n'a pas répondu");
     expect(text(html)).toContain("Relire le catalogue");
+  });
+
+  // The domain of an installed tunnel is picked among the account's zones and
+  // stays typed below, a subdomain of the zone being allowed; without an
+  // account to ask, the field alone remains.
+  it("propose les zones du compte pour le domaine d'un tunnel installé", () => {
+    const config = {
+      answered: { domain: "flymate.dev" },
+      held: [],
+      moduleId: EXPOSURE_CLOUDFLARE.id,
+      status: "ready" as const,
+    };
+
+    const picked = renderToStaticMarkup(
+      <ServiceConfig
+        {...props}
+        config={config}
+        manifest={EXPOSURE_CLOUDFLARE}
+        values={{ domain: "flymate.dev" }}
+        zones={[
+          { id: "z-1", name: "flymate.dev" },
+          { id: "z-2", name: "flymate.studio" },
+        ]}
+      />
+    );
+
+    expect(picked).toContain('id="exposure.cloudflare.zone"');
+    expect(picked).toContain('<option value="flymate.dev" selected="">');
+    expect(picked).toContain('value="flymate.studio"');
+    expect(picked).toContain('data-field="exposure.cloudflare.domain"');
+
+    const typed = renderToStaticMarkup(
+      <ServiceConfig
+        {...props}
+        config={config}
+        manifest={EXPOSURE_CLOUDFLARE}
+        values={{ domain: "flymate.dev" }}
+      />
+    );
+
+    expect(typed).toContain('data-field="exposure.cloudflare.domain"');
+    expect(typed).not.toContain('id="exposure.cloudflare.zone"');
+  });
+
+  // The wait sits where the gesture was made: under the header and its button,
+  // before the fields, so a long panel does not hide what the click started.
+  it("place la progression sous le bouton, avant les champs", () => {
+    const html = renderToStaticMarkup(
+      <ServiceConfig
+        {...props}
+        apply={{ moduleId: EXPOSURE_CLOUDFLARE.id, status: "running" }}
+        config={{
+          answered: {},
+          held: [],
+          moduleId: EXPOSURE_CLOUDFLARE.id,
+          status: "ready",
+        }}
+        manifest={EXPOSURE_CLOUDFLARE}
+        name="Cloudflare Tunnel"
+        steps={[
+          { id: EXPOSURE_CLOUDFLARE.id, ms: 0, status: "running", steps: [] },
+        ]}
+      />
+    );
+
+    const progress = html.indexOf('data-module="exposure.cloudflare"');
+    const fields = html.indexOf('data-field="exposure.cloudflare.domain"');
+
+    expect(progress).toBeGreaterThan(-1);
+    expect(fields).toBeGreaterThan(progress);
+    expect(html).toContain('data-status="running"');
+    expect(html).toContain('data-live="duration"');
+    expect(html).toContain('aria-busy="true"');
+  });
+
+  /** Everything Wrangler is told comes from its account: nothing to type, one gesture left. */
+  it("garde le geste d'appliquer pour un module dont toute la valeur vient d'un compte", () => {
+    const html = renderToStaticMarkup(
+      <ServiceConfig
+        {...props}
+        config={{
+          answered: {},
+          held: [],
+          moduleId: "tool.wrangler",
+          status: "ready",
+        }}
+        manifest={{
+          ...EXPOSURE_CLOUDFLARE,
+          connection: "wrangler",
+          fields: [
+            {
+              key: "api_token",
+              kind: "secret",
+              label: "Jeton",
+              managed: true,
+              required: true,
+            },
+          ],
+          id: "tool.wrangler",
+        }}
+      />
+    );
+
+    expect(text(html)).toContain("Appliquer");
+    expect(text(html)).toContain("renvoie le compte connecté");
+    expect(html).not.toContain("data-connection=");
+    expect(html).not.toContain("elevation-raised grid");
   });
 
   it("ne propose pas de relire quand c'est le serveur entier qui est retenu", () => {

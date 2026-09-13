@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, redirect } from "@tanstack/react-router"
 import { AuthCard } from "@/components/auth/auth-card"
 import { DeviceCodeForm } from "@/components/auth/device-code-form"
 import { useTranslations } from "@/hooks/use-locale"
+import { meQueryOptions } from "@/lib/api/queries"
 import { documentTitle } from "@/lib/domain/page-titles"
 
 interface DeviceSearch {
@@ -9,6 +10,20 @@ interface DeviceSearch {
 }
 
 export const Route = createFileRoute("/auth/device")({
+  /** The app opens this page in whatever browser it finds: the session is read there, and sign-in comes back here. */
+  ssr: false,
+  beforeLoad: async ({ context, location }) => {
+    const me = await context.queryClient
+      .ensureQueryData(meQueryOptions())
+      .catch(() => null)
+
+    if (!me) {
+      throw redirect({
+        to: "/auth/sign-in",
+        search: { callbackURL: location.href },
+      })
+    }
+  },
   component: DevicePage,
   head: ({ match }) => ({
     meta: [{ title: documentTitle("/auth/device", match.context.locale) }],

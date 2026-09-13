@@ -1,4 +1,5 @@
 import type {
+  LoginState,
   ProjectState,
   ServiceState,
 } from "@pupitre/shared/agent-protocol/state";
@@ -105,6 +106,34 @@ export const SERVICE_LOOK: Record<ServiceState, StateLook> = {
   unknown: {
     frame: NEUTRAL_FRAME,
     label: "state.service.unknown",
+    shape: "empty",
+    tone: "neutral",
+  },
+};
+
+/**
+ * What a CLI says of its own account.
+ *
+ * Not signed in is the ringed dot of something waiting for the reader, never
+ * an alarm: the CLI works, it just has nobody to work as. No answer is the
+ * hollow dot of a state nobody could read.
+ */
+export const LOGIN_LOOK: Record<LoginState, StateLook> = {
+  signed_in: {
+    frame: "border-ok/40",
+    label: "state.login.signed_in",
+    shape: "filled",
+    tone: "ok",
+  },
+  signed_out: {
+    frame: "border-warn/40",
+    label: "state.login.signed_out",
+    shape: "ringed",
+    tone: "warn",
+  },
+  unknown: {
+    frame: NEUTRAL_FRAME,
+    label: "state.login.unknown",
     shape: "empty",
     tone: "neutral",
   },

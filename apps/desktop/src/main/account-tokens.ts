@@ -28,12 +28,33 @@ const NEON = "https://console.neon.tech/api/v2/users/me";
 /** A provider that has not answered by then is not going to: the field is owed a refusal. */
 const CALL_MS = 20_000;
 
-/** The provider's own message, never the token, and never a stack. */
+/**
+ * The provider's own message, never the token, and never a stack. A failure
+ * whose cause is known names its own refusal, so the screen can say what to
+ * add rather than that something was refused.
+ */
 export class TokenError extends Error {
-  constructor(message: string) {
+  readonly refusal: string | null;
+
+  constructor(message: string, refusal: string | null = null) {
     super(message);
     this.name = "TokenError";
+    this.refusal = refusal;
   }
+}
+
+/** A token refused, worded by its cause when the cause is known, by the provider otherwise. */
+export function tokenRefusal(
+  kind: ConnectionKind,
+  failure: unknown,
+  fallback: string
+): AgentResponse<never> {
+  const known = failure instanceof TokenError ? failure.refusal : null;
+
+  return refuseWith("bad_request", known ?? fallback, {
+    kind,
+    reason: failure instanceof Error ? failure.message : String(failure),
+  });
 }
 
 async function read(
@@ -103,18 +124,22 @@ async function neon(
   return { id, name: named ?? id };
 }
 
+/** One Cloudflare token may open several accounts; all of them come back, for the client to pick from. */
 async function cloudflare(
   token: string,
   fetcher: typeof fetch
-): Promise<ConnectionAccount> {
+): Promise<ConnectionAccount[]> {
   const accounts = await verifyCloudflare(token, fetcher);
-  const account = accounts[0];
 
-  if (!account) {
-    throw new TokenError("no account");
+  // A valid token lists no account unless it may read account settings.
+  if (accounts.length === 0) {
+    throw new TokenError(
+      "no account",
+      "refusal.connection.cloudflare.unlisted"
+    );
   }
 
-  return { id: account.id, name: account.name || account.id };
+  return accounts.map((one) => ({ id: one.id, name: one.name || one.id }));
 }
 
 /**
@@ -122,48 +147,74 @@ async function cloudflare(
  * A refusal throws: a token that does not work is caught here, not on the
  * machine, and never written to the keychain.
  */
-export function accountOfToken(
+export async function accountsOfToken(
   kind: ConnectionKind,
   token: string,
   fetcher: typeof fetch = fetch
-): Promise<ConnectionAccount | null> {
+): Promise<ConnectionAccount[] | null> {
   switch (kind) {
     case "cloudflare":
+    case "wrangler":
       return cloudflare(token, fetcher);
     case "github":
-      return github(token, fetcher);
+      return [await github(token, fetcher)];
     case "neon":
-      return neon(token, fetcher);
+      return [await neon(token, fetcher)];
     default:
-      return Promise.resolve(null);
+      return null;
   }
 }
 
 /**
- * A held token, weighed again.
+ * The account the app acts on among those a token opens: the one the client
+ * named, or the only one there is. Several and no name is a choice still owed.
+ */
+export function chosenAccount(
+  accounts: readonly ConnectionAccount[],
+  wanted: string | null
+): ConnectionAccount | null {
+  if (wanted !== null) {
+    return accounts.find((one) => one.id === wanted) ?? null;
+  }
+
+  return accounts.length === 1 ? (accounts[0] ?? null) : null;
+}
+
+/**
+ * A held token, weighed again, on the account it was connected for.
  *
  * A token revoked on the provider's side says nothing until an install fails
  * on it; asking from the settings is how a reader learns it first. The refusal
- * carries the provider's own words, never the token.
+ * carries the provider's own words, never the token. A token that still works
+ * but no longer opens the account it was connected for is refused too: the
+ * zones, the tunnel and the deployments the app reads are that account's.
  */
 export async function checkToken(
   kind: ConnectionKind,
   token: string,
-  fetcher: typeof fetch = fetch
+  fetcher: typeof fetch = fetch,
+  held: string | null = null
 ): Promise<AgentResponse<ConnectionCheck>> {
-  let account: ConnectionAccount | null;
+  let accounts: ConnectionAccount[] | null;
 
   try {
-    account = await accountOfToken(kind, token, fetcher);
+    accounts = await accountsOfToken(kind, token, fetcher);
   } catch (failure) {
-    return refuseWith("bad_request", "refusal.connection.revoked", {
+    return tokenRefusal(kind, failure, "refusal.connection.revoked");
+  }
+
+  if (!accounts) {
+    return { ok: true, result: { status: "unaskable" } };
+  }
+
+  const account = chosenAccount(accounts, held) ?? accounts[0];
+
+  if (!account || (held !== null && account.id !== held)) {
+    return refuseWith("bad_request", "refusal.connection.account.gone", {
+      account: held ?? "",
       kind,
-      reason: failure instanceof Error ? failure.message : String(failure),
     });
   }
 
-  return {
-    ok: true,
-    result: account ? { account, status: "answered" } : { status: "unaskable" },
-  };
+  return { ok: true, result: { account, status: "answered" } };
 }

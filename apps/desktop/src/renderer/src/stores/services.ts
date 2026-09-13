@@ -25,12 +25,13 @@ import { databaseOfDump } from "../lib/dumps";
 import { dirnameOf, under, within } from "../lib/files";
 import {
   type ModuleProgress,
-  pending,
   record,
+  started,
   stepOf,
 } from "../lib/module-progress";
 import { useNavigation } from "./navigation";
 import { useTransfers } from "./transfers";
+import { useTunnel } from "./tunnel";
 
 /**
  * One service of the machine, as the screen works with it day to day.
@@ -55,7 +56,13 @@ export type DetailState =
 export type ConfigState =
   | { status: "idle" }
   | { status: "reading"; moduleId: string }
-  | { status: "ready"; moduleId: string; held: readonly string[] }
+  | {
+      status: "ready";
+      moduleId: string;
+      held: readonly string[];
+      /** The values as the agent answered them, before the form touched any. */
+      answered: Record<string, unknown>;
+    }
   | { status: "failed"; moduleId: string; error: AgentError };
 
 export type ApplyState =
@@ -314,6 +321,61 @@ export const useServices = create<ServicesStore>((set, get) => {
    * whole, because the agent replaces a module's configuration rather than
    * merging it field by field.
    */
+  /**
+   * The names the projects answer to under the domain an exposure is about to
+   * leave: nothing when the module is not an exposure, or keeps its domain.
+   */
+  async function publishedNames(
+    serverId: string,
+    moduleId: string,
+    values: Record<string, unknown>
+  ): Promise<string[] | null> {
+    const { config } = get();
+    const kept =
+      config.status === "ready" ? config.answered.domain : values.domain;
+
+    if (!moduleId.startsWith("exposure.") || kept === values.domain) {
+      return null;
+    }
+
+    const listed = await window.pupitre.listProjects(serverId);
+
+    if (!listed.ok) {
+      return [];
+    }
+
+    return listed.result.projects.flatMap((project) =>
+      project.routes.flatMap((route) => route.hostname ?? [])
+    );
+  }
+
+  /**
+   * The agent moved every name under the new domain; the records are the
+   * app's to move: the ones of before go — only those it wrote — and the ones
+   * of now are written from what the tunnel declares.
+   */
+  async function followDomain(
+    serverId: string,
+    before: string[] | null
+  ): Promise<void> {
+    if (before === null) {
+      return;
+    }
+
+    if (before.length > 0) {
+      const released = await window.pupitre.releaseTunnelRecords(
+        serverId,
+        before
+      );
+
+      if (!released.ok) {
+        set({ problem: released.error });
+      }
+    }
+
+    await useTunnel.getState().sync(serverId);
+  }
+
   async function readDetail(serverId: string, moduleId: string): Promise<void> {
     const answer = await window.pupitre.serviceDetail(serverId, moduleId);
 
@@ -345,7 +407,12 @@ export const useServices = create<ServicesStore>((set, get) => {
     // then shows the manifest's defaults, the values the agent would apply,
     // instead of empty fields.
     set({
-      config: { held: answer.result.secrets, moduleId, status: "ready" },
+      config: {
+        answered: answer.result.values,
+        held: answer.result.secrets,
+        moduleId,
+        status: "ready",
+      },
       values: { ...defaults, ...answer.result.values },
     });
   }
@@ -456,8 +523,10 @@ export const useServices = create<ServicesStore>((set, get) => {
       set({
         apply: { moduleId, status: "running" },
         problem: null,
-        steps: pending([moduleId]),
+        steps: started([moduleId]),
       });
+
+      const before = await publishedNames(serverId, moduleId, get().values);
 
       const answer = await window.pupitre.startInstall(
         serverId,
@@ -482,6 +551,7 @@ export const useServices = create<ServicesStore>((set, get) => {
       if (answer.ok) {
         await readDetail(serverId, moduleId);
         await read(serverId, moduleId, get().values);
+        await followDomain(serverId, before);
       }
     },
 
@@ -528,7 +598,7 @@ export const useServices = create<ServicesStore>((set, get) => {
       set({
         problem: null,
         removal: { moduleId, status: "running" },
-        steps: pending([moduleId]),
+        steps: started([moduleId]),
       });
 
       const answer = (await window.pupitre.agentStream(

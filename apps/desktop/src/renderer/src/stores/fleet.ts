@@ -42,8 +42,8 @@ export interface GrantedServer extends Server {
  * The servers of the local list the platform grants, and only those.
  *
  * An attribution the platform has let go is not one: the entry that carried it
- * was typed here, so it keeps its place in the list below — but this panel
- * says what the organization gives, and it no longer gives that.
+ * was typed here, so it keeps its place in the list — but nothing counts it
+ * as given by the organization any more.
  */
 export function grantedServers(state: FleetState): GrantedServer[] {
   const servers = fleetView(state)?.config.servers ?? [];
@@ -51,39 +51,6 @@ export function grantedServers(state: FleetState): GrantedServer[] {
   return servers.filter((server): server is GrantedServer =>
     Boolean(server.grant && !grantGone(server.grant))
   );
-}
-
-export interface FleetGroup {
-  id: string;
-  name: string;
-  servers: GrantedServer[];
-}
-
-/**
- * The granted servers, gathered under the organization that carries each.
- *
- * A member of one organization sees one group and no heading; a member of
- * several sees where every machine comes from without opening the console. A
- * server granted before the platform said so keeps its place, unnamed.
- */
-export function fleetGroups(state: FleetState): FleetGroup[] {
-  const groups: FleetGroup[] = [];
-
-  for (const server of grantedServers(state)) {
-    const organization = server.grant.organization;
-    const id = organization?.id ?? "";
-    const held = groups.find((group) => group.id === id);
-
-    if (held) {
-      held.servers.push(server);
-
-      continue;
-    }
-
-    groups.push({ id, name: organization?.name ?? "", servers: [server] });
-  }
-
-  return groups;
 }
 
 /**

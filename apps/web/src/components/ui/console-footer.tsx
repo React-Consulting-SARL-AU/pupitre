@@ -111,6 +111,7 @@ export function ConsoleFooter() {
               aria-label={t("footer.language")}
               className={TRIGGER}
               disabled={pending}
+              title={t("footer.language")}
             >
               <Languages className="size-4" strokeWidth={1.5} />
               {locale.toUpperCase()}

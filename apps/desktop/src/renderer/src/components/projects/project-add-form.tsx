@@ -15,6 +15,7 @@ import type {
 import { Button } from "../ui/button";
 import { Field, fieldControlClass } from "../ui/field";
 import { ProjectAddSource, type SourceEdits } from "./project-add-source";
+import { ProjectAddSourceStatus } from "./project-add-source-status";
 import type { PortEdits } from "./project-port-row";
 import { ProjectPorts } from "./project-ports";
 
@@ -95,9 +96,7 @@ export function ProjectAddForm({
         repos={repos}
       />
 
-      <p className="text-[12px] text-ink-3 leading-relaxed">
-        {sourceHelp(t, detection)}
-      </p>
+      <ProjectAddSourceStatus detection={detection} kind={draft.kind} />
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field
@@ -176,24 +175,4 @@ export function ProjectAddForm({
       </div>
     </form>
   );
-}
-
-/** What the source line says beneath itself, once the agent has looked at it. */
-function sourceHelp(
-  t: ReturnType<typeof useTranslations>,
-  detection: DetectionState
-): string | undefined {
-  if (detection.status === "reading") {
-    return t("projectAdd.form.sourceReading");
-  }
-
-  if (detection.status === "read") {
-    const { pkgmgr, port_hint: port } = detection.result;
-
-    return port
-      ? t("projectAdd.form.sourceRead", { pkgmgr, port })
-      : t("projectAdd.form.sourceReadNoPort", { pkgmgr });
-  }
-
-  return undefined;
 }

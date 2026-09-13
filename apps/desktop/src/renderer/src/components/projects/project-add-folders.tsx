@@ -1,3 +1,4 @@
+import { Tooltip } from "@renderer/components/ui/tooltip";
 import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { crumbsOf, under } from "@renderer/lib/files";
@@ -107,15 +108,16 @@ export function ProjectAddFolders({
                       </span>
                     </button>
 
-                    <button
-                      aria-label={t("projectAdd.folders.enter", { folder })}
-                      className="clickable mr-1 shrink-0 rounded-sm p-1.5 text-ink-3 transition-fast hover:bg-raised hover:text-ink"
-                      onClick={() => onBrowse(full)}
-                      title={t("projectAdd.folders.enter", { folder })}
-                      type="button"
-                    >
-                      <ChevronRight size={13} strokeWidth={1.5} />
-                    </button>
+                    <Tooltip label={t("projectAdd.folders.enter", { folder })}>
+                      <button
+                        aria-label={t("projectAdd.folders.enter", { folder })}
+                        className="clickable mr-1 shrink-0 rounded-sm p-1.5 text-ink-3 transition-fast hover:bg-raised hover:text-ink"
+                        onClick={() => onBrowse(full)}
+                        type="button"
+                      >
+                        <ChevronRight size={13} strokeWidth={1.5} />
+                      </button>
+                    </Tooltip>
                   </li>
                 );
               })}

@@ -286,6 +286,10 @@ describe("l'aide d'un champ", () => {
     expect(text(html)).toContain("Ce que les commits porteront comme auteur.");
     expect(html).toContain('data-hint="Dossier des projets"');
   });
+
+  it("nomme l'icône dans une infobulle, seule elle ne dit rien", () => {
+    expect(html).toContain('data-tooltip="À propos de Dossier des projets"');
+  });
 });
 
 describe("un module que l'agent vient d'ajouter", () => {

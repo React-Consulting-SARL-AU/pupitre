@@ -3,6 +3,7 @@ import { PortSchema } from "./ports"
 import {
   GitBranchSchema,
   HostnameSchema,
+  LocalhostNameSchema,
   PackageManagerSchema,
   ProjectNameSchema,
   ProjectRegistrationSchema,
@@ -116,6 +117,8 @@ export const ProjectDetectResultSchema = z.object({
   install: z.string().optional(),
   cmd: z.string().optional(),
   port_hint: PortSchema.optional(),
+  /** The `.localhost` name the start script binds to, when it freezes one: the host to declare, so the machine answers to it. */
+  host_hint: LocalhostNameSchema.optional(),
   /** The ports of a monorepo's workspaces, when the root runs them all at once. */
   routes: z.array(DetectedRouteSchema).optional(),
 })
@@ -159,13 +162,27 @@ export const ProjectLogsResultSchema = z.object({
 
 export type ProjectLogsResult = z.infer<typeof ProjectLogsResultSchema>
 
-export const ProjectSyncResultSchema = z.object({
+/** The sources brought up to date, and nothing else: `pulled` is false for a folder without a repository. */
+export const ProjectPullResultSchema = z.object({
   pulled: z.boolean(),
-  installed: z.boolean(),
   state: ProjectStateSchema,
 })
 
+export type ProjectPullResult = z.infer<typeof ProjectPullResultSchema>
+
+export const ProjectSyncResultSchema = ProjectPullResultSchema.extend({
+  installed: z.boolean(),
+})
+
 export type ProjectSyncResult = z.infer<typeof ProjectSyncResultSchema>
+
+/** `command` is the package manager's install line that ran; absent when the project declares none. */
+export const ProjectInstallResultSchema = z.object({
+  done: z.literal(true),
+  command: z.string().optional(),
+})
+
+export type ProjectInstallResult = z.infer<typeof ProjectInstallResultSchema>
 
 export const ProjectEnvParamsSchema = z.strictObject({
   name: ProjectNameSchema,

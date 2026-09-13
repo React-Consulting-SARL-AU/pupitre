@@ -206,6 +206,7 @@ export function answerOnboarding(
         cloudflare: { status: "absent" },
         github: { status: "absent" },
         neon: { status: "absent" },
+        wrangler: { status: "absent" },
       }));
       answer("connections:zones", () => ({ ok: true, result: [] }));
     },

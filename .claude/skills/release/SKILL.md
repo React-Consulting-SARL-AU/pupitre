@@ -135,7 +135,7 @@ gh workflow run promote.yml -f version=X.Y.Z -f channel=stable
 
 - Commit ou push sans demande explicite ; `--force` ; `--no-verify` ; `PUPITRE_ALLOW_MAIN=1`. `scripts/release.sh` est la demande : son second passage commite, tague et pousse.
 - Un squash ou un rebase sur la pull request `staging` → `main` : le tag de la version sortirait de l'historique.
-- Un merge de `staging` dans `main` à la main : c'est le job `merge` de la release qui le fait, une fois la version téléchargeable.
+- Une release pour un changement qui ne touche ni l'app ni l'agent : la console, le site et les mails partent par une pull request `staging` → `main` fusionnée en merge commit, sans numéro, et Cloudflare Builds reconstruit les Workers.
 - Un second build du même numéro : la version publiée est celle que le canal désigne, un retour arrière promeut la précédente.
 - Un secret, un certificat, un mot de passe dans le dépôt, un log, une transcription de session.
 - Une publication de l'agent ailleurs que sur le bucket privé, par l'API de la plateforme.

@@ -7,7 +7,8 @@ import { launchPupitre, type Running } from "./harness/launch";
  *
  * The app has no window history to lean on: the scenario walks three views
  * through the sidebar, comes back through the arrows, goes forward again
- * through the keyboard, and checks that an arrow with nowhere to go says so.
+ * through the keyboard, checks that an arrow with nowhere to go says so, and
+ * that a service's own page is a step of its own behind the list.
  */
 const DASHBOARD = "1 projet en ligne";
 
@@ -75,6 +76,23 @@ test.describe("historique", () => {
       await expect(heading(DASHBOARD)).toBeVisible();
       await expect(forward).toBeDisabled();
       await expect(back).toBeEnabled();
+    });
+
+    await test.step("la page d'un service se quitte vers la liste, pas vers le tableau de bord", async () => {
+      const allServices = page.getByRole("button", {
+        name: "Tous les services",
+      });
+
+      await page.getByRole("button", { name: "Services" }).click();
+      await page.locator('[data-service="db.postgres"]').click();
+      await expect(allServices).toBeVisible();
+
+      await back.click();
+      await expect(heading("atelier")).toBeVisible();
+      await expect(page.locator('[data-service="db.postgres"]')).toBeVisible();
+
+      await forward.click();
+      await expect(allServices).toBeVisible();
     });
 
     await assertAccessible(page, "historique");

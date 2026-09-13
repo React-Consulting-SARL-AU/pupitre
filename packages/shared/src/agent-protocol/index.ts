@@ -61,10 +61,12 @@ import {
   ProjectEnvParamsSchema,
   ProjectEnvResultSchema,
   ProjectGitStatusResultSchema,
+  ProjectInstallResultSchema,
   ProjectListResultSchema,
   ProjectLogsParamsSchema,
   ProjectLogsResultSchema,
   ProjectParamsSchema,
+  ProjectPullResultSchema,
   ProjectRemoveResultSchema,
   ProjectSyncResultSchema,
   ProjectTargetParamsSchema,
@@ -198,11 +200,18 @@ export const COMMANDS = {
     params: ProjectLogsParamsSchema,
     result: ProjectLogsResultSchema,
   },
+  "project.pull": {
+    params: ProjectParamsSchema,
+    result: ProjectPullResultSchema,
+  },
   "project.sync": {
     params: ProjectParamsSchema,
     result: ProjectSyncResultSchema,
   },
-  "project.install": { params: ProjectParamsSchema, result: DoneResultSchema },
+  "project.install": {
+    params: ProjectParamsSchema,
+    result: ProjectInstallResultSchema,
+  },
   "project.env": {
     params: ProjectEnvParamsSchema,
     result: ProjectEnvResultSchema,

@@ -1,11 +1,14 @@
 package onepassword
 
 import (
-	"pupitre.studio/agent/internal/i18n"
+	"encoding/json"
 	"runtime"
+	"strings"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/login"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/env"
@@ -229,4 +232,28 @@ func environment(token string) []string {
 	}
 
 	return []string{envKey + "=" + token}
+}
+
+// op whoami answers for the service account the token names; a service account carries no email, so the account it belongs to stands for it.
+func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
+	token := serviceToken(ctx)
+	if token == "" {
+		return login.SignedOut(i18n.T("login.token.absent", "1Password"))
+	}
+
+	out, err := login.Ask(ctx, environment(token), program, "whoami", "--format=json")
+
+	var who struct {
+		URL   string `json:"url"`
+		Email string `json:"email"`
+	}
+	if err != nil || json.Unmarshal([]byte(out.Stdout), &who) != nil {
+		return login.Unknown(i18n.T("login.token.refused", "1Password"))
+	}
+
+	if who.Email != "" {
+		return login.SignedIn(who.Email)
+	}
+
+	return login.SignedIn(strings.TrimPrefix(who.URL, "https://"))
 }

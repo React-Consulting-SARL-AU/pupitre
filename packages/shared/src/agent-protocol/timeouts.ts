@@ -46,6 +46,7 @@ export const COMMAND_TIMEOUTS_MS: Partial<Record<CommandName, number>> = {
   "project.detect": LONG_MS,
   "project.install": LONG_MS,
   "project.list": QUICK_MS,
+  "project.pull": LONG_MS,
   "project.sync": LONG_MS,
   /** A row rewritten, and a restart when the command changed: the minute holds. */
   "project.update": DEFAULT_TIMEOUT_MS,

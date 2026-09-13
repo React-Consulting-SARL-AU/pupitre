@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -474,6 +475,35 @@ func TestUpdateReplacesTheRoutesAndKeepsTheRest(t *testing.T) {
 	}
 	if _, ok := reload(fake).Get("mail"); !ok {
 		t.Fatal("the other local rows must stay")
+	}
+}
+
+// A domain that changes takes every name with it: the client picks another zone, and no project may go on answering under the old one.
+func TestRehostMovesEveryNameUnderTheOldDomain(t *testing.T) {
+	fake, file := loaded(t)
+
+	moved, err := file.Rehost(context(fake), domain, "flymate.studio")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{"admin-web.flymate.dev", "api.flymate.dev", "mail.flymate.dev", "web.flymate.dev"}
+	if !reflect.DeepEqual(moved, want) {
+		t.Fatalf("moved = %v, want %v", moved, want)
+	}
+
+	if file.Domain != "flymate.studio" {
+		t.Fatalf("the registry now resolves against %q", file.Domain)
+	}
+
+	web, _ := reload(fake).Get("web")
+	if web.Routes[0].Hostname != "web.flymate.studio" || web.Routes[1].Hostname != "admin-web.flymate.studio" {
+		t.Fatalf("the move must survive a reload: %+v", web.Routes)
+	}
+
+	again, err := file.Rehost(context(fake), "flymate.studio", "flymate.studio")
+	if err != nil || len(again) != 0 {
+		t.Fatalf("the same domain moves nothing: %v, %v", again, err)
 	}
 }
 

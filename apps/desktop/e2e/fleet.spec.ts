@@ -127,10 +127,10 @@ test.describe("serveur attribué", () => {
 
     await page.getByRole("button", { name: "Réglages" }).click();
 
-    await expect(
-      page.getByText("Attribués par votre organisation")
-    ).toBeVisible();
-    await expect(page.getByText(ADDRESS).first()).toBeVisible();
+    // One machine, one row: the console's word sits among the server's facts
+    // rather than in a list of its own.
+    await expect(page.getByText(ADDRESS)).toHaveCount(1);
+    await expect(page.getByText("Attribué · actif")).toBeVisible();
     await expect(page.getByText("Atelier Ada").first()).toBeVisible();
 
     await assertAccessible(page, "reglages/flotte");

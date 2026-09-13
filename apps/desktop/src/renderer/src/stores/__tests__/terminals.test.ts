@@ -122,21 +122,10 @@ describe("la connexion d'un agent", () => {
     expect(useTerminals.getState().links.t1?.opened).toBe(false);
   });
 
-  it("s'oublie quand on l'ignore, et quand la session se termine", () => {
-    const dismissed: string[] = [];
-
-    stubPupitre({
-      dismissLogin: (id) => {
-        dismissed.push(id);
-      },
-      openTerminal: () =>
-        Promise.resolve({ ok: true, result: { session: null } }),
-    });
-
+  it("s'oublie quand on l'ignore", () => {
     useTerminals.getState().noteLink("t1", "claude.ai");
     useTerminals.getState().dismissLogin("t1");
 
-    expect(dismissed).toEqual(["t1"]);
     expect(useTerminals.getState().links.t1).toBeUndefined();
   });
 });

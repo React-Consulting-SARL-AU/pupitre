@@ -209,7 +209,7 @@ func (d *Daemon) Enroll(ctx context.Context, token, platformURL string) error {
 		Arch:          d.options.Arch,
 	})
 	if err != nil {
-		return redacted{message: journal.Redact(err.Error()), cause: err}
+		return masked(journal, err)
 	}
 
 	// The platform is written down before the token: the heartbeat and the
@@ -227,18 +227,19 @@ func (d *Daemon) Enroll(ctx context.Context, token, platformURL string) error {
 	return nil
 }
 
-// A platform that echoes the enrolment token back would otherwise put it in the refusal the app displays and logs.
-type redacted struct {
-	message string
-	cause   error
-}
+// A platform that echoes the enrolment token back would otherwise put it in
+// the refusal the app displays and logs. The cause is kept as it is: it is
+// the network's word, never the platform's, and it is what names a timeout.
+func masked(journal *modules.Context, err error) error {
+	var failure *platform.Error
+	if !errors.As(err, &failure) {
+		return errors.New(journal.Redact(err.Error()))
+	}
 
-func (r redacted) Error() string {
-	return r.message
-}
+	copied := *failure
+	copied.Message = journal.Redact(failure.Message)
 
-func (r redacted) Unwrap() error {
-	return r.cause
+	return &copied
 }
 
 // A journal that knows the token, so a platform that echoes it back writes [secret] rather than the token itself.

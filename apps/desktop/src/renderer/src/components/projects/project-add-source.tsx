@@ -168,6 +168,7 @@ export function ProjectAddSource({
           name="project.branch"
         >
           <input
+            aria-busy={detection.status === "reading"}
             className={fieldControlClass}
             id="project.branch"
             onBlur={onDetect}

@@ -9,6 +9,7 @@ import (
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/download"
+	"pupitre.studio/agent/internal/modules/login"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/systemd"
@@ -437,4 +438,23 @@ func machineName(ctx *modules.Context) string {
 	}
 
 	return name
+}
+
+// The tunnel is the only thing here that signs in: code tunnel user show names the provider that opened it, never the account, and exits 1 when nobody did.
+func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
+	if !file.Exists(ctx, unitPath) {
+		return contract.Login{}, false
+	}
+
+	out, err := login.Ask(ctx, nil, cliPath, "tunnel", "user", "show")
+	answer := strings.TrimSpace(out.Stdout + "\n" + out.Stderr)
+
+	switch {
+	case strings.Contains(answer, "not logged in"):
+		return login.SignedOut(i18n.T("login.vscode.fix"))
+	case err == nil && strings.HasPrefix(answer, "logged in"):
+		return login.SignedIn(strings.TrimSpace(strings.TrimPrefix(answer, "logged in with provider")))
+	}
+
+	return login.Unknown(i18n.T("login.unanswered", "VS Code", "code tunnel user show"))
 }

@@ -1,6 +1,6 @@
 # Catalogue de services
 
-Le catalogue est une **bibliothèque des stacks les plus utilisées**, choisies parce qu'elles s'installent et se gèrent proprement. Il est complet : vingt-cinq modules, tous livrés. Il ne cherche pas l'exhaustivité : ce qui n'y est pas, le client l'installe lui-même sur sa machine, et Pupitre ne s'y oppose pas. La sonde signale ce qu'elle trouve, les modules ne touchent qu'à ce qu'ils ont installé.
+Le catalogue est une **bibliothèque des stacks les plus utilisées**, choisies parce qu'elles s'installent et se gèrent proprement. Il est complet : vingt-six modules, tous livrés. Il ne cherche pas l'exhaustivité : ce qui n'y est pas, le client l'installe lui-même sur sa machine, et Pupitre ne s'y oppose pas. La sonde signale ce qu'elle trouve, les modules ne touchent qu'à ce qu'ils ont installé.
 
 Un service est un **module** de l'agent : une unité Go qui sait s'installer, se vérifier, se configurer, se mettre à jour, se désinstaller et rapporter son état, sur Ubuntu 22.04 et 24.04, amd64 et arm64. L'app ne connaît aucun service par son nom : elle affiche les manifestes que l'agent déclare.
 
@@ -46,18 +46,23 @@ type Field =
 
 Une **connexion** est un compte tiers que l'app détient pour le client, sur son poste, et qui vaut pour tous ses serveurs. Un **module** est une unité que l'agent installe sur un serveur. Un module qui exige une connexion le déclare, et l'écran de configuration la demande au-dessus de ses propres questions plutôt que trois écrans plus loin.
 
-Quatre connexions existent : **Cloudflare**, **GitHub**, **1Password** et **Neon**. L'app retient le jeton de chacune dans le trousseau système, un fichier par fournisseur, et le chiffré seul touche le disque.
+Cinq connexions existent : **Cloudflare**, **Wrangler**, **GitHub**, **1Password** et **Neon**. L'app retient le jeton de chacune dans le trousseau système, un fichier par connexion, et le chiffré seul touche le disque.
+
+Un jeton Cloudflare peut ouvrir plusieurs comptes. L'app n'agit que sur un — ses zones sont celles proposées pour un domaine, son tunnel celui qu'elle crée, son identifiant celui sur lequel Wrangler déploie — et ce compte est **choisi par le client** à la connexion quand il y en a plusieurs, jamais le premier que Cloudflare liste. `connections:connect` répond alors `{ status: "choose", accounts }` et rien n'est retenu tant que le jeton n'est pas renvoyé avec le compte choisi ; « Vérifier » pèse ensuite le jeton sur ce compte-là, et refuse un jeton qui ne l'ouvre plus.
+
+Cloudflare et Wrangler ouvrent le même compte avec deux jetons, parce qu'ils ne vivent pas au même endroit : le premier crée le tunnel et écrit le DNS depuis le poste et n'atteint jamais le serveur ; le second est exporté dans le shell de `dev` pour Wrangler, là où tournent les agents et les projets du client. Un seul jeton pour les deux déposerait les droits sur le domaine du client là où il les expose le plus. Chacun ne porte que ses permissions : Tunnel et DNS pour l'un, Workers et ce que le serveur déploie pour l'autre.
 
 | Connexion | Vérifiée à la saisie | Ce qu'elle remplit |
 | --- | --- | --- |
-| `cloudflare` | `GET /accounts` : le compte qu'ouvre le jeton, et les zones qu'il porte | les trois champs `managed` d'`exposure.cloudflare` — `account_tag`, `tunnel_id`, `tunnel_secret` |
+| `cloudflare` | `GET /accounts` : le compte qu'ouvre le jeton, et les zones qu'il porte. Un jeton sans `Account Settings · Read` est accepté mais ne liste aucun compte : le refus nomme cette permission | les trois champs `managed` d'`exposure.cloudflare` — `account_tag`, `tunnel_id`, `tunnel_secret` |
+| `wrangler` | `GET /accounts` : le compte qu'ouvre le jeton, même exigence | les deux champs `managed` de `tool.wrangler` — `api_token`, `account_id` |
 | `github` | `GET /user` : le compte qu'ouvre le jeton | le champ `managed` `token` de `tool.github` |
 | `1password` | rien : un jeton de compte de service ne répond à aucun appel depuis le poste. Il est retenu sans nom, et le serveur dit à l'installation s'il ouvre un coffre | le champ `managed` `service_account_token` de `tool.1password` |
 | `neon` | `GET /users/me` : le compte qu'ouvre la clé | le champ `managed` `api_key` de `tool.neon` |
 
-**Rien ne change sur le fil** pour un jeton passé d'un formulaire à une connexion. Il atteint la machine sur la ligne de secrets de l'`install`, groupé par identifiant de module comme les autres, écrit par le processus principal de l'app, et se range dans `/etc/pupitre/env` sous root seul. Un jeton qu'un CLI lit lui-même dans son environnement (`NEON_API_KEY`, `OP_SERVICE_ACCOUNT_TOKEN`) est aussi exporté dans `/home/dev/.config/pupitre/env`, 0600 sous `dev`, que `~/.zshenv` lit : sans quoi `neon me` ou `op whoami` dans un terminal ne voient aucun compte. Ce qui change est d'où l'app le tient : un compte connecté une fois, au lieu d'un champ retapé pour chaque serveur. Un module dont le compte n'est pas connecté est refusé **avant la première étape**, avec le problème `connection`.
+**Rien ne change sur le fil** pour un jeton passé d'un formulaire à une connexion. Il atteint la machine sur la ligne de secrets de l'`install`, groupé par identifiant de module comme les autres, écrit par le processus principal de l'app, et se range dans `/etc/pupitre/env` sous root seul. Un jeton qu'un CLI lit lui-même dans son environnement (`NEON_API_KEY`, `OP_SERVICE_ACCOUNT_TOKEN`, `CLOUDFLARE_API_TOKEN`) est aussi exporté dans `/home/dev/.config/pupitre/env`, 0600 sous `dev`, que `~/.zshenv` lit : sans quoi `neon me`, `op whoami` ou `wrangler whoami` dans un terminal ne voient aucun compte. Ce qui change est d'où l'app le tient : un compte connecté une fois, au lieu d'un champ retapé pour chaque serveur. Un module dont le compte n'est pas connecté est refusé **avant la première étape**, avec le problème `connection`.
 
-- **Un champ `managed` est dérivé d'une connexion par l'app, jamais par la plateforme.** L'agent refuse d'enregistrer un manifeste qui en porte un sans déclarer de connexion.
+- **Un champ `managed` est dérivé d'une connexion par l'app, jamais par la plateforme.** L'agent refuse d'enregistrer un manifeste qui en porte un sans déclarer de connexion. Un champ `managed` de genre `secret` reçoit le jeton de la connexion ; un champ `managed` de genre `text` reçoit l'identifiant du compte que ce jeton ouvre — `account_id` de `tool.wrangler`, comme `account_tag` d'`exposure.cloudflare`, que le tunnel dérive lui-même.
 - **Le tunnel appartient au serveur.** L'app le crée une fois sur le compte du client, en pousse l'identifiant et le secret, puis n'en garde rien : `module.config` le lui rend quand elle en a besoin. Un poste réinstallé, ou un serveur confié à un collègue, retrouve le tunnel avec le seul jeton du compte.
 - **Le domaine est un champ ordinaire**, requis, de format `domain`, choisi par serveur. La zone se déduit du domaine ; l'écran propose les zones du compte pour le préremplir.
 
@@ -87,6 +92,20 @@ Un `preset` porte un `id`, un `name` affichable et sa liste de modules : l'app m
 ## Étapes
 
 Chaque module implémente `Check`, `Install`, `Configure`, `Upgrade`, `Uninstall`, `Status`. Chaque étape est idempotente : elle vérifie avant d'agir, et l'installation entière peut être rejouée sans dégât. Une étape émet des événements `step` avec sa durée ; une étape qui échoue n'arrête pas les autres modules, elle est notée avec sa commande de rejeu.
+
+## Compte d'un CLI
+
+Un module dont le CLI se connecte à un compte implémente en plus `Login` : il pose au CLI sa propre question — `gh auth status`, `claude auth status`, `codex login status`, `neonctl me`, `op whoami`, `wrangler whoami`, `code tunnel user show` — et rend un `login` d'après [agent-protocol.md](./agent-protocol.md#compte-dun-cli). Le CLI est le seul juge : l'agent ne lit jamais un fichier d'identifiants pour deviner. Un CLI qui prend sa clé dans l'environnement n'est interrogé qu'avec elle — sans clé, `neonctl` ouvrirait une connexion par navigateur que personne ne regarde, et attendrait — et un CLI qui n'a rien à ouvrir sur cette machine, le tunnel de `editor.vscode` qu'on n'a pas demandé, ne rend rien.
+
+| Module | Commande | Compte rendu |
+| --- | --- | --- |
+| `ai.claude` | `claude auth status` | l'email, sinon le nom de l'organisation |
+| `ai.codex` | `codex login status` | l'email du jeton d'identité que la connexion ChatGPT a laissé ; vide pour une clé d'API |
+| `tool.github` | `gh auth status --active --json hosts` | le login |
+| `tool.1password` | `op whoami --format=json` | l'email, sinon l'adresse du compte — un compte de service n'en a pas |
+| `tool.neon` | `neonctl me -o json` | l'email, sinon le login |
+| `tool.wrangler` | `wrangler whoami --json` | l'email, sinon le nom du compte de la connexion |
+| `editor.vscode` | `code tunnel user show`, quand le tunnel est demandé | le fournisseur — `github`, `microsoft` — le CLI ne nomme pas le compte |
 
 ## Modules
 
@@ -148,6 +167,8 @@ Les deux modules d'exposition sont exclusifs : chacun déclare l'autre en `confl
 
 `core.hardening` gouverne les règles nues `22` et `443` — SSH — et n'y touche jamais autrement ; `exposure.caddy` écrit les siennes en `<port>/tcp`. Les deux ne se marchent pas dessus.
 
+Le `domain` des deux modules se choisit parmi les zones du compte connecté quand c'est Cloudflare, et se change après coup depuis l'écran du service : la première étape de `Configure`, `move-routes`, porte alors chaque nom du registre de l'ancien domaine au nouveau avant que le domaine soit enregistré et l'ingress ou le Caddyfile réécrit ([agent-protocol.md](./agent-protocol.md#un-projet-une-commande-plusieurs-ports)). Les enregistrements DNS suivent depuis l'app, qui ne retire que ceux qu'elle a écrits.
+
 ### Outils
 
 | Id | Fait | Champs |
@@ -155,6 +176,7 @@ Les deux modules d'exposition sont exclusifs : chacun déclare l'autre en `confl
 | `tool.github` | `gh`, clone HTTPS sans clé, clé du serveur enregistrée sur le compte | `token` (secret, `managed` par la connexion `github`) |
 | `tool.1password` | CLI et compte de service, `OP_SERVICE_ACCOUNT_TOKEN` exporté dans le shell de `dev`, génération des `.env.local` depuis les gabarits des dépôts | `service_account_token` (secret, `managed` par la connexion `1password`) |
 | `tool.neon` | le CLI Neon dans `/usr/local/bin/neon`, `neonctl` en lien vers lui (c'est le nom que son aide imprime), et la clé rangée dans `/etc/pupitre/env` puis exportée dans le shell de `dev` — `neonctl` n'a pas de connexion par jeton, il la prend par `NEON_API_KEY`, et sans elle il lance une connexion par navigateur ; les projets et les bases restent la décision du client | `api_key` (secret, `managed` par la connexion `neon`) |
+| `tool.wrangler` | Wrangler, le CLI de Cloudflare, posé par mise (`npm:wrangler`) sur le Node de `runtime.node` ; le jeton et l'identifiant du compte rangés dans `/etc/pupitre/env` puis exportés dans le shell de `dev` en `CLOUDFLARE_API_TOKEN` et `CLOUDFLARE_ACCOUNT_ID`, que Wrangler lit lui-même — pas de `wrangler login`, et un jeton qui ouvre plusieurs comptes déploie sur celui de la connexion ; les Workers, les bases D1 et les Pages restent la décision du client | `api_token` (secret, `managed` par la connexion `wrangler`), `account_id` (text, `managed` par la même connexion) |
 
 ## Préréglages
 

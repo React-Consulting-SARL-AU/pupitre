@@ -13,6 +13,7 @@ export const account = {
       "{name} stops opening the servers of this account at the platform's next push.",
     "account.usage.openConsole": "Open the console",
     "account.usage.manageSubscription": "Manage the subscription",
+    "account.usage.choosePlan": "Choose a plan",
     "account.subscription.status.trialing": "Trial in progress",
     "account.subscription.status.active": "Subscription active",
     "account.subscription.status.past_due": "Payment overdue",
@@ -49,6 +50,13 @@ export const account = {
     "account.gate.platform": "Console",
     "account.gate.settings": "Open the settings",
     "account.gate.developmentSkip": "Continue without an account",
+    "account.gate.unsubscribed.title": "Choose a plan to open Pupitre",
+    "account.gate.unsubscribed.body":
+      "{org} has no subscription: Pupitre installs and updates the servers of a subscribed organization only. Choose a plan in the console, then refresh here.",
+    "account.gate.suspended.title": "Subscription suspended",
+    "account.gate.suspended.body":
+      "{org}'s subscription is suspended: its servers can no longer be installed or updated. Settle it in the console, then refresh here.",
+    "account.gate.signedInAs": "Signed in as {email}",
 
     "account.signIn.connect": "Sign in",
     "account.signIn.openConsole": "Open the console",
@@ -68,6 +76,7 @@ export const account = {
     "account.usage.look.valid": "Subscription active",
     "account.usage.look.cached": "Subscription checked offline",
     "account.usage.look.suspended": "Subscription suspended",
+    "account.usage.look.unsubscribed": "No subscription",
     "account.usage.look.stale": "Check expired",
     "account.usage.look.none": "No account connected",
     "account.usage.development":
@@ -78,6 +87,8 @@ export const account = {
       "Last check {since}, beyond the seven days of tolerance.",
     "account.usage.suspended":
       "This organisation's servers can no longer be installed or updated.",
+    "account.usage.unsubscribed":
+      "This organisation's servers cannot be installed or updated until it holds a plan.",
     "account.usage.none":
       "No server can be installed or updated until an account is connected.",
     "account.usage.validUntil": "valid until {date}",
@@ -96,6 +107,7 @@ export const account = {
       "{name} cesse d'ouvrir les serveurs de ce compte à la prochaine poussée de la plateforme.",
     "account.usage.openConsole": "Ouvrir la console",
     "account.usage.manageSubscription": "Gérer l'abonnement",
+    "account.usage.choosePlan": "Choisir une offre",
     "account.subscription.status.trialing": "Essai en cours",
     "account.subscription.status.active": "Abonnement actif",
     "account.subscription.status.past_due": "Paiement en retard",
@@ -132,6 +144,14 @@ export const account = {
     "account.gate.platform": "Console",
     "account.gate.settings": "Ouvrir les réglages",
     "account.gate.developmentSkip": "Continuer sans compte",
+    "account.gate.unsubscribed.title":
+      "Choisissez une offre pour ouvrir Pupitre",
+    "account.gate.unsubscribed.body":
+      "{org} n'a pas d'abonnement : Pupitre n'installe et ne met à jour que les serveurs d'une organisation abonnée. Choisissez une offre dans la console, puis actualisez ici.",
+    "account.gate.suspended.title": "Abonnement suspendu",
+    "account.gate.suspended.body":
+      "L'abonnement de {org} est suspendu : ses serveurs ne peuvent plus être installés ni mis à jour. Régularisez-le dans la console, puis actualisez ici.",
+    "account.gate.signedInAs": "Connecté en tant que {email}",
 
     "account.signIn.connect": "Se connecter",
     "account.signIn.openConsole": "Ouvrir la console",
@@ -151,6 +171,7 @@ export const account = {
     "account.usage.look.valid": "Abonnement actif",
     "account.usage.look.cached": "Abonnement vérifié hors ligne",
     "account.usage.look.suspended": "Abonnement suspendu",
+    "account.usage.look.unsubscribed": "Aucun abonnement",
     "account.usage.look.stale": "Vérification expirée",
     "account.usage.look.none": "Aucun compte connecté",
     "account.usage.development":
@@ -161,6 +182,8 @@ export const account = {
       "Dernière vérification {since}, au-delà des sept jours de tolérance.",
     "account.usage.suspended":
       "Les serveurs de cette organisation ne peuvent plus être installés ni mis à jour.",
+    "account.usage.unsubscribed":
+      "Les serveurs de cette organisation ne pourront être installés ni mis à jour tant qu'elle n'a pas d'offre.",
     "account.usage.none":
       "Aucun serveur ne peut être installé ni mis à jour tant qu'aucun compte n'est connecté.",
     "account.usage.validUntil": "valable jusqu'au {date}",

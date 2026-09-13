@@ -7,6 +7,7 @@ import { current, terminalOptions } from "./platform";
 import { targetOf } from "./servers";
 import { type LoginAddress, loginAddress } from "./terminal-links";
 import { isSessionName } from "./terminal-run";
+import { openScreen, type Screen } from "./terminal-screen";
 import {
   type Activity,
   freshActivity,
@@ -19,16 +20,13 @@ interface Session extends Activity {
   proc: pty.IPty;
   serverId: string;
   project: string | null;
-  /** The end of the stream, so an address cut between two chunks is still read. */
-  tail: string;
+  screen: Screen;
   /** The login address this session last printed, kept out of the renderer. */
   login: LoginAddress | null;
 }
 
 const sessions = new Map<string, Session>();
 
-/** Long enough to hold the longest address an agent prints. */
-const TAIL = 4096;
 const BELL = "\u0007";
 
 export function states(): Record<string, AgentState> {
@@ -54,7 +52,15 @@ export interface OpenTerminal {
 
 /** The address stays here: only its host crosses the bridge. */
 function noteLogin(id: string, session: Session, recipient: WebContents): void {
-  const found = loginAddress(session.tail, session.login ?? null);
+  if (sessions.get(id) !== session) {
+    return;
+  }
+
+  const found = loginAddress(
+    session.screen.lines(),
+    session.screen.cols(),
+    session.login
+  );
 
   if (!found || found.url === session.login?.url) {
     return;
@@ -89,11 +95,10 @@ export function open(request: OpenTerminal, recipient: WebContents): void {
     const session = sessions.get(id);
     if (session) {
       noteOutput(session, data.length, Date.now());
-      session.tail = (session.tail + data).slice(-TAIL);
       if (data.includes(BELL)) {
         session.bell = true;
       }
-      noteLogin(id, session, recipient);
+      session.screen.write(data, () => noteLogin(id, session, recipient));
     }
     if (!recipient.isDestroyed()) {
       recipient.send("terminal-data", { id, data });
@@ -115,7 +120,7 @@ export function open(request: OpenTerminal, recipient: WebContents): void {
     proc,
     serverId: request.serverId,
     project: request.project,
-    tail: "",
+    screen: openScreen(request.cols, request.rows),
     login: null,
   });
   watch(recipient);
@@ -137,15 +142,6 @@ export function describeSession(
   const session = sessions.get(id);
 
   return session ? { kind: session.kind, project: session.project } : null;
-}
-
-/** The reader dismissed the bar: the address stays out of sight until a new one is printed. */
-export function forgetLogin(id: string): void {
-  const session = sessions.get(id);
-
-  if (session) {
-    session.login = null;
-  }
 }
 
 let watcher: NodeJS.Timeout | null = null;
@@ -226,6 +222,7 @@ export function resize(id: string, cols: number, rows: number): void {
   if (!session || cols < 2 || rows < 2) {
     return;
   }
+  session.screen.resize(cols, rows);
   try {
     session.proc.resize(cols, rows);
   } catch {
@@ -243,6 +240,7 @@ export function close(id: string): void {
   } catch {
     // Already dead.
   }
+  session.screen.dispose();
   sessions.delete(id);
 }
 

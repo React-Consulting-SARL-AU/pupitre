@@ -542,6 +542,12 @@ func (Real) WriteFile(path string, data []byte, mode fs.FileMode) error {
 
 	if err := os.Rename(tmpPath, path); err != nil {
 		os.Remove(tmpPath)
+
+		// A bind-mounted file — /etc/hosts in a container — cannot be replaced, only rewritten where it stands.
+		if errors.Is(err, syscall.EBUSY) {
+			return os.WriteFile(path, data, mode)
+		}
+
 		return err
 	}
 

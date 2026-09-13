@@ -36,7 +36,7 @@ export const LOCAL_PLATFORM_URL = "http://localhost:3000";
  * under this name, which does not change from one launch to the next, and
  * serves only `/api/v1/agent/` of it.
  */
-export const DEV_AGENT_PLATFORM_URL = "https://dev-app.pupitre.studio";
+export const DEV_AGENT_PLATFORM_URL = "https://dev.pupitre.studio";
 
 export const RELEASE_STORAGE_HEADER = "x-pupitre-release-storage";
 

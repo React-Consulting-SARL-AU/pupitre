@@ -1,8 +1,10 @@
+import { Tooltip } from "@renderer/components/ui/tooltip";
 import type { DictionaryKey } from "@renderer/i18n/en";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { type Gesture, usePending } from "@renderer/lib/use-pending";
+import type { FleetOpening } from "@renderer/stores/fleet";
 import type { EditState } from "@renderer/stores/servers";
-import type { Server, ServerChanges } from "@shared/servers";
+import type { Server, ServerChanges, ServerGrant } from "@shared/servers";
 import { grantGone } from "@shared/servers";
 import { KeyRound, OctagonAlert, Pencil, Trash2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
@@ -11,16 +13,20 @@ import { CopyField } from "../ui/copy-field";
 import { fieldControlClass } from "../ui/field";
 import { IconButton } from "../ui/icon-button";
 import { StatusDot, type StatusShape } from "../ui/status-dot";
+import { ServerGrantDetail } from "./server-grant-detail";
+import { ServerGrantOpen } from "./server-grant-open";
 import { ServerRowDetail } from "./server-row-detail";
 import { ServerRowEditing } from "./server-row-editing";
 
 /**
  * One server, and everything that can be done to it from a list.
  *
- * Deleting asks first, and says what goes with it: the key the app made for
- * this machine leaves with the server, and no other copy of it exists. A
- * server the platform grants offers the two gestures apart — removed from here
- * it stays granted; erased everywhere it does not come back.
+ * A machine the platform grants is the same row as one typed here: the
+ * console's word is one of its facts, and its first opening one of its
+ * gestures. Deleting asks first, and says what goes with it: the key the app
+ * made for this machine leaves with the server, and no other copy of it
+ * exists. A server the platform grants offers the two gestures apart — removed
+ * from here it stays granted; erased everywhere it does not come back.
  *
  * Either deletion holds the confirmation open while it runs: the spinner turns
  * on the button that was clicked, and its neighbour cannot be pressed meanwhile.
@@ -36,6 +42,8 @@ export function ServerRow({
   onRemove,
   onForget,
   refusal,
+  opening = null,
+  onOpen,
 }: {
   server: Server;
   active: boolean;
@@ -50,6 +58,9 @@ export function ServerRow({
   onForget: Gesture;
   /** What the platform objected to the removal with, in its own words. */
   refusal?: ReactNode;
+  /** The first opening of a granted server in flight, when it is this one's. */
+  opening?: FleetOpening | null;
+  onOpen?: () => void;
 }) {
   const t = useTranslations();
 
@@ -59,6 +70,7 @@ export function ServerRow({
   const [publicKey, setPublicKey] = useState<string | null>(null);
 
   const editable = server.origin === "app" && onUpdate !== undefined;
+  const grant = liveGrant(server);
 
   function change(changes: ServerChanges): void {
     onUpdate?.(changes);
@@ -102,18 +114,19 @@ export function ServerRow({
       }`}
     >
       <div className="flex items-center gap-3">
-        <button
-          aria-busy={activating}
-          aria-current={active}
-          aria-label={t("servers.row.activate", { name: server.name })}
-          className="clickable shrink-0 rounded-sm p-0.5 text-ink disabled:opacity-40"
-          disabled={activating}
-          onClick={activate}
-          title={t("servers.row.activate", { name: server.name })}
-          type="button"
-        >
-          <StatusDot shape={activeShape} size={13} />
-        </button>
+        <Tooltip label={t("servers.row.activate", { name: server.name })}>
+          <button
+            aria-busy={activating}
+            aria-current={active}
+            aria-label={t("servers.row.activate", { name: server.name })}
+            className="clickable shrink-0 rounded-sm p-0.5 text-ink disabled:opacity-40"
+            disabled={activating}
+            onClick={activate}
+            type="button"
+          >
+            <StatusDot shape={activeShape} size={13} />
+          </button>
+        </Tooltip>
 
         <input
           aria-label={t("servers.row.rename", { name: server.name })}
@@ -166,7 +179,12 @@ export function ServerRow({
         <ServerRowDetail label={t("servers.row.hostKeyLabel")}>
           {server.hostFingerprint ?? t("servers.row.notPinned")}
         </ServerRowDetail>
+        {grant ? <ServerGrantDetail grant={grant} /> : null}
       </dl>
+
+      {grant && onOpen ? (
+        <ServerGrantOpen grant={grant} onOpen={onOpen} opening={opening} />
+      ) : null}
 
       {editing ? (
         <ServerRowEditing
@@ -208,7 +226,7 @@ export function ServerRow({
               >
                 {t(removeLabel(server))}
               </Button>
-              {granted(server) ? (
+              {grant ? (
                 <Button
                   disabled={removing}
                   icon={Trash2}
@@ -253,10 +271,14 @@ function configLabel(server: Server): DictionaryKey {
  *
  * What decides is not who created the entry but whether the platform still
  * grants the machine: only the platform can delete it. Removing it here hides
- * it on this computer, and the granted-servers panel knows how to bring it back.
+ * it on this computer, and the list offers the way back below its rows.
  */
+function liveGrant(server: Server): ServerGrant | null {
+  return server.grant && !grantGone(server.grant) ? server.grant : null;
+}
+
 function granted(server: Server): boolean {
-  return Boolean(server.grant && !grantGone(server.grant));
+  return liveGrant(server) !== null;
 }
 
 function removeLabel(server: Server): DictionaryKey {

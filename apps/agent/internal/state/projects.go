@@ -27,7 +27,7 @@ func (r *Reader) Add(project registry.Project, routes []registry.RouteRequest) (
 	reg := r.registry()
 
 	if project.Host == "" {
-		project.Host = "127.0.0.1"
+		project.Host = registry.Loopback
 	}
 
 	resolved, err := registry.ResolveRoutes(reg.Domain, routes)
@@ -37,6 +37,10 @@ func (r *Reader) Add(project registry.Project, routes []registry.RouteRequest) (
 	project.Routes = resolved
 
 	if err := reg.Add(ctx, project); err != nil {
+		return contract.Project{}, err
+	}
+
+	if err := syncLocalNames(ctx, reg); err != nil {
 		return contract.Project{}, err
 	}
 
@@ -108,6 +112,10 @@ func (r *Reader) Remove(name string) (contract.Project, error) {
 
 	removed, err := file.Remove(ctx, name)
 	if err != nil {
+		return contract.Project{}, err
+	}
+
+	if err := syncLocalNames(ctx, r.registry()); err != nil {
 		return contract.Project{}, err
 	}
 

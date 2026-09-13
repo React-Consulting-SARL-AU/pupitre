@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./app";
 import { LiveRegion } from "./components/ui/live-region";
+import { TooltipProvider } from "./components/ui/tooltip";
 import { watchTrace } from "./lib/trace";
 import { startLocaleWatch } from "./stores/locale";
 import { startTerminalSettings } from "./stores/terminal-settings";
@@ -20,7 +21,9 @@ if (root) {
   createRoot(root).render(
     <StrictMode>
       <LiveRegion />
-      <App />
+      <TooltipProvider>
+        <App />
+      </TooltipProvider>
     </StrictMode>
   );
 }

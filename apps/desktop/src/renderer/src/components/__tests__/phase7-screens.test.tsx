@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { AccountDevice, AccountState } from "@shared/account";
+import { CONNECTION_KINDS } from "@shared/connections";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   BRANCHES,
@@ -15,13 +16,14 @@ import { AccountIdentityCard } from "../account/account-identity-card";
 import { AccountUsageNotice } from "../account/account-usage-notice";
 import { ActivityProcesses } from "../activity/activity-processes";
 import { ActivitySessions } from "../activity/activity-sessions";
+import { ConnectionAccountChoice } from "../connections/connection-account-choice";
+import { ConnectionCard } from "../connections/connection-card";
 import {
   ConnectionConnected,
   forgetQuestion,
 } from "../connections/connection-connected";
 import { CONNECTIONS } from "../connections/connection-descriptors";
 import { ConnectionHealthLine } from "../connections/connection-health-line";
-import { grantStatusLabel } from "../fleet/fleet-server-row";
 import { OnboardingHardenFailed } from "../onboarding/onboarding-harden-failed";
 import { OnboardingRail } from "../onboarding/onboarding-rail";
 import { newBranchProblem } from "../projects/project-branch-create";
@@ -35,6 +37,7 @@ import { ProjectEnv } from "../projects/project-env";
 import { ProjectGitState } from "../projects/project-git-state";
 import { matchingLines } from "../projects/project-logs";
 import { portOf, ServerAddForm } from "../servers/server-add-form";
+import { grantStatusLabel } from "../servers/server-grant-detail";
 
 /**
  * The screens of the seventh phase, rendered from the same fixtures as the
@@ -312,6 +315,54 @@ describe("un compte tiers connecté", () => {
     expect(text(html)).toContain("Connecté en tant que ada");
     expect(text(html)).toContain("Vérifier");
     expect(text(html)).toContain("Déconnecter");
+  });
+
+  it("décrit chaque connexion que le contrat nomme, et aucune autre", () => {
+    expect(CONNECTIONS.map((one) => one.kind).sort()).toEqual(
+      [...CONNECTION_KINDS].sort()
+    );
+  });
+
+  /** Two tokens of one account, because only one of them goes to the server. */
+  it("sépare le jeton du tunnel, qui reste ici, de celui de Wrangler, qui part", () => {
+    const t = translator("fr");
+    const [tunnel, wrangler] = CONNECTIONS.filter((one) =>
+      ["cloudflare", "wrangler"].includes(one.kind)
+    ).map((connection) => ({
+      card: text(
+        renderToStaticMarkup(<ConnectionCard connection={connection} />)
+      ),
+      hint: t(connection.hint),
+    }));
+
+    expect(tunnel?.card).toContain("n'atteint jamais le serveur");
+    expect(tunnel?.hint).toContain("Cloudflare Tunnel · Edit");
+    expect(tunnel?.hint).not.toContain("Workers Scripts");
+    expect(wrangler?.card).toContain("part sur le serveur");
+    expect(wrangler?.hint).toContain("Workers Scripts · Edit");
+    expect(wrangler?.hint).toContain("Aucune permission Tunnel ni DNS");
+  });
+
+  /** Several accounts is a question the reader answers, never the first the provider listed. */
+  it("fait choisir le compte quand le jeton en ouvre plusieurs", () => {
+    const html = renderToStaticMarkup(
+      <ConnectionAccountChoice
+        accounts={[
+          { id: "acc-1", name: "Flymate" },
+          { id: "acc-2", name: "Atelier" },
+        ]}
+        chosen="acc-2"
+        kind="wrangler"
+        onChoose={NOOP}
+      />
+    );
+
+    expect(text(html)).toContain("Ce jeton ouvre plusieurs comptes");
+    expect(text(html)).toContain("Flymate");
+    expect(text(html)).toContain("Atelier");
+    expect(html).toContain('data-account-option="acc-1"');
+    expect(html.match(/type="radio"/g)).toHaveLength(2);
+    expect(html).toContain('checked="" value="acc-2"');
   });
 
   it("nomme ce que l'oubli emporte, ou dit qu'il ne le sait pas", () => {

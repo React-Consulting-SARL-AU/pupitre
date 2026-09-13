@@ -175,11 +175,11 @@ export function FilePreview({
 
             <Button
               disabled={!edited}
+              hint={t("files.save.title")}
               icon={Save}
               loading={write.status === "writing"}
               onClick={onSave}
               size="sm"
-              title={t("files.save.title")}
               variant={edited ? "inverse" : "default"}
             >
               {t("files.save")}
@@ -208,10 +208,10 @@ export function FilePreview({
           <Callout
             action={
               <Button
+                hint={t("transfers.download.title")}
                 icon={Download}
                 onClick={onDownload}
                 size="sm"
-                title={t("transfers.download.title")}
               >
                 {t("transfers.download")}
               </Button>

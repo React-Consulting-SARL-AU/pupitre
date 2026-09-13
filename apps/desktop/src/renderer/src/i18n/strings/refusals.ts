@@ -45,6 +45,8 @@ export const refusals = {
     "refusal.secrets.stale": "This server has declared no key named {key}.",
     "refusal.account.suspended.fix":
       "Settle the subscription in the console: {console}",
+    "refusal.account.unsubscribed.fix":
+      "Choose a plan in the console: {console}",
     "refusal.account.stale.fix":
       "Reconnect this computer, or check the account's state: {console}",
     "refusal.account.required.fix":
@@ -211,6 +213,14 @@ export const refusals = {
       "Create a new token on the provider and connect it again here; every server that uses it takes the new one at its next install.",
     "refusal.connection.call.fix":
       "Check that the token is still valid and still carries the rights the service asks for.",
+    "refusal.connection.cloudflare.unlisted":
+      "Cloudflare accepts this token but names no account for it.",
+    "refusal.connection.cloudflare.unlisted.fix":
+      "Add the permission Account · Account Settings · Read to the token: it is what lets Pupitre read which account the token opens. Keep the others.",
+    "refusal.connection.account.gone":
+      "This token no longer opens the account {account}.",
+    "refusal.connection.account.gone.fix":
+      "Disconnect this account and connect the token again: you will pick among the accounts it opens today.",
     "refusal.connection.token.none": "This token is empty.",
     "refusal.connection.token.none.fix":
       "Paste the token of the account, with the rights the service asks for.",
@@ -221,6 +231,10 @@ export const refusals = {
       "No zone of the connected account carries {domain}.",
     "refusal.cloudflare.zone.unknown.fix":
       "Pick a domain under one of the account's zones, or add that zone to Cloudflare.",
+    "refusal.cloudflare.record.taken":
+      "{hostname} is already held by a DNS record Pupitre did not write.",
+    "refusal.cloudflare.record.taken.fix":
+      "Give the port another subdomain, or remove that record from the Cloudflare dashboard if it is yours to remove.",
     "refusal.cloudflare.exposure.unread":
       "This server did not say which tunnel it runs: {reason}.",
     "refusal.cloudflare.exposure.unread.fix":
@@ -240,6 +254,7 @@ export const refusals = {
       "Open the settings, fix this server's account, then sign in again.",
     "refusal.account.suspended":
       "This organization's subscription is suspended.",
+    "refusal.account.unsubscribed": "This organization has no subscription.",
     "refusal.account.required":
       "Installing a server asks for a Pupitre account.",
     "refusal.signIn.denied": "The request was denied in the browser.",
@@ -384,6 +399,8 @@ export const refusals = {
     "refusal.secrets.stale": "Ce serveur n'a pas déclaré de clé nommée {key}.",
     "refusal.account.suspended.fix":
       "Régularisez l'abonnement dans la console : {console}",
+    "refusal.account.unsubscribed.fix":
+      "Choisissez une offre dans la console : {console}",
     "refusal.account.stale.fix":
       "Reconnectez cet appareil, ou vérifiez l'état du compte : {console}",
     "refusal.account.required.fix":
@@ -557,6 +574,14 @@ export const refusals = {
       "Créez un nouveau jeton chez le fournisseur et reconnectez-le ici ; chaque serveur qui l'utilise prend le nouveau à sa prochaine installation.",
     "refusal.connection.call.fix":
       "Vérifiez que le jeton est toujours valide et porte toujours les droits que le service demande.",
+    "refusal.connection.cloudflare.unlisted":
+      "Cloudflare accepte ce jeton mais ne lui nomme aucun compte.",
+    "refusal.connection.cloudflare.unlisted.fix":
+      "Ajoutez au jeton la permission Account · Account Settings · Read : c'est elle qui laisse Pupitre lire quel compte le jeton ouvre. Gardez les autres.",
+    "refusal.connection.account.gone":
+      "Ce jeton n'ouvre plus le compte {account}.",
+    "refusal.connection.account.gone.fix":
+      "Déconnectez ce compte et reconnectez le jeton : vous choisirez parmi les comptes qu'il ouvre aujourd'hui.",
     "refusal.connection.token.none": "Ce jeton est vide.",
     "refusal.connection.token.none.fix":
       "Collez le jeton du compte, avec les droits que le service demande.",
@@ -567,6 +592,10 @@ export const refusals = {
       "Aucune zone du compte connecté ne porte {domain}.",
     "refusal.cloudflare.zone.unknown.fix":
       "Choisissez un domaine sous une des zones du compte, ou ajoutez cette zone à Cloudflare.",
+    "refusal.cloudflare.record.taken":
+      "{hostname} est déjà tenu par un enregistrement DNS que Pupitre n'a pas écrit.",
+    "refusal.cloudflare.record.taken.fix":
+      "Donnez un autre sous-domaine au port, ou retirez cet enregistrement du tableau de bord Cloudflare s'il vous appartient.",
     "refusal.cloudflare.exposure.unread":
       "Ce serveur n'a pas dit quel tunnel il fait tourner : {reason}.",
     "refusal.cloudflare.exposure.unread.fix":
@@ -586,6 +615,7 @@ export const refusals = {
       "Ouvrez les réglages et corrigez le compte de ce serveur, puis reconnectezz-vous.",
     "refusal.account.suspended":
       "L'abonnement de cette organisation est suspendu.",
+    "refusal.account.unsubscribed": "Cette organisation n'a pas d'abonnement.",
     "refusal.account.required":
       "Installer un serveur demande un compte Pupitre.",
     "refusal.signIn.denied": "La demande a été refusée dans le navigateur.",

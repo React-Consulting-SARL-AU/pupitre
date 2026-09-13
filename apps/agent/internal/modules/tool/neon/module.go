@@ -1,13 +1,18 @@
 package neon
 
 import (
+	"encoding/json"
+	"fmt"
+	"path"
 	"runtime"
 	"strings"
+	"sync"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/download"
+	"pupitre.studio/agent/internal/modules/login"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/env"
@@ -49,13 +54,43 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 	return modules.Status{Installed: true, Configured: stored, Version: version(ctx)}, nil
 }
 
+// The CLI is a bundled Node program that takes half a second to say its
+// version, and a snapshot asks every few seconds: the answer is kept for as
+// long as the binary on disk is the same one, size and date.
+var known struct {
+	sync.Mutex
+	stamp   string
+	version string
+}
+
 func version(ctx *modules.Context) string {
+	stamp := stampOf(ctx)
+
+	known.Lock()
+	defer known.Unlock()
+
+	if stamp != "" && stamp == known.stamp {
+		return known.version
+	}
+
 	out, err := sys.Exec(ctx, sys.Command{Argv: []string{BinaryPath, "--version"}})
 	if err != nil {
 		return ""
 	}
 
-	return strings.TrimSpace(out.Stdout)
+	known.stamp = stamp
+	known.version = strings.TrimSpace(out.Stdout)
+
+	return known.version
+}
+
+func stampOf(ctx *modules.Context) string {
+	node, err := ctx.Sys().StatIn(path.Dir(BinaryPath), path.Base(BinaryPath))
+	if err != nil {
+		return ""
+	}
+
+	return fmt.Sprintf("%d@%d", node.SizeBytes, node.ModifiedAt.UnixNano())
 }
 
 func (Module) Install(ctx *modules.Context) error {
@@ -240,4 +275,28 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	status.Credentials = map[string]string{i18n.T("module.tool.neon.api_key.label"): keyKey}
 
 	return status, nil
+}
+
+// neonctl me is asked with the key the machine holds, and only then: without one the CLI opens a sign-in in a browser nobody is watching, and waits.
+func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
+	key, _, _ := env.Get(ctx, keyKey)
+	if key == "" {
+		return login.SignedOut(i18n.T("login.token.absent", "Neon"))
+	}
+
+	out, err := login.Ask(ctx, []string{keyKey + "=" + key}, BinaryPath, "me", "-o", "json")
+
+	var me struct {
+		Login string `json:"login"`
+		Email string `json:"email"`
+	}
+	if err != nil || json.Unmarshal([]byte(out.Stdout), &me) != nil {
+		return login.Unknown(i18n.T("login.token.refused", "Neon"))
+	}
+
+	if me.Email != "" {
+		return login.SignedIn(me.Email)
+	}
+
+	return login.SignedIn(me.Login)
 }

@@ -242,6 +242,16 @@ describe("le formulaire d'un nouveau projet", () => {
       { status: "idle" },
       { detection: { source: DRAFT.source, status: "reading" } }
     );
+    const readingBranch = panel(
+      { status: "idle" },
+      {
+        detection: {
+          branch: "release/2.0",
+          source: DRAFT.source,
+          status: "reading",
+        },
+      }
+    );
     const failed = panel(
       { status: "idle" },
       {
@@ -254,8 +264,15 @@ describe("le formulaire d'un nouveau projet", () => {
     );
 
     expect(text(read)).toContain("Lu dans la source : pnpm, port 5173.");
-    expect(text(reading)).toContain("L'agent lit la source…");
-    expect(reading).toContain('aria-busy="true"');
+    expect(text(reading)).toContain(
+      "L'agent clone le dépôt et lit ce qu'il demande…"
+    );
+    expect(reading).toContain('role="status"');
+    expect(reading).toContain('data-live="duration"');
+    expect(reading).toMatch(/<input aria-busy="true"[^>]*id="project\.branch"/);
+    expect(text(readingBranch)).toContain(
+      "L'agent clone la branche release/2.0 et lit ce qu'elle demande…"
+    );
     expect(text(failed)).toContain("le dépôt ne répond pas");
     expect(failed).toContain('aria-invalid="true"');
     expect(failed).toContain(

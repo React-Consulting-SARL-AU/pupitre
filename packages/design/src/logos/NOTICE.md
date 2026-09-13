@@ -43,6 +43,7 @@ filigrane derrière du texte.
 | `db-redis.svg` | `db.redis` | Redis | https://redis.io/brand-guidelines | CC0-1.0 | 2026-09-04 |
 | `exposure-caddy.svg` | `exposure.caddy` | Caddy | https://caddyserver.com | CC0-1.0 | 2026-09-04 |
 | `tool-neon.svg` | `tool.neon` | Neon | https://neon.com/brand | CC0-1.0 | 2026-09-04 |
+| `tool-wrangler.svg` | `tool.wrangler` | Cloudflare Workers | https://www.cloudflare.com/developer-platform/products/ | CC0-1.0 | 2026-09-04 |
 | `editor-vscode.svg` | `editor.vscode` | Visual Studio Code | https://svgl.app/library/vscode.svg | marque déposée, usage nominatif | 2026-09-04 |
 | `runtime-java.svg` | `runtime.java` | Java | https://svgl.app/library/java.svg | marque déposée, usage nominatif | 2026-09-04 |
 | `ai-codex.svg` | `ai.codex` | Codex | https://svgl.app/library/codex_light.svg | marque déposée, usage nominatif | 2026-09-04 |

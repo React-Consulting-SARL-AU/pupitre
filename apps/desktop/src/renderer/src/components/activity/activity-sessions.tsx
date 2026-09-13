@@ -123,6 +123,9 @@ export function ActivitySessions({
 
                 {onReattach && reattachable(attached, session) ? (
                   <Button
+                    hint={t("activity.session.reattachHint", {
+                      project: session.project ?? "",
+                    })}
                     icon={PlugZap}
                     onClick={() =>
                       onReattach(
@@ -131,9 +134,6 @@ export function ActivitySessions({
                       )
                     }
                     size="sm"
-                    title={t("activity.session.reattachHint", {
-                      project: session.project ?? "",
-                    })}
                   >
                     {t("activity.session.reattach")}
                   </Button>

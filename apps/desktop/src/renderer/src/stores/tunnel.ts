@@ -18,7 +18,7 @@ export type TunnelState =
   | { status: "ready"; tunnel: TunnelStatusResult }
   | { status: "failed"; error: AgentError };
 
-type TunnelCommand = "tunnel.status" | "tunnel.sync" | "tunnel.restart";
+type TunnelCommand = "tunnel.status" | "tunnel.sync";
 
 interface TunnelStore {
   tunnel: TunnelState;
@@ -28,7 +28,6 @@ interface TunnelStore {
 
   read: (serverId: string) => Promise<void>;
   sync: (serverId: string) => Promise<void>;
-  restart: (serverId: string) => Promise<void>;
   /**
    * Starts listening to the main process, which holds every forward of this
    * computer and says so each time one opens, closes or dies on its own.
@@ -111,10 +110,6 @@ export const useTunnel = create<TunnelStore>((set, get) => {
       );
 
       set({ busy: null, problem: written.ok ? null : written.error });
-    },
-
-    restart(serverId) {
-      return drive(serverId, "tunnel.restart");
     },
 
     follow() {

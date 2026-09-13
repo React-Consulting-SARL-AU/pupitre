@@ -24,7 +24,6 @@ graphify-out/
 !.env.1password.tpl
 *.env.local
 apps/web/.dev.vars
-apps/web/.cloudflared.yml
 *.pem
 *.key
 *.p8

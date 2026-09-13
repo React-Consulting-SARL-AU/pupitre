@@ -10,15 +10,20 @@ import { useForm } from "@/hooks/use-form"
 import { useTranslations } from "@/hooks/use-locale"
 import { useRequestCycle } from "@/hooks/use-request-cycle"
 import { socialProvidersQueryOptions } from "@/lib/api/queries"
+import { DEFAULT_CALLBACK_URL } from "@/lib/auth/callback-url"
 import { authClient } from "@/lib/auth/client"
 import { leaveFor } from "@/lib/config/urls"
 import { type SignInInput, signInSchema } from "@/lib/schemas/auth"
 import { GithubMark } from "./github-mark"
 import { GoogleMark } from "./google-mark"
 
-const CALLBACK_URL = "/dashboard/servers"
+export interface SignInFormProps {
+  callbackURL?: string
+}
 
-export function SignInForm() {
+export function SignInForm({
+  callbackURL = DEFAULT_CALLBACK_URL,
+}: SignInFormProps) {
   const t = useTranslations()
   const form = useForm<SignInInput>({
     schema: signInSchema(t),
@@ -38,19 +43,19 @@ export function SignInForm() {
         throw new Error(t("auth.signIn.passkeyFailed"))
       }
 
-      leaveFor(CALLBACK_URL)
+      leaveFor(callbackURL)
     })
   }
 
   function signInWithSocial(provider: "github" | "google") {
-    authClient().signIn.social({ provider, callbackURL: CALLBACK_URL })
+    authClient().signIn.social({ provider, callbackURL })
   }
 
   const submit = form.handleSubmit((values) =>
     magicLink.run(async () => {
       const { error } = await authClient().signIn.magicLink({
         email: values.email,
-        callbackURL: CALLBACK_URL,
+        callbackURL,
       })
 
       if (error) {

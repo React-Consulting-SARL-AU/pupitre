@@ -1,6 +1,7 @@
 import { AgentDot } from "@renderer/components/ui/agent-dot";
 import { fieldControlClass } from "@renderer/components/ui/field";
 import { IconButton } from "@renderer/components/ui/icon-button";
+import { Tooltip } from "@renderer/components/ui/tooltip";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AgentState, Terminal as TerminalInfo } from "@shared/terminals";
 import { X } from "lucide-react";
@@ -72,24 +73,25 @@ export function TerminalTab({
       data-active={active}
       data-terminal-tab={session.id}
     >
-      <button
-        aria-selected={active}
-        className="flex max-w-[12rem] items-center gap-1.5 py-1 pr-1 text-[12px]"
-        onAuxClick={(event) => {
-          if (event.button === MIDDLE_BUTTON) {
-            onClose();
-          }
-        }}
-        onClick={onActivate}
-        onDoubleClick={() => setRenaming(true)}
-        role="tab"
-        tabIndex={active ? 0 : -1}
-        title={t("terminals.renameHint")}
-        type="button"
-      >
-        <AgentDot state={state} />
-        <span className="truncate">{session.title}</span>
-      </button>
+      <Tooltip label={t("terminals.renameHint")}>
+        <button
+          aria-selected={active}
+          className="flex max-w-[12rem] items-center gap-1.5 py-1 pr-1 text-[12px]"
+          onAuxClick={(event) => {
+            if (event.button === MIDDLE_BUTTON) {
+              onClose();
+            }
+          }}
+          onClick={onActivate}
+          onDoubleClick={() => setRenaming(true)}
+          role="tab"
+          tabIndex={active ? 0 : -1}
+          type="button"
+        >
+          <AgentDot state={state} />
+          <span className="truncate">{session.title}</span>
+        </button>
+      </Tooltip>
 
       <IconButton
         className={

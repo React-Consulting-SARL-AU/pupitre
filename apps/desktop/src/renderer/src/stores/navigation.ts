@@ -55,7 +55,8 @@ function rememberedView(): View {
 }
 
 /**
- * One place the reader has been: a view, and the project when the view is one.
+ * One place the reader has been: a view, the project when the view is one,
+ * and the service when the view is the services page opened on one of them.
  *
  * The history is the app's own, not the window's: the window never navigates,
  * and what "back" must undo is a change of view. It lives for one run, so a
@@ -64,14 +65,21 @@ function rememberedView(): View {
 export interface Location {
   view: View;
   selection: string | null;
+  service: string | null;
 }
 
-const HOME: Location = { selection: null, view: "dashboard" };
+const HOME: Location = { selection: null, service: null, view: "dashboard" };
 
 function sameLocation(a: Location, b: Location): boolean {
-  return (
-    a.view === b.view && (a.view !== "project" || a.selection === b.selection)
-  );
+  if (a.view !== b.view) {
+    return false;
+  }
+
+  if (a.view === "project") {
+    return a.selection === b.selection;
+  }
+
+  return a.view !== "services" || a.service === b.service;
 }
 
 function locationIn(names: readonly string[], location: Location): boolean {
@@ -179,11 +187,8 @@ export interface GivenTerminal {
 interface NavigationStore {
   view: View;
   selection: string | null;
-  /**
-   * The service the dashboard sent the reader to: a landing, not a memory.
-   * The next move to any view opens the services page on its list again.
-   */
-  serviceFocus: string | null;
+  /** The service whose page is open, when the view is the services one. */
+  service: string | null;
   terminals: Terminal[];
   /** The active tab of each group, by group key. */
   activeTabs: Record<string, string>;
@@ -229,6 +234,7 @@ interface NavigationStore {
 
 const START: Location = {
   selection: remembered.project ?? null,
+  service: null,
   view: rememberedView(),
 };
 
@@ -260,31 +266,32 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
   history: [START],
   projectTabs: remembered.tabs ?? {},
   selection: START.selection,
-  serviceFocus: null,
+  service: START.service,
   terminalStates: {},
   view: START.view,
 
   goTo(view) {
-    set((state) => ({
-      ...move(state, { selection: state.selection, view }),
-      serviceFocus: null,
-    }));
+    set((state) =>
+      move(state, { selection: state.selection, service: null, view })
+    );
     persist(get());
   },
 
   openService(moduleId) {
-    set((state) => ({
-      ...move(state, { selection: state.selection, view: "services" }),
-      serviceFocus: moduleId,
-    }));
+    set((state) =>
+      move(state, {
+        selection: state.selection,
+        service: moduleId,
+        view: "services",
+      })
+    );
     persist(get());
   },
 
   select(name) {
-    set((state) => ({
-      ...move(state, { selection: name, view: "project" }),
-      serviceFocus: null,
-    }));
+    set((state) =>
+      move(state, { selection: name, service: null, view: "project" })
+    );
     persist(get());
   },
 
@@ -296,7 +303,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
       return;
     }
 
-    set({ ...target, cursor: cursor - 1, serviceFocus: null });
+    set({ ...target, cursor: cursor - 1 });
     persist(get());
   },
 
@@ -308,7 +315,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
       return;
     }
 
-    set({ ...target, cursor: cursor + 1, serviceFocus: null });
+    set({ ...target, cursor: cursor + 1 });
     persist(get());
   },
 
@@ -337,7 +344,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
     state.history.forEach((location, index) => {
       if (index === state.cursor) {
         cursor = history.length;
-        history.push({ selection, view: location.view });
+        history.push({ ...location, selection });
       } else if (locationIn(names, location)) {
         history.push(location);
       }
@@ -364,7 +371,11 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
 
     set((state) => ({
       ...(project === null
-        ? move(state, { selection: state.selection, view: "terminals" })
+        ? move(state, {
+            selection: state.selection,
+            service: null,
+            view: "terminals",
+          })
         : {}),
       activeTabs: { ...state.activeTabs, [groupKey(project, kind)]: id },
       activeTerminal: project === null ? id : state.activeTerminal,
@@ -438,6 +449,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
     set((state) => ({
       ...move(state, {
         selection: target.project ?? state.selection,
+        service: target.project === null ? null : state.service,
         view: target.project === null ? "terminals" : state.view,
       }),
       activeTabs: {

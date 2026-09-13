@@ -76,11 +76,11 @@ export function ServiceDatabase({
 
       <div className="flex flex-wrap items-center gap-2">
         <Button
+          hint={t("services.database.shellHint")}
           icon={SquareTerminal}
           loading={busy === "db.shell"}
           onClick={onShell}
           size="sm"
-          title={t("services.database.shellHint")}
         >
           {t("services.database.shell")}
         </Button>
@@ -101,10 +101,10 @@ export function ServiceDatabase({
           {t("services.database.import")}
         </Button>
         <Button
+          hint={t("transfers.dump.import.help")}
           icon={HardDriveUpload}
           onClick={onImportFromComputer}
           size="sm"
-          title={t("transfers.dump.import.help")}
         >
           {t("transfers.dump.import")}
         </Button>
@@ -149,10 +149,10 @@ export function ServiceDatabase({
           {outcome.kind === "dump" && outcome.lines[0] ? (
             <div className="mt-3">
               <Button
+                hint={t("transfers.download.title")}
                 icon={HardDriveDownload}
                 onClick={onDownloadDump}
                 size="sm"
-                title={t("transfers.download.title")}
               >
                 {t("transfers.dump.download")}
               </Button>

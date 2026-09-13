@@ -1,9 +1,13 @@
 package claude
 
 import (
+	"encoding/json"
+
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/ai/agents"
+	"pupitre.studio/agent/internal/modules/login"
 )
 
 const (
@@ -75,4 +79,30 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	}
 
 	return status, nil
+}
+
+type authStatus struct {
+	LoggedIn bool   `json:"loggedIn"`
+	Email    string `json:"email"`
+	OrgName  string `json:"orgName"`
+}
+
+// claude auth status reads what ~/.claude holds and prints its JSON signed in or not; it never reaches Anthropic.
+func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
+	out, _ := login.Ask(ctx, nil, Program, "auth", "status")
+
+	var status authStatus
+	if err := json.Unmarshal([]byte(out.Stdout), &status); err != nil {
+		return login.Unknown(i18n.T("login.unanswered", "Claude Code", Program+" auth status"))
+	}
+
+	if !status.LoggedIn {
+		return login.SignedOut(i18n.T("login.claude.fix"))
+	}
+
+	if status.Email != "" {
+		return login.SignedIn(status.Email)
+	}
+
+	return login.SignedIn(status.OrgName)
 }

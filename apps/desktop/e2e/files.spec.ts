@@ -385,6 +385,49 @@ test.describe("les fichiers d'un projet", () => {
       await assertAccessible(page, "files/editor");
     });
 
+    await test.step("⌘F ouvre la recherche dans la langue de l'app, compte les résultats et remplace", async () => {
+      await page.locator(".cm-content").click();
+      await page.keyboard.press("ControlOrMeta+f");
+
+      const panel = page.getByRole("search", { name: "Rechercher" });
+      const field = panel.getByRole("textbox", { name: "Rechercher" });
+      const count = panel.getByRole("status");
+      await expect(field).toBeFocused();
+
+      await field.fill("export");
+      await expect(count).toHaveText("2 résultats");
+      await expect(
+        panel.getByRole("button", { name: "Résultat précédent" })
+      ).toBeEnabled();
+
+      await page.keyboard.press("Enter");
+      await expect(count).toHaveText("1 sur 2");
+      await page.keyboard.press("Enter");
+      await expect(count).toHaveText("2 sur 2");
+
+      await panel.getByRole("button", { name: "Respecter la casse" }).click();
+      await field.fill("EXPORT");
+      await expect(count).toHaveText("Aucun résultat");
+      await expect(
+        panel.getByRole("button", { name: "Tout remplacer" })
+      ).toBeDisabled();
+      await panel.getByRole("button", { name: "Respecter la casse" }).click();
+
+      await field.fill("'x'");
+      await panel.getByRole("textbox", { name: "Remplacer par" }).fill("'y'");
+      await panel.getByRole("button", { name: "Tout remplacer" }).click();
+      await expect(page.locator(".cm-content")).toContainText(
+        "export const host = 'y';"
+      );
+      await expect(page.getByLabel("Modifié, non enregistré")).toBeVisible();
+
+      await assertAccessible(page, "files/search");
+
+      await panel.getByRole("button", { name: "Fermer la recherche" }).click();
+      await expect(panel).toHaveCount(0);
+      await expect(page.locator(".cm-content")).toBeFocused();
+    });
+
     await test.step("modifier le tampon marque le fichier, et ⌘S l'enregistre avec l'empreinte lue", async () => {
       await page.locator(".cm-content").click();
       await page.keyboard.press("ControlOrMeta+End");
@@ -408,6 +451,7 @@ test.describe("les fichiers d'un projet", () => {
       expect(written[0]?.path).toBe("projects/flymate/src/index.ts");
       expect(written[0]?.sha256).toMatch(DIGEST);
       expect(written[0]?.text).toContain("export const debug = true;");
+      expect(written[0]?.text).toContain("export const host = 'y';");
     });
 
     await test.step("une seconde sauvegarde porte l'empreinte que la première a rendue", async () => {

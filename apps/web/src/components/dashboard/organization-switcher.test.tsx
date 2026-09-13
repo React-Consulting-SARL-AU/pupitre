@@ -56,4 +56,20 @@ describe("OrganizationSwitcher", () => {
     expect(items[2]?.textContent).toContain("New organisation")
     expect(document.body.textContent).not.toContain("Manage the organisation")
   })
+
+  it("names its icon in a tooltip", async () => {
+    const { container, unmount } = await render(
+      withRouter(
+        <QueryClientProvider client={createQueryClient()}>
+          <DashboardContext.Provider value={CONTEXT}>
+            <OrganizationSwitcher />
+          </DashboardContext.Provider>
+        </QueryClientProvider>
+      )
+    )
+
+    mounted.push(unmount)
+
+    expect(trigger(container, "Atelier").title).toBe("Organisations")
+  })
 })

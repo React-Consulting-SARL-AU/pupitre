@@ -29,6 +29,7 @@ import { byId } from "./servers";
 
 const PLAIN: readonly PlainProjectCommand[] = [
   "project.install",
+  "project.pull",
   "project.sync",
   "project.url",
   "project.branches",

@@ -57,6 +57,7 @@ export function SidebarAccountMenu() {
       <MenuTrigger
         aria-label={t("sidebar.account")}
         className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left transition-fast hover:bg-raised focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
+        title={t("sidebar.account")}
       >
         <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-raised font-data text-[11px] text-ink-2">
           {initialOf(user.name || user.email)}

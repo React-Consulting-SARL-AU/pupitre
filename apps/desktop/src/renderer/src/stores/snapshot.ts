@@ -2,7 +2,7 @@ import type { ProcessesListResult } from "@pupitre/shared/agent-protocol/process
 import type { SnapshotResult } from "@pupitre/shared/agent-protocol/state";
 import type { AgentError } from "@shared/agent";
 import { create } from "zustand";
-import { agentCall as call } from "../lib/agent-call";
+import { agentCall as call, agentPoll as poll } from "../lib/agent-call";
 
 /**
  * What the server says of itself, in one command.
@@ -103,7 +103,7 @@ export const useSnapshot = create<SnapshotStore>((set, get) => {
       }
 
       const asked = turn;
-      const answer = await call<SnapshotResult>(serverId, "snapshot");
+      const answer = await poll<SnapshotResult>(serverId, "snapshot");
 
       if (asked !== turn) {
         return;
@@ -138,7 +138,7 @@ export const useSnapshot = create<SnapshotStore>((set, get) => {
 
     async readProcesses(serverId) {
       const asked = turn;
-      const answer = await call<ProcessesListResult>(
+      const answer = await poll<ProcessesListResult>(
         serverId,
         "processes.list"
       );

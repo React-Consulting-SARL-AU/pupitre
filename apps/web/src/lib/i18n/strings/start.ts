@@ -11,6 +11,9 @@ export const start = {
       "Your server stays yours: no inbound connection, no private key leaves your laptop.",
     "start.noCard":
       "No card is asked for. At the end of the {days} days, without one, the subscription stops and nothing is charged.",
+    "start.afterTrial.month": "After the trial: {price} per server per month",
+    "start.afterTrial.year":
+      "After the trial: {price} per server per year, {months} months free",
     "start.action": "Start the trial",
     "start.actionPending": "Opening the trial…",
     "start.failed": "The trial could not be opened.",
@@ -58,6 +61,9 @@ export const start = {
       "Votre serveur reste le vôtre : aucune connexion entrante, aucune clé privée hors de votre laptop.",
     "start.noCard":
       "Aucune carte n'est demandée. À la fin des {days} jours, sans carte, l'abonnement s'arrête et rien n'est prélevé.",
+    "start.afterTrial.month": "Après l'essai : {price} par serveur et par mois",
+    "start.afterTrial.year":
+      "Après l'essai : {price} par serveur et par an, {months} mois offerts",
     "start.action": "Démarrer l'essai",
     "start.actionPending": "Ouverture de l'essai…",
     "start.failed": "L'essai n'a pas pu être ouvert.",

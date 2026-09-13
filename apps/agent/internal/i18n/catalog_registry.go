@@ -54,6 +54,14 @@ var registryCatalog = map[string]Message{
 		FR: "branche invalide : %s",
 		EN: "invalid branch: %s",
 	},
+	"registry.host.invalid": {
+		FR: "hôte invalide : %s",
+		EN: "invalid host: %s",
+	},
+	"registry.host.invalid.fix": {
+		FR: "Laissez 127.0.0.1, ou donnez le nom en .localhost que le script de démarrage fige, par exemple « react-box.localhost ».",
+		EN: `Leave 127.0.0.1, or give the .localhost name the start script freezes, for example "react-box.localhost".`,
+	},
 	"registry.branch.invalid.fix": {
 		FR: "Donnez un nom de branche tel que git l'écrit, par exemple « main » ou « release/2.0 ».",
 		EN: `Give a branch name as git writes it, for example "main" or "release/2.0".`,

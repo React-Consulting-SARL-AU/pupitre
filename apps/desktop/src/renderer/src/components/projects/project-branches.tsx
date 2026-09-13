@@ -125,10 +125,10 @@ export function ProjectBranches({
         {chosen || creating ? null : (
           <Button
             disabled={switching}
+            hint={t("project.branches.newHint")}
             icon={GitBranchPlus}
             onClick={() => setCreating(true)}
             size="sm"
-            title={t("project.branches.newHint")}
             variant="discreet"
           >
             {t("project.branches.new")}

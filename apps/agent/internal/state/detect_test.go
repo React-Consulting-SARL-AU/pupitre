@@ -167,6 +167,52 @@ func TestDetectTakesThePortTheRepositoryAsksFor(t *testing.T) {
 	}
 }
 
+// The name a script freezes in --host is the host to declare: the machine will answer to it once the project is added.
+func TestDetectReadsTheLocalhostNameTheScriptBindsTo(t *testing.T) {
+	for _, want := range []struct {
+		name   string
+		script string
+		host   string
+	}{
+		{name: "from --host", script: "vite dev --host react-box.localhost --port 3000", host: "react-box.localhost"},
+		{name: "from --host=", script: "vite --host=api.shop.localhost --port 3000", host: "api.shop.localhost"},
+		{name: "not from an address", script: "vite --host 0.0.0.0 --port 3000"},
+		{name: "not from a public name", script: "vite --host shop.example.org --port 3000"},
+	} {
+		t.Run(want.name, func(t *testing.T) {
+			files := map[string]string{"package.json": `{"scripts":{"dev":"` + want.script + `"}}`}
+
+			detected, err := detectFixture(t, files).Detect("", "candidate", "")
+			if err != nil {
+				t.Fatalf("detect: %v", err)
+			}
+
+			if detected.HostHint != want.host {
+				t.Fatalf("host hint = %q, want %q", detected.HostHint, want.host)
+			}
+		})
+	}
+}
+
+// A script that only runs another script says nothing itself: what it asks for is read at the end of the chain.
+func TestDetectFollowsAScriptThatRunsAnotherOne(t *testing.T) {
+	files := map[string]string{"package.json": `{"scripts":{
+		"dev": "bun run dev:web",
+		"dev:web": "bun run dev:app",
+		"dev:app": "bun run prepare && bun scripts/wrap.ts -- node vite.js dev --host react-box.localhost --port 4400",
+		"loop": "bun run loop"
+	}}`}
+
+	detected, err := detectFixture(t, files).Detect("", "candidate", "")
+	if err != nil {
+		t.Fatalf("detect: %v", err)
+	}
+
+	if detected.PortHint != 4400 || detected.HostHint != "react-box.localhost" || detected.Cmd != "bun run dev --port 4400" {
+		t.Fatalf("unexpected detection: %+v", detected)
+	}
+}
+
 func TestDetectRefusesWhatItCannotRead(t *testing.T) {
 	reader := detectFixture(t, map[string]string{"package.json": vitePackage})
 
@@ -249,6 +295,65 @@ func TestDetectClonesARepositoryAndLeavesNothingBehind(t *testing.T) {
 
 	if !cloned(calls, "--depth", "1") {
 		t.Fatalf("the clone must stay in surface: %v", calls)
+	}
+}
+
+// A detection reads a handful of manifests: the clone brings the trees and the small blobs in one pack, and only the files it reads are ever written — a repository heavy with assets costs the same as an empty one.
+func TestDetectFetchesTheManifestsAndNotTheRest(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git is not installed")
+	}
+
+	base := t.TempDir()
+	origin := filepath.Join(base, "atlas.git")
+	run(t, base, "git", "init", "--quiet", "--bare", "--initial-branch=main", origin)
+	run(t, origin, "git", "config", "uploadpack.allowFilter", "true")
+
+	seed := filepath.Join(base, "seed")
+	run(t, base, "git", "clone", "--quiet", origin, seed)
+	write(t, filepath.Join(seed, "package.json"), `{"name":"atlas","packageManager":"pnpm@9.0.0","workspaces":["apps/*"]}`)
+	write(t, filepath.Join(seed, "turbo.json"), `{"tasks":{"dev":{}}}`)
+	write(t, filepath.Join(seed, "apps", "web", "package.json"), `{"name":"@atlas/web","scripts":{"dev":"vite --host atlas.localhost --port 3010"}}`)
+	write(t, filepath.Join(seed, "apps", "web", "src", "main.ts"), "export {}\n")
+	write(t, filepath.Join(seed, "assets", "big.bin"), strings.Repeat("x", 200_000))
+	run(t, seed, "git", "add", "-A")
+	run(t, seed, "git", "commit", "--quiet", "-m", "atlas")
+	run(t, seed, "git", "push", "--quiet", "origin", "main")
+
+	var calls []sys.Command
+
+	reader := state.New(state.Options{
+		Sys:          recorder{calls: &calls},
+		Now:          modtest.NewClock(time.Millisecond).Now,
+		Registry:     modules.NewRegistry(),
+		AgentVersion: "0.0.0-test",
+		Paths:        registry.Paths{Conf: filepath.Join(base, "projects.conf"), Local: filepath.Join(base, "projects.local.conf"), Projects: filepath.Join(base, "projects")},
+		Tmux:         tmux.Options{User: "root", LogDir: filepath.Join(base, "logs")},
+		Detect:       state.DetectOptions{Cache: filepath.Join(base, "cache"), Name: func() string { return "detection" }},
+		Sleep:        func(time.Duration) {},
+	})
+
+	detected, err := reader.Detect("file://"+origin, "", "")
+	if err != nil {
+		t.Fatalf("detect: %v", err)
+	}
+
+	if detected.PkgMgr != "pnpm" || detected.HostHint != "atlas.localhost" || len(detected.Routes) != 1 || detected.Routes[0].Port != 3010 {
+		t.Fatalf("unexpected detection: %+v", detected)
+	}
+
+	if !cloned(calls, "--filter=blob:limit=65536", "--no-checkout") {
+		t.Fatalf("the clone must leave the big blobs and the working tree behind: %v", calls)
+	}
+
+	for _, call := range calls {
+		line := strings.Join(call.Argv, " ")
+		if strings.Contains(line, "git checkout") && (strings.Contains(line, "big.bin") || strings.Contains(line, "main.ts")) {
+			t.Fatalf("only the manifests are written: %s", line)
+		}
+		if strings.Contains(line, "git checkout") && !strings.Contains(line, "apps/web/package.json") {
+			t.Fatalf("the workspace manifests are among them: %s", line)
+		}
 	}
 }
 

@@ -669,4 +669,30 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       fr: "Le CLI n’a pas de connexion par jeton : il lit une clé dans son propre drapeau ou dans l’environnement, donc un shell qui la veut doit la recevoir. La désinstallation reprend le CLI et la clé qu’il rangeait, et ne touche jamais à votre compte Neon.",
     },
   },
+  "tool.wrangler": {
+    installs: [
+      {
+        en: "Wrangler, Cloudflare’s CLI, installed by mise on the server’s Node, so it lands on the path of the dev shell and upgrades like a runtime.",
+        fr: "Wrangler, le CLI de Cloudflare, posé par mise sur le Node du serveur, pour qu’il arrive sur le chemin du shell de dev et se mette à niveau comme un runtime.",
+      },
+      {
+        en: "The token you gave and the account it opens, in the server’s environment file and in the dev shell, as the two variables Wrangler reads on its own — no wrangler login on the server.",
+        fr: "Le jeton que vous donnez et le compte qu’il ouvre, dans le fichier d’environnement du serveur et dans le shell de dev, sous les deux variables que Wrangler lit lui-même — aucun wrangler login sur le serveur.",
+      },
+      {
+        en: "Nothing else: your Workers, your D1 databases and your Pages projects stay yours to create and deploy.",
+        fr: "Rien d’autre : vos Workers, vos bases D1 et vos projets Pages restent les vôtres à créer et à déployer.",
+      },
+    ],
+    asks: [
+      {
+        en: "A second token of your Cloudflare account, connected once in the app’s settings under Wrangler. This one goes to the server, so it carries only what the server deploys — Workers Scripts, D1, Pages — and nothing over your tunnels or your domain, which stay with the token that never leaves your computer.",
+        fr: "Un second jeton de votre compte Cloudflare, connecté une fois dans les réglages de l’app sous Wrangler. Celui-ci part sur le serveur : il ne porte que ce que le serveur déploie — Workers Scripts, D1, Pages — et rien sur vos tunnels ni votre domaine, qui restent au jeton qui ne quitte jamais votre ordinateur.",
+      },
+    ],
+    notes: {
+      en: "The service page says whose account the token opens, in Wrangler’s own words. A token that opens several accounts deploys to the one of your connection. Uninstalling takes back the CLI and the two variables, and never touches your Cloudflare account.",
+      fr: "La fiche du service dit quel compte le jeton ouvre, dans les mots de Wrangler. Un jeton qui ouvre plusieurs comptes déploie sur celui de votre connexion. La désinstallation reprend le CLI et les deux variables, et ne touche jamais à votre compte Cloudflare.",
+    },
+  },
 }

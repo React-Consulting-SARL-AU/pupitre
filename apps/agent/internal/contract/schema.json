@@ -1136,6 +1136,16 @@
                 "default": true,
                 "type": "boolean"
               },
+              "connection": {
+                "type": "string",
+                "enum": [
+                  "cloudflare",
+                  "wrangler",
+                  "github",
+                  "1password",
+                  "neon"
+                ]
+              },
               "version": {
                 "type": "string"
               },
@@ -1261,6 +1271,16 @@
                 "default": true,
                 "type": "boolean"
               },
+              "connection": {
+                "type": "string",
+                "enum": [
+                  "cloudflare",
+                  "wrangler",
+                  "github",
+                  "1password",
+                  "neon"
+                ]
+              },
               "version": {
                 "type": "string"
               },
@@ -1331,6 +1351,16 @@
           "default": true,
           "type": "boolean"
         },
+        "connection": {
+          "type": "string",
+          "enum": [
+            "cloudflare",
+            "wrangler",
+            "github",
+            "1password",
+            "neon"
+          ]
+        },
         "version": {
           "type": "string"
         },
@@ -1350,6 +1380,28 @@
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "login": {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": [
+                "signed_in",
+                "signed_out",
+                "unknown"
+              ]
+            },
+            "account": {
+              "type": "string"
+            },
+            "fix": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state"
+          ]
         }
       },
       "required": [
@@ -1427,6 +1479,16 @@
           "default": true,
           "type": "boolean"
         },
+        "connection": {
+          "type": "string",
+          "enum": [
+            "cloudflare",
+            "wrangler",
+            "github",
+            "1password",
+            "neon"
+          ]
+        },
         "version": {
           "type": "string"
         },
@@ -1446,6 +1508,28 @@
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "login": {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": [
+                "signed_in",
+                "signed_out",
+                "unknown"
+              ]
+            },
+            "account": {
+              "type": "string"
+            },
+            "fix": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state"
+          ]
         }
       },
       "required": [
@@ -1493,6 +1577,16 @@
           "default": true,
           "type": "boolean"
         },
+        "connection": {
+          "type": "string",
+          "enum": [
+            "cloudflare",
+            "wrangler",
+            "github",
+            "1password",
+            "neon"
+          ]
+        },
         "version": {
           "type": "string"
         },
@@ -1512,6 +1606,28 @@
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "login": {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": [
+                "signed_in",
+                "signed_out",
+                "unknown"
+              ]
+            },
+            "account": {
+              "type": "string"
+            },
+            "fix": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state"
+          ]
         }
       },
       "required": [
@@ -1559,6 +1675,16 @@
           "default": true,
           "type": "boolean"
         },
+        "connection": {
+          "type": "string",
+          "enum": [
+            "cloudflare",
+            "wrangler",
+            "github",
+            "1password",
+            "neon"
+          ]
+        },
         "version": {
           "type": "string"
         },
@@ -1578,6 +1704,28 @@
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "login": {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": [
+                "signed_in",
+                "signed_out",
+                "unknown"
+              ]
+            },
+            "account": {
+              "type": "string"
+            },
+            "fix": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state"
+          ]
         }
       },
       "required": [
@@ -1745,8 +1893,17 @@
           ]
         },
         "host": {
-          "type": "string",
-          "minLength": 1
+          "anyOf": [
+            {
+              "type": "string",
+              "const": "127.0.0.1"
+            },
+            {
+              "type": "string",
+              "maxLength": 253,
+              "pattern": "^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+localhost$"
+            }
+          ]
         },
         "port": {
           "type": "integer",
@@ -1985,6 +2142,11 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 65535
+        },
+        "host_hint": {
+          "type": "string",
+          "maxLength": 253,
+          "pattern": "^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+localhost$"
         },
         "routes": {
           "type": "array",
@@ -2516,6 +2678,44 @@
         "lines"
       ]
     },
+    "ProjectPullParams": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectPullResult": {
+      "type": "object",
+      "properties": {
+        "pulled": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "online",
+            "starting",
+            "failed",
+            "stopped",
+            "down",
+            "external",
+            "service"
+          ]
+        }
+      },
+      "required": [
+        "pulled",
+        "state"
+      ]
+    },
     "ProjectSyncParams": {
       "type": "object",
       "properties": {
@@ -2536,9 +2736,6 @@
         "pulled": {
           "type": "boolean"
         },
-        "installed": {
-          "type": "boolean"
-        },
         "state": {
           "type": "string",
           "enum": [
@@ -2550,12 +2747,15 @@
             "external",
             "service"
           ]
+        },
+        "installed": {
+          "type": "boolean"
         }
       },
       "required": [
         "pulled",
-        "installed",
-        "state"
+        "state",
+        "installed"
       ]
     },
     "ProjectInstallParams": {
@@ -2578,6 +2778,9 @@
         "done": {
           "type": "boolean",
           "const": true
+        },
+        "command": {
+          "type": "string"
         }
       },
       "required": [
@@ -4439,6 +4642,7 @@
           "type": "string",
           "enum": [
             "cloudflare",
+            "wrangler",
             "github",
             "1password",
             "neon"
@@ -5038,7 +5242,8 @@
             "editor.zed",
             "tool.github",
             "tool.1password",
-            "tool.neon"
+            "tool.neon",
+            "tool.wrangler"
           ],
           "choose_one": [
             "exposure.caddy",

@@ -48,6 +48,13 @@ func (r *Reader) ServiceStatus(id string) (contract.ServiceStatus, error) {
 	service := status.Service(module.Manifest())
 	service.Configured = !slices.Contains(r.deferred(), id)
 
+	// The CLI's own sign-in check is worth a round trip here, for one module the reader opened — never in a snapshot.
+	if account, signs := module.(modules.Account); signs {
+		if login, asked := account.Login(r.moduleContext(module)); asked {
+			service.Login = &login
+		}
+	}
+
 	return service, nil
 }
 

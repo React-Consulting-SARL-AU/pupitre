@@ -17,7 +17,7 @@ Le canal est une session SSH ouverte par l'app avec la clé du client, qui lance
 ```
 
 - `id` est choisi par l'app, croissant, jamais réutilisé dans une session.
-- Les requêtes sont sérialisées côté app : une seule commande en vol par canal. Les commandes longues (`install`, `upgrade`, `project.sync`) ouvrent un second canal pour ne pas bloquer les lectures d'état.
+- Les requêtes sont sérialisées côté app : une seule commande en vol par canal. Les commandes longues (`install`, `upgrade`, `project.pull`, `project.sync`) ouvrent un second canal pour ne pas bloquer les lectures d'état, et les lectures que l'app fait sur minuterie (`snapshot`, `processes.list`) un troisième, pour qu'un geste n'attende jamais derrière elles.
 - Toute erreur porte un `code` stable, un `message` pour l'humain, un `fix` quand un remède existe, et un `remedy` quand ce remède tient dans une valeur.
 - La première commande d'une session est `hello` ; l'agent refuse le reste tant qu'elle n'a pas eu lieu.
 - **Une coupure emporte la session, pas la commande.** `pupitred serve` ignore la fermeture de ses descripteurs : `install`, `upgrade` et `harden` vont jusqu'au bout sans personne pour les lire, le rapport est écrit avant chaque étape, et un verrou sur `/var/lib/pupitre/install.lock` fait refuser `busy` à toute autre session — ou à `pupitred install` sur la machine — tant que cette exécution dure. L'app, elle, rouvre le canal aussi longtemps que la commande avait de temps, rejoue les étapes que le canal n'a pas portées d'après le rapport, et le relit jusqu'à `finished_at`. Un rapport daté d'avant la demande est celui d'une autre exécution : la coupure reste alors la seule vérité à dire, et `busy` en réponse à un `install` se suit comme une installation en cours.
@@ -84,7 +84,7 @@ Un module reste remis à plus tard **jusqu'à la demande qui le nomme sans le di
 
 `snapshot`, `status` et `service.status` rendent chaque service avec `configured` : **faux pour un module remis à plus tard et jamais repris depuis**, vrai pour tout autre module installé. Ce n'est pas un module qui en décide — il ne sait dire que ce qui est sur le disque, et une dérive après une mise à niveau se lirait comme des questions sans réponse — mais l'agent, d'après ce que les demandes ont laissé. Un agent antérieur au champ ne le rend pas, et l'app tient alors le service pour configuré.
 
-Ils rendent aussi `runs`, la réponse du manifeste : le module tient un processus, ou en lance un à tout moment. Le tableau de bord de l'app ne montre que ceux-là, sans avoir à lire le catalogue. Un agent antérieur au champ ne le rend pas, et l'app tient alors le service pour un service qui tourne.
+Ils rendent aussi deux réponses du manifeste, pour que le tableau de bord de l'app n'ait pas à lire le catalogue : `runs` — le module tient un processus, ou en lance un à tout moment ; l'app ne montre que ceux-là, et un agent antérieur au champ ne le rend pas, l'app tient alors le service pour un service qui tourne — et `connection`, le compte tiers que l'app doit détenir pour ce module, absent quand le manifeste n'en déclare aucun. C'est sur lui que l'app dit d'un tunnel s'il est connecté : le compte qu'elle détient, jamais une question posée à l'agent.
 
 ### État
 
@@ -92,7 +92,7 @@ Ils rendent aussi `runs`, la réponse du manifeste : le module tient un processu
 | --- | --- |
 | `snapshot` | `{ machine, services[], projects[], sessions[], entitlement }` en un appel. C'est ce que le tableau de bord lit toutes les 3 secondes |
 | `status` | `{ services[], projects[] }` allégé |
-| `service.status` `{ id }` | état, version, port, identifiants (masqués), unité systemd |
+| `service.status` `{ id }` | état, version, port, identifiants (masqués), unité systemd, et `login` pour un module dont le CLI se connecte à un compte |
 | `completions` `{ path? }` | de quoi compléter une ligne de terminal : `{ command, sub[], projects[], root, path, paths[] }` |
 
 `completions` répond en une fois aux trois questions d'une autocomplétion, pour que l'app n'ait rien à deviner :
@@ -125,7 +125,8 @@ Le chemin absolu vit sur le projet, pas sur la machine : `status`, `project.list
 | `project.remove` | `{ name }` (le dossier reste) |
 | `project.up` / `project.down` / `project.restart` | `{ name \| "all" }` |
 | `project.logs` | `{ name, lines?, follow? }` → événements `log` si `follow` |
-| `project.sync` | `{ name }` : pull puis réinstallation des dépendances |
+| `project.pull` | `{ name }` → `{ pulled, state }` : clone si le dossier n'a pas de dépôt, `pull --rebase --autostash` sinon, et rien d'autre ; `pulled` est faux pour un dossier sans dépôt. C'est la phase « sources » de l'ajout d'un projet, l'installation venant ensuite par `project.install` |
+| `project.sync` | `{ name }` → `{ pulled, installed, state }` : `project.pull` puis `project.install` en une commande, le geste de synchronisation de l'écran d'un projet |
 | `project.install` | `{ name }` → `{ done, command? }` : `command` est la ligne d'installation du gestionnaire de paquets qui a tourné, `bun install` par exemple ; absente quand le projet n'en déclare aucune |
 | `project.env` | `{ name, force? }` : régénère `.env.local` |
 | `project.branches` | `{ name }` |
@@ -152,22 +153,25 @@ Les guillemets sont ceux de systemd, qui lit ce fichier comme `EnvironmentFile` 
 
 `project.detect` répond à ce que l'écran d'ajout doit deviner avant `project.add` : quel gestionnaire de paquets, quelle commande de démarrage, quel port. Elle prend **une seule** source — `repo` pour un dépôt que le serveur ne connaît pas encore, `dir` pour un dossier déjà présent sous la racine des projets — et le contrat refuse les deux à la fois comme aucun des deux.
 
-Elle n'installe rien et ne déclare rien. Un `repo` est cloné **en surface** — `--depth 1`, sans étiquettes — dans le cache de l'utilisateur des projets, `~/.cache/pupitre/detect/<tirage>`, jamais sous la racine des projets : un clone à moitié fait ne doit pas pouvoir passer pour un projet. Le dossier est effacé dès la lecture finie, que la lecture ait réussi ou non. Chaque détection tire son propre nom, si bien que deux détections simultanées ne se marchent pas dessus ; et comme un agent tué en plein clone n'efface rien, chaque détection balaie d'abord ce que le cache garde depuis plus d'une heure — un âge qu'aucun clone en vol ne peut atteindre.
+Elle n'installe rien et ne déclare rien. Un `repo` est cloné **en surface et en partie** — `--depth 1`, sans étiquettes, `--filter=blob:limit=65536` et `--no-checkout` : les arbres et les petits blobs arrivent en un seul paquet, et seuls les fichiers que la détection lit sont écrits (`package.json`, `turbo.json`, `pnpm-workspace.yaml`, `vite.config.*`, les fichiers de verrou, `pyproject.toml`, `gradlew`, jusqu'à deux dossiers de profondeur pour les membres d'un workspace). Un dépôt lourd d'images ou d'historique coûte ce que coûte un dépôt vide ; un serveur qui ne connaît pas le filtre le dit et envoie tout, ce qui se lit pareil. Le clone va dans le cache de l'utilisateur des projets, `~/.cache/pupitre/detect/<tirage>`, jamais sous la racine des projets : un clone à moitié fait ne doit pas pouvoir passer pour un projet. Le dossier est effacé dès la lecture finie, que la lecture ait réussi ou non. Chaque détection tire son propre nom, si bien que deux détections simultanées ne se marchent pas dessus ; et comme un agent tué en plein clone n'efface rien, chaque détection balaie d'abord ce que le cache garde depuis plus d'une heure — un âge qu'aucun clone en vol ne peut atteindre.
 
 | Champ | Description |
 | --- | --- |
 | `pkgmgr` | ce que le dépôt prouve : le champ `packageManager` du `package.json`, sinon son fichier de verrou (`bun.lock`, `pnpm-lock.yaml`, `package-lock.json`), sinon `bun` pour un `package.json` sans verrou. Sans `package.json` : `uv` pour un `pyproject.toml`, `gradle` pour un `gradlew`, `none` sinon |
 | `install` | la commande d'installation de ce gestionnaire, absente quand il n'en a pas |
 | `cmd` | la commande de démarrage : le premier script `dev`, `start` ou `serve` du `package.json`, sur le port de `port_hint`. Absente quand le dépôt n'en déclare aucun |
-| `port_hint` | le port que le dépôt demande — le `--port` de son script, le `server.port` de sa configuration Vite — s'il est libre sur ce serveur ; sinon le premier port libre du registre |
+| `port_hint` | le port que le dépôt demande — le `--port` de son script, le `server.port` de sa configuration Vite — s'il est libre sur ce serveur ; sinon le premier port libre du registre. Un script qui ne fait que lancer un autre script (`"dev": "bun run dev:app"`) se lit au bout de la chaîne, cinq sauts au plus |
+| `host_hint` | le nom en `.localhost` que le script de démarrage fige dans son `--host` (`react-box.localhost`), quand il en fige un. C'est le `host` à déclarer : un tel nom ne se résout pas de lui-même sur un serveur, et un serveur de développement qui s'y lie sans réponse attend sans fin |
 
 Rien de tout cela n'est une décision : la détection propose, le client corrige à l'écran, et `project.add` reste l'autorité — c'est lui qui refuse un port déjà pris, avec le remède qui porte le port libre.
+
+**Le `host` d'un projet est `127.0.0.1`, ou un nom en `.localhost` que la machine fait répondre.** Un dépôt qui fige `--host react-box.localhost` dans son script suppose ce que le portable du client fait seul — résoudre `*.localhost` sur la boucle locale — et qu'un serveur ne fait pas. L'agent tient donc dans `/etc/hosts` un bloc balisé `projects`, réécrit à chaque `project.add` et `project.remove` : une ligne `127.0.0.1 <host>` par projet dont le `host` finit en `.localhost`, en IPv4 seulement, pour que le serveur de développement se lie là où le port est sondé et où le tunnel frappe. Tout `host` qui n'est ni `127.0.0.1` ni un nom en `.localhost` est refusé en `bad_request`.
 
 #### Un projet, une commande, plusieurs ports
 
 Un `Project` tient un port principal, `port` — c'est lui qui décide de l'état `online` et de l'adresse locale — et une liste `routes[]` : chaque port que l'écran a relevé, `{ label, port, hostname? }`. `label` est un mot court, une seule étiquette DNS : `web`, `api`, `docs`. `hostname` est le nom **complet** sous lequel ce port répond sur le web, tel que le registre le garde ; une route sans `hostname` est un port que personne ne publie. Le cas Turborepo est le cas général : `turbo run dev` lance `web`, `api` et `docs` dans une seule fenêtre, et le projet porte trois routes.
 
-**Le nom d'hôte se résout une fois, à l'ajout, et se stocke.** `project.add` reçoit des routes `{ label, port, subdomain? }` ; pour chaque `subdomain`, l'agent compose `<subdomain>.<domaine>` à partir du domaine que le serveur publie — celui que le module d'exposition a écrit dans `PUPITRE_DOMAIN` — et garde le résultat. Un serveur sans domaine refuse une route qui porte un `subdomain`, avec le `fix` qui dit d'installer une exposition ou de laisser le port sans nom. Rien, ensuite, ne recompose une adresse depuis un sous-domaine : `url` se lit sur le `hostname` stocké de la route principale, celle dont le port est `port`, et un domaine qui change ne déplace aucun nom déjà donné.
+**Le nom d'hôte se résout une fois, à l'ajout, et se stocke.** `project.add` reçoit des routes `{ label, port, subdomain? }` ; pour chaque `subdomain`, l'agent compose `<subdomain>.<domaine>` à partir du domaine que le serveur publie — celui que le module d'exposition a écrit dans `PUPITRE_DOMAIN` — et garde le résultat. Un serveur sans domaine refuse une route qui porte un `subdomain`, avec le `fix` qui dit d'installer une exposition ou de laisser le port sans nom. Rien, ensuite, ne recompose une adresse depuis un sous-domaine : `url` se lit sur le `hostname` stocké de la route principale, celle dont le port est `port`. **Un domaine qui change emporte tous les noms** : quand le module d'exposition reçoit un autre `domain`, son étape `move-routes` réécrit chaque `hostname` du registre qui finissait par l'ancien domaine sous le nouveau, avant d'enregistrer le domaine et d'écrire l'ingress — un projet ne répond jamais sous un domaine que le serveur ne publie plus. Les enregistrements DNS, eux, sont l'affaire de l'app : elle relève les noms d'avant, retire ceux qu'elle avait écrits, et pose les nouveaux.
 
 Le schéma de nommage est celui que l'app propose : `<sous-domaine>.<domaine>` pour la route principale, `<label>-<sous-domaine>.<domaine>` pour les autres. C'est une proposition de l'écran, pas une règle de l'agent — chaque route reçoit le sous-domaine que le client a laissé dans son champ.
 
@@ -278,6 +282,22 @@ Un champ `list` d'`items: "secret"` — `ai.hermes.providers`, par exemple — s
 **Le verrou de run.** Les trois commandes le prennent, exactement comme `tunnel.restart` : pendant une installation, elles répondent `busy` plutôt que de bouger une unité que l'installation est en train d'écrire. `service.logs` ne le prend pas — une lecture répond toujours — et refuse les mêmes `id` que les trois autres.
 
 **Le journal.** `service.logs { id, lines?, follow? }` lit `journalctl -u <unit> -n <lines> --no-pager -o cat`, cent vingt lignes par défaut comme `project.logs`, et répond `{ lines[] }`. Avec `follow`, chaque ligne voyage sur un événement `log { line }`, la queue comprise, `journalctl -f` tient la ligne, et la réponse `{ lines: [] }` ferme le flux au bout du même quart d'heure que le suivi d'un projet. Comme toute commande longue, un suivi bloque le canal sur lequel il passe : l'app l'ouvre sur son canal de travail, comme `project.logs`.
+
+## Compte d'un CLI
+
+`service.status` rend `login` pour un module dont le CLI se connecte à un compte — Claude Code, Codex, `gh`, `op`, `neonctl`, Wrangler, le tunnel de VS Code — et rien pour les autres :
+
+```ts
+type Login = {
+  state: "signed_in" | "signed_out" | "unknown"
+  account?: string   // ce que le CLI nomme : un login, un email, un compte
+  fix?: string       // comment se connecter, dans la langue de la session
+}
+```
+
+`signed_in` nomme le compte quand le CLI le fait. `signed_out` est un CLI qui ne tient rien, ou dont la propre vérification refuse ce qu'il tient. `unknown` est un CLI qu'on n'a pas pu interroger : la clé est là, le fournisseur n'a pas répondu — le `fix` dit quoi faire dans les deux cas, et l'app l'affiche tel quel.
+
+C'est le CLI qui répond, par sa propre commande, et **`service.status` seul** le lui demande : la question peut coûter un aller-retour chez le fournisseur, et un `snapshot` lu toutes les trois secondes ne le paie jamais. Le tableau de bord de l'app, qui dit sous chaque service en marche s'il est connecté, la pose une fois par service quand il s'ouvre et garde la réponse jusqu'au retour sur la page. Un agent antérieur au champ ne le rend pas, et l'app ne dit alors rien du compte. La liste des commandes par module est dans [service-catalog.md](./service-catalog.md#compte-dun-cli).
 
 ## La valeur d'un identifiant
 

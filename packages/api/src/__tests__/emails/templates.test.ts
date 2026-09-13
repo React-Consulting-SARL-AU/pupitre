@@ -9,6 +9,7 @@ function href(url: string): string {
 
 const UNRESOLVED_PLACEHOLDER_RE =
   /\{(server|organization|inviter|device|deadline|url|count|version|current|disk|address|fingerprint|date)\}/
+const RGB_WITH_ALPHA_RE = /rgb\([^)]*\//
 
 describe("le catalogue des gabarits", () => {
   it("porte une prévisualisation par gabarit", () => {
@@ -112,11 +113,13 @@ describe("les données passent dans le rendu", () => {
 })
 
 describe("le thème monochrome", () => {
-  it("n'emprunte que les tokens du thème clair et son bloc sombre", async () => {
+  it("est clair, toujours : aucun bloc sombre, rien que Gmail ne sache lire", async () => {
     const email = await previewOf("magic_link").render("fr")
 
     expect(email.html).toContain("#ffffff")
     expect(email.html).toContain("#0a0a0a")
-    expect(email.html).toContain("prefers-color-scheme: dark")
+    expect(email.html).not.toContain("prefers-color-scheme")
+    expect(email.html).not.toContain("box-shadow")
+    expect(email.html).not.toMatch(RGB_WITH_ALPHA_RE)
   })
 })

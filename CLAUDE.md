@@ -65,7 +65,7 @@ Commandes d'un seul workspace : `bun --cwd=<workspace> run <script>`.
 - Les artefacts générés restent hors de Git, sauf `apps/web/src/routeTree.gen.ts` et le client Prisma sous `packages/db/src/generated/` (le pipeline Cloudflare Builds en a besoin avant l'installation).
 - **Secrets** : jamais dans le dépôt. `.env.local` à la racine (ignoré), secrets Wrangler en production, hook de détection avant commit.
 - **Git — ne commit/push que sur demande explicite.** Applique les changements puis arrête-toi pour revue. Jamais `--force` ni `--no-verify`.
-- **`main` est la production et ne se touche pas en local.** Le travail va sur `staging` ou sur une branche qui en part ; `main` ne change que par la pull request `staging` → `main` qu'une release ouvre et fusionne, par un merge commit. Il n'y a pas de staging en ligne : tout s'essaie en local. Les hooks refusent le commit et le push sur `main` (`scripts/assert-branch-writable.ts`, exception `PUPITRE_ALLOW_MAIN=1`). Voir [`docs/monorepo.md`](./docs/monorepo.md#branches).
+- **`main` est la production et ne se touche pas en local.** Le travail va sur `staging` ou sur une branche qui en part ; `main` ne change que par la pull request `staging` → `main`, toujours fusionnée par un merge commit — celle qu'une release ouvre et fusionne, ou une à la main quand ni l'app ni l'agent ne changent. Il n'y a pas de staging en ligne : tout s'essaie en local. Les hooks refusent le commit et le push sur `main` (`scripts/assert-branch-writable.ts`, exception `PUPITRE_ALLOW_MAIN=1`). Voir [`docs/monorepo.md`](./docs/monorepo.md#branches).
 - Avant un commit : `bun run lint:fix`. Avant un push, le hook lance lint, typecheck et tests affectés.
 - Commits en Conventional Commits : `feat(desktop): écran d'inspection`.
 

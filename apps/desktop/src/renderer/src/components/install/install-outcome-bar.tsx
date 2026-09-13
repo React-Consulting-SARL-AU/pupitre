@@ -61,9 +61,9 @@ export function InstallOutcomeBar({
       ) : null}
       <Button
         disabled={blocked}
+        hint={blocked ? note() : undefined}
         icon={ArrowRight}
         onClick={onContinue}
-        title={blocked ? note() : undefined}
         variant="inverse"
       >
         {t("install.continue")}

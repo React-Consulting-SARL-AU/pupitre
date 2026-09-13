@@ -120,6 +120,10 @@ func (Module) Install(ctx *modules.Context) error {
 
 // The mode and the domain are declared before the Caddyfile is written: the registry resolves the routes of the repository's rows against the domain.
 func (Module) Configure(ctx *modules.Context) error {
+	if err := routes.MoveRoutes(ctx); err != nil {
+		return err
+	}
+
 	if err := declareMode(ctx); err != nil {
 		return err
 	}

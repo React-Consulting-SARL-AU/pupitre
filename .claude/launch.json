@@ -18,6 +18,12 @@
       "runtimeExecutable": "bun",
       "runtimeArgs": ["--cwd=apps/desktop", "run", "dev"],
       "port": 5173
+    },
+    {
+      "name": "email",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["--cwd=packages/api", "run", "dev:email"],
+      "port": 4321
     }
   ]
 }

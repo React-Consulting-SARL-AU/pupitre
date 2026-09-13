@@ -77,11 +77,11 @@ export function ProjectGitState({
         </span>
         {state.git.behind > 0 && onPull ? (
           <Button
+            hint={t("project.header.syncHint")}
             icon={Download}
             loading={pulling}
             onClick={onPull}
             size="sm"
-            title={t("project.header.syncHint")}
             variant="inverse"
           >
             {t("project.git.pull")}

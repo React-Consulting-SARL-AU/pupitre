@@ -57,6 +57,7 @@ var resultDefinitions = map[string]string{
 	"project.install": "ProjectInstallResult",
 	"project.url":     "ProjectUrlResult",
 
+	"project.pull":         "ProjectPullResult",
 	"project.sync":         "ProjectSyncResult",
 	"project.branches":     "ProjectBranchesResult",
 	"project.checkout":     "ProjectCheckoutResult",

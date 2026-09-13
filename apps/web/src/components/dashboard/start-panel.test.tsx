@@ -97,7 +97,7 @@ describe("StartPanel", () => {
     }
   })
 
-  it("offers one action, which opens a one-seat checkout on Stripe", async () => {
+  it("opens a one-seat monthly checkout on Stripe by default", async () => {
     const { container, unmount, click } = await render(
       panel(organization, "owner")
     )
@@ -110,8 +110,13 @@ describe("StartPanel", () => {
 
     expect(container.textContent).toContain("Fourteen days, no card")
     expect(container.textContent).toContain("No card is asked for")
-    expect(container.querySelectorAll("button")).toHaveLength(1)
+    expect(container.textContent).toContain(
+      "After the trial: $10 per server per month"
+    )
     expect(container.querySelector("#quantity")).toBeNull()
+    expect(trigger(container, "Monthly").getAttribute("aria-pressed")).toBe(
+      "true"
+    )
 
     await click(trigger(container, "Start the trial"))
     await waitUntil(() => billing.checkouts.length === 1)
@@ -124,6 +129,36 @@ describe("StartPanel", () => {
     expect(leave).toHaveBeenCalledWith(
       expect.stringContaining("checkout.stripe.test")
     )
+  })
+
+  it("lets the owner start the trial on the yearly rate", async () => {
+    const { container, unmount, click } = await render(
+      panel(organization, "owner")
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("Start the trial") === true
+    )
+
+    await click(trigger(container, "Yearly"))
+
+    expect(container.textContent).toContain(
+      "After the trial: $100 per server per year, 2 months free"
+    )
+    expect(trigger(container, "Yearly").getAttribute("aria-pressed")).toBe(
+      "true"
+    )
+
+    await click(trigger(container, "Start the trial"))
+    await waitUntil(() => billing.checkouts.length === 1)
+
+    expect(billing.checkouts[0]).toMatchObject({
+      organizationId: organization.id,
+      quantity: 1,
+      interval: "year",
+    })
   })
 
   it("names the four steps, and the account is already behind", async () => {

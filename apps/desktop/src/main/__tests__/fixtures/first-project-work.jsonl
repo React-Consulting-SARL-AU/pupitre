@@ -1,12 +1,14 @@
-# Le canal de travail : l'ajout, la récupération des sources, le journal suivi.
+# Le canal de travail : l'ajout, la récupération des sources, l'installation, le journal suivi.
 > {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","project.add","project.install","project.list","project.logs","project.sync","project.up","project.url"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","project.add","project.install","project.list","project.logs","project.pull","project.up","project.url"]}}
 > {"id":2,"cmd":"project.add","params":{"name":"vite-starter","dir":"vite-starter","repo":"https://github.com/moi/vite-starter.git","pkgmgr":"bun","host":"127.0.0.1","port":3000,"routes":[{"label":"web","port":3000}],"cmd":"bun run dev --port 3000"}}
 < {"id":2,"ok":true,"result":{"name":"vite-starter","dir":"vite-starter","path":"/home/dev/projects/vite-starter","repo":"https://github.com/moi/vite-starter.git","pkgmgr":"bun","host":"127.0.0.1","port":3000,"routes":[{"label":"web","port":3000}],"cmd":"bun run dev --port 3000","install":"bun install","state":"stopped"}}
-> {"id":3,"cmd":"project.sync","params":{"name":"vite-starter"}}
-< {"id":3,"ok":true,"result":{"pulled":true,"installed":true,"state":"stopped"}}
-> {"id":4,"cmd":"project.logs","params":{"name":"vite-starter","lines":200,"follow":true}}
-< {"id":4,"event":"log","line":"> vite-starter@0.0.0 dev"}
-< {"id":4,"event":"log","line":"VITE v7.3.5  ready in 312 ms"}
-< {"id":4,"event":"log","line":"Local: http://127.0.0.1:3000/"}
-< {"id":4,"ok":true,"result":{"lines":[]}}
+> {"id":3,"cmd":"project.pull","params":{"name":"vite-starter"}}
+< {"id":3,"ok":true,"result":{"pulled":true,"state":"stopped"}}
+> {"id":4,"cmd":"project.install","params":{"name":"vite-starter"}}
+< {"id":4,"ok":true,"result":{"done":true,"command":"bun install"}}
+> {"id":5,"cmd":"project.logs","params":{"name":"vite-starter","lines":200,"follow":true}}
+< {"id":5,"event":"log","line":"> vite-starter@0.0.0 dev"}
+< {"id":5,"event":"log","line":"VITE v7.3.5  ready in 312 ms"}
+< {"id":5,"event":"log","line":"Local: http://127.0.0.1:3000/"}
+< {"id":5,"ok":true,"result":{"lines":[]}}

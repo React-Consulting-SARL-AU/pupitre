@@ -452,6 +452,7 @@ describe("les comptes et les valeurs lues avec le catalogue", () => {
           },
           github: { status: "absent" },
           neon: { status: "absent" },
+          wrangler: { status: "absent" },
         }),
     });
 

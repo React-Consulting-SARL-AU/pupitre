@@ -24,9 +24,10 @@ function remembered(memory: Navigation & { terminals?: unknown[] }): void {
 }
 
 function where() {
-  const { view, selection, cursor, history } = useNavigation.getState();
+  const { view, selection, service, cursor, history } =
+    useNavigation.getState();
 
-  return { cursor, length: history.length, selection, view };
+  return { cursor, length: history.length, selection, service, view };
 }
 
 function tab(patch: Record<string, unknown>) {
@@ -53,6 +54,7 @@ describe("l'historique de navigation", () => {
       cursor: 0,
       length: 1,
       selection: null,
+      service: null,
       view: "dashboard",
     });
   });
@@ -80,6 +82,88 @@ describe("l'historique de navigation", () => {
       cursor: 2,
       selection: "flymate-api",
       view: "project",
+    });
+  });
+
+  it("compte la page d'un service comme une page de plus que la liste", () => {
+    const nav = useNavigation.getState();
+
+    nav.goTo("services");
+    nav.openService("db.postgres");
+
+    expect(where()).toMatchObject({
+      cursor: 2,
+      length: 3,
+      service: "db.postgres",
+      view: "services",
+    });
+
+    useNavigation.getState().back();
+
+    expect(where()).toMatchObject({
+      cursor: 1,
+      service: null,
+      view: "services",
+    });
+
+    useNavigation.getState().forward();
+
+    expect(where()).toMatchObject({
+      cursor: 2,
+      service: "db.postgres",
+      view: "services",
+    });
+  });
+
+  it("revient à la liste des services par un pas de plus, pas un pas en arrière", () => {
+    const nav = useNavigation.getState();
+
+    nav.goTo("services");
+    nav.openService("db.postgres");
+    useNavigation.getState().goTo("services");
+
+    expect(where()).toMatchObject({
+      cursor: 3,
+      length: 4,
+      service: null,
+      view: "services",
+    });
+
+    useNavigation.getState().back();
+
+    expect(where().service).toBe("db.postgres");
+  });
+
+  it("ouvre le même service deux fois sur une seule page", () => {
+    const nav = useNavigation.getState();
+
+    nav.openService("db.postgres");
+    useNavigation.getState().openService("db.postgres");
+
+    expect(where()).toMatchObject({ cursor: 1, length: 2 });
+
+    useNavigation.getState().openService("tool.github");
+
+    expect(where()).toMatchObject({
+      cursor: 2,
+      length: 3,
+      service: "tool.github",
+    });
+  });
+
+  it("quitte la page d'un service en changeant de vue", () => {
+    const nav = useNavigation.getState();
+
+    nav.openService("db.postgres");
+    useNavigation.getState().goTo("activity");
+
+    expect(where().service).toBeNull();
+
+    useNavigation.getState().back();
+
+    expect(where()).toMatchObject({
+      service: "db.postgres",
+      view: "services",
     });
   });
 
@@ -174,6 +258,7 @@ describe("l'historique de navigation", () => {
       cursor: 0,
       length: 1,
       selection: null,
+      service: null,
       view: "dashboard",
     });
   });
