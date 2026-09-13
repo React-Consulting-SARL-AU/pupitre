@@ -234,6 +234,8 @@ export const SESSION_KINDS = [
   "claude",
   "codex",
   "cursor",
+  "gemini",
+  "copilot",
   "opencode",
   "hermes",
   "ide",

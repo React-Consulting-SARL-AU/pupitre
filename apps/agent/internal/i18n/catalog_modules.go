@@ -18,6 +18,14 @@ var moduleCatalog = map[string]Message{
 		FR: "Codex installé pour dev, avec le contexte de la machine et les skills Pupitre. La connexion passe par l'URL affichée au premier lancement et votre abonnement.",
 		EN: "Codex installed for dev, with the machine's context and the Pupitre skills. Signing in goes through the URL printed on first run and your own subscription.",
 	},
+	"module.ai.copilot.summary": {
+		FR: "Le CLI de GitHub Copilot posé par mise, avec le contexte de la machine et les skills Pupitre. La connexion se fait par copilot login et le code d'appareil, sur votre abonnement Copilot.",
+		EN: "The GitHub Copilot CLI installed through mise, with the machine's context and the Pupitre skills. Signing in goes through copilot login and the device code, on your own Copilot subscription.",
+	},
+	"module.ai.gemini.summary": {
+		FR: "Gemini CLI posé par mise, avec le contexte de la machine et les skills Pupitre. La connexion se fait par votre compte Google — le niveau gratuit suffit — ou par une clé d'API.",
+		EN: "Gemini CLI installed through mise, with the machine's context and the Pupitre skills. Signing in goes through your Google account — the free tier is enough — or an API key.",
+	},
 	"module.ai.cursor.summary": {
 		FR: "Le CLI de Cursor installé pour dev, avec les skills Pupitre. Cursor n'a pas de fichier de contexte global : vos règles restent dans votre compte. La connexion passe par l'URL affichée par cursor-agent login et votre abonnement Cursor.",
 		EN: "The Cursor CLI installed for dev, with the Pupitre skills. Cursor has no global context file: your rules stay in your account. Signing in goes through the URL cursor-agent login prints and your own Cursor subscription.",

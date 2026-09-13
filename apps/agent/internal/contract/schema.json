@@ -1197,6 +1197,8 @@
                   "claude",
                   "codex",
                   "cursor",
+                  "gemini",
+                  "copilot",
                   "opencode",
                   "hermes",
                   "ide",
@@ -3199,6 +3201,8 @@
             "claude",
             "codex",
             "cursor",
+            "gemini",
+            "copilot",
             "opencode",
             "hermes"
           ]
@@ -3264,6 +3268,8 @@
                   "claude",
                   "codex",
                   "cursor",
+                  "gemini",
+                  "copilot",
                   "opencode",
                   "hermes",
                   "ide",
@@ -5215,6 +5221,8 @@
         "ai.claude",
         "ai.codex",
         "ai.cursor",
+        "ai.gemini",
+        "ai.copilot",
         "ai.opencode",
         "ai.hermes",
         "ai.browser",
@@ -5278,6 +5286,8 @@
             "ai.claude",
             "ai.codex",
             "ai.cursor",
+            "ai.gemini",
+            "ai.copilot",
             "ai.opencode",
             "ai.hermes",
             "ai.browser",
@@ -5305,6 +5315,8 @@
             "ai.claude",
             "ai.codex",
             "ai.cursor",
+            "ai.gemini",
+            "ai.copilot",
             "ai.opencode",
             "ai.hermes"
           ]

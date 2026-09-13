@@ -12,7 +12,7 @@ import (
 const providerKey = "sk-staging-s3cret-de-test"
 
 var aiInstall = request{Cmd: "install", Params: map[string]any{
-	"modules":       []string{"ai.claude", "ai.codex", "ai.cursor", "ai.opencode", "ai.hermes", "ai.browser"},
+	"modules":       []string{"ai.claude", "ai.codex", "ai.cursor", "ai.gemini", "ai.copilot", "ai.opencode", "ai.hermes", "ai.browser"},
 	"secrets_stdin": true,
 	"config": map[string]any{
 		"core.system":    map[string]any{"timezone": "Europe/Paris", "git_name": "Pupitre Staging", "git_email": "staging@pupitre.studio"},
@@ -35,13 +35,13 @@ func installAgents(t *testing.T, host string) response {
 	return first
 }
 
-func TestTheFiveAgentsAnswerForDev(t *testing.T) {
+func TestTheSevenAgentsAnswerForDev(t *testing.T) {
 	host := stagingHost(t)
 	dev := "dev@" + address(host)
 
 	installAgents(t, host)
 
-	for program, want := range map[string]string{"claude": "", "codex": "", "cursor-agent": "", "opencode": "", "hermes": ""} {
+	for program, want := range map[string]string{"claude": "", "codex": "", "cursor-agent": "", "gemini": "", "copilot": "", "opencode": "", "hermes": ""} {
 		out := ssh(t, dev, program+" --version")
 		if strings.TrimSpace(out) == "" || (want != "" && !strings.Contains(out, want)) {
 			t.Errorf("%s --version said nothing:\n%s", program, out)
@@ -55,7 +55,7 @@ func TestTheFiveAgentsAnswerForDev(t *testing.T) {
 		}
 	}
 
-	for _, path := range []string{"~/.claude/CLAUDE.md", "~/.codex/AGENTS.md", "~/.config/opencode/AGENTS.md"} {
+	for _, path := range []string{"~/.claude/CLAUDE.md", "~/.codex/AGENTS.md", "~/.config/opencode/AGENTS.md", "~/.gemini/GEMINI.md", "~/.copilot/copilot-instructions.md"} {
 		if out := ssh(t, dev, "cat "+path); !strings.Contains(out, "serveur Linux") {
 			t.Errorf("%s does not carry the machine context:\n%s", path, out)
 		}

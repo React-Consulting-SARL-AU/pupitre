@@ -221,6 +221,8 @@ describe("module ids", () => {
       "ai.claude",
       "ai.codex",
       "ai.cursor",
+      "ai.gemini",
+      "ai.copilot",
       "ai.opencode",
       "ai.hermes",
       "ai.browser",
@@ -287,6 +289,8 @@ describe("presets", () => {
       "ai.claude",
       "ai.codex",
       "ai.cursor",
+      "ai.gemini",
+      "ai.copilot",
       "ai.opencode",
       "ai.hermes",
     ])

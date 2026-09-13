@@ -13,6 +13,10 @@ export const terminals = {
     "terminals.openingCodex": "Codex is attaching to its session on the server",
     "terminals.openingCursor":
       "Cursor is attaching to its session on the server",
+    "terminals.openingGemini":
+      "Gemini is attaching to its session on the server",
+    "terminals.openingCopilot":
+      "Copilot is attaching to its session on the server",
     "terminals.openingOpencode":
       "OpenCode is attaching to its session on the server",
     "terminals.openingHermes":
@@ -49,6 +53,8 @@ export const terminals = {
     "terminals.kind.claude": "Claude",
     "terminals.kind.codex": "Codex",
     "terminals.kind.cursor": "Cursor",
+    "terminals.kind.gemini": "Gemini",
+    "terminals.kind.copilot": "Copilot",
     "terminals.kind.opencode": "OpenCode",
     "terminals.kind.hermes": "Hermes",
     "terminals.kind.numbered": "{title} {rank}",
@@ -66,6 +72,8 @@ export const terminals = {
     "terminals.openingClaude": "Claude s'attache à sa session sur le serveur",
     "terminals.openingCodex": "Codex s'attache à sa session sur le serveur",
     "terminals.openingCursor": "Cursor s'attache à sa session sur le serveur",
+    "terminals.openingGemini": "Gemini s'attache à sa session sur le serveur",
+    "terminals.openingCopilot": "Copilot s'attache à sa session sur le serveur",
     "terminals.openingOpencode":
       "OpenCode s'attache à sa session sur le serveur",
     "terminals.openingHermes": "Hermes s'attache à sa session sur le serveur",
@@ -102,6 +110,8 @@ export const terminals = {
     "terminals.kind.claude": "Claude",
     "terminals.kind.codex": "Codex",
     "terminals.kind.cursor": "Cursor",
+    "terminals.kind.gemini": "Gemini",
+    "terminals.kind.copilot": "Copilot",
     "terminals.kind.opencode": "OpenCode",
     "terminals.kind.hermes": "Hermes",
     "terminals.kind.numbered": "{title} {rank}",

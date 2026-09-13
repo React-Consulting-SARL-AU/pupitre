@@ -433,6 +433,40 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       fr: "Votre propre abonnement Cursor. La connexion se fait depuis un terminal sur le serveur avec NO_OPEN_BROWSER=1 cursor-agent login : l’URL affichée s’ouvre dans votre navigateur, et l’app en fait un bouton quand Cursor l’imprime dans un de ses terminaux. Cursor ne publie aucune somme de contrôle à côté de son paquet : le transport est la seule garantie, et le téléchargement reste à root jusqu’à sa mise en place. La désinstallation reprend le paquet et les liens ; ~/.cursor, avec vos identifiants et vos conversations, reste.",
     },
   },
+  "ai.gemini": {
+    installs: [
+      {
+        en: "Gemini CLI through mise, which pins and upgrades it the way it does a runtime and puts it on the path of every shell.",
+        fr: "Gemini CLI via mise, qui l’épingle et le met à jour comme un runtime et le place sur le PATH de tous les shells.",
+      },
+      {
+        en: "The machine context in ~/.gemini/GEMINI.md and the Pupitre skills in ~/.gemini/skills and ~/.agents/skills, both of which Gemini reads.",
+        fr: "Le contexte machine dans ~/.gemini/GEMINI.md et les skills Pupitre dans ~/.gemini/skills et ~/.agents/skills, que Gemini lit tous deux.",
+      },
+    ],
+    asks: [],
+    notes: {
+      en: "Your Google account, or a Gemini API key. On a server, sign in from a terminal with NO_BROWSER=true gemini: it prints the URL, you approve in your browser, and you paste the code it gives back. The free tier of a personal Google account is enough to work, which makes Gemini the agent to try before paying for anything. Gemini CLI has no command that says who holds the session, so the dashboard shows no account for it. Uninstalling takes back the CLI and the context this module wrote; ~/.gemini, with your credentials and settings, stays.",
+      fr: "Votre compte Google, ou une clé d’API Gemini. Sur un serveur, la connexion se fait depuis un terminal avec NO_BROWSER=true gemini : il affiche l’URL, vous approuvez dans votre navigateur, et vous collez le code rendu. Le niveau gratuit d’un compte Google personnel suffit pour travailler, ce qui fait de Gemini l’agent à essayer avant de payer quoi que ce soit. Gemini CLI n’a pas de commande qui dise qui tient la session : le tableau de bord n’affiche donc aucun compte pour lui. La désinstallation reprend le CLI et le contexte que ce module a écrit ; ~/.gemini, avec vos identifiants et vos réglages, reste.",
+    },
+  },
+  "ai.copilot": {
+    installs: [
+      {
+        en: "The GitHub Copilot CLI through mise, which pins and upgrades it the way it does a runtime and puts it on the path of every shell.",
+        fr: "Le CLI de GitHub Copilot via mise, qui l’épingle et le met à jour comme un runtime et le place sur le PATH de tous les shells.",
+      },
+      {
+        en: "The machine context in ~/.copilot/copilot-instructions.md and the Pupitre skills in ~/.copilot/skills and ~/.agents/skills.",
+        fr: "Le contexte machine dans ~/.copilot/copilot-instructions.md et les skills Pupitre dans ~/.copilot/skills et ~/.agents/skills.",
+      },
+    ],
+    asks: [],
+    notes: {
+      en: "Your own Copilot subscription. On a server, copilot login uses the device code: it prints a code and the page to enter it on, and the app turns that page into a button. A token in COPILOT_GITHUB_TOKEN, GH_TOKEN or GITHUB_TOKEN works too. The CLI has no command that says who holds the session, so the dashboard shows no account for it. Uninstalling takes back the CLI and the context this module wrote; ~/.copilot, with your credentials and sessions, stays.",
+      fr: "Votre propre abonnement Copilot. Sur un serveur, copilot login passe par le code d’appareil : il affiche un code et la page où l’entrer, et l’app fait de cette page un bouton. Un jeton dans COPILOT_GITHUB_TOKEN, GH_TOKEN ou GITHUB_TOKEN marche aussi. Le CLI n’a pas de commande qui dise qui tient la session : le tableau de bord n’affiche donc aucun compte pour lui. La désinstallation reprend le CLI et le contexte que ce module a écrit ; ~/.copilot, avec vos identifiants et vos sessions, reste.",
+    },
+  },
   "ai.opencode": {
     installs: [
       {

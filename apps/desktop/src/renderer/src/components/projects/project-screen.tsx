@@ -201,7 +201,9 @@ export function ProjectScreen({
           sessions={{
             claude: group(terminals, name, "claude"),
             codex: group(terminals, name, "codex"),
+            copilot: group(terminals, name, "copilot"),
             cursor: group(terminals, name, "cursor"),
+            gemini: group(terminals, name, "gemini"),
             hermes: group(terminals, name, "hermes"),
             opencode: group(terminals, name, "opencode"),
             shell: group(terminals, name, "shell"),
