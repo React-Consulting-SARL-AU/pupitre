@@ -18,7 +18,7 @@ import {
 } from "./processes"
 
 describe("AgentOpenParamsSchema and AgentOpenResultSchema", () => {
-  it("open one of the three agents on a project", () => {
+  it("open one of the agents on a project", () => {
     expect(
       AgentOpenParamsSchema.safeParse({
         kind: "hermes",

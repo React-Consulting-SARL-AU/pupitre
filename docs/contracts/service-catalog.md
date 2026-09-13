@@ -128,7 +128,7 @@ Un module dont le CLI se connecte à un compte implémente en plus `Login` : il 
 
 | Id | Fait | Champs |
 | --- | --- | --- |
-| `runtime.node` | mise ; Node, Bun, pnpm, Yarn aux versions choisies ; pnpm et Yarn par corepack ; activés dans tous les shells y compris non interactifs par un bloc balisé du `.zshenv` | `node_version`, `bun` (boolean), `pnpm` (boolean), `yarn` (boolean, décoché) |
+| `runtime.node` | mise ; Node (24 par défaut, la LTS active), Bun, pnpm, Yarn aux versions choisies ; pnpm et Yarn par corepack ; activés dans tous les shells y compris non interactifs par un bloc balisé du `.zshenv` | `node_version`, `bun` (boolean), `pnpm` (boolean), `yarn` (boolean, décoché) |
 | `runtime.java` | Temurin via mise, daemon Gradle dimensionné pour la RAM | `java_version` |
 | `runtime.python` | uv et une version Python ; base des agents en Python | `python_version` |
 | `runtime.go` | Go via mise, `GOPATH` et son `bin` sur le `PATH` | `go_version`, `gopath` |
@@ -173,7 +173,7 @@ Visual Studio n'a pas de backend Linux : l'app le dit et renvoie vers `editor.vs
 
 ### Exposition
 
-Les deux modules d'exposition sont exclusifs : chacun déclare l'autre en `conflicts`. N'en cocher aucun est le troisième état, et il ne porte pas de module : la machine répond par la session SSH que l'app tient déjà, et rien n'est publié. Les commandes `tunnel.status`, `tunnel.sync` et `tunnel.restart` s'adressent à celui qui est installé, jamais à un fournisseur nommé — `/etc/pupitre/exposure` dit lequel tient la machine, et le rapport le nomme dans `provider`. Une machine que rien n'expose répond `absent` avec `provider: null` ; `tunnel.sync` et `tunnel.restart` y refusent en `service_not_found` plutôt que de répondre pour un module absent.
+Caddy et le tunnel sont exclusifs : chacun déclare l'autre en `conflicts`. Tailscale est une exposition aussi, mais privée — le tailnet du client, rien de publié — et cohabite avec l'un ou l'autre. Ne cocher ni Caddy ni le tunnel est le troisième état, et il ne porte pas de module : la machine répond par la session SSH que l'app tient déjà, et rien n'est publié. Les commandes `tunnel.status`, `tunnel.sync` et `tunnel.restart` s'adressent à celui qui est installé, jamais à un fournisseur nommé — `/etc/pupitre/exposure` dit lequel tient la machine, et le rapport le nomme dans `provider`. Une machine que rien n'expose répond `absent` avec `provider: null` ; `tunnel.sync` et `tunnel.restart` y refusent en `service_not_found` plutôt que de répondre pour un module absent.
 
 | Id | Fait | Champs |
 | --- | --- | --- |
@@ -202,7 +202,7 @@ Le `domain` des deux modules se choisit parmi les zones du compte connecté quan
 | Preset | Nom | Modules |
 | --- | --- | --- |
 | `web-js` | Web JavaScript | `core.*`, `runtime.node`, `db.mysql`, `ai.claude`, `ai.browser`, `editor.vscode` — aucune exposition, qui est l'état par défaut |
-| `full` | Tout le catalogue | tout le catalogue moins les expositions, qui se contredisent : le préréglage porte les deux en `choose_one` et l'écran demande laquelle |
+| `full` | Tout le catalogue | tout le catalogue moins Caddy et le tunnel, qui se contredisent : le préréglage porte les deux en `choose_one` et l'écran demande laquelle ; Tailscale, qui ne contredit rien, en fait partie |
 | `minimal` | Minimal | `core.*`, un agent au choix |
 
 Les identifiants de modules d'un préréglage suivent la même forme ouverte que celui d'un manifeste : un module que l'agent gagne avant que `packages/shared` ne le connaisse peut entrer dans un préréglage sans version de ce paquet.

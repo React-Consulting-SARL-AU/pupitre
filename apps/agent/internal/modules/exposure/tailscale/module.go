@@ -301,16 +301,15 @@ func ufw(ctx *modules.Context, args ...string) (sys.Output, error) {
 	return sys.Exec(ctx, sys.Command{Argv: append([]string{"ufw"}, args...), Timeout: ufwTimeout})
 }
 
-// ufw prints an interface rule as "Anywhere on tailscale0"; the v6 twin is the same rule.
+// ufw show added lists the rules as they were given, whether the firewall is up yet or not: the hardening may come after this module.
 func allowedOnDevice(ctx *modules.Context) bool {
-	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"ufw", "status"}, Timeout: ufwTimeout})
+	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"ufw", "show", "added"}, Timeout: ufwTimeout})
 	if err != nil {
 		return false
 	}
 
 	for _, line := range strings.Split(out.Stdout, "\n") {
-		fields := strings.Fields(line)
-		if len(fields) >= 4 && fields[0] == "Anywhere" && fields[1] == "on" && fields[2] == device && fields[3] == "ALLOW" {
+		if strings.HasPrefix(strings.TrimSpace(line), "ufw allow in on "+device) {
 			return true
 		}
 	}

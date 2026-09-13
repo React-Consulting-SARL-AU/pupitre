@@ -30,7 +30,7 @@ Jobs-to-be-done :
 | Loue un VPS Ubuntu 22.04 ou 24.04 où il veut, 4 Go de RAM minimum, root ou sudo | L'inspecte, dit ce qui va et ce qui manque, refuse clairement ce qu'il ne sait pas gérer |
 | Choisit ses services dans le catalogue | Les installe, les configure, les surveille, les met à jour, les désinstalle |
 | Ajoute ses projets par URL git ou dossier | Clone, installe les dépendances, démarre dans tmux, expose l'URL, montre les logs |
-| Se connecte à ses agents avec ses propres abonnements | Ouvre Claude Code, Codex ou Hermes dans le bon dossier, avec le contexte du projet et des skills |
+| Se connecte à ses agents avec ses propres abonnements | Ouvre Claude Code, Codex, Cursor, Gemini, Copilot, OpenCode ou Hermes dans le bon dossier, avec le contexte du projet et des skills |
 | Paie un abonnement par serveur | Fournit l'app, l'agent, les mises à jour et les alertes |
 
 ## Offre et prix

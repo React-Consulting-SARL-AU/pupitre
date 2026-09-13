@@ -888,6 +888,8 @@ func (f *FakeSys) ufw(args []string) (sys.Output, error) {
 	switch words[0] {
 	case "status":
 		return sys.Output{Stdout: f.Firewall.status()}, nil
+	case "show":
+		return sys.Output{Stdout: f.Firewall.added()}, nil
 	case "default":
 		if words[2] == "incoming" {
 			f.Firewall.Incoming = words[1]
@@ -940,6 +942,21 @@ func (w Firewall) status() string {
 	}
 	for _, rule := range w.Rules {
 		fmt.Fprintf(&out, "%-26s ALLOW IN    Anywhere (v6)\n", rule+" (v6)")
+	}
+
+	return out.String()
+}
+
+// The rules as they were given, listed whether the firewall is up or not, as ufw show added prints them.
+func (w Firewall) added() string {
+	var out strings.Builder
+	out.WriteString("Added user rules (see 'ufw status' for running firewall):\n")
+	for _, rule := range w.Rules {
+		if strings.HasPrefix(rule, "Anywhere on ") {
+			fmt.Fprintf(&out, "ufw allow in on %s\n", strings.TrimPrefix(rule, "Anywhere on "))
+		} else {
+			fmt.Fprintf(&out, "ufw allow %s\n", rule)
+		}
 	}
 
 	return out.String()

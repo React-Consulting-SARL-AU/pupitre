@@ -21,7 +21,6 @@ func newContext(t *testing.T, fake *modtest.FakeSys, values modtest.Values) *mod
 func machine() *modtest.FakeSys {
 	fake := modtest.NewFakeSys()
 	fake.Files["/etc/os-release"] = []byte("VERSION_CODENAME=noble\n")
-	fake.Firewall.Active = true
 
 	return fake
 }

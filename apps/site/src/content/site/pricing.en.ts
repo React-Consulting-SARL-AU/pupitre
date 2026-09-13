@@ -38,7 +38,7 @@ export const pricingEn: PricingContent = {
           "The desktop app, and the agent on each server",
           "The whole catalogue: runtimes, databases, agents, editors, exposure",
           "Updates and alerts",
-          "Your own Claude, Codex or Hermes subscriptions",
+          "Your own Claude, ChatGPT, Cursor, Google or Copilot subscriptions",
         ],
         cta: "Start the trial",
       },
@@ -105,7 +105,7 @@ export const pricingEn: PricingContent = {
       title: "What it does not replace",
       lines: [
         "The VPS: you rent it where you like and pay the host directly",
-        "Your Claude, Codex or Hermes subscriptions: the agents run on your accounts",
+        "Your Claude, ChatGPT, Cursor, Google or Copilot subscriptions: the agents run on your accounts",
       ],
     },
   },
