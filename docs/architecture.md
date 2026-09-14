@@ -64,7 +64,7 @@ Prisma 7 sur l'adaptateur Cloudflare D1, une base par environnement, liée au Wo
 
 ## Site
 
-`apps/site` est un Astro statique déployé sur un Worker Cloudflare à assets statiques : accueil, tarifs, docs publiques en MDX, blog, changelog, légal, téléchargement lisant les releases, `llms.txt`. Anglais par défaut, français en `/fr`. Mêmes tokens que la console.
+`apps/site` est un Astro statique déployé sur un Worker Cloudflare à assets statiques : accueil, tarifs, intégrations, docs publiques en MDX, blog, légal, téléchargement lisant les releases, `llms.txt`. Anglais par défaut, français en `/fr`. Mêmes tokens que la console.
 
 ## Frontières
 

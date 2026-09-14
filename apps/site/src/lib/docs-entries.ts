@@ -1,5 +1,5 @@
 import { getCollection } from "astro:content"
-import { CATALOG_ENTRIES } from "../content/site/catalog"
+import { CATALOG } from "../content/site/catalog"
 import { MODULE_LABELS } from "../content/site/docs"
 import {
   type DocsEntry,
@@ -38,13 +38,16 @@ export function serviceEntries(locale: Locale): DocsEntry[] {
     description: MODULE_LABELS.overviewLead[locale],
   }
 
-  const modules = CATALOG_ENTRIES.map((entry, position) => ({
+  const modules = CATALOG.flatMap((group) =>
+    group.entries.map((entry) => ({ entry, group }))
+  ).map(({ entry, group }, position) => ({
     slug: moduleSlug(entry.id),
     section: "services" as const,
     sectionOrder: 0,
     order: position + 1,
     title: entry.name[locale],
     description: entry.detail[locale],
+    group: group.label[locale],
   }))
 
   return [overview, ...modules]

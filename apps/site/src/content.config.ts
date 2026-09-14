@@ -28,15 +28,6 @@ const blog = defineCollection({
   }),
 })
 
-const changelog = defineCollection({
-  loader: glob({ base: "src/content/changelog", pattern: "**/*.mdx" }),
-  schema: base.extend({
-    version: z.string().min(1),
-    date: z.coerce.date(),
-    channel: z.enum(["stable", "beta"]).default("stable"),
-  }),
-})
-
 const legal = defineCollection({
   loader: glob({ base: "src/content/legal", pattern: "**/*.mdx" }),
   schema: base.extend({
@@ -45,4 +36,4 @@ const legal = defineCollection({
   }),
 })
 
-export const collections = { docs, blog, changelog, legal }
+export const collections = { docs, blog, legal }

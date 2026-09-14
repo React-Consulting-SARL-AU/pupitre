@@ -146,7 +146,7 @@ describe("Base layout", () => {
     expect(html).toContain('data-theme-option="system"')
     expect(html).toContain('href="/fr/pricing/" hreflang="fr" lang="fr"')
     expect(html).toContain('href="/download/"')
-    expect(html).toContain(">Changelog</a>")
+    expect(html).toContain(">Integrations</a>")
     expect(html).toContain("<footer")
     expect(html).toContain("</footer>")
     expect(html).toContain('href="/legal/terms/"')

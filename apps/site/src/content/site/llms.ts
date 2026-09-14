@@ -48,9 +48,9 @@ export const LLMS: LlmsContent = {
       note: "The desktop app for macOS, Windows and Linux, with the requirements on both sides.",
     },
     {
-      title: "Changelog",
-      path: "/changelog/",
-      note: "One entry per release of the app and of the agent.",
+      title: "Integrations",
+      path: "/integrations/",
+      note: "Every service Pupitre installs and manages on the server, by category, each one linked to its documentation.",
     },
   ],
   alternate: {

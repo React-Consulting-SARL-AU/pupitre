@@ -9,7 +9,6 @@ import { MODULE_DOCS } from "./site/module-docs"
 const ROOTS = {
   docs: "src/content/docs",
   blog: "src/content/blog",
-  changelog: "src/content/changelog",
   legal: "src/content/legal",
 } as const
 

@@ -1,0 +1,96 @@
+---
+import { CATALOG } from "../content/site/catalog"
+import { integrationsContent } from "../content/site/integrations"
+import Base from "../layouts/Base.astro"
+import { docPath, moduleSlug } from "../lib/docs"
+import { localeFromPath, localizePath, translator } from "../lib/i18n"
+import { breadcrumbs, jsonLd } from "../lib/structured-data"
+import BrandLogo from "./BrandLogo.astro"
+import Callout from "./Callout.astro"
+import PageHeader from "./PageHeader.astro"
+
+const locale = localeFromPath(Astro.url.pathname)
+const t = translator(locale)
+const content = integrationsContent(locale)
+
+const trail = jsonLd(
+  breadcrumbs([
+    { name: t("site.name"), pathname: localizePath("/", locale) },
+    {
+      name: content.hero.label,
+      pathname: localizePath("/integrations/", locale),
+    },
+  ])
+)
+---
+
+<Base title={content.meta.title} description={content.meta.description}>
+  <Fragment slot="head">
+    <script is:inline type="application/ld+json" set:html={trail} />
+  </Fragment>
+
+  <PageHeader
+    label={content.hero.label}
+    title={content.hero.headline}
+    lead={content.hero.lead}
+  >
+    <a
+      data-emphasis="main"
+      href={localizePath("/download/", locale)}
+      class="btn btn-lg btn-primary"
+    >
+      {content.hero.cta}
+    </a>
+  </PageHeader>
+
+  <div class="shell grid gap-16 py-20 md:py-28">
+    {
+      CATALOG.map((group) => (
+        <section
+          id={group.id}
+          data-category={group.id}
+          aria-label={group.label[locale]}
+        >
+          <header class="flex items-baseline gap-3">
+            <h2 class="eyebrow">{group.label[locale]}</h2>
+            {group.note && (
+              <span class="label text-ink-3">{group.note[locale]}</span>
+            )}
+          </header>
+          <ul class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {group.entries.map((entry) => (
+              <li data-module={entry.id} class="card flex flex-col p-5">
+                <span class="flex items-center gap-3">
+                  <BrandLogo name={entry.name[locale]} module={entry.id} />
+                  <span class="heading-4 text-ink">{entry.name[locale]}</span>
+                </span>
+                <span class="data mt-2 block text-ink-4">{entry.id}</span>
+                <span class="mt-3 block flex-1 text-ink-2">
+                  {entry.detail[locale]}
+                </span>
+                <a
+                  href={docPath(moduleSlug(entry.id), locale)}
+                  class="link-underline mt-5 self-start py-1"
+                >
+                  {content.entry.documentation}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+    }
+
+    <Callout title={content.closing.title}>
+      <p>{content.closing.body}</p>
+      <p class="mt-3">
+        <a
+          href={docPath("daily/services", locale)}
+          class="link-underline"
+        >
+          {content.closing.link}
+        </a>
+      </p>
+    </Callout>
+  </div>
+</Base>

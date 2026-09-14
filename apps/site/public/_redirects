@@ -2,7 +2,7 @@
 /download /download/ 301
 /docs /docs/ 301
 /blog /blog/ 301
-/changelog /changelog/ 301
+/integrations /integrations/ 301
 /legal /legal/ 301
 
 /fr /fr/ 301
@@ -10,5 +10,5 @@
 /fr/download /fr/download/ 301
 /fr/docs /fr/docs/ 301
 /fr/blog /fr/blog/ 301
-/fr/changelog /fr/changelog/ 301
+/fr/integrations /fr/integrations/ 301
 /fr/legal /fr/legal/ 301

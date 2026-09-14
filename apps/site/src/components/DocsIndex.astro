@@ -1,6 +1,6 @@
 ---
 import Base from "../layouts/Base.astro"
-import { docPath } from "../lib/docs"
+import { docPath, groupEntries } from "../lib/docs"
 import { docsSections } from "../lib/docs-entries"
 import { localeFromPath, localizePath, translator } from "../lib/i18n"
 import { breadcrumbs, jsonLd } from "../lib/structured-data"
@@ -48,16 +48,21 @@ const trail = jsonLd(
         <section aria-label={section.title}>
           <p class="eyebrow">{section.title}</p>
           <p class="lead mt-5 max-w-2xl text-ink-2">{section.lead}</p>
-          <ul class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {section.entries.map((entry) => (
-              <li>
-                <a href={docPath(entry.slug, locale)} class="card-link block h-full p-5">
-                  <span class="heading-4 block text-ink">{entry.title}</span>
-                  <span class="mt-2 block text-ink-2">{entry.description}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
+          {groupEntries(section.entries).map((group) => (
+            <div class="mt-8">
+              {group.title && <h3 class="heading-4">{group.title}</h3>}
+              <ul class="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {group.entries.map((entry) => (
+                  <li>
+                    <a href={docPath(entry.slug, locale)} class="card-link block h-full p-5">
+                      <span class="heading-4 block text-ink">{entry.title}</span>
+                      <span class="mt-2 block text-ink-2">{entry.description}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </section>
       ))
     }
