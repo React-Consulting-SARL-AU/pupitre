@@ -68,19 +68,28 @@ test.describe("nouveau projet", () => {
           kept.added = params;
 
           const declared = params as {
-            routes: { label: string; port: number; subdomain?: string }[];
+            processes: {
+              routes: { label: string; port: number; subdomain?: string }[];
+            }[];
           };
 
           return {
             ok: true,
             result: {
               ...(params as Record<string, unknown>),
-              install: "bun install",
               path: "/home/dev/projects/atlas-web",
-              routes: declared.routes.map(({ label, port, subdomain }) => ({
-                label,
-                port,
-                ...(subdomain ? { hostname: `${subdomain}.example.org` } : {}),
+              processes: declared.processes.map((process) => ({
+                ...process,
+                install: "bun install",
+                path: "/home/dev/projects/atlas-web",
+                routes: process.routes.map(({ label, port, subdomain }) => ({
+                  label,
+                  port,
+                  ...(subdomain
+                    ? { hostname: `${subdomain}.example.org` }
+                    : {}),
+                })),
+                state: "stopped",
               })),
               state: "stopped",
             },
@@ -93,7 +102,13 @@ test.describe("nouveau projet", () => {
           }
 
           if (cmd === "project.install") {
-            return { ok: true, result: { command: "bun install", done: true } };
+            return {
+              ok: true,
+              result: {
+                done: true,
+                installed: [{ command: "bun install", process: "atlas-web" }],
+              },
+            };
           }
 
           if (cmd === "project.url") {
@@ -105,7 +120,7 @@ test.describe("nouveau projet", () => {
 
         answer("project:act", () => ({
           ok: true,
-          result: { port: 3100, state: "online" },
+          result: { state: "online" },
         }));
 
         answer("project:logs", () => ({
@@ -133,7 +148,7 @@ test.describe("nouveau projet", () => {
         .click();
 
       await expect(
-        page.getByRole("heading", { name: "atelier" })
+        page.getByRole("heading", { name: "Nouveau projet" })
       ).toBeVisible();
       await expect(
         page.getByRole("button", { name: GITHUB_CARD })
@@ -153,11 +168,14 @@ test.describe("nouveau projet", () => {
       await expect(
         page.getByText("Lu dans la source : bun, port 3100.")
       ).toBeVisible();
-      await expect(page.locator("#project\\.ports\\.0\\.port")).toHaveValue(
-        "3100"
-      );
-      await expect(page.locator("#project\\.cmd")).toHaveValue(
+      await expect(
+        page.locator("#project\\.processes\\.0\\.ports\\.0\\.port")
+      ).toHaveValue("3100");
+      await expect(page.locator("#project\\.processes\\.0\\.cmd")).toHaveValue(
         "bun run dev --port 3100"
+      );
+      await expect(page.locator("#project\\.processes\\.0\\.id")).toHaveValue(
+        "atlas-web"
       );
     });
 
@@ -177,16 +195,18 @@ test.describe("nouveau projet", () => {
       await expect(page.locator("#project\\.branch")).toHaveValue(
         "release/2.0"
       );
-      await expect(page.locator("#project\\.ports\\.0\\.web")).toHaveValue(
-        "my-site"
-      );
+      await expect(
+        page.locator("#project\\.processes\\.0\\.ports\\.0\\.web")
+      ).toHaveValue("my-site");
     });
 
     await test.step("un sous-domaine refusé se lit sous le champ", async () => {
-      await page.locator("#project\\.ports\\.0\\.web").fill("-mon.site-");
+      await page
+        .locator("#project\\.processes\\.0\\.ports\\.0\\.web")
+        .fill("-mon.site-");
 
       await expect(
-        page.locator("#project\\.ports\\.0\\.web-problem")
+        page.locator("#project\\.processes\\.0\\.ports\\.0\\.web-problem")
       ).toBeVisible();
       await expect(
         page.getByRole("button", { name: "Créer le projet" })
@@ -196,9 +216,9 @@ test.describe("nouveau projet", () => {
         .getByRole("button", { name: "Proposer un sous-domaine libre" })
         .click();
 
-      await expect(page.locator("#project\\.ports\\.0\\.web")).toHaveValue(
-        "my-site"
-      );
+      await expect(
+        page.locator("#project\\.processes\\.0\\.ports\\.0\\.web")
+      ).toHaveValue("my-site");
       await expect(
         page.getByRole("button", { name: "Créer le projet" })
       ).toBeEnabled();
@@ -211,9 +231,9 @@ test.describe("nouveau projet", () => {
 
       await expect(page.locator("#project\\.name")).toHaveValue("atlas-web");
       await expect(page.locator("#project\\.branch")).toHaveValue("main");
-      await expect(page.locator("#project\\.ports\\.0\\.web")).toHaveValue(
-        "atlas-web"
-      );
+      await expect(
+        page.locator("#project\\.processes\\.0\\.ports\\.0\\.web")
+      ).toHaveValue("atlas-web");
     });
 
     /**
@@ -223,19 +243,21 @@ test.describe("nouveau projet", () => {
     await test.step("un second port se déclare, et se publie ou non", async () => {
       await page.getByRole("button", { name: "Ajouter un port" }).click();
 
-      await expect(page.locator("#project\\.ports\\.1\\.label")).toHaveValue(
-        "api"
-      );
-      await expect(page.locator("#project\\.ports\\.1\\.port")).toHaveValue(
-        "3101"
-      );
-      await expect(page.locator("#project\\.ports\\.1\\.web")).toHaveValue(
-        "api-atlas-web"
-      );
+      await expect(
+        page.locator("#project\\.processes\\.0\\.ports\\.1\\.label")
+      ).toHaveValue("api");
+      await expect(
+        page.locator("#project\\.processes\\.0\\.ports\\.1\\.port")
+      ).toHaveValue("3101");
+      await expect(
+        page.locator("#project\\.processes\\.0\\.ports\\.1\\.web")
+      ).toHaveValue("api-atlas-web");
 
       await page.getByRole("checkbox", { name: "Publier" }).nth(1).uncheck();
 
-      await expect(page.locator("#project\\.ports\\.1\\.web")).toBeHidden();
+      await expect(
+        page.locator("#project\\.processes\\.0\\.ports\\.1\\.web")
+      ).toBeHidden();
       await assertAccessible(page, "projects/add-ports");
     });
 
@@ -250,13 +272,15 @@ test.describe("nouveau projet", () => {
       ).toBeVisible();
       await expect(
         page.locator('[data-phase="install"][data-status="ok"]')
-      ).toContainText("bun install");
+      ).toContainText("atlas-web: bun install");
       await expect(
         page.locator('[data-phase="publish"][data-status="ok"]')
       ).toBeVisible();
       await expect(page.locator('[data-outcome="online"]')).toBeVisible();
       await expect(
-        page.getByText("http://127.0.0.1:3100 · port 3100")
+        page
+          .locator('[data-outcome="online"]')
+          .getByText("http://127.0.0.1:3100")
       ).toBeVisible();
 
       const added = await running.app.evaluate(
@@ -265,10 +289,16 @@ test.describe("nouveau projet", () => {
 
       expect(added).toMatchObject({
         name: "atlas-web",
-        port: 3100,
-        routes: [
-          { label: "web", port: 3100, subdomain: "atlas-web" },
-          { label: "api", port: 3101 },
+        processes: [
+          {
+            dir: ".",
+            id: "atlas-web",
+            port: 3100,
+            routes: [
+              { label: "web", port: 3100, subdomain: "atlas-web" },
+              { label: "api", port: 3101 },
+            ],
+          },
         ],
       });
     });

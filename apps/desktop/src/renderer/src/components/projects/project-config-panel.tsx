@@ -1,35 +1,37 @@
 import type { Project } from "@pupitre/shared/agent-protocol/state";
+import { panelClass } from "@renderer/components/ui/panel";
 import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { RowProblem } from "@renderer/lib/project-ports";
+import type { ProcessProblem } from "@renderer/lib/project-processes";
 import type { Exposure } from "@renderer/stores/project-add";
 import type { ConfigDraft, ConfigState } from "@renderer/stores/project-config";
 import { Save } from "lucide-react";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
 import { Field, fieldControlClass } from "../ui/field";
-import type { PortEdits } from "./project-port-row";
-import { ProjectPorts } from "./project-ports";
+import type { ProcessEdits } from "./project-process-card";
+import { ProjectProcesses } from "./project-processes";
 
-export interface ConfigEdits extends PortEdits {
-  cmd: (value: string) => void;
-  install: (value: string) => void;
+export interface ConfigEdits extends ProcessEdits {
   branch: (value: string) => void;
 }
 
 /**
  * The configuration of a declared project, as the add form drew it: the
- * command, the install line, the branch, the ports and their names on the web.
+ * branch, and each process with its command, its install line, its folder,
+ * its ports and their names on the web.
  *
  * The source and the name are not here — they do not change without removing
  * the project. What is said before the button is what the save will do: a
- * changed command restarts the project if it runs, and a name taken out stops
+ * changed command restarts its process if it runs, and a name taken out stops
  * answering. The agent's answer is read under the form, in its own words.
  */
 export function ProjectConfigPanel({
   project,
   draft,
   exposure,
+  processProblems,
   rowProblems,
   ready,
   restarts,
@@ -41,10 +43,11 @@ export function ProjectConfigPanel({
   project: Project;
   draft: ConfigDraft;
   exposure: Exposure | null;
-  rowProblems: readonly (RowProblem | null)[];
+  processProblems: readonly (ProcessProblem | null)[];
+  rowProblems: readonly (readonly (RowProblem | null)[])[];
   ready: boolean;
-  /** The command changed: saving restarts the project when it runs. */
-  restarts: boolean;
+  /** The processes whose command changed: saving restarts those that run. */
+  restarts: readonly string[];
   /** The names on the web the save takes away. */
   dropped: readonly string[];
   run: ConfigState;
@@ -56,7 +59,7 @@ export function ProjectConfigPanel({
   return (
     <div className="h-full overflow-y-auto px-8 py-6">
       <form
-        className="elevation-raised flex max-w-3xl flex-col gap-gutter rounded-md border border-line bg-surface p-5"
+        className={`${panelClass("lg")} flex max-w-3xl flex-col gap-gutter`}
         data-config={run.status}
         onSubmit={(event) => {
           event.preventDefault();
@@ -64,63 +67,32 @@ export function ProjectConfigPanel({
         }}
       >
         <Field
-          help={t("projectAdd.form.cmdHelp")}
-          label={t("projectAdd.form.cmdLabel")}
-          name="config.cmd"
-          required
+          help={t("project.config.branchHelp")}
+          label={t("projectAdd.form.branchLabel")}
+          name="config.branch"
         >
           <input
             className={fieldControlClass}
-            id="config.cmd"
-            onChange={(event) => edit.cmd(event.target.value)}
-            value={draft.cmd}
+            disabled={!project.repo}
+            id="config.branch"
+            onChange={(event) => edit.branch(event.target.value)}
+            placeholder={t("projectAdd.form.branchPlaceholder")}
+            value={draft.branch}
           />
         </Field>
 
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field
-            help={t("project.config.installHelp", { pkgmgr: project.pkgmgr })}
-            label={t("project.overview.installCmd")}
-            name="config.install"
-          >
-            <input
-              className={fieldControlClass}
-              id="config.install"
-              onChange={(event) => edit.install(event.target.value)}
-              placeholder={t("project.overview.derivedFrom", {
-                pkgmgr: project.pkgmgr,
-              })}
-              value={draft.install}
-            />
-          </Field>
-
-          <Field
-            help={t("project.config.branchHelp")}
-            label={t("projectAdd.form.branchLabel")}
-            name="config.branch"
-          >
-            <input
-              className={fieldControlClass}
-              disabled={!project.repo}
-              id="config.branch"
-              onChange={(event) => edit.branch(event.target.value)}
-              placeholder={t("projectAdd.form.branchPlaceholder")}
-              value={draft.branch}
-            />
-          </Field>
-        </div>
-
-        <ProjectPorts
+        <ProjectProcesses
           edit={edit}
           exposure={exposure}
           placeholder={project.name}
-          problems={rowProblems}
-          rows={draft.rows}
+          problems={processProblems}
+          processes={draft.processes}
+          rowProblems={rowProblems}
         />
 
-        {restarts ? (
+        {restarts.length > 0 ? (
           <Callout name="config-restart" tone="warn">
-            {t("project.config.restarts")}
+            {t("project.config.restarts", { processes: restarts.join(", ") })}
           </Callout>
         ) : null}
 

@@ -1,4 +1,5 @@
 import { Label } from "@renderer/components/ui/label";
+import { Panel } from "@renderer/components/ui/panel";
 import type { ComponentType, ReactNode } from "react";
 import { DashboardStatGauge } from "./dashboard-stat-gauge";
 
@@ -22,10 +23,7 @@ export function DashboardStat({
   icon: ComponentType<{ size?: number; strokeWidth?: number }>;
 }) {
   return (
-    <div
-      className="elevation-raised rounded-md border border-line bg-surface p-4 transition-soft"
-      data-alert={alert ? "true" : undefined}
-    >
+    <Panel className="transition-soft" data-alert={alert ? "true" : undefined}>
       <p className="flex items-center gap-1.5 text-ink-3">
         <Icon size={12} strokeWidth={1.5} />
         <Label>{title}</Label>
@@ -38,6 +36,6 @@ export function DashboardStat({
         <DashboardStatGauge alert={alert} share={share} />
       )}
       {alert ? remedy : null}
-    </div>
+    </Panel>
   );
 }

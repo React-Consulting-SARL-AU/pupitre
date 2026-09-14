@@ -66,8 +66,7 @@ describe("le tableau de bord", () => {
   it("compte les projets en ligne et ceux en échec", () => {
     const html = panel();
 
-    expect(html).toContain("1 projet en ligne");
-    expect(html).toContain("3 projets");
+    expect(html).toContain("1 en ligne sur 3 projets");
     expect(html).toContain("1 en échec");
   });
 

@@ -6,6 +6,7 @@ import { StatusDot } from "@renderer/components/ui/status-dot";
 import { WindowBand } from "@renderer/components/ui/window-band";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { memory } from "@renderer/lib/format";
+import { memoryOf } from "@renderer/lib/project-ports";
 import { PROJECT_LOOK } from "@renderer/lib/project-state";
 import type { View } from "@renderer/stores/navigation";
 import { dominantState } from "@renderer/stores/navigation";
@@ -171,9 +172,9 @@ export function AppSidebar({
             key={project.name}
             onClick={() => onProject(project.name)}
             suffix={
-              project.ram_mb ? (
+              memoryOf(project) ? (
                 <span className="shrink-0 font-data text-[11px] text-ink-3 tabular-nums">
-                  {memory(project.ram_mb)}
+                  {memory(memoryOf(project))}
                 </span>
               ) : null
             }

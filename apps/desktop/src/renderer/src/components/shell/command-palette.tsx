@@ -159,7 +159,7 @@ export function CommandPalette({
             type="text"
             value={term}
           />
-          <kbd className="rounded-sm border border-line px-1.5 font-data text-[10px] text-ink-3">
+          <kbd className="rounded-sm border border-line px-1.5 font-data text-[11px] text-ink-3">
             {t("palette.escape")}
           </kbd>
         </label>
@@ -207,7 +207,7 @@ export function CommandPalette({
                     {entry.hint}
                   </span>
                 ) : null}
-                <span className="shrink-0 text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
+                <span className="label shrink-0 text-ink-3">
                   {t(KIND[entry.kind])}
                 </span>
               </button>

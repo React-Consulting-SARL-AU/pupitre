@@ -18,7 +18,7 @@ export const install = {
     "install.stepAt": "Step {index}",
     "install.stepLong":
       "This is taking longer than usual. If nothing moves after a while, reread the report once the link is back.",
-    "install.eyebrow": "Installation",
+    "install.title": "Installation",
     "install.thisServer": "This server",
     "install.rereadReport": "Reread the report",
     "install.retry": "Try again",
@@ -58,7 +58,7 @@ export const install = {
     "install.stepAt": "Étape {index}",
     "install.stepLong":
       "C'est plus long que d'habitude. Si rien ne bouge au bout d'un moment, relisez le rapport une fois la liaison rétablie.",
-    "install.eyebrow": "Installation",
+    "install.title": "Installation",
     "install.thisServer": "Ce serveur",
     "install.rereadReport": "Relire le rapport",
     "install.retry": "Réessayer",

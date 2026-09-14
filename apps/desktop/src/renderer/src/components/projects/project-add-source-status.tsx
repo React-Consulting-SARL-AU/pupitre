@@ -30,7 +30,20 @@ export function ProjectAddSourceStatus({
   }
 
   if (detection.status === "read") {
-    const { pkgmgr, port_hint: port } = detection.result;
+    const { processes } = detection.result;
+    const first = processes[0];
+
+    if (processes.length > 1 || !first) {
+      return (
+        <p className="text-[12px] text-ink-3 leading-relaxed">
+          {t("projectAdd.form.sourceReadProcesses", {
+            processes: processes.map((process) => process.id).join(", "),
+          })}
+        </p>
+      );
+    }
+
+    const { pkgmgr, port_hint: port } = first;
 
     return (
       <p className="text-[12px] text-ink-3 leading-relaxed">

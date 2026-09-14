@@ -1,6 +1,7 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { Phase } from "../../stores/project-add";
 import { LiveDuration } from "../ui/live-duration";
+import { Panel } from "../ui/panel";
 import { StatusDot } from "../ui/status-dot";
 import { PHASE_LOOK, PHASE_TITLES } from "./project-add-phases";
 
@@ -14,7 +15,7 @@ export function ProjectAddSteps({ phases }: { phases: readonly Phase[] }) {
   const t = useTranslations();
 
   return (
-    <ol className="elevation-raised flex flex-col overflow-hidden rounded-md border border-line bg-surface">
+    <Panel as="ol" className="flex flex-col overflow-hidden" inset="none">
       {phases.map((phase, index) => {
         const look = PHASE_LOOK[phase.status];
 
@@ -57,6 +58,6 @@ export function ProjectAddSteps({ phases }: { phases: readonly Phase[] }) {
           </li>
         );
       })}
-    </ol>
+    </Panel>
   );
 }

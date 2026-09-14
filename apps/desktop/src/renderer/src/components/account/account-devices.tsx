@@ -1,5 +1,6 @@
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
-import { Label } from "@renderer/components/ui/label";
+import { Panel } from "@renderer/components/ui/panel";
+import { Section } from "@renderer/components/ui/section";
 import { SkeletonRows } from "@renderer/components/ui/skeleton";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { useAccount } from "@renderer/stores/account";
@@ -34,14 +35,13 @@ export function AccountDevices({
   }, [read]);
 
   return (
-    <section
-      className="flex flex-col gap-3 rounded-md border border-line bg-surface px-4 py-4"
+    <Section
       data-devices={devices.status}
+      name="devices"
+      title={t("account.devices.heading")}
     >
-      <Label>{t("account.devices.heading")}</Label>
-
       {devices.status === "reading" || devices.status === "idle" ? (
-        <SkeletonRows framed={false} rows={2} />
+        <SkeletonRows rows={2} />
       ) : null}
 
       {devices.status === "failed" ? (
@@ -51,13 +51,15 @@ export function AccountDevices({
       {problem ? <ErrorNotice error={problem} /> : null}
 
       {devices.status === "read" ? (
-        <AccountDeviceList
-          current={current}
-          devices={devices.devices}
-          onRevoke={revoke}
-          revoking={revoking}
-        />
+        <Panel inset="none" list={devices.devices.length > 0}>
+          <AccountDeviceList
+            current={current}
+            devices={devices.devices}
+            onRevoke={revoke}
+            revoking={revoking}
+          />
+        </Panel>
       ) : null}
-    </section>
+    </Section>
   );
 }

@@ -46,10 +46,16 @@ export const ANSWERS: Partial<Record<CommandName, unknown>> = {
   "service.start": postgres("running"),
   "service.stop": postgres("stopped"),
   "project.detect": {
-    cmd: "bun run dev --port 3100",
-    install: "bun install",
-    pkgmgr: "bun",
-    port_hint: 3100,
+    processes: [
+      {
+        cmd: "bun run dev --port 3100",
+        dir: ".",
+        id: "atlas-web",
+        install: "bun install",
+        pkgmgr: "bun",
+        port_hint: 3100,
+      },
+    ],
   },
   snapshot: SNAPSHOT,
   "tunnel.sync": {

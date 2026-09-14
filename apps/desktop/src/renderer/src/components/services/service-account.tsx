@@ -2,7 +2,9 @@ import type { Login } from "@pupitre/shared/agent-protocol/state";
 import type { Manifest } from "@pupitre/shared/catalog";
 import { ConnectionCard } from "@renderer/components/connections/connection-card";
 import { descriptorOf } from "@renderer/components/connections/connection-descriptors";
-import { Label } from "@renderer/components/ui/label";
+import { Callout } from "@renderer/components/ui/callout";
+import { Panel } from "@renderer/components/ui/panel";
+import { Section } from "@renderer/components/ui/section";
 import { StatePill } from "@renderer/components/ui/state-pill";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { accountStateOf } from "@renderer/lib/account-state";
@@ -65,27 +67,27 @@ export function ServiceAccount({
   );
 
   return (
-    <section className="flex flex-col gap-3" data-service-account={state}>
-      <Label>{t("services.account.title")}</Label>
-
+    <Section data-service-account={state} title={t("services.account.title")}>
       {connection ? (
-        <ConnectionCard
-          compact
-          connection={connection}
-          installed={installed.map((module) => module.id)}
-          manifests={installed}
-          serverName={serverName}
-          status={status}
-        />
+        <Panel inset="lg">
+          <ConnectionCard
+            compact
+            connection={connection}
+            installed={installed.map((module) => module.id)}
+            manifests={installed}
+            serverName={serverName}
+            status={status}
+          />
+        </Panel>
       ) : (
         status
       )}
 
       {login?.fix ? (
-        <p className="text-[12px] text-ink-2 leading-relaxed" data-login-fix="">
+        <Callout name="login-fix" tone="warn">
           {login.fix}
-        </p>
+        </Callout>
       ) : null}
-    </section>
+    </Section>
   );
 }

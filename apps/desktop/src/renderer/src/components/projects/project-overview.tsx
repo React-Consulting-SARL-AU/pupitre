@@ -1,30 +1,19 @@
 import type { Project } from "@pupitre/shared/agent-protocol/state";
-import { ConfirmButton } from "@renderer/components/ui/confirm-button";
-import { Label } from "@renderer/components/ui/label";
+import { Panel } from "@renderer/components/ui/panel";
+import { Section } from "@renderer/components/ui/section";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { memory, uptime } from "@renderer/lib/format";
-import { isRunning } from "@renderer/lib/project-state";
 import type { BranchState, EnvState, GitState } from "@renderer/stores/project";
-import {
-  GitBranch,
-  KeyRound,
-  MemoryStick,
-  Terminal,
-  Timer,
-  Trash2,
-} from "lucide-react";
+import type { ProjectAction } from "@renderer/stores/snapshot";
 import { useEffect } from "react";
 import { ProjectAddresses } from "./project-addresses";
 import { ProjectBranches } from "./project-branches";
 import { ProjectEnv } from "./project-env";
 import { ProjectGitState } from "./project-git-state";
-import { ProjectPanel } from "./project-panel";
-
-const HEAVY_MB = 2048;
+import { ProjectProcessRow } from "./project-process-row";
 
 /**
  * Everything about a project that is not a stream: its address, its branch, its
- * commands, what it weighs.
+ * processes and what each of them runs on and weighs.
  *
  * All of it comes from the registry row the agent answered with; nothing here
  * is inferred, and a field the agent left empty shows as empty rather than as a
@@ -37,13 +26,14 @@ export function ProjectOverview({
   env,
   switching,
   syncing,
+  busy,
+  onAct,
   onCheckout,
   onCheckGit,
   onSync,
   onReadEnv,
   onRegenerateEnv,
   onConfigure,
-  onRemove,
 }: {
   project: Project;
   git: GitState;
@@ -51,6 +41,10 @@ export function ProjectOverview({
   env: EnvState;
   switching: boolean;
   syncing: boolean;
+  /** A gesture on the project is in flight: the process buttons wait for it. */
+  busy: boolean;
+  /** Starts, stops or restarts one process of the project. */
+  onAct: (action: ProjectAction, process: string) => void;
   onCheckout: (branch: string) => void;
   onCheckGit: () => void;
   /** Pull, then reinstall: what the header's Sync does, offered where the lead is read. */
@@ -59,7 +53,6 @@ export function ProjectOverview({
   onRegenerateEnv: () => Promise<void>;
   /** Opens the configuration tab, where the ports and their names live. */
   onConfigure: () => void;
-  onRemove: () => void;
 }) {
   const t = useTranslations();
 
@@ -71,11 +64,23 @@ export function ProjectOverview({
 
   return (
     <div className="h-full overflow-y-auto px-8 py-6">
-      <div className="grid gap-gutter md:grid-cols-2">
-        <ProjectAddresses onPublish={onConfigure} project={project} />
+      <div className="grid gap-section md:grid-cols-2">
+        <div className="flex flex-col gap-section">
+          <ProjectAddresses onPublish={onConfigure} project={project} />
 
-        <ProjectPanel icon={GitBranch} label={t("project.overview.branch")}>
-          <div className="flex flex-col gap-2.5">
+          <Section name="env" title={t("project.overview.env")}>
+            <Panel>
+              <ProjectEnv
+                onRead={onReadEnv}
+                onRegenerate={onRegenerateEnv}
+                state={env}
+              />
+            </Panel>
+          </Section>
+        </div>
+
+        <Section name="branch" title={t("project.overview.branch")}>
+          <Panel className="flex flex-col gap-3">
             <ProjectBranches
               folder={project.dir}
               onCheckout={onCheckout}
@@ -88,66 +93,31 @@ export function ProjectOverview({
               pulling={syncing}
               state={git}
             />
-          </div>
-        </ProjectPanel>
+          </Panel>
+        </Section>
 
-        <ProjectPanel icon={KeyRound} label={t("project.overview.env")}>
-          <ProjectEnv
-            onRead={onReadEnv}
-            onRegenerate={onRegenerateEnv}
-            state={env}
-          />
-        </ProjectPanel>
-
-        <ProjectPanel icon={Timer} label={t("project.overview.activity")}>
-          <p className="font-semibold text-ink text-lg tabular-nums">
-            {uptime(project.uptime_s)}
-          </p>
-          <p className="font-data text-[12px] text-ink-3">
-            {isRunning(project.state)
-              ? t("project.overview.running")
-              : t("project.overview.stopped")}
-            {project.pid ? ` · pid ${project.pid}` : ""}
-          </p>
-        </ProjectPanel>
-
-        <ProjectPanel icon={Terminal} label={t("project.overview.commands")}>
-          <Label>{t("project.overview.startCmd")}</Label>
-          <p className="break-all font-data text-[12px] text-ink-2">
-            {project.cmd}
-          </p>
-          <p className="mt-2">
-            <Label>{t("project.overview.installCmd")}</Label>
-          </p>
-          <p className="break-all font-data text-[12px] text-ink-2">
-            {project.install ||
-              t("project.overview.derivedFrom", { pkgmgr: project.pkgmgr })}
-          </p>
-        </ProjectPanel>
-
-        <ProjectPanel icon={MemoryStick} label={t("project.overview.memory")}>
-          <p
-            className={`font-semibold text-lg tabular-nums ${(project.ram_mb ?? 0) > HEAVY_MB ? "text-warn" : ""}`}
-          >
-            {memory(project.ram_mb)}
-          </p>
-          <p className="truncate font-data text-[12px] text-ink-3">
-            {project.dir}
-            {project.repo ? ` · ${project.repo}` : ""}
-          </p>
-        </ProjectPanel>
-      </div>
-
-      <div className="mt-6 flex justify-end border-line border-t pt-5">
-        <ConfirmButton
-          confirmLabel={t("project.overview.remove")}
-          icon={Trash2}
-          onConfirm={onRemove}
-          question={t("project.overview.removeQuestion")}
-          size="sm"
+        <Section
+          aside={
+            <span className="truncate font-data text-[12px] text-ink-3">
+              {project.dir}
+              {project.repo ? ` · ${project.repo}` : ""}
+            </span>
+          }
+          className="md:col-span-2"
+          name="processes"
+          title={t("project.overview.processes")}
         >
-          {t("project.overview.removeFromRegistry")}
-        </ConfirmButton>
+          <Panel as="ul" data-processes={project.processes.length} list>
+            {project.processes.map((process) => (
+              <ProjectProcessRow
+                busy={busy}
+                key={process.id}
+                onAct={onAct}
+                process={process}
+              />
+            ))}
+          </Panel>
+        </Section>
       </div>
     </div>
   );

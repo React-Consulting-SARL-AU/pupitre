@@ -40,6 +40,7 @@ export const refusals = {
     "refusal.project.unknown":
       "This server has declared no project named {name}.",
     "refusal.project.action.unknown": "Unknown action: {action}.",
+    "refusal.project.process.unknown": "Invalid process id: {process}.",
     "refusal.branch.unknown": "Invalid branch name: {branch}.",
     "refusal.secret.unknown": "Invalid key: {key}.",
     "refusal.secrets.stale": "This server has declared no key named {key}.",
@@ -311,6 +312,8 @@ export const refusals = {
     "refusal.project.unknown.fix":
       "Reload the list of projects, then start again.",
     "refusal.project.action.unknown.fix": "Pick start, stop or restart.",
+    "refusal.project.process.unknown.fix":
+      "Pick a process from the list the server gave.",
     "refusal.file.none": "No file was named.",
     "refusal.file.none.fix": "Pick a file from the working tree.",
     "refusal.branch.unknown.fix":
@@ -394,6 +397,8 @@ export const refusals = {
     "refusal.project.unknown":
       "Ce serveur n'a pas déclaré de projet nommé {name}.",
     "refusal.project.action.unknown": "Action inconnue : {action}.",
+    "refusal.project.process.unknown":
+      "Identifiant de processus invalide : {process}.",
     "refusal.branch.unknown": "Nom de branche invalide : {branch}.",
     "refusal.secret.unknown": "Clé invalide : {key}.",
     "refusal.secrets.stale": "Ce serveur n'a pas déclaré de clé nommée {key}.",
@@ -676,6 +681,8 @@ export const refusals = {
       "Rechargez la liste des projets, puis reprenez.",
     "refusal.project.action.unknown.fix":
       "Choisissez démarrer, arrêter ou redémarrer.",
+    "refusal.project.process.unknown.fix":
+      "Choisissez un processus de la liste que le serveur a donnée.",
     "refusal.file.none": "Aucun fichier n'a été désigné.",
     "refusal.file.none.fix": "Choisissez un fichier de l'arbre de travail.",
     "refusal.branch.unknown.fix":

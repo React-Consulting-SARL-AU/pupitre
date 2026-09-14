@@ -15,19 +15,38 @@ import { useTunnel } from "../tunnel";
  */
 
 const SHOP: Project = {
-  cmd: "bunx turbo run dev",
   dir: "shop",
-  host: "127.0.0.1",
   name: "shop",
   path: "/home/dev/projects/shop",
-  pkgmgr: "bun",
-  port: 3300,
-  repo: "https://github.com/ada/shop.git",
-  routes: [
-    { hostname: "shop.example.org", label: "web", port: 3300 },
-    { hostname: "api-shop.example.org", label: "api", port: 3301 },
+  processes: [
+    {
+      cmd: "bunx turbo run dev",
+      dir: ".",
+      host: "127.0.0.1",
+      id: "shop",
+      path: "/home/dev/projects/shop",
+      pkgmgr: "bun",
+      port: 3300,
+      routes: [
+        { hostname: "shop.example.org", label: "web", port: 3300 },
+        { hostname: "api-shop.example.org", label: "api", port: 3301 },
+      ],
+      state: "online",
+    },
   ],
+  repo: "https://github.com/ada/shop.git",
   state: "online",
+};
+
+/** The one process of SHOP as `project.update` carries it, before any edit. */
+const SHOP_PROCESS = {
+  cmd: "bunx turbo run dev",
+  dir: ".",
+  host: "127.0.0.1" as const,
+  id: "shop",
+  install: "",
+  pkgmgr: "bun" as const,
+  port: 3300,
 };
 
 function quiet(
@@ -64,6 +83,10 @@ function quiet(
   return { sent, synced };
 }
 
+function rows() {
+  return useProjectConfig.getState().draft.processes[0]?.rows ?? [];
+}
+
 beforeEach(() => {
   useProjectConfig.getState().close();
   useSnapshot.getState().forget();
@@ -76,58 +99,67 @@ describe("la configuration d'un projet rouverte", () => {
 
     const { draft } = useProjectConfig.getState();
 
-    expect(draft.cmd).toBe("bunx turbo run dev");
+    expect(draft.processes).toHaveLength(1);
+    expect(draft.processes[0]?.cmd).toBe("bunx turbo run dev");
+    expect(draft.processes[0]?.id).toBe("shop");
     expect(
-      draft.rows.map((row) => [row.label, row.port, row.web, row.whole])
+      rows().map((row) => [row.label, row.port, row.web, row.whole])
     ).toEqual([
       ["web", 3300, "shop.example.org", true],
       ["api", 3301, "api-shop.example.org", true],
     ]);
     expect(useProjectConfig.getState().changed()).toBe(false);
     expect(useProjectConfig.getState().ready()).toBe(false);
-    expect(useProjectConfig.getState().restarts()).toBe(false);
+    expect(useProjectConfig.getState().restarts()).toEqual([]);
     expect(useProjectConfig.getState().dropped()).toEqual([]);
   });
 
-  it("envoie la commande changée, dit qu'elle redémarre le projet, et rend le nom entier d'une route gardée", () => {
+  it("envoie la commande changée, dit quel processus redémarre, et rend le nom entier d'une route gardée", () => {
     useProjectConfig.getState().open(SHOP, SNAPSHOT.projects, true);
-    useProjectConfig.getState().setCmd("bunx turbo run dev --filter=web...");
+    useProjectConfig
+      .getState()
+      .setProcessCmd(0, "bunx turbo run dev --filter=web...");
 
-    expect(useProjectConfig.getState().restarts()).toBe(true);
+    expect(useProjectConfig.getState().restarts()).toEqual(["shop"]);
     expect(useProjectConfig.getState().ready()).toBe(true);
     expect(useProjectConfig.getState().patch()).toEqual({
-      cmd: "bunx turbo run dev --filter=web...",
-      routes: [
-        { hostname: "shop.example.org", label: "web", port: 3300 },
-        { hostname: "api-shop.example.org", label: "api", port: 3301 },
+      processes: [
+        {
+          ...SHOP_PROCESS,
+          cmd: "bunx turbo run dev --filter=web...",
+          routes: [
+            { hostname: "shop.example.org", label: "web", port: 3300 },
+            { hostname: "api-shop.example.org", label: "api", port: 3301 },
+          ],
+        },
       ],
     });
   });
 
   it("publie un second port en sous-domaine, et nomme les adresses qu'un retrait fait mourir", () => {
     useProjectConfig.getState().open(SHOP, SNAPSHOT.projects, true);
-    useProjectConfig.getState().addRow();
+    useProjectConfig.getState().addRow(0);
 
-    const added = useProjectConfig.getState().draft.rows[2];
-
-    expect(added).toMatchObject({
+    expect(rows()[2]).toMatchObject({
       label: "docs",
       port: 3302,
       publish: true,
       web: "docs-shop",
     });
-    expect(useProjectConfig.getState().patch().routes?.[2]).toEqual({
+    expect(
+      useProjectConfig.getState().patch().processes?.[0]?.routes[2]
+    ).toEqual({
       label: "docs",
       port: 3302,
       subdomain: "docs-shop",
     });
 
-    useProjectConfig.getState().removeRow(1);
+    useProjectConfig.getState().removeRow(0, 1);
     expect(useProjectConfig.getState().dropped()).toEqual([
       "api-shop.example.org",
     ]);
 
-    useProjectConfig.getState().setRowPublish(0, false);
+    useProjectConfig.getState().setRowPublish(0, 0, false);
     expect(useProjectConfig.getState().dropped()).toEqual([
       "shop.example.org",
       "api-shop.example.org",
@@ -136,10 +168,60 @@ describe("la configuration d'un projet rouverte", () => {
 
   it("refuse un port que l'autre projet tient, avant l'agent", () => {
     useProjectConfig.getState().open(SHOP, SNAPSHOT.projects, true);
-    useProjectConfig.getState().setRowPort(1, 3200);
+    useProjectConfig.getState().setRowPort(0, 1, 3200);
 
-    expect(useProjectConfig.getState().rowProblem(1)).toBe("portTaken");
+    expect(useProjectConfig.getState().rowProblems(0)).toEqual([
+      null,
+      "portTaken",
+    ]);
     expect(useProjectConfig.getState().ready()).toBe(false);
+  });
+
+  it("ajoute un second processus dans son propre dossier, sans redémarrer le premier, et refuse deux fois le même identifiant", () => {
+    useProjectConfig.getState().open(SHOP, SNAPSHOT.projects, true);
+    useProjectConfig.getState().addProcess();
+
+    const added = useProjectConfig.getState().draft.processes[1];
+
+    expect(added).toMatchObject({ dir: "", id: "app", pkgmgr: "bun" });
+    expect(added?.rows[0]?.port).toBe(3302);
+    expect(added?.rows[0]?.web).toBe("web-shop");
+    expect(added?.cmd).toBe("bun run dev --port 3302");
+    expect(useProjectConfig.getState().processProblem(1)).toBeNull();
+
+    useProjectConfig.getState().setProcessId(1, "client");
+    useProjectConfig.getState().setProcessDir(1, "client");
+    useProjectConfig.getState().setProcessPkgmgr(1, "pnpm");
+
+    expect(useProjectConfig.getState().draft.processes[1]?.cmd).toBe(
+      "pnpm dev --port 3302"
+    );
+    expect(useProjectConfig.getState().processProblem(1)).toBeNull();
+    expect(useProjectConfig.getState().ready()).toBe(true);
+    expect(useProjectConfig.getState().restarts()).toEqual([]);
+    expect(useProjectConfig.getState().patch().processes?.[1]).toMatchObject({
+      cmd: "pnpm dev --port 3302",
+      dir: "client",
+      id: "client",
+      pkgmgr: "pnpm",
+      port: 3302,
+    });
+
+    useProjectConfig.getState().setProcessId(1, "shop");
+    expect(useProjectConfig.getState().processProblem(1)).toBe("idTaken");
+
+    useProjectConfig.getState().setProcessDir(1, "../elsewhere");
+    useProjectConfig.getState().setProcessId(1, "client");
+    expect(useProjectConfig.getState().processProblem(1)).toBe("dir");
+
+    useProjectConfig.getState().setRowPort(1, 0, 3300);
+    useProjectConfig.getState().setProcessDir(1, "client");
+    expect(useProjectConfig.getState().rowProblems(1)).toEqual(["portTaken"]);
+
+    useProjectConfig.getState().removeProcess(1);
+    expect(useProjectConfig.getState().draft.processes).toHaveLength(1);
+    useProjectConfig.getState().removeProcess(0);
+    expect(useProjectConfig.getState().draft.processes).toHaveLength(1);
   });
 
   it("enregistre, synchronise l'exposition, relit le snapshot et reprend le projet rendu", async () => {
@@ -147,18 +229,23 @@ describe("la configuration d'un projet rouverte", () => {
       ok: true,
       result: {
         ...SHOP,
-        cmd: params.patch.cmd ?? SHOP.cmd,
-        routes: [
-          { hostname: "boutique.example.org", label: "web", port: 3300 },
+        processes: [
+          {
+            ...SHOP.processes[0],
+            cmd: params.patch.processes?.[0]?.cmd ?? "bunx turbo run dev",
+            routes: [
+              { hostname: "boutique.example.org", label: "web", port: 3300 },
+            ],
+          } as Project["processes"][number],
         ],
         state: "online",
       },
     }));
 
     useProjectConfig.getState().open(SHOP, SNAPSHOT.projects, true);
-    useProjectConfig.getState().removeRow(1);
-    useProjectConfig.getState().generateRowWeb(0);
-    useProjectConfig.getState().setRowWeb(0, "boutique");
+    useProjectConfig.getState().removeRow(0, 1);
+    useProjectConfig.getState().generateRowWeb(0, 0);
+    useProjectConfig.getState().setRowWeb(0, 0, "boutique");
 
     await useProjectConfig.getState().save("srv-1");
 
@@ -166,7 +253,12 @@ describe("la configuration d'un projet rouverte", () => {
       {
         name: "shop",
         patch: {
-          routes: [{ label: "web", port: 3300, subdomain: "boutique" }],
+          processes: [
+            {
+              ...SHOP_PROCESS,
+              routes: [{ label: "web", port: 3300, subdomain: "boutique" }],
+            },
+          ],
         },
       },
     ]);
@@ -176,9 +268,7 @@ describe("la configuration d'un projet rouverte", () => {
       name: "shop",
       status: "saved",
     });
-    expect(
-      useProjectConfig.getState().draft.rows.map((row) => row.web)
-    ).toEqual(["boutique.example.org"]);
+    expect(rows().map((row) => row.web)).toEqual(["boutique.example.org"]);
     expect(useProjectConfig.getState().changed()).toBe(false);
   });
 
@@ -193,7 +283,7 @@ describe("la configuration d'un projet rouverte", () => {
     }));
 
     useProjectConfig.getState().open(SHOP, SNAPSHOT.projects, true);
-    useProjectConfig.getState().setRowWeb(0, "shop.elsewhere.org");
+    useProjectConfig.getState().setRowWeb(0, 0, "shop.elsewhere.org");
 
     await useProjectConfig.getState().save("srv-1");
 
@@ -203,8 +293,6 @@ describe("la configuration d'un projet rouverte", () => {
       },
       status: "failed",
     });
-    expect(useProjectConfig.getState().draft.rows[0]?.web).toBe(
-      "shop.elsewhere.org"
-    );
+    expect(rows()[0]?.web).toBe("shop.elsewhere.org");
   });
 });

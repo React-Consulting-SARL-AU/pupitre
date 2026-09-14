@@ -1,6 +1,5 @@
 export const files = {
   en: {
-    "files.screen.eyebrow": "Server",
     "files.screen.title": "Files",
     "files.root.server": "Server",
     "files.trail": "Folders walked",
@@ -102,7 +101,6 @@ export const files = {
       "Browse the server's files from the sidebar instead.",
   },
   fr: {
-    "files.screen.eyebrow": "Serveur",
     "files.screen.title": "Fichiers",
     "files.root.server": "Serveur",
     "files.trail": "Dossiers parcourus",

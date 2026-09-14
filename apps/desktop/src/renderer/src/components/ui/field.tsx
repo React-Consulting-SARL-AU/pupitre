@@ -5,24 +5,29 @@ import { Hint } from "./hint";
 import { Label } from "./label";
 
 const SHARED =
-  "w-full rounded-md border border-line-strong bg-sunken px-3 py-1.5 text-[13px] text-ink outline-none transition-soft placeholder:text-ink-4 focus:border-ink disabled:text-ink-4";
+  "w-full rounded-md border bg-sunken px-3 py-1.5 text-[13px] text-ink outline-none transition-soft placeholder:text-ink-4 disabled:text-ink-4";
 
-/** The shared look of every text input, select and textarea that holds data. */
-export const fieldControlClass = `${SHARED} font-data`;
-
-/** The same field, for the few that hold a sentence rather than a value: a name, an identity. */
-export const proseControlClass = SHARED;
-
-/** A name and a sentence are prose; everything else a manifest asks for is data. */
-export type FieldText = "data" | "prose";
+// The two borders are the same property: only one of them may be on the control, or the stylesheet's order decides.
+const soundClass = "border-line-strong focus:border-ink";
 
 /** The bordered look a field takes once it is refused, in both themes. */
 const wrongClass = "border-danger focus:border-danger";
 
-export function controlClass(kind: FieldText, wrong: boolean): string {
-  const base = kind === "prose" ? proseControlClass : fieldControlClass;
+/** The shared look of every text input, select and textarea that holds data. */
+export const fieldControlClass = `${SHARED} ${soundClass} font-data`;
 
-  return wrong ? `${base} ${wrongClass}` : base;
+/** The same field, for the few that hold a sentence rather than a value: a name, an identity. */
+export const proseControlClass = `${SHARED} ${soundClass}`;
+
+/** A name and a sentence are prose; everything else a manifest asks for is data. */
+export type FieldText = "data" | "prose";
+
+export function controlClass(kind: FieldText, wrong: boolean): string {
+  const border = wrong ? wrongClass : soundClass;
+
+  return kind === "prose"
+    ? `${SHARED} ${border}`
+    : `${SHARED} ${border} font-data`;
 }
 
 /**

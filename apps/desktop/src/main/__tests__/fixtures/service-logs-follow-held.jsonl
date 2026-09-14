@@ -1,0 +1,5 @@
+# Le canal des suivis : le journal d'un service suivi, sans fin tant que le lecteur reste.
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","service.logs","install"]}}
+> {"id":2,"cmd":"service.logs","params":{"follow":true,"id":"db.postgres","lines":120}}
+< {"id":2,"event":"log","line":"2026-09-11 10:00:01 UTC [1] LOG:  database system is ready to accept connections"}

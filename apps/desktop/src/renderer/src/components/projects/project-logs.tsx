@@ -7,10 +7,12 @@ import { Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 /**
- * A project's journal, as a continuous stream.
+ * The journal of one process of a project, as a continuous stream.
  *
- * The lines arrive as `log` events of `project.logs` followed, so the app never
- * tails a file itself and never names one. Escape sequences are stripped — the
+ * A project of several processes has several journals, and the bar picks
+ * which one is read; the first is the default. The lines arrive as `log`
+ * events of `project.logs` followed, so the app never tails a file itself and
+ * never names one. Escape sequences are stripped — the
  * journal is captured from a terminal — and the history is bounded: a watcher
  * can write megabytes, and the page would not recover. What lands between two
  * frames is drawn in one: a build that prints a thousand lines a second is one
@@ -51,12 +53,18 @@ export function matchingLines<L extends { text: string }>(
 export function ProjectLogs({
   serverId,
   project,
+  processes,
 }: {
   serverId: string;
   project: string;
+  /** The ids of the project's processes, the main one first. */
+  processes: readonly string[];
 }) {
   const t = useTranslations();
 
+  const [chosen, setChosen] = useState<string | null>(null);
+  const process =
+    chosen && processes.includes(chosen) ? chosen : (processes[0] ?? "");
   const [lines, setLines] = useState<Line[]>([]);
   const [follow, setFollow] = useState(true);
   const [error, setError] = useState<AgentError | null>(null);
@@ -97,6 +105,7 @@ export function ProjectLogs({
     const journal = window.pupitre.followProjectJournal(
       serverId,
       project,
+      process,
       TAIL,
       (line) => {
         if (!live) {
@@ -126,7 +135,7 @@ export function ProjectLogs({
         cancelAnimationFrame(frame);
       }
     };
-  }, [serverId, project, attempt]);
+  }, [serverId, project, process, attempt]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: every new line is a reason to follow — the count is the signal, not a value read
   useEffect(() => {
@@ -142,8 +151,25 @@ export function ProjectLogs({
     <div className="flex h-full flex-col">
       <div className="flex flex-wrap items-center gap-3 border-line border-b px-4 py-2">
         <span className="font-data text-[12px] text-ink-3">
-          {t("project.logs.journal", { name: project })}
+          {t("project.logs.journal", {
+            name: processes.length > 1 ? `${project}/${process}` : project,
+          })}
         </span>
+
+        {processes.length > 1 ? (
+          <select
+            aria-label={t("project.logs.process")}
+            className="rounded-md border border-line bg-sunken px-2 py-0.5 font-data text-[12px] text-ink outline-none focus:border-ink"
+            onChange={(event) => setChosen(event.target.value)}
+            value={process}
+          >
+            {processes.map((id) => (
+              <option key={id} value={id}>
+                {id}
+              </option>
+            ))}
+          </select>
+        ) : null}
 
         <span className="flex items-center gap-1.5 rounded-md border border-line bg-sunken px-2 py-0.5">
           <Search className="shrink-0 text-ink-4" size={12} strokeWidth={1.5} />

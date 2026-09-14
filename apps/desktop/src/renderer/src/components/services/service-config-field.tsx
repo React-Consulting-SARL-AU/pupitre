@@ -23,6 +23,7 @@ export function ServiceConfigField({
   value,
   marks,
   held,
+  problem,
   handlers,
 }: {
   field: Field;
@@ -32,6 +33,8 @@ export function ServiceConfigField({
   value: unknown;
   marks?: Record<string, SecretMark>;
   held: readonly string[];
+  /** Why the value is refused, in the words of whoever refused it. */
+  problem?: string;
   handlers: FieldHandlers;
 }) {
   const control = (
@@ -41,6 +44,7 @@ export function ServiceConfigField({
       held={held}
       marks={marks}
       moduleId={moduleId}
+      problem={problem}
       value={value}
     />
   );

@@ -36,9 +36,9 @@ export const updates = {
     "updates.config.migrated": "Configuration migrated to revision {revision}.",
     "updates.config.upToDate": "Configuration already at revision {revision}.",
 
-    "updates.modules.title": "Updating services",
-    "updates.modules.intro":
-      "Pupitre updates the {count} services installed on this machine.",
+    "updates.modules.title": "Installed",
+    "updates.modules.count.one": "{count} service",
+    "updates.modules.count.other": "{count} services",
     "updates.modules.upgradeAll": "Update everything",
     "updates.modules.failed": "{name}: the update failed.",
     "updates.modules.warned": "{name}: updated, with a warning.",
@@ -82,9 +82,9 @@ export const updates = {
     "updates.config.migrated": "Configuration migrée en révision {revision}.",
     "updates.config.upToDate": "Configuration déjà en révision {revision}.",
 
-    "updates.modules.title": "Mise à jour des services",
-    "updates.modules.intro":
-      "Pupitre met à jour les {count} services installés sur cette machine.",
+    "updates.modules.title": "Installés",
+    "updates.modules.count.one": "{count} service",
+    "updates.modules.count.other": "{count} services",
     "updates.modules.upgradeAll": "Tout mettre à jour",
     "updates.modules.failed": "{name} : la mise à jour a échoué.",
     "updates.modules.warned": "{name} : mis à jour, avec un avertissement.",

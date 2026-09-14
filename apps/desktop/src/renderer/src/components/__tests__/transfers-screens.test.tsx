@@ -209,19 +209,15 @@ describe("la zone de dépôt du navigateur de fichiers", () => {
     });
 
     expect(html).toContain('aria-label="Zone de dépôt du dossier"');
-    expect(html).toContain("Envoyer…");
-    expect(html).toContain(
-      'data-tooltip="Envoyer des fichiers ou des dossiers dans ce dossier"'
-    );
+    expect(html).toContain('aria-label="Envoyer…"');
+    expect(html).toContain('data-tooltip="Envoyer…"');
     expect(html).not.toContain("data-dropping");
   });
 
   it("n'offre pas d'envoyer tant que le dossier n'est pas lu", () => {
     const html = list({ path: "projects/atlas", status: "reading" });
 
-    expect(html).toMatch(
-      /<button[^>]*disabled[^>]*>[^<]*<svg[^>]*>.*?<\/svg>Envoyer…/
-    );
+    expect(html).toMatch(/<button[^>]*aria-label="Envoyer…"[^>]*disabled/);
   });
 });
 

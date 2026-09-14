@@ -1,4 +1,5 @@
 import { Field, proseControlClass } from "@renderer/components/ui/field";
+import { Panel } from "@renderer/components/ui/panel";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { roleLabel } from "@renderer/lib/roles";
 import type { AccountIdentity } from "@shared/account";
@@ -37,8 +38,8 @@ export function OnboardingOrganizationNote({
   }
 
   return (
-    <div
-      className="flex flex-col gap-4 rounded-md border border-line bg-surface px-4 py-4"
+    <Panel
+      className="flex flex-col gap-4"
       data-enrolling-for={organization?.id}
     >
       <div className="flex items-start gap-3">
@@ -92,6 +93,6 @@ export function OnboardingOrganizationNote({
           </select>
         </Field>
       ) : null}
-    </div>
+    </Panel>
   );
 }

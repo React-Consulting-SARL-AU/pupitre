@@ -3,7 +3,7 @@ import { DARK, LIGHT } from "@pupitre/design/tokens";
 import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
-const HEADING = "1 projet en ligne";
+const HEADING = "Tableau de bord";
 const BRANDED = ["db.postgres", "ai.claude", "exposure.cloudflare"];
 const BRAND_COLOUR = /^#[0-9a-f]{6}$/;
 

@@ -1,17 +1,20 @@
 import type { Manifest } from "@pupitre/shared/catalog";
+import type { FieldProblem } from "@pupitre/shared/catalog/validate";
 import { InstallProgress } from "@renderer/components/install/install-progress";
 import { Button } from "@renderer/components/ui/button";
 import { Callout } from "@renderer/components/ui/callout";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
-import { Label } from "@renderer/components/ui/label";
 import { LiveDuration } from "@renderer/components/ui/live-duration";
+import { panelClass } from "@renderer/components/ui/panel";
+import { Section } from "@renderer/components/ui/section";
 import { WaitingLine } from "@renderer/components/ui/waiting-line";
+import { problemText } from "@renderer/i18n/field-problem";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { ModuleProgress } from "@renderer/lib/module-progress";
 import type { ApplyState, ConfigState } from "@renderer/stores/services";
 import type { CloudflareZone } from "@shared/cloudflare";
 import type { SecretMarks } from "@shared/secrets";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Undo2 } from "lucide-react";
 import { ServiceConfigField } from "./service-config-field";
 
 /**
@@ -23,6 +26,10 @@ import { ServiceConfigField } from "./service-config-field";
  * secret stream, without ever passing through here. A module whose every value
  * is derived from an account has nothing to type and one gesture left: apply,
  * which sends that account to the server again.
+ *
+ * The form ends on its gesture: apply stands at its foot, with the way back
+ * beside it, and neither has anything to do until a value or a secret differs
+ * from what the server holds. What a value is refused for is said under it.
  */
 export function ServiceConfig({
   manifest,
@@ -33,6 +40,8 @@ export function ServiceConfig({
   apply,
   values,
   secrets,
+  problems = [],
+  dirty = true,
   steps,
   name,
   nameOf = (moduleId) => (moduleId === manifest?.id ? name : moduleId),
@@ -42,6 +51,7 @@ export function ServiceConfig({
   onGenerate,
   onReveal,
   onApply,
+  onDiscard,
 }: {
   manifest: Manifest | null;
   /** False for a module put on the machine with its questions left unanswered. */
@@ -53,6 +63,10 @@ export function ServiceConfig({
   apply: ApplyState;
   values: Record<string, unknown>;
   secrets: SecretMarks;
+  /** What the form or the server refuses, each on the field it names. */
+  problems?: readonly FieldProblem[];
+  /** Whether anything differs from what the server holds. */
+  dirty?: boolean;
   steps: readonly ModuleProgress[];
   name: string;
   /** What to call a module the run brought along — a dependency the agent replays — rather than this one's name for every row. */
@@ -64,6 +78,7 @@ export function ServiceConfig({
   onGenerate: (key: string) => void;
   onReveal: (key: string) => Promise<string | null>;
   onApply: () => void;
+  onDiscard?: () => void;
 }) {
   const t = useTranslations();
 
@@ -72,9 +87,7 @@ export function ServiceConfig({
   // disappeared left the reader looking for what a service can be told.
   if (!manifest) {
     return (
-      <section className="flex flex-col gap-3" data-config="unknown">
-        <Label>{t("services.config.title")}</Label>
-
+      <Section data-config="unknown" title={t("services.config.title")}>
         <Callout
           action={
             catalogHeld || !onReloadCatalog ? null : (
@@ -88,7 +101,7 @@ export function ServiceConfig({
             catalogHeld ? "services.config.heldBack" : "services.config.unread"
           )}
         </Callout>
-      </section>
+      </Section>
     );
   }
 
@@ -100,28 +113,91 @@ export function ServiceConfig({
   }
 
   const running = apply.status === "running";
-  const unconfigured = !configured;
-  const held = config.status === "ready" ? config.held : [];
+  const ready = config.status === "ready";
+  const held = ready ? config.held : [];
   const failed = apply.status === "done" ? apply.result.failed : [];
+  const refused = problems.filter((problem) => problem.field !== "");
+  const accountOnly = fields.length === 0;
+
+  function problemOf(key: string): string | undefined {
+    const problem = refused.find((one) => one.field === key);
+
+    return problem ? problemText(t, problem) : undefined;
+  }
 
   return (
-    <section className="flex flex-col gap-3" data-config={config.status}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Label>{t("services.config.title")}</Label>
-
-        <Button
-          disabled={config.status !== "ready"}
-          icon={RefreshCw}
-          loading={running}
-          onClick={onApply}
-          size="sm"
-        >
-          {t("services.config.apply")}
-        </Button>
-      </div>
-
-      {unconfigured ? (
+    <Section data-config={config.status} title={t("services.config.title")}>
+      {configured ? null : (
         <Callout tone="warn">{t("services.config.unconfigured")}</Callout>
+      )}
+
+      {config.status === "failed" ? <ErrorNotice error={config.error} /> : null}
+
+      {ready ? (
+        <form
+          className={`${panelClass("none")} flex flex-col`}
+          data-dirty={dirty ? "true" : "false"}
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault();
+            onApply();
+          }}
+        >
+          {accountOnly ? (
+            <p className="px-5 py-4 text-[13px] text-ink-2 leading-relaxed">
+              {t("services.config.accountNote")}
+            </p>
+          ) : (
+            <div className="grid gap-4 p-5 sm:grid-cols-2">
+              {fields.map((field) => (
+                <ServiceConfigField
+                  field={field}
+                  handlers={{ onGenerate, onReveal, onSecret, onValue }}
+                  held={held}
+                  key={field.key}
+                  marks={secrets[manifest.id]}
+                  moduleId={manifest.id}
+                  problem={problemOf(field.key)}
+                  value={values[field.key]}
+                  zones={zones}
+                />
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-3 border-line border-t px-5 py-3">
+            {refused.length > 0 ? (
+              <span className="text-[12px] text-danger" data-config-refused="">
+                {t.plural("services.config.refused", refused.length)}
+              </span>
+            ) : null}
+
+            <div className="ml-auto flex flex-wrap items-center gap-2">
+              {dirty && !accountOnly && onDiscard ? (
+                <Button
+                  disabled={running}
+                  icon={Undo2}
+                  onClick={onDiscard}
+                  size="sm"
+                  variant="discreet"
+                >
+                  {t("services.config.discard")}
+                </Button>
+              ) : null}
+
+              <Button
+                disabled={running || !(dirty || accountOnly)}
+                icon={RefreshCw}
+                loading={running}
+                size="sm"
+                submit
+                variant="inverse"
+              >
+                {t("services.config.apply")}
+              </Button>
+            </div>
+          </div>
+        </form>
       ) : null}
 
       {running ? (
@@ -138,44 +214,12 @@ export function ServiceConfig({
       {apply.status === "failed" ? <ErrorNotice error={apply.error} /> : null}
 
       {apply.status === "done" ? (
-        <Callout tone={failed.length > 0 ? "danger" : "info"}>
+        <Callout tone={failed.length > 0 ? "danger" : "ok"}>
           {failed.length > 0
             ? t("services.config.failed", { name })
             : t("services.config.done", { name })}
         </Callout>
       ) : null}
-
-      {config.status === "failed" ? <ErrorNotice error={config.error} /> : null}
-
-      {config.status === "ready" && fields.length > 0 ? (
-        <div className="elevation-raised grid gap-4 rounded-md border border-line bg-surface p-5 sm:grid-cols-2">
-          {fields.map((field) => (
-            <ServiceConfigField
-              field={field}
-              handlers={{
-                onGenerate,
-                onReveal,
-                onSecret,
-                onValue,
-              }}
-              held={held}
-              key={field.key}
-              marks={secrets[manifest.id]}
-              moduleId={manifest.id}
-              value={values[field.key]}
-              zones={zones}
-            />
-          ))}
-        </div>
-      ) : null}
-
-      <p className="text-[12px] text-ink-3 leading-relaxed">
-        {t(
-          fields.length > 0
-            ? "services.config.note"
-            : "services.config.accountNote"
-        )}
-      </p>
-    </section>
+    </Section>
   );
 }

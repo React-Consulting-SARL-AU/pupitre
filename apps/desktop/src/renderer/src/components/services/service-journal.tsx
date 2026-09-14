@@ -1,6 +1,6 @@
 import { CopyButton } from "@renderer/components/ui/copy-button";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
-import { Label } from "@renderer/components/ui/label";
+import { Section } from "@renderer/components/ui/section";
 import { WaitingLine } from "@renderer/components/ui/waiting-line";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AgentError } from "@shared/agent";
@@ -122,33 +122,42 @@ export function ServiceJournal({
   }, [follow, lines.length]);
 
   return (
-    <section className="flex flex-col gap-3" data-service-journal={moduleId}>
-      <div className="flex flex-wrap items-center gap-3">
-        <Label>{t("services.journal.title")}</Label>
+    <Section
+      actions={
+        <>
+          <label className="clickable flex h-7 items-center gap-2 px-1 text-[12px] text-ink-2">
+            <input
+              checked={follow}
+              className="accent-ink"
+              onChange={(event) => setFollow(event.target.checked)}
+              type="checkbox"
+            />
+            {t("services.journal.follow")}
+          </label>
 
-        <CopyButton
-          disabled={lines.length === 0}
-          hint={t("services.journal.copyAllHint", { name })}
-          onCopy={() =>
-            navigator.clipboard.writeText(
-              lines.map((line) => line.text).join("\n")
-            )
-          }
-        >
-          {t("services.journal.copyAll")}
-        </CopyButton>
-
-        <label className="clickable ml-auto flex items-center gap-2 font-data text-[11px] text-ink-3">
-          <input
-            checked={follow}
-            className="accent-ink"
-            onChange={(event) => setFollow(event.target.checked)}
-            type="checkbox"
-          />
-          {t("services.journal.follow")}
-        </label>
-      </div>
-
+          <CopyButton
+            disabled={lines.length === 0}
+            hint={t("services.journal.copyAllHint", { name })}
+            onCopy={() =>
+              navigator.clipboard.writeText(
+                lines.map((line) => line.text).join("\n")
+              )
+            }
+          >
+            {t("services.journal.copyAll")}
+          </CopyButton>
+        </>
+      }
+      aside={
+        lines.length > 0 ? (
+          <span className="font-data text-[11px] text-ink-3 tabular-nums">
+            {t.plural("services.journal.lines", lines.length)}
+          </span>
+        ) : null
+      }
+      data-service-journal={moduleId}
+      title={t("services.journal.title")}
+    >
       {error ? (
         <ErrorNotice
           error={error}
@@ -189,6 +198,6 @@ export function ServiceJournal({
         ))}
         <div ref={end} />
       </div>
-    </section>
+    </Section>
   );
 }

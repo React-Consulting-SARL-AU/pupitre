@@ -1,4 +1,5 @@
 import { Button } from "@renderer/components/ui/button";
+import { Panel } from "@renderer/components/ui/panel";
 import type {
   StatusShape,
   StatusTone,
@@ -140,10 +141,7 @@ export function AccountUsageNotice({
   const console = consoleOf(usage);
 
   return (
-    <div
-      className="elevation-raised flex items-start gap-3 rounded-md border border-line bg-surface px-4 py-3.5"
-      data-usage={usage.status}
-    >
+    <Panel className="flex items-start gap-3" data-usage={usage.status}>
       <span className="translate-y-1">
         <StatusDot shape={look.shape} size={12} tone={look.tone} />
       </span>
@@ -174,6 +172,6 @@ export function AccountUsageNotice({
           {actionOf(usage, t)}
         </Button>
       ) : null}
-    </div>
+    </Panel>
   );
 }

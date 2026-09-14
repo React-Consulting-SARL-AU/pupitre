@@ -1,5 +1,5 @@
 # Le canal revient : le rapport porte le message de l'étape tombée, et le rejeu le garde.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","ping","snapshot","report","install"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","ping","snapshot","report","install"]}}
 > {"id":2,"cmd":"report"}
 < {"id":2,"ok":true,"result":{"started_at":"2026-09-04T12:00:00Z","finished_at":"2026-09-04T12:00:10Z","agent_version":"0.0.0-test","modules":[{"id":"db.mysql","status":"fail","steps":[{"step":"apt","status":"start","ms":0},{"step":"apt","status":"fail","ms":9100,"replay":"pupitred install db.mysql","message":"E: Unable to locate package mysql-server"}]}],"failed":["db.mysql"],"warned":[],"report_path":"/var/lib/pupitre/report.json"}}

@@ -1,6 +1,6 @@
 # L'agent refuse de fermer root : aucune clé n'ouvre dev, il le dit et n'y touche pas.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","ping","install","harden"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","ping","install","harden"]}}
 > {"id":2,"cmd":"harden","params":{"user":"dev"}}
 < {"id":2,"event":"step","module":"core.hardening","step":"compte dev","status":"ok","ms":900}
 < {"id":2,"event":"step","module":"core.hardening","step":"connexion dev vérifiée","status":"fail","ms":2400}

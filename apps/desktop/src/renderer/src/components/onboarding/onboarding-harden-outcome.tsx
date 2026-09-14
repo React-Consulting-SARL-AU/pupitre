@@ -4,6 +4,7 @@ import type { HardenOutcome } from "@shared/harden";
 import { RefreshCw } from "lucide-react";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
+import { Panel } from "../ui/panel";
 import { StatusDot } from "../ui/status-dot";
 
 /**
@@ -31,7 +32,7 @@ export function OnboardingHardenOutcome({
   return (
     <section className="flex flex-col gap-gutter">
       {hardened ? (
-        <div className="elevation-raised flex items-start gap-3 rounded-md border border-line bg-surface px-4 py-4">
+        <Panel className="flex items-start gap-3">
           <span className="translate-y-1">
             <StatusDot
               shape={outcome.reconnected ? "filled" : "ringed"}
@@ -58,7 +59,7 @@ export function OnboardingHardenOutcome({
               </p>
             )}
           </div>
-        </div>
+        </Panel>
       ) : (
         <Callout
           action={

@@ -1,4 +1,5 @@
 import { IconButton } from "@renderer/components/ui/icon-button";
+import { Panel } from "@renderer/components/ui/panel";
 import { StatusDot } from "@renderer/components/ui/status-dot";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { VersionOrder } from "@shared/agent-update";
@@ -25,9 +26,11 @@ export function AgentUpdateFrame({
   const t = useTranslations();
 
   return (
-    <section
-      className="elevation-raised flex flex-col gap-3 rounded-md border border-line bg-surface px-4 py-3"
+    <Panel
+      as="section"
+      className="flex flex-col gap-3"
       data-update={order}
+      inset="sm"
     >
       <div className="flex items-start gap-2.5">
         <StatusDot label={title} shape="ringed" size={11} tone="warn" />
@@ -49,6 +52,6 @@ export function AgentUpdateFrame({
       </div>
 
       {children}
-    </section>
+    </Panel>
   );
 }

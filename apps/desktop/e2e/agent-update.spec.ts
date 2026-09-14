@@ -102,7 +102,7 @@ test.describe("mise à jour de l'agent", () => {
       "Mettez l'app à jour"
     );
     await expect(
-      running.page.getByRole("heading", { level: 1, name: "1 projet en ligne" })
+      running.page.getByRole("heading", { level: 1, name: "Tableau de bord" })
     ).toBeVisible();
   });
 });

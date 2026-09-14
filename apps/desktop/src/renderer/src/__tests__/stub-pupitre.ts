@@ -12,6 +12,8 @@ import type { PupitreApi } from "../../../preload";
  * and change nothing; a test that cares about one of them replaces it.
  */
 const QUIET: Partial<PupitreApi> = {
+  checkInstall: () =>
+    Promise.resolve({ ok: true, result: { problems: [], warnings: [] } }),
   closeTerminal: () => undefined,
   connectionsState: () =>
     Promise.resolve({

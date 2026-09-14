@@ -97,7 +97,7 @@ export function ServerSwitch({
             className="elevation-overlay z-50 min-w-52 rounded-md border border-line bg-surface p-1 outline-none"
           >
             <Menu.Group>
-              <Menu.GroupLabel className="px-2.5 pt-1.5 pb-1 font-medium text-[11.5px] text-ink-3 uppercase tracking-[0.08em]">
+              <Menu.GroupLabel className="label px-2.5 pt-1.5 pb-1 text-ink-3">
                 {t("shell.switch.menu")}
               </Menu.GroupLabel>
               {servers.map((one) => {

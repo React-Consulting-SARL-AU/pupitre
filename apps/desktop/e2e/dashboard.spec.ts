@@ -118,7 +118,7 @@ test.describe("le tableau de bord", () => {
     const { page } = running;
 
     await expect(
-      page.getByRole("heading", { level: 1, name: "1 projet en ligne" })
+      page.getByRole("heading", { level: 1, name: "Tableau de bord" })
     ).toBeVisible();
 
     await page.locator('[data-service="db.postgres"]').click();
@@ -182,8 +182,8 @@ test.describe("le tableau de bord", () => {
 
     await page.getByRole("button", { name: "Redémarrer le serveur" }).click();
     await page
+      .getByRole("banner")
       .getByRole("button", { exact: true, name: "Redémarrer" })
-      .last()
       .click();
 
     await expect(page.locator("[data-rebooting]")).toBeVisible();
@@ -193,7 +193,7 @@ test.describe("le tableau de bord", () => {
     await assertAccessible(page, "serveur/redemarrage");
 
     await expect(
-      page.getByRole("heading", { level: 1, name: "1 projet en ligne" })
+      page.getByRole("heading", { level: 1, name: "Tableau de bord" })
     ).toBeVisible({ timeout: 15_000 });
 
     expect(

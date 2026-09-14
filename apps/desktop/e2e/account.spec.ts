@@ -168,11 +168,12 @@ test.describe("compte", () => {
   test("le device flow mène de l'écran de compte à l'identité confirmée", async () => {
     const { page } = running;
 
-    // The app opens on the account: nothing about a machine sits behind it.
-    await expect(page.getByText("Aucun compte connecté")).toBeVisible();
+    // The app opens on the account: nothing about a machine sits behind it,
+    // and a first launch is not a fault — the sign-in card is all it says.
     await expect(
-      page.getByText("refuse d'installer un serveur sans compte")
+      page.getByRole("heading", { name: "Connectez-vous pour ouvrir Pupitre" })
     ).toBeVisible();
+    await expect(page.getByText("Aucun compte connecté")).toHaveCount(0);
 
     await page.getByRole("button", { name: "Se connecter" }).click();
 

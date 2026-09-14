@@ -1,5 +1,5 @@
 # Un compte sans droit d'usage : lire les projets passe encore, agir sur eux non.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"valid","capabilities":["hello","project.list","project.remove","project.checkout"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"valid","capabilities":["hello","project.list","project.remove","project.checkout"]}}
 > {"id":2,"cmd":"project.list"}
-< {"id":2,"ok":true,"result":{"projects":[{"name":"api","dir":"api","path":"/home/dev/projects/api","pkgmgr":"bun","host":"127.0.0.1","port":3000,"routes":[],"cmd":"bun run dev","state":"online"}]}}
+< {"id":2,"ok":true,"result":{"projects":[{"name":"api","dir":"api","path":"/home/dev/projects/api","processes":[{"id":"api","dir":".","path":"/home/dev/projects/api","pkgmgr":"bun","host":"127.0.0.1","port":3000,"routes":[],"cmd":"bun run dev","state":"online"}],"state":"online"}]}}

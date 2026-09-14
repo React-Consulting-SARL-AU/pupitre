@@ -86,7 +86,7 @@ function deps(
   over: Partial<AgentUpdateDeps> = {}
 ): AgentUpdateDeps {
   return {
-    appVersion: "0.1.0",
+    appVersion: "0.2.0",
     carried: () => release(),
     client,
     declared: () =>
@@ -162,7 +162,7 @@ describe("la comparaison des versions", () => {
 
     expect(answer).toMatchObject({
       ok: true,
-      result: { floor: "0.1.0", verdict: "ok" },
+      result: { floor: "0.2.0", verdict: "ok" },
     });
   });
 

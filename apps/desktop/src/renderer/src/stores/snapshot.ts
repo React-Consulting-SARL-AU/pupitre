@@ -55,7 +55,13 @@ interface SnapshotStore {
 
   read: (serverId: string) => Promise<void>;
   readProcesses: (serverId: string) => Promise<void>;
-  act: (action: ProjectAction, serverId: string, name: string) => Promise<void>;
+  /** Starts, stops or restarts a project, "all", or one process of a project. */
+  act: (
+    action: ProjectAction,
+    serverId: string,
+    name: string,
+    process?: string
+  ) => Promise<void>;
   stopProcess: (
     serverId: string,
     pid: number,
@@ -164,10 +170,15 @@ export const useSnapshot = create<SnapshotStore>((set, get) => {
       });
     },
 
-    async act(action, serverId, name) {
+    async act(action, serverId, name, process) {
       set({ busy: name, problem: null });
 
-      const answer = await window.pupitre.actOnProject(action, serverId, name);
+      const answer = await window.pupitre.actOnProject(
+        action,
+        serverId,
+        name,
+        process
+      );
 
       set({ busy: null, problem: answer.ok ? null : answer.error });
       await get().read(serverId);

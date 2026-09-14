@@ -15,11 +15,11 @@ import type { AgentError } from "@shared/agent";
 import type { RemoteEditor } from "@shared/editors";
 import { FolderOpen, RefreshCw, Upload } from "lucide-react";
 import { type DragEvent, useState } from "react";
-import { Button } from "../ui/button";
-import { CheckBox } from "../ui/check-box";
+import { CheckLine } from "../ui/check-line";
 import { EmptyState } from "../ui/empty-state";
 import { ErrorNotice } from "../ui/error-notice";
 import { IconButton } from "../ui/icon-button";
+import { Segmented } from "../ui/segmented";
 import { SkeletonRows } from "../ui/skeleton";
 import { WaitingLine } from "../ui/waiting-line";
 import { FileRow, type RowMode } from "./file-row";
@@ -183,39 +183,25 @@ export function FileList({
           rootLabel={rootLabel}
         />
 
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <fieldset
-              aria-label={t("files.sort.label")}
-              className="flex items-center gap-0.5 rounded-full border border-line p-0.5"
-            >
-              {FILE_SORTS.map((candidate) => (
-                <button
-                  aria-pressed={sort === candidate}
-                  className={`clickable rounded-full px-2.5 py-0.5 text-[11px] transition-fast ${
-                    sort === candidate
-                      ? "bg-inverse text-inverse-ink"
-                      : "text-ink-3 hover:text-ink"
-                  }`}
-                  key={candidate}
-                  onClick={() => onSort(candidate)}
-                  type="button"
-                >
-                  {t(SORT_KEY[candidate])}
-                </button>
-              ))}
-            </fieldset>
+            <Segmented
+              label={t("files.sort.label")}
+              onChange={onSort}
+              options={FILE_SORTS.map((candidate) => ({
+                label: t(SORT_KEY[candidate]),
+                value: candidate,
+              }))}
+              value={sort}
+            />
 
-            {/** biome-ignore lint/a11y/noLabelWithoutControl: the control is inside CheckBox, and wrapping it is what makes the word clickable */}
-            <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-ink-3">
-              <CheckBox
-                checked={hidden}
-                label={t("files.hidden.label")}
-                name="files.hidden"
-                onChange={onHidden}
-              />
-              {t("files.hidden.short")}
-            </label>
+            <CheckLine
+              checked={hidden}
+              label={t("files.hidden.short")}
+              name="files.hidden"
+              onChange={onHidden}
+              size="sm"
+            />
 
             <IconButton
               icon={RefreshCw}
@@ -226,22 +212,19 @@ export function FileList({
             />
           </div>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-1">
             <FolderCreate
               disabled={listing.status !== "read"}
               name="files.newFolder"
               onCreate={onCreate}
             />
 
-            <Button
+            <IconButton
               disabled={listing.status !== "read"}
-              hint={t("transfers.upload.title")}
               icon={Upload}
+              label={t("transfers.upload")}
               onClick={() => onUpload(path)}
-              size="sm"
-            >
-              {t("transfers.upload")}
-            </Button>
+            />
           </div>
         </div>
       </header>

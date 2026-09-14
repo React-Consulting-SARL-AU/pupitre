@@ -168,7 +168,7 @@ export function ConfigScreen({
     <Screen
       actions={actions}
       column
-      eyebrow={t("config.eyebrow")}
+      eyebrow={serverName ?? t("config.thisServer")}
       footer={
         <ActionBar name="config" note={note(t, left, marked, checking, goTo)}>
           {index > 0 ? (
@@ -199,7 +199,7 @@ export function ConfigScreen({
       }
       plain={plain}
       step="config"
-      title={serverName ?? t("config.thisServer")}
+      title={t("config.title")}
     >
       {notice}
 

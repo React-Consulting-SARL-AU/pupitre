@@ -1,5 +1,6 @@
 import { Button } from "@renderer/components/ui/button";
 import { Callout } from "@renderer/components/ui/callout";
+import { Panel } from "@renderer/components/ui/panel";
 import { StatusDot } from "@renderer/components/ui/status-dot";
 import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
 import { agentText } from "@renderer/i18n/agent-error";
@@ -32,7 +33,7 @@ export function AccountSignInCard({
 
   if (signIn.status === "idle") {
     return (
-      <div className="elevation-raised rounded-md border border-line bg-surface px-5 py-5">
+      <Panel inset="lg">
         <div className="flex flex-wrap items-center gap-2">
           <Button icon={LogIn} onClick={onConnect} variant="inverse">
             {t("account.signIn.connect")}
@@ -45,7 +46,7 @@ export function AccountSignInCard({
             {t("account.signIn.openConsole")}
           </Button>
         </div>
-      </div>
+      </Panel>
     );
   }
 
@@ -75,10 +76,7 @@ export function AccountSignInCard({
   }
 
   return (
-    <div
-      aria-busy="true"
-      className="elevation-raised flex flex-col gap-5 rounded-md border border-line bg-surface px-5 py-5"
-    >
+    <Panel aria-busy className="flex flex-col gap-5" inset="lg">
       <AccountCode
         help={t("account.signIn.codeHelp")}
         label={t("account.signIn.codeLabel")}
@@ -106,6 +104,6 @@ export function AccountSignInCard({
           {t("account.signIn.reopenBrowser")}
         </Button>
       </div>
-    </div>
+    </Panel>
   );
 }

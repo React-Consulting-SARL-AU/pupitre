@@ -10,7 +10,8 @@ import { launchPupitre, type Running } from "./harness/launch";
  * through the keyboard, checks that an arrow with nowhere to go says so, and
  * that a service's own page is a step of its own behind the list.
  */
-const DASHBOARD = "1 projet en ligne";
+const DASHBOARD = "Tableau de bord";
+const SERVICES = "Services";
 
 const BACK = /^Retour \(/;
 const FORWARD = /^Avancer \(/;
@@ -39,7 +40,7 @@ test.describe("historique", () => {
     await expect(forward).toBeDisabled();
 
     await page.getByRole("button", { name: "Services" }).click();
-    await expect(heading("atelier")).toBeVisible();
+    await expect(heading("Services")).toBeVisible();
 
     await page.getByRole("button", { name: "Réglages" }).click();
     await expect(heading("Réglages")).toBeVisible();
@@ -47,7 +48,7 @@ test.describe("historique", () => {
     await expect(forward).toBeDisabled();
 
     await back.click();
-    await expect(heading("atelier")).toBeVisible();
+    await expect(heading(SERVICES)).toBeVisible();
     await expect(forward).toBeEnabled();
 
     await back.click();
@@ -61,14 +62,14 @@ test.describe("historique", () => {
           : { back: "Alt+ArrowLeft", forward: "Alt+ArrowRight" };
 
       await page.keyboard.press(chord.forward);
-      await expect(heading("atelier")).toBeVisible();
+      await expect(heading(SERVICES)).toBeVisible();
 
       await page.keyboard.press(chord.forward);
       await expect(heading("Réglages")).toBeVisible();
       await expect(forward).toBeDisabled();
 
       await page.keyboard.press(chord.back);
-      await expect(heading("atelier")).toBeVisible();
+      await expect(heading(SERVICES)).toBeVisible();
     });
 
     await test.step("repartir d'un point du passé oublie ce qui était devant", async () => {
@@ -88,7 +89,7 @@ test.describe("historique", () => {
       await expect(allServices).toBeVisible();
 
       await back.click();
-      await expect(heading("atelier")).toBeVisible();
+      await expect(heading(SERVICES)).toBeVisible();
       await expect(page.locator('[data-service="db.postgres"]')).toBeVisible();
 
       await forward.click();

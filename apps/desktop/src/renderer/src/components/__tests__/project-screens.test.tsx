@@ -29,7 +29,7 @@ const PROJECT = SNAPSHOT.projects[0];
 const STOPPED = SNAPSHOT.projects[1];
 
 describe("l'en-tête d'un projet", () => {
-  it("montre l'état, la branche et l'écart avec le dépôt distant", () => {
+  it("montre l'état, la branche et ce qui n'est pas commité, sans l'écart distant", () => {
     const html = renderToStaticMarkup(
       <ProjectMeta git={GIT_STATUS} onSeeDiff={NOOP} project={PROJECT} />
     );
@@ -37,8 +37,7 @@ describe("l'en-tête d'un projet", () => {
     expect(html).toContain('data-state="online"');
     expect(html).toContain("main");
     expect(html).toContain("2 changements");
-    expect(html).toContain("↓3");
-    expect(html).toContain("↑1");
+    expect(html).not.toContain("↓3");
   });
 
   it("tait la branche d'un dossier qui n'est pas un dépôt", () => {
@@ -56,6 +55,7 @@ describe("l'en-tête d'un projet", () => {
         busy={false}
         editors={null}
         onAct={NOOP}
+        onRemove={() => Promise.resolve()}
         onSync={NOOP}
         project={PROJECT}
         syncing={false}
@@ -65,6 +65,7 @@ describe("l'en-tête d'un projet", () => {
     expect(html).toContain("Redémarrer");
     expect(html).toContain("Arrêter");
     expect(html).toContain("Synchroniser");
+    expect(html).toContain("Retirer du registre");
   });
 
   it("propose de démarrer un projet arrêté, pas de l'arrêter", () => {
@@ -73,6 +74,7 @@ describe("l'en-tête d'un projet", () => {
         busy={false}
         editors={null}
         onAct={NOOP}
+        onRemove={() => Promise.resolve()}
         onSync={NOOP}
         project={STOPPED}
         syncing={false}
@@ -136,18 +138,19 @@ describe("les onglets d'un projet", () => {
 });
 
 describe("la vue d'ensemble d'un projet", () => {
-  it("rend l'adresse, les branches, les commandes et la mémoire", () => {
+  it("rend l'adresse, les branches, les processus et la mémoire", () => {
     const html = renderToStaticMarkup(
       <ProjectOverview
         branches={{ branches: BRANCHES, status: "read" }}
+        busy={false}
         env={{ status: "idle" }}
         git={{ at: Date.now(), git: GIT_STATUS, status: "read" }}
+        onAct={NOOP}
         onCheckGit={NOOP}
         onCheckout={NOOP}
         onConfigure={NOOP}
         onReadEnv={NOOP}
         onRegenerateEnv={() => Promise.resolve()}
-        onRemove={NOOP}
         onSync={NOOP}
         project={PROJECT}
         switching={false}
@@ -162,6 +165,8 @@ describe("la vue d'ensemble d'un projet", () => {
     expect(html).toContain("feat/tarifs");
     expect(html).toContain("bun run dev --port 3000");
     expect(html).toContain("412 Mo");
+    expect(html).toContain('data-processes="1"');
+    expect(html).toContain('data-process="flymate-api"');
     expect(html).toContain("3 commits à récupérer");
   });
 
@@ -169,14 +174,15 @@ describe("la vue d'ensemble d'un projet", () => {
     const html = renderToStaticMarkup(
       <ProjectOverview
         branches={{ status: "idle" }}
+        busy={false}
         env={{ status: "idle" }}
         git={{ status: "idle" }}
+        onAct={NOOP}
         onCheckGit={NOOP}
         onCheckout={NOOP}
         onConfigure={NOOP}
         onReadEnv={NOOP}
         onRegenerateEnv={() => Promise.resolve()}
-        onRemove={NOOP}
         onSync={NOOP}
         project={PROJECT}
         switching={false}
@@ -195,7 +201,16 @@ describe("les adresses d'un projet", () => {
       <ProjectAddresses onPublish={NOOP} project={STOPPED} />
     );
     const bare = renderToStaticMarkup(
-      <ProjectAddresses onPublish={NOOP} project={{ ...STOPPED, routes: [] }} />
+      <ProjectAddresses
+        onPublish={NOOP}
+        project={{
+          ...STOPPED,
+          processes: STOPPED.processes.map((process) => ({
+            ...process,
+            routes: [],
+          })),
+        }}
+      />
     );
 
     expect(html).toContain("127.0.0.1:3100");

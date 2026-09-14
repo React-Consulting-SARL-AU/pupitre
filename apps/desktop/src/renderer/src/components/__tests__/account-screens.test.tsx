@@ -387,7 +387,7 @@ describe("l'écran de compte", () => {
 });
 
 describe("l'identité", () => {
-  it("montre le compte, l'organisation et l'empreinte de l'appareil", () => {
+  it("montre le compte et l'organisation, et laisse l'appareil à la liste des appareils", () => {
     const html = renderToStaticMarkup(
       <AccountIdentityCard
         account={SIGNED_IN}
@@ -400,7 +400,7 @@ describe("l'identité", () => {
     expect(text(html)).toContain("Atelier Ada");
     expect(text(html)).toContain("Propriétaire");
     expect(text(html)).not.toContain("owner");
-    expect(text(html)).toContain("SHA256:mac");
+    expect(text(html)).not.toContain("SHA256:mac");
     expect(text(html)).toContain("Se déconnecter");
   });
 

@@ -5,10 +5,10 @@ import { Plus } from "lucide-react";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { type PortEdits, ProjectPortRow } from "./project-port-row";
-import { PORTS_HEAD, portsColumns } from "./project-ports-columns";
+import { portsColumns, portsHead } from "./project-ports-columns";
 
 /**
- * The ports of a project, as a table: one line each, what the machine runs
+ * The ports of a process, as a table: one line each, what the machine runs
  * on the left, what the web reaches on the right.
  *
  * Without an exposure module the table is a plain reading of ports. Behind a
@@ -17,12 +17,15 @@ import { PORTS_HEAD, portsColumns } from "./project-ports-columns";
  * once, rather than discovered when a name fails to answer.
  */
 export function ProjectPorts({
+  scope,
   rows,
   problems,
   exposure,
   placeholder,
   edit,
 }: {
+  /** What the ids of this table start with: one process's table is not another's. */
+  scope: string;
   rows: readonly PortRow[];
   /** Why each row would be refused, in the order of the rows. */
   problems: readonly (RowProblem | null)[];
@@ -35,6 +38,7 @@ export function ProjectPorts({
 
   const exposed = exposure !== null;
   const published = exposed && rows.some((row) => row.publish);
+  const head = portsHead(scope);
 
   return (
     <fieldset className="flex min-w-0 flex-col gap-3" data-ports={rows.length}>
@@ -51,14 +55,14 @@ export function ProjectPorts({
         <div
           className={`${portsColumns(exposed)} border-line border-b bg-sunken/60 px-3 py-2`}
         >
-          <span id={PORTS_HEAD.label}>
+          <span id={head.label}>
             <Label>{t("projectAdd.ports.labelLabel")}</Label>
           </span>
-          <span id={PORTS_HEAD.port}>
+          <span id={head.port}>
             <Label>{t("projectAdd.form.portLabel")}</Label>
           </span>
           {exposed ? (
-            <span id={PORTS_HEAD.web}>
+            <span id={head.web}>
               <Label>{t("projectAdd.ports.webColumn")}</Label>
             </span>
           ) : null}
@@ -76,6 +80,7 @@ export function ProjectPorts({
               problem={problems[index] ?? null}
               removable={index > 0}
               row={row}
+              scope={scope}
             />
           ))}
         </ul>

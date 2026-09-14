@@ -17,6 +17,7 @@ import { Callout } from "./callout";
 export function ErrorNotice({
   error,
   onRetry,
+  retrying = false,
   retryLabel,
   onDismiss,
   name,
@@ -24,6 +25,8 @@ export function ErrorNotice({
   error: AgentError;
   /** Answer with the promise of the replay and the button waits on it. */
   onRetry?: Gesture;
+  /** The replay runs elsewhere: the button spins until it lands. */
+  retrying?: boolean;
   retryLabel?: string;
   onDismiss?: () => void;
   name?: string;
@@ -36,7 +39,12 @@ export function ErrorNotice({
     <Callout
       action={
         onRetry ? (
-          <Button icon={RotateCw} onClick={onRetry} size="sm">
+          <Button
+            icon={RotateCw}
+            loading={retrying}
+            onClick={onRetry}
+            size="sm"
+          >
             {retryLabel ?? t("common.retry")}
           </Button>
         ) : null

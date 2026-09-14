@@ -3,6 +3,7 @@ import type { Manifest } from "@pupitre/shared/catalog";
 import { Button } from "@renderer/components/ui/button";
 import { EmptyState } from "@renderer/components/ui/empty-state";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
+import { Panel } from "@renderer/components/ui/panel";
 import { Screen } from "@renderer/components/ui/screen";
 import { ModuleUpgradePanel } from "@renderer/components/updates/module-upgrade-panel";
 import { useTranslations } from "@renderer/i18n/use-translations";
@@ -149,8 +150,8 @@ export function ServicesScreen({
           {t("services.screen.add")}
         </Button>
       }
-      eyebrow={t("services.screen.eyebrow")}
-      title={serverName ?? t("services.screen.fallbackName")}
+      eyebrow={serverName ?? t("services.screen.fallbackName")}
+      title={t("services.screen.title")}
     >
       {/*
           A server held for its usage right refuses the catalogue, the tunnel
@@ -168,38 +169,38 @@ export function ServicesScreen({
         <ErrorNotice error={tunnel.problem} />
       ) : null}
 
-      {services.length === 0 ? (
-        <EmptyState
-          action={
-            <Button icon={Plus} onClick={() => setAdding(true)}>
-              {t("services.screen.add")}
-            </Button>
-          }
-          icon={Boxes}
-          title={t("services.screen.emptyTitle")}
-        />
-      ) : (
-        <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
-          {services.map((service) => (
-            <ServiceRow
-              account={accounts[service.id]}
-              key={service.id}
-              onOpen={() => onOpenService(service.id)}
-              service={service}
+      <ModuleUpgradePanel
+        modules={installed}
+        nameOf={nameOf}
+        onUpgrade={() => update.upgradeModules(serverId, installed)}
+        state={update.modules}
+        steps={update.steps}
+      >
+        {services.length === 0 ? (
+          <Panel inset="none">
+            <EmptyState
+              action={
+                <Button icon={Plus} onClick={() => setAdding(true)}>
+                  {t("services.screen.add")}
+                </Button>
+              }
+              icon={Boxes}
+              title={t("services.screen.emptyTitle")}
             />
-          ))}
-        </ul>
-      )}
-
-      {services.length > 0 ? (
-        <ModuleUpgradePanel
-          modules={installed}
-          nameOf={nameOf}
-          onUpgrade={() => update.upgradeModules(serverId, installed)}
-          state={update.modules}
-          steps={update.steps}
-        />
-      ) : null}
+          </Panel>
+        ) : (
+          <Panel as="ul" list>
+            {services.map((service) => (
+              <ServiceRow
+                account={accounts[service.id]}
+                key={service.id}
+                onOpen={() => onOpenService(service.id)}
+                service={service}
+              />
+            ))}
+          </Panel>
+        )}
+      </ModuleUpgradePanel>
 
       {tunnel.tunnel.status === "ready" && !tunnel.tunnel.tunnel.installed ? (
         <ServicesTunnel />

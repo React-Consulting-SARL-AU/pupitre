@@ -3,7 +3,7 @@ export const onboarding = {
     "onboarding.thisServer": "This server",
     "onboarding.finish": "Finish",
 
-    "onboarding.agent.eyebrow": "Agent",
+    "onboarding.agent.title": "Agent",
     "onboarding.agent.readCatalog": "Choose the services",
     "onboarding.agent.inPlace": "Agent in place",
     "onboarding.agent.sendingTitle": "Installing the agent",
@@ -14,7 +14,7 @@ export const onboarding = {
     "onboarding.agent.phase.sending": "Copying the agent",
     "onboarding.agent.phase.starting": "Starting it",
 
-    "onboarding.done.eyebrow": "Ready",
+    "onboarding.done.title": "Ready",
     "onboarding.done.connectedAs": "Connected as",
     "onboarding.done.rootClosed":
       "Root access is closed: no one gets onto this machine with that account.",
@@ -31,8 +31,8 @@ export const onboarding = {
     "onboarding.organization.switchLabel": "Enrol for another organization",
     "onboarding.enrollment.title": "Server declared",
 
-    "onboarding.entry.unfinished": "The install of {name} isn't finished.",
-    "onboarding.entry.noAgent": "{name} is not installed yet.",
+    "onboarding.entry.unfinished": "L'installation n'est pas terminée.",
+    "onboarding.entry.noAgent": "Not installed yet.",
     "onboarding.entry.resume": "Resume the install",
     "onboarding.entry.install": "Install Pupitre",
 
@@ -41,7 +41,7 @@ export const onboarding = {
     "onboarding.flow.progress": "Progress",
     "onboarding.flow.stepCount": "Step {index} of {total}",
 
-    "onboarding.harden.eyebrow": "Security",
+    "onboarding.harden.title": "Security",
     "onboarding.harden.description":
       "Pupitre creates a working account, checks it can get in, then closes root access.",
     "onboarding.harden.queuedTitle": "Waiting for the previous step",
@@ -70,7 +70,7 @@ export const onboarding = {
     "onboarding.harden.failedOpen":
       "The machine is installed and root is still open: the app keeps using that account, and everything else works. You can retry above, or go on now and leave it open.",
 
-    "onboarding.inspection.eyebrow": "Inspection",
+    "onboarding.inspection.title": "Inspection",
     "onboarding.inspection.pickAnother": "Choose another server",
     "onboarding.inspection.install": "Install",
     "onboarding.inspection.update": "Update",
@@ -121,8 +121,6 @@ export const onboarding = {
 
     "onboarding.replay.notice":
       "{name} had a password or a key the app did not keep. Enter it again, or let the app generate one, before running it again.",
-
-    "onboarding.server.eyebrow": "Server",
     "onboarding.server.pick.title": "The machine to install",
     "onboarding.server.add.title": "The machine to install",
     "onboarding.server.key.title": "The key that opens it",
@@ -141,7 +139,7 @@ export const onboarding = {
     "onboarding.thisServer": "Ce serveur",
     "onboarding.finish": "Terminer",
 
-    "onboarding.agent.eyebrow": "Agent",
+    "onboarding.agent.title": "Agent",
     "onboarding.agent.readCatalog": "Choisir les services",
     "onboarding.agent.inPlace": "Agent en place",
     "onboarding.agent.sendingTitle": "Installation de l'agent",
@@ -152,7 +150,7 @@ export const onboarding = {
     "onboarding.agent.phase.sending": "On copie l'agent",
     "onboarding.agent.phase.starting": "On le démarre",
 
-    "onboarding.done.eyebrow": "Prêt",
+    "onboarding.done.title": "Prêt",
     "onboarding.done.connectedAs": "Connecté en",
     "onboarding.done.rootClosed":
       "L'accès root est fermé : plus personne n'entre sur cette machine avec ce compte.",
@@ -170,9 +168,8 @@ export const onboarding = {
       "Enrôler pour une autre organisation",
     "onboarding.enrollment.title": "Serveur déclaré",
 
-    "onboarding.entry.unfinished":
-      "L'installation de {name} n'est pas terminée.",
-    "onboarding.entry.noAgent": "{name} n'est pas encore installé.",
+    "onboarding.entry.unfinished": "L'installation n'est pas terminée.",
+    "onboarding.entry.noAgent": "Pas encore installé.",
     "onboarding.entry.resume": "Reprendre l'installation",
     "onboarding.entry.install": "Installer Pupitre",
 
@@ -181,7 +178,7 @@ export const onboarding = {
     "onboarding.flow.progress": "Avancement",
     "onboarding.flow.stepCount": "Étape {index} sur {total}",
 
-    "onboarding.harden.eyebrow": "Sécurité",
+    "onboarding.harden.title": "Sécurité",
     "onboarding.harden.description":
       "Pupitre crée un compte de travail, vérifie qu'il peut y entrer, puis ferme l'accès root.",
     "onboarding.harden.queuedTitle": "On attend l'étape précédente",
@@ -211,7 +208,7 @@ export const onboarding = {
     "onboarding.harden.failedOpen":
       "La machine est installée et root est encore ouvert : l'app continue d'utiliser ce compte, et tout le reste fonctionne. Vous pouvez réessayer au-dessus, ou continuer maintenant en le laissant ouvert.",
 
-    "onboarding.inspection.eyebrow": "Inspection",
+    "onboarding.inspection.title": "Inspection",
     "onboarding.inspection.pickAnother": "Choisir un autre serveur",
     "onboarding.inspection.install": "Installer",
     "onboarding.inspection.update": "Mettre à jour",
@@ -262,8 +259,6 @@ export const onboarding = {
 
     "onboarding.replay.notice":
       "{name} avait un mot de passe ou une clé que l'app n'a pas gardés. Saisissez-le à nouveau, ou laissez l'app en générer un, avant de relancer.",
-
-    "onboarding.server.eyebrow": "Serveur",
     "onboarding.server.pick.title": "La machine à installer",
     "onboarding.server.add.title": "La machine à installer",
     "onboarding.server.key.title": "La clé qui l'ouvre",

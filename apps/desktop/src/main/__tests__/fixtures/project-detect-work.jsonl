@@ -1,5 +1,5 @@
 # La détection clone le dépôt : elle vit sur le canal de travail, avec les commandes longues.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","project.detect"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","project.detect"]}}
 > {"id":2,"cmd":"project.detect","params":{"repo":"https://github.com/moi/shop.git"}}
-< {"id":2,"ok":true,"result":{"pkgmgr":"bun","install":"bun install","cmd":"bun run dev","port_hint":3000}}
+< {"id":2,"ok":true,"result":{"processes":[{"id":"shop","dir":".","pkgmgr":"bun","install":"bun install","cmd":"bun run dev","port_hint":3000}]}}

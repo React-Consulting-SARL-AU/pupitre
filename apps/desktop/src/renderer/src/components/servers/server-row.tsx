@@ -6,16 +6,17 @@ import type { FleetOpening } from "@renderer/stores/fleet";
 import type { EditState } from "@renderer/stores/servers";
 import type { Server, ServerChanges, ServerGrant } from "@shared/servers";
 import { grantGone } from "@shared/servers";
-import { KeyRound, OctagonAlert, Pencil, Trash2 } from "lucide-react";
+import { KeyRound, Pencil, Trash2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Button } from "../ui/button";
 import { CopyField } from "../ui/copy-field";
-import { fieldControlClass } from "../ui/field";
+import { Dialog } from "../ui/dialog";
+import { Fact, FactList } from "../ui/fact";
 import { IconButton } from "../ui/icon-button";
+import { Panel } from "../ui/panel";
 import { StatusDot, type StatusShape } from "../ui/status-dot";
 import { ServerGrantDetail } from "./server-grant-detail";
 import { ServerGrantOpen } from "./server-grant-open";
-import { ServerRowDetail } from "./server-row-detail";
 import { ServerRowEditing } from "./server-row-editing";
 
 /**
@@ -44,6 +45,7 @@ export function ServerRow({
   refusal,
   opening = null,
   onOpen,
+  footer,
 }: {
   server: Server;
   active: boolean;
@@ -61,10 +63,11 @@ export function ServerRow({
   /** The first opening of a granted server in flight, when it is this one's. */
   opening?: FleetOpening | null;
   onOpen?: () => void;
+  /** What the row ends on: the way into the install, when the machine has none. */
+  footer?: ReactNode;
 }) {
   const t = useTranslations();
 
-  const [name, setName] = useState(server.name);
   const [confirming, setConfirming] = useState(false);
   const [editing, setEditing] = useState(false);
   const [publicKey, setPublicKey] = useState<string | null>(null);
@@ -92,15 +95,6 @@ export function ServerRow({
     activeShape = "breathing";
   }
 
-  function commitName() {
-    const clean = name.trim();
-    if (clean && clean !== server.name) {
-      onRename(clean);
-    } else {
-      setName(server.name);
-    }
-  }
-
   async function revealKey() {
     setPublicKey(
       publicKey ? null : await window.pupitre.serverPublicKey(server.id)
@@ -108,10 +102,10 @@ export function ServerRow({
   }
 
   return (
-    <div
-      className={`elevation-raised rounded-md border p-4 transition-soft ${
-        active ? "border-line-strong bg-raised" : "border-line bg-surface"
-      }`}
+    <Panel
+      className={`transition-soft ${active ? "border-line-strong" : ""}`}
+      data-active={active ? "true" : undefined}
+      data-server={server.id}
     >
       <div className="flex items-center gap-3">
         <Tooltip label={t("servers.row.activate", { name: server.name })}>
@@ -128,23 +122,17 @@ export function ServerRow({
           </button>
         </Tooltip>
 
-        <input
-          aria-label={t("servers.row.rename", { name: server.name })}
-          className={`min-w-0 flex-1 ${fieldControlClass}`}
-          onBlur={commitName}
-          onChange={(e) => setName(e.target.value)}
-          value={name}
-        />
+        <h3 className="min-w-0 flex-1 truncate font-medium text-ink">
+          {server.name}
+        </h3>
 
-        {editable ? (
-          <IconButton
-            expanded={editing}
-            icon={Pencil}
-            label={t("servers.row.edit", { name: server.name })}
-            onClick={() => (editing ? closeEdit() : setEditing(true))}
-            variant="discreet"
-          />
-        ) : null}
+        <IconButton
+          expanded={editing}
+          icon={Pencil}
+          label={t("servers.row.edit", { name: server.name })}
+          onClick={() => (editing ? closeEdit() : setEditing(true))}
+          variant="discreet"
+        />
 
         {server.origin === "app" && !server.grant?.adopted ? (
           <IconButton
@@ -167,20 +155,20 @@ export function ServerRow({
         />
       </div>
 
-      <dl className="mt-4 flex flex-wrap items-baseline gap-x-6 gap-y-2 pl-7">
-        <ServerRowDetail label={t("servers.field.address")}>
+      <FactList className="mt-4 pl-7" columns={3}>
+        <Fact label={t("servers.field.address")}>
           {server.origin === "system"
             ? server.host
             : `${server.user}@${server.host}:${server.port}`}
-        </ServerRowDetail>
-        <ServerRowDetail label={t("servers.row.configLabel")}>
+        </Fact>
+        <Fact label={t("servers.row.configLabel")}>
           {t(configLabel(server))}
-        </ServerRowDetail>
-        <ServerRowDetail label={t("servers.row.hostKeyLabel")}>
+        </Fact>
+        <Fact label={t("servers.row.hostKeyLabel")}>
           {server.hostFingerprint ?? t("servers.row.notPinned")}
-        </ServerRowDetail>
+        </Fact>
         {grant ? <ServerGrantDetail grant={grant} /> : null}
-      </dl>
+      </FactList>
 
       {grant && onOpen ? (
         <ServerGrantOpen grant={grant} onOpen={onOpen} opening={opening} />
@@ -188,8 +176,10 @@ export function ServerRow({
 
       {editing ? (
         <ServerRowEditing
+          addressEditable={editable}
           edit={edit}
           onClose={closeEdit}
+          onRename={onRename}
           onSubmit={change}
           server={server}
         />
@@ -201,58 +191,56 @@ export function ServerRow({
         </div>
       ) : null}
 
-      {confirming ? (
-        <div className="fade-in mt-5 flex items-start gap-2.5 rounded-sm border border-danger/40 bg-danger/10 p-3">
-          <OctagonAlert
-            className="mt-0.5 shrink-0 text-danger"
-            size={14}
-            strokeWidth={1.5}
-          />
-          <div className="min-w-0">
-            <p className="font-medium text-ink leading-relaxed">
-              {t("servers.row.confirmQuestion", { name: server.name })}
-            </p>
-            <p className="mt-1 text-ink-2 leading-relaxed">
-              {t(confirmLabel(server))}
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+      {footer}
+
+      <Dialog
+        actions={
+          <>
+            <Button
+              disabled={deleting}
+              onClick={() => setConfirming(false)}
+              size="sm"
+              variant="discreet"
+            >
+              {t("common.cancel")}
+            </Button>
+            {grant ? (
               <Button
-                disabled={forgetting}
+                disabled={removing}
                 icon={Trash2}
-                loading={removing}
-                onClick={remove}
+                loading={forgetting}
+                onClick={forget}
                 size="sm"
                 variant="destructive"
               >
-                {t(removeLabel(server))}
+                {t("servers.row.confirmForget")}
               </Button>
-              {grant ? (
-                <Button
-                  disabled={removing}
-                  icon={Trash2}
-                  loading={forgetting}
-                  onClick={forget}
-                  size="sm"
-                  variant="destructive"
-                >
-                  {t("servers.row.confirmForget")}
-                </Button>
-              ) : null}
-              <Button
-                disabled={deleting}
-                onClick={() => setConfirming(false)}
-                size="sm"
-                variant="discreet"
-              >
-                {t("common.cancel")}
-              </Button>
-            </div>
-
-            {refusal ? <div className="mt-3">{refusal}</div> : null}
-          </div>
-        </div>
-      ) : null}
-    </div>
+            ) : null}
+            <Button
+              disabled={forgetting}
+              icon={Trash2}
+              loading={removing}
+              onClick={remove}
+              size="sm"
+              variant="destructive"
+            >
+              {t(removeLabel(server))}
+            </Button>
+          </>
+        }
+        name="server-remove"
+        onClose={() => {
+          if (!deleting) {
+            setConfirming(false);
+          }
+        }}
+        open={confirming}
+        title={t("servers.row.confirmQuestion", { name: server.name })}
+      >
+        <p className="text-ink-2 leading-relaxed">{t(confirmLabel(server))}</p>
+        {refusal}
+      </Dialog>
+    </Panel>
   );
 }
 

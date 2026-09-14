@@ -1,7 +1,7 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { FolderPlus } from "lucide-react";
 import { useState } from "react";
-import { Button } from "../ui/button";
+import { IconButton } from "../ui/icon-button";
 import { FolderCreateDialog } from "./folder-create-dialog";
 
 /**
@@ -26,14 +26,12 @@ export function FolderCreate({
 
   return (
     <>
-      <Button
+      <IconButton
         disabled={disabled}
         icon={FolderPlus}
+        label={t("files.newFolder.title")}
         onClick={() => setAsking(true)}
-        size="sm"
-      >
-        {t("files.newFolder.title")}
-      </Button>
+      />
 
       {asking ? (
         <FolderCreateDialog

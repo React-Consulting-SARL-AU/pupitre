@@ -74,14 +74,16 @@ test.describe("premier lancement", () => {
     await stubAccount(app, NO_ACCOUNT);
     await page.reload();
 
+    // A first launch has no account yet: that is the screen's nominal state,
+    // and the sign-in card is the whole of what it says — no refusal under it.
     await expect(
       page.getByRole("heading", { name: "Connectez-vous pour ouvrir Pupitre" })
     ).toBeVisible();
-    await expect(page.getByText("Aucun compte connecté")).toBeVisible();
     await expect(
-      page.getByText("Installer un serveur demande un compte Pupitre.")
+      page.getByRole("button", { name: "Se connecter" })
     ).toBeVisible();
-    await expect(page.getByText(NO_ACCOUNT.refusal.fix)).toBeVisible();
+    await expect(page.getByText("Aucun compte connecté")).toHaveCount(0);
+    await expect(page.getByText(NO_ACCOUNT.refusal.fix)).toHaveCount(0);
 
     await assertAccessible(page, "compte/porte");
 
@@ -116,8 +118,12 @@ test.describe("premier lancement", () => {
     await expect(
       page.getByRole("heading", { name: "Connectez-vous pour ouvrir Pupitre" })
     ).toBeVisible();
+    // The notice says the fault once, with its way out; the refusal's own
+    // sentence is not repeated under it.
     await expect(page.getByText("Vérification expirée")).toBeVisible();
-    await expect(page.getByText(EIGHTH_DAY.refusal.message)).toBeVisible();
-    await expect(page.getByText(EIGHTH_DAY.refusal.fix)).toBeVisible();
+    await expect(
+      page.getByText("au-delà des sept jours de tolérance")
+    ).toBeVisible();
+    await expect(page.getByText(EIGHTH_DAY.refusal.message)).toHaveCount(0);
   });
 });

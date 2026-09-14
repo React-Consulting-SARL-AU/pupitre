@@ -39,7 +39,7 @@ export function ForwardsList({
     >
       <header className="flex items-center gap-2 px-3 pt-2 pb-1">
         <Label>{t("forwards.panel")}</Label>
-        <span className="rounded-full border border-line px-1.5 font-data text-[10px] text-ink-3 tabular-nums">
+        <span className="rounded-full border border-line px-1.5 font-data text-[11px] text-ink-3 tabular-nums">
           {t.plural("forwards.panel.count", forwards.length)}
         </span>
         <span className="flex-1" />

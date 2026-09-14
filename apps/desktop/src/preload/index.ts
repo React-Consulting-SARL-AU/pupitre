@@ -568,21 +568,23 @@ const api = {
     branch: string
   ): Promise<AgentResponse<ProjectCheckoutResult>> =>
     ipcRenderer.invoke("project:checkout", serverId, name, branch),
-  /** The keys of a project's environment file, never a value; `force` writes it again. */
+  /** The keys of a project's environment file, never a value; `force` writes it again, `process` names the folder it lives in. */
   projectEnv: (
     serverId: string,
     name: string,
-    force = false
+    force = false,
+    process?: string
   ): Promise<AgentResponse<ProjectEnvResult>> =>
-    ipcRenderer.invoke("project:env", serverId, name, force),
+    ipcRenderer.invoke("project:env", serverId, name, force, process ?? null),
 
-  /** Start, stop or restart one project — or "all", the agent's own word. */
+  /** Start, stop or restart one project — or "all", the agent's own word — or one process of a project. */
   actOnProject: (
     action: ProjectAction,
     serverId: string,
-    name: string
+    name: string,
+    process?: string
   ): Promise<AgentResponse<ProjectActionResult>> =>
-    ipcRenderer.invoke("project:act", action, serverId, name),
+    ipcRenderer.invoke("project:act", action, serverId, name, process ?? null),
 
   startProject: (
     serverId: string,
@@ -603,10 +605,11 @@ const api = {
   ): Promise<void> =>
     ipcRenderer.invoke("project:editor", serverId, editor, path),
 
-  /** The journal, read once or followed line by line until the project stops. */
+  /** The journal of one process, read once or followed line by line until it stops. */
   projectJournal: (
     serverId: string,
     name: string,
+    process: string,
     lines: number,
     follow: boolean,
     onLine: (line: string) => void
@@ -618,6 +621,7 @@ const api = {
       (payload) => onLine(payload.line),
       serverId,
       name,
+      process,
       lines,
       follow
     ).done,
@@ -632,6 +636,7 @@ const api = {
   followProjectJournal: (
     serverId: string,
     name: string,
+    process: string,
     lines: number,
     onLine: (line: string) => void
   ): Followed<AgentResponse<ProjectLogsResult>> =>
@@ -642,6 +647,7 @@ const api = {
       (payload) => onLine(payload.line),
       serverId,
       name,
+      process,
       lines,
       true
     ),

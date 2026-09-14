@@ -1,5 +1,6 @@
 import { Button } from "@renderer/components/ui/button";
-import { Label } from "@renderer/components/ui/label";
+import { Panel } from "@renderer/components/ui/panel";
+import { Section } from "@renderer/components/ui/section";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { Link2 } from "lucide-react";
 import { ServiceCredentialRow } from "./service-credential-row";
@@ -35,11 +36,9 @@ export function ServiceCredentials({
   }
 
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Label>{t("services.credentials.title")}</Label>
-
-        {database ? (
+    <Section
+      actions={
+        database ? (
           <Button
             icon={Link2}
             loading={loading}
@@ -48,11 +47,13 @@ export function ServiceCredentials({
           >
             {t("services.credentials.connectionUrl")}
           </Button>
-        ) : null}
-      </div>
-
+        ) : null
+      }
+      name="credentials"
+      title={t("services.credentials.title")}
+    >
       {labels.length > 0 ? (
-        <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
+        <Panel as="ul" list>
           {labels.map((label) => (
             <ServiceCredentialRow
               key={label}
@@ -61,8 +62,8 @@ export function ServiceCredentials({
               onReveal={() => onReveal(label)}
             />
           ))}
-        </ul>
+        </Panel>
       ) : null}
-    </section>
+    </Section>
   );
 }

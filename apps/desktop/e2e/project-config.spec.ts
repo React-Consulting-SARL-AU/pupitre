@@ -35,12 +35,19 @@ test.describe("la configuration d'un projet", () => {
         const sent = params as {
           name: string;
           patch: {
-            cmd?: string;
-            routes?: {
-              label: string;
+            processes?: {
+              id: string;
+              dir: string;
+              pkgmgr: string;
+              host: string;
               port: number;
-              subdomain?: string;
-              hostname?: string;
+              cmd: string;
+              routes: {
+                label: string;
+                port: number;
+                subdomain?: string;
+                hostname?: string;
+              }[];
             }[];
           };
         };
@@ -49,26 +56,33 @@ test.describe("la configuration d'un projet", () => {
           ok: true,
           result: {
             branch: "main",
-            cmd: sent.patch.cmd ?? "bun run dev --port 3000",
             dir: "flymate",
-            host: "127.0.0.1",
             name: sent.name,
             path: "/home/dev/projects/flymate",
-            pkgmgr: "bun",
-            port: 3000,
-            repo: "https://example.org/moi/flymate.git",
-            routes: (sent.patch.routes ?? []).map(
-              ({ label, port, subdomain, hostname }) => {
-                const answered =
-                  hostname ?? (subdomain ? `${subdomain}.example.org` : null);
+            processes: (sent.patch.processes ?? []).map((process) => ({
+              cmd: process.cmd,
+              dir: process.dir,
+              host: process.host,
+              id: process.id,
+              path: "/home/dev/projects/flymate",
+              pkgmgr: process.pkgmgr,
+              port: process.port,
+              routes: process.routes.map(
+                ({ label, port, subdomain, hostname }) => {
+                  const answered =
+                    hostname ?? (subdomain ? `${subdomain}.example.org` : null);
 
-                return {
-                  label,
-                  port,
-                  ...(answered ? { hostname: answered } : {}),
-                };
-              }
-            ),
+                  return {
+                    label,
+                    port,
+                    ...(answered ? { hostname: answered } : {}),
+                  };
+                }
+              ),
+              state: "online",
+              url: "https://flymate.example.org",
+            })),
+            repo: "https://example.org/moi/flymate.git",
             state: "online",
             url: "https://flymate.example.org",
           },
@@ -99,15 +113,15 @@ test.describe("la configuration d'un projet", () => {
     await test.step("publier un autre port ouvre la configuration, préremplie", async () => {
       await page.getByRole("button", { name: "Publier un autre port" }).click();
 
-      await expect(page.locator("#config\\.cmd")).toHaveValue(
+      await expect(page.locator("#project\\.processes\\.0\\.cmd")).toHaveValue(
         "bun run dev --port 3000"
       );
-      await expect(page.locator("#project\\.ports\\.0\\.web")).toHaveValue(
-        "flymate.example.org"
-      );
-      await expect(page.locator("#project\\.ports\\.1\\.web")).toHaveValue(
-        "api-flymate.example.org"
-      );
+      await expect(
+        page.locator("#project\\.processes\\.0\\.ports\\.0\\.web")
+      ).toHaveValue("flymate.example.org");
+      await expect(
+        page.locator("#project\\.processes\\.0\\.ports\\.1\\.web")
+      ).toHaveValue("api-flymate.example.org");
       await expect(
         page.getByRole("button", { name: "Enregistrer la configuration" })
       ).toBeDisabled();
@@ -118,23 +132,23 @@ test.describe("la configuration d'un projet", () => {
     await test.step("un port de plus se publie sous un nom dérivé", async () => {
       await page.getByRole("button", { name: "Ajouter un port" }).click();
 
-      await expect(page.locator("#project\\.ports\\.2\\.label")).toHaveValue(
-        "docs"
-      );
-      await expect(page.locator("#project\\.ports\\.2\\.web")).toHaveValue(
-        "docs-flymate-api"
-      );
+      await expect(
+        page.locator("#project\\.processes\\.0\\.ports\\.2\\.label")
+      ).toHaveValue("docs");
+      await expect(
+        page.locator("#project\\.processes\\.0\\.ports\\.2\\.web")
+      ).toHaveValue("docs-flymate-api");
       await expect(
         page.getByRole("button", { name: "Enregistrer la configuration" })
       ).toBeEnabled();
     });
 
-    await test.step("un changement de commande dit que le projet redémarre", async () => {
+    await test.step("un changement de commande dit que son processus redémarre", async () => {
       await page
-        .locator("#config\\.cmd")
+        .locator("#project\\.processes\\.0\\.cmd")
         .fill("bun run dev --port 3000 --host 127.0.0.1");
 
-      await expect(page.getByText("redémarre le projet")).toBeVisible();
+      await expect(page.getByText("redémarre flymate-api")).toBeVisible();
     });
 
     await test.step("la réponse de l'agent se lit sous le formulaire", async () => {
@@ -154,18 +168,32 @@ test.describe("la configuration d'un projet", () => {
       expect(updated).toEqual({
         name: "flymate-api",
         patch: {
-          cmd: "bun run dev --port 3000 --host 127.0.0.1",
-          routes: [
-            { hostname: "flymate.example.org", label: "web", port: 3000 },
-            { hostname: "api-flymate.example.org", label: "api", port: 3001 },
-            { label: "docs", port: 3002, subdomain: "docs-flymate-api" },
+          processes: [
+            {
+              cmd: "bun run dev --port 3000 --host 127.0.0.1",
+              dir: ".",
+              host: "127.0.0.1",
+              id: "flymate-api",
+              install: "",
+              pkgmgr: "bun",
+              port: 3000,
+              routes: [
+                { hostname: "flymate.example.org", label: "web", port: 3000 },
+                {
+                  hostname: "api-flymate.example.org",
+                  label: "api",
+                  port: 3001,
+                },
+                { label: "docs", port: 3002, subdomain: "docs-flymate-api" },
+              ],
+            },
           ],
         },
       });
 
-      await expect(page.locator("#project\\.ports\\.2\\.web")).toHaveValue(
-        "docs-flymate-api.example.org"
-      );
+      await expect(
+        page.locator("#project\\.processes\\.0\\.ports\\.2\\.web")
+      ).toHaveValue("docs-flymate-api.example.org");
     });
   });
 });

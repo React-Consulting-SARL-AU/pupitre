@@ -1,7 +1,8 @@
 import type { TunnelStatusResult } from "@pupitre/shared/agent-protocol/secrets";
 import { Button } from "@renderer/components/ui/button";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
-import { Label } from "@renderer/components/ui/label";
+import { Panel } from "@renderer/components/ui/panel";
+import { Section } from "@renderer/components/ui/section";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AgentError } from "@shared/agent";
 import { RefreshCw } from "lucide-react";
@@ -28,10 +29,8 @@ export function ServiceRoutes({
   const t = useTranslations();
 
   return (
-    <section className="flex flex-col gap-3" data-tunnel={tunnel.state}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Label>{t("services.routes.title")}</Label>
-
+    <Section
+      actions={
         <Button
           icon={RefreshCw}
           loading={busy === "tunnel.sync"}
@@ -40,8 +39,10 @@ export function ServiceRoutes({
         >
           {t("services.tunnel.sync")}
         </Button>
-      </div>
-
+      }
+      data-tunnel={tunnel.state}
+      title={t("services.routes.title")}
+    >
       {problem ? <ErrorNotice error={problem} /> : null}
 
       {tunnel.routes.length === 0 ? (
@@ -49,7 +50,7 @@ export function ServiceRoutes({
           {t("services.tunnel.noRoutes")}
         </p>
       ) : (
-        <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
+        <Panel as="ul" list>
           {tunnel.routes.map((route) => (
             <li
               className="flex flex-wrap items-center gap-3 px-4 py-3"
@@ -67,8 +68,8 @@ export function ServiceRoutes({
               ) : null}
             </li>
           ))}
-        </ul>
+        </Panel>
       )}
-    </section>
+    </Section>
   );
 }

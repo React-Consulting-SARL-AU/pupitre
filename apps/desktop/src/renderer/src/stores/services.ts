@@ -14,8 +14,12 @@ import type {
 } from "@pupitre/shared/agent-protocol/secrets";
 import type { ServiceStatusResult } from "@pupitre/shared/agent-protocol/state";
 import type { Manifest } from "@pupitre/shared/catalog";
+import {
+  type FieldProblem,
+  validateConfig,
+} from "@pupitre/shared/catalog/validate";
 import type { AgentError, AgentResponse } from "@shared/agent";
-import type { SecretMarks } from "@shared/secrets";
+import { itemKey, type SecretMarks } from "@shared/secrets";
 import { databaseEngineOf, type ServiceDetail } from "@shared/services";
 import { settled } from "@shared/transfers";
 import { create } from "zustand";
@@ -62,6 +66,8 @@ export type ConfigState =
       held: readonly string[];
       /** The values as the agent answered them, before the form touched any. */
       answered: Record<string, unknown>;
+      /** What the form opened on: the answers, completed by the manifest's defaults. */
+      baseline: Record<string, unknown>;
     }
   | { status: "failed"; moduleId: string; error: AgentError };
 
@@ -117,8 +123,16 @@ export const DUMPS_DIR = "dumps";
 interface ServicesStore {
   detail: DetailState;
   config: ConfigState;
+  /** The manifest the form is drawn from, when the server declared one. */
+  manifest: Manifest | null;
   values: Record<string, unknown>;
   secrets: SecretMarks;
+  /** The fields the reader answered since the form opened: the only ones that say what is wrong with them before an apply. */
+  touched: readonly string[];
+  /** An apply was asked for: every problem is shown from then on. */
+  attempted: boolean;
+  /** What only the server could refuse — a port another program holds — kept on its field until that field changes. */
+  refused: readonly FieldProblem[];
   apply: ApplyState;
   removal: RemovalState;
   steps: ModuleProgress[];
@@ -143,6 +157,14 @@ interface ServicesStore {
     defaults?: Record<string, unknown>
   ) => Promise<void>;
   setValue: (key: string, value: unknown) => void;
+  /** What the form refuses by the rules of the manifest, and what the server refused. */
+  problems: () => FieldProblem[];
+  /** The problems the form is allowed to show: on a field answered since it opened, or all once an apply was asked for. */
+  shown: () => FieldProblem[];
+  /** Whether the form holds anything the server does not: a changed value, a typed or generated secret. */
+  dirty: () => boolean;
+  /** Puts the form back to what the server holds and drops the secrets typed since. */
+  discard: (serverId: string) => Promise<void>;
   setSecret: (
     serverId: string,
     moduleId: string,
@@ -345,7 +367,9 @@ export const useServices = create<ServicesStore>((set, get) => {
     }
 
     return listed.result.projects.flatMap((project) =>
-      project.routes.flatMap((route) => route.hostname ?? [])
+      project.processes.flatMap((process) =>
+        process.routes.flatMap((route) => route.hostname ?? [])
+      )
     );
   }
 
@@ -391,7 +415,14 @@ export const useServices = create<ServicesStore>((set, get) => {
     moduleId: string,
     defaults: Record<string, unknown> = {}
   ): Promise<void> {
-    set({ config: { moduleId, status: "reading" }, secrets: {}, values: {} });
+    set({
+      attempted: false,
+      config: { moduleId, status: "reading" },
+      refused: [],
+      secrets: {},
+      touched: [],
+      values: {},
+    });
 
     const answer = await call<ModuleConfigResult>(serverId, "module.config", {
       id: moduleId,
@@ -406,29 +437,93 @@ export const useServices = create<ServicesStore>((set, get) => {
     // A module installed by an older agent kept nothing on record: the form
     // then shows the manifest's defaults, the values the agent would apply,
     // instead of empty fields.
+    const baseline = { ...defaults, ...answer.result.values };
+
     set({
       config: {
         answered: answer.result.values,
+        baseline,
         held: answer.result.secrets,
         moduleId,
         status: "ready",
       },
-      values: { ...defaults, ...answer.result.values },
+      values: baseline,
     });
+  }
+
+  /** A refusal that named its fields is not a failure to announce: the form says it, on the fields. */
+  function outcomeOf(
+    answer: AgentResponse<InstallResult>,
+    moduleId: string,
+    named: boolean
+  ): ApplyState {
+    if (answer.ok) {
+      return { moduleId, result: answer.result, status: "done" };
+    }
+
+    return named
+      ? { status: "idle" }
+      : { error: answer.error, moduleId, status: "failed" };
+  }
+
+  /** How many values a secret field holds: typed or generated here, or kept by the server. */
+  function heldSecrets(moduleId: string): (id: string, key: string) => number {
+    return (_id, key) => {
+      const { config, secrets } = get();
+      const marks = secrets[moduleId] ?? {};
+      const kept = config.status === "ready" ? config.held : [];
+
+      if (marks[key]?.filled || kept.includes(key)) {
+        return 1;
+      }
+
+      let filled = 0;
+      while (marks[itemKey(key, filled)]?.filled) {
+        filled += 1;
+      }
+
+      return filled;
+    };
+  }
+
+  function same(left: unknown, right: unknown): boolean {
+    return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
+  }
+
+  /**
+   * The server's own verdict on the values, asked before they are applied: a
+   * port another program listens on is something only the machine knows. An
+   * agent too old to answer says so, and the apply goes on with what the form
+   * checked itself.
+   */
+  async function weigh(
+    serverId: string,
+    moduleId: string,
+    values: Record<string, unknown>
+  ): Promise<FieldProblem[]> {
+    const answer = await window.pupitre
+      .checkInstall(serverId, [moduleId], { [moduleId]: values }, [])
+      .catch(() => null);
+
+    return answer?.ok ? answer.result.problems : [];
   }
 
   return {
     apply: { status: "idle" },
+    attempted: false,
     busy: null,
     config: { status: "idle" },
     database: null,
     detail: { status: "idle" },
     dumps: { status: "idle" },
+    manifest: null,
     pendingImports: [],
     problem: null,
+    refused: [],
     removal: { status: "idle" },
     secrets: {},
     steps: [],
+    touched: [],
     values: {},
 
     async open(serverId, moduleId, manifest = null) {
@@ -437,6 +532,7 @@ export const useServices = create<ServicesStore>((set, get) => {
         database: null,
         detail: { moduleId, status: "reading" },
         dumps: { status: "idle" },
+        manifest,
         problem: null,
         removal: { status: "idle" },
         steps: [],
@@ -469,7 +565,79 @@ export const useServices = create<ServicesStore>((set, get) => {
     readConfig: read,
 
     setValue(key, value) {
-      set((state) => ({ values: { ...state.values, [key]: value } }));
+      set((state) => ({
+        refused: state.refused.filter((problem) => problem.field !== key),
+        touched: state.touched.includes(key)
+          ? state.touched
+          : [...state.touched, key],
+        values: { ...state.values, [key]: value },
+      }));
+    },
+
+    problems() {
+      const { manifest, values, refused } = get();
+
+      if (!manifest) {
+        return [...refused];
+      }
+
+      return [
+        ...validateConfig(
+          [manifest],
+          [manifest.id],
+          { [manifest.id]: values },
+          heldSecrets(manifest.id),
+          { skipManaged: true }
+        ),
+        ...refused,
+      ];
+    },
+
+    shown() {
+      const { attempted, touched, refused } = get();
+
+      return get()
+        .problems()
+        .filter(
+          (problem) =>
+            attempted ||
+            touched.includes(problem.field) ||
+            refused.includes(problem)
+        );
+    },
+
+    dirty() {
+      const { config, manifest, values, secrets } = get();
+
+      if (config.status !== "ready") {
+        return false;
+      }
+
+      const marks = manifest ? Object.values(secrets[manifest.id] ?? {}) : [];
+      if (marks.some((mark) => mark.filled)) {
+        return true;
+      }
+
+      const keys = new Set([
+        ...Object.keys(config.baseline),
+        ...Object.keys(values),
+      ]);
+
+      return [...keys].some((key) => !same(values[key], config.baseline[key]));
+    },
+
+    async discard(serverId) {
+      const { config } = get();
+
+      await window.pupitre.forgetInstallSecrets(serverId);
+
+      set({
+        attempted: false,
+        refused: [],
+        secrets: {},
+        touched: [],
+        values: config.status === "ready" ? config.baseline : {},
+      });
     },
 
     async setSecret(serverId, moduleId, key, value) {
@@ -480,9 +648,16 @@ export const useServices = create<ServicesStore>((set, get) => {
         value
       );
 
-      set(
+      set((state) =>
         answer.ok
-          ? { problem: null, secrets: answer.result }
+          ? {
+              problem: null,
+              refused: state.refused.filter((problem) => problem.field !== key),
+              secrets: answer.result,
+              touched: state.touched.includes(key)
+                ? state.touched
+                : [...state.touched, key],
+            }
           : { problem: answer.error }
       );
     },
@@ -520,11 +695,22 @@ export const useServices = create<ServicesStore>((set, get) => {
      * already holds.
      */
     async reconfigure(serverId, moduleId) {
-      set({
-        apply: { moduleId, status: "running" },
-        problem: null,
-        steps: started([moduleId]),
-      });
+      set({ attempted: true, problem: null });
+
+      if (get().problems().length > 0) {
+        return;
+      }
+
+      set({ apply: { moduleId, status: "running" }, steps: [] });
+
+      const refused = await weigh(serverId, moduleId, get().values);
+      if (refused.length > 0) {
+        set({ apply: { status: "idle" }, refused });
+
+        return;
+      }
+
+      set({ steps: started([moduleId]) });
 
       const before = await publishedNames(serverId, moduleId, get().values);
 
@@ -539,10 +725,16 @@ export const useServices = create<ServicesStore>((set, get) => {
         }
       );
 
+      // A configuration the agent refused names its fields: the form marks
+      // them, as it would have had the check caught them first.
+      const named =
+        !answer.ok && answer.error.remedy?.code === "invalid_fields"
+          ? answer.error.remedy.problems
+          : [];
+
       set({
-        apply: answer.ok
-          ? { moduleId, result: answer.result, status: "done" }
-          : { error: answer.error, moduleId, status: "failed" },
+        apply: outcomeOf(answer, moduleId, named.length > 0),
+        refused: named,
         secrets: {},
       });
 
@@ -781,16 +973,20 @@ export const useServices = create<ServicesStore>((set, get) => {
     forget() {
       set({
         apply: { status: "idle" },
+        attempted: false,
         busy: null,
         config: { status: "idle" },
         database: null,
         detail: { status: "idle" },
         dumps: { status: "idle" },
+        manifest: null,
         pendingImports: [],
         problem: null,
+        refused: [],
         removal: { status: "idle" },
         secrets: {},
         steps: [],
+        touched: [],
         values: {},
       });
     },

@@ -1,6 +1,6 @@
 # La coupure tombe avant que l'étape ne rende son verdict : c'est le rapport qui dira pourquoi elle est tombée.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","ping","snapshot","report","install"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","ping","snapshot","report","install"]}}
 @die
 > {"id":2,"cmd":"install","params":{"modules":["db.mysql"],"config":{"db.mysql":{}},"secrets_stdin":false}}
 < {"id":2,"event":"step","module":"db.mysql","step":"apt","status":"start","ms":0}

@@ -18,7 +18,6 @@ import { ProjectAddPanel } from "./project-add-panel";
  */
 export function ProjectAddScreen({
   serverId,
-  serverName,
   exposure,
   services,
   onCancel,
@@ -27,7 +26,6 @@ export function ProjectAddScreen({
   onInstallModule,
 }: {
   serverId: string;
-  serverName?: string;
   /** What publishes a port on this server, or nothing: what is chosen is whether to publish each one. */
   exposure: Exposure | null;
   /** What the snapshot reports on this machine, which says what a private clone would cost. */
@@ -53,12 +51,19 @@ export function ProjectAddScreen({
   const park = useProjectAdd((state) => state.park);
   const reset = useProjectAdd((state) => state.reset);
   const ready = useProjectAdd((state) => state.ready);
-  const rowProblem = useProjectAdd((state) => state.rowProblem);
+  const processProblem = useProjectAdd((state) => state.processProblem);
+  const rowProblems = useProjectAdd((state) => state.rowProblems);
   const setKind = useProjectAdd((state) => state.setKind);
   const setSource = useProjectAdd((state) => state.setSource);
   const setName = useProjectAdd((state) => state.setName);
   const setBranch = useProjectAdd((state) => state.setBranch);
-  const setPkgmgr = useProjectAdd((state) => state.setPkgmgr);
+  const setProcessId = useProjectAdd((state) => state.setProcessId);
+  const setProcessDir = useProjectAdd((state) => state.setProcessDir);
+  const setProcessPkgmgr = useProjectAdd((state) => state.setProcessPkgmgr);
+  const setProcessCmd = useProjectAdd((state) => state.setProcessCmd);
+  const setProcessInstall = useProjectAdd((state) => state.setProcessInstall);
+  const addProcess = useProjectAdd((state) => state.addProcess);
+  const removeProcess = useProjectAdd((state) => state.removeProcess);
   const setRowLabel = useProjectAdd((state) => state.setRowLabel);
   const setRowPort = useProjectAdd((state) => state.setRowPort);
   const setRowPublish = useProjectAdd((state) => state.setRowPublish);
@@ -66,7 +71,6 @@ export function ProjectAddScreen({
   const generateRowWeb = useProjectAdd((state) => state.generateRowWeb);
   const addRow = useProjectAdd((state) => state.addRow);
   const removeRow = useProjectAdd((state) => state.removeRow);
-  const setCmd = useProjectAdd((state) => state.setCmd);
   const loadRepos = useProjectAdd((state) => state.loadRepos);
   const pickRepo = useProjectAdd((state) => state.pickRepo);
   const browse = useProjectAdd((state) => state.browse);
@@ -108,10 +112,10 @@ export function ProjectAddScreen({
       detection={detection}
       draft={draft}
       edit={{
+        addProcess,
         addRow,
         branch: setBranch,
         browse: (path) => browse(serverId, path),
-        cmd: setCmd,
         createFolder: (name) => makeFolder(serverId, name),
         generateRowWeb,
         kind: setKind,
@@ -119,7 +123,12 @@ export function ProjectAddScreen({
         name: setName,
         pickFolder,
         pickRepo,
-        pkgmgr: setPkgmgr,
+        processCmd: setProcessCmd,
+        processDir: setProcessDir,
+        processId: setProcessId,
+        processInstall: setProcessInstall,
+        processPkgmgr: setProcessPkgmgr,
+        removeProcess,
         removeRow,
         rowLabel: setRowLabel,
         rowPort: setRowPort,
@@ -148,11 +157,13 @@ export function ProjectAddScreen({
       onReload={() => prepare(serverId, exposure)}
       onRetry={() => retry(serverId)}
       phases={phases}
+      processProblems={draft.processes.map((_process, index) =>
+        processProblem(index)
+      )}
       ready={ready()}
       repos={repos}
-      rowProblems={draft.rows.map((_row, index) => rowProblem(index))}
+      rowProblems={draft.processes.map((_process, index) => rowProblems(index))}
       run={run}
-      serverName={serverName}
     />
   );
 }

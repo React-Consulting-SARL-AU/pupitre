@@ -3,9 +3,9 @@ import type { Translate } from "@renderer/i18n/i18n";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { ServerGrant } from "@shared/servers";
 import { grantPending, grantWithdrawn } from "@shared/servers";
+import { Fact } from "../ui/fact";
 import type { StatusShape, StatusTone } from "../ui/status-dot";
 import { StatusDot } from "../ui/status-dot";
-import { ServerRowDetail } from "./server-row-detail";
 
 /**
  * What the console says about a server of the list, among its other facts.
@@ -67,17 +67,17 @@ export function ServerGrantDetail({ grant }: { grant: ServerGrant }) {
 
   return (
     <>
-      <ServerRowDetail label={t("fleet.row.platformState")}>
+      <Fact label={t("fleet.row.platformState")}>
         <span className="inline-flex items-center gap-1.5">
           <StatusDot shape={look.shape} size={9} tone={look.tone} />
           {t(look.label)} · {grantStatusLabel(t, grant.status)}
         </span>
-      </ServerRowDetail>
+      </Fact>
 
       {grant.organization ? (
-        <ServerRowDetail label={t("fleet.row.organization")}>
+        <Fact label={t("fleet.row.organization")} prose>
           {grant.organization.name}
-        </ServerRowDetail>
+        </Fact>
       ) : null}
     </>
   );

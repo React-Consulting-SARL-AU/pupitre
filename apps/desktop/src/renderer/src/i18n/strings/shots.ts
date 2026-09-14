@@ -1,12 +1,10 @@
 export const shots = {
   en: {
     "shots.title": "Gallery",
-    "shots.eyebrow": "Server",
     "shots.openGallery": "Open the gallery",
     "shots.clear": "Empty the gallery",
     "shots.clearConfirm": "Empty",
     "shots.clearQuestion": "The server's screenshots are deleted.",
-    "shots.loadingDetail": "Reading the screenshots folder",
     "shots.none": "No screenshots",
     "shots.emptyTitle": "The gallery is empty",
     "shots.cleaningTitle": "Cleaning up",
@@ -46,12 +44,10 @@ export const shots = {
   },
   fr: {
     "shots.title": "Galerie",
-    "shots.eyebrow": "Serveur",
     "shots.openGallery": "Ouvrir la galerie",
     "shots.clear": "Vider la galerie",
     "shots.clearConfirm": "Vider",
     "shots.clearQuestion": "Les captures du serveur sont supprimées.",
-    "shots.loadingDetail": "Lecture du dossier des captures",
     "shots.none": "Aucune capture",
     "shots.emptyTitle": "La galerie est vide",
     "shots.cleaningTitle": "Nettoyage",

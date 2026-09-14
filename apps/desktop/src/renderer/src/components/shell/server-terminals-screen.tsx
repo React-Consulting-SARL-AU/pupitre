@@ -14,6 +14,7 @@ import { Screen } from "../ui/screen";
  * gesture that changes that.
  */
 export function ServerTerminalsScreen({
+  serverName,
   terminals,
   active,
   states,
@@ -22,6 +23,7 @@ export function ServerTerminalsScreen({
   onNew,
   onRename,
 }: {
+  serverName: string;
   terminals: Terminal[];
   active: string | null;
   states: Record<string, AgentState>;
@@ -33,11 +35,7 @@ export function ServerTerminalsScreen({
   const t = useTranslations();
 
   return (
-    <Screen
-      eyebrow={t("app.terminals.eyebrow")}
-      fill
-      title={t("app.terminals.title")}
-    >
+    <Screen eyebrow={serverName} fill title={t("app.terminals.title")}>
       {terminals.length === 0 ? (
         <EmptyState
           action={

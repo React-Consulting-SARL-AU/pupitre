@@ -1,10 +1,10 @@
 # Un serveur en mode restreint : il se laisse lire, et refuse d'agir.
 # Modèle : apps/agent/internal/protocol/testdata/restricted.jsonl
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"restricted","capabilities":["hello","ping","snapshot","status","diag","agent.upgrade","project.down"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"restricted","capabilities":["hello","ping","snapshot","status","diag","agent.upgrade","project.down"]}}
 > {"id":2,"cmd":"snapshot"}
-< {"id":2,"ok":true,"result":{"machine":{"hostname":"staging","os":"ubuntu","version":"24.04","arch":"amd64","cores":4,"uptime_s":86400,"load":[0.1,0.2,0.3],"ram_total_mb":4096,"ram_used_mb":1200,"swap_mb":0,"disk_total_gb":80,"disk_free_gb":38,"agent_version":"0.0.0-test"},"services":[],"projects":[{"name":"api","dir":"api","path":"/home/dev/projects/api","host":"api.test","port":3000,"routes":[],"pkgmgr":"bun","cmd":"bun dev","state":"online","versioned":true}],"sessions":[{"pid":4242,"seconds":3600,"ram_mb":120,"kind":"claude","project":"api","command":"claude"}],"entitlement":"restricted"}}
+< {"id":2,"ok":true,"result":{"machine":{"hostname":"staging","os":"ubuntu","version":"24.04","arch":"amd64","cores":4,"uptime_s":86400,"load":[0.1,0.2,0.3],"ram_total_mb":4096,"ram_used_mb":1200,"swap_mb":0,"disk_total_gb":80,"disk_free_gb":38,"agent_version":"0.0.0-test"},"services":[],"projects":[{"name":"api","dir":"api","path":"/home/dev/projects/api","processes":[{"id":"api","dir":".","path":"/home/dev/projects/api","pkgmgr":"bun","host":"api.test","port":3000,"routes":[],"cmd":"bun dev","state":"online"}],"state":"online"}],"sessions":[{"pid":4242,"seconds":3600,"ram_mb":120,"kind":"claude","project":"api","command":"claude"}],"entitlement":"restricted"}}
 > {"id":3,"cmd":"project.down","params":{"name":"api"}}
 < {"id":3,"ok":false,"error":{"code":"entitlement_required","message":"droit d'usage requis : ce serveur est en mode restreint","fix":"Ouvre https://app.pupitre.studio pour renouveler le droit d'usage de ce serveur."}}
 > {"id":4,"cmd":"status"}
-< {"id":4,"ok":true,"result":{"services":[],"projects":[{"name":"api","dir":"api","path":"/home/dev/projects/api","host":"api.test","port":3000,"routes":[],"pkgmgr":"bun","cmd":"bun dev","state":"online","versioned":true}]}}
+< {"id":4,"ok":true,"result":{"services":[],"projects":[{"name":"api","dir":"api","path":"/home/dev/projects/api","processes":[{"id":"api","dir":".","path":"/home/dev/projects/api","pkgmgr":"bun","host":"api.test","port":3000,"routes":[],"cmd":"bun dev","state":"online"}],"state":"online"}]}}
