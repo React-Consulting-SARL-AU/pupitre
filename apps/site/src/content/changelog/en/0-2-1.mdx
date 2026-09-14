@@ -1,0 +1,20 @@
+---
+title: The macOS app updates itself
+description: The update feed now names the archive the macOS app installs from, so an update no longer stops on "ZIP file not provided".
+locale: en
+version: 0.2.1
+channel: stable
+date: 2026-09-14
+order: 5
+---
+
+One fix, for every Mac.
+
+## The app
+
+- On macOS, an update now goes through. The app never installs from a `.dmg`: it downloads a `.zip` of itself, and the feed named none, so every macOS app that reached the feed stopped on "ZIP file not provided". Each version now publishes that archive for both architectures next to the `.dmg`, and the feed names it. The `.dmg` stays what you download to install.
+
+## Known limits
+
+- A macOS app 0.1.2 or 0.2.0 finds this version on its own; 0.1.0 and 0.1.1 still cannot, and need 0.2.1 installed from the download page.
+- The Windows installer is still unsigned: SmartScreen warns at first launch.
