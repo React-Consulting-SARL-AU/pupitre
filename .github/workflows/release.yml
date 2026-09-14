@@ -197,6 +197,18 @@ jobs:
           path: .cache
           key: electron-${{ runner.os }}-${{ hashFiles('apps/desktop/package.json') }}
 
+      # node-pty links against the Spectre-mitigated MSVC libraries, which the
+      # Blacksmith Windows image does not carry; the installer it has adds them.
+      - name: Install the Spectre-mitigated MSVC libraries
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
+          $buildTools = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\BuildTools"
+          $arguments = @("modify", "--installPath", "`"$buildTools`"", "--add", "Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre", "--quiet", "--norestart", "--nocache")
+          $process = Start-Process -FilePath $installer -ArgumentList $arguments -Wait -PassThru
+          if ($process.ExitCode -ne 0 -and $process.ExitCode -ne 3010) { exit $process.ExitCode }
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
