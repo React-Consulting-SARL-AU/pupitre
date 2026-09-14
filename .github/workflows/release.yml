@@ -44,7 +44,7 @@ env:
 jobs:
   agent:
     name: Agent
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     outputs:
       release: ${{ steps.resolve.outputs.release }}
@@ -109,7 +109,7 @@ jobs:
   agent-arm64:
     name: Agent on arm64
     needs: agent
-    runs-on: ubuntu-24.04-arm
+    runs-on: blacksmith-4vcpu-ubuntu-2404-arm
     timeout-minutes: 15
     env:
       PUPITRE_RELEASE_VERSION: ${{ fromJSON(needs.agent.outputs.release).version }}
@@ -163,11 +163,11 @@ jobs:
       matrix:
         include:
           - system: macOS
-            runner: macos-15
+            runner: blacksmith-6vcpu-macos-15
           - system: Windows
-            runner: windows-2025
+            runner: blacksmith-4vcpu-windows-2025
           - system: Linux
-            runner: ubuntu-24.04
+            runner: blacksmith-4vcpu-ubuntu-2404
     env:
       PUPITRE_RELEASE_VERSION: ${{ fromJSON(needs.agent.outputs.release).version }}
       PUPITRE_RELEASE_CHANNEL: ${{ fromJSON(needs.agent.outputs.release).channel }}
@@ -218,7 +218,7 @@ jobs:
   publish:
     name: Publish the app
     needs: [agent, desktop]
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 20
     env:
       PUPITRE_RELEASE_VERSION: ${{ fromJSON(needs.agent.outputs.release).version }}
@@ -255,7 +255,7 @@ jobs:
   merge:
     name: Merge into main
     needs: [agent, publish]
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 10
     permissions:
       contents: write
