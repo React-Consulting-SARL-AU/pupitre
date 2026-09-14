@@ -231,7 +231,7 @@ export function App() {
 
     const names = projects.map((project) => project.name);
 
-    noteProjects(names);
+    noteProjects(projects);
     settle(names);
   }, [projects, settle]);
 
@@ -372,6 +372,7 @@ export function App() {
   }
 
   const project = snapshot.projects.find((p) => p.name === selection) ?? null;
+  const serverName = server?.name ?? snapshot.machine.hostname;
 
   // The server's own screens take nothing but the server: a lookup, not a
   // branch each, so a view added tomorrow is one key here.
@@ -380,10 +381,11 @@ export function App() {
       <FilesScreen
         onTerminal={(dir) => openTerminal(null, "shell", dir)}
         serverId={serverId}
+        serverName={serverName}
         services={snapshot.services}
       />
     ),
-    shots: <ShotsScreen serverId={serverId} />,
+    shots: <ShotsScreen serverId={serverId} serverName={serverName} />,
   };
 
   return (
@@ -491,6 +493,7 @@ export function App() {
                     reboot(serverId, server?.name ?? snapshot.machine.hostname)
                   }
                   onStopSession={(pid) => stopProcess(serverId, pid)}
+                  serverName={server?.name}
                   snapshot={snapshot}
                 />
               </div>
@@ -512,7 +515,6 @@ export function App() {
                   onFinish={(name) => read(serverId).then(() => select(name))}
                   onInstallModule={() => goTo("services")}
                   serverId={serverId}
-                  serverName={server?.name}
                   services={snapshot.services.map((service) => service.id)}
                 />
               </div>
@@ -564,6 +566,7 @@ export function App() {
                   onStopSession={(pid) => stopProcess(serverId, pid)}
                   processes={processes}
                   processesProblem={processesProblem}
+                  serverName={serverName}
                   sessions={snapshot.sessions}
                 />
               </div>
@@ -590,6 +593,7 @@ export function App() {
                   onClose={closeTerminal}
                   onNew={openTerminal}
                   onRename={renameTerminal}
+                  serverName={serverName}
                   states={terminalStates}
                   terminals={serverTerminals}
                 />

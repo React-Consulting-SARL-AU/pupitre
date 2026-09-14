@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { Project } from "@pupitre/shared/agent-protocol/state";
+import type { Process, Project } from "@pupitre/shared/agent-protocol/state";
 import {
   addedRow,
   firstRow,
@@ -14,17 +14,17 @@ import {
   routeRequests,
   rowProblem,
   rowsFromDetection,
-  rowsFromProject,
+  rowsFromProcess,
   rowsReady,
   validHostname,
   validLabel,
 } from "../project-ports";
 
-const SHOP: Project = {
+const TURBO: Process = {
   cmd: "bunx turbo run dev",
-  dir: "shop",
+  dir: ".",
   host: "127.0.0.1",
-  name: "shop",
+  id: "shop",
   path: "/home/dev/projects/shop",
   pkgmgr: "bun",
   port: 3100,
@@ -36,15 +36,42 @@ const SHOP: Project = {
   state: "online",
 };
 
+const SHOP: Project = {
+  dir: "shop",
+  name: "shop",
+  path: "/home/dev/projects/shop",
+  processes: [TURBO],
+  state: "online",
+};
+
 const OTHER: Project = {
-  cmd: "bun run dev --port 4000",
   dir: "other",
-  host: "127.0.0.1",
   name: "other",
   path: "/home/dev/projects/other",
-  pkgmgr: "bun",
-  port: 4000,
-  routes: [{ hostname: "other.example.org", label: "web", port: 4000 }],
+  processes: [
+    {
+      cmd: "bun run dev --port 4000",
+      dir: ".",
+      host: "127.0.0.1",
+      id: "other",
+      path: "/home/dev/projects/other",
+      pkgmgr: "bun",
+      port: 4000,
+      routes: [{ hostname: "other.example.org", label: "web", port: 4000 }],
+      state: "stopped",
+    },
+    {
+      cmd: "bun run worker",
+      dir: "worker",
+      host: "127.0.0.1",
+      id: "worker",
+      path: "/home/dev/projects/other/worker",
+      pkgmgr: "bun",
+      port: 4010,
+      routes: [],
+      state: "stopped",
+    },
+  ],
   state: "stopped",
 };
 
@@ -145,7 +172,7 @@ describe("les lignes de ports", () => {
       ["api", 3101, true],
     ]);
 
-    const rows = rowsFromProject(SHOP);
+    const rows = rowsFromProcess(TURBO);
 
     expect(
       rows.map((current) => [
@@ -163,8 +190,8 @@ describe("les lignes de ports", () => {
   });
 
   it("gardent le port principal en tête quand aucune route ne le porte", () => {
-    const rows = rowsFromProject({
-      ...SHOP,
+    const rows = rowsFromProcess({
+      ...TURBO,
       routes: [{ label: "api", port: 3101 }],
     });
 
@@ -178,7 +205,7 @@ describe("ce qu'une ligne refuse avant l'agent", () => {
   it("lit ce que les autres projets tiennent, sans le projet lui-même", () => {
     expect(held).toEqual({
       hostnames: ["other.example.org"],
-      ports: [4000, 4000],
+      ports: [4000, 4000, 4010],
     });
     expect(hostnamesOf(SHOP)).toEqual([
       "shop.example.org",

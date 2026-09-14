@@ -47,7 +47,7 @@ export const config = {
     "config.remaining.goTo": "Go to the first",
     "config.checking": "Checking with the server…",
     "config.ready": "Everything is answered.",
-    "config.eyebrow": "Configuration",
+    "config.title": "Configuration",
     "config.thisServer": "This server",
     "config.secretsNotice": "Passwords are never stored on this computer.",
     "config.secret.generated":
@@ -109,7 +109,7 @@ export const config = {
     "config.remaining.goTo": "Aller au premier",
     "config.checking": "Vérification avec le serveur…",
     "config.ready": "Tout est renseigné.",
-    "config.eyebrow": "Configuration",
+    "config.title": "Configuration",
     "config.thisServer": "Ce serveur",
     "config.secretsNotice":
       "Les mots de passe ne sont jamais enregistrés sur cet ordinateur.",

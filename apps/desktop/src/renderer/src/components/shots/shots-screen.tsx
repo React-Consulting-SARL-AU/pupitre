@@ -2,10 +2,10 @@ import { Button } from "@renderer/components/ui/button";
 import { ConfirmButton } from "@renderer/components/ui/confirm-button";
 import { EmptyState } from "@renderer/components/ui/empty-state";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
-import { Label } from "@renderer/components/ui/label";
+import { Panel } from "@renderer/components/ui/panel";
 import { Screen } from "@renderer/components/ui/screen";
+import { Section } from "@renderer/components/ui/section";
 import { SkeletonRows } from "@renderer/components/ui/skeleton";
-import { WaitingLine } from "@renderer/components/ui/waiting-line";
 import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
 import { currentLocale } from "@renderer/i18n/translate";
 import { useTranslations } from "@renderer/i18n/use-translations";
@@ -40,7 +40,13 @@ function dayLabel(day: string): string {
  * server's own gallery address is still there for a browser, but the app no
  * longer needs it to show an image.
  */
-export function ShotsScreen({ serverId }: { serverId: string }) {
+export function ShotsScreen({
+  serverId,
+  serverName,
+}: {
+  serverId: string;
+  serverName: string;
+}) {
   const t = useTranslations();
 
   const state = useShots((s) => s.state);
@@ -87,19 +93,12 @@ export function ShotsScreen({ serverId }: { serverId: string }) {
             </ConfirmButton>
           </>
         }
-        eyebrow={t("shots.eyebrow")}
+        eyebrow={serverName}
         title={t("shots.title")}
       >
         {problem ? <ErrorNotice error={problem} /> : null}
 
-        {state.status === "loading" ? (
-          <section className="flex flex-col gap-3">
-            <WaitingLine className="font-data text-[12px]">
-              {t("shots.loadingDetail")}
-            </WaitingLine>
-            <SkeletonRows rows={3} />
-          </section>
-        ) : null}
+        {state.status === "loading" ? <SkeletonRows rows={3} /> : null}
 
         {state.status === "failed" ? (
           <ErrorNotice error={state.error} onRetry={() => read(serverId)} />
@@ -117,24 +116,23 @@ export function ShotsScreen({ serverId }: { serverId: string }) {
             </p>
 
             {shots.length === 0 ? (
-              <div className="elevation-raised overflow-hidden rounded-md border border-line bg-surface">
+              <Panel className="overflow-hidden" inset="none">
                 <EmptyState icon={ImageIcon} title={t("shots.emptyTitle")} />
-              </div>
+              </Panel>
             ) : null}
 
             {days.map((group) => (
-              <section
-                className="flex flex-col gap-3"
-                data-shot-day={group.day}
-                key={group.day}
-              >
-                <h2 className="flex items-baseline gap-2">
-                  <Label>{dayLabel(group.day)}</Label>
-                  <span className="font-data text-[11px] text-ink-3 tabular-nums">
+              <Section
+                aside={
+                  <span className="font-data text-[12px] text-ink-3 tabular-nums">
                     {t.plural("shots.capture", group.shots.length)}
                   </span>
-                </h2>
-
+                }
+                data-shot-day={group.day}
+                key={group.day}
+                name={group.day}
+                title={dayLabel(group.day)}
+              >
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {group.shots.map((shot) => (
                     <ShotTile
@@ -151,7 +149,7 @@ export function ShotsScreen({ serverId }: { serverId: string }) {
                     />
                   ))}
                 </div>
-              </section>
+              </Section>
             ))}
 
             {cleaning ? (

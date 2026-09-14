@@ -11,17 +11,23 @@ export function CheckLine({
   label,
   checked,
   disabled = false,
+  size = "md",
   onChange,
 }: {
   name: string;
   label: string;
   checked: boolean;
   disabled?: boolean;
+  /** `sm` in a toolbar, next to other small controls. */
+  size?: "sm" | "md";
   onChange: (next: boolean) => void;
 }) {
+  const text =
+    size === "sm" ? "gap-1.5 text-[11px] text-ink-3" : "gap-2.5 text-ink-2";
+
   return (
     // biome-ignore lint/a11y/noLabelWithoutControl: the control is inside CheckBox, and wrapping it is what makes the word clickable
-    <label className="clickable flex items-center gap-2.5 text-ink-2">
+    <label className={`clickable flex items-center ${text}`}>
       <CheckBox
         checked={checked}
         disabled={disabled}

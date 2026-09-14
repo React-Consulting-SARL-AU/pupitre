@@ -1,4 +1,4 @@
-import { Label } from "@renderer/components/ui/label";
+import { Fact, FactList } from "@renderer/components/ui/fact";
 import type { Translate } from "@renderer/i18n/i18n";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AppAbout } from "@shared/app-update";
@@ -19,26 +19,16 @@ export function SettingsAboutBuild({ about }: { about: AppAbout }) {
   const t = useTranslations();
 
   return (
-    <dl className="grid gap-3 sm:grid-cols-2">
-      <div className="min-w-0">
-        <dt>
-          <Label>{t("settings.about.version")}</Label>
-        </dt>
-        <dd
-          className="mt-1 font-data text-[12px] text-ink tabular-nums"
-          data-app-version={about.version}
-        >
-          {about.version}
-        </dd>
-      </div>
-      <div className="min-w-0">
-        <dt>
-          <Label>{t("settings.about.channel")}</Label>
-        </dt>
-        <dd className="mt-1 text-[12px] text-ink-2">
-          {channelLabel(about, t)}
-        </dd>
-      </div>
-    </dl>
+    <FactList>
+      <Fact
+        data-app-version={about.version}
+        label={t("settings.about.version")}
+      >
+        {about.version}
+      </Fact>
+      <Fact label={t("settings.about.channel")} prose>
+        {channelLabel(about, t)}
+      </Fact>
+    </FactList>
   );
 }

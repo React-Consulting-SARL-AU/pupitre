@@ -30,10 +30,11 @@ export const account = {
     "account.subscription.serversOf": "{used} of {limit} seats in use",
     "account.subscription.trialEndsOn": "Trial ends on",
     "account.subscription.renewsOn": "Renews on",
+    "account.usage.title": "Subscription",
+    "account.identity.title": "Account",
+    "account.identity.name": "Signed in as",
     "account.identity.organization": "Organisation",
     "account.identity.noOrganization": "No active organisation",
-    "account.identity.device": "This device",
-    "account.identity.deviceUnregistered": "Not registered",
     "account.identity.unsealed":
       "This computer's keychain would not keep the session: it will need doing again next time the app starts.",
 
@@ -124,10 +125,11 @@ export const account = {
     "account.subscription.serversOf": "{used} sièges sur {limit} occupés",
     "account.subscription.trialEndsOn": "Fin de l'essai le",
     "account.subscription.renewsOn": "Renouvellement le",
+    "account.usage.title": "Abonnement",
+    "account.identity.title": "Compte",
+    "account.identity.name": "Connecté en tant que",
     "account.identity.organization": "Organisation",
     "account.identity.noOrganization": "Aucune organisation active",
-    "account.identity.device": "Cet appareil",
-    "account.identity.deviceUnregistered": "Non enregistré",
     "account.identity.unsealed":
       "Le trousseau de cet ordinateur n'a pas accepté de garder la session : elle sera à refaire au prochain démarrage.",
 

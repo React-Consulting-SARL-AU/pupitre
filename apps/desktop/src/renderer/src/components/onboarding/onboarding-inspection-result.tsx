@@ -22,7 +22,7 @@ export function OnboardingInspectionResult({
   return (
     <Screen
       column
-      eyebrow={t("onboarding.inspection.eyebrow")}
+      eyebrow={serverName ?? t("onboarding.thisServer")}
       footer={
         <ActionBar name="inspection">
           <OnboardingInspectionActions probe={probe} {...actions} />
@@ -30,7 +30,7 @@ export function OnboardingInspectionResult({
       }
       plain
       step="inspection"
-      title={serverName ?? t("onboarding.thisServer")}
+      title={t("onboarding.inspection.title")}
     >
       <OnboardingInspectionVerdict probe={probe} />
     </Screen>

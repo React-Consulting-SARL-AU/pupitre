@@ -1,6 +1,6 @@
 # Le canal de travail : l'installation qui suit l'enrôlement.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"valid","capabilities":["hello","ping","snapshot","report","install"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"valid","capabilities":["hello","ping","snapshot","report","install"]}}
 > {"id":2,"cmd":"install","params":{"modules":["core.system"],"config":{"core.system":{}},"secrets_stdin":false}}
 < {"id":2,"event":"step","module":"core.system","step":"paquets","status":"start","ms":0}
 < {"id":2,"event":"step","module":"core.system","step":"paquets","status":"ok","ms":1200}

@@ -188,6 +188,7 @@ describe("processus et sessions", () => {
         onStopSession={NOOP}
         processes={PROCESSES}
         processesProblem={null}
+        serverName="atelier"
         sessions={SNAPSHOT.sessions}
       />
     );
@@ -211,6 +212,7 @@ describe("processus et sessions", () => {
         onStopSession={NOOP}
         processes={PROCESSES}
         processesProblem={null}
+        serverName="atelier"
         sessions={SNAPSHOT.sessions}
       />
     );
@@ -225,6 +227,7 @@ describe("processus et sessions", () => {
         onStopSession={NOOP}
         processes={PROCESSES}
         processesProblem={null}
+        serverName="atelier"
         sessions={SNAPSHOT.sessions}
       />
     );
@@ -476,6 +479,7 @@ describe("ce qui se dit au-dessus des écrans", () => {
         onStopSession={NOOP}
         processes={PROCESSES}
         processesProblem={null}
+        serverName="atelier"
         sessions={SNAPSHOT.sessions}
       />
     );

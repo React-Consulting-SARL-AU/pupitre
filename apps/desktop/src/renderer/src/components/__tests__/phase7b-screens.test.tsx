@@ -101,7 +101,6 @@ describe("les gestes d'un service", () => {
     expect(text(running)).toContain("Arrêter");
     expect(text(running)).not.toContain("Démarrer");
     expect(text(failed)).toContain("Démarrer");
-    expect(text(failed)).toContain("s'est arrêté sur une erreur");
     expect(text(failed)).toContain("Redémarrer");
   });
 

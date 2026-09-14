@@ -19,7 +19,7 @@ const GRAMMAR: CompletionsResult = {
       name: "up",
     },
     {
-      args: [["$project"], ["--follow"]],
+      args: [["$project"], ["$process"], ["--follow"]],
       help: "lit son journal",
       name: "logs",
     },
@@ -34,6 +34,7 @@ const SOURCES = {
   catalog: GRAMMAR,
   history: ["git status", "pupitred up flymate-api"],
   paths: ["src/", "src/lib.ts"],
+  processes: { "atlas-web": ["web"], "flymate-api": ["api", "worker"] },
   projects: ["flymate-api", "atlas-web"],
 };
 
@@ -74,6 +75,20 @@ describe("propose", () => {
 
     expect(projects.map((c) => c.text)).toEqual(["flymate-api", "atlas-web"]);
     expect(projects[0].help).toBe("projet");
+  });
+
+  it("remplace $process par les processus du projet tapé juste avant", () => {
+    const { candidates } = propose("pupitred logs flymate-api ", SOURCES);
+
+    const processes = candidates.filter((c) => c.kind === "argument");
+
+    expect(processes.map((c) => c.text)).toEqual(["api", "worker"]);
+    expect(processes[0].help).toBe("processus");
+    expect(
+      propose("pupitred logs ghost ", SOURCES).candidates.filter(
+        (c) => c.kind === "argument"
+      )
+    ).toEqual([]);
   });
 
   it("offre les chemins que le serveur a listés quand le jeton en est un", () => {

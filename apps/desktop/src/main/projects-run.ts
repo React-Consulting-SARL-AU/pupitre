@@ -42,6 +42,8 @@ const DEFAULT_LINES = 200;
 
 const BRANCH_OK = /^[\w.\-/]{1,120}$/;
 
+const PROCESS_OK = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+
 export interface ProjectDeps {
   client: Pick<AgentClient, "request">;
   /** Whether this identifier still names a server of the app's configuration. */
@@ -125,8 +127,12 @@ function known(serverId: unknown, deps: ProjectDeps): string | null {
   return typeof serverId === "string" && deps.knows(serverId) ? serverId : null;
 }
 
-function hostnamesOf(routes: readonly Route[] | undefined): string[] {
-  return (routes ?? []).flatMap((route) => route.hostname ?? []);
+function hostnamesOf(
+  processes: readonly { routes?: readonly Route[] }[] | undefined
+): string[] {
+  return (processes ?? []).flatMap((process) =>
+    (process.routes ?? []).flatMap((route) => route.hostname ?? [])
+  );
 }
 
 /** The names the agent holds for a project, as it last answered them. */
@@ -143,7 +149,7 @@ function remember(
     name: string;
     dir: string;
     path?: string;
-    routes?: readonly Route[];
+    processes?: readonly { routes?: readonly Route[] }[];
   }[]
 ): void {
   const held = declared.get(serverId) ?? new Map<string, Declared>();
@@ -157,7 +163,7 @@ function remember(
 
     held.set(project.name, {
       dir: project.dir,
-      hostnames: hostnamesOf(project.routes),
+      hostnames: hostnamesOf(project.processes),
       path: absolute,
       root: known?.root ?? null,
     });
@@ -254,7 +260,7 @@ export async function updateProject(
 
   remember(call.serverId, [answer.result]);
 
-  const kept = new Set(hostnamesOf(answer.result.routes));
+  const kept = new Set(hostnamesOf(answer.result.processes));
 
   if (deps.release) {
     for (const hostname of before) {
@@ -413,10 +419,18 @@ const ACTIONS: readonly ProjectAction[] = [
  * "all" is the agent's own word, not a name the renderer made up, so it is the
  * one target that does not go through the declared list.
  */
+/** A process id as the contract spells it: one DNS label, or nothing. */
+function processOf(process: unknown): string | null {
+  return typeof process === "string" && PROCESS_OK.test(process)
+    ? process
+    : null;
+}
+
 export async function actOnProject(
   action: unknown,
   serverId: unknown,
   name: unknown,
+  process: unknown,
   deps: ProjectDeps
 ): Promise<AgentResponse<ProjectActionResult>> {
   if (!ACTIONS.includes(action as ProjectAction)) {
@@ -436,11 +450,13 @@ export async function actOnProject(
   }
 
   const call = target(serverId, name, deps);
+  const scoped = processOf(process);
 
   return isRefusal(call)
     ? call
     : await deps.client.request(call.serverId, action as ProjectAction, {
         name: call.name,
+        ...(scoped ? { process: scoped } : {}),
       });
 }
 
@@ -449,7 +465,7 @@ export function startProject(
   name: unknown,
   deps: ProjectDeps
 ): Promise<AgentResponse<ProjectActionResult>> {
-  return actOnProject("project.up", serverId, name, deps);
+  return actOnProject("project.up", serverId, name, null, deps);
 }
 
 export async function checkoutProject(
@@ -515,6 +531,7 @@ export async function projectEnv(
   serverId: unknown,
   name: unknown,
   force: boolean,
+  process: unknown,
   deps: ProjectDeps
 ): Promise<AgentResponse<ProjectEnvResult>> {
   const call = target(serverId, name, deps);
@@ -523,21 +540,25 @@ export async function projectEnv(
     return call;
   }
 
+  const scoped = processOf(process);
+
   return await deps.client.request(call.serverId, "project.env", {
     name: call.name,
     ...(force ? { force: true } : {}),
+    ...(scoped ? { process: scoped } : {}),
   });
 }
 
 /**
- * The journal of a project, read once or followed.
+ * The journal of one process of a project, read once or followed.
  *
- * A followed journal holds its channel until the project stops, so it gets the
+ * A followed journal holds its channel until the process stops, so it gets the
  * long timeout rather than the minute a read is given.
  */
 export async function projectLogs(
   serverId: unknown,
   name: unknown,
+  process: unknown,
   lines: unknown,
   follow: boolean,
   onLine: (line: string) => void,
@@ -550,13 +571,21 @@ export async function projectLogs(
     return call;
   }
 
+  const scoped = processOf(process);
+
+  if (!scoped) {
+    return refuse("bad_request", "refusal.project.process.unknown", {
+      process: String(process),
+    });
+  }
+
   const count =
     typeof lines === "number" && lines > 0 ? Math.floor(lines) : DEFAULT_LINES;
 
   return await deps.client.request(
     call.serverId,
     "project.logs",
-    { follow, lines: count, name: call.name },
+    { follow, lines: count, name: call.name, process: scoped },
     {
       onEvent: (event) => {
         const line = (event as { line?: unknown }).line;

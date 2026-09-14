@@ -40,11 +40,11 @@ export function CompletionListRow({
         >
           {MARK[candidate.kind]}
         </span>
-        <span className="min-w-0 flex-1 truncate font-data text-[12.5px]">
+        <span className="min-w-0 flex-1 truncate font-data text-[12px]">
           {candidate.text}
         </span>
         {candidate.help ? (
-          <span className="shrink-0 truncate text-[11.5px] text-ink-3">
+          <span className="shrink-0 truncate text-[11px] text-ink-3">
             {candidate.help}
           </span>
         ) : null}

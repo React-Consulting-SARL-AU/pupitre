@@ -20,8 +20,9 @@ export const services = {
     "services.config.apply": "Apply",
     "services.config.applying":
       "The server is replaying {name} with these values…",
-    "services.config.note":
-      "Applying replays the module with these values; a secret left empty stays the one the server holds.",
+    "services.config.discard": "Discard the changes",
+    "services.config.refused.one": "{count} value is refused",
+    "services.config.refused.other": "{count} values are refused",
     "services.config.accountNote":
       "Applying sends the connected account to the server again.",
     "services.config.done": "{name} was reconfigured on this server.",
@@ -37,8 +38,6 @@ export const services = {
     "services.database.outcome.import": "Imported dumps",
     "services.database.shellHint":
       "Open a terminal on the database's own client",
-
-    "services.control.title": "Service",
     "services.control.start": "Start",
     "services.control.stop": "Stop",
     "services.control.restart": "Restart",
@@ -51,6 +50,8 @@ export const services = {
     "services.journal.title": "Journal",
     "services.journal.follow": "Follow",
     "services.journal.copyAll": "Copy",
+    "services.journal.lines.one": "{count} line",
+    "services.journal.lines.other": "{count} lines",
     "services.journal.copyAllHint": "Copy the journal of {name}",
     "services.journal.waiting": "Waiting for the first lines of {name}",
     "services.journal.cut":
@@ -95,8 +96,9 @@ export const services = {
     "services.removal.outcome.back": "Back to services",
 
     "services.screen.add": "Add a service",
-    "services.screen.eyebrow": "Services",
+    "services.screen.title": "Services",
     "services.screen.fallbackName": "This server",
+    "services.panel.eyebrow": "Service",
     "services.screen.emptyTitle": "No service",
 
     "services.add.quit": "Exit adding",
@@ -151,8 +153,9 @@ export const services = {
       "Ce service a été installé sans être configuré. Répondez à ses questions et appliquez.",
     "services.config.apply": "Appliquer",
     "services.config.applying": "Le serveur rejoue {name} avec ces valeurs…",
-    "services.config.note":
-      "Appliquer rejoue le module avec ces valeurs ; un secret laissé vide reste celui que le serveur détient.",
+    "services.config.discard": "Annuler les modifications",
+    "services.config.refused.one": "{count} valeur refusée",
+    "services.config.refused.other": "{count} valeurs refusées",
     "services.config.accountNote":
       "Appliquer renvoie le compte connecté au serveur.",
     "services.config.done": "{name} a été reconfiguré sur ce serveur.",
@@ -169,8 +172,6 @@ export const services = {
     "services.database.outcome.import": "Dumps importés",
     "services.database.shellHint":
       "Ouvrir un terminal sur le client de la base",
-
-    "services.control.title": "Service",
     "services.control.start": "Démarrer",
     "services.control.stop": "Arrêter",
     "services.control.restart": "Redémarrer",
@@ -183,6 +184,8 @@ export const services = {
     "services.journal.title": "Journal",
     "services.journal.follow": "Suivre",
     "services.journal.copyAll": "Copier",
+    "services.journal.lines.one": "{count} ligne",
+    "services.journal.lines.other": "{count} lignes",
     "services.journal.copyAllHint": "Copier le journal de {name}",
     "services.journal.waiting": "En attente des premières lignes de {name}",
     "services.journal.cut":
@@ -228,8 +231,9 @@ export const services = {
     "services.removal.outcome.back": "Revenir aux services",
 
     "services.screen.add": "Ajouter un service",
-    "services.screen.eyebrow": "Services",
+    "services.screen.title": "Services",
     "services.screen.fallbackName": "Ce serveur",
+    "services.panel.eyebrow": "Service",
     "services.screen.emptyTitle": "Aucun service",
 
     "services.add.quit": "Quitter l'ajout",

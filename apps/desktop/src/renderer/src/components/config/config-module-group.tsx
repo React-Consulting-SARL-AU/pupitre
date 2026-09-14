@@ -7,6 +7,7 @@ import { type FieldGroup, splitFields } from "../../lib/catalog-selection";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
 import { Details } from "../ui/details";
+import { Panel } from "../ui/panel";
 import { ServiceLogo } from "../ui/service-logo";
 import { ConfigFieldControl, type FieldHandlers } from "./config-field-control";
 
@@ -80,11 +81,13 @@ export function ConfigModuleGroup({
   }
 
   return (
-    <section
+    <Panel
       aria-labelledby={`group-${group.module.id}`}
-      className="@container/module elevation-raised flex scroll-mt-4 flex-col gap-gutter rounded-md border border-line bg-surface p-5"
+      as="section"
+      className="@container/module flex scroll-mt-4 flex-col gap-gutter"
       data-group={group.module.id}
       id={`config-${group.module.id}`}
+      inset="lg"
     >
       <header className="flex items-center gap-3">
         <ServiceLogo
@@ -176,6 +179,6 @@ export function ConfigModuleGroup({
           </Button>
         </div>
       ) : null}
-    </section>
+    </Panel>
   );
 }

@@ -2,23 +2,32 @@ import type {
   ProjectPatch,
   ProjectUpdateParams,
 } from "@pupitre/shared/agent-protocol/projects";
-import type { Project } from "@pupitre/shared/agent-protocol/state";
+import type {
+  PackageManager,
+  Project,
+} from "@pupitre/shared/agent-protocol/state";
 import type { AgentError } from "@shared/agent";
 import { create } from "zustand";
 import {
   addedRow,
-  followName,
   type Held,
   heldBy,
   heldSubdomains,
   hostnamesOf,
   type PortRow,
   type RowProblem,
-  routePatches,
-  rowProblem,
-  rowsFromProject,
-  rowsReady,
 } from "../lib/project-ports";
+import {
+  addedProcess,
+  followProcesses,
+  type ProcessDraft,
+  type ProcessProblem,
+  processesFromProject,
+  processesReady,
+  processPatches,
+  processProblem,
+  rowProblems,
+} from "../lib/project-processes";
 import { useSnapshot } from "./snapshot";
 import { useTunnel } from "./tunnel";
 
@@ -26,19 +35,17 @@ import { useTunnel } from "./tunnel";
  * The configuration of a declared project, reopened.
  *
  * It is the same form as the add, filled from the project the snapshot gave —
- * the command, the install line, the branch, the ports and their names on the
- * web — minus what cannot change without removing the project: the source and
- * the name. What it sends is a patch of what differs, and the whole list of
- * ports, because the screen sends what it shows. A changed command restarts
- * the project, a name on the web taken out stops answering: both are said
- * before the button is pressed, not after.
+ * the branch, and each process with its command, its install line, its folder,
+ * its ports and their names on the web — minus what cannot change without
+ * removing the project: the source and the name. What it sends is the whole
+ * list of processes, because the screen sends what it shows. A changed
+ * command restarts its process, a name on the web taken out stops answering:
+ * both are said before the button is pressed, not after.
  */
 
 export interface ConfigDraft {
-  cmd: string;
-  install: string;
   branch: string;
-  rows: PortRow[];
+  processes: ProcessDraft[];
 }
 
 export type ConfigState =
@@ -60,42 +67,74 @@ interface ProjectConfigStore {
     others: readonly Project[],
     exposure: boolean
   ) => void;
-  setCmd: (value: string) => void;
-  setInstall: (value: string) => void;
   setBranch: (value: string) => void;
-  setRowLabel: (index: number, value: string) => void;
-  setRowPort: (index: number, value: number) => void;
-  setRowPublish: (index: number, value: boolean) => void;
-  setRowWeb: (index: number, value: string) => void;
-  generateRowWeb: (index: number) => void;
-  addRow: () => void;
-  removeRow: (index: number) => void;
+  setProcessId: (process: number, value: string) => void;
+  setProcessDir: (process: number, value: string) => void;
+  setProcessPkgmgr: (process: number, value: PackageManager) => void;
+  setProcessCmd: (process: number, value: string) => void;
+  setProcessInstall: (process: number, value: string) => void;
+  setRowLabel: (process: number, row: number, value: string) => void;
+  setRowPort: (process: number, row: number, value: number) => void;
+  setRowPublish: (process: number, row: number, value: boolean) => void;
+  setRowWeb: (process: number, row: number, value: string) => void;
+  generateRowWeb: (process: number, row: number) => void;
+  addRow: (process: number) => void;
+  removeRow: (process: number, row: number) => void;
+  addProcess: () => void;
+  removeProcess: (process: number) => void;
   /** Sends the patch, syncs the exposure when a name changed, then reads the snapshot again. */
   save: (serverId: string) => Promise<void>;
   close: () => void;
 
   patch: () => ProjectPatch;
-  rowProblem: (index: number) => RowProblem | null;
+  processProblem: (process: number) => ProcessProblem | null;
+  rowProblems: (process: number) => (RowProblem | null)[];
   ready: () => boolean;
-  /** True when the command differs from the project's: saving restarts it if it runs. */
-  restarts: () => boolean;
+  /** The processes whose command or folder differs from the project's: saving restarts those that run. */
+  restarts: () => string[];
   /** The names on the web the project holds today and the draft no longer names: they stop answering. */
   dropped: () => string[];
   changed: () => boolean;
 }
 
-const EMPTY_DRAFT: ConfigDraft = { branch: "", cmd: "", install: "", rows: [] };
+const EMPTY_DRAFT: ConfigDraft = { branch: "", processes: [] };
 
 const NO_HELD: Held = { hostnames: [], ports: [] };
 
-function atRow(
-  rows: readonly PortRow[],
+function atProcess(
+  processes: readonly ProcessDraft[],
   index: number,
-  change: Partial<PortRow>
-): PortRow[] {
-  return rows.map((current, at) =>
+  change: Partial<ProcessDraft>
+): ProcessDraft[] {
+  return processes.map((current, at) =>
     at === index ? { ...current, ...change } : current
   );
+}
+
+function atRow(
+  processes: readonly ProcessDraft[],
+  index: number,
+  row: number,
+  change: Partial<PortRow>
+): ProcessDraft[] {
+  const current = processes[index];
+
+  if (!current) {
+    return [...processes];
+  }
+
+  return atProcess(processes, index, {
+    rows: current.rows.map((held, at) =>
+      at === row ? { ...held, ...change } : held
+    ),
+  });
+}
+
+function draftFrom(project: Project): ConfigDraft {
+  return {
+    branch: project.branch ?? "",
+    processes: processesFromProject(project),
+  };
 }
 
 export const useProjectConfig = create<ProjectConfigStore>((set, get) => {
@@ -106,12 +145,12 @@ export const useProjectConfig = create<ProjectConfigStore>((set, get) => {
     }));
   }
 
-  function editRows(rows: PortRow[]): void {
+  function editProcesses(processes: ProcessDraft[]): void {
     const { project, exposure, held } = get();
 
     edit({
-      rows: followName(
-        rows,
+      processes: followProcesses(
+        processes,
         project?.name ?? "",
         exposure,
         heldSubdomains(held.hostnames)
@@ -128,12 +167,7 @@ export const useProjectConfig = create<ProjectConfigStore>((set, get) => {
 
     open(project, others, exposure) {
       set({
-        draft: {
-          branch: project.branch ?? "",
-          cmd: project.cmd,
-          install: project.install ?? "",
-          rows: rowsFromProject(project),
-        },
+        draft: draftFrom(project),
         exposure,
         held: heldBy(others, project.name),
         project,
@@ -141,52 +175,117 @@ export const useProjectConfig = create<ProjectConfigStore>((set, get) => {
       });
     },
 
-    setCmd(value) {
-      edit({ cmd: value });
-    },
-
-    setInstall(value) {
-      edit({ install: value });
-    },
-
     setBranch(value) {
       edit({ branch: value });
     },
 
-    setRowLabel(index, value) {
-      editRows(atRow(get().draft.rows, index, { label: value }));
+    setProcessId(process, value) {
+      editProcesses(atProcess(get().draft.processes, process, { id: value }));
     },
 
-    setRowPort(index, value) {
-      editRows(atRow(get().draft.rows, index, { port: value }));
+    setProcessDir(process, value) {
+      editProcesses(atProcess(get().draft.processes, process, { dir: value }));
     },
 
-    setRowPublish(index, value) {
-      editRows(atRow(get().draft.rows, index, { publish: value }));
+    setProcessPkgmgr(process, value) {
+      editProcesses(
+        atProcess(get().draft.processes, process, { pkgmgr: value })
+      );
     },
 
-    setRowWeb(index, value) {
-      editRows(atRow(get().draft.rows, index, { ownWeb: true, web: value }));
+    setProcessCmd(process, value) {
+      editProcesses(
+        atProcess(get().draft.processes, process, { cmd: value, ownCmd: true })
+      );
     },
 
-    generateRowWeb(index) {
-      editRows(atRow(get().draft.rows, index, { ownWeb: false, whole: false }));
+    setProcessInstall(process, value) {
+      editProcesses(
+        atProcess(get().draft.processes, process, { install: value })
+      );
     },
 
-    addRow() {
+    setRowLabel(process, row, value) {
+      editProcesses(
+        atRow(get().draft.processes, process, row, { label: value })
+      );
+    },
+
+    setRowPort(process, row, value) {
+      editProcesses(
+        atRow(get().draft.processes, process, row, { port: value })
+      );
+    },
+
+    setRowPublish(process, row, value) {
+      editProcesses(
+        atRow(get().draft.processes, process, row, { publish: value })
+      );
+    },
+
+    setRowWeb(process, row, value) {
+      editProcesses(
+        atRow(get().draft.processes, process, row, { ownWeb: true, web: value })
+      );
+    },
+
+    generateRowWeb(process, row) {
+      editProcesses(
+        atRow(get().draft.processes, process, row, {
+          ownWeb: false,
+          whole: false,
+        })
+      );
+    },
+
+    addRow(process) {
       const { draft, held, exposure } = get();
+      const current = draft.processes[process];
 
-      editRows([...draft.rows, addedRow(draft.rows, held, exposure)]);
-    },
-
-    removeRow(index) {
-      const { rows } = get().draft;
-
-      if (index === 0 || rows.length <= 1) {
+      if (!current) {
         return;
       }
 
-      editRows(rows.filter((_row, at) => at !== index));
+      editProcesses(
+        atProcess(draft.processes, process, {
+          rows: [...current.rows, addedRow(current.rows, held, exposure)],
+        })
+      );
+    },
+
+    removeRow(process, row) {
+      const { draft } = get();
+      const current = draft.processes[process];
+
+      if (!current || row === 0 || current.rows.length <= 1) {
+        return;
+      }
+
+      editProcesses(
+        atProcess(draft.processes, process, {
+          rows: current.rows.filter((_row, at) => at !== row),
+        })
+      );
+    },
+
+    addProcess() {
+      const { draft, held, exposure } = get();
+
+      editProcesses([
+        ...draft.processes,
+        addedProcess(draft.processes, held, exposure),
+      ]);
+    },
+
+    /** A project always has a process: the last one cannot go. */
+    removeProcess(process) {
+      const { processes } = get().draft;
+
+      if (processes.length <= 1) {
+        return;
+      }
+
+      editProcesses(processes.filter((_process, at) => at !== process));
     },
 
     async save(serverId) {
@@ -213,7 +312,7 @@ export const useProjectConfig = create<ProjectConfigStore>((set, get) => {
         return;
       }
 
-      const published = answer.result.routes.some((route) => route.hostname);
+      const published = hostnamesOf(answer.result).length > 0;
 
       if (get().exposure && (published || get().dropped().length > 0)) {
         await useTunnel.getState().sync(serverId);
@@ -230,12 +329,7 @@ export const useProjectConfig = create<ProjectConfigStore>((set, get) => {
       await useSnapshot.getState().read(serverId);
 
       set({
-        draft: {
-          branch: answer.result.branch ?? "",
-          cmd: answer.result.cmd,
-          install: answer.result.install ?? "",
-          rows: rowsFromProject(answer.result),
-        },
+        draft: draftFrom(answer.result),
         project: answer.result,
         run: { name: project.name, project: answer.result, status: "saved" },
       });
@@ -252,48 +346,57 @@ export const useProjectConfig = create<ProjectConfigStore>((set, get) => {
     },
 
     /**
-     * What differs, and the whole list of ports.
+     * The whole list of processes, and the branch when it differs.
      *
-     * The install line travels even when empty, because empty is an answer:
-     * the command goes back to the package manager. The branch does not — the
-     * registry keeps a branch or none, and an empty field means "leave it".
+     * The branch travels only when set — the registry keeps a branch or none,
+     * and an empty field means "leave it".
      */
     patch() {
       const { draft, project, exposure } = get();
-      const cmd = draft.cmd.trim();
-      const install = draft.install.trim();
       const branch = draft.branch.trim();
 
       return {
-        ...(project && cmd !== project.cmd ? { cmd } : {}),
-        ...(project && install !== (project.install ?? "") ? { install } : {}),
         ...(project && branch && branch !== (project.branch ?? "")
           ? { branch }
           : {}),
-        routes: routePatches(draft.rows, exposure),
+        processes: processPatches(draft.processes, exposure),
       };
     },
 
-    rowProblem(index) {
+    processProblem(process) {
+      return processProblem(get().draft.processes, process);
+    },
+
+    rowProblems(process) {
       const { draft, held, exposure } = get();
 
-      return rowProblem(draft.rows, index, held, exposure);
+      return rowProblems(draft.processes, process, held, exposure);
     },
 
     ready() {
       const { draft, held, exposure } = get();
 
-      return (
-        draft.cmd.trim().length > 0 &&
-        rowsReady(draft.rows, held, exposure) &&
-        get().changed()
-      );
+      return processesReady(draft.processes, held, exposure) && get().changed();
     },
 
     restarts() {
       const { draft, project } = get();
 
-      return project !== null && draft.cmd.trim() !== project.cmd;
+      if (!project) {
+        return [];
+      }
+
+      return draft.processes.flatMap((current) => {
+        const declared = project.processes.find(
+          (candidate) => candidate.id === current.id
+        );
+        const dir = current.dir.trim() || ".";
+
+        return declared &&
+          (declared.cmd !== current.cmd.trim() || declared.dir !== dir)
+          ? [current.id]
+          : [];
+      });
     },
 
     dropped() {
@@ -305,9 +408,11 @@ export const useProjectConfig = create<ProjectConfigStore>((set, get) => {
 
       const kept = new Set(
         exposure
-          ? draft.rows
-              .filter((row) => row.publish && row.whole)
-              .map((row) => row.web.trim())
+          ? draft.processes.flatMap((current) =>
+              current.rows
+                .filter((row) => row.publish && row.whole)
+                .map((row) => row.web.trim())
+            )
           : []
       );
 
@@ -315,7 +420,7 @@ export const useProjectConfig = create<ProjectConfigStore>((set, get) => {
     },
 
     changed() {
-      const { project } = get();
+      const { project, exposure } = get();
 
       if (!project) {
         return false;
@@ -323,8 +428,8 @@ export const useProjectConfig = create<ProjectConfigStore>((set, get) => {
 
       const patch = get().patch();
       const same =
-        JSON.stringify(patch.routes) ===
-        JSON.stringify(routePatches(rowsFromProject(project), get().exposure));
+        JSON.stringify(patch.processes) ===
+        JSON.stringify(processPatches(processesFromProject(project), exposure));
 
       return !same || Object.keys(patch).length > 1;
     },

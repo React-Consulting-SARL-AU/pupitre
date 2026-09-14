@@ -12,7 +12,11 @@ import { launchPupitre, type Running } from "./harness/launch";
  * outlive the suite.
  */
 
-const VERSION = "0.1.0";
+const VERSION = (
+  JSON.parse(
+    readFileSync(new URL("../package.json", import.meta.url), "utf8")
+  ) as { version: string }
+).version;
 
 test.describe("les réglages de l'app", () => {
   let running: Running;

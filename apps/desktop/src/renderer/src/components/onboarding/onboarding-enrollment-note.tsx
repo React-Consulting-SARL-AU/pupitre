@@ -1,4 +1,5 @@
 import { Details } from "@renderer/components/ui/details";
+import { Panel } from "@renderer/components/ui/panel";
 import { StatusDot } from "@renderer/components/ui/status-dot";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { EnrollmentSummary } from "@shared/account";
@@ -22,8 +23,8 @@ export function OnboardingEnrollmentNote({
   }
 
   return (
-    <div
-      className="elevation-raised flex items-start gap-3 rounded-md border border-line bg-surface px-4 py-4"
+    <Panel
+      className="flex items-start gap-3"
       data-enrolled={enrollment.serverId}
     >
       <span className="translate-y-1">
@@ -40,6 +41,6 @@ export function OnboardingEnrollmentNote({
           </span>
         </Details>
       </div>
-    </div>
+    </Panel>
   );
 }

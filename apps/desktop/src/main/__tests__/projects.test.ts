@@ -20,38 +20,70 @@ import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 /**
  * The chain of a first project, replayed against the fake agent.
  *
- * Two transcripts because there are two channels: the reads travel on the
- * control one, the long commands and the followed journal on the work one. The
- * order the app speaks in is what these files pin down.
+ * Three transcripts because there are three channels: the reads travel on the
+ * control one, the long commands on the work one, the followed journal on the
+ * follow one. The order the app speaks in is what these files pin down.
  */
 
 const SERVER = "srv-1";
 
 const VITE: ProjectAddParams = {
-  cmd: "bun run dev --port 3000",
   dir: "vite-starter",
-  host: "127.0.0.1",
   name: "vite-starter",
-  pkgmgr: "bun",
-  port: 3000,
+  processes: [
+    {
+      cmd: "bun run dev --port 3000",
+      dir: ".",
+      host: "127.0.0.1",
+      id: "vite-starter",
+      pkgmgr: "bun",
+      port: 3000,
+      routes: [{ label: "web", port: 3000 }],
+    },
+  ],
   repo: "https://github.com/moi/vite-starter.git",
-  routes: [{ label: "web", port: 3000 }],
 };
 
 const SHOP: ProjectAddParams = {
-  cmd: "bunx turbo run dev",
   dir: "shop",
-  host: "127.0.0.1",
   name: "shop",
-  pkgmgr: "bun",
-  port: 3100,
-  repo: "https://github.com/ada/shop.git",
-  routes: [
-    { label: "web", port: 3100, subdomain: "shop" },
-    { label: "api", port: 3101, subdomain: "api-shop" },
-    { label: "docs", port: 3102 },
+  processes: [
+    {
+      cmd: "bunx turbo run dev",
+      dir: ".",
+      host: "127.0.0.1",
+      id: "shop",
+      pkgmgr: "bun",
+      port: 3100,
+      routes: [
+        { label: "web", port: 3100, subdomain: "shop" },
+        { label: "api", port: 3101, subdomain: "api-shop" },
+        { label: "docs", port: 3102 },
+      ],
+    },
   ],
+  repo: "https://github.com/ada/shop.git",
 };
+
+/** One process of a fresh project, on one port, the way the form declares most of them. */
+function single(name: string, port: number): ProjectAddParams {
+  return {
+    dir: name,
+    name,
+    processes: [
+      {
+        cmd: `bun run dev --port ${port}`,
+        dir: ".",
+        host: "127.0.0.1",
+        id: name,
+        pkgmgr: "bun",
+        port,
+        routes: [{ label: "web", port }],
+      },
+    ],
+    repo: `https://github.com/moi/${name}.git`,
+  };
+}
 
 let agent: FakeAgent | null = null;
 
@@ -87,6 +119,7 @@ describe("un dépôt du formulaire au journal", () => {
     const calls = deps([
       "first-project-control.jsonl",
       "first-project-work.jsonl",
+      "first-project-follow.jsonl",
     ]);
 
     const known = await listProjects(SERVER, calls);
@@ -100,9 +133,10 @@ describe("un dépôt du formulaire au journal", () => {
     const journal = await projectLogs(
       SERVER,
       VITE.name,
+      "vite-starter",
       200,
       true,
-      (line) => lines.push(line),
+      (line: string) => lines.push(line),
       calls
     );
 
@@ -112,11 +146,10 @@ describe("un dépôt du formulaire au journal", () => {
       pulled: true,
       state: "stopped",
     });
-    expect(installed.ok && installed.result.command).toBe("bun install");
-    expect(started.ok && started.result).toMatchObject({
-      port: 3000,
-      state: "online",
-    });
+    expect(installed.ok && installed.result.installed).toEqual([
+      { command: "bun install", process: "vite-starter" },
+    ]);
+    expect(started.ok && started.result).toMatchObject({ state: "online" });
     expect(address.ok && address.result.url).toBe("http://127.0.0.1:3000");
     expect(journal.ok).toBe(true);
     expect(lines).toEqual([
@@ -148,14 +181,28 @@ describe("un projet à plusieurs ports", () => {
       "api-shop.flymate.dev",
     ]);
 
+    const shop = {
+      cmd: "bunx turbo run dev",
+      dir: ".",
+      host: "127.0.0.1" as const,
+      id: "shop",
+      install: "",
+      pkgmgr: "bun" as const,
+      port: 3100,
+    };
     const renamed = await updateProject(
       SERVER,
       {
         name: "shop",
         patch: {
-          routes: [
-            { label: "web", port: 3100, subdomain: "boutique" },
-            { label: "docs", port: 3102 },
+          processes: [
+            {
+              ...shop,
+              routes: [
+                { label: "web", port: 3100, subdomain: "boutique" },
+                { label: "docs", port: 3102 },
+              ],
+            },
           ],
         },
       },
@@ -170,11 +217,29 @@ describe("un projet à plusieurs ports", () => {
 
     const command = await updateProject(
       SERVER,
-      { name: "shop", patch: { cmd: "bunx turbo run dev --filter=web..." } },
+      {
+        name: "shop",
+        patch: {
+          processes: [
+            {
+              ...shop,
+              cmd: "bunx turbo run dev --filter=web...",
+              routes: [
+                {
+                  hostname: "boutique.flymate.dev",
+                  label: "web",
+                  port: 3100,
+                },
+                { label: "docs", port: 3102 },
+              ],
+            },
+          ],
+        },
+      },
       calls
     );
 
-    expect(command.ok && command.result.cmd).toBe(
+    expect(command.ok && command.result.processes[0]?.cmd).toBe(
       "bunx turbo run dev --filter=web..."
     );
     expect(released).toHaveLength(2);
@@ -233,6 +298,7 @@ describe("un journal suivi", () => {
     await projectLogs(
       SERVER,
       "web",
+      "web",
       50,
       true,
       () => undefined,
@@ -253,20 +319,7 @@ describe("un port déjà pris", () => {
 
     await listProjects(SERVER, calls);
 
-    const refused = await addProject(
-      SERVER,
-      {
-        cmd: "bun run dev --port 3000",
-        dir: "shop",
-        host: "127.0.0.1",
-        name: "shop",
-        pkgmgr: "bun",
-        port: 3000,
-        repo: "https://github.com/moi/shop.git",
-        routes: [{ label: "web", port: 3000 }],
-      },
-      calls
-    );
+    const refused = await addProject(SERVER, single("shop", 3000), calls);
 
     expect(refused).toMatchObject({
       error: {
@@ -286,37 +339,11 @@ describe("un port déjà pris", () => {
     ]);
 
     await listProjects(SERVER, calls);
-    await addProject(
-      SERVER,
-      {
-        cmd: "bun run dev --port 3000",
-        dir: "shop",
-        host: "127.0.0.1",
-        name: "shop",
-        pkgmgr: "bun",
-        port: 3000,
-        repo: "https://github.com/moi/shop.git",
-        routes: [{ label: "web", port: 3000 }],
-      },
-      calls
-    );
+    await addProject(SERVER, single("shop", 3000), calls);
 
-    const added = await addProject(
-      SERVER,
-      {
-        cmd: "bun run dev --port 3001",
-        dir: "shop",
-        host: "127.0.0.1",
-        name: "shop",
-        pkgmgr: "bun",
-        port: 3001,
-        repo: "https://github.com/moi/shop.git",
-        routes: [{ label: "web", port: 3001 }],
-      },
-      calls
-    );
+    const added = await addProject(SERVER, single("shop", 3001), calls);
 
-    expect(added.ok && added.result.port).toBe(3001);
+    expect(added.ok && added.result.processes[0]?.port).toBe(3001);
   });
 });
 

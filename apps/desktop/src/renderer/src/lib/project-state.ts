@@ -1,5 +1,6 @@
 import type {
   LoginState,
+  ProcessState,
   ProjectState,
   ServiceState,
 } from "@pupitre/shared/agent-protocol/state";
@@ -26,7 +27,7 @@ export interface StateLook {
 
 const NEUTRAL_FRAME = "border-line-strong";
 
-export const PROJECT_LOOK: Record<ProjectState, StateLook> = {
+export const PROCESS_LOOK: Record<ProcessState, StateLook> = {
   down: {
     frame: "border-danger/40",
     label: "state.project.down",
@@ -68,6 +69,17 @@ export const PROJECT_LOOK: Record<ProjectState, StateLook> = {
     label: "state.project.stopped",
     shape: "empty",
     tone: "neutral",
+  },
+};
+
+/** A project's states are its processes' and one more: some of them run, the others do not. */
+export const PROJECT_LOOK: Record<ProjectState, StateLook> = {
+  ...PROCESS_LOOK,
+  partial: {
+    frame: "border-warn/40",
+    label: "state.project.partial",
+    shape: "ringed",
+    tone: "warn",
   },
 };
 
@@ -139,8 +151,14 @@ export const LOGIN_LOOK: Record<LoginState, StateLook> = {
   },
 };
 
-const RUNNING: readonly ProjectState[] = ["online", "service", "external"];
+const RUNNING: readonly ProjectState[] = [
+  "online",
+  "service",
+  "external",
+  "partial",
+];
 
+/** Whether something of it runs: a partial project has processes to stop, and a restart to offer. */
 export function isRunning(state: ProjectState): boolean {
   return RUNNING.includes(state);
 }

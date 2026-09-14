@@ -2,10 +2,11 @@ export const servers = {
   en: {
     "servers.addServer": "Add a server",
     "servers.field.address": "Address",
+    "servers.field.name": "Name",
     "servers.field.host": "Host",
     "servers.field.port": "Port",
     "servers.field.user": "Account",
-    "servers.row.edit": "Change the address of {name}",
+    "servers.row.edit": "Edit {name}",
     "servers.edit.save": "Save",
     "servers.edit.note":
       "The connections to this server are reopened on the new address.",
@@ -100,7 +101,6 @@ export const servers = {
     "servers.key.inspect": "Inspect this server",
 
     "servers.row.activate": "Drive {name}",
-    "servers.row.rename": "Name of {name}",
     "servers.row.hidePublicKey": "Hide the public key",
     "servers.row.showPublicKey": "Show the public key",
     "servers.row.remove": "Delete {name}",
@@ -127,10 +127,11 @@ export const servers = {
   fr: {
     "servers.addServer": "Ajouter un serveur",
     "servers.field.address": "Adresse",
+    "servers.field.name": "Nom",
     "servers.field.host": "Hôte",
     "servers.field.port": "Port",
     "servers.field.user": "Compte",
-    "servers.row.edit": "Modifier l'adresse de {name}",
+    "servers.row.edit": "Modifier {name}",
     "servers.edit.save": "Enregistrer",
     "servers.edit.note":
       "Les connexions à ce serveur se rouvrent sur la nouvelle adresse.",
@@ -226,7 +227,6 @@ export const servers = {
     "servers.key.inspect": "Inspecter ce serveur",
 
     "servers.row.activate": "Piloter {name}",
-    "servers.row.rename": "Nom de {name}",
     "servers.row.hidePublicKey": "Masquer la clé publique",
     "servers.row.showPublicKey": "Voir la clé publique",
     "servers.row.remove": "Supprimer {name}",

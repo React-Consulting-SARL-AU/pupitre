@@ -266,8 +266,8 @@ export function forgetCredentials(serverId?: string, moduleId?: string): void {
  *
  * The renderer names a module; the unit that journal belongs to is the agent's
  * to resolve, and the lines come back on `log` events exactly as a project's
- * do. A follow holds the work channel, and the signal is how the reader lets
- * go of it before the agent's own quarter of an hour.
+ * do. A follow holds the follow channel, and the signal is how the reader
+ * lets go of it before the agent's own quarter of an hour.
  */
 export async function serviceLogs(
   serverId: unknown,

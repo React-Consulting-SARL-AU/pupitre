@@ -11,7 +11,7 @@ import { launchPupitre, type Running } from "./harness/launch";
  */
 const CHORD = process.platform === "darwin" ? "Meta+k" : "Control+k";
 
-const DASHBOARD = "1 projet en ligne";
+const DASHBOARD = "Tableau de bord";
 
 test.describe("palette", () => {
   let running: Running;

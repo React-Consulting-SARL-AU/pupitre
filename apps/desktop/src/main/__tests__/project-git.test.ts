@@ -168,6 +168,7 @@ describe("les commandes d'un projet ouvert", () => {
       "project.destroy",
       SERVER,
       "flymate-api",
+      null,
       shared
     );
 

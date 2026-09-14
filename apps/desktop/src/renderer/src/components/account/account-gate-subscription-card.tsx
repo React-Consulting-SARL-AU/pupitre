@@ -1,5 +1,6 @@
 import { Button } from "@renderer/components/ui/button";
 import { ConfirmButton } from "@renderer/components/ui/confirm-button";
+import { Panel } from "@renderer/components/ui/panel";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AccountIdentity } from "@shared/account";
 import { ExternalLink, LogOut, RotateCw } from "lucide-react";
@@ -29,7 +30,7 @@ export function AccountGateSubscriptionCard({
   const t = useTranslations();
 
   return (
-    <div className="elevation-raised rounded-md border border-line bg-surface px-5 py-5">
+    <Panel inset="lg">
       <div className="flex flex-wrap items-center gap-2">
         <Button
           icon={ExternalLink}
@@ -60,6 +61,6 @@ export function AccountGateSubscriptionCard({
           {t("account.identity.disconnect")}
         </ConfirmButton>
       </div>
-    </div>
+    </Panel>
   );
 }

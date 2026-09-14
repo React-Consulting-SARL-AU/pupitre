@@ -1,5 +1,6 @@
 import type { Manifest } from "@pupitre/shared/catalog";
 import { Button } from "@renderer/components/ui/button";
+import { Callout } from "@renderer/components/ui/callout";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { Screen } from "@renderer/components/ui/screen";
 import { ServiceLogo } from "@renderer/components/ui/service-logo";
@@ -126,7 +127,7 @@ export function ServicePanel({
         </Button>
       </>
     ),
-    eyebrow: t("services.screen.eyebrow"),
+    eyebrow: t("services.panel.eyebrow"),
     leading: <ServiceLogo moduleId={moduleId} name={name} size={32} />,
     title: name,
   };
@@ -165,6 +166,13 @@ export function ServicePanel({
       actions={
         <>
           {frame.actions}
+          {detail.detail.unit ? (
+            <ServiceControls
+              busy={busy}
+              detail={detail.detail}
+              onControl={(cmd) => store.control(serverId, moduleId, cmd)}
+            />
+          ) : null}
           {removal.status === "idle" ? (
             <ServiceRemoval
               name={detail.detail.name}
@@ -178,7 +186,6 @@ export function ServicePanel({
         <ServicePanelFacts
           detail={detail.detail}
           refusal={retirement.refusal}
-          summary={manifest?.summary}
         />
       }
       meta={
@@ -204,12 +211,10 @@ export function ServicePanel({
         serverName={serverName}
       />
 
-      {detail.detail.unit ? (
-        <ServiceControls
-          busy={busy}
-          detail={detail.detail}
-          onControl={(cmd) => store.control(serverId, moduleId, cmd)}
-        />
+      {detail.detail.unit && detail.detail.state === "failed" ? (
+        <Callout tone="danger">
+          {t("services.control.failedHint", { name: detail.detail.name })}
+        </Callout>
       ) : null}
 
       <ServiceCredentials
@@ -226,6 +231,7 @@ export function ServicePanel({
         catalogHeld={catalogHeld}
         config={config}
         configured={detail.detail.configured}
+        dirty={store.dirty()}
         manifest={manifest}
         name={detail.detail.name}
         nameOf={(id) =>
@@ -234,6 +240,7 @@ export function ServicePanel({
             : (catalog().find((one) => one.id === id)?.name ?? id)
         }
         onApply={() => store.reconfigure(serverId, moduleId)}
+        onDiscard={() => store.discard(serverId)}
         onGenerate={(key) => store.generate(serverId, moduleId, key)}
         onReloadCatalog={onReloadCatalog}
         onReveal={(key) => store.revealSecret(serverId, moduleId, key)}
@@ -241,6 +248,7 @@ export function ServicePanel({
           store.setSecret(serverId, moduleId, key, value);
         }}
         onValue={store.setValue}
+        problems={store.shown()}
         secrets={secrets}
         steps={steps}
         values={values}

@@ -1,4 +1,4 @@
-import { Label } from "@renderer/components/ui/label";
+import { Section } from "@renderer/components/ui/section";
 import { useTranslations } from "@renderer/i18n/use-translations";
 
 /**
@@ -12,9 +12,12 @@ export function ServicesTunnel() {
   const t = useTranslations();
 
   return (
-    <section className="flex flex-col gap-2" data-tunnel="absent">
-      <Label>{t("services.tunnel.title")}</Label>
+    <Section
+      data-tunnel="absent"
+      name="tunnel"
+      title={t("services.tunnel.title")}
+    >
       <p className="text-[12px] text-ink-3">{t("services.tunnel.absent")}</p>
-    </section>
+    </Section>
   );
 }

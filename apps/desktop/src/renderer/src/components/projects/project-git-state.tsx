@@ -1,12 +1,11 @@
 import { Button } from "@renderer/components/ui/button";
-import { Callout } from "@renderer/components/ui/callout";
+import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { IconButton } from "@renderer/components/ui/icon-button";
-import { StatusDot } from "@renderer/components/ui/status-dot";
-import { agentText } from "@renderer/i18n/agent-error";
+import { WaitingLine } from "@renderer/components/ui/waiting-line";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { since } from "@renderer/lib/format";
 import type { GitState } from "@renderer/stores/project";
-import { Download, RefreshCw } from "lucide-react";
+import { Download, RotateCw } from "lucide-react";
 import { ProjectGitSummary } from "./project-git-summary";
 
 /**
@@ -37,19 +36,14 @@ export function ProjectGitState({
 
   if (state.status === "idle" || state.status === "reading") {
     return (
-      <p className="flex items-center gap-2 font-data text-[12px] text-ink-3">
-        <StatusDot shape="breathing" size={11} />
+      <WaitingLine className="font-data text-[12px]">
         {t("project.git.querying")}
-      </p>
+      </WaitingLine>
     );
   }
 
   if (state.status === "failed") {
-    return (
-      <Callout fix={agentText(t, state.error).fix} tone="warn">
-        {agentText(t, state.error).message}
-      </Callout>
-    );
+    return <ErrorNotice error={state.error} onRetry={onCheck} />;
   }
 
   if (!state.git.repo) {
@@ -61,20 +55,18 @@ export function ProjectGitState({
   }
 
   return (
-    <div className="rounded-sm border border-line bg-base px-2.5 py-2">
+    <div className="border-line border-t pt-3">
       <div className="flex flex-wrap items-center gap-2">
         <div className="min-w-0 flex-1">
           <ProjectGitSummary git={state.git} />
-          {state.git.subject ? (
-            <p className="mt-1 truncate font-data text-[11px] text-ink-3">
-              {t("project.git.lastCommit", { subject: state.git.subject })}
-            </p>
-          ) : null}
+          <p className="mt-1 truncate font-data text-[11px] text-ink-3">
+            {state.git.subject
+              ? `${t("project.git.lastCommit", { subject: state.git.subject })} · `
+              : ""}
+            {t("project.git.readAt", { when: since(state.at) })}
+          </p>
         </div>
 
-        <span className="font-data text-[11px] text-ink-3">
-          {t("project.git.readAt", { when: since(state.at) })}
-        </span>
         {state.git.behind > 0 && onPull ? (
           <Button
             hint={t("project.header.syncHint")}
@@ -88,7 +80,7 @@ export function ProjectGitState({
           </Button>
         ) : null}
         <IconButton
-          icon={RefreshCw}
+          icon={RotateCw}
           label={t("project.git.queryLabel")}
           onClick={onCheck}
           size={12}

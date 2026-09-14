@@ -44,12 +44,6 @@ export function ProjectMeta({
             ) : (
               <span className="text-ok">{t("project.clean")}</span>
             )}
-            {git.behind > 0 ? (
-              <span className="font-semibold text-ink">↓{git.behind}</span>
-            ) : null}
-            {git.ahead > 0 ? (
-              <span className="text-ink-3">↑{git.ahead}</span>
-            ) : null}
           </button>
         </Tooltip>
       ) : null}

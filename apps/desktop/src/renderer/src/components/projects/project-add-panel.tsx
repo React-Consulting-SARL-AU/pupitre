@@ -1,6 +1,7 @@
 import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { RowProblem } from "@renderer/lib/project-ports";
+import type { ProcessProblem } from "@renderer/lib/project-processes";
 import { ArrowRight, RefreshCw, X } from "lucide-react";
 import type {
   DetectionState,
@@ -30,7 +31,6 @@ import { ProjectAddSteps } from "./project-add-steps";
  * after it, the project exists on the server, and the screen says so.
  */
 export function ProjectAddPanel({
-  serverName,
   known,
   draft,
   detected,
@@ -43,6 +43,7 @@ export function ProjectAddPanel({
   logs,
   run,
   ready,
+  processProblems,
   rowProblems,
   edit,
   onDetect,
@@ -55,7 +56,6 @@ export function ProjectAddPanel({
   onConnect,
   onInstallModule,
 }: {
-  serverName?: string;
   known: KnownState;
   draft: Draft;
   detected: boolean;
@@ -70,7 +70,8 @@ export function ProjectAddPanel({
   logs: readonly string[];
   run: ProjectAddState;
   ready: boolean;
-  rowProblems: readonly (RowProblem | null)[];
+  processProblems: readonly (ProcessProblem | null)[];
+  rowProblems: readonly (readonly (RowProblem | null)[])[];
   edit: DraftEdits;
   onDetect: () => void;
   onLaunch: () => void;
@@ -103,8 +104,8 @@ export function ProjectAddPanel({
           </Button>
         )
       }
-      eyebrow={t("projectAdd.panel.eyebrow")}
-      title={serverName ?? t("projectAdd.panel.defaultServer")}
+      eyebrow={t("project.header.eyebrow")}
+      title={t("projectAdd.panel.title")}
     >
       {known.status === "loading" ? (
         <WaitingNotice title={t("projectAdd.panel.loadingTitle")} />
@@ -137,6 +138,7 @@ export function ProjectAddPanel({
           onDetect={onDetect}
           onInstallModule={onInstallModule}
           onSubmit={onLaunch}
+          processProblems={processProblems}
           ready={ready}
           repos={repos}
           rowProblems={rowProblems}
@@ -163,7 +165,6 @@ export function ProjectAddPanel({
         <ProjectAddOutcome
           name={run.name}
           onOpen={onOpen}
-          port={run.port}
           state={run.state}
           url={run.url}
         />

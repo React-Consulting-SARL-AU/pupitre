@@ -76,8 +76,13 @@ export function registerProjects(): void {
 
   ipcMain.handle(
     "project:act",
-    (_event, action: unknown, serverId: unknown, name: unknown) =>
-      actOnProject(action, serverId, name, deps)
+    (
+      _event,
+      action: unknown,
+      serverId: unknown,
+      name: unknown,
+      process: unknown
+    ) => actOnProject(action, serverId, name, process, deps)
   );
 
   ipcMain.handle(
@@ -88,8 +93,13 @@ export function registerProjects(): void {
 
   ipcMain.handle(
     "project:env",
-    (_event, serverId: unknown, name: unknown, force: unknown) =>
-      projectEnv(serverId, name, force === true, deps)
+    (
+      _event,
+      serverId: unknown,
+      name: unknown,
+      force: unknown,
+      process: unknown
+    ) => projectEnv(serverId, name, force === true, process, deps)
   );
 
   ipcMain.handle(
@@ -137,6 +147,7 @@ export function registerProjects(): void {
       token: unknown,
       serverId: unknown,
       name: unknown,
+      process: unknown,
       lines: unknown,
       follow: unknown
     ) => {
@@ -150,6 +161,7 @@ export function registerProjects(): void {
         return await projectLogs(
           serverId,
           name,
+          process,
           lines,
           follow === true,
           relayTo<string>(event.sender, token, "project:log-line", "line"),

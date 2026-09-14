@@ -1,5 +1,6 @@
 import type { LoginState, Service } from "@pupitre/shared/agent-protocol/state";
 import { EmptyState } from "@renderer/components/ui/empty-state";
+import { panelClass } from "@renderer/components/ui/panel";
 import { ServiceLogo } from "@renderer/components/ui/service-logo";
 import { StatePill } from "@renderer/components/ui/state-pill";
 import { Tooltip } from "@renderer/components/ui/tooltip";
@@ -52,7 +53,7 @@ export function DashboardServices({
             label={t("dashboard.services.open", { name: service.name })}
           >
             <button
-              className="elevation-raised flex w-full items-center gap-3 rounded-md border border-line bg-surface p-3 text-left transition-soft hover:bg-raised"
+              className={`${panelClass("sm")} flex w-full items-center gap-3 text-left transition-soft hover:bg-raised`}
               data-service={service.id}
               onClick={() => onOpen?.(service.id)}
               type="button"

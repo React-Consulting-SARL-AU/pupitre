@@ -1,6 +1,6 @@
 # Un snapshot sans réponse ne doit pas empoisonner le suivant.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","ping","snapshot","report","install","secrets.set","project.logs"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","ping","snapshot","report","install","secrets.set","project.logs"]}}
 @hang
 > {"id":2,"cmd":"snapshot"}
 > {"id":3,"cmd":"snapshot"}

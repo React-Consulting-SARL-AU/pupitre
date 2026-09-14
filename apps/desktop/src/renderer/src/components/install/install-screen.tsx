@@ -152,7 +152,7 @@ export function InstallScreen({
       actions={actions}
       column
       description={description}
-      eyebrow={t("install.eyebrow")}
+      eyebrow={serverName ?? t("install.thisServer")}
       footer={
         install.status === "done" ? (
           <InstallOutcomeBar
@@ -169,7 +169,7 @@ export function InstallScreen({
       }
       plain={plain}
       step="install"
-      title={serverName ?? t("install.thisServer")}
+      title={t("install.title")}
     >
       {install.status === "sending" ? <InstallSending /> : null}
 

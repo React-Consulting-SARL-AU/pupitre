@@ -1,3 +1,4 @@
+import { Section } from "@renderer/components/ui/section";
 import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { accountOf, useAccount } from "@renderer/stores/account";
@@ -36,12 +37,21 @@ export function AccountPanel() {
   }
 
   return (
-    <section className="flex flex-col gap-4">
-      <AccountUsageNotice
-        checkedAt={account.checkedAt}
-        onOpenConsole={(url) => window.pupitre.openUrl(url)}
-        usage={account.usage}
-      />
+    <>
+      <Section name="usage" title={t("account.usage.title")}>
+        <AccountUsageNotice
+          checkedAt={account.checkedAt}
+          onOpenConsole={(url) => window.pupitre.openUrl(url)}
+          usage={account.usage}
+        />
+        {account.identity?.subscription ? (
+          <AccountSubscriptionCard
+            consoleUrl={account.consoleUrl}
+            onOpenConsole={(url) => window.pupitre.openUrl(url)}
+            subscription={account.identity.subscription}
+          />
+        ) : null}
+      </Section>
 
       {account.identity ? (
         <>
@@ -50,13 +60,6 @@ export function AccountPanel() {
             onDisconnect={disconnect}
             onRefresh={refresh}
           />
-          {account.identity.subscription ? (
-            <AccountSubscriptionCard
-              consoleUrl={account.consoleUrl}
-              onOpenConsole={(url) => window.pupitre.openUrl(url)}
-              subscription={account.identity.subscription}
-            />
-          ) : null}
           <AccountDevices current={account.device} />
         </>
       ) : (
@@ -67,6 +70,6 @@ export function AccountPanel() {
           signIn={signIn}
         />
       )}
-    </section>
+    </>
   );
 }

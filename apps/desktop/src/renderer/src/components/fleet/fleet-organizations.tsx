@@ -1,5 +1,6 @@
 import { Button } from "@renderer/components/ui/button";
-import { Label } from "@renderer/components/ui/label";
+import { Panel } from "@renderer/components/ui/panel";
+import { Section } from "@renderer/components/ui/section";
 import { StatusDot } from "@renderer/components/ui/status-dot";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { roleLabel } from "@renderer/lib/roles";
@@ -27,10 +28,8 @@ export function FleetOrganizations({
   }
 
   return (
-    <div className="rounded-md border border-line bg-surface px-4 py-4">
-      <Label>{t("fleet.organizations.heading")}</Label>
-
-      <ul className="mt-3 flex flex-col gap-2">
+    <Section name="organizations" title={t("fleet.organizations.heading")}>
+      <Panel as="ul" className="flex flex-col gap-2">
         {identity.organizations.map((organization) => {
           const active = organization.id === identity.organization?.id;
 
@@ -60,7 +59,7 @@ export function FleetOrganizations({
             </li>
           );
         })}
-      </ul>
-    </div>
+      </Panel>
+    </Section>
   );
 }

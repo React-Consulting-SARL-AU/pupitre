@@ -40,6 +40,8 @@ export const NOTHING: CompletionState = {
 interface Sources {
   catalog: CompletionsResult | null;
   projects: string[];
+  /** The processes of each project, by project name: what `$process` stands for once a project is typed. */
+  processes?: Record<string, readonly string[]>;
   history: string[];
   paths: string[];
 }
@@ -125,26 +127,37 @@ function proposeCommands(where: Line, sources: Sources, add: Offer): void {
   }
 }
 
-/** The values one argument accepts, the projects among them. */
+/** The values one argument accepts: the projects for `$project`, the processes of the project typed before for `$process`, the rest as written. */
 function proposeValues(
   values: readonly string[],
   token: string,
+  project: string,
   sources: Sources,
   add: Offer
 ): void {
   for (const value of values) {
-    if (value !== "$project") {
-      if (value.startsWith(token)) {
-        add({ kind: "argument", text: value });
+    if (value === "$project") {
+      for (const name of sources.projects) {
+        if (name.startsWith(token)) {
+          add({ help: "projet", kind: "argument", text: name });
+        }
       }
 
       continue;
     }
 
-    for (const project of sources.projects) {
-      if (project.startsWith(token)) {
-        add({ help: "projet", kind: "argument", text: project });
+    if (value === "$process") {
+      for (const id of sources.processes?.[project] ?? []) {
+        if (id.startsWith(token)) {
+          add({ help: "processus", kind: "argument", text: id });
+        }
       }
+
+      continue;
+    }
+
+    if (value.startsWith(token)) {
+      add({ kind: "argument", text: value });
     }
   }
 }
@@ -170,7 +183,13 @@ function proposeGrammar(where: Line, sources: Sources, add: Offer): void {
 
   const sub = grammar.sub.find((candidate) => candidate.name === tokens[1]);
 
-  proposeValues(sub?.args[position - 2] ?? [], token, sources, add);
+  proposeValues(
+    sub?.args[position - 2] ?? [],
+    token,
+    tokens[2] ?? "",
+    sources,
+    add
+  );
 }
 
 function proposePaths(where: Line, sources: Sources, add: Offer): void {
@@ -336,6 +355,7 @@ let catalogRequest: Promise<unknown> | null = null;
 let serverId: string | null = null;
 let history: string[] = [];
 let projects: string[] = [];
+let processes: Record<string, readonly string[]> = {};
 
 const HISTORY_KEPT = 200;
 
@@ -366,9 +386,17 @@ function rememberCommand(line: string): void {
   writeHistory(serverId, history);
 }
 
-/** The projects the server announced: the app is what holds them. */
-export function noteProjects(names: readonly string[]): void {
-  projects = [...names];
+/** The projects the server announced, and the processes of each: the app is what holds them. */
+export function noteProjects(
+  declared: readonly { name: string; processes: readonly { id: string }[] }[]
+): void {
+  projects = declared.map((project) => project.name);
+  processes = Object.fromEntries(
+    declared.map((project) => [
+      project.name,
+      project.processes.map((process) => process.id),
+    ])
+  );
 }
 
 /** The server every source is read from. Another one, and they all go stale. */
@@ -385,6 +413,8 @@ export function forgetSources(): void {
   catalog = null;
   catalogRequest = null;
   history = [];
+  projects = [];
+  processes = {};
   for (const item of tracked.values()) {
     item.paths.clear();
   }
@@ -527,6 +557,7 @@ export function recompute(id: string): void {
   const { candidates, ghost } = propose(line, {
     catalog,
     projects: projects.length > 0 ? projects : (catalog?.projects ?? []),
+    processes,
     history,
     paths,
   });

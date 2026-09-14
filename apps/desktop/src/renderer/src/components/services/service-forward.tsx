@@ -1,7 +1,7 @@
 import { Button } from "@renderer/components/ui/button";
 import { CopyField } from "@renderer/components/ui/copy-field";
 import { IconButton } from "@renderer/components/ui/icon-button";
-import { Label } from "@renderer/components/ui/label";
+import { Section } from "@renderer/components/ui/section";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { PortForward } from "@shared/services";
 import { Cable, X } from "lucide-react";
@@ -34,15 +34,15 @@ export function ServiceForward({
   const open = forwards.filter((forward) => forward.remotePort === port);
 
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Label>{t("services.forward.title")}</Label>
-
+    <Section
+      actions={
         <Button icon={Cable} onClick={onOpen} size="sm">
           {t("services.forward.open", { port })}
         </Button>
-      </div>
-
+      }
+      name="forward"
+      title={t("services.forward.title")}
+    >
       {open.length === 0 ? (
         <p className="text-[12px] text-ink-3">
           {t("services.forward.empty", { port })}
@@ -81,6 +81,6 @@ export function ServiceForward({
           ))}
         </ul>
       )}
-    </section>
+    </Section>
   );
 }

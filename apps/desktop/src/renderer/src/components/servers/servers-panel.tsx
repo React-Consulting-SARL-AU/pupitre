@@ -11,7 +11,8 @@ import { OnboardingEntry } from "../onboarding/onboarding-entry";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
 import { EmptyState } from "../ui/empty-state";
-import { Label } from "../ui/label";
+import { Panel } from "../ui/panel";
+import { Section } from "../ui/section";
 import { HostKeyAlert } from "./host-key-alert";
 import { ServerAddForm } from "./server-add-form";
 import { ServerKeyInstall } from "./server-key-install";
@@ -122,29 +123,31 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
         />
       ) : null}
 
-      <section>
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <Label>{t("servers.panel.heading")}</Label>
-          <div className="flex flex-wrap items-center gap-2">
+      <Section
+        actions={
+          <>
             {/* Members, assignment and revocation live on the console, not here. */}
             {consoleUrl ? (
               <Button
                 icon={ExternalLink}
                 onClick={() => window.pupitre.openUrl(consoleUrl)}
+                size="sm"
               >
                 {t("fleet.console.open")}
               </Button>
             ) : null}
             {servers.length > 0 && !adding ? (
-              <Button icon={Plus} onClick={() => setAdding(true)}>
+              <Button icon={Plus} onClick={() => setAdding(true)} size="sm">
                 {t("servers.addServer")}
               </Button>
             ) : null}
-          </div>
-        </div>
-
+          </>
+        }
+        name="servers"
+        title={t("servers.panel.heading")}
+      >
         {servers.length === 0 ? (
-          <div className="mt-5 rounded-md border border-line border-dashed">
+          <Panel inset="none">
             <EmptyState
               action={
                 adding ? null : (
@@ -160,45 +163,44 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
               icon={ServerIcon}
               title={t("servers.panel.emptyTitle")}
             />
-          </div>
+          </Panel>
         ) : (
-          <div className="mt-5 flex flex-col gap-gutter">
+          <div className="flex flex-col gap-gutter">
             {servers.map((server) => (
-              <div className="flex flex-col gap-3" key={server.id}>
-                <OnboardingEntry server={server} />
-                <ServerRow
-                  active={server.id === active}
-                  edit={edit}
-                  onActivate={() => run(activate(server.id))}
-                  onForget={() => run(forget(server.id))}
-                  onForgetEdit={forgetEdit}
-                  onOpen={() => open(server.id)}
-                  onRemove={() => run(remove(server.id))}
-                  onRename={(name) => rename(server.id, name)}
-                  onUpdate={(changes) => run(update(server.id, changes))}
-                  opening={
-                    opening.status !== "idle" && opening.serverId === server.id
-                      ? opening
-                      : null
-                  }
-                  refusal={
-                    removal.status === "refused" &&
-                    removal.serverId === server.id ? (
-                      <Callout
-                        fix={agentText(t, removal.error).fix}
-                        tone="danger"
-                      >
-                        {agentText(t, removal.error).message}
-                      </Callout>
-                    ) : null
-                  }
-                  server={server}
-                />
-              </div>
+              <ServerRow
+                active={server.id === active}
+                edit={edit}
+                footer={<OnboardingEntry server={server} />}
+                key={server.id}
+                onActivate={() => run(activate(server.id))}
+                onForget={() => run(forget(server.id))}
+                onForgetEdit={forgetEdit}
+                onOpen={() => open(server.id)}
+                onRemove={() => run(remove(server.id))}
+                onRename={(name) => rename(server.id, name)}
+                onUpdate={(changes) => run(update(server.id, changes))}
+                opening={
+                  opening.status !== "idle" && opening.serverId === server.id
+                    ? opening
+                    : null
+                }
+                refusal={
+                  removal.status === "refused" &&
+                  removal.serverId === server.id ? (
+                    <Callout
+                      fix={agentText(t, removal.error).fix}
+                      tone="danger"
+                    >
+                      {agentText(t, removal.error).message}
+                    </Callout>
+                  ) : null
+                }
+                server={server}
+              />
             ))}
           </div>
         )}
-      </section>
+      </Section>
 
       <FleetPanel />
 

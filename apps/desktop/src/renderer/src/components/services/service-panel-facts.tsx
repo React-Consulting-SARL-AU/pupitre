@@ -4,12 +4,9 @@ import { Details } from "../ui/details";
 /** What the agent says of this module right now, under its name. */
 export function ServicePanelFacts({
   detail,
-  summary,
   refusal,
 }: {
   detail: ServiceDetail;
-  /** The manifest's own sentence, when this server declares the module. */
-  summary?: string;
   /** Why the module cannot be retired, when the catalogue forbids it. */
   refusal?: string;
 }) {
@@ -29,8 +26,6 @@ export function ServicePanelFacts({
           {facts.join(" · ")}
         </p>
       ) : null}
-
-      {summary ? <p>{summary}</p> : null}
 
       {refusal ? (
         <p className="text-[12px]" data-removal-refused="">

@@ -4,13 +4,16 @@
  *
  * The head carries the ids the controls of every row point at: one caption
  * labels a whole column, the way a table does, rather than each row repeating
- * three captions of its own.
+ * three captions of its own. The scope tells one process's table from
+ * another's on the same screen.
  */
-export const PORTS_HEAD = {
-  label: "project.ports.head.label",
-  port: "project.ports.head.port",
-  web: "project.ports.head.web",
-} as const;
+export function portsHead(scope: string) {
+  return {
+    label: `${scope}.head.label`,
+    port: `${scope}.head.port`,
+    web: `${scope}.head.web`,
+  } as const;
+}
 
 const SHARED = "grid items-center gap-3";
 

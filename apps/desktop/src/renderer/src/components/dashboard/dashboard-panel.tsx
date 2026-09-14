@@ -6,19 +6,14 @@ import { ActivitySessions } from "@renderer/components/activity/activity-session
 import { Button } from "@renderer/components/ui/button";
 import { ConfirmButton } from "@renderer/components/ui/confirm-button";
 import { EmptyState } from "@renderer/components/ui/empty-state";
-import { Label } from "@renderer/components/ui/label";
+import { Panel } from "@renderer/components/ui/panel";
 import { Screen } from "@renderer/components/ui/screen";
+import { Section } from "@renderer/components/ui/section";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { memoryOf } from "@renderer/lib/project-ports";
 import { isRunning } from "@renderer/lib/project-state";
 import type { ProjectAction } from "@renderer/stores/snapshot";
-import {
-  FolderPlus,
-  Package,
-  Play,
-  Power,
-  Sparkles,
-  Square,
-} from "lucide-react";
+import { FolderPlus, Package, Play, Power, Square } from "lucide-react";
 import { useRef } from "react";
 import { DashboardMachine } from "./dashboard-machine";
 import { DashboardProjectCard } from "./dashboard-project-card";
@@ -35,6 +30,8 @@ import { DashboardServices } from "./dashboard-services";
 
 interface Props {
   snapshot: SnapshotResult;
+  /** The name the app gives the server; the machine's own when it has none. */
+  serverName?: string;
   busy: string | null;
   /** The sessions the app still has a tab on. */
   attached: readonly string[];
@@ -53,6 +50,7 @@ interface Props {
 
 export function DashboardPanel({
   snapshot,
+  serverName,
   busy,
   attached,
   accounts,
@@ -75,19 +73,22 @@ export function DashboardPanel({
     (project) => project.state === "failed" || project.state === "down"
   );
   const projectsRam = projects.reduce(
-    (total, project) => total + (project.ram_mb ?? 0),
+    (total, project) => total + memoryOf(project),
     0
   );
 
-  const projectsLabel = t.plural("dashboard.project", projects.length);
+  const counted = {
+    projects: t.plural("dashboard.project", projects.length),
+    up: up.length,
+  };
 
   const description =
     broken.length > 0
       ? t("dashboard.panel.summaryBroken", {
-          projects: projectsLabel,
+          ...counted,
           broken: t.plural("dashboard.broken", broken.length),
         })
-      : t("dashboard.panel.summary", { projects: projectsLabel });
+      : t("dashboard.panel.summary", counted);
 
   return (
     <Screen
@@ -112,15 +113,30 @@ export function DashboardPanel({
           >
             {t("dashboard.panel.stopAll")}
           </ConfirmButton>
+          <ConfirmButton
+            confirmLabel={t("dashboard.panel.reboot")}
+            icon={Power}
+            onConfirm={onReboot}
+            question={t("dashboard.panel.rebootQuestion")}
+          >
+            {t("dashboard.panel.rebootServer")}
+          </ConfirmButton>
         </>
       }
-      description={description}
-      eyebrow={snapshot.machine.hostname}
-      title={t("dashboard.panel.title", {
-        projects: t.plural("dashboard.project", up.length),
-      })}
+      description={projects.length > 0 ? description : undefined}
+      eyebrow={serverName ?? snapshot.machine.hostname}
+      title={t("dashboard.panel.title")}
     >
-      <section className="flex flex-col gap-3">
+      <Section
+        aside={
+          <span className="font-data text-[12px] text-ink-3">
+            {snapshot.machine.os} {snapshot.machine.version} ·{" "}
+            {snapshot.machine.arch} · pupitred {snapshot.machine.agent_version}
+          </span>
+        }
+        name="machine"
+        title={t("dashboard.panel.machine")}
+      >
         <DashboardMachine
           machine={snapshot.machine}
           onCleanSessions={onCleanSessions}
@@ -133,32 +149,23 @@ export function DashboardPanel({
           projectsRam={projectsRam}
           runningProjects={up.length}
         />
-        {/* What the machine is and what runs it: information, so it is read
-              in an ink that can be, not in the faintest one. */}
-        <p className="font-data text-[12px] text-ink-3">
-          {snapshot.machine.os} {snapshot.machine.version} ·{" "}
-          {snapshot.machine.arch} · pupitred {snapshot.machine.agent_version}
-        </p>
-      </section>
+      </Section>
 
-      <section className="flex flex-col gap-3">
-        <h2>
-          <Label>{t("dashboard.panel.services")}</Label>
-        </h2>
+      <Section name="services" title={t("dashboard.panel.services")}>
         <DashboardServices
           accounts={accounts}
           onOpen={onOpenService}
           services={snapshot.services}
         />
-      </section>
+      </Section>
 
-      <section className="flex flex-col gap-3">
-        {/* Focusable, so the memory remedy can land the reader here. */}
-        <h2 className="outline-none" ref={projectsHeading} tabIndex={-1}>
-          <Label>{t("dashboard.panel.projects")}</Label>
-        </h2>
+      <Section
+        name="projects"
+        ref={projectsHeading}
+        title={t("dashboard.panel.projects")}
+      >
         {projects.length === 0 ? (
-          <div className="elevation-raised rounded-md border border-line bg-surface">
+          <Panel inset="none">
             <EmptyState
               action={
                 <Button icon={FolderPlus} onClick={onAddProject}>
@@ -168,7 +175,7 @@ export function DashboardPanel({
               icon={Package}
               title={t("dashboard.panel.noProjects")}
             />
-          </div>
+          </Panel>
         ) : (
           <div className="grid gap-gutter md:grid-cols-2">
             {projects.map((project) => (
@@ -182,37 +189,14 @@ export function DashboardPanel({
             ))}
           </div>
         )}
-      </section>
+      </Section>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="flex items-center gap-1.5 text-ink-3">
-          <Sparkles size={12} strokeWidth={1.5} />
-          <Label>{t("dashboard.panel.backgroundSessions")}</Label>
-        </h2>
-        <div className="elevation-raised overflow-hidden rounded-md border border-line bg-surface">
-          <ActivitySessions
-            attached={attached}
-            onClean={onCleanSessions}
-            onStop={onStopSession}
-            sessions={snapshot.sessions}
-          />
-        </div>
-      </section>
-
-      {/*
-          Reboot keeps its distance from the rest: it is the only button on this
-          page that interrupts everyone, and the only one with no undo.
-        */}
-      <div className="flex justify-end border-line border-t pt-5">
-        <ConfirmButton
-          confirmLabel={t("dashboard.panel.reboot")}
-          icon={Power}
-          onConfirm={onReboot}
-          question={t("dashboard.panel.rebootQuestion")}
-        >
-          {t("dashboard.panel.rebootServer")}
-        </ConfirmButton>
-      </div>
+      <ActivitySessions
+        attached={attached}
+        onClean={onCleanSessions}
+        onStop={onStopSession}
+        sessions={snapshot.sessions}
+      />
     </Screen>
   );
 }

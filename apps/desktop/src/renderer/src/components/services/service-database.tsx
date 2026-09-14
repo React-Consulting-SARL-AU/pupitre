@@ -1,6 +1,8 @@
 import { Button } from "@renderer/components/ui/button";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { Label } from "@renderer/components/ui/label";
+import { Panel } from "@renderer/components/ui/panel";
+import { Section } from "@renderer/components/ui/section";
 import type { DictionaryKey } from "@renderer/i18n/en";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { humanBytes } from "@renderer/lib/duration";
@@ -13,6 +15,8 @@ import {
   Download,
   HardDriveDownload,
   HardDriveUpload,
+  List,
+  RefreshCw,
   SquareTerminal,
   Upload,
 } from "lucide-react";
@@ -71,113 +75,110 @@ export function ServiceDatabase({
   const t = useTranslations();
 
   return (
-    <section className="flex flex-col gap-3">
-      <Label>{t("services.database.title")}</Label>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          hint={t("services.database.shellHint")}
-          icon={SquareTerminal}
-          loading={busy === "db.shell"}
-          onClick={onShell}
-          size="sm"
-        >
-          {t("services.database.shell")}
-        </Button>
-        <Button
-          icon={Download}
-          loading={busy === "db.dump"}
-          onClick={onDump}
-          size="sm"
-        >
-          {t("services.database.dump")}
-        </Button>
-        <Button
-          icon={Upload}
-          loading={busy === "db.import"}
-          onClick={onImport}
-          size="sm"
-        >
-          {t("services.database.import")}
-        </Button>
-        <Button
-          hint={t("transfers.dump.import.help")}
-          icon={HardDriveUpload}
-          onClick={onImportFromComputer}
-          size="sm"
-        >
-          {t("transfers.dump.import")}
-        </Button>
-      </div>
-
-      {pendingImports.length > 0 ? (
-        <WaitingLine className="text-[12px]">
-          {t("transfers.dump.importing")}
-          {" · "}
-          <span className="font-data">
-            {pendingImports.map((one) => one.name).join(", ")}
-          </span>
-        </WaitingLine>
-      ) : null}
-
-      {outcome ? (
-        <div
-          className="elevation-raised rounded-md border border-line bg-surface p-3"
-          data-outcome={outcome.kind}
-        >
-          <Label>{t(TITLES[outcome.kind])}</Label>
-          {outcome.lines.length === 0 ? (
-            <p className="mt-1 text-[12px] text-ink-3">
-              {t("services.database.empty")}
-            </p>
-          ) : (
-            <ul className="mt-1 flex flex-col gap-1">
-              {outcome.lines.map((line) => (
-                <li
-                  className="break-all font-data text-[12px] text-ink-2"
-                  key={line}
-                >
-                  {line}
-                  {outcome.bytes === undefined
-                    ? null
-                    : ` · ${humanBytes(outcome.bytes)}`}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {outcome.kind === "dump" && outcome.lines[0] ? (
-            <div className="mt-3">
-              <Button
-                hint={t("transfers.download.title")}
-                icon={HardDriveDownload}
-                onClick={onDownloadDump}
-                size="sm"
-              >
-                {t("transfers.dump.download")}
-              </Button>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-
-      <div className="flex flex-col gap-2" data-dumps={dumps.status}>
-        <div className="flex items-center gap-3">
-          <span className="text-[12px] text-ink-3">
-            {t("services.dumps.title")}
-          </span>
+    <>
+      <Section name="database" title={t("services.database.title")}>
+        <div className="flex flex-wrap items-center gap-2">
           <Button
+            hint={t("services.database.shellHint")}
+            icon={SquareTerminal}
+            loading={busy === "db.shell"}
+            onClick={onShell}
+            size="sm"
+          >
+            {t("services.database.shell")}
+          </Button>
+          <Button
+            icon={Download}
+            loading={busy === "db.dump"}
+            onClick={onDump}
+            size="sm"
+          >
+            {t("services.database.dump")}
+          </Button>
+          <Button
+            icon={Upload}
+            loading={busy === "db.import"}
+            onClick={onImport}
+            size="sm"
+          >
+            {t("services.database.import")}
+          </Button>
+          <Button
+            hint={t("transfers.dump.import.help")}
+            icon={HardDriveUpload}
+            onClick={onImportFromComputer}
+            size="sm"
+          >
+            {t("transfers.dump.import")}
+          </Button>
+        </div>
+
+        {pendingImports.length > 0 ? (
+          <WaitingLine className="text-[12px]">
+            {t("transfers.dump.importing")}
+            {" · "}
+            <span className="font-data">
+              {pendingImports.map((one) => one.name).join(", ")}
+            </span>
+          </WaitingLine>
+        ) : null}
+
+        {outcome ? (
+          <Panel data-outcome={outcome.kind} inset="sm">
+            <Label>{t(TITLES[outcome.kind])}</Label>
+            {outcome.lines.length === 0 ? (
+              <p className="mt-1 text-[12px] text-ink-3">
+                {t("services.database.empty")}
+              </p>
+            ) : (
+              <ul className="mt-1 flex flex-col gap-1">
+                {outcome.lines.map((line) => (
+                  <li
+                    className="break-all font-data text-[12px] text-ink-2"
+                    key={line}
+                  >
+                    {line}
+                    {outcome.bytes === undefined
+                      ? null
+                      : ` · ${humanBytes(outcome.bytes)}`}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {outcome.kind === "dump" && outcome.lines[0] ? (
+              <div className="mt-3">
+                <Button
+                  hint={t("transfers.download.title")}
+                  icon={HardDriveDownload}
+                  onClick={onDownloadDump}
+                  size="sm"
+                >
+                  {t("transfers.dump.download")}
+                </Button>
+              </div>
+            ) : null}
+          </Panel>
+        ) : null}
+      </Section>
+
+      <Section
+        actions={
+          <Button
+            icon={dumps.status === "idle" ? List : RefreshCw}
             loading={dumps.status === "reading"}
             onClick={onReadDumps}
             size="sm"
-            variant="discreet"
           >
             {dumps.status === "idle"
               ? t("services.dumps.read")
               : t("services.dumps.reread")}
           </Button>
-        </div>
-
+        }
+        data-dumps={dumps.status}
+        name="dumps"
+        title={t("services.dumps.title")}
+      >
         {dumps.status === "failed" ? (
           <ErrorNotice error={dumps.error} onRetry={onReadDumps} />
         ) : null}
@@ -187,7 +188,7 @@ export function ServiceDatabase({
         ) : null}
 
         {dumps.status === "ready" && dumps.dumps.length > 0 ? (
-          <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
+          <Panel as="ul" list>
             {dumps.dumps.map((dump) => (
               <ServiceDumpRow
                 busy={busy !== null}
@@ -197,9 +198,9 @@ export function ServiceDatabase({
                 onRestore={() => onRestoreDump(dump.name)}
               />
             ))}
-          </ul>
+          </Panel>
         ) : null}
-      </div>
-    </section>
+      </Section>
+    </>
   );
 }

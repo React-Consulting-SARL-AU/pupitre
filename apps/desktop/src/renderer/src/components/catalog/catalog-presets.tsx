@@ -9,7 +9,7 @@ import {
   type PresetOffer,
   presetOffers,
 } from "../../lib/catalog-selection";
-import { Label } from "../ui/label";
+import { Section } from "../ui/section";
 import { CatalogPresetChoice } from "./catalog-preset-choice";
 
 /**
@@ -78,9 +78,7 @@ export function CatalogPresets({
   }
 
   return (
-    <section className="flex flex-col gap-3">
-      <Label>{t("catalog.presets.title")}</Label>
-
+    <Section name="presets" title={t("catalog.presets.title")}>
       <div className="grid gap-gutter sm:grid-cols-3">
         {offers.map((offer) => {
           const empty = bringsNothing(offer);
@@ -127,6 +125,6 @@ export function CatalogPresets({
           preset={asking.preset}
         />
       ) : null}
-    </section>
+    </Section>
   );
 }

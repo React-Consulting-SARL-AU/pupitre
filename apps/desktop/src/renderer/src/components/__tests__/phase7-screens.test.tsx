@@ -79,7 +79,7 @@ describe("le fichier d'environnement d'un projet", () => {
     expect(html).toContain("AUTH_SECRET");
     expect(html).toContain('data-env-keys="2"');
     expect(text(html)).toContain("Régénérer");
-    expect(text(html)).toContain("lu tel qu'il est sur le serveur");
+    expect(text(html)).not.toContain("écrit");
   });
 
   it("résume un long fichier à ses premières clés et offre de tout afficher", () => {

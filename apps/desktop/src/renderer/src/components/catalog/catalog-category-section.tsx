@@ -1,7 +1,7 @@
 import type { Manifest, ModuleCategory } from "@pupitre/shared/catalog";
 import type { DictionaryKey } from "@renderer/i18n/en";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { Label } from "../ui/label";
+import { Section } from "../ui/section";
 import { CatalogModuleCard } from "./catalog-module-card";
 
 /**
@@ -36,9 +36,11 @@ export function CatalogCategorySection({
   const name = NAMES[category];
 
   return (
-    <section className="flex flex-col gap-3" data-category={category}>
-      <Label>{name ? t(name) : category}</Label>
-
+    <Section
+      data-category={category}
+      name={category}
+      title={name ? t(name) : category}
+    >
       <ul className="grid gap-gutter lg:grid-cols-2">
         {modules.map((module) => (
           <CatalogModuleCard
@@ -50,6 +52,6 @@ export function CatalogCategorySection({
           />
         ))}
       </ul>
-    </section>
+    </Section>
   );
 }

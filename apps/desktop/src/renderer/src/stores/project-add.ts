@@ -24,23 +24,29 @@ import {
   freePort,
   nameFromSource,
   portFromRemedy,
-  startCommand,
 } from "../lib/project-draft";
 import {
   addedRow,
-  firstRow,
-  followName,
   type Held,
   heldBy,
   heldSubdomains,
   type PortRow,
   type RowProblem,
-  routeRequests,
-  rowProblem,
-  rowsFromDetection,
-  rowsFromProject,
-  rowsReady,
 } from "../lib/project-ports";
+import {
+  addedProcess,
+  firstProcess,
+  followProcesses,
+  type ProcessDraft,
+  type ProcessProblem,
+  processesFromDetection,
+  processesFromProject,
+  processesReady,
+  processProblem,
+  processRequests,
+  publishedSubdomains,
+  rowProblems,
+} from "../lib/project-processes";
 import { useTunnel } from "./tunnel";
 
 /**
@@ -53,8 +59,6 @@ import { useTunnel } from "./tunnel";
  * refused port comes back with the free one in its remedy, and that is the
  * port the form then proposes.
  */
-
-const HOST = "127.0.0.1";
 
 const LOG_KEPT = 500;
 
@@ -137,24 +141,15 @@ export interface Draft {
   branch: string;
   name: string;
   dir: string;
-  pkgmgr: PackageManager;
-  /** The ports, the first one being the main port. */
-  rows: PortRow[];
-  cmd: string;
+  /** What runs in the project, the first one being the main one. */
+  processes: ProcessDraft[];
 }
 
 /** What the reader has taken over, and what still follows the source. */
 interface Edited {
   name: boolean;
-  /** A port, a label, a row added or taken away: the list is theirs, and a detection no longer replaces it. */
-  rows: boolean;
-  cmd: boolean;
-}
-
-/** What the agent read off the repository: proposals, until the reader says otherwise. */
-interface Proposed {
-  cmd?: string;
-  port?: number;
+  /** A port, a command, a process added or taken away: the list is theirs, and a detection no longer replaces it. */
+  processes: boolean;
 }
 
 export type KnownState =
@@ -208,7 +203,6 @@ export type ProjectAddState =
       serverId: string;
       name: string;
       state: ProjectState;
-      port?: number;
       url?: string;
     }
   | {
@@ -223,7 +217,7 @@ interface ProjectAddStore {
   known: KnownState;
   draft: Draft;
   edited: Edited;
-  /** True when the package manager came from a project the agent already knows. */
+  /** True when the processes came from a project the agent already knows. */
   detected: boolean;
   detection: DetectionState;
   repos: ReposState;
@@ -238,16 +232,21 @@ interface ProjectAddStore {
   setSource: (value: string) => void;
   setName: (value: string) => void;
   setBranch: (value: string) => void;
-  setPkgmgr: (value: PackageManager) => void;
-  setRowLabel: (index: number, value: string) => void;
-  setRowPort: (index: number, value: number) => void;
-  setRowPublish: (index: number, value: boolean) => void;
-  setRowWeb: (index: number, value: string) => void;
+  setProcessId: (process: number, value: string) => void;
+  setProcessDir: (process: number, value: string) => void;
+  setProcessPkgmgr: (process: number, value: PackageManager) => void;
+  setProcessCmd: (process: number, value: string) => void;
+  setProcessInstall: (process: number, value: string) => void;
+  setRowLabel: (process: number, row: number, value: string) => void;
+  setRowPort: (process: number, row: number, value: number) => void;
+  setRowPublish: (process: number, row: number, value: boolean) => void;
+  setRowWeb: (process: number, row: number, value: string) => void;
   /** Proposes a name on the web no declared project holds, from the project's name and the row's label. */
-  generateRowWeb: (index: number) => void;
-  addRow: () => void;
-  removeRow: (index: number) => void;
-  setCmd: (value: string) => void;
+  generateRowWeb: (process: number, row: number) => void;
+  addRow: (process: number) => void;
+  removeRow: (process: number, row: number) => void;
+  addProcess: () => void;
+  removeProcess: (process: number) => void;
   /** The repositories of the connected account, held by the main process. */
   loadRepos: (refresh?: boolean) => Promise<void>;
   /** A repository of the list: its address, its default branch, and what it costs. */
@@ -267,52 +266,65 @@ interface ProjectAddStore {
 
   params: () => ProjectAddParams;
   ready: () => boolean;
-  /** Why a row would be refused, before the agent is asked. */
-  rowProblem: (index: number) => RowProblem | null;
+  /** Why a process would be refused, before the agent is asked. */
+  processProblem: (process: number) => ProcessProblem | null;
+  /** Why each row of a process would be refused, before the agent is asked. */
+  rowProblems: (process: number) => (RowProblem | null)[];
 }
 
 const EMPTY_DRAFT: Draft = {
   branch: "",
-  cmd: "",
   dir: "",
   kind: "github",
   name: "",
-  pkgmgr: "bun",
   privateRepo: false,
-  rows: [firstRow(FIRST_PORT, true)],
+  processes: [firstProcess(FIRST_PORT, true)],
   source: "",
 };
 
 const UNTOUCHED: Edited = {
-  cmd: false,
   name: false,
-  rows: false,
+  processes: false,
 };
 
 function pending(): Phase[] {
   return PHASES.map((id) => ({ id, status: "pending" }));
 }
 
-/** The main port: the first row's. */
-function mainPort(rows: readonly PortRow[]): number {
-  return rows[0]?.port ?? FIRST_PORT;
-}
-
-/** What the other projects hold: a project the draft names again does not compete with its own row. */
+/** What the other projects hold: a project the draft names again does not compete with its own rows. */
 function heldOf(known: KnownState, name: string): Held {
   return known.status === "ready"
     ? heldBy(known.projects, name)
     : { hostnames: [], ports: [] };
 }
 
-function atRow(
-  rows: readonly PortRow[],
+function atProcess(
+  processes: readonly ProcessDraft[],
   index: number,
-  change: Partial<PortRow>
-): PortRow[] {
-  return rows.map((current, at) =>
+  change: Partial<ProcessDraft>
+): ProcessDraft[] {
+  return processes.map((current, at) =>
     at === index ? { ...current, ...change } : current
   );
+}
+
+function atRow(
+  processes: readonly ProcessDraft[],
+  index: number,
+  row: number,
+  change: Partial<PortRow>
+): ProcessDraft[] {
+  const current = processes[index];
+
+  if (!current) {
+    return [...processes];
+  }
+
+  return atProcess(processes, index, {
+    rows: current.rows.map((held, at) =>
+      at === row ? { ...held, ...change } : held
+    ),
+  });
 }
 
 /**
@@ -338,22 +350,6 @@ function declaredAt(
   );
 }
 
-/** The agent's command, on the port the reader settled on since. */
-function proposedCommand(proposed: Proposed, port: number): string | null {
-  if (!proposed.cmd) {
-    return null;
-  }
-
-  if (!proposed.port || proposed.port === port) {
-    return proposed.cmd;
-  }
-
-  return proposed.cmd.replace(
-    new RegExp(`\\b${proposed.port}\\b`),
-    String(port)
-  );
-}
-
 function detectParams(draft: Draft): ProjectDetectParams {
   const source = draft.source.trim();
   const branch = draft.branch.trim();
@@ -371,7 +367,6 @@ function under(path: string, name: string): string {
 }
 
 export const useProjectAdd = create<ProjectAddStore>((set, get) => {
-  let proposed: Proposed = {};
   let leaveJournal: (() => void) | null = null;
   /** The folder the agent named as its projects root, read once per server. */
   let projectsFolder: string | null = null;
@@ -408,16 +403,9 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     const name = edited.name ? draft.name : nameFromSource(draft.source);
     const dir =
       draft.kind === "dir" ? folderFromSource(draft.source, name) : name;
-    const port = mainPort(draft.rows);
-    let cmd = draft.cmd;
+    const processes = followProcesses(draft.processes, name, exposure, taken);
 
-    if (!edited.cmd) {
-      cmd = proposedCommand(proposed, port) ?? startCommand(draft.pkgmgr, port);
-    }
-
-    const rows = followName(draft.rows, name, exposure, taken);
-
-    return { ...draft, cmd, dir, name, rows };
+    return { ...draft, dir, name, processes };
   }
 
   function refresh(next: Partial<Draft>, touched: Partial<Edited> = {}): void {
@@ -431,7 +419,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     );
     const already = declaredAt(known, wanted.name, wanted.dir);
 
-    if (!already) {
+    if (!already || merged.processes) {
       set({ draft: wanted, detected: false, edited: merged });
 
       return;
@@ -439,12 +427,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
 
     set({
       detected: true,
-      draft: {
-        ...wanted,
-        cmd: merged.cmd ? wanted.cmd : already.cmd,
-        pkgmgr: already.pkgmgr,
-        rows: merged.rows ? wanted.rows : rowsFromProject(already),
-      },
+      draft: { ...wanted, processes: processesFromProject(already) },
       edited: merged,
     });
   }
@@ -454,17 +437,30 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
    *
    * The remedy carries the port to use, not the row it was for: the first row
    * whose port a declared project holds is the one that collided, and the main
-   * port is the fallback when the list gives no better clue.
+   * port of the first process is the fallback when the list gives no better
+   * clue.
    */
   function takePort(free: number): void {
     const { draft, known } = get();
     const held = heldOf(known, draft.name).ports;
-    const at = Math.max(
-      draft.rows.findIndex((current) => held.includes(current.port)),
-      0
-    );
 
-    refresh({ rows: atRow(draft.rows, at, { port: free }) }, { rows: true });
+    for (const [index, current] of draft.processes.entries()) {
+      const row = current.rows.findIndex((held_) => held.includes(held_.port));
+
+      if (row >= 0) {
+        refresh(
+          { processes: atRow(draft.processes, index, row, { port: free }) },
+          { processes: true }
+        );
+
+        return;
+      }
+    }
+
+    refresh(
+      { processes: atRow(draft.processes, 0, 0, { port: free }) },
+      { processes: true }
+    );
   }
 
   function fail(phase: PhaseId, error: AgentError): void {
@@ -491,18 +487,45 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     return call();
   }
 
-  /** The journal, read once, so a project that never started still says why. */
-  async function readLogs(serverId: string, name: string): Promise<void> {
-    const answer = await window.pupitre.projectJournal(
-      serverId,
-      name,
-      TAIL,
-      false,
-      (line) => append([line])
-    );
+  /**
+   * Another source is another repository: what the agent read of the last one
+   * is read no more, and the processes go back to one on the same port — unless
+   * the reader made the list theirs.
+   */
+  function forgetDetection(): void {
+    const { draft, edited, exposure } = get();
 
-    if (answer.ok) {
-      append(answer.result.lines);
+    set({ detection: { status: "idle" } });
+
+    if (edited.processes) {
+      return;
+    }
+
+    const port = draft.processes[0]?.rows[0]?.port ?? FIRST_PORT;
+
+    refresh({ processes: [firstProcess(port, exposure !== null)] });
+  }
+
+  /** The main process: the first one, whose journal the outcome shows. */
+  function mainProcess(): string {
+    return get().draft.processes[0]?.id ?? "";
+  }
+
+  /** The journal of every process, read once, so a project that never started still says why. */
+  async function readLogs(serverId: string, name: string): Promise<void> {
+    for (const process of get().draft.processes) {
+      const answer = await window.pupitre.projectJournal(
+        serverId,
+        name,
+        process.id,
+        TAIL,
+        false,
+        (line) => append([line])
+      );
+
+      if (answer.ok) {
+        append(answer.result.lines);
+      }
     }
   }
 
@@ -512,6 +535,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     const journal = window.pupitre.followProjectJournal(
       serverId,
       name,
+      mainProcess(),
       TAIL,
       (line) => append([line])
     );
@@ -526,7 +550,13 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     );
 
     if (added.ok) {
-      mark("add", "ok", `${added.result.dir} · port ${added.result.port}`);
+      mark(
+        "add",
+        "ok",
+        `${added.result.dir} · ${added.result.processes
+          .map((process) => `${process.id}:${process.port}`)
+          .join(" · ")}`
+      );
 
       return true;
     }
@@ -591,10 +621,14 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       return false;
     }
 
-    const { command } = installed.result;
+    const ran = installed.result.installed;
 
-    if (command) {
-      mark("install", "ok", command);
+    if (ran.length > 0) {
+      mark(
+        "install",
+        "ok",
+        ran.map((one) => `${one.process}: ${one.command}`).join(" · ")
+      );
     } else {
       mark("install", "skip", translate()("projectAdd.install.nothing"));
     }
@@ -614,7 +648,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
   async function bringUp(
     serverId: string,
     name: string
-  ): Promise<{ state: ProjectState; port?: number } | null> {
+  ): Promise<{ state: ProjectState } | null> {
     const started = await step("up", serverId, () =>
       window.pupitre.startProject(serverId, name)
     );
@@ -626,7 +660,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       return null;
     }
 
-    const { state, port } = started.result;
+    const { state } = started.result;
 
     if (IDLE_STATES.includes(state)) {
       await readLogs(serverId, name);
@@ -642,9 +676,9 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       return null;
     }
 
-    mark("up", "ok", port ? `port ${port}` : undefined);
+    mark("up", "ok", translate()(`state.project.${state}`));
 
-    return { state, ...(port ? { port } : {}) };
+    return { state };
   }
 
   /**
@@ -655,9 +689,10 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
    * has nothing to do here.
    */
   async function publishRoute(serverId: string): Promise<boolean> {
-    const published = get()
-      .params()
-      .routes.flatMap((route) => route.subdomain ?? []);
+    const published = publishedSubdomains(
+      get().draft.processes,
+      get().exposure !== null
+    );
 
     if (published.length === 0) {
       mark("publish", "skip", translate()("projectAdd.publish.local"));
@@ -693,8 +728,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
   async function finish(
     serverId: string,
     name: string,
-    state: ProjectState,
-    port: number | undefined
+    state: ProjectState
   ): Promise<void> {
     const address = await step("logs", serverId, () =>
       window.pupitre.projectAddress(serverId, name)
@@ -714,7 +748,6 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
         state,
         status: "done",
         url: address.result.url,
-        ...(port ? { port } : {}),
       },
     });
 
@@ -766,7 +799,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       return;
     }
 
-    await finish(serverId, name, started.state, started.port);
+    await finish(serverId, name, started.state);
   }
 
   return {
@@ -805,11 +838,11 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
         },
       });
 
-      if (!get().edited.rows) {
-        const { rows } = get().draft;
+      if (!get().edited.processes) {
+        const { processes } = get().draft;
         const port = freePort(heldBy(answer.result.projects).ports);
 
-        refresh({ rows: atRow(rows, 0, { port }) });
+        refresh({ processes: atRow(processes, 0, 0, { port }) });
       }
     },
 
@@ -819,16 +852,14 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
         return;
       }
 
-      proposed = {};
-      set({ detection: { status: "idle" } });
+      forgetDetection();
       refresh({ branch: "", kind, privateRepo: false, source: "" });
     },
 
     /** Another source is another repository: what the agent read is read no more. */
     setSource(value) {
       if (value.trim() !== get().draft.source.trim()) {
-        proposed = {};
-        set({ detection: { status: "idle" } });
+        forgetDetection();
       }
 
       refresh({ source: value });
@@ -841,39 +872,98 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     /** Another branch is another tree: what the agent read of the last one no longer holds. */
     setBranch(value) {
       if (value.trim() !== get().draft.branch.trim()) {
-        proposed = {};
-        set({ detection: { status: "idle" } });
+        forgetDetection();
       }
 
       refresh({ branch: value });
     },
 
-    setPkgmgr(value) {
-      refresh({ pkgmgr: value });
-      set({ detected: false });
-    },
-
-    setRowLabel(index, value) {
+    setProcessId(process, value) {
       refresh(
-        { rows: atRow(get().draft.rows, index, { label: value }) },
-        { rows: true }
+        { processes: atProcess(get().draft.processes, process, { id: value }) },
+        { processes: true }
       );
     },
 
-    setRowPort(index, value) {
+    setProcessDir(process, value) {
       refresh(
-        { rows: atRow(get().draft.rows, index, { port: value }) },
-        { rows: true }
+        {
+          processes: atProcess(get().draft.processes, process, { dir: value }),
+        },
+        { processes: true }
       );
     },
 
-    setRowPublish(index, value) {
-      refresh({ rows: atRow(get().draft.rows, index, { publish: value }) });
+    setProcessPkgmgr(process, value) {
+      refresh(
+        {
+          processes: atProcess(get().draft.processes, process, {
+            pkgmgr: value,
+          }),
+        },
+        { processes: true }
+      );
     },
 
-    setRowWeb(index, value) {
+    setProcessCmd(process, value) {
+      refresh(
+        {
+          processes: atProcess(get().draft.processes, process, {
+            cmd: value,
+            ownCmd: true,
+          }),
+        },
+        { processes: true }
+      );
+    },
+
+    setProcessInstall(process, value) {
+      refresh(
+        {
+          processes: atProcess(get().draft.processes, process, {
+            install: value,
+          }),
+        },
+        { processes: true }
+      );
+    },
+
+    setRowLabel(process, row, value) {
+      refresh(
+        {
+          processes: atRow(get().draft.processes, process, row, {
+            label: value,
+          }),
+        },
+        { processes: true }
+      );
+    },
+
+    setRowPort(process, row, value) {
+      refresh(
+        {
+          processes: atRow(get().draft.processes, process, row, {
+            port: value,
+          }),
+        },
+        { processes: true }
+      );
+    },
+
+    setRowPublish(process, row, value) {
       refresh({
-        rows: atRow(get().draft.rows, index, { ownWeb: true, web: value }),
+        processes: atRow(get().draft.processes, process, row, {
+          publish: value,
+        }),
+      });
+    },
+
+    setRowWeb(process, row, value) {
+      refresh({
+        processes: atRow(get().draft.processes, process, row, {
+          ownWeb: true,
+          web: value,
+        }),
       });
     },
 
@@ -884,37 +974,88 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
      * comes after — another repository, another name — is followed again; a
      * value they type themselves stays theirs.
      */
-    generateRowWeb(index) {
+    generateRowWeb(process, row) {
       refresh({
-        rows: atRow(get().draft.rows, index, { ownWeb: false, whole: false }),
+        processes: atRow(get().draft.processes, process, row, {
+          ownWeb: false,
+          whole: false,
+        }),
       });
     },
 
-    addRow() {
+    addRow(process) {
       const { draft, known, exposure } = get();
+      const current = draft.processes[process];
 
-      refresh(
-        {
-          rows: [
-            ...draft.rows,
-            addedRow(draft.rows, heldOf(known, draft.name), exposure !== null),
-          ],
-        },
-        { rows: true }
-      );
-    },
-
-    /** The first row is the main port, and a project always has one: it cannot go. */
-    removeRow(index) {
-      const { rows } = get().draft;
-
-      if (index === 0 || rows.length <= 1) {
+      if (!current) {
         return;
       }
 
       refresh(
-        { rows: rows.filter((_row, at) => at !== index) },
-        { rows: true }
+        {
+          processes: atProcess(draft.processes, process, {
+            rows: [
+              ...current.rows,
+              addedRow(
+                current.rows,
+                heldOf(known, draft.name),
+                exposure !== null
+              ),
+            ],
+          }),
+        },
+        { processes: true }
+      );
+    },
+
+    /** The first row is the main port, and a process always has one: it cannot go. */
+    removeRow(process, row) {
+      const { draft } = get();
+      const current = draft.processes[process];
+
+      if (!current || row === 0 || current.rows.length <= 1) {
+        return;
+      }
+
+      refresh(
+        {
+          processes: atProcess(draft.processes, process, {
+            rows: current.rows.filter((_row, at) => at !== row),
+          }),
+        },
+        { processes: true }
+      );
+    },
+
+    addProcess() {
+      const { draft, known, exposure } = get();
+
+      refresh(
+        {
+          processes: [
+            ...draft.processes,
+            addedProcess(
+              draft.processes,
+              heldOf(known, draft.name),
+              exposure !== null
+            ),
+          ],
+        },
+        { processes: true }
+      );
+    },
+
+    /** A project always has a process: the last one cannot go. */
+    removeProcess(process) {
+      const { processes } = get().draft;
+
+      if (processes.length <= 1) {
+        return;
+      }
+
+      refresh(
+        { processes: processes.filter((_process, at) => at !== process) },
+        { processes: true }
       );
     },
 
@@ -945,8 +1086,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     },
 
     pickRepo(repo) {
-      proposed = {};
-      set({ detection: { status: "idle" } });
+      forgetDetection();
       refresh({
         branch: repo.defaultBranch,
         privateRepo: repo.private,
@@ -1023,13 +1163,8 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     },
 
     pickFolder(path) {
-      proposed = {};
-      set({ detection: { status: "idle" } });
+      forgetDetection();
       refresh({ source: path });
-    },
-
-    setCmd(value) {
-      refresh({ cmd: value }, { cmd: true });
     },
 
     /**
@@ -1079,22 +1214,17 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
         return;
       }
 
-      const { pkgmgr, cmd, port_hint: port, routes } = answer.result;
-      const { rows } = get().draft;
       const { edited, exposure } = get();
 
-      proposed = { ...(cmd ? { cmd } : {}), ...(port ? { port } : {}) };
       set({ detection: { result: answer.result, source, status: "read" } });
 
-      let read = rows;
-
-      if (!edited.rows && routes && routes.length > 0) {
-        read = rowsFromDetection(routes, exposure !== null);
-      } else if (!edited.rows && port) {
-        read = atRow(rows, 0, { port });
+      if (edited.processes) {
+        return;
       }
 
-      refresh({ pkgmgr, rows: read });
+      refresh({
+        processes: processesFromDetection(answer.result, exposure !== null),
+      });
     },
 
     async launch(serverId) {
@@ -1124,7 +1254,6 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     },
 
     reset() {
-      proposed = {};
       projectsFolder = null;
       leaveJournal?.();
       leaveJournal = null;
@@ -1144,19 +1273,13 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     },
 
     params() {
-      const { draft, detection, exposure } = get();
+      const { draft, exposure } = get();
       const branch = draft.branch.trim();
-      const host =
-        (detection.status === "read" && detection.result.host_hint) || HOST;
 
       return {
-        cmd: draft.cmd.trim(),
         dir: draft.dir,
-        host,
         name: draft.name,
-        pkgmgr: draft.pkgmgr,
-        port: mainPort(draft.rows),
-        routes: routeRequests(draft.rows, exposure !== null),
+        processes: processRequests(draft.processes, exposure !== null),
         ...(draft.kind === "dir" ? {} : { repo: draft.source.trim() }),
         ...(draft.kind === "dir" || !branch ? {} : { branch }),
       };
@@ -1170,12 +1293,16 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
      * here is what keeps the button from sending a form that comes back with a
      * phase in failure.
      */
-    rowProblem(index) {
+    processProblem(process) {
+      return processProblem(get().draft.processes, process);
+    },
+
+    rowProblems(process) {
       const { draft, exposure, known } = get();
 
-      return rowProblem(
-        draft.rows,
-        index,
+      return rowProblems(
+        draft.processes,
+        process,
         heldOf(known, draft.name),
         exposure !== null
       );
@@ -1188,8 +1315,11 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
         PROJECT_NAME.test(draft.name) &&
         draft.dir.length > 0 &&
         (draft.kind === "dir" || draft.source.trim().length > 0) &&
-        draft.cmd.trim().length > 0 &&
-        rowsReady(draft.rows, heldOf(known, draft.name), exposure !== null)
+        processesReady(
+          draft.processes,
+          heldOf(known, draft.name),
+          exposure !== null
+        )
       );
     },
   };

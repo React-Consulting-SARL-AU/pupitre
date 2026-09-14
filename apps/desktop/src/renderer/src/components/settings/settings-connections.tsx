@@ -1,3 +1,4 @@
+import { Panel } from "@renderer/components/ui/panel";
 import { installedModules } from "@renderer/lib/modules";
 import { useCatalog } from "@renderer/stores/catalog";
 import { useConnections } from "@renderer/stores/connections";
@@ -37,23 +38,16 @@ export function SettingsConnections() {
   }, [read]);
 
   return (
-    <div>
-      {/*
-        The rows run edge to edge inside the card: an inset would draw a second
-        frame within the one already there, and each line already carries its
-        own breathing room.
-      */}
-      <div className="elevation-raised mt-4 overflow-hidden rounded-md border border-line bg-surface">
-        {CONNECTIONS.map((connection) => (
-          <ConnectionRow
-            connection={connection}
-            installed={installed}
-            key={connection.kind}
-            manifests={manifests}
-            serverName={server?.name ?? null}
-          />
-        ))}
-      </div>
-    </div>
+    <Panel list>
+      {CONNECTIONS.map((connection) => (
+        <ConnectionRow
+          connection={connection}
+          installed={installed}
+          key={connection.kind}
+          manifests={manifests}
+          serverName={server?.name ?? null}
+        />
+      ))}
+    </Panel>
   );
 }

@@ -102,12 +102,18 @@ export interface CallOptions {
 }
 
 /**
- * Three channels per server: a gesture must wait neither behind an install
- * nor behind the dashboard's beat.
+ * Four channels per server: a gesture must wait neither behind an install nor
+ * behind the dashboard's beat, and an install must not wait behind a journal
+ * the reader keeps open beside it.
  */
-export type ChannelPurpose = "control" | "work" | "beat";
+export type ChannelPurpose = "control" | "work" | "beat" | "follow";
 
-const PURPOSES: readonly ChannelPurpose[] = ["control", "beat", "work"];
+const PURPOSES: readonly ChannelPurpose[] = [
+  "control",
+  "beat",
+  "work",
+  "follow",
+];
 
 export type AgentSpawn = (context: {
   serverId: string;
@@ -222,16 +228,24 @@ export function defaultTimeout(cmd: CommandName): number {
 }
 
 /**
- * `shots.read` and `project.logs` sit here rather than falling out of the
- * timeout: they answer quickly but hold the channel for the length of a file,
- * and the dashboard's own reads must not queue behind a gallery.
- * `project.git_status` fetches from the remote before it answers, and a
- * repository on the other side of the world takes seconds: the tabs of the
- * project just opened must not wait for it.
+ * A followed journal ends when the reader leaves, not when the agent is done:
+ * it holds its channel for as long as a panel stays open. The service panel
+ * shows the journal beside the configuration form, so the install that applies
+ * the form cannot share a channel with it.
  */
-const WORK_CHANNEL_COMMANDS: readonly CommandName[] = [
+const FOLLOW_CHANNEL_COMMANDS: readonly CommandName[] = [
   "project.logs",
   "service.logs",
+];
+
+/**
+ * `shots.read` sits here rather than falling out of the timeout: it answers
+ * quickly but holds the channel for the length of a file, and the dashboard's
+ * own reads must not queue behind a gallery. `project.git_status` fetches from
+ * the remote before it answers, and a repository on the other side of the world
+ * takes seconds: the tabs of the project just opened must not wait for it.
+ */
+const WORK_CHANNEL_COMMANDS: readonly CommandName[] = [
   "shots.read",
   "fs.read",
   "project.git_status",
@@ -243,6 +257,10 @@ const WORK_CHANNEL_MS = 60_000;
 function purposeOf(cmd: CommandName, polled: boolean): ChannelPurpose {
   if (polled) {
     return "beat";
+  }
+
+  if (FOLLOW_CHANNEL_COMMANDS.includes(cmd)) {
+    return "follow";
   }
 
   return timeoutOf(cmd) > WORK_CHANNEL_MS || WORK_CHANNEL_COMMANDS.includes(cmd)

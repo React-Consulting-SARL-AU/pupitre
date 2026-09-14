@@ -167,7 +167,6 @@ export function OnboardingFlow() {
     if (shown === "config") {
       return (
         <OnboardingConfigStep
-          onBack={back}
           onInstall={() => {
             useInstall.getState().reset();
             send({ type: "configured" });

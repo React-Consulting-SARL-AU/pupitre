@@ -14,13 +14,18 @@ import { ServerRowEdit } from "./server-row-edit";
 export function ServerRowEditing({
   server,
   edit,
+  addressEditable,
   onSubmit,
+  onRename,
   onClose,
 }: {
   server: Server;
   /** Where the last change stands, for whichever row asked for it. */
   edit: EditState;
+  /** The address is the app's to change; a system host keeps its own. */
+  addressEditable: boolean;
   onSubmit: (changes: ServerChanges) => void;
+  onRename: (name: string) => void;
   onClose: () => void;
 }) {
   const t = useTranslations();
@@ -49,9 +54,11 @@ export function ServerRowEditing({
 
   return (
     <ServerRowEdit
+      addressEditable={addressEditable}
       busy={mine && edit.status === "working"}
       error={mine && edit.status === "refused" ? edit.error : null}
       onCancel={onClose}
+      onRename={onRename}
       onSubmit={onSubmit}
       server={server}
     />

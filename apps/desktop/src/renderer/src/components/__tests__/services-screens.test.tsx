@@ -491,14 +491,11 @@ const DETAIL = {
 };
 
 describe("l'en-tête d'un service", () => {
-  const html = renderToStaticMarkup(
-    <ServicePanelFacts detail={DETAIL} summary="Local seulement." />
-  );
+  const html = renderToStaticMarkup(<ServicePanelFacts detail={DETAIL} />);
 
-  it("montre ce qui décide : la version, le port, la phrase du module", () => {
+  it("montre ce qui décide : la version et le port", () => {
     expect(text(html)).toContain("17.2");
     expect(text(html)).toContain("port 5432");
-    expect(text(html)).toContain("Local seulement.");
   });
 
   /** What names the module on the machine decides nothing for the reader, and everything for whoever goes looking on the server. */
@@ -573,6 +570,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
   it("propose les zones du compte pour le domaine d'un tunnel installé", () => {
     const config = {
       answered: { domain: "flymate.dev" },
+      baseline: { domain: "flymate.dev" },
       held: [],
       moduleId: EXPOSURE_CLOUDFLARE.id,
       status: "ready" as const,
@@ -609,15 +607,16 @@ describe("les réglages d'un service dont le catalogue manque", () => {
     expect(typed).not.toContain('id="exposure.cloudflare.zone"');
   });
 
-  // The wait sits where the gesture was made: under the header and its button,
-  // before the fields, so a long panel does not hide what the click started.
-  it("place la progression sous le bouton, avant les champs", () => {
+  // The wait sits where the gesture was made: the form ends on its button, and
+  // the progress follows it, so the click and what it started read together.
+  it("place la progression sous le formulaire, à la suite du bouton", () => {
     const html = renderToStaticMarkup(
       <ServiceConfig
         {...props}
         apply={{ moduleId: EXPOSURE_CLOUDFLARE.id, status: "running" }}
         config={{
           answered: {},
+          baseline: {},
           held: [],
           moduleId: EXPOSURE_CLOUDFLARE.id,
           status: "ready",
@@ -632,9 +631,11 @@ describe("les réglages d'un service dont le catalogue manque", () => {
 
     const progress = html.indexOf('data-module="exposure.cloudflare"');
     const fields = html.indexOf('data-field="exposure.cloudflare.domain"');
+    const button = html.indexOf('type="submit"');
 
     expect(progress).toBeGreaterThan(-1);
-    expect(fields).toBeGreaterThan(progress);
+    expect(button).toBeGreaterThan(fields);
+    expect(progress).toBeGreaterThan(button);
     expect(html).toContain('data-status="running"');
     expect(html).toContain('data-live="duration"');
     expect(html).toContain('aria-busy="true"');
@@ -647,6 +648,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
         {...props}
         config={{
           answered: {},
+          baseline: {},
           held: [],
           moduleId: "tool.wrangler",
           status: "ready",
@@ -672,6 +674,79 @@ describe("les réglages d'un service dont le catalogue manque", () => {
     expect(text(html)).toContain("renvoie le compte connecté");
     expect(html).not.toContain("data-connection=");
     expect(html).not.toContain("elevation-raised grid");
+  });
+
+  /** Nothing differs from what the server holds: the gesture has nothing to do, and says so by waiting. */
+  it("n'offre d'appliquer qu'une fois quelque chose changé, et alors aussi d'y renoncer", () => {
+    const config = {
+      answered: { domain: "flymate.dev" },
+      baseline: { domain: "flymate.dev" },
+      held: [],
+      moduleId: EXPOSURE_CLOUDFLARE.id,
+      status: "ready" as const,
+    };
+
+    const clean = renderToStaticMarkup(
+      <ServiceConfig
+        {...props}
+        config={config}
+        dirty={false}
+        manifest={EXPOSURE_CLOUDFLARE}
+        onDiscard={() => undefined}
+        values={{ domain: "flymate.dev" }}
+      />
+    );
+
+    expect(clean).toContain('data-dirty="false"');
+    expect(clean).toMatch(/<button[^>]*disabled=""[^>]*type="submit"/);
+    expect(text(clean)).not.toContain("Annuler les modifications");
+
+    const changed = renderToStaticMarkup(
+      <ServiceConfig
+        {...props}
+        config={config}
+        dirty
+        manifest={EXPOSURE_CLOUDFLARE}
+        onDiscard={() => undefined}
+        values={{ domain: "flymate.studio" }}
+      />
+    );
+
+    expect(changed).toContain('data-dirty="true"');
+    expect(changed).not.toMatch(/<button[^>]*disabled=""[^>]*type="submit"/);
+    expect(text(changed)).toContain("Annuler les modifications");
+  });
+
+  /** What is refused is said under the field that carries it, and counted at the foot of the form. */
+  it("dit sous le champ ce qui est refusé, et le compte au pied du formulaire", () => {
+    const html = renderToStaticMarkup(
+      <ServiceConfig
+        {...props}
+        config={{
+          answered: { domain: "flymate.dev" },
+          baseline: { domain: "flymate.dev" },
+          held: [],
+          moduleId: EXPOSURE_CLOUDFLARE.id,
+          status: "ready",
+        }}
+        manifest={EXPOSURE_CLOUDFLARE}
+        problems={[
+          {
+            code: "format",
+            expected: "domain",
+            field: "domain",
+            message: "Ce n'est pas un domaine.",
+            module: EXPOSURE_CLOUDFLARE.id,
+          },
+        ]}
+        values={{ domain: "pas un domaine" }}
+      />
+    );
+
+    expect(html).toContain('data-wrong="true"');
+    expect(html).toContain('aria-invalid="true"');
+    expect(text(html)).toContain("Ce n'est pas un domaine.");
+    expect(text(html)).toContain("1 valeur refusée");
   });
 
   it("ne propose pas de relire quand c'est le serveur entier qui est retenu", () => {

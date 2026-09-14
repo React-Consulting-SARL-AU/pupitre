@@ -98,7 +98,13 @@ describe("project:act", () => {
   it("refuse d'arrêter un projet et ne lance pas l'agent", async () => {
     const deps = projectDeps();
 
-    const stopped = await actOnProject("project.down", SERVER, "all", deps);
+    const stopped = await actOnProject(
+      "project.down",
+      SERVER,
+      "all",
+      null,
+      deps
+    );
 
     expect(stopped).toMatchObject(REFUSED);
     expect(agent?.started()).toBe(0);
@@ -108,11 +114,12 @@ describe("project:act", () => {
   it("refuse aussi de démarrer et de redémarrer", async () => {
     const deps = projectDeps();
 
-    const started = await actOnProject("project.up", SERVER, "all", deps);
+    const started = await actOnProject("project.up", SERVER, "all", null, deps);
     const restarted = await actOnProject(
       "project.restart",
       SERVER,
       "all",
+      null,
       deps
     );
 

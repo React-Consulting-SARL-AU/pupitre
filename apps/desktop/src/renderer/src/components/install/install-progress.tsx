@@ -1,4 +1,5 @@
 import type { ModuleProgress } from "../../stores/install";
+import { Panel } from "../ui/panel";
 import { InstallModuleRow } from "./install-module-row";
 
 export function InstallProgress({
@@ -9,7 +10,7 @@ export function InstallProgress({
   nameOf: (moduleId: string) => string;
 }) {
   return (
-    <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
+    <Panel as="ul" list>
       {modules.map((module) => (
         <InstallModuleRow
           key={module.id}
@@ -17,6 +18,6 @@ export function InstallProgress({
           name={nameOf(module.id)}
         />
       ))}
-    </ul>
+    </Panel>
   );
 }

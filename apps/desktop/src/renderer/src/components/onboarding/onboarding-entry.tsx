@@ -8,11 +8,12 @@ import { Button } from "../ui/button";
 import { StatusDot } from "../ui/status-dot";
 
 /**
- * The way into the onboarding, from the screen where the servers live.
+ * The way into the onboarding, at the foot of the server's own row.
  *
  * It shows itself only when nothing says this machine already runs the agent:
  * a session the app has opened, or a probe that read a version off it. An
- * onboarding left half-way is offered back rather than started over.
+ * onboarding left half-way is offered back rather than started over. The row
+ * above already names the machine, so the line says only what it lacks.
  */
 export function OnboardingEntry({ server }: { server: Server }) {
   const t = useTranslations();
@@ -50,18 +51,20 @@ export function OnboardingEntry({ server }: { server: Server }) {
   }
 
   return (
-    <div className="elevation-raised flex flex-wrap items-center gap-3 rounded-md border border-line bg-surface px-4 py-3">
+    <div
+      className="mt-4 flex flex-wrap items-center gap-3 border-line border-t pt-4"
+      data-onboarding-entry={unfinished ? "unfinished" : "bare"}
+    >
       <StatusDot shape="empty" size={11} />
-      <div className="min-w-0 flex-1">
-        <p className="text-ink">
-          {unfinished
-            ? t("onboarding.entry.unfinished", { name: server.name })
-            : t("onboarding.entry.noAgent", { name: server.name })}
-        </p>
-      </div>
+      <p className="min-w-0 flex-1 text-ink-2">
+        {unfinished
+          ? t("onboarding.entry.unfinished")
+          : t("onboarding.entry.noAgent")}
+      </p>
       <Button
         icon={Download}
         onClick={() => (unfinished ? resume() : begin(server.id))}
+        size="sm"
         variant="inverse"
       >
         {unfinished
