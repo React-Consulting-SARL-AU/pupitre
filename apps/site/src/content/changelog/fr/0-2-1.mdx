@@ -1,0 +1,20 @@
+---
+title: L’app macOS se met à jour seule
+description: Le flux de mise à jour nomme désormais l’archive depuis laquelle l’app macOS s’installe, et une mise à jour ne s’arrête plus sur « ZIP file not provided ».
+locale: fr
+version: 0.2.1
+channel: stable
+date: 2026-09-14
+order: 5
+---
+
+Un correctif, pour chaque Mac.
+
+## L’app
+
+- Sur macOS, une mise à jour va désormais jusqu’au bout. L’app ne s’installe jamais depuis un `.dmg` : elle télécharge un `.zip` d’elle-même, et le flux n’en nommait aucun, si bien que chaque app macOS qui atteignait le flux s’arrêtait sur « ZIP file not provided ». Chaque version publie maintenant cette archive pour les deux architectures à côté du `.dmg`, et le flux la nomme. Le `.dmg` reste ce que vous téléchargez pour installer.
+
+## Limites connues
+
+- Une app macOS 0.1.2 ou 0.2.0 trouve cette version seule ; les 0.1.0 et 0.1.1 ne le peuvent toujours pas, et demandent la 0.2.1 installée depuis la page de téléchargement.
+- L’installateur Windows n’est toujours pas signé : SmartScreen avertit au premier lancement.
