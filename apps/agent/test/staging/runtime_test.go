@@ -124,3 +124,19 @@ func TestRuntimeBlocksStayApartAndReplayChangesNothing(t *testing.T) {
 		t.Fatalf("replay must only skip in under 30 s: %v in %s", changed, elapsed)
 	}
 }
+
+func TestRustAnswersForDev(t *testing.T) {
+	host := stagingHost(t)
+	dev := "dev@" + address(host)
+
+	first := agent(t, host, request{Cmd: "install", Params: map[string]any{"modules": []string{"runtime.rust"}, "config": map[string]any{"runtime.rust": map[string]any{"rust_version": "1.98"}}}})[0]
+	if result := decode[contract.InstallResult](t, first.Result); len(result.Failed) != 0 {
+		t.Fatalf("install failed: %v", result.Failed)
+	}
+
+	for _, program := range []string{"cargo", "rustc"} {
+		if out := ssh(t, dev, program, "--version"); !strings.Contains(out, "1.98") {
+			t.Fatalf("%s must answer with the chosen version:\n%s", program, out)
+		}
+	}
+}

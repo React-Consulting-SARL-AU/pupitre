@@ -98,6 +98,14 @@ export const CATALOG: CatalogGroup[] = [
           fr: "Docker Engine et Compose, dev dans le groupe pour qu’aucune commande ne demande sudo, images là où vous voulez.",
         },
       },
+      {
+        id: "runtime.rust",
+        name: { en: "Rust", fr: "Rust" },
+        detail: {
+          en: "Rust at the chosen version through mise and rustup; cargo, rustc and what cargo install builds on every shell’s path.",
+          fr: "Rust à la version choisie par mise et rustup ; cargo, rustc et ce que cargo install construit sur le PATH de tous les shells.",
+        },
+      },
     ],
   },
   {
@@ -136,6 +144,14 @@ export const CATALOG: CatalogGroup[] = [
           fr: "Local seulement, un mot de passe sans lequel il refuse de répondre, persistance et plafond mémoire à votre main.",
         },
       },
+      {
+        id: "db.mailpit",
+        name: { en: "Mailpit", fr: "Mailpit" },
+        detail: {
+          en: "A local SMTP server that catches everything your projects send, and the interface that shows it, both on the loopback.",
+          fr: "Un serveur SMTP local qui capture tout ce que vos projets envoient, et l’interface qui le montre, tous deux sur la boucle locale.",
+        },
+      },
     ],
   },
   {
@@ -159,11 +175,51 @@ export const CATALOG: CatalogGroup[] = [
         },
       },
       {
+        id: "ai.cursor",
+        name: { en: "Cursor CLI", fr: "Cursor CLI" },
+        detail: {
+          en: "Cursor’s own package under its version, the agent and cursor-agent commands, the Pupitre skills, on your Cursor subscription.",
+          fr: "Le paquet de Cursor sous sa version, les commandes agent et cursor-agent, les skills Pupitre, sur votre abonnement Cursor.",
+        },
+      },
+      {
+        id: "ai.gemini",
+        name: { en: "Gemini CLI", fr: "Gemini CLI" },
+        detail: {
+          en: "Google’s open-source agent through mise, same machine context and same skills, on your Google account — the free tier is enough — or an API key.",
+          fr: "L’agent open source de Google posé par mise, même contexte machine et mêmes skills, sur votre compte Google — le niveau gratuit suffit — ou une clé d’API.",
+        },
+      },
+      {
+        id: "ai.copilot",
+        name: { en: "GitHub Copilot CLI", fr: "GitHub Copilot CLI" },
+        detail: {
+          en: "Copilot’s terminal agent through mise, same machine context and same skills, on your Copilot subscription.",
+          fr: "L’agent de terminal de Copilot posé par mise, même contexte machine et mêmes skills, sur votre abonnement Copilot.",
+        },
+      },
+      {
+        id: "ai.opencode",
+        name: { en: "OpenCode", fr: "OpenCode" },
+        detail: {
+          en: "The open-source agent, its binary checked against the digest GitHub publishes, tied to no provider: a Claude, ChatGPT or Copilot subscription, or any key.",
+          fr: "L’agent open source, binaire vérifié par la somme que GitHub publie, sans fournisseur imposé : un abonnement Claude, ChatGPT ou Copilot, ou n’importe quelle clé.",
+        },
+      },
+      {
         id: "ai.hermes",
         name: { en: "Hermes Agent", fr: "Hermes Agent" },
         detail: {
           en: "Nous Research’s agent through Python, the model providers you configure, a systemd service if always on.",
           fr: "L’agent de Nous Research via Python, les fournisseurs de modèles que vous configurez, service systemd si toujours actif.",
+        },
+      },
+      {
+        id: "ai.openclaw",
+        name: { en: "OpenClaw", fr: "OpenClaw" },
+        detail: {
+          en: "The personal assistant reached from Telegram, Discord or WhatsApp, its gateway as a systemd service, the model providers you configure.",
+          fr: "L’assistant personnel joignable depuis Telegram, Discord ou WhatsApp, sa passerelle en service systemd, les fournisseurs de modèles que vous configurez.",
         },
       },
       {
@@ -226,6 +282,14 @@ export const CATALOG: CatalogGroup[] = [
           fr: "Reverse proxy avec certificats Let’s Encrypt automatiques, une route par projet, pour un domaine hors Cloudflare.",
         },
       },
+      {
+        id: "exposure.tailscale",
+        name: { en: "Tailscale", fr: "Tailscale" },
+        detail: {
+          en: "The machine on your tailnet through an auth key: SSH and preview URLs from your phone or another computer, nothing exposed publicly. Lives beside Caddy or the tunnel.",
+          fr: "La machine sur votre tailnet par une clé d’authentification : SSH et URL de preview depuis votre téléphone ou un autre poste, rien d’exposé publiquement. Cohabite avec Caddy ou le tunnel.",
+        },
+      },
     ],
   },
   {
@@ -254,6 +318,38 @@ export const CATALOG: CatalogGroup[] = [
         detail: {
           en: "The Neon CLI and your API key in the dev shell; your projects and branches stay yours to create.",
           fr: "Le CLI Neon et votre clé d’API dans le shell de dev ; vos projets et vos branches restent les vôtres à créer.",
+        },
+      },
+      {
+        id: "tool.wrangler",
+        name: { en: "Wrangler", fr: "Wrangler" },
+        detail: {
+          en: "Cloudflare’s CLI and your API token in the dev shell; Workers, D1 and Pages deploy from the server.",
+          fr: "Le CLI de Cloudflare et votre jeton d’API dans le shell de dev ; Workers, D1 et Pages se déploient depuis le serveur.",
+        },
+      },
+      {
+        id: "tool.vercel",
+        name: { en: "Vercel", fr: "Vercel" },
+        detail: {
+          en: "The Vercel CLI and your token in the dev shell; deploy, env and logs answer from the server.",
+          fr: "Le CLI Vercel et votre jeton dans le shell de dev ; deploy, env et logs répondent depuis le serveur.",
+        },
+      },
+      {
+        id: "tool.supabase",
+        name: { en: "Supabase", fr: "Supabase" },
+        detail: {
+          en: "The Supabase CLI, its release binary checksum verified, and your access token in the dev shell; migrations, types and functions push from the server.",
+          fr: "Le CLI Supabase, binaire de release vérifié par sa somme, et votre jeton d’accès dans le shell de dev ; migrations, types et fonctions se poussent depuis le serveur.",
+        },
+      },
+      {
+        id: "tool.stripe",
+        name: { en: "Stripe", fr: "Stripe" },
+        detail: {
+          en: "The Stripe CLI, its release binary checksum verified, and a restricted key in the dev shell; stripe listen forwards webhooks to a project on the machine.",
+          fr: "Le CLI Stripe, binaire de release vérifié par sa somme, et une clé restreinte dans le shell de dev ; stripe listen relaie les webhooks vers un projet de la machine.",
         },
       },
     ],

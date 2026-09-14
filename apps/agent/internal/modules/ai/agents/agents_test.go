@@ -69,6 +69,38 @@ func TestTheContextNamesWhatTheAgentNeedsToKnow(t *testing.T) {
 	}
 }
 
+func TestATargetWithoutContextFileReadsAsConfiguredOnItsSkills(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	ctx := newContext(t, fake)
+	skillsOnly := Target{ConfigDir: Home + "/.demo", Skills: true}
+
+	if Configured(ctx, skillsOnly) {
+		t.Fatal("nothing is down yet")
+	}
+
+	if err := Deploy(ctx, skillsOnly); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, event := range ctx.Events() {
+		if event.Step == "write-context" {
+			t.Fatal("a target without a context file writes none")
+		}
+	}
+
+	if len(fake.Files[skillsOnly.ConfigDir+"/skills/ship/SKILL.md"]) == 0 {
+		t.Fatal("the skills must be laid down all the same")
+	}
+
+	if !Configured(ctx, skillsOnly) {
+		t.Fatal("skills down reads as configured")
+	}
+
+	if err := Forget(ctx, skillsOnly); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestASecondDeployChangesNothing(t *testing.T) {
 	fake := modtest.NewFakeSys()
 

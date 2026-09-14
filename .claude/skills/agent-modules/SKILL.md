@@ -27,7 +27,7 @@ Un service du catalogue est un **module** : une unité Go qui sait se vérifier,
 
 ## État du dépôt
 
-Le catalogue est complet : les vingt-six modules de `docs/contracts/service-catalog.md` existent sous `internal/modules/`, `internal/sys` porte les cinq helpers, `modtest` le système factice, et `test/staging/` le harnais d'intégration, derrière le tag de build `staging`. Un module nouveau s'ajoute désormais à côté des autres : on lit le voisin le plus proche avant d'écrire — un runtime par mise ressemble à `runtime/python`, une base à `db/postgres`, un outil qui parle à une API à `tool/neon`.
+Le catalogue est complet : les trente-sept modules de `docs/contracts/service-catalog.md` existent sous `internal/modules/`, `internal/sys` porte les cinq helpers, `modtest` le système factice, et `test/staging/` le harnais d'intégration, derrière le tag de build `staging`. Un module nouveau s'ajoute désormais à côté des autres : on lit le voisin le plus proche avant d'écrire — un runtime par mise ressemble à `runtime/python`, une base à `db/postgres`, un outil qui parle à une API à `tool/neon`.
 
 Ce que le client choisit fait partie du module : la **version** quand plusieurs sont posables, le **port** quand un service écoute, les **noms des comptes** que le module crée. Chaque champ porte le `default` qui reproduit le comportement d'avant, et un nom qui traverse une requête SQL ou un fichier de configuration est tenu à un motif d'identifiant, avec retour au défaut plutôt qu'une valeur non reconnue.
 

@@ -64,6 +64,14 @@ describe("LocaleToggle", () => {
     expect(container.textContent).not.toContain("Français")
   })
 
+  it("nomme son icône dans une infobulle", async () => {
+    const { container, unmount } = await render(toggle("fr"))
+
+    mounted.push(unmount)
+
+    expect(trigger(container, "Français").title).toBe("Langue")
+  })
+
   it("montre le français quand c'est la langue choisie", async () => {
     const { container, unmount } = await render(toggle("fr"))
 

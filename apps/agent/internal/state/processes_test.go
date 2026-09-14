@@ -20,7 +20,7 @@ func agentFixture(t *testing.T) (*modtest.FakeSys, *state.Reader) {
 	machine(fake)
 	fake.Files[registry.DefaultConf] = []byte(conf)
 	fake.Dirs["/home/dev/projects/web"] = true
-	fake.Serves("web", 3000)
+	fake.Serves("web/web", 3000)
 	fake.Spawn(modtest.Proc{PID: 1, PPID: 0, User: "root", RSS: 8 * 1024, Args: "/sbin/init"})
 	fake.Spawn(modtest.Proc{PID: agentPID, PPID: 1, User: "root", RSS: 16 * 1024, Args: "/usr/local/bin/pupitred serve"})
 
@@ -44,6 +44,10 @@ func sessionFixture(t *testing.T) (*modtest.FakeSys, *state.Reader) {
 	fake.Spawn(modtest.Proc{PID: 5200, PPID: 1, RSS: 256 * 1024, Etimes: 30, CPU: 1.5, Args: "/home/dev/.local/bin/codex exec"})
 	fake.Spawn(modtest.Proc{PID: 5300, PPID: 1, RSS: 3072 * 1024, Etimes: 8 * 3600, CPU: 0.5, Args: "/home/dev/.cache/JetBrains/RemoteDev/dist/idea/bin/remote-dev-server.sh run"})
 	fake.Spawn(modtest.Proc{PID: 5400, PPID: 1, RSS: 4 * 1024, Etimes: 12, Args: "/usr/bin/vim notes.md"})
+	fake.Spawn(modtest.Proc{PID: 5500, PPID: 1, RSS: 400 * 1024, Etimes: 20, CPU: 2, Args: "/home/dev/.local/bin/cursor-agent --use-system-ca /home/dev/.local/share/cursor-agent/versions/2026.09.10-fd3934a/index.js"})
+	fake.Spawn(modtest.Proc{PID: 5600, PPID: 1, RSS: 300 * 1024, Etimes: 15, CPU: 1, Args: "opencode"})
+	fake.Spawn(modtest.Proc{PID: 5700, PPID: 1, RSS: 350 * 1024, Etimes: 40, CPU: 1, Args: "node /home/dev/.local/share/mise/installs/npm-google-gemini-cli/0.59.0/lib/node_modules/@google/gemini-cli/bundle/gemini.js"})
+	fake.Spawn(modtest.Proc{PID: 5800, PPID: 1, RSS: 200 * 1024, Etimes: 10, CPU: 1, Args: "copilot"})
 
 	return fake, reader
 }
@@ -52,8 +56,8 @@ func TestSessionsTellTheKindsApartAndIgnoreEverythingElse(t *testing.T) {
 	_, reader := sessionFixture(t)
 
 	sessions := reader.Sessions()
-	if len(sessions) != 3 {
-		t.Fatalf("got %d sessions, want the agent, the assistant and the IDE backend: %+v", len(sessions), sessions)
+	if len(sessions) != 7 {
+		t.Fatalf("got %d sessions, want the six agents and the IDE backend: %+v", len(sessions), sessions)
 	}
 
 	kinds := map[int]string{}
@@ -61,7 +65,7 @@ func TestSessionsTellTheKindsApartAndIgnoreEverythingElse(t *testing.T) {
 		kinds[session.PID] = session.Kind
 	}
 
-	for pid, want := range map[int]string{5100: "claude", 5200: "codex", 5300: "ide"} {
+	for pid, want := range map[int]string{5100: "claude", 5200: "codex", 5300: "ide", 5500: "cursor", 5600: "opencode", 5700: "gemini", 5800: "copilot"} {
 		if kinds[pid] != want {
 			t.Errorf("pid %d: got kind %q, want %q", pid, kinds[pid], want)
 		}
@@ -90,17 +94,17 @@ func TestSessionsCleanStopsOnlyTheOldOnes(t *testing.T) {
 
 func TestSessionsAndProjectsShareTheProcessTree(t *testing.T) {
 	fake, reader := agentFixture(t)
-	if _, err := reader.Up("web"); err != nil {
+	if _, err := reader.Up("web", ""); err != nil {
 		t.Fatal(err)
 	}
 
-	pane := fake.Windows["web"]
+	pane := fake.Windows["web/web"]
 	fake.Spawn(modtest.Proc{PID: pane, PPID: 1, RSS: 12 * 1024, Etimes: 42, Args: "/bin/zsh"})
 	fake.Spawn(modtest.Proc{PID: 6100, PPID: pane, RSS: 100 * 1024, Args: "/home/dev/.bun/bin/bun run dev --port 3000"})
 	fake.Spawn(modtest.Proc{PID: 6200, PPID: 6100, RSS: 400 * 1024, Args: "/home/dev/.local/share/mise/installs/node/22/bin/node vite"})
 	fake.Spawn(modtest.Proc{PID: 6300, PPID: 6200, RSS: 88 * 1024, Etimes: 20, Args: "/home/dev/.local/bin/claude"})
 
-	web := projectOf(t, reader.Snapshot().Projects, "web")
+	web := processOf(t, projectOf(t, reader.Snapshot().Projects, "web"), "web")
 	if web.RAMMB != 12+100+400+88 {
 		t.Fatalf("got %d MB, want the whole tree under the pane", web.RAMMB)
 	}
@@ -113,11 +117,11 @@ func TestSessionsAndProjectsShareTheProcessTree(t *testing.T) {
 
 func TestProcessesListNamesTheProjectAndOrdersByCPU(t *testing.T) {
 	fake, reader := sessionFixture(t)
-	if _, err := reader.Up("web"); err != nil {
+	if _, err := reader.Up("web", ""); err != nil {
 		t.Fatal(err)
 	}
 
-	pane := fake.Windows["web"]
+	pane := fake.Windows["web/web"]
 	fake.Spawn(modtest.Proc{PID: 6100, PPID: pane, RSS: 100 * 1024, CPU: 91.5, Args: "/home/dev/.bun/bin/bun run dev --port 3000"})
 
 	processes := reader.Processes()

@@ -3,6 +3,7 @@ package claude
 import (
 	"encoding/json"
 	"errors"
+	"path"
 	"regexp"
 	"runtime"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/ai/agents"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
+	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/user"
 )
@@ -42,9 +44,17 @@ func platform() string {
 	return "linux-x64"
 }
 
+// The installer leaves ~/.local/bin/claude as a link into the versions
+// directory, named after the version it points to: reading the link costs a
+// millisecond where starting the CLI costs a second, and a snapshot asks every
+// few seconds. A binary that is not such a link is asked itself.
 func installedVersion(ctx *modules.Context) string {
 	if !file.Exists(ctx, BinPath) {
 		return ""
+	}
+
+	if version := linkedVersion(ctx); version != "" {
+		return version
 	}
 
 	out, err := user.Run(ctx, shell.User, Program, "--version")
@@ -58,6 +68,20 @@ func installedVersion(ctx *modules.Context) string {
 	}
 
 	return fields[0]
+}
+
+func linkedVersion(ctx *modules.Context) string {
+	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"readlink", BinPath}})
+	if err != nil {
+		return ""
+	}
+
+	version := path.Base(strings.TrimSpace(out.Stdout))
+	if !versionShape.MatchString(version) {
+		return ""
+	}
+
+	return version
 }
 
 func fetch(ctx *modules.Context, url string) (string, error) {

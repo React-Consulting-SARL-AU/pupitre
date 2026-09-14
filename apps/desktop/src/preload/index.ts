@@ -18,8 +18,10 @@ import type {
   ProjectDiffResult,
   ProjectEnvResult,
   ProjectGitStatusResult,
+  ProjectInstallResult,
   ProjectListResult,
   ProjectLogsResult,
+  ProjectPullResult,
   ProjectRemoveResult,
   ProjectSyncResult,
   ProjectUpdateParams,
@@ -34,7 +36,6 @@ import type {
   ServiceLogsResult,
 } from "@pupitre/shared/agent-protocol/state";
 import type {
-  DoneResult,
   EnrollResult,
   PlatformSyncResult,
 } from "@pupitre/shared/agent-protocol/system";
@@ -55,6 +56,7 @@ import type { CloudflareZone } from "@shared/cloudflare";
 import type {
   ConnectionCheck,
   ConnectionKind,
+  ConnectionOutcome,
   ConnectionsState,
 } from "@shared/connections";
 import type { DevDefaults } from "@shared/dev";
@@ -270,6 +272,17 @@ const api = {
   ): Promise<AgentResponse<unknown>> =>
     ipcRenderer.invoke("agent:call", serverId, cmd, params),
 
+  /**
+   * The same command, read on a timer: it rides the beat channel, so a
+   * gesture never waits behind the dashboard's next read.
+   */
+  agentPoll: (
+    serverId: string,
+    cmd: CommandName,
+    params?: unknown
+  ): Promise<AgentResponse<unknown>> =>
+    ipcRenderer.invoke("agent:call", serverId, cmd, params, true),
+
   /** The same call, with the events of a long command as they arrive. */
   agentStream: (
     serverId: string,
@@ -406,11 +419,13 @@ const api = {
    */
   connectionsState: (): Promise<ConnectionsState> =>
     ipcRenderer.invoke("connections:state"),
+  /** A token that opens several accounts comes back as a choice; the pick is sent with the token again. */
   connectAccount: (
     kind: ConnectionKind,
-    token: string
-  ): Promise<AgentResponse<ConnectionsState>> =>
-    ipcRenderer.invoke("connections:connect", kind, token),
+    token: string,
+    accountId?: string
+  ): Promise<AgentResponse<ConnectionOutcome>> =>
+    ipcRenderer.invoke("connections:connect", kind, token, accountId),
   forgetAccount: (kind: ConnectionKind): Promise<ConnectionsState> =>
     ipcRenderer.invoke("connections:forget", kind),
   /** Asks the provider again whether the held token still opens an account. */
@@ -475,6 +490,11 @@ const api = {
   ): Promise<AgentResponse<PlatformSyncResult>> =>
     ipcRenderer.invoke("platform:sync", serverId),
   /** The records called for by the routes the agent just declared. */
+  releaseTunnelRecords: (
+    serverId: string,
+    hostnames: readonly string[]
+  ): Promise<AgentResponse<number>> =>
+    ipcRenderer.invoke("tunnel:release", serverId, hostnames),
   syncTunnelRecords: (
     serverId: string,
     routes: readonly TunnelRoute[]
@@ -495,6 +515,11 @@ const api = {
     name: string
   ): Promise<AgentResponse<ProjectRemoveResult>> =>
     ipcRenderer.invoke("project:on", "project.remove", serverId, name),
+  pullProject: (
+    serverId: string,
+    name: string
+  ): Promise<AgentResponse<ProjectPullResult>> =>
+    ipcRenderer.invoke("project:on", "project.pull", serverId, name),
   syncProject: (
     serverId: string,
     name: string
@@ -503,7 +528,7 @@ const api = {
   installProject: (
     serverId: string,
     name: string
-  ): Promise<AgentResponse<DoneResult>> =>
+  ): Promise<AgentResponse<ProjectInstallResult>> =>
     ipcRenderer.invoke("project:on", "project.install", serverId, name),
   projectAddress: (
     serverId: string,
@@ -543,21 +568,23 @@ const api = {
     branch: string
   ): Promise<AgentResponse<ProjectCheckoutResult>> =>
     ipcRenderer.invoke("project:checkout", serverId, name, branch),
-  /** The keys of a project's environment file, never a value; `force` writes it again. */
+  /** The keys of a project's environment file, never a value; `force` writes it again, `process` names the folder it lives in. */
   projectEnv: (
     serverId: string,
     name: string,
-    force = false
+    force = false,
+    process?: string
   ): Promise<AgentResponse<ProjectEnvResult>> =>
-    ipcRenderer.invoke("project:env", serverId, name, force),
+    ipcRenderer.invoke("project:env", serverId, name, force, process ?? null),
 
-  /** Start, stop or restart one project — or "all", the agent's own word. */
+  /** Start, stop or restart one project — or "all", the agent's own word — or one process of a project. */
   actOnProject: (
     action: ProjectAction,
     serverId: string,
-    name: string
+    name: string,
+    process?: string
   ): Promise<AgentResponse<ProjectActionResult>> =>
-    ipcRenderer.invoke("project:act", action, serverId, name),
+    ipcRenderer.invoke("project:act", action, serverId, name, process ?? null),
 
   startProject: (
     serverId: string,
@@ -578,10 +605,11 @@ const api = {
   ): Promise<void> =>
     ipcRenderer.invoke("project:editor", serverId, editor, path),
 
-  /** The journal, read once or followed line by line until the project stops. */
+  /** The journal of one process, read once or followed line by line until it stops. */
   projectJournal: (
     serverId: string,
     name: string,
+    process: string,
     lines: number,
     follow: boolean,
     onLine: (line: string) => void
@@ -593,6 +621,7 @@ const api = {
       (payload) => onLine(payload.line),
       serverId,
       name,
+      process,
       lines,
       follow
     ).done,
@@ -607,6 +636,7 @@ const api = {
   followProjectJournal: (
     serverId: string,
     name: string,
+    process: string,
     lines: number,
     onLine: (line: string) => void
   ): Followed<AgentResponse<ProjectLogsResult>> =>
@@ -617,6 +647,7 @@ const api = {
       (payload) => onLine(payload.line),
       serverId,
       name,
+      process,
       lines,
       true
     ),
@@ -1113,7 +1144,6 @@ const api = {
   },
   openLogin: (id: string): Promise<boolean> =>
     ipcRenderer.invoke("login-open", id),
-  dismissLogin: (id: string): void => ipcRenderer.send("login-dismiss", id),
   /** An address clicked in a session: what it needs from the server travels with it. */
   openTerminalUrl: (id: string, url: string): Promise<boolean> =>
     ipcRenderer.invoke("terminal-open-url", id, url),

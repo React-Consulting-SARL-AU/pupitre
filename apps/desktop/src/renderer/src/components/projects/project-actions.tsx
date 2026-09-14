@@ -1,18 +1,20 @@
 import type { Project } from "@pupitre/shared/agent-protocol/state";
 import { Button } from "@renderer/components/ui/button";
+import { ConfirmButton } from "@renderer/components/ui/confirm-button";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { isRunning } from "@renderer/lib/project-state";
 import type { ProjectAction } from "@renderer/stores/snapshot";
-import { Play, RefreshCw, RotateCw, Square } from "lucide-react";
+import { Play, RefreshCw, RotateCw, Square, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 
-/** What you do next with the project: run it, sync it, open it. */
+/** What you do with the whole project: run it, sync it, open it, let it go. */
 export function ProjectActions({
   project,
   busy,
   syncing,
   onAct,
   onSync,
+  onRemove,
   editors,
 }: {
   project: Project;
@@ -20,6 +22,8 @@ export function ProjectActions({
   syncing: boolean;
   onAct: (action: ProjectAction, name: string) => void;
   onSync: () => void;
+  /** Answer with the promise of the removal and the button waits on it. */
+  onRemove: () => Promise<void>;
   editors: ReactNode;
 }) {
   const t = useTranslations();
@@ -48,14 +52,22 @@ export function ProjectActions({
         </Button>
       ) : null}
       <Button
+        hint={t("project.header.syncHint")}
         icon={RefreshCw}
         loading={syncing}
         onClick={onSync}
-        title={t("project.header.syncHint")}
       >
         {t("project.header.sync")}
       </Button>
       {editors}
+      <ConfirmButton
+        confirmLabel={t("project.overview.remove")}
+        icon={Trash2}
+        onConfirm={onRemove}
+        question={t("project.overview.removeQuestion")}
+      >
+        {t("project.overview.removeFromRegistry")}
+      </ConfirmButton>
     </>
   );
 }

@@ -7,6 +7,7 @@ import { useOnboarding } from "../../stores/onboarding";
 import { ActionBar } from "../ui/action-bar";
 import { Button } from "../ui/button";
 import { Details } from "../ui/details";
+import { Panel } from "../ui/panel";
 import { Screen } from "../ui/screen";
 import { StatusDot } from "../ui/status-dot";
 import { StepFailure } from "../ui/step-failure";
@@ -45,7 +46,7 @@ export function OnboardingAgentScreen({
   return (
     <Screen
       column
-      eyebrow={t("onboarding.agent.eyebrow")}
+      eyebrow={serverName ?? t("onboarding.thisServer")}
       footer={
         <ActionBar name="agent" note={note}>
           <Button
@@ -60,7 +61,7 @@ export function OnboardingAgentScreen({
       }
       plain
       step="agent"
-      title={serverName ?? t("onboarding.thisServer")}
+      title={t("onboarding.agent.title")}
     >
       {delivery.status === "failed" ? (
         <StepFailure error={delivery.error} onRetry={sendAgent} />
@@ -72,7 +73,7 @@ export function OnboardingAgentScreen({
             enrollment={delivery.delivery.enrollment ?? null}
           />
 
-          <div className="elevation-raised flex items-start gap-3 rounded-md border border-line bg-surface px-4 py-4">
+          <Panel className="flex items-start gap-3">
             <span className="translate-y-1">
               <StatusDot shape="filled" size={12} tone="ok" />
             </span>
@@ -88,7 +89,7 @@ export function OnboardingAgentScreen({
                 </span>
               </Details>
             </div>
-          </div>
+          </Panel>
         </>
       ) : null}
 

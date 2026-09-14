@@ -132,7 +132,9 @@ export function usageRightOf(
   }
 
   if (entitlement === "suspended") {
-    return { consoleUrl, status: "suspended" };
+    return record.identity?.subscription
+      ? { consoleUrl, status: "suspended" }
+      : { consoleUrl, status: "unsubscribed" };
   }
 
   if (!record.checkedAt || entitlement === "none") {
@@ -189,6 +191,20 @@ function refusalFor(right: UsageRight): AccountResponse<UsageRight> {
         message: "refusal.account.suspended",
         phrase: {
           id: "refusal.account.suspended",
+          values: { console: right.consoleUrl },
+        },
+      },
+    };
+  }
+
+  if (right.status === "unsubscribed") {
+    return {
+      ok: false,
+      error: {
+        code: "entitlement_required",
+        message: "refusal.account.unsubscribed",
+        phrase: {
+          id: "refusal.account.unsubscribed",
           values: { console: right.consoleUrl },
         },
       },

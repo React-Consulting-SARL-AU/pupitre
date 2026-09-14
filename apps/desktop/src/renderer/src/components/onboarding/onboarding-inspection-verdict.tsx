@@ -4,6 +4,7 @@ import type {
 } from "@pupitre/shared/agent-protocol/install";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { Label } from "../ui/label";
+import { Panel } from "../ui/panel";
 import type { StatusShape, StatusTone } from "../ui/status-dot";
 import { StatusDot } from "../ui/status-dot";
 import { OnboardingInspectionSummary } from "./onboarding-inspection-summary";
@@ -37,9 +38,11 @@ export function OnboardingInspectionVerdict({ probe }: { probe: ProbeResult }) {
   const look = LOOK[verdict.kind];
 
   return (
-    <article
-      className="elevation-raised flex flex-col gap-gutter rounded-md border border-line bg-surface p-5"
+    <Panel
+      as="article"
+      className="flex flex-col gap-gutter"
       data-kind={verdict.kind}
+      inset="lg"
     >
       <header className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
@@ -98,6 +101,6 @@ export function OnboardingInspectionVerdict({ probe }: { probe: ProbeResult }) {
           </ul>
         </section>
       ) : null}
-    </article>
+    </Panel>
   );
 }

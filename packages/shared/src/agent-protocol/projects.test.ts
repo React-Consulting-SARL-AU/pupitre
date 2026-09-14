@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test"
 import {
+  ProcessParamsSchema,
   ProjectActionResultSchema,
   ProjectAddParamsSchema,
   ProjectBranchesResultSchema,
@@ -12,6 +13,8 @@ import {
   ProjectEnvParamsSchema,
   ProjectEnvResultSchema,
   ProjectGitStatusResultSchema,
+  ProjectInstallParamsSchema,
+  ProjectInstallResultSchema,
   ProjectListResultSchema,
   ProjectLogsParamsSchema,
   ProjectLogsResultSchema,
@@ -24,160 +27,242 @@ import {
   ProjectWorkingTreeResultSchema,
 } from "./projects"
 
-describe("ProjectParamsSchema and ProjectTargetParamsSchema", () => {
-  it("name a project, and accept all only as a target", () => {
+const server = {
+  id: "server",
+  pkgmgr: "gradle",
+  host: "127.0.0.1",
+  port: 8081,
+  cmd: "SERVER_PORT=8081 ./gradlew :server:bootRun --console=plain",
+  routes: [],
+}
+
+const client = {
+  id: "client",
+  dir: "client",
+  pkgmgr: "pnpm",
+  host: "127.0.0.1",
+  port: 3001,
+  cmd: "pnpm dev",
+  install: "pnpm install",
+  routes: [{ label: "client", port: 3001, subdomain: "intranet" }],
+}
+
+const registration = {
+  name: "intranet",
+  dir: "intranet",
+  repo: "git@github.com:acme/intranet.git",
+  processes: [server, client],
+}
+
+describe("ProjectParamsSchema, ProcessParamsSchema and ProjectTargetParamsSchema", () => {
+  it("name a project, a process of it, and accept all only as a target", () => {
     expect(ProjectParamsSchema.safeParse({ name: "flymate-api" }).success).toBe(
       true
     )
     expect(ProjectParamsSchema.safeParse({ name: "" }).success).toBe(false)
+    expect(
+      ProcessParamsSchema.safeParse({ name: "intranet", process: "server" })
+        .success
+    ).toBe(true)
+    expect(ProcessParamsSchema.safeParse({ name: "intranet" }).success).toBe(
+      false
+    )
     expect(ProjectTargetParamsSchema.safeParse({ name: "all" }).success).toBe(
       true
     )
+    expect(
+      ProjectTargetParamsSchema.safeParse({
+        name: "intranet",
+        process: "server",
+      }).success
+    ).toBe(true)
+    expect(
+      ProjectTargetParamsSchema.safeParse({ name: "all", process: "server" })
+        .success
+    ).toBe(false)
     expect(ProjectTargetParamsSchema.safeParse({}).success).toBe(false)
   })
 })
 
 describe("ProjectAddParamsSchema", () => {
-  it("accepts the registry row", () => {
-    expect(
-      ProjectAddParamsSchema.safeParse({
-        name: "flymate-api",
-        dir: "flymate/api",
-        repo: "git@github.com:acme/flymate.git",
-        pkgmgr: "bun",
-        host: "127.0.0.1",
-        port: 5173,
-        routes: [{ label: "web", port: 5173, subdomain: "flymate" }],
-        cmd: "bun run dev",
-        install: "bun install",
-      }).success
-    ).toBe(true)
+  it("accepts a repository and its processes, the root folder implied", () => {
+    const parsed = ProjectAddParamsSchema.safeParse(registration)
+
+    expect(parsed.success).toBe(true)
+    expect(parsed.data?.processes[0]?.dir).toBe(".")
+    expect(parsed.data?.processes[1]?.dir).toBe("client")
   })
 
   it("takes the branch to clone, and refuses one git would not", () => {
-    const base = {
-      name: "flymate-api",
-      dir: "flymate/api",
-      pkgmgr: "bun",
-      host: "127.0.0.1",
-      port: 5173,
-      routes: [],
-      cmd: "bun run dev",
-    }
-
     expect(
-      ProjectAddParamsSchema.safeParse({ ...base, branch: "release/2.0" })
-        .success
+      ProjectAddParamsSchema.safeParse({
+        ...registration,
+        branch: "release/2.0",
+      }).success
     ).toBe(true)
     expect(
-      ProjectAddParamsSchema.safeParse({ ...base, branch: "" }).success
+      ProjectAddParamsSchema.safeParse({ ...registration, branch: "" }).success
     ).toBe(false)
     expect(
-      ProjectAddParamsSchema.safeParse({ ...base, branch: "-force" }).success
+      ProjectAddParamsSchema.safeParse({ ...registration, branch: "-force" })
+        .success
     ).toBe(false)
   })
 
   it("takes a subdomain of one level or several on a route, and refuses what DNS would", () => {
-    const base = {
-      name: "flymate-api",
-      dir: "flymate/api",
-      pkgmgr: "bun",
-      host: "127.0.0.1",
-      port: 5173,
-      cmd: "bun run dev",
-    }
+    const withSubdomain = (subdomain: string) => ({
+      ...registration,
+      processes: [
+        { ...client, routes: [{ label: "client", port: 3001, subdomain }] },
+      ],
+    })
 
     for (const subdomain of ["shop", "api.shop", "a-b.c-d.e"]) {
       expect(
-        ProjectAddParamsSchema.safeParse({
-          ...base,
-          routes: [{ label: "web", port: 5173, subdomain }],
-        }).success
+        ProjectAddParamsSchema.safeParse(withSubdomain(subdomain)).success
       ).toBe(true)
     }
 
     for (const subdomain of ["", "-shop", "shop-", ".shop", "shop.", "a..b"]) {
       expect(
-        ProjectAddParamsSchema.safeParse({
-          ...base,
-          routes: [{ label: "web", port: 5173, subdomain }],
-        }).success
+        ProjectAddParamsSchema.safeParse(withSubdomain(subdomain)).success
       ).toBe(false)
     }
   })
 
-  it("requires the list of routes, and refuses a hostname in it", () => {
-    const base = {
-      name: "flymate-api",
-      dir: "flymate/api",
-      pkgmgr: "bun",
-      host: "127.0.0.1",
-      port: 5173,
-      cmd: "bun run dev",
-    }
+  it("requires the routes of each process, and refuses a hostname in them", () => {
+    const { routes: _routes, ...withoutRoutes } = client
 
-    expect(ProjectAddParamsSchema.safeParse(base).success).toBe(false)
     expect(
       ProjectAddParamsSchema.safeParse({
-        ...base,
-        routes: [{ label: "web", port: 5173, hostname: "web.example.org" }],
+        ...registration,
+        processes: [withoutRoutes],
+      }).success
+    ).toBe(false)
+    expect(
+      ProjectAddParamsSchema.safeParse({
+        ...registration,
+        processes: [
+          {
+            ...client,
+            routes: [
+              { label: "client", port: 3001, hostname: "web.example.org" },
+            ],
+          },
+        ],
       }).success
     ).toBe(false)
   })
 
-  it("rejects an unknown package manager and a port out of range", () => {
-    const base = {
-      name: "flymate-api",
-      dir: "flymate/api",
-      pkgmgr: "bun",
-      host: "127.0.0.1",
-      port: 5173,
-      routes: [],
-      cmd: "bun run dev",
+  it("takes the loopback or a .localhost name as host, nothing else", () => {
+    const withHost = (host: string) => ({
+      ...registration,
+      processes: [{ ...client, host }],
+    })
+
+    for (const host of [
+      "127.0.0.1",
+      "react-box.localhost",
+      "api.shop.localhost",
+    ]) {
+      expect(ProjectAddParamsSchema.safeParse(withHost(host)).success).toBe(
+        true
+      )
     }
+
+    for (const host of [
+      "localhost",
+      "0.0.0.0",
+      "shop.example.org",
+      "React.localhost",
+      "-a.localhost",
+      "",
+    ]) {
+      expect(ProjectAddParamsSchema.safeParse(withHost(host)).success).toBe(
+        false
+      )
+    }
+  })
+
+  it("rejects an unknown package manager, a port out of range, a process id that is not a label, and two processes of one id", () => {
     expect(
-      ProjectAddParamsSchema.safeParse({ ...base, pkgmgr: "cargo" }).success
+      ProjectAddParamsSchema.safeParse({
+        ...registration,
+        processes: [{ ...client, pkgmgr: "cargo" }],
+      }).success
     ).toBe(false)
     expect(
-      ProjectAddParamsSchema.safeParse({ ...base, port: 70_000 }).success
+      ProjectAddParamsSchema.safeParse({
+        ...registration,
+        processes: [{ ...client, port: 70_000 }],
+      }).success
+    ).toBe(false)
+    expect(
+      ProjectAddParamsSchema.safeParse({
+        ...registration,
+        processes: [{ ...client, id: "Client" }],
+      }).success
+    ).toBe(false)
+    expect(
+      ProjectAddParamsSchema.safeParse({
+        ...registration,
+        processes: [server, { ...client, id: "server" }],
+      }).success
+    ).toBe(false)
+    expect(
+      ProjectAddParamsSchema.safeParse({ ...registration, processes: [] })
+        .success
     ).toBe(false)
   })
 })
 
 describe("ProjectUpdateParamsSchema", () => {
-  it("takes a patch of the command, the install line, the branch and the routes", () => {
+  it("takes a patch of the branch and of the whole list of processes", () => {
     expect(
       ProjectUpdateParamsSchema.safeParse({
-        name: "flymate-api",
+        name: "intranet",
         patch: {
-          cmd: "turbo run dev",
-          install: "",
           branch: "release/2.0",
-          routes: [
-            { label: "web", port: 3000, subdomain: "shop" },
-            { label: "api", port: 3001, hostname: "api.shop.example.org" },
-            { label: "docs", port: 3002 },
+          processes: [
+            { ...server, install: "" },
+            {
+              ...client,
+              routes: [
+                { label: "client", port: 3001, subdomain: "intranet" },
+                {
+                  label: "api",
+                  port: 3002,
+                  hostname: "api.intranet.example.org",
+                },
+                { label: "docs", port: 3003 },
+              ],
+            },
           ],
         },
       }).success
     ).toBe(true)
     expect(
-      ProjectUpdateParamsSchema.safeParse({ name: "flymate-api", patch: {} })
+      ProjectUpdateParamsSchema.safeParse({ name: "intranet", patch: {} })
         .success
     ).toBe(true)
   })
 
-  it("refuses a route naming a subdomain and a hostname at once, and an empty command", () => {
+  it("refuses a route naming a subdomain and a hostname at once, an empty command, an empty list and a folder", () => {
     expect(
       ProjectUpdateParamsSchema.safeParse({
-        name: "flymate-api",
+        name: "intranet",
         patch: {
-          routes: [
+          processes: [
             {
-              label: "web",
-              port: 3000,
-              subdomain: "shop",
-              hostname: "shop.example.org",
+              ...client,
+              routes: [
+                {
+                  label: "web",
+                  port: 3000,
+                  subdomain: "shop",
+                  hostname: "shop.example.org",
+                },
+              ],
             },
           ],
         },
@@ -185,13 +270,19 @@ describe("ProjectUpdateParamsSchema", () => {
     ).toBe(false)
     expect(
       ProjectUpdateParamsSchema.safeParse({
-        name: "flymate-api",
-        patch: { cmd: "" },
+        name: "intranet",
+        patch: { processes: [{ ...client, cmd: "" }] },
       }).success
     ).toBe(false)
     expect(
       ProjectUpdateParamsSchema.safeParse({
-        name: "flymate-api",
+        name: "intranet",
+        patch: { processes: [] },
+      }).success
+    ).toBe(false)
+    expect(
+      ProjectUpdateParamsSchema.safeParse({
+        name: "intranet",
         patch: { dir: "elsewhere" },
       }).success
     ).toBe(false)
@@ -199,23 +290,46 @@ describe("ProjectUpdateParamsSchema", () => {
 })
 
 describe("ProjectDetectResultSchema", () => {
-  it("carries the routes of a monorepo, labelled after their workspace", () => {
+  it("carries one process per folder that asks for one, the routes of a monorepo among them", () => {
     expect(
       ProjectDetectResultSchema.safeParse({
-        pkgmgr: "bun",
-        install: "bun install",
-        cmd: "bun run turbo run dev",
-        port_hint: 3000,
-        routes: [
-          { label: "web", port: 3000 },
-          { label: "api", port: 3001 },
+        processes: [
+          {
+            id: "shop",
+            dir: ".",
+            pkgmgr: "bun",
+            install: "bun install",
+            cmd: "bunx turbo run dev",
+            port_hint: 3000,
+            routes: [
+              { label: "web", port: 3000 },
+              { label: "api", port: 3001 },
+            ],
+          },
         ],
       }).success
     ).toBe(true)
     expect(
       ProjectDetectResultSchema.safeParse({
-        pkgmgr: "bun",
-        routes: [{ label: "Web", port: 3000 }],
+        processes: [
+          { id: "server", dir: ".", pkgmgr: "gradle" },
+          { id: "client", dir: "client", pkgmgr: "pnpm", port_hint: 3001 },
+        ],
+      }).success
+    ).toBe(true)
+    expect(ProjectDetectResultSchema.safeParse({ processes: [] }).success).toBe(
+      false
+    )
+    expect(
+      ProjectDetectResultSchema.safeParse({
+        processes: [
+          {
+            id: "shop",
+            dir: ".",
+            pkgmgr: "bun",
+            routes: [{ label: "Web", port: 3000 }],
+          },
+        ],
       }).success
     ).toBe(false)
   })
@@ -233,14 +347,23 @@ describe("project results", () => {
       }).success
     ).toBe(true)
     expect(
-      ProjectActionResultSchema.safeParse({ state: "online", port: 5173 })
-        .success
+      ProjectActionResultSchema.safeParse({ state: "partial" }).success
     ).toBe(true)
     expect(
       ProjectActionResultSchema.safeParse({
         state: "online",
-        projects: [{ name: "flymate-api", state: "online", port: 5173 }],
+        projects: [{ name: "flymate-api", state: "online" }],
       }).success
+    ).toBe(true)
+    expect(
+      ProjectInstallResultSchema.safeParse({
+        done: true,
+        installed: [{ process: "client", command: "pnpm install" }],
+      }).success
+    ).toBe(true)
+    expect(
+      ProjectInstallResultSchema.safeParse({ done: true, installed: [] })
+        .success
     ).toBe(true)
     expect(
       ProjectLogsResultSchema.safeParse({ lines: ["ready"] }).success
@@ -363,9 +486,23 @@ describe("project params with options", () => {
   it("accept logs, env, checkout and diff params", () => {
     expect(
       ProjectLogsParamsSchema.safeParse({
-        name: "flymate-api",
+        name: "intranet",
+        process: "server",
         lines: 200,
         follow: true,
+      }).success
+    ).toBe(true)
+    expect(
+      ProjectLogsParamsSchema.safeParse({ name: "intranet", lines: 200 })
+        .success
+    ).toBe(false)
+    expect(
+      ProjectInstallParamsSchema.safeParse({ name: "intranet" }).success
+    ).toBe(true)
+    expect(
+      ProjectInstallParamsSchema.safeParse({
+        name: "intranet",
+        process: "client",
       }).success
     ).toBe(true)
     expect(
@@ -439,24 +576,37 @@ describe("ProjectDetectParamsSchema", () => {
 })
 
 describe("ProjectDetectResultSchema", () => {
-  it("proposes a package manager, a start command and a port", () => {
+  it("proposes a package manager, a start command and a port on each process", () => {
     expect(
       ProjectDetectResultSchema.safeParse({
-        pkgmgr: "bun",
-        install: "bun install",
-        cmd: "bun run dev --port 3000",
-        port_hint: 3000,
+        processes: [
+          {
+            id: "flymate",
+            dir: ".",
+            pkgmgr: "bun",
+            install: "bun install",
+            cmd: "bun run dev --port 3000",
+            port_hint: 3000,
+          },
+        ],
       }).success
     ).toBe(true)
   })
 
-  it("keeps everything but the package manager optional", () => {
+  it("keeps everything but the id, the folder and the package manager optional", () => {
     expect(
-      ProjectDetectResultSchema.safeParse({ pkgmgr: "none" }).success
+      ProjectDetectResultSchema.safeParse({
+        processes: [{ id: "app", dir: ".", pkgmgr: "none" }],
+      }).success
     ).toBe(true)
-    expect(ProjectDetectResultSchema.safeParse({}).success).toBe(false)
     expect(
-      ProjectDetectResultSchema.safeParse({ pkgmgr: "cargo" }).success
+      ProjectDetectResultSchema.safeParse({ processes: [{ pkgmgr: "none" }] })
+        .success
+    ).toBe(false)
+    expect(
+      ProjectDetectResultSchema.safeParse({
+        processes: [{ id: "app", dir: ".", pkgmgr: "cargo" }],
+      }).success
     ).toBe(false)
   })
 })

@@ -1,6 +1,6 @@
 # Le parcours d'un serveur atteint en root : installation, puis durcissement.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["hello","ping","catalog","install","harden"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","ping","catalog","install","harden"]}}
 > {"id":2,"cmd":"install","params":{"modules":["core.system","runtime.node","db.postgres"],"config":{"core.system":{"hostname":"staging"},"runtime.node":{"version":"24"},"db.postgres":{"version":"17"}},"secrets_stdin":true}}
 $ {"db.postgres":{"app_password":"s3cret-de-test"}}
 < {"id":2,"event":"step","module":"core.system","step":"paquets","status":"ok","ms":12400}

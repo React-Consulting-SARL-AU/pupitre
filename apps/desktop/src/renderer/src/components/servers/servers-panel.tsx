@@ -1,15 +1,18 @@
 import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { ServerDraft } from "@shared/servers";
-import { Plus, Server as ServerIcon } from "lucide-react";
+import { ExternalLink, Plus, Server as ServerIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { accountOf, useAccount } from "../../stores/account";
+import { useFleet } from "../../stores/fleet";
 import { useServers } from "../../stores/servers";
 import { FleetPanel } from "../fleet/fleet-panel";
 import { OnboardingEntry } from "../onboarding/onboarding-entry";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
 import { EmptyState } from "../ui/empty-state";
-import { Label } from "../ui/label";
+import { Panel } from "../ui/panel";
+import { Section } from "../ui/section";
 import { HostKeyAlert } from "./host-key-alert";
 import { ServerAddForm } from "./server-add-form";
 import { ServerKeyInstall } from "./server-key-install";
@@ -24,8 +27,9 @@ import { ServerRow } from "./server-row";
  * nothing works.
  *
  * This is the panel of the settings, where a server is managed: renamed, made
- * active, deleted. The assistant has its own screen for the same machines,
- * because choosing one is not managing them.
+ * active, deleted. A machine the organization grants is one row of the same
+ * list, with the console's word among its facts. The assistant has its own
+ * screen for the same machines, because choosing one is not managing them.
  */
 export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
   const t = useTranslations();
@@ -49,6 +53,10 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
     trustReinstalled,
     update,
   } = useServers();
+
+  const consoleUrl = useAccount((s) => accountOf(s.view)?.consoleUrl ?? null);
+  const opening = useFleet((s) => s.opening);
+  const open = useFleet((s) => s.open);
 
   const [adding, setAdding] = useState(false);
   const [trusting, setTrusting] = useState(false);
@@ -115,20 +123,31 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
         />
       ) : null}
 
-      <FleetPanel />
-
-      <section>
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <Label>{t("servers.panel.heading")}</Label>
-          {servers.length > 0 && !adding ? (
-            <Button icon={Plus} onClick={() => setAdding(true)}>
-              {t("servers.addServer")}
-            </Button>
-          ) : null}
-        </div>
-
+      <Section
+        actions={
+          <>
+            {/* Members, assignment and revocation live on the console, not here. */}
+            {consoleUrl ? (
+              <Button
+                icon={ExternalLink}
+                onClick={() => window.pupitre.openUrl(consoleUrl)}
+                size="sm"
+              >
+                {t("fleet.console.open")}
+              </Button>
+            ) : null}
+            {servers.length > 0 && !adding ? (
+              <Button icon={Plus} onClick={() => setAdding(true)} size="sm">
+                {t("servers.addServer")}
+              </Button>
+            ) : null}
+          </>
+        }
+        name="servers"
+        title={t("servers.panel.heading")}
+      >
         {servers.length === 0 ? (
-          <div className="mt-5 rounded-md border border-line border-dashed">
+          <Panel inset="none">
             <EmptyState
               action={
                 adding ? null : (
@@ -144,39 +163,46 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
               icon={ServerIcon}
               title={t("servers.panel.emptyTitle")}
             />
-          </div>
+          </Panel>
         ) : (
-          <div className="mt-5 flex flex-col gap-gutter">
+          <div className="flex flex-col gap-gutter">
             {servers.map((server) => (
-              <div className="flex flex-col gap-3" key={server.id}>
-                <OnboardingEntry server={server} />
-                <ServerRow
-                  active={server.id === active}
-                  edit={edit}
-                  onActivate={() => run(activate(server.id))}
-                  onForget={() => run(forget(server.id))}
-                  onForgetEdit={forgetEdit}
-                  onRemove={() => run(remove(server.id))}
-                  onRename={(name) => rename(server.id, name)}
-                  onUpdate={(changes) => run(update(server.id, changes))}
-                  refusal={
-                    removal.status === "refused" &&
-                    removal.serverId === server.id ? (
-                      <Callout
-                        fix={agentText(t, removal.error).fix}
-                        tone="danger"
-                      >
-                        {agentText(t, removal.error).message}
-                      </Callout>
-                    ) : null
-                  }
-                  server={server}
-                />
-              </div>
+              <ServerRow
+                active={server.id === active}
+                edit={edit}
+                footer={<OnboardingEntry server={server} />}
+                key={server.id}
+                onActivate={() => run(activate(server.id))}
+                onForget={() => run(forget(server.id))}
+                onForgetEdit={forgetEdit}
+                onOpen={() => open(server.id)}
+                onRemove={() => run(remove(server.id))}
+                onRename={(name) => rename(server.id, name)}
+                onUpdate={(changes) => run(update(server.id, changes))}
+                opening={
+                  opening.status !== "idle" && opening.serverId === server.id
+                    ? opening
+                    : null
+                }
+                refusal={
+                  removal.status === "refused" &&
+                  removal.serverId === server.id ? (
+                    <Callout
+                      fix={agentText(t, removal.error).fix}
+                      tone="danger"
+                    >
+                      {agentText(t, removal.error).message}
+                    </Callout>
+                  ) : null
+                }
+                server={server}
+              />
             ))}
           </div>
         )}
-      </section>
+      </Section>
+
+      <FleetPanel />
 
       {adding ? (
         <ServerAddForm

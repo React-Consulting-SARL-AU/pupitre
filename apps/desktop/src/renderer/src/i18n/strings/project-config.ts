@@ -9,7 +9,7 @@ export const projectConfig = {
       "Left empty, the command of {pkgmgr} is what installs the dependencies.",
     "project.config.branchHelp": "The branch the next sync brings.",
     "project.config.restarts":
-      "The start command changed: saving restarts the project if it is running.",
+      "The start command or the folder changed: saving restarts {processes} if running.",
     "project.config.dropped":
       "These addresses stop answering once saved: {hostnames}.",
     "project.config.save": "Save the configuration",
@@ -27,7 +27,7 @@ export const projectConfig = {
     "project.config.branchHelp":
       "La branche que la prochaine synchronisation ramène.",
     "project.config.restarts":
-      "La commande de démarrage a changé : enregistrer redémarre le projet s'il tourne.",
+      "La commande de démarrage ou le dossier a changé : enregistrer redémarre {processes} si ça tourne.",
     "project.config.dropped":
       "Ces adresses cessent de répondre une fois enregistré : {hostnames}.",
     "project.config.save": "Enregistrer la configuration",

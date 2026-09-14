@@ -219,7 +219,7 @@ func TestALargeCaptureLeavesTheChannelUsable(t *testing.T) {
 	state.RegisterCommands(server, reader)
 
 	input := strings.Join([]string{
-		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}`,
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`,
 		`{"id":2,"cmd":"shots.read","params":{"path":"2026-09-04/login.png"}}`,
 		`{"id":3,"cmd":"ping"}`,
 	}, "\n") + "\n"

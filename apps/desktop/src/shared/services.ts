@@ -3,7 +3,7 @@ import {
   DB_ENGINES,
   type DbEngine,
 } from "@pupitre/shared/agent-protocol/secrets";
-import type { ServiceState } from "@pupitre/shared/agent-protocol/state";
+import type { Login, ServiceState } from "@pupitre/shared/agent-protocol/state";
 
 /**
  * What the Services screen is allowed to know about a module it did not ask to
@@ -25,6 +25,8 @@ export interface ServiceDetail {
   unit?: string;
   /** The labels the agent gave, in its order. Never a value. */
   credentials: string[];
+  /** What the module's CLI says of its own account, when it has one to sign in to. */
+  login?: Login;
 }
 
 /**

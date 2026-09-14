@@ -188,6 +188,7 @@ describe("processus et sessions", () => {
         onStopSession={NOOP}
         processes={PROCESSES}
         processesProblem={null}
+        serverName="atelier"
         sessions={SNAPSHOT.sessions}
       />
     );
@@ -211,6 +212,7 @@ describe("processus et sessions", () => {
         onStopSession={NOOP}
         processes={PROCESSES}
         processesProblem={null}
+        serverName="atelier"
         sessions={SNAPSHOT.sessions}
       />
     );
@@ -225,6 +227,7 @@ describe("processus et sessions", () => {
         onStopSession={NOOP}
         processes={PROCESSES}
         processesProblem={null}
+        serverName="atelier"
         sessions={SNAPSHOT.sessions}
       />
     );
@@ -410,7 +413,7 @@ describe("les flèches de l'historique", () => {
     );
 
     expect(html).toContain('aria-label="Retour (');
-    expect(html).toContain('title="Retour (');
+    expect(html).toContain('data-tooltip="Retour (');
     expect(html).toContain('aria-label="Avancer (');
     expect(html).toMatch(/aria-label="Avancer \([^"]*\)"[^>]*disabled=""/);
     expect(html).not.toMatch(/aria-label="Retour \([^"]*\)"[^>]*disabled=""/);
@@ -476,6 +479,7 @@ describe("ce qui se dit au-dessus des écrans", () => {
         onStopSession={NOOP}
         processes={PROCESSES}
         processesProblem={null}
+        serverName="atelier"
         sessions={SNAPSHOT.sessions}
       />
     );

@@ -43,7 +43,7 @@ export const catalog = {
     "catalog.screen.configure.one": "Continue with 1 service",
     "catalog.screen.configure.other": "Continue with {count} services",
     "catalog.screen.defaultServer": "This server",
-    "catalog.screen.eyebrow": "Services",
+    "catalog.screen.title": "Services",
     "catalog.screen.reload": "Reload",
     "catalog.screen.waitingTitle": "Reading what this server can receive",
     "catalog.warning.disk":
@@ -93,7 +93,7 @@ export const catalog = {
     "catalog.screen.configure.one": "Continuer avec 1 service",
     "catalog.screen.configure.other": "Continuer avec {count} services",
     "catalog.screen.defaultServer": "Ce serveur",
-    "catalog.screen.eyebrow": "Services",
+    "catalog.screen.title": "Services",
     "catalog.screen.reload": "Relancer",
     "catalog.screen.waitingTitle": "On lit ce que ce serveur peut recevoir",
     "catalog.warning.disk":

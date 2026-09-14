@@ -55,7 +55,7 @@ func errorCode(t *testing.T, line string) string {
 
 func TestServeNegotiatesHelloThenAnswersPing(t *testing.T) {
 	lines := serveLines(t,
-		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}`,
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`,
 		`{"id":2,"cmd":"ping"}`,
 		`{"id":3,"cmd":"snapshot"}`,
 	)
@@ -108,7 +108,7 @@ func TestServeRequiresHello(t *testing.T) {
 func TestServeRejectsInvalidJSONAndKeepsGoing(t *testing.T) {
 	lines := serveLines(t,
 		"not json",
-		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}`,
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`,
 	)
 
 	if code := errorCode(t, lines[0]); code != "bad_request" {

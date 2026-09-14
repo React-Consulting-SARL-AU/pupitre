@@ -1,3 +1,5 @@
+// Before anything reads the data folder: a development build gets its own.
+import "./dev-data";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { AgentResponse } from "@shared/agent";
@@ -107,7 +109,6 @@ import {
   closeAll,
   describeSession,
   endSession,
-  forgetLogin,
   onStates,
   open,
   pendingLogin,
@@ -833,12 +834,6 @@ function registerLoginChannels(): void {
         ? openPendingLogin(id, loginDeps)
         : Promise.resolve(false)
   );
-
-  ipcMain.on("login-dismiss", (_e, id: unknown) => {
-    if (typeof id === "string") {
-      forgetLogin(id);
-    }
-  });
 
   ipcMain.handle(
     "terminal-open-url",

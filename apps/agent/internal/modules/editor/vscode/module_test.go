@@ -161,6 +161,35 @@ func TestReplayMutatesNothing(t *testing.T) {
 	}
 }
 
+// A build published since the install is not what a changed setting costs: the replay keeps the server it has, upgrade is what moves it.
+func TestAReplayKeepsTheInstalledBuildAndUpgradeMovesIt(t *testing.T) {
+	fake := machine()
+	install(t, fake, modtest.Values{"tunnel": false})
+
+	newer := strings.Replace(update, commit, "b55bef8064f11a75bc9a1a0a9869a445a2fd26cd", 1)
+	newer = strings.ReplaceAll(newer, product, "1.137.0")
+	fake.Answer("update.code.visualstudio.com/api/update", newer)
+	fake.Mutations = nil
+
+	ctx := install(t, fake, modtest.Values{"tunnel": true})
+
+	if len(fake.Files[binRoot+"/b55bef8064f11a75bc9a1a0a9869a445a2fd26cd/bin/code-server"]) != 0 || !skipped(ctx, "install-server") {
+		t.Fatalf("a replay must not fetch a newer server: %v", fake.Mutations)
+	}
+
+	if !strings.Contains(string(fake.Files[pointerPath]), product) {
+		t.Fatalf("the record must still name the installed build: %q", fake.Files[pointerPath])
+	}
+
+	if err := (Module{}).Upgrade(newContext(t, fake, modtest.Values{"tunnel": true})); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(fake.Files[binRoot+"/b55bef8064f11a75bc9a1a0a9869a445a2fd26cd/bin/code-server"]) == 0 || !strings.Contains(string(fake.Files[pointerPath]), "1.137.0") {
+		t.Fatalf("upgrade must lay the newer server and record it: %q", fake.Files[pointerPath])
+	}
+}
+
 func TestUninstallKeepsWhatBelongsToTheClient(t *testing.T) {
 	fake := machine()
 	install(t, fake, modtest.Values{"extensions": []any{"esbenp.prettier-vscode"}, "tunnel": true})
@@ -206,3 +235,49 @@ func skipped(ctx *modules.Context, step string) bool {
 }
 
 var _ modules.Module = Module{}
+
+// Only the tunnel signs in: a machine without the unit has nothing to say, and one with it says what code tunnel user show says.
+func TestLoginSpeaksForTheTunnelAlone(t *testing.T) {
+	bare := machine()
+	if _, asked := (Module{}).Login(newContext(t, bare, modtest.Values{})); asked {
+		t.Fatal("no tunnel, no login to report")
+	}
+
+	cases := map[string]struct {
+		answer  string
+		refused bool
+		want    contract.Login
+	}{
+		"signed in": {
+			answer: "logged in with provider github\n",
+			want:   contract.Login{State: contract.LoginSignedIn, Account: "github"},
+		},
+		"nobody": {
+			answer:  "not logged in\n",
+			refused: true,
+			want:    contract.Login{State: contract.LoginSignedOut, Fix: "Open a terminal on this server and run code tunnel user login: the code it prints goes on the page it names."},
+		},
+		"no answer": {
+			answer:  "",
+			refused: true,
+			want:    contract.Login{State: contract.LoginUnknown, Fix: "VS Code did not answer its own check: read this service again in a moment, or run code tunnel user show in a terminal on this server."},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			fake := machine()
+			fake.Files[unitPath] = []byte("[Unit]\n")
+			if tc.refused {
+				fake.Refuse("tunnel user show", tc.answer)
+			} else {
+				fake.Answer("tunnel user show", tc.answer)
+			}
+
+			got, asked := (Module{}).Login(newContext(t, fake, modtest.Values{}))
+			if !asked || got != tc.want {
+				t.Fatalf("login = %+v (%v), want %+v", got, asked, tc.want)
+			}
+		})
+	}
+}

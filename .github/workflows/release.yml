@@ -44,7 +44,7 @@ env:
 jobs:
   agent:
     name: Agent
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     outputs:
       release: ${{ steps.resolve.outputs.release }}
@@ -56,6 +56,10 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: package.json
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
@@ -109,7 +113,7 @@ jobs:
   agent-arm64:
     name: Agent on arm64
     needs: agent
-    runs-on: ubuntu-24.04-arm
+    runs-on: blacksmith-4vcpu-ubuntu-2404-arm
     timeout-minutes: 15
     env:
       PUPITRE_RELEASE_VERSION: ${{ fromJSON(needs.agent.outputs.release).version }}
@@ -120,6 +124,10 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: package.json
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
@@ -163,11 +171,11 @@ jobs:
       matrix:
         include:
           - system: macOS
-            runner: macos-15
+            runner: blacksmith-6vcpu-macos-15
           - system: Windows
-            runner: windows-2025
+            runner: blacksmith-4vcpu-windows-2025
           - system: Linux
-            runner: ubuntu-24.04
+            runner: blacksmith-4vcpu-ubuntu-2404
     env:
       PUPITRE_RELEASE_VERSION: ${{ fromJSON(needs.agent.outputs.release).version }}
       PUPITRE_RELEASE_CHANNEL: ${{ fromJSON(needs.agent.outputs.release).channel }}
@@ -188,6 +196,18 @@ jobs:
         with:
           path: .cache
           key: electron-${{ runner.os }}-${{ hashFiles('apps/desktop/package.json') }}
+
+      # node-pty links against the Spectre-mitigated MSVC libraries, which the
+      # Blacksmith Windows image does not carry; the installer it has adds them.
+      - name: Install the Spectre-mitigated MSVC libraries
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
+          $buildTools = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\BuildTools"
+          $arguments = @("modify", "--installPath", "`"$buildTools`"", "--add", "Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre", "--quiet", "--norestart", "--nocache")
+          $process = Start-Process -FilePath $installer -ArgumentList $arguments -Wait -PassThru
+          if ($process.ExitCode -ne 0 -and $process.ExitCode -ne 3010) { exit $process.ExitCode }
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -218,7 +238,7 @@ jobs:
   publish:
     name: Publish the app
     needs: [agent, desktop]
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 20
     env:
       PUPITRE_RELEASE_VERSION: ${{ fromJSON(needs.agent.outputs.release).version }}
@@ -229,6 +249,10 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: package.json
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -255,7 +279,7 @@ jobs:
   merge:
     name: Merge into main
     needs: [agent, publish]
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 10
     permissions:
       contents: write
@@ -272,6 +296,10 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: package.json
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
 
       - name: Install dependencies
         run: bun install --frozen-lockfile

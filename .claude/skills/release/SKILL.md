@@ -14,7 +14,7 @@ Le Mac du propriétaire écrit la version et les notes et pose le tag, par `scri
 | Fichier | Rôle | Existe ? |
 | --- | --- | --- |
 | `scripts/release.sh` | la part du Mac : `next`, `resolve`, `notes` — s'arrête là pour que les notes soient lues — puis `check` et `ship` quand on le relance | oui |
-| `.github/workflows/release.yml` | la part des runners, sur le tag : `agent build`, `agent publish`, puis `desktop` sur `macos-15`, `windows-2025`, `ubuntu-24.04`, puis `app publish`, `verify` et `merge` | oui |
+| `.github/workflows/release.yml` | la part des runners, sur le tag : `agent build`, `agent publish`, puis `desktop` sur les runners Blacksmith `blacksmith-6vcpu-macos-15`, `blacksmith-4vcpu-windows-2025`, `blacksmith-4vcpu-ubuntu-2404`, puis `app publish`, `verify` et `merge` | oui |
 | `.github/workflows/promote.yml` | à la main, `gh workflow run promote.yml -f version=X.Y.Z` : remet une version publiée dans un canal — le retour arrière | oui |
 | `scripts/release/release.env.tpl` | les références 1Password et les valeurs publiques — aucun secret dedans ; `release secrets` en fait les secrets du dépôt, le workflow y lit les valeurs en clair | oui |
 | `scripts/release/` | **la chaîne elle-même** : `next`, `resolve`, `notes`, `check`, `ship`, `agent build`, `agent publish`, `desktop`, `app publish`, `verify`, `merge`, `promote`, `secrets` — chaque étape est une commande `bun scripts/release/index.ts <étape>`, idempotente, pilotée par l'environnement, avec `--dry-run` ; R2 en S3 pour seul bus, avec une clé limitée aux deux seaux | oui |
@@ -135,7 +135,7 @@ gh workflow run promote.yml -f version=X.Y.Z -f channel=stable
 
 - Commit ou push sans demande explicite ; `--force` ; `--no-verify` ; `PUPITRE_ALLOW_MAIN=1`. `scripts/release.sh` est la demande : son second passage commite, tague et pousse.
 - Un squash ou un rebase sur la pull request `staging` → `main` : le tag de la version sortirait de l'historique.
-- Un merge de `staging` dans `main` à la main : c'est le job `merge` de la release qui le fait, une fois la version téléchargeable.
+- Une release pour un changement qui ne touche ni l'app ni l'agent : la console, le site et les mails partent par une pull request `staging` → `main` fusionnée en merge commit, sans numéro, et Cloudflare Builds reconstruit les Workers.
 - Un second build du même numéro : la version publiée est celle que le canal désigne, un retour arrière promeut la précédente.
 - Un secret, un certificat, un mot de passe dans le dépôt, un log, une transcription de session.
 - Une publication de l'agent ailleurs que sur le bucket privé, par l'API de la plateforme.

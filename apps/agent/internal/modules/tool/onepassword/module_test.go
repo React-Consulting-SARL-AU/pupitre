@@ -1,6 +1,7 @@
 package onepassword
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -98,13 +99,19 @@ func TestInstallAndConfigureAreIdempotent(t *testing.T) {
 	}
 
 	for _, event := range ctx.Events() {
-		if event.Step != "verify-service-account" && event.Status != contract.StepSkip {
+		if event.Status != contract.StepSkip {
 			t.Errorf("step %s: want skip, got %s", event.Step, event.Status)
 		}
 	}
 
 	if len(fake.Mutations) != 0 {
 		t.Fatalf("a replay must not touch the machine: %v", fake.Mutations)
+	}
+
+	for _, line := range fake.Commands() {
+		if strings.Contains(line, "vault list") {
+			t.Fatalf("a token already verified must not be asked of 1Password again: %s", line)
+		}
 	}
 }
 
@@ -141,7 +148,7 @@ func TestSecretNeverLeaks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := Env(ctx, "web", false); err != nil {
+	if _, err := Env(ctx, "flymate", "web", false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -177,7 +184,7 @@ func TestEnvInjectsTheTemplateAndReturnsKeysOnly(t *testing.T) {
 	fake := machine()
 	ctx := newContext(t, fake, modtest.Secrets{"service_account_token": token})
 
-	result, err := Env(ctx, "web", false)
+	result, err := Env(ctx, "flymate", "web", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,7 +228,7 @@ func TestEnvKeepsAnExistingFileUnlessForced(t *testing.T) {
 	fake.Files[target] = []byte("DATABASE_URL=deja-la\n")
 	ctx := newContext(t, fake, modtest.Secrets{"service_account_token": token})
 
-	result, err := Env(ctx, "web", false)
+	result, err := Env(ctx, "flymate", "web", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -230,7 +237,7 @@ func TestEnvKeepsAnExistingFileUnlessForced(t *testing.T) {
 		t.Fatalf("nothing must be rewritten: %+v", result)
 	}
 
-	forced, err := Env(ctx, "web", true)
+	forced, err := Env(ctx, "flymate", "web", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -246,7 +253,7 @@ func TestEnvFallsBackOnTheVersionedExampleWithoutASecretManager(t *testing.T) {
 	fake.Files[home+"/"+exampleName] = []byte(example)
 	ctx := newContext(t, fake, nil)
 
-	result, err := Env(ctx, "web", false)
+	result, err := Env(ctx, "flymate", "web", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -261,7 +268,7 @@ func TestEnvSaysWhatIsMissingWhenTheRepositoryVersionsNothing(t *testing.T) {
 	delete(fake.Files, home+"/"+templateName)
 	ctx := newContext(t, fake, modtest.Secrets{"service_account_token": token})
 
-	_, err := Env(ctx, "web", false)
+	_, err := Env(ctx, "flymate", "web", false)
 
 	failure, isProtocol := err.(*protocol.Error)
 	if !isProtocol || failure.Code != contract.ErrorBadRequest || failure.Fix == "" {
@@ -273,12 +280,69 @@ func TestEnvRefusesAnUnknownProject(t *testing.T) {
 	fake := machine()
 	ctx := newContext(t, fake, nil)
 
-	_, err := Env(ctx, "ghost", false)
+	_, err := Env(ctx, "ghost", "", false)
 
 	failure, isProtocol := err.(*protocol.Error)
 	if !isProtocol || failure.Code != contract.ErrorProjectNotFound {
 		t.Fatalf("want project_not_found, got %#v", err)
 	}
+
+	_, err = Env(ctx, "flymate", "ghost", false)
+
+	failure, isProtocol = err.(*protocol.Error)
+	if !isProtocol || failure.Code != contract.ErrorProjectNotFound {
+		t.Fatalf("an unknown process is refused the same way, got %#v", err)
+	}
+}
+
+// Without a process the root of the repository is the home of the environment file.
+func TestEnvWithoutAProcessWritesAtTheRoot(t *testing.T) {
+	fake := machine()
+	fake.Files[root+"/"+exampleName] = []byte(example)
+	ctx := newContext(t, fake, nil)
+
+	result, err := Env(ctx, "flymate", "", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Path != root+"/"+targetName {
+		t.Fatalf("got %s", result.Path)
+	}
 }
 
 var _ modules.Module = Module{}
+
+// op whoami is asked with the service account token the machine holds; a service account has no email, so its account stands for it.
+func TestLoginAsksOpWhoamiWithTheTokenTheMachineHolds(t *testing.T) {
+	bare := machine()
+	if got, asked := (Module{}).Login(newContext(t, bare, modtest.Secrets{})); !asked || got.State != contract.LoginSignedOut || got.Fix == "" {
+		t.Fatalf("without a token the login is signed out with a fix: %+v (%v)", got, asked)
+	}
+
+	for _, line := range bare.Commands() {
+		if strings.Contains(line, "whoami") {
+			t.Fatalf("op whoami ran without a token: %s", line)
+		}
+	}
+
+	fake := configuredMachine()
+	fake.Answer("op whoami", `{"url":"https://flymate.1password.com","user_type":"SERVICE_ACCOUNT","account_uuid":"A"}`)
+
+	got, asked := (Module{}).Login(newContext(t, fake, modtest.Secrets{}))
+	if want := (contract.Login{State: contract.LoginSignedIn, Account: "flymate.1password.com"}); !asked || got != want {
+		t.Fatalf("login = %+v (%v), want %+v", got, asked, want)
+	}
+
+	last := fake.Calls[len(fake.Calls)-1]
+	if last.User != shell.User || !slices.Contains(last.Env, envKey+"="+token) || strings.Contains(strings.Join(last.Argv, " "), token) {
+		t.Fatalf("the token travels in the environment alone: %+v", last)
+	}
+
+	refused := configuredMachine()
+	refused.Refuse("op whoami", "")
+
+	if got, _ := (Module{}).Login(newContext(t, refused, modtest.Secrets{})); got.State != contract.LoginUnknown || got.Fix == "" {
+		t.Fatalf("a token the account does not answer is unknown, with a fix: %+v", got)
+	}
+}

@@ -1,21 +1,49 @@
 import type { Project } from "@pupitre/shared/agent-protocol/state";
 import { Button } from "@renderer/components/ui/button";
 import { IconButton } from "@renderer/components/ui/icon-button";
+import { Panel } from "@renderer/components/ui/panel";
+import { Section } from "@renderer/components/ui/section";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { Check, Copy, ExternalLink, Globe, Plus } from "lucide-react";
+import { Check, Copy, ExternalLink, Plus } from "lucide-react";
 import { useState } from "react";
-import { ProjectPanel } from "./project-panel";
 
 const COPY_MS = 1600;
 
 /**
- * Every address a project answers on: one line per port.
+ * Every address a project answers on: one line per port of each process.
  *
  * A port with a name on the web opens and copies as `https://<name>`; a port
  * without one shows where it listens on the machine, which is reached through
  * the app's SSH session and nowhere else. Publishing another port is a gesture
  * to the configuration, where the ports live.
  */
+
+interface Line {
+  label: string;
+  host: string;
+  port: number;
+  hostname?: string;
+}
+
+function linesOf(project: Project, mainLabel: string): Line[] {
+  const several = project.processes.length > 1;
+
+  return project.processes.flatMap((process) => {
+    const routes =
+      process.routes.length > 0
+        ? process.routes
+        : [{ label: mainLabel, port: process.port }];
+
+    return routes.map((route) => ({
+      host: process.host,
+      label: several ? `${process.id}/${route.label}` : route.label,
+      port: route.port,
+      ...("hostname" in route && route.hostname
+        ? { hostname: route.hostname }
+        : {}),
+    }));
+  });
+}
 export function ProjectAddresses({
   project,
   onPublish,
@@ -34,22 +62,28 @@ export function ProjectAddresses({
     setTimeout(() => setCopied(null), COPY_MS);
   }
 
-  const lines =
-    project.routes.length > 0
-      ? project.routes
-      : [{ label: t("project.addresses.mainLabel"), port: project.port }];
+  const lines = linesOf(project, t("project.addresses.mainLabel"));
 
   return (
-    <ProjectPanel icon={Globe} label={t("project.addresses.title")}>
-      <ul className="flex flex-col gap-1.5" data-addresses={lines.length}>
+    <Section
+      actions={
+        <Button icon={Plus} onClick={onPublish} size="sm">
+          {t("project.addresses.publishAnother")}
+        </Button>
+      }
+      name="addresses"
+      title={t("project.addresses.title")}
+    >
+      <Panel
+        as="ul"
+        className="flex flex-col gap-1.5"
+        data-addresses={lines.length}
+      >
         {lines.map((route) => {
-          const url =
-            "hostname" in route && route.hostname
-              ? `https://${route.hostname}`
-              : null;
+          const url = route.hostname ? `https://${route.hostname}` : null;
           const shown = url
             ? url.replace("https://", "")
-            : `${project.host}:${route.port}`;
+            : `${route.host}:${route.port}`;
 
           return (
             <li
@@ -57,7 +91,7 @@ export function ProjectAddresses({
               data-published={url ? "true" : "false"}
               key={`${route.label}-${route.port}`}
             >
-              <span className="w-14 shrink-0 truncate font-data text-[11px] text-ink-4 uppercase">
+              <span className="w-20 shrink-0 truncate font-data text-[11px] text-ink-4 uppercase">
                 {route.label}
               </span>
 
@@ -97,13 +131,7 @@ export function ProjectAddresses({
             </li>
           );
         })}
-      </ul>
-
-      <div className="mt-3">
-        <Button icon={Plus} onClick={onPublish} size="sm">
-          {t("project.addresses.publishAnother")}
-        </Button>
-      </div>
-    </ProjectPanel>
+      </Panel>
+    </Section>
   );
 }

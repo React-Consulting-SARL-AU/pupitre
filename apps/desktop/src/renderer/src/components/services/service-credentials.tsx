@@ -1,5 +1,6 @@
 import { Button } from "@renderer/components/ui/button";
-import { Label } from "@renderer/components/ui/label";
+import { Panel } from "@renderer/components/ui/panel";
+import { Section } from "@renderer/components/ui/section";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { Link2 } from "lucide-react";
 import { ServiceCredentialRow } from "./service-credential-row";
@@ -9,7 +10,8 @@ import { ServiceCredentialRow } from "./service-credential-row";
  *
  * A database also carries its connection string, asked for on demand and filed
  * with the rest: it is a credential like the others, and it is masked like the
- * others.
+ * others. A module that names none has no section: an empty one would only say
+ * what the page already shows by not showing it.
  */
 export function ServiceCredentials({
   labels,
@@ -29,12 +31,14 @@ export function ServiceCredentials({
 }) {
   const t = useTranslations();
 
-  return (
-    <section className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Label>{t("services.credentials.title")}</Label>
+  if (labels.length === 0 && !database) {
+    return null;
+  }
 
-        {database ? (
+  return (
+    <Section
+      actions={
+        database ? (
           <Button
             icon={Link2}
             loading={loading}
@@ -43,15 +47,13 @@ export function ServiceCredentials({
           >
             {t("services.credentials.connectionUrl")}
           </Button>
-        ) : null}
-      </div>
-
-      {labels.length === 0 ? (
-        <p className="text-[12px] text-ink-3">
-          {t("services.credentials.empty")}
-        </p>
-      ) : (
-        <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
+        ) : null
+      }
+      name="credentials"
+      title={t("services.credentials.title")}
+    >
+      {labels.length > 0 ? (
+        <Panel as="ul" list>
           {labels.map((label) => (
             <ServiceCredentialRow
               key={label}
@@ -60,8 +62,8 @@ export function ServiceCredentials({
               onReveal={() => onReveal(label)}
             />
           ))}
-        </ul>
-      )}
-    </section>
+        </Panel>
+      ) : null}
+    </Section>
   );
 }

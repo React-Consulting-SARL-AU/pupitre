@@ -18,6 +18,10 @@ export const SOURCES: readonly LogoSource[] = [
   { id: "db.postgres", slug: "postgresql", monochrome: false },
   { id: "db.mongodb", slug: "mongodb", monochrome: false },
   { id: "ai.claude", slug: "claudecode", monochrome: false },
+  { id: "ai.cursor", slug: "cursor", monochrome: true },
+  { id: "ai.gemini", slug: "googlegemini", monochrome: false },
+  { id: "ai.copilot", slug: "githubcopilot", monochrome: true },
+  { id: "ai.opencode", slug: "opencode", monochrome: true },
   { id: "ai.browser", slug: "googlechrome", monochrome: false },
   { id: "editor.jetbrains", slug: "jetbrains", monochrome: true },
   { id: "editor.zed", slug: "zedindustries", monochrome: true },
@@ -31,6 +35,12 @@ export const SOURCES: readonly LogoSource[] = [
   { id: "db.redis", slug: "redis", monochrome: false },
   { id: "exposure.caddy", slug: "caddy", monochrome: false },
   { id: "tool.neon", slug: "neon", monochrome: false },
+  { id: "tool.wrangler", slug: "cloudflareworkers", monochrome: false },
+  { id: "tool.vercel", slug: "vercel", monochrome: true },
+  { id: "tool.supabase", slug: "supabase", monochrome: false },
+  { id: "tool.stripe", slug: "stripe", monochrome: false },
+  { id: "exposure.tailscale", slug: "tailscale", monochrome: true },
+  { id: "runtime.rust", slug: "rust", monochrome: true },
 ]
 
 export interface VendorSource {
@@ -69,6 +79,21 @@ export const VENDOR_SOURCES: readonly VendorSource[] = [
     title: "Codex",
     source: "https://svgl.app/library/codex_light.svg",
     monochrome: true,
+  },
+  {
+    id: "db.mailpit",
+    title: "Mailpit",
+    source:
+      "https://github.com/axllent/mailpit/blob/56999e97e220fa20f294cd2c51de404bfa5e67c0/server/ui/mailpit.svg",
+    monochrome: false,
+    retrieved: "2026-09-13",
+  },
+  {
+    id: "ai.openclaw",
+    title: "OpenClaw",
+    source: "https://svgl.app/library/openclaw.svg",
+    monochrome: false,
+    retrieved: "2026-09-13",
   },
   {
     id: "ai.hermes",

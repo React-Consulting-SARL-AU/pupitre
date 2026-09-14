@@ -1,8 +1,8 @@
 import { Button } from "@renderer/components/ui/button";
 import { Callout } from "@renderer/components/ui/callout";
+import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { fieldControlClass } from "@renderer/components/ui/field";
 import { WaitingLine } from "@renderer/components/ui/waiting-line";
-import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { BranchState } from "@renderer/stores/project";
 import { ArrowRightLeft, GitBranchPlus } from "lucide-react";
@@ -45,11 +45,7 @@ export function ProjectBranches({
   }
 
   if (state.status === "failed") {
-    return (
-      <Callout fix={agentText(t, state.error).fix} tone="warn">
-        {agentText(t, state.error).message}
-      </Callout>
-    );
+    return <ErrorNotice error={state.error} />;
   }
 
   const { branches } = state;
@@ -125,10 +121,10 @@ export function ProjectBranches({
         {chosen || creating ? null : (
           <Button
             disabled={switching}
+            hint={t("project.branches.newHint")}
             icon={GitBranchPlus}
             onClick={() => setCreating(true)}
             size="sm"
-            title={t("project.branches.newHint")}
             variant="discreet"
           >
             {t("project.branches.new")}

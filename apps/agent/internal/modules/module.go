@@ -18,6 +18,13 @@ type Module interface {
 	Status(ctx *Context) (Status, error)
 }
 
+// Account is implemented by a module whose CLI signs in to an account.
+// Asking the CLI can cost a round trip to its provider, so only service.status asks — never a snapshot read every few seconds.
+// False says there is nothing to sign in to on this machine: a tunnel the client did not ask for.
+type Account interface {
+	Login(ctx *Context) (contract.Login, bool)
+}
+
 type Status struct {
 	Installed   bool
 	Configured  bool
@@ -40,6 +47,7 @@ func (s Status) Service(manifest contract.Manifest) contract.ServiceStatus {
 		Name:        manifest.Name,
 		State:       state,
 		Runs:        manifest.Runs,
+		Connection:  manifest.Connection,
 		Version:     s.Version,
 		Port:        s.Port,
 		Unit:        s.Unit,

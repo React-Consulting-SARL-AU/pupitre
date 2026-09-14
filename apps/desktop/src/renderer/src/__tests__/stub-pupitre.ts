@@ -12,6 +12,8 @@ import type { PupitreApi } from "../../../preload";
  * and change nothing; a test that cares about one of them replaces it.
  */
 const QUIET: Partial<PupitreApi> = {
+  checkInstall: () =>
+    Promise.resolve({ ok: true, result: { problems: [], warnings: [] } }),
   closeTerminal: () => undefined,
   connectionsState: () =>
     Promise.resolve({
@@ -19,6 +21,10 @@ const QUIET: Partial<PupitreApi> = {
       cloudflare: { status: "absent" },
       github: { status: "absent" },
       neon: { status: "absent" },
+      stripe: { status: "absent" },
+      supabase: { status: "absent" },
+      vercel: { status: "absent" },
+      wrangler: { status: "absent" },
     }),
   devDefaults: () => Promise.resolve(null),
   fleet: () =>
@@ -53,10 +59,18 @@ const QUIET: Partial<PupitreApi> = {
     }),
 };
 
+/** A poll is the same command on another channel, which no store can tell apart. */
+function polling(partial: Partial<PupitreApi>): Partial<PupitreApi> {
+  return partial.agentCall && !partial.agentPoll
+    ? { agentPoll: partial.agentCall }
+    : {};
+}
+
 export function stubPupitre(partial: Partial<PupitreApi>): void {
   (globalThis as { window?: unknown }).window ??= globalThis;
   (globalThis as unknown as { window: { pupitre: unknown } }).window.pupitre = {
     ...QUIET,
+    ...polling(partial),
     ...partial,
   } as PupitreApi;
 }

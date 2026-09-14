@@ -66,8 +66,7 @@ describe("le tableau de bord", () => {
   it("compte les projets en ligne et ceux en échec", () => {
     const html = panel();
 
-    expect(html).toContain("1 projet en ligne");
-    expect(html).toContain("3 projets");
+    expect(html).toContain("1 en ligne sur 3 projets");
     expect(html).toContain("1 en échec");
   });
 
@@ -181,13 +180,47 @@ describe("les alertes de la machine", () => {
 });
 
 describe("la carte d'un service", () => {
+  it("dit si le service est connecté quand il travaille pour un compte", () => {
+    const html = renderToStaticMarkup(
+      <DashboardServices
+        accounts={{
+          "ai.claude": "signed_out",
+          "exposure.cloudflare": "signed_in",
+        }}
+        services={SNAPSHOT.services}
+      />
+    );
+
+    expect(html).toMatch(
+      /data-service="ai.claude"[\s\S]*?data-state="running"[\s\S]*?data-state="signed_out"[\s\S]*?<\/button>/
+    );
+    expect(html).toContain("non connecté");
+    expect(html).toMatch(
+      /data-service="exposure.cloudflare"[\s\S]*?data-state="failed"[\s\S]*?data-state="signed_in"[\s\S]*?<\/button>/
+    );
+    expect(html).toMatch(
+      /data-service="db.postgres"(?:(?!<\/button>)[\s\S])*?data-state="running"(?:(?!<\/button>)[\s\S])*?<\/button>/
+    );
+    expect(html).not.toMatch(
+      /data-service="db.postgres"(?:(?!<\/button>)[\s\S])*?data-state="signed_/
+    );
+  });
+
+  it("ne dit rien du compte tant que personne n'a répondu", () => {
+    const html = renderToStaticMarkup(
+      <DashboardServices services={SNAPSHOT.services} />
+    );
+
+    expect(html).not.toContain('data-state="signed_');
+  });
+
   it("ouvre sa fiche", () => {
     const html = renderToStaticMarkup(
       <DashboardServices onOpen={NOOP} services={SNAPSHOT.services} />
     );
 
     expect(html).toContain('data-service="db.postgres"');
-    expect(html).toContain('title="Ouvrir PostgreSQL"');
+    expect(html).toContain('data-tooltip="Ouvrir PostgreSQL"');
     expect(html).toMatch(/<button[^>]*data-service="db.postgres"/);
   });
 });

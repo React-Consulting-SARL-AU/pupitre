@@ -17,7 +17,7 @@ func agentReader(t *testing.T, fake *modtest.FakeSys, installed ...string) *stat
 	t.Helper()
 
 	registry := modules.NewRegistry()
-	for _, id := range []string{"ai.claude", "ai.codex", "ai.hermes"} {
+	for _, id := range []string{"ai.claude", "ai.codex", "ai.cursor", "ai.gemini", "ai.copilot", "ai.opencode", "ai.hermes"} {
 		registry.Register(modtest.Passing{ID: id})
 	}
 
@@ -38,12 +38,16 @@ func agentMachine(t *testing.T) *modtest.FakeSys {
 }
 
 func TestEachAgentOpensInTheProjectFolder(t *testing.T) {
-	reader := agentReader(t, agentMachine(t), "ai.claude", "ai.codex", "ai.hermes")
+	reader := agentReader(t, agentMachine(t), "ai.claude", "ai.codex", "ai.cursor", "ai.gemini", "ai.copilot", "ai.opencode", "ai.hermes")
 
 	for kind, want := range map[string]string{
-		"claude": "tmux new-session -A -s claude-web -c /home/dev/projects/web claude",
-		"codex":  "tmux new-session -A -s codex-web -c /home/dev/projects/web codex",
-		"hermes": "tmux new-session -A -s hermes-web -c /home/dev/projects/web hermes",
+		"claude":   "tmux new-session -A -s claude-web -c /home/dev/projects/web claude",
+		"codex":    "tmux new-session -A -s codex-web -c /home/dev/projects/web codex",
+		"hermes":   "tmux new-session -A -s hermes-web -c /home/dev/projects/web hermes",
+		"cursor":   "tmux new-session -A -s cursor-web -c /home/dev/projects/web cursor-agent",
+		"opencode": "tmux new-session -A -s opencode-web -c /home/dev/projects/web opencode",
+		"gemini":   "tmux new-session -A -s gemini-web -c /home/dev/projects/web gemini",
+		"copilot":  "tmux new-session -A -s copilot-web -c /home/dev/projects/web copilot",
 	} {
 		opened, err := reader.OpenAgent(kind, "web")
 		if err != nil {
@@ -60,14 +64,14 @@ func TestEachAgentOpensInTheProjectFolder(t *testing.T) {
 	}
 }
 
-// A project whose dir column is a subfolder of a shared repository opens where its own sources are.
+// A project is its repository: an agent opens at the root of it, whichever subfolder its processes run from.
 func TestTheFolderFollowsTheRegistry(t *testing.T) {
 	opened, err := agentReader(t, agentMachine(t), "ai.claude").OpenAgent("claude", "api")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if opened.Command != "tmux new-session -A -s claude-api -c /home/dev/projects/api/server claude" {
+	if opened.Command != "tmux new-session -A -s claude-api -c /home/dev/projects/api claude" {
 		t.Fatalf("unexpected command: %s", opened.Command)
 	}
 }
@@ -79,7 +83,7 @@ func TestOpeningRefusesWhatIsNotThere(t *testing.T) {
 		kind, project string
 		code          contract.ErrorCode
 	}{
-		{"cursor", "web", contract.ErrorBadRequest},
+		{"aider", "web", contract.ErrorBadRequest},
 		{"claude", "absent", contract.ErrorProjectNotFound},
 		{"codex", "web", contract.ErrorServiceNotFound},
 	} {

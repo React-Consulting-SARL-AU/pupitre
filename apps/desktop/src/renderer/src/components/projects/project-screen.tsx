@@ -78,6 +78,9 @@ export function ProjectScreen({
   const announce = useSnapshot((s) => s.announce);
 
   const name = project.name;
+  const mainProcess = project.processes[0] ?? {
+    pkgmgr: "none" as const,
+  };
   const open = store.open;
   const readTree = store.readTree;
   const readEnv = store.readEnv;
@@ -171,6 +174,7 @@ export function ProjectScreen({
             />
           }
           onAct={(action, target) => act(action, serverId, target)}
+          onRemove={remove}
           onSync={sync}
           project={project}
           syncing={syncing}
@@ -181,8 +185,8 @@ export function ProjectScreen({
       leading={
         <ServiceLogo
           fallback={Package}
-          moduleId={runtimeModuleOf(project.pkgmgr)}
-          name={project.pkgmgr}
+          moduleId={runtimeModuleOf(mainProcess.pkgmgr)}
+          name={mainProcess.pkgmgr}
           size={20}
         />
       }
@@ -201,7 +205,11 @@ export function ProjectScreen({
           sessions={{
             claude: group(terminals, name, "claude"),
             codex: group(terminals, name, "codex"),
+            copilot: group(terminals, name, "copilot"),
+            cursor: group(terminals, name, "cursor"),
+            gemini: group(terminals, name, "gemini"),
             hermes: group(terminals, name, "hermes"),
+            opencode: group(terminals, name, "opencode"),
             shell: group(terminals, name, "shell"),
           }}
           states={terminalStates}
@@ -252,18 +260,27 @@ export function ProjectScreen({
                 services={services}
               />
             }
-            logs={<ProjectLogs project={name} serverId={serverId} />}
+            logs={
+              <ProjectLogs
+                processes={project.processes.map((process) => process.id)}
+                project={name}
+                serverId={serverId}
+              />
+            }
             overview={
               <ProjectOverview
                 branches={store.branches}
+                busy={busy}
                 env={store.env}
                 git={store.git}
+                onAct={(action, process) =>
+                  act(action, serverId, name, process)
+                }
                 onCheckGit={() => store.readGit(serverId, name)}
                 onCheckout={(branch) => store.checkout(serverId, name, branch)}
                 onConfigure={() => setTab("configuration")}
                 onReadEnv={readKeys}
                 onRegenerateEnv={() => readEnv(serverId, name, true)}
-                onRemove={remove}
                 onSync={sync}
                 project={project}
                 switching={store.switching}

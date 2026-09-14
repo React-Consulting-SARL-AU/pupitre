@@ -1,8 +1,7 @@
 import { Button } from "@renderer/components/ui/button";
-import { Callout } from "@renderer/components/ui/callout";
 import { ConfirmButton } from "@renderer/components/ui/confirm-button";
+import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { WaitingLine } from "@renderer/components/ui/waiting-line";
-import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { EnvState } from "@renderer/stores/project";
 import { ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
@@ -43,19 +42,7 @@ export function ProjectEnv({
   }
 
   if (state.status === "failed") {
-    return (
-      <Callout
-        action={
-          <Button icon={RefreshCw} onClick={onRead} size="sm">
-            {t("common.retry")}
-          </Button>
-        }
-        fix={agentText(t, state.error).fix}
-        tone="warn"
-      >
-        {agentText(t, state.error).message}
-      </Callout>
-    );
+    return <ErrorNotice error={state.error} onRetry={onRead} />;
   }
 
   const { env } = state;
@@ -101,11 +88,11 @@ export function ProjectEnv({
       )}
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-data text-[11px] text-ink-3">
-          {env.written
-            ? t("project.env.writtenNow")
-            : t("project.env.readAsIs")}
-        </span>
+        {env.written ? (
+          <span className="font-data text-[11px] text-ink-3">
+            {t("project.env.writtenNow")}
+          </span>
+        ) : null}
 
         {foldable ? (
           <Button

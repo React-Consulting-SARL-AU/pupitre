@@ -2,12 +2,17 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://pupitre.studio/contracts/agent/schema.json",
   "title": "Pupitre agent contract",
-  "protocol": 1,
+  "protocol": 2,
   "compatibility": [
     {
       "protocol": 1,
       "app": "0.1.0",
       "agent": "0.1.0"
+    },
+    {
+      "protocol": 2,
+      "app": "0.2.0",
+      "agent": "0.2.0"
     }
   ],
   "$defs": {
@@ -1136,6 +1141,19 @@
                 "default": true,
                 "type": "boolean"
               },
+              "connection": {
+                "type": "string",
+                "enum": [
+                  "cloudflare",
+                  "wrangler",
+                  "github",
+                  "1password",
+                  "neon",
+                  "vercel",
+                  "supabase",
+                  "stripe"
+                ]
+              },
               "version": {
                 "type": "string"
               },
@@ -1186,6 +1204,10 @@
                 "enum": [
                   "claude",
                   "codex",
+                  "cursor",
+                  "gemini",
+                  "copilot",
+                  "opencode",
                   "hermes",
                   "ide",
                   "shell"
@@ -1261,6 +1283,19 @@
                 "default": true,
                 "type": "boolean"
               },
+              "connection": {
+                "type": "string",
+                "enum": [
+                  "cloudflare",
+                  "wrangler",
+                  "github",
+                  "1password",
+                  "neon",
+                  "vercel",
+                  "supabase",
+                  "stripe"
+                ]
+              },
               "version": {
                 "type": "string"
               },
@@ -1331,6 +1366,19 @@
           "default": true,
           "type": "boolean"
         },
+        "connection": {
+          "type": "string",
+          "enum": [
+            "cloudflare",
+            "wrangler",
+            "github",
+            "1password",
+            "neon",
+            "vercel",
+            "supabase",
+            "stripe"
+          ]
+        },
         "version": {
           "type": "string"
         },
@@ -1350,6 +1398,28 @@
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "login": {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": [
+                "signed_in",
+                "signed_out",
+                "unknown"
+              ]
+            },
+            "account": {
+              "type": "string"
+            },
+            "fix": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state"
+          ]
         }
       },
       "required": [
@@ -1427,6 +1497,19 @@
           "default": true,
           "type": "boolean"
         },
+        "connection": {
+          "type": "string",
+          "enum": [
+            "cloudflare",
+            "wrangler",
+            "github",
+            "1password",
+            "neon",
+            "vercel",
+            "supabase",
+            "stripe"
+          ]
+        },
         "version": {
           "type": "string"
         },
@@ -1446,6 +1529,28 @@
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "login": {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": [
+                "signed_in",
+                "signed_out",
+                "unknown"
+              ]
+            },
+            "account": {
+              "type": "string"
+            },
+            "fix": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state"
+          ]
         }
       },
       "required": [
@@ -1493,6 +1598,19 @@
           "default": true,
           "type": "boolean"
         },
+        "connection": {
+          "type": "string",
+          "enum": [
+            "cloudflare",
+            "wrangler",
+            "github",
+            "1password",
+            "neon",
+            "vercel",
+            "supabase",
+            "stripe"
+          ]
+        },
         "version": {
           "type": "string"
         },
@@ -1512,6 +1630,28 @@
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "login": {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": [
+                "signed_in",
+                "signed_out",
+                "unknown"
+              ]
+            },
+            "account": {
+              "type": "string"
+            },
+            "fix": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state"
+          ]
         }
       },
       "required": [
@@ -1559,6 +1699,19 @@
           "default": true,
           "type": "boolean"
         },
+        "connection": {
+          "type": "string",
+          "enum": [
+            "cloudflare",
+            "wrangler",
+            "github",
+            "1password",
+            "neon",
+            "vercel",
+            "supabase",
+            "stripe"
+          ]
+        },
         "version": {
           "type": "string"
         },
@@ -1578,6 +1731,28 @@
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "login": {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": [
+                "signed_in",
+                "signed_out",
+                "unknown"
+              ]
+            },
+            "account": {
+              "type": "string"
+            },
+            "fix": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state"
+          ]
         }
       },
       "required": [
@@ -1732,60 +1907,98 @@
           "maxLength": 200,
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
         },
-        "pkgmgr": {
-          "type": "string",
-          "enum": [
-            "bun",
-            "pnpm",
-            "npm",
-            "gradle",
-            "uv",
-            "service",
-            "none"
-          ]
-        },
-        "host": {
-          "type": "string",
-          "minLength": 1
-        },
-        "port": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 65535
-        },
-        "cmd": {
-          "type": "string",
-          "minLength": 1
-        },
-        "install": {
-          "type": "string"
-        },
-        "routes": {
+        "processes": {
+          "minItems": 1,
           "type": "array",
           "items": {
             "type": "object",
             "properties": {
-              "label": {
+              "id": {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 63,
                 "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+              },
+              "pkgmgr": {
+                "type": "string",
+                "enum": [
+                  "bun",
+                  "pnpm",
+                  "npm",
+                  "gradle",
+                  "uv",
+                  "service",
+                  "none"
+                ]
+              },
+              "host": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "const": "127.0.0.1"
+                  },
+                  {
+                    "type": "string",
+                    "maxLength": 253,
+                    "pattern": "^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+localhost$"
+                  }
+                ]
               },
               "port": {
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 65535
               },
-              "subdomain": {
+              "cmd": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 190,
-                "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$"
+                "minLength": 1
+              },
+              "install": {
+                "type": "string"
+              },
+              "dir": {
+                "default": ".",
+                "type": "string",
+                "minLength": 1
+              },
+              "routes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 63,
+                      "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+                    },
+                    "port": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 65535
+                    },
+                    "subdomain": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 190,
+                      "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$"
+                    }
+                  },
+                  "required": [
+                    "label",
+                    "port"
+                  ],
+                  "additionalProperties": false
+                }
               }
             },
             "required": [
-              "label",
-              "port"
+              "id",
+              "pkgmgr",
+              "host",
+              "port",
+              "cmd",
+              "routes"
             ],
             "additionalProperties": false
           }
@@ -1794,11 +2007,7 @@
       "required": [
         "name",
         "dir",
-        "pkgmgr",
-        "host",
-        "port",
-        "cmd",
-        "routes"
+        "processes"
       ],
       "additionalProperties": false
     },
@@ -1820,64 +2029,128 @@
         "branch": {
           "type": "string"
         },
-        "pkgmgr": {
-          "type": "string",
-          "enum": [
-            "bun",
-            "pnpm",
-            "npm",
-            "gradle",
-            "uv",
-            "service",
-            "none"
-          ]
-        },
-        "host": {
-          "type": "string",
-          "minLength": 1
-        },
-        "port": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 65535
-        },
-        "cmd": {
-          "type": "string",
-          "minLength": 1
-        },
-        "install": {
-          "type": "string"
-        },
         "path": {
           "type": "string",
           "pattern": "^\\/"
         },
-        "routes": {
+        "processes": {
+          "minItems": 1,
           "type": "array",
           "items": {
             "type": "object",
             "properties": {
-              "label": {
+              "id": {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 63,
                 "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+              },
+              "pkgmgr": {
+                "type": "string",
+                "enum": [
+                  "bun",
+                  "pnpm",
+                  "npm",
+                  "gradle",
+                  "uv",
+                  "service",
+                  "none"
+                ]
+              },
+              "host": {
+                "type": "string",
+                "minLength": 1
               },
               "port": {
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 65535
               },
-              "hostname": {
+              "cmd": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 253,
-                "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$"
+                "minLength": 1
+              },
+              "install": {
+                "type": "string"
+              },
+              "dir": {
+                "type": "string",
+                "minLength": 1
+              },
+              "path": {
+                "type": "string",
+                "pattern": "^\\/"
+              },
+              "routes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 63,
+                      "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+                    },
+                    "port": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 65535
+                    },
+                    "hostname": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 253,
+                      "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$"
+                    }
+                  },
+                  "required": [
+                    "label",
+                    "port"
+                  ]
+                }
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "online",
+                  "starting",
+                  "failed",
+                  "stopped",
+                  "down",
+                  "external",
+                  "service"
+                ]
+              },
+              "url": {
+                "type": "string"
+              },
+              "pid": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "ram_mb": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "uptime_s": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
               }
             },
             "required": [
-              "label",
-              "port"
+              "id",
+              "pkgmgr",
+              "host",
+              "port",
+              "cmd",
+              "dir",
+              "path",
+              "routes",
+              "state"
             ]
           }
         },
@@ -1890,37 +2163,19 @@
             "stopped",
             "down",
             "external",
-            "service"
+            "service",
+            "partial"
           ]
         },
         "url": {
           "type": "string"
-        },
-        "pid": {
-          "type": "integer",
-          "exclusiveMinimum": 0,
-          "maximum": 9007199254740991
-        },
-        "ram_mb": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "uptime_s": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
         }
       },
       "required": [
         "name",
         "dir",
-        "pkgmgr",
-        "host",
-        "port",
-        "cmd",
         "path",
-        "routes",
+        "processes",
         "state"
       ]
     },
@@ -1963,55 +2218,84 @@
     "ProjectDetectResult": {
       "type": "object",
       "properties": {
-        "pkgmgr": {
-          "type": "string",
-          "enum": [
-            "bun",
-            "pnpm",
-            "npm",
-            "gradle",
-            "uv",
-            "service",
-            "none"
-          ]
-        },
-        "install": {
-          "type": "string"
-        },
-        "cmd": {
-          "type": "string"
-        },
-        "port_hint": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 65535
-        },
-        "routes": {
+        "processes": {
+          "minItems": 1,
           "type": "array",
           "items": {
             "type": "object",
             "properties": {
-              "label": {
+              "id": {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 63,
                 "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
               },
-              "port": {
+              "dir": {
+                "type": "string",
+                "minLength": 1
+              },
+              "pkgmgr": {
+                "type": "string",
+                "enum": [
+                  "bun",
+                  "pnpm",
+                  "npm",
+                  "gradle",
+                  "uv",
+                  "service",
+                  "none"
+                ]
+              },
+              "install": {
+                "type": "string"
+              },
+              "cmd": {
+                "type": "string"
+              },
+              "port_hint": {
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 65535
+              },
+              "host_hint": {
+                "type": "string",
+                "maxLength": 253,
+                "pattern": "^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+localhost$"
+              },
+              "routes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 63,
+                      "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+                    },
+                    "port": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 65535
+                    }
+                  },
+                  "required": [
+                    "label",
+                    "port"
+                  ]
+                }
               }
             },
             "required": [
-              "label",
-              "port"
+              "id",
+              "dir",
+              "pkgmgr"
             ]
           }
         }
       },
       "required": [
-        "pkgmgr"
+        "processes"
       ]
     },
     "ProjectUpdateParams": {
@@ -2025,51 +2309,110 @@
         "patch": {
           "type": "object",
           "properties": {
-            "cmd": {
-              "type": "string",
-              "minLength": 1
-            },
-            "install": {
-              "type": "string"
-            },
             "branch": {
               "type": "string",
               "minLength": 1,
               "maxLength": 200,
               "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*$"
             },
-            "routes": {
+            "processes": {
+              "minItems": 1,
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "label": {
+                  "id": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 63,
                     "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+                  },
+                  "dir": {
+                    "default": ".",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "pkgmgr": {
+                    "type": "string",
+                    "enum": [
+                      "bun",
+                      "pnpm",
+                      "npm",
+                      "gradle",
+                      "uv",
+                      "service",
+                      "none"
+                    ]
+                  },
+                  "host": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "const": "127.0.0.1"
+                      },
+                      {
+                        "type": "string",
+                        "maxLength": 253,
+                        "pattern": "^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+localhost$"
+                      }
+                    ]
                   },
                   "port": {
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 65535
                   },
-                  "subdomain": {
+                  "cmd": {
                     "type": "string",
-                    "minLength": 1,
-                    "maxLength": 190,
-                    "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$"
+                    "minLength": 1
                   },
-                  "hostname": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 253,
-                    "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$"
+                  "install": {
+                    "type": "string"
+                  },
+                  "routes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 63,
+                          "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+                        },
+                        "port": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 65535
+                        },
+                        "subdomain": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 190,
+                          "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$"
+                        },
+                        "hostname": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 253,
+                          "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$"
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "port"
+                      ],
+                      "additionalProperties": false
+                    }
                   }
                 },
                 "required": [
-                  "label",
-                  "port"
+                  "id",
+                  "pkgmgr",
+                  "host",
+                  "port",
+                  "cmd",
+                  "routes"
                 ],
                 "additionalProperties": false
               }
@@ -2102,64 +2445,128 @@
         "branch": {
           "type": "string"
         },
-        "pkgmgr": {
-          "type": "string",
-          "enum": [
-            "bun",
-            "pnpm",
-            "npm",
-            "gradle",
-            "uv",
-            "service",
-            "none"
-          ]
-        },
-        "host": {
-          "type": "string",
-          "minLength": 1
-        },
-        "port": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 65535
-        },
-        "cmd": {
-          "type": "string",
-          "minLength": 1
-        },
-        "install": {
-          "type": "string"
-        },
         "path": {
           "type": "string",
           "pattern": "^\\/"
         },
-        "routes": {
+        "processes": {
+          "minItems": 1,
           "type": "array",
           "items": {
             "type": "object",
             "properties": {
-              "label": {
+              "id": {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 63,
                 "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+              },
+              "pkgmgr": {
+                "type": "string",
+                "enum": [
+                  "bun",
+                  "pnpm",
+                  "npm",
+                  "gradle",
+                  "uv",
+                  "service",
+                  "none"
+                ]
+              },
+              "host": {
+                "type": "string",
+                "minLength": 1
               },
               "port": {
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 65535
               },
-              "hostname": {
+              "cmd": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 253,
-                "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$"
+                "minLength": 1
+              },
+              "install": {
+                "type": "string"
+              },
+              "dir": {
+                "type": "string",
+                "minLength": 1
+              },
+              "path": {
+                "type": "string",
+                "pattern": "^\\/"
+              },
+              "routes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 63,
+                      "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+                    },
+                    "port": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 65535
+                    },
+                    "hostname": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 253,
+                      "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$"
+                    }
+                  },
+                  "required": [
+                    "label",
+                    "port"
+                  ]
+                }
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "online",
+                  "starting",
+                  "failed",
+                  "stopped",
+                  "down",
+                  "external",
+                  "service"
+                ]
+              },
+              "url": {
+                "type": "string"
+              },
+              "pid": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "ram_mb": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "uptime_s": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
               }
             },
             "required": [
-              "label",
-              "port"
+              "id",
+              "pkgmgr",
+              "host",
+              "port",
+              "cmd",
+              "dir",
+              "path",
+              "routes",
+              "state"
             ]
           }
         },
@@ -2172,37 +2579,19 @@
             "stopped",
             "down",
             "external",
-            "service"
+            "service",
+            "partial"
           ]
         },
         "url": {
           "type": "string"
-        },
-        "pid": {
-          "type": "integer",
-          "exclusiveMinimum": 0,
-          "maximum": 9007199254740991
-        },
-        "ram_mb": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
-        },
-        "uptime_s": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 9007199254740991
         }
       },
       "required": [
         "name",
         "dir",
-        "pkgmgr",
-        "host",
-        "port",
-        "cmd",
         "path",
-        "routes",
+        "processes",
         "state"
       ]
     },
@@ -2252,6 +2641,12 @@
               "const": "all"
             }
           ]
+        },
+        "process": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
         }
       },
       "required": [
@@ -2271,13 +2666,9 @@
             "stopped",
             "down",
             "external",
-            "service"
+            "service",
+            "partial"
           ]
-        },
-        "port": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 65535
         },
         "projects": {
           "type": "array",
@@ -2298,13 +2689,9 @@
                   "stopped",
                   "down",
                   "external",
-                  "service"
+                  "service",
+                  "partial"
                 ]
-              },
-              "port": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 65535
               }
             },
             "required": [
@@ -2333,6 +2720,12 @@
               "const": "all"
             }
           ]
+        },
+        "process": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
         }
       },
       "required": [
@@ -2352,13 +2745,9 @@
             "stopped",
             "down",
             "external",
-            "service"
+            "service",
+            "partial"
           ]
-        },
-        "port": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 65535
         },
         "projects": {
           "type": "array",
@@ -2379,13 +2768,9 @@
                   "stopped",
                   "down",
                   "external",
-                  "service"
+                  "service",
+                  "partial"
                 ]
-              },
-              "port": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 65535
               }
             },
             "required": [
@@ -2414,6 +2799,12 @@
               "const": "all"
             }
           ]
+        },
+        "process": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
         }
       },
       "required": [
@@ -2433,13 +2824,9 @@
             "stopped",
             "down",
             "external",
-            "service"
+            "service",
+            "partial"
           ]
-        },
-        "port": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 65535
         },
         "projects": {
           "type": "array",
@@ -2460,13 +2847,9 @@
                   "stopped",
                   "down",
                   "external",
-                  "service"
+                  "service",
+                  "partial"
                 ]
-              },
-              "port": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 65535
               }
             },
             "required": [
@@ -2488,6 +2871,12 @@
           "minLength": 1,
           "pattern": "^[a-z0-9][a-z0-9._-]*$"
         },
+        "process": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+        },
         "lines": {
           "type": "integer",
           "exclusiveMinimum": 0,
@@ -2498,7 +2887,8 @@
         }
       },
       "required": [
-        "name"
+        "name",
+        "process"
       ],
       "additionalProperties": false
     },
@@ -2514,6 +2904,45 @@
       },
       "required": [
         "lines"
+      ]
+    },
+    "ProjectPullParams": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectPullResult": {
+      "type": "object",
+      "properties": {
+        "pulled": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "online",
+            "starting",
+            "failed",
+            "stopped",
+            "down",
+            "external",
+            "service",
+            "partial"
+          ]
+        }
+      },
+      "required": [
+        "pulled",
+        "state"
       ]
     },
     "ProjectSyncParams": {
@@ -2536,9 +2965,6 @@
         "pulled": {
           "type": "boolean"
         },
-        "installed": {
-          "type": "boolean"
-        },
         "state": {
           "type": "string",
           "enum": [
@@ -2548,14 +2974,18 @@
             "stopped",
             "down",
             "external",
-            "service"
+            "service",
+            "partial"
           ]
+        },
+        "installed": {
+          "type": "boolean"
         }
       },
       "required": [
         "pulled",
-        "installed",
-        "state"
+        "state",
+        "installed"
       ]
     },
     "ProjectInstallParams": {
@@ -2565,6 +2995,12 @@
           "type": "string",
           "minLength": 1,
           "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "process": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
         }
       },
       "required": [
@@ -2578,10 +3014,33 @@
         "done": {
           "type": "boolean",
           "const": true
+        },
+        "installed": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "process": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 63,
+                "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+              },
+              "command": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "process",
+              "command"
+            ]
+          }
         }
       },
       "required": [
-        "done"
+        "done",
+        "installed"
       ]
     },
     "ProjectEnvParams": {
@@ -2591,6 +3050,12 @@
           "type": "string",
           "minLength": 1,
           "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "process": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
         },
         "force": {
           "type": "boolean"
@@ -2947,10 +3412,17 @@
           "type": "string",
           "minLength": 1,
           "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "process": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
         }
       },
       "required": [
-        "name"
+        "name",
+        "process"
       ],
       "additionalProperties": false
     },
@@ -2982,6 +3454,7 @@
       },
       "required": [
         "state",
+        "port",
         "debug_port"
       ]
     },
@@ -2993,6 +3466,10 @@
           "enum": [
             "claude",
             "codex",
+            "cursor",
+            "gemini",
+            "copilot",
+            "opencode",
             "hermes"
           ]
         },
@@ -3056,6 +3533,10 @@
                 "enum": [
                   "claude",
                   "codex",
+                  "cursor",
+                  "gemini",
+                  "copilot",
+                  "opencode",
                   "hermes",
                   "ide",
                   "shell"
@@ -3633,6 +4114,12 @@
           "type": "string",
           "minLength": 1,
           "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "process": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
         }
       },
       "required": [
@@ -4439,9 +4926,13 @@
           "type": "string",
           "enum": [
             "cloudflare",
+            "wrangler",
             "github",
             "1password",
-            "neon"
+            "neon",
+            "vercel",
+            "supabase",
+            "stripe"
           ]
         },
         "runs": {
@@ -4983,6 +5474,51 @@
         "modules"
       ]
     },
+    "ModuleIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "const": [
+        "core.system",
+        "core.hardening",
+        "runtime.node",
+        "runtime.java",
+        "runtime.python",
+        "runtime.go",
+        "runtime.php",
+        "runtime.ruby",
+        "runtime.docker",
+        "runtime.rust",
+        "db.mysql",
+        "db.postgres",
+        "db.mongodb",
+        "db.redis",
+        "db.mailpit",
+        "ai.claude",
+        "ai.codex",
+        "ai.cursor",
+        "ai.gemini",
+        "ai.copilot",
+        "ai.opencode",
+        "ai.hermes",
+        "ai.openclaw",
+        "ai.browser",
+        "editor.jetbrains",
+        "editor.vscode",
+        "editor.zed",
+        "exposure.cloudflare",
+        "exposure.caddy",
+        "exposure.tailscale",
+        "tool.github",
+        "tool.1password",
+        "tool.neon",
+        "tool.wrangler",
+        "tool.vercel",
+        "tool.supabase",
+        "tool.stripe"
+      ]
+    },
     "MandatoryModules": {
       "type": "array",
       "items": {
@@ -5025,20 +5561,32 @@
             "runtime.php",
             "runtime.ruby",
             "runtime.docker",
+            "runtime.rust",
             "db.mysql",
             "db.postgres",
             "db.mongodb",
             "db.redis",
+            "db.mailpit",
             "ai.claude",
             "ai.codex",
+            "ai.cursor",
+            "ai.gemini",
+            "ai.copilot",
+            "ai.opencode",
             "ai.hermes",
+            "ai.openclaw",
             "ai.browser",
             "editor.jetbrains",
             "editor.vscode",
             "editor.zed",
+            "exposure.tailscale",
             "tool.github",
             "tool.1password",
-            "tool.neon"
+            "tool.neon",
+            "tool.wrangler",
+            "tool.vercel",
+            "tool.supabase",
+            "tool.stripe"
           ],
           "choose_one": [
             "exposure.caddy",
@@ -5055,6 +5603,10 @@
           "choose_one": [
             "ai.claude",
             "ai.codex",
+            "ai.cursor",
+            "ai.gemini",
+            "ai.copilot",
+            "ai.opencode",
             "ai.hermes"
           ]
         }

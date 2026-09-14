@@ -47,6 +47,15 @@ func resolve(ctx *modules.Context) (release, error) {
 	return latest(ctx, "server-linux-"+arch())
 }
 
+// The build already on the machine is the one a replay keeps: a newer one is what upgrade fetches, never what a changed setting costs.
+func pinned(ctx *modules.Context) (release, error) {
+	if kept := recorded(ctx); kept.Commit != "" && file.Exists(ctx, kept.serverCLI()) {
+		return kept, nil
+	}
+
+	return resolve(ctx)
+}
+
 func cli(ctx *modules.Context) (release, error) {
 	return latest(ctx, "cli-linux-"+arch())
 }

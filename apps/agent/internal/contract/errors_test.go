@@ -82,8 +82,8 @@ func TestEntitlementsMatchSchema(t *testing.T) {
 }
 
 func TestProtocolVersionComesFromSchema(t *testing.T) {
-	if ProtocolVersion != 1 {
-		t.Fatalf("ProtocolVersion = %d, want 1", ProtocolVersion)
+	if ProtocolVersion != 2 {
+		t.Fatalf("ProtocolVersion = %d, want 2", ProtocolVersion)
 	}
 }
 

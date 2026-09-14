@@ -6,7 +6,14 @@ const LOGIN_HOSTS = [
   "openai.com",
   "chatgpt.com",
   "nousresearch.com",
+  "cursor.com",
+  "google.com",
+  "opencode.ai",
   "neon.tech",
+  "vercel.com",
+  "supabase.com",
+  "stripe.com",
+  "tailscale.com",
   "github.com",
 ];
 
@@ -16,25 +23,9 @@ const ADDRESS = /https:\/\/[^\s"'<>`)\]]{4,2048}/g;
 
 const TRAILING = /[.,;:!?]+$/;
 
-const FIRST_PRINTABLE = 32;
-const DELETE = 127;
-
 export interface LoginAddress {
   url: string;
   host: string;
-}
-
-/** A sequence opens with a control character, so a space there ends the match. */
-function printable(text: string): string {
-  let clean = "";
-
-  for (const char of text) {
-    const code = char.charCodeAt(0);
-
-    clean += code < FIRST_PRINTABLE || code === DELETE ? " " : char;
-  }
-
-  return clean;
 }
 
 function knownHost(host: string): boolean {
@@ -78,22 +69,70 @@ function loginOf(raw: string): LoginAddress | null {
   }
 }
 
+function margin(line: string): number {
+  return line.length - line.trimStart().length;
+}
+
 /**
- * The last one, not the first: a reprinted address is the live one. The text
- * of a hyperlink follows its address and may be cut by a line break, so a
- * fragment of the one just found, or of the one already known, is not new.
+ * The rows of a screen, with a folded line read as one.
+ *
+ * An address longer than the screen is wide reaches the last column and goes
+ * on at the left edge of the next row: the terminal wraps it there, and so
+ * does an interface that lays its text out itself, at the margin of its box
+ * rather than at the edge. Nothing on the screen says which rows belong
+ * together, only that shape does.
+ */
+export function unwrap(lines: string[], cols: number): string[] {
+  const rows: string[] = [];
+  let open: string | null = null;
+  let edge = 0;
+
+  for (const line of lines) {
+    const left = margin(line);
+
+    if (open !== null && left === edge && line.length > left) {
+      open += line.slice(left);
+    } else {
+      if (open !== null) {
+        rows.push(open);
+      }
+
+      open = line;
+      edge = left;
+    }
+
+    if (line.length + edge !== cols) {
+      rows.push(open);
+      open = null;
+    }
+  }
+
+  if (open !== null) {
+    rows.push(open);
+  }
+
+  return rows;
+}
+
+/**
+ * The last one, not the first: a reprinted address is the live one. A row
+ * painted before the rest of its address, or one the fold missed, is a
+ * fragment of the one just found or of the one already known, not a new one.
  */
 export function loginAddress(
-  text: string,
+  lines: string[],
+  cols: number,
   known: LoginAddress | null = null
 ): LoginAddress | null {
   let found = known;
 
-  for (const match of printable(text).matchAll(ADDRESS)) {
-    const address = loginOf(match[0]);
+  for (const row of unwrap(lines, cols)) {
+    for (const match of row.matchAll(ADDRESS)) {
+      const address = loginOf(match[0]);
 
-    if (address && !found?.url.startsWith(address.url)) {
-      found = address;
+      if (address && !found?.url.startsWith(address.url)) {
+        found = address;
+      }
     }
   }
 

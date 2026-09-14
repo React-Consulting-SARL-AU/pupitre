@@ -1,18 +1,18 @@
-> {"id":1,"cmd":"hello","params":{"protocol":1}}
+> {"id":1,"cmd":"hello","params":{"protocol":2}}
 > {"id":2,"cmd":"hello","params":{"app_version":"0.2.0","protocol":"1"}}
-> {"id":3,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1,"extra":true}}
+> {"id":3,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2,"extra":true}}
 > {"id":4,"cmd":"hello"}
-> {"id":5,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+> {"id":5,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
 > {"id":6,"cmd":"ping","params":{"x":1}}
-> {"id":7,"cmd":"project.logs","params":{"name":"Flymate"}}
-> {"id":8,"cmd":"project.logs","params":{"name":"flymate-api","lines":0}}
+> {"id":7,"cmd":"project.logs","params":{"name":"Flymate","process":"api"}}
+> {"id":8,"cmd":"project.logs","params":{"name":"flymate-api","process":"api","lines":0}}
 > {"id":9,"cmd":"install","params":{"modules":[],"config":{},"secrets_stdin":true}}
 > {"id":10,"cmd":"ping"}
 < {"id":1,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/app_version: required field"}}
 < {"id":2,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/protocol: must be an integer"}}
 < {"id":3,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/extra: unknown field"}}
 < {"id":4,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/app_version: required field"}}
-< {"id":5,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["enroll","hello","install","ping","probe","project.logs","reboot"]}}
+< {"id":5,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["enroll","hello","install","ping","probe","project.logs","reboot"]}}
 < {"id":6,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/x: unknown field"}}
 < {"id":7,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/name: does not match the pattern ^[a-z0-9][a-z0-9._-]*$"}}
 < {"id":8,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/lines: must be > 0"}}

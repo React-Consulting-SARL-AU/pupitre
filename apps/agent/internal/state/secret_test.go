@@ -82,7 +82,7 @@ func serveRequests(t *testing.T, reader *state.Reader, requests ...string) []map
 	return lines
 }
 
-const helloRequest = `{"id":1,"cmd":"hello","params":{"app_version":"0.0.0-test","protocol":1}}`
+const helloRequest = `{"id":1,"cmd":"hello","params":{"app_version":"0.0.0-test","protocol":2}}`
 
 func TestServiceSecretRevealsTheRealValueOnASecretEvent(t *testing.T) {
 	_, reader, logPath := revealFixture(t)

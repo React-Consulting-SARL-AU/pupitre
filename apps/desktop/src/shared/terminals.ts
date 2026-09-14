@@ -6,7 +6,14 @@
  */
 
 /** The command-line agents a terminal can carry. */
-export type TerminalAgent = "claude" | "codex" | "hermes";
+export type TerminalAgent =
+  | "claude"
+  | "codex"
+  | "cursor"
+  | "gemini"
+  | "copilot"
+  | "opencode"
+  | "hermes";
 
 export type TerminalKind = "shell" | TerminalAgent;
 
@@ -14,6 +21,10 @@ export const TERMINAL_KINDS: readonly TerminalKind[] = [
   "shell",
   "claude",
   "codex",
+  "cursor",
+  "gemini",
+  "copilot",
+  "opencode",
   "hermes",
 ];
 

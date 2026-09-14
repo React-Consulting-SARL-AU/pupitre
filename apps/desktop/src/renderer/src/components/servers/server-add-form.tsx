@@ -16,6 +16,7 @@ import { Callout } from "../ui/callout";
 import { Field, fieldControlClass } from "../ui/field";
 import { Label } from "../ui/label";
 import { ModeCard } from "../ui/mode-card";
+import { panelClass } from "../ui/panel";
 import { ServerAddPortField } from "./server-add-port-field";
 import { ServerReachNotice } from "./server-reach-notice";
 
@@ -260,11 +261,7 @@ export function ServerAddForm({
   const submittable = ready && portNumber !== null && !untested;
 
   return (
-    <form
-      className="elevation-raised rounded-md border border-line bg-surface p-5"
-      noValidate
-      onSubmit={submit}
-    >
+    <form className={panelClass("lg")} noValidate onSubmit={submit}>
       <h3 className="font-medium text-ink">{t("servers.addServer")}</h3>
 
       <div className="mt-5 grid gap-5 sm:grid-cols-3">

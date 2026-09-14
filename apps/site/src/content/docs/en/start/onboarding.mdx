@@ -33,7 +33,7 @@ Versions, ports, accounts, secrets. Every field says what it expects and refuses
 
 A secret goes through the standard input of the SSH session; it is never written to a file you did not ask for, and never shown again after you type it.
 
-A module that goes through an account of yours — Cloudflare, GitHub, 1Password, Neon — asks for that account here, above its own questions, not three screens away. You give each token once, for every server, and the app checks it as you paste it: it reads which account the token opens rather than asking you to copy an identifier. The token stays in your computer's keychain; what a server needs of it is written on the install's secret line, and nowhere else. What remains a per-server choice is what is genuinely per server — the domain this machine publishes under, for instance.
+A module that goes through an account of yours — Cloudflare, GitHub, 1Password, Neon, Vercel, Supabase, Stripe — asks for that account here, above its own questions, not three screens away. You give each token once, for every server, and the app checks it as you paste it: it reads which account the token opens rather than asking you to copy an identifier. The token stays in your computer's keychain; what a server needs of it is written on the install's secret line, and nowhere else. What remains a per-server choice is what is genuinely per server — the domain this machine publishes under, for instance.
 
 Before it runs, the app asks the server to weigh the configuration: a port something already listens on, a directory that turns out to be a file, a time zone this machine has never heard of. What it refuses comes back on the field it belongs to.
 

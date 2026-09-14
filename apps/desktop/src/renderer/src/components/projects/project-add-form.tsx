@@ -1,9 +1,7 @@
-import {
-  PACKAGE_MANAGERS,
-  type PackageManager,
-} from "@pupitre/shared/agent-protocol/state";
+import { panelClass } from "@renderer/components/ui/panel";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { RowProblem } from "@renderer/lib/project-ports";
+import type { ProcessProblem } from "@renderer/lib/project-processes";
 import { FolderPlus } from "lucide-react";
 import type {
   DetectionState,
@@ -15,22 +13,21 @@ import type {
 import { Button } from "../ui/button";
 import { Field, fieldControlClass } from "../ui/field";
 import { ProjectAddSource, type SourceEdits } from "./project-add-source";
-import type { PortEdits } from "./project-port-row";
-import { ProjectPorts } from "./project-ports";
+import { ProjectAddSourceStatus } from "./project-add-source-status";
+import type { ProcessEdits } from "./project-process-card";
+import { ProjectProcesses } from "./project-processes";
 
 /**
  * What the agent needs to know about a project, asked once.
  *
  * The source fills the rest in: the agent reads the repository and says which
- * manager it locks, which script starts it and which port it wants; the name
- * comes off the last segment of the address, the port is one no declared
- * project holds. Everything proposed here stays editable — the machine decides
- * what it accepts, and says so.
+ * processes it holds, which manager each locks, which script starts it and
+ * which port it wants; the name comes off the last segment of the address,
+ * the ports are ones no declared project holds. Everything proposed here
+ * stays editable — the machine decides what it accepts, and says so.
  */
-export interface DraftEdits extends SourceEdits, PortEdits {
+export interface DraftEdits extends SourceEdits, ProcessEdits {
   name: (value: string) => void;
-  pkgmgr: (value: PackageManager) => void;
-  cmd: (value: string) => void;
 }
 
 export function ProjectAddForm({
@@ -42,6 +39,7 @@ export function ProjectAddForm({
   exposure,
   githubModule,
   ready,
+  processProblems,
   rowProblems,
   edit,
   onDetect,
@@ -50,7 +48,7 @@ export function ProjectAddForm({
   onInstallModule,
 }: {
   draft: Draft;
-  /** The package manager came from a project the agent already declares. */
+  /** The processes came from a project the agent already declares. */
   detected: boolean;
   /** What the agent read off the source, or why it could not. */
   detection: DetectionState;
@@ -61,8 +59,10 @@ export function ProjectAddForm({
   /** Whether `tool.github` sits on this server. */
   githubModule: boolean;
   ready: boolean;
-  /** Why each port row would be refused, in the order of the rows. */
-  rowProblems: readonly (RowProblem | null)[];
+  /** Why each process would be refused, in the order of the processes. */
+  processProblems: readonly (ProcessProblem | null)[];
+  /** Why each port row would be refused, process by process. */
+  rowProblems: readonly (readonly (RowProblem | null)[])[];
   edit: DraftEdits;
   /** The reader is done naming the source: the agent may read it. */
   onDetect: () => void;
@@ -76,7 +76,7 @@ export function ProjectAddForm({
 
   return (
     <form
-      className="elevation-raised flex flex-col gap-gutter rounded-md border border-line bg-surface p-5"
+      className={`${panelClass("lg")} flex flex-col gap-gutter`}
       data-detection={detection.status}
       onSubmit={(event) => {
         event.preventDefault();
@@ -95,74 +95,41 @@ export function ProjectAddForm({
         repos={repos}
       />
 
-      <p className="text-[12px] text-ink-3 leading-relaxed">
-        {sourceHelp(t, detection)}
-      </p>
-
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Field
-          help={
-            draft.dir
-              ? t("projectAdd.form.folderHelp", { dir: draft.dir })
-              : t("projectAdd.form.nameHelp")
-          }
-          label={t("projectAdd.form.nameLabel")}
-          name="project.name"
-          required
-        >
-          <input
-            className={fieldControlClass}
-            id="project.name"
-            onChange={(event) => edit.name(event.target.value)}
-            placeholder={t("projectAdd.form.namePlaceholder")}
-            value={draft.name}
-          />
-        </Field>
-
-        <Field
-          help={detected ? t("projectAdd.form.pkgmgrDetected") : undefined}
-          label={t("projectAdd.form.pkgmgrLabel")}
-          name="project.pkgmgr"
-        >
-          <select
-            className={fieldControlClass}
-            id="project.pkgmgr"
-            onChange={(event) =>
-              edit.pkgmgr(event.target.value as PackageManager)
-            }
-            value={draft.pkgmgr}
-          >
-            {PACKAGE_MANAGERS.map((manager) => (
-              <option key={manager} value={manager}>
-                {manager}
-              </option>
-            ))}
-          </select>
-        </Field>
-      </div>
-
-      <ProjectPorts
-        edit={edit}
-        exposure={exposure}
-        placeholder={draft.name}
-        problems={rowProblems}
-        rows={draft.rows}
-      />
+      <ProjectAddSourceStatus detection={detection} kind={draft.kind} />
 
       <Field
-        help={t("projectAdd.form.cmdHelp")}
-        label={t("projectAdd.form.cmdLabel")}
-        name="project.cmd"
+        help={
+          draft.dir
+            ? t("projectAdd.form.folderHelp", { dir: draft.dir })
+            : t("projectAdd.form.nameHelp")
+        }
+        label={t("projectAdd.form.nameLabel")}
+        name="project.name"
         required
       >
         <input
           className={fieldControlClass}
-          id="project.cmd"
-          onChange={(event) => edit.cmd(event.target.value)}
-          placeholder={t("projectAdd.form.cmdPlaceholder")}
-          value={draft.cmd}
+          id="project.name"
+          onChange={(event) => edit.name(event.target.value)}
+          placeholder={t("projectAdd.form.namePlaceholder")}
+          value={draft.name}
         />
       </Field>
+
+      {detected ? (
+        <p className="text-[12px] text-ink-3 leading-relaxed">
+          {t("projectAdd.form.processesDetected")}
+        </p>
+      ) : null}
+
+      <ProjectProcesses
+        edit={edit}
+        exposure={exposure}
+        placeholder={draft.name}
+        problems={processProblems}
+        processes={draft.processes}
+        rowProblems={rowProblems}
+      />
 
       <div className="flex items-center gap-2">
         <Button
@@ -176,24 +143,4 @@ export function ProjectAddForm({
       </div>
     </form>
   );
-}
-
-/** What the source line says beneath itself, once the agent has looked at it. */
-function sourceHelp(
-  t: ReturnType<typeof useTranslations>,
-  detection: DetectionState
-): string | undefined {
-  if (detection.status === "reading") {
-    return t("projectAdd.form.sourceReading");
-  }
-
-  if (detection.status === "read") {
-    const { pkgmgr, port_hint: port } = detection.result;
-
-    return port
-      ? t("projectAdd.form.sourceRead", { pkgmgr, port })
-      : t("projectAdd.form.sourceReadNoPort", { pkgmgr });
-  }
-
-  return undefined;
 }

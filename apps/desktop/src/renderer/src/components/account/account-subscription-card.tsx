@@ -4,7 +4,8 @@ import {
   trialDaysLeft,
 } from "@pupitre/shared/plans";
 import { Button } from "@renderer/components/ui/button";
-import { Label } from "@renderer/components/ui/label";
+import { Fact, FactList } from "@renderer/components/ui/fact";
+import { Panel } from "@renderer/components/ui/panel";
 import type {
   StatusShape,
   StatusTone,
@@ -120,8 +121,8 @@ export function AccountSubscriptionCard({
   const trialInk = ending ? "text-warn" : "text-ink";
 
   return (
-    <div
-      className="flex flex-col gap-4 rounded-md border border-line bg-surface px-4 py-4"
+    <Panel
+      className="flex flex-col gap-4"
       data-subscription={subscription.status}
       data-trial-tone={daysLeft === null ? undefined : trialTone}
     >
@@ -160,34 +161,26 @@ export function AccountSubscriptionCard({
         </Button>
       </div>
 
-      <dl className="grid gap-3 border-line border-t pt-3 sm:grid-cols-2">
-        <div className="min-w-0">
-          <dt>
-            <Label>{t("account.subscription.servers")}</Label>
-          </dt>
-          <dd className="mt-1 font-data text-[12px] text-ink-2 tabular-nums">
-            {t("account.subscription.serversOf", {
-              limit: subscription.servers.limit,
-              used: subscription.servers.used,
-            })}
-          </dd>
-        </div>
+      <FactList className="border-line border-t pt-3">
+        <Fact label={t("account.subscription.servers")}>
+          {t("account.subscription.serversOf", {
+            limit: subscription.servers.limit,
+            used: subscription.servers.used,
+          })}
+        </Fact>
 
         {subscription.current_period_end ? (
-          <div className="min-w-0">
-            <dt>
-              <Label>
-                {trialing
-                  ? t("account.subscription.trialEndsOn")
-                  : t("account.subscription.renewsOn")}
-              </Label>
-            </dt>
-            <dd className="mt-1 font-data text-[12px] text-ink-2 tabular-nums">
-              {formatDay(subscription.current_period_end)}
-            </dd>
-          </div>
+          <Fact
+            label={
+              trialing
+                ? t("account.subscription.trialEndsOn")
+                : t("account.subscription.renewsOn")
+            }
+          >
+            {formatDay(subscription.current_period_end)}
+          </Fact>
         ) : null}
-      </dl>
-    </div>
+      </FactList>
+    </Panel>
   );
 }

@@ -22,7 +22,7 @@ describe("HelloParamsSchema", () => {
     expect(
       HelloParamsSchema.safeParse({
         app_version: "1.2.0",
-        protocol: 1,
+        protocol: 2,
         extra: true,
       }).success
     ).toBe(false)
@@ -34,7 +34,7 @@ describe("HelloResultSchema", () => {
     expect(
       HelloResultSchema.safeParse({
         agent_version: "0.3.1",
-        protocol: 1,
+        protocol: 2,
         server_id: "srv_01H",
         entitlement: "valid",
         capabilities: ["projects", "tunnel"],
@@ -43,7 +43,7 @@ describe("HelloResultSchema", () => {
     expect(
       HelloResultSchema.safeParse({
         agent_version: "0.3.1",
-        protocol: 1,
+        protocol: 2,
         entitlement: "dev",
         capabilities: [],
       }).success
@@ -54,7 +54,7 @@ describe("HelloResultSchema", () => {
     expect(
       HelloResultSchema.safeParse({
         agent_version: "0.3.1",
-        protocol: 1,
+        protocol: 2,
         entitlement: "trial",
         capabilities: [],
       }).success

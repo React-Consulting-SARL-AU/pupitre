@@ -1,24 +1,26 @@
-package hermes
+// Package providers reads the "vendor:key" entries a form composes for an agent that talks to model providers, and renders them as the environment the agent reads.
+package providers
 
 import (
 	"sort"
 	"strings"
 )
 
-const envPrefix = "HERMES_"
+// Shape is the pattern a manifest holds an entry to: a vendor name, a colon, the key.
+const Shape = `^[A-Za-z0-9 ._-]+:.+$`
 
-type provider struct {
-	name string
-	key  string
+type Provider struct {
+	Name string
+	Key  string
 }
 
 // The vendor half of an entry names the environment key; the other half is the secret and never leaves this value.
-func (p provider) envKey() string {
-	return envPrefix + p.name + "_API_KEY"
+func (p Provider) EnvKey(prefix string) string {
+	return prefix + p.Name + "_API_KEY"
 }
 
-func providers(entries []string) []provider {
-	seen := map[string]provider{}
+func Parse(entries []string) []Provider {
+	seen := map[string]Provider{}
 
 	for _, entry := range entries {
 		name, key, found := strings.Cut(strings.TrimSpace(entry), ":")
@@ -31,7 +33,7 @@ func providers(entries []string) []provider {
 			continue
 		}
 
-		seen[name] = provider{name: name, key: key}
+		seen[name] = Provider{Name: name, Key: key}
 	}
 
 	names := make([]string, 0, len(seen))
@@ -40,7 +42,7 @@ func providers(entries []string) []provider {
 	}
 	sort.Strings(names)
 
-	found := make([]provider, 0, len(names))
+	found := make([]Provider, 0, len(names))
 	for _, name := range names {
 		found = append(found, seen[name])
 	}
@@ -62,10 +64,11 @@ func normalize(name string) string {
 	return strings.Trim(out.String(), "_")
 }
 
-func renderEnvironment(found []provider) []byte {
+// Render writes one KEY=value line per provider, under prefix, as an EnvironmentFile reads it.
+func Render(found []Provider, prefix string) []byte {
 	var out strings.Builder
 	for _, entry := range found {
-		out.WriteString(entry.envKey() + "=" + entry.key + "\n")
+		out.WriteString(entry.EnvKey(prefix) + "=" + entry.Key + "\n")
 	}
 
 	return []byte(out.String())

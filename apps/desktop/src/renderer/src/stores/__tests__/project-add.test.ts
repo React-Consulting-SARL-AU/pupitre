@@ -1,8 +1,13 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import type { ProjectAddParams } from "@pupitre/shared/agent-protocol/projects";
+import { translate } from "@renderer/i18n/translate";
 import type { AgentError, AgentResponse } from "@shared/agent";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
-import { type Exposure, useProjectAdd } from "../project-add";
+import {
+  type DetectionState,
+  type Exposure,
+  useProjectAdd,
+} from "../project-add";
 import { useTunnel } from "../tunnel";
 
 /**
@@ -22,23 +27,56 @@ const CADDY: Exposure = { host: "192.0.2.10", provider: "caddy" };
 function project(params: ProjectAddParams) {
   return {
     ...params,
-    install: "bun install",
     path: `/home/dev/projects/${params.dir}`,
-    routes: params.routes.map(({ label, port, subdomain }) => ({
-      label,
-      port,
-      ...(subdomain ? { hostname: `${subdomain}.example.org` } : {}),
+    processes: params.processes.map((process) => ({
+      ...process,
+      install: process.install ?? "bun install",
+      path: `/home/dev/projects/${params.dir}`,
+      routes: process.routes.map(({ label, port, subdomain }) => ({
+        label,
+        port,
+        ...(subdomain ? { hostname: `${subdomain}.example.org` } : {}),
+      })),
+      state: "stopped" as const,
     })),
     state: "stopped" as const,
   };
 }
 
-function mainPort(): number {
-  return useProjectAdd.getState().draft.rows[0]?.port ?? Number.NaN;
+/** The one process of a fresh draft: most projects have one. */
+function main() {
+  return useProjectAdd.getState().draft.processes[0];
 }
 
-function web(index = 0): string {
-  return useProjectAdd.getState().draft.rows[index]?.web ?? "";
+function mainPort(): number {
+  return main()?.rows[0]?.port ?? Number.NaN;
+}
+
+function web(index = 0, process = 0): string {
+  return (
+    useProjectAdd.getState().draft.processes[process]?.rows[index]?.web ?? ""
+  );
+}
+
+/** The routes of the first process, as `project.add` takes them. */
+function routes(process = 0) {
+  return useProjectAdd.getState().params().processes[process]?.routes;
+}
+
+/** The one process `project.add` takes, most of the time. */
+function single(
+  overrides: Partial<ProjectAddParams["processes"][number]>
+): ProjectAddParams["processes"][number] {
+  return {
+    cmd: "bun run dev --port 3000",
+    dir: ".",
+    host: "127.0.0.1",
+    id: "app",
+    pkgmgr: "bun",
+    port: 3000,
+    routes: [{ label: "web", port: 3000 }],
+    ...overrides,
+  };
 }
 
 function phase(id: string): string {
@@ -67,12 +105,20 @@ const QUIET_RUN = {
   startProject: () =>
     Promise.resolve({
       ok: true as const,
-      result: { port: 3000, state: "online" as const },
+      result: { state: "online" as const },
     }),
-  syncProject: () =>
+  pullProject: () =>
     Promise.resolve({
       ok: true as const,
-      result: { installed: true, pulled: true, state: "stopped" as const },
+      result: { pulled: true, state: "stopped" as const },
+    }),
+  installProject: () =>
+    Promise.resolve({
+      ok: true as const,
+      result: {
+        done: true as const,
+        installed: [{ command: "bun install", process: "app" }],
+      },
     }),
 };
 
@@ -92,7 +138,7 @@ describe("un dépôt qui démarre", () => {
 
         return Promise.resolve({ ok: true, result: project(params) });
       },
-      followProjectJournal: (_serverId, _name, _lines, onLine) => {
+      followProjectJournal: (_serverId, _name, _process, _lines, onLine) => {
         onLine("VITE v7.3.5  ready in 312 ms");
 
         return {
@@ -107,14 +153,10 @@ describe("un dépôt qui démarre", () => {
     await useProjectAdd.getState().launch("srv-1");
 
     expect(asked[0]).toEqual({
-      cmd: "bun run dev --port 3000",
       dir: "vite-starter",
-      host: "127.0.0.1",
       name: "vite-starter",
-      pkgmgr: "bun",
-      port: 3000,
+      processes: [single({})],
       repo: REPO,
-      routes: [{ label: "web", port: 3000 }],
     });
     expect(useProjectAdd.getState().run).toMatchObject({
       name: "vite-starter",
@@ -128,15 +170,68 @@ describe("un dépôt qui démarre", () => {
     expect(phase("publish")).toBe("skip");
   });
 
-  it("ne réinstalle pas ce que la récupération des sources a déjà installé", async () => {
-    stubPupitre(QUIET_RUN);
+  it("récupère les sources, puis installe les dépendances, en deux phases", async () => {
+    const order: string[] = [];
+
+    stubPupitre({
+      ...QUIET_RUN,
+      installProject: () => {
+        order.push("install");
+
+        return QUIET_RUN.installProject();
+      },
+      pullProject: () => {
+        order.push("pull");
+
+        return QUIET_RUN.pullProject();
+      },
+    });
 
     await useProjectAdd.getState().prepare("srv-1", null);
     useProjectAdd.getState().setSource(REPO);
     await useProjectAdd.getState().launch("srv-1");
 
-    expect(phase("sources")).toBe("ok");
-    expect(phase("install")).toBe("skip");
+    expect(order).toEqual(["pull", "install"]);
+    expect(
+      useProjectAdd.getState().phases.filter((entry) => entry.id !== "logs")
+    ).toEqual([
+      { detail: "vite-starter · app:3000", id: "add", status: "ok" },
+      { detail: REPO, id: "sources", status: "ok" },
+      { detail: "app: bun install", id: "install", status: "ok" },
+      {
+        detail: translate()("state.project.online"),
+        id: "up",
+        status: "ok",
+      },
+      {
+        detail: translate()("projectAdd.publish.local"),
+        id: "publish",
+        status: "skip",
+      },
+    ]);
+  });
+
+  it("dit qu'un projet sans commande d'installation n'a rien eu à installer", async () => {
+    stubPupitre({
+      ...QUIET_RUN,
+      installProject: () =>
+        Promise.resolve({
+          ok: true as const,
+          result: { done: true as const, installed: [] },
+        }),
+    });
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(REPO);
+    await useProjectAdd.getState().launch("srv-1");
+
+    expect(
+      useProjectAdd.getState().phases.find((entry) => entry.id === "install")
+    ).toEqual({
+      detail: translate()("projectAdd.install.nothing"),
+      id: "install",
+      status: "skip",
+    });
   });
 
   it("propose un sous-domaine quand une exposition est là, et rien sinon", async () => {
@@ -146,15 +241,13 @@ describe("un dépôt qui démarre", () => {
     useProjectAdd.getState().setSource(REPO);
 
     expect(web()).toBe("vite-starter");
-    expect(useProjectAdd.getState().params().routes).toEqual([
+    expect(routes()).toEqual([
       { label: "web", port: 3000, subdomain: "vite-starter" },
     ]);
 
     // Publishing is the reader's choice, not the tunnel's.
-    useProjectAdd.getState().setRowPublish(0, false);
-    expect(useProjectAdd.getState().params().routes).toEqual([
-      { label: "web", port: 3000 },
-    ]);
+    useProjectAdd.getState().setRowPublish(0, 0, false);
+    expect(routes()).toEqual([{ label: "web", port: 3000 }]);
 
     useProjectAdd.getState().reset();
     await useProjectAdd.getState().prepare("srv-1", CADDY);
@@ -166,9 +259,7 @@ describe("un dépôt qui démarre", () => {
     useProjectAdd.getState().setSource(REPO);
 
     expect(web()).toBe("");
-    expect(useProjectAdd.getState().params().routes).toEqual([
-      { label: "web", port: 3000 },
-    ]);
+    expect(routes()).toEqual([{ label: "web", port: 3000 }]);
   });
 
   it("tient une ligne par port, la première étant le port principal", async () => {
@@ -176,10 +267,10 @@ describe("un dépôt qui démarre", () => {
 
     await useProjectAdd.getState().prepare("srv-1", TUNNEL);
     useProjectAdd.getState().setSource(SHOP);
-    useProjectAdd.getState().addRow();
-    useProjectAdd.getState().addRow();
+    useProjectAdd.getState().addRow(0);
+    useProjectAdd.getState().addRow(0);
 
-    const { rows } = useProjectAdd.getState().draft;
+    const rows = main()?.rows ?? [];
 
     expect(rows.map((row) => [row.label, row.port, row.web])).toEqual([
       ["web", 3000, "shop"],
@@ -187,11 +278,11 @@ describe("un dépôt qui démarre", () => {
       ["docs", 3002, "docs-shop"],
     ]);
 
-    useProjectAdd.getState().setRowLabel(1, "backend");
+    useProjectAdd.getState().setRowLabel(0, 1, "backend");
     expect(web(1)).toBe("backend-shop");
 
-    useProjectAdd.getState().removeRow(1);
-    expect(useProjectAdd.getState().params()).toMatchObject({
+    useProjectAdd.getState().removeRow(0, 1);
+    expect(useProjectAdd.getState().params().processes[0]).toMatchObject({
       port: 3000,
       routes: [
         { label: "web", port: 3000, subdomain: "shop" },
@@ -199,9 +290,70 @@ describe("un dépôt qui démarre", () => {
       ],
     });
 
-    // The main port stays: a project always has one.
-    useProjectAdd.getState().removeRow(0);
-    expect(useProjectAdd.getState().draft.rows).toHaveLength(2);
+    // The main port stays: a process always has one.
+    useProjectAdd.getState().removeRow(0, 0);
+    expect(main()?.rows).toHaveLength(2);
+  });
+
+  it("tient un processus par dossier qui tourne, chacun sur ses ports et sa commande", async () => {
+    stubPupitre({ listProjects: QUIET_RUN.listProjects });
+
+    await useProjectAdd.getState().prepare("srv-1", TUNNEL);
+    useProjectAdd.getState().setSource("https://github.com/eapc/intranet.git");
+    useProjectAdd.getState().addProcess();
+
+    const { processes } = useProjectAdd.getState().draft;
+
+    expect(processes.map((process) => [process.id, process.dir])).toEqual([
+      ["app", ""],
+      ["api", ""],
+    ]);
+    expect(web(0, 0)).toBe("intranet");
+    expect(web(0, 1)).toBe("web-intranet");
+    expect(processes[1]?.rows[0]?.port).toBe(3001);
+
+    useProjectAdd.getState().setProcessId(0, "server");
+    useProjectAdd.getState().setProcessPkgmgr(0, "gradle");
+    useProjectAdd.getState().setRowPort(0, 0, 8081);
+    useProjectAdd.getState().setRowPublish(0, 0, false);
+    useProjectAdd.getState().setProcessId(1, "client");
+    useProjectAdd.getState().setProcessDir(1, "client");
+    useProjectAdd.getState().setProcessPkgmgr(1, "pnpm");
+
+    expect(useProjectAdd.getState().params().processes).toEqual([
+      {
+        cmd: "./gradlew bootRun --args='--server.port=8081'",
+        dir: ".",
+        host: "127.0.0.1",
+        id: "server",
+        pkgmgr: "gradle",
+        port: 8081,
+        routes: [{ label: "web", port: 8081 }],
+      },
+      {
+        cmd: "pnpm dev --port 3001",
+        dir: "client",
+        host: "127.0.0.1",
+        id: "client",
+        pkgmgr: "pnpm",
+        port: 3001,
+        routes: [{ label: "web", port: 3001, subdomain: "web-intranet" }],
+      },
+    ]);
+    expect(useProjectAdd.getState().ready()).toBe(true);
+
+    useProjectAdd.getState().setProcessId(1, "server");
+    expect(useProjectAdd.getState().processProblem(1)).toBe("idTaken");
+    expect(useProjectAdd.getState().ready()).toBe(false);
+
+    useProjectAdd.getState().setProcessId(1, "client");
+    useProjectAdd.getState().setRowPort(1, 0, 8081);
+    expect(useProjectAdd.getState().rowProblems(1)).toEqual(["portTaken"]);
+
+    // The last process stays: a project always has one.
+    useProjectAdd.getState().removeProcess(1);
+    useProjectAdd.getState().removeProcess(0);
+    expect(useProjectAdd.getState().draft.processes).toHaveLength(1);
   });
 
   /** The agent wrote the route; the name that reaches it is written from the account the app holds. */
@@ -318,10 +470,16 @@ describe("ce que l'agent lit dans la source", () => {
     const { asked } = detecting({
       ok: true,
       result: {
-        cmd: "pnpm dev --port 5173",
-        install: "pnpm install",
-        pkgmgr: "pnpm",
-        port_hint: 5173,
+        processes: [
+          {
+            cmd: "pnpm dev --port 5173",
+            dir: ".",
+            id: "vite-starter",
+            install: "pnpm install",
+            pkgmgr: "pnpm",
+            port_hint: 5173,
+          },
+        ],
       },
     });
 
@@ -331,28 +489,113 @@ describe("ce que l'agent lit dans la source", () => {
 
     expect(asked).toEqual([{ repo: REPO }]);
     expect(useProjectAdd.getState().detection.status).toBe("read");
-    expect(useProjectAdd.getState().draft).toMatchObject({
+    expect(main()).toMatchObject({
       cmd: "pnpm dev --port 5173",
+      id: "vite-starter",
       pkgmgr: "pnpm",
     });
     expect(mainPort()).toBe(5173);
 
     // The reader keeps the last word on the port: the command follows it.
-    useProjectAdd.getState().setRowPort(0, 5200);
-    expect(useProjectAdd.getState().draft.cmd).toBe("pnpm dev --port 5200");
+    useProjectAdd.getState().setRowPort(0, 0, 5200);
+    expect(main()?.cmd).toBe("pnpm dev --port 5200");
+  });
+
+  // The wait names what the agent is cloning, so a reader who just changed
+  // the branch sees that the change was taken rather than a line that did not move.
+  it("dit, pendant la lecture, quelle branche l'agent clone", async () => {
+    let seen: DetectionState | undefined;
+
+    stubPupitre({
+      listProjects: QUIET_RUN.listProjects,
+      agentCall: () => {
+        seen = useProjectAdd.getState().detection;
+
+        return Promise.resolve({
+          ok: true,
+          result: {
+            processes: [
+              { dir: ".", id: "app", install: "bun install", pkgmgr: "bun" },
+            ],
+          },
+        });
+      },
+    });
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(REPO);
+    useProjectAdd.getState().setBranch(" release/2.0 ");
+    await useProjectAdd.getState().detect("srv-1");
+
+    expect(seen).toEqual({
+      branch: "release/2.0",
+      source: REPO,
+      status: "reading",
+    });
+
+    useProjectAdd.getState().setBranch("");
+    await useProjectAdd.getState().detect("srv-1");
+
+    expect(seen).toEqual({ source: REPO, status: "reading" });
+  });
+
+  // A script that freezes --host react-box.localhost binds to a name only the
+  // laptop resolves: declared as the host, the agent makes the server answer to it.
+  it("déclare le nom en .localhost que le dépôt fige, et la boucle locale sinon", async () => {
+    detecting({
+      ok: true,
+      result: {
+        processes: [
+          {
+            cmd: "bun run dev --port 3000",
+            dir: ".",
+            host_hint: "react-box.localhost",
+            id: "react-box",
+            install: "bun install",
+            pkgmgr: "bun",
+            port_hint: 3000,
+          },
+        ],
+      },
+    });
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(REPO);
+
+    expect(useProjectAdd.getState().params().processes[0]?.host).toBe(
+      "127.0.0.1"
+    );
+
+    await useProjectAdd.getState().detect("srv-1");
+
+    expect(useProjectAdd.getState().params().processes[0]?.host).toBe(
+      "react-box.localhost"
+    );
+
+    useProjectAdd.getState().setSource(SHOP);
+
+    expect(useProjectAdd.getState().params().processes[0]?.host).toBe(
+      "127.0.0.1"
+    );
   });
 
   it("prend les ports d'un monorepo, une ligne par workspace", async () => {
     detecting({
       ok: true,
       result: {
-        cmd: "bunx turbo run dev",
-        install: "bun install",
-        pkgmgr: "bun",
-        port_hint: 3100,
-        routes: [
-          { label: "web", port: 3100 },
-          { label: "api", port: 3101 },
+        processes: [
+          {
+            cmd: "bunx turbo run dev",
+            dir: ".",
+            id: "shop",
+            install: "bun install",
+            pkgmgr: "bun",
+            port_hint: 3100,
+            routes: [
+              { label: "web", port: 3100 },
+              { label: "api", port: 3101 },
+            ],
+          },
         ],
       },
     });
@@ -361,17 +604,104 @@ describe("ce que l'agent lit dans la source", () => {
     useProjectAdd.getState().setSource(SHOP);
     await useProjectAdd.getState().detect("srv-1");
 
-    expect(useProjectAdd.getState().draft.cmd).toBe("bunx turbo run dev");
-    expect(useProjectAdd.getState().params().routes).toEqual([
+    expect(main()?.cmd).toBe("bunx turbo run dev");
+    expect(routes()).toEqual([
       { label: "web", port: 3100, subdomain: "shop" },
       { label: "api", port: 3101, subdomain: "api-shop" },
     ]);
   });
 
+  // A repository that holds a server and its client is two processes: each
+  // keeps its folder, its manager and its command, and the ports are proposed
+  // one after the other.
+  it("prend les processus d'un dépôt qui en tient plusieurs, chacun dans son dossier", async () => {
+    const asked: ProjectAddParams[] = [];
+
+    stubPupitre({
+      ...QUIET_RUN,
+      addProject: (_serverId, params) => {
+        asked.push(params);
+
+        return Promise.resolve({ ok: true, result: project(params) });
+      },
+      agentCall: () =>
+        Promise.resolve({
+          ok: true,
+          result: {
+            processes: [
+              {
+                cmd: "./gradlew :server:bootRun --args='--server.port=3000'",
+                dir: ".",
+                id: "server",
+                install: "./gradlew --version",
+                pkgmgr: "gradle",
+                port_hint: 3000,
+              },
+              {
+                cmd: "pnpm dev --port 3001",
+                dir: "client",
+                id: "client",
+                install: "pnpm install",
+                pkgmgr: "pnpm",
+                port_hint: 3001,
+              },
+            ],
+          },
+        }),
+    });
+
+    await useProjectAdd.getState().prepare("srv-1", TUNNEL);
+    useProjectAdd.getState().setSource("https://github.com/eapc/intranet.git");
+    await useProjectAdd.getState().detect("srv-1");
+
+    const { processes } = useProjectAdd.getState().draft;
+
+    expect(
+      processes.map((process) => [
+        process.id,
+        process.dir,
+        process.pkgmgr,
+        process.cmd,
+        process.rows[0]?.web,
+      ])
+    ).toEqual([
+      [
+        "server",
+        "",
+        "gradle",
+        "./gradlew :server:bootRun --args='--server.port=3000'",
+        "intranet",
+      ],
+      ["client", "client", "pnpm", "pnpm dev --port 3001", "web-intranet"],
+    ]);
+
+    // The server stays private; the client takes the project's own name.
+    useProjectAdd.getState().setRowPublish(0, 0, false);
+    useProjectAdd.getState().setRowPort(0, 0, 8081);
+    useProjectAdd.getState().generateRowWeb(1, 0);
+
+    expect(main()?.cmd).toBe(
+      "./gradlew :server:bootRun --args='--server.port=8081'"
+    );
+    expect(web(0, 1)).toBe("web-intranet");
+
+    await useProjectAdd.getState().launch("srv-1");
+
+    expect(
+      asked[0]?.processes.map((process) => [process.id, process.dir])
+    ).toEqual([
+      ["server", "."],
+      ["client", "client"],
+    ]);
+    expect(useProjectAdd.getState().run).toMatchObject({ status: "done" });
+  });
+
   it("nomme un dossier du serveur comme tel, et ne relit pas la même source", async () => {
     const { asked } = detecting({
       ok: true,
-      result: { install: "uv sync", pkgmgr: "uv" },
+      result: {
+        processes: [{ dir: ".", id: "api", install: "uv sync", pkgmgr: "uv" }],
+      },
     });
 
     await useProjectAdd.getState().prepare("srv-1", null);
@@ -381,7 +711,7 @@ describe("ce que l'agent lit dans la source", () => {
     await useProjectAdd.getState().detect("srv-1");
 
     expect(asked).toEqual([{ dir: "apps/api" }]);
-    expect(useProjectAdd.getState().draft).toMatchObject({
+    expect(main()).toMatchObject({
       cmd: "uv run dev --port 3000",
       pkgmgr: "uv",
     });
@@ -411,14 +741,17 @@ describe("ce que l'agent lit dans la source", () => {
   });
 
   it("ne relit pas un projet que le serveur déclare déjà", async () => {
-    const { asked } = detecting({ ok: true, result: { pkgmgr: "bun" } });
+    const asked: unknown[] = [];
 
     stubPupitre({
       ...QUIET_RUN,
       agentCall: (_server, _cmd, params) => {
         asked.push(params);
 
-        return Promise.resolve({ ok: true, result: { pkgmgr: "bun" } });
+        return Promise.resolve({
+          ok: true,
+          result: { processes: [{ dir: ".", id: "app", pkgmgr: "bun" }] },
+        });
       },
       listProjects: () =>
         Promise.resolve({
@@ -426,14 +759,22 @@ describe("ce que l'agent lit dans la source", () => {
           result: {
             projects: [
               {
-                cmd: "uv run dev --port 3400",
                 dir: "apps/api",
-                host: "127.0.0.1",
                 name: "api",
                 path: "/home/dev/projects/apps/api",
-                pkgmgr: "uv",
-                port: 3400,
-                routes: [{ label: "api", port: 3400 }],
+                processes: [
+                  {
+                    cmd: "uv run dev --port 3400",
+                    dir: ".",
+                    host: "127.0.0.1",
+                    id: "api",
+                    path: "/home/dev/projects/apps/api",
+                    pkgmgr: "uv",
+                    port: 3400,
+                    routes: [{ label: "api", port: 3400 }],
+                    state: "stopped",
+                  },
+                ],
                 state: "stopped",
               },
             ],
@@ -448,8 +789,9 @@ describe("ce que l'agent lit dans la source", () => {
 
     expect(asked).toEqual([]);
     expect(useProjectAdd.getState().detected).toBe(true);
-    expect(useProjectAdd.getState().draft).toMatchObject({
+    expect(main()).toMatchObject({
       cmd: "uv run dev --port 3400",
+      id: "api",
       pkgmgr: "uv",
     });
     expect(mainPort()).toBe(3400);
@@ -482,7 +824,7 @@ describe("un port déjà pris", () => {
       projectAddress: () =>
         Promise.resolve({ ok: true, result: { url: "http://127.0.0.1:3001" } }),
       startProject: () =>
-        Promise.resolve({ ok: true, result: { port: 3001, state: "online" } }),
+        Promise.resolve({ ok: true, result: { state: "online" } }),
     });
 
     return { asked };
@@ -501,7 +843,7 @@ describe("un port déjà pris", () => {
       status: "failed",
     });
     expect(mainPort()).toBe(3001);
-    expect(useProjectAdd.getState().draft.cmd).toBe("bun run dev --port 3001");
+    expect(main()?.cmd).toBe("bun run dev --port 3001");
   });
 
   it("aboutit au second essai, sur le port du remède", async () => {
@@ -512,7 +854,9 @@ describe("un port déjà pris", () => {
     await useProjectAdd.getState().launch("srv-1");
     await useProjectAdd.getState().retry("srv-1");
 
-    expect(asked.map((params) => params.port)).toEqual([3000, 3001]);
+    expect(asked.map((params) => params.processes[0]?.port)).toEqual([
+      3000, 3001,
+    ]);
     expect(useProjectAdd.getState().run).toMatchObject({
       state: "online",
       status: "done",
@@ -545,7 +889,7 @@ describe("un projet qui ne démarre pas", () => {
       startProject: () =>
         Promise.resolve(
           starts()
-            ? { ok: true, result: { port: 3000, state: "online" } }
+            ? { ok: true, result: { state: "online" } }
             : { ok: false, error: dead }
         ),
     });
@@ -613,11 +957,7 @@ describe("un projet qui ne démarre pas", () => {
 
 describe("un dossier déjà présent sur le serveur", () => {
   it("ne récupère aucune source pour un dossier qui est déjà là", async () => {
-    stubPupitre({
-      ...QUIET_RUN,
-      installProject: () =>
-        Promise.resolve({ ok: true, result: { done: true } }),
-    });
+    stubPupitre(QUIET_RUN);
 
     await useProjectAdd.getState().prepare("srv-1", null);
     useProjectAdd.getState().setKind("dir");
@@ -639,14 +979,15 @@ describe("un dossier déjà présent sur le serveur", () => {
     useProjectAdd.getState().setSource("apps/web");
     expect(useProjectAdd.getState().ready()).toBe(true);
 
-    useProjectAdd.getState().setRowPort(0, Number.NaN);
+    useProjectAdd.getState().setRowPort(0, 0, Number.NaN);
     expect(useProjectAdd.getState().ready()).toBe(false);
 
-    useProjectAdd.getState().setRowPort(0, 80);
+    useProjectAdd.getState().setRowPort(0, 0, 80);
     expect(useProjectAdd.getState().ready()).toBe(false);
 
-    useProjectAdd.getState().setRowPort(0, 3000);
-    useProjectAdd.getState().setCmd("  ");
+    useProjectAdd.getState().setRowPort(0, 0, 3000);
+    useProjectAdd.getState().setProcessCmd(0, "  ");
+    expect(useProjectAdd.getState().processProblem(0)).toBe("cmd");
     expect(useProjectAdd.getState().ready()).toBe(false);
   });
 
@@ -656,16 +997,16 @@ describe("un dossier déjà présent sur le serveur", () => {
     await useProjectAdd.getState().prepare("srv-1", null);
     useProjectAdd.getState().setKind("dir");
     useProjectAdd.getState().setSource("apps/web");
-    useProjectAdd.getState().addRow();
+    useProjectAdd.getState().addRow(0);
     expect(useProjectAdd.getState().ready()).toBe(true);
 
-    useProjectAdd.getState().setRowLabel(1, "web");
-    expect(useProjectAdd.getState().rowProblem(1)).toBe("labelTaken");
+    useProjectAdd.getState().setRowLabel(0, 1, "web");
+    expect(useProjectAdd.getState().rowProblems(0)[1]).toBe("labelTaken");
     expect(useProjectAdd.getState().ready()).toBe(false);
 
-    useProjectAdd.getState().setRowLabel(1, "api");
-    useProjectAdd.getState().setRowPort(1, 3000);
-    expect(useProjectAdd.getState().rowProblem(1)).toBe("portTaken");
+    useProjectAdd.getState().setRowLabel(0, 1, "api");
+    useProjectAdd.getState().setRowPort(0, 1, 3000);
+    expect(useProjectAdd.getState().rowProblems(0)[1]).toBe("portTaken");
   });
 });
 
@@ -678,15 +1019,27 @@ describe("le sous-domaine du projet", () => {
         result: {
           projects: [
             {
-              cmd: "bun run dev --port 3400",
               dir: "other",
-              host: "127.0.0.1",
               name: "other",
               path: "/home/dev/projects/other",
-              pkgmgr: "bun" as const,
-              port: 3400,
-              routes: [
-                { hostname: "my-site.example.org", label: "web", port: 3400 },
+              processes: [
+                {
+                  cmd: "bun run dev --port 3400",
+                  dir: ".",
+                  host: "127.0.0.1",
+                  id: "other",
+                  path: "/home/dev/projects/other",
+                  pkgmgr: "bun" as const,
+                  port: 3400,
+                  routes: [
+                    {
+                      hostname: "my-site.example.org",
+                      label: "web",
+                      port: 3400,
+                    },
+                  ],
+                  state: "online" as const,
+                },
               ],
               state: "online" as const,
             },
@@ -704,7 +1057,7 @@ describe("le sous-domaine du projet", () => {
 
     expect(useProjectAdd.getState().draft.name).toBe("my.site");
     expect(web()).toBe("my-site");
-    expect(useProjectAdd.getState().rowProblem(0)).toBeNull();
+    expect(useProjectAdd.getState().rowProblems(0)).toEqual([null]);
   });
 
   it("refuse une valeur mal formée sans appeler l'agent", async () => {
@@ -722,9 +1075,9 @@ describe("le sous-domaine du projet", () => {
     await useProjectAdd.getState().prepare("srv-1", TUNNEL);
     useProjectAdd.getState().setKind("git");
     useProjectAdd.getState().setSource(SHOP);
-    useProjectAdd.getState().setRowWeb(0, "-shop");
+    useProjectAdd.getState().setRowWeb(0, 0, "-shop");
 
-    expect(useProjectAdd.getState().rowProblem(0)).toBe("web");
+    expect(useProjectAdd.getState().rowProblems(0)).toEqual(["web"]);
     expect(useProjectAdd.getState().ready()).toBe(false);
     expect(asked).toEqual([]);
   });
@@ -735,9 +1088,9 @@ describe("le sous-domaine du projet", () => {
     await useProjectAdd.getState().prepare("srv-1", TUNNEL);
     useProjectAdd.getState().setKind("git");
     useProjectAdd.getState().setSource(SHOP);
-    useProjectAdd.getState().setRowWeb(0, "my-site");
+    useProjectAdd.getState().setRowWeb(0, 0, "my-site");
 
-    expect(useProjectAdd.getState().rowProblem(0)).toBe("webTaken");
+    expect(useProjectAdd.getState().rowProblems(0)).toEqual(["webTaken"]);
     expect(useProjectAdd.getState().ready()).toBe(false);
   });
 
@@ -747,11 +1100,11 @@ describe("le sous-domaine du projet", () => {
     await useProjectAdd.getState().prepare("srv-1", TUNNEL);
     useProjectAdd.getState().setKind("git");
     useProjectAdd.getState().setSource("https://github.com/moi/my.site.git");
-    useProjectAdd.getState().setRowWeb(0, "-shop");
-    useProjectAdd.getState().generateRowWeb(0);
+    useProjectAdd.getState().setRowWeb(0, 0, "-shop");
+    useProjectAdd.getState().generateRowWeb(0, 0);
 
     expect(web()).toBe("my-site-2");
-    expect(useProjectAdd.getState().rowProblem(0)).toBeNull();
+    expect(useProjectAdd.getState().rowProblems(0)).toEqual([null]);
   });
 
   it("ne juge rien quand la machine n'a pas de tunnel", async () => {
@@ -760,9 +1113,9 @@ describe("le sous-domaine du projet", () => {
     await useProjectAdd.getState().prepare("srv-1", null);
     useProjectAdd.getState().setKind("git");
     useProjectAdd.getState().setSource(SHOP);
-    useProjectAdd.getState().setRowWeb(0, "-shop");
+    useProjectAdd.getState().setRowWeb(0, 0, "-shop");
 
-    expect(useProjectAdd.getState().rowProblem(0)).toBeNull();
+    expect(useProjectAdd.getState().rowProblems(0)).toEqual([null]);
   });
 });
 

@@ -25,7 +25,7 @@ const SERVER = "srv-1";
 let fake: FakeAgent | null = null;
 
 function deps(): ProjectDeps {
-  fake = fakeAgent("project-git-control.jsonl");
+  fake = fakeAgent(["project-git-control.jsonl", "project-git-work.jsonl"]);
 
   const client: AgentClient = createAgentClient({
     backoff: { attempts: 1 },
@@ -168,6 +168,7 @@ describe("les commandes d'un projet ouvert", () => {
       "project.destroy",
       SERVER,
       "flymate-api",
+      null,
       shared
     );
 

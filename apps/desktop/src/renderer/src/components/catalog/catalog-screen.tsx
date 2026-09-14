@@ -63,9 +63,9 @@ export function CatalogScreen({
     actions,
     column: true,
     plain,
-    eyebrow: t("catalog.screen.eyebrow"),
+    eyebrow: serverName ?? t("catalog.screen.defaultServer"),
     step: "catalog",
-    title: serverName ?? t("catalog.screen.defaultServer"),
+    title: t("catalog.screen.title"),
   };
 
   if (catalog.status === "failed" && catalog.serverId === serverId) {

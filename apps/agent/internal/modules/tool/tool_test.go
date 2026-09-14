@@ -10,6 +10,7 @@ import (
 	"pupitre.studio/agent/internal/modules/tool"
 	"pupitre.studio/agent/internal/modules/tool/github"
 	"pupitre.studio/agent/internal/modules/tool/onepassword"
+	"pupitre.studio/agent/internal/modules/tool/wrangler"
 )
 
 func registry(t *testing.T) *modules.Registry {
@@ -19,6 +20,7 @@ func registry(t *testing.T) *modules.Registry {
 	registry.Register(modtest.Passing{ID: "core.system"})
 	registry.Register(github.Module{})
 	registry.Register(onepassword.Module{})
+	registry.Register(wrangler.Module{})
 
 	return registry
 }
@@ -27,10 +29,11 @@ func TestTranscripts(t *testing.T) {
 	modtest.RunTranscripts(t, "testdata/*.jsonl", modtest.TranscriptOptions{Registry: registry(t), Register: tool.RegisterCommands})
 }
 
-func TestTheTwoManifestsMatchTheCatalog(t *testing.T) {
+func TestTheManifestsMatchTheCatalog(t *testing.T) {
 	fields := map[string][]string{
 		github.ID:      {"token"},
 		onepassword.ID: {"service_account_token"},
+		wrangler.ID:    {"api_token", "account_id"},
 	}
 
 	for _, module := range registry(t).All() {

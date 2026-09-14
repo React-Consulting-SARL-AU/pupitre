@@ -1,10 +1,10 @@
 # follow : chaque ligne du journal voyage en événement log, la queue comprise, et la réponse ferme le flux.
 @file /etc/pupitre/projects.conf web|web|-|bun|127.0.0.1|3000|web|bun run dev --port 3000
-@file /home/dev/.pupitre/logs/web.log VITE v7.1.0 ready in 412 ms\n➜ Local: http://127.0.0.1:3000/
-> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
-> {"id":2,"cmd":"project.logs","params":{"name":"web","lines":2,"follow":true}}
+@file /home/dev/.pupitre/logs/web/web.log VITE v7.1.0 ready in 412 ms\n➜ Local: http://127.0.0.1:3000/
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
+> {"id":2,"cmd":"project.logs","params":{"name":"web","process":"web","lines":2,"follow":true}}
 > {"id":3,"cmd":"project.url","params":{"name":"web"}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["agent.open","catalog","completions","diag","doctor","fs.list","fs.mkdir","fs.read","fs.remove","fs.rename","fs.stat","fs.write","hello","install","install.check","module.config","ping","process.kill","processes.list","project.add","project.branches","project.checkout","project.debug","project.detect","project.diff","project.down","project.git_status","project.install","project.list","project.logs","project.remove","project.restart","project.sync","project.up","project.update","project.url","project.working_tree","reboot","report","service.logs","service.restart","service.secret","service.start","service.status","service.stop","sessions.clean","sessions.list","shots.clean","shots.list","shots.read","shots.url","snapshot","status","uninstall","upgrade"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["agent.open","catalog","completions","diag","doctor","fs.list","fs.mkdir","fs.read","fs.remove","fs.rename","fs.stat","fs.write","hello","install","install.check","module.config","ping","process.kill","processes.list","project.add","project.branches","project.checkout","project.debug","project.detect","project.diff","project.down","project.git_status","project.install","project.list","project.logs","project.pull","project.remove","project.restart","project.sync","project.up","project.update","project.url","project.working_tree","reboot","report","service.logs","service.restart","service.secret","service.start","service.status","service.stop","sessions.clean","sessions.list","shots.clean","shots.list","shots.read","shots.url","snapshot","status","uninstall","upgrade"]}}
 < {"event":"log","id":2,"line":"VITE v7.1.0 ready in 412 ms"}
 < {"event":"log","id":2,"line":"➜ Local: http://127.0.0.1:3000/"}
 < {"id":2,"ok":true,"result":{"lines":[]}}

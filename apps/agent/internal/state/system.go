@@ -130,7 +130,10 @@ func (r *Reader) Diag() contract.Diag {
 
 	report.WriteString("\n" + i18n.T("state.diag.projects") + "\n")
 	for _, project := range r.projects() {
-		fmt.Fprintf(&report, "  %-24s %-9s port %-6d %s\n", project.Name, project.State, project.Port, project.Branch)
+		fmt.Fprintf(&report, "  %-24s %-9s %s\n", project.Name, project.State, project.Branch)
+		for _, process := range project.Processes {
+			fmt.Fprintf(&report, "    %-22s %-9s port %d\n", process.ID, process.State, process.Port)
+		}
 	}
 
 	report.WriteString("\n" + i18n.T("state.diag.sessions") + "\n")

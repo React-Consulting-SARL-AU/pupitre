@@ -76,6 +76,19 @@ afterEach(() => {
 })
 
 describe("ConsoleFooter", () => {
+  it("nomme ses deux icônes dans une infobulle", async () => {
+    const { client } = prepare()
+    const { container, unmount } = await render(footer(client))
+
+    mounted.push(unmount)
+
+    const titles = [...container.querySelectorAll("button")].map(
+      (button) => button.title
+    )
+
+    expect(titles).toEqual(["Thème", "Langue"])
+  })
+
   it("met la langue du compte à jour quand le lecteur est connecté", async () => {
     const { recorder, client } = prepare()
 

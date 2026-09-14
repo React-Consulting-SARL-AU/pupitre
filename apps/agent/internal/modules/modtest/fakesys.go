@@ -38,6 +38,7 @@ type FakeSys struct {
 	Restarts   map[string]int
 	Replies    map[string]string
 	Answers    map[string]string
+	Refusals   map[string]string
 	Failures   map[string]string
 	Once       map[string]string
 	Users      map[string]string
@@ -49,6 +50,8 @@ type FakeSys struct {
 	Listen     map[int]bool
 	Uptimes    map[int]int
 	Firewall   Firewall
+	Tailnet    bool
+	Prefs      TailscalePrefs
 	Procs      map[int]Proc
 	Stubborn   map[int]bool
 	Links      map[string]string
@@ -86,6 +89,7 @@ func NewFakeSys() *FakeSys {
 		Restarts:   map[string]int{},
 		Replies:    map[string]string{},
 		Answers:    map[string]string{},
+		Refusals:   map[string]string{},
 		Failures:   map[string]string{},
 		Once:       map[string]string{},
 		Users:      map[string]string{"root": "/root"},
@@ -130,6 +134,11 @@ func (f *FakeSys) FailPackage(pkg, stderr string) {
 // One program, several questions: an answer keyed by a fragment of the command line wins over the reply keyed by the program.
 func (f *FakeSys) Answer(fragment, stdout string) {
 	f.Answers[fragment] = stdout
+}
+
+// Refuse answers a command line and exits 1 all the same, as a sign-in check does when nobody is signed in.
+func (f *FakeSys) Refuse(fragment, stdout string) {
+	f.Refusals[fragment] = stdout
 }
 
 func (f *FakeSys) FailProgram(program, stderr string) {
@@ -196,6 +205,12 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 		return sys.Output{Stdout: f.Answers[best]}, nil
 	}
 
+	for fragment, stdout := range f.Refusals {
+		if strings.Contains(line, fragment) {
+			return sys.Output{Stdout: stdout, Code: 1}, &sys.ExitError{Program: program, Code: 1}
+		}
+	}
+
 	// The Claude Code binary, run from where it was downloaded, installs itself under ~/.local like the real one.
 	if strings.HasPrefix(base(program), "claude-") && len(cmd.Argv) > 1 && cmd.Argv[1] == "install" {
 		return f.claudeInstall(cmd.User)
@@ -251,6 +266,8 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 		return f.codeServer(cmd.Argv[1:])
 	case "google-chrome-stable", "chromium", "chromium-browser":
 		return f.chrome(cmd.Argv[1:])
+	case "tailscale":
+		return f.tailscale(cmd.Argv[1:])
 	}
 
 	return sys.Output{Stdout: f.Replies[program]}, nil
@@ -546,6 +563,57 @@ func (f *FakeSys) gpg(args []string) (sys.Output, error) {
 	return sys.Output{}, f.WriteFile(out, content, 0o644)
 }
 
+// Joined is what tailscale status answers once up has run: a node on a tailnet, under the login that minted its key.
+const Joined = `{"BackendState":"Running","Self":{"HostName":"pupitre-srv","DNSName":"pupitre-srv.tail1234.ts.net.","UserID":1},"User":{"1":{"LoginName":"jordan@example.org"}}}`
+
+// tailscale up joins, logout leaves, and status says which; a test that wants another answer keys one with Answer, which wins.
+// up and set both keep the hostname and SSH flags they were given, which is what debug prefs answers.
+func (f *FakeSys) tailscale(args []string) (sys.Output, error) {
+	switch next(args, -1) {
+	case "up":
+		f.Tailnet = true
+		f.keepPrefs(args)
+		f.mutate("tailscale up")
+	case "set":
+		f.keepPrefs(args)
+		f.mutate("tailscale set " + strings.Join(args[1:], " "))
+	case "logout":
+		f.Tailnet = false
+		f.mutate("tailscale logout")
+	case "status":
+		if f.Tailnet {
+			return sys.Output{Stdout: Joined + "\n"}, nil
+		}
+
+		return sys.Output{Stdout: "{\"BackendState\":\"NeedsLogin\"}\n"}, nil
+	case "debug":
+		if next(args, 0) == "prefs" {
+			return sys.Output{Stdout: fmt.Sprintf("{\"Hostname\":%q,\"RunSSH\":%t}\n", f.Prefs.Hostname, f.Prefs.SSH)}, nil
+		}
+	}
+
+	return sys.Output{}, nil
+}
+
+// TailscalePrefs is what the node was last told to be, as tailscale up or set said it.
+type TailscalePrefs struct {
+	Hostname string
+	SSH      bool
+}
+
+func (f *FakeSys) keepPrefs(args []string) {
+	for _, arg := range args[1:] {
+		switch {
+		case strings.HasPrefix(arg, "--hostname="):
+			f.Prefs.Hostname = strings.TrimPrefix(arg, "--hostname=")
+		case arg == "--ssh" || arg == "--ssh=true":
+			f.Prefs.SSH = true
+		case arg == "--ssh=false":
+			f.Prefs.SSH = false
+		}
+	}
+}
+
 // The headless browser writes the image it was asked for, so a capture is a file the gallery can then list.
 func (f *FakeSys) chrome(args []string) (sys.Output, error) {
 	for _, arg := range args {
@@ -832,6 +900,8 @@ type Firewall struct {
 	Incoming string
 	Outgoing string
 	Rules    []string
+	// The comment each rule was given, as ufw show added prints it back.
+	Comments map[string]string
 }
 
 func (f *FakeSys) ufw(args []string) (sys.Output, error) {
@@ -849,6 +919,8 @@ func (f *FakeSys) ufw(args []string) (sys.Output, error) {
 	switch words[0] {
 	case "status":
 		return sys.Output{Stdout: f.Firewall.status()}, nil
+	case "show":
+		return sys.Output{Stdout: f.Firewall.added()}, nil
 	case "default":
 		if words[2] == "incoming" {
 			f.Firewall.Incoming = words[1]
@@ -857,14 +929,22 @@ func (f *FakeSys) ufw(args []string) (sys.Output, error) {
 		}
 		f.mutate("ufw default " + words[1] + " " + words[2])
 	case "allow":
-		if f.Firewall.has(words[1]) {
+		rule := ruleOf(words[1:])
+		if f.Firewall.has(rule) {
 			return sys.Output{Stdout: "Skipping adding existing rule\n"}, nil
 		}
-		f.Firewall.Rules = append(f.Firewall.Rules, words[1])
-		f.mutate("ufw allow " + words[1])
+		f.Firewall.Rules = append(f.Firewall.Rules, rule)
+		if comment := commentOf(words); comment != "" {
+			if f.Firewall.Comments == nil {
+				f.Firewall.Comments = map[string]string{}
+			}
+			f.Firewall.Comments[rule] = comment
+		}
+		f.mutate("ufw allow " + rule)
 	case "delete":
-		f.Firewall.remove(words[2])
-		f.mutate("ufw delete allow " + words[2])
+		rule := ruleOf(words[2:])
+		f.Firewall.remove(rule)
+		f.mutate("ufw delete allow " + rule)
 	case "enable":
 		f.Firewall.Active = true
 		f.mutate("ufw enable")
@@ -876,6 +956,25 @@ func (f *FakeSys) ufw(args []string) (sys.Output, error) {
 	}
 
 	return sys.Output{}, nil
+}
+
+func commentOf(words []string) string {
+	for i, word := range words {
+		if word == "comment" && i+1 < len(words) {
+			return words[i+1]
+		}
+	}
+
+	return ""
+}
+
+// A port rule is printed as given; an interface rule — allow in on tailscale0 — as ufw prints it, "Anywhere on tailscale0".
+func ruleOf(words []string) string {
+	if len(words) >= 3 && words[0] == "in" && words[1] == "on" {
+		return "Anywhere on " + words[2]
+	}
+
+	return words[0]
 }
 
 func (w Firewall) status() string {
@@ -890,6 +989,24 @@ func (w Firewall) status() string {
 	}
 	for _, rule := range w.Rules {
 		fmt.Fprintf(&out, "%-26s ALLOW IN    Anywhere (v6)\n", rule+" (v6)")
+	}
+
+	return out.String()
+}
+
+// The rules as they were given, listed whether the firewall is up or not, as ufw show added prints them.
+func (w Firewall) added() string {
+	var out strings.Builder
+	out.WriteString("Added user rules (see 'ufw status' for running firewall):\n")
+	for _, rule := range w.Rules {
+		given := rule
+		if strings.HasPrefix(rule, "Anywhere on ") {
+			given = "in on " + strings.TrimPrefix(rule, "Anywhere on ")
+		}
+		if comment := w.Comments[rule]; comment != "" {
+			given += " comment '" + comment + "'"
+		}
+		fmt.Fprintf(&out, "ufw allow %s\n", given)
 	}
 
 	return out.String()

@@ -1,6 +1,7 @@
 import { type Gesture, usePending } from "@renderer/lib/use-pending";
 import type { ComponentType, ReactNode } from "react";
 import { Spinner } from "./spinner";
+import { Tooltip } from "./tooltip";
 
 export type ButtonVariant =
   | "default"
@@ -60,7 +61,7 @@ export function Button({
   loading = false,
   disabled = false,
   submit = false,
-  title,
+  hint,
   className = "",
 }: {
   children: ReactNode;
@@ -73,7 +74,8 @@ export function Button({
   loading?: boolean;
   disabled?: boolean;
   submit?: boolean;
-  title?: string;
+  /** What the label leaves unsaid, in a bubble on hover. */
+  hint?: string;
   className?: string;
 }) {
   const [click, pending] = usePending(onClick);
@@ -87,17 +89,18 @@ export function Button({
     glyph = <Icon size={13} strokeWidth={1.5} />;
   }
 
-  return (
+  const button = (
     <button
       aria-busy={waiting}
       className={`${SHARED} ${VARIANT[variant]} ${SIZE[size]} ${stateClass(waiting, disabled)} ${className}`}
       disabled={disabled || waiting}
       onClick={click}
-      title={title}
       type={submit ? "submit" : "button"}
     >
       {glyph}
       {children}
     </button>
   );
+
+  return hint ? <Tooltip label={hint}>{button}</Tooltip> : button;
 }

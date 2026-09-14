@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { SNAPSHOT } from "../../__tests__/snapshot-fixtures";
-import { rowsFromProject } from "../../lib/project-ports";
+import { processesFromProject } from "../../lib/project-processes";
 import type { ConfigState } from "../../stores/project-config";
 import { ProjectConfigPanel } from "../projects/project-config-panel";
 
@@ -13,11 +13,16 @@ import { ProjectConfigPanel } from "../projects/project-config-panel";
 const PROJECT = SNAPSHOT.projects[0];
 
 const EDIT = {
+  addProcess: () => undefined,
   addRow: () => undefined,
   branch: () => undefined,
-  cmd: () => undefined,
   generateRowWeb: () => undefined,
-  install: () => undefined,
+  processCmd: () => undefined,
+  processDir: () => undefined,
+  processId: () => undefined,
+  processInstall: () => undefined,
+  processPkgmgr: () => undefined,
+  removeProcess: () => undefined,
   removeRow: () => undefined,
   rowLabel: () => undefined,
   rowPort: () => undefined,
@@ -35,7 +40,7 @@ function text(html: string): string {
 
 function panel(
   run: ConfigState,
-  extra: { restarts?: boolean; dropped?: string[] } = {}
+  extra: { restarts?: string[]; dropped?: string[] } = {}
 ): string {
   if (!PROJECT) {
     throw new Error("the fixture has no project");
@@ -45,18 +50,17 @@ function panel(
     <ProjectConfigPanel
       draft={{
         branch: "main",
-        cmd: PROJECT.cmd,
-        install: "",
-        rows: rowsFromProject(PROJECT),
+        processes: processesFromProject(PROJECT),
       }}
       dropped={extra.dropped ?? []}
       edit={EDIT}
       exposure={{ host: "192.0.2.10", provider: "cloudflare" }}
       onSave={() => Promise.resolve()}
+      processProblems={[null]}
       project={PROJECT}
       ready
-      restarts={extra.restarts ?? false}
-      rowProblems={[null, null]}
+      restarts={extra.restarts ?? []}
+      rowProblems={[[null, null]]}
       run={run}
     />
   );
@@ -68,7 +72,8 @@ describe("la configuration d'un projet", () => {
 
     expect(html).toContain('value="bun run dev --port 3000"');
     expect(html).toContain('id="config.branch"');
-    expect(html).toContain('id="config.install"');
+    expect(html).toContain('id="project.processes.0.install"');
+    expect(html).toContain('id="project.processes.0.id"');
     expect(html).toContain('value="flymate.example.org"');
     expect(html).toContain('value="api-flymate.example.org"');
     expect(html).not.toContain('id="project.source"');
@@ -76,15 +81,15 @@ describe("la configuration d'un projet", () => {
     expect(text(html)).toContain("Enregistrer la configuration");
   });
 
-  it("dit qu'un changement de commande redémarre le projet, et quelles adresses meurent", () => {
+  it("dit qu'un changement de commande redémarre son processus, et quelles adresses meurent", () => {
     const html = text(
       panel(
         { status: "idle" },
-        { dropped: ["api-flymate.example.org"], restarts: true }
+        { dropped: ["api-flymate.example.org"], restarts: ["flymate-api"] }
       )
     );
 
-    expect(html).toContain("redémarre le projet");
+    expect(html).toContain("redémarre flymate-api");
     expect(html).toContain("api-flymate.example.org");
     expect(html).toContain("cessent de répondre");
   });

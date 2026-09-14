@@ -13,10 +13,12 @@ import { FileBrowser } from "./file-browser";
  */
 export function FilesScreen({
   serverId,
+  serverName,
   services,
   onTerminal,
 }: {
   serverId: string;
+  serverName: string;
   services: readonly Service[];
   /** A shell in a folder of the server, relative to its root. */
   onTerminal: (dir: string) => void;
@@ -24,11 +26,7 @@ export function FilesScreen({
   const t = useTranslations();
 
   return (
-    <Screen
-      eyebrow={t("files.screen.eyebrow")}
-      fill
-      title={t("files.screen.title")}
-    >
+    <Screen eyebrow={serverName} fill title={t("files.screen.title")}>
       <FileBrowser
         editors={remoteEditors(services)}
         onTerminal={onTerminal}

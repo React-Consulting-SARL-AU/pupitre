@@ -42,16 +42,17 @@ Le script frappe le déclencheur interne avec le secret que `dev:prepare` a écr
 
 Un VPS ne peut pas atteindre `localhost:3000` : c'est sa propre boucle locale. `bun dev` lance donc `scripts/dev-tunnel.ts`, un tunnel Cloudflare **nommé** — l'adresse ne change pas d'un lancement à l'autre, contrairement à un tunnel jetable.
 
-| Ce qui est créé | Valeur |
+Le tunnel est géré depuis le tableau de bord et s'exécute depuis son jeton : le script ne fait que `cloudflared tunnel run`, le jeton dans `TUNNEL_TOKEN`. Un jeton désigne un tunnel et rien d'autre, là où `cloudflared tunnel login` liait tout le poste à un seul compte — intenable avec plusieurs projets sur plusieurs tunnels.
+
+| Ce qui existe | Où |
 | --- | --- |
-| Tunnel | `ppt-dev`, sur le compte Cloudflare de la zone |
-| Nom d'hôte | `dev-app.pupitre.studio`, enregistrement CNAME posé par `cloudflared tunnel route dns` |
-| Ce qui est servi | `^/api/v1/agent/` vers `http://localhost:3000` — tout le reste répond 404 |
-| Identifiants | `~/.cloudflared/<uuid>.json`, hors du dépôt ; la configuration est régénérée dans `apps/web/.cloudflared.yml`, ignoré par Git |
+| Tunnel `ppt-dev` | Zero Trust → Networks → Tunnels, sur le compte de la zone |
+| Nom d'hôte public `dev.pupitre.studio`, chemin `^/api/v1/agent/`, service `http://localhost:3000` | la configuration du tunnel, dans ce tableau de bord ; l'enregistrement CNAME est posé avec lui, et tout autre chemin répond 404 |
+| Jeton du tunnel | `PUPITRE_TUNNEL_TOKEN`, dans la note 1Password du poste, injecté par `dev:prepare` |
 
-`apps/web/vite.config.ts` déclare ce nom dans `server.allowedHosts` : Vite refuse par défaut tout hôte qu'il ne connaît pas, et sans cette ligne le tunnel arrive jusqu'à la console pour se faire renvoyer un 403.
+`apps/web/vite.config.ts` déclare ce nom dans `server.allowedHosts` : Vite refuse par défaut tout hôte qu'il ne connaît pas, et sans cette ligne le tunnel arrive jusqu'à la console pour se faire renvoyer un 403. Pour viser un autre tunnel, `PUPITRE_TUNNEL_TOKEN` et `PUPITRE_TUNNEL_HOSTNAME` suffisent.
 
-Une seule étape est manuelle, une fois par machine : `cloudflared tunnel login`, en choisissant la zone `pupitre.studio`. Sans elle le script le dit et s'arrête sans faire échouer `bun dev` — le tunnel ne sert qu'à installer un agent sur un serveur distant.
+Sans jeton le script le dit et s'arrête sans faire échouer `bun dev` — le tunnel ne sert qu'à installer un agent sur un serveur distant.
 
 L'app desktop suit d'elle-même : `agentPlatformUrl()` remplace une console de cet ordinateur par ce nom avant de le donner à l'agent, la console et le flux d'appareil continuant de passer par `localhost:3000`. `PUPITRE_AGENT_PLATFORM_URL` désigne une autre plateforme pour l'agent seul.
 
@@ -64,7 +65,7 @@ bun run test
 bun run build
 ```
 
-Un push sur `staging` est vérifié une fois, sur son SHA. La pull request `staging` → `main` est ouverte et fusionnée par `release.yml`, sur un commit déjà vérifié, avec un jeton qui ne déclenche aucun workflow : `main` ne fait rien tourner. `pull_request` ne vise donc que `staging`, où arrivent les branches de travail. Les minutes GitHub Actions se paient : `ci.yml` ne fait que vérifier, tout sur Ubuntu, et seule une release — un tag `v*` — occupe un runner macOS ou Windows. Les jobs de `ci.yml` :
+Un push sur `staging` est vérifié une fois, sur son SHA. La pull request `staging` → `main` est ouverte et fusionnée par `release.yml`, sur un commit déjà vérifié, avec un jeton qui ne déclenche aucun workflow : `main` ne fait rien tourner. `pull_request` ne vise donc que `staging`, où arrivent les branches de travail. Les workflows tournent sur les runners de **Blacksmith** (app GitHub installée sur l'organisation, labels `blacksmith-*`), pas sur ceux de GitHub, dont la facturation a bloqué une release ; les minutes s'y paient aussi : `ci.yml` ne fait que vérifier, tout sur Ubuntu, et seule une release — un tag `v*` — occupe un runner macOS ou Windows. Les jobs de `ci.yml` :
 
 | Job | Quand | Ce qu'il fait |
 | --- | --- | --- |
@@ -89,6 +90,7 @@ Trois workspaces passent `--timeout=60000` à `bun test` : `apps/web`, `apps/des
 - Jamais dans le dépôt. Le hook pre-commit refuse toute chaîne ressemblant à une clé API, un jeton ou une clé privée, et le job `gitleaks` de la CI relit tout l'historique. La *push protection* de GitHub se pose dans les réglages du dépôt — *Settings* → *Code security* → *Secret scanning* — et nulle part ici : elle refuse un push qui porte un secret avant que la CI ne le voie.
 - Local : `bun run dev:prepare` prépare `.env.local` et les liens que chaque outil attend. Les trois commandes de développement l'appellent d'abord, donc il n'y a rien à lancer à la main. Il ne remplace jamais une valeur déjà écrite : un `.env.local` renseigné reste tel quel.
 - **Ce qui se dérive n'est pas stocké.** La base n'a pas d'adresse : c'est un binding. `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` sont tirés au hasard par poste, puisqu'ils n'ont pas à être partagés.
+- **Ce qui se tire ne se tape pas.** Les secrets qu'on fabrique soi-même — ceux-là pour chaque environnement en ligne, et le `PUPITRE_PUBLISH_TOKEN` commun aux notes des environnements et à celle de la release — sont tirés et déposés dans les notes 1Password par `bun run secrets:draw` (`scripts/draw-secrets.ts`), jamais par `openssl` et un copier-coller. Un champ déjà rempli reste tel quel ; on le vide dans 1Password pour le faire retirer. Un nouveau secret de cette famille s'ajoute à la liste du script, pas à une consigne.
 - **Ce qui ne se dérive pas vient de 1Password.** `.env.1password.tpl` est le modèle committé, avec des références `op://` et aucune valeur ; le coffre et la note de chaque environnement sont dans `environments.json` — le poste lit celle de `local` — surchargeables par `OP_VAULT` et `OP_ITEM`. `op inject` échoue en bloc si un champ manque, donc une clé reste **en commentaire** tant que son champ n'existe pas dans la note.
 - **Rien n'est bloquant.** `op` absent, session fermée ou champ manquant : le script le dit et retombe sur ce que `.env.local` porte déjà.
 - **`secrets.required` de `wrangler.jsonc` fait deux choses à la fois**, et c'est un piège : Cloudflare ne charge dans le Worker local **que** les clés qui y figurent — tout ce que `.dev.vars` porte en plus est silencieusement ignoré — et `wrangler deploy` refuse de partir si l'une d'elles manque. Il n'existe pas de liste « facultative ». Une variable que seul le développement local doit voir se déclare **dans la liste racine seulement** : le bloc `env.production` porte sa propre liste complète et l'emporte entièrement. Les identifiants de connexion sociale figurent dans les deux listes : le produit s'en passe à l'écran, mais la console en ligne les offre. Un secret qui n'apparaît nulle part n'atteint jamais le Worker, quoi qu'il y ait dans `.env.local` — le symptôme est une fonctionnalité qui se croit non configurée alors que la valeur est bien là.
@@ -109,7 +111,7 @@ Deux branches longues, et rien d'autre qui vive plus qu'une pull request.
 | `main` | la production, et rien d'autre : elle ne change que par la pull request `staging` → `main` qu'une release ouvre et fusionne | `app.pupitre.studio`, `pupitre.studio` |
 
 - **`main` ne se commite ni ne se pousse en local.** `.husky/pre-commit` et `.husky/pre-push` appellent `scripts/assert-branch-writable.ts`, qui refuse l'un et l'autre et dit quoi faire à la place. `PUPITRE_ALLOW_MAIN=1` ouvre l'exception, une fois, en le sachant. Le vrai garde-fou reste la protection de branche GitHub : un hook local ne protège que celui qui l'a installé.
-- **`main` avance par release.** Le dernier job de `release.yml` ouvre la pull request `staging` → `main` et la fusionne, une fois la version téléchargeable ; il n'y a pas d'autre chemin vers `main`. Un correctif suit le même chemin : il arrive sur `staging` et sort avec la version suivante.
+- **`main` avance par release, ou par une pull request quand ni l'app ni l'agent ne changent.** Le dernier job de `release.yml` ouvre la pull request `staging` → `main` et la fusionne, une fois la version téléchargeable. Un changement qui ne touche que la console, le site ou les mails n'a pas besoin d'un numéro : `gh pr create --base main --head staging` puis `gh pr merge --merge`, et Cloudflare Builds reconstruit les deux Workers. Un correctif de l'app ou de l'agent, lui, sort avec la version suivante.
 - **La pull request `staging` → `main` se fusionne par un merge commit.** Ni squash, ni rebase : ils réécrivent les commits, et le commit tagué d'une version sortirait de l'historique de `main` — `git describe` ne le verrait plus, et `next` compterait depuis le mauvais tag. Le dépôt n'autorise que `merge` dans *Settings* → *General* → *Pull Requests*, et `gh pr merge --merge` le demande explicitement.
 - **Les tags n'appartiennent à aucune branche.** `git push origin vX.Y.Z` les rend visibles partout, tout de suite : une pull request n'a rien à « rapatrier ». La seule question qui compte est de savoir si le commit tagué est accessible depuis `main`, ce que le merge commit garantit et que le squash casse.
 
@@ -131,7 +133,7 @@ Deux branches longues, et rien d'autre qui vive plus qu'une pull request.
 | Déclencheur | Cloudflare Builds sur un push de `main` |
 | Stripe | mode live |
 
-Un seul environnement en ligne. Il n'y a pas de staging chez Cloudflare : tout s'essaie en local, de bout en bout — `bun dev` tient la console sur une D1 de miniflare, l'app desktop de développement lui parle par le tunnel `dev-app.pupitre.studio`, et l'agent s'éprouve sur un VPS jetable. Le nom du Worker n'est pas choisi : Wrangler est en environnements *legacy*, il suffixe le nom racine (`ppt-web`) du nom de l'environnement. Les deux Cron Triggers, le domaine, les bindings — la D1 comprise — et la liste des secrets requis viennent tous de `apps/web/wrangler.jsonc` : le tableau de bord n'en déclare aucun.
+Un seul environnement en ligne. Il n'y a pas de staging chez Cloudflare : tout s'essaie en local, de bout en bout — `bun dev` tient la console sur une D1 de miniflare, l'app desktop de développement lui parle par le tunnel `dev.pupitre.studio`, et l'agent s'éprouve sur un VPS jetable. Le nom du Worker n'est pas choisi : Wrangler est en environnements *legacy*, il suffixe le nom racine (`ppt-web`) du nom de l'environnement. Les deux Cron Triggers, le domaine, les bindings — la D1 comprise — et la liste des secrets requis viennent tous de `apps/web/wrangler.jsonc` : le tableau de bord n'en déclare aucun.
 
 ### L'ordre de création
 
@@ -197,6 +199,7 @@ Webhook `https://app.pupitre.studio/api/v1/webhooks/stripe`, un endpoint et un s
 | Flux de mise à jour | `dl.pupitre.studio/app/<canal>/` | `latest.yml`, `latest-mac.yml`, `latest-linux.yml` |
 | Certificat macOS | Apple Developer | `Developer ID Application: <société marocaine> (<Team ID>)` |
 | Clé de notarisation | App Store Connect | clé d'API, rôle *Developer*, fichier `AuthKey_<KeyID>.p8` |
+| Runners des workflows | Blacksmith | app GitHub installée sur l'organisation ; Ubuntu 24.04 x64 et arm64, macOS 15 sur Apple Silicon, Windows Server 2025 |
 | Signature Windows | Azure Trusted Signing | compte `ppt-signing`, profil de certificat `ppt-app` — voir [`tasks/windows-signing.md`](./tasks/windows-signing.md) |
 
 Chaque artefact monte avec un fichier `.sig` à côté : la signature Ed25519 de la clé de release, la même que celle de l'agent, sur `pupitre-app\n<version>\n<système>\n<architecture>\n<sha256>\n`. Elle est aussi enregistrée dans la table `AppRelease`, avec la somme et la taille du fichier. Sur macOS et Windows, c'est la signature du système qui protège l'installation ; sur Linux, celle-ci est la seule, et elle se vérifie à la main.
@@ -268,7 +271,7 @@ Un retour arrière se fait en promouvant la version précédente : `electron-upd
 
 ### Ce qui se construit où
 
-Un module natif ne se compile pas pour un autre système : `node-pty` impose un runner par OS, et c'est la raison de la matrice `macos-15`, `windows-2025`, `ubuntu-24.04` de `release.yml` — et la raison pour laquelle la release ne se fait pas depuis un Mac. Depuis un Mac, `bun --cwd=apps/desktop run build:linux` s'arrête sur `node-gyp does not support cross-compiling native modules` — ce n'est pas une erreur de configuration.
+Un module natif ne se compile pas pour un autre système : `node-pty` impose un runner par OS, et c'est la raison de la matrice `blacksmith-6vcpu-macos-15`, `blacksmith-4vcpu-windows-2025`, `blacksmith-4vcpu-ubuntu-2404` de `release.yml` — et la raison pour laquelle la release ne se fait pas depuis un Mac. Depuis un Mac, `bun --cwd=apps/desktop run build:linux` s'arrête sur `node-gyp does not support cross-compiling native modules` — ce n'est pas une erreur de configuration.
 
 | Système | Ce qui sort | Ce qui le signe |
 | --- | --- | --- |

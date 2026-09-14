@@ -6,7 +6,6 @@ export function EmailTitle({ children }: { children: ReactNode }) {
   return (
     <Heading
       as="h1"
-      className="pu-ink"
       style={{
         margin: `0 0 ${theme.space[3]}`,
         fontFamily: theme.displayFont,
@@ -25,7 +24,6 @@ export function EmailTitle({ children }: { children: ReactNode }) {
 export function EmailParagraph({ children }: { children: ReactNode }) {
   return (
     <Text
-      className="pu-ink-2"
       style={{
         margin: `0 0 ${theme.space.gutter}`,
         fontSize: "14px",
@@ -42,7 +40,6 @@ export function EmailFootnote({ children }: { children: ReactNode }) {
   return (
     <>
       <Hr
-        className="pu-rule"
         style={{
           margin: `${theme.space[8]} 0 ${theme.space[4]}`,
           border: "none",
@@ -50,7 +47,6 @@ export function EmailFootnote({ children }: { children: ReactNode }) {
         }}
       />
       <Text
-        className="pu-ink-3"
         style={{
           margin: 0,
           fontSize: "12px",
@@ -78,7 +74,6 @@ export function EmailButton({
           <table cellPadding="0" cellSpacing="0" role="presentation">
             <tr>
               <td
-                className="pu-button"
                 style={{
                   backgroundColor: theme.color.inverse,
                   borderRadius: theme.radius.sm,
@@ -116,7 +111,6 @@ export interface EmailField {
 export function EmailData({ fields }: { fields: EmailField[] }) {
   return (
     <Section
-      className="pu-sunken"
       style={{
         margin: `0 0 ${theme.space.gutter}`,
         padding: `${theme.space[3]} ${theme.space[4]}`,
@@ -136,7 +130,6 @@ export function EmailData({ fields }: { fields: EmailField[] }) {
               }}
             >
               <Text
-                className="pu-ink-3"
                 style={{
                   margin: 0,
                   fontSize: "10.5px",
@@ -157,7 +150,6 @@ export function EmailData({ fields }: { fields: EmailField[] }) {
               }}
             >
               <Text
-                className="pu-ink"
                 style={{
                   margin: 0,
                   fontFamily:
@@ -181,7 +173,6 @@ export function EmailData({ fields }: { fields: EmailField[] }) {
 export function EmailTrouble({ label, url }: { label: string; url: string }) {
   return (
     <Text
-      className="pu-ink-4"
       style={{
         margin: `0 0 ${theme.space[2]}`,
         fontSize: "11px",

@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process"
 import { chmodSync, existsSync, mkdirSync, readFileSync } from "node:fs"
 import { arch as hostArch, platform as hostPlatform } from "node:os"
 import path from "node:path"
+import { PROTOCOL_VERSION } from "../../packages/shared/src/agent-protocol/envelope"
 import { hasFlag, say, variable } from "./cli"
 import {
   type AgentPublication,
@@ -133,8 +134,11 @@ function smoke(version: string, publicKey: string): void {
   }
 }
 
-const HELLO =
-  '{"id":1,"cmd":"hello","params":{"app_version":"0.0.0","protocol":1}}'
+const HELLO = JSON.stringify({
+  id: 1,
+  cmd: "hello",
+  params: { app_version: "0.0.0", protocol: PROTOCOL_VERSION },
+})
 
 async function alreadyBuilt(version: string, vault: Bucket): Promise<boolean> {
   if (!vault.client) {

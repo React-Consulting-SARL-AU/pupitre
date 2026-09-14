@@ -52,7 +52,7 @@ export function TransfersList({
       <header className="flex items-center gap-2 px-3 pt-2 pb-1">
         <Label>{t("transfers.panel")}</Label>
         {moving > 0 ? (
-          <span className="rounded-full border border-line px-1.5 font-data text-[10px] text-ink-3 tabular-nums">
+          <span className="rounded-full border border-line px-1.5 font-data text-[11px] text-ink-3 tabular-nums">
             {t.plural("transfers.panel.count", moving)}
           </span>
         ) : null}

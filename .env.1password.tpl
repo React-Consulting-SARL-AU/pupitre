@@ -51,8 +51,16 @@ R2_BUCKET_NAME="op://{{OP_VAULT}}/{{OP_ITEM}}/R2_BUCKET_NAME"
 # --- Le jeton du pipeline de release. La même valeur ici, sur le Worker de
 # chaque environnement, et dans les secrets GitHub : c'est leur accord qui ouvre
 # les routes de version. Préfixé `pupitre_pub_`, sans quoi la plateforme le prend
-# pour une session et le refuse.
+# pour une session et le refuse. `bun run secrets:draw` le tire et le dépose
+# dans chaque note.
 PUPITRE_PUBLISH_TOKEN="op://{{OP_VAULT}}/{{OP_ITEM}}/PUPITRE_PUBLISH_TOKEN"
+
+# --- Le tunnel qui rend la console locale joignable d'un VPS. Le jeton d'un
+# tunnel géré depuis le tableau de bord Cloudflare (Zero Trust → Networks →
+# Tunnels → ppt-dev) : un jeton par tunnel, aucun `cloudflared tunnel login`
+# qui lierait tout le poste à un seul compte. Absent, `dev:tunnel` le dit et
+# s'arrête seul.
+PUPITRE_TUNNEL_TOKEN="op://{{OP_VAULT}}/{{OP_ITEM}}/PUPITRE_TUNNEL_TOKEN"
 
 # --- Site. Absentes, le site se construit sans mesure d'audience.
 # PUBLIC_RELEASES_URL="op://{{OP_VAULT}}/{{OP_ITEM}}/PUBLIC_RELEASES_URL"

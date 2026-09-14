@@ -9,6 +9,7 @@ import { useServers } from "../../stores/servers";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
 import { Field, fieldControlClass } from "../ui/field";
+import { Panel, panelClass } from "../ui/panel";
 import { StatusDot } from "../ui/status-dot";
 import { WaitingNotice } from "../ui/waiting-notice";
 import { ServerKeyCard } from "./server-key-card";
@@ -112,7 +113,7 @@ export function ServerKeyInstall({
 
   if (!byHand && keyInstall.status === "opened") {
     return (
-      <div className="elevation-raised fade-in flex items-start gap-3 rounded-md border border-line bg-surface px-4 py-4">
+      <Panel className="fade-in flex items-start gap-3">
         <span className="translate-y-1">
           <StatusDot shape="filled" size={12} tone="ok" />
         </span>
@@ -126,14 +127,14 @@ export function ServerKeyInstall({
             )}
           </p>
         </div>
-      </div>
+      </Panel>
     );
   }
 
   if (!byHand && keyInstall.status === "password") {
     return (
       <form
-        className="elevation-raised fade-in rounded-md border border-line bg-surface p-5"
+        className={`${panelClass("lg")} fade-in`}
         onSubmit={(event) => {
           event.preventDefault();
           submitPassword();

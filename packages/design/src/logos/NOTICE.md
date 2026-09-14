@@ -30,6 +30,10 @@ filigrane derrière du texte.
 | `db-postgres.svg` | `db.postgres` | PostgreSQL | https://wiki.postgresql.org/wiki/Logo | CC0-1.0 | 2026-09-04 |
 | `db-mongodb.svg` | `db.mongodb` | MongoDB | https://www.mongodb.com/pressroom | CC0-1.0 | 2026-09-04 |
 | `ai-claude.svg` | `ai.claude` | Claude Code | https://code.claude.com | CC0-1.0 | 2026-09-04 |
+| `ai-cursor.svg` | `ai.cursor` | Cursor | https://cursor.com/brand | CC0-1.0 | 2026-09-04 |
+| `ai-gemini.svg` | `ai.gemini` | Google Gemini | https://gemini.google.com | CC0-1.0 | 2026-09-04 |
+| `ai-copilot.svg` | `ai.copilot` | GitHub Copilot | https://primer.style/foundations/icons/copilot-24 | CC0-1.0 | 2026-09-04 |
+| `ai-opencode.svg` | `ai.opencode` | OpenCode | https://github.com/anomalyco/opencode/blob/1251a870cb384543c150c4a72fb101b55eec971b/packages/identity/mark.svg | CC0-1.0 | 2026-09-04 |
 | `ai-browser.svg` | `ai.browser` | Google Chrome | https://www.google.com/chrome | CC0-1.0 | 2026-09-04 |
 | `editor-jetbrains.svg` | `editor.jetbrains` | JetBrains | https://www.jetbrains.com/company/brand/logos/ | CC0-1.0 | 2026-09-04 |
 | `editor-zed.svg` | `editor.zed` | Zed Industries | https://github.com/zed-industries/zed/blob/ccc939124fa2f366b3029926447fd0a0c46a85c7/assets/icons/logo_96.svg | CC0-1.0 | 2026-09-04 |
@@ -43,9 +47,17 @@ filigrane derrière du texte.
 | `db-redis.svg` | `db.redis` | Redis | https://redis.io/brand-guidelines | CC0-1.0 | 2026-09-04 |
 | `exposure-caddy.svg` | `exposure.caddy` | Caddy | https://caddyserver.com | CC0-1.0 | 2026-09-04 |
 | `tool-neon.svg` | `tool.neon` | Neon | https://neon.com/brand | CC0-1.0 | 2026-09-04 |
+| `tool-wrangler.svg` | `tool.wrangler` | Cloudflare Workers | https://www.cloudflare.com/developer-platform/products/ | CC0-1.0 | 2026-09-04 |
+| `tool-vercel.svg` | `tool.vercel` | Vercel | https://vercel.com/geist/brands | CC0-1.0 | 2026-09-04 |
+| `tool-supabase.svg` | `tool.supabase` | Supabase | https://github.com/supabase/supabase/blob/4031a7549f5d46da7bc79c01d56be4177dc7c114/packages/common/assets/images/supabase-logo-wordmark--light.svg | CC0-1.0 | 2026-09-04 |
+| `tool-stripe.svg` | `tool.stripe` | Stripe | https://stripe.com/newsroom/information | CC0-1.0 | 2026-09-04 |
+| `exposure-tailscale.svg` | `exposure.tailscale` | Tailscale | https://tailscale.com/press | CC0-1.0 | 2026-09-04 |
+| `runtime-rust.svg` | `runtime.rust` | Rust | https://www.rust-lang.org | CC0-1.0 | 2026-09-04 |
 | `editor-vscode.svg` | `editor.vscode` | Visual Studio Code | https://svgl.app/library/vscode.svg | marque déposée, usage nominatif | 2026-09-04 |
 | `runtime-java.svg` | `runtime.java` | Java | https://svgl.app/library/java.svg | marque déposée, usage nominatif | 2026-09-04 |
 | `ai-codex.svg` | `ai.codex` | Codex | https://svgl.app/library/codex_light.svg | marque déposée, usage nominatif | 2026-09-04 |
+| `db-mailpit.svg` | `db.mailpit` | Mailpit | https://github.com/axllent/mailpit/blob/56999e97e220fa20f294cd2c51de404bfa5e67c0/server/ui/mailpit.svg | marque déposée, usage nominatif | 2026-09-13 |
+| `ai-openclaw.svg` | `ai.openclaw` | OpenClaw | https://svgl.app/library/openclaw.svg | marque déposée, usage nominatif | 2026-09-13 |
 | `ai-hermes.svg` | `ai.hermes` | Nous Research | https://lobehub.com/icons/nousresearch | marque déposée, usage nominatif | 2026-09-07 |
 
 ## Marques hors catalogue

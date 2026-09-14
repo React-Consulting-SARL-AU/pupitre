@@ -10,8 +10,8 @@ import { HostKeyAlert } from "../servers/host-key-alert";
 import { ServerAddForm } from "../servers/server-add-form";
 import { ServerKeyInstall } from "../servers/server-key-install";
 import { Button } from "../ui/button";
-import { Label } from "../ui/label";
 import { Screen } from "../ui/screen";
+import { Section } from "../ui/section";
 import { OnboardingOrganizationNote } from "./onboarding-organization-note";
 import { OnboardingServerChoice } from "./onboarding-server-choice";
 
@@ -125,7 +125,6 @@ export function OnboardingServerScreen({
   return (
     <Screen
       column
-      eyebrow={t("onboarding.server.eyebrow")}
       plain
       step={`server:${here ?? "pick"}`}
       title={t(`onboarding.server.${here ?? "pick"}.title`)}
@@ -150,9 +149,7 @@ export function OnboardingServerScreen({
       {here === "key" ? null : <FleetPanel silentWhenEmpty />}
 
       {here === "pick" ? (
-        <section className="flex flex-col gap-4">
-          <Label>{t("onboarding.server.knownHeading")}</Label>
-
+        <Section name="known" title={t("onboarding.server.knownHeading")}>
           {servers.map((server) => (
             <OnboardingServerChoice
               key={server.id}
@@ -166,7 +163,7 @@ export function OnboardingServerScreen({
               {t("servers.addServer")}
             </Button>
           </div>
-        </section>
+        </Section>
       ) : null}
 
       {here === "add" ? (

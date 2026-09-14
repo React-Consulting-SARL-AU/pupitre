@@ -25,7 +25,16 @@ func published(t *testing.T) (*modtest.FakeSys, *state.Reader) {
 }
 
 func turbo() registry.Project {
-	return registry.Project{Name: "shop", Dir: "shop", PkgMgr: "bun", Host: "127.0.0.1", Port: 3100, Cmd: "bun run turbo run dev"}
+	return registry.Project{Name: "shop", Dir: "shop"}
+}
+
+// The one process of the turbo project, on the routes the screen declared.
+func running(cmd string, routes ...registry.RouteRequest) []state.ProcessRequest {
+	if routes == nil {
+		routes = []registry.RouteRequest{}
+	}
+
+	return []state.ProcessRequest{{ID: "shop", Dir: registry.RootDir, PkgMgr: "bun", Host: "127.0.0.1", Port: 3100, Cmd: cmd, Routes: routes}}
 }
 
 func request(label string, port int, subdomain string) registry.RouteRequest {
@@ -35,7 +44,7 @@ func request(label string, port int, subdomain string) registry.RouteRequest {
 func TestAddResolvesEachNameOnTheWebOnceFromTheDomain(t *testing.T) {
 	fake, reader := published(t)
 
-	added, err := reader.Add(turbo(), []registry.RouteRequest{request("web", 3100, "shop"), request("api", 3101, "api-shop"), request("docs", 3102, "")})
+	added, err := reader.Add(turbo(), running("bun run turbo run dev", request("web", 3100, "shop"), request("api", 3101, "api-shop"), request("docs", 3102, "")))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,17 +53,18 @@ func TestAddResolvesEachNameOnTheWebOnceFromTheDomain(t *testing.T) {
 		t.Fatalf("the answer violates the contract: %v", err)
 	}
 
+	routes := processOf(t, added, "shop").Routes
 	want := []contract.Route{{Label: "web", Port: 3100, Hostname: "shop." + domain}, {Label: "api", Port: 3101, Hostname: "api-shop." + domain}, {Label: "docs", Port: 3102}}
-	if len(added.Routes) != len(want) {
-		t.Fatalf("routes = %+v", added.Routes)
+	if len(routes) != len(want) {
+		t.Fatalf("routes = %+v", routes)
 	}
 	for at := range want {
-		if added.Routes[at] != want[at] {
-			t.Fatalf("route %d = %+v, want %+v", at, added.Routes[at], want[at])
+		if routes[at] != want[at] {
+			t.Fatalf("route %d = %+v, want %+v", at, routes[at], want[at])
 		}
 	}
 
-	if added.URL != "https://shop."+domain {
+	if added.URL != "https://shop."+domain || processOf(t, added, "shop").URL != added.URL {
 		t.Fatalf("the address is the hostname of the main port's route: %s", added.URL)
 	}
 
@@ -68,7 +78,7 @@ func TestAddResolvesEachNameOnTheWebOnceFromTheDomain(t *testing.T) {
 func TestTheAddressComesFromTheStoredHostnameNotFromTheDomainOfTheDay(t *testing.T) {
 	fake, reader := published(t)
 
-	if _, err := reader.Add(turbo(), []registry.RouteRequest{request("web", 3100, "shop")}); err != nil {
+	if _, err := reader.Add(turbo(), running("bun run turbo run dev", request("web", 3100, "shop"))); err != nil {
 		t.Fatal(err)
 	}
 
@@ -90,7 +100,7 @@ func TestTheAddressComesFromTheStoredHostnameNotFromTheDomainOfTheDay(t *testing
 func TestAddRefusesASubdomainWhenTheMachineHasNoDomain(t *testing.T) {
 	fake, reader := fixture(t)
 
-	_, err := reader.Add(turbo(), []registry.RouteRequest{request("web", 3100, "shop")})
+	_, err := reader.Add(turbo(), running("bun run turbo run dev", request("web", 3100, "shop")))
 	if err == nil {
 		t.Fatal("no domain, no name on the web")
 	}
@@ -106,18 +116,18 @@ func TestAddRefusesASubdomainWhenTheMachineHasNoDomain(t *testing.T) {
 
 func TestUpdateReplacesTheRoutesWithoutRestartingTheProject(t *testing.T) {
 	fake, reader := published(t)
-	fake.Serves("shop", 3100)
+	fake.Serves("shop/shop", 3100)
 
-	if _, err := reader.Add(turbo(), []registry.RouteRequest{request("web", 3100, "shop"), request("api", 3101, "api-shop")}); err != nil {
+	if _, err := reader.Add(turbo(), running("bun run turbo run dev", request("web", 3100, "shop"), request("api", 3101, "api-shop"))); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := reader.Up("shop"); err != nil {
+	if _, err := reader.Up("shop", ""); err != nil {
 		t.Fatal(err)
 	}
 	before := len(fake.Mutations)
 
-	routes := []registry.RouteRequest{request("web", 3100, "boutique"), request("docs", 3102, "")}
-	updated, err := reader.Update("shop", state.UpdatePatch{Routes: &routes})
+	processes := running("bun run turbo run dev", request("web", 3100, "boutique"), request("docs", 3102, ""))
+	updated, err := reader.Update("shop", state.UpdatePatch{Processes: &processes})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,8 +135,9 @@ func TestUpdateReplacesTheRoutesWithoutRestartingTheProject(t *testing.T) {
 	if err := contract.ValidateValue("ProjectUpdateResult", updated); err != nil {
 		t.Fatalf("the answer violates the contract: %v", err)
 	}
-	if len(updated.Routes) != 2 || updated.Routes[0].Hostname != "boutique."+domain || updated.Routes[1].Hostname != "" {
-		t.Fatalf("the list is replaced, and the api route is gone: %+v", updated.Routes)
+	routes := processOf(t, updated, "shop").Routes
+	if len(routes) != 2 || routes[0].Hostname != "boutique."+domain || routes[1].Hostname != "" {
+		t.Fatalf("the list is replaced, and the api route is gone: %+v", routes)
 	}
 	if updated.URL != "https://boutique."+domain || updated.State != contract.ProjectOnline {
 		t.Fatalf("the address follows the new name and the project keeps running: %+v", updated)
@@ -138,35 +149,36 @@ func TestUpdateReplacesTheRoutesWithoutRestartingTheProject(t *testing.T) {
 		}
 	}
 
-	if got := projectOf(t, reader.Snapshot().Projects, "shop"); len(got.Routes) != 2 || got.Routes[0].Label != "web" {
+	if got := processOf(t, projectOf(t, reader.Snapshot().Projects, "shop"), "shop"); len(got.Routes) != 2 || got.Routes[0].Label != "web" {
 		t.Fatalf("the snapshot reads the new routes: %+v", got.Routes)
 	}
 }
 
-func TestUpdateRestartsTheProjectOnlyWhenItsCommandChangedAndItWasRunning(t *testing.T) {
+func TestUpdateRestartsTheProcessOnlyWhenItsCommandChangedAndItWasRunning(t *testing.T) {
 	fake, reader := published(t)
-	fake.Serves("shop", 3100)
+	fake.Serves("shop/shop", 3100)
 
-	if _, err := reader.Add(turbo(), nil); err != nil {
+	if _, err := reader.Add(turbo(), running("bun run turbo run dev")); err != nil {
 		t.Fatal(err)
 	}
 
 	cmd := "bun run dev --port 3100"
-	stopped, err := reader.Update("shop", state.UpdatePatch{Cmd: &cmd})
+	processes := running(cmd)
+	stopped, err := reader.Update("shop", state.UpdatePatch{Processes: &processes})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if stopped.State != contract.ProjectStopped || stopped.Cmd != cmd {
+	if stopped.State != contract.ProjectStopped || processOf(t, stopped, "shop").Cmd != cmd {
 		t.Fatalf("a stopped project takes its new command and stays stopped: %+v", stopped)
 	}
 
-	if _, err := reader.Up("shop"); err != nil {
+	if _, err := reader.Up("shop", ""); err != nil {
 		t.Fatal(err)
 	}
 	before := len(fake.Mutations)
 
-	again := "bun run dev --host 127.0.0.1 --port 3100"
-	restarted, err := reader.Update("shop", state.UpdatePatch{Cmd: &again})
+	processes = running("bun run dev --host 127.0.0.1 --port 3100")
+	restarted, err := reader.Update("shop", state.UpdatePatch{Processes: &processes})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +187,7 @@ func TestUpdateRestartsTheProjectOnlyWhenItsCommandChangedAndItWasRunning(t *tes
 	}
 
 	mutations := strings.Join(fake.Mutations[before:], "\n")
-	if !strings.Contains(mutations, "tmux kill-window shop") || !strings.Contains(mutations, "tmux new-window shop") {
+	if !strings.Contains(mutations, "tmux kill-window shop/shop") || !strings.Contains(mutations, "tmux new-window shop/shop") {
 		t.Fatalf("a changed command restarts the window: %v", fake.Mutations[before:])
 	}
 
@@ -191,6 +203,54 @@ func TestUpdateRestartsTheProjectOnlyWhenItsCommandChangedAndItWasRunning(t *tes
 	}
 }
 
+// A second process joins a running project without touching the first; one that leaves the list is stopped.
+func TestUpdateStartsNothingForANewProcessAndStopsAProcessThatLeaves(t *testing.T) {
+	fake, reader := published(t)
+	fake.Serves("shop/shop", 3100)
+	fake.Serves("shop/mail", 3105)
+	fake.Dirs["/home/dev/projects/shop/apps/mail"] = true
+
+	if _, err := reader.Add(turbo(), running("bun run turbo run dev")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := reader.Up("shop", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	mail := state.ProcessRequest{ID: "mail", Dir: "apps/mail", PkgMgr: "bun", Host: "127.0.0.1", Port: 3105, Cmd: "bun run dev --port 3105"}
+	both := append(running("bun run turbo run dev"), mail)
+	before := len(fake.Mutations)
+
+	updated, err := reader.Update("shop", state.UpdatePatch{Processes: &both})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.State != contract.ProjectPartial || processOf(t, updated, "mail").State != contract.ProcessStopped || processOf(t, updated, "shop").State != contract.ProcessOnline {
+		t.Fatalf("the new process is declared, not started, and the project is partial: %+v", updated)
+	}
+	for _, mutation := range fake.Mutations[before:] {
+		if strings.HasPrefix(mutation, "tmux") {
+			t.Fatalf("declaring a process touches nothing that runs: %v", fake.Mutations[before:])
+		}
+	}
+
+	if _, err := reader.Up("shop", "mail"); err != nil {
+		t.Fatal(err)
+	}
+	if got := projectOf(t, reader.Snapshot().Projects, "shop"); got.State != contract.ProjectOnline {
+		t.Fatalf("both processes up is online: %+v", got)
+	}
+
+	only := running("bun run turbo run dev")
+	updated, err = reader.Update("shop", state.UpdatePatch{Processes: &only})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, open := fake.Windows["shop/mail"]; open || len(updated.Processes) != 1 || updated.State != contract.ProjectOnline {
+		t.Fatalf("a process that leaves the list is stopped: %+v", updated)
+	}
+}
+
 func TestUpdateRefusesAnUnknownProjectAndAForeignHostname(t *testing.T) {
 	_, reader := published(t)
 
@@ -198,12 +258,12 @@ func TestUpdateRefusesAnUnknownProjectAndAForeignHostname(t *testing.T) {
 		t.Fatalf("got %v", err)
 	}
 
-	if _, err := reader.Add(turbo(), nil); err != nil {
+	if _, err := reader.Add(turbo(), running("bun run turbo run dev")); err != nil {
 		t.Fatal(err)
 	}
 
-	foreign := []registry.RouteRequest{{Label: "web", Port: 3100, Hostname: "shop.elsewhere.org"}}
-	_, err := reader.Update("shop", state.UpdatePatch{Routes: &foreign})
+	foreign := running("bun run turbo run dev", registry.RouteRequest{Label: "web", Port: 3100, Hostname: "shop.elsewhere.org"})
+	_, err := reader.Update("shop", state.UpdatePatch{Processes: &foreign})
 	if err == nil {
 		t.Fatal("a hostname outside the server's domain must be refused")
 	}

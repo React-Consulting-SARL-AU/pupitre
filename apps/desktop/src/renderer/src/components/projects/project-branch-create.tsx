@@ -2,7 +2,7 @@ import type { ProjectBranchesResult } from "@pupitre/shared/agent-protocol/proje
 import { GitBranchSchema } from "@pupitre/shared/agent-protocol/state";
 import { Button } from "@renderer/components/ui/button";
 import { Callout } from "@renderer/components/ui/callout";
-import { fieldAria, fieldControlClass } from "@renderer/components/ui/field";
+import { controlClass, fieldAria } from "@renderer/components/ui/field";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { GitBranchPlus } from "lucide-react";
 import { useState } from "react";
@@ -90,7 +90,7 @@ export function ProjectBranchCreate({
         <input
           {...fieldAria({ name: inputId, help: true, problem: refused })}
           autoFocus
-          className={`${fieldControlClass} ${refused ? "border-danger focus:border-danger" : ""}`}
+          className={controlClass("data", refused)}
           disabled={switching}
           onBlur={() => setTouched(true)}
           onChange={(event) => setName(event.target.value)}

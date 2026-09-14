@@ -47,7 +47,7 @@ export function OnboardingInspectionScreen({
   return (
     <Screen
       column
-      eyebrow={t("onboarding.inspection.eyebrow")}
+      eyebrow={serverName ?? t("onboarding.thisServer")}
       footer={
         <ActionBar
           name="inspection"
@@ -64,7 +64,7 @@ export function OnboardingInspectionScreen({
       }
       plain
       step="inspection"
-      title={serverName ?? t("onboarding.thisServer")}
+      title={t("onboarding.inspection.title")}
     >
       {failed ? (
         <Callout

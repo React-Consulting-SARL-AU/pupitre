@@ -1,4 +1,6 @@
 import type {
+  LoginState,
+  ProcessState,
   ProjectState,
   ServiceState,
 } from "@pupitre/shared/agent-protocol/state";
@@ -25,7 +27,7 @@ export interface StateLook {
 
 const NEUTRAL_FRAME = "border-line-strong";
 
-export const PROJECT_LOOK: Record<ProjectState, StateLook> = {
+export const PROCESS_LOOK: Record<ProcessState, StateLook> = {
   down: {
     frame: "border-danger/40",
     label: "state.project.down",
@@ -70,6 +72,17 @@ export const PROJECT_LOOK: Record<ProjectState, StateLook> = {
   },
 };
 
+/** A project's states are its processes' and one more: some of them run, the others do not. */
+export const PROJECT_LOOK: Record<ProjectState, StateLook> = {
+  ...PROCESS_LOOK,
+  partial: {
+    frame: "border-warn/40",
+    label: "state.project.partial",
+    shape: "ringed",
+    tone: "warn",
+  },
+};
+
 /**
  * A module put on the machine and left unconfigured.
  *
@@ -110,8 +123,42 @@ export const SERVICE_LOOK: Record<ServiceState, StateLook> = {
   },
 };
 
-const RUNNING: readonly ProjectState[] = ["online", "service", "external"];
+/**
+ * What a CLI says of its own account.
+ *
+ * Not signed in is the ringed dot of something waiting for the reader, never
+ * an alarm: the CLI works, it just has nobody to work as. No answer is the
+ * hollow dot of a state nobody could read.
+ */
+export const LOGIN_LOOK: Record<LoginState, StateLook> = {
+  signed_in: {
+    frame: "border-ok/40",
+    label: "state.login.signed_in",
+    shape: "filled",
+    tone: "ok",
+  },
+  signed_out: {
+    frame: "border-warn/40",
+    label: "state.login.signed_out",
+    shape: "ringed",
+    tone: "warn",
+  },
+  unknown: {
+    frame: NEUTRAL_FRAME,
+    label: "state.login.unknown",
+    shape: "empty",
+    tone: "neutral",
+  },
+};
 
+const RUNNING: readonly ProjectState[] = [
+  "online",
+  "service",
+  "external",
+  "partial",
+];
+
+/** Whether something of it runs: a partial project has processes to stop, and a restart to offer. */
 export function isRunning(state: ProjectState): boolean {
   return RUNNING.includes(state);
 }

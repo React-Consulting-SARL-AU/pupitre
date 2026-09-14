@@ -22,28 +22,28 @@ func (r *Reader) List() []contract.Project {
 }
 
 // Add declares a project, resolving each name on the web once, from the domain this machine publishes under.
-func (r *Reader) Add(project registry.Project, routes []registry.RouteRequest) (contract.Project, error) {
+func (r *Reader) Add(project registry.Project, processes []ProcessRequest) (contract.Project, error) {
 	ctx := r.ctx()
 	reg := r.registry()
 
-	if project.Host == "" {
-		project.Host = "127.0.0.1"
-	}
-
-	resolved, err := registry.ResolveRoutes(reg.Domain, routes)
+	resolved, err := resolveProcesses(reg.Domain, processes)
 	if err != nil {
 		return contract.Project{}, err
 	}
-	project.Routes = resolved
+	project.Processes = resolved
 
 	if err := reg.Add(ctx, project); err != nil {
 		return contract.Project{}, err
 	}
 
+	if err := syncLocalNames(ctx, reg); err != nil {
+		return contract.Project{}, err
+	}
+
 	owner := r.options.Tmux.User
-	paths := r.options.Paths.Resolved()
-	for _, dir := range []string{project.RootPath(paths.Projects), project.Path(paths.Projects)} {
-		if err := file.MkdirOwned(ctx, dir, owner, owner, 0o755); err != nil {
+	path := project.Path(r.options.Paths.Resolved().Projects)
+	for _, process := range project.Processes {
+		if err := file.MkdirOwned(ctx, process.Path(path), owner, owner, 0o755); err != nil {
 			return contract.Project{}, err
 		}
 	}
@@ -51,15 +51,49 @@ func (r *Reader) Add(project registry.Project, routes []registry.RouteRequest) (
 	return r.one(project.Name)
 }
 
-// An UpdatePatch is what project.update carries: a nil field is left as it was, and a routes list replaces the whole of the last one.
-type UpdatePatch struct {
-	Cmd     *string
-	Install *string
-	Branch  *string
-	Routes  *[]registry.RouteRequest
+// A ProcessRequest is a process as project.add and project.update receive it, its routes before their names on the web are resolved.
+type ProcessRequest struct {
+	ID      string
+	Dir     string
+	PkgMgr  string
+	Host    string
+	Port    int
+	Cmd     string
+	Install string
+	Routes  []registry.RouteRequest
 }
 
-// Update rewrites the row, and restarts the project only when its command changed and it was running: a route or a branch changes nothing of what runs.
+func resolveProcesses(domain string, requests []ProcessRequest) ([]registry.Process, error) {
+	processes := make([]registry.Process, 0, len(requests))
+
+	for _, request := range requests {
+		routes, err := registry.ResolveRoutes(domain, request.Routes)
+		if err != nil {
+			return nil, err
+		}
+
+		processes = append(processes, registry.Process{
+			ID:      request.ID,
+			Dir:     request.Dir,
+			PkgMgr:  request.PkgMgr,
+			Host:    request.Host,
+			Port:    request.Port,
+			Routes:  routes,
+			Cmd:     request.Cmd,
+			Install: request.Install,
+		})
+	}
+
+	return processes, nil
+}
+
+// An UpdatePatch is what project.update carries: a nil field is left as it was, and a list of processes replaces the whole of the last one.
+type UpdatePatch struct {
+	Branch    *string
+	Processes *[]ProcessRequest
+}
+
+// Update rewrites the row, then touches only what runs and changed: a process whose command changed restarts if it was running, a process that left the list stops. A route or a branch changes nothing of what runs.
 func (r *Reader) Update(name string, patch UpdatePatch) (contract.Project, error) {
 	ctx := r.ctx()
 	file := r.registry()
@@ -69,13 +103,13 @@ func (r *Reader) Update(name string, patch UpdatePatch) (contract.Project, error
 		return contract.Project{}, registry.NotFound(name)
 	}
 
-	change := registry.Patch{Cmd: patch.Cmd, Install: patch.Install, Branch: patch.Branch}
-	if patch.Routes != nil {
-		resolved, err := registry.ResolveRoutes(file.Domain, *patch.Routes)
+	change := registry.Patch{Branch: patch.Branch}
+	if patch.Processes != nil {
+		resolved, err := resolveProcesses(file.Domain, *patch.Processes)
 		if err != nil {
 			return contract.Project{}, err
 		}
-		change.Routes = &resolved
+		change.Processes = &resolved
 	}
 
 	updated, err := file.Update(ctx, name, change)
@@ -83,13 +117,28 @@ func (r *Reader) Update(name string, patch UpdatePatch) (contract.Project, error
 		return contract.Project{}, err
 	}
 
-	if updated.Cmd != current.Cmd && tmux.Running(ctx, r.options.Tmux, name) {
-		if err := r.stop(updated); err != nil {
+	if err := syncLocalNames(ctx, r.registry()); err != nil {
+		return contract.Project{}, err
+	}
+
+	for _, was := range current.Processes {
+		now, kept := updated.Process(was.ID)
+		if kept && now.Cmd == was.Cmd && now.Dir == was.Dir {
+			continue
+		}
+
+		if !tmux.Running(ctx, r.options.Tmux, current.Window(was.ID)) {
+			continue
+		}
+
+		if err := r.stop(current, was); err != nil {
 			return contract.Project{}, err
 		}
 
-		if err := r.start(updated); err != nil {
-			return contract.Project{}, err
+		if kept {
+			if err := r.start(updated, now); err != nil {
+				return contract.Project{}, err
+			}
 		}
 	}
 
@@ -100,9 +149,11 @@ func (r *Reader) Remove(name string) (contract.Project, error) {
 	ctx := r.ctx()
 	file := r.registry()
 
-	if tmux.Running(ctx, r.options.Tmux, name) {
-		if err := tmux.Stop(ctx, r.options.Tmux, name); err != nil {
-			return contract.Project{}, err
+	if project, known := file.Get(name); known {
+		for _, process := range project.Processes {
+			if err := r.stop(project, process); err != nil {
+				return contract.Project{}, err
+			}
 		}
 	}
 
@@ -111,57 +162,63 @@ func (r *Reader) Remove(name string) (contract.Project, error) {
 		return contract.Project{}, err
 	}
 
+	if err := syncLocalNames(ctx, r.registry()); err != nil {
+		return contract.Project{}, err
+	}
+
 	return removed.Contract(r.options.Paths.Resolved().Projects), nil
 }
 
-func (r *Reader) Up(target string) (contract.ProjectActionResult, error) {
-	return r.act(target, r.start)
+func (r *Reader) Up(target, process string) (contract.ProjectActionResult, error) {
+	return r.act(target, process, r.start)
 }
 
-func (r *Reader) Down(target string) (contract.ProjectActionResult, error) {
-	return r.act(target, r.stop)
+func (r *Reader) Down(target, process string) (contract.ProjectActionResult, error) {
+	return r.act(target, process, r.stop)
 }
 
-func (r *Reader) Restart(target string) (contract.ProjectActionResult, error) {
-	return r.act(target, func(project registry.Project) error {
-		if err := r.stop(project); err != nil {
+func (r *Reader) Restart(target, process string) (contract.ProjectActionResult, error) {
+	return r.act(target, process, func(project registry.Project, process registry.Process) error {
+		if err := r.stop(project, process); err != nil {
 			return err
 		}
 
-		return r.start(project)
+		return r.start(project, process)
 	})
 }
 
-func (r *Reader) start(project registry.Project) error {
-	return r.startWith(project, project.Cmd)
+func (r *Reader) start(project registry.Project, process registry.Process) error {
+	return r.startWith(project, process, process.Cmd)
 }
 
-func (r *Reader) startWith(project registry.Project, command string) error {
+func (r *Reader) startWith(project registry.Project, process registry.Process, command string) error {
 	ctx := r.ctx()
-	if tmux.Running(ctx, r.options.Tmux, project.Name) {
+	window := project.Window(process.ID)
+	if tmux.Running(ctx, r.options.Tmux, window) {
 		return nil
 	}
 
-	dir := project.Path(r.options.Paths.Resolved().Projects)
+	dir := process.Path(project.Path(r.options.Paths.Resolved().Projects))
 	if !file.Exists(ctx, dir) {
-		return protocol.NewError(contract.ErrorProjectNotFound, i18n.T("state.project.dir.missing", project.Name, dir)).
+		return protocol.NewError(contract.ErrorProjectNotFound, i18n.T("state.project.dir.missing", window, dir)).
 			WithFix(i18n.T("state.project.sync.fix", project.Name))
 	}
 
-	return tmux.Start(ctx, r.options.Tmux, tmux.Job{Project: project.Name, Dir: dir, Cmd: command})
+	return tmux.Start(ctx, r.options.Tmux, tmux.Job{Window: window, Dir: dir, Cmd: command})
 }
 
-func (r *Reader) stop(project registry.Project) error {
+func (r *Reader) stop(project registry.Project, process registry.Process) error {
 	ctx := r.ctx()
-	if !tmux.Running(ctx, r.options.Tmux, project.Name) {
+	window := project.Window(process.ID)
+	if !tmux.Running(ctx, r.options.Tmux, window) {
 		return nil
 	}
 
-	return tmux.Stop(ctx, r.options.Tmux, project.Name)
+	return tmux.Stop(ctx, r.options.Tmux, window)
 }
 
-// A "service" row is systemd's business: it shows in the state, and "all" never starts or stops it.
-func (r *Reader) act(target string, apply func(registry.Project) error) (contract.ProjectActionResult, error) {
+// A "service" process is systemd's business: it shows in the state, and neither a project nor "all" starts or stops it.
+func (r *Reader) act(target, id string, apply func(registry.Project, registry.Process) error) (contract.ProjectActionResult, error) {
 	file := r.registry()
 
 	if target != All {
@@ -170,8 +227,24 @@ func (r *Reader) act(target string, apply func(registry.Project) error) (contrac
 			return contract.ProjectActionResult{}, registry.NotFound(target)
 		}
 
-		if err := apply(project); err != nil {
-			return contract.ProjectActionResult{}, err
+		processes := project.Processes
+		if id != "" {
+			process, declared := project.Process(id)
+			if !declared {
+				return contract.ProjectActionResult{}, processNotFound(target, id)
+			}
+
+			processes = []registry.Process{process}
+		}
+
+		for _, process := range processes {
+			if process.IsService() {
+				continue
+			}
+
+			if err := apply(project, process); err != nil {
+				return contract.ProjectActionResult{}, err
+			}
 		}
 
 		current, err := r.one(target)
@@ -179,28 +252,35 @@ func (r *Reader) act(target string, apply func(registry.Project) error) (contrac
 			return contract.ProjectActionResult{}, err
 		}
 
-		return contract.ProjectActionResult{State: current.State, Port: current.Port}, nil
+		return contract.ProjectActionResult{State: current.State}, nil
 	}
 
 	for _, project := range file.Projects {
-		if project.IsService() {
-			continue
-		}
+		for _, process := range project.Processes {
+			if process.IsService() {
+				continue
+			}
 
-		if err := apply(project); err != nil {
-			return contract.ProjectActionResult{}, err
+			if err := apply(project, process); err != nil {
+				return contract.ProjectActionResult{}, err
+			}
 		}
 	}
 
 	return r.summary(), nil
 }
 
+func processNotFound(project, id string) error {
+	return protocol.NewError(contract.ErrorProjectNotFound, i18n.T("state.process.unknown", id, project)).
+		WithFix(i18n.T("state.process.unknown.fix"))
+}
+
 func (r *Reader) summary() contract.ProjectActionResult {
 	result := contract.ProjectActionResult{State: contract.ProjectStopped, Projects: []contract.ProjectStateEntry{}}
 
 	for _, project := range r.projects() {
-		result.Projects = append(result.Projects, contract.ProjectStateEntry{Name: project.Name, State: project.State, Port: project.Port})
-		if project.State == contract.ProjectOnline || project.State == contract.ProjectStarting {
+		result.Projects = append(result.Projects, contract.ProjectStateEntry{Name: project.Name, State: project.State})
+		if project.State == contract.ProjectOnline || project.State == contract.ProjectStarting || project.State == contract.ProjectPartial {
 			result.State = contract.ProjectOnline
 		}
 	}
@@ -218,17 +298,33 @@ func (r *Reader) one(name string) (contract.Project, error) {
 	return contract.Project{}, registry.NotFound(name)
 }
 
-func (r *Reader) Logs(name string, lines int) ([]string, error) {
-	if _, known := r.registry().Get(name); !known {
-		return nil, registry.NotFound(name)
+// The window of one process of a declared project, or the refusal that says which of the two is unknown.
+func (r *Reader) window(name, id string) (registry.Project, registry.Process, error) {
+	project, known := r.registry().Get(name)
+	if !known {
+		return registry.Project{}, registry.Process{}, registry.NotFound(name)
 	}
 
-	return tmux.Logs(r.ctx(), r.options.Tmux, name, lines)
+	process, declared := project.Process(id)
+	if !declared {
+		return registry.Project{}, registry.Process{}, processNotFound(name, id)
+	}
+
+	return project, process, nil
+}
+
+func (r *Reader) Logs(name, id string, lines int) ([]string, error) {
+	project, _, err := r.window(name, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return tmux.Logs(r.ctx(), r.options.Tmux, project.Window(id), lines)
 }
 
 // With follow every line travels as an event, the tail included: the app must never receive the newest lines before the oldest.
-func (r *Reader) Follow(name string, lines int, emit func(string)) error {
-	tail, err := r.Logs(name, lines)
+func (r *Reader) Follow(name, id string, lines int, emit func(string)) error {
+	tail, err := r.Logs(name, id, lines)
 	if err != nil {
 		return err
 	}
@@ -238,11 +334,12 @@ func (r *Reader) Follow(name string, lines int, emit func(string)) error {
 	}
 
 	ctx := r.ctx()
-	path := r.options.Tmux.LogPath(name)
+	window := registry.Window(name, id)
+	path := r.options.Tmux.LogPath(window)
 	seen := r.size(path)
 	deadline := r.options.Now().Add(r.options.Follow.Limit)
 
-	for tmux.Running(ctx, r.options.Tmux, name) && r.options.Now().Before(deadline) {
+	for tmux.Running(ctx, r.options.Tmux, window) && r.options.Now().Before(deadline) {
 		r.options.Follow.Sleep(r.options.Follow.Interval)
 
 		raw, readErr := file.Read(ctx, path)
@@ -268,34 +365,51 @@ func (r *Reader) size(path string) int64 {
 	return int64(len(raw))
 }
 
-// The command is printed before it runs: how a project's dependencies were installed should never be a guess.
-func (r *Reader) Install(name string) (string, error) {
+// Install runs the install line of every process of the project, or of the one named; each line is printed before it runs, since how a project's dependencies were installed should never be a guess.
+func (r *Reader) Install(name, id string) ([]contract.ProcessInstall, error) {
 	project, known := r.registry().Get(name)
 	if !known {
-		return "", registry.NotFound(name)
+		return nil, registry.NotFound(name)
 	}
 
-	command := project.InstallCommand()
-	if command == "" {
-		return "", nil
+	processes := project.Processes
+	if id != "" {
+		process, declared := project.Process(id)
+		if !declared {
+			return nil, processNotFound(name, id)
+		}
+
+		processes = []registry.Process{process}
 	}
 
 	ctx := r.ctx()
-	dir := project.Path(r.options.Paths.Resolved().Projects)
-	if !file.Exists(ctx, dir) {
-		return "", protocol.NewError(contract.ErrorProjectNotFound, i18n.T("state.project.dir.missing", name, dir)).
-			WithFix(i18n.T("state.project.sync.fix", name))
+	path := project.Path(r.options.Paths.Resolved().Projects)
+	installed := []contract.ProcessInstall{}
+
+	for _, process := range processes {
+		command := process.InstallCommand()
+		if command == "" {
+			continue
+		}
+
+		dir := process.Path(path)
+		if !file.Exists(ctx, dir) {
+			return installed, protocol.NewError(contract.ErrorProjectNotFound, i18n.T("state.project.dir.missing", project.Window(process.ID), dir)).
+				WithFix(i18n.T("state.project.sync.fix", name))
+		}
+
+		ctx.Logf("%s : %s", project.Window(process.ID), command)
+
+		// The declared line needs a shell to honour its "&&" and its variables; it travels as one argv word, and runs as dev, never as root.
+		if _, err := user.RunIn(ctx, r.options.Tmux.User, dir, "zsh", "-lc", command); err != nil {
+			return installed, protocol.NewError(contract.ErrorInternal, i18n.T("state.project.install.failed", project.Window(process.ID), command)).
+				WithFix(i18n.T("state.project.install.failed.fix"))
+		}
+
+		installed = append(installed, contract.ProcessInstall{Process: process.ID, Command: command})
 	}
 
-	ctx.Logf("%s : %s", name, command)
-
-	// The declared line needs a shell to honour its "&&" and its variables; it travels as one argv word, and runs as dev, never as root.
-	if _, err := user.RunIn(ctx, r.options.Tmux.User, dir, "zsh", "-lc", command); err != nil {
-		return command, protocol.NewError(contract.ErrorInternal, i18n.T("state.project.install.failed", name, command)).
-			WithFix(i18n.T("state.project.install.failed.fix"))
-	}
-
-	return command, nil
+	return installed, nil
 }
 
 func (r *Reader) URL(name string) (string, error) {
@@ -307,13 +421,26 @@ func (r *Reader) URL(name string) (string, error) {
 	return url(project), nil
 }
 
-// A project only has a public address if the route of its main port carries a name on the web, stored when it was declared; printing "https://…" otherwise would be an address that does not answer.
-func url(project registry.Project) string {
-	if route, published := project.Primary(); published {
+// A process only has a public address if the route of its main port carries a name on the web, stored when it was declared; printing "https://…" otherwise would be an address that does not answer.
+func processURL(process registry.Process) string {
+	if route, published := process.Primary(); published {
 		return "https://" + route.Hostname
 	}
 
-	return "http://" + project.Host + ":" + strconv.Itoa(project.Port)
+	return "http://" + process.Host + ":" + strconv.Itoa(process.Port)
+}
+
+// A project's address is that of its first published process; a project nobody publishes has the local address of its first.
+func url(project registry.Project) string {
+	if process, _, published := project.Primary(); published {
+		return processURL(process)
+	}
+
+	if len(project.Processes) == 0 {
+		return ""
+	}
+
+	return processURL(project.Processes[0])
 }
 
 func head(ctx sys.Context, root string) string {
@@ -345,28 +472,29 @@ const debugFlag = "-PdebugPort="
 // package manager — a gradle row is not necessarily a JVM server, and two of
 // them cannot share one port. project.restart puts it back on a normal start;
 // there is no second parameter for that.
-func (r *Reader) Debug(name string) (contract.ProjectDebug, error) {
-	project, known := r.registry().Get(name)
-	if !known {
-		return contract.ProjectDebug{}, registry.NotFound(name)
-	}
-
-	if project.IsService() {
-		return contract.ProjectDebug{}, protocol.NewError(contract.ErrorBadRequest, i18n.T("state.debug.service", name)).
-			WithFix(i18n.T("state.debug.service.fix"))
-	}
-
-	port, declared := r.debugPort(name)
-	if !declared {
-		return contract.ProjectDebug{}, protocol.NewError(contract.ErrorBadRequest, i18n.T("state.debug.undeclared", name)).
-			WithFix(i18n.T("state.debug.undeclared.fix", env.DebugPortsKey, name))
-	}
-
-	if err := r.stop(project); err != nil {
+func (r *Reader) Debug(name, id string) (contract.ProjectDebug, error) {
+	project, process, err := r.window(name, id)
+	if err != nil {
 		return contract.ProjectDebug{}, err
 	}
 
-	if err := r.startWith(project, project.Cmd+" "+debugFlag+strconv.Itoa(port)); err != nil {
+	window := project.Window(id)
+	if process.IsService() {
+		return contract.ProjectDebug{}, protocol.NewError(contract.ErrorBadRequest, i18n.T("state.debug.service", window)).
+			WithFix(i18n.T("state.debug.service.fix"))
+	}
+
+	port, declared := r.debugPort(window)
+	if !declared {
+		return contract.ProjectDebug{}, protocol.NewError(contract.ErrorBadRequest, i18n.T("state.debug.undeclared", window)).
+			WithFix(i18n.T("state.debug.undeclared.fix", env.DebugPortsKey, window))
+	}
+
+	if err := r.stop(project, process); err != nil {
+		return contract.ProjectDebug{}, err
+	}
+
+	if err := r.startWith(project, process, process.Cmd+" "+debugFlag+strconv.Itoa(port)); err != nil {
 		return contract.ProjectDebug{}, err
 	}
 
@@ -375,11 +503,17 @@ func (r *Reader) Debug(name string) (contract.ProjectDebug, error) {
 		return contract.ProjectDebug{}, err
 	}
 
-	return contract.ProjectDebug{State: current.State, Port: current.Port, DebugPort: port}, nil
+	for _, running := range current.Processes {
+		if running.ID == id {
+			return contract.ProjectDebug{State: running.State, Port: running.Port, DebugPort: port}, nil
+		}
+	}
+
+	return contract.ProjectDebug{}, processNotFound(name, id)
 }
 
-// PUPITRE_DEBUG_PORTS, in the format the stack has always written: "project:port project:port".
-func (r *Reader) debugPort(name string) (int, bool) {
+// PUPITRE_DEBUG_PORTS, one entry per window: "project/process:port project/process:port".
+func (r *Reader) debugPort(window string) (int, bool) {
 	value, _, err := env.Get(r.ctx(), env.DebugPortsKey)
 	if err != nil {
 		return 0, false
@@ -390,7 +524,7 @@ func (r *Reader) debugPort(name string) (int, bool) {
 	// as written, quotes included.
 	for _, entry := range strings.Fields(strings.Trim(value, `"'`)) {
 		declared, raw, split := strings.Cut(entry, ":")
-		if !split || declared != name {
+		if !split || declared != window {
 			continue
 		}
 

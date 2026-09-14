@@ -4,6 +4,7 @@ import type { Server } from "@shared/servers";
 import { grantOpens, grantWithdrawn } from "@shared/servers";
 import { ChevronsUpDown, Settings } from "lucide-react";
 import { StatusDot, type StatusShape, type StatusTone } from "../ui/status-dot";
+import { Tooltip } from "../ui/tooltip";
 
 /**
  * The server card at the head of the sidebar, and the menu that switches it.
@@ -56,37 +57,38 @@ export function ServerSwitch({
 
   return (
     <Menu.Root modal={false}>
-      <Menu.Trigger
-        aria-label={label}
-        className="clickable mx-2 mb-1 flex items-center gap-2.5 rounded-md border border-line bg-base px-2.5 py-2 text-left transition-soft hover:border-line-strong hover:bg-raised data-[popup-open]:border-line-strong data-[popup-open]:bg-raised"
-        data-server-switch={server?.id ?? ""}
-        title={label}
-      >
-        <span className="flex min-w-0 flex-1 flex-col leading-tight">
-          <span className="truncate font-medium text-[13px]">
-            {server?.name ?? t("shell.sidebar.noServer")}
+      <Tooltip label={label}>
+        <Menu.Trigger
+          aria-label={label}
+          className="clickable mx-2 mb-1 flex items-center gap-2.5 rounded-md border border-line bg-base px-2.5 py-2 text-left transition-soft hover:border-line-strong hover:bg-raised data-[popup-open]:border-line-strong data-[popup-open]:bg-raised"
+          data-server-switch={server?.id ?? ""}
+        >
+          <span className="flex min-w-0 flex-1 flex-col leading-tight">
+            <span className="truncate font-medium text-[13px]">
+              {server?.name ?? t("shell.sidebar.noServer")}
+            </span>
+            <span className="flex min-w-0 items-baseline gap-1.5 text-[11px] text-ink-3">
+              <span className="shrink-0 font-data">{server?.host ?? "—"}</span>
+              {server?.grant?.organization ? (
+                <>
+                  <span aria-hidden="true" className="shrink-0 text-ink-4">
+                    ·
+                  </span>
+                  <span className="truncate">
+                    {server.grant.organization.name}
+                  </span>
+                </>
+              ) : null}
+            </span>
           </span>
-          <span className="flex min-w-0 items-baseline gap-1.5 text-[11px] text-ink-3">
-            <span className="shrink-0 font-data">{server?.host ?? "—"}</span>
-            {server?.grant?.organization ? (
-              <>
-                <span aria-hidden="true" className="shrink-0 text-ink-4">
-                  ·
-                </span>
-                <span className="truncate">
-                  {server.grant.organization.name}
-                </span>
-              </>
-            ) : null}
-          </span>
-        </span>
-        <ChevronsUpDown
-          aria-hidden="true"
-          className="shrink-0 text-ink-4"
-          size={13}
-          strokeWidth={1.5}
-        />
-      </Menu.Trigger>
+          <ChevronsUpDown
+            aria-hidden="true"
+            className="shrink-0 text-ink-4"
+            size={13}
+            strokeWidth={1.5}
+          />
+        </Menu.Trigger>
+      </Tooltip>
 
       <Menu.Portal>
         <Menu.Positioner align="start" side="bottom" sideOffset={4}>
@@ -95,7 +97,7 @@ export function ServerSwitch({
             className="elevation-overlay z-50 min-w-52 rounded-md border border-line bg-surface p-1 outline-none"
           >
             <Menu.Group>
-              <Menu.GroupLabel className="px-2.5 pt-1.5 pb-1 font-medium text-[11.5px] text-ink-3 uppercase tracking-[0.08em]">
+              <Menu.GroupLabel className="label px-2.5 pt-1.5 pb-1 text-ink-3">
                 {t("shell.switch.menu")}
               </Menu.GroupLabel>
               {servers.map((one) => {

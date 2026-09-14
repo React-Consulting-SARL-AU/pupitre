@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { PortRow, RowProblem } from "../../lib/project-ports";
+import type { ProcessDraft, ProcessProblem } from "../../lib/project-processes";
 import type {
   DetectionState,
   Draft,
@@ -42,15 +43,26 @@ const ROWS: PortRow[] = [
   },
 ];
 
+const PROCESS: ProcessDraft = {
+  cmd: "bun run dev --port 3000",
+  dir: "",
+  host: "127.0.0.1",
+  id: "app",
+  install: "",
+  key: "process-1",
+  ownCmd: false,
+  pkgmgr: "bun",
+  proposed: {},
+  rows: ROWS,
+};
+
 const DRAFT: Draft = {
   branch: "main",
-  cmd: "bun run dev --port 3000",
   dir: "vite-starter",
   kind: "git",
   name: "vite-starter",
-  pkgmgr: "bun",
   privateRepo: false,
-  rows: ROWS,
+  processes: [PROCESS],
   source: "https://github.com/moi/vite-starter.git",
 };
 
@@ -69,10 +81,10 @@ const READY: KnownState = {
 };
 
 const EDIT = {
+  addProcess: () => undefined,
   addRow: () => undefined,
   branch: () => undefined,
   browse: () => undefined,
-  cmd: () => undefined,
   createFolder: () => Promise.resolve(),
   generateRowWeb: () => undefined,
   kind: () => undefined,
@@ -80,7 +92,12 @@ const EDIT = {
   name: () => undefined,
   pickFolder: () => undefined,
   pickRepo: () => undefined,
-  pkgmgr: () => undefined,
+  processCmd: () => undefined,
+  processDir: () => undefined,
+  processId: () => undefined,
+  processInstall: () => undefined,
+  processPkgmgr: () => undefined,
+  removeProcess: () => undefined,
   removeRow: () => undefined,
   rowLabel: () => undefined,
   rowPort: () => undefined,
@@ -90,7 +107,7 @@ const EDIT = {
 };
 
 const PHASES: Phase[] = [
-  { detail: "vite-starter · port 3001", id: "add", status: "ok" },
+  { detail: "vite-starter · app:3001", id: "add", status: "ok" },
   {
     detail: "le dossier est déjà sur le serveur",
     id: "sources",
@@ -120,14 +137,20 @@ function panel(
     detection?: DetectionState;
     logs?: string[];
     rows?: PortRow[];
+    processes?: ProcessDraft[];
+    processProblems?: (ProcessProblem | null)[];
     rowProblems?: (RowProblem | null)[];
   } = {}
 ): string {
+  const processes = extra.processes ?? [
+    { ...PROCESS, rows: extra.rows ?? ROWS },
+  ];
+
   return renderToStaticMarkup(
     <ProjectAddPanel
       detected={false}
       detection={extra.detection ?? { status: "idle" }}
-      draft={{ ...DRAFT, rows: extra.rows ?? ROWS }}
+      draft={{ ...DRAFT, processes }}
       edit={EDIT}
       exposure={extra.exposure ?? null}
       folders={NO_FOLDERS}
@@ -143,11 +166,15 @@ function panel(
       onReload={() => undefined}
       onRetry={() => undefined}
       phases={PHASES}
+      processProblems={extra.processProblems ?? processes.map(() => null)}
       ready
       repos={NO_REPOS}
-      rowProblems={extra.rowProblems ?? (extra.rows ?? ROWS).map(() => null)}
+      rowProblems={processes.map((process, index) =>
+        index === 0 && extra.rowProblems
+          ? extra.rowProblems
+          : process.rows.map(() => null)
+      )}
       run={run}
-      serverName="staging"
     />
   );
 }
@@ -173,8 +200,8 @@ describe("le formulaire d'un nouveau projet", () => {
 
     expect(text(published)).toContain("Sur le web");
     expect(published).toContain('aria-label="Publier"');
-    expect(published).toContain('id="project.ports.0.web"');
-    expect(published).not.toContain('id="project.ports.1.web"');
+    expect(published).toContain('id="project.processes.0.ports.0.web"');
+    expect(published).not.toContain('id="project.processes.0.ports.1.web"');
     expect(text(published)).toContain("Non publié");
     expect(text(published)).toContain("Ajouter un port");
     expect(published).toContain('aria-label="Retirer le port api"');
@@ -187,9 +214,9 @@ describe("le formulaire d'un nouveau projet", () => {
       { exposure: TUNNEL, rowProblems: ["web", null] }
     );
 
-    expect(refused).toContain('id="project.ports.0.web-problem"');
+    expect(refused).toContain('id="project.processes.0.ports.0.web-problem"');
     expect(refused).toContain(
-      'aria-describedby="project.ports.0.web-problem" aria-invalid="true"'
+      'aria-describedby="project.processes.0.ports.0.web-problem" aria-invalid="true"'
     );
     expect(text(refused)).toContain("les points séparent les niveaux");
   });
@@ -223,15 +250,75 @@ describe("le formulaire d'un nouveau projet", () => {
     expect(stored).toContain('value="shop.example.org"');
   });
 
+  it("tient un processus par carte, chacun avec son dossier, sa commande et ses ports, et ne retire que s'il en reste un", () => {
+    const one = panel({ status: "idle" });
+    const two = panel(
+      { status: "idle" },
+      {
+        exposure: TUNNEL,
+        processes: [
+          { ...PROCESS, id: "server", pkgmgr: "gradle" },
+          {
+            ...PROCESS,
+            dir: "client",
+            id: "client",
+            key: "process-2",
+            pkgmgr: "pnpm",
+            rows: [{ ...(ROWS[1] as PortRow), port: 3001 }],
+          },
+        ],
+        processProblems: [null, "idTaken"],
+      }
+    );
+
+    expect(text(one)).toContain("Processus");
+    expect(one).toContain('data-processes="1"');
+    expect(one).not.toContain('aria-label="Retirer le processus app"');
+    expect(text(one)).toContain("Ajouter un processus");
+
+    expect(two).toContain('data-processes="2"');
+    expect(two).toContain('id="project.processes.0.id"');
+    expect(two).toContain('id="project.processes.1.dir"');
+    expect(two).toContain('value="client"');
+    expect(two).toContain('id="project.processes.1.ports.0.port"');
+    expect(two).toContain('aria-label="Retirer le processus server"');
+    expect(two).toContain('aria-label="Retirer le processus client"');
+    expect(two).toContain('id="project.processes.1.id-problem"');
+    expect(text(two)).toContain(
+      "Un autre processus de ce projet porte cet identifiant."
+    );
+  });
+
   it("dit sous la source ce que l'agent y a lu, ou pourquoi il n'a pas pu", () => {
     const read = panel(
       { status: "idle" },
       {
         detection: {
           result: {
-            cmd: "pnpm dev --port 5173",
-            pkgmgr: "pnpm",
-            port_hint: 5173,
+            processes: [
+              {
+                cmd: "pnpm dev --port 5173",
+                dir: ".",
+                id: "app",
+                pkgmgr: "pnpm",
+                port_hint: 5173,
+              },
+            ],
+          },
+          source: DRAFT.source,
+          status: "read",
+        },
+      }
+    );
+    const several = panel(
+      { status: "idle" },
+      {
+        detection: {
+          result: {
+            processes: [
+              { dir: ".", id: "server", pkgmgr: "gradle" },
+              { dir: "client", id: "client", pkgmgr: "pnpm" },
+            ],
           },
           source: DRAFT.source,
           status: "read",
@@ -241,6 +328,16 @@ describe("le formulaire d'un nouveau projet", () => {
     const reading = panel(
       { status: "idle" },
       { detection: { source: DRAFT.source, status: "reading" } }
+    );
+    const readingBranch = panel(
+      { status: "idle" },
+      {
+        detection: {
+          branch: "release/2.0",
+          source: DRAFT.source,
+          status: "reading",
+        },
+      }
     );
     const failed = panel(
       { status: "idle" },
@@ -254,8 +351,16 @@ describe("le formulaire d'un nouveau projet", () => {
     );
 
     expect(text(read)).toContain("Lu dans la source : pnpm, port 5173.");
-    expect(text(reading)).toContain("L'agent lit la source…");
-    expect(reading).toContain('aria-busy="true"');
+    expect(text(several)).toContain("Lu dans la source : server, client.");
+    expect(text(reading)).toContain(
+      "L'agent clone le dépôt et lit ce qu'il demande…"
+    );
+    expect(reading).toContain('role="status"');
+    expect(reading).toContain('data-live="duration"');
+    expect(reading).toMatch(/<input aria-busy="true"[^>]*id="project\.branch"/);
+    expect(text(readingBranch)).toContain(
+      "L'agent clone la branche release/2.0 et lit ce qu'elle demande…"
+    );
     expect(text(failed)).toContain("le dépôt ne répond pas");
     expect(failed).toContain('aria-invalid="true"');
     expect(failed).toContain(
@@ -291,7 +396,6 @@ describe("un projet en ligne", () => {
   it("dit son adresse et offre de l'ouvrir", () => {
     const rendered = panel({
       name: "vite-starter",
-      port: 3000,
       serverId: "srv-1",
       state: "online",
       status: "done",
@@ -299,7 +403,7 @@ describe("un projet en ligne", () => {
     });
 
     expect(text(rendered)).toContain("vite-starter en ligne");
-    expect(text(rendered)).toContain("http://127.0.0.1:3000 · port 3000");
+    expect(text(rendered)).toContain("http://127.0.0.1:3000");
     expect(text(rendered)).toContain("Ouvrir le projet");
     expect(rendered).toContain('data-outcome="online"');
   });
@@ -313,7 +417,7 @@ describe("les phases", () => {
     expect(html).toContain('data-shape="filled"');
     expect(html).toContain('data-shape="breathing"');
     expect(html).toContain('data-shape="struck"');
-    expect(text(html)).toContain("vite-starter · port 3001");
+    expect(text(html)).toContain("vite-starter · app:3001");
     expect(text(html)).toContain("Nom sur le web");
   });
 });

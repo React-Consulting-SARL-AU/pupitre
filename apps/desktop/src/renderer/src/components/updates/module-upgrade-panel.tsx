@@ -2,18 +2,22 @@ import { InstallProgress } from "@renderer/components/install/install-progress";
 import { Button } from "@renderer/components/ui/button";
 import { Callout } from "@renderer/components/ui/callout";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
+import { Section } from "@renderer/components/ui/section";
 import { StatusDot } from "@renderer/components/ui/status-dot";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { ModuleProgress } from "@renderer/lib/module-progress";
 import type { ModulesState } from "@renderer/stores/agent-update";
 import { RefreshCw } from "lucide-react";
+import type { ReactNode } from "react";
 
 /**
  * `upgrade` on the modules already installed, on the machine's own list.
  *
- * The agent replays the install steps of what it put there; the app names none
- * of them itself — the list comes from the snapshot, and the report comes back
- * in the same shape an installation does.
+ * The section frames that list: the gesture that replays the install of
+ * everything on it stands on its caption, and what the replay says lands under
+ * the rows. The agent replays the install steps of what it put there; the app
+ * names none of them itself — the list comes from the snapshot, and the report
+ * comes back in the same shape an installation does.
  */
 export function ModuleUpgradePanel({
   modules,
@@ -21,6 +25,7 @@ export function ModuleUpgradePanel({
   steps,
   nameOf,
   onUpgrade,
+  children,
 }: {
   /** The installed module ids, as the snapshot listed them. */
   modules: readonly string[];
@@ -28,33 +33,39 @@ export function ModuleUpgradePanel({
   steps: readonly ModuleProgress[];
   nameOf: (moduleId: string) => string;
   onUpgrade: () => void;
+  /** The rows of the installed modules. */
+  children?: ReactNode;
 }) {
   const t = useTranslations();
-
-  if (modules.length === 0) {
-    return null;
-  }
 
   const result = state.status === "done" ? state.result : null;
 
   return (
-    <section className="flex flex-col gap-gutter" data-module-upgrade>
-      <div className="flex flex-wrap items-center justify-between gap-gutter">
-        <div className="min-w-0">
-          <p className="font-medium text-ink">{t("updates.modules.title")}</p>
-          <p className="mt-0.5 text-ink-3 leading-relaxed">
-            {t("updates.modules.intro", { count: modules.length })}
-          </p>
-        </div>
-
-        <Button
-          icon={RefreshCw}
-          loading={state.status === "running"}
-          onClick={onUpgrade}
-        >
-          {t("updates.modules.upgradeAll")}
-        </Button>
-      </div>
+    <Section
+      actions={
+        modules.length > 0 ? (
+          <Button
+            icon={RefreshCw}
+            loading={state.status === "running"}
+            onClick={onUpgrade}
+            size="sm"
+          >
+            {t("updates.modules.upgradeAll")}
+          </Button>
+        ) : null
+      }
+      aside={
+        modules.length > 0 ? (
+          <span className="font-data text-[12px] text-ink-3">
+            {t.plural("updates.modules.count", modules.length)}
+          </span>
+        ) : null
+      }
+      data-module-upgrade=""
+      name="installed"
+      title={t("updates.modules.title")}
+    >
+      {children}
 
       {steps.length > 0 ? (
         <InstallProgress modules={steps} nameOf={nameOf} />
@@ -96,6 +107,6 @@ export function ModuleUpgradePanel({
           </Callout>
         </div>
       ) : null}
-    </section>
+    </Section>
   );
 }

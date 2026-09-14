@@ -125,10 +125,10 @@ export function ProjectDiff({
                 )}
                 {read && !read.binary && read.patch ? (
                   <CopyButton
-                    onCopy={() => navigator.clipboard.writeText(read.patch)}
-                    title={t("project.diff.copyPatchHint", {
+                    hint={t("project.diff.copyPatchHint", {
                       path: change.path,
                     })}
+                    onCopy={() => navigator.clipboard.writeText(read.patch)}
                   >
                     {t("project.diff.copyPatch")}
                   </CopyButton>

@@ -135,12 +135,16 @@ func enrollmentToken(line json.RawMessage) (string, *protocol.Error) {
 func enrollFailed(cause error) *protocol.Error {
 	var failure *platform.Error
 	if errors.As(cause, &failure) && failure.Unauthorized() {
-		return protocol.NewError(contract.ErrorEntitlementRequired, i18n.T("daemon.enroll.refused", cause.Error())).
+		return protocol.NewError(contract.ErrorEntitlementRequired, i18n.T("daemon.enroll.refused", platform.Describe(cause))).
 			WithFix(i18n.T("daemon.enroll.refused.fix"))
 	}
 
-	return protocol.NewError(contract.ErrorInternal, i18n.T("daemon.enroll.failed", cause.Error())).
-		WithFix(i18n.T("daemon.enroll.failed.fix"))
+	failed := protocol.NewError(contract.ErrorInternal, i18n.T("daemon.enroll.failed", platform.Describe(cause)))
+	if platform.Down(cause) {
+		return failed.WithFix(i18n.T("platform.down.fix"))
+	}
+
+	return failed.WithFix(i18n.T("daemon.enroll.failed.fix"))
 }
 
 func syncFailed(cause error) *protocol.Error {
@@ -151,10 +155,14 @@ func syncFailed(cause error) *protocol.Error {
 
 	var failure *platform.Error
 	if errors.As(cause, &failure) && failure.Unauthorized() {
-		return protocol.NewError(contract.ErrorEntitlementRequired, i18n.T("daemon.token.refused", cause.Error())).
+		return protocol.NewError(contract.ErrorEntitlementRequired, i18n.T("daemon.token.refused", platform.Describe(cause))).
 			WithFix(i18n.T("daemon.token.refused.fix"))
 	}
 
-	return protocol.NewError(contract.ErrorInternal, i18n.T("daemon.keys.failed", cause.Error())).
-		WithFix(i18n.T("daemon.keys.failed.fix"))
+	failed := protocol.NewError(contract.ErrorInternal, i18n.T("daemon.keys.failed", platform.Describe(cause)))
+	if platform.Down(cause) {
+		return failed.WithFix(i18n.T("platform.down.fix"))
+	}
+
+	return failed.WithFix(i18n.T("daemon.keys.failed.fix"))
 }

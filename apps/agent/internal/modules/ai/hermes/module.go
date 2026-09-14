@@ -6,6 +6,8 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/ai/agents"
+	"pupitre.studio/agent/internal/modules/ai/providers"
+	"pupitre.studio/agent/internal/modules/runtime/mise"
 	"pupitre.studio/agent/internal/sys/env"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/systemd"
@@ -13,6 +15,8 @@ import (
 
 const (
 	Program = "hermes"
+
+	envPrefix = "HERMES_"
 
 	Unit = "pupitre-hermes"
 
@@ -39,7 +43,7 @@ WantedBy=multi-user.target
 )
 
 var (
-	cli = agents.CLI{Tool: tool, Program: Program}
+	cli = mise.CLI{Tool: tool, Program: Program}
 
 	target = agents.Target{ConfigDir: configDir, ContextFile: "AGENTS.md", Skills: true}
 )
@@ -71,9 +75,10 @@ func (Module) Install(ctx *modules.Context) error {
 }
 
 func (Module) Configure(ctx *modules.Context) error {
-	found := providers(ctx.SecretList("providers"))
+	found := providers.Parse(ctx.SecretList("providers"))
 
-	if err := writeProviders(ctx, found); err != nil {
+	rewritten, err := writeProviders(ctx, found)
+	if err != nil {
 		return err
 	}
 
@@ -85,15 +90,19 @@ func (Module) Configure(ctx *modules.Context) error {
 		return err
 	}
 
-	return service(ctx, ctx.Bool("always_on"))
+	return service(ctx, ctx.Bool("always_on"), rewritten)
 }
 
-func writeProviders(ctx *modules.Context, found []provider) error {
-	return ctx.Step("write-providers", func() (modules.Outcome, error) {
-		content := renderEnvironment(found)
+func writeProviders(ctx *modules.Context, found []providers.Provider) (bool, error) {
+	rewritten := false
+
+	err := ctx.Step("write-providers", func() (modules.Outcome, error) {
+		content := providers.Render(found, envPrefix)
 		if file.Same(ctx, envPath, content) {
 			return modules.Skipped, nil
 		}
+
+		rewritten = true
 
 		if err := ctx.Sys().MkdirAll(configDir, 0o700); err != nil {
 			return modules.Failed, err
@@ -109,13 +118,15 @@ func writeProviders(ctx *modules.Context, found []provider) error {
 
 		return modules.Done, file.Chown(ctx, envPath, agents.User, agents.User)
 	})
+
+	return rewritten, err
 }
 
-func storeProviders(ctx *modules.Context, found []provider) error {
+func storeProviders(ctx *modules.Context, found []providers.Provider) error {
 	return ctx.Step("store-providers", func() (modules.Outcome, error) {
 		stored := false
 		for _, entry := range found {
-			changed, err := env.Set(ctx, entry.envKey(), entry.key)
+			changed, err := env.Set(ctx, entry.EnvKey(envPrefix), entry.Key)
 			if err != nil {
 				return modules.Failed, err
 			}
@@ -132,7 +143,7 @@ func storeProviders(ctx *modules.Context, found []provider) error {
 }
 
 // Without "always on" Hermes is a command a session starts; the unit is what keeps it running between two of them.
-func service(ctx *modules.Context, alwaysOn bool) error {
+func service(ctx *modules.Context, alwaysOn, providersChanged bool) error {
 	if !alwaysOn {
 		return ctx.Step("disable-service", func() (modules.Outcome, error) {
 			if !file.Exists(ctx, unitPath) {
@@ -157,7 +168,7 @@ func service(ctx *modules.Context, alwaysOn bool) error {
 	}
 
 	content := []byte(fmt.Sprintf(unitContent, cli.Path()))
-	changed := false
+	changed := providersChanged
 
 	if err := ctx.Step("write-service", func() (modules.Outcome, error) {
 		if file.Same(ctx, unitPath, content) {
@@ -193,7 +204,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 }
 
 func (Module) Uninstall(ctx *modules.Context) error {
-	if err := service(ctx, false); err != nil {
+	if err := service(ctx, false, false); err != nil {
 		return err
 	}
 

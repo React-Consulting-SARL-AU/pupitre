@@ -1,5 +1,6 @@
 import type { Manifest } from "@pupitre/shared/catalog";
 import { Button } from "@renderer/components/ui/button";
+import { Callout } from "@renderer/components/ui/callout";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { Screen } from "@renderer/components/ui/screen";
 import { ServiceLogo } from "@renderer/components/ui/service-logo";
@@ -8,11 +9,14 @@ import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { SERVICE_LOOK } from "@renderer/lib/project-state";
 import { removalOf } from "@renderer/lib/service-removal";
+import { useCatalog } from "@renderer/stores/catalog";
+import { useConnections } from "@renderer/stores/connections";
 import { useServices } from "@renderer/stores/services";
 import { forwardsOf, useTunnel } from "@renderer/stores/tunnel";
 import { databaseEngineOf } from "@shared/services";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import { useEffect } from "react";
+import { ServiceAccount } from "./service-account";
 import { ServiceConfig } from "./service-config";
 import { ServiceControls } from "./service-controls";
 import { ServiceCredentials } from "./service-credentials";
@@ -22,6 +26,7 @@ import { ServiceJournal } from "./service-journal";
 import { ServicePanelFacts } from "./service-panel-facts";
 import { ServiceRemoval } from "./service-removal";
 import { ServiceRemovalOutcome } from "./service-removal-outcome";
+import { ServiceRoutes } from "./service-routes";
 
 /**
  * One service, day to day.
@@ -30,9 +35,15 @@ import { ServiceRemovalOutcome } from "./service-removal-outcome";
  * port, the labels of its credentials, and what a removal would cost according
  * to its own manifest. The app adds the masks, the confirmation, and the `ssh`
  * that brings its port here.
+ *
+ * Every service reads in the same order, and a section a module has nothing
+ * for is not drawn: the account it works as, the unit's gestures, what opens
+ * it, what it was told, what only a database or a tunnel adds, its journal,
+ * and the port brought to this computer.
  */
 export function ServicePanel({
   serverId,
+  serverName,
   moduleId,
   manifest,
   installed,
@@ -41,6 +52,7 @@ export function ServicePanel({
   onReloadCatalog,
 }: {
   serverId: string;
+  serverName: string | null;
   moduleId: string;
   /** The manifest this server declares for the module, when it declares one. */
   manifest: Manifest | null;
@@ -54,8 +66,23 @@ export function ServicePanel({
 
   const store = useServices();
   const tunnel = useTunnel();
+  const catalog = useCatalog((held) => held.modules);
+  const zonesConnected = useConnections(
+    (connections) => connections.state.cloudflare?.status === "connected"
+  );
+  const zones = useConnections((connections) => connections.zones);
+  const loadZones = useConnections((connections) => connections.loadZones);
 
   const { open } = store;
+  const picksZone = manifest?.connection === "cloudflare" && zonesConnected;
+
+  // The domain of a tunnel is picked among the account's zones: they are read
+  // once the panel knows the module publishes through that account.
+  useEffect(() => {
+    if (picksZone) {
+      loadZones();
+    }
+  }, [picksZone, loadZones]);
 
   // Leaving the page is enough to drop the values, whichever way it is left.
   useEffect(() => {
@@ -100,7 +127,7 @@ export function ServicePanel({
         </Button>
       </>
     ),
-    eyebrow: t("services.screen.eyebrow"),
+    eyebrow: t("services.panel.eyebrow"),
     leading: <ServiceLogo moduleId={moduleId} name={name} size={32} />,
     title: name,
   };
@@ -122,6 +149,12 @@ export function ServicePanel({
   }
 
   const isDatabase = databaseEngineOf(moduleId) !== null;
+  const exposure =
+    tunnel.tunnel.status === "ready" &&
+    tunnel.tunnel.tunnel.installed &&
+    moduleId === `exposure.${tunnel.tunnel.tunnel.provider}`
+      ? tunnel.tunnel.tunnel
+      : null;
   const retirement = removalOf(
     { id: moduleId, manifest, name: detail.detail.name },
     installed
@@ -133,6 +166,13 @@ export function ServicePanel({
       actions={
         <>
           {frame.actions}
+          {detail.detail.unit ? (
+            <ServiceControls
+              busy={busy}
+              detail={detail.detail}
+              onControl={(cmd) => store.control(serverId, moduleId, cmd)}
+            />
+          ) : null}
           {removal.status === "idle" ? (
             <ServiceRemoval
               name={detail.detail.name}
@@ -146,7 +186,6 @@ export function ServicePanel({
         <ServicePanelFacts
           detail={detail.detail}
           refusal={retirement.refusal}
-          summary={manifest?.summary}
         />
       }
       meta={
@@ -165,12 +204,17 @@ export function ServicePanel({
 
       {problem ? <ErrorNotice error={problem} /> : null}
 
-      {detail.detail.unit ? (
-        <ServiceControls
-          busy={busy}
-          detail={detail.detail}
-          onControl={(cmd) => store.control(serverId, moduleId, cmd)}
-        />
+      <ServiceAccount
+        installed={installed}
+        login={detail.detail.login}
+        manifest={manifest}
+        serverName={serverName}
+      />
+
+      {detail.detail.unit && detail.detail.state === "failed" ? (
+        <Callout tone="danger">
+          {t("services.control.failedHint", { name: detail.detail.name })}
+        </Callout>
       ) : null}
 
       <ServiceCredentials
@@ -187,9 +231,16 @@ export function ServicePanel({
         catalogHeld={catalogHeld}
         config={config}
         configured={detail.detail.configured}
+        dirty={store.dirty()}
         manifest={manifest}
         name={detail.detail.name}
+        nameOf={(id) =>
+          id === moduleId
+            ? detail.detail.name
+            : (catalog().find((one) => one.id === id)?.name ?? id)
+        }
         onApply={() => store.reconfigure(serverId, moduleId)}
+        onDiscard={() => store.discard(serverId)}
         onGenerate={(key) => store.generate(serverId, moduleId, key)}
         onReloadCatalog={onReloadCatalog}
         onReveal={(key) => store.revealSecret(serverId, moduleId, key)}
@@ -197,9 +248,11 @@ export function ServicePanel({
           store.setSecret(serverId, moduleId, key, value);
         }}
         onValue={store.setValue}
+        problems={store.shown()}
         secrets={secrets}
         steps={steps}
         values={values}
+        zones={picksZone ? zones : []}
       />
 
       {isDatabase ? (
@@ -220,6 +273,15 @@ export function ServicePanel({
           onShell={() => store.shell(serverId, moduleId)}
           outcome={database}
           pendingImports={store.pendingImports}
+        />
+      ) : null}
+
+      {exposure ? (
+        <ServiceRoutes
+          busy={tunnel.busy}
+          onSync={() => tunnel.sync(serverId)}
+          problem={tunnel.problem}
+          tunnel={exposure}
         />
       ) : null}
 

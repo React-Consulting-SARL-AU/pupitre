@@ -9,6 +9,7 @@ import {
   dropTunnel,
   ExposureUnreadable,
   managedValues,
+  releaseRecords,
   type ServerExposure,
   syncRecords,
   type TunnelDeps,
@@ -54,7 +55,11 @@ function harness({
   const api: CloudflareApi = {
     createRecord(zoneId, fqdn, content) {
       calls.push(`createRecord ${zoneId} ${fqdn}`);
-      records.set(fqdn, { content, id: `r-${String(records.size + 1)}` });
+      records.set(fqdn, {
+        comment: "pupitre",
+        content,
+        id: `r-${String(records.size + 1)}`,
+      });
 
       return Promise.resolve();
     },
@@ -384,7 +389,10 @@ describe("les enregistrements DNS", () => {
 
   it("repointent un enregistrement resté sur un tunnel disparu", async () => {
     const records = new Map<string, DnsRecord>([
-      ["app.flymate.dev", { content: "t-old.cfargotunnel.com", id: "r-1" }],
+      [
+        "app.flymate.dev",
+        { comment: "pupitre", content: "t-old.cfargotunnel.com", id: "r-1" },
+      ],
     ]);
     const { deps, calls } = harness({
       exposure: { domain: "flymate.dev", tunnelId: "t-new" },
@@ -401,7 +409,10 @@ describe("les enregistrements DNS", () => {
 
   it("ne touchent à rien quand l'enregistrement est déjà juste", async () => {
     const records = new Map<string, DnsRecord>([
-      ["app.flymate.dev", { content: "t-1.cfargotunnel.com", id: "r-1" }],
+      [
+        "app.flymate.dev",
+        { comment: "pupitre", content: "t-1.cfargotunnel.com", id: "r-1" },
+      ],
     ]);
     const { deps } = harness({
       exposure: { domain: "flymate.dev", tunnelId: "t-1" },
@@ -414,6 +425,30 @@ describe("les enregistrements DNS", () => {
     });
   });
 
+  // The zone may carry the platform's own names — app., dl., dev. — or anything
+  // the client wrote by hand: a record Pupitre did not write is never repointed.
+  it("refusent un nom déjà tenu par un enregistrement que Pupitre n'a pas écrit", async () => {
+    const records = new Map<string, DnsRecord>([
+      [
+        "app.flymate.dev",
+        { comment: null, content: "203.0.113.10", id: "r-1" },
+      ],
+    ]);
+    const { deps, calls } = harness({
+      exposure: { domain: "flymate.dev", tunnelId: "t-1" },
+      records,
+    });
+
+    const refused = await syncRecords("srv-1", ROUTES, deps);
+
+    expect(refused.ok).toBe(false);
+    expect(!refused.ok && refused.error.phrase?.id).toBe(
+      "refusal.cloudflare.record.taken"
+    );
+    expect(calls).not.toContain("updateRecord zone-1234 r-1");
+    expect(records.get("app.flymate.dev")?.content).toBe("203.0.113.10");
+  });
+
   it("refusent quand la zone du domaine n'est pas dans ce compte", async () => {
     const { deps } = harness({
       exposure: { domain: "ailleurs.example", tunnelId: "t-1" },
@@ -424,8 +459,14 @@ describe("les enregistrements DNS", () => {
 
   it("partent avec le nom que le projet ne porte plus", async () => {
     const records = new Map<string, DnsRecord>([
-      ["app.flymate.dev", { content: "t-1.cfargotunnel.com", id: "r-1" }],
-      ["api-app.flymate.dev", { content: "t-1.cfargotunnel.com", id: "r-2" }],
+      [
+        "app.flymate.dev",
+        { comment: "pupitre", content: "t-1.cfargotunnel.com", id: "r-1" },
+      ],
+      [
+        "api-app.flymate.dev",
+        { comment: "pupitre", content: "t-1.cfargotunnel.com", id: "r-2" },
+      ],
     ]);
     const { deps } = harness({
       exposure: { domain: "flymate.dev", tunnelId: "t-1" },
@@ -437,9 +478,68 @@ describe("les enregistrements DNS", () => {
     expect([...records.keys()]).toEqual(["app.flymate.dev"]);
   });
 
+  it("laissent en place un nom que Pupitre n'a pas écrit", async () => {
+    const records = new Map<string, DnsRecord>([
+      [
+        "app.flymate.dev",
+        { comment: null, content: "203.0.113.10", id: "r-1" },
+      ],
+    ]);
+    const { deps, calls } = harness({
+      exposure: { domain: "flymate.dev", tunnelId: "t-1" },
+      records,
+    });
+
+    await dropRecord("srv-1", "app.flymate.dev", deps);
+
+    expect(calls).not.toContain("deleteRecord zone-1234 r-1");
+    expect([...records.keys()]).toEqual(["app.flymate.dev"]);
+  });
+
+  // The domain changed: the names of before are dropped wherever their zone is,
+  // and only the records the app wrote — the platform's own names stay.
+  it("retirent les noms d'avant un changement de domaine, ceux de Pupitre seulement", async () => {
+    const records = new Map<string, DnsRecord>([
+      [
+        "app.flymate.dev",
+        { comment: "pupitre", content: "t-1.cfargotunnel.com", id: "r-1" },
+      ],
+      [
+        "api-app.flymate.dev",
+        { comment: "pupitre", content: "t-1.cfargotunnel.com", id: "r-2" },
+      ],
+      [
+        "dev.flymate.dev",
+        { comment: null, content: "t-9.cfargotunnel.com", id: "r-3" },
+      ],
+    ]);
+    const { deps, calls } = harness({
+      exposure: { domain: "flymate.studio", tunnelId: "t-1" },
+      records,
+    });
+
+    const released = await releaseRecords(
+      "srv-1",
+      [
+        "app.flymate.dev",
+        "api-app.flymate.dev",
+        "dev.flymate.dev",
+        "x.ailleurs.example",
+      ],
+      deps
+    );
+
+    expect(released).toEqual({ ok: true, result: 2 });
+    expect([...records.keys()]).toEqual(["dev.flymate.dev"]);
+    expect(calls).not.toContain("deleteRecord zone-1234 r-3");
+  });
+
   it("ne cherchent rien hors du domaine que le serveur publie", async () => {
     const records = new Map<string, DnsRecord>([
-      ["app.flymate.dev", { content: "t-1.cfargotunnel.com", id: "r-1" }],
+      [
+        "app.flymate.dev",
+        { comment: "pupitre", content: "t-1.cfargotunnel.com", id: "r-1" },
+      ],
     ]);
     const { deps, calls } = harness({
       exposure: { domain: "flymate.dev", tunnelId: "t-1" },

@@ -3,10 +3,12 @@ import type { Manifest } from "@pupitre/shared/catalog";
 import { Button } from "@renderer/components/ui/button";
 import { EmptyState } from "@renderer/components/ui/empty-state";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
+import { Panel } from "@renderer/components/ui/panel";
 import { Screen } from "@renderer/components/ui/screen";
 import { ModuleUpgradePanel } from "@renderer/components/updates/module-upgrade-panel";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { heldForUsage } from "@renderer/lib/refusals";
+import { useServiceAccounts } from "@renderer/lib/use-service-accounts";
 import { useAgentUpdate } from "@renderer/stores/agent-update";
 import { useCatalog } from "@renderer/stores/catalog";
 import { useServices } from "@renderer/stores/services";
@@ -22,33 +24,31 @@ import { ServicesTunnel } from "./services-tunnel";
  * The services of a server, once the onboarding is behind.
  *
  * The list is the snapshot's: a module the agent did not install is not a row
- * here. Opening one goes to its own page; adding one goes back through the
- * catalogue, the configuration and the report of the onboarding, unchanged.
+ * here. A service's own page is a place in the app's history, so "back" from
+ * it lands on the list; adding one goes back through the catalogue, the
+ * configuration and the report of the onboarding, unchanged.
  */
-
-type View =
-  | { kind: "list" }
-  | { kind: "service"; moduleId: string }
-  | { kind: "add" };
 
 export function ServicesScreen({
   serverId,
   serverName,
   services,
-  openAt = null,
+  service,
+  onOpenService,
+  onCloseService,
 }: {
   serverId: string;
   serverName?: string;
   services: readonly Service[];
   onMachineName?: (name: string) => void;
-  /** A service to land on, for a screen that sent the reader to its page. */
-  openAt?: string | null;
+  /** The service whose page is open, or the list when none. */
+  service: string | null;
+  onOpenService: (moduleId: string) => void;
+  onCloseService: () => void;
 }) {
   const t = useTranslations();
 
-  const [view, setView] = useState<View>(
-    openAt ? { kind: "service", moduleId: openAt } : { kind: "list" }
-  );
+  const [adding, setAdding] = useState(false);
 
   const catalog = useCatalog((state) => state.catalog);
   const modules = useCatalog((state) => state.modules);
@@ -61,6 +61,14 @@ export function ServicesScreen({
   const installed = services.map((service) => service.id);
   const key = installed.join(" ");
 
+  // Asked again each time the list comes back on screen: a fiche is where the
+  // reader signs in, and the row has to say so on the way back.
+  const accounts = useServiceAccounts(
+    serverId,
+    services,
+    service === null && !adding
+  );
+
   // The add flow loads the catalogue itself, and a catalogue already read for
   // this machine and these modules is the same answer twice.
   useEffect(() => {
@@ -70,12 +78,24 @@ export function ServicesScreen({
       state.catalog.serverId === serverId &&
       state.installed.join(" ") === key;
 
-    if (view.kind === "add" || read) {
+    if (adding || read) {
       return;
     }
 
     loadCatalog(serverId, key.length > 0 ? key.split(" ") : []);
-  }, [serverId, key, loadCatalog, view.kind]);
+  }, [serverId, key, loadCatalog, adding]);
+
+  // The page is left by its own button, the arrows or the sidebar alike, and
+  // the values it held go with it whichever way.
+  useEffect(() => {
+    if (!service) {
+      return;
+    }
+
+    return () => {
+      closePanel(serverId);
+    };
+  }, [serverId, service, closePanel]);
 
   const { read: readTunnel } = tunnel;
 
@@ -95,36 +115,30 @@ export function ServicesScreen({
     );
   }
 
-  async function back(): Promise<void> {
-    await closePanel(serverId);
-    setView({ kind: "list" });
-  }
-
-  if (view.kind === "add") {
-    return (
-      <ServicesAddFlow
-        installed={installed}
-        onDone={() => setView({ kind: "list" })}
-        serverId={serverId}
-        serverName={serverName}
-      />
-    );
-  }
-
-  if (view.kind === "service") {
+  if (service) {
     return (
       <ServicePanel
         catalogHeld={heldForUsage(
           catalog.status === "failed" ? catalog.error : null
         )}
         installed={manifestsOf()}
-        manifest={
-          modules().find((manifest) => manifest.id === view.moduleId) ?? null
-        }
-        moduleId={view.moduleId}
-        onBack={back}
+        manifest={modules().find((manifest) => manifest.id === service) ?? null}
+        moduleId={service}
+        onBack={onCloseService}
         onReloadCatalog={() => loadCatalog(serverId, installed)}
         serverId={serverId}
+        serverName={serverName ?? null}
+      />
+    );
+  }
+
+  if (adding) {
+    return (
+      <ServicesAddFlow
+        installed={installed}
+        onDone={() => setAdding(false)}
+        serverId={serverId}
+        serverName={serverName}
       />
     );
   }
@@ -132,16 +146,12 @@ export function ServicesScreen({
   return (
     <Screen
       actions={
-        <Button
-          icon={Plus}
-          onClick={() => setView({ kind: "add" })}
-          variant="inverse"
-        >
+        <Button icon={Plus} onClick={() => setAdding(true)} variant="inverse">
           {t("services.screen.add")}
         </Button>
       }
-      eyebrow={t("services.screen.eyebrow")}
-      title={serverName ?? t("services.screen.fallbackName")}
+      eyebrow={serverName ?? t("services.screen.fallbackName")}
+      title={t("services.screen.title")}
     >
       {/*
           A server held for its usage right refuses the catalogue, the tunnel
@@ -159,45 +169,41 @@ export function ServicesScreen({
         <ErrorNotice error={tunnel.problem} />
       ) : null}
 
-      {services.length === 0 ? (
-        <EmptyState
-          action={
-            <Button icon={Plus} onClick={() => setView({ kind: "add" })}>
-              {t("services.screen.add")}
-            </Button>
-          }
-          icon={Boxes}
-          title={t("services.screen.emptyTitle")}
-        />
-      ) : (
-        <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
-          {services.map((service) => (
-            <ServiceRow
-              key={service.id}
-              onOpen={() => setView({ kind: "service", moduleId: service.id })}
-              service={service}
+      <ModuleUpgradePanel
+        modules={installed}
+        nameOf={nameOf}
+        onUpgrade={() => update.upgradeModules(serverId, installed)}
+        state={update.modules}
+        steps={update.steps}
+      >
+        {services.length === 0 ? (
+          <Panel inset="none">
+            <EmptyState
+              action={
+                <Button icon={Plus} onClick={() => setAdding(true)}>
+                  {t("services.screen.add")}
+                </Button>
+              }
+              icon={Boxes}
+              title={t("services.screen.emptyTitle")}
             />
-          ))}
-        </ul>
-      )}
+          </Panel>
+        ) : (
+          <Panel as="ul" list>
+            {services.map((service) => (
+              <ServiceRow
+                account={accounts[service.id]}
+                key={service.id}
+                onOpen={() => onOpenService(service.id)}
+                service={service}
+              />
+            ))}
+          </Panel>
+        )}
+      </ModuleUpgradePanel>
 
-      {services.length > 0 ? (
-        <ModuleUpgradePanel
-          modules={installed}
-          nameOf={nameOf}
-          onUpgrade={() => update.upgradeModules(serverId, installed)}
-          state={update.modules}
-          steps={update.steps}
-        />
-      ) : null}
-
-      {tunnel.tunnel.status === "ready" ? (
-        <ServicesTunnel
-          busy={tunnel.busy}
-          onRestart={() => tunnel.restart(serverId)}
-          onSync={() => tunnel.sync(serverId)}
-          tunnel={tunnel.tunnel.tunnel}
-        />
+      {tunnel.tunnel.status === "ready" && !tunnel.tunnel.tunnel.installed ? (
+        <ServicesTunnel />
       ) : null}
     </Screen>
   );

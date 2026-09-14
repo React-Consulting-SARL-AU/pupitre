@@ -1,3 +1,3 @@
 # Le serveur coupe avant même de répondre au hello : le canal ne s'ouvre pas.
 @die
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}

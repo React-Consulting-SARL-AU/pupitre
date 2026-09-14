@@ -22,7 +22,13 @@ var running = []string{
 	"ai.browser",
 	"ai.claude",
 	"ai.codex",
+	"ai.copilot",
+	"ai.cursor",
+	"ai.gemini",
 	"ai.hermes",
+	"ai.openclaw",
+	"ai.opencode",
+	"db.mailpit",
 	"db.mongodb",
 	"db.mysql",
 	"db.postgres",
@@ -32,6 +38,7 @@ var running = []string{
 	"editor.zed",
 	"exposure.caddy",
 	"exposure.cloudflare",
+	"exposure.tailscale",
 	"runtime.docker",
 }
 

@@ -1,10 +1,9 @@
-import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AgentError } from "@shared/agent";
-import { RefreshCw, ScrollText } from "lucide-react";
+import { ScrollText } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Button } from "./button";
-import { Callout } from "./callout";
+import { ErrorNotice } from "./error-notice";
 
 /**
  * A step that stopped, said the same way everywhere.
@@ -32,23 +31,15 @@ export function StepFailure({
   const t = useTranslations();
 
   const [open, setOpen] = useState(false);
-  const said = agentText(t, error);
 
   return (
     <div className="flex flex-col gap-2" data-failure={error.code}>
-      <Callout
-        action={
-          onRetry ? (
-            <Button icon={RefreshCw} loading={retrying} onClick={onRetry}>
-              {retryLabel ?? t("common.retry")}
-            </Button>
-          ) : null
-        }
-        fix={said.fix}
-        tone="danger"
-      >
-        {said.message}
-      </Callout>
+      <ErrorNotice
+        error={error}
+        onRetry={onRetry}
+        retrying={retrying}
+        retryLabel={retryLabel}
+      />
 
       {journal ? (
         <div>

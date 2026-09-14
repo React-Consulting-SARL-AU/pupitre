@@ -4,23 +4,48 @@ export const projectAdd = {
     "projectAdd.form.sourceHelp":
       "The address of a git repository, or the path of a folder already on the server.",
     "projectAdd.form.sourcePlaceholder": "https://github.com/me/my-site.git",
-    "projectAdd.form.sourceReading": "The agent is reading the source…",
+    "projectAdd.form.sourceReading":
+      "The agent clones the repository and reads what it asks for…",
+    "projectAdd.form.sourceReadingBranch":
+      "The agent clones the {branch} branch and reads what it asks for…",
+    "projectAdd.form.sourceReadingDir":
+      "The agent reads the folder and what it asks for…",
     "projectAdd.form.sourceRead":
       "Read from the source: {pkgmgr}, port {port}.",
     "projectAdd.form.sourceReadNoPort": "Read from the source: {pkgmgr}.",
+    "projectAdd.form.sourceReadProcesses": "Read from the source: {processes}.",
     "projectAdd.form.nameLabel": "Name",
     "projectAdd.form.nameHelp": "Inferred from the source.",
     "projectAdd.form.folderHelp": "Folder: {dir}",
     "projectAdd.form.namePlaceholder": "my-site",
     "projectAdd.form.pkgmgrLabel": "Package manager",
-    "projectAdd.form.pkgmgrDetected":
-      "Detected: the server already declares this project.",
+    "projectAdd.form.processesDetected":
+      "Read from the server: it already declares this project, and these are its processes.",
     "projectAdd.form.portLabel": "Port",
+    "projectAdd.processes.title": "Processes",
+    "projectAdd.processes.help":
+      "What runs in the project: one process at the least, each from its own folder with its own command. The first one is the main one.",
+    "projectAdd.processes.idLabel": "Process",
+    "projectAdd.processes.idHelp": "Names the window and the journal.",
+    "projectAdd.processes.idPlaceholder": "server",
+    "projectAdd.processes.dirLabel": "Folder",
+    "projectAdd.processes.dirHelp":
+      "Relative to the project; empty for its root.",
+    "projectAdd.processes.dirPlaceholder": "client",
+    "projectAdd.processes.id":
+      "Lower case, digits and dashes, starting and ending on a letter or a digit.",
+    "projectAdd.processes.idTaken":
+      "Another process of this project carries this id.",
+    "projectAdd.processes.dir":
+      "A folder inside the project: no leading slash, no “..”.",
+    "projectAdd.processes.cmd": "A start command is needed.",
+    "projectAdd.processes.remove": "Remove the process {id}",
+    "projectAdd.processes.add": "Add a process",
     "projectAdd.ports.title": "Ports",
     "projectAdd.ports.help.local":
-      "The first port is the main one: it decides whether the project is online. No exposure is installed on this server, so nothing publishes them.",
+      "The first port is the main one: it decides whether the process is online. No exposure is installed on this server, so nothing publishes them.",
     "projectAdd.ports.help.published":
-      "The first port is the main one: it decides whether the project is online. A published port gets a name on the web, completed with the server's domain.",
+      "The first port is the main one: it decides whether the process is online. A published port gets a name on the web, completed with the server's domain.",
     "projectAdd.ports.labelLabel": "Label",
     "projectAdd.ports.labelPlaceholder": "web",
     "projectAdd.ports.webColumn": "On the web",
@@ -28,10 +53,10 @@ export const projectAdd = {
     "projectAdd.ports.label":
       "Lower case, digits and dashes, starting and ending on a letter or a digit.",
     "projectAdd.ports.labelTaken":
-      "Another port of this project carries this label.",
+      "Another port of this process carries this label.",
     "projectAdd.ports.port": "A port between 1024 and 65535.",
     "projectAdd.ports.portTaken":
-      "This port is held by another project of the server, or by another row.",
+      "This port is held by another project of the server, another process, or another row.",
     "projectAdd.ports.publish": "Publish",
     "projectAdd.ports.remove": "Remove the port {label}",
     "projectAdd.ports.add": "Add a port",
@@ -92,8 +117,7 @@ export const projectAdd = {
     "projectAdd.form.subdomain.taken":
       "Another port, on this server, already answers to this name.",
 
-    "projectAdd.panel.eyebrow": "New project",
-    "projectAdd.panel.defaultServer": "This server",
+    "projectAdd.panel.title": "New project",
     "projectAdd.panel.cancel": "Cancel",
     "projectAdd.panel.open": "Open the project",
     "projectAdd.panel.loadingTitle": "Reading the projects already declared",
@@ -111,7 +135,7 @@ export const projectAdd = {
     "projectAdd.phaseStatus.fail": "failed",
 
     "projectAdd.sources.alreadyPresent": "the folder is already on the server",
-    "projectAdd.install.doneWithSources": "done with the source fetch",
+    "projectAdd.install.nothing": "the project declares no install command",
     "projectAdd.publish.local": "the project stays local",
     "projectAdd.up.notRunningFix":
       "Read the journal below, fix the start command, then try again.",
@@ -128,22 +152,46 @@ export const projectAdd = {
     "projectAdd.form.sourceHelp":
       "L'adresse d'un dépôt git, ou le chemin d'un dossier déjà présent sur le serveur.",
     "projectAdd.form.sourcePlaceholder": "https://github.com/moi/mon-site.git",
-    "projectAdd.form.sourceReading": "L'agent lit la source…",
+    "projectAdd.form.sourceReading":
+      "L'agent clone le dépôt et lit ce qu'il demande…",
+    "projectAdd.form.sourceReadingBranch":
+      "L'agent clone la branche {branch} et lit ce qu'elle demande…",
+    "projectAdd.form.sourceReadingDir":
+      "L'agent lit le dossier et ce qu'il demande…",
     "projectAdd.form.sourceRead": "Lu dans la source : {pkgmgr}, port {port}.",
     "projectAdd.form.sourceReadNoPort": "Lu dans la source : {pkgmgr}.",
+    "projectAdd.form.sourceReadProcesses": "Lu dans la source : {processes}.",
     "projectAdd.form.nameLabel": "Nom",
     "projectAdd.form.nameHelp": "Déduit de la source.",
     "projectAdd.form.folderHelp": "Dossier : {dir}",
     "projectAdd.form.namePlaceholder": "mon-site",
     "projectAdd.form.pkgmgrLabel": "Gestionnaire de paquets",
-    "projectAdd.form.pkgmgrDetected":
-      "Détecté : le serveur déclare déjà ce projet.",
+    "projectAdd.form.processesDetected":
+      "Lu sur le serveur : il déclare déjà ce projet, et voici ses processus.",
     "projectAdd.form.portLabel": "Port",
+    "projectAdd.processes.title": "Processus",
+    "projectAdd.processes.help":
+      "Ce qui tourne dans le projet : un processus au moins, chacun depuis son dossier avec sa commande. Le premier est le principal.",
+    "projectAdd.processes.idLabel": "Processus",
+    "projectAdd.processes.idHelp": "Nomme la fenêtre et le journal.",
+    "projectAdd.processes.idPlaceholder": "server",
+    "projectAdd.processes.dirLabel": "Dossier",
+    "projectAdd.processes.dirHelp": "Relatif au projet ; vide pour sa racine.",
+    "projectAdd.processes.dirPlaceholder": "client",
+    "projectAdd.processes.id":
+      "Minuscules, chiffres et tirets, en commençant et en finissant par une lettre ou un chiffre.",
+    "projectAdd.processes.idTaken":
+      "Un autre processus de ce projet porte cet identifiant.",
+    "projectAdd.processes.dir":
+      "Un dossier dans le projet : pas de barre oblique en tête, pas de « .. ».",
+    "projectAdd.processes.cmd": "Il faut une commande de démarrage.",
+    "projectAdd.processes.remove": "Retirer le processus {id}",
+    "projectAdd.processes.add": "Ajouter un processus",
     "projectAdd.ports.title": "Ports",
     "projectAdd.ports.help.local":
-      "Le premier port est le principal : c'est lui qui dit si le projet est en ligne. Aucune exposition n'est installée sur ce serveur, rien ne les publie.",
+      "Le premier port est le principal : c'est lui qui dit si le processus est en ligne. Aucune exposition n'est installée sur ce serveur, rien ne les publie.",
     "projectAdd.ports.help.published":
-      "Le premier port est le principal : c'est lui qui dit si le projet est en ligne. Un port publié reçoit un nom sur le web, complété du domaine du serveur.",
+      "Le premier port est le principal : c'est lui qui dit si le processus est en ligne. Un port publié reçoit un nom sur le web, complété du domaine du serveur.",
     "projectAdd.ports.labelLabel": "Libellé",
     "projectAdd.ports.labelPlaceholder": "web",
     "projectAdd.ports.webColumn": "Sur le web",
@@ -151,10 +199,10 @@ export const projectAdd = {
     "projectAdd.ports.label":
       "Minuscules, chiffres et tirets, en commençant et en finissant par une lettre ou un chiffre.",
     "projectAdd.ports.labelTaken":
-      "Un autre port de ce projet porte ce libellé.",
+      "Un autre port de ce processus porte ce libellé.",
     "projectAdd.ports.port": "Un port entre 1024 et 65535.",
     "projectAdd.ports.portTaken":
-      "Ce port est tenu par un autre projet du serveur, ou par une autre ligne.",
+      "Ce port est tenu par un autre projet du serveur, un autre processus, ou une autre ligne.",
     "projectAdd.ports.publish": "Publier",
     "projectAdd.ports.remove": "Retirer le port {label}",
     "projectAdd.ports.add": "Ajouter un port",
@@ -216,8 +264,7 @@ export const projectAdd = {
     "projectAdd.form.subdomain.taken":
       "Un autre port, sur ce serveur, répond déjà à ce nom.",
 
-    "projectAdd.panel.eyebrow": "Nouveau projet",
-    "projectAdd.panel.defaultServer": "Ce serveur",
+    "projectAdd.panel.title": "Nouveau projet",
     "projectAdd.panel.cancel": "Annuler",
     "projectAdd.panel.open": "Ouvrir le projet",
     "projectAdd.panel.loadingTitle": "Lecture des projets déjà déclarés",
@@ -235,8 +282,8 @@ export const projectAdd = {
     "projectAdd.phaseStatus.fail": "en échec",
 
     "projectAdd.sources.alreadyPresent": "le dossier est déjà sur le serveur",
-    "projectAdd.install.doneWithSources":
-      "faite avec la récupération des sources",
+    "projectAdd.install.nothing":
+      "le projet ne déclare aucune commande d'installation",
     "projectAdd.publish.local": "le projet reste local",
     "projectAdd.up.notRunningFix":
       "Lisez le journal ci-dessous, corrigez la commande de démarrage, puis réessayez.",

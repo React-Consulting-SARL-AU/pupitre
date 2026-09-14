@@ -27,7 +27,167 @@ function manifest(id: string, connection?: Manifest["connection"]): Manifest {
 }
 
 beforeEach(() => {
-  useConnections.setState({ health: {}, state: CONNECTED });
+  useConnections.setState({
+    busy: null,
+    choices: {},
+    health: {},
+    problems: {},
+    state: CONNECTED,
+  });
+});
+
+describe("le refus d'un jeton à la connexion", () => {
+  /** Two forms on one screen: a refusal belongs under the one that sent the token. */
+  it("reste sous le compte qui l'a reçu, et sous lui seul", async () => {
+    stubPupitre({
+      connectAccount: () =>
+        Promise.resolve({
+          ok: false,
+          error: {
+            code: "bad_request",
+            message: "refusal.connection.revoked",
+            phrase: {
+              id: "refusal.connection.revoked",
+              values: { kind: "cloudflare", reason: "no account" },
+            },
+          },
+        }),
+    });
+
+    expect(await useConnections.getState().connect("cloudflare", "cf_x")).toBe(
+      false
+    );
+
+    const { busy, problems } = useConnections.getState();
+
+    expect(busy).toBeNull();
+    expect(problems.cloudflare?.phrase?.values).toEqual({
+      kind: "cloudflare",
+      reason: "no account",
+    });
+    expect(problems.github).toBeUndefined();
+    expect(problems.wrangler).toBeUndefined();
+  });
+
+  it("s'efface quand le même compte est retenté, pas quand un autre l'est", async () => {
+    const refused = {
+      code: "bad_request" as const,
+      message: "refusal.connection.revoked",
+    };
+
+    useConnections.setState({ problems: { cloudflare: refused } });
+    stubPupitre({
+      connectionZones: () => Promise.resolve({ ok: true, result: [] }),
+      connectAccount: (kind) =>
+        Promise.resolve({
+          ok: true,
+          result: {
+            state: {
+              ...CONNECTED,
+              [kind]: {
+                account: { id: "1", name: "flymate" },
+                sealed: true,
+                status: "connected",
+              },
+            },
+            status: "connected",
+          },
+        }),
+    });
+
+    await useConnections.getState().connect("wrangler", "cf_w");
+
+    expect(useConnections.getState().problems.cloudflare).toEqual(refused);
+    expect(useConnections.getState().state.wrangler.status).toBe("connected");
+
+    await useConnections.getState().connect("cloudflare", "cf_ok");
+
+    expect(useConnections.getState().problems.cloudflare).toBeUndefined();
+  });
+
+  it("n'occupe que le compte en cours d'envoi", async () => {
+    const seen: unknown[] = [];
+
+    stubPupitre({
+      connectAccount: () => {
+        seen.push(useConnections.getState().busy);
+
+        return Promise.resolve({
+          ok: true,
+          result: { state: CONNECTED, status: "connected" },
+        });
+      },
+    });
+
+    await useConnections.getState().connect("neon", "neon_x");
+
+    expect(seen).toEqual(["neon"]);
+    expect(useConnections.getState().busy).toBeNull();
+  });
+});
+
+describe("un jeton qui ouvre plusieurs comptes", () => {
+  const ACCOUNTS = [
+    { id: "acc-1", name: "Flymate" },
+    { id: "acc-2", name: "Atelier" },
+  ];
+
+  /** Nothing is kept until the reader names the account: the choice sits under the card, not in the keychain. */
+  it("n'est pas connecté tant que le compte n'est pas choisi", async () => {
+    stubPupitre({
+      connectAccount: () =>
+        Promise.resolve({
+          ok: true,
+          result: { accounts: ACCOUNTS, status: "choose" },
+        }),
+    });
+
+    expect(await useConnections.getState().connect("wrangler", "cf_x")).toBe(
+      false
+    );
+
+    const { choices, state, busy } = useConnections.getState();
+
+    expect(choices.wrangler).toEqual(ACCOUNTS);
+    expect(choices.cloudflare).toBeUndefined();
+    expect(state.wrangler).toEqual({ status: "absent" });
+    expect(busy).toBeNull();
+  });
+
+  it("renvoie le jeton avec le compte choisi, puis oublie la question", async () => {
+    const sent: unknown[] = [];
+
+    useConnections.setState({ choices: { wrangler: ACCOUNTS } });
+    stubPupitre({
+      connectionZones: () => Promise.resolve({ ok: true, result: [] }),
+      connectAccount: (_kind, _token, accountId) => {
+        sent.push(accountId);
+
+        return Promise.resolve({
+          ok: true,
+          result: { state: CONNECTED, status: "connected" },
+        });
+      },
+    });
+
+    expect(
+      await useConnections.getState().connect("wrangler", "cf_x", "acc-2")
+    ).toBe(true);
+    expect(sent).toEqual(["acc-2"]);
+    expect(useConnections.getState().choices.wrangler).toBeUndefined();
+  });
+
+  it("laisse tomber la question quand le jeton est retapé", () => {
+    useConnections.setState({
+      choices: { cloudflare: ACCOUNTS, wrangler: ACCOUNTS },
+    });
+
+    useConnections.getState().dropChoice("wrangler");
+
+    expect(useConnections.getState().choices).toEqual({
+      cloudflare: ACCOUNTS,
+    });
+  });
 });
 
 describe("la santé d'un jeton", () => {

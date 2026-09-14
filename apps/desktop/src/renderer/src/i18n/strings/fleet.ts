@@ -1,8 +1,5 @@
 export const fleet = {
   en: {
-    "fleet.heading": "Granted by your organization",
-
-    "fleet.empty.title": "No server granted to you",
     "fleet.empty.detail":
       "An administrator of your organization assigns a server to you from the console.",
 
@@ -16,8 +13,8 @@ export const fleet = {
       "{count} granted servers are hidden on this computer.",
     "fleet.restore": "Put them back",
     "fleet.row.platformState": "Console",
+    "fleet.row.organization": "Organization",
     "fleet.row.open": "Open",
-    "fleet.row.reopen": "Drive it",
     "fleet.row.granted": "Granted",
     "fleet.row.pending": "Being prepared",
     "fleet.row.withdrawn": "Withdrawn",
@@ -39,9 +36,6 @@ export const fleet = {
     "fleet.organizations.active": "Active",
   },
   fr: {
-    "fleet.heading": "Attribués par votre organisation",
-
-    "fleet.empty.title": "Aucun serveur ne vous est attribué",
     "fleet.empty.detail":
       "Un administrateur de votre organisation vous attribue un serveur depuis la console.",
 
@@ -56,8 +50,8 @@ export const fleet = {
       "{count} serveurs attribués sont masqués sur cet ordinateur.",
     "fleet.restore": "Les remettre",
     "fleet.row.platformState": "Console",
+    "fleet.row.organization": "Organisation",
     "fleet.row.open": "Ouvrir",
-    "fleet.row.reopen": "Le piloter",
     "fleet.row.granted": "Attribué",
     "fleet.row.pending": "En préparation",
     "fleet.row.withdrawn": "Retiré",

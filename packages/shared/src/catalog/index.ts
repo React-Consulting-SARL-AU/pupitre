@@ -30,22 +30,34 @@ export const MODULE_IDS = [
   "runtime.php",
   "runtime.ruby",
   "runtime.docker",
+  "runtime.rust",
   "db.mysql",
   "db.postgres",
   "db.mongodb",
   "db.redis",
+  "db.mailpit",
   "ai.claude",
   "ai.codex",
+  "ai.cursor",
+  "ai.gemini",
+  "ai.copilot",
+  "ai.opencode",
   "ai.hermes",
+  "ai.openclaw",
   "ai.browser",
   "editor.jetbrains",
   "editor.vscode",
   "editor.zed",
   "exposure.cloudflare",
   "exposure.caddy",
+  "exposure.tailscale",
   "tool.github",
   "tool.1password",
   "tool.neon",
+  "tool.wrangler",
+  "tool.vercel",
+  "tool.supabase",
+  "tool.stripe",
 ] as const
 
 export const ModuleIdSchema = z.enum(MODULE_IDS)
@@ -184,12 +196,21 @@ export type Resources = z.infer<typeof ResourcesSchema>
  * A token that is the same on every machine belongs to the account, not to a
  * server: the app keeps it in the system keychain and fills the module's
  * managed field with it at install time.
+ *
+ * `cloudflare` and `wrangler` open the same account with two tokens: the first
+ * makes tunnels and DNS records from the laptop and never leaves it, the second
+ * is exported into the server's shell for Wrangler. One token for both would
+ * put the rights over the client's domain where their agents run.
  */
 export const CONNECTION_KINDS = [
   "cloudflare",
+  "wrangler",
   "github",
   "1password",
   "neon",
+  "vercel",
+  "supabase",
+  "stripe",
 ] as const
 
 export const ConnectionKindSchema = z.enum(CONNECTION_KINDS)
@@ -242,6 +263,11 @@ export const PresetSchema = z.object({
 
 export type Preset = z.infer<typeof PresetSchema>
 
+const EXCLUSIVE_EXPOSURES: readonly ModuleId[] = [
+  "exposure.caddy",
+  "exposure.cloudflare",
+]
+
 export const PRESETS: readonly Preset[] = [
   {
     id: "web-js",
@@ -257,19 +283,28 @@ export const PRESETS: readonly Preset[] = [
     ],
   },
   {
-    // The two exposure modules contradict each other, so the preset carries
+    // Caddy and the tunnel contradict each other, so the preset carries
     // neither and asks which one instead. Ticking none of them is a state of
-    // its own: the machine answers through the app's own session.
+    // its own: the machine answers through the app's own session. Tailscale
+    // is an exposure too, but a private one that lives beside either.
     id: "full",
     name: "Tout le catalogue",
-    modules: MODULE_IDS.filter((id) => !id.startsWith("exposure.")),
-    choose_one: ["exposure.caddy", "exposure.cloudflare"],
+    modules: MODULE_IDS.filter((id) => !EXCLUSIVE_EXPOSURES.includes(id)),
+    choose_one: [...EXCLUSIVE_EXPOSURES],
   },
   {
     id: "minimal",
     name: "Minimal",
     modules: [...MANDATORY_MODULE_IDS],
-    choose_one: ["ai.claude", "ai.codex", "ai.hermes"],
+    choose_one: [
+      "ai.claude",
+      "ai.codex",
+      "ai.cursor",
+      "ai.gemini",
+      "ai.copilot",
+      "ai.opencode",
+      "ai.hermes",
+    ],
   },
 ]
 

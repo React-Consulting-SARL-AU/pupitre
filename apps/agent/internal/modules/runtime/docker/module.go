@@ -42,10 +42,12 @@ const (
 	logFiles       = "3"
 )
 
+// live-restore keeps the containers running across a daemon restart: a rewritten configuration or an upgrade costs no project its database.
 type daemon struct {
-	DataRoot  string            `json:"data-root,omitempty"`
-	LogDriver string            `json:"log-driver"`
-	LogOpts   map[string]string `json:"log-opts"`
+	DataRoot    string            `json:"data-root,omitempty"`
+	LiveRestore bool              `json:"live-restore"`
+	LogDriver   string            `json:"log-driver"`
+	LogOpts     map[string]string `json:"log-opts"`
 }
 
 type Module struct{}
@@ -271,9 +273,10 @@ func config(ctx *modules.Context) ([]byte, error) {
 	}
 
 	content, err := json.MarshalIndent(daemon{
-		DataRoot:  strings.TrimSpace(ctx.String("data_root")),
-		LogDriver: "json-file",
-		LogOpts:   map[string]string{"max-size": size, "max-file": logFiles},
+		DataRoot:    strings.TrimSpace(ctx.String("data_root")),
+		LiveRestore: true,
+		LogDriver:   "json-file",
+		LogOpts:     map[string]string{"max-size": size, "max-file": logFiles},
 	}, "", "  ")
 	if err != nil {
 		return nil, err

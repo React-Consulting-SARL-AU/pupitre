@@ -90,13 +90,13 @@ func PrintFailure(stderr io.Writer, err error) int {
 
 func (p *printer) projectAction(name string, result contract.ProjectActionResult) {
 	if len(result.Projects) == 0 {
-		p.line(fmt.Sprintf("%-24s %-9s %s", name, result.State, port(result.Port)))
+		p.line(fmt.Sprintf("%-24s %-9s", name, result.State))
 
 		return
 	}
 
 	for _, project := range result.Projects {
-		p.line(fmt.Sprintf("%-24s %-9s %s", project.Name, project.State, port(project.Port)))
+		p.line(fmt.Sprintf("%-24s %-9s", project.Name, project.State))
 	}
 }
 
@@ -109,8 +109,17 @@ func (p *printer) status(status contract.Status) {
 		p.line("")
 	}
 
+	// One line per project, then one per process when there are several: a single process says everything on the project's own line.
 	for _, project := range status.Projects {
-		p.line(fmt.Sprintf("%-24s %-9s %-11s %s", project.Name, project.State, port(project.Port), project.Branch))
+		if len(project.Processes) == 1 {
+			p.line(fmt.Sprintf("%-24s %-9s %-11s %s", project.Name, project.State, port(project.Processes[0].Port), project.Branch))
+			continue
+		}
+
+		p.line(fmt.Sprintf("%-24s %-9s %-11s %s", project.Name, project.State, "", project.Branch))
+		for _, process := range project.Processes {
+			p.line(fmt.Sprintf("  %-22s %-9s %s", process.ID, process.State, port(process.Port)))
+		}
 	}
 }
 

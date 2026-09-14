@@ -20,12 +20,20 @@ export interface LoginDeps {
   openExternal: (url: string) => void;
 }
 
+/** A click lands on one row of the screen; the address the session printed may go on past it. */
+function whole(id: string, clicked: string, deps: LoginDeps): string {
+  const printed = deps.pending(id);
+
+  return printed?.url.startsWith(clicked) ? printed.url : clicked;
+}
+
 export async function openFromTerminal(
   id: string,
-  url: string,
+  clicked: string,
   deps: LoginDeps
 ): Promise<boolean> {
   const serverId = deps.serverOf(id);
+  const url = whole(id, clicked, deps);
 
   if (!(serverId && deps.openable(url))) {
     return false;

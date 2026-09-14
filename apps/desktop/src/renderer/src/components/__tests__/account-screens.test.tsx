@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import type { AccountState, UsageRight } from "@shared/account";
+import type {
+  AccountIdentity,
+  AccountState,
+  UsageRight,
+} from "@shared/account";
 import { renderToStaticMarkup } from "react-dom/server";
 import { AccountGateScreen } from "../account/account-gate-screen";
 import { AccountIdentityCard } from "../account/account-identity-card";
@@ -26,6 +30,18 @@ function text(html: string): string {
     .trim();
 }
 
+const ADA: AccountIdentity = {
+  email: "ada@pupitre.studio",
+  entitlement: "valid",
+  name: "Ada Lovelace",
+  organization: { id: "org-1", name: "Atelier Ada", slug: "ada" },
+  organizations: [
+    { id: "org-1", name: "Atelier Ada", role: "owner", slug: "ada" },
+  ],
+  role: "owner",
+  subscription: null,
+};
+
 const SIGNED_IN: AccountState = {
   build: "production",
   checkedAt: new Date().toISOString(),
@@ -36,17 +52,7 @@ const SIGNED_IN: AccountState = {
     name: "MacBook d'Ada",
     publicKey: "ssh-ed25519 AAAA",
   },
-  identity: {
-    email: "ada@pupitre.studio",
-    entitlement: "valid",
-    name: "Ada Lovelace",
-    organization: { id: "org-1", name: "Atelier Ada", slug: "ada" },
-    organizations: [
-      { id: "org-1", name: "Atelier Ada", role: "owner", slug: "ada" },
-    ],
-    role: "owner",
-    subscription: null,
-  },
+  identity: ADA,
   refusal: null,
   sealed: true,
   usage: {
@@ -91,6 +97,7 @@ describe("le droit d'usage", () => {
         status: "stale",
       }),
       usage({ consoleUrl: CONSOLE_URL, status: "suspended" }),
+      usage({ consoleUrl: CONSOLE_URL, status: "unsubscribed" }),
     ].map((html) => html.match(/data-shape="([a-z]+)"/)?.[1]);
 
     expect(shapes).toEqual([
@@ -100,7 +107,35 @@ describe("le droit d'usage", () => {
       "empty",
       "struck",
       "struck",
+      "empty",
     ]);
+  });
+
+  it("envoie choisir une offre à l'organisation qui n'en a pas, et gérer la sienne à celle qui est suspendue", () => {
+    const unsubscribed = text(
+      renderToStaticMarkup(
+        <AccountUsageNotice
+          checkedAt={null}
+          onOpenConsole={NOOP}
+          usage={{ consoleUrl: CONSOLE_URL, status: "unsubscribed" }}
+        />
+      )
+    );
+    const suspended = text(
+      renderToStaticMarkup(
+        <AccountUsageNotice
+          checkedAt={null}
+          onOpenConsole={NOOP}
+          usage={{ consoleUrl: CONSOLE_URL, status: "suspended" }}
+        />
+      )
+    );
+
+    expect(unsubscribed).toContain("Aucun abonnement");
+    expect(unsubscribed).toContain("Choisir une offre");
+    expect(unsubscribed).not.toContain("suspendu");
+    expect(suspended).toContain("Abonnement suspendu");
+    expect(suspended).toContain("Gérer l'abonnement");
   });
 
   it("nomme les sept jours de tolérance quand le cache tient encore", () => {
@@ -287,14 +322,72 @@ describe("l'écran de compte", () => {
 
     expect(text(html)).toContain("Vérification expirée");
     expect(text(html)).toContain("Dernière vérification");
-    expect(text(html)).toContain(
-      `Reconnecte cet appareil, ou vérifie l'état du compte : ${CONSOLE_URL}`
+    expect(text(html)).toContain("Ouvrir la console");
+    expect(text(html)).not.toContain("le droit d'usage a expiré");
+  });
+
+  const UNSUBSCRIBED: AccountState = {
+    ...SIGNED_IN,
+    identity: { ...ADA, entitlement: "suspended" },
+    refusal: {
+      code: "entitlement_required",
+      fix: `Choisissez une offre dans la console : ${CONSOLE_URL}`,
+      message: "Cette organisation n'a pas d'abonnement.",
+    },
+    usage: { consoleUrl: CONSOLE_URL, status: "unsubscribed" },
+  };
+
+  it("dit à qui est connecté sans offre laquelle choisir, une seule fois, sans lui redemander de se connecter", () => {
+    const html = text(gate(UNSUBSCRIBED));
+
+    expect(html).toContain("Choisissez une offre pour ouvrir Pupitre");
+    expect(html).toContain("Atelier Ada n'a pas d'abonnement");
+    expect(html).toContain("Choisir une offre");
+    expect(html).toContain("Actualiser");
+    expect(html).toContain("ada@pupitre.studio");
+    expect(html).not.toContain("Se connecter");
+    expect(html).not.toContain("suspendu");
+    expect(html.match(/pas d'abonnement/g)).toHaveLength(1);
+  });
+
+  it("nomme la suspension une seule fois, avec le geste qui la règle", () => {
+    const html = text(
+      gate({
+        ...UNSUBSCRIBED,
+        identity: {
+          ...ADA,
+          entitlement: "suspended",
+          subscription: {
+            current_period_end: "2026-08-31T00:00:00.000Z",
+            servers: { limit: 1, used: 1 },
+            status: "canceled",
+            trial_ends_at: null,
+          },
+        },
+        refusal: {
+          code: "server_suspended",
+          fix: `Régularisez l'abonnement dans la console : ${CONSOLE_URL}`,
+          message: "L'abonnement de cette organisation est suspendu.",
+        },
+        usage: { consoleUrl: CONSOLE_URL, status: "suspended" },
+      })
     );
+
+    expect(html).toContain("Abonnement suspendu");
+    expect(html).toContain("Gérer l'abonnement");
+    expect(html).not.toContain("Se connecter");
+    expect(html.match(/suspendu/g)).toHaveLength(2);
+  });
+
+  it("ne propose pas à un build de développement de continuer sans compte quand c'est l'offre qui manque", () => {
+    const html = text(gate({ ...UNSUBSCRIBED, build: "development" }));
+
+    expect(html).not.toContain("Continuer sans compte");
   });
 });
 
 describe("l'identité", () => {
-  it("montre le compte, l'organisation et l'empreinte de l'appareil", () => {
+  it("montre le compte et l'organisation, et laisse l'appareil à la liste des appareils", () => {
     const html = renderToStaticMarkup(
       <AccountIdentityCard
         account={SIGNED_IN}
@@ -307,7 +400,7 @@ describe("l'identité", () => {
     expect(text(html)).toContain("Atelier Ada");
     expect(text(html)).toContain("Propriétaire");
     expect(text(html)).not.toContain("owner");
-    expect(text(html)).toContain("SHA256:mac");
+    expect(text(html)).not.toContain("SHA256:mac");
     expect(text(html)).toContain("Se déconnecter");
   });
 

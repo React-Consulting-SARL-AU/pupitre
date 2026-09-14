@@ -1,12 +1,14 @@
 package github
 
 import (
-	"pupitre.studio/agent/internal/i18n"
+	"encoding/json"
 	"runtime"
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/login"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/apt"
@@ -30,6 +32,8 @@ const (
 	helperKey  = "credential.https://github.com.helper"
 	envKey     = "GITHUB_TOKEN"
 	defaultTag = "pupitre"
+
+	host = "github.com"
 )
 
 func sourceLine() string {
@@ -104,11 +108,12 @@ func addRepository(ctx *modules.Context) error {
 }
 
 func (Module) Configure(ctx *modules.Context) error {
-	if err := storeToken(ctx); err != nil {
+	rotated, err := storeToken(ctx)
+	if err != nil {
 		return err
 	}
 
-	if err := authenticate(ctx); err != nil {
+	if err := authenticate(ctx, rotated); err != nil {
 		return err
 	}
 
@@ -123,25 +128,31 @@ func (Module) Configure(ctx *modules.Context) error {
 	return registerKey(ctx)
 }
 
-func storeToken(ctx *modules.Context) error {
-	return ctx.Step("store-token", func() (modules.Outcome, error) {
+func storeToken(ctx *modules.Context) (bool, error) {
+	rotated := false
+
+	err := ctx.Step("store-token", func() (modules.Outcome, error) {
 		stored, err := env.Set(ctx, envKey, ctx.Secret("token"))
 		if err != nil {
 			return modules.Failed, err
 		}
 
+		rotated = stored
 		if !stored {
 			return modules.Skipped, nil
 		}
 
 		return modules.Done, nil
 	})
+
+	return rotated, err
 }
 
 // The token travels on the standard input: gh reads it there, and neither the journal nor a process listing ever sees it.
-func authenticate(ctx *modules.Context) error {
+// A signed-in gh holds the token it was given, so a rotated one signs in again.
+func authenticate(ctx *modules.Context, rotated bool) error {
 	return ctx.Step("authenticate-gh", func() (modules.Outcome, error) {
-		if login(ctx) != "" {
+		if !rotated && accountLogin(ctx) != "" {
 			return modules.Skipped, nil
 		}
 
@@ -274,8 +285,40 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	return status, nil
 }
 
+type authStatus struct {
+	Hosts map[string][]struct {
+		State string `json:"state"`
+		Login string `json:"login"`
+		Error string `json:"error"`
+	} `json:"hosts"`
+}
+
+// gh auth status asks GitHub whose token it holds; --active keeps the account the clones use, and the JSON is printed signed in or not.
+func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
+	out, _ := login.Ask(ctx, nil, "gh", "auth", "status", "--active", "--json", "hosts")
+
+	var status authStatus
+	if err := json.Unmarshal([]byte(out.Stdout), &status); err != nil {
+		return login.Unknown(i18n.T("login.unanswered", "gh", "gh auth status"))
+	}
+
+	accounts := status.Hosts[host]
+	if len(accounts) == 0 {
+		return login.SignedOut(i18n.T("login.github.fix"))
+	}
+
+	switch active := accounts[0]; {
+	case active.State == "success":
+		return login.SignedIn(active.Login)
+	case strings.Contains(active.Error, "401"):
+		return login.SignedOut(i18n.T("login.github.fix"))
+	}
+
+	return login.Unknown(i18n.T("login.unanswered", "gh", "gh auth status"))
+}
+
 // gh api answers on the standard output and only when the token opens the account, which is the question here.
-func login(ctx *modules.Context) string {
+func accountLogin(ctx *modules.Context) string {
 	out, err := user.Run(ctx, shell.User, "gh", "api", "user", "--jq", ".login")
 	if err != nil {
 		return ""

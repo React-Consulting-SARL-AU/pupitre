@@ -6,6 +6,7 @@ import type { BuildKind, SignInProgress } from "@shared/account";
 import { type AccountDeps, createAccount, TOLERANCE_MS } from "../account-run";
 import { createTokenVault } from "../account-vault";
 import {
+  CANCELED_SUBSCRIPTION,
   DEVICE,
   FAKE_KEY,
   FAKE_TOKEN,
@@ -266,15 +267,45 @@ describe("le droit d'usage", () => {
   it("refuse tout de suite une organisation suspendue", async () => {
     const { account } = harness({
       build: "production",
-      identity: { ...IDENTITY, entitlement: "suspended" },
+      identity: {
+        ...IDENTITY,
+        entitlement: "suspended",
+        subscription: CANCELED_SUBSCRIPTION,
+      },
     });
     const { report } = progressOf();
 
     await account.signIn(report);
 
+    expect(account.state().usage).toMatchObject({ status: "suspended" });
     expect(account.guard()).toMatchObject({
       ok: false,
       error: { code: "server_suspended" },
+    });
+  });
+
+  it("distingue l'organisation qui n'a jamais choisi d'offre de celle dont l'abonnement s'est arrêté", async () => {
+    const { account } = harness({
+      build: "production",
+      identity: { ...IDENTITY, entitlement: "suspended", subscription: null },
+    });
+    const { report } = progressOf();
+
+    await account.signIn(report);
+
+    expect(account.state().usage).toEqual({
+      consoleUrl: "https://app.pupitre.test/dashboard",
+      status: "unsubscribed",
+    });
+    expect(account.guard()).toMatchObject({
+      ok: false,
+      error: {
+        code: "entitlement_required",
+        phrase: {
+          id: "refusal.account.unsubscribed",
+          values: { console: "https://app.pupitre.test/dashboard" },
+        },
+      },
     });
   });
 
@@ -342,7 +373,11 @@ describe("le droit d'usage", () => {
   it("porte le refus d'une organisation suspendue tel que le garde le dit", async () => {
     const { account } = harness({
       build: "production",
-      identity: { ...IDENTITY, entitlement: "suspended" },
+      identity: {
+        ...IDENTITY,
+        entitlement: "suspended",
+        subscription: CANCELED_SUBSCRIPTION,
+      },
     });
     const { report } = progressOf();
 

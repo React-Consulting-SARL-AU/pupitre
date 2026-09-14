@@ -1,6 +1,7 @@
 package codex
 
 import (
+	"encoding/base64"
 	"strings"
 	"testing"
 
@@ -116,3 +117,68 @@ func asStepError(err error, target **modules.StepError) bool {
 }
 
 var _ modules.Module = Module{}
+
+// A JWT whose payload carries an email, as the ChatGPT sign-in leaves one in auth.json; the signature is nothing here.
+func identityToken(t *testing.T, email string) string {
+	t.Helper()
+
+	payload := base64.RawURLEncoding.EncodeToString([]byte(`{"email":"` + email + `","sub":"user"}`))
+
+	return "eyJhbGciOiJSUzI1NiJ9." + payload + ".signature"
+}
+
+// codex login status says whether it holds a session; the account comes from the identity token the sign-in left, or from nowhere.
+func TestLoginReadsWhatCodexLoginStatusSays(t *testing.T) {
+	cases := map[string]struct {
+		answer  string
+		refused bool
+		auth    string
+		want    contract.Login
+	}{
+		"signed in with ChatGPT": {
+			answer: "Logged in using ChatGPT\n",
+			auth:   `{"auth_mode":"chatgpt","tokens":{"id_token":"` + identityToken(t, "jordan@example.org") + `","access_token":"x"}}`,
+			want:   contract.Login{State: contract.LoginSignedIn, Account: "jordan@example.org"},
+		},
+		"signed in with an API key": {
+			answer: "Logged in using API key\n",
+			auth:   `{"auth_mode":"apikey","OPENAI_API_KEY":"sk-test"}`,
+			want:   contract.Login{State: contract.LoginSignedIn},
+		},
+		"nobody": {
+			answer:  "Not logged in\n",
+			refused: true,
+			want:    contract.Login{State: contract.LoginSignedOut, Fix: "Open a terminal on this server and run codex login --device-auth: the code it prints goes on the page it names."},
+		},
+		"no answer": {
+			answer:  "",
+			refused: true,
+			want:    contract.Login{State: contract.LoginUnknown, Fix: "Codex did not answer its own check: read this service again in a moment, or run codex login status in a terminal on this server."},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			fake := modtest.NewFakeSys()
+			if tc.auth != "" {
+				fake.Files[authPath] = []byte(tc.auth)
+			}
+			if tc.refused {
+				fake.Refuse("codex login status", tc.answer)
+			} else {
+				fake.Answer("codex login status", tc.answer)
+			}
+
+			got, asked := (Module{}).Login(newContext(t, fake))
+			if !asked || got != tc.want {
+				t.Fatalf("login = %+v (%v), want %+v", got, asked, tc.want)
+			}
+
+			for _, line := range fake.Commands() {
+				if strings.Contains(line, "sk-test") || strings.Contains(line, "eyJ") {
+					t.Fatalf("a credential reached a command line: %s", line)
+				}
+			}
+		})
+	}
+}

@@ -40,6 +40,7 @@ import { useHistoryShortcuts } from "./lib/use-history-shortcuts";
 import { useMainCommands } from "./lib/use-main-commands";
 import { usePaletteShortcut } from "./lib/use-palette-shortcut";
 import { usePlatformSync } from "./lib/use-platform-sync";
+import { useServiceAccounts } from "./lib/use-service-accounts";
 import { accountOf, useAccount } from "./stores/account";
 import { announces, useAgentUpdate } from "./stores/agent-update";
 import { useChannel } from "./stores/channel";
@@ -95,7 +96,7 @@ export function App() {
   const historyLength = useNavigation((s) => s.history.length);
   const goTo = useNavigation((s) => s.goTo);
   const openService = useNavigation((s) => s.openService);
-  const serviceFocus = useNavigation((s) => s.serviceFocus);
+  const service = useNavigation((s) => s.service);
   const select = useNavigation((s) => s.select);
   const goBack = useNavigation((s) => s.back);
   const goForward = useNavigation((s) => s.forward);
@@ -145,6 +146,16 @@ export function App() {
 
   usePlatformSync(serverId);
   useHistoryShortcuts();
+
+  const runningServices = useMemo(
+    () => (snapshot?.services ?? []).filter((service) => service.runs),
+    [snapshot]
+  );
+  const accounts = useServiceAccounts(
+    serverId,
+    runningServices,
+    view === "dashboard"
+  );
 
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
@@ -220,7 +231,7 @@ export function App() {
 
     const names = projects.map((project) => project.name);
 
-    noteProjects(names);
+    noteProjects(projects);
     settle(names);
   }, [projects, settle]);
 
@@ -361,6 +372,7 @@ export function App() {
   }
 
   const project = snapshot.projects.find((p) => p.name === selection) ?? null;
+  const serverName = server?.name ?? snapshot.machine.hostname;
 
   // The server's own screens take nothing but the server: a lookup, not a
   // branch each, so a view added tomorrow is one key here.
@@ -369,10 +381,11 @@ export function App() {
       <FilesScreen
         onTerminal={(dir) => openTerminal(null, "shell", dir)}
         serverId={serverId}
+        serverName={serverName}
         services={snapshot.services}
       />
     ),
-    shots: <ShotsScreen serverId={serverId} />,
+    shots: <ShotsScreen serverId={serverId} serverName={serverName} />,
   };
 
   return (
@@ -467,6 +480,7 @@ export function App() {
             {view === "dashboard" ? (
               <div className="absolute inset-0">
                 <DashboardPanel
+                  accounts={accounts}
                   attached={attached}
                   busy={busy}
                   onAct={(action, name) => act(action, serverId, name)}
@@ -479,6 +493,7 @@ export function App() {
                     reboot(serverId, server?.name ?? snapshot.machine.hostname)
                   }
                   onStopSession={(pid) => stopProcess(serverId, pid)}
+                  serverName={server?.name}
                   snapshot={snapshot}
                 />
               </div>
@@ -500,7 +515,6 @@ export function App() {
                   onFinish={(name) => read(serverId).then(() => select(name))}
                   onInstallModule={() => goTo("services")}
                   serverId={serverId}
-                  serverName={server?.name}
                   services={snapshot.services.map((service) => service.id)}
                 />
               </div>
@@ -521,12 +535,14 @@ export function App() {
             {view === "services" ? (
               <div className="absolute inset-0">
                 <ServicesScreen
+                  onCloseService={() => goTo("services")}
                   onMachineName={(name) =>
                     serverId && useServers.getState().rename(serverId, name)
                   }
-                  openAt={serviceFocus}
+                  onOpenService={openService}
                   serverId={serverId}
                   serverName={server?.name}
+                  service={service}
                   services={snapshot.services}
                 />
               </div>
@@ -550,6 +566,7 @@ export function App() {
                   onStopSession={(pid) => stopProcess(serverId, pid)}
                   processes={processes}
                   processesProblem={processesProblem}
+                  serverName={serverName}
                   sessions={snapshot.sessions}
                 />
               </div>
@@ -576,6 +593,7 @@ export function App() {
                   onClose={closeTerminal}
                   onNew={openTerminal}
                   onRename={renameTerminal}
+                  serverName={serverName}
                   states={terminalStates}
                   terminals={serverTerminals}
                 />

@@ -31,9 +31,8 @@
     "EMAIL_FROM",
     "PUPITRE_PLATFORM_URL",
     "PUPITRE_AGENT_PLATFORM_URL",
-    "PUPITRE_TUNNEL_NAME",
+    "PUPITRE_TUNNEL_TOKEN",
     "PUPITRE_TUNNEL_HOSTNAME",
-    "PUPITRE_TUNNEL_SERVICE",
     "PUPITRE_DEV_SERVER_NAME",
     "PUPITRE_DEV_SERVER_HOST",
     "PUPITRE_DEV_SERVER_PORT",
@@ -95,8 +94,8 @@
       "persistent": true,
       "passThroughEnv": ["STRIPE_SECRET_KEY"]
     },
-    // The named tunnel that gives the local console the stable address a VPS
-    // reaches it at. It serves /api/v1/agent/ and nothing else.
+    // The tunnel that gives the local console the stable address a VPS reaches
+    // it at, run from its token; the dashboard limits it to /api/v1/agent/.
     "dev:tunnel": {
       "cache": false,
       "persistent": true

@@ -10,8 +10,7 @@ import { createLogger, defineConfig, type Plugin } from "vite"
 const ROOT = path.dirname(fileURLToPath(import.meta.url))
 
 /** The host `scripts/dev-tunnel.ts` publishes this console under: Vite answers 403 to any host it was not told about. */
-const TUNNEL_HOST =
-  process.env.PUPITRE_TUNNEL_HOSTNAME ?? "dev-app.pupitre.studio"
+const TUNNEL_HOST = process.env.PUPITRE_TUNNEL_HOSTNAME ?? "dev.pupitre.studio"
 
 const MAX_CAUSE_DEPTH = 5
 

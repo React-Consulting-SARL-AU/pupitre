@@ -48,6 +48,13 @@ func (r *Reader) ServiceStatus(id string) (contract.ServiceStatus, error) {
 	service := status.Service(module.Manifest())
 	service.Configured = !slices.Contains(r.deferred(), id)
 
+	// The CLI's own sign-in check is worth a round trip here, for one module the reader opened — never in a snapshot.
+	if account, signs := module.(modules.Account); signs {
+		if login, asked := account.Login(r.moduleContext(module)); asked {
+			service.Login = &login
+		}
+	}
+
 	return service, nil
 }
 
@@ -115,20 +122,62 @@ func (r *Reader) list(collected tmux.Collection, table processTable) []contract.
 	projects := make([]contract.Project, 0, len(file.Projects))
 	for _, declared := range file.Projects {
 		project := declared.Contract(r.options.Paths.Resolved().Projects)
-		project.State = tmux.State(ctx, r.options.Tmux, project, collected)
+
+		for at, process := range declared.Processes {
+			window := declared.Window(process.ID)
+			project.Processes[at].State = tmux.State(ctx, r.options.Tmux, window, process.PkgMgr, process.Port, collected)
+			project.Processes[at].URL = processURL(process)
+			project.Processes[at].PID = collected.PID(window)
+			project.Processes[at].RAMMB = memory[window]
+			project.Processes[at].UptimeS = collected.Seconds(window)
+		}
+
+		project.State = aggregate(project.Processes)
 		project.URL = url(declared)
 		// The registry's branch stands until there is a working tree to read: a project cloned on release/2.0 says so before its first clone.
 		if head := r.branch(branches, declared); head != "" {
 			project.Branch = head
 		}
-		project.PID = collected.PID(declared.Name)
-		project.RAMMB = memory[declared.Name]
-		project.UptimeS = collected.Seconds(declared.Name)
 
 		projects = append(projects, project)
 	}
 
 	return projects
+}
+
+// A project's state is read off its processes, the worst first: one failed process is a failed project, one starting is a starting one, all online is online, some online is partial. Services do not count as ours, but a project of nothing else is a service.
+func aggregate(processes []contract.ProjectProcess) contract.ProjectState {
+	counted := map[contract.ProcessState]int{}
+	ours := 0
+	for _, process := range processes {
+		counted[process.State]++
+		if process.State != contract.ProcessService && process.State != contract.ProcessDown {
+			ours++
+		}
+	}
+
+	switch {
+	case counted[contract.ProcessFailed] > 0:
+		return contract.ProjectFailed
+	case counted[contract.ProcessStarting] > 0:
+		return contract.ProjectStarting
+	case ours == 0 && counted[contract.ProcessService] > 0:
+		return contract.ProjectService
+	case ours == 0:
+		return contract.ProjectDown
+	}
+
+	up := counted[contract.ProcessOnline] + counted[contract.ProcessExternal]
+	switch {
+	case up == ours && counted[contract.ProcessExternal] == ours:
+		return contract.ProjectExternal
+	case up == ours:
+		return contract.ProjectOnline
+	case up > 0:
+		return contract.ProjectPartial
+	}
+
+	return contract.ProjectStopped
 }
 
 // Read from .git/HEAD rather than by launching git: git takes ten milliseconds just to start, and several projects share one repository.

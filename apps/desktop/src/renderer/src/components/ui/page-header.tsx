@@ -42,7 +42,7 @@ export function PageHeader({
       className="flex flex-wrap items-start justify-between gap-gutter"
       data-step-heading={step}
     >
-      <div className="flex min-w-0 items-start gap-3">
+      <div className="flex min-w-0 flex-1 items-start gap-3">
         {leading ? <div className="shrink-0 pt-0.5">{leading}</div> : null}
 
         <div className="min-w-0">

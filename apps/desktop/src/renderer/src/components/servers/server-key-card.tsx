@@ -2,6 +2,7 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import type { Server } from "@shared/servers";
 import { Button } from "../ui/button";
 import { CopyField } from "../ui/copy-field";
+import { Panel } from "../ui/panel";
 
 /**
  * What is left to do on the server, and it is one line.
@@ -27,7 +28,7 @@ export function ServerKeyCard({
   const t = useTranslations();
 
   return (
-    <div className="elevation-raised fade-in rounded-md border border-line bg-surface p-5">
+    <Panel className="fade-in" inset="lg">
       <h3 className="font-medium text-ink">
         {t("servers.key.title", { name: server.name })}
       </h3>
@@ -56,6 +57,6 @@ export function ServerKeyCard({
           {doneLabel ?? t("servers.key.done")}
         </Button>
       </div>
-    </div>
+    </Panel>
   );
 }

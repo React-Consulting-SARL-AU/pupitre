@@ -1,15 +1,17 @@
 import { Button } from "@renderer/components/ui/button";
 import { ConfirmButton } from "@renderer/components/ui/confirm-button";
-import { Label } from "@renderer/components/ui/label";
+import { Fact, FactList } from "@renderer/components/ui/fact";
+import { Panel } from "@renderer/components/ui/panel";
+import { Section } from "@renderer/components/ui/section";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { roleLabel } from "@renderer/lib/roles";
 import type { AccountState } from "@shared/account";
 import { LogOut, RotateCw } from "lucide-react";
 
 /**
- * Who this app is signed in as, and which device the platform believes this
- * computer to be. The fingerprint is the device's public half: the private one
- * has never left this folder.
+ * Who this app is signed in as, and in which organization. The device this
+ * computer is stands in the devices list below, marked as this one, so it is
+ * not said twice.
  */
 export function AccountIdentityCard({
   account,
@@ -23,23 +25,16 @@ export function AccountIdentityCard({
 }) {
   const t = useTranslations();
 
-  const { identity, device } = account;
+  const { identity } = account;
 
   if (!identity) {
     return null;
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-md border border-line bg-surface px-4 py-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-medium text-ink">{identity.name}</p>
-          <p className="mt-0.5 font-data text-[12px] text-ink-3">
-            {identity.email}
-          </p>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
+    <Section
+      actions={
+        <>
           <Button icon={RotateCw} onClick={onRefresh} size="sm">
             {t("account.identity.refresh")}
           </Button>
@@ -52,41 +47,36 @@ export function AccountIdentityCard({
           >
             {t("account.identity.disconnect")}
           </ConfirmButton>
-        </div>
-      </div>
-
-      <div className="grid gap-3 border-line border-t pt-3 sm:grid-cols-2">
-        <div className="min-w-0">
-          <Label>{t("account.identity.organization")}</Label>
-          <p className="mt-1 truncate text-ink-2">
+        </>
+      }
+      name="identity"
+      title={t("account.identity.title")}
+    >
+      <Panel className="flex flex-col gap-4">
+        <FactList>
+          <Fact
+            detail={identity.email}
+            label={t("account.identity.name")}
+            prose
+          >
+            {identity.name}
+          </Fact>
+          <Fact
+            detail={identity.role ? roleLabel(t, identity.role) : undefined}
+            label={t("account.identity.organization")}
+            prose
+          >
             {identity.organization?.name ??
               t("account.identity.noOrganization")}
-          </p>
-          {identity.role ? (
-            <p className="mt-0.5 text-[12px] text-ink-3">
-              {roleLabel(t, identity.role)}
-            </p>
-          ) : null}
-        </div>
+          </Fact>
+        </FactList>
 
-        <div className="min-w-0">
-          <Label>{t("account.identity.device")}</Label>
-          <p className="mt-1 truncate text-ink-2">
-            {device?.name ?? t("account.identity.deviceUnregistered")}
+        {account.sealed ? null : (
+          <p className="border-line border-t pt-3 text-[12px] text-warn leading-relaxed">
+            {t("account.identity.unsealed")}
           </p>
-          {device ? (
-            <p className="mt-0.5 break-all font-data text-[12px] text-ink-3">
-              {device.fingerprint}
-            </p>
-          ) : null}
-        </div>
-      </div>
-
-      {account.sealed ? null : (
-        <p className="border-line border-t pt-3 text-[12px] text-warn leading-relaxed">
-          {t("account.identity.unsealed")}
-        </p>
-      )}
-    </div>
+        )}
+      </Panel>
+    </Section>
   );
 }

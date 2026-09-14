@@ -28,13 +28,13 @@ export function AccountDeviceList({
   }
 
   return (
-    <ul className="divide-y divide-line">
+    <ul className="contents">
       {devices.map((device) => {
         const self = device.id === current?.id;
 
         return (
           <li
-            className="flex items-center gap-3 py-2.5"
+            className="flex items-center gap-3 px-4 py-3"
             data-device={device.id}
             key={device.id}
           >

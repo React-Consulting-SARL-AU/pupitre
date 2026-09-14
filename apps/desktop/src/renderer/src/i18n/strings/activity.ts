@@ -1,6 +1,5 @@
 export const activity = {
   en: {
-    "activity.eyebrow": "Server",
     "activity.title": "Processes and sessions",
     "activity.weighs": "What weighs",
     "activity.sessions.title": "Background sessions",
@@ -24,7 +23,6 @@ export const activity = {
     "activity.clean.action": "Stop the ones that linger",
   },
   fr: {
-    "activity.eyebrow": "Serveur",
     "activity.title": "Processus et sessions",
     "activity.weighs": "Ce qui pèse",
     "activity.sessions.title": "Sessions en arrière-plan",

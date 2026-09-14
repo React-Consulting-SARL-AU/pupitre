@@ -1,4 +1,5 @@
 import type { FileEntry } from "@pupitre/shared/agent-protocol/files";
+import { Tooltip } from "@renderer/components/ui/tooltip";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { entryActions, type FileAction } from "@renderer/lib/file-actions";
 import { since, weight } from "@renderer/lib/format";
@@ -85,34 +86,37 @@ export function FileRow({
             onRename={onRename}
           />
         ) : (
-          <button
-            aria-current={selected ? "true" : undefined}
-            className="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2.5 text-left transition-fast hover:bg-raised"
-            onClick={onOpen}
-            onContextMenu={onContextMenu}
-            title={
+          <Tooltip
+            label={
               folder
                 ? t("files.row.enter", { name: entry.name })
                 : t("files.row.show", { name: entry.name })
             }
-            type="button"
           >
-            <Icon
-              aria-hidden="true"
-              className="shrink-0 text-ink-3"
-              size={13}
-              strokeWidth={1.5}
-            />
-            <span className="min-w-0 flex-1 truncate font-data text-[12px] text-ink">
-              {entry.name}
-            </span>
-            <span className="w-16 shrink-0 text-right font-data text-[11px] text-ink-3 tabular-nums">
-              {folder ? "" : weight(entry.size_bytes)}
-            </span>
-            <span className="w-20 shrink-0 text-right font-data text-[11px] text-ink-3 tabular-nums">
-              {Number.isNaN(modified) ? entry.modified_at : since(modified)}
-            </span>
-          </button>
+            <button
+              aria-current={selected ? "true" : undefined}
+              className="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2.5 text-left transition-fast hover:bg-raised"
+              onClick={onOpen}
+              onContextMenu={onContextMenu}
+              type="button"
+            >
+              <Icon
+                aria-hidden="true"
+                className="shrink-0 text-ink-3"
+                size={13}
+                strokeWidth={1.5}
+              />
+              <span className="min-w-0 flex-1 truncate font-data text-[12px] text-ink">
+                {entry.name}
+              </span>
+              <span className="w-16 shrink-0 text-right font-data text-[11px] text-ink-3 tabular-nums">
+                {folder ? "" : weight(entry.size_bytes)}
+              </span>
+              <span className="w-20 shrink-0 text-right font-data text-[11px] text-ink-3 tabular-nums">
+                {Number.isNaN(modified) ? entry.modified_at : since(modified)}
+              </span>
+            </button>
+          </Tooltip>
         )}
 
         <FileEntryMenu

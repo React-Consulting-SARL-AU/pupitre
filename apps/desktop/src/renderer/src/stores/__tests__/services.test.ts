@@ -196,37 +196,423 @@ describe("la configuration d'un module installé", () => {
   });
 });
 
-describe("un module posé sans ses réglages", () => {
-  const MANIFEST: Manifest = {
-    arch: ["amd64", "arm64"],
-    category: "database",
-    conflicts: [],
-    fields: [
-      {
-        default: 3306,
-        key: "port",
-        kind: "number",
-        label: "Port",
-        required: true,
+describe("l'attente d'une configuration appliquée", () => {
+  // The agent checks the machine before its first step says anything: a row
+  // that read "waiting" until then looked like a click that had done nothing.
+  it("montre le module au travail dès le geste, avant la première étape", async () => {
+    let seen: string | undefined;
+
+    stubPupitre({
+      agentCall: () =>
+        Promise.resolve({
+          ok: true,
+          result: { id: "db.mysql", values: { port: 3306 }, secrets: [] },
+        } as AgentResponse<unknown>),
+      serviceDetail: () => Promise.resolve({ ok: true, result: DETAIL }),
+      startInstall: () => {
+        seen = useServices.getState().steps[0]?.status;
+
+        return Promise.resolve({
+          ok: true,
+          result: {
+            failed: [],
+            report_path: "/var/lib/pupitre/report.json",
+            warned: [],
+          },
+        });
       },
+    });
+
+    await useServices.getState().readConfig(SERVER, "db.mysql");
+    await useServices.getState().reconfigure(SERVER, "db.mysql");
+
+    expect(seen).toBe("running");
+  });
+});
+
+describe("le domaine d'une exposition", () => {
+  const web = (hostname: string) => ({
+    dir: "web",
+    name: "web",
+    path: "/home/dev/projects/web",
+    processes: [
       {
-        generate: true,
-        key: "app_password",
-        kind: "secret",
-        label: "Mot de passe applicatif",
-        required: true,
+        cmd: "bun run dev",
+        dir: ".",
+        host: "127.0.0.1",
+        id: "web",
+        path: "/home/dev/projects/web",
+        pkgmgr: "bun" as const,
+        port: 3000,
+        routes: [{ hostname, label: "web", port: 3000 }],
+        state: "online" as const,
       },
     ],
-    id: "db.mysql",
-    mandatory: false,
-    name: "MySQL",
-    requires: ["core.system"],
-    resources: { disk_mb: 0, ram_mb: 0 },
-    runs: true,
-    since: "0.1.0",
-    summary: "MySQL",
-  };
+    state: "online" as const,
+  });
 
+  // The agent moved the names; the records follow from here: the ones of
+  // before go, the ones of now are written, and nothing else in the zone moves.
+  it("retire les noms d'avant et écrit ceux du nouveau domaine", async () => {
+    const order: string[] = [];
+    let domain = "flymate.dev";
+
+    stubPupitre({
+      agentCall: (_server, cmd) => {
+        order.push(cmd);
+
+        if (cmd === "module.config") {
+          return Promise.resolve({
+            ok: true,
+            result: {
+              id: "exposure.cloudflare",
+              values: { domain },
+              secrets: [],
+            },
+          } as AgentResponse<unknown>);
+        }
+
+        return Promise.resolve({
+          ok: true,
+          result: {
+            installed: true,
+            provider: "cloudflare",
+            routes: [
+              {
+                hostname: `web.${domain}`,
+                project: "web",
+                service: "http://127.0.0.1:3000",
+              },
+            ],
+            state: "running",
+          },
+        } as AgentResponse<unknown>);
+      },
+      listProjects: () =>
+        Promise.resolve({
+          ok: true,
+          result: { projects: [web(`web.${domain}`)] },
+        }),
+      releaseTunnelRecords: (_server, hostnames) => {
+        order.push(`release ${hostnames.join(",")}`);
+
+        return Promise.resolve({ ok: true, result: hostnames.length });
+      },
+      serviceDetail: () => Promise.resolve({ ok: true, result: DETAIL }),
+      startInstall: () => {
+        order.push("install");
+        domain = "flymate.studio";
+
+        return Promise.resolve({
+          ok: true,
+          result: {
+            failed: [],
+            report_path: "/var/lib/pupitre/report.json",
+            warned: [],
+          },
+        });
+      },
+      syncTunnelRecords: (_server, routes) => {
+        order.push(
+          `records ${routes.map((route) => route.hostname).join(",")}`
+        );
+
+        return Promise.resolve({ ok: true, result: routes.length });
+      },
+    });
+
+    await useServices.getState().readConfig(SERVER, "exposure.cloudflare");
+    useServices.getState().setValue("domain", "flymate.studio");
+    await useServices.getState().reconfigure(SERVER, "exposure.cloudflare");
+
+    expect(
+      order.filter(
+        (step) => !step.startsWith("module.config") && step !== "service.status"
+      )
+    ).toEqual([
+      "install",
+      "release web.flymate.dev",
+      "tunnel.sync",
+      "records web.flymate.studio",
+    ]);
+  });
+
+  it("ne touche à aucun enregistrement quand le domaine ne change pas", async () => {
+    const order: string[] = [];
+
+    stubPupitre({
+      agentCall: (_server, cmd) => {
+        order.push(cmd);
+
+        return Promise.resolve({
+          ok: true,
+          result: {
+            id: "exposure.cloudflare",
+            values: { domain: "flymate.dev" },
+            secrets: [],
+          },
+        } as AgentResponse<unknown>);
+      },
+      listProjects: () =>
+        Promise.resolve({
+          ok: true,
+          result: { projects: [web("web.flymate.dev")] },
+        }),
+      releaseTunnelRecords: () => {
+        order.push("release");
+
+        return Promise.resolve({ ok: true, result: 0 });
+      },
+      serviceDetail: () => Promise.resolve({ ok: true, result: DETAIL }),
+      startInstall: () =>
+        Promise.resolve({
+          ok: true,
+          result: {
+            failed: [],
+            report_path: "/var/lib/pupitre/report.json",
+            warned: [],
+          },
+        }),
+      syncTunnelRecords: () => {
+        order.push("records");
+
+        return Promise.resolve({ ok: true, result: 0 });
+      },
+    });
+
+    await useServices.getState().readConfig(SERVER, "exposure.cloudflare");
+    await useServices.getState().reconfigure(SERVER, "exposure.cloudflare");
+
+    expect(order).not.toContain("release");
+    expect(order).not.toContain("records");
+  });
+});
+
+const MANIFEST: Manifest = {
+  arch: ["amd64", "arm64"],
+  category: "database",
+  conflicts: [],
+  fields: [
+    {
+      default: 3306,
+      key: "port",
+      kind: "number",
+      label: "Port",
+      max: 65_535,
+      min: 1024,
+      required: true,
+    },
+    {
+      generate: true,
+      key: "app_password",
+      kind: "secret",
+      label: "Mot de passe applicatif",
+      required: true,
+    },
+  ],
+  id: "db.mysql",
+  mandatory: false,
+  name: "MySQL",
+  requires: ["core.system"],
+  resources: { disk_mb: 0, ram_mb: 0 },
+  runs: true,
+  since: "0.1.0",
+  summary: "MySQL",
+};
+
+function configuredMySQL(
+  overrides: Parameters<typeof stubPupitre>[0] = {}
+): void {
+  stubPupitre({
+    agentCall: () =>
+      Promise.resolve({
+        ok: true,
+        result: {
+          id: "db.mysql",
+          values: { port: 3306 },
+          secrets: ["app_password"],
+        },
+      } as AgentResponse<unknown>),
+    forgetInstallSecrets: () => Promise.resolve(),
+    generateInstallSecret: () =>
+      Promise.resolve({
+        ok: true,
+        result: {
+          "db.mysql": {
+            app_password: { filled: true, generated: true, revealed: false },
+          },
+        },
+      }),
+    serviceDetail: () => Promise.resolve({ ok: true, result: DETAIL }),
+    ...overrides,
+  });
+}
+
+describe("le formulaire d'un module installé", () => {
+  it("n'a rien à appliquer tant que rien n'a changé, et le sait dès qu'une valeur ou un secret change", async () => {
+    configuredMySQL();
+
+    await useServices.getState().open(SERVER, "db.mysql", MANIFEST);
+    expect(useServices.getState().dirty()).toBe(false);
+
+    useServices.getState().setValue("port", 3307);
+    expect(useServices.getState().dirty()).toBe(true);
+
+    useServices.getState().setValue("port", 3306);
+    expect(useServices.getState().dirty()).toBe(false);
+
+    await useServices.getState().generate(SERVER, "db.mysql", "app_password");
+    expect(useServices.getState().dirty()).toBe(true);
+  });
+
+  it("revient à ce que le serveur tient, secrets tapés compris", async () => {
+    let forgotten = 0;
+    configuredMySQL({
+      forgetInstallSecrets: () => {
+        forgotten += 1;
+
+        return Promise.resolve();
+      },
+    });
+
+    await useServices.getState().open(SERVER, "db.mysql", MANIFEST);
+    useServices.getState().setValue("port", 3307);
+    await useServices.getState().generate(SERVER, "db.mysql", "app_password");
+
+    await useServices.getState().discard(SERVER);
+
+    expect(forgotten).toBe(1);
+    expect(useServices.getState().values).toEqual({ port: 3306 });
+    expect(useServices.getState().secrets).toEqual({});
+    expect(useServices.getState().dirty()).toBe(false);
+  });
+
+  it("dit ce qui cloche sur un champ répondu, et sur tous une fois l'application demandée", async () => {
+    const sent: unknown[] = [];
+    configuredMySQL({
+      startInstall: () => {
+        sent.push("install");
+
+        return Promise.resolve({
+          ok: true,
+          result: { failed: [], report_path: "/r", warned: [] },
+        });
+      },
+    });
+
+    await useServices.getState().open(SERVER, "db.mysql", MANIFEST);
+    expect(useServices.getState().shown()).toEqual([]);
+
+    useServices.getState().setValue("port", 80);
+    expect(useServices.getState().shown()).toMatchObject([
+      { code: "min", field: "port", module: "db.mysql" },
+    ]);
+
+    await useServices.getState().reconfigure(SERVER, "db.mysql");
+
+    expect(sent).toEqual([]);
+    expect(useServices.getState().apply.status).toBe("idle");
+    expect(useServices.getState().attempted).toBe(true);
+  });
+
+  it("tient un secret que le serveur garde pour répondu", async () => {
+    configuredMySQL();
+
+    await useServices.getState().open(SERVER, "db.mysql", MANIFEST);
+    useServices.getState().setValue("port", 3307);
+
+    expect(useServices.getState().problems()).toEqual([]);
+  });
+
+  it("demande au serveur de peser les valeurs avant de les appliquer, et pose son refus sur le champ", async () => {
+    const sent: unknown[] = [];
+    configuredMySQL({
+      checkInstall: (_server, modules, config) => {
+        sent.push({ check: { config, modules } });
+
+        return Promise.resolve({
+          ok: true,
+          result: {
+            problems: [
+              {
+                code: "format",
+                expected: "port",
+                field: "port",
+                message: "le port 3307 est déjà pris par nginx",
+                module: "db.mysql",
+              },
+            ],
+            warnings: [],
+          },
+        });
+      },
+      startInstall: () => {
+        sent.push("install");
+
+        return Promise.resolve({
+          ok: true,
+          result: { failed: [], report_path: "/r", warned: [] },
+        });
+      },
+    });
+
+    await useServices.getState().open(SERVER, "db.mysql", MANIFEST);
+    useServices.getState().setValue("port", 3307);
+    await useServices.getState().reconfigure(SERVER, "db.mysql");
+
+    expect(sent).toEqual([
+      {
+        check: {
+          config: { "db.mysql": { port: 3307 } },
+          modules: ["db.mysql"],
+        },
+      },
+    ]);
+    expect(useServices.getState().apply.status).toBe("idle");
+    expect(useServices.getState().shown()).toMatchObject([
+      { field: "port", message: "le port 3307 est déjà pris par nginx" },
+    ]);
+
+    // The verdict was about that value: changing it is what lifts the refusal.
+    useServices.getState().setValue("port", 3308);
+    expect(useServices.getState().refused).toEqual([]);
+  });
+
+  it("pose sur le champ ce qu'un install refusé a nommé", async () => {
+    configuredMySQL({
+      startInstall: () =>
+        Promise.resolve({
+          ok: false,
+          error: {
+            code: "bad_request",
+            message: "configuration refusée",
+            remedy: {
+              code: "invalid_fields",
+              problems: [
+                {
+                  code: "required",
+                  field: "port",
+                  message: "le port est requis",
+                  module: "db.mysql",
+                },
+              ],
+            },
+          },
+        }),
+    });
+
+    await useServices.getState().open(SERVER, "db.mysql", MANIFEST);
+    useServices.getState().setValue("port", 3307);
+    await useServices.getState().reconfigure(SERVER, "db.mysql");
+
+    expect(useServices.getState().apply.status).toBe("idle");
+    expect(useServices.getState().shown()).toMatchObject([
+      { field: "port", message: "le port est requis" },
+    ]);
+  });
+});
+
+describe("un module posé sans ses réglages", () => {
   /**
    * The catalogue would have made the password when the module was chosen; a
    * module put off got none, and the panel makes it so that applying is all

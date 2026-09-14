@@ -149,8 +149,8 @@ export const useTerminals = create<TerminalsStore>((set, get) => ({
     }
   },
 
+  /** The bar goes, the address stays put: the same one printed again is not news. */
   dismissLogin(id) {
-    window.pupitre.dismissLogin(id);
     set((state) => ({ links: without(state.links, id) }));
   },
 

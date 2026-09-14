@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { ArchitectureSchema } from "../catalog"
+import { ArchitectureSchema, ConnectionKindSchema } from "../catalog"
 import { PortSchema } from "./ports"
 import { EntitlementSchema } from "./session"
 
@@ -39,8 +39,10 @@ export type ServiceState = z.infer<typeof ServiceStateSchema>
  * asked to answer its questions later, and the install put it there and stopped.
  * The screen has to be able to say so, and to offer the form that finishes it.
  *
- * `runs` is the manifest's own answer, carried here so that a screen showing
- * what the machine is doing never has to read the catalogue to know it.
+ * `runs` and `connection` are the manifest's own answers, carried here so that
+ * a screen showing what the machine is doing never has to read the catalogue
+ * to know it: whether the module holds a process, and which third-party
+ * account the app must hold for it.
  */
 export const ServiceSchema = z.object({
   id: z.string(),
@@ -48,6 +50,7 @@ export const ServiceSchema = z.object({
   state: ServiceStateSchema,
   configured: z.boolean().default(true),
   runs: z.boolean().default(true),
+  connection: ConnectionKindSchema.optional(),
   version: z.string().optional(),
   port: z.int().min(1).max(65_535).optional(),
   unit: z.string().optional(),
@@ -55,7 +58,7 @@ export const ServiceSchema = z.object({
 
 export type Service = z.infer<typeof ServiceSchema>
 
-export const PROJECT_STATES = [
+export const PROCESS_STATES = [
   "online",
   "starting",
   "failed",
@@ -64,6 +67,17 @@ export const PROJECT_STATES = [
   "external",
   "service",
 ] as const
+
+export const ProcessStateSchema = z.enum(PROCESS_STATES)
+
+export type ProcessState = z.infer<typeof ProcessStateSchema>
+
+/**
+ * A project's state is read off its processes: failed if one failed, starting
+ * if one starts, online when all run, `partial` when only some do, stopped
+ * otherwise. `partial` is the one state a process never has by itself.
+ */
+export const PROJECT_STATES = [...PROCESS_STATES, "partial"] as const
 
 export const ProjectStateSchema = z.enum(PROJECT_STATES)
 
@@ -178,12 +192,35 @@ export const GitBranchSchema = z
   .max(200)
   .regex(/^[A-Za-z0-9][A-Za-z0-9._/-]*$/)
 
-const ProjectBaseSchema = z.object({
-  name: ProjectNameSchema,
-  dir: z.string().min(1),
-  repo: z.string().optional(),
-  /** The branch to clone; absent, the repository's own default is taken. */
-  branch: GitBranchSchema.optional(),
+/** A name under `.localhost`, the one kind of host the agent points at the machine itself. */
+export const LocalhostNameSchema = z
+  .string()
+  .max(253)
+  .regex(/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+localhost$/)
+
+/**
+ * The short name of one process of a project — `server`, `client`, `web`.
+ *
+ * One DNS label, like a route's: it is what names the tmux window and the log
+ * file, `<project>/<process>`, and neither name admits a slash.
+ */
+export const ProcessIdSchema = RouteLabelSchema
+
+export type ProcessId = z.infer<typeof ProcessIdSchema>
+
+/** The folder a process runs from, relative to its project: `.` for the root. */
+export const ProcessDirSchema = z
+  .string()
+  .min(1)
+  .refine(
+    (dir) => !(dir.startsWith("/") || dir.split("/").includes("..")),
+    "a process runs inside its project"
+  )
+
+export const PROJECT_ROOT_DIR = "."
+
+const ProcessBaseSchema = z.object({
+  id: ProcessIdSchema,
   pkgmgr: PackageManagerSchema,
   host: z.string().min(1),
   /** The main port: the one that decides the state, and the local address. */
@@ -193,28 +230,72 @@ const ProjectBaseSchema = z.object({
 })
 
 /**
- * `routes` lists every port the screen showed, the main one first when it is
- * among them: the agent resolves each name on the web once, and stores it.
+ * A process as the app declares it. `routes` lists every port the screen
+ * showed, the main one first when it is among them: the agent resolves each
+ * name on the web once, and stores it.
+ */
+export const ProcessRegistrationSchema = ProcessBaseSchema.extend({
+  dir: ProcessDirSchema.default(PROJECT_ROOT_DIR),
+  /** The loopback, or a `.localhost` name the agent points at it in /etc/hosts. */
+  host: z.union([z.literal("127.0.0.1"), LocalhostNameSchema]),
+  routes: z.array(RouteRequestSchema),
+}).strict()
+
+export type ProcessRegistration = z.infer<typeof ProcessRegistrationSchema>
+
+export const AbsolutePathSchema = z.string().regex(/^\//)
+
+export const ProcessSchema = ProcessBaseSchema.extend({
+  dir: ProcessDirSchema,
+  path: AbsolutePathSchema,
+  routes: z.array(RouteSchema),
+  state: ProcessStateSchema,
+  url: z.string().optional(),
+  pid: z.int().positive().optional(),
+  ram_mb: z.int().nonnegative().optional(),
+  uptime_s: z.int().nonnegative().optional(),
+})
+
+export type Process = z.infer<typeof ProcessSchema>
+
+export function uniqueProcessIds(
+  processes: readonly { id: string }[]
+): boolean {
+  return (
+    new Set(processes.map((process) => process.id)).size === processes.length
+  )
+}
+
+const ProjectBaseSchema = z.object({
+  name: ProjectNameSchema,
+  dir: z.string().min(1),
+  repo: z.string().optional(),
+  /** The branch to clone; absent, the repository's own default is taken. */
+  branch: GitBranchSchema.optional(),
+})
+
+/**
+ * A project is a repository, or a folder: its processes are what runs in it,
+ * one at the least, each from its own folder with its own command.
  */
 export const ProjectRegistrationSchema = ProjectBaseSchema.extend({
-  routes: z.array(RouteRequestSchema),
+  processes: z
+    .array(ProcessRegistrationSchema)
+    .min(1)
+    .refine(uniqueProcessIds, "two processes of a project cannot share an id"),
 })
 
 export type ProjectRegistration = z.infer<typeof ProjectRegistrationSchema>
 
-export const AbsolutePathSchema = z.string().regex(/^\//)
-
 export const ProjectSchema = ProjectBaseSchema.extend({
   path: AbsolutePathSchema,
-  routes: z.array(RouteSchema),
+  processes: z.array(ProcessSchema).min(1),
   state: ProjectStateSchema,
+  /** The address of the first process whose main port carries a name on the web. */
   url: z.string().optional(),
   // Here the branch is what HEAD reads as, which a detached checkout makes a
   // hash rather than a name: looser than the branch a registration asks for.
   branch: z.string().optional(),
-  pid: z.int().positive().optional(),
-  ram_mb: z.int().nonnegative().optional(),
-  uptime_s: z.int().nonnegative().optional(),
 })
 
 export type Project = z.infer<typeof ProjectSchema>
@@ -222,6 +303,10 @@ export type Project = z.infer<typeof ProjectSchema>
 export const SESSION_KINDS = [
   "claude",
   "codex",
+  "cursor",
+  "gemini",
+  "copilot",
+  "opencode",
   "hermes",
   "ide",
   "shell",
@@ -265,8 +350,37 @@ export const ServiceStatusParamsSchema = z.strictObject({
 
 export type ServiceStatusParams = z.infer<typeof ServiceStatusParamsSchema>
 
+export const LOGIN_STATES = ["signed_in", "signed_out", "unknown"] as const
+
+export const LoginStateSchema = z.enum(LOGIN_STATES)
+
+export type LoginState = z.infer<typeof LoginStateSchema>
+
+/**
+ * Whether the CLI a module installs is signed in to its account, asked of the
+ * CLI itself.
+ *
+ * `signed_in` names the account when the CLI does — a login, an email, an
+ * account name. `signed_out` is a CLI that holds nothing, or that its own
+ * check refuses. `unknown` is a CLI that could not be asked: the token is
+ * there but the provider did not answer. `fix` says how to sign in, in the
+ * session's language, when there is something to do.
+ *
+ * Asking can cost a network round trip, so only `service.status` carries it —
+ * never a snapshot read every few seconds. A module whose CLI has no account
+ * omits it.
+ */
+export const LoginSchema = z.object({
+  state: LoginStateSchema,
+  account: z.string().optional(),
+  fix: z.string().optional(),
+})
+
+export type Login = z.infer<typeof LoginSchema>
+
 export const ServiceStatusResultSchema = ServiceSchema.extend({
   credentials: z.record(z.string(), z.string()).optional(),
+  login: LoginSchema.optional(),
 })
 
 export type ServiceStatusResult = z.infer<typeof ServiceStatusResultSchema>

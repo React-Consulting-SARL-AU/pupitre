@@ -35,10 +35,16 @@ export function ProjectConfigScreen({
   const ready = useProjectConfig((s) => s.ready);
   const restarts = useProjectConfig((s) => s.restarts);
   const dropped = useProjectConfig((s) => s.dropped);
-  const rowProblem = useProjectConfig((s) => s.rowProblem);
-  const setCmd = useProjectConfig((s) => s.setCmd);
-  const setInstall = useProjectConfig((s) => s.setInstall);
+  const processProblem = useProjectConfig((s) => s.processProblem);
+  const rowProblems = useProjectConfig((s) => s.rowProblems);
   const setBranch = useProjectConfig((s) => s.setBranch);
+  const setProcessId = useProjectConfig((s) => s.setProcessId);
+  const setProcessDir = useProjectConfig((s) => s.setProcessDir);
+  const setProcessPkgmgr = useProjectConfig((s) => s.setProcessPkgmgr);
+  const setProcessCmd = useProjectConfig((s) => s.setProcessCmd);
+  const setProcessInstall = useProjectConfig((s) => s.setProcessInstall);
+  const addProcess = useProjectConfig((s) => s.addProcess);
+  const removeProcess = useProjectConfig((s) => s.removeProcess);
   const setRowLabel = useProjectConfig((s) => s.setRowLabel);
   const setRowPort = useProjectConfig((s) => s.setRowPort);
   const setRowPublish = useProjectConfig((s) => s.setRowPublish);
@@ -72,11 +78,16 @@ export function ProjectConfigScreen({
       draft={draft}
       dropped={dropped()}
       edit={{
+        addProcess,
         addRow,
         branch: setBranch,
-        cmd: setCmd,
         generateRowWeb,
-        install: setInstall,
+        processCmd: setProcessCmd,
+        processDir: setProcessDir,
+        processId: setProcessId,
+        processInstall: setProcessInstall,
+        processPkgmgr: setProcessPkgmgr,
+        removeProcess,
         removeRow,
         rowLabel: setRowLabel,
         rowPort: setRowPort,
@@ -85,10 +96,13 @@ export function ProjectConfigScreen({
       }}
       exposure={exposure}
       onSave={() => save(serverId)}
+      processProblems={draft.processes.map((_process, index) =>
+        processProblem(index)
+      )}
       project={project}
       ready={ready()}
       restarts={restarts()}
-      rowProblems={draft.rows.map((_row, index) => rowProblem(index))}
+      rowProblems={draft.processes.map((_process, index) => rowProblems(index))}
       run={run}
     />
   );

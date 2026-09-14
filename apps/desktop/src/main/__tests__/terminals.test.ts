@@ -8,7 +8,6 @@ import {
   projectFolder,
   projectPath,
 } from "../projects-run";
-import { loginAddress, loopbackRedirect } from "../terminal-links";
 import { type TerminalDeps, terminalCommand } from "../terminal-run";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 
@@ -385,98 +384,5 @@ describe("l'onglet d'un agent", () => {
       error: { code: "bad_request" },
       ok: false,
     });
-  });
-});
-
-describe("l'adresse de connexion d'un agent", () => {
-  it("la reconnaît au milieu de ce que l'agent dessine", () => {
-    const drawn =
-      "\u001b[2mOuvre\u001b[0m https://claude.ai/oauth/authorize?code=true&state=abc\u001b[0m\r\n";
-
-    expect(loginAddress(drawn)).toMatchObject({ host: "claude.ai" });
-  });
-
-  it("lit l'adresse entière d'un hyperlien dont le texte est plié sur plusieurs lignes", () => {
-    const url =
-      "https://claude.com/cai/oauth/authorize?code=true&client_id=abc&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile&state=xyz";
-    const linked = `\u001b]8;;${url}\u001b\\https://claude.com/cai/oauth/authorize?code=true&client_id=abc&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=org%3Acreate\r\n_api_key+user%3Aprofile&state=xyz\u001b]8;;\u001b\\`;
-
-    expect(loginAddress(linked)).toEqual({ host: "claude.com", url });
-  });
-
-  it("ne prend pas pour une nouvelle adresse un morceau de celle déjà connue", () => {
-    const known = {
-      host: "claude.com",
-      url: "https://claude.com/cai/oauth/authorize?code=true&state=xyz",
-    };
-
-    expect(
-      loginAddress(
-        "https://claude.com/cai/oauth/authorize?code=true\r\n&state=xyz",
-        known
-      )
-    ).toEqual(known);
-    expect(
-      loginAddress("https://claude.com/cai/oauth/authorize?state=abc", known)
-        ?.url
-    ).toContain("state=abc");
-    expect(loginAddress("Rien.", known)).toEqual(known);
-  });
-
-  it("garde la dernière quand l'agent en réimprime une", () => {
-    const twice =
-      "https://claude.ai/oauth/authorize?state=un\nhttps://claude.ai/oauth/authorize?state=deux";
-
-    expect(loginAddress(twice)?.url).toContain("state=deux");
-  });
-
-  it("reconnaît un flux qui revient sur un port de la machine, quel que soit l'hôte", () => {
-    const neon =
-      "Auth Url: https://oauth2.neon.tech/oauth2/auth?client_id=neonctl&redirect_uri=http%3A%2F%2F127.0.0.1%3A41233%2Fcallback&state=x";
-    const other =
-      "https://auth.exemple.test/authorize?redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback";
-
-    expect(loginAddress(neon)).toMatchObject({ host: "oauth2.neon.tech" });
-    expect(loginAddress(other)).toMatchObject({ host: "auth.exemple.test" });
-  });
-
-  it("n'en fait pas une d'une adresse quelconque", () => {
-    expect(loginAddress("https://exemple.test/connexion")).toBeNull();
-    expect(
-      loginAddress(
-        "https://exemple.test/a?redirect_uri=https%3A%2F%2Fexemple.test%2Fretour"
-      )
-    ).toBeNull();
-    expect(loginAddress("Rien à ouvrir ici.")).toBeNull();
-  });
-});
-
-describe("le port sur lequel une connexion revient", () => {
-  it("se lit dans le redirect_uri quand il vise la boucle locale", () => {
-    expect(
-      loopbackRedirect(
-        "https://claude.ai/oauth/authorize?redirect_uri=http%3A%2F%2Flocalhost%3A54545%2Fcallback&state=x"
-      )
-    ).toBe(54_545);
-    expect(
-      loopbackRedirect(
-        "https://oauth2.neon.tech/oauth2/auth?redirect_uri=http%3A%2F%2F127.0.0.1%3A41233%2Fcallback"
-      )
-    ).toBe(41_233);
-  });
-
-  it("n'existe pas pour un retour ailleurs, ni sans port", () => {
-    expect(
-      loopbackRedirect(
-        "https://claude.ai/oauth/authorize?redirect_uri=https%3A%2F%2Fconsole.anthropic.com%2Foauth%2Fcode%2Fcallback"
-      )
-    ).toBeNull();
-    expect(
-      loopbackRedirect(
-        "https://exemple.test/a?redirect_uri=http%3A%2F%2Flocalhost%2Fcallback"
-      )
-    ).toBeNull();
-    expect(loopbackRedirect("https://claude.ai/oauth/authorize")).toBeNull();
-    expect(loopbackRedirect("pas une adresse")).toBeNull();
   });
 });

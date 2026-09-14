@@ -1,16 +1,19 @@
 import { describe, expect, it } from "bun:test";
 import type { AccountIdentity } from "@shared/account";
-import type { ServerGrant } from "@shared/servers";
+import type { Server, ServerGrant } from "@shared/servers";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { FleetOpening, GrantedServer } from "../../stores/fleet";
+import type { FleetOpening } from "../../stores/fleet";
 import { FleetOrganizations } from "../fleet/fleet-organizations";
-import { FleetServerRow } from "../fleet/fleet-server-row";
+import { ServerGrantDetail } from "../servers/server-grant-detail";
+import { ServerGrantOpen } from "../servers/server-grant-open";
+import { ServerRow } from "../servers/server-row";
 
 /**
  * What an invited member reads about a server they never typed an address for.
  *
- * The three states of an assignment are told apart by their shape, and the
- * remedy of a refusal is printed exactly as the main process phrased it.
+ * A granted machine is one row of the list, with the console's word among its
+ * facts. The three states of an assignment are told apart by their shape, and
+ * the remedy of a refusal is printed exactly as the main process phrased it.
  */
 
 const NOOP = () => undefined;
@@ -21,6 +24,7 @@ const GRANT: ServerGrant = {
   keyReady: true,
   listed: true,
   opened: false,
+  organization: { id: "org-1", name: "Atelier Ada" },
   status: "active",
 };
 
@@ -35,7 +39,7 @@ function text(html: string): string {
     .trim();
 }
 
-function server(grant: Partial<ServerGrant> = {}): GrantedServer {
+function server(grant: Partial<ServerGrant> = {}): Server {
   return {
     grant: { ...GRANT, ...grant },
     host: "203.0.113.10",
@@ -54,23 +58,62 @@ function row(
   opening: FleetOpening | null = null
 ): string {
   return renderToStaticMarkup(
-    <FleetServerRow onOpen={NOOP} opening={opening} server={server(grant)} />
+    <ServerRow
+      active={false}
+      onActivate={NOOP}
+      onForget={NOOP}
+      onOpen={NOOP}
+      onRemove={NOOP}
+      onRename={NOOP}
+      opening={opening}
+      server={server(grant)}
+    />
+  );
+}
+
+function detail(grant: Partial<ServerGrant> = {}): string {
+  return renderToStaticMarkup(
+    <ServerGrantDetail grant={{ ...GRANT, ...grant }} />
+  );
+}
+
+function opener(
+  grant: Partial<ServerGrant> = {},
+  opening: FleetOpening | null = null
+): string {
+  return renderToStaticMarkup(
+    <ServerGrantOpen
+      grant={{ ...GRANT, ...grant }}
+      onOpen={NOOP}
+      opening={opening}
+    />
   );
 }
 
 describe("un serveur attribué", () => {
-  it("montre l'adresse que la console a donnée, sans champ à remplir", () => {
-    const html = row();
+  it("est une ligne de la liste, avec le mot de la console parmi ses faits", () => {
+    const html = text(row());
 
-    expect(text(html)).toContain("dev@203.0.113.10:22");
-    expect(html).not.toContain("<input");
+    expect(html).toContain("dev@203.0.113.10:22");
+    expect(html).toContain("attribuée par votre organisation");
+    expect(html).toContain("Console");
+    expect(html).toContain("Attribué · actif");
+    expect(html).toContain("Atelier Ada");
+    expect(html).toContain("Ouvrir");
+  });
+
+  it("ne dit rien de la console pour un serveur qu'elle ne nomme plus", () => {
+    const html = text(row({ listed: false }));
+
+    expect(html).not.toContain("Console");
+    expect(html).not.toContain("Ouvrir");
   });
 
   it("distingue les trois états d'une attribution par leur forme", () => {
     const shapes = [
-      row(),
-      row({ keyReady: false }),
-      row({ status: "suspended" }),
+      detail(),
+      detail({ keyReady: false }),
+      detail({ status: "suspended" }),
     ].map((html) => /data-shape="([a-z]+)"/.exec(html)?.[1]);
 
     expect(shapes).toEqual(["filled", "breathing", "struck"]);
@@ -78,14 +121,14 @@ describe("un serveur attribué", () => {
   });
 
   it("n'offre pas d'ouvrir un serveur suspendu, et dit pourquoi", () => {
-    const html = row({ status: "suspended" });
+    const html = opener({ status: "suspended" });
 
     expect(text(html)).toContain("La console a suspendu ce serveur");
     expect(html).not.toContain("<button");
   });
 
   it("dit ce qui se passe pendant l'attente de la clé", () => {
-    const html = row(
+    const html = opener(
       { keyReady: false },
       { serverId: "srv-platform-1", status: "waiting" }
     );
@@ -95,7 +138,7 @@ describe("un serveur attribué", () => {
   });
 
   it("affiche le remède d'un refus tel quel", () => {
-    const html = row(
+    const html = opener(
       {},
       {
         error: {
@@ -112,9 +155,10 @@ describe("un serveur attribué", () => {
     expect(text(html)).toContain("Demande une nouvelle attribution.");
   });
 
-  it("propose de le reprendre plutôt que de l'ouvrir une seconde fois", () => {
-    expect(text(row({ opened: true }))).toContain("Le piloter");
-    expect(text(row())).toContain("Ouvrir");
+  it("n'offre l'ouverture qu'une fois : ensuite la ligne se pilote comme les autres", () => {
+    expect(text(opener())).toContain("Ouvrir");
+    expect(opener({ opened: true })).toBe("");
+    expect(text(row({ opened: true }))).not.toContain("Ouvrir");
   });
 });
 

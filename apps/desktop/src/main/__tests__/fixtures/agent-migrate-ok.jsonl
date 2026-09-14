@@ -1,5 +1,5 @@
 # Le canal rouvert après la mise à jour : le binaire est neuf, il annonce agent.migrate et dit ce qu'il a porté.
-> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":1}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.4.0","protocol":1,"entitlement":"restricted","capabilities":["hello","ping","snapshot","agent.upgrade","agent.migrate"],"config":{"revision":2,"expected":2,"state":"current"}}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.4.0","protocol":2,"entitlement":"restricted","capabilities":["hello","ping","snapshot","agent.upgrade","agent.migrate"],"config":{"revision":2,"expected":2,"state":"current"}}}
 > {"id":2,"cmd":"agent.migrate"}
 < {"id":2,"ok":true,"result":{"revision":2,"expected":2,"state":"current","applied":[{"id":2,"slug":"rename-tz","ms":11}],"pending":[],"backup":"20260911T100000Z-r1","restored":false}}

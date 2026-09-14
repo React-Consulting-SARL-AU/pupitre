@@ -2,6 +2,8 @@ import type { Session } from "@pupitre/shared/agent-protocol/state";
 import { Button } from "@renderer/components/ui/button";
 import { ConfirmButton } from "@renderer/components/ui/confirm-button";
 import { EmptyState } from "@renderer/components/ui/empty-state";
+import { Panel } from "@renderer/components/ui/panel";
+import { Section } from "@renderer/components/ui/section";
 import type { DictionaryKey } from "@renderer/i18n/en";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { memory, uptime } from "@renderer/lib/format";
@@ -35,7 +37,11 @@ const KINDS: Record<
 > = {
   claude: { icon: Sparkles, label: "activity.kind.agent" },
   codex: { icon: Sparkles, label: "activity.kind.agent" },
+  copilot: { icon: Sparkles, label: "activity.kind.agent" },
+  cursor: { icon: Sparkles, label: "activity.kind.agent" },
+  gemini: { icon: Sparkles, label: "activity.kind.agent" },
   hermes: { icon: Sparkles, label: "activity.kind.agent" },
+  opencode: { icon: Sparkles, label: "activity.kind.agent" },
   ide: { icon: Braces, label: "activity.kind.ide" },
   shell: { icon: SquareTerminal, label: "activity.kind.shell" },
 };
@@ -57,33 +63,41 @@ export function ActivitySessions({
 }) {
   const t = useTranslations();
 
-  if (sessions.length === 0) {
-    return <EmptyState title={t("activity.sessions.empty")} />;
-  }
-
   const total = sessions.reduce((sum, session) => sum + session.ram_mb, 0);
 
   return (
-    <div>
-      <div className="flex items-center justify-between border-line border-b px-4 py-2.5">
-        <span className="font-data text-[12px] text-ink-3">
-          {t.plural("activity.session", sessions.length)} ·{" "}
-          <span className={total > HEAVY_TOTAL_MB ? "text-warn" : ""}>
-            {memory(total)}
+    <Section
+      actions={
+        sessions.length > 0 ? (
+          <ConfirmButton
+            confirmLabel={t("activity.stop")}
+            icon={Trash2}
+            onConfirm={onClean}
+            question={t("activity.clean.question")}
+            size="sm"
+          >
+            {t("activity.clean.action")}
+          </ConfirmButton>
+        ) : null
+      }
+      aside={
+        sessions.length > 0 ? (
+          <span className="font-data text-[12px] text-ink-3">
+            {t.plural("activity.session", sessions.length)} ·{" "}
+            <span className={total > HEAVY_TOTAL_MB ? "text-warn" : ""}>
+              {memory(total)}
+            </span>
           </span>
-        </span>
-        <ConfirmButton
-          confirmLabel={t("activity.stop")}
-          icon={Trash2}
-          onConfirm={onClean}
-          question={t("activity.clean.question")}
-          size="sm"
-        >
-          {t("activity.clean.action")}
-        </ConfirmButton>
-      </div>
+        ) : null
+      }
+      name="sessions"
+      title={t("activity.sessions.title")}
+    >
+      <Panel inset="none" list={sessions.length > 0}>
+        {sessions.length === 0 ? (
+          <EmptyState title={t("activity.sessions.empty")} />
+        ) : null}
 
-      <div className="divide-y divide-line">
         {[...sessions]
           .sort((a, b) => b.ram_mb - a.ram_mb)
           .map((session) => {
@@ -123,6 +137,9 @@ export function ActivitySessions({
 
                 {onReattach && reattachable(attached, session) ? (
                   <Button
+                    hint={t("activity.session.reattachHint", {
+                      project: session.project ?? "",
+                    })}
                     icon={PlugZap}
                     onClick={() =>
                       onReattach(
@@ -131,9 +148,6 @@ export function ActivitySessions({
                       )
                     }
                     size="sm"
-                    title={t("activity.session.reattachHint", {
-                      project: session.project ?? "",
-                    })}
                   >
                     {t("activity.session.reattach")}
                   </Button>
@@ -154,7 +168,7 @@ export function ActivitySessions({
               </div>
             );
           })}
-      </div>
-    </div>
+      </Panel>
+    </Section>
   );
 }

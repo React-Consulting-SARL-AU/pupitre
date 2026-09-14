@@ -31,12 +31,16 @@ var Architectures = []string{"amd64", "arm64"}
 
 const (
 	ConnectionCloudflare  = "cloudflare"
+	ConnectionWrangler    = "wrangler"
 	ConnectionGitHub      = "github"
 	ConnectionOnePassword = "1password"
 	ConnectionNeon        = "neon"
+	ConnectionVercel      = "vercel"
+	ConnectionSupabase    = "supabase"
+	ConnectionStripe      = "stripe"
 )
 
-var Connections = []string{ConnectionCloudflare, ConnectionGitHub, ConnectionOnePassword, ConnectionNeon}
+var Connections = []string{ConnectionCloudflare, ConnectionWrangler, ConnectionGitHub, ConnectionOnePassword, ConnectionNeon, ConnectionVercel, ConnectionSupabase, ConnectionStripe}
 
 const (
 	// PatternVersionOrLatest holds an editor's free version field: `latest`, or a version the client reads off their own client.
@@ -383,6 +387,21 @@ const (
 	ServiceUnknown ServiceState = "unknown"
 )
 
+type LoginState string
+
+const (
+	LoginSignedIn  LoginState = "signed_in"
+	LoginSignedOut LoginState = "signed_out"
+	LoginUnknown   LoginState = "unknown"
+)
+
+// Login is what the CLI a module installs says of its own account: asked of the CLI, on service.status alone.
+type Login struct {
+	State   LoginState `json:"state"`
+	Account string     `json:"account,omitempty"`
+	Fix     string     `json:"fix,omitempty"`
+}
+
 type ServiceStatus struct {
 	ID    string       `json:"id"`
 	Name  string       `json:"name"`
@@ -390,12 +409,14 @@ type ServiceStatus struct {
 	// Configured says whether the module has been through its own settings: a
 	// module the client asked to answer later sits installed and unconfigured.
 	Configured bool `json:"configured"`
-	// Runs carries the manifest's own answer, so that a screen showing what the machine is doing never has to read the catalogue.
+	// Runs and Connection carry the manifest's own answers, so that a screen showing what the machine is doing never has to read the catalogue.
 	Runs        bool              `json:"runs"`
+	Connection  string            `json:"connection,omitempty"`
 	Version     string            `json:"version,omitempty"`
 	Port        int               `json:"port,omitempty"`
 	Unit        string            `json:"unit,omitempty"`
 	Credentials map[string]string `json:"credentials,omitempty"`
+	Login       *Login            `json:"login,omitempty"`
 }
 
 func emptyIfNil(values []string) []string {
@@ -424,6 +445,29 @@ func ValidateValue(definition string, value any) error {
 	return Validate(definition, decoded)
 }
 
+type ProcessState string
+
+const (
+	ProcessOnline   ProcessState = "online"
+	ProcessStarting ProcessState = "starting"
+	ProcessFailed   ProcessState = "failed"
+	ProcessStopped  ProcessState = "stopped"
+	ProcessDown     ProcessState = "down"
+	ProcessExternal ProcessState = "external"
+	ProcessService  ProcessState = "service"
+)
+
+var ProcessStates = []ProcessState{
+	ProcessOnline,
+	ProcessStarting,
+	ProcessFailed,
+	ProcessStopped,
+	ProcessDown,
+	ProcessExternal,
+	ProcessService,
+}
+
+// A project's state is read off its processes; partial is the one state a process never has by itself.
 type ProjectState string
 
 const (
@@ -434,6 +478,7 @@ const (
 	ProjectDown     ProjectState = "down"
 	ProjectExternal ProjectState = "external"
 	ProjectService  ProjectState = "service"
+	ProjectPartial  ProjectState = "partial"
 )
 
 var ProjectStates = []ProjectState{
@@ -444,34 +489,45 @@ var ProjectStates = []ProjectState{
 	ProjectDown,
 	ProjectExternal,
 	ProjectService,
+	ProjectPartial,
 }
 
 var PackageManagers = []string{"bun", "pnpm", "npm", "gradle", "uv", "service", "none"}
 
-// A Route is one port a project listens on, and the whole name it answers to on the web when it has one.
+// A Route is one port a process listens on, and the whole name it answers to on the web when it has one.
 type Route struct {
 	Label    string `json:"label"`
 	Port     int    `json:"port"`
 	Hostname string `json:"hostname,omitempty"`
 }
 
-type Project struct {
-	Name    string       `json:"name"`
+// A ProjectProcess is what runs in a project: one command, from one folder of it, on one main port.
+type ProjectProcess struct {
+	ID      string       `json:"id"`
 	Dir     string       `json:"dir"`
 	Path    string       `json:"path"`
-	Repo    string       `json:"repo,omitempty"`
 	PkgMgr  string       `json:"pkgmgr"`
 	Host    string       `json:"host"`
 	Port    int          `json:"port"`
 	Routes  []Route      `json:"routes"`
 	Cmd     string       `json:"cmd"`
 	Install string       `json:"install,omitempty"`
-	State   ProjectState `json:"state"`
+	State   ProcessState `json:"state"`
 	URL     string       `json:"url,omitempty"`
-	Branch  string       `json:"branch,omitempty"`
 	PID     int          `json:"pid,omitempty"`
 	RAMMB   int          `json:"ram_mb,omitempty"`
 	UptimeS int          `json:"uptime_s,omitempty"`
+}
+
+type Project struct {
+	Name      string           `json:"name"`
+	Dir       string           `json:"dir"`
+	Path      string           `json:"path"`
+	Repo      string           `json:"repo,omitempty"`
+	Branch    string           `json:"branch,omitempty"`
+	Processes []ProjectProcess `json:"processes"`
+	State     ProjectState     `json:"state"`
+	URL       string           `json:"url,omitempty"`
 }
 
 type DetectedRoute struct {
@@ -479,24 +535,40 @@ type DetectedRoute struct {
 	Port  int    `json:"port"`
 }
 
-type ProjectDetect struct {
+// What one folder of a repository asks for: the root, or a folder of the first level that carries its own manifest.
+type DetectedProcess struct {
+	ID       string          `json:"id"`
+	Dir      string          `json:"dir"`
 	PkgMgr   string          `json:"pkgmgr"`
 	Install  string          `json:"install,omitempty"`
 	Cmd      string          `json:"cmd,omitempty"`
 	PortHint int             `json:"port_hint,omitempty"`
+	HostHint string          `json:"host_hint,omitempty"`
 	Routes   []DetectedRoute `json:"routes,omitempty"`
+}
+
+type ProjectDetect struct {
+	Processes []DetectedProcess `json:"processes"`
 }
 
 type ProjectStateEntry struct {
 	Name  string       `json:"name"`
 	State ProjectState `json:"state"`
-	Port  int          `json:"port,omitempty"`
 }
 
 type ProjectActionResult struct {
 	State    ProjectState        `json:"state"`
-	Port     int                 `json:"port,omitempty"`
 	Projects []ProjectStateEntry `json:"projects,omitempty"`
+}
+
+type ProcessInstall struct {
+	Process string `json:"process"`
+	Command string `json:"command"`
+}
+
+type ProjectInstall struct {
+	Done      bool             `json:"done"`
+	Installed []ProcessInstall `json:"installed"`
 }
 
 type Machine struct {
@@ -620,8 +692,8 @@ type ProjectCheckout struct {
 }
 
 type ProjectDebug struct {
-	State     ProjectState `json:"state"`
-	Port      int          `json:"port,omitempty"`
+	State     ProcessState `json:"state"`
+	Port      int          `json:"port"`
 	DebugPort int          `json:"debug_port"`
 }
 
@@ -693,6 +765,11 @@ type ProjectDiff struct {
 	Patch   string `json:"patch"`
 	Binary  bool   `json:"binary"`
 	Problem string `json:"problem"`
+}
+
+type ProjectPull struct {
+	Pulled bool         `json:"pulled"`
+	State  ProjectState `json:"state"`
 }
 
 type ProjectSync struct {

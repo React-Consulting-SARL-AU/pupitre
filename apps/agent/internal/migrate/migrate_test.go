@@ -413,21 +413,41 @@ ten|ten|-|bun|127.0.0.1|3002|api.ten|bun run dev|-|release/2.0
 my.site|my.site|-|bun|127.0.0.1|3003|my-site|bun run dev
 `
 
+type migratedRoute struct {
+	Label    string `json:"label"`
+	Port     int    `json:"port"`
+	Hostname string `json:"hostname"`
+}
+
+type migratedProcess struct {
+	ID      string          `json:"id"`
+	Dir     string          `json:"dir"`
+	PkgMgr  string          `json:"pkgmgr"`
+	Host    string          `json:"host"`
+	Port    int             `json:"port"`
+	Cmd     string          `json:"cmd"`
+	Install string          `json:"install"`
+	Routes  []migratedRoute `json:"routes"`
+}
+
+// The registry as both migrations leave it: a project is a repository and holds its processes.
 type migratedProject struct {
-	Name    string `json:"name"`
-	Dir     string `json:"dir"`
-	Repo    string `json:"repo"`
-	PkgMgr  string `json:"pkgmgr"`
-	Host    string `json:"host"`
-	Port    int    `json:"port"`
-	Cmd     string `json:"cmd"`
-	Install string `json:"install"`
-	Branch  string `json:"branch"`
-	Routes  []struct {
-		Label    string `json:"label"`
-		Port     int    `json:"port"`
-		Hostname string `json:"hostname"`
-	} `json:"routes"`
+	Name      string            `json:"name"`
+	Dir       string            `json:"dir"`
+	Repo      string            `json:"repo"`
+	Branch    string            `json:"branch"`
+	Processes []migratedProcess `json:"processes"`
+}
+
+// The one process of a project migrated from one row.
+func (p migratedProject) only(t *testing.T) migratedProcess {
+	t.Helper()
+
+	if len(p.Processes) != 1 {
+		t.Fatalf("%s: got %d processes, want one: %+v", p.Name, len(p.Processes), p.Processes)
+	}
+
+	return p.Processes[0]
 }
 
 func migratedProjects(t *testing.T, machine *modtest.FakeSys) []migratedProject {
@@ -459,8 +479,8 @@ func TestMigrationOneCarriesTheRowsOfEightNineAndTenColumnsToJSON(t *testing.T) 
 		t.Fatalf("Run: %v", err)
 	}
 
-	if result.State != contract.ConfigCurrent || result.Revision != 1 || len(result.Applied) != 1 {
-		t.Fatalf("result = %+v, want current at 1 after one run", result)
+	if result.State != contract.ConfigCurrent || result.Revision != 2 || len(result.Applied) != 2 {
+		t.Fatalf("result = %+v, want current at 2 after one run", result)
 	}
 
 	projects := migratedProjects(t, machine)
@@ -469,26 +489,32 @@ func TestMigrationOneCarriesTheRowsOfEightNineAndTenColumnsToJSON(t *testing.T) 
 	}
 
 	eight := projects[0]
-	if eight.Name != "eight" || eight.Port != 3000 || eight.Repo != "" || eight.Install != "" || eight.Branch != "" {
+	if eight.Name != "eight" || eight.Dir != "eight" || eight.Repo != "" || eight.Branch != "" {
 		t.Fatalf("unexpected eight-column row: %+v", eight)
 	}
-	if len(eight.Routes) != 1 || eight.Routes[0].Label != "eight" || eight.Routes[0].Port != 3000 || eight.Routes[0].Hostname != "eight.flymate.dev" {
-		t.Fatalf("the subdomain must become the hostname of one route: %+v", eight.Routes)
+	if process := eight.only(t); process.ID != "eight" || process.Dir != "." || process.Port != 3000 || process.Install != "" {
+		t.Fatalf("a row becomes one process at the root of its project: %+v", process)
+	}
+	if routes := eight.only(t).Routes; len(routes) != 1 || routes[0].Label != "eight" || routes[0].Port != 3000 || routes[0].Hostname != "eight.flymate.dev" {
+		t.Fatalf("the subdomain must become the hostname of one route: %+v", routes)
 	}
 
 	nine := projects[1]
-	if nine.Port != 3001 || nine.Repo != "https://github.com/me/nine" || nine.Install != "pnpm install --frozen-lockfile" || len(nine.Routes) != 0 {
-		t.Fatalf("unexpected nine-column row: %+v", nine)
+	if nine.Name != "nine" || nine.Dir != "apps" || nine.Repo != "https://github.com/me/nine" {
+		t.Fatalf("the first segment of the folder is the repository: %+v", nine)
+	}
+	if process := nine.only(t); process.Dir != "nine" || process.Port != 3001 || process.Install != "pnpm install --frozen-lockfile" || len(process.Routes) != 0 {
+		t.Fatalf("unexpected nine-column row: %+v", process)
 	}
 
 	ten := projects[2]
-	if ten.Branch != "release/2.0" || ten.Install != "" || len(ten.Routes) != 1 || ten.Routes[0].Hostname != "api.ten.flymate.dev" {
+	if ten.Branch != "release/2.0" || ten.only(t).Install != "" || len(ten.only(t).Routes) != 1 || ten.only(t).Routes[0].Hostname != "api.ten.flymate.dev" {
 		t.Fatalf("unexpected ten-column row: %+v", ten)
 	}
 
 	dotted := projects[3]
-	if len(dotted.Routes) != 1 || dotted.Routes[0].Label != "my-site" {
-		t.Fatalf("a name a DNS label cannot carry is folded into the route's label: %+v", dotted.Routes)
+	if routes := dotted.only(t).Routes; len(routes) != 1 || routes[0].Label != "my-site" || dotted.only(t).ID != "my-site" {
+		t.Fatalf("a name a DNS label cannot carry is folded into the route's label and the process id: %+v", dotted)
 	}
 
 	if _, kept := machine.Files[legacyPath]; kept {
@@ -530,7 +556,7 @@ func TestMigrationOneKeepsARouteWithoutAHostnameWhenTheMachineHasNoDomain(t *tes
 	}
 
 	projects := migratedProjects(t, machine)
-	if len(projects) != 1 || len(projects[0].Routes) != 1 || projects[0].Routes[0].Hostname != "" || projects[0].Routes[0].Port != 3000 {
+	if len(projects) != 1 || len(projects[0].only(t).Routes) != 1 || projects[0].only(t).Routes[0].Hostname != "" || projects[0].only(t).Routes[0].Port != 3000 {
 		t.Fatalf("the route must keep its port and carry no hostname: %+v", projects)
 	}
 
@@ -564,8 +590,59 @@ func TestMigrationOneKeepsWhatAnInterruptedRunAlreadyWrote(t *testing.T) {
 	}
 
 	projects := migratedProjects(t, machine)
-	if len(projects) != 2 || projects[0].Routes[0].Hostname != "kept.flymate.dev" || projects[1].Name != "api" {
+	if len(projects) != 2 || projects[0].only(t).Routes[0].Hostname != "kept.flymate.dev" || projects[1].Name != "api" {
 		t.Fatalf("the JSON rows win and the old file only fills what they lack: %+v", projects)
+	}
+}
+
+// Rows that shared the first segment of their folder shared one repository: they become one project, named after that folder, one process per row, and the debug ports follow them.
+func TestMigrationTwoGathersTheRowsOfOneRepositoryIntoOneProject(t *testing.T) {
+	machine := newSys()
+	configured(machine)
+	machine.Files[ledgerPath] = []byte(`{"revision":1,"applied":[]}`)
+	machine.Files[projectsPath] = []byte(`{"projects":[` +
+		`{"name":"api","dir":"api-server/server","repo":"https://github.com/me/api-server","pkgmgr":"gradle","host":"127.0.0.1","port":8080,"routes":[{"label":"api","port":8080,"hostname":"api.flymate.dev"}],"cmd":"SERVER_PORT=8080 ./gradlew bootRun"},` +
+		`{"name":"web","dir":"web","pkgmgr":"bun","host":"127.0.0.1","port":3000,"routes":[],"cmd":"bun run dev"},` +
+		`{"name":"api-web","dir":"api-server/client","pkgmgr":"pnpm","host":"127.0.0.1","port":5180,"routes":[{"label":"api-web","port":5180,"hostname":"api-web.flymate.dev"}],"cmd":"pnpm run dev --port 5180","install":"pnpm install --frozen-lockfile","branch":"release/2.0"}` +
+		`]}` + "\n")
+	machine.Files[envPath] = []byte("PUPITRE_DOMAIN=flymate.dev\nPUPITRE_DEBUG_PORTS=\"api:5005 web:5006 ghost:5007\"\n")
+
+	result, err := runner(machine, migrate.All()...).Run()
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if result.Revision != 2 || len(result.Applied) != 1 || result.Applied[0].ID != 2 {
+		t.Fatalf("result = %+v, want the second migration alone on a machine already at one", result)
+	}
+
+	projects := migratedProjects(t, machine)
+	if len(projects) != 2 || projects[0].Name != "api-server" || projects[1].Name != "web" {
+		t.Fatalf("got %+v, want api-server then web", projects)
+	}
+
+	server := projects[0]
+	if server.Dir != "api-server" || server.Repo != "https://github.com/me/api-server" || server.Branch != "release/2.0" || len(server.Processes) != 2 {
+		t.Fatalf("unexpected project: %+v", server)
+	}
+	if api := server.Processes[0]; api.ID != "api" || api.Dir != "server" || api.Port != 8080 || api.Routes[0].Hostname != "api.flymate.dev" {
+		t.Fatalf("unexpected process: %+v", api)
+	}
+	if client := server.Processes[1]; client.ID != "api-web" || client.Dir != "client" || client.Install != "pnpm install --frozen-lockfile" {
+		t.Fatalf("unexpected process: %+v", client)
+	}
+	if web := projects[1].only(t); web.Dir != "." || web.ID != "web" {
+		t.Fatalf("a row alone keeps its name and runs from its root: %+v", web)
+	}
+
+	env := string(machine.Files[envPath])
+	if !strings.Contains(env, `PUPITRE_DEBUG_PORTS="api-server/api:5005 web/web:5006 ghost:5007"`) || !strings.Contains(env, "PUPITRE_DOMAIN=flymate.dev") {
+		t.Fatalf("the debug ports must name the windows, and the rest of the file stay:\n%s", env)
+	}
+
+	before := string(machine.Files[projectsPath])
+	again, err := runner(machine, migrate.All()...).Run()
+	if err != nil || len(again.Applied) != 0 || string(machine.Files[projectsPath]) != before {
+		t.Fatalf("a second pass must change nothing: %+v, %v", again, err)
 	}
 }
 

@@ -84,6 +84,17 @@ describe("une connexion ouverte dans le navigateur", () => {
     expect(h.opened).toEqual([NEON]);
   });
 
+  it("ouvre l'adresse entière quand celle cliquée n'en est que la première ligne", async () => {
+    const h = harness();
+    const firstLine = CLAUDE.slice(0, 60);
+
+    expect(await openFromTerminal("t1", firstLine, h.deps)).toBe(true);
+    expect(h.opened).toEqual([CLAUDE]);
+    expect(h.forwarded).toEqual([
+      { id: "t1", port: 54_545, serverId: "srv-1" },
+    ]);
+  });
+
   it("refuse une adresse que le navigateur ne doit pas recevoir", async () => {
     const h = harness();
 

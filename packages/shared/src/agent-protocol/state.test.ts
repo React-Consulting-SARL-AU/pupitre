@@ -3,7 +3,9 @@ import {
   CompletionsParamsSchema,
   CompletionsResultSchema,
   HostnameSchema,
+  LOGIN_STATES,
   MachineSchema,
+  ProjectRegistrationSchema,
   ProjectSchema,
   RouteRequestSchema,
   RouteSchema,
@@ -43,11 +45,10 @@ const service = {
   unit: "postgresql.service",
 }
 
-const project = {
-  name: "flymate-api",
-  dir: "flymate/api",
+const process = {
+  id: "api",
+  dir: "api",
   path: "/home/dev/projects/flymate/api",
-  repo: "git@github.com:acme/flymate.git",
   pkgmgr: "bun",
   host: "127.0.0.1",
   port: 5173,
@@ -56,10 +57,20 @@ const project = {
   install: "bun install",
   state: "online",
   url: "http://127.0.0.1:5173",
-  branch: "main",
   pid: 4242,
   ram_mb: 310,
   uptime_s: 3600,
+}
+
+const project = {
+  name: "flymate",
+  dir: "flymate",
+  path: "/home/dev/projects/flymate",
+  repo: "git@github.com:acme/flymate.git",
+  processes: [process],
+  state: "online",
+  url: "https://flymate.example.org",
+  branch: "main",
 }
 
 const session = {
@@ -123,6 +134,16 @@ describe("MachineSchema, ServiceSchema, ProjectSchema, SessionSchema", () => {
     expect(ServiceSchema.parse({ ...service, runs: false }).runs).toBe(false)
   })
 
+  it("carries the account a module declares, and only one the catalogue names", () => {
+    expect(ServiceSchema.parse(service).connection).toBeUndefined()
+    expect(
+      ServiceSchema.parse({ ...service, connection: "cloudflare" }).connection
+    ).toBe("cloudflare")
+    expect(
+      ServiceSchema.safeParse({ ...service, connection: "railway" }).success
+    ).toBe(false)
+  })
+
   it("reject a three-value load with a string and an unknown session kind", () => {
     expect(
       MachineSchema.safeParse({ ...machine, load: "0.12 0.2 0.25" }).success
@@ -130,18 +151,90 @@ describe("MachineSchema, ServiceSchema, ProjectSchema, SessionSchema", () => {
     expect(ServiceSchema.safeParse({ ...service, state: "on" }).success).toBe(
       false
     )
-    expect(
-      SessionSchema.safeParse({ ...session, kind: "cursor" }).success
-    ).toBe(false)
+    expect(SessionSchema.safeParse({ ...session, kind: "aider" }).success).toBe(
+      false
+    )
   })
 
-  it("requires an absolute path on a project", () => {
+  it("requires an absolute path on a project and on each process", () => {
     const { path: _path, ...withoutPath } = project
 
     expect(ProjectSchema.safeParse(withoutPath).success).toBe(false)
     expect(
-      ProjectSchema.safeParse({ ...project, path: "flymate/api" }).success
+      ProjectSchema.safeParse({ ...project, path: "flymate" }).success
     ).toBe(false)
+    expect(
+      ProjectSchema.safeParse({
+        ...project,
+        processes: [{ ...process, path: "flymate/api" }],
+      }).success
+    ).toBe(false)
+  })
+
+  it("requires one process at the least, and takes partial only on the project", () => {
+    expect(ProjectSchema.safeParse({ ...project, processes: [] }).success).toBe(
+      false
+    )
+    expect(
+      ProjectSchema.safeParse({ ...project, state: "partial" }).success
+    ).toBe(true)
+    expect(
+      ProjectSchema.safeParse({
+        ...project,
+        processes: [{ ...process, state: "partial" }],
+      }).success
+    ).toBe(false)
+  })
+
+  it("registers a project as a repository and its processes, ids unique, folders inside", () => {
+    const registration = {
+      name: "intranet",
+      dir: "intranet",
+      repo: "git@github.com:acme/intranet.git",
+      processes: [
+        {
+          id: "server",
+          pkgmgr: "gradle",
+          host: "127.0.0.1",
+          port: 8081,
+          cmd: "SERVER_PORT=8081 ./gradlew :server:bootRun",
+          routes: [],
+        },
+        {
+          id: "client",
+          dir: "client",
+          pkgmgr: "pnpm",
+          host: "127.0.0.1",
+          port: 3001,
+          cmd: "pnpm dev",
+          routes: [{ label: "client", port: 3001, subdomain: "intranet" }],
+        },
+      ],
+    }
+
+    const parsed = ProjectRegistrationSchema.parse(registration)
+
+    expect(parsed.processes[0]?.dir).toBe(".")
+    expect(parsed.processes[1]?.dir).toBe("client")
+    expect(
+      ProjectRegistrationSchema.safeParse({ ...registration, processes: [] })
+        .success
+    ).toBe(false)
+    expect(
+      ProjectRegistrationSchema.safeParse({
+        ...registration,
+        processes: registration.processes.map((one) => ({ ...one, id: "app" })),
+      }).success
+    ).toBe(false)
+
+    for (const dir of ["/etc", "../other", "client/../..", ""]) {
+      expect(
+        ProjectRegistrationSchema.safeParse({
+          ...registration,
+          processes: [{ ...registration.processes[0], dir }],
+        }).success
+      ).toBe(false)
+    }
   })
 })
 
@@ -183,12 +276,18 @@ describe("RouteSchema, RouteRequestSchema and HostnameSchema", () => {
     expect(HostnameSchema.safeParse("a..example.org").success).toBe(false)
   })
 
-  it("keep a project's routes as a list, empty included", () => {
-    expect(ProjectSchema.safeParse({ ...project, routes: [] }).success).toBe(
-      true
-    )
+  it("keep a process's routes as a list, empty included", () => {
     expect(
-      ProjectSchema.safeParse({ ...project, routes: undefined }).success
+      ProjectSchema.safeParse({
+        ...project,
+        processes: [{ ...process, routes: [] }],
+      }).success
+    ).toBe(true)
+    expect(
+      ProjectSchema.safeParse({
+        ...project,
+        processes: [{ ...process, routes: undefined }],
+      }).success
     ).toBe(false)
   })
 })
@@ -224,6 +323,28 @@ describe("ServiceStatusParamsSchema and ServiceStatusResultSchema", () => {
         credentials: { app_password: 42 },
       }).success
     ).toBe(false)
+  })
+
+  it("carry whether the CLI is signed in, and under which account", () => {
+    expect(
+      ServiceStatusResultSchema.safeParse({
+        ...service,
+        login: { state: "signed_in", account: "jordan@example.org" },
+      }).success
+    ).toBe(true)
+    expect(
+      ServiceStatusResultSchema.safeParse({
+        ...service,
+        login: { state: "signed_out", fix: "Run gh auth login." },
+      }).success
+    ).toBe(true)
+    expect(
+      ServiceStatusResultSchema.safeParse({
+        ...service,
+        login: { state: "expired" },
+      }).success
+    ).toBe(false)
+    expect(LOGIN_STATES).toEqual(["signed_in", "signed_out", "unknown"])
   })
 })
 

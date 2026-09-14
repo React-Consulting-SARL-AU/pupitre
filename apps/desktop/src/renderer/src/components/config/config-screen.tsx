@@ -154,10 +154,10 @@ export function ConfigScreen({
 
   const install = (
     <Button
+      hint={left.length > 0 ? t("config.remaining.goTo") : undefined}
       icon={Download}
       loading={checking}
       onClick={() => submit()}
-      title={left.length > 0 ? t("config.remaining.goTo") : undefined}
       variant={left.length === 0 || last ? "inverse" : "default"}
     >
       {submitLabel ?? t("config.install")}
@@ -168,7 +168,7 @@ export function ConfigScreen({
     <Screen
       actions={actions}
       column
-      eyebrow={t("config.eyebrow")}
+      eyebrow={serverName ?? t("config.thisServer")}
       footer={
         <ActionBar name="config" note={note(t, left, marked, checking, goTo)}>
           {index > 0 ? (
@@ -199,7 +199,7 @@ export function ConfigScreen({
       }
       plain={plain}
       step="config"
-      title={serverName ?? t("config.thisServer")}
+      title={t("config.title")}
     >
       {notice}
 

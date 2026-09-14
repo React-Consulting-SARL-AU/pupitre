@@ -61,17 +61,6 @@ function indexPage(): string {
         text-decoration: none;
         font-size: 12px;
       }
-      @media (prefers-color-scheme: dark) {
-        body { background: ${theme.darkColor.base}; color: ${theme.darkColor.ink}; }
-        li {
-          background: ${theme.darkColor.surface};
-          border-color: ${theme.darkColor.line};
-        }
-        a {
-          background: ${theme.darkColor.inverse};
-          color: ${theme.darkColor["inverse-ink"]};
-        }
-      }
     </style>
   </head>
   <body>

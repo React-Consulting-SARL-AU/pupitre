@@ -22,7 +22,6 @@ export const transfers = {
     "transfers.action.cancel": "Cancel {name}",
     "transfers.action.dismiss": "Remove {name} from the list",
     "transfers.upload": "Send…",
-    "transfers.upload.title": "Send files or folders to this folder",
     "transfers.drop": "Drop here to send to {folder}",
     "transfers.drop.label": "Drop zone of the folder",
     "transfers.dropped.one": "{count} transfer started",
@@ -89,8 +88,6 @@ export const transfers = {
     "transfers.action.cancel": "Annuler {name}",
     "transfers.action.dismiss": "Retirer {name} de la liste",
     "transfers.upload": "Envoyer…",
-    "transfers.upload.title":
-      "Envoyer des fichiers ou des dossiers dans ce dossier",
     "transfers.drop": "Déposez ici pour envoyer dans {folder}",
     "transfers.drop.label": "Zone de dépôt du dossier",
     "transfers.dropped.one": "{count} transfert lancé",

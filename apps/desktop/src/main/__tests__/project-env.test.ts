@@ -42,7 +42,7 @@ afterEach(() => {
 
 describe("le fichier d'environnement d'un projet", () => {
   it("refuse un projet que l'agent n'a jamais déclaré", async () => {
-    const answer = await projectEnv(SERVER, "inconnu", false, deps());
+    const answer = await projectEnv(SERVER, "inconnu", false, null, deps());
 
     expect(answer).toMatchObject({
       ok: false,
@@ -55,8 +55,14 @@ describe("le fichier d'environnement d'un projet", () => {
 
     await listProjects(SERVER, shared);
 
-    const read = await projectEnv(SERVER, "flymate-api", false, shared);
-    const rewritten = await projectEnv(SERVER, "flymate-api", true, shared);
+    const read = await projectEnv(SERVER, "flymate-api", false, null, shared);
+    const rewritten = await projectEnv(
+      SERVER,
+      "flymate-api",
+      true,
+      null,
+      shared
+    );
 
     expect(read).toMatchObject({
       ok: true,

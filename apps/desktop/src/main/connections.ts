@@ -4,13 +4,19 @@ import type {
   ConnectionAccount,
   ConnectionCheck,
   ConnectionKind,
+  ConnectionOutcome,
   ConnectionState,
   ConnectionsState,
 } from "@shared/connections";
 import { CONNECTION_KINDS, NO_CONNECTIONS } from "@shared/connections";
 import { app, ipcMain, safeStorage } from "electron";
-import { accountSecrets } from "./account-secrets";
-import { accountOfToken, checkToken } from "./account-tokens";
+import {
+  accountsOfToken,
+  checkToken,
+  chosenAccount,
+  tokenRefusal,
+} from "./account-tokens";
+import { accountValues } from "./account-values";
 import type { Sealer } from "./account-vault";
 import { agentClient } from "./agent";
 import { declaredManifests } from "./catalog";
@@ -23,6 +29,7 @@ import {
   dropTunnel as drop,
   ExposureUnreadable,
   dropRecord as forgetRecord,
+  releaseRecords as forgetRecords,
   type ManagedValues,
   syncRecords as reconcile,
   managedValues as resolveManaged,
@@ -120,10 +127,14 @@ export async function managedValues(
     return declared;
   }
 
-  const accounts = accountSecrets(
+  const accounts = accountValues(
     modules,
     declared.result,
-    (kind) => vault.token(kind),
+    (kind) => {
+      const token = vault.token(kind);
+
+      return token ? { account: vault.account(kind), token } : null;
+    },
     [CLOUDFLARE_EXPOSURE]
   );
 
@@ -140,8 +151,8 @@ export async function managedValues(
   return {
     ok: true,
     result: {
-      config: tunnel.result.config,
-      secrets: { ...accounts.result, ...tunnel.result.secrets },
+      config: { ...accounts.result.config, ...tunnel.result.config },
+      secrets: { ...accounts.result.secrets, ...tunnel.result.secrets },
     },
   };
 }
@@ -199,22 +210,36 @@ export function connectionsState(): ConnectionsState {
  */
 async function connect(
   kind: ConnectionKind,
-  token: string
-): Promise<AgentResponse<ConnectionsState>> {
-  let account: ConnectionAccount | null;
+  token: string,
+  wanted: string | null
+): Promise<AgentResponse<ConnectionOutcome>> {
+  let accounts: ConnectionAccount[] | null;
 
   try {
-    account = await accountOfToken(kind, token);
+    accounts = await accountsOfToken(kind, token);
   } catch (failure) {
-    return refuseWith("bad_request", "refusal.connection.call", {
-      kind,
-      reason: failure instanceof Error ? failure.message : String(failure),
-    });
+    return tokenRefusal(kind, failure, "refusal.connection.call");
+  }
+
+  const account = accounts ? chosenAccount(accounts, wanted) : null;
+
+  if (accounts && !account) {
+    if (wanted !== null) {
+      return refuseWith("bad_request", "refusal.connection.account.gone", {
+        account: wanted,
+        kind,
+      });
+    }
+
+    return { ok: true, result: { accounts, status: "choose" } };
   }
 
   vault.connect(kind, token, account);
 
-  return { ok: true, result: connectionsState() };
+  return {
+    ok: true,
+    result: { state: connectionsState(), status: "connected" },
+  };
 }
 
 /**
@@ -230,7 +255,12 @@ async function verify(
     return refuseWith("bad_request", "refusal.connection.absent", { kind });
   }
 
-  const checked = await checkToken(kind, token);
+  const checked = await checkToken(
+    kind,
+    token,
+    fetch,
+    vault.account(kind)?.id ?? null
+  );
 
   if (checked.ok && checked.result.status === "answered") {
     vault.connect(kind, token, checked.result.account);
@@ -267,7 +297,7 @@ export function registerConnections(): void {
 
   ipcMain.handle(
     "connections:connect",
-    (_event, kind: unknown, token: unknown) => {
+    (_event, kind: unknown, token: unknown, accountId: unknown) => {
       if (!known(kind)) {
         return refuseWith("bad_request", "refusal.connection.kind", {
           kind: String(kind),
@@ -280,7 +310,11 @@ export function registerConnections(): void {
         });
       }
 
-      return connect(kind, token.trim());
+      return connect(
+        kind,
+        token.trim(),
+        typeof accountId === "string" && accountId ? accountId : null
+      );
     }
   );
 
@@ -307,6 +341,28 @@ export function registerConnections(): void {
   });
 
   ipcMain.handle("connections:zones", () => zones());
+
+  ipcMain.handle(
+    "tunnel:release",
+    (_event, serverId: unknown, hostnames: unknown) => {
+      if (typeof serverId !== "string") {
+        return refuseWith("bad_request", "refusal.server.unknown");
+      }
+
+      if (
+        !(
+          Array.isArray(hostnames) &&
+          hostnames.every((hostname) => typeof hostname === "string")
+        )
+      ) {
+        return refuseWith("bad_request", "refusal.params.invalid", {
+          cmd: "tunnel:release",
+        });
+      }
+
+      return forgetRecords(serverId, hostnames, deps);
+    }
+  );
 
   ipcMain.handle(
     "tunnel:records",

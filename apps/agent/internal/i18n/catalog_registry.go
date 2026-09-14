@@ -54,6 +54,14 @@ var registryCatalog = map[string]Message{
 		FR: "branche invalide : %s",
 		EN: "invalid branch: %s",
 	},
+	"registry.host.invalid": {
+		FR: "hôte invalide : %s",
+		EN: "invalid host: %s",
+	},
+	"registry.host.invalid.fix": {
+		FR: "Laissez 127.0.0.1, ou donnez le nom en .localhost que le script de démarrage fige, par exemple « react-box.localhost ».",
+		EN: `Leave 127.0.0.1, or give the .localhost name the start script freezes, for example "react-box.localhost".`,
+	},
 	"registry.branch.invalid.fix": {
 		FR: "Donnez un nom de branche tel que git l'écrit, par exemple « main » ou « release/2.0 ».",
 		EN: `Give a branch name as git writes it, for example "main" or "release/2.0".`,
@@ -129,5 +137,53 @@ var registryCatalog = map[string]Message{
 	"registry.port.taken.fix": {
 		FR: "Donnez un autre port à %s, par exemple %d.",
 		EN: "Give %s another port, for example %d.",
+	},
+	"registry.dir.declared": {
+		FR: "le dossier %s est déjà celui du projet %s",
+		EN: "folder %s already belongs to project %s",
+	},
+	"registry.dir.declared.fix": {
+		FR: "Ajoutez un processus à ce projet plutôt qu'un second projet sur le même dossier.",
+		EN: "Add a process to that project rather than a second project on the same folder.",
+	},
+	"registry.processes.empty": {
+		FR: "le projet %s ne déclare aucun processus",
+		EN: "project %s declares no process",
+	},
+	"registry.processes.empty.fix": {
+		FR: "Déclarez au moins un processus : une commande de démarrage et un port.",
+		EN: "Declare at least one process: a start command and a port.",
+	},
+	"registry.process.id.invalid": {
+		FR: "identifiant de processus invalide : %s",
+		EN: "invalid process id: %s",
+	},
+	"registry.process.id.invalid.fix": {
+		FR: "Une étiquette DNS : minuscules, chiffres et tirets, en commençant et en finissant par une lettre ou un chiffre, 63 caractères au plus.",
+		EN: "One DNS label: lower case, digits and dashes, starting and ending on a letter or a digit, 63 characters at most.",
+	},
+	"registry.process.duplicate": {
+		FR: "deux processus portent l'identifiant %s",
+		EN: "two processes carry the id %s",
+	},
+	"registry.process.duplicate.fix": {
+		FR: "Donnez un identifiant différent à chaque processus du projet.",
+		EN: "Give each process of the project a different id.",
+	},
+	"registry.process.dir.invalid": {
+		FR: "dossier invalide pour le processus %s : %s",
+		EN: "invalid folder for process %s: %s",
+	},
+	"registry.process.dir.invalid.fix": {
+		FR: "Donnez un chemin relatif au dossier du projet, sans « .. », ou « . » pour sa racine.",
+		EN: `Give a path relative to the project's folder, without "..", or "." for its root.`,
+	},
+	"registry.port.shared": {
+		FR: "le port %d est tenu par le processus %s et par %s",
+		EN: "port %d is held by process %s and by %s",
+	},
+	"registry.port.shared.fix": {
+		FR: "Donnez un port différent à chaque processus du projet.",
+		EN: "Give each process of the project a different port.",
 	},
 }

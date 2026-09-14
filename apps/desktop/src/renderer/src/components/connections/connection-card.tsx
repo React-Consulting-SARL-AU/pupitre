@@ -4,7 +4,8 @@ import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { Field, proseControlClass } from "@renderer/components/ui/field";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { forgetScope, useConnections } from "@renderer/stores/connections";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
+import { ConnectionAccountChoice } from "./connection-account-choice";
 import { ConnectionConnected } from "./connection-connected";
 import type { ConnectionDescriptor } from "./connection-descriptors";
 
@@ -24,6 +25,7 @@ export function ConnectionCard({
   installed = [],
   manifests = null,
   serverName = null,
+  status,
 }: {
   connection: ConnectionDescriptor;
   compact?: boolean;
@@ -32,19 +34,24 @@ export function ConnectionCard({
   /** The catalogue's manifests, when they have been read; null says nothing can be named. */
   manifests?: readonly Manifest[] | null;
   serverName?: string | null;
+  /** The account's state as the screen says it, in place of the card's own sentence. */
+  status?: ReactNode;
 }) {
   const t = useTranslations();
 
   const state = useConnections((store) => store.state[connection.kind]);
-  const busy = useConnections((store) => store.busy);
-  const problem = useConnections((store) => store.problem);
+  const busy = useConnections((store) => store.busy === connection.kind);
+  const problem = useConnections((store) => store.problems[connection.kind]);
   const health = useConnections((store) => store.health[connection.kind]);
+  const accounts = useConnections((store) => store.choices[connection.kind]);
   const read = useConnections((store) => store.read);
   const connect = useConnections((store) => store.connect);
+  const dropChoice = useConnections((store) => store.dropChoice);
   const forget = useConnections((store) => store.forget);
   const verify = useConnections((store) => store.verify);
 
   const [token, setToken] = useState("");
+  const [accountId, setAccountId] = useState<string | null>(null);
 
   useEffect(() => {
     read();
@@ -61,13 +68,27 @@ export function ConnectionCard({
         scope={forgetScope(connection.kind, installed, manifests)}
         serverName={serverName}
         state={state}
+        status={status}
       />
     );
   }
 
+  const ready =
+    token.trim() !== "" && (accounts === undefined || accountId !== null);
+
   async function submit(): Promise<void> {
-    if (await connect(connection.kind, token)) {
+    if (await connect(connection.kind, token, accountId ?? undefined)) {
       setToken("");
+      setAccountId(null);
+    }
+  }
+
+  function retype(value: string): void {
+    setToken(value);
+
+    if (accounts) {
+      dropChoice(connection.kind);
+      setAccountId(null);
     }
   }
 
@@ -79,6 +100,8 @@ export function ConnectionCard({
       data-connected="false"
       data-connection={connection.kind}
     >
+      {status}
+
       {compact ? null : (
         <p className="text-ink-3 leading-relaxed">{t(connection.intro)}</p>
       )}
@@ -93,9 +116,9 @@ export function ConnectionCard({
         <input
           className={proseControlClass}
           id={name}
-          onChange={(event) => setToken(event.target.value)}
+          onChange={(event) => retype(event.target.value)}
           onKeyDown={(event) => {
-            if (event.key === "Enter" && token.trim() !== "") {
+            if (event.key === "Enter" && ready) {
               submit();
             }
           }}
@@ -104,11 +127,20 @@ export function ConnectionCard({
         />
       </Field>
 
+      {accounts ? (
+        <ConnectionAccountChoice
+          accounts={accounts}
+          chosen={accountId}
+          kind={connection.kind}
+          onChoose={setAccountId}
+        />
+      ) : null}
+
       {problem ? <ErrorNotice error={problem} /> : null}
 
       <div>
         <Button
-          disabled={token.trim() === ""}
+          disabled={!ready}
           loading={busy}
           onClick={() => submit()}
           size="sm"

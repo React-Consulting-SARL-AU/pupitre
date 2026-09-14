@@ -1,6 +1,6 @@
 ---
 title: Agents IA
-description: Claude Code, Codex et Hermes sur le serveur — comment ils sont installés, quel contexte ils lisent, et où l’on se connecte.
+description: Claude Code, Codex, Cursor, Gemini, Copilot, OpenCode et Hermes sur le serveur — comment ils sont installés, quel contexte ils lisent, et où l’on se connecte.
 locale: fr
 section: daily
 sectionOrder: 2
@@ -11,19 +11,21 @@ Pupitre installe les agents ; vous apportez les abonnements. Rien n’est revend
 
 ## Ce qui est installé
 
-`ai.claude` pose le binaire natif publié par Anthropic, pour cette architecture, et le refuse si sa somme de contrôle ne correspond pas à celle qu’annonce le manifeste de la version. `ai.codex` passe par `mise`, qui épingle et met à jour Codex comme un runtime et le dépose sur le PATH de tous les shells. `ai.hermes` fait tourner l’agent de Nous Research sur le runtime Python, avec les fournisseurs de modèles que vous configurez.
+`ai.claude` pose le binaire natif publié par Anthropic, pour cette architecture, et le refuse si sa somme de contrôle ne correspond pas à celle qu’annonce le manifeste de la version. `ai.codex` passe par `mise`, qui épingle et met à jour Codex comme un runtime et le dépose sur le PATH de tous les shells. `ai.cursor` pose le paquet du CLI de Cursor tel que l’installeur de Cursor le fait — sous sa version dans `~/.local/share/cursor-agent`, les commandes `agent` et `cursor-agent` liées depuis `~/.local/bin` — sans exécuter l’installeur. `ai.gemini` et `ai.copilot` passent par `mise` comme Codex, pour Gemini CLI et le CLI de GitHub Copilot. `ai.opencode` pose le binaire statique de la release GitHub d’OpenCode et le refuse si sa somme n’est pas celle que GitHub publie pour l’artefact. `ai.hermes` fait tourner l’agent de Nous Research sur le runtime Python, avec les fournisseurs de modèles que vous configurez.
 
-Les trois s’installent dans le compte `dev`, sur la même machine, et peuvent cohabiter.
+Les sept s’installent dans le compte `dev`, sur la même machine, et peuvent cohabiter.
 
 ## La connexion
 
-`ai.claude` et `ai.codex` se connectent comme partout ailleurs : l’outil affiche une URL, vous l’ouvrez dans votre navigateur, vous approuvez. L’app montre le terminal où cela se passe, si bien que le geste est celui que vous connaissez déjà — il a simplement lieu sur le serveur, et les identifiants y restent.
+`ai.claude`, `ai.codex` et `ai.cursor` se connectent comme partout ailleurs : l’outil affiche une URL, vous l’ouvrez dans votre navigateur, vous approuvez. L’app montre le terminal où cela se passe, si bien que le geste est celui que vous connaissez déjà — il a simplement lieu sur le serveur, et les identifiants y restent. Pour Cursor, la commande est `NO_OPEN_BROWSER=1 cursor-agent login`, sans quoi le CLI tente d’ouvrir un navigateur que le serveur n’a pas ; pour Gemini, `NO_BROWSER=true gemini`, qui affiche l’URL et reprend le code que vous collez. `ai.copilot` passe par `copilot login` et le code d’appareil, sur votre abonnement Copilot. Le niveau gratuit d’un compte Google suffit à Gemini : c’est l’agent à essayer avant de payer quoi que ce soit.
+
+`ai.opencode` n’impose aucun fournisseur : il démarre sur les modèles gratuits qu’il embarque, et `opencode auth login` branche un abonnement Claude, ChatGPT ou GitHub Copilot, ou la clé d’un des fournisseurs qu’il connaît. Le tableau de bord nomme ceux pour lesquels il tient un identifiant.
 
 `ai.hermes` n’a pas ce flux : il parle aux fournisseurs dont vous avez donné les clés à l’installation, et ces clés vivent dans un fichier que seul root peut lire.
 
 ## Le contexte qu’ils lisent
 
-Chaque module d’agent écrit le même contexte machine, sous le nom que son outil lit — `CLAUDE.md` pour Claude Code, `AGENTS.md` pour Codex et Hermes. Il dit les choses simples qu’un agent qui travaille ici doit savoir : que c’est un serveur Linux et non un poste de travail, où vivent les projets, que les serveurs se pilotent avec la commande `dev` plutôt qu’en les lançant à la main, et que les secrets viennent du gestionnaire de secrets de la machine plutôt que d’un fichier commité.
+Chaque module d’agent écrit le même contexte machine, sous le nom que son outil lit — `CLAUDE.md` pour Claude Code, `GEMINI.md` pour Gemini, `copilot-instructions.md` pour Copilot, `AGENTS.md` pour Codex, OpenCode et Hermes. Cursor fait exception : il n’a pas de fichier de règles global, vos règles vivent dans votre compte, et ce sont les skills qui portent ce que la machine a à dire. Il dit les choses simples qu’un agent qui travaille ici doit savoir : que c’est un serveur Linux et non un poste de travail, où vivent les projets, que les serveurs se pilotent avec la commande `dev` plutôt qu’en les lançant à la main, et que les secrets viennent du gestionnaire de secrets de la machine plutôt que d’un fichier commité.
 
 À côté viennent les skills Pupitre, dans `~/.agents/skills` et dans le dossier propre à l’outil :
 

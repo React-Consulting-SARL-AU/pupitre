@@ -101,7 +101,7 @@ describe("le canal", () => {
     expect(ping.ts).toBe("2026-09-04T12:00:00Z");
     expect(agent.session(SERVER)).toMatchObject({
       agent_version: "0.0.0-test",
-      protocol: 1,
+      protocol: 2,
       entitlement: "dev",
     });
     expect(agent.capabilities(SERVER)).toContain("snapshot");
@@ -351,7 +351,7 @@ describe("le canal", () => {
 
     expect(first).toBeInstanceOf(AgentCallError);
     expect(first.code).toBe("protocol_mismatch");
-    expect(first.fix).toBe("Mets à jour l'app jusqu'au protocole 2.");
+    expect(first.fix).toBe("Mets à jour l'app jusqu'au protocole 3.");
     expect(second.code).toBe("protocol_mismatch");
     expect(fake.started()).toBe(1);
 
@@ -419,11 +419,59 @@ describe("le canal", () => {
       error: {
         code: "protocol_mismatch",
         message:
-          "protocole 1 non pris en charge : cet agent parle le protocole 2",
-        fix: "Mets à jour l'app jusqu'au protocole 2.",
+          "protocole 2 non pris en charge : cet agent parle le protocole 3",
+        fix: "Mets à jour l'app jusqu'au protocole 3.",
       },
     });
 
+    agent.closeAll();
+  });
+});
+
+/**
+ * A followed journal holds its channel until the reader leaves, not until the
+ * agent answers: the service panel shows the journal and the configuration
+ * form side by side, and applying the form must not wait for the reader to
+ * close the panel.
+ */
+describe("un journal suivi", () => {
+  it("laisse partir un install sans attendre que le lecteur s'en aille", async () => {
+    const { agent, fake } = client([
+      "service-logs-follow-held.jsonl",
+      "install-secrets.jsonl",
+    ]);
+    const queued: string[] = [];
+    const lines: string[] = [];
+    const reader = new AbortController();
+
+    const journal = agent
+      .stream(
+        SERVER,
+        "service.logs",
+        { follow: true, id: "db.postgres", lines: 120 },
+        (event: Event) => lines.push(String(event.line)),
+        { onQueued: () => queued.push("service.logs"), signal: reader.signal }
+      )
+      .catch((error: AgentCallError) => error);
+
+    expect(await until(() => lines.length === 1)).toBe(true);
+
+    const steps: string[] = [];
+    const result = await agent.stream(
+      SERVER,
+      "install",
+      INSTALL_PARAMS,
+      (event: Event) => steps.push(String(event.step)),
+      { ...INSTALL_SECRETS, onQueued: () => queued.push("install") }
+    );
+
+    expect(queued).toEqual([]);
+    expect(steps).toEqual(["apt", "apt", "cluster", "cluster"]);
+    expect(result).toMatchObject({ failed: [] });
+    expect(fake.started()).toBe(2);
+
+    reader.abort();
+    await journal;
     agent.closeAll();
   });
 });
@@ -449,8 +497,59 @@ describe("la détection d'un projet", () => {
       repo: "https://github.com/moi/shop.git",
     });
 
-    expect(detected).toMatchObject({ pkgmgr: "bun", port_hint: 3000 });
+    expect(detected).toMatchObject({
+      processes: [{ pkgmgr: "bun", port_hint: 3000 }],
+    });
     expect(fake.started()).toBe(2);
+
+    agent.closeAll();
+  });
+});
+
+/**
+ * The dashboard reads the machine on a timer, and that read holds a channel
+ * for most of a second: a folder clicked meanwhile must not sit behind it.
+ */
+describe("une lecture sur minuterie", () => {
+  it("passe par le canal du battement, laissant un geste partir tout de suite", async () => {
+    const { agent, fake } = client([
+      "snapshot-loop.jsonl",
+      "hello-then-ping.jsonl",
+    ]);
+    const queued: string[] = [];
+
+    const beat = agent.call(SERVER, "snapshot", undefined, {
+      onQueued: () => queued.push("snapshot"),
+      polled: true,
+    });
+    const gesture = agent.call(SERVER, "ping", undefined, {
+      onQueued: () => queued.push("ping"),
+    });
+
+    await Promise.all([beat, gesture]);
+
+    expect(queued).toEqual([]);
+    expect(fake.started()).toBe(2);
+    // Each channel numbers from one: neither command waited for the other's hello.
+    expect(fake.trace().sort()).toEqual([
+      "id=1 cmd=hello",
+      "id=1 cmd=hello",
+      "id=2 cmd=ping",
+      "id=2 cmd=snapshot",
+    ]);
+
+    agent.closeAll();
+  });
+
+  it("suffit à dire ce que hello a répondu, avant tout geste", async () => {
+    const { agent, fake } = client("snapshot-loop.jsonl");
+
+    expect(agent.session(SERVER)).toBeNull();
+
+    await agent.call(SERVER, "snapshot", undefined, { polled: true });
+
+    expect(agent.session(SERVER)?.agent_version).toBe("0.0.0-test");
+    expect(fake.started()).toBe(1);
 
     agent.closeAll();
   });
@@ -822,7 +921,7 @@ const GREETING = JSON.stringify({
   ok: true,
   result: {
     agent_version: "0.0.0-test",
-    protocol: 1,
+    protocol: 2,
     entitlement: "dev",
     capabilities: ["hello", "ping", "snapshot", "project.logs"],
   },
@@ -1019,7 +1118,7 @@ describe("la robustesse du canal", () => {
     const answer = agent.request(
       SERVER,
       "project.logs",
-      { follow: true, lines: 10, name: "web" },
+      { follow: true, lines: 10, name: "web", process: "web" },
       { signal: control.signal }
     );
 
@@ -1055,6 +1154,46 @@ describe("la robustesse du canal", () => {
 
     expect(answer).toMatchObject({ ok: false, error: { code: "cancelled" } });
     expect(ssh.written).toEqual([]);
+
+    agent.closeAll();
+  });
+
+  it("ne part pas non plus quand le signal est levé pendant que le canal s'ouvre", async () => {
+    const { agent, ssh } = scriptedClient();
+    const control = new AbortController();
+
+    const answer = agent.request(
+      SERVER,
+      "project.logs",
+      { follow: true, lines: 10, name: "web", process: "web" },
+      { signal: control.signal }
+    );
+
+    await untilWritten(ssh, 1);
+    control.abort();
+    ssh.say(GREETING);
+
+    expect(await answer).toMatchObject({
+      ok: false,
+      error: { code: "cancelled" },
+    });
+    expect(ssh.written).toHaveLength(1);
+
+    const next = agent.request(SERVER, "project.logs", {
+      follow: false,
+      lines: 10,
+      name: "web",
+      process: "web",
+    });
+
+    await untilWritten(ssh, 2);
+    expect(JSON.parse(ssh.written[1] ?? "")).toMatchObject({
+      cmd: "project.logs",
+      id: 2,
+    });
+    ssh.say(JSON.stringify({ id: 2, ok: true, result: { lines: [] } }));
+
+    expect(await next).toMatchObject({ ok: true, result: { lines: [] } });
 
     agent.closeAll();
   });

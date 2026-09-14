@@ -5,7 +5,7 @@ import { X } from "lucide-react";
 import { controlClass } from "../ui/field";
 import { IconButton } from "../ui/icon-button";
 import { ProjectPortWeb } from "./project-port-web";
-import { PORTS_HEAD, portsColumns } from "./project-ports-columns";
+import { portsColumns, portsHead } from "./project-ports-columns";
 
 /** What one row of the ports section lets the reader change. */
 export interface PortEdits {
@@ -55,6 +55,7 @@ const PROBLEM_TEXT: Record<
  * but what it costs is said in the same place.
  */
 export function ProjectPortRow({
+  scope,
   index,
   row,
   problem,
@@ -63,6 +64,7 @@ export function ProjectPortRow({
   removable,
   edit,
 }: {
+  scope: string;
   index: number;
   row: PortRow;
   problem: RowProblem | null;
@@ -75,7 +77,8 @@ export function ProjectPortRow({
 }) {
   const t = useTranslations();
 
-  const id = `project.ports.${index}`;
+  const id = `${scope}.${index}`;
+  const head = portsHead(scope);
   const field = problem ? PROBLEM_FIELD[problem] : null;
   const warned =
     exposure &&
@@ -92,7 +95,7 @@ export function ProjectPortRow({
             field === "label" ? `${id}.label-problem` : undefined
           }
           aria-invalid={field === "label" ? true : undefined}
-          aria-labelledby={PORTS_HEAD.label}
+          aria-labelledby={head.label}
           className={controlClass("data", field === "label")}
           id={`${id}.label`}
           onChange={(event) => edit.rowLabel(index, event.target.value)}
@@ -104,7 +107,7 @@ export function ProjectPortRow({
         <input
           aria-describedby={field === "port" ? `${id}.port-problem` : undefined}
           aria-invalid={field === "port" ? true : undefined}
-          aria-labelledby={PORTS_HEAD.port}
+          aria-labelledby={head.port}
           className={controlClass("data", field === "port")}
           id={`${id}.port`}
           inputMode="numeric"
@@ -116,6 +119,7 @@ export function ProjectPortRow({
 
         {exposure ? (
           <ProjectPortWeb
+            labelledBy={head.web}
             name={id}
             onChange={(value) => edit.rowWeb(index, value)}
             onGenerate={() => edit.generateRowWeb(index)}

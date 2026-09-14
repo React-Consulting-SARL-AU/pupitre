@@ -11,6 +11,7 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/protocol"
+	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/tmux"
 )
@@ -91,8 +92,8 @@ func (t processTable) get(pid int) (process, bool) {
 	return process{}, false
 }
 
-// The project a process belongs to is the one whose tmux pane it descends from, however deep the ancestry goes.
-func (t processTable) project(pid int, panes map[int]string) string {
+// The window a process belongs to is the one whose tmux pane it descends from, however deep the ancestry goes.
+func (t processTable) window(pid int, panes map[int]string) string {
 	for step := 0; step < maxAncestors; step++ {
 		if name, owned := panes[pid]; owned {
 			return name
@@ -126,11 +127,21 @@ func (t processTable) ancestor(pid, of int) bool {
 	return false
 }
 
-// Memory per project, ancestry included: a dev server is a shell, a package manager and the runtime that does the work.
+// The project a process belongs to, read off the window it descends from: a window is named <project>/<process>, a session started by hand in the scratch window belongs to no project.
+func (t processTable) project(pid int, panes map[int]string) string {
+	project, _, ours := registry.SplitWindow(t.window(pid, panes))
+	if !ours {
+		return ""
+	}
+
+	return project
+}
+
+// Memory per window, ancestry included: a dev server is a shell, a package manager and the runtime that does the work.
 func (t processTable) ram(panes map[int]string) map[string]int {
 	totals := map[string]int{}
 	for _, row := range t.rows {
-		if name := t.project(row.PID, panes); name != "" {
+		if name := t.window(row.PID, panes); name != "" {
 			totals[name] += row.RAMMB
 		}
 	}
@@ -176,6 +187,14 @@ func sessionKind(row process) (string, bool) {
 		return "claude", true
 	case row.program() == "codex":
 		return "codex", true
+	case row.program() == "cursor-agent", strings.Contains(row.Args, "cursor-agent/versions/"):
+		return "cursor", true
+	case row.program() == "opencode":
+		return "opencode", true
+	case row.program() == "gemini", strings.Contains(row.Args, "gemini-cli"):
+		return "gemini", true
+	case row.program() == "copilot":
+		return "copilot", true
 	case row.program() == "hermes":
 		return "hermes", true
 	}

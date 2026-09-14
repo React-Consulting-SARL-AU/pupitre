@@ -50,7 +50,7 @@ func TestEveryAnswerMatchesItsResultDefinition(t *testing.T) {
 	t.Setenv("PUPITRE_PLATFORM_URL", console.URL)
 
 	lines := serveOn(t,
-		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}`,
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`,
 		`{"id":2,"cmd":"install","params":{"modules":["tool.demo","db.mysql","exposure.cloudflare"],"config":{"core.system":{"git_name":"Jordan","git_email":"jordan@example.org"},"tool.demo":{"port":9000},"db.mysql":{"engine":"mysql","port":3306,"app_user":"app","remote_user":"remote"},"exposure.cloudflare":{"domain":"pupitre.sh","account_tag":"acc-1234","tunnel_id":"t-1234"}},"secrets_stdin":true}}`,
 		`{"tool.demo":{"password":"s3cret-de-test"},"db.mysql":{"app_password":"app-s3cret","remote_password":"remote-s3cret"},"exposure.cloudflare":{"tunnel_secret":"tunnel-s3cret"}}`,
 	)
@@ -69,10 +69,11 @@ func TestEveryAnswerMatchesItsResultDefinition(t *testing.T) {
 		{"module.config", map[string]any{"id": "tool.demo"}},
 		{"install.check", map[string]any{"modules": []string{"tool.demo"}, "config": map[string]any{"tool.demo": map[string]any{"port": 9000}}}},
 		{"project.list", map[string]any{}},
-		{"project.add", map[string]any{"name": "api", "dir": "api", "repo": "-", "pkgmgr": "bun", "host": "127.0.0.1", "port": 3001, "routes": []map[string]any{{"label": "api", "port": 3001, "subdomain": "api"}}, "cmd": "bun run dev --port 3001", "install": "-"}},
-		{"project.update", map[string]any{"name": "api", "patch": map[string]any{"routes": []map[string]any{{"label": "api", "port": 3001, "subdomain": "api"}, {"label": "docs", "port": 3002}}}}},
+		{"project.add", map[string]any{"name": "api", "dir": "api", "repo": "-", "processes": []map[string]any{{"id": "api", "pkgmgr": "bun", "host": "127.0.0.1", "port": 3001, "routes": []map[string]any{{"label": "api", "port": 3001, "subdomain": "api"}}, "cmd": "bun run dev --port 3001", "install": "-"}}}},
+		{"project.update", map[string]any{"name": "api", "patch": map[string]any{"processes": []map[string]any{{"id": "api", "pkgmgr": "bun", "host": "127.0.0.1", "port": 3001, "routes": []map[string]any{{"label": "api", "port": 3001, "subdomain": "api"}, {"label": "docs", "port": 3002}}, "cmd": "bun run dev --port 3001"}}}}},
 		{"project.up", map[string]any{"name": "web"}},
-		{"project.logs", map[string]any{"name": "web"}},
+		{"project.logs", map[string]any{"name": "web", "process": "web"}},
+		{"project.install", map[string]any{"name": "web"}},
 		{"project.diff", map[string]any{"name": "web", "path": "README.md"}},
 		{"project.git_status", map[string]any{"name": "web"}},
 		{"project.working_tree", map[string]any{"name": "web"}},

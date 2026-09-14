@@ -69,7 +69,7 @@ func fixture(t *testing.T) (*modtest.FakeSys, func(...string) run) {
 
 func TestDevCoversTheDrivingVerbs(t *testing.T) {
 	fake, dev := fixture(t)
-	fake.Serves("web", 3000)
+	fake.Serves("web/web", 3000)
 	fake.Answer("rev-parse --show-toplevel", "/home/dev/projects/web")
 	fake.Answer("rev-parse --abbrev-ref", "feat/planning")
 	fake.Answer("for-each-ref", "main\nfeat/planning")
@@ -83,7 +83,10 @@ func TestDevCoversTheDrivingVerbs(t *testing.T) {
 		{[]string{"logs", "web", "-n", "5"}, ""},
 		{[]string{"branch"}, "web"},
 		{[]string{"branch", "web"}, "feat/planning"},
-		{[]string{"attach", "web"}, "tmux attach-session -t pupitre:web"},
+		{[]string{"attach", "web"}, "tmux attach-session -t pupitre:web/web"},
+		{[]string{"attach", "web", "web"}, "tmux attach-session -t pupitre:web/web"},
+		{[]string{"logs", "web", "web", "-n", "5"}, ""},
+		{[]string{"up", "web", "web"}, "web"},
 		{[]string{"db", "url"}, "postgresql://dev@127.0.0.1:5432/postgres"},
 		{[]string{"db", "url", "postgres"}, "postgresql://dev@127.0.0.1:5432/postgres"},
 		{[]string{"restart", "web"}, "web"},

@@ -20,7 +20,7 @@ export function ProjectGitSummary({ git }: { git: ProjectGitStatusResult }) {
 
   return (
     <p
-      className={`font-data text-[12px] ${git.behind > 0 ? "font-semibold text-ink" : "text-ink-3"}`}
+      className={`font-data text-[12px] ${git.behind > 0 ? "text-ink" : "text-ink-3"}`}
     >
       {git.behind > 0
         ? t("project.git.behind", {
@@ -29,9 +29,6 @@ export function ProjectGitSummary({ git }: { git: ProjectGitStatusResult }) {
         : t("project.git.upToDate", { upstream: git.upstream })}
       {git.ahead > 0
         ? ` · ${t("project.git.ahead", { commits: t.plural("project.commit", git.ahead) })}`
-        : ""}
-      {git.changed > 0
-        ? ` · ${t.plural("project.localChange", git.changed)}`
         : ""}
     </p>
   );

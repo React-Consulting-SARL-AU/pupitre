@@ -2,6 +2,7 @@ import { Popover } from "@base-ui-components/react/popover";
 import type { FieldHint } from "@pupitre/shared/catalog";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { ExternalLink, Info } from "lucide-react";
+import { Tooltip } from "./tooltip";
 
 /**
  * The long form of a field's help, behind a bubble.
@@ -14,15 +15,19 @@ import { ExternalLink, Info } from "lucide-react";
 export function Hint({ hint, label }: { hint: FieldHint; label: string }) {
   const t = useTranslations();
 
+  const about = t("common.hint.about", { label });
+
   return (
     <Popover.Root>
-      <Popover.Trigger
-        aria-label={t("common.hint.about", { label })}
-        className="clickable -m-1.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full p-1.5 text-ink-4 transition-fast hover:bg-raised hover:text-ink-2"
-        data-hint={label}
-      >
-        <Info size={13} strokeWidth={1.5} />
-      </Popover.Trigger>
+      <Tooltip label={about}>
+        <Popover.Trigger
+          aria-label={about}
+          className="clickable -m-1.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full p-1.5 text-ink-4 transition-fast hover:bg-raised hover:text-ink-2"
+          data-hint={label}
+        >
+          <Info size={13} strokeWidth={1.5} />
+        </Popover.Trigger>
+      </Tooltip>
 
       <Popover.Portal>
         <Popover.Positioner align="start" side="top" sideOffset={6}>

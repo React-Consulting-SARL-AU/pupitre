@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys/file"
 )
 
@@ -23,12 +24,13 @@ var (
 type workspace struct {
 	name string
 	port int
+	host string
 }
 
 // What the monorepo proposes, or nothing when the root is not one: a turbo.json and a list of workspaces are what makes it one.
-func (r *Reader) monorepo(files sources, manifest packageJSON, pkgmgr string) (contract.ProjectDetect, bool) {
+func (r *Reader) monorepo(files sources, manifest packageJSON, pkgmgr string, taken map[int]bool) (contract.DetectedProcess, bool) {
 	if !files.exists(turboConfig) {
-		return contract.ProjectDetect{}, false
+		return contract.DetectedProcess{}, false
 	}
 
 	globs := manifest.workspaceGlobs()
@@ -36,29 +38,35 @@ func (r *Reader) monorepo(files sources, manifest packageJSON, pkgmgr string) (c
 		globs = pnpmWorkspaces(files.read("pnpm-workspace.yaml"))
 	}
 	if len(globs) == 0 {
-		return contract.ProjectDetect{}, false
+		return contract.DetectedProcess{}, false
 	}
 
 	var routes []contract.DetectedRoute
-	taken := map[int]bool{}
 	labels := map[string]bool{}
+	host := ""
 
 	for _, member := range files.workspaces(globs) {
 		port := r.freePort(member.port, taken)
 		taken[port] = true
 
 		routes = append(routes, contract.DetectedRoute{Label: uniqueLabel(member.name, labels), Port: port})
+
+		if host == "" {
+			host = member.host
+		}
 	}
 
 	if len(routes) == 0 {
-		return contract.ProjectDetect{}, false
+		return contract.DetectedProcess{}, false
 	}
 
-	return contract.ProjectDetect{
+	return contract.DetectedProcess{
+		Dir:      registry.RootDir,
 		PkgMgr:   pkgmgr,
 		Install:  installCommandOf(pkgmgr),
 		Cmd:      turboCommand(pkgmgr),
 		PortHint: routes[0].Port,
+		HostHint: host,
 		Routes:   routes,
 	}, true
 }
@@ -75,7 +83,8 @@ func (s sources) workspaces(globs []string) []workspace {
 				continue
 			}
 
-			port := declaredPort(member, manifest.Scripts[manifest.startScript()])
+			script := manifest.resolved(manifest.startScript())
+			port := declaredPort(member, script)
 			if port == 0 {
 				continue
 			}
@@ -85,7 +94,7 @@ func (s sources) workspaces(globs []string) []workspace {
 				name = dir[strings.LastIndex(dir, "/")+1:]
 			}
 
-			members = append(members, workspace{name: name, port: port})
+			members = append(members, workspace{name: name, port: port, host: declaredHost(script)})
 		}
 	}
 

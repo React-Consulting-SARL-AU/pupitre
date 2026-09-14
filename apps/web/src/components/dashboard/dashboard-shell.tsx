@@ -31,7 +31,7 @@ export function DashboardShell({ value, children }: DashboardShellProps) {
 
           <MobileNav />
 
-          <div className="flex flex-1 items-start bg-base">
+          <div className="flex flex-1 bg-base">
             <DashboardSidebar />
             <main
               className="min-w-0 flex-1 px-4 py-6 lg:px-10 lg:py-10"

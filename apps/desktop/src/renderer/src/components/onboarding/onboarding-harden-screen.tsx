@@ -5,6 +5,7 @@ import { useHarden } from "../../stores/harden";
 import { InstallStepRow } from "../install/install-step-row";
 import { ActionBar } from "../ui/action-bar";
 import { Button } from "../ui/button";
+import { Panel } from "../ui/panel";
 import { Screen } from "../ui/screen";
 import { WaitingNotice } from "../ui/waiting-notice";
 import { OnboardingHardenFailed } from "./onboarding-harden-failed";
@@ -38,7 +39,7 @@ export function OnboardingHardenScreen({
     <Screen
       column
       description={t("onboarding.harden.description")}
-      eyebrow={t("onboarding.harden.eyebrow")}
+      eyebrow={serverName ?? t("onboarding.thisServer")}
       footer={
         <ActionBar name="harden" note={action.note ? t(action.note) : null}>
           <Button
@@ -53,7 +54,7 @@ export function OnboardingHardenScreen({
       }
       plain
       step="harden"
-      title={serverName ?? t("onboarding.thisServer")}
+      title={t("onboarding.harden.title")}
     >
       {harden.status === "queued" ? (
         <WaitingNotice
@@ -79,11 +80,11 @@ export function OnboardingHardenScreen({
       ) : null}
 
       {steps.length > 0 ? (
-        <ul className="elevation-raised divide-y divide-line overflow-hidden rounded-md border border-line bg-surface px-4 py-1">
+        <Panel as="ul" list>
           {steps.map((step) => (
             <InstallStepRow key={step.step} step={step} />
           ))}
-        </ul>
+        </Panel>
       ) : null}
 
       {harden.status === "failed" ? (
