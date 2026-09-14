@@ -64,14 +64,14 @@ func TestEachAgentOpensInTheProjectFolder(t *testing.T) {
 	}
 }
 
-// A project whose dir column is a subfolder of a shared repository opens where its own sources are.
+// A project is its repository: an agent opens at the root of it, whichever subfolder its processes run from.
 func TestTheFolderFollowsTheRegistry(t *testing.T) {
 	opened, err := agentReader(t, agentMachine(t), "ai.claude").OpenAgent("claude", "api")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if opened.Command != "tmux new-session -A -s claude-api -c /home/dev/projects/api/server claude" {
+	if opened.Command != "tmux new-session -A -s claude-api -c /home/dev/projects/api claude" {
 		t.Fatalf("unexpected command: %s", opened.Command)
 	}
 }

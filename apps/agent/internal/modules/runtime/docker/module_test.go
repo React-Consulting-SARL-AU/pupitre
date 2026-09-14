@@ -58,7 +58,7 @@ func TestInstallAddsTheRepositoryThenTheEngine(t *testing.T) {
 	}
 
 	config := string(fake.Files[configPath])
-	if !strings.Contains(config, `"max-size": "10m"`) || strings.Contains(config, "data-root") {
+	if !strings.Contains(config, `"max-size": "10m"`) || !strings.Contains(config, `"live-restore": true`) || strings.Contains(config, "data-root") {
 		t.Fatalf("daemon.json = %s", config)
 	}
 

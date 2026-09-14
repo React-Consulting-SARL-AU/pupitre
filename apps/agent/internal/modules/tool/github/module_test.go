@@ -57,6 +57,27 @@ func TestInstallAndConfigureAreIdempotent(t *testing.T) {
 	}
 }
 
+// gh keeps the token it signed in with: a new one is only in force once gh has been told.
+func TestARotatedTokenSignsGhInAgain(t *testing.T) {
+	fake := configuredMachine()
+	ctx := newContext(t, fake, modtest.Secrets{"token": "n3w-token"})
+
+	if err := (Module{}).Configure(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	signedIn := false
+	for _, call := range fake.Calls {
+		if strings.Join(call.Argv, " ") == "gh auth login --with-token" {
+			signedIn = string(call.Stdin) == "n3w-token\n"
+		}
+	}
+
+	if !signedIn || fake.EnvValue(envKey) != "n3w-token" {
+		t.Fatalf("gh must sign in again with the new token: %v", fake.Commands())
+	}
+}
+
 // HTTPS through the token is what makes a clone work with no key on the account at all.
 func TestConfigureAuthenticatesAndRegistersTheServerKey(t *testing.T) {
 	fake := modtest.NewFakeSys()

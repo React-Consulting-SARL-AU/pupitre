@@ -16,6 +16,9 @@ const (
 	// The app replaces it with the projects the same answer carries.
 	ProjectToken = "$project"
 
+	// The app replaces it with the processes of the project typed before it.
+	ProcessToken = "$process"
+
 	Binary = "/usr/local/bin/pupitred"
 	Link   = "/usr/local/bin/" + Command
 
@@ -25,13 +28,13 @@ const (
 
 func grammar() []contract.SubCommand {
 	return []contract.SubCommand{
-		{Name: "up", Help: i18n.T("devcli.up.help"), Args: [][]string{{ProjectToken, "all"}, {JSONFlag}}},
-		{Name: "down", Help: i18n.T("devcli.down.help"), Args: [][]string{{ProjectToken, "all"}, {JSONFlag}}},
-		{Name: "restart", Help: i18n.T("devcli.restart.help"), Args: [][]string{{ProjectToken, "all"}, {JSONFlag}}},
+		{Name: "up", Help: i18n.T("devcli.up.help"), Args: [][]string{{ProjectToken, "all"}, {ProcessToken, JSONFlag}}},
+		{Name: "down", Help: i18n.T("devcli.down.help"), Args: [][]string{{ProjectToken, "all"}, {ProcessToken, JSONFlag}}},
+		{Name: "restart", Help: i18n.T("devcli.restart.help"), Args: [][]string{{ProjectToken, "all"}, {ProcessToken, JSONFlag}}},
 		{Name: "status", Help: i18n.T("devcli.status.help"), Args: [][]string{{JSONFlag}}},
-		{Name: "logs", Help: i18n.T("devcli.logs.help"), Args: [][]string{{ProjectToken}, {FollowFlag, JSONFlag}}},
+		{Name: "logs", Help: i18n.T("devcli.logs.help"), Args: [][]string{{ProjectToken}, {ProcessToken}, {FollowFlag, JSONFlag}}},
 		{Name: "sync", Help: i18n.T("devcli.sync.help"), Args: [][]string{{ProjectToken}, {JSONFlag}}},
-		{Name: "attach", Help: i18n.T("devcli.attach.help"), Args: [][]string{{ProjectToken}, {JSONFlag}}},
+		{Name: "attach", Help: i18n.T("devcli.attach.help"), Args: [][]string{{ProjectToken}, {ProcessToken, JSONFlag}}},
 		{Name: "branch", Help: i18n.T("devcli.branch.help"), Args: [][]string{{ProjectToken}, {JSONFlag}}},
 		{Name: "db", Help: i18n.T("devcli.db.help"), Args: [][]string{{"url", "shell", "dump", "import"}, {"mysql", "postgres", "mongodb"}, {JSONFlag}}},
 		{Name: "doctor", Help: i18n.T("devcli.doctor.help"), Args: [][]string{{JSONFlag}}},
@@ -47,12 +50,12 @@ func Grammar() []contract.SubCommand {
 // positional; the placeholders stay in English, the sentence beside them comes
 // from the catalogue.
 var forms = map[string]string{
-	"up":      "<project|all>",
-	"down":    "<project|all>",
-	"restart": "<project|all>",
-	"logs":    "<project> [-f] [-n N]",
+	"up":      "<project|all> [process]",
+	"down":    "<project|all> [process]",
+	"restart": "<project|all> [process]",
+	"logs":    "<project> <process> [-f] [-n N]",
 	"sync":    "<project>",
-	"attach":  "<project>",
+	"attach":  "<project> [process]",
 	"branch":  "[project] [branch]",
 	"db":      "<url|shell|dump|import> [engine]",
 }

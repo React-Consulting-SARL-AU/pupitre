@@ -51,6 +51,7 @@ type FakeSys struct {
 	Uptimes    map[int]int
 	Firewall   Firewall
 	Tailnet    bool
+	Prefs      TailscalePrefs
 	Procs      map[int]Proc
 	Stubborn   map[int]bool
 	Links      map[string]string
@@ -566,11 +567,16 @@ func (f *FakeSys) gpg(args []string) (sys.Output, error) {
 const Joined = `{"BackendState":"Running","Self":{"HostName":"pupitre-srv","DNSName":"pupitre-srv.tail1234.ts.net.","UserID":1},"User":{"1":{"LoginName":"jordan@example.org"}}}`
 
 // tailscale up joins, logout leaves, and status says which; a test that wants another answer keys one with Answer, which wins.
+// up and set both keep the hostname and SSH flags they were given, which is what debug prefs answers.
 func (f *FakeSys) tailscale(args []string) (sys.Output, error) {
 	switch next(args, -1) {
 	case "up":
 		f.Tailnet = true
+		f.keepPrefs(args)
 		f.mutate("tailscale up")
+	case "set":
+		f.keepPrefs(args)
+		f.mutate("tailscale set " + strings.Join(args[1:], " "))
 	case "logout":
 		f.Tailnet = false
 		f.mutate("tailscale logout")
@@ -580,9 +586,32 @@ func (f *FakeSys) tailscale(args []string) (sys.Output, error) {
 		}
 
 		return sys.Output{Stdout: "{\"BackendState\":\"NeedsLogin\"}\n"}, nil
+	case "debug":
+		if next(args, 0) == "prefs" {
+			return sys.Output{Stdout: fmt.Sprintf("{\"Hostname\":%q,\"RunSSH\":%t}\n", f.Prefs.Hostname, f.Prefs.SSH)}, nil
+		}
 	}
 
 	return sys.Output{}, nil
+}
+
+// TailscalePrefs is what the node was last told to be, as tailscale up or set said it.
+type TailscalePrefs struct {
+	Hostname string
+	SSH      bool
+}
+
+func (f *FakeSys) keepPrefs(args []string) {
+	for _, arg := range args[1:] {
+		switch {
+		case strings.HasPrefix(arg, "--hostname="):
+			f.Prefs.Hostname = strings.TrimPrefix(arg, "--hostname=")
+		case arg == "--ssh" || arg == "--ssh=true":
+			f.Prefs.SSH = true
+		case arg == "--ssh=false":
+			f.Prefs.SSH = false
+		}
+	}
 }
 
 // The headless browser writes the image it was asked for, so a capture is a file the gallery can then list.
@@ -871,6 +900,8 @@ type Firewall struct {
 	Incoming string
 	Outgoing string
 	Rules    []string
+	// The comment each rule was given, as ufw show added prints it back.
+	Comments map[string]string
 }
 
 func (f *FakeSys) ufw(args []string) (sys.Output, error) {
@@ -903,6 +934,12 @@ func (f *FakeSys) ufw(args []string) (sys.Output, error) {
 			return sys.Output{Stdout: "Skipping adding existing rule\n"}, nil
 		}
 		f.Firewall.Rules = append(f.Firewall.Rules, rule)
+		if comment := commentOf(words); comment != "" {
+			if f.Firewall.Comments == nil {
+				f.Firewall.Comments = map[string]string{}
+			}
+			f.Firewall.Comments[rule] = comment
+		}
 		f.mutate("ufw allow " + rule)
 	case "delete":
 		rule := ruleOf(words[2:])
@@ -919,6 +956,16 @@ func (f *FakeSys) ufw(args []string) (sys.Output, error) {
 	}
 
 	return sys.Output{}, nil
+}
+
+func commentOf(words []string) string {
+	for i, word := range words {
+		if word == "comment" && i+1 < len(words) {
+			return words[i+1]
+		}
+	}
+
+	return ""
 }
 
 // A port rule is printed as given; an interface rule — allow in on tailscale0 — as ufw prints it, "Anywhere on tailscale0".
@@ -952,11 +999,14 @@ func (w Firewall) added() string {
 	var out strings.Builder
 	out.WriteString("Added user rules (see 'ufw status' for running firewall):\n")
 	for _, rule := range w.Rules {
+		given := rule
 		if strings.HasPrefix(rule, "Anywhere on ") {
-			fmt.Fprintf(&out, "ufw allow in on %s\n", strings.TrimPrefix(rule, "Anywhere on "))
-		} else {
-			fmt.Fprintf(&out, "ufw allow %s\n", rule)
+			given = "in on " + strings.TrimPrefix(rule, "Anywhere on ")
 		}
+		if comment := w.Comments[rule]; comment != "" {
+			given += " comment '" + comment + "'"
+		}
+		fmt.Fprintf(&out, "ufw allow %s\n", given)
 	}
 
 	return out.String()

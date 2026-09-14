@@ -2,47 +2,68 @@
   "projects": [
     {
       "name": "api",
-      "dir": "api-server/server",
-      "pkgmgr": "gradle",
-      "host": "127.0.0.1",
-      "port": 8081,
-      "routes": [
-        { "label": "api", "port": 8081, "hostname": "api.flymate.dev" }
-      ],
-      "cmd": "SERVER_PORT=8081 ./gradlew bootRun --console=plain"
+      "dir": "api-server",
+      "processes": [
+        {
+          "id": "api",
+          "dir": "server",
+          "pkgmgr": "gradle",
+          "host": "127.0.0.1",
+          "port": 8081,
+          "routes": [
+            { "label": "api", "port": 8081, "hostname": "api.flymate.dev" }
+          ],
+          "cmd": "SERVER_PORT=8081 ./gradlew bootRun --console=plain"
+        }
+      ]
     },
     {
       "name": "web",
       "dir": "web",
       "repo": "https://github.com/me/web",
-      "pkgmgr": "bun",
-      "host": "127.0.0.1",
-      "port": 3000,
-      "routes": [
-        { "label": "web", "port": 3000, "hostname": "web.flymate.dev" },
-        { "label": "admin", "port": 3010, "hostname": "admin-web.flymate.dev" }
-      ],
-      "cmd": "bun run dev --host 127.0.0.1 --port 3000"
-    },
-    {
-      "name": "mail",
-      "dir": "web/apps/mail",
-      "pkgmgr": "pnpm",
-      "host": "127.0.0.1",
-      "port": 5180,
-      "routes": [
-        { "label": "mail", "port": 5180, "hostname": "mail.flymate.dev" }
-      ],
-      "cmd": "pnpm run dev --port 5180"
+      "processes": [
+        {
+          "id": "web",
+          "dir": ".",
+          "pkgmgr": "bun",
+          "host": "127.0.0.1",
+          "port": 3000,
+          "routes": [
+            { "label": "web", "port": 3000, "hostname": "web.flymate.dev" },
+            {
+              "label": "admin",
+              "port": 3010,
+              "hostname": "admin-web.flymate.dev"
+            }
+          ],
+          "cmd": "bun run dev --host 127.0.0.1 --port 3000"
+        },
+        {
+          "id": "mail",
+          "dir": "apps/mail",
+          "pkgmgr": "pnpm",
+          "host": "127.0.0.1",
+          "port": 5180,
+          "routes": [
+            { "label": "mail", "port": 5180, "hostname": "mail.flymate.dev" }
+          ],
+          "cmd": "pnpm run dev --port 5180"
+        }
+      ]
     },
     {
       "name": "scratch",
       "dir": "scratch",
-      "pkgmgr": "none",
-      "host": "127.0.0.1",
-      "port": 4000,
-      "routes": [],
-      "cmd": "bun run dev --port 4000"
+      "processes": [
+        {
+          "id": "scratch",
+          "pkgmgr": "none",
+          "host": "127.0.0.1",
+          "port": 4000,
+          "routes": [],
+          "cmd": "bun run dev --port 4000"
+        }
+      ]
     }
   ]
 }

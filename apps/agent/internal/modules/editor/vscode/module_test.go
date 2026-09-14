@@ -161,6 +161,35 @@ func TestReplayMutatesNothing(t *testing.T) {
 	}
 }
 
+// A build published since the install is not what a changed setting costs: the replay keeps the server it has, upgrade is what moves it.
+func TestAReplayKeepsTheInstalledBuildAndUpgradeMovesIt(t *testing.T) {
+	fake := machine()
+	install(t, fake, modtest.Values{"tunnel": false})
+
+	newer := strings.Replace(update, commit, "b55bef8064f11a75bc9a1a0a9869a445a2fd26cd", 1)
+	newer = strings.ReplaceAll(newer, product, "1.137.0")
+	fake.Answer("update.code.visualstudio.com/api/update", newer)
+	fake.Mutations = nil
+
+	ctx := install(t, fake, modtest.Values{"tunnel": true})
+
+	if len(fake.Files[binRoot+"/b55bef8064f11a75bc9a1a0a9869a445a2fd26cd/bin/code-server"]) != 0 || !skipped(ctx, "install-server") {
+		t.Fatalf("a replay must not fetch a newer server: %v", fake.Mutations)
+	}
+
+	if !strings.Contains(string(fake.Files[pointerPath]), product) {
+		t.Fatalf("the record must still name the installed build: %q", fake.Files[pointerPath])
+	}
+
+	if err := (Module{}).Upgrade(newContext(t, fake, modtest.Values{"tunnel": true})); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(fake.Files[binRoot+"/b55bef8064f11a75bc9a1a0a9869a445a2fd26cd/bin/code-server"]) == 0 || !strings.Contains(string(fake.Files[pointerPath]), "1.137.0") {
+		t.Fatalf("upgrade must lay the newer server and record it: %q", fake.Files[pointerPath])
+	}
+}
+
 func TestUninstallKeepsWhatBelongsToTheClient(t *testing.T) {
 	fake := machine()
 	install(t, fake, modtest.Values{"extensions": []any{"esbenp.prettier-vscode"}, "tunnel": true})

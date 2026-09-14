@@ -1,6 +1,6 @@
 @entitlement restricted
-> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"restricted","capabilities":["catalog","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"restricted","capabilities":["catalog","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
 > {"id":2,"cmd":"install","params":{"modules":["tool.demo"],"config":{},"secrets_stdin":false}}
 < {"id":2,"ok":false,"error":{"code":"entitlement_required","message":"a usage right is required: this server is in restricted mode","fix":"Open https://app.pupitre.studio to renew this server's usage right."}}
 > {"id":3,"cmd":"uninstall","params":{"modules":["tool.demo"]}}

@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { ProtocolErrorSchema } from "./errors"
 
-export const PROTOCOL_VERSION = 1
+export const PROTOCOL_VERSION = 2
 
 export const ProtocolVersionSchema = z.int().positive()
 

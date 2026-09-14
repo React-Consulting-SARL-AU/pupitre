@@ -37,13 +37,13 @@ internal/modules/        interface Module, moteur, validation, préflight, journ
 internal/platform/       client HTTPS de la plateforme, jeton de serveur
 internal/probe/          probe.sh (sh POSIX, embarqué), son analyse et le verdict
 internal/protocol/       enveloppe, dispatch, sessions, événements, flux secret
-internal/registry/       projets, projects.conf
+internal/registry/       projets et leurs processus, projects.local.json, projects.conf du dépôt
 internal/release/        signature et publication des binaires par la chaîne de release ; rien n'en est lié dans pupitred
 internal/selfupdate/     agent.upgrade : téléchargement, empreinte et signature, plancher de version, remplacement
 internal/shots/          la galerie de captures et son serveur en lecture seule
 internal/state/          snapshot, status, projets, git, agents, complétions, détection d'un dépôt
 internal/sys/            apt, systemd, fichiers, réseau, utilisateurs, environnement ; sys.Real et le faux des tests
-internal/tmux/           session, fenêtres, logs
+internal/tmux/           session, une fenêtre <projet>/<processus> par processus, logs
 tools/release/           la commande release : keygen, public-key, sign, publish, promote
 test/catalog/            idempotence de chaque module du catalogue
 test/staging/            tests d'intégration contre le VPS de staging, derrière -tags staging

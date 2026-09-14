@@ -54,13 +54,13 @@ func TestValidateAgainstDefinitions(t *testing.T) {
 		value      string
 		wantErr    string
 	}{
-		{"hello ok", "HelloParams", `{"app_version":"0.2.0","protocol":1}`, ""},
-		{"hello missing field", "HelloParams", `{"protocol":1}`, "/app_version"},
-		{"hello unknown field", "HelloParams", `{"app_version":"0.2.0","protocol":1,"extra":true}`, "/extra"},
+		{"hello ok", "HelloParams", `{"app_version":"0.2.0","protocol":2}`, ""},
+		{"hello missing field", "HelloParams", `{"protocol":2}`, "/app_version"},
+		{"hello unknown field", "HelloParams", `{"app_version":"0.2.0","protocol":2,"extra":true}`, "/extra"},
 		{"hello wrong type", "HelloParams", `{"app_version":"0.2.0","protocol":"1"}`, "/protocol"},
 		{"hello float protocol", "HelloParams", `{"app_version":"0.2.0","protocol":1.5}`, "/protocol"},
 		{"hello protocol zero", "HelloParams", `{"app_version":"0.2.0","protocol":0}`, "/protocol"},
-		{"hello empty version", "HelloParams", `{"app_version":"","protocol":1}`, "/app_version"},
+		{"hello empty version", "HelloParams", `{"app_version":"","protocol":2}`, "/app_version"},
 		{"hello not an object", "HelloParams", `[1]`, "object"},
 		{"ping ok", "PingParams", `{}`, ""},
 		{"ping extra", "PingParams", `{"x":1}`, "/x"},

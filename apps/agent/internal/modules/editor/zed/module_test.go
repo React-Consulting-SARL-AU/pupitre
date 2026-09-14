@@ -103,6 +103,33 @@ func TestReplayMutatesNothing(t *testing.T) {
 	}
 }
 
+// A release published since the install is not what a replay costs: the server it has stays, upgrade is what moves it.
+func TestAReplayKeepsTheInstalledVersionAndUpgradeMovesIt(t *testing.T) {
+	fake := machine()
+	install(t, fake, modtest.Values{"version": "latest"})
+
+	fake.Answer("redirect_url", strings.Replace(latestRedirect, "v1.18.1", "v1.19.0", 1))
+	fake.Mutations = nil
+
+	ctx := install(t, fake, modtest.Values{"version": "latest"})
+
+	if len(fake.Mutations) != 0 || len(fake.Files[ServerDir+"/zed-remote-server-stable-1.19.0"]) != 0 {
+		t.Fatalf("a replay must not fetch a newer server: %v", fake.Mutations)
+	}
+
+	if strings.TrimSpace(string(fake.Files[pointerPath])) != "1.18.1" {
+		t.Fatalf("the record must still name the installed version: %q", fake.Files[pointerPath])
+	}
+
+	if err := (Module{}).Upgrade(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(fake.Files[ServerDir+"/zed-remote-server-stable-1.19.0"]) == 0 || strings.TrimSpace(string(fake.Files[pointerPath])) != "1.19.0" {
+		t.Fatalf("upgrade must lay the newer server and record it: %q", fake.Files[pointerPath])
+	}
+}
+
 func TestStatusNamesTheInstalledVersion(t *testing.T) {
 	fake := machine()
 	install(t, fake, modtest.Values{"version": "latest"})

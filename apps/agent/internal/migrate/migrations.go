@@ -1,6 +1,7 @@
 package migrate
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -19,11 +20,125 @@ func All() []Migration {
 		{
 			ID:      1,
 			Slug:    "projects-local-json",
-			Since:   "0.4.0",
+			Since:   "0.1.0",
 			Touches: []Target{TargetProjectsConf, TargetProjects},
 			Apply:   projectsLocalToJSON,
 		},
+		{
+			ID:      2,
+			Slug:    "projects-processes",
+			Since:   "0.2.0",
+			Touches: []Target{TargetProjects, TargetEnv},
+			Apply:   projectsToProcesses,
+		},
 	}
+}
+
+// A project held one command, one port and one folder; it is a repository now,
+// and holds processes, each with its own. A row becomes a project of one
+// process. The rows that shared the first segment of their folder shared one
+// repository — that is what the old format meant by it, with "-" for the
+// repository of every row but the first — and become one project whose folder
+// is that segment, one process per row. The debug ports of the environment
+// file follow the rows they named.
+func projectsToProcesses(ctx *Context) error {
+	document, present, err := ctx.JSON(TargetProjects)
+	if err != nil || !present {
+		return err
+	}
+
+	entries, _ := document["projects"].([]any)
+
+	var kept []any
+	var rows []registry.Row
+	for _, entry := range entries {
+		raw, err := json.Marshal(entry)
+		if err != nil {
+			return err
+		}
+
+		if fields, _ := entry.(map[string]any); fields["processes"] != nil {
+			kept = append(kept, entry)
+			continue
+		}
+
+		var row registry.Row
+		if err := json.Unmarshal(raw, &row); err != nil {
+			return err
+		}
+
+		rows = append(rows, row)
+	}
+
+	if len(rows) == 0 {
+		return nil
+	}
+
+	projects, windows := registry.Group(rows)
+	for _, project := range projects {
+		if len(project.Processes) > 1 {
+			ctx.Logf("projects: %d rows under %s become the project %s", len(project.Processes), project.Dir, project.Name)
+		}
+
+		encoded, err := json.Marshal(project)
+		if err != nil {
+			return err
+		}
+
+		var fields map[string]any
+		if err := json.Unmarshal(encoded, &fields); err != nil {
+			return err
+		}
+
+		kept = append(kept, fields)
+	}
+
+	document["projects"] = kept
+	if err := ctx.SetJSON(TargetProjects, document); err != nil {
+		return err
+	}
+
+	return renameDebugPorts(ctx, windows)
+}
+
+// PUPITRE_DEBUG_PORTS named projects; it names windows now, <project>/<process>.
+func renameDebugPorts(ctx *Context, windows map[string]string) error {
+	lines, present, err := ctx.Lines(TargetEnv)
+	if err != nil || !present {
+		return err
+	}
+
+	changed := false
+	for at, line := range lines {
+		value, found := strings.CutPrefix(line, env.DebugPortsKey+"=")
+		if !found {
+			continue
+		}
+
+		quote := ""
+		if strings.HasPrefix(value, `"`) || strings.HasPrefix(value, "'") {
+			quote = value[:1]
+		}
+
+		var entries []string
+		for _, entry := range strings.Fields(strings.Trim(value, `"'`)) {
+			name, port, split := strings.Cut(entry, ":")
+			if window, known := windows[name]; split && known {
+				entry = window + ":" + port
+				changed = true
+			}
+
+			entries = append(entries, entry)
+		}
+
+		lines[at] = env.DebugPortsKey + "=" + quote + strings.Join(entries, " ") + quote
+	}
+
+	if !changed {
+		return nil
+	}
+
+	return ctx.SetLines(TargetEnv, lines)
 }
 
 // The columns of the file the agent wrote before it kept its registry as JSON, in order.

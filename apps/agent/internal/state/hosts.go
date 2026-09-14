@@ -37,12 +37,14 @@ func renderLocalNames(projects []registry.Project) []byte {
 	lines := []string{}
 
 	for _, project := range projects {
-		if seen[project.Host] || !registry.LocalhostPattern.MatchString(project.Host) {
-			continue
-		}
+		for _, host := range project.Hosts() {
+			if seen[host] || !registry.LocalhostPattern.MatchString(host) {
+				continue
+			}
 
-		seen[project.Host] = true
-		lines = append(lines, registry.Loopback+" "+project.Host)
+			seen[host] = true
+			lines = append(lines, registry.Loopback+" "+host)
+		}
 	}
 
 	if len(lines) == 0 {

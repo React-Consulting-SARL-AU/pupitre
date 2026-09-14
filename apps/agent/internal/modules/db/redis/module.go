@@ -73,6 +73,8 @@ func (Module) Install(ctx *modules.Context) error {
 }
 
 func (m Module) Configure(ctx *modules.Context) error {
+	running := runningConfig(ctx)
+
 	changed, err := writeConfig(ctx)
 	if err != nil {
 		return err
@@ -87,11 +89,79 @@ func (m Module) Configure(ctx *modules.Context) error {
 		return err
 	}
 
-	if err := restart(ctx, changed || included); err != nil {
+	applied, err := applyLive(ctx, running, changed && !included)
+	if err != nil {
+		return err
+	}
+
+	if err := restart(ctx, (changed || included) && !applied); err != nil {
 		return err
 	}
 
 	return verify(ctx)
+}
+
+// What the server is running on right now: the port of the drop-in it started with, and the password the machine held for it.
+type live struct {
+	port     int
+	password string
+	known    bool
+}
+
+func runningConfig(ctx *modules.Context) live {
+	previous, err := file.Read(ctx, dropIn)
+	if err != nil || !systemd.Active(ctx, unit) {
+		return live{}
+	}
+
+	password, held, err := env.Get(ctx, passwordKey)
+	if err != nil || !held {
+		return live{}
+	}
+
+	return live{port: portOf(previous), password: password, known: true}
+}
+
+func portOf(config []byte) int {
+	for _, line := range strings.Split(string(config), "\n") {
+		if value, found := strings.CutPrefix(line, "port "); found {
+			if parsed, err := strconv.Atoi(strings.TrimSpace(value)); err == nil {
+				return parsed
+			}
+		}
+	}
+
+	return 0
+}
+
+// Everything the drop-in says but the port takes effect on the running server through CONFIG SET, so a new
+// password or a new memory cap costs no restart — and a cache without persistence keeps what it holds.
+// The commands go in on the standard input, the old password through REDISCLI_AUTH: neither reaches an argv ps shows.
+func applyLive(ctx *modules.Context, running live, wanted bool) (bool, error) {
+	applied := false
+
+	err := ctx.Step("apply-config", func() (modules.Outcome, error) {
+		if !wanted || !running.known || running.port != port(ctx) {
+			return modules.Skipped, nil
+		}
+
+		input := user.Input{
+			Env:   []string{"REDISCLI_AUTH=" + running.password},
+			Stdin: []byte(renderLive(ctx.Secret("password"), ctx.Bool("persistence"), ctx.Int("maxmemory_mb"), policy(ctx))),
+		}
+		out, err := user.RunWith(ctx, "root", input, "redis-cli", "-p", strconv.Itoa(running.port), "--no-auth-warning")
+		if err != nil || strings.Contains(out, "ERR") {
+			ctx.Logf("%s did not take the new settings live, restarting it instead", unit)
+
+			return modules.Skipped, nil
+		}
+
+		applied = true
+
+		return modules.Done, nil
+	})
+
+	return applied, err
 }
 
 func writeConfig(ctx *modules.Context) (bool, error) {
@@ -278,6 +348,24 @@ func policy(ctx *modules.Context) string {
 	}
 
 	return chosen
+}
+
+func renderLive(password string, persistence bool, maxmemoryMB int, policy string) string {
+	lines := []string{"CONFIG SET requirepass " + password}
+
+	if persistence {
+		lines = append(lines, "CONFIG SET appendonly yes", "CONFIG SET appendfsync everysec")
+	} else {
+		lines = append(lines, "CONFIG SET appendonly no", `CONFIG SET save ""`)
+	}
+
+	if maxmemoryMB > 0 {
+		lines = append(lines, fmt.Sprintf("CONFIG SET maxmemory %dmb", maxmemoryMB), "CONFIG SET maxmemory-policy "+policy)
+	} else {
+		lines = append(lines, "CONFIG SET maxmemory 0", "CONFIG SET maxmemory-policy "+noEviction)
+	}
+
+	return strings.Join(lines, "\n") + "\n"
 }
 
 func renderConfig(port int, password string, persistence bool, maxmemoryMB int, policy string) []byte {

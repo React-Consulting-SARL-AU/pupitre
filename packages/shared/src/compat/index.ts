@@ -28,6 +28,7 @@ export interface Generation {
 
 export const GENERATIONS: readonly Generation[] = [
   { protocol: 1, app: "0.1.0", agent: "0.1.0" },
+  { protocol: 2, app: "0.2.0", agent: "0.2.0" },
 ]
 
 export type Side = "app" | "agent"

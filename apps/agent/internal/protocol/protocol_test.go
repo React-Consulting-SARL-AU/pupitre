@@ -211,7 +211,7 @@ func assertContractLine(t *testing.T, line string) {
 
 func TestHelloResultMatchesTheContract(t *testing.T) {
 	var out bytes.Buffer
-	input := strings.NewReader(`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}` + "\n" + `{"id":2,"cmd":"ping"}` + "\n")
+	input := strings.NewReader(`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}` + "\n" + `{"id":2,"cmd":"ping"}` + "\n")
 
 	if err := newTestServer(contract.EntitlementDev).Serve(input, &out); err != nil {
 		t.Fatal(err)
@@ -242,7 +242,7 @@ func TestHelloAnswersADirectCallWithoutASession(t *testing.T) {
 func TestAnIdThatDoesNotGrowIsRefused(t *testing.T) {
 	var out bytes.Buffer
 	input := strings.NewReader(strings.Join([]string{
-		`{"id":7,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}`,
+		`{"id":7,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`,
 		`{"id":7,"cmd":"ping"}`,
 		`{"id":3,"cmd":"ping"}`,
 		`{"id":8,"cmd":"ping"}`,
@@ -271,7 +271,7 @@ func TestAnIdThatDoesNotGrowIsRefused(t *testing.T) {
 func TestTheSecretLineReachesTheHandlerAndNothingElse(t *testing.T) {
 	var out bytes.Buffer
 	input := strings.NewReader(strings.Join([]string{
-		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}`,
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`,
 		`{"id":2,"cmd":"install","params":{"modules":["tool.github"],"config":{},"secrets_stdin":true}}`,
 		`{"API_KEY":"s3cret-de-test"}`,
 	}, "\n") + "\n")
@@ -291,7 +291,7 @@ func TestTheSecretLineReachesTheHandlerAndNothingElse(t *testing.T) {
 
 func TestServeSurvivesInvalidInputAndReturnsNilAtEOF(t *testing.T) {
 	var out bytes.Buffer
-	input := strings.NewReader("\x00\xff\n\n   \n{\"id\":1,\"cmd\":\"hello\",\"params\":{\"app_version\":\"0.2.0\",\"protocol\":1}}")
+	input := strings.NewReader("\x00\xff\n\n   \n{\"id\":1,\"cmd\":\"hello\",\"params\":{\"app_version\":\"0.2.0\",\"protocol\":2}}")
 
 	if err := newTestServer(contract.EntitlementDev).Serve(input, &out); err != nil {
 		t.Fatalf("serve: %v", err)
@@ -379,7 +379,7 @@ func TestACommandOutlivesTheChannelThatCarriedIt(t *testing.T) {
 	})
 
 	input := strings.NewReader(strings.Join([]string{
-		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}`,
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`,
 		`{"id":2,"cmd":"install","params":{"modules":["db.postgres"],"config":{},"secrets_stdin":false}}`,
 	}, "\n") + "\n")
 

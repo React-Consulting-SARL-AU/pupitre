@@ -7,10 +7,10 @@
 @archive /var/lib/pupitre/downloads/jetbrains-idea.tar.gz build.txt bin/remote-dev-server.sh
 @archive /var/lib/pupitre/downloads/code-server.tar.gz bin/code-server product.json
 @archive /var/lib/pupitre/downloads/code-cli.tar.gz code
-> {"id":0,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+> {"id":0,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
 > {"id":1,"cmd":"install","params":{"secrets_stdin":false,"modules":["editor.jetbrains","editor.vscode","editor.zed"],"config":{"editor.jetbrains":{"ide":"idea","version":"latest"},"editor.vscode":{"extensions":["esbenp.prettier-vscode"],"tunnel":true},"editor.zed":{"version":"latest"}}}}
 > {"id":2,"cmd":"install","params":{"secrets_stdin":false,"modules":["editor.jetbrains","editor.vscode","editor.zed"],"config":{"editor.jetbrains":{"ide":"idea","version":"latest"},"editor.vscode":{"extensions":["esbenp.prettier-vscode"],"tunnel":true},"editor.zed":{"version":"latest"}}}}
-< {"id":0,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
+< {"id":0,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
 < {"event":"step","id":1,"module":"core.system","ms":0,"status":"start","step":"install-package"}
 < {"event":"step","id":1,"module":"core.system","ms":0,"status":"ok","step":"install-package"}
 < {"event":"step","id":1,"module":"core.system","ms":0,"status":"start","step":"write-config"}

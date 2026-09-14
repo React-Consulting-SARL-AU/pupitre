@@ -101,8 +101,10 @@ func TestASubdomainGetsARoute(t *testing.T) {
 	host := stagingHost(t)
 
 	agent(t, host, request{Cmd: "project.add", Params: map[string]any{
-		"name": "fixture", "dir": "fixture", "pkgmgr": "bun", "host": "fixture.localhost",
-		"port": 3100, "subdomain": "fixture", "cmd": "bun run dev",
+		"name": "fixture", "dir": "fixture", "processes": []map[string]any{{
+			"id": "web", "pkgmgr": "bun", "host": "fixture.localhost", "port": 3100,
+			"routes": []map[string]any{{"label": "web", "port": 3100, "subdomain": "fixture"}}, "cmd": "bun run dev",
+		}},
 	}})
 
 	installTunnel(t, host)
@@ -267,8 +269,10 @@ func TestCaddyServesTheSameRoutesUnderItsOwnRules(t *testing.T) {
 
 	agent(t, host, request{Cmd: "uninstall", Params: map[string]any{"modules": []string{"exposure.cloudflare"}}})
 	agent(t, host, request{Cmd: "project.add", Params: map[string]any{
-		"name": "fixture", "dir": "fixture", "pkgmgr": "bun", "host": "fixture.localhost",
-		"port": 3100, "subdomain": "fixture", "cmd": "bun run dev",
+		"name": "fixture", "dir": "fixture", "processes": []map[string]any{{
+			"id": "web", "pkgmgr": "bun", "host": "fixture.localhost", "port": 3100,
+			"routes": []map[string]any{{"label": "web", "port": 3100, "subdomain": "fixture"}}, "cmd": "bun run dev",
+		}},
 	}})
 
 	install := request{Cmd: "install", Params: map[string]any{

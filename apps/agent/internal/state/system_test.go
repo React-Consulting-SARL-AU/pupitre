@@ -58,7 +58,7 @@ func TestDoctorReportsAProjectWhoseFolderIsGone(t *testing.T) {
 
 func TestDiagCarriesTheMachineTheProjectsAndTheSessions(t *testing.T) {
 	fake, reader := sessionFixture(t)
-	if _, err := reader.Up("web"); err != nil {
+	if _, err := reader.Up("web", ""); err != nil {
 		t.Fatal(err)
 	}
 

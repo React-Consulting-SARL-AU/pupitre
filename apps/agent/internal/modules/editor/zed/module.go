@@ -49,11 +49,21 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 }
 
 func (Module) Install(ctx *modules.Context) error {
-	return ctx.Step("install-remote-server", func() (modules.Outcome, error) {
-		version, err := resolve(ctx)
+	_, err := ensureServer(ctx, pinned)
+
+	return err
+}
+
+func ensureServer(ctx *modules.Context, choose func(*modules.Context) (string, error)) (string, error) {
+	var version string
+
+	err := ctx.Step("install-remote-server", func() (modules.Outcome, error) {
+		chosen, err := choose(ctx)
 		if err != nil {
 			return modules.Failed, err
 		}
+
+		version = chosen
 
 		if file.Exists(ctx, binaryPath(version)) {
 			return modules.Skipped, nil
@@ -61,6 +71,8 @@ func (Module) Install(ctx *modules.Context) error {
 
 		return modules.Done, installServer(ctx, version)
 	})
+
+	return version, err
 }
 
 // Zed publishes no checksum beside its server: the transport is the only guarantee, so the download at least stays root's until it is in place.
@@ -100,12 +112,16 @@ func installServer(ctx *modules.Context, version string) error {
 }
 
 func (Module) Configure(ctx *modules.Context) error {
-	return ctx.Step("record-release", func() (modules.Outcome, error) {
-		version, err := resolve(ctx)
-		if err != nil {
-			return modules.Failed, err
-		}
+	version, err := pinned(ctx)
+	if err != nil {
+		return err
+	}
 
+	return record(ctx, version)
+}
+
+func record(ctx *modules.Context, version string) error {
+	return ctx.Step("record-release", func() (modules.Outcome, error) {
 		content := []byte(version + "\n")
 		if file.Same(ctx, pointerPath, content) {
 			return modules.Skipped, nil
@@ -120,11 +136,12 @@ func (Module) Configure(ctx *modules.Context) error {
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
-	if err := m.Install(ctx); err != nil {
+	version, err := ensureServer(ctx, resolve)
+	if err != nil {
 		return err
 	}
 
-	return m.Configure(ctx)
+	return record(ctx, version)
 }
 
 // Only the server this module downloaded goes; another version the client put there is not ours to remove.
@@ -191,18 +208,31 @@ func recorded(ctx *modules.Context) string {
 	return strings.TrimSpace(string(raw))
 }
 
+// The version already on the machine is the one a replay keeps when latest was asked: a newer one is what upgrade fetches, never what a changed setting costs.
+func pinned(ctx *modules.Context) (string, error) {
+	if kept := recorded(ctx); kept != "" && wanted(ctx) == latest && file.Exists(ctx, binaryPath(kept)) {
+		return kept, nil
+	}
+
+	return resolve(ctx)
+}
+
+func wanted(ctx *modules.Context) string {
+	chosen := strings.TrimSpace(ctx.String("version"))
+	if chosen == "" {
+		return latest
+	}
+
+	return chosen
+}
+
 // A pinned version is downloaded as it is asked for; latest is resolved from
 // the first redirect alone: zed.dev points at the GitHub release, whose path
 // names the version, and GitHub then sends the download on to a storage host
 // whose path names nothing.
 func resolve(ctx *modules.Context) (string, error) {
-	wanted := strings.TrimSpace(ctx.String("version"))
-	if wanted == "" {
-		wanted = latest
-	}
-
-	if wanted != latest {
-		return strings.TrimPrefix(wanted, "v"), nil
+	if chosen := wanted(ctx); chosen != latest {
+		return strings.TrimPrefix(chosen, "v"), nil
 	}
 
 	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"curl", "-fsS", "--proto", "=https", "--tlsv1.2", "-o", "/dev/null", "-w", "%{redirect_url}", assetURL(latest)}})

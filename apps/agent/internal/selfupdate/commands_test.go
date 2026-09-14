@@ -48,7 +48,7 @@ func TestAgentUpgradeAnswersInRestrictedMode(t *testing.T) {
 	b.stateStatus = http.StatusUnauthorized
 
 	answers := serve(t, b, contract.EntitlementRestricted,
-		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":1}}`,
+		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":2}}`,
 		`{"id":2,"cmd":"agent.upgrade","params":{"version":"`+nextAgent+`"}}`,
 	)
 
@@ -74,7 +74,7 @@ func TestAgentUpgradeIsAnnouncedAmongTheCapabilities(t *testing.T) {
 	b := newBench(t)
 
 	answers := serve(t, b, contract.EntitlementRestricted,
-		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":1}}`,
+		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":2}}`,
 	)
 
 	if !strings.Contains(string(answers[0].Result), `"agent.upgrade"`) {
@@ -86,7 +86,7 @@ func TestAgentUpgradeRefusesADowngradeThroughTheProtocol(t *testing.T) {
 	b := newBench(t)
 
 	answers := serve(t, b, contract.EntitlementValid,
-		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":1}}`,
+		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":2}}`,
 		`{"id":2,"cmd":"agent.upgrade","params":{"version":"`+olderAgent+`"}}`,
 	)
 
@@ -103,7 +103,7 @@ func TestAgentUpgradeInstallsAnOlderVersionOnTheOwnersWord(t *testing.T) {
 	b := newBench(t)
 
 	answers := serve(t, b, contract.EntitlementValid,
-		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":1}}`,
+		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":2}}`,
 		`{"id":2,"cmd":"agent.upgrade","params":{"version":"`+olderAgent+`","allow_downgrade":true}}`,
 	)
 
@@ -121,7 +121,7 @@ func TestAgentUpgradeSurfacesBadSignatureThroughTheProtocol(t *testing.T) {
 	b.signedVersion = nextAgent
 
 	answers := serve(t, b, contract.EntitlementRestricted,
-		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":1}}`,
+		`{"id":1,"cmd":"hello","params":{"app_version":"1.0.0","protocol":2}}`,
 		`{"id":2,"cmd":"agent.upgrade","params":{"version":"2.0.0"}}`,
 	)
 

@@ -108,11 +108,12 @@ func addRepository(ctx *modules.Context) error {
 }
 
 func (Module) Configure(ctx *modules.Context) error {
-	if err := storeToken(ctx); err != nil {
+	rotated, err := storeToken(ctx)
+	if err != nil {
 		return err
 	}
 
-	if err := authenticate(ctx); err != nil {
+	if err := authenticate(ctx, rotated); err != nil {
 		return err
 	}
 
@@ -127,25 +128,31 @@ func (Module) Configure(ctx *modules.Context) error {
 	return registerKey(ctx)
 }
 
-func storeToken(ctx *modules.Context) error {
-	return ctx.Step("store-token", func() (modules.Outcome, error) {
+func storeToken(ctx *modules.Context) (bool, error) {
+	rotated := false
+
+	err := ctx.Step("store-token", func() (modules.Outcome, error) {
 		stored, err := env.Set(ctx, envKey, ctx.Secret("token"))
 		if err != nil {
 			return modules.Failed, err
 		}
 
+		rotated = stored
 		if !stored {
 			return modules.Skipped, nil
 		}
 
 		return modules.Done, nil
 	})
+
+	return rotated, err
 }
 
 // The token travels on the standard input: gh reads it there, and neither the journal nor a process listing ever sees it.
-func authenticate(ctx *modules.Context) error {
+// A signed-in gh holds the token it was given, so a rotated one signs in again.
+func authenticate(ctx *modules.Context, rotated bool) error {
 	return ctx.Step("authenticate-gh", func() (modules.Outcome, error) {
-		if accountLogin(ctx) != "" {
+		if !rotated && accountLogin(ctx) != "" {
 			return modules.Skipped, nil
 		}
 

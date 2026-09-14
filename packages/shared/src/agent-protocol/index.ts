@@ -47,6 +47,7 @@ import {
   ShotsUrlResultSchema,
 } from "./processes"
 import {
+  ProcessParamsSchema,
   ProjectActionResultSchema,
   ProjectAddParamsSchema,
   ProjectAddResultSchema,
@@ -61,6 +62,7 @@ import {
   ProjectEnvParamsSchema,
   ProjectEnvResultSchema,
   ProjectGitStatusResultSchema,
+  ProjectInstallParamsSchema,
   ProjectInstallResultSchema,
   ProjectListResultSchema,
   ProjectLogsParamsSchema,
@@ -209,7 +211,7 @@ export const COMMANDS = {
     result: ProjectSyncResultSchema,
   },
   "project.install": {
-    params: ProjectParamsSchema,
+    params: ProjectInstallParamsSchema,
     result: ProjectInstallResultSchema,
   },
   "project.env": {
@@ -241,7 +243,7 @@ export const COMMANDS = {
     result: ProjectUrlResultSchema,
   },
   "project.debug": {
-    params: ProjectParamsSchema,
+    params: ProcessParamsSchema,
     result: ProjectDebugResultSchema,
   },
   "agent.open": {

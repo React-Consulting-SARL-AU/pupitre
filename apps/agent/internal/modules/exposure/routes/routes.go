@@ -81,16 +81,18 @@ func For(domain string, projects []registry.Project) []Route {
 	}
 
 	for _, project := range projects {
-		for _, route := range project.Routes {
-			if route.Hostname == "" || !strings.HasSuffix(route.Hostname, "."+domain) {
-				continue
-			}
+		for _, process := range project.Processes {
+			for _, route := range process.Routes {
+				if route.Hostname == "" || !strings.HasSuffix(route.Hostname, "."+domain) {
+					continue
+				}
 
-			list = append(list, Route{
-				Hostname: route.Hostname,
-				Service:  "http://" + project.Host + ":" + strconv.Itoa(route.Port),
-				Project:  project.Name,
-			})
+				list = append(list, Route{
+					Hostname: route.Hostname,
+					Service:  "http://" + process.Host + ":" + strconv.Itoa(route.Port),
+					Project:  project.Name,
+				})
+			}
 		}
 	}
 

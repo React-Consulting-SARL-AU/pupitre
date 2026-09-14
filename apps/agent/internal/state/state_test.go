@@ -52,9 +52,30 @@ func fixture(t *testing.T) (*modtest.FakeSys, *state.Reader) {
 	machine(fake)
 	fake.Files[registry.DefaultConf] = []byte(conf)
 	fake.Dirs["/home/dev/projects/web"] = true
-	fake.Serves("web", 3000)
+	fake.Serves("web/web", 3000)
 
 	return fake, newReader(t, fake, modules.NewRegistry(), func(time.Duration) {})
+}
+
+// One project of one process, as the screen declares most of them.
+func declared(name string, port int, cmd string) (registry.Project, []state.ProcessRequest) {
+	return registry.Project{Name: name, Dir: name}, []state.ProcessRequest{
+		{ID: registry.LabelFrom(name), Dir: registry.RootDir, PkgMgr: "bun", Host: "127.0.0.1", Port: port, Cmd: cmd},
+	}
+}
+
+func processOf(t *testing.T, project contract.Project, id string) contract.ProjectProcess {
+	t.Helper()
+
+	for _, process := range project.Processes {
+		if process.ID == id {
+			return process
+		}
+	}
+
+	t.Fatalf("%s missing from %+v", id, project.Processes)
+
+	return contract.ProjectProcess{}
 }
 
 func TestSnapshotReadsTheMachineTheProjectsAndTheEntitlement(t *testing.T) {
@@ -90,31 +111,32 @@ func TestSnapshotReadsTheMachineTheProjectsAndTheEntitlement(t *testing.T) {
 
 func TestAddThenUpBringsTheProjectOnlineAndDownStopsIt(t *testing.T) {
 	fake, reader := fixture(t)
-	fake.Serves("api", 5173)
+	fake.Serves("api/api", 5173)
 
-	added, err := reader.Add(registry.Project{Name: "api", Dir: "api", PkgMgr: "bun", Host: "127.0.0.1", Port: 5173, Cmd: "bun run dev --port 5173"}, nil)
+	added, err := reader.Add(declared("api", 5173, "bun run dev --port 5173"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if added.State != contract.ProjectStopped {
-		t.Fatalf("a project that has just been declared is stopped, got %s", added.State)
+	if added.State != contract.ProjectStopped || len(added.Processes) != 1 || added.Processes[0].State != contract.ProcessStopped {
+		t.Fatalf("a project that has just been declared is stopped, got %+v", added)
 	}
 
-	up, err := reader.Up("api")
+	up, err := reader.Up("api", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if up.State != contract.ProjectOnline || up.Port != 5173 {
+	if up.State != contract.ProjectOnline {
 		t.Fatalf("unexpected result: %+v", up)
 	}
 
-	if got := projectOf(t, reader.Snapshot().Projects, "api"); got.State != contract.ProjectOnline || got.Port != 5173 {
+	got := projectOf(t, reader.Snapshot().Projects, "api")
+	if got.State != contract.ProjectOnline || processOf(t, got, "api").State != contract.ProcessOnline || processOf(t, got, "api").Port != 5173 {
 		t.Fatalf("snapshot must show it online with its port: %+v", got)
 	}
 
-	fake.Files[tmux.Options{}.LogPath("api")] = append(fake.Files[tmux.Options{}.LogPath("api")], []byte("vite v7 ready in 412 ms\n")...)
+	fake.Files[tmux.Options{}.LogPath("api/api")] = append(fake.Files[tmux.Options{}.LogPath("api/api")], []byte("vite v7 ready in 412 ms\n")...)
 
-	lines, err := reader.Logs("api", 1)
+	lines, err := reader.Logs("api", "api", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +144,7 @@ func TestAddThenUpBringsTheProjectOnlineAndDownStopsIt(t *testing.T) {
 		t.Fatalf("project.logs must return the output: %q", lines)
 	}
 
-	down, err := reader.Down("api")
+	down, err := reader.Down("api", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,12 +166,12 @@ func TestSnapshotAnswersUnderThreeHundredMillisecondsWithTenProjects(t *testing.
 		port := 3000 + i
 		rows.WriteString(name + "|" + name + "|-|bun|127.0.0.1|" + strconv.Itoa(port) + "|" + name + "|bun run dev --port " + strconv.Itoa(port) + "\n")
 		fake.Dirs["/home/dev/projects/"+name] = true
-		fake.Serves(name, port)
+		fake.Serves(name+"/"+name, port)
 	}
 	fake.Files[registry.DefaultConf] = []byte(rows.String())
 
 	read := newReader(t, fake, modules.NewRegistry(), func(time.Duration) {})
-	if _, err := read.Up(state.All); err != nil {
+	if _, err := read.Up(state.All, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -175,14 +197,14 @@ func TestSnapshotAnswersUnderThreeHundredMillisecondsWithTenProjects(t *testing.
 func TestUpAllLeavesTheServiceRowsToSystemd(t *testing.T) {
 	fake, reader := fixture(t)
 
-	if _, err := reader.Up(state.All); err != nil {
+	if _, err := reader.Up(state.All, ""); err != nil {
 		t.Fatal(err)
 	}
 
-	if _, opened := fake.Windows["shots"]; opened {
+	if _, opened := fake.Windows["shots/shots"]; opened {
 		t.Fatal("a service row never gets a tmux window")
 	}
-	if _, opened := fake.Windows["web"]; !opened {
+	if _, opened := fake.Windows["web/web"]; !opened {
 		t.Fatal("web must have been started")
 	}
 }
@@ -205,9 +227,9 @@ func TestFollowEmitsTheTailThenWhatTheLogGains(t *testing.T) {
 	machine(fake)
 	fake.Files[registry.DefaultConf] = []byte(conf)
 	fake.Dirs["/home/dev/projects/web"] = true
-	fake.Serves("web", 3000)
+	fake.Serves("web/web", 3000)
 
-	path := tmux.Options{}.LogPath("web")
+	path := tmux.Options{}.LogPath("web/web")
 	rounds := 0
 	grow := func(time.Duration) {
 		rounds++
@@ -217,13 +239,13 @@ func TestFollowEmitsTheTailThenWhatTheLogGains(t *testing.T) {
 	}
 
 	reader := newReader(t, fake, modules.NewRegistry(), grow)
-	if _, err := reader.Up("web"); err != nil {
+	if _, err := reader.Up("web", ""); err != nil {
 		t.Fatal(err)
 	}
 	fake.Files[path] = []byte("premier\n")
 
 	var emitted []string
-	if err := reader.Follow("web", 10, func(line string) { emitted = append(emitted, line) }); err != nil {
+	if err := reader.Follow("web", "web", 10, func(line string) { emitted = append(emitted, line) }); err != nil {
 		t.Fatal(err)
 	}
 
@@ -339,12 +361,12 @@ func TestUrlPrefersTheTunnelWhenTheMachineHasADomain(t *testing.T) {
 func TestInstallRunsTheDerivedCommandInTheProjectFolder(t *testing.T) {
 	fake, reader := fixture(t)
 
-	command, err := reader.Install("web")
+	installed, err := reader.Install("web", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if command != "bun install" {
-		t.Fatalf("got %q", command)
+	if len(installed) != 1 || installed[0].Process != "web" || installed[0].Command != "bun install" {
+		t.Fatalf("got %+v", installed)
 	}
 
 	last := fake.Calls[len(fake.Calls)-1]
@@ -358,13 +380,13 @@ func TestInstallRunsTheDerivedCommandInTheProjectFolder(t *testing.T) {
 
 func TestDebugRestartsTheProjectUnderTheDeclaredPort(t *testing.T) {
 	fake, reader := fixture(t)
-	fake.Files["/etc/pupitre/env"] = []byte("PUPITRE_DEBUG_PORTS=\"web:5005 api:5006\"\n")
+	fake.Files["/etc/pupitre/env"] = []byte("PUPITRE_DEBUG_PORTS=\"web/web:5005 api/api:5006\"\n")
 
-	if _, err := reader.Up("web"); err != nil {
+	if _, err := reader.Up("web", ""); err != nil {
 		t.Fatal(err)
 	}
 
-	debug, err := reader.Debug("web")
+	debug, err := reader.Debug("web", "web")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -372,7 +394,7 @@ func TestDebugRestartsTheProjectUnderTheDeclaredPort(t *testing.T) {
 	if err := contract.ValidateValue("ProjectDebugResult", debug); err != nil {
 		t.Fatalf("the result violates the contract: %v", err)
 	}
-	if debug.DebugPort != 5005 || debug.Port != 3000 || debug.State != contract.ProjectOnline {
+	if debug.DebugPort != 5005 || debug.Port != 3000 || debug.State != contract.ProcessOnline {
 		t.Fatalf("unexpected result: %+v", debug)
 	}
 
@@ -384,23 +406,23 @@ func TestDebugRestartsTheProjectUnderTheDeclaredPort(t *testing.T) {
 
 func TestDebugRefusesAProjectTheMachineDeclaresNoPortFor(t *testing.T) {
 	fake, reader := fixture(t)
-	fake.Files["/etc/pupitre/env"] = []byte("PUPITRE_DEBUG_PORTS=\"api:5006\"\n")
+	fake.Files["/etc/pupitre/env"] = []byte("PUPITRE_DEBUG_PORTS=\"api/api:5006\"\n")
 
-	_, err := reader.Debug("web")
+	_, err := reader.Debug("web", "web")
 
 	if got := code(t, err); got != contract.ErrorBadRequest {
 		t.Fatalf("got %v", got)
 	}
-	if _, opened := fake.Windows["web"]; opened {
+	if _, opened := fake.Windows["web/web"]; opened {
 		t.Fatal("a refused debug must leave the project exactly as it was")
 	}
 }
 
 func TestDebugLeavesTheServiceRowsToSystemd(t *testing.T) {
 	fake, reader := fixture(t)
-	fake.Files["/etc/pupitre/env"] = []byte("PUPITRE_DEBUG_PORTS=\"shots:5005\"\n")
+	fake.Files["/etc/pupitre/env"] = []byte("PUPITRE_DEBUG_PORTS=\"shots/shots:5005\"\n")
 
-	_, err := reader.Debug("shots")
+	_, err := reader.Debug("shots", "shots")
 
 	if got := code(t, err); got != contract.ErrorBadRequest {
 		t.Fatalf("got %v", got)
@@ -410,14 +432,15 @@ func TestDebugLeavesTheServiceRowsToSystemd(t *testing.T) {
 func TestAnUnknownProjectIsRefusedEverywhere(t *testing.T) {
 	_, reader := fixture(t)
 
-	_, upErr := reader.Up("ghost")
-	_, downErr := reader.Down("ghost")
-	_, logsErr := reader.Logs("ghost", 0)
+	_, upErr := reader.Up("ghost", "")
+	_, downErr := reader.Down("ghost", "")
+	_, logsErr := reader.Logs("ghost", "ghost", 0)
 	_, urlErr := reader.URL("ghost")
 	_, removeErr := reader.Remove("ghost")
-	_, debugErr := reader.Debug("ghost")
+	_, debugErr := reader.Debug("ghost", "ghost")
+	_, processErr := reader.Up("web", "ghost")
 
-	for label, err := range map[string]error{"up": upErr, "down": downErr, "logs": logsErr, "url": urlErr, "remove": removeErr, "debug": debugErr} {
+	for label, err := range map[string]error{"up": upErr, "down": downErr, "logs": logsErr, "url": urlErr, "remove": removeErr, "debug": debugErr, "process": processErr} {
 		if got := code(t, err); got != contract.ErrorProjectNotFound {
 			t.Errorf("%s: got %v", label, got)
 		}
@@ -492,7 +515,7 @@ func TestAServiceIsUnconfiguredWhenTheEngineLeftItForLater(t *testing.T) {
 func TestAddHandsTheProjectFoldersToTheirUser(t *testing.T) {
 	fake, reader := fixture(t)
 
-	if _, err := reader.Add(registry.Project{Name: "api", Dir: "api", PkgMgr: "bun", Host: "127.0.0.1", Port: 5173, Cmd: "bun run dev --port 5173"}, nil); err != nil {
+	if _, err := reader.Add(declared("api", 5173, "bun run dev --port 5173")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -508,12 +531,10 @@ func TestAddPointsALocalhostHostAtTheLoopbackAndRemoveForgetsIt(t *testing.T) {
 	fake, reader := fixture(t)
 	fake.Files["/etc/hosts"] = []byte("127.0.0.1 localhost\n::1 localhost ip6-localhost\n")
 
-	for _, project := range []registry.Project{
-		{Name: "shop", Dir: "shop", PkgMgr: "bun", Host: "shop.localhost", Port: 5173, Cmd: "bun run dev"},
-		{Name: "api", Dir: "api", PkgMgr: "bun", Host: "127.0.0.1", Port: 5174, Cmd: "bun run dev"},
-		{Name: "box", Dir: "box", PkgMgr: "bun", Host: "box.localhost", Port: 5175, Cmd: "bun run dev"},
-	} {
-		if _, err := reader.Add(project, nil); err != nil {
+	for at, one := range []struct{ name, host string }{{"shop", "shop.localhost"}, {"api", "127.0.0.1"}, {"box", "box.localhost"}} {
+		project, processes := declared(one.name, 5173+at, "bun run dev")
+		processes[0].Host = one.host
+		if _, err := reader.Add(project, processes); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -532,7 +553,9 @@ func TestAddPointsALocalhostHostAtTheLoopbackAndRemoveForgetsIt(t *testing.T) {
 		t.Fatalf("/etc/hosts after remove:\n%s\nwant:\n%s", got, want)
 	}
 
-	if _, err := reader.Add(registry.Project{Name: "out", Dir: "out", PkgMgr: "bun", Host: "shop.example.org", Port: 5176, Cmd: "bun run dev"}, nil); err == nil {
+	out, processes := declared("out", 5180, "bun run dev")
+	processes[0].Host = "shop.example.org"
+	if _, err := reader.Add(out, processes); err == nil {
 		t.Fatal("a host that is neither the loopback nor a .localhost name must be refused")
 	}
 }

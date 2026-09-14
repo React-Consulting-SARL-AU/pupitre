@@ -1,6 +1,8 @@
 package caddy
 
 import (
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +21,9 @@ import (
 
 const (
 	Unit = "caddy"
+
+	// The comment every firewall rule of this module carries: what tells its ports apart from the client's own.
+	comment = "caddy"
 
 	// Provider is the one name this module answers to: the marker on disk, and the name its report carries.
 	Provider = "caddy"
@@ -133,7 +138,7 @@ func (Module) Configure(ctx *modules.Context) error {
 		return err
 	}
 
-	if err := openFirewall(ctx); err != nil {
+	if err := syncFirewall(ctx); err != nil {
 		return err
 	}
 
@@ -161,24 +166,41 @@ func writeCaddyfile(ctx *modules.Context) (bool, error) {
 	return changed, err
 }
 
-// The rules are written as <port>/tcp: core.hardening owns the bare 22 and 443 of SSH, and never touches these.
-func openFirewall(ctx *modules.Context) error {
-	return ctx.Step("open-firewall", func() (modules.Outcome, error) {
-		opened := allowed(ctx)
+// The rules are written as <port>/tcp and carry the module's name: core.hardening owns the bare 22 and 443 of SSH, and never touches these.
+// A port the client moved away from is closed on the same pass, so the firewall only ever opens what the Caddyfile serves.
+func syncFirewall(ctx *modules.Context) error {
+	return ctx.Step("sync-firewall", func() (modules.Outcome, error) {
+		wanted := wantedRules(ctx)
+		opened := owned(ctx)
 
-		missing := []string{}
-		for _, rule := range wantedRules(ctx) {
+		var stale []string
+		for _, rule := range sortedRules(opened) {
+			if !slices.Contains(wanted, rule) {
+				stale = append(stale, rule)
+			}
+		}
+
+		var missing []string
+		for _, rule := range wanted {
 			if !opened[rule] {
 				missing = append(missing, rule)
 			}
 		}
 
-		if len(missing) == 0 {
+		if len(stale) == 0 && len(missing) == 0 {
 			return modules.Skipped, nil
 		}
 
+		for _, rule := range stale {
+			if _, err := ufw(ctx, "delete", "allow", rule); err != nil {
+				ctx.Warn(i18n.T("warn.caddy.ufw.refused", rule))
+
+				return modules.Done, nil
+			}
+		}
+
 		for _, rule := range missing {
-			if _, err := ufw(ctx, "allow", rule, "comment", "caddy"); err != nil {
+			if _, err := ufw(ctx, "allow", rule, "comment", comment); err != nil {
 				ctx.Warn(i18n.T("warn.caddy.ufw.refused", rule))
 
 				return modules.Done, nil
@@ -279,14 +301,9 @@ func (Module) Uninstall(ctx *modules.Context) error {
 	}
 
 	if err := ctx.Step("close-firewall", func() (modules.Outcome, error) {
-		opened := allowed(ctx)
 		closed := false
 
-		for _, rule := range wantedRules(ctx) {
-			if !opened[rule] {
-				continue
-			}
-
+		for _, rule := range sortedRules(owned(ctx)) {
 			if _, err := ufw(ctx, "delete", "allow", rule); err != nil {
 				continue
 			}
@@ -407,20 +424,28 @@ func ufw(ctx *modules.Context, args ...string) (sys.Output, error) {
 	return sys.Exec(ctx, sys.Command{Argv: append([]string{"ufw"}, args...), Timeout: ufwTimeout})
 }
 
-func allowed(ctx *modules.Context) map[string]bool {
+// ufw show added lists the rules as they were given, comment included, whether the firewall is up yet or not: the hardening may come after this module.
+func owned(ctx *modules.Context) map[string]bool {
 	rules := map[string]bool{}
 
-	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"ufw", "status"}, Timeout: ufwTimeout})
+	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"ufw", "show", "added"}, Timeout: ufwTimeout})
 	if err != nil {
 		return rules
 	}
 
 	for _, line := range strings.Split(out.Stdout, "\n") {
 		fields := strings.Fields(line)
-		if len(fields) >= 2 && fields[1] == "ALLOW" && !strings.Contains(line, "(v6)") {
-			rules[fields[0]] = true
+		if len(fields) == 5 && fields[0] == "ufw" && fields[1] == "allow" && fields[3] == "comment" && fields[4] == "'"+comment+"'" {
+			rules[fields[2]] = true
 		}
 	}
 
 	return rules
+}
+
+func sortedRules(rules map[string]bool) []string {
+	sorted := slices.Collect(maps.Keys(rules))
+	slices.Sort(sorted)
+
+	return sorted
 }

@@ -8,7 +8,7 @@
 @reply free               total        used        free\nMem:      8324046848  1073741824  6174015488
 @reply df Filesystem     1B-blocks        Used   Available Capacity Mounted on\n/dev/sda1    84140195840 41051881472 42988314368      49% /
 @reply ss State  Recv-Q Send-Q     Local Address:Port  Peer Address:Port Process\nLISTEN 0      128              0.0.0.0:22         0.0.0.0:*     users:(("sshd",pid=901,fd=3))\nLISTEN 0      511              0.0.0.0:80         0.0.0.0:*     users:(("nginx",pid=1042,fd=6))
-> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
 > {"id":2,"cmd":"probe"}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","probe","report","uninstall","upgrade"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","probe","report","uninstall","upgrade"]}}
 < {"id":2,"ok":true,"result":{"os":"ubuntu","version":"24.04","arch":"arm64","ram_mb":7938,"disk_free_gb":40.0,"sudo":true,"ports":[{"port":22,"process":"sshd"},{"port":80,"process":"nginx"}],"docker":true,"panel":null,"agent_version":null,"installed_modules":[],"verdict":{"level":"warning","kind":"occupied","reasons":["Docker is installed: its containers, its networks and its firewall rules would stay in place.","Port 80 is already listened on by nginx.","Non-system accounts already exist: alice."],"fixes":["Remove Docker for a dedicated machine, or install anyway: Pupitre will not touch it.","Free ports 80 and 443, or install anyway: tunnel exposure does not use them.","Check that these accounts live alongside the dev user Pupitre creates."]}}}

@@ -87,7 +87,7 @@ func (r *Reader) top(name string) (registry.Project, string, error) {
 		return project, root, nil
 	}
 
-	top := registry.Under(r.options.Paths.Resolved().Projects, project.Root()+"/"+cdup)
+	top := registry.Under(r.options.Paths.Resolved().Projects, project.Dir+"/"+cdup)
 	if top == "" {
 		return project, "", nil
 	}
@@ -450,7 +450,7 @@ func (r *Reader) Sync(name string) (contract.ProjectSync, error) {
 		return contract.ProjectSync{}, err
 	}
 
-	command, err := r.Install(name)
+	installed, err := r.Install(name, "")
 	if err != nil {
 		return contract.ProjectSync{}, err
 	}
@@ -460,7 +460,7 @@ func (r *Reader) Sync(name string) (contract.ProjectSync, error) {
 		return contract.ProjectSync{}, err
 	}
 
-	return contract.ProjectSync{Pulled: pulled.Pulled, Installed: command != "", State: current.State}, nil
+	return contract.ProjectSync{Pulled: pulled.Pulled, Installed: len(installed) > 0, State: current.State}, nil
 }
 
 func (r *Reader) pull(project registry.Project, root string) (bool, error) {

@@ -90,7 +90,8 @@ func addRepository(ctx *modules.Context) error {
 }
 
 func (Module) Configure(ctx *modules.Context) error {
-	if err := storeToken(ctx); err != nil {
+	rotated, err := storeToken(ctx)
+	if err != nil {
 		return err
 	}
 
@@ -98,22 +99,27 @@ func (Module) Configure(ctx *modules.Context) error {
 		return err
 	}
 
-	return verifyAccount(ctx)
+	return verifyAccount(ctx, rotated)
 }
 
-func storeToken(ctx *modules.Context) error {
-	return ctx.Step("store-token", func() (modules.Outcome, error) {
+func storeToken(ctx *modules.Context) (bool, error) {
+	rotated := false
+
+	err := ctx.Step("store-token", func() (modules.Outcome, error) {
 		stored, err := env.Set(ctx, envKey, ctx.Secret("service_account_token"))
 		if err != nil {
 			return modules.Failed, err
 		}
 
+		rotated = stored
 		if !stored {
 			return modules.Skipped, nil
 		}
 
 		return modules.Done, nil
 	})
+
+	return rotated, err
 }
 
 // op reads OP_SERVICE_ACCOUNT_TOKEN and nothing else: without it in the dev shell, `op whoami` in a terminal finds no account.
@@ -133,8 +139,13 @@ func exportToken(ctx *modules.Context) error {
 }
 
 // Installed is not enough: a token that does not open the vaults makes project.env fail much later, far from its cause.
-func verifyAccount(ctx *modules.Context) error {
+// A token already verified is not asked again: the round trip to 1Password is only worth a token the machine has not seen.
+func verifyAccount(ctx *modules.Context, rotated bool) error {
 	return ctx.Step("verify-service-account", func() (modules.Outcome, error) {
+		if !rotated {
+			return modules.Skipped, nil
+		}
+
 		input := user.Input{Env: environment(serviceToken(ctx))}
 		if _, err := user.RunWith(ctx, shell.User, input, program, "vault", "list", "--format=json"); err != nil {
 			ctx.Warn(i18n.T("warn.onepassword.vault.none"))

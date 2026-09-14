@@ -132,7 +132,8 @@ func nodeSupported(version string) bool {
 func (Module) Configure(ctx *modules.Context) error {
 	found := providers.Parse(ctx.SecretList("providers"))
 
-	if err := writeProviders(ctx, found); err != nil {
+	rewritten, err := writeProviders(ctx, found)
+	if err != nil {
 		return err
 	}
 
@@ -148,7 +149,7 @@ func (Module) Configure(ctx *modules.Context) error {
 		return err
 	}
 
-	return service(ctx, ctx.Bool("always_on"))
+	return service(ctx, ctx.Bool("always_on"), rewritten)
 }
 
 func seed(ctx *modules.Context) error {
@@ -165,12 +166,16 @@ func seed(ctx *modules.Context) error {
 	})
 }
 
-func writeProviders(ctx *modules.Context, found []providers.Provider) error {
-	return ctx.Step("write-providers", func() (modules.Outcome, error) {
+func writeProviders(ctx *modules.Context, found []providers.Provider) (bool, error) {
+	rewritten := false
+
+	err := ctx.Step("write-providers", func() (modules.Outcome, error) {
 		content := providers.Render(found, "")
 		if file.Same(ctx, envPath, content) {
 			return modules.Skipped, nil
 		}
+
+		rewritten = true
 
 		if err := ctx.Sys().MkdirAll(configDir, 0o700); err != nil {
 			return modules.Failed, err
@@ -186,6 +191,8 @@ func writeProviders(ctx *modules.Context, found []providers.Provider) error {
 
 		return modules.Done, file.Chown(ctx, envPath, agents.User, agents.User)
 	})
+
+	return rewritten, err
 }
 
 func storeProviders(ctx *modules.Context, found []providers.Provider) error {
@@ -209,7 +216,7 @@ func storeProviders(ctx *modules.Context, found []providers.Provider) error {
 }
 
 // The gateway is what the channels talk to; without "always on" it is a command a session starts.
-func service(ctx *modules.Context, alwaysOn bool) error {
+func service(ctx *modules.Context, alwaysOn, providersChanged bool) error {
 	if !alwaysOn {
 		return ctx.Step("disable-service", func() (modules.Outcome, error) {
 			if !file.Exists(ctx, unitPath) {
@@ -234,7 +241,7 @@ func service(ctx *modules.Context, alwaysOn bool) error {
 	}
 
 	content := []byte(strings.Replace(unitContent, "%s", cli.Path(), 1))
-	changed := false
+	changed := providersChanged
 
 	if err := ctx.Step("write-service", func() (modules.Outcome, error) {
 		if file.Same(ctx, unitPath, content) {
@@ -271,7 +278,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 
 // The workspace, the sessions and the channels the client configured stay under ~/.openclaw: only the CLI, the providers and the unit go.
 func (Module) Uninstall(ctx *modules.Context) error {
-	if err := service(ctx, false); err != nil {
+	if err := service(ctx, false, false); err != nil {
 		return err
 	}
 

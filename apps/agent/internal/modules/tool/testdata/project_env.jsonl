@@ -1,16 +1,16 @@
-# project.env produit le .env.local du projet, secrets.sync le régénère.
+# project.env produit le .env.local d'un processus du projet, secrets.sync le régénère ; le gabarit se cherche dans le dossier du processus puis à la racine du dépôt.
 @package 1password-cli 2.32.0
 @file /etc/pupitre/env OP_SERVICE_ACCOUNT_TOKEN=s3cret-de-test
 @file /etc/pupitre/projects.conf web|flymate/apps/web|-|bun|web.localhost|3000|app|bun run dev
 @file /home/dev/projects/flymate/apps/web/.env.1password.tpl DATABASE_URL={{ op://{{OP_VAULT}}/{{OP_ITEM}}/url }}
 @file /home/dev/projects/flymate/op.config.json {"vault":"Dev","item":"flymate"}
 @answer op inject :: DATABASE_URL=postgres://dev:motdepasse@127.0.0.1/flymate\nAUTH_SECRET=au-secret
-> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}
-> {"id":2,"cmd":"project.env","params":{"name":"web"}}
-> {"id":3,"cmd":"project.env","params":{"name":"web"}}
-> {"id":4,"cmd":"secrets.sync","params":{"project":"web"}}
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
+> {"id":2,"cmd":"project.env","params":{"name":"web","process":"web"}}
+> {"id":3,"cmd":"project.env","params":{"name":"web","process":"web"}}
+> {"id":4,"cmd":"secrets.sync","params":{"project":"web","process":"web"}}
 > {"id":5,"cmd":"project.env","params":{"name":"ghost"}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":1,"entitlement":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","project.env","report","secrets.sync","uninstall","upgrade"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["catalog","hello","install","install.check","module.config","ping","project.env","report","secrets.sync","uninstall","upgrade"]}}
 < {"id":2,"ok":true,"result":{"path":"/home/dev/projects/flymate/apps/web/.env.local","written":true,"keys":["DATABASE_URL","AUTH_SECRET"]}}
 < {"id":3,"ok":true,"result":{"path":"/home/dev/projects/flymate/apps/web/.env.local","written":false,"keys":["DATABASE_URL","AUTH_SECRET"]}}
 < {"id":4,"ok":true,"result":{"path":"/home/dev/projects/flymate/apps/web/.env.local","written":true,"keys":["DATABASE_URL","AUTH_SECRET"]}}

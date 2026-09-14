@@ -80,6 +80,33 @@ func TestFirstInstallAddsTheRepositoryJoinsAndOpensTheFirewall(t *testing.T) {
 	}
 }
 
+// A name or an SSH switch changed after the join reaches the node through set: up would ask for a key the client already spent.
+func TestChangedSettingsAreSetOnTheJoinedNode(t *testing.T) {
+	fake := machine()
+	fake.Packages[pkg] = "1.90.0"
+	fake.Files[keyringPath] = []byte("key")
+	fake.Files[sourcePath] = repository("noble")
+	fake.Units[Unit] = modtest.UnitActive
+	fake.Firewall.Rules = []string{"Anywhere on " + device}
+	fake.Tailnet = true
+	fake.Prefs = modtest.TailscalePrefs{Hostname: "old-name"}
+
+	fake.Mutations = nil
+	ctx := newContext(t, fake, modtest.Values{"hostname": "new-name", "ssh": true})
+
+	if err := (Module{}).Configure(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Join(fake.Mutations, "\n") != "tailscale set --hostname=new-name --ssh=true" {
+		t.Fatalf("only set must run, once: %v", fake.Mutations)
+	}
+
+	if fake.Prefs != (modtest.TailscalePrefs{Hostname: "new-name", SSH: true}) {
+		t.Fatalf("the node must carry the new settings: %+v", fake.Prefs)
+	}
+}
+
 func TestReplayMutatesNothingOnceJoined(t *testing.T) {
 	fake := machine()
 	fake.Packages[pkg] = "1.90.0"
