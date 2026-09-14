@@ -71,7 +71,7 @@ const trail = jsonLd(
           </div>
           <div class="tag">
             <dt class="text-ink-3">{content.release.channel}</dt>
-            <dd class="text-ink">{t(`changelog.${release.channel}`)}</dd>
+            <dd class="text-ink">{content.release.channels[release.channel]}</dd>
           </div>
           <div class="tag">
             <dt class="text-ink-3">{content.release.published}</dt>
@@ -153,12 +153,6 @@ const trail = jsonLd(
         })
       }
     </div>
-
-    <p class="mt-10">
-      <a href={localizePath("/changelog/", locale)} class="link-underline">
-        {content.release.changelog}
-      </a>
-    </p>
   </Section>
 
   <Section

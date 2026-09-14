@@ -1,5 +1,5 @@
 import type { Locale } from "../../lib/i18n"
-import type { OperatingSystem } from "../../lib/releases"
+import type { OperatingSystem, ReleaseChannel } from "../../lib/releases"
 import { downloadEn } from "./download.en"
 import { downloadFr } from "./download.fr"
 
@@ -37,7 +37,7 @@ export interface DownloadContent {
     version: string
     published: string
     channel: string
-    changelog: string
+    channels: Record<ReleaseChannel, string>
   }
   requirements: {
     label: string

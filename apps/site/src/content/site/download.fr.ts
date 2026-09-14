@@ -54,7 +54,7 @@ export const downloadFr: DownloadContent = {
     version: "Version",
     published: "Publiée",
     channel: "Canal",
-    changelog: "Lire le changelog",
+    channels: { stable: "Stable", beta: "Bêta" },
   },
   requirements: {
     label: "Configuration requise",

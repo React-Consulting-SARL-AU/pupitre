@@ -4,6 +4,7 @@ import {
   docPath,
   docSlug,
   flatten,
+  groupEntries,
   groupSections,
   moduleSlug,
   neighbours,
@@ -65,6 +66,37 @@ describe("groupSections", () => {
     const sections = groupSections([entry({})], "en")
 
     expect(sections).toHaveLength(1)
+  })
+})
+
+describe("groupEntries", () => {
+  it("keeps consecutive entries of one category together, in reading order", () => {
+    const groups = groupEntries([
+      entry({ slug: "services" }),
+      entry({ slug: "services/runtime-node", group: "Runtimes" }),
+      entry({ slug: "services/runtime-go", group: "Runtimes" }),
+      entry({ slug: "services/db-postgres", group: "Databases" }),
+    ])
+
+    expect(groups.map((group) => group.title)).toEqual([
+      undefined,
+      "Runtimes",
+      "Databases",
+    ])
+    expect(groups[1].entries.map((item) => item.slug)).toEqual([
+      "services/runtime-node",
+      "services/runtime-go",
+    ])
+  })
+
+  it("leaves a section without categories as one group", () => {
+    const groups = groupEntries([
+      entry({ slug: "start/vps" }),
+      entry({ slug: "start/keys" }),
+    ])
+
+    expect(groups).toHaveLength(1)
+    expect(groups[0].title).toBeUndefined()
   })
 })
 

@@ -13,6 +13,12 @@ export interface DocsEntry {
   order: number
   title: string
   description: string
+  group?: string
+}
+
+export interface DocsGroup {
+  title?: string
+  entries: DocsEntry[]
 }
 
 export interface DocsSection {
@@ -64,6 +70,22 @@ export function groupSections(
 
 export function flatten(sections: DocsSection[]): DocsEntry[] {
   return sections.flatMap((section) => section.entries)
+}
+
+export function groupEntries(entries: DocsEntry[]): DocsGroup[] {
+  const groups: DocsGroup[] = []
+
+  for (const entry of entries) {
+    const last = groups.at(-1)
+
+    if (last && last.title === entry.group) {
+      last.entries.push(entry)
+    } else {
+      groups.push({ title: entry.group, entries: [entry] })
+    }
+  }
+
+  return groups
 }
 
 export interface Neighbours {

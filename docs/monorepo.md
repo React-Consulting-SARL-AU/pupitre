@@ -259,11 +259,10 @@ Un retour arrière se fait en promouvant la version précédente : `electron-upd
 
 ### Le changelog
 
-`apps/site/src/content/changelog/<langue>/<version>.mdx` est la **seule** source. Une entrée par version et par langue, le nom du fichier étant la version avec des tirets — `0-2-0.mdx`.
+`apps/site/src/content/changelog/<langue>/<version>.mdx` est la **seule** source. Une entrée par version et par langue, le nom du fichier étant la version avec des tirets — `0-2-0.mdx`. Le site ne la rend pas : depuis le 14 septembre 2026 il n'y a plus de page changelog, la page de téléchargement affiche la version publiée et c'est tout.
 
 | Qui le lit | Ce qu'il en fait |
 | --- | --- |
-| Le site | la page `/changelog`, son flux RSS, et la version française sous `/fr/changelog` |
 | La chaîne de release | `notes` la rédige par `claude -p` pour que le propriétaire la relise, `check` refuse de construire si elle manque dans une des langues, `app publish` passe le corps de l'entrée anglaise en notes de version |
 | La plateforme | l'enregistre dans `AppRelease.notes`, d'où la console et l'app desktop le tirent par `GET /api/v1/releases/app/:version` |
 

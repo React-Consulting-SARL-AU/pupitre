@@ -9,6 +9,7 @@ import { CATALOG_ENTRIES } from "../content/site/catalog"
 import { MODULE_LABELS } from "../content/site/docs"
 import { downloadContent } from "../content/site/download"
 import { homeContent } from "../content/site/home"
+import { integrationsContent } from "../content/site/integrations"
 import { pricingContent } from "../content/site/pricing"
 import { docSlug, moduleSlug } from "./docs"
 import { fill, LOCALES, type Locale, localizePath, translator } from "./i18n"
@@ -36,6 +37,7 @@ async function pagesFor(locale: Locale): Promise<OgPage[]> {
   const home = homeContent(locale)
   const pricing = pricingContent(locale)
   const download = downloadContent(locale)
+  const integrations = integrationsContent(locale)
   const at = (path: string) => localizePath(path, locale)
 
   const docs = await getCollection(
@@ -71,6 +73,11 @@ async function pagesFor(locale: Locale): Promise<OgPage[]> {
       title: download.hero.headline,
       description: download.meta.description,
     }),
+    page(at("/integrations/"), {
+      eyebrow: integrations.hero.label,
+      title: integrations.hero.headline,
+      description: integrations.meta.description,
+    }),
     page(at("/docs/"), {
       eyebrow: t("docs.label"),
       title: t("docs.headline"),
@@ -85,11 +92,6 @@ async function pagesFor(locale: Locale): Promise<OgPage[]> {
       eyebrow: t("blog.label"),
       title: t("blog.headline"),
       description: t("blog.lead"),
-    }),
-    page(at("/changelog/"), {
-      eyebrow: t("changelog.label"),
-      title: t("changelog.headline"),
-      description: t("changelog.lead"),
     }),
     page(at("/legal/"), {
       eyebrow: t("legal.label"),
