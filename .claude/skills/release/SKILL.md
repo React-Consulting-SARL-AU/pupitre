@@ -14,7 +14,7 @@ Le Mac du propriétaire écrit la version et les notes et pose le tag, par `scri
 | Fichier | Rôle | Existe ? |
 | --- | --- | --- |
 | `scripts/release.sh` | la part du Mac : `next`, `resolve`, `notes` — s'arrête là pour que les notes soient lues — puis `check` et `ship` quand on le relance | oui |
-| `.github/workflows/release.yml` | la part des runners, sur le tag : `agent build`, `agent publish`, puis `desktop` sur `macos-15`, `windows-2025`, `ubuntu-24.04`, puis `app publish`, `verify` et `merge` | oui |
+| `.github/workflows/release.yml` | la part des runners, sur le tag : `agent build`, `agent publish`, puis `desktop` sur les runners Blacksmith `blacksmith-6vcpu-macos-15`, `blacksmith-4vcpu-windows-2025`, `blacksmith-4vcpu-ubuntu-2404`, puis `app publish`, `verify` et `merge` | oui |
 | `.github/workflows/promote.yml` | à la main, `gh workflow run promote.yml -f version=X.Y.Z` : remet une version publiée dans un canal — le retour arrière | oui |
 | `scripts/release/release.env.tpl` | les références 1Password et les valeurs publiques — aucun secret dedans ; `release secrets` en fait les secrets du dépôt, le workflow y lit les valeurs en clair | oui |
 | `scripts/release/` | **la chaîne elle-même** : `next`, `resolve`, `notes`, `check`, `ship`, `agent build`, `agent publish`, `desktop`, `app publish`, `verify`, `merge`, `promote`, `secrets` — chaque étape est une commande `bun scripts/release/index.ts <étape>`, idempotente, pilotée par l'environnement, avec `--dry-run` ; R2 en S3 pour seul bus, avec une clé limitée aux deux seaux | oui |

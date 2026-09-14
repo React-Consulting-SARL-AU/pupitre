@@ -65,7 +65,7 @@ bun run test
 bun run build
 ```
 
-Un push sur `staging` est vérifié une fois, sur son SHA. La pull request `staging` → `main` est ouverte et fusionnée par `release.yml`, sur un commit déjà vérifié, avec un jeton qui ne déclenche aucun workflow : `main` ne fait rien tourner. `pull_request` ne vise donc que `staging`, où arrivent les branches de travail. Les minutes GitHub Actions se paient : `ci.yml` ne fait que vérifier, tout sur Ubuntu, et seule une release — un tag `v*` — occupe un runner macOS ou Windows. Les jobs de `ci.yml` :
+Un push sur `staging` est vérifié une fois, sur son SHA. La pull request `staging` → `main` est ouverte et fusionnée par `release.yml`, sur un commit déjà vérifié, avec un jeton qui ne déclenche aucun workflow : `main` ne fait rien tourner. `pull_request` ne vise donc que `staging`, où arrivent les branches de travail. Les workflows tournent sur les runners de **Blacksmith** (app GitHub installée sur l'organisation, labels `blacksmith-*`), pas sur ceux de GitHub, dont la facturation a bloqué une release ; les minutes s'y paient aussi : `ci.yml` ne fait que vérifier, tout sur Ubuntu, et seule une release — un tag `v*` — occupe un runner macOS ou Windows. Les jobs de `ci.yml` :
 
 | Job | Quand | Ce qu'il fait |
 | --- | --- | --- |
@@ -199,6 +199,7 @@ Webhook `https://app.pupitre.studio/api/v1/webhooks/stripe`, un endpoint et un s
 | Flux de mise à jour | `dl.pupitre.studio/app/<canal>/` | `latest.yml`, `latest-mac.yml`, `latest-linux.yml` |
 | Certificat macOS | Apple Developer | `Developer ID Application: <société marocaine> (<Team ID>)` |
 | Clé de notarisation | App Store Connect | clé d'API, rôle *Developer*, fichier `AuthKey_<KeyID>.p8` |
+| Runners des workflows | Blacksmith | app GitHub installée sur l'organisation ; Ubuntu 24.04 x64 et arm64, macOS 15 sur Apple Silicon, Windows Server 2025 |
 | Signature Windows | Azure Trusted Signing | compte `ppt-signing`, profil de certificat `ppt-app` — voir [`tasks/windows-signing.md`](./tasks/windows-signing.md) |
 
 Chaque artefact monte avec un fichier `.sig` à côté : la signature Ed25519 de la clé de release, la même que celle de l'agent, sur `pupitre-app\n<version>\n<système>\n<architecture>\n<sha256>\n`. Elle est aussi enregistrée dans la table `AppRelease`, avec la somme et la taille du fichier. Sur macOS et Windows, c'est la signature du système qui protège l'installation ; sur Linux, celle-ci est la seule, et elle se vérifie à la main.
@@ -270,7 +271,7 @@ Un retour arrière se fait en promouvant la version précédente : `electron-upd
 
 ### Ce qui se construit où
 
-Un module natif ne se compile pas pour un autre système : `node-pty` impose un runner par OS, et c'est la raison de la matrice `macos-15`, `windows-2025`, `ubuntu-24.04` de `release.yml` — et la raison pour laquelle la release ne se fait pas depuis un Mac. Depuis un Mac, `bun --cwd=apps/desktop run build:linux` s'arrête sur `node-gyp does not support cross-compiling native modules` — ce n'est pas une erreur de configuration.
+Un module natif ne se compile pas pour un autre système : `node-pty` impose un runner par OS, et c'est la raison de la matrice `blacksmith-6vcpu-macos-15`, `blacksmith-4vcpu-windows-2025`, `blacksmith-4vcpu-ubuntu-2404` de `release.yml` — et la raison pour laquelle la release ne se fait pas depuis un Mac. Depuis un Mac, `bun --cwd=apps/desktop run build:linux` s'arrête sur `node-gyp does not support cross-compiling native modules` — ce n'est pas une erreur de configuration.
 
 | Système | Ce qui sort | Ce qui le signe |
 | --- | --- | --- |

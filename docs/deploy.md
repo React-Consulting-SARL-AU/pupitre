@@ -27,11 +27,12 @@ Les branches : `staging` est la branche de travail, `main` est la production et 
 | --- | --- | --- | --- |
 | **Cloudflare** | le domaine, le Worker, le site, les deux seaux de fichiers | gratuit pour commencer | immédiat |
 | **Stripe** | le produit et ses deux prix | commission par vente | quelques jours de vérification |
-| **GitHub** | le dépôt, sa CI, et les runners qui construisent et publient chaque version | gratuit, les minutes macOS et Windows comptées | immédiat |
+| **GitHub** | le dépôt et ses workflows | gratuit | immédiat |
+| **Blacksmith** | les runners qui vérifient, construisent et publient chaque version — app GitHub installée sur l'organisation | à la minute, macOS et Windows plus chers | immédiat |
 | Apple Developer | la signature de l'app macOS | 99 $/an | quelques jours |
 | Azure Trusted Signing | la signature de l'app Windows | à l'usage | quelques jours de vérification |
 
-Les quatre premiers suffisent pour mettre le service en ligne. Les deux derniers ne concernent que la publication de l'app desktop : sans eux elle se construit quand même, non signée, et les systèmes préviennent l'utilisateur au premier lancement.
+Les cinq premiers suffisent pour mettre le service en ligne. Les deux derniers ne concernent que la publication de l'app desktop : sans eux elle se construit quand même, non signée, et les systèmes préviennent l'utilisateur au premier lancement.
 
 ### Les outils
 
