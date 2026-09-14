@@ -9,7 +9,7 @@ import { tmpdir } from "node:os"
 import path from "node:path"
 import {
   artefactOf,
-  isBlockmap,
+  installerOf,
   isFeed,
 } from "../../apps/desktop/scripts/release-artefacts"
 import { AGENT_DIST, ARCHES } from "./agent"
@@ -62,7 +62,7 @@ export function systemOfHost(platform: string): System {
   return system
 }
 
-/** What a build leaves for the publish step, for one system: its installers, their blockmaps, its feed. */
+/** What a build leaves for the publish step, for one system: its installers, what the updater fetches beside them, its feed. */
 export function publishable(
   system: System,
   files: readonly string[]
@@ -72,8 +72,7 @@ export function publishable(
   return files
     .filter(
       (file) =>
-        ofSystem(file) ||
-        (isBlockmap(file) && ofSystem(file.slice(0, -".blockmap".length))) ||
+        ofSystem(installerOf(file)) ||
         (isFeed(file) && file === FEED_OF[system])
     )
     .sort()

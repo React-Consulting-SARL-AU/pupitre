@@ -193,7 +193,7 @@ Webhook `https://app.pupitre.studio/api/v1/webhooks/stripe`, un endpoint et un s
 | Déclencheur | `scripts/release.sh`, sur le Mac du propriétaire | la version suivante et ses notes, puis un tag `v*` posé sur `staging`, que `.github/workflows/release.yml` construit, publie et fusionne dans `main` |
 | Bucket public | Cloudflare R2 | `ppt-downloads`, domaine public `dl.pupitre.studio` |
 | Bucket privé | Cloudflare R2 | `ppt-agent`, les binaires de l'agent, jamais public |
-| Artefacts macOS | `dl.pupitre.studio/app/<version>/` | `Pupitre-<version>-arm64.dmg`, `Pupitre-<version>-x64.dmg` |
+| Artefacts macOS | `dl.pupitre.studio/app/<version>/` | `Pupitre-<version>-arm64.dmg`, `Pupitre-<version>-x64.dmg` ; à côté, `Pupitre-<version>-<arch>.zip`, ce qu'`electron-updater` télécharge — jamais une ligne de `AppRelease` |
 | Artefacts Windows | `dl.pupitre.studio/app/<version>/` | `Pupitre-Setup-<version>-x64.exe` |
 | Artefacts Linux | `dl.pupitre.studio/app/<version>/` | `Pupitre-<version>-x86_64.AppImage`, `pupitre_<version>_amd64.deb` |
 | Flux de mise à jour | `dl.pupitre.studio/app/<canal>/` | `latest.yml`, `latest-mac.yml`, `latest-linux.yml` |
@@ -245,7 +245,7 @@ Chaque étape est une commande de **`scripts/release`** — `bun scripts/release
 | `ship` | commit `chore(release): vX.Y.Z` de la version et des notes, tag, push de `staging` et du tag ; c'est ce push qui lance `release.yml` |
 | `agent build` | `pupitred` pour `linux/amd64` et `linux/arm64` avec garble, signé, éprouvé — clé publique embarquée, presque aucune chaîne lisible, `version` et `hello` sur la machine de chaque architecture — l'amd64 sur le runner qui construit, l'arm64 sur le job `agent-arm64`, jamais sous émulation — ou **repris du seau** s'il y est déjà : garble ne reproduit pas un binaire, et la plateforme tient les empreintes de la première déclaration |
 | `agent publish` | `agent/<version>/` du seau **privé** — binaires, `release.json`, `publications.json` — puis `POST /api/v1/admin/releases` à la production |
-| `desktop` | l'app du système du runner — macOS signé et notarisé en arm64 et x64, Windows non signé, Linux ; l'agent repris du seau, le processus principal compilé en bytecode V8, les fusibles retournés ; installateurs, blockmaps et flux laissés sous `work/<version>/<système>/` du seau privé avec l'`index.json` qui les nomme |
+| `desktop` | l'app du système du runner — macOS signé et notarisé en arm64 et x64, Windows non signé, Linux ; l'agent repris du seau, le processus principal compilé en bytecode V8, les fusibles retournés ; installateurs, blockmaps, archives `.zip` de mise à jour macOS et flux laissés sous `work/<version>/<système>/` du seau privé avec l'`index.json` qui les nomme |
 | `app publish` | signe chaque installateur avec la clé de release, dépose fichiers et `.sig` sur le bucket **public**, réécrit les flux de mise à jour, déclare chaque fichier par `POST /api/v1/admin/app-releases`, et garde ces lignes en `app/<version>/publications.json` du seau privé |
 | `verify` | de l'extérieur, ce qu'un client rencontre : la plateforme décrit la version, le seau public sert chaque fichier entier, les flux du canal la nomment — le rapport devient le résumé du run |
 | `merge` | tout ce que la version nomme est téléchargeable : la pull request `staging` → `main` est ouverte — le corps est l'entrée de changelog anglaise — et fusionnée par un merge commit ; une pull request laissée ouverte est reprise, un `main` qui tient déjà le tag n'a rien à faire. Le push de `main` reconstruit le site et la console |
@@ -275,7 +275,7 @@ Un module natif ne se compile pas pour un autre système : `node-pty` impose un 
 
 | Système | Ce qui sort | Ce qui le signe |
 | --- | --- | --- |
-| macOS | `.dmg` arm64 et x64 | certificat Developer ID, puis notarisation, puis la clé de release |
+| macOS | `.dmg` arm64 et x64, et le `.zip` de chaque architecture pour la mise à jour | certificat Developer ID, puis notarisation, puis la clé de release |
 | Windows | installateur NSIS de l'architecture du runner | Azure Trusted Signing si les variables existent, puis la clé de release |
 | Linux | AppImage et `.deb` de l'architecture du runner | la clé de release seule : Linux n'a pas d'autorité à qui répondre |
 
@@ -289,7 +289,7 @@ Tant qu'aucune ligne n'est ajoutée, toutes les versions d'app pilotent toutes l
 
 ### Ce que la mise à jour ne couvre pas
 
-Le `.deb` est installé par apt et mis à jour par apt : l'app n'y touche pas, et le dit. L'AppImage, le `.dmg` et l'installateur Windows se remplacent seuls. Un build de développement ne cherche aucune mise à jour ; un build empaqueté suit le canal que `MAIN_VITE_UPDATE_CHANNEL` lui a donné, `stable` par défaut, sur le seau que `PUPITRE_DOWNLOADS_URL` lui a donné — la même variable que la publication lit, `https://dl.pupitre.studio` quand le build n'en reçoit aucune.
+Le `.deb` est installé par apt et mis à jour par apt : l'app n'y touche pas, et le dit. L'AppImage, l'app macOS et l'installateur Windows se remplacent seuls — sur macOS, `electron-updater` n'installe jamais un `.dmg` : il télécharge le `.zip` que `latest-mac.yml` nomme à côté, et un flux sans `.zip` laisse l'app sur « ZIP file not provided », ce qui fut le cas jusqu'à la 0.2.0. Un build de développement ne cherche aucune mise à jour ; un build empaqueté suit le canal que `MAIN_VITE_UPDATE_CHANNEL` lui a donné, `stable` par défaut, sur le seau que `PUPITRE_DOWNLOADS_URL` lui a donné — la même variable que la publication lit, `https://dl.pupitre.studio` quand le build n'en reçoit aucune.
 
 ## La base de données
 

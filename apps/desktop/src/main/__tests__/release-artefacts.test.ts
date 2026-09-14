@@ -3,7 +3,9 @@ import {
   absoluteFeed,
   artefactOf,
   downloadUrl,
+  installerOf,
   isBlockmap,
+  isCompanion,
   isFeed,
   objectKey,
   signedAppMessage,
@@ -46,9 +48,10 @@ describe("artefactOf", () => {
     });
   });
 
-  it("ne publie ni un flux, ni une carte de blocs, ni un nom muet", () => {
+  it("ne publie ni un flux, ni une carte de blocs, ni l'archive de mise à jour, ni un nom muet", () => {
     expect(artefactOf("latest-mac.yml")).toBeNull();
     expect(artefactOf("Pupitre-1.4.0-arm64.dmg.blockmap")).toBeNull();
+    expect(artefactOf("Pupitre-1.4.0-arm64.zip")).toBeNull();
     expect(artefactOf("Pupitre-1.4.0.dmg")).toBeNull();
     expect(artefactOf("../etc/passwd.dmg")).toBeNull();
   });
@@ -57,6 +60,24 @@ describe("artefactOf", () => {
     expect(isFeed("latest.yml")).toBe(true);
     expect(isFeed("Pupitre-1.4.0-x64.dmg")).toBe(false);
     expect(isBlockmap("Pupitre-1.4.0-x64.dmg.blockmap")).toBe(true);
+  });
+
+  it("rattache à son installateur ce que l'app télécharge à côté", () => {
+    expect(installerOf("Pupitre-1.4.0-x64.dmg")).toBe("Pupitre-1.4.0-x64.dmg");
+    expect(installerOf("Pupitre-1.4.0-x64.dmg.blockmap")).toBe(
+      "Pupitre-1.4.0-x64.dmg"
+    );
+    expect(installerOf("Pupitre-1.4.0-arm64.zip")).toBe(
+      "Pupitre-1.4.0-arm64.dmg"
+    );
+    expect(installerOf("Pupitre-1.4.0-arm64.zip.blockmap")).toBe(
+      "Pupitre-1.4.0-arm64.dmg"
+    );
+    expect(isCompanion("Pupitre-1.4.0-arm64.zip")).toBe(true);
+    expect(isCompanion("Pupitre-1.4.0-x64.dmg.blockmap")).toBe(true);
+    expect(isCompanion("Pupitre-1.4.0-x64.dmg")).toBe(false);
+    expect(isCompanion("latest-mac.yml")).toBe(false);
+    expect(isCompanion("notes.zip")).toBe(false);
   });
 });
 

@@ -97,6 +97,26 @@ export function isBlockmap(file: string): boolean {
   return file.endsWith(".blockmap");
 }
 
+const UPDATE_ARCHIVE_RE = /\.zip$/;
+
+/**
+ * The installer a file accompanies: itself for an installer, the installer
+ * a `.blockmap` maps, the `.dmg` of the same build for the `.zip` that
+ * electron-updater downloads on macOS — it never updates from a dmg, and a
+ * person never installs from the zip, so the zip goes to the bucket beside
+ * the dmg and is a row nowhere.
+ */
+export function installerOf(file: string): string {
+  const mapped = isBlockmap(file) ? file.slice(0, -".blockmap".length) : file;
+
+  return mapped.replace(UPDATE_ARCHIVE_RE, ".dmg");
+}
+
+/** A file the updater fetches beside an installer, kept in the bucket without a row of its own. */
+export function isCompanion(file: string): boolean {
+  return file !== installerOf(file) && artefactOf(installerOf(file)) !== null;
+}
+
 /** A version never moves once published: one folder per version, feeds alongside. */
 export function objectKey(version: string, file: string): string {
   return `app/${version}/${file}`;
