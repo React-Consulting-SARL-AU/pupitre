@@ -31,14 +31,24 @@ type Result struct {
 }
 
 // The template is versioned by the repository, the values live in the vault: the file produced is the only place the two ever meet.
-func Env(ctx *modules.Context, name string, force bool) (Result, error) {
+// Env writes the environment file of a project's root, or of one of its processes when it is named: the process's folder is looked at first, the root next.
+func Env(ctx *modules.Context, name, id string, force bool) (Result, error) {
 	project, known := registry.Load(ctx, registry.Paths{}).Get(name)
 	if !known {
 		return Result{}, registry.NotFound(name)
 	}
 
-	projects := registry.Paths{}.Resolved().Projects
-	dir, root := project.Path(projects), project.RootPath(projects)
+	root := project.Path(registry.Paths{}.Resolved().Projects)
+	dir := root
+	if id != "" {
+		process, declared := project.Process(id)
+		if !declared {
+			return Result{}, protocol.NewError(contract.ErrorProjectNotFound, i18n.T("state.process.unknown", id, name)).
+				WithFix(i18n.T("state.process.unknown.fix"))
+		}
+
+		dir = process.Path(root)
+	}
 
 	home := envHome(ctx, dir, root)
 	target := home + "/" + targetName

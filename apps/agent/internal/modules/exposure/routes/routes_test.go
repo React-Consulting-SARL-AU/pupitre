@@ -11,22 +11,33 @@ const domain = "flymate.dev"
 
 func shop() registry.Project {
 	return registry.Project{
-		Name: "shop", Dir: "shop", PkgMgr: "bun", Host: "127.0.0.1", Port: 3100, Cmd: "bunx turbo run dev",
-		Routes: []registry.Route{
-			{Label: "web", Port: 3100, Hostname: "shop." + domain},
-			{Label: "api", Port: 3101, Hostname: "api-shop." + domain},
-			{Label: "docs", Port: 3102},
+		Name: "shop", Dir: "shop",
+		Processes: []registry.Process{
+			{
+				ID: "shop", Dir: registry.RootDir, PkgMgr: "bun", Host: "127.0.0.1", Port: 3100, Cmd: "bunx turbo run dev",
+				Routes: []registry.Route{
+					{Label: "web", Port: 3100, Hostname: "shop." + domain},
+					{Label: "api", Port: 3101, Hostname: "api-shop." + domain},
+					{Label: "docs", Port: 3102},
+				},
+			},
+			{
+				ID: "mail", Dir: "apps/mail", PkgMgr: "bun", Host: "mail.localhost", Port: 3105, Cmd: "bun run dev",
+				Routes: []registry.Route{{Label: "mail", Port: 3105, Hostname: "mail-shop." + domain}},
+			},
 		},
 	}
 }
 
-// One route per port that carries a name on the web, each pointing at its own port of the same project.
+// One route per port that carries a name on the web, each pointing at its own port of its own process.
 func TestForEmitsOneRoutePerPublishedPort(t *testing.T) {
-	list := routes.For(domain, []registry.Project{shop(), {Name: "plain", Port: 4000, Host: "127.0.0.1"}})
+	plain := registry.Project{Name: "plain", Dir: "plain", Processes: []registry.Process{{ID: "plain", Port: 4000, Host: "127.0.0.1"}}}
+	list := routes.For(domain, []registry.Project{shop(), plain})
 
 	want := []routes.Route{
 		{Hostname: "shop." + domain, Service: "http://127.0.0.1:3100", Project: "shop"},
 		{Hostname: "api-shop." + domain, Service: "http://127.0.0.1:3101", Project: "shop"},
+		{Hostname: "mail-shop." + domain, Service: "http://mail.localhost:3105", Project: "shop"},
 	}
 	if len(list) != len(want) {
 		t.Fatalf("routes = %+v, want %+v", list, want)

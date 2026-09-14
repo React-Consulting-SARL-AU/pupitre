@@ -167,7 +167,7 @@ func sign(private ed25519.PrivateKey, version, architecture, fingerprint string)
 
 func hello(ok bool, version, code string) string {
 	if ok {
-		return `{"id":1,"ok":true,"result":{"agent_version":"` + version + `","protocol":1,"entitlement":"restricted","capabilities":["hello"]}}` + "\n"
+		return `{"id":1,"ok":true,"result":{"agent_version":"` + version + `","protocol":2,"entitlement":"restricted","capabilities":["hello"]}}` + "\n"
 	}
 
 	return `{"id":1,"ok":false,"error":{"code":"` + code + `","message":"refus de test"}}` + "\n"

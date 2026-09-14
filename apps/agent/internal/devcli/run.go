@@ -11,6 +11,7 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/protocol"
+	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/tmux"
 )
 
@@ -106,7 +107,12 @@ func action(cmd string) handler {
 			return out.usage(err)
 		}
 
-		result, err := options.Server.Call(cmd, map[string]any{"name": name}, nil)
+		params := map[string]any{"name": name}
+		if process := at(asked.words, 1); process != "" {
+			params["process"] = process
+		}
+
+		result, err := options.Server.Call(cmd, params, nil)
 		if err != nil {
 			return out.failure(err)
 		}
@@ -132,7 +138,12 @@ func runLogs(options Options, asked request, out *printer) int {
 		return out.usage(err)
 	}
 
-	params := map[string]any{"name": name, "follow": asked.follow}
+	process, err := processOf(options, name, at(asked.words, 1))
+	if err != nil {
+		return out.failure(err)
+	}
+
+	params := map[string]any{"name": name, "process": process, "follow": asked.follow}
 	if asked.lines > 0 {
 		params["lines"] = asked.lines
 	}
@@ -174,24 +185,12 @@ func runAttach(options Options, asked request, out *printer) int {
 		return out.usage(err)
 	}
 
-	result, err := options.Server.Call("project.list", nil, nil)
+	process, err := processOf(options, name, at(asked.words, 1))
 	if err != nil {
 		return out.failure(err)
 	}
 
-	listed, err := as[struct {
-		Projects []contract.Project `json:"projects"`
-	}](result)
-	if err != nil {
-		return out.failure(err)
-	}
-
-	if !holds(listed.Projects, name) {
-		return out.failure(protocol.NewError(contract.ErrorProjectNotFound, i18n.T("registry.project.unknown", name)).
-			WithFix(i18n.T("devcli.project.unknown.fix")))
-	}
-
-	command := "tmux attach-session -t " + tmux.Target(options.Tmux, name)
+	command := "tmux attach-session -t " + tmux.Target(options.Tmux, registry.Window(name, process))
 
 	if out.json {
 		return out.raw(map[string]string{"command": command})
@@ -387,14 +386,32 @@ func as[T any](result any) (T, error) {
 	return value, json.Unmarshal(raw, &value)
 }
 
-func holds(projects []contract.Project, name string) bool {
-	for _, project := range projects {
-		if project.Name == name {
-			return true
+// The process a human means: the one named, or the first of the project when none is — a project of one process never has to be spelt out.
+func processOf(options Options, name, process string) (string, error) {
+	if process != "" {
+		return process, nil
+	}
+
+	result, err := options.Server.Call("project.list", nil, nil)
+	if err != nil {
+		return "", err
+	}
+
+	listed, err := as[struct {
+		Projects []contract.Project `json:"projects"`
+	}](result)
+	if err != nil {
+		return "", err
+	}
+
+	for _, project := range listed.Projects {
+		if project.Name == name && len(project.Processes) > 0 {
+			return project.Processes[0].ID, nil
 		}
 	}
 
-	return false
+	return "", protocol.NewError(contract.ErrorProjectNotFound, i18n.T("registry.project.unknown", name)).
+		WithFix(i18n.T("devcli.project.unknown.fix"))
 }
 
 func at(args []string, index int) string {

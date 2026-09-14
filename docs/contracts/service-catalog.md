@@ -134,7 +134,7 @@ Un module dont le CLI se connecte à un compte implémente en plus `Login` : il 
 | `runtime.go` | Go via mise, `GOPATH` et son `bin` sur le `PATH` | `go_version`, `gopath` |
 | `runtime.php` | dépendances de compilation, PHP compilé par mise, Composer en option, un `php.ini` lu après celui de la compilation | `php_version`, `composer` (boolean), `memory_limit` |
 | `runtime.ruby` | dépendances de compilation, Ruby compilé par mise, Bundler rafraîchi quand l'interpréteur vient d'être posé | `ruby_version`, `bundler` (boolean) |
-| `runtime.docker` | Docker Engine et Compose depuis le dépôt de Docker, `dev` dans le groupe `docker`, rotation des logs de conteneurs | `compose` (boolean), `data_root`, `log_max_size` |
+| `runtime.docker` | Docker Engine et Compose depuis le dépôt de Docker, `dev` dans le groupe `docker`, rotation des logs de conteneurs, `live-restore` pour qu'un redémarrage du démon ne coupe aucun conteneur | `compose` (boolean), `data_root`, `log_max_size` |
 | `runtime.rust` | Rust via mise, qui pose rustup et la toolchain ; `~/.cargo/bin` sur le PATH de tous les shells | `rust_version` (version) |
 
 ### Bases de données
@@ -144,7 +144,7 @@ Un module dont le CLI se connecte à un compte implémente en plus `Login` : il 
 | `db.mysql` | MySQL 8 ou MariaDB, lié à `127.0.0.1` sur le port choisi, root sur socket, compte applicatif, compte distant pour le laptop à travers SSH, buffer pool dimensionné, import automatique des dumps déposés dans `~/dumps/` | `engine: mysql \| mariadb`, `port`, `app_user`, `remote_user`, `app_password` (généré), `remote_password` (généré), `buffer_pool` |
 | `db.postgres` | PostgreSQL à la version majeure choisie depuis le dépôt du projet, local seulement, rôles applicatif et distant, mémoire partagée dimensionnée, extensions courantes, import de dumps | `version`, `port`, `app_role`, `remote_role`, `app_password`, `remote_password`, `shared_buffers` |
 | `db.mongodb` | MongoDB à la version majeure choisie, local seulement, utilisateur applicatif, cache WiredTiger dimensionné, import de `mongodump` | `version`, `port`, `app_user`, `app_password`, `cache_mb` |
-| `db.redis` | local seulement, mot de passe exigé, persistance, plafond mémoire et politique d'éviction au choix | `port`, `password`, `persistence` (boolean), `maxmemory_mb`, `maxmemory_policy` |
+| `db.redis` | local seulement, mot de passe exigé, persistance, plafond mémoire et politique d'éviction au choix ; un rejeu qui change tout sauf le port passe par `CONFIG SET` sur le serveur qui tourne, sans redémarrage — un cache sans persistance garde ce qu'il tient | `port`, `password`, `persistence` (boolean), `maxmemory_mb`, `maxmemory_policy` |
 | `db.mailpit` | Mailpit, binaire de la release GitHub vérifié par le digest que GitHub publie, en service systemd `pupitre-mailpit` sous `dev` : SMTP et interface sur la boucle locale, messages dans `~/.local/share/mailpit` ; aucune commande `db.*`, ce n'est pas un moteur | `smtp_port`, `http_port` |
 
 ### Agents IA
@@ -157,8 +157,8 @@ Un module dont le CLI se connecte à un compte implémente en plus `Login` : il 
 | `ai.gemini` | Gemini CLI via mise, contexte machine dans `~/.gemini/GEMINI.md`, skills Pupitre dans `~/.gemini/skills` | — |
 | `ai.copilot` | GitHub Copilot CLI via mise, contexte machine dans `~/.copilot/copilot-instructions.md`, skills Pupitre dans `~/.copilot/skills` | — |
 | `ai.opencode` | OpenCode, binaire de la release GitHub vérifié par la somme que GitHub publie, `~/.local/bin/opencode`, contexte machine dans `~/.config/opencode/AGENTS.md`, skills Pupitre | — |
-| `ai.hermes` | Hermes Agent (Nous Research) via Python, configuration des fournisseurs de modèles, service systemd si toujours actif | `providers` (list de secrets), `always_on` (boolean) |
-| `ai.openclaw` | OpenClaw via mise sur le Node de `runtime.node` (24.16 ou plus, vérifié avant l'installation), fournisseurs de modèles dans `~/.openclaw/providers.env` sous les noms que la passerelle lit, passerelle `openclaw gateway` en service systemd `pupitre-openclaw` sur 127.0.0.1:18789 si toujours active, skills Pupitre ; les canaux se branchent par `openclaw onboard` dans un terminal | `providers` (list de secrets), `always_on` (boolean) |
+| `ai.hermes` | Hermes Agent (Nous Research) via Python, configuration des fournisseurs de modèles, service systemd si toujours actif, redémarré quand une clé change | `providers` (list de secrets), `always_on` (boolean) |
+| `ai.openclaw` | OpenClaw via mise sur le Node de `runtime.node` (24.16 ou plus, vérifié avant l'installation), fournisseurs de modèles dans `~/.openclaw/providers.env` sous les noms que la passerelle lit, passerelle `openclaw gateway` en service systemd `pupitre-openclaw` sur 127.0.0.1:18789 si toujours active — redémarrée quand une clé change —, skills Pupitre ; les canaux se branchent par `openclaw onboard` dans un terminal | `providers` (list de secrets), `always_on` (boolean) |
 | `ai.browser` | Chrome headless, dépendances Playwright, commande de capture qui range les images dans la galerie | — |
 
 ### Éditeurs distants
@@ -166,8 +166,8 @@ Un module dont le CLI se connecte à un compte implémente en plus `Login` : il 
 | Id | Fait | Champs |
 | --- | --- | --- |
 | `editor.jetbrains` | backend de développement distant préinstallé dans le cache attendu par JetBrains Gateway, JVM et mémoire dimensionnées ; l'app ouvre par le lien Gateway ; licence du client | `ide: idea \| webstorm \| pycharm \| phpstorm \| goland`, `version` |
-| `editor.vscode` | CLI `code` et serveur distant préinstallés pour que la première connexion Remote SSH soit immédiate, extensions de base, Remote Tunnel en option ; même mécanisme pour Cursor et Windsurf | `extensions` (list de text), `tunnel` (boolean) |
-| `editor.zed` | serveur distant Zed préinstallé pour la version du client ; ouverture par `zed://ssh` | `version` |
+| `editor.vscode` | CLI `code` et serveur distant préinstallés pour que la première connexion Remote SSH soit immédiate, extensions de base, Remote Tunnel en option ; un rejeu garde le serveur enregistré, seul `upgrade` prend la version suivante ; même mécanisme pour Cursor et Windsurf | `extensions` (list de text), `tunnel` (boolean) |
+| `editor.zed` | serveur distant Zed préinstallé pour la version du client ; en `latest`, un rejeu garde la version posée et seul `upgrade` prend la suivante ; ouverture par `zed://ssh` | `version` |
 
 Visual Studio n'a pas de backend Linux : l'app le dit et renvoie vers `editor.vscode`.
 
@@ -178,8 +178,8 @@ Caddy et le tunnel sont exclusifs : chacun déclare l'autre en `conflicts`. Tail
 | Id | Fait | Champs |
 | --- | --- | --- |
 | `exposure.cloudflare` | un tunnel, une route par projet, DNS et certificat gérés, sous-domaines depuis le registre, sur le compte Cloudflare du client. **L'app tient le jeton** : elle crée le tunnel et écrit le DNS depuis le laptop, le serveur ne reçoit que de quoi le faire tourner, et le garde | `domain`, choisi par serveur ; trois champs `managed` dérivés de la connexion : `account_tag`, `tunnel_id`, `tunnel_secret` |
-| `exposure.caddy` | reverse proxy avec certificats Let's Encrypt automatiques pour un domaine sans Cloudflare, une route par projet qui déclare un sous-domaine, ses deux ports ouverts dans ufw sous la forme `<port>/tcp` | `domain`, `email`, `http_port`, `https_port` |
-| `exposure.tailscale` | Tailscale depuis le dépôt de l'éditeur, le nœud joint au tailnet par `tailscale up --auth-key` (la clé masquée dans le journal), `ufw allow in on tailscale0` ; ne contredit ni Caddy ni le tunnel, le preset « tout » l'inclut ; la désinstallation fait `tailscale logout` avant de reprendre le paquet | `auth_key` (secret, tapé : une clé de la console Tailscale, pas une connexion), `hostname`, `ssh` (boolean) |
+| `exposure.caddy` | reverse proxy avec certificats Let's Encrypt automatiques pour un domaine sans Cloudflare, une route par projet qui déclare un sous-domaine, ses deux ports ouverts dans ufw sous la forme `<port>/tcp` avec le commentaire `caddy`, lus par `ufw show added` (le pare-feu peut ne pas être levé encore) ; un port déplacé ferme l'ancienne règle sur le même passage | `domain`, `email`, `http_port`, `https_port` |
+| `exposure.tailscale` | Tailscale depuis le dépôt de l'éditeur, le nœud joint au tailnet par `tailscale up --auth-key` (la clé masquée dans le journal), `ufw allow in on tailscale0` ; sur un nœud déjà joint, `hostname` et `ssh` changés passent par `tailscale set`, sans seconde clé ; ne contredit ni Caddy ni le tunnel, le preset « tout » l'inclut ; la désinstallation fait `tailscale logout` avant de reprendre le paquet | `auth_key` (secret, tapé : une clé de la console Tailscale, pas une connexion), `hostname`, `ssh` (boolean) |
 
 `core.hardening` gouverne les règles nues `22` et `443` — SSH — et n'y touche jamais autrement ; `exposure.caddy` écrit les siennes en `<port>/tcp`. Les deux ne se marchent pas dessus.
 
@@ -189,8 +189,8 @@ Le `domain` des deux modules se choisit parmi les zones du compte connecté quan
 
 | Id | Fait | Champs |
 | --- | --- | --- |
-| `tool.github` | `gh`, clone HTTPS sans clé, clé du serveur enregistrée sur le compte | `token` (secret, `managed` par la connexion `github`) |
-| `tool.1password` | CLI et compte de service, `OP_SERVICE_ACCOUNT_TOKEN` exporté dans le shell de `dev`, génération des `.env.local` depuis les gabarits des dépôts | `service_account_token` (secret, `managed` par la connexion `1password`) |
+| `tool.github` | `gh`, clone HTTPS sans clé, clé du serveur enregistrée sur le compte ; un jeton tourné reconnecte `gh` | `token` (secret, `managed` par la connexion `github`) |
+| `tool.1password` | CLI et compte de service, `OP_SERVICE_ACCOUNT_TOKEN` exporté dans le shell de `dev`, coffres vérifiés à chaque jeton nouveau seulement, génération des `.env.local` depuis les gabarits des dépôts | `service_account_token` (secret, `managed` par la connexion `1password`) |
 | `tool.neon` | le CLI Neon dans `/usr/local/bin/neon`, `neonctl` en lien vers lui (c'est le nom que son aide imprime), et la clé rangée dans `/etc/pupitre/env` puis exportée dans le shell de `dev` — `neonctl` n'a pas de connexion par jeton, il la prend par `NEON_API_KEY`, et sans elle il lance une connexion par navigateur ; les projets et les bases restent la décision du client | `api_key` (secret, `managed` par la connexion `neon`) |
 | `tool.vercel` | le CLI Vercel posé par mise (`npm:vercel`) sur le Node de `runtime.node` ; le jeton rangé dans `/etc/pupitre/env` puis exporté dans le shell de `dev` en `VERCEL_TOKEN`, que le CLI lit lui-même | `token` (secret, `managed` par la connexion `vercel`) |
 | `tool.supabase` | le CLI Supabase dans `/usr/local/bin/supabase`, binaire de la release GitHub vérifié par `checksums.txt`, version enregistrée sous `/var/lib/pupitre/versions` ; le jeton rangé puis exporté en `SUPABASE_ACCESS_TOKEN` | `access_token` (secret, `managed` par la connexion `supabase`) |

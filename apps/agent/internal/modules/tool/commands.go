@@ -14,24 +14,26 @@ func RegisterCommands(server *protocol.Server, runner *modules.Engine) {
 	server.Register("secrets.sync", command(runner, func(ctx *modules.Context, raw json.RawMessage) (any, error) {
 		params, err := decode[struct {
 			Project string `json:"project"`
+			Process string `json:"process"`
 		}](raw)
 		if err != nil {
 			return nil, err
 		}
 
-		return onepassword.Env(ctx, params.Project, true)
+		return onepassword.Env(ctx, params.Project, params.Process, true)
 	}))
 
 	server.Register("project.env", command(runner, func(ctx *modules.Context, raw json.RawMessage) (any, error) {
 		params, err := decode[struct {
-			Name  string `json:"name"`
-			Force bool   `json:"force"`
+			Name    string `json:"name"`
+			Process string `json:"process"`
+			Force   bool   `json:"force"`
 		}](raw)
 		if err != nil {
 			return nil, err
 		}
 
-		return onepassword.Env(ctx, params.Name, params.Force)
+		return onepassword.Env(ctx, params.Name, params.Process, params.Force)
 	}))
 
 }

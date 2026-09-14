@@ -44,6 +44,17 @@ const viteConfig = `import { defineConfig } from "vite"
 export default defineConfig({ plugins: [] })
 `
 
+// The one process most repositories propose.
+func only(t *testing.T, detected contract.ProjectDetect) contract.DetectedProcess {
+	t.Helper()
+
+	if len(detected.Processes) != 1 {
+		t.Fatalf("got %d processes, want one: %+v", len(detected.Processes), detected.Processes)
+	}
+
+	return detected.Processes[0]
+}
+
 func detectFixture(t *testing.T, files map[string]string) *state.Reader {
 	t.Helper()
 
@@ -70,8 +81,66 @@ func TestDetectReadsAFolderWithoutInstallingAnything(t *testing.T) {
 	}
 
 	// 3000 is the port of the declared project of the fixture, so the free one below it is what the hint has to name.
-	if detected.PkgMgr != "bun" || detected.Install != "bun install" || detected.Cmd != "bun run dev --port 3001" || detected.PortHint != 3001 {
-		t.Fatalf("unexpected detection: %+v", detected)
+	process := only(t, detected)
+	if process.ID != "flymate" || process.Dir != "." || process.PkgMgr != "bun" || process.Install != "bun install" || process.Cmd != "bun run dev --port 3001" || process.PortHint != 3001 {
+		t.Fatalf("unexpected detection: %+v", process)
+	}
+}
+
+// A repository of several applications proposes one process per folder that asks for one: the servers of the Gradle build at its root, and each folder of the first level with a manifest of its own. An Android build is a Gradle build nobody runs on a server.
+func TestDetectProposesOneProcessPerFolderThatAsksForOne(t *testing.T) {
+	reader := detectFixture(t, map[string]string{
+		"gradlew":                            "#!/bin/sh\n",
+		"settings.gradle":                    "pluginManagement {}\ninclude 'client', 'server'\n",
+		"server/build.gradle":                "plugins { id \"org.grails.grails-web\" }\n",
+		"client/package.json":                `{"name":"client","scripts":{"dev":"pnpm tools:extract && vite --host 127.0.0.1"}}`,
+		"client/pnpm-lock.yaml":              "lockfileVersion: '9.0'\n",
+		"client/vite.config.ts":              "export default { server: { port: 3001 } }\n",
+		"docs/README.md":                     "docs\n",
+		"mobile/gradlew":                     "#!/bin/sh\n",
+		"mobile/settings.gradle.kts":         "include(\":app\")\n",
+		"mobile/app/build.gradle.kts":        "plugins { id(\"com.android.application\") }\n",
+		"node_modules/left-pad/package.json": `{"name":"left-pad","scripts":{"dev":"node index.js --port 9000"}}`,
+	})
+
+	detected, err := reader.Detect("", "candidate", "")
+	if err != nil {
+		t.Fatalf("detect: %v", err)
+	}
+
+	if err := contract.ValidateValue("ProjectDetectResult", detected); err != nil {
+		t.Fatalf("detection violates the contract: %v", err)
+	}
+
+	if len(detected.Processes) != 2 {
+		t.Fatalf("got %d processes, want the Grails server and the client: %+v", len(detected.Processes), detected.Processes)
+	}
+
+	server := detected.Processes[0]
+	if server.ID != "server" || server.Dir != "." || server.PkgMgr != "gradle" || server.Cmd != "./gradlew :server:bootRun --args='--server.port=3001'" || server.PortHint != 3001 {
+		t.Fatalf("the Grails subproject runs from the wrapper's folder: %+v", server)
+	}
+
+	client := detected.Processes[1]
+	if client.ID != "client" || client.Dir != "client" || client.PkgMgr != "pnpm" || client.Cmd != "pnpm dev --port 3002" || client.PortHint != 3002 {
+		t.Fatalf("the client asks for 3001 too, and takes the next free port: %+v", client)
+	}
+}
+
+func TestDetectProposesTheRootBuildItselfWhenItIsAServer(t *testing.T) {
+	reader := detectFixture(t, map[string]string{
+		"gradlew":      "#!/bin/sh\n",
+		"build.gradle": "plugins { id 'org.springframework.boot' version '3.3.0' }\n",
+	})
+
+	detected, err := reader.Detect("", "candidate", "")
+	if err != nil {
+		t.Fatalf("detect: %v", err)
+	}
+
+	process := only(t, detected)
+	if process.ID != "app" || process.Dir != "." || process.Cmd != "./gradlew bootRun --args='--server.port=3001'" {
+		t.Fatalf("unexpected detection: %+v", process)
 	}
 }
 
@@ -125,8 +194,8 @@ func TestDetectNamesTheManagerTheRepositoryProves(t *testing.T) {
 				t.Fatalf("detect: %v", err)
 			}
 
-			if detected.PkgMgr != want.pkgmgr || detected.Cmd != want.cmd {
-				t.Fatalf("unexpected detection: %+v", detected)
+			if process := only(t, detected); process.PkgMgr != want.pkgmgr || process.Cmd != want.cmd {
+				t.Fatalf("unexpected detection: %+v", process)
 			}
 		})
 	}
@@ -160,8 +229,8 @@ func TestDetectTakesThePortTheRepositoryAsksFor(t *testing.T) {
 				t.Fatalf("detect: %v", err)
 			}
 
-			if detected.PortHint != want.port {
-				t.Fatalf("unexpected port hint: %+v", detected)
+			if process := only(t, detected); process.PortHint != want.port {
+				t.Fatalf("unexpected port hint: %+v", process)
 			}
 		})
 	}
@@ -187,8 +256,8 @@ func TestDetectReadsTheLocalhostNameTheScriptBindsTo(t *testing.T) {
 				t.Fatalf("detect: %v", err)
 			}
 
-			if detected.HostHint != want.host {
-				t.Fatalf("host hint = %q, want %q", detected.HostHint, want.host)
+			if process := only(t, detected); process.HostHint != want.host {
+				t.Fatalf("host hint = %q, want %q", process.HostHint, want.host)
 			}
 		})
 	}
@@ -208,8 +277,8 @@ func TestDetectFollowsAScriptThatRunsAnotherOne(t *testing.T) {
 		t.Fatalf("detect: %v", err)
 	}
 
-	if detected.PortHint != 4400 || detected.HostHint != "react-box.localhost" || detected.Cmd != "bun run dev --port 4400" {
-		t.Fatalf("unexpected detection: %+v", detected)
+	if process := only(t, detected); process.PortHint != 4400 || process.HostHint != "react-box.localhost" || process.Cmd != "bun run dev --port 4400" {
+		t.Fatalf("unexpected detection: %+v", process)
 	}
 }
 
@@ -281,8 +350,8 @@ func TestDetectClonesARepositoryAndLeavesNothingBehind(t *testing.T) {
 		t.Fatalf("detection violates the contract: %v", err)
 	}
 
-	if detected.PkgMgr != "bun" || detected.Install != "bun install" || detected.Cmd != "bun run dev --port 3000" || detected.PortHint != 3000 {
-		t.Fatalf("unexpected detection: %+v", detected)
+	if process := only(t, detected); process.PkgMgr != "bun" || process.Install != "bun install" || process.Cmd != "bun run dev --port 3000" || process.PortHint != 3000 {
+		t.Fatalf("unexpected detection: %+v", process)
 	}
 
 	if _, err := os.Stat(filepath.Join(cache, "detection")); !os.IsNotExist(err) {
@@ -338,8 +407,8 @@ func TestDetectFetchesTheManifestsAndNotTheRest(t *testing.T) {
 		t.Fatalf("detect: %v", err)
 	}
 
-	if detected.PkgMgr != "pnpm" || detected.HostHint != "atlas.localhost" || len(detected.Routes) != 1 || detected.Routes[0].Port != 3010 {
-		t.Fatalf("unexpected detection: %+v", detected)
+	if process := only(t, detected); process.ID != "atlas" || process.PkgMgr != "pnpm" || process.HostHint != "atlas.localhost" || len(process.Routes) != 1 || process.Routes[0].Port != 3010 {
+		t.Fatalf("unexpected detection: %+v", process)
 	}
 
 	if !cloned(calls, "--filter=blob:limit=65536", "--no-checkout") {
@@ -398,8 +467,8 @@ func TestDetectReadsTheBranchItIsGiven(t *testing.T) {
 		t.Fatalf("detect: %v", err)
 	}
 
-	if detected.PortHint != 4200 {
-		t.Fatalf("the branch's own port must be the one read: %+v", detected)
+	if process := only(t, detected); process.PortHint != 4200 {
+		t.Fatalf("the branch's own port must be the one read: %+v", process)
 	}
 
 	if !cloned(calls, "--branch", "release/2.0") {

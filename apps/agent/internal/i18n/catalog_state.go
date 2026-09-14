@@ -62,6 +62,14 @@ var stateCatalog = map[string]Message{
 		FR: "pid refusé : %s",
 		EN: "pid refused: %s",
 	},
+	"state.process.unknown": {
+		FR: "le processus %s n'existe pas dans le projet %s",
+		EN: "process %s does not exist in project %s",
+	},
+	"state.process.unknown.fix": {
+		FR: "Nommez un processus que le projet déclare : ils sont listés par project.list.",
+		EN: "Name a process the project declares: project.list lists them.",
+	},
 	"state.project.dir.missing": {
 		FR: "%s : le dossier %s est absent",
 		EN: "%s: the folder %s is missing",

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test"
 import { RESTRICTED_COMMANDS, UNENROLLED_COMMANDS } from "../agent-protocol"
+import { PROTOCOL_VERSION } from "../agent-protocol/envelope"
 import { MANDATORY_MODULE_IDS, MODULE_IDS, PRESETS } from "../catalog"
 import {
   buildContractSchema,
@@ -60,7 +61,7 @@ describe("buildContractSchema", () => {
 
   it("is one document with named definitions and a protocol version", () => {
     expect(schema.$schema).toBe("https://json-schema.org/draft/2020-12/schema")
-    expect(schema.protocol).toBe(1)
+    expect(schema.protocol).toBe(PROTOCOL_VERSION)
     for (const name of EXPECTED) {
       expect(schema.$defs[name]).toBeDefined()
       expect(schema.$defs[name]?.$id).toBeUndefined()

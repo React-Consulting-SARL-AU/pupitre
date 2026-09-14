@@ -1,6 +1,7 @@
 package caddy
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -86,7 +87,7 @@ func TestCaddyfileRoutesOnlyTheProjectsThatDeclareASubdomain(t *testing.T) {
 // A project of several ports gets one site block per name on the web, each proxied to its own port.
 func TestCaddyfileCarriesEveryRouteOfAProject(t *testing.T) {
 	fake := machine()
-	fake.Files[registry.DefaultLocal] = []byte(`{"projects":[{"name":"shop","dir":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[{"label":"web","port":3100,"hostname":"shop.` + domain + `"},{"label":"api","port":3101,"hostname":"api-shop.` + domain + `"},{"label":"docs","port":3102}],"cmd":"bunx turbo run dev"}]}`)
+	fake.Files[registry.DefaultLocal] = []byte(`{"projects":[{"name":"shop","dir":"shop","processes":[{"id":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[{"label":"web","port":3100,"hostname":"shop.` + domain + `"},{"label":"api","port":3101,"hostname":"api-shop.` + domain + `"},{"label":"docs","port":3102}],"cmd":"bunx turbo run dev"}]}]}`)
 	ctx := newContext(t, fake, values())
 
 	run(t, ctx)
@@ -114,12 +115,12 @@ func TestFirewallOpensTheWebPortsUnderTheirOwnRules(t *testing.T) {
 	run(t, newContext(t, fake, values()))
 
 	for _, want := range []string{"80/tcp", "443/tcp"} {
-		if !allowed(newContext(t, fake, values()))[want] {
+		if !owned(newContext(t, fake, values()))[want] {
 			t.Errorf("ufw does not allow %s: %v", want, fake.Firewall.Rules)
 		}
 	}
 
-	if allowed(newContext(t, fake, values()))["443"] {
+	if owned(newContext(t, fake, values()))["443"] {
 		t.Fatal("Caddy must not touch the bare 443 rule of SSH")
 	}
 }
@@ -135,8 +136,42 @@ func TestChosenPortsReachTheCaddyfileAndTheFirewall(t *testing.T) {
 		t.Fatalf("Caddyfile = %s", config)
 	}
 
-	if !allowed(ctx)["8443/tcp"] {
+	if !owned(ctx)["8443/tcp"] {
 		t.Fatalf("ufw rules = %v", fake.Firewall.Rules)
+	}
+}
+
+// A port the client moves away from is closed on the same pass: the firewall opens what the Caddyfile serves, nothing older.
+func TestMovedPortsCloseTheOldRulesAndKeepTheClientsOwn(t *testing.T) {
+	fake := machine()
+	run(t, newContext(t, fake, values()))
+	fake.Firewall.Rules = append(fake.Firewall.Rules, "8080/tcp")
+
+	ctx := newContext(t, fake, modtest.Values{"domain": domain, "email": email, "http_port": 8081, "https_port": 8443})
+	run(t, ctx)
+
+	rules := owned(ctx)
+	if rules["80/tcp"] || rules["443/tcp"] || !rules["8081/tcp"] || !rules["8443/tcp"] {
+		t.Fatalf("the old ports must be closed and the new ones open: %v", fake.Firewall.Rules)
+	}
+
+	if !slices.Contains(fake.Firewall.Rules, "22") || !slices.Contains(fake.Firewall.Rules, "8080/tcp") {
+		t.Fatalf("a rule without the module's comment is the client's, and stays: %v", fake.Firewall.Rules)
+	}
+}
+
+// The hardening may run after this module: the rules are read as they were given, not from a firewall that is not up yet.
+func TestRulesAreReadBeforeTheFirewallIsUp(t *testing.T) {
+	fake := machine()
+	fake.Firewall.Active = false
+	run(t, newContext(t, fake, values()))
+
+	mutations := len(fake.Mutations)
+	ctx := newContext(t, fake, values())
+	run(t, ctx)
+
+	if statuses(ctx)["sync-firewall"] != contract.StepSkip || len(fake.Mutations) != mutations {
+		t.Fatalf("a replay must find its rules whether ufw is enabled or not: %v", fake.Mutations[mutations:])
 	}
 }
 
@@ -248,7 +283,7 @@ func TestUninstallGivesBackTheModeAndThePorts(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if fake.EnvValue(env.DomainKey) != "" || allowed(ctx)["443/tcp"] {
+	if fake.EnvValue(env.DomainKey) != "" || owned(ctx)["443/tcp"] {
 		t.Fatalf("uninstall left %q and %v behind", fake.EnvValue(env.DomainKey), fake.Firewall.Rules)
 	}
 }

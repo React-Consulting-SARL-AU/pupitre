@@ -3,6 +3,7 @@ package tailscale
 import (
 	"encoding/json"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -119,6 +120,10 @@ func (Module) Configure(ctx *modules.Context) error {
 		return err
 	}
 
+	if err := applySettings(ctx); err != nil {
+		return err
+	}
+
 	return ctx.Step("open-firewall", func() (modules.Outcome, error) {
 		if allowedOnDevice(ctx) {
 			return modules.Skipped, nil
@@ -136,7 +141,7 @@ func (Module) Configure(ctx *modules.Context) error {
 func upArgs(ctx *modules.Context) []string {
 	args := []string{Program, "up", "--auth-key=" + ctx.Secret("auth_key"), "--reset"}
 
-	if hostname := strings.TrimSpace(ctx.String("hostname")); hostname != "" {
+	if hostname := wantedHostname(ctx); hostname != "" {
 		args = append(args, "--hostname="+hostname)
 	}
 
@@ -145,6 +150,47 @@ func upArgs(ctx *modules.Context) []string {
 	}
 
 	return args
+}
+
+// A node already joined keeps what up gave it: a name or an SSH switch changed since is set on the running node, with no second sign-in.
+func applySettings(ctx *modules.Context) error {
+	return ctx.Step("apply-settings", func() (modules.Outcome, error) {
+		wanted := prefs{Hostname: wantedHostname(ctx), RunSSH: ctx.Bool("ssh")}
+		if current, known := currentPrefs(ctx); known && current == wanted {
+			return modules.Skipped, nil
+		}
+
+		argv := []string{Program, "set", "--hostname=" + wanted.Hostname, "--ssh=" + strconv.FormatBool(wanted.RunSSH)}
+		if _, err := sys.Exec(ctx, sys.Command{Argv: argv}); err != nil {
+			return modules.Failed, err
+		}
+
+		return modules.Done, nil
+	})
+}
+
+func wantedHostname(ctx *modules.Context) string {
+	return strings.TrimSpace(ctx.String("hostname"))
+}
+
+type prefs struct {
+	Hostname string `json:"Hostname"`
+	RunSSH   bool   `json:"RunSSH"`
+}
+
+// tailscale debug prefs is the node's own record of what it was told; a CLI that cannot say leaves the settings to be set again.
+func currentPrefs(ctx *modules.Context) (prefs, bool) {
+	out, err := ctx.Sys().Run(sys.Command{Argv: []string{Program, "debug", "prefs"}})
+	if err != nil {
+		return prefs{}, false
+	}
+
+	var current prefs
+	if json.Unmarshal([]byte(out.Stdout), &current) != nil {
+		return prefs{}, false
+	}
+
+	return current, true
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {

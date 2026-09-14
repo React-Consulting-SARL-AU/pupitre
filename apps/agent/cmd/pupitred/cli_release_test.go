@@ -35,7 +35,7 @@ func TestACopiedBinaryAnswersHelloPingAndDiagAlone(t *testing.T) {
 	unenrol(fake)
 
 	answered := map[string]bool{}
-	requests := []string{`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}`}
+	requests := []string{`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`}
 	commands := []string{"ping", "diag", "snapshot", "status", "agent.upgrade", "probe", "catalog", "keys.list", "keys.sync", "project.list"}
 
 	for i, cmd := range commands {

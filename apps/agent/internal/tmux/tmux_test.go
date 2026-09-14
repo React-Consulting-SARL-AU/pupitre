@@ -10,7 +10,7 @@ import (
 	"pupitre.studio/agent/internal/tmux"
 )
 
-const logPath = "/home/dev/.pupitre/logs/web.log"
+const logPath = "/home/dev/.pupitre/logs/web/web.log"
 
 var options = tmux.Options{Now: modtest.NewClock(0).Now}
 
@@ -19,19 +19,19 @@ func newContext(fake *modtest.FakeSys) sys.Context {
 }
 
 func web() tmux.Job {
-	return tmux.Job{Project: "web", Dir: "/home/dev/projects/web", Cmd: "bun run dev --port 3000"}
+	return tmux.Job{Window: "web/web", Dir: "/home/dev/projects/web", Cmd: "bun run dev --port 3000"}
 }
 
 func TestStartOpensAWindowAndItsLog(t *testing.T) {
 	fake := modtest.NewFakeSys()
-	fake.Serves("web", 3000)
+	fake.Serves("web/web", 3000)
 	ctx := newContext(fake)
 
 	if err := tmux.Start(ctx, options, web()); err != nil {
 		t.Fatal(err)
 	}
 
-	if _, open := fake.Windows["web"]; !open {
+	if _, open := fake.Windows["web/web"]; !open {
 		t.Fatalf("no window opened: %v", fake.Mutations)
 	}
 	if fake.Sessions["pupitre"] != true {
@@ -42,8 +42,8 @@ func TestStartOpensAWindowAndItsLog(t *testing.T) {
 	}
 
 	commands := strings.Join(fake.Commands(), "\n")
-	if !strings.Contains(commands, "tmux pipe-pane -o -t pupitre:web cat >> "+logPath) {
-		t.Fatalf("the output must be piped into the project's log:\n%s", commands)
+	if !strings.Contains(commands, "tmux pipe-pane -o -t pupitre:web/web cat >> "+logPath) {
+		t.Fatalf("the output must be piped into the process's log, under a folder of its project's name:\n%s", commands)
 	}
 	if !strings.Contains(commands, "bun run dev --port 3000") {
 		t.Fatalf("the project's command must be sent to its window:\n%s", commands)
@@ -52,17 +52,17 @@ func TestStartOpensAWindowAndItsLog(t *testing.T) {
 
 func TestEveryTmuxCommandRunsAsTheProjectsUser(t *testing.T) {
 	fake := modtest.NewFakeSys()
-	fake.Serves("web", 3000)
+	fake.Serves("web/web", 3000)
 	ctx := newContext(fake)
 
 	if err := tmux.Start(ctx, options, web()); err != nil {
 		t.Fatal(err)
 	}
-	if err := tmux.Stop(ctx, options, "web"); err != nil {
+	if err := tmux.Stop(ctx, options, "web/web"); err != nil {
 		t.Fatal(err)
 	}
 	tmux.Collect(ctx, options)
-	tmux.Running(ctx, options, "web")
+	tmux.Running(ctx, options, "web/web")
 
 	seen := 0
 	for _, call := range fake.Calls {
@@ -87,7 +87,7 @@ func TestEveryTmuxCommandRunsAsTheProjectsUser(t *testing.T) {
 		t.Fatalf("only %d tmux call(s) recorded", seen)
 	}
 
-	if owner, _ := fake.Owner("/home/dev/.pupitre/logs"); owner != "dev" {
+	if owner, _ := fake.Owner("/home/dev/.pupitre/logs/web"); owner != "dev" {
 		t.Fatalf("the log folder belongs to %s, want dev", owner)
 	}
 
@@ -98,17 +98,17 @@ func TestEveryTmuxCommandRunsAsTheProjectsUser(t *testing.T) {
 
 func TestStopClosesTheWindowAndTracesIt(t *testing.T) {
 	fake := modtest.NewFakeSys()
-	fake.Serves("web", 3000)
+	fake.Serves("web/web", 3000)
 	ctx := newContext(fake)
 
 	if err := tmux.Start(ctx, options, web()); err != nil {
 		t.Fatal(err)
 	}
-	if err := tmux.Stop(ctx, options, "web"); err != nil {
+	if err := tmux.Stop(ctx, options, "web/web"); err != nil {
 		t.Fatal(err)
 	}
 
-	if _, open := fake.Windows["web"]; open {
+	if _, open := fake.Windows["web/web"]; open {
 		t.Fatal("the window must be gone")
 	}
 	if !strings.Contains(string(fake.Files[logPath]), "=== pupitre down ") {
@@ -118,7 +118,7 @@ func TestStopClosesTheWindowAndTracesIt(t *testing.T) {
 
 func TestCollectReadsTheMachineOnce(t *testing.T) {
 	fake := modtest.NewFakeSys()
-	fake.Serves("web", 3000)
+	fake.Serves("web/web", 3000)
 	ctx := newContext(fake)
 
 	if err := tmux.Start(ctx, options, web()); err != nil {
@@ -131,10 +131,10 @@ func TestCollectReadsTheMachineOnce(t *testing.T) {
 	if calls := len(fake.Calls) - before; calls != 3 {
 		t.Fatalf("got %d calls, want one tmux, one ss and one ps: %v", calls, fake.Commands()[before:])
 	}
-	if !collected.Running("web") || !collected.PortUp(3000) {
+	if !collected.Running("web/web") || !collected.PortUp(3000) {
 		t.Fatalf("unexpected collection: %+v", collected)
 	}
-	if collected.PID("web") == 0 || collected.Seconds("web") == 0 {
+	if collected.PID("web/web") == 0 || collected.Seconds("web/web") == 0 {
 		t.Fatalf("the pane pid and its age must be read: %+v", collected)
 	}
 }
@@ -142,33 +142,35 @@ func TestCollectReadsTheMachineOnce(t *testing.T) {
 func TestStateFollowsTheWindowAndThePort(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	ctx := newContext(fake)
-	project := contract.Project{Name: "web", Port: 3000, PkgMgr: "bun"}
+	state := func() contract.ProcessState {
+		return tmux.State(ctx, options, "web/web", "bun", 3000, tmux.Collect(ctx, options))
+	}
 
-	if got := tmux.State(ctx, options, project, tmux.Collect(ctx, options)); got != contract.ProjectStopped {
+	if got := state(); got != contract.ProcessStopped {
 		t.Fatalf("no window, no port: got %s", got)
 	}
 
 	fake.Listen[3000] = true
-	if got := tmux.State(ctx, options, project, tmux.Collect(ctx, options)); got != contract.ProjectExternal {
+	if got := state(); got != contract.ProcessExternal {
 		t.Fatalf("a port answering outside our session is external: got %s", got)
 	}
 
 	fake.Listen[3000] = false
-	fake.Serves("web", 3000)
+	fake.Serves("web/web", 3000)
 	if err := tmux.Start(ctx, options, web()); err != nil {
 		t.Fatal(err)
 	}
-	if got := tmux.State(ctx, options, project, tmux.Collect(ctx, options)); got != contract.ProjectOnline {
+	if got := state(); got != contract.ProcessOnline {
 		t.Fatalf("window and port: got %s", got)
 	}
 
 	delete(fake.Listen, 3000)
-	if got := tmux.State(ctx, options, project, tmux.Collect(ctx, options)); got != contract.ProjectStarting {
+	if got := state(); got != contract.ProcessStarting {
 		t.Fatalf("a window with no port yet is starting: got %s", got)
 	}
 
 	fake.Files[logPath] = append(fake.Files[logPath], []byte("Error: listen EADDRINUSE 127.0.0.1:3000\n")...)
-	if got := tmux.State(ctx, options, project, tmux.Collect(ctx, options)); got != contract.ProjectFailed {
+	if got := state(); got != contract.ProcessFailed {
 		t.Fatalf("a terminal error in the log is a failure: got %s", got)
 	}
 }
@@ -176,14 +178,16 @@ func TestStateFollowsTheWindowAndThePort(t *testing.T) {
 func TestAServiceRowIsNeverStarting(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	ctx := newContext(fake)
-	shots := contract.Project{Name: "shots", Port: 8099, PkgMgr: "service"}
+	state := func() contract.ProcessState {
+		return tmux.State(ctx, options, "shots/shots", "service", 8099, tmux.Collect(ctx, options))
+	}
 
-	if got := tmux.State(ctx, options, shots, tmux.Collect(ctx, options)); got != contract.ProjectDown {
+	if got := state(); got != contract.ProcessDown {
 		t.Fatalf("a service whose port does not answer is down, not stopped: got %s", got)
 	}
 
 	fake.Listen[8099] = true
-	if got := tmux.State(ctx, options, shots, tmux.Collect(ctx, options)); got != contract.ProjectService {
+	if got := state(); got != contract.ProcessService {
 		t.Fatalf("got %s", got)
 	}
 }
@@ -193,14 +197,14 @@ func TestAnErrorBeforeTheLastStartIsForgotten(t *testing.T) {
 	fake.Files[logPath] = []byte("Cannot find module 'vite'\n")
 	ctx := newContext(fake)
 
-	if !tmux.Failed(ctx, options, "web") {
+	if !tmux.Failed(ctx, options, "web/web") {
 		t.Fatal("a fatal line must be seen")
 	}
 
 	if err := tmux.Start(ctx, options, web()); err != nil {
 		t.Fatal(err)
 	}
-	if tmux.Failed(ctx, options, "web") {
+	if tmux.Failed(ctx, options, "web/web") {
 		t.Fatalf("only what follows the last start marker counts:\n%s", fake.Files[logPath])
 	}
 }
@@ -210,7 +214,7 @@ func TestLogsReturnTheTailAndRefuseAnUnknownProject(t *testing.T) {
 	fake.Files[logPath] = []byte("one\ntwo\nthree\n")
 	ctx := newContext(fake)
 
-	lines, err := tmux.Logs(ctx, options, "web", 2)
+	lines, err := tmux.Logs(ctx, options, "web/web", 2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -218,7 +222,7 @@ func TestLogsReturnTheTailAndRefuseAnUnknownProject(t *testing.T) {
 		t.Fatalf("got %q", lines)
 	}
 
-	if _, err := tmux.Logs(ctx, options, "ghost", 0); err == nil {
+	if _, err := tmux.Logs(ctx, options, "ghost/ghost", 0); err == nil {
 		t.Fatal("a project that never started has no log")
 	}
 }

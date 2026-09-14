@@ -29,6 +29,53 @@ func requested(routes []routeRequest) []registry.RouteRequest {
 	return requests
 }
 
+type processRequest struct {
+	ID      string         `json:"id"`
+	Dir     string         `json:"dir"`
+	PkgMgr  string         `json:"pkgmgr"`
+	Host    string         `json:"host"`
+	Port    int            `json:"port"`
+	Cmd     string         `json:"cmd"`
+	Install string         `json:"install"`
+	Routes  []routeRequest `json:"routes"`
+}
+
+// An absent folder is the project's own, an absent host the loopback: the contract's defaults, applied where the JSON is read.
+func processes(requests []processRequest) []ProcessRequest {
+	list := make([]ProcessRequest, 0, len(requests))
+	for _, request := range requests {
+		process := ProcessRequest{
+			ID: request.ID, Dir: request.Dir, PkgMgr: request.PkgMgr, Host: request.Host,
+			Port: request.Port, Cmd: request.Cmd, Install: request.Install, Routes: requested(request.Routes),
+		}
+		if process.Dir == "" {
+			process.Dir = registry.RootDir
+		}
+		if process.Host == "" {
+			process.Host = registry.Loopback
+		}
+
+		list = append(list, process)
+	}
+
+	return list
+}
+
+// A project and, when the params name one, one of its processes.
+func scoped(run func(name, process string) (any, error)) protocol.Handler {
+	return func(_ *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			Name    string `json:"name"`
+			Process string `json:"process"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		return run(params.Name, params.Process)
+	}
+}
+
 type removeResult struct {
 	Name string `json:"name"`
 	Dir  string `json:"dir"`
@@ -36,11 +83,6 @@ type removeResult struct {
 
 type logsResult struct {
 	Lines []string `json:"lines"`
-}
-
-type installResult struct {
-	Done    bool   `json:"done"`
-	Command string `json:"command,omitempty"`
 }
 
 type urlResult struct {
@@ -170,46 +212,35 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 
 	server.Register("project.add", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
 		params, err := decode[struct {
-			Name    string         `json:"name"`
-			Dir     string         `json:"dir"`
-			Repo    string         `json:"repo"`
-			Branch  string         `json:"branch"`
-			PkgMgr  string         `json:"pkgmgr"`
-			Host    string         `json:"host"`
-			Port    int            `json:"port"`
-			Routes  []routeRequest `json:"routes"`
-			Cmd     string         `json:"cmd"`
-			Install string         `json:"install"`
+			Name      string           `json:"name"`
+			Dir       string           `json:"dir"`
+			Repo      string           `json:"repo"`
+			Branch    string           `json:"branch"`
+			Processes []processRequest `json:"processes"`
 		}](raw)
 		if err != nil {
 			return nil, err
 		}
 
-		return reader.Add(registry.Project{
-			Name: params.Name, Dir: params.Dir, Repo: params.Repo, Branch: params.Branch,
-			PkgMgr: params.PkgMgr, Host: params.Host, Port: params.Port,
-			Cmd: params.Cmd, Install: params.Install,
-		}, requested(params.Routes))
+		return reader.Add(registry.Project{Name: params.Name, Dir: params.Dir, Repo: params.Repo, Branch: params.Branch}, processes(params.Processes))
 	})
 
 	server.Register("project.update", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
 		params, err := decode[struct {
 			Name  string `json:"name"`
 			Patch struct {
-				Cmd     *string         `json:"cmd"`
-				Install *string         `json:"install"`
-				Branch  *string         `json:"branch"`
-				Routes  *[]routeRequest `json:"routes"`
+				Branch    *string           `json:"branch"`
+				Processes *[]processRequest `json:"processes"`
 			} `json:"patch"`
 		}](raw)
 		if err != nil {
 			return nil, err
 		}
 
-		patch := UpdatePatch{Cmd: params.Patch.Cmd, Install: params.Patch.Install, Branch: params.Patch.Branch}
-		if params.Patch.Routes != nil {
-			routes := requested(*params.Patch.Routes)
-			patch.Routes = &routes
+		patch := UpdatePatch{Branch: params.Patch.Branch}
+		if params.Patch.Processes != nil {
+			list := processes(*params.Patch.Processes)
+			patch.Processes = &list
 		}
 
 		return reader.Update(params.Name, patch)
@@ -237,22 +268,23 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 		return removeResult{Name: removed.Name, Dir: removed.Dir}, nil
 	}))
 
-	server.Register("project.up", named(func(name string) (any, error) { return reader.Up(name) }))
-	server.Register("project.down", named(func(name string) (any, error) { return reader.Down(name) }))
-	server.Register("project.restart", named(func(name string) (any, error) { return reader.Restart(name) }))
+	server.Register("project.up", scoped(func(name, process string) (any, error) { return reader.Up(name, process) }))
+	server.Register("project.down", scoped(func(name, process string) (any, error) { return reader.Down(name, process) }))
+	server.Register("project.restart", scoped(func(name, process string) (any, error) { return reader.Restart(name, process) }))
 
 	server.Register("project.logs", func(ctx *protocol.Context, raw json.RawMessage) (any, error) {
 		params, err := decode[struct {
-			Name   string `json:"name"`
-			Lines  int    `json:"lines"`
-			Follow bool   `json:"follow"`
+			Name    string `json:"name"`
+			Process string `json:"process"`
+			Lines   int    `json:"lines"`
+			Follow  bool   `json:"follow"`
 		}](raw)
 		if err != nil {
 			return nil, err
 		}
 
 		if !params.Follow {
-			lines, err := reader.Logs(params.Name, params.Lines)
+			lines, err := reader.Logs(params.Name, params.Process, params.Lines)
 			if err != nil {
 				return nil, err
 			}
@@ -261,20 +293,20 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 		}
 
 		emit := func(line string) { ctx.Emit("log", map[string]any{"line": line}) }
-		if err := reader.Follow(params.Name, params.Lines, emit); err != nil {
+		if err := reader.Follow(params.Name, params.Process, params.Lines, emit); err != nil {
 			return nil, err
 		}
 
 		return logsResult{Lines: []string{}}, nil
 	})
 
-	server.Register("project.install", named(func(name string) (any, error) {
-		command, err := reader.Install(name)
+	server.Register("project.install", scoped(func(name, process string) (any, error) {
+		installed, err := reader.Install(name, process)
 		if err != nil {
 			return nil, err
 		}
 
-		return installResult{Done: true, Command: command}, nil
+		return contract.ProjectInstall{Done: true, Installed: installed}, nil
 	}))
 
 	server.Register("project.url", named(func(name string) (any, error) {
@@ -286,7 +318,7 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 		return urlResult{URL: address}, nil
 	}))
 
-	server.Register("project.debug", named(func(name string) (any, error) { return reader.Debug(name) }))
+	server.Register("project.debug", scoped(func(name, process string) (any, error) { return reader.Debug(name, process) }))
 
 	server.Register("project.pull", named(func(name string) (any, error) { return reader.Pull(name) }))
 	server.Register("project.sync", named(func(name string) (any, error) { return reader.Sync(name) }))

@@ -62,7 +62,7 @@ func equipped(t *testing.T) *modtest.FakeSys {
 // A project of several ports gets one ingress rule per name on the web, each to its own port.
 func TestTheIngressCarriesEveryRouteOfAProject(t *testing.T) {
 	fake := bareMachine()
-	fake.Files[registry.DefaultLocal] = []byte(`{"projects":[{"name":"shop","dir":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[{"label":"web","port":3100,"hostname":"shop.` + domain + `"},{"label":"api","port":3101,"hostname":"api-shop.` + domain + `"},{"label":"docs","port":3102}],"cmd":"bunx turbo run dev"}]}`)
+	fake.Files[registry.DefaultLocal] = []byte(`{"projects":[{"name":"shop","dir":"shop","processes":[{"id":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[{"label":"web","port":3100,"hostname":"shop.` + domain + `"},{"label":"api","port":3101,"hostname":"api-shop.` + domain + `"},{"label":"docs","port":3102}],"cmd":"bunx turbo run dev"}]}]}`)
 	ctx := newContext(t, fake, modtest.Secrets{"tunnel_secret": secret})
 
 	if err := (Module{}).Install(ctx); err != nil {
@@ -93,7 +93,7 @@ func TestTheIngressCarriesEveryRouteOfAProject(t *testing.T) {
 func TestAnotherDomainMovesEveryNameTheProjectsAnswerTo(t *testing.T) {
 	fake := bareMachine()
 	fake.Files[env.Path] = []byte(env.DomainKey + "=old.example\n")
-	fake.Files[registry.DefaultLocal] = []byte(`{"projects":[{"name":"shop","dir":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[{"label":"web","port":3100,"hostname":"shop.old.example"},{"label":"api","port":3101,"hostname":"api-shop.old.example"},{"label":"docs","port":3102}],"cmd":"bunx turbo run dev"}]}`)
+	fake.Files[registry.DefaultLocal] = []byte(`{"projects":[{"name":"shop","dir":"shop","processes":[{"id":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[{"label":"web","port":3100,"hostname":"shop.old.example"},{"label":"api","port":3101,"hostname":"api-shop.old.example"},{"label":"docs","port":3102}],"cmd":"bunx turbo run dev"}]}]}`)
 	ctx := newContext(t, fake, modtest.Secrets{"tunnel_secret": secret})
 
 	if err := (Module{}).Install(ctx); err != nil {

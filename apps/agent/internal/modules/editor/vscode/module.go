@@ -78,7 +78,9 @@ func (m Module) Install(ctx *modules.Context) error {
 		return err
 	}
 
-	return installServer(ctx)
+	_, err := installServer(ctx, pinned)
+
+	return err
 }
 
 func installCLI(ctx *modules.Context) error {
@@ -118,11 +120,11 @@ func fetchCLI(ctx *modules.Context) error {
 	return nil
 }
 
-func installServer(ctx *modules.Context) error {
+func installServer(ctx *modules.Context, choose func(*modules.Context) (release, error)) (release, error) {
 	var found release
 
 	if err := ctx.Step("install-server", func() (modules.Outcome, error) {
-		resolved, err := resolve(ctx)
+		resolved, err := choose(ctx)
 		if err != nil {
 			return modules.Failed, err
 		}
@@ -135,10 +137,10 @@ func installServer(ctx *modules.Context) error {
 
 		return modules.Done, unpackServer(ctx, resolved)
 	}); err != nil {
-		return err
+		return release{}, err
 	}
 
-	return linkServer(ctx, found)
+	return found, linkServer(ctx, found)
 }
 
 func unpackServer(ctx *modules.Context, found release) error {
@@ -195,7 +197,16 @@ func linkServer(ctx *modules.Context, found release) error {
 }
 
 func (m Module) Configure(ctx *modules.Context) error {
-	if err := recordRelease(ctx); err != nil {
+	found, err := pinned(ctx)
+	if err != nil {
+		return err
+	}
+
+	return configure(ctx, found)
+}
+
+func configure(ctx *modules.Context, found release) error {
+	if err := recordRelease(ctx, found); err != nil {
 		return err
 	}
 
@@ -206,13 +217,8 @@ func (m Module) Configure(ctx *modules.Context) error {
 	return tunnel(ctx, ctx.Bool("tunnel"))
 }
 
-func recordRelease(ctx *modules.Context) error {
+func recordRelease(ctx *modules.Context, found release) error {
 	return ctx.Step("record-release", func() (modules.Outcome, error) {
-		found, err := resolve(ctx)
-		if err != nil {
-			return modules.Failed, err
-		}
-
 		content := found.record()
 		if file.Same(ctx, pointerPath, content) {
 			return modules.Skipped, nil
@@ -340,11 +346,16 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 		return err
 	}
 
-	if err := m.Install(ctx); err != nil {
+	if err := installCLI(ctx); err != nil {
 		return err
 	}
 
-	return m.Configure(ctx)
+	found, err := installServer(ctx, resolve)
+	if err != nil {
+		return err
+	}
+
+	return configure(ctx, found)
 }
 
 // The extensions and everything the client opened stay; the server, the CLI and the tunnel go.

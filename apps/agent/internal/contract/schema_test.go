@@ -27,7 +27,7 @@ func TestSchemaDeclaresTheContract(t *testing.T) {
 		t.Fatalf("unexpected $schema %q", doc.Schema)
 	}
 
-	if doc.Protocol != 1 {
+	if doc.Protocol != 2 {
 		t.Fatalf("unexpected protocol %d", doc.Protocol)
 	}
 

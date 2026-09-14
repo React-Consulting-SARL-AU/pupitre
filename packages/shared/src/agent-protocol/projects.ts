@@ -5,12 +5,17 @@ import {
   HostnameSchema,
   LocalhostNameSchema,
   PackageManagerSchema,
+  PROJECT_ROOT_DIR,
+  ProcessDirSchema,
+  ProcessIdSchema,
+  ProcessStateSchema,
   ProjectNameSchema,
   ProjectRegistrationSchema,
   ProjectSchema,
   ProjectStateSchema,
   ProjectSubdomainSchema,
   RouteLabelSchema,
+  uniqueProcessIds,
 } from "./state"
 
 export const ProjectParamsSchema = z.strictObject({
@@ -19,14 +24,31 @@ export const ProjectParamsSchema = z.strictObject({
 
 export type ProjectParams = z.infer<typeof ProjectParamsSchema>
 
+/** A project and one of its processes: what the logs and the debugger are read on. */
+export const ProcessParamsSchema = z.strictObject({
+  name: ProjectNameSchema,
+  process: ProcessIdSchema,
+})
+
+export type ProcessParams = z.infer<typeof ProcessParamsSchema>
+
 export const ProjectTargetSchema = z.union([
   ProjectNameSchema,
   z.literal("all"),
 ])
 
-export const ProjectTargetParamsSchema = z.strictObject({
-  name: ProjectTargetSchema,
-})
+/**
+ * What up, down and restart act on: a project, every project, or one process
+ * of a project. `all` names no process — it has none in particular.
+ */
+export const ProjectTargetParamsSchema = z
+  .strictObject({
+    name: ProjectTargetSchema,
+    process: ProcessIdSchema.optional(),
+  })
+  .refine((target) => !(target.name === "all" && target.process), {
+    message: "all names no process",
+  })
 
 export type ProjectTargetParams = z.infer<typeof ProjectTargetParamsSchema>
 
@@ -63,17 +85,37 @@ export const RoutePatchSchema = z
 export type RoutePatch = z.infer<typeof RoutePatchSchema>
 
 /**
+ * A process as the configuration screen sends it back: the whole of it, its
+ * routes included, each a subdomain or a hostname.
+ */
+export const ProcessPatchSchema = z.strictObject({
+  id: ProcessIdSchema,
+  dir: ProcessDirSchema.default(PROJECT_ROOT_DIR),
+  pkgmgr: PackageManagerSchema,
+  host: z.union([z.literal("127.0.0.1"), LocalhostNameSchema]),
+  port: PortSchema,
+  cmd: z.string().min(1),
+  install: z.string().optional(),
+  routes: z.array(RoutePatchSchema),
+})
+
+export type ProcessPatch = z.infer<typeof ProcessPatchSchema>
+
+/**
  * What can change about a declared project without removing it.
  *
- * `routes` replaces the whole list: the screen sends what it shows, and a route
- * missing from it is a route that goes. An empty `install` hands the command
+ * `processes` replaces the whole list: the screen sends what it shows, a
+ * process missing from it is a process that goes, and one whose command
+ * changed restarts if it was running. An empty `install` hands the command
  * back to the package manager.
  */
 export const ProjectPatchSchema = z.strictObject({
-  cmd: z.string().min(1).optional(),
-  install: z.string().optional(),
   branch: GitBranchSchema.optional(),
-  routes: z.array(RoutePatchSchema).optional(),
+  processes: z
+    .array(ProcessPatchSchema)
+    .min(1)
+    .refine(uniqueProcessIds, "two processes of a project cannot share an id")
+    .optional(),
 })
 
 export type ProjectPatch = z.infer<typeof ProjectPatchSchema>
@@ -112,7 +154,13 @@ export const DetectedRouteSchema = z.object({
 
 export type DetectedRoute = z.infer<typeof DetectedRouteSchema>
 
-export const ProjectDetectResultSchema = z.object({
+/**
+ * What one folder of the repository asks for: the root, or a folder of the
+ * first level that carries its own manifest outside the root's workspaces.
+ */
+export const DetectedProcessSchema = z.object({
+  id: ProcessIdSchema,
+  dir: ProcessDirSchema,
   pkgmgr: PackageManagerSchema,
   install: z.string().optional(),
   cmd: z.string().optional(),
@@ -121,6 +169,13 @@ export const ProjectDetectResultSchema = z.object({
   host_hint: LocalhostNameSchema.optional(),
   /** The ports of a monorepo's workspaces, when the root runs them all at once. */
   routes: z.array(DetectedRouteSchema).optional(),
+})
+
+export type DetectedProcess = z.infer<typeof DetectedProcessSchema>
+
+/** The root always answers, even with nothing to run: a folder with no manifest is a process without a command. */
+export const ProjectDetectResultSchema = z.object({
+  processes: z.array(DetectedProcessSchema).min(1),
 })
 
 export type ProjectDetectResult = z.infer<typeof ProjectDetectResultSchema>
@@ -135,14 +190,13 @@ export type ProjectRemoveResult = z.infer<typeof ProjectRemoveResultSchema>
 export const ProjectStateEntrySchema = z.object({
   name: ProjectNameSchema,
   state: ProjectStateSchema,
-  port: PortSchema.optional(),
 })
 
 export type ProjectStateEntry = z.infer<typeof ProjectStateEntrySchema>
 
+/** The state of what was acted on: the project's, or every project's when the target was `all`. */
 export const ProjectActionResultSchema = z.object({
   state: ProjectStateSchema,
-  port: PortSchema.optional(),
   projects: z.array(ProjectStateEntrySchema).optional(),
 })
 
@@ -150,6 +204,7 @@ export type ProjectActionResult = z.infer<typeof ProjectActionResultSchema>
 
 export const ProjectLogsParamsSchema = z.strictObject({
   name: ProjectNameSchema,
+  process: ProcessIdSchema,
   lines: z.int().positive().optional(),
   follow: z.boolean().optional(),
 })
@@ -176,16 +231,33 @@ export const ProjectSyncResultSchema = ProjectPullResultSchema.extend({
 
 export type ProjectSyncResult = z.infer<typeof ProjectSyncResultSchema>
 
-/** `command` is the package manager's install line that ran; absent when the project declares none. */
+/** One project, or one of its processes: what install runs on. */
+export const ProjectInstallParamsSchema = z.strictObject({
+  name: ProjectNameSchema,
+  process: ProcessIdSchema.optional(),
+})
+
+export type ProjectInstallParams = z.infer<typeof ProjectInstallParamsSchema>
+
+export const ProcessInstallSchema = z.object({
+  process: ProcessIdSchema,
+  command: z.string().min(1),
+})
+
+export type ProcessInstall = z.infer<typeof ProcessInstallSchema>
+
+/** `installed` lists the install lines that ran, one per process that declares one; a process without one is not in it. */
 export const ProjectInstallResultSchema = z.object({
   done: z.literal(true),
-  command: z.string().optional(),
+  installed: z.array(ProcessInstallSchema),
 })
 
 export type ProjectInstallResult = z.infer<typeof ProjectInstallResultSchema>
 
+/** The project's root, or the folder of one of its processes when the template lives there. */
 export const ProjectEnvParamsSchema = z.strictObject({
   name: ProjectNameSchema,
+  process: ProcessIdSchema.optional(),
   force: z.boolean().optional(),
 })
 
@@ -294,8 +366,8 @@ export const ProjectUrlResultSchema = z.object({
 export type ProjectUrlResult = z.infer<typeof ProjectUrlResultSchema>
 
 export const ProjectDebugResultSchema = z.object({
-  state: ProjectStateSchema,
-  port: PortSchema.optional(),
+  state: ProcessStateSchema,
+  port: PortSchema,
   debug_port: PortSchema,
 })
 

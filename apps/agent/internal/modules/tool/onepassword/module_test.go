@@ -99,13 +99,19 @@ func TestInstallAndConfigureAreIdempotent(t *testing.T) {
 	}
 
 	for _, event := range ctx.Events() {
-		if event.Step != "verify-service-account" && event.Status != contract.StepSkip {
+		if event.Status != contract.StepSkip {
 			t.Errorf("step %s: want skip, got %s", event.Step, event.Status)
 		}
 	}
 
 	if len(fake.Mutations) != 0 {
 		t.Fatalf("a replay must not touch the machine: %v", fake.Mutations)
+	}
+
+	for _, line := range fake.Commands() {
+		if strings.Contains(line, "vault list") {
+			t.Fatalf("a token already verified must not be asked of 1Password again: %s", line)
+		}
 	}
 }
 
@@ -142,7 +148,7 @@ func TestSecretNeverLeaks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := Env(ctx, "web", false); err != nil {
+	if _, err := Env(ctx, "flymate", "web", false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -178,7 +184,7 @@ func TestEnvInjectsTheTemplateAndReturnsKeysOnly(t *testing.T) {
 	fake := machine()
 	ctx := newContext(t, fake, modtest.Secrets{"service_account_token": token})
 
-	result, err := Env(ctx, "web", false)
+	result, err := Env(ctx, "flymate", "web", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,7 +228,7 @@ func TestEnvKeepsAnExistingFileUnlessForced(t *testing.T) {
 	fake.Files[target] = []byte("DATABASE_URL=deja-la\n")
 	ctx := newContext(t, fake, modtest.Secrets{"service_account_token": token})
 
-	result, err := Env(ctx, "web", false)
+	result, err := Env(ctx, "flymate", "web", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,7 +237,7 @@ func TestEnvKeepsAnExistingFileUnlessForced(t *testing.T) {
 		t.Fatalf("nothing must be rewritten: %+v", result)
 	}
 
-	forced, err := Env(ctx, "web", true)
+	forced, err := Env(ctx, "flymate", "web", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -247,7 +253,7 @@ func TestEnvFallsBackOnTheVersionedExampleWithoutASecretManager(t *testing.T) {
 	fake.Files[home+"/"+exampleName] = []byte(example)
 	ctx := newContext(t, fake, nil)
 
-	result, err := Env(ctx, "web", false)
+	result, err := Env(ctx, "flymate", "web", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -262,7 +268,7 @@ func TestEnvSaysWhatIsMissingWhenTheRepositoryVersionsNothing(t *testing.T) {
 	delete(fake.Files, home+"/"+templateName)
 	ctx := newContext(t, fake, modtest.Secrets{"service_account_token": token})
 
-	_, err := Env(ctx, "web", false)
+	_, err := Env(ctx, "flymate", "web", false)
 
 	failure, isProtocol := err.(*protocol.Error)
 	if !isProtocol || failure.Code != contract.ErrorBadRequest || failure.Fix == "" {
@@ -274,11 +280,34 @@ func TestEnvRefusesAnUnknownProject(t *testing.T) {
 	fake := machine()
 	ctx := newContext(t, fake, nil)
 
-	_, err := Env(ctx, "ghost", false)
+	_, err := Env(ctx, "ghost", "", false)
 
 	failure, isProtocol := err.(*protocol.Error)
 	if !isProtocol || failure.Code != contract.ErrorProjectNotFound {
 		t.Fatalf("want project_not_found, got %#v", err)
+	}
+
+	_, err = Env(ctx, "flymate", "ghost", false)
+
+	failure, isProtocol = err.(*protocol.Error)
+	if !isProtocol || failure.Code != contract.ErrorProjectNotFound {
+		t.Fatalf("an unknown process is refused the same way, got %#v", err)
+	}
+}
+
+// Without a process the root of the repository is the home of the environment file.
+func TestEnvWithoutAProcessWritesAtTheRoot(t *testing.T) {
+	fake := machine()
+	fake.Files[root+"/"+exampleName] = []byte(example)
+	ctx := newContext(t, fake, nil)
+
+	result, err := Env(ctx, "flymate", "", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Path != root+"/"+targetName {
+		t.Fatalf("got %s", result.Path)
 	}
 }
 

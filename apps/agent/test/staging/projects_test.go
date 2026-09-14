@@ -50,13 +50,16 @@ func write(t *testing.T, host, path, content string) {
 
 func addVite(name string, port int) request {
 	return request{Cmd: "project.add", Params: map[string]any{
-		"name":   name,
-		"dir":    name,
-		"pkgmgr": "bun",
-		"host":   "127.0.0.1",
-		"port":   port,
-		"routes": []map[string]any{{"label": "web", "port": port}},
-		"cmd":    fmt.Sprintf("bun run dev -- --host 127.0.0.1 --port %d", port),
+		"name": name,
+		"dir":  name,
+		"processes": []map[string]any{{
+			"id":     "web",
+			"pkgmgr": "bun",
+			"host":   "127.0.0.1",
+			"port":   port,
+			"routes": []map[string]any{{"label": "web", "port": port}},
+			"cmd":    fmt.Sprintf("bun run dev -- --host 127.0.0.1 --port %d", port),
+		}},
 	}}
 }
 
@@ -96,7 +99,7 @@ func TestAViteProjectGoesFromAddedToOnlineAndBack(t *testing.T) {
 
 	added := agent(t, host, addVite(viteProject, vitePort))[0]
 	declared := decode[contract.Project](t, added.Result)
-	if declared.State != contract.ProjectStopped || declared.Install != "bun install" {
+	if declared.State != contract.ProjectStopped || len(declared.Processes) != 1 || declared.Processes[0].Install != "bun install" {
 		t.Fatalf("unexpected registration: %+v", declared)
 	}
 	// The fixture declares no repository: an unversioned project carries its folder like any other.
@@ -115,13 +118,13 @@ func TestAViteProjectGoesFromAddedToOnlineAndBack(t *testing.T) {
 	}
 
 	current := projectIn(t, snapshotOf(t, host), viteProject)
-	if current.Port != vitePort || current.URL == "" || current.Path != declared.Path {
+	if current.Processes[0].Port != vitePort || current.URL == "" || current.Path != declared.Path || current.Processes[0].State != contract.ProcessOnline {
 		t.Fatalf("the snapshot must show the port, the address and the folder: %+v", current)
 	}
 
 	logs := decode[struct {
 		Lines []string `json:"lines"`
-	}](t, agent(t, host, request{Cmd: "project.logs", Params: map[string]any{"name": viteProject, "lines": 50}})[0].Result)
+	}](t, agent(t, host, request{Cmd: "project.logs", Params: map[string]any{"name": viteProject, "process": "web", "lines": 50}})[0].Result)
 	if !strings.Contains(strings.Join(logs.Lines, "\n"), "VITE") {
 		t.Fatalf("project.logs must return the dev server's own output:\n%s", strings.Join(logs.Lines, "\n"))
 	}
@@ -158,13 +161,13 @@ func TestDetectReadsARepositoryWithoutInstallingIt(t *testing.T) {
 
 	fromFolder := decode[contract.ProjectDetect](t, agent(t, host,
 		request{Cmd: "project.detect", Params: map[string]any{"dir": viteProject}})[0].Result)
-	if fromFolder.PkgMgr != "bun" || fromFolder.Install != "bun install" || fromFolder.Cmd == "" {
+	if len(fromFolder.Processes) != 1 || fromFolder.Processes[0].PkgMgr != "bun" || fromFolder.Processes[0].Install != "bun install" || fromFolder.Processes[0].Cmd == "" {
 		t.Fatalf("unexpected detection of a folder: %+v", fromFolder)
 	}
 
 	fromRepo := decode[contract.ProjectDetect](t, agent(t, host,
 		request{Cmd: "project.detect", Params: map[string]any{"repo": detectOrigin}})[0].Result)
-	if fromRepo.PkgMgr != "bun" || fromRepo.Cmd != fromFolder.Cmd {
+	if len(fromRepo.Processes) != 1 || fromRepo.Processes[0].PkgMgr != "bun" || fromRepo.Processes[0].Cmd != fromFolder.Processes[0].Cmd {
 		t.Fatalf("a clone and a folder must be read the same: %+v", fromRepo)
 	}
 

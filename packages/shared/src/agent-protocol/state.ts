@@ -58,7 +58,7 @@ export const ServiceSchema = z.object({
 
 export type Service = z.infer<typeof ServiceSchema>
 
-export const PROJECT_STATES = [
+export const PROCESS_STATES = [
   "online",
   "starting",
   "failed",
@@ -67,6 +67,17 @@ export const PROJECT_STATES = [
   "external",
   "service",
 ] as const
+
+export const ProcessStateSchema = z.enum(PROCESS_STATES)
+
+export type ProcessState = z.infer<typeof ProcessStateSchema>
+
+/**
+ * A project's state is read off its processes: failed if one failed, starting
+ * if one starts, online when all run, `partial` when only some do, stopped
+ * otherwise. `partial` is the one state a process never has by itself.
+ */
+export const PROJECT_STATES = [...PROCESS_STATES, "partial"] as const
 
 export const ProjectStateSchema = z.enum(PROJECT_STATES)
 
@@ -187,12 +198,29 @@ export const LocalhostNameSchema = z
   .max(253)
   .regex(/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+localhost$/)
 
-const ProjectBaseSchema = z.object({
-  name: ProjectNameSchema,
-  dir: z.string().min(1),
-  repo: z.string().optional(),
-  /** The branch to clone; absent, the repository's own default is taken. */
-  branch: GitBranchSchema.optional(),
+/**
+ * The short name of one process of a project — `server`, `client`, `web`.
+ *
+ * One DNS label, like a route's: it is what names the tmux window and the log
+ * file, `<project>/<process>`, and neither name admits a slash.
+ */
+export const ProcessIdSchema = RouteLabelSchema
+
+export type ProcessId = z.infer<typeof ProcessIdSchema>
+
+/** The folder a process runs from, relative to its project: `.` for the root. */
+export const ProcessDirSchema = z
+  .string()
+  .min(1)
+  .refine(
+    (dir) => !(dir.startsWith("/") || dir.split("/").includes("..")),
+    "a process runs inside its project"
+  )
+
+export const PROJECT_ROOT_DIR = "."
+
+const ProcessBaseSchema = z.object({
+  id: ProcessIdSchema,
   pkgmgr: PackageManagerSchema,
   host: z.string().min(1),
   /** The main port: the one that decides the state, and the local address. */
@@ -202,30 +230,72 @@ const ProjectBaseSchema = z.object({
 })
 
 /**
- * `routes` lists every port the screen showed, the main one first when it is
- * among them: the agent resolves each name on the web once, and stores it.
+ * A process as the app declares it. `routes` lists every port the screen
+ * showed, the main one first when it is among them: the agent resolves each
+ * name on the web once, and stores it.
  */
-export const ProjectRegistrationSchema = ProjectBaseSchema.extend({
+export const ProcessRegistrationSchema = ProcessBaseSchema.extend({
+  dir: ProcessDirSchema.default(PROJECT_ROOT_DIR),
   /** The loopback, or a `.localhost` name the agent points at it in /etc/hosts. */
   host: z.union([z.literal("127.0.0.1"), LocalhostNameSchema]),
   routes: z.array(RouteRequestSchema),
+}).strict()
+
+export type ProcessRegistration = z.infer<typeof ProcessRegistrationSchema>
+
+export const AbsolutePathSchema = z.string().regex(/^\//)
+
+export const ProcessSchema = ProcessBaseSchema.extend({
+  dir: ProcessDirSchema,
+  path: AbsolutePathSchema,
+  routes: z.array(RouteSchema),
+  state: ProcessStateSchema,
+  url: z.string().optional(),
+  pid: z.int().positive().optional(),
+  ram_mb: z.int().nonnegative().optional(),
+  uptime_s: z.int().nonnegative().optional(),
+})
+
+export type Process = z.infer<typeof ProcessSchema>
+
+export function uniqueProcessIds(
+  processes: readonly { id: string }[]
+): boolean {
+  return (
+    new Set(processes.map((process) => process.id)).size === processes.length
+  )
+}
+
+const ProjectBaseSchema = z.object({
+  name: ProjectNameSchema,
+  dir: z.string().min(1),
+  repo: z.string().optional(),
+  /** The branch to clone; absent, the repository's own default is taken. */
+  branch: GitBranchSchema.optional(),
+})
+
+/**
+ * A project is a repository, or a folder: its processes are what runs in it,
+ * one at the least, each from its own folder with its own command.
+ */
+export const ProjectRegistrationSchema = ProjectBaseSchema.extend({
+  processes: z
+    .array(ProcessRegistrationSchema)
+    .min(1)
+    .refine(uniqueProcessIds, "two processes of a project cannot share an id"),
 })
 
 export type ProjectRegistration = z.infer<typeof ProjectRegistrationSchema>
 
-export const AbsolutePathSchema = z.string().regex(/^\//)
-
 export const ProjectSchema = ProjectBaseSchema.extend({
   path: AbsolutePathSchema,
-  routes: z.array(RouteSchema),
+  processes: z.array(ProcessSchema).min(1),
   state: ProjectStateSchema,
+  /** The address of the first process whose main port carries a name on the web. */
   url: z.string().optional(),
   // Here the branch is what HEAD reads as, which a detached checkout makes a
   // hash rather than a name: looser than the branch a registration asks for.
   branch: z.string().optional(),
-  pid: z.int().positive().optional(),
-  ram_mb: z.int().nonnegative().optional(),
-  uptime_s: z.int().nonnegative().optional(),
 })
 
 export type Project = z.infer<typeof ProjectSchema>

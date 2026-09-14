@@ -28,7 +28,7 @@ func lastRead(t *testing.T, fake *modtest.FakeSys, daysAgo int) {
 func declareProject(fake *modtest.FakeSys) {
 	fake.Files[registry.DefaultConf] = []byte("web|web|-|bun|127.0.0.1|3000|web|bun run dev --port 3000\n")
 	fake.Dirs["/home/dev/projects/web"] = true
-	fake.Serves("web", 3000)
+	fake.Serves("web/web", 3000)
 }
 
 func startProject(t *testing.T, fake *modtest.FakeSys) {
@@ -37,7 +37,7 @@ func startProject(t *testing.T, fake *modtest.FakeSys) {
 	lastRead(t, fake, 0)
 
 	lines := serveOn(t,
-		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}`,
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`,
 		`{"id":2,"cmd":"project.up","params":{"name":"web"}}`,
 	)
 
@@ -64,7 +64,7 @@ func TestSixDaysWithoutThePlatformChangeNothing(t *testing.T) {
 	lastRead(t, fake, 6)
 
 	lines := serveOn(t,
-		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}`,
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`,
 		`{"id":2,"cmd":"catalog","params":{}}`,
 		`{"id":3,"cmd":"snapshot","params":{}}`,
 	)
@@ -92,7 +92,7 @@ func TestOnTheEighthDayTheAgentRestrictsItselfWithoutStoppingAnything(t *testing
 	before := len(fake.Mutations)
 
 	lines := serveOn(t,
-		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":1}}`,
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`,
 		`{"id":2,"cmd":"install","params":{"modules":["tool.demo"]}}`,
 		`{"id":3,"cmd":"snapshot","params":{}}`,
 		`{"id":4,"cmd":"status","params":{}}`,

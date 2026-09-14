@@ -52,11 +52,12 @@ func (o Options) Resolved() Options {
 	return o
 }
 
-func (o Options) LogPath(project string) string {
-	return o.Resolved().LogDir + "/" + project + ".log"
+// LogPath is the journal of one window: a window named <project>/<process> writes under a folder of its project's name.
+func (o Options) LogPath(window string) string {
+	return o.Resolved().LogDir + "/" + window + ".log"
 }
 
-// One read of the machine for every project: tmux, ss and ps once each, not once per project.
+// One read of the machine for every window: tmux, ss and ps once each, not once per process.
 type Collection struct {
 	Windows   map[string]int
 	Listening map[int]bool
@@ -84,8 +85,8 @@ func Collect(ctx sys.Context, options Options) Collection {
 	return collected
 }
 
-func (c Collection) Running(project string) bool {
-	_, open := c.Windows[project]
+func (c Collection) Running(window string) bool {
+	_, open := c.Windows[window]
 
 	return open
 }
@@ -94,12 +95,12 @@ func (c Collection) PortUp(port int) bool {
 	return c.Listening[port]
 }
 
-func (c Collection) PID(project string) int {
-	return c.Windows[project]
+func (c Collection) PID(window string) int {
+	return c.Windows[window]
 }
 
-func (c Collection) Seconds(project string) int {
-	return c.Uptime[c.Windows[project]]
+func (c Collection) Seconds(window string) int {
+	return c.Uptime[c.Windows[window]]
 }
 
 // The panes read the other way round: a process knows the pid it descends from, never the window's name.
@@ -198,10 +199,11 @@ func EnsureSession(ctx sys.Context, options Options, dir string) error {
 	return err
 }
 
+// A Job is one window to open: the process's window name, the folder it runs from, and its command.
 type Job struct {
-	Project string
-	Dir     string
-	Cmd     string
+	Window string
+	Dir    string
+	Cmd    string
 }
 
 func Start(ctx sys.Context, options Options, job Job) error {
@@ -211,33 +213,33 @@ func Start(ctx sys.Context, options Options, job Job) error {
 		return err
 	}
 
-	if _, err := sys.Exec(ctx, options.tmux("new-window", "-d", "-t", options.Session, "-n", job.Project, "-c", job.Dir)); err != nil {
+	if _, err := sys.Exec(ctx, options.tmux("new-window", "-d", "-t", options.Session, "-n", job.Window, "-c", job.Dir)); err != nil {
 		return err
 	}
 
-	logPath := options.LogPath(job.Project)
-	if _, err := sys.Exec(ctx, options.tmux("pipe-pane", "-o", "-t", Target(options, job.Project), "cat >> "+logPath)); err != nil {
+	logPath := options.LogPath(job.Window)
+	if _, err := sys.Exec(ctx, options.tmux("pipe-pane", "-o", "-t", Target(options, job.Window), "cat >> "+logPath)); err != nil {
 		return err
 	}
 
 	// The marker separates this start from the previous shutdown, whose last line reads "exited with code 130" — read as a failure otherwise.
-	if err := mark(ctx, options, job.Project, upMarker+options.Now().UTC().Format(time.RFC3339)+" ==="); err != nil {
+	if err := mark(ctx, options, job.Window, upMarker+options.Now().UTC().Format(time.RFC3339)+" ==="); err != nil {
 		return err
 	}
 
-	_, err := sys.Exec(ctx, options.tmux("send-keys", "-t", Target(options, job.Project), job.Cmd, "C-m"))
+	_, err := sys.Exec(ctx, options.tmux("send-keys", "-t", Target(options, job.Window), job.Cmd, "C-m"))
 
 	return err
 }
 
-func Stop(ctx sys.Context, options Options, project string) error {
+func Stop(ctx sys.Context, options Options, window string) error {
 	options = options.Resolved()
 
-	if err := mark(ctx, options, project, downMarker+options.Now().UTC().Format(time.RFC3339)+" ==="); err != nil {
+	if err := mark(ctx, options, window, downMarker+options.Now().UTC().Format(time.RFC3339)+" ==="); err != nil {
 		return err
 	}
 
-	if _, err := sys.Exec(ctx, options.tmux("send-keys", "-t", Target(options, project), "C-c")); err != nil {
+	if _, err := sys.Exec(ctx, options.tmux("send-keys", "-t", Target(options, window), "C-c")); err != nil {
 		return err
 	}
 
@@ -245,20 +247,20 @@ func Stop(ctx sys.Context, options Options, project string) error {
 		time.Sleep(options.Grace)
 	}
 
-	_, err := sys.Exec(ctx, options.tmux("kill-window", "-t", Target(options, project)))
+	_, err := sys.Exec(ctx, options.tmux("kill-window", "-t", Target(options, window)))
 
 	return err
 }
 
-func Logs(ctx sys.Context, options Options, project string, lines int) ([]string, error) {
+func Logs(ctx sys.Context, options Options, window string, lines int) ([]string, error) {
 	options = options.Resolved()
 	if lines <= 0 {
 		lines = DefaultLines
 	}
 
-	raw, err := file.Read(ctx, options.LogPath(project))
+	raw, err := file.Read(ctx, options.LogPath(window))
 	if err != nil {
-		return nil, protocol.NewError(contract.ErrorProjectNotFound, i18n.T("tmux.journal.none", project)).
+		return nil, protocol.NewError(contract.ErrorProjectNotFound, i18n.T("tmux.journal.none", window)).
 			WithFix(i18n.T("tmux.journal.none.fix"))
 	}
 
@@ -266,8 +268,8 @@ func Logs(ctx sys.Context, options Options, project string, lines int) ([]string
 }
 
 // What in a log says the startup has failed, read only from the last start marker on.
-func Failed(ctx sys.Context, options Options, project string) bool {
-	raw, err := file.Read(ctx, options.Resolved().LogPath(project))
+func Failed(ctx sys.Context, options Options, window string) bool {
+	raw, err := file.Read(ctx, options.Resolved().LogPath(window))
 	if err != nil {
 		return false
 	}
@@ -280,44 +282,47 @@ func Failed(ctx sys.Context, options Options, project string) bool {
 	return fatal.MatchString(text)
 }
 
-func State(ctx sys.Context, options Options, project contract.Project, collected Collection) contract.ProjectState {
-	up := collected.PortUp(project.Port)
+// State reads one process off the machine: its window, and whether its main port answers.
+func State(ctx sys.Context, options Options, window, pkgmgr string, port int, collected Collection) contract.ProcessState {
+	up := collected.PortUp(port)
 
 	// A service row is systemd's business: down says its port does not answer, where stopped would say we stopped it.
-	if project.PkgMgr == "service" {
+	if pkgmgr == "service" {
 		if up {
-			return contract.ProjectService
+			return contract.ProcessService
 		}
 
-		return contract.ProjectDown
+		return contract.ProcessDown
 	}
 
-	if !collected.Running(project.Name) {
+	if !collected.Running(window) {
 		// The port answers with no window of ours: someone started it another way, and project.down has no grip on it.
 		if up {
-			return contract.ProjectExternal
+			return contract.ProcessExternal
 		}
 
-		return contract.ProjectStopped
+		return contract.ProcessStopped
 	}
 
 	if up {
-		return contract.ProjectOnline
+		return contract.ProcessOnline
 	}
 
-	if Failed(ctx, options, project.Name) {
-		return contract.ProjectFailed
+	if Failed(ctx, options, window) {
+		return contract.ProcessFailed
 	}
 
-	return contract.ProjectStarting
+	return contract.ProcessStarting
 }
 
-func mark(ctx sys.Context, options Options, project, line string) error {
-	if err := file.MkdirOwned(ctx, options.LogDir, options.User, options.User, 0o755); err != nil {
+func mark(ctx sys.Context, options Options, window, line string) error {
+	logPath := options.LogPath(window)
+
+	if err := file.MkdirOwned(ctx, logPath[:strings.LastIndex(logPath, "/")], options.User, options.User, 0o755); err != nil {
 		return err
 	}
 
-	return file.Append(ctx, options.LogPath(project), []byte("\n"+line+"\n"), options.User)
+	return file.Append(ctx, logPath, []byte("\n"+line+"\n"), options.User)
 }
 
 func tail(text string, lines int) []string {
@@ -333,9 +338,9 @@ func tail(text string, lines int) []string {
 	return all
 }
 
-// The window of a project, as tmux addresses it.
-func Target(options Options, project string) string {
-	return fmt.Sprintf("%s:%s", options.Resolved().Session, project)
+// The window of a process, as tmux addresses it.
+func Target(options Options, window string) string {
+	return fmt.Sprintf("%s:%s", options.Resolved().Session, window)
 }
 
 // The session belongs to the user whose projects run in it: tmux as root would open a server nobody's shell can attach to,
@@ -344,7 +349,7 @@ func (o Options) tmux(args ...string) sys.Command {
 	return sys.Command{User: o.User, Argv: append([]string{"tmux"}, args...), Env: user.Environment(o.User)}
 }
 
-func Running(ctx sys.Context, options Options, project string) bool {
+func Running(ctx sys.Context, options Options, window string) bool {
 	options = options.Resolved()
 
 	out, err := ctx.Sys().Run(options.tmux("list-windows", "-t", options.Session, "-F", "#{window_name}"))
@@ -353,7 +358,7 @@ func Running(ctx sys.Context, options Options, project string) bool {
 	}
 
 	for _, line := range strings.Split(out.Stdout, "\n") {
-		if strings.TrimSpace(line) == project {
+		if strings.TrimSpace(line) == window {
 			return true
 		}
 	}

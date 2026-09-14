@@ -148,6 +148,88 @@ func TestReplayOnAnInstalledMachineChangesNothing(t *testing.T) {
 	}
 }
 
+func reconfigure(t *testing.T, fake *modtest.FakeSys, chosen modtest.Values, secret string) *modules.Context {
+	t.Helper()
+
+	ctx := modtest.NewContext(t, fake, modtest.Options{Manifest: manifest(), Values: chosen, Secrets: modtest.Secrets{"password": secret}})
+	if err := (Module{}).Configure(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	return ctx
+}
+
+func configSets(fake *modtest.FakeSys) (stdin string, auth []string) {
+	for _, call := range fake.Calls {
+		if call.Argv[0] == "redis-cli" && len(call.Stdin) > 0 {
+			return string(call.Stdin), call.Env
+		}
+	}
+
+	return "", nil
+}
+
+// A cache without persistence holds what a restart would lose: a new password or a new cap reaches the running server through CONFIG SET.
+func TestANewPasswordIsSetOnTheRunningServerWithoutARestart(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	run(t, newContext(t, fake, modtest.Values{"port": DefaultPort, "persistence": false, "maxmemory_mb": 256}))
+	restarts := fake.Restarts[unit]
+
+	ctx := reconfigure(t, fake, modtest.Values{"port": DefaultPort, "persistence": false, "maxmemory_mb": 512}, "n3w-secret")
+
+	if statuses(ctx)["apply-config"] != contract.StepOK || statuses(ctx)["enable-service"] != contract.StepSkip || fake.Restarts[unit] != restarts {
+		t.Fatalf("the settings must be applied live: %v, restarts %d", statuses(ctx), fake.Restarts[unit]-restarts)
+	}
+
+	stdin, auth := configSets(fake)
+	for _, want := range []string{"CONFIG SET requirepass n3w-secret", "CONFIG SET maxmemory 512mb", "CONFIG SET maxmemory-policy allkeys-lru", `CONFIG SET save ""`} {
+		if !strings.Contains(stdin, want) {
+			t.Errorf("redis-cli must be told %q on its standard input:\n%s", want, stdin)
+		}
+	}
+
+	if !slices.Contains(auth, "REDISCLI_AUTH="+password) {
+		t.Fatalf("the old password opens the connection that sets the new one, env = %v", auth)
+	}
+
+	if !strings.Contains(string(fake.Files[dropIn]), "requirepass n3w-secret") || fake.EnvValue(passwordKey) != "n3w-secret" {
+		t.Fatal("the drop-in and /etc/pupitre/env must carry the new password all the same")
+	}
+
+	for _, line := range ctx.Output() {
+		if strings.Contains(line, "n3w-secret") || strings.Contains(line, password) {
+			t.Fatalf("secret in output: %s", line)
+		}
+	}
+}
+
+// The port is the one thing CONFIG SET cannot move: a new port restarts the server, as before.
+func TestANewPortStillRestartsTheServer(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	run(t, newContext(t, fake, values))
+	restarts := fake.Restarts[unit]
+
+	ctx := reconfigure(t, fake, modtest.Values{"port": 6380, "persistence": true, "maxmemory_mb": 0}, password)
+
+	if statuses(ctx)["apply-config"] != contract.StepSkip || fake.Restarts[unit] != restarts+1 {
+		t.Fatalf("a new port needs the restart: %v, restarts %d", statuses(ctx), fake.Restarts[unit]-restarts)
+	}
+}
+
+// A server that refuses the live settings is restarted instead: the drop-in on disk is what it reads then.
+func TestARefusedLiveApplyFallsBackOnTheRestart(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	run(t, newContext(t, fake, values))
+	restarts := fake.Restarts[unit]
+	fake.Replies["redis-cli -p 6379 --no-auth-warning"] = "OK\n(error) ERR Unsupported CONFIG parameter\n"
+
+	ctx := reconfigure(t, fake, values, "n3w-secret")
+
+	if statuses(ctx)["apply-config"] != contract.StepSkip || fake.Restarts[unit] != restarts+1 {
+		t.Fatalf("the restart must follow a refusal: %v, restarts %d", statuses(ctx), fake.Restarts[unit]-restarts)
+	}
+}
+
 func TestFailedStepReportsItsReplayCommand(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.FailPackage(pkg, "E: Unable to locate package redis-server")

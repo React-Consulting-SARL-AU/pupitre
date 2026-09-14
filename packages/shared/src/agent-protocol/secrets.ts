@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { RequestIdSchema } from "./envelope"
 import { ProjectEnvResultSchema } from "./projects"
-import { ProjectNameSchema } from "./state"
+import { ProcessIdSchema, ProjectNameSchema } from "./state"
 
 export const SecretKeySchema = z.string().regex(/^[A-Z][A-Z0-9_]*$/)
 
@@ -29,6 +29,7 @@ export type SecretEvent = z.infer<typeof SecretEventSchema>
 
 export const SecretsSyncParamsSchema = z.strictObject({
   project: ProjectNameSchema,
+  process: ProcessIdSchema.optional(),
 })
 
 export type SecretsSyncParams = z.infer<typeof SecretsSyncParamsSchema>

@@ -128,6 +128,26 @@ func TestWithoutAlwaysOnTheGatewayIsACommand(t *testing.T) {
 	}
 }
 
+// The gateway reads the providers at start: a key rotated on disk is only in force once it has restarted.
+func TestARotatedProviderKeyRestartsTheGateway(t *testing.T) {
+	fake := machine()
+	run(t, fake, modtest.Values{"always_on": true})
+	fake.Restarts = map[string]int{}
+
+	ctx := modtest.NewContext(t, fake, modtest.Options{
+		Manifest: manifest(),
+		Values:   modtest.Values{"always_on": true},
+		Secrets:  modtest.Secrets{"providers.0": "openai:sk-rotated", "providers.1": "anthropic:" + anthropicKey},
+	})
+	if err := (Module{}).Configure(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if fake.Restarts[Unit] != 1 || !strings.Contains(string(fake.Files[envPath]), "sk-rotated") {
+		t.Fatalf("the gateway must restart on the new key: restarts=%d\n%s", fake.Restarts[Unit], fake.Files[envPath])
+	}
+}
+
 func TestReplayMutatesNothing(t *testing.T) {
 	fake := machine()
 	run(t, fake, modtest.Values{"always_on": true})
