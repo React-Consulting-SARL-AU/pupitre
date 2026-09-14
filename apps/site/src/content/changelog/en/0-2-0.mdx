@@ -1,0 +1,63 @@
+---
+title: A project holds its processes, and twelve more modules
+description: A project declares the processes that run in it, the catalogue goes from twenty-five to thirty-seven modules, the app says which account each CLI is signed into, and a reconfigured service is no longer reinstalled.
+locale: en
+version: 0.2.0
+channel: stable
+date: 2026-09-14
+order: 4
+---
+
+A project is a repository or a folder, and it now holds what runs in it: one process or several, each in its own window with its own port and journal. Around that, twelve modules join the catalogue, the app knows which account each CLI is signed into, and replaying a service's configuration changes what changed and nothing else. The protocol between the app and the agent changes shape with this version: see the known limits.
+
+## The app
+
+### Projects
+
+- A project's page shows its processes, each with its state, its port, its address, its journal, and start, stop and restart. A repository that holds a Grails server and a React client is one project with two processes; the project is `partial` when only some of them run.
+- Adding a project declares a list of processes, and detection proposes one per folder that carries its own manifest — a `package.json`, a `pyproject.toml`, a `gradlew` — the servers of a Gradle build included. A Turborepo stays one process with one route per workspace. Configuring a project later edits the same list; a process that leaves the list is stopped, one that joins it is declared, not started.
+- Reading a repository at add time no longer downloads it whole: only the files detection reads are fetched, so a repository heavy with images or history costs what an empty one does. The sources are pulled first, the dependencies installed second, and the screen says which of the two is running.
+- A start script that pins a `.localhost` name in its `--host` is read as such, and the server makes that name answer: a development server bound to it no longer waits on a name nothing resolves.
+- A followed journal holds its own channel. Applying a service's form while its journal is open beside it no longer waits for the journal to close.
+
+### Accounts and connections
+
+- Under every service whose CLI signs into an account — Claude Code, Codex, `gh`, `op`, `neonctl`, Wrangler, the VS Code tunnel — the app says whether it is signed in and as whom, asked of the CLI itself. When it is not, the way to sign in is shown as the CLI gave it.
+- A Cloudflare token that opens several accounts asks which one to act on; the domain of an exposure is picked among that account's zones instead of typed. The token now needs a third permission, Account · Account Settings · Read, so the app can read which account it opens; a token without it is refused with the permission named.
+- Wrangler has its own Cloudflare connection: a second token of the same account, with deployment rights and none over your tunnels or your domain, because this one goes to the server.
+- Three connections more — Vercel, Supabase and Stripe — verified with the provider when entered, and handed to the CLI of their module on the server.
+- Changing the domain of an exposure moves every published name with it: the routes of the projects are rewritten under the new domain, and the app only removes the DNS records it wrote. A name already held by a record Pupitre did not write is refused, with the record named.
+- Without a subscription, the app says so on its first screen and points to the console to choose a plan, instead of failing later on install.
+- A server granted by your organisation is one entry in the list, with the console's word on it and the organisation's name, not a list of its own.
+
+### Everywhere
+
+- The file editor finds and replaces — ⌘F or Ctrl+F — with match case, whole word and regular expressions, and goes to a line.
+- Every icon button explains itself on hover.
+- The sign-in address a CLI prints in a terminal is found again even when tmux strips the link or folds it across two rows, so the browser opens on the right page.
+- The trial: a monthly or yearly period chosen on the start screen, with the price after the trial next to it.
+- Every screen is composed of the same sections and panels, with the same header — the context above, the thing below — and confirmations go through the same dialog.
+
+## The agent
+
+- Twelve modules join the catalogue, now thirty-seven. Agents: Cursor CLI, OpenCode, Gemini CLI, GitHub Copilot CLI and OpenClaw, each opened in the project's folder with the machine's context and the Pupitre skills. Tools: Wrangler, Vercel, Supabase and Stripe, each reading its token from the connection. Tailscale joins the machine to your tailnet by a key you type, and coexists with Caddy or the tunnel; the "everything" preset carries it. Rust by mise, with `~/.cargo/bin` on the `PATH`. Mailpit as a service under `dev`, SMTP and interface on the loopback.
+- Node 24, the active LTS, is the default of the Node.js module; a machine set to 22 keeps its choice. OpenClaw needs 24 and says so before installing anything.
+- Replaying a module's configuration no longer reinstalls it. Redis takes new values through `CONFIG SET` without a restart, so a cache keeps what it holds; VS Code and Zed keep their remote server until an upgrade; Caddy closes the firewall rule of a port that moved; Tailscale changes its hostname and SSH setting on a joined node without a second key; a rotated GitHub token reconnects `gh`; 1Password only rechecks the vaults on a new token; Hermes and OpenClaw restart when a key changes. Docker keeps its containers running when its daemon restarts.
+- Each process runs in its own tmux window, `<project>/<process>`, and writes its own journal. The `dev` command names the process after the project — `dev up intranet server`, `dev logs intranet client` — and a project of one process leaves it out.
+- Existing projects are migrated to this shape by the agent's numbered migration, debug ports included; nothing is reinstalled.
+
+## The platform
+
+- The address a sign-in returns to stays on the console: anything pointing elsewhere is dropped.
+- The platform's emails render the same in every client, Gmail included: one light theme, no style a client might discard.
+
+## The site
+
+- The VPS page says to look at the CPU as well: one slow core degrades the experience more than a little memory does.
+
+## Known limits
+
+- The protocol between the app and the agent changes with this version: the app 0.2.0 drives agents 0.2.0 and later. A server still on 0.1.x refuses the app until its agent is updated from the banner, which migrates its projects in the same gesture.
+- A Cloudflare connection made before this version carries a token without Account · Account Settings · Read: add the permission to the token on the Cloudflare dashboard, then connect it again.
+- Gemini CLI and GitHub Copilot CLI have no command that says who holds the session without spending a request: the app shows no account for them.
+- The Windows installer is still unsigned: SmartScreen warns at first launch.
