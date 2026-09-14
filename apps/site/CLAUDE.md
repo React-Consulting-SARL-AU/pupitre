@@ -4,7 +4,7 @@
 
 ## Stack imposée
 
-Astro 5 statique, servi par un Worker Cloudflare à assets statiques (`wrangler.jsonc`, un Worker par environnement, `worker/index.ts` ne fait que renvoyer `www` vers l'apex) · Tailwind 4 sur `@pupitre/design` · MDX pour docs, blog, changelog, légal · i18n par dossier, anglais en `/`, français en `/fr` · pas de framework client hors îlots ciblés · images AVIF et WebP à quatre largeurs avec dimensions intrinsèques.
+Astro 5 statique, servi par un Worker Cloudflare à assets statiques (`wrangler.jsonc`, un Worker par environnement, `worker/index.ts` ne fait que renvoyer `www` vers l'apex) · Tailwind 4 sur `@pupitre/design` · MDX pour docs, blog, légal · i18n par dossier, anglais en `/`, français en `/fr` · pas de framework client hors îlots ciblés · images AVIF et WebP à quatre largeurs avec dimensions intrinsèques.
 
 **Banned** : bibliothèques de composants, animations de fond, illustrations, icônes décoratives, couleurs en dur, toute chaîne en dur hors `src/content`.
 
@@ -21,10 +21,10 @@ Astro 5 statique, servi par un Worker Cloudflare à assets statiques (`wrangler.
 ## Architecture
 
 ```
-src/pages/       index · pricing · download · docs/** · blog/** · changelog · legal/** · og/[...slug].png · llms.txt · 404 · fr/**
-src/content/     docs/{en,fr} · blog/ · changelog/ · legal/ (MDX) · site/ (accueil, tarifs, téléchargement, catalogue, doc des modules) · ui/ (chaînes d'interface)
+src/pages/       index · pricing · download · integrations · docs/** · blog/** · legal/** · og/[...slug].png · llms.txt · 404 · fr/**
+src/content/     docs/{en,fr} · blog/ · legal/ (MDX) · changelog/ (MDX, notes de version lues par la chaîne de release, jamais rendues) · site/ (accueil, tarifs, téléchargement, intégrations, catalogue, doc des modules) · ui/ (chaînes d'interface)
 src/layouts/     Base · Docs · Post
-src/components/  Nav · Footer · Hero · Steps · Section · PageHeader · Card·like (Feature, Claim) · Pricing · Download · Docs* · Callout · ProductShot · StatusMark · Analytics
+src/components/  Nav · Footer · Hero · Steps · Section · PageHeader · Card·like (Feature, Claim) · Pricing · Download · Integrations · Docs* · Callout · ProductShot · StatusMark · Analytics
 src/lib/         releases.ts · docs.ts · docs-entries.ts · og.ts · og-pages.ts · feeds.ts · platform.ts · analytics.ts · i18n.ts · theme.ts · seo.ts · structured-data.ts
 src/assets/fonts Bricolage et JetBrains Mono, lues au build pour les images Open Graph seulement
 scripts/         check-content.ts (parité, mots interdits) · legal.ts (garde des TODO légaux, intégration Astro) · redirects.ts (chaque page de premier niveau a sa redirection)
@@ -34,7 +34,9 @@ public/          robots.txt · _headers · _redirects · favicons et manifeste, 
 
 Le design vit dans `src/styles/global.css` : des `@utility` Tailwind 4 posées sur les tokens de `@pupitre/design` (`shell`, `card`, `card-link`, `eyebrow`, `tag`, `mark-dot`, `prose`, `display-1`…). Un composant n'écrit jamais une valeur de couleur, de rayon ou d'ombre.
 
-Les pages des modules du catalogue sont **générées** depuis `src/content/site/catalog.ts` et `src/content/site/module-docs.ts` : une route `docs/services/[module]` par langue, jamais un fichier MDX par module.
+Les pages des modules du catalogue sont **générées** depuis `src/content/site/catalog.ts` et `src/content/site/module-docs.ts` : une route `docs/services/[module]` par langue, jamais un fichier MDX par module. `catalog.ts` suit les catégories et l'ordre de `MODULE_CATEGORIES` dans `@pupitre/shared/catalog`, ceux de l'app desktop : la page `/integrations`, l'index de la doc et sa barre latérale regroupent les services par ces catégories.
+
+Le site n'a pas de page changelog : `src/content/changelog/` reste la source des notes de version de la chaîne de release (voir [`docs/monorepo.md`](../../docs/monorepo.md#le-changelog)), sans collection Astro ni route.
 
 Deux variables de build, absentes en local : `PUBLIC_RELEASES_URL` (liste des releases, sinon le fallback statique et un avertissement) et `PUBLIC_POSTHOG_KEY` (sans elle, aucun analytics et aucun bandeau de consentement).
 

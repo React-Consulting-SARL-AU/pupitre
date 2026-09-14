@@ -44,7 +44,9 @@ const inputId = `docs-search-${id}`
       ...(nav?.querySelectorAll<HTMLAnchorElement>("[data-docs-link]") ?? []),
     ]
     const groups = [
-      ...(nav?.querySelectorAll<HTMLElement>("[data-docs-group]") ?? []),
+      ...(nav?.querySelectorAll<HTMLElement>(
+        "[data-docs-group], [data-docs-subgroup]"
+      ) ?? []),
     ]
 
     input?.addEventListener("input", () => {

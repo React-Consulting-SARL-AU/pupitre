@@ -12,7 +12,7 @@ export const fr: Dictionary = {
   "nav.pricing": "Tarifs",
   "nav.download": "Télécharger",
   "nav.blog": "Blog",
-  "nav.changelog": "Changelog",
+  "nav.integrations": "Intégrations",
   "nav.cta": "Créer un compte",
   "nav.menu": "Menu",
   "nav.menuClose": "Fermer",
@@ -73,19 +73,6 @@ export const fr: Dictionary = {
   "blog.back": "Tous les articles",
   "blog.reading": "Temps de lecture",
   "blog.empty": "Rien de publié pour l’instant.",
-
-  "changelog.label": "Changelog",
-  "changelog.title": "Changelog — Pupitre",
-  "changelog.description":
-    "Chaque version de l’app Pupitre et de l’agent, ce qui change et ce que cela signifie pour votre serveur.",
-  "changelog.headline": "Une entrée par version.",
-  "changelog.lead":
-    "Ce qui change dans l’app, ce qui change dans l’agent, et ce que vous avez à faire.",
-  "changelog.beta": "Bêta",
-  "changelog.stable": "Stable",
-  "changelog.rss": "RSS",
-  "changelog.empty": "Aucune version publiée.",
-  "changelog.download": "Télécharger cette version",
 
   "legal.label": "Légal",
   "legal.title": "Légal — Pupitre",

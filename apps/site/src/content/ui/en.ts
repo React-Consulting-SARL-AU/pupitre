@@ -10,7 +10,7 @@ export const en = {
   "nav.pricing": "Pricing",
   "nav.download": "Download",
   "nav.blog": "Blog",
-  "nav.changelog": "Changelog",
+  "nav.integrations": "Integrations",
   "nav.cta": "Create an account",
   "nav.menu": "Menu",
   "nav.menuClose": "Close",
@@ -70,19 +70,6 @@ export const en = {
   "blog.back": "All posts",
   "blog.reading": "Reading time",
   "blog.empty": "Nothing published yet.",
-
-  "changelog.label": "Changelog",
-  "changelog.title": "Changelog — Pupitre",
-  "changelog.description":
-    "Every release of the Pupitre desktop app and of the agent, with what changed and what it means for your server.",
-  "changelog.headline": "One entry per release.",
-  "changelog.lead":
-    "What changed in the app, what changed in the agent, and what you have to do about it.",
-  "changelog.beta": "Beta",
-  "changelog.stable": "Stable",
-  "changelog.rss": "RSS",
-  "changelog.empty": "No release published yet.",
-  "changelog.download": "Download this version",
 
   "legal.label": "Legal",
   "legal.title": "Legal — Pupitre",
