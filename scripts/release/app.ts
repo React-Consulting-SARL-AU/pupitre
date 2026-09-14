@@ -6,7 +6,7 @@ import {
   artefactOf,
   FEEDS,
   feedKey,
-  isBlockmap,
+  isCompanion,
   objectKey,
   signedAppMessage,
 } from "../../apps/desktop/scripts/release-artefacts"
@@ -194,7 +194,7 @@ export async function publishApp(
     }
   }
 
-  for (const file of files.filter(isBlockmap)) {
+  for (const file of files.filter(isCompanion)) {
     await put(
       settings.bucket,
       objectKey(version, file),

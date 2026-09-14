@@ -193,11 +193,13 @@ describe("the app on a system", () => {
     expect(() => systemOfHost("freebsd")).toThrow("freebsd")
   })
 
-  it("stages one system's installers, their blockmaps and its feed, nothing else", () => {
+  it("stages one system's installers, what the updater fetches beside them and its feed, nothing else", () => {
     const files = [
       "builder-debug.yml",
       "Pupitre-0.1.0-arm64.dmg",
       "Pupitre-0.1.0-arm64.dmg.blockmap",
+      "Pupitre-0.1.0-arm64.zip",
+      "Pupitre-0.1.0-arm64.zip.blockmap",
       "latest-mac.yml",
       "latest.yml",
       "mac-arm64",
@@ -209,6 +211,8 @@ describe("the app on a system", () => {
     expect(publishable("macos", files)).toEqual([
       "Pupitre-0.1.0-arm64.dmg",
       "Pupitre-0.1.0-arm64.dmg.blockmap",
+      "Pupitre-0.1.0-arm64.zip",
+      "Pupitre-0.1.0-arm64.zip.blockmap",
       "latest-mac.yml",
     ])
     expect(publishable("windows", files)).toEqual([
