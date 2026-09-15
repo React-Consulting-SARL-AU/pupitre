@@ -17,7 +17,9 @@ type Context struct {
 	manifest contract.Manifest
 	values   map[string]any
 	secrets  map[string]string
-	run      *run
+	// What the server already applied for this module, when it is installed.
+	held map[string]any
+	run  *run
 
 	steps  []contract.ReportStep
 	failed bool
@@ -101,7 +103,16 @@ func (c *Context) String(key string) string {
 }
 
 func (c *Context) Int(key string) int {
-	switch value := c.Value(key).(type) {
+	return asInt(c.Value(key))
+}
+
+// Held answers the value the installed module runs on, or nil when the server never applied one.
+func (c *Context) Held(key string) any {
+	return c.held[key]
+}
+
+func asInt(value any) int {
+	switch value := value.(type) {
 	case int:
 		return value
 	case int64:

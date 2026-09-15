@@ -20,9 +20,10 @@ changes nothing, and the app marks the field rather than failing on step four.
 */
 
 // PortTaken names a port field whose value another program already listens on. The remedy carries a free port so the screen can offer it.
+// The port the installed module itself holds is not another program's: a change to any other field keeps it.
 func PortTaken(ctx *Context, key string) *contract.FieldProblem {
 	port := ctx.Int(key)
-	if port <= 0 || !net.Listening(ctx).Has(port) {
+	if port <= 0 || port == asInt(ctx.Held(key)) || !net.Listening(ctx).Has(port) {
 		return nil
 	}
 
