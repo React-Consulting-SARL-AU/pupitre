@@ -32,7 +32,18 @@ var (
 	runsScript = regexp.MustCompile(`^(?:bun|pnpm|npm|yarn)(?: run)? ([\w:.-]+)$`)
 	hostFlag   = regexp.MustCompile(`--host[= ]((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+localhost)(?:\s|$)`)
 	viteServer = regexp.MustCompile(`port\s*:\s*(\d{2,5})`)
+
+	// server.port as YAML nests it, or as a properties file writes it.
+	yamlServerPort       = regexp.MustCompile(`(?m)^server:\s*\n(?:[ \t]+.*\n)*?[ \t]+port:\s*['"]?(\d{2,5})`)
+	propertiesServerPort = regexp.MustCompile(`(?m)^\s*server\.port\s*[=:]\s*(\d{2,5})`)
 )
+
+// Where a Spring Boot or a Grails server names its port, under its own folder.
+var serverConfigs = []string{
+	"grails-app/conf/application.yml",
+	"src/main/resources/application.yml",
+	"src/main/resources/application.properties",
+}
 
 var startScripts = []string{"dev", "start", "serve"}
 
@@ -195,16 +206,27 @@ func manifestsAmong(paths []string) []string {
 
 	for _, path := range paths {
 		path = strings.TrimSpace(path)
-		if path == "" || strings.Count(path, "/") >= manifestDepth {
+		if path == "" {
 			continue
 		}
 
-		if manifestNames[path[strings.LastIndex(path, "/")+1:]] {
+		if isServerConfig(path) || (strings.Count(path, "/") < manifestDepth && manifestNames[path[strings.LastIndex(path, "/")+1:]]) {
 			wanted = append(wanted, path)
 		}
 	}
 
 	return wanted
+}
+
+// A server's configuration sits deeper than a manifest, under the build itself or one of its subprojects.
+func isServerConfig(path string) bool {
+	for _, config := range serverConfigs {
+		if path == config || strings.HasSuffix(path, "/"+config) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // The clone's own budget holds for what follows it: a checkout may still fetch a manifest the pack left out.
@@ -325,7 +347,7 @@ func (r *Reader) gradle(files sources, dir, fallback string, taken map[int]bool,
 	var processes []contract.DetectedProcess
 
 	if files.bootable("") {
-		processes = append(processes, r.gradleProcess(dir, uniqueLabel(fallback, ids), "", taken))
+		processes = append(processes, r.gradleProcess(files, dir, uniqueLabel(fallback, ids), "", taken))
 	}
 
 	for _, subproject := range files.subprojects() {
@@ -333,14 +355,14 @@ func (r *Reader) gradle(files sources, dir, fallback string, taken map[int]bool,
 			continue
 		}
 
-		processes = append(processes, r.gradleProcess(dir, uniqueLabel(subproject, ids), subproject, taken))
+		processes = append(processes, r.gradleProcess(files, dir, uniqueLabel(subproject, ids), subproject, taken))
 	}
 
 	return processes
 }
 
-func (r *Reader) gradleProcess(dir, id, subproject string, taken map[int]bool) contract.DetectedProcess {
-	port := r.freePort(0, taken)
+func (r *Reader) gradleProcess(files sources, dir, id, subproject string, taken map[int]bool) contract.DetectedProcess {
+	port := r.freePort(files.serverPort(subproject), taken)
 	taken[port] = true
 
 	return contract.DetectedProcess{
@@ -365,6 +387,32 @@ func (s sources) bootable(subproject string) bool {
 	}
 
 	return bootable.MatchString(s.read(build))
+}
+
+// The port a server declares for itself, which its client is written against: 0 when its configuration names none.
+func (s sources) serverPort(subproject string) int {
+	prefix := ""
+	if subproject != "" {
+		prefix = strings.ReplaceAll(subproject, ":", "/") + "/"
+	}
+
+	for _, config := range serverConfigs {
+		text := s.read(prefix + config)
+		if text == "" {
+			continue
+		}
+
+		pattern := yamlServerPort
+		if strings.HasSuffix(config, ".properties") {
+			pattern = propertiesServerPort
+		}
+
+		if match := pattern.FindStringSubmatch(text); match != nil {
+			return atoi(match[1])
+		}
+	}
+
+	return 0
 }
 
 func (s sources) subprojects() []string {

@@ -17,7 +17,7 @@ import { translate } from "@renderer/i18n/translate";
 import type { AgentError, AgentResponse } from "@shared/agent";
 import type { GithubRepo } from "@shared/github";
 import { create } from "zustand";
-import { agentCall } from "../lib/agent-call";
+import { agentCall, agentPoll } from "../lib/agent-call";
 import {
   FIRST_PORT,
   folderFromSource,
@@ -63,6 +63,21 @@ import { useTunnel } from "./tunnel";
 const LOG_KEPT = 500;
 
 const TAIL = 200;
+
+const SETTLE_POLL_MS = 2000;
+
+/**
+ * How many reads a start is given to leave "starting" — a minute at the pace
+ * above. A Grails server takes longer and is not a failure: past that, the
+ * screen goes on and its outcome keeps following the state the server reports.
+ */
+export const SETTLE_READS = 30;
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
 
 const PROJECT_NAME = /^[a-z0-9][a-z0-9._-]*$/;
 
@@ -226,6 +241,8 @@ interface ProjectAddStore {
   phases: Phase[];
   logs: string[];
   run: ProjectAddState;
+  /** The pace of the reads that follow a start, shortened by the tests. */
+  settleMs: number;
 
   prepare: (serverId: string, exposure: Exposure | null) => Promise<void>;
   setKind: (kind: SourceKind) => void;
@@ -639,11 +656,45 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
   const IDLE_STATES: readonly ProjectState[] = ["failed", "stopped", "down"];
 
   /**
-   * The start, and the state the agent gives right after it.
+   * The state once the start has settled: the port bound, or the command gone.
+   *
+   * `project.up` answers the moment the window opens, which is always
+   * "starting" for a server worth the name. What follows is read off the
+   * machine on the dashboard's beat, until the state moves or the reads run
+   * out; a read that fails keeps the last state known.
+   */
+  async function settle(
+    serverId: string,
+    name: string,
+    initial: ProjectState
+  ): Promise<ProjectState> {
+    let state = initial;
+
+    for (let read = 0; read < SETTLE_READS && state === "starting"; read++) {
+      await delay(get().settleMs);
+
+      const answer = await agentPoll<ProjectListResult>(
+        serverId,
+        "project.list"
+      );
+
+      if (answer.ok) {
+        state =
+          answer.result.projects.find((project) => project.name === name)
+            ?.state ?? state;
+      }
+    }
+
+    return state;
+  }
+
+  /**
+   * The start, and the state the project settles on after it.
    *
    * A command that dies on the spot leaves a project the agent calls stopped
-   * rather than an error, so the state is read as well as the envelope — and
-   * either way the journal is fetched before the screen says anything.
+   * or failed rather than an error, so the state is read as well as the
+   * envelope — and either way the journal is fetched before the screen says
+   * anything.
    */
   async function bringUp(
     serverId: string,
@@ -660,7 +711,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       return null;
     }
 
-    const { state } = started.result;
+    const state = await settle(serverId, name, started.result.state);
 
     if (IDLE_STATES.includes(state)) {
       await readLogs(serverId, name);
@@ -814,6 +865,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     phases: pending(),
     repos: { status: "idle" },
     run: { status: "idle" },
+    settleMs: SETTLE_POLL_MS,
 
     async prepare(serverId, exposure) {
       set({

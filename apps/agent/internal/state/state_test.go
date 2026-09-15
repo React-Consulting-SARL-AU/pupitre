@@ -156,6 +156,48 @@ func TestAddThenUpBringsTheProjectOnlineAndDownStopsIt(t *testing.T) {
 	}
 }
 
+func TestACommandThatDiedReadsAsFailedUntilItIsStoppedOrStartedAgain(t *testing.T) {
+	fake, reader := fixture(t)
+
+	if _, err := reader.Add(declared("api", 5173, "bun run dev --port 5173")); err != nil {
+		t.Fatal(err)
+	}
+
+	up, err := reader.Up("api", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if up.State != contract.ProjectStarting {
+		t.Fatalf("a command that has not bound its port yet is starting, got %s", up.State)
+	}
+
+	fake.Dies("api/api", 1)
+	got := projectOf(t, reader.Snapshot().Projects, "api")
+	if got.State != contract.ProjectFailed || processOf(t, got, "api").PID != 0 {
+		t.Fatalf("a dead command is a failure with no pid: %+v", got)
+	}
+
+	again, err := reader.Up("api", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.State != contract.ProjectStarting {
+		t.Fatalf("up must replace the corpse and start again, got %s", again.State)
+	}
+
+	fake.Dies("api/api", 0)
+	down, err := reader.Down("api", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if down.State != contract.ProjectStopped {
+		t.Fatalf("down must close a dead window, got %s", down.State)
+	}
+	if _, open := fake.Windows["api/api"]; open {
+		t.Fatalf("the corpse must be gone: %v", fake.Mutations)
+	}
+}
+
 func TestSnapshotAnswersUnderThreeHundredMillisecondsWithTenProjects(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	machine(fake)

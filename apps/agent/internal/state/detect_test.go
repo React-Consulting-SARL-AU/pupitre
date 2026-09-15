@@ -127,6 +127,54 @@ func TestDetectProposesOneProcessPerFolderThatAsksForOne(t *testing.T) {
 	}
 }
 
+// A Grails or Spring Boot server names its port in its own configuration, and its client proxies to that port: the detection keeps it when it is free.
+func TestDetectKeepsThePortAServerDeclaresInItsConfiguration(t *testing.T) {
+	reader := detectFixture(t, map[string]string{
+		"gradlew":                                "#!/bin/sh\n",
+		"settings.gradle":                        "include 'client', 'server'\n",
+		"server/build.gradle":                    "plugins { id \"org.grails.grails-web\" }\n",
+		"server/grails-app/conf/application.yml": "grails:\n  profile: web\nserver:\n  port: 8081\n\nspring:\n  main:\n    banner-mode: 'off'\n",
+		"client/package.json":                    `{"name":"client","scripts":{"dev":"vite --host 127.0.0.1"}}`,
+		"client/pnpm-lock.yaml":                  "lockfileVersion: '9.0'\n",
+		"client/vite.config.ts":                  "export default { server: { port: 3001, proxy: { '/api': 'http://localhost:8081' } } }\n",
+	})
+
+	detected, err := reader.Detect("", "candidate", "")
+	if err != nil {
+		t.Fatalf("detect: %v", err)
+	}
+
+	if len(detected.Processes) != 2 {
+		t.Fatalf("got %d processes: %+v", len(detected.Processes), detected.Processes)
+	}
+
+	server := detected.Processes[0]
+	if server.ID != "server" || server.PortHint != 8081 || server.Cmd != "./gradlew :server:bootRun --args='--server.port=8081'" {
+		t.Fatalf("the server keeps the port its configuration names: %+v", server)
+	}
+
+	if client := detected.Processes[1]; client.PortHint != 3001 || client.Cmd != "pnpm dev --port 3001" {
+		t.Fatalf("the client keeps its own port, which the server no longer takes: %+v", client)
+	}
+}
+
+func TestDetectReadsASpringBootPortFromItsProperties(t *testing.T) {
+	reader := detectFixture(t, map[string]string{
+		"gradlew":      "#!/bin/sh\n",
+		"build.gradle": "plugins { id 'org.springframework.boot' version '3.3.0' }\n",
+		"src/main/resources/application.properties": "spring.application.name=atlas\nserver.port = 9090\n",
+	})
+
+	detected, err := reader.Detect("", "candidate", "")
+	if err != nil {
+		t.Fatalf("detect: %v", err)
+	}
+
+	if process := only(t, detected); process.PortHint != 9090 || process.Cmd != "./gradlew bootRun --args='--server.port=9090'" {
+		t.Fatalf("unexpected detection: %+v", process)
+	}
+}
+
 func TestDetectProposesTheRootBuildItselfWhenItIsAServer(t *testing.T) {
 	reader := detectFixture(t, map[string]string{
 		"gradlew":      "#!/bin/sh\n",
@@ -385,6 +433,7 @@ func TestDetectFetchesTheManifestsAndNotTheRest(t *testing.T) {
 	write(t, filepath.Join(seed, "apps", "web", "package.json"), `{"name":"@atlas/web","scripts":{"dev":"vite --host atlas.localhost --port 3010"}}`)
 	write(t, filepath.Join(seed, "apps", "web", "src", "main.ts"), "export {}\n")
 	write(t, filepath.Join(seed, "assets", "big.bin"), strings.Repeat("x", 200_000))
+	write(t, filepath.Join(seed, "server", "grails-app", "conf", "application.yml"), "server:\n  port: 8081\n")
 	run(t, seed, "git", "add", "-A")
 	run(t, seed, "git", "commit", "--quiet", "-m", "atlas")
 	run(t, seed, "git", "push", "--quiet", "origin", "main")
@@ -422,6 +471,9 @@ func TestDetectFetchesTheManifestsAndNotTheRest(t *testing.T) {
 		}
 		if strings.Contains(line, "git checkout") && !strings.Contains(line, "apps/web/package.json") {
 			t.Fatalf("the workspace manifests are among them: %s", line)
+		}
+		if strings.Contains(line, "git checkout") && !strings.Contains(line, "server/grails-app/conf/application.yml") {
+			t.Fatalf("a server's own configuration is among them, deeper than a manifest sits: %s", line)
 		}
 	}
 }

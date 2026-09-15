@@ -118,10 +118,22 @@ test.describe("nouveau projet", () => {
           return { ok: true, result: { done: true } };
         });
 
-        answer("project:act", () => ({
-          ok: true,
-          result: { state: "online" },
-        }));
+        // The outcome follows the machine: once started, the snapshot has to
+        // report the project online, as a real read would.
+        answer("project:act", () => {
+          const held = (globalThis as { answers?: Record<string, unknown> })
+            .answers?.snapshot as
+            | { projects: { name: string; state: string }[] }
+            | undefined;
+
+          for (const project of held?.projects ?? []) {
+            if (project.name === "atlas-web") {
+              project.state = "online";
+            }
+          }
+
+          return { ok: true, result: { state: "online" } };
+        });
 
         answer("project:logs", () => ({
           ok: true,

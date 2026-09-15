@@ -46,6 +46,7 @@ type FakeSys struct {
 	Tools      map[string]string
 	Sessions   map[string]bool
 	Windows    map[string]int
+	Dead       map[string]int
 	Binds      map[string]int
 	Listen     map[int]bool
 	Uptimes    map[int]int
@@ -97,6 +98,7 @@ func NewFakeSys() *FakeSys {
 		Tools:      map[string]string{},
 		Sessions:   map[string]bool{},
 		Windows:    map[string]int{},
+		Dead:       map[string]int{},
 		Binds:      map[string]int{},
 		Listen:     map[int]bool{},
 		Uptimes:    map[int]int{},
