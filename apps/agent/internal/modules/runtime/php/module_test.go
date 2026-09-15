@@ -45,10 +45,14 @@ func TestInstallBringsTheHeadersThenPhpAndComposer(t *testing.T) {
 	run(t, ctx)
 
 	commands := strings.Join(fake.Commands(), "\n")
-	for _, want := range []string{"libonig-dev", "(dev) mise use -g -y php@8.4", "(dev) mise use -g -y composer@latest"} {
+	for _, want := range []string{"libgd-dev", "libonig-dev", "(dev) mise use -g -y php@8.4", "(dev) composer --version"} {
 		if !strings.Contains(commands, want) {
 			t.Errorf("command %q not run:\n%s", want, commands)
 		}
+	}
+
+	if strings.Contains(commands, "composer@latest") {
+		t.Errorf("mise no longer carries composer; it must not be traded:\n%s", commands)
 	}
 
 	if !strings.Contains(string(fake.Files[iniPath]), "memory_limit = 512M") {
@@ -60,7 +64,7 @@ func TestInstallBringsTheHeadersThenPhpAndComposer(t *testing.T) {
 	}
 
 	status, err := (Module{}).Status(ctx)
-	if err != nil || !status.Installed || status.Version != "php 8.4 · composer latest" {
+	if err != nil || !status.Installed || status.Version != "php 8.4" {
 		t.Fatalf("status = %+v, %v", status, err)
 	}
 

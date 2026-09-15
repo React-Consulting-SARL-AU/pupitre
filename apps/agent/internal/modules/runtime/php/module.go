@@ -1,14 +1,17 @@
 package php
 
 import (
+	"errors"
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/runtime/mise"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/sys/user"
 )
 
 const (
@@ -19,13 +22,19 @@ const (
 )
 
 // mise builds PHP from source: without these headers the build stops halfway, with a compiler error nobody should have to read.
+// gd, intl and zlib are always configured, and gd links the system libraries when libpng is present — so libgd-dev, libicu-dev
+// and zlib1g-dev are not optional; libpq-dev lets pdo_pgsql build when a database module is on the same machine. A prebuilt
+// binary spares an amd64 host the compile, but an arm64 one always builds, which is where their absence surfaces.
 var buildDependencies = []string{
 	"build-essential", "autoconf", "bison", "re2c", "pkg-config",
 	"libxml2-dev", "libsqlite3-dev", "libcurl4-openssl-dev", "libonig-dev",
 	"libzip-dev", "libssl-dev", "libreadline-dev",
+	"zlib1g-dev", "libgd-dev", "libicu-dev", "libpq-dev",
 }
 
-var tools = []string{"php", "composer"}
+// Only php is a mise tool: composer rides with the php runtime, which lays it
+// down and shims it, and mise no longer carries composer in its registry.
+var tools = []string{"php"}
 
 type Module struct{}
 
@@ -80,9 +89,17 @@ func (Module) Install(ctx *modules.Context) error {
 		})
 	}
 
-	_, err := mise.Add(ctx, "install-composer", "composer", mise.Latest)
+	// mise dropped composer from its registry, and the php runtime already lays
+	// a signature-verified composer beside php with a shim of its own: that is
+	// the composer this server runs, so the step confirms it answers rather than
+	// trading a second one the registry can no longer name.
+	return ctx.Step("install-composer", func() (modules.Outcome, error) {
+		if _, err := user.Run(ctx, shell.User, "composer", "--version"); err != nil {
+			return modules.Failed, errors.New(i18n.T("modules.php.composer_missing"))
+		}
 
-	return err
+		return modules.Skipped, nil
+	})
 }
 
 func (Module) Configure(ctx *modules.Context) error {
