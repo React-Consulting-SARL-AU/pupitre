@@ -90,4 +90,56 @@ describe("un appel à la plateforme", () => {
     expect(answer.ok).toBe(false);
     expect(storageDeadline).toBeGreaterThan(200);
   });
+
+  /**
+   * The storage answers with S3's XML, never with the console's envelope: a
+   * refusal there is the storage's, and it is named — not laid on the console
+   * with an invitation to sign in again.
+   */
+  it("nomme le stockage qui refuse le binaire, avec sa raison", async () => {
+    const refusing = ((input: unknown) => {
+      if (String(input).includes("/releases/agent/")) {
+        return Promise.resolve(
+          new Response(null, {
+            headers: {
+              location: "https://storage.example/pupitred",
+              "x-pupitre-release-storage": "r2",
+            },
+            status: 303,
+          })
+        );
+      }
+
+      return Promise.resolve(
+        new Response(
+          '<?xml version="1.0" encoding="UTF-8"?><Error><Code>InvalidArgument</Code><Message>Credential access key has length 35, should be 32</Message></Error>',
+          { status: 400, headers: { "content-type": "application/xml" } }
+        )
+      );
+    }) as unknown as typeof fetch;
+
+    const platform = createPlatformClient({
+      baseUrl: "https://app.pupitre.studio",
+      fetch: refusing,
+    });
+
+    const answer = await platform.downloadRelease("jeton", "1.2.3", "amd64");
+
+    expect(answer).toEqual({
+      ok: false,
+      error: {
+        code: "release_not_found",
+        message: "refusal.release.storage",
+        phrase: {
+          id: "refusal.release.storage",
+          values: {
+            detail:
+              "InvalidArgument: Credential access key has length 35, should be 32",
+            status: 400,
+            version: "1.2.3",
+          },
+        },
+      },
+    });
+  });
 });
