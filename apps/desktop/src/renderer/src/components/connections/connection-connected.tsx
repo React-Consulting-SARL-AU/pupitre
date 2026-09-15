@@ -89,7 +89,7 @@ export function ConnectionConnected({
           )}
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
           {connection.named ? (
             <Button
               loading={health?.status === "checking"}
