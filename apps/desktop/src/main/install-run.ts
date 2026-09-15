@@ -92,19 +92,41 @@ export function sendEnrolment(
 }
 
 /**
+ * How a cut enrolment is picked back up: the same token is sent again on a
+ * fresh channel, a few times, a short wait apart.
+ *
+ * A dropped channel is the one failure worth retrying here — the token was not
+ * refused, the line was, and most cuts fall before the exchange, where the
+ * token is still unspent and the retry trades it cleanly. A cut that fell after
+ * the exchange leaves a token already spent: the retry is refused as used, and
+ * the machine — enrolled all the same — is mended by a fresh add, which asks the
+ * platform for a new token of its own.
+ */
+export interface EnrolRetry {
+  attempts: number;
+  delayMs: number;
+  sleep: (ms: number) => Promise<void>;
+}
+
+const ENROL_RETRY: EnrolRetry = {
+  attempts: 4,
+  delayMs: 2000,
+  sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+};
+
+/**
  * The seat this machine was granted, handed to the agent that will hold it.
  *
- * An enrolment is taken up rather than replayed: a server already carrying an
- * identity says so in its `hello`, which is what an app whose channel dropped
- * between the exchange and its answer reads on the way back. A refusal is
- * reported as it comes — the agent answers a burnt token and a revoked one with
- * the same code, so only the identity can tell the two apart.
- * Nothing granted, nothing to enrol: a development build has no seat to claim.
+ * A channel that drops no longer strands the seat: the enrolment is sent again
+ * on a fresh channel, so a blip on the line is retried rather than abandoned.
+ * Only a drop is retried; a refused token is reported as it comes. Nothing
+ * granted, nothing to enrol: a development build has no seat to claim.
  */
 export async function enrolAgent(
   serverId: string,
   enrollment: EnrollmentSummary | null | undefined,
-  deps: Pick<InstallDeps, "client" | "enrollment" | "identity">
+  deps: Pick<InstallDeps, "client" | "enrollment" | "identity">,
+  retry: EnrolRetry = ENROL_RETRY
 ): Promise<AgentResponse<EnrollResult | null>> {
   const granted = enrollment ? deps.enrollment(enrollment.serverId) : null;
 
@@ -116,7 +138,19 @@ export async function enrolAgent(
     return { ok: true, result: null };
   }
 
-  return await sendEnrolment(serverId, granted, deps.client);
+  let answer = await sendEnrolment(serverId, granted, deps.client);
+
+  for (
+    let left = retry.attempts;
+    left > 0 && !answer.ok && answer.error.code === "disconnected";
+    left -= 1
+  ) {
+    await retry.sleep(retry.delayMs);
+
+    answer = await sendEnrolment(serverId, granted, deps.client);
+  }
+
+  return answer;
 }
 
 /**
