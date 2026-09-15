@@ -272,7 +272,7 @@ func TestMailpitCatchesMailOnTheLoopback(t *testing.T) {
 	host := stagingHost(t)
 	dev := "dev@" + address(host)
 
-	first := agent(t, host, request{Cmd: "install", Params: map[string]any{"modules": []string{"db.mailpit"}}})[0]
+	first := agent(t, host, request{Cmd: "install", Params: map[string]any{"modules": []string{"db.mailpit"}, "config": map[string]any{}, "secrets_stdin": false}})[0]
 	if result := decode[contract.InstallResult](t, first.Result); len(result.Failed) != 0 {
 		t.Fatalf("install failed: %v", result.Failed)
 	}

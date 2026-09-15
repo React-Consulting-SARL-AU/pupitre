@@ -72,13 +72,13 @@ func TestTheConnectedClisLandWithTheirVariables(t *testing.T) {
 
 	for _, tool := range tools {
 		t.Run(tool.id, func(t *testing.T) {
-			secret := os.Getenv(tool.variable)
+			secret := os.Getenv(tool.key)
 			real := secret != ""
 			if !real {
 				secret = "placeholder-s3cret-de-test"
 			}
 
-			install := request{Cmd: "install", Params: map[string]any{"secrets_stdin": true, "modules": []string{tool.id}}}
+			install := request{Cmd: "install", Params: map[string]any{"secrets_stdin": true, "modules": []string{tool.id}, "config": map[string]any{}}}
 			secrets := `{"` + tool.id + `":{"` + tool.field + `":"` + secret + `"}}`
 
 			first := agentWithSecrets(t, host, secrets, install)[0]
@@ -90,8 +90,8 @@ func TestTheConnectedClisLandWithTheirVariables(t *testing.T) {
 				t.Fatalf("the CLI must be on the path of dev:\n%s", out)
 			}
 
-			if out := ssh(t, dev, "zsh", "-c", "'echo $"+tool.key+"'"); !strings.Contains(out, secret) {
-				t.Fatalf("the dev shell must carry %s:\n%s", tool.key, out)
+			if out := ssh(t, dev, "zsh", "-c", "'echo $"+tool.variable+"'"); !strings.Contains(out, secret) {
+				t.Fatalf("the dev shell must carry %s:\n%s", tool.variable, out)
 			}
 
 			status := agent(t, host, request{Cmd: "service.status", Params: map[string]any{"id": tool.id}})[0]
