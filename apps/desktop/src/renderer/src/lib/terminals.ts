@@ -3,13 +3,12 @@ import type { ResolvedTheme } from "@shared/appearance";
 import type { TerminalEnd, TerminalKind } from "@shared/terminals";
 import { FitAddon } from "@xterm/addon-fit";
 import { SearchAddon } from "@xterm/addon-search";
-import { SerializeAddon } from "@xterm/addon-serialize";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
-import { WebLinksAddon } from "@xterm/addon-web-links";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { attach, completionKey, recompute } from "./completion";
 import { isMac } from "./platform";
+import { addressProvider } from "./terminal-links";
 import {
   DEFAULT_TERMINAL_SETTINGS,
   FONT_STACKS,
@@ -111,7 +110,6 @@ interface Live {
   xterm: XTerm;
   fit: FitAddon;
   search: SearchAddon;
-  serialize: SerializeAddon;
   onShortcut: ShortcutHandler | null;
   detach: () => void;
 }
@@ -209,6 +207,7 @@ export function obtain(id: string, kind: TerminalKind): Live {
     cursorBlink: settings.cursorBlink,
     scrollback: settings.scrollback,
     allowProposedApi: true,
+    macOptionClickForcesSelection: true,
     // Without a handler xterm asks with confirm() and opens a window the app denies.
     linkHandler: {
       activate: (_event, uri) => openInBrowser(uri),
@@ -216,20 +215,14 @@ export function obtain(id: string, kind: TerminalKind): Live {
   });
   const fit = new FitAddon();
   const search = new SearchAddon();
-  const serialize = new SerializeAddon();
   xterm.loadAddon(fit);
   xterm.loadAddon(search);
-  xterm.loadAddon(serialize);
   xterm.loadAddon(new Unicode11Addon());
   xterm.unicode.activeVersion = "11";
-  xterm.loadAddon(
-    new WebLinksAddon((event, uri) => {
-      event.preventDefault();
-      openInBrowser(uri);
-    })
-  );
+  xterm.registerLinkProvider(addressProvider(xterm, openInBrowser));
   xterm.open(host);
   drawWithWebgl(xterm);
+  host.addEventListener("mousedown", keepSelectionOurs, true);
 
   // Only a shell gets completion: Claude, Codex and the dashboard handle their
   // own input, and a list on top of theirs would get in the way.
@@ -282,7 +275,6 @@ export function obtain(id: string, kind: TerminalKind): Live {
     xterm,
     fit,
     search,
-    serialize,
     onShortcut: null,
     detach: () => {
       detachData();
@@ -342,6 +334,22 @@ export function fitTerminal(id: string): void {
   }
 }
 
+/**
+ * A drag on the text selects it, whatever the program on the other side asked.
+ *
+ * A full-screen agent turns mouse reporting on for its scrolling, and xterm
+ * then hands every press to it: nothing can be selected or copied until the
+ * program quits. Wheel events still reach it; a press reads as the modifier
+ * xterm takes for "select anyway", on every platform.
+ */
+function keepSelectionOurs(event: MouseEvent): void {
+  if (event.button !== 0 || event.altKey || event.shiftKey) {
+    return;
+  }
+
+  Object.defineProperty(event, isMac ? "altKey" : "shiftKey", { value: true });
+}
+
 export function focus(id: string): void {
   live.get(id)?.xterm.focus();
 }
@@ -374,16 +382,13 @@ export async function paste(id: string): Promise<void> {
   entry.xterm.paste(text);
 }
 
-const ANSI_SEQUENCE =
-  // biome-ignore lint/suspicious/noControlCharactersInRegex: the escape byte is what an ANSI sequence is made of, and stripping it is the point
-  /\u001B(?:\[[0-9;?]*[a-zA-Z]|\][^\u0007]*\u0007|[()][A-Za-z0-9])/g;
-
 /**
- * Everything the session has printed, scrollback included, as plain text.
+ * Everything the screen holds, scrollback included, as plain text.
  *
- * The serialize addon answers with the escape sequences that would redraw the
- * screen; a clipboard wants the words, so the styling is stripped and only the
- * lines stay.
+ * Read off the buffer row by row rather than replayed: a full-screen agent
+ * draws on the alternate screen with cursor moves in place of line breaks,
+ * and a replay stripped of them ran its rows together. A row xterm wrapped
+ * is glued back to the one before it; the blank rows under the last word go.
  */
 export function wholeOutput(id: string): string | null {
   const entry = live.get(id);
@@ -392,9 +397,25 @@ export function wholeOutput(id: string): string | null {
     return null;
   }
 
-  return entry.serialize
-    .serialize({ excludeModes: true })
-    .replace(ANSI_SEQUENCE, "");
+  const buffer = entry.xterm.buffer.active;
+  const lines: string[] = [];
+
+  for (let y = 0; y < buffer.length; y++) {
+    const line = buffer.getLine(y);
+    if (!line) {
+      continue;
+    }
+
+    const text = line.translateToString(true);
+
+    if (line.isWrapped && lines.length > 0) {
+      lines[lines.length - 1] += text;
+    } else {
+      lines.push(text);
+    }
+  }
+
+  return lines.join("\n").trimEnd();
 }
 
 export async function copyWholeOutput(id: string): Promise<void> {
