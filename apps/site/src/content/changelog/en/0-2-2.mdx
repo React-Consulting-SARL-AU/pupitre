@@ -1,0 +1,30 @@
+---
+title: PHP installs, enrolment holds through a cut
+description: The PHP service installs on every architecture, a dropped connection no longer leaves a server in restricted mode, and the site lists every service on an Integrations page.
+locale: en
+version: 0.2.2
+channel: stable
+date: 2026-09-15
+order: 6
+---
+
+Two fixes in the app, one in the agent, and a new page on the site.
+
+## The app
+
+- Enrolling a server now survives a dropped connection. When the channel fell during the enrol command, the app gave up and the server stayed in restricted mode; it now sends the request again on a fresh channel until it goes through, and only a real refusal stops it.
+- A refusal from the release storage is now named for what it is. A 400 from the storage that holds the agent versions showed as "The console refused the request (400)" with "Sign in again" as the fix; the app now reads the storage's own code and message and shows them, with a note that nothing is wrong on your server or your account.
+
+## The agent
+
+- The PHP service installs. mise builds PHP from source, and on arm64 the build stopped on the gd and intl extensions for lack of libgd, libicu and zlib headers; they are now installed first, along with libpq so PDO PostgreSQL builds when a database sits on the same server. composer, which mise no longer carries in its registry, is the one the PHP runtime lays down: the install confirms it answers instead of trying to fetch a second one.
+
+## The site
+
+- The Integrations page lists every service of the catalogue, in the same seven categories and order as the app, each linked to its documentation. The documentation index and its sidebar group services by those same categories.
+- The public changelog page and its RSS feed are gone from the site. The download page still shows the published version.
+
+## Known limits
+
+- A macOS app 0.1.2 or later finds this version on its own; 0.1.0 and 0.1.1 still cannot, and need 0.2.2 installed from the download page.
+- The Windows installer is still unsigned: SmartScreen warns at first launch.

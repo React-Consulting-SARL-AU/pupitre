@@ -39,7 +39,7 @@ func TestInstallCoreOpensDevWithSudo(t *testing.T) {
 		t.Fatalf("sudo -n true printed %q", out)
 	}
 
-	if out := ssh(t, dev, "zsh", "-ic", "echo $PROJECTS_DIR"); !strings.Contains(out, "/home/dev/projects") {
+	if out := ssh(t, dev, "zsh", "-ic", "'echo $PROJECTS_DIR'"); !strings.Contains(out, "/home/dev/projects") {
 		t.Fatalf("zsh must export PROJECTS_DIR: %q", out)
 	}
 
@@ -63,7 +63,7 @@ func TestHardenWithoutKeyKeepsRoot(t *testing.T) {
 		Reason     string `json:"reason"`
 	}](t, resp.Result)
 
-	if result.RootClosed || result.NextUser != "root" || !strings.Contains(result.Reason, "aucune clé") {
+	if result.RootClosed || result.NextUser != "root" || !strings.Contains(result.Reason, "authorized_keys") {
 		t.Fatalf("harden without key = %+v", result)
 	}
 

@@ -736,6 +736,120 @@ describe("un enrôlement repris", () => {
       ok: false,
     });
   });
+
+  const instant = { attempts: 3, delayMs: 0, sleep: () => Promise.resolve() };
+
+  /**
+   * A cut is not a refusal: the enrolment is sent again on a fresh channel, and
+   * the seat is claimed on the attempt the line finally holds.
+   */
+  it("renvoie l'enrôlement quand le canal tombe, jusqu'à ce qu'il passe", async () => {
+    const codes = ["disconnected", "disconnected"];
+
+    const answer = await enrolAgent(
+      "srv-1",
+      {
+        release: { available: true, channel: "stable", version: "0.4.0" },
+        serverId: "plt-1",
+      },
+      {
+        client: {
+          request: () => {
+            const code = codes.shift();
+
+            return Promise.resolve(
+              (code
+                ? { error: { code, message: "coupé" }, ok: false }
+                : {
+                    ok: true,
+                    result: { enrolled: true, entitlement: "valid" },
+                  }) as never
+            );
+          },
+        },
+        enrollment: () => ({
+          platformUrl: "https://app.pupitre.test",
+          token: "enr-1",
+        }),
+        identity: () => null,
+      },
+      instant
+    );
+
+    expect(answer).toEqual({
+      ok: true,
+      result: { enrolled: true, entitlement: "valid" },
+    });
+    expect(codes).toEqual([]);
+  });
+
+  /** A refusal that is not a cut is not retried: it stands as it came. */
+  it("ne réessaie pas un refus qui n'est pas une coupure", async () => {
+    let calls = 0;
+
+    const answer = await enrolAgent(
+      "srv-1",
+      {
+        release: { available: true, channel: "stable", version: "0.4.0" },
+        serverId: "plt-1",
+      },
+      {
+        client: {
+          request: () => {
+            calls += 1;
+
+            return Promise.resolve({
+              error: { code: "entitlement_required", message: "refusé" },
+              ok: false,
+            } as never);
+          },
+        },
+        enrollment: () => ({
+          platformUrl: "https://app.pupitre.test",
+          token: "enr-1",
+        }),
+        identity: () => null,
+      },
+      instant
+    );
+
+    expect(answer).toMatchObject({ error: { code: "entitlement_required" } });
+    expect(calls).toBe(1);
+  });
+
+  /** A channel that never comes back gives up bounded, not for ever. */
+  it("renonce après un nombre borné de coupures", async () => {
+    let calls = 0;
+
+    const answer = await enrolAgent(
+      "srv-1",
+      {
+        release: { available: true, channel: "stable", version: "0.4.0" },
+        serverId: "plt-1",
+      },
+      {
+        client: {
+          request: () => {
+            calls += 1;
+
+            return Promise.resolve({
+              error: { code: "disconnected", message: "coupé" },
+              ok: false,
+            } as never);
+          },
+        },
+        enrollment: () => ({
+          platformUrl: "https://app.pupitre.test",
+          token: "enr-1",
+        }),
+        identity: () => null,
+      },
+      instant
+    );
+
+    expect(answer).toMatchObject({ error: { code: "disconnected" } });
+    expect(calls).toBe(instant.attempts + 1);
+  });
 });
 
 describe("la configuration pesée avant l'installation", () => {

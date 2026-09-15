@@ -32,6 +32,8 @@ export const refusals = {
     "refusal.platform.refused": "The console refused the request ({status}).",
     "refusal.release.unpublished":
       "The console has no downloadable agent for {version}.",
+    "refusal.release.storage":
+      "The release storage refused pupitred {version} ({status} {detail}).",
     "refusal.reach.refused": "Nothing listens on port {port} of {host}.",
     "refusal.reach.unreachable": "{host} is not reachable from this computer.",
     "refusal.reach.timeout": "{host}:{port} did not answer in time.",
@@ -294,6 +296,8 @@ export const refusals = {
     "refusal.terminal.unknown.fix": "Close this tab and open another one.",
     "refusal.release.unpublished.fix":
       "Publish an agent version, or stay on a development build.",
+    "refusal.release.storage.fix":
+      "Nothing is wrong on your server: the platform signs the download address with its storage credentials. Try again later; if it lasts, tell Pupitre.",
     "refusal.port.invalid": "The port has to be a number between 1 and 65535.",
     "refusal.port.invalid.fix": "SSH usually listens on port 22.",
     "refusal.reach.refused.fix":
@@ -388,6 +392,8 @@ export const refusals = {
     "refusal.platform.refused": "La console a refusé la demande ({status}).",
     "refusal.release.unpublished":
       "La console n'a pas d'agent téléchargeable pour {version}.",
+    "refusal.release.storage":
+      "Le stockage des versions a refusé pupitred {version} ({status} {detail}).",
     "refusal.reach.refused": "Rien n'écoute sur le port {port} de {host}.",
     "refusal.reach.unreachable":
       "{host} n'est pas joignable depuis cet ordinateur.",
@@ -662,6 +668,8 @@ export const refusals = {
     "refusal.terminal.unknown.fix": "Fermez cet onglet et ouvre-en un autre.",
     "refusal.release.unpublished.fix":
       "Publiez une version de l'agent, ou restez sur un build de développement.",
+    "refusal.release.storage.fix":
+      "Rien n'est en cause sur votre serveur : la plateforme signe l'adresse de téléchargement avec ses accès au stockage. Réessayez plus tard ; si ça dure, prévenez Pupitre.",
     "refusal.port.invalid": "Le port doit être un nombre entre 1 et 65535.",
     "refusal.port.invalid.fix": "SSH écoute en général sur le port 22.",
     "refusal.reach.refused.fix":

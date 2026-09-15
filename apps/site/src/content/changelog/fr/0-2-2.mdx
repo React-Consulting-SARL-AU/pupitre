@@ -1,0 +1,30 @@
+---
+title: PHP s’installe, l’enrôlement tient malgré une coupure
+description: Le service PHP s’installe sur toutes les architectures, une coupure ne laisse plus un serveur en mode restreint, et le site liste tous les services sur une page Intégrations.
+locale: fr
+version: 0.2.2
+channel: stable
+date: 2026-09-15
+order: 6
+---
+
+Deux correctifs dans l’app, un dans l’agent, et une nouvelle page sur le site.
+
+## L’app
+
+- L’enrôlement d’un serveur résiste désormais à une coupure. Quand le canal tombait pendant la commande d’enrôlement, l’app abandonnait et le serveur restait en mode restreint ; elle renvoie maintenant la demande sur un canal neuf jusqu’à ce qu’elle passe, et seul un vrai refus l’arrête.
+- Un refus du stockage des versions est désormais nommé pour ce qu’il est. Un 400 du stockage qui tient les versions de l’agent s’affichait « La console a refusé la demande (400) » avec « Reconnectez-vous » pour remède ; l’app lit maintenant le code et le message du stockage lui-même et les affiche, en précisant que ni votre serveur ni votre compte ne sont en cause.
+
+## L’agent
+
+- Le service PHP s’installe. mise construit PHP depuis les sources, et sur arm64 la construction s’arrêtait sur les extensions gd et intl faute des en-têtes libgd, libicu et zlib ; ils sont désormais installés avant, avec libpq pour que PDO PostgreSQL se construise quand une base tourne sur le même serveur. composer, que mise ne porte plus dans son registre, est celui que le runtime PHP dépose : l’installation vérifie qu’il répond au lieu d’essayer d’en récupérer un second.
+
+## Le site
+
+- La page Intégrations liste tous les services du catalogue, dans les mêmes sept catégories et le même ordre que l’app, chacun relié à sa documentation. L’index de la documentation et sa barre latérale regroupent les services par ces mêmes catégories.
+- La page de changelog publique et son flux RSS disparaissent du site. La page de téléchargement affiche toujours la version publiée.
+
+## Limites connues
+
+- Une app macOS 0.1.2 ou plus récente trouve cette version seule ; les 0.1.0 et 0.1.1 ne le peuvent toujours pas, et demandent la 0.2.2 installée depuis la page de téléchargement.
+- L’installateur Windows n’est toujours pas signé : SmartScreen avertit au premier lancement.

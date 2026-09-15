@@ -122,7 +122,14 @@ func converse(t *testing.T, host string, requests ...request) []response {
 	go func() {
 		defer stdin.Close()
 		for i, req := range all {
-			line, _ := json.Marshal(map[string]any{"id": i + 1, "cmd": req.Cmd, "params": req.Params})
+			// A command that takes no argument still sends an object: the agent's
+			// params are a closed shape, and a bare null is not one.
+			params := req.Params
+			if params == nil {
+				params = map[string]any{}
+			}
+
+			line, _ := json.Marshal(map[string]any{"id": i + 1, "cmd": req.Cmd, "params": params})
 			fmt.Fprintf(stdin, "%s\n", line)
 
 			if req.Secrets != "" {

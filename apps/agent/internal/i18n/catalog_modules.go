@@ -778,6 +778,10 @@ var moduleCatalog = map[string]Message{
 		FR: "mise.jdx.dev a répondu %q au lieu d'une version",
 		EN: "mise.jdx.dev answered %q instead of a version",
 	},
+	"modules.php.composer_missing": {
+		FR: "PHP est installé mais composer ne répond pas",
+		EN: "PHP is installed but composer does not answer",
+	},
 	"modules.claude.version_unreadable": {
 		FR: "downloads.claude.ai a répondu %q au lieu d'une version",
 		EN: "downloads.claude.ai answered %q instead of a version",
