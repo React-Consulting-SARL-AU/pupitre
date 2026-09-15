@@ -53,8 +53,15 @@ func registerGitProject(t *testing.T, host string) {
 
 	cleanup(t, host, gitProject)
 	agent(t, host, request{Cmd: "project.add", Params: map[string]any{
-		"name": gitProject, "dir": gitProject, "repo": gitOrigin, "pkgmgr": "none",
-		"host": "127.0.0.1", "port": 5500, "cmd": "sleep 3600",
+		"name": gitProject, "dir": gitProject, "repo": gitOrigin,
+		"processes": []map[string]any{{
+			"id":     "web",
+			"pkgmgr": "none",
+			"host":   "127.0.0.1",
+			"port":   5500,
+			"routes": []map[string]any{},
+			"cmd":    "sleep 3600",
+		}},
 	}})
 }
 

@@ -124,7 +124,17 @@ func TestOpeningAnAgentGivesTheTmuxCommand(t *testing.T) {
 	host := stagingHost(t)
 
 	installAgents(t, host)
-	agent(t, host, request{Cmd: "project.add", Params: map[string]any{"name": "fixture", "dir": "fixture", "pkgmgr": "bun", "port": 3100}})
+	agent(t, host, request{Cmd: "project.add", Params: map[string]any{
+		"name": "fixture", "dir": "fixture",
+		"processes": []map[string]any{{
+			"id":     "web",
+			"pkgmgr": "bun",
+			"host":   "127.0.0.1",
+			"port":   3100,
+			"routes": []map[string]any{{"label": "web", "port": 3100}},
+			"cmd":    "bun run dev",
+		}},
+	}})
 
 	opened := agent(t, host, request{Cmd: "agent.open", Params: map[string]any{"kind": "claude", "project": "fixture"}})[0]
 	result := decode[struct {

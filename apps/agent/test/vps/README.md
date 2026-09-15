@@ -180,5 +180,7 @@ réépingle la nouvelle. C'est le comportement voulu ; le premier geste évite d
 - Pas d'adresse publique : les tunnels Cloudflare sortants marchent, une exposition par DNS public non.
 - Redémarrer la machine, c'est `docker compose restart`, pas un vrai `reboot`.
 - Le module `runtime.docker` s'installe, mais son stockage tombe sur `vfs` : le noyau refuse overlay2 au-dessus de l'overlay du conteneur. Lent, et rien à voir avec un vrai VPS.
+- `runtime.rust` échoue : `/tmp` est monté `noexec` (tmpfs du conteneur), et `rustup-init` s'extrait dans `/tmp` puis s'y exécute. Un vrai VPS a un `/tmp` exécutable et l'installe sans broncher.
+- `db.*` en bloc sature le stockage `vfs` (30 min, échecs d'apt sous la contention) alors que chaque base seule s'installe très bien ; le `snapshot` à dix projets dépasse de quelques millisecondes son budget de 300 ms, le temps de la virtualisation OrbStack. Les deux passent sur un vrai VPS.
 
 Pour ce que cette liste couvre, un vrai VPS de staging reste le juge.
