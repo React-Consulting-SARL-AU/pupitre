@@ -1,4 +1,5 @@
 import { ConfirmButton } from "@renderer/components/ui/confirm-button";
+import { CountPill } from "@renderer/components/ui/count-pill";
 import { EmptyState } from "@renderer/components/ui/empty-state";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AccountDevice } from "@shared/account";
@@ -48,9 +49,9 @@ export function AccountDeviceList({
               <p className="truncate text-[13px] text-ink">
                 {device.name}
                 {self ? (
-                  <span className="ml-2 rounded-full border border-line px-1.5 py-0.5 font-data text-[11px] text-ink-3">
+                  <CountPill className="ml-2">
                     {t("account.devices.thisComputer")}
-                  </span>
+                  </CountPill>
                 ) : null}
               </p>
               <p className="truncate font-data text-[11px] text-ink-3">
