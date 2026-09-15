@@ -230,6 +230,31 @@ function failureOf(status: number, payload: unknown): AccountError {
   };
 }
 
+const S3_ERROR_RE = /<Code>([^<]*)<\/Code>(?:.*<Message>([^<]*)<\/Message>)?/s;
+
+/**
+ * The storage refuses in S3's XML, never in the console's envelope. Its code
+ * and message are what say why — a key of the wrong shape, an expired URL —
+ * and the refusal is laid on the storage, not on the account.
+ */
+async function storageRefusal(
+  response: Response,
+  version: string
+): Promise<AccountError> {
+  const body = await response.text().catch(() => "");
+  const [, code, message] = S3_ERROR_RE.exec(body) ?? [];
+  const detail = [code, message].filter(Boolean).join(": ");
+
+  return {
+    code: "release_not_found",
+    message: "refusal.release.storage",
+    phrase: {
+      id: "refusal.release.storage",
+      values: { detail, status: response.status, version },
+    },
+  };
+}
+
 function identityOf(body: MeBody): AccountIdentity {
   return {
     email: body.user.email,
@@ -362,7 +387,7 @@ export function createPlatformClient({
     });
 
     if (!binary.ok) {
-      return { ok: false, error: failureOf(binary.status, null) };
+      return { ok: false, error: await storageRefusal(binary, version) };
     }
 
     return {
