@@ -1,3 +1,4 @@
+import type { ProjectState } from "@pupitre/shared/agent-protocol/state";
 import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { RowProblem } from "@renderer/lib/project-ports";
@@ -42,6 +43,7 @@ export function ProjectAddPanel({
   phases,
   logs,
   run,
+  state,
   ready,
   processProblems,
   rowProblems,
@@ -69,6 +71,8 @@ export function ProjectAddPanel({
   phases: readonly Phase[];
   logs: readonly string[];
   run: ProjectAddState;
+  /** The state the machine reports now, when it has been read since the run ended. */
+  state?: ProjectState;
   ready: boolean;
   processProblems: readonly (ProcessProblem | null)[];
   rowProblems: readonly (readonly (RowProblem | null)[])[];
@@ -165,7 +169,7 @@ export function ProjectAddPanel({
         <ProjectAddOutcome
           name={run.name}
           onOpen={onOpen}
-          state={run.state}
+          state={state ?? run.state}
           url={run.url}
         />
       ) : null}

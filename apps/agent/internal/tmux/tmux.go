@@ -22,6 +22,12 @@ const (
 
 	upMarker   = "=== pupitre up "
 	downMarker = "=== pupitre down "
+
+	// The command travels to its pane in the environment, never through a shell's quoting: what the app declared is what runs.
+	commandKey = "PUPITRE_CMD"
+
+	// A pane that lost its command by a signal has no status; tmux leaves the column blank and this stands for it.
+	signalled = -1
 )
 
 // Only terminal conditions: a healthy Grails spews ERROR lines for minutes, and reading those as a failure would show "failed" on a live project.
@@ -57,9 +63,16 @@ func (o Options) LogPath(window string) string {
 	return o.Resolved().LogDir + "/" + window + ".log"
 }
 
+// A Pane is one window of the session as tmux reports it: the pid its command runs under, or the status that command left when it is dead.
+type Pane struct {
+	PID    int
+	Dead   bool
+	Status int
+}
+
 // One read of the machine for every window: tmux, ss and ps once each, not once per process.
 type Collection struct {
-	Windows   map[string]int
+	Windows   map[string]Pane
 	Listening map[int]bool
 	Uptime    map[int]int
 }
@@ -74,8 +87,10 @@ func Collect(ctx sys.Context, options Options) Collection {
 	}
 
 	pids := make([]string, 0, len(collected.Windows))
-	for _, pid := range collected.Windows {
-		pids = append(pids, strconv.Itoa(pid))
+	for _, pane := range collected.Windows {
+		if !pane.Dead {
+			pids = append(pids, strconv.Itoa(pane.PID))
+		}
 	}
 
 	if len(pids) > 0 {
@@ -85,10 +100,21 @@ func Collect(ctx sys.Context, options Options) Collection {
 	return collected
 }
 
+// Running says the window holds a live command: a dead pane is a window, and runs nothing.
 func (c Collection) Running(window string) bool {
-	_, open := c.Windows[window]
+	pane, open := c.Windows[window]
 
-	return open
+	return open && !pane.Dead
+}
+
+// Exited hands back the status a dead command left, and whether the window is a corpse at all.
+func (c Collection) Exited(window string) (int, bool) {
+	pane, open := c.Windows[window]
+	if !open || !pane.Dead {
+		return 0, false
+	}
+
+	return pane.Status, true
 }
 
 func (c Collection) PortUp(port int) bool {
@@ -96,44 +122,73 @@ func (c Collection) PortUp(port int) bool {
 }
 
 func (c Collection) PID(window string) int {
-	return c.Windows[window]
+	if !c.Running(window) {
+		return 0
+	}
+
+	return c.Windows[window].PID
 }
 
 func (c Collection) Seconds(window string) int {
-	return c.Uptime[c.Windows[window]]
+	return c.Uptime[c.PID(window)]
 }
 
 // The panes read the other way round: a process knows the pid it descends from, never the window's name.
 func (c Collection) Panes() map[int]string {
 	panes := make(map[int]string, len(c.Windows))
-	for name, pid := range c.Windows {
-		panes[pid] = name
+	for name, pane := range c.Windows {
+		if !pane.Dead {
+			panes[pane.PID] = name
+		}
 	}
 
 	return panes
 }
 
+// Windows lists the live panes of the session, by name.
 func Windows(ctx sys.Context, options Options) map[string]int {
-	return windows(ctx, options.Resolved())
+	return Collection{Windows: windows(ctx, options.Resolved())}.livePIDs()
 }
 
-func windows(ctx sys.Context, options Options) map[string]int {
-	open := map[string]int{}
+func (c Collection) livePIDs() map[string]int {
+	live := map[string]int{}
+	for name, pane := range c.Windows {
+		if !pane.Dead {
+			live[name] = pane.PID
+		}
+	}
 
-	out, err := ctx.Sys().Run(options.tmux("list-panes", "-s", "-t", options.Session, "-F", "#{window_name} #{pane_pid}"))
+	return live
+}
+
+// Read with the fate of each pane: a command that exited leaves its pane behind, since the window keeps it, and its status says how it ended.
+func windows(ctx sys.Context, options Options) map[string]Pane {
+	open := map[string]Pane{}
+
+	out, err := ctx.Sys().Run(options.tmux("list-panes", "-s", "-t", options.Session, "-F", "#{window_name} #{pane_pid} #{?pane_dead,dead,alive} #{pane_dead_status}"))
 	if err != nil {
 		return open
 	}
 
 	for _, line := range strings.Split(out.Stdout, "\n") {
-		name, pid, ok := strings.Cut(strings.TrimSpace(line), " ")
-		if !ok {
+		fields := strings.Fields(line)
+		if len(fields) < 3 {
 			continue
 		}
 
-		if parsed, err := strconv.Atoi(pid); err == nil {
-			open[name] = parsed
+		pid, err := strconv.Atoi(fields[1])
+		if err != nil {
+			continue
 		}
+
+		pane := Pane{PID: pid, Dead: fields[2] == "dead", Status: signalled}
+		if pane.Dead && len(fields) > 3 {
+			if status, err := strconv.Atoi(fields[3]); err == nil {
+				pane.Status = status
+			}
+		}
+
+		open[fields[0]] = pane
 	}
 
 	return open
@@ -206,6 +261,13 @@ type Job struct {
 	Cmd    string
 }
 
+// Start opens the window on the command itself, as the user's login shell runs it.
+//
+// The command is the pane, not a line typed into a shell: when it exits the
+// pane dies and tmux keeps its corpse with the status, which is how the state
+// tells a server still coming up from one that died on the spot. The option
+// and the pipe travel in the same call as the window, so no exit and no output
+// can slip in before them.
 func Start(ctx sys.Context, options Options, job Job) error {
 	options = options.Resolved()
 
@@ -213,13 +275,10 @@ func Start(ctx sys.Context, options Options, job Job) error {
 		return err
 	}
 
-	if _, err := sys.Exec(ctx, options.tmux("new-window", "-d", "-t", options.Session, "-n", job.Window, "-c", job.Dir)); err != nil {
-		return err
-	}
-
-	logPath := options.LogPath(job.Window)
-	if _, err := sys.Exec(ctx, options.tmux("pipe-pane", "-o", "-t", Target(options, job.Window), "cat >> "+logPath)); err != nil {
-		return err
+	if pane, open := windows(ctx, options)[job.Window]; open && pane.Dead {
+		if _, err := sys.Exec(ctx, options.tmux("kill-window", "-t", Target(options, job.Window))); err != nil {
+			return err
+		}
 	}
 
 	// The marker separates this start from the previous shutdown, whose last line reads "exited with code 130" — read as a failure otherwise.
@@ -227,11 +286,18 @@ func Start(ctx sys.Context, options Options, job Job) error {
 		return err
 	}
 
-	_, err := sys.Exec(ctx, options.tmux("send-keys", "-t", Target(options, job.Window), job.Cmd, "C-m"))
+	target := Target(options, job.Window)
+	_, err := sys.Exec(ctx, options.tmux(
+		"new-window", "-d", "-t", options.Session, "-n", job.Window, "-c", job.Dir,
+		"-e", commandKey+"="+job.Cmd, "exec "+user.Shell+` -lc "$`+commandKey+`"`,
+		";", "set-option", "-w", "-t", target, "remain-on-exit", "on",
+		";", "pipe-pane", "-o", "-t", target, "cat >> "+options.LogPath(job.Window),
+	))
 
 	return err
 }
 
+// Stop interrupts what runs and closes the window; a corpse has nothing to interrupt and is only closed.
 func Stop(ctx sys.Context, options Options, window string) error {
 	options = options.Resolved()
 
@@ -239,12 +305,14 @@ func Stop(ctx sys.Context, options Options, window string) error {
 		return err
 	}
 
-	if _, err := sys.Exec(ctx, options.tmux("send-keys", "-t", Target(options, window), "C-c")); err != nil {
-		return err
-	}
+	if Running(ctx, options, window) {
+		if _, err := sys.Exec(ctx, options.tmux("send-keys", "-t", Target(options, window), "C-c")); err != nil {
+			return err
+		}
 
-	if options.Grace > 0 {
-		time.Sleep(options.Grace)
+		if options.Grace > 0 {
+			time.Sleep(options.Grace)
+		}
 	}
 
 	_, err := sys.Exec(ctx, options.tmux("kill-window", "-t", Target(options, window)))
@@ -293,6 +361,15 @@ func State(ctx sys.Context, options Options, window, pkgmgr string, port int, co
 		}
 
 		return contract.ProcessDown
+	}
+
+	// The command is gone and the pane says how: a status of zero is a stop, anything else — or a signal — a failure.
+	if status, exited := collected.Exited(window); exited {
+		if status == 0 {
+			return contract.ProcessStopped
+		}
+
+		return contract.ProcessFailed
 	}
 
 	if !collected.Running(window) {
@@ -349,19 +426,14 @@ func (o Options) tmux(args ...string) sys.Command {
 	return sys.Command{User: o.User, Argv: append([]string{"tmux"}, args...), Env: user.Environment(o.User)}
 }
 
+// Running says whether the window holds a live command: absent or dead, it runs nothing.
 func Running(ctx sys.Context, options Options, window string) bool {
-	options = options.Resolved()
+	return Collection{Windows: windows(ctx, options.Resolved())}.Running(window)
+}
 
-	out, err := ctx.Sys().Run(options.tmux("list-windows", "-t", options.Session, "-F", "#{window_name}"))
-	if err != nil {
-		return false
-	}
+// Open says whether the window exists at all, its command alive or dead: what a stop has to close.
+func Open(ctx sys.Context, options Options, window string) bool {
+	_, open := windows(ctx, options.Resolved())[window]
 
-	for _, line := range strings.Split(out.Stdout, "\n") {
-		if strings.TrimSpace(line) == window {
-			return true
-		}
-	}
-
-	return false
+	return open
 }

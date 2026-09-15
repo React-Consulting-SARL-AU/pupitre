@@ -36,8 +36,14 @@ function answerFromFixtures(app: ElectronApplication): Promise<void> {
 
   return app.evaluate(({ BrowserWindow, ipcMain }, fixtures: Harness) => {
     // Every snapshot read is counted, so a scenario waits on the polls it
-    // needs rather than on a clock that guesses at them.
-    const counted = globalThis as { snapshotReads?: number };
+    // needs rather than on a clock that guesses at them. The answers stay
+    // reachable, so a scenario that acts on the machine can make the next
+    // read say so.
+    const counted = globalThis as {
+      snapshotReads?: number;
+      answers?: Record<string, unknown>;
+    };
+    counted.answers = fixtures.answers;
     counted.snapshotReads = 0;
 
     const answer = (
