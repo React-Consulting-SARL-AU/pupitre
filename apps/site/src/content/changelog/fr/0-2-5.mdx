@@ -1,0 +1,25 @@
+---
+title: Un dépôt avec un processus en sous-dossier se clone
+description: Un projet Git ne crée plus les dossiers de ses processus avant le clone, un dépôt dont les processus vivent en sous-dossiers s’ajoute donc comme les autres, et un dossier déjà occupé se refuse avant toute écriture, le formulaire encore ouvert pour corriger.
+locale: fr
+version: 0.2.5
+channel: stable
+date: 2026-09-16
+order: 9
+---
+
+Des correctifs dans l’app et dans l’agent, rien de nouveau à installer.
+
+## L’app
+
+- Quand le serveur refuse la déclaration d’un projet, l’écran d’ajout offre « Modifier le formulaire » à côté de Réessayer. Rien n’a encore été écrit sur le serveur à ce moment-là, le formulaire se corrige donc et se renvoie ; un échec en cours de provisionnement garde seulement Réessayer et Annuler, comme avant.
+
+## L’agent
+
+- Un dépôt dont les processus vivent en sous-dossiers s’ajoute. Un projet Git créait le dossier de chaque processus avant de cloner, et git refuse de cloner dans un dossier qui n’est pas vide : un dépôt avec, par exemple, un serveur à la racine et un client sous `client/` échouait à chaque fois. Le clone apporte maintenant ses propres dossiers. Un projet sans dépôt garde ses dossiers de processus créés comme avant.
+- Un dossier déjà occupé se refuse avant que le projet soit écrit. Quand le dossier racine du projet existe, il est vérifié d’abord : vide, ou déjà un clone du même dépôt, passe ; tout le reste — un autre dépôt, des fichiers restés là — est refusé avec le nom du dossier, le dépôt attendu à cet endroit et la marche à suivre. Jusqu’ici l’échec venait plus tard, au clone.
+
+## Limites connues
+
+- Une app macOS 0.1.2 ou plus récente trouve cette version seule ; les 0.1.0 et 0.1.1 ne le peuvent toujours pas, et demandent la 0.2.5 installée depuis la page de téléchargement.
+- L’installateur Windows n’est toujours pas signé : SmartScreen avertit au premier lancement.

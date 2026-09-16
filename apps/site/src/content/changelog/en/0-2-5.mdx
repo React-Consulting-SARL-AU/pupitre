@@ -1,0 +1,25 @@
+---
+title: A repository with a process in a subfolder clones
+description: A Git project no longer creates its process folders before the clone, so a repository whose processes live in subfolders is added like any other, and a folder already in the way is refused before anything is written, with the form still open to fix.
+locale: en
+version: 0.2.5
+channel: stable
+date: 2026-09-16
+order: 9
+---
+
+Fixes in the app and in the agent, nothing new to install.
+
+## The app
+
+- When the server refuses a project declaration, the add-project screen offers "Edit the form" next to Retry. Nothing has been written on the server at that point, so the form can be corrected and sent again; a failure during provisioning keeps Retry and Cancel only, as before.
+
+## The agent
+
+- A repository whose processes live in subfolders can be added. A Git project created the folder of each process before cloning, and git refuses to clone into a folder that is not empty: a repository with, say, a server at the root and a client under `client/` failed every time. The clone now brings its own folders. A project without a repository still gets its process folders created as before.
+- A folder already in the way is refused before the project is written. When the project's root folder exists, it is checked first: empty, or already a clone of the same repository, passes; anything else — another repository, or files left behind — is refused with the folder's name, the repository expected there, and what to do about it. Until now the failure came later, at the clone.
+
+## Known limits
+
+- A macOS app 0.1.2 or later finds this version on its own; 0.1.0 and 0.1.1 still cannot, and need 0.2.5 installed from the download page.
+- The Windows installer is still unsigned: SmartScreen warns at first launch.
