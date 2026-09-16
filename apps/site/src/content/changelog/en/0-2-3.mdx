@@ -1,0 +1,30 @@
+---
+title: Projects leave "starting", terminals select and copy under an agent
+description: A project whose command exits now shows stopped or failed instead of starting forever, a terminal selects and copies under a full-screen agent, and a service keeps its own port when it is reconfigured.
+locale: en
+version: 0.2.3
+channel: stable
+date: 2026-09-16
+order: 7
+---
+
+Fixes in the app and in the agent, nothing new to install.
+
+## The app
+
+- A project no longer stays on "starting". A start command that exited — on an error, or on its own — left a window that read as still starting; the project now shows stopped when the command ended cleanly and failed otherwise, its journal says why, and starting it again replaces the dead window. The add-project screen no longer freezes the state it got the moment the start was sent: it follows the server until the project is online or has failed, and shows what is actually observed.
+- An address printed across several rows of a terminal is clickable. A URL longer than the terminal is wide wraps onto the next row, and only its first piece became a link; the app now reads the folded rows as one address, in a shell as well as in the interface of a full-screen agent.
+- Text can be selected under a full-screen agent. Claude, Codex and the like take the mouse for their own scrolling, and until now a drag went to them: nothing could be selected or copied before the program quit. A drag now selects on every platform, and the wheel still reaches the program.
+- Copying the whole output of a terminal reads what the screen holds, row by row. Under a full-screen agent the copy replayed the drawing and ran rows together; it now comes out as displayed, wrapped rows glued back into one line, without the blank rows under the last word.
+- The "this computer" pill on the account's device list no longer breaks across lines, the rows of the file browser keep the same height whether a file is being renamed or not, and their size and date columns no longer wrap.
+- The question of a confirmation button wraps onto the next line instead of overflowing its box.
+
+## The agent
+
+- Reconfiguring an installed service no longer refuses its own port. The check read the port the service already listens on as taken by another program, and a change to any other field was blocked by it; the port the service holds is now its own.
+- The port detection of a project also reads the port a Gradle or Grails server declares in its `application.yml` or `application.properties`.
+
+## Known limits
+
+- A macOS app 0.1.2 or later finds this version on its own; 0.1.0 and 0.1.1 still cannot, and need 0.2.3 installed from the download page.
+- The Windows installer is still unsigned: SmartScreen warns at first launch.
