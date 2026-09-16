@@ -6,6 +6,7 @@ import { stubPupitre } from "../../__tests__/stub-pupitre";
 import {
   type DetectionState,
   type Exposure,
+  SETTLE_READS,
   useProjectAdd,
 } from "../project-add";
 import { useTunnel } from "../tunnel";
@@ -952,6 +953,92 @@ describe("un projet qui ne démarre pas", () => {
       status: "failed",
     });
     expect(useProjectAdd.getState().logs).toEqual(["exit status 1"]);
+  });
+});
+
+describe("un démarrage qui prend son temps", () => {
+  /** `project.up` answers before the port is bound: what follows is read off `project.list`. */
+  function stub(states: readonly string[]) {
+    const polled: string[] = [];
+    let reads = 0;
+
+    stubPupitre({
+      ...QUIET_RUN,
+      agentPoll: (_serverId: string, cmd: string) => {
+        polled.push(cmd);
+        const state = states[Math.min(reads, states.length - 1)];
+        reads += 1;
+
+        return Promise.resolve({
+          ok: true,
+          result: {
+            projects: [
+              { ...project(useProjectAdd.getState().params()), state },
+            ],
+          },
+        } as AgentResponse<unknown>);
+      },
+      projectJournal: () =>
+        Promise.resolve({
+          ok: true as const,
+          result: { lines: ['error: script "dev" exited with code 1'] },
+        }),
+      startProject: () =>
+        Promise.resolve({
+          ok: true as const,
+          result: { state: "starting" as const },
+        }),
+    });
+    useProjectAdd.setState({ settleMs: 1 });
+
+    return polled;
+  }
+
+  it("attend que le projet quitte « démarre » avant de dire son état", async () => {
+    const polled = stub(["starting", "starting", "online"]);
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(SHOP);
+    await useProjectAdd.getState().launch("srv-1");
+
+    expect(polled).toEqual(["project.list", "project.list", "project.list"]);
+    expect(phase("up")).toBe("ok");
+    expect(useProjectAdd.getState().run).toMatchObject({
+      state: "online",
+      status: "done",
+    });
+  });
+
+  it("tient pour un échec une commande qui meurt après le démarrage", async () => {
+    stub(["starting", "failed"]);
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(SHOP);
+    await useProjectAdd.getState().launch("srv-1");
+
+    expect(phase("up")).toBe("fail");
+    expect(useProjectAdd.getState().run).toMatchObject({
+      phase: "up",
+      status: "failed",
+    });
+    expect(useProjectAdd.getState().logs).toEqual([
+      'error: script "dev" exited with code 1',
+    ]);
+  });
+
+  it("n'attend pas sans fin un serveur long à venir", async () => {
+    const polled = stub(["starting"]);
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(SHOP);
+    await useProjectAdd.getState().launch("srv-1");
+
+    expect(polled.length).toBe(SETTLE_READS);
+    expect(phase("up")).toBe("ok");
+    expect(useProjectAdd.getState().run).toMatchObject({
+      state: "starting",
+      status: "done",
+    });
   });
 });
 

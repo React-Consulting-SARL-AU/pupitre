@@ -2,6 +2,7 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import type { PortForward } from "@shared/services";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
+import { CountPill } from "../ui/count-pill";
 import { IconButton } from "../ui/icon-button";
 import { Label } from "../ui/label";
 import { ForwardRow } from "./forward-row";
@@ -38,11 +39,12 @@ export function ForwardsList({
       data-forwards={forwards.length}
     >
       <header className="flex items-center gap-2 px-3 pt-2 pb-1">
-        <Label>{t("forwards.panel")}</Label>
-        <span className="rounded-full border border-line px-1.5 font-data text-[11px] text-ink-3 tabular-nums">
-          {t.plural("forwards.panel.count", forwards.length)}
+        <span className="flex min-w-0 flex-1 items-center gap-2">
+          <Label>{t("forwards.panel")}</Label>
+          <CountPill>
+            {t.plural("forwards.panel.count", forwards.length)}
+          </CountPill>
         </span>
-        <span className="flex-1" />
         <IconButton
           expanded={!folded}
           icon={folded ? ChevronUp : ChevronDown}

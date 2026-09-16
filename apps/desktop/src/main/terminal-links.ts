@@ -1,3 +1,5 @@
+import { foldRows } from "@shared/folded-rows";
+
 // A machine can print any address; only these hosts, or a flow that comes back to the machine, ever become a button.
 const LOGIN_HOSTS = [
   "claude.ai",
@@ -69,49 +71,11 @@ function loginOf(raw: string): LoginAddress | null {
   }
 }
 
-function margin(line: string): number {
-  return line.length - line.trimStart().length;
-}
-
-/**
- * The rows of a screen, with a folded line read as one.
- *
- * An address longer than the screen is wide reaches the last column and goes
- * on at the left edge of the next row: the terminal wraps it there, and so
- * does an interface that lays its text out itself, at the margin of its box
- * rather than at the edge. Nothing on the screen says which rows belong
- * together, only that shape does.
- */
 export function unwrap(lines: string[], cols: number): string[] {
-  const rows: string[] = [];
-  let open: string | null = null;
-  let edge = 0;
-
-  for (const line of lines) {
-    const left = margin(line);
-
-    if (open !== null && left === edge && line.length > left) {
-      open += line.slice(left);
-    } else {
-      if (open !== null) {
-        rows.push(open);
-      }
-
-      open = line;
-      edge = left;
-    }
-
-    if (line.length + edge !== cols) {
-      rows.push(open);
-      open = null;
-    }
-  }
-
-  if (open !== null) {
-    rows.push(open);
-  }
-
-  return rows;
+  return foldRows(
+    lines.map((text) => ({ text, width: text.length })),
+    cols
+  ).map((line) => line.text);
 }
 
 /**

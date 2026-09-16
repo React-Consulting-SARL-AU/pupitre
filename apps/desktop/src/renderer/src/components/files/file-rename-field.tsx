@@ -31,7 +31,7 @@ export function FileRenameField({
   }
 
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-1.5 px-2 py-1.5">
+    <div className="flex h-9 min-w-0 flex-1 items-center gap-1.5 px-2">
       <input
         aria-label={t("files.rename.label", { name })}
         autoFocus

@@ -47,7 +47,7 @@ export function ServiceDumpRow({
         </p>
       </div>
 
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
         <ConfirmButton
           confirmLabel={t("services.dumps.restoreConfirm")}
           disabled={busy}

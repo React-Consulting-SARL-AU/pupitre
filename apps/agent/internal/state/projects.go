@@ -207,10 +207,11 @@ func (r *Reader) startWith(project registry.Project, process registry.Process, c
 	return tmux.Start(ctx, r.options.Tmux, tmux.Job{Window: window, Dir: dir, Cmd: command})
 }
 
+// A window whose command died is still a window: a stop closes it, so the corpse does not read as a failure forever.
 func (r *Reader) stop(project registry.Project, process registry.Process) error {
 	ctx := r.ctx()
 	window := project.Window(process.ID)
-	if !tmux.Running(ctx, r.options.Tmux, window) {
+	if !tmux.Open(ctx, r.options.Tmux, window) {
 		return nil
 	}
 

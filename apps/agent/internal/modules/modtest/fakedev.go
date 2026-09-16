@@ -16,7 +16,49 @@ func (f *FakeSys) Serves(window string, port int) {
 	f.Binds[window] = port
 }
 
+// The command of a window exits with that status, and the pane stays as its corpse; -1 stands for a signal, which leaves no status.
+func (f *FakeSys) Dies(window string, status int) {
+	f.Dead[window] = status
+	if port, bound := f.Binds[window]; bound {
+		delete(f.Listen, port)
+	}
+}
+
+// One tmux invocation carries several commands, separated by a bare ";": each runs in turn, and the first refusal ends the call.
 func (f *FakeSys) tmux(args []string) (sys.Output, error) {
+	var out sys.Output
+
+	for _, command := range splitTmux(args) {
+		answer, err := f.tmuxOne(command)
+		if err != nil {
+			return answer, err
+		}
+
+		out.Stdout += answer.Stdout
+	}
+
+	return out, nil
+}
+
+func splitTmux(args []string) [][]string {
+	var commands [][]string
+	var current []string
+
+	for _, arg := range args {
+		if arg == ";" {
+			commands = append(commands, current)
+			current = nil
+
+			continue
+		}
+
+		current = append(current, arg)
+	}
+
+	return append(commands, current)
+}
+
+func (f *FakeSys) tmuxOne(args []string) (sys.Output, error) {
 	action, target, name := parseTmux(args)
 
 	switch action {
@@ -44,7 +86,7 @@ func (f *FakeSys) tmux(args []string) (sys.Output, error) {
 		}
 
 		return sys.Output{Stdout: f.panes(action == "list-panes")}, nil
-	case "send-keys", "pipe-pane":
+	case "send-keys", "pipe-pane", "set-option":
 		f.mutate("tmux " + action + " " + target)
 	default:
 		return f.fail("tmux", "unknown command: "+action)
@@ -54,6 +96,7 @@ func (f *FakeSys) tmux(args []string) (sys.Output, error) {
 }
 
 func (f *FakeSys) openWindow(name string) {
+	delete(f.Dead, name)
 	f.Windows[name] = firstPanePID + len(f.Windows)
 	f.Uptimes[f.Windows[name]] = 42
 	if port, bound := f.Binds[name]; bound {
@@ -64,6 +107,7 @@ func (f *FakeSys) openWindow(name string) {
 }
 
 func (f *FakeSys) closeWindow(name string) {
+	delete(f.Dead, name)
 	delete(f.Uptimes, f.Windows[name])
 	delete(f.Windows, name)
 	if port, bound := f.Binds[name]; bound {
@@ -82,15 +126,28 @@ func (f *FakeSys) panes(withPID bool) string {
 
 	var out strings.Builder
 	for _, name := range names {
-		if withPID {
-			fmt.Fprintf(&out, "%s %d\n", name, f.Windows[name])
+		if !withPID {
+			fmt.Fprintf(&out, "%s\n", name)
 			continue
 		}
 
-		fmt.Fprintf(&out, "%s\n", name)
+		fmt.Fprintf(&out, "%s %d %s\n", name, f.Windows[name], f.liveness(name))
 	}
 
 	return out.String()
+}
+
+// What tmux prints of a pane's fate: alive, or dead with the status its command left, which a signal leaves blank.
+func (f *FakeSys) liveness(window string) string {
+	status, dead := f.Dead[window]
+	switch {
+	case !dead:
+		return "alive"
+	case status < 0:
+		return "dead"
+	}
+
+	return "dead " + strconv.Itoa(status)
 }
 
 // A transcript that seeds ss by hand keeps its answer: the probe reads processes there, the project state only ports.
@@ -257,7 +314,7 @@ func parseTmux(args []string) (action, target, name string) {
 				name = args[i+1]
 				i++
 			}
-		case "-c", "-F":
+		case "-c", "-F", "-e":
 			i++
 		default:
 			if !strings.HasPrefix(args[i], "-") && action == "" {

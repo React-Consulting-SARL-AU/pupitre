@@ -69,20 +69,25 @@ export function ConfirmButton({
 
   return (
     <span
-      className={`inline-flex items-center gap-2 rounded-sm border border-line-strong bg-sunken px-2 py-1 ${className}`}
+      className={`inline-flex min-w-0 max-w-full flex-wrap items-center gap-2 rounded-sm border border-line-strong bg-sunken px-2 py-1 ${className}`}
     >
-      <span className="text-[12px] text-ink-2">{question}</span>
-      <Button onClick={confirm} size="sm" variant="destructive">
-        {confirmLabel}
-      </Button>
-      <Button
-        disabled={working}
-        onClick={() => setAsking(false)}
-        size="sm"
-        variant="discreet"
-      >
-        {t("common.cancel")}
-      </Button>
+      <span className="min-w-0 flex-1 basis-40 text-[12px] text-ink-2 leading-snug">
+        {question}
+      </span>
+
+      <span className="flex shrink-0 items-center gap-2">
+        <Button onClick={confirm} size="sm" variant="destructive">
+          {confirmLabel}
+        </Button>
+        <Button
+          disabled={working}
+          onClick={() => setAsking(false)}
+          size="sm"
+          variant="discreet"
+        >
+          {t("common.cancel")}
+        </Button>
+      </span>
     </span>
   );
 }

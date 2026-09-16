@@ -128,7 +128,8 @@ func (e *Engine) Check(request Request, sink Sink) (contract.InstallCheck, error
 
 	// The secrets the server already holds count as filled: a port changed on an
 	// installed module must not read as a password that went missing.
-	request = request.completedBy(e.recall(r))
+	recalled := e.recall(r)
+	request = request.completedBy(recalled)
 
 	if err := refuseDeferringMandatory(modules, request); err != nil {
 		return contract.InstallCheck{}, err
@@ -147,6 +148,7 @@ func (e *Engine) Check(request Request, sink Sink) (contract.InstallCheck, error
 
 		manifest := module.Manifest()
 		ctx := r.context(manifest, request.Config[manifest.ID], request.Secrets[manifest.ID])
+		ctx.held = recalled.Config[manifest.ID]
 		problems = append(problems, looking.Preflight(ctx)...)
 	}
 

@@ -42,7 +42,7 @@ func TestStartOpensAWindowAndItsLog(t *testing.T) {
 	}
 
 	commands := strings.Join(fake.Commands(), "\n")
-	if !strings.Contains(commands, "tmux pipe-pane -o -t pupitre:web/web cat >> "+logPath) {
+	if !strings.Contains(commands, "pipe-pane -o -t pupitre:web/web cat >> "+logPath) {
 		t.Fatalf("the output must be piped into the process's log, under a folder of its project's name:\n%s", commands)
 	}
 	if !strings.Contains(commands, "bun run dev --port 3000") {
@@ -224,5 +224,135 @@ func TestLogsReturnTheTailAndRefuseAnUnknownProject(t *testing.T) {
 
 	if _, err := tmux.Logs(ctx, options, "ghost/ghost", 0); err == nil {
 		t.Fatal("a project that never started has no log")
+	}
+}
+
+func TestStartRunsTheCommandAsTheWindowAndKeepsItsCorpse(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Serves("web/web", 3000)
+	ctx := newContext(fake)
+
+	if err := tmux.Start(ctx, options, web()); err != nil {
+		t.Fatal(err)
+	}
+
+	var opening []string
+	for _, call := range fake.Calls {
+		if len(call.Argv) > 1 && call.Argv[0] == "tmux" && call.Argv[1] == "new-window" {
+			opening = call.Argv
+		}
+	}
+	if opening == nil {
+		t.Fatalf("no window opened: %v", fake.Commands())
+	}
+
+	line := strings.Join(opening, " ")
+	for _, want := range []string{
+		"-e PUPITRE_CMD=bun run dev --port 3000",
+		`exec /usr/bin/zsh -lc "$PUPITRE_CMD"`,
+		"; set-option -w -t pupitre:web/web remain-on-exit on",
+		"; pipe-pane -o -t pupitre:web/web cat >> " + logPath,
+	} {
+		if !strings.Contains(line, want) {
+			t.Errorf("the window must run the command itself, keep its pane once it exits and pipe its output, all in one call — missing %q:\n%s", want, line)
+		}
+	}
+	if strings.Index(line, "remain-on-exit") > strings.Index(line, "pipe-pane") {
+		t.Fatalf("the corpse must be kept before anything of the output is read:\n%s", line)
+	}
+
+	for _, call := range fake.Calls {
+		if len(call.Argv) > 1 && call.Argv[0] == "tmux" && call.Argv[1] == "send-keys" {
+			t.Fatalf("nothing is typed into a shell any more: %v", call.Argv)
+		}
+	}
+}
+
+func TestAWindowWhoseCommandExitedIsNotStarting(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	ctx := newContext(fake)
+	state := func() contract.ProcessState {
+		return tmux.State(ctx, options, "web/web", "bun", 3000, tmux.Collect(ctx, options))
+	}
+
+	if err := tmux.Start(ctx, options, web()); err != nil {
+		t.Fatal(err)
+	}
+	if got := state(); got != contract.ProcessStarting {
+		t.Fatalf("alive with no port yet: got %s", got)
+	}
+
+	fake.Dies("web/web", 1)
+	if got := state(); got != contract.ProcessFailed {
+		t.Fatalf("a command that exited with 1 has failed, whatever its log says: got %s", got)
+	}
+	if collected := tmux.Collect(ctx, options); collected.Running("web/web") || collected.PID("web/web") != 0 || collected.Seconds("web/web") != 0 {
+		t.Fatalf("a dead pane runs nothing: %+v", collected)
+	}
+
+	fake.Dies("web/web", 0)
+	if got := state(); got != contract.ProcessStopped {
+		t.Fatalf("a command that exited with 0 has stopped: got %s", got)
+	}
+
+	fake.Dies("web/web", -1)
+	if got := state(); got != contract.ProcessFailed {
+		t.Fatalf("a command a signal ended has failed: got %s", got)
+	}
+}
+
+func TestStartReplacesADeadWindow(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	ctx := newContext(fake)
+
+	if err := tmux.Start(ctx, options, web()); err != nil {
+		t.Fatal(err)
+	}
+	fake.Dies("web/web", 1)
+
+	if tmux.Running(ctx, options, "web/web") {
+		t.Fatal("a dead window is not running")
+	}
+
+	if err := tmux.Start(ctx, options, web()); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, dead := fake.Dead["web/web"]; dead {
+		t.Fatalf("the corpse must have been cleared: %v", fake.Mutations)
+	}
+	if !tmux.Running(ctx, options, "web/web") {
+		t.Fatal("the window must be open again")
+	}
+
+	commands := strings.Join(fake.Commands(), "\n")
+	if strings.Count(commands, "tmux kill-window") != 1 {
+		t.Fatalf("the dead window must be killed once, and only it:\n%s", commands)
+	}
+}
+
+func TestStopClearsADeadWindowWithoutASignal(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	ctx := newContext(fake)
+
+	if err := tmux.Start(ctx, options, web()); err != nil {
+		t.Fatal(err)
+	}
+	fake.Dies("web/web", 1)
+
+	if err := tmux.Stop(ctx, options, "web/web"); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, open := fake.Windows["web/web"]; open {
+		t.Fatal("the window must be gone")
+	}
+	for _, call := range fake.Calls {
+		if len(call.Argv) > 1 && call.Argv[0] == "tmux" && call.Argv[1] == "send-keys" {
+			t.Fatalf("nothing to interrupt in a dead pane: %v", call.Argv)
+		}
+	}
+	if !strings.Contains(string(fake.Files[logPath]), "=== pupitre down ") {
+		t.Fatalf("a shutdown must leave a trace in the log:\n%s", fake.Files[logPath])
 	}
 }

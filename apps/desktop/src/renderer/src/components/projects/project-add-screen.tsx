@@ -4,6 +4,7 @@ import {
   GITHUB_TOOL,
   useProjectAdd,
 } from "../../stores/project-add";
+import { snapshotOf, useSnapshot } from "../../stores/snapshot";
 import { ProjectAddPanel } from "./project-add-panel";
 
 /**
@@ -76,6 +77,15 @@ export function ProjectAddScreen({
   const browse = useProjectAdd((state) => state.browse);
   const makeFolder = useProjectAdd((state) => state.makeFolder);
   const pickFolder = useProjectAdd((state) => state.pickFolder);
+  // The outcome follows the machine, not the moment the start was sent: a
+  // server still binding its port then is online on the next read.
+  const liveState = useSnapshot((state) =>
+    run.status === "done"
+      ? snapshotOf(state.state, serverId)?.projects.find(
+          (project) => project.name === run.name
+        )?.state
+      : undefined
+  );
 
   const provider = exposure?.provider ?? null;
   const host = exposure?.host ?? "";
@@ -164,6 +174,7 @@ export function ProjectAddScreen({
       repos={repos}
       rowProblems={draft.processes.map((_process, index) => rowProblems(index))}
       run={run}
+      state={liveState}
     />
   );
 }
