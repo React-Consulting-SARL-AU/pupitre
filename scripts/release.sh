@@ -9,7 +9,8 @@
 #   scripts/release.sh --version=X.Y.Z # a version named outright
 #
 # The script stops once the notes are drafted, for them to be read; run it
-# again to continue — every step is idempotent and picks up where it stands.
+# again to continue — every step is idempotent and picks up where it stands,
+# a push refused by the pre-push hook included: the tag left on HEAD is pushed.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

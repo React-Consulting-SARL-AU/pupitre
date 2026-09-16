@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test"
+import { execFileSync } from "node:child_process"
 import { createPublicKey, generateKeyPairSync, verify } from "node:crypto"
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
@@ -20,10 +21,14 @@ import { keys } from "../release/r2"
 import {
   bump,
   formatRelease,
+  lastVersion,
   onReleaseBranch,
+  originTags,
+  pendingVersion,
   versionOfTag,
 } from "../release/resolve"
 import { parseTemplate } from "../release/secrets"
+import { tagPlan } from "../release/ship"
 import { feedNamesVersion, feedUrls, verdictOf } from "../release/verify"
 
 describe("the command line of a step", () => {
@@ -148,6 +153,14 @@ describe("the next version", () => {
     expect(nextVersion(["--version=3.0.0"], "0.1.0", "0.0.0")).toBe("3.0.0")
   })
 
+  it("keeps a version tagged here and not on origin, unless one is named", () => {
+    expect(nextVersion([], "0.1.0", "0.1.1", "0.1.1")).toBe("0.1.1")
+    expect(nextVersion(["--minor"], "0.1.0", "0.1.1", "0.1.1")).toBe("0.1.1")
+    expect(nextVersion(["--version=3.0.0"], "0.1.0", "0.1.1", "0.1.1")).toBe(
+      "3.0.0"
+    )
+  })
+
   it("rewrites the version line of the manifest and nothing else", () => {
     const dir = mkdtempSync(path.join(tmpdir(), "pupitre-next-"))
     const manifest = path.join(dir, "package.json")
@@ -161,6 +174,71 @@ describe("the next version", () => {
     expect(readFileSync(manifest, "utf8")).toBe(
       '{\n  "name": "@pupitre/desktop",\n  "version": "0.2.0",\n  "private": true\n}\n'
     )
+  })
+})
+
+describe("the tags a release counts", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "pupitre-tags-"))
+  const origin = path.join(dir, "origin.git")
+  const work = path.join(dir, "work")
+  const git = (...argv: string[]): string =>
+    execFileSync(
+      "git",
+      ["-c", "user.name=t", "-c", "user.email=t@t", ...argv],
+      { cwd: work, encoding: "utf8" }
+    ).trim()
+  const commit = (message: string): void => {
+    writeFileSync(path.join(work, message), message)
+    git("add", ".")
+    git("commit", "-q", "-m", message)
+  }
+
+  execFileSync("git", ["init", "-q", "--bare", origin])
+  execFileSync("git", ["init", "-q", "-b", "staging", work])
+  git("remote", "add", "origin", origin)
+  commit("one")
+
+  it("counts no tag before the first release", () => {
+    expect(originTags(work)).toEqual(new Set())
+    expect(lastVersion(originTags(work), work)).toBeNull()
+    expect(pendingVersion(originTags(work), work)).toBeNull()
+  })
+
+  it("counts a tag once origin holds it", () => {
+    git("tag", "-a", "v0.1.0", "-m", "Pupitre 0.1.0")
+    git("push", "-q", "origin", "staging", "v0.1.0")
+    commit("two")
+
+    expect(originTags(work)).toEqual(new Set(["v0.1.0"]))
+    expect(lastVersion(originTags(work), work)).toBe("0.1.0")
+    expect(pendingVersion(originTags(work), work)).toBeNull()
+  })
+
+  it("reads a tag on HEAD that origin lacks as a release to resume, not as one out", () => {
+    git("tag", "-a", "v0.1.1", "-m", "Pupitre 0.1.1")
+
+    expect(lastVersion(originTags(work), work)).toBe("0.1.0")
+    expect(pendingVersion(originTags(work), work)).toBe("0.1.1")
+    expect(nextVersion([], "0.1.0", "0.1.1", "0.1.1")).toBe("0.1.1")
+
+    git("push", "-q", "origin", "staging", "v0.1.1")
+
+    expect(lastVersion(originTags(work), work)).toBe("0.1.1")
+    expect(pendingVersion(originTags(work), work)).toBeNull()
+  })
+
+  it("stops when origin cannot be asked", () => {
+    git("remote", "set-url", "origin", path.join(dir, "nowhere.git"))
+
+    expect(() => originTags(work)).toThrow("origin is out of reach")
+  })
+})
+
+describe("what ship does with a tag", () => {
+  it("cuts it, or only pushes one already on HEAD, and refuses one elsewhere", () => {
+    expect(tagPlan("v0.1.1", null, "abc")).toBe("tag")
+    expect(tagPlan("v0.1.1", "abc", "abc")).toBe("push")
+    expect(() => tagPlan("v0.1.1", "def", "abc")).toThrow("another commit")
   })
 })
 
