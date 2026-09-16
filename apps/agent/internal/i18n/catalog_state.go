@@ -34,13 +34,17 @@ var stateCatalog = map[string]Message{
 		FR: "%s : le clonage de %s a échoué",
 		EN: "%s: cloning %s failed",
 	},
-	"state.pull.conflict": {
-		FR: "%s : le pull a laissé un conflit",
-		EN: "%s: the pull left a conflict",
+	"state.pull.failed": {
+		FR: "%s : le pull a échoué dans %s",
+		EN: "%s: the pull failed in %s",
 	},
-	"state.pull.conflict.fix": {
-		FR: "Ouvrez un terminal sur %s et résolvez-le à la main.",
-		EN: "Open a terminal on %s and resolve it by hand.",
+	"state.project.repo.other": {
+		FR: "%s : le dossier tient déjà un autre dépôt, %s",
+		EN: "%s: the folder already holds another repository, %s",
+	},
+	"state.project.repo.other.fix": {
+		FR: "Videz %s, ou déclarez le projet dans un autre dossier ; il attend %s.",
+		EN: "Empty %s, or declare the project in another folder; it expects %s.",
 	},
 	"state.project.notInGit": {
 		FR: "%s n'est pas dans un dépôt git",

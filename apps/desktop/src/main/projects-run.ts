@@ -172,6 +172,45 @@ function remember(
   declared.set(serverId, held);
 }
 
+/** The commands whose answer lists every project of the machine, as the agent names them. */
+const LISTINGS: ReadonlySet<string> = new Set([
+  "snapshot",
+  "status",
+  "project.list",
+]);
+
+/**
+ * What a read the renderer made on its own says of the projects.
+ *
+ * The dashboard and the project screen live on `snapshot`, and a project the
+ * app opens on after a launch has never gone through `project.list` here: the
+ * names such a read carries are the agent's own, and are kept like the list's.
+ */
+export function noteProjects(
+  serverId: string,
+  cmd: string,
+  answer: AgentResponse<unknown>
+): void {
+  if (!(answer.ok && LISTINGS.has(cmd))) {
+    return;
+  }
+
+  const projects = (answer.result as { projects?: unknown }).projects;
+
+  if (Array.isArray(projects) && projects.every(isNamed)) {
+    remember(serverId, projects);
+  }
+}
+
+function isNamed(value: unknown): value is { name: string; dir: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as { name?: unknown }).name === "string" &&
+    typeof (value as { dir?: unknown }).dir === "string"
+  );
+}
+
 export async function listProjects(
   serverId: unknown,
   deps: ProjectDeps

@@ -82,7 +82,7 @@ func (Module) Install(ctx *modules.Context) error {
 }
 
 func (Module) Configure(ctx *modules.Context) error {
-	return sequence(ctx, setTimezone, createUser, grantSudo, prepareHome, seedAuthorizedKeys, createProjectsDir, setGitIdentity, writeZshrc, writeBashrc, writeTmuxConf, linkDev, installAgentUnit)
+	return sequence(ctx, setTimezone, createUser, grantSudo, prepareHome, seedAuthorizedKeys, createProjectsDir, setGitIdentity, writeZshrc, writeBashrc, writeTmuxConf, linkDev, installAgentUnit, installResumeUnit)
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
@@ -134,6 +134,10 @@ func (Module) Uninstall(ctx *modules.Context) error {
 	}
 
 	if err := unlinkDev(ctx); err != nil {
+		return err
+	}
+
+	if err := removeResumeUnit(ctx); err != nil {
 		return err
 	}
 

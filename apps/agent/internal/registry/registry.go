@@ -22,6 +22,9 @@ const (
 	DefaultLocal = "/etc/pupitre/projects.local.json"
 	ProjectsDir  = "/home/dev/projects"
 
+	// The windows that were up, kept for the boot that follows: state of the machine, not configuration, so it lives with the report.
+	DefaultRunning = "/var/lib/pupitre/projects.running.json"
+
 	FirstPort = 3000
 	LastPort  = 65535
 )
@@ -326,6 +329,7 @@ type Paths struct {
 	Conf     string
 	Local    string
 	Projects string
+	Running  string
 }
 
 func (p Paths) Resolved() Paths {
@@ -337,6 +341,9 @@ func (p Paths) Resolved() Paths {
 	}
 	if p.Projects == "" {
 		p.Projects = ProjectsDir
+	}
+	if p.Running == "" {
+		p.Running = DefaultRunning
 	}
 
 	return p
