@@ -1,0 +1,26 @@
+---
+title: Projects come back after a reboot, a removal and a mixed-up folder are set right
+description: Running projects start again on their own when the server reboots, a project the app only saw on the dashboard can be removed from the registry, and a folder holding another repository is no longer pulled over in silence.
+locale: en
+version: 0.2.4
+channel: stable
+date: 2026-09-16
+order: 8
+---
+
+Fixes in the app and in the agent, nothing new to install.
+
+## The app
+
+- A project the app had only seen on the dashboard can be removed from the registry. The removal was refused as "not declared" when the project had never gone through the project list or an add: the names the dashboard and the project screen read now count as well.
+
+## The agent
+
+- Running projects survive a reboot of the server. Until now every window was gone after a restart and each project had to be started again by hand. Each start is now recorded in `/var/lib/pupitre/projects.running.json`, each stop or removal takes it out, and a new `pupitre-resume` service starts what was recorded when the machine boots — and only when the tmux session is really gone, so a daemon restarted for an update starts nothing twice. An existing server gets the service when its modules are upgraded after the agent update.
+- A folder kept from a removed project is no longer pulled over by another one. When a project declared on a different address landed on a folder still holding another repository, the pull went ahead in silence; it now refuses and names the two repositories. The same repository written another way — scheme, account, `.git` — still passes.
+- A pull that fails reports git's last line instead of an invented "conflict".
+
+## Known limits
+
+- A macOS app 0.1.2 or later finds this version on its own; 0.1.0 and 0.1.1 still cannot, and need 0.2.4 installed from the download page.
+- The Windows installer is still unsigned: SmartScreen warns at first launch.
