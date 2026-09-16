@@ -25,7 +25,7 @@ Ce dernier point sur les shells non interactifs est ce qui décide qu’un clien
 
 ## Où l’app garde la clé
 
-Pupitre génère une clé ed25519 par serveur et la garde dans son propre dossier de données, en mode `0600`. Elle n’écrit rien dans votre `~/.ssh/config`.
+Pupitre génère une clé ed25519 par serveur et la garde dans son propre dossier de données, en mode `0600`. Elle ne réécrit jamais votre `~/.ssh/config` : sur votre demande, elle y pose une ligne, une seule, décrite plus bas.
 
 | Système | Dossier |
 | --- | --- |
@@ -57,24 +57,30 @@ Pointez vos clients sur ce fichier plutôt que d’en faire une copie ailleurs. 
 
 ## Déclarer l’hôte une fois
 
-Tout ce qui suit se passe mieux quand votre propre `~/.ssh/config` porte une entrée pour le serveur. Certains clients — Codex parmi eux — ne lisent les hôtes que dans ce fichier.
+Tout ce qui suit demande que votre propre `~/.ssh/config` connaisse le serveur : `ssh`, les éditeurs et les agents de code ne lisent que ce fichier, pas celui que l’app garde dans son dossier. L’app le fait pour vous. Dans **Réglages › SSH**, cochez *Laisser ssh, mes éditeurs et mes agents de code joindre mes serveurs par leur nom* : une ligne s’ajoute en tête de `~/.ssh/config`, et rien d’autre n’y bouge.
 
 ```
-Host pupitre
+Include "/Users/vous/Library/Application Support/Pupitre/ssh/config"
+```
+
+Chaque serveur de l’app répond dès lors à son nom, en minuscules — `atelier` pour un serveur nommé « Atelier », le réglage le montre — avec la clé de l’app, `IdentitiesOnly` et la clé d’hôte épinglée. Un serveur dont le nom est déjà celui d’un `Host` de votre fichier garde son identifiant seul, `pupitre-srv-…`. Décocher la case retire la ligne. Vérifiez :
+
+```
+ssh atelier "dev status"
+```
+
+Une machine qui répond avec ses projets est une machine que tous les clients de cette page peuvent désormais joindre. Si elle demande un mot de passe, la clé n’est pas celle que `dev` accepte : révélez la clé publique sur l’écran des serveurs et comparez-la à `~/.ssh/authorized_keys` sur la machine.
+
+Si vous préférez écrire l’entrée vous-même, recopiez les valeurs depuis le bloc de l’app ; les guillemets autour du chemin sont nécessaires dès qu’il contient une espace, ce qui est le cas sur macOS et sur Windows.
+
+```
+Host atelier
   HostName 203.0.113.10
   Port 22
   User dev
   IdentityFile "/Users/vous/Library/Application Support/Pupitre/keys/srv-m9k2p1"
   IdentitiesOnly yes
 ```
-
-Recopiez les valeurs depuis le bloc de l’app. Les guillemets autour du chemin sont nécessaires dès qu’il contient une espace, ce qui est le cas sur macOS et sur Windows. Vérifiez ensuite :
-
-```
-ssh pupitre "dev status"
-```
-
-Une machine qui répond avec ses projets est une machine que tous les clients de cette page peuvent désormais joindre. Si elle demande un mot de passe, la clé n’est pas celle que `dev` accepte : révélez la clé publique sur l’écran des serveurs et comparez-la à `~/.ssh/authorized_keys` sur la machine.
 
 ## Claude Code
 
@@ -94,7 +100,7 @@ C’est ce champ Identity File qui fait que la clé de l’app fonctionne ici sa
 **Depuis un terminal.** Ouvrez une session, gardez-la dans `tmux` pour qu’elle survive au réseau, et lancez l’outil là où est le projet :
 
 ```
-ssh pupitre
+ssh atelier
 tmux new -A -s claude
 cd ~/projects/votre-projet && claude
 ```
@@ -105,12 +111,12 @@ Dans les deux cas vous vous connectez une fois, depuis la session où vous êtes
 
 `ai.codex` installe Codex par `mise`, et les shims sont sur le PATH de tous les shells — y compris le shell non interactif qu’ouvre un client distant. C’est exactement ce que l’app exige de la machine : elle démarre Codex sur l’hôte distant à travers votre shell de connexion.
 
-**Depuis l’app ChatGPT.** Codex y ajoute un projet distant depuis un hôte SSH : elle lit les alias d’hôte concrets de votre `~/.ssh/config` et les résout avec OpenSSH, si bien que l’entrée écrite plus haut est celle qu’elle vous propose. Il n’y a pas de champ pour une clé — c’est la ligne `IdentityFile` de cette entrée qui désigne celle de l’app.
+**Depuis l’app ChatGPT.** Codex y ajoute un projet distant depuis un hôte SSH : elle lit les alias d’hôte concrets de votre `~/.ssh/config` et les résout avec OpenSSH, si bien que le nom du serveur, déclaré plus haut, est ce qu’elle vous propose. Il n’y a pas de champ pour une clé — c’est la ligne `IdentityFile` du bloc de l’app qui désigne la sienne.
 
 **Depuis un terminal.** Même forme que pour Claude Code :
 
 ```
-ssh pupitre
+ssh atelier
 tmux new -A -s codex
 cd ~/projects/votre-projet && codex
 ```
@@ -119,7 +125,7 @@ Claude Code et Codex cohabitent sans discussion. Ils voient les mêmes projets, 
 
 ## Votre terminal
 
-`ssh pupitre` suffit, et le binaire de l’agent est aussi lié sous le nom `dev` : les opérations que l’app effectue existent dans un terminal nu.
+`ssh atelier` suffit, et le binaire de l’agent est aussi lié sous le nom `dev` : les opérations que l’app effectue existent dans un terminal nu.
 
 ```
 dev status                    ce qui tourne, sur quel port, avec quelle mémoire
@@ -150,7 +156,7 @@ VS Code, Cursor et Windsurf se connectent en Remote SSH, Zed par `zed://ssh`, le
 - **`Permissions 0644 for ... are too open`.** La clé privée ne doit être lisible que par vous : `chmod 600` sur macOS et Linux. Sur Windows, la garder dans `%APPDATA%` suffit — une copie posée dans un dossier partagé, non.
 - **Rien ne répond sur le port 22.** Si votre réseau le filtre, `core.hardening` peut mettre SSH sur le 443 également ; changez `Port` dans votre entrée.
 - **La clé d’hôte a changé.** Réinstaller une machine la change. L’app vous le demande de son côté ; dans votre `~/.ssh/known_hosts`, retirez l’ancienne ligne.
-- **`codex: command not found` depuis un client distant.** Le client a ouvert un shell qui n’a pas lu `.zshenv`. Vérifiez avec `ssh pupitre 'which codex'`.
+- **`codex: command not found` depuis un client distant.** Le client a ouvert un shell qui n’a pas lu `.zshenv`. Vérifiez avec `ssh atelier 'which codex'`.
 
 ## La révocation fonctionne toujours
 

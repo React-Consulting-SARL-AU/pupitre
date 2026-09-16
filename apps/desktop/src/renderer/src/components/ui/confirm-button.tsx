@@ -22,6 +22,7 @@ export function ConfirmButton({
   onConfirm,
   icon,
   variant = "danger",
+  confirmVariant = "destructive",
   size = "md",
   disabled = false,
   className = "",
@@ -33,6 +34,8 @@ export function ConfirmButton({
   onConfirm: Gesture;
   icon?: ButtonIcon;
   variant?: ButtonVariant;
+  /** The answer's look: red for what cannot be undone, `inverse` for a gesture that can. */
+  confirmVariant?: "destructive" | "inverse";
   size?: "sm" | "md";
   disabled?: boolean;
   className?: string;
@@ -66,6 +69,7 @@ export function ConfirmButton({
 
       <ConfirmDialog
         confirmLabel={confirmLabel}
+        confirmVariant={confirmVariant}
         onCancel={() => setAsking(false)}
         onConfirm={confirm}
         open={asking}
@@ -83,6 +87,7 @@ export function ConfirmDialog({
   title,
   question,
   confirmLabel,
+  confirmVariant = "destructive",
   working = false,
   onConfirm,
   onCancel,
@@ -91,6 +96,7 @@ export function ConfirmDialog({
   title: string;
   question: string;
   confirmLabel: string;
+  confirmVariant?: "destructive" | "inverse";
   working?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
@@ -104,7 +110,11 @@ export function ConfirmDialog({
           <Button disabled={working} onClick={onCancel} variant="discreet">
             {t("common.cancel")}
           </Button>
-          <Button disabled={working} onClick={onConfirm} variant="destructive">
+          <Button
+            disabled={working}
+            onClick={onConfirm}
+            variant={confirmVariant}
+          >
             {confirmLabel}
           </Button>
         </>

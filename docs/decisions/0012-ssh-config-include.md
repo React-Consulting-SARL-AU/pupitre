@@ -1,0 +1,9 @@
+# 0012 — Une ligne `Include` dans `~/.ssh/config`, sur demande
+
+Date : 2026-09-16 · Statut : acceptée · Précise la règle « `~/.ssh/config` n'est jamais modifié » de [`architecture.md`](../architecture.md)
+
+L'app garde sa configuration SSH dans son dossier de données et la passe à `ssh` avec `-F`. Les autres clients de la machine — `ssh` lui-même, Zed, les IDE JetBrains, VS Code et Cursor, Claude Code, Codex — ne lisent que `~/.ssh/config` et ne connaissent donc aucun serveur de l'app, alors que la clé est là, sur le laptop. Sur un geste explicite du client, l'app écrit **une seule ligne** en tête de `~/.ssh/config` : `Include "<dossier de l'app>/ssh/config"`. Elle la retire de la même façon. Rien d'autre dans ce fichier n'est lu pour être réécrit, ni déplacé.
+
+Pourquoi : c'est ce que les clients SSH attendent — un `Include` en tête, avant tout bloc `Host`, pour que la première valeur rencontrée soit celle de l'app et qu'aucun `Host *` du client ne la recouvre. Une fois la ligne là, chaque serveur de l'app répond à son nom (`ssh atelier`), avec la clé de l'app, `IdentitiesOnly`, la clé d'hôte épinglée et la session maître de l'app, dans tous les clients à la fois ; les boutons « Ouvrir dans » de l'écran d'un projet en dépendent et la demandent d'abord. L'alternative, `ssh-add` de la clé dans l'agent de l'utilisateur, ne survit pas au redémarrage et laisse à chaque client l'adresse, le port, le compte et la clé d'hôte à retrouver.
+
+Ce qu'on accepte : la ligne est visible et déplaçable par le client, l'app la reconnaît où qu'elle soit. Un nom de serveur qui coïncide avec un `Host` déjà déclaré dans `~/.ssh/config` n'est pas écrit, l'identifiant `pupitre-<id>` reste seul. La règle 2 tient : aucune clé privée ne quitte le laptop.

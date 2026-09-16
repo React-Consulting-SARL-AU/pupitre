@@ -8,6 +8,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import type { Server } from "@shared/servers";
+import { alias, sshNames } from "@shared/ssh-names";
 import { current, multiplexes, type Platform } from "./platform";
 import { trace } from "./trace";
 
@@ -61,11 +62,6 @@ export function appSshPaths(userData: string): SshPaths {
     keysDir: join(userData, "keys"),
     knownHostsPath: join(dir, "known_hosts"),
   };
-}
-
-/** A server of the app is named by its identifier: an address can move. */
-export function alias(server: Server): string {
-  return server.origin === "system" ? server.host : `pupitre-${server.id}`;
 }
 
 export type Address = Pick<Server, "host" | "port">;
@@ -184,12 +180,14 @@ export function argument(value: string): string {
 
 function block(
   server: Server,
+  name: string,
   paths: SshPaths,
   platform: Platform,
   control: string | null
 ): string {
+  const names = name === alias(server) ? name : `${alias(server)} ${name}`;
   const lines = [
-    `Host ${alias(server)}`,
+    `Host ${names}`,
     `  HostName ${server.host}`,
     `  Port ${server.port}`,
     `  User ${server.user}`,
@@ -220,28 +218,44 @@ function block(
 
 /**
  * A host taken from the system configuration gets no block: the app promised to
- * write nothing for it, and a block of ours would quietly override it.
+ * write nothing for it, and a block of ours would quietly override it. The
+ * hosts that file declares are reserved for the same reason: once it includes
+ * ours, a name of ours that matched one of theirs would answer in its place.
  */
 export function renderSshConfig(
   servers: Server[],
   paths: SshPaths,
   platform: Platform = current(),
-  control: string | null = controlDir(currentUid() ?? 0)
+  control: string | null = controlDir(currentUid() ?? 0),
+  reserved: readonly string[] = []
 ): string {
+  const names = sshNames(servers, reserved);
   const blocks = servers
     .filter((server) => server.origin === "app")
-    .map((server) => block(server, paths, platform, control));
+    .map((server) =>
+      block(
+        server,
+        names.get(server.id) ?? alias(server),
+        paths,
+        platform,
+        control
+      )
+    );
 
   return `${HEADER}${blocks.join("\n")}`;
 }
 
-export function writeSshConfig(servers: Server[], paths: SshPaths): void {
+export function writeSshConfig(
+  servers: Server[],
+  paths: SshPaths,
+  reserved: readonly string[] = []
+): void {
   mkdirSync(paths.dir, { mode: DIR_MODE, recursive: true });
   chmodSync(paths.dir, DIR_MODE);
 
   writeFileSync(
     paths.configPath,
-    renderSshConfig(servers, paths, current(), usableControlDir()),
+    renderSshConfig(servers, paths, current(), usableControlDir(), reserved),
     { mode: FILE_MODE }
   );
   chmodSync(paths.configPath, FILE_MODE);

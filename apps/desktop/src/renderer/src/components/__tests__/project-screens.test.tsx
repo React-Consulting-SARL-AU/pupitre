@@ -23,6 +23,7 @@ import { tabsFor } from "../projects/project-tabs";
  */
 
 const NOOP = () => undefined;
+const RESOLVED = () => Promise.resolve();
 
 const PROJECT = SNAPSHOT.projects[0];
 
@@ -283,7 +284,9 @@ describe("les éditeurs distants", () => {
       <ProjectEditors
         editors={remoteEditors(SNAPSHOT.services)}
         onOpen={NOOP}
+        onShare={RESOLVED}
         root={GIT_STATUS.root}
+        share={null}
       />
     );
 
@@ -298,10 +301,27 @@ describe("les éditeurs distants", () => {
       <ProjectEditors
         editors={remoteEditors(SNAPSHOT.services)}
         onOpen={NOOP}
+        onShare={RESOLVED}
         root={null}
+        share={null}
       />
     );
 
     expect(html).toBe("");
+  });
+
+  it("demandent d'abord la ligne du fichier du système quand il ne la porte pas", () => {
+    const html = renderToStaticMarkup(
+      <ProjectEditors
+        editors={remoteEditors(SNAPSHOT.services)}
+        onOpen={NOOP}
+        onShare={RESOLVED}
+        root={GIT_STATUS.root}
+        share="/home/jean/.ssh/config"
+      />
+    );
+
+    expect(html).toContain("JetBrains Gateway");
+    expect(html).not.toContain(`Ouvrir ${GIT_STATUS.root} dans`);
   });
 });
