@@ -38,7 +38,7 @@ func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 
 func TestInstallPutsGoAndItsBinariesOnPath(t *testing.T) {
 	fake := modtest.NewFakeSys()
-	ctx := newContext(t, fake, modtest.Values{"go_version": "1.25"})
+	ctx := newContext(t, fake, modtest.Values{"go_versions": []string{"1.25"}})
 
 	run(t, ctx)
 
@@ -69,7 +69,7 @@ func TestInstallPutsGoAndItsBinariesOnPath(t *testing.T) {
 
 func TestChosenGopathReachesTheShell(t *testing.T) {
 	fake := modtest.NewFakeSys()
-	ctx := newContext(t, fake, modtest.Values{"go_version": "1.25", "gopath": "/srv/go"})
+	ctx := newContext(t, fake, modtest.Values{"go_versions": []string{"1.25"}, "gopath": "/srv/go"})
 
 	run(t, ctx)
 
@@ -81,7 +81,7 @@ func TestChosenGopathReachesTheShell(t *testing.T) {
 
 func TestReplayOnAnInstalledMachineChangesNothing(t *testing.T) {
 	fake := modtest.NewFakeSys()
-	values := modtest.Values{"go_version": "1.25"}
+	values := modtest.Values{"go_versions": []string{"1.25"}}
 	run(t, newContext(t, fake, values))
 
 	mutations := len(fake.Mutations)
@@ -102,7 +102,7 @@ func TestReplayOnAnInstalledMachineChangesNothing(t *testing.T) {
 func TestFailedStepReportsItsReplayCommand(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.FailProgram("curl", "curl: (6) Could not resolve host: mise.jdx.dev")
-	ctx := newContext(t, fake, modtest.Values{"go_version": "1.25"})
+	ctx := newContext(t, fake, modtest.Values{"go_versions": []string{"1.25"}})
 
 	if err := (Module{}).Install(ctx); err == nil {
 		t.Fatal("expected install to fail")

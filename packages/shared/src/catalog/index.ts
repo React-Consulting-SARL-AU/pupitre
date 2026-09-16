@@ -20,6 +20,33 @@ export const ArchitectureSchema = z.enum(ARCHITECTURES)
 
 export type Architecture = z.infer<typeof ArchitectureSchema>
 
+/**
+ * The runtimes mise holds at several versions at once, by their mise tool
+ * name. Each is the module `runtime.<tool>`, and its versions field is
+ * `<tool>_versions`; a project pins one of them under the same name.
+ */
+export const RUNTIME_TOOLS = [
+  "node",
+  "java",
+  "python",
+  "go",
+  "php",
+  "ruby",
+  "rust",
+] as const
+
+export const RuntimeToolSchema = z.enum(RUNTIME_TOOLS)
+
+export type RuntimeTool = z.infer<typeof RuntimeToolSchema>
+
+export function runtimeModuleId(tool: RuntimeTool): string {
+  return `runtime.${tool}`
+}
+
+export function runtimeVersionsKey(tool: RuntimeTool): string {
+  return `${tool}_versions`
+}
+
 export const MODULE_IDS = [
   "core.system",
   "core.hardening",
@@ -153,6 +180,34 @@ export const VersionFieldSchema = FieldBaseSchema.extend({
 
 export type VersionField = z.infer<typeof VersionFieldSchema>
 
+/**
+ * Several versions side by side, for a runtime mise can hold at every major
+ * at once. `options` runs newest first, and the newest of the chosen ones is
+ * the machine's default: what a shell outside any project runs, and what a
+ * project that names none gets.
+ */
+export const VersionsFieldSchema = FieldBaseSchema.extend({
+  kind: z.literal("versions"),
+  options: z.array(z.string()).min(1),
+  default: z.array(z.string()).min(1),
+})
+  .strict()
+  .refine(
+    (field) =>
+      field.default.every((version) => field.options.includes(version)),
+    "a default version is one of the options"
+  )
+
+export type VersionsField = z.infer<typeof VersionsFieldSchema>
+
+/** The version a runtime runs at when nothing names one: the newest chosen, in the order the options run. */
+export function defaultVersionOf(
+  field: VersionsField,
+  chosen: readonly string[]
+): string | undefined {
+  return field.options.find((option) => chosen.includes(option))
+}
+
 export const BooleanFieldSchema = FieldBaseSchema.extend({
   kind: z.literal("boolean"),
   required: z.literal(false),
@@ -177,6 +232,7 @@ export const FieldSchema = z.discriminatedUnion("kind", [
   InputFieldSchema,
   SecretFieldSchema,
   VersionFieldSchema,
+  VersionsFieldSchema,
   BooleanFieldSchema,
   ListFieldSchema,
 ])

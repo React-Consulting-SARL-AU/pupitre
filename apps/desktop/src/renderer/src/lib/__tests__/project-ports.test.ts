@@ -37,6 +37,7 @@ const TURBO: Process = {
 };
 
 const SHOP: Project = {
+  boot: false,
   dir: "shop",
   name: "shop",
   path: "/home/dev/projects/shop",
@@ -45,6 +46,7 @@ const SHOP: Project = {
 };
 
 const OTHER: Project = {
+  boot: false,
   dir: "other",
   name: "other",
   path: "/home/dev/projects/other",

@@ -232,6 +232,7 @@ describe("l'attente d'une configuration appliquée", () => {
 
 describe("le domaine d'une exposition", () => {
   const web = (hostname: string) => ({
+    boot: false,
     dir: "web",
     name: "web",
     path: "/home/dev/projects/web",

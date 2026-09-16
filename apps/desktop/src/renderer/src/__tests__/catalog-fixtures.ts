@@ -98,11 +98,11 @@ export const RUNTIME_JAVA: Manifest = {
   arch: [...BOTH],
   fields: [
     {
-      key: "java_version",
-      kind: "version",
-      label: "Version de Java",
+      key: "java_versions",
+      kind: "versions",
+      label: "Versions de Java",
       options: ["21", "17"],
-      default: "21",
+      default: ["21"],
     },
   ],
   mandatory: false,
@@ -121,11 +121,11 @@ export const RUNTIME_NODE: Manifest = {
   arch: [...BOTH],
   fields: [
     {
-      key: "node_version",
-      kind: "version",
-      label: "Version de Node",
+      key: "node_versions",
+      kind: "versions",
+      label: "Versions de Node",
       options: ["24", "22"],
-      default: "24",
+      default: ["24"],
     },
     {
       key: "bun",

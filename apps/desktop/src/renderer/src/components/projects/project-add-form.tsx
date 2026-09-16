@@ -11,6 +11,7 @@ import type {
   ReposState,
 } from "../../stores/project-add";
 import { Button } from "../ui/button";
+import { CheckLine } from "../ui/check-line";
 import { Field, fieldControlClass } from "../ui/field";
 import { ProjectAddSource, type SourceEdits } from "./project-add-source";
 import { ProjectAddSourceStatus } from "./project-add-source-status";
@@ -28,6 +29,8 @@ import { ProjectProcesses } from "./project-processes";
  */
 export interface DraftEdits extends SourceEdits, ProcessEdits {
   name: (value: string) => void;
+  startNow: (value: boolean) => void;
+  boot: (value: boolean) => void;
 }
 
 export function ProjectAddForm({
@@ -130,6 +133,21 @@ export function ProjectAddForm({
         processes={draft.processes}
         rowProblems={rowProblems}
       />
+
+      <div className="flex flex-col gap-2">
+        <CheckLine
+          checked={draft.startNow}
+          label={t("projectAdd.form.startNowLabel")}
+          name="project.startNow"
+          onChange={edit.startNow}
+        />
+        <CheckLine
+          checked={draft.boot}
+          label={t("projectAdd.form.bootLabel")}
+          name="project.boot"
+          onChange={edit.boot}
+        />
+      </div>
 
       <div className="flex items-center gap-2">
         <Button

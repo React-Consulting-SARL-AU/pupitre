@@ -1,5 +1,9 @@
 import { z } from "zod"
-import { ArchitectureSchema, ConnectionKindSchema } from "../catalog"
+import {
+  ArchitectureSchema,
+  ConnectionKindSchema,
+  RuntimeToolSchema,
+} from "../catalog"
 import { PortSchema } from "./ports"
 import { EntitlementSchema } from "./session"
 
@@ -52,6 +56,8 @@ export const ServiceSchema = z.object({
   runs: z.boolean().default(true),
   connection: ConnectionKindSchema.optional(),
   version: z.string().optional(),
+  /** The majors a runtime holds, newest first: what a project may pin. */
+  versions: z.array(z.string()).optional(),
   port: z.int().min(1).max(65_535).optional(),
   unit: z.string().optional(),
 })
@@ -266,6 +272,21 @@ export function uniqueProcessIds(
   )
 }
 
+/** A major, or a major and minor, as the runtime's versions field lists them: `22`, `3.12`. */
+export const RuntimeVersionSchema = z.string().regex(/^[0-9]+(\.[0-9]+)*$/)
+
+/**
+ * The runtime versions a project runs on, by mise tool name: `{ node: "22" }`.
+ * Each is one the runtime's service has installed; a tool named by no entry
+ * runs at the machine's default.
+ */
+export const ProjectRuntimesSchema = z.partialRecord(
+  RuntimeToolSchema,
+  RuntimeVersionSchema
+)
+
+export type ProjectRuntimes = z.infer<typeof ProjectRuntimesSchema>
+
 const ProjectBaseSchema = z.object({
   name: ProjectNameSchema,
   dir: z.string().min(1),
@@ -283,6 +304,10 @@ export const ProjectRegistrationSchema = ProjectBaseSchema.extend({
     .array(ProcessRegistrationSchema)
     .min(1)
     .refine(uniqueProcessIds, "two processes of a project cannot share an id"),
+  /** Whether the project starts with the server, whatever ran when it went down. */
+  boot: z.boolean().default(false),
+  /** Absent, the project names no version: every runtime runs at the machine's default. */
+  runtimes: ProjectRuntimesSchema.optional(),
 })
 
 export type ProjectRegistration = z.infer<typeof ProjectRegistrationSchema>
@@ -291,6 +316,8 @@ export const ProjectSchema = ProjectBaseSchema.extend({
   path: AbsolutePathSchema,
   processes: z.array(ProcessSchema).min(1),
   state: ProjectStateSchema,
+  boot: z.boolean().default(false),
+  runtimes: ProjectRuntimesSchema.optional(),
   /** The address of the first process whose main port carries a name on the web. */
   url: z.string().optional(),
   // Here the branch is what HEAD reads as, which a detached checkout makes a

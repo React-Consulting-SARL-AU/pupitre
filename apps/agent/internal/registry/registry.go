@@ -99,7 +99,11 @@ type Project struct {
 	Repo      string    `json:"repo,omitempty"`
 	Branch    string    `json:"branch,omitempty"`
 	Processes []Process `json:"processes"`
-	Local     bool      `json:"-"`
+	// Boot says the project starts with the server, whatever ran when it went down.
+	Boot bool `json:"boot"`
+	// Runtimes is the version each runtime runs at in this project, by mise tool; a tool absent runs at the machine's default.
+	Runtimes map[string]string `json:"runtimes"`
+	Local    bool              `json:"-"`
 }
 
 func (p Process) IsService() bool {
@@ -289,6 +293,11 @@ func (p Project) Contract(projects string) contract.Project {
 		processes = append(processes, process.Contract(path))
 	}
 
+	runtimes := p.Runtimes
+	if runtimes == nil {
+		runtimes = map[string]string{}
+	}
+
 	return contract.Project{
 		Name:      p.Name,
 		Dir:       p.Dir,
@@ -296,6 +305,8 @@ func (p Project) Contract(projects string) contract.Project {
 		Repo:      value(p.Repo),
 		Branch:    value(p.Branch),
 		Processes: processes,
+		Boot:      p.Boot,
+		Runtimes:  runtimes,
 	}
 }
 
@@ -667,6 +678,8 @@ func (f *File) Add(ctx sys.Context, project Project) error {
 // A Patch is what project.update may change; a nil field is a field left as it was, and a list of processes replaces the whole of the last one.
 type Patch struct {
 	Branch    *string
+	Boot      *bool
+	Runtimes  *map[string]string
 	Processes *[]Process
 }
 
@@ -684,6 +697,12 @@ func (f *File) Update(ctx sys.Context, name string, patch Patch) (Project, error
 	updated := current
 	if patch.Branch != nil {
 		updated.Branch = *patch.Branch
+	}
+	if patch.Boot != nil {
+		updated.Boot = *patch.Boot
+	}
+	if patch.Runtimes != nil {
+		updated.Runtimes = *patch.Runtimes
 	}
 	if patch.Processes != nil {
 		updated.Processes = append([]Process{}, (*patch.Processes)...)
@@ -804,6 +823,9 @@ func (f *File) write(ctx sys.Context, rows []Project) error {
 func cleaned(project Project) Project {
 	project.Repo = value(project.Repo)
 	project.Branch = value(project.Branch)
+	if project.Runtimes == nil {
+		project.Runtimes = map[string]string{}
+	}
 
 	processes := make([]Process, 0, len(project.Processes))
 	for _, process := range project.Processes {

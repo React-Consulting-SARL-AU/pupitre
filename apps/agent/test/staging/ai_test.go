@@ -16,8 +16,8 @@ var aiInstall = request{Cmd: "install", Params: map[string]any{
 	"secrets_stdin": true,
 	"config": map[string]any{
 		"core.system":    map[string]any{"timezone": "Europe/Paris", "git_name": "Pupitre Staging", "git_email": "staging@pupitre.studio"},
-		"runtime.node":   map[string]any{"node_version": "22", "bun": true, "pnpm": true},
-		"runtime.python": map[string]any{"python_version": "3.12"},
+		"runtime.node":   map[string]any{"node_versions": []string{"22"}, "bun": true, "pnpm": true},
+		"runtime.python": map[string]any{"python_versions": []string{"3.12"}},
 		"ai.hermes":      map[string]any{"always_on": true},
 	},
 }}

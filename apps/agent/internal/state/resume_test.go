@@ -6,6 +6,7 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/registry"
+	"pupitre.studio/agent/internal/state"
 )
 
 /*
@@ -102,5 +103,38 @@ func TestResumeLeavesALiveSessionAlone(t *testing.T) {
 	}
 	if got := projectOf(t, reader.Snapshot().Projects, "web"); got.State != contract.ProjectStopped {
 		t.Fatalf("nothing must have been started: %+v", got)
+	}
+}
+
+// A project that starts with the server comes up at the boot whether or not it ran before it, and a patch is what says so.
+func TestResumeStartsTheProjectsThatStartWithTheServer(t *testing.T) {
+	fake, reader := fixture(t)
+	fake.Dirs["/home/dev/projects/api"] = true
+	fake.Serves("api/api", 5173)
+
+	added, err := reader.Add(declared("api", 5173, "bun run dev --port 5173"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if added.Boot {
+		t.Fatal("starting with the server is asked for, never assumed")
+	}
+
+	boot := true
+	updated, err := reader.Update("api", state.UpdatePatch{Boot: &boot})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !updated.Boot {
+		t.Fatalf("the patch must be kept: %+v", updated)
+	}
+
+	started := reader.Resume()
+
+	if strings.Join(started, " ") != "api/api" {
+		t.Fatalf("the project marked to boot comes up, the others stay down: %v", started)
+	}
+	if got := wanted(t, fake.Files); !strings.Contains(got, `"api/api"`) {
+		t.Fatalf("what the boot started is recorded like any start: %q", got)
 	}
 }

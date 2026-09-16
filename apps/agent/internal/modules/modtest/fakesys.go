@@ -44,6 +44,7 @@ type FakeSys struct {
 	Users      map[string]string
 	Groups     map[string][]string
 	Tools      map[string]string
+	Versions   map[string][]string
 	Sessions   map[string]bool
 	Windows    map[string]int
 	Dead       map[string]int
@@ -96,6 +97,7 @@ func NewFakeSys() *FakeSys {
 		Users:      map[string]string{"root": "/root"},
 		Groups:     map[string][]string{},
 		Tools:      map[string]string{},
+		Versions:   map[string][]string{},
 		Sessions:   map[string]bool{},
 		Windows:    map[string]int{},
 		Dead:       map[string]int{},
@@ -237,7 +239,7 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 	case "curl":
 		return f.curl(cmd.Argv[1:])
 	case "mise":
-		return f.mise(cmd.Argv[1:])
+		return f.mise(cmd, cmd.Argv[1:])
 	case "tmux":
 		return f.tmux(cmd.Argv[1:])
 	case "ss":
@@ -632,9 +634,19 @@ func (f *FakeSys) chrome(args []string) (sys.Output, error) {
 	return sys.Output{}, nil
 }
 
-const miseInstalls = "/home/dev/.local/share/mise/installs/"
+const (
+	miseInstalls = "/home/dev/.local/share/mise/installs/"
 
-func (f *FakeSys) mise(args []string) (sys.Output, error) {
+	// The global configuration mise use -g writes, which the real one reads back to know the default of every tool.
+	MiseGlobalConfig = "/home/dev/.config/mise/config.toml"
+)
+
+// Tools is what mise use chose, the default of each tool; Versions is everything installed beside it. The list mise prints is the union.
+func (f *FakeSys) mise(cmd sys.Command, args []string) (sys.Output, error) {
+	if len(args) > 0 && (args[0] == "x" || args[0] == "exec") {
+		return f.miseExec(cmd, args[1:])
+	}
+
 	var words []string
 	for _, arg := range args {
 		if !strings.HasPrefix(arg, "-") {
@@ -650,14 +662,27 @@ func (f *FakeSys) mise(args []string) (sys.Output, error) {
 	case "use":
 		for _, spec := range words[1:] {
 			tool, version := parseTool(spec)
+			if previous, held := f.Tools[tool]; held {
+				f.addVersion(tool, f.resolved(tool, previous))
+			}
+
 			f.Tools[tool] = version
+			f.addVersion(tool, f.resolved(tool, version))
 			f.mutate("mise use " + tool + "@" + version)
+		}
+
+		f.writeMiseGlobal()
+	case "install":
+		for _, spec := range words[1:] {
+			tool, version := parseTool(spec)
+			f.addVersion(tool, f.resolved(tool, version))
+			f.mutate("mise install " + tool + "@" + version)
 		}
 	case "uninstall":
 		for _, spec := range words[1:] {
-			tool, _ := parseTool(spec)
-			delete(f.Tools, tool)
-			f.mutate("mise uninstall " + tool)
+			tool, version := parseTool(spec)
+			f.dropVersion(tool, version)
+			f.mutate("mise uninstall " + spec)
 		}
 	case "upgrade":
 		for _, tool := range words[1:] {
@@ -677,6 +702,8 @@ func (f *FakeSys) mise(args []string) (sys.Output, error) {
 		}
 
 		return sys.Output{Stdout: miseInstalls + words[1] + "/" + version + "\n"}, nil
+	case "trust":
+		f.mutate("mise trust " + strings.Join(words[1:], " "))
 	case "ls", "list":
 		return sys.Output{Stdout: f.toolList()}, nil
 	default:
@@ -686,7 +713,67 @@ func (f *FakeSys) mise(args []string) (sys.Output, error) {
 	return sys.Output{}, nil
 }
 
-func (f *FakeSys) toolList() string {
+// The program after -- runs as the same user, under whichever version was named: what it does is its own business, and its failures are its own.
+func (f *FakeSys) miseExec(cmd sys.Command, args []string) (sys.Output, error) {
+	at := slices.Index(args, "--")
+	if at < 0 || at == len(args)-1 {
+		return f.fail("mise", "error: a command is required after --")
+	}
+
+	inner := cmd
+	inner.Argv = args[at+1:]
+
+	return f.Run(inner)
+}
+
+// A release the test announced under Upgrades, "mise:node@22" say, is what a fuzzy request resolves to for as long as the test says so; otherwise the request itself is kept.
+func (f *FakeSys) resolved(tool, version string) string {
+	if next, ok := f.Upgrades["mise:"+tool+"@"+version]; ok {
+		return next
+	}
+
+	return version
+}
+
+func (f *FakeSys) addVersion(tool, version string) {
+	for _, held := range f.Versions[tool] {
+		if held == version {
+			return
+		}
+	}
+
+	f.Versions[tool] = append(f.Versions[tool], version)
+}
+
+// A bare tool drops every version of it; a version drops that one alone. The default only goes with the last version, as a request in the real configuration outlives the release it resolved to.
+func (f *FakeSys) dropVersion(tool, version string) {
+	if version == "latest" {
+		delete(f.Tools, tool)
+		delete(f.Versions, tool)
+
+		return
+	}
+
+	kept := f.Versions[tool][:0]
+	for _, held := range f.Versions[tool] {
+		if held != version {
+			kept = append(kept, held)
+		}
+	}
+
+	if len(kept) > 0 {
+		f.Versions[tool] = kept
+
+		return
+	}
+
+	delete(f.Versions, tool)
+	if f.Tools[tool] == version {
+		delete(f.Tools, tool)
+	}
+}
+
+func (f *FakeSys) writeMiseGlobal() {
 	names := make([]string, 0, len(f.Tools))
 	for name := range f.Tools {
 		names = append(names, name)
@@ -694,8 +781,41 @@ func (f *FakeSys) toolList() string {
 	sort.Strings(names)
 
 	var out strings.Builder
+	out.WriteString("[tools]\n")
 	for _, name := range names {
-		fmt.Fprintf(&out, "%s  %s  ~/.config/mise/config.toml\n", name, f.Tools[name])
+		fmt.Fprintf(&out, "%q = %q\n", name, f.Tools[name])
+	}
+
+	f.Dirs["/home/dev/.config/mise"] = true
+	f.Files[MiseGlobalConfig] = []byte(out.String())
+}
+
+func (f *FakeSys) toolList() string {
+	held := map[string][]string{}
+	for name, version := range f.Tools {
+		held[name] = append(held[name], version)
+	}
+	for name, versions := range f.Versions {
+		for _, version := range versions {
+			if !slices.Contains(held[name], version) {
+				held[name] = append(held[name], version)
+			}
+		}
+	}
+
+	names := make([]string, 0, len(held))
+	for name := range held {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	var out strings.Builder
+	for _, name := range names {
+		versions := held[name]
+		sort.Strings(versions)
+		for _, version := range versions {
+			fmt.Fprintf(&out, "%s  %s  ~/.config/mise/config.toml\n", name, version)
+		}
 	}
 
 	return out.String()

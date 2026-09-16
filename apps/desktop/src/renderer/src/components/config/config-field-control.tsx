@@ -5,6 +5,7 @@ import { Field as FieldFrame } from "../ui/field";
 import { ConfigListField } from "./config-list-field";
 import { ConfigSecretField } from "./config-secret-field";
 import { ConfigValueControl } from "./config-value-control";
+import { ConfigVersionsField } from "./config-versions-field";
 
 /**
  * One field of a manifest, drawn according to its kind and nothing else.
@@ -34,9 +35,9 @@ interface ControlProps {
   handlers: FieldHandlers;
 }
 
-/** A version always has one, a checkbox never; the rest say so themselves. */
+/** A version always has one, a runtime one at the least, a checkbox never; the rest say so themselves. */
 function isRequired(field: Field): boolean {
-  if (field.kind === "version") {
+  if (field.kind === "version" || field.kind === "versions") {
     return true;
   }
 
@@ -82,6 +83,18 @@ function control({
         onChange={(next) => handlers.onValue?.(field.key, next)}
         onSecret={handlers.onSecret}
         values={Array.isArray(value) ? (value as string[]) : []}
+        wrong={wrong}
+      />
+    );
+  }
+
+  if (field.kind === "versions") {
+    return (
+      <ConfigVersionsField
+        chosen={Array.isArray(value) ? (value as string[]) : []}
+        field={field}
+        name={name}
+        onChange={(next) => handlers.onValue?.(field.key, next)}
         wrong={wrong}
       />
     );

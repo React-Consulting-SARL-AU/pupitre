@@ -522,9 +522,13 @@ var moduleCatalog = map[string]Message{
 		FR: "Docker Engine et Compose depuis le dépôt de Docker, l'utilisateur dev dans le groupe docker, le démon lié à sa socket et à rien d'autre.",
 		EN: "Docker Engine and Compose from Docker's own repository, the dev user in the docker group, and the daemon bound to its socket and nothing else.",
 	},
-	"module.runtime.go.go_version.label": {
-		FR: "Version de Go",
-		EN: "Go version",
+	"module.runtime.go.go_versions.label": {
+		FR: "Versions de Go",
+		EN: "Go versions",
+	},
+	"module.runtime.go.go_versions.help": {
+		FR: "La plus récente cochée est celle par défaut ; un projet peut en choisir une autre.",
+		EN: "The newest checked is the default; a project may pick another.",
 	},
 	"module.runtime.go.gopath.help": {
 		FR: "Vide : ~/go. Sinon un chemin absolu, par exemple /srv/go.",
@@ -535,16 +539,20 @@ var moduleCatalog = map[string]Message{
 		EN: "GOPATH",
 	},
 	"module.runtime.go.summary": {
-		FR: "Go par mise, à la version choisie, avec GOPATH et les binaires de go install actifs dans tous les shells.",
-		EN: "Go through mise, at the chosen version, with GOPATH and the binaries of go install active in every shell.",
+		FR: "Go par mise, aux versions choisies, avec GOPATH et les binaires de go install actifs dans tous les shells.",
+		EN: "Go through mise, at the chosen versions, with GOPATH and the binaries of go install active in every shell.",
 	},
-	"module.runtime.java.java_version.label": {
-		FR: "Version de Java",
-		EN: "Java version",
+	"module.runtime.java.java_versions.label": {
+		FR: "Versions de Java",
+		EN: "Java versions",
+	},
+	"module.runtime.java.java_versions.help": {
+		FR: "La plus récente cochée est celle par défaut ; un projet peut en choisir une autre.",
+		EN: "The newest checked is the default; a project may pick another.",
 	},
 	"module.runtime.java.summary": {
-		FR: "Temurin par mise, JAVA_HOME pour tous les shells et daemon Gradle dimensionné d'après la mémoire de la machine.",
-		EN: "Temurin through mise, JAVA_HOME for every shell, and a Gradle daemon sized after the machine's memory.",
+		FR: "Temurin par mise aux versions choisies, JAVA_HOME pour tous les shells et daemon Gradle dimensionné d'après la mémoire de la machine.",
+		EN: "Temurin through mise at the chosen versions, JAVA_HOME for every shell, and a Gradle daemon sized after the machine's memory.",
 	},
 	"module.runtime.node.bun.help": {
 		FR: "Exécution et gestionnaire de paquets JavaScript.",
@@ -554,9 +562,13 @@ var moduleCatalog = map[string]Message{
 		FR: "Bun",
 		EN: "Bun",
 	},
-	"module.runtime.node.node_version.label": {
-		FR: "Version de Node",
-		EN: "Node version",
+	"module.runtime.node.node_versions.label": {
+		FR: "Versions de Node",
+		EN: "Node versions",
+	},
+	"module.runtime.node.node_versions.help": {
+		FR: "La plus récente cochée est celle par défaut ; un projet peut en choisir une autre.",
+		EN: "The newest checked is the default; a project may pick another.",
 	},
 	"module.runtime.node.pnpm.help": {
 		FR: "Avec corepack, chaque dépôt garde la version qu'il déclare.",
@@ -567,8 +579,8 @@ var moduleCatalog = map[string]Message{
 		EN: "pnpm",
 	},
 	"module.runtime.node.summary": {
-		FR: "mise, Node à la version choisie, Bun, pnpm et Yarn en option, actifs dans tous les shells y compris ceux d'une commande ssh.",
-		EN: "mise, Node at the chosen version, Bun, pnpm and Yarn optional, active in every shell including those of an ssh command.",
+		FR: "mise, Node aux versions choisies, Bun, pnpm et Yarn en option, actifs dans tous les shells y compris ceux d'une commande ssh.",
+		EN: "mise, Node at the chosen versions, Bun, pnpm and Yarn optional, active in every shell including those of an ssh command.",
 	},
 	"module.runtime.node.yarn.help": {
 		FR: "Par corepack, comme pnpm. Peu de dépôts récents en ont encore besoin.",
@@ -594,21 +606,29 @@ var moduleCatalog = map[string]Message{
 		FR: "memory_limit",
 		EN: "memory_limit",
 	},
-	"module.runtime.php.php_version.label": {
-		FR: "Version de PHP",
-		EN: "PHP version",
+	"module.runtime.php.php_versions.label": {
+		FR: "Versions de PHP",
+		EN: "PHP versions",
+	},
+	"module.runtime.php.php_versions.help": {
+		FR: "La plus récente cochée est celle par défaut ; un projet peut en choisir une autre.",
+		EN: "The newest checked is the default; a project may pick another.",
 	},
 	"module.runtime.php.summary": {
-		FR: "PHP compilé par mise à la version choisie, Composer en option, actifs dans tous les shells.",
-		EN: "PHP compiled by mise at the chosen version, Composer optional, active in every shell.",
+		FR: "PHP compilé par mise aux versions choisies, Composer en option, actifs dans tous les shells.",
+		EN: "PHP compiled by mise at the chosen versions, Composer optional, active in every shell.",
 	},
-	"module.runtime.python.python_version.label": {
-		FR: "Version de Python",
-		EN: "Python version",
+	"module.runtime.python.python_versions.label": {
+		FR: "Versions de Python",
+		EN: "Python versions",
+	},
+	"module.runtime.python.python_versions.help": {
+		FR: "La plus récente cochée est celle par défaut ; un projet peut en choisir une autre.",
+		EN: "The newest checked is the default; a project may pick another.",
 	},
 	"module.runtime.python.summary": {
-		FR: "uv et un interpréteur Python à la version choisie, tous deux posés par mise et actifs dans tous les shells.",
-		EN: "uv and a Python interpreter at the chosen version, both installed by mise and active in every shell.",
+		FR: "uv et Python aux versions choisies, tous deux posés par mise et actifs dans tous les shells.",
+		EN: "uv and Python at the chosen versions, both installed by mise and active in every shell.",
 	},
 	"module.runtime.ruby.bundler.help": {
 		FR: "Le gestionnaire de dépendances de l'écosystème Ruby.",
@@ -618,21 +638,29 @@ var moduleCatalog = map[string]Message{
 		FR: "Bundler",
 		EN: "Bundler",
 	},
-	"module.runtime.ruby.ruby_version.label": {
-		FR: "Version de Ruby",
-		EN: "Ruby version",
+	"module.runtime.ruby.ruby_versions.label": {
+		FR: "Versions de Ruby",
+		EN: "Ruby versions",
+	},
+	"module.runtime.ruby.ruby_versions.help": {
+		FR: "La plus récente cochée est celle par défaut ; un projet peut en choisir une autre.",
+		EN: "The newest checked is the default; a project may pick another.",
 	},
 	"module.runtime.rust.summary": {
-		FR: "Rust par mise, qui pose rustup et la version choisie ; cargo, rustc et ce que cargo install construit sont sur le PATH de tous les shells.",
-		EN: "Rust through mise, which installs rustup and the chosen version; cargo, rustc and whatever cargo install builds are on the path of every shell.",
+		FR: "Rust par mise, qui pose rustup et les versions choisies ; cargo, rustc et ce que cargo install construit sont sur le PATH de tous les shells.",
+		EN: "Rust through mise, which installs rustup and the chosen versions; cargo, rustc and whatever cargo install builds are on the path of every shell.",
 	},
-	"module.runtime.rust.rust_version.label": {
-		FR: "Version de Rust",
-		EN: "Rust version",
+	"module.runtime.rust.rust_versions.label": {
+		FR: "Versions de Rust",
+		EN: "Rust versions",
+	},
+	"module.runtime.rust.rust_versions.help": {
+		FR: "La plus récente cochée est celle par défaut ; un projet peut en choisir une autre.",
+		EN: "The newest checked is the default; a project may pick another.",
 	},
 	"module.runtime.ruby.summary": {
-		FR: "Ruby compilé par mise à la version choisie, Bundler en option, actifs dans tous les shells.",
-		EN: "Ruby compiled by mise at the chosen version, Bundler optional, active in every shell.",
+		FR: "Ruby compilé par mise aux versions choisies, Bundler en option, actifs dans tous les shells.",
+		EN: "Ruby compiled by mise at the chosen versions, Bundler optional, active in every shell.",
 	},
 	"module.tool.1password.service_account_token.label": {
 		FR: "Jeton du compte de service",

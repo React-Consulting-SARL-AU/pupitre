@@ -63,13 +63,14 @@ const (
 )
 
 const (
-	FieldText    = "text"
-	FieldNumber  = "number"
-	FieldSelect  = "select"
-	FieldSecret  = "secret"
-	FieldVersion = "version"
-	FieldBoolean = "boolean"
-	FieldList    = "list"
+	FieldText     = "text"
+	FieldNumber   = "number"
+	FieldSelect   = "select"
+	FieldSecret   = "secret"
+	FieldVersion  = "version"
+	FieldVersions = "versions"
+	FieldBoolean  = "boolean"
+	FieldList     = "list"
 
 	ItemsText   = "text"
 	ItemsSecret = "secret"
@@ -137,7 +138,7 @@ func (f Field) MarshalJSON() ([]byte, error) {
 		if f.Generate {
 			object["generate"] = true
 		}
-	case FieldVersion:
+	case FieldVersion, FieldVersions:
 		object["options"] = emptyIfNil(f.Options)
 		object["default"] = f.Default
 	case FieldList:
@@ -413,6 +414,7 @@ type ServiceStatus struct {
 	Runs        bool              `json:"runs"`
 	Connection  string            `json:"connection,omitempty"`
 	Version     string            `json:"version,omitempty"`
+	Versions    []string          `json:"versions,omitempty"`
 	Port        int               `json:"port,omitempty"`
 	Unit        string            `json:"unit,omitempty"`
 	Credentials map[string]string `json:"credentials,omitempty"`
@@ -520,14 +522,16 @@ type ProjectProcess struct {
 }
 
 type Project struct {
-	Name      string           `json:"name"`
-	Dir       string           `json:"dir"`
-	Path      string           `json:"path"`
-	Repo      string           `json:"repo,omitempty"`
-	Branch    string           `json:"branch,omitempty"`
-	Processes []ProjectProcess `json:"processes"`
-	State     ProjectState     `json:"state"`
-	URL       string           `json:"url,omitempty"`
+	Name      string            `json:"name"`
+	Dir       string            `json:"dir"`
+	Path      string            `json:"path"`
+	Repo      string            `json:"repo,omitempty"`
+	Branch    string            `json:"branch,omitempty"`
+	Processes []ProjectProcess  `json:"processes"`
+	State     ProjectState      `json:"state"`
+	URL       string            `json:"url,omitempty"`
+	Boot      bool              `json:"boot"`
+	Runtimes  map[string]string `json:"runtimes"`
 }
 
 type DetectedRoute struct {

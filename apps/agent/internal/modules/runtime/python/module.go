@@ -9,8 +9,6 @@ import (
 	"pupitre.studio/agent/internal/modules/runtime/shell"
 )
 
-var tools = []string{"python", "uv"}
-
 type Module struct{}
 
 func init() {
@@ -26,15 +24,16 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 		return modules.Status{}, nil
 	}
 
-	installed := mise.Installed(ctx)
-	if installed["python"] == "" {
+	held := mise.Python.Held(ctx)
+	if len(held) == 0 {
 		return modules.Status{}, nil
 	}
 
 	return modules.Status{
 		Installed:  true,
 		Configured: shell.HasBlock(ctx, ID),
-		Version:    describe(installed),
+		Version:    describe(ctx),
+		Versions:   held,
 	}, nil
 }
 
@@ -47,7 +46,7 @@ func (Module) Install(ctx *modules.Context) error {
 		return err
 	}
 
-	_, err := mise.Add(ctx, "install-python", "python", ctx.String("python_version"))
+	_, err := mise.Python.Install(ctx)
 
 	return err
 }
@@ -57,14 +56,18 @@ func (Module) Configure(ctx *modules.Context) error {
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
-	if err := ctx.Step("upgrade-python", func() (modules.Outcome, error) {
-		before := mise.Installed(ctx)
+	if err := mise.Python.Upgrade(ctx); err != nil {
+		return err
+	}
 
-		if err := mise.Upgrade(ctx, tools...); err != nil {
+	if err := ctx.Step("upgrade-uv", func() (modules.Outcome, error) {
+		before := mise.Installed(ctx)["uv"]
+
+		if err := mise.Upgrade(ctx, "uv"); err != nil {
 			return modules.Failed, err
 		}
 
-		if describe(mise.Installed(ctx)) == describe(before) {
+		if mise.Installed(ctx)["uv"] == before {
 			return modules.Skipped, nil
 		}
 
@@ -82,13 +85,11 @@ func (Module) Uninstall(ctx *modules.Context) error {
 		return err
 	}
 
-	for _, tool := range tools {
-		if err := mise.Remove(ctx, "remove-"+tool, tool); err != nil {
-			return err
-		}
+	if err := mise.Remove(ctx, "remove-uv", "uv"); err != nil {
+		return err
 	}
 
-	return nil
+	return mise.Python.Uninstall(ctx)
 }
 
 func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
@@ -105,12 +106,10 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	return status, nil
 }
 
-func describe(installed map[string]string) string {
-	var parts []string
-	for _, tool := range tools {
-		if installed[tool] != "" {
-			parts = append(parts, tool+" "+installed[tool])
-		}
+func describe(ctx *modules.Context) string {
+	parts := []string{mise.Python.Describe(ctx)}
+	if uv := mise.Installed(ctx)["uv"]; uv != "" {
+		parts = append(parts, "uv "+uv)
 	}
 
 	return strings.Join(parts, " · ")

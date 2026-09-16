@@ -545,7 +545,11 @@ export function asked(field: Field): boolean {
     return field.items === "secret" || (field.min ?? 0) > 0;
   }
 
-  if (field.kind === "boolean" || field.kind === "version") {
+  if (
+    field.kind === "boolean" ||
+    field.kind === "version" ||
+    field.kind === "versions"
+  ) {
     return false;
   }
 
@@ -575,7 +579,11 @@ export function defaultsOf(manifest: Manifest): Record<string, unknown> {
       continue;
     }
 
-    if (field.kind === "version" || field.kind === "boolean") {
+    if (
+      field.kind === "version" ||
+      field.kind === "versions" ||
+      field.kind === "boolean"
+    ) {
       values[field.key] = field.default;
       continue;
     }

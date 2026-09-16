@@ -36,6 +36,7 @@ export const SNAPSHOT: SnapshotResult = {
   projects: [
     {
       branch: "main",
+      boot: false,
       dir: "flymate",
       name: "flymate-api",
       path: "/home/dev/projects/flymate",
@@ -64,6 +65,7 @@ export const SNAPSHOT: SnapshotResult = {
       url: "https://flymate.example.org",
     },
     {
+      boot: false,
       dir: "atlas",
       name: "atlas-web",
       path: "/home/dev/projects/atlas",
@@ -83,6 +85,7 @@ export const SNAPSHOT: SnapshotResult = {
       state: "stopped",
     },
     {
+      boot: false,
       dir: "billing",
       name: "billing",
       path: "/home/dev/projects/billing",

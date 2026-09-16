@@ -1,0 +1,43 @@
+# Un projet épingle la version d'un runtime parmi celles que la machine tient : l'épingle atterrit dans mise.local.toml, hors du dépôt ; une version absente ou un runtime inconnu sont refusés avec le service à ouvrir.
+@file /etc/hostname pupitre-staging
+@file /etc/os-release ID=ubuntu\nVERSION_ID="24.04"
+@file /proc/meminfo MemTotal: 8127744 kB\nMemAvailable: 6291456 kB\nSwapTotal: 2097152 kB\nSwapFree: 2097152 kB
+@file /proc/loadavg 0.12 0.34 0.56 1/512 900
+@file /proc/uptime 98765.43 700000.00
+@file /etc/pupitre/env PUPITRE_DOMAIN=flymate.dev
+@reply nproc 4
+@answer uname -m :: aarch64
+@answer df -P -B1 Filesystem 1B-blocks Used Available Capacity Mounted\n/dev/sda1 85899345920 21474836480 64424509440 25% /
+@file /home/dev/.local/bin/mise mise
+@tool node 24
+@version node 22.19.0
+@version java temurin-21.0.4+7.0.LTS
+@dir /home/dev/projects/shop
+@dir /home/dev/projects/shop/.git
+> {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
+> {"id":2,"cmd":"project.add","params":{"name":"shop","dir":"shop","runtimes":{"node":"22"},"processes":[{"id":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[],"cmd":"bun run dev"}]}}
+> {"id":3,"cmd":"fs.read","params":{"path":"projects/shop/mise.local.toml"}}
+> {"id":4,"cmd":"fs.read","params":{"path":"projects/shop/.git/info/exclude"}}
+> {"id":5,"cmd":"project.update","params":{"name":"shop","patch":{"runtimes":{"node":"20"}}}}
+> {"id":6,"cmd":"project.update","params":{"name":"shop","patch":{"runtimes":{"python":"3.12"}}}}
+> {"id":7,"cmd":"project.update","params":{"name":"shop","patch":{"runtimes":{"deno":"2"}}}}
+> {"id":8,"cmd":"project.update","params":{"name":"shop","patch":{"runtimes":{"node":"24","java":"21"}}}}
+> {"id":9,"cmd":"fs.read","params":{"path":"projects/shop/mise.local.toml"}}
+> {"id":10,"cmd":"project.update","params":{"name":"shop","patch":{"runtimes":{}}}}
+> {"id":11,"cmd":"fs.stat","params":{"path":"projects/shop/mise.local.toml"}}
+> {"id":12,"cmd":"project.list"}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["agent.open","catalog","completions","diag","doctor","fs.list","fs.mkdir","fs.read","fs.remove","fs.rename","fs.stat","fs.write","hello","install","install.check","module.config","ping","process.kill","processes.list","project.add","project.branches","project.checkout","project.debug","project.detect","project.diff","project.down","project.git_status","project.install","project.list","project.logs","project.pull","project.remove","project.restart","project.sync","project.up","project.update","project.url","project.working_tree","reboot","report","service.logs","service.restart","service.secret","service.start","service.status","service.stop","sessions.clean","sessions.list","shots.clean","shots.list","shots.read","shots.url","snapshot","status","uninstall","upgrade"]}}
+< {"id":2,"ok":true,"result":{"name":"shop","dir":"shop","path":"/home/dev/projects/shop","processes":[{"id":"shop","dir":".","path":"/home/dev/projects/shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[],"cmd":"bun run dev","install":"bun install","state":"stopped","url":"http://127.0.0.1:3100"}],"state":"stopped","url":"http://127.0.0.1:3100","boot":false,"runtimes":{"node":"22"}}}
+< {"bytes":"W3Rvb2xzXQpub2RlID0gIjIyIgo=","event":"file","id":3,"seq":0}
+< {"id":3,"ok":true,"result":{"path":"projects/shop/mise.local.toml","media_type":"text/plain","size_bytes":20,"sha256":"ce98956f06283b132562f74ba10fe88b2c9569b36439cbe7d3585c8a15a6d1fc","chunks":1}}
+< {"bytes":"IyA+Pj4gcHVwaXRyZSBydW50aW1lcyA+Pj4KL21pc2UubG9jYWwudG9tbAojIDw8PCBwdXBpdHJlIHJ1bnRpbWVzIDw8PAo=","event":"file","id":4,"seq":0}
+< {"id":4,"ok":true,"result":{"path":"projects/shop/.git/info/exclude","media_type":"text/plain","size_bytes":71,"sha256":"a6e3bdc4bf3c8a6055a18dcbbe874945b068e75cb72c5f1cfc799e1329ae5670","chunks":1}}
+< {"id":5,"ok":false,"error":{"code":"bad_request","message":"Node.js 20 is not installed on this server","fix":"Check version 20 in the Node.js service and apply, then come back to the project."}}
+< {"id":6,"ok":false,"error":{"code":"bad_request","message":"Python (uv) 3.12 is not installed on this server","fix":"Check version 3.12 in the Python (uv) service and apply, then come back to the project."}}
+< {"id":7,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/patch/runtimes/deno: invalid field name: must be one of node, java, python, go, php, ruby, rust"}}
+< {"id":8,"ok":true,"result":{"name":"shop","dir":"shop","path":"/home/dev/projects/shop","processes":[{"id":"shop","dir":".","path":"/home/dev/projects/shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[],"cmd":"bun run dev","install":"bun install","state":"stopped","url":"http://127.0.0.1:3100"}],"state":"stopped","url":"http://127.0.0.1:3100","boot":false,"runtimes":{"java":"21","node":"24"}}}
+< {"bytes":"W3Rvb2xzXQpqYXZhID0gInRlbXVyaW4tMjEiCm5vZGUgPSAiMjQiCg==","event":"file","id":9,"seq":0}
+< {"id":9,"ok":true,"result":{"path":"projects/shop/mise.local.toml","media_type":"text/plain","size_bytes":40,"sha256":"a268cebf5b03eae0dbae11f47a3dbfd4c84da1054a72804a1afd41027b1efd6e","chunks":1}}
+< {"id":10,"ok":true,"result":{"name":"shop","dir":"shop","path":"/home/dev/projects/shop","processes":[{"id":"shop","dir":".","path":"/home/dev/projects/shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[],"cmd":"bun run dev","install":"bun install","state":"stopped","url":"http://127.0.0.1:3100"}],"state":"stopped","url":"http://127.0.0.1:3100","boot":false,"runtimes":{}}}
+< {"id":11,"ok":false,"error":{"code":"bad_request","message":"not found: projects/shop/mise.local.toml","fix":"List the parent folder with fs.list and take the path of one of its entries."}}
+< {"id":12,"ok":true,"result":{"projects":[{"name":"shop","dir":"shop","path":"/home/dev/projects/shop","processes":[{"id":"shop","dir":".","path":"/home/dev/projects/shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[],"cmd":"bun run dev","install":"bun install","state":"stopped","url":"http://127.0.0.1:3100"}],"state":"stopped","url":"http://127.0.0.1:3100","boot":false,"runtimes":{}}]}}

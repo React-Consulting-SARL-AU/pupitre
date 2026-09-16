@@ -212,32 +212,36 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 
 	server.Register("project.add", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
 		params, err := decode[struct {
-			Name      string           `json:"name"`
-			Dir       string           `json:"dir"`
-			Repo      string           `json:"repo"`
-			Branch    string           `json:"branch"`
-			Processes []processRequest `json:"processes"`
+			Name      string            `json:"name"`
+			Dir       string            `json:"dir"`
+			Repo      string            `json:"repo"`
+			Branch    string            `json:"branch"`
+			Boot      bool              `json:"boot"`
+			Runtimes  map[string]string `json:"runtimes"`
+			Processes []processRequest  `json:"processes"`
 		}](raw)
 		if err != nil {
 			return nil, err
 		}
 
-		return reader.Add(registry.Project{Name: params.Name, Dir: params.Dir, Repo: params.Repo, Branch: params.Branch}, processes(params.Processes))
+		return reader.Add(registry.Project{Name: params.Name, Dir: params.Dir, Repo: params.Repo, Branch: params.Branch, Boot: params.Boot, Runtimes: params.Runtimes}, processes(params.Processes))
 	})
 
 	server.Register("project.update", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
 		params, err := decode[struct {
 			Name  string `json:"name"`
 			Patch struct {
-				Branch    *string           `json:"branch"`
-				Processes *[]processRequest `json:"processes"`
+				Branch    *string            `json:"branch"`
+				Boot      *bool              `json:"boot"`
+				Runtimes  *map[string]string `json:"runtimes"`
+				Processes *[]processRequest  `json:"processes"`
 			} `json:"patch"`
 		}](raw)
 		if err != nil {
 			return nil, err
 		}
 
-		patch := UpdatePatch{Branch: params.Patch.Branch}
+		patch := UpdatePatch{Branch: params.Patch.Branch, Boot: params.Patch.Boot, Runtimes: params.Patch.Runtimes}
 		if params.Patch.Processes != nil {
 			list := processes(*params.Patch.Processes)
 			patch.Processes = &list

@@ -14,7 +14,7 @@ import (
 func newContext(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	t.Helper()
 
-	return modtest.NewContext(t, fake, modtest.Options{Manifest: manifest(), Values: modtest.Values{"rust_version": "1.98"}})
+	return modtest.NewContext(t, fake, modtest.Options{Manifest: manifest(), Values: modtest.Values{"rust_versions": []string{"1.98"}}})
 }
 
 func run(t *testing.T, ctx *modules.Context) {
@@ -85,7 +85,7 @@ func TestUninstallTakesBackTheToolchainAndThePath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if fake.Tools[tool] != "" || strings.Contains(string(fake.Files[shell.EnvPath]), ID) {
+	if fake.Tools["rust"] != "" || len(fake.Versions["rust"]) != 0 || strings.Contains(string(fake.Files[shell.EnvPath]), ID) {
 		t.Fatal("the toolchain and the path block must go")
 	}
 }

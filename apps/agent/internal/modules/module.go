@@ -29,6 +29,7 @@ type Status struct {
 	Installed   bool
 	Configured  bool
 	Version     string
+	Versions    []string
 	Upgradable  bool
 	State       contract.ServiceState
 	Port        int
@@ -49,6 +50,7 @@ func (s Status) Service(manifest contract.Manifest) contract.ServiceStatus {
 		Runs:        manifest.Runs,
 		Connection:  manifest.Connection,
 		Version:     s.Version,
+		Versions:    s.Versions,
 		Port:        s.Port,
 		Unit:        s.Unit,
 		Credentials: s.Credentials,

@@ -50,6 +50,22 @@ var stateCatalog = map[string]Message{
 		FR: "%s n'est pas dans un dépôt git",
 		EN: "%s is not in a git repository",
 	},
+	"state.project.runtime.unknown": {
+		FR: "%s n'est pas un runtime du catalogue",
+		EN: "%s is not a runtime of the catalogue",
+	},
+	"state.project.runtime.unknown.fix": {
+		FR: "Nommez l'un de %s.",
+		EN: "Name one of %s.",
+	},
+	"state.project.runtime.missing": {
+		FR: "%s %s n'est pas installé sur ce serveur",
+		EN: "%s %s is not installed on this server",
+	},
+	"state.project.runtime.missing.fix": {
+		FR: "Cochez la version %s dans le service %s et appliquez, puis revenez au projet.",
+		EN: "Check version %s in the %s service and apply, then come back to the project.",
+	},
 	"state.project.sync.fix": {
 		FR: "Récupérez les sources avec project.sync %s.",
 		EN: "Fetch the sources with project.sync %s.",

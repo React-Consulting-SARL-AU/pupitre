@@ -245,6 +245,24 @@ describe("ProjectUpdateParamsSchema", () => {
       ProjectUpdateParamsSchema.safeParse({ name: "intranet", patch: {} })
         .success
     ).toBe(true)
+    expect(
+      ProjectUpdateParamsSchema.safeParse({
+        name: "intranet",
+        patch: { boot: true },
+      }).success
+    ).toBe(true)
+    expect(
+      ProjectUpdateParamsSchema.safeParse({
+        name: "intranet",
+        patch: { runtimes: { java: "17" } },
+      }).success
+    ).toBe(true)
+    expect(
+      ProjectUpdateParamsSchema.safeParse({
+        name: "intranet",
+        patch: { runtimes: {} },
+      }).success
+    ).toBe(true)
   })
 
   it("refuses a route naming a subdomain and a hostname at once, an empty command, an empty list and a folder", () => {

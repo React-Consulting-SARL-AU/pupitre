@@ -32,6 +32,10 @@ func (r *Reader) Add(project registry.Project, processes []ProcessRequest) (cont
 	}
 	project.Processes = resolved
 
+	if err := r.checkRuntimes(project.Runtimes); err != nil {
+		return contract.Project{}, err
+	}
+
 	if err := r.roomForClone(project); err != nil {
 		return contract.Project{}, err
 	}
@@ -53,6 +57,10 @@ func (r *Reader) Add(project registry.Project, processes []ProcessRequest) (cont
 				return contract.Project{}, err
 			}
 		}
+	}
+
+	if err := r.pinRuntimes(project); err != nil {
+		return contract.Project{}, err
 	}
 
 	return r.one(project.Name)
@@ -127,6 +135,8 @@ func resolveProcesses(domain string, requests []ProcessRequest) ([]registry.Proc
 // An UpdatePatch is what project.update carries: a nil field is left as it was, and a list of processes replaces the whole of the last one.
 type UpdatePatch struct {
 	Branch    *string
+	Boot      *bool
+	Runtimes  *map[string]string
 	Processes *[]ProcessRequest
 }
 
@@ -140,7 +150,12 @@ func (r *Reader) Update(name string, patch UpdatePatch) (contract.Project, error
 		return contract.Project{}, registry.NotFound(name)
 	}
 
-	change := registry.Patch{Branch: patch.Branch}
+	change := registry.Patch{Branch: patch.Branch, Boot: patch.Boot, Runtimes: patch.Runtimes}
+	if patch.Runtimes != nil {
+		if err := r.checkRuntimes(*patch.Runtimes); err != nil {
+			return contract.Project{}, err
+		}
+	}
 	if patch.Processes != nil {
 		resolved, err := resolveProcesses(file.Domain, *patch.Processes)
 		if err != nil {
@@ -156,6 +171,12 @@ func (r *Reader) Update(name string, patch UpdatePatch) (contract.Project, error
 
 	if err := syncLocalNames(ctx, r.registry()); err != nil {
 		return contract.Project{}, err
+	}
+
+	if patch.Runtimes != nil {
+		if err := r.pinRuntimes(updated); err != nil {
+			return contract.Project{}, err
+		}
 	}
 
 	for _, was := range current.Processes {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Callout } from "../ui/callout";
+import { ConfirmButton, ConfirmDialog } from "../ui/confirm-button";
 import { ErrorNotice } from "../ui/error-notice";
 import { SkeletonCards, SkeletonRows } from "../ui/skeleton";
 import { WaitingLine } from "../ui/waiting-line";
@@ -108,5 +109,40 @@ describe("un refus de l'agent", () => {
     expect(html).toContain("Vérifiez le port 22.");
     expect(html).toContain("Réessayer");
     expect(html).toContain('data-callout="disconnected"');
+  });
+});
+
+describe("une confirmation", () => {
+  it("pose sa question dans un dialogue, sans toucher au bouton", () => {
+    const closed = renderToStaticMarkup(
+      <ConfirmButton
+        confirmLabel="Retirer"
+        onConfirm={() => Promise.resolve()}
+        question="Le projet quitte le registre ; son dossier reste sur le serveur."
+      >
+        Retirer du registre
+      </ConfirmButton>
+    );
+
+    expect(closed).toContain("Retirer du registre");
+    expect(closed).not.toContain('role="dialog"');
+    expect(closed).not.toContain("son dossier reste");
+
+    const asked = renderToStaticMarkup(
+      <ConfirmDialog
+        confirmLabel="Retirer"
+        onCancel={() => undefined}
+        onConfirm={() => undefined}
+        open
+        question="Le projet quitte le registre ; son dossier reste sur le serveur."
+        title="Retirer du registre"
+      />
+    );
+
+    expect(asked).toContain('role="dialog"');
+    expect(asked).toContain('data-dialog="confirm"');
+    expect(asked).toContain("son dossier reste sur le serveur");
+    expect(asked).toContain(">Retirer<");
+    expect(asked).toContain("Annuler");
   });
 });
