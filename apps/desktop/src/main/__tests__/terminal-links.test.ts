@@ -6,6 +6,9 @@ const COLS = 40;
 const CLAUDE =
   "https://claude.ai/oauth/authorize?code=true&client_id=abc&redirect_uri=https%3A%2F%2Fplatform.claude.com%2Foauth%2Fcode%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile&state=xyz";
 
+const CODEX =
+  "https://auth.openai.com/oauth/authorize?response_type=code&client_id=app_EMoamEEZ73f0CkXaXp7hrann&redirect_uri=http%3A%2F%2Flocalhost%3A1457%2Fauth%2Fcallback&scope=openid%20profile%20email%20offline_access&code_challenge=XV067cyPa7ZgBs0KFgypllzdYY_SDcD2RiYOLvfsIyw&code_challenge_method=S256&state=zWUR3I5fTFUEZTLSh5J8mytJsWQ1_L6PDi7Hi-HLL0U&originator=codex-tui";
+
 /** The address as a box of the given inner width shows it, one row per line. */
 function folded(url: string, width: number, margin = 0): string[] {
   const rows: string[] = [];
@@ -21,6 +24,15 @@ describe("les lignes pliées d'un écran", () => {
   it("recollent une ligne pleine jusqu'au bord avec celle qui la suit", () => {
     expect(unwrap(["a".repeat(COLS), "bcd", "e"], COLS)).toEqual([
       `${"a".repeat(COLS)}bcd`,
+      "e",
+    ]);
+  });
+
+  it("recollent une ligne en retrait que le terminal a pliée lui-même au bord", () => {
+    const rows = [`  ${"a".repeat(COLS - 2)}`, "b".repeat(COLS), "cd", "e"];
+
+    expect(unwrap(rows, COLS)).toEqual([
+      `  ${"a".repeat(COLS - 2)}${"b".repeat(COLS)}cd`,
       "e",
     ]);
   });
@@ -69,6 +81,22 @@ describe("l'adresse de connexion d'un agent", () => {
     expect(loginAddress(folded(CLAUDE, COLS - 2, 1), COLS)).toEqual({
       host: "claude.ai",
       url: CLAUDE,
+    });
+  });
+
+  it("se relit entière telle que Codex l'écrit, en retrait puis pliée au bord", () => {
+    const rows = [
+      "  If the link doesn't open automatically, open the following link to authenticate:",
+      " ",
+      `  ${CODEX.slice(0, COLS - 2)}`,
+      ...folded(CODEX.slice(COLS - 2), COLS),
+      "",
+      "  Press esc to cancel",
+    ];
+
+    expect(loginAddress(rows, COLS)).toEqual({
+      host: "auth.openai.com",
+      url: CODEX,
     });
   });
 
