@@ -119,6 +119,7 @@ export const projectAdd = {
 
     "projectAdd.panel.title": "New project",
     "projectAdd.panel.cancel": "Cancel",
+    "projectAdd.panel.edit": "Edit the form",
     "projectAdd.panel.open": "Open the project",
     "projectAdd.panel.loadingTitle": "Reading the projects already declared",
 
@@ -266,6 +267,7 @@ export const projectAdd = {
 
     "projectAdd.panel.title": "Nouveau projet",
     "projectAdd.panel.cancel": "Annuler",
+    "projectAdd.panel.edit": "Modifier le formulaire",
     "projectAdd.panel.open": "Ouvrir le projet",
     "projectAdd.panel.loadingTitle": "Lecture des projets déjà déclarés",
 

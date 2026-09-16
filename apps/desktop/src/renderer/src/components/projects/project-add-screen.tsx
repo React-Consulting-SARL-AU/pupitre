@@ -154,6 +154,7 @@ export function ProjectAddScreen({
       onCancel={onCancel ? () => leave(onCancel) : undefined}
       onConnect={onConnect}
       onDetect={() => detect(serverId)}
+      onEdit={park}
       onFinish={() => {
         if (run.status === "done") {
           const { name } = run;

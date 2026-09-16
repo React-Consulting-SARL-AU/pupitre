@@ -3,7 +3,7 @@ import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { RowProblem } from "@renderer/lib/project-ports";
 import type { ProcessProblem } from "@renderer/lib/project-processes";
-import { ArrowRight, RefreshCw, X } from "lucide-react";
+import { ArrowRight, PencilLine, RefreshCw, X } from "lucide-react";
 import type {
   DetectionState,
   Draft,
@@ -51,6 +51,7 @@ export function ProjectAddPanel({
   onDetect,
   onLaunch,
   onRetry,
+  onEdit,
   onReload,
   onCancel,
   onFinish,
@@ -80,6 +81,8 @@ export function ProjectAddPanel({
   onDetect: () => void;
   onLaunch: () => void;
   onRetry: () => void;
+  /** Back to the form with the draft intact: only a declaration refused leaves nothing on the server to undo. */
+  onEdit?: () => void;
   onReload: () => void;
   onCancel?: () => void;
   onFinish?: () => void;
@@ -154,9 +157,16 @@ export function ProjectAddPanel({
       {run.status === "failed" ? (
         <Callout
           action={
-            <Button icon={RefreshCw} onClick={onRetry}>
-              {t("common.retry")}
-            </Button>
+            <>
+              {run.phase === "add" ? (
+                <Button icon={PencilLine} onClick={onEdit} variant="discreet">
+                  {t("projectAdd.panel.edit")}
+                </Button>
+              ) : null}
+              <Button icon={RefreshCw} onClick={onRetry}>
+                {t("common.retry")}
+              </Button>
+            </>
           }
           fix={agentText(t, run.error).fix}
           tone="danger"

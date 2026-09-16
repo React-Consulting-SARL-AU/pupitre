@@ -10,6 +10,8 @@
 @answer uname -m :: aarch64
 @answer df -P -B1 Filesystem 1B-blocks Used Available Capacity Mounted\n/dev/sda1 85899345920 21474836480 64424509440 25% /
 @file /home/dev/.pupitre/logs/flymate/api.log vite v7 ready in 412 ms
+@dir /home/dev/projects/flymate/api
+@dir /home/dev/projects/flymate/web
 @serves flymate/api 5173
 @serves flymate/web 5174
 > {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
