@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/protocol"
 )
 
 var runtimeInstall = request{Cmd: "install", Params: map[string]any{
@@ -15,12 +16,12 @@ var runtimeInstall = request{Cmd: "install", Params: map[string]any{
 	"secrets_stdin": false,
 	"config": map[string]any{
 		"core.system":    map[string]any{"timezone": "Europe/Paris", "git_name": "Pupitre Staging", "git_email": "staging@pupitre.studio"},
-		"runtime.node":   map[string]any{"node_version": "22", "bun": true, "pnpm": true, "yarn": true},
-		"runtime.java":   map[string]any{"java_version": "21"},
-		"runtime.python": map[string]any{"python_version": "3.12"},
-		"runtime.go":     map[string]any{"go_version": "1.25"},
-		"runtime.php":    map[string]any{"php_version": "8.4", "composer": true},
-		"runtime.ruby":   map[string]any{"ruby_version": "3.4", "bundler": true},
+		"runtime.node":   map[string]any{"node_versions": []string{"22"}, "bun": true, "pnpm": true, "yarn": true},
+		"runtime.java":   map[string]any{"java_versions": []string{"21"}},
+		"runtime.python": map[string]any{"python_versions": []string{"3.12"}},
+		"runtime.go":     map[string]any{"go_versions": []string{"1.25"}},
+		"runtime.php":    map[string]any{"php_versions": []string{"8.4"}, "composer": true},
+		"runtime.ruby":   map[string]any{"ruby_versions": []string{"3.4"}, "bundler": true},
 		"runtime.docker": map[string]any{"compose": true},
 	},
 }}
@@ -129,7 +130,7 @@ func TestRustAnswersForDev(t *testing.T) {
 	host := stagingHost(t)
 	dev := "dev@" + address(host)
 
-	first := agent(t, host, request{Cmd: "install", Params: map[string]any{"modules": []string{"runtime.rust"}, "config": map[string]any{"runtime.rust": map[string]any{"rust_version": "1.98"}}, "secrets_stdin": false}})[0]
+	first := agent(t, host, request{Cmd: "install", Params: map[string]any{"modules": []string{"runtime.rust"}, "config": map[string]any{"runtime.rust": map[string]any{"rust_versions": []string{"1.98"}}}, "secrets_stdin": false}})[0]
 	if result := decode[contract.InstallResult](t, first.Result); len(result.Failed) != 0 {
 		t.Fatalf("install failed: %v", result.Failed)
 	}
@@ -138,5 +139,55 @@ func TestRustAnswersForDev(t *testing.T) {
 		if out := ssh(t, dev, program, "--version"); !strings.Contains(out, "1.98") {
 			t.Fatalf("%s must answer with the chosen version:\n%s", program, out)
 		}
+	}
+}
+
+// Two majors of Node side by side: the newest answers everywhere, and a project that pins the other gets it in its own folder alone — its mise.local.toml outside git's sight.
+func TestARuntimeHoldsSeveralMajorsAndAProjectPinsOne(t *testing.T) {
+	host := stagingHost(t)
+	dev := "dev@" + address(host)
+	const project = "pinned"
+
+	first := agent(t, host, request{Cmd: "install", Params: map[string]any{
+		"modules":       []string{"runtime.node"},
+		"secrets_stdin": false,
+		"config":        map[string]any{"runtime.node": map[string]any{"node_versions": []string{"24", "22"}, "bun": false, "pnpm": false, "yarn": false}},
+	}})[0]
+	if result := decode[contract.InstallResult](t, first.Result); len(result.Failed) != 0 {
+		t.Fatalf("install failed: %v", result.Failed)
+	}
+
+	if out := ssh(t, dev, "node -v"); !strings.Contains(out, "v24.") {
+		t.Fatalf("the newest major is the default: %q", out)
+	}
+
+	status := decode[contract.ServiceStatus](t, agent(t, host, request{Cmd: "service.status", Params: map[string]any{"id": "runtime.node"}})[0].Result)
+	if strings.Join(status.Versions, ",") != "24,22" {
+		t.Fatalf("the service must list both majors, newest first: %v", status.Versions)
+	}
+
+	cleanup(t, host, project)
+	ssh(t, host, "su", "-", "dev", "-c", "'mkdir -p /home/dev/projects/"+project+" && git -C /home/dev/projects/"+project+" init -q'")
+	agent(t, host, request{Cmd: "project.add", Params: map[string]any{
+		"name": project, "dir": project, "runtimes": map[string]any{"node": "22"},
+		"processes": []map[string]any{{"id": "web", "pkgmgr": "none", "host": "127.0.0.1", "port": 5501, "routes": []map[string]any{}, "cmd": "sleep 3600"}},
+	}})
+
+	if out := ssh(t, dev, "cd /home/dev/projects/"+project+" && node -v"); !strings.Contains(out, "v22.") {
+		t.Fatalf("the project runs on the major it pinned: %q", out)
+	}
+
+	if out := ssh(t, dev, "cd /home/dev/projects/"+project+" && git status --porcelain --ignored"); !strings.Contains(out, "!! mise.local.toml") {
+		t.Fatalf("the pin must be ignored by git, not left untracked: %q", out)
+	}
+
+	refused := agent(t, host, request{Cmd: "project.update", Params: map[string]any{"name": project, "patch": map[string]any{"runtimes": map[string]any{"node": "20"}}}})[0]
+	if refused.OK || !strings.Contains(decode[protocol.Error](t, refused.Error).Fix, "Node.js") {
+		t.Fatalf("a major the machine does not hold is refused with the service to open: %s", refused.Error)
+	}
+
+	agent(t, host, request{Cmd: "project.update", Params: map[string]any{"name": project, "patch": map[string]any{"runtimes": map[string]any{}}}})
+	if out := ssh(t, dev, "cd /home/dev/projects/"+project+" && node -v"); !strings.Contains(out, "v24.") {
+		t.Fatalf("a project that names no version runs on the default: %q", out)
 	}
 }

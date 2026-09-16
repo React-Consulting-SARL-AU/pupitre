@@ -2,17 +2,18 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import type { Gesture } from "@renderer/lib/use-pending";
 import { useState } from "react";
 import { Button, type ButtonIcon, type ButtonVariant } from "./button";
+import { Dialog } from "./dialog";
 
 /**
- * A gesture that cannot be undone, asked twice in the same place.
+ * A gesture that cannot be undone, asked twice.
  *
- * The question replaces the button rather than floating over the page: the
- * reader keeps what they were looking at, and the second click is exactly where
- * the first one was — which is also why the confirmation says what it will do,
- * not "are you sure".
+ * The button stays what it is, where it is; the question floats over the
+ * window in a dialog, the same frame as every other question the app asks,
+ * so nothing around the button moves or breaks to make room for it. The
+ * confirmation says what it will do, not "are you sure".
  *
- * The question also stays up while the work runs, so the spinner turns on the
- * button that was clicked instead of on a row that has already vanished.
+ * The dialog stays up while the work runs, so the spinner turns on the answer
+ * that was clicked instead of on a row that has already vanished.
  */
 export function ConfirmButton({
   children,
@@ -21,6 +22,7 @@ export function ConfirmButton({
   onConfirm,
   icon,
   variant = "danger",
+  confirmVariant = "destructive",
   size = "md",
   disabled = false,
   className = "",
@@ -32,12 +34,12 @@ export function ConfirmButton({
   onConfirm: Gesture;
   icon?: ButtonIcon;
   variant?: ButtonVariant;
+  /** The answer's look: red for what cannot be undone, `inverse` for a gesture that can. */
+  confirmVariant?: "destructive" | "inverse";
   size?: "sm" | "md";
   disabled?: boolean;
   className?: string;
 }) {
-  const t = useTranslations();
-
   const [asking, setAsking] = useState(false);
   const [working, setWorking] = useState(false);
 
@@ -52,8 +54,8 @@ export function ConfirmButton({
     }
   }
 
-  if (!asking) {
-    return (
+  return (
+    <>
       <Button
         className={className}
         disabled={disabled}
@@ -64,30 +66,65 @@ export function ConfirmButton({
       >
         {children}
       </Button>
-    );
-  }
+
+      <ConfirmDialog
+        confirmLabel={confirmLabel}
+        confirmVariant={confirmVariant}
+        onCancel={() => setAsking(false)}
+        onConfirm={confirm}
+        open={asking}
+        question={question}
+        title={children}
+        working={working}
+      />
+    </>
+  );
+}
+
+/** The question of a ConfirmButton, drawn on its own: what a test reads, and what the button opens. */
+export function ConfirmDialog({
+  open,
+  title,
+  question,
+  confirmLabel,
+  confirmVariant = "destructive",
+  working = false,
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean;
+  title: string;
+  question: string;
+  confirmLabel: string;
+  confirmVariant?: "destructive" | "inverse";
+  working?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const t = useTranslations();
 
   return (
-    <span
-      className={`inline-flex min-w-0 max-w-full flex-wrap items-center gap-2 rounded-sm border border-line-strong bg-sunken px-2 py-1 ${className}`}
+    <Dialog
+      actions={
+        <>
+          <Button disabled={working} onClick={onCancel} variant="discreet">
+            {t("common.cancel")}
+          </Button>
+          <Button
+            disabled={working}
+            onClick={onConfirm}
+            variant={confirmVariant}
+          >
+            {confirmLabel}
+          </Button>
+        </>
+      }
+      name="confirm"
+      onClose={working ? () => undefined : onCancel}
+      open={open}
+      title={title}
     >
-      <span className="min-w-0 flex-1 basis-40 text-[12px] text-ink-2 leading-snug">
-        {question}
-      </span>
-
-      <span className="flex shrink-0 items-center gap-2">
-        <Button onClick={confirm} size="sm" variant="destructive">
-          {confirmLabel}
-        </Button>
-        <Button
-          disabled={working}
-          onClick={() => setAsking(false)}
-          size="sm"
-          variant="discreet"
-        >
-          {t("common.cancel")}
-        </Button>
-      </span>
-    </span>
+      <p className="text-[13px] text-ink-2 leading-relaxed">{question}</p>
+    </Dialog>
   );
 }

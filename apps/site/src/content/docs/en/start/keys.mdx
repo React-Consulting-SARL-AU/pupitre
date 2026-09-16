@@ -17,7 +17,7 @@ Pupitre works with ed25519 keys it generates itself. The private halves never le
 
 ## Where the private halves live
 
-In the app's own data folder, in mode `0600`, next to the SSH configuration it passes to `ssh` with `-F`. Your `~/.ssh/config` is read — to offer the hosts already declared there — and never written.
+In the app's own data folder, in mode `0600`, next to the SSH configuration it passes to `ssh` with `-F`. Your `~/.ssh/config` is read — to offer the hosts already declared there — and never rewritten: when you ask, the app adds a single `Include` line pointing at its own file, see [your own client](/docs/daily/clients/).
 
 | System | Folder |
 | --- | --- |

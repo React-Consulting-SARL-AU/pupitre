@@ -158,6 +158,10 @@ export interface Draft {
   dir: string;
   /** What runs in the project, the first one being the main one. */
   processes: ProcessDraft[];
+  /** Whether the project is started once declared, fetched and installed. */
+  startNow: boolean;
+  /** Whether the project starts with the server, whatever ran when it went down. */
+  boot: boolean;
 }
 
 /** What the reader has taken over, and what still follows the source. */
@@ -249,6 +253,8 @@ interface ProjectAddStore {
   setSource: (value: string) => void;
   setName: (value: string) => void;
   setBranch: (value: string) => void;
+  setStartNow: (value: boolean) => void;
+  setBoot: (value: boolean) => void;
   setProcessId: (process: number, value: string) => void;
   setProcessDir: (process: number, value: string) => void;
   setProcessPkgmgr: (process: number, value: PackageManager) => void;
@@ -290,6 +296,7 @@ interface ProjectAddStore {
 }
 
 const EMPTY_DRAFT: Draft = {
+  boot: false,
   branch: "",
   dir: "",
   kind: "github",
@@ -297,6 +304,7 @@ const EMPTY_DRAFT: Draft = {
   privateRepo: false,
   processes: [firstProcess(FIRST_PORT, true)],
   source: "",
+  startNow: true,
 };
 
 const UNTOUCHED: Edited = {
@@ -805,6 +813,29 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     await follow(serverId, name);
   }
 
+  /**
+   * The start, unless the reader chose to leave the project stopped — a
+   * project declared for later is fetched and installed all the same, and its
+   * outcome says stopped. A retry past the start assumes it was made.
+   */
+  function startIfAsked(
+    serverId: string,
+    name: string,
+    start: number
+  ): Promise<{ state: ProjectState } | null> {
+    if (start > PHASES.indexOf("up")) {
+      return Promise.resolve({ state: "online" });
+    }
+
+    if (!get().draft.startNow) {
+      mark("up", "skip", translate()("projectAdd.up.notAsked"));
+
+      return Promise.resolve({ state: "stopped" });
+    }
+
+    return bringUp(serverId, name);
+  }
+
   /** The chain, from the phase it is asked to start at. */
   async function sequence(serverId: string, from: PhaseId): Promise<void> {
     const start = PHASES.indexOf(from);
@@ -837,10 +868,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       return;
     }
 
-    const started =
-      start <= PHASES.indexOf("up")
-        ? await bringUp(serverId, name)
-        : { state: "online" as ProjectState };
+    const started = await startIfAsked(serverId, name, start);
 
     if (!started) {
       return;
@@ -922,6 +950,14 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     },
 
     /** Another branch is another tree: what the agent read of the last one no longer holds. */
+    setStartNow(value) {
+      refresh({ startNow: value });
+    },
+
+    setBoot(value) {
+      refresh({ boot: value });
+    },
+
     setBranch(value) {
       if (value.trim() !== get().draft.branch.trim()) {
         forgetDetection();
@@ -1329,6 +1365,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       const branch = draft.branch.trim();
 
       return {
+        boot: draft.boot,
         dir: draft.dir,
         name: draft.name,
         processes: processRequests(draft.processes, exposure !== null),

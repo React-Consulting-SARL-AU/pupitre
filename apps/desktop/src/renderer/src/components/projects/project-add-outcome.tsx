@@ -2,6 +2,7 @@ import type { ProjectState } from "@pupitre/shared/agent-protocol/state";
 import type { DictionaryKey } from "@renderer/i18n/en";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { ExternalLink } from "lucide-react";
+import { publicUrl } from "../../lib/public-url";
 import { Button } from "../ui/button";
 import { Panel } from "../ui/panel";
 import { StatusDot } from "../ui/status-dot";
@@ -37,6 +38,7 @@ export function ProjectAddOutcome({
     label: `state.project.${state}` as DictionaryKey,
     shape: "filled" as const,
   };
+  const address = publicUrl(url);
 
   return (
     <Panel
@@ -63,8 +65,8 @@ export function ProjectAddOutcome({
         </div>
       </div>
 
-      {url ? (
-        <Button icon={ExternalLink} onClick={() => onOpen?.(url)}>
+      {address ? (
+        <Button icon={ExternalLink} onClick={() => onOpen?.(address)}>
           {t("projectAdd.outcome.open")}
         </Button>
       ) : null}

@@ -17,7 +17,7 @@ Pupitre travaille avec des clés ed25519 qu’il génère lui-même. Les moitié
 
 ## Où vivent les moitiés privées
 
-Dans le dossier de données de l’app, en mode `0600`, à côté de la configuration SSH qu’elle passe à `ssh` avec `-F`. Votre `~/.ssh/config` est lu — pour vous proposer les hôtes qui y sont déjà déclarés — et jamais écrit.
+Dans le dossier de données de l’app, en mode `0600`, à côté de la configuration SSH qu’elle passe à `ssh` avec `-F`. Votre `~/.ssh/config` est lu — pour vous proposer les hôtes qui y sont déjà déclarés — et jamais réécrit : sur votre demande, l’app y pose une seule ligne `Include` vers son propre fichier, voir [votre propre client](/fr/docs/daily/clients/).
 
 | Système | Dossier |
 | --- | --- |

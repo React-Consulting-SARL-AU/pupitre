@@ -8,6 +8,10 @@ export const projectConfig = {
     "project.config.installHelp":
       "Left empty, the command of {pkgmgr} is what installs the dependencies.",
     "project.config.branchHelp": "The branch the next sync brings.",
+    "project.config.runtimes.title": "Runtime versions",
+    "project.config.runtimes.help":
+      "Applies to the project's processes and to the terminals opened in it, whatever the repository declares.",
+    "project.config.runtimes.default": "Default ({version})",
     "project.config.restarts":
       "The start command or the folder changed: saving restarts {processes} if running.",
     "project.config.dropped":
@@ -26,6 +30,10 @@ export const projectConfig = {
       "Laissée vide, c'est la commande de {pkgmgr} qui installe les dépendances.",
     "project.config.branchHelp":
       "La branche que la prochaine synchronisation ramène.",
+    "project.config.runtimes.title": "Versions des runtimes",
+    "project.config.runtimes.help":
+      "Vaut pour les processus du projet et les terminaux ouverts dedans, quoi que le dépôt déclare.",
+    "project.config.runtimes.default": "Par défaut ({version})",
     "project.config.restarts":
       "La commande de démarrage ou le dossier a changé : enregistrer redémarre {processes} si ça tourne.",
     "project.config.dropped":

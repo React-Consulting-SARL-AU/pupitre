@@ -11,6 +11,7 @@ import {
   ProcessStateSchema,
   ProjectNameSchema,
   ProjectRegistrationSchema,
+  ProjectRuntimesSchema,
   ProjectSchema,
   ProjectStateSchema,
   ProjectSubdomainSchema,
@@ -107,10 +108,13 @@ export type ProcessPatch = z.infer<typeof ProcessPatchSchema>
  * `processes` replaces the whole list: the screen sends what it shows, a
  * process missing from it is a process that goes, and one whose command
  * changed restarts if it was running. An empty `install` hands the command
- * back to the package manager.
+ * back to the package manager. `runtimes` replaces the whole map: a tool
+ * missing from it goes back to the machine's default.
  */
 export const ProjectPatchSchema = z.strictObject({
   branch: GitBranchSchema.optional(),
+  boot: z.boolean().optional(),
+  runtimes: ProjectRuntimesSchema.optional(),
   processes: z
     .array(ProcessPatchSchema)
     .min(1)

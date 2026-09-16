@@ -38,6 +38,8 @@ export function ProjectConfigScreen({
   const processProblem = useProjectConfig((s) => s.processProblem);
   const rowProblems = useProjectConfig((s) => s.rowProblems);
   const setBranch = useProjectConfig((s) => s.setBranch);
+  const setBoot = useProjectConfig((s) => s.setBoot);
+  const setRuntime = useProjectConfig((s) => s.setRuntime);
   const setProcessId = useProjectConfig((s) => s.setProcessId);
   const setProcessDir = useProjectConfig((s) => s.setProcessDir);
   const setProcessPkgmgr = useProjectConfig((s) => s.setProcessPkgmgr);
@@ -80,6 +82,7 @@ export function ProjectConfigScreen({
       edit={{
         addProcess,
         addRow,
+        boot: setBoot,
         branch: setBranch,
         generateRowWeb,
         processCmd: setProcessCmd,
@@ -90,6 +93,7 @@ export function ProjectConfigScreen({
         removeProcess,
         removeRow,
         rowLabel: setRowLabel,
+        runtime: setRuntime,
         rowPort: setRowPort,
         rowPublish: setRowPublish,
         rowWeb: setRowWeb,
@@ -104,6 +108,7 @@ export function ProjectConfigScreen({
       restarts={restarts()}
       rowProblems={draft.processes.map((_process, index) => rowProblems(index))}
       run={run}
+      services={services}
     />
   );
 }

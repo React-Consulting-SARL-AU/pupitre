@@ -10,7 +10,7 @@ import (
 	"pupitre.studio/agent/internal/modules/runtime/shell"
 )
 
-var values = modtest.Values{"php_version": "8.4", "composer": true}
+var values = modtest.Values{"php_versions": []string{"8.4"}, "composer": true}
 
 func newContext(t *testing.T, fake *modtest.FakeSys, chosen modtest.Values) *modules.Context {
 	t.Helper()
@@ -75,7 +75,7 @@ func TestInstallBringsTheHeadersThenPhpAndComposer(t *testing.T) {
 
 func TestComposerIsSkippedWhenNotAskedFor(t *testing.T) {
 	fake := modtest.NewFakeSys()
-	ctx := newContext(t, fake, modtest.Values{"php_version": "8.3", "composer": false, "memory_limit": "1G"})
+	ctx := newContext(t, fake, modtest.Values{"php_versions": []string{"8.3"}, "composer": false, "memory_limit": "1G"})
 
 	run(t, ctx)
 

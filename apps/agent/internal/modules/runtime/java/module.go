@@ -12,9 +12,6 @@ import (
 const (
 	gradleDir  = shell.Home + "/.gradle"
 	gradlePath = gradleDir + "/gradle.properties"
-
-	// mise names Temurin builds temurin-<version>; the manifest only asks for the major.
-	distribution = "temurin-"
 )
 
 type Module struct{}
@@ -32,15 +29,16 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 		return modules.Status{}, nil
 	}
 
-	installed := mise.Installed(ctx)["java"]
-	if installed == "" {
+	held := mise.Java.Held(ctx)
+	if len(held) == 0 {
 		return modules.Status{}, nil
 	}
 
 	return modules.Status{
 		Installed:  true,
 		Configured: shell.HasBlock(ctx, ID) && file.HasBlock(ctx, gradlePath, ID),
-		Version:    "java " + installed,
+		Version:    mise.Java.Describe(ctx),
+		Versions:   held,
 	}, nil
 }
 
@@ -49,7 +47,7 @@ func (Module) Install(ctx *modules.Context) error {
 		return err
 	}
 
-	_, err := mise.Add(ctx, "install-java", "java", release(ctx))
+	_, err := mise.Java.Install(ctx)
 
 	return err
 }
@@ -84,19 +82,7 @@ func (Module) Configure(ctx *modules.Context) error {
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
-	if err := ctx.Step("upgrade-java", func() (modules.Outcome, error) {
-		before := mise.Installed(ctx)["java"]
-
-		if err := mise.Upgrade(ctx, "java"); err != nil {
-			return modules.Failed, err
-		}
-
-		if mise.Installed(ctx)["java"] == before {
-			return modules.Skipped, nil
-		}
-
-		return modules.Done, nil
-	}); err != nil {
+	if err := mise.Java.Upgrade(ctx); err != nil {
 		return err
 	}
 
@@ -124,7 +110,7 @@ func (Module) Uninstall(ctx *modules.Context) error {
 		return err
 	}
 
-	return mise.Remove(ctx, "remove-java", "java")
+	return mise.Java.Uninstall(ctx)
 }
 
 func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
@@ -141,10 +127,6 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	return status, nil
 }
 
-func release(ctx *modules.Context) string {
-	return distribution + ctx.String("java_version")
-}
-
 func home(ctx *modules.Context) string {
 	resolved := mise.Where(ctx, "java")
 	if resolved == "" {
@@ -154,10 +136,13 @@ func home(ctx *modules.Context) string {
 	return resolved
 }
 
+// JAVA_HOME is resolved by mise as each shell opens, so gradlew in a project pinned to another major finds that one and not the machine's default.
+const javaHomeLine = `export JAVA_HOME="$(mise where java 2>/dev/null)"` + "\n"
+
 func block(javaHome string) []byte {
 	content := shell.PathLines(shell.LocalBin, shell.MiseShims)
 	if javaHome != "" {
-		content += shell.Export("JAVA_HOME", javaHome)
+		content += javaHomeLine
 	}
 
 	return []byte(content)

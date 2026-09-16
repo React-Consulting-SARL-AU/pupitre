@@ -7,12 +7,8 @@ import (
 	"pupitre.studio/agent/internal/modules/runtime/shell"
 )
 
-const (
-	tool = "rust"
-
-	// Where cargo install puts what it builds; rustup's toolchains sit under mise and answer through its shims.
-	cargoBin = "$HOME/.cargo/bin"
-)
+// Where cargo install puts what it builds; rustup's toolchains sit under mise and answer through its shims.
+const cargoBin = "$HOME/.cargo/bin"
 
 type Module struct{}
 
@@ -29,15 +25,16 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 		return modules.Status{}, nil
 	}
 
-	installed := mise.Installed(ctx)[tool]
-	if installed == "" {
+	held := mise.Rust.Held(ctx)
+	if len(held) == 0 {
 		return modules.Status{}, nil
 	}
 
 	return modules.Status{
 		Installed:  true,
 		Configured: shell.HasBlock(ctx, ID),
-		Version:    "rust " + installed,
+		Version:    mise.Rust.Describe(ctx),
+		Versions:   held,
 	}, nil
 }
 
@@ -46,7 +43,7 @@ func (Module) Install(ctx *modules.Context) error {
 		return err
 	}
 
-	_, err := mise.Add(ctx, "install-rust", tool, ctx.String("rust_version"))
+	_, err := mise.Rust.Install(ctx)
 
 	return err
 }
@@ -56,19 +53,7 @@ func (Module) Configure(ctx *modules.Context) error {
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
-	if err := ctx.Step("upgrade-rust", func() (modules.Outcome, error) {
-		before := mise.Installed(ctx)[tool]
-
-		if err := mise.Upgrade(ctx, tool); err != nil {
-			return modules.Failed, err
-		}
-
-		if mise.Installed(ctx)[tool] == before {
-			return modules.Skipped, nil
-		}
-
-		return modules.Done, nil
-	}); err != nil {
+	if err := mise.Rust.Upgrade(ctx); err != nil {
 		return err
 	}
 
@@ -81,7 +66,7 @@ func (Module) Uninstall(ctx *modules.Context) error {
 		return err
 	}
 
-	return mise.Remove(ctx, "remove-rust", tool)
+	return mise.Rust.Uninstall(ctx)
 }
 
 func (m Module) Status(ctx *modules.Context) (modules.Status, error) {

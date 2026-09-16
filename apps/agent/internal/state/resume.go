@@ -59,7 +59,7 @@ func (r *Reader) note(window string, up bool) error {
 	return r.record(windows)
 }
 
-// Resume brings back what was up before the machine went down, and answers the windows it started.
+// Resume brings back what was up before the machine went down, and the projects that start with the server anyway; it answers the windows it started.
 //
 // A boot is the one moment the tmux session is gone: a daemon restarted for an
 // upgrade finds the session alive with everything in it, and touches nothing.
@@ -102,6 +102,29 @@ func (r *Reader) Resume() []string {
 		}
 
 		started = append(started, window)
+	}
+
+	for _, project := range file.Projects {
+		if !project.Boot {
+			continue
+		}
+
+		for _, process := range project.Processes {
+			window := project.Window(process.ID)
+			if process.IsService() || kept[window] {
+				continue
+			}
+
+			kept[window] = true
+
+			if err := r.start(project, process); err != nil {
+				ctx.Logf("resume %s: %v", window, err)
+
+				continue
+			}
+
+			started = append(started, window)
+		}
 	}
 
 	if err := r.record(kept); err != nil {

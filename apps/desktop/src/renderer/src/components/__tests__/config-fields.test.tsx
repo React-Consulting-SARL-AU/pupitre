@@ -122,14 +122,51 @@ describe("chaque genre de champ a son contrôle", () => {
   });
 
   it("version : une liste des versions, la valeur par défaut choisie", () => {
-    expect(field(html, "runtime.java.java_version")).toContain(
+    expect(field(html, "editor.jetbrains.version")).toContain(
       'data-kind="version"'
     );
     expect(
-      control(html, "runtime.java.java_version").startsWith("<select")
+      control(html, "editor.jetbrains.version").startsWith("<select")
     ).toBe(true);
-    expect(html).toContain(">21</option>");
-    expect(html).toContain(">17</option>");
+    expect(html).toContain(">2026.2</option>");
+    expect(html).toContain(">2026.1</option>");
+  });
+
+  it("versions : une case par version, la plus récente cochée dite par défaut", () => {
+    const posed = form(CATALOG.modules, ALL, {
+      values: { "runtime.java": { java_versions: ["17", "21"] } },
+    });
+    expect(field(posed, "runtime.java.java_versions")).toContain(
+      'data-kind="versions"'
+    );
+    expect(field(posed, "runtime.java.java_versions")).toContain(
+      'data-required="true"'
+    );
+    expect(control(posed, "runtime.java.java_versions")).toContain(
+      'data-default="21"'
+    );
+    for (const version of ["21", "17"]) {
+      const box = control(posed, `runtime.java.java_versions.${version}`);
+
+      expect(box).toContain('type="checkbox"');
+      expect(box).toContain('checked=""');
+    }
+    expect(text(posed)).toContain("21 — par défaut");
+    expect(text(posed)).not.toContain("17 — par défaut");
+
+    const one = form(CATALOG.modules, ALL, {
+      values: { "runtime.java": { java_versions: ["17"] } },
+    });
+
+    expect(control(one, "runtime.java.java_versions")).toContain(
+      'data-default="17"'
+    );
+    expect(control(one, "runtime.java.java_versions.21")).not.toContain(
+      'checked=""'
+    );
+    expect(control(html, "runtime.java.java_versions")).not.toContain(
+      "data-default"
+    );
   });
 
   it("boolean : une case à cocher, jamais requise", () => {

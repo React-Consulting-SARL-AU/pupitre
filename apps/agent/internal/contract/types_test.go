@@ -22,6 +22,7 @@ func sampleManifest() Manifest {
 			{Key: "engine", Kind: FieldSelect, Label: "Moteur", Required: true, Options: []string{"mysql", "mariadb"}, Default: "mysql"},
 			{Key: "version", Kind: FieldVersion, Label: "Version", Options: []string{"7", "8"}, Default: "7"},
 			{Key: "providers", Kind: FieldList, Label: "Fournisseurs", Required: true, Items: ItemsSecret, Min: 1, Max: 6},
+			{Key: "node_versions", Kind: FieldVersions, Label: "Node", Options: []string{"24", "22"}, Default: []string{"24"}},
 		},
 		Mandatory: false,
 		Since:     "0.2.0",
@@ -66,6 +67,10 @@ func TestFieldSerialisesOnlyTheKeysOfItsKind(t *testing.T) {
 
 	if _, ok := fields[4]["default"]; ok {
 		t.Error("a list field must not carry default")
+	}
+
+	if _, ok := fields[5]["required"]; ok {
+		t.Error("a versions field must not carry required")
 	}
 
 	var decoded []Field

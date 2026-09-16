@@ -30,6 +30,7 @@ import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 const SERVER = "srv-1";
 
 const VITE: ProjectAddParams = {
+  boot: false,
   dir: "vite-starter",
   name: "vite-starter",
   processes: [
@@ -47,6 +48,7 @@ const VITE: ProjectAddParams = {
 };
 
 const SHOP: ProjectAddParams = {
+  boot: false,
   dir: "shop",
   name: "shop",
   processes: [
@@ -70,6 +72,7 @@ const SHOP: ProjectAddParams = {
 /** One process of a fresh project, on one port, the way the form declares most of them. */
 function single(name: string, port: number): ProjectAddParams {
   return {
+    boot: false,
     dir: name,
     name,
     processes: [

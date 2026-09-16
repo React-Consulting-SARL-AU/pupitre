@@ -12,6 +12,7 @@ import {
   PROCESS_LOOK,
   PROJECT_LOOK,
 } from "@renderer/lib/project-state";
+import { publicUrl } from "@renderer/lib/public-url";
 import type { ProjectAction } from "@renderer/stores/snapshot";
 import { ExternalLink, Package, Play, RotateCw, Square } from "lucide-react";
 
@@ -37,6 +38,7 @@ export function DashboardProjectCard({
   onAct: (action: ProjectAction, name: string) => void;
 }) {
   const t = useTranslations();
+  const address = publicUrl(project.url);
 
   const running = isRunning(project.state);
   const main = project.processes[0];
@@ -122,10 +124,10 @@ export function DashboardProjectCard({
             {t("dashboard.card.stop")}
           </Button>
         ) : null}
-        {project.url ? (
+        {address ? (
           <Button
             icon={ExternalLink}
-            onClick={() => window.pupitre.openUrl(project.url ?? "")}
+            onClick={() => window.pupitre.openUrl(address)}
             size="sm"
           >
             {t("dashboard.card.open")}

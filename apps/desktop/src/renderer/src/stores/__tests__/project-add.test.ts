@@ -154,6 +154,7 @@ describe("un dépôt qui démarre", () => {
     await useProjectAdd.getState().launch("srv-1");
 
     expect(asked[0]).toEqual({
+      boot: false,
       dir: "vite-starter",
       name: "vite-starter",
       processes: [single({})],
@@ -760,6 +761,7 @@ describe("ce que l'agent lit dans la source", () => {
           result: {
             projects: [
               {
+                boot: false,
                 dir: "apps/api",
                 name: "api",
                 path: "/home/dev/projects/apps/api",
@@ -956,6 +958,53 @@ describe("un projet qui ne démarre pas", () => {
   });
 });
 
+describe("ce que le lecteur choisit du démarrage", () => {
+  it("démarre après la création et pas avec le serveur, sauf à le demander", async () => {
+    stubPupitre(QUIET_RUN);
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(SHOP);
+
+    expect(useProjectAdd.getState().draft.startNow).toBe(true);
+    expect(useProjectAdd.getState().draft.boot).toBe(false);
+    expect(useProjectAdd.getState().params().boot).toBe(false);
+
+    useProjectAdd.getState().setBoot(true);
+
+    expect(useProjectAdd.getState().params().boot).toBe(true);
+  });
+
+  /** A project the reader does not start is declared, fetched and installed all the same: only the start is left out, and the outcome says stopped. */
+  it("laisse le projet arrêté quand le démarrage n'est pas demandé", async () => {
+    let started = 0;
+
+    stubPupitre({
+      ...QUIET_RUN,
+      startProject: () => {
+        started += 1;
+
+        return Promise.resolve({
+          ok: true as const,
+          result: { state: "online" as const },
+        });
+      },
+    });
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(SHOP);
+    useProjectAdd.getState().setStartNow(false);
+    await useProjectAdd.getState().launch("srv-1");
+
+    expect(started).toBe(0);
+    expect(phase("install")).toBe("ok");
+    expect(phase("up")).toBe("skip");
+    expect(useProjectAdd.getState().run).toMatchObject({
+      state: "stopped",
+      status: "done",
+    });
+  });
+});
+
 describe("un démarrage qui prend son temps", () => {
   /** `project.up` answers before the port is bound: what follows is read off `project.list`. */
   function stub(states: readonly string[]) {
@@ -1106,6 +1155,7 @@ describe("le sous-domaine du projet", () => {
         result: {
           projects: [
             {
+              boot: false,
               dir: "other",
               name: "other",
               path: "/home/dev/projects/other",

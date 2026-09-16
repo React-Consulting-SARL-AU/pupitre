@@ -32,10 +32,6 @@ var buildDependencies = []string{
 	"zlib1g-dev", "libgd-dev", "libicu-dev", "libpq-dev",
 }
 
-// Only php is a mise tool: composer rides with the php runtime, which lays it
-// down and shims it, and mise no longer carries composer in its registry.
-var tools = []string{"php"}
-
 type Module struct{}
 
 func init() {
@@ -51,15 +47,16 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 		return modules.Status{}, nil
 	}
 
-	installed := mise.Installed(ctx)
-	if installed["php"] == "" {
+	held := mise.PHP.Held(ctx)
+	if len(held) == 0 {
 		return modules.Status{}, nil
 	}
 
 	return modules.Status{
 		Installed:  true,
 		Configured: shell.HasBlock(ctx, ID),
-		Version:    describe(installed),
+		Version:    mise.PHP.Describe(ctx),
+		Versions:   held,
 	}, nil
 }
 
@@ -79,7 +76,7 @@ func (Module) Install(ctx *modules.Context) error {
 		return err
 	}
 
-	if _, err := mise.Add(ctx, "install-php", "php", ctx.String("php_version")); err != nil {
+	if _, err := mise.PHP.Install(ctx); err != nil {
 		return err
 	}
 
@@ -130,26 +127,7 @@ func (Module) Configure(ctx *modules.Context) error {
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
-	if err := ctx.Step("upgrade-php", func() (modules.Outcome, error) {
-		before := mise.Installed(ctx)
-
-		present := []string{}
-		for _, tool := range tools {
-			if before[tool] != "" {
-				present = append(present, tool)
-			}
-		}
-
-		if err := mise.Upgrade(ctx, present...); err != nil {
-			return modules.Failed, err
-		}
-
-		if describe(mise.Installed(ctx)) == describe(before) {
-			return modules.Skipped, nil
-		}
-
-		return modules.Done, nil
-	}); err != nil {
+	if err := mise.PHP.Upgrade(ctx); err != nil {
 		return err
 	}
 
@@ -177,13 +155,7 @@ func (Module) Uninstall(ctx *modules.Context) error {
 		return err
 	}
 
-	for _, tool := range tools {
-		if err := mise.Remove(ctx, "remove-"+tool, tool); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return mise.PHP.Uninstall(ctx)
 }
 
 func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
@@ -207,17 +179,6 @@ func memoryLimit(ctx *modules.Context) string {
 	}
 
 	return chosen
-}
-
-func describe(installed map[string]string) string {
-	var parts []string
-	for _, tool := range tools {
-		if installed[tool] != "" {
-			parts = append(parts, tool+" "+installed[tool])
-		}
-	}
-
-	return strings.Join(parts, " · ")
 }
 
 func ini(limit string) []byte {

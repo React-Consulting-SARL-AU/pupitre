@@ -92,7 +92,7 @@ func (Module) Install(ctx *modules.Context) error {
 			return modules.Skipped, nil
 		}
 
-		installed := mise.Installed(ctx)["node"]
+		installed := mise.Default(ctx, "node")
 		if !nodeSupported(installed) {
 			return modules.Failed, errors.New(i18n.T("modules.openclaw.node_too_old", installed))
 		}

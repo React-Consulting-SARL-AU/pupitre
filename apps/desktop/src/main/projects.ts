@@ -18,7 +18,7 @@ import {
 } from "./projects-run";
 import { refusalOf } from "./refusal";
 import { relayTo } from "./relay";
-import { byId } from "./servers";
+import { byId, sshNameOf } from "./servers";
 
 /**
  * The project commands, wired to this machine's servers.
@@ -112,20 +112,21 @@ export function registerProjects(): void {
    * The folder opens in an editor of this computer, never of the server.
    *
    * The absolute path is the one the agent gave for that project's repository;
-   * the address, the port and the account come from the app's own server list.
-   * Neither is a string the renderer chose.
+   * the name the editor resolves comes from the app's own server list. Neither
+   * is a string the renderer chose.
    */
   ipcMain.handle(
     "project:editor",
     (_event, serverId: unknown, editorId: unknown, path: unknown) => {
       const server = typeof serverId === "string" ? byId(serverId) : null;
       const editor = typeof editorId === "string" ? editorById(editorId) : null;
+      const name = server ? sshNameOf(server.id) : null;
 
-      if (!(server && editor && typeof path === "string")) {
+      if (!(server && editor && name && typeof path === "string")) {
         return;
       }
 
-      const url = remoteEditorUrl(editor, server, path);
+      const url = remoteEditorUrl(editor, server, name, path);
 
       if (url) {
         openOutside(url);

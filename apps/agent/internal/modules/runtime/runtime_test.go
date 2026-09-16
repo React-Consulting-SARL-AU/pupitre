@@ -19,9 +19,9 @@ var runtimeModules = []struct {
 	module modules.Module
 	values modtest.Values
 }{
-	{node.Module{}, modtest.Values{"node_version": "22", "bun": true, "pnpm": true}},
-	{java.Module{}, modtest.Values{"java_version": "21"}},
-	{python.Module{}, modtest.Values{"python_version": "3.12"}},
+	{node.Module{}, modtest.Values{"node_versions": []string{"22"}, "bun": true, "pnpm": true}},
+	{java.Module{}, modtest.Values{"java_versions": []string{"21"}}},
+	{python.Module{}, modtest.Values{"python_versions": []string{"3.12"}}},
 }
 
 func registry(t *testing.T) *modules.Registry {
@@ -96,7 +96,7 @@ func TestReinstallingOneRuntimeLeavesTheOthersAlone(t *testing.T) {
 	installAll(t, fake)
 	before := string(fake.Files[shell.EnvPath])
 
-	ctx := modtest.NewContext(t, fake, modtest.Options{Manifest: node.Module{}.Manifest(), Values: modtest.Values{"node_version": "24", "bun": false, "pnpm": false}})
+	ctx := modtest.NewContext(t, fake, modtest.Options{Manifest: node.Module{}.Manifest(), Values: modtest.Values{"node_versions": []string{"24"}, "bun": false, "pnpm": false}})
 	if err := (node.Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}

@@ -1,4 +1,5 @@
-import type { Project } from "@pupitre/shared/agent-protocol/state";
+import type { Project, Service } from "@pupitre/shared/agent-protocol/state";
+import type { RuntimeTool } from "@pupitre/shared/catalog";
 import { panelClass } from "@renderer/components/ui/panel";
 import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
@@ -9,12 +10,16 @@ import type { ConfigDraft, ConfigState } from "@renderer/stores/project-config";
 import { Save } from "lucide-react";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
+import { CheckLine } from "../ui/check-line";
 import { Field, fieldControlClass } from "../ui/field";
 import type { ProcessEdits } from "./project-process-card";
 import { ProjectProcesses } from "./project-processes";
+import { ProjectRuntimes } from "./project-runtimes";
 
 export interface ConfigEdits extends ProcessEdits {
   branch: (value: string) => void;
+  boot: (value: boolean) => void;
+  runtime: (tool: RuntimeTool, version: string) => void;
 }
 
 /**
@@ -30,6 +35,7 @@ export interface ConfigEdits extends ProcessEdits {
 export function ProjectConfigPanel({
   project,
   draft,
+  services,
   exposure,
   processProblems,
   rowProblems,
@@ -42,6 +48,8 @@ export function ProjectConfigPanel({
 }: {
   project: Project;
   draft: ConfigDraft;
+  /** The server's services: the runtimes among them say which versions a project may pin. */
+  services: readonly Service[];
   exposure: Exposure | null;
   processProblems: readonly (ProcessProblem | null)[];
   rowProblems: readonly (readonly (RowProblem | null)[])[];
@@ -80,6 +88,19 @@ export function ProjectConfigPanel({
             value={draft.branch}
           />
         </Field>
+
+        <CheckLine
+          checked={draft.boot}
+          label={t("projectAdd.form.bootLabel")}
+          name="config.boot"
+          onChange={edit.boot}
+        />
+
+        <ProjectRuntimes
+          onChange={edit.runtime}
+          runtimes={draft.runtimes}
+          services={services}
+        />
 
         <ProjectProcesses
           edit={edit}

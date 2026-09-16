@@ -1,6 +1,6 @@
 import { app } from "electron";
 import { DEVELOPMENT_NAME, developmentDataFolder } from "./dev-data-run";
-import { HARNESSED } from "./foreground";
+import { HARNESSED } from "./harness";
 
 const folder = developmentDataFolder(
   app.getPath("appData"),

@@ -292,7 +292,7 @@ describe("un module en échec", () => {
       .start(SERVER, ["core.system", "db.mysql", "runtime.node"], {
         "core.system": { timezone: "Europe/Paris" },
         "db.mysql": { version: "8.4" },
-        "runtime.node": { node_version: "22" },
+        "runtime.node": { node_versions: ["22"] },
       });
 
     const again = agent([], { failed: [], warned: [], report_path: REPORT });
@@ -306,7 +306,7 @@ describe("un module en échec", () => {
         modules: ["db.mysql", "runtime.node"],
         config: {
           "db.mysql": { version: "8.4" },
-          "runtime.node": { node_version: "22" },
+          "runtime.node": { node_versions: ["22"] },
         },
       },
     ]);

@@ -57,7 +57,9 @@ const PROCESS: ProcessDraft = {
 };
 
 const DRAFT: Draft = {
+  boot: false,
   branch: "main",
+  startNow: true,
   dir: "vite-starter",
   kind: "git",
   name: "vite-starter",
@@ -83,6 +85,7 @@ const READY: KnownState = {
 const EDIT = {
   addProcess: () => undefined,
   addRow: () => undefined,
+  boot: () => undefined,
   branch: () => undefined,
   browse: () => undefined,
   createFolder: () => Promise.resolve(),
@@ -104,6 +107,7 @@ const EDIT = {
   rowPublish: () => undefined,
   rowWeb: () => undefined,
   source: () => undefined,
+  startNow: () => undefined,
 };
 
 const PHASES: Phase[] = [
@@ -429,7 +433,21 @@ describe("un projet en ligne", () => {
     expect(text(rendered)).toContain("vite-starter en ligne");
     expect(text(rendered)).toContain("http://127.0.0.1:3000");
     expect(text(rendered)).toContain("Ouvrir le projet");
+    expect(rendered).not.toContain(">Ouvrir<");
     expect(rendered).toContain('data-outcome="online"');
+  });
+
+  /** The machine's own address is shown for what it is; only a name on the web opens from this computer. */
+  it("n'offre d'ouvrir qu'une adresse publique", () => {
+    const rendered = panel({
+      name: "vite-starter",
+      serverId: "srv-1",
+      state: "online",
+      status: "done",
+      url: "https://vite-starter.example.org",
+    });
+
+    expect(rendered).toContain(">Ouvrir<");
   });
 });
 

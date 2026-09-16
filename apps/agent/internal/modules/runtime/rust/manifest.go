@@ -3,6 +3,7 @@ package rust
 import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
+	"pupitre.studio/agent/internal/modules/runtime/mise"
 )
 
 const ID = "runtime.rust"
@@ -18,7 +19,7 @@ func manifest() contract.Manifest {
 		Resources: contract.Resources{RAMMB: 512, DiskMB: 2048},
 		Arch:      []string{"amd64", "arm64"},
 		Fields: []contract.Field{
-			{Key: "rust_version", Kind: contract.FieldVersion, Label: i18n.T("module.runtime.rust.rust_version.label"), Options: []string{"1.98", "1.97", "1.96"}, Default: "1.98"},
+			mise.Rust.Field(i18n.T("module.runtime.rust.rust_versions.label"), i18n.T("module.runtime.rust.rust_versions.help")),
 		},
 		Runs:      false,
 		Mandatory: false,

@@ -17,6 +17,7 @@ import type {
   ServerUpdated,
 } from "@shared/servers";
 import type { DeepLink, MenuCommand } from "@shared/shell";
+import type { SshShareState } from "@shared/ssh-names";
 import type { StartupState } from "@shared/startup";
 import type { TerminalOpened } from "@shared/terminals";
 import {
@@ -50,9 +51,10 @@ import { registerDevDefaults } from "./dev-defaults";
 import { dialogTextIn } from "./dialogs";
 import { asAgentError } from "./enrollment-run";
 import { registerFleet } from "./fleet";
-import { HARNESSED, openOutside, stayBehind } from "./foreground";
+import { openOutside, stayBehind } from "./foreground";
 import { githubRepos } from "./github";
 import { registerHarden } from "./harden";
+import { HARNESSED } from "./harness";
 import { registerInspection } from "./inspection";
 import { registerInstall } from "./install";
 import { installKey } from "./key-install";
@@ -84,9 +86,11 @@ import {
   read,
   remove as removeServer,
   rename as renameServer,
+  setSshShare,
   sshHosts,
   paths as sshPaths,
   sshPathsWritten,
+  sshShareState,
   trustReinstalled,
   update as updateServer,
 } from "./servers";
@@ -437,6 +441,11 @@ nativeTheme.on("updated", () => window?.setBackgroundColor(nativeBackground()));
 function registerServerChannels(): void {
   ipcMain.handle("servers", (): ServersConfig => read());
   ipcMain.handle("ssh-hosts", (): string[] => sshHosts());
+  ipcMain.handle("ssh-share:state", (): SshShareState => sshShareState());
+  ipcMain.handle(
+    "ssh-share:set",
+    (_e, shared: unknown): SshShareState => setSshShare(shared === true)
+  );
 
   ipcMain.handle(
     "server-reach",

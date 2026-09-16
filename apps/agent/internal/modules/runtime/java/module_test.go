@@ -11,7 +11,7 @@ import (
 	"pupitre.studio/agent/internal/modules/runtime/shell"
 )
 
-var values = modtest.Values{"java_version": "21"}
+var values = modtest.Values{"java_versions": []string{"21"}}
 
 func machine(totalKB string) *modtest.FakeSys {
 	fake := modtest.NewFakeSys()
@@ -66,7 +66,7 @@ func TestInstallTemurinAndSizeTheDaemon(t *testing.T) {
 	for _, want := range []string{
 		"# >>> pupitre runtime.java >>>",
 		`export PATH="$HOME/.local/share/mise/shims:$PATH"`,
-		`export JAVA_HOME="/home/dev/.local/share/mise/installs/java/temurin-21"`,
+		`export JAVA_HOME="$(mise where java 2>/dev/null)"`,
 	} {
 		if !strings.Contains(env, want) {
 			t.Errorf(".zshenv lacks %q:\n%s", want, env)

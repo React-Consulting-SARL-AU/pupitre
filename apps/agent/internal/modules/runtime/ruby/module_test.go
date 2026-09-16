@@ -10,7 +10,7 @@ import (
 	"pupitre.studio/agent/internal/modules/runtime/shell"
 )
 
-var values = modtest.Values{"ruby_version": "3.4", "bundler": true}
+var values = modtest.Values{"ruby_versions": []string{"3.4"}, "bundler": true}
 
 func newContext(t *testing.T, fake *modtest.FakeSys, chosen modtest.Values) *modules.Context {
 	t.Helper()
@@ -68,7 +68,7 @@ func TestInstallBringsTheHeadersThenRubyAndBundler(t *testing.T) {
 
 func TestBundlerIsSkippedWhenNotAskedFor(t *testing.T) {
 	fake := modtest.NewFakeSys()
-	ctx := newContext(t, fake, modtest.Values{"ruby_version": "3.3", "bundler": false})
+	ctx := newContext(t, fake, modtest.Values{"ruby_versions": []string{"3.3"}, "bundler": false})
 
 	run(t, ctx)
 

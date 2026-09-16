@@ -38,7 +38,7 @@ Pupitre Desktop ──── ssh, clé du client ────▶ pupitred (VPS d
 
 `apps/desktop` est l'app Electron existante, étendue. Le main process tient un canal SSH unique vers chaque serveur (`ssh -F <config de l'app>`), y écrit des requêtes JSON par ligne et lit des réponses et des événements ([protocole](./contracts/agent-protocol.md)). Les terminaux utilisent node-pty et le `ssh` du système. Le renderer ne touche jamais au système : `contextIsolation`, API explicite du preload, validation des noms de projets contre la liste que l'agent vient de donner.
 
-La configuration SSH de l'app vit dans son dossier de données (`ssh/config`, `keys/<serveur>` en 0600). Le `~/.ssh/config` de l'utilisateur n'est jamais modifié ; un hôte existant peut être désigné à la place.
+La configuration SSH de l'app vit dans son dossier de données (`ssh/config`, `keys/<serveur>` en 0600). Le `~/.ssh/config` de l'utilisateur n'est jamais réécrit ; sur sa demande, l'app y pose une seule ligne `Include` vers son propre fichier, et la retire de même, pour que `ssh`, les éditeurs et les agents de code joignent ses serveurs par leur nom ([décision 0012](./decisions/0012-ssh-config-include.md)). Un hôte existant peut être désigné à la place.
 
 Le compte est requis. L'app demande une connexion au premier lancement, puis lit le droit d'usage de l'organisation active : sans abonnement en cours, fût-il en essai, elle n'enrôle aucun serveur. Seul un build de développement porte un droit d'usage à lui, miroir du tag `dev` de l'agent, et il ne sort jamais du dépôt.
 

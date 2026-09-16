@@ -46,35 +46,36 @@ export function editorById(id: string): RemoteEditor | null {
 const PATH_OK = /^\/[\w.\-/+@]{0,240}$/;
 
 /**
- * The account these editors connect as.
+ * The link an editor opens, on the name the system's SSH file resolves.
  *
- * A server of the app carries its own; a host taken from ~/.ssh/config is named
- * by its alias alone, and the editor reads that file the way ssh does.
+ * A server of the app is named by the word its block carries in the app's
+ * file — which the system's file includes, once the reader asked for it — so
+ * the account, the port, the key and the pinned host key all come from there
+ * and none needs saying here. A host taken from ~/.ssh/config is named by its
+ * alias alone, for the same reason. JetBrains Gateway asks for the port and
+ * the account anyway, and gets the ones the block says.
  */
-function destination(server: Server): string {
-  return server.user ? `${server.user}@${server.host}` : server.host;
-}
-
 export function remoteEditorUrl(
   editor: RemoteEditor,
   server: Server,
+  name: string,
   path: string
 ): string | null {
   if (!PATH_OK.test(path)) {
     return null;
   }
 
-  const host = destination(server);
   const port = server.origin === "system" ? 22 : server.port;
+  const user = server.origin === "system" ? "" : server.user;
 
   switch (editor.id) {
     case "jetbrains":
-      return `jetbrains-gateway://connect#type=ssh&host=${encodeURIComponent(server.host)}&port=${port}&user=${encodeURIComponent(server.user)}&projectPath=${encodeURIComponent(path)}`;
+      return `jetbrains-gateway://connect#type=ssh&host=${encodeURIComponent(name)}&port=${port}&user=${encodeURIComponent(user)}&projectPath=${encodeURIComponent(path)}`;
     case "vscode":
-      return `vscode://vscode-remote/ssh-remote+${host}${path}`;
+      return `vscode://vscode-remote/ssh-remote+${name}${path}`;
     case "cursor":
-      return `cursor://vscode-remote/ssh-remote+${host}${path}`;
+      return `cursor://vscode-remote/ssh-remote+${name}${path}`;
     default:
-      return `zed://ssh/${host}${path}`;
+      return `zed://ssh/${name}${path}`;
   }
 }

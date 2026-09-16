@@ -9,6 +9,8 @@ import (
 	"pupitre.studio/agent/internal/modules/ai/codex"
 	"pupitre.studio/agent/internal/modules/ai/hermes"
 	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/modules/runtime/node"
+	"pupitre.studio/agent/internal/modules/runtime/python"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/state"
 )
@@ -21,6 +23,8 @@ func agentRegistry() *modules.Registry {
 	registry.Register(claude.Module{})
 	registry.Register(codex.Module{})
 	registry.Register(hermes.Module{})
+	registry.Register(node.Module{})
+	registry.Register(python.Module{})
 	registry.Register(modtest.Passing{ID: "core.system"})
 	registry.Register(modtest.Passing{ID: "tool.demo", Requires: []string{"core.system"}, Unit: "demo", Port: 8080})
 

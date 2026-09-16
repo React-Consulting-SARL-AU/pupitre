@@ -190,6 +190,30 @@ function optionProblem(
     : problem(moduleId, field.key, "options", options.join(", "))
 }
 
+function versionsProblem(
+  moduleId: string,
+  field: Field,
+  value: unknown
+): FieldProblem | null {
+  if (field.kind !== "versions") {
+    return null
+  }
+
+  if (value !== undefined && value !== null && !Array.isArray(value)) {
+    return problem(moduleId, field.key, "type", "list")
+  }
+
+  const { items } = textItems(value)
+
+  if (items.length === 0) {
+    return problem(moduleId, field.key, "required", "1")
+  }
+
+  return items.every((item) => field.options.includes(item))
+    ? null
+    : problem(moduleId, field.key, "options", field.options.join(", "))
+}
+
 function numberProblem(
   moduleId: string,
   field: Field,
@@ -227,6 +251,10 @@ export function validateField(
 ): FieldProblem | null {
   if (field.kind === "version") {
     return optionProblem(moduleId, field, value)
+  }
+
+  if (field.kind === "versions") {
+    return versionsProblem(moduleId, field, value)
   }
 
   if (field.kind === "boolean") {

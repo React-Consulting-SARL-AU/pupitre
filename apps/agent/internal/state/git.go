@@ -489,7 +489,7 @@ func (r *Reader) pull(project registry.Project, root string) (bool, error) {
 				WithFix(cloneFix(out))
 		}
 
-		return true, nil
+		return true, r.pinRuntimes(project)
 	}
 
 	if held, other := r.otherRepository(project, root); other {

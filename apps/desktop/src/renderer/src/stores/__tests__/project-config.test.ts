@@ -15,6 +15,7 @@ import { useTunnel } from "../tunnel";
  */
 
 const SHOP: Project = {
+  boot: false,
   dir: "shop",
   name: "shop",
   path: "/home/dev/projects/shop",
@@ -112,6 +113,56 @@ describe("la configuration d'un projet rouverte", () => {
     expect(useProjectConfig.getState().ready()).toBe(false);
     expect(useProjectConfig.getState().restarts()).toEqual([]);
     expect(useProjectConfig.getState().dropped()).toEqual([]);
+  });
+
+  /** Starting with the server is a choice of the project, changed alone: the patch carries it without the processes moving. */
+  it("envoie le démarrage avec le serveur quand il change, et lui seul", () => {
+    useProjectConfig.getState().open(SHOP, SNAPSHOT.projects, true);
+
+    expect(useProjectConfig.getState().draft.boot).toBe(false);
+
+    useProjectConfig.getState().setBoot(true);
+
+    expect(useProjectConfig.getState().changed()).toBe(true);
+    expect(useProjectConfig.getState().ready()).toBe(true);
+    expect(useProjectConfig.getState().restarts()).toEqual([]);
+    expect(useProjectConfig.getState().patch().boot).toBe(true);
+
+    useProjectConfig.getState().setBoot(false);
+
+    expect(useProjectConfig.getState().patch().boot).toBeUndefined();
+    expect(useProjectConfig.getState().changed()).toBe(false);
+  });
+
+  /** A runtime version is pinned by tool and sent whole: the map replaces the project's, and a tool set back to the default leaves it. */
+  it("envoie les versions de runtime épinglées quand elles changent, la carte entière", () => {
+    useProjectConfig
+      .getState()
+      .open({ ...SHOP, runtimes: { node: "22" } }, SNAPSHOT.projects, true);
+
+    expect(useProjectConfig.getState().draft.runtimes).toEqual({ node: "22" });
+    expect(useProjectConfig.getState().changed()).toBe(false);
+
+    useProjectConfig.getState().setRuntime("java", "17");
+
+    expect(useProjectConfig.getState().changed()).toBe(true);
+    expect(useProjectConfig.getState().ready()).toBe(true);
+    expect(useProjectConfig.getState().restarts()).toEqual([]);
+    expect(useProjectConfig.getState().patch().runtimes).toEqual({
+      java: "17",
+      node: "22",
+    });
+
+    useProjectConfig.getState().setRuntime("java", "");
+    useProjectConfig.getState().setRuntime("node", "");
+
+    expect(useProjectConfig.getState().patch().runtimes).toEqual({});
+    expect(useProjectConfig.getState().changed()).toBe(true);
+
+    useProjectConfig.getState().setRuntime("node", "22");
+
+    expect(useProjectConfig.getState().patch().runtimes).toBeUndefined();
+    expect(useProjectConfig.getState().changed()).toBe(false);
   });
 
   it("envoie la commande changée, dit quel processus redémarre, et rend le nom entier d'une route gardée", () => {
