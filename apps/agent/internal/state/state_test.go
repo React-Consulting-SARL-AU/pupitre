@@ -156,6 +156,70 @@ func TestAddThenUpBringsTheProjectOnlineAndDownStopsIt(t *testing.T) {
 	}
 }
 
+// A repository brings its own folders with the clone: declaring one must leave the projects root untouched, or git refuses to clone into what it finds there.
+func TestAddCreatesNoFolderForARepositoryProject(t *testing.T) {
+	fake, reader := fixture(t)
+
+	project, processes := declared("intranet", 8081, "./gradlew :server:bootRun")
+	project.Repo = "https://github.com/eapc-dev/intranet.git"
+	processes = append(processes, state.ProcessRequest{ID: "client", Dir: "client", PkgMgr: "pnpm", Host: "127.0.0.1", Port: 3001, Cmd: "pnpm dev --port 3001"})
+
+	if _, err := reader.Add(project, processes); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, path := range []string{"/home/dev/projects/intranet", "/home/dev/projects/intranet/client"} {
+		if fake.Dirs[path] {
+			t.Fatalf("%s must not exist before the clone: %v", path, fake.Mutations)
+		}
+	}
+}
+
+// A folder left by an earlier project is found out at the declaration, when nothing has been written yet: the refusal says what to do with it.
+func TestAddRefusesARepositoryProjectWhoseFolderIsAlreadyBusy(t *testing.T) {
+	fake, reader := fixture(t)
+	fake.Dirs["/home/dev/projects/intranet"] = true
+	fake.Files["/home/dev/projects/intranet/client/package.json"] = []byte("{}")
+
+	project, processes := declared("intranet", 8081, "./gradlew :server:bootRun")
+	project.Repo = "https://github.com/eapc-dev/intranet.git"
+
+	_, err := reader.Add(project, processes)
+	if err == nil {
+		t.Fatal("a folder that is not empty cannot receive a clone: the declaration must say so")
+	}
+
+	failure, ok := err.(*protocol.Error)
+	if !ok || failure.Code != contract.ErrorBadRequest || !strings.Contains(failure.Message, "/home/dev/projects/intranet") {
+		t.Fatalf("expected a bad_request naming the folder, got %v", err)
+	}
+	if _, known := reader.List(), false; known || len(reader.List()) != 2 {
+		t.Fatalf("nothing must have been declared: %+v", reader.List())
+	}
+
+	delete(fake.Files, "/home/dev/projects/intranet/client/package.json")
+	if _, err := reader.Add(project, processes); err != nil {
+		t.Fatalf("an empty folder is fine, git clones into it: %v", err)
+	}
+}
+
+// A folder already on the machine is taken as it stands; a process folder it lacks is made, so the window has somewhere to open.
+func TestAddCreatesTheProcessFoldersOfAFolderProject(t *testing.T) {
+	fake, reader := fixture(t)
+	fake.Dirs["/home/dev/projects/local"] = true
+
+	project, processes := declared("local", 8081, "bun run dev")
+	processes = append(processes, state.ProcessRequest{ID: "client", Dir: "client", PkgMgr: "bun", Host: "127.0.0.1", Port: 3001, Cmd: "bun run dev --port 3001"})
+
+	if _, err := reader.Add(project, processes); err != nil {
+		t.Fatal(err)
+	}
+
+	if !fake.Dirs["/home/dev/projects/local/client"] {
+		t.Fatalf("the client folder must exist: %v", fake.Mutations)
+	}
+}
+
 func TestACommandThatDiedReadsAsFailedUntilItIsStoppedOrStartedAgain(t *testing.T) {
 	fake, reader := fixture(t)
 

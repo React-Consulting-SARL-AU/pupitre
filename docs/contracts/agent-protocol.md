@@ -121,7 +121,7 @@ Le chemin absolu vit sur le projet, pas sur la machine : `status`, `project.list
 | Commande | Paramètres |
 | --- | --- |
 | `project.list` | — |
-| `project.add` | `{ name, dir, repo?, branch?, processes[] }` : chaque processus porte `{ id, dir?, pkgmgr, host, port, routes[], cmd, install? }`, chaque route `{ label, port, subdomain? }` ; `dir` absent vaut `.` |
+| `project.add` | `{ name, dir, repo?, branch?, processes[] }` : chaque processus porte `{ id, dir?, pkgmgr, host, port, routes[], cmd, install? }`, chaque route `{ label, port, subdomain? }` ; `dir` absent vaut `.`. Un projet avec `repo` ne crée aucun dossier — le clone les apporte — et refuse en `bad_request`, avant d'écrire sa ligne, un dossier déjà là qui n'est ni vide ni un clone de ce même dépôt ; un projet sans `repo` reçoit le dossier de chacun de ses processus |
 | `project.detect` | `{ repo, branch? }` ou `{ dir }` : ce qu'un dépôt demande, sans rien installer |
 | `project.update` | `{ name, patch }` avec `patch: { branch?, processes? }` : réécrit la ligne du projet et répond le `Project` mis à jour |
 | `project.remove` | `{ name }` (le dossier reste) |
