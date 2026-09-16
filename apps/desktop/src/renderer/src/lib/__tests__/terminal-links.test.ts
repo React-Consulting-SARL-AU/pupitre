@@ -59,6 +59,26 @@ describe("les adresses d'un écran", () => {
     }
   });
 
+  it("se lisent d'un bloc quand le terminal a plié une ligne en retrait", () => {
+    const rows = [
+      `  ${ADDRESS.slice(0, COLS - 2)}`,
+      ADDRESS.slice(COLS - 2, 2 * COLS - 2),
+      ADDRESS.slice(2 * COLS - 2),
+      "",
+    ];
+    const xterm = screen(rows);
+
+    for (const row of [0, 1, 2]) {
+      const [link] = linksOn(xterm, row);
+
+      expect(link?.text).toBe(ADDRESS);
+      expect(link?.range).toEqual({
+        start: { x: 3, y: 1 },
+        end: { x: ADDRESS.length - 2 * COLS + 2, y: 3 },
+      });
+    }
+  });
+
   it("laissent l'adresse à sa place quand rien ne la suit", () => {
     const [link] = linksOn(
       screen(["see https://pupitre.studio/docs.", "next"]),

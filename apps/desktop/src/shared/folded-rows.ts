@@ -26,9 +26,11 @@ function margin(text: string): number {
  * An address longer than the screen is wide reaches the last column and goes
  * on at the left edge of the next row: the terminal wraps it there, and so
  * does an interface that lays its text out itself, at the margin of its box
- * rather than at the edge. Nothing on the screen says which rows belong
- * together, only that shape does — so every piece remembers where it came
- * from, and a match in the joined text can be pointed back at the screen.
+ * rather than at the edge. A line that starts indented but runs to the last
+ * column was wrapped by the terminal, and its rest sits at column zero.
+ * Nothing on the screen says which rows belong together, only that shape
+ * does — so every piece remembers where it came from, and a match in the
+ * joined text can be pointed back at the screen.
  */
 export function foldRows(
   rows: readonly ScreenRow[],
@@ -37,11 +39,14 @@ export function foldRows(
   const lines: FoldedLine[] = [];
   let open: FoldedLine | null = null;
   let edge = 0;
+  let atEdge = false;
 
   rows.forEach((row, index) => {
     const left = margin(row.text);
+    const continues =
+      row.text.length > left && (left === edge || (atEdge && left === 0));
 
-    if (open !== null && left === edge && row.text.length > left) {
+    if (open !== null && continues) {
       open.text += row.text.slice(left);
       open.pieces.push({
         row: index,
@@ -60,7 +65,9 @@ export function foldRows(
       edge = left;
     }
 
-    if (row.width + edge !== cols) {
+    atEdge = row.width === cols;
+
+    if (!atEdge && row.width + edge !== cols) {
       lines.push(open);
       open = null;
     }
