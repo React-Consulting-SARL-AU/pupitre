@@ -204,18 +204,25 @@ func (r *Reader) startWith(project registry.Project, process registry.Process, c
 			WithFix(i18n.T("state.project.sync.fix", project.Name))
 	}
 
-	return tmux.Start(ctx, r.options.Tmux, tmux.Job{Window: window, Dir: dir, Cmd: command})
+	if err := tmux.Start(ctx, r.options.Tmux, tmux.Job{Window: window, Dir: dir, Cmd: command}); err != nil {
+		return err
+	}
+
+	return r.note(window, true)
 }
 
 // A window whose command died is still a window: a stop closes it, so the corpse does not read as a failure forever.
 func (r *Reader) stop(project registry.Project, process registry.Process) error {
 	ctx := r.ctx()
 	window := project.Window(process.ID)
-	if !tmux.Open(ctx, r.options.Tmux, window) {
-		return nil
+
+	if tmux.Open(ctx, r.options.Tmux, window) {
+		if err := tmux.Stop(ctx, r.options.Tmux, window); err != nil {
+			return err
+		}
 	}
 
-	return tmux.Stop(ctx, r.options.Tmux, window)
+	return r.note(window, false)
 }
 
 // A "service" process is systemd's business: it shows in the state, and neither a project nor "all" starts or stops it.

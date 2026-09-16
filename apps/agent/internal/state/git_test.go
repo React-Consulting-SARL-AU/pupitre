@@ -11,6 +11,7 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/state"
 	"pupitre.studio/agent/internal/sys"
@@ -368,6 +369,61 @@ func TestSyncClonesWhatIsMissingAndPullsWhatIsThere(t *testing.T) {
 
 	if after.Behind != 0 || after.Ahead != 1 {
 		t.Fatalf("the pull rebased the local commit onto the remote: %+v", after)
+	}
+}
+
+// A folder kept from an earlier project may hold another repository: a project declared on one address must never pull the folder's own in silence.
+func TestPullRefusesAFolderThatHoldsAnotherRepository(t *testing.T) {
+	repo := gitFixture(t)
+	other := filepath.Join(filepath.Dir(repo.origin), "other.git")
+	run(t, filepath.Dir(repo.origin), "git", "init", "--quiet", "--bare", "--initial-branch=main", other)
+
+	conf := filepath.Join(filepath.Dir(repo.origin), "projects.conf")
+	write(t, conf, "web|web|"+other+"|none|127.0.0.1|3000|web|sleep 1\n")
+
+	_, err := repo.reader.Pull("web")
+	if err == nil {
+		t.Fatal("the folder holds origin.git, the row names other.git: the pull must refuse")
+	}
+
+	failure, ok := err.(*protocol.Error)
+	if !ok || failure.Code != contract.ErrorBadRequest {
+		t.Fatalf("expected a bad_request, got %v", err)
+	}
+	if !strings.Contains(failure.Message, repo.origin) || !strings.Contains(failure.Fix, other) {
+		t.Fatalf("the refusal names what the folder holds and what the row expects: %q / %q", failure.Message, failure.Fix)
+	}
+}
+
+// The same repository written another way is the same repository: a scheme, a trailing slash or a .git suffix change nothing.
+func TestPullAcceptsTheSameRepositoryWrittenOtherwise(t *testing.T) {
+	repo := gitFixture(t)
+
+	conf := filepath.Join(filepath.Dir(repo.origin), "projects.conf")
+	write(t, conf, "web|web|file://"+repo.origin+"/|none|127.0.0.1|3000|web|sleep 1\n")
+
+	pulled, err := repo.reader.Pull("web")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !pulled.Pulled {
+		t.Fatalf("unexpected %+v", pulled)
+	}
+}
+
+func TestSameRepositoryFoldsSchemeHostCaseAndSuffix(t *testing.T) {
+	for _, pair := range [][2]string{
+		{"https://github.com/ada/shop.git", "git@github.com:ada/shop"},
+		{"ssh://git@github.com/ada/shop/", "https://GitHub.com/ada/shop.git"},
+		{"/home/dev/repo.git", "/home/dev/repo"},
+	} {
+		if !state.SameRepository(pair[0], pair[1]) {
+			t.Errorf("%q and %q name one repository", pair[0], pair[1])
+		}
+	}
+
+	if state.SameRepository("https://github.com/ada/shop", "https://github.com/ada/store") {
+		t.Error("two paths are two repositories")
 	}
 }
 

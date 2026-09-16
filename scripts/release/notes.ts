@@ -3,7 +3,7 @@ import path from "node:path"
 import { entryPath, locales, parseFrontmatter } from "../release-notes"
 import { checkRelease } from "./check"
 import { hasFlag, say } from "./cli"
-import { git, lastVersion } from "./resolve"
+import { git, lastVersion, originTags } from "./resolve"
 import { run } from "./shell"
 
 /**
@@ -80,7 +80,7 @@ export function notesCommand(
     throw new Error("PUPITRE_RELEASE_VERSION is not set: run `resolve` first.")
   }
 
-  const last = lastVersion()
+  const last = lastVersion(originTags())
   const files = locales(CHANGELOG_DIR).map((locale) =>
     entryPath(locale, version)
   )

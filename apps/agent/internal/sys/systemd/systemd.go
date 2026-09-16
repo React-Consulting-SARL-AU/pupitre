@@ -29,6 +29,13 @@ func Enable(ctx sys.Context, unit string) error {
 	return err
 }
 
+// EnableLater wires a unit for the next boot without running it now: what a oneshot of the boot does has already happened, or has nothing to do yet.
+func EnableLater(ctx sys.Context, unit string) error {
+	_, err := sys.Exec(ctx, started("enable", unit))
+
+	return err
+}
+
 func Disable(ctx sys.Context, unit string) error {
 	_, err := sys.Exec(ctx, started("disable", "--now", unit))
 

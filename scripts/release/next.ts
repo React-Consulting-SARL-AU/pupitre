@@ -2,13 +2,15 @@ import { readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { appVersion } from "./check"
 import { argumentOf, say } from "./cli"
-import { bump, lastVersion } from "./resolve"
+import { bump, lastVersion, originTags, pendingVersion } from "./resolve"
 
 /**
  * The next version, written where the app declares it.
  *
- * It follows the last tag: a patch for a fix, a minor for a feature, a major
- * when the protocol between the app and the agent drops or renames a field.
+ * It follows the last tag origin holds: a patch for a fix, a minor for a
+ * feature, a major when the protocol between the app and the agent drops or
+ * renames a field. A tag on HEAD that origin has not seen is a release stopped
+ * before its push, and its version is kept for `ship` to resume, not bumped.
  * Nothing else changes here — the changelog is `notes`, the tag is `ship`.
  */
 
@@ -33,12 +35,17 @@ export function partOf(argv: readonly string[]): "major" | "minor" | "patch" {
 export function nextVersion(
   argv: readonly string[],
   last: string | null,
-  declared: string
+  declared: string,
+  pending: string | null = null
 ): string {
   const requested = argumentOf(argv, "version")
 
   if (requested) {
     return requested
+  }
+
+  if (pending) {
+    return pending
   }
 
   return last ? bump(last, partOf(argv)) : declared
@@ -56,9 +63,15 @@ export function writeAppVersion(version: string, manifest = MANIFEST): void {
 }
 
 export function nextCommand(argv: readonly string[]): void {
-  const last = lastVersion()
-  const version = nextVersion(argv, last, appVersion())
+  const held = originTags()
+  const last = lastVersion(held)
+  const pending = pendingVersion(held)
+  const version = nextVersion(argv, last, appVersion(), pending)
 
   writeAppVersion(version)
-  say(`${last ?? "no tag yet"} -> ${version} (apps/desktop/package.json)`)
+  say(
+    pending
+      ? `v${pending} is tagged here and not on origin: resuming it (apps/desktop/package.json)`
+      : `${last ?? "no tag yet"} -> ${version} (apps/desktop/package.json)`
+  )
 }

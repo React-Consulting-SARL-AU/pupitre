@@ -242,12 +242,21 @@ func uptimes(ctx sys.Context, pids []string) map[int]int {
 	return seconds
 }
 
-func EnsureSession(ctx sys.Context, options Options, dir string) error {
+// Alive says whether the session exists at all: gone with a boot, kept through a restart of the daemon.
+func Alive(ctx sys.Context, options Options) bool {
 	options = options.Resolved()
 
-	if _, err := ctx.Sys().Run(options.tmux("has-session", "-t", options.Session)); err == nil {
+	_, err := ctx.Sys().Run(options.tmux("has-session", "-t", options.Session))
+
+	return err == nil
+}
+
+func EnsureSession(ctx sys.Context, options Options, dir string) error {
+	if Alive(ctx, options) {
 		return nil
 	}
+
+	options = options.Resolved()
 
 	_, err := sys.Exec(ctx, options.tmux("new-session", "-d", "-s", options.Session, "-n", "scratch", "-c", dir))
 
