@@ -14,6 +14,9 @@ export const project = {
     "project.tab.opencode": "OpenCode",
     "project.tab.hermes": "Hermes",
     "project.editors.open": "Open {root} in {editor}",
+    "project.editors.shareQuestion":
+      "{editor} resolves the server through {file}. One line is added at its top so it does, then {root} opens.",
+    "project.editors.shareAndOpen": "Add the line and open",
     "project.file.one": "{count} file",
     "project.file.other": "{count} files",
     "project.commit.one": "{count} commit",
@@ -140,6 +143,9 @@ export const project = {
     "project.tab.opencode": "OpenCode",
     "project.tab.hermes": "Hermes",
     "project.editors.open": "Ouvrir {root} dans {editor}",
+    "project.editors.shareQuestion":
+      "{editor} résout le serveur par {file}. Une ligne s'ajoute en tête de ce fichier pour qu'il y arrive, puis {root} s'ouvre.",
+    "project.editors.shareAndOpen": "Ajouter la ligne et ouvrir",
     "project.file.one": "{count} fichier",
     "project.file.other": "{count} fichiers",
     "project.commit.one": "{count} commit",

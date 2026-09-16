@@ -25,7 +25,7 @@ That last point about non-interactive shells is what decides whether a remote cl
 
 ## Where the app keeps the key
 
-Pupitre generates an ed25519 key per server and keeps it in its own data folder, in mode `0600`. It writes nothing to your `~/.ssh/config`.
+Pupitre generates an ed25519 key per server and keeps it in its own data folder, in mode `0600`. It never rewrites your `~/.ssh/config`: when you ask, it adds one line there, and only that one, described below.
 
 | System | Folder |
 | --- | --- |
@@ -57,24 +57,30 @@ Point clients at that file rather than copying it somewhere else. Deleting the s
 
 ## Declare the host once
 
-Everything below works better when your own `~/.ssh/config` has one entry for the server. Some clients — Codex among them — only read hosts from that file.
+Everything below needs your own `~/.ssh/config` to know the server: `ssh`, the editors and the coding agents read that file only, not the one the app keeps in its folder. The app does it for you. In **Settings › SSH**, tick *Let ssh, my editors and my coding agents reach my servers by name*: one line is added at the top of `~/.ssh/config`, and nothing else in it moves.
 
 ```
-Host pupitre
+Include "/Users/you/Library/Application Support/Pupitre/ssh/config"
+```
+
+Every server of the app then answers to its name, in lowercase — `atelier` for a server called “Atelier”, the setting shows it — with the app's key, `IdentitiesOnly` and the pinned host key. A server whose name is already a `Host` of your file keeps its identifier alone, `pupitre-srv-…`. Unticking the box takes the line back. Then check it:
+
+```
+ssh atelier "dev status"
+```
+
+A machine that answers with its projects is a machine every client on this page can now reach. If it asks for a password instead, the key is not the one `dev` accepts — reveal the public key on the server screen and compare it with `~/.ssh/authorized_keys` on the machine.
+
+If you would rather write the entry yourself, copy the values from the app's own block; quotes around the path are required when it contains a space, which it does on macOS and on Windows.
+
+```
+Host atelier
   HostName 203.0.113.10
   Port 22
   User dev
   IdentityFile "/Users/you/Library/Application Support/Pupitre/keys/srv-m9k2p1"
   IdentitiesOnly yes
 ```
-
-Copy the values from the app's own block. Quotes around the path are required when it contains a space, which it does on macOS and on Windows. Then check it:
-
-```
-ssh pupitre "dev status"
-```
-
-A machine that answers with its projects is a machine every client on this page can now reach. If it asks for a password instead, the key is not the one `dev` accepts — reveal the public key on the server screen and compare it with `~/.ssh/authorized_keys` on the machine.
 
 ## Claude Code
 
@@ -94,7 +100,7 @@ The Identity File field is why the app's key works here with no further ceremony
 **From a terminal.** Open a session, keep it in `tmux` so it survives the network, and start the tool where the project is:
 
 ```
-ssh pupitre
+ssh atelier
 tmux new -A -s claude
 cd ~/projects/your-project && claude
 ```
@@ -105,12 +111,12 @@ Either way you sign in once, from whichever session you are in: the tool prints 
 
 `ai.codex` installs Codex through `mise`, and the shims are on the path of every shell — including the non-interactive one a remote client opens. That is the requirement the app has of the machine: it starts Codex on the remote host through your login shell.
 
-**From the ChatGPT desktop app.** Codex there adds a remote project from an SSH host: it reads the concrete host aliases of your `~/.ssh/config` and resolves them with OpenSSH, so the entry you wrote above is what it offers you. There is no field for a key: the `IdentityFile` line of that entry is what points at the app's key.
+**From the ChatGPT desktop app.** Codex there adds a remote project from an SSH host: it reads the concrete host aliases of your `~/.ssh/config` and resolves them with OpenSSH, so the server's name, declared above, is what it offers you. There is no field for a key: the `IdentityFile` line of the app's block is what points at its key.
 
 **From a terminal.** Same shape as Claude Code:
 
 ```
-ssh pupitre
+ssh atelier
 tmux new -A -s codex
 cd ~/projects/your-project && codex
 ```
@@ -119,7 +125,7 @@ Claude Code and Codex live on the same machine without argument. They see the sa
 
 ## Your terminal
 
-`ssh pupitre` is enough, and the agent binary is also linked as `dev`, so the operations the app performs exist in a bare terminal:
+`ssh atelier` is enough, and the agent binary is also linked as `dev`, so the operations the app performs exist in a bare terminal:
 
 ```
 dev status                    what runs, on what port, with what memory
@@ -150,7 +156,7 @@ VS Code, Cursor and Windsurf connect over Remote SSH, Zed through `zed://ssh`, J
 - **`Permissions 0644 for ... are too open`.** The private key has to be readable by you alone: `chmod 600` on macOS and Linux. On Windows, keeping it in `%APPDATA%` is enough — a copy dropped in a shared folder is not.
 - **Nothing answers on port 22.** If your network filters it, `core.hardening` can put SSH on 443 as well; change `Port` in your entry.
 - **The host key changed.** Reinstalling a machine changes it. The app asks you about it on its side; in your own `~/.ssh/known_hosts`, remove the old line.
-- **`codex: command not found` from a remote client.** The client opened a shell that did not read `.zshenv`. Check with `ssh pupitre 'which codex'`.
+- **`codex: command not found` from a remote client.** The client opened a shell that did not read `.zshenv`. Check with `ssh atelier 'which codex'`.
 
 ## Revocation still works
 

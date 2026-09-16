@@ -11,6 +11,7 @@ import { SettingsAbout } from "./settings-about";
 import { SettingsAppearance } from "./settings-appearance";
 import { SettingsConnections } from "./settings-connections";
 import { SettingsNotifications } from "./settings-notifications";
+import { SettingsSsh } from "./settings-ssh";
 import { SettingsStartup } from "./settings-startup";
 import { SettingsTerminal } from "./settings-terminal";
 
@@ -20,6 +21,7 @@ export type SettingsSection =
   | "connections"
   | "appearance"
   | "terminal"
+  | "ssh"
   | "notifications"
   | "startup"
   | "about";
@@ -30,6 +32,7 @@ const SECTIONS: readonly SettingsSection[] = [
   "connections",
   "appearance",
   "terminal",
+  "ssh",
   "notifications",
   "startup",
   "about",
@@ -95,6 +98,8 @@ export function SettingsScreen({
           {section === "appearance" ? <SettingsAppearance /> : null}
 
           {section === "terminal" ? <SettingsTerminal /> : null}
+
+          {section === "ssh" ? <SettingsSsh /> : null}
 
           {section === "notifications" ? <SettingsNotifications /> : null}
 

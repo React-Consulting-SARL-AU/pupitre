@@ -88,6 +88,7 @@ import type {
   ServiceDetail,
 } from "@shared/services";
 import type { DeepLink, MenuCommand } from "@shared/shell";
+import type { SshShareState } from "@shared/ssh-names";
 import type { StartupState } from "@shared/startup";
 import type {
   AgentState,
@@ -900,6 +901,15 @@ const api = {
     ipcRenderer.invoke("fleet:restore"),
 
   sshHosts: (): Promise<string[]> => ipcRenderer.invoke("ssh-hosts"),
+
+  /**
+   * Whether the system's own SSH file includes the app's, and the one line
+   * that makes it so: written and taken back on request, never on its own.
+   */
+  sshShareState: (): Promise<SshShareState> =>
+    ipcRenderer.invoke("ssh-share:state"),
+  setSshShare: (shared: boolean): Promise<SshShareState> =>
+    ipcRenderer.invoke("ssh-share:set", shared),
 
   /**
    * Adding a server, and everything that follows from it.

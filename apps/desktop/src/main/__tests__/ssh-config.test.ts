@@ -12,8 +12,8 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Server } from "@shared/servers";
+import { alias } from "@shared/ssh-names";
 import {
-  alias,
   appSshPaths,
   controlDir,
   controlPath,
@@ -56,7 +56,7 @@ describe("le fichier de configuration de l'app", () => {
 
     const config = renderSshConfig([APP_SERVER], paths);
 
-    expect(config).toContain("Host pupitre-srv-a");
+    expect(config).toContain("Host pupitre-srv-a staging");
     expect(config).toContain("  HostName 203.0.113.10");
     expect(config).toContain("  Port 22");
     expect(config).toContain("  User root");
@@ -73,6 +73,19 @@ describe("le fichier de configuration de l'app", () => {
 
     expect(config).not.toContain("dev-vps");
     expect(config).toContain("pupitre-srv-a");
+  });
+
+  it("garde l'identifiant seul quand le nom est celui d'un hôte du système", () => {
+    const config = renderSshConfig(
+      [APP_SERVER],
+      appSshPaths("/data"),
+      "darwin",
+      null,
+      ["staging"]
+    );
+
+    expect(config).toContain("Host pupitre-srv-a\n");
+    expect(config).not.toContain("staging");
   });
 
   it("accepte la clé d'hôte au premier contact, l'exige une fois épinglée", () => {

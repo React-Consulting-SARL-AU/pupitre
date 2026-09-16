@@ -11,7 +11,9 @@ import {
 } from "@renderer/lib/modules";
 import { group, useNavigation } from "@renderer/stores/navigation";
 import { useProject } from "@renderer/stores/project";
+import { serversIn, useServers } from "@renderer/stores/servers";
 import { useSnapshot } from "@renderer/stores/snapshot";
+import { useSshShare } from "@renderer/stores/ssh-share";
 import { Package } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ProjectActions } from "./project-actions";
@@ -143,6 +145,24 @@ export function ProjectScreen({
   const root = git?.root || null;
   const editors = remoteEditors(services);
 
+  const server = useServers((s) =>
+    serversIn(s.config).find((held) => held.id === serverId)
+  );
+  const sshShare = useSshShare((s) => s.state);
+  const readSshShare = useSshShare((s) => s.read);
+  const setSshShare = useSshShare((s) => s.set);
+
+  useEffect(() => {
+    if (editors.length > 0 && !sshShare) {
+      readSshShare();
+    }
+  }, [editors.length, sshShare, readSshShare]);
+
+  const shareFirst =
+    server?.origin === "app" && !sshShare?.shared
+      ? (sshShare?.userConfigPath ?? "~/.ssh/config")
+      : null;
+
   async function sync() {
     setSyncing(true);
     await store.sync(serverId, name);
@@ -170,7 +190,9 @@ export function ProjectScreen({
               onOpen={(editor, path) =>
                 window.pupitre.openInEditor(serverId, editor, path)
               }
+              onShare={() => setSshShare(true)}
               root={root}
+              share={shareFirst}
             />
           }
           onAct={(action, target) => act(action, serverId, target)}

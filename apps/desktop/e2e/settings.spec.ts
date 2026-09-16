@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { assertAccessible } from "./harness/accessible";
@@ -9,7 +9,8 @@ import { launchPupitre, type Running } from "./harness/launch";
  * bridge: the version the build carries, the updater's state as the main
  * process broadcasts it, and the two preferences it keeps in its own file. The
  * harness registers nothing with the system: a login item written here would
- * outlive the suite.
+ * outlive the suite, and so would a line in the reader's own SSH file — the
+ * one the SSH section writes lands in the folder the harness throws away.
  */
 
 const VERSION = (
@@ -121,5 +122,39 @@ test.describe("les réglages de l'app", () => {
       notifications: false,
       version: 2,
     });
+  });
+
+  test("la section SSH écrit une ligne Include en tête du fichier du système, et la retire", async () => {
+    const { app, page } = running;
+
+    await page.getByRole("button", { name: "Réglages" }).click();
+    await page.getByRole("button", { name: "SSH" }).click();
+
+    const share = page.getByLabel(
+      "Laisser ssh, mes éditeurs et mes agents de code joindre mes serveurs par leur nom"
+    );
+
+    await expect(share).not.toBeChecked();
+    await assertAccessible(page, "reglages/ssh");
+
+    const userData = await app.evaluate(({ app: electron }) =>
+      electron.getPath("userData")
+    );
+    const file = join(userData, "home", ".ssh", "config");
+    const line = await page.locator("[data-ssh-include]").innerText();
+
+    expect(line.startsWith("Include ")).toBe(true);
+    expect(line).toContain(join(userData, "ssh", "config"));
+    expect(existsSync(file)).toBe(false);
+
+    await share.click();
+    await expect(share).toBeChecked();
+
+    expect(readFileSync(file, "utf8")).toBe(`${line}\n`);
+
+    await share.click();
+    await expect(share).not.toBeChecked();
+
+    expect(readFileSync(file, "utf8")).toBe("");
   });
 });

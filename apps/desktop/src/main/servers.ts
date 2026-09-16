@@ -10,7 +10,9 @@ import type {
   ServersConfig,
   ServerUpdated,
 } from "@shared/servers";
+import { alias, type SshShareState, sshNames } from "@shared/ssh-names";
 import { app } from "electron";
+import { HARNESSED } from "./harness";
 import {
   forgetHostKey,
   hostKeyDecision,
@@ -31,13 +33,13 @@ import {
 import { SERVERS_BASELINE, SERVERS_MIGRATIONS } from "./servers-migrations";
 import {
   type Address,
-  alias,
   appSshPaths,
   readSystemHosts,
   type SshPaths,
   sshArgs,
   writeSshConfig,
 } from "./ssh-config";
+import { includeLine, shareAt, sharedAt } from "./ssh-share";
 import {
   expectedRevision,
   type JsonObject,
@@ -168,7 +170,7 @@ export function read(): Configuration {
 function save(config: Configuration): void {
   mkdirSync(dirname(path()), { recursive: true });
   writeFileSync(path(), JSON.stringify(config, null, 2), "utf8");
-  writeSshConfig(config.servers, paths());
+  writeSshConfig(config.servers, paths(), sshHosts());
 }
 
 export function write(config: ServersConfig): Configuration {
@@ -213,13 +215,55 @@ export function activeHost(): string {
  * first launch neither is until something is saved.
  */
 export function sshPathsWritten(): SshPaths {
-  writeSshConfig(read().servers, paths());
+  writeSshConfig(read().servers, paths(), sshHosts());
 
   return paths();
 }
 
+/**
+ * The system's own file, read for its hosts and written for one line.
+ *
+ * A scenario run gets one inside the folder it throws away: a suite that left
+ * a line in the reader's real file would outlive itself.
+ */
+export function userSshConfigPath(): string {
+  return HARNESSED
+    ? join(userData(), "home", ".ssh", "config")
+    : join(homedir(), ".ssh", "config");
+}
+
 export function sshHosts(): string[] {
-  return readSystemHosts(join(homedir(), ".ssh", "config"));
+  return readSystemHosts(userSshConfigPath());
+}
+
+/** The word that names one server after `ssh`, or in an editor's link. */
+export function sshNameOf(serverId: string): string | null {
+  return sshNames(read().servers, sshHosts()).get(serverId) ?? null;
+}
+
+export function sshShareState(): SshShareState {
+  const appConfigPath = sshPathsWritten().configPath;
+  const names = sshNames(read().servers, sshHosts());
+
+  return {
+    line: includeLine(appConfigPath),
+    servers: read()
+      .servers.filter((server) => server.origin === "app")
+      .map((server) => ({
+        id: server.id,
+        name: server.name,
+        ssh: names.get(server.id) ?? alias(server),
+      })),
+    shared: sharedAt(userSshConfigPath(), appConfigPath),
+    userConfigPath: userSshConfigPath(),
+  };
+}
+
+/** The system's file with or without the app's line, and what it says after. */
+export function setSshShare(shared: boolean): SshShareState {
+  shareAt(userSshConfigPath(), sshPathsWritten().configPath, shared);
+
+  return sshShareState();
 }
 
 export async function add(draft: ServerDraft): Promise<ServerCreation> {
