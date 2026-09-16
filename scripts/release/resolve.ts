@@ -29,10 +29,14 @@ export function versionOfTag(tag: string): string | null {
   return tag.match(TAG_RE)?.[1] ?? null
 }
 
-export function git(argv: string[]): string | null {
-  const result = spawnSync("git", argv, { encoding: "utf8" })
+export function git(argv: string[], cwd?: string): string | null {
+  const result = spawnSync("git", argv, { cwd, encoding: "utf8" })
 
   return result.status === 0 ? result.stdout.trim() : null
+}
+
+function lines(output: string | null): string[] {
+  return (output ?? "").split("\n").filter(Boolean)
 }
 
 /**
@@ -58,11 +62,43 @@ function releaseBranchHoldsHead(): boolean {
   )
 }
 
-/** The highest v* tag reachable from HEAD, or nothing before the first release. */
-export function lastVersion(): string | null {
-  const described = git(["describe", "--tags", "--abbrev=0", "--match", "v*"])
+/**
+ * The v* tags origin holds, asked of the remote itself: a tag only exists as
+ * a release once it is pushed, since the runners build from origin and nothing
+ * else. A local tag is at most a release stopped on its way.
+ */
+export function originTags(cwd?: string): Set<string> {
+  const listed = git(
+    ["ls-remote", "--tags", "--refs", "origin", "refs/tags/v*"],
+    cwd
+  )
 
-  return described ? versionOfTag(described) : null
+  if (listed === null) {
+    throw new Error("origin is out of reach: a release needs its tags.")
+  }
+
+  return new Set(
+    lines(listed).map((line) => line.slice(line.indexOf("refs/tags/") + 10))
+  )
+}
+
+/** The highest v* tag reachable from HEAD that origin holds, or nothing before the first release. */
+export function lastVersion(held: Set<string>, cwd?: string): string | null {
+  const reachable = lines(
+    git(["tag", "--list", "v*", "--merged", "HEAD", "--sort=-v:refname"], cwd)
+  )
+  const released = reachable.find((tag) => held.has(tag))
+
+  return released ? versionOfTag(released) : null
+}
+
+/** The v* tag on HEAD that origin does not hold: a release stopped between its tag and its push. */
+export function pendingVersion(held: Set<string>, cwd?: string): string | null {
+  const pending = lines(
+    git(["tag", "--points-at", "HEAD", "--list", "v*"], cwd)
+  ).find((tag) => !held.has(tag))
+
+  return pending ? versionOfTag(pending) : null
 }
 
 export function bump(
