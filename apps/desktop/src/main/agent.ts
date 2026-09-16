@@ -10,6 +10,7 @@ import {
 } from "./agent-client";
 import { appVersion } from "./app-version";
 import { broadcast } from "./broadcast";
+import { noteProjects } from "./projects-run";
 import { refuseWith } from "./refusal";
 import { relayTo } from "./relay";
 import { paths, read } from "./servers";
@@ -102,11 +103,19 @@ export function registerAgentChannels(): void {
     ) => {
       const call = checkedCall(serverId, cmd, params, knows);
 
-      return isRefusal(call)
-        ? Promise.resolve(call)
-        : agentClient.request(call.serverId, call.cmd, call.params as never, {
-            polled: polled === true,
-          });
+      if (isRefusal(call)) {
+        return Promise.resolve(call);
+      }
+
+      return agentClient
+        .request(call.serverId, call.cmd, call.params as never, {
+          polled: polled === true,
+        })
+        .then((answer) => {
+          noteProjects(call.serverId, call.cmd, answer);
+
+          return answer;
+        });
     }
   );
 

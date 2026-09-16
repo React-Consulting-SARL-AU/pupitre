@@ -44,6 +44,8 @@
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"link-dev-command"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"install-agent-unit"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"install-agent-unit"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"install-resume-unit"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"install-resume-unit"}
 < {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"start","step":"install-packages"}
 < {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"ok","step":"install-packages"}
 < {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"start","step":"configure-firewall"}

@@ -129,12 +129,46 @@ func TestAViteProjectGoesFromAddedToOnlineAndBack(t *testing.T) {
 		t.Fatalf("project.logs must return the dev server's own output:\n%s", strings.Join(logs.Lines, "\n"))
 	}
 
+	// What is up is written down for the boot that follows, and forgotten by the stop.
+	if record := ssh(t, host, "cat", "/var/lib/pupitre/projects.running.json"); !strings.Contains(record, `"`+viteProject+`/web"`) {
+		t.Fatalf("a started window must be recorded for the next boot:\n%s", record)
+	}
+
 	agent(t, host, request{Cmd: "project.down", Params: map[string]any{"name": viteProject}})
 	waitFor(t, host, viteProject, contract.ProjectStopped, 15*time.Second)
 
 	if listening := ssh(t, host, "ss", "-ltn"); strings.Contains(listening, fmt.Sprintf(":%d", vitePort)) {
 		t.Fatalf("the port must be free once the project is down:\n%s", listening)
 	}
+	if record := ssh(t, host, "cat", "/var/lib/pupitre/projects.running.json"); strings.Contains(record, viteProject+"/web") {
+		t.Fatalf("a stopped window must leave the record:\n%s", record)
+	}
+}
+
+// The boot's own unit is on the machine and wired: what the record names comes back without anyone opening the app.
+func TestTheResumeUnitIsInstalledAndReplaysTheRecord(t *testing.T) {
+	host := stagingHost(t)
+	writeViteFixture(t, host)
+	cleanup(t, host, viteProject)
+
+	if enabled := ssh(t, host, "systemctl", "is-enabled", "pupitre-resume"); strings.TrimSpace(enabled) != "enabled" {
+		t.Fatalf("pupitre-resume must be enabled, got %q", enabled)
+	}
+
+	agent(t, host, addVite(viteProject, vitePort))
+	agent(t, host, request{Cmd: "project.install", Params: map[string]any{"name": viteProject}})
+	agent(t, host, request{Cmd: "project.up", Params: map[string]any{"name": viteProject}})
+	waitFor(t, host, viteProject, contract.ProjectOnline, 30*time.Second)
+
+	// A killed tmux server is what a boot leaves behind: the record still names the window, and the unit brings it back.
+	ssh(t, host, "sudo", "-n", "-u", "dev", "tmux", "kill-server")
+	waitFor(t, host, viteProject, contract.ProjectStopped, 15*time.Second)
+
+	ssh(t, host, "systemctl", "restart", "pupitre-resume")
+	waitFor(t, host, viteProject, contract.ProjectOnline, 30*time.Second)
+
+	agent(t, host, request{Cmd: "project.down", Params: map[string]any{"name": viteProject}})
+	waitFor(t, host, viteProject, contract.ProjectStopped, 15*time.Second)
 }
 
 const (

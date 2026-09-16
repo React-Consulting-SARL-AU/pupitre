@@ -236,6 +236,37 @@ func installAgentUnit(ctx *modules.Context) error {
 	})
 }
 
+// What was up before a boot comes back after it: a oneshot of its own, outside the daemon's sandbox.
+func installResumeUnit(ctx *modules.Context) error {
+	return ctx.Step("install-resume-unit", func() (modules.Outcome, error) {
+		if file.Same(ctx, daemon.ResumeUnitPath, []byte(daemon.ResumeUnitFile)) {
+			return modules.Skipped, nil
+		}
+
+		if err := systemd.WriteUnit(ctx, daemon.ResumeUnit, []byte(daemon.ResumeUnitFile)); err != nil {
+			return modules.Failed, err
+		}
+
+		return modules.Done, systemd.EnableLater(ctx, daemon.ResumeUnit)
+	})
+}
+
+func removeResumeUnit(ctx *modules.Context) error {
+	return ctx.Step("remove-resume-unit", func() (modules.Outcome, error) {
+		if !file.Exists(ctx, daemon.ResumeUnitPath) {
+			return modules.Skipped, nil
+		}
+
+		if err := systemd.Disable(ctx, daemon.ResumeUnit); err != nil {
+			ctx.Warn(i18n.T("warn.system.unit.stop.failed", daemon.ResumeUnit, err.Error()))
+		}
+
+		_, err := file.Remove(ctx, daemon.ResumeUnitPath)
+
+		return modules.Done, err
+	})
+}
+
 func removeAgentUnit(ctx *modules.Context) error {
 	return ctx.Step("remove-agent-unit", func() (modules.Outcome, error) {
 		if !file.Exists(ctx, daemon.UnitPath) {

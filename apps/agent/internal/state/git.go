@@ -492,24 +492,78 @@ func (r *Reader) pull(project registry.Project, root string) (bool, error) {
 		return true, nil
 	}
 
-	if _, err := r.gitWrite(root, "pull", "--rebase", "--autostash"); err != nil {
-		return false, protocol.NewError(contract.ErrorInternal, i18n.T("state.pull.conflict", project.Name)).
-			WithFix(i18n.T("state.pull.conflict.fix", root))
+	if held, other := r.otherRepository(project, root); other {
+		return false, protocol.NewError(contract.ErrorBadRequest, i18n.T("state.project.repo.other", project.Name, held)).
+			WithFix(i18n.T("state.project.repo.other.fix", root, project.Repo))
+	}
+
+	if out, err := r.gitWrite(root, "pull", "--rebase", "--autostash"); err != nil {
+		return false, protocol.NewError(contract.ErrorInternal, i18n.T("state.pull.failed", project.Name, root)).
+			WithFix(pullFix(out, root))
 	}
 
 	return true, nil
 }
 
-// The last thing git said is why the clone failed; the SSH hint only stands when git said nothing at all.
-func cloneFix(out sys.Output) string {
-	lines := strings.Split(strings.TrimSpace(out.Stderr), "\n")
-
-	said := strings.TrimSpace(lines[len(lines)-1])
-	if said == "" {
-		return i18n.T("state.repo.unreadable.fix")
+// A folder kept from an earlier project may hold a clone of something else: what its origin names is read before anything is pulled into it. A row without a repository, or a folder without an origin, has nothing to compare.
+func (r *Reader) otherRepository(project registry.Project, root string) (string, bool) {
+	if project.Repo == "" || project.Repo == "-" {
+		return "", false
 	}
 
-	return i18n.T("state.git.said", cut(said, problemLimit))
+	held, err := r.git(root, "remote", "get-url", "origin")
+	if err != nil || strings.TrimSpace(held) == "" {
+		return "", false
+	}
+
+	held = strings.TrimSpace(held)
+
+	return held, !SameRepository(held, project.Repo)
+}
+
+var repositoryScheme = regexp.MustCompile(`^(?:[a-z][a-z0-9+.-]*://)?(?:[^@/]+@)?`)
+
+// SameRepository says whether two addresses name one repository: the scheme, the account, the case of the host, a trailing slash and a .git suffix are how the same one is written twice.
+func SameRepository(a, b string) bool {
+	return repositoryKey(a) == repositoryKey(b)
+}
+
+func repositoryKey(address string) string {
+	address = strings.TrimSpace(address)
+	address = repositoryScheme.ReplaceAllString(address, "")
+	address = strings.Replace(address, ":", "/", 1)
+	address = strings.TrimSuffix(strings.TrimSuffix(address, "/"), ".git")
+
+	host, path, split := strings.Cut(address, "/")
+	if !split {
+		return strings.ToLower(host)
+	}
+
+	return strings.ToLower(host) + "/" + path
+}
+
+// The last thing git said is why the clone failed; the SSH hint only stands when git said nothing at all.
+func cloneFix(out sys.Output) string {
+	if said := lastSaid(out); said != "" {
+		return i18n.T("state.git.said", said)
+	}
+
+	return i18n.T("state.repo.unreadable.fix")
+}
+
+// A pull fails on a conflict, on a branch with no upstream, on a remote that went away: git's own last line tells them apart.
+func pullFix(out sys.Output, root string) string {
+	if said := lastSaid(out); said != "" {
+		return i18n.T("state.git.said", said)
+	}
+
+	return i18n.T("state.git.read.fix", root)
+}
+
+func lastSaid(out sys.Output) string {
+	lines := strings.Split(strings.TrimSpace(out.Stderr), "\n")
+
+	return cut(strings.TrimSpace(lines[len(lines)-1]), problemLimit)
 }
 
 func (r *Reader) dirty(top string) bool {

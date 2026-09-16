@@ -80,6 +80,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return runDev(newEngine(), args[1:], stdout, stderr)
 	case shots.Command:
 		return runShot(state.FromEngine(newEngine(), stateOptions()), args[1:], stdout, stderr)
+	case "resume":
+		return runResume(state.FromEngine(newEngine(), stateOptions()), stdout)
 	case "gallery":
 		return runGallery(args[1:], stderr)
 	}
@@ -89,7 +91,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 }
 
 func usage(stderr io.Writer) {
-	fmt.Fprintln(stderr, "usage: pupitred <serve|daemon|enroll|install [--only=id,id] [--skip=id,id]|migrate [--status] [--restore=NAME]|probe [--script] [--projects=DIR]|report|dev|shot|gallery|version>")
+	fmt.Fprintln(stderr, "usage: pupitred <serve|daemon|enroll|install [--only=id,id] [--skip=id,id]|migrate [--status] [--restore=NAME]|probe [--script] [--projects=DIR]|report|resume|dev|shot|gallery|version>")
 }
 
 // The configuration is brought to this binary's shape before the binary reads

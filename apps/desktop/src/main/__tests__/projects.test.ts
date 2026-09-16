@@ -3,9 +3,11 @@ import type { ProjectAddParams } from "@pupitre/shared/agent-protocol/projects";
 import { type AgentClient, createAgentClient } from "../agent-client";
 import {
   addProject,
+  declaresProject,
   forgetProjects,
   installProject,
   listProjects,
+  noteProjects,
   onProject,
   type ProjectDeps,
   projectHostnames,
@@ -361,6 +363,56 @@ describe("ce que le renderer nomme", () => {
       ok: false,
     });
     expect(agent?.started()).toBe(0);
+  });
+
+  /**
+   * The sidebar and the project screen read `snapshot`, never `project.list`:
+   * a project the app opens on after a launch has been named by the agent all
+   * the same, and removing it must not send the reader to reload a list no
+   * screen there reloads.
+   */
+  it("tient pour déclaré un projet qu'un snapshot a nommé", () => {
+    expect(declaresProject(SERVER, "react-box")).toBe(false);
+
+    noteProjects(SERVER, "snapshot", {
+      ok: true,
+      result: {
+        projects: [
+          {
+            dir: "react-box",
+            name: "react-box",
+            path: "/home/dev/projects/react-box",
+            processes: [
+              {
+                routes: [
+                  {
+                    hostname: "react-box.example.org",
+                    label: "web",
+                    port: 3000,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(declaresProject(SERVER, "react-box")).toBe(true);
+    expect(projectHostnames(SERVER, "react-box")).toEqual([
+      "react-box.example.org",
+    ]);
+
+    noteProjects(SERVER, "service.status", {
+      ok: true,
+      result: { projects: [{ name: "ghost", dir: "ghost" }] },
+    });
+    noteProjects(SERVER, "snapshot", {
+      ok: false,
+      error: { code: "internal", message: "coupé" },
+    });
+
+    expect(declaresProject(SERVER, "ghost")).toBe(false);
   });
 
   it("refuse un serveur qui n'est plus dans la configuration", async () => {
