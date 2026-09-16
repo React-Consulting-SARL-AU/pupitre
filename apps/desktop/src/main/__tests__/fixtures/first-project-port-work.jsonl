@@ -1,7 +1,7 @@
 # Le port 3000 est pris depuis la lecture de la liste : le remède donne le suivant.
 > {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
 < {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","project.add","project.list"]}}
-> {"id":2,"cmd":"project.add","params":{"name":"shop","dir":"shop","repo":"https://github.com/moi/shop.git","processes":[{"id":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3000,"routes":[{"label":"web","port":3000}],"cmd":"bun run dev --port 3000","dir":"."}]}}
+> {"id":2,"cmd":"project.add","params":{"name":"shop","dir":"shop","boot":false,"repo":"https://github.com/moi/shop.git","processes":[{"id":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3000,"routes":[{"label":"web","port":3000}],"cmd":"bun run dev --port 3000","dir":"."}]}}
 < {"id":2,"ok":false,"error":{"code":"bad_request","message":"le port 3000 est déjà pris par web","fix":"Donne un autre port à shop.","remedy":{"code":"port_taken","port_free":3001}}}
-> {"id":3,"cmd":"project.add","params":{"name":"shop","dir":"shop","repo":"https://github.com/moi/shop.git","processes":[{"id":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3001,"routes":[{"label":"web","port":3001}],"cmd":"bun run dev --port 3001","dir":"."}]}}
+> {"id":3,"cmd":"project.add","params":{"name":"shop","dir":"shop","boot":false,"repo":"https://github.com/moi/shop.git","processes":[{"id":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3001,"routes":[{"label":"web","port":3001}],"cmd":"bun run dev --port 3001","dir":"."}]}}
 < {"id":3,"ok":true,"result":{"name":"shop","dir":"shop","path":"/home/dev/projects/shop","repo":"https://github.com/moi/shop.git","processes":[{"id":"shop","dir":".","path":"/home/dev/projects/shop","pkgmgr":"bun","host":"127.0.0.1","port":3001,"routes":[{"label":"web","port":3001}],"cmd":"bun run dev --port 3001","install":"bun install","state":"stopped"}],"state":"stopped"}}

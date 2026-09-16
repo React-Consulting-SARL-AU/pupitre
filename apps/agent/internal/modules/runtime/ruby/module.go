@@ -7,7 +7,6 @@ import (
 	"pupitre.studio/agent/internal/modules/runtime/mise"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
 	"pupitre.studio/agent/internal/sys/apt"
-	"pupitre.studio/agent/internal/sys/user"
 )
 
 // ruby-build compiles the interpreter: these are the headers it looks for, and their names are the same on 22.04 and 24.04.
@@ -34,15 +33,16 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 		return modules.Status{}, nil
 	}
 
-	installed := mise.Installed(ctx)["ruby"]
-	if installed == "" {
+	held := mise.Ruby.Held(ctx)
+	if len(held) == 0 {
 		return modules.Status{}, nil
 	}
 
 	return modules.Status{
 		Installed:  true,
 		Configured: shell.HasBlock(ctx, ID),
-		Version:    "ruby " + installed,
+		Version:    mise.Ruby.Describe(ctx),
+		Versions:   held,
 	}, nil
 }
 
@@ -62,19 +62,21 @@ func (Module) Install(ctx *modules.Context) error {
 		return err
 	}
 
-	added, err := mise.Add(ctx, "install-ruby", "ruby", ctx.String("ruby_version"))
+	added, err := mise.Ruby.Install(ctx)
 	if err != nil {
 		return err
 	}
 
-	// Bundler ships with the interpreter, so it is only refreshed when a new interpreter has just landed.
+	// Bundler ships with each interpreter, so it is only refreshed under the ones that have just landed.
 	return ctx.Step("install-bundler", func() (modules.Outcome, error) {
-		if !ctx.Bool("bundler") || !added {
+		if !ctx.Bool("bundler") || len(added) == 0 {
 			return modules.Skipped, nil
 		}
 
-		if _, err := user.Run(ctx, shell.User, "gem", "install", "bundler", "--no-document"); err != nil {
-			ctx.Warn(i18n.T("warn.ruby.bundler.failed", err.Error()))
+		for _, major := range added {
+			if err := mise.Exec(ctx, "ruby", mise.Ruby.Spec(major), "gem", "install", "bundler", "--no-document"); err != nil {
+				ctx.Warn(i18n.T("warn.ruby.bundler.failed", err.Error()))
+			}
 		}
 
 		return modules.Done, nil
@@ -86,19 +88,7 @@ func (Module) Configure(ctx *modules.Context) error {
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
-	if err := ctx.Step("upgrade-ruby", func() (modules.Outcome, error) {
-		before := mise.Installed(ctx)["ruby"]
-
-		if err := mise.Upgrade(ctx, "ruby"); err != nil {
-			return modules.Failed, err
-		}
-
-		if mise.Installed(ctx)["ruby"] == before {
-			return modules.Skipped, nil
-		}
-
-		return modules.Done, nil
-	}); err != nil {
+	if err := mise.Ruby.Upgrade(ctx); err != nil {
 		return err
 	}
 
@@ -111,7 +101,7 @@ func (Module) Uninstall(ctx *modules.Context) error {
 		return err
 	}
 
-	return mise.Remove(ctx, "remove-ruby", "ruby")
+	return mise.Ruby.Uninstall(ctx)
 }
 
 func (m Module) Status(ctx *modules.Context) (modules.Status, error) {

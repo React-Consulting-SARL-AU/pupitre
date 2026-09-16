@@ -436,6 +436,8 @@ type migratedProject struct {
 	Dir       string            `json:"dir"`
 	Repo      string            `json:"repo"`
 	Branch    string            `json:"branch"`
+	Boot      *bool             `json:"boot"`
+	Runtimes  map[string]string `json:"runtimes"`
 	Processes []migratedProcess `json:"processes"`
 }
 
@@ -479,8 +481,8 @@ func TestMigrationOneCarriesTheRowsOfEightNineAndTenColumnsToJSON(t *testing.T) 
 		t.Fatalf("Run: %v", err)
 	}
 
-	if result.State != contract.ConfigCurrent || result.Revision != 2 || len(result.Applied) != 2 {
-		t.Fatalf("result = %+v, want current at 2 after one run", result)
+	if result.State != contract.ConfigCurrent || result.Revision != 5 || len(result.Applied) != 5 {
+		t.Fatalf("result = %+v, want current at 5 after one run", result)
 	}
 
 	projects := migratedProjects(t, machine)
@@ -611,8 +613,8 @@ func TestMigrationTwoGathersTheRowsOfOneRepositoryIntoOneProject(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if result.Revision != 2 || len(result.Applied) != 1 || result.Applied[0].ID != 2 {
-		t.Fatalf("result = %+v, want the second migration alone on a machine already at one", result)
+	if result.Revision != 5 || len(result.Applied) != 4 || result.Applied[0].ID != 2 || result.Applied[3].ID != 5 {
+		t.Fatalf("result = %+v, want the second to fifth migrations on a machine already at one", result)
 	}
 
 	projects := migratedProjects(t, machine)
@@ -653,4 +655,121 @@ func keys(machine *modtest.FakeSys) []string {
 	}
 
 	return names
+}
+
+// A project row says whether it starts with the server; the rows written before the column existed say no, in so many words.
+func TestMigrationThreeWritesTheBootColumnOnEveryRow(t *testing.T) {
+	machine := newSys()
+	configured(machine)
+	machine.Files[ledgerPath] = []byte(`{"revision":2,"applied":[]}`)
+	machine.Files[projectsPath] = []byte(`{"projects":[` +
+		`{"name":"web","dir":"web","processes":[{"id":"web","dir":".","pkgmgr":"bun","host":"127.0.0.1","port":3000,"routes":[],"cmd":"bun run dev"}]},` +
+		`{"name":"api","dir":"api","boot":true,"processes":[{"id":"api","dir":".","pkgmgr":"bun","host":"127.0.0.1","port":3001,"routes":[],"cmd":"bun run dev"}]}` +
+		`]}` + "\n")
+
+	result, err := runner(machine, migrate.All()...).Run()
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if result.Revision != 5 || len(result.Applied) != 3 || result.Applied[0].ID != 3 {
+		t.Fatalf("result = %+v, want the third migration first on a machine already at two", result)
+	}
+
+	projects := migratedProjects(t, machine)
+	if len(projects) != 2 || projects[0].Boot == nil || *projects[0].Boot || projects[1].Boot == nil || !*projects[1].Boot {
+		t.Fatalf("every row must carry boot, false unless it already said true: %+v", projects)
+	}
+
+	before := string(machine.Files[projectsPath])
+	if again, err := runner(machine, migrate.All()...).Run(); err != nil || len(again.Applied) != 0 || string(machine.Files[projectsPath]) != before {
+		t.Fatal("a second pass must change nothing")
+	}
+}
+
+func TestMigrationThreeLeavesAMachineWithoutARegistryAlone(t *testing.T) {
+	machine := newSys()
+	configured(machine)
+	machine.Files[ledgerPath] = []byte(`{"revision":2,"applied":[]}`)
+
+	if _, err := runner(machine, migrate.All()...).Run(); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if _, written := machine.Files[projectsPath]; written {
+		t.Fatal("no registry, nothing to carry")
+	}
+}
+
+// A runtime that held one version holds a list of one now; a module already answering in the new form, or holding none, is left alone.
+func TestMigrationFourTurnsEachRuntimeVersionIntoAListOfOne(t *testing.T) {
+	machine := newSys()
+	machine.Files[ledgerPath] = []byte(`{"revision":3,"applied":[]}`)
+	machine.Files[installPath] = []byte(`{"modules":["core.system","runtime.node","runtime.java","runtime.python","runtime.go","db.postgres"],"config":{` +
+		`"runtime.node":{"node_version":"22","bun":true},` +
+		`"runtime.java":{"java_version":"17"},` +
+		`"runtime.python":{"python_versions":["3.12"],"python_version":"3.11"},` +
+		`"runtime.go":{"gopath":"/srv/go"},` +
+		`"db.postgres":{"version":"17","port":5432}` +
+		`}}` + "\n")
+
+	result, err := runner(machine, migrate.All()...).Run()
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if result.Revision != 5 || len(result.Applied) != 2 || result.Applied[0].ID != 4 {
+		t.Fatalf("result = %+v, want the fourth and fifth migrations on a machine already at three", result)
+	}
+
+	var document struct {
+		Config map[string]map[string]any `json:"config"`
+	}
+	if err := json.Unmarshal(machine.Files[installPath], &document); err != nil {
+		t.Fatal(err)
+	}
+
+	for module, want := range map[string]string{
+		"runtime.node":   `{"bun":true,"node_versions":["22"]}`,
+		"runtime.java":   `{"java_versions":["17"]}`,
+		"runtime.python": `{"python_versions":["3.12"]}`,
+		"runtime.go":     `{"gopath":"/srv/go"}`,
+		"db.postgres":    `{"port":5432,"version":"17"}`,
+	} {
+		got, _ := json.Marshal(document.Config[module])
+		if string(got) != want {
+			t.Errorf("%s = %s, want %s", module, got, want)
+		}
+	}
+
+	before := string(machine.Files[installPath])
+	if again, err := runner(machine, migrate.All()...).Run(); err != nil || len(again.Applied) != 0 || string(machine.Files[installPath]) != before {
+		t.Fatal("a second pass must change nothing")
+	}
+}
+
+// A project row names the runtime versions it runs on; the rows written before the column existed name none.
+func TestMigrationFiveWritesTheRuntimesColumnOnEveryRow(t *testing.T) {
+	machine := newSys()
+	configured(machine)
+	machine.Files[ledgerPath] = []byte(`{"revision":4,"applied":[]}`)
+	machine.Files[projectsPath] = []byte(`{"projects":[` +
+		`{"name":"web","dir":"web","boot":false,"processes":[{"id":"web","dir":".","pkgmgr":"bun","host":"127.0.0.1","port":3000,"routes":[],"cmd":"bun run dev"}]},` +
+		`{"name":"api","dir":"api","boot":true,"runtimes":{"java":"17"},"processes":[{"id":"api","dir":".","pkgmgr":"gradle","host":"127.0.0.1","port":8080,"routes":[],"cmd":"./gradlew bootRun"}]}` +
+		`]}` + "\n")
+
+	result, err := runner(machine, migrate.All()...).Run()
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if result.Revision != 5 || len(result.Applied) != 1 || result.Applied[0].ID != 5 {
+		t.Fatalf("result = %+v, want the fifth migration alone on a machine already at four", result)
+	}
+
+	projects := migratedProjects(t, machine)
+	if len(projects) != 2 || projects[0].Runtimes == nil || len(projects[0].Runtimes) != 0 || projects[1].Runtimes["java"] != "17" {
+		t.Fatalf("every row must carry runtimes, empty unless it already named some: %+v", projects)
+	}
+
+	before := string(machine.Files[projectsPath])
+	if again, err := runner(machine, migrate.All()...).Run(); err != nil || len(again.Applied) != 0 || string(machine.Files[projectsPath]) != before {
+		t.Fatal("a second pass must change nothing")
+	}
 }

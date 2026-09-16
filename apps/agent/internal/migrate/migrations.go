@@ -31,7 +31,125 @@ func All() []Migration {
 			Touches: []Target{TargetProjects, TargetEnv},
 			Apply:   projectsToProcesses,
 		},
+		{
+			ID:      3,
+			Slug:    "projects-boot",
+			Since:   "0.3.0",
+			Touches: []Target{TargetProjects},
+			Apply:   projectsBoot,
+		},
+		{
+			ID:      4,
+			Slug:    "runtime-versions",
+			Since:   "0.3.0",
+			Touches: []Target{TargetInstall},
+			Apply:   runtimeVersions,
+		},
+		{
+			ID:      5,
+			Slug:    "projects-runtimes",
+			Since:   "0.3.0",
+			Touches: []Target{TargetProjects},
+			Apply:   projectsRuntimes,
+		},
 	}
+}
+
+// The runtimes mise held at one version when this migration was written; the list is frozen with it.
+var versionedRuntimes = []string{"node", "java", "python", "go", "php", "ruby", "rust"}
+
+// A runtime asked for one version, and asks for several now: the one it had becomes the list of one it holds. A module already answering in the new form is left as it is.
+func runtimeVersions(ctx *Context) error {
+	document, present, err := ctx.JSON(TargetInstall)
+	if err != nil || !present {
+		return err
+	}
+
+	config, _ := document["config"].(map[string]any)
+	changed := false
+
+	for _, tool := range versionedRuntimes {
+		values, _ := config["runtime."+tool].(map[string]any)
+		if values == nil {
+			continue
+		}
+
+		version, single := values[tool+"_version"]
+		if !single {
+			continue
+		}
+
+		if _, several := values[tool+"_versions"]; !several && version != nil && version != "" {
+			values[tool+"_versions"] = []any{version}
+		}
+
+		delete(values, tool+"_version")
+		changed = true
+	}
+
+	if !changed {
+		return nil
+	}
+
+	return ctx.SetJSON(TargetInstall, document)
+}
+
+// A project names the runtime versions it runs on. The rows written before the column existed name none, in so many words.
+func projectsRuntimes(ctx *Context) error {
+	document, present, err := ctx.JSON(TargetProjects)
+	if err != nil || !present {
+		return err
+	}
+
+	entries, _ := document["projects"].([]any)
+	changed := false
+
+	for _, entry := range entries {
+		fields, _ := entry.(map[string]any)
+		if fields == nil {
+			continue
+		}
+
+		if _, answered := fields["runtimes"]; !answered {
+			fields["runtimes"] = map[string]any{}
+			changed = true
+		}
+	}
+
+	if !changed {
+		return nil
+	}
+
+	return ctx.SetJSON(TargetProjects, document)
+}
+
+// A project says whether it starts with the server. The rows written before the column existed never asked for it: they say so in as many words, and a row that already answers is left as it is.
+func projectsBoot(ctx *Context) error {
+	document, present, err := ctx.JSON(TargetProjects)
+	if err != nil || !present {
+		return err
+	}
+
+	entries, _ := document["projects"].([]any)
+	changed := false
+
+	for _, entry := range entries {
+		fields, _ := entry.(map[string]any)
+		if fields == nil {
+			continue
+		}
+
+		if _, answered := fields["boot"]; !answered {
+			fields["boot"] = false
+			changed = true
+		}
+	}
+
+	if !changed {
+		return nil
+	}
+
+	return ctx.SetJSON(TargetProjects, document)
 }
 
 // A project held one command, one port and one folder; it is a repository now,

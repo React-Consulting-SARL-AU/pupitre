@@ -3,6 +3,7 @@ package java
 import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
+	"pupitre.studio/agent/internal/modules/runtime/mise"
 )
 
 const ID = "runtime.java"
@@ -18,7 +19,7 @@ func manifest() contract.Manifest {
 		Resources: contract.Resources{RAMMB: 1024, DiskMB: 1024},
 		Arch:      []string{"amd64", "arm64"},
 		Fields: []contract.Field{
-			{Key: "java_version", Kind: contract.FieldVersion, Label: i18n.T("module.runtime.java.java_version.label"), Options: []string{"25", "21", "17"}, Default: "21"},
+			mise.Java.Field(i18n.T("module.runtime.java.java_versions.label"), i18n.T("module.runtime.java.java_versions.help")),
 		},
 		Runs:      false,
 		Mandatory: false,

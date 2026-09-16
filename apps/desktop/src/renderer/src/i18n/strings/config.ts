@@ -4,6 +4,7 @@ export const config = {
     "config.list.remove": "Remove {label} {index}",
     "config.list.between": "from {min} to {max} values",
     "config.list.upTo": "up to {max} values",
+    "config.versions.default": "{version} — default",
     "config.module.nothing": "Nothing to set for this service.",
     "config.module.defaults":
       "Nothing to decide: the default settings suit this server.",
@@ -65,6 +66,7 @@ export const config = {
     "config.list.remove": "Retirer {label} {index}",
     "config.list.between": "de {min} à {max} valeurs",
     "config.list.upTo": "jusqu'à {max} valeurs",
+    "config.versions.default": "{version} — par défaut",
     "config.module.nothing": "Rien à régler pour ce service.",
     "config.module.defaults":
       "Rien à décider : les réglages par défaut conviennent à ce serveur.",

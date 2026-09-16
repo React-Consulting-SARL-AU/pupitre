@@ -10,6 +10,7 @@ import (
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/download"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
+	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/user"
 )
@@ -19,6 +20,9 @@ const (
 	Path     = BinDir + "/mise"
 	DataDir  = shell.Home + "/.local/share/mise"
 	ShimsDir = DataDir + "/shims"
+
+	// Where mise use -g writes the default of every tool.
+	GlobalConfig = shell.Home + "/.config/mise/config.toml"
 
 	Latest = "latest"
 
@@ -110,43 +114,128 @@ func asset(version string) string {
 	return "mise-v" + version + "-linux-x64"
 }
 
-// What the machine really carries, read back from mise rather than from what the app asked for.
-func Installed(ctx *modules.Context) map[string]string {
-	out, err := user.Run(ctx, shell.User, program, "ls", "--installed")
-	if err != nil {
-		return map[string]string{}
-	}
-
+// What the machine really carries, read back from mise rather than from what the app asked for: one version per tool, the first mise lists. A runtime held at several reads them through Versions.
+func Installed(ctx sys.Context) map[string]string {
 	tools := map[string]string{}
-	for _, line := range strings.Split(out, "\n") {
-		fields := strings.Fields(line)
-		if len(fields) >= 2 {
-			tools[fields[0]] = fields[1]
+	for _, entry := range listed(ctx) {
+		if _, seen := tools[entry.tool]; !seen {
+			tools[entry.tool] = entry.version
 		}
 	}
 
 	return tools
 }
 
-func Use(ctx *modules.Context, tool, version string) error {
+// Versions lists every version mise holds of one tool, in the order mise prints them: ascending.
+func Versions(ctx sys.Context, tool string) []string {
+	var versions []string
+	for _, entry := range listed(ctx) {
+		if entry.tool == tool {
+			versions = append(versions, entry.version)
+		}
+	}
+
+	return versions
+}
+
+type entry struct {
+	tool, version string
+}
+
+func listed(ctx sys.Context) []entry {
+	out, err := user.Run(ctx, shell.User, program, "ls", "--installed")
+	if err != nil {
+		return nil
+	}
+
+	var entries []entry
+	for _, line := range strings.Split(out, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) >= 2 {
+			entries = append(entries, entry{fields[0], fields[1]})
+		}
+	}
+
+	return entries
+}
+
+// Global reads the defaults mise use -g wrote, tool by requested version, from the configuration file rather than from a shell whose folder would decide the answer.
+func Global(ctx sys.Context) map[string]string {
+	raw, err := ctx.Sys().ReadFile(GlobalConfig)
+	if err != nil {
+		return map[string]string{}
+	}
+
+	tools := map[string]string{}
+	inTools := false
+	for _, line := range strings.Split(string(raw), "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "[") {
+			inTools = line == "[tools]"
+			continue
+		}
+
+		key, value, found := strings.Cut(line, "=")
+		if !inTools || !found {
+			continue
+		}
+
+		tools[strings.Trim(strings.TrimSpace(key), `"`)] = strings.Trim(strings.TrimSpace(value), `"`)
+	}
+
+	return tools
+}
+
+// Default is the installed version the machine's default request resolves to — the newest under it, or the newest of all when no request was written.
+func Default(ctx sys.Context, tool string) string {
+	installed := Versions(ctx, tool)
+	if len(installed) == 0 {
+		return ""
+	}
+
+	requested := Global(ctx)[tool]
+	for i := len(installed) - 1; i >= 0; i-- {
+		if requested == "" || Matches(installed[i], requested) {
+			return installed[i]
+		}
+	}
+
+	return installed[len(installed)-1]
+}
+
+func Use(ctx sys.Context, tool, version string) error {
 	_, err := user.Run(ctx, shell.User, program, "use", "-g", "-y", tool+"@"+version)
 
 	return err
 }
 
-func Upgrade(ctx *modules.Context, tools ...string) error {
+// install puts a version beside the others without making it the default.
+func install(ctx sys.Context, tool, version string) error {
+	_, err := user.Run(ctx, shell.User, program, "install", "-y", tool+"@"+version)
+
+	return err
+}
+
+func Upgrade(ctx sys.Context, tools ...string) error {
 	_, err := user.Run(ctx, shell.User, append([]string{program, "upgrade"}, tools...)...)
 
 	return err
 }
 
-func Uninstall(ctx *modules.Context, tool, version string) error {
+func Uninstall(ctx sys.Context, tool, version string) error {
 	_, err := user.Run(ctx, shell.User, program, "uninstall", tool+"@"+version)
 
 	return err
 }
 
-func Where(ctx *modules.Context, tool string) string {
+// Exec runs a program under one version of a tool, whatever the default is: gem under the ruby that was just put.
+func Exec(ctx sys.Context, tool, version string, argv ...string) error {
+	_, err := user.Run(ctx, shell.User, append([]string{program, "x", tool + "@" + version, "--"}, argv...)...)
+
+	return err
+}
+
+func Where(ctx sys.Context, tool string) string {
 	out, err := user.Run(ctx, shell.User, program, "where", tool)
 	if err != nil {
 		return ""

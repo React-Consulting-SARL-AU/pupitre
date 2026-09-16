@@ -5,7 +5,9 @@ import type {
 import type {
   PackageManager,
   Project,
+  ProjectRuntimes,
 } from "@pupitre/shared/agent-protocol/state";
+import type { RuntimeTool } from "@pupitre/shared/catalog";
 import type { AgentError } from "@shared/agent";
 import { create } from "zustand";
 import {
@@ -45,6 +47,10 @@ import { useTunnel } from "./tunnel";
 
 export interface ConfigDraft {
   branch: string;
+  /** Whether the project starts with the server. */
+  boot: boolean;
+  /** The runtime version pinned by tool; a tool absent runs at the machine's default. */
+  runtimes: ProjectRuntimes;
   processes: ProcessDraft[];
 }
 
@@ -68,6 +74,9 @@ interface ProjectConfigStore {
     exposure: boolean
   ) => void;
   setBranch: (value: string) => void;
+  setBoot: (value: boolean) => void;
+  /** An empty version takes the pin off: the tool runs at the machine's default. */
+  setRuntime: (tool: RuntimeTool, version: string) => void;
   setProcessId: (process: number, value: string) => void;
   setProcessDir: (process: number, value: string) => void;
   setProcessPkgmgr: (process: number, value: PackageManager) => void;
@@ -97,7 +106,12 @@ interface ProjectConfigStore {
   changed: () => boolean;
 }
 
-const EMPTY_DRAFT: ConfigDraft = { branch: "", processes: [] };
+const EMPTY_DRAFT: ConfigDraft = {
+  boot: false,
+  branch: "",
+  processes: [],
+  runtimes: {},
+};
 
 const NO_HELD: Held = { hostnames: [], ports: [] };
 
@@ -132,9 +146,22 @@ function atRow(
 
 function draftFrom(project: Project): ConfigDraft {
   return {
+    boot: project.boot === true,
     branch: project.branch ?? "",
     processes: processesFromProject(project),
+    runtimes: { ...(project.runtimes ?? {}) },
   };
+}
+
+function sameRuntimes(left: ProjectRuntimes, right: ProjectRuntimes): boolean {
+  const keys = Object.keys(left);
+
+  return (
+    keys.length === Object.keys(right).length &&
+    keys.every(
+      (tool) => left[tool as RuntimeTool] === right[tool as RuntimeTool]
+    )
+  );
 }
 
 export const useProjectConfig = create<ProjectConfigStore>((set, get) => {
@@ -177,6 +204,16 @@ export const useProjectConfig = create<ProjectConfigStore>((set, get) => {
 
     setBranch(value) {
       edit({ branch: value });
+    },
+
+    setBoot(value) {
+      edit({ boot: value });
+    },
+
+    setRuntime(tool, version) {
+      const { [tool]: _dropped, ...rest } = get().draft.runtimes;
+
+      edit({ runtimes: version ? { ...rest, [tool]: version } : rest });
     },
 
     setProcessId(process, value) {
@@ -358,6 +395,12 @@ export const useProjectConfig = create<ProjectConfigStore>((set, get) => {
       return {
         ...(project && branch && branch !== (project.branch ?? "")
           ? { branch }
+          : {}),
+        ...(project && draft.boot !== (project.boot === true)
+          ? { boot: draft.boot }
+          : {}),
+        ...(project && !sameRuntimes(draft.runtimes, project.runtimes ?? {})
+          ? { runtimes: draft.runtimes }
           : {}),
         processes: processPatches(draft.processes, exposure),
       };

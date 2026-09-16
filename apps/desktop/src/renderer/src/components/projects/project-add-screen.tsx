@@ -58,6 +58,8 @@ export function ProjectAddScreen({
   const setSource = useProjectAdd((state) => state.setSource);
   const setName = useProjectAdd((state) => state.setName);
   const setBranch = useProjectAdd((state) => state.setBranch);
+  const setStartNow = useProjectAdd((state) => state.setStartNow);
+  const setBoot = useProjectAdd((state) => state.setBoot);
   const setProcessId = useProjectAdd((state) => state.setProcessId);
   const setProcessDir = useProjectAdd((state) => state.setProcessDir);
   const setProcessPkgmgr = useProjectAdd((state) => state.setProcessPkgmgr);
@@ -124,6 +126,7 @@ export function ProjectAddScreen({
       edit={{
         addProcess,
         addRow,
+        boot: setBoot,
         branch: setBranch,
         browse: (path) => browse(serverId, path),
         createFolder: (name) => makeFolder(serverId, name),
@@ -145,6 +148,7 @@ export function ProjectAddScreen({
         rowPublish: setRowPublish,
         rowWeb: setRowWeb,
         source: setSource,
+        startNow: setStartNow,
       }}
       exposure={exposure}
       folders={folders}

@@ -3,6 +3,7 @@ package python
 import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
+	"pupitre.studio/agent/internal/modules/runtime/mise"
 )
 
 const ID = "runtime.python"
@@ -18,7 +19,7 @@ func manifest() contract.Manifest {
 		Resources: contract.Resources{RAMMB: 256, DiskMB: 1024},
 		Arch:      []string{"amd64", "arm64"},
 		Fields: []contract.Field{
-			{Key: "python_version", Kind: contract.FieldVersion, Label: i18n.T("module.runtime.python.python_version.label"), Options: []string{"3.13", "3.12", "3.11"}, Default: "3.12"},
+			mise.Python.Field(i18n.T("module.runtime.python.python_versions.label"), i18n.T("module.runtime.python.python_versions.help")),
 		},
 		Runs:      false,
 		Mandatory: false,

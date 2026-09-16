@@ -321,6 +321,36 @@ func listProblem(module string, field Field, value any, held SecretsHeld) *Field
 	return nil
 }
 
+// A versions field holds a list of the options, one at the least; a bare value is not a list.
+func versionsProblem(module string, field Field, value any) *FieldProblem {
+	var items []string
+
+	switch declared := value.(type) {
+	case nil:
+	case []any:
+		for _, item := range declared {
+			items = append(items, stringOf(item))
+		}
+	case []string:
+		items = declared
+	default:
+		return problemOf(module, field.Key, ProblemType, "list")
+	}
+
+	items = nonBlank(items)
+	if len(items) == 0 {
+		return problemOf(module, field.Key, ProblemRequired, "1")
+	}
+
+	for _, item := range items {
+		if wrong := optionProblem(module, field, item); wrong != nil {
+			return wrong
+		}
+	}
+
+	return nil
+}
+
 func nonBlank(items []string) []string {
 	kept := make([]string, 0, len(items))
 	for _, item := range items {
@@ -340,6 +370,8 @@ func ValidateField(module string, field Field, value any, held SecretsHeld) *Fie
 	switch field.Kind {
 	case FieldVersion:
 		return optionProblem(module, field, value)
+	case FieldVersions:
+		return versionsProblem(module, field, value)
 	case FieldBoolean:
 		if value == nil {
 			return nil

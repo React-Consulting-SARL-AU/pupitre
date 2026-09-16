@@ -730,6 +730,78 @@
     },
 
     {
+      "name": "versions/one",
+      "field": {
+        "key": "node_versions",
+        "kind": "versions",
+        "label": "Node",
+        "options": ["24", "22", "20"],
+        "default": ["24"]
+      },
+      "value": ["22"],
+      "expect": null
+    },
+    {
+      "name": "versions/several",
+      "field": {
+        "key": "node_versions",
+        "kind": "versions",
+        "label": "Node",
+        "options": ["24", "22", "20"],
+        "default": ["24"]
+      },
+      "value": ["20", "24"],
+      "expect": null
+    },
+    {
+      "name": "versions/empty",
+      "field": {
+        "key": "node_versions",
+        "kind": "versions",
+        "label": "Node",
+        "options": ["24", "22", "20"],
+        "default": ["24"]
+      },
+      "value": [],
+      "expect": "required"
+    },
+    {
+      "name": "versions/absent",
+      "field": {
+        "key": "node_versions",
+        "kind": "versions",
+        "label": "Node",
+        "options": ["24", "22", "20"],
+        "default": ["24"]
+      },
+      "expect": "required"
+    },
+    {
+      "name": "versions/unknown",
+      "field": {
+        "key": "node_versions",
+        "kind": "versions",
+        "label": "Node",
+        "options": ["24", "22", "20"],
+        "default": ["24"]
+      },
+      "value": ["24", "18"],
+      "expect": "options"
+    },
+    {
+      "name": "versions/not-a-list",
+      "field": {
+        "key": "node_versions",
+        "kind": "versions",
+        "label": "Node",
+        "options": ["24", "22", "20"],
+        "default": ["24"]
+      },
+      "value": "24",
+      "expect": "type"
+    },
+
+    {
       "name": "boolean/true",
       "field": {
         "key": "bun",

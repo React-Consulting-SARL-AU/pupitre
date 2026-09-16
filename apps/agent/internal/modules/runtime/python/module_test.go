@@ -11,7 +11,7 @@ import (
 	"pupitre.studio/agent/internal/modules/runtime/shell"
 )
 
-var values = modtest.Values{"python_version": "3.12"}
+var values = modtest.Values{"python_versions": []string{"3.12"}}
 
 func newContext(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	t.Helper()
@@ -110,12 +110,12 @@ func TestAnotherPythonMajorIsInstalledAlongside(t *testing.T) {
 	run(t, ctx)
 
 	steps := statuses(ctx)
-	if steps["install-uv"] != contract.StepSkip || steps["install-python"] != contract.StepOK {
+	if steps["install-uv"] != contract.StepSkip || steps["install-python-3.12"] != contract.StepOK || steps["prune-python"] != contract.StepOK {
 		t.Fatalf("steps = %v", steps)
 	}
 
-	if fake.Tools["python"] != "3.12" {
-		t.Fatalf("tools = %v", fake.Tools)
+	if fake.Tools["python"] != "3.12" || strings.Join(fake.Versions["python"], ",") != "3.12" {
+		t.Fatalf("a major nobody asked for goes: tools = %v, versions = %v", fake.Tools, fake.Versions)
 	}
 }
 
@@ -146,8 +146,8 @@ func TestUninstallLeavesMiseAndTheOtherBlocks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, tool := range tools {
-		if _, present := fake.Tools[tool]; present {
+	for _, tool := range []string{"python", "uv"} {
+		if _, present := fake.Tools[tool]; present || len(fake.Versions[tool]) != 0 {
 			t.Errorf("%s still installed", tool)
 		}
 	}

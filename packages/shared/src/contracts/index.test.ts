@@ -1,7 +1,12 @@
 import { describe, expect, it } from "bun:test"
 import { RESTRICTED_COMMANDS, UNENROLLED_COMMANDS } from "../agent-protocol"
 import { PROTOCOL_VERSION } from "../agent-protocol/envelope"
-import { MANDATORY_MODULE_IDS, MODULE_IDS, PRESETS } from "../catalog"
+import {
+  MANDATORY_MODULE_IDS,
+  MODULE_IDS,
+  PRESETS,
+  RUNTIME_TOOLS,
+} from "../catalog"
 import {
   buildContractSchema,
   CONTRACT_CONSTANTS,
@@ -41,6 +46,7 @@ const EXPECTED = [
   "Field",
   "Preset",
   "Presets",
+  "RuntimeTools",
 ]
 
 describe("CONTRACT_DEFINITIONS", () => {
@@ -89,6 +95,11 @@ describe("buildContractSchema", () => {
       type: "array",
       items: { type: "string" },
       const: [...MODULE_IDS],
+    })
+    expect(schema.$defs.RuntimeTools).toEqual({
+      type: "array",
+      items: { type: "string" },
+      const: [...RUNTIME_TOOLS],
     })
   })
 

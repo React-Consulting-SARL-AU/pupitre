@@ -127,6 +127,19 @@ describe("MachineSchema, ServiceSchema, ProjectSchema, SessionSchema", () => {
     )
   })
 
+  it("lists the majors a runtime holds, and nothing for a service held at one version", () => {
+    expect(ServiceSchema.parse(service).versions).toBeUndefined()
+    expect(
+      ServiceSchema.parse({
+        id: "runtime.node",
+        name: "Node.js",
+        state: "running",
+        version: "node 24.8.0 · 22.19.0",
+        versions: ["24", "22"],
+      }).versions
+    ).toEqual(["24", "22"])
+  })
+
   it("takes a service from an agent that says nothing as one that runs", () => {
     const parsed = ServiceSchema.parse(service)
 
@@ -235,6 +248,75 @@ describe("MachineSchema, ServiceSchema, ProjectSchema, SessionSchema", () => {
         }).success
       ).toBe(false)
     }
+  })
+
+  /** Starting with the server is asked for, never assumed: a registration and a project that say nothing do not. */
+  it("starts with the server only when asked", () => {
+    const registration = {
+      name: "web",
+      dir: "web",
+      processes: [
+        {
+          id: "api",
+          pkgmgr: "bun",
+          host: "127.0.0.1",
+          port: 5173,
+          cmd: "bun run dev",
+          routes: [],
+        },
+      ],
+    }
+
+    expect(ProjectRegistrationSchema.parse(registration).boot).toBe(false)
+    expect(
+      ProjectRegistrationSchema.parse({ ...registration, boot: true }).boot
+    ).toBe(true)
+    expect(ProjectSchema.parse(project).boot).toBe(false)
+    expect(ProjectSchema.parse({ ...project, boot: true }).boot).toBe(true)
+  })
+
+  /** A project names the runtime versions it runs on, by mise tool; naming none runs at the machine's default. */
+  it("pins runtime versions by tool, and none by default", () => {
+    const registration = {
+      name: "web",
+      dir: "web",
+      processes: [
+        {
+          id: "api",
+          pkgmgr: "bun",
+          host: "127.0.0.1",
+          port: 5173,
+          cmd: "bun run dev",
+          routes: [],
+        },
+      ],
+    }
+
+    expect(
+      ProjectRegistrationSchema.parse(registration).runtimes
+    ).toBeUndefined()
+    expect(
+      ProjectRegistrationSchema.parse({
+        ...registration,
+        runtimes: { node: "22", python: "3.12" },
+      }).runtimes
+    ).toEqual({ node: "22", python: "3.12" })
+    expect(ProjectSchema.parse(project).runtimes).toBeUndefined()
+    expect(ProjectSchema.parse({ ...project, runtimes: {} }).runtimes).toEqual(
+      {}
+    )
+    expect(
+      ProjectRegistrationSchema.safeParse({
+        ...registration,
+        runtimes: { deno: "2" },
+      }).success
+    ).toBe(false)
+    expect(
+      ProjectRegistrationSchema.safeParse({
+        ...registration,
+        runtimes: { node: "latest" },
+      }).success
+    ).toBe(false)
   })
 })
 

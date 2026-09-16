@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test"
 import {
   ARCHITECTURES,
+  defaultVersionOf,
   FieldSchema,
   getPreset,
   ManifestSchema,
@@ -9,6 +10,7 @@ import {
   ModuleIdSchema,
   PRESETS,
   PresetSchema,
+  VersionsFieldSchema,
 } from "./index"
 
 const secretField = {
@@ -88,7 +90,7 @@ describe("ManifestSchema", () => {
 })
 
 describe("FieldSchema", () => {
-  it("accepts text, number, select, secret and version fields", () => {
+  it("accepts text, number, select, secret, version and versions fields", () => {
     expect(
       FieldSchema.safeParse({
         key: "timezone",
@@ -127,6 +129,50 @@ describe("FieldSchema", () => {
         default: "24",
       }).success
     ).toBe(true)
+    expect(
+      FieldSchema.safeParse({
+        key: "node_versions",
+        kind: "versions",
+        label: "Node",
+        options: ["24", "22", "20"],
+        default: ["24"],
+      }).success
+    ).toBe(true)
+  })
+
+  it("names the newest chosen version the default, whatever order it was chosen in", () => {
+    const field = VersionsFieldSchema.parse({
+      key: "node_versions",
+      kind: "versions",
+      label: "Node",
+      options: ["24", "22", "20"],
+      default: ["24"],
+    })
+
+    expect(defaultVersionOf(field, ["20", "22"])).toBe("22")
+    expect(defaultVersionOf(field, ["24", "20"])).toBe("24")
+    expect(defaultVersionOf(field, [])).toBeUndefined()
+  })
+
+  it("keeps the default of a versions field inside its options, one at the least", () => {
+    expect(
+      FieldSchema.safeParse({
+        key: "node_versions",
+        kind: "versions",
+        label: "Node",
+        options: ["24", "22"],
+        default: [],
+      }).success
+    ).toBe(false)
+    expect(
+      FieldSchema.safeParse({
+        key: "node_versions",
+        kind: "versions",
+        label: "Node",
+        options: ["24", "22"],
+        default: ["18"],
+      }).success
+    ).toBe(false)
   })
 
   it("bounds a number field, so a port cannot be typed out of range", () => {

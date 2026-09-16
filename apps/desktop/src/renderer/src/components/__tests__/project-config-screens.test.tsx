@@ -1,4 +1,8 @@
 import { describe, expect, it } from "bun:test";
+import type {
+  ProjectRuntimes,
+  Service,
+} from "@pupitre/shared/agent-protocol/state";
 import { renderToStaticMarkup } from "react-dom/server";
 import { SNAPSHOT } from "../../__tests__/snapshot-fixtures";
 import { processesFromProject } from "../../lib/project-processes";
@@ -15,6 +19,7 @@ const PROJECT = SNAPSHOT.projects[0];
 const EDIT = {
   addProcess: () => undefined,
   addRow: () => undefined,
+  boot: () => undefined,
   branch: () => undefined,
   generateRowWeb: () => undefined,
   processCmd: () => undefined,
@@ -24,6 +29,7 @@ const EDIT = {
   processPkgmgr: () => undefined,
   removeProcess: () => undefined,
   removeRow: () => undefined,
+  runtime: () => undefined,
   rowLabel: () => undefined,
   rowPort: () => undefined,
   rowPublish: () => undefined,
@@ -38,9 +44,35 @@ function text(html: string): string {
     .trim();
 }
 
+const RUNTIMES: Service[] = [
+  {
+    configured: true,
+    id: "runtime.node",
+    name: "Node.js",
+    runs: false,
+    state: "running",
+    version: "node 22.19.0 · 24.8.0",
+    versions: ["24", "22"],
+  },
+  {
+    configured: true,
+    id: "runtime.java",
+    name: "Java (Temurin)",
+    runs: false,
+    state: "running",
+    version: "java temurin-21.0.4",
+    versions: ["21"],
+  },
+];
+
 function panel(
   run: ConfigState,
-  extra: { restarts?: string[]; dropped?: string[] } = {}
+  extra: {
+    restarts?: string[];
+    dropped?: string[];
+    services?: Service[];
+    runtimes?: ProjectRuntimes;
+  } = {}
 ): string {
   if (!PROJECT) {
     throw new Error("the fixture has no project");
@@ -49,8 +81,10 @@ function panel(
   return renderToStaticMarkup(
     <ProjectConfigPanel
       draft={{
+        boot: false,
         branch: "main",
         processes: processesFromProject(PROJECT),
+        runtimes: extra.runtimes ?? {},
       }}
       dropped={extra.dropped ?? []}
       edit={EDIT}
@@ -62,6 +96,7 @@ function panel(
       restarts={extra.restarts ?? []}
       rowProblems={[[null, null]]}
       run={run}
+      services={extra.services ?? [...SNAPSHOT.services, ...RUNTIMES]}
     />
   );
 }
@@ -79,6 +114,22 @@ describe("la configuration d'un projet", () => {
     expect(html).not.toContain('id="project.source"');
     expect(html).not.toContain('id="project.name"');
     expect(text(html)).toContain("Enregistrer la configuration");
+  });
+
+  /** Each runtime the server holds at several majors gets a select: the default first, named, then the majors; a server without a runtime shows nothing of it. */
+  it("propose une version par runtime installé, le défaut nommé, rien sans runtime", () => {
+    const html = panel({ status: "idle" }, { runtimes: { node: "22" } });
+    const none = panel({ status: "idle" }, { services: [] });
+
+    expect(none).not.toContain("config.runtimes");
+
+    expect(html).toContain('id="config.runtimes.node"');
+    expect(html).toContain('id="config.runtimes.java"');
+    expect(html).not.toContain('id="config.runtimes.db.postgres"');
+    expect(text(html)).toContain("Par défaut (24)");
+    expect(text(html)).toContain("Par défaut (21)");
+    expect(html).toContain('<option value="22" selected="">');
+    expect(html).toContain('value="24"');
   });
 
   it("dit qu'un changement de commande redémarre son processus, et quelles adresses meurent", () => {

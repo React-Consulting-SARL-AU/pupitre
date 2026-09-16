@@ -22,7 +22,8 @@ type tool struct {
 	spec  string
 }
 
-var tools = []tool{{"node", "node"}, {"bun", "bun"}, {"pnpm", pnpmSpec}, {"yarn", yarnSpec}}
+// The managers ride beside node at one version each; node itself is held at every major chosen.
+var managers = []tool{{"bun", "bun"}, {"pnpm", pnpmSpec}, {"yarn", yarnSpec}}
 
 var corepacked = []tool{{"pnpm", pnpmSpec}, {"yarn", yarnSpec}}
 
@@ -41,15 +42,16 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 		return modules.Status{}, nil
 	}
 
-	installed := mise.Installed(ctx)
-	if installed["node"] == "" {
+	held := mise.Node.Held(ctx)
+	if len(held) == 0 {
 		return modules.Status{}, nil
 	}
 
 	return modules.Status{
 		Installed:  true,
 		Configured: shell.HasBlock(ctx, ID),
-		Version:    describe(installed),
+		Version:    describe(ctx),
+		Versions:   held,
 	}, nil
 }
 
@@ -58,7 +60,7 @@ func (Module) Install(ctx *modules.Context) error {
 		return err
 	}
 
-	if _, err := mise.Add(ctx, "install-node", "node", ctx.String("node_version")); err != nil {
+	if _, err := mise.Node.Install(ctx); err != nil {
 		return err
 	}
 
@@ -97,13 +99,17 @@ func (Module) Configure(ctx *modules.Context) error {
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
-	if err := ctx.Step("upgrade-runtimes", func() (modules.Outcome, error) {
+	if err := mise.Node.Upgrade(ctx); err != nil {
+		return err
+	}
+
+	if err := ctx.Step("upgrade-managers", func() (modules.Outcome, error) {
 		before := mise.Installed(ctx)
 
 		present := []string{}
-		for _, tool := range tools {
-			if before[tool.spec] != "" {
-				present = append(present, tool.spec)
+		for _, manager := range managers {
+			if before[manager.spec] != "" {
+				present = append(present, manager.spec)
 			}
 		}
 
@@ -111,7 +117,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 			return modules.Failed, err
 		}
 
-		if describe(mise.Installed(ctx)) == describe(before) {
+		if describeManagers(mise.Installed(ctx)) == describeManagers(before) {
 			return modules.Skipped, nil
 		}
 
@@ -129,13 +135,13 @@ func (Module) Uninstall(ctx *modules.Context) error {
 		return err
 	}
 
-	for i := len(tools) - 1; i >= 0; i-- {
-		if err := mise.Remove(ctx, "remove-"+tools[i].field, tools[i].spec); err != nil {
+	for i := len(managers) - 1; i >= 0; i-- {
+		if err := mise.Remove(ctx, "remove-"+managers[i].field, managers[i].spec); err != nil {
 			return err
 		}
 	}
 
-	return nil
+	return mise.Node.Uninstall(ctx)
 }
 
 func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
@@ -162,11 +168,20 @@ func optional(ctx *modules.Context, step, field, spec string) (bool, error) {
 	return mise.Add(ctx, step, spec, mise.Latest)
 }
 
-func describe(installed map[string]string) string {
+func describe(ctx *modules.Context) string {
+	parts := []string{mise.Node.Describe(ctx)}
+	if held := describeManagers(mise.Installed(ctx)); held != "" {
+		parts = append(parts, held)
+	}
+
+	return strings.Join(parts, " · ")
+}
+
+func describeManagers(installed map[string]string) string {
 	var parts []string
-	for _, tool := range tools {
-		if installed[tool.spec] != "" {
-			parts = append(parts, tool.field+" "+installed[tool.spec])
+	for _, manager := range managers {
+		if installed[manager.spec] != "" {
+			parts = append(parts, manager.field+" "+installed[manager.spec])
 		}
 	}
 

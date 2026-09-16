@@ -26,15 +26,16 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 		return modules.Status{}, nil
 	}
 
-	installed := mise.Installed(ctx)["go"]
-	if installed == "" {
+	held := mise.Go.Held(ctx)
+	if len(held) == 0 {
 		return modules.Status{}, nil
 	}
 
 	return modules.Status{
 		Installed:  true,
 		Configured: shell.HasBlock(ctx, ID),
-		Version:    "go " + installed,
+		Version:    mise.Go.Describe(ctx),
+		Versions:   held,
 	}, nil
 }
 
@@ -43,7 +44,7 @@ func (Module) Install(ctx *modules.Context) error {
 		return err
 	}
 
-	_, err := mise.Add(ctx, "install-go", "go", ctx.String("go_version"))
+	_, err := mise.Go.Install(ctx)
 
 	return err
 }
@@ -53,19 +54,7 @@ func (Module) Configure(ctx *modules.Context) error {
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
-	if err := ctx.Step("upgrade-go", func() (modules.Outcome, error) {
-		before := mise.Installed(ctx)["go"]
-
-		if err := mise.Upgrade(ctx, "go"); err != nil {
-			return modules.Failed, err
-		}
-
-		if mise.Installed(ctx)["go"] == before {
-			return modules.Skipped, nil
-		}
-
-		return modules.Done, nil
-	}); err != nil {
+	if err := mise.Go.Upgrade(ctx); err != nil {
 		return err
 	}
 
@@ -78,7 +67,7 @@ func (Module) Uninstall(ctx *modules.Context) error {
 		return err
 	}
 
-	return mise.Remove(ctx, "remove-go", "go")
+	return mise.Go.Uninstall(ctx)
 }
 
 func (m Module) Status(ctx *modules.Context) (modules.Status, error) {

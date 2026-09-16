@@ -36,6 +36,7 @@ type Field =
   | { kind: "text" | "number" | "select"; required: boolean; default?: unknown; options?: string[]; min?: number; max?: number }  // min et max bornent un nombre, un port par exemple
   | { kind: "secret"; required: boolean; generate?: boolean }  // generate: proposé généré, jamais affiché
   | { kind: "version"; options: string[]; default: string }
+  | { kind: "versions"; options: string[]; default: string[] }  // plusieurs majeures à la fois ; options de la plus récente à la plus ancienne, la plus récente cochée est le défaut de la machine
   | { kind: "boolean"; required: false; default: boolean }  // une case à cocher, jamais requise
   | { kind: "list"; required: boolean; items: "text" | "secret"; min?: number; max?: number }  // une liste de valeurs du même genre
 ```
@@ -128,14 +129,14 @@ Un module dont le CLI se connecte à un compte implémente en plus `Login` : il 
 
 | Id | Fait | Champs |
 | --- | --- | --- |
-| `runtime.node` | mise ; Node (24 par défaut, la LTS active), Bun, pnpm, Yarn aux versions choisies ; pnpm et Yarn par corepack ; activés dans tous les shells y compris non interactifs par un bloc balisé du `.zshenv` | `node_version`, `bun` (boolean), `pnpm` (boolean), `yarn` (boolean, décoché) |
-| `runtime.java` | Temurin via mise, daemon Gradle dimensionné pour la RAM | `java_version` |
-| `runtime.python` | uv et une version Python ; base des agents en Python | `python_version` |
-| `runtime.go` | Go via mise, `GOPATH` et son `bin` sur le `PATH` | `go_version`, `gopath` |
-| `runtime.php` | dépendances de compilation, PHP compilé par mise, Composer en option, un `php.ini` lu après celui de la compilation | `php_version`, `composer` (boolean), `memory_limit` |
-| `runtime.ruby` | dépendances de compilation, Ruby compilé par mise, Bundler rafraîchi quand l'interpréteur vient d'être posé | `ruby_version`, `bundler` (boolean) |
+| `runtime.node` | mise ; Node aux majeures cochées (24 par défaut, la LTS active), Bun, pnpm, Yarn ; pnpm et Yarn par corepack ; activés dans tous les shells y compris non interactifs par un bloc balisé du `.zshenv` | `node_versions` (versions), `bun` (boolean), `pnpm` (boolean), `yarn` (boolean, décoché) |
+| `runtime.java` | Temurin via mise aux majeures cochées, `JAVA_HOME` résolu par mise à l'ouverture de chaque shell — donc celui du projet quand il en épingle une —, daemon Gradle dimensionné pour la RAM | `java_versions` (versions) |
+| `runtime.python` | uv et Python aux versions cochées ; base des agents en Python | `python_versions` (versions) |
+| `runtime.go` | Go via mise aux versions cochées, `GOPATH` et son `bin` sur le `PATH` | `go_versions` (versions), `gopath` |
+| `runtime.php` | dépendances de compilation, PHP compilé par mise aux versions cochées, Composer en option, un `php.ini` lu après celui de la compilation | `php_versions` (versions), `composer` (boolean), `memory_limit` |
+| `runtime.ruby` | dépendances de compilation, Ruby compilé par mise aux versions cochées, Bundler rafraîchi sous chaque interpréteur qui vient d'être posé | `ruby_versions` (versions), `bundler` (boolean) |
 | `runtime.docker` | Docker Engine et Compose depuis le dépôt de Docker, `dev` dans le groupe `docker`, rotation des logs de conteneurs, `live-restore` pour qu'un redémarrage du démon ne coupe aucun conteneur | `compose` (boolean), `data_root`, `log_max_size` |
-| `runtime.rust` | Rust via mise, qui pose rustup et la toolchain ; `~/.cargo/bin` sur le PATH de tous les shells | `rust_version` (version) |
+| `runtime.rust` | Rust via mise, qui pose rustup et les toolchains cochées ; `~/.cargo/bin` sur le PATH de tous les shells | `rust_versions` (versions) |
 
 ### Bases de données
 
@@ -218,6 +219,12 @@ Un module demande au client tout ce qu'il pourrait vouloir décider, et rien de 
 Un nom de compte et une version traversent un fichier de configuration ou une requête SQL : le manifeste les tient à un `format`, et une valeur qui n'y répond pas est **refusée avant la première étape**, avec le champ nommé. Rien ne retombe en silence sur le défaut : un client qui tape `my-app` obtiendrait `app` sans jamais l'apprendre.
 
 Redis fait exception à la version : le module pose le paquet d'Ubuntu, et n'ajoute pas un dépôt de plus pour un choix que personne n'a demandé.
+
+### Un runtime tient plusieurs versions à la fois
+
+Un langage se choisit en `versions`, pas en `version` : plusieurs projets d'une même machine ne tournent pas tous sur le même Java ni le même Node. Le champ est une liste fermée à plusieurs cases, `options` de la plus récente à la plus ancienne, une cochée au moins. L'agent pose chaque majeure cochée (`install-<outil>-<majeure>`, par `mise install`), fait de **la plus récente cochée le défaut de la machine** (`use-<outil>`, par `mise use -g`) — ce que rend un shell hors de tout projet, et ce qu'obtient un projet qui ne dit rien — et retire ce qui n'est plus coché (`prune-<outil>`). `upgrade` porte chaque majeure à son dernier patch et retire celui qu'il remplace. Le service rend `versions[]`, les majeures que la machine tient réellement, de la plus récente à la plus ancienne : c'est là qu'un projet choisit. Les outils partagés — mise, `~/.config/mise/config.toml` — restent quand un runtime part ; les autres s'en servent.
+
+Le choix d'un projet est l'affaire du protocole (`runtimes` sur `project.add` et `project.update`) : l'agent écrit un `mise.local.toml` à la racine du projet, que mise lit avant tout ce que le dépôt déclare, pour ses processus comme pour les terminaux ouverts dedans. Ce que le client tape à la main dans son propre `mise.toml` ou `.tool-versions` vaut pour les projets qui n'épinglent rien, tant que la version demandée est posée.
 
 ### Le champ `version` des éditeurs reste du texte libre
 

@@ -138,6 +138,9 @@ export const projectAdd = {
     "projectAdd.sources.alreadyPresent": "the folder is already on the server",
     "projectAdd.install.nothing": "the project declares no install command",
     "projectAdd.publish.local": "the project stays local",
+    "projectAdd.up.notAsked": "left stopped, as asked",
+    "projectAdd.form.startNowLabel": "Start the project once it is ready",
+    "projectAdd.form.bootLabel": "Start it with the server",
     "projectAdd.up.notRunningFix":
       "Read the journal below, fix the start command, then try again.",
     "projectAdd.up.notRunningMessage":
@@ -287,6 +290,9 @@ export const projectAdd = {
     "projectAdd.install.nothing":
       "le projet ne déclare aucune commande d'installation",
     "projectAdd.publish.local": "le projet reste local",
+    "projectAdd.up.notAsked": "laissé arrêté, comme demandé",
+    "projectAdd.form.startNowLabel": "Démarrer le projet une fois prêt",
+    "projectAdd.form.bootLabel": "Le démarrer avec le serveur",
     "projectAdd.up.notRunningFix":
       "Lisez le journal ci-dessous, corrigez la commande de démarrage, puis réessayez.",
     "projectAdd.up.notRunningMessage":

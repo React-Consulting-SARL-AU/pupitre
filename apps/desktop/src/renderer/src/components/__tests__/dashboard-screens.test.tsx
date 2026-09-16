@@ -63,6 +63,13 @@ describe("le tableau de bord", () => {
     expect(html).toContain("idea-backend");
   });
 
+  /** atlas-web answers on the machine alone, flymate-api under a name on the web: only the second opens from here. */
+  it("n'offre d'ouvrir que les projets qui ont un nom sur le web", () => {
+    const html = panel();
+
+    expect(html.split("Ouvrir<").length - 1).toBe(1);
+  });
+
   it("compte les projets en ligne et ceux en échec", () => {
     const html = panel();
 

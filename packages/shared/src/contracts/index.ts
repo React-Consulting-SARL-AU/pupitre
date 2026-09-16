@@ -31,6 +31,7 @@ import {
   MODULE_IDS,
   PRESETS,
   PresetSchema,
+  RUNTIME_TOOLS,
 } from "../catalog"
 import { FORMAT_PATTERNS } from "../catalog/formats"
 import { FieldProblemSchema } from "../catalog/validate"
@@ -107,6 +108,12 @@ export const CONTRACT_CONSTANTS: Readonly<Record<string, JsonObject>> = {
     type: "array",
     items: { type: "string" },
     const: MANDATORY_MODULE_IDS,
+  },
+  /** The runtimes a project pins a version of, so the agent holds a pin to the same names. */
+  RuntimeTools: {
+    type: "array",
+    items: { type: "string" },
+    const: RUNTIME_TOOLS,
   },
   Presets: {
     type: "array",
