@@ -1,0 +1,35 @@
+---
+title: Les serveurs répondent à leur nom, et un projet épingle ses runtimes
+description: Une ligne dans ~/.ssh/config ouvre les serveurs de l’app à ssh, aux éditeurs et aux agents de code sous leur nom ; un runtime tient plusieurs majeures à la fois et chaque projet nomme celle qu’il tourne ; un projet peut démarrer avec le serveur ou s’ajouter sans être démarré ; une adresse de connexion Codex pliée par le terminal s’ouvre de nouveau entière.
+locale: fr
+version: 0.3.0
+channel: stable
+date: 2026-09-16
+order: 10
+---
+
+Du nouveau dans l’app et dans l’agent, tous deux à mettre à jour : l’app propose la mise à jour de l’agent sur les serveurs qu’elle connaît, et ce qui était réglé avant est repris tel quel.
+
+## L’app
+
+- Vos serveurs se joignent par leur nom depuis `ssh`, les éditeurs et les agents de code. Dans Réglages › SSH, une case : *Laisser ssh, mes éditeurs et mes agents de code joindre mes serveurs par leur nom*. Cochée, l’app ajoute une ligne en tête de votre `~/.ssh/config` — `Include "<dossier de l’app>/ssh/config"` — et rien d’autre dans ce fichier ne bouge ; décochée, la ligne est retirée. Chaque serveur ajouté par l’app répond alors à son nom en minuscules, `ssh atelier` pour un serveur appelé « Atelier », avec la clé de l’app et la clé d’hôte épinglée, dans `ssh`, VS Code, Cursor, Zed, JetBrains Gateway, Claude Code et Codex à la fois. Le réglage liste le mot auquel chaque serveur répond. Un nom déjà déclaré comme `Host` dans votre fichier est laissé en paix : ce serveur garde son identifiant, `pupitre-<id>`.
+- Les boutons « Ouvrir dans » d’un projet nomment le serveur par ce mot. Zed, JetBrains Gateway, VS Code et Cursor recevaient `user@host`, qu’ils ne savaient pas ouvrir sans la clé. Pressé avant que la ligne soit dans `~/.ssh/config`, le bouton propose d’abord de l’ajouter, puis ouvre.
+- Un runtime s’installe en plusieurs majeures à la fois. Node, Java, Python, Go, PHP, Ruby et Rust offrent chacun, dans les réglages de leur service, une liste de majeures à cocher — Node 24, 22 et 20, par exemple — au lieu d’une seule version. La plus récente cochée est le défaut de la machine, ce qu’un shell hors de tout projet exécute ; une majeure décochée est retirée du serveur. Un runtime réglé avant à une seule version la garde, en liste d’une.
+- Un projet nomme la version de chaque runtime qu’il tourne. Dans ses réglages, un choix par runtime que le serveur tient : le défaut de la machine, ou n’importe quelle majeure installée. Le choix vaut pour les processus du projet et pour les terminaux ouverts dedans, quoi que le dépôt déclare. Une version que le serveur ne tient pas est refusée, avec le service où la cocher.
+- Un projet peut démarrer avec le serveur. Une case à l’ajout et dans ses réglages ; laissée décochée, un projet revient après un redémarrage seulement s’il tournait quand le serveur s’est éteint, comme avant.
+- Un projet peut s’ajouter sans être démarré. « Démarrer le projet une fois prêt » est cochée par défaut ; décochée, le projet est tout de même récupéré et installé, puis laissé arrêté.
+- « Ouvrir » ne s’affiche que lorsque le projet a une adresse publiée. Un projet sans nom sur le web répondait l’adresse locale du serveur lui-même, qui n’ouvrait rien depuis cet ordinateur.
+- Une adresse de connexion Codex pliée par le terminal s’ouvre entière. Codex écrit son adresse en retrait sur une ligne qui remplit l’écran et la poursuit à la première colonne ; l’app n’en gardait que le premier fragment et c’est lui qui partait au navigateur.
+- Une confirmation — retirer un projet, par exemple — s’ouvre dans une boîte de dialogue au lieu de remplacer son bouton, rien autour ne bouge donc.
+
+## L’agent
+
+- Chaque majeure cochée est installée par mise, la plus récente cochée devient le défaut, et une majeure qui n’est plus cochée est retirée.
+- Le choix d’un projet est écrit là où mise le lit : un `mise.local.toml` à la racine du projet, tenu hors du diff du dépôt par `.git/info/exclude`. Il passe avant tout ce que le dépôt déclare ; un projet qui ne nomme rien suit le `mise.toml` ou le `.tool-versions` du dépôt, tant que la version demandée est installée.
+- Au démarrage de la machine, `pupitre-resume` relance ce qui tournait, puis chaque processus des projets marqués pour démarrer avec le serveur.
+
+## Limites connues
+
+- Les versions de runtime d’un projet se choisissent dans ses réglages une fois le projet ajouté ; l’écran d’ajout ne les demande pas encore.
+- Une app macOS 0.1.2 ou plus récente trouve cette version seule ; les 0.1.0 et 0.1.1 ne le peuvent toujours pas, et demandent la 0.3.0 installée depuis la page de téléchargement.
+- L’installateur Windows n’est toujours pas signé : SmartScreen avertit au premier lancement.
