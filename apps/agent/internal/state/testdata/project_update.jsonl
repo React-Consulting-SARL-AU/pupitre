@@ -8,6 +8,7 @@
 @reply nproc 4
 @answer uname -m :: aarch64
 @answer df -P -B1 Filesystem 1B-blocks Used Available Capacity Mounted\n/dev/sda1 85899345920 21474836480 64424509440 25% /
+@dir /home/dev/projects/shop
 @serves shop/shop 3100
 > {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
 > {"id":2,"cmd":"project.add","params":{"name":"shop","dir":"shop","repo":"https://github.com/me/shop","processes":[{"id":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[{"label":"web","port":3100,"subdomain":"shop"},{"label":"api","port":3101,"subdomain":"api-shop"},{"label":"docs","port":3102}],"cmd":"bun run turbo run dev"}]}}

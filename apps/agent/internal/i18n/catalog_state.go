@@ -74,6 +74,14 @@ var stateCatalog = map[string]Message{
 		FR: "Nommez un processus que le projet déclare : ils sont listés par project.list.",
 		EN: "Name a process the project declares: project.list lists them.",
 	},
+	"state.project.dir.busy": {
+		FR: "%s : le dossier %s existe déjà et n'est pas vide",
+		EN: "%s: the folder %s already exists and is not empty",
+	},
+	"state.project.dir.busy.fix": {
+		FR: "Videz ce dossier ou choisissez-en un autre : %s sera cloné dedans.",
+		EN: "Empty that folder or choose another one: %s will be cloned into it.",
+	},
 	"state.project.dir.missing": {
 		FR: "%s : le dossier %s est absent",
 		EN: "%s: the folder %s is missing",

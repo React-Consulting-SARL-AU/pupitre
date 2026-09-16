@@ -32,6 +32,10 @@ func (r *Reader) Add(project registry.Project, processes []ProcessRequest) (cont
 	}
 	project.Processes = resolved
 
+	if err := r.roomForClone(project); err != nil {
+		return contract.Project{}, err
+	}
+
 	if err := reg.Add(ctx, project); err != nil {
 		return contract.Project{}, err
 	}
@@ -40,15 +44,48 @@ func (r *Reader) Add(project registry.Project, processes []ProcessRequest) (cont
 		return contract.Project{}, err
 	}
 
-	owner := r.options.Tmux.User
-	path := project.Path(r.options.Paths.Resolved().Projects)
-	for _, process := range project.Processes {
-		if err := file.MkdirOwned(ctx, process.Path(path), owner, owner, 0o755); err != nil {
-			return contract.Project{}, err
+	// A repository brings its folders with the clone, and git refuses to clone into a folder that already holds one of them: only a project of a folder already here gets its process folders made.
+	if project.Repo == "" || project.Repo == "-" {
+		owner := r.options.Tmux.User
+		path := project.Path(r.options.Paths.Resolved().Projects)
+		for _, process := range project.Processes {
+			if err := file.MkdirOwned(ctx, process.Path(path), owner, owner, 0o755); err != nil {
+				return contract.Project{}, err
+			}
 		}
 	}
 
 	return r.one(project.Name)
+}
+
+// A repository project needs a folder git can clone into: absent, empty, or already holding that very repository. Anything else is refused before the row is written, with what to do about it.
+func (r *Reader) roomForClone(project registry.Project) error {
+	if project.Repo == "" || project.Repo == "-" {
+		return nil
+	}
+
+	ctx := r.ctx()
+	root := project.RootPath(r.options.Paths.Resolved().Projects)
+	if !file.Exists(ctx, root) {
+		return nil
+	}
+
+	if exists, _ := ctx.Sys().Exists(root + "/.git"); exists {
+		if held, other := r.otherRepository(project, root); other {
+			return protocol.NewError(contract.ErrorBadRequest, i18n.T("state.project.repo.other", project.Name, held)).
+				WithFix(i18n.T("state.project.repo.other.fix", root, project.Repo))
+		}
+
+		return nil
+	}
+
+	entries, err := file.List(ctx, root)
+	if err != nil || len(entries) == 0 {
+		return nil
+	}
+
+	return protocol.NewError(contract.ErrorBadRequest, i18n.T("state.project.dir.busy", project.Name, root)).
+		WithFix(i18n.T("state.project.dir.busy.fix", project.Repo))
 }
 
 // A ProcessRequest is a process as project.add and project.update receive it, its routes before their names on the web are resolved.

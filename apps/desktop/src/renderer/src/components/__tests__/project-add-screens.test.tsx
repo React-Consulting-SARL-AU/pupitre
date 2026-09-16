@@ -389,6 +389,30 @@ describe("un projet qui ne démarre pas", () => {
     expect(rendered).toContain("corrige la colonne install");
     expect(rendered).toContain("Réessayer");
     expect(rendered).toContain("exit status 1");
+    expect(rendered).not.toContain("Modifier le formulaire");
+  });
+
+  /**
+   * A declaration refused — a folder already busy, a name taken — is fixed in
+   * the form, and nothing exists on the server yet: the form must be reachable
+   * with the draft intact, where Cancel would drop it.
+   */
+  it("offre de revenir au formulaire quand la déclaration est refusée", () => {
+    const rendered = text(
+      panel({
+        ...run,
+        error: {
+          code: "bad_request",
+          fix: "Videz ce dossier ou choisissez-en un autre.",
+          message:
+            "shop : le dossier /home/dev/projects/shop existe déjà et n'est pas vide",
+        },
+        phase: "add",
+      })
+    );
+
+    expect(rendered).toContain("Modifier le formulaire");
+    expect(rendered).toContain("Réessayer");
   });
 });
 
