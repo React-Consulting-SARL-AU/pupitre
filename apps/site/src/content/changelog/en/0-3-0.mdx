@@ -1,0 +1,35 @@
+---
+title: Servers answer to their name, and a project pins its runtimes
+description: One line in ~/.ssh/config opens the app's servers to ssh, the editors and the coding agents under their name; a runtime holds several majors at once and each project names the one it runs on; a project can start with the server or be added without being started; a Codex login address folded by the terminal opens whole again.
+locale: en
+version: 0.3.0
+channel: stable
+date: 2026-09-16
+order: 10
+---
+
+New in the app and in the agent, both to update: the app offers the agent update on the servers it knows, and what was set before is carried over as it was.
+
+## The app
+
+- Your servers reach `ssh`, the editors and the coding agents by name. In Settings › SSH, one box: *Let ssh, my editors and my coding agents reach my servers by name*. Ticked, the app adds one line at the top of your `~/.ssh/config` — `Include "<app folder>/ssh/config"` — and nothing else in that file moves; unticked, the line is taken back. Every server added by the app then answers to its name in lowercase, `ssh atelier` for a server called "Atelier", with the app's key and the pinned host key, in `ssh`, VS Code, Cursor, Zed, JetBrains Gateway, Claude Code and Codex alike. The setting lists the word each server answers to. A name already declared as a `Host` in your file is left alone: that server keeps its identifier, `pupitre-<id>`.
+- The "Open in" buttons of a project name the server by that word. Zed, JetBrains Gateway, VS Code and Cursor were handed `user@host`, which they could not open without the key. Pressed before the line is in `~/.ssh/config`, the button offers to add it first, then opens.
+- A runtime is installed at several majors at once. Node, Java, Python, Go, PHP, Ruby and Rust each offer a list of majors to check in their service settings — Node 24, 22 and 20, say — instead of a single version. The newest checked is the machine's default, what a shell outside any project runs; a major unchecked is removed from the server. A runtime set at one version before keeps it, as a list of one.
+- A project names the version of each runtime it runs on. In its settings, one choice per runtime the server holds: the machine's default, or any major installed. The choice applies to the project's processes and to the terminals opened in it, whatever the repository declares. A version the server does not hold is refused, with the service where to check it.
+- A project can start with the server. A checkbox when adding it and in its settings; left unchecked, a project comes back after a reboot only if it was running when the server went down, as before.
+- A project can be added without being started. "Start the project once it is ready" is checked by default; unchecked, the project is still fetched and installed, and left stopped.
+- "Open" shows only when the project has a published address. A project without a name on the web answered the server's own local address, which opened nothing from this computer.
+- A Codex login address folded by the terminal opens whole. Codex indents its address on a line that fills the screen and continues at the first column; the app kept only the first fragment and sent that to the browser.
+- A confirmation — removing a project, say — opens in a dialog instead of replacing its button, so nothing around it moves.
+
+## The agent
+
+- Each checked major is installed through mise, the newest checked becomes the default, and a major no longer checked is removed.
+- A project's choice is written where mise reads it: a `mise.local.toml` at the project's root, kept out of the repository's diff by `.git/info/exclude`. It comes before anything the repository declares; a project that names nothing follows the repository's own `mise.toml` or `.tool-versions`, as long as the version asked for is installed.
+- At boot, `pupitre-resume` starts what was running, then every process of the projects marked to start with the server.
+
+## Known limits
+
+- The runtime versions of a project are chosen in its settings once it is added; the add screen does not ask for them yet.
+- A macOS app 0.1.2 or later finds this version on its own; 0.1.0 and 0.1.1 still cannot, and need 0.3.0 installed from the download page.
+- The Windows installer is still unsigned: SmartScreen warns at first launch.
