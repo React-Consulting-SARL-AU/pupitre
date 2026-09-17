@@ -2,7 +2,12 @@ import type { ServerStatus } from "@pupitre/db/cloudflare/client"
 import { getPrisma, type OrganizationPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { getBillingProvider } from "./runtime"
-import { readSubscription, type SubscriptionView } from "./subscription"
+import {
+  LIVE_SUBSCRIPTION_STATUSES,
+  liveSubscriptionOf,
+  readSubscription,
+  type SubscriptionView,
+} from "./subscription"
 
 export const SEATED_STATUSES: ServerStatus[] = [
   "enrolling",
@@ -11,7 +16,7 @@ export const SEATED_STATUSES: ServerStatus[] = [
   "suspended",
 ]
 
-export const PAYING_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due"]
+export const PAYING_SUBSCRIPTION_STATUSES = LIVE_SUBSCRIPTION_STATUSES
 
 export type SeatQuotaSource = "subscription" | "none"
 
@@ -43,13 +48,12 @@ export function countSeatedServers(
 }
 
 export async function payingSubscriptionOf(organizationId: string) {
-  return await getPrisma().subscription.findFirst({
-    where: {
-      organizationId,
-      status: { in: PAYING_SUBSCRIPTION_STATUSES },
-    },
-    orderBy: { updatedAt: "desc" },
-  })
+  const subscription = await liveSubscriptionOf(organizationId)
+
+  return subscription &&
+    PAYING_SUBSCRIPTION_STATUSES.includes(subscription.status)
+    ? subscription
+    : null
 }
 
 export class NoPayingSubscriptionError extends Error {

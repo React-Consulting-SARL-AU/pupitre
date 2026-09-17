@@ -59,7 +59,7 @@ export function ServerActions({
           deletion === "purge" ? detail : { ...detail, status: REVOKED }
       ),
     ],
-    invalidate: [queryKeys.servers, queryKeys.server(serverId)],
+    invalidate: [queryKeys.servers, queryKeys.server(serverId), queryKeys.me],
     onStart: (deletion) => {
       if (deletion === "purge") {
         navigate({ to: "/dashboard/servers" })

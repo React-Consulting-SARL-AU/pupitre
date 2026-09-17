@@ -6,9 +6,12 @@ import {
 } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import {
+  type Entitlement,
   type EntitlementRefusal,
+  entitlementForOrganization,
   entitlementRefusalFor,
   entitlementWindow,
+  graceDeadline,
 } from "../billing/entitlement"
 import {
   countSeatedServers,
@@ -21,7 +24,12 @@ import {
   type EnrollmentRelease,
   releaseForEnrollment,
 } from "../releases/releases"
-import { enrollmentKeyOf, isEnrollmentKeyConflict } from "./enrollment-key"
+import {
+  enrollmentKeyOf,
+  isEnrollmentKeyConflict,
+  normalizeHost,
+} from "./enrollment-key"
+import type { ServerRow } from "./server-row"
 import {
   generateEnrollmentToken,
   generateServerToken,
@@ -115,7 +123,6 @@ export interface ExchangeInput {
 interface EnrollTarget {
   host: string
   port: number
-  deviceId: string
 }
 
 interface ClaimedServer {
@@ -126,6 +133,7 @@ interface ClaimedServer {
 interface EnrollmentGrant {
   arch: string
   sshUser: string
+  deviceId: string
   targetVersion: string
   enrollmentKey: string
   enrollmentTokenHash: string
@@ -257,9 +265,8 @@ export async function enrollServer(
   }
 
   const target: EnrollTarget = {
-    host: input.host.trim(),
+    host: normalizeHost(input.host),
     port: input.port ?? DEFAULT_SSH_PORT,
-    deviceId: device.id,
   }
 
   const enrollmentToken = generateEnrollmentToken()
@@ -267,6 +274,7 @@ export async function enrollServer(
   const grant: EnrollmentGrant = {
     arch: input.probe.arch,
     sshUser: input.ssh_user ?? DEFAULT_SSH_USER,
+    deviceId: device.id,
     targetVersion: release.version,
     enrollmentKey: enrollmentKeyOf({
       ...target,
@@ -301,6 +309,39 @@ export async function enrollServer(
 }
 
 /**
+ * What the exchange leaves the server in: the organization's entitlement,
+ * never a fresh `active`. A machine suspended after a tolerance stays so
+ * while the invoice stays unpaid, and one enrolled during a tolerance opens
+ * in it; only a valid subscription hands out a full window.
+ */
+function standingAfterExchange(server: ServerRow, held: Entitlement) {
+  if (held.state === "valid") {
+    return {
+      status: "active" as const,
+      suspendedReason: null,
+      entitlementValidUntil: entitlementWindow(),
+    }
+  }
+
+  if (server.status === "suspended" || server.status === "grace") {
+    return {
+      status: server.status,
+      entitlementValidUntil: server.entitlementValidUntil,
+    }
+  }
+
+  if (held.state === "grace") {
+    return { status: "grace" as const, entitlementValidUntil: graceDeadline() }
+  }
+
+  return {
+    status: "suspended" as const,
+    suspendedReason: "billing" as const,
+    entitlementValidUntil: held.valid_until,
+  }
+}
+
+/**
  * The enrollment token, exchanged once for a server token.
  *
  * What's only valid once is the token, and its expiry is what says so: it
@@ -317,6 +358,7 @@ export async function exchangeEnrollmentToken(
   const enrollmentTokenHash = await hashEnrollmentToken(input.enrollment_token)
   const server = await prisma.server.findUnique({
     where: { enrollmentTokenHash },
+    omit: { metrics: true },
   })
 
   if (!server) {
@@ -335,15 +377,15 @@ export async function exchangeEnrollmentToken(
 
   const serverToken = generateServerToken()
   const hostFingerprint = await fingerprintOfPublicKey(input.host_public_key)
+  const held = await entitlementForOrganization(server.organizationId)
   const burnt = await prisma.server.updateMany({
     where: { id: server.id, enrollmentExpiresAt: grantedUntil },
     data: {
-      status: "active",
+      ...standingAfterExchange(server, held),
       arch: input.arch,
       agentVersion: input.agent_version,
       hostFingerprint,
       serverTokenHash: await hashServerToken(serverToken),
-      entitlementValidUntil: entitlementWindow(),
       enrollmentExpiresAt: null,
     },
   })
@@ -365,7 +407,10 @@ export async function exchangeEnrollmentToken(
     },
   })
 
-  const ready = await prisma.server.findUnique({ where: { id: server.id } })
+  const ready = await prisma.server.findUnique({
+    where: { id: server.id },
+    omit: { metrics: true },
+  })
 
   if (ready) {
     await sendServerEnrolledEmail({ server: ready, acceptLanguage })

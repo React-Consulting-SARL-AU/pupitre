@@ -1,5 +1,33 @@
-import type { BillingInterval } from "@pupitre/db/cloudflare/client"
+import type {
+  BillingInterval,
+  Subscription,
+} from "@pupitre/db/cloudflare/client"
 import { getPrisma } from "../api/prisma"
+
+export const LIVE_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due"]
+
+/**
+ * The subscription that counts for an organization: the one Stripe still
+ * bills, before any other. An old subscription keeps receiving events after a
+ * new one opened, and the last one touched is not the one that pays.
+ */
+export async function liveSubscriptionOf(
+  organizationId: string
+): Promise<Subscription | null> {
+  const prisma = getPrisma()
+  const live = await prisma.subscription.findFirst({
+    where: { organizationId, status: { in: LIVE_SUBSCRIPTION_STATUSES } },
+    orderBy: { updatedAt: "desc" },
+  })
+
+  return (
+    live ??
+    (await prisma.subscription.findFirst({
+      where: { organizationId },
+      orderBy: { updatedAt: "desc" },
+    }))
+  )
+}
 
 export interface SubscriptionView {
   id: string
@@ -16,13 +44,9 @@ export interface SubscriptionView {
 export async function readSubscription(
   organizationId: string
 ): Promise<SubscriptionView | null> {
-  const prisma = getPrisma()
   const [subscription, billing] = await Promise.all([
-    prisma.subscription.findFirst({
-      where: { organizationId },
-      orderBy: { updatedAt: "desc" },
-    }),
-    prisma.organizationBilling.findUnique({ where: { organizationId } }),
+    liveSubscriptionOf(organizationId),
+    getPrisma().organizationBilling.findUnique({ where: { organizationId } }),
   ])
 
   if (!subscription) {

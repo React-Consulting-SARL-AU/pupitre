@@ -7,6 +7,8 @@ export const EMAIL_TEMPLATE_IDS = [
   "device_added",
   "entitlement_grace",
   "server_suspended",
+  "server_suspended_admin",
+  "seats_drift",
   "server_decommission",
   "alert_server_unreachable",
   "alert_disk_high",

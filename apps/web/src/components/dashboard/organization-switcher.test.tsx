@@ -1,9 +1,12 @@
-import { afterEach, describe, expect, it } from "bun:test"
+import { afterEach, describe, expect, it, spyOn } from "bun:test"
 import { QueryClientProvider } from "@tanstack/react-query"
+import { RouterContextProvider } from "@tanstack/react-router"
 import { OrganizationSwitcher } from "@/components/dashboard/organization-switcher"
+import { queryKeys } from "@/lib/api/queries"
 import { DashboardContext } from "@/lib/domain/dashboard-context"
 import { createQueryClient } from "@/lib/query/client"
-import { render, trigger, withRouter } from "@/testing/render"
+import { getRouter } from "@/router"
+import { render, trigger, waitUntil, withRouter } from "@/testing/render"
 
 const CONTEXT = {
   user: {
@@ -71,5 +74,71 @@ describe("OrganizationSwitcher", () => {
     mounted.push(unmount)
 
     expect(trigger(container, "Atelier").title).toBe("Organisations")
+  })
+
+  it("drops the previous organisation's answers and refreshes the account before it navigates", async () => {
+    const queryClient = createQueryClient()
+    const router = getRouter()
+    const seen: { servers: unknown; meInvalidated: boolean }[] = []
+    const activated: string[] = []
+    const setActive = spyOn(globalThis, "fetch").mockImplementation((async (
+      input: RequestInfo | URL,
+      init?: RequestInit
+    ) => {
+      const request = new Request(input, init)
+
+      if (!request.url.endsWith("/api/auth/organization/set-active")) {
+        throw new Error(`unexpected request ${request.url}`)
+      }
+
+      const body = (await request.json()) as { organizationId: string }
+
+      activated.push(body.organizationId)
+
+      return Response.json({ id: body.organizationId })
+    }) as typeof fetch)
+    const navigate = spyOn(router, "navigate").mockImplementation((async () => {
+      seen.push({
+        servers: queryClient.getQueryData(queryKeys.servers),
+        meInvalidated:
+          queryClient.getQueryState(queryKeys.me)?.isInvalidated ?? false,
+      })
+    }) as never)
+
+    queryClient.setQueryData(queryKeys.servers, [{ id: "srv-of-atelier" }])
+    queryClient.setQueryData(queryKeys.me, { user: { id: "u1" } })
+
+    const { container, unmount, click } = await render(
+      <RouterContextProvider router={router}>
+        <QueryClientProvider client={queryClient}>
+          <DashboardContext.Provider value={CONTEXT}>
+            <OrganizationSwitcher />
+          </DashboardContext.Provider>
+        </QueryClientProvider>
+      </RouterContextProvider>
+    )
+
+    mounted.push(unmount)
+
+    try {
+      await click(trigger(container, "Atelier"))
+
+      const target = [...document.querySelectorAll("[role=menuitem]")].find(
+        (item) => item.textContent?.includes("Ada Lovelace")
+      )
+
+      if (!target) {
+        throw new Error("no menu item for the other organisation")
+      }
+
+      await click(target)
+      await waitUntil(() => seen.length === 1)
+
+      expect(activated).toEqual(["o1"])
+      expect(seen[0]).toEqual({ servers: undefined, meInvalidated: true })
+    } finally {
+      setActive.mockRestore()
+      navigate.mockRestore()
+    }
   })
 })

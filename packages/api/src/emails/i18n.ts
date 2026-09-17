@@ -24,6 +24,8 @@ export const EMAIL_FR = {
   "label.last_seen": "Dernier signe de vie",
   "label.latest_version": "Dernière version publiée",
   "label.new_email": "Nouvelle adresse",
+  "label.reason": "Motif",
+  "label.seats_paid": "Sièges payés",
 
   "email_change.subject": "Confirmez le changement d'adresse",
   "email_change.preview":
@@ -100,6 +102,26 @@ export const EMAIL_FR = {
   "server_suspended.cta": "Reprendre l'abonnement",
   "server_suspended.footnote":
     "Le remède : reprenez l'abonnement depuis la facturation. Les serveurs redeviennent actifs à leur prochain contact.",
+
+  "server_suspended_admin.subject": "{server} a été suspendu par Pupitre",
+  "server_suspended_admin.preview":
+    "L'équipe Pupitre a suspendu ce serveur. L'agent ne travaille plus.",
+  "server_suspended_admin.title": "{server} est suspendu",
+  "server_suspended_admin.body":
+    "L'équipe Pupitre a suspendu ce serveur de {organization}. Ses clés ne sont plus distribuées et l'agent refuse de travailler dès son prochain contact. Vos données, vos projets et vos services restent en place sur la machine : rien n'est effacé.",
+  "server_suspended_admin.cta": "Écrire au support",
+  "server_suspended_admin.footnote":
+    "Le remède : répondez au support avec le motif ci-dessus. Un abonnement ne lève pas cette suspension ; seule l'équipe le fait.",
+
+  "seats_drift.subject":
+    "{organization} occupe plus de sièges qu'elle n'en paie",
+  "seats_drift.preview": "{seated} serveurs pour {paid} sièges payés.",
+  "seats_drift.title": "Plus de serveurs que de sièges",
+  "seats_drift.body":
+    "{organization} occupe {seated} serveurs alors que l'abonnement couvre {paid} sièges. Rien n'est coupé aujourd'hui, mais l'écart doit se résorber : ajoutez des sièges ou supprimez des serveurs.",
+  "seats_drift.cta": "Ajuster les sièges",
+  "seats_drift.footnote":
+    "Le remède : ouvrez la facturation et portez le nombre de sièges au nombre de serveurs, ou supprimez ceux qui ne servent plus.",
 
   "alert_server_unreachable.subject": "{server} ne répond plus",
   "alert_server_unreachable.preview":
@@ -178,6 +200,8 @@ export const EMAIL_EN: Record<EmailMessageKey, string> = {
   "label.last_seen": "Last sign of life",
   "label.latest_version": "Latest published version",
   "label.new_email": "New address",
+  "label.reason": "Reason",
+  "label.seats_paid": "Paid seats",
 
   "email_change.subject": "Confirm the address change",
   "email_change.preview":
@@ -253,6 +277,25 @@ export const EMAIL_EN: Record<EmailMessageKey, string> = {
   "server_suspended.cta": "Resume the subscription",
   "server_suspended.footnote":
     "The fix: resume the subscription from billing. The servers turn active again on their next contact.",
+
+  "server_suspended_admin.subject": "{server} was suspended by Pupitre",
+  "server_suspended_admin.preview":
+    "The Pupitre team suspended this server. The agent stopped working.",
+  "server_suspended_admin.title": "{server} is suspended",
+  "server_suspended_admin.body":
+    "The Pupitre team suspended this server of {organization}. Its keys are no longer handed out and the agent refuses to work from its next contact on. Your data, projects and services stay in place on the machine: nothing is erased.",
+  "server_suspended_admin.cta": "Write to support",
+  "server_suspended_admin.footnote":
+    "The fix: answer support with the reason above. A subscription does not lift this suspension; only the team does.",
+
+  "seats_drift.subject": "{organization} seats more servers than it pays for",
+  "seats_drift.preview": "{seated} servers for {paid} paid seats.",
+  "seats_drift.title": "More servers than seats",
+  "seats_drift.body":
+    "{organization} seats {seated} servers while the subscription covers {paid} seats. Nothing is cut today, but the gap has to close: add seats or remove servers.",
+  "seats_drift.cta": "Adjust the seats",
+  "seats_drift.footnote":
+    "The fix: open billing and raise the seat count to the number of servers, or remove the ones no longer in use.",
 
   "alert_server_unreachable.subject": "{server} stopped answering",
   "alert_server_unreachable.preview":

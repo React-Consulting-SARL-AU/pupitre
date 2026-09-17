@@ -37,10 +37,10 @@ export async function authorizedKeysForServer(
 ): Promise<string[]> {
   const server = await prisma.server.findUnique({
     where: { id: serverId },
-    select: { assignedUserId: true, organizationId: true },
+    select: { assignedUserId: true, organizationId: true, status: true },
   })
 
-  if (!server?.assignedUserId) {
+  if (!server?.assignedUserId || server.status === "suspended") {
     return []
   }
 

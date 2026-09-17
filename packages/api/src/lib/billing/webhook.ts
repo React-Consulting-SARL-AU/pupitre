@@ -1,12 +1,13 @@
 import type { BillingInterval } from "@pupitre/db/cloudflare/client"
 import { getPrisma } from "../api/prisma"
 import { type AuditAction, recordEvent } from "../audit/audit"
-import { graceDeadline } from "./entitlement"
+import { graceDeadline, subscriptionStateOf } from "./entitlement"
 import { graceOrganizationServers, restoreOrganizationServers } from "./grace"
 import type { RemoteSubscription } from "./provider"
 import { getBillingProvider, getWebhookSecret } from "./runtime"
 import { type SignatureRefusal, verifyStripeSignature } from "./signature"
 import { type StripeSubscriptionPayload, toRemoteSubscription } from "./stripe"
+import { liveSubscriptionOf } from "./subscription"
 
 export const HANDLED_EVENT_TYPES = [
   "checkout.session.completed",
@@ -18,7 +19,9 @@ export const HANDLED_EVENT_TYPES = [
 
 export type HandledEventType = (typeof HANDLED_EVENT_TYPES)[number]
 
-const LIVE_STATUSES = new Set(["active", "trialing"])
+const SUBSCRIPTION_EVENT_PREFIX = "customer.subscription."
+
+const UNIQUE_VIOLATION = "P2002"
 
 export class StripeSignatureInvalidError extends Error {
   readonly refusal: SignatureRefusal
@@ -138,8 +141,7 @@ async function rememberCustomer(
 
 async function mirrorSubscription(
   organizationId: string,
-  remote: RemoteSubscription,
-  status: string
+  remote: RemoteSubscription
 ): Promise<AuditAction> {
   const prisma = getPrisma()
   const existing = await prisma.subscription.findUnique({
@@ -149,7 +151,7 @@ async function mirrorSubscription(
   const data = {
     product: remote.product,
     quantity: remote.quantity,
-    status,
+    status: remote.status,
     currentPeriodEnd: remote.current_period_end,
   }
 
@@ -165,8 +167,7 @@ async function mirrorSubscription(
 async function auditSubscription(
   action: AuditAction,
   organizationId: string,
-  remote: RemoteSubscription,
-  status: string
+  remote: RemoteSubscription
 ): Promise<void> {
   await recordEvent({
     action,
@@ -175,7 +176,7 @@ async function auditSubscription(
     targetType: "subscription",
     targetId: remote.id,
     payload: {
-      status,
+      status: remote.status,
       quantity: remote.quantity,
       product: remote.product,
       current_period_end: remote.current_period_end?.toISOString() ?? null,
@@ -183,8 +184,47 @@ async function auditSubscription(
   })
 }
 
+/**
+ * The servers follow the one subscription that counts, read back from the
+ * mirror after every event: a live one restores them, an unpaid one opens the
+ * seven-day tolerance, a cancelled one lets them run to the end of the period.
+ * The event that arrives last is not always the one that happened last.
+ */
+async function applyOrganizationEntitlement(
+  organizationId: string,
+  now: Date
+): Promise<void> {
+  const subscription = await liveSubscriptionOf(organizationId)
+
+  if (!subscription) {
+    return
+  }
+
+  const state = subscriptionStateOf(subscription.status)
+
+  if (state === "valid") {
+    await restoreOrganizationServers(organizationId, now)
+
+    return
+  }
+
+  if (state === "grace") {
+    await graceOrganizationServers(organizationId, graceDeadline(now))
+
+    return
+  }
+
+  if (subscription.status === "canceled") {
+    await graceOrganizationServers(
+      organizationId,
+      subscription.currentPeriodEnd ?? graceDeadline(now)
+    )
+  }
+}
+
 async function onCheckoutCompleted(
-  object: Record<string, unknown>
+  object: Record<string, unknown>,
+  now: Date
 ): Promise<boolean> {
   const organizationId = metadataOrganizationOf(object)
   const customerId = idOf(object.customer)
@@ -208,68 +248,47 @@ async function onCheckoutCompleted(
     remote.interval
   )
 
-  const action = await mirrorSubscription(organizationId, remote, remote.status)
+  const action = await mirrorSubscription(organizationId, remote)
 
-  await auditSubscription(action, organizationId, remote, remote.status)
-
-  if (LIVE_STATUSES.has(remote.status)) {
-    await restoreOrganizationServers(organizationId)
-  }
+  await auditSubscription(action, organizationId, remote)
+  await applyOrganizationEntitlement(organizationId, now)
 
   return true
 }
 
-async function onSubscriptionChanged(
-  object: Record<string, unknown>
-): Promise<boolean> {
-  const remote = toRemoteSubscription(object as StripeSubscriptionPayload)
-  const organizationId =
-    remote.organization_id ??
-    (await organizationOfCustomer(remote.customer_id)) ??
-    (await organizationOfSubscription(remote.id))
-
-  if (!organizationId) {
-    return false
-  }
-
-  await rememberCustomer(organizationId, remote.customer_id, remote.interval)
-
-  const action = await mirrorSubscription(organizationId, remote, remote.status)
-
-  await auditSubscription(action, organizationId, remote, remote.status)
-
-  if (LIVE_STATUSES.has(remote.status)) {
-    await restoreOrganizationServers(organizationId)
-  }
-
-  return true
+async function organizationOf(
+  announced: RemoteSubscription
+): Promise<string | null> {
+  return (
+    announced.organization_id ??
+    (await organizationOfCustomer(announced.customer_id)) ??
+    (await organizationOfSubscription(announced.id))
+  )
 }
 
-async function onSubscriptionDeleted(
+async function onSubscriptionEvent(
   object: Record<string, unknown>,
   now: Date
 ): Promise<boolean> {
-  const remote = toRemoteSubscription(object as StripeSubscriptionPayload)
-  const organizationId =
-    remote.organization_id ??
-    (await organizationOfCustomer(remote.customer_id)) ??
-    (await organizationOfSubscription(remote.id))
+  const announced = toRemoteSubscription(object as StripeSubscriptionPayload)
+  const organizationId = await organizationOf(announced)
 
   if (!organizationId) {
     return false
   }
 
-  await mirrorSubscription(organizationId, remote, "canceled")
-  await graceOrganizationServers(
-    organizationId,
-    remote.current_period_end ?? graceDeadline(now)
-  )
+  const remote = await getBillingProvider().retrieveSubscription(announced.id)
+
+  await rememberCustomer(organizationId, remote.customer_id, remote.interval)
+
+  const action = await mirrorSubscription(organizationId, remote)
+
   await auditSubscription(
-    "subscription.canceled",
+    remote.status === "canceled" ? "subscription.canceled" : action,
     organizationId,
-    remote,
-    "canceled"
+    remote
   )
+  await applyOrganizationEntitlement(organizationId, now)
 
   return true
 }
@@ -290,16 +309,14 @@ async function onInvoicePaymentFailed(
     return false
   }
 
-  const prisma = getPrisma()
-
   if (subscriptionId) {
-    await prisma.subscription.updateMany({
+    await getPrisma().subscription.updateMany({
       where: { stripeSubscriptionId: subscriptionId },
       data: { status: "past_due" },
     })
   }
 
-  await graceOrganizationServers(organizationId, graceDeadline(now))
+  await applyOrganizationEntitlement(organizationId, now)
   await recordEvent({
     action: "subscription.updated",
     actorUserId: null,
@@ -318,18 +335,11 @@ function dispatch(
   now: Date
 ): Promise<boolean> {
   if (type === "checkout.session.completed") {
-    return onCheckoutCompleted(object)
+    return onCheckoutCompleted(object, now)
   }
 
-  if (
-    type === "customer.subscription.created" ||
-    type === "customer.subscription.updated"
-  ) {
-    return onSubscriptionChanged(object)
-  }
-
-  if (type === "customer.subscription.deleted") {
-    return onSubscriptionDeleted(object, now)
+  if (type.startsWith(SUBSCRIPTION_EVENT_PREFIX)) {
+    return onSubscriptionEvent(object, now)
   }
 
   if (type === "invoice.payment_failed") {
@@ -337,6 +347,47 @@ function dispatch(
   }
 
   return Promise.resolve(false)
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { code?: unknown }).code === UNIQUE_VIOLATION
+  )
+}
+
+/**
+ * The event is claimed before anything runs: two deliveries racing on two
+ * isolates collapse on the primary key, and only one of them handles it. A
+ * claim left `failed` by a handler that threw is taken again on Stripe's
+ * retry, since the 500 it got is what asks for one.
+ */
+async function claimEvent(
+  id: string,
+  type: string,
+  now: Date
+): Promise<boolean> {
+  const prisma = getPrisma()
+
+  try {
+    await prisma.stripeEvent.create({
+      data: { id, type, status: "processing", receivedAt: now },
+    })
+
+    return true
+  } catch (error) {
+    if (!isUniqueViolation(error)) {
+      throw error
+    }
+  }
+
+  const retried = await prisma.stripeEvent.updateMany({
+    where: { id, status: "failed" },
+    data: { status: "processing", receivedAt: now },
+  })
+
+  return retried.count === 1
 }
 
 export interface StripeWebhookInput {
@@ -376,16 +427,28 @@ export async function handleStripeWebhook({
     throw new StripeEventMalformedError()
   }
 
-  const prisma = getPrisma()
-  const seen = await prisma.stripeEvent.findUnique({ where: { id } })
-
-  if (seen) {
+  if (!(await claimEvent(id, type, now))) {
     return { event_id: id, type, handled: false, duplicate: true }
   }
 
-  const handled = await dispatch(type, envelope.data?.object ?? {}, now)
+  const prisma = getPrisma()
+  let handled: boolean
 
-  await prisma.stripeEvent.create({ data: { id, type, processedAt: now } })
+  try {
+    handled = await dispatch(type, envelope.data?.object ?? {}, now)
+  } catch (error) {
+    await prisma.stripeEvent.update({
+      where: { id },
+      data: { status: "failed" },
+    })
+
+    throw error
+  }
+
+  await prisma.stripeEvent.update({
+    where: { id },
+    data: { status: "processed", processedAt: now },
+  })
 
   return { event_id: id, type, handled, duplicate: false }
 }

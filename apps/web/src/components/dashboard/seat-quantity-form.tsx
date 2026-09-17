@@ -43,6 +43,7 @@ export function SeatQuantityForm({
         subscription
       )
     },
+    invalidate: [queryKeys.me],
     toast: {
       done: (_data, values) =>
         t.plural("billing.seatsUpdated", values.quantity),

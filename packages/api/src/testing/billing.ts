@@ -2,6 +2,10 @@ import { createFakeBilling, type FakeBilling } from "../lib/billing/fake"
 import type { RemoteSubscription } from "../lib/billing/provider"
 import { configureBilling } from "../lib/billing/runtime"
 import { signStripePayload } from "../lib/billing/signature"
+import {
+  type StripeSubscriptionPayload,
+  toRemoteSubscription,
+} from "../lib/billing/stripe"
 import { bootApiTestServer, TEST_BASE_URL } from "./index"
 import type { TestResponse } from "./request"
 
@@ -103,12 +107,42 @@ export interface WebhookRequestInit {
   secret?: string
   signature?: string
   signedAt?: Date
+  /** What Stripe answers when the platform reads the subscription back; the event's own object unless the test says otherwise. */
+  remote?: RemoteSubscription
+}
+
+const SUBSCRIPTION_EVENT_PREFIX = "customer.subscription."
+
+function seedRemoteSubscription(
+  event: unknown,
+  remote: RemoteSubscription | undefined
+): void {
+  const envelope = event as {
+    type?: unknown
+    data?: { object?: StripeSubscriptionPayload }
+  }
+
+  if (remote) {
+    fake?.put(remote)
+
+    return
+  }
+
+  if (
+    typeof envelope.type === "string" &&
+    envelope.type.startsWith(SUBSCRIPTION_EVENT_PREFIX) &&
+    envelope.data?.object
+  ) {
+    fake?.put(toRemoteSubscription(envelope.data.object))
+  }
 }
 
 export async function postStripeWebhook<T = unknown>(
   event: unknown,
   init: WebhookRequestInit = {}
 ): Promise<TestResponse<T>> {
+  seedRemoteSubscription(event, init.remote)
+
   const payload = JSON.stringify(event)
   const signature =
     init.signature ??

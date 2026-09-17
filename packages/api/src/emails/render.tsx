@@ -1,4 +1,5 @@
 import type { Locale } from "@pupitre/shared/i18n"
+import { LEGAL_CONTACTS } from "@pupitre/shared/legal"
 import { render, toPlainText } from "@react-email/components"
 import type { ReactElement } from "react"
 import { consolePath } from "./config"
@@ -13,10 +14,12 @@ import { EmailChangeEmail } from "./templates/email-change"
 import { EntitlementGraceEmail } from "./templates/entitlement-grace"
 import { InvitationEmail } from "./templates/invitation"
 import { MagicLinkEmail } from "./templates/magic-link"
+import { SeatsDriftEmail } from "./templates/seats-drift"
 import { ServerAssignedEmail } from "./templates/server-assigned"
 import { ServerDecommissionEmail } from "./templates/server-decommission"
 import { ServerEnrolledEmail } from "./templates/server-enrolled"
 import { ServerSuspendedEmail } from "./templates/server-suspended"
+import { ServerSuspendedAdminEmail } from "./templates/server-suspended-admin"
 
 export interface RenderedEmail {
   subject: string
@@ -188,6 +191,50 @@ export function renderServerSuspendedEmail(
     "server_suspended.subject",
     { organization: input.organizationName, count: input.serverCount },
     <ServerSuspendedEmail {...input} url={consolePath("/dashboard/billing")} />
+  )
+}
+
+export interface ServerSuspendedAdminInput {
+  locale: Locale
+  organizationName: string
+  serverName: string
+  address: string
+  reason: string
+}
+
+export function renderServerSuspendedAdminEmail(
+  input: ServerSuspendedAdminInput
+): Promise<RenderedEmail> {
+  return compose(
+    input.locale,
+    "server_suspended_admin.subject",
+    { organization: input.organizationName, server: input.serverName },
+    <ServerSuspendedAdminEmail
+      {...input}
+      url={`mailto:${LEGAL_CONTACTS.support}`}
+    />
+  )
+}
+
+export interface SeatsDriftInput {
+  locale: Locale
+  organizationName: string
+  paid: number
+  seated: number
+}
+
+export function renderSeatsDriftEmail(
+  input: SeatsDriftInput
+): Promise<RenderedEmail> {
+  return compose(
+    input.locale,
+    "seats_drift.subject",
+    {
+      organization: input.organizationName,
+      paid: input.paid,
+      seated: input.seated,
+    },
+    <SeatsDriftEmail {...input} url={consolePath("/dashboard/billing")} />
   )
 }
 

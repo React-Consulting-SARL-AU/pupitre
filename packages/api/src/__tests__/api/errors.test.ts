@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test"
+import { describe, expect, it, spyOn } from "bun:test"
 import { ApiErrorBodySchema } from "@pupitre/shared/api/errors"
 import { Elysia, t } from "elysia"
 import { createApi } from "../../server"
@@ -15,6 +15,13 @@ const probeRoutes = new Elysia()
   })
   .get("/boom", () => {
     throw new Error("secret database details")
+  })
+  .get("/leak", () => {
+    throw Object.assign(new Error("Unique constraint failed"), {
+      name: "PrismaClientKnownRequestError",
+      code: "P2002",
+      meta: { target: ["email"], values: ["ada@private.example"] },
+    })
   })
 
 const api = createApi(probeRoutes)
@@ -108,6 +115,29 @@ describe("API error envelope", () => {
     expect(response.json.error.message).toMatch(REF_RE)
     expect(JSON.stringify(response.json)).not.toContain("secret database")
     expect(JSON.stringify(response.json)).not.toContain("at ")
+  })
+
+  it("logs the reference, the name and the code of an unexpected error, never the error itself", async () => {
+    const lines: string[] = []
+    const logged = spyOn(console, "error").mockImplementation(
+      (...parts: unknown[]) => {
+        lines.push(parts.map((part) => JSON.stringify(part)).join(" "))
+      }
+    )
+
+    try {
+      const response = await call("/leak")
+
+      expect(response.status).toBe(500)
+      expect(lines).toHaveLength(1)
+      expect(lines[0]).toContain("P2002")
+      expect(lines[0]).toContain("PrismaClientKnownRequestError")
+      expect(lines[0]).toMatch(REF_RE)
+      expect(lines[0]).not.toContain("ada@private.example")
+      expect(lines[0]).not.toContain("at ")
+    } finally {
+      logged.mockRestore()
+    }
   })
 
   it("keeps the single error shape on every failure", async () => {

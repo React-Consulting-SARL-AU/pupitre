@@ -83,6 +83,14 @@ describe("expireEnrollments", () => {
 
     expect(server.status).toBe("revoked")
     expect(server.enrollmentTokenHash).toBeNull()
+    expect(server.assignedUserId).toBeNull()
+    expect(server.pendingAssignmentEmail).toBeNull()
+
+    const mine = await apiRequest<{ data: { id: string }[] }>("/me/servers", {
+      session: owner,
+    })
+
+    expect(mine.json.data).toEqual([])
 
     const refused = await apiRequest<{ error: { code: string } }>(
       "/agent/exchange",

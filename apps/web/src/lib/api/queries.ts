@@ -165,9 +165,17 @@ export type Subscription = NonNullable<
   Awaited<ReturnType<typeof readSubscription>>
 >
 
+const LIVE_SUBSCRIPTION_STATUSES = new Set(["active", "trialing", "past_due"])
+
+export function isLiveSubscription(subscription: Subscription): boolean {
+  return LIVE_SUBSCRIPTION_STATUSES.has(subscription.status)
+}
+
 /**
  * Stripe alone opens a subscription, and tells us by webhook: coming back from
- * Checkout, the console has nothing to create and everything to wait for.
+ * Checkout, the console has nothing to create and everything to wait for. The
+ * mirror it finds first may be the old, cancelled one — the wait ends on a
+ * live status, or on a subscription other than the one it started with.
  */
 export async function pollSubscription(
   organizationId: string,
@@ -177,11 +185,17 @@ export async function pollSubscription(
   }: SubscriptionPoll = {}
 ): Promise<Subscription> {
   const deadline = Date.now() + timeoutMs
+  const before = (await readSubscription(organizationId))
+    ?.stripe_subscription_id
 
   for (;;) {
     const subscription = await readSubscription(organizationId)
 
-    if (subscription) {
+    if (
+      subscription &&
+      (isLiveSubscription(subscription) ||
+        subscription.stripe_subscription_id !== before)
+    ) {
       return subscription
     }
 

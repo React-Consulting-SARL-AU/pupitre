@@ -58,6 +58,10 @@ export const auth = {
       "This invitation could not be accepted. It may have expired.",
     "auth.invitation.failedFix":
       "Ask the organisation's administrator for a new invitation.",
+    "auth.invitation.wrongEmail":
+      "This invitation was sent to another address than the one you are signed in with.",
+    "auth.invitation.wrongEmailFix":
+      "Sign out, then open the link with the account that received the email, or ask for an invitation to this address.",
   },
   fr: {
     "auth.signIn.title": "Connexion ou inscription",
@@ -121,5 +125,9 @@ export const auth = {
       "Cette invitation n'a pas pu être acceptée. Elle a peut-être expiré.",
     "auth.invitation.failedFix":
       "Demandez une nouvelle invitation à l'administrateur de l'organisation.",
+    "auth.invitation.wrongEmail":
+      "Cette invitation a été envoyée à une autre adresse que celle de votre session.",
+    "auth.invitation.wrongEmailFix":
+      "Déconnectez-vous, puis ouvrez le lien avec le compte qui a reçu l'email, ou demandez une invitation pour cette adresse.",
   },
 }

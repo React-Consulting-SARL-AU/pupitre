@@ -324,9 +324,138 @@ describe("releases", () => {
 
       expect(events).toHaveLength(1)
     })
+    it("demotes the newer stable releases of the same architecture, so a rollback lands", async () => {
+      const { prisma } = await bootApiTestServer()
+      const session = await platformAdmin()
+
+      await publish(session)
+      await publish(session, {
+        version: "1.5.0",
+        r2_key: "agent/1.5.0/pupitred-linux-amd64",
+      })
+      await publish(session, {
+        version: "1.5.0",
+        arch: "arm64",
+        r2_key: "agent/1.5.0/pupitred-linux-arm64",
+      })
+      await promote(session, "1.4.0")
+      await promote(session, "1.5.0")
+
+      const rolledBack = await promote(session, "1.4.0")
+
+      expect(rolledBack.status).toBe(200)
+
+      const stored = await prisma.release.findMany({
+        orderBy: [{ version: "asc" }, { arch: "asc" }],
+        select: { version: true, arch: true, channel: true },
+      })
+
+      expect(stored).toEqual([
+        { version: "1.4.0", arch: "amd64", channel: "stable" },
+        { version: "1.5.0", arch: "amd64", channel: "beta" },
+        { version: "1.5.0", arch: "arm64", channel: "stable" },
+      ])
+
+      const event = await prisma.event.findFirstOrThrow({
+        where: { action: "release.promoted", targetId: "1.4.0" },
+        orderBy: { createdAt: "desc" },
+      })
+
+      expect(event.payload).toMatchObject({ demoted: ["1.5.0"] })
+    })
+
+    it("demotes nothing when promoting to beta", async () => {
+      const { prisma } = await bootApiTestServer()
+      const session = await platformAdmin()
+
+      await publish(session)
+      await publish(session, {
+        version: "1.5.0",
+        r2_key: "agent/1.5.0/pupitred-linux-amd64",
+      })
+      await promote(session, "1.5.0")
+      await promote(session, "1.4.0", "beta")
+
+      const stable = await prisma.release.findMany({
+        where: { channel: "stable" },
+        select: { version: true },
+      })
+
+      expect(stable).toEqual([{ version: "1.5.0" }])
+    })
   })
 
   describe("target version in /agent/state", () => {
+    it("moves the target down to the current stable when the previous one was withdrawn", async () => {
+      const { prisma } = await bootApiTestServer()
+      const admin = await platformAdmin()
+      const { organization } = await createOrganizationWithMembers({
+        roles: ["owner"],
+        subscription: {},
+      })
+      const { server, token } = await createServer({
+        organizationId: organization.id,
+        arch: "amd64",
+      })
+
+      await publish(admin)
+      await publish(admin, {
+        version: "1.5.0",
+        r2_key: "agent/1.5.0/pupitred-linux-amd64",
+      })
+      await promote(admin, "1.4.0")
+      await promote(admin, "1.5.0")
+
+      const before = await apiRequest<StateBody>("/agent/state", {
+        bearer: token,
+      })
+
+      expect(before.json.target_version).toBe("1.5.0")
+
+      await promote(admin, "1.4.0")
+
+      const after = await apiRequest<StateBody>("/agent/state", {
+        bearer: token,
+      })
+      const stored = await prisma.server.findUniqueOrThrow({
+        where: { id: server.id },
+      })
+
+      expect(after.json.target_version).toBe("1.4.0")
+      expect(stored.targetVersion).toBe("1.4.0")
+    })
+
+    it("never targets a version older than the one the agent already runs", async () => {
+      const { prisma } = await bootApiTestServer()
+      const admin = await platformAdmin()
+      const { organization } = await createOrganizationWithMembers({
+        roles: ["owner"],
+        subscription: {},
+      })
+      const { server, token } = await createServer({
+        organizationId: organization.id,
+        arch: "amd64",
+      })
+
+      await publish(admin)
+      await publish(admin, {
+        version: "1.5.0",
+        r2_key: "agent/1.5.0/pupitred-linux-amd64",
+      })
+      await promote(admin, "1.4.0")
+      await promote(admin, "1.5.0")
+      await prisma.server.update({
+        where: { id: server.id },
+        data: { targetVersion: "1.4.0", agentVersion: "1.5.0" },
+      })
+
+      const response = await apiRequest<StateBody>("/agent/state", {
+        bearer: token,
+      })
+
+      expect(response.json.target_version).toBe("1.5.0")
+    })
+
     it("keeps a beta release out of a stable server's target, then hands it over once promoted", async () => {
       const admin = await platformAdmin()
       const { organization } = await createOrganizationWithMembers({

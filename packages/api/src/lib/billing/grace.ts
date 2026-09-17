@@ -5,22 +5,26 @@ import {
 import { getPrisma } from "../api/prisma"
 import { entitlementWindow } from "./entitlement"
 
-const GRACEABLE_STATUSES = ["active", "grace"] as const
-
+/**
+ * Only a server still in full use takes the deadline: one already in
+ * tolerance keeps the day it was given, whatever Stripe retries in between.
+ */
 export async function graceOrganizationServers(
   organizationId: string,
   validUntil: Date
 ): Promise<number> {
   const { count } = await getPrisma().server.updateMany({
-    where: { organizationId, status: { in: [...GRACEABLE_STATUSES] } },
+    where: { organizationId, status: "active" },
     data: { status: "grace", entitlementValidUntil: validUntil },
   })
 
-  await sendEntitlementGraceEmail({
-    organizationId,
-    deadline: validUntil,
-    serverCount: count,
-  })
+  if (count > 0) {
+    await sendEntitlementGraceEmail({
+      organizationId,
+      deadline: validUntil,
+      serverCount: count,
+    })
+  }
 
   return count
 }
@@ -31,8 +35,18 @@ export function restoreOrganizationServers(
 ): Promise<number> {
   return getPrisma()
     .server.updateMany({
-      where: { organizationId, status: "grace" },
-      data: { status: "active", entitlementValidUntil: entitlementWindow(now) },
+      where: {
+        organizationId,
+        OR: [
+          { status: "grace" },
+          { status: "suspended", suspendedReason: "billing" },
+        ],
+      },
+      data: {
+        status: "active",
+        suspendedReason: null,
+        entitlementValidUntil: entitlementWindow(now),
+      },
     })
     .then((result) => result.count)
 }
@@ -58,7 +72,7 @@ export async function suspendExpiredGrace(
 
   await prisma.server.updateMany({
     where: { id: { in: ids } },
-    data: { status: "suspended" },
+    data: { status: "suspended", suspendedReason: "billing" },
   })
 
   await announceSuspensions(expired)
