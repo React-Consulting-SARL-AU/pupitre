@@ -379,6 +379,9 @@ func TestBeatSendsWhatTheMachineIs(t *testing.T) {
 	if beat.AgentVersion != "1.2.3" || beat.StackVersion != "1.2.3" {
 		t.Fatalf("beat = %+v", beat)
 	}
+	if beat.SSHUser != daemon.DefaultKeysOwner {
+		t.Fatalf("the heartbeat must name the account whose keys the agent holds, got %q", beat.SSHUser)
+	}
 }
 
 func TestEnrollTradesTheTokenAndWritesTheServerToken(t *testing.T) {
