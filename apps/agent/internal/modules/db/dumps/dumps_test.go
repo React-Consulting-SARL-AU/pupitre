@@ -158,25 +158,32 @@ func TestAFailedImportIsReportedAndLetsTheNextOneThrough(t *testing.T) {
 	}
 }
 
-func TestGzippedDumpIsDecompressedThenRemoved(t *testing.T) {
+// A plain x.sql beside x.sql.gz is the client's: the archive is decompressed under a name of its own, and only that copy goes.
+func TestGzippedDumpIsDecompressedUnderItsOwnNameThenRemoved(t *testing.T) {
 	var seen []string
 	fake, ctx := withDumps(t, Dir+"/dump_shop_20260101.sql.gz")
-	fake.Files[Dir+"/dump_shop_20260101.sql"] = []byte("-- decompressed\n")
+	fake.Files[Dir+"/dump_shop_20260101.sql.gz"] = []byte("gz")
+	fake.Files[Dir+"/dump_shop_20260101.sql"] = []byte("-- the client's own plain dump\n")
 
 	if _, err := Import(ctx, Options{Patterns: []string{"*.sql.gz"}, Load: loaded(&seen)}); err != nil {
 		t.Fatal(err)
 	}
 
-	if strings.Join(seen, "") != "shop ← "+Dir+"/dump_shop_20260101.sql" {
-		t.Fatalf("the loader must receive the decompressed file: %v", seen)
+	copied := Dir + "/.pupitre-import-dump_shop_20260101.sql"
+	if strings.Join(seen, "") != "shop ← "+copied {
+		t.Fatalf("the loader must receive the decompressed copy: %v", seen)
 	}
 
-	if _, kept := fake.Files[Dir+"/dump_shop_20260101.sql"]; kept {
+	if _, kept := fake.Files[copied]; kept {
 		t.Fatal("the decompressed copy must be removed once imported")
 	}
 
-	if _, kept := fake.Files[Dir+"/dump_shop_20260101.sql.gz"]; kept {
-		t.Log("the original archive stays where the client put it")
+	if string(fake.Files[Dir+"/dump_shop_20260101.sql"]) != "-- the client's own plain dump\n" {
+		t.Fatalf("the client's plain dump must stay as it was: %q", fake.Files[Dir+"/dump_shop_20260101.sql"])
+	}
+
+	if _, kept := fake.Files[Dir+"/dump_shop_20260101.sql.gz"]; !kept {
+		t.Fatal("the original archive stays where the client put it")
 	}
 }
 

@@ -56,7 +56,7 @@ func (Module) Configure(ctx *modules.Context) error {
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
-	if err := mise.Python.Upgrade(ctx); err != nil {
+	if _, err := mise.Python.Upgrade(ctx); err != nil {
 		return err
 	}
 

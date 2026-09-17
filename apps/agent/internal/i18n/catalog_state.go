@@ -379,4 +379,40 @@ var stateCatalog = map[string]Message{
 		FR: "doctor",
 		EN: "doctor",
 	},
+	"state.project.dir.file": {
+		FR: "%s : %s est un fichier, pas un dossier",
+		EN: "%s: %s is a file, not a folder",
+	},
+	"state.project.dir.file.fix": {
+		FR: "Déplacez ce fichier, ou déclarez un autre dossier.",
+		EN: "Move that file away, or declare another folder.",
+	},
+	"state.project.warning.hosts": {
+		FR: "/etc/hosts n'a pas pu être mis à jour : %s",
+		EN: "/etc/hosts could not be updated: %s",
+	},
+	"state.project.warning.dir": {
+		FR: "un dossier de processus n'a pas pu être créé : %s",
+		EN: "a process folder could not be created: %s",
+	},
+	"state.project.warning.pin": {
+		FR: "l'épingle des runtimes n'a pas pu être écrite : %s",
+		EN: "the runtime pin could not be written: %s",
+	},
+	"state.project.warning.stop": {
+		FR: "%s n'a pas pu être arrêté : %s",
+		EN: "%s could not be stopped: %s",
+	},
+	"state.project.warning.start": {
+		FR: "%s n'a pas pu démarrer sur sa nouvelle commande et reste arrêté : %s",
+		EN: "%s could not start on its new command and is left stopped: %s",
+	},
+	"state.registry.busy": {
+		FR: "le registre des projets est tenu par une autre commande",
+		EN: "the project registry is held by another command",
+	},
+	"state.registry.busy.fix": {
+		FR: "Réessayez dans un instant.",
+		EN: "Try again in a moment.",
+	},
 }

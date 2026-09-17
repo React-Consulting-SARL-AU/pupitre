@@ -8,6 +8,7 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/download"
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
 	"pupitre.studio/agent/internal/sys/env"
@@ -32,6 +33,8 @@ func machine() *modtest.FakeSys {
 
 	fake := modtest.NewFakeSys()
 	fake.Answer("neon --version", "2.27.0\n")
+	fake.Answer("-w %{redirect_url} https://github.com/neondatabase/neonctl/releases/latest/download/neonctl-linux-", "https://github.com/neondatabase/neonctl/releases/download/v2.27.0/neonctl-linux-"+nodeArch())
+	fake.Answer("api.github.com/repos/neondatabase/neonctl/releases/tags/v2.27.0", `{"assets":[{"name":"neonctl-linux-`+nodeArch()+`","digest":"sha256:`+modtest.Digest(modtest.Downloaded)+`"}]}`)
 
 	return fake
 }
@@ -312,5 +315,46 @@ func TestLoginAsksNeonctlWithTheKeyTheMachineHolds(t *testing.T) {
 				t.Fatalf("the key travels in the environment alone: %+v", last)
 			}
 		})
+	}
+}
+
+// GitHub computes a digest for every asset of a release: a binary that does not match it never reaches /usr/local/bin.
+func TestABinaryWhoseDigestDiffersIsRefused(t *testing.T) {
+	fake := machine()
+	fake.Answer("api.github.com/repos/neondatabase/neonctl/releases/tags/v2.27.0", `{"assets":[{"name":"neonctl-linux-`+nodeArch()+`","digest":"sha256:`+strings.Repeat("0", 64)+`"}]}`)
+
+	err := (Module{}).Install(newContext(t, fake))
+	if err == nil {
+		t.Fatal("a digest that differs must fail the install")
+	}
+
+	if _, posed := fake.Files[BinaryPath]; posed {
+		t.Fatal("the refused binary reached its destination")
+	}
+}
+
+// The upgrade asks the release index for the version, not the network for the whole binary, and fetches only a newer one.
+func TestUpgradeFetchesOnlyANewerRelease(t *testing.T) {
+	fake := machine()
+	run(t, newContext(t, fake))
+	downloads := strings.Count(strings.Join(fake.Commands(), "\n"), "-o "+download.Dir+"/neonctl-linux-")
+
+	if err := (Module{}).Upgrade(newContext(t, fake)); err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Count(strings.Join(fake.Commands(), "\n"), "-o "+download.Dir+"/neonctl-linux-") != downloads {
+		t.Fatal("the release on the machine must not be fetched again")
+	}
+
+	fake.Answer("-w %{redirect_url} https://github.com/neondatabase/neonctl/releases/latest/download/neonctl-linux-", "https://github.com/neondatabase/neonctl/releases/download/v2.28.0/neonctl-linux-"+nodeArch())
+	fake.Answer("api.github.com/repos/neondatabase/neonctl/releases/tags/v2.28.0", `{"assets":[{"name":"neonctl-linux-`+nodeArch()+`","digest":"sha256:`+modtest.Digest(modtest.Downloaded)+`"}]}`)
+
+	if err := (Module{}).Upgrade(newContext(t, fake)); err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Count(strings.Join(fake.Commands(), "\n"), "-o "+download.Dir+"/neonctl-linux-") != downloads+1 {
+		t.Fatal("a newer release must be fetched once")
 	}
 }

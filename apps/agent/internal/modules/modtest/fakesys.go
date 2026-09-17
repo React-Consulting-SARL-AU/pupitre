@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"path"
 	"path/filepath"
 	"slices"
@@ -28,30 +29,40 @@ const (
 )
 
 type FakeSys struct {
-	Files      map[string][]byte
-	Modes      map[string]fs.FileMode
-	Owners     map[string]string
-	Dirs       map[string]bool
-	Packages   map[string]string
-	Upgrades   map[string]string
-	Units      map[string]UnitState
-	Restarts   map[string]int
-	Replies    map[string]string
-	Answers    map[string]string
-	Refusals   map[string]string
-	Failures   map[string]string
-	Once       map[string]string
-	Users      map[string]string
-	Groups     map[string][]string
-	Tools      map[string]string
-	Versions   map[string][]string
-	Sessions   map[string]bool
-	Windows    map[string]int
-	Dead       map[string]int
-	Binds      map[string]int
-	Listen     map[int]bool
-	Uptimes    map[int]int
-	Firewall   Firewall
+	Files    map[string][]byte
+	Modes    map[string]fs.FileMode
+	Owners   map[string]string
+	Dirs     map[string]bool
+	Packages map[string]string
+	Upgrades map[string]string
+	Units    map[string]UnitState
+	Restarts map[string]int
+	Replies  map[string]string
+	Answers  map[string]string
+	Refusals map[string]string
+	Failures map[string]string
+	Once     map[string]string
+	Users    map[string]string
+	Groups   map[string][]string
+	Tools    map[string]string
+	Versions map[string][]string
+	Sessions map[string]bool
+	Windows  map[string]int
+	// Twins are the extra windows a name was opened under, by pid: tmux keeps every one and refuses the name as ambiguous.
+	Twins map[string][]int
+	// Provides maps a virtual package name to the package apt installs for it.
+	Provides map[string]string
+	// Split marks a window the user split a second pane off, which list-panes prints after the first.
+	Split map[string]bool
+	// Activity is when a window last moved, for the panes a test wants idle; the others move at the fake's clock.
+	Activity map[string]time.Time
+	Dead     map[string]int
+	Binds    map[string]int
+	Listen   map[int]bool
+	Uptimes  map[int]int
+	Firewall Firewall
+	// Observe sees every command as it runs, with the machine as it stands at that moment.
+	Observe    func(cmd sys.Command)
 	Tailnet    bool
 	Prefs      TailscalePrefs
 	Procs      map[int]Proc
@@ -100,6 +111,10 @@ func NewFakeSys() *FakeSys {
 		Versions:   map[string][]string{},
 		Sessions:   map[string]bool{},
 		Windows:    map[string]int{},
+		Twins:      map[string][]int{},
+		Provides:   map[string]string{},
+		Split:      map[string]bool{},
+		Activity:   map[string]time.Time{},
 		Dead:       map[string]int{},
 		Binds:      map[string]int{},
 		Listen:     map[int]bool{},
@@ -175,6 +190,9 @@ func (f *FakeSys) Commands() []string {
 
 func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 	f.Calls = append(f.Calls, cmd)
+	if f.Observe != nil {
+		f.Observe(cmd)
+	}
 
 	if len(cmd.Argv) == 0 {
 		return sys.Output{}, fmt.Errorf("empty command")
@@ -258,6 +276,8 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 		return f.tar(cmd.Argv[1:])
 	case "gunzip":
 		return f.gunzip(cmd.Argv[1:])
+	case "gzip":
+		return f.gzip(cmd.Argv[1:])
 	case "chmod":
 		return f.chmod(cmd.Argv[1:])
 	case "rm":
@@ -272,9 +292,87 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 		return f.chrome(cmd.Argv[1:])
 	case "tailscale":
 		return f.tailscale(cmd.Argv[1:])
+	case "sshd":
+		return f.sshd(cmd.Argv[1:])
+	case "pg_dump", "mysqldump", "mongodump":
+		return f.dump(cmd.Argv[1:])
 	}
 
 	return sys.Output{Stdout: f.Replies[program]}, nil
+}
+
+// A dump program leaves its archive where it was told to, as the real one does.
+func (f *FakeSys) dump(args []string) (sys.Output, error) {
+	for _, arg := range args {
+		for _, flag := range []string{"--file=", "--result-file=", "--archive="} {
+			if path, found := strings.CutPrefix(arg, flag); found {
+				f.Files[path] = []byte("dump")
+				f.mutate("write " + path)
+			}
+		}
+	}
+
+	return sys.Output{}, nil
+}
+
+// sshd -T prints the effective configuration, keywords lowercased, a list
+// keyword once per value, the first setting of a keyword winning. The
+// fragments of sshd_config.d are read unless a sshd_config without an Include
+// line sits on the machine, as on an image that predates them.
+func (f *FakeSys) sshd(args []string) (sys.Output, error) {
+	if !slices.Contains(args, "-T") {
+		return sys.Output{}, nil
+	}
+
+	var sources []string
+	main, present := f.Files["/etc/ssh/sshd_config"]
+	if !present || strings.Contains(string(main), "Include") {
+		for path := range f.Files {
+			if strings.HasPrefix(path, "/etc/ssh/sshd_config.d/") {
+				sources = append(sources, path)
+			}
+		}
+		sort.Strings(sources)
+	}
+	if present {
+		sources = append(sources, "/etc/ssh/sshd_config")
+	}
+
+	effective := map[string][]string{}
+	for _, source := range sources {
+		for _, line := range strings.Split(string(f.Files[source]), "\n") {
+			key, value, found := strings.Cut(strings.TrimSpace(line), " ")
+			if key = strings.ToLower(key); !found || key == "include" {
+				continue
+			}
+			if _, set := effective[key]; !set {
+				effective[key] = strings.Fields(value)
+			}
+		}
+	}
+	for key, value := range map[string]string{"permitrootlogin": "prohibit-password", "passwordauthentication": "yes"} {
+		if _, set := effective[key]; !set {
+			effective[key] = []string{value}
+		}
+	}
+
+	var out strings.Builder
+	for _, key := range slices.Sorted(maps.Keys(effective)) {
+		for _, value := range effective[key] {
+			fmt.Fprintf(&out, "%s %s\n", key, sshdRenders(key, value))
+		}
+	}
+
+	return sys.Output{Stdout: out.String()}, nil
+}
+
+// OpenSSH prints prohibit-password under its older name, as sshd -T does on a real machine.
+func sshdRenders(key, value string) string {
+	if key == "permitrootlogin" && value == "prohibit-password" {
+		return "without-password"
+	}
+
+	return value
 }
 
 // Stream plays the command's whole answer line by line, then ends: the fake journal has nothing more to say.
@@ -524,10 +622,56 @@ func (f *FakeSys) ln(args []string) (sys.Output, error) {
 		return f.fail("ln", "ln: missing file operand")
 	}
 
+	// A hard link is the same content under a second name.
+	if !symbolic(args) {
+		content, err := f.ReadFile(words[0])
+		if err != nil {
+			return f.fail("ln", "ln: failed to access '"+words[0]+"': No such file or directory")
+		}
+
+		f.Files[words[1]] = content
+		f.mutate("ln " + words[1] + " = " + words[0])
+
+		return sys.Output{}, nil
+	}
+
 	f.Links[words[1]] = words[0]
 	f.mutate("ln " + words[1] + " -> " + words[0])
 
 	return sys.Output{}, nil
+}
+
+func symbolic(args []string) bool {
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "-") && !strings.HasPrefix(arg, "--") && strings.Contains(arg, "s") {
+			return true
+		}
+	}
+
+	return slices.Contains(args, "--symbolic")
+}
+
+// gzip --decompress leaves the plain file beside the archive and takes the archive away unless told to keep it.
+func (f *FakeSys) gzip(args []string) (sys.Output, error) {
+	path := args[len(args)-1]
+	if !slices.Contains(args, "--decompress") && !slices.Contains(args, "-d") {
+		return f.fail("gzip", "gzip: compression is not played by the fake")
+	}
+
+	content, err := f.ReadFile(path)
+	if err != nil {
+		return f.fail("gzip", "gzip: "+path+": No such file or directory")
+	}
+
+	if err := f.WriteFile(strings.TrimSuffix(path, ".gz"), content, 0o644); err != nil {
+		return f.fail("gzip", err.Error())
+	}
+
+	if slices.Contains(args, "--keep") || slices.Contains(args, "-k") {
+		return sys.Output{}, nil
+	}
+
+	return sys.Output{}, f.Remove(path)
 }
 
 func (f *FakeSys) readlink(args []string) (sys.Output, error) {
@@ -870,8 +1014,17 @@ func (f *FakeSys) aptGet(args []string) (sys.Output, error) {
 				continue
 			}
 
+			// A name another package provides lands that package, as apt does: Ubuntu's chromium is a snap stub named chromium-browser.
+			if provider, virtual := f.Provides[pkg]; virtual {
+				pkg = provider
+			}
+
+			// An installed package is taken to its candidate, as apt-get install does.
 			if _, present := f.Packages[pkg]; !present {
 				f.Packages[pkg] = "1.0"
+			} else if next, ok := f.Upgrades[pkg]; ok {
+				f.Packages[pkg] = next
+				delete(f.Upgrades, pkg)
 			}
 			f.mutate("apt-get install " + pkg)
 		}
@@ -1009,9 +1162,12 @@ func (f *FakeSys) useradd(args []string) (sys.Output, error) {
 		return f.fail("useradd", "useradd: user '"+name+"' already exists")
 	}
 
+	// A home already there is left to whoever owned it, as useradd warns it does.
 	f.Users[name] = "/home/" + name
+	if !f.known("/home/" + name) {
+		f.Owners["/home/"+name] = name + ":" + name
+	}
 	f.Dirs["/home/"+name] = true
-	f.Owners["/home/"+name] = name + ":" + name
 	f.mutate("useradd " + name)
 
 	return sys.Output{}, nil
@@ -1156,11 +1312,63 @@ func (w *Firewall) remove(rule string) {
 
 func (f *FakeSys) ReadFile(path string) ([]byte, error) {
 	content, ok := f.Files[path]
+	if !ok && path == netTable {
+		return f.netTable(), nil
+	}
 	if !ok {
 		return nil, &fs.PathError{Op: "open", Path: path, Err: fs.ErrNotExist}
 	}
 
 	return append([]byte(nil), content...), nil
+}
+
+// ReadTail is the last max bytes of the file, the whole of it when it is shorter.
+func (f *FakeSys) ReadTail(path string, max int64) ([]byte, error) {
+	content, err := f.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if from := int64(len(content)) - max; from > 0 {
+		content = content[from:]
+	}
+
+	return content, nil
+}
+
+// ReadFrom is what lies past offset; a file shorter than that was truncated, and is read from its start.
+func (f *FakeSys) ReadFrom(path string, offset int64) ([]byte, error) {
+	content, err := f.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if offset > int64(len(content)) {
+		offset = 0
+	}
+
+	return content[offset:], nil
+}
+
+const netTable = "/proc/net/tcp"
+
+// The ports the fake listens on, as the kernel's own table prints them: a hexadecimal port on the loopback, in the listening state.
+func (f *FakeSys) netTable() []byte {
+	ports := make([]int, 0, len(f.Listen))
+	for port, listening := range f.Listen {
+		if listening {
+			ports = append(ports, port)
+		}
+	}
+	sort.Ints(ports)
+
+	var out strings.Builder
+	out.WriteString("  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode\n")
+	for at, port := range ports {
+		fmt.Fprintf(&out, "%4d: 0100007F:%04X 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0 %d 1 0000 100 0 0 10 0\n", at, port, 10000+at)
+	}
+
+	return []byte(out.String())
 }
 
 // A link planted with ln is followed only when it stays under the root, as os.Root does.
@@ -1228,8 +1436,14 @@ func (f *FakeSys) StatIn(root, rel string) (sys.Node, error) {
 	return node, nil
 }
 
+// A link is written through to what it names, as long as that stays under the root: the target keeps its mode and owner, the link stays a link.
 func (f *FakeSys) WriteFileIn(root, rel, owner string, data []byte) error {
 	path, err := f.inside(root, rel)
+	if err != nil {
+		return err
+	}
+
+	path, err = f.follow(root, path)
 	if err != nil {
 		return err
 	}
@@ -1524,7 +1738,15 @@ func (f *FakeSys) hasChild(prefix string) bool {
 	return false
 }
 
+// The mode asked for is the one the file gets, as on the real system; KeepMode leaves an existing file at its own and gives a new one the default.
 func (f *FakeSys) WriteFile(path string, data []byte, mode fs.FileMode) error {
+	if mode == sys.KeepMode {
+		mode = sys.DefaultMode
+		if _, existed := f.Files[path]; existed {
+			mode = f.mode(path)
+		}
+	}
+
 	f.Files[path] = append([]byte(nil), data...)
 	f.Modes[path] = mode
 	if _, dated := f.Times[path]; !dated {

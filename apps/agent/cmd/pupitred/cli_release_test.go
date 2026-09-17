@@ -22,7 +22,13 @@ func TestInstallRefusesOnAServerWithoutAToken(t *testing.T) {
 		t.Fatalf("code = %d, stderr:\n%s", code, stderr)
 	}
 
-	if len(fake.Calls) != 0 || len(fake.Mutations) != 0 {
+	// The ledger stamp of a machine never configured is the one write every start makes, serve included.
+	for _, mutation := range fake.Mutations {
+		if !strings.Contains(mutation, "migrations.json") && mutation != "mkdir /etc/pupitre" {
+			t.Fatalf("the machine was touched without entitlement: %v", fake.Mutations)
+		}
+	}
+	if len(fake.Calls) != 0 {
 		t.Fatalf("the machine was touched without entitlement: %v", fake.Commands())
 	}
 

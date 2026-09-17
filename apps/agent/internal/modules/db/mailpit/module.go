@@ -124,12 +124,13 @@ func (Module) Configure(ctx *modules.Context) error {
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
+	before := download.Recorded(ctx, ID)
 	if err := release.UpgradeStep(ctx, ID, BinPath); err != nil {
 		return err
 	}
 
 	if err := ctx.Step("restart-service", func() (modules.Outcome, error) {
-		if !systemd.Active(ctx, Unit) {
+		if download.Recorded(ctx, ID) == before || !systemd.Active(ctx, Unit) {
 			return modules.Skipped, nil
 		}
 

@@ -8,6 +8,7 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys"
 )
 
@@ -102,6 +103,12 @@ func (r Runtime) Describe(ctx sys.Context) string {
 func (r Runtime) Install(ctx *modules.Context) ([]string, error) {
 	wanted := r.Wanted(ctx)
 
+	// A configuration answered on options since rotated out still asks for a runtime.
+	if len(wanted) == 0 {
+		ctx.Warn(i18n.T("warn.mise.options.rotated", r.Tool, strings.Join(ctx.StringList(r.Key()), ", "), r.Default))
+		wanted = []string{r.Default}
+	}
+
 	var added []string
 	for _, major := range wanted {
 		put, err := r.put(ctx, major)
@@ -125,7 +132,12 @@ func (r Runtime) put(ctx *modules.Context, major string) (bool, error) {
 	put := false
 
 	err := ctx.Step("install-"+r.Tool+"-"+major, func() (modules.Outcome, error) {
-		if r.matched(Versions(ctx, r.Tool), major) != "" {
+		installed, err := versionsOf(ctx, r.Tool)
+		if err != nil {
+			return modules.Failed, err
+		}
+
+		if r.matched(installed, major) != "" {
 			return modules.Skipped, nil
 		}
 
@@ -155,16 +167,33 @@ func (r Runtime) use(ctx *modules.Context, major string) error {
 	})
 }
 
+// A major unchecked goes, unless a project still pins it or the module never
+// put it there: what a project runs on and what the client installed by hand
+// are theirs, and the step says what it left.
 func (r Runtime) prune(ctx *modules.Context, wanted []string) error {
 	return ctx.Step("prune-"+r.Tool, func() (modules.Outcome, error) {
-		stale := r.stale(Versions(ctx, r.Tool), wanted)
+		installed, err := versionsOf(ctx, r.Tool)
+		if err != nil {
+			return modules.Failed, err
+		}
+
+		stale := r.stale(installed, wanted)
 		if len(stale) == 0 {
 			return modules.Skipped, nil
 		}
 
+		pinned := pins(ctx, r.Tool)
 		for _, version := range stale {
-			if err := Uninstall(ctx, r.Tool, version); err != nil {
-				return modules.Failed, err
+			major := r.majorOf(version)
+			switch {
+			case major == "":
+				ctx.Warn(i18n.T("warn.mise.prune.foreign", r.Tool, version))
+			case len(pinned[major]) > 0:
+				ctx.Warn(i18n.T("warn.mise.prune.pinned", r.Tool, version, strings.Join(pinned[major], ", ")))
+			default:
+				if err := Uninstall(ctx, r.Tool, version); err != nil {
+					return modules.Failed, err
+				}
 			}
 		}
 
@@ -172,13 +201,22 @@ func (r Runtime) prune(ctx *modules.Context, wanted []string) error {
 	})
 }
 
-// Upgrade takes each wanted major to its latest patch, which mise resolves on install, and drops the patch it replaces.
-func (r Runtime) Upgrade(ctx *modules.Context) error {
-	return ctx.Step("upgrade-"+r.Tool, func() (modules.Outcome, error) {
-		changed := false
+// Upgrade takes each wanted major to its latest patch, which mise resolves on
+// install, and drops the patch it replaces. The virtual environments, gem homes
+// and global packages built on that patch go with it: the projects pinned on
+// the major are named, for their next sync to build them again. It answers the
+// majors whose patch moved.
+func (r Runtime) Upgrade(ctx *modules.Context) ([]string, error) {
+	var moved []string
 
+	err := ctx.Step("upgrade-"+r.Tool, func() (modules.Outcome, error) {
 		for _, major := range r.Wanted(ctx) {
-			before := r.matched(Versions(ctx, r.Tool), major)
+			installed, err := versionsOf(ctx, r.Tool)
+			if err != nil {
+				return modules.Failed, err
+			}
+
+			before := r.matched(installed, major)
 			if before == "" {
 				continue
 			}
@@ -200,23 +238,31 @@ func (r Runtime) Upgrade(ctx *modules.Context) error {
 				if err := Uninstall(ctx, r.Tool, version); err != nil {
 					return modules.Failed, err
 				}
+
+				ctx.Warn(i18n.T("warn.mise.upgrade.replaced", r.Tool, version, after, projectsOr(pins(ctx, r.Tool)[major])))
 			}
 
-			changed = true
+			moved = append(moved, major)
 		}
 
-		if !changed {
+		if len(moved) == 0 {
 			return modules.Skipped, nil
 		}
 
 		return modules.Done, nil
 	})
+
+	return moved, err
 }
 
 // Uninstall drops every version of the tool; mise itself stays, the other runtimes share it.
 func (r Runtime) Uninstall(ctx *modules.Context) error {
 	return ctx.Step("remove-"+r.Tool, func() (modules.Outcome, error) {
-		installed := Versions(ctx, r.Tool)
+		installed, err := versionsOf(ctx, r.Tool)
+		if err != nil {
+			return modules.Failed, err
+		}
+
 		if len(installed) == 0 {
 			return modules.Skipped, nil
 		}
@@ -250,6 +296,37 @@ func (r Runtime) under(installed []string, major string) []string {
 	}
 
 	return under
+}
+
+// majorOf names the option an installed version falls under, or nothing for a version outside the module's options.
+func (r Runtime) majorOf(version string) string {
+	for _, option := range r.Options {
+		if Matches(version, r.Spec(option)) {
+			return option
+		}
+	}
+
+	return ""
+}
+
+// pins reads, from the project registry, which projects run this tool at which major.
+func pins(ctx sys.Context, tool string) map[string][]string {
+	pinned := map[string][]string{}
+	for _, project := range registry.Load(ctx, registry.Paths{}).Projects {
+		if major := project.Runtimes[tool]; major != "" {
+			pinned[major] = append(pinned[major], project.Name)
+		}
+	}
+
+	return pinned
+}
+
+func projectsOr(names []string) string {
+	if len(names) == 0 {
+		return i18n.T("modules.mise.no_project")
+	}
+
+	return strings.Join(names, ", ")
 }
 
 func (r Runtime) stale(installed, wanted []string) []string {

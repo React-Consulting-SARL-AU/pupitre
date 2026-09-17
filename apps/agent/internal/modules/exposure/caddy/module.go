@@ -1,6 +1,7 @@
 package caddy
 
 import (
+	"errors"
 	"maps"
 	"slices"
 	"strconv"
@@ -257,6 +258,10 @@ func reload(ctx *modules.Context, changed bool) error {
 			return modules.Skipped, nil
 		}
 
+		if err := validate(ctx); err != nil {
+			return modules.Failed, err
+		}
+
 		if err := systemd.Enable(ctx, Unit); err != nil {
 			return modules.Failed, err
 		}
@@ -267,6 +272,18 @@ func reload(ctx *modules.Context, changed bool) error {
 
 		return modules.Done, systemd.Restart(ctx, Unit)
 	})
+}
+
+// A Caddyfile the running server refuses would be reloaded into nothing: systemctl
+// reload says the job failed, and the reason stays in Caddy's journal. Validating
+// first puts that reason in the step.
+func validate(ctx *modules.Context) error {
+	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"caddy", "validate", "--config", configPath, "--adapter", "caddyfile"}})
+	if err != nil {
+		return errors.New(i18n.T("modules.caddy.invalid", configPath, strings.TrimSpace(out.Stderr+"\n"+out.Stdout)))
+	}
+
+	return nil
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {

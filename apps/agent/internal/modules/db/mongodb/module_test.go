@@ -1,8 +1,10 @@
 package mongodb
 
 import (
+	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
@@ -34,8 +36,55 @@ func newFakeSys() *modtest.FakeSys {
 	fake := modtest.NewFakeSys()
 	fake.Files[osReleasePath] = []byte("ID=ubuntu\nVERSION_CODENAME=noble\n")
 	fake.Files[meminfoPath] = []byte("MemTotal:       4015000 kB\n")
+	fake.Answers["mongosh"] = userReady + "\n"
 
 	return fake
+}
+
+// The fake never opens a port on its own: the wait for mongod is switched off, and the one test that exercises it turns it back on.
+func TestMain(m *testing.M) {
+	startWait = 0
+
+	os.Exit(m.Run())
+}
+
+// mongosh reads its script on a REPL: an uncaught error prints and exits 0, so only the script's own last word says the user is there.
+func TestAUserScriptThatDoesNotReportReadyIsARefusal(t *testing.T) {
+	fake := newFakeSys()
+	fake.Answers["mongosh"] = "test> Uncaught MongoServerError[Unauthorized]: not authorized on admin to execute command\n"
+	ctx := newContext(t, fake)
+
+	err := (Module{}).Configure(ctx)
+
+	if err == nil || statuses(ctx)["create-app-user"] != contract.StepFail {
+		t.Fatalf("the step must fail on a script that did not finish: err=%v steps=%v", err, statuses(ctx))
+	}
+
+	if _, written := fake.Files[markerPath]; written {
+		t.Fatal("no marker may claim a user that was never created")
+	}
+}
+
+// mongod takes its time to listen after a start: a shell refused on the door is asked again, and the user is created once it opens.
+func TestTheUserIsCreatedOnceTheEngineListens(t *testing.T) {
+	fake := newFakeSys()
+	startWait, startPoll = time.Second, 10*time.Millisecond
+	defer func() { startWait = 0 }()
+	fake.Once["mongosh"] = "MongoNetworkError: connect ECONNREFUSED 127.0.0.1:27017"
+
+	ctx := newContext(t, fake)
+	install(t, ctx)
+
+	shells := 0
+	for _, cmd := range fake.Calls {
+		if cmd.Argv[0] == "mongosh" {
+			shells++
+		}
+	}
+
+	if statuses(ctx)["create-app-user"] != contract.StepOK || shells != 2 {
+		t.Fatalf("the shell must be asked again once the door opens: %v, %d shell(s)", statuses(ctx), shells)
+	}
 }
 
 func installedSys(t *testing.T) *modtest.FakeSys {
@@ -435,5 +484,92 @@ func TestAUserNameThatIsNotAnIdentifierFallsBackOnTheDefault(t *testing.T) {
 
 	if got := appUser(ctx); got != defaultAppUser {
 		t.Fatalf("appUser = %q, want %q", got, defaultAppUser)
+	}
+}
+
+func sentScript(fake *modtest.FakeSys) string {
+	var script string
+	for _, call := range fake.Calls {
+		if len(call.Stdin) > 0 {
+			script = string(call.Stdin)
+		}
+	}
+
+	return script
+}
+
+// Once authorization is on, only the previous password opens the user: a rotation that signs in with the new one fails for ever, and the env must not say otherwise.
+func TestRotationSignsInWithThePreviousPasswordAndStoresLast(t *testing.T) {
+	fake := installedSys(t)
+	fake.Files[env.Path] = []byte(appPasswordKey + "=former-password\n")
+	fake.FailProgram("mongosh", "MongoServerError: Authentication failed.")
+	ctx := newContext(t, fake)
+
+	if err := (Module{}).Configure(ctx); err == nil {
+		t.Fatal("configure must fail when the password cannot be changed")
+	}
+
+	if fake.EnvValue(appPasswordKey) != "former-password" {
+		t.Fatalf("the previous password must stay until the user holds the new one: %s", fake.Files[env.Path])
+	}
+
+	script := sentScript(fake)
+	previous, next := strings.Index(script, `admin.auth("app", "former-password")`), strings.Index(script, `changeUserPassword("app", password)`)
+	if previous < 0 || next < 0 || previous > next {
+		t.Fatalf("the script must sign in with the previous password before changing it:\n%s", script)
+	}
+
+	delete(fake.Failures, "mongosh")
+	again := newContext(t, fake)
+	install(t, again)
+
+	if statuses(again)["create-app-user"] != contract.StepOK || statuses(again)["store-password"] != contract.StepOK || fake.EnvValue(appPasswordKey) != appPassword {
+		t.Fatalf("the replay must change the password then store it: %v, env %s", statuses(again), fake.Files[env.Path])
+	}
+}
+
+// A new major beside the running one is a server that will not start on the old files until featureCompatibilityVersion was raised: the form is told so before anything moves.
+func TestPreflightRefusesAVersionChangeWhileInstalled(t *testing.T) {
+	fake := installedSys(t)
+	ctx := modtest.NewContext(t, fake, modtest.Options{
+		Manifest: manifest(),
+		Values:   modtest.Values{"version": "7.0"},
+		Held:     modtest.Values{"version": DefaultVersion},
+	})
+
+	problems := (Module{}).Preflight(ctx)
+	if len(problems) != 1 || problems[0].Field != "version" || !strings.Contains(problems[0].Message, "setFeatureCompatibilityVersion") {
+		t.Fatalf("problems = %+v", problems)
+	}
+}
+
+func TestInstallingOneVersionDropsTheListOfAnother(t *testing.T) {
+	fake := newFakeSys()
+	fake.Files["/etc/apt/sources.list.d/mongodb-org-7.0.list"] = repository("7.0", "noble")
+	fake.Files[keyringPathOf("7.0")] = []byte("-----BEGIN PGP PUBLIC KEY BLOCK-----\n")
+	ctx := newContext(t, fake)
+
+	install(t, ctx)
+
+	if _, kept := fake.Files["/etc/apt/sources.list.d/mongodb-org-7.0.list"]; kept {
+		t.Fatal("the list of the previous version would take the next upgrade across a major")
+	}
+	if _, present := fake.Files[defaultList]; !present {
+		t.Fatal("the list of the chosen version must be there")
+	}
+}
+
+func TestADumpBelongsToDev(t *testing.T) {
+	fake := installedSys(t)
+	fake.Answer("stat", "2048\n")
+	ctx := newContext(t, fake)
+
+	path, _, err := Dump(ctx, "shop")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if fake.Owners[dumps.Dir] != "dev:dev" || fake.Owners[path] != "dev:dev" {
+		t.Fatalf("~/dumps %q, dump %q: both must belong to dev", fake.Owners[dumps.Dir], fake.Owners[path])
 	}
 }

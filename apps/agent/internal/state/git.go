@@ -1,13 +1,14 @@
 package state
 
 import (
-	"pupitre.studio/agent/internal/i18n"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys"
@@ -36,14 +37,32 @@ func (r *Reader) gitCommand(dir string, argv []string) sys.Command {
 	}
 }
 
+// A fetch that goes past this has a remote that is not answering, and the channel behind it is waiting.
+const fetchTimeout = 30 * time.Second
+
+func (r *Reader) fetchCommand(dir string, argv ...string) sys.Command {
+	command := r.gitCommand(dir, argv)
+	command.Timeout = fetchTimeout
+
+	return command
+}
+
+// A remote that answers the handshake and then trickles holds the channel as
+// surely as one that never answers: the connection and the transfer are both
+// bounded, through the environment so the command line stays git's own.
 func gitEnv(owner string) []string {
 	return []string{
 		"HOME=" + user.Home(owner),
 		"LC_ALL=C",
 		// A repository whose remote asks for a password would hang for ever behind a protocol call.
 		"GIT_TERMINAL_PROMPT=0",
-		"GIT_SSH_COMMAND=ssh -o BatchMode=yes",
+		"GIT_SSH_COMMAND=ssh -o BatchMode=yes -o ConnectTimeout=10",
 		"GIT_OPTIONAL_LOCKS=0",
+		"GIT_CONFIG_COUNT=2",
+		"GIT_CONFIG_KEY_0=http.lowSpeedLimit",
+		"GIT_CONFIG_VALUE_0=1000",
+		"GIT_CONFIG_KEY_1=http.lowSpeedTime",
+		"GIT_CONFIG_VALUE_1=30",
 	}
 }
 
@@ -63,9 +82,9 @@ func (r *Reader) gitWrite(dir string, argv ...string) (sys.Output, error) {
 }
 
 func (r *Reader) repo(name string) (registry.Project, string, error) {
-	project, known := r.registry().Get(name)
-	if !known {
-		return registry.Project{}, "", registry.NotFound(name)
+	project, err := r.project(name)
+	if err != nil {
+		return registry.Project{}, "", err
 	}
 
 	return project, project.RootPath(r.options.Paths.Resolved().Projects), nil
@@ -169,8 +188,9 @@ func (r *Reader) Checkout(name, branch string) (string, error) {
 		return "", bad(i18n.T("state.tree.dirty", name), i18n.T("state.tree.dirty.fix"))
 	}
 
-	r.gitWrite(top, "fetch", "--quiet", "origin")
+	sys.Exec(r.ctx(), r.fetchCommand(top, "fetch", "--quiet", "origin"))
 
+	// A branch known nowhere is created out of HEAD: the app's branch form names one on purpose, after checking the lists.
 	argv := []string{"checkout", "--quiet", branch}
 	switch {
 	case r.hasRef(top, "refs/heads/"+branch):
@@ -219,7 +239,7 @@ func (r *Reader) GitStatus(name string) (contract.ProjectGitStatus, error) {
 }
 
 func (r *Reader) fetch(top string) string {
-	out, err := r.gitWrite(top, "fetch", "--quiet", "--prune")
+	out, err := sys.Exec(r.ctx(), r.fetchCommand(top, "fetch", "--quiet", "--prune"))
 	if err == nil {
 		return ""
 	}
@@ -444,13 +464,14 @@ func (r *Reader) Pull(name string) (contract.ProjectPull, error) {
 	return contract.ProjectPull{Pulled: pulled, State: current.State}, nil
 }
 
-func (r *Reader) Sync(name string) (contract.ProjectSync, error) {
+// Sync is the pull then the install, one command: what the install prints travels on emit.
+func (r *Reader) Sync(name string, emit func(string)) (contract.ProjectSync, error) {
 	pulled, err := r.Pull(name)
 	if err != nil {
 		return contract.ProjectSync{}, err
 	}
 
-	installed, err := r.Install(name, "")
+	installed, err := r.Install(name, "", emit)
 	if err != nil {
 		return contract.ProjectSync{}, err
 	}

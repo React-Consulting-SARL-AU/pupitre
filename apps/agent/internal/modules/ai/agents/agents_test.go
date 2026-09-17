@@ -47,6 +47,13 @@ func TestTheFiveSkillsAndTheSubagentAreLaidDown(t *testing.T) {
 	if fake.Owners[SkillsDir+"/ship/SKILL.md"] != User+":"+User {
 		t.Errorf("the skills belong to %s, got %q", User, fake.Owners[SkillsDir+"/ship/SKILL.md"])
 	}
+
+	// A folder root made on the way — ~/.agents, ~/.demo, ~/.demo/skills — locks dev out of everything under it.
+	for _, dir := range []string{Home + "/.agents", SkillsDir, demo.ConfigDir, demo.ConfigDir + "/skills", demo.ConfigDir + "/agents"} {
+		if fake.Owners[dir] != User+":"+User {
+			t.Errorf("%s belongs to %q, want %s", dir, fake.Owners[dir], User)
+		}
+	}
 }
 
 func TestTheContextNamesWhatTheAgentNeedsToKnow(t *testing.T) {

@@ -8,12 +8,15 @@ import (
 	"io/fs"
 	"os"
 	"strings"
+	"time"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/devcli"
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/probe"
+	"pupitre.studio/agent/internal/protocol"
+	"pupitre.studio/agent/internal/sys/lock"
 )
 
 // Typed in a login shell rather than negotiated by `hello`: the locale comes
@@ -27,7 +30,12 @@ func runDev(engine *modules.Engine, args []string, stdout, stderr io.Writer) int
 	return devcli.Run(devcli.Options{Server: newServer(engine), Tmux: stateOptions().Tmux}, args, stdout, stderr)
 }
 
-func runInstall(engine *modules.Engine, args []string, stderr io.Writer) int {
+// The replay every fix prints reads the configuration once it is the shape this binary reads, as serve does.
+func runInstall(engine *modules.Engine, config contract.ConfigRevision, args []string, stderr io.Writer) int {
+	if !config.Current() {
+		return devcli.PrintFailure(stderr, protocol.MigrationRequired(config))
+	}
+
 	var only, skip []string
 	for _, arg := range args {
 		switch {
@@ -105,10 +113,16 @@ func runProbe(options probe.Options, args []string, stdout, stderr io.Writer) in
 	return 0
 }
 
+// A report without an end while nobody holds the install lock is the trace of
+// a run that died: it is answered as interrupted, so a reader stops waiting.
 func runReport(engine *modules.Engine, stdout, stderr io.Writer) int {
 	report, err := engine.Report()
 	if err != nil {
 		return devcli.PrintFailure(stderr, err)
+	}
+
+	if report.FinishedAt == "" && nobodyInstalls(engine.LockPath) {
+		report = report.Interrupted(time.Now())
 	}
 
 	encoder := json.NewEncoder(stdout)
@@ -119,6 +133,18 @@ func runReport(engine *modules.Engine, stdout, stderr io.Writer) int {
 	}
 
 	return 0
+}
+
+// The lock is probed and released on the spot: held means a run is under way, free means the one the report describes is gone.
+func nobodyInstalls(lockPath string) bool {
+	release, free, err := lock.Acquire(lockPath)
+	if err != nil || !free {
+		return false
+	}
+
+	release()
+
+	return true
 }
 
 func loadRequest(path string) (modules.Request, error) {

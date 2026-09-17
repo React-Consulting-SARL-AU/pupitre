@@ -34,6 +34,8 @@ func setupCLI(t *testing.T) (*modtest.FakeSys, string) {
 	t.Setenv("PUPITRE_REPORT_PATH", filepath.Join(dir, "report.json"))
 	t.Setenv("PUPITRE_LOG_PATH", filepath.Join(dir, "pupitre.log"))
 	t.Setenv("PUPITRE_INSTALL_PATH", filepath.Join(dir, "install.json"))
+	t.Setenv("PUPITRE_LOCK_PATH", filepath.Join(dir, "install.lock"))
+	t.Setenv("PUPITRE_PROJECTS_LOCK_PATH", filepath.Join(dir, "projects.lock"))
 
 	// `dev` follows the shell that types it, and the locale lives at the package
 	// level: without this, a French laptop renders every phrase below in French.

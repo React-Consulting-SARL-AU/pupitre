@@ -865,3 +865,101 @@ func protocolError(t *testing.T, err error) *protocol.Error {
 
 	return failure
 }
+
+// A local file that does not parse is a problem every write says, never an empty registry a write would make permanent.
+func TestAnUnreadableLocalFileIsAProblemAndIsNeverRewritten(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Files[registry.DefaultConf] = fixture(t, "projects.conf")
+	fake.Files[registry.DefaultLocal] = []byte("{\"projects\": [ oops\n")
+	ctx := modtest.NewSysContext(fake)
+
+	file := registry.Load(ctx, registry.Paths{Backups: "/var/lib/pupitre/config-backups"})
+
+	if file.Problem() == nil {
+		t.Fatal("the load must say the local file is unreadable")
+	}
+	if len(file.Projects) != 2 {
+		t.Fatalf("the repository's rows still read: %+v", file.Projects)
+	}
+
+	failure := protocolError(t, file.Problem())
+	if failure.Code != contract.ErrorBadRequest || !strings.Contains(failure.Message, registry.DefaultLocal) || !strings.Contains(failure.Fix, "/var/lib/pupitre/config-backups") {
+		t.Fatalf("the refusal must name the file and the backups: %+v", failure)
+	}
+
+	added := single("shop", "shop", 3200, "bun run dev --port 3200")
+	if err := file.Add(ctx, added); err == nil {
+		t.Fatal("a write on a registry that did not load cleanly must be refused")
+	}
+	if _, err := file.Update(ctx, "api", registry.Patch{}); err == nil {
+		t.Fatal("an update on a registry that did not load cleanly must be refused")
+	}
+	if _, err := file.Remove(ctx, "api"); err == nil {
+		t.Fatal("a removal on a registry that did not load cleanly must be refused")
+	}
+
+	if string(fake.Files[registry.DefaultLocal]) != "{\"projects\": [ oops\n" {
+		t.Fatalf("the file was rewritten:\n%s", fake.Files[registry.DefaultLocal])
+	}
+
+	if journal := strings.Join(ctx.Output(), "\n"); !strings.Contains(journal, registry.DefaultLocal) {
+		t.Fatalf("the problem must be journaled:\n%s", journal)
+	}
+}
+
+// A row the agent cannot validate is not a row it may lose: it travels through every write as it was, and the journal says so.
+func TestARowThatFailsValidationSurvivesAWriteVerbatim(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Files[env.Path] = []byte(env.DomainKey + "=" + domain + "\n")
+	fake.Files[registry.DefaultLocal] = []byte(`{"projects": [
+  {"name": "Bad Name", "dir": "bad", "processes": [{"id": "bad", "dir": ".", "pkgmgr": "bun", "host": "127.0.0.1", "port": 3100, "routes": [], "cmd": "bun run dev"}], "runtimes": {}, "boot": false},
+  {"name": "escapee", "dir": "../../etc", "processes": [{"id": "escapee", "dir": ".", "pkgmgr": "bun", "host": "127.0.0.1", "port": 3101, "routes": [], "cmd": "bun run dev"}], "runtimes": {}, "boot": false},
+  {"name": "odd", "dir": "odd", "processes": "not a list"},
+  {"name": "web", "dir": "web", "processes": [{"id": "web", "dir": ".", "pkgmgr": "bun", "host": "127.0.0.1", "port": 3000, "routes": [], "cmd": "bun run dev --port 3000"}], "runtimes": {}, "boot": false}
+]}
+`)
+	ctx := modtest.NewSysContext(fake)
+
+	file := registry.Load(ctx, registry.Paths{})
+	if file.Problem() != nil {
+		t.Fatalf("a row that fails validation is not a problem of the file: %v", file.Problem())
+	}
+	if len(file.Projects) != 1 || file.Projects[0].Name != "web" {
+		t.Fatalf("only the valid row is a project: %+v", file.Projects)
+	}
+
+	if journal := strings.Join(ctx.Output(), "\n"); !strings.Contains(journal, "Bad Name") || !strings.Contains(journal, "escapee") || !strings.Contains(journal, "odd") {
+		t.Fatalf("every row set aside must be journaled:\n%s", journal)
+	}
+
+	if err := file.Add(ctx, single("shop", "shop", 3200, "bun run dev --port 3200")); err != nil {
+		t.Fatal(err)
+	}
+
+	local := string(fake.Files[registry.DefaultLocal])
+	for _, kept := range []string{`"Bad Name"`, `"../../etc"`, `"not a list"`, `"shop"`, `"web"`} {
+		if !strings.Contains(local, kept) {
+			t.Fatalf("%s must survive the write:\n%s", kept, local)
+		}
+	}
+
+	reloaded := reload(fake)
+	if len(reloaded.Projects) != 2 {
+		t.Fatalf("the rows set aside stay set aside: %+v", reloaded.Projects)
+	}
+}
+
+// Removable says whether a row may go before anything is stopped for it.
+func TestRemovableRefusesARowOfTheRepositoryBeforeAnyWrite(t *testing.T) {
+	_, file := loaded(t)
+
+	if err := file.Removable("shots"); err == nil {
+		t.Fatal("a row of the repository is not removable")
+	}
+	if err := file.Removable("ghost"); err == nil {
+		t.Fatal("an unknown project is not removable")
+	}
+	if err := file.Removable("web"); err != nil {
+		t.Fatalf("a local row is removable: %v", err)
+	}
+}

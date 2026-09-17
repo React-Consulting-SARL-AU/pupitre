@@ -295,3 +295,48 @@ func TestInstallLeavesNoRootFolderInHome(t *testing.T) {
 		}
 	}
 }
+
+// mise upgrade with no tool named takes every tool on the machine with it: without a manager, there is nothing for this module to upgrade.
+func TestUpgradeWithoutManagersNeverRunsABareMiseUpgrade(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	none := modtest.Values{"node_versions": []string{"24"}, "bun": false, "pnpm": false, "yarn": false}
+	run(t, newContext(t, fake, none))
+	fake.Tools["python"] = "3.12"
+	fake.Upgrades["mise:python"] = "3.13"
+
+	ctx := newContext(t, fake, none)
+	if err := (Module{}).Upgrade(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, command := range fake.Commands() {
+		if strings.Contains(command, "mise upgrade") {
+			t.Fatalf("no manager installed, yet mise upgrade ran: %s", command)
+		}
+	}
+
+	if fake.Tools["python"] != "3.12" || statuses(ctx)["upgrade-managers"] != contract.StepSkip {
+		t.Fatalf("python = %s, steps = %v", fake.Tools["python"], statuses(ctx))
+	}
+}
+
+// corepack links pnpm and yarn under the node that is the default: a default moved to another major leaves them behind.
+func TestANewDefaultNodeRefreshesTheCorepackLinks(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	run(t, newContext(t, fake, everything))
+	enabled := len(fake.Commands())
+
+	ctx := newContext(t, fake, modtest.Values{"node_versions": []string{"22"}, "bun": true, "pnpm": true, "yarn": true})
+	run(t, ctx)
+
+	if !strings.Contains(strings.Join(fake.Commands()[enabled:], "\n"), "(dev) corepack enable pnpm yarn") || statuses(ctx)["enable-corepack"] != contract.StepOK {
+		t.Fatalf("corepack must be enabled again under node 22: %v\n%s", statuses(ctx), strings.Join(fake.Commands()[enabled:], "\n"))
+	}
+
+	again := newContext(t, fake, modtest.Values{"node_versions": []string{"22"}, "bun": true, "pnpm": true, "yarn": true})
+	run(t, again)
+
+	if statuses(again)["enable-corepack"] != contract.StepSkip {
+		t.Fatalf("a replay on the same default must skip: %v", statuses(again))
+	}
+}

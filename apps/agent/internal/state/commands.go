@@ -188,7 +188,7 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 		}
 
 		emit := func(line string) { ctx.Emit("log", map[string]any{"line": line}) }
-		if err := reader.FollowService(params.ID, params.Lines, emit); err != nil {
+		if err := reader.FollowService(ctx.Channel(), params.ID, params.Lines, emit); err != nil {
 			return nil, err
 		}
 
@@ -207,7 +207,12 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 	})
 
 	server.Register("project.list", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
-		return listResult{Projects: reader.List()}, nil
+		projects, err := reader.Declared()
+		if err != nil {
+			return nil, err
+		}
+
+		return listResult{Projects: projects}, nil
 	})
 
 	server.Register("project.add", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
@@ -297,21 +302,29 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 		}
 
 		emit := func(line string) { ctx.Emit("log", map[string]any{"line": line}) }
-		if err := reader.Follow(params.Name, params.Process, params.Lines, emit); err != nil {
+		if err := reader.Follow(ctx.Channel(), params.Name, params.Process, params.Lines, emit); err != nil {
 			return nil, err
 		}
 
 		return logsResult{Lines: []string{}}, nil
 	})
 
-	server.Register("project.install", scoped(func(name, process string) (any, error) {
-		installed, err := reader.Install(name, process)
+	server.Register("project.install", func(ctx *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			Name    string `json:"name"`
+			Process string `json:"process"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		installed, err := reader.Install(params.Name, params.Process, logEmitter(ctx))
 		if err != nil {
 			return nil, err
 		}
 
 		return contract.ProjectInstall{Done: true, Installed: installed}, nil
-	}))
+	})
 
 	server.Register("project.url", named(func(name string) (any, error) {
 		address, err := reader.URL(name)
@@ -325,7 +338,16 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 	server.Register("project.debug", scoped(func(name, process string) (any, error) { return reader.Debug(name, process) }))
 
 	server.Register("project.pull", named(func(name string) (any, error) { return reader.Pull(name) }))
-	server.Register("project.sync", named(func(name string) (any, error) { return reader.Sync(name) }))
+	server.Register("project.sync", func(ctx *protocol.Context, raw json.RawMessage) (any, error) {
+		params, err := decode[struct {
+			Name string `json:"name"`
+		}](raw)
+		if err != nil {
+			return nil, err
+		}
+
+		return reader.Sync(params.Name, logEmitter(ctx))
+	})
 	server.Register("project.branches", named(func(name string) (any, error) { return reader.Branches(name) }))
 	server.Register("project.git_status", named(func(name string) (any, error) { return reader.GitStatus(name) }))
 	server.Register("project.working_tree", named(func(name string) (any, error) { return reader.WorkingTree(name) }))
@@ -571,6 +593,11 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 	server.Register("diag", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
 		return reader.Diag(), nil
 	})
+}
+
+// What a command prints travels on log events, the shape of project.logs: the contract admits events before a response.
+func logEmitter(ctx *protocol.Context) func(string) {
+	return func(line string) { ctx.Emit("log", map[string]any{"line": line}) }
 }
 
 func identified(run func(string) (any, error)) protocol.Handler {

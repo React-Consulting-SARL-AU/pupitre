@@ -305,6 +305,7 @@ func TestBranchesListsWhatIsLocalAndWhatIsOnTheRemote(t *testing.T) {
 
 func TestCheckoutRefusesToCarryUncommittedWorkAway(t *testing.T) {
 	repo := gitFixture(t)
+	repo.publish(t, "feat/login")
 
 	if _, err := repo.reader.Checkout("web", "feat/login"); err == nil {
 		t.Fatal("a dirty repository must never be switched")
@@ -327,6 +328,38 @@ func TestCheckoutRefusesToCarryUncommittedWorkAway(t *testing.T) {
 	if head := run(t, repo.work, "git", "rev-parse", "--abbrev-ref", "HEAD"); head != "feat/login" {
 		t.Fatalf("the repository is on %q", head)
 	}
+
+	if upstream := run(t, repo.work, "git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"); upstream != "origin/feat/login" {
+		t.Fatalf("a branch of the remote is tracked, got %q", upstream)
+	}
+}
+
+// A branch that exists neither here nor on origin is not created out of HEAD: the request is refused, and the repository stays where it was.
+func TestCheckoutCreatesABranchKnownNowhereFromHead(t *testing.T) {
+	repo := gitFixture(t)
+	run(t, repo.work, "git", "checkout", "--quiet", "--", "src/app.ts")
+	if err := os.Remove(filepath.Join(repo.work, "notes.md")); err != nil {
+		t.Fatal(err)
+	}
+
+	branch, err := repo.reader.Checkout("web", "feat/new")
+	if err != nil || branch != "feat/new" {
+		t.Fatalf("got %q, %v", branch, err)
+	}
+
+	if head := run(t, repo.work, "git", "rev-parse", "--abbrev-ref", "HEAD"); head != "feat/new" {
+		t.Fatalf("the repository is on %q", head)
+	}
+}
+
+// A branch on the seed clone, pushed to origin: what a colleague published.
+func (repo fixtureRepo) publish(t *testing.T, branch string) {
+	t.Helper()
+
+	seed := filepath.Join(filepath.Dir(repo.origin), "seed")
+	run(t, seed, "git", "checkout", "--quiet", "-b", branch)
+	run(t, seed, "git", "push", "--quiet", "-u", "origin", branch)
+	run(t, seed, "git", "checkout", "--quiet", "main")
 }
 
 func TestCheckoutRefusesABranchNameGitMustNeverSee(t *testing.T) {
@@ -340,7 +373,7 @@ func TestCheckoutRefusesABranchNameGitMustNeverSee(t *testing.T) {
 func TestSyncClonesWhatIsMissingAndPullsWhatIsThere(t *testing.T) {
 	repo := gitFixture(t)
 
-	fresh, err := repo.reader.Sync("fresh")
+	fresh, err := repo.reader.Sync("fresh", func(string) {})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -353,7 +386,7 @@ func TestSyncClonesWhatIsMissingAndPullsWhatIsThere(t *testing.T) {
 		t.Fatalf("the repository must have been cloned: %v", err)
 	}
 
-	web, err := repo.reader.Sync("web")
+	web, err := repo.reader.Sync("web", func(string) {})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -491,7 +524,7 @@ func TestSyncClonesTheBranchTheRegistryNames(t *testing.T) {
 		Sleep:        func(time.Duration) {},
 	})
 
-	if _, err := reader.Sync("two"); err != nil {
+	if _, err := reader.Sync("two", func(string) {}); err != nil {
 		t.Fatal(err)
 	}
 

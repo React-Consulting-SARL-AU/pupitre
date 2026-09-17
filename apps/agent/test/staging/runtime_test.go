@@ -181,7 +181,7 @@ func TestARuntimeHoldsSeveralMajorsAndAProjectPinsOne(t *testing.T) {
 		t.Fatalf("the pin must be ignored by git, not left untracked: %q", out)
 	}
 
-	refused := agent(t, host, request{Cmd: "project.update", Params: map[string]any{"name": project, "patch": map[string]any{"runtimes": map[string]any{"node": "20"}}}})[0]
+	refused := attempt(t, host, request{Cmd: "project.update", Params: map[string]any{"name": project, "patch": map[string]any{"runtimes": map[string]any{"node": "20"}}}})[0]
 	if refused.OK || !strings.Contains(decode[protocol.Error](t, refused.Error).Fix, "Node.js") {
 		t.Fatalf("a major the machine does not hold is refused with the service to open: %s", refused.Error)
 	}

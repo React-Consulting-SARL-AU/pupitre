@@ -142,6 +142,26 @@ func TestUpgradeFollowsTheReleaseAndRestarts(t *testing.T) {
 	}
 }
 
+func TestUpgradeOnTheLatestReleaseLeavesTheServiceRunning(t *testing.T) {
+	fake := machine(version)
+	run(t, fake, modtest.Values{})
+
+	ctx := newContext(t, fake, modtest.Values{})
+	if err := (Module{}).Upgrade(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if fake.Restarts[Unit] != 1 {
+		t.Fatalf("mailpit restarted %d time(s) without a new binary", fake.Restarts[Unit]-1)
+	}
+
+	for _, event := range ctx.Events() {
+		if event.Status != contract.StepSkip {
+			t.Errorf("%s = %s, want skip", event.Step, event.Status)
+		}
+	}
+}
+
 func TestUninstallKeepsTheMessages(t *testing.T) {
 	fake := machine(version)
 	run(t, fake, modtest.Values{})

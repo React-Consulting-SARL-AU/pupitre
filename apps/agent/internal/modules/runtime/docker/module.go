@@ -2,11 +2,13 @@ package docker
 
 import (
 	"encoding/json"
+	"fmt"
 	"runtime"
 	"slices"
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
 	"pupitre.studio/agent/internal/sys"
@@ -58,6 +60,33 @@ func init() {
 
 func (Module) Manifest() contract.Manifest {
 	return manifest()
+}
+
+// A data root moved under running containers is a daemon restarted on an empty
+// root: their volumes vanish from its view, and what wrote to them writes on.
+func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
+	return modules.Problems(dataRootMoved(ctx))
+}
+
+func dataRootMoved(ctx *modules.Context) *contract.FieldProblem {
+	held := strings.TrimSpace(fmt.Sprint(ctx.Held("data_root")))
+	wanted := strings.TrimSpace(ctx.String("data_root"))
+	if ctx.Held("data_root") == nil || held == wanted || !containersRunning(ctx) {
+		return nil
+	}
+
+	return &contract.FieldProblem{
+		Module:  ID,
+		Field:   "data_root",
+		Code:    contract.ProblemFormat,
+		Message: i18n.T("field.docker.data_root.busy", wanted),
+	}
+}
+
+func containersRunning(ctx *modules.Context) bool {
+	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"docker", "ps", "--quiet"}})
+
+	return err == nil && strings.TrimSpace(out.Stdout) != ""
 }
 
 func (Module) Check(ctx *modules.Context) (modules.Status, error) {
@@ -147,9 +176,14 @@ func (Module) Configure(ctx *modules.Context) error {
 			return modules.Skipped, nil
 		}
 
-		_, err = sys.Exec(ctx, sys.Command{Argv: []string{"usermod", "-aG", group, shell.User}})
+		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"usermod", "-aG", group, shell.User}}); err != nil {
+			return modules.Failed, err
+		}
 
-		return modules.Done, err
+		// A group joined reaches the shells opened after it; the tmux server and its windows keep the list they started with.
+		ctx.Warn(i18n.T("warn.docker.group.reopen", shell.User, group))
+
+		return modules.Done, nil
 	}); err != nil {
 		return err
 	}

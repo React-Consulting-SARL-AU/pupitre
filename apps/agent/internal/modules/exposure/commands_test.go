@@ -66,3 +66,35 @@ func TestStatusAnswersWhileTheInstallLockIsHeld(t *testing.T) {
 		t.Fatalf("a sync under a held lock got %v, want busy", err)
 	}
 }
+
+// A module that could not be read is not a machine with nothing on it: answering absent is what once had the app delete a live tunnel.
+func TestAStatusThatCannotBeReadIsAnErrorNotAnAbsence(t *testing.T) {
+	registry := modules.NewRegistry()
+	registry.Register(cloudflare.Module{})
+	registry.Register(caddy.Module{})
+
+	dir := t.TempDir()
+	engine := &modules.Engine{
+		Registry:    registry,
+		Sys:         modtest.NewFakeSys(),
+		Now:         modtest.NewClock(10 * time.Millisecond).Now,
+		Entitlement: func() contract.Entitlement { return contract.EntitlementDev },
+		ReportPath:  filepath.Join(dir, "report.json"),
+		LogPath:     filepath.Join(dir, "pupitre.log"),
+		InstallPath: "/etc/pupitre/install.json",
+		LockPath:    filepath.Join(dir, "install.lock"),
+	}
+
+	unreadable := errors.New("module.config: permission denied")
+	kept := providers
+	providers = []provider{{id: cloudflare.ID, status: func(*modules.Context) (routes.Report, error) { return routes.Report{}, unreadable }}}
+	defer func() { providers = kept }()
+
+	if _, err := status(engine)(&protocol.Context{}, nil); !errors.Is(err, unreadable) {
+		t.Fatalf("status = %v, want the read error", err)
+	}
+
+	if _, err := acting(engine, func(p provider) reporter { return p.sync })(&protocol.Context{}, nil); !errors.Is(err, unreadable) {
+		t.Fatalf("sync = %v, want the read error", err)
+	}
+}

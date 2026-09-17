@@ -111,3 +111,20 @@ func TestInstallAndExtractHandTheResultToTheOwner(t *testing.T) {
 		t.Fatalf("tar runs as root from the staging folder:\n%s", strings.Join(fake.Commands(), "\n"))
 	}
 }
+
+// An install script or a release index is a body of kilobytes: the journal says how much came back, never what.
+func TestTextKeepsTheBodyOutOfTheJournal(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Answer("releases.example.org/index.json", `{"tag_name":"v1.0","body":"secret-looking release notes"}`)
+	ctx := newContext(t, fake)
+
+	body, err := download.Text(ctx, "https://releases.example.org/index.json")
+	if err != nil || !strings.Contains(body, "release notes") {
+		t.Fatalf("body = %q, %v", body, err)
+	}
+
+	journal := strings.Join(ctx.Output(), "\n")
+	if strings.Contains(journal, "release notes") || !strings.Contains(journal, "releases.example.org/index.json") || !strings.Contains(journal, "byte(s) out") {
+		t.Fatalf("the journal must name the request and the size, not the body:\n%s", journal)
+	}
+}

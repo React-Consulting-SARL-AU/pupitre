@@ -1,6 +1,7 @@
 package state_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -185,5 +186,26 @@ func TestKillTermsThenKillsWhenForced(t *testing.T) {
 
 	if strings.Join(fake.Signals, " ") != "TERM 7300 TERM 7400 KILL 7400" {
 		t.Fatalf("unexpected signals %v", fake.Signals)
+	}
+}
+
+// Idleness is what says a session is forgotten, never its age: an agent typed into a minute ago has been running three hours too.
+func TestSessionsCleanMeasuresIdlenessNotAge(t *testing.T) {
+	fake, reader := sessionFixture(t)
+	fake.Spawn(modtest.Proc{PID: 4100, PPID: 1, RSS: 4 * 1024, Etimes: 4 * 3600, Args: "/bin/zsh"})
+	fake.Spawn(modtest.Proc{PID: 5900, PPID: 4100, RSS: 500 * 1024, Etimes: 3 * 3600, Args: "/home/dev/.local/bin/claude"})
+	fake.Spawn(modtest.Proc{PID: 4200, PPID: 1, RSS: 4 * 1024, Etimes: 4 * 3600, Args: "/bin/zsh"})
+	fake.Spawn(modtest.Proc{PID: 5950, PPID: 4200, RSS: 500 * 1024, Etimes: 3 * 3600, Args: "/home/dev/.local/bin/claude"})
+
+	now := modtest.Epoch.Unix()
+	fake.Replies["tmux list-panes -a -F #{pane_pid} #{window_activity}"] = fmt.Sprintf("4100 %d\n4200 %d\n", now-60, now-3*3600)
+
+	if killed := reader.CleanSessions(); killed != 2 {
+		t.Fatalf("got %d killed, want the silent agent and the IDE backend nobody measures: %v", killed, fake.Signals)
+	}
+
+	signals := strings.Join(fake.Signals, " ")
+	if !strings.Contains(signals, "TERM 5950") || strings.Contains(signals, "TERM 5900") {
+		t.Fatalf("the agent typed into a minute ago must live, the silent one not: %v", fake.Signals)
 	}
 }

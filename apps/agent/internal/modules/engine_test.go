@@ -3,9 +3,11 @@ package modules_test
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"syscall"
 	"testing"
@@ -16,6 +18,7 @@ import (
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/protocol"
+	"pupitre.studio/agent/internal/state"
 )
 
 const secret = "s3cret-de-test"
@@ -484,6 +487,62 @@ func TestUpgradeOnlyTouchesInstalledModulesAndKeepsTheirValues(t *testing.T) {
 	}
 }
 
+const openReport = `{"started_at":"2026-09-17T10:00:00Z","agent_version":"0.0.0-test","modules":[{"id":"core.system","status":"ok","steps":[{"step":"install-package","status":"ok","ms":3}]},{"id":"tool.demo","status":"ok","steps":[{"step":"install-package","status":"ok","ms":2},{"step":"write-config","status":"start"}]}],"failed":[],"warned":[],"report_path":"%s"}
+`
+
+// A report left open by a process that died reads as finished, its open step failed: the lock the kernel released is what tells the two apart.
+func TestAnOpenReportWithNoLockHolderIsAnsweredInterrupted(t *testing.T) {
+	engine := newEngine(t, modtest.NewFakeSys(), newRegistry(), entitled(contract.EntitlementValid))
+	engine.LockPath = filepath.Join(t.TempDir(), "install.lock")
+	if err := os.WriteFile(engine.ReportPath, []byte(fmt.Sprintf(openReport, engine.ReportPath)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	report, err := engine.Report()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if report.FinishedAt == "" || !reflect.DeepEqual(report.Failed, []string{"tool.demo"}) {
+		t.Fatalf("report = %+v", report)
+	}
+
+	demo := report.Modules[1]
+	if demo.Status != contract.ModuleFail || demo.Steps[1].Status != contract.StepFail || demo.Steps[1].Message == "" || report.Modules[0].Status != contract.ModuleOK {
+		t.Fatalf("the open step must fail with a reason, the finished module stay: %+v", report.Modules)
+	}
+
+	if err := contract.ValidateValue("ReportResult", report); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAnOpenReportWhileTheLockIsHeldStaysOpen(t *testing.T) {
+	engine := newEngine(t, modtest.NewFakeSys(), newRegistry(), entitled(contract.EntitlementValid))
+	engine.LockPath = filepath.Join(t.TempDir(), "install.lock")
+	if err := os.WriteFile(engine.ReportPath, []byte(fmt.Sprintf(openReport, engine.ReportPath)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	held, err := os.OpenFile(engine.LockPath, os.O_CREATE|os.O_RDWR, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer held.Close()
+	if err := syscall.Flock(int(held.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+		t.Fatal(err)
+	}
+
+	report, err := engine.Report()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if report.FinishedAt != "" || report.Modules[1].Steps[1].Status != contract.StepStart {
+		t.Fatalf("a run under way must read as under way: %+v", report)
+	}
+}
+
 func TestReportBeforeAnyInstall(t *testing.T) {
 	engine := newEngine(t, modtest.NewFakeSys(), newRegistry(), entitled(contract.EntitlementValid))
 
@@ -933,4 +992,194 @@ func TestInspectAnswersWhileAnotherProcessHoldsTheLock(t *testing.T) {
 	}); err != nil || !installed {
 		t.Fatalf("a read under a held lock must still answer: installed %v, err %v", installed, err)
 	}
+}
+
+func versionedRegistry() *modules.Registry {
+	return demoRegistry(
+		modtest.Passing{ID: "core.system"},
+		modtest.Passing{ID: "db.demo", Requires: []string{"core.system"}, Unit: "demo", Versioned: true},
+	)
+}
+
+func installVersioned(t *testing.T, engine *modules.Engine) {
+	t.Helper()
+
+	request := modules.Request{
+		Modules: []string{"db.demo"},
+		Config:  map[string]map[string]any{"db.demo": {modtest.VersionField: modtest.OtherVersion}},
+		Persist: true,
+	}
+	if _, err := engine.Install(request, nil); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUpgradeAndUninstallReadTheModuleOnTheRememberedValues(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	engine := newEngine(t, fake, versionedRegistry(), entitled(contract.EntitlementValid))
+	installVersioned(t, engine)
+	fake.Upgrades[modtest.Passing{ID: "db.demo"}.PackageAt(modtest.OtherVersion)] = "2.1"
+
+	var events []contract.StepEvent
+	if _, err := engine.Upgrade(modules.Request{}, collect(&events)); err != nil {
+		t.Fatal(err)
+	}
+
+	touched := map[string]bool{}
+	for _, event := range events {
+		touched[event.Module] = true
+	}
+	if !touched["db.demo"] {
+		t.Fatalf("upgrade {} must find the module installed on its remembered version, touched %v", touched)
+	}
+
+	result, err := engine.Uninstall([]string{"db.demo"}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(result.Failed) != 0 {
+		t.Fatalf("uninstall failed: %v", result.Failed)
+	}
+	if _, present := fake.Packages[modtest.Passing{ID: "db.demo"}.PackageAt(modtest.OtherVersion)]; present {
+		t.Fatal("uninstall must remove the package of the remembered version")
+	}
+}
+
+func TestSnapshotReadsTheModuleOnTheRememberedValues(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	engine := newEngine(t, fake, versionedRegistry(), entitled(contract.EntitlementValid))
+	installVersioned(t, engine)
+
+	reader := state.FromEngine(engine, state.Options{})
+
+	var listed []string
+	for _, service := range reader.Snapshot().Services {
+		listed = append(listed, service.ID)
+	}
+	if !slices.Contains(listed, "db.demo") {
+		t.Fatalf("snapshot must list the module installed on another version than the default, got %v", listed)
+	}
+
+	if _, err := reader.ServiceStatus("db.demo"); err != nil {
+		t.Fatalf("service.status must find the module: %v", err)
+	}
+}
+
+func TestUpgradeAndUninstallLeaveAPackageTheClientInstalledAlone(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	registry := demoRegistry(
+		modtest.Passing{ID: "core.system"},
+		modtest.Passing{ID: "db.theirs", Requires: []string{"core.system"}, Unit: "theirs"},
+	)
+	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+
+	if _, err := engine.Install(modules.Request{Modules: []string{"core.system"}, Persist: true}, nil); err != nil {
+		t.Fatal(err)
+	}
+	fake.Packages["db-theirs"] = "8.0"
+	fake.Units["theirs"] = modtest.UnitActive
+
+	var events []contract.StepEvent
+	if _, err := engine.Upgrade(modules.Request{}, collect(&events)); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, event := range events {
+		if event.Module == "db.theirs" {
+			t.Fatalf("upgrade {} reconfigured a package the client installed: %+v", event)
+		}
+	}
+	if _, present := fake.Files["/etc/pupitre/demo/db.theirs.conf"]; present {
+		t.Fatal("upgrade wrote a configuration for a package the client installed")
+	}
+
+	_, err := engine.Uninstall([]string{"db.theirs"}, nil)
+	if protocolCode(t, err) != contract.ErrorBadRequest {
+		t.Fatalf("uninstall of a package the client installed must be refused, got %v", err)
+	}
+	if _, present := fake.Packages["db-theirs"]; !present {
+		t.Fatal("uninstall removed a package the client installed")
+	}
+}
+
+func TestConfigureAndPreflightSeeWhatTheMachineHolds(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	holding := &heldRecorder{}
+	registry := demoRegistry(modtest.Passing{ID: "core.system"}, holding)
+	engine := newEngine(t, fake, registry, entitled(contract.EntitlementValid))
+
+	first := modules.Request{Modules: []string{"tool.held"}, Config: map[string]map[string]any{"tool.held": {"port": 9000}}, Persist: true}
+	if _, err := engine.Install(first, nil); err != nil {
+		t.Fatal(err)
+	}
+	if holding.configured != nil {
+		t.Fatalf("nothing is held before the first install, got %v", holding.configured)
+	}
+
+	second := modules.Request{Modules: []string{"tool.held"}, Config: map[string]map[string]any{"tool.held": {"port": 9001}}, Persist: true}
+	if _, err := engine.Check(second, nil); err != nil {
+		t.Fatal(err)
+	}
+	if fmt.Sprint(holding.preflighted) != "9000" {
+		t.Fatalf("preflight must see the held port 9000, got %v", holding.preflighted)
+	}
+
+	if _, err := engine.Install(second, nil); err != nil {
+		t.Fatal(err)
+	}
+	if fmt.Sprint(holding.configured) != "9000" {
+		t.Fatalf("configure must see the held port 9000, got %v", holding.configured)
+	}
+
+	if _, err := engine.Upgrade(modules.Request{Modules: []string{"tool.held"}}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if fmt.Sprint(holding.upgraded) != "9001" {
+		t.Fatalf("upgrade must see the held port 9001, got %v", holding.upgraded)
+	}
+}
+
+// heldRecorder is a demo module that notes what Held answers in each phase.
+type heldRecorder struct {
+	modtest.Passing
+	configured, preflighted, upgraded any
+}
+
+func (m *heldRecorder) Manifest() contract.Manifest {
+	return modtest.Passing{ID: "tool.held"}.Manifest()
+}
+
+func (m *heldRecorder) Preflight(ctx *modules.Context) []contract.FieldProblem {
+	m.preflighted = ctx.Held("port")
+
+	return nil
+}
+
+func (m *heldRecorder) Configure(ctx *modules.Context) error {
+	m.configured = ctx.Held("port")
+
+	return modtest.Passing{ID: "tool.held"}.Configure(ctx)
+}
+
+func (m *heldRecorder) Upgrade(ctx *modules.Context) error {
+	m.upgraded = ctx.Held("port")
+
+	return modtest.Passing{ID: "tool.held"}.Upgrade(ctx)
+}
+
+func (m *heldRecorder) Check(ctx *modules.Context) (modules.Status, error) {
+	return modtest.Passing{ID: "tool.held"}.Check(ctx)
+}
+
+func (m *heldRecorder) Install(ctx *modules.Context) error {
+	return modtest.Passing{ID: "tool.held"}.Install(ctx)
+}
+
+func (m *heldRecorder) Uninstall(ctx *modules.Context) error {
+	return modtest.Passing{ID: "tool.held"}.Uninstall(ctx)
+}
+
+func (m *heldRecorder) Status(ctx *modules.Context) (modules.Status, error) {
+	return modtest.Passing{ID: "tool.held"}.Status(ctx)
 }

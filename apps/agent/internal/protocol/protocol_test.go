@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -392,5 +393,76 @@ func TestACommandOutlivesTheChannelThatCarriedIt(t *testing.T) {
 
 	if steps != 3 {
 		t.Fatalf("the command stopped with the channel: %d step(s) of 3", steps)
+	}
+}
+
+// A follow ends with the channel: a handler that waits on the command's context
+// is released the moment standard input closes, not when its own time is up.
+func TestTheChannelContextEndsWhenStandardInputCloses(t *testing.T) {
+	server := NewServer(Options{AgentVersion: testAgentVersion, Entitlement: entitlement.Fixed(contract.EntitlementDev), Now: fixedNow})
+
+	released := make(chan bool, 1)
+	server.Register("project.logs", func(ctx *Context, _ json.RawMessage) (any, error) {
+		select {
+		case <-ctx.Channel().Done():
+			released <- true
+		case <-time.After(5 * time.Second):
+			released <- false
+		}
+
+		return map[string]any{"lines": []string{}}, nil
+	})
+
+	reader, writer := io.Pipe()
+	var out bytes.Buffer
+	served := make(chan error, 1)
+	go func() { served <- server.Serve(reader, &out) }()
+
+	io.WriteString(writer, `{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`+"\n")
+	io.WriteString(writer, `{"id":2,"cmd":"project.logs","params":{"name":"web","process":"web","follow":true}}`+"\n")
+	writer.Close()
+
+	if !<-released {
+		t.Fatal("the handler outlived the channel that carried it")
+	}
+
+	if err := <-served; err != nil {
+		t.Fatalf("serve: %v", err)
+	}
+}
+
+// A write that fails is the channel gone too: the context ends, and the loop returns the failure.
+func TestTheChannelContextEndsWhenAWriteFails(t *testing.T) {
+	server := NewServer(Options{AgentVersion: testAgentVersion, Entitlement: entitlement.Fixed(contract.EntitlementDev), Now: fixedNow})
+
+	released := make(chan bool, 1)
+	server.Register("project.logs", func(ctx *Context, _ json.RawMessage) (any, error) {
+		ctx.Emit("log", map[string]any{"line": "dropped on the floor"})
+
+		select {
+		case <-ctx.Channel().Done():
+			released <- true
+		case <-time.After(5 * time.Second):
+			released <- false
+		}
+
+		return map[string]any{"lines": []string{}}, nil
+	})
+
+	reader, writer := io.Pipe()
+	defer writer.Close()
+
+	served := make(chan error, 1)
+	go func() { served <- server.Serve(reader, &droppingWriter{keep: 1}) }()
+
+	io.WriteString(writer, `{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`+"\n")
+	io.WriteString(writer, `{"id":2,"cmd":"project.logs","params":{"name":"web","process":"web","follow":true}}`+"\n")
+
+	if !<-released {
+		t.Fatal("the handler outlived the channel that carried it")
+	}
+
+	if err := <-served; err == nil || !strings.Contains(err.Error(), "broken pipe") {
+		t.Fatalf("serve returned %v, want the write failure", err)
 	}
 }

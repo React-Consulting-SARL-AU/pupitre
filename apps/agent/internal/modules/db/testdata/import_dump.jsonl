@@ -21,14 +21,14 @@ $ {"db.mysql":{"app_password":"s3cret-de-test","remote_password":"s3cret-de-test
 < {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"ok","step":"write-config"}
 < {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"start","step":"enable-service"}
 < {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"ok","step":"enable-service"}
-< {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"start","step":"store-passwords"}
-< {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"ok","step":"store-passwords"}
 < {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"start","step":"create-accounts"}
 < {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"ok","step":"create-accounts"}
+< {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"start","step":"store-passwords"}
+< {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"ok","step":"store-passwords"}
 < {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"start","step":"import-shop"}
 < {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"ok","step":"import-shop"}
 < {"id":2,"ok":true,"result":{"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}
-< {"id":3,"ok":true,"result":{"started_at":"2026-09-04T12:00:00Z","finished_at":"2026-09-04T12:00:00Z","agent_version":"0.0.0-test","modules":[{"id":"core.system","status":"ok","steps":[{"step":"install-package","status":"ok","ms":0},{"step":"write-config","status":"ok","ms":0}]},{"id":"db.mysql","status":"ok","steps":[{"step":"install-engine","status":"ok","ms":0},{"step":"write-config","status":"ok","ms":0},{"step":"enable-service","status":"ok","ms":0},{"step":"store-passwords","status":"ok","ms":0},{"step":"create-accounts","status":"ok","ms":0},{"step":"import-shop","status":"ok","ms":0}]}],"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}
+< {"id":3,"ok":true,"result":{"started_at":"2026-09-04T12:00:00Z","finished_at":"2026-09-04T12:00:00Z","agent_version":"0.0.0-test","modules":[{"id":"core.system","status":"ok","steps":[{"step":"install-package","status":"ok","ms":0},{"step":"write-config","status":"ok","ms":0}]},{"id":"db.mysql","status":"ok","steps":[{"step":"install-engine","status":"ok","ms":0},{"step":"write-config","status":"ok","ms":0},{"step":"enable-service","status":"ok","ms":0},{"step":"create-accounts","status":"ok","ms":0},{"step":"store-passwords","status":"ok","ms":0},{"step":"import-shop","status":"ok","ms":0}]}],"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}
 < {"event":"step","id":4,"module":"db.mysql","ms":0,"status":"start","step":"import-shop"}
 < {"event":"step","id":4,"module":"db.mysql","ms":0,"status":"ok","step":"import-shop"}
 < {"id":4,"ok":true,"result":{"imported":["shop"]}}

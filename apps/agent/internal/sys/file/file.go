@@ -14,6 +14,42 @@ func Read(ctx sys.Context, path string) ([]byte, error) {
 	return ctx.Sys().ReadFile(path)
 }
 
+// Tail is the last max bytes of the file: read as a range where the machine can, cut from the whole of it otherwise.
+func Tail(ctx sys.Context, path string, max int64) ([]byte, error) {
+	if ranged, can := ctx.Sys().(sys.Ranged); can {
+		return ranged.ReadTail(path, max)
+	}
+
+	raw, err := ctx.Sys().ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if int64(len(raw)) > max {
+		raw = raw[int64(len(raw))-max:]
+	}
+
+	return raw, nil
+}
+
+// From is what the file holds past offset, the whole of it when it shrank under the reader.
+func From(ctx sys.Context, path string, offset int64) ([]byte, error) {
+	if ranged, can := ctx.Sys().(sys.Ranged); can {
+		return ranged.ReadFrom(path, offset)
+	}
+
+	raw, err := ctx.Sys().ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if offset > int64(len(raw)) {
+		offset = 0
+	}
+
+	return raw[offset:], nil
+}
+
 func Exists(ctx sys.Context, path string) bool {
 	exists, err := ctx.Sys().Exists(path)
 
@@ -62,7 +98,7 @@ func EnsureLine(ctx sys.Context, path, line string) (bool, error) {
 
 	ctx.Logf("append to %s", path)
 
-	return true, ctx.Sys().WriteFile(path, []byte(updated), 0o644)
+	return true, ctx.Sys().WriteFile(path, []byte(updated), sys.KeepMode)
 }
 
 func Chown(ctx sys.Context, path, owner, group string) error {
@@ -162,11 +198,8 @@ func Remove(ctx sys.Context, path string) (bool, error) {
 	return true, ctx.Sys().Remove(path)
 }
 
+// A block edits a file that is someone else's: the file keeps the mode it had.
 func EnsureBlock(ctx sys.Context, path, name string, content []byte) (bool, error) {
-	return EnsureBlockMode(ctx, path, name, content, 0o644)
-}
-
-func EnsureBlockMode(ctx sys.Context, path, name string, content []byte, mode fs.FileMode) (bool, error) {
 	current, err := ctx.Sys().ReadFile(path)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return false, err
@@ -179,7 +212,7 @@ func EnsureBlockMode(ctx sys.Context, path, name string, content []byte, mode fs
 
 	ctx.Logf("write block %s in %s", name, path)
 
-	return true, ctx.Sys().WriteFile(path, updated, mode)
+	return true, ctx.Sys().WriteFile(path, updated, sys.KeepMode)
 }
 
 func ReadBlock(ctx sys.Context, path, name string) ([]byte, bool) {
@@ -234,7 +267,7 @@ func RemoveBlock(ctx sys.Context, path, name string) (bool, error) {
 	ctx.Logf("remove block %s from %s", name, path)
 	updated := string(current[:from]) + string(current[to+len(end):])
 
-	return true, ctx.Sys().WriteFile(path, []byte(updated), 0o644)
+	return true, ctx.Sys().WriteFile(path, []byte(updated), sys.KeepMode)
 }
 
 func blockStart(name string) string {

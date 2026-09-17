@@ -4,6 +4,9 @@ package providers
 import (
 	"sort"
 	"strings"
+
+	"pupitre.studio/agent/internal/sys"
+	"pupitre.studio/agent/internal/sys/env"
 )
 
 // Shape is the pattern a manifest holds an entry to: a vendor name, a colon, the key.
@@ -62,6 +65,45 @@ func normalize(name string) string {
 	}
 
 	return strings.Trim(out.String(), "_")
+}
+
+// Store puts every provider's key in /etc/pupitre/env under prefix and takes
+// out the keys of the providers the form no longer names: a vendor withdrawn
+// leaves nothing of itself behind. It says whether the file changed.
+func Store(ctx sys.Context, prefix string, found []Provider) (bool, error) {
+	changed := false
+	kept := map[string]bool{}
+
+	for _, entry := range found {
+		kept[entry.EnvKey(prefix)] = true
+
+		stored, err := env.Set(ctx, entry.EnvKey(prefix), entry.Key)
+		if err != nil {
+			return false, err
+		}
+
+		changed = changed || stored
+	}
+
+	keys, err := env.Keys(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	for _, key := range keys {
+		if !strings.HasPrefix(key, prefix) || kept[key] {
+			continue
+		}
+
+		removed, err := env.Unset(ctx, key)
+		if err != nil {
+			return false, err
+		}
+
+		changed = changed || removed
+	}
+
+	return changed, nil
 }
 
 // Render writes one KEY=value line per provider, under prefix, as an EnvironmentFile reads it.

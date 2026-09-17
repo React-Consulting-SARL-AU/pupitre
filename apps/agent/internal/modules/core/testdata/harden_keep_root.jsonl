@@ -67,6 +67,8 @@
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"ok","step":"validate-sshd-config"}
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"start","step":"reload-sshd"}
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"ok","step":"reload-sshd"}
+< {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"start","step":"confirm-sshd-config"}
+< {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"ok","step":"confirm-sshd-config"}
 < {"id":3,"ok":true,"result":{"root_closed":false,"root_kept":true,"next_user":"dev"}}
 < {"event":"step","id":4,"module":"core.hardening","ms":0,"status":"start","step":"check-authorized-keys"}
 < {"event":"step","id":4,"module":"core.hardening","ms":0,"status":"ok","step":"check-authorized-keys"}

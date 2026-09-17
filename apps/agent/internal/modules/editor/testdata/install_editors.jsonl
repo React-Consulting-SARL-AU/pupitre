@@ -4,6 +4,7 @@
 @answer data.services.jetbrains.com {"IIU":[{"version":"2026.2.2","build":"262.12345.67","downloads":{"linux":{"link":"https://download.jetbrains.com/idea/idea-2026.2.2.tar.gz","checksumLink":"https://download.jetbrains.com/idea/idea-2026.2.2.tar.gz.sha256"},"linuxARM64":{"link":"https://download.jetbrains.com/idea/idea-2026.2.2-aarch64.tar.gz","checksumLink":"https://download.jetbrains.com/idea/idea-2026.2.2-aarch64.tar.gz.sha256"}}}]}
 @answer update.code.visualstudio.com/api/update {"url":"https://vscode.download.prss.microsoft.com/stable/code.tar.gz","name":"1.136.1","version":"a44adf7f53e00964ab890f9f8758a334f1fc15bc","productVersion":"1.136.1","sha256hash":"30031a9831674dd684c3817399acebc88a116ce5a7a3fbc0cf34d92521a534e6"}
 @answer redirect_url https://github.com/zed-industries/zed/releases/download/v1.18.1/zed-remote-server-linux-x86_64.gz
+@answer api.github.com/repos/zed-industries/zed/releases/tags/v1.18.1 {"assets":[{"name":"zed-remote-server-linux-x86_64.gz","digest":"sha256:30031a9831674dd684c3817399acebc88a116ce5a7a3fbc0cf34d92521a534e6"},{"name":"zed-remote-server-linux-aarch64.gz","digest":"sha256:30031a9831674dd684c3817399acebc88a116ce5a7a3fbc0cf34d92521a534e6"}]}
 @archive /var/lib/pupitre/downloads/jetbrains-idea.tar.gz build.txt bin/remote-dev-server.sh
 @archive /var/lib/pupitre/downloads/code-server.tar.gz bin/code-server product.json
 @archive /var/lib/pupitre/downloads/code-cli.tar.gz code

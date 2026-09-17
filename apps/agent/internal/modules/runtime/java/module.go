@@ -82,7 +82,7 @@ func (Module) Configure(ctx *modules.Context) error {
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
-	if err := mise.Java.Upgrade(ctx); err != nil {
+	if _, err := mise.Java.Upgrade(ctx); err != nil {
 		return err
 	}
 

@@ -331,3 +331,28 @@ func TestEveryFirewallCallIsBounded(t *testing.T) {
 		}
 	}
 }
+
+// systemctl reload only says the job failed; caddy validate says why, and that is what the step must carry.
+func TestACaddyfileCaddyRefusesIsNotReloadedAndTheReasonIsInTheStep(t *testing.T) {
+	fake := machine()
+	run(t, newContext(t, fake, values()))
+	reloads := fake.Restarts[Unit]
+
+	fake.Files[registry.DefaultConf] = []byte(projects + "docs|flymate/apps/docs|-|bun|docs.localhost|3002|docs|bun run docs\n")
+	fake.FailProgram("caddy", "Error: adapting config using caddyfile: /etc/caddy/Caddyfile:12: unrecognized directive: reverse_proxi")
+
+	ctx := newContext(t, fake, values())
+	_, err := Sync(ctx)
+	if err == nil || !strings.Contains(err.Error(), "unrecognized directive") || !strings.Contains(err.Error(), "caddy refuses") {
+		t.Fatalf("sync = %v, want the validation output", err)
+	}
+
+	if fake.Restarts[Unit] != reloads {
+		t.Fatalf("caddy reloaded %d time(s) on a Caddyfile it refuses", fake.Restarts[Unit]-reloads)
+	}
+
+	commands := strings.Join(fake.Commands(), "\n")
+	if !strings.Contains(commands, "caddy validate --config "+configPath+" --adapter caddyfile") {
+		t.Fatalf("caddy validate must run before the reload:\n%s", commands)
+	}
+}

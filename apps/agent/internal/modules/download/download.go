@@ -21,8 +21,9 @@ const Dir = "/var/lib/pupitre/downloads"
 var curl = []string{"curl", "-fsSL", "--proto", "=https", "--tlsv1.2"}
 
 // Text reads a small document — a version, an index, a checksum — and returns it trimmed.
+// Text fetches a body — a release index, an install script — that has no place in the journal.
 func Text(ctx *modules.Context, url string) (string, error) {
-	out, err := sys.Exec(ctx, sys.Command{Argv: append(append([]string{}, curl...), url)})
+	out, err := modules.Quiet(ctx, sys.Command{Argv: append(append([]string{}, curl...), url)})
 
 	return strings.TrimSpace(out.Stdout), err
 }

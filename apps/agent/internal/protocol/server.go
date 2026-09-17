@@ -3,6 +3,7 @@ package protocol
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -103,7 +104,7 @@ func (s *Server) Call(cmd string, params any, emit func(event string, fields map
 	}
 
 	if config, gated := s.gate(cmd); gated {
-		return nil, migrationRequired(config)
+		return nil, MigrationRequired(config)
 	}
 
 	if params == nil {
@@ -147,7 +148,8 @@ func sink(emit func(event string, fields map[string]any)) func(map[string]any) {
 }
 
 func (s *Server) Serve(in io.Reader, out io.Writer) error {
-	current := &session{server: s, out: out, lastID: -1, in: bufio.NewReader(in)}
+	current := &session{server: s, out: out, lastID: -1, lines: make(chan read), closed: make(chan struct{}), broken: make(chan struct{})}
+	go current.read(bufio.NewReader(in))
 
 	for {
 		line, err := current.nextLine()
@@ -173,13 +175,43 @@ func (s *Server) Serve(in io.Reader, out io.Writer) error {
 type session struct {
 	server   *Server
 	out      io.Writer
-	in       *bufio.Reader
+	lines    chan read
 	pushback []byte
 	lastID   int64
 	greeted  bool
 
+	// closed says standard input has ended, broken that a write failed: either
+	// one is the channel gone, which a follow has to notice while it runs.
+	closed chan struct{}
+	broken chan struct{}
+
 	writeMu  sync.Mutex
 	writeErr error
+}
+
+type read struct {
+	line []byte
+	err  error
+}
+
+// One line ahead of the loop, never more: a request queued behind a long
+// command stays unread, and the end of the input is known the moment it comes,
+// even while a handler holds the loop.
+func (s *session) read(in *bufio.Reader) {
+	for {
+		line, err := in.ReadBytes('\n')
+		if err != nil {
+			close(s.closed)
+		}
+
+		s.lines <- read{line: line, err: err}
+
+		if err != nil {
+			close(s.lines)
+
+			return
+		}
+	}
 }
 
 func (s *session) handle(line []byte) error {
@@ -222,7 +254,15 @@ func (s *session) handle(line []byte) error {
 	return s.writeErr
 }
 
+// The secrets line is consumed the moment the request announces it, before any
+// refusal: a line left on the input would be read as a request, by root.
 func (s *session) dispatch(id int64, cmd string, params any, line []byte) (any, *Error) {
+	var secrets json.RawMessage
+	var secretsErr *Error
+	if wantsSecrets(params) {
+		secrets, secretsErr = s.readSecrets()
+	}
+
 	if !s.greeted && cmd != "hello" {
 		return nil, helloRequired()
 	}
@@ -237,24 +277,43 @@ func (s *session) dispatch(id int64, cmd string, params any, line []byte) (any, 
 	}
 
 	if config, gated := s.server.gate(cmd); gated {
-		return nil, migrationRequired(config)
+		return nil, MigrationRequired(config)
 	}
 
 	if err := contract.Validate(contract.ParamsDefinition(cmd), params); err != nil {
 		return nil, badRequest(i18n.T("protocol.params.invalid", "params"+err.Error()))
 	}
 
-	ctx := &Context{ID: id, session: s, sink: func(line map[string]any) { s.write(line) }}
-
-	if wantsSecrets(params) {
-		secrets, err := s.readSecrets()
-		if err != nil {
-			return nil, err
-		}
-		ctx.Secrets = secrets
+	if secretsErr != nil {
+		return nil, secretsErr
 	}
 
+	channel, release := s.channel()
+	defer release()
+
+	ctx := &Context{ID: id, Secrets: secrets, session: s, sink: func(line map[string]any) { s.write(line) }, channel: channel}
+
 	return call(handler, ctx, rawParams(line))
+}
+
+// The context of one command: done when the channel that carried it is gone,
+// which is what ends a follow, and nothing else — install, upgrade and harden
+// never consult it, and run to the end with nobody to read them.
+func (s *session) channel() (context.Context, func()) {
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+
+	go func() {
+		select {
+		case <-s.closed:
+		case <-s.broken:
+		case <-done:
+		}
+
+		cancel()
+	}()
+
+	return ctx, func() { close(done) }
 }
 
 func call(handler Handler, ctx *Context, params json.RawMessage) (result any, failure *Error) {
@@ -318,7 +377,12 @@ func (s *session) nextLine() ([]byte, error) {
 		return line, nil
 	}
 
-	return s.in.ReadBytes('\n')
+	next, open := <-s.lines
+	if !open {
+		return nil, io.EOF
+	}
+
+	return next.line, next.err
 }
 
 func (s *session) fail(id int64, failure *Error) {
@@ -336,6 +400,10 @@ func (s *session) write(line any) {
 	encoder := json.NewEncoder(s.out)
 	encoder.SetEscapeHTML(false)
 	s.writeErr = encoder.Encode(line)
+
+	if s.writeErr != nil {
+		close(s.broken)
+	}
 }
 
 func requestID(value any) (int64, bool) {

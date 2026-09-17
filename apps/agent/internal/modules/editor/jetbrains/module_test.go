@@ -77,7 +77,8 @@ func TestTheJVMIsSizedFromTheMachineMemory(t *testing.T) {
 		memTotalKB string
 		heap       string
 	}{
-		{"2097152", "-Xmx2048m"},
+		{"2097152", "-Xmx1536m"},
+		{"4194304", "-Xmx2048m"},
 		{"8388608", "-Xmx4096m"},
 		{"33554432", "-Xmx8192m"},
 	} {
@@ -178,3 +179,98 @@ func TestAnUnreachableReleaseIndexCarriesItsReplayCommand(t *testing.T) {
 }
 
 var _ modules.Module = Module{}
+
+// A download cut short must not leave a folder the next install takes for a backend.
+func TestAFailedDownloadLeavesNoDistribution(t *testing.T) {
+	fake := machine("8388608")
+	fake.FailProgram("tar", "tar: Unexpected EOF in archive")
+
+	err := (Module{}).Install(newContext(t, fake, modtest.Values{"ide": "idea", "version": "latest"}))
+	if err == nil {
+		t.Fatal("expected the install to fail")
+	}
+
+	for path := range fake.Dirs {
+		if strings.HasPrefix(path, CacheDir+"/idea-") {
+			t.Fatalf("a folder stayed behind: %s", path)
+		}
+	}
+
+	delete(fake.Failures, "tar")
+	ctx := install(t, fake, modtest.Values{"ide": "idea", "version": "latest"})
+
+	if fake.Files[CacheDir+"/idea-latest/build.txt"] == nil {
+		t.Fatalf("the replay must download for real: %v", ctx.Events())
+	}
+}
+
+// A folder without build.txt — what an earlier failed download left — is not a backend, and the install puts a real one there.
+func TestAnEmptyDistributionIsNotABackend(t *testing.T) {
+	fake := machine("8388608")
+	fake.Dirs[CacheDir+"/idea-latest"] = true
+
+	if status, err := (Module{}).Check(newContext(t, fake, modtest.Values{"ide": "idea", "version": "latest"})); err != nil || status.Installed {
+		t.Fatalf("status = %+v, %v", status, err)
+	}
+
+	install(t, fake, modtest.Values{"ide": "idea", "version": "latest"})
+
+	if fake.Files[CacheDir+"/idea-latest/build.txt"] == nil {
+		t.Fatal("the backend must be downloaded into the empty folder")
+	}
+}
+
+// The running backend goes only once its replacement is on the disk.
+func TestUpgradeDownloadsBeforeRemovingTheRunningBackend(t *testing.T) {
+	fake := machine("8388608")
+	install(t, fake, modtest.Values{"ide": "idea", "version": "latest"})
+	fake.Files[CacheDir+"/idea-latest/build.txt"] = []byte("IU-261.1.1\n")
+
+	removedAt, downloadedAt := -1, -1
+	fake.Mutations = nil
+	if err := (Module{}).Upgrade(newContext(t, fake, modtest.Values{"ide": "idea", "version": "latest"})); err != nil {
+		t.Fatal(err)
+	}
+
+	for at, mutation := range fake.Mutations {
+		if mutation == "remove "+CacheDir+"/idea-latest" && removedAt < 0 {
+			removedAt = at
+		}
+		if strings.HasPrefix(mutation, "write "+CacheDir+"/idea-latest.partial/") && downloadedAt < 0 {
+			downloadedAt = at
+		}
+	}
+
+	if downloadedAt < 0 || removedAt < 0 || downloadedAt > removedAt {
+		t.Fatalf("download at %d, removal at %d:\n  %s", downloadedAt, removedAt, strings.Join(fake.Mutations, "\n  "))
+	}
+
+	if string(fake.Files[CacheDir+"/idea-latest/build.txt"]) != "extrait de "+download.Dir+"/jetbrains-idea.tar.gz" {
+		t.Fatal("the new backend must stand where Gateway looks")
+	}
+}
+
+// Every distribution this module ever laid goes with it, not only the one the form names today.
+func TestUninstallRemovesEveryDistributionTheModuleLaid(t *testing.T) {
+	fake := machine("8388608")
+	install(t, fake, modtest.Values{"ide": "idea", "version": "latest"})
+	fake.Answer("data.services.jetbrains.com", strings.ReplaceAll(releases, "IIU", "GO"))
+	fake.Archives[download.Dir+"/jetbrains-goland.tar.gz"] = []string{"build.txt"}
+	install(t, fake, modtest.Values{"ide": "goland", "version": "2026.2"})
+	fake.Dirs[CacheDir+"/9c2d1a-IU-262.12345.67"] = true
+	fake.Files[CacheDir+"/9c2d1a-IU-262.12345.67/build.txt"] = []byte("IU-262.12345.67\n")
+
+	if err := (Module{}).Uninstall(newContext(t, fake, modtest.Values{"ide": "goland", "version": "2026.2"})); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, dist := range []string{CacheDir + "/idea-latest", CacheDir + "/goland-2026.2"} {
+		if fake.Dirs[dist] {
+			t.Errorf("%s stayed", dist)
+		}
+	}
+
+	if !fake.Dirs[CacheDir+"/9c2d1a-IU-262.12345.67"] {
+		t.Fatal("a distribution Gateway downloaded itself is Gateway's")
+	}
+}

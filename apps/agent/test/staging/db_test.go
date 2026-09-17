@@ -134,7 +134,7 @@ func TestADumpLeftBeforeTheInstallIsImportedAndReported(t *testing.T) {
 	}
 
 	tables := ssh(t, host, "sudo", "mysql", "-N", "-B", "-e",
-		"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'shop'")
+		`"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'shop'"`)
 	if strings.TrimSpace(tables) == "0" {
 		t.Fatalf("the dump must have reached the shop database: %q", tables)
 	}
@@ -232,7 +232,7 @@ func TestNoGeneratedPasswordLeavesTheEnvFile(t *testing.T) {
 		}
 	}
 
-	if mode := ssh(t, host, "sudo", "stat", "-c", "%a %U", "/etc/pupitre/env"); strings.TrimSpace(mode) != "600 root" {
+	if mode := ssh(t, host, "sudo", "stat", "-c", "'%a %U'", "/etc/pupitre/env"); strings.TrimSpace(mode) != "600 root" {
 		t.Errorf("/etc/pupitre/env = %q, want 600 root", strings.TrimSpace(mode))
 	}
 

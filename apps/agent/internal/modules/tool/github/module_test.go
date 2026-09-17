@@ -186,6 +186,7 @@ func TestStatusCitesTheKeyNeverTheValue(t *testing.T) {
 
 func TestUninstallLeavesTheServerKeyAlone(t *testing.T) {
 	fake := configuredMachine()
+	fake.Files[hostsPath] = []byte("github.com:\n    oauth_token: " + token + "\n    user: flymate\n")
 	ctx := newContext(t, fake, modtest.Secrets{"token": token})
 
 	if err := (Module{}).Uninstall(ctx); err != nil {
@@ -202,6 +203,36 @@ func TestUninstallLeavesTheServerKeyAlone(t *testing.T) {
 
 	if fake.Files[keyPath] == nil {
 		t.Fatalf("%s belongs to the machine, not to this module", keyPath)
+	}
+
+	commands := strings.Join(fake.Commands(), "\n")
+	if !strings.Contains(commands, "(dev) gh auth logout --hostname github.com") || !strings.Contains(commands, "(dev) git config --global --unset-all "+helperKey) {
+		t.Fatalf("gh must be signed out and git's helper unset before gh goes:\n%s", commands)
+	}
+
+	removeAt, logoutAt := strings.Index(commands, "apt-get"), strings.Index(commands, "gh auth logout")
+	if logoutAt < 0 || removeAt >= 0 && logoutAt > removeAt {
+		t.Fatal("gh signs out while it is still there")
+	}
+}
+
+// A gh that cannot sign out still leaves no token behind: the file that holds it goes, and the client is told.
+func TestUninstallRemovesTheHostsFileWhenGhCannotSignOut(t *testing.T) {
+	fake := configuredMachine()
+	fake.Files[hostsPath] = []byte("github.com:\n    oauth_token: " + token + "\n")
+	fake.FailProgram("gh", "failed to log out")
+	ctx := newContext(t, fake, modtest.Secrets{"token": token})
+
+	if err := (Module{}).Uninstall(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, kept := fake.Files[hostsPath]; kept {
+		t.Fatal("the token stayed in hosts.yml")
+	}
+
+	if output := strings.Join(ctx.Output(), "\n"); !strings.Contains(output, "! gh could not sign out") || strings.Contains(output, token) {
+		t.Fatalf("the client must be told, without the token:\n%s", output)
 	}
 }
 

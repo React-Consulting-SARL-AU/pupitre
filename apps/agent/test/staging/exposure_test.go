@@ -235,7 +235,7 @@ func TestProjectEnvFallsBackOnTheVersionedExample(t *testing.T) {
 	dev := "dev@" + address(host)
 
 	ssh(t, dev, "mkdir", "-p", "/home/dev/projects/fixture")
-	ssh(t, dev, "sh", "-c", "printf 'DATABASE_URL=\\nAUTH_SECRET=\\n' > /home/dev/projects/fixture/.env.example")
+	ssh(t, dev, "sh", "-c", `"printf 'DATABASE_URL=\\nAUTH_SECRET=\\n' > /home/dev/projects/fixture/.env.example"`)
 
 	result := agent(t, host, request{Cmd: "project.env", Params: map[string]any{"name": "fixture", "force": true}})[0]
 	if !strings.Contains(string(result.Result), `"keys":["DATABASE_URL","AUTH_SECRET"]`) {

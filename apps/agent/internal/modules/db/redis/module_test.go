@@ -54,7 +54,7 @@ func TestConfigureBindsLocallyAndRequiresThePassword(t *testing.T) {
 	run(t, ctx)
 
 	config := string(fake.Files[dropIn])
-	for _, want := range []string{"bind 127.0.0.1 ::1", "port 6379", "requirepass " + password, "appendonly yes"} {
+	for _, want := range []string{"bind 127.0.0.1 ::1", "port 6379", `requirepass "` + password + `"`, "appendonly yes"} {
 		if !strings.Contains(config, want) {
 			t.Errorf("configuration lacks %q:\n%s", want, config)
 		}
@@ -138,7 +138,7 @@ func TestReplayOnAnInstalledMachineChangesNothing(t *testing.T) {
 	run(t, ctx)
 
 	for step, status := range statuses(ctx) {
-		if step != "verify-auth" && status != contract.StepSkip {
+		if status != contract.StepSkip {
 			t.Errorf("replay: %s = %s, want skip", step, status)
 		}
 	}
@@ -182,7 +182,7 @@ func TestANewPasswordIsSetOnTheRunningServerWithoutARestart(t *testing.T) {
 	}
 
 	stdin, auth := configSets(fake)
-	for _, want := range []string{"CONFIG SET requirepass n3w-secret", "CONFIG SET maxmemory 512mb", "CONFIG SET maxmemory-policy allkeys-lru", `CONFIG SET save ""`} {
+	for _, want := range []string{`CONFIG SET requirepass "n3w-secret"`, "CONFIG SET maxmemory 512mb", "CONFIG SET maxmemory-policy allkeys-lru", `CONFIG SET save ""`} {
 		if !strings.Contains(stdin, want) {
 			t.Errorf("redis-cli must be told %q on its standard input:\n%s", want, stdin)
 		}
@@ -192,7 +192,7 @@ func TestANewPasswordIsSetOnTheRunningServerWithoutARestart(t *testing.T) {
 		t.Fatalf("the old password opens the connection that sets the new one, env = %v", auth)
 	}
 
-	if !strings.Contains(string(fake.Files[dropIn]), "requirepass n3w-secret") || fake.EnvValue(passwordKey) != "n3w-secret" {
+	if !strings.Contains(string(fake.Files[dropIn]), `requirepass "n3w-secret"`) || fake.EnvValue(passwordKey) != "n3w-secret" {
 		t.Fatal("the drop-in and /etc/pupitre/env must carry the new password all the same")
 	}
 
@@ -274,5 +274,23 @@ func TestVerifyAuthKeepsThePasswordOutOfTheArgv(t *testing.T) {
 
 	if !slices.Contains(ping.Env, "REDISCLI_AUTH="+password) {
 		t.Fatalf("redis-cli reads its password from REDISCLI_AUTH, env = %v", ping.Env)
+	}
+}
+
+// redis.conf reads a bare value up to the first space and a # as a comment: a password typed with either would leave the server refusing to start, or open on a shorter one.
+func TestThePasswordIsQuotedInTheDropInAndOnTheLiveServer(t *testing.T) {
+	typed := `pass "with" space #hash \slash`
+	fake := modtest.NewFakeSys()
+	run(t, newContext(t, fake, values))
+
+	reconfigure(t, fake, values, typed)
+
+	want := `requirepass "pass \"with\" space #hash \\slash"`
+	if !strings.Contains(string(fake.Files[dropIn]), want+"\n") {
+		t.Fatalf("drop-in:\n%s\nwant %s", fake.Files[dropIn], want)
+	}
+
+	if stdin, _ := configSets(fake); !strings.Contains(stdin, `CONFIG SET requirepass "pass \"with\" space #hash \\slash"`) {
+		t.Fatalf("CONFIG SET:\n%s", stdin)
 	}
 }

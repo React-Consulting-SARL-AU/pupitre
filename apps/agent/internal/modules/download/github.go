@@ -42,6 +42,29 @@ func (r GitHubRelease) assetURL(version, name string) string {
 	return "https://github.com/" + r.Repo + "/releases/download/v" + version + "/" + name
 }
 
+// Binary fetches one asset of version that is the program itself, checks it, and puts it at destination as root.
+func (r GitHubRelease) Binary(ctx *modules.Context, version, destination string) error {
+	name := r.Asset(version)
+
+	expected, err := r.digest(ctx, version, name)
+	if err != nil {
+		return err
+	}
+
+	staged, done, err := Verified(ctx, name, r.assetURL(version, name), expected)
+	if err != nil {
+		return err
+	}
+	defer done()
+
+	return Install(ctx, staged, destination, 0o755, "root")
+}
+
+// Digest is what GitHub, or the vendor's checksum document, says of one asset of version.
+func (r GitHubRelease) Digest(ctx *modules.Context, version, name string) (string, error) {
+	return r.digest(ctx, version, name)
+}
+
 func (r GitHubRelease) digest(ctx *modules.Context, version, name string) (string, error) {
 	if r.Checksums != "" {
 		document, err := Text(ctx, r.assetURL(version, r.Checksums))

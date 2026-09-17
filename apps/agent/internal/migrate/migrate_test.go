@@ -2,6 +2,7 @@ package migrate_test
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -222,6 +223,41 @@ func TestARefusalPutsTheWholeBatchBack(t *testing.T) {
 
 	if result.Pending[0] != 1 || result.Pending[1] != 2 {
 		t.Fatalf("pending = %v, want both still owed", result.Pending)
+	}
+}
+
+// A migration that panics is a refusal like the others: the batch goes back, the ledger stays, and serve starts rather than crashing at every reconnection with the lock held.
+func TestAPanicInAMigrationIsARefusalThatPutsTheBatchBack(t *testing.T) {
+	machine := newSys()
+	configured(machine)
+	machine.Files[projectsPath] = []byte("as it was\n")
+
+	panicking := migrate.Migration{
+		ID:      2,
+		Slug:    "panics",
+		Touches: []migrate.Target{migrate.TargetProjects},
+		Apply: func(*migrate.Context) error {
+			var rows []string
+
+			return errors.New(rows[3])
+		},
+	}
+
+	result, err := runner(machine, writing(1, migrate.TargetProjects, "first\n"), panicking).Run()
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if result.State != contract.ConfigFailed || result.Failure == nil || result.Failure.ID != 2 || !strings.Contains(result.Failure.Message, "index out of range") {
+		t.Fatalf("result = %+v, want the panic as the failure of migration 2", result)
+	}
+
+	if !result.Restored || string(machine.Files[projectsPath]) != "as it was\n" {
+		t.Fatalf("the batch must go back: restored = %v, projects = %q", result.Restored, machine.Files[projectsPath])
+	}
+
+	if _, written := machine.Files[ledgerPath]; written {
+		t.Fatal("the ledger kept a revision the files no longer hold")
 	}
 }
 

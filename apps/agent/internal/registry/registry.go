@@ -25,6 +25,9 @@ const (
 	// The windows that were up, kept for the boot that follows: state of the machine, not configuration, so it lives with the report.
 	DefaultRunning = "/var/lib/pupitre/projects.running.json"
 
+	// The lock every session takes around a read-then-write of the registry, the running record and /etc/hosts.
+	DefaultLock = "/var/lib/pupitre/projects.lock"
+
 	FirstPort = 3000
 	LastPort  = 65535
 )
@@ -341,6 +344,10 @@ type Paths struct {
 	Local    string
 	Projects string
 	Running  string
+	// Backups is where the configuration migrations keep the last batches, named in the refusal of a registry that no longer reads.
+	Backups string
+	// Lock guards the read-then-write of the registry, the running record and /etc/hosts across sessions; empty is no lock, which the tests take.
+	Lock string
 }
 
 func (p Paths) Resolved() Paths {
@@ -365,6 +372,12 @@ type File struct {
 	Projects []Project
 	// Domain is what the machine publishes under, read once with the registry: a route is resolved and refused against it.
 	Domain string
+
+	// A local row the agent could not read as a project is not a row it may
+	// lose: it is carried through every write as it was.
+	kept []json.RawMessage
+	// A local file that does not parse is a problem every write refuses on, never an empty registry.
+	problem error
 }
 
 // The repository's file, then the local one: on equal names the local row wins, and the order stays that of the first appearance.
@@ -382,15 +395,29 @@ func Load(ctx sys.Context, paths Paths) *File {
 			continue
 		}
 
-		var projects []Project
+		var rows []localRow
 		if source.local {
-			projects, _ = ParseLocal(raw)
+			rows, err = parseRows(raw)
+			if err != nil {
+				loaded.problem = unreadable(paths, err)
+				said(ctx, source.path+" unreadable", "%s: unreadable, every write on the registry is refused: %s", source.path, err)
+
+				continue
+			}
 		} else {
-			projects = ParseConf(raw, loaded.Domain)
+			for _, project := range ParseConf(raw, loaded.Domain) {
+				rows = append(rows, localRow{project: project, ok: true})
+			}
 		}
 
-		for _, project := range projects {
-			if !namePattern.MatchString(project.Name) || project.Path(paths.Projects) == "" || len(project.Processes) == 0 || !contained(project, paths.Projects) {
+		for _, row := range rows {
+			project := row.project
+			if !row.ok || !namePattern.MatchString(project.Name) || project.Path(paths.Projects) == "" || len(project.Processes) == 0 || !contained(project, paths.Projects) {
+				if source.local {
+					loaded.kept = append(loaded.kept, row.raw)
+					said(ctx, source.path+" row "+summary(row.raw), "%s: row %s set aside, not a project: kept as it is", source.path, summary(row.raw))
+				}
+
 				continue
 			}
 
@@ -406,6 +433,45 @@ func Load(ctx sys.Context, paths Paths) *File {
 	}
 
 	return loaded
+}
+
+// The registry is read at every snapshot: what is wrong with it is said once a session, not once every three seconds.
+func said(ctx sys.Context, key, format string, args ...any) {
+	_ = ctx.Once("registry: "+key, func() error {
+		ctx.Logf(format, args...)
+
+		return nil
+	})
+}
+
+// Problem is the refusal every write answers while the local file does not parse.
+func (f *File) Problem() error {
+	return f.problem
+}
+
+func unreadable(paths Paths, cause error) error {
+	fix := i18n.T("registry.local.unreadable.fix", paths.Local)
+	if paths.Backups != "" {
+		fix = i18n.T("registry.local.unreadable.backups.fix", paths.Local, paths.Backups)
+	}
+
+	return bad(i18n.T("registry.local.unreadable", paths.Local, cause.Error()), fix)
+}
+
+func summary(raw json.RawMessage) string {
+	var named struct {
+		Name string `json:"name"`
+	}
+	if err := json.Unmarshal(raw, &named); err == nil && named.Name != "" {
+		return strconv.Quote(named.Name)
+	}
+
+	text := string(raw)
+	if len(text) > 60 {
+		text = text[:60] + "…"
+	}
+
+	return text
 }
 
 func domainOf(ctx sys.Context) string {
@@ -590,28 +656,59 @@ func uniqueID(label string, ids map[string]bool) string {
 }
 
 type document struct {
-	Projects []Project `json:"projects"`
+	Projects []json.RawMessage `json:"projects"`
 }
 
-// ParseLocal reads the file this agent writes: one JSON document, one shape.
+// A localRow is one entry of the local file: the project it reads as, or the bytes it was when it does not.
+type localRow struct {
+	raw     json.RawMessage
+	project Project
+	ok      bool
+}
+
+// ParseLocal reads the file this agent writes: one JSON document, one shape. A row that is not a project is left out here and kept by Load.
 func ParseLocal(raw []byte) ([]Project, error) {
+	rows, err := parseRows(raw)
+	if err != nil {
+		return nil, err
+	}
+
+	projects := make([]Project, 0, len(rows))
+	for _, row := range rows {
+		if row.ok {
+			projects = append(projects, row.project)
+		}
+	}
+
+	return projects, nil
+}
+
+func parseRows(raw []byte) ([]localRow, error) {
 	var parsed document
 	if err := json.Unmarshal(raw, &parsed); err != nil {
 		return nil, err
 	}
 
-	for _, project := range parsed.Projects {
-		for at := range project.Processes {
-			if project.Processes[at].Routes == nil {
-				project.Processes[at].Routes = []Route{}
-			}
-			if project.Processes[at].Dir == "" {
-				project.Processes[at].Dir = RootDir
+	rows := make([]localRow, 0, len(parsed.Projects))
+	for _, entry := range parsed.Projects {
+		row := localRow{raw: entry}
+
+		if err := json.Unmarshal(entry, &row.project); err == nil {
+			row.ok = true
+			for at := range row.project.Processes {
+				if row.project.Processes[at].Routes == nil {
+					row.project.Processes[at].Routes = []Route{}
+				}
+				if row.project.Processes[at].Dir == "" {
+					row.project.Processes[at].Dir = RootDir
+				}
 			}
 		}
+
+		rows = append(rows, row)
 	}
 
-	return parsed.Projects, nil
+	return rows, nil
 }
 
 func compose(sub, domain string) string {
@@ -771,15 +868,26 @@ func (f *File) Rehost(ctx sys.Context, from, to string) ([]string, error) {
 	return moved, nil
 }
 
-func (f *File) Remove(ctx sys.Context, name string) (Project, error) {
+// Removable says whether the row may go, before anything is stopped for it: the repository's rows never do.
+func (f *File) Removable(name string) error {
 	project, known := f.Get(name)
 	if !known {
-		return Project{}, NotFound(name)
+		return NotFound(name)
 	}
 
 	if !project.Local {
-		return Project{}, versioned(name)
+		return versioned(name)
 	}
+
+	return nil
+}
+
+func (f *File) Remove(ctx sys.Context, name string) (Project, error) {
+	if err := f.Removable(name); err != nil {
+		return Project{}, err
+	}
+
+	project, _ := f.Get(name)
 
 	var kept []Project
 	for _, row := range f.locals() {
@@ -806,12 +914,24 @@ func (f *File) locals() []Project {
 	return rows
 }
 
+// The rows set aside at the load follow the projects into the file, as they were.
 func (f *File) write(ctx sys.Context, rows []Project) error {
-	if rows == nil {
-		rows = []Project{}
+	if f.problem != nil {
+		return f.problem
 	}
 
-	encoded, err := json.MarshalIndent(document{Projects: rows}, "", "  ")
+	entries := make([]json.RawMessage, 0, len(rows)+len(f.kept))
+	for _, row := range rows {
+		encoded, err := json.Marshal(row)
+		if err != nil {
+			return err
+		}
+
+		entries = append(entries, encoded)
+	}
+	entries = append(entries, f.kept...)
+
+	encoded, err := json.MarshalIndent(document{Projects: entries}, "", "  ")
 	if err != nil {
 		return err
 	}

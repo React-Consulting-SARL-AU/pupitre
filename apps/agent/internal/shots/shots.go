@@ -34,12 +34,11 @@ const (
 	slugLimit   = 60
 )
 
-// The Google build on amd64, the distribution's chromium elsewhere: the same order the module installs them in.
+// The Google build on amd64, the distribution's chromium elsewhere, in the order the module installs them; Ubuntu's chromium-browser is a snap stub, not a browser.
 var Browsers = []string{
 	"/usr/bin/google-chrome-stable",
 	"/opt/google/chrome/google-chrome",
 	"/usr/bin/chromium",
-	"/usr/bin/chromium-browser",
 }
 
 var slugger = regexp.MustCompile(`[^a-zA-Z0-9]+`)

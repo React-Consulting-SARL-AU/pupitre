@@ -18,6 +18,7 @@ import (
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/sys/lock"
 )
 
 const (
@@ -40,6 +41,9 @@ type Engine struct {
 	// dropped channel left behind is still installing, and the serve that
 	// replaces it must be told so rather than start over on top of it.
 	LockPath string
+	// ProjectsLockPath guards the project registry the way the state reader
+	// guards it, for the step that rewrites it; empty is no lock, which the tests take.
+	ProjectsLockPath string
 
 	mu sync.Mutex
 }
@@ -113,11 +117,12 @@ func (e *Engine) Install(request Request, sink Sink) (contract.InstallResult, er
 	r := e.newRun(request, sink)
 	defer r.close()
 
-	if err := e.refuseInstalledConflicts(r, modules); err != nil {
+	kept := e.recall(r)
+	if err := e.refuseInstalledConflicts(r, modules, kept); err != nil {
 		return contract.InstallResult{}, err
 	}
 
-	request = request.completedBy(e.recall(r))
+	request = request.completedBy(kept)
 	r.redactAll(request.Secrets)
 
 	if err := refuseDeferringMandatory(modules, request); err != nil {
@@ -139,6 +144,7 @@ func (e *Engine) Install(request Request, sink Sink) (contract.InstallResult, er
 	report := e.start(r, "install", modules)
 	for _, module := range modules {
 		ctx := r.context(module.Manifest(), request.Config[module.Manifest().ID], request.Secrets[module.Manifest().ID])
+		ctx.held = kept.Config[module.Manifest().ID]
 		r.following(ctx)
 
 		execute(ctx, "install", func() error { return module.Install(ctx) })
@@ -192,11 +198,12 @@ func (e *Engine) Upgrade(request Request, sink Sink) (contract.InstallResult, er
 
 	// A module nobody has configured has nothing to be upgraded into: its
 	// Configure step would run on no answer at all, so it waits for one.
-	modules := withoutDeferred(e.installedAmong(r, candidates), recalled.Defer)
+	modules := withoutDeferred(e.installedAmong(r, candidates, recalled), recalled.Defer)
 	report := e.start(r, "upgrade", modules)
 
 	for _, module := range modules {
 		ctx := r.context(module.Manifest(), request.Config[module.Manifest().ID], request.Secrets[module.Manifest().ID])
+		ctx.held = recalled.Config[module.Manifest().ID]
 		r.following(ctx)
 		execute(ctx, "upgrade", func() error { return module.Upgrade(ctx) })
 
@@ -229,9 +236,15 @@ func (e *Engine) Uninstall(ids []string, sink Sink) (contract.UninstallResult, e
 
 	r := e.newRun(Request{}, sink)
 	defer r.close()
-	r.redactAll(e.recall(r).Secrets)
 
-	if err := e.refuseStillRequired(r, modules); err != nil {
+	recalled := e.recall(r)
+	r.redactAll(recalled.Secrets)
+
+	if err := e.refuseForeign(r, modules, recalled); err != nil {
+		return contract.UninstallResult{}, err
+	}
+
+	if err := e.refuseStillRequired(r, modules, recalled); err != nil {
 		return contract.UninstallResult{}, err
 	}
 
@@ -241,7 +254,7 @@ func (e *Engine) Uninstall(ids []string, sink Sink) (contract.UninstallResult, e
 
 	for i := len(modules) - 1; i >= 0; i-- {
 		module := modules[i]
-		ctx := r.context(module.Manifest(), nil, nil)
+		ctx := r.recalled(module.Manifest(), recalled)
 
 		execute(ctx, "uninstall", func() error { return module.Uninstall(ctx) })
 		if ctx.failed {
@@ -278,7 +291,7 @@ func (e *Engine) Command(id string, sink Sink, fn func(ctx *Context) error) erro
 	recalled := e.recall(r)
 	r.redactAll(recalled.Secrets)
 
-	return fn(r.context(module.Manifest(), recalled.Config[id], recalled.Secrets[id]))
+	return fn(r.recalled(module.Manifest(), recalled))
 }
 
 // Inspect reads through a module without the lock or the right of use: a status
@@ -296,7 +309,7 @@ func (e *Engine) Inspect(id string, fn func(ctx *Context) error) error {
 	recalled := e.recall(r)
 	r.redactAll(recalled.Secrets)
 
-	return fn(r.context(module.Manifest(), recalled.Config[id], recalled.Secrets[id]))
+	return fn(r.recalled(module.Manifest(), recalled))
 }
 
 // Deferred names the modules put on the machine without being configured, as the requests so far left them.
@@ -351,7 +364,32 @@ func (e *Engine) Report() (contract.Report, error) {
 		return contract.Report{}, errors.New(i18n.T("engine.report.unreadable", e.reportPath(), err.Error()))
 	}
 
+	// A report still open with nobody holding the run lock is the report of a
+	// process that died: the kernel released the lock, the file never learnt.
+	if report.FinishedAt == "" && e.lockFree() {
+		return report.Interrupted(e.now()), nil
+	}
+
 	return report, nil
+}
+
+func (e *Engine) lockFree() bool {
+	release, held, err := lock.Acquire(e.LockPath)
+	if err != nil || !held {
+		return false
+	}
+
+	release()
+
+	return true
+}
+
+func (e *Engine) now() time.Time {
+	if e.Now == nil {
+		return time.Now()
+	}
+
+	return e.Now()
 }
 
 func (e *Engine) acquire() (func(), error) {
@@ -396,7 +434,7 @@ func (e *Engine) entitled() bool {
 }
 
 func (e *Engine) newRun(request Request, sink Sink) *run {
-	r := newRun(runOptions{Sys: e.Sys, Now: e.Now, Emit: sink, LogPath: e.LogPath})
+	r := newRun(runOptions{Sys: e.Sys, Now: e.Now, Emit: sink, LogPath: e.LogPath, ProjectsLock: e.ProjectsLockPath})
 	r.redactAll(request.Secrets)
 
 	return r
@@ -531,9 +569,15 @@ func (e *Engine) recall(r *run) Request {
 }
 
 func (e *Engine) remembered() (Request, error) {
+	return Remembered(e.Sys, e.installPath())
+}
+
+// Remembered reads what install.json holds: modules, values and secrets. A
+// file that is not there is an empty request, not an error.
+func Remembered(s sys.Sys, path string) (Request, error) {
 	empty := Request{Config: map[string]map[string]any{}, Secrets: map[string]map[string]string{}}
 
-	raw, err := e.Sys.ReadFile(e.installPath())
+	raw, err := s.ReadFile(path)
 	if err != nil {
 		return empty, nil
 	}
@@ -574,7 +618,7 @@ func (e *Engine) store(r *run, request Request) error {
 	return file.WriteAtomic(ctx, path, content, 0o600)
 }
 
-func (e *Engine) refuseInstalledConflicts(r *run, selected []Module) error {
+func (e *Engine) refuseInstalledConflicts(r *run, selected []Module, recalled Request) error {
 	chosen := map[string]bool{}
 	for _, module := range selected {
 		chosen[module.Manifest().ID] = true
@@ -587,7 +631,7 @@ func (e *Engine) refuseInstalledConflicts(r *run, selected []Module) error {
 				continue
 			}
 
-			status, err := installed.Check(r.context(installed.Manifest(), nil, nil))
+			status, err := installed.Check(r.recalled(installed.Manifest(), recalled))
 			if err == nil && status.Installed {
 				return protocol.NewError(contract.ErrorBadRequest, i18n.T("engine.conflict.installed", module.Manifest().ID, other)).
 					WithFix(i18n.T("engine.conflict.installed.fix", other))
@@ -599,15 +643,17 @@ func (e *Engine) refuseInstalledConflicts(r *run, selected []Module) error {
 }
 
 // A module another installed module still names in its requires stays put: removing it alone would leave the other standing on nothing.
-func (e *Engine) refuseStillRequired(r *run, leaving []Module) error {
+func (e *Engine) refuseStillRequired(r *run, leaving []Module, recalled Request) error {
 	going := map[string]bool{}
 	for _, module := range leaving {
 		going[module.Manifest().ID] = true
 	}
 
+	ours := e.remembersInstalling(recalled)
+
 	for _, module := range e.Registry.All() {
 		manifest := module.Manifest()
-		if going[manifest.ID] {
+		if going[manifest.ID] || !ours[manifest.ID] {
 			continue
 		}
 
@@ -616,7 +662,7 @@ func (e *Engine) refuseStillRequired(r *run, leaving []Module) error {
 				continue
 			}
 
-			status, err := module.Check(r.context(manifest, nil, nil))
+			status, err := module.Check(r.recalled(manifest, recalled))
 			if err != nil || !status.Installed {
 				break
 			}
@@ -629,10 +675,18 @@ func (e *Engine) refuseStillRequired(r *run, leaving []Module) error {
 	return nil
 }
 
-func (e *Engine) installedAmong(r *run, candidates []Module) []Module {
+// A package the client put on the machine themselves is theirs: only what
+// install.json remembers, and what those modules required, is read as ours.
+func (e *Engine) installedAmong(r *run, candidates []Module, recalled Request) []Module {
+	ours := e.remembersInstalling(recalled)
+
 	var installed []Module
 	for _, module := range candidates {
-		ctx := r.context(module.Manifest(), nil, nil)
+		if !ours[module.Manifest().ID] {
+			continue
+		}
+
+		ctx := r.recalled(module.Manifest(), recalled)
 
 		status, err := module.Check(ctx)
 		if err != nil {
@@ -651,6 +705,50 @@ func (e *Engine) installedAmong(r *run, candidates []Module) []Module {
 	}
 
 	return ordered
+}
+
+// remembersInstalling names the modules the engine put on the machine: the
+// ones a request asked for, and the requirements it pulled in with them, which
+// install.json only carries through the modules that named them.
+func (e *Engine) remembersInstalling(recalled Request) map[string]bool {
+	ours := map[string]bool{}
+
+	resolved, err := e.Registry.Resolve(recalled.Modules)
+	if err != nil {
+		for _, id := range recalled.Modules {
+			ours[id] = true
+		}
+
+		return ours
+	}
+
+	for _, module := range resolved {
+		ours[module.Manifest().ID] = true
+	}
+
+	return ours
+}
+
+// A module on the machine that install.json never remembered is the client's
+// own; one that is neither there nor remembered is an uninstall already done,
+// which replays to nothing.
+func (e *Engine) refuseForeign(r *run, leaving []Module, recalled Request) error {
+	ours := e.remembersInstalling(recalled)
+
+	for _, module := range leaving {
+		id := module.Manifest().ID
+		if ours[id] {
+			continue
+		}
+
+		status, err := module.Check(r.recalled(module.Manifest(), recalled))
+		if err == nil && status.Installed {
+			return protocol.NewError(contract.ErrorBadRequest, i18n.T("engine.uninstall.foreign", id)).
+				WithFix(i18n.T("engine.uninstall.foreign.fix", id))
+		}
+	}
+
+	return nil
 }
 
 func (e *Engine) reportPath() string {

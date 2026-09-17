@@ -3,6 +3,7 @@ package vscode
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
@@ -33,7 +34,13 @@ const (
 
 	hostnamePath = "/etc/hostname"
 	defaultName  = "pupitre"
+	// What code tunnel --name accepts: letters, digits and hyphens, this many at most.
+	tunnelNameLength = 20
+
+	cliID = ID + ".cli"
 )
+
+var notInTunnelName = regexp.MustCompile(`[^a-z0-9-]+`)
 
 const unitTemplate = `[Unit]
 Description=Tunnel VS Code Pupitre
@@ -89,16 +96,16 @@ func installCLI(ctx *modules.Context) error {
 			return modules.Skipped, nil
 		}
 
-		return modules.Done, fetchCLI(ctx)
+		found, err := cli(ctx)
+		if err != nil {
+			return modules.Failed, err
+		}
+
+		return modules.Done, fetchCLI(ctx, found)
 	})
 }
 
-func fetchCLI(ctx *modules.Context) error {
-	found, err := cli(ctx)
-	if err != nil {
-		return err
-	}
-
+func fetchCLI(ctx *modules.Context, found release) error {
 	staged, done, err := download.Verified(ctx, cliArchive, found.url, found.sha256)
 	if err != nil {
 		return err
@@ -117,7 +124,7 @@ func fetchCLI(ctx *modules.Context) error {
 		return errors.New(i18n.T("modules.vscode.cli_missing", cliPath))
 	}
 
-	return nil
+	return download.Record(ctx, cliID, found.Commit)
 }
 
 func installServer(ctx *modules.Context, choose func(*modules.Context) (release, error)) (release, error) {
@@ -305,7 +312,7 @@ func tunnel(ctx *modules.Context, wanted bool) error {
 		})
 	}
 
-	content := []byte(fmt.Sprintf(unitTemplate, machineName(ctx)))
+	content := []byte(fmt.Sprintf(unitTemplate, tunnelName(machineName(ctx))))
 	changed := false
 
 	if err := ctx.Step("write-tunnel-service", func() (modules.Outcome, error) {
@@ -341,7 +348,16 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 			return modules.Skipped, nil
 		}
 
-		return modules.Done, fetchCLI(ctx)
+		found, err := cli(ctx)
+		if err != nil {
+			return modules.Failed, err
+		}
+
+		if download.Recorded(ctx, cliID) == found.Commit {
+			return modules.Skipped, nil
+		}
+
+		return modules.Done, fetchCLI(ctx, found)
 	}); err != nil {
 		return err
 	}
@@ -350,24 +366,23 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 		return err
 	}
 
+	previous := recorded(ctx)
 	found, err := installServer(ctx, resolve)
 	if err != nil {
+		return err
+	}
+
+	if err := removeServer(ctx, "remove-previous-server", previous, found.Commit); err != nil {
 		return err
 	}
 
 	return configure(ctx, found)
 }
 
-// The extensions and everything the client opened stay; the server, the CLI and the tunnel go.
-func (Module) Uninstall(ctx *modules.Context) error {
-	if err := tunnel(ctx, false); err != nil {
-		return err
-	}
-
-	installed := recorded(ctx)
-
-	if err := ctx.Step("remove-server", func() (modules.Outcome, error) {
-		if installed.Commit == "" || !file.Exists(ctx, installed.serverCLI()) {
+// A server Remote SSH no longer opens is a folder of a few hundred megabytes for nothing.
+func removeServer(ctx *modules.Context, step string, installed release, keep string) error {
+	return ctx.Step(step, func() (modules.Outcome, error) {
+		if installed.Commit == "" || installed.Commit == keep || !file.Exists(ctx, installed.serverDir()) {
 			return modules.Skipped, nil
 		}
 
@@ -376,7 +391,16 @@ func (Module) Uninstall(ctx *modules.Context) error {
 		}
 
 		return modules.Done, nil
-	}); err != nil {
+	})
+}
+
+// The extensions and everything the client opened stay; the server, the CLI and the tunnel go.
+func (Module) Uninstall(ctx *modules.Context) error {
+	if err := tunnel(ctx, false); err != nil {
+		return err
+	}
+
+	if err := removeServer(ctx, "remove-server", recorded(ctx), ""); err != nil {
 		return err
 	}
 
@@ -386,7 +410,12 @@ func (Module) Uninstall(ctx *modules.Context) error {
 			return modules.Failed, err
 		}
 
-		if !removed {
+		forgotten, err := download.Forget(ctx, cliID)
+		if err != nil {
+			return modules.Failed, err
+		}
+
+		if !removed && !forgotten {
 			return modules.Skipped, nil
 		}
 
@@ -440,11 +469,21 @@ func target(ctx *modules.Context, link string) string {
 func machineName(ctx *modules.Context) string {
 	raw, err := file.Read(ctx, hostnamePath)
 	if err != nil {
-		return defaultName
+		return ""
 	}
 
-	name := strings.TrimSpace(string(raw))
-	if name == "" {
+	return strings.TrimSpace(string(raw))
+}
+
+// code tunnel --name takes letters, digits and hyphens, twenty at most: the
+// hostname is what the machine knows of itself, cut to that shape.
+func tunnelName(hostname string) string {
+	name := notInTunnelName.ReplaceAllString(strings.ToLower(hostname), "-")
+	if len(name) > tunnelNameLength {
+		name = name[:tunnelNameLength]
+	}
+
+	if name = strings.Trim(name, "-"); name == "" {
 		return defaultName
 	}
 
