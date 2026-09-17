@@ -1,0 +1,56 @@
+---
+title: Changer de serveur ne ferme rien, les secrets survivent à un refus, et un siège est une machine
+description: Activer, renommer ou ajouter un serveur ne ferme plus ce qui tourne sur les autres ; un durcissement dont la connexion tombe se relit sur la machine ; un mot de passe tapé dans un formulaire tient tant que l’agent ne l’a pas pris ; l’agent n’écrase jamais un registre de projets qu’il ne sait pas lire et ne retire que ce qu’il a installé ; un serveur suspendu après un impayé revient avec l’abonnement, et une machine n’occupe qu’un siège, quel que soit l’ordinateur qui l’enrôle.
+locale: fr
+version: 0.4.0
+channel: stable
+date: 2026-09-17
+order: 11
+---
+
+Des correctifs dans l’app, dans l’agent et sur la plateforme, app et agent tous deux à mettre à jour : l’app propose la mise à jour de l’agent sur les serveurs qu’elle connaît, et ce qui était réglé avant est repris tel quel.
+
+## L’app
+
+- Activer, renommer ou ajouter un serveur ne ferme rien. Chaque changement de la liste des serveurs fermait tous les canaux et tous les terminaux, si bien qu’une installation en cours sur un autre serveur perdait son terminal. Seuls le retrait d’un serveur, le changement de son adresse ou de son compte, ou la confiance accordée à sa réinstallation ferment ses canaux, ses terminaux et ses identifiants — et seulement les siens.
+- Un durcissement dont la connexion tombe se relit sur la machine. Le durcissement redémarre sshd, et la coupure se lisait dans le rapport de l’installation, qui décrit une autre exécution. L’app demande désormais qui répond encore, en laissant à sshd jusqu’à trente secondes pour revenir : le compte par lequel elle est entrée ouvre encore la machine, le durcissement n’est pas allé au bout et repart d’où il s’est arrêté ; ce compte refusé et `dev` ouvrant, il est allé au bout, et l’app passe sur `dev` comme elle l’aurait fait sur la parole de l’agent. Personne ne répondant, la configuration reste telle quelle. Un onboarding repris sur l’étape du durcissement le démarre, jamais deux fois.
+- Les secrets tapés dans un formulaire tiennent tant que l’agent ne les a pas pris. Un mot de passe ou une clé d’API tapé dans le formulaire d’un service était vidé de l’app dès l’envoi de l’installation : un refus — un champ faux ailleurs, une machine occupée, une ligne coupée avant la première étape — le perdait, et l’Appliquer suivant partait sans. Il reste maintenant jusqu’à ce que l’agent ait accepté l’installation, et l’Appliquer suivant le porte de nouveau. Quand un refus a réellement emporté les secrets, le formulaire dit de les retaper.
+- La mise à jour de l’agent sur un serveur durci s’installe par `sudo` en tant que `dev`, `/usr/local/bin` et l’unité appartenant à root. Une fois le binaire remplacé, l’app rouvre ses canaux et amène la configuration de la machine à la forme que le nouveau binaire lit avant de lui demander quoi que ce soit.
+- Une commande qui dépasse son délai coupe sa session, et la commande suivante en ouvre une neuve au lieu d’attendre derrière celle qui tourne encore sur l’agent.
+- L’ajout d’un projet reconnaît ce que le serveur déclare déjà. Un dossier ou un nom déjà dans le registre est nommé — « Ce serveur déclare déjà ce projet sous le nom … » — et l’écran propose de l’ouvrir plutôt que de le redéclarer ; ses ports se lisent pris. Le nom sur le web est écrit même quand les dépendances ne s’installent pas.
+- Enregistrer la configuration d’un projet n’échoue plus sur un vieux refus de tunnel. Un nom sur le web que l’exposition a refusé se dit à côté d’un enregistrement qui tient, et les réserves de l’agent — un dossier de processus non créé, une épingle de runtime non écrite, un processus qui n’a pas redémarré sur sa nouvelle commande — s’affichent sous l’enregistrement, et sous la phase de déclaration d’un ajout.
+- Les états de mise à jour, de processus et d’inspection sont tenus par serveur. Quitter une machine pour une autre ne montre plus les réponses de la précédente, et une réponse tardive d’une machine quittée est laissée tomber.
+- Un serveur retenu pour son abonnement montre sa notice une fois : les écrans ne répètent plus le refus dessous, et ne demandent plus la table des processus toutes les huit secondes.
+- Fenêtre cachée, l’app ne demande rien au serveur ; réaffichée, elle lit aussitôt. Le battement de la plateforme lit la machine sur le canal des minuteries, jamais devant un clic, une lecture à la fois par serveur.
+- `servers.json` s’écrit à côté puis se renomme par-dessus, si bien qu’un plantage laisse le fichier précédent ou le nouveau, jamais une liste tronquée. Un fichier que l’app ne sait pas lire ne montre aucun serveur et n’est jamais écrasé : une copie est gardée à côté, `servers.json.corrupt`.
+- La clé d’un serveur vient du sélecteur de fichiers seul, et un éditeur n’ouvre qu’un dossier que l’agent a nommé.
+- Les boutons « Ouvrir dans » d’un projet portent la marque de chaque éditeur, son nom et le dossier dans la bulle ; Cursor a la sienne.
+- Un réglage laissé à son défaut — démarrer avec le serveur, versions de runtime — reste hors de la ligne, si bien que cette app parle encore à un agent 0.2 qui ne le connaît pas.
+
+## L’agent
+
+- Retirer un projet déclaré dans le fichier du dépôt est refusé avant que quoi que ce soit soit arrêté ; les processus étaient arrêtés d’abord.
+- Un `projects.local.json` qui ne se lit plus est dit, avec l’endroit où se trouve sa dernière copie lisible, et rien n’y est écrit tant qu’il ne se lit pas. Une ligne que l’agent ne sait pas lire comme un projet traverse chaque écriture telle quelle. Ajouter ou modifier un projet vérifie tout avant d’écrire la ligne, et ce que la machine refuse ensuite est répondu comme une réserve plutôt qu’un échec : un second ajout dirait seulement que le projet est déjà déclaré.
+- Les modules se lisent sur la configuration que la machine tient, jamais sur les défauts du catalogue : une mise à niveau demandée sans liste, et une désinstallation, lisent `install.json`. La mise à niveau ne touche qu’à ce qu’elle a posé — une majeure qu’un projet épingle encore, ou que Pupitre n’a jamais installée, reste et est nommée ; un runtime passé sur un nouveau correctif nomme les projets à resynchroniser — et retirer un service que le client a installé lui-même est refusé, avec la marche à suivre. Le rapport d’une exécution qui est morte dit quelle étape a été interrompue.
+- Le durcissement laisse en paix la règle de Caddy sur le 443 : il ne ferme que les règles de pare-feu qu’il a lui-même ajoutées. Après un rechargement, la configuration effective de sshd est relue : une image dont le `sshd_config` ne porte aucun `Include` passait la validation et ignorait le fragment, root étant dit fermé tout en restant ouvert ; le fragment est désormais retiré, root reste ouvert, et la ligne à ajouter est donnée. Un `authorized_keys` que sshd ignorerait sous StrictModes est refusé avant que rien ne soit touché, avec le `chown` et le `chmod` à lancer. Appliquer le formulaire du durcissement sur une machine durcie atteint sshd par la même porte ; avant le durcissement, sshd est laissé tranquille, et root n’est jamais fermé que par le durcissement lui-même.
+- PostgreSQL, MySQL et MongoDB écrivent un nouveau mot de passe dans les comptes avant de le consigner, si bien qu’une exécution coupée entre les deux se connecte encore avec le précédent au rejeu. MariaDB est parlé dans sa grammaire, `IDENTIFIED BY` ; le mot de passe de Redis est cité dans `redis.conf` et pour `redis-cli`, donc un mot de passe avec un guillemet ou une barre oblique inverse tient ; MongoDB attend son port, qui s’ouvre quelques secondes après que systemd dit démarré, et lit la fin de son script, si bien qu’un utilisateur refusé est une étape en échec et non un succès silencieux.
+- Changer la majeure de PostgreSQL ou de MongoDB, ou le moteur de MySQL, sur une machine qui en fait tourner un autre est refusé dans le formulaire avec les étapes à faire à la main, comme déplacer la racine des données de Docker sous des conteneurs qui tournent.
+- Les dumps appartiennent à `dev` sous `~/dumps` ; un nom de base tient en lettres, chiffres, tirets et tirets bas, 64 au plus ; importer `x.sql.gz` n’écrase plus un `x.sql` posé à côté.
+- Le module navigateur nomme les bibliothèques d’Ubuntu 24.04 par leur suffixe `t64`, et un Chromium qu’apt ne pose pas sur la machine — le stub du snap — est dit une fois au lieu d’être lu comme installé.
+- Une fenêtre tmux s’adresse par son id : un nom porté deux fois après un arrêt raté ne refuse plus chaque geste. La fenêtre d’un processus se reconnaît exactement, jamais une qui commence seulement pareil.
+- Un journal suivi finit avec le canal qui le lit ; les journaux se lisent par la fin, jamais en entier. `git fetch` a un délai — trente secondes, dix pour se connecter — si bien qu’un dépôt distant qui ne répond pas ne tient plus le canal. Le nettoyage des sessions mesure l’inactivité à ce qui a bougé en dernier dans chaque panneau, non à l’âge de la session.
+- Une plateforme qui ne connaît plus le jeton du serveur — révoqué ou purgé — le restreint sur-le-champ et retire ses clés ; tout autre silence est laissé à la tolérance.
+
+## La plateforme
+
+- Le droit d’usage suit l’abonnement. Un serveur suspendu une fois la tolérance écoulée revient quand l’abonnement revient ; `past_due` et `unpaid` ouvrent la tolérance de sept jours, et les relances de Stripe ne repoussent plus sa date. Chaque événement Stripe est relu chez Stripe avant d’être cru, et réclamé avant d’être traité, si bien qu’un `updated` en retard ne ressuscite pas un abonnement résilié et que deux livraisons ne le traitent qu’une fois.
+- Un siège est une machine. Le siège est clé sur l’organisation, l’hôte et le port, donc le second ordinateur d’une même personne répare le serveur au lieu de prendre un second siège ; un enrôlement qui expire libère son attribution ; un ré-enrôlement laisse un serveur suspendu suspendu tant que la facture n’est pas payée. Une organisation qui occupe plus de sièges qu’elle n’en paie l’apprend par email.
+- Un membre retiré de l’organisation perd ses attributions, pour qu’une invitation ultérieure ne rende pas les clés en silence. Une invitation ouverte avec un autre compte que celui à qui elle a été envoyée le dit, avec la marche à suivre, et la page d’invitation vous connecte d’abord puis y revient.
+- Console : changer d’organisation rafraîchit le compte avant que la page bouge, et la page de facturation lit l’abonnement que Stripe facture encore, jamais un abonnement résilié laissé derrière.
+- Une release promue en stable fait redescendre les versions stables plus récentes, ce qui est le sens d’un retour en arrière.
+
+## Limites connues
+
+- Les versions de runtime d’un projet se choisissent dans ses réglages une fois le projet ajouté ; l’écran d’ajout ne les demande pas encore.
+- Une app macOS 0.1.2 ou plus récente trouve cette version seule ; les 0.1.0 et 0.1.1 ne le peuvent toujours pas, et demandent la 0.4.0 installée depuis la page de téléchargement.
+- L’installateur Windows n’est toujours pas signé : SmartScreen avertit au premier lancement.
