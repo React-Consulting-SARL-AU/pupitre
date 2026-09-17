@@ -198,6 +198,7 @@ func (d *Daemon) sample() platform.Heartbeat {
 	beat := platform.Heartbeat{
 		StackVersion: d.options.AgentVersion,
 		AgentVersion: d.options.AgentVersion,
+		SSHUser:      d.options.KeysOwner,
 		Sessions:     []string{},
 		Modules:      []string{},
 	}

@@ -43,6 +43,9 @@ export const heartbeatBody = t.Object({
   stack_version: t.String({ maxLength: 40 }),
   modules: heartbeatNames,
   agent_version: t.Optional(t.String({ minLength: 1, maxLength: 40 })),
+  // The account whose authorized_keys the agent manages, hence the one the
+  // apps must open the machine with once hardening moved it off root.
+  ssh_user: t.Optional(t.String({ minLength: 1, maxLength: 32 })),
 
   // The quantities behind the percentages. Optional: an agent older than this
   // field sends none, and the console then has only the percentage to show.

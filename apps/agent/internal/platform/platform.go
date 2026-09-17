@@ -113,6 +113,8 @@ type Heartbeat struct {
 	StackVersion string   `json:"stack_version"`
 	Modules      []string `json:"modules"`
 	AgentVersion string   `json:"agent_version,omitempty"`
+	// The account whose authorized_keys carry the platform's block: the one an app must open the machine with.
+	SSHUser string `json:"ssh_user,omitempty"`
 
 	// What the machine measured, beside the percentages computed from it: a
 	// console can say "1.8 GB of 556 GB" only if it is told both numbers. Left
