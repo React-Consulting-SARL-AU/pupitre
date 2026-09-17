@@ -1,4 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
+import { ENTITLEMENT_REFRESH_MS } from "../../lib/servers/agent-state"
 import { hashEnrollmentToken } from "../../lib/servers/tokens"
 import { bootApiTestServer, resetDb } from "../../testing"
 import {
@@ -234,9 +235,48 @@ describe("GET /agent/state", () => {
     const server = await prisma.server.findUniqueOrThrow({
       where: { id: serverId },
     })
+    const lag =
+      Date.parse(response.json.valid_until) -
+      (server.entitlementValidUntil?.getTime() ?? 0)
 
-    expect(server.entitlementValidUntil?.toISOString()).toBe(
-      response.json.valid_until
+    expect(lag).toBeGreaterThanOrEqual(0)
+    expect(lag).toBeLessThan(ENTITLEMENT_REFRESH_MS)
+  })
+
+  it("writes the row only when the horizon or the target moved", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { organization } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
+    const { server, token } = await createServer({
+      organizationId: organization.id,
+    })
+
+    await apiRequest<StateBody>("/agent/state", { bearer: token })
+
+    const written = await prisma.server.findUniqueOrThrow({
+      where: { id: server.id },
+    })
+
+    expect(written.entitlementValidUntil).not.toBeNull()
+    expect(written.updatedAt.getTime()).toBeGreaterThan(
+      server.updatedAt.getTime()
+    )
+
+    await new Promise((resolve) => setTimeout(resolve, 5))
+
+    const again = await apiRequest<StateBody>("/agent/state", { bearer: token })
+    const untouched = await prisma.server.findUniqueOrThrow({
+      where: { id: server.id },
+    })
+
+    expect(again.status).toBe(200)
+    expect(untouched.updatedAt.toISOString()).toBe(
+      written.updatedAt.toISOString()
+    )
+    expect(untouched.entitlementValidUntil?.toISOString()).toBe(
+      written.entitlementValidUntil?.toISOString() ?? ""
     )
   })
 
@@ -317,6 +357,56 @@ describe("POST /agent/heartbeat", () => {
 
     expect(samples).toHaveLength(1)
     expect(samples[0].disk).toBe(41)
+  })
+
+  it("keeps the last sample beside the window, for the lists to read", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { organization } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
+    const { server, token } = await createServer({
+      organizationId: organization.id,
+    })
+
+    await apiRequest("/agent/heartbeat", {
+      body: { ...HEARTBEAT, disk_total_gb: 80, disk_free_gb: 47 },
+      bearer: token,
+    })
+
+    const stored = await prisma.server.findUniqueOrThrow({
+      where: { id: server.id },
+    })
+
+    expect(stored.lastUsage).toMatchObject({
+      disk: 41,
+      ram: 55,
+      load: 1.2,
+      disk_total_gb: 80,
+      disk_free_gb: 47,
+      ram_total_mb: null,
+    })
+    expect(stored.lastUsage).not.toHaveProperty("sessions")
+  })
+
+  it("refuses a heartbeat that lists more sessions or modules than a machine has", async () => {
+    const { organization } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
+    const { token } = await createServer({ organizationId: organization.id })
+    const sessions = await apiRequest<ErrorBody>("/agent/heartbeat", {
+      body: { ...HEARTBEAT, sessions: Array.from({ length: 101 }, () => "s") },
+      bearer: token,
+    })
+    const modules = await apiRequest<ErrorBody>("/agent/heartbeat", {
+      body: { ...HEARTBEAT, modules: ["x".repeat(201)] },
+      bearer: token,
+    })
+
+    expect(sessions.status).toBe(422)
+    expect(sessions.json.error.code).toBe("validation")
+    expect(modules.status).toBe(422)
   })
 
   it("keeps a rolling window of seven days", async () => {

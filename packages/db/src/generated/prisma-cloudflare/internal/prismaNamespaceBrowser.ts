@@ -266,12 +266,14 @@ export const ServerScalarFieldEnum = {
   entitlementValidUntil: 'entitlementValidUntil',
   decommissionAt: 'decommissionAt',
   status: 'status',
+  suspendedReason: 'suspendedReason',
   channel: 'channel',
   deviceId: 'deviceId',
   assignedUserId: 'assignedUserId',
   pendingAssignmentEmail: 'pendingAssignmentEmail',
   lastHeartbeatAt: 'lastHeartbeatAt',
   metrics: 'metrics',
+  lastUsage: 'lastUsage',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -374,6 +376,8 @@ export type EventScalarFieldEnum = (typeof EventScalarFieldEnum)[keyof typeof Ev
 export const StripeEventScalarFieldEnum = {
   id: 'id',
   type: 'type',
+  status: 'status',
+  receivedAt: 'receivedAt',
   processedAt: 'processedAt'
 } as const
 

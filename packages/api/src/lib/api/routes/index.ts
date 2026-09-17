@@ -2,6 +2,7 @@ import { type AnyElysia, Elysia } from "elysia"
 import { authPlugin } from "../plugins/auth"
 import { adminAppReleasesRoutes } from "./admin/app-releases"
 import { adminReleasesRoutes } from "./admin/releases"
+import { adminServersRoutes } from "./admin/servers"
 import { agentRoutes } from "./agent"
 import { appReleasesRoutes } from "./app-releases"
 import { devicesRoutes } from "./devices"
@@ -21,6 +22,7 @@ const adminRoutes = hiddenRoutes(
   new Elysia({ name: "admin-routes", prefix: "/admin" })
     .use(adminReleasesRoutes)
     .use(adminAppReleasesRoutes)
+    .use(adminServersRoutes)
 )
 
 export const routes = new Elysia({ name: "routes" })

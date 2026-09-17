@@ -8,7 +8,7 @@ function href(url: string): string {
 }
 
 const UNRESOLVED_PLACEHOLDER_RE =
-  /\{(server|organization|inviter|device|deadline|url|count|version|current|disk|address|fingerprint|date)\}/
+  /\{(server|organization|inviter|device|deadline|url|count|version|current|disk|address|fingerprint|date|paid|seated|reason)\}/
 const RGB_WITH_ALPHA_RE = /rgb\([^)]*\//
 
 describe("le catalogue des gabarits", () => {
@@ -18,8 +18,8 @@ describe("le catalogue des gabarits", () => {
     )
   })
 
-  it("compte les neuf moments et les quatre alertes", () => {
-    expect(EMAIL_TEMPLATE_IDS).toHaveLength(13)
+  it("compte les onze moments et les quatre alertes", () => {
+    expect(EMAIL_TEMPLATE_IDS).toHaveLength(15)
     expect(EMAIL_TEMPLATE_IDS.filter((id) => id.startsWith("alert_"))).toEqual([
       "alert_server_unreachable",
       "alert_disk_high",
@@ -102,6 +102,22 @@ describe("les données passent dans le rendu", () => {
 
     expect(email.html).toContain(href(`${SAMPLE.consoleUrl}/dashboard/billing`))
     expect(email.text.length).toBeGreaterThan(80)
+  })
+
+  it("la suspension par l'équipe porte le motif et l'adresse du support", async () => {
+    const email = await previewOf("server_suspended_admin").render("fr")
+
+    expect(email.subject).toContain(SAMPLE.serverName)
+    expect(email.html).toContain(SAMPLE.suspensionReason)
+    expect(email.html).toContain("mailto:support@pupitre.studio")
+  })
+
+  it("l'écart de sièges dit les deux nombres et mène à la facturation", async () => {
+    const email = await previewOf("seats_drift").render("fr")
+
+    expect(email.text).toContain(String(SAMPLE.paidSeats))
+    expect(email.text).toContain(String(SAMPLE.serverCount))
+    expect(email.html).toContain(href(`${SAMPLE.consoleUrl}/dashboard/billing`))
   })
 
   it("la décommission annonce la date d'effacement", async () => {

@@ -155,6 +155,106 @@ describe("POST /servers/:id/assign", () => {
     expect(await authorizedKeysForServer(prisma, server.id)).toEqual([])
   })
 
+  it("unassigns the servers of a member removed from the organization, and says so in the journal", async () => {
+    const testServer = await bootApiTestServer()
+    const { prisma } = testServer
+    const { organization, members } = await createOrganizationWithMembers({
+      roles: ["owner", "member"],
+      subscription: {},
+    })
+    const [owner, member] = members
+    const { server } = await createServer({ organizationId: organization.id })
+    const other = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
+    const elsewhere = await createServer({
+      organizationId: other.organization.id,
+      assignedUserId: member.user.id,
+    })
+
+    await addDevice(member, "Poste du membre", ED25519_KEY)
+    await assign(owner, server.id, { user_id: member.user.id })
+
+    const removed = await authRequest(
+      "POST",
+      "/organization/remove-member",
+      { organizationId: organization.id, memberIdOrEmail: member.member.id },
+      owner.headers
+    )
+
+    expect(removed.status).toBe(200)
+
+    const stored = await prisma.server.findUniqueOrThrow({
+      where: { id: server.id },
+    })
+
+    expect(stored.assignedUserId).toBeNull()
+
+    const mine = await apiRequest<{ data: { id: string }[] }>("/me/servers", {
+      session: member,
+    })
+
+    expect(mine.json.data.map((listed) => listed.id)).toEqual([
+      elsewhere.server.id,
+    ])
+
+    const event = await prisma.event.findFirstOrThrow({
+      where: { action: "server.unassigned", targetId: server.id },
+    })
+
+    expect(event.organizationId).toBe(organization.id)
+    expect(event.payload).toMatchObject({
+      assigned_user_id: member.user.id,
+      via: "member_removed",
+    })
+  })
+
+  it("settles a pending assignment once, even when two readers see it at the same time", async () => {
+    const testServer = await bootApiTestServer()
+    const { prisma } = testServer
+    const { organization, members } = await createOrganizationWithMembers({
+      roles: ["owner", "member"],
+      subscription: {},
+    })
+    const [owner, member] = members
+    const { server, token } = await createServer({
+      organizationId: organization.id,
+    })
+
+    await prisma.server.update({
+      where: { id: server.id },
+      data: { pendingAssignmentEmail: member.user.email },
+    })
+
+    const emailsBefore = testServer.sentEmails.length
+    const [first, second, third] = await Promise.all([
+      agentState(token),
+      apiRequest("/servers", { session: owner }),
+      apiRequest(`/servers/${server.id}`, { session: owner }),
+    ])
+
+    expect(first.status).toBe(200)
+    expect(second.status).toBe(200)
+    expect(third.status).toBe(200)
+
+    const settled = await prisma.server.findUniqueOrThrow({
+      where: { id: server.id },
+    })
+
+    expect(settled.assignedUserId).toBe(member.user.id)
+    expect(
+      await prisma.event.count({
+        where: { action: "server.assigned", targetId: server.id },
+      })
+    ).toBe(1)
+    expect(
+      testServer.sentEmails
+        .slice(emailsBefore)
+        .filter((mail) => mail.to === member.user.email)
+    ).toHaveLength(1)
+  })
+
   it("refuses a user who is not a member of the organization", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["owner"],

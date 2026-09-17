@@ -1,4 +1,4 @@
-import type { Alert, AlertKind, Server } from "@pupitre/db/cloudflare/client"
+import type { Alert, AlertKind } from "@pupitre/db/cloudflare/client"
 import {
   sendAgentOutdatedEmail,
   sendDiskHighEmail,
@@ -7,7 +7,8 @@ import {
 } from "../../emails/notifications"
 import { getPrisma } from "../api/prisma"
 import { CHANNEL_SOURCES } from "../releases/releases"
-import { metricsOf } from "../servers/agent-state"
+import { readUsage } from "../servers/metrics"
+import { type ServerRow, WITHOUT_METRICS } from "../servers/server-row"
 import { type AlertState, detectAlerts, latestVersionOf } from "./detect"
 
 export interface AlertView {
@@ -25,7 +26,7 @@ export interface AlertRun extends AlertVerdict {
   serverId: string
 }
 
-async function publishedVersionsFor(server: Server): Promise<string[]> {
+async function publishedVersionsFor(server: ServerRow): Promise<string[]> {
   const releases = await getPrisma().release.findMany({
     where: {
       arch: server.arch,
@@ -38,10 +39,10 @@ async function publishedVersionsFor(server: Server): Promise<string[]> {
 }
 
 export function alertStateOf(
-  server: Server,
+  server: ServerRow,
   publishedVersions: string[]
 ): AlertState {
-  const last = metricsOf(server).at(-1)
+  const last = readUsage(server.lastUsage)
 
   return {
     status: server.status,
@@ -54,7 +55,7 @@ export function alertStateOf(
 }
 
 function notify(
-  server: Server,
+  server: ServerRow,
   kind: AlertKind,
   state: AlertState,
   now: Date
@@ -84,7 +85,7 @@ function notify(
 }
 
 async function openAlert(
-  server: Server,
+  server: ServerRow,
   kind: AlertKind,
   state: AlertState,
   now: Date
@@ -109,7 +110,7 @@ async function openAlert(
  * normal that closes it.
  */
 export async function evaluateServerAlerts(
-  server: Server,
+  server: ServerRow,
   now: Date = new Date()
 ): Promise<AlertVerdict> {
   const prisma = getPrisma()
@@ -147,11 +148,12 @@ export async function evaluateAlerts(
       ],
     },
     orderBy: { createdAt: "asc" },
+    omit: WITHOUT_METRICS,
   })
   const runs: AlertRun[] = []
 
   for (const server of servers) {
-    const verdict = await evaluateServerAlerts(server as unknown as Server, now)
+    const verdict = await evaluateServerAlerts(server, now)
 
     runs.push({ serverId: server.id, ...verdict })
   }

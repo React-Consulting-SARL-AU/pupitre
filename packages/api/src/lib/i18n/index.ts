@@ -29,6 +29,10 @@ const FR = {
   device_exists_fix:
     "Utilisez l'appareil déjà enregistré, ou ajoutez-en un avec une autre clé.",
   server_not_found: "Ce serveur n'existe pas.",
+  server_revoked_no_suspend:
+    "Ce serveur est révoqué : il n'y a rien à suspendre.",
+  server_revoked_no_suspend_fix:
+    "Sa ligne s'efface à la décommission ; un serveur révoqué ne distribue déjà plus aucune clé.",
   organization_forbidden: "Cette organisation n'est pas la vôtre.",
   organization_forbidden_fix:
     "Choisissez une organisation dont vous êtes membre.",
@@ -146,6 +150,10 @@ const EN: Record<MessageKey, string> = {
   device_exists_fix:
     "Use the device already registered, or add one with another key.",
   server_not_found: "This server does not exist.",
+  server_revoked_no_suspend:
+    "This server is revoked: there is nothing left to suspend.",
+  server_revoked_no_suspend_fix:
+    "Its row disappears at decommission; a revoked server already hands out no key.",
   organization_forbidden: "This organization is not yours.",
   organization_forbidden_fix: "Pick an organization you belong to.",
   assignee_not_a_member: "This person is not a member of this organization.",

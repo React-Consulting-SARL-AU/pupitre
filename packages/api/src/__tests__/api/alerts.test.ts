@@ -6,7 +6,7 @@ import {
   evaluateAlerts,
   evaluateServerAlerts,
 } from "../../lib/alerts/alerts"
-import { toStoredMetrics } from "../../lib/servers/metrics"
+import { toStoredUsage } from "../../lib/servers/metrics"
 import { type ApiTestServer, bootApiTestServer, resetDb } from "../../testing"
 import {
   createOrganizationWithMembers,
@@ -161,21 +161,16 @@ describe("les autres genres d'alerte", () => {
       where: { id: server.id },
       data: {
         lastHeartbeatAt: new Date(),
-        metrics: toStoredMetrics([
-          {
-            at: new Date().toISOString(),
-            disk: 94,
-            ram: 40,
-            load: 1,
-            sessions: [],
-            stack_version: null,
-            modules: [],
-            disk_total_gb: null,
-            disk_free_gb: null,
-            ram_total_mb: null,
-            ram_used_mb: null,
-          },
-        ]),
+        lastUsage: toStoredUsage({
+          at: new Date().toISOString(),
+          disk: 94,
+          ram: 40,
+          load: 1,
+          disk_total_gb: null,
+          disk_free_gb: null,
+          ram_total_mb: null,
+          ram_used_mb: null,
+        }),
       },
     })
 

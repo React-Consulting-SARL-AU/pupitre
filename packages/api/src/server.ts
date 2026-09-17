@@ -1,5 +1,6 @@
 import { openapi } from "@elysiajs/openapi"
 import { configureAuthEmails } from "@pupitre/auth/emails"
+import { configureOrganizationHooks } from "@pupitre/auth/hooks"
 import { type Auth, CLIENT_IP_HEADER } from "@pupitre/auth/server"
 import { resolveLocale } from "@pupitre/shared/i18n"
 import { type AnyElysia, Elysia, ValidationError } from "elysia"
@@ -16,12 +17,17 @@ import {
 import { routes } from "./lib/api/routes"
 import { describeValidationError } from "./lib/api/validation-errors"
 import { translate } from "./lib/i18n"
+import { unassignServersOfMember } from "./lib/servers/assign"
 
 export type { ApiPrisma } from "./lib/api/prisma"
 
 // The Better Auth handler is served from its own route, which never imports
 // this module's exports: the port has to be filled at import time.
 configureAuthEmails({ renderer: authEmails, sendEmail: createEmailSender() })
+configureOrganizationHooks({
+  onMemberRemoved: ({ organizationId, userId }) =>
+    unassignServersOfMember(organizationId, userId).then(() => undefined),
+})
 
 export interface ApiRuntime {
   prisma: ApiPrisma
@@ -33,12 +39,30 @@ export function configureApi({ prisma, auth }: ApiRuntime): void {
   configureAuth(auth)
 }
 
+const LOGGED_MESSAGE_LENGTH = 200
+
+/** Name, code and a trimmed message: never the error itself, whose meta and arguments can carry what a row holds. */
+function describeError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return typeof error
+  }
+
+  const code = (error as { code?: unknown }).code
+
+  return [
+    error.name,
+    typeof code === "string" ? `code=${code}` : null,
+    error.message.split("\n")[0]?.slice(0, LOGGED_MESSAGE_LENGTH) ?? "",
+  ]
+    .filter((part) => part)
+    .join(" ")
+}
+
 function reportInternalError(error: unknown, request: Request): string {
   const ref = createErrorRef()
 
   console.error(
-    `[api] internal error ref=${ref} ${request.method} ${request.url}`,
-    error
+    `[api] internal error ref=${ref} ${request.method} ${request.url} ${describeError(error)}`
   )
 
   return ref

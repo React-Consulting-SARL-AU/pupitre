@@ -26,13 +26,22 @@ export const agentStateSchema = t.Object(
   { $id: "AgentState" }
 )
 
+export const HEARTBEAT_MAX_ITEMS = 100
+
+export const HEARTBEAT_MAX_NAME_LENGTH = 200
+
+const heartbeatNames = t.Array(
+  t.String({ maxLength: HEARTBEAT_MAX_NAME_LENGTH }),
+  { maxItems: HEARTBEAT_MAX_ITEMS }
+)
+
 export const heartbeatBody = t.Object({
   disk: t.Number({ minimum: 0 }),
   ram: t.Number({ minimum: 0 }),
   load: t.Number({ minimum: 0 }),
-  sessions: t.Array(t.String()),
-  stack_version: t.String(),
-  modules: t.Array(t.String()),
+  sessions: heartbeatNames,
+  stack_version: t.String({ maxLength: 40 }),
+  modules: heartbeatNames,
   agent_version: t.Optional(t.String({ minLength: 1, maxLength: 40 })),
 
   // The quantities behind the percentages. Optional: an agent older than this

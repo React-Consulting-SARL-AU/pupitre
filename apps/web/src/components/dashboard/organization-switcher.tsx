@@ -36,13 +36,13 @@ export function OrganizationSwitcher() {
 
     setSwitching(true)
     await authClient().organization.setActive({ organizationId })
-    await navigate({ to: "/dashboard/servers" })
 
     // Dropped, not staled: a staled answer stays on screen until its refetch lands.
     queryClient.removeQueries({
       predicate: (query) => isOrganizationScoped(query.queryKey),
     })
     await queryClient.invalidateQueries({ queryKey: queryKeys.me })
+    await navigate({ to: "/dashboard/servers" })
     setSwitching(false)
   }
 

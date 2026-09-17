@@ -2132,12 +2132,14 @@ export const ServerScalarFieldEnum = {
   entitlementValidUntil: 'entitlementValidUntil',
   decommissionAt: 'decommissionAt',
   status: 'status',
+  suspendedReason: 'suspendedReason',
   channel: 'channel',
   deviceId: 'deviceId',
   assignedUserId: 'assignedUserId',
   pendingAssignmentEmail: 'pendingAssignmentEmail',
   lastHeartbeatAt: 'lastHeartbeatAt',
   metrics: 'metrics',
+  lastUsage: 'lastUsage',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -2240,6 +2242,8 @@ export type EventScalarFieldEnum = (typeof EventScalarFieldEnum)[keyof typeof Ev
 export const StripeEventScalarFieldEnum = {
   id: 'id',
   type: 'type',
+  status: 'status',
+  receivedAt: 'receivedAt',
   processedAt: 'processedAt'
 } as const
 
@@ -2329,6 +2333,13 @@ export type EnumServerStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$Pri
 
 
 /**
+ * Reference to a field of type 'SuspensionReason'
+ */
+export type EnumSuspensionReasonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SuspensionReason'>
+    
+
+
+/**
  * Reference to a field of type 'ReleaseChannel'
  */
 export type EnumReleaseChannelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ReleaseChannel'>
@@ -2367,6 +2378,13 @@ export type EnumBillingIntervalFieldRefInput<$PrismaModel> = FieldRefInputType<$
  * Reference to a field of type 'DesktopOs'
  */
 export type EnumDesktopOsFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DesktopOs'>
+    
+
+
+/**
+ * Reference to a field of type 'StripeEventStatus'
+ */
+export type EnumStripeEventStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'StripeEventStatus'>
     
 
 

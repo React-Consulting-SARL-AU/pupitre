@@ -22,6 +22,11 @@ enum ServerStatus {
   revoked
 }
 
+enum SuspensionReason {
+  billing
+  admin
+}
+
 enum ReleaseChannel {
   stable
   beta
@@ -43,6 +48,12 @@ enum AlertKind {
   disk_high
   agent_outdated
   entitlement_grace
+}
+
+enum StripeEventStatus {
+  processing
+  processed
+  failed
 }
 
 // user…twoFactor come from `@better-auth/cli generate` (magicLink, organization, deviceAuthorization, bearer, admin, passkey, twoFactor): regenerate, do not hand-edit.
@@ -262,6 +273,7 @@ model Server {
   entitlementValidUntil  DateTime?
   decommissionAt         DateTime?
   status                 ServerStatus          @default(enrolling)
+  suspendedReason        SuspensionReason?
   channel                ReleaseChannel        @default(stable)
   deviceId               String?
   device                 Device?               @relation("ServerEnrollingDevice", fields: [deviceId], references: [id], onDelete: SetNull)
@@ -272,6 +284,7 @@ model Server {
   alerts                 Alert[]
   lastHeartbeatAt        DateTime?
   metrics                Json?
+  lastUsage              Json?
   createdAt              DateTime              @default(now())
   updatedAt              DateTime              @updatedAt
 
@@ -382,7 +395,9 @@ model Event {
 }
 
 model StripeEvent {
-  id          String   @id
+  id          String            @id
   type        String
-  processedAt DateTime @default(now())
+  status      StripeEventStatus @default(processing)
+  receivedAt  DateTime          @default(now())
+  processedAt DateTime?
 }

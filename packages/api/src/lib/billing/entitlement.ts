@@ -1,5 +1,6 @@
-import type { Server } from "@pupitre/db/cloudflare/client"
 import { getPrisma } from "../api/prisma"
+import type { ServerRow } from "../servers/server-row"
+import { liveSubscriptionOf } from "./subscription"
 
 export const ENTITLEMENT_TTL_MS = 86_400_000
 
@@ -12,13 +13,9 @@ export interface Entitlement {
   valid_until: Date
 }
 
-const VALID_SUBSCRIPTION_STATUSES = new Set(["active", "trialing"])
+export const VALID_SUBSCRIPTION_STATUSES = new Set(["active", "trialing"])
 
-const GRACE_SUBSCRIPTION_STATUSES = new Set([
-  "past_due",
-  "unpaid",
-  "incomplete",
-])
+export const GRACE_SUBSCRIPTION_STATUSES = new Set(["past_due", "unpaid"])
 
 export function graceDeadline(from: Date = new Date()): Date {
   return new Date(from.getTime() + GRACE_PERIOD_MS)
@@ -31,65 +28,90 @@ export function entitlementWindow(from: Date = new Date()): Date {
 export type EntitlementRefusal = "entitlement_required" | "server_suspended"
 
 interface SubscriptionMirror {
+  organizationId: string
   status: string
   currentPeriodEnd: Date | null
+  updatedAt: Date
 }
 
-function latestSubscriptionOf(
-  organizationId: string
-): Promise<SubscriptionMirror | null> {
-  return getPrisma().subscription.findFirst({
-    where: { organizationId },
-    orderBy: { updatedAt: "desc" },
-    select: { status: true, currentPeriodEnd: true },
-  })
+export function subscriptionStateOf(status: string): EntitlementState {
+  if (VALID_SUBSCRIPTION_STATUSES.has(status)) {
+    return "valid"
+  }
+
+  return GRACE_SUBSCRIPTION_STATUSES.has(status) ? "grace" : "suspended"
 }
 
-function entitlementOf(
+/**
+ * The horizon of a tolerance is written on the servers the day it opens, and
+ * never pushed back: the organization reads it there, so `/me` and
+ * `/agent/state` name the same day.
+ */
+async function graceHorizonOf(
   subscription: SubscriptionMirror,
   now: Date
-): Entitlement {
-  if (VALID_SUBSCRIPTION_STATUSES.has(subscription.status)) {
-    return { state: "valid", valid_until: entitlementWindow(now) }
+): Promise<Date> {
+  const earliest = await getPrisma().server.findFirst({
+    where: {
+      organizationId: subscription.organizationId,
+      status: "grace",
+      entitlementValidUntil: { not: null },
+    },
+    orderBy: { entitlementValidUntil: "asc" },
+    select: { entitlementValidUntil: true },
+  })
+
+  return (
+    earliest?.entitlementValidUntil ??
+    graceDeadline(
+      subscription.updatedAt.getTime() < now.getTime()
+        ? subscription.updatedAt
+        : now
+    )
+  )
+}
+
+async function entitlementOf(
+  subscription: SubscriptionMirror,
+  now: Date
+): Promise<Entitlement> {
+  const state = subscriptionStateOf(subscription.status)
+
+  if (state === "valid") {
+    return { state, valid_until: entitlementWindow(now) }
   }
 
-  if (GRACE_SUBSCRIPTION_STATUSES.has(subscription.status)) {
-    return {
-      state: "grace",
-      valid_until: subscription.currentPeriodEnd ?? graceDeadline(now),
-    }
+  if (state === "grace") {
+    return { state, valid_until: await graceHorizonOf(subscription, now) }
   }
 
-  return {
-    state: "suspended",
-    valid_until: subscription.currentPeriodEnd ?? now,
-  }
+  return { state, valid_until: subscription.currentPeriodEnd ?? now }
 }
 
 export async function entitlementForOrganization(
   organizationId: string,
   now: Date = new Date()
 ): Promise<Entitlement> {
-  const subscription = await latestSubscriptionOf(organizationId)
+  const subscription = await liveSubscriptionOf(organizationId)
 
   if (!subscription) {
     return { state: "suspended", valid_until: now }
   }
 
-  return entitlementOf(subscription, now)
+  return await entitlementOf(subscription, now)
 }
 
 export async function entitlementRefusalFor(
   organizationId: string,
   now: Date = new Date()
 ): Promise<EntitlementRefusal | null> {
-  const subscription = await latestSubscriptionOf(organizationId)
+  const subscription = await liveSubscriptionOf(organizationId)
 
   if (!subscription) {
     return "entitlement_required"
   }
 
-  if (entitlementOf(subscription, now).state === "suspended") {
+  if ((await entitlementOf(subscription, now)).state === "suspended") {
     return "server_suspended"
   }
 
@@ -97,7 +119,7 @@ export async function entitlementRefusalFor(
 }
 
 export async function entitlementForServer(
-  server: Server,
+  server: ServerRow,
   now: Date = new Date()
 ): Promise<Entitlement> {
   if (server.status === "suspended") {

@@ -12,9 +12,15 @@ import {
   type MetricSample,
   readSamples,
   toStoredMetrics,
+  toStoredUsage,
+  toUsage,
 } from "./metrics"
+import type { ServerRow } from "./server-row"
 
 export type AgentEntitlement = EntitlementState
+
+/** A valid window slides with every poll; the row only follows it once an hour. */
+export const ENTITLEMENT_REFRESH_MS = 3_600_000
 
 export interface AgentState {
   entitlement: AgentEntitlement
@@ -39,20 +45,32 @@ export interface HeartbeatInput {
   ram_used_mb?: number
 }
 
-export async function readAgentState(input: Server): Promise<AgentState> {
+function horizonMoved(stored: Date | null, computed: Date): boolean {
+  return (
+    stored === null ||
+    Math.abs(computed.getTime() - stored.getTime()) > ENTITLEMENT_REFRESH_MS
+  )
+}
+
+export async function readAgentState(input: ServerRow): Promise<AgentState> {
   const prisma = getPrisma()
   const server = await settleAssignment(input)
   const entitlement = await entitlementForServer(server)
   const targetVersion = await resolveTargetVersion(server)
+  const moved =
+    targetVersion !== server.targetVersion ||
+    horizonMoved(server.entitlementValidUntil, entitlement.valid_until)
   const [authorizedKeys] = await Promise.all([
     authorizedKeysForServer(prisma, server.id),
-    prisma.server.update({
-      where: { id: server.id },
-      data: {
-        entitlementValidUntil: entitlement.valid_until,
-        targetVersion,
-      },
-    }),
+    moved
+      ? prisma.server.update({
+          where: { id: server.id },
+          data: {
+            entitlementValidUntil: entitlement.valid_until,
+            targetVersion,
+          },
+        })
+      : Promise.resolve(),
   ])
 
   return {
@@ -66,9 +84,10 @@ export async function readAgentState(input: Server): Promise<AgentState> {
 }
 
 export async function recordHeartbeat(
-  server: Server,
+  server: ServerRow,
   input: HeartbeatInput
 ): Promise<void> {
+  const prisma = getPrisma()
   const now = new Date()
   const sample: MetricSample = {
     at: now.toISOString(),
@@ -83,17 +102,22 @@ export async function recordHeartbeat(
     ram_total_mb: input.ram_total_mb ?? null,
     ram_used_mb: input.ram_used_mb ?? null,
   }
+  const window = await prisma.server.findUnique({
+    where: { id: server.id },
+    select: { metrics: true },
+  })
 
-  await getPrisma().server.update({
+  await prisma.server.update({
     where: { id: server.id },
     data: {
       lastHeartbeatAt: now,
       agentVersion: input.agent_version ?? server.agentVersion,
-      metrics: toStoredMetrics(appendSample(server.metrics, sample, now)),
+      metrics: toStoredMetrics(appendSample(window?.metrics, sample, now)),
+      lastUsage: toStoredUsage(toUsage(sample)),
     },
   })
 }
 
-export function metricsOf(server: Server): MetricSample[] {
+export function metricsOf(server: Pick<Server, "metrics">): MetricSample[] {
   return readSamples(server.metrics)
 }

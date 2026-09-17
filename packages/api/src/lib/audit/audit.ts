@@ -11,6 +11,7 @@ export type AuditAction =
   | "server.assigned"
   | "server.unassigned"
   | "server.device_revoked"
+  | "server.suspended"
   | "member.invited"
   | "release.published"
   | "release.promoted"
@@ -19,6 +20,7 @@ export type AuditAction =
   | "subscription.created"
   | "subscription.updated"
   | "subscription.canceled"
+  | "seats.drifted"
 
 export type AuditTargetType =
   | "device"

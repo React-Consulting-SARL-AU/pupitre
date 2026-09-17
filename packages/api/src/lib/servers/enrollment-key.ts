@@ -14,7 +14,6 @@ export interface EnrollmentTarget {
   organizationId: string
   host: string
   port: number
-  deviceId: string
 }
 
 export const RELEASED_ENROLLMENT = {
@@ -23,13 +22,17 @@ export const RELEASED_ENROLLMENT = {
   enrollmentExpiresAt: null,
 } as const
 
+/** A seat is a machine, not the laptop that enrolled it: one key per host and port of the organization. */
 export function enrollmentKeyOf({
   organizationId,
   host,
   port,
-  deviceId,
 }: EnrollmentTarget): string {
-  return `${organizationId}:${port}:${deviceId}:${host}`
+  return `${organizationId}:${host}:${port}`
+}
+
+export function normalizeHost(host: string): string {
+  return host.trim().toLowerCase()
 }
 
 export function isEnrollmentKeyConflict(error: unknown): boolean {

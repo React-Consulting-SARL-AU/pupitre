@@ -5,9 +5,27 @@ import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { useTranslations } from "@/hooks/use-locale"
 import { authClient } from "@/lib/auth/client"
+import { requireSession } from "@/lib/auth/session-gate"
+import {
+  type InvitationRefusal,
+  invitationRefusalOf,
+} from "@/lib/domain/invitation"
 import { documentTitle } from "@/lib/domain/page-titles"
 
+class InvitationRefusedError extends Error {
+  readonly refusal: InvitationRefusal
+
+  constructor(refusal: InvitationRefusal) {
+    super(refusal.title)
+    this.name = "InvitationRefusedError"
+    this.refusal = refusal
+  }
+}
+
 export const Route = createFileRoute("/auth/invitation/$id")({
+  /** The link lands in whatever browser the person uses: the session is read there, and sign-in comes back here. */
+  ssr: false,
+  beforeLoad: requireSession,
   component: InvitationPage,
   head: ({ match }) => ({
     meta: [
@@ -27,11 +45,15 @@ function InvitationPage() {
       })
 
       if (error) {
-        throw new Error(t("auth.invitation.failed"))
+        throw new InvitationRefusedError(invitationRefusalOf(error.code))
       }
     },
     onSuccess: () => navigate({ to: "/dashboard/servers" }),
   })
+  const refusal =
+    accept.error instanceof InvitationRefusedError
+      ? accept.error.refusal
+      : invitationRefusalOf(null)
 
   return (
     <AuthCard
@@ -52,8 +74,8 @@ function InvitationPage() {
         </Button>
         {accept.isError ? (
           <Callout
-            fix={t("auth.invitation.failedFix")}
-            title={accept.error.message}
+            fix={t(refusal.fix)}
+            title={t(refusal.title)}
             tone="danger"
           />
         ) : null}
