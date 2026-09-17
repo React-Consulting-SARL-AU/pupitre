@@ -1,0 +1,56 @@
+---
+title: Switching servers closes nothing, secrets survive a refusal, and a seat is a machine
+description: Activating, renaming or adding a server no longer closes what runs on the others; a hardening whose connection drops is read back from the machine; a password typed in a form stays until the agent has taken it; the agent never overwrites a project registry it cannot read and only removes what it installed; a server suspended after an unpaid invoice comes back with the subscription, and one machine takes one seat whichever computer enrols it.
+locale: en
+version: 0.4.0
+channel: stable
+date: 2026-09-17
+order: 11
+---
+
+Fixes in the app, in the agent and on the platform, app and agent both to update: the app offers the agent update on the servers it knows, and what was set before is carried over as it was.
+
+## The app
+
+- Activating, renaming or adding a server closes nothing. Every change to the server list closed all channels and terminals, so an installation running on another server lost its terminal. Only removing a server, changing its address or account, or trusting it reinstalled closes its channels, terminals and credentials — and only its own.
+- A hardening whose connection drops is read back from the machine. The hardening restarts sshd, and the cut used to be read through the installation's report, which describes another run. The app now asks who still answers, giving sshd up to thirty seconds to come back: the account it came in with still opening the machine means the hardening did not finish, and it runs again from where it stopped; that account refused and `dev` opening means it did, and the app moves to `dev` as it would have on the agent's word. Nobody answering leaves the configuration as it was. An onboarding taken up on the hardening step starts it, and never twice.
+- Secrets typed in a form hold until the agent takes them. A password or an API key typed in a service form was emptied from the app the moment the installation was sent: a refusal — a field wrong elsewhere, a busy machine, a line cut before the first step — lost it, and the next Apply went out without. It now stays until the agent has accepted the installation, and the next Apply carries it again. When a refusal really took the secrets, the form says to type them again.
+- The agent update on a hardened server installs through `sudo` as `dev`, since `/usr/local/bin` and the unit belong to root. Once the binary is replaced, the app reopens its channels and brings the machine's configuration to the shape the new binary reads before asking anything of it.
+- A command that outlasts its delay cuts its session, and the next command opens a fresh one instead of waiting behind the one still running on the agent.
+- Adding a project recognises what the server already declares. A folder or a name already in the registry is named — "This server already declares this project as …" — and the screen offers to open it rather than declaring it again; its ports read as taken. The web name is written even when the dependencies fail to install.
+- Saving a project's configuration no longer fails on an old tunnel refusal. A web name the exposure refused is said beside a save that holds, and the agent's reservations — a process folder not created, a runtime pin not written, a process that did not restart on its new command — show under the save, and under the declaration phase of an add.
+- The update, process and inspection states are kept per server. Leaving a machine for another no longer shows the last one's answers, and a late answer from a machine you left is dropped.
+- A server held for its subscription shows its notice once: the screens no longer repeat the refusal under it, nor ask for the process table every eight seconds.
+- A hidden window asks the server for nothing; showing it again reads at once. The platform beat reads the machine on the timers' channel, never in front of a click, one read at a time per server.
+- `servers.json` is written beside and renamed over, so a crash leaves the previous file or the new one, never a truncated list. A file the app cannot read shows no server and is never overwritten: a copy is kept beside it as `servers.json.corrupt`.
+- The key of a server comes from the file picker alone, and an editor opens only a folder the agent named.
+- The "Open in" buttons of a project carry each editor's mark, with its name and the folder in the bubble; Cursor has its own.
+- A setting left at its default — start with the server, runtime versions — stays off the line, so this app still speaks to a 0.2 agent that does not know it.
+
+## The agent
+
+- Removing a project declared in the repository's file is refused before anything is stopped; it used to stop the processes first.
+- A `projects.local.json` that no longer reads is said, with where its last readable copy sits, and nothing is written to it until it reads again. A row the agent cannot read as a project travels through every write as it was. Adding or updating a project checks everything before writing the row, and what the machine refuses afterwards is answered as a reservation rather than a failure: a second add would only say the project is already declared.
+- Modules are read on the configuration the machine holds, never on the catalogue's defaults: an upgrade asked without a list, and an uninstall, read `install.json`. Upgrade touches only what it laid down — a major that a project still pins, or that Pupitre never installed, stays and is named; a runtime moved to a new patch names the projects to sync again — and removing a service the client installed themselves is refused, with what to do. A report of a run that died says which step was interrupted.
+- The hardening leaves Caddy's rule on 443 alone: it closes only the firewall rules it added itself. After a reload, sshd's effective configuration is read back: an image whose `sshd_config` carries no `Include` used to pass validation and ignore the fragment, with root called closed while open; the fragment is now removed, root stays open, and the line to add is given. An `authorized_keys` sshd would ignore under StrictModes is refused before anything is touched, with the `chown` and `chmod` to run. Applying the hardening form on a hardened machine reaches sshd through the same gate; before the hardening it leaves sshd alone, and root is only ever closed by the hardening itself.
+- PostgreSQL, MySQL and MongoDB write a new password into the accounts before recording it, so a run cut between the two still signs in with the previous one on replay. MariaDB is spoken to in its own grammar, `IDENTIFIED BY`; Redis's password is quoted in `redis.conf` and to `redis-cli`, so one with a quote or a backslash holds; MongoDB waits for its port, which opens a few seconds after systemd says started, and reads the end of its script, so a user it refused is a failed step rather than a silent success.
+- Changing the major of PostgreSQL or MongoDB, or the engine of MySQL, on a machine running another is refused in the form with the steps to take by hand, as is moving Docker's data root under running containers.
+- Dumps belong to `dev` under `~/dumps`; a database name is letters, digits, dashes and underscores, 64 at most; importing `x.sql.gz` no longer overwrites an `x.sql` beside it.
+- The browser module names Ubuntu 24.04's libraries by their `t64` suffix, and a Chromium that apt does not put on the machine — the snap stub — is said once instead of read as installed.
+- A tmux window is addressed by its id: a name carried twice after a failed stop no longer refuses every gesture. A process's window is matched exactly, never one that merely starts the same way.
+- A followed journal ends with the channel that reads it; journals are read from their end, never whole. `git fetch` has a deadline — thirty seconds, ten to connect — so a remote that does not answer no longer holds the channel. Session cleaning measures inactivity by what last moved in each pane, not by the session's age.
+- A platform that no longer knows the server's token — revoked or purged — restricts it on the spot and withdraws its keys; any other silence is left to the tolerance.
+
+## The platform
+
+- The right of use follows the subscription. A server suspended once the tolerance ran out comes back when the subscription does; `past_due` and `unpaid` open the seven-day tolerance, and Stripe's retries no longer push its date back. Each Stripe event is read again from Stripe before it is believed, and claimed before it is handled, so a late `updated` does not revive a cancelled subscription and two deliveries handle it once.
+- A seat is a machine. The seat is keyed on the organization, the host and the port, so a second computer of the same person repairs the server instead of taking a second seat; an enrolment that expires frees its assignment; a re-enrolment leaves a suspended server suspended until the invoice is paid. An organization seated beyond what it pays hears it by email.
+- A member removed from the organization loses their assignments, so a later invitation does not hand the keys back in silence. An invitation opened with another account than the one it was sent to says so, with what to do, and the invitation page signs you in first and comes back to it.
+- Console: switching organizations refreshes the account before the page moves, and the billing page reads the subscription Stripe still bills, never a cancelled one left behind.
+- A release promoted to stable steps the newer stable versions down, which is what rolling back means.
+
+## Known limits
+
+- The runtime versions of a project are chosen in its settings once it is added; the add screen does not ask for them yet.
+- A macOS app 0.1.2 or later finds this version on its own; 0.1.0 and 0.1.1 still cannot, and need 0.4.0 installed from the download page.
+- The Windows installer is still unsigned: SmartScreen warns at first launch.
