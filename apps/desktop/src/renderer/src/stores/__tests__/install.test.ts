@@ -341,6 +341,139 @@ describe("un module en échec", () => {
   });
 });
 
+describe("ce qu'un rejeu emporte", () => {
+  type Deferred = Sent & { defer: readonly string[] | undefined };
+
+  function deferringAgent(result: InstallResult): { sent: Deferred[] } {
+    const sent: Deferred[] = [];
+
+    stubPupitre({
+      startInstall: (serverId, modules, config, _onUpdate, defer) => {
+        sent.push({ config, defer, modules, serverId });
+
+        return Promise.resolve({ ok: true, result });
+      },
+    });
+
+    return { sent };
+  }
+
+  it("remet à plus tard ce qui l'était, et seulement parmi les modules rejoués", async () => {
+    const { sent } = deferringAgent({
+      failed: ["db.mysql", "runtime.node"],
+      report_path: REPORT,
+      warned: [],
+    });
+
+    await useInstall
+      .getState()
+      .start(
+        SERVER,
+        ["core.system", "db.mysql", "runtime.node"],
+        { "core.system": {}, "runtime.node": {} },
+        ["db.mysql"]
+      );
+
+    await useInstall.getState().replay(SERVER, "db.mysql");
+    await useInstall.getState().replay(SERVER, "runtime.node");
+    await useInstall.getState().replayFailed(SERVER);
+
+    expect(sent.slice(1).map((one) => one.defer)).toEqual([
+      ["db.mysql"],
+      [],
+      ["db.mysql"],
+    ]);
+  });
+
+  it("retient la configuration retapée pour le rejeu suivant", async () => {
+    const { sent } = deferringAgent({
+      failed: ["db.mysql"],
+      report_path: REPORT,
+      warned: [],
+    });
+
+    await useInstall.getState().start(SERVER, ["core.system", "db.mysql"], {
+      "core.system": {},
+      "db.mysql": { version: "8.4" },
+    });
+
+    await useInstall
+      .getState()
+      .replay(SERVER, "db.mysql", { "db.mysql": { version: "9.0" } });
+    await useInstall.getState().replayFailed(SERVER);
+
+    expect(useInstall.getState().requested.config["db.mysql"]).toEqual({
+      version: "9.0",
+    });
+    expect(sent.at(-1)?.config).toEqual({ "db.mysql": { version: "9.0" } });
+  });
+});
+
+describe("les secrets après un install refusé", () => {
+  function marks(): void {
+    useCatalog.setState({
+      catalog: { catalog: CATALOG, serverId: SERVER, status: "ready" },
+      secrets: {
+        "db.mysql": {
+          app_password: { filled: true, generated: true, revealed: false },
+        },
+      },
+      selected: ["core.system", "db.mysql"],
+    });
+  }
+
+  it("efface les marques du catalogue et le dit, quand rien ne dit qu'ils sont encore tenus", async () => {
+    marks();
+    stubPupitre({
+      startInstall: () =>
+        Promise.resolve({
+          ok: false,
+          error: { code: "internal", message: "refusé" },
+        }),
+    });
+
+    await useInstall.getState().start(SERVER, ["core.system", "db.mysql"], {});
+
+    expect(useCatalog.getState().secrets).toEqual({});
+    expect(useInstall.getState().secretsDropped).toBe(true);
+  });
+
+  it("garde les marques quand le processus principal dit tenir encore les secrets", async () => {
+    marks();
+    stubPupitre({
+      startInstall: (_serverId, _modules, _config, onUpdate) => {
+        onUpdate({ held: true, kind: "secrets" });
+
+        return Promise.resolve({
+          ok: false,
+          error: { code: "internal", message: "refusé" },
+        });
+      },
+    });
+
+    await useInstall.getState().start(SERVER, ["core.system", "db.mysql"], {});
+
+    expect(
+      useCatalog.getState().secrets["db.mysql"]?.app_password?.filled
+    ).toBe(true);
+    expect(useInstall.getState().secretsDropped).toBe(false);
+  });
+
+  it("ne dit rien quand aucun secret n'avait été tapé", async () => {
+    stubPupitre({
+      startInstall: () =>
+        Promise.resolve({
+          ok: false,
+          error: { code: "internal", message: "refusé" },
+        }),
+    });
+
+    await useInstall.getState().start(SERVER, ["core.system"], {});
+
+    expect(useInstall.getState().secretsDropped).toBe(false);
+  });
+});
+
 describe("ce que l'installation refuse de rejouer", () => {
   it("ignore un module qui n'était pas de la sélection", async () => {
     const { sent } = agent([], { failed: [], warned: [], report_path: REPORT });

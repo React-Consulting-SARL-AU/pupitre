@@ -1,8 +1,8 @@
-import type { Server } from "@pupitre/db/cloudflare/client"
 import { sendServerAssignedEmail } from "../../emails/notifications"
 import { getPrisma, withOrganization } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { createInvitation, findMemberUserIdByEmail } from "../orgs/members"
+import { type ServerRow, WITHOUT_METRICS } from "./server-row"
 
 export interface Actor {
   userId: string
@@ -21,11 +21,11 @@ export class DeviceNotFoundError extends Error {}
 async function findServer(
   organizationId: string,
   serverId: string
-): Promise<Server> {
+): Promise<ServerRow> {
   const server = await withOrganization(
     getPrisma(),
     organizationId
-  ).server.findFirst({ where: { id: serverId } })
+  ).server.findFirst({ where: { id: serverId }, omit: WITHOUT_METRICS })
 
   if (!server) {
     throw new ServerNotFoundError(serverId)
@@ -34,15 +34,25 @@ async function findServer(
   return server
 }
 
+function reloadServer(
+  organizationId: string,
+  serverId: string
+): Promise<ServerRow> {
+  return withOrganization(getPrisma(), organizationId).server.findFirstOrThrow({
+    where: { id: serverId },
+    omit: WITHOUT_METRICS,
+  })
+}
+
 async function writeAssignment(
   actor: { userId: string | null; organizationId: string },
-  server: Server,
+  server: ServerRow,
   data: {
     assignedUserId: string | null
     pendingAssignmentEmail: string | null
   },
   payload: Record<string, string | null>
-): Promise<Server> {
+): Promise<ServerRow> {
   const prisma = withOrganization(getPrisma(), actor.organizationId)
 
   await prisma.server.updateMany({ where: { id: server.id }, data })
@@ -55,14 +65,14 @@ async function writeAssignment(
     payload: { name: server.name, ...payload },
   })
 
-  return await prisma.server.findFirstOrThrow({ where: { id: server.id } })
+  return await reloadServer(actor.organizationId, server.id)
 }
 
 async function assignToUser(
   actor: Actor,
-  server: Server,
+  server: ServerRow,
   userId: string
-): Promise<Server> {
+): Promise<ServerRow> {
   const member = await withOrganization(
     getPrisma(),
     actor.organizationId
@@ -90,9 +100,9 @@ async function assignToUser(
 
 async function assignToEmail(
   actor: Actor,
-  server: Server,
+  server: ServerRow,
   rawEmail: string
-): Promise<Server> {
+): Promise<ServerRow> {
   const email = rawEmail.trim().toLowerCase()
   const existing = await findMemberUserIdByEmail(actor.organizationId, email)
 
@@ -114,7 +124,7 @@ export async function assignServer(
   actor: Actor,
   serverId: string,
   input: AssignInput
-): Promise<Server> {
+): Promise<ServerRow> {
   const server = await findServer(actor.organizationId, serverId)
 
   if ("user_id" in input) {
@@ -127,7 +137,7 @@ export async function assignServer(
 export async function unassignServer(
   actor: Actor,
   serverId: string
-): Promise<Server> {
+): Promise<ServerRow> {
   const server = await findServer(actor.organizationId, serverId)
   const prisma = withOrganization(getPrisma(), actor.organizationId)
 
@@ -148,7 +158,50 @@ export async function unassignServer(
     },
   })
 
-  return await prisma.server.findFirstOrThrow({ where: { id: server.id } })
+  return await reloadServer(actor.organizationId, server.id)
+}
+
+/**
+ * A member gone from the organization takes their assignments with them:
+ * the console would otherwise show a name that cannot open the machine, and
+ * a later invitation would hand the keys back without anyone asking.
+ */
+export async function unassignServersOfMember(
+  organizationId: string,
+  userId: string
+): Promise<string[]> {
+  const prisma = withOrganization(getPrisma(), organizationId)
+  const held = await prisma.server.findMany({
+    where: { assignedUserId: userId },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, name: true },
+  })
+
+  if (held.length === 0) {
+    return []
+  }
+
+  await prisma.server.updateMany({
+    where: { id: { in: held.map((server) => server.id) } },
+    data: { assignedUserId: null },
+  })
+
+  for (const server of held) {
+    await recordEvent({
+      action: "server.unassigned",
+      actorUserId: null,
+      organizationId,
+      targetType: "server",
+      targetId: server.id,
+      payload: {
+        name: server.name,
+        assigned_user_id: userId,
+        via: "member_removed",
+      },
+    })
+  }
+
+  return held.map((server) => server.id)
 }
 
 export async function revokeDeviceOnServer(
@@ -189,7 +242,12 @@ export async function revokeDeviceOnServer(
   })
 }
 
-export async function settleAssignment(server: Server): Promise<Server> {
+/**
+ * Read by every list and every agent poll, so several readers can find the
+ * same invitation accepted at once: the conditional write decides which one
+ * of them writes the journal and sends the email.
+ */
+export async function settleAssignment(server: ServerRow): Promise<ServerRow> {
   if (server.assignedUserId || !server.pendingAssignmentEmail) {
     return server
   }
@@ -203,19 +261,43 @@ export async function settleAssignment(server: Server): Promise<Server> {
     return server
   }
 
-  const settled = await writeAssignment(
-    { userId: null, organizationId: server.organizationId },
-    server,
-    { assignedUserId: userId, pendingAssignmentEmail: null },
-    { assigned_user_id: userId, via: "invitation_accepted" }
-  )
+  const prisma = withOrganization(getPrisma(), server.organizationId)
+  const { count } = await prisma.server.updateMany({
+    where: {
+      id: server.id,
+      assignedUserId: null,
+      pendingAssignmentEmail: server.pendingAssignmentEmail,
+    },
+    data: { assignedUserId: userId, pendingAssignmentEmail: null },
+  })
+
+  if (count !== 1) {
+    return await reloadServer(server.organizationId, server.id)
+  }
+
+  await recordEvent({
+    action: "server.assigned",
+    actorUserId: null,
+    organizationId: server.organizationId,
+    targetType: "server",
+    targetId: server.id,
+    payload: {
+      name: server.name,
+      assigned_user_id: userId,
+      via: "invitation_accepted",
+    },
+  })
+
+  const settled = await reloadServer(server.organizationId, server.id)
 
   await sendServerAssignedEmail({ userId, server: settled })
 
   return settled
 }
 
-export async function settleAssignments(servers: Server[]): Promise<Server[]> {
+export async function settleAssignments(
+  servers: ServerRow[]
+): Promise<ServerRow[]> {
   const waiting = servers.some(
     (server) => !server.assignedUserId && server.pendingAssignmentEmail
   )
@@ -224,7 +306,7 @@ export async function settleAssignments(servers: Server[]): Promise<Server[]> {
     return servers
   }
 
-  const settled: Server[] = []
+  const settled: ServerRow[] = []
 
   for (const server of servers) {
     settled.push(await settleAssignment(server))

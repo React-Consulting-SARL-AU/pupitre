@@ -1,13 +1,10 @@
 import type { Manifest } from "@pupitre/shared/catalog";
 import type { FieldProblem } from "@pupitre/shared/catalog/validate";
-import { InstallProgress } from "@renderer/components/install/install-progress";
 import { Button } from "@renderer/components/ui/button";
 import { Callout } from "@renderer/components/ui/callout";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
-import { LiveDuration } from "@renderer/components/ui/live-duration";
 import { panelClass } from "@renderer/components/ui/panel";
 import { Section } from "@renderer/components/ui/section";
-import { WaitingLine } from "@renderer/components/ui/waiting-line";
 import { problemText } from "@renderer/i18n/field-problem";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { ModuleProgress } from "@renderer/lib/module-progress";
@@ -16,6 +13,7 @@ import type { CloudflareZone } from "@shared/cloudflare";
 import type { SecretMarks } from "@shared/secrets";
 import { RefreshCw, Undo2 } from "lucide-react";
 import { ServiceConfigField } from "./service-config-field";
+import { ServiceConfigOutcome } from "./service-config-outcome";
 
 /**
  * The configuration of an already installed module, as the agent kept it.
@@ -42,6 +40,7 @@ export function ServiceConfig({
   secrets,
   problems = [],
   dirty = true,
+  secretsDropped = false,
   steps,
   name,
   nameOf = (moduleId) => (moduleId === manifest?.id ? name : moduleId),
@@ -67,6 +66,8 @@ export function ServiceConfig({
   problems?: readonly FieldProblem[];
   /** Whether anything differs from what the server holds. */
   dirty?: boolean;
+  /** A refusal took the typed secrets with it: they have to be typed again. */
+  secretsDropped?: boolean;
   steps: readonly ModuleProgress[];
   name: string;
   /** What to call a module the run brought along — a dependency the agent replays — rather than this one's name for every row. */
@@ -115,7 +116,6 @@ export function ServiceConfig({
   const running = apply.status === "running";
   const ready = config.status === "ready";
   const held = ready ? config.held : [];
-  const failed = apply.status === "done" ? apply.result.failed : [];
   const refused = problems.filter((problem) => problem.field !== "");
   const accountOnly = fields.length === 0;
 
@@ -200,26 +200,13 @@ export function ServiceConfig({
         </form>
       ) : null}
 
-      {running ? (
-        <WaitingLine className="text-[12px]">
-          <span>{t("services.config.applying", { name })}</span>
-          <LiveDuration className="font-data tabular-nums" />
-        </WaitingLine>
-      ) : null}
-
-      {running || apply.status === "done" ? (
-        <InstallProgress modules={steps} nameOf={nameOf} />
-      ) : null}
-
-      {apply.status === "failed" ? <ErrorNotice error={apply.error} /> : null}
-
-      {apply.status === "done" ? (
-        <Callout tone={failed.length > 0 ? "danger" : "ok"}>
-          {failed.length > 0
-            ? t("services.config.failed", { name })
-            : t("services.config.done", { name })}
-        </Callout>
-      ) : null}
+      <ServiceConfigOutcome
+        apply={apply}
+        name={name}
+        nameOf={nameOf}
+        secretsDropped={secretsDropped}
+        steps={steps}
+      />
     </Section>
   );
 }

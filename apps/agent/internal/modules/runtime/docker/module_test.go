@@ -144,3 +144,35 @@ func TestFailedStepReportsItsReplayCommand(t *testing.T) {
 }
 
 var _ modules.Module = Module{}
+
+func TestPreflightRefusesToMoveTheDataRootUnderRunningContainers(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	run(t, newContext(t, fake, values))
+	fake.Answer("docker ps", "3f2a9c1d\n")
+
+	ctx := modtest.NewContext(t, fake, modtest.Options{
+		Manifest: manifest(),
+		Values:   modtest.Values{"compose": true, "data_root": "/srv/docker"},
+		Held:     modtest.Values{"compose": true, "data_root": ""},
+	})
+	problems := (Module{}).Preflight(ctx)
+	if len(problems) != 1 || problems[0].Field != "data_root" || !strings.Contains(problems[0].Message, "docker stop") {
+		t.Fatalf("problems = %+v", problems)
+	}
+
+	fake.Answer("docker ps", "\n")
+	if problems := (Module{}).Preflight(ctx); len(problems) != 0 {
+		t.Fatalf("nothing runs, the root may move: %+v", problems)
+	}
+}
+
+func TestJoiningTheDockerGroupWarnsThatTerminalsMustBeReopened(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	ctx := newContext(t, fake, values)
+
+	run(t, ctx)
+
+	if output := strings.Join(ctx.Output(), "\n"); !strings.Contains(output, "! dev just joined the docker group") {
+		t.Fatalf("no warning about the open terminals:\n%s", output)
+	}
+}

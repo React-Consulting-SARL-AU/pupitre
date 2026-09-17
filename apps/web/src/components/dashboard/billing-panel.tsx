@@ -11,6 +11,7 @@ import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { usePermission } from "@/hooks/use-permission"
 import {
+  isLiveSubscription,
   serversQueryOptions,
   subscriptionQueryOptions,
 } from "@/lib/api/queries"
@@ -102,10 +103,14 @@ export function BillingPanel() {
   }
 
   const used = countSeated(servers.data as SeatedServer[] | undefined)
-  const paid = subscription.data?.quantity ?? 0
-  const trialing = subscription.data?.status === "trialing"
+  const live =
+    subscription.data && isLiveSubscription(subscription.data)
+      ? subscription.data
+      : null
+  const paid = live?.quantity ?? 0
+  const trialing = live?.status === "trialing"
   const daysLeft = trialing
-    ? trialDaysLeft(subscription.data?.current_period_end ?? null)
+    ? trialDaysLeft(live?.current_period_end ?? null)
     : null
   const trialTitle = trialNotice(t, daysLeft)
 
@@ -115,11 +120,11 @@ export function BillingPanel() {
         <Callout fix={t("billing.trialEnds")} title={trialTitle} />
       ) : null}
 
-      {subscription.data ? (
+      {live ? (
         <SubscriptionCard
           organizationId={activeOrganization.id}
           seatsInUse={used}
-          subscription={subscription.data}
+          subscription={live}
         />
       ) : (
         <CheckoutForm
@@ -130,7 +135,7 @@ export function BillingPanel() {
 
       <SeatBalanceCard
         balance={seatBalance(paid, used)}
-        paidSeats={subscription.data !== null}
+        paidSeats={live !== null}
       />
     </div>
   )

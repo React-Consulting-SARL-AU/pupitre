@@ -217,3 +217,112 @@ func TestEveryFirewallCallIsBounded(t *testing.T) {
 }
 
 var _ modules.Module = Module{}
+
+func TestFirewallLeavesCaddysRuleOn443Alone(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	run(t, newContext(t, fake, Options{}))
+	fake.Firewall.Rules = append(fake.Firewall.Rules, "443/tcp")
+	fake.Firewall.Comments["443/tcp"] = "caddy"
+	mutations := len(fake.Mutations)
+
+	ctx := newContext(t, fake, Options{})
+	run(t, ctx)
+
+	if strings.Join(fake.Firewall.Rules, ",") != "22/tcp,443/tcp" {
+		t.Fatalf("the hardening closed a port it does not own: %v", fake.Firewall.Rules)
+	}
+
+	if statuses(ctx)["configure-firewall"] != contract.StepSkip || len(fake.Mutations) != mutations {
+		t.Fatalf("configure-firewall = %s, mutations %v", statuses(ctx)["configure-firewall"], fake.Mutations[mutations:])
+	}
+}
+
+func TestConfigureOnAHardenedMachineAppliesTheChangedFragment(t *testing.T) {
+	fake := hardenedMachine(t)
+	Harden(newContext(t, fake, Options{}), "dev")
+
+	ctx := newContext(t, fake, Options{KeepRoot: true})
+	run(t, ctx)
+
+	if string(fake.Files[FragmentPath]) != string(Fragment(Options{KeepRoot: true})) {
+		t.Fatalf("the live fragment must follow the form: %q", fake.Files[FragmentPath])
+	}
+
+	commands := strings.Join(fake.Commands(), "\n")
+	if !strings.Contains(commands, "sshd -t") || fake.Restarts["ssh"] != 2 {
+		t.Fatalf("sshd must be validated and reloaded on the new fragment: %d reload(s)\n%s", fake.Restarts["ssh"], commands)
+	}
+
+	if statuses(ctx)["reload-sshd"] != contract.StepOK {
+		t.Fatalf("steps = %v", statuses(ctx))
+	}
+
+	mutations := len(fake.Mutations)
+	again := newContext(t, fake, Options{KeepRoot: true})
+	run(t, again)
+
+	for step, status := range statuses(again) {
+		if status != contract.StepSkip {
+			t.Errorf("replay: %s = %s, want skip", step, status)
+		}
+	}
+	if len(fake.Mutations) != mutations {
+		t.Fatalf("replay touched the machine: %v", fake.Mutations[mutations:])
+	}
+}
+
+func TestConfigureOnAHardenedMachineRevertsAFragmentSshdRefuses(t *testing.T) {
+	fake := hardenedMachine(t)
+	Harden(newContext(t, fake, Options{}), "dev")
+	fake.FailProgram("sshd", "Port: bad port number")
+
+	ctx := newContext(t, fake, Options{SSH443: true})
+	err := (Module{}).Configure(ctx)
+	if err == nil || !strings.Contains(err.Error(), "bad port number") {
+		t.Fatalf("configure = %v, want the sshd refusal", err)
+	}
+
+	if string(fake.Files[FragmentPath]) != string(Fragment(Options{})) || fake.Restarts["ssh"] != 1 {
+		t.Fatalf("the previous fragment must be back and sshd untouched: %q, %d reload(s)", fake.Files[FragmentPath], fake.Restarts["ssh"])
+	}
+}
+
+func TestConfigureBeforeHardenNeverTouchesSshd(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Users["dev"] = "/home/dev"
+	fake.Units["ssh"] = modtest.UnitActive
+
+	run(t, newContext(t, fake, Options{KeepRoot: true}))
+
+	if _, present := fake.Files[FragmentPath]; present || fake.Restarts["ssh"] != 0 {
+		t.Fatal("configure must leave sshd to harden until the machine is hardened")
+	}
+}
+
+func TestConfigureNeverClosesRootItself(t *testing.T) {
+	fake := machine(t, Options{KeepRoot: true})
+	Harden(newContext(t, fake, Options{KeepRoot: true}), "dev")
+	reloads := fake.Restarts["ssh"]
+
+	ctx := newContext(t, fake, Options{})
+	run(t, ctx)
+
+	if string(fake.Files[FragmentPath]) != string(Fragment(Options{KeepRoot: true})) {
+		t.Fatalf("configure closed root, which only harden may do: %q", fake.Files[FragmentPath])
+	}
+
+	if fake.Restarts["ssh"] != reloads {
+		t.Fatalf("sshd reloaded %d time(s) by a configure that had nothing to apply", fake.Restarts["ssh"]-reloads)
+	}
+
+	var message string
+	for _, event := range ctx.Events() {
+		if event.Step == "keep-sshd-fragment" {
+			message = event.Message
+		}
+	}
+
+	if !strings.Contains(message, "harden") {
+		t.Fatalf("the step must say harden closes root: %q", message)
+	}
+}

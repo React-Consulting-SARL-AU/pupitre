@@ -33,9 +33,9 @@ export type UpdateState =
 
 export type UpgradeState =
   | { status: "idle" }
-  | { status: "running" }
-  | { status: "done"; result: AgentUpgradeOutcome }
-  | { status: "failed"; error: AgentError };
+  | { status: "running"; serverId: string }
+  | { status: "done"; serverId: string; result: AgentUpgradeOutcome }
+  | { status: "failed"; serverId: string; error: AgentError };
 
 /**
  * The configuration on the server, brought to the shape the agent now reads.
@@ -46,15 +46,28 @@ export type UpgradeState =
  */
 export type MigrationState =
   | { status: "idle" }
-  | { status: "running" }
-  | { status: "done"; result: AgentMigrateResult | null }
-  | { status: "failed"; error: AgentError };
+  | { status: "running"; serverId: string }
+  | { status: "done"; serverId: string; result: AgentMigrateResult | null }
+  | { status: "failed"; serverId: string; error: AgentError };
 
 export type ModulesState =
   | { status: "idle" }
-  | { status: "running" }
-  | { status: "done"; result: InstallResult }
-  | { status: "failed"; error: AgentError };
+  | { status: "running"; serverId: string }
+  | { status: "done"; serverId: string; result: InstallResult }
+  | { status: "failed"; serverId: string; error: AgentError };
+
+/** Every piece of state here names its machine, or is nothing. */
+type Keyed = { status: "idle" } | { status: string; serverId: string };
+
+/** What the named machine's screens may show of a state: another machine's is nothing. */
+export function ofServer<T extends Keyed>(
+  state: T,
+  serverId: string | null
+): T | { status: "idle" } {
+  return "serverId" in state && state.serverId === serverId
+    ? state
+    : { status: "idle" };
+}
 
 interface AgentUpdateStore {
   state: UpdateState;
@@ -90,6 +103,23 @@ function lineOf(event: Event): string | null {
 }
 
 export const useAgentUpdate = create<AgentUpdateStore>((set, get) => {
+  /** Which machine the banner is on: an answer from an earlier one is dropped. */
+  let turn = 0;
+
+  /** The read under way, so the beat, a focus and a visibility change share one. */
+  let reading: { serverId: string; answer: Promise<void> } | null = null;
+
+  /** Whether the banner is still on this machine: a gesture made on another one reads nothing back. */
+  function stillOn(serverId: string): boolean {
+    const { state } = get();
+
+    return state.status !== "idle" && state.serverId === serverId;
+  }
+
+  function reread(serverId: string): Promise<void> {
+    return stillOn(serverId) ? get().read(serverId) : Promise.resolve();
+  }
+
   function note(event: Event): void {
     const line = lineOf(event);
 
@@ -115,20 +145,40 @@ export const useAgentUpdate = create<AgentUpdateStore>((set, get) => {
     steps: [],
     upgrade: { status: "idle" },
 
-    async read(serverId) {
+    read(serverId) {
+      if (reading?.serverId === serverId) {
+        return reading.answer;
+      }
+
       const current = get().state;
 
       if (current.status === "idle" || current.serverId !== serverId) {
+        turn += 1;
         set({ state: { serverId, status: "reading" } });
       }
 
-      const answer = await window.pupitre.agentUpdateState(serverId);
+      const asked = turn;
+      const answer = window.pupitre
+        .agentUpdateState(serverId)
+        .then((answered) => {
+          if (asked !== turn) {
+            return;
+          }
 
-      set({
-        state: answer.ok
-          ? { serverId, status: "ready", update: answer.result }
-          : { error: answer.error, serverId, status: "failed" },
-      });
+          set({
+            state: answered.ok
+              ? { serverId, status: "ready", update: answered.result }
+              : { error: answered.error, serverId, status: "failed" },
+          });
+        })
+        .finally(() => {
+          if (reading?.answer === answer) {
+            reading = null;
+          }
+        });
+      reading = { answer, serverId };
+
+      return answer;
     },
 
     async refresh(serverId) {
@@ -149,23 +199,23 @@ export const useAgentUpdate = create<AgentUpdateStore>((set, get) => {
     async upgradeAgent(serverId) {
       set({
         journal: [],
-        migration: { status: "running" },
-        upgrade: { status: "running" },
+        migration: { serverId, status: "running" },
+        upgrade: { serverId, status: "running" },
       });
 
       const answer = await window.pupitre.upgradeAgent(serverId, note);
 
       set({
         migration: answer.ok
-          ? { result: answer.result.migration, status: "done" }
+          ? { result: answer.result.migration, serverId, status: "done" }
           : { status: "idle" },
         upgrade: answer.ok
-          ? { result: answer.result, status: "done" }
-          : { error: answer.error, status: "failed" },
+          ? { result: answer.result, serverId, status: "done" }
+          : { error: answer.error, serverId, status: "failed" },
       });
 
       if (answer.ok) {
-        await get().read(serverId);
+        await reread(serverId);
       }
     },
 
@@ -174,21 +224,24 @@ export const useAgentUpdate = create<AgentUpdateStore>((set, get) => {
      * the upgrade, and the agent had already run it when it started.
      */
     async migrateConfig(serverId) {
-      set({ migration: { status: "running" } });
+      set({ migration: { serverId, status: "running" } });
 
       const answer = await window.pupitre.migrateAgentConfig(serverId);
 
       set({
         migration: answer.ok
-          ? { result: answer.result, status: "done" }
-          : { error: answer.error, status: "failed" },
+          ? { result: answer.result, serverId, status: "done" }
+          : { error: answer.error, serverId, status: "failed" },
       });
 
-      await get().read(serverId);
+      await reread(serverId);
     },
 
     async upgradeModules(serverId, modules) {
-      set({ modules: { status: "running" }, steps: pending(modules) });
+      set({
+        modules: { serverId, status: "running" },
+        steps: pending(modules),
+      });
 
       const answer = await window.pupitre.upgradeModules(
         serverId,
@@ -198,8 +251,8 @@ export const useAgentUpdate = create<AgentUpdateStore>((set, get) => {
 
       set({
         modules: answer.ok
-          ? { result: answer.result, status: "done" }
-          : { error: answer.error, status: "failed" },
+          ? { result: answer.result, serverId, status: "done" }
+          : { error: answer.error, serverId, status: "failed" },
       });
     },
 
@@ -215,6 +268,8 @@ export const useAgentUpdate = create<AgentUpdateStore>((set, get) => {
     },
 
     forget() {
+      turn += 1;
+      reading = null;
       set({
         journal: [],
         migration: { status: "idle" },

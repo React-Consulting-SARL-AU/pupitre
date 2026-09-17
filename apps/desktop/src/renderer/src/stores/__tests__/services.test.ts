@@ -613,6 +613,116 @@ describe("le formulaire d'un module installé", () => {
   });
 });
 
+describe("un install refusé après un secret tapé", () => {
+  it("efface les marques des secrets et le dit, quand le processus principal ne dit pas les tenir encore", async () => {
+    configuredMySQL({
+      startInstall: () =>
+        Promise.resolve({
+          ok: false,
+          error: { code: "internal", message: "refusé" },
+        }),
+    });
+
+    await useServices.getState().open(SERVER, "db.mysql", MANIFEST);
+    await useServices.getState().generate(SERVER, "db.mysql", "app_password");
+    expect(useServices.getState().dirty()).toBe(true);
+
+    await useServices.getState().reconfigure(SERVER, "db.mysql");
+
+    expect(useServices.getState().apply.status).toBe("failed");
+    expect(useServices.getState().secrets).toEqual({});
+    expect(useServices.getState().secretsDropped).toBe(true);
+  });
+
+  it("garde les marques quand le processus principal dit tenir encore les secrets", async () => {
+    configuredMySQL({
+      startInstall: (_serverId, _modules, _config, onUpdate) => {
+        onUpdate({ held: true, kind: "secrets" });
+
+        return Promise.resolve({
+          ok: false,
+          error: { code: "internal", message: "refusé" },
+        });
+      },
+    });
+
+    await useServices.getState().open(SERVER, "db.mysql", MANIFEST);
+    await useServices.getState().generate(SERVER, "db.mysql", "app_password");
+    await useServices.getState().reconfigure(SERVER, "db.mysql");
+
+    expect(
+      useServices.getState().secrets["db.mysql"]?.app_password
+    ).toMatchObject({ filled: true });
+    expect(useServices.getState().secretsDropped).toBe(false);
+  });
+
+  it("oublie la phrase dès que le secret est retapé", async () => {
+    configuredMySQL({
+      startInstall: () =>
+        Promise.resolve({
+          ok: false,
+          error: { code: "internal", message: "refusé" },
+        }),
+    });
+
+    await useServices.getState().open(SERVER, "db.mysql", MANIFEST);
+    await useServices.getState().generate(SERVER, "db.mysql", "app_password");
+    await useServices.getState().reconfigure(SERVER, "db.mysql");
+    await useServices.getState().generate(SERVER, "db.mysql", "app_password");
+
+    expect(useServices.getState().secretsDropped).toBe(false);
+  });
+});
+
+describe("une machine déjà en train d'installer", () => {
+  it("suit le rapport jusqu'à sa fin plutôt que d'annoncer un échec", async () => {
+    let reads = 0;
+
+    configuredMySQL({
+      installReport: () => {
+        reads += 1;
+
+        return Promise.resolve({
+          ok: true,
+          result: {
+            agent_version: "0.4.0",
+            failed: [],
+            finished_at: reads < 2 ? "" : "2026-01-01T00:00:10Z",
+            modules: [
+              {
+                id: "db.mysql",
+                status: "ok",
+                steps: [{ ms: 12, status: "ok", step: "paquet" }],
+              },
+            ],
+            report_path: "/var/lib/pupitre/report.json",
+            started_at: "2026-01-01T00:00:00Z",
+            warned: [],
+          },
+        });
+      },
+      startInstall: () =>
+        Promise.resolve({
+          ok: false,
+          error: { code: "busy", message: "une installation est en cours" },
+        }),
+    });
+    useServices.setState({ pollMs: 1 });
+
+    await useServices.getState().open(SERVER, "db.mysql", MANIFEST);
+    useServices.getState().setValue("port", 3307);
+    await useServices.getState().reconfigure(SERVER, "db.mysql");
+
+    expect(reads).toBe(2);
+    expect(useServices.getState().apply).toMatchObject({
+      moduleId: "db.mysql",
+      result: { failed: [] },
+      status: "done",
+    });
+    expect(useServices.getState().steps[0]?.status).toBe("ok");
+  });
+});
+
 describe("un module posé sans ses réglages", () => {
   /**
    * The catalogue would have made the password when the module was chosen; a
@@ -699,6 +809,45 @@ describe("un module posé sans ses réglages", () => {
     await useServices.getState().open(SERVER, "db.mysql", MANIFEST);
 
     expect(made).toEqual([]);
+  });
+});
+
+describe("l'adresse de connexion d'une base", () => {
+  it("relit la fiche seulement, sans toucher au formulaire ouvert", async () => {
+    let details = 0;
+
+    configuredMySQL({
+      databaseUrl: () =>
+        Promise.resolve({ ok: true, result: { label: "URL de connexion" } }),
+      serviceDetail: () => {
+        details += 1;
+
+        return Promise.resolve({
+          ok: true,
+          result: {
+            ...DETAIL,
+            credentials: [...DETAIL.credentials, "URL de connexion"],
+          },
+        });
+      },
+    });
+
+    await useServices.getState().open(SERVER, "db.mysql", MANIFEST);
+    useServices.getState().setValue("port", 3307);
+    await useServices.getState().connectionUrl(SERVER, "db.mysql");
+
+    const state = useServices.getState();
+
+    expect(details).toBe(2);
+    expect(state.manifest?.id).toBe("db.mysql");
+    expect(state.values).toEqual({ port: 3307 });
+    expect(state.dirty()).toBe(true);
+    expect(state.detail).toMatchObject({
+      detail: {
+        credentials: ["Rôle applicatif", "Rôle distant", "URL de connexion"],
+      },
+      status: "ready",
+    });
   });
 });
 

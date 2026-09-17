@@ -1,6 +1,7 @@
 package tailscale
 
 import (
+	"io/fs"
 	"slices"
 	"strings"
 	"testing"
@@ -8,6 +9,7 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/sys"
 )
 
 const authKey = "tskey-auth-s3cret-de-test"
@@ -28,6 +30,16 @@ func machine() *modtest.FakeSys {
 func TestFirstInstallAddsTheRepositoryJoinsAndOpensTheFirewall(t *testing.T) {
 	fake := machine()
 	ctx := newContext(t, fake, modtest.Values{"hostname": "atelier", "ssh": true})
+
+	var keyFile struct {
+		content string
+		mode    fs.FileMode
+	}
+	fake.Observe = func(cmd sys.Command) {
+		if len(cmd.Argv) > 1 && cmd.Argv[0] == Program && cmd.Argv[1] == "up" {
+			keyFile.content, keyFile.mode = string(fake.Files[authKeyPath]), fake.Modes[authKeyPath]
+		}
+	}
 
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
@@ -52,8 +64,20 @@ func TestFirstInstallAddsTheRepositoryJoinsAndOpensTheFirewall(t *testing.T) {
 		}
 	}
 
-	if !strings.Contains(joinedWith, "--auth-key=") || !strings.Contains(joinedWith, "--hostname=atelier") || !strings.Contains(joinedWith, "--ssh") {
-		t.Fatalf("tailscale up must carry the key, the name and the ssh switch: %s", joinedWith)
+	if !strings.Contains(joinedWith, "--auth-key=file:"+authKeyPath) || !strings.Contains(joinedWith, "--hostname=atelier") || !strings.Contains(joinedWith, "--ssh") {
+		t.Fatalf("tailscale up must read the key from a file and carry the name and the ssh switch: %s", joinedWith)
+	}
+
+	if strings.Contains(joinedWith, authKey) {
+		t.Fatalf("the auth key must not reach an argv ps shows: %s", joinedWith)
+	}
+
+	if _, kept := fake.Files[authKeyPath]; kept {
+		t.Fatal("the key file lives for the one command")
+	}
+
+	if keyFile.content != authKey+"\n" || keyFile.mode != 0o600 {
+		t.Fatalf("while tailscale up ran the key file must hold the key for root alone: %q, %o", keyFile.content, keyFile.mode)
 	}
 
 	for _, line := range ctx.Output() {

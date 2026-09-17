@@ -3,6 +3,7 @@ import type { ConnectionsState } from "@shared/connections";
 import { useEffect, useMemo } from "react";
 import { useConnections } from "../stores/connections";
 import { type LoginAnswer, useLogins } from "../stores/logins";
+import { snapshotOf, useSnapshot } from "../stores/snapshot";
 import { accountStateOf } from "./account-state";
 
 /**
@@ -40,7 +41,9 @@ export function serviceAccountsOf(
 /**
  * The accounts of the services given, asked while `active`: once per opening
  * and again when the list of modules changes — the CLIs through
- * `service.status`, the held accounts through the main process.
+ * `service.status`, the held accounts through the main process. A restricted
+ * agent refuses `service.status`: its CLIs are not asked, and the notice at the
+ * top of the shell is the one place that says why.
  */
 export function useServiceAccounts(
   serverId: string | null,
@@ -52,12 +55,15 @@ export function useServiceAccounts(
   const readLogins = useLogins((state) => state.read);
   const connections = useConnections((state) => state.state);
   const readConnections = useConnections((state) => state.read);
+  const restricted = useSnapshot(
+    (state) => snapshotOf(state.state, serverId)?.entitlement === "restricted"
+  );
 
   const key = services.map((service) => service.id).join(" ");
   const declares = services.some((service) => service.connection);
 
   useEffect(() => {
-    if (!(active && serverId)) {
+    if (!(active && serverId) || restricted) {
       return;
     }
 
@@ -66,7 +72,15 @@ export function useServiceAccounts(
     if (declares) {
       readConnections();
     }
-  }, [active, serverId, key, declares, readLogins, readConnections]);
+  }, [
+    active,
+    serverId,
+    restricted,
+    key,
+    declares,
+    readLogins,
+    readConnections,
+  ]);
 
   return useMemo(
     () =>

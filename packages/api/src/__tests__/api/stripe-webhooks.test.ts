@@ -1,5 +1,8 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
-import { GRACE_PERIOD_MS } from "../../lib/billing/entitlement"
+import {
+  entitlementForOrganization,
+  GRACE_PERIOD_MS,
+} from "../../lib/billing/entitlement"
 import type { FakeBilling } from "../../lib/billing/fake"
 import { suspendExpiredGrace } from "../../lib/billing/grace"
 import { SIGNATURE_TOLERANCE_MS } from "../../lib/billing/signature"
@@ -32,6 +35,24 @@ interface StateBody {
   valid_until: string
 }
 
+interface MeBody {
+  entitlement: string
+  subscription: { status: string } | null
+}
+
+function invoicePaymentFailed(id: string) {
+  return stripeEvent("invoice.payment_failed", {
+    id,
+    object: "invoice",
+    customer: "cus_test_1",
+    subscription: "sub_test_1",
+  })
+}
+
+function subjectsSent(server: ApiTestServer): string[] {
+  return server.sentEmails.map((email) => email.subject)
+}
+
 const SECOND_MS = 1000
 
 function secondsFloor(at: number): Date {
@@ -42,6 +63,7 @@ describe("POST /webhooks/stripe", () => {
   let server: ApiTestServer
   let billing: FakeBilling
   let organizationId: string
+  let owner: { token: string }
 
   beforeAll(async () => {
     server = await bootApiTestServer()
@@ -55,6 +77,7 @@ describe("POST /webhooks/stripe", () => {
     const created = await createOrganizationWithMembers({ roles: ["owner"] })
 
     organizationId = created.organization.id
+    owner = created.members[0]
   })
 
   it("refuse une signature invalide", async () => {
@@ -390,6 +413,358 @@ describe("POST /webhooks/stripe", () => {
     })
 
     expect(state.json.entitlement).toBe("valid")
+  })
+
+  it("rend leur droit d'usage aux serveurs suspendus par la facturation", async () => {
+    const enrolled = await createServer({ organizationId, status: "suspended" })
+
+    await server.prisma.server.update({
+      where: { id: enrolled.server.id },
+      data: { suspendedReason: "billing" },
+    })
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.updated",
+        stripeSubscriptionObject({ organizationId, quantity: 1 })
+      )
+    )
+
+    const restored = await server.prisma.server.findUniqueOrThrow({
+      where: { id: enrolled.server.id },
+    })
+
+    expect(restored.status).toBe("active")
+    expect(restored.suspendedReason).toBeNull()
+
+    const state = await apiRequest<StateBody>("/agent/state", {
+      bearer: enrolled.token,
+    })
+
+    expect(state.json.entitlement).toBe("valid")
+  })
+
+  it("laisse suspendu un serveur que l'équipe a suspendu, abonnement ou pas", async () => {
+    const enrolled = await createServer({ organizationId, status: "suspended" })
+
+    await server.prisma.server.update({
+      where: { id: enrolled.server.id },
+      data: { suspendedReason: "admin" },
+    })
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.updated",
+        stripeSubscriptionObject({ organizationId, quantity: 1 })
+      )
+    )
+
+    const stored = await server.prisma.server.findUniqueOrThrow({
+      where: { id: enrolled.server.id },
+    })
+
+    expect(stored.status).toBe("suspended")
+    expect(stored.suspendedReason).toBe("admin")
+  })
+
+  it("ramène les serveurs d'un essai fini, puis suspendus, quand un nouvel abonnement arrive", async () => {
+    const enrolled = await createServer({ organizationId })
+
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.created",
+        stripeSubscriptionObject({ organizationId, status: "trialing" })
+      )
+    )
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.deleted",
+        stripeSubscriptionObject({
+          organizationId,
+          status: "canceled",
+          currentPeriodEnd: new Date(Date.now() - 60 * SECOND_MS),
+        })
+      )
+    )
+
+    expect(await suspendExpiredGrace(new Date())).toEqual([enrolled.server.id])
+
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.created",
+        stripeSubscriptionObject({
+          id: "sub_new",
+          organizationId,
+          status: "active",
+        })
+      )
+    )
+
+    const stored = await server.prisma.server.findUniqueOrThrow({
+      where: { id: enrolled.server.id },
+    })
+    const state = await apiRequest<StateBody>("/agent/state", {
+      bearer: enrolled.token,
+    })
+    const me = await apiRequest<MeBody>("/me", { session: owner })
+
+    expect(stored.status).toBe("active")
+    expect(state.json.entitlement).toBe("valid")
+    expect(me.json.entitlement).toBe("valid")
+    expect(me.json.subscription?.status).toBe("active")
+  })
+
+  it("ne repousse jamais la tolérance ni ne renvoie l'email sur les relances d'un impayé", async () => {
+    const enrolled = await createServer({ organizationId })
+
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.created",
+        stripeSubscriptionObject({ organizationId })
+      )
+    )
+    await postStripeWebhook<AckBody>(invoicePaymentFailed("in_1"))
+
+    const first = await server.prisma.server.findUniqueOrThrow({
+      where: { id: enrolled.server.id },
+    })
+    const emailsAfterFirst = subjectsSent(server).length
+
+    await new Promise((resolve) => setTimeout(resolve, 1100))
+    await postStripeWebhook<AckBody>(invoicePaymentFailed("in_2"))
+
+    const second = await server.prisma.server.findUniqueOrThrow({
+      where: { id: enrolled.server.id },
+    })
+
+    expect(emailsAfterFirst).toBe(1)
+    expect(second.status).toBe("grace")
+    expect(second.entitlementValidUntil?.toISOString()).toBe(
+      first.entitlementValidUntil?.toISOString() ?? ""
+    )
+    expect(subjectsSent(server)).toHaveLength(1)
+  })
+
+  it("ne traite qu'une fois deux livraisons concurrentes du même événement", async () => {
+    await createServer({ organizationId })
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.created",
+        stripeSubscriptionObject({ organizationId })
+      )
+    )
+
+    const event = invoicePaymentFailed("in_twice")
+    const [left, right] = await Promise.all([
+      postStripeWebhook<AckBody>(event),
+      postStripeWebhook<AckBody>(event),
+    ])
+    const verdicts = [left.json, right.json].sort(
+      (a, b) => Number(a.duplicate) - Number(b.duplicate)
+    )
+
+    expect(left.status).toBe(200)
+    expect(right.status).toBe(200)
+    expect(verdicts[0]).toMatchObject({ handled: true, duplicate: false })
+    expect(verdicts[1]).toMatchObject({ handled: false, duplicate: true })
+    expect(await server.prisma.stripeEvent.count()).toBe(2)
+    expect(subjectsSent(server)).toHaveLength(1)
+  })
+
+  it("garde un événement dont le traitement a échoué pour que Stripe le rejoue", async () => {
+    const event = stripeEvent("checkout.session.completed", {
+      id: "cs_test_retry",
+      object: "checkout.session",
+      mode: "subscription",
+      customer: "cus_retry",
+      subscription: "sub_retry",
+      metadata: { organization_id: organizationId },
+    })
+    const failed = await postStripeWebhook<ErrorBody>(event)
+
+    expect(failed.status).toBe(500)
+    expect(failed.json.error.code).toBe("internal")
+
+    const stored = await server.prisma.stripeEvent.findUniqueOrThrow({
+      where: { id: String(event.id) },
+    })
+
+    expect(stored.status).toBe("failed")
+    expect(stored.processedAt).toBeNull()
+
+    billing.put(
+      remoteSubscription({
+        id: "sub_retry",
+        customerId: "cus_retry",
+        organizationId,
+      })
+    )
+
+    const replayed = await postStripeWebhook<AckBody>(event)
+
+    expect(replayed.status).toBe(200)
+    expect(replayed.json).toMatchObject({ handled: true, duplicate: false })
+
+    const settled = await server.prisma.stripeEvent.findUniqueOrThrow({
+      where: { id: String(event.id) },
+    })
+
+    expect(settled.status).toBe("processed")
+    expect(settled.processedAt).not.toBeNull()
+    expect(await server.prisma.subscription.count()).toBe(1)
+  })
+
+  it("relit l'abonnement chez Stripe plutôt que de croire un événement en retard", async () => {
+    const periodEnd = secondsFloor(Date.now() + 86_400_000)
+    const enrolled = await createServer({ organizationId })
+
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.created",
+        stripeSubscriptionObject({ organizationId })
+      )
+    )
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.deleted",
+        stripeSubscriptionObject({
+          organizationId,
+          status: "canceled",
+          currentPeriodEnd: periodEnd,
+        })
+      )
+    )
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.updated",
+        stripeSubscriptionObject({ organizationId, status: "active" })
+      ),
+      {
+        remote: remoteSubscription({
+          organizationId,
+          status: "canceled",
+          currentPeriodEnd: periodEnd,
+        }),
+      }
+    )
+
+    const stored = await server.prisma.server.findUniqueOrThrow({
+      where: { id: enrolled.server.id },
+    })
+    const mirror = await server.prisma.subscription.findFirstOrThrow({
+      where: { organizationId },
+    })
+
+    expect(mirror.status).toBe("canceled")
+    expect(stored.status).toBe("grace")
+    expect(stored.entitlementValidUntil?.toISOString()).toBe(
+      periodEnd.toISOString()
+    )
+  })
+
+  it("met les serveurs en tolérance sept jours quand Stripe dit past_due, et /me le dit aussi", async () => {
+    const periodEnd = new Date(Date.now() + 25 * 86_400_000)
+    const enrolled = await createServer({ organizationId })
+
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.created",
+        stripeSubscriptionObject({
+          organizationId,
+          currentPeriodEnd: periodEnd,
+        })
+      )
+    )
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.updated",
+        stripeSubscriptionObject({
+          organizationId,
+          status: "past_due",
+          currentPeriodEnd: periodEnd,
+        })
+      )
+    )
+
+    const stored = await server.prisma.server.findUniqueOrThrow({
+      where: { id: enrolled.server.id },
+    })
+    const state = await apiRequest<StateBody>("/agent/state", {
+      bearer: enrolled.token,
+    })
+    const me = await apiRequest<MeBody>("/me", { session: owner })
+    const held = await entitlementForOrganization(organizationId)
+
+    expect(stored.status).toBe("grace")
+    expect(state.json.entitlement).toBe("grace")
+    expect(me.json.entitlement).toBe("grace")
+    expect(held.valid_until.toISOString()).toBe(
+      stored.entitlementValidUntil?.toISOString() ?? ""
+    )
+    expect(new Date(state.json.valid_until).getTime()).toBeLessThan(
+      periodEnd.getTime()
+    )
+    expect(
+      await suspendExpiredGrace(
+        new Date(Date.now() + GRACE_PERIOD_MS + SECOND_MS)
+      )
+    ).toEqual([enrolled.server.id])
+  })
+
+  it("lit un abonnement incomplete comme suspendu", async () => {
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.created",
+        stripeSubscriptionObject({ organizationId, status: "incomplete" })
+      )
+    )
+
+    expect((await entitlementForOrganization(organizationId)).state).toBe(
+      "suspended"
+    )
+  })
+
+  it("préfère l'abonnement vivant à l'ancien qui reçoit encore des événements", async () => {
+    const enrolled = await createServer({ organizationId })
+
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.created",
+        stripeSubscriptionObject({ id: "sub_old", organizationId })
+      )
+    )
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.created",
+        stripeSubscriptionObject({ id: "sub_new", organizationId, quantity: 4 })
+      )
+    )
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.deleted",
+        stripeSubscriptionObject({
+          id: "sub_old",
+          organizationId,
+          status: "canceled",
+          currentPeriodEnd: secondsFloor(Date.now() + 86_400_000),
+        })
+      )
+    )
+
+    const held = await entitlementForOrganization(organizationId)
+    const stored = await server.prisma.server.findUniqueOrThrow({
+      where: { id: enrolled.server.id },
+    })
+    const me = await apiRequest<{
+      entitlement: string
+      subscription: { status: string; servers: { limit: number } } | null
+    }>("/me", { session: owner })
+
+    expect(held.state).toBe("valid")
+    expect(stored.status).toBe("active")
+    expect(me.json.entitlement).toBe("valid")
+    expect(me.json.subscription).toMatchObject({
+      status: "active",
+      servers: { limit: 4 },
+    })
   })
 
   it("ignore un événement dont l'organisation est inconnue", async () => {

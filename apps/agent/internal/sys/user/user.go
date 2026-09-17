@@ -36,6 +36,26 @@ func RunIn(ctx sys.Context, name, dir string, argv ...string) (string, error) {
 	return RunWith(ctx, name, Input{Dir: dir}, argv...)
 }
 
+// StreamIn runs the command as the user, from dir, and hands each line it prints over as it comes.
+func StreamIn(ctx sys.Context, name, dir string, emit func(string), argv ...string) error {
+	home := Home(name)
+	if name == "" {
+		name = "root"
+	}
+
+	if dir == "" {
+		dir = home
+	}
+
+	command := sys.Command{User: name, Argv: argv, Dir: dir, Env: Environment(name)}
+	ctx.Logf("$ %s", sys.Describe(command))
+
+	return ctx.Sys().Stream(command, func(line string) {
+		ctx.Logf("  %s", line)
+		emit(line)
+	})
+}
+
 func RunWith(ctx sys.Context, name string, input Input, argv ...string) (string, error) {
 	home := Home(name)
 	if name == "" {

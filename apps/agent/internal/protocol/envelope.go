@@ -1,6 +1,9 @@
 package protocol
 
-import "encoding/json"
+import (
+	"context"
+	"encoding/json"
+)
 
 type successResponse struct {
 	ID     int64 `json:"id"`
@@ -22,6 +25,18 @@ type Context struct {
 
 	session *session
 	sink    func(map[string]any)
+	channel context.Context
+}
+
+// Channel is done once the session that carried the command is cut: its
+// standard input closed, or a write refused. A command that must outlive the
+// channel simply never asks.
+func (c *Context) Channel() context.Context {
+	if c.channel == nil {
+		return context.Background()
+	}
+
+	return c.channel
 }
 
 func (c *Context) Emit(event string, fields map[string]any) {

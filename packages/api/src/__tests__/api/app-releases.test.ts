@@ -415,6 +415,29 @@ describe("app releases", () => {
       expect(stable.json.data.version).toBe("1.4.0")
     })
 
+    it("demotes the newer stable versions so the download page rolls back too", async () => {
+      const admin = await platformAdmin()
+
+      await publishEveryOs(admin, "stable", "1.4.0")
+      await publishEveryOs(admin, "stable", "1.5.0")
+
+      const rolledBack = await apiRequest<ReleaseBody & ErrorBody>(
+        "/admin/app-releases/1.4.0/promote",
+        { body: { channel: "stable" }, session: admin }
+      )
+
+      expect(rolledBack.status).toBe(200)
+
+      const stable = await apiRequest<ReleaseBody>("/releases/app/latest")
+      const beta = await apiRequest<ReleaseBody>(
+        "/releases/app/latest?channel=beta"
+      )
+
+      expect(stable.json.data.version).toBe("1.4.0")
+      expect(beta.json.data.version).toBe("1.5.0")
+      expect(beta.json.data.channel).toBe("beta")
+    })
+
     it("refuses a caller who is not a platform admin", async () => {
       const session = await member()
       const response = await apiRequest<ErrorBody>(

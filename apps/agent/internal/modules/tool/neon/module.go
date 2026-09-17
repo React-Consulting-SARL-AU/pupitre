@@ -24,12 +24,12 @@ const (
 	// The help the CLI prints names itself neonctl; both names must answer.
 	LinkPath = "/usr/local/bin/neonctl"
 
-	assetName = "neonctl"
-	assetURL  = "https://github.com/neondatabase/neonctl/releases/latest/download/neonctl-linux-"
-
 	keyKey    = "NEON_API_KEY"
 	keyPrefix = "NEON_"
 )
+
+// Neon publishes no checksum document, but GitHub computes a digest for every asset of a release: the binary is refused unless it matches.
+var release = download.GitHubRelease{Repo: "neondatabase/neonctl", Program: "neonctl", Asset: func(string) string { return "neonctl-linux-" + nodeArch() }}
 
 type Module struct{}
 
@@ -99,13 +99,12 @@ func (Module) Install(ctx *modules.Context) error {
 			return modules.Skipped, nil
 		}
 
-		staged, done, err := fetch(ctx)
+		version, err := release.Latest(ctx)
 		if err != nil {
 			return modules.Failed, err
 		}
-		defer done()
 
-		return modules.Done, download.Install(ctx, staged, BinaryPath, 0o755, "root")
+		return modules.Done, release.Binary(ctx, version, BinaryPath)
 	}); err != nil {
 		return err
 	}
@@ -130,18 +129,13 @@ func linkTarget(ctx *modules.Context) string {
 	return strings.TrimSpace(out.Stdout)
 }
 
-// Neon publishes no checksum beside its binaries: the transport is the only guarantee, so the download at least stays root's until it is in place.
-func fetch(ctx *modules.Context) (string, func(), error) {
-	return download.Fetch(ctx, assetName, asset())
-}
-
 // Neon publishes one binary per architecture, under the name Node gives it rather than the one Go uses.
-func asset() string {
+func nodeArch() string {
 	if runtime.GOARCH == "arm64" {
-		return assetURL + "arm64"
+		return "arm64"
 	}
 
-	return assetURL + "x64"
+	return "x64"
 }
 
 // neonctl has no token login: it takes the key through NEON_API_KEY, so the dev shell must carry it, not only /etc/pupitre/env.
@@ -177,22 +171,20 @@ func (Module) Configure(ctx *modules.Context) error {
 
 func (m Module) Upgrade(ctx *modules.Context) error {
 	if err := ctx.Step("upgrade-neonctl", func() (modules.Outcome, error) {
-		staged, done, err := fetch(ctx)
-		if err != nil {
-			return modules.Failed, err
-		}
-		defer done()
-
-		fetched, err := file.Read(ctx, staged)
-		if err != nil {
-			return modules.Failed, err
-		}
-
-		if file.Same(ctx, BinaryPath, fetched) {
+		if !file.Exists(ctx, BinaryPath) {
 			return modules.Skipped, nil
 		}
 
-		return modules.Done, file.WriteAtomic(ctx, BinaryPath, fetched, 0o755)
+		latest, err := release.Latest(ctx)
+		if err != nil {
+			return modules.Failed, err
+		}
+
+		if latest == version(ctx) {
+			return modules.Skipped, nil
+		}
+
+		return modules.Done, release.Binary(ctx, latest, BinaryPath)
 	}); err != nil {
 		return err
 	}

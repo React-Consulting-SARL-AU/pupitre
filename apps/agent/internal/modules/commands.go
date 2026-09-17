@@ -6,6 +6,7 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/protocol"
+	"pupitre.studio/agent/internal/sys"
 )
 
 func RegisterCommands(server *protocol.Server, engine *Engine) {
@@ -118,4 +119,16 @@ func Emitter(ctx *protocol.Context) Sink {
 
 		ctx.Emit("step", fields)
 	}
+}
+
+// Quiet runs a command whose answer is a body — a release index, an install
+// script, an account's own details — and journals the command with the size
+// and exit of what came back, never the body itself.
+func Quiet(ctx sys.Context, cmd sys.Command) (sys.Output, error) {
+	ctx.Logf("$ %s", sys.Describe(cmd))
+
+	out, err := ctx.Sys().Run(cmd)
+	ctx.Logf("  %d byte(s) out, %d byte(s) err, exit %d", len(out.Stdout), len(out.Stderr), out.Code)
+
+	return out, err
 }

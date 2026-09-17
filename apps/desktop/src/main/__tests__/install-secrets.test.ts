@@ -4,9 +4,9 @@ import {
   forgetSecrets,
   generateSecret,
   marks,
+  readSecrets,
   revealSecret,
   setSecret,
-  takeSecrets,
 } from "../install-secrets";
 
 const SERVER = "srv-1";
@@ -34,7 +34,7 @@ describe("ce que l'écran sait d'un secret", () => {
     clearSecret(SERVER, "tool.github", "token");
 
     expect(marks(SERVER)).toEqual({});
-    expect(takeSecrets(SERVER)).toEqual({});
+    expect(readSecrets(SERVER)).toEqual({});
   });
 });
 
@@ -65,7 +65,7 @@ describe("un secret généré", () => {
 
     const shown = revealSecret(SERVER, "db.postgres", "app_password");
 
-    expect(takeSecrets(SERVER)).toEqual({
+    expect(readSecrets(SERVER)).toEqual({
       "db.postgres": { app_password: shown ?? "" },
     });
   });
@@ -77,7 +77,7 @@ describe("la ligne du flux secret", () => {
     setSecret(SERVER, "db.postgres", "remote_password", "pg-remote");
     setSecret(SERVER, "tool.github", "token", "ghp_x");
 
-    expect(takeSecrets(SERVER)).toEqual({
+    expect(readSecrets(SERVER)).toEqual({
       "db.postgres": { app_password: "pg-app", remote_password: "pg-remote" },
       "tool.github": { token: "ghp_x" },
     });
@@ -87,16 +87,23 @@ describe("la ligne du flux secret", () => {
     setSecret(SERVER, "ai.hermes", "providers.0", "clé-a");
     setSecret(SERVER, "ai.hermes", "providers.1", "clé-b");
 
-    expect(takeSecrets(SERVER)).toEqual({
+    expect(readSecrets(SERVER)).toEqual({
       "ai.hermes": { "providers.0": "clé-a", "providers.1": "clé-b" },
     });
   });
 
-  it("se vide une fois prise : rien ne survit à l'installation", () => {
+  it("se relit telle quelle tant que l'agent ne l'a pas prise", () => {
     setSecret(SERVER, "tool.github", "token", "ghp_x");
-    takeSecrets(SERVER);
 
-    expect(takeSecrets(SERVER)).toEqual({});
+    expect(readSecrets(SERVER)).toEqual(readSecrets(SERVER));
+    expect(marks(SERVER)).not.toEqual({});
+  });
+
+  it("ne survit pas à l'oubli : rien ne reste après l'installation", () => {
+    setSecret(SERVER, "tool.github", "token", "ghp_x");
+    forgetSecrets(SERVER);
+
+    expect(readSecrets(SERVER)).toEqual({});
     expect(marks(SERVER)).toEqual({});
   });
 
@@ -104,8 +111,8 @@ describe("la ligne du flux secret", () => {
     setSecret(SERVER, "tool.github", "token", "ghp_un");
     setSecret("srv-2", "tool.github", "token", "ghp_deux");
 
-    expect(takeSecrets(SERVER)).toEqual({ "tool.github": { token: "ghp_un" } });
-    expect(takeSecrets("srv-2")).toEqual({
+    expect(readSecrets(SERVER)).toEqual({ "tool.github": { token: "ghp_un" } });
+    expect(readSecrets("srv-2")).toEqual({
       "tool.github": { token: "ghp_deux" },
     });
   });
@@ -123,7 +130,7 @@ describe("aucun secret dans un journal", () => {
       generateSecret(SERVER, "db.postgres", "app_password");
       revealSecret(SERVER, "db.postgres", "app_password");
       marks(SERVER);
-      takeSecrets(SERVER);
+      readSecrets(SERVER);
 
       for (const spy of spies) {
         expect(spy).not.toHaveBeenCalled();

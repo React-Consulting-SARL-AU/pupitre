@@ -26,6 +26,57 @@ export interface ServicesDeps {
   client: Pick<AgentClient, "request">;
   /** Whether this identifier still names a server of the app's configuration. */
   knows: (serverId: string) => boolean;
+  /** Whether the agent of that server has listed this service, as it last answered. */
+  declares: (serverId: string, moduleId: string) => boolean;
+}
+
+/**
+ * The services each agent named, as it last listed them.
+ *
+ * The renderer never gets to invent a service: what it can drive, read the
+ * journal of or ask a credential of is what a `snapshot` or a `status` came
+ * back with — the same rule the projects follow.
+ */
+const listed = new Map<string, Set<string>>();
+
+/** The commands whose answer lists every service of the machine, as the agent names them. */
+const LISTINGS: ReadonlySet<string> = new Set(["snapshot", "status"]);
+
+export function noteServices(
+  serverId: string,
+  cmd: string,
+  answer: AgentResponse<unknown>
+): void {
+  if (!(answer.ok && LISTINGS.has(cmd))) {
+    return;
+  }
+
+  const services = (answer.result as { services?: unknown }).services;
+
+  if (!Array.isArray(services)) {
+    return;
+  }
+
+  listed.set(
+    serverId,
+    new Set(
+      services.flatMap((service: { id?: unknown }) =>
+        typeof service?.id === "string" ? [service.id] : []
+      )
+    )
+  );
+}
+
+export function declaresService(serverId: string, moduleId: string): boolean {
+  return listed.get(serverId)?.has(moduleId) ?? false;
+}
+
+export function forgetServices(serverId?: string): void {
+  if (serverId) {
+    listed.delete(serverId);
+  } else {
+    listed.clear();
+  }
 }
 
 /** The same quarter of an hour a followed project journal is allowed. */
@@ -75,6 +126,12 @@ export function namedService(
 
   if (typeof moduleId !== "string" || moduleId.length === 0) {
     return refuse("refusal.module.none");
+  }
+
+  if (!deps.declares(serverId, moduleId)) {
+    return refuseWith("service_not_found", "refusal.service.unknown", {
+      service: moduleId,
+    });
   }
 
   return { moduleId, serverId };

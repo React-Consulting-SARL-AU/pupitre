@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"errors"
 
 	"pupitre.studio/agent/internal/contract"
@@ -64,14 +65,14 @@ func (r *Reader) ServiceLogs(id string, lines int) ([]string, error) {
 	return logs, nil
 }
 
-// With follow every line travels as an event, the tail included, for as long as a project's follow lasts.
-func (r *Reader) FollowService(id string, lines int, emit func(string)) error {
+// With follow every line travels as an event, the tail included, for as long as a project's follow lasts — or as long as the channel reading it does.
+func (r *Reader) FollowService(channel context.Context, id string, lines int, emit func(string)) error {
 	service, err := r.unitOf(id)
 	if err != nil {
 		return err
 	}
 
-	if err := systemd.Follow(r.ctx(), service.Unit, tailOf(lines), r.options.Follow.Limit, emit); err != nil {
+	if err := systemd.Follow(r.ctx(), channel, service.Unit, tailOf(lines), r.options.Follow.Limit, emit); err != nil {
 		return protocol.NewError(contract.ErrorInternal, i18n.T("state.service.journal.unreadable", service.Name, err.Error()))
 	}
 

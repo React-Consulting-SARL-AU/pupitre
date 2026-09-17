@@ -1,10 +1,10 @@
 import type { CatalogResult } from "@pupitre/shared/agent-protocol/install";
-import type { Manifest } from "@pupitre/shared/catalog";
 import type { AgentResponse } from "@shared/agent";
 import type { SecretMarks } from "@shared/secrets";
 import { ipcMain } from "electron";
 import { account } from "./account";
 import { agentClient } from "./agent";
+import { catalogCache } from "./catalog-cache";
 import {
   forgetSecrets,
   generateSecret,
@@ -41,28 +41,14 @@ function known(serverId: unknown): string | null {
   return typeof serverId === "string" && byId(serverId) ? serverId : null;
 }
 
-/**
- * The last catalogue each server declared, so that checking a field name does
- * not cost a round trip on every keystroke.
- */
-const declared = new Map<string, CatalogResult>();
+const declared = catalogCache(agentClient);
 
-export async function catalogOf(
+export function catalogOf(
   serverId: unknown
 ): Promise<AgentResponse<CatalogResult>> {
   const server = known(serverId);
 
-  if (!server) {
-    return unknownServer();
-  }
-
-  const answer = await agentClient.request(server, "catalog");
-
-  if (answer.ok) {
-    declared.set(server, answer.result);
-  }
-
-  return answer;
+  return server ? declared.catalogOf(server) : Promise.resolve(unknownServer());
 }
 
 /**
@@ -72,39 +58,13 @@ export async function catalogOf(
  * holding a list of its own: the catalogue belongs to the agent, and an app
  * that kept a second copy would refuse what a newer agent accepts.
  */
-export async function declaredManifests(
-  serverId: string
-): Promise<AgentResponse<readonly Manifest[]>> {
-  const cached = declared.get(serverId);
-
-  if (cached) {
-    return { ok: true, result: cached.modules };
-  }
-
-  const answer = await catalogOf(serverId);
-
-  return answer.ok ? { ok: true, result: answer.result.modules } : answer;
-}
+export const declaredManifests = declared.declaredManifests;
 
 /**
  * The module names this server's agent stands behind, for whoever has to check
  * that what the interface asked for exists.
  */
-export async function declaredModules(
-  serverId: string
-): Promise<AgentResponse<string[]>> {
-  const cached = declared.get(serverId);
-
-  if (cached) {
-    return { ok: true, result: cached.modules.map((module) => module.id) };
-  }
-
-  const answer = await catalogOf(serverId);
-
-  return answer.ok
-    ? { ok: true, result: answer.result.modules.map((module) => module.id) }
-    : answer;
-}
+export const declaredModules = declared.declaredModules;
 
 /**
  * A field the manifest declared as a secret, and nothing else.
@@ -122,19 +82,13 @@ async function secretField(
     return null;
   }
 
-  let catalog = declared.get(serverId);
+  const manifests = await declared.declaredManifests(serverId);
 
-  if (!catalog) {
-    const answer = await catalogOf(serverId);
-
-    if (!answer.ok) {
-      return null;
-    }
-
-    catalog = answer.result;
+  if (!manifests.ok) {
+    return null;
   }
 
-  const manifest = catalog.modules.find((m) => m.id === moduleId);
+  const manifest = manifests.result.find((m) => m.id === moduleId);
   const root = key.split(".")[0] ?? key;
   const field = manifest?.fields.find((f) => f.key === root);
 

@@ -6,6 +6,7 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/db/dumps"
 	"pupitre.studio/agent/internal/protocol"
 )
 
@@ -69,6 +70,12 @@ func command(runner *modules.Engine, run func(engine, *modules.Context, string) 
 		if !known {
 			return nil, protocol.NewError(contract.ErrorBadRequest, i18n.T("db.engine.unknown", params.Engine)).
 				WithFix(i18n.T("db.engine.unknown.fix"))
+		}
+
+		// The name reaches an identifier, a path under ~/dumps and an argv as it is.
+		if params.Name != "" && !dumps.SafeName(params.Name) {
+			return nil, protocol.NewError(contract.ErrorBadRequest, i18n.T("db.name.invalid", params.Name)).
+				WithFix(i18n.T("db.name.invalid.fix"))
 		}
 
 		var result any

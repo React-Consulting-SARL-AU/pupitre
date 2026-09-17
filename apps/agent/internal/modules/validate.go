@@ -122,13 +122,13 @@ func (e *Engine) Check(request Request, sink Sink) (contract.InstallCheck, error
 	r := e.newRun(request, sink)
 	defer r.close()
 
-	if err := e.refuseInstalledConflicts(r, modules); err != nil {
-		return contract.InstallCheck{}, err
-	}
-
 	// The secrets the server already holds count as filled: a port changed on an
 	// installed module must not read as a password that went missing.
 	recalled := e.recall(r)
+	if err := e.refuseInstalledConflicts(r, modules, recalled); err != nil {
+		return contract.InstallCheck{}, err
+	}
+
 	request = request.completedBy(recalled)
 
 	if err := refuseDeferringMandatory(modules, request); err != nil {

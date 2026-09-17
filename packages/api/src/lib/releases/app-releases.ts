@@ -3,7 +3,7 @@ import type {
   DesktopArchitecture,
   DesktopSystem,
 } from "@pupitre/shared/releases"
-import { compareVersions, latestBy } from "@pupitre/shared/semver"
+import { compareVersions, isNewer, latestBy } from "@pupitre/shared/semver"
 import { getPrisma } from "../api/prisma"
 import { type Actor, recordEvent } from "../audit/audit"
 import { publishOnce } from "./publish"
@@ -219,6 +219,29 @@ export async function listAppReleases(
     .filter((release) => release !== null)
 }
 
+/** The stable versions newer than the promoted one step down, so the download page rolls back with the agent. */
+async function demoteNewerStable(version: string): Promise<string[]> {
+  const prisma = getPrisma()
+  const stable = await prisma.appRelease.findMany({
+    where: { channel: "stable" },
+    select: { version: true },
+    distinct: ["version"],
+  })
+  const newer = stable
+    .map((release) => release.version)
+    .filter((candidate) => isNewer(candidate, version))
+    .sort()
+
+  if (newer.length > 0) {
+    await prisma.appRelease.updateMany({
+      where: { version: { in: newer } },
+      data: { channel: "beta" },
+    })
+  }
+
+  return newer
+}
+
 export async function promoteAppRelease(
   actor: Actor,
   version: string,
@@ -233,6 +256,8 @@ export async function promoteAppRelease(
 
   await prisma.appRelease.updateMany({ where: { version }, data: { channel } })
 
+  const demoted = channel === "stable" ? await demoteNewerStable(version) : []
+
   await recordEvent({
     action: "app_release.promoted",
     actorUserId: actor.userId,
@@ -242,6 +267,7 @@ export async function promoteAppRelease(
       by: actor.source,
       channel,
       os: published.map((release) => release.os),
+      demoted,
     },
   })
 

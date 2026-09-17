@@ -15,8 +15,9 @@ import {
   useFakeBilling,
 } from "@pupitre/api/testing/billing"
 import type { OrgRole } from "@pupitre/shared/permissions"
-import { QueryClientProvider } from "@tanstack/react-query"
+import { type QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { BillingPanel } from "@/components/dashboard/billing-panel"
+import { queryKeys } from "@/lib/api/queries"
 import {
   DashboardContext,
   type DashboardOrganization,
@@ -29,9 +30,13 @@ type Billing = ReturnType<typeof useFakeBilling>
 
 const mounted: (() => void)[] = []
 
-function panel(organization: DashboardOrganization | null, role: OrgRole) {
+function panel(
+  organization: DashboardOrganization | null,
+  role: OrgRole,
+  queryClient: QueryClient = createQueryClient()
+) {
   return (
-    <QueryClientProvider client={createQueryClient()}>
+    <QueryClientProvider client={queryClient}>
       <DashboardContext.Provider
         value={{
           user: {
@@ -212,6 +217,53 @@ describe("BillingPanel", () => {
     await waitUntil(() => container.textContent?.includes("3 servers") === true)
 
     expect(leave).not.toHaveBeenCalled()
+  })
+
+  it("refreshes the account once the seats changed", async () => {
+    await payFor(billing, organization.id, 1, "trialing")
+
+    const queryClient = createQueryClient()
+
+    queryClient.setQueryData(queryKeys.me, { user: { id: "u1" } })
+
+    const { container, unmount, click } = await render(
+      panel(organization, "owner", queryClient)
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("Change the number") === true
+    )
+
+    const seats = container.querySelector("#seats")
+
+    if (!seats) {
+      throw new Error("no seats field")
+    }
+
+    await fill(seats, "2")
+    await click(trigger(container, "Update"))
+    await waitUntil(
+      () => queryClient.getQueryState(queryKeys.me)?.isInvalidated === true
+    )
+
+    expect(billing.quantities).toEqual([
+      { subscriptionId: "sub_console", quantity: 2 },
+    ])
+  })
+
+  it("offers the checkout again once the mirror is no longer live", async () => {
+    await payFor(billing, organization.id, 3, "canceled")
+
+    const { container, unmount } = await render(panel(organization, "owner"))
+
+    mounted.push(unmount)
+
+    await waitUntil(() => container.textContent?.includes("Order") === true)
+
+    expect(container.textContent).not.toContain("Manage the subscription")
+    expect(container.querySelector("#seats")).toBeNull()
   })
 
   it("refuses a seat count below the servers in place", async () => {

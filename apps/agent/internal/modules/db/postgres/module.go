@@ -76,9 +76,27 @@ func (Module) Manifest() contract.Manifest {
 	return manifest()
 }
 
-// A port another program already holds is the one thing this configuration cannot know from the manifest alone.
+// A port another program already holds, and a major the cluster does not run
+// on, are what this configuration cannot know from the manifest alone.
 func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
-	return modules.Problems(modules.PortTaken(ctx, "port"))
+	return modules.Problems(modules.PortTaken(ctx, "port"), majorChanged(ctx))
+}
+
+// A second major installed beside the first is a second cluster on the same
+// port, with the data left on the old one: moving them is pg_upgradecluster's
+// job, by hand, before the form says the new version.
+func majorChanged(ctx *modules.Context) *contract.FieldProblem {
+	held := strings.TrimSpace(fmt.Sprint(ctx.Held("version")))
+	if ctx.Held("version") == nil || held == version(ctx) || !apt.Installed(ctx, "postgresql-"+held) {
+		return nil
+	}
+
+	return &contract.FieldProblem{
+		Module:  ID,
+		Field:   "version",
+		Code:    contract.ProblemOptions,
+		Message: i18n.T("field.postgres.version.held", held, version(ctx)),
+	}
 }
 
 func (Module) Check(ctx *modules.Context) (modules.Status, error) {
@@ -143,12 +161,13 @@ func (Module) Configure(ctx *modules.Context) error {
 		return err
 	}
 
-	rotated, err := storePasswords(ctx)
-	if err != nil {
+	// The roles hold the new passwords before the env does: a replay after a
+	// crash in between finds them rotated and alters the roles again.
+	if err := createRoles(ctx, passwordsChanged(ctx)); err != nil {
 		return err
 	}
 
-	if err := createRoles(ctx, rotated); err != nil {
+	if err := storePasswords(ctx); err != nil {
 		return err
 	}
 
@@ -223,27 +242,36 @@ func restart(ctx *modules.Context, changed bool) error {
 	})
 }
 
-func storePasswords(ctx *modules.Context) (bool, error) {
-	rotated := false
+var passwordKeys = map[string]string{appPasswordKey: "app_password", remotePasswordKey: "remote_password"}
 
-	err := ctx.Step("store-passwords", func() (modules.Outcome, error) {
-		for key, secret := range map[string]string{appPasswordKey: "app_password", remotePasswordKey: "remote_password"} {
-			stored, err := env.Set(ctx, key, ctx.Secret(secret))
+func passwordsChanged(ctx *modules.Context) bool {
+	for key, secret := range passwordKeys {
+		if held, _, err := env.Get(ctx, key); err != nil || held != ctx.Secret(secret) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func storePasswords(ctx *modules.Context) error {
+	return ctx.Step("store-passwords", func() (modules.Outcome, error) {
+		stored := false
+		for key, secret := range passwordKeys {
+			changed, err := env.Set(ctx, key, ctx.Secret(secret))
 			if err != nil {
 				return modules.Failed, err
 			}
 
-			rotated = rotated || stored
+			stored = stored || changed
 		}
 
-		if !rotated {
+		if !stored {
 			return modules.Skipped, nil
 		}
 
 		return modules.Done, nil
 	})
-
-	return rotated, err
 }
 
 // The passwords travel on the standard input of psql: an argv would show them in ps.
@@ -425,8 +453,8 @@ func Dump(ctx *modules.Context, name string) (string, int64, error) {
 		return "", 0, err
 	}
 
-	path := fmt.Sprintf("%s/%s_%s.dump", dumps.Dir, database(name), ctx.Now().Format("20060102-1504"))
-	if err := ctx.Sys().MkdirAll(dumps.Dir, 0o755); err != nil {
+	path, err := dumps.Target(ctx, database(name), ".dump")
+	if err != nil {
 		return "", 0, err
 	}
 
@@ -439,7 +467,9 @@ func Dump(ctx *modules.Context, name string) (string, int64, error) {
 		return "", 0, err
 	}
 
-	return path, size(ctx, path), nil
+	size, err := dumps.Written(ctx, path)
+
+	return path, size, err
 }
 
 func Import(ctx *modules.Context, name string) ([]string, error) {
@@ -477,20 +507,6 @@ func rolesExist(ctx *modules.Context) bool {
 	query := fmt.Sprintf("SELECT count(*) FROM pg_roles WHERE rolname IN ('%s', '%s')", appRole(ctx), remoteRole(ctx))
 
 	return count(ctx, defaultDatabase, query) == "2"
-}
-
-func size(ctx *modules.Context, path string) int64 {
-	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"stat", "-c", "%s", path}})
-	if err != nil {
-		return 0
-	}
-
-	bytes, err := strconv.ParseInt(strings.TrimSpace(out.Stdout), 10, 64)
-	if err != nil {
-		return 0
-	}
-
-	return bytes
 }
 
 func version(ctx *modules.Context) string {

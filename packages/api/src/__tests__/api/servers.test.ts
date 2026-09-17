@@ -473,7 +473,7 @@ describe("POST /servers/enroll", () => {
     expect(await prisma.server.count({ where: { host: "vps.test" } })).toBe(2)
   })
 
-  it("gives another device of the same host its own server", async () => {
+  it("repairs a known host from any device of the organization, without a second seat", async () => {
     const { prisma } = await bootApiTestServer()
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
@@ -483,11 +483,101 @@ describe("POST /servers/enroll", () => {
     const laptop = await addDevice(owner, "MacBook", ED25519_KEY)
     const desktop = await addDevice(owner, "ThinkPad", SECOND_ED25519_KEY)
     const first = await enroll(owner, laptop.json.data.id, "vps.test")
+
+    await exchange(first.json.enrollment_token)
+
     const second = await enroll(owner, desktop.json.data.id, "vps.test")
+    const third = await enroll(owner, laptop.json.data.id, "other.test")
 
     expect(second.status).toBe(201)
-    expect(second.json.server_id).not.toBe(first.json.server_id)
-    expect(await prisma.server.count({ where: { host: "vps.test" } })).toBe(2)
+    expect(second.json.server_id).toBe(first.json.server_id)
+    expect(third.status).toBe(201)
+    expect(await prisma.server.count({ where: { host: "vps.test" } })).toBe(1)
+
+    const repaired = await prisma.server.findUniqueOrThrow({
+      where: { id: first.json.server_id },
+    })
+
+    expect(repaired.deviceId).toBe(desktop.json.data.id)
+    expect(repaired.enrollmentKey).not.toContain(desktop.json.data.id)
+  })
+
+  it("reads the host without regard to case or surrounding spaces", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { members } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: { quantity: 2 },
+    })
+    const [owner] = members
+    const device = await addDevice(owner, "MacBook", ED25519_KEY)
+    const first = await enroll(owner, device.json.data.id, "VPS.Test")
+    const second = await enroll(owner, device.json.data.id, "  vps.test ")
+
+    expect(second.json.server_id).toBe(first.json.server_id)
+
+    const stored = await prisma.server.findUniqueOrThrow({
+      where: { id: first.json.server_id },
+    })
+
+    expect(stored.host).toBe("vps.test")
+    expect(stored.name).toBe("vps.test")
+  })
+
+  it("keeps a repaired server in the entitlement its organization holds", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { organization, members } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: { quantity: 3, status: "past_due" },
+    })
+    const [owner] = members
+    const device = await addDevice(owner, "MacBook", ED25519_KEY)
+    const first = await enroll(owner, device.json.data.id, "vps.test")
+
+    await exchange(first.json.enrollment_token)
+
+    const graceDeadline = new Date(Date.now() - DAY_MS)
+
+    await prisma.server.update({
+      where: { id: first.json.server_id },
+      data: {
+        status: "suspended",
+        suspendedReason: "billing",
+        entitlementValidUntil: graceDeadline,
+      },
+    })
+
+    const repair = await enroll(owner, device.json.data.id, "vps.test")
+    const swapped = await exchange(repair.json.enrollment_token)
+    const stored = await prisma.server.findUniqueOrThrow({
+      where: { id: first.json.server_id },
+    })
+    const state = await apiRequest<{ entitlement: string }>("/agent/state", {
+      bearer: swapped.json.server_token,
+    })
+    const fresh = await enroll(owner, device.json.data.id, "second.test")
+    const freshServer = await prisma.server.findUniqueOrThrow({
+      where: { id: fresh.json.server_id },
+    })
+
+    expect(repair.status).toBe(201)
+    expect(swapped.status).toBe(200)
+    expect(stored.status).toBe("suspended")
+    expect(stored.entitlementValidUntil?.toISOString()).toBe(
+      graceDeadline.toISOString()
+    )
+    expect(state.json.entitlement).toBe("suspended")
+    expect(freshServer.organizationId).toBe(organization.id)
+
+    await exchange(fresh.json.enrollment_token)
+
+    const enrolledInGrace = await prisma.server.findUniqueOrThrow({
+      where: { id: fresh.json.server_id },
+    })
+
+    expect(enrolledInGrace.status).toBe("grace")
+    expect(enrolledInGrace.entitlementValidUntil?.getTime()).toBeGreaterThan(
+      Date.now()
+    )
   })
 
   it("enrolls a fresh server when the known host was revoked", async () => {

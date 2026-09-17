@@ -1,7 +1,6 @@
 package tmux
 
 import (
-	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -12,6 +11,7 @@ import (
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/sys/net"
 	"pupitre.studio/agent/internal/sys/user"
 )
 
@@ -28,6 +28,11 @@ const (
 
 	// A pane that lost its command by a signal has no status; tmux leaves the column blank and this stands for it.
 	signalled = -1
+
+	// A journal is read from its end, never whole: a server that logs for a day would otherwise be read entire at every snapshot.
+	tailBytes = 256 * 1024
+
+	// The pane the window was opened on runs the process; a pane the user split off it does not.
 )
 
 // Only terminal conditions: a healthy Grails spews ERROR lines for minutes, and reading those as a failure would show "failed" on a live project.
@@ -64,10 +69,15 @@ func (o Options) LogPath(window string) string {
 }
 
 // A Pane is one window of the session as tmux reports it: the pid its command runs under, or the status that command left when it is dead.
+// A window's own pane, the first tmux prints for it, under the id every gesture
+// addresses: a name may be carried by two windows when a stop failed, and tmux
+// then refuses the name as ambiguous. Twins are the other windows of the name.
 type Pane struct {
+	ID     string
 	PID    int
 	Dead   bool
 	Status int
+	Twins  []string
 }
 
 // One read of the machine for every window: tmux, ss and ps once each, not once per process.
@@ -162,60 +172,54 @@ func (c Collection) livePIDs() map[string]int {
 }
 
 // Read with the fate of each pane: a command that exited leaves its pane behind, since the window keeps it, and its status says how it ended.
+// tmux prints a window's panes in order, so the first line of a window id is its own pane and a split the user opened comes after.
 func windows(ctx sys.Context, options Options) map[string]Pane {
 	open := map[string]Pane{}
 
-	out, err := ctx.Sys().Run(options.tmux("list-panes", "-s", "-t", options.Session, "-F", "#{window_name} #{pane_pid} #{?pane_dead,dead,alive} #{pane_dead_status}"))
+	out, err := ctx.Sys().Run(options.tmux("list-panes", "-s", "-t", sessionTarget(options), "-F", "#{window_id} #{window_name} #{pane_pid} #{?pane_dead,dead,alive} #{pane_dead_status}"))
 	if err != nil {
 		return open
 	}
 
+	seen := map[string]bool{}
 	for _, line := range strings.Split(out.Stdout, "\n") {
 		fields := strings.Fields(line)
-		if len(fields) < 3 {
+		if len(fields) < 4 || seen[fields[0]] {
 			continue
 		}
+		seen[fields[0]] = true
 
-		pid, err := strconv.Atoi(fields[1])
+		pid, err := strconv.Atoi(fields[2])
 		if err != nil {
 			continue
 		}
 
-		pane := Pane{PID: pid, Dead: fields[2] == "dead", Status: signalled}
-		if pane.Dead && len(fields) > 3 {
-			if status, err := strconv.Atoi(fields[3]); err == nil {
+		if first, twice := open[fields[1]]; twice {
+			first.Twins = append(first.Twins, fields[0])
+			open[fields[1]] = first
+			continue
+		}
+
+		pane := Pane{ID: fields[0], PID: pid, Dead: fields[3] == "dead", Status: signalled}
+		if pane.Dead && len(fields) > 4 {
+			if status, err := strconv.Atoi(fields[4]); err == nil {
 				pane.Status = status
 			}
 		}
 
-		open[fields[0]] = pane
+		open[fields[1]] = pane
 	}
 
 	return open
 }
 
-// Without -p: asking ss for the socket→process mapping makes it walk /proc and doubles its cost, and the state only needs the port.
+func (p Pane) windows() []string {
+	return append([]string{p.ID}, p.Twins...)
+}
+
+// The kernel's own table, the one the registry and the detection read: ss would also see the sockets of other namespaces, a Docker port among them.
 func listening(ctx sys.Context) map[int]bool {
-	ports := map[int]bool{}
-
-	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"ss", "-lntH"}})
-	if err != nil {
-		return ports
-	}
-
-	for _, line := range strings.Split(out.Stdout, "\n") {
-		fields := strings.Fields(line)
-		if len(fields) < 4 {
-			continue
-		}
-
-		address := fields[3]
-		if port, err := strconv.Atoi(address[strings.LastIndex(address, ":")+1:]); err == nil {
-			ports[port] = true
-		}
-	}
-
-	return ports
+	return net.Listening(ctx)
 }
 
 func uptimes(ctx sys.Context, pids []string) map[int]int {
@@ -242,11 +246,39 @@ func uptimes(ctx sys.Context, pids []string) map[int]int {
 	return seconds
 }
 
+// Activity is when something last moved in each pane of the user's tmux, by
+// the pid its shell runs under, whatever session the pane belongs to: what an
+// agent's idleness is measured on, since age says nothing of it.
+func Activity(ctx sys.Context, options Options) map[int]time.Time {
+	options = options.Resolved()
+	moved := map[int]time.Time{}
+
+	out, err := ctx.Sys().Run(options.tmux("list-panes", "-a", "-F", "#{pane_pid} #{window_activity}"))
+	if err != nil {
+		return moved
+	}
+
+	for _, line := range strings.Split(out.Stdout, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 2 {
+			continue
+		}
+
+		pid, pidErr := strconv.Atoi(fields[0])
+		at, atErr := strconv.ParseInt(fields[1], 10, 64)
+		if pidErr == nil && atErr == nil {
+			moved[pid] = time.Unix(at, 0)
+		}
+	}
+
+	return moved
+}
+
 // Alive says whether the session exists at all: gone with a boot, kept through a restart of the daemon.
 func Alive(ctx sys.Context, options Options) bool {
 	options = options.Resolved()
 
-	_, err := ctx.Sys().Run(options.tmux("has-session", "-t", options.Session))
+	_, err := ctx.Sys().Run(options.tmux("has-session", "-t", sessionTarget(options)))
 
 	return err == nil
 }
@@ -285,19 +317,23 @@ func Start(ctx sys.Context, options Options, job Job) error {
 	}
 
 	if pane, open := windows(ctx, options)[job.Window]; open && pane.Dead {
-		if _, err := sys.Exec(ctx, options.tmux("kill-window", "-t", Target(options, job.Window))); err != nil {
+		if err := close(ctx, options, pane); err != nil {
 			return err
 		}
 	}
 
-	// The marker separates this start from the previous shutdown, whose last line reads "exited with code 130" — read as a failure otherwise.
+	// The journal starts over with the run: the previous shutdown's "exited with code 130" would read as a failure, and a journal never emptied would be read whole at every snapshot.
+	if _, err := file.Remove(ctx, options.LogPath(job.Window)); err != nil {
+		return err
+	}
+
 	if err := mark(ctx, options, job.Window, upMarker+options.Now().UTC().Format(time.RFC3339)+" ==="); err != nil {
 		return err
 	}
 
 	target := Target(options, job.Window)
 	_, err := sys.Exec(ctx, options.tmux(
-		"new-window", "-d", "-t", options.Session, "-n", job.Window, "-c", job.Dir,
+		"new-window", "-d", "-t", sessionTarget(options), "-n", job.Window, "-c", job.Dir,
 		"-e", commandKey+"="+job.Cmd, "exec "+user.Shell+` -lc "$`+commandKey+`"`,
 		";", "set-option", "-w", "-t", target, "remain-on-exit", "on",
 		";", "pipe-pane", "-o", "-t", target, "cat >> "+options.LogPath(job.Window),
@@ -314,8 +350,15 @@ func Stop(ctx sys.Context, options Options, window string) error {
 		return err
 	}
 
-	if Running(ctx, options, window) {
-		if _, err := sys.Exec(ctx, options.tmux("send-keys", "-t", Target(options, window), "C-c")); err != nil {
+	pane, open := windows(ctx, options)[window]
+	if !open {
+		_, err := sys.Exec(ctx, options.tmux("kill-window", "-t", Target(options, window)))
+
+		return err
+	}
+
+	if !pane.Dead {
+		if _, err := sys.Exec(ctx, options.tmux("send-keys", "-t", pane.ID, "C-c")); err != nil {
 			return err
 		}
 
@@ -324,9 +367,17 @@ func Stop(ctx sys.Context, options Options, window string) error {
 		}
 	}
 
-	_, err := sys.Exec(ctx, options.tmux("kill-window", "-t", Target(options, window)))
+	return close(ctx, options, pane)
+}
 
-	return err
+func close(ctx sys.Context, options Options, pane Pane) error {
+	for _, id := range pane.windows() {
+		if _, err := sys.Exec(ctx, options.tmux("kill-window", "-t", id)); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func Logs(ctx sys.Context, options Options, window string, lines int) ([]string, error) {
@@ -335,7 +386,7 @@ func Logs(ctx sys.Context, options Options, window string, lines int) ([]string,
 		lines = DefaultLines
 	}
 
-	raw, err := file.Read(ctx, options.LogPath(window))
+	raw, err := file.Tail(ctx, options.LogPath(window), tailBytes)
 	if err != nil {
 		return nil, protocol.NewError(contract.ErrorProjectNotFound, i18n.T("tmux.journal.none", window)).
 			WithFix(i18n.T("tmux.journal.none.fix"))
@@ -346,7 +397,7 @@ func Logs(ctx sys.Context, options Options, window string, lines int) ([]string,
 
 // What in a log says the startup has failed, read only from the last start marker on.
 func Failed(ctx sys.Context, options Options, window string) bool {
-	raw, err := file.Read(ctx, options.Resolved().LogPath(window))
+	raw, err := file.Tail(ctx, options.Resolved().LogPath(window), tailBytes)
 	if err != nil {
 		return false
 	}
@@ -411,7 +462,14 @@ func mark(ctx sys.Context, options Options, window, line string) error {
 	return file.Append(ctx, logPath, []byte("\n"+line+"\n"), options.User)
 }
 
+// A tail cut mid-line starts on the first whole line after the cut.
 func tail(text string, lines int) []string {
+	if len(text) >= tailBytes {
+		if _, whole, cut := strings.Cut(text, "\n"); cut {
+			text = whole
+		}
+	}
+
 	all := strings.Split(strings.TrimRight(text, "\n"), "\n")
 	if len(all) == 1 && all[0] == "" {
 		return []string{}
@@ -424,9 +482,15 @@ func tail(text string, lines int) []string {
 	return all
 }
 
-// The window of a process, as tmux addresses it.
+// The window of a process, as tmux addresses it: exact on both sides, since a
+// name that merely begins the same way — a window the user opened by hand —
+// would otherwise answer for it.
 func Target(options Options, window string) string {
-	return fmt.Sprintf("%s:%s", options.Resolved().Session, window)
+	return sessionTarget(options) + ":=" + window
+}
+
+func sessionTarget(options Options) string {
+	return "=" + options.Resolved().Session
 }
 
 // The session belongs to the user whose projects run in it: tmux as root would open a server nobody's shell can attach to,

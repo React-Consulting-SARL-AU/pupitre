@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./emails": "./src/emails.ts",
+    "./hooks": "./src/hooks.ts",
     "./server": "./src/server.ts",
     "./client/web": "./src/client/web.ts",
     "./client/desktop": "./src/client/desktop.ts",

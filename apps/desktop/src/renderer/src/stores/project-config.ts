@@ -57,7 +57,18 @@ export interface ConfigDraft {
 export type ConfigState =
   | { status: "idle" }
   | { status: "saving"; name: string }
-  | { status: "saved"; name: string; project: Project }
+  /**
+   * `sync` is what the exposure refused after the agent had taken the patch:
+   * the project is saved, its names on the web are not all written. `warnings`
+   * are the agent's own, about what it refused after the row was written.
+   */
+  | {
+      status: "saved";
+      name: string;
+      project: Project;
+      sync?: AgentError;
+      warnings?: string[];
+    }
   | { status: "failed"; name: string; error: AgentError };
 
 interface ProjectConfigStore {
@@ -350,17 +361,13 @@ export const useProjectConfig = create<ProjectConfigStore>((set, get) => {
       }
 
       const published = hostnamesOf(answer.result).length > 0;
+      const synced =
+        get().exposure && (published || get().dropped().length > 0);
+      let refused: AgentError | null = null;
 
-      if (get().exposure && (published || get().dropped().length > 0)) {
+      if (synced) {
         await useTunnel.getState().sync(serverId);
-      }
-
-      const refused = useTunnel.getState().problem;
-
-      if (refused) {
-        set({ run: { error: refused, name: project.name, status: "failed" } });
-
-        return;
+        refused = useTunnel.getState().problem;
       }
 
       await useSnapshot.getState().read(serverId);
@@ -368,7 +375,15 @@ export const useProjectConfig = create<ProjectConfigStore>((set, get) => {
       set({
         draft: draftFrom(answer.result),
         project: answer.result,
-        run: { name: project.name, project: answer.result, status: "saved" },
+        run: {
+          name: project.name,
+          project: answer.result,
+          status: "saved",
+          ...(refused ? { sync: refused } : {}),
+          ...(answer.result.warnings?.length
+            ? { warnings: answer.result.warnings }
+            : {}),
+        },
       });
     },
 

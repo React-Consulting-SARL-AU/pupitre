@@ -85,7 +85,7 @@ export const alertSchema = t.Object(
   { $id: "ServerAlert" }
 )
 
-const serverFields = {
+export const serverFields = {
   id: t.String(),
   name: t.String(),
   host: t.Nullable(t.String()),

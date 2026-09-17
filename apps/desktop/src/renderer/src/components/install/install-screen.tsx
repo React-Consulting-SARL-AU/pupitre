@@ -5,6 +5,7 @@ import { humanMs } from "../../lib/duration";
 import { riseAt } from "../../lib/motion";
 import { useCatalog } from "../../stores/catalog";
 import { useInstall } from "../../stores/install";
+import { Callout } from "../ui/callout";
 import { LiveDuration } from "../ui/live-duration";
 import { Screen } from "../ui/screen";
 import { StepFailure } from "../ui/step-failure";
@@ -66,6 +67,7 @@ export function InstallScreen({
   const replayFailed = useInstall((state) => state.replayFailed);
   const reload = useInstall((state) => state.reload);
   const touched = useInstall((state) => state.touched);
+  const secretsDropped = useInstall((state) => state.secretsDropped);
 
   const catalog = useCatalog((state) => state.modules);
   const selected = useCatalog((state) => state.selected);
@@ -191,6 +193,12 @@ export function InstallScreen({
               : t("install.retry")
           }
         />
+      ) : null}
+
+      {install.status === "failed" && secretsDropped ? (
+        <Callout name="secrets-dropped" tone="warn">
+          {t("install.secretsDropped")}
+        </Callout>
       ) : null}
 
       {modules.length > 0 ? (

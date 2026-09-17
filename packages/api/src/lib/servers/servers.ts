@@ -1,4 +1,4 @@
-import type { Server, ServerStatus } from "@pupitre/db/cloudflare/client"
+import type { ServerStatus } from "@pupitre/db/cloudflare/client"
 import type { OrgRole } from "@pupitre/shared/permissions"
 import { sendServerDecommissionEmail } from "../../emails/notifications"
 import { type AlertView, activeAlertsFor } from "../alerts/alerts"
@@ -9,7 +9,8 @@ import { settleAssignment, settleAssignments } from "./assign"
 import { keyReadyByServer } from "./authorized-keys"
 import { RELEASED_ENROLLMENT } from "./enrollment-key"
 import { decommissionDeadline } from "./expire"
-import type { MetricSample } from "./metrics"
+import { type MetricSample, readUsage, type ServerUsage } from "./metrics"
+import { type ServerRow, WITHOUT_METRICS } from "./server-row"
 import { hashServerToken, isServerToken } from "./tokens"
 
 export const STALE_AFTER_MS = 86_400_000
@@ -25,18 +26,6 @@ export interface ServerForUser {
   key_ready: boolean
   /** The organization the server belongs to: a member of several knows where each comes from. */
   organization: { id: string; name: string }
-}
-
-export interface ServerUsage {
-  at: string
-  disk: number
-  ram: number
-  load: number
-  /** The quantities behind the percentages; null for a sample an older agent sent. */
-  disk_total_gb: number | null
-  disk_free_gb: number | null
-  ram_total_mb: number | null
-  ram_used_mb: number | null
 }
 
 export interface ServerView {
@@ -75,7 +64,7 @@ export interface ServerDetail extends ServerView {
   events: ServerEventView[]
 }
 
-export function isStale(server: Server, now: Date = new Date()): boolean {
+export function isStale(server: ServerRow, now: Date = new Date()): boolean {
   if (server.status === "enrolling" || server.status === "revoked") {
     return false
   }
@@ -85,26 +74,8 @@ export function isStale(server: Server, now: Date = new Date()): boolean {
   return now.getTime() - last.getTime() > STALE_AFTER_MS
 }
 
-function lastUsage(server: Server): ServerUsage | null {
-  const samples = metricsOf(server)
-  const last = samples.at(-1)
-
-  return last
-    ? {
-        at: last.at,
-        disk: last.disk,
-        ram: last.ram,
-        load: last.load,
-        disk_total_gb: last.disk_total_gb,
-        disk_free_gb: last.disk_free_gb,
-        ram_total_mb: last.ram_total_mb,
-        ram_used_mb: last.ram_used_mb,
-      }
-    : null
-}
-
 export function toServerView(
-  server: Server,
+  server: ServerRow,
   now: Date = new Date(),
   alerts: AlertView[] = []
 ): ServerView {
@@ -125,20 +96,25 @@ export function toServerView(
     last_heartbeat_at: server.lastHeartbeatAt,
     entitlement_valid_until: server.entitlementValidUntil,
     decommission_at: server.decommissionAt,
-    usage: lastUsage(server),
+    usage: readUsage(server.lastUsage),
     alerts,
     created_at: server.createdAt,
   }
 }
 
-export async function findServerByToken(token: string): Promise<Server | null> {
+export async function findServerByToken(
+  token: string
+): Promise<ServerRow | null> {
   if (!isServerToken(token)) {
     return null
   }
 
   const serverTokenHash = await hashServerToken(token)
 
-  return await getPrisma().server.findUnique({ where: { serverTokenHash } })
+  return await getPrisma().server.findUnique({
+    where: { serverTokenHash },
+    omit: WITHOUT_METRICS,
+  })
 }
 
 export async function listServersForUser(
@@ -146,8 +122,9 @@ export async function listServersForUser(
 ): Promise<ServerForUser[]> {
   const prisma = getPrisma()
   const servers = await prisma.server.findMany({
-    where: { assignedUserId: userId },
+    where: { assignedUserId: userId, status: { not: "revoked" } },
     orderBy: { createdAt: "asc" },
+    omit: WITHOUT_METRICS,
     include: { organization: { select: { id: true, name: true } } },
   })
 
@@ -185,7 +162,7 @@ export async function listServersForOrganization(
   const found = await withOrganization(
     getPrisma(),
     organizationId
-  ).server.findMany({ orderBy: { createdAt: "asc" } })
+  ).server.findMany({ orderBy: { createdAt: "asc" }, omit: WITHOUT_METRICS })
   const servers = await settleAssignments(found)
   const now = new Date()
   const visible = seesEveryServer(viewer)
@@ -227,7 +204,7 @@ export async function getServerForOrganization(
 
   return {
     ...toServerView(server, new Date(), alerts.get(server.id) ?? []),
-    metrics: metricsOf(server),
+    metrics: metricsOf(found),
     events: events.map((event) => ({
       id: event.id,
       action: event.action,
@@ -255,7 +232,10 @@ export async function deleteServerForOrganization(
   acceptLanguage: string | null = null
 ): Promise<ServerDeletion | null> {
   const prisma = withOrganization(getPrisma(), actor.organizationId)
-  const server = await prisma.server.findFirst({ where: { id: serverId } })
+  const server = await prisma.server.findFirst({
+    where: { id: serverId },
+    omit: WITHOUT_METRICS,
+  })
 
   if (!server) {
     return null

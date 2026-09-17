@@ -24,7 +24,16 @@ type Passing struct {
 	Connection string
 	// Asks adds fields to the manifest: a required one without a default is what a real core module asks.
 	Asks []contract.Field
+	// Versioned makes the package depend on the chosen version, as a database
+	// module's does: a Check run on the manifest default then misses the install.
+	Versioned bool
 }
+
+const (
+	VersionField   = "version"
+	DefaultVersion = "1"
+	OtherVersion   = "2"
+)
 
 func (m Passing) Manifest() contract.Manifest {
 	fields := []contract.Field{
@@ -32,6 +41,9 @@ func (m Passing) Manifest() contract.Manifest {
 	}
 	if m.EnvKey != "" {
 		fields = append(fields, contract.Field{Key: "password", Kind: contract.FieldSecret, Label: "Mot de passe", Required: true, Generate: true})
+	}
+	if m.Versioned {
+		fields = append(fields, contract.Field{Key: VersionField, Kind: contract.FieldSelect, Label: "Version", Default: DefaultVersion, Options: []string{DefaultVersion, OtherVersion}})
 	}
 	fields = append(fields, m.Asks...)
 
@@ -57,12 +69,27 @@ func (m Passing) configPath() string {
 	return "/etc/pupitre/demo/" + m.ID + ".conf"
 }
 
-func (m Passing) pkg() string {
-	if m.Package == "" {
-		return strings.ReplaceAll(m.ID, ".", "-")
+func (m Passing) pkg(ctx *modules.Context) string {
+	name := m.Package
+	if name == "" {
+		name = strings.ReplaceAll(m.ID, ".", "-")
 	}
 
-	return m.Package
+	if m.Versioned {
+		return name + "-" + ctx.String(VersionField)
+	}
+
+	return name
+}
+
+// PackageAt names the package a versioned module puts on the machine for one version.
+func (m Passing) PackageAt(version string) string {
+	name := m.Package
+	if name == "" {
+		name = strings.ReplaceAll(m.ID, ".", "-")
+	}
+
+	return name + "-" + version
 }
 
 func (m Passing) config(ctx *modules.Context) []byte {
@@ -70,11 +97,11 @@ func (m Passing) config(ctx *modules.Context) []byte {
 }
 
 func (m Passing) Check(ctx *modules.Context) (modules.Status, error) {
-	if !apt.Installed(ctx, m.pkg()) {
+	if !apt.Installed(ctx, m.pkg(ctx)) {
 		return modules.Status{}, nil
 	}
 
-	version, err := apt.Version(ctx, m.pkg())
+	version, err := apt.Version(ctx, m.pkg(ctx))
 	if err != nil {
 		return modules.Status{}, err
 	}
@@ -84,11 +111,11 @@ func (m Passing) Check(ctx *modules.Context) (modules.Status, error) {
 
 func (m Passing) Install(ctx *modules.Context) error {
 	return ctx.Step("install-package", func() (modules.Outcome, error) {
-		if apt.Installed(ctx, m.pkg()) {
+		if apt.Installed(ctx, m.pkg(ctx)) {
 			return modules.Skipped, nil
 		}
 
-		return modules.Done, apt.Install(ctx, m.pkg())
+		return modules.Done, apt.Install(ctx, m.pkg(ctx))
 	})
 }
 
@@ -148,7 +175,7 @@ func (m Passing) Configure(ctx *modules.Context) error {
 
 func (m Passing) Upgrade(ctx *modules.Context) error {
 	if err := ctx.Step("upgrade-package", func() (modules.Outcome, error) {
-		upgraded, err := apt.Upgrade(ctx, m.pkg())
+		upgraded, err := apt.Upgrade(ctx, m.pkg(ctx))
 		if err != nil {
 			return modules.Failed, err
 		}
@@ -179,11 +206,11 @@ func (m Passing) Uninstall(ctx *modules.Context) error {
 	}
 
 	if err := ctx.Step("remove-package", func() (modules.Outcome, error) {
-		if !apt.Installed(ctx, m.pkg()) {
+		if !apt.Installed(ctx, m.pkg(ctx)) {
 			return modules.Skipped, nil
 		}
 
-		return modules.Done, apt.Remove(ctx, m.pkg())
+		return modules.Done, apt.Remove(ctx, m.pkg(ctx))
 	}); err != nil {
 		return err
 	}

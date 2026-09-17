@@ -1,5 +1,6 @@
-import type { Device, Server } from "@pupitre/db/cloudflare/client"
+import type { Device } from "@pupitre/db/cloudflare/client"
 import { type Locale, localeOf } from "@pupitre/shared/i18n"
+import type { ServerRow } from "../lib/servers/server-row"
 import { deliver } from "./deliver"
 import {
   billingRecipients,
@@ -16,9 +17,11 @@ import {
   renderAlertServerUnreachableEmail,
   renderDeviceAddedEmail,
   renderEntitlementGraceEmail,
+  renderSeatsDriftEmail,
   renderServerAssignedEmail,
   renderServerDecommissionEmail,
   renderServerEnrolledEmail,
+  renderServerSuspendedAdminEmail,
   renderServerSuspendedEmail,
 } from "./render"
 
@@ -28,7 +31,7 @@ export interface Addressed {
 
 type RenderFor = (locale: Locale) => Promise<RenderedEmail>
 
-function addressOf(server: Server): string {
+function addressOf(server: ServerRow): string {
   return server.host
     ? `${server.sshUser}@${server.host}:${server.port}`
     : server.name
@@ -65,7 +68,7 @@ async function deliverTo(
 }
 
 export interface ServerEnrolledInput extends Addressed {
-  server: Server
+  server: ServerRow
 }
 
 export async function sendServerEnrolledEmail({
@@ -92,7 +95,7 @@ export async function sendServerEnrolledEmail({
 
 export interface ServerAssignedInput extends Addressed {
   userId: string
-  server: Server
+  server: ServerRow
 }
 
 export async function sendServerAssignedEmail({
@@ -204,8 +207,61 @@ export async function sendServerSuspendedEmail({
   )
 }
 
+export interface ServerSuspendedByAdminInput extends Addressed {
+  server: ServerRow
+  reason: string
+}
+
+export async function sendServerSuspendedByAdminEmail({
+  server,
+  reason,
+  ...input
+}: ServerSuspendedByAdminInput): Promise<void> {
+  const [recipients, organization] = await Promise.all([
+    billingRecipients(server.organizationId),
+    organizationName(server.organizationId),
+  ])
+
+  await deliverTo(recipients, input, (locale) =>
+    renderServerSuspendedAdminEmail({
+      locale,
+      organizationName: organization,
+      serverName: server.name,
+      address: addressOf(server),
+      reason,
+    })
+  )
+}
+
+export interface SeatsDriftInput extends Addressed {
+  organizationId: string
+  paid: number
+  seated: number
+}
+
+export async function sendSeatsDriftEmail({
+  organizationId,
+  paid,
+  seated,
+  ...input
+}: SeatsDriftInput): Promise<void> {
+  const [recipients, organization] = await Promise.all([
+    billingRecipients(organizationId),
+    organizationName(organizationId),
+  ])
+
+  await deliverTo(recipients, input, (locale) =>
+    renderSeatsDriftEmail({
+      locale,
+      organizationName: organization,
+      paid,
+      seated,
+    })
+  )
+}
+
 export interface ServerDecommissionInput extends Addressed {
-  server: Server
+  server: ServerRow
   deadline: Date
 }
 
@@ -234,7 +290,7 @@ export async function sendServerDecommissionEmail({
 }
 
 export interface ServerUnreachableInput extends Addressed {
-  server: Server
+  server: ServerRow
   lastSeenAt: Date | null
 }
 
@@ -254,7 +310,7 @@ export async function sendServerUnreachableEmail({
 }
 
 export interface DiskHighInput extends Addressed {
-  server: Server
+  server: ServerRow
   disk: number
 }
 
@@ -274,7 +330,7 @@ export async function sendDiskHighEmail({
 }
 
 export interface AgentOutdatedInput extends Addressed {
-  server: Server
+  server: ServerRow
   latestVersion: string
 }
 
@@ -294,7 +350,7 @@ export async function sendAgentOutdatedEmail({
 }
 
 export interface ServerGraceInput extends Addressed {
-  server: Server
+  server: ServerRow
   deadline: Date
 }
 

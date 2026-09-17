@@ -167,11 +167,7 @@ func place(ctx *modules.Context, target string, body []byte) (modules.Outcome, e
 		return modules.Skipped, nil
 	}
 
-	if err := ctx.Sys().MkdirAll(path.Dir(target), 0o755); err != nil {
-		return modules.Failed, err
-	}
-
-	if err := file.Chown(ctx, path.Dir(target), User, User); err != nil {
+	if err := file.MkdirOwned(ctx, path.Dir(target), User, User, 0o755); err != nil {
 		return modules.Failed, err
 	}
 

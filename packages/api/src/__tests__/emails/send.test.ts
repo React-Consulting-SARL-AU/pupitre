@@ -2,7 +2,11 @@ import { describe, expect, it } from "bun:test"
 import { EMAIL_FROM } from "../../emails/config"
 import { deliver } from "../../emails/deliver"
 import { buildMimeMessage } from "../../emails/mime"
-import { cloudflareEmailBinding, createEmailSender } from "../../emails/send"
+import {
+  cloudflareEmailBinding,
+  createEmailSender,
+  EmailBindingMissingError,
+} from "../../emails/send"
 
 function partOf(mime: string, contentType: string): string {
   const start = mime.indexOf(contentType)
@@ -78,6 +82,46 @@ describe("le transport", () => {
 
     expect(lines).toHaveLength(1)
     expect(lines[0]).toContain("ada@test.local")
+  })
+
+  it("refuse d'envoyer en production quand le binding manque", async () => {
+    const lines: string[] = []
+    const send = createEmailSender(
+      (line) => lines.push(line),
+      () =>
+        Promise.resolve({
+          binding: null,
+          Message: null,
+          environment: "production",
+        })
+    )
+
+    await expect(
+      send({
+        to: "ada@test.local",
+        subject: "Bonjour",
+        text: "Bonjour",
+        html: "<p>Bonjour</p>",
+      })
+    ).rejects.toBeInstanceOf(EmailBindingMissingError)
+    expect(lines).toHaveLength(0)
+  })
+
+  it("journalise hors production quand le binding manque", async () => {
+    const lines: string[] = []
+    const send = createEmailSender(
+      (line) => lines.push(line),
+      () => Promise.resolve({ binding: null, Message: null, environment: null })
+    )
+
+    await send({
+      to: "ada@test.local",
+      subject: "Bonjour",
+      text: "Bonjour",
+      html: "<p>Bonjour</p>",
+    })
+
+    expect(lines).toHaveLength(1)
   })
 })
 

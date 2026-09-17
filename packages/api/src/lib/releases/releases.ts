@@ -1,11 +1,8 @@
-import type {
-  Release,
-  ReleaseChannel,
-  Server,
-} from "@pupitre/db/cloudflare/client"
+import type { Release, ReleaseChannel } from "@pupitre/db/cloudflare/client"
 import { isNewer, latestBy } from "@pupitre/shared/semver"
 import { getPrisma } from "../api/prisma"
 import { type Actor, recordEvent } from "../audit/audit"
+import type { ServerRow } from "../servers/server-row"
 import { publishOnce } from "./publish"
 import { getReleaseStorage, type ReleaseStorageKind } from "./storage"
 
@@ -160,6 +157,32 @@ export async function publishRelease(
   return { release: toReleaseView(row), created }
 }
 
+/**
+ * A promotion to stable is also the way back: the stable releases newer than
+ * the promoted one, on the architectures it covers, step down to beta so the
+ * channel's latest is the version just promoted.
+ */
+async function demoteNewerStable(
+  version: string,
+  arches: string[]
+): Promise<string[]> {
+  const prisma = getPrisma()
+  const stable = await prisma.release.findMany({
+    where: { channel: "stable", arch: { in: arches } },
+    select: { version: true, arch: true },
+  })
+  const newer = stable.filter((release) => isNewer(release.version, version))
+
+  for (const release of newer) {
+    await prisma.release.update({
+      where: { version_arch: { version: release.version, arch: release.arch } },
+      data: { channel: "beta" },
+    })
+  }
+
+  return [...new Set(newer.map((release) => release.version))].sort()
+}
+
 export async function promoteRelease(
   actor: Actor,
   version: string,
@@ -174,6 +197,14 @@ export async function promoteRelease(
 
   await prisma.release.updateMany({ where: { version }, data: { channel } })
 
+  const demoted =
+    channel === "stable"
+      ? await demoteNewerStable(
+          version,
+          published.map((release) => release.arch)
+        )
+      : []
+
   await recordEvent({
     action: "release.promoted",
     actorUserId: actor.userId,
@@ -183,22 +214,58 @@ export async function promoteRelease(
       by: actor.source,
       channel,
       arch: published.map((release) => release.arch),
+      demoted,
     },
   })
 
   return published.map((release) => toReleaseView({ ...release, channel }))
 }
 
+function newest(left: string | null, right: string | null): string | null {
+  if (left === null || right === null) {
+    return left ?? right
+  }
+
+  return isNewer(right, left) ? right : left
+}
+
+/** A version the channel once carried and no longer does: promoted away, so a rollback can reach the server. */
+async function withdrawnFrom(
+  version: string,
+  arch: string,
+  channel: ReleaseChannel
+): Promise<boolean> {
+  const release = await findRelease(version, arch)
+
+  return release !== null && !CHANNEL_SOURCES[channel].includes(release.channel)
+}
+
+/**
+ * The version the platform wants on the server: the channel's latest, never
+ * older than what the server already targets or runs — unless that version
+ * was withdrawn from the channel, in which case the target moves down to the
+ * channel's latest.
+ */
 export async function resolveTargetVersion(
-  server: Server
+  server: ServerRow
 ): Promise<string | null> {
   const latest = await latestRelease(server.channel, server.arch)
 
-  if (!(latest && isNewer(latest.version, server.targetVersion))) {
+  if (!latest) {
     return server.targetVersion
   }
 
-  return latest.version
+  const carried = newest(server.targetVersion, server.agentVersion)
+
+  if (carried === null || isNewer(latest.version, carried)) {
+    return latest.version
+  }
+
+  if (await withdrawnFrom(carried, server.arch, server.channel)) {
+    return latest.version
+  }
+
+  return carried
 }
 
 export async function releaseForEnrollment(

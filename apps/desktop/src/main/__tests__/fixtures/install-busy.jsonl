@@ -1,0 +1,6 @@
+# Une autre installation tient le verrou : rien n'est lu, rien n'est fait.
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","ping","snapshot","report","install"]}}
+> {"id":2,"cmd":"install","params":{"modules":["db.postgres"],"config":{"db.postgres":{"version":"17"}},"secrets_stdin":true}}
+$ {"db.postgres":{"app_password":"s3cret-de-test"}}
+< {"id":2,"ok":false,"error":{"code":"busy","message":"une installation est déjà en cours","fix":"Attends la fin de l'installation en cours."}}

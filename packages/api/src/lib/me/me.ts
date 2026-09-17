@@ -4,6 +4,7 @@ import type { SessionUser } from "../api/plugins/auth"
 import { getPrisma, withOrganization } from "../api/prisma"
 import { entitlementForOrganization } from "../billing/entitlement"
 import { countSeatedServers } from "../billing/seats"
+import { liveSubscriptionOf } from "../billing/subscription"
 
 export interface MeInput {
   user: SessionUser
@@ -27,14 +28,9 @@ export interface MeSubscriptionView {
 export async function subscriptionForMe(
   organizationId: string
 ): Promise<MeSubscriptionView | null> {
-  const prisma = getPrisma()
   const [subscription, used] = await Promise.all([
-    prisma.subscription.findFirst({
-      where: { organizationId },
-      orderBy: { updatedAt: "desc" },
-      select: { status: true, quantity: true, currentPeriodEnd: true },
-    }),
-    countSeatedServers(withOrganization(prisma, organizationId)),
+    liveSubscriptionOf(organizationId),
+    countSeatedServers(withOrganization(getPrisma(), organizationId)),
   ])
 
   if (!subscription) {

@@ -31,7 +31,7 @@ const TYPED: Server = {
 
 describe("l'identité de plateforme d'un serveur", () => {
   beforeEach(() => {
-    write({ active: null, dismissed: [], servers: [TYPED] });
+    write(() => ({ active: null, dismissed: [], servers: [TYPED] }));
   });
 
   it("s'écrit au premier enrôlement", () => {
@@ -48,7 +48,7 @@ describe("l'identité de plateforme d'un serveur", () => {
   });
 
   it("ne recouvre pas ce que la plateforme a dit depuis", () => {
-    write({
+    write(() => ({
       active: null,
       dismissed: [],
       servers: [
@@ -64,7 +64,7 @@ describe("l'identité de plateforme d'un serveur", () => {
           },
         },
       ],
-    });
+    }));
 
     noteGrant(TYPED.id, "srv-platform-1");
 

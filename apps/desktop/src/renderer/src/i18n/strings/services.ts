@@ -28,6 +28,8 @@ export const services = {
     "services.config.done": "{name} was reconfigured on this server.",
     "services.config.failed":
       "{name}: the server did not apply everything. The steps say where it stopped.",
+    "services.config.secretsDropped":
+      "The secrets typed left with the refusal: type them again before applying.",
 
     "services.database.title": "Database",
     "services.database.shell": "Open a shell",
@@ -161,6 +163,8 @@ export const services = {
     "services.config.done": "{name} a été reconfiguré sur ce serveur.",
     "services.config.failed":
       "{name} : le serveur n'a pas tout appliqué. Les étapes disent où il s'est arrêté.",
+    "services.config.secretsDropped":
+      "Les secrets tapés sont partis avec le refus : retapez-les avant d'appliquer.",
 
     "services.database.title": "Base de données",
     "services.database.shell": "Ouvrir un shell",

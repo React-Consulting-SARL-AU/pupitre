@@ -346,4 +346,112 @@ describe("la configuration d'un projet rouverte", () => {
     });
     expect(rows()[0]?.web).toBe("shop.elsewhere.org");
   });
+
+  it("ne tient pas un vieux refus de tunnel pour un échec quand rien n'a été synchronisé", async () => {
+    const local: Project = {
+      ...SHOP,
+      processes: [
+        {
+          ...SHOP.processes[0],
+          routes: [{ label: "web", port: 3300 }],
+        } as Project["processes"][number],
+      ],
+    };
+    const { synced } = quiet((params) => ({
+      ok: true,
+      result: { ...local, boot: params.patch.boot ?? false },
+    }));
+
+    useTunnel.setState({
+      problem: {
+        code: "internal",
+        message: "un ancien refus, jamais effacé",
+      },
+    });
+
+    useProjectConfig.getState().open(local, SNAPSHOT.projects, true);
+    useProjectConfig.getState().setBoot(true);
+
+    await useProjectConfig.getState().save("srv-1");
+
+    expect(synced).not.toContain("tunnel.sync");
+    expect(useProjectConfig.getState().run).toMatchObject({
+      name: "shop",
+      status: "saved",
+    });
+    expect(useProjectConfig.getState().project?.boot).toBe(true);
+    expect(useProjectConfig.getState().draft.boot).toBe(true);
+    expect(useProjectConfig.getState().changed()).toBe(false);
+  });
+
+  it("dit à part un refus de synchronisation, sans faire échouer l'enregistrement", async () => {
+    stubPupitre({
+      agentCall: (_server, cmd) =>
+        Promise.resolve(
+          cmd === "tunnel.sync"
+            ? {
+                error: {
+                  code: "internal",
+                  fix: "Reconnecte le compte Cloudflare.",
+                  message: "le tunnel refuse",
+                },
+                ok: false,
+              }
+            : { ok: true, result: SNAPSHOT }
+        ) as Promise<AgentResponse<unknown>>,
+      updateProject: () =>
+        Promise.resolve({
+          ok: true,
+          result: {
+            ...SHOP,
+            processes: [
+              {
+                ...SHOP.processes[0],
+                routes: [
+                  {
+                    hostname: "boutique.example.org",
+                    label: "web",
+                    port: 3300,
+                  },
+                ],
+              } as Project["processes"][number],
+            ],
+          },
+        }),
+    });
+
+    useProjectConfig.getState().open(SHOP, SNAPSHOT.projects, true);
+    useProjectConfig.getState().removeRow(0, 1);
+    useProjectConfig.getState().setRowWeb(0, 0, "boutique");
+
+    await useProjectConfig.getState().save("srv-1");
+
+    expect(useProjectConfig.getState().run).toMatchObject({
+      status: "saved",
+      sync: { fix: "Reconnecte le compte Cloudflare." },
+    });
+    expect(rows().map((row) => row.web)).toEqual(["boutique.example.org"]);
+  });
+
+  it("garde les réserves de l'agent à côté d'un enregistrement qui tient", async () => {
+    quiet(() => ({
+      ok: true,
+      result: {
+        ...SHOP,
+        boot: true,
+        warnings: ["shop : le démarrage a refusé, le processus reste arrêté"],
+      },
+    }));
+
+    useProjectConfig.getState().open(SHOP, SNAPSHOT.projects, true);
+    useProjectConfig.getState().setBoot(true);
+
+    await useProjectConfig.getState().save("srv-1");
+
+    expect(useProjectConfig.getState().run).toMatchObject({
+      status: "saved",
+      warnings: ["shop : le démarrage a refusé, le processus reste arrêté"],
+    });
+    expect(useProjectConfig.getState().changed()).toBe(false);
+  });
 });

@@ -86,6 +86,24 @@ export const useSnapshot = create<SnapshotStore>((set, get) => {
   /** The pids a stop was sent to, until a read no longer lists them. */
   let stopped = new Set<number>();
 
+  /** Whether the screen is still on this machine: a gesture made on another one reads nothing back. */
+  function stillOn(serverId: string): boolean {
+    const held = get().state;
+
+    return held.status !== "idle" && held.serverId === serverId;
+  }
+
+  function reread(serverId: string): Promise<void> {
+    return stillOn(serverId) ? get().read(serverId) : Promise.resolve();
+  }
+
+  /** The table is nobody's while no machine is on screen, so it may follow a stop either way. */
+  function rereadProcesses(serverId: string): Promise<void> {
+    return get().state.status === "idle" || stillOn(serverId)
+      ? get().readProcesses(serverId)
+      : Promise.resolve();
+  }
+
   return {
     busy: null,
     lingering: [],
@@ -105,7 +123,13 @@ export const useSnapshot = create<SnapshotStore>((set, get) => {
 
       if (current.status === "idle" || current.serverId !== serverId) {
         turn += 1;
-        set({ state: { serverId, status: "loading" } });
+        stopped = new Set();
+        set({
+          lingering: [],
+          processes: [],
+          processesProblem: null,
+          state: { serverId, status: "loading" },
+        });
       }
 
       const asked = turn;
@@ -181,7 +205,7 @@ export const useSnapshot = create<SnapshotStore>((set, get) => {
       );
 
       set({ busy: null, problem: answer.ok ? null : answer.error });
-      await get().read(serverId);
+      await reread(serverId);
     },
 
     async stopProcess(serverId, pid, force = false) {
@@ -195,14 +219,14 @@ export const useSnapshot = create<SnapshotStore>((set, get) => {
       }
 
       set({ problem: answer.ok ? null : answer.error });
-      await get().readProcesses(serverId);
+      await rereadProcesses(serverId);
     },
 
     async cleanSessions(serverId) {
       const answer = await call(serverId, "sessions.clean");
 
       set({ problem: answer.ok ? null : answer.error });
-      await get().read(serverId);
+      await reread(serverId);
     },
 
     /**

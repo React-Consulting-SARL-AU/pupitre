@@ -114,6 +114,10 @@ func (d *Daemon) SyncAt(ctx context.Context, platformURL string) (Sync, error) {
 
 	answer, err := client.State(ctx)
 	if err != nil {
+		if revoked(err) && d.stillHolds(client.Token) {
+			d.revoke()
+		}
+
 		return Sync{}, err
 	}
 
@@ -142,6 +146,42 @@ func (d *Daemon) SyncAt(ctx context.Context, platformURL string) (Sync, error) {
 		TargetVersion: answer.TargetVersion,
 		SyncedAt:      d.options.Now(),
 	}, nil
+}
+
+// A platform that no longer knows the token has revoked or purged this server:
+// the console said the keys fall on the spot, and the entitlement with them.
+// Anything else — a silence, a refusal that names no token — is left to the
+// tolerance.
+func revoked(err error) bool {
+	var failure *platform.Error
+
+	return errors.As(err, &failure) && failure.Revoked()
+}
+
+// A token traded for a fresh one while the read was in flight is refused for
+// the token that just left the disk, not for this server: only a refusal of
+// the token still on the disk counts.
+func (d *Daemon) stillHolds(token string) bool {
+	current, err := platform.LoadToken(d.options.Sys, d.options.TokenPath)
+
+	return err == nil && current == token
+}
+
+func (d *Daemon) revoke() {
+	d.journal.Logf("the platform no longer knows this server's token: revoked, keys withdrawn, entitlement suspended")
+
+	if err := d.options.Entitlement.Suspend(); err != nil {
+		d.journal.Logf("entitlement not suspended: %s", err)
+	}
+
+	if _, err := keys.Sync(d.journal, keys.Target{Path: d.options.KeysPath, Owner: d.options.KeysOwner}, nil); err != nil {
+		d.journal.Logf("keys not withdrawn: %s", err)
+	}
+}
+
+// Entitlement is what the machine resolves for itself right now.
+func (d *Daemon) Entitlement() contract.Entitlement {
+	return d.options.Entitlement.Current()
 }
 
 func (d *Daemon) Beat(ctx context.Context) error {

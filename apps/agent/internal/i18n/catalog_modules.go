@@ -770,6 +770,98 @@ var moduleCatalog = map[string]Message{
 		FR: "Retirez d'abord %s, ou retirez les deux dans la même commande.",
 		EN: "Remove %s first, or remove both in the same command.",
 	},
+	"harden.sshd.ignored": {
+		FR: "sshd ne lit pas %s (%s) : ajoutez « Include /etc/ssh/sshd_config.d/*.conf » en tête de /etc/ssh/sshd_config, puis relancez harden ; fragment retiré, root reste ouvert",
+		EN: "sshd does not read %s (%s): add \"Include /etc/ssh/sshd_config.d/*.conf\" at the top of /etc/ssh/sshd_config, then run harden again; the fragment was removed, root stays open",
+	},
+	"harden.sshd.ignored.unrestored": {
+		FR: "sshd ne lit pas %s (%s) : ajoutez « Include /etc/ssh/sshd_config.d/*.conf » en tête de /etc/ssh/sshd_config, puis relancez harden ; fragment retiré mais sshd n'a pas pu être rechargé, root reste ouvert : %s",
+		EN: "sshd does not read %s (%s): add \"Include /etc/ssh/sshd_config.d/*.conf\" at the top of /etc/ssh/sshd_config, then run harden again; the fragment was removed but sshd could not be reloaded, root stays open: %s",
+	},
+	"harden.keys.untrusted": {
+		FR: "sshd (StrictModes) ignorerait %s : il doit appartenir à %s et n'être accessible en écriture qu'à lui ; chown -R %[2]s:%[2]s ~%[2]s/.ssh && chmod 700 ~%[2]s/.ssh && chmod 600 ~%[2]s/.ssh/authorized_keys, puis relancez harden",
+		EN: "sshd (StrictModes) would ignore %s: it must belong to %s and be writable by them alone; chown -R %[2]s:%[2]s ~%[2]s/.ssh && chmod 700 ~%[2]s/.ssh && chmod 600 ~%[2]s/.ssh/authorized_keys, then run harden again",
+	},
+	"warn.hardening.root_stays_open": {
+		FR: "le fragment sshd n'est pas réécrit : root ouvre encore par clé et seule la commande harden le ferme, après avoir vérifié qu'une clé ouvre dev",
+		EN: "the sshd fragment was left as it is: root still opens by key and only the harden command closes it, once a key is known to open dev",
+	},
+	"warn.system.timezone.failed": {
+		FR: "fuseau horaire %s non appliqué, l'horloge reste sur celui du système : %s",
+		EN: "the time zone was not set to %s, the clock stays on the system's: %s",
+	},
+	"field.postgres.version.held": {
+		FR: "le cluster tourne sur PostgreSQL %s : passez-le sur %[2]s à la main (apt-get install postgresql-%[2]s, puis pg_upgradecluster %[1]s main, puis pg_dropcluster %[1]s main) avant de changer la version ici",
+		EN: "the cluster runs on PostgreSQL %s: move it to %[2]s by hand (apt-get install postgresql-%[2]s, then pg_upgradecluster %[1]s main, then pg_dropcluster %[1]s main) before changing the version here",
+	},
+	"field.mysql.engine.held": {
+		FR: "%s tourne sur cette machine : retirez db.mysql, puis réinstallez-le sur %s ; les données de /var/lib/mysql restent en place",
+		EN: "%s runs on this machine: remove db.mysql, then install it again on %s; the data under /var/lib/mysql stays in place",
+	},
+	"field.mongodb.version.held": {
+		FR: "le serveur tourne sur MongoDB %s : montez-le sur %s à la main (db.adminCommand({ setFeatureCompatibilityVersion: \"%[1]s\", confirm: true }), puis les paquets de %[2]s) avant de changer la version ici",
+		EN: "the server runs on MongoDB %s: move it to %s by hand (db.adminCommand({ setFeatureCompatibilityVersion: \"%[1]s\", confirm: true }), then the %[2]s packages) before changing the version here",
+	},
+	"db.name.invalid": {
+		FR: "nom de base refusé : %s",
+		EN: "database name refused: %s",
+	},
+	"db.name.invalid.fix": {
+		FR: "Un nom de base tient en lettres, chiffres, tirets et tirets bas, 64 caractères au plus.",
+		EN: "A database name is letters, digits, dashes and underscores, 64 characters at most.",
+	},
+	"modules.caddy.invalid": {
+		FR: "caddy refuse %s, le serveur garde la configuration précédente : %s",
+		EN: "caddy refuses %s, the server keeps the previous configuration: %s",
+	},
+	"modules.mise.list_failed": {
+		FR: "mise ne peut pas dire ce qui est installé : %s",
+		EN: "mise cannot say what is installed: %s",
+	},
+	"modules.mise.no_project": {
+		FR: "aucun projet n'y est épinglé",
+		EN: "no project is pinned on it",
+	},
+	"warn.mise.options.rotated": {
+		FR: "%s : les versions demandées (%s) ne sont plus proposées, %s est installée à leur place ; rouvrez le formulaire pour choisir",
+		EN: "%s: the versions asked for (%s) are no longer offered, %s is installed instead; open the form again to choose",
+	},
+	"warn.mise.prune.foreign": {
+		FR: "%s %s n'a pas été installé par Pupitre et reste en place : mise uninstall %[1]s@%[2]s pour le retirer",
+		EN: "%s %s was not installed by Pupitre and stays in place: mise uninstall %[1]s@%[2]s to remove it",
+	},
+	"warn.mise.prune.pinned": {
+		FR: "%s %s reste en place : %s l'épingle encore ; changez la version de ces projets pour le retirer",
+		EN: "%s %s stays in place: %s still pins it; change those projects' version to remove it",
+	},
+	"warn.mise.upgrade.replaced": {
+		FR: "%s %s remplacé par %s : les environnements virtuels, gems et paquets globaux construits dessus sont partis ; à resynchroniser : %s",
+		EN: "%s %s replaced by %s: the virtual environments, gems and global packages built on it are gone; to sync again: %s",
+	},
+	"field.docker.data_root.busy": {
+		FR: "des conteneurs tournent : arrêtez-les (docker stop $(docker ps -q)), déplacez /var/lib/docker vers %s, puis changez la racine ici",
+		EN: "containers are running: stop them (docker stop $(docker ps -q)), move /var/lib/docker to %s, then change the root here",
+	},
+	"warn.docker.group.reopen": {
+		FR: "%s vient de rejoindre le groupe %s : les terminaux et la session tmux déjà ouverts ne le voient pas, rouvrez-les avant d'appeler docker sans sudo",
+		EN: "%s just joined the %s group: the terminals and the tmux session already open do not see it, open them again before calling docker without sudo",
+	},
+	"warn.php.memory_limit.normalised": {
+		FR: "memory_limit %s écrit %s : PHP ne lit que K, M ou G, et aurait pris la valeur en octets",
+		EN: "memory_limit %s written as %s: PHP reads K, M or G alone, and would have taken the value in bytes",
+	},
+	"warn.github.logout.failed": {
+		FR: "gh n'a pas pu se déconnecter, %s a été retiré avec le jeton qu'il tenait : %s",
+		EN: "gh could not sign out, %s was removed with the token it held: %s",
+	},
+	"engine.uninstall.foreign": {
+		FR: "%s n'a pas été installé par Pupitre",
+		EN: "%s was not installed by Pupitre",
+	},
+	"engine.uninstall.foreign.fix": {
+		FR: "Ce que vous avez installé vous-même se retire à la main ; installez %s depuis l'app pour que Pupitre le prenne en charge.",
+		EN: "What you installed yourself is removed by hand; install %s from the app for Pupitre to take it over.",
+	},
 	"modules.download.checksum_mismatch": {
 		FR: "la somme SHA-256 de %s n'est pas celle publiée : %s",
 		EN: "the SHA-256 of %s is not the published one: %s",

@@ -1,4 +1,6 @@
+import { sendSeatsDriftEmail } from "../../emails/notifications"
 import { getPrisma } from "../api/prisma"
+import { recordEvent } from "../audit/audit"
 import { getBillingProvider } from "./runtime"
 import { PAYING_SUBSCRIPTION_STATUSES, SEATED_STATUSES } from "./seats"
 
@@ -14,6 +16,36 @@ export interface SeatReconciliation {
 
 export interface ReconcileSeatsOptions {
   apply?: boolean
+}
+
+interface DriftingSubscription {
+  organizationId: string
+  stripeSubscriptionId: string
+  quantity: number
+}
+
+/** More servers seated than seats paid: the journal keeps it, the owner hears it. */
+async function announceDrift(
+  subscription: DriftingSubscription,
+  seated: number
+): Promise<void> {
+  await recordEvent({
+    action: "seats.drifted",
+    actorUserId: null,
+    organizationId: subscription.organizationId,
+    targetType: "subscription",
+    targetId: subscription.stripeSubscriptionId,
+    payload: {
+      paid: subscription.quantity,
+      seated,
+      drift: seated - subscription.quantity,
+    },
+  })
+  await sendSeatsDriftEmail({
+    organizationId: subscription.organizationId,
+    paid: subscription.quantity,
+    seated,
+  })
 }
 
 export async function reconcileSeats({
@@ -60,6 +92,10 @@ export async function reconcileSeats({
       })
 
       applied = true
+    }
+
+    if (drift > 0) {
+      await announceDrift(subscription, seated)
     }
 
     report.push({

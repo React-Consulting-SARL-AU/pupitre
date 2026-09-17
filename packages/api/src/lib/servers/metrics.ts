@@ -65,6 +65,41 @@ function toSample(value: unknown): MetricSample | null {
   }
 }
 
+/** The last sample without its lists: what a list of servers shows, kept beside the window. */
+export interface ServerUsage {
+  at: string
+  disk: number
+  ram: number
+  load: number
+  disk_total_gb: number | null
+  disk_free_gb: number | null
+  ram_total_mb: number | null
+  ram_used_mb: number | null
+}
+
+export function toUsage(sample: MetricSample): ServerUsage {
+  return {
+    at: sample.at,
+    disk: sample.disk,
+    ram: sample.ram,
+    load: sample.load,
+    disk_total_gb: sample.disk_total_gb,
+    disk_free_gb: sample.disk_free_gb,
+    ram_total_mb: sample.ram_total_mb,
+    ram_used_mb: sample.ram_used_mb,
+  }
+}
+
+export function readUsage(lastUsage: unknown): ServerUsage | null {
+  const sample = toSample(lastUsage)
+
+  return sample ? toUsage(sample) : null
+}
+
+export function toStoredUsage(usage: ServerUsage): Prisma.InputJsonValue {
+  return usage as unknown as Prisma.InputJsonValue
+}
+
 export function readSamples(metrics: unknown): MetricSample[] {
   const samples = isRecord(metrics) ? metrics.samples : null
 

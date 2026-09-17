@@ -290,3 +290,62 @@ describe("les processus", () => {
     expect(useSnapshot.getState().lingering).toEqual([]);
   });
 });
+
+describe("un geste achevé après un changement de serveur", () => {
+  it("ne relit pas le serveur quitté et laisse l'autre à l'écran", async () => {
+    const a = deferred<SnapshotResult>();
+    const b = deferred<SnapshotResult>();
+    const acted = deferred<{ ok: true; result: Record<string, never> }>();
+    const asked: string[] = [];
+
+    agents({ "srv-a": a, "srv-b": b });
+    stubPupitre({
+      ...window.pupitre,
+      actOnProject: () => acted.promise,
+      agentPoll: (serverId: string, cmd: string) => {
+        asked.push(`${serverId}:${cmd}`);
+
+        return window.pupitre.agentCall(serverId, cmd as "snapshot");
+      },
+    } as never);
+
+    a.resolve(named("a"));
+    await useSnapshot.getState().read("srv-a");
+
+    const gesture = useSnapshot.getState().act("project.up", "srv-a", "shop");
+
+    b.resolve(named("b"));
+    await useSnapshot.getState().read("srv-b");
+    asked.length = 0;
+
+    acted.resolve({ ok: true, result: {} });
+    await gesture;
+
+    const { state } = useSnapshot.getState();
+
+    expect(asked).toEqual([]);
+    expect(state).toMatchObject({ serverId: "srv-b", status: "ready" });
+    expect(snapshotOf(state)?.machine.hostname).toBe("b");
+  });
+
+  it("vide la table des processus du serveur quitté dès la lecture du suivant", async () => {
+    const a = deferred<SnapshotResult>();
+    const b = deferred<SnapshotResult>();
+
+    agents({ "srv-a": a, "srv-b": b });
+    a.resolve(named("a"));
+    await useSnapshot.getState().read("srv-a");
+    await useSnapshot.getState().readProcesses("srv-a");
+
+    expect(useSnapshot.getState().processes).toEqual(PROCESSES);
+
+    const next = useSnapshot.getState().read("srv-b");
+
+    expect(useSnapshot.getState().processes).toEqual([]);
+    expect(useSnapshot.getState().lingering).toEqual([]);
+    expect(useSnapshot.getState().processesProblem).toBeNull();
+
+    b.resolve(named("b"));
+    await next;
+  });
+});

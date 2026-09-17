@@ -83,6 +83,32 @@ describe("GET /me/servers", () => {
     })
   })
 
+  it("leaves out a revoked server", async () => {
+    const { organization, members } = await createOrganizationWithMembers({
+      roles: ["member"],
+    })
+    const [member] = members
+    const kept = await createServer({
+      organizationId: organization.id,
+      assignedUserId: member.user.id,
+    })
+
+    await createServer({
+      organizationId: organization.id,
+      assignedUserId: member.user.id,
+      status: "revoked",
+    })
+
+    const response = await apiRequest<{ data: { id: string }[] }>(
+      "/me/servers",
+      { session: member }
+    )
+
+    expect(response.json.data.map((server) => server.id)).toEqual([
+      kept.server.id,
+    ])
+  })
+
   it("reports key_ready once the user has a device", async () => {
     const { organization, members } = await createOrganizationWithMembers({
       roles: ["member"],
@@ -258,6 +284,32 @@ describe("authorizedKeysForServer", () => {
     await addDevice(member, "MacBook", ED25519_KEY)
 
     expect(await authorizedKeysForServer(prisma, server.id)).toEqual([])
+  })
+
+  it("hands nothing to a suspended server, whoever suspended it", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { organization, members } = await createOrganizationWithMembers({
+      roles: ["member"],
+    })
+    const [member] = members
+    const { server } = await createServer({
+      organizationId: organization.id,
+      assignedUserId: member.user.id,
+      status: "suspended",
+    })
+
+    await addDevice(member, "MacBook", ED25519_KEY)
+
+    expect(await authorizedKeysForServer(prisma, server.id)).toEqual([])
+
+    await prisma.server.update({
+      where: { id: server.id },
+      data: { status: "active" },
+    })
+
+    expect(await authorizedKeysForServer(prisma, server.id)).toEqual([
+      ED25519_KEY,
+    ])
   })
 
   it("is empty for an unknown server", async () => {

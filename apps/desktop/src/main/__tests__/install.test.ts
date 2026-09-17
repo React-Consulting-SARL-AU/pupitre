@@ -13,8 +13,8 @@ import {
 import {
   forgetSecrets,
   marks,
+  readSecrets,
   setSecret,
-  takeSecrets,
 } from "../install-secrets";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 
@@ -94,12 +94,24 @@ function deps(
         },
       } satisfies AgentResponse<AgentDelivery>),
     enrollment: () => null,
+    forgetSecrets,
     managed: () =>
       Promise.resolve({ ok: true, result: { config: {}, secrets: {} } }),
     probe: () => Promise.resolve({ ok: true, result: machine() }),
     secrets: () => ({}),
     ...over,
   };
+}
+
+/** The vault as `install.ts` wires it: read on the way out, emptied once taken. */
+function vaulted(client: AgentClient, over: Partial<InstallDeps> = {}) {
+  return deps(client, { secrets: readSecrets, ...over });
+}
+
+function heldAfter(updates: InstallUpdate[]): boolean | null {
+  const last = updates.at(-1);
+
+  return last?.kind === "secrets" ? last.held : null;
 }
 
 function collector(): {
@@ -199,7 +211,7 @@ describe("un préréglage installé de bout en bout", () => {
 });
 
 describe("le flux secret", () => {
-  it("part sur l'entrée standard et vide le coffre dans le même appel", async () => {
+  it("part sur l'entrée standard et vide le coffre une fois l'installation acceptée", async () => {
     const client = agent("install-preset.jsonl");
     setSecret(SERVER, "db.postgres", "app_password", PASSWORD);
     const { note, updates } = collector();
@@ -209,11 +221,12 @@ describe("le flux secret", () => {
       PRESET,
       PRESET_CONFIG,
       note,
-      deps(client, { secrets: takeSecrets })
+      vaulted(client)
     );
 
     expect(answer.ok).toBe(true);
     expect(marks(SERVER)).toEqual({});
+    expect(heldAfter(updates)).toBe(false);
 
     client.closeAll();
 
@@ -236,13 +249,157 @@ describe("le flux secret", () => {
       PRESET,
       PRESET_CONFIG,
       () => undefined,
-      deps(client, { secrets: takeSecrets })
+      vaulted(client)
     );
 
     // The transcript refuses the request if `params` doesn't match the
     // fixture, which carries only `version`, and refuses the secrets line if
     // it isn't the expected one: together, the two prove the separation.
     expect(fake?.trace()).toEqual(["id=1 cmd=hello", "id=2 cmd=install"]);
+
+    client.closeAll();
+  });
+
+  /**
+   * A refusal has consumed nothing: the agent validates the whole
+   * configuration before its first step, and a machine busy or a line cut
+   * before that never read the secrets. The form still shows them filled, and
+   * the next Apply has to carry them again rather than leave with none.
+   */
+  it("garde le coffre quand l'agent refuse la configuration", async () => {
+    const client = agent("install-refused-config.jsonl");
+    setSecret(SERVER, "db.postgres", "app_password", PASSWORD);
+    const { note, updates } = collector();
+
+    const answer = await runInstall(
+      SERVER,
+      ["db.postgres"],
+      { "db.postgres": { version: "17" } },
+      note,
+      vaulted(client)
+    );
+
+    expect(answer).toMatchObject({
+      ok: false,
+      error: { code: "invalid_config" },
+    });
+    expect(marks(SERVER)).toEqual({
+      "db.postgres": {
+        app_password: { filled: true, generated: false, revealed: false },
+      },
+    });
+    expect(heldAfter(updates)).toBe(true);
+
+    client.closeAll();
+  });
+
+  it("garde le coffre quand la machine est occupée", async () => {
+    const client = agent("install-busy.jsonl");
+    setSecret(SERVER, "db.postgres", "app_password", PASSWORD);
+    const { note, updates } = collector();
+
+    const answer = await runInstall(
+      SERVER,
+      ["db.postgres"],
+      { "db.postgres": { version: "17" } },
+      note,
+      vaulted(client)
+    );
+
+    expect(answer).toMatchObject({ ok: false, error: { code: "busy" } });
+    expect(readSecrets(SERVER)).toEqual({
+      "db.postgres": { app_password: PASSWORD },
+    });
+    expect(heldAfter(updates)).toBe(true);
+
+    client.closeAll();
+  });
+
+  it("garde le coffre quand le canal coupe avant la première étape", async () => {
+    const client = agent([
+      "install-cut-early.jsonl",
+      "install-resume-none.jsonl",
+    ]);
+    setSecret(SERVER, "db.postgres", "app_password", PASSWORD);
+    const { note, updates } = collector();
+
+    const answer = await runInstall(
+      SERVER,
+      ["db.postgres"],
+      { "db.postgres": { version: "17" } },
+      note,
+      vaulted(client)
+    );
+
+    expect(answer).toMatchObject({
+      ok: false,
+      error: { code: "disconnected" },
+    });
+    expect(steps(updates)).toEqual([]);
+    expect(readSecrets(SERVER)).toEqual({
+      "db.postgres": { app_password: PASSWORD },
+    });
+    expect(heldAfter(updates)).toBe(true);
+
+    client.closeAll();
+  });
+
+  it("vide le coffre dès qu'une étape a été vue, même si le canal coupe ensuite", async () => {
+    const client = agent(["install-cut.jsonl", "install-resume-none.jsonl"]);
+    setSecret(SERVER, "db.postgres", "app_password", PASSWORD);
+    const { note, updates } = collector();
+
+    const answer = await runInstall(
+      SERVER,
+      ["db.postgres"],
+      { "db.postgres": { version: "17" } },
+      note,
+      vaulted(client)
+    );
+
+    expect(answer).toMatchObject({
+      ok: false,
+      error: { code: "disconnected" },
+    });
+    expect(steps(updates)).toEqual([
+      "db.postgres apt start",
+      "db.postgres apt ok",
+    ]);
+    expect(marks(SERVER)).toEqual({});
+    expect(heldAfter(updates)).toBe(false);
+
+    client.closeAll();
+  });
+
+  it("le second Apply repart avec les mêmes secrets", async () => {
+    const client = agent(["install-busy.jsonl", "install-preset.jsonl"]);
+    setSecret(SERVER, "db.postgres", "app_password", PASSWORD);
+
+    const refused = await runInstall(
+      SERVER,
+      ["db.postgres"],
+      { "db.postgres": { version: "17" } },
+      () => undefined,
+      vaulted(client)
+    );
+
+    expect(refused).toMatchObject({ ok: false, error: { code: "busy" } });
+
+    client.close(SERVER);
+
+    const retried = await runInstall(
+      SERVER,
+      PRESET,
+      PRESET_CONFIG,
+      () => undefined,
+      vaulted(client)
+    );
+
+    expect(retried.ok).toBe(true);
+    expect(marks(SERVER)).toEqual({});
+    expect(
+      fake?.written().filter((line) => line.includes(PASSWORD))
+    ).toHaveLength(2);
 
     client.closeAll();
   });
@@ -463,6 +620,84 @@ describe("l'envoi de l'agent avant la première installation", () => {
     client.closeAll();
   });
 
+  /**
+   * The session that answered the probe still runs the binary the rename
+   * replaced. The channels are dropped so the next word reaches the new one,
+   * and a machine that already ran the agent has its configuration brought to
+   * that binary's shape before anything is installed on it.
+   */
+  it("rouvre les canaux et migre la configuration après avoir remplacé l'agent d'un serveur géré", async () => {
+    const client = agent([
+      "hello-then-ping.jsonl",
+      "agent-migrate-ok.jsonl",
+      "install-no-secrets.jsonl",
+    ]);
+
+    await client.request(SERVER, "ping");
+
+    const answer = await runInstall(
+      SERVER,
+      ["core.system"],
+      { "core.system": {} },
+      () => undefined,
+      deps(client, {
+        probe: () =>
+          Promise.resolve({
+            ok: true,
+            result: machine({
+              agent_version: "0.2.0",
+              verdict: {
+                fixes: [],
+                kind: "managed",
+                level: "ready",
+                reasons: [],
+                up_to_date: false,
+              },
+            }),
+          }),
+      })
+    );
+
+    expect(answer.ok).toBe(true);
+    expect(fake?.started()).toBe(3);
+    expect(fake?.trace()).toEqual([
+      "id=1 cmd=hello",
+      "id=2 cmd=ping",
+      "id=1 cmd=hello",
+      "id=2 cmd=agent.migrate",
+      "id=1 cmd=hello",
+      "id=2 cmd=install",
+    ]);
+
+    client.closeAll();
+  });
+
+  it("ne migre rien sur une machine qui n'avait pas d'agent", async () => {
+    const client = agent("install-no-secrets.jsonl");
+
+    const answer = await runInstall(
+      SERVER,
+      ["core.system"],
+      { "core.system": {} },
+      () => undefined,
+      deps(client, {
+        probe: () =>
+          Promise.resolve({
+            ok: true,
+            result: machine({
+              agent_version: null,
+              verdict: { fixes: [], kind: "bare", level: "ready", reasons: [] },
+            }),
+          }),
+      })
+    );
+
+    expect(answer.ok).toBe(true);
+    expect(fake?.trace()).toEqual(["id=1 cmd=hello", "id=2 cmd=install"]);
+
+    client.closeAll();
+  });
+
   it("ne renvoie rien à un serveur déjà géré et à jour", async () => {
     const client = agent("install-no-secrets.jsonl");
     let sent = 0;
@@ -491,7 +726,9 @@ describe("l'envoi de l'agent avant la première installation", () => {
     );
 
     expect(sent).toBe(0);
-    expect(updates.every((update) => update.kind === "event")).toBe(true);
+    expect(
+      updates.every((update) => ["event", "secrets"].includes(update.kind))
+    ).toBe(true);
 
     client.closeAll();
   });
@@ -641,7 +878,7 @@ describe("une coupure pendant l'installation", () => {
       ["db.postgres"],
       { "db.postgres": { version: "17" } },
       note,
-      deps(client, { secrets: takeSecrets })
+      vaulted(client)
     );
 
     expect(steps(updates)).toEqual([
@@ -682,6 +919,7 @@ describe("un enrôlement repris", () => {
       },
       {
         client: {
+          close: () => undefined,
           request: (_id, cmd) => {
             calls.push(cmd);
 
@@ -714,6 +952,7 @@ describe("un enrôlement repris", () => {
       },
       {
         client: {
+          close: () => undefined,
           request: () =>
             Promise.resolve({
               error: {
@@ -754,6 +993,7 @@ describe("un enrôlement repris", () => {
       },
       {
         client: {
+          close: () => undefined,
           request: () => {
             const code = codes.shift();
 
@@ -795,6 +1035,7 @@ describe("un enrôlement repris", () => {
       },
       {
         client: {
+          close: () => undefined,
           request: () => {
             calls += 1;
 
@@ -829,6 +1070,7 @@ describe("un enrôlement repris", () => {
       },
       {
         client: {
+          close: () => undefined,
           request: () => {
             calls += 1;
 

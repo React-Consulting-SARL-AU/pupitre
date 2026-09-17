@@ -52,6 +52,9 @@ var elsewhere = map[string]string{
 
 // A module that reads a release index answers it here, as the network would.
 var served = map[string]func(fake *modtest.FakeSys){
+	"db.mongodb": func(fake *modtest.FakeSys) {
+		fake.Answer("mongosh", "pupitre-user-ready\n")
+	},
 	"ai.claude": func(fake *modtest.FakeSys) {
 		checksum := modtest.Digest(modtest.Downloaded)
 		fake.Answer("claude-code-releases/latest", "2.1.263\n")
@@ -66,6 +69,11 @@ var served = map[string]func(fake *modtest.FakeSys){
 		fake.Answer("-w %{redirect_url} https://github.com/axllent/mailpit/releases/latest/download/"+asset, "https://github.com/axllent/mailpit/releases/download/v1.31.1/"+asset)
 		fake.Answer("api.github.com/repos/axllent/mailpit/releases/tags/v1.31.1", `{"assets":[{"name":"`+asset+`","digest":"sha256:`+modtest.Digest(modtest.Downloaded)+`"}]}`)
 		fake.Archives[download.Dir+"/"+asset] = []string{"mailpit"}
+	},
+	"tool.neon": func(fake *modtest.FakeSys) {
+		asset := "neonctl-linux-" + arch("x64", "arm64")
+		fake.Answer("-w %{redirect_url} https://github.com/neondatabase/neonctl/releases/latest/download/"+asset, "https://github.com/neondatabase/neonctl/releases/download/v2.27.0/"+asset)
+		fake.Answer("api.github.com/repos/neondatabase/neonctl/releases/tags/v2.27.0", `{"assets":[{"name":"`+asset+`","digest":"sha256:`+modtest.Digest(modtest.Downloaded)+`"}]}`)
 	},
 	"tool.supabase": func(fake *modtest.FakeSys) {
 		asset := "supabase_2.117.0_linux_" + arch("amd64", "arm64") + ".tar.gz"

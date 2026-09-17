@@ -4,6 +4,7 @@ import { IconButton } from "@renderer/components/ui/icon-button";
 import { WaitingLine } from "@renderer/components/ui/waiting-line";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { since } from "@renderer/lib/format";
+import { heldForUsage } from "@renderer/lib/refusals";
 import type { GitState } from "@renderer/stores/project";
 import { Download, RotateCw } from "lucide-react";
 import { ProjectGitSummary } from "./project-git-summary";
@@ -43,7 +44,9 @@ export function ProjectGitState({
   }
 
   if (state.status === "failed") {
-    return <ErrorNotice error={state.error} onRetry={onCheck} />;
+    return heldForUsage(state.error) ? null : (
+      <ErrorNotice error={state.error} onRetry={onCheck} />
+    );
   }
 
   if (!state.git.repo) {

@@ -45,10 +45,44 @@ WantedBy=multi-user.target
 `
 
 // What a Chromium started by Playwright links against; a distribution that renamed one of them loses that one alone, never the browser.
-var playwrightPackages = []string{
-	"libnss3", "libnspr4", "libatk1.0-0", "libatk-bridge2.0-0", "libcups2", "libdrm2",
+var playwrightLibraries = []string{
+	"libnss3", "libnspr4", "libdrm2",
 	"libxkbcommon0", "libxcomposite1", "libxdamage1", "libxfixes3", "libxrandr2",
-	"libgbm1", "libpango-1.0-0", "libcairo2", "libasound2t64", "fonts-liberation",
+	"libgbm1", "libpango-1.0-0", "libcairo2", "fonts-liberation",
+}
+
+// The 64-bit time_t transition of 24.04 renamed these four; 22.04 knows them without the suffix.
+var renamedIn2404 = []string{"libatk1.0-0", "libatk-bridge2.0-0", "libcups2", "libasound2"}
+
+const osReleasePath = "/etc/os-release"
+
+func playwrightPackages(ctx *modules.Context) []string {
+	suffix := ""
+	if ubuntuRelease(ctx) >= "24.04" {
+		suffix = "t64"
+	}
+
+	packages := append([]string{}, playwrightLibraries...)
+	for _, name := range renamedIn2404 {
+		packages = append(packages, name+suffix)
+	}
+
+	return packages
+}
+
+func ubuntuRelease(ctx *modules.Context) string {
+	raw, err := file.Read(ctx, osReleasePath)
+	if err != nil {
+		return "24.04"
+	}
+
+	for _, line := range strings.Split(string(raw), "\n") {
+		if value, found := strings.CutPrefix(line, "VERSION_ID="); found {
+			return strings.Trim(value, `"`)
+		}
+	}
+
+	return "24.04"
 }
 
 type Module struct{}
@@ -88,6 +122,7 @@ func (Module) Install(ctx *modules.Context) error {
 }
 
 // Ubuntu's chromium package is a wrapper around a confined snap, which cannot write into ~/shots; the Google build is a real binary, and it only exists for amd64.
+// On Ubuntu `apt-get install chromium` lands chromium-browser, a stub that only says to install the snap, and exits 0: the package is checked by name afterwards.
 func installBrowser(ctx *modules.Context) error {
 	return ctx.Step("install-browser", func() (modules.Outcome, error) {
 		if installedPackage(ctx) != "" {
@@ -102,10 +137,10 @@ func installBrowser(ctx *modules.Context) error {
 			}
 		}
 
-		if err := apt.Install(ctx, chromiumPackage); err != nil {
+		if err := apt.Install(ctx, chromiumPackage); err != nil || !apt.Installed(ctx, chromiumPackage) {
 			ctx.Warn(i18n.T("warn.browser.none"))
 
-			return modules.Done, nil
+			return modules.Skipped, nil
 		}
 
 		return modules.Done, nil
@@ -130,7 +165,7 @@ func addGoogleRepository(ctx *modules.Context) error {
 
 func installPlaywrightLibraries(ctx *modules.Context) error {
 	return ctx.Step("install-playwright-libraries", func() (modules.Outcome, error) {
-		missing := apt.Missing(ctx, playwrightPackages...)
+		missing := apt.Missing(ctx, playwrightPackages(ctx)...)
 		if len(missing) == 0 {
 			return modules.Skipped, nil
 		}

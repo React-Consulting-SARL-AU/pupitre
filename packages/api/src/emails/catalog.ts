@@ -11,9 +11,11 @@ import {
   renderEntitlementGraceEmail,
   renderInvitationEmail,
   renderMagicLinkEmail,
+  renderSeatsDriftEmail,
   renderServerAssignedEmail,
   renderServerDecommissionEmail,
   renderServerEnrolledEmail,
+  renderServerSuspendedAdminEmail,
   renderServerSuspendedEmail,
 } from "./render"
 import { EMAIL_TEMPLATE_IDS, type EmailTemplateId } from "./templates/ids"
@@ -39,6 +41,9 @@ export const SAMPLE = {
   lastSeenAt: new Date("2026-09-04T08:41:00Z"),
   disk: 94,
   latestVersion: "1.6.0",
+  suspensionReason:
+    "Signalement 4412 : balayage réseau sortant depuis la machine.",
+  paidSeats: 2,
 } as const
 
 export interface EmailPreview {
@@ -100,6 +105,21 @@ const RENDERERS: Record<
       locale,
       organizationName: SAMPLE.organizationName,
       serverCount: SAMPLE.serverCount,
+    }),
+  server_suspended_admin: (locale) =>
+    renderServerSuspendedAdminEmail({
+      locale,
+      organizationName: SAMPLE.organizationName,
+      serverName: SAMPLE.serverName,
+      address: SAMPLE.address,
+      reason: SAMPLE.suspensionReason,
+    }),
+  seats_drift: (locale) =>
+    renderSeatsDriftEmail({
+      locale,
+      organizationName: SAMPLE.organizationName,
+      paid: SAMPLE.paidSeats,
+      seated: SAMPLE.serverCount,
     }),
   server_decommission: (locale) =>
     renderServerDecommissionEmail({

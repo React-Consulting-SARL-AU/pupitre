@@ -188,6 +188,63 @@ func TestAReplayKeepsTheInstalledBuildAndUpgradeMovesIt(t *testing.T) {
 	if len(fake.Files[binRoot+"/b55bef8064f11a75bc9a1a0a9869a445a2fd26cd/bin/code-server"]) == 0 || !strings.Contains(string(fake.Files[pointerPath]), "1.137.0") {
 		t.Fatalf("upgrade must lay the newer server and record it: %q", fake.Files[pointerPath])
 	}
+
+	// The previous server is a folder Remote SSH no longer opens: it goes with the upgrade, link included.
+	if len(fake.Files[serverDir+"/bin/code-server"]) != 0 || fake.Dirs[serverDir] {
+		t.Fatalf("the previous server stayed: %v", fake.Dirs)
+	}
+	if _, linked := fake.Links[cliServers+"/Stable-"+commit+"/server"]; linked {
+		t.Fatal("the previous server link stayed")
+	}
+}
+
+// The update service names the CLI build: one already on the machine is not fetched again.
+func TestUpgradeFetchesTheCLIOnlyWhenItsBuildMoved(t *testing.T) {
+	fake := machine()
+	install(t, fake, modtest.Values{"tunnel": false})
+	fetched := strings.Count(strings.Join(fake.Commands(), "\n"), "-o "+download.Dir+"/"+cliArchive)
+
+	if err := (Module{}).Upgrade(newContext(t, fake, modtest.Values{"tunnel": false})); err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Count(strings.Join(fake.Commands(), "\n"), "-o "+download.Dir+"/"+cliArchive) != fetched {
+		t.Fatal("the CLI of the current build must not be fetched again")
+	}
+
+	newer := strings.Replace(update, commit, "b55bef8064f11a75bc9a1a0a9869a445a2fd26cd", 1)
+	fake.Answer("update.code.visualstudio.com/api/update", newer)
+
+	ctx := newContext(t, fake, modtest.Values{"tunnel": false})
+	if err := (Module{}).Upgrade(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Count(strings.Join(fake.Commands(), "\n"), "-o "+download.Dir+"/"+cliArchive) != fetched+1 || skipped(ctx, "upgrade-cli") {
+		t.Fatal("a newer CLI build must be fetched once")
+	}
+}
+
+// code tunnel takes a name of letters, digits and hyphens, twenty at most: a hosting provider's hostname is neither.
+func TestTheTunnelNameIsDerivedFromTheHostname(t *testing.T) {
+	for hostname, want := range map[string]string{
+		"v2202409123456789012.powersrv.de": "v2202409123456789012",
+		"Atelier de Jordan":                "atelier-de-jordan",
+		"":                                 "pupitre",
+		"---":                              "pupitre",
+	} {
+		if got := tunnelName(hostname); got != want {
+			t.Errorf("tunnelName(%q) = %q, want %q", hostname, got, want)
+		}
+	}
+
+	fake := machine()
+	fake.Files[hostnamePath] = []byte("v2202409123456789012.powersrv.de\n")
+	install(t, fake, modtest.Values{"tunnel": true})
+
+	if !strings.Contains(string(fake.Files[unitPath]), "--name v2202409123456789012\n") {
+		t.Fatalf("unit:\n%s", fake.Files[unitPath])
+	}
 }
 
 func TestUninstallKeepsWhatBelongsToTheClient(t *testing.T) {
@@ -274,9 +331,15 @@ func TestLoginSpeaksForTheTunnelAlone(t *testing.T) {
 				fake.Answer("tunnel user show", tc.answer)
 			}
 
-			got, asked := (Module{}).Login(newContext(t, fake, modtest.Values{}))
+			ctx := newContext(t, fake, modtest.Values{})
+			got, asked := (Module{}).Login(ctx)
 			if !asked || got != tc.want {
 				t.Fatalf("login = %+v (%v), want %+v", got, asked, tc.want)
+			}
+
+			// The dashboard asks at every opening: what the CLI says of the account stays out of the journal.
+			if journal := strings.Join(ctx.Output(), "\n"); tc.answer != "" && strings.Contains(journal, strings.TrimSpace(tc.answer)) {
+				t.Fatalf("the CLI's answer reached the journal:\n%s", journal)
 			}
 		})
 	}

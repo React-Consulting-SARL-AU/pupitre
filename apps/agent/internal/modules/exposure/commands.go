@@ -35,7 +35,10 @@ func RegisterCommands(server *protocol.Server, runner *modules.Engine) {
 // A machine nothing exposes says so, rather than borrowing the answer of a module it does not run.
 func status(engine *modules.Engine) protocol.Handler {
 	return func(_ *protocol.Context, _ json.RawMessage) (any, error) {
-		chosen, ok := installed(engine)
+		chosen, ok, err := installed(engine)
+		if err != nil {
+			return nil, err
+		}
 		if !ok {
 			return routes.Report{State: routes.StateAbsent, Routes: []routes.Route{}}, nil
 		}
@@ -47,7 +50,10 @@ func status(engine *modules.Engine) protocol.Handler {
 // Syncing or restarting an exposure that is not there is not a state, it is a mistake: the catalogue is where one is added.
 func acting(engine *modules.Engine, pick func(provider) reporter) protocol.Handler {
 	return func(ctx *protocol.Context, _ json.RawMessage) (any, error) {
-		chosen, ok := installed(engine)
+		chosen, ok, err := installed(engine)
+		if err != nil {
+			return nil, err
+		}
 		if !ok {
 			return nil, protocol.NewError(contract.ErrorServiceNotFound, i18n.T("exposure.none")).
 				WithFix(i18n.T("exposure.none.fix"))
@@ -90,22 +96,28 @@ func inspect(engine *modules.Engine, chosen provider, run reporter) (any, error)
 	return answer, nil
 }
 
-// The app asks the server what its exposure is doing, never a vendor by name: the module that is actually there answers, and nobody answers for it.
-func installed(engine *modules.Engine) (provider, bool) {
+// The app asks the server what its exposure is doing, never a vendor by name:
+// the module that is actually there answers, and nobody answers for it. A
+// module that could not be read is an error, not an absence: absent is what
+// once had a live tunnel deleted by name.
+func installed(engine *modules.Engine) (provider, bool, error) {
 	for _, candidate := range providers {
 		present := false
 
-		_ = engine.Inspect(candidate.id, func(mctx *modules.Context) error {
+		err := engine.Inspect(candidate.id, func(mctx *modules.Context) error {
 			answer, err := candidate.status(mctx)
 			present = answer.Installed
 
 			return err
 		})
+		if err != nil {
+			return provider{}, false, err
+		}
 
 		if present {
-			return candidate, true
+			return candidate, true, nil
 		}
 	}
 
-	return provider{}, false
+	return provider{}, false, nil
 }

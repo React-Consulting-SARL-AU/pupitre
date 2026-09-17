@@ -16,6 +16,8 @@ export interface RemoteEditor {
   name: string;
   /** The catalogue module whose presence makes this editor reachable. */
   module: string;
+  /** The module whose logo is this editor's mark: Cursor's is its agent's, not the server's. */
+  logo: string;
 }
 
 /**
@@ -24,10 +26,20 @@ export interface RemoteEditor {
  * this side and only the reader knows which one they run.
  */
 export const REMOTE_EDITORS: readonly RemoteEditor[] = [
-  { id: "jetbrains", module: "editor.jetbrains", name: "JetBrains Gateway" },
-  { id: "vscode", module: "editor.vscode", name: "VS Code" },
-  { id: "cursor", module: "editor.vscode", name: "Cursor" },
-  { id: "zed", module: "editor.zed", name: "Zed" },
+  {
+    id: "jetbrains",
+    logo: "editor.jetbrains",
+    module: "editor.jetbrains",
+    name: "JetBrains Gateway",
+  },
+  {
+    id: "vscode",
+    logo: "editor.vscode",
+    module: "editor.vscode",
+    name: "VS Code",
+  },
+  { id: "cursor", logo: "ai.cursor", module: "editor.vscode", name: "Cursor" },
+  { id: "zed", logo: "editor.zed", module: "editor.zed", name: "Zed" },
 ];
 
 export function editorsFor(

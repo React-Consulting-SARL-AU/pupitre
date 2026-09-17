@@ -20,6 +20,14 @@ export const ServerStatus = {
 export type ServerStatus = (typeof ServerStatus)[keyof typeof ServerStatus]
 
 
+export const SuspensionReason = {
+  billing: 'billing',
+  admin: 'admin'
+} as const
+
+export type SuspensionReason = (typeof SuspensionReason)[keyof typeof SuspensionReason]
+
+
 export const ReleaseChannel = {
   stable: 'stable',
   beta: 'beta'
@@ -53,3 +61,12 @@ export const AlertKind = {
 } as const
 
 export type AlertKind = (typeof AlertKind)[keyof typeof AlertKind]
+
+
+export const StripeEventStatus = {
+  processing: 'processing',
+  processed: 'processed',
+  failed: 'failed'
+} as const
+
+export type StripeEventStatus = (typeof StripeEventStatus)[keyof typeof StripeEventStatus]

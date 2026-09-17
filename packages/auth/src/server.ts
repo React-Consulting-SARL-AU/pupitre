@@ -29,6 +29,7 @@ import {
   readAuthEnv,
   trustedOrigins,
 } from "./env"
+import { organizationHooks } from "./hooks"
 import { ensurePersonalOrganization } from "./personal-organization"
 import type { AuthPrisma } from "./prisma"
 import { twoFactorChallenge } from "./two-factor-policy"
@@ -281,6 +282,15 @@ export function createAuth({
         creatorRole: "owner",
         invitationExpiresIn: INVITATION_EXPIRES_IN,
         cancelPendingInvitationsOnReInvite: true,
+        organizationHooks: {
+          afterRemoveMember: async ({ member, user, organization }) => {
+            await organizationHooks().onMemberRemoved?.({
+              organizationId: organization.id,
+              userId: user.id,
+              memberId: member.id,
+            })
+          },
+        },
         sendInvitationEmail: async (data, request) => {
           await sendEmail(
             await authEmailRenderer().invitation({

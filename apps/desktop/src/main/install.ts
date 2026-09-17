@@ -27,7 +27,7 @@ import {
   runCheck,
   runInstall,
 } from "./install-run";
-import { takeSecrets } from "./install-secrets";
+import { forgetSecrets, readSecrets } from "./install-secrets";
 import { refuseWith } from "./refusal";
 import { relayTo } from "./relay";
 import { byId, noteGrant, paths } from "./servers";
@@ -90,6 +90,7 @@ async function deliver(
   const sent = await sendAgentBinary({
     args: sshArgs(server, paths()),
     payload: prepared.result.payload,
+    user: server.user,
   });
 
   return sent.ok
@@ -225,9 +226,10 @@ export function registerInstall(): void {
           declared: declaredModules,
           deliver,
           enrollment: enrollmentGrant,
+          forgetSecrets,
           managed: managedValues,
           probe: inspect,
-          secrets: takeSecrets,
+          secrets: readSecrets,
         },
         deferredOf(defer)
       );

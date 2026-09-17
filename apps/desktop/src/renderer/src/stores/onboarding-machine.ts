@@ -353,7 +353,14 @@ export function transition(state: MachineState, event: Event): Transition {
     case "resume":
       return {
         effects: event.serverId
-          ? [{ kind: "inspect", serverId: event.serverId }]
+          ? [
+              { kind: "inspect", serverId: event.serverId },
+              // The hardening leaves no report to read back: a sequence
+              // taken up on that step runs it again, like entering it does.
+              ...(event.step === "harden"
+                ? [{ kind: "startHarden" as const, serverId: event.serverId }]
+                : []),
+            ]
           : [],
         state: {
           ...CLOSED,

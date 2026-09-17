@@ -190,21 +190,23 @@ const LINE_LIMIT = 4 * 1024 * 1024;
 
 /**
  * Commands whose state survives the channel: the agent keeps working when the
- * link drops, and its own record is what tells us where it got to. Hardening is
- * among them — it is what closes root, and a channel cut halfway through must
- * not read as a machine left open.
+ * link drops, and its own record is what tells us where it got to. `harden` is
+ * not among them: the agent writes no report for it, and the install's would be
+ * read in its place — who answers after the cut is what `harden-run.ts` asks.
  */
-const RESUMABLE_COMMANDS: readonly CommandName[] = [
-  "install",
-  "upgrade",
-  "harden",
-];
+const RESUMABLE_COMMANDS: readonly CommandName[] = ["install", "upgrade"];
 
 const DEFAULT_BACKOFF = { firstMs: 250, maxMs: 15_000, attempts: 4 };
 
 const DEFAULT_POLL_MS = 3000;
 
-const DEFAULT_SKEW_MS = 600_000;
+/**
+ * A minute, not ten: the agent writes its report once the configuration is
+ * validated, so a report of the previous run stays on the machine for as long
+ * as the new one takes to validate. The wider the window, the longer a finished
+ * report of another run passes for this one.
+ */
+const DEFAULT_SKEW_MS = 60_000;
 
 /**
  * A long command grants thirty minutes to its execution, never to its
@@ -334,15 +336,28 @@ function unsupported(
   );
 }
 
-/** A report stamped before the request went out belongs to another run. */
-function begunAfter(
+function stampedAfter(stamp: string, since: number): boolean {
+  const at = Date.parse(stamp);
+
+  return Number.isNaN(at) || at >= since;
+}
+
+/**
+ * Whether a report can be this run's: one begun before the request went out
+ * belongs to another, and so does one finished before it — a run cannot have
+ * ended before it was asked for, whatever its steps say.
+ */
+export function reportOfRun(
   report: InstallReport,
   sentAt: number,
   skewMs: number
 ): boolean {
-  const started = Date.parse(report.started_at);
+  const since = sentAt - skewMs;
 
-  return Number.isNaN(started) || started >= sentAt - skewMs;
+  return (
+    stampedAfter(report.started_at, since) &&
+    (!report.finished_at || stampedAfter(report.finished_at, since))
+  );
 }
 
 /**
@@ -503,7 +518,7 @@ class AgentChannel {
   /** Whether the process now running has written anything on its output yet. */
   private sawOutput = false;
 
-  private readonly serverId: string;
+  readonly serverId: string;
   private readonly purpose: ChannelPurpose;
   private readonly options: ResolvedOptions;
 
@@ -558,7 +573,6 @@ class AgentChannel {
 
     this.settlePending(closed);
     this.destroy();
-    this.greeting = null;
     this.refusal = closed;
   }
 
@@ -673,7 +687,7 @@ class AgentChannel {
         throw cut;
       }
 
-      if (!begunAfter(report, sentAt, this.options.skewMs)) {
+      if (!reportOfRun(report, sentAt, this.options.skewMs)) {
         throw cut;
       }
 
@@ -884,11 +898,16 @@ class AgentChannel {
     }
   }
 
+  /**
+   * The process ended on its own. What its hello said no longer describes a
+   * channel: `session()` must not answer from a link that is gone.
+   */
   private drop(proc: ChildProcess): void {
     if (this.proc !== proc) {
       return;
     }
     this.proc = null;
+    this.greeting = null;
 
     if (this.announced) {
       this.announced = false;
@@ -903,6 +922,7 @@ class AgentChannel {
   private destroy(): void {
     const proc = this.proc;
     this.proc = null;
+    this.greeting = null;
     this.announced = false;
     proc?.kill();
   }
@@ -980,13 +1000,19 @@ class AgentChannel {
       const id = this.nextId;
       this.nextId += 1;
 
+      // The agent answers one request at a time: a command left running on
+      // it would hold every next one behind it. The session is cut, the agent
+      // finishes on its own, and the next command opens a fresh one.
       const expire = () => {
         if (this.pending?.id !== id) {
           return;
         }
-        this.pending = null;
-        settled(pending);
-        reject(timedOut(cmd, options.timeoutMs));
+
+        trace("agent", `${cmd}.expired`, {
+          channel: this.purpose,
+          server: this.serverId,
+        });
+        this.sever(timedOut(cmd, options.timeoutMs));
       };
 
       const onAbort = () => this.cancel(id, cmd);
@@ -1116,6 +1142,8 @@ type CallArgs<C extends CommandName> =
 
 export class AgentClient {
   private readonly channels = new Map<string, AgentChannel>();
+  /** Counted up at each close of a server's channels: what a cache keyed on a session compares itself to. */
+  private readonly epochs = new Map<string, number>();
   private readonly options: ResolvedOptions;
 
   constructor(options: AgentClientOptions) {
@@ -1211,19 +1239,40 @@ export class AgentClient {
     return this.session(serverId)?.entitlement ?? null;
   }
 
+  /**
+   * How many times this server's channels were closed by the app.
+   *
+   * A closed channel is how the app moves to another binary, another account
+   * or another machine: whatever was read over the previous sessions — a
+   * catalogue, a list — belongs to them, and a holder of such a value keeps the
+   * epoch it was read under to know when to read again.
+   */
+  epoch(serverId: string): number {
+    return this.epochs.get(serverId) ?? 0;
+  }
+
   close(serverId: string): void {
     for (const purpose of PURPOSES) {
       const key = `${serverId}:${purpose}`;
       this.channels.get(key)?.close();
       this.channels.delete(key);
     }
+
+    this.epochs.set(serverId, this.epoch(serverId) + 1);
   }
 
   closeAll(): void {
+    const closed = new Set<string>();
+
     for (const channel of this.channels.values()) {
       channel.close();
+      closed.add(channel.serverId);
     }
     this.channels.clear();
+
+    for (const serverId of closed) {
+      this.epochs.set(serverId, this.epoch(serverId) + 1);
+    }
   }
 
   /**

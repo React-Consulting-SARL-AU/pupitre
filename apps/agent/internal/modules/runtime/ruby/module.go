@@ -67,13 +67,17 @@ func (Module) Install(ctx *modules.Context) error {
 		return err
 	}
 
-	// Bundler ships with each interpreter, so it is only refreshed under the ones that have just landed.
+	return installBundler(ctx, added)
+}
+
+// Bundler ships with each interpreter, so it is only refreshed under the ones that have just landed: a major added, or a patch that replaced its predecessor.
+func installBundler(ctx *modules.Context, majors []string) error {
 	return ctx.Step("install-bundler", func() (modules.Outcome, error) {
-		if !ctx.Bool("bundler") || len(added) == 0 {
+		if !ctx.Bool("bundler") || len(majors) == 0 {
 			return modules.Skipped, nil
 		}
 
-		for _, major := range added {
+		for _, major := range majors {
 			if err := mise.Exec(ctx, "ruby", mise.Ruby.Spec(major), "gem", "install", "bundler", "--no-document"); err != nil {
 				ctx.Warn(i18n.T("warn.ruby.bundler.failed", err.Error()))
 			}
@@ -88,7 +92,12 @@ func (Module) Configure(ctx *modules.Context) error {
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
-	if err := mise.Ruby.Upgrade(ctx); err != nil {
+	moved, err := mise.Ruby.Upgrade(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err := installBundler(ctx, moved); err != nil {
 		return err
 	}
 

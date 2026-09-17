@@ -1,6 +1,7 @@
 package system
 
 import (
+	"slices"
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
@@ -91,24 +92,45 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	}
 
 	if err := ctx.Step("upgrade-packages", func() (modules.Outcome, error) {
-		outcome := modules.Skipped
-		for _, pkg := range Packages {
-			upgraded, err := apt.Upgrade(ctx, pkg)
-			if err != nil {
-				return modules.Failed, err
-			}
-
-			if upgraded {
-				outcome = modules.Done
-			}
+		before, err := versions(ctx)
+		if err != nil {
+			return modules.Failed, err
 		}
 
-		return outcome, nil
+		// apt-get install takes an installed package to its candidate: one call for the whole list.
+		if err := apt.Install(ctx, Packages...); err != nil {
+			return modules.Failed, err
+		}
+
+		after, err := versions(ctx)
+		if err != nil {
+			return modules.Failed, err
+		}
+
+		if slices.Equal(before, after) {
+			return modules.Skipped, nil
+		}
+
+		return modules.Done, nil
 	}); err != nil {
 		return err
 	}
 
 	return m.Configure(ctx)
+}
+
+func versions(ctx *modules.Context) ([]string, error) {
+	held := make([]string, 0, len(Packages))
+	for _, pkg := range Packages {
+		version, err := apt.Version(ctx, pkg)
+		if err != nil {
+			return nil, err
+		}
+
+		held = append(held, version)
+	}
+
+	return held, nil
 }
 
 // The dev user, the packages, the swap and the memory guard stay: they hold the client's work and keep the machine healthy.

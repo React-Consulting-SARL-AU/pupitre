@@ -87,66 +87,76 @@ function deps({
 }> = {}): EnrollmentDeps & {
   enrolled: EnrollInput[];
   bound: { serverId: string; platformServerId: string }[];
+  /** Hands the token to the agent, as `takeEnrollmentToken` does. */
+  spend: (serverId: string) => void;
 } {
   const enrolled: EnrollInput[] = [];
   const bound: { serverId: string; platformServerId: string }[] = [];
-  const account: Pick<Account, "guard" | "state" | "enroll" | "releaseBytes"> =
-    {
-      enroll: (input) => {
-        enrolled.push(input);
+  const held = new Map<string, Enrollment>();
+  const account: Pick<
+    Account,
+    "guard" | "state" | "enroll" | "releaseBytes" | "heldEnrollment"
+  > = {
+    heldEnrollment: (serverId) => held.get(serverId) ?? null,
+    enroll: (input) => {
+      enrolled.push(input);
 
-        return Promise.resolve({
-          ok: true,
-          result: {
-            release: release ?? {
-              channel: "beta",
-              sha256: "",
-              signature: "",
-              url: "",
-              version: "0.0.0-dev",
+      const enrollment: Enrollment = {
+        release: release ?? {
+          channel: "beta",
+          sha256: "",
+          signature: "",
+          url: "",
+          version: "0.0.0-dev",
+        },
+        serverId: "srv-platform-1",
+      };
+
+      held.set(enrollment.serverId, enrollment);
+
+      return Promise.resolve({
+        ok: true,
+        result: enrollment,
+      } satisfies AccountResponse<Enrollment>);
+    },
+    guard: () =>
+      granted
+        ? {
+            ok: true,
+            result: {
+              entitlement: "valid",
+              source: "platform",
+              status: "granted",
+              validUntil: null,
             },
-            serverId: "srv-platform-1",
+          }
+        : {
+            ok: false,
+            error: {
+              code: "entitlement_required",
+              message: "refusal.account.required",
+              phrase: {
+                id: "refusal.account.required",
+                values: { console: "https://app.pupitre.test/dashboard" },
+              },
+            },
           },
-        } satisfies AccountResponse<Enrollment>);
-      },
-      guard: () =>
-        granted
-          ? {
-              ok: true,
-              result: {
-                entitlement: "valid",
-                source: "platform",
-                status: "granted",
-                validUntil: null,
-              },
-            }
-          : {
-              ok: false,
-              error: {
-                code: "entitlement_required",
-                message: "refusal.account.required",
-                phrase: {
-                  id: "refusal.account.required",
-                  values: { console: "https://app.pupitre.test/dashboard" },
-                },
-              },
-            },
-      releaseBytes: () => Promise.resolve({ ok: true, result: bytes }),
-      state: () =>
-        ({
-          build,
-          checkedAt: null,
+    releaseBytes: () => Promise.resolve({ ok: true, result: bytes }),
+    state: () =>
+      ({
+        build,
+        checkedAt: null,
+        consoleUrl: "https://app.pupitre.test/dashboard",
+        device,
+        identity: null,
+        refusal: null,
+        sealed: true,
+        usage: {
           consoleUrl: "https://app.pupitre.test/dashboard",
-          device,
-          identity: null,
-          refusal: null,
-          sealed: true,
-          usage: {
-            consoleUrl: "https://app.pupitre.test/dashboard",
-            status: "absent",
-          },
-        }) satisfies AccountState,
-    };
+          status: "absent",
+        },
+      }) satisfies AccountState,
+  };
 
   return {
     account,
@@ -158,6 +168,9 @@ function deps({
     embedded,
     enrolled,
     releaseKey,
+    spend: (serverId) => {
+      held.delete(serverId);
+    },
   };
 }
 
@@ -208,6 +221,60 @@ describe("la préparation de l'agent", () => {
         payload: { arch: "amd64", path: "pupitred 1.4.0" },
       },
     });
+  });
+
+  /**
+   * A push that failed leaves the seat bought and the token unspent: the next
+   * attempt hands the agent that same enrolment rather than buying the row
+   * again. Once the token has left for the agent, a new attempt enrols anew.
+   */
+  it("réutilise l'enrôlement que le serveur tient encore plutôt que d'en acheter un autre", async () => {
+    const ready = deps();
+    const granted: Server = {
+      ...SERVER,
+      grant: {
+        adopted: false,
+        id: "srv-platform-1",
+        keyReady: false,
+        listed: true,
+        opened: false,
+        status: "enrolling",
+      },
+    };
+
+    const first = await prepareAgent(granted, "amd64", ready);
+    const second = await prepareAgent(granted, "amd64", ready);
+
+    expect(first.ok && second.ok).toBe(true);
+    expect(ready.enrolled).toHaveLength(1);
+    expect(second.ok ? second.result.enrollment?.serverId : null).toBe(
+      "srv-platform-1"
+    );
+
+    ready.spend("srv-platform-1");
+
+    await prepareAgent(granted, "amd64", ready);
+
+    expect(ready.enrolled).toHaveLength(2);
+  });
+
+  it("enrôle un serveur dont l'identité ne tient plus d'enrôlement", async () => {
+    const ready = deps();
+    const granted: Server = {
+      ...SERVER,
+      grant: {
+        adopted: true,
+        id: "srv-platform-9",
+        keyReady: true,
+        listed: true,
+        opened: true,
+        status: "active",
+      },
+    };
+
+    await prepareAgent(granted, "amd64", ready);
+
+    expect(ready.enrolled).toHaveLength(1);
   });
 
   it("écrit sur le serveur local l'identité que la plateforme lui donne", async () => {

@@ -2,7 +2,11 @@ import { describe, expect, it } from "bun:test";
 import { COMMAND_NAMES } from "@pupitre/shared/agent-protocol";
 import { BRIDGE_COMMANDS, checkedCall, isRefusal } from "../agent-bridge";
 
-const knows = (serverId: string) => serverId === "srv-1";
+const knows = {
+  declaresService: (serverId: string, id: string) =>
+    serverId === "srv-1" && id === "db.postgres",
+  knows: (serverId: string) => serverId === "srv-1",
+};
 
 function refusalOf(
   serverId: unknown,
@@ -65,6 +69,33 @@ describe("ce que le renderer peut demander à l'agent", () => {
     expect(
       refusalOf("srv-1", "service.logs", { id: "db.postgres", lines: 0 })?.id
     ).toBe("refusal.params.invalid");
+  });
+
+  /**
+   * A service the agent never listed is not one the renderer may drive: the
+   * id is held to the last `snapshot` or `status`, exactly as a project name
+   * is held to the last list.
+   */
+  it("refuse un service que l'agent n'a pas listé", () => {
+    for (const cmd of [
+      "service.start",
+      "service.stop",
+      "service.restart",
+      "service.logs",
+    ] as const) {
+      expect(refusalOf("srv-1", cmd, { id: "db.inventé" })).toEqual({
+        code: "service_not_found",
+        id: "refusal.service.unknown",
+      });
+    }
+  });
+
+  it("laisse un écran relire la liste des projets", () => {
+    expect(checkedCall("srv-1", "project.list", undefined, knows)).toEqual({
+      serverId: "srv-1",
+      cmd: "project.list",
+      params: {},
+    });
   });
 
   it("efface une capture par son chemin listé, ou toute la galerie", () => {

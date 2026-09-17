@@ -186,4 +186,16 @@ var registryCatalog = map[string]Message{
 		FR: "Donnez un port différent à chaque processus du projet.",
 		EN: "Give each process of the project a different port.",
 	},
+	"registry.local.unreadable": {
+		FR: "le registre des projets %s ne se lit pas : %s",
+		EN: "the project registry %s cannot be read: %s",
+	},
+	"registry.local.unreadable.fix": {
+		FR: "Corrigez ou restaurez %s : rien n'y sera écrit tant qu'il ne se lit pas.",
+		EN: "Repair or restore %s: nothing is written to it until it reads again.",
+	},
+	"registry.local.unreadable.backups.fix": {
+		FR: "Corrigez ou restaurez %s, dont les sauvegardes de configuration sous %s gardent la dernière copie lisible (sudo pupitred migrate --status les nomme) : rien n'y sera écrit tant qu'il ne se lit pas.",
+		EN: "Repair or restore %s, whose last readable copy sits in the configuration backups under %s (sudo pupitred migrate --status names them): nothing is written to it until it reads again.",
+	},
 }

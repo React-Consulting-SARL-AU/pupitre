@@ -218,6 +218,13 @@ export type EnumServerStatusFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumServerStatusFilter<$PrismaModel> | $Enums.ServerStatus
 }
 
+export type EnumSuspensionReasonNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.SuspensionReason | Prisma.EnumSuspensionReasonFieldRefInput<$PrismaModel> | null
+  in?: $Enums.SuspensionReason[] | null
+  notIn?: $Enums.SuspensionReason[] | null
+  not?: Prisma.NestedEnumSuspensionReasonNullableFilter<$PrismaModel> | $Enums.SuspensionReason | null
+}
+
 export type EnumReleaseChannelFilter<$PrismaModel = never> = {
   equals?: $Enums.ReleaseChannel | Prisma.EnumReleaseChannelFieldRefInput<$PrismaModel>
   in?: $Enums.ReleaseChannel[]
@@ -252,6 +259,16 @@ export type EnumServerStatusWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumServerStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumServerStatusFilter<$PrismaModel>
+}
+
+export type EnumSuspensionReasonNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.SuspensionReason | Prisma.EnumSuspensionReasonFieldRefInput<$PrismaModel> | null
+  in?: $Enums.SuspensionReason[] | null
+  notIn?: $Enums.SuspensionReason[] | null
+  not?: Prisma.NestedEnumSuspensionReasonNullableWithAggregatesFilter<$PrismaModel> | $Enums.SuspensionReason | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumSuspensionReasonNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumSuspensionReasonNullableFilter<$PrismaModel>
 }
 
 export type EnumReleaseChannelWithAggregatesFilter<$PrismaModel = never> = {
@@ -335,6 +352,23 @@ export type EnumDesktopOsWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumDesktopOsFilter<$PrismaModel>
   _max?: Prisma.NestedEnumDesktopOsFilter<$PrismaModel>
+}
+
+export type EnumStripeEventStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.StripeEventStatus | Prisma.EnumStripeEventStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.StripeEventStatus[]
+  notIn?: $Enums.StripeEventStatus[]
+  not?: Prisma.NestedEnumStripeEventStatusFilter<$PrismaModel> | $Enums.StripeEventStatus
+}
+
+export type EnumStripeEventStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.StripeEventStatus | Prisma.EnumStripeEventStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.StripeEventStatus[]
+  notIn?: $Enums.StripeEventStatus[]
+  not?: Prisma.NestedEnumStripeEventStatusWithAggregatesFilter<$PrismaModel> | $Enums.StripeEventStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumStripeEventStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumStripeEventStatusFilter<$PrismaModel>
 }
 
 export type NestedStringFilter<$PrismaModel = never> = {
@@ -558,6 +592,13 @@ export type NestedEnumServerStatusFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumServerStatusFilter<$PrismaModel> | $Enums.ServerStatus
 }
 
+export type NestedEnumSuspensionReasonNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.SuspensionReason | Prisma.EnumSuspensionReasonFieldRefInput<$PrismaModel> | null
+  in?: $Enums.SuspensionReason[] | null
+  notIn?: $Enums.SuspensionReason[] | null
+  not?: Prisma.NestedEnumSuspensionReasonNullableFilter<$PrismaModel> | $Enums.SuspensionReason | null
+}
+
 export type NestedEnumReleaseChannelFilter<$PrismaModel = never> = {
   equals?: $Enums.ReleaseChannel | Prisma.EnumReleaseChannelFieldRefInput<$PrismaModel>
   in?: $Enums.ReleaseChannel[]
@@ -573,6 +614,16 @@ export type NestedEnumServerStatusWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumServerStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumServerStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumSuspensionReasonNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.SuspensionReason | Prisma.EnumSuspensionReasonFieldRefInput<$PrismaModel> | null
+  in?: $Enums.SuspensionReason[] | null
+  notIn?: $Enums.SuspensionReason[] | null
+  not?: Prisma.NestedEnumSuspensionReasonNullableWithAggregatesFilter<$PrismaModel> | $Enums.SuspensionReason | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumSuspensionReasonNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumSuspensionReasonNullableFilter<$PrismaModel>
 }
 
 export type NestedEnumReleaseChannelWithAggregatesFilter<$PrismaModel = never> = {
@@ -653,6 +704,23 @@ export type NestedEnumDesktopOsWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumDesktopOsFilter<$PrismaModel>
   _max?: Prisma.NestedEnumDesktopOsFilter<$PrismaModel>
+}
+
+export type NestedEnumStripeEventStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.StripeEventStatus | Prisma.EnumStripeEventStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.StripeEventStatus[]
+  notIn?: $Enums.StripeEventStatus[]
+  not?: Prisma.NestedEnumStripeEventStatusFilter<$PrismaModel> | $Enums.StripeEventStatus
+}
+
+export type NestedEnumStripeEventStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.StripeEventStatus | Prisma.EnumStripeEventStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.StripeEventStatus[]
+  notIn?: $Enums.StripeEventStatus[]
+  not?: Prisma.NestedEnumStripeEventStatusWithAggregatesFilter<$PrismaModel> | $Enums.StripeEventStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumStripeEventStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumStripeEventStatusFilter<$PrismaModel>
 }
 
 

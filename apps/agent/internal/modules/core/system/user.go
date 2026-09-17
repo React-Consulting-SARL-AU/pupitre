@@ -16,6 +16,8 @@ import (
 	"pupitre.studio/agent/internal/sys/user"
 )
 
+// A clock left on UTC is a warning: nothing else of the machine depends on it,
+// and the user must still be created behind it.
 func setTimezone(ctx *modules.Context) error {
 	return ctx.Step("set-timezone", func() (modules.Outcome, error) {
 		zone := ctx.String("timezone")
@@ -24,7 +26,9 @@ func setTimezone(ctx *modules.Context) error {
 		}
 
 		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"timedatectl", "set-timezone", zone}}); err != nil {
-			return modules.Failed, err
+			ctx.Warn(i18n.T("warn.system.timezone.failed", zone, err.Error()))
+
+			return modules.Done, nil
 		}
 
 		return modules.Done, file.WriteAtomic(ctx, timezonePath, []byte(zone+"\n"), 0o644)
@@ -73,6 +77,16 @@ func grantSudo(ctx *modules.Context) error {
 func prepareHome(ctx *modules.Context) error {
 	return ctx.Step("prepare-home", func() (modules.Outcome, error) {
 		outcome := modules.Skipped
+
+		// useradd leaves a home that was already there to whoever owned it.
+		owned, err := file.EnsureOwned(ctx, Home, User, User, 0o750)
+		if err != nil {
+			return modules.Failed, err
+		}
+		if owned {
+			outcome = modules.Done
+		}
+
 		for _, dir := range []string{sshDir, configDir} {
 			if file.Exists(ctx, dir) {
 				continue
@@ -224,15 +238,27 @@ func linked(ctx *modules.Context) bool {
 // The agent's own service: without it nobody reads the platform, and the keys of the console never reach this machine.
 func installAgentUnit(ctx *modules.Context) error {
 	return ctx.Step("install-agent-unit", func() (modules.Outcome, error) {
-		if file.Same(ctx, daemon.UnitPath, []byte(daemon.UnitFile)) && systemd.Active(ctx, daemon.Unit) {
+		same := file.Same(ctx, daemon.UnitPath, []byte(daemon.UnitFile))
+		if same && systemd.Active(ctx, daemon.Unit) {
 			return modules.Skipped, nil
 		}
+
+		// enable --now leaves a running daemon on the unit it started with.
+		replacing := !same && file.Exists(ctx, daemon.UnitPath)
 
 		if err := systemd.WriteUnit(ctx, daemon.Unit, []byte(daemon.UnitFile)); err != nil {
 			return modules.Failed, err
 		}
 
-		return modules.Done, systemd.Enable(ctx, daemon.Unit)
+		if err := systemd.Enable(ctx, daemon.Unit); err != nil {
+			return modules.Failed, err
+		}
+
+		if !replacing {
+			return modules.Done, nil
+		}
+
+		return modules.Done, systemd.Restart(ctx, daemon.Unit)
 	})
 }
 

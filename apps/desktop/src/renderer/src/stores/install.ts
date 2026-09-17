@@ -59,6 +59,8 @@ interface InstallStore {
   modules: ModuleProgress[];
   log: string[];
   requested: Requested;
+  /** A refusal took the typed secrets with it: the screen says so next to the way back. */
+  secretsDropped: boolean;
   /** How long to wait between two readings of a report still being written. */
   pollMs: number;
 
@@ -126,6 +128,10 @@ function stepEvent(
 }
 
 function logLine(update: InstallUpdate): string | null {
+  if (update.kind === "secrets") {
+    return null;
+  }
+
   if (update.kind === "sending") {
     return `pupitred linux-${update.arch} → ${translate()("install.journal.sending")}`;
   }
@@ -192,6 +198,9 @@ export const useInstall = create<InstallStore>((set, get) => {
   /** Which reading of the report is the current one: an older one stops. */
   let reading = 0;
 
+  /** What the main process last said of its vault: whether the typed secrets are still in it. */
+  let vaultHeld = false;
+
   /**
    * The report, read until it is finished.
    *
@@ -247,6 +256,12 @@ export const useInstall = create<InstallStore>((set, get) => {
   }
 
   function note(update: InstallUpdate): void {
+    if (update.kind === "secrets") {
+      vaultHeld = update.held;
+
+      return;
+    }
+
     const line = logLine(update);
 
     set((state) => ({
@@ -299,12 +314,15 @@ export const useInstall = create<InstallStore>((set, get) => {
     set((state) => ({
       install: { serverId, status: "running" },
       log: again ? state.log : [],
+      secretsDropped: false,
       modules: again
         ? state.modules.map((module) =>
             modules.includes(module.id) ? pending([module.id])[0] : module
           )
         : pending(modules),
     }));
+
+    vaultHeld = false;
 
     const answer = await window.pupitre.startInstall(
       serverId,
@@ -327,6 +345,15 @@ export const useInstall = create<InstallStore>((set, get) => {
     // as it would have had `install.check` caught them first.
     if (!answer.ok && answer.error.remedy?.code === "invalid_fields") {
       useCatalog.getState().noteProblems(answer.error.remedy.problems);
+    }
+
+    // The secrets left the vault with the request: a refusal loses them, and a
+    // form that still said "filled" would send the next attempt without them.
+    if (!(answer.ok || vaultHeld)) {
+      const catalog = useCatalog.getState();
+
+      set({ secretsDropped: catalog.typedSecrets() });
+      catalog.dropSecrets();
     }
 
     set((state) => ({
@@ -354,12 +381,28 @@ export const useInstall = create<InstallStore>((set, get) => {
     return config;
   }
 
+  /** What was put off the first time stays off: a deferred module is replayed as deferred. */
+  function deferredOf(modules: readonly string[]): string[] {
+    return get().requested.defer.filter((id) => modules.includes(id));
+  }
+
+  /** A configuration given again is the one every later replay runs with. */
+  function remember(config: ModuleConfig): void {
+    set((state) => ({
+      requested: {
+        ...state.requested,
+        config: { ...state.requested.config, ...config },
+      },
+    }));
+  }
+
   return {
     install: { status: "idle" },
     log: [],
     modules: [],
     pollMs: REPORT_POLL_MS,
     requested: EMPTY,
+    secretsDropped: false,
 
     async start(serverId, modules, config, defer = []) {
       set({ requested: { config, defer, modules } });
@@ -372,13 +415,16 @@ export const useInstall = create<InstallStore>((set, get) => {
         return;
       }
 
+      if (config?.[moduleId]) {
+        remember({ [moduleId]: { ...config[moduleId] } });
+      }
+
       await run(
         serverId,
         [moduleId],
-        config?.[moduleId]
-          ? { [moduleId]: { ...config[moduleId] } }
-          : replayOf([moduleId]),
-        true
+        replayOf([moduleId]),
+        true,
+        deferredOf([moduleId])
       );
     },
 
@@ -389,7 +435,13 @@ export const useInstall = create<InstallStore>((set, get) => {
         return;
       }
 
-      await run(serverId, modules, replayOf(modules), true);
+      await run(
+        serverId,
+        modules,
+        replayOf(modules),
+        true,
+        deferredOf(modules)
+      );
     },
 
     reload(serverId) {
@@ -417,6 +469,7 @@ export const useInstall = create<InstallStore>((set, get) => {
         log: [],
         modules: [],
         requested: EMPTY,
+        secretsDropped: false,
       });
     },
 

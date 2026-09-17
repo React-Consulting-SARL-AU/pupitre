@@ -1,4 +1,7 @@
-import type { ProjectState } from "@pupitre/shared/agent-protocol/state";
+import type {
+  Project,
+  ProjectState,
+} from "@pupitre/shared/agent-protocol/state";
 import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { RowProblem } from "@renderer/lib/project-ports";
@@ -11,6 +14,7 @@ import type {
   FolderState,
   KnownState,
   Phase,
+  PhaseId,
   ProjectAddState,
   ReposState,
 } from "../../stores/project-add";
@@ -31,10 +35,18 @@ import { ProjectAddSteps } from "./project-add-steps";
  * own words and its own remedy. Leaving costs nothing before the first phase;
  * after it, the project exists on the server, and the screen says so.
  */
+/**
+ * The phases a refusal sends back to the form from. A declaration refused
+ * left nothing on the server; sources that would not come — a wrong branch, a
+ * private repository — left a declared project, which the form then names and
+ * offers to open.
+ */
+const EDITABLE: readonly PhaseId[] = ["add", "sources"];
+
 export function ProjectAddPanel({
   known,
   draft,
-  detected,
+  declared,
   detection,
   repos,
   folders,
@@ -58,10 +70,12 @@ export function ProjectAddPanel({
   onOpen,
   onConnect,
   onInstallModule,
+  onOpenDeclared,
 }: {
   known: KnownState;
   draft: Draft;
-  detected: boolean;
+  /** The project the server already declares where the draft points: opened rather than declared again. */
+  declared: Project | null;
   detection: DetectionState;
   repos: ReposState;
   folders: FolderState;
@@ -81,7 +95,7 @@ export function ProjectAddPanel({
   onDetect: () => void;
   onLaunch: () => void;
   onRetry: () => void;
-  /** Back to the form with the draft intact: only a declaration refused leaves nothing on the server to undo. */
+  /** Back to the form with the draft intact. */
   onEdit?: () => void;
   onReload: () => void;
   onCancel?: () => void;
@@ -90,6 +104,7 @@ export function ProjectAddPanel({
   /** Opens the settings on the connections, and comes back to this draft. */
   onConnect: () => void;
   onInstallModule: () => void;
+  onOpenDeclared: (name: string) => void;
 }) {
   const t = useTranslations();
 
@@ -134,7 +149,7 @@ export function ProjectAddPanel({
 
       {known.status === "ready" && run.status === "idle" ? (
         <ProjectAddForm
-          detected={detected}
+          declared={declared}
           detection={detection}
           draft={draft}
           edit={edit}
@@ -144,6 +159,7 @@ export function ProjectAddPanel({
           onConnect={onConnect}
           onDetect={onDetect}
           onInstallModule={onInstallModule}
+          onOpenDeclared={onOpenDeclared}
           onSubmit={onLaunch}
           processProblems={processProblems}
           ready={ready}
@@ -158,7 +174,7 @@ export function ProjectAddPanel({
         <Callout
           action={
             <>
-              {run.phase === "add" ? (
+              {EDITABLE.includes(run.phase) ? (
                 <Button icon={PencilLine} onClick={onEdit} variant="discreet">
                   {t("projectAdd.panel.edit")}
                 </Button>

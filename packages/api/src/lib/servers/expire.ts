@@ -32,6 +32,8 @@ export async function expireEnrollments(
     data: {
       ...RELEASED_ENROLLMENT,
       status: "revoked",
+      assignedUserId: null,
+      pendingAssignmentEmail: null,
       decommissionAt: decommissionDeadline(now),
     },
   })

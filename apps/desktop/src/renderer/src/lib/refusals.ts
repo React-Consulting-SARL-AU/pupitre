@@ -12,3 +12,8 @@ import type { AgentError } from "@shared/agent";
 export function heldForUsage(error: AgentError | null | undefined): boolean {
   return error?.code === "entitlement_required";
 }
+
+/** The refusal a screen may print: nothing when the shell's notice already says it. */
+export function unlessHeld(error: AgentError | null): AgentError | null {
+  return heldForUsage(error) ? null : error;
+}

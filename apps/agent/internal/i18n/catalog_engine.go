@@ -78,4 +78,8 @@ var engineCatalog = map[string]Message{
 		FR: "Demandez catalog pour la liste des modules de cet agent.",
 		EN: "Ask catalog for the list of this agent's modules.",
 	},
+	"report.interrupted": {
+		FR: "l'exécution a été interrompue avant la fin de cette étape : l'agent s'est arrêté sans la finir",
+		EN: "the run was interrupted before this step ended: the agent stopped without finishing it",
+	},
 }

@@ -41,7 +41,7 @@ Deux remèdes existent. `invalid_fields` accompagne `invalid_config` et porte le
 
 ## Commandes
 
-Tout ce qui suit est dans le contrat et répond sur `pupitred serve`. Neuf commandes ne sont appelées par aucun écran de l'app aujourd'hui : `status`, `doctor`, `diag`, `project.env`, `project.debug`, `sessions.list`, `secrets.sync`, `keys.list` et `keys.sync`. `status` et `doctor` s'obtiennent aussi sur la machine par `pupitred dev status` et `pupitred dev doctor` ; les autres n'ont que le protocole.
+Tout ce qui suit est dans le contrat et répond sur `pupitred serve`. Neuf commandes ne sont appelées par aucun écran de l'app aujourd'hui : `status`, `doctor`, `diag`, `project.debug`, `sessions.list`, `secrets.sync`, `keys.list`, `keys.sync` et `tunnel.restart`. `status` et `doctor` s'obtiennent aussi sur la machine par `pupitred dev status` et `pupitred dev doctor` ; les autres n'ont que le protocole.
 
 ### Session
 
@@ -123,13 +123,13 @@ Le chemin absolu vit sur le projet, pas sur la machine : `status`, `project.list
 | `project.list` | — |
 | `project.add` | `{ name, dir, repo?, branch?, boot?, runtimes?, processes[] }` : chaque processus porte `{ id, dir?, pkgmgr, host, port, routes[], cmd, install? }`, chaque route `{ label, port, subdomain? }` ; `dir` absent vaut `.`. Un projet avec `repo` ne crée aucun dossier — le clone les apporte — et refuse en `bad_request`, avant d'écrire sa ligne, un dossier déjà là qui n'est ni vide ni un clone de ce même dépôt ; un projet sans `repo` reçoit le dossier de chacun de ses processus |
 | `project.detect` | `{ repo, branch? }` ou `{ dir }` : ce qu'un dépôt demande, sans rien installer |
-| `project.update` | `{ name, patch }` avec `patch: { branch?, boot?, runtimes?, processes? }` : réécrit la ligne du projet et répond le `Project` mis à jour |
+| `project.update` | `{ name, patch }` avec `patch: { branch?, boot?, runtimes?, processes? }` : réécrit la ligne du projet et répond le `Project` mis à jour. Comme `project.add`, la réponse porte `warnings[]` quand une étape a refusé une fois la ligne écrite — un dossier qui ne se crée pas, une épingle de runtime, un démarrage : la ligne tient, l'app montre les phrases comme des avertissements, et un second `add` répondrait que le projet est déjà déclaré |
 | `project.remove` | `{ name }` (le dossier reste) |
 | `project.up` / `project.down` / `project.restart` | `{ name \| "all", process? }` : tous les processus du projet, ou celui que `process` nomme ; `all` n'en nomme aucun |
 | `project.logs` | `{ name, process, lines?, follow? }` → événements `log` si `follow` : le journal d'un processus, jamais du projet entier |
 | `project.pull` | `{ name }` → `{ pulled, state }` : clone si le dossier n'a pas de dépôt, `pull --rebase --autostash` sinon, et rien d'autre ; `pulled` est faux pour un dossier sans dépôt. Un dossier gardé d'un projet retiré est repris tel quel : s'il tient déjà un dépôt dont l'`origin` n'est pas celui que la ligne déclare — à la forme d'écriture près, schéma, compte, `.git` — la commande refuse en `bad_request` en nommant les deux, et ne tire rien ; s'il est plein sans dépôt, le clone refuse avec les mots de git. C'est la phase « sources » de l'ajout d'un projet, l'installation venant ensuite par `project.install` |
-| `project.sync` | `{ name }` → `{ pulled, installed, state }` : `project.pull` puis `project.install` en une commande, le geste de synchronisation de l'écran d'un projet — un seul `pull`, une installation par processus |
-| `project.install` | `{ name, process? }` → `{ done, installed[] }` : `installed` liste `{ process, command }` pour chaque processus dont la ligne d'installation a tourné, `bun install` par exemple ; un processus qui n'en déclare aucune n'y figure pas |
+| `project.sync` | `{ name }` → événements `log` pendant l'installation, puis `{ pulled, installed, state }` : `project.pull` puis `project.install` en une commande, le geste de synchronisation de l'écran d'un projet — un seul `pull`, une installation par processus |
+| `project.install` | `{ name, process? }` → événements `log { line }` pendant que la commande d'installation tourne, puis `{ done, installed[] }` : `installed` liste `{ process, command }` pour chaque processus dont la ligne d'installation a tourné, `bun install` par exemple ; un processus qui n'en déclare aucune n'y figure pas |
 | `project.env` | `{ name, process?, force? }` : régénère `.env.local` à la racine du projet, ou dans le dossier du processus nommé |
 | `project.branches` | `{ name }` |
 | `project.checkout` | `{ name, branch }` |
@@ -418,6 +418,8 @@ La version courante est le plancher qui compte, parce que l'agent la connaît sa
 ## Versionnage
 
 `protocol` est un entier. Un champ ajouté à un résultat ne l'incrémente pas ; un champ retiré ou renommé, oui. Il ne dit rien de la forme des fichiers posés sur la machine, qui a son propre compteur — voir [migrations de configuration](./config-migrations.md). Un `hello` dont le `protocol` n'est pas celui de l'agent est refusé par `protocol_mismatch`.
+
+**Les paramètres sont fermés, les résultats sont ouverts.** L'agent refuse en `bad_request` une clé de `params` que son schéma ne connaît pas, si bien qu'un champ ajouté à une commande n'est lisible que par les agents qui le connaissent, alors qu'un champ ajouté à un résultat est ignoré par les apps qui ne le connaissent pas. Un champ de paramètre nouveau est donc toujours optionnel, et **l'app l'omet tant qu'il vaut son défaut** : `defer` absent plutôt que `[]`, `boot` absent plutôt que `false`, `runtimes` absent plutôt que `{}`. C'est ce qui permet à une app d'une génération de parler à tous les agents de cette génération sans que la feuille de compatibilité ne bouge ; un champ qu'on ne peut pas omettre à son défaut est une génération nouvelle.
 
 La **feuille de compatibilité** dit lequel des deux mettre à jour. Elle vit dans `packages/shared/src/compat`, une ligne par génération de protocole — l'entier, la première version d'app et la première version d'agent qui le parlent — et voyage jusqu'à l'agent dans `schema.json`. Une pré-version appartient à la lignée qu'elle annonce : `0.2.0-beta.1` est de la génération de `0.2.0`.
 

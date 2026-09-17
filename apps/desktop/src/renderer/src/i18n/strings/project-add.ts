@@ -19,8 +19,8 @@ export const projectAdd = {
     "projectAdd.form.folderHelp": "Folder: {dir}",
     "projectAdd.form.namePlaceholder": "my-site",
     "projectAdd.form.pkgmgrLabel": "Package manager",
-    "projectAdd.form.processesDetected":
-      "Read from the server: it already declares this project, and these are its processes.",
+    "projectAdd.form.alreadyDeclared":
+      "This server already declares this project as {name}. Its processes are shown as it runs them; open it to change them.",
     "projectAdd.form.portLabel": "Port",
     "projectAdd.processes.title": "Processes",
     "projectAdd.processes.help":
@@ -119,6 +119,7 @@ export const projectAdd = {
 
     "projectAdd.panel.title": "New project",
     "projectAdd.panel.cancel": "Cancel",
+    "projectAdd.phase.warning": "With one reservation: {warning}",
     "projectAdd.panel.edit": "Edit the form",
     "projectAdd.panel.open": "Open the project",
     "projectAdd.panel.loadingTitle": "Reading the projects already declared",
@@ -170,8 +171,8 @@ export const projectAdd = {
     "projectAdd.form.folderHelp": "Dossier : {dir}",
     "projectAdd.form.namePlaceholder": "mon-site",
     "projectAdd.form.pkgmgrLabel": "Gestionnaire de paquets",
-    "projectAdd.form.processesDetected":
-      "Lu sur le serveur : il déclare déjà ce projet, et voici ses processus.",
+    "projectAdd.form.alreadyDeclared":
+      "Ce serveur déclare déjà ce projet sous le nom {name}. Ses processus sont ceux qu'il fait tourner ; ouvrez-le pour les changer.",
     "projectAdd.form.portLabel": "Port",
     "projectAdd.processes.title": "Processus",
     "projectAdd.processes.help":
@@ -270,6 +271,7 @@ export const projectAdd = {
 
     "projectAdd.panel.title": "Nouveau projet",
     "projectAdd.panel.cancel": "Annuler",
+    "projectAdd.phase.warning": "Avec une réserve : {warning}",
     "projectAdd.panel.edit": "Modifier le formulaire",
     "projectAdd.panel.open": "Ouvrir le projet",
     "projectAdd.panel.loadingTitle": "Lecture des projets déjà déclarés",
