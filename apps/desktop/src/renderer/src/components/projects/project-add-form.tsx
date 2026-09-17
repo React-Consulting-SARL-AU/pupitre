@@ -1,8 +1,9 @@
+import type { Project } from "@pupitre/shared/agent-protocol/state";
 import { panelClass } from "@renderer/components/ui/panel";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { RowProblem } from "@renderer/lib/project-ports";
 import type { ProcessProblem } from "@renderer/lib/project-processes";
-import { FolderPlus } from "lucide-react";
+import { ArrowRight, FolderPlus } from "lucide-react";
 import type {
   DetectionState,
   Draft,
@@ -11,6 +12,7 @@ import type {
   ReposState,
 } from "../../stores/project-add";
 import { Button } from "../ui/button";
+import { Callout } from "../ui/callout";
 import { CheckLine } from "../ui/check-line";
 import { Field, fieldControlClass } from "../ui/field";
 import { ProjectAddSource, type SourceEdits } from "./project-add-source";
@@ -35,7 +37,7 @@ export interface DraftEdits extends SourceEdits, ProcessEdits {
 
 export function ProjectAddForm({
   draft,
-  detected,
+  declared,
   detection,
   repos,
   folders,
@@ -49,10 +51,11 @@ export function ProjectAddForm({
   onSubmit,
   onConnect,
   onInstallModule,
+  onOpenDeclared,
 }: {
   draft: Draft;
-  /** The processes came from a project the agent already declares. */
-  detected: boolean;
+  /** The project the server already declares at this folder or under this name: the way on is to open it. */
+  declared: Project | null;
   /** What the agent read off the source, or why it could not. */
   detection: DetectionState;
   repos: ReposState;
@@ -72,6 +75,7 @@ export function ProjectAddForm({
   onSubmit: () => void;
   onConnect: () => void;
   onInstallModule: () => void;
+  onOpenDeclared: (name: string) => void;
 }) {
   const t = useTranslations();
 
@@ -119,10 +123,22 @@ export function ProjectAddForm({
         />
       </Field>
 
-      {detected ? (
-        <p className="text-[12px] text-ink-3 leading-relaxed">
-          {t("projectAdd.form.processesDetected")}
-        </p>
+      {declared ? (
+        <Callout
+          action={
+            <Button
+              icon={ArrowRight}
+              onClick={() => onOpenDeclared(declared.name)}
+              size="sm"
+            >
+              {t("projectAdd.panel.open")}
+            </Button>
+          }
+          name="declared"
+          tone="warn"
+        >
+          {t("projectAdd.form.alreadyDeclared", { name: declared.name })}
+        </Callout>
       ) : null}
 
       <ProjectProcesses

@@ -6,6 +6,7 @@ import { type AgentClient, createAgentClient } from "../agent-client";
 import {
   type AgentUpdateDeps,
   readAgentUpdate,
+  readAgentUpdateShared,
   runAgentUpgrade,
   runModuleUpgrade,
 } from "../agent-update-run";
@@ -54,14 +55,32 @@ function probeOf(over: Partial<ProbeResult> = {}): ProbeResult {
 
 let fake: FakeAgent | null = null;
 
-function agent(fixtures: string | string[]): AgentClient {
+function agent(
+  fixtures: string | string[],
+  options: Partial<Parameters<typeof createAgentClient>[0]> = {}
+): AgentClient {
   fake = fakeAgent(fixtures);
 
   return createAgentClient({
     appVersion: "0.1.0",
     backoff: { attempts: 2, firstMs: 5, maxMs: 20 },
     spawn: fake.spawn,
+    ...options,
   });
+}
+
+async function until(
+  condition: () => boolean,
+  attempts = 200
+): Promise<boolean> {
+  for (let i = 0; i < attempts; i += 1) {
+    if (condition()) {
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+
+  return condition();
 }
 
 /** A platform that publishes nothing: the app is reduced to what it carries. */
@@ -196,17 +215,102 @@ describe("la comparaison des versions", () => {
     expect(after.ok).toBe(true);
   });
 
-  it("lit la machine par la sonde quand le protocole refuse de répondre", async () => {
+  /**
+   * The beat reads this every fifteen seconds. Its snapshot rides the beat
+   * channel, so a click never waits behind it, and the shell probe — a whole
+   * `ssh` of its own — is never a timer's fallback: an unreachable server
+   * would otherwise collect one per tick.
+   */
+  it("lit la machine sur le canal du battement, sans passer devant un geste", async () => {
+    const client = agent([
+      "hello-then-ping.jsonl",
+      "agent-update-control.jsonl",
+    ]);
+    const queued: string[] = [];
+
+    await client.request(SERVER, "ping");
+
+    const gesture = client.request(SERVER, "ping", undefined, {
+      onQueued: () => queued.push("ping"),
+    });
+    const answer = await readAgentUpdate(SERVER, deps(client));
+
+    await gesture;
+
+    expect(answer).toMatchObject({ ok: true, result: { installed: "0.3.0" } });
+    expect(queued).toEqual([]);
+    expect(fake?.started()).toBe(2);
+  });
+
+  it("ne sonde jamais la machine par le shell depuis la minuterie", async () => {
     const client = agent("protocol-mismatch.jsonl");
+    let probed = 0;
 
     const answer = await readAgentUpdate(
       SERVER,
-      deps(client, { carried: (arch) => (arch === "arm64" ? release() : null) })
+      deps(client, {
+        carried: (arch) => (arch === "arm64" ? release() : null),
+        probe: () => {
+          probed += 1;
+
+          return Promise.resolve({ ok: true, result: probeOf() });
+        },
+      })
     );
 
     expect(answer).toMatchObject({
-      ok: true,
-      result: { installed: "0.2.0", order: "ahead" },
+      ok: false,
+      error: { code: "protocol_mismatch" },
+    });
+    expect(probed).toBe(0);
+  });
+
+  it("ne lit qu'une fois quand un battement tombe pendant le précédent", async () => {
+    const client = agent("snapshot-timeout.jsonl", {
+      timeouts: { snapshot: 300 },
+    });
+
+    const first = readAgentUpdateShared(SERVER, deps(client));
+    const second = readAgentUpdateShared(SERVER, deps(client));
+
+    expect(second).toBe(first);
+
+    await Promise.all([first, second]);
+
+    expect(
+      fake?.trace().filter((line) => line.includes("cmd=snapshot"))
+    ).toHaveLength(1);
+
+    expect(await until(() => fake?.live() === 0)).toBe(true);
+
+    const third = readAgentUpdateShared(SERVER, deps(client));
+
+    expect(third).not.toBe(first);
+
+    await third;
+  });
+
+  it("lit la machine par la sonde, sur un geste, quand le protocole refuse de répondre", async () => {
+    const client = agent("protocol-mismatch.jsonl");
+    let probed = 0;
+
+    const answer = await runAgentUpgrade(
+      SERVER,
+      () => undefined,
+      deps(client, {
+        carried: (arch) => (arch === "arm64" ? release() : null),
+        probe: () => {
+          probed += 1;
+
+          return Promise.resolve({ ok: true, result: probeOf() });
+        },
+      })
+    );
+
+    expect(probed).toBe(1);
+    expect(answer).toMatchObject({
+      ok: false,
+      error: { code: "protocol_mismatch" },
     });
   });
 

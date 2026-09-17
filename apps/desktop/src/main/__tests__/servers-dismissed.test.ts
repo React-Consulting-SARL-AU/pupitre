@@ -49,7 +49,11 @@ const TYPED: Server = {
 
 describe("le retrait d'un serveur", () => {
   beforeEach(() => {
-    write({ active: null, dismissed: [], servers: [GRANTED, TYPED] });
+    write(() => ({
+      active: null,
+      dismissed: [],
+      servers: [GRANTED, TYPED],
+    }));
   });
 
   it("note l'identifiant de plateforme du serveur attribué", async () => {

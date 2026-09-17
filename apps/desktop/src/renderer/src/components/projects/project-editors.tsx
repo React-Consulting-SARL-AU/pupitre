@@ -1,22 +1,19 @@
-import { Button } from "@renderer/components/ui/button";
-import { ConfirmButton } from "@renderer/components/ui/confirm-button";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { RemoteEditor } from "@shared/editors";
-import { FolderCode } from "lucide-react";
+import { ProjectEditorButton } from "./project-editor-button";
 
 /**
  * The editors this server installed, and nothing more.
  *
- * A button exists because the agent reported the matching module — JetBrains,
+ * A mark exists because the agent reported the matching module — JetBrains,
  * VS Code and Cursor, Zed. The folder is the absolute one git named for this
- * project; without it there is nothing to open, and no button.
+ * project; without it there is nothing to open, and no mark.
  *
- * The button hands a deep link to this computer, and nothing answers if the
- * editor is not installed here: the app cannot tell, so the button says which
- * one has to be, before it is pressed rather than after nothing happened. The
- * editor then resolves the server through the system's own SSH file, which
- * knows it only once that file includes the app's: on a server of the app
- * whose line is not there yet, the button asks for it first.
+ * The marks stand apart from the project's own gestures: opening a folder on
+ * this computer is not starting or syncing the project on the server. Each
+ * hands a deep link to this computer, and nothing answers if the editor is not
+ * installed here: the app cannot tell, so the bubble says which one has to be,
+ * before it is pressed rather than after nothing happened.
  */
 export function ProjectEditors({
   editors,
@@ -39,41 +36,20 @@ export function ProjectEditors({
   }
 
   return (
-    <>
-      {editors.map((editor) =>
-        share ? (
-          <ConfirmButton
-            confirmLabel={t("project.editors.shareAndOpen")}
-            confirmVariant="inverse"
-            icon={FolderCode}
-            key={editor.id}
-            onConfirm={async () => {
-              await onShare();
-              onOpen(editor.id, root);
-            }}
-            question={t("project.editors.shareQuestion", {
-              editor: editor.name,
-              file: share,
-              root,
-            })}
-            variant="default"
-          >
-            {editor.name}
-          </ConfirmButton>
-        ) : (
-          <Button
-            hint={t("project.editors.open", {
-              editor: editor.name,
-              root,
-            })}
-            icon={FolderCode}
-            key={editor.id}
-            onClick={() => onOpen(editor.id, root)}
-          >
-            {editor.name}
-          </Button>
-        )
-      )}
-    </>
+    <fieldset
+      aria-label={t("project.editors.group")}
+      className="flex items-center gap-1 border-line border-l pl-2"
+    >
+      {editors.map((editor) => (
+        <ProjectEditorButton
+          editor={editor}
+          key={editor.id}
+          onOpen={onOpen}
+          onShare={onShare}
+          root={root}
+          share={share}
+        />
+      ))}
+    </fieldset>
   );
 }

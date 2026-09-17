@@ -9,6 +9,7 @@ import {
   remoteEditors,
   runtimeModuleOf,
 } from "@renderer/lib/modules";
+import { unlessHeld } from "@renderer/lib/refusals";
 import { group, useNavigation } from "@renderer/stores/navigation";
 import { useProject } from "@renderer/stores/project";
 import { serversIn, useServers } from "@renderer/stores/servers";
@@ -75,9 +76,11 @@ export function ProjectScreen({
   const renameTerminal = useNavigation((s) => s.renameTerminal);
 
   const store = useProject();
+  const problem = unlessHeld(store.problem);
   const busy = useSnapshot((s) => s.busy) === project.name;
   const act = useSnapshot((s) => s.act);
   const announce = useSnapshot((s) => s.announce);
+  const readSnapshot = useSnapshot((s) => s.read);
 
   const name = project.name;
   const mainProcess = project.processes[0] ?? {
@@ -169,10 +172,13 @@ export function ProjectScreen({
     setSyncing(false);
   }
 
+  // The dashboard is read again before it is shown: a card of the project
+  // just removed, with live buttons, would otherwise sit there until the beat.
   async function remove() {
     const answer = await window.pupitre.removeProject(serverId, name);
 
     if (answer.ok) {
+      await readSnapshot(serverId);
       onRemoved();
     } else {
       announce(answer.error);
@@ -241,9 +247,9 @@ export function ProjectScreen({
       title={project.name}
     >
       <div className="flex h-full min-h-0 flex-col">
-        {store.problem ? (
+        {problem ? (
           <div className="shrink-0 px-8 pt-4">
-            <ErrorNotice error={store.problem} />
+            <ErrorNotice error={problem} />
           </div>
         ) : null}
 

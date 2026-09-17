@@ -26,9 +26,7 @@ function refuse(
   return refuseWith(code, id, values);
 }
 
-export function registerFleet(
-  settle: (config: ServersConfig) => ServersConfig
-): void {
+export function registerFleet(settle: (serverId: string) => void): void {
   ipcMain.handle("fleet:list", async (): Promise<AgentResponse<FleetView>> => {
     const granted = await account.fleet();
 
@@ -49,12 +47,18 @@ export function registerFleet(
       local: config.servers,
     });
 
+    // A server the platform no longer grants leaves the list here, and what
+    // was open on it goes with it; the others are not touched by the merge.
+    for (const serverId of merged.released) {
+      settle(serverId);
+    }
+
     return {
       ok: true,
       result: {
         adopted: merged.adopted,
         changed: merged.changed,
-        config: merged.changed ? settle(write(merged.config)) : config,
+        config: merged.changed ? write(() => merged.config) : config,
         granted: granted.result,
         withdrawn: merged.withdrawn,
       },
@@ -78,7 +82,7 @@ export function registerFleet(
         return refuse("bad_request", "refusal.fleet.pending");
       }
 
-      return { ok: true, result: settle(noteOpened(server.id)) };
+      return { ok: true, result: noteOpened(server.id) };
     }
   );
 
@@ -90,9 +94,6 @@ export function registerFleet(
    */
   ipcMain.handle(
     "fleet:restore",
-    (): AgentResponse<ServersConfig> => ({
-      ok: true,
-      result: settle(restore()),
-    })
+    (): AgentResponse<ServersConfig> => ({ ok: true, result: restore() })
   );
 }

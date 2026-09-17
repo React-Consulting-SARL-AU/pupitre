@@ -4,6 +4,7 @@ import { type AgentClient, createAgentClient } from "../agent-client";
 import {
   addProject,
   declaresProject,
+  editorFolder,
   forgetProjects,
   installProject,
   listProjects,
@@ -416,6 +417,39 @@ describe("ce que le renderer nomme", () => {
     });
 
     expect(declaresProject(SERVER, "ghost")).toBe(false);
+  });
+
+  /**
+   * The folder an editor opens is a path the renderer carries: it opens only
+   * when the agent named it — a project's folder, or one under the root the
+   * file browser walks — and never one that climbs out of them.
+   */
+  it("n'ouvre dans un éditeur qu'un dossier que l'agent a nommé", () => {
+    noteProjects(SERVER, "snapshot", {
+      ok: true,
+      result: {
+        projects: [
+          { dir: "shop", name: "shop", path: "/home/dev/projects/shop" },
+        ],
+      },
+    });
+
+    expect(editorFolder(SERVER, "/home/dev/projects/shop", null)).toBe(
+      "/home/dev/projects/shop"
+    );
+    expect(editorFolder(SERVER, "/home/dev/projects/other", null)).toBeNull();
+    expect(editorFolder("srv-2", "/home/dev/projects/shop", null)).toBeNull();
+
+    expect(editorFolder(SERVER, "/home/dev/notes", "/home/dev")).toBe(
+      "/home/dev/notes"
+    );
+    expect(editorFolder(SERVER, "/home/dev", "/home/dev")).toBe("/home/dev");
+    expect(editorFolder(SERVER, "/home/devious", "/home/dev")).toBeNull();
+    expect(editorFolder(SERVER, "/etc", "/home/dev")).toBeNull();
+    expect(editorFolder(SERVER, "/home/dev/../root", "/home/dev")).toBeNull();
+    expect(editorFolder(SERVER, "/home/dev/a\nb", "/home/dev")).toBeNull();
+    expect(editorFolder(SERVER, "projects/shop", "/home/dev")).toBeNull();
+    expect(editorFolder(SERVER, 42, "/home/dev")).toBeNull();
   });
 
   it("refuse un serveur qui n'est plus dans la configuration", async () => {

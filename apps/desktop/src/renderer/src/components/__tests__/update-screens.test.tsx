@@ -138,6 +138,7 @@ describe("le bandeau de mise à jour", () => {
           fix: "Relance la mise à jour depuis l'app.",
           message: "le binaire ne correspond pas à sa signature",
         },
+        serverId: "srv-1",
         status: "failed",
       },
       ["version 0.4.0 téléchargée"]
@@ -158,6 +159,7 @@ describe("le bandeau de mise à jour", () => {
           version: "0.4.0",
         },
       },
+      serverId: "srv-1",
       status: "done",
     });
 
@@ -183,6 +185,7 @@ describe("le bandeau de mise à jour", () => {
           version: "0.4.0",
         },
       },
+      serverId: "srv-1",
       status: "done",
     });
 
@@ -216,6 +219,7 @@ describe("une configuration qui n'est pas la forme que l'agent lit", () => {
           revision: 3,
           state: "failed",
         },
+        serverId: "srv-1",
         status: "done",
       }
     );
@@ -275,7 +279,7 @@ describe("la mise à jour des modules", () => {
   });
 
   it("montre les étapes, l'échec et la commande de rejeu de l'agent", () => {
-    const html = panel({ status: "running" }, STEPS);
+    const html = panel({ serverId: "srv-1", status: "running" }, STEPS);
 
     expect(html).toContain('data-module="db.postgres"');
     expect(html).toContain("pupitred install --only=db.postgres");
@@ -289,6 +293,7 @@ describe("la mise à jour des modules", () => {
           report_path: "/var/log/pupitre/upgrade.json",
           warned: ["runtime.node"],
         },
+        serverId: "srv-1",
         status: "done",
       },
       STEPS

@@ -6,6 +6,7 @@ import { stubPupitre } from "../../__tests__/stub-pupitre";
 import {
   type DetectionState,
   type Exposure,
+  type ProjectAddRequest,
   SETTLE_READS,
   useProjectAdd,
 } from "../project-add";
@@ -130,7 +131,7 @@ beforeEach(() => {
 
 describe("un dépôt qui démarre", () => {
   it("va de l'adresse à online, avec son journal et son URL", async () => {
-    const asked: ProjectAddParams[] = [];
+    const asked: ProjectAddRequest[] = [];
 
     stubPupitre({
       ...QUIET_RUN,
@@ -154,7 +155,6 @@ describe("un dépôt qui démarre", () => {
     await useProjectAdd.getState().launch("srv-1");
 
     expect(asked[0]).toEqual({
-      boot: false,
       dir: "vite-starter",
       name: "vite-starter",
       processes: [single({})],
@@ -198,17 +198,17 @@ describe("un dépôt qui démarre", () => {
       useProjectAdd.getState().phases.filter((entry) => entry.id !== "logs")
     ).toEqual([
       { detail: "vite-starter · app:3000", id: "add", status: "ok" },
+      {
+        detail: translate()("projectAdd.publish.local"),
+        id: "publish",
+        status: "skip",
+      },
       { detail: REPO, id: "sources", status: "ok" },
       { detail: "app: bun install", id: "install", status: "ok" },
       {
         detail: translate()("state.project.online"),
         id: "up",
         status: "ok",
-      },
-      {
-        detail: translate()("projectAdd.publish.local"),
-        id: "publish",
-        status: "skip",
       },
     ]);
   });
@@ -443,12 +443,61 @@ describe("un dépôt qui démarre", () => {
       phase: "publish",
       status: "failed",
     });
-    expect(phase("up")).toBe("ok");
+    expect(phase("add")).toBe("ok");
+    expect(phase("sources")).toBe("pending");
 
     refuse = false;
     await useProjectAdd.getState().retry("srv-1");
 
     expect(useProjectAdd.getState().run).toMatchObject({ status: "done" });
+    expect(phase("up")).toBe("ok");
+  });
+
+  /** The route is the declaration's; dependencies that will not install are no reason for the name to stay unwritten. */
+  it("écrit le nom sur le web même quand les dépendances ne s'installent pas", async () => {
+    const named: string[] = [];
+
+    stubPupitre({
+      ...QUIET_RUN,
+      agentCall: () =>
+        Promise.resolve({
+          ok: true,
+          result: {
+            installed: true,
+            provider: "cloudflare",
+            routes: [
+              {
+                hostname: "vite-starter.example.org",
+                project: "vite-starter",
+                service: "http://127.0.0.1:3000",
+              },
+            ],
+            state: "running",
+          },
+        } as AgentResponse<unknown>),
+      installProject: () =>
+        Promise.resolve({
+          error: { code: "internal", message: "bun install: exit status 1" },
+          ok: false,
+        }),
+      syncTunnelRecords: (_server, routes) => {
+        named.push(...routes.map((route) => route.hostname));
+
+        return Promise.resolve({ ok: true, result: routes.length });
+      },
+    });
+
+    await useProjectAdd.getState().prepare("srv-1", TUNNEL);
+    useProjectAdd.getState().setSource(REPO);
+    await useProjectAdd.getState().launch("srv-1");
+
+    expect(named).toEqual(["vite-starter.example.org"]);
+    expect(phase("publish")).toBe("ok");
+    expect(useProjectAdd.getState().run).toMatchObject({
+      phase: "install",
+      status: "failed",
+    });
+    expect(phase("up")).toBe("pending");
   });
 });
 
@@ -1006,15 +1055,20 @@ describe("ce que le lecteur choisit du démarrage", () => {
 });
 
 describe("un démarrage qui prend son temps", () => {
-  /** `project.up` answers before the port is bound: what follows is read off `project.list`. */
+  /** `project.up` answers before the port is bound: what follows is read off the list of projects, through the main process. */
   function stub(states: readonly string[]) {
     const polled: string[] = [];
+    let started = false;
     let reads = 0;
 
     stubPupitre({
       ...QUIET_RUN,
-      agentPoll: (_serverId: string, cmd: string) => {
-        polled.push(cmd);
+      listProjects: () => {
+        if (!started) {
+          return Promise.resolve({ ok: true, result: { projects: [] } });
+        }
+
+        polled.push("project.list");
         const state = states[Math.min(reads, states.length - 1)];
         reads += 1;
 
@@ -1025,18 +1079,21 @@ describe("un démarrage qui prend son temps", () => {
               { ...project(useProjectAdd.getState().params()), state },
             ],
           },
-        } as AgentResponse<unknown>);
+        } as never);
       },
       projectJournal: () =>
         Promise.resolve({
           ok: true as const,
           result: { lines: ['error: script "dev" exited with code 1'] },
         }),
-      startProject: () =>
-        Promise.resolve({
+      startProject: () => {
+        started = true;
+
+        return Promise.resolve({
           ok: true as const,
           result: { state: "starting" as const },
-        }),
+        });
+      },
     });
     useProjectAdd.setState({ settleMs: 1 });
 
@@ -1088,6 +1145,202 @@ describe("un démarrage qui prend son temps", () => {
       state: "starting",
       status: "done",
     });
+  });
+
+  it("s'arrête à la première lecture refusée et la dit, au lieu de l'avaler", async () => {
+    let started = false;
+    let reads = 0;
+
+    stubPupitre({
+      ...QUIET_RUN,
+      listProjects: () => {
+        if (!started) {
+          return Promise.resolve({ ok: true, result: { projects: [] } });
+        }
+
+        reads += 1;
+
+        return Promise.resolve({
+          error: {
+            code: "entitlement_required",
+            fix: "Ouvre la console.",
+            message: "droit d'usage suspendu",
+          },
+          ok: false,
+        } as never);
+      },
+      startProject: () => {
+        started = true;
+
+        return Promise.resolve({
+          ok: true as const,
+          result: { state: "starting" as const },
+        });
+      },
+    });
+    useProjectAdd.setState({ settleMs: 1 });
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(SHOP);
+    await useProjectAdd.getState().launch("srv-1");
+
+    expect(reads).toBe(1);
+    expect(phase("up")).toBe("fail");
+    expect(useProjectAdd.getState().run).toMatchObject({
+      error: { code: "entitlement_required", fix: "Ouvre la console." },
+      phase: "up",
+      status: "failed",
+    });
+  });
+});
+
+describe("un projet que le serveur déclare déjà", () => {
+  const API = {
+    boot: false,
+    dir: "apps/api",
+    name: "api",
+    path: "/home/dev/projects/apps/api",
+    processes: [
+      {
+        cmd: "uv run dev --port 3400",
+        dir: ".",
+        host: "127.0.0.1",
+        id: "api",
+        path: "/home/dev/projects/apps/api",
+        pkgmgr: "uv",
+        port: 3400,
+        routes: [{ label: "api", port: 3400 }],
+        state: "stopped",
+      },
+    ],
+    state: "stopped",
+  };
+
+  function declaring() {
+    const added: unknown[] = [];
+
+    stubPupitre({
+      ...QUIET_RUN,
+      addProject: (_serverId: string, params: ProjectAddParams) => {
+        added.push(params);
+
+        return Promise.resolve({ ok: true as const, result: project(params) });
+      },
+      listProjects: () =>
+        Promise.resolve({
+          ok: true,
+          result: { projects: [API] },
+        } as never),
+    });
+
+    return added;
+  }
+
+  it("le nomme, ferme l'ajout et offre de l'ouvrir plutôt que de le redéclarer", async () => {
+    declaring();
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setKind("dir");
+    useProjectAdd.getState().setSource("apps/api");
+
+    expect(useProjectAdd.getState().declared()?.name).toBe("api");
+    expect(useProjectAdd.getState().ready()).toBe(false);
+    expect(useProjectAdd.getState().rowProblems(0)).toEqual([null]);
+  });
+
+  it("le reconnaît à son nom seul, même dans un autre dossier", async () => {
+    declaring();
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(REPO);
+    useProjectAdd.getState().setName("api");
+
+    expect(useProjectAdd.getState().declared()?.name).toBe("api");
+    expect(useProjectAdd.getState().ready()).toBe(false);
+  });
+
+  it("tient ses ports pour pris par un autre projet", async () => {
+    declaring();
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(SHOP);
+    useProjectAdd.getState().setRowPort(0, 0, 3400);
+
+    expect(useProjectAdd.getState().declared()).toBeNull();
+    expect(useProjectAdd.getState().rowProblems(0)[0]).toBe("portTaken");
+    expect(useProjectAdd.getState().ready()).toBe(false);
+  });
+});
+
+describe("un projet déclaré avec des réserves", () => {
+  it("poursuit la chaîne et garde chaque réserve sous la phase de déclaration", async () => {
+    stubPupitre({
+      ...QUIET_RUN,
+      addProject: (_serverId: string, params: ProjectAddParams) =>
+        Promise.resolve({
+          ok: true as const,
+          result: {
+            ...project(params),
+            warnings: [
+              "le dossier n'a pas pu être créé",
+              "node 22 n'est pas installé : la version par défaut sert",
+            ],
+          },
+        }),
+    });
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(SHOP);
+    await useProjectAdd.getState().launch("srv-1");
+
+    expect(phase("add")).toBe("ok");
+    expect(
+      useProjectAdd.getState().phases.find((entry) => entry.id === "add")
+        ?.warnings
+    ).toEqual([
+      "le dossier n'a pas pu être créé",
+      "node 22 n'est pas installé : la version par défaut sert",
+    ]);
+    expect(useProjectAdd.getState().run).toMatchObject({ status: "done" });
+  });
+});
+
+describe("ce que project.add emporte", () => {
+  function sending() {
+    const sent: Record<string, unknown>[] = [];
+
+    stubPupitre({
+      ...QUIET_RUN,
+      addProject: (_serverId: string, params: ProjectAddParams) => {
+        sent.push(params as Record<string, unknown>);
+
+        return Promise.resolve({ ok: true as const, result: project(params) });
+      },
+    });
+
+    return sent;
+  }
+
+  it("omet le démarrage avec le serveur tant qu'il n'est pas demandé", async () => {
+    const sent = sending();
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(SHOP);
+    await useProjectAdd.getState().launch("srv-1");
+
+    expect(sent[0]).not.toHaveProperty("boot");
+    expect(sent[0]).not.toHaveProperty("runtimes");
+  });
+
+  it("l'envoie quand il est demandé", async () => {
+    const sent = sending();
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(SHOP);
+    useProjectAdd.getState().setBoot(true);
+    await useProjectAdd.getState().launch("srv-1");
+
+    expect(sent[0]).toMatchObject({ boot: true });
   });
 });
 

@@ -13,6 +13,7 @@ export const project = {
     "project.tab.copilot": "Copilot",
     "project.tab.opencode": "OpenCode",
     "project.tab.hermes": "Hermes",
+    "project.editors.group": "Open in an editor",
     "project.editors.open": "Open {root} in {editor}",
     "project.editors.shareQuestion":
       "{editor} resolves the server through {file}. One line is added at its top so it does, then {root} opens.",
@@ -142,6 +143,7 @@ export const project = {
     "project.tab.copilot": "Copilot",
     "project.tab.opencode": "OpenCode",
     "project.tab.hermes": "Hermes",
+    "project.editors.group": "Ouvrir dans un éditeur",
     "project.editors.open": "Ouvrir {root} dans {editor}",
     "project.editors.shareQuestion":
       "{editor} résout le serveur par {file}. Une ligne s'ajoute en tête de ce fichier pour qu'il y arrive, puis {root} s'ouvre.",

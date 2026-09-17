@@ -281,6 +281,18 @@ describe("une reprise", () => {
     expect(state.step).toBe("install");
     expect(state.remaining).toEqual(["db.postgres"]);
   });
+
+  it("relance le durcissement quand elle tombe sur cette étape", () => {
+    const { state, effects } = transition(CLOSED, {
+      installed: true,
+      serverId: "srv-1",
+      step: "harden",
+      type: "resume",
+    });
+
+    expect(state.step).toBe("harden");
+    expect(effects).toContainEqual({ kind: "startHarden", serverId: "srv-1" });
+  });
 });
 
 describe("les étapes déclarées", () => {

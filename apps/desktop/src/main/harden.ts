@@ -51,6 +51,7 @@ export function registerHarden(): void {
         client: agentClient,
         close: (id) => agentClient.close(id),
         switchUser: switchAccount,
+        user: (id) => byId(id)?.user ?? null,
       });
     }
   );

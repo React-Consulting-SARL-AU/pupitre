@@ -5,6 +5,7 @@ import { MANAGED } from "../../__tests__/probe-fixtures";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
 import { useAccount } from "../account";
 import { useCatalog } from "../catalog";
+import { useHarden } from "../harden";
 import { useInspection } from "../inspection";
 import { useInstall } from "../install";
 import {
@@ -544,6 +545,60 @@ describe("une app qui redémarre", () => {
     expect(useCatalog.getState().catalog.status).toBe("idle");
   });
 
+  it("relance le durcissement quand la reprise tombe dessus et que rien ne tourne", async () => {
+    let hardened = 0;
+
+    server(machine(["core.system", "core.hardening"]));
+    stubPupitre({
+      ...window.pupitre,
+      harden: () => {
+        hardened += 1;
+
+        return new Promise(() => undefined);
+      },
+    });
+
+    useHarden.getState().reset();
+    useOnboarding.getState().begin("srv-1");
+    walkTo("harden");
+
+    expect(hardened).toBe(1);
+
+    relaunch();
+    useHarden.getState().reset();
+    await useOnboarding.getState().resume();
+
+    expect(useOnboarding.getState().step).toBe("harden");
+    expect(hardened).toBe(2);
+    expect(useHarden.getState().harden).toMatchObject({
+      serverId: "srv-1",
+      status: "running",
+    });
+  });
+
+  it("ne relance pas un durcissement déjà en route sur la même machine", async () => {
+    let hardened = 0;
+
+    server(machine(["core.system", "core.hardening"]));
+    stubPupitre({
+      ...window.pupitre,
+      harden: () => {
+        hardened += 1;
+
+        return new Promise(() => undefined);
+      },
+    });
+
+    useHarden.getState().reset();
+    useOnboarding.getState().begin("srv-1");
+    walkTo("harden");
+
+    relaunch();
+    await useOnboarding.getState().resume();
+
+    expect(hardened).toBe(1);
+  });
+
   it("renvoie à l'agent quand le binaire n'est jamais arrivé sur la machine", async () => {
     server(machine([], null));
 
@@ -705,5 +760,40 @@ describe("l'envoi du binaire de l'agent", () => {
       },
       status: "failed",
     });
+  });
+
+  it("n'envoie pas un second binaire tant que le premier est en route", async () => {
+    let sent = 0;
+    let settle: () => void = () => undefined;
+
+    stubPupitre({
+      sendAgent: () => {
+        sent += 1;
+
+        return new Promise((resolve) => {
+          settle = () =>
+            resolve({
+              ok: true,
+              result: {
+                arch: "amd64",
+                bytes: 18_000_000,
+                path: "/usr/local/bin/pupitred",
+                sha256: "a".repeat(64),
+              },
+            });
+        });
+      },
+    });
+
+    useOnboarding.getState().begin("srv-1");
+
+    const first = useOnboarding.getState().sendAgent();
+    const second = useOnboarding.getState().sendAgent();
+
+    settle();
+    await Promise.all([first, second]);
+
+    expect(sent).toBe(1);
+    expect(useOnboarding.getState().delivery).toMatchObject({ status: "sent" });
   });
 });

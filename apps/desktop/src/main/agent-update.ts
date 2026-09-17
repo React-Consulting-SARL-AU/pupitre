@@ -12,7 +12,7 @@ import { agentClient } from "./agent";
 import { carriedRelease } from "./agent-binary";
 import {
   type AgentUpdateDeps,
-  readAgentUpdate,
+  readAgentUpdateShared,
   runAgentUpgrade,
   runMigrate,
   runModuleUpgrade,
@@ -79,7 +79,9 @@ export function registerAgentUpdate(): void {
     ): Promise<AgentResponse<AgentUpdateState>> => {
       const server = known(serverId);
 
-      return server ? await readAgentUpdate(server, deps()) : unknownServer();
+      return server
+        ? await readAgentUpdateShared(server, deps())
+        : unknownServer();
     }
   );
 

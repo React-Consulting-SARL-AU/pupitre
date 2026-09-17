@@ -107,7 +107,10 @@ describe("les dépôts du compte GitHub", () => {
 });
 
 describe("un chemin que le renderer aurait inventé", () => {
-  const knows = (serverId: string) => serverId === "srv-1";
+  const knows = {
+    declaresService: () => true,
+    knows: (serverId: string) => serverId === "srv-1",
+  };
 
   function refused(cmd: string, params: unknown): string | null {
     const call = checkedCall("srv-1", cmd, params, knows);

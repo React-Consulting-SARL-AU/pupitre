@@ -4,6 +4,7 @@ import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { fieldControlClass } from "@renderer/components/ui/field";
 import { WaitingLine } from "@renderer/components/ui/waiting-line";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { heldForUsage } from "@renderer/lib/refusals";
 import type { BranchState } from "@renderer/stores/project";
 import { ArrowRightLeft, GitBranchPlus } from "lucide-react";
 import { useState } from "react";
@@ -45,7 +46,9 @@ export function ProjectBranches({
   }
 
   if (state.status === "failed") {
-    return <ErrorNotice error={state.error} />;
+    return heldForUsage(state.error) ? null : (
+      <ErrorNotice error={state.error} />
+    );
   }
 
   const { branches } = state;

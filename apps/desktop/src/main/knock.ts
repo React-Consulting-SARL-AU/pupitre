@@ -5,6 +5,7 @@ import type {
   ServerKnock,
   ServerReach,
 } from "@shared/servers";
+import { designatedKeyFile } from "./key-files";
 import {
   ALONE,
   CONNECT_TIMEOUT_S,
@@ -51,6 +52,8 @@ export interface KnockOptions {
   reach?: (host: string, port: number) => Promise<AddressReach>;
   /** Drops a pin no listed server owns; answers whether there was one to drop. */
   forgetStalePin?: () => Promise<boolean>;
+  /** Whether the file picker handed this key path out: no other reaches `ssh -i`. */
+  designated?: (path: unknown) => boolean;
 }
 
 export function knockArgs(
@@ -93,18 +96,20 @@ export async function probeAccess(
     platform = current(),
     timeoutMs = RUN_TIMEOUT_MS,
     forgetStalePin = () => Promise.resolve(false),
+    designated = designatedKeyFile,
   }: KnockOptions = {}
 ): Promise<ServerAccess> {
+  const keyFile = designated(target.keyFile) ? target.keyFile : null;
+
   trace("knock", "account", {
     host: target.host,
+    keyFile: keyFile !== null,
     port: target.port,
     user: target.user,
   });
 
-  let ran = await runSsh(knockArgs(target, paths, identities), {
-    spawn,
-    timeoutMs,
-  });
+  const args = knockArgs({ ...target, keyFile }, paths, identities);
+  let ran = await runSsh(args, { spawn, timeoutMs });
 
   if (ran.code !== 0 && rebuffOf(ran.stderr) === "host-key") {
     const dropped = await forgetStalePin();
@@ -112,10 +117,7 @@ export async function probeAccess(
     trace("knock", "stale-pin", { dropped, host: target.host });
 
     if (dropped) {
-      ran = await runSsh(knockArgs(target, paths, identities), {
-        spawn,
-        timeoutMs,
-      });
+      ran = await runSsh(args, { spawn, timeoutMs });
     }
   }
 

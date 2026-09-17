@@ -15,7 +15,7 @@ import { useServices } from "@renderer/stores/services";
 import { forwardsOf, useTunnel } from "@renderer/stores/tunnel";
 import { databaseEngineOf } from "@shared/services";
 import { ArrowLeft, RefreshCw } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { ServiceAccount } from "./service-account";
 import { ServiceConfig } from "./service-config";
 import { ServiceControls } from "./service-controls";
@@ -84,14 +84,21 @@ export function ServicePanel({
     }
   }, [picksZone, loadZones]);
 
+  // The manifest is read through a ref: a catalogue re-read hands a new object
+  // for the same module, and reopening the form on it would drop what was typed.
+  const held = useRef(manifest);
+  held.current = manifest;
+  const manifestId = manifest?.id ?? null;
+
   // Leaving the page is enough to drop the values, whichever way it is left.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the form reopens when the module or its manifest's identity changes, not on every object the catalogue hands
   useEffect(() => {
-    open(serverId, moduleId, manifest);
+    open(serverId, moduleId, held.current);
 
     return () => {
       window.pupitre.forgetCredentials(serverId, moduleId);
     };
-  }, [serverId, moduleId, manifest, open]);
+  }, [serverId, moduleId, manifestId, open]);
 
   const {
     detail,
@@ -250,6 +257,7 @@ export function ServicePanel({
         onValue={store.setValue}
         problems={store.shown()}
         secrets={secrets}
+        secretsDropped={store.secretsDropped}
         steps={steps}
         values={values}
         zones={picksZone ? zones : []}

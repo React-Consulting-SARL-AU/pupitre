@@ -17,7 +17,7 @@ import { translate } from "@renderer/i18n/translate";
 import type { AgentError, AgentResponse } from "@shared/agent";
 import type { GithubRepo } from "@shared/github";
 import { create } from "zustand";
-import { agentCall, agentPoll } from "../lib/agent-call";
+import { agentCall } from "../lib/agent-call";
 import {
   FIRST_PORT,
   folderFromSource,
@@ -52,9 +52,12 @@ import { useTunnel } from "./tunnel";
 /**
  * A project added to a server, from an address to a journal.
  *
- * The order is the whole of it: declare the project, bring its sources and its
- * dependencies, start it, give it its name on the web when it has one, then
- * read its journal and its address. Nothing here decides anything the agent
+ * The order is the whole of it: declare the project, give it its name on the
+ * web when it has one, bring its sources and its dependencies, start it, then
+ * read its journal and its address. The name comes right after the declaration
+ * because the agent wrote the route with it: sources that will not clone or
+ * dependencies that will not install are no reason for the tunnel to stay
+ * unwritten. Nothing here decides anything the agent
  * has not said — the repository is read by the agent before it is declared, a
  * refused port comes back with the free one in its remedy, and that is the
  * port the form then proposes.
@@ -129,10 +132,10 @@ export type SourceKind = (typeof SOURCE_KINDS)[number];
 
 export const PHASES = [
   "add",
+  "publish",
   "sources",
   "install",
   "up",
-  "publish",
   "logs",
 ] as const;
 
@@ -144,6 +147,8 @@ export interface Phase {
   id: PhaseId;
   status: PhaseStatus;
   detail?: string;
+  /** What the agent refused after the row was written: the phase stands, and each one is said under it. */
+  warnings?: string[];
 }
 
 export interface Draft {
@@ -288,6 +293,8 @@ interface ProjectAddStore {
   reset: () => void;
 
   params: () => ProjectAddParams;
+  /** The project the server already declares at this folder or under this name: it is opened, not declared again. */
+  declared: () => Project | null;
   ready: () => boolean;
   /** Why a process would be refused, before the agent is asked. */
   processProblem: (process: number) => ProcessProblem | null;
@@ -316,10 +323,10 @@ function pending(): Phase[] {
   return PHASES.map((id) => ({ id, status: "pending" }));
 }
 
-/** What the other projects hold: a project the draft names again does not compete with its own rows. */
-function heldOf(known: KnownState, name: string): Held {
+/** What the declared projects hold: every one of them, the one the draft may name again included. */
+function heldOf(known: KnownState): Held {
   return known.status === "ready"
-    ? heldBy(known.projects, name)
+    ? heldBy(known.projects)
     : { hostnames: [], ports: [] };
 }
 
@@ -375,6 +382,25 @@ function declaredAt(
   );
 }
 
+/**
+ * The request as it goes on the wire: an optional param at its default is
+ * left out. `project.add` refuses a key it does not know, and an agent from
+ * before `boot` and `runtimes` still has to take a project that asks neither.
+ */
+export type ProjectAddRequest = Omit<ProjectAddParams, "boot"> & {
+  boot?: boolean;
+};
+
+export function requestOf(params: ProjectAddParams): ProjectAddRequest {
+  const { boot, runtimes, ...rest } = params;
+
+  return {
+    ...rest,
+    ...(boot ? { boot: true } : {}),
+    ...(runtimes && Object.keys(runtimes).length > 0 ? { runtimes } : {}),
+  };
+}
+
 function detectParams(draft: Draft): ProjectDetectParams {
   const source = draft.source.trim();
   const branch = draft.branch.trim();
@@ -404,10 +430,22 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     set((state) => ({ logs: [...state.logs, ...lines].slice(-LOG_KEPT) }));
   }
 
-  function mark(id: PhaseId, status: PhaseStatus, detail?: string): void {
+  function mark(
+    id: PhaseId,
+    status: PhaseStatus,
+    detail?: string,
+    warnings: readonly string[] = []
+  ): void {
     set((state) => ({
       phases: state.phases.map((phase) =>
-        phase.id === id ? { id, status, ...(detail ? { detail } : {}) } : phase
+        phase.id === id
+          ? {
+              id,
+              status,
+              ...(detail ? { detail } : {}),
+              ...(warnings.length > 0 ? { warnings: [...warnings] } : {}),
+            }
+          : phase
       ),
     }));
   }
@@ -440,7 +478,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       { ...draft, ...next },
       merged,
       exposure !== null,
-      heldSubdomains(heldOf(known, draft.name).hostnames)
+      heldSubdomains(heldOf(known).hostnames)
     );
     const already = declaredAt(known, wanted.name, wanted.dir);
 
@@ -467,7 +505,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
    */
   function takePort(free: number): void {
     const { draft, known } = get();
-    const held = heldOf(known, draft.name).ports;
+    const held = heldOf(known).ports;
 
     for (const [index, current] of draft.processes.entries()) {
       const row = current.rows.findIndex((held_) => held.includes(held_.port));
@@ -571,7 +609,12 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
 
   async function declare(serverId: string): Promise<boolean> {
     const added = await step("add", serverId, () =>
-      window.pupitre.addProject(serverId, get().params())
+      window.pupitre.addProject(
+        serverId,
+        // The schema's output type requires `boot`; the wire omits it at its
+        // default, so an agent whose params are closed still takes the request.
+        requestOf(get().params()) as ProjectAddParams
+      )
     );
 
     if (added.ok) {
@@ -580,7 +623,8 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
         "ok",
         `${added.result.dir} · ${added.result.processes
           .map((process) => `${process.id}:${process.port}`)
-          .join(" · ")}`
+          .join(" · ")}`,
+        added.result.warnings
       );
 
       return true;
@@ -668,32 +712,32 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
    *
    * `project.up` answers the moment the window opens, which is always
    * "starting" for a server worth the name. What follows is read off the
-   * machine on the dashboard's beat, until the state moves or the reads run
-   * out; a read that fails keeps the last state known.
+   * machine through the main process, until the state moves or the reads run
+   * out; a read the agent refuses stops the wait and is what the screen says.
    */
   async function settle(
     serverId: string,
     name: string,
     initial: ProjectState
-  ): Promise<ProjectState> {
+  ): Promise<{ state: ProjectState } | { refused: AgentError }> {
     let state = initial;
 
     for (let read = 0; read < SETTLE_READS && state === "starting"; read++) {
       await delay(get().settleMs);
 
-      const answer = await agentPoll<ProjectListResult>(
-        serverId,
-        "project.list"
-      );
+      const answer: AgentResponse<ProjectListResult> =
+        await window.pupitre.listProjects(serverId);
 
-      if (answer.ok) {
-        state =
-          answer.result.projects.find((project) => project.name === name)
-            ?.state ?? state;
+      if (!answer.ok) {
+        return { refused: answer.error };
       }
+
+      state =
+        answer.result.projects.find((project) => project.name === name)
+          ?.state ?? state;
     }
 
-    return state;
+    return { state };
   }
 
   /**
@@ -719,7 +763,16 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       return null;
     }
 
-    const state = await settle(serverId, name, started.result.state);
+    const settled = await settle(serverId, name, started.result.state);
+
+    if ("refused" in settled) {
+      await readLogs(serverId, name);
+      fail("up", settled.refused);
+
+      return null;
+    }
+
+    const { state } = settled;
 
     if (IDLE_STATES.includes(state)) {
       await readLogs(serverId, name);
@@ -743,9 +796,10 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
   /**
    * The name on the web, when the project has one.
    *
-   * The agent wrote the route; the record that makes the name answer is the
-   * app's, written from the account it holds. A project that is not published
-   * has nothing to do here.
+   * The agent wrote the route with the declaration; the record that makes the
+   * name answer is the app's, written from the account it holds. It needs
+   * nothing of what follows, so nothing that follows can keep it from being
+   * written. A project that is not published has nothing to do here.
    */
   async function publishRoute(serverId: string): Promise<boolean> {
     const published = publishedSubdomains(
@@ -852,6 +906,10 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       return;
     }
 
+    if (start <= PHASES.indexOf("publish") && !(await publishRoute(serverId))) {
+      return;
+    }
+
     const sources =
       start <= PHASES.indexOf("sources")
         ? await bringSources(serverId, name)
@@ -871,10 +929,6 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     const started = await startIfAsked(serverId, name, start);
 
     if (!started) {
-      return;
-    }
-
-    if (start <= PHASES.indexOf("publish") && !(await publishRoute(serverId))) {
       return;
     }
 
@@ -1084,11 +1138,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
           processes: atProcess(draft.processes, process, {
             rows: [
               ...current.rows,
-              addedRow(
-                current.rows,
-                heldOf(known, draft.name),
-                exposure !== null
-              ),
+              addedRow(current.rows, heldOf(known), exposure !== null),
             ],
           }),
         },
@@ -1122,11 +1172,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
         {
           processes: [
             ...draft.processes,
-            addedProcess(
-              draft.processes,
-              heldOf(known, draft.name),
-              exposure !== null
-            ),
+            addedProcess(draft.processes, heldOf(known), exposure !== null),
           ],
         },
         { processes: true }
@@ -1386,29 +1432,37 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       return processProblem(get().draft.processes, process);
     },
 
+    /** A declared project is its own refusal: its rows are not weighed against itself. */
     rowProblems(process) {
       const { draft, exposure, known } = get();
+
+      if (get().declared()) {
+        return (draft.processes[process]?.rows ?? []).map(() => null);
+      }
 
       return rowProblems(
         draft.processes,
         process,
-        heldOf(known, draft.name),
+        heldOf(known),
         exposure !== null
       );
+    },
+
+    declared() {
+      const { draft, known } = get();
+
+      return declaredAt(known, draft.name, draft.dir);
     },
 
     ready() {
       const { draft, exposure, known } = get();
 
       return (
+        !get().declared() &&
         PROJECT_NAME.test(draft.name) &&
         draft.dir.length > 0 &&
         (draft.kind === "dir" || draft.source.trim().length > 0) &&
-        processesReady(
-          draft.processes,
-          heldOf(known, draft.name),
-          exposure !== null
-        )
+        processesReady(draft.processes, heldOf(known), exposure !== null)
       );
     },
   };

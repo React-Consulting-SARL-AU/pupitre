@@ -285,7 +285,9 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
         startInstall(effect.serverId, effect.modules);
         break;
       case "startHarden":
-        useHarden.getState().start(effect.serverId);
+        if (!hardening(effect.serverId)) {
+          useHarden.getState().start(effect.serverId);
+        }
         break;
       case "reloadReport":
         useInstall.getState().reload(effect.serverId);
@@ -307,6 +309,18 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
       default:
         break;
     }
+  }
+
+  /** A hardening already under way on this machine is not asked for twice. */
+  function hardening(serverId: string): boolean {
+    const { harden } = useHarden.getState();
+
+    return (
+      harden.status !== "idle" &&
+      harden.status !== "done" &&
+      harden.status !== "failed" &&
+      harden.serverId === serverId
+    );
   }
 
   function send(event: Event): void {
@@ -460,9 +474,9 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
     },
 
     async sendAgent() {
-      const { serverId } = get();
+      const { serverId, delivery } = get();
 
-      if (!serverId) {
+      if (!serverId || delivery.status === "sending") {
         return;
       }
 

@@ -9,7 +9,10 @@ import {
 } from "@shared/services";
 import {
   credentialValue,
+  declaresService,
   forgetCredentials,
+  forgetServices,
+  noteServices,
   readDatabaseUrl,
   readService,
   type ServicesDeps,
@@ -73,6 +76,8 @@ function agent(
         );
       },
     } as ServicesDeps["client"],
+    declares: (serverId, moduleId) =>
+      serverId === SERVER && ["db.postgres", "tool.github"].includes(moduleId),
     knows: (serverId) => serverId === SERVER,
   };
 
@@ -188,6 +193,81 @@ describe("l'état d'un service", () => {
 
     expect(answer.ok).toBe(false);
     expect(sent).toEqual([]);
+  });
+
+  it("refuse un service que l'agent n'a pas listé, sans rien lui demander", async () => {
+    const { deps, sent } = agent({ "service.status": STATUS });
+
+    const answer = await readService(SERVER, "db.inventé", deps);
+
+    expect(answer).toMatchObject({
+      ok: false,
+      error: {
+        code: "service_not_found",
+        phrase: {
+          id: "refusal.service.unknown",
+          values: { service: "db.inventé" },
+        },
+      },
+    });
+    expect(sent).toEqual([]);
+  });
+});
+
+/**
+ * The services the renderer may name are the ones the agent listed, and the
+ * list is the agent's last word: a `snapshot` without a module is a module the
+ * app no longer drives.
+ */
+describe("les services que l'agent a listés", () => {
+  afterEach(() => {
+    forgetServices();
+  });
+
+  it("retient ce qu'un snapshot ou un status a listé, et rien d'autre", () => {
+    expect(declaresService(SERVER, "db.postgres")).toBe(false);
+
+    noteServices(SERVER, "snapshot", {
+      ok: true,
+      result: { services: [{ id: "db.postgres" }, { id: "runtime.node" }] },
+    });
+
+    expect(declaresService(SERVER, "db.postgres")).toBe(true);
+    expect(declaresService(SERVER, "runtime.node")).toBe(true);
+    expect(declaresService(SERVER, "db.mysql")).toBe(false);
+    expect(declaresService("srv-2", "db.postgres")).toBe(false);
+
+    noteServices(SERVER, "status", {
+      ok: true,
+      result: { services: [{ id: "db.mysql" }] },
+    });
+
+    expect(declaresService(SERVER, "db.postgres")).toBe(false);
+    expect(declaresService(SERVER, "db.mysql")).toBe(true);
+  });
+
+  it("ignore une réponse qui ne liste pas les services", () => {
+    noteServices(SERVER, "service.status", {
+      ok: true,
+      result: { id: "db.postgres" },
+    });
+    noteServices(SERVER, "snapshot", {
+      ok: false,
+      error: { code: "disconnected", message: "coupé" },
+    });
+
+    expect(declaresService(SERVER, "db.postgres")).toBe(false);
+  });
+
+  it("s'oublie avec le serveur", () => {
+    noteServices(SERVER, "snapshot", {
+      ok: true,
+      result: { services: [{ id: "db.postgres" }] },
+    });
+
+    forgetServices(SERVER);
+
+    expect(declaresService(SERVER, "db.postgres")).toBe(false);
   });
 });
 

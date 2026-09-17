@@ -2,6 +2,38 @@ import { logoFor } from "@pupitre/design/logos";
 import { Box } from "lucide-react";
 import type { ButtonIcon } from "./button";
 
+const GLYPHS = new Map<string, ButtonIcon>();
+
+/**
+ * A module's logo in the shape of a Lucide icon, so a button can hold it where
+ * it would hold a glyph — or nothing, when the module has no logo to show. A
+ * monochrome mark takes the button's ink; one in colour keeps its own.
+ */
+export function logoGlyph(moduleId: string): ButtonIcon | null {
+  const logo = logoFor(moduleId);
+
+  if (!logo) {
+    return null;
+  }
+
+  let glyph = GLYPHS.get(moduleId);
+
+  if (!glyph) {
+    glyph = ({ size = 16, className = "" }) => (
+      <span
+        className={`inline-flex shrink-0 [&>svg]:h-full [&>svg]:w-full ${className}`}
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: the markup is a build-time fragment of @pupitre/design, never a value from the agent
+        dangerouslySetInnerHTML={{ __html: logo.svg }}
+        data-logo={moduleId}
+        style={{ height: size, width: size }}
+      />
+    );
+    GLYPHS.set(moduleId, glyph);
+  }
+
+  return glyph;
+}
+
 /**
  * The one splash of colour the system allows, and its fallback.
  *

@@ -3,6 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AddressReach, ServerKnock } from "@shared/servers";
+import { designateKeyFile } from "../key-files";
 import { knock, knockArgs, probeAccess } from "../knock";
 import { appSshPaths } from "../ssh-config";
 import { recorder } from "./ssh-recorder";
@@ -43,6 +44,32 @@ describe("la frappe sur un compte", () => {
     expect(args).toContain(`UserKnownHostsFile=${PATHS.knownHostsPath}`);
     expect(args).toContain("StrictHostKeyChecking=accept-new");
     expect(args).toContain("ControlMaster=no");
+  });
+
+  /**
+   * The file to import is a path the renderer carries: it is offered to `ssh`
+   * only when the file picker handed it out, and a path named any other way
+   * is knocked without.
+   */
+  it("n'offre à ssh qu'une clé que le sélecteur a désignée", async () => {
+    const invented = recorder([{ code: 0 }]);
+
+    await probeAccess({ ...TARGET, keyFile: "/home/j/.ssh/vps" }, PATHS, {
+      identities: [],
+      spawn: invented.spawn,
+    });
+
+    expect(invented.calls[0]?.args.join(" ")).not.toContain("/home/j/.ssh/vps");
+
+    const picked = recorder([{ code: 0 }]);
+    const file = designateKeyFile("/home/j/.ssh/picked") ?? "";
+
+    await probeAccess({ ...TARGET, keyFile: file }, PATHS, {
+      identities: [],
+      spawn: picked.spawn,
+    });
+
+    expect(picked.calls[0]?.args.join(" ")).toContain("-i /home/j/.ssh/picked");
   });
 
   it("dit que le compte s'ouvre déjà quand ssh entre", async () => {

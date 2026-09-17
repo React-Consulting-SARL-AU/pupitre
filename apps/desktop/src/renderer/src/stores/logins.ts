@@ -23,44 +23,58 @@ interface LoginsStore {
   forget: () => void;
 }
 
-export const useLogins = create<LoginsStore>((set, get) => ({
-  answers: {},
-  serverId: null,
+export const useLogins = create<LoginsStore>((set, get) => {
+  /** Which reading is the current one: an older one, still asking, stops. */
+  let turn = 0;
 
-  async read(serverId, moduleIds) {
-    set((state) => ({
-      answers: Object.fromEntries(
-        moduleIds.map((moduleId) => [
-          moduleId,
-          (state.serverId === serverId ? state.answers[moduleId] : null) ?? {
-            status: "asking",
-          },
-        ])
-      ),
-      serverId,
-    }));
+  return {
+    answers: {},
+    serverId: null,
 
-    // One question at a time: the agent answers its channel in order, and the
-    // snapshot read every few seconds should not wait behind all of them.
-    for (const moduleId of moduleIds) {
-      const answer = await window.pupitre.serviceDetail(serverId, moduleId);
-
-      if (get().serverId !== serverId) {
-        return;
-      }
+    async read(serverId, moduleIds) {
+      turn += 1;
+      const asked = turn;
 
       set((state) => ({
-        answers: {
-          ...state.answers,
-          [moduleId]: answer.ok
-            ? { login: answer.result.login ?? null, status: "answered" }
-            : { error: answer.error, status: "failed" },
-        },
+        answers: Object.fromEntries(
+          moduleIds.map((moduleId) => [
+            moduleId,
+            (state.serverId === serverId ? state.answers[moduleId] : null) ?? {
+              status: "asking",
+            },
+          ])
+        ),
+        serverId,
       }));
-    }
-  },
 
-  forget() {
-    set({ answers: {}, serverId: null });
-  },
-}));
+      // One question at a time: the agent answers its channel in order, and
+      // the snapshot read every few seconds should not wait behind all of
+      // them. A newer reading takes the questions over: this one stops.
+      for (const moduleId of moduleIds) {
+        if (asked !== turn) {
+          return;
+        }
+
+        const answer = await window.pupitre.serviceDetail(serverId, moduleId);
+
+        if (get().serverId !== serverId) {
+          return;
+        }
+
+        set((state) => ({
+          answers: {
+            ...state.answers,
+            [moduleId]: answer.ok
+              ? { login: answer.result.login ?? null, status: "answered" }
+              : { error: answer.error, status: "failed" },
+          },
+        }));
+      }
+    },
+
+    forget() {
+      turn += 1;
+      set({ answers: {}, serverId: null });
+    },
+  };
+});

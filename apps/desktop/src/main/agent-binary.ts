@@ -39,6 +39,17 @@ const AGENT_STAGING_PATH = "/usr/local/bin/.pupitred.new";
  */
 export const AGENT_INSTALL_COMMAND = `set -e; install -m 755 /dev/stdin ${AGENT_STAGING_PATH}; sha256sum ${AGENT_STAGING_PATH}; mv -f ${AGENT_STAGING_PATH} ${AGENT_REMOTE_PATH}; systemctl restart pupitred 2>/dev/null || true`;
 
+/**
+ * The install command for the account the push logs in as: `/usr/local/bin`
+ * and the unit belong to root, and a hardened server is reached as `dev`,
+ * who holds passwordless sudo for exactly this. Root needs none.
+ */
+export function installCommandAs(user: string): string {
+  return user === "root"
+    ? AGENT_INSTALL_COMMAND
+    : `sudo -n sh -c '${AGENT_INSTALL_COMMAND}'`;
+}
+
 const SEND_TIMEOUT_MS = 180_000;
 
 export interface AgentPayload {
@@ -51,8 +62,8 @@ export interface AgentPayload {
 
 export type ShellSpawn = (command: string, args: string[]) => ChildProcess;
 
-export function agentSshArgs(args: string[]): string[] {
-  return ["-o", "BatchMode=yes", ...args, AGENT_INSTALL_COMMAND];
+export function agentSshArgs(args: string[], user: string): string[] {
+  return ["-o", "BatchMode=yes", ...args, installCommandAs(user)];
 }
 
 function absent(arch: string): AgentResponse<never> {
@@ -165,16 +176,19 @@ function receivedSum(output: string): string | null {
 export function sendAgentBinary({
   args,
   payload,
+  user,
   spawn = defaultSpawn,
   timeoutMs = SEND_TIMEOUT_MS,
 }: {
   args: string[];
   payload: AgentPayload;
+  /** The account `args` log in as: what decides whether the install goes through sudo. */
+  user: string;
   spawn?: ShellSpawn;
   timeoutMs?: number;
 }): Promise<AgentResponse<AgentDelivery>> {
   return new Promise((resolve) => {
-    const child = spawn("ssh", agentSshArgs(args));
+    const child = spawn("ssh", agentSshArgs(args, user));
 
     let out = "";
     let err = "";

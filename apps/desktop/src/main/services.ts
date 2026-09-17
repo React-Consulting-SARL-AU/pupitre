@@ -16,7 +16,9 @@ import { relayTo } from "./relay";
 import { byId, paths } from "./servers";
 import {
   credentialValue,
+  declaresService,
   forgetCredentials,
+  forgetServices,
   readDatabaseUrl,
   readService,
   type ServicesDeps,
@@ -35,6 +37,7 @@ import { sshArgs } from "./ssh-config";
 
 const deps: ServicesDeps = {
   client: agentClient,
+  declares: declaresService,
   knows: (serverId) => Boolean(byId(serverId)),
 };
 
@@ -55,6 +58,7 @@ export const forwardDeps: ForwardDeps = {
 
 export function forgetServiceCredentials(serverId?: string): void {
   forgetCredentials(serverId);
+  forgetServices(serverId);
   closeForwards(serverId);
   forgetShells(serverId);
 }

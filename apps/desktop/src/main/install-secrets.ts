@@ -7,8 +7,8 @@ import type { SecretMark, SecretMarks } from "@shared/secrets";
  *
  * They live here and nowhere else: not in a renderer store, not in a file, not
  * in a log line, not in `install`'s parameters. The screen sends a value in and
- * gets a mark back; only `takeSecrets` reads the values, once, to write the
- * protocol's secret line — and it empties the vault as it does.
+ * gets a mark back; only `readSecrets` reads the values, to write the
+ * protocol's secret line, and the vault is emptied once the agent has taken it.
  */
 
 const GENERATED_BYTES = 24;
@@ -134,12 +134,14 @@ export function marks(serverId: string): SecretMarks {
 }
 
 /**
- * The line that follows the `install` request on standard input, and the end of
- * these secrets. The caller writes it and lets it go; nothing is kept for a
- * second attempt, which would mean holding a password for an install that may
- * never come.
+ * The line that follows the `install` request on standard input.
+ *
+ * The vault is not emptied here: a request the agent refuses — a field wrong
+ * elsewhere in the form, a machine busy, a line cut before it read anything —
+ * has consumed nothing, and the next Apply must carry the same secrets. The
+ * caller forgets them once the agent has accepted the install.
  */
-export function takeSecrets(serverId: string): InstallSecrets {
+export function readSecrets(serverId: string): InstallSecrets {
   const line: InstallSecrets = {};
 
   for (const [moduleId, secrets] of vault(serverId)) {
@@ -149,9 +151,11 @@ export function takeSecrets(serverId: string): InstallSecrets {
     }
   }
 
-  forgetSecrets(serverId);
-
   return line;
+}
+
+export function holdsSecrets(serverId: string): boolean {
+  return (vaults.get(serverId)?.size ?? 0) > 0;
 }
 
 export function forgetSecrets(serverId: string): void {

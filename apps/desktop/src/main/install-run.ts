@@ -11,6 +11,7 @@ import type { AgentResponse } from "@shared/agent";
 import type { InstallUpdate } from "@shared/install";
 import type { AgentDelivery } from "./agent-binary";
 import type { AgentClient } from "./agent-client";
+import { runMigrate } from "./agent-update-run";
 import { refusalOf, refuseWith } from "./refusal";
 import type { ManagedValues } from "./tunnel-run";
 
@@ -20,16 +21,19 @@ export type { InstallUpdate } from "@shared/install";
  * One installation, from the binary to the report.
  *
  * The order is the whole of it: probe the machine, put `pupitred` on it if it
- * has none, hand that agent the enrolment token the platform just granted, ask
- * it which modules it stands behind, take the secrets out of the vault, then
- * speak `install` once. The
- * secrets are read here and written by the channel on the line that follows the
- * request — they never enter `params`, never cross the bridge, and the vault is
- * empty by the time the first step event comes back.
+ * has none or has fallen behind — then drop the channels, since the session
+ * answering us still runs the binary the rename replaced, and bring the
+ * machine's configuration to the shape the new one reads — hand that agent the
+ * enrolment token the platform just granted, ask it which modules it stands
+ * behind, read the secrets from the vault, then speak `install` once. The
+ * secrets are written by the channel on the line that follows the request —
+ * they never enter `params`, never cross the bridge — and the vault is emptied
+ * once the agent has accepted the install: a refusal has consumed nothing, and
+ * the next Apply carries them again.
  */
 
 export interface InstallDeps {
-  client: Pick<AgentClient, "request">;
+  client: Pick<AgentClient, "request" | "close">;
   probe: (serverId: string) => Promise<AgentResponse<ProbeResult>>;
   deliver: (
     serverId: string,
@@ -43,8 +47,10 @@ export interface InstallDeps {
    * on exactly the machines this whole path exists for.
    */
   declared: (serverId: string) => Promise<AgentResponse<readonly string[]>>;
-  /** Reads the vault and empties it: these secrets are used once or lost. */
+  /** Reads the vault, and leaves it as it is. */
   secrets: (serverId: string) => InstallSecrets;
+  /** Empties the vault, once the agent holds what was in it. */
+  forgetSecrets: (serverId: string) => void;
   /**
    * The enrolment the platform granted for that server, taken once.
    *
@@ -216,6 +222,38 @@ function secretsOf(
   return kept;
 }
 
+/**
+ * The agent validates the whole configuration before its first step, and
+ * writes its report only then: a step seen, on the channel or replayed from the
+ * report, says the request was taken — secrets included — even when the answer
+ * that followed was a cut or a timeout.
+ */
+function isStep(update: InstallUpdate): boolean {
+  return update.kind === "event" && update.event.event === "step";
+}
+
+/**
+ * The binary the app just pushed is not the one the open sessions run: they
+ * hold the file the rename replaced. A machine that already ran the agent has a
+ * configuration to bring to the new binary's shape before anything else is
+ * asked of it; a bare one has nothing to migrate yet.
+ */
+async function reopened(
+  serverId: string,
+  probe: ProbeResult,
+  deps: Pick<InstallDeps, "client">
+): Promise<AgentResponse<null>> {
+  deps.client.close(serverId);
+
+  if (probe.agent_version === null) {
+    return { ok: true, result: null };
+  }
+
+  const migrated = await runMigrate(serverId, deps);
+
+  return migrated.ok ? { ok: true, result: null } : migrated;
+}
+
 export async function runInstall(
   serverId: string,
   modules: readonly string[],
@@ -251,6 +289,12 @@ export async function runInstall(
     }
 
     update({ arch, bytes: delivery.result.bytes, kind: "sent" });
+
+    const fresh = await reopened(serverId, probe.result, deps);
+
+    if (!fresh.ok) {
+      return fresh;
+    }
 
     const enrolled = await enrolAgent(
       serverId,
@@ -291,13 +335,12 @@ export async function runInstall(
     return managed;
   }
 
-  const secrets = secretsOf(
-    merged(deps.secrets(serverId), managed.result.secrets),
-    modules
-  );
+  const typed = deps.secrets(serverId);
+  const secrets = secretsOf(merged(typed, managed.result.secrets), modules);
   const carries = Object.keys(secrets).length > 0;
+  let taken = false;
 
-  return await deps.client.request(
+  const answer = await deps.client.request(
     serverId,
     "install",
     {
@@ -307,10 +350,26 @@ export async function runInstall(
       secrets_stdin: carries,
     },
     {
-      onEvent: (event) => update({ event, kind: "event" }),
+      onEvent: (event) => {
+        const change: InstallUpdate = { event, kind: "event" };
+
+        taken ||= isStep(change);
+        update(change);
+      },
       ...(carries ? { secrets } : {}),
     }
   );
+
+  if (answer.ok || taken) {
+    deps.forgetSecrets(serverId);
+  }
+
+  update({
+    held: Object.keys(typed).length > 0 && !(answer.ok || taken),
+    kind: "secrets",
+  });
+
+  return answer;
 }
 
 /**

@@ -53,7 +53,7 @@ export interface MachineFacts {
 
 export interface AgentUpdateDeps {
   client: Pick<AgentClient, "request" | "close" | "session">;
-  /** The last resort when the protocol refuses to answer: the shell probe. */
+  /** The last resort when the protocol refuses to answer a gesture: the shell probe. */
   probe: (serverId: string) => Promise<AgentResponse<ProbeResult>>;
   carried: (arch: string) => CarriedRelease | null;
   /** The version the platform publishes for this architecture, when it answers. */
@@ -67,17 +67,24 @@ export interface AgentUpdateDeps {
  * The architecture and the agent's version, whatever state the server is in.
  *
  * `snapshot` answers even in restricted mode, which is exactly the server that
- * needs repairing; a server whose agent is too old to speak the protocol at all
- * answers nothing, and the probe is what reads the machine then.
+ * needs repairing. Asked on a timer, it rides the beat channel: the platform
+ * beat reads this every fifteen seconds, and a click must never wait behind
+ * it. A server whose agent is too old to speak the protocol at all answers
+ * nothing, and the probe — a whole `ssh` of its own — is what reads the
+ * machine then, but only for a gesture: a timer that fell back on it against
+ * an unreachable server would pile a probe on every tick.
  */
 export async function machineFacts(
   serverId: string,
   deps: {
     client: Pick<AgentClient, "request">;
-    probe: (serverId: string) => Promise<AgentResponse<ProbeResult>>;
-  }
+    probe?: (serverId: string) => Promise<AgentResponse<ProbeResult>>;
+  },
+  { polled }: { polled: boolean }
 ): Promise<AgentResponse<MachineFacts>> {
-  const snapshot = await deps.client.request(serverId, "snapshot");
+  const snapshot = await deps.client.request(serverId, "snapshot", undefined, {
+    polled,
+  });
 
   if (snapshot.ok) {
     return {
@@ -88,6 +95,10 @@ export async function machineFacts(
         version: snapshot.result.machine.agent_version,
       },
     };
+  }
+
+  if (!deps.probe) {
+    return snapshot;
   }
 
   const probe = await deps.probe(serverId);
@@ -155,7 +166,11 @@ export async function readAgentUpdate(
   serverId: string,
   deps: AgentUpdateDeps
 ): Promise<AgentResponse<AgentUpdateState>> {
-  const facts = await machineFacts(serverId, deps);
+  const facts = await machineFacts(
+    serverId,
+    { client: deps.client },
+    { polled: true }
+  );
 
   if (!facts.ok) {
     return facts;
@@ -176,6 +191,34 @@ export async function readAgentUpdate(
       verdict: verdictOf(deps.appVersion, facts.result.version),
     },
   };
+}
+
+const reads = new Map<string, Promise<AgentResponse<AgentUpdateState>>>();
+
+/**
+ * One read per server at a time.
+ *
+ * The beat asks every fifteen seconds and a server that takes longer than that
+ * to answer would have the ticks pile up behind one another: a tick that lands
+ * while the previous one is still out is handed the same answer.
+ */
+export function readAgentUpdateShared(
+  serverId: string,
+  deps: AgentUpdateDeps
+): Promise<AgentResponse<AgentUpdateState>> {
+  const inFlight = reads.get(serverId);
+
+  if (inFlight) {
+    return inFlight;
+  }
+
+  const read = readAgentUpdate(serverId, deps).finally(() => {
+    reads.delete(serverId);
+  });
+
+  reads.set(serverId, read);
+
+  return read;
 }
 
 /**
@@ -211,7 +254,7 @@ export async function runAgentUpgrade(
   onEvent: (event: Event) => void,
   deps: AgentUpdateDeps
 ): Promise<AgentResponse<AgentUpgradeOutcome>> {
-  const facts = await machineFacts(serverId, deps);
+  const facts = await machineFacts(serverId, deps, { polled: false });
 
   if (!facts.ok) {
     return facts;

@@ -21,6 +21,7 @@ import {
   agentPayload,
   agentSshArgs,
   carriedRelease,
+  installCommandAs,
   type ShellSpawn,
   sendAgentBinary,
 } from "../agent-binary";
@@ -232,6 +233,7 @@ describe("l'envoi du binaire par le canal SSH", () => {
       args: SSH_ARGS,
       payload: payload.result,
       spawn,
+      user: "root",
     });
 
     expect(answer).toMatchObject({
@@ -240,10 +242,42 @@ describe("l'envoi du binaire par le canal SSH", () => {
     });
     expect(calls).toHaveLength(1);
     expect(calls[0].command).toBe("ssh");
-    expect(calls[0].args).toEqual(agentSshArgs(SSH_ARGS));
+    expect(calls[0].args).toEqual(agentSshArgs(SSH_ARGS, "root"));
     expect(calls[0].args.at(-1)).toBe(AGENT_INSTALL_COMMAND);
     expect(calls[0].stdin.toString()).toBe(AMD64);
     expect(calls[0].ended).toBe(true);
+  });
+
+  /**
+   * A hardened server is reached as `dev`, who owns neither `/usr/local/bin`
+   * nor the unit: the same line goes through the sudo the hardening granted.
+   */
+  it("passe par sudo quand le compte de connexion n'est pas root", async () => {
+    const resources = tempDir();
+    embedAgent({ from: builtAgent(), to: resources });
+    const payload = agentPayload(resources, "amd64");
+
+    if (!payload.ok) {
+      throw new Error("le binaire embarqué manque");
+    }
+
+    const { calls, spawn } = recorder(() => ({
+      out: `${digest(AMD64)}  /usr/local/bin/.pupitred.new\n`,
+    }));
+
+    const answer = await sendAgentBinary({
+      args: SSH_ARGS,
+      payload: payload.result,
+      spawn,
+      user: "dev",
+    });
+
+    expect(answer.ok).toBe(true);
+    expect(calls[0].args.at(-1)).toBe(
+      `sudo -n sh -c '${AGENT_INSTALL_COMMAND}'`
+    );
+    expect(installCommandAs("root")).toBe(AGENT_INSTALL_COMMAND);
+    expect(AGENT_INSTALL_COMMAND).not.toContain("'");
   });
 
   it("refuse un serveur qui n'a pas reçu les mêmes octets", async () => {
@@ -263,6 +297,7 @@ describe("l'envoi du binaire par le canal SSH", () => {
       args: SSH_ARGS,
       payload: payload.result,
       spawn,
+      user: "root",
     });
 
     expect(answer.ok).toBe(false);
@@ -289,6 +324,7 @@ describe("l'envoi du binaire par le canal SSH", () => {
       args: SSH_ARGS,
       payload: payload.result,
       spawn,
+      user: "root",
     });
 
     expect(answer.ok).toBe(false);

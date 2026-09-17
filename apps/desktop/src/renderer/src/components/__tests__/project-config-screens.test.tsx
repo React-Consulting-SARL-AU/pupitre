@@ -173,4 +173,30 @@ describe("la configuration d'un projet", () => {
     );
     expect(failed).toContain("Give a name under example.org.");
   });
+
+  it("dit à part, à côté de l'enregistrement, ce que l'exposition a refusé et chaque réserve de l'agent", () => {
+    if (!PROJECT) {
+      throw new Error("the fixture has no project");
+    }
+
+    const html = panel({
+      name: "flymate-api",
+      project: PROJECT,
+      status: "saved",
+      sync: {
+        code: "internal",
+        fix: "Reconnecte le compte Cloudflare.",
+        message: "le tunnel refuse",
+      },
+      warnings: ["le démarrage a refusé, le processus reste arrêté"],
+    });
+
+    expect(text(html)).toContain("flymate-api est réécrit dans le registre");
+    expect(text(html)).toContain("le tunnel refuse");
+    expect(text(html)).toContain("Reconnecte le compte Cloudflare.");
+    expect(text(html)).toContain(
+      "le démarrage a refusé, le processus reste arrêté"
+    );
+    expect(html).toContain('data-callout="config-warning"');
+  });
 });

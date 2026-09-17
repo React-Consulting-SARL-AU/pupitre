@@ -101,6 +101,45 @@ export function declaresProject(serverId: string, name: string): boolean {
   return declared.get(serverId)?.has(name) ?? false;
 }
 
+const UNSAFE_PATH = /[\0\r\n]/;
+
+function climbs(path: string): boolean {
+  return path.split("/").some((segment) => segment === "..");
+}
+
+/**
+ * A folder an editor may be pointed at on this server, or nothing.
+ *
+ * The renderer names a path; it opens only when the agent itself named it — a
+ * declared project's folder, or git's root for it — or when it sits under the
+ * root the agent's own completions count from, where the file browser walks.
+ * A path that climbs, or that no answer of the agent covers, opens nothing.
+ */
+export function editorFolder(
+  serverId: string,
+  path: unknown,
+  root: string | null
+): string | null {
+  if (
+    typeof path !== "string" ||
+    !path.startsWith("/") ||
+    UNSAFE_PATH.test(path) ||
+    climbs(path)
+  ) {
+    return null;
+  }
+
+  const named = [...(declared.get(serverId)?.values() ?? [])].some(
+    (held) => held.path === path || held.root === path
+  );
+
+  if (named) {
+    return path;
+  }
+
+  return root && (path === root || path.startsWith(`${root}/`)) ? path : null;
+}
+
 const ABSOLUTE = /^\/[\w.\-/+@]{0,240}$/;
 
 function noteRoot(serverId: string, name: string, root: unknown): void {
@@ -250,7 +289,7 @@ export async function addProject(
   const answer = await deps.client.request(
     server,
     "project.add",
-    parsed.data as ProjectAddParams
+    withoutDefaults(parsed.data) as ProjectAddParams
   );
 
   if (answer.ok) {
@@ -258,6 +297,20 @@ export async function addProject(
   }
 
   return answer;
+}
+
+/**
+ * A parameter at its default stays off the line: the agent's params are closed,
+ * and an agent from before `boot` or `runtimes` refuses a key it never learnt.
+ */
+function withoutDefaults(params: ProjectAddParams): Partial<ProjectAddParams> {
+  const { boot, runtimes, ...rest } = params;
+
+  return {
+    ...rest,
+    ...(boot ? { boot } : {}),
+    ...(runtimes && Object.keys(runtimes).length > 0 ? { runtimes } : {}),
+  };
 }
 
 /**

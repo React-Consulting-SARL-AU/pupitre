@@ -47,7 +47,11 @@ function sshConfig(): string {
 
 describe("la modification d'un serveur", () => {
   beforeEach(() => {
-    write({ active: TYPED.id, dismissed: [], servers: [TYPED, SYSTEM] });
+    write(() => ({
+      active: TYPED.id,
+      dismissed: [],
+      servers: [TYPED, SYSTEM],
+    }));
     writeFileSync(
       paths().knownHostsPath,
       `${TYPED.host} ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGtest\n`

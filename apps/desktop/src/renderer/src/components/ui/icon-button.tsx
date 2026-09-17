@@ -27,6 +27,7 @@ export function IconButton({
   className = "",
   expanded,
   pressed,
+  asks = false,
 }: {
   icon: ButtonIcon;
   label: string;
@@ -41,6 +42,8 @@ export function IconButton({
   expanded?: boolean;
   /** For a button that switches something on: whether it is on, drawn filled. */
   pressed?: boolean;
+  /** For a button that opens a dialog before it does anything. */
+  asks?: boolean;
 }) {
   const [click, pending] = usePending(onClick);
 
@@ -51,6 +54,7 @@ export function IconButton({
       <button
         aria-busy={waiting}
         aria-expanded={expanded}
+        aria-haspopup={asks ? "dialog" : undefined}
         aria-label={label}
         aria-pressed={pressed}
         className={`clickable inline-flex shrink-0 items-center justify-center rounded-sm p-1.5 transition-soft ${waiting ? "cursor-progress" : ""} ${disabled && !waiting ? "opacity-40" : ""} ${pressed ? PRESSED : VARIANT[variant]} ${className}`}

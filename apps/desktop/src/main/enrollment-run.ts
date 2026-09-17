@@ -31,7 +31,10 @@ const KNOWN_CODES = new Set<string>([
 ]);
 
 export interface EnrollmentDeps {
-  account: Pick<Account, "guard" | "state" | "enroll" | "releaseBytes">;
+  account: Pick<
+    Account,
+    "guard" | "state" | "enroll" | "releaseBytes" | "heldEnrollment"
+  >;
   embedded: (arch: string) => AgentResponse<AgentPayload>;
   build: BuildKind;
   releaseKey: string;
@@ -161,6 +164,33 @@ function carried(
     : payload;
 }
 
+/**
+ * The seat the platform already granted this server, while its token is still
+ * whole, or a new one. A retry after a push that failed must not buy the row a
+ * second time: the enrolment it holds is the one to hand the agent.
+ */
+async function enrolment(
+  server: Server,
+  arch: string,
+  deviceId: string,
+  deps: EnrollmentDeps
+): Promise<AgentResponse<Enrollment>> {
+  const held = server.grant
+    ? deps.account.heldEnrollment(server.grant.id)
+    : null;
+
+  if (held) {
+    trace("agent-binary", "enrolment-held", {
+      release: held.release.version,
+      server: server.id,
+    });
+
+    return { ok: true, result: held };
+  }
+
+  return lift(await deps.account.enroll(enrollInput(server, arch, deviceId)));
+}
+
 export async function prepareAgent(
   server: Server,
   arch: string,
@@ -180,9 +210,7 @@ export async function prepareAgent(
     return carried(null, arch, deps);
   }
 
-  const enrolled = lift(
-    await deps.account.enroll(enrollInput(server, arch, device.id))
-  );
+  const enrolled = await enrolment(server, arch, device.id, deps);
 
   if (!enrolled.ok) {
     return enrolled;

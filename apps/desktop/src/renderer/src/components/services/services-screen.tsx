@@ -9,7 +9,7 @@ import { ModuleUpgradePanel } from "@renderer/components/updates/module-upgrade-
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { heldForUsage } from "@renderer/lib/refusals";
 import { useServiceAccounts } from "@renderer/lib/use-service-accounts";
-import { useAgentUpdate } from "@renderer/stores/agent-update";
+import { ofServer, useAgentUpdate } from "@renderer/stores/agent-update";
 import { useCatalog } from "@renderer/stores/catalog";
 import { useServices } from "@renderer/stores/services";
 import { useTunnel } from "@renderer/stores/tunnel";
@@ -97,6 +97,8 @@ export function ServicesScreen({
     };
   }, [serverId, service, closePanel]);
 
+  const moduleUpgrade = ofServer(update.modules, serverId);
+
   const { read: readTunnel } = tunnel;
 
   useEffect(() => {
@@ -173,8 +175,8 @@ export function ServicesScreen({
         modules={installed}
         nameOf={nameOf}
         onUpgrade={() => update.upgradeModules(serverId, installed)}
-        state={update.modules}
-        steps={update.steps}
+        state={moduleUpgrade}
+        steps={moduleUpgrade.status === "idle" ? [] : update.steps}
       >
         {services.length === 0 ? (
           <Panel inset="none">

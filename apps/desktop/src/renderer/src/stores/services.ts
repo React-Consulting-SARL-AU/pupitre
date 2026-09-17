@@ -30,6 +30,7 @@ import { dirnameOf, under, within } from "../lib/files";
 import {
   type ModuleProgress,
   record,
+  shaped,
   started,
   stepOf,
 } from "../lib/module-progress";
@@ -134,8 +135,12 @@ interface ServicesStore {
   /** What only the server could refuse — a port another program holds — kept on its field until that field changes. */
   refused: readonly FieldProblem[];
   apply: ApplyState;
+  /** A refusal took the typed secrets with it: the form says so until one is typed again. */
+  secretsDropped: boolean;
   removal: RemovalState;
   steps: ModuleProgress[];
+  /** How long to wait between two readings of a report still being written. */
+  pollMs: number;
   database: DatabaseOutcome | null;
   dumps: DumpsState;
   pendingImports: PendingImport[];
@@ -216,6 +221,14 @@ interface ServicesStore {
   importFromComputer: (serverId: string, moduleId: string) => Promise<void>;
   announce: (error: AgentError | null) => void;
   forget: () => void;
+}
+
+const REPORT_POLL_MS = 3000;
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 function outsideRoot(): AgentError {
@@ -400,6 +413,63 @@ export const useServices = create<ServicesStore>((set, get) => {
     await useTunnel.getState().sync(serverId);
   }
 
+  /**
+   * The report of a run already under way on the machine, read until it ends:
+   * the module's steps and its fate come from there, as they would have come
+   * from the channel.
+   */
+  async function followReport(
+    serverId: string,
+    moduleId: string
+  ): Promise<void> {
+    for (;;) {
+      const answer = await window.pupitre.installReport(serverId);
+
+      if (!answer.ok) {
+        set({ apply: { error: answer.error, moduleId, status: "failed" } });
+
+        return;
+      }
+
+      const report = answer.result.modules.find((one) => one.id === moduleId);
+
+      set((state) => ({
+        steps: report
+          ? [
+              shaped(
+                moduleId,
+                report.steps.map((step) => ({
+                  ms: step.ms,
+                  status: step.status,
+                  step: step.step,
+                  ...(step.replay ? { replay: step.replay } : {}),
+                  ...(step.message ? { message: step.message } : {}),
+                }))
+              ),
+            ]
+          : state.steps,
+      }));
+
+      if (answer.result.finished_at !== "") {
+        set({
+          apply: {
+            moduleId,
+            result: {
+              failed: answer.result.failed,
+              report_path: answer.result.report_path,
+              warned: answer.result.warned,
+            },
+            status: "done",
+          },
+        });
+
+        return;
+      }
+
+      await delay(get().pollMs);
+    }
+  }
+
   async function readDetail(serverId: string, moduleId: string): Promise<void> {
     const answer = await window.pupitre.serviceDetail(serverId, moduleId);
 
@@ -518,10 +588,12 @@ export const useServices = create<ServicesStore>((set, get) => {
     dumps: { status: "idle" },
     manifest: null,
     pendingImports: [],
+    pollMs: REPORT_POLL_MS,
     problem: null,
     refused: [],
     removal: { status: "idle" },
     secrets: {},
+    secretsDropped: false,
     steps: [],
     touched: [],
     values: {},
@@ -535,6 +607,7 @@ export const useServices = create<ServicesStore>((set, get) => {
         manifest,
         problem: null,
         removal: { status: "idle" },
+        secretsDropped: false,
         steps: [],
       });
 
@@ -654,6 +727,7 @@ export const useServices = create<ServicesStore>((set, get) => {
               problem: null,
               refused: state.refused.filter((problem) => problem.field !== key),
               secrets: answer.result,
+              secretsDropped: false,
               touched: state.touched.includes(key)
                 ? state.touched
                 : [...state.touched, key],
@@ -671,7 +745,7 @@ export const useServices = create<ServicesStore>((set, get) => {
 
       set(
         answer.ok
-          ? { problem: null, secrets: answer.result }
+          ? { problem: null, secrets: answer.result, secretsDropped: false }
           : { problem: answer.error }
       );
     },
@@ -713,6 +787,7 @@ export const useServices = create<ServicesStore>((set, get) => {
       set({ steps: started([moduleId]) });
 
       const before = await publishedNames(serverId, moduleId, get().values);
+      let vaultHeld = false;
 
       const answer = await window.pupitre.startInstall(
         serverId,
@@ -722,8 +797,20 @@ export const useServices = create<ServicesStore>((set, get) => {
           if (update.kind === "event") {
             note(update.event);
           }
+
+          if (update.kind === "secrets") {
+            vaultHeld = update.held;
+          }
         }
       );
+
+      // A machine already installing is not a machine that refused: the run
+      // is followed to its end on the report, as the install screen does.
+      if (!answer.ok && answer.error.code === "busy") {
+        await followReport(serverId, moduleId);
+
+        return;
+      }
 
       // A configuration the agent refused names its fields: the form marks
       // them, as it would have had the check caught them first.
@@ -731,12 +818,17 @@ export const useServices = create<ServicesStore>((set, get) => {
         !answer.ok && answer.error.remedy?.code === "invalid_fields"
           ? answer.error.remedy.problems
           : [];
+      const kept = vaultHeld;
+      const typed = Object.values(get().secrets[moduleId] ?? {}).some(
+        (mark) => mark.filled
+      );
 
-      set({
+      set((state) => ({
         apply: outcomeOf(answer, moduleId, named.length > 0),
         refused: named,
-        secrets: {},
-      });
+        secrets: kept ? state.secrets : {},
+        secretsDropped: !(answer.ok || kept) && typed,
+      }));
 
       // The panel keeps its steps and verdict: only the service's state and
       // what the agent now holds are re-read.
@@ -783,7 +875,7 @@ export const useServices = create<ServicesStore>((set, get) => {
       }
 
       set({ busy: null });
-      await get().open(serverId, moduleId);
+      await readDetail(serverId, moduleId);
     },
 
     async remove(serverId, moduleId) {
@@ -985,6 +1077,7 @@ export const useServices = create<ServicesStore>((set, get) => {
         refused: [],
         removal: { status: "idle" },
         secrets: {},
+        secretsDropped: false,
         steps: [],
         touched: [],
         values: {},

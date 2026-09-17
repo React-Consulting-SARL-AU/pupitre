@@ -47,6 +47,15 @@ export function ProjectAddSteps({ phases }: { phases: readonly Phase[] }) {
                   {phase.detail}
                 </p>
               ) : null}
+              {phase.warnings?.map((warning) => (
+                <p
+                  className="mt-1 text-[12px] text-warn leading-relaxed"
+                  data-warning=""
+                  key={warning}
+                >
+                  {t("projectAdd.phase.warning", { warning })}
+                </p>
+              ))}
             </div>
 
             <span className="flex shrink-0 translate-y-0.5 items-baseline gap-2 text-ink-3">

@@ -82,4 +82,50 @@ describe("l'inspection", () => {
     });
     expect(probeOf("srv-1")).toBeNull();
   });
+
+  it("laisse tomber la réponse d'une machine quittée pour une autre", async () => {
+    const waiting: Record<
+      string,
+      (answer: AgentResponse<ProbeResult>) => void
+    > = {};
+    stubPupitre({
+      inspect: (serverId: string) =>
+        new Promise((resolve) => {
+          waiting[serverId] = resolve;
+        }),
+    });
+
+    const first = useInspection.getState().inspect("srv-1");
+    const second = useInspection.getState().inspect("srv-2");
+
+    waiting["srv-2"]?.({ ok: true, result: BARE });
+    await second;
+    waiting["srv-1"]?.({ ok: true, result: OCCUPIED });
+    await first;
+
+    expect(useInspection.getState().inspection).toEqual({
+      probe: BARE,
+      serverId: "srv-2",
+      status: "done",
+    });
+    expect(probeOf("srv-1")).toEqual(OCCUPIED);
+  });
+
+  it("ne rouvre pas une inspection oubliée sur une réponse tardive", async () => {
+    let settle: (answer: AgentResponse<ProbeResult>) => void = () => undefined;
+    stubPupitre({
+      inspect: () =>
+        new Promise((resolve) => {
+          settle = resolve;
+        }),
+    });
+
+    const running = useInspection.getState().inspect("srv-1");
+
+    useInspection.getState().forget();
+    settle({ ok: true, result: BARE });
+    await running;
+
+    expect(useInspection.getState().inspection).toEqual({ status: "idle" });
+  });
 });

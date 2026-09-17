@@ -93,6 +93,10 @@ interface CatalogStore {
   generate: (moduleId: string, key: string) => Promise<void>;
   reveal: (moduleId: string, key: string) => Promise<string | null>;
   forget: () => Promise<void>;
+  /** The vault was emptied by a refused install: the marks that said "filled" no longer hold. */
+  dropSecrets: () => void;
+  /** Whether any secret was typed or generated on this form. */
+  typedSecrets: () => boolean;
   /** Waits on the secrets a selection asked the main process to make. */
   settled: () => Promise<void>;
 
@@ -406,6 +410,16 @@ export const useCatalog = create<CatalogStore>((set, get) => {
       }
 
       set({ secrets: {} });
+    },
+
+    dropSecrets() {
+      set({ secrets: {} });
+    },
+
+    typedSecrets() {
+      return Object.values(get().secrets).some((marks) =>
+        Object.values(marks).some((mark) => mark.filled)
+      );
     },
 
     settled() {
