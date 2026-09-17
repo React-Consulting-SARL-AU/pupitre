@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
@@ -17,6 +18,11 @@ import (
 	"pupitre.studio/agent/internal/sys/env"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/systemd"
+)
+
+var (
+	startWait = 30 * time.Second
+	startPoll = 250 * time.Millisecond
 )
 
 const (
@@ -34,6 +40,8 @@ const (
 	toolsConfigPath = toolsConfigDir + "/mongodb-tools.yaml"
 
 	keyringDir = "/etc/apt/keyrings"
+	listDir    = "/etc/apt/sources.list.d"
+	listPrefix = "mongodb-org-"
 
 	osReleasePath   = "/etc/os-release"
 	defaultCodename = "noble"
@@ -44,6 +52,8 @@ const (
 	defaultDatabase = "admin"
 
 	appPasswordKey = "MONGODB_APP_PASSWORD"
+
+	userReady = "pupitre-user-ready"
 
 	meminfoPath   = "/proc/meminfo"
 	cacheDivisor  = 4
@@ -83,9 +93,27 @@ func (Module) Manifest() contract.Manifest {
 	return manifest()
 }
 
-// A port another program already holds is the one thing this configuration cannot know from the manifest alone.
+// A port another program already holds, and a major the server does not run
+// on, are what this configuration cannot know from the manifest alone.
 func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
-	return modules.Problems(modules.PortTaken(ctx, "port"))
+	return modules.Problems(modules.PortTaken(ctx, "port"), majorChanged(ctx))
+}
+
+// A new major refuses the files of the old one until featureCompatibilityVersion
+// was raised on the running server: that step is the client's, by hand, before
+// the form says the new version.
+func majorChanged(ctx *modules.Context) *contract.FieldProblem {
+	held := strings.TrimSpace(fmt.Sprint(ctx.Held("version")))
+	if ctx.Held("version") == nil || held == version(ctx) || !apt.Installed(ctx, pkg) {
+		return nil
+	}
+
+	return &contract.FieldProblem{
+		Module:  ID,
+		Field:   "version",
+		Code:    contract.ProblemOptions,
+		Message: i18n.T("field.mongodb.version.held", held, version(ctx)),
+	}
 }
 
 func (Module) Check(ctx *modules.Context) (modules.Status, error) {
@@ -121,6 +149,10 @@ func (Module) Install(ctx *modules.Context) error {
 			return modules.Failed, err
 		}
 
+		if err := dropOtherLists(ctx); err != nil {
+			return modules.Failed, err
+		}
+
 		return modules.Done, apt.Refresh(ctx)
 	}); err != nil {
 		return err
@@ -135,6 +167,27 @@ func (Module) Install(ctx *modules.Context) error {
 	})
 }
 
+// The list of another major left beside the chosen one would take the next upgrade across it.
+func dropOtherLists(ctx *modules.Context) error {
+	entries, err := ctx.Sys().ReadDir(listDir)
+	if err != nil {
+		return nil
+	}
+
+	for _, entry := range entries {
+		other, found := strings.CutPrefix(entry.Name, listPrefix)
+		if entry.Dir || !found || !strings.HasSuffix(other, ".list") || listDir+"/"+entry.Name == listPath(ctx) {
+			continue
+		}
+
+		if _, err := file.Remove(ctx, listDir+"/"+entry.Name); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (Module) Configure(ctx *modules.Context) error {
 	changed, err := writeConfig(ctx)
 	if err != nil {
@@ -145,12 +198,18 @@ func (Module) Configure(ctx *modules.Context) error {
 		return err
 	}
 
-	rotated, err := storePassword(ctx)
+	// The user holds the new password before the env does: a replay after a
+	// crash in between still signs in with the previous one and changes it again.
+	previous, _, err := env.Get(ctx, appPasswordKey)
 	if err != nil {
 		return err
 	}
 
-	if err := createAppUser(ctx, rotated); err != nil {
+	if err := createAppUser(ctx, previous); err != nil {
+		return err
+	}
+
+	if err := storePassword(ctx); err != nil {
 		return err
 	}
 
@@ -191,37 +250,39 @@ func restart(ctx *modules.Context, changed bool) error {
 	})
 }
 
-func storePassword(ctx *modules.Context) (bool, error) {
-	rotated := false
-
-	err := ctx.Step("store-password", func() (modules.Outcome, error) {
+func storePassword(ctx *modules.Context) error {
+	return ctx.Step("store-password", func() (modules.Outcome, error) {
 		stored, err := env.Set(ctx, appPasswordKey, ctx.Secret("app_password"))
 		if err != nil {
 			return modules.Failed, err
 		}
 
-		rotated = stored
 		if !stored {
 			return modules.Skipped, nil
 		}
 
 		return modules.Done, nil
 	})
-
-	return rotated, err
 }
 
 // The script goes in on the standard input of mongosh: an argv would show the password in ps.
-func createAppUser(ctx *modules.Context, rotated bool) error {
+func createAppUser(ctx *modules.Context, previous string) error {
 	return ctx.Step("create-app-user", func() (modules.Outcome, error) {
-		if !rotated && file.Same(ctx, markerPath, marker(ctx)) {
+		if previous == ctx.Secret("app_password") && file.Same(ctx, markerPath, marker(ctx)) {
 			return modules.Skipped, nil
 		}
 
-		script := renderUser(appUser(ctx), ctx.Secret("app_password"))
+		script := renderUser(appUser(ctx), previous, ctx.Secret("app_password"))
 		argv := []string{"mongosh", "--quiet", "--host", loopback, "--port", strconv.Itoa(port(ctx))}
-		if _, err := sys.Exec(ctx, sys.Command{Argv: argv, Stdin: []byte(script)}); err != nil {
+		out, err := untilConnected(func() (sys.Output, error) {
+			return sys.Exec(ctx, sys.Command{Argv: argv, Stdin: []byte(script)})
+		})
+		if err != nil {
 			return modules.Failed, errors.New(i18n.T("modules.mongodb.user_refused", unit, err.Error()))
+		}
+
+		if !strings.Contains(out.Stdout, userReady) {
+			return modules.Failed, errors.New(i18n.T("modules.mongodb.user_refused", unit, lastLine(out.Stdout)))
 		}
 
 		if err := ctx.Sys().MkdirAll(markerDir, 0o755); err != nil {
@@ -363,12 +424,12 @@ func Dump(ctx *modules.Context, name string) (string, int64, error) {
 		return "", 0, err
 	}
 
-	path := fmt.Sprintf("%s/%s_%s.archive.gz", dumps.Dir, database(name), ctx.Now().Format("20060102-1504"))
-	if err := ctx.Sys().MkdirAll(dumps.Dir, 0o755); err != nil {
+	path, err := dumps.Target(ctx, database(name), ".archive.gz")
+	if err != nil {
 		return "", 0, err
 	}
 
-	err := withCredentials(ctx, func(credentials []string) error {
+	err = withCredentials(ctx, func(credentials []string) error {
 		argv := append(credentials, "--db="+database(name), "--archive="+path, "--gzip")
 		_, err := sys.Exec(ctx, sys.Command{Argv: append([]string{"mongodump"}, argv...)})
 
@@ -378,7 +439,9 @@ func Dump(ctx *modules.Context, name string) (string, int64, error) {
 		return "", 0, err
 	}
 
-	return path, size(ctx, path), nil
+	size, err := dumps.Written(ctx, path)
+
+	return path, size, err
 }
 
 func Import(ctx *modules.Context, name string) ([]string, error) {
@@ -415,20 +478,6 @@ func withCredentials(ctx *modules.Context, run func(credentials []string) error)
 	})
 }
 
-func size(ctx *modules.Context, path string) int64 {
-	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"stat", "-c", "%s", path}})
-	if err != nil {
-		return 0
-	}
-
-	bytes, err := strconv.ParseInt(strings.TrimSpace(out.Stdout), 10, 64)
-	if err != nil {
-		return 0
-	}
-
-	return bytes
-}
-
 func database(name string) string {
 	if name == "" {
 		return defaultDatabase
@@ -463,7 +512,7 @@ func keyURL(ctx *modules.Context) string {
 }
 
 func listPath(ctx *modules.Context) string {
-	return "/etc/apt/sources.list.d/mongodb-org-" + version(ctx) + ".list"
+	return listDir + "/" + listPrefix + version(ctx) + ".list"
 }
 
 func port(ctx *modules.Context) int {
@@ -545,19 +594,51 @@ func codename(ctx *modules.Context) string {
 	return defaultCodename
 }
 
-// The first user is created through the localhost exception; afterwards the script authenticates before touching anything.
-func renderUser(appUser, password string) string {
-	quoted := strconv.Quote(password)
+// The first user is created through the localhost exception; afterwards only
+// the password the user holds opens the server, so a rotation signs in with the
+// previous one, and a replay whose previous one already went through falls back
+// on the new one.
+// The script runs on mongosh's REPL, where an uncaught error prints and the
+// shell still exits 0: it ends on a word of its own that the step reads back.
+// Before the first user exists, the localhost exception lets createUser through
+// and refuses usersInfo, so a refused getUser reads as no user yet.
+func renderUser(appUser, previous, password string) string {
+	signIn := `try { admin.auth("` + appUser + `", password); } catch (error) {}`
+	if previous != "" && previous != password {
+		signIn = `try { admin.auth("` + appUser + `", ` + strconv.Quote(previous) + `); } catch (error) { ` + signIn + ` }`
+	}
 
 	return strings.Join([]string{
 		`const admin = db.getSiblingDB("` + authDatabase + `");`,
-		`const password = ` + quoted + `;`,
-		`try { admin.auth("` + appUser + `", password); } catch (error) {}`,
-		`if (admin.getUser("` + appUser + `")) {`,
+		`const password = ` + strconv.Quote(password) + `;`,
+		signIn,
+		`let existing = null;`,
+		`try { existing = admin.getUser("` + appUser + `"); } catch (error) { existing = null; }`,
+		`if (existing) {`,
 		`  admin.changeUserPassword("` + appUser + `", password);`,
 		`} else {`,
 		`  admin.createUser({ user: "` + appUser + `", pwd: password, roles: [{ role: "root", db: "` + authDatabase + `" }] });`,
 		`}`,
+		`print("` + userReady + `");`,
 		"",
 	}, "\n")
+}
+
+// mongod opens its port a few seconds after systemd reports it started: a shell refused on the door is asked again, up to the wait.
+func untilConnected(run func() (sys.Output, error)) (sys.Output, error) {
+	deadline := time.Now().Add(startWait)
+	for {
+		out, err := run()
+		if err == nil || !strings.Contains(err.Error(), "ECONNREFUSED") || !time.Now().Before(deadline) {
+			return out, err
+		}
+
+		time.Sleep(startPoll)
+	}
+}
+
+func lastLine(out string) string {
+	lines := strings.Split(strings.TrimSpace(out), "\n")
+
+	return strings.TrimSpace(lines[len(lines)-1])
 }

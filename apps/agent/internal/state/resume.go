@@ -45,6 +45,12 @@ func (r *Reader) record(windows map[string]bool) error {
 
 // A start records its window and a stop forgets it, whether or not tmux held one: the record says what the reader wants up, not what the machine happens to run.
 func (r *Reader) note(window string, up bool) error {
+	release, err := r.hold()
+	if err != nil {
+		return err
+	}
+	defer release()
+
 	windows := map[string]bool{}
 	for _, name := range r.recorded() {
 		windows[name] = true
@@ -73,7 +79,14 @@ func (r *Reader) Resume() []string {
 		return nil
 	}
 
-	file := r.registry()
+	// A registry that does not read leaves the record as it is: a boot is not the moment to lose what was up.
+	file, err := r.declared()
+	if err != nil {
+		ctx.Logf("resume: %v", err)
+
+		return nil
+	}
+
 	kept := map[string]bool{}
 	started := []string{}
 

@@ -38,6 +38,8 @@ type fakePlatform struct {
 	validUntil time.Time
 	target     string
 	refuse     int
+	refuseCode string
+	refused    func()
 
 	echo bool
 
@@ -56,8 +58,12 @@ func (p *fakePlatform) serve() *httptest.Server {
 		defer p.mu.Unlock()
 
 		if p.refuse != 0 {
+			if p.refused != nil {
+				p.refused()
+			}
+
 			w.WriteHeader(p.refuse)
-			w.Write([]byte(`{"error":{"code":"invalid_server_token","message":"jeton inconnu"}}`))
+			w.Write([]byte(`{"error":{"code":"` + p.refuseCode + `","message":"jeton inconnu"}}`))
 
 			return
 		}
@@ -106,10 +112,15 @@ func (p *fakePlatform) allow(lines ...string) {
 }
 
 func (p *fakePlatform) suspend(status int) {
+	p.refuseWith(status, "invalid_server_token")
+}
+
+func (p *fakePlatform) refuseWith(status int, code string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	p.refuse = status
+	p.refuseCode = code
 }
 
 // A platform that hands the token it just received back in its refusal: the worst case the redaction exists for.
@@ -264,8 +275,8 @@ func TestSyncRefusesWithoutAServerToken(t *testing.T) {
 	}
 }
 
-// A revoked token leaves the machine as it stands: the tolerance is what closes the agent, not a refusal on the wire.
-func TestARefusedTokenLeavesTheKeysInPlace(t *testing.T) {
+// A server the platform no longer knows — revoked, purged — loses its keys at once and its entitlement with them: the console said so, and the keys fall on the spot.
+func TestARevokedServerTokenClosesTheKeysAndSuspendsTheEntitlement(t *testing.T) {
 	b := newBench(t, true)
 	b.platform.allow(laptop)
 	agent := b.agent()
@@ -277,8 +288,79 @@ func TestARefusedTokenLeavesTheKeysInPlace(t *testing.T) {
 		t.Fatal("a refused token should surface")
 	}
 
+	if strings.Contains(b.authorized(), laptop) || !strings.Contains(b.authorized(), own) {
+		t.Fatalf("the platform's keys must be withdrawn, and the client's own kept:\n%s", b.authorized())
+	}
+
+	if got := agent.Entitlement(); got != contract.EntitlementRestricted {
+		t.Fatalf("the entitlement must be suspended on the spot, got %s", got)
+	}
+
+	if !strings.Contains(b.journal(), "revoked") {
+		t.Fatalf("the journal must say why:\n%s", b.journal())
+	}
+}
+
+// A platform out of reach is a silence, not a revocation: the keys stay, and the tolerance is what closes the agent.
+func TestANetworkFailureLeavesTheKeysAndTheEntitlementInPlace(t *testing.T) {
+	b := newBench(t, true)
+	b.platform.allow(laptop)
+	agent := b.agent()
+	agent.Sync(context.Background())
+
+	b.server.Close()
+
+	if _, err := agent.Sync(context.Background()); err == nil {
+		t.Fatal("a platform out of reach should surface")
+	}
+
 	if !strings.Contains(b.authorized(), laptop) {
-		t.Fatalf("the keys were dropped on a refusal:\n%s", b.authorized())
+		t.Fatalf("the keys were dropped on a silence:\n%s", b.authorized())
+	}
+
+	if got := agent.Entitlement(); got != contract.EntitlementValid {
+		t.Fatalf("the last answer of the platform still holds, got %s", got)
+	}
+}
+
+// A 401 that does not name the token — a proxy, a platform mid-deploy — is a silence too.
+func TestARefusalWithoutTheTokenCodeLeavesTheKeysInPlace(t *testing.T) {
+	b := newBench(t, true)
+	b.platform.allow(laptop)
+	agent := b.agent()
+	agent.Sync(context.Background())
+
+	b.platform.refuseWith(http.StatusUnauthorized, "unauthenticated")
+
+	if _, err := agent.Sync(context.Background()); err == nil {
+		t.Fatal("a refusal should surface")
+	}
+
+	if !strings.Contains(b.authorized(), laptop) {
+		t.Fatalf("the keys were dropped on a refusal that names no token:\n%s", b.authorized())
+	}
+}
+
+// A token traded for a fresh one while the read was in flight is not a revocation: the refusal was for the token that just left the disk.
+func TestARefusalOnATokenThatWasJustRotatedIsNotARevocation(t *testing.T) {
+	b := newBench(t, true)
+	b.platform.allow(laptop)
+	agent := b.agent()
+	agent.Sync(context.Background())
+
+	b.platform.refused = func() { b.fake.Files[platform.DefaultTokenPath] = []byte("jeton-tout-neuf\n") }
+	b.platform.suspend(http.StatusUnauthorized)
+
+	if _, err := agent.Sync(context.Background()); err == nil {
+		t.Fatal("a refusal should surface")
+	}
+
+	if !strings.Contains(b.authorized(), laptop) {
+		t.Fatalf("the keys were dropped during a rotation:\n%s", b.authorized())
+	}
+
+	if got := agent.Entitlement(); got != contract.EntitlementValid {
+		t.Fatalf("the entitlement must not move during a rotation, got %s", got)
 	}
 }
 
@@ -423,8 +505,8 @@ func TestRunPollsUntilItIsStopped(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 
-	if !strings.Contains(b.authorized(), laptop) {
-		t.Fatalf("authorized_keys :\n%s", b.authorized())
+	if strings.Contains(b.authorized(), laptop) || !strings.Contains(b.authorized(), own) {
+		t.Fatalf("a revoked server loses the platform's keys and keeps its own:\n%s", b.authorized())
 	}
 }
 

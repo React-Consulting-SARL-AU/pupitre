@@ -75,9 +75,35 @@ func (Module) Manifest() contract.Manifest {
 	return manifest()
 }
 
-// A port another program already holds is the one thing this configuration cannot know from the manifest alone.
+// A port another program already holds, and an engine other than the one
+// running, are what this configuration cannot know from the manifest alone.
 func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
-	return modules.Problems(modules.PortTaken(ctx, "port"))
+	return modules.Problems(modules.PortTaken(ctx, "port"), engineChanged(ctx))
+}
+
+// The engine installed decides the configuration whatever the form says: a
+// switch that would be ignored in silence is refused where the form can read it.
+func engineChanged(ctx *modules.Context) *contract.FieldProblem {
+	installed := installedPackage(ctx)
+	if ctx.Held("engine") == nil || installed == "" {
+		return nil
+	}
+
+	running := mysqlEngine
+	if installed == mariadbPackage {
+		running = mariadbEngine
+	}
+
+	if ctx.String("engine") == running {
+		return nil
+	}
+
+	return &contract.FieldProblem{
+		Module:  ID,
+		Field:   "engine",
+		Code:    contract.ProblemOptions,
+		Message: i18n.T("field.mysql.engine.held", running, ctx.String("engine")),
+	}
 }
 
 func (Module) Check(ctx *modules.Context) (modules.Status, error) {
@@ -126,12 +152,13 @@ func (m Module) Configure(ctx *modules.Context) error {
 		return err
 	}
 
-	rotated, err := storePasswords(ctx)
-	if err != nil {
+	// The accounts hold the new passwords before the env does: a replay after a
+	// crash in between finds them rotated and alters the accounts again.
+	if err := createAccounts(ctx, passwordsChanged(ctx)); err != nil {
 		return err
 	}
 
-	if err := createAccounts(ctx, rotated); err != nil {
+	if err := storePasswords(ctx); err != nil {
 		return err
 	}
 
@@ -177,27 +204,36 @@ func restart(ctx *modules.Context, changed bool) error {
 	})
 }
 
-func storePasswords(ctx *modules.Context) (bool, error) {
-	rotated := false
+var passwordKeys = map[string]string{appPasswordKey: "app_password", remotePasswordKey: "remote_password"}
 
-	err := ctx.Step("store-passwords", func() (modules.Outcome, error) {
-		for key, secret := range map[string]string{appPasswordKey: "app_password", remotePasswordKey: "remote_password"} {
-			stored, err := env.Set(ctx, key, ctx.Secret(secret))
+func passwordsChanged(ctx *modules.Context) bool {
+	for key, secret := range passwordKeys {
+		if held, _, err := env.Get(ctx, key); err != nil || held != ctx.Secret(secret) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func storePasswords(ctx *modules.Context) error {
+	return ctx.Step("store-passwords", func() (modules.Outcome, error) {
+		stored := false
+		for key, secret := range passwordKeys {
+			changed, err := env.Set(ctx, key, ctx.Secret(secret))
 			if err != nil {
 				return modules.Failed, err
 			}
 
-			rotated = rotated || stored
+			stored = stored || changed
 		}
 
-		if !rotated {
+		if !stored {
 			return modules.Skipped, nil
 		}
 
 		return modules.Done, nil
 	})
-
-	return rotated, err
 }
 
 // The passwords travel on the standard input: an argv would show them in ps, and the journal only ever sees "mysql".
@@ -362,8 +398,8 @@ func Dump(ctx *modules.Context, name string) (string, int64, error) {
 		return "", 0, err
 	}
 
-	path := fmt.Sprintf("%s/%s_%s.sql", dumps.Dir, database(name), ctx.Now().Format("20060102-1504"))
-	if err := ctx.Sys().MkdirAll(dumps.Dir, 0o755); err != nil {
+	path, err := dumps.Target(ctx, database(name), ".sql")
+	if err != nil {
 		return "", 0, err
 	}
 
@@ -375,7 +411,9 @@ func Dump(ctx *modules.Context, name string) (string, int64, error) {
 		return "", 0, err
 	}
 
-	return path, size(ctx, path), nil
+	size, err := dumps.Written(ctx, path)
+
+	return path, size, err
 }
 
 func Import(ctx *modules.Context, name string) ([]string, error) {
@@ -392,20 +430,6 @@ func requireInstalled(ctx *modules.Context) error {
 	}
 
 	return nil
-}
-
-func size(ctx *modules.Context, path string) int64 {
-	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"stat", "-c", "%s", path}})
-	if err != nil {
-		return 0
-	}
-
-	bytes, err := strconv.ParseInt(strings.TrimSpace(out.Stdout), 10, 64)
-	if err != nil {
-		return 0
-	}
-
-	return bytes
 }
 
 func port(ctx *modules.Context) int {
@@ -539,15 +563,16 @@ func renderConfig(engine string, port int, pool string) []byte {
 }
 
 // root@localhost stays on socket authentication: that is what makes `sudo mysql`, db.shell and the dump imports work without a password.
+// MariaDB has no IDENTIFIED WITH … BY: its IDENTIFIED BY is the native plugin, which is what the application account needs.
 func renderAccounts(engine, appAccount, remoteAccount, app, remote string) string {
-	plugin := "caching_sha2_password"
+	identified := "IDENTIFIED WITH caching_sha2_password BY"
 	if engine == mariadbEngine {
-		plugin = "mysql_native_password"
+		identified = "IDENTIFIED BY"
 	}
 
 	return strings.Join([]string{
-		"CREATE USER IF NOT EXISTS '" + appAccount + "'@'" + loopback + "' IDENTIFIED WITH " + plugin + " BY '" + quote(app) + "';",
-		"ALTER USER '" + appAccount + "'@'" + loopback + "' IDENTIFIED WITH " + plugin + " BY '" + quote(app) + "';",
+		"CREATE USER IF NOT EXISTS '" + appAccount + "'@'" + loopback + "' " + identified + " '" + quote(app) + "';",
+		"ALTER USER '" + appAccount + "'@'" + loopback + "' " + identified + " '" + quote(app) + "';",
 		"GRANT ALL PRIVILEGES ON *.* TO '" + appAccount + "'@'" + loopback + "' WITH GRANT OPTION;",
 		"CREATE USER IF NOT EXISTS '" + remoteAccount + "'@'" + loopback + "' IDENTIFIED BY '" + quote(remote) + "';",
 		"ALTER USER '" + remoteAccount + "'@'" + loopback + "' IDENTIFIED BY '" + quote(remote) + "';",

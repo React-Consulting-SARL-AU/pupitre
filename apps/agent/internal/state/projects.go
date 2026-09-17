@@ -1,11 +1,13 @@
 package state
 
 import (
-	"pupitre.studio/agent/internal/i18n"
+	"context"
 	"strconv"
 	"strings"
+	"time"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys"
@@ -21,49 +23,123 @@ func (r *Reader) List() []contract.Project {
 	return r.projects()
 }
 
-// Add declares a project, resolving each name on the web once, from the domain this machine publishes under.
-func (r *Reader) Add(project registry.Project, processes []ProcessRequest) (contract.Project, error) {
-	ctx := r.ctx()
-	reg := r.registry()
+// Declared is what project.list answers: every project, or the refusal of a registry that does not read.
+func (r *Reader) Declared() ([]contract.Project, error) {
+	if _, err := r.declared(); err != nil {
+		return nil, err
+	}
 
-	resolved, err := resolveProcesses(reg.Domain, processes)
+	return r.projects(), nil
+}
+
+// A Declared project is what project.add and project.update answer: the
+// project as it now stands, and what the steps after its row was written left
+// to say. Those steps never fail the command: a retry would only be told the
+// project is already declared.
+type Declared struct {
+	contract.Project
+	Warnings []string `json:"warnings,omitempty"`
+}
+
+// Add declares a project, resolving each name on the web once, from the domain this machine publishes under.
+//
+// Everything the request can be judged on is judged before the row is written;
+// what the machine refuses afterwards — a folder, a pin — is carried as a warning.
+func (r *Reader) Add(project registry.Project, processes []ProcessRequest) (Declared, error) {
+	ctx := r.ctx()
+
+	resolved, err := resolveProcesses(r.domain(), processes)
 	if err != nil {
-		return contract.Project{}, err
+		return Declared{}, err
 	}
 	project.Processes = resolved
 
 	if err := r.checkRuntimes(project.Runtimes); err != nil {
-		return contract.Project{}, err
+		return Declared{}, err
 	}
 
 	if err := r.roomForClone(project); err != nil {
-		return contract.Project{}, err
+		return Declared{}, err
 	}
 
-	if err := reg.Add(ctx, project); err != nil {
-		return contract.Project{}, err
+	if err := r.roomForFolders(project); err != nil {
+		return Declared{}, err
 	}
 
-	if err := syncLocalNames(ctx, reg); err != nil {
-		return contract.Project{}, err
+	var warnings []string
+	err = r.rewrite(func(reg *registry.File) error {
+		if err := reg.Add(ctx, project); err != nil {
+			return err
+		}
+
+		warnings = r.warn(warnings, "state.project.warning.hosts", syncLocalNames(ctx, reg))
+
+		return nil
+	})
+	if err != nil {
+		return Declared{}, err
 	}
 
-	// A repository brings its folders with the clone, and git refuses to clone into a folder that already holds one of them: only a project of a folder already here gets its process folders made.
-	if project.Repo == "" || project.Repo == "-" {
-		owner := r.options.Tmux.User
-		path := project.Path(r.options.Paths.Resolved().Projects)
-		for _, process := range project.Processes {
-			if err := file.MkdirOwned(ctx, process.Path(path), owner, owner, 0o755); err != nil {
-				return contract.Project{}, err
-			}
+	warnings = r.warn(warnings, "state.project.warning.dir", r.makeFolders(project, project.Processes))
+	warnings = r.warn(warnings, "state.project.warning.pin", r.pinRuntimes(project))
+
+	return r.answer(project.Name, warnings)
+}
+
+// A repository brings its folders with the clone, and git refuses to clone into a folder that already holds one of them: only a project of a folder already here gets its process folders made.
+func (r *Reader) makeFolders(project registry.Project, processes []registry.Process) error {
+	if project.Repo != "" && project.Repo != "-" {
+		return nil
+	}
+
+	ctx := r.ctx()
+	owner := r.options.Tmux.User
+	path := project.Path(r.options.Paths.Resolved().Projects)
+
+	for _, process := range processes {
+		if err := file.MkdirOwned(ctx, process.Path(path), owner, owner, 0o755); err != nil {
+			return err
 		}
 	}
 
-	if err := r.pinRuntimes(project); err != nil {
-		return contract.Project{}, err
+	return nil
+}
+
+// A process folder that is a file is found out before the row is written.
+func (r *Reader) roomForFolders(project registry.Project) error {
+	if project.Repo != "" && project.Repo != "-" {
+		return nil
 	}
 
-	return r.one(project.Name)
+	path := project.Path(r.options.Paths.Resolved().Projects)
+	for _, process := range project.Processes {
+		dir := process.Path(path)
+		if _, _, err := r.ctx().Sys().Stat(dir); err == nil {
+			return protocol.NewError(contract.ErrorBadRequest, i18n.T("state.project.dir.file", project.Window(process.ID), dir)).
+				WithFix(i18n.T("state.project.dir.file.fix"))
+		}
+	}
+
+	return nil
+}
+
+func (r *Reader) warn(warnings []string, key string, err error) []string {
+	if err == nil {
+		return warnings
+	}
+
+	r.ctx().Logf("%s", err)
+
+	return append(warnings, i18n.T(key, err.Error()))
+}
+
+func (r *Reader) answer(name string, warnings []string) (Declared, error) {
+	project, err := r.one(name)
+	if err != nil {
+		return Declared{}, err
+	}
+
+	return Declared{Project: project, Warnings: warnings}, nil
 }
 
 // A repository project needs a folder git can clone into: absent, empty, or already holding that very repository. Anything else is refused before the row is written, with what to do about it.
@@ -141,42 +217,55 @@ type UpdatePatch struct {
 }
 
 // Update rewrites the row, then touches only what runs and changed: a process whose command changed restarts if it was running, a process that left the list stops. A route or a branch changes nothing of what runs.
-func (r *Reader) Update(name string, patch UpdatePatch) (contract.Project, error) {
+//
+// The new process starts only once the old one is stopped, and a start that
+// refuses leaves it stopped: the answer says so, rather than failing a row that
+// is already written.
+func (r *Reader) Update(name string, patch UpdatePatch) (Declared, error) {
 	ctx := r.ctx()
-	file := r.registry()
-
-	current, known := file.Get(name)
-	if !known {
-		return contract.Project{}, registry.NotFound(name)
-	}
 
 	change := registry.Patch{Branch: patch.Branch, Boot: patch.Boot, Runtimes: patch.Runtimes}
 	if patch.Runtimes != nil {
 		if err := r.checkRuntimes(*patch.Runtimes); err != nil {
-			return contract.Project{}, err
+			return Declared{}, err
 		}
 	}
 	if patch.Processes != nil {
-		resolved, err := resolveProcesses(file.Domain, *patch.Processes)
+		resolved, err := resolveProcesses(r.domain(), *patch.Processes)
 		if err != nil {
-			return contract.Project{}, err
+			return Declared{}, err
 		}
 		change.Processes = &resolved
 	}
 
-	updated, err := file.Update(ctx, name, change)
-	if err != nil {
-		return contract.Project{}, err
-	}
-
-	if err := syncLocalNames(ctx, r.registry()); err != nil {
-		return contract.Project{}, err
-	}
-
-	if patch.Runtimes != nil {
-		if err := r.pinRuntimes(updated); err != nil {
-			return contract.Project{}, err
+	var current, updated registry.Project
+	var warnings []string
+	err := r.rewrite(func(reg *registry.File) error {
+		known := false
+		current, known = reg.Get(name)
+		if !known {
+			return registry.NotFound(name)
 		}
+
+		var err error
+		updated, err = reg.Update(ctx, name, change)
+		if err != nil {
+			return err
+		}
+
+		warnings = r.warn(warnings, "state.project.warning.hosts", syncLocalNames(ctx, reg))
+
+		return nil
+	})
+	if err != nil {
+		return Declared{}, err
+	}
+
+	if patch.Processes != nil {
+		warnings = r.warn(warnings, "state.project.warning.dir", r.makeFolders(updated, added(current, updated)))
+	}
+	if patch.Runtimes != nil {
+		warnings = r.warn(warnings, "state.project.warning.pin", r.pinRuntimes(updated))
 	}
 
 	for _, was := range current.Processes {
@@ -185,42 +274,71 @@ func (r *Reader) Update(name string, patch UpdatePatch) (contract.Project, error
 			continue
 		}
 
-		if !tmux.Running(ctx, r.options.Tmux, current.Window(was.ID)) {
-			continue
+		window := current.Window(was.ID)
+		ran := tmux.Running(ctx, r.options.Tmux, window)
+
+		// A pane whose command died is still a window, and a process that left is still on the record: both go, ran or not.
+		if !kept || tmux.Open(ctx, r.options.Tmux, window) {
+			if err := r.stop(current, was); err != nil {
+				warnings = append(warnings, i18n.T("state.project.warning.stop", window, err.Error()))
+
+				continue
+			}
 		}
 
-		if err := r.stop(current, was); err != nil {
-			return contract.Project{}, err
-		}
-
-		if kept {
+		if kept && ran {
 			if err := r.start(updated, now); err != nil {
-				return contract.Project{}, err
+				warnings = append(warnings, i18n.T("state.project.warning.start", window, err.Error()))
 			}
 		}
 	}
 
-	return r.one(name)
+	return r.answer(name, warnings)
 }
 
-func (r *Reader) Remove(name string) (contract.Project, error) {
-	ctx := r.ctx()
-	file := r.registry()
-
-	if project, known := file.Get(name); known {
-		for _, process := range project.Processes {
-			if err := r.stop(project, process); err != nil {
-				return contract.Project{}, err
-			}
+// The processes of the new row that the old one did not hold.
+func added(before, after registry.Project) []registry.Process {
+	var fresh []registry.Process
+	for _, process := range after.Processes {
+		if _, held := before.Process(process.ID); !held {
+			fresh = append(fresh, process)
 		}
 	}
 
-	removed, err := file.Remove(ctx, name)
+	return fresh
+}
+
+// Remove refuses a project of the repository before anything of it is stopped: the refusal is the whole answer.
+func (r *Reader) Remove(name string) (contract.Project, error) {
+	ctx := r.ctx()
+
+	reg, err := r.declared()
 	if err != nil {
 		return contract.Project{}, err
 	}
 
-	if err := syncLocalNames(ctx, r.registry()); err != nil {
+	if err := reg.Removable(name); err != nil {
+		return contract.Project{}, err
+	}
+
+	project, _ := reg.Get(name)
+	for _, process := range project.Processes {
+		if err := r.stop(project, process); err != nil {
+			return contract.Project{}, err
+		}
+	}
+
+	var removed registry.Project
+	err = r.rewrite(func(reg *registry.File) error {
+		var err error
+		removed, err = reg.Remove(ctx, name)
+		if err != nil {
+			return err
+		}
+
+		return syncLocalNames(ctx, r.registry())
+	})
+	if err != nil {
 		return contract.Project{}, err
 	}
 
@@ -269,6 +387,34 @@ func (r *Reader) startWith(project registry.Project, process registry.Process, c
 	return r.note(window, true)
 }
 
+// The registry every command that names or writes a project reads: one that does not read is the refusal.
+func (r *Reader) declared() (*registry.File, error) {
+	reg := r.registry()
+	if err := reg.Problem(); err != nil {
+		return nil, err
+	}
+
+	return reg, nil
+}
+
+// One read-then-write of the registry and /etc/hosts, under the lock every
+// session takes for it: a project.add on one channel and a domain move on
+// another never write over each other.
+func (r *Reader) rewrite(change func(*registry.File) error) error {
+	release, err := r.hold()
+	if err != nil {
+		return err
+	}
+	defer release()
+
+	reg, err := r.declared()
+	if err != nil {
+		return err
+	}
+
+	return change(reg)
+}
+
 // A window whose command died is still a window: a stop closes it, so the corpse does not read as a failure forever.
 func (r *Reader) stop(project registry.Project, process registry.Process) error {
 	ctx := r.ctx()
@@ -285,7 +431,10 @@ func (r *Reader) stop(project registry.Project, process registry.Process) error 
 
 // A "service" process is systemd's business: it shows in the state, and neither a project nor "all" starts or stops it.
 func (r *Reader) act(target, id string, apply func(registry.Project, registry.Process) error) (contract.ProjectActionResult, error) {
-	file := r.registry()
+	file, err := r.declared()
+	if err != nil {
+		return contract.ProjectActionResult{}, err
+	}
 
 	if target != All {
 		project, known := file.Get(target)
@@ -366,9 +515,9 @@ func (r *Reader) one(name string) (contract.Project, error) {
 
 // The window of one process of a declared project, or the refusal that says which of the two is unknown.
 func (r *Reader) window(name, id string) (registry.Project, registry.Process, error) {
-	project, known := r.registry().Get(name)
-	if !known {
-		return registry.Project{}, registry.Process{}, registry.NotFound(name)
+	project, err := r.project(name)
+	if err != nil {
+		return registry.Project{}, registry.Process{}, err
 	}
 
 	process, declared := project.Process(id)
@@ -389,7 +538,9 @@ func (r *Reader) Logs(name, id string, lines int) ([]string, error) {
 }
 
 // With follow every line travels as an event, the tail included: the app must never receive the newest lines before the oldest.
-func (r *Reader) Follow(name, id string, lines int, emit func(string)) error {
+//
+// The follow ends with the channel that reads it, with the process, or with its own time — whichever comes first.
+func (r *Reader) Follow(channel context.Context, name, id string, lines int, emit func(string)) error {
 	tail, err := r.Logs(name, id, lines)
 	if err != nil {
 		return err
@@ -405,37 +556,54 @@ func (r *Reader) Follow(name, id string, lines int, emit func(string)) error {
 	seen := r.size(path)
 	deadline := r.options.Now().Add(r.options.Follow.Limit)
 
-	for tmux.Running(ctx, r.options.Tmux, window) && r.options.Now().Before(deadline) {
-		r.options.Follow.Sleep(r.options.Follow.Interval)
+	for channel.Err() == nil && tmux.Running(ctx, r.options.Tmux, window) && r.options.Now().Before(deadline) {
+		r.pause(channel, r.options.Follow.Interval)
 
-		raw, readErr := file.Read(ctx, path)
-		if readErr != nil || int64(len(raw)) <= seen {
+		raw, readErr := file.From(ctx, path, seen)
+		if readErr != nil || len(raw) == 0 {
 			continue
 		}
 
-		for _, line := range strings.Split(strings.TrimRight(string(raw[seen:]), "\n"), "\n") {
+		for _, line := range strings.Split(strings.TrimRight(string(raw), "\n"), "\n") {
 			emit(line)
 		}
-		seen = int64(len(raw))
+		seen += int64(len(raw))
 	}
 
 	return nil
 }
 
 func (r *Reader) size(path string) int64 {
-	raw, err := file.Read(r.ctx(), path)
+	size, _, err := r.ctx().Sys().Stat(path)
 	if err != nil {
 		return 0
 	}
 
-	return int64(len(raw))
+	return size
 }
 
-// Install runs the install line of every process of the project, or of the one named; each line is printed before it runs, since how a project's dependencies were installed should never be a guess.
-func (r *Reader) Install(name, id string) ([]contract.ProcessInstall, error) {
-	project, known := r.registry().Get(name)
-	if !known {
-		return nil, registry.NotFound(name)
+// The wait between two reads of a follow, cut short by the channel going away.
+func (r *Reader) pause(channel context.Context, delay time.Duration) {
+	if r.options.Follow.Sleep != nil {
+		r.options.Follow.Sleep(delay)
+
+		return
+	}
+
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+
+	select {
+	case <-channel.Done():
+	case <-timer.C:
+	}
+}
+
+// Install runs the install line of every process of the project, or of the one named; each line is printed before it runs, since how a project's dependencies were installed should never be a guess. What the command prints travels on emit as it comes.
+func (r *Reader) Install(name, id string, emit func(string)) ([]contract.ProcessInstall, error) {
+	project, err := r.project(name)
+	if err != nil {
+		return nil, err
 	}
 
 	processes := project.Processes
@@ -467,7 +635,7 @@ func (r *Reader) Install(name, id string) ([]contract.ProcessInstall, error) {
 		ctx.Logf("%s : %s", project.Window(process.ID), command)
 
 		// The declared line needs a shell to honour its "&&" and its variables; it travels as one argv word, and runs as dev, never as root.
-		if _, err := user.RunIn(ctx, r.options.Tmux.User, dir, "zsh", "-lc", command); err != nil {
+		if err := user.StreamIn(ctx, r.options.Tmux.User, dir, emit, "zsh", "-lc", command); err != nil {
 			return installed, protocol.NewError(contract.ErrorInternal, i18n.T("state.project.install.failed", project.Window(process.ID), command)).
 				WithFix(i18n.T("state.project.install.failed.fix"))
 		}
@@ -479,12 +647,27 @@ func (r *Reader) Install(name, id string) ([]contract.ProcessInstall, error) {
 }
 
 func (r *Reader) URL(name string) (string, error) {
-	project, known := r.registry().Get(name)
-	if !known {
-		return "", registry.NotFound(name)
+	project, err := r.project(name)
+	if err != nil {
+		return "", err
 	}
 
 	return url(project), nil
+}
+
+// One declared project, or the refusal: the registry that does not read, or the name nobody declared.
+func (r *Reader) project(name string) (registry.Project, error) {
+	reg, err := r.declared()
+	if err != nil {
+		return registry.Project{}, err
+	}
+
+	project, known := reg.Get(name)
+	if !known {
+		return registry.Project{}, registry.NotFound(name)
+	}
+
+	return project, nil
 }
 
 // A process only has a public address if the route of its main port carries a name on the web, stored when it was declared; printing "https://…" otherwise would be an address that does not answer.

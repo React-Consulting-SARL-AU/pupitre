@@ -197,14 +197,9 @@ func writeProviders(ctx *modules.Context, found []providers.Provider) (bool, err
 
 func storeProviders(ctx *modules.Context, found []providers.Provider) error {
 	return ctx.Step("store-providers", func() (modules.Outcome, error) {
-		stored := false
-		for _, entry := range found {
-			changed, err := env.Set(ctx, entry.EnvKey(envPrefix), entry.Key)
-			if err != nil {
-				return modules.Failed, err
-			}
-
-			stored = stored || changed
+		stored, err := providers.Store(ctx, envPrefix, found)
+		if err != nil {
+			return modules.Failed, err
 		}
 
 		if !stored {

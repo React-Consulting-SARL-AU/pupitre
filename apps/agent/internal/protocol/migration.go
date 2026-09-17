@@ -22,7 +22,7 @@ func allowedWhileMigrating(cmd string) bool {
 // A configuration the binary cannot read is not a configuration to guess at: a
 // module handed values it misunderstands writes them back misunderstood. What
 // stays open is the view of the machine, the diagnostic, and the ways out.
-func migrationRequired(config contract.ConfigRevision) *Error {
+func MigrationRequired(config contract.ConfigRevision) *Error {
 	switch config.State {
 	case contract.ConfigFailed:
 		return NewError(contract.ErrorMigrationRequired, i18n.T("migrate.required.failed")).

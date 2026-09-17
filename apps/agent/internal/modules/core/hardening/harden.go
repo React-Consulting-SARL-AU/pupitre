@@ -3,7 +3,10 @@ package hardening
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io/fs"
+	"slices"
+	"strings"
 
 	"pupitre.studio/agent/internal/i18n"
 
@@ -67,14 +70,31 @@ func Harden(ctx *modules.Context, name string) Result {
 		return modules.Done, reloadSSHD(ctx)
 	}); err != nil {
 		revertFragment(ctx, previous)
-		return rootStays(restoreSSHD(ctx, message(err)))
+
+		if again := restoreSSHD(ctx); again != nil {
+			return rootStays(i18n.T("harden.sshd.reload.unrestored", message(err), again.Error()))
+		}
+
+		return rootStays(i18n.T("harden.sshd.reload.failed", message(err)))
+	}
+
+	// sshd -t only proves the files parse: an image whose sshd_config carries no
+	// Include reads none of them, and root would be called closed while open.
+	if err := confirmSSHD(ctx, keepRoot, name); err != nil {
+		revertFragment(ctx, previous)
+
+		if again := restoreSSHD(ctx); again != nil {
+			return rootStays(i18n.T("harden.sshd.ignored.unrestored", FragmentPath, message(err), again.Error()))
+		}
+
+		return rootStays(i18n.T("harden.sshd.ignored", FragmentPath, message(err)))
 	}
 
 	return hardened(keepRoot, name)
 }
 
 // The previous fragment is back on disk, but sshd still runs on the refused one until it reloads again; that second reload is best effort, and its outcome is what the reader is told.
-func restoreSSHD(ctx *modules.Context, cause string) string {
+func restoreSSHD(ctx *modules.Context) error {
 	var again error
 
 	_ = ctx.Step("restore-sshd", func() (modules.Outcome, error) {
@@ -85,11 +105,55 @@ func restoreSSHD(ctx *modules.Context, cause string) string {
 		return modules.Done, nil
 	})
 
-	if again != nil {
-		return i18n.T("harden.sshd.reload.unrestored", cause, again.Error())
+	return again
+}
+
+func confirmSSHD(ctx *modules.Context, keepRoot bool, name string) error {
+	return ctx.Step("confirm-sshd-config", func() (modules.Outcome, error) {
+		out, err := sys.Exec(ctx, sys.Command{Argv: []string{"sshd", "-T", "-C", "user=" + name}})
+		if err != nil {
+			return modules.Failed, err
+		}
+
+		effective := effectiveConfig(out.Stdout)
+		rootLogin := "no"
+		if keepRoot {
+			rootLogin = "prohibit-password"
+		}
+
+		if got := rootLoginOf(effective["permitrootlogin"]); got != rootLogin {
+			return modules.Failed, fmt.Errorf("permitrootlogin %s", got)
+		}
+
+		if !slices.Contains(effective["allowusers"], name) {
+			return modules.Failed, fmt.Errorf("allowusers %s", strings.Join(effective["allowusers"], " "))
+		}
+
+		return modules.Done, nil
+	})
+}
+
+// sshd -T prints prohibit-password under the name it had before OpenSSH 7.0.
+func rootLoginOf(values []string) string {
+	got := strings.Join(values, " ")
+	if got == "without-password" {
+		return "prohibit-password"
 	}
 
-	return i18n.T("harden.sshd.reload.failed", cause)
+	return got
+}
+
+// sshd -T prints one keyword per line, lowercased, a list keyword once per value.
+func effectiveConfig(dump string) map[string][]string {
+	effective := map[string][]string{}
+	for _, line := range strings.Split(dump, "\n") {
+		key, value, found := strings.Cut(strings.TrimSpace(line), " ")
+		if found {
+			effective[key] = append(effective[key], strings.Fields(value)...)
+		}
+	}
+
+	return effective
 }
 
 func checkAuthorizedKeys(ctx *modules.Context, name string) (string, error) {
@@ -122,12 +186,40 @@ func checkAuthorizedKeys(ctx *modules.Context, name string) (string, error) {
 			return modules.Done, nil
 		}
 
+		if untrusted := untrustedByStrictModes(ctx, name); untrusted != "" {
+			reason = i18n.T("harden.keys.untrusted", untrusted, name)
+			return modules.Done, nil
+		}
+
 		ctx.Logf("%d key(s) open %s", len(parsed.Keys), name)
 
 		return modules.Done, nil
 	})
 
 	return reason, err
+}
+
+// StrictModes, on by default, makes sshd ignore an authorized_keys whose
+// directory or file another user owns or anyone else can write: the key would
+// parse here and open nothing once root is closed.
+func untrustedByStrictModes(ctx *modules.Context, name string) string {
+	home := user.Home(name)
+
+	for _, rel := range []string{".ssh", ".ssh/authorized_keys"} {
+		path := home + "/" + rel
+
+		owner, err := file.Owner(ctx, path)
+		if err != nil || (owner != name && owner != "root") {
+			return path
+		}
+
+		node, err := ctx.Sys().StatIn(home, rel)
+		if err != nil || node.Mode.Perm()&0o022 != 0 {
+			return path
+		}
+	}
+
+	return ""
 }
 
 func writeFragment(ctx *modules.Context) (previous []byte, changed bool, err error) {

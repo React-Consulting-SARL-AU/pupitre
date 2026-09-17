@@ -36,13 +36,17 @@ func vmoptions(heap int) []byte {
 	return []byte(fmt.Sprintf(optionsTemplate, heap, metaspaceMB, codeCacheMB))
 }
 
-// A backend sized above the machine is killed by the memory guard mid-indexing, which reads to the client as a broken IDE.
+// A backend sized above the machine is killed by the memory guard mid-indexing,
+// which reads to the client as a broken IDE: the floor bends to three quarters
+// of a small machine rather than take the whole of it.
 func heapMB(ctx *modules.Context) int {
-	heap := totalKB(ctx) / 1024 / heapDivisor
+	total := totalKB(ctx) / 1024
+	heap := total / heapDivisor
+	floor := min(minHeapMB, total*3/4)
 
 	switch {
-	case heap < minHeapMB:
-		return minHeapMB
+	case heap < floor:
+		return floor
 	case heap > maxHeapMB:
 		return maxHeapMB
 	}

@@ -36,15 +36,38 @@ type ContextOptions struct {
 	Manifest contract.Manifest
 	Values   map[string]any
 	Secrets  map[string]string
-	Emit     func(contract.StepEvent)
-	LogPath  string
+	// Held is what the machine already runs on for this module, as install.json remembers it.
+	Held    map[string]any
+	Emit    func(contract.StepEvent)
+	LogPath string
+	// InstallPath names the install.json to read the module's values and
+	// secrets from, for a reader that holds no engine: a module is read on what
+	// the machine remembers of it, never on the manifest defaults.
+	InstallPath string
+	// ProjectsLockPath is the lock the project registry is rewritten under; empty is no lock.
+	ProjectsLockPath string
 }
 
 func NewContext(options ContextOptions) *Context {
-	r := newRun(runOptions{Sys: options.Sys, Now: options.Now, Emit: options.Emit, LogPath: options.LogPath})
+	r := newRun(runOptions{Sys: options.Sys, Now: options.Now, Emit: options.Emit, LogPath: options.LogPath, ProjectsLock: options.ProjectsLockPath})
+
+	if options.InstallPath != "" {
+		remembered, err := Remembered(options.Sys, options.InstallPath)
+		if err != nil {
+			r.journal.logf("pupitred", "%s unreadable, ignored: %v", options.InstallPath, err)
+		}
+
+		r.redactAll(remembered.Secrets)
+
+		return r.recalled(options.Manifest, remembered)
+	}
+
 	r.redactAll(map[string]map[string]string{options.Manifest.ID: options.Secrets})
 
-	return r.context(options.Manifest, options.Values, options.Secrets)
+	ctx := r.context(options.Manifest, options.Values, options.Secrets)
+	ctx.held = options.Held
+
+	return ctx
 }
 
 func (c *Context) Module() string {
@@ -73,6 +96,11 @@ func (c *Context) Redact(text string) string {
 
 func (c *Context) Once(key string, fn func() error) error {
 	return c.run.once(key, fn)
+}
+
+// ProjectsLock is the path the project registry is held under while a step rewrites it.
+func (c *Context) ProjectsLock() string {
+	return c.run.projectsLock
 }
 
 func (c *Context) Replay() string {
@@ -344,13 +372,14 @@ func marker(status contract.StepStatus) string {
 }
 
 type run struct {
-	sys     sys.Sys
-	now     func() time.Time
-	emit    func(contract.StepEvent)
-	journal *journal
-	done    map[string]bool
-	events  []contract.StepEvent
-	warned  []string
+	sys          sys.Sys
+	now          func() time.Time
+	emit         func(contract.StepEvent)
+	journal      *journal
+	done         map[string]bool
+	events       []contract.StepEvent
+	warned       []string
+	projectsLock string
 
 	// The report as the modules already settled left it, the one at work, and
 	// how the two reach the disk: before every step event, so the report is
@@ -399,10 +428,11 @@ func (r *run) inProgress() contract.Report {
 }
 
 type runOptions struct {
-	Sys     sys.Sys
-	Now     func() time.Time
-	Emit    func(contract.StepEvent)
-	LogPath string
+	Sys          sys.Sys
+	Now          func() time.Time
+	Emit         func(contract.StepEvent)
+	LogPath      string
+	ProjectsLock string
 }
 
 func newRun(options runOptions) *run {
@@ -412,11 +442,12 @@ func newRun(options runOptions) *run {
 	}
 
 	return &run{
-		sys:     options.Sys,
-		now:     now,
-		emit:    options.Emit,
-		journal: openJournal(options.LogPath, now),
-		done:    map[string]bool{},
+		sys:          options.Sys,
+		now:          now,
+		emit:         options.Emit,
+		journal:      openJournal(options.LogPath, now),
+		done:         map[string]bool{},
+		projectsLock: options.ProjectsLock,
 	}
 }
 
@@ -430,6 +461,15 @@ func (r *run) context(manifest contract.Manifest, values map[string]any, secrets
 	}
 
 	return &Context{manifest: manifest, values: values, secrets: secrets, run: r}
+}
+
+// recalled builds the context a module is read through: the values and secrets
+// the machine remembers for it, which are also what it holds.
+func (r *run) recalled(manifest contract.Manifest, remembered Request) *Context {
+	ctx := r.context(manifest, remembered.Config[manifest.ID], remembered.Secrets[manifest.ID])
+	ctx.held = remembered.Config[manifest.ID]
+
+	return ctx
 }
 
 func (r *run) redactAll(secrets map[string]map[string]string) {

@@ -1,6 +1,7 @@
 # Les trois moteurs s'installent sur une machine nue, chacun sur sa boucle locale ; rejoué, rien ne bouge.
 # Les extensions PostgreSQL sont déjà là : le faux psql répond 3 des le départ.
 @file /etc/os-release VERSION_CODENAME=noble
+@answer mongosh pupitre-user-ready
 @file /proc/meminfo MemTotal:       4015000 kB
 @reply mysql 2
 @answer pg_roles 2
@@ -25,10 +26,10 @@ $ {"db.mysql":{"app_password":"s3cret-de-test","remote_password":"s3cret-de-test
 < {"event":"step","id":2,"module":"db.mongodb","ms":0,"status":"ok","step":"write-config"}
 < {"event":"step","id":2,"module":"db.mongodb","ms":0,"status":"start","step":"enable-service"}
 < {"event":"step","id":2,"module":"db.mongodb","ms":0,"status":"ok","step":"enable-service"}
-< {"event":"step","id":2,"module":"db.mongodb","ms":0,"status":"start","step":"store-password"}
-< {"event":"step","id":2,"module":"db.mongodb","ms":0,"status":"ok","step":"store-password"}
 < {"event":"step","id":2,"module":"db.mongodb","ms":0,"status":"start","step":"create-app-user"}
 < {"event":"step","id":2,"module":"db.mongodb","ms":0,"status":"ok","step":"create-app-user"}
+< {"event":"step","id":2,"module":"db.mongodb","ms":0,"status":"start","step":"store-password"}
+< {"event":"step","id":2,"module":"db.mongodb","ms":0,"status":"ok","step":"store-password"}
 < {"event":"step","id":2,"module":"db.mongodb","ms":0,"status":"start","step":"import-dumps"}
 < {"event":"step","id":2,"module":"db.mongodb","ms":0,"status":"skip","step":"import-dumps"}
 < {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"start","step":"install-engine"}
@@ -37,10 +38,10 @@ $ {"db.mysql":{"app_password":"s3cret-de-test","remote_password":"s3cret-de-test
 < {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"ok","step":"write-config"}
 < {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"start","step":"enable-service"}
 < {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"ok","step":"enable-service"}
-< {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"start","step":"store-passwords"}
-< {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"ok","step":"store-passwords"}
 < {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"start","step":"create-accounts"}
 < {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"ok","step":"create-accounts"}
+< {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"start","step":"store-passwords"}
+< {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"ok","step":"store-passwords"}
 < {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"start","step":"import-dumps"}
 < {"event":"step","id":2,"module":"db.mysql","ms":0,"status":"skip","step":"import-dumps"}
 < {"event":"step","id":2,"module":"db.postgres","ms":0,"status":"start","step":"add-repository"}
@@ -53,10 +54,10 @@ $ {"db.mysql":{"app_password":"s3cret-de-test","remote_password":"s3cret-de-test
 < {"event":"step","id":2,"module":"db.postgres","ms":0,"status":"ok","step":"allow-loopback"}
 < {"event":"step","id":2,"module":"db.postgres","ms":0,"status":"start","step":"enable-service"}
 < {"event":"step","id":2,"module":"db.postgres","ms":0,"status":"ok","step":"enable-service"}
-< {"event":"step","id":2,"module":"db.postgres","ms":0,"status":"start","step":"store-passwords"}
-< {"event":"step","id":2,"module":"db.postgres","ms":0,"status":"ok","step":"store-passwords"}
 < {"event":"step","id":2,"module":"db.postgres","ms":0,"status":"start","step":"create-roles"}
 < {"event":"step","id":2,"module":"db.postgres","ms":0,"status":"ok","step":"create-roles"}
+< {"event":"step","id":2,"module":"db.postgres","ms":0,"status":"start","step":"store-passwords"}
+< {"event":"step","id":2,"module":"db.postgres","ms":0,"status":"ok","step":"store-passwords"}
 < {"event":"step","id":2,"module":"db.postgres","ms":0,"status":"start","step":"install-extensions"}
 < {"event":"step","id":2,"module":"db.postgres","ms":0,"status":"skip","step":"install-extensions"}
 < {"event":"step","id":2,"module":"db.postgres","ms":0,"status":"start","step":"import-dumps"}
@@ -74,10 +75,10 @@ $ {"db.mysql":{"app_password":"s3cret-de-test","remote_password":"s3cret-de-test
 < {"event":"step","id":3,"module":"db.mongodb","ms":0,"status":"skip","step":"write-config"}
 < {"event":"step","id":3,"module":"db.mongodb","ms":0,"status":"start","step":"enable-service"}
 < {"event":"step","id":3,"module":"db.mongodb","ms":0,"status":"skip","step":"enable-service"}
-< {"event":"step","id":3,"module":"db.mongodb","ms":0,"status":"start","step":"store-password"}
-< {"event":"step","id":3,"module":"db.mongodb","ms":0,"status":"skip","step":"store-password"}
 < {"event":"step","id":3,"module":"db.mongodb","ms":0,"status":"start","step":"create-app-user"}
 < {"event":"step","id":3,"module":"db.mongodb","ms":0,"status":"skip","step":"create-app-user"}
+< {"event":"step","id":3,"module":"db.mongodb","ms":0,"status":"start","step":"store-password"}
+< {"event":"step","id":3,"module":"db.mongodb","ms":0,"status":"skip","step":"store-password"}
 < {"event":"step","id":3,"module":"db.mongodb","ms":0,"status":"start","step":"import-dumps"}
 < {"event":"step","id":3,"module":"db.mongodb","ms":0,"status":"skip","step":"import-dumps"}
 < {"event":"step","id":3,"module":"db.mysql","ms":0,"status":"start","step":"install-engine"}
@@ -86,10 +87,10 @@ $ {"db.mysql":{"app_password":"s3cret-de-test","remote_password":"s3cret-de-test
 < {"event":"step","id":3,"module":"db.mysql","ms":0,"status":"skip","step":"write-config"}
 < {"event":"step","id":3,"module":"db.mysql","ms":0,"status":"start","step":"enable-service"}
 < {"event":"step","id":3,"module":"db.mysql","ms":0,"status":"skip","step":"enable-service"}
-< {"event":"step","id":3,"module":"db.mysql","ms":0,"status":"start","step":"store-passwords"}
-< {"event":"step","id":3,"module":"db.mysql","ms":0,"status":"skip","step":"store-passwords"}
 < {"event":"step","id":3,"module":"db.mysql","ms":0,"status":"start","step":"create-accounts"}
 < {"event":"step","id":3,"module":"db.mysql","ms":0,"status":"skip","step":"create-accounts"}
+< {"event":"step","id":3,"module":"db.mysql","ms":0,"status":"start","step":"store-passwords"}
+< {"event":"step","id":3,"module":"db.mysql","ms":0,"status":"skip","step":"store-passwords"}
 < {"event":"step","id":3,"module":"db.mysql","ms":0,"status":"start","step":"import-dumps"}
 < {"event":"step","id":3,"module":"db.mysql","ms":0,"status":"skip","step":"import-dumps"}
 < {"event":"step","id":3,"module":"db.postgres","ms":0,"status":"start","step":"add-repository"}
@@ -102,13 +103,13 @@ $ {"db.mysql":{"app_password":"s3cret-de-test","remote_password":"s3cret-de-test
 < {"event":"step","id":3,"module":"db.postgres","ms":0,"status":"skip","step":"allow-loopback"}
 < {"event":"step","id":3,"module":"db.postgres","ms":0,"status":"start","step":"enable-service"}
 < {"event":"step","id":3,"module":"db.postgres","ms":0,"status":"skip","step":"enable-service"}
-< {"event":"step","id":3,"module":"db.postgres","ms":0,"status":"start","step":"store-passwords"}
-< {"event":"step","id":3,"module":"db.postgres","ms":0,"status":"skip","step":"store-passwords"}
 < {"event":"step","id":3,"module":"db.postgres","ms":0,"status":"start","step":"create-roles"}
 < {"event":"step","id":3,"module":"db.postgres","ms":0,"status":"skip","step":"create-roles"}
+< {"event":"step","id":3,"module":"db.postgres","ms":0,"status":"start","step":"store-passwords"}
+< {"event":"step","id":3,"module":"db.postgres","ms":0,"status":"skip","step":"store-passwords"}
 < {"event":"step","id":3,"module":"db.postgres","ms":0,"status":"start","step":"install-extensions"}
 < {"event":"step","id":3,"module":"db.postgres","ms":0,"status":"skip","step":"install-extensions"}
 < {"event":"step","id":3,"module":"db.postgres","ms":0,"status":"start","step":"import-dumps"}
 < {"event":"step","id":3,"module":"db.postgres","ms":0,"status":"skip","step":"import-dumps"}
 < {"id":3,"ok":true,"result":{"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}
-< {"id":4,"ok":true,"result":{"started_at":"2026-09-04T12:00:00Z","finished_at":"2026-09-04T12:00:00Z","agent_version":"0.0.0-test","modules":[{"id":"core.system","status":"skip","steps":[{"step":"install-package","status":"skip","ms":0},{"step":"write-config","status":"skip","ms":0}]},{"id":"db.mongodb","status":"skip","steps":[{"step":"add-repository","status":"skip","ms":0},{"step":"install-package","status":"skip","ms":0},{"step":"write-config","status":"skip","ms":0},{"step":"enable-service","status":"skip","ms":0},{"step":"store-password","status":"skip","ms":0},{"step":"create-app-user","status":"skip","ms":0},{"step":"import-dumps","status":"skip","ms":0}]},{"id":"db.mysql","status":"skip","steps":[{"step":"install-engine","status":"skip","ms":0},{"step":"write-config","status":"skip","ms":0},{"step":"enable-service","status":"skip","ms":0},{"step":"store-passwords","status":"skip","ms":0},{"step":"create-accounts","status":"skip","ms":0},{"step":"import-dumps","status":"skip","ms":0}]},{"id":"db.postgres","status":"skip","steps":[{"step":"add-repository","status":"skip","ms":0},{"step":"install-package","status":"skip","ms":0},{"step":"write-config","status":"skip","ms":0},{"step":"allow-loopback","status":"skip","ms":0},{"step":"enable-service","status":"skip","ms":0},{"step":"store-passwords","status":"skip","ms":0},{"step":"create-roles","status":"skip","ms":0},{"step":"install-extensions","status":"skip","ms":0},{"step":"import-dumps","status":"skip","ms":0}]}],"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}
+< {"id":4,"ok":true,"result":{"started_at":"2026-09-04T12:00:00Z","finished_at":"2026-09-04T12:00:00Z","agent_version":"0.0.0-test","modules":[{"id":"core.system","status":"skip","steps":[{"step":"install-package","status":"skip","ms":0},{"step":"write-config","status":"skip","ms":0}]},{"id":"db.mongodb","status":"skip","steps":[{"step":"add-repository","status":"skip","ms":0},{"step":"install-package","status":"skip","ms":0},{"step":"write-config","status":"skip","ms":0},{"step":"enable-service","status":"skip","ms":0},{"step":"create-app-user","status":"skip","ms":0},{"step":"store-password","status":"skip","ms":0},{"step":"import-dumps","status":"skip","ms":0}]},{"id":"db.mysql","status":"skip","steps":[{"step":"install-engine","status":"skip","ms":0},{"step":"write-config","status":"skip","ms":0},{"step":"enable-service","status":"skip","ms":0},{"step":"create-accounts","status":"skip","ms":0},{"step":"store-passwords","status":"skip","ms":0},{"step":"import-dumps","status":"skip","ms":0}]},{"id":"db.postgres","status":"skip","steps":[{"step":"add-repository","status":"skip","ms":0},{"step":"install-package","status":"skip","ms":0},{"step":"write-config","status":"skip","ms":0},{"step":"allow-loopback","status":"skip","ms":0},{"step":"enable-service","status":"skip","ms":0},{"step":"create-roles","status":"skip","ms":0},{"step":"store-passwords","status":"skip","ms":0},{"step":"install-extensions","status":"skip","ms":0},{"step":"import-dumps","status":"skip","ms":0}]}],"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}

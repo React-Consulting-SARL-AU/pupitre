@@ -506,3 +506,99 @@ func TestPrepareHomeGivesLocalBackToDev(t *testing.T) {
 		t.Fatalf("second pass must skip, got %+v", last)
 	}
 }
+
+// A /home/dev that predates the user — a previous install, an image with the folder — stays root's after useradd, and dev owns nothing of their own home.
+func TestPrepareHomeGivesAPreexistingHomeBackToDev(t *testing.T) {
+	fake := bareMachine()
+	fake.Dirs[Home] = true
+	fake.Files[Home+"/.profile"] = []byte("# leftover\n")
+	ctx := newContext(t, fake)
+
+	run(t, ctx)
+
+	if fake.Owners[Home] != "dev:dev" || fake.Owners[Home+"/.profile"] != "dev:dev" {
+		t.Fatalf("home owner %q, leftover owner %q", fake.Owners[Home], fake.Owners[Home+"/.profile"])
+	}
+
+	again := newContext(t, fake)
+	run(t, again)
+
+	if statuses(again)["prepare-home"] != contract.StepSkip {
+		t.Fatalf("replay = %v", statuses(again))
+	}
+}
+
+// enable --now on a unit already active is a no-op: a changed unit only applies once the daemon restarts on it.
+func TestInstallAgentUnitRestartsTheDaemonOnAChangedUnit(t *testing.T) {
+	fake := bareMachine()
+	run(t, newContext(t, fake))
+	fake.Files[daemon.UnitPath] = []byte("[Service]\nExecStart=/usr/local/bin/pupitred daemon\n")
+
+	ctx := newContext(t, fake)
+	if err := installAgentUnit(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if string(fake.Files[daemon.UnitPath]) != daemon.UnitFile || fake.Restarts[daemon.Unit] != 1 {
+		t.Fatalf("unit rewritten %v, restarts %d", string(fake.Files[daemon.UnitPath]) == daemon.UnitFile, fake.Restarts[daemon.Unit])
+	}
+
+	again := newContext(t, fake)
+	if err := installAgentUnit(again); err != nil {
+		t.Fatal(err)
+	}
+
+	if statuses(again)["install-agent-unit"] != contract.StepSkip || fake.Restarts[daemon.Unit] != 1 {
+		t.Fatalf("replay = %v, restarts %d", statuses(again), fake.Restarts[daemon.Unit])
+	}
+}
+
+func TestTimezoneFailureIsAWarningNotAFailure(t *testing.T) {
+	fake := bareMachine()
+	fake.FailProgram("timedatectl", "Failed to set time zone: Invalid time zone 'Europe/Paris'")
+	ctx := newContext(t, fake)
+
+	run(t, ctx)
+
+	if statuses(ctx)["set-timezone"] != contract.StepOK || fake.Users["dev"] == "" {
+		t.Fatalf("set-timezone = %s, dev created %v", statuses(ctx)["set-timezone"], fake.Users["dev"] != "")
+	}
+
+	if output := strings.Join(ctx.Output(), "\n"); !strings.Contains(output, "! the time zone was not set") {
+		t.Fatalf("no warning in output:\n%s", output)
+	}
+}
+
+func TestUpgradeTakesEveryPackageInOneAptCall(t *testing.T) {
+	fake := bareMachine()
+	run(t, newContext(t, fake))
+	fake.Files[passwdPath] = []byte("dev:x:1000:1000::/home/dev:/usr/bin/zsh\n")
+	fake.Upgrades["git"] = "2.50"
+	fake.Upgrades["tmux"] = "3.5"
+	before := len(fake.Calls)
+
+	ctx := newContext(t, fake)
+	if err := (Module{}).Upgrade(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	installs := 0
+	for _, call := range fake.Calls[before:] {
+		if call.Argv[0] == "apt-get" && strings.Contains(strings.Join(call.Argv, " "), " install ") {
+			installs++
+		}
+	}
+
+	if installs != 1 || fake.Packages["git"] != "2.50" || fake.Packages["tmux"] != "3.5" || statuses(ctx)["upgrade-packages"] != contract.StepOK {
+		t.Fatalf("%d apt-get install call(s), git %s, tmux %s, step %s", installs, fake.Packages["git"], fake.Packages["tmux"], statuses(ctx)["upgrade-packages"])
+	}
+
+	again := newContext(t, fake)
+	if err := (Module{}).Upgrade(again); err != nil {
+		t.Fatal(err)
+	}
+
+	if statuses(again)["upgrade-packages"] != contract.StepSkip {
+		t.Fatalf("replay = %v", statuses(again))
+	}
+}

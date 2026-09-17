@@ -17,8 +17,10 @@ type Options struct {
 	Manifest contract.Manifest
 	Values   Values
 	Secrets  Secrets
-	Emit     func(contract.StepEvent)
-	Now      func() time.Time
+	// Held is what the machine already runs on, for a Preflight that weighs a change.
+	Held Values
+	Emit func(contract.StepEvent)
+	Now  func() time.Time
 }
 
 func NewContext(t *testing.T, fake *FakeSys, options Options) *modules.Context {
@@ -43,6 +45,7 @@ func NewContext(t *testing.T, fake *FakeSys, options Options) *modules.Context {
 		Manifest: manifest,
 		Values:   options.Values,
 		Secrets:  options.Secrets,
+		Held:     options.Held,
 		Emit:     options.Emit,
 	})
 }

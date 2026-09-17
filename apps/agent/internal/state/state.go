@@ -1,14 +1,18 @@
 package state
 
 import (
+	"errors"
 	"os"
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/env"
+	"pupitre.studio/agent/internal/sys/lock"
 	"pupitre.studio/agent/internal/tmux"
 )
 
@@ -20,6 +24,7 @@ type FollowOptions struct {
 	Sleep    func(time.Duration)
 }
 
+// Sleep stays nil unless a test sets it: a real follow waits on a timer it can leave the moment the channel is cut.
 func (f FollowOptions) resolved() FollowOptions {
 	if f.Interval == 0 {
 		f.Interval = 250 * time.Millisecond
@@ -27,12 +32,12 @@ func (f FollowOptions) resolved() FollowOptions {
 	if f.Limit == 0 {
 		f.Limit = 15 * time.Minute
 	}
-	if f.Sleep == nil {
-		f.Sleep = time.Sleep
-	}
 
 	return f
 }
+
+// How long a command waits its turn on the registry, the running record and /etc/hosts: their holders are gone in milliseconds.
+const registryWait = 5 * time.Second
 
 type Options struct {
 	Sys          sys.Sys
@@ -42,6 +47,8 @@ type Options struct {
 	AgentVersion string
 	Paths        registry.Paths
 	Tmux         tmux.Options
+	// InstallPath is the install.json the modules are read on, the one the engine writes; empty is the default path.
+	InstallPath string
 	// Deferred names the modules put on the machine without their settings: what
 	// the contract calls unconfigured, and the one thing a module cannot tell of itself.
 	Deferred func() []string
@@ -123,6 +130,17 @@ func (r *Reader) registry() *registry.File {
 	return registry.Load(r.ctx(), r.options.Paths)
 }
 
+// The lock the registry, the running record and /etc/hosts are read and written under, across every session of this machine.
+func (r *Reader) hold() (func(), error) {
+	release, err := lock.Hold(r.options.Paths.Lock, registryWait)
+	if errors.Is(err, lock.ErrHeld) {
+		return nil, protocol.NewError(contract.ErrorBusy, i18n.T("state.registry.busy")).
+			WithFix(i18n.T("state.registry.busy.fix"))
+	}
+
+	return release, err
+}
+
 func (r *Reader) deferred() []string {
 	if r.options.Deferred == nil {
 		return nil
@@ -177,6 +195,9 @@ func FromEngine(engine *modules.Engine, options Options) *Reader {
 	}
 	if options.AgentVersion == "" {
 		options.AgentVersion = engine.AgentVersion
+	}
+	if options.InstallPath == "" {
+		options.InstallPath = engine.InstallPath
 	}
 	if options.Deferred == nil {
 		options.Deferred = engine.Deferred

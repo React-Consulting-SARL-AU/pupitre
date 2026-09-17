@@ -1,6 +1,7 @@
 package sys
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"strings"
@@ -12,6 +13,12 @@ import (
 // never answers turns into a failed step with a reason, not a wait without end.
 const DefaultTimeout = 30 * time.Minute
 
+const (
+	// KeepMode asks a write to leave the file at the mode it has, DefaultMode when it is new.
+	KeepMode    fs.FileMode = 0
+	DefaultMode fs.FileMode = 0o644
+)
+
 type Command struct {
 	User      string
 	Argv      []string
@@ -20,6 +27,8 @@ type Command struct {
 	Stdin     []byte
 	StdinPath string
 	Timeout   time.Duration
+	// Context, when set, ends the command before its timeout: a follow ends with the channel that reads it.
+	Context context.Context
 }
 
 type Output struct {
@@ -76,7 +85,7 @@ type Sys interface {
 	ListIn(root, rel string) ([]Node, error)
 	// StatIn describes one entry under root. A link is said to be one, and described by its target, which refuses it when that target lies outside.
 	StatIn(root, rel string) (Node, error)
-	// WriteFileIn replaces a file under root atomically: one that was there keeps its owner and its mode, a new one goes to owner.
+	// WriteFileIn replaces a file under root atomically: one that was there keeps its owner and its mode, a new one goes to owner. A link that stays under root is written through, one that leaves it is refused.
 	WriteFileIn(root, rel, owner string, data []byte) error
 	// MkdirIn creates a folder under root, and everything it needed on the way, for owner.
 	MkdirIn(root, rel, owner string) error
@@ -85,6 +94,7 @@ type Sys interface {
 	// RemoveIn deletes an entry under root, everything under it included when recursive.
 	RemoveIn(root, rel string, recursive bool) error
 	ReadDir(path string) ([]Entry, error)
+	// WriteFile replaces the file atomically at the mode asked for — KeepMode leaves it as it was — and never hands a user's file to root.
 	WriteFile(path string, data []byte, mode fs.FileMode) error
 	// AppendFile creates a missing file for its owner, as that user's own tee would have.
 	AppendFile(path string, data []byte, owner string) error
@@ -96,6 +106,16 @@ type Sys interface {
 	Owner(path string) (string, error)
 	MkdirAll(path string, mode fs.FileMode) error
 	Signal(pid int, sig syscall.Signal) error
+}
+
+// Ranged reads a file by ranges, which is what a journal that grows for days
+// needs: never the whole of it. A machine that cannot is read whole, and cut
+// by the caller.
+type Ranged interface {
+	// ReadTail is the last max bytes of the file, the whole of it when it is shorter.
+	ReadTail(path string, max int64) ([]byte, error)
+	// ReadFrom is what lies past offset; a file shorter than that was truncated, and is read from its start.
+	ReadFrom(path string, offset int64) ([]byte, error)
 }
 
 type Context interface {

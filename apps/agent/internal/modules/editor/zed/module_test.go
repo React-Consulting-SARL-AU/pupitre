@@ -21,7 +21,7 @@ func machine() *modtest.FakeSys {
 	fake := modtest.NewFakeSys()
 	fake.Users["dev"] = "/home/dev"
 	fake.Answer("redirect_url", latestRedirect)
-	fake.Replies["curl"] = "\x1f\x8b compressed binary"
+	fake.Answer("api.github.com/repos/zed-industries/zed/releases/tags/", `{"assets":[{"name":"zed-remote-server-linux-`+platform()+`.gz","digest":"sha256:`+modtest.Digest(modtest.Downloaded)+`"}]}`)
 
 	return fake
 }
@@ -127,6 +127,24 @@ func TestAReplayKeepsTheInstalledVersionAndUpgradeMovesIt(t *testing.T) {
 
 	if len(fake.Files[ServerDir+"/zed-remote-server-stable-1.19.0"]) == 0 || strings.TrimSpace(string(fake.Files[pointerPath])) != "1.19.0" {
 		t.Fatalf("upgrade must lay the newer server and record it: %q", fake.Files[pointerPath])
+	}
+
+	if _, kept := fake.Files[ServerDir+"/zed-remote-server-stable-1.18.1"]; kept {
+		t.Fatal("the previous server is one Zed no longer asks for")
+	}
+}
+
+// GitHub computes a digest for every asset of a release: a server that does not match it never reaches ~/.zed_server.
+func TestAServerWhoseDigestDiffersIsRefused(t *testing.T) {
+	fake := machine()
+	fake.Answer("api.github.com/repos/zed-industries/zed/releases/tags/", `{"assets":[{"name":"zed-remote-server-linux-`+platform()+`.gz","digest":"sha256:`+strings.Repeat("0", 64)+`"}]}`)
+
+	if err := (Module{}).Install(newContext(t, fake, modtest.Values{"version": "latest"})); err == nil {
+		t.Fatal("a digest that differs must fail the install")
+	}
+
+	if _, posed := fake.Files[ServerDir+"/zed-remote-server-stable-1.18.1"]; posed {
+		t.Fatal("the refused server reached its destination")
 	}
 }
 

@@ -1,6 +1,7 @@
 package state_test
 
 import (
+	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -149,7 +150,7 @@ func TestTheJournalIsReadWithTheDefaultTailAndFollowedByJournalctl(t *testing.T)
 	}
 
 	var got []string
-	if err := reader.FollowService("tool.demo", 3, func(line string) { got = append(got, line) }); err != nil {
+	if err := reader.FollowService(context.Background(), "tool.demo", 3, func(line string) { got = append(got, line) }); err != nil {
 		t.Fatal(err)
 	}
 

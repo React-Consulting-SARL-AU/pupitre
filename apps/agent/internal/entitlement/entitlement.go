@@ -126,6 +126,14 @@ func (r *Resolver) Remember(state platform.State) error {
 	})
 }
 
+// Suspend writes down what a revocation means: no usage right, as of now.
+func (r *Resolver) Suspend() error {
+	return WriteCache(r.options.Sys, r.options.CachePath, Cache{
+		State:     platformSuspended,
+		CheckedAt: r.options.Now(),
+	})
+}
+
 func (r *Resolver) SyncedAt() time.Time {
 	cache, err := ReadCache(r.options.Sys, r.options.CachePath)
 	if err != nil {

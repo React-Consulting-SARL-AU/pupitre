@@ -232,3 +232,34 @@ func TestFailedInstallCarriesItsReplayCommand(t *testing.T) {
 }
 
 var _ modules.Module = Module{}
+
+// A provider taken out of the form leaves nothing behind: neither its key in /etc/pupitre/env and the credentials file, nor its name in the status.
+func TestAWithdrawnProviderIsForgottenEverywhere(t *testing.T) {
+	fake := machine()
+	run(t, fake, modtest.Values{"always_on": false})
+
+	ctx := modtest.NewContext(t, fake, modtest.Options{
+		Manifest: manifest(),
+		Values:   modtest.Values{"always_on": false},
+		Secrets:  modtest.Secrets{"providers.0": "anthropic:" + anthropicKey},
+	})
+	if err := (Module{}).Configure(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if fake.EnvValue(envPrefix+"OPENAI_API_KEY") != "" || strings.Contains(string(fake.Files[envPath]), openaiKey) {
+		t.Fatalf("the openai key must be gone: env %s / %s", fake.Files["/etc/pupitre/env"], fake.Files[envPath])
+	}
+
+	if fake.EnvValue(envPrefix+"ANTHROPIC_API_KEY") != anthropicKey {
+		t.Fatal("the provider kept must keep its key")
+	}
+
+	status, err := (Module{}).Status(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, named := status.Credentials[envPrefix+"OPENAI_API_KEY"]; named {
+		t.Fatalf("the status still names the withdrawn provider: %v", status.Credentials)
+	}
+}

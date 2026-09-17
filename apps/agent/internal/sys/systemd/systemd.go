@@ -1,6 +1,7 @@
 package systemd
 
 import (
+	"context"
 	"strconv"
 	"strings"
 	"time"
@@ -112,9 +113,9 @@ func Journal(ctx sys.Context, unit string, lines int) ([]string, error) {
 	return split(out.Stdout), nil
 }
 
-// Follow hands the tail over, then every line the unit writes until limit has passed: the stream ends on its own, never with an error for having ended.
-func Follow(ctx sys.Context, unit string, lines int, limit time.Duration, emit func(string)) error {
-	return ctx.Sys().Stream(sys.Command{Argv: append(journalctl(unit, lines), "-f"), Timeout: limit}, emit)
+// Follow hands the tail over, then every line the unit writes until limit has passed or the channel reading it is gone: the stream ends on its own, never with an error for having ended.
+func Follow(ctx sys.Context, channel context.Context, unit string, lines int, limit time.Duration, emit func(string)) error {
+	return ctx.Sys().Stream(sys.Command{Argv: append(journalctl(unit, lines), "-f"), Timeout: limit, Context: channel}, emit)
 }
 
 func journalctl(unit string, lines int) []string {

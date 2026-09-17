@@ -67,10 +67,16 @@ func (r *Reader) module(id string) (modules.Module, bool) {
 }
 
 func (r *Reader) moduleContext(module modules.Module) *modules.Context {
+	installPath := r.options.InstallPath
+	if installPath == "" {
+		installPath = modules.DefaultInstallPath
+	}
+
 	return modules.NewContext(modules.ContextOptions{
-		Sys:      r.options.Sys,
-		Now:      r.options.Now,
-		Manifest: module.Manifest(),
+		Sys:         r.options.Sys,
+		Now:         r.options.Now,
+		Manifest:    module.Manifest(),
+		InstallPath: installPath,
 	})
 }
 

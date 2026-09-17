@@ -80,6 +80,14 @@ func (e *Error) Unauthorized() bool {
 	return e.Status == http.StatusUnauthorized || e.Status == http.StatusForbidden
 }
 
+// CodeInvalidServerToken is what the platform answers for a token it does not know: a revoked or purged server.
+const CodeInvalidServerToken = "invalid_server_token"
+
+// Revoked is the one refusal that says the server itself is gone from the platform, not merely refused today.
+func (e *Error) Revoked() bool {
+	return e.Status == http.StatusUnauthorized && e.Code == CodeInvalidServerToken
+}
+
 // What the platform knows of this server: the entitlement, the keys that open it, the version it should run.
 type State struct {
 	Entitlement    string    `json:"entitlement"`

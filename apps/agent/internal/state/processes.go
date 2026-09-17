@@ -18,7 +18,7 @@ import (
 
 const (
 	// A JetBrains backend or an agent left behind holds its memory for nobody; two hours idle is the line bootstrap.sh draws.
-	SessionAge = 120 * time.Minute
+	SessionIdle = 120 * time.Minute
 
 	KillGrace = 2 * time.Second
 
@@ -127,6 +127,24 @@ func (t processTable) ancestor(pid, of int) bool {
 	return false
 }
 
+// The pane a process runs in, by the pid of its shell, when one of the panes measured is among its ancestors.
+func (t processTable) pane(pid int, activity map[int]time.Time) (time.Time, bool) {
+	for step := 0; step < maxAncestors; step++ {
+		if at, measured := activity[pid]; measured {
+			return at, true
+		}
+
+		parent, known := t.owner[pid]
+		if !known || parent <= 1 {
+			return time.Time{}, false
+		}
+
+		pid = parent
+	}
+
+	return time.Time{}, false
+}
+
 // The project a process belongs to, read off the window it descends from: a window is named <project>/<process>, a session started by hand in the scratch window belongs to no project.
 func (t processTable) project(pid int, panes map[int]string) string {
 	project, _, ours := registry.SplitWindow(t.window(pid, panes))
@@ -202,13 +220,24 @@ func sessionKind(row process) (string, bool) {
 	return "", false
 }
 
+// A session is cleaned on what it has been doing, not on how long it has
+// lived: an agent someone typed into a minute ago has been running for
+// hours too. What runs in a pane is measured on that pane; what runs outside
+// any has only its age to be judged on.
 func (r *Reader) CleanSessions() int {
 	table := r.processes()
 	panes := r.panes()
+	activity := tmux.Activity(r.ctx(), r.options.Tmux)
+	now := r.options.Now()
 	killed := 0
 
 	for _, session := range r.sessions(table, panes) {
-		if time.Duration(session.Seconds)*time.Second < SessionAge {
+		quiet := time.Duration(session.Seconds) * time.Second
+		if at, measured := table.pane(session.PID, activity); measured {
+			quiet = now.Sub(at)
+		}
+
+		if quiet < SessionIdle {
 			continue
 		}
 

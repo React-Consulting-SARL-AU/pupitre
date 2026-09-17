@@ -244,7 +244,7 @@ func verify(ctx *modules.Context) error {
 			return modules.Failed, errors.New(i18n.T("module.db.redis.auth.refused", unit))
 		}
 
-		return modules.Done, nil
+		return modules.Skipped, nil
 	})
 }
 
@@ -351,7 +351,7 @@ func policy(ctx *modules.Context) string {
 }
 
 func renderLive(password string, persistence bool, maxmemoryMB int, policy string) string {
-	lines := []string{"CONFIG SET requirepass " + password}
+	lines := []string{"CONFIG SET requirepass " + quote(password)}
 
 	if persistence {
 		lines = append(lines, "CONFIG SET appendonly yes", "CONFIG SET appendfsync everysec")
@@ -368,13 +368,18 @@ func renderLive(password string, persistence bool, maxmemoryMB int, policy strin
 	return strings.Join(lines, "\n") + "\n"
 }
 
+// redis.conf and redis-cli read the same double-quoted string, backslash and quote escaped.
+func quote(value string) string {
+	return `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(value) + `"`
+}
+
 func renderConfig(port int, password string, persistence bool, maxmemoryMB int, policy string) []byte {
 	var out strings.Builder
 
 	out.WriteString("bind 127.0.0.1 ::1\n")
 	fmt.Fprintf(&out, "port %d\n", port)
 	out.WriteString("protected-mode yes\n")
-	fmt.Fprintf(&out, "requirepass %s\n", password)
+	fmt.Fprintf(&out, "requirepass %s\n", quote(password))
 
 	if persistence {
 		out.WriteString("appendonly yes\nappendfsync everysec\n")

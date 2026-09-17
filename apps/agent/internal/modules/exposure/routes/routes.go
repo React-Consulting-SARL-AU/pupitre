@@ -2,14 +2,19 @@
 package routes
 
 import (
+	"errors"
 	"strconv"
 	"strings"
+	"time"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/env"
+	"pupitre.studio/agent/internal/sys/lock"
 	"pupitre.studio/agent/internal/sys/systemd"
 )
 
@@ -45,14 +50,32 @@ func Declared(ctx sys.Context) []registry.Project {
 	return registry.Load(ctx, registry.Paths{}).Projects
 }
 
-// MoveDomain carries every name the projects answer to from the domain the machine published so far to the one the module is now told, and answers the names that moved.
-func MoveDomain(ctx sys.Context, to string) ([]string, error) {
+// How long the step waits its turn on the registry: its holders are gone in milliseconds.
+const registryWait = 5 * time.Second
+
+// MoveDomain carries every name the projects answer to from the domain the
+// machine published so far to the one the module is now told, and answers the
+// names that moved. The registry is read and rewritten under the lock every
+// session takes for it, so a project added meanwhile is not lost.
+func MoveDomain(ctx *modules.Context, to string) ([]string, error) {
+	release, err := lock.Hold(ctx.ProjectsLock(), registryWait)
+	if errors.Is(err, lock.ErrHeld) {
+		return nil, protocol.NewError(contract.ErrorBusy, i18n.T("state.registry.busy")).
+			WithFix(i18n.T("state.registry.busy.fix"))
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+
 	from, _, err := env.Get(ctx, env.DomainKey)
 	if err != nil {
 		return nil, err
 	}
 
-	return registry.Load(ctx, registry.Paths{}).Rehost(ctx, from, to)
+	paths := registry.Paths{Lock: ctx.ProjectsLock()}
+
+	return registry.Load(ctx, paths).Rehost(ctx, from, to)
 }
 
 // MoveRoutes is the step both exposure modules run before storing another domain: a project may not go on answering under the old one.

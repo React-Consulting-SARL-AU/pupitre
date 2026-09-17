@@ -1,6 +1,7 @@
 package state_test
 
 import (
+	"context"
 	"errors"
 	"strconv"
 	"strings"
@@ -351,7 +352,7 @@ func TestFollowEmitsTheTailThenWhatTheLogGains(t *testing.T) {
 	fake.Files[path] = []byte("premier\n")
 
 	var emitted []string
-	if err := reader.Follow("web", "web", 10, func(line string) { emitted = append(emitted, line) }); err != nil {
+	if err := reader.Follow(context.Background(), "web", "web", 10, func(line string) { emitted = append(emitted, line) }); err != nil {
 		t.Fatal(err)
 	}
 
@@ -467,7 +468,7 @@ func TestUrlPrefersTheTunnelWhenTheMachineHasADomain(t *testing.T) {
 func TestInstallRunsTheDerivedCommandInTheProjectFolder(t *testing.T) {
 	fake, reader := fixture(t)
 
-	installed, err := reader.Install("web", "")
+	installed, err := reader.Install("web", "", func(string) {})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -673,7 +674,7 @@ func TestSyncHandsARootOwnedFolderBackBeforeCloning(t *testing.T) {
 	fake.Dirs["/home/dev/projects/api"] = true
 	fake.Owners["/home/dev/projects/api"] = "root:root"
 
-	synced, err := reader.Sync("api")
+	synced, err := reader.Sync("api", func(string) {})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -691,5 +692,41 @@ func TestSyncHandsARootOwnedFolderBackBeforeCloning(t *testing.T) {
 
 	if clone.User != "dev" || clone.Argv[len(clone.Argv)-1] != "/home/dev/projects/api" {
 		t.Fatalf("the clone runs as dev into the project folder, got %+v", clone)
+	}
+}
+
+// What the install prints travels as it comes: a reader watching a sync sees the package manager at work, not a blank channel for minutes.
+func TestInstallHandsTheOutputOverLineByLine(t *testing.T) {
+	fake, reader := fixture(t)
+	fake.Replies["zsh"] = "bun install v1.2.3\n42 packages installed\n"
+
+	var lines []string
+	if _, err := reader.Install("web", "", func(line string) { lines = append(lines, line) }); err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Join(lines, "|") != "bun install v1.2.3|42 packages installed" {
+		t.Fatalf("got %q", lines)
+	}
+}
+
+// The reader reads the values the machine remembers where the engine wrote them, not at a path of its own: an engine on another install.json is read on that one.
+func TestTheReaderReadsTheModulesOnTheEnginesInstallFile(t *testing.T) {
+	fake, _ := fixture(t)
+	catalog := modules.NewRegistry()
+	catalog.Register(modtest.Passing{ID: "db.demo", Unit: "demo", Versioned: true})
+	fake.Packages["db-demo-"+modtest.OtherVersion] = "1.0"
+	fake.Files["/srv/pupitre/install.json"] = []byte(`{"modules":["db.demo"],"config":{"db.demo":{"version":"` + modtest.OtherVersion + `"}}}`)
+
+	engine := &modules.Engine{Registry: catalog, Sys: fake, InstallPath: "/srv/pupitre/install.json", AgentVersion: "0.0.0-test"}
+	reader := state.FromEngine(engine, state.Options{Follow: state.FollowOptions{Sleep: func(time.Duration) {}}})
+
+	if _, err := reader.ServiceStatus("db.demo"); err != nil {
+		t.Fatalf("the module installed on the remembered version must be found through the engine's install file: %v", err)
+	}
+
+	alone := state.New(state.Options{Sys: fake, Registry: catalog, Follow: state.FollowOptions{Sleep: func(time.Duration) {}}})
+	if _, err := alone.ServiceStatus("db.demo"); err == nil {
+		t.Fatal("a reader given no install file reads the default one, where nothing is remembered")
 	}
 }

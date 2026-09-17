@@ -25,6 +25,7 @@ import (
 	"pupitre.studio/agent/internal/platform"
 	"pupitre.studio/agent/internal/probe"
 	"pupitre.studio/agent/internal/protocol"
+	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/selfupdate"
 	"pupitre.studio/agent/internal/shots"
 	"pupitre.studio/agent/internal/state"
@@ -71,7 +72,10 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	case "enroll":
 		return runEnroll(newDaemon(newEngine()), stdin, stderr)
 	case "install":
-		return runInstall(newEngine(), args[1:], stderr)
+		engine := newEngine()
+		migrator := newMigrator(engine)
+		brought(migrator, engine)
+		return runInstall(engine, migrator.State(), args[1:], stderr)
 	case "report":
 		return runReport(newEngine(), stdout, stderr)
 	case "probe":
@@ -81,7 +85,10 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	case shots.Command:
 		return runShot(state.FromEngine(newEngine(), stateOptions()), args[1:], stdout, stderr)
 	case "resume":
-		return runResume(state.FromEngine(newEngine(), stateOptions()), stdout)
+		engine := newEngine()
+		migrator := newMigrator(engine)
+		brought(migrator, engine)
+		return runResume(state.FromEngine(engine, stateOptions()), migrator.State(), stdout)
 	case "gallery":
 		return runGallery(args[1:], stderr)
 	}
@@ -123,7 +130,18 @@ func newServer(engine *modules.Engine) *protocol.Server {
 
 // The pause between the C-c and the kill leaves a dev server the time to close its port; nothing else waits.
 func stateOptions() state.Options {
-	return state.Options{Tmux: tmux.Options{Grace: 400 * time.Millisecond}}
+	return state.Options{
+		Tmux: tmux.Options{Grace: 400 * time.Millisecond},
+		Paths: registry.Paths{
+			Backups: pathFromEnv("PUPITRE_BACKUPS_PATH", migrate.DefaultBackups),
+			Lock:    projectsLockPath(),
+		},
+	}
+}
+
+// One lock for the registry, whoever rewrites it: the state reader on a project.add, the exposure module on a domain move.
+func projectsLockPath() string {
+	return pathFromEnv("PUPITRE_PROJECTS_LOCK_PATH", registry.DefaultLock)
 }
 
 func newDaemon(engine *modules.Engine) *daemon.Daemon {
@@ -190,6 +208,7 @@ func newEngine() *modules.Engine {
 		InstallPath:  pathFromEnv("PUPITRE_INSTALL_PATH", modules.DefaultInstallPath),
 		LockPath:     pathFromEnv("PUPITRE_LOCK_PATH", modules.DefaultLockPath),
 	}
+	engine.ProjectsLockPath = projectsLockPath()
 	engine.Entitlement = newResolver(engine).Current
 
 	return engine

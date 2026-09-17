@@ -2,6 +2,8 @@ package jetbrains
 
 import (
 	"errors"
+	"path"
+	"regexp"
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
@@ -17,9 +19,12 @@ const (
 	// The folder JetBrains Gateway inspects for an already installed backend; a distribution laid anywhere else is downloaded again.
 	CacheDir = shell.Home + "/.cache/JetBrains/RemoteDev/dist"
 
-	markerName = ".installed.txt"
-	buildName  = "build.txt"
+	markerName    = ".installed.txt"
+	buildName     = "build.txt"
+	partialSuffix = ".partial"
 )
+
+var ourVersion = regexp.MustCompile(contract.PatternVersionOrLatest)
 
 type Module struct{}
 
@@ -31,22 +36,25 @@ func (Module) Manifest() contract.Manifest {
 	return manifest()
 }
 
+// A folder is a backend once it carries build.txt: what a download cut short left is not one.
 func (Module) Check(ctx *modules.Context) (modules.Status, error) {
-	dist := distDir(ctx)
-	if !file.Exists(ctx, dist) {
+	build := installedBuild(ctx)
+	if build == "" {
 		return modules.Status{}, nil
 	}
+
+	dist := distDir(ctx)
 
 	return modules.Status{
 		Installed:  true,
 		Configured: file.Exists(ctx, dist+"/"+markerName) && file.Exists(ctx, optionsPath(ctx)),
-		Version:    installedBuild(ctx),
+		Version:    build,
 	}, nil
 }
 
 func (Module) Install(ctx *modules.Context) error {
 	return ctx.Step("install-backend", func() (modules.Outcome, error) {
-		if file.Exists(ctx, distDir(ctx)) {
+		if installedBuild(ctx) != "" {
 			return modules.Skipped, nil
 		}
 
@@ -59,19 +67,39 @@ func (Module) Install(ctx *modules.Context) error {
 	})
 }
 
+// The archive is extracted beside the distribution and moved into place whole:
+// a download cut short leaves nothing Gateway or a replay would take for a
+// backend, and an upgrade keeps the running backend until its replacement is there.
 func installBackend(ctx *modules.Context, found release) error {
 	dist := distDir(ctx)
+	partial := dist + partialSuffix
 
-	for _, dir := range []string{CacheDir, dist} {
-		if err := ctx.Sys().MkdirAll(dir, 0o755); err != nil {
-			return err
-		}
-
-		if err := file.Chown(ctx, dir, shell.User, shell.User); err != nil {
-			return err
-		}
+	if err := file.MkdirOwned(ctx, CacheDir, shell.User, shell.User, 0o755); err != nil {
+		return err
 	}
 
+	if _, err := user.Run(ctx, shell.User, "rm", "-rf", partial); err != nil {
+		return err
+	}
+
+	if err := file.MkdirOwned(ctx, partial, shell.User, shell.User, 0o755); err != nil {
+		return err
+	}
+
+	if err := extractInto(ctx, found, partial); err != nil {
+		user.Run(ctx, shell.User, "rm", "-rf", partial)
+
+		return err
+	}
+
+	if err := remove(ctx); err != nil {
+		return err
+	}
+
+	return ctx.Sys().RenameIn(CacheDir, path.Base(partial), path.Base(dist))
+}
+
+func extractInto(ctx *modules.Context, found release, dir string) error {
 	digest, err := publishedDigest(ctx, found)
 	if err != nil {
 		return err
@@ -83,12 +111,12 @@ func installBackend(ctx *modules.Context, found release) error {
 	}
 	defer done()
 
-	if err := download.Extract(ctx, staged, dist, 1, shell.User); err != nil {
+	if err := download.Extract(ctx, staged, dir, 1, shell.User); err != nil {
 		return err
 	}
 
-	if !file.Exists(ctx, dist) {
-		return errors.New(i18n.T("modules.jetbrains.missing_after_extract", found.version, dist))
+	if !file.Exists(ctx, dir+"/"+buildName) {
+		return errors.New(i18n.T("modules.jetbrains.missing_after_extract", found.version, dir))
 	}
 
 	return nil
@@ -153,10 +181,6 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 			return modules.Skipped, nil
 		}
 
-		if err := remove(ctx); err != nil {
-			return modules.Failed, err
-		}
-
 		return modules.Done, installBackend(ctx, found)
 	}); err != nil {
 		return err
@@ -165,15 +189,44 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The dist folder is Gateway's; only the distribution this module laid there goes.
+// The dist folder is Gateway's, and so is what Gateway downloaded itself;
+// every distribution this module laid there, under any IDE and version the form
+// named over time, goes.
 func (Module) Uninstall(ctx *modules.Context) error {
 	return ctx.Step("remove-backend", func() (modules.Outcome, error) {
-		if !file.Exists(ctx, distDir(ctx)) {
+		laid := laidDistributions(ctx)
+		if len(laid) == 0 {
 			return modules.Skipped, nil
 		}
 
-		return modules.Done, remove(ctx)
+		for _, dist := range laid {
+			if _, err := user.Run(ctx, shell.User, "rm", "-rf", dist); err != nil {
+				return modules.Failed, err
+			}
+		}
+
+		return modules.Done, nil
 	})
+}
+
+// A distribution of ours is named <ide>-<version>, after an IDE the manifest offers; Gateway names its own after the build.
+func laidDistributions(ctx *modules.Context) []string {
+	entries, err := ctx.Sys().ReadDir(CacheDir)
+	if err != nil {
+		return nil
+	}
+
+	var laid []string
+	for _, entry := range entries {
+		ide, version, found := strings.Cut(entry.Name, "-")
+		if _, offered := ides[ide]; !entry.Dir || !found || !offered || !ourVersion.MatchString(version) {
+			continue
+		}
+
+		laid = append(laid, CacheDir+"/"+entry.Name)
+	}
+
+	return laid
 }
 
 func remove(ctx *modules.Context) error {

@@ -1,11 +1,14 @@
 package hardening
 
 import (
+	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/apt"
@@ -22,6 +25,7 @@ const (
 	jailUnit     = "fail2ban"
 	sshPort      = "22/tcp"
 	altPort      = "443/tcp"
+	comment      = "ssh"
 )
 
 var Packages = []string{"ufw", "fail2ban", "python3-systemd"}
@@ -125,7 +129,7 @@ func (Module) Configure(ctx *modules.Context) error {
 		return err
 	}
 
-	return ctx.Step("prepare-sshd-fragment", func() (modules.Outcome, error) {
+	if err := ctx.Step("prepare-sshd-fragment", func() (modules.Outcome, error) {
 		content := Fragment(options(ctx))
 		if file.Same(ctx, PreparedPath, content) {
 			return modules.Skipped, nil
@@ -136,7 +140,52 @@ func (Module) Configure(ctx *modules.Context) error {
 		}
 
 		return modules.Done, file.WriteAtomic(ctx, PreparedPath, content, 0o600)
-	})
+	}); err != nil {
+		return err
+	}
+
+	return applyFragment(ctx)
+}
+
+// A machine already hardened runs on the live fragment: a form applied after
+// harden reaches sshd through the same gate — write, validate, reload, confirm,
+// or put the previous fragment back. Before harden, sshd is left alone, and
+// root is never closed here: a live fragment that lets root in keeps letting
+// it in until the harden command, the only one that checks a key opens dev
+// before closing the door.
+func applyFragment(ctx *modules.Context) error {
+	if !file.Exists(ctx, FragmentPath) || file.Same(ctx, FragmentPath, Fragment(options(ctx))) {
+		return nil
+	}
+
+	if !options(ctx).KeepRoot && rootOpenIn(ctx) {
+		return ctx.Step("keep-sshd-fragment", func() (modules.Outcome, error) {
+			ctx.Warn(i18n.T("warn.hardening.root_stays_open"))
+
+			return modules.Skipped, nil
+		})
+	}
+
+	if result := Harden(ctx, User); result.Reason != "" {
+		return errors.New(result.Reason)
+	}
+
+	return nil
+}
+
+func rootOpenIn(ctx *modules.Context) bool {
+	live, err := file.Read(ctx, FragmentPath)
+	if err != nil {
+		return true
+	}
+
+	for _, line := range strings.Split(string(live), "\n") {
+		if directive, value, found := strings.Cut(strings.TrimSpace(line), " "); found && strings.EqualFold(directive, "PermitRootLogin") {
+			return strings.TrimSpace(value) != "no"
+		}
+	}
+
+	return true
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
@@ -283,9 +332,9 @@ func configureFirewall(ctx *modules.Context) error {
 			{"--force", "default", "allow", "outgoing"},
 		}
 		for _, port := range wanted {
-			commands = append(commands, []string{"allow", port, "comment", "ssh"})
+			commands = append(commands, []string{"allow", port, "comment", comment})
 		}
-		if !ctx.Bool("ssh_443") && status.allows(altPort) {
+		if !ctx.Bool("ssh_443") && status.owns(altPort) {
 			commands = append(commands, []string{"delete", "allow", altPort})
 		}
 		if !status.active {
@@ -307,6 +356,9 @@ type firewall struct {
 	incoming string
 	outgoing string
 	rules    []string
+	// The rules the hardening added itself, read back by their comment: 443 is
+	// also Caddy's, and Caddy's rule is Caddy's to close.
+	owned []string
 }
 
 func firewallStatus(ctx *modules.Context) firewall {
@@ -328,7 +380,27 @@ func firewallStatus(ctx *modules.Context) firewall {
 		}
 	}
 
+	status.owned = ownedRules(ctx)
+
 	return status
+}
+
+// ufw show added lists the rules as they were given, comment included, whether the firewall is up or not.
+func ownedRules(ctx *modules.Context) []string {
+	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"ufw", "show", "added"}, Timeout: ufwTimeout})
+	if err != nil {
+		return nil
+	}
+
+	var owned []string
+	for _, line := range strings.Split(out.Stdout, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) == 5 && fields[0] == "ufw" && fields[1] == "allow" && fields[3] == "comment" && fields[4] == "'"+comment+"'" {
+			owned = append(owned, fields[2])
+		}
+	}
+
+	return owned
 }
 
 func defaultPolicies(line string) (incoming, outgoing string) {
@@ -350,13 +422,11 @@ func defaultPolicies(line string) (incoming, outgoing string) {
 }
 
 func (f firewall) allows(port string) bool {
-	for _, rule := range f.rules {
-		if rule == port {
-			return true
-		}
-	}
+	return slices.Contains(f.rules, port)
+}
 
-	return false
+func (f firewall) owns(port string) bool {
+	return slices.Contains(f.owned, port)
 }
 
 func (f firewall) matches(wanted []string) bool {
@@ -370,7 +440,7 @@ func (f firewall) matches(wanted []string) bool {
 		}
 	}
 
-	return len(wanted) > 1 || !f.allows(altPort)
+	return len(wanted) > 1 || !f.owns(altPort)
 }
 
 // ufw rewrites the whole rule set through iptables; on a machine whose kernel

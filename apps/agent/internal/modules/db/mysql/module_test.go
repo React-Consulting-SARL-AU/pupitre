@@ -433,3 +433,102 @@ func TestAnAccountNameThatIsNotAnIdentifierFallsBackOnTheDefault(t *testing.T) {
 		t.Fatalf("appAccount = %q, want %q", got, defaultAppAccount)
 	}
 }
+
+func sentSQL(fake *modtest.FakeSys) string {
+	var sql string
+	for _, call := range fake.Calls {
+		if len(call.Stdin) > 0 {
+			sql = string(call.Stdin)
+		}
+	}
+
+	return sql
+}
+
+// MariaDB knows IDENTIFIED BY and IDENTIFIED VIA plugin USING; the IDENTIFIED WITH plugin BY of MySQL is a syntax error there.
+func TestMariadbAccountsUseItsOwnGrammar(t *testing.T) {
+	fake := newFakeSys()
+	fake.Packages[mariadbPackage] = "1:10.11.8-0ubuntu0.24.04.1"
+	ctx := newContext(t, fake, modtest.Values{"engine": "mariadb"})
+
+	install(t, ctx)
+
+	want := strings.Join([]string{
+		"CREATE USER IF NOT EXISTS 'root'@'127.0.0.1' IDENTIFIED BY '" + appPassword + "';",
+		"ALTER USER 'root'@'127.0.0.1' IDENTIFIED BY '" + appPassword + "';",
+		"GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.0.0.1' WITH GRANT OPTION;",
+		"CREATE USER IF NOT EXISTS 'dev'@'127.0.0.1' IDENTIFIED BY '" + remotePassword + "';",
+		"ALTER USER 'dev'@'127.0.0.1' IDENTIFIED BY '" + remotePassword + "';",
+		"GRANT ALL PRIVILEGES ON *.* TO 'dev'@'127.0.0.1' WITH GRANT OPTION;",
+		"FLUSH PRIVILEGES;",
+		"",
+	}, "\n")
+	if got := sentSQL(fake); got != want {
+		t.Fatalf("mariadb SQL:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestPreflightRefusesAnEngineSwitchOnAnInstalledMachine(t *testing.T) {
+	fake := installedSys(t)
+	ctx := modtest.NewContext(t, fake, modtest.Options{
+		Manifest: manifest(),
+		Values:   modtest.Values{"engine": "mariadb"},
+		Held:     modtest.Values{"engine": "mysql"},
+	})
+
+	problems := (Module{}).Preflight(ctx)
+	if len(problems) != 1 || problems[0].Field != "engine" || !strings.Contains(problems[0].Message, "mysql") {
+		t.Fatalf("problems = %+v", problems)
+	}
+
+	same := modtest.NewContext(t, fake, modtest.Options{
+		Manifest: manifest(),
+		Values:   modtest.Values{"engine": "mysql", "port": 3307},
+		Held:     modtest.Values{"engine": "mysql"},
+	})
+	if problems := (Module{}).Preflight(same); len(problems) != 0 {
+		t.Fatalf("the same engine on another port is not a switch: %+v", problems)
+	}
+}
+
+// A password written to /etc/pupitre/env before the accounts hold it is a password the replay believes applied.
+func TestPasswordsAreStoredOnlyOnceTheAccountsHoldThem(t *testing.T) {
+	fake := installedSys(t)
+	fake.Files[env.Path] = []byte(appPasswordKey + "=former-app\n" + remotePasswordKey + "=former-remote\n")
+	fake.FailProgram("mysql", "ERROR 2002 (HY000): Can't connect to local MySQL server through socket")
+	ctx := newContext(t, fake, values)
+
+	if err := (Module{}).Configure(ctx); err == nil {
+		t.Fatal("configure must fail when the accounts cannot be altered")
+	}
+
+	if fake.EnvValue(appPasswordKey) != "former-app" || fake.EnvValue(remotePasswordKey) != "former-remote" {
+		t.Fatalf("the previous passwords must stay until the accounts hold the new ones: %s", fake.Files[env.Path])
+	}
+
+	delete(fake.Failures, "mysql")
+	again := newContext(t, fake, values)
+	install(t, again)
+
+	if statuses(again)["create-accounts"] != contract.StepOK || statuses(again)["store-passwords"] != contract.StepOK {
+		t.Fatalf("the replay must alter the accounts then store: %v", statuses(again))
+	}
+	if !strings.Contains(sentSQL(fake), "BY '"+appPassword+"'") || fake.EnvValue(appPasswordKey) != appPassword {
+		t.Fatalf("accounts or env missed the new password: env %s", fake.Files[env.Path])
+	}
+}
+
+func TestADumpBelongsToDev(t *testing.T) {
+	fake := installedSys(t)
+	fake.Replies["stat"] = "4096\n"
+	ctx := newContext(t, fake, values)
+
+	path, _, err := Dump(ctx, "shop")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if fake.Owners[dumps.Dir] != "dev:dev" || fake.Owners[path] != "dev:dev" {
+		t.Fatalf("~/dumps %q, dump %q: both must belong to dev", fake.Owners[dumps.Dir], fake.Owners[path])
+	}
+}

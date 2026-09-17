@@ -13,6 +13,7 @@
 package migrate
 
 import (
+	"fmt"
 	"sort"
 	"strconv"
 	"sync/atomic"
@@ -203,7 +204,7 @@ func (r *Runner) apply(ledger Ledger, pending []Migration, expected int) (Result
 		started := r.now()
 		ctx.Logf("migration %d %s", migration.ID, migration.Slug)
 
-		if err := migration.Apply(ctx); err != nil {
+		if err := apply(migration, ctx); err != nil {
 			return r.rollback(ctx, backup, migration, err, from, expected)
 		}
 
@@ -236,6 +237,18 @@ func (r *Runner) apply(ledger Ledger, pending []Migration, expected int) (Result
 	result.Backup = backup
 
 	return result, nil
+}
+
+// A migration that panics refuses like one that errs: the alternative is a
+// serve that crashes at every reconnection, the lock held and nothing said.
+func apply(migration Migration, ctx *Context) (err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = fmt.Errorf("migration %d panicked: %v", migration.ID, recovered)
+		}
+	}()
+
+	return migration.Apply(ctx)
 }
 
 // The whole batch goes back, ledger included: half a batch is a shape no binary

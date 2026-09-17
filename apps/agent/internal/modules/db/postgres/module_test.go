@@ -478,3 +478,69 @@ func TestARoleNameThatIsNotAnIdentifierFallsBackOnTheDefault(t *testing.T) {
 		t.Fatalf("appRole = %q, want %q", got, defaultAppRole)
 	}
 }
+
+// A second major installed beside the first is a second cluster fighting for the port, with the data left on the old one.
+func TestPreflightRefusesAVersionChangeWhileAnotherMajorIsInstalled(t *testing.T) {
+	fake := installedSys(t)
+	ctx := modtest.NewContext(t, fake, modtest.Options{
+		Manifest: manifest(),
+		Values:   modtest.Values{"version": "18"},
+		Held:     modtest.Values{"version": DefaultVersion},
+	})
+
+	problems := (Module{}).Preflight(ctx)
+	if len(problems) != 1 || problems[0].Field != "version" || !strings.Contains(problems[0].Message, "pg_upgradecluster") {
+		t.Fatalf("problems = %+v", problems)
+	}
+
+	same := modtest.NewContext(t, fake, modtest.Options{
+		Manifest: manifest(),
+		Values:   modtest.Values{"version": DefaultVersion, "port": 5433},
+		Held:     modtest.Values{"version": DefaultVersion},
+	})
+	if problems := (Module{}).Preflight(same); len(problems) != 0 {
+		t.Fatalf("the same major with another port is not a version change: %+v", problems)
+	}
+}
+
+// A password written to /etc/pupitre/env before the roles hold it is a password the replay believes applied.
+func TestPasswordsAreStoredOnlyOnceTheRolesHoldThem(t *testing.T) {
+	fake := installedSys(t)
+	fake.Files[env.Path] = []byte(appPasswordKey + "=former-app\n" + remotePasswordKey + "=former-remote\n")
+	fake.FailProgram("psql", "psql: error: connection to server on socket failed")
+	ctx := newContext(t, fake)
+
+	if err := (Module{}).Configure(ctx); err == nil {
+		t.Fatal("configure must fail when the roles cannot be altered")
+	}
+
+	if fake.EnvValue(appPasswordKey) != "former-app" || fake.EnvValue(remotePasswordKey) != "former-remote" {
+		t.Fatalf("the previous passwords must stay until the roles hold the new ones: %s", fake.Files[env.Path])
+	}
+
+	delete(fake.Failures, "psql")
+	again := newContext(t, fake)
+	install(t, again)
+
+	if statuses(again)["create-roles"] != contract.StepOK || statuses(again)["store-passwords"] != contract.StepOK {
+		t.Fatalf("the replay must alter the roles then store: %v", statuses(again))
+	}
+	if !strings.Contains(stdin(fake), `PASSWORD '`+appPassword+`'`) || fake.EnvValue(appPasswordKey) != appPassword {
+		t.Fatalf("roles or env missed the new password: env %s", fake.Files[env.Path])
+	}
+}
+
+func TestADumpBelongsToDev(t *testing.T) {
+	fake := installedSys(t)
+	fake.Answer("stat", "8192\n")
+	ctx := newContext(t, fake)
+
+	path, _, err := Dump(ctx, "shop")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if fake.Owners[dumps.Dir] != "dev:dev" || fake.Owners[path] != "dev:dev" {
+		t.Fatalf("~/dumps %q, dump %q: both must belong to dev", fake.Owners[dumps.Dir], fake.Owners[path])
+	}
+}

@@ -2,6 +2,7 @@ package modtest
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -14,6 +15,16 @@ const firstPanePID = 4000
 // What a project's command does once its window opens: bind its port. Nothing else in the fake makes a port answer.
 func (f *FakeSys) Serves(window string, port int) {
 	f.Binds[window] = port
+}
+
+// Duplicates opens a second window under the name, as a start whose last stop failed leaves one.
+func (f *FakeSys) Duplicates(window string) {
+	f.Twins[window] = append(f.Twins[window], firstPanePID+len(f.Windows)+len(f.Twins)+100)
+}
+
+// Splits gives the window a second pane, the user's, which list-panes prints after the window's own.
+func (f *FakeSys) Splits(window string) {
+	f.Split[window] = true
 }
 
 // The command of a window exits with that status, and the pane stays as its corpse; -1 stands for a signal, which leaves no status.
@@ -75,18 +86,30 @@ func (f *FakeSys) tmuxOne(args []string) (sys.Output, error) {
 		}
 		f.openWindow(name)
 	case "kill-window":
-		window := windowName(target)
-		if _, open := f.Windows[window]; !open {
-			return f.fail("tmux", "can't find window: "+window)
+		window, twin, err := f.window(target)
+		if err != nil {
+			return f.fail("tmux", err.Error())
+		}
+		if twin >= 0 {
+			f.Twins[window] = slices.Delete(f.Twins[window], twin, twin+1)
+			f.mutate("tmux kill-window " + target)
+			break
 		}
 		f.closeWindow(window)
 	case "list-panes", "list-windows":
+		if slices.Contains(args, "-a") {
+			return sys.Output{Stdout: f.activity()}, nil
+		}
+
 		if !f.Sessions[target] {
 			return f.fail("tmux", "can't find session: "+target)
 		}
 
 		return sys.Output{Stdout: f.panes(action == "list-panes")}, nil
 	case "send-keys", "pipe-pane", "set-option":
+		if _, _, err := f.window(target); err != nil {
+			return f.fail("tmux", err.Error())
+		}
 		f.mutate("tmux " + action + " " + target)
 	default:
 		return f.fail("tmux", "unknown command: "+action)
@@ -106,8 +129,35 @@ func (f *FakeSys) openWindow(name string) {
 	f.mutate("tmux new-window " + name)
 }
 
+// A target names a window by its id (@pid), or by its name, which tmux refuses once two windows carry it. The twin index is -1 for the window itself.
+func (f *FakeSys) window(target string) (string, int, error) {
+	if id, found := strings.CutPrefix(target, "@"); found {
+		pid, _ := strconv.Atoi(id)
+		for name, own := range f.Windows {
+			if own == pid {
+				return name, -1, nil
+			}
+		}
+		for name, twins := range f.Twins {
+			if at := slices.Index(twins, pid); at >= 0 {
+				return name, at, nil
+			}
+		}
+
+		return "", -1, fmt.Errorf("can't find window: %s", target)
+	}
+
+	name := windowName(target)
+	if _, open := f.Windows[name]; !open || len(f.Twins[name]) > 0 {
+		return "", -1, fmt.Errorf("can't find window: %s", name)
+	}
+
+	return name, -1, nil
+}
+
 func (f *FakeSys) closeWindow(name string) {
 	delete(f.Dead, name)
+	delete(f.Split, name)
 	delete(f.Uptimes, f.Windows[name])
 	delete(f.Windows, name)
 	if port, bound := f.Binds[name]; bound {
@@ -131,7 +181,36 @@ func (f *FakeSys) panes(withPID bool) string {
 			continue
 		}
 
-		fmt.Fprintf(&out, "%s %d %s\n", name, f.Windows[name], f.liveness(name))
+		fmt.Fprintf(&out, "@%d %s %d %s\n", f.Windows[name], name, f.Windows[name], f.liveness(name))
+		if f.Split[name] {
+			fmt.Fprintf(&out, "@%d %s %d alive\n", f.Windows[name], name, f.Windows[name]+1)
+		}
+		for _, twin := range f.Twins[name] {
+			fmt.Fprintf(&out, "@%d %s %d alive\n", twin, name, twin)
+		}
+	}
+
+	return out.String()
+}
+
+// Every pane of every session, its pid and when it last moved, as list-panes -a
+// prints them for the idleness reader: a window a test declared under Activity
+// moved then, the others at the fake's clock.
+func (f *FakeSys) activity() string {
+	names := make([]string, 0, len(f.Windows))
+	for name := range f.Windows {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	var out strings.Builder
+	for _, name := range names {
+		moved := f.Now
+		if at, declared := f.Activity[name]; declared {
+			moved = at
+		}
+
+		fmt.Fprintf(&out, "%d %d\n", f.Windows[name], moved.Unix())
 	}
 
 	return out.String()
@@ -300,13 +379,14 @@ func field(line string, index int) string {
 	return fields[index]
 }
 
+// A target may be exact, with tmux's leading "=": =pupitre names the session as it is, =pupitre:=web the window as it is.
 func parseTmux(args []string) (action, target, name string) {
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "-t", "-s":
 			// list-panes -s is a flag, new-session -s carries the session name: only a non-flag word is a value.
 			if i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
-				target = args[i+1]
+				target = exact(args[i+1])
 				i++
 			}
 		case "-n":
@@ -328,8 +408,19 @@ func parseTmux(args []string) (action, target, name string) {
 
 func windowName(target string) string {
 	if _, window, ok := strings.Cut(target, ":"); ok {
-		return window
+		return strings.TrimPrefix(window, "=")
 	}
 
 	return target
+}
+
+// exact strips the "=" tmux takes for an exact match off the session, and off the window behind the colon.
+func exact(target string) string {
+	session, window, found := strings.Cut(target, ":")
+	session = strings.TrimPrefix(session, "=")
+	if !found {
+		return session
+	}
+
+	return session + ":" + strings.TrimPrefix(window, "=")
 }

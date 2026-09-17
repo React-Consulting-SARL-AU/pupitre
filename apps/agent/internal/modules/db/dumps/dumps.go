@@ -6,6 +6,7 @@ import (
 	"pupitre.studio/agent/internal/i18n"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"pupitre.studio/agent/internal/modules"
@@ -14,8 +15,10 @@ import (
 )
 
 const (
-	Dir       = "/home/dev/dumps"
-	markerDir = "/var/lib/pupitre/dumps"
+	Dir        = "/home/dev/dumps"
+	Owner      = "dev"
+	markerDir  = "/var/lib/pupitre/dumps"
+	tempPrefix = ".pupitre-import-"
 )
 
 type File struct {
@@ -38,6 +41,43 @@ var unsafeInStep = regexp.MustCompile(`[^a-z0-9]+`)
 
 // The name reaches an SQL identifier and a shell-free argv; anything else is left alone rather than quoted into a surprise.
 var safeName = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
+
+// SafeName says whether a database name can reach an identifier, a path under ~/dumps and an argv as it is.
+func SafeName(name string) bool {
+	return safeName.MatchString(name)
+}
+
+// Target is where a dump of this database lands, stamped with the moment: ~/dumps is dev's, the doc says to drop dumps there and the folder must let them.
+func Target(ctx *modules.Context, name, suffix string) (string, error) {
+	if err := file.MkdirOwned(ctx, Dir, Owner, Owner, 0o755); err != nil {
+		return "", err
+	}
+
+	return Dir + "/" + name + "_" + ctx.Now().Format("20060102-1504") + suffix, nil
+}
+
+// Written hands a dump root just wrote to dev and measures it.
+func Written(ctx *modules.Context, path string) (int64, error) {
+	if err := file.Chown(ctx, path, Owner, Owner); err != nil {
+		return 0, err
+	}
+
+	return size(ctx, path), nil
+}
+
+func size(ctx *modules.Context, path string) int64 {
+	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"stat", "-c", "%s", path}})
+	if err != nil {
+		return 0
+	}
+
+	bytes, err := strconv.ParseInt(strings.TrimSpace(out.Stdout), 10, 64)
+	if err != nil {
+		return 0
+	}
+
+	return bytes
+}
 
 // One step per dump, named after its database: the report says what was imported without naming a single secret.
 func Import(ctx *modules.Context, options Options) ([]string, error) {
@@ -82,14 +122,25 @@ func load(ctx *modules.Context, dump File, options Options) (done bool) {
 	return err == nil && done
 }
 
-// gunzip -c … | mysql would need a shell; decompressing beside the archive and removing the copy keeps every command to an argv.
+// gunzip -c … | mysql would need a shell; decompressing beside the archive
+// keeps every command to an argv. The archive is decompressed under a name of
+// its own, through a hard link gzip consumes: a plain x.sql the client left
+// beside x.sql.gz is neither overwritten nor taken away with the copy.
 func prepare(ctx *modules.Context, dump File, native bool) (File, func(), error) {
 	if !dump.Gzip || native {
 		return dump, func() {}, nil
 	}
 
-	plain := strings.TrimSuffix(dump.Path, ".gz")
-	if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"gzip", "--decompress", "--keep", "--force", dump.Path}}); err != nil {
+	linked := path.Dir(dump.Path) + "/" + tempPrefix + path.Base(dump.Path)
+	plain := strings.TrimSuffix(linked, ".gz")
+
+	if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"ln", "--force", dump.Path, linked}}); err != nil {
+		return File{}, func() {}, err
+	}
+
+	if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"gzip", "--decompress", "--force", linked}}); err != nil {
+		file.Remove(ctx, linked)
+
 		return File{}, func() {}, err
 	}
 

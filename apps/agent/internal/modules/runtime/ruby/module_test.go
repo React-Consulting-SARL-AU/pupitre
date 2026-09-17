@@ -127,3 +127,30 @@ func TestFailedStepReportsItsReplayCommand(t *testing.T) {
 }
 
 var _ modules.Module = Module{}
+
+// A new patch is a new interpreter with its own gem home: the bundler the client relies on has to be put under it again.
+func TestUpgradeRefreshesBundlerUnderTheNewPatch(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	run(t, newContext(t, fake, values))
+	installs := strings.Count(strings.Join(fake.Commands(), "\n"), "mise x ruby@3.4 -- gem install bundler")
+	fake.Upgrades["mise:ruby@3.4"] = "3.4.5"
+
+	ctx := newContext(t, fake, values)
+	if err := (Module{}).Upgrade(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	commands := strings.Join(fake.Commands(), "\n")
+	if strings.Count(commands, "mise x ruby@3.4 -- gem install bundler") != installs+1 {
+		t.Fatalf("bundler must be installed once more, under ruby 3.4:\n%s", commands)
+	}
+
+	again := newContext(t, fake, values)
+	if err := (Module{}).Upgrade(again); err != nil {
+		t.Fatal(err)
+	}
+
+	if statuses(again)["install-bundler"] != contract.StepSkip {
+		t.Fatalf("nothing moved, bundler stays: %v", statuses(again))
+	}
+}

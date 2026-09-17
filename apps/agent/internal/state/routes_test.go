@@ -53,7 +53,7 @@ func TestAddResolvesEachNameOnTheWebOnceFromTheDomain(t *testing.T) {
 		t.Fatalf("the answer violates the contract: %v", err)
 	}
 
-	routes := processOf(t, added, "shop").Routes
+	routes := processOf(t, added.Project, "shop").Routes
 	want := []contract.Route{{Label: "web", Port: 3100, Hostname: "shop." + domain}, {Label: "api", Port: 3101, Hostname: "api-shop." + domain}, {Label: "docs", Port: 3102}}
 	if len(routes) != len(want) {
 		t.Fatalf("routes = %+v", routes)
@@ -64,7 +64,7 @@ func TestAddResolvesEachNameOnTheWebOnceFromTheDomain(t *testing.T) {
 		}
 	}
 
-	if added.URL != "https://shop."+domain || processOf(t, added, "shop").URL != added.URL {
+	if added.URL != "https://shop."+domain || processOf(t, added.Project, "shop").URL != added.URL {
 		t.Fatalf("the address is the hostname of the main port's route: %s", added.URL)
 	}
 
@@ -135,7 +135,7 @@ func TestUpdateReplacesTheRoutesWithoutRestartingTheProject(t *testing.T) {
 	if err := contract.ValidateValue("ProjectUpdateResult", updated); err != nil {
 		t.Fatalf("the answer violates the contract: %v", err)
 	}
-	routes := processOf(t, updated, "shop").Routes
+	routes := processOf(t, updated.Project, "shop").Routes
 	if len(routes) != 2 || routes[0].Hostname != "boutique."+domain || routes[1].Hostname != "" {
 		t.Fatalf("the list is replaced, and the api route is gone: %+v", routes)
 	}
@@ -168,7 +168,7 @@ func TestUpdateRestartsTheProcessOnlyWhenItsCommandChangedAndItWasRunning(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	if stopped.State != contract.ProjectStopped || processOf(t, stopped, "shop").Cmd != cmd {
+	if stopped.State != contract.ProjectStopped || processOf(t, stopped.Project, "shop").Cmd != cmd {
 		t.Fatalf("a stopped project takes its new command and stays stopped: %+v", stopped)
 	}
 
@@ -225,7 +225,7 @@ func TestUpdateStartsNothingForANewProcessAndStopsAProcessThatLeaves(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	if updated.State != contract.ProjectPartial || processOf(t, updated, "mail").State != contract.ProcessStopped || processOf(t, updated, "shop").State != contract.ProcessOnline {
+	if updated.State != contract.ProjectPartial || processOf(t, updated.Project, "mail").State != contract.ProcessStopped || processOf(t, updated.Project, "shop").State != contract.ProcessOnline {
 		t.Fatalf("the new process is declared, not started, and the project is partial: %+v", updated)
 	}
 	for _, mutation := range fake.Mutations[before:] {

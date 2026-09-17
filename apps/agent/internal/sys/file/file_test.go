@@ -200,3 +200,25 @@ func TestEnsureOwnedGivesARootTreeBackToItsUser(t *testing.T) {
 		t.Fatalf("missing folder: changed = %v, err = %v, owner %q, mode %o", changed, err, fake.Owners["/home/dev/.config"], fake.Modes["/home/dev/.config"])
 	}
 }
+
+// A machine that cannot read by ranges is read whole: the tail is cut here, and the offset applied here.
+func TestTailAndFromFallBackOnTheWholeFile(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Files["/home/dev/.pupitre/logs/web/web.log"] = []byte("one\ntwo\nthree\n")
+	ctx := modtest.NewSysContext(fake)
+
+	tail, err := file.Tail(ctx, "/home/dev/.pupitre/logs/web/web.log", 6)
+	if err != nil || string(tail) != "three\n" {
+		t.Fatalf("Tail = %q, %v", tail, err)
+	}
+
+	rest, err := file.From(ctx, "/home/dev/.pupitre/logs/web/web.log", 4)
+	if err != nil || string(rest) != "two\nthree\n" {
+		t.Fatalf("From = %q, %v", rest, err)
+	}
+
+	rest, err = file.From(ctx, "/home/dev/.pupitre/logs/web/web.log", 40)
+	if err != nil || string(rest) != "one\ntwo\nthree\n" {
+		t.Fatalf("From past the size = %q, %v", rest, err)
+	}
+}

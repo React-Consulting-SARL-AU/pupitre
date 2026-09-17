@@ -123,3 +123,45 @@ func TestFailedStepReportsItsReplayCommand(t *testing.T) {
 }
 
 var _ modules.Module = Module{}
+
+// PHP reads 512MB as 512 bytes: the form's size format lets the B through, so the ini is written the way PHP reads it.
+func TestAMemoryLimitWithABSuffixIsWrittenTheWayPhpReadsIt(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	ctx := newContext(t, fake, modtest.Values{"php_versions": []string{"8.4"}, "composer": false, "memory_limit": "512MB"})
+
+	run(t, ctx)
+
+	if !strings.Contains(string(fake.Files[iniPath]), "memory_limit = 512M\n") {
+		t.Fatalf("php.ini = %q", fake.Files[iniPath])
+	}
+
+	if output := strings.Join(ctx.Output(), "\n"); !strings.Contains(output, "! memory_limit 512MB written as 512M") {
+		t.Fatalf("the rewrite must be said:\n%s", output)
+	}
+
+	plain := newContext(t, fake, modtest.Values{"php_versions": []string{"8.4"}, "composer": false, "memory_limit": "1G"})
+	run(t, plain)
+
+	if strings.Contains(strings.Join(plain.Output(), "\n"), "! memory_limit") {
+		t.Fatal("a value PHP reads as it is needs no word")
+	}
+}
+
+// A ~/.config/php root made under dev's home locks dev out of its own ini folder.
+func TestTheIniFolderBelongsToDevAllTheWayDown(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Dirs[shell.Home+"/.config"] = true
+	fake.Owners[shell.Home+"/.config"] = "dev:dev"
+	ctx := newContext(t, fake, values)
+
+	run(t, ctx)
+
+	for _, dir := range []string{shell.Home + "/.config/php", iniDir} {
+		if fake.Owners[dir] != "dev:dev" {
+			t.Errorf("%s belongs to %q, want dev", dir, fake.Owners[dir])
+		}
+	}
+	if fake.Owners[shell.Home+"/.config"] != "dev:dev" {
+		t.Fatal("what was dev's stays dev's")
+	}
+}

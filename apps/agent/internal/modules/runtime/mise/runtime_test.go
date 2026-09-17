@@ -1,12 +1,14 @@
 package mise
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/registry"
 )
 
 var sample = Runtime{Tool: "node", Options: []string{"24", "22", "20"}, Default: "24"}
@@ -184,7 +186,7 @@ func TestUpgradeFollowsEachMajor(t *testing.T) {
 	fake.Upgrades["mise:node@22"] = "22.14.0"
 
 	ctx := newContext(t, fake, sample, "24", "22")
-	if err := sample.Upgrade(ctx); err != nil {
+	if _, err := sample.Upgrade(ctx); err != nil {
 		t.Fatal(err)
 	}
 
@@ -197,7 +199,7 @@ func TestUpgradeFollowsEachMajor(t *testing.T) {
 	}
 
 	ctx = newContext(t, fake, sample, "24", "22")
-	if err := sample.Upgrade(ctx); err != nil {
+	if _, err := sample.Upgrade(ctx); err != nil {
 		t.Fatal(err)
 	}
 
@@ -313,4 +315,124 @@ func contains(items []string, item string) bool {
 	}
 
 	return false
+}
+
+func pinned(fake *modtest.FakeSys, project, tool, major string) {
+	fake.Files[registry.DefaultLocal] = []byte(`{"projects":[{"name":"` + project + `","dir":"` + project + `","processes":[{"id":"web","pkgmgr":"bun","host":"127.0.0.1","port":3000,"cmd":"bun run dev"}],"runtimes":{"` + tool + `":"` + major + `"}}]}`)
+}
+
+func warnings(ctx *modules.Context) string {
+	var lines []string
+	for _, line := range ctx.Output() {
+		if strings.Contains(line, "] ! ") {
+			lines = append(lines, line)
+		}
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+// A version a project pins in its mise.local.toml is that project's: unchecking the major in the form keeps it, and says so.
+func TestPruneKeepsAMajorAProjectPins(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Files[Path] = []byte("mise\n")
+	if _, err := sample.Install(newContext(t, fake, sample, "24", "22")); err != nil {
+		t.Fatal(err)
+	}
+	pinned(fake, "shop", "node", "22")
+
+	ctx := newContext(t, fake, sample, "24")
+	if _, err := sample.Install(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Join(fake.Versions["node"], ",") != "24,22" || strings.Contains(strings.Join(fake.Commands(), "\n"), "mise uninstall node@22") {
+		t.Fatalf("node 22 must stay for shop: versions %v", fake.Versions["node"])
+	}
+
+	if statuses(ctx)["prune-node"] != contract.StepOK || !strings.Contains(warnings(ctx), "22") || !strings.Contains(warnings(ctx), "shop") {
+		t.Fatalf("prune must warn naming the version and the project: %s / %v", warnings(ctx), statuses(ctx))
+	}
+}
+
+// A version the client installed by hand is not one the module ever put there: it is left where it is, and named.
+func TestPruneKeepsAVersionInstalledByHand(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Files[Path] = []byte("mise\n")
+	fake.Versions["node"] = []string{"18.20.4"}
+	ctx := newContext(t, fake, sample, "24")
+
+	if _, err := sample.Install(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if !slices.Contains(fake.Versions["node"], "18.20.4") {
+		t.Fatalf("node 18 was the client's own: versions %v", fake.Versions["node"])
+	}
+
+	if !strings.Contains(warnings(ctx), "18.20.4") {
+		t.Fatalf("the version kept must be named: %s", warnings(ctx))
+	}
+}
+
+// The replaced patch goes with the venvs, gem homes and global packages built on it: the projects pinned on that major are told.
+func TestUpgradeWarnsAboutTheReplacedPatchAndTheProjectsOnIt(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Files[Path] = []byte("mise\n")
+	if _, err := sample.Install(newContext(t, fake, sample, "24", "22")); err != nil {
+		t.Fatal(err)
+	}
+	pinned(fake, "shop", "node", "22")
+	fake.Upgrades["mise:node@22"] = "22.14.0"
+
+	ctx := newContext(t, fake, sample, "24", "22")
+	if _, err := sample.Upgrade(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	warned := warnings(ctx)
+	if !strings.Contains(warned, "22 ") && !strings.Contains(warned, "node 22") || !strings.Contains(warned, "22.14.0") || !strings.Contains(warned, "shop") {
+		t.Fatalf("the upgrade must name the patch removed, its replacement and the projects on it: %s", warned)
+	}
+}
+
+// A configuration whose majors were all rotated out of the options still asks for something: the default, and a word about it.
+func TestInstallWithNoOfferedMajorFallsBackOnTheDefault(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Files[Path] = []byte("mise\n")
+	ctx := newContext(t, fake, sample, "18")
+
+	if _, err := sample.Install(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if fake.Tools["node"] != "24" || !strings.Contains(warnings(ctx), "18") {
+		t.Fatalf("tools = %v, warnings = %s", fake.Tools, warnings(ctx))
+	}
+}
+
+// mise refusing to list is not a machine with nothing on it: the step says so rather than reinstall or prune on an empty answer.
+func TestAFailedListingIsAnErrorNotAnEmptyMachine(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Files[Path] = []byte("mise\n")
+	if _, err := sample.Install(newContext(t, fake, sample, "24")); err != nil {
+		t.Fatal(err)
+	}
+	fake.FailProgram("mise", "mise ERROR failed to read config")
+	mutations := len(fake.Mutations)
+
+	for name, run := range map[string]func(*modules.Context) error{
+		"install": func(ctx *modules.Context) error { _, err := sample.Install(ctx); return err },
+		"upgrade": func(ctx *modules.Context) error { _, err := sample.Upgrade(ctx); return err },
+		"remove":  sample.Uninstall,
+	} {
+		err := run(newContext(t, fake, sample, "24"))
+		if err == nil || !strings.Contains(err.Error(), "failed to read config") {
+			t.Fatalf("%s = %v, want the mise error", name, err)
+		}
+	}
+
+	if len(fake.Mutations) != mutations {
+		t.Fatalf("nothing may move on a machine mise cannot describe: %v", fake.Mutations[mutations:])
+	}
 }

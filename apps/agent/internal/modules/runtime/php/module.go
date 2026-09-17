@@ -106,11 +106,7 @@ func (Module) Configure(ctx *modules.Context) error {
 			return modules.Skipped, nil
 		}
 
-		if err := ctx.Sys().MkdirAll(iniDir, 0o755); err != nil {
-			return modules.Failed, err
-		}
-
-		if err := file.Chown(ctx, iniDir, shell.User, shell.User); err != nil {
+		if err := file.MkdirOwned(ctx, iniDir, shell.User, shell.User, 0o755); err != nil {
 			return modules.Failed, err
 		}
 
@@ -127,7 +123,7 @@ func (Module) Configure(ctx *modules.Context) error {
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
-	if err := mise.PHP.Upgrade(ctx); err != nil {
+	if _, err := mise.PHP.Upgrade(ctx); err != nil {
 		return err
 	}
 
@@ -172,13 +168,22 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	return status, nil
 }
 
+// PHP reads a shorthand by its last letter alone: 512MB is 512 bytes to it. A
+// value the form let through with a B is written the way PHP reads it, and said.
 func memoryLimit(ctx *modules.Context) string {
 	chosen := strings.TrimSpace(ctx.String("memory_limit"))
 	if chosen == "" {
 		return defaultMemoryLimit
 	}
 
-	return chosen
+	normalised := strings.TrimRight(chosen, "Bb")
+	if normalised == chosen || normalised == "" || !strings.ContainsRune("KkMmGg", rune(normalised[len(normalised)-1])) {
+		return chosen
+	}
+
+	ctx.Warn(i18n.T("warn.php.memory_limit.normalised", chosen, normalised))
+
+	return normalised
 }
 
 func ini(limit string) []byte {

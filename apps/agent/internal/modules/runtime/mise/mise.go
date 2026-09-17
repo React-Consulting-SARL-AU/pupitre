@@ -114,38 +114,63 @@ func asset(version string) string {
 	return "mise-v" + version + "-linux-x64"
 }
 
-// What the machine really carries, read back from mise rather than from what the app asked for: one version per tool, the first mise lists. A runtime held at several reads them through Versions.
+// What the machine really carries, read back from mise rather than from what
+// the app asked for: one version per tool, the first mise lists. A runtime held
+// at several reads them through Versions. A reader takes a listing mise refused
+// as empty; a step asks installedTools and stops on it.
 func Installed(ctx sys.Context) map[string]string {
+	tools, _ := installedTools(ctx)
+
+	return tools
+}
+
+func installedTools(ctx sys.Context) (map[string]string, error) {
+	entries, err := listed(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	tools := map[string]string{}
-	for _, entry := range listed(ctx) {
+	for _, entry := range entries {
 		if _, seen := tools[entry.tool]; !seen {
 			tools[entry.tool] = entry.version
 		}
 	}
 
-	return tools
+	return tools, nil
 }
 
 // Versions lists every version mise holds of one tool, in the order mise prints them: ascending.
 func Versions(ctx sys.Context, tool string) []string {
+	versions, _ := versionsOf(ctx, tool)
+
+	return versions
+}
+
+func versionsOf(ctx sys.Context, tool string) ([]string, error) {
+	entries, err := listed(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	var versions []string
-	for _, entry := range listed(ctx) {
+	for _, entry := range entries {
 		if entry.tool == tool {
 			versions = append(versions, entry.version)
 		}
 	}
 
-	return versions
+	return versions, nil
 }
 
 type entry struct {
 	tool, version string
 }
 
-func listed(ctx sys.Context) []entry {
+func listed(ctx sys.Context) ([]entry, error) {
 	out, err := user.Run(ctx, shell.User, program, "ls", "--installed")
 	if err != nil {
-		return nil
+		return nil, errors.New(i18n.T("modules.mise.list_failed", err.Error()))
 	}
 
 	var entries []entry
@@ -156,7 +181,7 @@ func listed(ctx sys.Context) []entry {
 		}
 	}
 
-	return entries
+	return entries, nil
 }
 
 // Global reads the defaults mise use -g wrote, tool by requested version, from the configuration file rather than from a shell whose folder would decide the answer.
@@ -267,7 +292,12 @@ func Add(ctx *modules.Context, step, tool, wanted string) (bool, error) {
 	added := false
 
 	err := ctx.Step(step, func() (modules.Outcome, error) {
-		if Matches(Installed(ctx)[tool], wanted) {
+		installed, err := installedTools(ctx)
+		if err != nil {
+			return modules.Failed, err
+		}
+
+		if Matches(installed[tool], wanted) {
 			return modules.Skipped, nil
 		}
 
@@ -289,11 +319,15 @@ func Add(ctx *modules.Context, step, tool, wanted string) (bool, error) {
 
 func Remove(ctx *modules.Context, step, tool string) error {
 	return ctx.Step(step, func() (modules.Outcome, error) {
-		installed := Installed(ctx)[tool]
-		if installed == "" {
+		installed, err := installedTools(ctx)
+		if err != nil {
+			return modules.Failed, err
+		}
+
+		if installed[tool] == "" {
 			return modules.Skipped, nil
 		}
 
-		return modules.Done, Uninstall(ctx, tool, installed)
+		return modules.Done, Uninstall(ctx, tool, installed[tool])
 	})
 }

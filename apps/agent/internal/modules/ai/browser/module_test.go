@@ -103,6 +103,17 @@ func TestAMissingBrowserOnlyWarns(t *testing.T) {
 	if !warned {
 		t.Fatalf("the missing browser must be a warning:\n%s", strings.Join(ctx.Output(), "\n"))
 	}
+
+	var status contract.StepStatus
+	for _, event := range ctx.Events() {
+		if event.Step == "install-browser" {
+			status = event.Status
+		}
+	}
+
+	if status != contract.StepSkip {
+		t.Fatalf("a browser that cannot be installed changes nothing, the step is a skip that warns, got %s", status)
+	}
 }
 
 func TestUninstallGivesBackTheCommandAndTheServiceButKeepsTheCaptures(t *testing.T) {
@@ -166,5 +177,71 @@ func TestGoogleRepositoryIsWrittenOnce(t *testing.T) {
 
 	if fake.Updates != updates+1 || len(fake.Mutations) != 1 || fake.Mutations[0] != "apt-get update" {
 		t.Fatalf("a replay reads the lists again and writes nothing else:\n  %s", strings.Join(fake.Mutations, "\n  "))
+	}
+}
+
+// 24.04 renamed four of the libraries with the t64 suffix and 22.04 never heard of it: a list mixing the two reinstalls on one and warns on the other at every replay.
+func TestPlaywrightLibrariesFollowTheUbuntuRelease(t *testing.T) {
+	for release, want := range map[string][]string{
+		"22.04": {"libatk1.0-0", "libatk-bridge2.0-0", "libcups2", "libasound2"},
+		"24.04": {"libatk1.0-0t64", "libatk-bridge2.0-0t64", "libcups2t64", "libasound2t64"},
+	} {
+		t.Run(release, func(t *testing.T) {
+			fake := modtest.NewFakeSys()
+			fake.Files[osReleasePath] = []byte("ID=ubuntu\nVERSION_ID=\"" + release + "\"\n")
+
+			install(t, fake)
+
+			for _, pkg := range want {
+				if fake.Packages[pkg] == "" {
+					t.Errorf("%s: %s not installed, packages %v", release, pkg, fake.Packages)
+				}
+			}
+			other := "libasound2t64"
+			if release == "24.04" {
+				other = "libasound2"
+			}
+			if fake.Packages[other] != "" {
+				t.Errorf("%s: %s is the other release's name", release, other)
+			}
+		})
+	}
+}
+
+// Ubuntu answers `apt-get install chromium` with chromium-browser, a stub that
+// only says to install the snap: no browser landed, and the machine must say
+// so once, never as a change on every replay.
+func TestUbuntusSnapStubIsNoBrowser(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.FailPackage(chromePackage, "E: Unable to locate package google-chrome-stable")
+	fake.Provides[chromiumPackage] = "chromium-browser"
+	fake.Files["/usr/bin/chromium-browser"] = []byte("#!/bin/sh\necho install the snap\n")
+
+	first := newContext(t, fake)
+	if err := (Module{}).Install(first); err != nil {
+		t.Fatal(err)
+	}
+
+	again := newContext(t, fake)
+	if err := (Module{}).Install(again); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, ctx := range []*modules.Context{first, again} {
+		status, warned := contract.StepStatus(""), false
+		for _, event := range ctx.Events() {
+			if event.Step == "install-browser" {
+				status = event.Status
+				warned = warned || strings.Contains(event.Message, "shot <file> works")
+			}
+		}
+
+		if status != contract.StepSkip || !warned {
+			t.Fatalf("the stub is no browser: step %s, warned %v", status, warned)
+		}
+	}
+
+	if installedPackage(newContext(t, fake)) != "" {
+		t.Fatal("the stub must not count as an installed browser")
 	}
 }

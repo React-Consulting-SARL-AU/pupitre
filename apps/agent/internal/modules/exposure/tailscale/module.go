@@ -29,6 +29,8 @@ const (
 
 	defaultCodename = "noble"
 	device          = "tailscale0"
+	authKeyDir      = "/etc/pupitre"
+	authKeyPath     = authKeyDir + "/tailscale-auth-key"
 
 	// ufw rewrites the whole rule set through iptables and can sit there for ever on a kernel that refuses it; a minute is more than it ever needs.
 	ufwTimeout = time.Minute
@@ -106,6 +108,15 @@ func (Module) Configure(ctx *modules.Context) error {
 			return modules.Skipped, nil
 		}
 
+		if err := ctx.Sys().MkdirAll(authKeyDir, 0o700); err != nil {
+			return modules.Failed, err
+		}
+
+		if err := file.WriteAtomic(ctx, authKeyPath, []byte(ctx.Secret("auth_key")+"\n"), 0o600); err != nil {
+			return modules.Failed, err
+		}
+		defer file.Remove(ctx, authKeyPath)
+
 		_, err := sys.Exec(ctx, sys.Command{Argv: upArgs(ctx), Timeout: joinTimeout})
 		if err != nil {
 			return modules.Failed, err
@@ -137,9 +148,9 @@ func (Module) Configure(ctx *modules.Context) error {
 	})
 }
 
-// The key goes on the command line the way tailscale takes it; the journal replaces it with [secret].
+// The key reaches tailscale through a root-only file it reads itself, never on an argv ps shows.
 func upArgs(ctx *modules.Context) []string {
-	args := []string{Program, "up", "--auth-key=" + ctx.Secret("auth_key"), "--reset"}
+	args := []string{Program, "up", "--auth-key=file:" + authKeyPath, "--reset"}
 
 	if hostname := wantedHostname(ctx); hostname != "" {
 		args = append(args, "--hostname="+hostname)

@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"math/rand/v2"
 	"os"
@@ -20,6 +21,8 @@ import (
 
 // A killed child leaves no orphan holding the pipes open: the whole process group goes with it.
 const killGrace = 2 * time.Second
+
+const maxLinkHops = 8
 
 type Real struct{}
 
@@ -82,8 +85,16 @@ func (Real) Stream(cmd Command, emit func(line string)) error {
 		emit(scanner.Text())
 	}
 
+	// A line the scanner cannot hold leaves the child writing into a pipe nobody drains: it is taken down rather than waited on.
+	if scanErr := scanner.Err(); scanErr != nil {
+		_ = child.process.Cancel()
+		_ = child.process.Wait()
+
+		return fmt.Errorf("%s: %w", cmd.Argv[0], scanErr)
+	}
+
 	err = child.process.Wait()
-	if child.expired() {
+	if child.expired() || child.cancelled() {
 		return nil
 	}
 
@@ -106,6 +117,10 @@ func (c child) expired() bool {
 	return errors.Is(c.ctx.Err(), context.DeadlineExceeded)
 }
 
+func (c child) cancelled() bool {
+	return errors.Is(c.ctx.Err(), context.Canceled)
+}
+
 func prepare(cmd Command) (child, error) {
 	if len(cmd.Argv) == 0 {
 		return child{}, errors.New("empty command")
@@ -116,7 +131,12 @@ func prepare(cmd Command) (child, error) {
 		timeout = DefaultTimeout
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	parent := cmd.Context
+	if parent == nil {
+		parent = context.Background()
+	}
+
+	ctx, cancel := context.WithTimeout(parent, timeout)
 	release := cancel
 
 	process := exec.CommandContext(ctx, program(cmd), cmd.Argv[1:]...)
@@ -238,6 +258,57 @@ func (Real) ReadFile(path string) ([]byte, error) {
 	return os.ReadFile(path)
 }
 
+func (Real) ReadTail(path string, max int64) ([]byte, error) {
+	handle, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer handle.Close()
+
+	info, err := handle.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	from := max0(info.Size() - max)
+	if _, err := handle.Seek(from, io.SeekStart); err != nil {
+		return nil, err
+	}
+
+	return io.ReadAll(handle)
+}
+
+func (Real) ReadFrom(path string, offset int64) ([]byte, error) {
+	handle, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer handle.Close()
+
+	info, err := handle.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	if offset > info.Size() {
+		offset = 0
+	}
+
+	if _, err := handle.Seek(offset, io.SeekStart); err != nil {
+		return nil, err
+	}
+
+	return io.ReadAll(handle)
+}
+
+func max0(value int64) int64 {
+	if value < 0 {
+		return 0
+	}
+
+	return value
+}
+
 func (Real) ReadFileIn(root, rel string) ([]byte, error) {
 	scoped, err := os.OpenRoot(root)
 	if err != nil {
@@ -312,15 +383,20 @@ func (Real) WriteFileIn(root, rel, owner string, data []byte) error {
 	}
 	defer scoped.Close()
 
-	dir, err := scoped.OpenRoot(inside(filepath.Dir(rel)))
+	target, err := resolveLinks(scoped, inside(rel))
+	if err != nil {
+		return err
+	}
+
+	dir, err := scoped.OpenRoot(inside(filepath.Dir(target)))
 	if err != nil {
 		return err
 	}
 	defer dir.Close()
 
-	name := filepath.Base(rel)
+	name := filepath.Base(target)
 
-	mode, uid, gid := fs.FileMode(0o644), -1, -1
+	mode, uid, gid := DefaultMode, -1, -1
 	if existing, err := dir.Lstat(name); err == nil && existing.Mode().IsRegular() {
 		mode = existing.Mode().Perm()
 		if held, ok := existing.Sys().(*syscall.Stat_t); ok {
@@ -376,6 +452,34 @@ func (Real) WriteFileIn(root, rel, owner string, data []byte) error {
 	}
 
 	return nil
+}
+
+// A link is written through to what it names, as long as every hop stays under
+// the root: os.Root refuses an absolute target and one that climbs out, and a
+// chain that never ends is refused rather than followed.
+func resolveLinks(scoped *os.Root, rel string) (string, error) {
+	for range maxLinkHops {
+		info, err := scoped.Lstat(rel)
+		if err != nil || info.Mode()&fs.ModeSymlink == 0 {
+			return rel, nil
+		}
+
+		target, err := scoped.Readlink(rel)
+		if err != nil {
+			return "", err
+		}
+
+		if filepath.IsAbs(target) {
+			return "", &fs.PathError{Op: "openat", Path: rel, Err: syscall.EXDEV}
+		}
+
+		rel = inside(filepath.Join(filepath.Dir(rel), target))
+		if rel == ".." || strings.HasPrefix(rel, "../") {
+			return "", &fs.PathError{Op: "openat", Path: rel, Err: syscall.EXDEV}
+		}
+	}
+
+	return "", &fs.PathError{Op: "openat", Path: rel, Err: syscall.ELOOP}
 }
 
 // The file is written next to the one it replaces, so the rename that publishes it never crosses a file system.
@@ -494,15 +598,22 @@ func (Real) ReadDir(path string) ([]Entry, error) {
 	return entries, nil
 }
 
-// A file that already exists keeps its owner and its mode: replacing the
-// inode is how the write stays atomic, and it must not hand a user's file to root.
+// A file that already exists keeps its owner: replacing the inode is how the
+// write stays atomic, and it must not hand a user's file to root. The mode is
+// the one asked for, so a file left too open by an earlier run gets tightened.
 func (Real) WriteFile(path string, data []byte, mode fs.FileMode) error {
 	dir := filepath.Dir(path)
 
 	var owner *syscall.Stat_t
 	if existing, err := os.Lstat(path); err == nil && existing.Mode().IsRegular() {
-		mode = existing.Mode().Perm()
+		if mode == KeepMode {
+			mode = existing.Mode().Perm()
+		}
 		owner, _ = existing.Sys().(*syscall.Stat_t)
+	}
+
+	if mode == KeepMode {
+		mode = DefaultMode
 	}
 
 	tmp, err := os.CreateTemp(dir, "."+filepath.Base(path)+".*")

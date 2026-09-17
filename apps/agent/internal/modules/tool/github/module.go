@@ -27,6 +27,8 @@ const (
 
 	sshDir  = shell.Home + "/.ssh"
 	keyPath = sshDir + "/id_ed25519"
+	// Where gh keeps the token it was signed in with.
+	hostsPath = shell.Home + "/.config/gh/hosts.yml"
 
 	helper     = "!gh auth git-credential"
 	helperKey  = "credential.https://github.com.helper"
@@ -242,7 +244,40 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 }
 
 // The SSH key of the machine and the key registered on the account outlive the module: they are the client's, and other hosts use them.
+// The token does not: gh holds a copy in ~/.config/gh/hosts.yml, and git a helper that would hand it out.
 func (Module) Uninstall(ctx *modules.Context) error {
+	if err := ctx.Step("sign-out-gh", func() (modules.Outcome, error) {
+		if !apt.Installed(ctx, pkg) || !file.Exists(ctx, hostsPath) {
+			return modules.Skipped, nil
+		}
+
+		if _, err := user.Run(ctx, shell.User, "gh", "auth", "logout", "--hostname", host); err != nil {
+			ctx.Warn(i18n.T("warn.github.logout.failed", hostsPath, err.Error()))
+
+			if _, err := file.Remove(ctx, hostsPath); err != nil {
+				return modules.Failed, err
+			}
+		}
+
+		return modules.Done, nil
+	}); err != nil {
+		return err
+	}
+
+	if err := ctx.Step("remove-git-credentials", func() (modules.Outcome, error) {
+		if out, err := user.Run(ctx, shell.User, "git", "config", "--global", "--get", helperKey); err != nil || strings.TrimSpace(out) == "" {
+			return modules.Skipped, nil
+		}
+
+		if _, err := user.Run(ctx, shell.User, "git", "config", "--global", "--unset-all", helperKey); err != nil {
+			return modules.Failed, err
+		}
+
+		return modules.Done, nil
+	}); err != nil {
+		return err
+	}
+
 	if err := ctx.Step("remove-gh", func() (modules.Outcome, error) {
 		if !apt.Installed(ctx, pkg) {
 			return modules.Skipped, nil

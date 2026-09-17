@@ -75,19 +75,24 @@ func ensureServer(ctx *modules.Context, choose func(*modules.Context) (string, e
 	return version, err
 }
 
-// Zed publishes no checksum beside its server: the transport is the only guarantee, so the download at least stays root's until it is in place.
+// Zed publishes no checksum beside its server, but the server is a GitHub
+// release asset, and GitHub computes a digest for every one of them: the
+// archive is refused unless it matches.
+var release = download.GitHubRelease{Repo: "zed-industries/zed", Program: "zed-remote-server", Asset: func(string) string { return "zed-remote-server-linux-" + platform() + ".gz" }}
+
 func installServer(ctx *modules.Context, version string) error {
 	binary := binaryPath(version)
 
-	if err := ctx.Sys().MkdirAll(ServerDir, 0o755); err != nil {
+	if err := file.MkdirOwned(ctx, ServerDir, shell.User, shell.User, 0o755); err != nil {
 		return err
 	}
 
-	if err := file.Chown(ctx, ServerDir, shell.User, shell.User); err != nil {
+	expected, err := release.Digest(ctx, version, release.Asset(version))
+	if err != nil {
 		return err
 	}
 
-	staged, done, err := download.Fetch(ctx, binaryName+version+".gz", assetURL(version))
+	staged, done, err := download.Verified(ctx, binaryName+version+".gz", assetURL(version), expected)
 	if err != nil {
 		return err
 	}
@@ -136,8 +141,30 @@ func record(ctx *modules.Context, version string) error {
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
+	previous := recorded(ctx)
+
 	version, err := ensureServer(ctx, resolve)
 	if err != nil {
+		return err
+	}
+
+	// The server of the previous version is one Zed no longer asks for.
+	if err := ctx.Step("remove-previous-server", func() (modules.Outcome, error) {
+		if previous == "" || previous == version {
+			return modules.Skipped, nil
+		}
+
+		removed, err := file.Remove(ctx, binaryPath(previous))
+		if err != nil {
+			return modules.Failed, err
+		}
+
+		if !removed {
+			return modules.Skipped, nil
+		}
+
+		return modules.Done, nil
+	}); err != nil {
 		return err
 	}
 

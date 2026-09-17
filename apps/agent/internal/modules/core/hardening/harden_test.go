@@ -104,7 +104,7 @@ func TestHardenClosesRootThenReplaysWithoutWriting(t *testing.T) {
 		t.Fatalf("result = %+v", result)
 	}
 
-	if strings.Join(steps, " ") != "check-authorized-keys=ok write-sshd-fragment=ok validate-sshd-config=ok reload-sshd=ok" {
+	if strings.Join(steps, " ") != "check-authorized-keys=ok write-sshd-fragment=ok validate-sshd-config=ok reload-sshd=ok confirm-sshd-config=ok" {
 		t.Fatalf("steps = %v", steps)
 	}
 
@@ -178,7 +178,7 @@ func TestInvalidSSHDConfigIsRevertedAndRootStays(t *testing.T) {
 func TestInvalidConfigRestoresThePreviousFragment(t *testing.T) {
 	fake := hardenedMachine(t)
 	Harden(newContext(t, fake, Options{}), "dev")
-	run(t, newContext(t, fake, Options{SSH443: true}))
+	fake.Files[PreparedPath] = Fragment(Options{SSH443: true})
 	fake.FailProgram("sshd", "Port: bad port number")
 
 	result, steps := events(fake, t, Options{SSH443: true}, "dev")
@@ -241,7 +241,7 @@ func TestKeepRootAppliesTheFragmentAndLeavesRootAWayIn(t *testing.T) {
 		t.Fatalf("result = %+v", result)
 	}
 
-	if strings.Join(steps, " ") != "check-authorized-keys=ok write-sshd-fragment=ok validate-sshd-config=ok reload-sshd=ok" {
+	if strings.Join(steps, " ") != "check-authorized-keys=ok write-sshd-fragment=ok validate-sshd-config=ok reload-sshd=ok confirm-sshd-config=ok" {
 		t.Fatalf("steps = %v", steps)
 	}
 
@@ -268,5 +268,64 @@ func TestKeepRootStillNeedsAKeyOnDev(t *testing.T) {
 
 	if result.RootClosed || result.RootKept || result.NextUser != "root" || !strings.Contains(result.Reason, "no key in /home/dev/.ssh/authorized_keys") {
 		t.Fatalf("result = %+v", result)
+	}
+}
+
+func TestHardenConfirmsTheEffectiveConfigurationAfterReload(t *testing.T) {
+	fake := hardenedMachine(t)
+
+	_, steps := events(fake, t, Options{}, "dev")
+
+	if strings.Join(steps, " ") != "check-authorized-keys=ok write-sshd-fragment=ok validate-sshd-config=ok reload-sshd=ok confirm-sshd-config=ok" {
+		t.Fatalf("steps = %v", steps)
+	}
+
+	commands := strings.Join(fake.Commands(), "\n")
+	if !strings.Contains(commands, "sshd -T -C user=dev") {
+		t.Fatalf("the effective configuration must be read back:\n%s", commands)
+	}
+}
+
+// An image whose sshd_config carries no Include passes sshd -t and ignores the fragment: root would be said closed while still open.
+func TestHardenRevertsWhenSshdIgnoresTheFragment(t *testing.T) {
+	fake := hardenedMachine(t)
+	fake.Files["/etc/ssh/sshd_config"] = []byte("PermitRootLogin yes\n")
+
+	result, steps := events(fake, t, Options{}, "dev")
+
+	if result.RootClosed || result.NextUser != "root" || !strings.Contains(result.Reason, "Include /etc/ssh/sshd_config.d/*.conf") {
+		t.Fatalf("result = %+v", result)
+	}
+
+	if steps[len(steps)-3] != "confirm-sshd-config=fail" || steps[len(steps)-2] != "revert-sshd-fragment=ok" || steps[len(steps)-1] != "restore-sshd=ok" {
+		t.Fatalf("steps = %v", steps)
+	}
+
+	if _, present := fake.Files[FragmentPath]; present {
+		t.Fatal("a fragment sshd does not read must not stay, or the next harden would call root closed")
+	}
+}
+
+func TestHardenRefusesAKeyDirectorySshdWouldNotTrust(t *testing.T) {
+	for name, prepare := range map[string]func(fake *modtest.FakeSys){
+		"owned by another user": func(fake *modtest.FakeSys) { fake.Owners["/home/dev/.ssh"] = "www-data:www-data" },
+		"group writable":        func(fake *modtest.FakeSys) { fake.Modes["/home/dev/.ssh"] = 0o770 },
+		"keys owned by another": func(fake *modtest.FakeSys) { fake.Owners[authorizedKeysPath] = "www-data:www-data" },
+	} {
+		t.Run(name, func(t *testing.T) {
+			fake := hardenedMachine(t)
+			prepare(fake)
+			mutations := len(fake.Mutations)
+
+			result, _ := events(fake, t, Options{}, "dev")
+
+			if result.RootClosed || result.NextUser != "root" || !strings.Contains(result.Reason, "StrictModes") {
+				t.Fatalf("result = %+v", result)
+			}
+
+			if len(fake.Mutations) != mutations {
+				t.Fatalf("mutations = %v", fake.Mutations[mutations:])
+			}
+		})
 	}
 }

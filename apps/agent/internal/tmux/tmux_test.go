@@ -42,7 +42,7 @@ func TestStartOpensAWindowAndItsLog(t *testing.T) {
 	}
 
 	commands := strings.Join(fake.Commands(), "\n")
-	if !strings.Contains(commands, "pipe-pane -o -t pupitre:web/web cat >> "+logPath) {
+	if !strings.Contains(commands, "pipe-pane -o -t =pupitre:=web/web cat >> "+logPath) {
 		t.Fatalf("the output must be piped into the process's log, under a folder of its project's name:\n%s", commands)
 	}
 	if !strings.Contains(commands, "bun run dev --port 3000") {
@@ -128,8 +128,8 @@ func TestCollectReadsTheMachineOnce(t *testing.T) {
 	before := len(fake.Calls)
 	collected := tmux.Collect(ctx, options)
 
-	if calls := len(fake.Calls) - before; calls != 3 {
-		t.Fatalf("got %d calls, want one tmux, one ss and one ps: %v", calls, fake.Commands()[before:])
+	if calls := len(fake.Calls) - before; calls != 2 {
+		t.Fatalf("got %d calls, want one tmux and one ps: %v", calls, fake.Commands()[before:])
 	}
 	if !collected.Running("web/web") || !collected.PortUp(3000) {
 		t.Fatalf("unexpected collection: %+v", collected)
@@ -250,8 +250,8 @@ func TestStartRunsTheCommandAsTheWindowAndKeepsItsCorpse(t *testing.T) {
 	for _, want := range []string{
 		"-e PUPITRE_CMD=bun run dev --port 3000",
 		`exec /usr/bin/zsh -lc "$PUPITRE_CMD"`,
-		"; set-option -w -t pupitre:web/web remain-on-exit on",
-		"; pipe-pane -o -t pupitre:web/web cat >> " + logPath,
+		"; set-option -w -t =pupitre:=web/web remain-on-exit on",
+		"; pipe-pane -o -t =pupitre:=web/web cat >> " + logPath,
 	} {
 		if !strings.Contains(line, want) {
 			t.Errorf("the window must run the command itself, keep its pane once it exits and pipe its output, all in one call — missing %q:\n%s", want, line)
@@ -354,5 +354,131 @@ func TestStopClearsADeadWindowWithoutASignal(t *testing.T) {
 	}
 	if !strings.Contains(string(fake.Files[logPath]), "=== pupitre down ") {
 		t.Fatalf("a shutdown must leave a trace in the log:\n%s", fake.Files[logPath])
+	}
+}
+
+// A journal is bounded by its start: what the previous run wrote is gone with it, and the file stays the user's.
+func TestStartTruncatesTheLogOfThePreviousRun(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Files[logPath] = []byte(strings.Repeat("a line of the previous run\n", 1000))
+	fake.Owners[logPath] = "dev:dev"
+	ctx := newContext(fake)
+
+	if err := tmux.Start(ctx, options, web()); err != nil {
+		t.Fatal(err)
+	}
+
+	log := string(fake.Files[logPath])
+	if strings.Contains(log, "previous run") || !strings.HasPrefix(strings.TrimSpace(log), "=== pupitre up ") {
+		t.Fatalf("the log must hold this run alone:\n%s", log)
+	}
+	if fake.Owners[logPath] != "dev:dev" {
+		t.Fatalf("the log belongs to the user whose pane appends to it, got %q", fake.Owners[logPath])
+	}
+}
+
+// A pane the user split off the window is not the process: only the first
+// pane of each window is read, and it is told apart in the answer, never by a
+// pane index the machine's tmux.conf may start at 1.
+func TestCollectReadsTheFirstPaneOfEachWindow(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Serves("web/web", 3000)
+	ctx := newContext(fake)
+
+	if err := tmux.Start(ctx, options, web()); err != nil {
+		t.Fatal(err)
+	}
+	fake.Splits("web/web")
+
+	collected := tmux.Collect(ctx, options)
+
+	if !collected.Running("web/web") || collected.PID("web/web") != fake.Windows["web/web"] {
+		t.Fatalf("the window's own pane must be read, not the split: %+v", collected.Windows)
+	}
+
+	commands := strings.Join(fake.Commands(), "\n")
+	if strings.Contains(commands, " -f ") {
+		t.Fatalf("no pane index filter may be asked of tmux:\n%s", commands)
+	}
+}
+
+// Two windows under one name are what a start that could not close the last
+// one leaves behind; tmux refuses the name as ambiguous, so the window is
+// addressed by its id, and a stop closes every one of them.
+func TestStopClosesEveryWindowOfTheName(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Serves("web/web", 3000)
+	ctx := newContext(fake)
+
+	if err := tmux.Start(ctx, options, web()); err != nil {
+		t.Fatal(err)
+	}
+	fake.Duplicates("web/web")
+
+	if !tmux.Running(ctx, options, "web/web") {
+		t.Fatal("a duplicated window still runs its first pane")
+	}
+
+	if err := tmux.Stop(ctx, options, "web/web"); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, open := fake.Windows["web/web"]; open || len(fake.Twins["web/web"]) != 0 {
+		t.Fatalf("every window of the name must be closed: %v %v", fake.Windows, fake.Twins)
+	}
+
+	commands := strings.Join(fake.Commands(), "\n")
+	if strings.Contains(commands, "kill-window -t =pupitre:=web/web") {
+		t.Fatalf("a duplicated name is never a target:\n%s", commands)
+	}
+}
+
+// Every target is exact: a session or a window whose name merely begins the same way is never the one addressed.
+func TestEveryTargetIsExact(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Serves("web/web", 3000)
+	ctx := newContext(fake)
+
+	if err := tmux.Start(ctx, options, web()); err != nil {
+		t.Fatal(err)
+	}
+	if err := tmux.Stop(ctx, options, "web/web"); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, command := range fake.Commands() {
+		if !strings.HasPrefix(command, "(dev) tmux") {
+			continue
+		}
+
+		if strings.Contains(command, " -t pupitre") || strings.Contains(command, ":web/web") && !strings.Contains(command, ":=web/web") {
+			t.Fatalf("a target must carry tmux's exact-match marker: %s", command)
+		}
+	}
+
+	if _, open := fake.Windows["web/web"]; open {
+		t.Fatalf("the exact target must still reach the window: %v", fake.Mutations)
+	}
+}
+
+// What listens is read off the kernel's own table, the one the registry and the detection read: never ss, which sees the sockets of other namespaces too.
+func TestListeningIsReadFromTheKernelTable(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Serves("web/web", 3000)
+	ctx := newContext(fake)
+
+	if err := tmux.Start(ctx, options, web()); err != nil {
+		t.Fatal(err)
+	}
+
+	collected := tmux.Collect(ctx, options)
+	if !collected.PortUp(3000) || collected.PortUp(3001) {
+		t.Fatalf("unexpected listening set: %+v", collected.Listening)
+	}
+
+	for _, command := range fake.Commands() {
+		if strings.HasPrefix(command, "ss ") {
+			t.Fatalf("ss must not be run: %s", command)
+		}
 	}
 }

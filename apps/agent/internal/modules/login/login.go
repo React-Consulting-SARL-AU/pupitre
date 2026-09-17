@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/user"
@@ -18,9 +19,12 @@ import (
 // Timeout bounds a check that reaches the provider: service.status answers within it, signed in or not.
 const Timeout = 20 * time.Second
 
-// Ask runs the CLI's own check as the dev user, with the variables the CLI reads beyond that user's own.
+// Ask runs the CLI's own check as the dev user, with the variables the CLI
+// reads beyond that user's own. What the CLI answers is the account's own
+// business, and a status is read every time the dashboard opens: the journal
+// gets the command and the size of the answer, not the answer.
 func Ask(ctx sys.Context, env []string, argv ...string) (sys.Output, error) {
-	return sys.Exec(ctx, sys.Command{
+	return modules.Quiet(ctx, sys.Command{
 		User:    shell.User,
 		Argv:    argv,
 		Dir:     shell.Home,

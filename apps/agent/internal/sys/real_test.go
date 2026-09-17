@@ -1,6 +1,8 @@
 package sys
 
 import (
+	"bufio"
+	"context"
 	"errors"
 	"io/fs"
 	"os"
@@ -250,9 +252,11 @@ func TestRealRunSurvivesAnEmptyPath(t *testing.T) {
 	}
 }
 
-func TestRealWriteFileKeepsTheModeAndOwnerOfAnExistingFile(t *testing.T) {
+// The mode asked for is the mode written, on a file that was there too: a file
+// left world-readable by an earlier run can be tightened, and the owner stays.
+func TestRealWriteFileAppliesTheModeAndKeepsTheOwnerOfAnExistingFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "authorized_keys")
-	if err := os.WriteFile(path, []byte("old\n"), 0o640); err != nil {
+	if err := os.WriteFile(path, []byte("old\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -270,8 +274,8 @@ func TestRealWriteFileKeepsTheModeAndOwnerOfAnExistingFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if info.Mode().Perm() != 0o640 {
-		t.Fatalf("mode = %o, want the existing 640", info.Mode().Perm())
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("mode = %o, want the requested 600", info.Mode().Perm())
 	}
 
 	stat, ok := info.Sys().(*syscall.Stat_t)
@@ -579,5 +583,177 @@ func TestRealStreamReportsTheExitOfACommandThatFailed(t *testing.T) {
 
 	if strings.Join(lines, ",") != "one" {
 		t.Fatalf("lines = %v, want one", lines)
+	}
+}
+
+// KeepMode is how a caller asks for the mode the file already has: a new file then gets the default.
+func TestRealWriteFileKeepsTheModeWhenAskedTo(t *testing.T) {
+	dir := t.TempDir()
+	kept := filepath.Join(dir, "kept")
+	if err := os.WriteFile(kept, []byte("old\n"), 0o640); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := (Real{}).WriteFile(kept, []byte("new\n"), KeepMode); err != nil {
+		t.Fatal(err)
+	}
+
+	info, err := os.Stat(kept)
+	if err != nil || info.Mode().Perm() != 0o640 {
+		t.Fatalf("mode = %v, %v, want the existing 640", info.Mode(), err)
+	}
+
+	fresh := filepath.Join(dir, "fresh")
+	if err := (Real{}).WriteFile(fresh, []byte("new\n"), KeepMode); err != nil {
+		t.Fatal(err)
+	}
+
+	info, err = os.Stat(fresh)
+	if err != nil || info.Mode().Perm() != DefaultMode {
+		t.Fatalf("mode = %v, %v, want the default %o", info.Mode(), err, DefaultMode)
+	}
+}
+
+// A link inside the root is written through: the file it names takes the bytes and keeps its mode, and the link stays a link.
+func TestRealWriteFileInWritesThroughALinkThatStaysInside(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "etc"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "etc", "config.toml"), []byte("a = 1\n"), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("etc/config.toml", filepath.Join(root, "config.toml")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("config.toml", filepath.Join(root, "alias.toml")); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := (Real{}).WriteFileIn(root, "alias.toml", "", []byte("a = 2\n")); err != nil {
+		t.Fatalf("WriteFileIn: %v", err)
+	}
+
+	content, err := os.ReadFile(filepath.Join(root, "etc", "config.toml"))
+	if err != nil || string(content) != "a = 2\n" {
+		t.Fatalf("the target did not take the write: %q, %v", content, err)
+	}
+
+	info, err := os.Lstat(filepath.Join(root, "etc", "config.toml"))
+	if err != nil || info.Mode().Perm() != 0o640 {
+		t.Fatalf("the target's mode changed: %v, %v", info.Mode(), err)
+	}
+
+	for _, link := range []string{"config.toml", "alias.toml"} {
+		if info, err := os.Lstat(filepath.Join(root, link)); err != nil || info.Mode()&fs.ModeSymlink == 0 {
+			t.Fatalf("%s is no longer a link: %v, %v", link, info, err)
+		}
+	}
+}
+
+func TestRealWriteFileInRefusesALinkThatLeavesTheRoot(t *testing.T) {
+	outside := t.TempDir()
+	secret := filepath.Join(outside, "shadow")
+	if err := os.WriteFile(secret, []byte("root:x\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	root := t.TempDir()
+	if err := os.Symlink(secret, filepath.Join(root, "absolute")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("../"+filepath.Base(outside)+"/shadow", filepath.Join(root, "relative")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("loop", filepath.Join(root, "loop")); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, rel := range []string{"absolute", "relative", "loop"} {
+		if err := (Real{}).WriteFileIn(root, rel, "", []byte("owned\n")); err == nil {
+			t.Fatalf("%q wrote through the root", rel)
+		}
+	}
+
+	if content, _ := os.ReadFile(secret); string(content) != "root:x\n" {
+		t.Fatalf("the file outside the root was written: %q", content)
+	}
+}
+
+// A context that ends is the stream's end, not a failure: the child goes with it, whatever it was doing.
+func TestRealStreamEndsWithItsContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var lines []string
+	go func() {
+		time.Sleep(200 * time.Millisecond)
+		cancel()
+	}()
+
+	started := time.Now()
+	err := Real{}.Stream(Command{Argv: []string{"sh", "-c", "echo one; sleep 30"}, Context: ctx}, func(line string) {
+		lines = append(lines, line)
+	})
+	if err != nil {
+		t.Fatalf("a stream ended by its context is not an error: %v", err)
+	}
+
+	if strings.Join(lines, ",") != "one" || time.Since(started) > 5*time.Second {
+		t.Fatalf("lines = %v after %s", lines, time.Since(started))
+	}
+}
+
+// A line the scanner cannot hold ends the stream with its reason and takes the child down, rather than hanging in Wait.
+func TestRealStreamKillsTheChildOnALineTooLong(t *testing.T) {
+	started := time.Now()
+
+	var lines []string
+	err := Real{}.Stream(Command{Argv: []string{"sh", "-c", "echo short; head -c 2000000 /dev/zero | tr '\\0' x; echo; sleep 30"}}, func(line string) {
+		lines = append(lines, line)
+	})
+
+	if err == nil || !errors.Is(err, bufio.ErrTooLong) {
+		t.Fatalf("got %v, want the scanner's refusal", err)
+	}
+
+	if strings.Join(lines, ",") != "short" || time.Since(started) > 5*time.Second {
+		t.Fatalf("lines = %d after %s", len(lines), time.Since(started))
+	}
+}
+
+// A journal is read by ranges: the tail bounded by a size, and what follows an offset.
+func TestRealReadsAJournalByRanges(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "web.log")
+	if err := os.WriteFile(path, []byte("one\ntwo\nthree\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	tail, err := Real{}.ReadTail(path, 6)
+	if err != nil || string(tail) != "three\n" {
+		t.Fatalf("ReadTail = %q, %v", tail, err)
+	}
+
+	whole, err := Real{}.ReadTail(path, 1024)
+	if err != nil || string(whole) != "one\ntwo\nthree\n" {
+		t.Fatalf("ReadTail past the size = %q, %v", whole, err)
+	}
+
+	rest, err := Real{}.ReadFrom(path, 4)
+	if err != nil || string(rest) != "two\nthree\n" {
+		t.Fatalf("ReadFrom = %q, %v", rest, err)
+	}
+
+	// A file shorter than the offset was truncated under the reader: it is read again from the start.
+	if err := os.WriteFile(path, []byte("new\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	rest, err = Real{}.ReadFrom(path, 14)
+	if err != nil || string(rest) != "new\n" {
+		t.Fatalf("ReadFrom past the size = %q, %v", rest, err)
+	}
+
+	if _, err := (Real{}).ReadTail(filepath.Join(t.TempDir(), "absent"), 10); !errors.Is(err, fs.ErrNotExist) {
+		t.Fatalf("absent file: %v", err)
 	}
 }

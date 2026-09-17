@@ -8,7 +8,6 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/protocol"
-	"pupitre.studio/agent/internal/registry"
 )
 
 // The agent kinds of the protocol, each with the module that installs it and the program it leaves on PATH.
@@ -38,9 +37,9 @@ func (r *Reader) OpenAgent(kind, name string) (AgentSession, error) {
 			WithFix(i18n.T("state.agent.unknown.fix", strings.Join(agentKinds(), ", ")))
 	}
 
-	project, declared := r.registry().Get(name)
-	if !declared {
-		return AgentSession{}, registry.NotFound(name)
+	project, err := r.project(name)
+	if err != nil {
+		return AgentSession{}, err
 	}
 
 	if err := r.requireAgent(agent.Module); err != nil {

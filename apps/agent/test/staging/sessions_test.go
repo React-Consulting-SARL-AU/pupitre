@@ -13,15 +13,15 @@ import (
 
 const fakeAgents = "/home/dev/.local/bin"
 
-// Three long-lived processes under the names the machine gives its agents, so sessions.list has the three kinds to tell apart.
+// Three long-lived processes under the names the machine gives its agents — sleep under each name, since a session is told by its argv — so sessions.list has the three kinds to tell apart.
 const sessionFixtureScript = `set -e
 mkdir -p ` + fakeAgents + ` /home/dev/.cache/JetBrains/RemoteDev/bin
-printf '#!/bin/sh\nexec sleep 3600\n' > ` + fakeAgents + `/claude
-printf '#!/bin/sh\nexec sleep 3600\n' > ` + fakeAgents + `/codex
-printf '#!/bin/sh\nexec sleep 3600\n' > /home/dev/.cache/JetBrains/RemoteDev/bin/remote-dev-server.sh
-chmod +x ` + fakeAgents + `/claude ` + fakeAgents + `/codex /home/dev/.cache/JetBrains/RemoteDev/bin/remote-dev-server.sh
-setsid ` + fakeAgents + `/claude </dev/null >/dev/null 2>&1 &
-setsid ` + fakeAgents + `/codex </dev/null >/dev/null 2>&1 &
+ln -sf /usr/bin/sleep ` + fakeAgents + `/claude
+ln -sf /usr/bin/sleep ` + fakeAgents + `/codex
+printf '#!/bin/sh\nsleep 3600\n' > /home/dev/.cache/JetBrains/RemoteDev/bin/remote-dev-server.sh
+chmod +x /home/dev/.cache/JetBrains/RemoteDev/bin/remote-dev-server.sh
+setsid ` + fakeAgents + `/claude 3600 </dev/null >/dev/null 2>&1 &
+setsid ` + fakeAgents + `/codex 3600 </dev/null >/dev/null 2>&1 &
 setsid /home/dev/.cache/JetBrains/RemoteDev/bin/remote-dev-server.sh </dev/null >/dev/null 2>&1 &
 sleep 1
 `
@@ -33,7 +33,7 @@ func writeSessionFixture(t *testing.T, host string) {
 	ssh(t, host, "chown", "dev:dev", "/home/dev/sessions.sh")
 	ssh(t, host, "su", "-", "dev", "-c", "'sh /home/dev/sessions.sh'")
 	t.Cleanup(func() {
-		sshCommand(host, "pkill", "-u", "dev", "-f", "sleep 3600").Run()
+		sshCommand(host, "pkill", "-u", "dev", "-f", "3600").Run()
 		sshCommand(host, "rm", "-f", "/home/dev/sessions.sh", fakeAgents+"/claude", fakeAgents+"/codex").Run()
 	})
 }
@@ -59,7 +59,7 @@ func TestSessionsListTellsTheKindsApart(t *testing.T) {
 		kinds[session.Kind] = true
 	}
 
-	for _, kind := range []string{"claude", "codex", "shell"} {
+	for _, kind := range []string{"claude", "codex", "ide"} {
 		if !kinds[kind] {
 			t.Fatalf("no session of kind %q among %v", kind, kinds)
 		}
@@ -73,7 +73,7 @@ func TestSessionsListTellsTheKindsApart(t *testing.T) {
 func TestProcessKillRefusesAPidThatIsNotTheProjectsUser(t *testing.T) {
 	host := stagingHost(t)
 
-	pid, err := strconv.Atoi(strings.TrimSpace(ssh(t, host, "pgrep", "-u", "root", "-n", "sshd")))
+	pid, err := strconv.Atoi(strings.TrimSpace(ssh(t, host, "pgrep", "-u", "root", "-o", "sshd")))
 	if err != nil {
 		t.Skipf("no root process to aim at: %v", err)
 	}
